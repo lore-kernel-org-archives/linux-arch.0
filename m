@@ -1,31 +1,42 @@
-Return-Path: <ak@suse.de>
-Received: from cantor.suse.de ([195.135.220.2]:29584 "EHLO Cantor.suse.de")
-	by vger.kernel.org with ESMTP id S264933AbUEQJJz (ORCPT
+Return-Path: <geert@linux-m68k.org>
+Received: from witte.sonytel.be ([80.88.33.193]:9697 "EHLO witte.sonytel.be")
+	by vger.kernel.org with ESMTP id S264948AbUEQJMI (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 May 2004 05:09:55 -0400
-Date: Mon, 17 May 2004 11:09:54 +0200
-From: Andi Kleen <ak@suse.de>
+	Mon, 17 May 2004 05:12:08 -0400
+Date: Mon, 17 May 2004 11:11:59 +0200 (MEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Sender: geert@sonycom.com
 Subject: Re: [PATCH] Allow arch override for kmem_bufctl_t
-Message-ID: <20040517090953.GB4903@wotan.suse.de>
-References: <40A60984.1070202@colorfullife.com> <40A60BE1.2060809@colorfullife.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <40A60BE1.2060809@colorfullife.com>
+In-Reply-To: <40A60984.1070202@colorfullife.com>
+Message-ID: <Pine.GSO.4.58.0405171111300.19405@waterleaf.sonytel.be>
+References: <40A60984.1070202@colorfullife.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 To: Manfred Spraul <manfred@colorfullife.com>
 Cc: Andrew Morton <akpm@digeo.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> --- 2.6/include/linux/types.h	2004-05-15 11:21:51.000000000 +0200
-> +++ build-2.6/include/linux/types.h	2004-05-15 12:57:29.000000000 +0200
-> @@ -140,6 +140,9 @@
->  #define pgoff_t unsigned long
->  #endif
->  
-> +#ifndef HAVE_KMEM_BUFCTL_T
-> +typedef unsigned int kmem_bufctl_t;
-> +#endif
+On Sat, 15 May 2004, Manfred Spraul wrote:
+> The slab allocator keeps track of the free objects in a slab with a
+> linked list of integers (typedef'ed to kmem_bufctl_t). Right now
+> unsigned int is used for kmem_bufctl_t, i.e. 4 bytes per-object overhead.
+> The attached patch allows an arch override for this type: Theoretically,
+> unsigned short is sufficient for kmem_bufctl_t and this would reduce the
+> per-object overhead to 2 bytes. But some archs cannot operate on 16-bit
+> values efficiently, thus it's not possible to switch everyone to ushort.
+> The patch switches i386, the port maintainers should switch their arch
+> if there are no problems with 16-bit quantities. All accesses to
+> kmem_bufctl_t are under a per-cache spinlock and not in the hottest path.
 
-Please remove the ifdef and add type to every arch's asm-*/posix_types.h
+16-bit is no problem for m68k, so feel free to switch it.
 
--Andi
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
