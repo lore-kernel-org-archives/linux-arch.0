@@ -1,33 +1,32 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268372AbUHLCoD@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:16549 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S268371AbUHLCoD (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268374AbUHLCqk@vger.kernel.org>
+Received: from mx1.redhat.com ([66.187.233.31]:16550 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S268373AbUHLCqh (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Aug 2004 22:44:03 -0400
-Date: Wed, 11 Aug 2004 19:43:17 -0700
+	Wed, 11 Aug 2004 22:46:37 -0400
+Date: Wed, 11 Aug 2004 19:45:45 -0700
 From: "David S. Miller" <davem@redhat.com>
 Subject: Re: clear_user_highpage()
-Message-Id: <20040811194317.0acf4ae3.davem@redhat.com>
-In-Reply-To: <Pine.LNX.4.58.0408111905210.1839@ppc970.osdl.org>
+Message-Id: <20040811194545.0034428b.davem@redhat.com>
+In-Reply-To: <20040812020825.GA14411@wotan.suse.de>
 References: <20040811161537.5e24c2b6.davem@redhat.com>
 	<Pine.LNX.4.58.0408111635160.1839@ppc970.osdl.org>
-	<20040812004654.GX11200@holomorphy.com>
-	<Pine.LNX.4.58.0408111905210.1839@ppc970.osdl.org>
+	<20040811165307.46ff1eb6.davem@redhat.com>
+	<Pine.LNX.4.58.0408111654440.1839@ppc970.osdl.org>
+	<20040812020825.GA14411@wotan.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: wli@holomorphy.com, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: torvalds@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 11 Aug 2004 19:18:18 -0700 (PDT)
-Linus Torvalds <torvalds@osdl.org> wrote:
+On Thu, 12 Aug 2004 04:08:25 +0200
+Andi Kleen <ak@suse.de> wrote:
 
-> So I'd personally be a whole lot more interested in seeing whether we 
-> could have per-CPU pages than in pre-zeroing. 
+> I discovered this the hard way on Opteron too. At some point
+> I was doing clear_page using cache bypassing write combining stores.
+> That was done because it was faster in microbenchmarks that just
+> tested the function. But on actual macro benchmarks it was quite
+> bad because the applications were eating cache misses all the time.
 
-We have that cold/hot page thing in the current 2.6.x
-tree, or are you talking about something else?
-
-I'm talking about the struct per_cpu_pages stuff.
-It's the first thing buffered_rmqueue() checks when
-the request order of the page allocation is zero.
+Do these cache-bypassing stores use the L2 cache on a hit?
