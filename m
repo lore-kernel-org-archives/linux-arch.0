@@ -1,41 +1,37 @@
-Return-Path: <arnd@arndb.de>
-Received: from natsmtp00.rzone.de ([81.169.145.165]:34038 "EHLO
-	natsmtp00.webmailer.de") by vger.kernel.org with ESMTP
-	id S262935AbUDDXum (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 Apr 2004 19:50:42 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 3/4] Consolidate sys32_select
-Date: Mon, 5 Apr 2004 01:41:07 +0200
-References: <200404040204.03594.arnd@arndb.de> <200404050051.29932.arnd@arndb.de> <20040404233544.GA10937@wotan.suse.de>
-In-Reply-To: <20040404233544.GA10937@wotan.suse.de>
-MIME-Version: 1.0
+Return-Path: <sky@de.ibm.com>
+Received: from mtagate6.de.ibm.com ([195.212.29.155]:48818 "EHLO
+	mtagate6.de.ibm.com") by vger.kernel.org with ESMTP id S263730AbUDGQZo
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 Apr 2004 12:25:44 -0400
+Date: Wed, 7 Apr 2004 18:23:19 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH] missing NULL pointer check in pte_alloc_one.
+Message-ID: <20040407162319.GA2274@mschwid3.boeblingen.de.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-Id: <200404050141.07872.arnd@arndb.de>
-To: Andi Kleen <ak@suse.de>
-Cc: William Lee Irwin III <wli@holomorphy.com>, linux-arch@vger.kernel.org
+Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: linux-arch@vger.kernel.org
+Cc: akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Monday 05 April 2004 01:35, Andi Kleen wrote:
-> > ===== fs/compat.c 1.25 vs edited =====
-> > --- 1.25/fs/compat.c	Sat Apr  3 23:51:59 2004
-> > +++ edited/fs/compat.c	Mon Apr  5 00:48:52 2004
-> > @@ -1377,8 +1377,9 @@
-> >  			usec = timeout % HZ;
-> >  			usec *= (1000000/HZ);
-> >  		}
-> > -		ret = __put_user(sec, &tvp->tv_sec);
-> > -		ret |= __put_user(usec, &tvp->tv_usec);
-> > +		if (put_user(sec, &tvp->tv_sec) ||
-> > +		    put_user(usec, &tvp->tv_usec))
-> > +			ret = -EFAULT;
-> 
-> Are you sure? They should be equivalent. __put_user returns -EFAULT
-> on error.
+Hi Andrew,
+stupid cut-copy-paste error. I fixed the problem for alpha and sparc64
+but I broke s390. pte_alloc_one shouldn't allocate two pages, return one
+and forget the other without freeing it...
 
-Yes, but if put_user succeeds, the value of ret must not be
-set to zero here, it already contains the number of descriptors.
+blue skies,
+  Martin.
 
-	Arnd <><
+diff -urN linux-2.6/include/asm-s390/pgalloc.h linux-2.6-pgalloc/include/asm-s390/pgalloc.h
+--- linux-2.6/include/asm-s390/pgalloc.h	Wed Apr  7 18:17:19 2004
++++ linux-2.6-pgalloc/include/asm-s390/pgalloc.h	Wed Apr  7 18:16:50 2004
+@@ -141,7 +141,7 @@
+ {
+ 	pte_t *pte = pte_alloc_one_kernel(mm, vmaddr);
+ 	if (pte)
+-		return virt_to_page(pte_alloc_one_kernel(mm, vmaddr));
++		return virt_to_page(pte);
+ 	return 0;
+ }
+ 
