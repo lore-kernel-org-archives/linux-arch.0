@@ -1,36 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Wed, 26 Jan 2005 08:43:06 +0100
-From: Andi Kleen <ak@suse.de>
 Subject: Re: TASK_SIZE is variable.
-Message-ID: <20050126074306.GE7198@wotan.suse.de>
-References: <1106692012.6480.158.camel@localhost.localdomain> <20050125155239.4bc469e6.davem@davemloft.net> <20050126063627.GA7198@wotan.suse.de> <20050125224112.306cd1ea.davem@davemloft.net> <20050126071359.GD7198@wotan.suse.de> <20050125232441.6efb49c1.akpm@osdl.org>
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <20050125155239.4bc469e6.davem@davemloft.net>
+References: <1106692012.6480.158.camel@localhost.localdomain>
+	 <20050125155239.4bc469e6.davem@davemloft.net>
+Content-Type: text/plain
+Date: Wed, 26 Jan 2005 07:54:45 +0000
+Message-Id: <1106726086.6480.171.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20050125232441.6efb49c1.akpm@osdl.org>
-To: Andrew Morton <akpm@osdl.org>
-Cc: Andi Kleen <ak@suse.de>, davem@davemloft.net, dwmw2@infradead.org, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+To: "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Jan 25, 2005 at 11:24:41PM -0800, Andrew Morton wrote:
-> Andi Kleen <ak@suse.de> wrote:
-> >
-> > After rereading Anton's post on l-k I think the problem happens
-> >  when a proc accesses (like read on /proc/*/cmdline) increases the 
-> >  reference count of a mm, then the mm exits, and then the other
-> >  process reading /proc does the final mmput. Then the exit_mmap
-> >  executes in the context of the other process. 
-> 
-> yup.  This happens in quite a few places.  Everything under mmput() needs
-> to understand that the mm isn't necessarily current's mm.  I'm not sure
-> that introcuction of additional locking to prevent that would be very nice.
+On Tue, 2005-01-25 at 15:52 -0800, David S. Miller wrote:
+> I think the easiest way to fix this for good is to simply
+> kill off TASK_SIZE and that way each and every use will be
+> audited.  We can replace TASK_SIZE with something the describes
+> what is really wanted:
 
-After thinking about it more I agree. Just replacing TASK_SIZE with
-something that depends on the mm is the best solution here.
+You're right. And we should replace MM_VM_SIZE() too -- as you say,
+nobody uses the (mm) argument because it's useless.
 
-> (Could we null out current->mm during mmput() to catch buggy code, or would
-> that break the lazy-tlb code?)
+TASK_SIZE should be renamed to current_task_size(), because that's what
+it actually does. MM_VM_SIZE(mm) should become MAX_TASK_SIZE, for much
+the same reason. 
 
-It wouldn't have caught TASK_SIZE anyways, I'm not sure how useful this is.
+Then perhaps we can also add thread_task_size(tsk) in case any of the
+current users of MM_VM_SIZE() or the currently-broken users of TASK_SIZE
+actually have access to the thread_info in question and really want the
+real answer instead of MAX_TASK_SIZE.
 
--Andi
+-- 
+dwmw2
