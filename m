@@ -1,218 +1,93 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267325AbUHZAfl@vger.kernel.org>
-Received: from fw.osdl.org ([65.172.181.6]:46209 "EHLO mail.osdl.org")
-	by vger.kernel.org with ESMTP id S267301AbUHZAdL (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266705AbUHZBqy@vger.kernel.org>
+Received: from fw.osdl.org ([65.172.181.6]:35254 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S266683AbUHZBqy (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Aug 2004 20:33:11 -0400
-Message-Id: <200408260033.i7Q0X5132198@mail.osdl.org>
-Subject: [patch 4/8] signal-race-fixes: x86-64 support
-From: akpm@osdl.org
-Date: Wed, 25 Aug 2004 17:36:45 -0700
-To: torvalds@osdl.org
-Cc: linux-arch@vger.kernel.org, akpm@osdl.org, ak@muc.de, mikpe@csd.uu.se
+	Wed, 25 Aug 2004 21:46:54 -0400
+Date: Wed, 25 Aug 2004 18:46:40 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [patch 1/8] signal handling race fix
+In-Reply-To: <20040825172751.13a3b2d5.davem@redhat.com>
+Message-ID: <Pine.LNX.4.58.0408251843130.17766@ppc970.osdl.org>
+References: <200408252140.i7PLeL131496@mail.osdl.org>
+ <Pine.LNX.4.58.0408251536360.17766@ppc970.osdl.org> <20040825160913.681d6868.davem@redhat.com>
+ <Pine.LNX.4.58.0408251702230.17766@ppc970.osdl.org> <20040825172751.13a3b2d5.davem@redhat.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: "David S. Miller" <davem@redhat.com>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, minyard@acm.org, Russell King <rmk@arm.linux.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
 
-From: Andi Kleen <ak@muc.de>
 
-  Add the signal race changes to x86-64 to make it compile again.
+On Wed, 25 Aug 2004, David S. Miller wrote:
+> 
+> I'll then convert Sparc's signal code over to using this
+> force_sigsegv() stuff, I just call exit() directly currently
+> which isn't so nice.
 
-  Didn't merge the more pointless changes from i386.
+Ok, I've merged (hopefully correctly) Andrew's series. It was _much_ 
+smaller after removing the renaming, some whitespace stuff, and using the 
+generic cleanup patch.
 
-  Also remove the special SA_ONESHOT handling, doesn't seem to be needed
-  anymore.
+I also, just to check, tried to do the ARM conversion just to see what it 
+looks like when the patch hasn't gone through several different 
+incarnations and some hand-editing.. Russell, can you check my test patch 
+(appended).
 
-From: Mikael Pettersson <mikpe@csd.uu.se>
+Can architecture people check the result of their respective 
+architectures? I'll check x86 and ppc64 myself, but..
 
-  The signal-race-fixes patch in 2.6.8-rc2-mm1 appears to have broken
-  x86-64's ia32 emulation.
+		Linus
 
-  When forcing a SIGSEGV the old code updated "*ka", where ka was a pointer
-  to current's k_sigaction for SIGSEGV.  Now "ka_copy" points to a copy of
-  that structure, so assigning "*ka_copy" doesn't do what we want.  Instead do
-  the assignment via current->...  just like the normal signal delivery code
-  does.
-
-Signed-off-by: Andrew Morton <akpm@osdl.org>
----
-
- 25-akpm/arch/x86_64/ia32/ia32_signal.c |   18 +++++++++---------
- 25-akpm/arch/x86_64/kernel/signal.c    |   28 +++++++++++++---------------
- 2 files changed, 22 insertions(+), 24 deletions(-)
-
-diff -puN arch/x86_64/ia32/ia32_signal.c~signal-race-fix-x86_64 arch/x86_64/ia32/ia32_signal.c
---- 25/arch/x86_64/ia32/ia32_signal.c~signal-race-fix-x86_64	Wed Aug 25 17:13:41 2004
-+++ 25-akpm/arch/x86_64/ia32/ia32_signal.c	Wed Aug 25 17:35:08 2004
-@@ -394,7 +394,7 @@ ia32_setup_sigcontext(struct sigcontext_
-  * Determine which stack to use..
-  */
- static void __user *
--get_sigframe(struct k_sigaction *ka, struct pt_regs * regs, size_t frame_size)
-+get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
- {
- 	unsigned long rsp;
- 
-@@ -411,14 +411,14 @@ get_sigframe(struct k_sigaction *ka, str
- 	else if ((regs->ss & 0xffff) != __USER_DS &&
- 		!(ka->sa.sa_flags & SA_RESTORER) &&
- 		 ka->sa.sa_restorer) {
--		rsp = (unsigned long) ka->sa.sa_restorer;
-+		rsp = (unsigned long)ka->sa.sa_restorer;
- 	}
- 
- 	return (void __user *)((rsp - frame_size) & -8UL);
- }
- 
- void ia32_setup_frame(int sig, struct k_sigaction *ka,
--			compat_sigset_t *set, struct pt_regs * regs)
-+		compat_sigset_t *set, struct pt_regs *regs)
- {
- 	struct sigframe __user *frame;
- 	int err = 0;
-@@ -455,7 +455,7 @@ void ia32_setup_frame(int sig, struct k_
- 	{ 
- 		void __user *restorer = VSYSCALL32_SIGRETURN; 
- 		if (ka->sa.sa_flags & SA_RESTORER)
--			restorer = ka->sa.sa_restorer;       
-+			restorer = ka->sa.sa_restorer;
- 		err |= __put_user(ptr_to_u32(restorer), &frame->pretcode);
- 	}
- 	/* These are actually not used anymore, but left because some 
-@@ -500,12 +500,12 @@ void ia32_setup_frame(int sig, struct k_
- 
- give_sigsegv:
- 	if (sig == SIGSEGV)
--		ka->sa.sa_handler = SIG_DFL;
-+		current->sighand->action[SIGSEGV-1].sa.sa_handler = SIG_DFL;
- 	signal_fault(regs,frame,"32bit signal deliver");
- }
- 
--void ia32_setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
--			   compat_sigset_t *set, struct pt_regs * regs)
-+void ia32_setup_rt_frame(int sig, struct k_sigaction *ka,
-+		siginfo_t *info, compat_sigset_t *set, struct pt_regs *regs)
- {
- 	struct rt_sigframe __user *frame;
- 	int err = 0;
-@@ -548,7 +548,7 @@ void ia32_setup_rt_frame(int sig, struct
- 	{ 
- 		void __user *restorer = VSYSCALL32_RTSIGRETURN; 
- 		if (ka->sa.sa_flags & SA_RESTORER)
--			restorer = ka->sa.sa_restorer;       
-+			restorer = ka->sa.sa_restorer;
- 		err |= __put_user(ptr_to_u32(restorer), &frame->pretcode);
- 	}
- 
-@@ -596,7 +596,7 @@ void ia32_setup_rt_frame(int sig, struct
- 
- give_sigsegv:
- 	if (sig == SIGSEGV)
--		ka->sa.sa_handler = SIG_DFL;
-+		current->sighand->action[SIGSEGV-1].sa.sa_handler = SIG_DFL;
- 	signal_fault(regs, frame, "32bit rt signal setup"); 
- }
- 
-diff -puN arch/x86_64/kernel/signal.c~signal-race-fix-x86_64 arch/x86_64/kernel/signal.c
---- 25/arch/x86_64/kernel/signal.c~signal-race-fix-x86_64	Wed Aug 25 17:13:41 2004
-+++ 25-akpm/arch/x86_64/kernel/signal.c	Wed Aug 25 17:13:41 2004
-@@ -233,7 +233,8 @@ get_stack(struct k_sigaction *ka, struct
- 	return (void __user *)round_down(rsp - size, 16); 
- }
- 
--static void setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
-+static void setup_rt_frame(int sig, struct k_sigaction *ka,
-+			   siginfo_t *info,
- 			   sigset_t *set, struct pt_regs * regs)
- {
- 	struct rt_sigframe __user *frame;
-@@ -242,7 +243,7 @@ static void setup_rt_frame(int sig, stru
- 	struct task_struct *me = current;
- 
- 	if (me->used_math) {
--		fp = get_stack(ka, regs, sizeof(struct _fpstate)); 
-+		fp = get_stack(ka, regs, sizeof(struct _fpstate));
- 		frame = (void __user *)round_down((unsigned long)fp - sizeof(struct rt_sigframe), 16) - 8;
- 
- 		if (!access_ok(VERIFY_WRITE, fp, sizeof(struct _fpstate))) { 
-@@ -259,7 +260,7 @@ static void setup_rt_frame(int sig, stru
- 		goto give_sigsegv;
- 	}
- 
--	if (ka->sa.sa_flags & SA_SIGINFO) { 
-+	if (ka->sa.sa_flags & SA_SIGINFO) {
- 		err |= copy_siginfo_to_user(&frame->info, info);
- 		if (err) { 
- 			goto give_sigsegv;
-@@ -288,7 +289,7 @@ static void setup_rt_frame(int sig, stru
- 	if (ka->sa.sa_flags & SA_RESTORER) {
- 		err |= __put_user(ka->sa.sa_restorer, &frame->pretcode);
- 	} else {
--		printk("%s forgot to set SA_RESTORER for signal %d.\n", me->comm, sig); 
-+		/* could use a vstub here */
- 		goto give_sigsegv; 
- 	}
- 
-@@ -330,7 +331,7 @@ static void setup_rt_frame(int sig, stru
- 
- give_sigsegv:
- 	if (sig == SIGSEGV)
--		ka->sa.sa_handler = SIG_DFL;
-+		current->sighand->action[SIGSEGV-1].sa.sa_handler = SIG_DFL;
- 	signal_fault(regs,frame,"signal deliver");
- }
- 
-@@ -339,11 +340,9 @@ give_sigsegv:
+----
+===== arch/arm/kernel/signal.c 1.34 vs edited =====
+--- 1.34/arch/arm/kernel/signal.c	2004-08-25 17:37:25 -07:00
++++ edited/arch/arm/kernel/signal.c	2004-08-25 18:38:23 -07:00
+@@ -573,12 +573,12 @@
+  * OK, we're invoking a handler
   */	
- 
  static void
 -handle_signal(unsigned long sig, siginfo_t *info, sigset_t *oldset,
--	struct pt_regs * regs)
-+handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
-+		sigset_t *oldset, struct pt_regs *regs)
++handle_signal(unsigned long sig, struct k_sigaction *ka,
++	      siginfo_t *info, sigset_t *oldset,
+ 	      struct pt_regs * regs, int syscall)
  {
--	struct k_sigaction *ka = &current->sighand->action[sig-1];
--
- #ifdef DEBUG_SIG
- 	printk("handle_signal pid:%d sig:%lu rip:%lx rsp:%lx regs=%p\n", current->pid, sig, 
- 		regs->rip, regs->rsp, regs);
-@@ -380,12 +379,10 @@ handle_signal(unsigned long sig, siginfo
- #endif
- 	setup_rt_frame(sig, ka, info, oldset, regs);
+ 	struct thread_info *thread = current_thread_info();
+ 	struct task_struct *tsk = current;
+-	struct k_sigaction *ka = &tsk->sighand->action[sig-1];
+ 	int usig = sig;
+ 	int ret;
  
--	if (ka->sa.sa_flags & SA_ONESHOT)
--		ka->sa.sa_handler = SIG_DFL;
--
- 	if (!(ka->sa.sa_flags & SA_NODEFER)) {
- 		spin_lock_irq(&current->sighand->siglock);
--		sigorsets(&current->blocked,&current->blocked,&ka->sa.sa_mask);
-+		sigorsets(&current->blocked,&current->blocked,
-+			  &ka->sa.sa_mask);
- 		sigaddset(&current->blocked,sig);
- 		recalc_sigpending();
- 		spin_unlock_irq(&current->sighand->siglock);
-@@ -399,6 +396,7 @@ handle_signal(unsigned long sig, siginfo
+@@ -633,11 +633,8 @@
+ 		spin_unlock_irq(&tsk->sighand->siglock);
+ 	}
+ 
+-	if (ret == 0) {
+-		if (ka->sa.sa_flags & SA_ONESHOT)
+-			ka->sa.sa_handler = SIG_DFL;
++	if (ret == 0)
+ 		return;
+-	}
+ 
+ 	force_sigsegv(sig, tsk);
+ }
+@@ -653,6 +650,7 @@
   */
- int do_signal(struct pt_regs *regs, sigset_t *oldset)
+ static int do_signal(sigset_t *oldset, struct pt_regs *regs, int syscall)
  {
 +	struct k_sigaction ka;
  	siginfo_t info;
  	int signr;
  
-@@ -420,7 +418,7 @@ int do_signal(struct pt_regs *regs, sigs
- 	if (!oldset)
- 		oldset = &current->blocked;
+@@ -673,9 +671,9 @@
+ 	if (current->ptrace & PT_SINGLESTEP)
+ 		ptrace_cancel_bpt(current);
  
 -	signr = get_signal_to_deliver(&info, regs, NULL);
 +	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
  	if (signr > 0) {
- 		/* Reenable any watchpoints before delivering the
- 		 * signal to user space. The processor register will
-@@ -431,7 +429,7 @@ int do_signal(struct pt_regs *regs, sigs
- 			asm volatile("movq %0,%%db7"	: : "r" (current->thread.debugreg7));
- 
- 		/* Whee!  Actually deliver the signal.  */
--		handle_signal(signr, &info, oldset, regs);
-+		handle_signal(signr, &info, &ka, oldset, regs);
+-		handle_signal(signr, &info, oldset, regs, syscall);
++		handle_signal(signr, &ka, &info, oldset, regs, syscall);
+ 		if (current->ptrace & PT_SINGLESTEP)
+ 			ptrace_set_bpt(current);
  		return 1;
- 	}
- 
-_
