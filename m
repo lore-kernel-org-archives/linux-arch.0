@@ -1,38 +1,36 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268465AbUHLAwY@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:3814 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S268414AbUHLALr (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268414AbUHLAwY@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:1766 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S268386AbUHLAIw (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Aug 2004 20:11:47 -0400
+	Wed, 11 Aug 2004 20:08:52 -0400
 Subject: Re: clear_user_highpage()
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <Pine.LNX.4.58.0408111654440.1839@ppc970.osdl.org>
+In-Reply-To: <20040811165547.4cbc98a4.davem@redhat.com>
 References: <20040811161537.5e24c2b6.davem@redhat.com>
-	 <Pine.LNX.4.58.0408111635160.1839@ppc970.osdl.org>
-	 <20040811165307.46ff1eb6.davem@redhat.com>
-	 <Pine.LNX.4.58.0408111654440.1839@ppc970.osdl.org>
+	 <1092267062.2166.19.camel@gaston>
+	 <20040811165547.4cbc98a4.davem@redhat.com>
 Content-Type: text/plain
-Message-Id: <1092269196.2166.34.camel@gaston>
+Message-Id: <1092269017.2136.32.camel@gaston>
 Mime-Version: 1.0
-Date: Thu, 12 Aug 2004 10:06:37 +1000
+Date: Thu, 12 Aug 2004 10:03:37 +1000
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: "David S. Miller" <davem@redhat.com>, Linux Arch list <linux-arch@vger.kernel.org>
+To: "David S. Miller" <davem@redhat.com>
+Cc: Linus Torvalds <torvalds@osdl.org>, Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
 
-> You didn't read my message. If it doesn't crap on the caches when you do 
-> the stores, it _will_ crap on the bus both when you do the stores _and_ 
-> when you actually read the page.
-> 
-> In other words, you will have taken _more_ of a hit later on. It's just 
-> that it won't be a nice profile hit, it will be a nasty "everything runs 
-> slower later".
-> 
-> Caches work best when you have good temporal locality. You are removing 
-> that locality, and thus you are making your caches _less_ efficient.
-> 
-> That's a very _fundamental_ argument. 
+> I think dynamic-resolution timers are the way to go here.
+> Rusty was talking about something along theses lines at
+> the networking summit.
 
-Ok, that may be why it was removed from ppc then, I should ask Paul.
+Yup, several people talked about it at KS/OLS and I think  s390 has
+some implementation already, though I hadn't time to look at it yet,
+hopefully that will happen sooner or later.
 
-Ben.
+> The reason Rusty had brought it up was due to a ipv6 problem,
+> there are some timers that need to get so far into the future
+> that with HZ=1000 it isn't representable in the 32-bit timer
+> offsets.  We have jiffies64 and could move the timer struct
+> over the a u64 for the offsets, but that seems like overkill.
+-- 
+Benjamin Herrenschmidt <benh@kernel.crashing.org>
