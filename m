@@ -1,23 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 22 Mar 2005 20:12:24 -0800
-From: "David S. Miller" <davem@davemloft.net>
-Subject: Re: [PATCH] consolidate asm/ipc.h
-Message-Id: <20050322201224.77dcb84e.davem@davemloft.net>
-In-Reply-To: <20050323150123.1a78e9c4.sfr@canb.auug.org.au>
-References: <20050323150123.1a78e9c4.sfr@canb.auug.org.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-arch@vger.kernel.org
+Message-ID: <16961.2923.978726.881635@cargo.ozlabs.ibm.com>
+Date: Wed, 23 Mar 2005 17:23:39 +1100
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH] ?mb() -> smp_?mb() conversion
+In-Reply-To: <20050322160324.GA4980@krispykreme>
+References: <20050321150619.2ea75257.davem@davemloft.net>
+	<20050321225904.GF23908@krispykreme>
+	<20072.1111488229@redhat.com>
+	<20050322131316.GC21986@parcelfarce.linux.theplanet.co.uk>
+	<20050322160324.GA4980@krispykreme>
+To: Anton Blanchard <anton@samba.org>
+Cc: Matthew Wilcox <matthew@wil.cx>, David Howells <dhowells@redhat.com>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 23 Mar 2005 15:01:23 +1100
-Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+Anton Blanchard writes:
 
-> All the asm*/ipc.h files are basically the same (for things that are used)
-> so I have consolidated them all into asm-generic/ipc.h
+> 2. drivers/net/typhoon.c
 > 
-> Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
+>                 INIT_COMMAND_NO_RESPONSE(cmd, TYPHOON_CMD_HELLO_RESP);
+>                 smp_wmb();
+>                 writel(ring->lastWrite, tp->ioaddr + TYPHOON_REG_CMD_READY);
+> 
+> it looks a lot like smp_wmb is being used to order IO.
 
-Looks good to me.
+There's a word for that, it has 3 letters, starts with B and ends with
+G. 8-)
+
+Paul.
