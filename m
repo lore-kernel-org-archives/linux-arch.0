@@ -1,34 +1,76 @@
-Return-Path: <davidm@napali.hpl.hp.com>
-Received: from palrel13.hp.com ([156.153.255.238]:39355 "EHLO palrel13.hp.com")
-	by vger.kernel.org with ESMTP id S264714AbUEEQRn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 May 2004 12:17:43 -0400
-From: David Mosberger <davidm@napali.hpl.hp.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <16537.5027.145259.789392@napali.hpl.hp.com>
-Date: Wed, 5 May 2004 09:17:39 -0700
+Return-Path: <sky@de.ibm.com>
+Received: from mtagate4.de.ibm.com ([195.212.29.153]:64927 "EHLO
+	mtagate4.de.ibm.com") by vger.kernel.org with ESMTP id S264789AbUEERp0
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 May 2004 13:45:26 -0400
+Date: Wed, 5 May 2004 19:42:22 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Subject: Re: static DEFINE_PER_CPU vs. modules
-In-Reply-To: <200405051021.13944.arnd@arndb.de>
-References: <200405031741.52504.arnd@arndb.de>
-	<20040504122352.2b554573.akpm@osdl.org>
-	<16535.62156.173458.969241@napali.hpl.hp.com>
-	<200405051021.13944.arnd@arndb.de>
-Reply-To: davidm@hpl.hp.com
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: davidm@hpl.hp.com, Andrew Morton <akpm@osdl.org>, davidm@napali.hpl.hp.com, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, epasch@de.ibm.com, hare@suse.de
+Message-ID: <20040505174222.GA1927@mschwid3.boeblingen.de.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: rth@twiddle.net
+Cc: akpm@osdl.org, davidm@hpl.hp.com, arnd@arndb.de, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, epasch@de.ibm.com, hare@suse.de
 List-ID: <linux-arch.vger.kernel.org>
 
->>>>> On Wed, 5 May 2004 10:21:12 +0200, Arnd Bergmann <arnd@arndb.de> said:
+> I would think it should be possible to work around the amd64
+> compiler memory model thing by using inline assembly to access
+> the movabsq instruction and thense the 64-bit relocation.
 
-  Arnd> In theory, it can hit on every architecture that supports
-  Arnd> pc-relative relocations (i.e. most of them). It's hard to
-  Arnd> trigger because you need SMP, a certain (large) amount of RAM,
-  Arnd> and use the scsi or ipv6 as modules.  In the worst case it's
-  Arnd> almost impossible to debug (silent corruption of a single word
-  Arnd> in memory).
+Ok, I'll bite. How about the following patch:
 
-Why silent corruption?  Surely the kernel loader barfs if a relocation
-is out of range.
+[PATCH] s390: fix per cpu for 64-bit modules.
 
-	--david
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+
+Force the use of a 64 bit relocation to access the
+per_cpu__##var variables and fix a problem in the
+module loader regarding GOTENT and GOTPLTENT relocs.
+
+diff -urN linux-2.6/arch/s390/kernel/module.c linux-2.6-s390/arch/s390/kernel/module.c
+--- linux-2.6/arch/s390/kernel/module.c	Sun Apr  4 05:38:13 2004
++++ linux-2.6-s390/arch/s390/kernel/module.c	Wed May  5 19:40:22 2004
+@@ -277,7 +277,8 @@
+ 			*(unsigned int *) loc = val;
+ 		else if (r_type == R_390_GOTENT ||
+ 			 r_type == R_390_GOTPLTENT)
+-			*(unsigned int *) loc = val >> 1;
++			*(unsigned int *) loc =
++				(val + (Elf_Addr) me->module_core - loc) >> 1;
+ 		else if (r_type == R_390_GOT64 ||
+ 			 r_type == R_390_GOTPLT64)
+ 			*(unsigned long *) loc = val;
+diff -urN linux-2.6/include/asm-s390/percpu.h linux-2.6-s390/include/asm-s390/percpu.h
+--- linux-2.6/include/asm-s390/percpu.h	Sun Apr  4 05:38:20 2004
++++ linux-2.6-s390/include/asm-s390/percpu.h	Wed May  5 19:40:22 2004
+@@ -5,10 +5,26 @@
+ #include <asm/lowcore.h>
+ 
+ /*
+- * s390 uses the generic implementation for per cpu data, with the exception that
+- * the offset of the cpu local data area is cached in the cpu's lowcore memory
++ * For builtin kernel code s390 uses the generic implementation for
++ * per cpu data, with the exception that the offset of the cpu local
++ * data area is cached in the cpu's lowcore memory
++ * For 64 bit module code s390 forces the use of a GOT slot for the
++ * address of the per cpu variable. This is needed because the module
++ * may be more than 4G above the per cpu area.
+  */
++#if defined(__s390x__) && defined(MODULE)
++#define __get_got_cpu_var(var,offset) \
++  (*({ unsigned long *__ptr; \
++       asm ( "larl %0,per_cpu__"#var"@GOTENT" : "=a" (__ptr) ); \
++       ((typeof(&per_cpu__##var))((*__ptr) + offset)); \
++    }))
++#undef __get_cpu_var
++#define __get_cpu_var(var) __get_got_cpu_var(var,S390_lowcore.percpu_offset)
++#undef per_cpu
++#define per_cpu(var,cpu) __get_got_cpu_var(var,__per_cpu_offset[cpu])
++#else
+ #undef __get_cpu_var
+ #define __get_cpu_var(var) (*RELOC_HIDE(&per_cpu__##var, S390_lowcore.percpu_offset))
++#endif
+ 
+ #endif /* __ARCH_S390_PERCPU__ */
