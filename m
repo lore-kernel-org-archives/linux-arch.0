@@ -1,25 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Thu, 17 Mar 2005 13:51:37 -0800
-From: "David S. Miller" <davem@davemloft.net>
+Date: Thu, 17 Mar 2005 22:57:25 +0100 (CET)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Sender: geert@sonycom.com
 Subject: Re: Consolidation of asm/unaligned.h
-Message-Id: <20050317135137.4ee5eaca.davem@davemloft.net>
-In-Reply-To: <20050317213333.C15653@flint.arm.linux.org.uk>
+In-Reply-To: <20050317104744.4be7e550.davem@davemloft.net>
+Message-ID: <Pine.LNX.4.62.0503172255380.8760@numbat.sonytel.be>
 References: <20050317104744.4be7e550.davem@davemloft.net>
-	<20050317213333.C15653@flint.arm.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Russell King <rmk@arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: "David S. Miller" <davem@davemloft.net>
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 17 Mar 2005 21:33:33 +0000
-Russell King <rmk@arm.linux.org.uk> wrote:
+On Thu, 17 Mar 2005, David S. Miller wrote:
+> 6) M68K can do unaligned access directly.
 
-> I agree with your sentiment, though I'd like to compare the produced
-> code to ensure that there isn't something unexpected somewhere.
-> 
-> Thanks Dave, this looks interesting.
+Just for the record, this is true for 68020 and later only. I.e. some MMU-less
+variants need unaligned support.
 
-No problem.  I didn't convert ARM, so you can just do so when you
-have determined that such a change is appropriate.
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
