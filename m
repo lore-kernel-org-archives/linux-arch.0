@@ -1,64 +1,61 @@
-Return-Path: <benh@kernel.crashing.org>
-Received: from gate.crashing.org ([63.228.1.57]:36287 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S262251AbUCAGBe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Mar 2004 01:01:34 -0500
+Return-Path: <davem@redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:38097 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S262258AbUCAGeR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Mar 2004 01:34:17 -0500
+Date: Sun, 29 Feb 2004 22:34:12 -0800
+From: "David S. Miller" <davem@redhat.com>
 Subject: Re: dma_mask semantic problems
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <20040229214750.74c4ce36.davem@redhat.com>
+Message-Id: <20040229223412.493e3f32.davem@redhat.com>
+In-Reply-To: <1078120287.21575.12.camel@gaston>
 References: <1078101455.10826.87.camel@gaston>
-	 <20040229214750.74c4ce36.davem@redhat.com>
-Content-Type: text/plain
-Message-Id: <1078120287.21575.12.camel@gaston>
+	<20040229214750.74c4ce36.davem@redhat.com>
+	<1078120287.21575.12.camel@gaston>
 Mime-Version: 1.0
-Date: Mon, 01 Mar 2004 16:51:28 +1100
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem@redhat.com>
-Cc: Linux Arch list <linux-arch@vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2004-03-01 at 16:47, David S. Miller wrote:
+On Mon, 01 Mar 2004 16:51:28 +1100
+Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
 
-> 1) A way to say "I can map all of physical space into the 32-bit
->    PCI BUS DMA addressing space, ie. iommu platform.
+> > I would go so far as to propose a:
+> > 
+> > 	int dma_can_use_iommu(dev);
+> > 	u64 dma_iommu_mask(dev);
 > 
-> 2) A way to say "I can map all of physical space using 64-bit
->    addressing too"
-> 
-> I think the first thing is a seperate question.  Purely, the IOMMU exists
-> precisely to serve this purpose, map physical memory space (however large
-> bitness wise it is) into the 32-bit SAC PCI address space.
-> 
-> I would go so far as to propose a:
-> 
-> 	int dma_can_use_iommu(dev);
-> 	u64 dma_iommu_mask(dev);
+> What about 32 bits archs without iommu ?
 
-What about 32 bits archs without iommu ?
+They do not return true for the first function, which means
+the second function may not be called.
 
-> so scsi could say:
-> 
-> 	if (dma_can_use_iommu(dev) &&
->             !(dma_iommu_mask(dev) & ~(u64)0xffffffff)) {
-> 		/* do the 32-bit space saving trick... */
-> 		dma_set_blah_mask(0xffffffff);
-> 		... etc. ...
-> 	}
-> 
-> Sound ok?
+> Well... Assuming we fix that, then what if we can do both 64 bit
+> addresses and 32 bits addresses, who decides what to use ? like we
+> support DAC. Who decides wether to use it or not ?
 
-Except for 32 bits archs without iommu ...
+Good question.
 
-Well... Assuming we fix that, then what if we can do both 64 bit
-addresses and 32 bits addresses, who decides what to use ? like we
-support DAC. Who decides wether to use it or not ?
+Long ago we decided that the way we handle this on sparc64 is to
+only support 32-bit stuff via the dma interfaces, you have to use
+the explicit pci_dac_*() stuff to get at the 64-bit addresses and
+these interfaces are extremely frowned upon except in very specific
+kinds of drivers.  See the section entitled "DAC Addressing for
+Address Space Hungry Devices".
 
-If it's the pci_map_* code that will either go through the iommu or
-not, on what bases does it make that decision ?
+So on sparc64 we define dma_addr_t as a u32.  We want to use the
+IOMMU for everything normal because unless you use the IOMMU you
+don't get the PCI controller DMA cache usage (which does prefetching
+for reads and coalescing for writes to encourage cacheline sized
+transactions on the system bus).
 
-Once the above example you pasted did return that we can indeed get
-only 32 bits addresses, we do a dma_set_dma_mask(32bits) to force
-pci_map_sg() to only return us addresses in the low 32 bits mask,
-that's fine, just make it clear that this dma_set_blah_mask is
-actually the real & good old dma/pci_set_dma_mask()...
+On the other side in SCSI we are talking about a driver specific
+issue in terms of performance.  Basically what they want to know,
+in our terms, is: "If 32-bit vs 64-bit DMA address spacing has
+roughly the same performance, and gets access to the whole range
+of physical memory, let me use 32-bit."
 
-Ben.
+Maybe that more precise question leads more directly to a more useful
+dma_*() interface name and semantics? :-)
+
+You're right, my original suggestion does not handle this properly.
