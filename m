@@ -1,45 +1,33 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262232AbUJZCe3@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:40919 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S261998AbUJZCeZ (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262175AbUJZCl5@vger.kernel.org>
+Received: from holomorphy.com ([207.189.100.168]:53472 "EHLO holomorphy.com")
+	by vger.kernel.org with ESMTP id S262164AbUJZClp (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Oct 2004 22:34:25 -0400
+	Mon, 25 Oct 2004 22:41:45 -0400
+Date: Mon, 25 Oct 2004 19:41:37 -0700
+From: William Lee Irwin III <wli@holomorphy.com>
 Subject: Re: [RFC] Add NO_IRQ to all architectures
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <Pine.LNX.4.58.0410251926340.427@ppc970.osdl.org>
-References: <1098756491.17886.18.camel@gaston>
-	 <Pine.LNX.4.58.0410251926340.427@ppc970.osdl.org>
-Content-Type: text/plain
-Date: Tue, 26 Oct 2004 12:31:22 +1000
-Message-Id: <1098757882.17887.35.camel@gaston>
+Message-ID: <20041026024137.GE17038@holomorphy.com>
+References: <1098756491.17886.18.camel@gaston> <Pine.LNX.4.58.0410251926340.427@ppc970.osdl.org> <1098757882.17887.35.camel@gaston>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Linux Arch list <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1098757882.17887.35.camel@gaston>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linus Torvalds <torvalds@osdl.org>, Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2004-10-25 at 19:27 -0700, Linus Torvalds wrote:
-> 
-> On Tue, 26 Oct 2004, Benjamin Herrenschmidt wrote:
-> > 
-> > Here'd a patch adding a definition of NO_IRQ to all archs include/asm-*/irq.h.
-> 
-> ..and is there any reason to make it arch-specific?
-> 
-> iow, I really can't imagine it not being ok to just have a global
-> 
-> 	#define NO_IRQ (-1)
-> 
-> in one place, rather than in every arch.
+On Tue, Oct 26, 2004 at 12:31:22PM +1000, Benjamin Herrenschmidt wrote:
+> Hehe... just after I went through all include/asm-*/... :)
+> Well, the reason I did it that way is that I wasn't sure an arch
+> wouldn't want to revert to 0 ... like x86 to be more "backward
+> compatible" or to better match what probe_irq_* does ...
+> Note to Willy: In the long run, the irq number should indeed be a
+> typedef, it would be nice indeed to hide it in a structure, with some
+> ISA_TO_IRQ and IRQ_TO_ISA for drivers who care about legacy numbers
+> maybe ?
 
-Hehe... just after I went through all include/asm-*/... :)
+Justin case there was any confusion, this was William Irwin, not
+Matthew Wilcox.
 
-Well, the reason I did it that way is that I wasn't sure an arch
-wouldn't want to revert to 0 ... like x86 to be more "backward
-compatible" or to better match what probe_irq_* does ...
 
-Note to Willy: In the long run, the irq number should indeed be a
-typedef, it would be nice indeed to hide it in a structure, with some
-ISA_TO_IRQ and IRQ_TO_ISA for drivers who care about legacy numbers
-maybe ?
-
-Ben.
+-- wli
