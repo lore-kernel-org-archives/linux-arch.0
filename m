@@ -1,94 +1,133 @@
-Return-Path: <davem@redhat.com>
-Received: from mx1.redhat.com ([66.187.233.31]:32912 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S264416AbUDZEl6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Apr 2004 00:41:58 -0400
-Date: Sun, 25 Apr 2004 21:41:07 -0700
-From: "David S. Miller" <davem@redhat.com>
+Return-Path: <arnd@arndb.de>
+Received: from natsmtp00.rzone.de ([81.169.145.165]:62681 "EHLO
+	natsmtp00.rzone.de") by vger.kernel.org with ESMTP id S263101AbUDZIy0
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 Apr 2004 04:54:26 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: Fw: [rft] testing BSD accounting format on different archs
-Message-Id: <20040425214107.3067d355.davem@redhat.com>
-In-Reply-To: <20040424131706.3d1f2c53.akpm@osdl.org>
+Date: Mon, 26 Apr 2004 10:53:50 +0200
 References: <20040424131706.3d1f2c53.akpm@osdl.org>
-Mime-Version: 1.0
-Content-Type: multipart/mixed;
- boundary="Multipart=_Sun__25_Apr_2004_21_41_07_-0700_OE+YXeu6JHB1TAZG"
+In-Reply-To: <20040424131706.3d1f2c53.akpm@osdl.org>
+MIME-Version: 1.0
+Content-Disposition: inline
+Content-Type: Multipart/Mixed;
+  boundary="Boundary-00=_h4MjAamb8QCj9K7"
+Message-Id: <200404261053.53723.arnd@arndb.de>
 To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org, tim@physik3.uni-rostock.de
+Cc: linux-arch@vger.kernel.org, Tim Schmielau <tim@physik3.uni-rostock.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-This is a multi-part message in MIME format.
 
---Multipart=_Sun__25_Apr_2004_21_41_07_-0700_OE+YXeu6JHB1TAZG
-Content-Type: text/plain; charset=US-ASCII
+--Boundary-00=_h4MjAamb8QCj9K7
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
 
+here is the output for s390
 
-"uname" on my system didn't understand all of the options you
-seem to be giving it, so I changed the "system()" call to 
-just pass in "-m".  Attached are the results for sparc32
-and sparc64.
-
-
---Multipart=_Sun__25_Apr_2004_21_41_07_-0700_OE+YXeu6JHB1TAZG
-Content-Type: application/octet-stream;
- name="x32.out"
+--Boundary-00=_h4MjAamb8QCj9K7
+Content-Type: text/plain;
+  charset="iso-8859-1";
+  name="acct_test.out-s390-64"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: attachment;
- filename="x32.out"
-Content-Transfer-Encoding: base64
+	filename="acct_test.out-s390-64"
 
-c3BhcmM2NAoKICAgICAgICAgICAgIHYwICB2MSAgdjIKYWNfZmxhZyAgICAgICAwICAgMCAgIDAK
-YWNfdmVyc2lvbiAgICAgICAgMSAgIDEKYWNfdWlkMTYgICAgICAyICAgMiAgIDIKYWNfZ2lkMTYg
-ICAgICA0ICAgNCAgIDQKYWNfdHR5ICAgICAgICA2ICAgNiAgIDYKYWNfYnRpbWUgICAgICA4ICAg
-OCAgIDgKYWNfdXRpbWUgICAgIDEyICAxMiAgMTIKYWNfc3RpbWUgICAgIDE0ICAxNCAgMTQKYWNf
-ZXRpbWUgICAgIDE2ICAxNiAgMTYKYWNfbWVtICAgICAgIDE4ICAxOCAgMTgKYWNfaW8gICAgICAg
-IDIwICAyMCAgMjAKYWNfcncgICAgICAgIDIyICAyMiAgMjIKYWNfbWluZmx0ICAgIDI0ICAyNCAg
-MjQKYWNfbWFqZmx0ICAgIDI2ICAyNiAgMjYKYWNfc3dhcHMgICAgIDI4ICAyOCAgMjgKYWNfYWh6
-ICAgICAgICAgICAzMCAgMzYKYWNfZXhpdGNvZGUgIDMyICAzMiAgMzIKYWNfY29tbSAgICAgIDM2
-ICAzNiAgMzgKYWNfZXRpbWVfaGkgICAgICA1MyAgNTUKYWNfZXRpbWVfbG8gICAgICA1NCAgNTYK
-YWNfdWlkICAgICAgICAgICA1NiAgNjAKYWNfZ2lkICAgICAgICAgICA2MCAgNjQKc2l6ZW9mKHN0
-cnVjdCBhY2N0KQogICAgICAgICAgICAgNjQgIDY0ICA2OAoKICAgIDAxIDAwIDAzIDA0ICAwNSAw
-NiAwNyAwOCAgMDkgMGEgMGIgMGMgIDBkIDBlIDBmIDEwCiAgICAxMSAxMiAxMyAxNCAgMTUgMTYg
-MTcgMTggIDE5IDFhIDFiIDFjICAxZCAxZSAwMCAwMAogICAgMjEgMjIgMjMgMjQgIDI1IDI2IDI3
-IDI4ICAyOSAyYSAyYiAyYyAgMmQgMmUgMmYgMzAKICAgIDMxIDMyIDMzIDM0ICAzNSBmMCBmMSBm
-MiAgZjMgZjQgZjUgZjYgIGY3IGY4IGY5IDAwCgogICAgMDEgMDIgMDMgMDQgIDA1IDA2IDA3IDA4
-ICAwOSAwYSAwYiAwYyAgMGQgMGUgMGYgMTAKICAgIDExIDEyIDEzIDE0ICAxNSAxNiAxNyAxOCAg
-MTkgMWEgMWIgMWMgIDFkIDFlIDFmIDIwCiAgICAyMSAyMiAyMyAyNCAgMjUgMjYgMjcgMjggIDI5
-IDJhIDJiIDJjICAyZCAyZSAyZiAzMAogICAgMzEgMzIgMzMgMzQgIDM1IDM2IDM3IDM4ICAzOSAz
-YSAzYiAzYyAgM2QgM2UgM2YgNDAKCiAgICAwMSAwMiAwMyAwNCAgMDUgMDYgMDcgMDggIDA5IDBh
-IDBiIDBjICAwZCAwZSAwZiAxMAogICAgMTEgMTIgMTMgMTQgIDE1IDE2IDE3IDE4ICAxOSAxYSAx
-YiAxYyAgMWQgMWUgMDAgMDAKICAgIDIxIDIyIDIzIDI0ICAxZiAyMCAyNSAyNiAgMjcgMjggMjkg
-MmEgIDJiIDJjIDJkIDJlCiAgICAyZiAzMCAzMSAzMiAgMzMgMzQgMzUgMzYgIDM3IDM4IDAwIDAw
-ICAzOSAzYSAzYiAzYwoK
+s390x s390x s390x GNU/Linux
 
---Multipart=_Sun__25_Apr_2004_21_41_07_-0700_OE+YXeu6JHB1TAZG
-Content-Type: application/octet-stream;
- name="x64.out"
+             v0  v1  v2
+ac_flag       0   0   0
+ac_version        1   1
+ac_uid16      2   2   2
+ac_gid16      4   4   4
+ac_tty        6   6   6
+ac_btime      8   8   8
+ac_utime     12  12  12
+ac_stime     14  14  14
+ac_etime     16  16  16
+ac_mem       18  18  18
+ac_io        20  20  20
+ac_rw        22  22  22
+ac_minflt    24  24  24
+ac_majflt    26  26  26
+ac_swaps     28  28  28
+ac_ahz           30  36
+ac_exitcode  32  32  32
+ac_comm      36  36  38
+ac_etime_hi      53  55
+ac_etime_lo      54  56
+ac_uid           56  60
+ac_gid           60  64
+sizeof(struct acct)
+             64  64  68
+
+    01 00 03 04  05 06 07 08  09 0a 0b 0c  0d 0e 0f 10
+    11 12 13 14  15 16 17 18  19 1a 1b 1c  1d 1e 00 00
+    21 22 23 24  25 26 27 28  29 2a 2b 2c  2d 2e 2f 30
+    31 32 33 34  35 f0 f1 f2  f3 f4 f5 f6  f7 f8 f9 00
+
+    01 02 03 04  05 06 07 08  09 0a 0b 0c  0d 0e 0f 10
+    11 12 13 14  15 16 17 18  19 1a 1b 1c  1d 1e 1f 20
+    21 22 23 24  25 26 27 28  29 2a 2b 2c  2d 2e 2f 30
+    31 32 33 34  35 36 37 38  39 3a 3b 3c  3d 3e 3f 40
+
+    01 02 03 04  05 06 07 08  09 0a 0b 0c  0d 0e 0f 10
+    11 12 13 14  15 16 17 18  19 1a 1b 1c  1d 1e 00 00
+    21 22 23 24  1f 20 25 26  27 28 29 2a  2b 2c 2d 2e
+    2f 30 31 32  33 34 35 36  37 38 00 00  39 3a 3b 3c
+
+
+--Boundary-00=_h4MjAamb8QCj9K7
+Content-Type: text/plain;
+  charset="iso-8859-1";
+  name="acct_test.out-s390-emu31"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: attachment;
- filename="x64.out"
-Content-Transfer-Encoding: base64
+	filename="acct_test.out-s390-emu31"
 
-c3BhcmM2NAoKICAgICAgICAgICAgIHYwICB2MSAgdjIKYWNfZmxhZyAgICAgICAwICAgMCAgIDAK
-YWNfdmVyc2lvbiAgICAgICAgMSAgIDEKYWNfdWlkMTYgICAgICAyICAgMiAgIDIKYWNfZ2lkMTYg
-ICAgICA0ICAgNCAgIDQKYWNfdHR5ICAgICAgICA2ICAgNiAgIDYKYWNfYnRpbWUgICAgICA4ICAg
-OCAgIDgKYWNfdXRpbWUgICAgIDEyICAxMiAgMTIKYWNfc3RpbWUgICAgIDE0ICAxNCAgMTQKYWNf
-ZXRpbWUgICAgIDE2ICAxNiAgMTYKYWNfbWVtICAgICAgIDE4ICAxOCAgMTgKYWNfaW8gICAgICAg
-IDIwICAyMCAgMjAKYWNfcncgICAgICAgIDIyICAyMiAgMjIKYWNfbWluZmx0ICAgIDI0ICAyNCAg
-MjQKYWNfbWFqZmx0ICAgIDI2ICAyNiAgMjYKYWNfc3dhcHMgICAgIDI4ICAyOCAgMjgKYWNfYWh6
-ICAgICAgICAgICAzMCAgMzYKYWNfZXhpdGNvZGUgIDMyICAzMiAgMzIKYWNfY29tbSAgICAgIDM2
-ICAzNiAgMzgKYWNfZXRpbWVfaGkgICAgICA1MyAgNTUKYWNfZXRpbWVfbG8gICAgICA1NCAgNTYK
-YWNfdWlkICAgICAgICAgICA1NiAgNjAKYWNfZ2lkICAgICAgICAgICA2MCAgNjQKc2l6ZW9mKHN0
-cnVjdCBhY2N0KQogICAgICAgICAgICAgNjQgIDY0ICA2OAoKICAgIDAxIDAwIDAzIDA0ICAwNSAw
-NiAwNyAwOCAgMDkgMGEgMGIgMGMgIDBkIDBlIDBmIDEwCiAgICAxMSAxMiAxMyAxNCAgMTUgMTYg
-MTcgMTggIDE5IDFhIDFiIDFjICAxZCAxZSAwMCAwMAogICAgMjEgMjIgMjMgMjQgIDI1IDI2IDI3
-IDI4ICAyOSAyYSAyYiAyYyAgMmQgMmUgMmYgMzAKICAgIDMxIDMyIDMzIDM0ICAzNSBmMCBmMSBm
-MiAgZjMgZjQgZjUgZjYgIGY3IGY4IGY5IDAwCgogICAgMDEgMDIgMDMgMDQgIDA1IDA2IDA3IDA4
-ICAwOSAwYSAwYiAwYyAgMGQgMGUgMGYgMTAKICAgIDExIDEyIDEzIDE0ICAxNSAxNiAxNyAxOCAg
-MTkgMWEgMWIgMWMgIDFkIDFlIDFmIDIwCiAgICAyMSAyMiAyMyAyNCAgMjUgMjYgMjcgMjggIDI5
-IDJhIDJiIDJjICAyZCAyZSAyZiAzMAogICAgMzEgMzIgMzMgMzQgIDM1IDM2IDM3IDM4ICAzOSAz
-YSAzYiAzYyAgM2QgM2UgM2YgNDAKCiAgICAwMSAwMiAwMyAwNCAgMDUgMDYgMDcgMDggIDA5IDBh
-IDBiIDBjICAwZCAwZSAwZiAxMAogICAgMTEgMTIgMTMgMTQgIDE1IDE2IDE3IDE4ICAxOSAxYSAx
-YiAxYyAgMWQgMWUgMDAgMDAKICAgIDIxIDIyIDIzIDI0ICAxZiAyMCAyNSAyNiAgMjcgMjggMjkg
-MmEgIDJiIDJjIDJkIDJlCiAgICAyZiAzMCAzMSAzMiAgMzMgMzQgMzUgMzYgIDM3IDM4IDAwIDAw
-ICAzOSAzYSAzYiAzYwoK
+s390x s390x s390x GNU/Linux
 
---Multipart=_Sun__25_Apr_2004_21_41_07_-0700_OE+YXeu6JHB1TAZG--
+             v0  v1  v2
+ac_flag       0   0   0
+ac_version        1   1
+ac_uid16      2   2   2
+ac_gid16      4   4   4
+ac_tty        6   6   6
+ac_btime      8   8   8
+ac_utime     12  12  12
+ac_stime     14  14  14
+ac_etime     16  16  16
+ac_mem       18  18  18
+ac_io        20  20  20
+ac_rw        22  22  22
+ac_minflt    24  24  24
+ac_majflt    26  26  26
+ac_swaps     28  28  28
+ac_ahz           30  36
+ac_exitcode  32  32  32
+ac_comm      36  36  38
+ac_etime_hi      53  55
+ac_etime_lo      54  56
+ac_uid           56  60
+ac_gid           60  64
+sizeof(struct acct)
+             64  64  68
+
+    01 00 03 04  05 06 07 08  09 0a 0b 0c  0d 0e 0f 10
+    11 12 13 14  15 16 17 18  19 1a 1b 1c  1d 1e 00 00
+    21 22 23 24  25 26 27 28  29 2a 2b 2c  2d 2e 2f 30
+    31 32 33 34  35 f0 f1 f2  f3 f4 f5 f6  f7 f8 f9 00
+
+    01 02 03 04  05 06 07 08  09 0a 0b 0c  0d 0e 0f 10
+    11 12 13 14  15 16 17 18  19 1a 1b 1c  1d 1e 1f 20
+    21 22 23 24  25 26 27 28  29 2a 2b 2c  2d 2e 2f 30
+    31 32 33 34  35 36 37 38  39 3a 3b 3c  3d 3e 3f 40
+
+    01 02 03 04  05 06 07 08  09 0a 0b 0c  0d 0e 0f 10
+    11 12 13 14  15 16 17 18  19 1a 1b 1c  1d 1e 00 00
+    21 22 23 24  1f 20 25 26  27 28 29 2a  2b 2c 2d 2e
+    2f 30 31 32  33 34 35 36  37 38 00 00  39 3a 3b 3c
+
+
+--Boundary-00=_h4MjAamb8QCj9K7--
