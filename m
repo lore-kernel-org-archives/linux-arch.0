@@ -1,44 +1,52 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267603AbUHMVmi@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:47324 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S267602AbUHMVmi (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266508AbUHOGYG@vger.kernel.org>
+Received: from fw.osdl.org ([65.172.181.6]:43945 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S266507AbUHOGYG (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 13 Aug 2004 17:42:38 -0400
-Date: Fri, 13 Aug 2004 14:41:15 -0700
-From: "David S. Miller" <davem@redhat.com>
+	Sun, 15 Aug 2004 02:24:06 -0400
+Date: Sat, 14 Aug 2004 23:22:23 -0700
+From: Andrew Morton <akpm@osdl.org>
 Subject: Re: clear_user_highpage()
-Message-Id: <20040813144115.4c59a2f0.davem@redhat.com>
-In-Reply-To: <Pine.LNX.4.58.0408111905210.1839@ppc970.osdl.org>
+Message-Id: <20040814232223.5e1aea52.akpm@osdl.org>
+In-Reply-To: <20040812044634.GF11200@holomorphy.com>
 References: <20040811161537.5e24c2b6.davem@redhat.com>
 	<Pine.LNX.4.58.0408111635160.1839@ppc970.osdl.org>
 	<20040812004654.GX11200@holomorphy.com>
 	<Pine.LNX.4.58.0408111905210.1839@ppc970.osdl.org>
+	<20040811194317.0acf4ae3.davem@redhat.com>
+	<Pine.LNX.4.58.0408112113310.1839@ppc970.osdl.org>
+	<20040812044634.GF11200@holomorphy.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: wli@holomorphy.com, linux-arch@vger.kernel.org
+To: William Lee Irwin III <wli@holomorphy.com>
+Cc: torvalds@osdl.org, davem@redhat.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 11 Aug 2004 19:18:18 -0700 (PDT)
-Linus Torvalds <torvalds@osdl.org> wrote:
+William Lee Irwin III <wli@holomorphy.com> wrote:
+>
+> On Wed, 11 Aug 2004, David S. Miller wrote:
+>  >> We have that cold/hot page thing in the current 2.6.x
+>  >> tree, or are you talking about something else?
+> 
+>  On Wed, Aug 11, 2004 at 09:19:32PM -0700, Linus Torvalds wrote:
+>  > You're right. It ended up never having problems (or they were worked out
+>  > in the -mm tree), so I forgot all about it ;)
+>  > How effective is it? Maybe the numbers that were done in 2001 aren't 
+>  > relevant any more?
+> 
+>  For lock amortization it's extremely effective. Its effects on caching
+>  have never been properly instrumented that I know of.
 
-> I really do believe (but can't back it up with any real numbers) that we 
-> want to try to keep pages in cache as long as possible. That means keeping 
-> the pages close to the last CPU that used them, btw.
+No, we (me, mbligh) instrumented the crap out of it.  It turned out that
+the cache affinity was of very marginal benefit, if any.
 
-So I did some testing.
+I cooked up an artificial benchmark which consisted of writing 32k to a
+file, then truncating it back to zero, then repeating.  Four instances of
+that, against four separate files on 4-way showed a large speedup - 2x or
+3x, from memory.  But for real-world workloads you really needed to squint
+to see anything at all.
 
-I changed the cache-bypassing clear_user_page() into one that uses
-normal stores and does allocate in the L2 cache.
-
-I ran the full build tests 3 times for each case, and the numbers were
-consistent.  It makes the full build take a full minute longer.
-
-And I truly believe this is because of the argument William and myself
-are making, that a write protection fault does not mean the process is
-going to access a majority of the data in that page any time soon at all.
-
-{clear,copy}_user_page() is not some kind of "prefetch the whole page
-into the cache" for the user.  It would be if the user would access
-the entire thing in the near future, but I do not believe that is
-the typical access pattern for fresh anonymous pages.
+Which is why I dithered without sending it to Linus for a couple of months.
+Ended up merging it anyway because of some lock contention benefits, and
+because someone mught have a workload which involves repeated
+write/truncate looping ;)
