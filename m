@@ -1,49 +1,42 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262633AbUKEJV6@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:12258 "EHLO Cantor.suse.de")
-	by vger.kernel.org with ESMTP id S262631AbUKEJV6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Nov 2004 04:21:58 -0500
-Date: Fri, 5 Nov 2004 10:18:24 +0100
-From: Andi Kleen <ak@suse.de>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262634AbUKEJ1U@vger.kernel.org>
+Received: from witte.sonytel.be ([80.88.33.193]:34769 "EHLO witte.sonytel.be")
+	by vger.kernel.org with ESMTP id S262631AbUKEJ1U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Nov 2004 04:27:20 -0500
+Date: Fri, 5 Nov 2004 10:26:57 +0100 (MET)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Sender: geert@sonycom.com
 Subject: Re: Fw: 2.6.10-rc1-mm3
-Message-ID: <20041105091824.GE16992@wotan.suse.de>
-References: <20041105005257.2dc4408e.akpm@osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20041105005257.2dc4408e.akpm@osdl.org>
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org
+In-Reply-To: <20041105091824.GE16992@wotan.suse.de>
+Message-ID: <Pine.GSO.4.61.0411051023520.15464@waterleaf.sonytel.be>
+References: <20041105005257.2dc4408e.akpm@osdl.org> <20041105091824.GE16992@wotan.suse.de>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: Andi Kleen <ak@suse.de>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Nov 05, 2004 at 12:52:57AM -0800, Andrew Morton wrote:
+On Fri, 5 Nov 2004, Andi Kleen wrote:
+> On Fri, Nov 05, 2004 at 12:52:57AM -0800, Andrew Morton wrote:
+> > Guys, just a heads up on the 4-level pagetable stuff.  If you haven't yet
+> > checked it out, please do so.
 > 
-> Guys, just a heads up on the 4-level pagetable stuff.  If you haven't yet
-> checked it out, please do so.
+> I think I converted everybody except for UML and mips, but not every architecture 
 
-I think I converted everybody except for UML and mips, but not every architecture 
-has been compiled or booted.  The changes are quite straight forward 
-if something is still needed.
+m68k seems to be missing ;-)
 
+> has been compiled or booted.  The changes are quite straight forward 
+> if something is still needed.
 
-This was my latest status. Converted means I only grepped
-for pgd, no test compile.
+If you have a patch for m68k, I'd be glad to give it a try (at least compile,
+booting depends on the (currently untested by me) status of post-2.6.8.1).
 
-i386		works with 2 and 3 levels
-x86-64		works with 4 levels
-ia64		works with 3 levels 
-ppc64		works with 3 levels (thanks to dwmw2) 
-ppc32		works with 2 levels (thanks to hch, Mikael P. for testing)
-s390/s390x	works with 3 levels (thanks to Martin S.) 
-sh		converted, but doesn't compile for other reasons
-alpha		works with 3 levels (thanks to viro for testing) 
-sparc64		works (thanks to DaveM for testing)
-mips/mips64	not done, Ralf stated it was ok to leave it to him.
-parisc		works on 32,64bit (thanks to Kyle M. for testing) 
-arm		converted
-sh64		converted
-sparc32		converted
-cris		works (thanks to Mikael Starvik)
-m32r		converted
+Gr{oetje,eeting}s,
 
+						Geert
 
--Andi
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
