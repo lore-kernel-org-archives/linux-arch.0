@@ -1,209 +1,94 @@
-Return-Path: <rmk+linux-arch=vger.kernel.org@arm.linux.org.uk>
-Received: from caramon.arm.linux.org.uk ([212.18.232.186]:3590 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S262850AbUFNMq0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Jun 2004 08:46:26 -0400
-Received: from flint.arm.linux.org.uk ([2002:d412:e8ba:1:201:2ff:fe14:8fad])
-	by caramon.arm.linux.org.uk with asmtp (TLSv1:DES-CBC3-SHA:168)
-	(Exim 4.33)
-	id 1BZqr2-0001UY-7t
-	for linux-arch@vger.kernel.org; Mon, 14 Jun 2004 13:46:24 +0100
-Received: from rmk by flint.arm.linux.org.uk with local (Exim 4.33)
-	id 1BZqr1-0005mR-EJ
-	for linux-arch@vger.kernel.org; Mon, 14 Jun 2004 13:46:23 +0100
-Date: Mon, 14 Jun 2004 13:46:23 +0100
-From: Russell King <rmk@arm.linux.org.uk>
+Return-Path: <willy@www.linux.org.uk>
+Received: from parcelfarce.linux.theplanet.co.uk ([195.92.249.252]:24758 "EHLO
+	www.linux.org.uk") by vger.kernel.org with ESMTP id S262389AbUFNOCE
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 14 Jun 2004 10:02:04 -0400
+Received: from willy by www.linux.org.uk with local (Exim 4.33)
+	id 1BZs2G-0002mF-AB
+	for linux-arch@vger.kernel.org; Mon, 14 Jun 2004 15:02:04 +0100
+Date: Mon, 14 Jun 2004 15:02:04 +0100
+From: Matthew Wilcox <willy@debian.org>
 Subject: Re: [RFC][PATCH 3/3] Convert console list to list_head
-Message-ID: <20040614134623.E14403@flint.arm.linux.org.uk>
-References: <20040614134502.C14403@flint.arm.linux.org.uk> <20040614134538.D14403@flint.arm.linux.org.uk>
+Message-ID: <20040614140204.GC20511@parcelfarce.linux.theplanet.co.uk>
+References: <20040614134502.C14403@flint.arm.linux.org.uk> <20040614134538.D14403@flint.arm.linux.org.uk> <20040614134623.E14403@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20040614134538.D14403@flint.arm.linux.org.uk>; from rmk@arm.linux.org.uk on Mon, Jun 14, 2004 at 01:45:38PM +0100
-Sender: Russell King <rmk@arm.linux.org.uk>
+In-Reply-To: <20040614134623.E14403@flint.arm.linux.org.uk>
+Sender: <willy@www.linux.org.uk>
 To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Convert console drivers to use list_head rather than its own private
-list implementation.  Unfortunately, several other places reference
-"console_drivers" directly, all of them without locking.  PPC/PPC64
-even seems to export the list for no apparant reason.
+On Mon, Jun 14, 2004 at 01:46:23PM +0100, Russell King wrote:
+> arch/parisc/kernel/pdc_cons.c:  while ((console = console_drivers) != NULL)
+> arch/parisc/kernel/pdc_cons.c:          unregister_console(console_drivers);
+> arch/parisc/kernel/traps.c:     if (!console_drivers)
+> arch/parisc/kernel/traps.c:     if (!console_drivers)
+> 
+>   PARISC seems to like to unregister all consoles, and then re-
+>   registers its own console driver.  IOW, it assumes it can safely
+>   override the state of the console subsystem independent of whatever
+>   drivers may be registered.
 
-arch/ia64/hp/sim/simserial.c:extern struct console *console_drivers; /* from kernel/printk.c */
-arch/ia64/hp/sim/simserial.c:   console = console_drivers;
+This gets into one of the ugliest bits of the parisc patch that I haven't
+figured out how to do cleanly yet.  We have a firmware console (called
+PDC console) that may be printing to screen or serial.  The device
+that's being addressed might be on a PCI bus, so we can't print to it
+while we're walking the PCI busses.  We also can't use it after boot, or
+it'll fight with the serial driver.  So we have the following patch in our
+tree:
 
-  This is interesting - it appears to search the console driver list
-  for the first console, hold a reference to it, and call its write
-  method.  If a console were to be unregistered via unregister_console()
-  this would potentially oops.
-
-arch/parisc/kernel/pdc_cons.c:  while ((console = console_drivers) != NULL)
-arch/parisc/kernel/pdc_cons.c:          unregister_console(console_drivers);
-arch/parisc/kernel/traps.c:     if (!console_drivers)
-arch/parisc/kernel/traps.c:     if (!console_drivers)
-
-  PARISC seems to like to unregister all consoles, and then re-
-  registers its own console driver.  IOW, it assumes it can safely
-  override the state of the console subsystem independent of whatever
-  drivers may be registered.
-
-arch/ppc/kernel/ppc_ksyms.c:EXPORT_SYMBOL(console_drivers);
-arch/ppc64/kernel/ppc_ksyms.c:EXPORT_SYMBOL(console_drivers);
-
-  Random exports of this kernel symbol...
-
-arch/sparc64/kernel/setup.c:    cons = console_drivers;
-arch/sparc64/kernel/setup.c:            cons = console_drivers;
-
-  Sparc64 appears to want to temporarily override the console
-  subsystem for debugging purposes.  Maybe there's a better way?
-
-Since "console_drivers" vanishes as a result of this, all the above
-break, so this needs further work before it can be merged into 2.6.
-Can people consider the above and come up with both a cleaner and
-saner solution?
-
-Signed-Off-By: David Woodhouse <dwmw2@infradead.org>
-Signed-Off-By: Russell King <rmk@arm.linux.org.uk>
-
---- linux/kernel/printk.c.console	Mon Jun 14 11:01:37 2004
-+++ linux/kernel/printk.c	Mon Jun 14 11:06:07 2004
-@@ -61,7 +61,8 @@
-  * driver system.
+diff -urN --exclude-from=/tmp/dont19263.10184 ../.#prev/linux-2.6/include/linux/console.h linux-2.6/include/linux/console.h
+--- ../.#prev/linux-2.6/include/linux/console.h	Sun May 23 18:03:34 2004
++++ linux-2.6/include/linux/console.h	Sun May 23 18:00:46 2004
+@@ -80,6 +80,7 @@
+ #define CON_PRINTBUFFER	(1)
+ #define CON_CONSDEV	(2) /* Last on the command line */
+ #define CON_ENABLED	(4)
++#define CON_BOOT	(8)
+ 
+ struct console
+ {
+diff -urN --exclude-from=/tmp/dont19263.10184 ../.#prev/linux-2.6/kernel/printk.c linux-2.6/kernel/printk.c
+--- ../.#prev/linux-2.6/kernel/printk.c	Sun May 23 18:03:36 2004
++++ linux-2.6/kernel/printk.c	Mon May 10 09:40:38 2004
+@@ -91,8 +91,8 @@
+  * must be masked before subscripting
   */
- static DECLARE_MUTEX(console_sem);
--struct console *console_drivers;
-+static LIST_HEAD(console_driver_list);
-+
+ static unsigned long log_start;	/* Index into log_buf: next char to be read by syslog() */
+-static unsigned long con_start;	/* Index into log_buf: next char to be sent to consoles */
+-static unsigned long log_end;	/* Index into log_buf: most-recently-written-char + 1 */
++unsigned long con_start;	/* Index into log_buf: next char to be sent to consoles */
++unsigned long log_end;	/* Index into log_buf: most-recently-written-char + 1 */
+ static unsigned long logged_chars; /* Number of chars produced since last read+clear operation */
+ 
  /*
-  * This is used for debugging the mess that is the VT code by
-  * keeping track if we have the console semaphore held. It's
-@@ -383,7 +384,7 @@
- {
- 	struct console *con;
+@@ -716,6 +716,11 @@
  
--	for (con = console_drivers; con; con = con->next) {
-+	list_for_each_entry(con, &console_driver_list, list) {
- 		if ((con->flags & CON_ENABLED) && con->write)
- 			con->write(con, &LOG_BUF(start), end - start);
- 	}
-@@ -396,7 +397,7 @@
- 				unsigned long end, int msg_log_level)
- {
- 	if (msg_log_level < console_loglevel &&
--			console_drivers && start != end) {
-+	    !list_empty(&console_driver_list) && start != end) {
- 		if ((start & LOG_BUF_MASK) > (end & LOG_BUF_MASK)) {
- 			/* wrapped write */
- 			__call_console_drivers(start & LOG_BUF_MASK,
-@@ -580,7 +581,7 @@
-  * acquire_console_sem - lock the console system for exclusive use.
-  *
-  * Acquires a semaphore which guarantees that the caller has
-- * exclusive access to the console system and the console_drivers list.
-+ * exclusive access to the console system and the console_driver_list.
-  *
-  * Can sleep, returns nothing.
-  */
-@@ -676,7 +677,7 @@
+ 	if (!(console->flags & CON_ENABLED))
  		return;
- 	console_locked = 1;
- 	console_may_schedule = 0;
--	for (c = console_drivers; c != NULL; c = c->next)
-+	list_for_each_entry(c, &console_driver_list, list)
- 		if ((c->flags & CON_ENABLED) && c->unblank)
- 			c->unblank();
- 	release_console_sem();
-@@ -689,7 +690,7 @@
- 	struct tty_driver *driver = NULL;
- 
- 	acquire_console_sem();
--	for (c = console_drivers; c != NULL; c = c->next) {
-+	list_for_each_entry(c, &console_driver_list, list) {
- 		if (!c->device)
- 			continue;
- 		driver = c->device(c, index);
-@@ -772,13 +773,11 @@
- 	 *	preferred driver at the head of the list.
- 	 */
- 	acquire_console_sem();
--	if ((console->flags & CON_CONSDEV) || console_drivers == NULL) {
--		console->next = console_drivers;
--		console_drivers = console;
--	} else {
--		console->next = console_drivers->next;
--		console_drivers->next = console;
--	}
-+	if ((console->flags & CON_CONSDEV) || list_empty(&console_driver_list)) 
-+		list_add(&console->list, &console_driver_list);
-+	else
-+		list_add(&console->list, console_driver_list.next);
 +
- 	if (console->flags & CON_PRINTBUFFER) {
- 		/*
- 		 * release_console_sem() will print out the buffered messages
-@@ -794,31 +793,17 @@
++	if (console_drivers && (console_drivers->flags & CON_BOOT)) {
++		unregister_console(console_drivers);
++		console->flags &= ~CON_PRINTBUFFER;
++	}
  
- int unregister_console(struct console * console)
- {
--        struct console *a,*b;
- 	int res = 1;
- 
- 	acquire_console_sem();
--	if (console_drivers == console) {
--		console_drivers=console->next;
--		res = 0;
--	} else {
--		for (a=console_drivers->next, b=console_drivers ;
--		     a; b=a, a=b->next) {
--			if (a == console) {
--				b->next = a->next;
--				res = 0;
--				break;
--			}  
--		}
--	}
-+	list_del(&console->list);
- 	
- 	/* If last console is removed, we re-enable picking the first
- 	 * one that gets registered. Without that, pmac early boot console
- 	 * would prevent fbcon from taking over.
- 	 */
--	if (console_drivers == NULL)
-+	if (list_empty(&console_driver_list))
- 		preferred_console = -1;
--		
- 
- 	release_console_sem();
- 	return res;
---- linux/include/linux/console.h.console	Mon Jun 14 11:00:21 2004
-+++ linux/include/linux/console.h	Mon Jun 14 11:05:37 2004
-@@ -16,6 +16,7 @@
- 
- #include <linux/types.h>
- #include <linux/spinlock.h>
-+#include <linux/list.h>
- 
- struct vc_data;
- struct console_font_op;
-@@ -93,13 +94,12 @@
- 	short	index;
- 	int	cflag;
- 	void	*data;
--	struct	 console *next;
-+	struct list_head list;
- };
- 
- extern int add_preferred_console(char *name, int idx, char *options);
- extern void register_console(struct console *);
- extern int unregister_console(struct console *);
--extern struct console *console_drivers;
- extern void acquire_console_sem(void);
- extern void release_console_sem(void);
- extern void console_conditional_schedule(void);
+ 	/*
+ 	 *	Put this console in the list - keep the
+
+ie we can add a console flagged as CON_BOOT.  When the next console is
+added, it deletes the one flagged as CON_BOOT and doesn't print the buffer
+(on the grounds we've already seen it).
+
+The piece of code you've stumbled across is in pdc_console_restart().
+This is only called in an emergency -- the machine is going down, and
+we want to try our absolute hardest to get the panic message to the
+user's console.
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
-                 2.6 Serial core
+"Next the statesmen will invent cheap lies, putting the blame upon 
+the nation that is attacked, and every man will be glad of those
+conscience-soothing falsities, and will diligently study them, and refuse
+to examine any refutations of them; and thus he will by and by convince 
+himself that the war is just, and will thank God for the better sleep 
+he enjoys after this process of grotesque self-deception." -- Mark Twain
