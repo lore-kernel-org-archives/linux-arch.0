@@ -1,30 +1,33 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268582AbUJTQ1A@vger.kernel.org>
-Received: from fmr06.intel.com ([134.134.136.7]:48261 "EHLO
-	caduceus.jf.intel.com") by vger.kernel.org with ESMTP
-	id S266679AbUJTQX5 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Oct 2004 12:23:57 -0400
-Content-class: urn:content-classes:message
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Subject: RE: 4level page tables architecture porting
-Date: Wed, 20 Oct 2004 09:23:39 -0700
-Message-ID: <B8E391BBE9FE384DAA4C5C003888BE6F023640E7@scsmsx401.amr.corp.intel.com>
-From: "Luck, Tony" <tony.luck@intel.com>
-To: Andi Kleen <ak@suse.de>, Arnd Bergmann <arnd@arndb.de>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-arch@vger.kernel.org
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268501AbUJTQ05@vger.kernel.org>
+Received: from stat16.steeleye.com ([209.192.50.48]:45993 "EHLO
+	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
+	id S268490AbUJTQZw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Oct 2004 12:25:52 -0400
+Subject: Re: 4level page tables architecture porting
+From: James Bottomley <James.Bottomley@steeleye.com>
+In-Reply-To: <200410201706.00435.arnd@arndb.de>
+References: <20041020131340.GA5282@mschwid3.boeblingen.de.ibm.com>
+	<20041020143949.GB32257@wotan.suse.de>  <200410201706.00435.arnd@arndb.de>
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Date: 20 Oct 2004 11:25:35 -0500
+Message-Id: <1098289545.2009.17.camel@mulgrave>
+Mime-Version: 1.0
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andi Kleen <ak@suse.de>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
->I don't see how that would work. The stack is always at the top
->and .text is near the beginning, so you need the maximum range of 
->address space, which means all possible levels.
+On Wed, 2004-10-20 at 10:05, Arnd Bergmann wrote:
+> Doesn't that mean spending another page for each running process? I would
+> rather like to see a way to use a dynamic page table layout, where 32 bit
+> tasks always use only two level page tables, while 64 bit tasks start
+> with two or three levels and then go to four or five levels when users
+> map files that don't fit in.
 
-It doesn't have to be that way ... you could start the stack in the
-'middle' growing down towards the heap, and put the mmap playground
-above the stack (growing up).  Here I'd define 'middle' as the
-mid-point of the virtual space mappable with three level tables
-so about half the space is available for mmap, shared mem, shared
-libs etc.  If a process runs out of mmap virtual space, it can
-switch to 4-levels.
+Actually, the kicker (at least for software TLB architectures) is
+another lookup in the TLB insertion handler.  We actually run a hybrid
+scheme on parisc for this reason---compat 32 processes only get a
+2-Level page table even on 64 bit kernels.  That was also the reason for
+all the theoretical work on different types of page tables.
 
--Tony
+James
