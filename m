@@ -1,93 +1,37 @@
-Return-Path: <SRS0=QCkp=BX=vger.kernel.org=linux-arch-owner@kernel.org>
-X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
-	aws-us-west-2-korg-lkml-1.web.codeaurora.org
-X-Spam-Level: 
-X-Spam-Status: No, score=-9.0 required=3.0 tests=BAYES_00,FROM_LOCAL_HEX,
-	HEADER_FROM_DIFFERENT_DOMAINS,MAILING_LIST_MULTI,MENTIONS_GIT_HOSTING,
-	SPF_HELO_NONE,SPF_PASS autolearn=unavailable autolearn_force=no version=3.4.0
-Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F004EC433DF
-	for <linux-arch@archiver.kernel.org>; Thu, 13 Aug 2020 03:57:09 +0000 (UTC)
-Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by mail.kernel.org (Postfix) with ESMTP id D608A206A4
-	for <linux-arch@archiver.kernel.org>; Thu, 13 Aug 2020 03:57:09 +0000 (UTC)
-Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1726600AbgHMD5G (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 12 Aug 2020 23:57:06 -0400
-Received: from mail-il1-f198.google.com ([209.85.166.198]:42202 "EHLO
-        mail-il1-f198.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726546AbgHMD5F (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2020 23:57:05 -0400
-Received: by mail-il1-f198.google.com with SMTP id z1so3437722ilz.9
-        for <linux-arch@vger.kernel.org>; Wed, 12 Aug 2020 20:57:04 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20161025;
-        h=x-gm-message-state:mime-version:date:in-reply-to:message-id:subject
-         :from:to;
-        bh=818BGdNc1wvnUSaZirTtzYWcZvgSsVpOYq9GYar7pzo=;
-        b=B7i1bL6DhnnWg0we3qs/pvs0/tgk69cgYEIo/AEnCjYqJ5gymdhWVgzFiJLPqEJtW/
-         eA6i7lYJ1+C1s/W7jKfDINWSUvz/11qCaLEsEyFOaQmj7EIgQ34SYfjdgGrMN6cz+UrT
-         GHF4Ct4DrOEwSDavNWFi1l56D9lB051jGlMlzEbSIPZh+yIuSPrKsKQwIviHqWLmsnO0
-         RK+LLmZ5J4P1Ejh0zBYdmepkBKUTd64Y4JOwVhFaYdBWHYYjpTez4od8fQaEfWYFt9dX
-         kQzxy1F7Fexd7/cZ40o9gVuM0p0Lxb8U4gaVwGzDA4FNkssH4UpUJ5BRE4J2snIcmHim
-         P1Tg==
-X-Gm-Message-State: AOAM530B4YJsdOdXVlg4M538sXk3ORSplQF2JJ++Vkvzqp39S82LIa4G
-        kzUiBwYU9AL/FtcFLNBTA14Hhwz9JKCFVp3UzeELl63Av2L0
-X-Google-Smtp-Source: ABdhPJxyW2a+ykA+fUEC8D6mFHSlTwIHpmNmLpjhnj+1O5R02Uizom5WTc4bNxK6AVfdyCvjg+GBZ9zseGC71qHLHgVFHLNbJAN8
-MIME-Version: 1.0
-X-Received: by 2002:a92:874a:: with SMTP id d10mr2849478ilm.273.1597291024427;
- Wed, 12 Aug 2020 20:57:04 -0700 (PDT)
-Date:   Wed, 12 Aug 2020 20:57:04 -0700
-In-Reply-To: <00000000000084b59f05abe928ee@google.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <0000000000001d3cbb05acba4cc2@google.com>
-Subject: Re: INFO: task hung in pipe_release (2)
-From:   syzbot <syzbot+61acc40a49a3e46e25ea@syzkaller.appspotmail.com>
-To:     James.Bottomley@HansenPartnership.com, amanieu@gmail.com,
-        arnd@arndb.de, benh@kernel.crashing.org, bfields@fieldses.org,
-        borntraeger@de.ibm.com, bp@alien8.de, catalin.marinas@arm.com,
-        chris@zankel.net, christian@brauner.io, corbet@lwn.net,
-        cyphar@cyphar.com, dalias@libc.org, davem@davemloft.net,
-        deller@gmx.de, dvyukov@google.com, fenghua.yu@intel.com,
-        geert@linux-m68k.org, gor@linux.ibm.com, heiko.carstens@de.ibm.com,
-        hpa@zytor.com, ink@jurassic.park.msu.ru, jcmvbkbc@gmail.com,
-        jhogan@kernel.org, jlayton@kernel.org, kvalo@codeaurora.org,
-        linux-alpha@vger.kernel.org, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-fsdevel@vger.kernel.org, linux-ia64@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
-        linux-xtensa@linux-xtensa.org, linux@armlinux.org.uk,
-        linux@dominikbrodowski.net, linuxppc-dev@lists.ozlabs.org,
-        luis.f.correia@gmail.com, luto@kernel.org, martink@posteo.de,
-        mattst88@gmail.com, ming.lei@canonical.com, ming.lei@redhat.com,
-        mingo@redhat.com, monstr@monstr.eu
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
-Precedence: bulk
+Return-Path: <davidm@napali.hpl.hp.com>
+Received: from palrel10.hp.com ([156.153.255.245]:36325 "EHLO palrel10.hp.com")
+	by vger.kernel.org with ESMTP id S263180AbUB0Wje (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Feb 2004 17:39:34 -0500
+Received: from hplms2.hpl.hp.com (hplms2.hpl.hp.com [15.0.152.33])
+	by palrel10.hp.com (Postfix) with ESMTP id 5A8BA1C020C4
+	for <linux-arch@vger.kernel.org>; Fri, 27 Feb 2004 14:39:32 -0800 (PST)
+Received: from napali.hpl.hp.com (napali.hpl.hp.com [15.4.89.123])
+	by hplms2.hpl.hp.com (8.12.10/8.12.10/HPL-PA Hub) with ESMTP id i1RMdUQa024482
+	for <linux-arch@vger.kernel.org>; Fri, 27 Feb 2004 14:39:31 -0800 (PST)
+Received: from napali.hpl.hp.com (napali [127.0.0.1])
+	by napali.hpl.hp.com (8.12.11/8.12.11/Debian-1) with ESMTP id i1RMdUw4015678
+	for <linux-arch@vger.kernel.org>; Fri, 27 Feb 2004 14:39:30 -0800
+Date: Fri, 27 Feb 2004 14:39:30 -0800
+From: David Mosberger <davidm@napali.hpl.hp.com>
+Message-Id: <200402272239.i1RMdU7E015674@napali.hpl.hp.com>
+Subject: remove irq_enter()/irq_exit() from hardirq.h
+Reply-To: davidm@hpl.hp.com
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-X-Mailing-List: linux-arch@vger.kernel.org
 
-syzbot has bisected this issue to:
+Recently, Ken Chen discovered a bug in the ia64 kernel which was
+caused by irq_exit() calling do_softirq().  It's easy to fix this bug
+(move irq_exit() to the correct place), but I'm wondering whether
+leaving irq_enter()/irq_exit() in hardirq.h might invite someone to
+use it outside of architecture-specific code (which is not the case at
+the moment, as far as I can see).  This would be bad because great
+care needs to be taken to ensure that do_softirq() gets called from
+the right place.  In the case of ia64, there is one and only one place
+where it should be called.  Thus, my inclination is to remove the two
+functions from hardirq.h and to stick them in the ia64-specific
+irq-handling code (irq_ia64.c).
 
-commit fddb5d430ad9fa91b49b1d34d0202ffe2fa0e179
-Author: Aleksa Sarai <cyphar@cyphar.com>
-Date:   Sat Jan 18 12:07:59 2020 +0000
+What do others think?
 
-    open: introduce openat2(2) syscall
-
-bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=164e716a900000
-start commit:   6ba1b005 Merge tag 'asm-generic-fixes-5.8' of git://git.ke..
-git tree:       upstream
-final oops:     https://syzkaller.appspot.com/x/report.txt?x=154e716a900000
-console output: https://syzkaller.appspot.com/x/log.txt?x=114e716a900000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=84f076779e989e69
-dashboard link: https://syzkaller.appspot.com/bug?extid=61acc40a49a3e46e25ea
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=142ae224900000
-
-Reported-by: syzbot+61acc40a49a3e46e25ea@syzkaller.appspotmail.com
-Fixes: fddb5d430ad9 ("open: introduce openat2(2) syscall")
-
-For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+	--david
