@@ -1,32 +1,35 @@
-Return-Path: <ink@jurassic.park.msu.ru>
-Received: from jurassic.park.msu.ru ([195.208.223.243]:62850 "EHLO
-	jurassic.park.msu.ru") by vger.kernel.org with ESMTP
-	id S263185AbUFFJzP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 6 Jun 2004 05:55:15 -0400
-Date: Sun, 6 Jun 2004 13:55:12 +0400
-From: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Subject: Re: [patch 2.6] __ARCH_WANT_SYS_RT_SIGACTION
-Message-ID: <20040606135512.A12219@jurassic.park.msu.ru>
-References: <20040604131926.A791@jurassic.park.msu.ru> <16576.65181.551817.333709@napali.hpl.hp.com>
-Mime-Version: 1.0
+Return-Path: <davidm@napali.hpl.hp.com>
+Received: from palrel12.hp.com ([156.153.255.237]:64998 "EHLO palrel12.hp.com")
+	by vger.kernel.org with ESMTP id S264983AbUFGSdE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jun 2004 14:33:04 -0400
+From: David Mosberger <davidm@napali.hpl.hp.com>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <16576.65181.551817.333709@napali.hpl.hp.com>; from davidm@napali.hpl.hp.com on Fri, Jun 04, 2004 at 03:58:37PM -0700
-To: davidm@hpl.hp.com
-Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Message-ID: <16580.46291.263003.920018@napali.hpl.hp.com>
+Date: Mon, 7 Jun 2004 11:32:51 -0700
+Subject: Re: [patch 2.6] __ARCH_WANT_SYS_RT_SIGACTION
+In-Reply-To: <20040606135512.A12219@jurassic.park.msu.ru>
+References: <20040604131926.A791@jurassic.park.msu.ru>
+	<16576.65181.551817.333709@napali.hpl.hp.com>
+	<20040606135512.A12219@jurassic.park.msu.ru>
+Reply-To: davidm@hpl.hp.com
+To: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: davidm@hpl.hp.com, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Jun 04, 2004 at 03:58:37PM -0700, David Mosberger wrote:
-> Sorry, that was my bad (obviously).  I think the real problem is that
-> the closing #endif for __ARCH_WANT_SYS_SIGPROCMASK came too late (by
-> one function), so that sys_rt_sigaction() was accidentally left out if
-> this macro wasn't defined.  The problem was fixed in Linus' tree
-> yesterday.  Can you confirm that it builds on Alpha again as well?
+>>>>> On Sun, 6 Jun 2004 13:55:12 +0400, Ivan Kokshaysky <ink@jurassic.park.msu.ru> said:
 
-No, it doesn't.
-In fact, it was the very change that broke Alpha - we have
-alpha-specific versions of *both* sys_sigprocmask() and
-sys_rt_sigaction().
-The patch still applies to today's bk tree.
+  Ivan> On Fri, Jun 04, 2004 at 03:58:37PM -0700, David Mosberger wrote:
 
-Ivan.
+  >> Can you confirm that it builds on Alpha again as well?
+
+  Ivan> No, it doesn't.
+  Ivan> In fact, it was the very change that broke Alpha - we have
+  Ivan> alpha-specific versions of *both* sys_sigprocmask() and
+  Ivan> sys_rt_sigaction().
+  Ivan> The patch still applies to today's bk tree.
+
+Ah, I misunderstood the problem---the patch seems fine to me, then.
+
+	--david
