@@ -1,12 +1,12 @@
-Return-Path: <davem@redhat.com>
-Received: from mx1.redhat.com ([66.187.233.31]:24760 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S263345AbUCSAlt (ORCPT
+Return-Path: <akpm@osdl.org>
+Received: from fw.osdl.org ([65.172.181.6]:17645 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S261646AbUCSAz4 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 Mar 2004 19:41:49 -0500
-Date: Thu, 18 Mar 2004 16:41:43 -0800
-From: "David S. Miller" <davem@redhat.com>
+	Thu, 18 Mar 2004 19:55:56 -0500
+Date: Thu, 18 Mar 2004 16:55:50 -0800
+From: Andrew Morton <akpm@osdl.org>
 Subject: Re: pci_map_single return value
-Message-Id: <20040318164143.2cc398b3.davem@redhat.com>
+Message-Id: <20040318165550.3f5068b4.akpm@osdl.org>
 In-Reply-To: <20040319001448.GP28212@krispykreme>
 References: <20031212155752.GD17683@krispykreme>
 	<20031212175104.07dc8444.ak@suse.de>
@@ -19,18 +19,24 @@ Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 To: Anton Blanchard <anton@samba.org>
-Cc: ak@suse.de, linux-arch@vger.kernel.org
+Cc: ak@suse.de, davem@redhat.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 19 Mar 2004 11:14:48 +1100
 Anton Blanchard <anton@samba.org> wrote:
+>
+> > Another addition here:
+>  > 
+>  > Please note that the sg cannot be mapped again if it has been mapped once.
+>  > The mapping process is allowed to destroy information in the sg.
+>  > 
+>  > [some drivers do this currently and it causes problems]
+>  > 
+>  > > +As with the other mapping interfaces, dma_map_sg can fail. When it
+>  > > +does, 0 is returned and a driver should take appropriate action.
+>  > 
+>  > Please make this stronger. A block driver should definitely abort the
+>  > request, otherwise you can kiss your super block good-bye.
+> 
+>  Better late than never. Andrew does this look OK to you?
 
-> Better late than never. Andrew does this look OK to you?
- ...
-> Introduce dma_error() and pci_dma_error() which is used to detect
-> failures in pci_map_single.
-
-This looks fine to me.
-
-We really need to backport the dma sync stuff and this (once integrated
-to 2.6.x) into 2.4.x, probably when 2.4.27-pre1 opens up.
+Spose so.  Does this mean driver patches are on the way?
