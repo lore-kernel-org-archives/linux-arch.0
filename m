@@ -1,40 +1,33 @@
-Return-Path: <davem@redhat.com>
-Received: from mx1.redhat.com ([66.187.233.31]:8129 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S264885AbUFOAZ4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Jun 2004 20:25:56 -0400
-Date: Mon, 14 Jun 2004 17:20:22 -0700
-From: "David S. Miller" <davem@redhat.com>
-Subject: Re: [RFC][PATCH 3/3] Convert console list to list_head
-Message-Id: <20040614172022.57239426.davem@redhat.com>
-In-Reply-To: <20040614140204.GC20511@parcelfarce.linux.theplanet.co.uk>
-References: <20040614134502.C14403@flint.arm.linux.org.uk>
-	<20040614134538.D14403@flint.arm.linux.org.uk>
-	<20040614134623.E14403@flint.arm.linux.org.uk>
-	<20040614140204.GC20511@parcelfarce.linux.theplanet.co.uk>
+Return-Path: <SRS0+32496bb8486dda8a0918+297+infradead.org+hch@pentafluge-185326.srs.infradead.org>
+Received: from [213.146.154.40] ([213.146.154.40]:21917 "EHLO
+	pentafluge.infradead.org") by vger.kernel.org with ESMTP
+	id S264312AbUFPRx1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 Jun 2004 13:53:27 -0400
+Date: Wed, 16 Jun 2004 18:53:25 +0100
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH] aacraid 32/64 ioctl support (update)
+Message-ID: <20040616175325.GA16751@infradead.org>
+References: <1087401137.13488.61.camel@markh1.pdx.osdl.net> <20040616160107.GA14144@infradead.org> <20040616160232.GB14144@infradead.org> <1087405920.13488.82.camel@markh1.pdx.osdl.net> <20040616171924.GA15925@infradead.org> <1087408316.13488.93.camel@markh1.pdx.osdl.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Matthew Wilcox <willy@debian.org>
-Cc: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1087408316.13488.93.camel@markh1.pdx.osdl.net>
+To: Mark Haverkamp <markh@osdl.org>
+Cc: James Bottomley <James.Bottomley@steeleye.com>, linux-scsi <linux-scsi@vger.kernel.org>, Mark Salyzyn <mark_salyzyn@adaptec.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 14 Jun 2004 15:02:04 +0100
-Matthew Wilcox <willy@debian.org> wrote:
+> > Although the compat_alloc_user_space implementations I looked at don't fail I
+> > think a check for NULL wouldn't hurt.
+> 
+> The places that I looked where they check the return value use
+> access_ok().  What do you think?
 
-> This gets into one of the ugliest bits of the parisc patch that I haven't
-> figured out how to do cleanly yet.  We have a firmware console (called
-> PDC console) that may be printing to screen or serial.  The device
-> that's being addressed might be on a PCI bus, so we can't print to it
-> while we're walking the PCI busses.  We also can't use it after boot, or
-> it'll fight with the serial driver.  So we have the following patch in our
-> tree:
+ 
+> > > +	f = compat_alloc_user_space(sizeof(*f));
+> 
+> I just noticed this.  Can we use memset on a user pointer?  If not, what
+> would be the best way to handle this?
 
-Thanks for mentioning this Matthew.  I never considered these kinds
-of issues very much on Sparc although it might cause problems
-for us too.
 
-When we use the firmware console, it just outputs to whatever
-device the firwmare has been configured to use (framebuffer,
-serial, etc.) I think we are lucky because if the firmware allocates
-resources for a PCI device, we never change things.
+Good question.  Maybe the architecture-folks know an answer?
+ 
