@@ -1,347 +1,52 @@
 Return-Path: <arnd@arndb.de>
-Received: from natsmtp00.rzone.de ([81.169.145.165]:33430 "EHLO
+Received: from natsmtp00.rzone.de ([81.169.145.165]:11686 "EHLO
 	natsmtp00.webmailer.de") by vger.kernel.org with ESMTP
-	id S264193AbUDHI1m convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2004 04:27:42 -0400
+	id S264213AbUDHIdG convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2004 04:33:06 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: posix message queues
-Date: Thu, 8 Apr 2004 10:17:45 +0200
-References: <20040407120720.6b937deb.akpm@osdl.org> <40745360.6000709@colorfullife.com>
-In-Reply-To: <40745360.6000709@colorfullife.com>
+Subject: Re: [PATCH 3/4] Consolidate sys32_select
+Date: Thu, 8 Apr 2004 10:22:38 +0200
+References: <200404040204.03594.arnd@arndb.de> <200404040222.41413.arnd@arndb.de> <407468A8.5060309@intel.com>
+In-Reply-To: <407468A8.5060309@intel.com>
 MIME-Version: 1.0
 Content-Disposition: inline
 Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 8BIT
-Message-Id: <200404081017.46132.arnd@arndb.de>
-To: Manfred Spraul <manfred@colorfullife.com>
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>
+Message-Id: <200404081022.38720.arnd@arndb.de>
+To: Arun Sharma <arun.sharma@intel.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wednesday 07 April 2004 21:15, you wrote:
-> >looks like it will require emulation for 32-bit apps.  But if we were to
-> >make these __u32 perhaps that could be avoided?
-> >  
-> >
-> No. The unix spec mandates 'long' for the final C-library api. Using u32 
-> would mean that glibc would have to add an emulation layer in user space 
-> for 64-bit archs. In the long run, 64-bit kernels running 64-bit apps 
-> will be the common case. I don't want to add an emulation layer to the 
-> common case.
+On Wednesday 07 April 2004 22:46, you wrote:
+> While your patches improved compatibility with respect to LSB/LTP,
+> we saw the following regressions on LTP on ia64: 
+> 
+> recv01      PASS->BROK
+> recvmsg01    PASS->BROK
+> recvfrom01    PASS->BROK
+> 
+> While we're looking into it, did others see this ? 
+> Is it fixed already ? 
 
-Coincidentally, I have just finished writing handlers for them. 
-I have tested the code with the open posix test suite and found the
-same four failures for both 64-bit and compat mode, most tests
-pass. The patch is against -mc1, but I guess it also applies to the
-other trees around.
-
-What worries me more than mq_attr compatibility is the conversion
-of struct sigevent, which might turn out really hard when more
-fields in there are used. AFAICS, the only other part in the kernel
-ABI is sys_timer_create(), so maybe it's not too late to deprecate
-the current structure and create a structure that can be used
-properly for compat syscalls.
+Did you apply the patch I sent in the followup mail? It looks
+like you ran into the problem. Here it is again in case you
+missed it.
 
 	Arnd <><
 
-http://www.arndb.de/patches/linux/2.6.5-mc1/compat_mq.diff
-
-include/linux/compat.h      |   16 +++
-include/linux/mqueue.h      |    4 
-include/linux/posix_types.h |    1 
-include/linux/syscalls.h    |    1 
-include/linux/types.h       |    1 
-ipc/Makefile                |    3 
-ipc/compat_mq.c             |  185 ++++++++++++++++++++++++++++++++++++++++++++
-kernel/sys.c                |    5 +
-  8 files changed, 212 insertions(+), 4 deletions(-)
-
-diff -Nru a/include/linux/compat.h b/include/linux/compat.h
---- a/include/linux/compat.h	Thu Apr  8 01:50:22 2004
-+++ b/include/linux/compat.h	Thu Apr  8 01:50:22 2004
-@@ -90,6 +90,22 @@
- 	compat_uptr_t	sival_ptr;
- } compat_sigval_t;
+===== fs/compat.c 1.25 vs edited =====
+--- 1.25/fs/compat.c	Sat Apr  3 23:51:59 2004
++++ edited/fs/compat.c	Mon Apr  5 00:48:52 2004
+@@ -1377,8 +1377,9 @@
+ 			usec = timeout % HZ;
+ 			usec *= (1000000/HZ);
+ 		}
+-		ret = __put_user(sec, &tvp->tv_sec);
+-		ret |= __put_user(usec, &tvp->tv_usec);
++		if (put_user(sec, &tvp->tv_sec) ||
++		    put_user(usec, &tvp->tv_usec))
++			ret = -EFAULT;
+ 	}
  
-+typedef struct compat_sigevent {
-+	compat_sigval_t sigev_value;
-+	compat_int_t sigev_signo;
-+	compat_int_t sigev_notify;
-+	union {
-+		compat_int_t _pad[SIGEV_PAD_SIZE];
-+		compat_int_t _tid;
-+
-+		struct {
-+			compat_uptr_t _function;
-+			compat_uptr_t _attribute;
-+		} _sigev_thread;
-+	} _sigev_un;
-+} compat_sigevent_t;
-+
-+
- long compat_sys_semctl(int first, int second, int third, void __user *uptr);
- long compat_sys_msgsnd(int first, int second, int third, void __user *uptr);
- long compat_sys_msgrcv(int first, int second, int msgtyp, int third,
-diff -Nru a/include/linux/mqueue.h b/include/linux/mqueue.h
---- a/include/linux/mqueue.h	Thu Apr  8 01:50:22 2004
-+++ b/include/linux/mqueue.h	Thu Apr  8 01:50:22 2004
-@@ -18,9 +18,9 @@
- #ifndef _LINUX_MQUEUE_H
- #define _LINUX_MQUEUE_H
- 
--#define MQ_PRIO_MAX 	32768
-+#include <linux/types.h>
- 
--typedef int mqd_t;
-+#define MQ_PRIO_MAX 	32768
- 
- struct mq_attr {
- 	long	mq_flags;	/* message queue flags			*/
-diff -Nru a/include/linux/posix_types.h b/include/linux/posix_types.h
---- a/include/linux/posix_types.h	Thu Apr  8 01:50:22 2004
-+++ b/include/linux/posix_types.h	Thu Apr  8 01:50:22 2004
-@@ -42,6 +42,7 @@
- 
- /* Type of a SYSV IPC key.  */
- typedef int __kernel_key_t;
-+typedef int __kernel_mqd_t;
- 
- #include <asm/posix_types.h>
- 
-diff -Nru a/include/linux/syscalls.h b/include/linux/syscalls.h
---- a/include/linux/syscalls.h	Thu Apr  8 01:50:22 2004
-+++ b/include/linux/syscalls.h	Thu Apr  8 01:50:22 2004
-@@ -48,7 +48,6 @@
- struct timezone;
- struct tms;
- struct utimbuf;
--typedef int mqd_t;
- struct mq_attr;
- 
- #include <linux/config.h>
-diff -Nru a/include/linux/types.h b/include/linux/types.h
---- a/include/linux/types.h	Thu Apr  8 01:50:22 2004
-+++ b/include/linux/types.h	Thu Apr  8 01:50:22 2004
-@@ -31,6 +31,7 @@
- typedef __kernel_suseconds_t	suseconds_t;
- typedef __kernel_timer_t	timer_t;
- typedef __kernel_clockid_t	clockid_t;
-+typedef __kernel_mqd_t		mqd_t;
- 
- #ifdef __KERNEL__
- typedef __kernel_uid32_t	uid_t;
-diff -Nru a/ipc/Makefile b/ipc/Makefile
---- a/ipc/Makefile	Thu Apr  8 01:50:22 2004
-+++ b/ipc/Makefile	Thu Apr  8 01:50:22 2004
-@@ -4,5 +4,6 @@
- 
- obj-$(CONFIG_SYSVIPC_COMPAT) += compat.o
- obj-$(CONFIG_SYSVIPC) += util.o msgutil.o msg.o sem.o shm.o
--obj-$(CONFIG_POSIX_MQUEUE) += mqueue.o msgutil.o
-+obj_mq-$(CONFIG_COMPAT) += compat_mq.o
-+obj-$(CONFIG_POSIX_MQUEUE) += mqueue.o msgutil.o $(obj_mq-y)
- 
-diff -Nru a/ipc/compat_mq.c b/ipc/compat_mq.c
---- /dev/null	Wed Dec 31 16:00:00 1969
-+++ b/ipc/compat_mq.c	Thu Apr  8 01:50:22 2004
-@@ -0,0 +1,185 @@
-+/*
-+ *  ipc/compat_mq.c
-+ *    32 bit emulation for POSIX message queue system calls
-+ *
-+ *    Copyright (C) 2004 IBM Deutschland Entwicklung GmbH, IBM Corporation
-+ *    Author: Arnd Bergmann <arnd@arndb.de>
-+ */
-+
-+#include <linux/compat.h>
-+#include <linux/fs.h>
-+#include <linux/kernel.h>
-+#include <linux/mqueue.h>
-+#include <linux/syscalls.h>
-+
-+#include <asm/uaccess.h>
-+
-+struct compat_mq_attr {
-+	compat_long_t mq_flags;      /* message queue flags		     */
-+	compat_long_t mq_maxmsg;     /* maximum number of messages	     */
-+	compat_long_t mq_msgsize;    /* maximum message size		     */
-+	compat_long_t mq_curmsgs;    /* number of messages currently queued  */
-+	compat_long_t __reserved[4]; /* ignored for input, zeroed for output */
-+};
-+
-+static inline int get_compat_mq_attr(struct mq_attr *attr,
-+			const struct compat_mq_attr __user *uattr)
-+{
-+	if (verify_area(VERIFY_READ, uattr, sizeof *uattr))
-+		return -EFAULT;
-+
-+	return __get_user(attr->mq_flags, &uattr->mq_flags)
-+		| __get_user(attr->mq_maxmsg, &uattr->mq_maxmsg)
-+		| __get_user(attr->mq_msgsize, &uattr->mq_msgsize)
-+		| __get_user(attr->mq_curmsgs, &uattr->mq_curmsgs);
-+}
-+
-+static inline int put_compat_mq_attr(const struct mq_attr *attr,
-+			struct compat_mq_attr __user *uattr)
-+{
-+	if (clear_user(uattr, sizeof *uattr))
-+		return -EFAULT;
-+
-+	return __put_user(attr->mq_flags, &uattr->mq_flags)
-+		| __put_user(attr->mq_maxmsg, &uattr->mq_maxmsg)
-+		| __put_user(attr->mq_msgsize, &uattr->mq_msgsize)
-+		| __put_user(attr->mq_curmsgs, &uattr->mq_curmsgs);
-+}
-+
-+asmlinkage long compat_sys_mq_open(const char __user *u_name,
-+			int oflag, compat_mode_t mode,
-+			struct compat_mq_attr __user *u_attr)
-+{
-+	struct mq_attr attr;
-+	mm_segment_t oldfs;
-+	char *name;
-+	long ret;
-+
-+	if (!u_attr)
-+		return sys_mq_open(u_name, oflag, mode, 0);
-+
-+	if (get_compat_mq_attr(&attr, u_attr))
-+		return -EFAULT;
-+
-+	name = getname(u_name);
-+	if (IS_ERR(name))
-+		return PTR_ERR(name);
-+
-+	oldfs = get_fs();
-+	set_fs(KERNEL_DS);
-+	ret = sys_mq_open(name, oflag, mode, &attr);
-+	set_fs(oldfs);
-+
-+	putname(name);
-+	return ret;
-+}
-+
-+static struct timespec __user *compat_prepare_timeout(
-+			const struct compat_timespec __user *u_abs_timeout)
-+{
-+	struct timespec ts, __user *u_ts;
-+
-+	if (!u_abs_timeout)
-+		return 0;
-+
-+	u_ts = compat_alloc_user_space(sizeof(*u_ts));
-+	if (get_compat_timespec(&ts, u_abs_timeout)
-+		|| copy_to_user(u_ts, &ts, sizeof(*u_ts)))
-+		return ERR_PTR(-EFAULT);
-+
-+	return u_ts;
-+}
-+
-+asmlinkage long compat_sys_mq_timedsend(mqd_t mqdes,
-+			const char __user *u_msg_ptr,
-+			size_t msg_len, unsigned int msg_prio,
-+			const struct compat_timespec __user *u_abs_timeout)
-+{
-+	struct timespec __user *u_ts;
-+
-+	u_ts = compat_prepare_timeout(u_abs_timeout);
-+	if (IS_ERR(u_ts))
-+		return -EFAULT;
-+
-+	return sys_mq_timedsend(mqdes, u_msg_ptr, msg_len,
-+			msg_prio, u_ts);
-+}
-+
-+asmlinkage ssize_t compat_sys_mq_timedreceive(mqd_t mqdes,
-+			char __user *u_msg_ptr,
-+			size_t msg_len, unsigned int __user *u_msg_prio,
-+			const struct compat_timespec __user *u_abs_timeout)
-+{
-+	struct timespec *u_ts;
-+
-+	u_ts = compat_prepare_timeout(u_abs_timeout);
-+	if (IS_ERR(u_ts))
-+		return -EFAULT;
-+
-+	return sys_mq_timedreceive(mqdes, u_msg_ptr, msg_len,
-+			u_msg_prio, u_ts);
-+}
-+
-+static int get_compat_sigevent(struct sigevent *event,
-+		const struct compat_sigevent __user *u_event)
-+{
-+	if (verify_area(VERIFY_READ, u_event, sizeof(*u_event)))
-+		return -EFAULT;
-+
-+	return __get_user(event->sigev_value.sival_int,
-+			  &u_event->sigev_value.sival_int)
-+	     | __get_user(event->sigev_signo, &u_event->sigev_signo)
-+	     | __get_user(event->sigev_notify, &u_event->sigev_notify)
-+	     | __get_user(event->sigev_notify_thread_id,
-+			  &u_event->sigev_notify_thread_id);
-+}
-+
-+asmlinkage long compat_sys_mq_notify(mqd_t mqdes,
-+			const struct compat_sigevent __user *u_notification)
-+{
-+	mm_segment_t oldfs;
-+	struct sigevent notification;
-+	long ret;
-+
-+	if (!u_notification)
-+		return sys_mq_notify(mqdes, 0);
-+
-+	if (get_compat_sigevent(&notification, u_notification))
-+		return -EFAULT;
-+
-+	oldfs = get_fs();
-+	set_fs(KERNEL_DS);
-+	ret = sys_mq_notify(mqdes, &notification);
-+	set_fs(oldfs);
-+
-+	return ret;
-+}
-+
-+asmlinkage long compat_sys_mq_getsetattr(mqd_t mqdes,
-+			const struct compat_mq_attr __user *u_mqstat,
-+			struct compat_mq_attr __user *u_omqstat)
-+{
-+	struct mq_attr mqstat, omqstat;
-+	struct mq_attr *p_mqstat = 0, *p_omqstat = 0;
-+	mm_segment_t oldfs;
-+	long ret;
-+
-+	if (u_mqstat) {
-+		p_mqstat = &mqstat;
-+		if (get_compat_mq_attr(p_mqstat, u_mqstat))
-+			return -EFAULT;
-+	}
-+
-+	if (u_omqstat)
-+		p_omqstat = &omqstat;
-+	
-+	oldfs = get_fs();
-+	set_fs(KERNEL_DS);
-+	ret = sys_mq_getsetattr(mqdes, p_mqstat, p_omqstat);
-+	set_fs(oldfs);
-+
-+	if (ret)
-+		return ret;
-+
-+	return (u_omqstat) ? put_compat_mq_attr(&omqstat, u_omqstat) : 0;
-+}
-diff -Nru a/kernel/sys.c b/kernel/sys.c
---- a/kernel/sys.c	Thu Apr  8 01:50:22 2004
-+++ b/kernel/sys.c	Thu Apr  8 01:50:22 2004
-@@ -266,6 +266,11 @@
- cond_syscall(sys_mq_timedreceive)
- cond_syscall(sys_mq_notify)
- cond_syscall(sys_mq_getsetattr)
-+cond_syscall(compat_sys_mq_open)
-+cond_syscall(compat_sys_mq_timedsend)
-+cond_syscall(compat_sys_mq_timedreceive)
-+cond_syscall(compat_sys_mq_notify)
-+cond_syscall(compat_sys_mq_getsetattr)
- 
- /* arch-specific weak syscall entries */
- cond_syscall(sys_pciconfig_read)
+ 	if (ret < 0)
