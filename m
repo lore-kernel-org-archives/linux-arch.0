@@ -1,12 +1,12 @@
 Return-Path: <benh@kernel.crashing.org>
-Received: from gate.crashing.org ([63.228.1.57]:12169 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S265255AbUEZGDJ (ORCPT
+Received: from gate.crashing.org ([63.228.1.57]:41865 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S265314AbUEZG72 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 May 2004 02:03:09 -0400
+	Wed, 26 May 2004 02:59:28 -0400
 Subject: Re: [PATCH] (signoff) ppc64: Fix possible race with set_pte on a
 	present PTE
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <Pine.LNX.4.58.0405252151100.15534@ppc970.osdl.org>
+In-Reply-To: <1085551152.6320.38.camel@gaston>
 References: <1085369393.15315.28.camel@gaston>
 	 <Pine.LNX.4.58.0405232046210.25502@ppc970.osdl.org>
 	 <1085371988.15281.38.camel@gaston>
@@ -34,29 +34,33 @@ References: <1085369393.15315.28.camel@gaston>
 	 <Pine.LNX.4.58.0405252031270.15534@ppc970.osdl.org>
 	 <1085546780.5584.19.camel@gaston>
 	 <Pine.LNX.4.58.0405252151100.15534@ppc970.osdl.org>
+	 <1085551152.6320.38.camel@gaston>
 Content-Type: text/plain
-Message-Id: <1085551152.6320.38.camel@gaston>
+Message-Id: <1085554527.7835.59.camel@gaston>
 Mime-Version: 1.0
-Date: Wed, 26 May 2004 15:59:15 +1000
+Date: Wed, 26 May 2004 16:55:27 +1000
 Content-Transfer-Encoding: 7bit
 To: Linus Torvalds <torvalds@osdl.org>
 Cc: "David S. Miller" <davem@redhat.com>, wesolows@foobazco.org, willy@debian.org, Andrea Arcangeli <andrea@suse.de>, Andrew Morton <akpm@osdl.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, mingo@elte.hu, bcrl@kvack.org, linux-mm@kvack.org, Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-(Same with signoff :)
+On Wed, 2004-05-26 at 15:59, Benjamin Herrenschmidt wrote:
+> (Same with signoff :)
+> 
+> Ok, here it is. I blasted ptep_establish completely and the macro
+> thing and changed the function to ptep_set_access_flags() which
+> becomes also responsible for the flush if necesary.
 
-Ok, here it is. I blasted ptep_establish completely and the macro
-thing and changed the function to ptep_set_access_flags() which
-becomes also responsible for the flush if necesary.
+Ok, ppc64 implementation is bogus, I just completely forgot that
+we have to also atomically wait for busy to be cleared. (Or we
+would race with the hash refill which does set busy atomically
+at the beginning of the opertation, but later updates the linux
+PTE non atomically & clears it).
 
-Overall, I feel it's more consistent this way with the other stuff
-in there.
+Brown paper bag since I'm the one who implemented the hash refill
+this way in the first place =P
 
-I did the ppc64 impl, the x86 one (hope I got it right). I still need to
-do ppc32 and I suppose s390 must be fixed now that ptep_estabish is gone
-but I'll leave that to someone who understand something about these things ;)
-
-Here it is, boots on g5 :
+Here's a fixed version:
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
@@ -114,7 +118,7 @@ Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
  /* Encode and de-code a swap entry */
 ===== include/asm-ppc64/pgtable.h 1.33 vs edited =====
 --- 1.33/include/asm-ppc64/pgtable.h	2004-05-23 07:56:24 +10:00
-+++ edited/include/asm-ppc64/pgtable.h	2004-05-26 15:32:38 +10:00
++++ edited/include/asm-ppc64/pgtable.h	2004-05-26 16:47:05 +10:00
 @@ -306,7 +306,10 @@
  	return old;
  }
@@ -136,7 +140,7 @@ Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
  	}
  	return (old & _PAGE_ACCESSED) != 0;
  }
-@@ -396,10 +399,34 @@
+@@ -396,10 +399,36 @@
   */
  static inline void set_pte(pte_t *ptep, pte_t pte)
  {
@@ -156,15 +160,17 @@ Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 +{
 +	unsigned long bits = pte_val(entry) &
 +		(_PAGE_DIRTY | _PAGE_ACCESSED | _PAGE_RW);
-+	unsigned long tmp;
++	unsigned long old, tmp;
 +
 +	__asm__ __volatile__(
-+	       "1:     ldarx   %0,0,%3\n\
-+                or      %0,%2,%0\n\
-+                stdcx.  %0,0,%3\n\
++        "1:     ldarx   %0,0,%4\n\
++	        andi.	%1,%0,%6\n\
++	        bne-	1b \n\
++                or      %0,%3,%0\n\
++                stdcx.  %0,0,%4\n\
 +                bne-    1b"
-+	:"=&r" (tmp), "=m" (*ptep)
-+	:"r" (bits), "r" (ptep)
++	:"=&r" (old), "=&r" (tmp), "=m" (*ptep)
++	:"r" (bits), "r" (ptep), "m" (ptep), "i" (_PAGE_BUSY)
 +	:"cc");
 +}
 +#define  ptep_set_access_flags(__vma, __address, __ptep, __entry, __dirty) \
