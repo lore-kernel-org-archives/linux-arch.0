@@ -1,35 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dea.linux-mips.net (localhost.localdomain [127.0.0.1])
-	by mail.linux-mips.net (8.13.1/8.13.1) with ESMTP id j2GInZ71000764
-	for <linux-arch@vger.kernel.org>; Wed, 16 Mar 2005 18:49:35 GMT
-Received: (from ralf@localhost)
-	by dea.linux-mips.net (8.13.1/8.13.1/Submit) id j2GInW3P000763
-	for linux-arch@vger.kernel.org; Wed, 16 Mar 2005 18:49:32 GMT
-Date: Wed, 16 Mar 2005 18:49:32 +0000
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Double free of initramfs
-Message-ID: <20050316184932.GB16712@linux-mips.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Subject: [RFC][PATCH 5/6] sparsemem: more separation between NUMA and DISCONTIG
+From: Dave Hansen <haveblue@us.ibm.com>
+Date: Wed, 16 Mar 2005 16:28:22 -0800
+Message-Id: <E1DBisA-0000l4-00@kernel.beaverton.ibm.com>
 To: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dave Hansen <haveblue@us.ibm.com>, apw@shadowen.org
 List-ID: <linux-arch.vger.kernel.org>
 
-In all linker scripts we currently have something like this:
 
-  __init_begin = .;
- ...
-   . = ALIGN(4096);
-  __initramfs_start = .;
-  .init.ramfs : { *(.init.ramfs) }
-  __initramfs_end = .;
-  ...
-  __init_end = .;
+There is some confusion with the SPARSEMEM patch between what
+is needed for DISCONTIG vs. NUMA.  For instance, the NODE_DATA()
+macro needs to be switched on NUMA, but not on FLATMEM.
 
-It seems all 25 linker scripts in the current bk tree are suffering from
-this.  Which mean with CONFIG_BLK_DEV_INITRD enabled first free_initrd_mem
-may be called to free the initram disk and just a little later
-free_initmem will try to free the entire range again, so either the
-linker scripts would need fixing or free_initrd_mem has become obsolete.
+This patch is required if the previous patch is applied.
 
-  Ralf
+Signed-off-by: Dave Hansen <haveblue@us.ibm.com>
+---
+
+ memhotplug-dave/arch/i386/mm/init.c       |   12 ++++++------
+ memhotplug-dave/include/asm-i386/mmzone.h |    4 ++--
+ memhotplug-dave/include/linux/mmzone.h    |    8 ++++++--
+ memhotplug-dave/mm/page_alloc.c           |    2 +-
+ mm/memory.c                               |    0 
+ 5 files changed, 15 insertions(+), 11 deletions(-)
+
+diff -puN arch/i386/Kconfig~B-sparse-161-i386-separate-flatmem-and-numa arch/i386/Kconfig
+diff -puN include/asm-i386/mmzone.h~B-sparse-161-i386-separate-flatmem-and-numa include/asm-i386/mmzone.h
+--- memhotplug/include/asm-i386/mmzone.h~B-sparse-161-i386-separate-flatmem-and-numa	2005-03-16 15:46:40.000000000 -0800
++++ memhotplug-dave/include/asm-i386/mmzone.h	2005-03-16 15:46:40.000000000 -0800
+@@ -8,7 +8,7 @@
+ 
+ #include <asm/smp.h>
+ 
+-#if defined(CONFIG_DISCONTIGMEM) || defined(CONFIG_SPARSEMEM)
++#if CONFIG_NUMA
+ extern struct pglist_data *node_data[];
+ #define NODE_DATA(nid)	(node_data[nid])
+ 
+@@ -42,7 +42,7 @@ static inline void get_memcfg_numa(void)
+ 	get_memcfg_numa_flat();
+ }
+ 
+-#endif /* !CONFIG_DISCONTIGMEM || !CONFIG_SPARSEMEM */
++#endif /* CONFIG_NUMA */
+ 
+ #ifdef CONFIG_DISCONTIGMEM
+ 
+diff -puN include/linux/bootmem.h~B-sparse-161-i386-separate-flatmem-and-numa include/linux/bootmem.h
+diff -puN include/linux/mmzone.h~B-sparse-161-i386-separate-flatmem-and-numa include/linux/mmzone.h
+--- memhotplug/include/linux/mmzone.h~B-sparse-161-i386-separate-flatmem-and-numa	2005-03-16 15:46:40.000000000 -0800
++++ memhotplug-dave/include/linux/mmzone.h	2005-03-16 15:46:40.000000000 -0800
+@@ -383,10 +383,13 @@ int lowmem_reserve_ratio_sysctl_handler(
+ /* Returns the number of the current Node. */
+ #define numa_node_id()		(cpu_to_node(_smp_processor_id()))
+ 
++#ifndef CONFIG_NUMA
++#define NODE_DATA(nid)		(&contig_page_data)
++extern struct pglist_data contig_page_data;
++#endif
++
+ #ifdef CONFIG_FLATMEM
+ 
+-extern struct pglist_data contig_page_data;
+-#define NODE_DATA(nid)		(&contig_page_data)
+ #define NODE_MEM_MAP(nid)	mem_map
+ #define MAX_NODES_SHIFT		1
+ #define pfn_to_nid(pfn)		(0)
+@@ -521,6 +524,7 @@ static inline int pfn_valid(unsigned lon
+ #define pfn_to_nid		early_pfn_to_nid
+ #else
+ #define pfn_to_nid(pfn) 0
++#define early_pfn_to_nid(pfn)	0
+ #endif
+ 
+ #define pfn_to_pgdat(pfn)						\
+diff -puN mm/page_alloc.c~B-sparse-161-i386-separate-flatmem-and-numa mm/page_alloc.c
+--- memhotplug/mm/page_alloc.c~B-sparse-161-i386-separate-flatmem-and-numa	2005-03-16 15:46:40.000000000 -0800
++++ memhotplug-dave/mm/page_alloc.c	2005-03-16 15:46:40.000000000 -0800
+@@ -1784,7 +1784,7 @@ void __init free_area_init_node(int nid,
+ 	free_area_init_core(pgdat, zones_size, zholes_size);
+ }
+ 
+-#ifdef CONFIG_FLATMEM
++#ifndef CONFIG_DISCONTIGMEM
+ static bootmem_data_t contig_bootmem_data;
+ struct pglist_data contig_page_data = { .bdata = &contig_bootmem_data };
+ 
+diff -puN arch/i386/kernel/setup.c~B-sparse-161-i386-separate-flatmem-and-numa arch/i386/kernel/setup.c
+diff -puN arch/i386/mm/init.c~B-sparse-161-i386-separate-flatmem-and-numa arch/i386/mm/init.c
+--- memhotplug/arch/i386/mm/init.c~B-sparse-161-i386-separate-flatmem-and-numa	2005-03-16 15:46:40.000000000 -0800
++++ memhotplug-dave/arch/i386/mm/init.c	2005-03-16 15:46:40.000000000 -0800
+@@ -277,7 +277,9 @@ void __init one_highpage_init(struct pag
+ 		SetPageReserved(page);
+ }
+ 
+-#ifdef CONFIG_FLATMEM
++#ifdef CONFIG_NUMA
++extern void set_highmem_pages_init(int);
++#else
+ static void __init set_highmem_pages_init(int bad_ppro)
+ {
+ 	int pfn;
+@@ -285,8 +287,6 @@ static void __init set_highmem_pages_ini
+ 		one_highpage_init(pfn_to_page(pfn), pfn, bad_ppro);
+ 	totalram_pages += totalhigh_pages;
+ }
+-#else
+-extern void set_highmem_pages_init(int);
+ #endif /* CONFIG_FLATMEM */
+ 
+ #else
+@@ -298,10 +298,10 @@ extern void set_highmem_pages_init(int);
+ unsigned long long __PAGE_KERNEL = _PAGE_KERNEL;
+ unsigned long long __PAGE_KERNEL_EXEC = _PAGE_KERNEL_EXEC;
+ 
+-#ifdef CONFIG_FLATMEM
+-#define remap_numa_kva() do {} while (0)
+-#else
++#ifdef CONFIG_NUMA
+ extern void __init remap_numa_kva(void);
++#else
++#define remap_numa_kva() do {} while (0)
+ #endif
+ 
+ static void __init pagetable_init (void)
+diff -puN mm/memory.c~B-sparse-161-i386-separate-flatmem-and-numa mm/memory.c
+_
