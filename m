@@ -1,64 +1,46 @@
-Return-Path: <anton@samba.org>
-Received: from dp.samba.org ([66.70.73.150]:37065 "EHLO lists.samba.org")
-	by vger.kernel.org with ESMTP id S262960AbUCXBVI (ORCPT
+Return-Path: <davidm@napali.hpl.hp.com>
+Received: from palrel11.hp.com ([156.153.255.246]:40937 "EHLO palrel11.hp.com")
+	by vger.kernel.org with ESMTP id S262966AbUCXBzR (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Mar 2004 20:21:08 -0500
-Date: Wed, 24 Mar 2004 12:17:28 +1100
-From: Anton Blanchard <anton@samba.org>
-Subject: [meissner@suse.de: getdents patch for 32 -> 64 converter]
-Message-ID: <20040324011728.GF27747@krispykreme>
-Mime-Version: 1.0
+	Tue, 23 Mar 2004 20:55:17 -0500
+From: David Mosberger <davidm@napali.hpl.hp.com>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-To: linux-arch@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Message-ID: <16480.60017.732846.886711@napali.hpl.hp.com>
+Date: Tue, 23 Mar 2004 17:54:57 -0800
+Subject: Re: signal-race-fix.patch
+In-Reply-To: <20040323022020.3972af1d.akpm@osdl.org>
+References: <20040319120151.380dcbc9.akpm@osdl.org>
+	<20040319141258.338c91b1.davem@redhat.com>
+	<405B773B.8010705@acm.org>
+	<20040319154928.3b2d8820.davem@redhat.com>
+	<405B8BE5.4070602@acm.org>
+	<20040323022020.3972af1d.akpm@osdl.org>
+Reply-To: davidm@hpl.hp.com
+To: Andrew Morton <akpm@osdl.org>
+Cc: Corey Minyard <minyard@acm.org>, davem@redhat.com, linux-arch@vger.kernel.org, roland@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
+>>>>> On Tue, 23 Mar 2004 02:20:20 -0800, Andrew Morton <akpm@osdl.org> said:
 
-Im guessing this fix will be required on other 64bit archs.
+  Andrew> Are there any remaining concerns with Corey's final patch?
 
-Anton
+This looks rather dubious to me:
 
------ Forwarded message from Marcus Meissner <meissner@suse.de> -----
+ 	if (sig == SIGSEGV)
+-		ka->sa.sa_handler = SIG_DFL;
++		current->sighand->action[sig-1].sa.sa_handler = SIG_DFL;
+ 	force_sig(SIGSEGV, current);
 
-From: Marcus Meissner <meissner@suse.de>
-To: linuxppc64-dev@lists.linuxppc.org
-Subject: getdents patch for 32 -> 64 converter
+Yeah, it only preseves the status quo (updating sa_handler without
+holding the lock) and it's presumably only a single-word store which
+is atomic, but it's not all that hard to imagine code that would break
+if sa_handler were to change underneath someone holding the
+sighand->siglock.
 
-Hi,
+I suppose I can just acquire/release the lock in the ia64-specific
+code but since other arches have the same issue, perhaps that's not
+the right level for the fix.
 
-With 2.6.4 we now have the glorious hidden d_type passing in
-getdents.
-
-glibc CVS expects this to be passed if we have a kernel version after 2.6.4,
-so we have to also handle it in the 32bit syscall converter.
-
-The kernel at least bootet here and my testcase (bootstrap gcc)
-works fine now.
-
-Can someone please review / apply?
-
-Ciao, Marcus
-
---- linux/arch/ppc64/kernel/sys_ppc32.c.dtype	2004-03-23 14:10:10.000000000 +0100
-+++ linux/arch/ppc64/kernel/sys_ppc32.c	2004-03-23 14:11:02.000000000 +0100
-@@ -534,7 +534,7 @@
- {
- 	struct linux_dirent32 * dirent;
- 	struct getdents_callback32 * buf = (struct getdents_callback32 *) __buf;
--	int reclen = ROUND_UP(NAME_OFFSET(dirent) + namlen + 1);
-+	int reclen = ROUND_UP(NAME_OFFSET(dirent) + namlen + 2);
-
- 	buf->error = -EINVAL;	/* only used if we fail.. */
- 	if (reclen > buf->count)
-@@ -548,6 +548,7 @@
- 	put_user(reclen, &dirent->d_reclen);
- 	copy_to_user(dirent->d_name, name, namlen);
- 	put_user(0, dirent->d_name + namlen);
-+	put_user(d_type, (char *) dirent + reclen - 1);
- 	((char *) dirent) += reclen;
- 	buf->current_dir = dirent;
- 	buf->count -= reclen;
-
-** Sent via the linuxppc64-dev mail list. See http://lists.linuxppc.org/
-
------ End forwarded message -----
+	--david
