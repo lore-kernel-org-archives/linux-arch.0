@@ -1,31 +1,29 @@
-Return-Path: <andrea@suse.de>
-Received: from ppp-217-133-42-200.cust-adsl.tiscali.it ([217.133.42.200]:7073
-	"EHLO dualathlon.random") by vger.kernel.org with ESMTP
-	id S265327AbUEZHG0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 May 2004 03:06:26 -0400
-Date: Wed, 26 May 2004 09:06:17 +0200
-From: Andrea Arcangeli <andrea@suse.de>
-Subject: Re: [PATCH] ppc64: Fix possible race with set_pte on a present PTE
-Message-ID: <20040526070617.GN29378@dualathlon.random>
-References: <Pine.LNX.4.58.0405242051460.32189@ppc970.osdl.org> <20040525114437.GC29154@parcelfarce.linux.theplanet.co.uk> <Pine.LNX.4.58.0405250726000.9951@ppc970.osdl.org> <20040525212720.GG29378@dualathlon.random> <Pine.LNX.4.58.0405251440120.9951@ppc970.osdl.org> <20040525215500.GI29378@dualathlon.random> <Pine.LNX.4.58.0405251500250.9951@ppc970.osdl.org> <20040526021845.A1302@den.park.msu.ru> <20040525224258.GK29378@dualathlon.random> <Pine.LNX.4.58.0405251924360.15534@ppc970.osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.58.0405251924360.15534@ppc970.osdl.org>
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matthew Wilcox <willy@debian.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@osdl.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Ben LaHaise <bcrl@kvack.org>, linux-mm@kvack.org, Architectures Group <linux-arch@vger.kernel.org>
+Return-Path: <jgarzik@pobox.com>
+Received: from parcelfarce.linux.theplanet.co.uk ([195.92.249.252]:62410 "EHLO
+	www.linux.org.uk") by vger.kernel.org with ESMTP id S265651AbUEZQRM
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 May 2004 12:17:12 -0400
+Received: from rdu74-153-143.nc.rr.com ([24.74.153.143] helo=pobox.com)
+	by www.linux.org.uk with asmtp (TLSv1:AES256-SHA:256)
+	(Exim 4.33)
+	id 1BT15b-0004ni-TV
+	for linux-arch@vger.kernel.org; Wed, 26 May 2004 17:17:12 +0100
+Message-ID: <40B4C2FB.5040101@pobox.com>
+Date: Wed, 26 May 2004 12:16:59 -0400
+From: Jeff Garzik <jgarzik@pobox.com>
+MIME-Version: 1.0
+Subject: arch-specific "make" target
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
+To: Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, May 25, 2004 at 07:26:21PM -0700, Linus Torvalds wrote:
-> You're reading it wrong.
-> 
-> The "including when the present flag is set to zero" part does not mean 
-> that the present flag was zero _before_, it means "is being set to zero" 
-> as in "having been non-zero before that".
 
-"having been non-zero before that" makes a lot more sense indeed, the
-wording in the specs wasn't the best IMHO.  Interestingly the
-ptep_establish at the end of handle_pte_fault would have hidden any
-double fault completely, nobody but a tracer would have noticed that,
-but it made very little sense that non-present entries can be cached.
-It's all clear now thanks.
+I just wanted to confirm that all architectures generate a bootable 
+kernel image -- not just vmlinux -- then the developer types "make" with 
+no arguments.
+
+This is the 2.6 kernel standard, but I just got word that some arches 
+don't follow this rule yet...
+
+	Jeff
