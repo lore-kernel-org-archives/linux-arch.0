@@ -1,145 +1,95 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267360AbUHZAfa@vger.kernel.org>
-Received: from fw.osdl.org ([65.172.181.6]:48769 "EHLO mail.osdl.org")
-	by vger.kernel.org with ESMTP id S267294AbUHZAdM (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267318AbUHZAfm@vger.kernel.org>
+Received: from fw.osdl.org ([65.172.181.6]:44673 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S267291AbUHZAdJ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Aug 2004 20:33:12 -0400
-Message-Id: <200408260033.i7Q0X7132241@mail.osdl.org>
-Subject: [patch 7/8] ppc64: signal race fix
+	Wed, 25 Aug 2004 20:33:09 -0400
+Message-Id: <200408260033.i7Q0X4132179@mail.osdl.org>
+Subject: [patch 3/8] signal-race fixes for s390
 From: akpm@osdl.org
-Date: Wed, 25 Aug 2004 17:36:48 -0700
+Date: Wed, 25 Aug 2004 17:36:44 -0700
 To: torvalds@osdl.org
-Cc: linux-arch@vger.kernel.org, akpm@osdl.org, paulus@samba.org
+Cc: linux-arch@vger.kernel.org, akpm@osdl.org, schwidefsky@de.ibm.com, mikpe@csd.uu.se
 List-ID: <linux-arch.vger.kernel.org>
 
 
-From: Paul Mackerras <paulus@samba.org>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-Signed-off-by: Paul Mackerras <paulus@samba.org>
+  Update s30 for the signal race fix
+
+From: Mikael Pettersson <mikpe@csd.uu.se>
+
+  The signal-race-fixes patch in 2.6.8-rc2-mm1 appears to be a bit broken on
+  s390.
+
+  When forcing a SIGSEGV the old code updated "*ka", where ka was a pointer
+  to current's k_sigaction for SIGSEGV.  Now "ka_copy" points to a copy of
+  that structure, so assigning "*ka_copy" doesn't do what we want.  Instead do
+  the assignment via current->...  just like i386 and x86_64 do.
+
+  Furthermore, the SA_ONESHOT handling wasn't deleted.  That is now handled
+  by generic code in the kernel.
+
 Signed-off-by: Andrew Morton <akpm@osdl.org>
 ---
 
- 25-akpm/arch/ppc64/kernel/signal.c   |   29 ++++++++++++++---------------
- 25-akpm/arch/ppc64/kernel/signal32.c |   28 ++++++++++++----------------
- 2 files changed, 26 insertions(+), 31 deletions(-)
+ 25-akpm/arch/s390/kernel/compat_signal.c |   23 ++++++++++-------------
+ 25-akpm/arch/s390/kernel/signal.c        |   30 ++++++++++++++----------------
+ 2 files changed, 24 insertions(+), 29 deletions(-)
 
-diff -puN arch/ppc64/kernel/signal32.c~signal-race-fixes-ppc64 arch/ppc64/kernel/signal32.c
---- 25/arch/ppc64/kernel/signal32.c~signal-race-fixes-ppc64	Wed Aug 25 17:13:41 2004
-+++ 25-akpm/arch/ppc64/kernel/signal32.c	Wed Aug 25 17:13:41 2004
-@@ -700,7 +700,7 @@ badframe:
- 	       regs, frame, newsp);
- #endif
+diff -puN arch/s390/kernel/compat_signal.c~signal-race-fix-s390 arch/s390/kernel/compat_signal.c
+--- 25/arch/s390/kernel/compat_signal.c~signal-race-fix-s390	Wed Aug 25 17:13:41 2004
++++ 25-akpm/arch/s390/kernel/compat_signal.c	Wed Aug 25 17:13:41 2004
+@@ -505,7 +505,7 @@ static inline int map_signal(int sig)
+ }
+ 
+ static void setup_frame32(int sig, struct k_sigaction *ka,
+-			sigset_t *set, struct pt_regs * regs)
++			sigset_t *set, struct pt_regs *regs)
+ {
+ 	sigframe32 __user *frame = get_sigframe(ka, regs, sizeof(sigframe32));
+ 	if (!access_ok(VERIFY_WRITE, frame, sizeof(sigframe32)))
+@@ -553,12 +553,13 @@ static void setup_frame32(int sig, struc
+ 
+ give_sigsegv:
  	if (sig == SIGSEGV)
 -		ka->sa.sa_handler = SIG_DFL;
-+		current->sighand->action[SIGSEGV-1].sa.sa_handler = SIG_DFL;
++		current->sighand->action[sig-1].sa.sa_handler = SIG_DFL;
  	force_sig(SIGSEGV, current);
  }
  
-@@ -865,7 +865,7 @@ badframe:
- 	       regs, frame, *newspp);
- #endif
+-static void setup_rt_frame32(int sig, struct k_sigaction *ka, siginfo_t *info,
+-			   sigset_t *set, struct pt_regs * regs)
++static void setup_rt_frame32(int sig, struct k_sigaction *ka,
++			     siginfo_t *info, sigset_t *set,
++			     struct pt_regs *regs)
+ {
+ 	int err = 0;
+ 	rt_sigframe32 __user *frame = get_sigframe(ka, regs, sizeof(rt_sigframe32));
+@@ -605,7 +606,7 @@ static void setup_rt_frame32(int sig, st
+ 
+ give_sigsegv:
  	if (sig == SIGSEGV)
 -		ka->sa.sa_handler = SIG_DFL;
-+		current->sighand->action[SIGSEGV-1].sa.sa_handler = SIG_DFL;
++		current->sighand->action[sig-1].sa.sa_handler = SIG_DFL;
  	force_sig(SIGSEGV, current);
  }
  
-@@ -928,18 +928,16 @@ badframe:
- int do_signal32(sigset_t *oldset, struct pt_regs *regs)
+@@ -614,23 +615,19 @@ give_sigsegv:
+  */	
+ 
+ void
+-handle_signal32(unsigned long sig, siginfo_t *info, sigset_t *oldset,
+-	struct pt_regs * regs)
++handle_signal32(unsigned long sig, struct k_sigaction *ka,
++		siginfo_t *info, sigset_t *oldset, struct pt_regs * regs)
  {
- 	siginfo_t info;
--	struct k_sigaction *ka;
- 	unsigned int frame, newsp;
- 	int signr, ret;
-+	struct k_sigaction ka;
- 
- 	if (!oldset)
- 		oldset = &current->blocked;
- 
- 	newsp = frame = 0;
- 
--	signr = get_signal_to_deliver(&info, regs, NULL);
+-	struct k_sigaction *ka = &current->sighand->action[sig-1];
 -
--	ka = (signr == 0)? NULL: &current->sighand->action[signr-1];
-+	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
- 
- 	if (TRAP(regs) == 0x0C00		/* System Call! */
- 	    && regs->ccr & 0x10000000		/* error signalled */
-@@ -950,7 +948,7 @@ int do_signal32(sigset_t *oldset, struct
- 		if (signr > 0
- 		    && (ret == ERESTARTNOHAND || ret == ERESTART_RESTARTBLOCK
- 			|| (ret == ERESTARTSYS
--			    && !(ka->sa.sa_flags & SA_RESTART)))) {
-+			    && !(ka.sa.sa_flags & SA_RESTART)))) {
- 			/* make the system call return an EINTR error */
- 			regs->result = -EINTR;
- 			regs->gpr[3] = EINTR;
-@@ -969,7 +967,7 @@ int do_signal32(sigset_t *oldset, struct
- 	if (signr == 0)
- 		return 0;		/* no signals delivered */
- 
--	if ((ka->sa.sa_flags & SA_ONSTACK) && current->sas_ss_size
-+	if ((ka.sa.sa_flags & SA_ONSTACK) && current->sas_ss_size
- 	    && (!on_sig_stack(regs->gpr[1])))
- 		newsp = (current->sas_ss_sp + current->sas_ss_size);
+ 	/* Set up the stack frame */
+ 	if (ka->sa.sa_flags & SA_SIGINFO)
+ 		setup_rt_frame32(sig, ka, info, oldset, regs);
  	else
-@@ -977,17 +975,15 @@ int do_signal32(sigset_t *oldset, struct
- 	newsp &= ~0xfUL;
- 
- 	/* Whee!  Actually deliver the signal.  */
--	if (ka->sa.sa_flags & SA_SIGINFO)
--		handle_rt_signal32(signr, ka, &info, oldset, regs, newsp);
-+	if (ka.sa.sa_flags & SA_SIGINFO)
-+		handle_rt_signal32(signr, &ka, &info, oldset, regs, newsp);
- 	else
--		handle_signal32(signr, ka, &info, oldset, regs, newsp);
--
--	if (ka->sa.sa_flags & SA_ONESHOT)
--		ka->sa.sa_handler = SIG_DFL;
-+		handle_signal32(signr, &ka, &info, oldset, regs, newsp);
- 
--	if (!(ka->sa.sa_flags & SA_NODEFER)) {
-+	if (!(ka.sa.sa_flags & SA_NODEFER)) {
- 		spin_lock_irq(&current->sighand->siglock);
--		sigorsets(&current->blocked,&current->blocked,&ka->sa.sa_mask);
-+		sigorsets(&current->blocked, &current->blocked,
-+			  &ka.sa.sa_mask);
- 		sigaddset(&current->blocked, signr);
- 		recalc_sigpending();
- 		spin_unlock_irq(&current->sighand->siglock);
-diff -puN arch/ppc64/kernel/signal.c~signal-race-fixes-ppc64 arch/ppc64/kernel/signal.c
---- 25/arch/ppc64/kernel/signal.c~signal-race-fixes-ppc64	Wed Aug 25 17:13:41 2004
-+++ 25-akpm/arch/ppc64/kernel/signal.c	Wed Aug 25 17:13:41 2004
-@@ -374,8 +374,8 @@ badframe:
- 	do_exit(SIGSEGV);
- }
- 
--static void setup_rt_frame(int signr, struct k_sigaction *ka, siginfo_t *info,
--		sigset_t *set, struct pt_regs *regs)
-+static void setup_rt_frame(int signr, struct k_sigaction *ka,
-+		siginfo_t *info, sigset_t *set, struct pt_regs *regs)
- {
- 	/* Handler is *really* a pointer to the function descriptor for
- 	 * the signal routine.  The first entry in the function
-@@ -446,7 +446,9 @@ badframe:
- 	printk("badframe in setup_rt_frame, regs=%p frame=%p newsp=%lx\n",
- 	       regs, frame, newsp);
- #endif
--	do_exit(SIGSEGV);
-+	if (signr == SIGSEGV)
-+		current->sighand->action[SIGSEGV-1].sa.sa_handler = SIG_DFL;
-+	force_sig(SIGSEGV, current);
- }
- 
- 
-@@ -454,25 +456,23 @@ badframe:
-  * OK, we're invoking a handler
-  */
- static void handle_signal(unsigned long sig, struct k_sigaction *ka,
--			  siginfo_t *info, sigset_t *oldset, struct pt_regs *regs)
-+		siginfo_t *info, sigset_t *oldset, struct pt_regs *regs)
- {
- 	/* Set up Signal Frame */
- 	setup_rt_frame(sig, ka, info, oldset, regs);
+ 		setup_frame32(sig, ka, oldset, regs);
  
 -	if (ka->sa.sa_flags & SA_ONESHOT)
 -		ka->sa.sa_handler = SIG_DFL;
@@ -147,43 +97,107 @@ diff -puN arch/ppc64/kernel/signal.c~signal-race-fixes-ppc64 arch/ppc64/kernel/s
  	if (!(ka->sa.sa_flags & SA_NODEFER)) {
  		spin_lock_irq(&current->sighand->siglock);
 -		sigorsets(&current->blocked,&current->blocked,&ka->sa.sa_mask);
-+		sigorsets(&current->blocked, &current->blocked,
++		sigorsets(&current->blocked,&current->blocked,
 +			  &ka->sa.sa_mask);
  		sigaddset(&current->blocked,sig);
  		recalc_sigpending();
  		spin_unlock_irq(&current->sighand->siglock);
- 	}
--	return;
+diff -puN arch/s390/kernel/signal.c~signal-race-fix-s390 arch/s390/kernel/signal.c
+--- 25/arch/s390/kernel/signal.c~signal-race-fix-s390	Wed Aug 25 17:13:41 2004
++++ 25-akpm/arch/s390/kernel/signal.c	Wed Aug 25 17:13:41 2004
+@@ -307,7 +307,7 @@ static inline int map_signal(int sig)
  }
  
--static inline void syscall_restart(struct pt_regs *regs, struct k_sigaction *ka)
-+static inline void syscall_restart(struct pt_regs *regs,
-+				   struct k_sigaction *ka)
+ static void setup_frame(int sig, struct k_sigaction *ka,
+-			sigset_t *set, struct pt_regs * regs)
++			sigset_t *set, struct pt_regs *regs)
  {
- 	switch ((int)regs->result) {
- 	case -ERESTART_RESTARTBLOCK:
-@@ -512,6 +512,7 @@ int do_signal(sigset_t *oldset, struct p
+ 	sigframe __user *frame;
+ 
+@@ -359,12 +359,12 @@ static void setup_frame(int sig, struct 
+ 
+ give_sigsegv:
+ 	if (sig == SIGSEGV)
+-		ka->sa.sa_handler = SIG_DFL;
++		current->sighand->action[sig-1].sa.sa_handler = SIG_DFL;
+ 	force_sig(SIGSEGV, current);
+ }
+ 
+-static void setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+-			   sigset_t *set, struct pt_regs * regs)
++static void setup_rt_frame(int sig, struct k_sigaction *ka,
++		siginfo_t *info, sigset_t *set, struct pt_regs *regs)
  {
+ 	int err = 0;
+ 	rt_sigframe __user *frame;
+@@ -415,7 +415,7 @@ static void setup_rt_frame(int sig, stru
+ 
+ give_sigsegv:
+ 	if (sig == SIGSEGV)
+-		ka->sa.sa_handler = SIG_DFL;
++		current->sighand->action[sig-1].sa.sa_handler = SIG_DFL;
+ 	force_sig(SIGSEGV, current);
+ }
+ 
+@@ -424,23 +424,19 @@ give_sigsegv:
+  */	
+ 
+ static void
+-handle_signal(unsigned long sig, siginfo_t *info, sigset_t *oldset,
+-	struct pt_regs * regs)
++handle_signal(unsigned long sig, struct k_sigaction *ka,
++	      siginfo_t *info, sigset_t *oldset, struct pt_regs * regs)
+ {
+-	struct k_sigaction *ka = &current->sighand->action[sig-1];
+-
+ 	/* Set up the stack frame */
+ 	if (ka->sa.sa_flags & SA_SIGINFO)
+ 		setup_rt_frame(sig, ka, info, oldset, regs);
+ 	else
+ 		setup_frame(sig, ka, oldset, regs);
+ 
+-	if (ka->sa.sa_flags & SA_ONESHOT)
+-		ka->sa.sa_handler = SIG_DFL;
+-
+ 	if (!(ka->sa.sa_flags & SA_NODEFER)) {
+ 		spin_lock_irq(&current->sighand->siglock);
+-		sigorsets(&current->blocked,&current->blocked,&ka->sa.sa_mask);
++		sigorsets(&current->blocked,&current->blocked,
++			  &ka->sa.sa_mask);
+ 		sigaddset(&current->blocked,sig);
+ 		recalc_sigpending();
+ 		spin_unlock_irq(&current->sighand->siglock);
+@@ -461,6 +457,7 @@ int do_signal(struct pt_regs *regs, sigs
+ 	unsigned long retval = 0, continue_addr = 0, restart_addr = 0;
  	siginfo_t info;
  	int signr;
 +	struct k_sigaction ka;
  
  	/*
- 	 * If the current thread is 32 bit - invoke the
-@@ -523,14 +524,12 @@ int do_signal(sigset_t *oldset, struct p
- 	if (!oldset)
- 		oldset = &current->blocked;
+ 	 * We want the common case to go fast, which
+@@ -494,7 +491,7 @@ int do_signal(struct pt_regs *regs, sigs
  
+ 	/* Get signal to deliver.  When running under ptrace, at this point
+ 	   the debugger may change all our registers ... */
 -	signr = get_signal_to_deliver(&info, regs, NULL);
 +	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
- 	if (signr > 0) {
--		struct k_sigaction *ka = &current->sighand->action[signr-1];
--
- 		/* Whee!  Actually deliver the signal.  */
- 		if (TRAP(regs) == 0x0C00)
--			syscall_restart(regs, ka);
--		handle_signal(signr, ka, &info, oldset, regs);
-+			syscall_restart(regs, &ka);
+ 
+ 	/* Depending on the signal settings we may need to revert the
+ 	   decision to restart the system call. */
+@@ -513,14 +510,15 @@ int do_signal(struct pt_regs *regs, sigs
+ #ifdef CONFIG_S390_SUPPORT
+ 		if (test_thread_flag(TIF_31BIT)) {
+ 			extern void handle_signal32(unsigned long sig,
++						    struct k_sigaction *ka,
+ 						    siginfo_t *info,
+ 						    sigset_t *oldset,
+ 						    struct pt_regs *regs);
+-			handle_signal32(signr, &info, oldset, regs);
++			handle_signal32(signr, &ka, &info, oldset, regs);
+ 			return 1;
+ 	        }
+ #endif
+-		handle_signal(signr, &info, oldset, regs);
 +		handle_signal(signr, &ka, &info, oldset, regs);
  		return 1;
  	}
