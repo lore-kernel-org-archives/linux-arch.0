@@ -1,86 +1,90 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267984AbUHKHgL@vger.kernel.org>
-Received: from holomorphy.com ([207.189.100.168]:42625 "EHLO holomorphy.com")
-	by vger.kernel.org with ESMTP id S267979AbUHKHfu (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268092AbUHKQNw@vger.kernel.org>
+Received: from fw.osdl.org ([65.172.181.6]:27292 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S268085AbUHKQNw (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Aug 2004 03:35:50 -0400
-Date: Wed, 11 Aug 2004 00:35:46 -0700
-From: William Lee Irwin III <wli@holomorphy.com>
+	Wed, 11 Aug 2004 12:13:52 -0400
+Date: Wed, 11 Aug 2004 09:13:36 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: copy_page_range()
-Message-ID: <20040811073546.GQ11200@holomorphy.com>
-References: <20040807000529.5ca6e8fe.davem@redhat.com> <20040807080751.GX17188@holomorphy.com> <20040811000708.6e31969d.davem@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
 In-Reply-To: <20040811000708.6e31969d.davem@redhat.com>
+Message-ID: <Pine.LNX.4.58.0408110856080.1839@ppc970.osdl.org>
+References: <20040807000529.5ca6e8fe.davem@redhat.com> <20040807080751.GX17188@holomorphy.com>
+ <20040811000708.6e31969d.davem@redhat.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 To: "David S. Miller" <davem@redhat.com>
-Cc: torvalds@osdl.org, linux-arch@vger.kernel.org
+Cc: William Lee Irwin III <wli@holomorphy.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 7 Aug 2004 01:07:51 -0700 William Lee Irwin III wrote:
->> The number of levels can be abstracted easily. Something to give an
->> idea of how might be something like this:
 
-On Wed, Aug 11, 2004 at 12:07:08AM -0700, David S. Miller wrote:
+
+On Wed, 11 Aug 2004, David S. Miller wrote:
+> 
 > I hacked up something slightly different today.  I only
 > have it being used by clear_page_range() but it is extremely
 > effective.
+
+Hmm.. I don't see any of this being arch-dependent, so I wonder why you 
+did it that way. 
+
+Also, one comment: the page directory "index" is never zeroed, as far as I
+can tell.
+
 > Things like fork+exit latencies on my 750Mhz sparc64 box went
 > from ~490 microseconds to ~367 microseconds.  fork+execve
 > latency went down from ~1595 microseconds to ~1351 microseconds.
 
-Nice results!
+That's definitely fascinating, and implies either a bug (hey, who knows?) 
+or that page tables are a lot sparser than I'd have expected them to be.
 
+Ahh.. I see. The "clear_page_tables()" interface was really designed for a 
+two-level page table. And even there I was lazy in exit_mmap(). 
 
-On Wed, Aug 11, 2004 at 12:07:08AM -0700, David S. Miller wrote:
-> Two issues:
-> 1) I'm not terribly satisfied with the interface.  I think
->    with some improvements it can be applies to the two other
->    routines this thing really makes sense for, namely copy_page_range
->    and unmap_page_range
+Yeah, I think clear_page_tables() is broken, and it's increasingly broken 
+on three or four-level setups. Your patch really works around the fact 
+that we're extremely lazy about tearing down page tables.
 
-I think this involves discriminating between walking in tandem
-(over instantiated ptes in one and creation in the other),
-single walking to instantiate new ptes in an address range, and walking
-over instantiated ptes in an address range, possibly a fourth case for
-destruction.
+Ho humm. Maybe it's the right way to go, but I have to say that I would
+_really_ prefer to make this generic. There's absolutely nothing
+architecture-specific anywhere there except for the place where you hide
+the bitmap ("page->index" depends on a pgd/pmd being one page).
 
+I hate "asm-generic" if it's just hiding the fact that it really _is_ 
+generic, but people wanted macros.
 
-On Wed, Aug 11, 2004 at 12:07:08AM -0700, David S. Miller wrote:
-> 2) I don't think it will collapse well for 2-level page tables,
->    someone take a look?
+David, could you look at instead of doing this <asm/page-walk.c> thing, 
+just do a few _trivial_ macros in the asm page table headers:
 
-This is one of the reasons why I wanted to have the struct to put the
-handling of levels in the arch bits of the walking. That way, 2-level
-pagetables can be done without maintaining the extraneous pointer or
-the extra level of calls.
+	/* We use a bitmap in the pmd page to mark things busy,
+	 * where we reduce the pmd index into 64 bits
+	 */
+	#define PMD_BITMAP_SHIFT (PAGE_SHIFT-6)
+	#define pmd_usage_bitmap(pmd)	(virt_to_page(pmd)->index)
 
+	#define PGD_BITMAP_SHIFT (PAGE_SHIFT-6)
+	#define pgd_usage_bitmap(pgd)	(virt_to_page(pgd)->index)
 
-On Wed, Aug 11, 2004 at 12:07:08AM -0700, David S. Miller wrote:
-> It's easy to toy with the sparc64 optimization on other platforms,
-> just add the necessary hacks to pmd_set and pgd_set, allocation
-> of pmd and pgd tables, use "PAGE_SHIFT - 5" instead of "PAGE_SHIFT - 6"
-> on 32-bit platforms, and then copy the asm-sparc64/pgwalk.h bits over
-> into your platforms asm-${ARCH}/pgwalk.h
-> I just got also reminded that we walk these damn pagetables completely
-> twice every exit, once to unmap the VMAs pte mappings, once again to
-> zap the page tables.  It might be fruitful to explore combining
-> those two steps, perhaps not.
+and then the two-level folding can be done in the generic code by not 
+defining the PGD_BITMAP_SHIFT at all or something like that, ie the 
+generic code would have exactly _one_ #ifdef:
 
-We really need to be freeing up pagetables during unmapping better,
-since they do "leak" a bit. This is causing pain elsewhere (hugetlb).
-Once we do that, clear_page_tables() is a nop and all its work is done
-while unmapping all the vmas. I vaguely remember some patches
-(associated with the shpte efforts) to do something like this having
-gone around before, though those were specifically directed at exit()
-and not at general munmap().
+	clear_pgd_tables(...)
+	{
+		do {
+	#ifdef PGD_BITMAP_SHIFT
+		if (!(pgd_usage_bitmap(pgd) & mask))
+			continue;
+	#endif
+		...
+		} while (pgd < end)
+	}
 
+(you get the idea).
 
-On Wed, Aug 11, 2004 at 12:07:08AM -0700, David S. Miller wrote:
-> Anyways, comments and improvment suggestions welcome.  Particularly
-> interesting would be if this thing helps a lot on other platforms
-> too, such as x86_64, ia64, alpha and ppc64.
+What do you think? Actually - make the same #ifdef in the pmd case too,
+since that allows architectures that don't fold things but don't have any
+good _room_ to hide the bitmap to also just not do this.
 
-I need to play with it a little to see what I can do.
+Hmm?
 
-
--- wli
+		Linus
