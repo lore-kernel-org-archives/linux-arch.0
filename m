@@ -1,29 +1,34 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261543AbUJXQpL@vger.kernel.org>
-Received: from phoenix.infradead.org ([81.187.226.98]:18444 "EHLO
-	phoenix.infradead.org") by vger.kernel.org with ESMTP
-	id S261533AbUJXPyr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 24 Oct 2004 11:54:47 -0400
-Date: Sun, 24 Oct 2004 16:54:43 +0100
-From: Christoph Hellwig <hch@infradead.org>
-Subject: generic hardirq code in 2.6.10-rc1
-Message-ID: <20041024155443.GA25013@infradead.org>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261507AbUJYGDH@vger.kernel.org>
+Received: from TYO201.gate.nec.co.jp ([202.32.8.214]:63718 "EHLO
+	tyo201.gate.nec.co.jp") by vger.kernel.org with ESMTP
+	id S261505AbUJYGDH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Oct 2004 02:03:07 -0400
+Subject: Re: generic hardirq code in 2.6.10-rc1
 References: <Pine.LNX.4.58.0410221431180.2101@ppc970.osdl.org>
-Mime-Version: 1.0
+	<20041024155443.GA25013@infradead.org>
+From: Miles Bader <miles@lsi.nec.co.jp>
+Reply-To: Miles Bader <miles@gnu.org>
+Date: Mon, 25 Oct 2004 15:02:59 +0900
+In-Reply-To: <20041024155443.GA25013@infradead.org> (Christoph Hellwig's
+ message of "Sun, 24 Oct 2004 16:54:43 +0100")
+Message-ID: <buod5z7jpws.fsf@mctpc71.ucom.lsi.nec.co.jp>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.58.0410221431180.2101@ppc970.osdl.org>
-To: Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
->   o generic irq subsystem: core
->   o generic irq subsystem: x86 port
->   o generic irq subsystem: x86_64 port
->   o generic irq subsystem: ppc port
->   o generic irq subsystem: ppc64 port
+Christoph Hellwig <hch@infradead.org> writes:
+> Btw, it would be nice if all architectures that have more or less
+> a copy of the i386 irq.c could switch to the generic code.
+>
+> That would be:  alpha,ia64, m32r, mips, sh, sh64, um, v850
 
-Btw, it would be nice if all architectures that have more or less
-a copy of the i386 irq.c could switch to the generic code.
+Er, yeah, hold on (speaking for v850, I generally only ever look at real
+releases and try to update for the next one).
 
-That would be:  alpha,ia64, m32r, mips, sh, sh64, um, v850
-
-and possibly cris (it currently has a simplified version)
+-Miles
+-- 
+`...the Soviet Union was sliding in to an economic collapse so comprehensive
+ that in the end its factories produced not goods but bads: finished products
+ less valuable than the raw materials they were made from.'  [The Economist]
