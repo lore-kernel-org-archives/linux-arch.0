@@ -1,92 +1,69 @@
-Return-Path: <sky@de.ibm.com>
-Received: from mtagate3.de.ibm.com ([195.212.29.152]:26801 "EHLO
-	mtagate3.de.ibm.com") by vger.kernel.org with ESMTP id S263061AbUDATHO
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Apr 2004 14:07:14 -0500
-Received: from d12relay01.megacenter.de.ibm.com (d12relay01.megacenter.de.ibm.com [9.149.165.180])
-	by mtagate3.de.ibm.com (8.12.10/8.12.10) with ESMTP id i31J7BxJ045120
-	for <linux-arch@vger.kernel.org>; Thu, 1 Apr 2004 19:07:11 GMT
-Received: from mschwid3.boeblingen.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
-	by d12relay01.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id i31J7HT9210242
-	for <linux-arch@vger.kernel.org>; Thu, 1 Apr 2004 21:07:17 +0200
-Received: from sky by mschwid3.boeblingen.de.ibm.com with local (Exim 3.36 #1 (Debian))
-	id 1B97Ww-0000XQ-00
-	for <linux-arch@vger.kernel.org>; Thu, 01 Apr 2004 21:07:10 +0200
-Date: Thu, 1 Apr 2004 21:07:10 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [PATCH] missing NULL pointer check in pte_alloc_one.
-Message-ID: <20040401190710.GA2044@mschwid3.boeblingen.de.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
-To: linux-arch@vger.kernel.org
+Return-Path: <torvalds@osdl.org>
+Received: from fw.osdl.org ([65.172.181.6]:54952 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S261601AbUDCEVX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Apr 2004 23:21:23 -0500
+Date: Fri, 2 Apr 2004 20:21:08 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: si_band
+In-Reply-To: <Pine.LNX.4.58.0404021759430.1122@ppc970.osdl.org>
+Message-ID: <Pine.LNX.4.58.0404022018430.1122@ppc970.osdl.org>
+References: <20040402161321.2d4e754c.davem@redhat.com>
+ <Pine.LNX.4.58.0404021759430.1122@ppc970.osdl.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: "David S. Miller" <davem@redhat.com>
+Cc: Andrew Morton <akpm@osdl.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi,
-just found an small bug in pgalloc for s390*. Comparing notes
-with other architectures I found that pte_alloc_one is sick for
-alpha and sparc64 as well. See patch below.
 
-blue skies,
-  Martin.
+David, 
+ are you happy with this diff? I not only reverted the __ARCH_SI_BAND_T 
+removal, I also added a comment on why it exists in the first place, and 
+why the default changed to "long".
 
-ChangeLog:
-Add NULL pointer check to pte_alloc_one for alpha, s390 and sparc64.
+Architecture maintainers - what other 64-bit architectures will want to
+add the __ARCH_SI_BAND_T define to "int"? ppc64 and x86-64 both want the
+default "long", and I haven't checked the others.
 
-diffstat:
- asm-alpha/pgalloc.h   |    5 ++++-
- asm-s390/pgalloc.h    |    5 ++++-
- asm-sparc64/pgalloc.h |   10 +++++++++-
- 3 files changed, 17 insertions(+), 3 deletions(-)
+		Linus
 
-diff -urN linux-2.6/include/asm-alpha/pgalloc.h linux-2.6-pgalloc/include/asm-alpha/pgalloc.h
---- linux-2.6/include/asm-alpha/pgalloc.h	Thu Mar 11 03:55:20 2004
-+++ linux-2.6-pgalloc/include/asm-alpha/pgalloc.h	Thu Apr  1 20:48:54 2004
-@@ -63,7 +63,10 @@
- static inline struct page *
- pte_alloc_one(struct mm_struct *mm, unsigned long addr)
- {
--	return virt_to_page(pte_alloc_one_kernel(mm, addr));
-+	pte_t *pte = pte_alloc_one_kernel(mm, addr);
-+	if (pte)
-+		return virt_to_page(pte);
-+	return 0;
- }
+----
+===== include/asm-generic/siginfo.h 1.12 vs edited =====
+--- 1.12/include/asm-generic/siginfo.h	Thu Apr  1 11:46:43 2004
++++ edited/include/asm-generic/siginfo.h	Fri Apr  2 20:17:48 2004
+@@ -26,6 +26,15 @@
+ #define __ARCH_SI_UID_T	uid_t
+ #endif
  
- static inline void
-diff -urN linux-2.6/include/asm-s390/pgalloc.h linux-2.6-pgalloc/include/asm-s390/pgalloc.h
---- linux-2.6/include/asm-s390/pgalloc.h	Thu Mar 11 03:55:34 2004
-+++ linux-2.6-pgalloc/include/asm-s390/pgalloc.h	Thu Apr  1 20:48:54 2004
-@@ -139,7 +139,10 @@
- static inline struct page *
- pte_alloc_one(struct mm_struct *mm, unsigned long vmaddr)
- {
--	return virt_to_page(pte_alloc_one_kernel(mm, vmaddr));
-+	pte_t *pte = pte_alloc_one_kernel(mm, vmaddr);
-+	if (pte)
-+		return virt_to_page(pte_alloc_one_kernel(mm, vmaddr));
-+	return 0;
- }
- 
- static inline void pte_free_kernel(pte_t *pte)
-diff -urN linux-2.6/include/asm-sparc64/pgalloc.h linux-2.6-pgalloc/include/asm-sparc64/pgalloc.h
---- linux-2.6/include/asm-sparc64/pgalloc.h	Thu Apr  1 15:23:23 2004
-+++ linux-2.6-pgalloc/include/asm-sparc64/pgalloc.h	Thu Apr  1 20:48:54 2004
-@@ -189,7 +189,15 @@
- 	pmd_populate_kernel(MM,PMD,page_address(PTE_PAGE))
- 
- extern pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address);
--#define pte_alloc_one(MM,ADDR)	virt_to_page(pte_alloc_one_kernel(MM,ADDR))
++/*
++ * The default "si_band" type is "long", as specified by POSIX.
++ * However, some architectures want to override this to "int"
++ * for historical compatibility reasons, so we allow that.
++ */
++#ifndef __ARCH_SI_BAND_T
++#define __ARCH_SI_BAND_T long
++#endif
 +
-+static inline struct page *
-+pte_alloc_one(struct mm_struct *mm, unsigned long addr)
-+{
-+	pte_t *pte = pte_alloc_one_kernel(mm, addr);
-+	if (pte)
-+		return virt_to_page(pte);
-+	return 0;
-+}
+ #ifndef HAVE_ARCH_SIGINFO_T
  
- static __inline__ pte_t *pte_alloc_one_fast(struct mm_struct *mm, unsigned long address)
- {
+ typedef struct siginfo {
+@@ -77,7 +86,7 @@
+ 
+ 		/* SIGPOLL */
+ 		struct {
+-			long _band;	/* POLL_IN, POLL_OUT, POLL_MSG */
++			__ARCH_SI_BAND_T _band;	/* POLL_IN, POLL_OUT, POLL_MSG */
+ 			int _fd;
+ 		} _sigpoll;
+ 	} _sifields;
+===== include/asm-sparc64/siginfo.h 1.12 vs edited =====
+--- 1.12/include/asm-sparc64/siginfo.h	Thu Aug 28 01:31:51 2003
++++ edited/include/asm-sparc64/siginfo.h	Fri Apr  2 20:16:14 2004
+@@ -8,6 +8,7 @@
+ 
+ #define __ARCH_SI_PREAMBLE_SIZE	(4 * sizeof(int))
+ #define __ARCH_SI_TRAPNO
++#define __ARCH_SI_BAND_T int
+ 
+ #include <asm-generic/siginfo.h>
+ 
