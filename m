@@ -1,75 +1,60 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262129AbULCJnc@vger.kernel.org>
-Received: from mtagate2.de.ibm.com ([195.212.29.151]:40673 "EHLO
-	mtagate2.de.ibm.com") by vger.kernel.org with ESMTP id S262125AbULCJnc
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Dec 2004 04:43:32 -0500
-Received: from d12nrmr1507.megacenter.de.ibm.com (d12nrmr1507.megacenter.de.ibm.com [9.149.167.1])
-	by mtagate2.de.ibm.com (8.12.10/8.12.10) with ESMTP id iB39hSbP170660
-	for <linux-arch@vger.kernel.org>; Fri, 3 Dec 2004 09:43:29 GMT
-Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
-	by d12nrmr1507.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id iB39hNG8123056
-	for <linux-arch@vger.kernel.org>; Fri, 3 Dec 2004 10:43:23 +0100
-Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
-	by d12av02.megacenter.de.ibm.com (8.12.11/8.12.11) with ESMTP id iB39hRRG001645
-	for <linux-arch@vger.kernel.org>; Fri, 3 Dec 2004 10:43:27 +0100
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: other platforms interested in in-kernel unwinder?
-Date: Fri, 3 Dec 2004 10:37:22 +0100
-References: <16815.21943.55627.572012@napali.hpl.hp.com>
-In-Reply-To: <16815.21943.55627.572012@napali.hpl.hp.com>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262340AbULCVUD@vger.kernel.org>
+Received: from palrel12.hp.com ([156.153.255.237]:16007 "EHLO palrel12.hp.com")
+	by vger.kernel.org with ESMTP id S262298AbULCVUD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Dec 2004 16:20:03 -0500
+From: David Mosberger <davidm@napali.hpl.hp.com>
 MIME-Version: 1.0
-Message-Id: <200412031037.22445.arnd@arndb.de>
-Content-Type: multipart/signed;
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1;
-  boundary="Boundary-02=_SPDsBzsg0ImUR7c";
-  charset="iso-8859-15"
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-To: davidm@hpl.hp.com
-Cc: linux-arch@vger.kernel.org, davidm@napali.hpl.hp.com, Wolfgang Gellerich <gellerich@de.ibm.com>
+Message-ID: <16816.54808.503077.473990@napali.hpl.hp.com>
+Date: Fri, 3 Dec 2004 13:09:44 -0800
+Subject: Re: other platforms interested in in-kernel unwinder?
+In-Reply-To: <200412031037.22445.arnd@arndb.de>
+References: <16815.21943.55627.572012@napali.hpl.hp.com>
+	<200412031037.22445.arnd@arndb.de>
+Reply-To: davidm@hpl.hp.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: davidm@hpl.hp.com, linux-arch@vger.kernel.org, davidm@napali.hpl.hp.com, Wolfgang Gellerich <gellerich@de.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
+>>>>> On Fri, 3 Dec 2004 10:37:22 +0100, Arnd Bergmann <arnd@arndb.de> said:
 
---Boundary-02=_SPDsBzsg0ImUR7c
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: inline
+  Arnd> I think it doesn't make much sense for unwinding s390 kernel
+  Arnd> stacks, since they already have reliable back traces trough
+  Arnd> the backchain pointers. In particular, those pointers are
+  Arnd> needed anyway for easy unwinding by hand when debugging in
+  Arnd> z/VM.
 
-On Dunnersdag 02 Dezember 2004 18:49, David Mosberger wrote:
+Yes, that certainly makes sense.
 
-> So, how does this sound? =A0Any interest from say, x86{-64}, PPC, SPARC,
-> or any other arch maintainer?
+On s390, do you get just the frame-chain or do the frames contain
+enough information to figure out which callee-saved registers where
+saved?
 
-I think it doesn't make much sense for unwinding s390 kernel stacks,
-since they already have reliable back traces trough the backchain
-pointers. In particular, those pointers are needed anyway for easy
-unwinding by hand when debugging in z/VM.
+  Arnd> My limited experience on ppc64 suggests that the situation
+  Arnd> there is very similar.
 
-My limited experience on ppc64 suggests that the situation there
-is very similar.
+Oh, that's a surprise.  I didn't realize ppc was maintaining a
+frame-chain.  Can somebody confirm?
 
-OTOH, I've heard that oprofile is unwinding user stacks to get call
-graph information. For that purpose, a kernel unwinder might turn
-out very valuable on many architectures, including those that use
-a backchain pointer in kernel but not in user space.
+  Arnd> OTOH, I've heard that oprofile is unwinding user stacks to get
+  Arnd> call graph information.
 
-	Arnd <><
+That's correct.
 
+  Arnd> For that purpose, a kernel unwinder might turn out very
+  Arnd> valuable on many architectures, including those that use a
+  Arnd> backchain pointer in kernel but not in user space.
 
+I should point out that, at the moment, my plan is to only support
+unwinding within the kernel itself, so in that sense, it may or may
+not help oprofile.
 
+A corretion to yesterday's message: I forgot that the x86-64 libunwind
+that I was looking at had debugging enabled, which causes lots of
+replicated code because inlining is disabled.  I don't have x86-64
+figures handy for the no-debug version, but for x86, the entire
+libunwind library, some of which won't be needed in the kernel
+version, is just 35KB of text and ~16KB of data.
 
-
---Boundary-02=_SPDsBzsg0ImUR7c
-Content-Type: application/pgp-signature
-Content-Description: signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.2.4 (GNU/Linux)
-
-iD8DBQBBsDPS5t5GS2LDRf4RAv5dAJ9SpQGAmqDh1ud5jgn3nMdmA86pCACbBgwp
-17kDQlJku4ljOuEQCO/lrHk=
-=ZcbE
------END PGP SIGNATURE-----
-
---Boundary-02=_SPDsBzsg0ImUR7c--
+	--david
