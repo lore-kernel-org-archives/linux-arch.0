@@ -1,49 +1,26 @@
-Return-Path: <davem@redhat.com>
-Received: from mx1.redhat.com ([66.187.233.31]:29108 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S266108AbUFEAaX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jun 2004 20:30:23 -0400
-Date: Fri, 4 Jun 2004 17:28:16 -0700
-From: "David S. Miller" <davem@redhat.com>
-Subject: Re: sys getdents64 needs compat wrapper ?
-Message-Id: <20040604172816.259f38e8.davem@redhat.com>
-In-Reply-To: <40C110C9.2060900@intel.com>
-References: <26879984$108508699040ad1d0eba5381.88033699@config20.schlund.de>
-	<40C110C9.2060900@intel.com>
-Mime-Version: 1.0
+Return-Path: <arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.186]:37369 "EHLO
+	moutng.kundenserver.de") by vger.kernel.org with ESMTP
+	id S261605AbUFEOyE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 5 Jun 2004 10:54:04 -0400
+Subject: =?iso-8859-1?Q?Re:_Re:_Re:_sys_getdents64_needs_compat_wrapper_??=
+From: =?iso-8859-1?Q?Arnd_Bergmann?= <arnd@arndb.de>
+Message-Id: <26879984$108644643740c1db65f33611.91624784@config13.schlund.de>
 Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Arun Sharma <arun.sharma@intel.com>
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7BIT
+Date: Sat,  5 Jun 2004 16:52:01 +0200
+To: =?iso-8859-1?Q?Arun_Sharma?= <arun.sharma@intel.com>
+Cc: =?iso-8859-1?Q?Arnd_Bergmann?= <arnd@arndb.de>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
-Some bug fixes needed:
+Arun Sharma <arun.sharma@intel.com> schrieb am 05.06.2004, 02:16:09:
 
-+#define NAME_OFFSET(de) ((int) ((de)->d_name - (char *) (de)))
+> - use put_user instead of copy_to_user for simple data types.
 
-Cast must be "(char __user *)" to avoid sparse warnings.
+Not that I care too much, but what's the point of this change? A single
+__copy_to_user should be both faster and easier to read than two 
+seperate __put_user when writing an unaligned 64 bit value.
 
-+	if (__put_user(d_type, (char *) dirent + reclen - 1))
-
-Again need "(char __user *)" for sparse.
-
-+		if ((__put_user(offset, (u32 *)&dirent->d_off))
-+		 || (__put_user(offset >> 32, ((u32 *)&dirent->d_off) + 1)))
-
-Again, need "(u32 __user *)"
-
-	 || (__put_user(ino >> 32, ((u32 *)&dirent->d_ino) + 1)))
-
-Another "(u32 __user *)"
-
-+	 || (__put_user(off >> 32, ((u32 *)&dirent->d_off) + 1)))
-
-Another "(u32 __user *)"
-
-+		__put_user(d_off, (u32 *)&lastdirent->d_off);
-+		__put_user(d_off >> 32, ((u32 *)&lastdirent->d_off) + 1);
-
-Two more "(u32 __user *)"
-
-People really need to get into the habit of running sparse on their
-changes to the compat code now that we've annotated most of it. :-)
+       Arnd <><
