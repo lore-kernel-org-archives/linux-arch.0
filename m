@@ -1,59 +1,35 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261160AbULDVEk@vger.kernel.org>
-Received: from palrel12.hp.com ([156.153.255.237]:19095 "EHLO palrel12.hp.com")
-	by vger.kernel.org with ESMTP id S261158AbULDVEj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Dec 2004 16:04:39 -0500
-From: David Mosberger <davidm@napali.hpl.hp.com>
-MIME-Version: 1.0
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261517AbULFMpy@vger.kernel.org>
+Received: from parcelfarce.linux.theplanet.co.uk ([195.92.249.252]:27368 "EHLO
+	www.linux.org.uk") by vger.kernel.org with ESMTP id S261508AbULFMpy
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 6 Dec 2004 07:45:54 -0500
+Received: from willy by www.linux.org.uk with local (Exim 4.33)
+	id 1CbIFV-0007gs-TI
+	for linux-arch@vger.kernel.org; Mon, 06 Dec 2004 12:45:53 +0000
+Date: Mon, 6 Dec 2004 12:45:53 +0000
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: mask_irq
+Message-ID: <20041206124553.GM15450@parcelfarce.linux.theplanet.co.uk>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <16818.9823.674936.616800@napali.hpl.hp.com>
-Date: Sat, 4 Dec 2004 13:04:31 -0800
-Subject: Re: other platforms interested in in-kernel unwinder?
-In-Reply-To: <16817.13868.599352.890898@cargo.ozlabs.ibm.com>
-References: <16815.21943.55627.572012@napali.hpl.hp.com>
-	<200412031037.22445.arnd@arndb.de>
-	<16816.54808.503077.473990@napali.hpl.hp.com>
-	<16817.13868.599352.890898@cargo.ozlabs.ibm.com>
-Reply-To: davidm@hpl.hp.com
-To: Paul Mackerras <paulus@samba.org>
-Cc: davidm@hpl.hp.com, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, davidm@napali.hpl.hp.com, Wolfgang Gellerich <gellerich@de.ibm.com>
+Content-Disposition: inline
+Sender: <willy@www.linux.org.uk>
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
->>>>> On Sat, 4 Dec 2004 14:59:40 +1100, Paul Mackerras <paulus@samba.org> said:
 
-  Paul> David Mosberger writes:
-  >> Oh, that's a surprise.  I didn't realize ppc was maintaining a
-  >> frame-chain.  Can somebody confirm?
+I don't know when it happened, but mask_irq() is no longer required
+as an interface.  The following architectures still define and/or use
+it internally:
 
-  Paul> Yes, both ppc and ppc64 maintain a series of stack frames
-  Paul> linked together, so getting the call chain is pretty
-  Paul> straightforward.  (This is a convention and part of the ABI,
-  Paul> not something required by the hardware.)
+arm arm26 cris mips parisc ppc ppc64 sh sh64 x86_64
 
-OK, thanks for the info.  There is always something new to learn... ;-)
+Arch maintainers may want to see if they can get rid of it.
 
-  Paul> There are two things an unwinder could help with.  First,
-  Paul> because of the conventions about leaf functions, the first
-  Paul> return address can be in the link register or on the stack, or
-  Paul> both, and the link register value may or may not need to be
-  Paul> used as part of the call chain.  An unwinder could presumably
-  Paul> get that right (at the moment we have some heuristics that
-  Paul> work pretty well but not perfectly).
-
-  Paul> Secondly, an unwinder could get us the contents of the
-  Paul> callee-saved registers in each stack frame, which may be
-  Paul> useful for debugging.
-
-  Paul> I think an unwinder would be of some help to those of us doing
-  Paul> kernel debugging, but I don't know that it would make a
-  Paul> dramatic difference.
-
-Nobody so far has said they badly want an in-kernel unwinder for
-anything other than ia64, so I'll probably go ahead and make it
-ia64-specific for now, while keeping an eye open for not doing
-anything that would make it more difficult to add in the DWARF2
-unwinder should some day the need arise.
-
-Thanks,
-
-	--david
+-- 
+"Next the statesmen will invent cheap lies, putting the blame upon 
+the nation that is attacked, and every man will be glad of those
+conscience-soothing falsities, and will diligently study them, and refuse
+to examine any refutations of them; and thus he will by and by convince 
+himself that the war is just, and will thank God for the better sleep 
+he enjoys after this process of grotesque self-deception." -- Mark Twain
