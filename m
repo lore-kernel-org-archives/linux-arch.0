@@ -1,42 +1,27 @@
-Return-Path: <davidm@napali.hpl.hp.com>
-Received: from palrel10.hp.com ([156.153.255.245]:15252 "EHLO palrel10.hp.com")
-	by vger.kernel.org with ESMTP id S262079AbUEQSWU (ORCPT
+Return-Path: <davem@redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:62154 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S262051AbUEQVSF (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 May 2004 14:22:20 -0400
-From: David Mosberger <davidm@napali.hpl.hp.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <16553.725.469944.429214@napali.hpl.hp.com>
-Date: Mon, 17 May 2004 11:22:13 -0700
+	Mon, 17 May 2004 17:18:05 -0400
+Date: Mon, 17 May 2004 14:16:35 -0700
+From: "David S. Miller" <davem@redhat.com>
 Subject: Re: [PATCH] Allow arch override for kmem_bufctl_t
+Message-Id: <20040517141635.55101363.davem@redhat.com>
 In-Reply-To: <40A60984.1070202@colorfullife.com>
 References: <40A60984.1070202@colorfullife.com>
-Reply-To: davidm@hpl.hp.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 To: Manfred Spraul <manfred@colorfullife.com>
-Cc: Andrew Morton <akpm@digeo.com>, linux-arch@vger.kernel.org
+Cc: akpm@digeo.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
->>>>> On Sat, 15 May 2004 14:13:56 +0200, Manfred Spraul <manfred@colorfullife.com> said:
+On Sat, 15 May 2004 14:13:56 +0200
+Manfred Spraul <manfred@colorfullife.com> wrote:
 
-  Manfred> Hi Andrew, The slab allocator keeps track of the free
-  Manfred> objects in a slab with a linked list of integers
-  Manfred> (typedef'ed to kmem_bufctl_t). Right now unsigned int is
-  Manfred> used for kmem_bufctl_t, i.e. 4 bytes per-object overhead.
-  Manfred> The attached patch allows an arch override for this type:
-  Manfred> Theoretically, unsigned short is sufficient for
-  Manfred> kmem_bufctl_t and this would reduce the per-object overhead
-  Manfred> to 2 bytes. But some archs cannot operate on 16-bit values
-  Manfred> efficiently, thus it's not possible to switch everyone to
-  Manfred> ushort.  The patch switches i386, the port maintainers
-  Manfred> should switch their arch if there are no problems with
-  Manfred> 16-bit quantities. All accesses to kmem_bufctl_t are under
-  Manfred> a per-cache spinlock and not in the hottest path.
+> The attached patch allows an arch override for this type: Theoretically, 
+> unsigned short is sufficient for kmem_bufctl_t and this would reduce the 
+> per-object overhead to 2 bytes. But some archs cannot operate on 16-bit 
+> values efficiently, thus it's not possible to switch everyone to ushort. 
 
-  Manfred> Could you apply it to -mm?
-
-There was no patch attached.  I suspect we'd want to turn this on for
-ia64 as well.  Do you have a good (worst-case) benchmark to evaluate
-this change?
-
-	--david
+Just out of curiosity, which arch knowingly has the problem?
