@@ -1,26 +1,67 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S269392AbUH0IAD@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:3220 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S269391AbUH0IAD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Aug 2004 04:00:03 -0400
-Date: Fri, 27 Aug 2004 00:59:47 -0700
-From: "David S. Miller" <davem@redhat.com>
-Subject: Re: using-get_cycles-for-add_timer_randomness.patch
-Message-Id: <20040827005947.45b29e8b.davem@redhat.com>
-In-Reply-To: <20040826234005.2afdb353.akpm@osdl.org>
-References: <20040826234005.2afdb353.akpm@osdl.org>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S264857AbUH0NAa@vger.kernel.org>
+Received: from mtagate1.de.ibm.com ([195.212.29.150]:21192 "EHLO
+	mtagate1.de.ibm.com") by vger.kernel.org with ESMTP id S264795AbUH0NAa
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Aug 2004 09:00:30 -0400
+Date: Fri, 27 Aug 2004 15:00:34 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [patch 1/8] signal handling race fix
+Message-ID: <20040827130034.GA2925@mschwid3.boeblingen.de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: torvalds@osdl.org
+Cc: davem@redhat.com, akpm@osdl.org, linux-arch@vger.kernel.org, minyard@acm.org, rmk@arm.linux.org.uk
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 26 Aug 2004 23:40:05 -0700
-Andrew Morton <akpm@osdl.org> wrote:
+> Can architecture people check the result of their respective 
+> architectures? I'll check x86 and ppc64 myself, but..
 
-> What's the status of this?  Is it a showstopper for MIPS?
+Small name clash on s390. The attached patch renames the
+offending force_sigsegv in arch/s390/mm/fault to do_sigsegv.
+With the change the test app, the signal tests from the glibc
+testsuite and the signal tests from the ltp testsuite run fine
+with the current BitKeeper tree.
 
-It is impossible for this to make things any worse
-than they are now, even if the platform returns zero
-or jiffies for get_cycles().
+blue skies,
+  Martin.
+
+---
+
+[PATCH] s390: force_sigsegv name clash.
+
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+
+The recent signal fix broke s390 because of a name clash.
+Rename the s390 arch function to do_sigsegv.
+
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+
+diffstat:
+ arch/s390/mm/fault.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
+
+diff -urN linux-2.6/arch/s390/mm/fault.c linux-2.6-s390/arch/s390/mm/fault.c
+--- linux-2.6/arch/s390/mm/fault.c	Sat Aug 14 12:56:26 2004
++++ linux-2.6-s390/arch/s390/mm/fault.c	Fri Aug 27 13:24:18 2004
+@@ -126,8 +126,8 @@
+  * Send SIGSEGV to task.  This is an external routine
+  * to keep the stack usage of do_page_fault small.
+  */
+-static void force_sigsegv(struct pt_regs *regs, unsigned long error_code,
+-			  int si_code, unsigned long address)
++static void do_sigsegv(struct pt_regs *regs, unsigned long error_code,
++		       int si_code, unsigned long address)
+ {
+ 	struct siginfo si;
+ 
+@@ -282,7 +282,7 @@
+         if (regs->psw.mask & PSW_MASK_PSTATE) {
+                 tsk->thread.prot_addr = address;
+                 tsk->thread.trap_no = error_code;
+-		force_sigsegv(regs, error_code, si_code, address);
++		do_sigsegv(regs, error_code, si_code, address);
+                 return;
+ 	}
+ 
