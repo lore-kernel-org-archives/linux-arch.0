@@ -1,31 +1,37 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S270586AbUJUGLD@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:46504 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S270266AbUJUGIK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Oct 2004 02:08:10 -0400
-Received: from localhost (localhost [127.0.0.1])
-	by gate.crashing.org (8.12.8/8.12.8) with ESMTP id i9L67MBG023891
-	for <linux-arch@vger.kernel.org>; Thu, 21 Oct 2004 01:07:23 -0500
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S269192AbUJUH0y@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([212.18.232.186]:14088 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S270321AbUJUH0P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Oct 2004 03:26:15 -0400
+Date: Thu, 21 Oct 2004 08:26:00 +0100
+From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: Interrupts & total mess
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <1098338732.3939.20.camel@gaston>
+Message-ID: <20041021082600.A31133@flint.arm.linux.org.uk>
 References: <1098338732.3939.20.camel@gaston>
-Content-Type: text/plain
-Message-Id: <1098338864.3973.22.camel@gaston>
 Mime-Version: 1.0
-Date: Thu, 21 Oct 2004 16:07:44 +1000
-Content-Transfer-Encoding: 7bit
-To: Linux Arch list <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1098338732.3939.20.camel@gaston>; from benh@kernel.crashing.org on Thu, Oct 21, 2004 at 04:05:32PM +1000
+Sender: Russell King <rmk@arm.linux.org.uk>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2004-10-21 at 16:05, Benjamin Herrenschmidt wrote:
-> Ok so my simple project of adding NO_IRQ definitions all over the place
-> is turning into a nightmare for various reasons (the probe_irq_* stuff
-> beeing one of them, as it currently prevents using -1, so I'm leaning
-> toward defining NO_IRQ as beeing INT_MIN, nothing against that ?)
->
-> .../...
+On Thu, Oct 21, 2004 at 04:05:32PM +1000, Benjamin Herrenschmidt wrote:
+> Which is seriously starting to make no sense, especially when you don't
+> really know who is including who, with also the strange rule of never
+> including linux/irq.h directly from a driver since the arch may not use
+> the definitions in there, etc... it's a complete can of worms...
+> 
+> So basically, linux/irq.h should be asm-generic/irq.h right ?
 
-Don't reply here, I'm re-posting that to LKML instead ...
+Correct, which is why I recently sent a patch to lkml to remove the
+wrongly placed include file - in the hope that someone who cares about
+it would fix it as you're suggesting (and that other people can suffer
+some of the repeated breakage caused by that misplaced file.)
 
-Ben.
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
+                 2.6 Serial core
