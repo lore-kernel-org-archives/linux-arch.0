@@ -1,34 +1,36 @@
-Return-Path: <James.Bottomley@SteelEye.com>
-Received: from stat1.steeleye.com ([65.114.3.130]:25021 "EHLO
-	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
-	id S263174AbUCTAPo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 19 Mar 2004 19:15:44 -0500
-Subject: Re: pci_map_single return value
-From: James Bottomley <James.Bottomley@SteelEye.com>
-In-Reply-To: <20040319220506.1718cc55.ak@suse.de>
-References: <20031212155752.GD17683@krispykreme>
-	<20031212175104.07dc8444.ak@suse.de> <20031212192131.GF17683@krispykreme>
-	<20031213220444.4c526afa.davem@redhat.com>
-	<20040102120121.GT28023@krispykreme> <20040102133454.22daa451.ak@suse.de>
-	<20040319001448.GP28212@krispykreme> <1079715431.1732.18.camel@mulgrave>
-	<20040319105549.1285ef71.davem@redhat.com>
-	<1079730090.1778.1.camel@mulgrave>  <20040319220506.1718cc55.ak@suse.de>
-Content-Type: text/plain
+Return-Path: <roland@redhat.com>
+Received: from mail2.speakeasy.net ([216.254.0.202]:4807 "EHLO
+	mail2.speakeasy.net") by vger.kernel.org with ESMTP id S263188AbUCTAqY
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Mar 2004 19:46:24 -0500
+Date: Fri, 19 Mar 2004 16:46:17 -0800
+Message-Id: <200403200046.i2K0kH34022796@magilla.sf.frob.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Date: 19 Mar 2004 19:13:33 -0500
-Message-Id: <1079741620.1726.2.camel@mulgrave>
-Mime-Version: 1.0
-To: Andi Kleen <ak@suse.de>
-Cc: davem@redhat.com, anton@samba.org, linux-arch@vger.kernel.org
+From: Roland McGrath <roland@redhat.com>
+Subject: Re: signal-race-fix.patch
+In-Reply-To: David S. Miller's message of  Friday, 19 March 2004 15:49:28 -0800 <20040319154928.3b2d8820.davem@redhat.com>
+To: "David S. Miller" <davem@redhat.com>
+Cc: Corey Minyard <minyard@acm.org>, akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2004-03-19 at 16:05, Andi Kleen wrote:
-> It is effectively disabled when you have ~3GB of memory, but when you have more
-> and a 32bit only device it will be enabled for that.
+> This still doesn't cut it, next the code in handle_signal() performs
+> operations on ka->sa.sa_mask if SA_{NOMASK,NODEFER} is not set, then a
+> recalc_sigpending() is made.
 
-Well, I suppose it's up to you to object if this error return switch
-will cause an unacceptable risk of data corruption.  I'm with davem:
-both the architectures I care about, voyager (no IOMMU) and parisc (huge
-IOMMU space) aren't going to have a problem.
+That just reads the sa_mask copy and that's all it needs to do.
+That said, it would be cleaner if the sa_mask code were in a shared
+function rather than being duplicated in every arch's handle_signal.
 
-James
+> I think we really need to pull the locking up a level or something like that.
+
+As get_signal_to_deliver always takes the siglock on the way in, it
+obviously wouldn't hurt any to instead have the lock taken by the caller.
+But we do not want to hold that lock through the whole existing
+handle_signal path, with page faults on the user stack and all.  So I'd say
+the caller of get_signal_to_deliver ought to be doing the sigaction
+diddling and releasing the lock before calling setup_{rt_,}frame.  If
+that's what they should do, then might as well have common code do that,
+e.g. by having get_signal_to_deliver handle sa_mask and SA_ONESHOT before
+returning.  
