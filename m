@@ -1,46 +1,64 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S263438AbUJ2RH5@vger.kernel.org>
-Received: from pfepa.post.tele.dk ([195.41.46.235]:32535 "EHLO
-	pfepa.post.tele.dk") by vger.kernel.org with ESMTP id S263386AbUJ2REy
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S263161AbUJ2RMH@vger.kernel.org>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:15381 "EHLO
+	pfepa.post.tele.dk") by vger.kernel.org with ESMTP id S261390AbUJ2RME
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Oct 2004 13:04:54 -0400
-Date: Fri, 29 Oct 2004 21:05:27 +0200
+	Fri, 29 Oct 2004 13:12:04 -0400
+Date: Fri, 29 Oct 2004 21:12:31 +0200
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: i386: use generic support for offsets.h
-Message-ID: <20041029190526.GA8246@mars.ravnborg.org>
-References: <20041028185917.GA9004@mars.ravnborg.org> <20041028190221.GD9004@mars.ravnborg.org> <20041029095214.GM11105@lug-owl.de>
+Subject: Re: New kbuild filename: Kbuild
+Message-ID: <20041029191231.GB8246@mars.ravnborg.org>
+References: <20041028185917.GA9004@mars.ravnborg.org> <20041028190020.GB9004@mars.ravnborg.org> <20041029115903.GC11391@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20041029095214.GM11105@lug-owl.de>
-To: linux-kernel@vger.kernel.org, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
+In-Reply-To: <20041029115903.GC11391@infradead.org>
+To: Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Oct 29, 2004 at 11:52:14AM +0200, Jan-Benedict Glaw wrote:
-> On Thu, 2004-10-28 21:02:21 +0200, Sam Ravnborg <sam@ravnborg.org>
-> wrote in message <20041028190221.GD9004@mars.ravnborg.org>:
-> > diff -Nru a/include/asm-i386/offsets.c b/include/asm-i386/offsets.c
-> > --- /dev/null	Wed Dec 31 16:00:00 196900
-> > +++ b/include/asm-i386/offsets.c	2004-10-28 20:47:38 +02:00
-> > @@ -0,0 +1,66 @@
+On Fri, Oct 29, 2004 at 12:59:03PM +0100, Christoph Hellwig wrote:
+> On Thu, Oct 28, 2004 at 09:00:20PM +0200, Sam Ravnborg wrote:
+> > kbuild: Prefer Kbuild as name of the kbuild files
+> >    
+> > The kbuild syntax is unique and does only have very few things in common with
+> > usual Makefile syntax. So to avoid confusion make the filename 'Kbuild' be
+> > the preferred name as replacement for 'Makefile'.
+> > No global renaming planned to take place for now, but new stuff expected to use
+> > the new 'Kbuild' filename.
 > 
-> To be honest, I don't really like to have .c files in the include
-> pathes... However, I don't know about a better idea (except maybe to
-> place this into ./linux/arch/$(ARCH)/lib/)...
+> Disagree.  These are just makefiles, and renaming for the sake of it
+> doesn't buy us.
+Makefiles are valid input files to make, and the kbuild files has
+for a long time had their own documented syntax.
+Introduce the Kbuild name just makes this even more apperant for the reader.
 
-Having the source file in same directory as the result file is a
-pattern used all over the kernel. Moving the .c file to include/asm-xxx
-just made this true for offsets.h.
-In this process a renaming took place so the name of the source file
-and the result file match except for the extension.
+When we in two years time start to deal with external modules that only support
+kernel 2.6.10 and never then we can avoid the ugly:
 
-Some architectures had: asm_offsets.c => offsets.h
-A non-logical renaming.
+ifeq ($(KERNELRELEASE),)
+...
 
-As for the idea of having source file located in a separate
-directory. It's not supported by kbuild today, and I'm reluctant
-to support it - since it usually triggers misuse.
-kbuild is about making the trivial stuff easy, but not about full
-flexibility. If we wanted full flexibility we would not have used
-so much effort to define a simple syntax.
+To separate out the real makefile and the Kbuild stuff.
+
+> If you really want to improve things implement something like
+> 
+>  module foo.ko
+>  sources foo.c blah.c
+>  sources foobar.c if FOO_BAR
+> 
+> in Kconfig and get rid of driver makefiles compeltely
+
+I'm in favour of this too - but so far Roman has rejected it.
+But this still leaves out the other parts where the Kbuild name makes
+more sense.
+
+PArt of the longer term plaaning is a split of
+arch/$(ARCH)/Makefile in a Kbuild.define and Kbuild.rules part.
+This split will allows the kbuild infrastructure to be used
+also for the top-level part of the kernel - and the next generation
+kbuild will read in all relevant Kbuild files and create a single
+Makfilefile for that part of the kernel compilation.
+
+This is part of the vision at least - introducing kbuild
+contant in Kconfig files is not a hindering for this.
 
 	Sam
