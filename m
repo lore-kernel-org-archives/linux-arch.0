@@ -1,63 +1,41 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268498AbUHLJZq@vger.kernel.org>
-Received: from mtagate2.de.ibm.com ([195.212.29.151]:25545 "EHLO
-	mtagate2.de.ibm.com") by vger.kernel.org with ESMTP id S261232AbUHLJXu convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 Aug 2004 05:23:50 -0400
-In-Reply-To: <20040812021111.GB14411@wotan.suse.de>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268690AbUHLTwJ@vger.kernel.org>
+Received: from mx1.redhat.com ([66.187.233.31]:52928 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S268689AbUHLTwH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Aug 2004 15:52:07 -0400
+Date: Thu, 12 Aug 2004 12:50:59 -0700
+From: "David S. Miller" <davem@redhat.com>
 Subject: Re: clear_user_highpage()
-Message-ID: <OF22CA799C.42B8F6AC-ON42256EEE.0030CA75-42256EEE.00339D43@de.ibm.com>
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Date: Thu, 12 Aug 2004 11:23:46 +0200
-MIME-Version: 1.0
-Content-type: text/plain; charset=ISO-8859-1
-Content-transfer-encoding: 8BIT
+Message-Id: <20040812125059.298ae914.davem@redhat.com>
+In-Reply-To: <20040812110924.0713f5d9.ak@suse.de>
+References: <20040811161537.5e24c2b6.davem@redhat.com>
+	<Pine.LNX.4.58.0408111635160.1839@ppc970.osdl.org>
+	<20040811165307.46ff1eb6.davem@redhat.com>
+	<Pine.LNX.4.58.0408111654440.1839@ppc970.osdl.org>
+	<20040812020825.GA14411@wotan.suse.de>
+	<20040811194545.0034428b.davem@redhat.com>
+	<20040812110924.0713f5d9.ak@suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 To: Andi Kleen <ak@suse.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@redhat.com>, Linux Arch list <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@osdl.org>
+Cc: torvalds@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Thu, 12 Aug 2004 11:09:24 +0200
+Andi Kleen <ak@suse.de> wrote:
 
+> On Wed, 11 Aug 2004 19:45:45 -0700
+> "David S. Miller" <davem@redhat.com> wrote:
+> 
+> > Do these cache-bypassing stores use the L2 cache on a hit?
+> 
+> No, they invalidate the cache.
 
+That explains, at least partly, why they performed so poorly.
 
-
-> > > I think dynamic-resolution timers are the way to go here.
-> > > Rusty was talking about something along theses lines at
-> > > the networking summit.
-> >
-> > Yup, several people talked about it at KS/OLS and I think  s390 has
-> > some implementation already, though I hadn't time to look at it yet,
-> > hopefully that will happen sooner or later.
->
-> My main issue with the s390 approach is that they actually
-> wanted to get rid of jiffies. That's fine for long term,
-> but short term it would be a big problem because it would
-> break everything. IMHO the way to do it would be to define
-> jiffies to a function and keep virtual jiffies using the CLOCK_MONOTONIC
-> timer. Then only tick with a low frequency for statistic ticks
-> and disabled for idle or when an actual event is scheduled.
-
-In the end we indeed want to get rid of jiffies altogether. But it's a long
-road. What we are currently doing is to replace some of the dependecies to
-jiffies in the common code. E.g. instead of doing the cpu time accounting
-on a tick base we want to introduce a cputime_t type that is in principle
-not related to jiffies (but it is in the generic implementation). The
-process accounting is done by a new account_cputime function that can be
-called any time and can be passed any amount of cputime. On s390 we'll
-define cputime_t based on a virtual cpu timer with microseconds resolution.
-This solves two problems, the first is the fact that running on a virtual
-processor f**** up your tick based accounting badly. The second is the
-accuracy of the number in /proc/stat. The second step is to untie the
-time slices from the jiffies tick.
-
-> I didn't have time to actually work on it, the s390 guys
-> are writing actual code, so they win for now :)
-
-We win ?!? Hey, we win ;-)) I posted a first set of cputime patches on
-lkml last week. I probably post them here shortly in the hope to get
-a little more feedback from you arch guys.
-
-blue skies,
-   Martin
-
-Linux/390 Design & Development, IBM Deutschland Entwicklung GmbH
-Schönaicherstr. 220, D-71032 Böblingen, Telefon: 49 - (0)7031 - 16-2247
-E-Mail: schwidefsky@de.ibm.com
+Is there any other platform that has the same kind of block
+stores sparc64 does (basically use L2 cache if line present,
+else bypass L2 cache for the store and do not allocate L2
+cache lines for the data)?  I bet ia64 does have something
+like this.
