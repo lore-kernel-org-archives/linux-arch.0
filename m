@@ -1,49 +1,37 @@
-Return-Path: <ak@suse.de>
-Received: from ns.suse.de ([195.135.220.2]:45014 "EHLO Cantor.suse.de")
-	by vger.kernel.org with ESMTP id S261931AbUB1VlJ (ORCPT
+Return-Path: <davem@redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:5300 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S261949AbUB1X43 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 28 Feb 2004 16:41:09 -0500
-Date: Sat, 28 Feb 2004 22:40:57 +0100
-From: Andi Kleen <ak@suse.de>
-Subject: Re: compat-signal-noarch-2004-01-29.patch
-Message-Id: <20040228224057.5959c8be.ak@suse.de>
-In-Reply-To: <20040228202833.GB19963@baldric.uwo.ca>
-References: <20040226155930.GB24779@baldric.uwo.ca>
-	<20040226173115.7bd1aa86.ak@suse.de>
-	<20040226163812.GP25779@parcelfarce.linux.theplanet.co.uk>
-	<20040226174753.4319802c.ak@suse.de>
-	<20040226194747.GA28037@baldric.uwo.ca>
-	<20040226205058.5a0d1e34.ak@suse.de>
-	<20040227234037.GB10923@baldric.uwo.ca>
-	<20040302213932.55852152.ak@suse.de>
-	<20040228191536.GA19963@baldric.uwo.ca>
-	<20040228203658.5a11df00.ak@suse.de>
-	<20040228202833.GB19963@baldric.uwo.ca>
+	Sat, 28 Feb 2004 18:56:29 -0500
+Date: Sat, 28 Feb 2004 15:56:26 -0800
+From: "David S. Miller" <davem@redhat.com>
+Subject: Re: compat tasks and O_LARGEFILE
+Message-Id: <20040228155626.4e45aaa6.davem@redhat.com>
+In-Reply-To: <20040228015709.GB6897@intel.com>
+References: <20040228015709.GB6897@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: Carlos O'Donell <carlos@baldric.uwo.ca>
-Cc: willy@debian.org, akpm@osdl.org, linux-arch@vger.kernel.org
+To: Arun Sharma <arun.sharma@intel.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 28 Feb 2004 15:28:33 -0500
-Carlos O'Donell <carlos@baldric.uwo.ca> wrote:
+On Fri, 27 Feb 2004 17:57:09 -0800
+Arun Sharma <arun.sharma@intel.com> wrote:
 
-> > Is it really that hard to do the switch in architecture specific code?
+> This code sequence in linux/fs/open.c:
+ ...
+> > #if BITS_PER_LONG != 32
+> > 	flags |= O_LARGEFILE;
+> > #endif
 > 
-> Yes, because I loathe the code duplication I'm seeing in all the arch
-> directories. Please don't tell me that it's more maintainable that way.
+> is problematic for compat tasks. For eg: negative seeks can result in 
+> ~4GB files getting created.
+> 
+> Are there any objections to letting a task reset this flag using a fcntl?
+> There are some corner cases, such as what if the file pointer is already
+> beyond 4GB etc, but I think they're solvable.
 
-It's about 5 lines of code. Not really a big issue. The bulk will be 
-shared.
-
-> IMO, and I am not granted a crystal ball, the situation could be made
-> cleaner through:
-
-[...]
-
-Not sure what this has to do with the issue at hand of adding an is_compat_task()
-or not. I have no great opinion on fs/compat et.al vs arch/generic, filenames
-really don't concern me.
-
--Andi
+See arch/sparc64/kernel/sys_sparc32.c:sparc32_open(), old and known issue.
+That piece of code belongs in fs/compat.c so that it isn't duplicated all
+over.
