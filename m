@@ -1,61 +1,80 @@
-Return-Path: <arnd@arndb.de>
-Received: from natnoddy.rzone.de ([81.169.145.166]:44535 "EHLO
-	natnoddy.rzone.de") by vger.kernel.org with ESMTP id S265958AbUFTVvq
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 20 Jun 2004 17:51:46 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: sys getdents64 needs compat wrapper ?
-Date: Sun, 20 Jun 2004 23:50:19 +0200
-References: <26879984$108508699040ad1d0eba5381.88033699@config20.schlund.de> <40D23DC3.5080005@intel.com> <40D320E2.9020806@intel.com>
-In-Reply-To: <40D320E2.9020806@intel.com>
-MIME-Version: 1.0
-Content-Type: multipart/signed;
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1;
-  boundary="Boundary-02=_fag1Azovp7eeH4T";
-  charset="iso-8859-15"
+Return-Path: <James.Bottomley@SteelEye.com>
+Received: from stat1.steeleye.com ([65.114.3.130]:8355 "EHLO
+	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
+	id S266512AbUFVB2F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 Jun 2004 21:28:05 -0400
+Subject: Extension to the DMA API for on chip memory
+From: James Bottomley <James.Bottomley@SteelEye.com>
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Message-Id: <200406202350.24106.arnd@arndb.de>
-To: Arun Sharma <arun.sharma@intel.com>
-Cc: Andrew Morton <akpm@osdl.org>, "David S. Miller" <davem@redhat.com>, linux-arch@vger.kernel.org
+Date: 21 Jun 2004 20:28:03 -0500
+Message-Id: <1087867684.1797.128.camel@mulgrave>
+Mime-Version: 1.0
+To: linux-arch@vger.kernel.org
+Cc: greg@kroah.com
 List-ID: <linux-arch.vger.kernel.org>
 
+Well, I thought about it some more and I think I can come up with an API
+that will give the ARM people everything they want and still be
+generally useful to every other architecture.  I thought I'd let you all
+rip it apart first before getting people's hopes up on lkml.
 
---Boundary-02=_fag1Azovp7eeH4T
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: base64
-Content-Disposition: inline
+The new API would be
 
-T24gRnJlaXRhZywgMTguIEp1bmkgMjAwNCAxOTowNSwgQXJ1biBTaGFybWEgd3JvdGU6Cj4gVXBk
-YXRlZCBwYXRjaCBhdHRhY2hlZC4KCkkgbm93IG5vdGljZWQgb25lIG1vcmUgYnVnOgoKPiArICog
-dmFsdWVzIGF0IGxvY2F0aW9ucyB0aGF0IGFyZSB1bmtub3duIHRvIGJlIGFsaWduZWQuCj4gKyAq
-Lwo+ICsjZGVmaW5lIF9fZ2V0X3VzZXJfdW5hbGlnbmVkKHgsIHB0cimgoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoFwKPiArKHugoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKBcCj4gK6CgoKCgoKBfX3R5cGVv
-Zl9fICgqKHB0cikpIF9feCA9ICh4KTugoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-XAo+ICugoKCgoKCgX19jb3B5X2Zyb21fdXNlcigmX194LCAocHRyKSwgc2l6ZW9mKCoocHRyKSkp
-ID8gLUVGQVVMVCA6IDA7oKCgoFwKPiArfSkKClRoZSBhc3NpZ25tZW50IGlzIGRvbmUgaW4gdGhl
-IHdyb25nIGRpcmVjdGlvbiwgdGhpcyBuZWVkcyB0byBiZWNvbWUKc29tZXRoaW5nIGxpa2U6Cgoj
-ZGVmaW5lIF9fZ2V0X3VzZXJfdW5hbGlnbmVkKHgsIHB0cimgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoFwKKHugoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKBcCqCgoKCgoKBfX3R5cGVvZl9fICgqKHB0cikp
-IF9feDsgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXAqgoKCgoKCgX19j
-b3B5X2Zyb21fdXNlcigmX194LCAocHRyKSwgc2l6ZW9mKCoocHRyKSkpID8gLUVGQVVMVCA6IDA7
-oKCgoFwKICAgICAgICh4KSA9IF9feDsgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICBcCn0pCgpIb3BlZnVsbHkgdGhhdCdsbCBiZSB0aGUgbGFzdCBj
-aGFuZ2UgZm9yIHRoaXMsIHRoZSByZXN0IGxvb2tzIGdvb2QgdG8KbWUuCgoJQXJuZCA8PjwK
+int dma_declare_coherent_memory(struct device *dev, dma_addr_t bus_addr,
+dma_addr_t device_addr, int flags)
 
---Boundary-02=_fag1Azovp7eeH4T
-Content-Type: application/pgp-signature
-Content-Description: signature
+This API basically declares a region of memory to be handed out by
+dma_alloc_coherent when it's asked for coherent memory for this device.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.2.4 (GNU/Linux)
+bus_addr is the physical address to which the memory is currently
+assigned in the bus responding region
 
-iD8DBQBA1gaf5t5GS2LDRf4RAqi1AJ43VtxHtX+a6P7x/DhGh2NlYgWfwwCdH4V8
-3pcSoLWpTpqCrcyVmkW8Z8o=
-=IaF1
------END PGP SIGNATURE-----
+device_addr is the physical address the device needs to be programmed
+with actually to address this memory.
 
---Boundary-02=_fag1Azovp7eeH4T--
+The flags is where all the magic is.  They can be or'd together and are
+
+DMA_MEMORY_MAP - request that the memory returned from
+dma_alloc_coherent() be directly writeable.
+
+DMA_MEMORY_IO - request that the memory returned from
+dma_alloc_coherent() be addressable using read/write/memcpy_toio etc.
+
+One or both of these flags must be present
+
+DMA_MEMORY_INCLUDES_CHILDREN - make the declared memory be allocated by
+dma_alloc_coherent of any child devices of this one (for memory residing
+on a bridge).
+
+DMA_MEMORY_EXCLUSIVE - only allocate memory from the declared regions. 
+Do not allow dma_alloc_coherent() to fall back to system memory when
+it's out of memory in the declared region.
+
+The return value would be either DMA_MEMORY_MAP or DMA_MEMORY_IO and
+must correspond to a passed in flag (i.e. no returning DMA_MEMORY_IO if
+only DMA_MEMORY_MAP were passed in) or zero for failure.
+
+I think also, it's reasonable only to have a single declared region per
+device.
+
+Implementation details
+
+Obviously, the big change is that dma_alloc_coherent() may now be
+handing out memory that can't be directly written to (in the case of a
+DMA_MEMORY_IO return).
+
+I envisage implementing an internal per device resource allocator in
+drivers/base into which each platform allocator can plug do do the heavy
+allocation lifting (they'd still get to do the platform magic to make
+the returned region visible as memory if necessary).
+
+The API would be platform optional, with platforms not wishing to
+implement it simply hard coding a return 0.
+
+If it stands the linux-arch test, I'll look at doing reference
+implementations for x86 and parisc.
+
+So let the shredding begin...
+
+James
