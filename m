@@ -1,50 +1,48 @@
-Return-Path: <wli@holomorphy.com>
-Received: from holomorphy.com ([207.189.100.168]:12454 "EHLO holomorphy.com")
-	by vger.kernel.org with ESMTP id S261794AbUCaINx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Mar 2004 03:13:53 -0500
-Date: Wed, 31 Mar 2004 00:13:49 -0800
-From: William Lee Irwin III <wli@holomorphy.com>
+Return-Path: <arnd@arndb.de>
+Received: from natsmtp00.rzone.de ([81.169.145.165]:48794 "EHLO
+	natsmtp00.webmailer.de") by vger.kernel.org with ESMTP
+	id S262090AbUCaLjv convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 31 Mar 2004 06:39:51 -0500
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: generalize/fix wchan calculation via ELF sections
-Message-ID: <20040331081349.GY791@holomorphy.com>
-References: <20040331073539.GX791@holomorphy.com> <20040331100310.5afcde15.ak@suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Date: Wed, 31 Mar 2004 13:30:11 +0200
+References: <20040331073539.GX791@holomorphy.com>
+In-Reply-To: <20040331073539.GX791@holomorphy.com>
+MIME-Version: 1.0
 Content-Disposition: inline
-In-Reply-To: <20040331100310.5afcde15.ak@suse.de>
-To: Andi Kleen <ak@suse.de>
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+Message-Id: <200403311330.12089.arnd@arndb.de>
+To: William Lee Irwin III <wli@holomorphy.com>
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 30 Mar 2004 23:35:39 -0800 William Lee Irwin III <wli@holomorphy.com> wrote:
->> The following patch generalizes/fixes wchan calculations via ELF sections.
->> I've tried to sweep all arches, which is where arch ppl come in.
->> Basically, I'm looking to see if I flubbed the patch and may not have
->> swept all arches properly, or whether arch maintainers dislike whatever
->> aspects of it since it goes poking around their code. Whatever kind of
->> feedback may be relevant wrt. methods/cleanliness/etc. is also good.
+On Wednesday 31 March 2004 09:35, William Lee Irwin III wrote:
 
-On Wed, Mar 31, 2004 at 10:03:10AM +0200, Andi Kleen wrote:
-> Looks good to me. Thanks for doing this work.
-> -Andi
+> Basically, I'm looking to see if I flubbed the patch and may not have
+> swept all arches properly, or whether arch maintainers dislike whatever
+> aspects of it since it goes poking around their code. Whatever kind of
+> feedback may be relevant wrt. methods/cleanliness/etc. is also good.
 
-Good to get an ack there. One fear that I had was that the "cleanup" of
-the semaphore functions being integrated (at Anton's request) may have
-been too invasive for people, especially when I only have about 4 or 5
-arches to do testing on. It's where the majority of the arch impact lies.
+> Index: sched-2.6.5-rc3/arch/i386/kernel/vmlinux.lds.S
+> ===================================================================
+> --- sched-2.6.5-rc3.orig/arch/i386/kernel/vmlinux.lds.S 2004-03-29 19:25:34.000000000 -0800
+> +++ sched-2.6.5-rc3/arch/i386/kernel/vmlinux.lds.S      2004-03-30 23:25:36.000000000 -0800
+> @@ -16,6 +16,9 @@
+>    _text = .;                   /* Text and read-only data */
+>    .text : {
+>         *(.text)
+> +       __scheduling_functions_start_here = .;
+> +       *(.sched.text)
+> +       __scheduling_functions_end_here = .;
+>         *(.fixup)
+>         *(.gnu.warning)
+>         } = 0x9090
 
-Can I get at least one more ack before pushing things out to lkml?
-That's where someone might snarf this for some tree or other and
-generate bugreports if I flubbed something, so I'm keeping a lid on it
-until it's had time to "cook" or otherwise pass at least minimalistic
-arch maintainer review. Hey, this is a stable series -- I think I'm
-doing the right thing here.
+No objections, just an idea: It might be good to put the vmlinux.lds.S
+changes into a macro in include/asm-generic/vmlinux.lds.h. IIRC, that's
+what that file was introduced for, although it's not used for many things
+so far.
 
-I realize it's off-hours on .us west coast and/or that $TZ may vary.
-I'll be conservative and hold out at least for the clock to roll over
-worldwide before spraying it out for general consumption.
-
-Thanks.
-
-
--- wli
+	Arnd <><
