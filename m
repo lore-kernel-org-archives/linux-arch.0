@@ -1,29 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 22 Feb 2005 09:07:41 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: Changing  update_mmu_cache()
-Message-ID: <20050222090741.B16786@flint.arm.linux.org.uk>
-References: <1109047997.5327.70.camel@gaston>
+Date: Wed, 23 Feb 2005 00:36:51 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH] Consolidate compat_sys_waitid
+Message-Id: <20050223003651.115d05ef.sfr@canb.auug.org.au>
+In-Reply-To: <20050218162229.63d69935.sfr@canb.auug.org.au>
+References: <20050215140149.0b06c96b.sfr@canb.auug.org.au>
+	<20050215184307.GQ29917@parcelfarce.linux.theplanet.co.uk>
+	<20050218162229.63d69935.sfr@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1109047997.5327.70.camel@gaston>; from benh@kernel.crashing.org on Tue, Feb 22, 2005 at 03:53:17PM +1100
-Sender: Russell King <rmk@arm.linux.org.uk>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linux Arch list <linux-arch@vger.kernel.org>, "David S. Miller" <davem@redhat.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: matthew@wil.cx
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Feb 22, 2005 at 03:53:17PM +1100, Benjamin Herrenschmidt wrote:
-> Is that ok with everybody ?
+On Fri, 18 Feb 2005 16:22:29 +1100 Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+>
+> On Tue, 15 Feb 2005 18:43:07 +0000 Matthew Wilcox <matthew@wil.cx> wrote:
+> >
+> > On Tue, Feb 15, 2005 at 02:01:49PM +1100, Stephen Rothwell wrote:
+> > 
+> > > +asmlinkage long compat_sys_waitid(u32 which, u32 pid,
+> > > +		struct compat_siginfo __user *uinfo, u32 options,
+> > > +		struct compat_rusage __user *uru)
+> > 
+> > Some subtle differences which I feel incompetent to diagnose ... ours
+> > looks like:
+> > 
+> > asmlinkage int compat_sys_waitid(int which, pid_t pid,
+> >                                  compat_siginfo_t __user *infop, int options,
+> >                                  struct compat_rusage __user *ru)
+> 
+> They are u32 in my version because we decided that the kernel zero extends
+> the compat syscall parameters.
 
-On the grounds that I can't get my MM changes past Linus which I need
-for newer ARM CPUs, so I don't see why this change which adds extra code
-(which is the complaint against my changes) should be considered.
-
-Sorry if I'm getting cranky in my old age.
+On second thoughts, I think we should be more consistent with other
+compat_sys_ routines.  New patch following.
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
-                 2.6 Serial core
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
