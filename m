@@ -1,23 +1,39 @@
-Return-Path: <wli@holomorphy.com>
-Received: from holomorphy.com ([207.189.100.168]:51878 "EHLO holomorphy.com")
-	by vger.kernel.org with ESMTP id S265144AbUHAPH4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Aug 2004 11:07:56 -0400
-Date: Sun, 1 Aug 2004 08:07:51 -0700
-From: William Lee Irwin III <wli@holomorphy.com>
-Subject: Re: find_next_bit return type
-Message-ID: <20040801150751.GX2334@holomorphy.com>
-References: <20040731232434.7263b50c.akpm@osdl.org> <1091372708.10972.3.camel@mulgrave>
-Mime-Version: 1.0
+Return-Path: <paulus@ozlabs.org>
+Received: from ozlabs.org ([203.10.76.45]:35288 "EHLO ozlabs.org")
+	by vger.kernel.org with ESMTP id S266186AbUHAWKz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Aug 2004 18:10:55 -0400
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Transfer-Encoding: 7bit
+Message-ID: <16653.27152.500547.917797@cargo.ozlabs.ibm.com>
+Date: Mon, 2 Aug 2004 08:09:20 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: find_next_bit return type
 In-Reply-To: <1091372708.10972.3.camel@mulgrave>
+References: <20040731232434.7263b50c.akpm@osdl.org>
+	<1091372708.10972.3.camel@mulgrave>
 To: James Bottomley <James.Bottomley@steeleye.com>
 Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Aug 01, 2004 at 11:05:07AM -0400, James Bottomley wrote:
+James Bottomley writes:
+
+> On Sun, 2004-08-01 at 02:24, Andrew Morton wrote:
+> > 
+> > Seems that several 64-bit architectures are returning longs from
+> > find_next_bit(), find_next_zero_bit(), etc.  x86 returns an int.  wli sent
+> > me a patch which does
+> > 
+> > 	return min(NR_CPUS, find_first_bit(srcp->bits, nbits));
+> > 
+> > so these architectures now get a zillion warnings.
+> > 
+> > We should be consistent here.  Is there any reason why these functions
+> > cannot return integers?
+> 
 > This isn't just a prototype change, it would change the actual
 > implementation on big endian 64 bit machines.
+> 
 > The find_first_bit/find_next_bit macros work fine on LE because the
 > lowest bit is at the start of the bitmap.  on BE machines, the highest
 > bit is supposed to be there.  The result is that long bitmaps are
@@ -25,6 +41,10 @@ On Sun, Aug 01, 2004 at 11:05:07AM -0400, James Bottomley wrote:
 > long).  If you change to an unsigned int, you reduce our chunk size, and
 > hence the actual layout of the bitmap, so we'd need to check there were
 > no unintended consequences of this.
-> Would it not be easier simply to change the prototype on x86?
 
-I would not be averse to this.
+I think Andrew was talking about the return type, not the type of the
+bitmap.  The return type could easily be an int or unsigned int, while
+still having the bitmap as an array of unsigned longs (with unchanged
+layout).
+
+Paul.
