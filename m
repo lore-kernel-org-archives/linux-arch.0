@@ -1,21 +1,30 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S265275AbUHYWDM@vger.kernel.org>
-Received: from fw.osdl.org ([65.172.181.6]:56018 "EHLO mail.osdl.org")
-	by vger.kernel.org with ESMTP id S269169AbUHYVbd (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266187AbUHYW1N@vger.kernel.org>
+Received: from are.twiddle.net ([64.81.246.98]:26243 "EHLO are.twiddle.net")
+	by vger.kernel.org with ESMTP id S266263AbUHYW0F (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Aug 2004 17:31:33 -0400
-Date: Wed, 25 Aug 2004 14:29:40 -0700
-From: Andrew Morton <akpm@osdl.org>
-Subject: incoming: signal delivery race fixes
-Message-Id: <20040825142940.0e3318b8.akpm@osdl.org>
+	Wed, 25 Aug 2004 18:26:05 -0400
+Date: Wed, 25 Aug 2004 15:26:01 -0700
+From: Richard Henderson <rth@twiddle.net>
+Subject: Re: [patch 8/8] alpha signal race fixes
+Message-ID: <20040825222601.GA7109@twiddle.net>
+References: <200408252132.i7PLW0129397@mail.osdl.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: linux-arch@vger.kernel.org, Corey Minyard <minyard@acm.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <200408252132.i7PLW0129397@mail.osdl.org>
+To: akpm@osdl.org
+Cc: torvalds@osdl.org, linux-arch@vger.kernel.org, wli@holomorphy.com
 List-ID: <linux-arch.vger.kernel.org>
 
+On Wed, Aug 25, 2004 at 02:30:17PM -0700, akpm@osdl.org wrote:
+> The rampant variable renaming made my eyes bleed, so I omitted that from
+> here.  Anyhow, the test app works after I apply this, so I must have done
+> something right.
 
-A bunch of patches here to fix a race in signal delivery.  I don't think
-anyone's totally ecstatic about the solution, but it works.
+Looks about like what I tested a while ago.  Sorry for not
+sending it on.  
 
-Many architectures have been converted, but some still will break.
+And, like you, I didn't like all the variable renaming.  ;-)
+
+
+r~
