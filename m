@@ -1,11 +1,11 @@
 Return-Path: <benh@kernel.crashing.org>
-Received: from gate.crashing.org ([63.228.1.57]:34440 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S265155AbUEZEuL (ORCPT
+Received: from gate.crashing.org ([63.228.1.57]:39304 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S265235AbUEZExU (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 May 2004 00:50:11 -0400
+	Wed, 26 May 2004 00:53:20 -0400
 Subject: Re: [PATCH] ppc64: Fix possible race with set_pte on a present PTE
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <Pine.LNX.4.58.0405252031270.15534@ppc970.osdl.org>
+In-Reply-To: <Pine.LNX.4.58.0405252140550.15534@ppc970.osdl.org>
 References: <1085369393.15315.28.camel@gaston>
 	 <Pine.LNX.4.58.0405232046210.25502@ppc970.osdl.org>
 	 <1085371988.15281.38.camel@gaston>
@@ -31,25 +31,31 @@ References: <1085369393.15315.28.camel@gaston>
 	 <Pine.LNX.4.58.0405251749500.9951@ppc970.osdl.org>
 	 <1085541906.14969.412.camel@gaston>
 	 <Pine.LNX.4.58.0405252031270.15534@ppc970.osdl.org>
+	 <1085544720.5580.9.camel@gaston> <1085545114.5578.11.camel@gaston>
+	 <Pine.LNX.4.58.0405252140550.15534@ppc970.osdl.org>
 Content-Type: text/plain
-Message-Id: <1085546780.5584.19.camel@gaston>
+Message-Id: <1085546972.5580.23.camel@gaston>
 Mime-Version: 1.0
-Date: Wed, 26 May 2004 14:46:20 +1000
+Date: Wed, 26 May 2004 14:49:32 +1000
 Content-Transfer-Encoding: 7bit
 To: Linus Torvalds <torvalds@osdl.org>
 Cc: "David S. Miller" <davem@redhat.com>, wesolows@foobazco.org, willy@debian.org, Andrea Arcangeli <andrea@suse.de>, Andrew Morton <akpm@osdl.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, mingo@elte.hu, bcrl@kvack.org, linux-mm@kvack.org, Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Ok, your patch just missed the do_wp_page() case which needs the same
-medication as break_cow(), which leaves us with only one caller of
-ptep_establish... the one which just sets those 2 bits and shouldn't
-be named ptep establish at all ;)
+On Wed, 2004-05-26 at 14:50, Linus Torvalds wrote:
+> On Wed, 26 May 2004, Benjamin Herrenschmidt wrote:
+> >
+> > Hrm... Still dies, some kind of loop it seems, I'll have a look
+> 
+> Are you sure the it's not just taking infinite page fault because we keep 
+> reloading the old value from the hash tables? That "hash fault" thing 
+> still doesn't convince me. Why should the hash-refill fastpath ever look 
+> at the software page tables?
 
-What do we do ?
+Where do you think the hash PTE is filled from ? :)
 
-I'd rather have ptep_establish do the ptep_clear_flush & set_pte, and
-the later just do the bit flip, but then, the arch (and possibly
-generic) implementation of that bit flip must also do the TLB flush
-when necessary (it's not on ppc).
+We even use one of the linux PTE bits as a lock bit during the hash
+refill (the PAGE_BUSY bit) to avoid a race where we can end up filling
+more than one hash entry from the same linux PTE.
 
-Ben.  
+Ben.
