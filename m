@@ -1,53 +1,38 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268890AbUHUHvi@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:55177 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S268886AbUHUHvV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 21 Aug 2004 03:51:21 -0400
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266670AbUHVLuo@vger.kernel.org>
+Received: from p508B7531.dip.t-dialin.net ([80.139.117.49]:44838 "EHLO
+	mail.linux-mips.net") by vger.kernel.org with ESMTP id S266669AbUHVLuo
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 22 Aug 2004 07:50:44 -0400
+Date: Sun, 22 Aug 2004 13:50:14 +0200
+From: Ralf Baechle <ralf@linux-mips.org>
 Subject: Re: copy_mount_options()
-From: Rusty Russell <rusty@rustcorp.com.au>
-In-Reply-To: <20040820170712.68e4cda9.akpm@osdl.org>
-References: <20040820130110.07f7c23c.davem@redhat.com>
-	 <20040820131053.3d5e0f9b.akpm@osdl.org>
-	 <20040820141137.646c349f.davem@redhat.com>
-	 <20040820143111.3fd0070e.akpm@osdl.org>
-	 <20040820144052.14413a4f.davem@redhat.com>
-	 <20040820154736.166b66ec.akpm@osdl.org> <20040820231833.GH1945@krispykreme>
-	 <20040820165133.67df8d1b.davem@redhat.com>
-	 <20040820170712.68e4cda9.akpm@osdl.org>
-Content-Type: text/plain
-Message-Id: <1093074189.4883.89.camel@bach>
+Message-ID: <20040822115014.GA29005@linux-mips.org>
+References: <20040820130110.07f7c23c.davem@redhat.com> <1093043745.9529.254.camel@gaston>
 Mime-Version: 1.0
-Date: Sat, 21 Aug 2004 17:50:58 +1000
-Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@osdl.org>
-Cc: "David S. Miller" <davem@redhat.com>, Anton Blanchard <anton@samba.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1093043745.9529.254.camel@gaston>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: "David S. Miller" <davem@redhat.com>, Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 2004-08-21 at 10:07, Andrew Morton wrote:
-> I'm all for it.  I'll sneak the below patch into -mm, see what breaks.
+On Sat, Aug 21, 2004 at 09:15:46AM +1000, Benjamin Herrenschmidt wrote:
 
-You should zero out the whole buffer in copy_from_user() if you return
--EFAULT.  We had bugs where people didn't check the returns and you
-could read random junk.
+> > Basically, copy_mount_options() requires exact byte granularity
+> > to exception reporting from copy_from_user().  If you don't
+> > do this it can break things like busybox's mount().
+> 
+> Yup, old problem, reported before several times. Another issue
+> that pops up with it and busybox is that copy_mount_options will
+> touch an entire page from the passed pointer. If the pointer you
+> pass is near the end of your data/bss area, you end up touching
+> the area between stack and bss, and potentially cause the stack
+> to grow all the way down to the bss.
 
-As to who uses the value, generic file read and write still use it, as
-did some of the serial code last I checked.  Linus was of the belief
-that they should do a short read/write up to the fault boundary rather
-than return -EFAULT.
+On MIPS it's been triggering a special case in verify_area which make
+it return -EFAULT if the arguments area includes the last byte of the
+2GB userspace as busybox does.  A proper fix of verify_area would have
+inflated the verify_area() code by one instruction so I reduced
+TASK_SIZE a bit ...
 
-There's evidence that noone relies on such behaviour, though, since at
-the time of the debate, doing such a thing would cause an OOPS on ppc. 
-Also, this behaviour silently changed after 2.0 and noone noticed. 
-Finally, other unixes are varied in their approaches in this case (some
-downright buggy, lying about how much they'd written).
-
-I would humbly suggest an additional option which sent a SEGV to the
-process, as well.  If you were playing mprotect games you'd expect them,
-and if you weren't, you're probably buggy.  After a while, we can simply
-forget about checking returns from copy_to/from_user, which would be a
-blissful simplification of kernel code.
-
-Cheers,
-Rusty.
--- 
-Anyone who quotes me in their signature is an idiot -- Rusty Russell
+  Ralf
