@@ -1,58 +1,70 @@
-Return-Path: <benh@kernel.crashing.org>
-Received: from gate.crashing.org ([63.228.1.57]:43229 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S263397AbUCPBiR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Mar 2004 20:38:17 -0500
+Return-Path: <James.Bottomley@SteelEye.com>
+Received: from stat1.steeleye.com ([65.114.3.130]:33943 "EHLO
+	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
+	id S262868AbUCPDYj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Mar 2004 22:24:39 -0500
 Subject: Re: More DMA API junk
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <1079399555.1804.232.camel@mulgrave>
+From: James Bottomley <James.Bottomley@SteelEye.com>
+In-Reply-To: <1079400742.1968.209.camel@gaston>
 References: <1079398383.1968.205.camel@gaston>
-	 <1079399555.1804.232.camel@mulgrave>
+	<1079399555.1804.232.camel@mulgrave>  <1079400742.1968.209.camel@gaston>
 Content-Type: text/plain
-Message-Id: <1079400742.1968.209.camel@gaston>
-Mime-Version: 1.0
-Date: Tue, 16 Mar 2004 12:32:23 +1100
 Content-Transfer-Encoding: 7bit
-To: James Bottomley <James.Bottomley@steeleye.com>
+Date: 15 Mar 2004 22:24:31 -0500
+Message-Id: <1079407473.2069.383.camel@mulgrave>
+Mime-Version: 1.0
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2004-03-16 at 12:12, James Bottomley wrote:
-> On Mon, 2004-03-15 at 19:53, Benjamin Herrenschmidt wrote:
-> >  - dma_is_consistent(dma_addr_t address) : Did somebody actually expect
-> > anything useful out of this function ? AFAIK, it makes no sense. There
-> > is simply no way an arch like ppc that use per-page cache-inhibit
-> > mappings to do consistent memory will be able to tell you if a given
-> > _DMA_ address is consistent... that makes no sense.
+On Mon, 2004-03-15 at 20:32, Benjamin Herrenschmidt wrote:
+> On Tue, 2004-03-16 at 12:12, James Bottomley wrote:
+> > They are both used.  Look at section II of DMA-API.txt.cd ..
 > 
-> >  - dma_cache_sync(): What is that function supposed to do ? It's a
-> > duplicate of the other sync() functions and David didn't even bother
-> > turning it into _for_device/for_cpu... which is fine since it doesn't
-> > even takes a struct device argument.
-> 
-> They are both used.  Look at section II of DMA-API.txt.cd ..
+> I've looked and I couldn't find a proper meaning for them.
 
-I've looked and I couldn't find a proper meaning for them.
+OK, the idea is that drivers that run on platforms which may not be able
+to generate coherent memory use this (that's why no device in the API. 
+I assumed it would be per-platform).
 
-> They have to do with incoherent platforms which I assume you don't have,
-> but just leave them alone for those of use who are so burdened.
+You call dma_alloc_noncoherent() to get the memory and you guarantee to
+sync it correctly from the CPU's perspective using dma_cache_sync().
 
-We do have incoherent PPCs (the embedded ones)
+If you compile the driver on a coherent platform,
+dma_alloc_noncoherent() becomes dma_alloc_coherent() and the
+dma_cache_sync()s become nops.
 
-> Actually, I was planning to update dma_cache_sync to take a device and
-> to conform to the new style (except I was thinking of an ownership flag
-> rather than introducing two more APIs).  The lack of device to
-> dma_cache_sync is probably irrelevant since they only apply to older
-> arch's which don't have bus caches.
+If you compile it on a coherent incapable platform,
+dma_alloc_noncoherent becomes an aligned kmalloc and the
+dma_cache_sync() points map to the correct cpu caching instructions.
 
-How can dma_is_consistent() be implemented at all on an arch that
-implement consistency by allocating non-cacheable space using PTE
-bits ? we just cannot know if a given dma_addr_t is mapped by the
-kernel using a cacheable or non-cacheable (or both) mapping.
+A driver has to be specially constructed to use this API ... and
+obviously it needs to be used on the problem platforms.  The only
+examples I know of are the scsi driver 53c700.c and the network driver
+lasi_82596.
 
-Regarding dma_cache_sync(), I still don't understand what it means
-and what it should be used for. We have dma_consistent_sync_*,
-care to explain in which cases those aren't useable and one would
-have to call dma_cache_sync() ?
 
-Ben.
+> How can dma_is_consistent() be implemented at all on an arch that
+> implement consistency by allocating non-cacheable space using PTE
+> bits ? we just cannot know if a given dma_addr_t is mapped by the
+> kernel using a cacheable or non-cacheable (or both) mapping.
+
+The idea was that either the platform can or cannot generate coherent
+memory.  dma_is_consistent() returns true if dma_alloc_noncoherent()
+returns coherent memory.
+
+For a nop implementation see asm-i386/dma-mapping.h.  For a used
+implementation see asm-parisc/dma-mapping.h.
+
+> Regarding dma_cache_sync(), I still don't understand what it means
+> and what it should be used for. We have dma_consistent_sync_*,
+> care to explain in which cases those aren't useable and one would
+> have to call dma_cache_sync() ?
+
+It is used to do the CPU cache writeback and invalidates in the driver
+on memory used for device mailboxes.  It's syntax is closely modelled on
+dma_cache_wback() and friends (in asm/io.h).
+
+I've never heard of dma_consistent_sync_* before.
+
+James
