@@ -1,29 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 22 Feb 2005 10:55:29 -0800
-From: "David S. Miller" <davem@davemloft.net>
-Subject: Re: [PATCH] Consolidate compat_sys_waitid
-Message-Id: <20050222105529.1eea1a52.davem@davemloft.net>
-In-Reply-To: <20050223004228.3ae0207e.sfr@canb.auug.org.au>
-References: <20050215140149.0b06c96b.sfr@canb.auug.org.au>
-	<20050215184307.GQ29917@parcelfarce.linux.theplanet.co.uk>
-	<20050218162229.63d69935.sfr@canb.auug.org.au>
-	<20050223003651.115d05ef.sfr@canb.auug.org.au>
-	<20050223004228.3ae0207e.sfr@canb.auug.org.au>
+Subject: Re: Changing  update_mmu_cache()
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <20050222090741.B16786@flint.arm.linux.org.uk>
+References: <1109047997.5327.70.camel@gaston>
+	 <20050222090741.B16786@flint.arm.linux.org.uk>
+Content-Type: text/plain
+Date: Wed, 23 Feb 2005 07:51:36 +1100
+Message-Id: <1109105496.5327.124.camel@gaston>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-arch@vger.kernel.org
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: Linux Arch list <linux-arch@vger.kernel.org>, "David S. Miller" <davem@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 23 Feb 2005 00:42:28 +1100
-Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+On Tue, 2005-02-22 at 09:07 +0000, Russell King wrote:
+> On Tue, Feb 22, 2005 at 03:53:17PM +1100, Benjamin Herrenschmidt wrote:
+> > Is that ok with everybody ?
+> 
+> On the grounds that I can't get my MM changes past Linus which I need
+> for newer ARM CPUs, so I don't see why this change which adds extra code
+> (which is the complaint against my changes) should be considered.
+> 
+> Sorry if I'm getting cranky in my old age.
 
-> I will submit this to Andrew if there are no further comments.
+You are, since it's not adding extra code, just moving a function around
+and changing the parameters :) Ok well, the extra parameter may be extra
+code if you don't inline ... bugger... ;)
 
-I'm ok with this.
-
-In the long term, we should stop using signed argument types for
-compat_sys_*() functions.  Most of the time, it can be ok because
-it's some selector value, but often it results in signedness bugs
-and even security holes especially when dealing with length values.
+Ben.
