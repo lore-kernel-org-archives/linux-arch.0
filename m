@@ -1,137 +1,85 @@
-Return-Path: <arnd@arndb.de>
-Received: from natnoddy.rzone.de ([81.169.145.166]:32935 "EHLO
-	natnoddy.rzone.de") by vger.kernel.org with ESMTP id S264175AbUFQXhq
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Jun 2004 19:37:46 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: sys getdents64 needs compat wrapper ?
-Date: Fri, 18 Jun 2004 01:36:31 +0200
-References: <26879984$108508699040ad1d0eba5381.88033699@config20.schlund.de> <40CDEB59.3040203@intel.com> <40D21B17.4060603@intel.com>
-In-Reply-To: <40D21B17.4060603@intel.com>
+Return-Path: <arun.sharma@intel.com>
+Received: from fmr04.intel.com ([143.183.121.6]:63454 "EHLO
+	caduceus.sc.intel.com") by vger.kernel.org with ESMTP
+	id S264895AbUFRA4v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Jun 2004 20:56:51 -0400
+Message-ID: <40D23DC3.5080005@intel.com>
+Date: Thu, 17 Jun 2004 17:56:35 -0700
+From: Arun Sharma <arun.sharma@intel.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed;
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1;
-  boundary="Boundary-02=_Csi0AjiVsYIZ485";
-  charset="iso-8859-1"
+Subject: Re: sys getdents64 needs compat wrapper ?
+References: <26879984$108508699040ad1d0eba5381.88033699@config20.schlund.de> <40CDEB59.3040203@intel.com> <40D21B17.4060603@intel.com> <200406180136.34384.arnd@arndb.de>
+In-Reply-To: <200406180136.34384.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
-Message-Id: <200406180136.34384.arnd@arndb.de>
-To: Arun Sharma <arun.sharma@intel.com>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Andrew Morton <akpm@osdl.org>, "David S. Miller" <davem@redhat.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On 6/17/2004 4:36 PM, Arnd Bergmann wrote:
 
---Boundary-02=_Csi0AjiVsYIZ485
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: base64
-Content-Disposition: inline
+> On Freitag, 18. Juni 2004 00:28, Arun Sharma wrote:
+> 
+>>It took us a bit longer :) But here's the promised patch. Using
+>>__put_user_unaligned() on ia64 may still cause unaligned faults,
+>>but we chose to optimize for the common case, where it's 4 byte
+>>aligned.   
+> 
+> 
+> Isn't it legal for i386 code to pass syscall arguments with
+> an arbitrary alignment? I guess gcc normally aligns everything
+> to 32 bit unless you force it not to but you might still return
+> error for syscalls that work fine on a native i386 system.
+> 
 
-T24gRnJlaXRhZywgMTguIEp1bmkgMjAwNCAwMDoyOCwgQXJ1biBTaGFybWEgd3JvdGU6Cj4gSXQg
-dG9vayB1cyBhIGJpdCBsb25nZXIgOikgQnV0IGhlcmUncyB0aGUgcHJvbWlzZWQgcGF0Y2guIFVz
-aW5nCj4gX19wdXRfdXNlcl91bmFsaWduZWQoKSBvbiBpYTY0IG1heSBzdGlsbCBjYXVzZSB1bmFs
-aWduZWQgZmF1bHRzLAo+IGJ1dCB3ZSBjaG9zZSB0byBvcHRpbWl6ZSBmb3IgdGhlIGNvbW1vbiBj
-YXNlLCB3aGVyZSBpdCdzIDQgYnl0ZQo+IGFsaWduZWQuICAgCgpJc24ndCBpdCBsZWdhbCBmb3Ig
-aTM4NiBjb2RlIHRvIHBhc3Mgc3lzY2FsbCBhcmd1bWVudHMgd2l0aAphbiBhcmJpdHJhcnkgYWxp
-Z25tZW50PyBJIGd1ZXNzIGdjYyBub3JtYWxseSBhbGlnbnMgZXZlcnl0aGluZwp0byAzMiBiaXQg
-dW5sZXNzIHlvdSBmb3JjZSBpdCBub3QgdG8gYnV0IHlvdSBtaWdodCBzdGlsbCByZXR1cm4KZXJy
-b3IgZm9yIHN5c2NhbGxzIHRoYXQgd29yayBmaW5lIG9uIGEgbmF0aXZlIGkzODYgc3lzdGVtLgoK
-PiArICovCj4gKyNkZWZpbmUgX19nZXRfdXNlcl91bmFsaWduZWQoeCwgcHRyKaCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgXAo+ICsoe6CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoFwKPiAroKCgoKCgoF9f
-dHlwZW9mX18gKCoocHRyKSkgX194ID0gKHgpO6CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgoKBcCj4gK6CgoKCgoKBjb3B5X2Zyb21fdXNlcigmX194LCAocHRyKSwgc2l6ZW9mKCoocHRy
-KSkpID8gLUVGQVVMVCA6IDA7oKCgoKCgXAo+ICt9KQoKVGhpcyBzaG91bGQgYmUgX19jb3B5X2Zy
-b21fdXNlciBpbnN0ZWFkIG9mIGNvcHlfZnJvbV91c2VyLCByaWdodD8KCj4gKwo+ICsKPiArLyog
-Cj4gKyAqIFRoaXMgbWFjcm8gc2hvdWxkIGJlIHVzZWQgaW5zdGVhZCBvZiBfX3B1dF91c2VyKCkg
-d2hlbiBhY2Nlc3NpbmcKPiArICogdmFsdWVzIGF0IGxvY2F0aW9ucyB0aGF0IGFyZSB1bmtub3du
-IHRvIGJlIGFsaWduZWQuCj4gKyAqLwo+ICsjZGVmaW5lIF9fcHV0X3VzZXJfdW5hbGlnbmVkKHgs
-IHB0cimgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoFwKPiArKHugoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKBcCj4gK6CgoKCgoKBfX3R5cGVvZl9fICgqKHB0cikpIF9feCA9ICh4KTugoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgXAo+ICugoKCgoKCgY29weV90b191c2VyKChwdHIpLCAmX194
-LCBzaXplb2YoKihwdHIpKSkgPyAtRUZBVUxUIDogMDugoKCgoKCgoFwKPiArfSkKCnNhbWUgaGVy
-ZS4KCj4gK2V4dGVybiBsb25nIF9fcHV0X3VzZXJfdW5hbGlnbmVkX3Vua25vd24gKHZvaWQpOwo+
-ICsKPiArI2RlZmluZSBfX3B1dF91c2VyX3VuYWxpZ25lZCh4LCBwdHIpoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKBcCj4gKyh7oKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgXAo+ICugoKCgoKCgbG9uZyBfX3JldDugoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoFwKPiAroKCgoKCgoHN3aXRjaCAoc2l6ZW9mKCoocHRyKSkpIHugoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKBcCj4gK6CgoKCgoKCgoKCgoKCgoGNhc2UgMTogX19yZXQgPSBfX3B1dF91c2VyKCh4KSwgKHB0
-cikpOyBicmVhazugoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgXAo+ICugoKCgoKCg
-oKCgoKCgoKBjYXNlIDI6IF9fcmV0ID0gKF9fcHV0X3VzZXIoKHgpLCAodTggX191c2VyICopKHB0
-cikpKaCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoFwKPiAroKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKB8fCAoX19wdXRfdXNlcigoeCkgPj4gOCwgKCh1OCBfX3VzZXIgKikocHRyKSArIDEpKSk7IGJy
-ZWFrO6CgoKCgoKCgoKCgoKBcCj4gK6CgoKCgoKCgoKCgoKCgoGNhc2UgNDogX19yZXQgPSAoX19w
-dXRfdXNlcigoeCksICh1MTYgX191c2VyICopKHB0cikpKaCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgXAo+ICugoKCgoKCgoKCgoKCgoKCgoKCgoKCgoHx8IChfX3B1dF91c2VyKCh4KSA+PiAxNiwg
-KCh1MTYgX191c2VyICopKHB0cikgKyAxKSkpOyBicmVhazugoKCgoKCgoKCgoFwKPiAroKCgoKCg
-oKCgoKCgoKCgY2FzZSA4OiBfX3JldCA9IChfX3B1dF91c2VyKCh4KSwgKHUzMiBfX3VzZXIgKiko
-cHRyKSkpoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKBcCj4gK6CgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgfHwgKF9fcHV0X3VzZXIoKHgpID4+IDMyLCAoKHUzMiBfX3VzZXIgKikocHRyKSArIDEpKSk7
-IGJyZWFrO6CgoKCgoKCgoKCgXAo+ICugoKCgoKCgoKCgoKCgoKBkZWZhdWx0OiBfX3JldCA9IF9f
-cHV0X3VzZXJfdW5hbGlnbmVkX3Vua25vd24oKTugoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgoFwKPiAroKCgoKCgoH2goKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKBcCj4gK6CgoKCg
-oKBfX3JldDugoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCg
-oKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgXAo+ICt9KQoKVW5kZXIgd2hhdCBjaXJj
-dW1zdGFuY2VzIHdvdWxkIHlvdSBuZWVkIHRvIGJyZWFrIGRvd24gYSA0IGJ5dGUKYWxpZ25tZW50
-IGludG8gMiBieXRlcz8gSSBjYW4gdW5kZXJzdGFuZCB0aGF0IHlvdSB3YW50IHRvIG9wdGltaXpl
-CnRoZSB1bmFsaWduZWQtNjQgYml0IGNhc2UgYmVjYXVzZSBpMzg2LWdjYyBhbGlnbnMgdGhlbSBv
-bmx5IHRvIDMyIGJpdAppbiB1c2VyIHNwYWNlLCBidXQgdGhlIG90aGVyIHNwZWNpYWwgY2FzZXMg
-YXJlIGJvZ3VzLiBXaHkgbm90Cmp1c3QgZG86CgojZGVmaW5lIF9fcHV0X3VzZXJfdW5hbGlnbmVk
-KHgsIHB0cikJCQkJCVwKKAkJCQkJCQkJCVwKCShzaXplb2YoKihwdHIpKSA9PSA4KSA/CQkJCQkJ
-XAoJCSgoX19wdXRfdXNlcigoeCksICh1MzIgX191c2VyICopKHB0cikpKQkJCVwKCQkgfCAoX19w
-dXRfdXNlcigoeCkgPj4gMzIsICgodTMyIF9fdXNlciAqKShwdHIpICsgMSkpKSkJXAoJCTogX19w
-dXRfdXNlcih4LHB0cikJCQkJCVwKKQoKTm90ZSBhbHNvIHRoZSB1c2Ugb2YgfCBpbnN0ZWFkIG9m
-IHx8IHRvIGdldCB0aGUgY29ycmVjdCB2YWx1ZSBvbiBlcnJvcgooLUVGQVVMVCwgbm90IDEpLgoK
-PiBkaWZmIC1wdXJOIC1YIGRvbnRkaWZmIGxpbnV4LTIuNi43LXJjMy1nZXRkZW50cy9pbmNsdWRl
-L2FzbS1wcGM2NC91YWNjZXNzLmggbGludXgtMi42LjctcmMzLWdldGRlbnRzLXVzZXJfdW5hbGln
-bmVkL2luY2x1ZGUvYXNtLXBwYzY0L3VhY2Nlc3MuaAo+IC0tLSBsaW51eC0yLjYuNy1yYzMtZ2V0
-ZGVudHMvaW5jbHVkZS9hc20tcHBjNjQvdWFjY2Vzcy5ooKCgoKCgoKAyMDA0LTA2LTE1IDEzOjQx
-OjM1LjAwMDAwMDAwMCArMDgwMAo+ICsrKyBsaW51eC0yLjYuNy1yYzMtZ2V0ZGVudHMtdXNlcl91
-bmFsaWduZWQvaW5jbHVkZS9hc20tcHBjNjQvdWFjY2Vzcy5ooDIwMDQtMDYtMTcgMTQ6NTE6NDIu
-MDIwNjAwNDQ3ICswODAwCj4gQEAgLTEyLDYgKzEyLDcgQEAKPiCgI2luY2x1ZGUgPGxpbnV4L3Nj
-aGVkLmg+Cj4goCNpbmNsdWRlIDxsaW51eC9lcnJuby5oPgo+IKAjaW5jbHVkZSA8YXNtL3Byb2Nl
-c3Nvci5oPgo+ICsjaW5jbHVkZSA8YXNtLWdlbmVyaWMvdWFjY2Vzcy5oPgo+IKAKPiCgI2RlZmlu
-ZSBWRVJJRllfUkVBRKCgoKAwCj4goCNkZWZpbmUgVkVSSUZZX1dSSVRFoKCgMQo+IGRpZmYgLXB1
-ck4gLVggZG9udGRpZmYgbGludXgtMi42LjctcmMzLWdldGRlbnRzL2luY2x1ZGUvYXNtLXMzOTAv
-dWFjY2Vzcy5oIGxpbnV4LTIuNi43LXJjMy1nZXRkZW50cy11c2VyX3VuYWxpZ25lZC9pbmNsdWRl
-L2FzbS1zMzkwL3VhY2Nlc3MuaAo+IC0tLSBsaW51eC0yLjYuNy1yYzMtZ2V0ZGVudHMvaW5jbHVk
-ZS9hc20tczM5MC91YWNjZXNzLmigMjAwNC0wNi0xNSAxMzo0MTozOS4wMDAwMDAwMDAgKzA4MDAK
-PiArKysgbGludXgtMi42LjctcmMzLWdldGRlbnRzLXVzZXJfdW5hbGlnbmVkL2luY2x1ZGUvYXNt
-LXMzOTAvdWFjY2Vzcy5ooKAyMDA0LTA2LTE3IDE0OjUxOjQyLjAyMTU3NzAxMCArMDgwMAo+IEBA
-IC0xNiw2ICsxNiw3IEBACj4goCAqLwo+IKAjaW5jbHVkZSA8bGludXgvc2NoZWQuaD4KPiCgI2lu
-Y2x1ZGUgPGxpbnV4L2Vycm5vLmg+Cj4gKyNpbmNsdWRlIDxhc20tZ2VuZXJpYy91YWNjZXNzLmg+
-Cj4goAo+IKAjZGVmaW5lIFZFUklGWV9SRUFEIKAgoCAwCj4goCNkZWZpbmUgVkVSSUZZX1dSSVRF
-IKAgoDEKCnBwYzY0IGFuZCBzMzkwIGJvdGggZG9uJ3QgY2FyZSBhYm91dCBhbGlnbm1lbnQsIHNv
-IHNpbXBseSB1c2luZwoKI2RlZmluZSBfX2dldF91c2VyX3VuYWxpZ25lZCBfX2dldF91c2VyCiNk
-ZWZpbmUgX19wdXRfdXNlcl91bmFsaWduZWQgX19wdXRfdXNlcgoKd291bGQgbWFrZSBtb3JlIHNl
-bnNlIGhlcmUuIFNlZSBpbmNsdWRlL2FzbS0qL3VuYWxpZ25lZC5oCgo+IGRpZmYgLXB1ck4gLVgg
-ZG9udGRpZmYgbGludXgtMi42LjctcmMzLWdldGRlbnRzL2luY2x1ZGUvYXNtLXg4Nl82NC91YWNj
-ZXNzLmggbGludXgtMi42LjctcmMzLWdldGRlbnRzLXVzZXJfdW5hbGlnbmVkL2luY2x1ZGUvYXNt
-LXg4Nl82NC91YWNjZXNzLmgKPiAtLS0gbGludXgtMi42LjctcmMzLWdldGRlbnRzL2luY2x1ZGUv
-YXNtLXg4Nl82NC91YWNjZXNzLmigoKCgoKCgMjAwNC0wNi0xNSAxMzo0MTozNC4wMDAwMDAwMDAg
-KzA4MDAKPiArKysgbGludXgtMi42LjctcmMzLWdldGRlbnRzLXVzZXJfdW5hbGlnbmVkL2luY2x1
-ZGUvYXNtLXg4Nl82NC91YWNjZXNzLmigoKCgoKCgoDIwMDQtMDYtMTcgMTQ6NTE6NDIuMDIyNTUz
-NTcyICswODAwCj4gQEAgLTEwLDYgKzEwLDcgQEAKPiCgI2luY2x1ZGUgPGxpbnV4L3NjaGVkLmg+
-Cj4goCNpbmNsdWRlIDxsaW51eC9wcmVmZXRjaC5oPgo+IKAjaW5jbHVkZSA8YXNtL3BhZ2UuaD4K
-PiArI2luY2x1ZGUgPGFzbS1nZW5lcmljL3VhY2Nlc3MuaD4KPiCgCj4goCNkZWZpbmUgVkVSSUZZ
-X1JFQUQgMAo+IKAjZGVmaW5lIFZFUklGWV9XUklURSAxCgpTYW1lIG9uIHg4Nl82NC4KCglBcm5k
-IDw+PAo=
+We don't return error, we just take an unaligned fault for this case.
 
---Boundary-02=_Csi0AjiVsYIZ485
-Content-Type: application/pgp-signature
-Content-Description: signature
+> 
+>>+ */
+>>+#define __get_user_unaligned(x, ptr)                                   \
+>>+({                                                                     \
+>>+       __typeof__ (*(ptr)) __x = (x);                                  \
+>>+       copy_from_user(&__x, (ptr), sizeof(*(ptr))) ? -EFAULT : 0;      \
+>>+})
+> 
+> 
+> This should be __copy_from_user instead of copy_from_user, right?
+> 
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.2.4 (GNU/Linux)
+Yes, will fix.
 
-iD8DBQBA0isC5t5GS2LDRf4RApkcAJ4qDDRiSwbHImZi4RhkoAKONr7EmgCfUu2B
-c/h02aavDm6uN+vY8av/ZQg=
-=2TyB
------END PGP SIGNATURE-----
+> Under what circumstances would you need to break down a 4 byte
+> alignment into 2 bytes? I can understand that you want to optimize
+> the unaligned-64 bit case because i386-gcc aligns them only to 32 bit
+> in user space, but the other special cases are bogus. Why not
+> just do:
 
---Boundary-02=_Csi0AjiVsYIZ485--
+I agree that it's unlikely to be used, but I put it in there for completeness. For eg: <asm-ia64/unaligned.h> is doing this too.
+
+> 
+> ppc64 and s390 both don't care about alignment, so simply using
+> 
+> #define __get_user_unaligned __get_user
+> #define __put_user_unaligned __put_user
+> 
+> would make more sense here. See include/asm-*/unaligned.h
+> 
+> 
+>>diff -purN -X dontdiff linux-2.6.7-rc3-getdents/include/asm-x86_64/uaccess.h linux-2.6.7-rc3-getdents-user_unaligned/include/asm-x86_64/uaccess.h
+>>--- linux-2.6.7-rc3-getdents/include/asm-x86_64/uaccess.h       2004-06-15 13:41:34.000000000 +0800
+>>+++ linux-2.6.7-rc3-getdents-user_unaligned/include/asm-x86_64/uaccess.h        2004-06-17 14:51:42.022553572 +0800
+>>@@ -10,6 +10,7 @@
+>> #include <linux/sched.h>
+>> #include <linux/prefetch.h>
+>> #include <asm/page.h>
+>>+#include <asm-generic/uaccess.h>
+>> 
+>> #define VERIFY_READ 0
+>> #define VERIFY_WRITE 1
+> 
+> 
+> Same on x86_64.
+
+Will update the patch for other archs as well.
+
+	-Arun
