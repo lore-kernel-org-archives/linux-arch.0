@@ -1,11 +1,11 @@
 Return-Path: <benh@kernel.crashing.org>
-Received: from gate.crashing.org ([63.228.1.57]:60293 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S265201AbUEYWLQ (ORCPT
+Received: from gate.crashing.org ([63.228.1.57]:9094 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S265166AbUEYWXD (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 May 2004 18:11:16 -0400
+	Tue, 25 May 2004 18:23:03 -0400
 Subject: Re: [PATCH] ppc64: Fix possible race with set_pte on a present PTE
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <Pine.LNX.4.58.0405251455320.9951@ppc970.osdl.org>
+In-Reply-To: <Pine.LNX.4.58.0405251504170.9951@ppc970.osdl.org>
 References: <1085369393.15315.28.camel@gaston>
 	 <Pine.LNX.4.58.0405232046210.25502@ppc970.osdl.org>
 	 <1085371988.15281.38.camel@gaston>
@@ -23,39 +23,29 @@ References: <1085369393.15315.28.camel@gaston>
 	 <20040525105442.2ebdc355.davem@redhat.com>
 	 <Pine.LNX.4.58.0405251056520.9951@ppc970.osdl.org>
 	 <1085521251.24948.127.camel@gaston>
-	 <Pine.LNX.4.58.0405251452590.9951@ppc970.osdl.org>
-	 <Pine.LNX.4.58.0405251455320.9951@ppc970.osdl.org>
+	 <Pine.LNX.4.58.0405251504170.9951@ppc970.osdl.org>
 Content-Type: text/plain
-Message-Id: <1085522860.15315.133.camel@gaston>
+Message-Id: <1085523563.15281.136.camel@gaston>
 Mime-Version: 1.0
-Date: Wed, 26 May 2004 08:07:41 +1000
+Date: Wed, 26 May 2004 08:19:24 +1000
 Content-Transfer-Encoding: 7bit
 To: Linus Torvalds <torvalds@osdl.org>
 Cc: "David S. Miller" <davem@redhat.com>, wesolows@foobazco.org, willy@debian.org, Andrea Arcangeli <andrea@suse.de>, Andrew Morton <akpm@osdl.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, mingo@elte.hu, bcrl@kvack.org, linux-mm@kvack.org, Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
+On Wed, 2004-05-26 at 08:09, Linus Torvalds wrote:
 
-> 	static inline void ptep_update_dirty_accessed(pte_t *ptep, pte_t entry, int dirty)
-> 	{
-> 		unsigned long bits = pte_value(entry) & (_PAGE_DIRTY | _PAGE_ACCESSED);
-> 		unsigned long tmp;
+> But if we don't update the hash tables, how will the TLB entry _ever_ say 
+> that the page is writable? So we won't take just _one_ extra fault on the 
+> next write, we'll _keep_ taking them, since the hash tables will continue 
+> to claim that the page is read-only, even if the linux sw page tables say 
+> it is writable.
 > 
-> 		__asm__ __volatile__(
-> 	"1:	lwarx	%0,0,%3\n\
-> 		or	%0,%2,%0\n\
-> 		stwcx.	%0,0,%3\n\
-> 		bne-	1b"
-> 		:"=&r" (tmp), "=m" (*ptep)
-> 		:"r" (bits), "r" (ptep)
-> 		:"cc");
-> 	}
-> 
-> 	/* Make asm-generic/pgtable.h know about it.. */
-> 	#define ptep_update_dirty_accessed ptep_update_dirty_accessed
+> So I think the code needs to invalidate the hash after having updated the 
+> pte. No?
 
-That looks good on a first look, I need to re-read the whole discussion since
-yesterday through to make sure I didn't miss anything. Note that I'd rather
-call the function ptep_set_* than ptep_update_* to make clear that it can
-only ever be used to _set_ those bits.
+No, we'll take a hash fault, not a page fault. The hash fault is an asm
+fast path, which in this case, will update the HPTE RW permission when
+the PTE has PAGE_RW (and will set PAGE_DIRTY again, but that's fine).
 
 Ben.
