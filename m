@@ -1,40 +1,34 @@
 Return-Path: <wli@holomorphy.com>
-Received: from holomorphy.com ([207.189.100.168]:57251 "EHLO holomorphy.com")
-	by vger.kernel.org with ESMTP id S264065AbUDVOGa (ORCPT
+Received: from holomorphy.com ([207.189.100.168]:61603 "EHLO holomorphy.com")
+	by vger.kernel.org with ESMTP id S264062AbUDVONV (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Apr 2004 10:06:30 -0400
-Date: Thu, 22 Apr 2004 07:06:24 -0700
+	Thu, 22 Apr 2004 10:13:21 -0400
+Date: Thu, 22 Apr 2004 07:13:05 -0700
 From: William Lee Irwin III <wli@holomorphy.com>
 Subject: Re: [Patch] SMP call function cleanup
-Message-ID: <20040422140624.GW743@holomorphy.com>
-References: <1082636511.1332.34.camel@halo> <20040422122818.GR743@holomorphy.com> <20040422123703.GY22027@krispykreme> <1082638779.1778.16.camel@mulgrave> <20040422132443.GV743@holomorphy.com> <1082641576.1714.36.camel@mulgrave>
+Message-ID: <20040422141305.GX743@holomorphy.com>
+References: <1082636511.1332.34.camel@halo> <20040422123318.GX22027@krispykreme> <1082642408.1332.56.camel@halo>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1082641576.1714.36.camel@mulgrave>
-To: James Bottomley <James.Bottomley@steeleye.com>
-Cc: Anton Blanchard <anton@samba.org>, Jan Glauber <glauber@gmx.de>, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com
+In-Reply-To: <1082642408.1332.56.camel@halo>
+To: Jan Glauber <glauber@gmx.de>
+Cc: Anton Blanchard <anton@samba.org>, Linux Architecture List <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2004-04-22 at 09:24, William Lee Irwin III wrote:
->> 	for_each_cpu_mask(cpu, foo->mask)
->> 		on_one_cpu(cpu, bar, ...);
+On Thu, 2004-04-22 at 14:33, Anton Blanchard wrote:
+>> We noticed this too. Rusty created on_one_cpu below and had a generic
+>> (but costly) implementation so architectures could switch across when they
+>> wanted.
 
-On Thu, Apr 22, 2004 at 09:46:16AM -0400, James Bottomley wrote:
-> But the key is 'anyone in need of'.  What I'd like is for you to
-> demonstrate a need of execute on cpumask before it gets added to the
-> API.  Murphy's law says that when given a choice people invariably make
-> the wrong one, so lets not introduce choice into the api unless it's
-> absolutely necessary.
+On Thu, Apr 22, 2004 at 04:00:08PM +0200, Jan Glauber wrote:
+> Hm, why can't you just do a:
+> for_each_cpu_mask(cpu, mask)
+>         send_IPI_single(cpu)
 
-I remembered what cw told me. It was for ia64 repairing the suboptimal
-situation where flush_tlb_mm() does the wrong thing and flushes on all
-cpus regardless of mm->cpu_vm_mask. So we can drop this rather easily,
-as even when it's resolved, that will be pure arch code that will have
-the native IPI API's visible to it.
-
-zwane wanted it for some 100% lockless timer code, but I think that's
-dead or not getting merged in the near future, so the same applies.
+I think they're concerned about API minimality. I just debunked or
+whatever both of the feature requests I had for it on my end after
+doublechecking on IRC, so there isn't a known immediate need for it.
 
 
 -- wli
