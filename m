@@ -1,150 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Message-ID: <41FEA4AA.1080407@us.ibm.com>
-Date: Mon, 31 Jan 2005 15:35:38 -0600
-From: Brian King <brking@us.ibm.com>
-Reply-To: brking@us.ibm.com
-MIME-Version: 1.0
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: pci: Arch hook to determine config space size
-References: <200501281456.j0SEuI12020454@d01av01.pok.ibm.com> <20050128185234.GB21760@infradead.org> <20050129040647.GA6261@kroah.com> <41FE82B6.9060407@us.ibm.com> <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk>
-In-Reply-To: <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk>
-Content-Type: multipart/mixed;
- boundary="------------010301050405050001050904"
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Greg KH <greg@kroah.com>, Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, paulus@samba.org
+Date: Mon, 31 Jan 2005 22:56:44 +0100
+References: <200501281456.j0SEuI12020454@d01av01.pok.ibm.com> <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk> <41FEA4AA.1080407@us.ibm.com>
+In-Reply-To: <41FEA4AA.1080407@us.ibm.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed;
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1;
+  boundary="Boundary-02=_cmq/BYwyTitJF1I";
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Message-Id: <200501312256.44692.arnd@arndb.de>
+To: brking@us.ibm.com
+Cc: Matthew Wilcox <matthew@wil.cx>, Greg KH <greg@kroah.com>, Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, paulus@samba.org
 List-ID: <linux-arch.vger.kernel.org>
 
-This is a multi-part message in MIME format.
---------------010301050405050001050904
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
 
-Matthew Wilcox wrote:
-> Basically, ppc64's config ops are broken and need to check the offset
-> being read.  Here's i386:
-> 
-> static int pci_conf1_write (int seg, int bus, int devfn, int reg, int len, u32 v
-> alue)
-> {
->         unsigned long flags;
-> 
->         if ((bus > 255) || (devfn > 255) || (reg > 255)) 
->                 return -EINVAL;
-
-Here is a pure ppc64 implementation that does this.
-
-> 
-> I think all the config ops in ppc64 are broken and need to check for these
-> limits.  Also, it does some checks that are already performed by upper layers:
-> 
->         if (where & (size - 1))
->                 return PCIBIOS_BAD_REGISTER_NUMBER;
-> 
-> is checked for in drivers/pci/access.c
-
-I can submit a separate patch to clean that up.
-
--- 
-Brian King
-eServer Storage I/O
-IBM Linux Technology Center
-
---------------010301050405050001050904
+--Boundary-02=_cmq/BYwyTitJF1I
 Content-Type: text/plain;
- name="ppc64_pcix_mode2_cfg.patch"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline;
- filename="ppc64_pcix_mode2_cfg.patch"
+  charset="iso-8859-15"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
 
+On Maandag 31 Januar 2005 22:35, Brian King wrote:
+> Matthew Wilcox wrote:
+> > Basically, ppc64's config ops are broken and need to check the offset
+> > being read. =A0Here's i386:
+> >=20
+> > static int pci_conf1_write (int seg, int bus, int devfn, int reg, int l=
+en, u32 v
+> > alue)
+> > {
+> > =A0 =A0 =A0 =A0 unsigned long flags;
+> >=20
+> > =A0 =A0 =A0 =A0 if ((bus > 255) || (devfn > 255) || (reg > 255))=20
+> > =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return -EINVAL;
+>=20
+> Here is a pure ppc64 implementation that does this.
 
+Actually, it doesn't:
 
-When working with a PCI-X Mode 2 adapter on a PCI-X Mode 1 PPC64
-system, the current code used to determine the config space size
-of a device results in a PCI Master abort and an EEH error, resulting
-in the device being taken offline. This patch checks OF to see if
-the PCI bridge supports PCI-X Mode 2 and fails config accesses beyond
-256 bytes if it does not.
+> +static int config_access_valid(struct device_node *dn, int where)
+> +{
+> +=A0=A0=A0=A0=A0=A0=A0struct device_node *hose_dn =3D dn->phb->arch_data;
+> +
+> +=A0=A0=A0=A0=A0=A0=A0if (where < 256 || hose_dn->pci_ext_config_space)
+> +=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0return 1;
 
-Signed-off-by: Brian King <brking@us.ibm.com>
----
+This needs a check for (where < 4096) in case of PCIe or PCI-X.
 
- linux-2.6.11-rc2-bk9-bjking1/arch/ppc64/kernel/pSeries_pci.c |   25 +++++++++++
- linux-2.6.11-rc2-bk9-bjking1/include/asm-ppc64/prom.h        |    1 
- 2 files changed, 26 insertions(+)
+> @@ -62,6 +72,8 @@ static int rtas_read_config(struct devic
+> =A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0return PCIBIOS_DEVICE_NOT=
+_FOUND;
+> =A0=A0=A0=A0=A0=A0=A0=A0if (where & (size - 1))
+> =A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0return PCIBIOS_BAD_REGIST=
+ER_NUMBER;
+> +=A0=A0=A0=A0=A0=A0=A0if (!config_access_valid(dn, where))
+> +=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0return PCIBIOS_BAD_REGISTER=
+_NUMBER;
+> =A0
+> =A0=A0=A0=A0=A0=A0=A0=A0addr =3D (dn->busno << 16) | (dn->devfn << 8) | w=
+here;
 
-diff -puN arch/ppc64/kernel/pSeries_pci.c~ppc64_pcix_mode2_cfg arch/ppc64/kernel/pSeries_pci.c
---- linux-2.6.11-rc2-bk9/arch/ppc64/kernel/pSeries_pci.c~ppc64_pcix_mode2_cfg	2005-01-31 14:32:01.000000000 -0600
-+++ linux-2.6.11-rc2-bk9-bjking1/arch/ppc64/kernel/pSeries_pci.c	2005-01-31 15:09:53.000000000 -0600
-@@ -52,6 +52,16 @@ static int s7a_workaround;
- 
- extern struct mpic *pSeries_mpic;
- 
-+static int config_access_valid(struct device_node *dn, int where)
-+{
-+	struct device_node *hose_dn = dn->phb->arch_data;
-+
-+	if (where < 256 || hose_dn->pci_ext_config_space)
-+		return 1;
-+
-+	return 0;
-+}
-+
- static int rtas_read_config(struct device_node *dn, int where, int size, u32 *val)
- {
- 	int returnval = -1;
-@@ -62,6 +72,8 @@ static int rtas_read_config(struct devic
- 		return PCIBIOS_DEVICE_NOT_FOUND;
- 	if (where & (size - 1))
- 		return PCIBIOS_BAD_REGISTER_NUMBER;
-+	if (!config_access_valid(dn, where))
-+		return PCIBIOS_BAD_REGISTER_NUMBER;
- 
- 	addr = (dn->busno << 16) | (dn->devfn << 8) | where;
- 	buid = dn->phb->buid;
-@@ -110,6 +122,8 @@ static int rtas_write_config(struct devi
- 		return PCIBIOS_DEVICE_NOT_FOUND;
- 	if (where & (size - 1))
- 		return PCIBIOS_BAD_REGISTER_NUMBER;
-+	if (!config_access_valid(dn, where))
-+		return PCIBIOS_BAD_REGISTER_NUMBER;
- 
- 	addr = (dn->busno << 16) | (dn->devfn << 8) | where;
- 	buid = dn->phb->buid;
-@@ -270,6 +284,16 @@ static int phb_set_bus_ranges(struct dev
- 	return 0;
- }
- 
-+static void __devinit get_phb_config_space_type(struct device_node *dn)
-+{
-+	int *type = (int *)get_property(dn, "ibm,pci-config-space-type", NULL);
-+
-+	if (type && *type == 1)
-+		dn->pci_ext_config_space = 1;
-+	else
-+		dn->pci_ext_config_space = 0;
-+}
-+
- static int __devinit setup_phb(struct device_node *dev,
- 			       struct pci_controller *phb,
- 			       unsigned int addr_size_words)
-@@ -285,6 +309,7 @@ static int __devinit setup_phb(struct de
- 	phb->arch_data = dev;
- 	phb->ops = &rtas_pci_ops;
- 	phb->buid = get_phb_buid(dev);
-+	get_phb_config_space_type(dev);
- 
- 	return 0;
- }
-diff -puN include/asm-ppc64/prom.h~ppc64_pcix_mode2_cfg include/asm-ppc64/prom.h
---- linux-2.6.11-rc2-bk9/include/asm-ppc64/prom.h~ppc64_pcix_mode2_cfg	2005-01-31 14:32:01.000000000 -0600
-+++ linux-2.6.11-rc2-bk9-bjking1/include/asm-ppc64/prom.h	2005-01-31 14:32:01.000000000 -0600
-@@ -137,6 +137,7 @@ struct device_node {
- 	int	devfn;			/* for pci devices */
- 	int	eeh_mode;		/* See eeh.h for possible EEH_MODEs */
- 	int	eeh_config_addr;
-+	int	pci_ext_config_space;	/* for phb's or bridges */
- 	struct  pci_controller *phb;	/* for pci devices */
- 	struct	iommu_table *iommu_table;	/* for phb's or bridges */
- 
-_
+addr is still wrong, see my previous mail.
 
---------------010301050405050001050904--
+> @@ -110,6 +122,8 @@ static int rtas_write_config(struct devi
+> =A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0return PCIBIOS_DEVICE_NOT=
+_FOUND;
+> =A0=A0=A0=A0=A0=A0=A0=A0if (where & (size - 1))
+> =A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0return PCIBIOS_BAD_REGIST=
+ER_NUMBER;
+> +=A0=A0=A0=A0=A0=A0=A0if (!config_access_valid(dn, where))
+> +=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0=A0return PCIBIOS_BAD_REGISTER=
+_NUMBER;
+> =A0
+> =A0=A0=A0=A0=A0=A0=A0=A0addr =3D (dn->busno << 16) | (dn->devfn << 8) | w=
+here;
+
+same here
+
+> @@ -285,6 +309,7 @@ static int __devinit setup_phb(struct de
+> =A0=A0=A0=A0=A0=A0=A0=A0phb->arch_data =3D dev;
+> =A0=A0=A0=A0=A0=A0=A0=A0phb->ops =3D &rtas_pci_ops;
+> =A0=A0=A0=A0=A0=A0=A0=A0phb->buid =3D get_phb_buid(dev);
+> +=A0=A0=A0=A0=A0=A0=A0get_phb_config_space_type(dev);
+> =A0
+> =A0=A0=A0=A0=A0=A0=A0=A0return 0;
+> =A0}
+
+Isn't the config space size a property of the PCI device instead of the
+host bridge? For a PCI device behind a PCIe host bridge, this could
+still lead to an incorrect config space accesses.
+
+	Arnd <><
+
+PS: I got a permanent fatal error from <linux-pci@vger.kernel.org>, does
+that list actually exist?
+
+--Boundary-02=_cmq/BYwyTitJF1I
+Content-Type: application/pgp-signature
+Content-Description: signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.2.4 (GNU/Linux)
+
+iD8DBQBB/qmc5t5GS2LDRf4RAhecAJ977PLjW2gsolIYtEygS06nEBfl9wCgl6cc
+4rJ7+4PptxcgsSYPCceZUu0=
+=5cMq
+-----END PGP SIGNATURE-----
+
+--Boundary-02=_cmq/BYwyTitJF1I--
