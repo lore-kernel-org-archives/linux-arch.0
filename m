@@ -1,43 +1,34 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268225AbUIWTHs@vger.kernel.org>
-Received: from omx3-ext.sgi.com ([192.48.171.20]:4522 "EHLO omx3.sgi.com")
-	by vger.kernel.org with ESMTP id S268218AbUIWTHs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Sep 2004 15:07:48 -0400
-From: Jesse Barnes <jbarnes@engr.sgi.com>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268225AbUIWT1m@vger.kernel.org>
+Received: from stat16.steeleye.com ([209.192.50.48]:13769 "EHLO
+	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
+	id S268158AbUIWT1m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Sep 2004 15:27:42 -0400
 Subject: Re: [PATCH] I/O space write barrier
-Date: Thu, 23 Sep 2004 15:07:26 -0400
-References: <200409231448.21887.jbarnes@engr.sgi.com> <1095966238.3043.26.camel@mulgrave>
-In-Reply-To: <1095966238.3043.26.camel@mulgrave>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+From: James Bottomley <James.Bottomley@steeleye.com>
+In-Reply-To: <200409231507.26672.jbarnes@engr.sgi.com>
+References: <200409231448.21887.jbarnes@engr.sgi.com>
+	<1095966238.3043.26.camel@mulgrave>
+	<200409231507.26672.jbarnes@engr.sgi.com>
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200409231507.26672.jbarnes@engr.sgi.com>
-To: James Bottomley <James.Bottomley@steeleye.com>
+Date: 23 Sep 2004 15:27:24 -0400
+Message-Id: <1095967651.2157.42.camel@mulgrave>
+Mime-Version: 1.0
+To: Jesse Barnes <jbarnes@engr.sgi.com>
 Cc: linux-arch@vger.kernel.org, jeremy@sgi.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thursday, September 23, 2004 3:03 pm, James Bottomley wrote:
-> On Thu, 2004-09-23 at 14:48, Jesse Barnes wrote:
-> > - RD_REG_WORD(&reg->ictrl); /* PCI Posted Write flush */
-> > + mmiowb(); /* make sure this write arrives before any others */
->
-> What's going on here?  In your docs you say this mmiowb() is explicitly
-> to prevent write ordering problems and doesn't affect posting.  However
-> in this patch you're using it to replace a posting flush read.
+On Thu, 2004-09-23 at 15:07, Jesse Barnes wrote:
+> If we're waiting for an interrupt here, I don't think it matters if we flush 
+> or order, we'll wait the same amount of time regardless.
 
-Jeremy was the one that added these, I think the comment is misleading and 
-only ordering was intended.  If that's not the case I'll drop this bit.
+I don't think so.  Your ordering barrier doesn't cause a posted write
+flush.  Posted writes have theoretically no upper limit defined in the
+spec for the time they may remain posted, so in the former case, you are
+guaranteed that by the time you set the flag and exit the function that
+interrupts are enabled in the qla1280.  If you apply the patch you sent
+in, this guarantee is broken and you don't really know how much longer
+after exiting the function it will be before interrupts become enabled
+(although in practice it's probably only of the order of ms).
 
->
-> >   ha->flags.ints_enabled = 1;
->
-> The result will be that we can get to here, but the write that enables
-> the interrupt may still be posted in a bridge somewhere.
-
-If we're waiting for an interrupt here, I don't think it matters if we flush 
-or order, we'll wait the same amount of time regardless.
-
-Thanks,
-Jesse
+James
