@@ -1,59 +1,46 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268765AbUHLUcn@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:20691 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S268753AbUHLUb1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 Aug 2004 16:31:27 -0400
-Date: Thu, 12 Aug 2004 13:30:24 -0700
-From: "David S. Miller" <davem@redhat.com>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268828AbUHLVgn@vger.kernel.org>
+Received: from parcelfarce.linux.theplanet.co.uk ([195.92.249.252]:47586 "EHLO
+	www.linux.org.uk") by vger.kernel.org with ESMTP id S268576AbUHLVeF
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Aug 2004 17:34:05 -0400
+Date: Thu, 12 Aug 2004 22:34:03 +0100
+From: Matthew Wilcox <willy@debian.org>
 Subject: Re: clear_user_highpage()
-Message-Id: <20040812133024.36e5b7ee.davem@redhat.com>
-In-Reply-To: <20040812220025.27cb260a.ak@suse.de>
-References: <20040811161537.5e24c2b6.davem@redhat.com>
-	<Pine.LNX.4.58.0408111635160.1839@ppc970.osdl.org>
-	<20040811165307.46ff1eb6.davem@redhat.com>
-	<Pine.LNX.4.58.0408111654440.1839@ppc970.osdl.org>
-	<20040812020825.GA14411@wotan.suse.de>
-	<20040811194545.0034428b.davem@redhat.com>
-	<20040812110924.0713f5d9.ak@suse.de>
-	<20040812125059.298ae914.davem@redhat.com>
-	<20040812220025.27cb260a.ak@suse.de>
+Message-ID: <20040812213403.GE12936@parcelfarce.linux.theplanet.co.uk>
+References: <20040811161537.5e24c2b6.davem@redhat.com> <Pine.LNX.4.58.0408111635160.1839@ppc970.osdl.org> <20040811165307.46ff1eb6.davem@redhat.com> <Pine.LNX.4.58.0408111654440.1839@ppc970.osdl.org> <20040812020825.GA14411@wotan.suse.de> <20040811194545.0034428b.davem@redhat.com> <20040812110924.0713f5d9.ak@suse.de> <20040812125059.298ae914.davem@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Andi Kleen <ak@suse.de>
-Cc: torvalds@osdl.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20040812125059.298ae914.davem@redhat.com>
+Sender: <willy@www.linux.org.uk>
+To: "David S. Miller" <davem@redhat.com>
+Cc: Andi Kleen <ak@suse.de>, torvalds@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 12 Aug 2004 22:00:25 +0200
-Andi Kleen <ak@suse.de> wrote:
+On Thu, Aug 12, 2004 at 12:50:59PM -0700, David S. Miller wrote:
+> Is there any other platform that has the same kind of block
+> stores sparc64 does (basically use L2 cache if line present,
+> else bypass L2 cache for the store and do not allocate L2
+> cache lines for the data)?  I bet ia64 does have something
+> like this.
 
-> Well, the writes are usually faster. While they don't use the 
-> cache they use special write combining buffers in the CPU
-> that hold the data until it can blast out a full cache. Advantage
-> is that it doesn't have to read anything first.
+Yes, almost exactly.  You can specify the "nta" hint to stores which means
+"non-temporal at all levels".  If the cache-line is already present in
+the cache at any level, it will not be demoted, but if it isn't present,
+it'll bypass the cache entirely.
 
-Sure. Sparc64 has this two, in fact is has a full 2K write
-cache to absorb all of the cpu's write traffic.
+If you want to specifically retain a cache line at a particular level
+in cache, you can prefetch it into that level, then use .nta and the
+line won't move.
 
-> How effective this is depends on the CPU, in general newer 
-> x86s tend to have much larger WC buffers than the previous 
-> generation (e.g. Intel just enlarged them again in Prescott) 
-> 
-> Unlike all other stores on x86 they are also very lazily ordered
-> and need explicit memory barriers.
+That's all according to the architecture reference anyway.  I don't know
+how much of that processors actually implement and how much they think
+they know better than the programmer ;-)
 
-The cache-bypassing 64-byte block stores behave this way
-on sparc64.
-
-> This still has the same problem: in the end the data
-> is out of cache and when someone else needs it later they eat
-> large penalties.
-
-If it was in the cache to begin with, it will stay there.
-This is the case the x86_64 bits lose for, they'll kick
-the lines out.
-
-If it is out of cache, no L2 cache lines are allocated.  This
-is how x86_64 will perform.
-
-I think the "hit" case behavior difference could make a difference.
+-- 
+"Next the statesmen will invent cheap lies, putting the blame upon 
+the nation that is attacked, and every man will be glad of those
+conscience-soothing falsities, and will diligently study them, and refuse
+to examine any refutations of them; and thus he will by and by convince 
+himself that the war is just, and will thank God for the better sleep 
+he enjoys after this process of grotesque self-deception." -- Mark Twain
