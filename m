@@ -1,35 +1,38 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S263382AbUJ2RsB@vger.kernel.org>
-Received: from scrub.xs4all.nl ([194.109.195.176]:15579 "EHLO scrub.xs4all.nl")
-	by vger.kernel.org with ESMTP id S263345AbUJ2RsA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Oct 2004 13:48:00 -0400
-Date: Fri, 29 Oct 2004 19:47:53 +0200 (CEST)
-From: Roman Zippel <zippel@linux-m68k.org>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261268AbUJ2Sr2@vger.kernel.org>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:5788 "EHLO
+	pfepa.post.tele.dk") by vger.kernel.org with ESMTP id S261214AbUJ2SqB
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Oct 2004 14:46:01 -0400
+Date: Fri, 29 Oct 2004 22:46:30 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: New kbuild filename: Kbuild
-In-Reply-To: <20041029191231.GB8246@mars.ravnborg.org>
-Message-ID: <Pine.LNX.4.61.0410291946060.17266@scrub.home>
-References: <20041028185917.GA9004@mars.ravnborg.org> <20041028190020.GB9004@mars.ravnborg.org>
- <20041029115903.GC11391@infradead.org> <20041029191231.GB8246@mars.ravnborg.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
+Message-ID: <20041029204630.GA11016@mars.ravnborg.org>
+References: <20041028185917.GA9004@mars.ravnborg.org> <20041028190020.GB9004@mars.ravnborg.org> <20041029115903.GC11391@infradead.org> <20041029191231.GB8246@mars.ravnborg.org> <Pine.LNX.4.61.0410291946060.17266@scrub.home>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.61.0410291946060.17266@scrub.home>
+To: Roman Zippel <zippel@linux-m68k.org>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi,
-
-On Fri, 29 Oct 2004, Sam Ravnborg wrote:
-
-> > If you really want to improve things implement something like
-> > 
-> >  module foo.ko
-> >  sources foo.c blah.c
-> >  sources foobar.c if FOO_BAR
-> > 
-> > in Kconfig and get rid of driver makefiles compeltely
+On Fri, Oct 29, 2004 at 07:47:53PM +0200, Roman Zippel wrote:
+> Hi,
 > 
-> I'm in favour of this too - but so far Roman has rejected it.
+> On Fri, 29 Oct 2004, Sam Ravnborg wrote:
+> 
+> > > If you really want to improve things implement something like
+> > > 
+> > >  module foo.ko
+> > >  sources foo.c blah.c
+> > >  sources foobar.c if FOO_BAR
+> > > 
+> > > in Kconfig and get rid of driver makefiles compeltely
+> > 
+> > I'm in favour of this too - but so far Roman has rejected it.
+> 
+> I never rejected this, I just haven't implemented this yet. :)
 
-I never rejected this, I just haven't implemented this yet. :)
+OK!
 
-bye, Roman
+	Sam
