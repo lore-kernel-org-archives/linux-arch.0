@@ -1,156 +1,62 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261552AbUKOIkR@vger.kernel.org>
-Received: from canuck.infradead.org ([205.233.218.70]:33040 "EHLO
-	canuck.infradead.org") by vger.kernel.org with ESMTP
-	id S261550AbUKOIkR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Nov 2004 03:40:17 -0500
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261571AbUKOLkv@vger.kernel.org>
+Received: from plam.fujitsu-siemens.com ([217.115.66.9]:30008 "EHLO
+	plam.fujitsu-siemens.com") by vger.kernel.org with ESMTP
+	id S261570AbUKOLkv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Nov 2004 06:40:51 -0500
+Message-ID: <419895BC.6060109@fujitsu-siemens.com>
+Date: Mon, 15 Nov 2004 12:40:44 +0100
+From: Bodo Stroesser <bstroesser@fujitsu-siemens.com>
+MIME-Version: 1.0
 Subject: Re: [PATCH 9/11] - UML - fix signal mask on delivery error
-From: David Woodhouse <dwmw2@infradead.org>
+References: <200411130201.iAD210pT005889@ccure.user-mode-linux.org>  <20041112163442.45fc966f.akpm@osdl.org> <200411142213.iAEMDHbV013050@ccure.user-mode-linux.org>
 In-Reply-To: <200411142213.iAEMDHbV013050@ccure.user-mode-linux.org>
-References: <200411130201.iAD210pT005889@ccure.user-mode-linux.org>
-	 <20041112163442.45fc966f.akpm@osdl.org>
-	 <200411142213.iAEMDHbV013050@ccure.user-mode-linux.org>
-Content-Type: text/plain
-Date: Mon, 15 Nov 2004 08:35:59 +0000
-Message-Id: <1100507760.8015.54.camel@localhost.localdomain>
-Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
-To: Jeff Dike <jdike@addtoit.com>, paulus@samba.org
-Cc: Andrew Morton <akpm@osdl.org>, blaisorblade_spam@yahoo.it, bstroesser@fujitsu-siemens.com, linux-arch@vger.kernel.org, jdike@ccure.user-mode-linux.org
+To: Jeff Dike <jdike@addtoit.com>
+Cc: Andrew Morton <akpm@osdl.org>, blaisorblade_spam@yahoo.it, linux-arch@vger.kernel.org, jdike@ccure.user-mode-linux.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 2004-11-14 at 17:13 -0500, Jeff Dike wrote:
+Jeff Dike wrote:
+> akpm@osdl.org said:
+> 
+>>Could you send one of the test apps?  This is something which the arch
+>>maintainers might want to look into fixing, thanks. 
+> 
+> 
+> Attached...
+> 
+> Included are
+> 	breakout.c - UML-specific breakouts, fixed in 2.6 and 2.4 now, but
+> please don't popularize these :-)
+> 
 > 	step_sighdlr.c - PTRACE_SINGLESTEPs into a signal handler, if I'm
 > reading the code right, fails on i386
-
-I haven't looked at this particular test but given the description I
-think it'll fail on ppc64 too. This ought to fix it for 2.6, along with
-single-stepping over syscalls and single-stepping over sigreturn (which
-is a special case). 
-
-The 2.4 kernel also has these problems on most arches -- the fixes for
-this are around, but weren't pushed to Marcelo because they weren't
-considered a really necessary fix. Was that wrong? Should I dig them out
-and send them on?
-
---- linux-2.6.9/arch/ppc64/kernel/signal.c.sstep	2004-10-18 22:53:05.000000000 +0100
-+++ linux-2.6.9/arch/ppc64/kernel/signal.c	2004-11-09 18:48:09.000000000 +0000
-@@ -26,6 +26,7 @@
- #include <linux/unistd.h>
- #include <linux/stddef.h>
- #include <linux/elf.h>
-+#include <linux/ptrace.h>
- #include <asm/sigcontext.h>
- #include <asm/ucontext.h>
- #include <asm/uaccess.h>
-@@ -439,6 +440,9 @@ static void setup_rt_frame(int signr, st
- 	if (err)
- 		goto badframe;
- 
-+	if (test_thread_flag(TIF_SINGLESTEP))
-+		ptrace_notify(SIGTRAP);
-+
- 	return;
- 
- badframe:
---- linux-2.6.9/arch/ppc64/kernel/entry.S.sstep	2004-10-18 22:53:06.000000000 +0100
-+++ linux-2.6.9/arch/ppc64/kernel/entry.S	2004-11-09 18:32:30.000000000 +0000
-@@ -162,7 +162,7 @@ syscall_error_cont:
- 
- 	/* check for syscall tracing or audit */
- 	ld	r9,TI_FLAGS(r12)
--	andi.	r0,r9,_TIF_SYSCALL_T_OR_A
-+	andi.	r0,r9,(_TIF_SYSCALL_T_OR_A|_TIF_SINGLESTEP)
- 	bne-	syscall_exit_trace
- syscall_exit_trace_cont:
- 
-@@ -317,7 +317,7 @@ _GLOBAL(ppc64_rt_sigreturn)
- 	blt	syscall_exit
- 	clrrdi	r4,r1,THREAD_SHIFT
- 	ld	r4,TI_FLAGS(r4)
--	andi.	r4,r4,_TIF_SYSCALL_T_OR_A
-+	andi.	r4,r4,(_TIF_SYSCALL_T_OR_A|_TIF_SINGLESTEP)
- 	beq+	81f
- 	bl	.do_syscall_trace_leave
- 81:	b	.ret_from_except
---- linux-2.6.9/arch/ppc64/kernel/ptrace.c.sstep	2004-10-18 22:54:55.000000000 +0100
-+++ linux-2.6.9/arch/ppc64/kernel/ptrace.c	2004-11-09 18:17:29.000000000 +0000
-@@ -318,7 +318,8 @@ void do_syscall_trace_leave(void)
- 	if (unlikely(current->audit_context))
- 		audit_syscall_exit(current, 0);	/* FIXME: pass pt_regs */
- 
--	if (test_thread_flag(TIF_SYSCALL_TRACE)
-+	if ((test_thread_flag(TIF_SYSCALL_TRACE)
-+	     || test_thread_flag(TIF_SINGLESTEP))
- 	    && (current->ptrace & PT_PTRACED))
- 		do_syscall_trace();
- }
---- linux-2.6.9/arch/ppc64/kernel/signal32.c.sstep	2004-10-18 22:55:07.000000000 +0100
-+++ linux-2.6.9/arch/ppc64/kernel/signal32.c	2004-11-09 18:48:39.000000000 +0000
-@@ -25,6 +25,7 @@
- #include <linux/errno.h>
- #include <linux/elf.h>
- #include <linux/compat.h>
-+#include <linux/ptrace.h>
- #include <asm/ppc32.h>
- #include <asm/uaccess.h>
- #include <asm/ppcdebug.h>
-@@ -696,6 +697,9 @@ static void handle_rt_signal32(unsigned 
- 	regs->trap = 0;
- 	regs->result = 0;
- 
-+	if (test_thread_flag(TIF_SINGLESTEP))
-+		ptrace_notify(SIGTRAP);
-+
- 	return;
- 
- badframe:
-@@ -859,6 +863,9 @@ static void handle_signal32(unsigned lon
- 	regs->trap = 0;
- 	regs->result = 0;
- 
-+	if (test_thread_flag(TIF_SINGLESTEP))
-+		ptrace_notify(SIGTRAP);
-+
- 	return;
- 
- badframe:
---- linux-2.6.9/include/asm-ppc64/ptrace-common.h.sstep	2004-10-18 22:54:37.000000000 +0100
-+++ linux-2.6.9/include/asm-ppc64/ptrace-common.h	2004-11-09 18:45:29.000000000 +0000
-@@ -58,6 +58,7 @@ static inline void set_single_step(struc
- 	struct pt_regs *regs = task->thread.regs;
- 	if (regs != NULL)
- 		regs->msr |= MSR_SE;
-+	set_ti_thread_flag(task->thread_info, TIF_SINGLESTEP);
- }
- 
- static inline void clear_single_step(struct task_struct *task)
-@@ -65,6 +66,7 @@ static inline void clear_single_step(str
- 	struct pt_regs *regs = task->thread.regs;
- 	if (regs != NULL)
- 		regs->msr &= ~MSR_SE;
-+	clear_ti_thread_flag(task->thread_info, TIF_SINGLESTEP);
- }
- 
- #endif /* _PPC64_PTRACE_COMMON_H */
---- linux-2.6.9/include/asm-ppc64/thread_info.h.sstep	2004-10-18 22:53:21.000000000 +0100
-+++ linux-2.6.9/include/asm-ppc64/thread_info.h	2004-11-09 18:25:59.000000000 +0000
-@@ -97,6 +97,7 @@ static inline struct thread_info *curren
- #define TIF_RUN_LIGHT		6	/* iSeries run light */
- #define TIF_ABI_PENDING		7	/* 32/64 bit switch needed */
- #define TIF_SYSCALL_AUDIT	8	/* syscall auditing active */
-+#define TIF_SINGLESTEP		9	/* singlestepping active */
- 
- /* as above, but as bit values */
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
-@@ -108,6 +109,7 @@ static inline struct thread_info *curren
- #define _TIF_RUN_LIGHT		(1<<TIF_RUN_LIGHT)
- #define _TIF_ABI_PENDING	(1<<TIF_ABI_PENDING)
- #define _TIF_SYSCALL_AUDIT	(1<<TIF_SYSCALL_AUDIT)
-+#define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
- #define _TIF_SYSCALL_T_OR_A	(_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT)
- 
- #define _TIF_USER_WORK_MASK	(_TIF_NOTIFY_RESUME | _TIF_SIGPENDING | \
-
- 
--- 
-dwmw2
+I guess, you are notb using i386 2.6.9. On a 2.6.9-vanilla i386 the test
+doesn't fail! In 2.6.9 some enhancement of singlestepping syscalls and
+singlestepping signal handlers is included. The test checks, whether
+UML 2.6.9 is compatible to 2.6.9-i386. With my patchset, it is.
+> 
+> 	interrupted_syscall.c - counts signals and system calls during 
+> interrupted system calls, under ptrace and not.  Fails on x86 under ptrace.
+On my 2.6.7 and 2.6.9 kernels, the test doesn't fail. What kerenel are you
+using? Could you please send me a listing of the messages from the test?
+> 
+> 	kernel_restorer.c - I can't get this to compile because it's too
+> intimate with the libc headers, expecting to get a k_sigaction from them.
+On my SuSE 9 system, k_sigaction comes from /usr/include/asm/signal.h. This
+again comes from glibc-devel-2.3.3-98.28, SuSE supplies. I had to write a
+"#define __KERNEL__" into the test to have k_sigaction included. If your
+system lacks a k_sigaction in the includes, please copy a definition from
+the kernel sources to my test. Yes, that's dirty, but it's a test only!
+k_sigaction is needed to call sys_sigaction directly, bypassing the lib.
+This was the only way to test the kernels restorer-stub, since the lib
+always inserted its own stub, if I used "NULL".
+> 
+> 	sigmasking.c - Makes sure that when a signal is (not) delivered to
+> a bogus stack, that a segfault is delivered then, and not after returning
+> to userspace.  This is the test relevant to the patch that Andrew replied
+> to.
+Yes. This should be the only test, that shows differences between i386
+2.6.9-vanilla and UML 2.6.9 with my patches.
+> 
+> 				Jeff
