@@ -1,32 +1,33 @@
-Return-Path: <arnd@arndb.de>
-Received: from moutng.kundenserver.de ([212.227.126.187]:14825 "EHLO
-	moutng.kundenserver.de") by vger.kernel.org with ESMTP
-	id S262730AbUDHWYI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 8 Apr 2004 18:24:08 -0400
-Subject: =?iso-8859-1?Q?Re:_posix_message_queues?=
-From: =?iso-8859-1?Q?Arnd_Bergmann?= <arnd@arndb.de>
-Message-Id: <26879984$10814625564075cf1c382fe8.54494376@config6.schlund.de>
-Content-Type: text/plain; charset=US-ASCII
+Return-Path: <davem@redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:63718 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S261689AbUDIXso (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Apr 2004 19:48:44 -0400
+Date: Fri, 9 Apr 2004 16:45:06 -0700
+From: "David S. Miller" <davem@redhat.com>
+Subject: Re: posix message queues
+Message-Id: <20040409164506.0611846a.davem@redhat.com>
+In-Reply-To: <40745360.6000709@colorfullife.com>
+References: <20040407120720.6b937deb.akpm@osdl.org>
+	<40745360.6000709@colorfullife.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Date: Fri,  9 Apr 2004 00:22:01 +0200
-To: =?iso-8859-1?Q?Andrew_Morton?= <akpm@osdl.org>
-Cc: =?iso-8859-1?Q?Arnd_Bergmann?= <arnd@arndb.de>, manfred@colorfullife.com, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Manfred Spraul <manfred@colorfullife.com>
+Cc: akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Wed, 07 Apr 2004 21:15:44 +0200
+Manfred Spraul <manfred@colorfullife.com> wrote:
 
-Andrew Morton <akpm@osdl.org> schrieb am 08.04.2004, 22:24:28:
-> 
-> It broke ppc64.   Please check other architectures for the same pattern.
-> 
-> In file included from arch/ppc64/kernel/signal.c:29:
-> include/asm/ppc32.h:144: redefinition of `struct compat_sigevent'
-> include/asm/ppc32.h:156: redefinition of `compat_sigevent_t'
-> include/linux/compat.h:107: `compat_sigevent_t' previously declared here
+> No. The unix spec mandates 'long' for the final C-library api. Using u32 
+> would mean that glibc would have to add an emulation layer in user space 
+> for 64-bit archs. In the long run, 64-bit kernels running 64-bit apps 
+> will be the common case. I don't want to add an emulation layer to the 
+> common case.
 
-D'oh! I remember thinking that would break but forgot to fix it. On the 
-other architectures, the existing structure is called sigevent_t32 or
-similar, so it does not conflict but should still be changed to use
-the common definition.
+We need to support this stuff when running 32-bit apps, you cannot
+avoid this Manfred.  So we'll need kernel compat layer code to
+translate these structures containing 'long'.  Please code up the
+necessary compat.c code for this posix message queues feature.
 
-      Arnd <><
+Thanks.
