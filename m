@@ -1,21 +1,21 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266678AbUHMSP7@vger.kernel.org>
-Received: from mtagate1.de.ibm.com ([195.212.29.150]:50677 "EHLO
-	mtagate1.de.ibm.com") by vger.kernel.org with ESMTP id S266545AbUHMSP7
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266578AbUHMSPY@vger.kernel.org>
+Received: from mtagate1.de.ibm.com ([195.212.29.150]:40181 "EHLO
+	mtagate1.de.ibm.com") by vger.kernel.org with ESMTP id S266545AbUHMSPY
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 13 Aug 2004 14:15:59 -0400
+	Fri, 13 Aug 2004 14:15:24 -0400
 Received: from d12nrmr1507.megacenter.de.ibm.com (d12nrmr1507.megacenter.de.ibm.com [9.149.167.1])
-	by mtagate1.de.ibm.com (8.12.10/8.12.10) with ESMTP id i7DIFvGP074516
-	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 18:15:57 GMT
+	by mtagate1.de.ibm.com (8.12.10/8.12.10) with ESMTP id i7DIFMGP066004
+	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 18:15:22 GMT
 Received: from mschwid3.boeblingen.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
-	by d12nrmr1507.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id i7DIFv2x210804
-	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 20:15:57 +0200
+	by d12nrmr1507.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id i7DIFM2x221592
+	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 20:15:22 +0200
 Received: from sky by mschwid3.boeblingen.de.ibm.com with local (Exim 3.36 #1 (Debian))
-	id 1BvgbN-0000Vy-00
-	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 20:16:29 +0200
-Date: Fri, 13 Aug 2004 20:16:29 +0200
+	id 1Bvgao-0000VK-00
+	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 20:15:54 +0200
+Date: Fri, 13 Aug 2004 20:15:54 +0200
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [PATCH] cputime (5/7): microsecond based cputime for s390.
-Message-ID: <20040813181629.GF1862@mschwid3.boeblingen.de.ibm.com>
+Subject: [PATCH] cputime (3/7): move jiffies stuff to jiffies.h.
+Message-ID: <20040813181554.GD1862@mschwid3.boeblingen.de.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -23,1219 +23,685 @@ Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
 To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-[PATCH] cputime (5/7): microsecond based cputime for s390.
+[PATCH] cputime (3/7): move jiffies stuff to jiffies.h.
 
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-This patch adds the architecture magic to replace the jiffies based
-cputime with microsecond based cputime and it adds code to calculate
-involuntary wait time. With this patch the numbers reported by top and
-ps when running on LPAR or z/VM are finally not junk anymore.
+Move all that lovely jiffies related functions into ONE file,
+include/linux/jiffies.h.
 
 Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
 diffstat:
- arch/s390/Kconfig               |    7 +
- arch/s390/kernel/binfmt_elf32.c |    5 -
- arch/s390/kernel/entry.S        |  139 ++++++++++++++++++++++++++++++--
- arch/s390/kernel/entry64.S      |  132 +++++++++++++++++++++++++++++--
- arch/s390/kernel/setup.c        |   27 ++++++
- arch/s390/kernel/time.c         |   42 ++-------
- arch/s390/kernel/vtime.c        |  111 ++++++++++++++++++++++----
- include/asm-s390/cputime.h      |  170 +++++++++++++++++++++++++++++++++++++++-
- include/asm-s390/hardirq.h      |    7 +
- include/asm-s390/lowcore.h      |   47 +++++++++--
- include/asm-s390/system.h       |   18 ++++
- include/asm-s390/timer.h        |    2 
- 12 files changed, 627 insertions(+), 80 deletions(-)
+ include/linux/jiffies.h |  291 ++++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/time.h    |  253 -----------------------------------------
+ include/linux/times.h   |   54 --------
+ 3 files changed, 296 insertions(+), 302 deletions(-)
 
-diff -urN linux-2.6.8-rc4/arch/s390/Kconfig linux-2.6.8-cputime/arch/s390/Kconfig
---- linux-2.6.8-rc4/arch/s390/Kconfig	Fri Aug 13 19:05:11 2004
-+++ linux-2.6.8-cputime/arch/s390/Kconfig	Fri Aug 13 19:05:29 2004
-@@ -291,6 +291,13 @@
- 	  This provides a kernel interface for virtual CPU timers.
- 	  Default is disabled.
- 
-+config VIRT_CPU_ACCOUNTING
-+	bool "Base user process accounting on virtual cpu timer"
-+	depends on VIRT_TIMER
-+	help
-+	  Select this option to use CPU timer deltas to do user
-+	  process accounting.
-+
- config APPLDATA_BASE
- 	bool "Linux - VM Monitor Stream, base infrastructure"
- 	depends on PROC_FS && VIRT_TIMER=y
-diff -urN linux-2.6.8-rc4/arch/s390/kernel/binfmt_elf32.c linux-2.6.8-cputime/arch/s390/kernel/binfmt_elf32.c
---- linux-2.6.8-rc4/arch/s390/kernel/binfmt_elf32.c	Fri Aug 13 19:05:29 2004
-+++ linux-2.6.8-cputime/arch/s390/kernel/binfmt_elf32.c	Fri Aug 13 19:05:29 2004
-@@ -178,9 +178,8 @@
- static __inline__ void
- cputime_to_compat_timeval(const cputime_t cputime, struct compat_timeval *value)
- {
--	unsigned long jiffies = cputime_to_jiffies(cputime);
--	value->tv_usec = (jiffies % HZ) * (1000000L / HZ);
--	value->tv_sec = jiffies / HZ;
-+	value->tv_usec = cputime % 1000000;
-+	value->tv_sec = cputime / 1000000;
- }
- 
- #include "../../../fs/binfmt_elf.c"
-diff -urN linux-2.6.8-rc4/arch/s390/kernel/entry.S linux-2.6.8-cputime/arch/s390/kernel/entry.S
---- linux-2.6.8-rc4/arch/s390/kernel/entry.S	Fri Aug 13 19:05:11 2004
-+++ linux-2.6.8-cputime/arch/s390/kernel/entry.S	Fri Aug 13 19:05:29 2004
-@@ -62,6 +62,27 @@
-  *    R15 - kernel stack pointer
-  */
- 
-+	.macro  STORE_TIMER lc_offset
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	stpt	\lc_offset
-+#endif
-+	.endm
-+
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	.macro  UPDATE_VTIME lc_from,lc_to,lc_sum
-+	lm	%r10,%r11,\lc_from
-+	sl	%r10,\lc_to
-+	sl	%r11,\lc_to+4
-+	bc	3,BASED(0f)
-+	sl	%r10,BASED(.Lc_1)
-+0:	al	%r10,\lc_sum
-+	al	%r11,\lc_sum+4
-+	bc	12,BASED(1f)
-+	al	%r10,BASED(.Lc_1)
-+1:	stm	%r10,%r11,\lc_sum
-+	.endm
-+#endif
-+
- 	.macro	SAVE_ALL_BASE savearea
- 	stm	%r12,%r15,\savearea
- 	l	%r13,__LC_SVC_NEW_PSW+4	# load &system_call to %r13
-@@ -108,6 +129,7 @@
- 	ni	__LC_RETURN_PSW+1,0xfd	# clear wait state bit
- 	.endif
- 	lm	%r0,%r15,SP_R0(%r15)	# load gprs 0-15 of user
-+	STORE_TIMER __LC_EXIT_TIMER
- 	lpsw	__LC_RETURN_PSW		# back to caller
- 	.endm
- 
-@@ -146,7 +168,6 @@
-  */
- 	.global do_call_softirq
- do_call_softirq:
--	stnsm	24(%r15),0xfc
- 	stm	%r12,%r15,28(%r15)
- 	lr	%r12,%r15
-         basr    %r13,0
-@@ -161,7 +182,6 @@
- 	l	%r1,.Ldo_softirq-do_call_base(%r13)
- 	basr	%r14,%r1
- 	lm	%r12,%r15,28(%r12)
--	ssm	24(%r15)
- 	br	%r14
- 	
- __critical_start:
-@@ -172,9 +192,21 @@
- 
- 	.globl  system_call
- system_call:
-+	STORE_TIMER __LC_SYNC_ENTER_TIMER
-+sysc_saveall:
- 	SAVE_ALL_BASE __LC_SAVE_AREA
-         SAVE_ALL __LC_SVC_OLD_PSW,__LC_SAVE_AREA,1
- 	lh	%r7,0x8a	  # get svc number from lowcore
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+sysc_vtime:
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	bz	BASED(sysc_do_svc)
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_SYNC_ENTER_TIMER,__LC_USER_TIMER
-+sysc_stime:
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+sysc_update:
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_SYNC_ENTER_TIMER
-+#endif
- sysc_do_svc:
- 	l	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
- 	sla	%r7,2             # *4 and test for svc 0
-@@ -399,10 +431,19 @@
-  * we just ignore the PER event (FIXME: is there anything we have to do
-  * for LPSW?).
-  */
-+	STORE_TIMER __LC_SYNC_ENTER_TIMER
- 	SAVE_ALL_BASE __LC_SAVE_AREA
-         tm      __LC_PGM_INT_CODE+1,0x80 # check whether we got a per exception
-         bnz     BASED(pgm_per)           # got per exception -> special case
- 	SAVE_ALL __LC_PGM_OLD_PSW,__LC_SAVE_AREA,1
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	bz	BASED(pgm_no_vtime)
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_SYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_SYNC_ENTER_TIMER
-+pgm_no_vtime:
-+#endif
- 	l	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
-         l       %r3,__LC_PGM_ILC         # load program interruption code
- 	la	%r8,0x7f
-@@ -433,6 +474,14 @@
- #
- pgm_per_std:
- 	SAVE_ALL __LC_PGM_OLD_PSW,__LC_SAVE_AREA,1
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	bz	BASED(pgm_no_vtime2)
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_SYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_SYNC_ENTER_TIMER
-+pgm_no_vtime2:
-+#endif
- 	l	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
- 	l	%r1,__TI_task(%r9)
- 	mvc	__THREAD_per+__PER_atmid(2,%r1),__LC_PER_ATMID
-@@ -450,6 +499,14 @@
- #
- pgm_svcper:
- 	SAVE_ALL __LC_SVC_OLD_PSW,__LC_SAVE_AREA,1
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	bz	BASED(pgm_no_vtime3)
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_SYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_SYNC_ENTER_TIMER
-+pgm_no_vtime3:
-+#endif
- 	lh	%r7,0x8a		# get svc number from lowcore
- 	l	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
- 	l	%r1,__TI_task(%r9)
-@@ -466,9 +523,18 @@
- 
-         .globl io_int_handler
- io_int_handler:
-+	STORE_TIMER __LC_ASYNC_ENTER_TIMER
- 	stck	__LC_INT_CLOCK
- 	SAVE_ALL_BASE __LC_SAVE_AREA+16
-         SAVE_ALL __LC_IO_OLD_PSW,__LC_SAVE_AREA+16,0
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	bz	BASED(io_no_vtime)
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_ASYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_ASYNC_ENTER_TIMER
-+io_no_vtime:
-+#endif
- 	l	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
-         l       %r1,BASED(.Ldo_IRQ)        # load address of do_IRQ
-         la      %r2,SP_PTREGS(%r15) # address of register-save area
-@@ -557,9 +623,18 @@
- 
-         .globl  ext_int_handler
- ext_int_handler:
-+	STORE_TIMER __LC_ASYNC_ENTER_TIMER
- 	stck	__LC_INT_CLOCK
- 	SAVE_ALL_BASE __LC_SAVE_AREA+16
-         SAVE_ALL __LC_EXT_OLD_PSW,__LC_SAVE_AREA+16,0
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	bz	BASED(ext_no_vtime)
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_ASYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_ASYNC_ENTER_TIMER
-+ext_no_vtime:
-+#endif
- 	l	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
- 	la	%r2,SP_PTREGS(%r15)    # address of register-save area
- 	lh	%r3,__LC_EXT_INT_CODE  # get interruption code
-@@ -573,8 +648,17 @@
- 
-         .globl mcck_int_handler
- mcck_int_handler:
-+	STORE_TIMER __LC_ASYNC_ENTER_TIMER
- 	SAVE_ALL_BASE __LC_SAVE_AREA+32
-         SAVE_ALL __LC_MCK_OLD_PSW,__LC_SAVE_AREA+32,0
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	bz	BASED(mcck_no_vtime)
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_ASYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_ASYNC_ENTER_TIMER
-+mcck_no_vtime:
-+#endif
- 	l       %r1,BASED(.Ls390_mcck)
- 	basr    %r14,%r1	  # call machine check handler
- mcck_return:
-@@ -644,17 +728,47 @@
- 	br	%r14
- 
- cleanup_system_call:
--	mvc	__LC_RETURN_PSW(4),0(%r12)
--	clc	4(4,%r12),BASED(cleanup_table_system_call)
--	bne	BASED(0f)
-+	mvc	__LC_RETURN_PSW(8),0(%r12)
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	clc	__LC_RETURN_PSW+4(4),BASED(cleanup_system_call_insn+4)
-+	bh	BASED(0f)
-+	mvc	__LC_SYNC_ENTER_TIMER(8),__LC_ASYNC_ENTER_TIMER
-+0:	clc	__LC_RETURN_PSW+4(4),BASED(cleanup_system_call_insn+8)
-+	bhe	BASED(cleanup_vtime)
-+#endif
-+	clc	__LC_RETURN_PSW+4(4),BASED(cleanup_system_call_insn)
-+	bh	BASED(0f)
- 	mvc	__LC_SAVE_AREA(16),__LC_SAVE_AREA+16
- 0:	st	%r13,__LC_SAVE_AREA+20
- 	SAVE_ALL __LC_SVC_OLD_PSW,__LC_SAVE_AREA,1
- 	st	%r15,__LC_SAVE_AREA+28
- 	lh	%r7,0x8a
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+cleanup_vtime:
-+	clc	__LC_RETURN_PSW+4(4),BASED(cleanup_system_call_insn+12)
-+	bhe	BASED(cleanup_stime)
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	bz	BASED(cleanup_novtime)
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_SYNC_ENTER_TIMER,__LC_USER_TIMER
-+cleanup_stime:
-+	clc	__LC_RETURN_PSW+4(4),BASED(cleanup_system_call_insn+16)
-+	bh	BASED(cleanup_update)
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+cleanup_update:
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_SYNC_ENTER_TIMER
-+cleanup_novtime:
-+#endif
- 	mvc	__LC_RETURN_PSW+4(4),BASED(cleanup_table_system_call+4)
- 	la	%r12,__LC_RETURN_PSW
- 	br	%r14
-+cleanup_system_call_insn:
-+	.long	sysc_saveall + 0x80000000
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	.long   system_call + 0x80000000
-+	.long   sysc_vtime + 0x80000000
-+	.long   sysc_stime + 0x80000000
-+	.long   sysc_update + 0x80000000
-+#endif
- 
- cleanup_sysc_return:
- 	mvc	__LC_RETURN_PSW(4),0(%r12)
-@@ -663,15 +777,23 @@
- 	br	%r14
- 
- cleanup_sysc_leave:
--	clc	4(4,%r12),BASED(cleanup_sysc_leave_lpsw)
-+	clc	4(4,%r12),BASED(cleanup_sysc_leave_insn)
-+	be	BASED(0f)
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	mvc	__LC_EXIT_TIMER(8),__LC_ASYNC_ENTER_TIMER
-+	clc	4(4,%r12),BASED(cleanup_sysc_leave_insn+4)
- 	be	BASED(0f)
-+#endif
- 	mvc	__LC_RETURN_PSW(8),SP_PSW(%r15)
- 	mvc	__LC_SAVE_AREA+16(16),SP_R12(%r15)
- 	lm	%r0,%r11,SP_R0(%r15)
- 	l	%r15,SP_R15(%r15)
- 0:	la	%r12,__LC_RETURN_PSW
- 	br	%r14
--cleanup_sysc_leave_lpsw:
-+cleanup_sysc_leave_insn:
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	.long	sysc_leave + 14 + 0x80000000
-+#endif
- 	.long	sysc_leave + 10 + 0x80000000
- 
- /*
-@@ -687,6 +809,7 @@
- .L0x028:       .short 0x028
- .L0x030:       .short 0x030
- .L0x038:       .short 0x038
-+.Lc_1:         .long  1
- 
- /*
-  * Symbol constants
-@@ -695,7 +818,7 @@
- .Ldo_IRQ:      .long  do_IRQ
- .Ldo_extint:   .long  do_extint
- .Ldo_signal:   .long  do_signal
--.Ldo_softirq:  .long  do_softirq
-+.Ldo_softirq:  .long  __do_softirq
- .Lhandle_per:  .long  do_single_step
- .Ljump_table:  .long  pgm_check_table
- .Lschedule:    .long  schedule
-diff -urN linux-2.6.8-rc4/arch/s390/kernel/entry64.S linux-2.6.8-cputime/arch/s390/kernel/entry64.S
---- linux-2.6.8-rc4/arch/s390/kernel/entry64.S	Fri Aug 13 19:05:11 2004
-+++ linux-2.6.8-cputime/arch/s390/kernel/entry64.S	Fri Aug 13 19:05:29 2004
-@@ -54,6 +54,21 @@
- 
- #define BASED(name) name-system_call(%r13)
- 
-+	.macro  STORE_TIMER lc_offset
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	stpt	\lc_offset
-+#endif
-+	.endm
-+
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	.macro  UPDATE_VTIME lc_from,lc_to,lc_sum
-+	lg	%r10,\lc_from
-+	slg	%r10,\lc_to
-+	alg	%r10,\lc_sum
-+	stg	%r10,\lc_sum
-+	.endm
-+#endif
-+
- /*
-  * Register usage in interrupt handlers:
-  *    R9  - pointer to current task structure
-@@ -107,6 +122,7 @@
- 	ni	__LC_RETURN_PSW+1,0xfd	# clear wait state bit
- 	.endif
- 	lmg	%r0,%r15,SP_R0(%r15)	# load gprs 0-15 of user
-+	STORE_TIMER __LC_EXIT_TIMER
- 	lpswe	__LC_RETURN_PSW		# back to caller
- 	.endm
- 
-@@ -143,7 +159,6 @@
-  */
- 	.global do_call_softirq
- do_call_softirq:
--	stnsm	48(%r15),0xfc
- 	stmg	%r12,%r15,56(%r15)
- 	lgr	%r12,%r15
- 	lg	%r0,__LC_ASYNC_STACK
-@@ -153,9 +168,8 @@
- 	lg	%r15,__LC_ASYNC_STACK
- 0:	aghi	%r15,-STACK_FRAME_OVERHEAD
- 	stg	%r12,0(%r15)		# store back chain
--	brasl	%r14,do_softirq
-+	brasl	%r14,__do_softirq
- 	lmg	%r12,%r15,56(%r12)
--	ssm	48(%r15)
- 	br	%r14
- 
- __critical_start:
-@@ -166,9 +180,21 @@
- 
- 	.globl  system_call
- system_call:
-+	STORE_TIMER __LC_SYNC_ENTER_TIMER
-+sysc_saveall:
- 	SAVE_ALL_BASE __LC_SAVE_AREA
-         SAVE_ALL __LC_SVC_OLD_PSW,__LC_SAVE_AREA,1
- 	llgh    %r7,__LC_SVC_INT_CODE # get svc number from lowcore
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+sysc_vtime:
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	jz	sysc_do_svc
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_SYNC_ENTER_TIMER,__LC_USER_TIMER
-+sysc_stime:
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+sysc_update:
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_SYNC_ENTER_TIMER
-+#endif
- sysc_do_svc:
- 	lg	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
-         slag    %r7,%r7,2         # *4 and test for svc 0
-@@ -446,10 +472,19 @@
-  * we just ignore the PER event (FIXME: is there anything we have to do
-  * for LPSW?).
-  */
-+	STORE_TIMER __LC_SYNC_ENTER_TIMER
- 	SAVE_ALL_BASE __LC_SAVE_AREA
-         tm      __LC_PGM_INT_CODE+1,0x80 # check whether we got a per exception
-         jnz     pgm_per                  # got per exception -> special case
- 	SAVE_ALL __LC_PGM_OLD_PSW,__LC_SAVE_AREA,1
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	jz	pgm_no_vtime
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_SYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_SYNC_ENTER_TIMER
-+pgm_no_vtime:
-+#endif
- 	lg	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
- 	lgf     %r3,__LC_PGM_ILC	 # load program interruption code
- 	lghi	%r8,0x7f
-@@ -480,6 +515,14 @@
- #
- pgm_per_std:
- 	SAVE_ALL __LC_PGM_OLD_PSW,__LC_SAVE_AREA,1
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	jz	pgm_no_vtime2
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_SYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_SYNC_ENTER_TIMER
-+pgm_no_vtime2:
-+#endif
- 	lg	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
- 	lg	%r1,__TI_task(%r9)
- 	mvc	__THREAD_per+__PER_atmid(2,%r1),__LC_PER_ATMID
-@@ -497,6 +540,14 @@
- #
- pgm_svcper:
- 	SAVE_ALL __LC_SVC_OLD_PSW,__LC_SAVE_AREA,1
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	jz	pgm_no_vtime3
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_SYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_SYNC_ENTER_TIMER
-+pgm_no_vtime3:
-+#endif
- 	llgh    %r7,__LC_SVC_INT_CODE	# get svc number from lowcore
- 	lg	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
- 	lg	%r1,__TI_task(%r9)
-@@ -512,9 +563,18 @@
-  */
-         .globl io_int_handler
- io_int_handler:
-+	STORE_TIMER __LC_ASYNC_ENTER_TIMER
- 	stck	__LC_INT_CLOCK
- 	SAVE_ALL_BASE __LC_SAVE_AREA+32
-         SAVE_ALL __LC_IO_OLD_PSW,__LC_SAVE_AREA+32,0
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	jz	io_no_vtime
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_ASYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_ASYNC_ENTER_TIMER
-+io_no_vtime:
-+#endif
- 	lg	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
-         la      %r2,SP_PTREGS(%r15)    # address of register-save area
- 	brasl   %r14,do_IRQ            # call standard irq handler
-@@ -600,9 +660,18 @@
-  */
-         .globl  ext_int_handler
- ext_int_handler:
-+	STORE_TIMER __LC_ASYNC_ENTER_TIMER
- 	stck	__LC_INT_CLOCK
- 	SAVE_ALL_BASE __LC_SAVE_AREA+32
-         SAVE_ALL __LC_EXT_OLD_PSW,__LC_SAVE_AREA+32,0
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	jz	ext_no_vtime
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_ASYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_ASYNC_ENTER_TIMER
-+ext_no_vtime:
-+#endif
- 	lg	%r9,__LC_THREAD_INFO	# load pointer to thread_info struct
- 	la	%r2,SP_PTREGS(%r15)    # address of register-save area
- 	llgh	%r3,__LC_EXT_INT_CODE  # get interruption code
-@@ -614,8 +683,17 @@
-  */
-         .globl mcck_int_handler
- mcck_int_handler:
-+	STORE_TIMER __LC_ASYNC_ENTER_TIMER
- 	SAVE_ALL_BASE __LC_SAVE_AREA+64
-         SAVE_ALL __LC_MCK_OLD_PSW,__LC_SAVE_AREA+64,0
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	jz	mcck_no_vtime
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_ASYNC_ENTER_TIMER,__LC_USER_TIMER
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_ASYNC_ENTER_TIMER
-+mcck_no_vtime:
-+#endif
- 	brasl   %r14,s390_do_machine_check
- mcck_return:
-         RESTORE_ALL 0
-@@ -682,17 +760,47 @@
- 	br	%r14
- 
- cleanup_system_call:
--	mvc	__LC_RETURN_PSW(8),0(%r12)
--	clc	8(8,%r12),BASED(cleanup_table_system_call)
--	jne	0f
-+	mvc	__LC_RETURN_PSW(16),0(%r12)
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	clc	__LC_RETURN_PSW+8(8),BASED(cleanup_system_call_insn+8)
-+	jh	0f
-+	mvc	__LC_SYNC_ENTER_TIMER(8),__LC_ASYNC_ENTER_TIMER
-+0:	clc	__LC_RETURN_PSW+8(8),BASED(cleanup_system_call_insn+16)
-+	jhe	cleanup_vtime
-+#endif
-+	clc	__LC_RETURN_PSW+8(8),BASED(cleanup_system_call_insn)
-+	jh	0f
- 	mvc	__LC_SAVE_AREA(32),__LC_SAVE_AREA+32
- 0:	stg	%r13,__LC_SAVE_AREA+40
- 	SAVE_ALL __LC_SVC_OLD_PSW,__LC_SAVE_AREA,1
- 	stg	%r15,__LC_SAVE_AREA+56
- 	llgh	%r7,__LC_SVC_INT_CODE
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+cleanup_vtime:
-+	clc	__LC_RETURN_PSW+8(8),BASED(cleanup_system_call_insn+24)
-+	jhe	cleanup_stime
-+	tm	SP_PSW+1(%r15),0x01	# interrupting from user ?
-+	jz	cleanup_novtime
-+	UPDATE_VTIME __LC_EXIT_TIMER,__LC_SYNC_ENTER_TIMER,__LC_USER_TIMER
-+cleanup_stime:
-+	clc	__LC_RETURN_PSW+8(8),BASED(cleanup_system_call_insn+32)
-+	jh	cleanup_update
-+	UPDATE_VTIME __LC_LAST_UPDATE_TIMER,__LC_EXIT_TIMER,__LC_SYSTEM_TIMER
-+cleanup_update:
-+	mvc	__LC_LAST_UPDATE_TIMER(8),__LC_SYNC_ENTER_TIMER
-+cleanup_novtime:
-+#endif
- 	mvc	__LC_RETURN_PSW+8(8),BASED(cleanup_table_system_call+8)
- 	la	%r12,__LC_RETURN_PSW
- 	br	%r14
-+cleanup_system_call_insn:
-+	.quad	sysc_saveall
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	.quad   system_call
-+	.quad   sysc_vtime
-+	.quad   sysc_stime
-+	.quad   sysc_update
-+#endif
- 
- cleanup_sysc_return:
- 	mvc	__LC_RETURN_PSW(8),0(%r12)
-@@ -701,15 +809,23 @@
- 	br	%r14
- 
- cleanup_sysc_leave:
--	clc	8(8,%r12),BASED(cleanup_sysc_leave_lpsw)
-+	clc	8(8,%r12),BASED(cleanup_sysc_leave_insn)
-+	je	0f
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	mvc	__LC_EXIT_TIMER(8),__LC_ASYNC_ENTER_TIMER
-+	clc	8(8,%r12),BASED(cleanup_sysc_leave_insn+8)
- 	je	0f
-+#endif
- 	mvc	__LC_RETURN_PSW(16),SP_PSW(%r15)
- 	mvc	__LC_SAVE_AREA+32(32),SP_R12(%r15)
- 	lmg	%r0,%r11,SP_R0(%r15)
- 	lg	%r15,SP_R15(%r15)
- 0:	la	%r12,__LC_RETURN_PSW
- 	br	%r14
--cleanup_sysc_leave_lpsw:
-+cleanup_sysc_leave_insn:
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	.quad	sysc_leave + 16
-+#endif
- 	.quad	sysc_leave + 12
- 
- /*
-diff -urN linux-2.6.8-rc4/arch/s390/kernel/setup.c linux-2.6.8-cputime/arch/s390/kernel/setup.c
---- linux-2.6.8-rc4/arch/s390/kernel/setup.c	Fri Aug 13 19:05:11 2004
-+++ linux-2.6.8-cputime/arch/s390/kernel/setup.c	Fri Aug 13 19:05:29 2004
-@@ -650,3 +650,30 @@
- {
- 	/* nothing... */
- }
-+
-+extern asmlinkage void __do_softirq(void);
-+
-+asmlinkage void do_softirq(void)
-+{
-+	unsigned long flags;
-+
-+	if (in_interrupt())
-+		return;
-+
-+	local_irq_save(flags);
-+
-+	account_system_vtime(current);
-+
-+	local_bh_disable();
-+
-+	if (local_softirq_pending())
-+		/* Call __do_softirq on asynchromous interrupt stack. */
-+		do_call_softirq();
-+
-+	account_system_vtime(current);
-+
-+	__local_bh_enable();
-+	local_irq_restore(flags);
-+}
-+
-+EXPORT_SYMBOL(do_softirq);
-diff -urN linux-2.6.8-rc4/arch/s390/kernel/time.c linux-2.6.8-cputime/arch/s390/kernel/time.c
---- linux-2.6.8-rc4/arch/s390/kernel/time.c	Fri Aug 13 19:05:27 2004
-+++ linux-2.6.8-cputime/arch/s390/kernel/time.c	Fri Aug 13 19:05:29 2004
-@@ -150,28 +150,6 @@
- 
- EXPORT_SYMBOL(do_settimeofday);
- 
--#ifndef CONFIG_ARCH_S390X
--
--static inline __u32
--__calculate_ticks(__u64 elapsed)
--{
--	register_pair rp;
--
--	rp.pair = elapsed >> 1;
--	asm ("dr %0,%1" : "+d" (rp) : "d" (CLK_TICKS_PER_JIFFY >> 1));
--	return rp.subreg.odd;
--}
--
--#else /* CONFIG_ARCH_S390X */
--
--static inline __u32
--__calculate_ticks(__u64 elapsed)
--{
--	return elapsed / CLK_TICKS_PER_JIFFY;
--}
--
--#endif /* CONFIG_ARCH_S390X */
--
- 
- #ifdef CONFIG_PROFILING
- extern char _stext, _etext;
-@@ -227,14 +205,14 @@
- void account_ticks(struct pt_regs *regs)
- {
- 	__u64 tmp;
--	__u32 ticks;
-+	__u32 ticks, xticks;
- 
- 	/* Calculate how many ticks have passed. */
- 	if (S390_lowcore.int_clock < S390_lowcore.jiffy_timer)
- 		return;
- 	tmp = S390_lowcore.int_clock - S390_lowcore.jiffy_timer;
- 	if (tmp >= 2*CLK_TICKS_PER_JIFFY) {  /* more than two ticks ? */
--		ticks = __calculate_ticks(tmp) + 1;
-+		ticks = __div(tmp, CLK_TICKS_PER_JIFFY) + 1;
- 		S390_lowcore.jiffy_timer +=
- 			CLK_TICKS_PER_JIFFY * (__u64) ticks;
- 	} else if (tmp >= CLK_TICKS_PER_JIFFY) {
-@@ -256,11 +234,9 @@
- 	 */
- 	write_seqlock(&xtime_lock);
- 	if (S390_lowcore.jiffy_timer > xtime_cc) {
--		__u32 xticks;
--
- 		tmp = S390_lowcore.jiffy_timer - xtime_cc;
- 		if (tmp >= 2*CLK_TICKS_PER_JIFFY) {
--			xticks = __calculate_ticks(tmp);
-+			xticks = __div(tmp, CLK_TICKS_PER_JIFFY);
- 			xtime_cc += (__u64) xticks * CLK_TICKS_PER_JIFFY;
- 		} else {
- 			xticks = 1;
-@@ -270,14 +246,18 @@
- 			do_timer(regs);
- 	}
- 	write_sequnlock(&xtime_lock);
--	while (ticks--)
--		update_process_times(user_mode(regs));
- #else
--	while (ticks--) {
-+	for (xticks = ticks; xticks > 0; xticks--)
- 		do_timer(regs);
-+#endif
-+
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+	account_user_vtime(current);
-+#else
-+	while (ticks--)
- 		update_process_times(user_mode(regs));
--	}
- #endif
-+
- 	s390_do_profile(regs);
- }
- 
-diff -urN linux-2.6.8-rc4/arch/s390/kernel/vtime.c linux-2.6.8-cputime/arch/s390/kernel/vtime.c
---- linux-2.6.8-rc4/arch/s390/kernel/vtime.c	Fri Aug 13 19:05:11 2004
-+++ linux-2.6.8-cputime/arch/s390/kernel/vtime.c	Fri Aug 13 19:05:29 2004
-@@ -17,6 +17,8 @@
+diff -urN linux-2.6.8-rc4/include/linux/jiffies.h linux-2.6.8-cputime/include/linux/jiffies.h
+--- linux-2.6.8-rc4/include/linux/jiffies.h	Wed Jun 16 07:18:53 2004
++++ linux-2.6.8-cputime/include/linux/jiffies.h	Fri Aug 13 19:05:28 2004
+@@ -5,8 +5,17 @@
  #include <linux/types.h>
- #include <linux/timex.h>
- #include <linux/notifier.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/rcupdate.h>
+ #include <linux/spinlock.h>
+ #include <linux/seqlock.h>
++#include <linux/time.h>
+ #include <asm/system.h>
+ #include <asm/param.h>			/* for HZ */
++#include <asm/div64.h>
++
++#ifndef div_long_long_rem
++#define div_long_long_rem(dividend,divisor,remainder) ({ \
++		       u64 result = dividend;		\
++		       *remainder = do_div(result,divisor); \
++		       result; })
++#endif
  
- #include <asm/s390_ext.h>
- #include <asm/timer.h>
-@@ -25,7 +27,95 @@
- static ext_int_info_t ext_int_info_timer;
- DEFINE_PER_CPU(struct vtimer_queue, virt_cpu_timer);
+ /*
+  * The 64-bit value is not volatile - you MUST NOT read it
+@@ -50,4 +59,286 @@
+ 	 ((long)(a) - (long)(b) >= 0))
+ #define time_before_eq(a,b)	time_after_eq(b,a)
  
--void start_cpu_timer(void)
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
 +/*
-+ * Update process times based on virtual cpu times stored by entry.S
-+ * to the lowcore fields user_timer, system_timer & steal_clock.
++ * Have the 32 bit jiffies value wrap 5 minutes after boot
++ * so jiffies wrap bugs show up earlier.
 + */
-+void account_user_vtime(struct task_struct *tsk)
-+{
-+	cputime_t cputime;
-+	__u64 timer, clock;
-+	int rcu_user_flag;
-+
-+	timer = S390_lowcore.last_update_timer;
-+	clock = S390_lowcore.last_update_clock;
-+	asm volatile ("  STPT %0\n"    /* Store current cpu timer value */
-+		      "  STCK %1"      /* Store current tod clock value */
-+		      : "=m" (S390_lowcore.last_update_timer),
-+		        "=m" (S390_lowcore.last_update_clock) );
-+	S390_lowcore.system_timer += timer - S390_lowcore.last_update_timer;
-+	S390_lowcore.steal_clock += S390_lowcore.last_update_clock - clock;
-+
-+	cputime = S390_lowcore.user_timer >> 12;
-+	rcu_user_flag = cputime != 0;
-+	S390_lowcore.user_timer -= cputime << 12;
-+	S390_lowcore.steal_clock -= cputime << 12;
-+	account_user_time(tsk, cputime);
-+
-+	cputime =  S390_lowcore.system_timer >> 12;
-+	S390_lowcore.system_timer -= cputime << 12;
-+	S390_lowcore.steal_clock -= cputime << 12;
-+	account_system_time(tsk, HARDIRQ_OFFSET, cputime);
-+
-+	cputime = S390_lowcore.steal_clock;
-+	if ((__s64) cputime > 0) {
-+		cputime >>= 12;
-+		S390_lowcore.steal_clock -= cputime << 12;
-+		account_steal_time(tsk, cputime);
-+	}
-+
-+	run_local_timers();
-+	if (rcu_pending(smp_processor_id()))
-+		rcu_check_callbacks(smp_processor_id(), rcu_user_flag);
-+	scheduler_tick();
-+}
++#define INITIAL_JIFFIES ((unsigned long)(unsigned int) (-300*HZ))
 +
 +/*
-+ * Update process times based on virtual cpu times stored by entry.S
-+ * to the lowcore fields user_timer, system_timer & steal_clock.
++ * Change timeval to jiffies, trying to avoid the
++ * most obvious overflows..
++ *
++ * And some not so obvious.
++ *
++ * Note that we don't want to return MAX_LONG, because
++ * for various timeout reasons we often end up having
++ * to wait "jiffies+1" in order to guarantee that we wait
++ * at _least_ "jiffies" - so "jiffies+1" had better still
++ * be positive.
 + */
-+void account_system_vtime(struct task_struct *tsk)
-+{
-+	cputime_t cputime;
-+	__u64 timer;
++#define MAX_JIFFY_OFFSET ((~0UL >> 1)-1)
 +
-+	timer = S390_lowcore.last_update_timer;
-+	asm volatile ("  STPT %0"    /* Store current cpu timer value */
-+		      : "=m" (S390_lowcore.last_update_timer) );
-+	S390_lowcore.system_timer += timer - S390_lowcore.last_update_timer;
++/*
++ * We want to do realistic conversions of time so we need to use the same
++ * values the update wall clock code uses as the jiffies size.  This value
++ * is: TICK_NSEC (which is defined in timex.h).  This
++ * is a constant and is in nanoseconds.  We will used scaled math
++ * with a set of scales defined here as SEC_JIFFIE_SC,  USEC_JIFFIE_SC and
++ * NSEC_JIFFIE_SC.  Note that these defines contain nothing but
++ * constants and so are computed at compile time.  SHIFT_HZ (computed in
++ * timex.h) adjusts the scaling for different HZ values.
 +
-+	cputime =  S390_lowcore.system_timer >> 12;
-+	S390_lowcore.system_timer -= cputime << 12;
-+	S390_lowcore.steal_clock -= cputime << 12;
-+	account_system_time(tsk, 0, cputime);
-+}
++ * Scaled math???  What is that?
++ *
++ * Scaled math is a way to do integer math on values that would,
++ * otherwise, either overflow, underflow, or cause undesired div
++ * instructions to appear in the execution path.  In short, we "scale"
++ * up the operands so they take more bits (more precision, less
++ * underflow), do the desired operation and then "scale" the result back
++ * by the same amount.  If we do the scaling by shifting we avoid the
++ * costly mpy and the dastardly div instructions.
 +
-+static inline void set_vtimer(__u64 expires)
-+{
-+	__u64 timer;
++ * Suppose, for example, we want to convert from seconds to jiffies
++ * where jiffies is defined in nanoseconds as NSEC_PER_JIFFIE.  The
++ * simple math is: jiff = (sec * NSEC_PER_SEC) / NSEC_PER_JIFFIE; We
++ * observe that (NSEC_PER_SEC / NSEC_PER_JIFFIE) is a constant which we
++ * might calculate at compile time, however, the result will only have
++ * about 3-4 bits of precision (less for smaller values of HZ).
++ *
++ * So, we scale as follows:
++ * jiff = (sec) * (NSEC_PER_SEC / NSEC_PER_JIFFIE);
++ * jiff = ((sec) * ((NSEC_PER_SEC * SCALE)/ NSEC_PER_JIFFIE)) / SCALE;
++ * Then we make SCALE a power of two so:
++ * jiff = ((sec) * ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE)) >> SCALE;
++ * Now we define:
++ * #define SEC_CONV = ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE))
++ * jiff = (sec * SEC_CONV) >> SCALE;
++ *
++ * Often the math we use will expand beyond 32-bits so we tell C how to
++ * do this and pass the 64-bit result of the mpy through the ">> SCALE"
++ * which should take the result back to 32-bits.  We want this expansion
++ * to capture as much precision as possible.  At the same time we don't
++ * want to overflow so we pick the SCALE to avoid this.  In this file,
++ * that means using a different scale for each range of HZ values (as
++ * defined in timex.h).
++ *
++ * For those who want to know, gcc will give a 64-bit result from a "*"
++ * operator if the result is a long long AND at least one of the
++ * operands is cast to long long (usually just prior to the "*" so as
++ * not to confuse it into thinking it really has a 64-bit operand,
++ * which, buy the way, it can do, but it take more code and at least 2
++ * mpys).
 +
-+	asm volatile ("  STPT %0\n"  /* Store current cpu timer value */
-+		      "  SPT %1"     /* Set new value immediatly afterwards */
-+		      : "=m" (timer) : "m" (expires) );
-+	S390_lowcore.system_timer += S390_lowcore.last_update_timer - timer;
-+	S390_lowcore.last_update_timer = expires;
++ * We also need to be aware that one second in nanoseconds is only a
++ * couple of bits away from overflowing a 32-bit word, so we MUST use
++ * 64-bits to get the full range time in nanoseconds.
 +
-+	/* store expire time for this CPU timer */
-+	per_cpu(virt_cpu_timer, smp_processor_id()).to_expire = expires;
-+}
-+#else
-+static inline void set_vtimer(__u64 expires)
-+{
-+	S390_lowcore.last_update_timer = expires;
-+	asm volatile ("SPT %0" : : "m" (S390_lowcore.last_update_timer));
++ */
 +
-+	/* store expire time for this CPU timer */
-+	per_cpu(virt_cpu_timer, smp_processor_id()).to_expire = expires;
-+}
++/*
++ * Here are the scales we will use.  One for seconds, nanoseconds and
++ * microseconds.
++ *
++ * Within the limits of cpp we do a rough cut at the SEC_JIFFIE_SC and
++ * check if the sign bit is set.  If not, we bump the shift count by 1.
++ * (Gets an extra bit of precision where we can use it.)
++ * We know it is set for HZ = 1024 and HZ = 100 not for 1000.
++ * Haven't tested others.
++
++ * Limits of cpp (for #if expressions) only long (no long long), but
++ * then we only need the most signicant bit.
++ */
++
++#define SEC_JIFFIE_SC (31 - SHIFT_HZ)
++#if !((((NSEC_PER_SEC << 2) / TICK_NSEC) << (SEC_JIFFIE_SC - 2)) & 0x80000000)
++#undef SEC_JIFFIE_SC
++#define SEC_JIFFIE_SC (32 - SHIFT_HZ)
++#endif
++#define NSEC_JIFFIE_SC (SEC_JIFFIE_SC + 29)
++#define USEC_JIFFIE_SC (SEC_JIFFIE_SC + 19)
++#define SEC_CONVERSION ((unsigned long)((((u64)NSEC_PER_SEC << SEC_JIFFIE_SC) +\
++                                TICK_NSEC -1) / (u64)TICK_NSEC))
++
++#define NSEC_CONVERSION ((unsigned long)((((u64)1 << NSEC_JIFFIE_SC) +\
++                                        TICK_NSEC -1) / (u64)TICK_NSEC))
++#define USEC_CONVERSION  \
++                    ((unsigned long)((((u64)NSEC_PER_USEC << USEC_JIFFIE_SC) +\
++                                        TICK_NSEC -1) / (u64)TICK_NSEC))
++/*
++ * USEC_ROUND is used in the timeval to jiffie conversion.  See there
++ * for more details.  It is the scaled resolution rounding value.  Note
++ * that it is a 64-bit value.  Since, when it is applied, we are already
++ * in jiffies (albit scaled), it is nothing but the bits we will shift
++ * off.
++ */
++#define USEC_ROUND (u64)(((u64)1 << USEC_JIFFIE_SC) - 1)
++/*
++ * The maximum jiffie value is (MAX_INT >> 1).  Here we translate that
++ * into seconds.  The 64-bit case will overflow if we are not careful,
++ * so use the messy SH_DIV macro to do it.  Still all constants.
++ */
++#if BITS_PER_LONG < 64
++# define MAX_SEC_IN_JIFFIES \
++	(long)((u64)((u64)MAX_JIFFY_OFFSET * TICK_NSEC) / NSEC_PER_SEC)
++#else	/* take care of overflow on 64 bits machines */
++# define MAX_SEC_IN_JIFFIES \
++	(SH_DIV((MAX_JIFFY_OFFSET >> SEC_JIFFIE_SC) * TICK_NSEC, NSEC_PER_SEC, 1) - 1)
++
 +#endif
 +
-+static void start_cpu_timer(void)
- {
- 	struct vtimer_queue *vt_list;
++/*
++ * Convert jiffies to milliseconds and back.
++ *
++ * Avoid unnecessary multiplications/divisions in the
++ * two most common HZ cases:
++ */
++static inline unsigned int jiffies_to_msecs(const unsigned long j)
++{
++#if HZ <= 1000 && !(1000 % HZ)
++	return (1000 / HZ) * j;
++#elif HZ > 1000 && !(HZ % 1000)
++	return (j + (HZ / 1000) - 1)/(HZ / 1000);
++#else
++	return (j * 1000) / HZ;
++#endif
++}
++static inline unsigned long msecs_to_jiffies(const unsigned int m)
++{
++#if HZ <= 1000 && !(1000 % HZ)
++	return (m + (1000 / HZ) - 1) / (1000 / HZ);
++#elif HZ > 1000 && !(HZ % 1000)
++	return m * (HZ / 1000);
++#else
++	return (m * HZ + 999) / 1000;
++#endif
++}
++
++/*
++ * The TICK_NSEC - 1 rounds up the value to the next resolution.  Note
++ * that a remainder subtract here would not do the right thing as the
++ * resolution values don't fall on second boundries.  I.e. the line:
++ * nsec -= nsec % TICK_NSEC; is NOT a correct resolution rounding.
++ *
++ * Rather, we just shift the bits off the right.
++ *
++ * The >> (NSEC_JIFFIE_SC - SEC_JIFFIE_SC) converts the scaled nsec
++ * value to a scaled second value.
++ */
++static __inline__ unsigned long
++timespec_to_jiffies(const struct timespec *value)
++{
++	unsigned long sec = value->tv_sec;
++	long nsec = value->tv_nsec + TICK_NSEC - 1;
++
++	if (sec >= MAX_SEC_IN_JIFFIES){
++		sec = MAX_SEC_IN_JIFFIES;
++		nsec = 0;
++	}
++	return (((u64)sec * SEC_CONVERSION) +
++		(((u64)nsec * NSEC_CONVERSION) >>
++		 (NSEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
++
++}
++
++static __inline__ void
++jiffies_to_timespec(const unsigned long jiffies, struct timespec *value)
++{
++	/*
++	 * Convert jiffies to nanoseconds and separate with
++	 * one divide.
++	 */
++	u64 nsec = (u64)jiffies * TICK_NSEC; 
++	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_nsec);
++}
++
++/* Same for "timeval"
++ *
++ * Well, almost.  The problem here is that the real system resolution is
++ * in nanoseconds and the value being converted is in micro seconds.
++ * Also for some machines (those that use HZ = 1024, in-particular),
++ * there is a LARGE error in the tick size in microseconds.
++
++ * The solution we use is to do the rounding AFTER we convert the
++ * microsecond part.  Thus the USEC_ROUND, the bits to be shifted off.
++ * Instruction wise, this should cost only an additional add with carry
++ * instruction above the way it was done above.
++ */
++static __inline__ unsigned long
++timeval_to_jiffies(const struct timeval *value)
++{
++	unsigned long sec = value->tv_sec;
++	long usec = value->tv_usec;
++
++	if (sec >= MAX_SEC_IN_JIFFIES){
++		sec = MAX_SEC_IN_JIFFIES;
++		usec = 0;
++	}
++	return (((u64)sec * SEC_CONVERSION) +
++		(((u64)usec * USEC_CONVERSION + USEC_ROUND) >>
++		 (USEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
++}
++
++static __inline__ void
++jiffies_to_timeval(const unsigned long jiffies, struct timeval *value)
++{
++	/*
++	 * Convert jiffies to nanoseconds and separate with
++	 * one divide.
++	 */
++	u64 nsec = (u64)jiffies * TICK_NSEC; 
++	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_usec);
++	value->tv_usec /= NSEC_PER_USEC;
++}
++
++/*
++ * Convert jiffies/jiffies_64 to clock_t and back.
++ */
++static inline clock_t jiffies_to_clock_t(long x)
++{
++#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
++	return x / (HZ / USER_HZ);
++#else
++	u64 tmp = (u64)x * TICK_NSEC;
++	do_div(tmp, (NSEC_PER_SEC / USER_HZ));
++	return (long)tmp;
++#endif
++}
++
++static inline unsigned long clock_t_to_jiffies(unsigned long x)
++{
++#if (HZ % USER_HZ)==0
++	if (x >= ~0UL / (HZ / USER_HZ))
++		return ~0UL;
++	return x * (HZ / USER_HZ);
++#else
++	u64 jif;
++
++	/* Don't worry about loss of precision here .. */
++	if (x >= ~0UL / HZ * USER_HZ)
++		return ~0UL;
++
++	/* .. but do try to contain it here */
++	jif = x * (u64) HZ;
++	do_div(jif, USER_HZ);
++	return jif;
++#endif
++}
++
++static inline u64 jiffies_64_to_clock_t(u64 x)
++{
++#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
++	do_div(x, HZ / USER_HZ);
++#else
++	/*
++	 * There are better ways that don't overflow early,
++	 * but even this doesn't overflow in hundreds of years
++	 * in 64 bits, so..
++	 */
++	x *= TICK_NSEC;
++	do_div(x, (NSEC_PER_SEC / USER_HZ));
++#endif
++	return x;
++}
++
+ #endif
+diff -urN linux-2.6.8-rc4/include/linux/time.h linux-2.6.8-cputime/include/linux/time.h
+--- linux-2.6.8-rc4/include/linux/time.h	Wed Jun 16 07:19:37 2004
++++ linux-2.6.8-cputime/include/linux/time.h	Fri Aug 13 19:05:28 2004
+@@ -4,13 +4,10 @@
+ #include <asm/param.h>
+ #include <linux/types.h>
  
-@@ -33,7 +123,7 @@
- 	set_vtimer(vt_list->idle);
- }
+-#ifndef _STRUCT_TIMESPEC
+-#define _STRUCT_TIMESPEC
+ struct timespec {
+ 	time_t	tv_sec;		/* seconds */
+ 	long	tv_nsec;	/* nanoseconds */
+ };
+-#endif /* _STRUCT_TIMESPEC */
  
--void stop_cpu_timer(void)
-+static void stop_cpu_timer(void)
- {
- 	__u64 done;
- 	struct vtimer_queue *vt_list;
-@@ -71,19 +161,11 @@
- 	set_vtimer(VTIMER_MAX_SLICE);
- }
- 
--void set_vtimer(__u64 expires)
--{
--	asm volatile ("SPT %0" : : "m" (expires));
+ struct timeval {
+ 	time_t		tv_sec;		/* seconds */
+@@ -28,34 +25,6 @@
+ #include <linux/seqlock.h>
+ #include <linux/timex.h>
+ #include <asm/div64.h>
+-#ifndef div_long_long_rem
 -
--	/* store expire time for this CPU timer */
--	per_cpu(virt_cpu_timer, smp_processor_id()).to_expire = expires;
+-#define div_long_long_rem(dividend,divisor,remainder) ({ \
+-		       u64 result = dividend;		\
+-		       *remainder = do_div(result,divisor); \
+-		       result; })
+-
+-#endif
+-
+-/*
+- * Have the 32 bit jiffies value wrap 5 minutes after boot
+- * so jiffies wrap bugs show up earlier.
+- */
+-#define INITIAL_JIFFIES ((unsigned long)(unsigned int) (-300*HZ))
+-
+-/*
+- * Change timeval to jiffies, trying to avoid the
+- * most obvious overflows..
+- *
+- * And some not so obvious.
+- *
+- * Note that we don't want to return MAX_LONG, because
+- * for various timeout reasons we often end up having
+- * to wait "jiffies+1" in order to guarantee that we wait
+- * at _least_ "jiffies" - so "jiffies+1" had better still
+- * be positive.
+- */
+-#define MAX_JIFFY_OFFSET ((~0UL >> 1)-1)
+ 
+ /* Parameters used to convert the timespec values */
+ #ifndef USEC_PER_SEC
+@@ -70,218 +39,6 @@
+ #define NSEC_PER_USEC (1000L)
+ #endif
+ 
+-/*
+- * We want to do realistic conversions of time so we need to use the same
+- * values the update wall clock code uses as the jiffies size.  This value
+- * is: TICK_NSEC (which is defined in timex.h).  This
+- * is a constant and is in nanoseconds.  We will used scaled math
+- * with a set of scales defined here as SEC_JIFFIE_SC,  USEC_JIFFIE_SC and
+- * NSEC_JIFFIE_SC.  Note that these defines contain nothing but
+- * constants and so are computed at compile time.  SHIFT_HZ (computed in
+- * timex.h) adjusts the scaling for different HZ values.
+-
+- * Scaled math???  What is that?
+- *
+- * Scaled math is a way to do integer math on values that would,
+- * otherwise, either overflow, underflow, or cause undesired div
+- * instructions to appear in the execution path.  In short, we "scale"
+- * up the operands so they take more bits (more precision, less
+- * underflow), do the desired operation and then "scale" the result back
+- * by the same amount.  If we do the scaling by shifting we avoid the
+- * costly mpy and the dastardly div instructions.
+-
+- * Suppose, for example, we want to convert from seconds to jiffies
+- * where jiffies is defined in nanoseconds as NSEC_PER_JIFFIE.  The
+- * simple math is: jiff = (sec * NSEC_PER_SEC) / NSEC_PER_JIFFIE; We
+- * observe that (NSEC_PER_SEC / NSEC_PER_JIFFIE) is a constant which we
+- * might calculate at compile time, however, the result will only have
+- * about 3-4 bits of precision (less for smaller values of HZ).
+- *
+- * So, we scale as follows:
+- * jiff = (sec) * (NSEC_PER_SEC / NSEC_PER_JIFFIE);
+- * jiff = ((sec) * ((NSEC_PER_SEC * SCALE)/ NSEC_PER_JIFFIE)) / SCALE;
+- * Then we make SCALE a power of two so:
+- * jiff = ((sec) * ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE)) >> SCALE;
+- * Now we define:
+- * #define SEC_CONV = ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE))
+- * jiff = (sec * SEC_CONV) >> SCALE;
+- *
+- * Often the math we use will expand beyond 32-bits so we tell C how to
+- * do this and pass the 64-bit result of the mpy through the ">> SCALE"
+- * which should take the result back to 32-bits.  We want this expansion
+- * to capture as much precision as possible.  At the same time we don't
+- * want to overflow so we pick the SCALE to avoid this.  In this file,
+- * that means using a different scale for each range of HZ values (as
+- * defined in timex.h).
+- *
+- * For those who want to know, gcc will give a 64-bit result from a "*"
+- * operator if the result is a long long AND at least one of the
+- * operands is cast to long long (usually just prior to the "*" so as
+- * not to confuse it into thinking it really has a 64-bit operand,
+- * which, buy the way, it can do, but it take more code and at least 2
+- * mpys).
+-
+- * We also need to be aware that one second in nanoseconds is only a
+- * couple of bits away from overflowing a 32-bit word, so we MUST use
+- * 64-bits to get the full range time in nanoseconds.
+-
+- */
+-
+-/*
+- * Here are the scales we will use.  One for seconds, nanoseconds and
+- * microseconds.
+- *
+- * Within the limits of cpp we do a rough cut at the SEC_JIFFIE_SC and
+- * check if the sign bit is set.  If not, we bump the shift count by 1.
+- * (Gets an extra bit of precision where we can use it.)
+- * We know it is set for HZ = 1024 and HZ = 100 not for 1000.
+- * Haven't tested others.
+-
+- * Limits of cpp (for #if expressions) only long (no long long), but
+- * then we only need the most signicant bit.
+- */
+-
+-#define SEC_JIFFIE_SC (31 - SHIFT_HZ)
+-#if !((((NSEC_PER_SEC << 2) / TICK_NSEC) << (SEC_JIFFIE_SC - 2)) & 0x80000000)
+-#undef SEC_JIFFIE_SC
+-#define SEC_JIFFIE_SC (32 - SHIFT_HZ)
+-#endif
+-#define NSEC_JIFFIE_SC (SEC_JIFFIE_SC + 29)
+-#define USEC_JIFFIE_SC (SEC_JIFFIE_SC + 19)
+-#define SEC_CONVERSION ((unsigned long)((((u64)NSEC_PER_SEC << SEC_JIFFIE_SC) +\
+-                                TICK_NSEC -1) / (u64)TICK_NSEC))
+-
+-#define NSEC_CONVERSION ((unsigned long)((((u64)1 << NSEC_JIFFIE_SC) +\
+-                                        TICK_NSEC -1) / (u64)TICK_NSEC))
+-#define USEC_CONVERSION  \
+-                    ((unsigned long)((((u64)NSEC_PER_USEC << USEC_JIFFIE_SC) +\
+-                                        TICK_NSEC -1) / (u64)TICK_NSEC))
+-/*
+- * USEC_ROUND is used in the timeval to jiffie conversion.  See there
+- * for more details.  It is the scaled resolution rounding value.  Note
+- * that it is a 64-bit value.  Since, when it is applied, we are already
+- * in jiffies (albit scaled), it is nothing but the bits we will shift
+- * off.
+- */
+-#define USEC_ROUND (u64)(((u64)1 << USEC_JIFFIE_SC) - 1)
+-/*
+- * The maximum jiffie value is (MAX_INT >> 1).  Here we translate that
+- * into seconds.  The 64-bit case will overflow if we are not careful,
+- * so use the messy SH_DIV macro to do it.  Still all constants.
+- */
+-#if BITS_PER_LONG < 64
+-# define MAX_SEC_IN_JIFFIES \
+-	(long)((u64)((u64)MAX_JIFFY_OFFSET * TICK_NSEC) / NSEC_PER_SEC)
+-#else	/* take care of overflow on 64 bits machines */
+-# define MAX_SEC_IN_JIFFIES \
+-	(SH_DIV((MAX_JIFFY_OFFSET >> SEC_JIFFIE_SC) * TICK_NSEC, NSEC_PER_SEC, 1) - 1)
+-
+-#endif
+-
+-/*
+- * Convert jiffies to milliseconds and back.
+- *
+- * Avoid unnecessary multiplications/divisions in the
+- * two most common HZ cases:
+- */
+-static inline unsigned int jiffies_to_msecs(const unsigned long j)
+-{
+-#if HZ <= 1000 && !(1000 % HZ)
+-	return (1000 / HZ) * j;
+-#elif HZ > 1000 && !(HZ % 1000)
+-	return (j + (HZ / 1000) - 1)/(HZ / 1000);
+-#else
+-	return (j * 1000) / HZ;
+-#endif
+-}
+-static inline unsigned long msecs_to_jiffies(const unsigned int m)
+-{
+-#if HZ <= 1000 && !(1000 % HZ)
+-	return (m + (1000 / HZ) - 1) / (1000 / HZ);
+-#elif HZ > 1000 && !(HZ % 1000)
+-	return m * (HZ / 1000);
+-#else
+-	return (m * HZ + 999) / 1000;
+-#endif
 -}
 -
- /*
-  * Sorted add to a list. List is linear searched until first bigger
-  * element is found.
-  */
--void list_add_sorted(struct vtimer_list *timer, struct list_head *head)
-+static void list_add_sorted(struct vtimer_list *timer, struct list_head *head)
- {
- 	struct vtimer_list *event;
- 
-@@ -429,11 +511,12 @@
- {
- 	struct vtimer_queue *vt_list;
- 	unsigned long cr0;
--	__u64 timer;
- 
- 	/* kick the virtual timer */
--	timer = VTIMER_MAX_SLICE;
--	asm volatile ("SPT %0" : : "m" (timer));
-+	S390_lowcore.exit_timer = VTIMER_MAX_SLICE;
-+	S390_lowcore.last_update_timer = VTIMER_MAX_SLICE;
-+	asm volatile ("SPT %0" : : "m" (S390_lowcore.last_update_timer));
-+	asm volatile ("STCK %0" : "=m" (S390_lowcore.last_update_clock));
- 	__ctl_store(cr0, 0, 0);
- 	cr0 |= 0x400;
- 	__ctl_load(cr0, 0, 0);
-diff -urN linux-2.6.8-rc4/include/asm-s390/cputime.h linux-2.6.8-cputime/include/asm-s390/cputime.h
---- linux-2.6.8-rc4/include/asm-s390/cputime.h	Fri Aug 13 19:05:29 2004
-+++ linux-2.6.8-cputime/include/asm-s390/cputime.h	Fri Aug 13 19:05:29 2004
-@@ -1,6 +1,168 @@
--#ifndef __S390_CPUTIME_H
--#define __S390_CPUTIME_H
-+/*
-+ *  include/asm-s390/cputime.h
-+ *
-+ *  (C) Copyright IBM Corp. 2004
-+ *
-+ *  Author: Martin Schwidefsky <schwidefsky@de.ibm.com>
-+ */
- 
--#include <asm-generic/cputime.h>
-+#ifndef _S390_CPUTIME_H
-+#define _S390_CPUTIME_H
- 
--#endif /* __S390_CPUTIME_H */
-+/* We want to use micro-second resolution. */
-+
-+typedef unsigned long long cputime_t;
-+typedef unsigned long long cputime64_t;
-+
-+#ifndef __s390x__
-+
-+static inline unsigned int
-+__div(unsigned long long n, unsigned int base)
-+{
-+	register_pair rp;
-+
-+	rp.pair = n >> 1;
-+	asm ("dr %0,%1" : "+d" (rp) : "d" (base >> 1));
-+	return rp.subreg.odd;
-+}
-+
-+#else /* __s390x__ */
-+
-+static inline unsigned int
-+__div(unsigned long long n, unsigned int base)
-+{
-+	return n / base;
-+}
-+
-+#endif /* __s390x__ */
-+
-+#define cputime_zero			(0ULL)
-+#define cputime_max			((~0UL >> 1) - 1)
-+#define cputime_add(__a, __b)		((__a) +  (__b))
-+#define cputime_sub(__a, __b)		((__a) -  (__b))
-+#define cputime_eq(__a, __b)		((__a) == (__b))
-+#define cputime_gt(__a, __b)		((__a) >  (__b))
-+#define cputime_ge(__a, __b)		((__a) >= (__b))
-+#define cputime_lt(__a, __b)		((__a) <  (__b))
-+#define cputime_le(__a, __b)		((__a) <= (__b))
-+#define cputime_to_jiffies(__ct)	(__div((__ct), 1000000 / HZ))
-+#define jiffies_to_cputime(__hz)	((cputime_t)(__hz) * (1000000 / HZ))
-+
-+#define cputime64_zero			(0ULL)
-+#define cputime64_add(__a, __b)		((__a) + (__b))
-+#define cputime_to_cputime64(__ct)	(__ct)
-+
-+static inline u64
-+cputime64_to_jiffies64(cputime64_t cputime)
-+{
-+	do_div(cputime, 1000000 / HZ);
-+	return cputime;
-+}
-+
-+/*
-+ * Convert cputime to milliseconds and back.
-+ */
-+static inline unsigned int
-+cputime_to_msecs(const cputime_t cputime)
-+{
-+	return __div(cputime, 1000);
-+}
-+
-+static inline cputime_t
-+msecs_to_cputime(const unsigned int m)
-+{
-+	return (cputime_t) m * 1000;
-+}
-+
-+/*
-+ * Convert cputime to milliseconds and back.
-+ */
-+static inline unsigned int
-+cputime_to_secs(const cputime_t cputime)
-+{
-+	return __div(cputime, 1000000);
-+}
-+
-+static inline cputime_t
-+secs_to_cputime(const unsigned int s)
-+{
-+	return (cputime_t) s * 1000000;
-+}
-+
-+/*
-+ * Convert cputime to timespec and back.
-+ */
-+static inline cputime_t
-+timespec_to_cputime(const struct timespec *value)
-+{
-+        return value->tv_nsec / 1000 + (u64) value->tv_sec * 1000000;
-+}
-+
-+static inline void
-+cputime_to_timespec(const cputime_t cputime, struct timespec *value)
-+{
-+#ifndef __s390x__
-+	register_pair rp;
-+
-+	rp.pair = cputime >> 1;
-+	asm ("dr %0,%1" : "+d" (rp) : "d" (1000000 >> 1));
-+	value->tv_nsec = rp.subreg.even * 1000;
-+	value->tv_sec = rp.subreg.odd;
-+#else
-+	value->tv_nsec = (cputime % 1000000) * 1000;
-+	value->tv_sec = cputime / 1000000;
-+#endif
-+}
-+
-+/*
-+ * Convert cputime to timeval and back.
-+ * Since cputime and timeval have the same resolution (microseconds)
-+ * this is easy.
-+ */
-+static inline cputime_t
-+timeval_to_cputime(const struct timeval *value)
-+{
-+        return value->tv_usec + (u64) value->tv_sec * 1000000;
-+}
-+
-+static inline void
-+cputime_to_timeval(const cputime_t cputime, struct timeval *value)
-+{
-+#ifndef __s390x__
-+	register_pair rp;
-+
-+	rp.pair = cputime >> 1;
-+	asm ("dr %0,%1" : "+d" (rp) : "d" (1000000 >> 1));
-+	value->tv_usec = rp.subreg.even;
-+	value->tv_sec = rp.subreg.odd;
-+#else
-+	value->tv_usec = cputime % 1000000;
-+	value->tv_sec = cputime / 1000000;
-+#endif
-+}
-+
-+/*
-+ * Convert cputime to clock and back.
-+ */
-+static inline clock_t
-+cputime_to_clock_t(cputime_t cputime)
-+{
-+	return __div(cputime, 1000000 / USER_HZ);
-+}
-+
-+static inline cputime_t
-+clock_t_to_cputime(unsigned long x)
-+{
-+	return (cputime_t) x * (1000000 / USER_HZ);
-+}
-+
-+/*
-+ * Convert cputime64 to clock.
-+ */
-+static inline clock_t
-+cputime64_to_clock_t(cputime64_t cputime)
-+{
-+       return __div(cputime, 1000000 / USER_HZ);
-+}
-+
-+#endif /* _S390_CPUTIME_H */
-diff -urN linux-2.6.8-rc4/include/asm-s390/hardirq.h linux-2.6.8-cputime/include/asm-s390/hardirq.h
---- linux-2.6.8-rc4/include/asm-s390/hardirq.h	Wed Jun 16 07:20:26 2004
-+++ linux-2.6.8-cputime/include/asm-s390/hardirq.h	Fri Aug 13 19:05:29 2004
-@@ -16,6 +16,7 @@
- #include <linux/threads.h>
- #include <linux/sched.h>
- #include <linux/cache.h>
-+#include <linux/interrupt.h>
- #include <asm/lowcore.h>
- 
- /* irq_cpustat_t is unused currently, but could be converted
-@@ -89,6 +90,7 @@
- 
- #define irq_enter()							\
- do {									\
-+	account_system_vtime(current);					\
- 	(preempt_count() += HARDIRQ_OFFSET);				\
- } while(0)
- 	
-@@ -96,7 +98,7 @@
- extern void do_call_softirq(void);
- extern void account_ticks(struct pt_regs *);
- 
--#define invoke_softirq() do_call_softirq()
-+#define __ARCH_HAS_DO_SOFTIRQ
- 
- #ifdef CONFIG_PREEMPT
- # define in_atomic()	((preempt_count() & ~PREEMPT_ACTIVE) != kernel_locked())
-@@ -108,10 +110,11 @@
- 
- #define irq_exit()							\
- do {									\
-+	account_system_vtime(current);					\
- 	preempt_count() -= IRQ_EXIT_OFFSET;				\
- 	if (!in_interrupt() && local_softirq_pending())			\
- 		/* Use the async. stack for softirq */			\
--		do_call_softirq();					\
-+		do_softirq();						\
- 	preempt_enable_no_resched();					\
- } while (0)
- 
-diff -urN linux-2.6.8-rc4/include/asm-s390/lowcore.h linux-2.6.8-cputime/include/asm-s390/lowcore.h
---- linux-2.6.8-rc4/include/asm-s390/lowcore.h	Wed Jun 16 07:19:22 2004
-+++ linux-2.6.8-cputime/include/asm-s390/lowcore.h	Fri Aug 13 19:05:29 2004
-@@ -56,13 +56,18 @@
- 
- #define __LC_RETURN_PSW                 0x200
- 
--#define __LC_IRB			0x210
+-/*
+- * The TICK_NSEC - 1 rounds up the value to the next resolution.  Note
+- * that a remainder subtract here would not do the right thing as the
+- * resolution values don't fall on second boundries.  I.e. the line:
+- * nsec -= nsec % TICK_NSEC; is NOT a correct resolution rounding.
+- *
+- * Rather, we just shift the bits off the right.
+- *
+- * The >> (NSEC_JIFFIE_SC - SEC_JIFFIE_SC) converts the scaled nsec
+- * value to a scaled second value.
+- */
+-static __inline__ unsigned long
+-timespec_to_jiffies(const struct timespec *value)
+-{
+-	unsigned long sec = value->tv_sec;
+-	long nsec = value->tv_nsec + TICK_NSEC - 1;
 -
--#define __LC_DIAG44_OPCODE		0x250
+-	if (sec >= MAX_SEC_IN_JIFFIES){
+-		sec = MAX_SEC_IN_JIFFIES;
+-		nsec = 0;
+-	}
+-	return (((u64)sec * SEC_CONVERSION) +
+-		(((u64)nsec * NSEC_CONVERSION) >>
+-		 (NSEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
 -
- #define __LC_SAVE_AREA                  0xC00
- 
- #ifndef __s390x__
-+#define __LC_IRB			0x208
-+#define __LC_SYNC_ENTER_TIMER		0x248
-+#define __LC_ASYNC_ENTER_TIMER		0x250
-+#define __LC_EXIT_TIMER			0x258
-+#define __LC_LAST_UPDATE_TIMER		0x260
-+#define __LC_USER_TIMER			0x268
-+#define __LC_SYSTEM_TIMER		0x270
-+#define __LC_LAST_UPDATE_CLOCK		0x278
-+#define __LC_STEAL_CLOCK		0x280
- #define __LC_KERNEL_STACK               0xC40
- #define __LC_THREAD_INFO		0xC44
- #define __LC_ASYNC_STACK                0xC48
-@@ -75,6 +80,16 @@
- #define __LC_CURRENT			0xC90
- #define __LC_INT_CLOCK			0xC98
- #else /* __s390x__ */
-+#define __LC_IRB			0x210
-+#define __LC_SYNC_ENTER_TIMER		0x250
-+#define __LC_ASYNC_ENTER_TIMER		0x258
-+#define __LC_EXIT_TIMER			0x260
-+#define __LC_LAST_UPDATE_TIMER		0x268
-+#define __LC_USER_TIMER			0x270
-+#define __LC_SYSTEM_TIMER		0x278
-+#define __LC_LAST_UPDATE_CLOCK		0x280
-+#define __LC_STEAL_CLOCK		0x288
-+#define __LC_DIAG44_OPCODE		0x290
- #define __LC_KERNEL_STACK               0xD40
- #define __LC_THREAD_INFO		0xD48
- #define __LC_ASYNC_STACK                0xD50
-@@ -85,7 +100,7 @@
- #define __LC_IPLDEV                     0xDB8
- #define __LC_JIFFY_TIMER		0xDC0
- #define __LC_CURRENT			0xDD8
--#define __LC_INT_CLOCK			0xDe8
-+#define __LC_INT_CLOCK			0xDE8
- #endif /* __s390x__ */
- 
- #define __LC_PANIC_MAGIC                0xE00
-@@ -167,7 +182,15 @@
- 
-         psw_t        return_psw;               /* 0x200 */
- 	__u8	     irb[64];		       /* 0x208 */
--	__u8         pad8[0xc00-0x248];        /* 0x248 */
-+	__u64        sync_enter_timer;         /* 0x248 */
-+	__u64        async_enter_timer;        /* 0x250 */
-+	__u64        exit_timer;               /* 0x258 */
-+	__u64        last_update_timer;        /* 0x260 */
-+	__u64        user_timer;               /* 0x268 */
-+	__u64        system_timer;             /* 0x270 */
-+	__u64        last_update_clock;        /* 0x278 */
-+	__u64        steal_clock;              /* 0x280 */
-+	__u8         pad8[0xc00-0x288];        /* 0x288 */
- 
-         /* System info area */
- 	__u32        save_area[16];            /* 0xc00 */
-@@ -247,8 +270,16 @@
- 	psw_t        io_new_psw;               /* 0x1f0 */
-         psw_t        return_psw;               /* 0x200 */
- 	__u8	     irb[64];		       /* 0x210 */
--	__u32        diag44_opcode;            /* 0x250 */
--        __u8         pad8[0xc00-0x254];        /* 0x254 */
-+	__u64        sync_enter_timer;         /* 0x250 */
-+	__u64        async_enter_timer;        /* 0x258 */
-+	__u64        exit_timer;               /* 0x260 */
-+	__u64        last_update_timer;        /* 0x268 */
-+	__u64        user_timer;               /* 0x270 */
-+	__u64        system_timer;             /* 0x278 */
-+	__u64        last_update_clock;        /* 0x280 */
-+	__u64        steal_clock;              /* 0x288 */
-+	__u32        diag44_opcode;            /* 0x290 */
-+        __u8         pad8[0xc00-0x294];        /* 0x294 */
-         /* System info area */
- 	__u64        save_area[16];            /* 0xc00 */
-         __u8         pad9[0xd40-0xc80];        /* 0xc80 */
-diff -urN linux-2.6.8-rc4/include/asm-s390/system.h linux-2.6.8-cputime/include/asm-s390/system.h
---- linux-2.6.8-rc4/include/asm-s390/system.h	Wed Jun 16 07:20:26 2004
-+++ linux-2.6.8-cputime/include/asm-s390/system.h	Fri Aug 13 19:05:29 2004
-@@ -105,11 +105,29 @@
- 
- #define prepare_arch_switch(rq, next)	do { } while(0)
- #define task_running(rq, p)		((rq)->curr == (p))
-+
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING
-+extern void account_user_vtime(struct task_struct *);
-+extern void account_system_vtime(struct task_struct *);
-+
-+#define finish_arch_switch(rq, prev) do {				     \
-+	set_fs(current->thread.mm_segment);				     \
-+	spin_unlock(&(rq)->lock);					     \
-+	account_system_vtime(prev);					     \
-+	local_irq_enable();						     \
-+} while (0)
-+
-+#else
-+
-+#define account_system_vtime(prev)
-+
- #define finish_arch_switch(rq, prev) do {				     \
- 	set_fs(current->thread.mm_segment);				     \
- 	spin_unlock_irq(&(rq)->lock);					     \
- } while (0)
- 
-+#endif
-+
- #define nop() __asm__ __volatile__ ("nop")
- 
- #define xchg(ptr,x) \
-diff -urN linux-2.6.8-rc4/include/asm-s390/timer.h linux-2.6.8-cputime/include/asm-s390/timer.h
---- linux-2.6.8-rc4/include/asm-s390/timer.h	Wed Jun 16 07:19:01 2004
-+++ linux-2.6.8-cputime/include/asm-s390/timer.h	Fri Aug 13 19:05:29 2004
-@@ -37,8 +37,6 @@
- 	__u64 idle;		  /* temp var for idle */
- };
- 
--void set_vtimer(__u64 expires);
+-}
 -
- extern void init_virt_timer(struct vtimer_list *timer);
- extern void add_virt_timer(void *new);
- extern void add_virt_timer_periodic(void *new);
+-static __inline__ void
+-jiffies_to_timespec(const unsigned long jiffies, struct timespec *value)
+-{
+-	/*
+-	 * Convert jiffies to nanoseconds and separate with
+-	 * one divide.
+-	 */
+-	u64 nsec = (u64)jiffies * TICK_NSEC; 
+-	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_nsec);
+-}
+-
+-/* Same for "timeval"
+- *
+- * Well, almost.  The problem here is that the real system resolution is
+- * in nanoseconds and the value being converted is in micro seconds.
+- * Also for some machines (those that use HZ = 1024, in-particular),
+- * there is a LARGE error in the tick size in microseconds.
+-
+- * The solution we use is to do the rounding AFTER we convert the
+- * microsecond part.  Thus the USEC_ROUND, the bits to be shifted off.
+- * Instruction wise, this should cost only an additional add with carry
+- * instruction above the way it was done above.
+- */
+-static __inline__ unsigned long
+-timeval_to_jiffies(const struct timeval *value)
+-{
+-	unsigned long sec = value->tv_sec;
+-	long usec = value->tv_usec;
+-
+-	if (sec >= MAX_SEC_IN_JIFFIES){
+-		sec = MAX_SEC_IN_JIFFIES;
+-		usec = 0;
+-	}
+-	return (((u64)sec * SEC_CONVERSION) +
+-		(((u64)usec * USEC_CONVERSION + USEC_ROUND) >>
+-		 (USEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
+-}
+-
+-static __inline__ void
+-jiffies_to_timeval(const unsigned long jiffies, struct timeval *value)
+-{
+-	/*
+-	 * Convert jiffies to nanoseconds and separate with
+-	 * one divide.
+-	 */
+-	u64 nsec = (u64)jiffies * TICK_NSEC; 
+-	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_usec);
+-	value->tv_usec /= NSEC_PER_USEC;
+-}
+-
+ static __inline__ int timespec_equal(struct timespec *a, struct timespec *b) 
+ { 
+ 	return (a->tv_sec == b->tv_sec) && (a->tv_nsec == b->tv_nsec);
+@@ -333,11 +90,6 @@
+ 
+ #define CURRENT_TIME (current_kernel_time())
+ 
+-#endif /* __KERNEL__ */
+-
+-#define NFDBITS			__NFDBITS
+-
+-#ifdef __KERNEL__
+ extern void do_gettimeofday(struct timeval *tv);
+ extern int do_settimeofday(struct timespec *tv);
+ extern int do_sys_settimeofday(struct timespec *tv, struct timezone *tz);
+@@ -363,7 +115,10 @@
+ 	ts->tv_sec = sec;
+ 	ts->tv_nsec = nsec;
+ }
+-#endif
++
++#endif /* __KERNEL__ */
++
++#define NFDBITS			__NFDBITS
+ 
+ #define FD_SETSIZE		__FD_SETSIZE
+ #define FD_SET(fd,fdsetp)	__FD_SET(fd,fdsetp)
+diff -urN linux-2.6.8-rc4/include/linux/times.h linux-2.6.8-cputime/include/linux/times.h
+--- linux-2.6.8-rc4/include/linux/times.h	Wed Jun 16 07:18:57 2004
++++ linux-2.6.8-cputime/include/linux/times.h	Fri Aug 13 19:05:28 2004
+@@ -1,59 +1,7 @@
+ #ifndef _LINUX_TIMES_H
+ #define _LINUX_TIMES_H
+ 
+-#ifdef __KERNEL__
+-#include <linux/timex.h>
+-#include <asm/div64.h>
+-#include <asm/types.h>
+-#include <asm/param.h>
+-
+-static inline clock_t jiffies_to_clock_t(long x)
+-{
+-#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
+-	return x / (HZ / USER_HZ);
+-#else
+-	u64 tmp = (u64)x * TICK_NSEC;
+-	do_div(tmp, (NSEC_PER_SEC / USER_HZ));
+-	return (long)tmp;
+-#endif
+-}
+-
+-static inline unsigned long clock_t_to_jiffies(unsigned long x)
+-{
+-#if (HZ % USER_HZ)==0
+-	if (x >= ~0UL / (HZ / USER_HZ))
+-		return ~0UL;
+-	return x * (HZ / USER_HZ);
+-#else
+-	u64 jif;
+-
+-	/* Don't worry about loss of precision here .. */
+-	if (x >= ~0UL / HZ * USER_HZ)
+-		return ~0UL;
+-
+-	/* .. but do try to contain it here */
+-	jif = x * (u64) HZ;
+-	do_div(jif, USER_HZ);
+-	return jif;
+-#endif
+-}
+-
+-static inline u64 jiffies_64_to_clock_t(u64 x)
+-{
+-#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
+-	do_div(x, HZ / USER_HZ);
+-#else
+-	/*
+-	 * There are better ways that don't overflow early,
+-	 * but even this doesn't overflow in hundreds of years
+-	 * in 64 bits, so..
+-	 */
+-	x *= TICK_NSEC;
+-	do_div(x, (NSEC_PER_SEC / USER_HZ));
+-#endif
+-	return x;
+-}
+-#endif
++#include <linux/types.h>
+ 
+ struct tms {
+ 	clock_t tms_utime;
