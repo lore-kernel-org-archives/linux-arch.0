@@ -1,39 +1,40 @@
-Return-Path: <arun.sharma@intel.com>
-Received: from fmr04.intel.com ([143.183.121.6]:17358 "EHLO
-	caduceus.sc.intel.com") by vger.kernel.org with ESMTP
-	id S263745AbUFNSQK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Jun 2004 14:16:10 -0400
-Message-ID: <40CDEB59.3040203@intel.com>
-Date: Mon, 14 Jun 2004 11:15:53 -0700
-From: Arun Sharma <arun.sharma@intel.com>
-MIME-Version: 1.0
-Subject: Re: sys getdents64 needs compat wrapper ?
-References: <26879984$108508699040ad1d0eba5381.88033699@config20.schlund.de> <20040604172816.259f38e8.davem@redhat.com> <40C4DA5E.8090700@intel.com> <200406111709.35146.arnd@arndb.de>
-In-Reply-To: <200406111709.35146.arnd@arndb.de>
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Return-Path: <davem@redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:8129 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S264885AbUFOAZ4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 14 Jun 2004 20:25:56 -0400
+Date: Mon, 14 Jun 2004 17:20:22 -0700
+From: "David S. Miller" <davem@redhat.com>
+Subject: Re: [RFC][PATCH 3/3] Convert console list to list_head
+Message-Id: <20040614172022.57239426.davem@redhat.com>
+In-Reply-To: <20040614140204.GC20511@parcelfarce.linux.theplanet.co.uk>
+References: <20040614134502.C14403@flint.arm.linux.org.uk>
+	<20040614134538.D14403@flint.arm.linux.org.uk>
+	<20040614134623.E14403@flint.arm.linux.org.uk>
+	<20040614140204.GC20511@parcelfarce.linux.theplanet.co.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "David S. Miller" <davem@redhat.com>, linux-arch@vger.kernel.org
+To: Matthew Wilcox <willy@debian.org>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On 6/11/2004 8:09 AM, Arnd Bergmann wrote:
-> 
->>+       if (dirent) {
->>+               if ((__put_user(offset, (u32 __user *)&dirent->d_off))
->>+                || (__put_user(offset >> 32, ((u32 __user *)&dirent->d_off) + 1)))
->>+                       goto efault;
->>+       }
-> 
-> 
-> I just realized your code is broken on big-endian architectures, so
-> we should either get back to __copy_to_user or find the optimal solution
-> now.
-> 
-> How about a {__,}{get,put}_user_unaligned() that gets defined per
-> architecture in one of these two ways:
+On Mon, 14 Jun 2004 15:02:04 +0100
+Matthew Wilcox <willy@debian.org> wrote:
 
-We'll go for the optimal solution now. We'll provide an <asm-generic/uaccess.h> that does __copy_to_user and a <asm-ia64/uaccess.h> that's optimized for ia64. Archs which don't care about alignment can override appropriately.
+> This gets into one of the ugliest bits of the parisc patch that I haven't
+> figured out how to do cleanly yet.  We have a firmware console (called
+> PDC console) that may be printing to screen or serial.  The device
+> that's being addressed might be on a PCI bus, so we can't print to it
+> while we're walking the PCI busses.  We also can't use it after boot, or
+> it'll fight with the serial driver.  So we have the following patch in our
+> tree:
 
-Should have the patch tested by tomorrow.
+Thanks for mentioning this Matthew.  I never considered these kinds
+of issues very much on Sparc although it might cause problems
+for us too.
 
-	-Arun
+When we use the firmware console, it just outputs to whatever
+device the firwmare has been configured to use (framebuffer,
+serial, etc.) I think we are lucky because if the firmware allocates
+resources for a PCI device, we never change things.
