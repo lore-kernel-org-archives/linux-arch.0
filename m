@@ -1,52 +1,54 @@
-Return-Path: <arnd@arndb.de>
-Received: from natsmtp00.rzone.de ([81.169.145.165]:11686 "EHLO
-	natsmtp00.webmailer.de") by vger.kernel.org with ESMTP
-	id S264213AbUDHIdG convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2004 04:33:06 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 3/4] Consolidate sys32_select
-Date: Thu, 8 Apr 2004 10:22:38 +0200
-References: <200404040204.03594.arnd@arndb.de> <200404040222.41413.arnd@arndb.de> <407468A8.5060309@intel.com>
-In-Reply-To: <407468A8.5060309@intel.com>
-MIME-Version: 1.0
-Content-Disposition: inline
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
-Message-Id: <200404081022.38720.arnd@arndb.de>
-To: Arun Sharma <arun.sharma@intel.com>
-Cc: linux-arch@vger.kernel.org
+Return-Path: <akpm@osdl.org>
+Received: from fw.osdl.org ([65.172.181.6]:8383 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S264190AbUDHIts (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2004 04:49:48 -0400
+Date: Thu, 8 Apr 2004 01:49:31 -0700
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: posix message queues
+Message-Id: <20040408014931.5d56901f.akpm@osdl.org>
+In-Reply-To: <200404081017.46132.arnd@arndb.de>
+References: <20040407120720.6b937deb.akpm@osdl.org>
+	<40745360.6000709@colorfullife.com>
+	<200404081017.46132.arnd@arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: manfred@colorfullife.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wednesday 07 April 2004 22:46, you wrote:
-> While your patches improved compatibility with respect to LSB/LTP,
-> we saw the following regressions on LTP on ia64: 
+Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> > No. The unix spec mandates 'long' for the final C-library api. Using u32 
+>  > would mean that glibc would have to add an emulation layer in user space 
+>  > for 64-bit archs. In the long run, 64-bit kernels running 64-bit apps 
+>  > will be the common case. I don't want to add an emulation layer to the 
+>  > common case.
 > 
-> recv01      PASS->BROK
-> recvmsg01    PASS->BROK
-> recvfrom01    PASS->BROK
-> 
-> While we're looking into it, did others see this ? 
-> Is it fixed already ? 
+>  Coincidentally, I have just finished writing handlers for them. 
 
-Did you apply the patch I sent in the followup mail? It looks
-like you ran into the problem. Here it is again in case you
-missed it.
 
-	Arnd <><
 
-===== fs/compat.c 1.25 vs edited =====
---- 1.25/fs/compat.c	Sat Apr  3 23:51:59 2004
-+++ edited/fs/compat.c	Mon Apr  5 00:48:52 2004
-@@ -1377,8 +1377,9 @@
- 			usec = timeout % HZ;
- 			usec *= (1000000/HZ);
- 		}
--		ret = __put_user(sec, &tvp->tv_sec);
--		ret |= __put_user(usec, &tvp->tv_usec);
-+		if (put_user(sec, &tvp->tv_sec) ||
-+		    put_user(usec, &tvp->tv_usec))
-+			ret = -EFAULT;
- 	}
+
+In file included from kernel/sys.c:8:
+include/linux/compat.h:98: error: `SIGEV_PAD_SIZE' undeclared here (not in a function)
+
+
+---
+
+ 25-akpm/include/linux/compat.h |    1 +
+ 1 files changed, 1 insertion(+)
+
+diff -puN include/linux/compat.h~compat_mq-fix include/linux/compat.h
+--- 25/include/linux/compat.h~compat_mq-fix	2004-04-08 01:49:19.539180328 -0700
++++ 25-akpm/include/linux/compat.h	2004-04-08 01:49:19.541180024 -0700
+@@ -13,6 +13,7 @@
+ #include <linux/sem.h>
  
- 	if (ret < 0)
+ #include <asm/compat.h>
++#include <asm/siginfo.h>
+ 
+ #define compat_jiffies_to_clock_t(x)	\
+ 		(((unsigned long)(x) * COMPAT_USER_HZ) / HZ)
+
+_
