@@ -1,79 +1,497 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Thu, 24 Mar 2005 11:30:46 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH] consolidate asm/ipc.h
-Message-Id: <20050324113046.1d1a54a6.sfr@canb.auug.org.au>
-In-Reply-To: <20050323080644.GA6760@wotan.suse.de>
-References: <20050323150123.1a78e9c4.sfr@canb.auug.org.au>
-	<20050323080644.GA6760@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Thu__24_Mar_2005_11_30_46_+1100_rr9HkFpB7zjiLZe9"
-To: Andi Kleen <ak@suse.de>
-Cc: linux-arch@vger.kernel.org
+Message-ID: <4245631A.1070806@yahoo.com.au>
+Date: Sun, 27 Mar 2005 00:26:50 +1100
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+MIME-Version: 1.0
+Subject: [patch] sched: remove scheduler locking from arch code
+Content-Type: multipart/mixed;
+ boundary="------------030608070209030106070109"
+To: linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, "David S. Miller" <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Thu__24_Mar_2005_11_30_46_+1100_rr9HkFpB7zjiLZe9
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+This is a multi-part message in MIME format.
+--------------030608070209030106070109
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
 
-On Wed, 23 Mar 2005 09:06:44 +0100 Andi Kleen <ak@suse.de> wrote:
->
-> > diff -ruN linus/include/asm-x86_64/ipc.h linus-compat_sys_ipc.1/include=
-/asm-x86_64/ipc.h
-> > --- linus/include/asm-x86_64/ipc.h	2002-10-17 23:29:20.000000000 +1000
-> > +++ linus-compat_sys_ipc.1/include/asm-x86_64/ipc.h	1970-01-01 10:00:00=
-.000000000 +1000
-> > @@ -1,6 +0,0 @@
-> > -#ifndef __x8664_IPC_H__
-> > -#define __x8664_IPC_H__
-> > -
-> > -/* dummy */
-> > -
-> > -#endif
->=20
-> The dummy was originally put in because someone actually included it.
-> That was in 2.4 days of course.
+Hi,
+Last time I sent in this patch, David raised the valid issue that
+using bitops instead of the "switch_lock" could actually be slower
+than the lock itself. So instead I'm using a simple int for the
+flag now, which surely has to be quicker than the spinlock.
 
-I removed the only places in x86_64 that included it.
+I've had this around for a while, but it isn't too widely tested
+outside the usual suspects. Seems to work OK on ia64 though, which
+uses unlocked context switches. The only other locking scheme is
+ARM, which isn't tested.
 
-> Can you do a allyesconfig build on x86-64 just to make sure it still buil=
-ds?
+Any comments?
 
-As well as ever I suspect :-)
+--------------030608070209030106070109
+Content-Type: text/plain;
+ name="task-running-flag.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline;
+ filename="task-running-flag.patch"
 
-  BUILD   arch/x86_64/boot/bzImage
-Root device is (8, 5)
-Boot sector 512 bytes.
-Setup is 5422 bytes.
-System is 11506 kB
-System is too big. Try using modules.
-make[1]: *** [arch/x86_64/boot/bzImage] Error 1
-make: *** [bzImage] Error 2
+Instead of requiring architecture code to interact with the scheduler's
+locking implementation, provide a couple of defines that can be used by
+the architecture to request runqueue unlocked context switches, and ask
+for interrupts to be enabled over the context switch.
 
-but the vmlinux has built ok (I am impressed - 214MB vmlinux :-)).
+Also replaces the "switch_lock" used by these architectures with an oncpu
+flag (note, not a potentially slow bitflag). This eliminates one bus locked
+memory operation when context switching, and simplifies the task_running
+function.
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+Index: linux-2.6/kernel/sched.c
+===================================================================
+--- linux-2.6.orig/kernel/sched.c	2005-03-26 19:24:10.000000000 +1100
++++ linux-2.6/kernel/sched.c	2005-03-27 00:25:49.000000000 +1100
+@@ -269,14 +269,71 @@ static DEFINE_PER_CPU(struct runqueue, r
+ #define task_rq(p)		cpu_rq(task_cpu(p))
+ #define cpu_curr(cpu)		(cpu_rq(cpu)->curr)
+ 
+-/*
+- * Default context-switch locking:
+- */
+ #ifndef prepare_arch_switch
+-# define prepare_arch_switch(rq, next)	do { } while (0)
+-# define finish_arch_switch(rq, next)	spin_unlock_irq(&(rq)->lock)
+-# define task_running(rq, p)		((rq)->curr == (p))
++# define prepare_arch_switch(next)	do { } while (0)
++#endif
++#ifndef finish_arch_switch
++# define finish_arch_switch(prev)	do { } while (0)
++#endif
++
++#ifndef __ARCH_WANT_UNLOCKED_CTXSW
++static inline int task_running(runqueue_t *rq, task_t *p)
++{
++	return rq->curr == p;
++}
++
++static inline void prepare_lock_switch(runqueue_t *rq, task_t *next)
++{
++}
++
++static inline void finish_lock_switch(runqueue_t *rq, task_t *prev)
++{
++	spin_unlock_irq(&rq->lock);
++}
++
++#else /* __ARCH_WANT_UNLOCKED_CTXSW */
++static inline int task_running(runqueue_t *rq, task_t *p)
++{
++#ifdef CONFIG_SMP
++	return p->oncpu;
++#else
++	return rq->curr == p;
++#endif
++}
++
++static inline void prepare_lock_switch(runqueue_t *rq, task_t *next)
++{
++#ifdef CONFIG_SMP
++	/*
++	 * We can optimise this out completely for !SMP, because the
++	 * SMP rebalancing from interrupt is the only thing that cares
++	 * here.
++	 */
++	next->oncpu = 1;
++#endif
++#ifdef __ARCH_WANT_INTERRUPTS_ON_CTXSW
++	spin_unlock_irq(&rq->lock);
++#else
++	spin_unlock(&rq->lock);
+ #endif
++}
++
++static inline void finish_lock_switch(runqueue_t *rq, task_t *prev)
++{
++#ifdef CONFIG_SMP
++	/*
++	 * After ->oncpu is cleared, the task can be moved to a different CPU.
++	 * We must ensure this doesn't happen until the switch is completely
++	 * finished.
++	 */
++	smp_wmb();
++	prev->oncpu = 0;
++#endif
++#ifndef __ARCH_WANT_INTERRUPTS_ON_CTXSW
++	local_irq_enable();
++#endif
++}
++#endif /* __ARCH_WANT_UNLOCKED_CTXSW */
+ 
+ /*
+  * task_rq_lock - lock the runqueue a given task resides on and disable
+@@ -1197,17 +1254,14 @@ void fastcall sched_fork(task_t *p)
+ 	p->state = TASK_RUNNING;
+ 	INIT_LIST_HEAD(&p->run_list);
+ 	p->array = NULL;
+-	spin_lock_init(&p->switch_lock);
+ #ifdef CONFIG_SCHEDSTATS
+ 	memset(&p->sched_info, 0, sizeof(p->sched_info));
+ #endif
++#if defined(CONFIG_SMP) && defined(__ARCH_WANT_UNLOCKED_CTXSW)
++	p->oncpu = 0;
++#endif
+ #ifdef CONFIG_PREEMPT
+-	/*
+-	 * During context-switch we hold precisely one spinlock, which
+-	 * schedule_tail drops. (in the common case it's this_rq()->lock,
+-	 * but it also can be p->switch_lock.) So we compensate with a count
+-	 * of 1. Also, we want to start with kernel preemption disabled.
+-	 */
++	/* Want to start with kernel preemption disabled. */
+ 	p->thread_info->preempt_count = 1;
+ #endif
+ 	/*
+@@ -1389,22 +1443,40 @@ void fastcall sched_exit(task_t * p)
+ }
+ 
+ /**
++ * prepare_task_switch - prepare to switch tasks
++ * @rq: the runqueue preparing to switch
++ * @next: the task we are going to switch to.
++ *
++ * This is called with the rq lock held and interrupts off. It must
++ * be paired with a subsequent finish_task_switch after the context
++ * switch.
++ *
++ * prepare_task_switch sets up locking and calls architecture specific
++ * hooks.
++ */
++static inline void prepare_task_switch(runqueue_t *rq, task_t *next)
++{
++	prepare_lock_switch(rq, next);
++	prepare_arch_switch(next);
++}
++
++/**
+  * finish_task_switch - clean up after a task-switch
+  * @prev: the thread we just switched away from.
+  *
+- * We enter this with the runqueue still locked, and finish_arch_switch()
+- * will unlock it along with doing any other architecture-specific cleanup
+- * actions.
++ * finish_task_switch must be called after the context switch, paired
++ * with a prepare_task_switch call before the context switch.
++ * finish_task_switch will reconcile locking set up by prepare_task_switch,
++ * and do any other architecture-specific cleanup actions.
+  *
+  * Note that we may have delayed dropping an mm in context_switch(). If
+  * so, we finish that here outside of the runqueue lock.  (Doing it
+  * with the lock held can cause deadlocks; see schedule() for
+  * details.)
+  */
+-static inline void finish_task_switch(task_t *prev)
++static inline void finish_task_switch(runqueue_t *rq, task_t *prev)
+ 	__releases(rq->lock)
+ {
+-	runqueue_t *rq = this_rq();
+ 	struct mm_struct *mm = rq->prev_mm;
+ 	unsigned long prev_task_flags;
+ 
+@@ -1422,7 +1494,8 @@ static inline void finish_task_switch(ta
+ 	 *		Manfred Spraul <manfred@colorfullife.com>
+ 	 */
+ 	prev_task_flags = prev->flags;
+-	finish_arch_switch(rq, prev);
++	finish_arch_switch(prev);
++	finish_lock_switch(rq, prev);
+ 	if (mm)
+ 		mmdrop(mm);
+ 	if (unlikely(prev_task_flags & PF_DEAD))
+@@ -1436,8 +1509,12 @@ static inline void finish_task_switch(ta
+ asmlinkage void schedule_tail(task_t *prev)
+ 	__releases(rq->lock)
+ {
+-	finish_task_switch(prev);
+-
++	runqueue_t *rq = this_rq();
++	finish_task_switch(rq, prev);
++#ifdef __ARCH_WANT_UNLOCKED_CTXSW
++	/* In this case, finish_task_switch does not reenable preemption */
++	preempt_enable();
++#endif
+ 	if (current->set_child_tid)
+ 		put_user(current->pid, current->set_child_tid);
+ }
+@@ -2820,11 +2897,15 @@ switch_tasks:
+ 		rq->curr = next;
+ 		++*switch_count;
+ 
+-		prepare_arch_switch(rq, next);
++		prepare_task_switch(rq, next);
+ 		prev = context_switch(rq, prev, next);
+ 		barrier();
+-
+-		finish_task_switch(prev);
++		/*
++		 * this_rq must be evaluated again because prev may have moved
++		 * CPUs since it called schedule(), thus the 'rq' on its stack
++		 * frame will be invalid.
++		 */
++		finish_task_switch(this_rq(), prev);
+ 	} else
+ 		spin_unlock_irq(&rq->lock);
+ 
+@@ -4075,6 +4156,9 @@ void __devinit init_idle(task_t *idle, i
+ 
+ 	spin_lock_irqsave(&rq->lock, flags);
+ 	rq->curr = rq->idle = idle;
++#if defined(CONFIG_SMP) && defined(__ARCH_WANT_UNLOCKED_CTXSW)
++	idle->oncpu = 1;
++#endif
+ 	set_tsk_need_resched(idle);
+ 	spin_unlock_irqrestore(&rq->lock, flags);
+ 
+Index: linux-2.6/include/linux/sched.h
+===================================================================
+--- linux-2.6.orig/include/linux/sched.h	2005-03-26 19:24:10.000000000 +1100
++++ linux-2.6/include/linux/sched.h	2005-03-26 23:55:46.000000000 +1100
+@@ -357,6 +357,11 @@ struct signal_struct {
+ #endif
+ };
+ 
++/* Context switch must be unlocked if interrupts are to be enabled */
++#ifdef __ARCH_WANT_INTERRUPTS_ON_CTXSW
++# define __ARCH_WANT_UNLOCKED_CTXSW
++#endif
++
+ /*
+  * Bits in flags field of signal_struct.
+  */
+@@ -582,6 +587,9 @@ struct task_struct {
+ 
+ 	int lock_depth;		/* Lock depth */
+ 
++#if defined(CONFIG_SMP) && defined(__ARCH_WANT_UNLOCKED_CTXSW)
++	int oncpu;
++#endif
+ 	int prio, static_prio;
+ 	struct list_head run_list;
+ 	prio_array_t *array;
+@@ -700,8 +708,6 @@ struct task_struct {
+ 	spinlock_t alloc_lock;
+ /* Protection of proc_dentry: nesting proc_lock, dcache_lock, write_lock_irq(&tasklist_lock); */
+ 	spinlock_t proc_lock;
+-/* context-switch lock */
+-	spinlock_t switch_lock;
+ 
+ /* journalling filesystem info */
+ 	void *journal_info;
+Index: linux-2.6/include/linux/init_task.h
+===================================================================
+--- linux-2.6.orig/include/linux/init_task.h	2005-03-26 19:24:10.000000000 +1100
++++ linux-2.6/include/linux/init_task.h	2005-03-26 23:55:46.000000000 +1100
+@@ -74,14 +74,13 @@ extern struct group_info init_groups;
+ 	.usage		= ATOMIC_INIT(2),				\
+ 	.flags		= 0,						\
+ 	.lock_depth	= -1,						\
+-	.prio		= MAX_PRIO-20,					\
+-	.static_prio	= MAX_PRIO-20,					\
++	.prio		= MAX_PRIO-29,					\
++	.static_prio	= MAX_PRIO-29,					\
+ 	.policy		= SCHED_NORMAL,					\
+ 	.cpus_allowed	= CPU_MASK_ALL,					\
+ 	.mm		= NULL,						\
+ 	.active_mm	= &init_mm,					\
+ 	.run_list	= LIST_HEAD_INIT(tsk.run_list),			\
+-	.time_slice	= HZ,						\
+ 	.tasks		= LIST_HEAD_INIT(tsk.tasks),			\
+ 	.ptrace_children= LIST_HEAD_INIT(tsk.ptrace_children),		\
+ 	.ptrace_list	= LIST_HEAD_INIT(tsk.ptrace_list),		\
+@@ -108,7 +107,6 @@ extern struct group_info init_groups;
+ 	.blocked	= {{0}},					\
+ 	.alloc_lock	= SPIN_LOCK_UNLOCKED,				\
+ 	.proc_lock	= SPIN_LOCK_UNLOCKED,				\
+-	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
+ 	.journal_info	= NULL,						\
+ 	.cpu_timers	= INIT_CPU_TIMERS(tsk.cpu_timers),		\
+ }
+Index: linux-2.6/include/asm-ia64/system.h
+===================================================================
+--- linux-2.6.orig/include/asm-ia64/system.h	2005-03-26 19:24:10.000000000 +1100
++++ linux-2.6/include/asm-ia64/system.h	2005-03-26 23:55:46.000000000 +1100
+@@ -183,8 +183,6 @@ do {								\
+ 
+ #ifdef __KERNEL__
+ 
+-#define prepare_to_switch()    do { } while(0)
+-
+ #ifdef CONFIG_IA32_SUPPORT
+ # define IS_IA32_PROCESS(regs)	(ia64_psr(regs)->is != 0)
+ #else
+@@ -274,13 +272,7 @@ extern void ia64_load_extra (struct task
+  * of that CPU which will not be released, because there we wait for the
+  * tasklist_lock to become available.
+  */
+-#define prepare_arch_switch(rq, next)		\
+-do {						\
+-	spin_lock(&(next)->switch_lock);	\
+-	spin_unlock(&(rq)->lock);		\
+-} while (0)
+-#define finish_arch_switch(rq, prev)	spin_unlock_irq(&(prev)->switch_lock)
+-#define task_running(rq, p) 		((rq)->curr == (p) || spin_is_locked(&(p)->switch_lock))
++#define __ARCH_WANT_UNLOCKED_CTXSW
+ 
+ #define ia64_platform_is(x) (strcmp(x, platform_name) == 0)
+ 
+Index: linux-2.6/include/asm-mips/system.h
+===================================================================
+--- linux-2.6.orig/include/asm-mips/system.h	2005-03-26 19:24:10.000000000 +1100
++++ linux-2.6/include/asm-mips/system.h	2005-03-26 23:55:46.000000000 +1100
+@@ -422,16 +422,10 @@ extern void __die_if_kernel(const char *
+ extern int stop_a_enabled;
+ 
+ /*
+- * Taken from include/asm-ia64/system.h; prevents deadlock on SMP
++ * See include/asm-ia64/system.h; prevents deadlock on SMP
+  * systems.
+  */
+-#define prepare_arch_switch(rq, next)		\
+-do {						\
+-	spin_lock(&(next)->switch_lock);	\
+-	spin_unlock(&(rq)->lock);		\
+-} while (0)
+-#define finish_arch_switch(rq, prev)	spin_unlock_irq(&(prev)->switch_lock)
+-#define task_running(rq, p) 		((rq)->curr == (p) || spin_is_locked(&(p)->switch_lock))
++#define __ARCH_WANT_UNLOCKED_CTXSW
+ 
+ #define arch_align_stack(x) (x)
+ 
+Index: linux-2.6/include/asm-s390/system.h
+===================================================================
+--- linux-2.6.orig/include/asm-s390/system.h	2005-03-26 19:24:10.000000000 +1100
++++ linux-2.6/include/asm-s390/system.h	2005-03-26 23:55:46.000000000 +1100
+@@ -103,29 +103,18 @@ static inline void restore_access_regs(u
+ 	prev = __switch_to(prev,next);					     \
+ } while (0)
+ 
+-#define prepare_arch_switch(rq, next)	do { } while(0)
+-#define task_running(rq, p)		((rq)->curr == (p))
+-
+ #ifdef CONFIG_VIRT_CPU_ACCOUNTING
+ extern void account_user_vtime(struct task_struct *);
+ extern void account_system_vtime(struct task_struct *);
+-
+-#define finish_arch_switch(rq, prev) do {				     \
+-	set_fs(current->thread.mm_segment);				     \
+-	spin_unlock(&(rq)->lock);					     \
+-	account_system_vtime(prev);					     \
+-	local_irq_enable();						     \
+-} while (0)
+-
+ #else
++#define account_system_vtime(prev) do { } while (0)
++#endif
+ 
+ #define finish_arch_switch(rq, prev) do {				     \
+ 	set_fs(current->thread.mm_segment);				     \
+-	spin_unlock_irq(&(rq)->lock);					     \
++	account_system_vtime(prev);					     \
+ } while (0)
+ 
+-#endif
+-
+ #define nop() __asm__ __volatile__ ("nop")
+ 
+ #define xchg(ptr,x) \
+Index: linux-2.6/include/asm-sparc/system.h
+===================================================================
+--- linux-2.6.orig/include/asm-sparc/system.h	2005-03-26 19:24:10.000000000 +1100
++++ linux-2.6/include/asm-sparc/system.h	2005-03-26 23:55:46.000000000 +1100
+@@ -101,7 +101,7 @@ extern void fpsave(unsigned long *fpregs
+  * SWITCH_ENTER and SWITH_DO_LAZY_FPU do not work yet (e.g. SMP does not work)
+  * XXX WTF is the above comment? Found in late teen 2.4.x.
+  */
+-#define prepare_arch_switch(rq, next) do { \
++#define prepare_arch_switch(next) do { \
+ 	__asm__ __volatile__( \
+ 	".globl\tflush_patch_switch\nflush_patch_switch:\n\t" \
+ 	"save %sp, -0x40, %sp; save %sp, -0x40, %sp; save %sp, -0x40, %sp\n\t" \
+@@ -109,8 +109,6 @@ extern void fpsave(unsigned long *fpregs
+ 	"save %sp, -0x40, %sp\n\t" \
+ 	"restore; restore; restore; restore; restore; restore; restore"); \
+ } while(0)
+-#define finish_arch_switch(rq, next)	spin_unlock_irq(&(rq)->lock)
+-#define task_running(rq, p)		((rq)->curr == (p))
+ 
+ 	/* Much care has gone into this code, do not touch it.
+ 	 *
+Index: linux-2.6/include/asm-sparc64/system.h
+===================================================================
+--- linux-2.6.orig/include/asm-sparc64/system.h	2005-03-26 19:24:10.000000000 +1100
++++ linux-2.6/include/asm-sparc64/system.h	2005-03-26 23:55:46.000000000 +1100
+@@ -139,19 +139,13 @@ extern void __flushw_user(void);
+ #define flush_user_windows flushw_user
+ #define flush_register_windows flushw_all
+ 
+-#define prepare_arch_switch(rq, next)		\
+-do {	spin_lock(&(next)->switch_lock);	\
+-	spin_unlock(&(rq)->lock);		\
++/* Don't hold the runqueue lock over context switch */
++#define __ARCH_WANT_UNLOCKED_CTXSW
++#define prepare_arch_switch(next)		\
++do {						\
+ 	flushw_all();				\
+ } while (0)
+ 
+-#define finish_arch_switch(rq, prev)		\
+-do {	spin_unlock_irq(&(prev)->switch_lock);	\
+-} while (0)
+-
+-#define task_running(rq, p) \
+-	((rq)->curr == (p) || spin_is_locked(&(p)->switch_lock))
+-
+ 	/* See what happens when you design the chip correctly?
+ 	 *
+ 	 * We tell gcc we clobber all non-fixed-usage registers except
+Index: linux-2.6/include/asm-arm/system.h
+===================================================================
+--- linux-2.6.orig/include/asm-arm/system.h	2005-03-26 19:24:10.000000000 +1100
++++ linux-2.6/include/asm-arm/system.h	2005-03-26 23:55:46.000000000 +1100
+@@ -141,34 +141,12 @@ extern unsigned int user_debug;
+ #define set_wmb(var, value) do { var = value; wmb(); } while (0)
+ #define nop() __asm__ __volatile__("mov\tr0,r0\t@ nop\n\t");
+ 
+-#ifdef CONFIG_SMP
+ /*
+- * Define our own context switch locking.  This allows us to enable
+- * interrupts over the context switch, otherwise we end up with high
+- * interrupt latency.  The real problem area is switch_mm() which may
+- * do a full cache flush.
++ * switch_mm() may do a full cache flush over the context switch,
++ * so enable interrupts over the context switch to avoid high
++ * latency.
+  */
+-#define prepare_arch_switch(rq,next)					\
+-do {									\
+-	spin_lock(&(next)->switch_lock);				\
+-	spin_unlock_irq(&(rq)->lock);					\
+-} while (0)
+-
+-#define finish_arch_switch(rq,prev)					\
+-	spin_unlock(&(prev)->switch_lock)
+-
+-#define task_running(rq,p)						\
+-	((rq)->curr == (p) || spin_is_locked(&(p)->switch_lock))
+-#else
+-/*
+- * Our UP-case is more simple, but we assume knowledge of how
+- * spin_unlock_irq() and friends are implemented.  This avoids
+- * us needlessly decrementing and incrementing the preempt count.
+- */
+-#define prepare_arch_switch(rq,next)	local_irq_enable()
+-#define finish_arch_switch(rq,prev)	spin_unlock(&(rq)->lock)
+-#define task_running(rq,p)		((rq)->curr == (p))
+-#endif
++#define __ARCH_WANT_INTERRUPTS_ON_CTXSW
+ 
+ /*
+  * switch_to(prev, next) should switch from task `prev' to `next'
 
-P.S. I did notice this warning in particular:
-
-arch/x86_64/lib/bitops.c:18: warning: `find_first_zero_bit' declared inline=
- after being called
-
---Signature=_Thu__24_Mar_2005_11_30_46_+1100_rr9HkFpB7zjiLZe9
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.0 (GNU/Linux)
-
-iD8DBQFCQgo24CJfqux9a+8RAn/mAJ9KbAttTLxVM2HFSnnCTI4JUvmJtACeLFay
-lmT0t0iw3ajVqKKJ0lSy9L0=
-=0wtI
------END PGP SIGNATURE-----
-
---Signature=_Thu__24_Mar_2005_11_30_46_+1100_rr9HkFpB7zjiLZe9--
+--------------030608070209030106070109--
