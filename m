@@ -1,52 +1,67 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268070AbUJSHCm@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:24977 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S268058AbUJSHCm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Oct 2004 03:02:42 -0400
-Received: from localhost (localhost [127.0.0.1])
-	by gate.crashing.org (8.12.8/8.12.8) with ESMTP id i9J723BG002573
-	for <linux-arch@vger.kernel.org>; Tue, 19 Oct 2004 02:02:04 -0500
-Subject: All archs: NO_IRQ definition
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Content-Type: text/plain
-Message-Id: <1098169077.11400.51.camel@gaston>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268100AbUJSJWm@vger.kernel.org>
+Received: from parcelfarce.linux.theplanet.co.uk ([195.92.249.252]:23744 "EHLO
+	www.linux.org.uk") by vger.kernel.org with ESMTP id S268092AbUJSJWm
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Oct 2004 05:22:42 -0400
+Date: Tue, 19 Oct 2004 10:22:38 +0100
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: All archs: NO_IRQ definition
+Message-ID: <20041019092238.GK16153@parcelfarce.linux.theplanet.co.uk>
+References: <1098169077.11400.51.camel@gaston>
 Mime-Version: 1.0
-Date: Tue, 19 Oct 2004 16:57:57 +1000
-Content-Transfer-Encoding: 7bit
-To: Linux Arch list <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1098169077.11400.51.camel@gaston>
+Sender: <willy@www.linux.org.uk>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi !
+On Tue, Oct 19, 2004 at 04:57:57PM +1000, Benjamin Herrenschmidt wrote:
+> parisc
 
-I need to fix a few wrong cases where driver assume that irq = 0 means
-no interrupt. This is wrong, some arch have pefectly valid IRQ 0. We
-started defining NO_IRQ a while ago for that reason, but it seems lot
-of archs didn't catch up. I plan to collect a patch fixing them all but
-you guys will have to tell me what value to use for NO_IRQ (0 ? -1 ?).
+-1 for parisc, please.
 
-Currently, only ppc64, arm and mips add it, and I know what to do for
-ppc, that leaves me with request for the proper value to use for those
-archs:
+BTW, we could just force everyone to add it themselves by merging this
+patch:
 
-alpha
-arm
-arm26
-cris
-h8300
-i386
-ia64
-m32r
-m68k
-m68knommu
-parisc
-sh
-sh64
-sparc
-sparc64
-um
-v850
-x86_64
+Index: drivers/serial/serial_core.c
+===================================================================
+RCS file: /var/cvs/linux-2.6/drivers/serial/serial_core.c,v
+retrieving revision 1.14.2.1
+retrieving revision 1.14
+diff -u -p -r1.14.2.1 -r1.14
+--- drivers/serial/serial_core.c        19 Oct 2004 00:01:34 -0000      1.14.2.1
++++ drivers/serial/serial_core.c        11 Oct 2004 21:41:17 -0000      1.14
+@@ -230,7 +230,8 @@ static void uart_shutdown(struct uart_st
+        /*
+         * Ensure that the IRQ handler isn't running on another CPU.
+         */
+-       synchronize_irq(port->irq);
++       if (port->irq != IRQ_NONE)
++               synchronize_irq(port->irq);
+ 
+        /*
+         * Free the transmit buffer page.
+@@ -1972,7 +1973,11 @@ uart_report_port(struct uart_driver *drv
+                printk("MMIO 0x%lx", port->mapbase);
+                break;
+        }
+-       printk(" (irq = %d) is a %s\n", port->irq, uart_type(port));
++       if (port->irq == IRQ_NONE) {
++               printk(" (polled) is a %s\n", uart_type(port));
++       } else {
++               printk(" (irq = %d) is a %s\n", port->irq, uart_type(port));
++       }
+ }
+ 
+ static void
 
-Thanks ! 
 
-Ben.
+-- 
+"Next the statesmen will invent cheap lies, putting the blame upon 
+the nation that is attacked, and every man will be glad of those
+conscience-soothing falsities, and will diligently study them, and refuse
+to examine any refutations of them; and thus he will by and by convince 
+himself that the war is just, and will thank God for the better sleep 
+he enjoys after this process of grotesque self-deception." -- Mark Twain
