@@ -1,34 +1,33 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268240AbUIPUs7@vger.kernel.org>
-Received: from adsl-63-197-226-105.dsl.snfc21.pacbell.net ([63.197.226.105]:40644
-	"EHLO cheetah.davemloft.net") by vger.kernel.org with ESMTP
-	id S268237AbUIPUs7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Sep 2004 16:48:59 -0400
-Date: Thu, 16 Sep 2004 13:45:40 -0700
-From: "David S. Miller" <davem@davemloft.net>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268275AbUIPVJx@vger.kernel.org>
+Received: from clock-tower.bc.nu ([81.2.110.250]:23240 "EHLO
+	localhost.localdomain") by vger.kernel.org with ESMTP
+	id S268268AbUIPVJx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Sep 2004 17:09:53 -0400
 Subject: Re: RFC: being more anal about iospace accesses..
-Message-Id: <20040916134540.3cea892f.davem@davemloft.net>
-In-Reply-To: <20040916201308.GA8911@havoc.gtf.org>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+In-Reply-To: <Pine.LNX.4.58.0409161229310.2333@ppc970.osdl.org>
 References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org>
-	<20040916134152.GK642@parcelfarce.linux.theplanet.co.uk>
-	<Pine.LNX.4.58.0409161110070.2333@ppc970.osdl.org>
-	<200409161152.54691.jbarnes@engr.sgi.com>
-	<20040916130450.40b3f8a1.davem@davemloft.net>
-	<20040916201308.GA8911@havoc.gtf.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+	 <Pine.LNX.4.58.0409150737260.2333@ppc970.osdl.org>
+	 <Pine.GSO.4.58.0409152100080.12701@waterleaf.sonytel.be>
+	 <Pine.LNX.4.58.0409151205230.2333@ppc970.osdl.org>
+	 <1095287935.1688.4.camel@mulgrave>
+	 <20040916023325.GJ642@parcelfarce.linux.theplanet.co.uk>
+	 <Pine.LNX.4.58.0409152117020.2333@ppc970.osdl.org>
+	 <20040916134152.GK642@parcelfarce.linux.theplanet.co.uk>
+	 <Pine.LNX.4.58.0409161110070.2333@ppc970.osdl.org>
+	 <Pine.LNX.4.58.0409161152010.2333@ppc970.osdl.org>
+	 <4149E5C2.7010008@pobox.com>
+	 <Pine.LNX.4.58.0409161229310.2333@ppc970.osdl.org>
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-To: Jeff Garzik <jgarzik@pobox.com>
-Cc: jbarnes@engr.sgi.com, torvalds@osdl.org, willy@debian.org, James.Bottomley@steeleye.com, geert@linux-m68k.org, linux-arch@vger.kernel.org, viro@parcelfarce.linux.theplanet.co.uk, akpm@osdl.org, alan@lxorguk.ukuu.org.uk, davem@redhat.com
+Message-Id: <1095365223.23136.48.camel@localhost.localdomain>
+Mime-Version: 1.0
+Date: Thu, 16 Sep 2004 21:07:03 +0100
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Jeff Garzik <jgarzik@pobox.com>, Matthew Wilcox <willy@debian.org>, James Bottomley <James.Bottomley@steeleye.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Linux Arch list <linux-arch@vger.kernel.org>, Al Viro <viro@parcelfarce.linux.theplanet.co.uk>, Andrew Morton <akpm@osdl.org>, "David S. Miller" <davem@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 16 Sep 2004 16:13:08 -0400
-Jeff Garzik <jgarzik@pobox.com> wrote:
-
-> On Thu, Sep 16, 2004 at 01:04:50PM -0700, David S. Miller wrote:
-> > Drivers aren't allowed to touch active DMA data areas until they
-> > call one of those interfaces (see Documentation/DMA-mapping.txt)
-> 
-> Does that include DMA memory allocated with pci_alloc_consistent?
-
-Good point.  No, it does not include consistent DMA memory.
-I guess they do need it after all.
+Right now we have writeb and __writeb() the later of which isn't store
+ordering but requires the driver author makes an effort to step on a
+land mine. It does help performance having these in some cases so can't
+we propogate the same "__" functions on
