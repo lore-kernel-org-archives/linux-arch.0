@@ -1,28 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 25 Feb 2005 15:43:49 -0800
-From: "David S. Miller" <davem@davemloft.net>
-Subject: Re: [PATCH] set_pte() part 1 (was Re: [PATCH] ppc32: Wrong vaddr in
- flush_hash_one_pte())
-Message-Id: <20050225154349.55427b8c.davem@davemloft.net>
-In-Reply-To: <20050225132950.GA28014@linux-sh.org>
-References: <1109145729.5412.213.camel@gaston>
-	<20050223161138.00d8205f.davem@davemloft.net>
-	<20050225132950.GA28014@linux-sh.org>
+Subject: Re: [PATCH] set_pte() part 2 arch usage
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <20050225103730.75adf2f0.davem@davemloft.net>
+References: <20050223200719.2d4e8918.davem@davemloft.net>
+	 <1109222328.15027.12.camel@gaston>
+	 <20050224143601.12c340ca.davem@davemloft.net>
+	 <1109309524.14993.56.camel@gaston> <1109316055.14992.60.camel@gaston>
+	 <20050225103730.75adf2f0.davem@davemloft.net>
+Content-Type: text/plain
+Date: Sat, 26 Feb 2005 11:56:09 +1100
+Message-Id: <1109379369.15027.99.camel@gaston>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: linux-arch@vger.kernel.org
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 25 Feb 2005 15:29:50 +0200
-Paul Mundt <lethal@linux-sh.org> wrote:
+On Fri, 2005-02-25 at 10:37 -0800, David S. Miller wrote:
+> On Fri, 25 Feb 2005 18:20:55 +1100
+> Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+> 
+> > Ok, LTP dies on POWER5, investigation in progress ;)
+> 
+> I bet the address arg is incorrect in some case.
 
-> On Wed, Feb 23, 2005 at 04:11:38PM -0800, David S. Miller wrote:
-> > I've been over this a few times this afternoon and the patch looks
-> > correct.  Please test the build and boot of your platform, any build
-> > failures should be trivial typos and nothing major.
-> > 
-> This works fine for sh and sh64 too.
+Yes, probably. That's the same symptoms we had when zeromap_pud_range
+had the bug getting the address wrong, which means we fail to properly
+flush the hash & TLB for this PTE. I'm not at work (it's sat. already
+here :) but I'll have a look asap.
 
-Thanks for testing paul.
+> It is ea<sy
+> to add debugging for this, for example in your set_pte_at()
+> implementation you can do something like:
+> 
+> static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+> 			      pte_t *ptep, pte_t pte)
+> {
+> #ifdef DEBUG_SET_PTE_AT
+> 	{
+> 		pgd_t *pgd_check = pgd_offset(mm, addr);
+> 		pud_t *pud_check = pud_offset(pgd_check, addr);
+> 		pmd_t *pmd_check = pmd_offset(pud_check, addr);
+> 		pte_t *pte_check = pte_offset(pmd_check, addr);
+> 
+> 		BUG_ON(pte_check != ptep);
+> 	}
+> #endif
+> }
+
+Good idea.
+
+> BUG_ON() may hinder debugging if you hit a range of such
+> incorrect calculations, so maybe a single printk which
+> just prints __builtin_return_address(0) or current_text_addr()
+> as well.
+
+Nah, just xmon(NULL); :=)
+
+Ben.
