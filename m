@@ -1,25 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Content-class: urn:content-classes:message
-MIME-Version: 1.0
-Content-Type: text/plain;
-	charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
-Subject: RE: Double free of initramfs
-Date: Tue, 22 Mar 2005 15:07:07 -0800
-Message-ID: <B8E391BBE9FE384DAA4C5C003888BE6F032117C0@scsmsx401.amr.corp.intel.com>
-From: "Luck, Tony" <tony.luck@intel.com>
-To: Sam Ravnborg <sam@ravnborg.org>, Ralf Baechle <ralf@linux-mips.org>
+Date: Wed, 23 Mar 2005 00:24:02 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: Double free of initramfs
+Message-ID: <20050322232402.GA16597@mars.ravnborg.org>
+References: <20050316184932.GB16712@linux-mips.org> <20050321182146.32a20ebf.akpm@osdl.org> <20050322224117.GH31706@linux-mips.org> <20050322225725.GB10549@mars.ravnborg.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20050322225725.GB10549@mars.ravnborg.org>
+To: Ralf Baechle <ralf@linux-mips.org>
 Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Adrian Bunk <bunk@stusta.de>
 List-ID: <linux-arch.vger.kernel.org>
 
->+
->+/* initramfs area. */
->+# define INITRAMFS		\
->+	. = ALIGN(4096);		\
->+	.init.ramfs : {						
+On Tue, Mar 22, 2005 at 11:57:25PM +0100, Sam Ravnborg wrote:
+> Something like this:
+> 
+> ===== include/asm-generic/vmlinux.lds.h 1.18 vs edited =====
+> --- 1.18/include/asm-generic/vmlinux.lds.h	2005-03-14 20:55:39 +01:00
+> +++ edited/include/asm-generic/vmlinux.lds.h	2005-03-22 23:55:17 +01:00
+> @@ -97,3 +97,12 @@
+>  		VMLINUX_SYMBOL(__lock_text_start) = .;			\
+>  		*(.spinlock.text)					\
+>  		VMLINUX_SYMBOL(__lock_text_end) = .;
+> +
+> +/* initramfs area. */
+> +# define INITRAMFS							\
+> +	. = ALIGN(4096);						\
 
-Why the 4096 alignment?  If you need it page aligned (and I can't
-see why you would), then bear in mind that not all architectures
-use a 4k pagesize.
+Based on Tony's very valid comment this should read:
+> +	. = ALIGN(PAGE_SIZE);						\
+(Assuming the 4096 was a page alingment).
 
--Tony
+	Sam
