@@ -1,29 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Wed, 26 Jan 2005 09:04:34 +0100
-From: Andi Kleen <ak@suse.de>
-Subject: Re: TASK_SIZE is variable.
-Message-ID: <20050126080434.GF7198@wotan.suse.de>
-References: <1106692012.6480.158.camel@localhost.localdomain> <20050125155239.4bc469e6.davem@davemloft.net> <20050126063627.GA7198@wotan.suse.de> <20050125224112.306cd1ea.davem@davemloft.net> <20050126071359.GD7198@wotan.suse.de> <20050126074306.GE7198@wotan.suse.de> <20050126000117.62fff2a7.akpm@osdl.org>
+Date: Wed, 26 Jan 2005 12:26:23 -0800
+From: "David S. Miller" <davem@davemloft.net>
+Subject: Re: (resend) Converting architectures to 4 level page tables
+Message-Id: <20050126122623.34b40437.davem@davemloft.net>
+In-Reply-To: <41F78364.6060409@yahoo.com.au>
+References: <41F2EB0E.30407@yahoo.com.au>
+	<20050125195043.45fed74b.davem@davemloft.net>
+	<41F78364.6060409@yahoo.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20050126000117.62fff2a7.akpm@osdl.org>
-To: Andrew Morton <akpm@osdl.org>
-Cc: Andi Kleen <ak@suse.de>, davem@davemloft.net, dwmw2@infradead.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Jan 26, 2005 at 12:01:17AM -0800, Andrew Morton wrote:
-> Andi Kleen <ak@suse.de> wrote:
-> >
-> >  After thinking about it more I agree. Just replacing TASK_SIZE with
-> >  something that depends on the mm is the best solution here.
-> 
-> OK.
-> 
-> Here's what I currently have:
+On Wed, 26 Jan 2005 22:47:48 +1100
+Nick Piggin <nickpiggin@yahoo.com.au> wrote:
 
-I suspect more architectures need to be fixed, just doing  ia64/s390/ppc64
-is not enough. x86-64 is safe in mainline, but some people carry
-a patch to make TASK_SIZE variable for flex-mmap.
+> So you shouldn't even need that runtime check there I think.
+> The #if was just a small space saving, but you could simply
+> remove that and be done with it I think. Or have I missed
+> something?
 
--Andi
+For the architectures where it is a constant "1", keeping
+the check there makes GCC not output any code more than
+a NULL pointer return.  I figured that would be desirable :)
