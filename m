@@ -1,29 +1,129 @@
-Return-Path: <ak@suse.de>
-Received: from ns.suse.de ([195.135.220.2]:26288 "EHLO Cantor.suse.de")
-	by vger.kernel.org with ESMTP id S263928AbUEMHnh (ORCPT
+Return-Path: <akpm@osdl.org>
+Received: from fw.osdl.org ([65.172.181.6]:20361 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S264554AbUEMUfn (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 13 May 2004 03:43:37 -0400
-Date: Thu, 13 May 2004 09:43:36 +0200
-From: Andi Kleen <ak@suse.de>
-Subject: Re: Fw: Re: Reduce TLB flushing during process migration
-Message-ID: <20040513074336.GB27682@wotan.suse.de>
-References: <20040512153203.5ac1b196.akpm@osdl.org> <20040512165706.14d3b0ea.davem@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20040512165706.14d3b0ea.davem@redhat.com>
-To: "David S. Miller" <davem@redhat.com>
-Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, steiner@sgi.com, mort@wildopensource.com, jbarnes@sgi.com
+	Thu, 13 May 2004 16:35:43 -0400
+Message-Id: <200405132035.i4DKZfJ11465@mail.osdl.org>
+Subject: [patch 3/4] Implement atomic_add_negative() on various architectures
+From: akpm@osdl.org
+Date: Thu, 13 May 2004 13:38:18 -0700
+To: linux-arch@vger.kernel.org
+Cc: akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, May 12, 2004 at 04:57:06PM -0700, David S. Miller wrote:
-> > davem, you expressed interest in this previously.  The question is whether
-> > we should remove the whole thing, or just the ia64 component?
-> 
-> It doesn't do anything for me on sparc64.  As per the change
-> description, it's a benefit also on platforms like x86 where
-> context-switch == tlb flush anyways.
 
-Hmm, are you sure? How would that help? 
 
--Andi
+Lots of architectures have atomic_add_return() and no atomic_add_negative().
+
+We can implement the latter in terms of the former.
+
+
+---
+
+ 25-akpm/include/asm-alpha/atomic.h     |    2 ++
+ 25-akpm/include/asm-cris/atomic.h      |    2 ++
+ 25-akpm/include/asm-h8300/atomic.h     |    1 +
+ 25-akpm/include/asm-m68knommu/atomic.h |    2 ++
+ 25-akpm/include/asm-parisc/atomic.h    |    2 ++
+ 25-akpm/include/asm-ppc64/atomic.h     |    2 ++
+ 25-akpm/include/asm-sh/atomic.h        |    2 ++
+ 25-akpm/include/asm-sparc/atomic.h     |    2 ++
+ 8 files changed, 15 insertions(+)
+
+diff -puN include/asm-alpha/atomic.h~arch-atomic_add_negative include/asm-alpha/atomic.h
+--- 25/include/asm-alpha/atomic.h~arch-atomic_add_negative	Thu May 13 13:36:10 2004
++++ 25-akpm/include/asm-alpha/atomic.h	Thu May 13 13:36:10 2004
+@@ -115,6 +115,8 @@ static __inline__ long atomic_add_return
+ 	return result;
+ }
+ 
++#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
++
+ static __inline__ long atomic64_add_return(long i, atomic64_t * v)
+ {
+ 	long temp, result;
+diff -puN include/asm-cris/atomic.h~arch-atomic_add_negative include/asm-cris/atomic.h
+--- 25/include/asm-cris/atomic.h~arch-atomic_add_negative	Thu May 13 13:36:10 2004
++++ 25-akpm/include/asm-cris/atomic.h	Thu May 13 13:36:10 2004
+@@ -56,6 +56,8 @@ extern __inline__ int atomic_add_return(
+ 	return retval;
+ }
+ 
++#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
++
+ extern __inline__ int atomic_sub_return(int i, volatile atomic_t *v)
+ {
+ 	unsigned long flags;
+diff -puN include/asm-h8300/atomic.h~arch-atomic_add_negative include/asm-h8300/atomic.h
+--- 25/include/asm-h8300/atomic.h~arch-atomic_add_negative	Thu May 13 13:36:10 2004
++++ 25-akpm/include/asm-h8300/atomic.h	Thu May 13 13:36:10 2004
+@@ -25,6 +25,7 @@ static __inline__ int atomic_add_return(
+ }
+ 
+ #define atomic_add(i, v) atomic_add_return(i, v)
++#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
+ 
+ static __inline__ int atomic_sub_return(int i, atomic_t *v)
+ {
+diff -puN include/asm-m68knommu/atomic.h~arch-atomic_add_negative include/asm-m68knommu/atomic.h
+--- 25/include/asm-m68knommu/atomic.h~arch-atomic_add_negative	Thu May 13 13:36:10 2004
++++ 25-akpm/include/asm-m68knommu/atomic.h	Thu May 13 13:36:10 2004
+@@ -96,6 +96,8 @@ extern __inline__ int atomic_add_return(
+ 	return temp;
+ }
+ 
++#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
++
+ extern __inline__ int atomic_sub_return(int i, atomic_t * v)
+ {
+ 	unsigned long temp, flags;
+diff -puN include/asm-parisc/atomic.h~arch-atomic_add_negative include/asm-parisc/atomic.h
+--- 25/include/asm-parisc/atomic.h~arch-atomic_add_negative	Thu May 13 13:36:10 2004
++++ 25-akpm/include/asm-parisc/atomic.h	Thu May 13 13:36:10 2004
+@@ -185,6 +185,8 @@ static __inline__ int atomic_read(const 
+ #define atomic_inc_return(v)	(__atomic_add_return(   1,(v)))
+ #define atomic_dec_return(v)	(__atomic_add_return(  -1,(v)))
+ 
++#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
++
+ #define atomic_dec_and_test(v)	(atomic_dec_return(v) == 0)
+ 
+ #define ATOMIC_INIT(i)	{ (i) }
+diff -puN include/asm-ppc64/atomic.h~arch-atomic_add_negative include/asm-ppc64/atomic.h
+--- 25/include/asm-ppc64/atomic.h~arch-atomic_add_negative	Thu May 13 13:36:10 2004
++++ 25-akpm/include/asm-ppc64/atomic.h	Thu May 13 13:36:10 2004
+@@ -54,6 +54,8 @@ static __inline__ int atomic_add_return(
+ 	return t;
+ }
+ 
++#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
++
+ static __inline__ void atomic_sub(int a, atomic_t *v)
+ {
+ 	int t;
+diff -puN include/asm-sh/atomic.h~arch-atomic_add_negative include/asm-sh/atomic.h
+--- 25/include/asm-sh/atomic.h~arch-atomic_add_negative	Thu May 13 13:36:10 2004
++++ 25-akpm/include/asm-sh/atomic.h	Thu May 13 13:36:10 2004
+@@ -53,6 +53,8 @@ static __inline__ int atomic_add_return(
+ 	return temp;
+ }
+ 
++#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
++
+ static __inline__ int atomic_sub_return(int i, atomic_t * v)
+ {
+ 	unsigned long temp, flags;
+diff -puN include/asm-sparc/atomic.h~arch-atomic_add_negative include/asm-sparc/atomic.h
+--- 25/include/asm-sparc/atomic.h~arch-atomic_add_negative	Thu May 13 13:36:10 2004
++++ 25-akpm/include/asm-sparc/atomic.h	Thu May 13 13:36:10 2004
+@@ -33,6 +33,8 @@ extern void atomic_set(atomic_t *, int);
+ #define atomic_inc_return(v)	(__atomic_add_return(        1, (v)))
+ #define atomic_dec_return(v)	(__atomic_add_return(       -1, (v)))
+ 
++#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
++
+ #define atomic_dec_and_test(v) (atomic_dec_return(v) == 0)
+ 
+ /* This is the old 24-bit implementation.  It's still used internally
+
+_
