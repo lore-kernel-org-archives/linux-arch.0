@@ -1,41 +1,50 @@
-Return-Path: <torvalds@osdl.org>
-Received: from fw.osdl.org ([65.172.181.6]:59031 "EHLO mail.osdl.org")
-	by vger.kernel.org with ESMTP id S265238AbUEYWY1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 May 2004 18:24:27 -0400
-Date: Tue, 25 May 2004 15:24:12 -0700 (PDT)
-From: Linus Torvalds <torvalds@osdl.org>
+Return-Path: <andrea@suse.de>
+Received: from ppp-217-133-42-200.cust-adsl.tiscali.it ([217.133.42.200]:23266
+	"EHLO dualathlon.random") by vger.kernel.org with ESMTP
+	id S264898AbUEYWnD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 25 May 2004 18:43:03 -0400
+Date: Wed, 26 May 2004 00:42:58 +0200
+From: Andrea Arcangeli <andrea@suse.de>
 Subject: Re: [PATCH] ppc64: Fix possible race with set_pte on a present PTE
-In-Reply-To: <1085523563.15281.136.camel@gaston>
-Message-ID: <Pine.LNX.4.58.0405251523310.9951@ppc970.osdl.org>
-References: <1085369393.15315.28.camel@gaston>  <Pine.LNX.4.58.0405232046210.25502@ppc970.osdl.org>
-  <1085371988.15281.38.camel@gaston>  <Pine.LNX.4.58.0405232134480.25502@ppc970.osdl.org>
-  <1085373839.14969.42.camel@gaston>  <Pine.LNX.4.58.0405232149380.25502@ppc970.osdl.org>
-  <20040525034326.GT29378@dualathlon.random>  <Pine.LNX.4.58.0405242051460.32189@ppc970.osdl.org>
-  <20040525114437.GC29154@parcelfarce.linux.theplanet.co.uk>
- <Pine.LNX.4.58.0405250726000.9951@ppc970.osdl.org>  <20040525153501.GA19465@foobazco.org>
-  <Pine.LNX.4.58.0405250841280.9951@ppc970.osdl.org>  <20040525102547.35207879.davem@redhat.com>
-  <Pine.LNX.4.58.0405251034040.9951@ppc970.osdl.org>  <20040525105442.2ebdc355.davem@redhat.com>
-  <Pine.LNX.4.58.0405251056520.9951@ppc970.osdl.org>  <1085521251.24948.127.camel@gaston>
-  <Pine.LNX.4.58.0405251504170.9951@ppc970.osdl.org> <1085523563.15281.136.camel@gaston>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: "David S. Miller" <davem@redhat.com>, wesolows@foobazco.org, willy@debian.org, Andrea Arcangeli <andrea@suse.de>, Andrew Morton <akpm@osdl.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, mingo@elte.hu, bcrl@kvack.org, linux-mm@kvack.org, Linux Arch list <linux-arch@vger.kernel.org>
+Message-ID: <20040525224258.GK29378@dualathlon.random>
+References: <Pine.LNX.4.58.0405232149380.25502@ppc970.osdl.org> <20040525034326.GT29378@dualathlon.random> <Pine.LNX.4.58.0405242051460.32189@ppc970.osdl.org> <20040525114437.GC29154@parcelfarce.linux.theplanet.co.uk> <Pine.LNX.4.58.0405250726000.9951@ppc970.osdl.org> <20040525212720.GG29378@dualathlon.random> <Pine.LNX.4.58.0405251440120.9951@ppc970.osdl.org> <20040525215500.GI29378@dualathlon.random> <Pine.LNX.4.58.0405251500250.9951@ppc970.osdl.org> <20040526021845.A1302@den.park.msu.ru>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20040526021845.A1302@den.park.msu.ru>
+To: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Linus Torvalds <torvalds@osdl.org>, Matthew Wilcox <willy@debian.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@osdl.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Ben LaHaise <bcrl@kvack.org>, linux-mm@kvack.org, Architectures Group <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Wed, 26 May 2004, Benjamin Herrenschmidt wrote:
-> > 
-> > So I think the code needs to invalidate the hash after having updated the 
-> > pte. No?
+On Wed, May 26, 2004 at 02:18:45AM +0400, Ivan Kokshaysky wrote:
+> On Tue, May 25, 2004 at 03:01:55PM -0700, Linus Torvalds wrote:
+> > A "not-present" fault is a totally different fault from a "protection 
+> > fault". Only the not-present fault ends up walking the page tables, if I 
+> > remember correctly.
 > 
-> No, we'll take a hash fault, not a page fault. The hash fault is an asm
-> fast path, which in this case, will update the HPTE RW permission when
-> the PTE has PAGE_RW (and will set PAGE_DIRTY again, but that's fine).
+> Precisely. The architecture reference manual says:
+> "Additionally, when the software changes any part (except the software
+> field) of a *valid* PTE, it must also execute a tbi instruction."
 
-Ahh. Goodie. Then the "simple" atomic bitset probably works. Assuming I 
-translated the asm/atomic.h stuff correctly.
+thanks for checking.
 
-		Linus
+after various searching on the x86 docs I found:
+
+	Whenever a page-directory or page-table entry is changed (including when
+	the present flag is set to zero), the operating-system must immediately
+	invalidate the corresponding entry in the TLB so that it can be updated
+	the next time the entry is referenced.
+
+according to the above we'd need to flush the tlb even in
+do_anonymous_page on x86, or am I reading it wrong? We're not really
+doing that, is that a bug? I'd be very surprised if we overlooked x86
+wasting some time in some page fault loop, I guess it works like the
+alpha in practice even if the specs tells us we've to flush.
+
+anyways to make things work right with my approch I'd need to flush the
+tlb after the handle_*_page_fault operations (they could return 1
+if a flush is required before returning from the page fault) and I
+should resurrect pte_establish in do_wp_page. but then I certainly agree
+leaving ptep_establish in handle_mm_fault is fine if we've to flush the
+tlb anyways, so I'm not going to update my patch unless anybody prefers
+it for any other reason I don't see.
