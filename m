@@ -1,31 +1,35 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262820AbUKXSqO@vger.kernel.org>
-Received: from zeus.kernel.org ([204.152.189.113]:26849 "EHLO zeus.kernel.org")
-	by vger.kernel.org with ESMTP id S262789AbUKXSnu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Nov 2004 13:43:50 -0500
-Received: from Cantor.suse.de (cantor.suse.de [195.135.220.2])
-	by zeus.kernel.org (8.12.11/8.11.6) with ESMTP id iAOFij9A018576
-	for <linux-arch@vger.kernel.org>; Wed, 24 Nov 2004 07:44:52 -0800
-Date: Wed, 24 Nov 2004 16:43:19 +0100
-From: Andi Kleen <ak@suse.de>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262825AbUKXTCn@vger.kernel.org>
+Received: from fmr24.intel.com ([143.183.121.16]:45956 "EHLO
+	scsfmr004.sc.intel.com") by vger.kernel.org with ESMTP
+	id S262823AbUKXTBq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Nov 2004 14:01:46 -0500
+Date: Wed, 24 Nov 2004 11:00:32 -0800
+From: tony.luck@intel.com
+Message-Id: <200411241900.iAOJ0Wd31749@unix-os.sc.intel.com>
 Subject: Re: [patch] sys_stime needs a compat function.
-Message-ID: <20041124154319.GC2729@wotan.suse.de>
-References: <20041124154033.GA4832@mschwid3.boeblingen.de.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20041124154033.GA4832@mschwid3.boeblingen.de.ibm.com>
 To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, tony.luck@intel.com, ak@suse.de, ralf@linux-mips.org, matthew@wil.cx, anton@samba.org, davem@davemloft.net, jdike@addtoit.com, davidm@hpl.hp.com
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> x86_64   : Remove sys32_time. Use compat_sys_time and compat_sys_stime
->            in 32 bit syscall table.
-> 
 > The original stime bug is fixed for mips, parisc, s390, sparc64 and
 > x86_64. Can the arch-maintainers please take a look at this?
 
-Looks good from my side.
+You missed providing a definition for __ARCH_WANT_COMPAT_SYS_TIME for
+ia64.
 
-Thanks,
--Andi
+===== include/asm-ia64/unistd.h 1.53 vs edited =====
+--- 1.53/include/asm-ia64/unistd.h	2004-11-23 12:18:59 -08:00
++++ edited/include/asm-ia64/unistd.h	2004-11-24 10:51:05 -08:00
+@@ -281,6 +281,7 @@
+ # define __ARCH_WANT_SYS_OLDUMOUNT
+ # define __ARCH_WANT_SYS_SIGPENDING
+ # define __ARCH_WANT_SYS_SIGPROCMASK
++# define __ARCH_WANT_COMPAT_SYS_TIME
+ #endif
+ 
+ #if !defined(__ASSEMBLY__) && !defined(ASSEMBLER)
+
+Also I ended up with security_settime() undefined.  I think you
+need to add "#include <linux/security.h> to kernel/compat.c
+
+-Tony
