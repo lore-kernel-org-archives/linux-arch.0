@@ -1,58 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Mon, 7 Feb 2005 12:13:21 -0800
-From: "David S. Miller" <davem@davemloft.net>
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate3.de.ibm.com (8.12.10/8.12.10) with ESMTP id j18955dt042548
+	for <linux-arch@vger.kernel.org>; Tue, 8 Feb 2005 09:05:05 GMT
+Received: from d12av04.megacenter.de.ibm.com (d12av04.megacenter.de.ibm.com [9.149.165.229])
+	by d12nrmr1607.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id j189558r175184
+	for <linux-arch@vger.kernel.org>; Tue, 8 Feb 2005 10:05:05 +0100
+Received: from d12av04.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av04.megacenter.de.ibm.com (8.12.11/8.12.11) with ESMTP id j18955KC023406
+	for <linux-arch@vger.kernel.org>; Tue, 8 Feb 2005 10:05:05 +0100
+In-Reply-To: <20050207113000.79c60358.davem@davemloft.net>
 Subject: Re: [patch 19/24] TASK_SIZE is variable.
-Message-Id: <20050207121321.3bb6e521.davem@davemloft.net>
-In-Reply-To: <20050207201547.GA6790@wotan.suse.de>
-References: <20050205090619.C30866@flint.arm.linux.org.uk>
-	<20050205154448.1cc89ee9.davem@davemloft.net>
-	<20050206105047.GB6819@wotan.suse.de>
-	<20050206131947.6524ece9.davem@davemloft.net>
-	<20050206213148.GI18245@wotan.suse.de>
-	<20050206133110.528ce713.davem@davemloft.net>
-	<20050206215020.GJ18245@wotan.suse.de>
-	<20050206143110.59dc039f.davem@davemloft.net>
-	<20050207081106.GA16035@wotan.suse.de>
-	<20050207112837.5594c314.davem@davemloft.net>
-	<20050207201547.GA6790@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Andi Kleen <ak@suse.de>
-Cc: rmk@arm.linux.org.uk, torvalds@osdl.org, akpm@osdl.org, dwmw2@infradead.org, linux-arch@vger.kernel.org
+Message-ID: <OF3254ED41.AFB5BCC2-ON41256FA2.00303C7D-41256FA2.0031E7E0@de.ibm.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Date: Tue, 8 Feb 2005 10:05:06 +0100
+MIME-Version: 1.0
+Content-type: text/plain; charset=US-ASCII
+To: "David S. Miller" <davem@davemloft.net>
+Cc: akpm@osdl.org, David Howells <dhowells@redhat.com>, dwmw2@infradead.org, linux-arch@vger.kernel.org, torvalds@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 7 Feb 2005 21:15:47 +0100
-Andi Kleen <ak@suse.de> wrote:
+> > > Would you be against a "mm->addr_limit"?  That's what an approach
+> > > by Paulus implemented, and I was in the camp supporting that kind
+> > > of direction.
+> >
+> > On the other hand, this value is constant on some archs, and in those
+cases,
+> > wouldn't it be better for it to be a compile-time constant?
+>
+> How can it be constant?  It would need to change when a set_fs(KERNEL_DS)
+> is performed.
 
-> Yes, but it is done outside KERNEL_DS (otherwise it is a security hole) 
-> And then later in KERNEL_DS there is no verify_area.
+It can be a constant on architectures that use a separate address space for
+the kernel, e.g. s390. In fact I don't set addr_limit at all, access_ok and
+friends always return 1.
 
-It is done "inside" KERNEL_DS by the routines we invoke which
-expect user pointers but we're giving them kernel pointers.
-Example:
+blue skies,
+   Martin
 
-extern long sys_foo(char __user *buf, int len);
-
-long compat_sys_foo(compat_uptr_t ubuf, int len)
-{
-	char *kbuf = kmalloc(len, GFP_KERNEL);
-	mm_segment_t old_fs = get_fs();
-	int err;
-
-	if (!kbuf)
-		return -ENOMEM;
-
-	set_fs(KERNEL_DS);
-	err = sys_foo(kbuf, len);
-	set_fs(old_fs);
-
-	kfree(kbuf);
-
-	return err;
-}
-
-The copy_to_user() or whatever done by sys_foo() will operate within
-KERNEL_DS on "kbuf" and thus the access_ok() check done via copy_to_user()
-will do the proper checks for us with my proposal of valid virtual address
-ranges stored in the mm_struct.
+Martin Schwidefsky
+Linux for zSeries Development & Services
+IBM Deutschland Entwicklung GmbH
