@@ -1,40 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 1 Feb 2005 12:32:49 +0000
-From: Matthew Wilcox <matthew@wil.cx>
+Message-ID: <41FF9EF8.2000101@us.ibm.com>
+Date: Tue, 01 Feb 2005 09:23:36 -0600
+From: Brian King <brking@us.ibm.com>
+Reply-To: brking@us.ibm.com
+MIME-Version: 1.0
 Subject: Re: pci: Arch hook to determine config space size
-Message-ID: <20050201123249.GA10088@parcelfarce.linux.theplanet.co.uk>
-References: <200501281456.j0SEuI12020454@d01av01.pok.ibm.com> <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk> <41FEA4AA.1080407@us.ibm.com> <200501312256.44692.arnd@arndb.de> <41FEB492.2020002@us.ibm.com> <1107227727.5963.46.camel@gaston> <41FF0B0D.8020003@us.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <41FF0B0D.8020003@us.ibm.com>
-Sender: <willy@www.linux.org.uk>
-To: Brian King <brking@us.ibm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Linux Arch list <linux-arch@vger.kernel.org>, Matthew Wilcox <matthew@wil.cx>, Greg KH <greg@kroah.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Paul Mackerras <paulus@samba.org>, linuxppc64-dev <linuxppc64-dev@ozlabs.org>, linux-pci@atrey.karlin.mff.cuni.cz
+References: <200501281456.j0SEuI12020454@d01av01.pok.ibm.com> <20050128185234.GB21760@infradead.org> <20050129040647.GA6261@kroah.com> <41FE82B6.9060407@us.ibm.com> <41FE8994.4040802@us.ibm.com> <20050201074657.GA548@colo.lackof.org>
+In-Reply-To: <20050201074657.GA548@colo.lackof.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+To: Grant Grundler <grundler@parisc-linux.org>
+Cc: Greg KH <greg@kroah.com>, Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Jan 31, 2005 at 10:52:29PM -0600, Brian King wrote:
-> @@ -62,8 +72,11 @@ static int rtas_read_config(struct devic
->  		return PCIBIOS_DEVICE_NOT_FOUND;
->  	if (where & (size - 1))
->  		return PCIBIOS_BAD_REGISTER_NUMBER;
+Grant Grundler wrote:
+> On Mon, Jan 31, 2005 at 01:40:04PM -0600, Brian King wrote:
+> 
+>>CC'ing the linux-pci mailing list...
+> 
+> 
+> thanks...
+> 
+> 
+>>>This patch adds an arch hook so
+>>>that individual archs can indicate if the underlying system supports
+>>>expanded config space accesses or not.
+> 
+> 
+>>>@@ -653,6 +653,8 @@ static int pci_cfg_space_size(struct pci
+>>>			goto fail;
+>>>	}
+>>>
+>>>+	if (!pcibios_exp_cfg_space(dev))
+>>>+		goto fail;
+>>>	if (pci_read_config_dword(dev, 256, &status) != PCIBIOS_SUCCESSFUL)
+>>>		goto fail;
+> 
+> 
+> pci_read_config_dword lands in arch specific code.
+> See drivers/pci/access.c:PCI_OP_READ() macro.
+> 
+> I'm missing what pcibios_exp_cfg_space() does that can't be handled by
+> the bus_ops supplied by pci_scan_bus().
+> 
+> I would expect the pci_read_config_dword to fail for being out of bounds.
+> Is that wrong?
+> Or is bus_ops not feasible in this case because pcibios needs access
+> to pci_dev?
 
-You should probably delete this redundant test at the same time ...
+The current patch for this has become essentially that. It is now a 
+PPC64 specific patch that adds bounds checking in the PPC64 PCI config 
+access functions.
 
-> +	if (!config_access_valid(dn, where))
-> +		return PCIBIOS_BAD_REGISTER_NUMBER;
->  
-> -	addr = (dn->busno << 16) | (dn->devfn << 8) | where;
-> +	addr = ((where & 0xf00) << 20) | (dn->busno << 16) |
-> +		(dn->devfn << 8) | (where & 0xff);
->  	buid = dn->phb->buid;
->  	if (buid) {
->  		ret = rtas_call(ibm_read_pci_config, 4, 2, &returnval,
+-Brian
+
 
 -- 
-"Next the statesmen will invent cheap lies, putting the blame upon 
-the nation that is attacked, and every man will be glad of those
-conscience-soothing falsities, and will diligently study them, and refuse
-to examine any refutations of them; and thus he will by and by convince 
-himself that the war is just, and will thank God for the better sleep 
-he enjoys after this process of grotesque self-deception." -- Mark Twain
+Brian King
+eServer Storage I/O
+IBM Linux Technology Center
