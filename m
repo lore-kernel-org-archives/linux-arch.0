@@ -1,50 +1,44 @@
-Return-Path: <rmk+linux-arch=vger.kernel.org@arm.linux.org.uk>
-Received: from caramon.arm.linux.org.uk ([212.18.232.186]:25875 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S261292AbUC1NTk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 28 Mar 2004 08:19:40 -0500
-Date: Sun, 28 Mar 2004 14:19:34 +0100
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCH: x86] Add dma_mmap_coherent()
-Message-ID: <20040328141934.A10358@flint.arm.linux.org.uk>
-References: <20040328112216.B2825@flint.arm.linux.org.uk> <20040328123556.E2825@flint.arm.linux.org.uk> <20040328114047.GO791@holomorphy.com> <20040328133633.F2825@flint.arm.linux.org.uk>
+Return-Path: <davem@redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:38331 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S262451AbUC1U3q (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 28 Mar 2004 15:29:46 -0500
+Date: Sun, 28 Mar 2004 12:29:20 -0800
+From: "David S. Miller" <davem@redhat.com>
+Subject: Re: Future of linux-arch
+Message-Id: <20040328122920.404e5b37.davem@redhat.com>
+In-Reply-To: <20040328120133.D2825@flint.arm.linux.org.uk>
+References: <20040328120133.D2825@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20040328133633.F2825@flint.arm.linux.org.uk>; from rmk@arm.linux.org.uk on Sun, Mar 28, 2004 at 01:36:33PM +0100
-Sender: Russell King <rmk@arm.linux.org.uk>
-To: William Lee Irwin III <wli@holomorphy.com>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Mar 28, 2004 at 01:36:33PM +0100, Russell King wrote:
-> On Sun, Mar 28, 2004 at 03:40:47AM -0800, William Lee Irwin III wrote:
-> > I think we're just missing an API for it e.g. break_compound_page();
-> > I don't see why we shouldn't arrange for it. Alternatively, clearing
-> > PG_compound by hand is possible. Though I guess it raises the question
-> > of what we're trying to do; e.g. why not allocate pieces separately?
-> 
-> dma_alloc_coherent() is supposed to allocate a contiguous memory area.
-> 
-> However, x86 can get around this problem if it uses the ->nopage
-> method of mapping the pages into memory.
-> 
-> This all brings up one fundamental question: what really are the
-> semantics of dma_alloc_coherent() - if it returns a kernel direct
-> mapped address, are the pages supposed to be marked reserved or not.
-> 
-> And this leads on to this question: if the pages are not marked
-> reserved, how do we mmap() the pages given that remap_page_range()
-> won't touch them?
+On Sun, 28 Mar 2004 12:01:33 +0100
+Russell King <rmk@arm.linux.org.uk> wrote:
 
-Furthermore, should these pages contribute to the processes RSS?
-If pages are faulted in via ->nopage, and the pages are not marked
-reserved, they will contribute to the RSS.  I suspect that reviewing
-existing implementations will reveal some which do and some which
-don't - certainly ALSA marks pages reserved, and thus does not
-contribute to RSS.
+> It seems that me posting these two patches just to linux-arch has caused
+> some upset in the kernel community.  In particular, Christoph Hellwig
+> is talking about publicising the address for this list.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
-                 2.6 Serial core
+If he can't respect people's privacy, that shouldn't become our problem.
+
+If a group of people interested in 'foo' wish to discuss 'foo' on a mailing
+list amongst themselves, I don't see what can be wrong with that.
+
+Maybe I should feel compelled to CC: lkml every time I come up with an
+idea I wish to discuss with Linux or Andrew or one of the networking
+co-maintainers?  See how rediculious such thinking is?
+
+Now, on the other hand, it may have in fact been more appropriate to discuss
+this particular change on lkml, flesh out the API issues publicly, _then_
+move what you end up with to linux-arch so that arch people can code up
+implementations for their platforms for you.
+
+See, because this patch goes beyond arch issues, driver folks have to use
+these interfaces, so logically it appears that folks outside of the arch
+community should contribute to the design and review of said interfaces.
+
+Right?
