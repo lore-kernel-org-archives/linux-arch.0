@@ -1,35 +1,46 @@
-Return-Path: <nickpiggin@yahoo.com.au>
-Received: from smtp105.mail.sc5.yahoo.com ([66.163.169.225]:51609 "HELO
-	smtp105.mail.sc5.yahoo.com") by vger.kernel.org with SMTP
-	id S261879AbUE3HAe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 30 May 2004 03:00:34 -0400
-Message-ID: <40B9868C.4010302@yahoo.com.au>
-Date: Sun, 30 May 2004 17:00:28 +1000
-From: Nick Piggin <nickpiggin@yahoo.com.au>
+Return-Path: <schwidefsky@de.ibm.com>
+Received: from mtagate3.de.ibm.com ([195.212.29.152]:4806 "EHLO
+	mtagate3.de.ibm.com") by vger.kernel.org with ESMTP id S265006AbUFAMEk convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 Jun 2004 08:04:40 -0400
+Subject: Re: [PATCH] ppc64: Fix possible race with set_pte on a present PTE
+Message-ID: <OF283CD009.20B7561C-ONC1256EA6.003BBE8A-C1256EA6.00424F81@de.ibm.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Date: Tue, 1 Jun 2004 14:04:17 +0200
 MIME-Version: 1.0
-Subject: Re: [RFC][PATCH] Consolidate architecture context switch locking
-References: <40B94D79.8090903@yahoo.com.au> <20040529232802.24a367c7.davem@redhat.com>
-In-Reply-To: <20040529232802.24a367c7.davem@redhat.com>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem@redhat.com>
-Cc: linux-arch@vger.kernel.org, mingo@redhat.com
+Content-type: text/plain; charset=ISO-8859-1
+Content-transfer-encoding: 8BIT
+To: Andrea Arcangeli <andrea@suse.de>
+Cc: Andrew Morton <akpm@osdl.org>, Ben LaHaise <bcrl@kvack.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Architectures Group <linux-arch@vger.kernel.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@osdl.org>, Matthew Wilcox <willy@debian.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-David S. Miller wrote:
-> On Sun, 30 May 2004 12:56:57 +1000
-> Nick Piggin <nickpiggin@yahoo.com.au> wrote:
-> 
-> 
->>Those that do need to define TIF_RUNNING, which I haven't done
->>in the patch.
-> 
-> 
-> How come we can't use a spinlock like the existing instances
-> did?  A spinlock should be cheaper than a SMP atomic bitop
-> on at least some such platforms.  It is on sparc at least.
-> 
 
-It could just as easily use the switch_lock system, yes.
 
-AFAIKS it could even use a plain "int" as the flag...
+
+
+> The last issue is ptep_establish, we're flushing the pte in do_wp_page
+> inside ptep_establish again for no good reason. Those suprious tlb
+> flushes may even trigger IPIs (this time in x86 smp too even with
+> processes), so I'd really like to remove the explicit flush in
+> do_wp_page, however this will likely break s390 but I don't understand
+> s390 so I'll leave it broken for now (at least to show you this
+> alternative and to hear comments if it's as broken as the previous one).
+
+No, this shouldn't break s390 in any way, removing superfluous tlb flushes
+will benefit s390 just like any other architecture.
+
+> The really scary thing about this patch is the s390 ptep_establish.
+
+The s390 version of ptep_establish isn't scary at all, it's just an
+optimization. s390 can use the generic set_pte & flush_tlb_page sequence
+for ptep_establish without a problem but there is a better way to do it.
+We use the ipte instruction because it only flushes the tlb entries for
+a single page and not all of them. Don't worry too much about breaking
+s390, if you do I will complain.
+
+blue skies,
+   Martin
+
+Linux/390 Design & Development, IBM Deutschland Entwicklung GmbH
+Schönaicherstr. 220, D-71032 Böblingen, Telefon: 49 - (0)7031 - 16-2247
+E-Mail: schwidefsky@de.ibm.com
