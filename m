@@ -1,33 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Subject: =?iso-8859-1?Q?Re:_pci:_Arch_hook_to_determine_config_space_size?=
-From: <arndb@onlinehome.de>
-Message-Id: <26879984$110721275641feb9d4b0ac20.24786725@config18.schlund.de>
-Content-Type: text/plain; charset=US-ASCII
+Subject: Re: pci: Arch hook to determine config space size
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <41FEB492.2020002@us.ibm.com>
+References: <200501281456.j0SEuI12020454@d01av01.pok.ibm.com>
+	 <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk>
+	 <41FEA4AA.1080407@us.ibm.com> <200501312256.44692.arnd@arndb.de>
+	 <41FEB492.2020002@us.ibm.com>
+Content-Type: text/plain
+Date: Tue, 01 Feb 2005 14:15:27 +1100
+Message-Id: <1107227727.5963.46.camel@gaston>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Date: Tue,  1 Feb 2005 00:22:02 +0100
+Content-Transfer-Encoding: 7bit
 To: brking@us.ibm.com
-Cc: =?iso-8859-1?Q?Arnd_Bergmann?= <arnd@arndb.de>, =?iso-8859-1?Q?Matthew_Wilcox?= <matthew@wil.cx>, =?iso-8859-1?Q?Greg_KH?= <greg@kroah.com>, =?iso-8859-1?Q?Christoph_Hellwig?= <hch@infradead.org>, linux-kernel@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org, paulus@samba.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux Arch list <linux-arch@vger.kernel.org>, Matthew Wilcox <matthew@wil.cx>, Greg KH <greg@kroah.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Paul Mackerras <paulus@samba.org>, linuxppc64-dev <linuxppc64-dev@ozlabs.org>, linux-pci@atrey.karlin.mff.cuni.cz
 List-ID: <linux-arch.vger.kernel.org>
 
+On Mon, 2005-01-31 at 16:43 -0600, Brian King wrote:
 
-Brian King <brking@us.ibm.com> schrieb am 31.01.2005, 23:43:30:
+> diff -puN include/asm-ppc64/prom.h~ppc64_pcix_mode2_cfg include/asm-ppc64/prom.h
+> --- linux-2.6.11-rc2-bk9/include/asm-ppc64/prom.h~ppc64_pcix_mode2_cfg	2005-01-31 14:32:01.000000000 -0600
+> +++ linux-2.6.11-rc2-bk9-bjking1/include/asm-ppc64/prom.h	2005-01-31 14:32:01.000000000 -0600
+> @@ -137,6 +137,7 @@ struct device_node {
+>  	int	devfn;			/* for pci devices */
+>  	int	eeh_mode;		/* See eeh.h for possible EEH_MODEs */
+>  	int	eeh_config_addr;
+> +	int	pci_ext_config_space;	/* for phb's or bridges */
+>  	struct  pci_controller *phb;	/* for pci devices */
+>  	struct	iommu_table *iommu_table;	/* for phb's or bridges */
 
-> > Isn't the config space size a property of the PCI device instead of the
-> > host bridge? For a PCI device behind a PCIe host bridge, this could
-> > still lead to an incorrect config space accesses.
-> 
-> It is a property of both. Accessing config space beyond the first 256 
-> bytes will only work if both the PCI device and the host bridge support 
-> it. The problem I ran into was generic pci code issuing a config read to 
-> offset 256 after checking that the device supports it when the host 
-> bridge did not support it.
+Grrr... more crap added to the device-node, I don't like that ...
 
-If I interpret the spec correctly, the firmware should always store the
-value we need in the property for every device node, which means that
-you should look at the host bridge config-space-type attribute only
-when you want to look at the bridge itself. If the device claims to
-support a PCIe config space and the bridge doesn't, that sounds to
-me like a firmware bug.
+This is a PHB only field, can't it be in struct pci_controller instead ?
 
-      Arnd <><
+Ben.
