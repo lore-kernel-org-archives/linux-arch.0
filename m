@@ -1,54 +1,75 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261685AbULBRtu@vger.kernel.org>
-Received: from palrel12.hp.com ([156.153.255.237]:10443 "EHLO palrel12.hp.com")
-	by vger.kernel.org with ESMTP id S261684AbULBRtu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Dec 2004 12:49:50 -0500
-Received: from hplms2.hpl.hp.com (hplms2.hpl.hp.com [15.0.152.33])
-	(using TLSv1 with cipher DHE-RSA-AES256-SHA (256/256 bits))
-	(No client certificate requested)
-	by palrel12.hp.com (Postfix) with ESMTP id 37C5E40A725
-	for <linux-arch@vger.kernel.org>; Thu,  2 Dec 2004 09:49:45 -0800 (PST)
-Received: from napali.hpl.hp.com (napali.hpl.hp.com [15.4.89.123])
-	by hplms2.hpl.hp.com (8.13.1/8.13.1/HPL-PA Hub) with ESMTP id iB2Hnhjr011893
-	for <linux-arch@vger.kernel.org>; Thu, 2 Dec 2004 09:49:44 -0800 (PST)
-From: David Mosberger <davidm@napali.hpl.hp.com>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262129AbULCJnc@vger.kernel.org>
+Received: from mtagate2.de.ibm.com ([195.212.29.151]:40673 "EHLO
+	mtagate2.de.ibm.com") by vger.kernel.org with ESMTP id S262125AbULCJnc
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Dec 2004 04:43:32 -0500
+Received: from d12nrmr1507.megacenter.de.ibm.com (d12nrmr1507.megacenter.de.ibm.com [9.149.167.1])
+	by mtagate2.de.ibm.com (8.12.10/8.12.10) with ESMTP id iB39hSbP170660
+	for <linux-arch@vger.kernel.org>; Fri, 3 Dec 2004 09:43:29 GMT
+Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
+	by d12nrmr1507.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id iB39hNG8123056
+	for <linux-arch@vger.kernel.org>; Fri, 3 Dec 2004 10:43:23 +0100
+Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av02.megacenter.de.ibm.com (8.12.11/8.12.11) with ESMTP id iB39hRRG001645
+	for <linux-arch@vger.kernel.org>; Fri, 3 Dec 2004 10:43:27 +0100
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: other platforms interested in in-kernel unwinder?
+Date: Fri, 3 Dec 2004 10:37:22 +0100
+References: <16815.21943.55627.572012@napali.hpl.hp.com>
+In-Reply-To: <16815.21943.55627.572012@napali.hpl.hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Message-Id: <200412031037.22445.arnd@arndb.de>
+Content-Type: multipart/signed;
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1;
+  boundary="Boundary-02=_SPDsBzsg0ImUR7c";
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Message-ID: <16815.21943.55627.572012@napali.hpl.hp.com>
-Date: Thu, 2 Dec 2004 09:49:43 -0800
-Subject: other platforms interested in in-kernel unwinder?
-Reply-To: davidm@hpl.hp.com
-To: linux-arch@vger.kernel.org
-Cc: davidm@napali.hpl.hp.com
+To: davidm@hpl.hp.com
+Cc: linux-arch@vger.kernel.org, davidm@napali.hpl.hp.com, Wolfgang Gellerich <gellerich@de.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Soon I'd like to start work on replacing the existing ia64
-stack-unwinder with something based on libunwind [1].  I can obviously
-do this for ia64 only, but given the per-annual bug reports about
-broken backtraces on various platforms, I thought perhaps other arch
-maintainers would be interested in having an in-kernel unwinder, too.
 
-libunwind already has a DWARF2 unwinder and works, in addition to
-ia64, on x86 and x86-64.  I hope to add PA-RISC and Alpha soon, too.
+--Boundary-02=_SPDsBzsg0ImUR7c
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
 
-Given this, it might make sense to add a libunwind-based unwinder not
-just for ia64, but other platforms, too.  IIRC, there may be
-plans/code for in-kernel unwinder for PPC{,64} already?
+On Dunnersdag 02 Dezember 2004 18:49, David Mosberger wrote:
 
-The upside of using an in-kernel unwinder would primarily be reliable
-stack-traces, at the expense of a somewhat increased kernel-size (for
-x86-64, the core of the user-level unwinder adds up to about 60KB of
-code (compiled with -O) and about 32KB of data.  Most of the code-size
-is due to the actual DWARF2 expression interpreter, so there is
-probably not much hope of getting a _really_ tiny DWARF2 unwinder, but
-certainly for workstation/server-type machines, it's probably worth
-spending <128KB of memory in return for reliable stack traces.
+> So, how does this sound? =A0Any interest from say, x86{-64}, PPC, SPARC,
+> or any other arch maintainer?
 
-So, how does this sound?  Any interest from say, x86{-64}, PPC, SPARC,
-or any other arch maintainer?
+I think it doesn't make much sense for unwinding s390 kernel stacks,
+since they already have reliable back traces trough the backchain
+pointers. In particular, those pointers are needed anyway for easy
+unwinding by hand when debugging in z/VM.
 
-Thanks,
+My limited experience on ppc64 suggests that the situation there
+is very similar.
 
-	--david
+OTOH, I've heard that oprofile is unwinding user stacks to get call
+graph information. For that purpose, a kernel unwinder might turn
+out very valuable on many architectures, including those that use
+a backchain pointer in kernel but not in user space.
 
-[1] http://www.hpl.hp.com/research/linux/libunwind/
+	Arnd <><
+
+
+
+
+
+--Boundary-02=_SPDsBzsg0ImUR7c
+Content-Type: application/pgp-signature
+Content-Description: signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.2.4 (GNU/Linux)
+
+iD8DBQBBsDPS5t5GS2LDRf4RAv5dAJ9SpQGAmqDh1ud5jgn3nMdmA86pCACbBgwp
+17kDQlJku4ljOuEQCO/lrHk=
+=ZcbE
+-----END PGP SIGNATURE-----
+
+--Boundary-02=_SPDsBzsg0ImUR7c--
