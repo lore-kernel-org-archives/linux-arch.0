@@ -1,1435 +1,1480 @@
 Return-Path: <arnd@arndb.de>
-Received: from natnoddy.rzone.de ([81.169.145.166]:53757 "EHLO
-	natnoddy.rzone.de") by vger.kernel.org with ESMTP id S262078AbUDDAgA
+Received: from natnoddy.rzone.de ([81.169.145.166]:51197 "EHLO
+	natnoddy.rzone.de") by vger.kernel.org with ESMTP id S262077AbUDDAf6
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 3 Apr 2004 19:36:00 -0500
+	Sat, 3 Apr 2004 19:35:58 -0500
 Received: from p508a8fcc.dip0.t-ipconnect.de (p508A8FCC.dip0.t-ipconnect.de [80.138.143.204])
-	by post.webmailer.de (8.12.10/8.12.10) with ESMTP id i340ZqOm016348
-	for <linux-arch@vger.kernel.org>; Sun, 4 Apr 2004 02:35:57 +0200 (MEST)
+	by post.webmailer.de (8.12.10/8.12.10) with ESMTP id i340ZqOl016348
+	for <linux-arch@vger.kernel.org>; Sun, 4 Apr 2004 02:35:55 +0200 (MEST)
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 3/4] Consolidate sys32_select
-Date: Sun, 4 Apr 2004 02:22:40 +0200
+Subject: [PATCH 2/4] Consolidate do_execve32
+Date: Sun, 4 Apr 2004 02:22:35 +0200
 References: <200404040204.03594.arnd@arndb.de>
 In-Reply-To: <200404040204.03594.arnd@arndb.de>
 MIME-Version: 1.0
 Content-Disposition: inline
-Message-Id: <200404040222.41413.arnd@arndb.de>
+Message-Id: <200404040222.35467.arnd@arndb.de>
 Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-sys32_select has seven mostly but not exactly identical versions,
-so consolidate them as compat_sys_select. Based on the ppc64
-implementation, which most closely resembles sys_select.
+The code for sys32_execve/do_execve32 in most of the seven versions
+was copied from fs/exec.c but not kept up-to-date. The new
+compat_do_execve() function is based on the mips code and has been
+resync'ed with do_execve().
 
-Passes relevant LTP test cases on x86_64.
+IA64 has some special fixup code in sys32_execve, so I'm not touching
+that.
 
-===== arch/ia64/ia32/ia32_entry.S 1.36 vs edited =====
---- 1.36/arch/ia64/ia32/ia32_entry.S	Sat Apr  3 21:55:45 2004
-+++ edited/arch/ia64/ia32/ia32_entry.S	Sat Apr  3 22:41:48 2004
-@@ -350,7 +350,7 @@
- 	data8 sys_setfsgid	/* 16-bit version */
- 	data8 sys_llseek	  /* 140 */
- 	data8 sys32_getdents
--	data8 sys32_select
-+	data8 compat_sys_select
- 	data8 sys_flock
- 	data8 sys32_msync
- 	data8 compat_sys_readv	  /* 145 */
-===== arch/ia64/ia32/sys_ia32.c 1.94 vs edited =====
---- 1.94/arch/ia64/ia32/sys_ia32.c	Sat Apr  3 21:51:49 2004
-+++ edited/arch/ia64/ia32/sys_ia32.c	Sat Apr  3 22:06:36 2004
-@@ -818,110 +818,6 @@
- 	return error;
- }
- 
--/*
-- * We can actually return ERESTARTSYS instead of EINTR, but I'd
-- * like to be certain this leads to no problems. So I return
-- * EINTR just for safety.
-- *
-- * Update: ERESTARTSYS breaks at least the xview clock binary, so
-- * I'm trying ERESTARTNOHAND which restart only when you want to.
-- */
--#define MAX_SELECT_SECONDS \
--	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
--#define ROUND_UP_TIME(x,y) (((x)+(y)-1)/(y))
--
--asmlinkage long
--sys32_select (int n, fd_set *inp, fd_set *outp, fd_set *exp, struct compat_timeval *tvp32)
--{
--	fd_set_bits fds;
--	char *bits;
--	long timeout;
--	int ret, size;
--
--	timeout = MAX_SCHEDULE_TIMEOUT;
--	if (tvp32) {
--		time_t sec, usec;
--
--		ret = -EFAULT;
--		if (get_user(sec, &tvp32->tv_sec) || get_user(usec, &tvp32->tv_usec))
--			goto out_nofds;
--
--		ret = -EINVAL;
--		if (sec < 0 || usec < 0)
--			goto out_nofds;
--
--		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
--			timeout = ROUND_UP_TIME(usec, 1000000/HZ);
--			timeout += sec * (unsigned long) HZ;
--		}
--	}
--
--	ret = -EINVAL;
--	if (n < 0)
--		goto out_nofds;
--
--	if (n > current->files->max_fdset)
--		n = current->files->max_fdset;
--
--	/*
--	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
--	 * since we used fdset we need to allocate memory in units of
--	 * long-words.
--	 */
--	ret = -ENOMEM;
--	size = FDS_BYTES(n);
--	bits = kmalloc(6 * size, GFP_KERNEL);
--	if (!bits)
--		goto out_nofds;
--	fds.in      = (unsigned long *)  bits;
--	fds.out     = (unsigned long *) (bits +   size);
--	fds.ex      = (unsigned long *) (bits + 2*size);
--	fds.res_in  = (unsigned long *) (bits + 3*size);
--	fds.res_out = (unsigned long *) (bits + 4*size);
--	fds.res_ex  = (unsigned long *) (bits + 5*size);
--
--	if ((ret = get_fd_set(n, inp, fds.in)) ||
--	    (ret = get_fd_set(n, outp, fds.out)) ||
--	    (ret = get_fd_set(n, exp, fds.ex)))
--		goto out;
--	zero_fd_set(n, fds.res_in);
--	zero_fd_set(n, fds.res_out);
--	zero_fd_set(n, fds.res_ex);
--
--	ret = do_select(n, &fds, &timeout);
--
--	if (tvp32 && !(current->personality & STICKY_TIMEOUTS)) {
--		time_t sec = 0, usec = 0;
--		if (timeout) {
--			sec = timeout / HZ;
--			usec = timeout % HZ;
--			usec *= (1000000/HZ);
--		}
--		if (put_user(sec, &tvp32->tv_sec) || put_user(usec, &tvp32->tv_usec)) {
--			ret = -EFAULT;
--			goto out;
--		}
--	}
--
--	if (ret < 0)
--		goto out;
--	if (!ret) {
--		ret = -ERESTARTNOHAND;
--		if (signal_pending(current))
--			goto out;
--		ret = 0;
--	}
--
--	set_fd_set(n, inp, fds.res_in);
--	set_fd_set(n, outp, fds.res_out);
--	set_fd_set(n, exp, fds.res_ex);
--
--out:
--	kfree(bits);
--out_nofds:
--	return ret;
--}
--
- struct sel_arg_struct {
- 	unsigned int n;
- 	unsigned int inp;
-@@ -937,8 +833,8 @@
- 
- 	if (copy_from_user(&a, arg, sizeof(a)))
- 		return -EFAULT;
--	return sys32_select(a.n, (fd_set *) A(a.inp), (fd_set *) A(a.outp), (fd_set *) A(a.exp),
--			    (struct compat_timeval *) A(a.tvp));
-+	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
-+				 compat_ptr(a.exp), compat_ptr(a.tvp));
- }
- 
- #define SEMOP		 1
-===== arch/mips/kernel/linux32.c 1.24 vs edited =====
---- 1.24/arch/mips/kernel/linux32.c	Sat Apr  3 23:20:39 2004
-+++ edited/arch/mips/kernel/linux32.c	Sat Apr  3 21:39:56 2004
-@@ -519,167 +519,6 @@
- bad_file:
- 	return ret;
- }
--/*
-- * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
-- * 64-bit unsigned longs.
-- */
--
--static inline int
--get_fd_set32(unsigned long n, unsigned long *fdset, u32 *ufdset)
--{
--	if (ufdset) {
--		unsigned long odd;
--
--		if (verify_area(VERIFY_WRITE, ufdset, n*sizeof(u32)))
--			return -EFAULT;
--
--		odd = n & 1UL;
--		n &= ~1UL;
--		while (n) {
--			unsigned long h, l;
--			__get_user(l, ufdset);
--			__get_user(h, ufdset+1);
--			ufdset += 2;
--			*fdset++ = h << 32 | l;
--			n -= 2;
--		}
--		if (odd)
--			__get_user(*fdset, ufdset);
--	} else {
--		/* Tricky, must clear full unsigned long in the
--		 * kernel fdset at the end, this makes sure that
--		 * actually happens.
--		 */
--		memset(fdset, 0, ((n + 1) & ~1)*sizeof(u32));
--	}
--	return 0;
--}
--
--static inline void
--set_fd_set32(unsigned long n, u32 *ufdset, unsigned long *fdset)
--{
--	unsigned long odd;
--
--	if (!ufdset)
--		return;
--
--	odd = n & 1UL;
--	n &= ~1UL;
--	while (n) {
--		unsigned long h, l;
--		l = *fdset++;
--		h = l >> 32;
--		__put_user(l, ufdset);
--		__put_user(h, ufdset+1);
--		ufdset += 2;
--		n -= 2;
--	}
--	if (odd)
--		__put_user(*fdset, ufdset);
--}
--
--/*
-- * We can actually return ERESTARTSYS instead of EINTR, but I'd
-- * like to be certain this leads to no problems. So I return
-- * EINTR just for safety.
-- *
-- * Update: ERESTARTSYS breaks at least the xview clock binary, so
-- * I'm trying ERESTARTNOHAND which restart only when you want to.
-- */
--#define MAX_SELECT_SECONDS \
--	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
--
--asmlinkage int sys32_select(int n, u32 *inp, u32 *outp, u32 *exp, struct compat_timeval *tvp)
--{
--	fd_set_bits fds;
--	char *bits;
--	unsigned long nn;
--	long timeout;
--	int ret, size;
--
--	timeout = MAX_SCHEDULE_TIMEOUT;
--	if (tvp) {
--		time_t sec, usec;
--
--		if ((ret = verify_area(VERIFY_READ, tvp, sizeof(*tvp)))
--		    || (ret = __get_user(sec, &tvp->tv_sec))
--		    || (ret = __get_user(usec, &tvp->tv_usec)))
--			goto out_nofds;
--
--		ret = -EINVAL;
--		if(sec < 0 || usec < 0)
--			goto out_nofds;
--
--		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
--			timeout = (usec + 1000000/HZ - 1) / (1000000/HZ);
--			timeout += sec * (unsigned long) HZ;
--		}
--	}
--
--	ret = -EINVAL;
--	if (n < 0)
--		goto out_nofds;
--	if (n > current->files->max_fdset)
--		n = current->files->max_fdset;
--
--	/*
--	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
--	 * since we used fdset we need to allocate memory in units of
--	 * long-words.
--	 */
--	ret = -ENOMEM;
--	size = FDS_BYTES(n);
--	bits = kmalloc(6 * size, GFP_KERNEL);
--	if (!bits)
--		goto out_nofds;
--	fds.in      = (unsigned long *)  bits;
--	fds.out     = (unsigned long *) (bits +   size);
--	fds.ex      = (unsigned long *) (bits + 2*size);
--	fds.res_in  = (unsigned long *) (bits + 3*size);
--	fds.res_out = (unsigned long *) (bits + 4*size);
--	fds.res_ex  = (unsigned long *) (bits + 5*size);
--
--	nn = (n + 8*sizeof(u32) - 1) / (8*sizeof(u32));
--	if ((ret = get_fd_set32(nn, fds.in, inp)) ||
--	    (ret = get_fd_set32(nn, fds.out, outp)) ||
--	    (ret = get_fd_set32(nn, fds.ex, exp)))
--		goto out;
--	zero_fd_set(n, fds.res_in);
--	zero_fd_set(n, fds.res_out);
--	zero_fd_set(n, fds.res_ex);
--
--	ret = do_select(n, &fds, &timeout);
--
--	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
--		time_t sec = 0, usec = 0;
--		if (timeout) {
--			sec = timeout / HZ;
--			usec = timeout % HZ;
--			usec *= (1000000/HZ);
--		}
--		put_user(sec, &tvp->tv_sec);
--		put_user(usec, &tvp->tv_usec);
--	}
--
--	if (ret < 0)
--		goto out;
--	if (!ret) {
--		ret = -ERESTARTNOHAND;
--		if (signal_pending(current))
--			goto out;
--		ret = 0;
--	}
--
--	set_fd_set32(nn, inp, fds.res_in);
--	set_fd_set32(nn, outp, fds.res_out);
--	set_fd_set32(nn, exp, fds.res_ex);
--
--out:
--	kfree(bits);
--out_nofds:
--	return ret;
--}
--
- 
- asmlinkage int sys32_sched_rr_get_interval(compat_pid_t pid,
- 	struct compat_timespec *interval)
-===== arch/mips/kernel/scall64-n32.S 1.3 vs edited =====
---- 1.3/arch/mips/kernel/scall64-n32.S	Sat Apr  3 21:55:52 2004
-+++ edited/arch/mips/kernel/scall64-n32.S	Sat Apr  3 22:41:53 2004
-@@ -132,7 +132,7 @@
- 	PTR	compat_sys_writev
- 	PTR	sys_access			/* 6020 */
- 	PTR	sys_pipe
--	PTR	sys32_select
-+	PTR	compat_sys_select
- 	PTR	sys_sched_yield
- 	PTR	sys_mremap
- 	PTR	sys_msync			/* 6025 */
-===== arch/mips/kernel/scall64-o32.S 1.3 vs edited =====
---- 1.3/arch/mips/kernel/scall64-o32.S	Sat Apr  3 21:56:24 2004
-+++ edited/arch/mips/kernel/scall64-o32.S	Sat Apr  3 22:42:06 2004
-@@ -397,7 +397,7 @@
- 	sys	sys_setfsgid	1
- 	sys	sys32_llseek	5			/* 4140 */
- 	sys	sys32_getdents	3
--	sys	sys32_select	5
-+	sys	compat_sys_select	5
- 	sys	sys_flock	2
- 	sys	sys_msync	3
- 	sys	compat_sys_readv	3		/* 4145 */
-===== arch/parisc/kernel/sys_parisc32.c 1.26 vs edited =====
---- 1.26/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 23:16:03 2004
-+++ edited/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 21:39:56 2004
-@@ -486,126 +486,6 @@
- 		__put_user(*fdset, ufdset);
- }
- 
--/*** This is a virtual copy of sys_select from fs/select.c and probably
-- *** should be compared to it from time to time
-- ***/
--static inline void *select_bits_alloc(int size)
--{
--	return kmalloc(6 * size, GFP_KERNEL);
--}
--
--static inline void select_bits_free(void *bits, int size)
--{
--	kfree(bits);
--}
--
--/*
-- * We can actually return ERESTARTSYS instead of EINTR, but I'd
-- * like to be certain this leads to no problems. So I return
-- * EINTR just for safety.
-- *
-- * Update: ERESTARTSYS breaks at least the xview clock binary, so
-- * I'm trying ERESTARTNOHAND which restart only when you want to.
-- */
--#define MAX_SELECT_SECONDS \
--	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
--#define DIVIDE_ROUND_UP(x,y) (((x)+(y)-1)/(y))
--
--asmlinkage long
--sys32_select(int n, u32 *inp, u32 *outp, u32 *exp, struct compat_timeval *tvp)
--{
--	fd_set_bits fds;
--	char *bits;
--	long timeout;
--	int ret, size, err;
--
--	timeout = MAX_SCHEDULE_TIMEOUT;
--	if (tvp) {
--		struct compat_timeval tv32;
--		time_t sec, usec;
--
--		if ((ret = copy_from_user(&tv32, tvp, sizeof tv32)))
--			goto out_nofds;
--
--		sec = tv32.tv_sec;
--		usec = tv32.tv_usec;
--
--		ret = -EINVAL;
--		if (sec < 0 || usec < 0)
--			goto out_nofds;
--
--		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
--			timeout = DIVIDE_ROUND_UP(usec, 1000000/HZ);
--			timeout += sec * (unsigned long) HZ;
--		}
--	}
--
--	ret = -EINVAL;
--	if (n < 0)
--		goto out_nofds;
--
--	if (n > current->files->max_fdset)
--		n = current->files->max_fdset;
--
--	/*
--	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
--	 * since we used fdset we need to allocate memory in units of
--	 * long-words. 
--	 */
--	ret = -ENOMEM;
--	size = FDS_BYTES(n);
--	bits = select_bits_alloc(size);
--	if (!bits)
--		goto out_nofds;
--	fds.in      = (unsigned long *)  bits;
--	fds.out     = (unsigned long *) (bits +   size);
--	fds.ex      = (unsigned long *) (bits + 2*size);
--	fds.res_in  = (unsigned long *) (bits + 3*size);
--	fds.res_out = (unsigned long *) (bits + 4*size);
--	fds.res_ex  = (unsigned long *) (bits + 5*size);
--
--	if ((ret = get_fd_set32(n, inp, fds.in)) ||
--	    (ret = get_fd_set32(n, outp, fds.out)) ||
--	    (ret = get_fd_set32(n, exp, fds.ex)))
--		goto out;
--	zero_fd_set(n, fds.res_in);
--	zero_fd_set(n, fds.res_out);
--	zero_fd_set(n, fds.res_ex);
--
--	ret = do_select(n, &fds, &timeout);
--
--	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
--		time_t sec = 0, usec = 0;
--		if (timeout) {
--			sec = timeout / HZ;
--			usec = timeout % HZ;
--			usec *= (1000000/HZ);
--		}
--		err = put_user(sec, &tvp->tv_sec);
--		err |= __put_user(usec, &tvp->tv_usec);
--		if (err)
--			ret = -EFAULT;
--	}
--
--	if (ret < 0)
--		goto out;
--	if (!ret) {
--		ret = -ERESTARTNOHAND;
--		if (signal_pending(current))
--			goto out;
--		ret = 0;
--	}
--
--	set_fd_set32(n, inp, fds.res_in);
--	set_fd_set32(n, outp, fds.res_out);
--	set_fd_set32(n, exp, fds.res_ex);
--
--out:
--	select_bits_free(bits, size);
--out_nofds:
--	return ret;
--}
--
- struct msgbuf32 {
-     int mtype;
-     char mtext[1];
-@@ -662,7 +542,6 @@
- 	kfree(mb);
- 	return err;
- }
--
- 
- asmlinkage int sys32_sendfile(int out_fd, int in_fd, compat_off_t *offset, s32 count)
- {
-===== arch/parisc/kernel/syscall_table.S 1.4 vs edited =====
---- 1.4/arch/parisc/kernel/syscall_table.S	Fri Mar 26 20:05:25 2004
-+++ edited/arch/parisc/kernel/syscall_table.S	Sat Apr  3 22:57:02 2004
-@@ -232,7 +232,7 @@
- 	ENTRY_DIFF(getdents)
- 	/* it is POSSIBLE that select will be OK because even though fd_set
- 	 * contains longs, the macros and sizes are clever. */
--	ENTRY_DIFF(select)
-+	ENTRY_COMP(select)
- 	ENTRY_SAME(flock)
- 	ENTRY_SAME(msync)
- 	/* struct iovec contains pointers */
-===== arch/ppc64/kernel/sys_ppc32.c 1.88 vs edited =====
---- 1.88/arch/ppc64/kernel/sys_ppc32.c	Sat Apr  3 23:16:41 2004
-+++ edited/arch/ppc64/kernel/sys_ppc32.c	Sat Apr  3 22:11:06 2004
-@@ -226,167 +226,12 @@
- 	return error;
- }
- 
--/*
-- * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
-- * 64-bit unsigned longs.
-- */
--static inline int
--get_fd_set32(unsigned long n, unsigned long *fdset, u32 *ufdset)
--{
--	if (ufdset) {
--		unsigned long odd;
--
--		if (verify_area(VERIFY_WRITE, ufdset, n*sizeof(u32)))
--			return -EFAULT;
--
--		odd = n & 1UL;
--		n &= ~1UL;
--		while (n) {
--			unsigned long h, l;
--			__get_user(l, ufdset);
--			__get_user(h, ufdset+1);
--			ufdset += 2;
--			*fdset++ = h << 32 | l;
--			n -= 2;
--		}
--		if (odd)
--			__get_user(*fdset, ufdset);
--	} else {
--		/* Tricky, must clear full unsigned long in the
--		 * kernel fdset at the end, this makes sure that
--		 * actually happens.
--		 */
--		memset(fdset, 0, ((n + 1) & ~1)*sizeof(u32));
--	}
--	return 0;
--}
--
--static inline void
--set_fd_set32(unsigned long n, u32 *ufdset, unsigned long *fdset)
--{
--	unsigned long odd;
--
--	if (!ufdset)
--		return;
--
--	odd = n & 1UL;
--	n &= ~1UL;
--	while (n) {
--		unsigned long h, l;
--		l = *fdset++;
--		h = l >> 32;
--		__put_user(l, ufdset);
--		__put_user(h, ufdset+1);
--		ufdset += 2;
--		n -= 2;
--	}
--	if (odd)
--		__put_user(*fdset, ufdset);
--}
--
--
--
--#define MAX_SELECT_SECONDS ((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
--
--asmlinkage long sys32_select(int n, u32 *inp, u32 *outp, u32 *exp, u32 tvp_x)
--{
--	fd_set_bits fds;
--	struct compat_timeval *tvp = (struct compat_timeval *)AA(tvp_x);
--	char *bits;
--	unsigned long nn;
--	long timeout;
--	int ret, size, max_fdset;
--
--	timeout = MAX_SCHEDULE_TIMEOUT;
--	if (tvp) {
--		time_t sec, usec;
--		if ((ret = verify_area(VERIFY_READ, tvp, sizeof(*tvp)))
--		    || (ret = __get_user(sec, &tvp->tv_sec))
--		    || (ret = __get_user(usec, &tvp->tv_usec)))
--			goto out_nofds;
--
--		ret = -EINVAL;
--		if(sec < 0 || usec < 0)
--			goto out_nofds;
--
--		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
--			timeout = (usec + 1000000/HZ - 1) / (1000000/HZ);
--			timeout += sec * (unsigned long) HZ;
--		}
--	}
--
--	ret = -EINVAL;
--	if (n < 0)
--		goto out_nofds;
--
--	/* max_fdset can increase, so grab it once to avoid race */
--	max_fdset = current->files->max_fdset;
--	if (n > max_fdset)
--		n = max_fdset;
--
--	/*
--	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
--	 * since we used fdset we need to allocate memory in units of
--	 * long-words. 
--	 */
--	ret = -ENOMEM;
--	size = FDS_BYTES(n);
--	bits = kmalloc(6 * size, GFP_KERNEL);
--	if (!bits)
--		goto out_nofds;
--	fds.in      = (unsigned long *)  bits;
--	fds.out     = (unsigned long *) (bits +   size);
--	fds.ex      = (unsigned long *) (bits + 2*size);
--	fds.res_in  = (unsigned long *) (bits + 3*size);
--	fds.res_out = (unsigned long *) (bits + 4*size);
--	fds.res_ex  = (unsigned long *) (bits + 5*size);
--
--	nn = (n + 8*sizeof(u32) - 1) / (8*sizeof(u32));
--	if ((ret = get_fd_set32(nn, fds.in, inp)) ||
--	    (ret = get_fd_set32(nn, fds.out, outp)) ||
--	    (ret = get_fd_set32(nn, fds.ex, exp)))
--		goto out;
--	zero_fd_set(n, fds.res_in);
--	zero_fd_set(n, fds.res_out);
--	zero_fd_set(n, fds.res_ex);
--
--	ret = do_select(n, &fds, &timeout);
--
--	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
--		time_t sec = 0, usec = 0;
--		if (timeout) {
--			sec = timeout / HZ;
--			usec = timeout % HZ;
--			usec *= (1000000/HZ);
--		}
--		put_user(sec, &tvp->tv_sec);
--		put_user(usec, &tvp->tv_usec);
--	}
--
--	if (ret < 0)
--		goto out;
--	if (!ret) {
--		ret = -ERESTARTNOHAND;
--		if (signal_pending(current))
--			goto out;
--		ret = 0;
--	}
--
--	set_fd_set32(nn, inp, fds.res_in);
--	set_fd_set32(nn, outp, fds.res_out);
--	set_fd_set32(nn, exp, fds.res_ex);
--  
--out:
--	kfree(bits);
--
--out_nofds:
--	return ret;
--}
--
--int ppc32_select(u32 n, u32* inp, u32* outp, u32* exp, u32 tvp_x)
-+asmlinkage long ppc32_select(u32 n, compat_ulong_t __user *inp,
-+		compat_ulong_t __user *outp, compat_ulong_t __user *exp,
-+		compat_uptr_t tvp_x)
- {
- 	/* sign extend n */
--	return sys32_select((int)n, inp, outp, exp, tvp_x);
-+	return compat_sys_select((int)n, inp, outp, exp, compat_ptr(tvp_x));
- }
- 
- int cp_compat_stat(struct kstat *stat, struct compat_stat *statbuf)
-===== arch/s390/kernel/compat_linux.c 1.21 vs edited =====
---- 1.21/arch/s390/kernel/compat_linux.c	Sat Apr  3 23:17:59 2004
-+++ edited/arch/s390/kernel/compat_linux.c	Sat Apr  3 21:39:56 2004
-@@ -503,160 +503,6 @@
- 
- /* end of readdir & getdents */
- 
--/*
-- * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
-- * 64-bit unsigned longs.
-- */
--
--static inline int
--get_fd_set32(unsigned long n, unsigned long *fdset, u32 *ufdset)
--{
--	if (ufdset) {
--		unsigned long odd;
--
--		if (verify_area(VERIFY_WRITE, ufdset, n*sizeof(u32)))
--			return -EFAULT;
--
--		odd = n & 1UL;
--		n &= ~1UL;
--		while (n) {
--			unsigned long h, l;
--			__get_user(l, ufdset);
--			__get_user(h, ufdset+1);
--			ufdset += 2;
--			*fdset++ = h << 32 | l;
--			n -= 2;
--		}
--		if (odd)
--			__get_user(*fdset, ufdset);
--	} else {
--		/* Tricky, must clear full unsigned long in the
--		 * kernel fdset at the end, this makes sure that
--		 * actually happens.
--		 */
--		memset(fdset, 0, ((n + 1) & ~1)*sizeof(u32));
--	}
--	return 0;
--}
--
--static inline void
--set_fd_set32(unsigned long n, u32 *ufdset, unsigned long *fdset)
--{
--	unsigned long odd;
--
--	if (!ufdset)
--		return;
--
--	odd = n & 1UL;
--	n &= ~1UL;
--	while (n) {
--		unsigned long h, l;
--		l = *fdset++;
--		h = l >> 32;
--		__put_user(l, ufdset);
--		__put_user(h, ufdset+1);
--		ufdset += 2;
--		n -= 2;
--	}
--	if (odd)
--		__put_user(*fdset, ufdset);
--}
--
--#define MAX_SELECT_SECONDS \
--	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
--
--asmlinkage long sys32_select(int n, u32 *inp, u32 *outp, u32 *exp,
--				struct compat_timeval *tvp)
--{
--	fd_set_bits fds;
--	char *bits;
--	unsigned long nn;
--	long timeout;
--	int ret, size;
--
--	timeout = MAX_SCHEDULE_TIMEOUT;
--	if (tvp) {
--		int sec, usec;
--
--		if ((ret = verify_area(VERIFY_READ, tvp, sizeof(*tvp)))
--		    || (ret = __get_user(sec, &tvp->tv_sec))
--		    || (ret = __get_user(usec, &tvp->tv_usec)))
--			goto out_nofds;
--
--		ret = -EINVAL;
--		if(sec < 0 || usec < 0)
--			goto out_nofds;
--
--		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
--			timeout = (usec + 1000000/HZ - 1) / (1000000/HZ);
--			timeout += sec * (unsigned long) HZ;
--		}
--	}
--
--	ret = -EINVAL;
--	if (n < 0)
--		goto out_nofds;
--	if (n > current->files->max_fdset)
--		n = current->files->max_fdset;
--
--	/*
--	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
--	 * since we used fdset we need to allocate memory in units of
--	 * long-words. 
--	 */
--	ret = -ENOMEM;
--	size = FDS_BYTES(n);
--	bits = kmalloc(6 * size, GFP_KERNEL);
--	if (!bits)
--		goto out_nofds;
--	fds.in      = (unsigned long *)  bits;
--	fds.out     = (unsigned long *) (bits +   size);
--	fds.ex      = (unsigned long *) (bits + 2*size);
--	fds.res_in  = (unsigned long *) (bits + 3*size);
--	fds.res_out = (unsigned long *) (bits + 4*size);
--	fds.res_ex  = (unsigned long *) (bits + 5*size);
--
--	nn = (n + 8*sizeof(u32) - 1) / (8*sizeof(u32));
--	if ((ret = get_fd_set32(nn, fds.in, inp)) ||
--	    (ret = get_fd_set32(nn, fds.out, outp)) ||
--	    (ret = get_fd_set32(nn, fds.ex, exp)))
--		goto out;
--	zero_fd_set(n, fds.res_in);
--	zero_fd_set(n, fds.res_out);
--	zero_fd_set(n, fds.res_ex);
--
--	ret = do_select(n, &fds, &timeout);
--
--	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
--		int sec = 0, usec = 0;
--		if (timeout) {
--			sec = timeout / HZ;
--			usec = timeout % HZ;
--			usec *= (1000000/HZ);
--		}
--		put_user(sec, &tvp->tv_sec);
--		put_user(usec, &tvp->tv_usec);
--	}
--
--	if (ret < 0)
--		goto out;
--	if (!ret) {
--		ret = -ERESTARTNOHAND;
--		if (signal_pending(current))
--			goto out;
--		ret = 0;
--	}
--
--	set_fd_set32(nn, inp, fds.res_in);
--	set_fd_set32(nn, outp, fds.res_out);
--	set_fd_set32(nn, exp, fds.res_ex);
--
--out:
--	kfree(bits);
--out_nofds:
--	return ret;
--}
--
- int cp_compat_stat(struct kstat *stat, struct compat_stat *statbuf)
- {
- 	int err;
-===== arch/s390/kernel/compat_wrapper.S 1.10 vs edited =====
---- 1.10/arch/s390/kernel/compat_wrapper.S	Sat Apr  3 21:57:56 2004
-+++ edited/arch/s390/kernel/compat_wrapper.S	Sat Apr  3 22:11:49 2004
-@@ -641,14 +641,14 @@
- 	llgfr	%r4,%r4			# unsigned int
- 	jg	sys32_getdents		# branch to system call
- 
--	.globl  sys32_select_wrapper 
--sys32_select_wrapper:
-+	.globl  compat_sys_select_wrapper 
-+compat_sys_select_wrapper:
- 	lgfr	%r2,%r2			# int
--	llgtr	%r3,%r3			# fd_set *
--	llgtr	%r4,%r4			# fd_set *
--	llgtr	%r5,%r5			# fd_set *
--	llgtr	%r6,%r6			# struct timeval_emu31 *
--	jg	sys32_select		# branch to system call
-+	llgtr	%r3,%r3			# compat_fd_set *
-+	llgtr	%r4,%r4			# compat_fd_set *
-+	llgtr	%r5,%r5			# compat_fd_set *
-+	llgtr	%r6,%r6			# struct compat_timeval *
-+	jg	compat_sys_select	# branch to system call
- 
- 	.globl  sys32_flock_wrapper 
- sys32_flock_wrapper:
-===== arch/s390/kernel/syscalls.S 1.10 vs edited =====
---- 1.10/arch/s390/kernel/syscalls.S	Sat Apr  3 21:58:13 2004
-+++ edited/arch/s390/kernel/syscalls.S	Sat Apr  3 22:12:19 2004
-@@ -150,7 +150,7 @@
- SYSCALL(sys_setfsgid16,sys_ni_syscall,sys32_setfsgid16_wrapper)	/* old setfsgid16 syscall */
- SYSCALL(sys_llseek,sys_llseek,sys32_llseek_wrapper)		/* 140 */
- SYSCALL(sys_getdents,sys_getdents,sys32_getdents_wrapper)
--SYSCALL(sys_select,sys_select,sys32_select_wrapper)
-+SYSCALL(sys_select,sys_select,compat_sys_select_wrapper)
- SYSCALL(sys_flock,sys_flock,sys32_flock_wrapper)
- SYSCALL(sys_msync,sys_msync,sys32_msync_wrapper)
- SYSCALL(sys_readv,sys_readv,compat_sys_readv_wrapper)		/* 145 */
-===== arch/sparc64/kernel/sys_sparc32.c 1.97 vs edited =====
---- 1.97/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 23:19:17 2004
-+++ edited/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 21:39:56 2004
-@@ -964,158 +964,6 @@
- 
- /* end of readdir & getdents */
- 
--/*
-- * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
-- * 64-bit unsigned longs.
-- */
--
--static int get_fd_set32(unsigned long n, unsigned long *fdset, u32 *ufdset)
--{
--	if (ufdset) {
--		unsigned long odd;
--
--		if (verify_area(VERIFY_WRITE, ufdset, n*sizeof(u32)))
--			return -EFAULT;
--
--		odd = n & 1UL;
--		n &= ~1UL;
--		while (n) {
--			unsigned long h, l;
--			__get_user(l, ufdset);
--			__get_user(h, ufdset+1);
--			ufdset += 2;
--			*fdset++ = h << 32 | l;
--			n -= 2;
--		}
--		if (odd)
--			__get_user(*fdset, ufdset);
--	} else {
--		/* Tricky, must clear full unsigned long in the
--		 * kernel fdset at the end, this makes sure that
--		 * actually happens.
--		 */
--		memset(fdset, 0, ((n + 1) & ~1)*sizeof(u32));
--	}
--	return 0;
--}
--
--static void set_fd_set32(unsigned long n, u32 *ufdset, unsigned long *fdset)
--{
--	unsigned long odd;
--
--	if (!ufdset)
--		return;
--
--	odd = n & 1UL;
--	n &= ~1UL;
--	while (n) {
--		unsigned long h, l;
--		l = *fdset++;
--		h = l >> 32;
--		__put_user(l, ufdset);
--		__put_user(h, ufdset+1);
--		ufdset += 2;
--		n -= 2;
--	}
--	if (odd)
--		__put_user(*fdset, ufdset);
--}
--
--#define MAX_SELECT_SECONDS \
--	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
--
--asmlinkage int sys32_select(int n, u32 *inp, u32 *outp, u32 *exp, u32 tvp_x)
--{
--	fd_set_bits fds;
--	struct compat_timeval *tvp = (struct compat_timeval *)AA(tvp_x);
--	char *bits;
--	unsigned long nn;
--	long timeout;
--	int ret, size;
--
--	timeout = MAX_SCHEDULE_TIMEOUT;
--	if (tvp) {
--		time_t sec, usec;
--
--		if ((ret = verify_area(VERIFY_READ, tvp, sizeof(*tvp)))
--		    || (ret = __get_user(sec, &tvp->tv_sec))
--		    || (ret = __get_user(usec, &tvp->tv_usec)))
--			goto out_nofds;
--
--		ret = -EINVAL;
--		if(sec < 0 || usec < 0)
--			goto out_nofds;
--
--		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
--			timeout = (usec + 1000000/HZ - 1) / (1000000/HZ);
--			timeout += sec * (unsigned long) HZ;
--		}
--	}
--
--	ret = -EINVAL;
--	if (n < 0)
--		goto out_nofds;
--	if (n > current->files->max_fdset)
--		n = current->files->max_fdset;
--
--	/*
--	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
--	 * since we used fdset we need to allocate memory in units of
--	 * long-words. 
--	 */
--	ret = -ENOMEM;
--	size = FDS_BYTES(n);
--	bits = kmalloc(6 * size, GFP_KERNEL);
--	if (!bits)
--		goto out_nofds;
--	fds.in      = (unsigned long *)  bits;
--	fds.out     = (unsigned long *) (bits +   size);
--	fds.ex      = (unsigned long *) (bits + 2*size);
--	fds.res_in  = (unsigned long *) (bits + 3*size);
--	fds.res_out = (unsigned long *) (bits + 4*size);
--	fds.res_ex  = (unsigned long *) (bits + 5*size);
--
--	nn = (n + 8*sizeof(u32) - 1) / (8*sizeof(u32));
--	if ((ret = get_fd_set32(nn, fds.in, inp)) ||
--	    (ret = get_fd_set32(nn, fds.out, outp)) ||
--	    (ret = get_fd_set32(nn, fds.ex, exp)))
--		goto out;
--	zero_fd_set(n, fds.res_in);
--	zero_fd_set(n, fds.res_out);
--	zero_fd_set(n, fds.res_ex);
--
--	ret = do_select(n, &fds, &timeout);
--
--	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
--		time_t sec = 0, usec = 0;
--		if (timeout) {
--			sec = timeout / HZ;
--			usec = timeout % HZ;
--			usec *= (1000000/HZ);
--		}
--		put_user(sec, &tvp->tv_sec);
--		put_user(usec, &tvp->tv_usec);
--	}
--
--	if (ret < 0)
--		goto out;
--	if (!ret) {
--		ret = -ERESTARTNOHAND;
--		if (signal_pending(current))
--			goto out;
--		ret = 0;
--	}
--
--	set_fd_set32(nn, inp, fds.res_in);
--	set_fd_set32(nn, outp, fds.res_out);
--	set_fd_set32(nn, exp, fds.res_ex);
--
--out:
--	kfree(bits);
--out_nofds:
--	return ret;
--}
--
- int cp_compat_stat(struct kstat *stat, struct compat_stat *statbuf)
- {
- 	int err;
-===== arch/sparc64/kernel/sys_sunos32.c 1.40 vs edited =====
---- 1.40/arch/sparc64/kernel/sys_sunos32.c	Sat Apr  3 22:06:40 2004
-+++ edited/arch/sparc64/kernel/sys_sunos32.c	Sat Apr  3 22:45:08 2004
-@@ -528,18 +528,15 @@
- 	return ret;
- }
- 
--/* SunOS mount system call emulation */
--extern asmlinkage int
--sys32_select(int n, u32 inp, u32 outp, u32 exp, u32 tvp);
--
- asmlinkage int sunos_select(int width, u32 inp, u32 outp, u32 exp, u32 tvp_x)
- {
- 	int ret;
- 
- 	/* SunOS binaries expect that select won't change the tvp contents */
--	ret = sys32_select (width, inp, outp, exp, tvp_x);
-+	ret = compat_sys_select(width, compat_ptr(inp), compat_ptr(outp),
-+				compat_ptr(exp), compat_ptr(tvp_x));
- 	if (ret == -EINTR && tvp_x) {
--		struct compat_timeval *tvp = (struct compat_timeval *)A(tvp_x);
-+		struct compat_timeval *tvp = compat_ptr(tvp_x);
- 		time_t sec, usec;
- 
- 		__get_user(sec, &tvp->tv_sec);
-===== arch/sparc64/kernel/systbls.S 1.53 vs edited =====
---- 1.53/arch/sparc64/kernel/systbls.S	Sat Apr  3 22:00:19 2004
-+++ edited/arch/sparc64/kernel/systbls.S	Sat Apr  3 22:46:01 2004
-@@ -37,7 +37,7 @@
- 	.word sys_madvise, sys_vhangup, sys32_truncate64, sys_mincore, sys32_getgroups16
- /*80*/	.word sys32_setgroups16, sys_getpgrp, sys_setgroups, compat_sys_setitimer, sys32_ftruncate64
- 	.word sys_swapon, compat_sys_getitimer, sys_setuid, sys_sethostname, sys_setgid
--/*90*/	.word sys_dup2, sys_setfsuid, compat_sys_fcntl, sys32_select, sys_setfsgid
-+/*90*/	.word sys_dup2, sys_setfsuid, compat_sys_fcntl, compat_sys_select, sys_setfsgid
- 	.word sys_fsync, sys_setpriority32, sys_nis_syscall, sys_nis_syscall, sys_nis_syscall
- /*100*/ .word sys_getpriority, sys32_rt_sigreturn, sys32_rt_sigaction, sys32_rt_sigprocmask, sys32_rt_sigpending
- 	.word sys32_rt_sigtimedwait, sys32_rt_sigqueueinfo, sys32_rt_sigsuspend, sys_setresuid, sys_getresuid
-@@ -65,7 +65,7 @@
- 	.word sys32_ipc, sys32_sigreturn, sys_clone, sys_nis_syscall, sys32_adjtimex
- /*220*/	.word compat_sys_sigprocmask, sys_ni_syscall, sys32_delete_module, sys_ni_syscall, sys_getpgid
- 	.word sys32_bdflush, sys32_sysfs, sys_nis_syscall, sys32_setfsuid16, sys32_setfsgid16
--/*230*/	.word sys32_select, sys_time, sys_nis_syscall, sys_stime, compat_statfs64
-+/*230*/	.word compat_sys_select, sys_time, sys_nis_syscall, sys_stime, compat_statfs64
- 	.word compat_fstatfs64, sys_llseek, sys_mlock, sys_munlock, sys_mlockall
- /*240*/	.word sys_munlockall, sys_sched_setparam, sys_sched_getparam, sys_sched_setscheduler, sys_sched_getscheduler
- 	.word sys_sched_yield, sys_sched_get_priority_max, sys_sched_get_priority_min, sys32_sched_rr_get_interval, compat_sys_nanosleep
-===== arch/x86_64/ia32/ia32entry.S 1.31 vs edited =====
---- 1.31/arch/x86_64/ia32/ia32entry.S	Sat Apr  3 22:00:33 2004
-+++ edited/arch/x86_64/ia32/ia32entry.S	Sat Apr  3 22:13:48 2004
-@@ -447,7 +447,7 @@
- 	.quad sys_setfsgid16
- 	.quad sys_llseek		/* 140 */
- 	.quad sys32_getdents
--	.quad sys32_select
-+	.quad compat_sys_select
- 	.quad sys_flock
- 	.quad sys_msync
- 	.quad compat_sys_readv		/* 145 */
-===== arch/x86_64/ia32/sys_ia32.c 1.58 vs edited =====
---- 1.58/arch/x86_64/ia32/sys_ia32.c	Sat Apr  3 22:53:02 2004
-+++ edited/arch/x86_64/ia32/sys_ia32.c	Sat Apr  3 22:13:24 2004
-@@ -606,107 +606,6 @@
- 	return error;
- }
- 
--/*
-- * We can actually return ERESTARTSYS instead of EINTR, but I'd
-- * like to be certain this leads to no problems. So I return
-- * EINTR just for safety.
-- *
-- * Update: ERESTARTSYS breaks at least the xview clock binary, so
-- * I'm trying ERESTARTNOHAND which restart only when you want to.
-- */
--#define MAX_SELECT_SECONDS \
--	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
--#define ROUND_UP_TIME(x,y) (((x)+(y)-1)/(y))
--
--asmlinkage long
--sys32_select(int n, fd_set *inp, fd_set *outp, fd_set *exp, struct compat_timeval *tvp32)
--{
--	fd_set_bits fds;
--	char *bits;
--	long timeout;
--	int ret, size;
--
--	timeout = MAX_SCHEDULE_TIMEOUT;
--	if (tvp32) {
--		time_t sec, usec;
--
--		get_user(sec, &tvp32->tv_sec);
--		get_user(usec, &tvp32->tv_usec);
--
--		ret = -EINVAL;
--		if (sec < 0 || usec < 0)
--			goto out_nofds;
--
--		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
--			timeout = ROUND_UP_TIME(usec, 1000000/HZ);
--			timeout += sec * (unsigned long) HZ;
--		}
--	}
--
--	ret = -EINVAL;
--	if (n < 0)
--		goto out_nofds;
--
--	if (n > current->files->max_fdset)
--		n = current->files->max_fdset;
--
--	/*
--	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
--	 * since we used fdset we need to allocate memory in units of
--	 * long-words. 
--	 */
--	ret = -ENOMEM;
--	size = FDS_BYTES(n);
--	bits = kmalloc(6 * size, GFP_KERNEL);
--	if (!bits)
--		goto out_nofds;
--	fds.in      = (unsigned long *)  bits;
--	fds.out     = (unsigned long *) (bits +   size);
--	fds.ex      = (unsigned long *) (bits + 2*size);
--	fds.res_in  = (unsigned long *) (bits + 3*size);
--	fds.res_out = (unsigned long *) (bits + 4*size);
--	fds.res_ex  = (unsigned long *) (bits + 5*size);
--
--	if ((ret = get_fd_set(n, inp, fds.in)) ||
--	    (ret = get_fd_set(n, outp, fds.out)) ||
--	    (ret = get_fd_set(n, exp, fds.ex)))
--		goto out;
--	zero_fd_set(n, fds.res_in);
--	zero_fd_set(n, fds.res_out);
--	zero_fd_set(n, fds.res_ex);
--
--	ret = do_select(n, &fds, &timeout);
--
--	if (tvp32 && !(current->personality & STICKY_TIMEOUTS)) {
--		time_t sec = 0, usec = 0;
--		if (timeout) {
--			sec = timeout / HZ;
--			usec = timeout % HZ;
--			usec *= (1000000/HZ);
--		}
--		put_user(sec, (int *)&tvp32->tv_sec);
--		put_user(usec, (int *)&tvp32->tv_usec);
--	}
--
--	if (ret < 0)
--		goto out;
--	if (!ret) {
--		ret = -ERESTARTNOHAND;
--		if (signal_pending(current))
--			goto out;
--		ret = 0;
--	}
--
--	set_fd_set(n, inp, fds.res_in);
--	set_fd_set(n, outp, fds.res_out);
--	set_fd_set(n, exp, fds.res_ex);
--
--out:
--	kfree(bits);
--out_nofds:
--	return ret;
--}
--
- struct sel_arg_struct {
- 	unsigned int n;
- 	unsigned int inp;
-@@ -722,8 +621,8 @@
- 
- 	if (copy_from_user(&a, arg, sizeof(a)))
- 		return -EFAULT;
--	return sys32_select(a.n, (fd_set *)A(a.inp), (fd_set *)A(a.outp), (fd_set *)A(a.exp),
--			    (struct compat_timeval *)A(a.tvp));
-+	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
-+				 compat_ptr(a.exp), compat_ptr(a.tvp));
+Tested with LTP and more 32 bit binaries on x86_64, which previously
+used an implementation derived from ia64. The consolidated version
+is larger than that but should perform better.
+
+===== arch/mips/kernel/linux32.c 1.23 vs edited =====
+--- 1.23/arch/mips/kernel/linux32.c	Sat Apr  3 21:51:49 2004
++++ edited/arch/mips/kernel/linux32.c	Sat Apr  3 21:20:39 2004
+@@ -142,228 +142,6 @@
  }
  
  /*
-===== fs/compat.c 1.24 vs edited =====
---- 1.24/fs/compat.c	Sat Apr  3 23:01:36 2004
-+++ edited/fs/compat.c	Sat Apr  3 21:51:59 2004
-@@ -1213,3 +1213,190 @@
- 	return retval;
+- * count32() counts the number of arguments/envelopes
+- */
+-static int count32(u32 * argv, int max)
+-{
+-	int i = 0;
+-
+-	if (argv != NULL) {
+-		for (;;) {
+-			u32 p; int error;
+-
+-			error = get_user(p,argv);
+-			if (error)
+-				return error;
+-			if (!p)
+-				break;
+-			argv++;
+-			if (++i > max)
+-				return -E2BIG;
+-		}
+-	}
+-	return i;
+-}
+-
+-
+-/*
+- * 'copy_strings32()' copies argument/envelope strings from user
+- * memory to free pages in kernel mem. These are in a format ready
+- * to be put directly into the top of new user memory.
+- */
+-int copy_strings32(int argc, u32 * argv, struct linux_binprm *bprm)
+-{
+-	struct page *kmapped_page = NULL;
+-	char *kaddr = NULL;
+-	int ret;
+-
+-	while (argc-- > 0) {
+-		u32 str;
+-		int len;
+-		unsigned long pos;
+-
+-		if (get_user(str, argv+argc) || !str ||
+-		     !(len = strnlen_user((char *)A(str), bprm->p))) {
+-			ret = -EFAULT;
+-			goto out;
+-		}
+-
+-		if (bprm->p < len)  {
+-			ret = -E2BIG;
+-			goto out;
+-		}
+-
+-		bprm->p -= len;
+-		/* XXX: add architecture specific overflow check here. */
+-
+-		pos = bprm->p;
+-		while (len > 0) {
+-			int i, new, err;
+-			int offset, bytes_to_copy;
+-			struct page *page;
+-
+-			offset = pos % PAGE_SIZE;
+-			i = pos/PAGE_SIZE;
+-			page = bprm->page[i];
+-			new = 0;
+-			if (!page) {
+-				page = alloc_page(GFP_HIGHUSER);
+-				bprm->page[i] = page;
+-				if (!page) {
+-					ret = -ENOMEM;
+-					goto out;
+-				}
+-				new = 1;
+-			}
+-
+-			if (page != kmapped_page) {
+-				if (kmapped_page)
+-					kunmap(kmapped_page);
+-				kmapped_page = page;
+-				kaddr = kmap(kmapped_page);
+-			}
+-			if (new && offset)
+-				memset(kaddr, 0, offset);
+-			bytes_to_copy = PAGE_SIZE - offset;
+-			if (bytes_to_copy > len) {
+-				bytes_to_copy = len;
+-				if (new)
+-					memset(kaddr+offset+len, 0,
+-					       PAGE_SIZE-offset-len);
+-			}
+-			err = copy_from_user(kaddr + offset, (char *)A(str),
+-			                     bytes_to_copy);
+-			if (err) {
+-				ret = -EFAULT;
+-				goto out;
+-			}
+-
+-			pos += bytes_to_copy;
+-			str += bytes_to_copy;
+-			len -= bytes_to_copy;
+-		}
+-	}
+-	ret = 0;
+-out:
+-	if (kmapped_page)
+-		kunmap(kmapped_page);
+-	return ret;
+-}
+-
+-#ifdef CONFIG_MMU
+-
+-#define free_arg_pages(bprm) do { } while (0)
+-
+-#else
+-
+-static inline void free_arg_pages(struct linux_binprm *bprm)
+-{
+-	int i;
+-
+-	for (i = 0; i < MAX_ARG_PAGES; i++) {
+-		if (bprm->page[i])
+-			__free_page(bprm->page[i]);
+-		bprm->page[i] = NULL;
+-	}
+-}
+-
+-#endif /* CONFIG_MMU */
+-
+-/*
+- * sys32_execve() executes a new program.
+- */
+-static inline int 
+-do_execve32(char * filename, u32 * argv, u32 * envp, struct pt_regs * regs)
+-{
+-	struct linux_binprm bprm;
+-	struct file * file;
+-	int retval;
+-
+-	sched_balance_exec();
+-
+-	file = open_exec(filename);
+-
+-	retval = PTR_ERR(file);
+-	if (IS_ERR(file))
+-		return retval;
+-
+-	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
+-	memset(bprm.page, 0, MAX_ARG_PAGES * sizeof(bprm.page[0]));
+-
+-	bprm.file = file;
+-	bprm.filename = filename;
+-	bprm.interp = filename;
+-	bprm.sh_bang = 0;
+-	bprm.loader = 0;
+-	bprm.exec = 0;
+-	bprm.security = NULL;
+-	bprm.mm = mm_alloc();
+-	retval = -ENOMEM;
+-	if (!bprm.mm) 
+-		goto out_file;
+-
+-	retval = init_new_context(current, bprm.mm);
+-	if (retval < 0)
+-		goto out_mm;
+-
+-	bprm.argc = count32(argv, bprm.p / sizeof(u32));
+-	if ((retval = bprm.argc) < 0)
+-		goto out_mm;
+-
+-	bprm.envc = count32(envp, bprm.p / sizeof(u32));
+-	if ((retval = bprm.envc) < 0)
+-		goto out_mm;
+-
+-	retval = security_bprm_alloc(&bprm);
+-	if (retval)
+-		goto out;
+-
+-	retval = prepare_binprm(&bprm);
+-	if (retval < 0)
+-		goto out;
+-	
+-	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	bprm.exec = bprm.p;
+-	retval = copy_strings32(bprm.envc, envp, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	retval = copy_strings32(bprm.argc, argv, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	retval = search_binary_handler(&bprm, regs);
+-	if (retval >= 0) {
+-		free_arg_pages(&bprm);
+-
+-		/* execve success */
+-		security_bprm_free(&bprm);
+-		return retval;
+-	}
+-
+-out:
+-	/* Something went wrong, return the inode and free the argument pages*/
+-	free_arg_pages(&bprm);
+-
+-	if (bprm.security)
+-		security_bprm_free(&bprm);
+-
+-out_mm:
+-	if (bprm.mm)
+-		mmdrop(bprm.mm);
+-
+-out_file:
+-	if (bprm.file) {
+-		allow_write_access(bprm.file);
+-		fput(bprm.file);
+-	}
+-	return retval;
+-}
+-
+-/*
+  * sys_execve() executes a new program.
+  */
+ asmlinkage int sys32_execve(nabi_no_regargs struct pt_regs regs)
+@@ -371,12 +149,12 @@
+ 	int error;
+ 	char * filename;
+ 
+-	filename = getname((char *) (long)regs.regs[4]);
++	filename = getname(compat_ptr(regs.regs[4]));
+ 	error = PTR_ERR(filename);
+ 	if (IS_ERR(filename))
+ 		goto out;
+-	error = do_execve32(filename, (u32 *) (long)regs.regs[5],
+-	                  (u32 *) (long)regs.regs[6], &regs);
++	error = compat_do_execve(filename, compat_ptr(regs.regs[5]),
++				 compat_ptr(regs.regs[6]), &regs);
+ 	putname(filename);
+ 
+ out:
+===== arch/parisc/kernel/sys_parisc32.c 1.25 vs edited =====
+--- 1.25/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 21:51:49 2004
++++ edited/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 21:16:03 2004
+@@ -65,189 +65,6 @@
+ #endif
+ 
+ /*
+- * count32() counts the number of arguments/envelopes. It is basically
+- *           a copy of count() from fs/exec.c, except that it works
+- *           with 32 bit argv and envp pointers.
+- */
+-
+-static int count32(u32 *argv, int max)
+-{
+-	int i = 0;
+-
+-	if (argv != NULL) {
+-		for (;;) {
+-			u32 p;
+-			int error;
+-
+-			error = get_user(p,argv);
+-			if (error)
+-				return error;
+-			if (!p)
+-				break;
+-			argv++;
+-			if(++i > max)
+-				return -E2BIG;
+-		}
+-	}
+-	return i;
+-}
+-
+-
+-/*
+- * copy_strings32() is basically a copy of copy_strings() from fs/exec.c
+- *                  except that it works with 32 bit argv and envp pointers.
+- */
+-
+-
+-static int copy_strings32(int argc, u32 *argv, struct linux_binprm *bprm)
+-{
+-	while (argc-- > 0) {
+-		u32 str;
+-		int len;
+-		unsigned long pos;
+-
+-		if (get_user(str, argv + argc) ||
+-		    !str ||
+-		    !(len = strnlen_user((char *)compat_ptr(str), bprm->p)))
+-			return -EFAULT;
+-
+-		if (bprm->p < len) 
+-			return -E2BIG; 
+-
+-		bprm->p -= len;
+-
+-		pos = bprm->p;
+-		while (len > 0) {
+-			char *kaddr;
+-			int i, new, err;
+-			struct page *page;
+-			int offset, bytes_to_copy;
+-
+-			offset = pos % PAGE_SIZE;
+-			i = pos/PAGE_SIZE;
+-			page = bprm->page[i];
+-			new = 0;
+-			if (!page) {
+-				page = alloc_page(GFP_HIGHUSER);
+-				bprm->page[i] = page;
+-				if (!page)
+-					return -ENOMEM;
+-				new = 1;
+-			}
+-			kaddr = (char *)kmap(page);
+-
+-			if (new && offset)
+-				memset(kaddr, 0, offset);
+-			bytes_to_copy = PAGE_SIZE - offset;
+-			if (bytes_to_copy > len) {
+-				bytes_to_copy = len;
+-				if (new)
+-					memset(kaddr+offset+len, 0, PAGE_SIZE-offset-len);
+-			}
+-			err = copy_from_user(kaddr + offset, (char *)compat_ptr(str), bytes_to_copy);
+-			flush_dcache_page(page);
+-			kunmap(page);
+-
+-			if (err)
+-				return -EFAULT; 
+-
+-			pos += bytes_to_copy;
+-			str += bytes_to_copy;
+-			len -= bytes_to_copy;
+-		}
+-	}
+-	return 0;
+-}
+-
+-/*
+- * do_execve32() is mostly a copy of do_execve(), with the exception
+- * that it processes 32 bit argv and envp pointers.
+- */
+-
+-static inline int 
+-do_execve32(char * filename, u32 * argv, u32 * envp, struct pt_regs * regs)
+-{
+-	struct linux_binprm bprm;
+-	struct file *file;
+-	int retval;
+-	int i;
+-
+-	file = open_exec(filename);
+-
+-	retval = PTR_ERR(file);
+-	if (IS_ERR(file))
+-		return retval;
+-
+-	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
+-	memset(bprm.page, 0, MAX_ARG_PAGES*sizeof(bprm.page[0]));
+-
+-	DBG(("do_execve32(%s, %p, %p, %p)\n", filename, argv, envp, regs));
+-
+-	bprm.file = file;
+-	bprm.filename = filename;
+-	bprm.interp = filename;
+-	bprm.sh_bang = 0;
+-	bprm.loader = 0;
+-	bprm.exec = 0;
+-
+-	bprm.mm = mm_alloc();
+-	retval = -ENOMEM;
+-	if (!bprm.mm)
+-		goto out_file;
+-
+-	retval = init_new_context(current, bprm.mm);
+-	if (retval < 0)
+-		goto out_mm;
+-
+-	if ((bprm.argc = count32(argv, bprm.p / sizeof(u32))) < 0) 
+-		goto out_mm;
+-
+-	if ((bprm.envc = count32(envp, bprm.p / sizeof(u32))) < 0) 
+-		goto out_mm;
+-
+-	retval = prepare_binprm(&bprm);
+-	if (retval < 0)
+-		goto out;
+-	
+-	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	bprm.exec = bprm.p;
+-	retval = copy_strings32(bprm.envc, envp, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	retval = copy_strings32(bprm.argc, argv, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	retval = search_binary_handler(&bprm,regs);
+-	if (retval >= 0)
+-		/* execve success */
+-		return retval;
+-
+-out:
+-	/* Something went wrong, return the inode and free the argument pages*/
+-	for (i = 0; i < MAX_ARG_PAGES; i++) {
+-		struct page *page = bprm.page[i];
+-		if (page)
+-			__free_page(page);
+-	}
+-
+-out_mm:
+-	mmdrop(bprm.mm);
+-
+-out_file:
+-	if (bprm.file) {
+-		allow_write_access(bprm.file);
+-		fput(bprm.file);
+-	}
+-
+-	return retval;
+-}
+-
+-/*
+  * sys32_execve() executes a new program.
+  */
+ 
+@@ -261,8 +78,8 @@
+ 	error = PTR_ERR(filename);
+ 	if (IS_ERR(filename))
+ 		goto out;
+-	error = do_execve32(filename, (u32 *) regs->gr[25],
+-		(u32 *) regs->gr[24], regs);
++	error = compat_do_execve(filename, compat_ptr(regs->gr[25]),
++				 compat_ptr(regs->gr[24]), regs);
+ 	if (error == 0)
+ 		current->ptrace &= ~PT_DTRACE;
+ 	putname(filename);
+===== arch/ppc64/kernel/sys_ppc32.c 1.87 vs edited =====
+--- 1.87/arch/ppc64/kernel/sys_ppc32.c	Sat Apr  3 21:51:49 2004
++++ edited/arch/ppc64/kernel/sys_ppc32.c	Sat Apr  3 21:16:41 2004
+@@ -1549,191 +1549,6 @@
+ 	return ret;
  }
- #endif /* !__ia64__ */
+ 
+-/*
+- * count32() counts the number of arguments/envelopes
+- */
+-static int count32(u32 * argv, int max)
+-{
+-	int i = 0;
+-
+-	if (argv != NULL) {
+-		for (;;) {
+-			u32 p; int error;
+-
+-			error = get_user(p,argv);
+-			if (error)
+-				return error;
+-			if (!p)
+-				break;
+-			argv++;
+-			if (++i > max)
+-				return -E2BIG;
+-		}
+-	}
+-	return i;
+-}
+-
+-/*
+- * 'copy_string32()' copies argument/envelope strings from user
+- * memory to free pages in kernel mem. These are in a format ready
+- * to be put directly into the top of new user memory.
+- */
+-static int copy_strings32(int argc, u32 * argv, struct linux_binprm *bprm)
+-{
+-	while (argc-- > 0) {
+-		u32 str;
+-		int len;
+-		unsigned long pos;
+-
+-		if (get_user(str, argv + argc) ||
+-		    !str ||
+-		    !(len = strnlen_user((char *)A(str), bprm->p)))
+-			return -EFAULT;
+-
+-		if (bprm->p < len)
+-			return -E2BIG;
+-
+-		bprm->p -= len;
+-
+-		pos = bprm->p;
+-		while (len) {
+-			char *kaddr;
+-			struct page *page;
+-			int offset, bytes_to_copy, new, err;
+-
+-			offset = pos % PAGE_SIZE;
+-			page = bprm->page[pos / PAGE_SIZE];
+-			new = 0;
+-			if (!page) {
+-				page = alloc_page(GFP_USER);
+-				bprm->page[pos / PAGE_SIZE] = page;
+-				if (!page)
+-					return -ENOMEM;
+-				new = 1;
+-			}
+-			kaddr = (char *)kmap(page);
+-
+-			if (new && offset)
+-				memset(kaddr, 0, offset);
+-			bytes_to_copy = PAGE_SIZE - offset;
+-			if (bytes_to_copy > len) {
+-				bytes_to_copy = len;
+-				if (new)
+-					memset(kaddr+offset+len, 0,
+-					       PAGE_SIZE-offset-len);
+-			}
+-
+-			err = copy_from_user(kaddr + offset, (char *)A(str),
+-					     bytes_to_copy);
+-			kunmap((unsigned long)kaddr);
+-
+-			if (err)
+-				return -EFAULT;
+-
+-			pos += bytes_to_copy;
+-			str += bytes_to_copy;
+-			len -= bytes_to_copy;
+-		}
+-	}
+-	return 0;
+-}
+-
+-/*
+- * sys32_execve() executes a new program.
+- */
+-static int do_execve32(char * filename, u32 * argv, u32 * envp, struct pt_regs * regs)
+-{
+-	struct linux_binprm bprm;
+-	struct file * file;
+-	int retval;
+-	int i;
+-
+-	sched_balance_exec();
+-
+-	file = open_exec(filename);
+-
+-	retval = PTR_ERR(file);
+-	if (IS_ERR(file))
+-		return retval;
+-
+-	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
+-	memset(bprm.page, 0, MAX_ARG_PAGES * sizeof(bprm.page[0]));
+-
+-	bprm.file = file;
+-	bprm.filename = filename;
+-	bprm.interp = filename;
+-	bprm.sh_bang = 0;
+-	bprm.loader = 0;
+-	bprm.exec = 0;
+-	bprm.security = NULL;
+-	bprm.mm = mm_alloc();
+-	retval = -ENOMEM;
+-	if (!bprm.mm)
+-		goto out_file;
+-
+-	retval = init_new_context(current, bprm.mm);
+-	if (retval < 0)
+-		goto out_mm;
+-
+-	bprm.argc = count32(argv, bprm.p / sizeof(u32));
+-	if ((retval = bprm.argc) < 0)
+-		goto out_mm;
+-
+-	bprm.envc = count32(envp, bprm.p / sizeof(u32));
+-	if ((retval = bprm.envc) < 0)
+-		goto out_mm;
+-
+-	retval = security_bprm_alloc(&bprm);
+-	if (retval)
+-		goto out;
+-
+-	retval = prepare_binprm(&bprm);
+-	if (retval < 0) 
+-		goto out; 
+-
+-	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
+-	if (retval < 0) 
+-		goto out; 
+-
+-	bprm.exec = bprm.p;
+-	retval = copy_strings32(bprm.envc, envp, &bprm);
+-	if (retval < 0) 
+-		goto out; 
+-
+-	retval = copy_strings32(bprm.argc, argv, &bprm);
+-	if (retval < 0) 
+-		goto out; 
+-
+-	retval = search_binary_handler(&bprm,regs);
+-	if (retval >= 0) {
+-		/* execve success */
+-		security_bprm_free(&bprm);
+-		return retval;
+-	}
+-
+-out:
+-	/* Something went wrong, return the inode and free the argument pages*/
+-	for (i = 0 ; i < MAX_ARG_PAGES ; i++) {
+-		struct page * page = bprm.page[i];
+-		if (page)
+-			__free_page(page);
+-	}
+-
+-	if (bprm.security)
+-		security_bprm_free(&bprm);
+-
+-out_mm:
+-	if (bprm.mm)
+-		mmdrop(bprm.mm);
+-
+-out_file:
+-	if (bprm.file) {
+-		allow_write_access(bprm.file);
+-		fput(bprm.file);
+-	}
+-	return retval;
+-}
+-
+ long sys32_execve(unsigned long a0, unsigned long a1, unsigned long a2,
+ 		  unsigned long a3, unsigned long a4, unsigned long a5,
+ 		  struct pt_regs *regs)
+@@ -1752,7 +1567,7 @@
+ 		giveup_altivec(current);
+ #endif /* CONFIG_ALTIVEC */
+ 
+-	error = do_execve32(filename, (u32*) a1, (u32*) a2, regs);
++	error = compat_do_execve(filename, compat_ptr(a1), compat_ptr(a2), regs);
+ 
+ 	if (error == 0)
+ 		current->ptrace &= ~PT_DTRACE;
+===== arch/s390/kernel/compat_linux.c 1.20 vs edited =====
+--- 1.20/arch/s390/kernel/compat_linux.c	Sat Apr  3 21:51:49 2004
++++ edited/arch/s390/kernel/compat_linux.c	Sat Apr  3 21:17:59 2004
+@@ -906,188 +906,6 @@
+ 	return ret;
+ }
+ 
+-extern void check_pending(int signum);
+-
+-/*
+- * count32() counts the number of arguments/envelopes
+- */
+-static int count32(u32 * argv)
+-{
+-	int i = 0;
+-
+-	if (argv != NULL) {
+-		for (;;) {
+-			u32 p; int error;
+-
+-			error = get_user(p,argv);
+-			if (error) return error;
+-			if (!p) break;
+-			argv++; i++;
+-		}
+-	}
+-	return i;
+-}
+-
+-/*
+- * 'copy_string32()' copies argument/envelope strings from user
+- * memory to free pages in kernel mem. These are in a format ready
+- * to be put directly into the top of new user memory.
+- */
+-static int copy_strings32(int argc, u32 * argv, struct linux_binprm *bprm)
+-{
+-	while (argc-- > 0) {
+-		u32 str;
+-		int len;
+-		unsigned long pos;
+-
+-		if (get_user(str, argv + argc) ||
+-		    !str ||
+-		    !(len = strnlen_user((char *)A(str), bprm->p)))
+-			return -EFAULT;
+-
+-		if (bprm->p < len)
+-			return -E2BIG;
+-
+-		bprm->p -= len;
+-
+-		pos = bprm->p;
+-		while (len) {
+-			char *kaddr;
+-			struct page *page;
+-			int offset, bytes_to_copy, new, err;
+-
+-			offset = pos % PAGE_SIZE;
+-			page = bprm->page[pos / PAGE_SIZE];
+-			new = 0;
+-			if (!page) {
+-				page = alloc_page(GFP_USER);
+-				bprm->page[pos / PAGE_SIZE] = page;
+-				if (!page)
+-					return -ENOMEM;
+-				new = 1;
+-			}
+-			kaddr = (char *)kmap(page);
+-
+-			if (new && offset)
+-				memset(kaddr, 0, offset);
+-			bytes_to_copy = PAGE_SIZE - offset;
+-			if (bytes_to_copy > len) {
+-				bytes_to_copy = len;
+-				if (new)
+-					memset(kaddr+offset+len, 0,
+-					       PAGE_SIZE-offset-len);
+-			}
+-
+-			err = copy_from_user(kaddr + offset, (char *)A(str),
+-					     bytes_to_copy);
+-			kunmap(page);
+-
+-			if (err)
+-				return -EFAULT;
+-
+-			pos += bytes_to_copy;
+-			str += bytes_to_copy;
+-			len -= bytes_to_copy;
+-		}
+-	}
+-	return 0;
+-}
+-
+-/*
+- * sys32_execve() executes a new program.
+- */
+-static inline int 
+-do_execve32(char * filename, u32 * argv, u32 * envp, struct pt_regs * regs)
+-{
+-	struct linux_binprm bprm;
+-	struct file * file;
+-	int retval;
+-	int i;
+-
+-	sched_balance_exec();
+-
+-	file = open_exec(filename);
+-
+-	retval = PTR_ERR(file);
+-	if (IS_ERR(file))
+-		return retval;
+-
+-	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
+-	memset(bprm.page, 0, MAX_ARG_PAGES * sizeof(bprm.page[0]));
+-
+-	bprm.file = file;
+-	bprm.filename = filename;
+-	bprm.interp = filename;
+-	bprm.sh_bang = 0;
+-	bprm.loader = 0;
+-	bprm.exec = 0;
+-	bprm.mm = mm_alloc();
+-	retval = -ENOMEM;
+-	if (!bprm.mm)
+-		goto out_file;
+-
+-	/* init_new_context is empty for s390x. */
+-
+-	bprm.argc = count32(argv);
+-	if ((retval = bprm.argc) < 0)
+-		goto out_mm;
+-
+-	bprm.envc = count32(envp);
+-	if ((retval = bprm.envc) < 0)
+-		goto out_mm;
+-
+-	retval = security_bprm_alloc(&bprm);
+-	if (retval)
+-		goto out;
+-
+-	retval = prepare_binprm(&bprm);
+-	if (retval < 0)
+-		goto out;
+-	
+-	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	bprm.exec = bprm.p;
+-	retval = copy_strings32(bprm.envc, envp, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	retval = copy_strings32(bprm.argc, argv, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	retval = search_binary_handler(&bprm, regs);
+-	if (retval >= 0) {
+-		/* execve success */
+-		security_bprm_free(&bprm);
+-		return retval;
+-	}
+-
+-out:
+-	/* Something went wrong, return the inode and free the argument pages*/
+-	for (i=0 ; i<MAX_ARG_PAGES ; i++) {
+-		struct page * page = bprm.page[i];
+-		if (page)
+-			__free_page(page);
+-	}
+-
+-	if (bprm.security)
+-		security_bprm_free(&bprm);
+-
+-out_mm:
+-	if (bprm.mm)
+-		mmdrop(bprm.mm);
+-
+-out_file:
+-	if (bprm.file) {
+-		allow_write_access(bprm.file);
+-		fput(bprm.file);
+-	}
+-
+-	return retval;
+-}
+-
+ /*
+  * sys32_execve() executes a new program after the asm stub has set
+  * things up for us.  This should basically do what I want it to.
+@@ -1098,11 +916,12 @@
+         int error;
+         char * filename;
+ 
+-        filename = getname((char *)A(regs.orig_gpr2));
++        filename = getname(compat_ptr(regs.orig_gpr2));
+         error = PTR_ERR(filename);
+         if (IS_ERR(filename))
+                 goto out;
+-        error = do_execve32(filename, (u32 *)A(regs.gprs[3]), (u32 *)A(regs.gprs[4]), &regs);
++        error = compat_do_execve(filename, compat_ptr(regs.gprs[3]),
++				 compat_ptr(regs.gprs[4]), &regs);
+ 	if (error == 0)
+ 	{
+ 		current->ptrace &= ~PT_DTRACE;
+===== arch/sparc64/kernel/sys_sparc32.c 1.96 vs edited =====
+--- 1.96/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 21:51:49 2004
++++ edited/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 21:19:17 2004
+@@ -1386,8 +1386,6 @@
+ 	return ret;
+ }
+ 
+-extern void check_pending(int signum);
+-
+ asmlinkage int sys32_sigaction (int sig, struct old_sigaction32 *act, struct old_sigaction32 *oact)
+ {
+         struct k_sigaction new_ka, old_ka;
+@@ -1483,193 +1481,6 @@
+         return ret;
+ }
+ 
+-
+-/*
+- * count32() counts the number of arguments/envelopes
+- */
+-static int count32(u32 * argv, int max)
+-{
+-	int i = 0;
+-
+-	if (argv != NULL) {
+-		for (;;) {
+-			u32 p; int error;
+-
+-			error = get_user(p,argv);
+-			if (error)
+-				return error;
+-			if (!p)
+-				break;
+-			argv++;
+-			if (++i > max)
+-				return -E2BIG;
+-		}
+-	}
+-	return i;
+-}
+-
+-/*
+- * 'copy_string32()' copies argument/envelope strings from user
+- * memory to free pages in kernel mem. These are in a format ready
+- * to be put directly into the top of new user memory.
+- */
+-static int copy_strings32(int argc, u32 * argv, struct linux_binprm *bprm)
+-{
+-	while (argc-- > 0) {
+-		u32 str;
+-		int len;
+-		unsigned long pos;
+-
+-		if (get_user(str, argv + argc) ||
+-		    !str ||
+-		    !(len = strnlen_user((char *)A(str), bprm->p)))
+-			return -EFAULT;
+-
+-		if (bprm->p < len)
+-			return -E2BIG;
+-
+-		bprm->p -= len;
+-
+-		pos = bprm->p;
+-		while (len) {
+-			char *kaddr;
+-			struct page *page;
+-			int offset, bytes_to_copy, new, err;
+-
+-			offset = pos % PAGE_SIZE;
+-			page = bprm->page[pos / PAGE_SIZE];
+-			new = 0;
+-			if (!page) {
+-				page = alloc_page(GFP_USER);
+-				bprm->page[pos / PAGE_SIZE] = page;
+-				if (!page)
+-					return -ENOMEM;
+-				new = 1;
+-			}
+-			kaddr = kmap(page);
+-
+-			if (new && offset)
+-				memset(kaddr, 0, offset);
+-			bytes_to_copy = PAGE_SIZE - offset;
+-			if (bytes_to_copy > len) {
+-				bytes_to_copy = len;
+-				if (new)
+-					memset(kaddr+offset+len, 0,
+-					       PAGE_SIZE-offset-len);
+-			}
+-
+-			err = copy_from_user(kaddr + offset, (char *)A(str),
+-					     bytes_to_copy);
+-			kunmap(page);
+-
+-			if (err)
+-				return -EFAULT;
+-
+-			pos += bytes_to_copy;
+-			str += bytes_to_copy;
+-			len -= bytes_to_copy;
+-		}
+-	}
+-	return 0;
+-}
+-
+-/*
+- * sys32_execve() executes a new program.
+- */
+-static inline int 
+-do_execve32(char * filename, u32 * argv, u32 * envp, struct pt_regs * regs)
+-{
+-	struct linux_binprm bprm;
+-	struct file * file;
+-	int retval;
+-	int i;
+-
+-	sched_balance_exec();
+-
+-	file = open_exec(filename);
+-
+-	retval = PTR_ERR(file);
+-	if (IS_ERR(file))
+-		return retval;
+-
+-	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
+-	memset(bprm.page, 0, MAX_ARG_PAGES * sizeof(bprm.page[0]));
+-
+-	bprm.file = file;
+-	bprm.filename = filename;
+-	bprm.interp = filename;
+-	bprm.sh_bang = 0;
+-	bprm.loader = 0;
+-	bprm.exec = 0;
+-	bprm.security = NULL;
+-	bprm.mm = mm_alloc();
+-	retval = -ENOMEM;
+-	if (!bprm.mm) 
+-		goto out_file;
+-
+-	retval = init_new_context(current, bprm.mm);
+-	if (retval < 0)
+-		goto out_mm;
+-
+-	bprm.argc = count32(argv, bprm.p / sizeof(u32));
+-	if ((retval = bprm.argc) < 0)
+-		goto out_mm;
+-
+-	bprm.envc = count32(envp, bprm.p / sizeof(u32));
+-	if ((retval = bprm.envc) < 0)
+-		goto out_mm;
+-
+-	retval = security_bprm_alloc(&bprm);
+-	if (retval)
+-		goto out;
+-
+-	retval = prepare_binprm(&bprm);
+-	if (retval < 0)
+-		goto out;
+-	
+-	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	bprm.exec = bprm.p;
+-	retval = copy_strings32(bprm.envc, envp, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	retval = copy_strings32(bprm.argc, argv, &bprm);
+-	if (retval < 0)
+-		goto out;
+-
+-	retval = search_binary_handler(&bprm, regs);
+-	if (retval >= 0) {
+-		/* execve success */
+-		security_bprm_free(&bprm);
+-		return retval;
+-	}
+-
+-out:
+-	/* Something went wrong, return the inode and free the argument pages*/
+-	for (i = 0 ; i < MAX_ARG_PAGES ; i++) {
+-		struct page * page = bprm.page[i];
+-		if (page)
+-			__free_page(page);
+-	}
+-
+-	if (bprm.security)
+-		security_bprm_free(&bprm);
+-
+-out_mm:
+-	if (bprm.mm)
+-		mmdrop(bprm.mm);
+-
+-out_file:
+-	if (bprm.file) {
+-		allow_write_access(bprm.file);
+-		fput(bprm.file);
+-	}
+-	return retval;
+-}
+-
+ /*
+  * sparc32_execve() executes a new program after the asm stub has set
+  * things up for us.  This should basically do what I want it to.
+@@ -1689,9 +1500,9 @@
+ 	error = PTR_ERR(filename);
+         if(IS_ERR(filename))
+                 goto out;
+-        error = do_execve32(filename,
+-        	(u32 *)AA((u32)regs->u_regs[base + UREG_I1]),
+-        	(u32 *)AA((u32)regs->u_regs[base + UREG_I2]), regs);
++        error = compat_do_execve(filename,
++        	compat_ptr((u32)regs->u_regs[base + UREG_I1]),
++        	compat_ptr((u32)regs->u_regs[base + UREG_I2]), regs);
+         putname(filename);
+ 
+ 	if(!error) {
+===== arch/x86_64/ia32/sys_ia32.c 1.57 vs edited =====
+--- 1.57/arch/x86_64/ia32/sys_ia32.c	Sat Apr  3 21:51:49 2004
++++ edited/arch/x86_64/ia32/sys_ia32.c	Sat Apr  3 20:53:02 2004
+@@ -1224,93 +1224,22 @@
+ 	return ret;
+ } 
+ 
+-static int nargs(u32 src, char **dst) 
+-{ 
+-	int cnt;
+-	u32 val; 
+-
+-	cnt = 0; 
+-	do { 		
+-		int ret = get_user(val, (__u32 *)(u64)src); 
+-		if (ret)
+-			return ret;
+-		if (dst)
+-			dst[cnt] = (char *)(u64)val; 
+-		cnt++;
+-		src += 4; 	
+-		if (cnt >= (MAX_ARG_PAGES*PAGE_SIZE)/sizeof(void*))
+-			return -E2BIG; 
+-	} while(val); 
+-	if (dst)
+-		dst[cnt-1] = 0; 
+-	return cnt; 
+-} 
+-
+-asmlinkage long sys32_execve(char *name, u32 argv, u32 envp, struct pt_regs regs)
+-{ 
+-	mm_segment_t oldseg; 
+-	char **buf = NULL; 
+-	int na = 0,ne = 0;
+-	int ret;
+-	unsigned sz = 0; 
+-
+-	if (argv) {
+-	na = nargs(argv, NULL); 
+-	if (na < 0) 
+-		return -EFAULT; 
+-	} 	
+-	if (envp) { 
+-	ne = nargs(envp, NULL); 
+-	if (ne < 0) 
+-		return -EFAULT; 
+-	}
+-
+-	if (argv || envp) { 
+-	sz = (na+ne)*sizeof(void *); 
+-	if (sz > PAGE_SIZE) 
+-		buf = vmalloc(sz); 
+-	else
+-		buf = kmalloc(sz, GFP_KERNEL); 
+-	if (!buf)
+-		return -ENOMEM; 
+-	} 
+-	
+-	if (argv) { 
+-	ret = nargs(argv, buf);
+-	if (ret < 0)
+-		goto free;
+-	}
+-
+-	if (envp) { 
+-	ret = nargs(envp, buf + na); 
+-	if (ret < 0)
+-		goto free; 
+-	}
+-
+-	name = getname(name); 
+-	ret = PTR_ERR(name); 
+-	if (IS_ERR(name))
+-		goto free; 
+-
+-	oldseg = get_fs(); 
+-	set_fs(KERNEL_DS);
+-	ret = do_execve(name, argv ? buf : NULL, envp ? buf+na : NULL, &regs);  
+-	set_fs(oldseg); 
+-
+-	if (ret == 0)
++asmlinkage long sys32_execve(char *name, compat_uptr_t __user *argv,
++			     compat_uptr_t __user *envp, struct pt_regs regs)
++{
++	long error;
++	char * filename;
 +
-+#define __COMPAT_NFDBITS       (8 * sizeof(compat_ulong_t))
++	filename = getname(name);
++	error = PTR_ERR(filename);
++	if (IS_ERR(filename)) 
++		return error;
++	error = compat_do_execve(filename, argv, envp, &regs); 
++	if (error == 0)
+ 		current->ptrace &= ~PT_DTRACE;
+-
+-	putname(name);
+- 
+-free:
+-	if (argv || envp) { 
+-	if (sz > PAGE_SIZE)
+-		vfree(buf); 
+-	else
+-	kfree(buf);
+-	}
+-	return ret; 
+-} 
++	putname(filename);
++	return error;
++}
+ 
+ asmlinkage long sys32_clone(unsigned int clone_flags, unsigned int newsp, struct pt_regs regs)
+ {
+===== fs/compat.c 1.23 vs edited =====
+--- 1.23/fs/compat.c	Sat Apr  3 21:51:49 2004
++++ edited/fs/compat.c	Sat Apr  3 21:01:36 2004
+@@ -980,3 +980,236 @@
+ 	fput(file);
+ 	return ret;
+ }
 +
-+#define ROUND_UP(x,y) (((x)+(y)-1)/(y))
++#ifndef __ia64__ /* ia64 needs some extra tweaks */
++/*
++ * compat_count() counts the number of arguments/envelopes. It is basically
++ * a copy of count() from fs/exec.c, except that it works with 32 bit argv
++ * and envp pointers.
++ */
++static int compat_count(compat_uptr_t *argv, int max)
++{
++	int i = 0;
++
++	if (argv != NULL) {
++		for (;;) {
++			compat_uptr_t p;
++
++			if (get_user(p, argv))
++				return -EFAULT;
++			if (!p)
++				break;
++			argv++;
++			if(++i > max)
++				return -E2BIG;
++		}
++	}
++	return i;
++}
 +
 +/*
-+ * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
-+ * 64-bit unsigned longs.
++ * compat_copy_strings() is basically a copy of copy_strings() from fs/exec.c
++ * except that it works with 32 bit argv and envp pointers.
 + */
-+static inline
-+int compat_get_fd_set(unsigned long nr, compat_ulong_t __user *ufdset,
-+			unsigned long *fdset)
++static int compat_copy_strings(int argc, compat_uptr_t __user *argv,
++				struct linux_binprm *bprm)
 +{
-+	nr = ROUND_UP(nr, __COMPAT_NFDBITS);
-+	if (ufdset) {
-+		unsigned long odd;
++	struct page *kmapped_page = NULL;
++	char *kaddr = NULL;
++	int ret;
 +
-+		if (verify_area(VERIFY_WRITE, ufdset, nr*sizeof(compat_ulong_t)))
-+			return -EFAULT;
++	while (argc-- > 0) {
++		compat_uptr_t str;
++		int len;
++		unsigned long pos;
 +
-+		odd = nr & 1UL;
-+		nr &= ~1UL;
-+		while (nr) {
-+			unsigned long h, l;
-+			__get_user(l, ufdset);
-+			__get_user(h, ufdset+1);
-+			ufdset += 2;
-+			*fdset++ = h << 32 | l;
-+			nr -= 2;
-+		}
-+		if (odd)
-+			__get_user(*fdset, ufdset);
-+	} else {
-+		/* Tricky, must clear full unsigned long in the
-+		 * kernel fdset at the end, this makes sure that
-+		 * actually happens.
-+		 */
-+		memset(fdset, 0, ((nr + 1) & ~1)*sizeof(compat_ulong_t));
-+	}
-+	return 0;
-+}
-+
-+static inline
-+void compat_set_fd_set(unsigned long nr, compat_ulong_t __user *ufdset,
-+			unsigned long *fdset)
-+{
-+	unsigned long odd;
-+	nr = ROUND_UP(nr, __COMPAT_NFDBITS);
-+
-+	if (!ufdset)
-+		return;
-+
-+	odd = nr & 1UL;
-+	nr &= ~1UL;
-+	while (nr) {
-+		unsigned long h, l;
-+		l = *fdset++;
-+		h = l >> 32;
-+		__put_user(l, ufdset);
-+		__put_user(h, ufdset+1);
-+		ufdset += 2;
-+		nr -= 2;
-+	}
-+	if (odd)
-+		__put_user(*fdset, ufdset);
-+}
-+
-+
-+/*
-+ * This is a virtual copy of sys_select from fs/select.c and probably
-+ * should be compared to it from time to time
-+ */
-+static void *select_bits_alloc(int size)
-+{
-+	return kmalloc(6 * size, GFP_KERNEL);
-+}
-+
-+static void select_bits_free(void *bits, int size)
-+{
-+	kfree(bits);
-+}
-+
-+/*
-+ * We can actually return ERESTARTSYS instead of EINTR, but I'd
-+ * like to be certain this leads to no problems. So I return
-+ * EINTR just for safety.
-+ *
-+ * Update: ERESTARTSYS breaks at least the xview clock binary, so
-+ * I'm trying ERESTARTNOHAND which restart only when you want to.
-+ */
-+#define MAX_SELECT_SECONDS \
-+	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
-+
-+asmlinkage long
-+compat_sys_select(int n, compat_ulong_t __user *inp, compat_ulong_t __user *outp,
-+		compat_ulong_t __user *exp, struct compat_timeval __user *tvp)
-+{
-+	fd_set_bits fds;
-+	char *bits;
-+	long timeout;
-+	int ret, size, max_fdset;
-+
-+	timeout = MAX_SCHEDULE_TIMEOUT;
-+	if (tvp) {
-+		time_t sec, usec;
-+
-+		if ((ret = verify_area(VERIFY_READ, tvp, sizeof(*tvp)))
-+		    || (ret = __get_user(sec, &tvp->tv_sec))
-+		    || (ret = __get_user(usec, &tvp->tv_usec)))
-+			goto out_nofds;
-+
-+		ret = -EINVAL;
-+		if (sec < 0 || usec < 0)
-+			goto out_nofds;
-+
-+		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
-+			timeout = ROUND_UP(usec, 1000000/HZ);
-+			timeout += sec * (unsigned long) HZ;
-+		}
-+	}
-+
-+	ret = -EINVAL;
-+	if (n < 0)
-+		goto out_nofds;
-+
-+	/* max_fdset can increase, so grab it once to avoid race */
-+	max_fdset = current->files->max_fdset;
-+	if (n > max_fdset)
-+		n = max_fdset;
-+
-+	/*
-+	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
-+	 * since we used fdset we need to allocate memory in units of
-+	 * long-words. 
-+	 */
-+	ret = -ENOMEM;
-+	size = FDS_BYTES(n);
-+	bits = select_bits_alloc(size);
-+	if (!bits)
-+		goto out_nofds;
-+	fds.in      = (unsigned long *)  bits;
-+	fds.out     = (unsigned long *) (bits +   size);
-+	fds.ex      = (unsigned long *) (bits + 2*size);
-+	fds.res_in  = (unsigned long *) (bits + 3*size);
-+	fds.res_out = (unsigned long *) (bits + 4*size);
-+	fds.res_ex  = (unsigned long *) (bits + 5*size);
-+
-+	if ((ret = compat_get_fd_set(n, inp, fds.in)) ||
-+	    (ret = compat_get_fd_set(n, outp, fds.out)) ||
-+	    (ret = compat_get_fd_set(n, exp, fds.ex)))
-+		goto out;
-+	zero_fd_set(n, fds.res_in);
-+	zero_fd_set(n, fds.res_out);
-+	zero_fd_set(n, fds.res_ex);
-+
-+	ret = do_select(n, &fds, &timeout);
-+
-+	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
-+		time_t sec = 0, usec = 0;
-+		if (timeout) {
-+			sec = timeout / HZ;
-+			usec = timeout % HZ;
-+			usec *= (1000000/HZ);
-+		}
-+		ret = __put_user(sec, &tvp->tv_sec);
-+		ret |= __put_user(usec, &tvp->tv_usec);
-+	}
-+
-+	if (ret < 0)
-+		goto out;
-+	if (!ret) {
-+		ret = -ERESTARTNOHAND;
-+		if (signal_pending(current))
++		if (get_user(str, argv+argc) ||
++			!(len = strnlen_user(compat_ptr(str), bprm->p))) {
++			ret = -EFAULT;
 +			goto out;
-+		ret = 0;
++		}
++
++		if (bprm->p < len)  {
++			ret = -E2BIG;
++			goto out;
++		}
++
++		bprm->p -= len;
++		/* XXX: add architecture specific overflow check here. */
++		pos = bprm->p;
++
++		while (len > 0) {
++			int i, new, err;
++			int offset, bytes_to_copy;
++			struct page *page;
++
++			offset = pos % PAGE_SIZE;
++			i = pos/PAGE_SIZE;
++			page = bprm->page[i];
++			new = 0;
++			if (!page) {
++				page = alloc_page(GFP_HIGHUSER);
++				bprm->page[i] = page;
++				if (!page) {
++					ret = -ENOMEM;
++					goto out;
++				}
++				new = 1;
++			}
++
++			if (page != kmapped_page) {
++				if (kmapped_page)
++					kunmap(kmapped_page);
++				kmapped_page = page;
++				kaddr = kmap(kmapped_page);
++			}
++			if (new && offset)
++				memset(kaddr, 0, offset);
++			bytes_to_copy = PAGE_SIZE - offset;
++			if (bytes_to_copy > len) {
++				bytes_to_copy = len;
++				if (new)
++					memset(kaddr+offset+len, 0,
++						PAGE_SIZE-offset-len);
++			}
++			err = copy_from_user(kaddr+offset, compat_ptr(str),
++						bytes_to_copy);
++			if (err) {
++				ret = -EFAULT;
++				goto out;
++			}
++
++			pos += bytes_to_copy;
++			str += bytes_to_copy;
++			len -= bytes_to_copy;
++		}
 +	}
-+
-+	compat_set_fd_set(n, inp, fds.res_in);
-+	compat_set_fd_set(n, outp, fds.res_out);
-+	compat_set_fd_set(n, exp, fds.res_ex);
-+
++	ret = 0;
 +out:
-+	select_bits_free(bits, size);
-+out_nofds:
++	if (kmapped_page)
++		kunmap(kmapped_page);
 +	return ret;
 +}
 +
-===== include/linux/compat.h 1.21 vs edited =====
---- 1.21/include/linux/compat.h	Sat Apr  3 22:43:52 2004
-+++ edited/include/linux/compat.h	Sat Apr  3 22:16:07 2004
-@@ -109,5 +109,9 @@
- int compat_do_execve(char * filename, compat_uptr_t __user *argv,
- 	        compat_uptr_t __user *envp, struct pt_regs * regs);
++#ifdef CONFIG_MMU
++
++#define free_arg_pages(bprm) do { } while (0)
++
++#else
++
++static inline void free_arg_pages(struct linux_binprm *bprm)
++{
++	int i;
++
++	for (i = 0; i < MAX_ARG_PAGES; i++) {
++		if (bprm->page[i])
++			__free_page(bprm->page[i]);
++		bprm->page[i] = NULL;
++	}
++}
++
++#endif /* CONFIG_MMU */
++
++/*
++ * compat_do_execve() is mostly a copy of do_execve(), with the exception
++ * that it processes 32 bit argv and envp pointers.
++ */
++int compat_do_execve(char * filename,
++	compat_uptr_t __user *argv,
++	compat_uptr_t __user *envp,
++	struct pt_regs * regs)
++{
++	struct linux_binprm bprm;
++	struct file *file;
++	int retval;
++	int i;
++
++	sched_balance_exec();
++
++	file = open_exec(filename);
++
++	retval = PTR_ERR(file);
++	if (IS_ERR(file))
++		return retval;
++
++	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
++	memset(bprm.page, 0, MAX_ARG_PAGES*sizeof(bprm.page[0]));
++
++	bprm.file = file;
++	bprm.filename = filename;
++	bprm.interp = filename;
++	bprm.sh_bang = 0;
++	bprm.loader = 0;
++	bprm.exec = 0;
++	bprm.security = NULL;
++	bprm.mm = mm_alloc();
++	retval = -ENOMEM;
++	if (!bprm.mm)
++		goto out_file;
++
++	retval = init_new_context(current, bprm.mm);
++	if (retval < 0)
++		goto out_mm;
++
++	bprm.argc = compat_count(argv, bprm.p / sizeof(compat_uptr_t));
++	if ((retval = bprm.argc) < 0)
++		goto out_mm;
++
++	bprm.envc = compat_count(envp, bprm.p / sizeof(compat_uptr_t));
++	if ((retval = bprm.envc) < 0)
++		goto out_mm;
++
++	retval = security_bprm_alloc(&bprm);
++	if (retval)
++		goto out;
++
++	retval = prepare_binprm(&bprm);
++	if (retval < 0)
++		goto out;
++
++	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
++	if (retval < 0)
++		goto out;
++
++	bprm.exec = bprm.p;
++	retval = compat_copy_strings(bprm.envc, envp, &bprm);
++	if (retval < 0)
++		goto out;
++
++	retval = compat_copy_strings(bprm.argc, argv, &bprm);
++	if (retval < 0)
++		goto out;
++
++	retval = search_binary_handler(&bprm,regs);
++	if (retval >= 0) {
++		free_arg_pages(&bprm);
++
++		/* execve success */
++		security_bprm_free(&bprm);
++		return retval;
++	}
++
++out:
++	/* Something went wrong, return the inode and free the argument pages*/
++	for (i = 0 ; i < MAX_ARG_PAGES ; i++) {
++		struct page * page = bprm.page[i];
++		if (page)
++			__free_page(page);
++	}
++
++	if (bprm.security)
++		security_bprm_free(&bprm);
++
++out_mm:
++	if (bprm.mm)
++		mmdrop(bprm.mm);
++
++out_file:
++	if (bprm.file) {
++		allow_write_access(bprm.file);
++		fput(bprm.file);
++	}
++
++	return retval;
++}
++#endif /* !__ia64__ */
+===== include/linux/compat.h 1.20 vs edited =====
+--- 1.20/include/linux/compat.h	Sat Apr  3 22:03:56 2004
++++ edited/include/linux/compat.h	Sat Apr  3 20:43:52 2004
+@@ -106,5 +106,8 @@
+ asmlinkage ssize_t compat_sys_writev(unsigned long fd,
+ 		const struct compat_iovec __user *vec, unsigned long vlen);
  
-+asmlinkage long compat_sys_select(int n, compat_ulong_t __user *inp,
-+		compat_ulong_t __user *outp, compat_ulong_t __user *exp,
-+		struct compat_timeval __user *tvp);
++int compat_do_execve(char * filename, compat_uptr_t __user *argv,
++	        compat_uptr_t __user *envp, struct pt_regs * regs);
 +
  #endif /* CONFIG_COMPAT */
  #endif /* _LINUX_COMPAT_H */
