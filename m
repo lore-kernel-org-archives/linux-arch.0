@@ -1,29 +1,28 @@
-Return-Path: <rmk+linux-arch=vger.kernel.org@arm.linux.org.uk>
-Received: from caramon.arm.linux.org.uk ([212.18.232.186]:31502 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S264498AbUDTWms (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 20 Apr 2004 18:42:48 -0400
-Date: Tue, 20 Apr 2004 23:42:45 +0100
-From: Russell King <rmk@arm.linux.org.uk>
+Return-Path: <B.Zolnierkiewicz@elka.pw.edu.pl>
+Received: from mion.elka.pw.edu.pl ([194.29.160.35]:50864 "EHLO
+	mion.elka.pw.edu.pl") by vger.kernel.org with ESMTP id S264578AbUDTWxW
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Apr 2004 18:53:22 -0400
+From: Bartlomiej Zolnierkiewicz <B.Zolnierkiewicz@elka.pw.edu.pl>
 Subject: Re: "[PATCH] idr.c: extra features enhancements" breaks some archs
-Message-ID: <20040420234245.G16428@flint.arm.linux.org.uk>
-References: <200404202259.43931.bzolnier@elka.pw.edu.pl> <20040420142947.6501c5c4.akpm@osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Date: Wed, 21 Apr 2004 00:52:39 +0200
+References: <200404202259.43931.bzolnier@elka.pw.edu.pl> <20040420142947.6501c5c4.akpm@osdl.org> <20040420234245.G16428@flint.arm.linux.org.uk>
+In-Reply-To: <20040420234245.G16428@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20040420142947.6501c5c4.akpm@osdl.org>; from akpm@osdl.org on Tue, Apr 20, 2004 at 02:29:47PM -0700
-Sender: Russell King <rmk@arm.linux.org.uk>
-To: Andrew Morton <akpm@osdl.org>
-Cc: Bartlomiej Zolnierkiewicz <B.Zolnierkiewicz@elka.pw.edu.pl>, jim.houston@comcast.net, linux-arch@vger.kernel.org
+Message-Id: <200404210052.39771.bzolnier@elka.pw.edu.pl>
+To: Russell King <rmk@arm.linux.org.uk>, Andrew Morton <akpm@osdl.org>
+Cc: jim.houston@comcast.net, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Apr 20, 2004 at 02:29:47PM -0700, Andrew Morton wrote:
-> Could I please ask the relevant arch maintainers to prepare an implementation?
+On Wednesday 21 of April 2004 00:42, Russell King wrote:
+> On Tue, Apr 20, 2004 at 02:29:47PM -0700, Andrew Morton wrote:
+> > Could I please ask the relevant arch maintainers to prepare an
+> > implementation?
+>
+> Its in the usual place.
 
-Its in the usual place.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
-                 2.6 Serial core
+I'm talking about find_next_bit() not find_next_zero_bit().
