@@ -1,39 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Subject: [RFC][PATCH 0/6] Sparsemem: chop up the global mem_map[]
-From: Dave Hansen <dave@sr71.net>
-Content-Type: text/plain
-Date: Wed, 16 Mar 2005 16:27:45 -0800
-Message-Id: <1111019265.19021.15.camel@localhost>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Subject: [RFC][PATCH 6/6] sparsemem: MAX_ORDER optimizations
+From: Dave Hansen <haveblue@us.ibm.com>
+Date: Wed, 16 Mar 2005 16:28:25 -0800
+Message-Id: <E1DBisE-0000p1-00@kernel.beaverton.ibm.com>
 To: linux-arch@vger.kernel.org
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andy Whitcroft <apw@shadowen.org>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dave Hansen <haveblue@us.ibm.com>, apw@shadowen.org
 List-ID: <linux-arch.vger.kernel.org>
 
-The following patch set implements a feature we call sparsemem: sparse
-memory handling.
 
-Sparsemem is more flexible than discontig (what we usually use for NUMA
-machines), not tied to any existing NUMA or MM structures like zones or
-pgdats, and can handle layouts that discontig can not.  That makes it
-ideal for memory hotplug where those structures are going to be coming
-and going, sliced and diced.  The current memory hotplug implementation
-depends on sparsemem.
+With sparse, pfn_to_page() becomes a somewhat more expensive
+operation.  This patch makes use of the guarentee that *_mem_map
+will be contigious in sections aligned at MAX_ORDER to reduce
+the number of pfn_to_page() calls.
 
-For more description, see the [PATCH 1/6] in this set, or this thread:
+By: Andy Whitcroft <apw@shadowen.org>
+Signed-off-by: Dave Hansen <haveblue@us.ibm.com>
+---
 
-	http://marc.theaimsgroup.com/?l=linux-mm&m=111085907830087&w=2
+ memhotplug-dave/arch/i386/mm/discontig.c |   10 ++++++++--
+ memhotplug-dave/mm/bootmem.c             |   14 +++++++++++++-
+ memhotplug-dave/mm/page_alloc.c          |    8 +++++++-
+ 3 files changed, 28 insertions(+), 4 deletions(-)
 
-I'd like to send these patches into -mm for a long soak, in a week or
-two.  I wanted to provide everyone another opportunity to comment before
-that.
-
-As I say in the first patch, changes necessary to make this work with
-architectures other than i386 will be going to the individual
-maintainers for approval before -mm.  If you're an arch maintainer
-(ppc64, ia64, x86-64), and you wonder what the changes for your arch
-look like, please see the B-sparse-...<your_arch>.patch in 
-
-	http://sr71.net/patches/2.6.11/2.6.11-bk7-mhp1/broken-out/
-
--- Dave
+diff -puN arch/i386/mm/discontig.c~B-sparse-215-MAX_ORDER-optimisations arch/i386/mm/discontig.c
+--- memhotplug/arch/i386/mm/discontig.c~B-sparse-215-MAX_ORDER-optimisations	2005-03-16 15:46:41.000000000 -0800
++++ memhotplug-dave/arch/i386/mm/discontig.c	2005-03-16 15:46:41.000000000 -0800
+@@ -408,10 +408,16 @@ void __init set_highmem_pages_init(int b
+ 				zone->name, zone->zone_pgdat->node_id,
+ 				zone_start_pfn, zone_end_pfn);
+ 
+-		for (node_pfn = zone_start_pfn; node_pfn < zone_end_pfn; node_pfn++) {
++		/*
++		 * Make use of the guarentee that *_mem_map will be
++		 * contigious in sections aligned at MAX_ORDER.
++		 */
++		page = pfn_to_page(zone_start_pfn);
++		for (node_pfn = zone_start_pfn; node_pfn < zone_end_pfn; node_pfn++, page++) {
+ 			if (!pfn_valid(node_pfn))
+ 				continue;
+-			page = pfn_to_page(node_pfn);
++			if ((node_pfn & ((1 << MAX_ORDER) - 1)) == 0)
++				page = pfn_to_page(node_pfn);
+ 			one_highpage_init(page, node_pfn, bad_ppro);
+ 		}
+ 	}
+diff -puN mm/bootmem.c~B-sparse-215-MAX_ORDER-optimisations mm/bootmem.c
+--- memhotplug/mm/bootmem.c~B-sparse-215-MAX_ORDER-optimisations	2005-03-16 15:46:41.000000000 -0800
++++ memhotplug-dave/mm/bootmem.c	2005-03-16 15:46:41.000000000 -0800
+@@ -274,10 +274,21 @@ static unsigned long __init free_all_boo
+ 	if (bdata->node_boot_start == 0 ||
+ 	    ffs(bdata->node_boot_start) - PAGE_SHIFT > ffs(BITS_PER_LONG))
+ 		gofast = 1;
++
++	/*
++	 * APW/XXX: we are making an assumption that our node_boot_start
++	 * is aligned to BITS_PER_LONG ... is this valid/enforced.
++	 */
++	/*
++	 * Make use of the guarentee that *_mem_map will be
++	 * contigious in sections aligned at MAX_ORDER.
++	 */
++	page = pfn_to_page(pfn);
+ 	for (i = 0; i < idx; ) {
+ 		unsigned long v = ~map[i / BITS_PER_LONG];
+ 
+-		page = pfn_to_page(pfn);
++		if ((pfn & ((1 << MAX_ORDER) - 1)) == 0)
++			page = pfn_to_page(pfn);
+ 
+ 		if (gofast && v == ~0UL) {
+ 			int j, order;
+@@ -306,6 +317,7 @@ static unsigned long __init free_all_boo
+ 			}
+ 		} else {
+ 			i+=BITS_PER_LONG;
++			page += BITS_PER_LONG;
+ 		}
+ 		pfn += BITS_PER_LONG;
+ 	}
+diff -puN mm/page_alloc.c~B-sparse-215-MAX_ORDER-optimisations mm/page_alloc.c
+--- memhotplug/mm/page_alloc.c~B-sparse-215-MAX_ORDER-optimisations	2005-03-16 15:46:41.000000000 -0800
++++ memhotplug-dave/mm/page_alloc.c	2005-03-16 15:46:41.000000000 -0800
+@@ -1583,10 +1583,16 @@ void __init memmap_init_zone(unsigned lo
+ 	int end_pfn = start_pfn + size;
+ 	int pfn;
+ 
++	/*
++	 * Make use of the guarentee that *_mem_map will be
++	 * contigious in sections aligned at MAX_ORDER.
++	 */
++	page = pfn_to_page(start_pfn);
+ 	for (pfn = start_pfn; pfn < end_pfn; pfn++, page++) {
+ 		if (!early_pfn_valid(pfn))
+ 			continue;
+-		page = pfn_to_page(pfn);
++		if ((pfn & ((1 << MAX_ORDER) - 1)) == 0)
++			page = pfn_to_page(pfn);
+ 		set_page_links(page, zone, nid, pfn);
+ 		set_page_count(page, 0);
+ 		reset_page_mapcount(page);
+_
