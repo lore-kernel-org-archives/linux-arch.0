@@ -1,26 +1,33 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267552AbUH0TdG@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:32431 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S267543AbUH0T2M (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267678AbUHaJ4o@vger.kernel.org>
+Received: from zero.aec.at ([193.170.194.10]:21764 "EHLO zero.aec.at")
+	by vger.kernel.org with ESMTP id S266895AbUHaJ4o (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Aug 2004 15:28:12 -0400
-Date: Fri, 27 Aug 2004 12:27:44 -0700
-From: "David S. Miller" <davem@redhat.com>
-Subject: Re: bug in syscal arg sign extension
-Message-Id: <20040827122744.6a0c4258.davem@redhat.com>
-In-Reply-To: <20040827155247.GA1024@wotan.suse.de>
-References: <20040826180802.4f1e6dbb.davem@redhat.com>
-	<20040827155247.GA1024@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Andi Kleen <ak@suse.de>
-Cc: linux-arch@vger.kernel.org
+	Tue, 31 Aug 2004 05:56:44 -0400
+Subject: domain setup in 2.6.9rc1-bk6
+From: Andi Kleen <ak@muc.de>
+Date: Tue, 31 Aug 2004 11:56:34 +0200
+Message-ID: <m3llfvk4vh.fsf@averell.firstfloor.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+To: nickpiggin@yahoo.com.au, akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 27 Aug 2004 17:52:47 +0200
-Andi Kleen <ak@suse.de> wrote:
 
-> But some entries I don't understand. e.g. why are you sign
-> extending open or prctl? 
+Someone deleted arch/x86_64/kernel/domain.c in current BK 
+and moved the SMT domain setup to generic code.
 
-Just for completeness.
+Problem is that I need a architecture specific hook to 
+turn off SMT idle for AMD dual core CPUs, which otherwise
+look like SMT siblings. I suppose I will do more tunings
+in this area in the future anyways, so having it in the 
+architecture would be better.
+
+It seems a bit counterintuitive that we have such a configurable
+scheduler, and then there is only a "one size fits all" way
+to configure it.
+
+Can part of this code please be moved back to the architecture? 
+
+Thanks,
+
+-Andi
