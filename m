@@ -1,112 +1,45 @@
-Return-Path: <davem@redhat.com>
-Received: from mx1.redhat.com ([66.187.233.31]:29110 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S265202AbUE0Ucc (ORCPT
+Return-Path: <davidm@napali.hpl.hp.com>
+Received: from palrel11.hp.com ([156.153.255.246]:38102 "EHLO palrel11.hp.com")
+	by vger.kernel.org with ESMTP id S265478AbUE0V4z (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 May 2004 16:32:32 -0400
-Received: from int-mx1.corp.redhat.com (int-mx1.corp.redhat.com [172.16.52.254])
-	by mx1.redhat.com (8.12.10/8.12.10) with ESMTP id i4RKWWi5025142
-	for <linux-arch@vger.kernel.org>; Thu, 27 May 2004 16:32:32 -0400
-Received: from devserv.devel.redhat.com (devserv.devel.redhat.com [172.16.58.1])
-	by int-mx1.corp.redhat.com (8.11.6/8.11.6) with ESMTP id i4RKWW015625
-	for <linux-arch@vger.kernel.org>; Thu, 27 May 2004 16:32:32 -0400
-Received: from cheetah.davemloft.net (localhost.localdomain [127.0.0.1])
-	by devserv.devel.redhat.com (8.12.10/8.12.10) with SMTP id i4RKWRhk010393
-	for <linux-arch@vger.kernel.org>; Thu, 27 May 2004 16:32:27 -0400
-Date: Thu, 27 May 2004 13:32:30 -0700
-From: "David S. Miller" <davem@redhat.com>
-Subject: Fw: Returned mail: see transcript for details
-Message-Id: <20040527133230.2c96ca16.davem@redhat.com>
-Mime-Version: 1.0
-Content-Type: multipart/mixed;
- boundary="Multipart=_Thu__27_May_2004_13_32_30_-0700_njYQImGGURhWNAOh"
-To: linux-arch@vger.kernel.org
+	Thu, 27 May 2004 17:56:55 -0400
+From: David Mosberger <davidm@napali.hpl.hp.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Message-ID: <16566.25617.363386.115466@napali.hpl.hp.com>
+Date: Thu, 27 May 2004 14:56:33 -0700
+Subject: Re: [PATCH] ppc64: Fix possible race with set_pte on a present PTE
+In-Reply-To: <20040525045322.GX29378@dualathlon.random>
+References: <1085369393.15315.28.camel@gaston>
+	<Pine.LNX.4.58.0405232046210.25502@ppc970.osdl.org>
+	<1085371988.15281.38.camel@gaston>
+	<Pine.LNX.4.58.0405232134480.25502@ppc970.osdl.org>
+	<1085373839.14969.42.camel@gaston>
+	<Pine.LNX.4.58.0405232149380.25502@ppc970.osdl.org>
+	<20040525034326.GT29378@dualathlon.random>
+	<Pine.LNX.4.58.0405242051460.32189@ppc970.osdl.org>
+	<20040525042054.GU29378@dualathlon.random>
+	<16562.52948.981913.814783@napali.hpl.hp.com>
+	<20040525045322.GX29378@dualathlon.random>
+Reply-To: davidm@hpl.hp.com
+To: Andrea Arcangeli <andrea@suse.de>
+Cc: davidm@hpl.hp.com, Linus Torvalds <torvalds@osdl.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@osdl.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Ben LaHaise <bcrl@kvack.org>, linux-mm@kvack.org, Architectures Group <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-This is a multi-part message in MIME format.
+>>>>> On Tue, 25 May 2004 06:53:22 +0200, Andrea Arcangeli <andrea@suse.de> said:
 
---Multipart=_Thu__27_May_2004_13_32_30_-0700_njYQImGGURhWNAOh
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+  >> If the "accessed" or "dirty" bits are zero, accessing/writing the
+  >> page will cause a fault which will be handled in a low-level
+  >> fault handler.  The Linux version of these handlers simply turn
+  >> on the respective bit.  See daccess_bit(), iaccess_bit(), and dirty_bit()
+  >> in arch/ia64/kernel/ivt.S.
 
+  Andrea> so you mean, this is being set in the arch section before
+  Andrea> ever reaching handle_mm_fault?
 
-Sorry I'm retarted and mis-typed the list address.
+Correct.  The low-level fault handlers set the ACCESSED/DIRTY bits
+with an atomic compare-and-exchange (on SMP).  They don't (normally)
+bubble up all the way to the Linux page-fault handler.
 
-Begin forwarded message:
-
-Date: Thu, 27 May 2004 16:29:57 -0400
-From: Mail Delivery Subsystem <MAILER-DAEMON@redhat.com>
-To: <davem@redhat.com>
-Subject: Returned mail: see transcript for details
-
-
-The original message was received at Thu, 27 May 2004 16:29:54 -0400
-from int-mx1.corp.redhat.com [172.16.52.254]
-
-   ----- The following addresses had permanent fatal errors -----
-<linux-arch@osdl.org>
-    (reason: 550 5.1.1 <linux-arch@osdl.org>... User unknown)
-
-   ----- Transcript of session follows -----
-... while talking to smtp.osdl.org.:
->>> DATA
-<<< 550 5.1.1 <linux-arch@osdl.org>... User unknown
-550 5.1.1 <linux-arch@osdl.org>... User unknown
-
-
---Multipart=_Thu__27_May_2004_13_32_30_-0700_njYQImGGURhWNAOh
-Content-Type: message/delivery-status;
- name="00000000.mimetmp"
-Content-Disposition: attachment;
- filename="00000000.mimetmp"
-Content-Transfer-Encoding: base64
-
-
-UmVwb3J0aW5nLU1UQTogZG5zOyBteDEucmVkaGF0LmNvbQpSZWNlaXZlZC1Gcm9tLU1UQTogRE5T
-OyBpbnQtbXgxLmNvcnAucmVkaGF0LmNvbQpBcnJpdmFsLURhdGU6IFRodSwgMjcgTWF5IDIwMDQg
-MTY6Mjk6NTQgLTA0MDAKCkZpbmFsLVJlY2lwaWVudDogUkZDODIyOyBsaW51eC1hcmNoQG9zZGwu
-b3JnCkFjdGlvbjogZmFpbGVkClN0YXR1czogNS4xLjEKUmVtb3RlLU1UQTogRE5TOyBzbXRwLm9z
-ZGwub3JnCkRpYWdub3N0aWMtQ29kZTogU01UUDsgNTUwIDUuMS4xIDxsaW51eC1hcmNoQG9zZGwu
-b3JnPi4uLiBVc2VyIHVua25vd24KTGFzdC1BdHRlbXB0LURhdGU6IFRodSwgMjcgTWF5IDIwMDQg
-MTY6Mjk6NTYgLTA0MDAKCg==
---Multipart=_Thu__27_May_2004_13_32_30_-0700_njYQImGGURhWNAOh
-Content-Type: message/rfc822
-Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
-
-Return-Path: <davem@redhat.com>
-Received: from int-mx1.corp.redhat.com (int-mx1.corp.redhat.com [172.16.52.254])
-	by mx1.redhat.com (8.12.10/8.12.10) with ESMTP id i4RKTsi5024386;
-	Thu, 27 May 2004 16:29:54 -0400
-Received: from devserv.devel.redhat.com (devserv.devel.redhat.com [172.16.58.1])
-	by int-mx1.corp.redhat.com (8.11.6/8.11.6) with ESMTP id i4RKTq014776;
-	Thu, 27 May 2004 16:29:52 -0400
-Received: from cheetah.davemloft.net (localhost.localdomain [127.0.0.1])
-	by devserv.devel.redhat.com (8.12.10/8.12.10) with SMTP id i4RKTlhk009447;
-	Thu, 27 May 2004 16:29:47 -0400
-Date: Thu, 27 May 2004 13:29:50 -0700
-From: "David S. Miller" <davem@redhat.com>
-To: torvalds@osdl.org
-Cc: linux-arch@osdl.org, jparadis@redhat.com
-Subject: ffs() inconsistency
-Message-Id: <20040527132950.3ce28f41.davem@redhat.com>
-X-Mailer: Sylpheed version 0.9.10 (GTK+ 1.2.10; sparc-unknown-linux-gnu)
-X-Face: "_;p5u5aPsO,_Vsx"^v-pEq09'CU4&Dc1$fQExov$62l60cgCc%FnIwD=.UF^a>?5'9Kn[;433QFVV9M..2eN.@4ZWPGbdi<=?[:T>y?SD(R*-3It"Vj:)"dP
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-
-
-It seems that x86 and currently x86_64 both return -1 from
-ffs() if the word passed in is zero.
-
-In contrast, linux/bitops.h:generic_ffs() returns 0 in this case.
-Both sparc ports both return 0 as well.
-
-Aparently XFS depends upon the "-1" return value behavior.
-We need to clear things up.
-
-The ffs man page, refernced above all of these implementations
-as the specification, says that "0" should be returned.
-
-
---Multipart=_Thu__27_May_2004_13_32_30_-0700_njYQImGGURhWNAOh--
+	--david
