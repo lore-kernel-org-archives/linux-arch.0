@@ -1,67 +1,54 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262292AbUJZPVw@vger.kernel.org>
-Received: from fw.osdl.org ([65.172.181.6]:55998 "EHLO mail.osdl.org")
-	by vger.kernel.org with ESMTP id S262291AbUJZPVw (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261333AbUJZQ0L@vger.kernel.org>
+Received: from palrel13.hp.com ([156.153.255.238]:15258 "EHLO palrel13.hp.com")
+	by vger.kernel.org with ESMTP id S261332AbUJZQ0K (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Oct 2004 11:21:52 -0400
-Date: Tue, 26 Oct 2004 08:21:15 -0700 (PDT)
-From: Linus Torvalds <torvalds@osdl.org>
-Subject: Re: ia64 implementation of lib/iomap.c
-In-Reply-To: <16766.360.725296.4208@napali.hpl.hp.com>
-Message-ID: <Pine.LNX.4.58.0410260807080.28839@ppc970.osdl.org>
-References: <16759.51459.598187.91726@napali.hpl.hp.com>
- <200410251048.48249.bjorn.helgaas@hp.com> <16766.360.725296.4208@napali.hpl.hp.com>
+	Tue, 26 Oct 2004 12:26:10 -0400
+From: David Mosberger <davidm@napali.hpl.hp.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: davidm@hpl.hp.com
-Cc: Bjorn Helgaas <bjorn.helgaas@hp.com>, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Message-ID: <16766.31390.547604.110767@napali.hpl.hp.com>
+Date: Tue, 26 Oct 2004 09:26:06 -0700
+Subject: Re: ia64 implementation of lib/iomap.c
+In-Reply-To: <Pine.LNX.4.58.0410260807080.28839@ppc970.osdl.org>
+References: <16759.51459.598187.91726@napali.hpl.hp.com>
+	<200410251048.48249.bjorn.helgaas@hp.com>
+	<16766.360.725296.4208@napali.hpl.hp.com>
+	<Pine.LNX.4.58.0410260807080.28839@ppc970.osdl.org>
+Reply-To: davidm@hpl.hp.com
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: davidm@hpl.hp.com, Bjorn Helgaas <bjorn.helgaas@hp.com>, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+>>>>> On Tue, 26 Oct 2004 08:21:15 -0700 (PDT), Linus Torvalds <torvalds@osdl.org> said:
 
+  Linus> So historically, on x86, an IO port access would be totally
+  Linus> synchronous, in that a outb() will actually _wait_ for the
+  Linus> out to hit the bus. Quite frankly, I don't think most other
+  Linus> architectures ever implemented this even for IO ports, and we
+  Linus> should not even _try_ to do so for io_writeX().
 
-On Tue, 26 Oct 2004, David Mosberger wrote:
-> 
->   Bjorn> I heard a rumor that ioreadX() on PIO cookies is supposed to
->   Bjorn> have looser semantics than inX() on the port, so we might be
->   Bjorn> able to get away without the memory fence in inb().  But I
->   Bjorn> can't substantiate that, so this keeps the generic behavior
->   Bjorn> of ioreadX() and inX() having identical semantics for PIO.
-> 
-> Can somebody confirm?  Dropping the mf.a from ioreadX() for I/O port
-> accesses would save lots of cycles.
+Well, ia64 does.  It's precisely what "mf.a" gives you:
 
-My personal opinion is (but I don't know that everybody will buy into
-this) that the _CPU_ serialization of "io_read/io_write()" has to be
-independent of whether the argument points to an IO port or memory-mapped
-IO.
+  [mf.a] prevents any subsequent data memory accesses by the processor
+  from initiating transactions to the external platform until:
 
-That's simply because I believe that we should encourage implementations
-to be able to have a straight-line path in the accessor functions if the
-hardware just supports it (ie there should be no need to check the type at
-run-time unless the hardware _forces_ that check on you due to the
-ioremap() phase not being able to do everything once-and-for-all).
+    o all prior loads to sequential pages have returned data, and
+    o all prior stores to sequential pages have been accepted by
+      the external platform
 
-So historically, on x86, an IO port access would be totally synchronous,
-in that a outb() will actually _wait_ for the out to hit the bus. Quite
-frankly, I don't think most other architectures ever implemented this even
-for IO ports, and we should not even _try_ to do so for io_writeX().
+(sequential pages are basically pages mapped uncached).  We use this
+to emulate INx/OUTx semantics via memory-mapped I/O.
 
-HOWEVER. From a _bus_ standpoint, an IO port access is still very 
-different from a memory-mapped IO access. In particular, we still have to 
-guarantee that IO port accesses never get merged, and that they never get 
-re-ordered. If the CPU needs to do those guarantees by hand, then they 
-need to be there in the code. But I guess that those are really just the 
-same guarantees as for a non-porefetchable MMIO region, so again this 
-implies that the _software_ side should be the same for MMIO as for PIO.
+By your argument, it should be safe to drop the "mf.a" from the I/O
+port-based writes.
 
-And I don't know what "mf.a" means on ia64. Magic hardware.
+OTOH, I'm not sure its worth the bother: if you have an I/O device
+that does lots of pokes through I/O port space, it's gonna be slow no
+matter what and the extra 1000 or so cycles the CPU stalls may not
+make any difference (even though it would make any compiler-writer
+cringe! ;-).  Also, if x86 gives stronger ordering guarantees, suspect
+there is _some_ broken driver out there that may rely on that
+property, so it may just be safer to leave the "mf.a" there.
 
-I assume it's just a "total ordering", and no, I don't think we need it.  
-As long as the page tables (or something else in the actual hardware)  
-guarantees that reads and writes don't get re-ordered, I think we're fine.
-
-If it's the old "ordering between CPU's" issue, then I think it's back to 
-the CPU serialization side, and we should just say "if you use io_write(), 
-you get the same CPU serialization for both IO ports and MMIO, and if you 
-want inter-CPU ordering, you need to use a spinlock".
-
-			Linus
+	--david
