@@ -1,12 +1,12 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S269226AbUIHX1w@vger.kernel.org>
-Received: from fw.osdl.org ([65.172.181.6]:15488 "EHLO mail.osdl.org")
-	by vger.kernel.org with ESMTP id S269218AbUIHX1Y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Sep 2004 19:27:24 -0400
-Date: Wed, 8 Sep 2004 16:25:49 -0700 (PDT)
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S269340AbUIIBV7@vger.kernel.org>
+Received: from fw.osdl.org ([65.172.181.6]:37327 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S269297AbUIIBTZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Sep 2004 21:19:25 -0400
+Date: Wed, 8 Sep 2004 18:19:08 -0700 (PDT)
 From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: RFC: being more anal about iospace accesses..
 In-Reply-To: <20040908160737.7c1dfb5a.davem@redhat.com>
-Message-ID: <Pine.LNX.4.58.0409081618130.5912@ppc970.osdl.org>
+Message-ID: <Pine.LNX.4.58.0409081611550.5912@ppc970.osdl.org>
 References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org>
  <20040908160737.7c1dfb5a.davem@redhat.com>
 MIME-Version: 1.0
@@ -19,25 +19,51 @@ List-ID: <linux-arch.vger.kernel.org>
 
 On Wed, 8 Sep 2004, David S. Miller wrote:
 > 
-> I'm all for this except a possible naming suggestion that
-> the thing should be called "iomemspace" not plain "iospace".
+> I wish we could make it fail with the compiler too somehow, that
+> way people other than us sparse geeks would see and fix this stuff
+> up.
 
-I was initially going to call it just "__io", but decided that somebody
-may well already be using that as a name somewhere (and a quick grep
-indeed confirmed that). Thus "__iospace".
+I don't want to break a stable release too much. As-is, the _code_ 
+generated should be 100% the same, even if gcc complains. So afaik, my 
+patch is very safe indeed, which I like.
 
-But "__iomem" would make sense. I don't think we need both "mem" and
-"space", and I agree that we already have used the term "iomem" for this
-thing. Will rename.
+So it can cause gcc to complain for non-converted code ("xxx makes pointer
+from integer without a cast"), but since any such code ended up converting
+it to a pointer _with_ a cast anyway, I really believe code-generation is 
+safe.
 
-Anyway, I've already got two fairly enthusiastic votes for the concept,
-but I'll give people some more time to think it over.
+In contrast, to actually make gcc complain about the types of these things 
+would not only be disruptive, it would require some _major_ change to how 
+we do things. Right now we assume that "ioremap()" generates an 
+offsettable "thing", and that really means that it must be of one of three 
+types:
+ - "unsigned long" (obviously type-unsafe, and would be totally pointless)
+ - "void *" or "char *" (this is basically what we used to have).
 
-This would make our "warning statistics" look bad (but see earlier email
-on why I think it's entirely safe even in a stable series otherwise),
-which I'm a bit concerned about. But there's absolutely no way to avoid
-that - anything in drivers will inevitably take a minimum of a few kernel
-releases, and possibly _much_ longer before people get upset enough to fix
-the warnings in random driver X.
+Neither is in any way type-safe, nor can we make gcc complain without
+breaking the "offsettable" requirement. The only way to make gcc complain
+loudly would be to use something that can't be converted to anything else
+(eg a "struct iomem_opaque { unsigned long cookie; }") but that would
+break every single user out there, and require us to do the off-setting at
+a much lower level (passing along both cookie and offset separately all
+the way down the callchain - horribly bad in many ways).
+
+In contrast, using sparse means that we can still generate exactly the
+same code, have all old code still work (albeit with the occasional
+potential warning from gcc) _and_ have a fairly easy way to check.
+
+In fact, even modern external modules that work with 2.6.x kernels are 
+quite checkable. I just verified that using "make C=1" works perfectly 
+fine on an external module tree). So yes, it's just for "us sparse geeks", 
+but sparse is to easy to set up and use that I don't think that's a huge 
+downside:
+
+	make ; make install ; "use 'C=1' when compiling the kernel"
+
+it can't get much simpler than that.
+
+(I think the biggest problem is _finding_ sparse, but just googling for 
+"linux sparse tar-ball" shows at least two half-way relevant hits in the 
+top five, so..)
 
 		Linus
