@@ -1,77 +1,32 @@
-Return-Path: <arnd@arndb.de>
-Received: from natsmtp00.rzone.de ([81.169.145.165]:19404 "EHLO
-	natsmtp00.rzone.de") by vger.kernel.org with ESMTP id S264966AbUGANDM
+Return-Path: <arun.sharma@intel.com>
+Received: from fmr03.intel.com ([143.183.121.5]:24714 "EHLO
+	hermes.sc.intel.com") by vger.kernel.org with ESMTP id S266222AbUGASYe
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Jul 2004 09:03:12 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: compat_sys_adjtimex
-Date: Thu, 1 Jul 2004 15:02:09 +0200
-References: <40E30E8F.3000601@intel.com> <16611.20590.297525.314297@cargo.ozlabs.ibm.com> <40E362D6.7010908@intel.com>
-In-Reply-To: <40E362D6.7010908@intel.com>
+	Thu, 1 Jul 2004 14:24:34 -0400
+Message-ID: <40E456D7.5060906@intel.com>
+Date: Thu, 01 Jul 2004 11:24:23 -0700
+From: Arun Sharma <arun.sharma@intel.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed;
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1;
-  boundary="Boundary-02=_VtA5Ax5aRf04h1g";
-  charset="iso-8859-15"
+Subject: Re: compat_sys_adjtimex
+References: <40E30E8F.3000601@intel.com> <16611.20590.297525.314297@cargo.ozlabs.ibm.com> <40E362D6.7010908@intel.com> <200407011502.14131.arnd@arndb.de>
+In-Reply-To: <200407011502.14131.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
-Message-Id: <200407011502.14131.arnd@arndb.de>
-To: Arun Sharma <arun.sharma@intel.com>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@redhat.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On 7/1/2004 6:02 AM, Arnd Bergmann wrote:
 
---Boundary-02=_VtA5Ax5aRf04h1g
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: inline
+Hi Arnd,
 
-On Donnerstag, 1. Juli 2004 03:03, Arun Sharma wrote:
->=20
-> +struct compat_timex {
-> +=A0=A0=A0=A0=A0=A0=A0u32 modes;
-> +=A0=A0=A0=A0=A0=A0=A0s32 offset, freq, maxerror, esterror;
-> +=A0=A0=A0=A0=A0=A0=A0s32 status, constant, precision, tolerance;
-> +=A0=A0=A0=A0=A0=A0=A0struct compat_timeval time;
-> +=A0=A0=A0=A0=A0=A0=A0s32 tick;
-> +=A0=A0=A0=A0=A0=A0=A0s32 ppsfreq, jitter, shift, stabil;
-> +=A0=A0=A0=A0=A0=A0=A0s32 jitcnt, calcnt, errcnt, stbcnt;
-> +=A0=A0=A0=A0=A0=A0=A0s32 =A0:32; s32 =A0:32; s32 =A0:32; s32 =A0:32;
-> +=A0=A0=A0=A0=A0=A0=A0s32 =A0:32; s32 =A0:32; s32 =A0:32; s32 =A0:32;
-> +=A0=A0=A0=A0=A0=A0=A0s32 =A0:32; s32 =A0:32; s32 =A0:32; s32 =A0:32;
-> +};
-> +
+As always, thanks for the review.
 
-I'd personally prefer to use type names like compat_ulong_t
-in the place of u32 when the a member in the original struct
-is unsigned long.
+[...]
+> As an alternative approach I can prepare patches that simply
+> add the compat_sys_* functions and leave it to each arch maintainer
+> to remove their own versions.
 
-> +asmlinkage long compat_sys_adjtimex(struct compat_timex *utp)
-> +
-This is missing a semicolon.
+Sure, that'd be fine by me.
 
-I had done my own version of compat_sys_adjtimex and most of
-the other sys32_* functions that are worth consolidating some time
-ago. Unfortunately I never got around to bringing them into a
-proper patch for for submission. Would you like to have my code
-so you can finish it?
-As an alternative approach I can prepare patches that simply
-add the compat_sys_* functions and leave it to each arch maintainer
-to remove their own versions.
-
-	Arnd <><
-
---Boundary-02=_VtA5Ax5aRf04h1g
-Content-Type: application/pgp-signature
-Content-Description: signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.2.4 (GNU/Linux)
-
-iD8DBQBA5AtV5t5GS2LDRf4RAmshAKCYktkOHWN73w2tO/pkH8GDYunuUgCdFna7
-KFQ5u9ykt917zwjV6vw+6B0=
-=ZS0S
------END PGP SIGNATURE-----
-
---Boundary-02=_VtA5Ax5aRf04h1g--
+	-Arun
