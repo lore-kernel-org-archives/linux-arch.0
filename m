@@ -1,46 +1,38 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268240AbUIPUVY@vger.kernel.org>
-Received: from omx2-ext.sgi.com ([192.48.171.19]:26022 "EHLO omx2.sgi.com")
-	by vger.kernel.org with ESMTP id S268228AbUIPUU5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Sep 2004 16:20:57 -0400
-From: Jesse Barnes <jbarnes@engr.sgi.com>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268240AbUIPUii@vger.kernel.org>
+Received: from stat16.steeleye.com ([209.192.50.48]:18092 "EHLO
+	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
+	id S268237AbUIPUiB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Sep 2004 16:38:01 -0400
 Subject: Re: RFC: being more anal about iospace accesses..
-Date: Thu, 16 Sep 2004 13:20:31 -0700
-References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org> <200409161152.54691.jbarnes@engr.sgi.com> <20040916130450.40b3f8a1.davem@davemloft.net>
-In-Reply-To: <20040916130450.40b3f8a1.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+From: James Bottomley <James.Bottomley@steeleye.com>
+In-Reply-To: <200409161302.49135.jbarnes@engr.sgi.com>
+References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org>
+	<200409161152.54691.jbarnes@engr.sgi.com>
+	<Pine.LNX.4.58.0409161203430.2333@ppc970.osdl.org>
+	<200409161302.49135.jbarnes@engr.sgi.com>
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200409161320.31522.jbarnes@engr.sgi.com>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: torvalds@osdl.org, willy@debian.org, James.Bottomley@steeleye.com, geert@linux-m68k.org, linux-arch@vger.kernel.org, viro@parcelfarce.linux.theplanet.co.uk, akpm@osdl.org, alan@lxorguk.ukuu.org.uk, davem@redhat.com, jgarzik@pobox.com
+Date: 16 Sep 2004 16:37:23 -0400
+Message-Id: <1095367049.2014.21.camel@mulgrave>
+Mime-Version: 1.0
+To: Jesse Barnes <jbarnes@engr.sgi.com>
+Cc: Linus Torvalds <torvalds@osdl.org>, Matthew Wilcox <willy@debian.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Linux Arch list <linux-arch@vger.kernel.org>, Al Viro <viro@parcelfarce.linux.theplanet.co.uk>, Andrew Morton <akpm@osdl.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, "David S. Miller" <davem@redhat.com>, Jeff Garzik <jgarzik@pobox.com>, Grant Grundler <grundler@parisc-linux.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thursday, September 16, 2004 1:04 pm, David S. Miller wrote:
-> On Thu, 16 Sep 2004 11:52:54 -0700
->
-> Jesse Barnes <jbarnes@engr.sgi.com> wrote:
-> > On Thursday, September 16, 2004 11:21 am, Linus Torvalds wrote:
-> > > It's literally only the sn2 _platform_ that does something stupid. In
-> > > other words, it's not ia64 that is broken (surprise surprise - you
-> > > never expected me to have said anything good about ia64), it's
-> > > literally the SN2 platform that seems broken.
-> >
-> > No, it's just the only smart platform.  Apparently we're the only ones
-> > who realized that most PIO reads do not rely on prior DMA being complete
-> > (and that it's expensive to make sure that they do), so we optimized that
-> > out of our hardware.  Only interrupts will guarantee DMA completion on
-> > SGI platforms.
->
-> Jesse, I think you might not need that hack in the I/O accessor
-> routines to handle this.  pci_dma_unmap(), pci_dma_sync_*() and
-> friends should be the place to perform this "prior DMA sync" thing.
+On Thu, 2004-09-16 at 16:02, Jesse Barnes wrote:
+> Note that PCI-X and PCI Express allow a lack of synchronization via the 
+> relaxed ordering bit.  So platforms can either set that bit in their iomap 
+> functions and deal with synchronization via dma_sync or not use it I guess.
 
-That would be ok, except for the fact that we wouldn't be able to provide 
-'consistent' memory.  I think it's better to implement the expected PCI 
-semantics but provide an out via the _relaxed interface (new interfaces 
-aside).
+Now you've confused me again.  I thought the SGI implementation of this
+relaxed read thing was *not* the same as the PCI-X RO bit which was why
+you needed a special readX_relaxed?
 
-Jesse
+My understanding is that Relaxed Ordering is that it's two bit (i.e. two
+separately allowable optimisations) that allow either PIO writes to pass
+DMA reads or PIO reads to pass DMA writes (or both) in the stream (I may
+have this wrong, I copied Grant because he's been working on this).
+
+I thought your readX_relaxed was only the first half of this?
+
+James
