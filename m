@@ -1,43 +1,59 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268228AbUIPUH6@vger.kernel.org>
-Received: from adsl-63-197-226-105.dsl.snfc21.pacbell.net ([63.197.226.105]:53955
-	"EHLO cheetah.davemloft.net") by vger.kernel.org with ESMTP
-	id S268183AbUIPUH6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Sep 2004 16:07:58 -0400
-Date: Thu, 16 Sep 2004 13:04:50 -0700
-From: "David S. Miller" <davem@davemloft.net>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268216AbUIPUGJ@vger.kernel.org>
+Received: from omx3-ext.sgi.com ([192.48.171.20]:26515 "EHLO omx3.sgi.com")
+	by vger.kernel.org with ESMTP id S268209AbUIPUDv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Sep 2004 16:03:51 -0400
+From: Jesse Barnes <jbarnes@engr.sgi.com>
 Subject: Re: RFC: being more anal about iospace accesses..
-Message-Id: <20040916130450.40b3f8a1.davem@davemloft.net>
-In-Reply-To: <200409161152.54691.jbarnes@engr.sgi.com>
-References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org>
-	<20040916134152.GK642@parcelfarce.linux.theplanet.co.uk>
-	<Pine.LNX.4.58.0409161110070.2333@ppc970.osdl.org>
-	<200409161152.54691.jbarnes@engr.sgi.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Date: Thu, 16 Sep 2004 13:02:49 -0700
+References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org> <200409161152.54691.jbarnes@engr.sgi.com> <Pine.LNX.4.58.0409161203430.2333@ppc970.osdl.org>
+In-Reply-To: <Pine.LNX.4.58.0409161203430.2333@ppc970.osdl.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-To: Jesse Barnes <jbarnes@engr.sgi.com>
-Cc: torvalds@osdl.org, willy@debian.org, James.Bottomley@steeleye.com, geert@linux-m68k.org, linux-arch@vger.kernel.org, viro@parcelfarce.linux.theplanet.co.uk, akpm@osdl.org, alan@lxorguk.ukuu.org.uk, davem@redhat.com, jgarzik@pobox.com
+Content-Disposition: inline
+Message-Id: <200409161302.49135.jbarnes@engr.sgi.com>
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Matthew Wilcox <willy@debian.org>, James Bottomley <James.Bottomley@steeleye.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Linux Arch list <linux-arch@vger.kernel.org>, Al Viro <viro@parcelfarce.linux.theplanet.co.uk>, Andrew Morton <akpm@osdl.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, "David S. Miller" <davem@redhat.com>, Jeff Garzik <jgarzik@pobox.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 16 Sep 2004 11:52:54 -0700
-Jesse Barnes <jbarnes@engr.sgi.com> wrote:
+On Thursday, September 16, 2004 12:09 pm, Linus Torvalds wrote:
+> On Thu, 16 Sep 2004, Jesse Barnes wrote:
+> > Sure, that's the way I'd like to go, but that's a dangerous route.
+>
+> It might be slightly less dangerous if we only do this for the new
+> interface. It would still be up to you guys to verify that drivers use
+> whatever new "dma_synchronize(dev)" interface, but hey, that's the price
+> you pay for not following the standard.
 
-> On Thursday, September 16, 2004 11:21 am, Linus Torvalds wrote:
-> > It's literally only the sn2 _platform_ that does something stupid. In
-> > other words, it's not ia64 that is broken (surprise surprise - you never
-> > expected me to have said anything good about ia64), it's literally the SN2
-> > platform that seems broken.
-> 
-> No, it's just the only smart platform.  Apparently we're the only ones who 
-> realized that most PIO reads do not rely on prior DMA being complete (and 
-> that it's expensive to make sure that they do), so we optimized that out of 
-> our hardware.  Only interrupts will guarantee DMA completion on SGI 
-> platforms.
+Sure, sounds fair.  I just wanted to avoid changing the existing interfaces, 
+that's all.
 
-Jesse, I think you might not need that hack in the I/O accessor
-routines to handle this.  pci_dma_unmap(), pci_dma_sync_*() and
-friends should be the place to perform this "prior DMA sync" thing.
+> I know hardware people love saying "we can do this faster doing XXX and
+> then sw can take care of it". Make the powers-that-be realize that if
+> software takes care of it, it means that sw needs resources to track it..
 
-Drivers aren't allowed to touch active DMA data areas until they
-call one of those interfaces (see Documentation/DMA-mapping.txt)
-so that should just work.
+Yep.
+
+> > If you want to explicitly document that the new io* interface doesn't
+> > guarantee DMA coherence, great, we can start from scratch with a good
+> > implementation that has an explicit flush mechanism.
+>
+> I think that's the right thing to do at this point, but since nobody else
+> will really see this issue (since standard PCI does synchronize DMA),
+
+Note that PCI-X and PCI Express allow a lack of synchronization via the 
+relaxed ordering bit.  So platforms can either set that bit in their iomap 
+functions and deal with synchronization via dma_sync or not use it I guess.
+
+> there will inevitably be bugs that are SGI-specific. Just as everybody is
+> aware of the issue, and realizes that there's going to be some cost of
+> that to SGI in the form of testing and verification, this sounds like the
+> way to go..
+>
+> Does that sound reasonable to everybody?
+
+Sure, thanks.
+
+Jesse
