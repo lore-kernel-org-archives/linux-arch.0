@@ -1,76 +1,188 @@
-Return-Path: <manfred@colorfullife.com>
-Received: from dbl.q-ag.de ([213.172.117.3]:25475 "EHLO dbl.q-ag.de")
-	by vger.kernel.org with ESMTP id S262007AbUDJLxz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 10 Apr 2004 07:53:55 -0400
-Message-ID: <4077E04A.9060901@colorfullife.com>
-Date: Sat, 10 Apr 2004 13:53:46 +0200
-From: Manfred Spraul <manfred@colorfullife.com>
-MIME-Version: 1.0
+Return-Path: <arnd@arndb.de>
+Received: from moutvdom.kundenserver.de ([212.227.126.249]:12018 "EHLO
+	moutvdomng.kundenserver.de") by vger.kernel.org with ESMTP
+	id S261991AbUDJUeL convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Apr 2004 16:34:11 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: posix message queues
-References: <20040407120720.6b937deb.akpm@osdl.org>	<40745360.6000709@colorfullife.com> <20040409164506.0611846a.davem@redhat.com> <4077D851.7000008@colorfullife.com>
-In-Reply-To: <4077D851.7000008@colorfullife.com>
-Content-Type: multipart/mixed;
- boundary="------------070003060506060504050504"
-To: linux-arch@vger.kernel.org
-Cc: "David S. Miller" <davem@redhat.com>, akpm@osdl.org
+Date: Sat, 10 Apr 2004 22:43:37 +0200
+References: <20040407120720.6b937deb.akpm@osdl.org> <4077D851.7000008@colorfullife.com> <4077E04A.9060901@colorfullife.com>
+In-Reply-To: <4077E04A.9060901@colorfullife.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+Message-Id: <200404102243.37892.arnd@arndb.de>
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+To: Manfred Spraul <manfred@colorfullife.com>
+Cc: linux-arch@vger.kernel.org, "David S. Miller" <davem@redhat.com>, akpm@osdl.org, Arnd Bergmann <arnd@arndb.de>, Jakub Jelinek <jakub@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-This is a multi-part message in MIME format.
---------------070003060506060504050504
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-
-Manfred Spraul wrote:
-
+On Saturday 10 April 2004 13:53, Manfred Spraul wrote:
+> Manfred Spraul wrote:
 > 
->+if (notification.sigev_notify == SIGEV_THREAD) {
->+	if (copy_from_user(cookie, u_notification.sigev_value.sival_ptr,
->
-notification, not u_notification: sival_ptr is a union on sival_int, and 
-sival_int was copied to kernel space by get_compat_sigevent.
-Updated patch attached, sorry.
+> > 
+> >+if (notification.sigev_notify == SIGEV_THREAD) {
+> >+      if (copy_from_user(cookie, u_notification.sigev_value.sival_ptr,
+> >
+> notification, not u_notification: sival_ptr is a union on sival_int, and 
+> sival_int was copied to kernel space by get_compat_sigevent.
+> Updated patch attached, sorry.
+
+I'm afraid that is still incorrect,  at least on big-endian machines:
+
+> @@ -147,6 +148,14 @@
+>         if (get_compat_sigevent(&notification, u_notification))
+>                 return -EFAULT;
+>  
+> +       if (notification.sigev_notify == SIGEV_THREAD) {
+> +               if (copy_from_user(cookie, notification.sigev_value.sival_ptr,
+> +                                       NOTIFY_COOKIE_LEN)) {
+> +                       return -EFAULT;
+> +               }
+> +               notification.sigev_value.sival_ptr = cookie;
+> +       }
+
+sival_ptr is not valid when passed through get_compat_sigevent, because
+the 32 bit pointer might be copied to the upper half of the kernel pointer.
+Even worse, the infamous s390 31 bit pointer conversion is missing.
+This patch fixes that problem and two others reported by Jakub.
+
+> > Arndt did 90% of the coding, it's already in 2.6.5-mm3.
+BTW, my name is 'Arnd', not 'Arndt'. I hope we can stop this now before
+this becomes some 'Russel' vs. 'Russell' problem ;-)
+
+	Arnd <><
 
 --
-    Manfred
-
---------------070003060506060504050504
-Content-Type: text/plain;
- name="patch-mqueue-compat"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline;
- filename="patch-mqueue-compat"
-
-// $Header$
-// Kernel Version:
-//  VERSION = 2
-//  PATCHLEVEL = 6
-//  SUBLEVEL = 5
-//  EXTRAVERSION = -mm3
---- 2.6/ipc/compat_mq.c	2004-04-10 09:59:40.000000000 +0200
-+++ build-2.6/ipc/compat_mq.c	2004-04-10 13:46:26.713887203 +0200
-@@ -139,6 +139,7 @@
+[PATCH] More fixups for compat_mq
+- handle SIGEV_THREAD
+- don't try to convert u_attr in sys_mq_open if !O_CREAT 
+- handle __SI_MESGQ in copy_siginfo_to_user32  (still missing for
+  ppc64 and parisc)
+===== ipc/compat_mq.c 1.1 vs edited =====
+--- 1.1/ipc/compat_mq.c	Sat Apr 10 16:46:12 2004
++++ edited/ipc/compat_mq.c	Sat Apr 10 20:48:02 2004
+@@ -55,7 +55,7 @@
+ 	char *name;
+ 	long ret;
+ 
+-	if (!u_attr)
++	if ((oflag & O_CREAT) == 0 || !u_attr)
+ 		return sys_mq_open(u_name, oflag, mode, 0);
+ 
+ 	if (get_compat_mq_attr(&attr, u_attr))
+@@ -139,6 +139,8 @@
  {
  	mm_segment_t oldfs;
  	struct sigevent notification;
 +	char cookie[NOTIFY_COOKIE_LEN];
++	compat_uptr_t u_cookie;
  	long ret;
  
  	if (!u_notification)
-@@ -147,6 +148,14 @@
+@@ -146,6 +148,15 @@
+ 
  	if (get_compat_sigevent(&notification, u_notification))
  		return -EFAULT;
- 
++
 +	if (notification.sigev_notify == SIGEV_THREAD) {
-+		if (copy_from_user(cookie, notification.sigev_value.sival_ptr,
-+					NOTIFY_COOKIE_LEN)) {
++		u_cookie = (compat_uptr_t)notification.sigev_value.sival_int;
++		if (copy_from_user(cookie, compat_ptr(u_cookie),
++						NOTIFY_COOKIE_LEN)) {
 +			return -EFAULT;
 +		}
 +		notification.sigev_value.sival_ptr = cookie;
 +	}
-+
+ 
  	oldfs = get_fs();
  	set_fs(KERNEL_DS);
- 	ret = sys_mq_notify(mqdes, &notification);
-
---------------070003060506060504050504--
+===== arch/ia64/ia32/ia32_signal.c 1.24 vs edited =====
+--- 1.24/arch/ia64/ia32/ia32_signal.c	Wed Feb 25 11:31:13 2004
++++ edited/arch/ia64/ia32/ia32_signal.c	Sat Apr 10 21:06:07 2004
+@@ -114,7 +114,12 @@
+ 			err |= __get_user(to->si_band, &from->si_band);
+ 			err |= __get_user(to->si_fd, &from->si_fd);
+ 			break;
+-			/* case __SI_RT: This is not generated by the kernel as of now.  */
++		      case __SI_RT: /* This is not generated by the kernel as of now.  */
++		      case __SI_MESGQ:
++			err |= __get_user(to->si_pid, &from->si_pid);
++			err |= __get_user(to->si_uid, &from->si_uid);
++			err |= __get_user(to->si_int, &from->si_int);
++			break;
+ 		}
+ 	}
+ 	return err;
+===== arch/mips/kernel/signal32.c 1.13 vs edited =====
+--- 1.13/arch/mips/kernel/signal32.c	Wed Feb 25 11:31:13 2004
++++ edited/arch/mips/kernel/signal32.c	Sat Apr 10 21:08:53 2004
+@@ -358,7 +358,12 @@
+ 			err |= __put_user(from->si_band, &to->si_band);
+ 			err |= __put_user(from->si_fd, &to->si_fd);
+ 			break;
+-		/* case __SI_RT: This is not generated by the kernel as of now.  */
++		case __SI_RT: /* This is not generated by the kernel as of now.  */
++		case __SI_MESGQ:
++			err |= __put_user(from->si_pid, &to->si_pid);
++			err |= __put_user(from->si_uid, &to->si_uid);
++			err |= __put_user(from->si_int, &to->si_int);
++			break;
+ 		}
+ 	}
+ 	return err;
+===== arch/s390/kernel/compat_signal.c 1.7 vs edited =====
+--- 1.7/arch/s390/kernel/compat_signal.c	Sat Mar 27 12:40:46 2004
++++ edited/arch/s390/kernel/compat_signal.c	Sat Apr 10 21:05:01 2004
+@@ -74,6 +74,10 @@
+ 		err |= __copy_to_user(&to->_sifields._pad, &from->_sifields._pad, SI_PAD_SIZE);
+ 	else {
+ 		switch (from->si_code >> 16) {
++		case __SI_RT: /* This is not generated by the kernel as of now.  */
++		case __SI_MESGQ:
++			err |= __put_user(from->si_int, &to->si_int);
++			/* fallthrough */
+ 		case __SI_KILL >> 16:
+ 			err |= __put_user(from->si_pid, &to->si_pid);
+ 			err |= __put_user(from->si_uid, &to->si_uid);
+@@ -96,7 +100,6 @@
+ 			break;
+ 		default:
+ 			break;
+-		/* case __SI_RT: This is not generated by the kernel as of now.  */
+ 		}
+ 	}
+ 	return err;
+===== arch/sparc64/kernel/signal32.c 1.32 vs edited =====
+--- 1.32/arch/sparc64/kernel/signal32.c	Fri Mar 26 23:16:00 2004
++++ edited/arch/sparc64/kernel/signal32.c	Sat Apr 10 21:13:56 2004
+@@ -129,7 +129,12 @@
+ 			err |= __put_user(from->si_trapno, &to->si_trapno);
+ 			err |= __put_user((long)from->si_addr, &to->si_addr);
+ 			break;
+-		/* case __SI_RT: This is not generated by the kernel as of now.  */
++		case __SI_RT: /* This is not generated by the kernel as of now.  */
++		case __SI_MESGQ:
++			err |= __put_user(from->si_pid, &to->si_pid);
++			err |= __put_user(from->si_uid, &to->si_uid);
++			err |= __put_user(from->si_int, &to->si_int);
++			break;
+ 		}
+ 	}
+ 	return err;
+===== arch/x86_64/ia32/ia32_signal.c 1.19 vs edited =====
+--- 1.19/arch/x86_64/ia32/ia32_signal.c	Mon Mar  8 15:23:47 2004
++++ edited/arch/x86_64/ia32/ia32_signal.c	Sat Apr 10 21:03:13 2004
+@@ -85,7 +85,11 @@
+ 			err |= __put_user(from->si_overrun, &to->si_overrun); 
+ 			err |= __put_user((u32)(u64)from->si_ptr, &to->si_ptr);
+ 			break;
+-		/* case __SI_RT: This is not generated by the kernel as of now.  */
++		case __SI_RT: /* This is not generated by the kernel as of now.  */
++		case __SI_MESGQ:
++			err |= __put_user(from->si_uid, &to->si_uid);
++			err |= __put_user(from->si_int, &to->si_int);
++			break;
+ 		}
+ 	}
+ 	return err;
