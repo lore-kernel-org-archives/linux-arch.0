@@ -1,42 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Mon, 7 Feb 2005 09:11:06 +0100
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [patch 19/24] TASK_SIZE is variable.
-Message-ID: <20050207081106.GA16035@wotan.suse.de>
-References: <Pine.LNX.4.58.0502041806120.2165@ppc970.osdl.org> <Pine.LNX.4.58.0502041919300.2165@ppc970.osdl.org> <20050205090619.C30866@flint.arm.linux.org.uk> <20050205154448.1cc89ee9.davem@davemloft.net> <20050206105047.GB6819@wotan.suse.de> <20050206131947.6524ece9.davem@davemloft.net> <20050206213148.GI18245@wotan.suse.de> <20050206133110.528ce713.davem@davemloft.net> <20050206215020.GJ18245@wotan.suse.de> <20050206143110.59dc039f.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20050206143110.59dc039f.davem@davemloft.net>
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20050204215244.1d2532f7.davem@davemloft.net> 
+References: <20050204215244.1d2532f7.davem@davemloft.net>  <200502050150.j151osl11380@mail.osdl.org> <Pine.LNX.4.58.0502041806120.2165@ppc970.osdl.org> <Pine.LNX.4.58.0502041919300.2165@ppc970.osdl.org> 
+Subject: Re: [patch 19/24] TASK_SIZE is variable. 
+Date: Mon, 07 Feb 2005 10:59:13 +0000
+Message-ID: <24245.1107773953@redhat.com>
+Sender: dhowells@redhat.com
 To: "David S. Miller" <davem@davemloft.net>
-Cc: Andi Kleen <ak@suse.de>, rmk@arm.linux.org.uk, torvalds@osdl.org, akpm@osdl.org, dwmw2@infradead.org, linux-arch@vger.kernel.org
+Cc: Linus Torvalds <torvalds@osdl.org>, akpm@osdl.org, dwmw2@infradead.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Feb 06, 2005 at 02:31:10PM -0800, David S. Miller wrote:
-> This is kind of strange to be arguing about, given that we just
-> put 4-level page tables into the tree, right?  That regressed
-> everybody performance wise, even people not using the full
+David S. Miller <davem@davemloft.net> wrote:
 
-Hmm, are you sure? I benchmarked i386 and there was no
-measurable difference. x86-64 is regressed right now for fork etc., but
-that is to be expected because it walks twice as many page tables.
-And there is a plan to fix it.
+> > For example, replacing TASK_SIZE in fs/namei.c with "thread->addr_limit" 
+> > would actually clean up the code: it would mean that the games with 
+> > "get_fs()" etc would just go away, to be replaced with something like
+> 
+> I think that looks nice too.
+> 
+> Would you be against a "mm->addr_limit"?  That's what an approach
+> by Paulus implemented, and I was in the camp supporting that kind
+> of direction.
 
-Text size has increased a little bit for all people, but not
-too bad.
+On the other hand, this value is constant on some archs, and in those cases,
+wouldn't it be better for it to be a compile-time constant?
 
-My benchmarking was with the PML4 patchkit though, I haven't retried it 
-with PUD. 
-
-> And it's not just a sparc64 issue.  Sparc64 hardware traps the
-> access, but it's a bug regardless of platform to try to do user
-> accesses whilst get_fs()==KERNEL_DS.  All the user has to do is
-
-On x86-64 it's not a bug and we have code in the x86-64 specific
-compat layer that relies on this.
-
-Also BTW your proposed check wouldn't catch all cases anyways,
-it would only handle the case where the access_ok() check is 
-done inside the KERNEL_DS. 
-
--Andi
+David
