@@ -1,44 +1,45 @@
-Return-Path: <davem@redhat.com>
-Received: from mx1.redhat.com ([66.187.233.31]:38331 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S262451AbUC1U3q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 28 Mar 2004 15:29:46 -0500
-Date: Sun, 28 Mar 2004 12:29:20 -0800
-From: "David S. Miller" <davem@redhat.com>
+Return-Path: <rmk+linux-arch=vger.kernel.org@arm.linux.org.uk>
+Received: from caramon.arm.linux.org.uk ([212.18.232.186]:31239 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S262254AbUC1UsX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 28 Mar 2004 15:48:23 -0500
+Date: Sun, 28 Mar 2004 21:48:19 +0100
+From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: Future of linux-arch
-Message-Id: <20040328122920.404e5b37.davem@redhat.com>
-In-Reply-To: <20040328120133.D2825@flint.arm.linux.org.uk>
-References: <20040328120133.D2825@flint.arm.linux.org.uk>
+Message-ID: <20040328214819.F10358@flint.arm.linux.org.uk>
+References: <20040328120133.D2825@flint.arm.linux.org.uk> <20040328122920.404e5b37.davem@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Russell King <rmk@arm.linux.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20040328122920.404e5b37.davem@redhat.com>; from davem@redhat.com on Sun, Mar 28, 2004 at 12:29:20PM -0800
+Sender: Russell King <rmk@arm.linux.org.uk>
+To: "David S. Miller" <davem@redhat.com>
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 28 Mar 2004 12:01:33 +0100
-Russell King <rmk@arm.linux.org.uk> wrote:
+On Sun, Mar 28, 2004 at 12:29:20PM -0800, David S. Miller wrote:
+> See, because this patch goes beyond arch issues, driver folks have to use
+> these interfaces, so logically it appears that folks outside of the arch
+> community should contribute to the design and review of said interfaces.
 
-> It seems that me posting these two patches just to linux-arch has caused
-> some upset in the kernel community.  In particular, Christoph Hellwig
-> is talking about publicising the address for this list.
+So this is the thanks for taking hold of an issue which someone else
+raised and trying to get it sorted.  Fine.
 
-If he can't respect people's privacy, that shouldn't become our problem.
+But that's no good if we can't even present what we think is a good
+interface from the architecture side.  Which it appears we still
+can't.
 
-If a group of people interested in 'foo' wish to discuss 'foo' on a mailing
-list amongst themselves, I don't see what can be wrong with that.
+Remember that it was Andrea who raised it on lkml and it moved to
+to linux-arch because all the architecture people needed to be
+involved?
 
-Maybe I should feel compelled to CC: lkml every time I come up with an
-idea I wish to discuss with Linux or Andrew or one of the networking
-co-maintainers?  See how rediculious such thinking is?
+Well, I'm sick to death with this issue.  Someone else can sort out
+this problem.  I'm going to just do what's necessary to sort it on
+ARM and leave it at that.  If that screws someone else, tough shit.
+I've made the effort and done my best to find a reasonable solution.
 
-Now, on the other hand, it may have in fact been more appropriate to discuss
-this particular change on lkml, flesh out the API issues publicly, _then_
-move what you end up with to linux-arch so that arch people can code up
-implementations for their platforms for you.
-
-See, because this patch goes beyond arch issues, driver folks have to use
-these interfaces, so logically it appears that folks outside of the arch
-community should contribute to the design and review of said interfaces.
-
-Right?
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
+                 2.6 Serial core
