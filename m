@@ -1,33 +1,25 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S269372AbUIII1w@vger.kernel.org>
-Received: from witte.sonytel.be ([80.88.33.193]:47772 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S269371AbUIII1w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Sep 2004 04:27:52 -0400
-Date: Thu, 9 Sep 2004 10:27:32 +0200 (MEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Sender: geert@sonycom.com
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S264919AbUIIORS@vger.kernel.org>
+Received: from the-village.bc.nu ([81.2.110.252]:34218 "EHLO
+	localhost.localdomain") by vger.kernel.org with ESMTP
+	id S264915AbUIIOQe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Sep 2004 10:16:34 -0400
 Subject: Re: RFC: being more anal about iospace accesses..
-In-Reply-To: <20040908160737.7c1dfb5a.davem@redhat.com>
-Message-ID: <Pine.GSO.4.58.0409091026520.10508@waterleaf.sonytel.be>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+In-Reply-To: <1094711003.15909.8.camel@localhost.localdomain>
 References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org>
- <20040908160737.7c1dfb5a.davem@redhat.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: "David S. Miller" <davem@redhat.com>
-Cc: Linus Torvalds <torvalds@osdl.org>, viro@parcelfarce.linux.theplanet.co.uk, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Alan Cox <alan@lxorguk.ukuu.org.uk>
+	 <1094711003.15909.8.camel@localhost.localdomain>
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Message-Id: <1094735643.14640.20.camel@localhost.localdomain>
+Mime-Version: 1.0
+Date: Thu, 09 Sep 2004 14:14:04 +0100
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: Linus Torvalds <torvalds@osdl.org>, Al Viro <viro@parcelfarce.linux.theplanet.co.uk>, Andrew Morton <akpm@osdl.org>, Linux Arch list <linux-arch@vger.kernel.org>, "David S. Miller" <davem@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 8 Sep 2004, David S. Miller wrote:
-> Anyways, I like this a lot.
+On Iau, 2004-09-09 at 07:23, David Woodhouse wrote:
+> Just do it. It's currently a complete mess -- and it's already in need
+> of fixing on those non-i386 platforms where write[bwl] had to be
+> functions anyway. Bringing i386 into line would be great.
 
-/me too!
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+I'd say "Just do it - but not in a -rc" 8)
