@@ -1,332 +1,258 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oak (bh02i525f01.au.ibm.com [202.81.18.30])
-	by smtps.tip.net.au (Postfix) with ESMTP id 0C753368008
-	for <linux-arch@vger.kernel.org>; Tue,  8 Mar 2005 16:50:32 +1100 (EST)
-Date: Tue, 8 Mar 2005 16:50:29 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: [PATCH] consolidate the last of the compat sigevent structs
-Message-Id: <20050308165029.0653563c.sfr@canb.auug.org.au>
+Date: Wed, 9 Mar 2005 22:58:33 -0800
+From: Andrew Morton <akpm@osdl.org>
+Subject: no-arch-specific-mem_map-init
+Message-Id: <20050309225833.6d80fc42.akpm@osdl.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 To: linux-arch@vger.kernel.org
+Cc: Dave Hansen <haveblue@us.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi all,
 
-This patch pulls together the compat_sigevent structs.  It also
-consolidates the copying of these structures into the kernel.
+Everyone OK with this?
 
-The only part of the second union in sigevent that the kernel
-looks at currently is the _tid, so that is the only bit we copy.
 
-This patch depends on my previous two patches "add and use
-COMPAT_SIGEV_PAD_SIZE" and "Consolidate the last compat sigvals".
+From: Dave Hansen <haveblue@us.ibm.com>
 
-Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
+So, this patch started out with me trying to keep from passing contiguous,
+node-specific mem_map into free_area_init_node() and cousins.  Instead, I
+relied on some calls to pfn_to_page().
 
-diffstat looks like this:
- arch/ia64/ia32/ia32priv.h         |   13 -------------
- arch/ia64/ia32/sys_ia32.c         |    9 ++-------
- arch/ppc64/kernel/sys_ppc32.c     |    9 +--------
- arch/s390/kernel/compat_linux.c   |   13 ++-----------
- arch/s390/kernel/compat_linux.h   |   17 -----------------
- arch/sparc64/kernel/sys_sparc32.c |    9 ++-------
- arch/x86_64/ia32/sys_ia32.c       |   16 ++--------------
- include/asm-sparc64/siginfo.h     |   22 ----------------------
- include/linux/compat.h            |    3 +++
- ipc/compat_mq.c                   |   14 --------------
- kernel/compat.c                   |   21 +++++++++++++++++++++
- 11 files changed, 33 insertions(+), 113 deletions(-)
+This works fine and dandy when all you need is the pgdat->node_mem_map to
+do pfn_to_page().  However, the non-NUMA/DISCONTIG architectures use the
+real, global mem_map[] instead of a node_mem_map in the pfn_to_page()
+calculation.  So, I ended up effectively trying to initialize mem_map from
+itself, when it was NULL.  That was bad, and caused some very pretty colors
+on someone's screen when he tested it.
 
-Built and run on PPC64.
+So, I had to make sure to initialize the global mem_map[] before calling
+into free_area_init_node().  Then, I realized how many architectures do
+this on their own, and have comments like this:
 
-If there are no objections, I will send this on to Andrew/Linus.
--- 
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+        /* XXX: MRB-remove - this doesn't seem sane, should this be done somewhere else ?*/
+        mem_map = NODE_DATA(0)->node_mem_map;
 
-diff -ruNp linus-sigval/arch/ia64/ia32/ia32priv.h linus-sigevent/arch/ia64/ia32/ia32priv.h
---- linus-sigval/arch/ia64/ia32/ia32priv.h	2005-03-07 17:52:28.000000000 +1100
-+++ linus-sigevent/arch/ia64/ia32/ia32priv.h	2005-03-08 13:25:56.000000000 +1100
-@@ -277,19 +277,6 @@ typedef struct compat_siginfo {
- 	} _sifields;
- } compat_siginfo_t;
+The following patch does what my first one did (don't pass mem_map into the
+init functions), incorporates Jesse Barnes' ia64 fixes on top of that, and
+gets rid of all but one of the global mem_map initializations (parisc is
+weird).  It also magically removes more code than it adds.  It could be
+smaller, but I shamelessly added some comments.  
+
+Boot-tested on ppc64, i386 (NUMAQ, plain SMP, laptop), UML (i386).
+
+Signed-off-by: Dave Hansen <haveblue@us.ibm.com>
+Signed-off-by: Andrew Morton <akpm@osdl.org>
+---
+
+ 25-akpm/arch/arm/mm/init.c           |    4 ----
+ 25-akpm/arch/arm26/mm/init.c         |    2 --
+ 25-akpm/arch/cris/arch-v10/mm/init.c |    1 -
+ 25-akpm/arch/ia64/mm/contig.c        |    2 +-
+ 25-akpm/arch/m32r/mm/init.c          |    2 --
+ 25-akpm/arch/ppc64/mm/init.c         |    1 -
+ 25-akpm/arch/sh/mm/init.c            |    2 --
+ 25-akpm/arch/sh64/mm/init.c          |    3 ---
+ 25-akpm/arch/sparc/mm/srmmu.c        |    1 -
+ 25-akpm/arch/sparc/mm/sun4c.c        |    1 -
+ 25-akpm/arch/sparc64/mm/init.c       |    1 -
+ 25-akpm/arch/um/kernel/physmem.c     |    1 -
+ 25-akpm/arch/v850/kernel/setup.c     |    1 -
+ 25-akpm/mm/page_alloc.c              |   22 ++++++++++++++++------
+ 14 files changed, 17 insertions(+), 27 deletions(-)
+
+diff -puN arch/arm26/mm/init.c~no-arch-specific-mem_map-init arch/arm26/mm/init.c
+--- 25/arch/arm26/mm/init.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/arm26/mm/init.c	Mon Mar  7 16:43:24 2005
+@@ -309,8 +309,6 @@ void __init paging_init(struct meminfo *
+ 	free_area_init_node(0, pgdat, zone_size,
+ 			bdata->node_boot_start >> PAGE_SHIFT, zhole_size);
  
--typedef struct sigevent32 {
--	compat_sigval_t sigev_value;
--	int sigev_signo;
--	int sigev_notify;
--	union {
--		int _pad[COMPAT_SIGEV_PAD_SIZE];
--		struct {
--			u32 _function;
--			u32 _attribute; /* really pthread_attr_t */
--		} _sigev_thread;
--	} _sigev_un;
--} sigevent_t32;
+-	mem_map = NODE_DATA(0)->node_mem_map;
 -
- struct old_linux32_dirent {
- 	u32	d_ino;
- 	u32	d_offset;
-diff -ruNp linus-sigval/arch/ia64/ia32/sys_ia32.c linus-sigevent/arch/ia64/ia32/sys_ia32.c
---- linus-sigval/arch/ia64/ia32/sys_ia32.c	2005-03-07 13:06:23.000000000 +1100
-+++ linus-sigevent/arch/ia64/ia32/sys_ia32.c	2005-03-08 15:21:40.000000000 +1100
-@@ -2592,7 +2592,7 @@ sys32_get_thread_area (struct ia32_user_
+ 	/*
+ 	 * finish off the bad pages once
+ 	 * the mem_map is initialised
+diff -puN arch/arm/mm/init.c~no-arch-specific-mem_map-init arch/arm/mm/init.c
+--- 25/arch/arm/mm/init.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/arm/mm/init.c	Mon Mar  7 16:43:24 2005
+@@ -501,10 +501,6 @@ void __init paging_init(struct meminfo *
+ 				bdata->node_boot_start >> PAGE_SHIFT, zhole_size);
+ 	}
+ 
+-#ifndef CONFIG_DISCONTIGMEM
+-	mem_map = contig_page_data.node_mem_map;
+-#endif
+-
+ 	/*
+ 	 * finish off the bad pages once
+ 	 * the mem_map is initialised
+diff -puN arch/cris/arch-v10/mm/init.c~no-arch-specific-mem_map-init arch/cris/arch-v10/mm/init.c
+--- 25/arch/cris/arch-v10/mm/init.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/cris/arch-v10/mm/init.c	Mon Mar  7 16:43:24 2005
+@@ -184,7 +184,6 @@ paging_init(void)
+ 	 */
+ 
+ 	free_area_init_node(0, &contig_page_data, zones_size, PAGE_OFFSET >> PAGE_SHIFT, 0);
+-	mem_map = contig_page_data.node_mem_map;
  }
  
- asmlinkage long
--sys32_timer_create(u32 clock, struct sigevent32 __user *se32, timer_t __user *timer_id)
-+sys32_timer_create(u32 clock, struct compat_sigevent __user *se32, timer_t __user *timer_id)
- {
- 	struct sigevent se;
- 	mm_segment_t oldfs;
-@@ -2602,12 +2602,7 @@ sys32_timer_create(u32 clock, struct sig
- 	if (se32 == NULL)
- 		return sys_timer_create(clock, NULL, timer_id);
+ /* Initialize remaps of some I/O-ports. It is important that this
+diff -puN arch/ia64/mm/contig.c~no-arch-specific-mem_map-init arch/ia64/mm/contig.c
+--- 25/arch/ia64/mm/contig.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/ia64/mm/contig.c	Mon Mar  7 16:43:24 2005
+@@ -280,7 +280,7 @@ paging_init (void)
+ 		vmem_map = (struct page *) vmalloc_end;
+ 		efi_memmap_walk(create_mem_map_page_table, NULL);
  
--	memset(&se, 0, sizeof(struct sigevent));
--	if (get_user(se.sigev_value.sival_int,	&se32->sigev_value.sival_int) ||
--	    __get_user(se.sigev_signo, &se32->sigev_signo) ||
--	    __get_user(se.sigev_notify, &se32->sigev_notify) ||
--	    __copy_from_user(&se._sigev_un._pad, &se32->_sigev_un._pad,
--	    sizeof(se._sigev_un._pad)))
-+	if (get_compat_sigevent(&se, se32))
- 		return -EFAULT;
+-		mem_map = contig_page_data.node_mem_map = vmem_map;
++		NODE_DATA(0)->node_mem_map = vmem_map;
+ 		free_area_init_node(0, &contig_page_data, zones_size,
+ 				    0, zholes_size);
  
- 	if (!access_ok(VERIFY_WRITE,timer_id,sizeof(timer_t)))
-diff -ruNp linus-sigval/arch/ppc64/kernel/sys_ppc32.c linus-sigevent/arch/ppc64/kernel/sys_ppc32.c
---- linus-sigval/arch/ppc64/kernel/sys_ppc32.c	2005-01-29 06:05:47.000000000 +1100
-+++ linus-sigevent/arch/ppc64/kernel/sys_ppc32.c	2005-03-08 15:23:17.000000000 +1100
-@@ -1290,14 +1290,7 @@ long ppc32_timer_create(clockid_t clock,
- 	if (ev32 == NULL)
- 		return sys_timer_create(clock, NULL, timer_id);
+diff -puN arch/m32r/mm/init.c~no-arch-specific-mem_map-init arch/m32r/mm/init.c
+--- 25/arch/m32r/mm/init.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/m32r/mm/init.c	Mon Mar  7 16:43:24 2005
+@@ -121,8 +121,6 @@ unsigned long __init zone_sizes_init(voi
  
--	memset(&event, 0, sizeof(event));
--	if (!access_ok(VERIFY_READ, ev32, sizeof(struct compat_sigevent))
--	    || __get_user(event.sigev_value.sival_int,
--			  &ev32->sigev_value.sival_int)
--	    || __get_user(event.sigev_signo, &ev32->sigev_signo)
--	    || __get_user(event.sigev_notify, &ev32->sigev_notify)
--	    || __get_user(event.sigev_notify_thread_id,
--			  &ev32->sigev_notify_thread_id))
-+	if (get_compat_sigevent(&event, ev32))
- 		return -EFAULT;
+ 	free_area_init_node(0, NODE_DATA(0), zones_size, start_pfn, 0);
  
- 	if (!access_ok(VERIFY_WRITE, timer_id, sizeof(timer_t)))
-diff -ruNp linus-sigval/arch/s390/kernel/compat_linux.c linus-sigevent/arch/s390/kernel/compat_linux.c
---- linus-sigval/arch/s390/kernel/compat_linux.c	2005-02-11 13:05:29.000000000 +1100
-+++ linus-sigevent/arch/s390/kernel/compat_linux.c	2005-03-08 15:24:35.000000000 +1100
-@@ -1019,7 +1019,7 @@ extern asmlinkage long
- sys_timer_create(clockid_t, struct sigevent *, timer_t *);
- 
- asmlinkage long
--sys32_timer_create(clockid_t which_clock, struct sigevent32 *se32,
-+sys32_timer_create(clockid_t which_clock, struct compat_sigevent *se32,
- 		timer_t *timer_id)
- {
- 	struct sigevent se;
-@@ -1030,16 +1030,7 @@ sys32_timer_create(clockid_t which_clock
- 	if (se32 == NULL)
- 		return sys_timer_create(which_clock, NULL, timer_id);
- 
--	/* XXX: converting se32 to se is filthy because of the
--	 * two union members. For now it is ok, because the pointers
--	 * are not touched in kernel.
--	 */
--	memset(&se, 0, sizeof(se));
--	if (get_user(se.sigev_value.sival_int,  &se32->sigev_value.sival_int) ||
--	    get_user(se.sigev_signo, &se32->sigev_signo) ||
--	    get_user(se.sigev_notify, &se32->sigev_notify) ||
--	    copy_from_user(&se._sigev_un._pad, &se32->_sigev_un._pad,
--	    sizeof(se._sigev_un._pad)))
-+	if (get_compat_sigevent(&se, se32))
- 		return -EFAULT;
- 
- 	old_fs = get_fs();
-diff -ruNp linus-sigval/arch/s390/kernel/compat_linux.h linus-sigevent/arch/s390/kernel/compat_linux.h
---- linus-sigval/arch/s390/kernel/compat_linux.h	2005-03-07 17:49:16.000000000 +1100
-+++ linus-sigevent/arch/s390/kernel/compat_linux.h	2005-03-08 14:16:28.000000000 +1100
-@@ -194,21 +194,4 @@ struct ucontext32 {
- 	compat_sigset_t		uc_sigmask;	/* mask last for extensibility */
- };
- 
--struct sigevent32 {
--	union {
--		int sival_int;
--		u32 sival_ptr;
--	} sigev_value;
--	int sigev_signo;
--	int sigev_notify;
--	union {
--		int _pad[COMPAT_SIGEV_PAD_SIZE];
--		int _tid;
--		struct {
--			u32 *_function;
--			u32 *_attribute;
--		} _sigev_thread;
--	} _sigev_un;
--};
+-	mem_map = contig_page_data.node_mem_map;
 -
- #endif /* _ASM_S390X_S390_H */
-diff -ruNp linus-sigval/arch/sparc64/kernel/sys_sparc32.c linus-sigevent/arch/sparc64/kernel/sys_sparc32.c
---- linus-sigval/arch/sparc64/kernel/sys_sparc32.c	2005-03-07 13:06:23.000000000 +1100
-+++ linus-sigevent/arch/sparc64/kernel/sys_sparc32.c	2005-03-08 15:25:36.000000000 +1100
-@@ -1087,7 +1087,7 @@ sys_timer_create(clockid_t which_clock,
- 		 timer_t __user *created_timer_id);
+ 	return 0;
+ }
+ #else	/* CONFIG_DISCONTIGMEM */
+diff -puN arch/ppc64/mm/init.c~no-arch-specific-mem_map-init arch/ppc64/mm/init.c
+--- 25/arch/ppc64/mm/init.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/ppc64/mm/init.c	Mon Mar  7 16:43:24 2005
+@@ -664,7 +664,6 @@ void __init paging_init(void)
  
- long
--sys32_timer_create(u32 clock, struct sigevent32 __user *se32,
-+sys32_timer_create(u32 clock, struct compat_sigevent __user *se32,
- 		   timer_t __user *timer_id)
- {
- 	struct sigevent se;
-@@ -1098,12 +1098,7 @@ sys32_timer_create(u32 clock, struct sig
- 	if (se32 == NULL)
- 		return sys_timer_create(clock, NULL, timer_id);
+ 	free_area_init_node(0, &contig_page_data, zones_size,
+ 			    __pa(PAGE_OFFSET) >> PAGE_SHIFT, zholes_size);
+-	mem_map = contig_page_data.node_mem_map;
+ }
+ #endif /* CONFIG_DISCONTIGMEM */
  
--	memset(&se, 0, sizeof(struct sigevent));
--	if (get_user(se.sigev_value.sival_int,  &se32->sigev_value.sival_int) ||
--	    __get_user(se.sigev_signo, &se32->sigev_signo) ||
--	    __get_user(se.sigev_notify, &se32->sigev_notify) ||
--	    __copy_from_user(&se._sigev_un._pad, &se32->_sigev_un._pad,
--	    sizeof(se._sigev_un._pad)))
-+	if (get_compat_sigevent(&se, se32))
- 		return -EFAULT;
- 
- 	if (!access_ok(VERIFY_WRITE,timer_id,sizeof(timer_t)))
-diff -ruNp linus-sigval/arch/x86_64/ia32/sys_ia32.c linus-sigevent/arch/x86_64/ia32/sys_ia32.c
---- linus-sigval/arch/x86_64/ia32/sys_ia32.c	2005-03-07 13:06:23.000000000 +1100
-+++ linus-sigevent/arch/x86_64/ia32/sys_ia32.c	2005-03-08 15:27:14.000000000 +1100
-@@ -993,31 +993,19 @@ asmlinkage long sys32_open(const char __
- 	return fd;
+diff -puN arch/sh64/mm/init.c~no-arch-specific-mem_map-init arch/sh64/mm/init.c
+--- 25/arch/sh64/mm/init.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/sh64/mm/init.c	Mon Mar  7 16:43:24 2005
+@@ -124,9 +124,6 @@ void __init paging_init(void)
+ 	zones_size[ZONE_DMA] = MAX_LOW_PFN - START_PFN;
+ 	NODE_DATA(0)->node_mem_map = NULL;
+ 	free_area_init_node(0, NODE_DATA(0), zones_size, __MEMORY_START >> PAGE_SHIFT, 0);
+-
+-	/* XXX: MRB-remove - this doesn't seem sane, should this be done somewhere else ?*/
+-	mem_map = NODE_DATA(0)->node_mem_map;
  }
  
--struct sigevent32 { 
--	u32 sigev_value;
--	u32 sigev_signo; 
--	u32 sigev_notify; 
--	u32 payload[(64 / 4) - 3]; 
--}; 
--
- extern asmlinkage long
- sys_timer_create(clockid_t which_clock,
- 		 struct sigevent __user *timer_event_spec,
- 		 timer_t __user * created_timer_id);
- 
- long
--sys32_timer_create(u32 clock, struct sigevent32 __user *se32, timer_t __user *timer_id)
-+sys32_timer_create(u32 clock, struct compat_sigevent __user *se32, timer_t __user *timer_id)
- {
- 	struct sigevent __user *p = NULL;
- 	if (se32) { 
- 		struct sigevent se;
- 		p = compat_alloc_user_space(sizeof(struct sigevent));
--		memset(&se, 0, sizeof(struct sigevent)); 
--		if (get_user(se.sigev_value.sival_int,  &se32->sigev_value) ||
--		    __get_user(se.sigev_signo, &se32->sigev_signo) ||
--		    __get_user(se.sigev_notify, &se32->sigev_notify) ||
--		    __copy_from_user(&se._sigev_un._pad, &se32->payload, 
--				     sizeof(se32->payload)) ||
-+		if (get_compat_sigevent(&se, se32) ||
- 		    copy_to_user(p, &se, sizeof(se)))
- 			return -EFAULT;
- 	} 
-diff -ruNp linus-sigval/include/asm-sparc64/siginfo.h linus-sigevent/include/asm-sparc64/siginfo.h
---- linus-sigval/include/asm-sparc64/siginfo.h	2005-03-07 17:49:55.000000000 +1100
-+++ linus-sigevent/include/asm-sparc64/siginfo.h	2005-03-08 14:19:52.000000000 +1100
-@@ -32,26 +32,4 @@ struct compat_siginfo;
- #define EMT_TAGOVF	(__SI_FAULT|1)	/* tag overflow */
- #define NSIGEMT		1
- 
--#ifdef __KERNEL__
--
--#ifdef CONFIG_COMPAT
--
--typedef struct sigevent32 {
--	compat_sigval_t sigev_value;
--	int sigev_signo;
--	int sigev_notify;
--	union {
--		int _pad[COMPAT_SIGEV_PAD_SIZE];
--
--		struct {
--			u32 _function;
--			u32 _attribute;	/* really pthread_attr_t */
--		} _sigev_thread;
--	} _sigev_un;
--} sigevent_t32;
--
--#endif /* CONFIG_COMPAT */
--
--#endif /* __KERNEL__ */
--
+ void __init mem_init(void)
+diff -puN arch/sh/mm/init.c~no-arch-specific-mem_map-init arch/sh/mm/init.c
+--- 25/arch/sh/mm/init.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/sh/mm/init.c	Mon Mar  7 16:43:24 2005
+@@ -216,8 +216,6 @@ void __init paging_init(void)
  #endif
-diff -ruNp linus-sigval/include/linux/compat.h linus-sigevent/include/linux/compat.h
---- linus-sigval/include/linux/compat.h	2005-03-07 14:07:26.000000000 +1100
-+++ linus-sigevent/include/linux/compat.h	2005-03-08 14:38:57.000000000 +1100
-@@ -155,5 +155,8 @@ long compat_put_bitmap(compat_ulong_t __
- 		       unsigned long bitmap_size);
- int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from);
- int copy_siginfo_to_user32(struct compat_siginfo __user *to, siginfo_t *from);
-+int get_compat_sigevent(struct sigevent *event,
-+		const struct compat_sigevent __user *u_event);
-+
- #endif /* CONFIG_COMPAT */
- #endif /* _LINUX_COMPAT_H */
-diff -ruNp linus-sigval/ipc/compat_mq.c linus-sigevent/ipc/compat_mq.c
---- linus-sigval/ipc/compat_mq.c	2004-07-17 08:44:05.000000000 +1000
-+++ linus-sigevent/ipc/compat_mq.c	2005-03-08 14:33:15.000000000 +1100
-@@ -102,20 +102,6 @@ asmlinkage ssize_t compat_sys_mq_timedre
- 			u_msg_prio, u_ts);
+ 	NODE_DATA(0)->node_mem_map = NULL;
+ 	free_area_init_node(0, NODE_DATA(0), zones_size, __MEMORY_START >> PAGE_SHIFT, 0);
+-	/* XXX: MRB-remove - this doesn't seem sane, should this be done somewhere else ?*/
+-	mem_map = NODE_DATA(0)->node_mem_map;
+ 
+ #ifdef CONFIG_DISCONTIGMEM
+ 	/*
+diff -puN arch/sparc64/mm/init.c~no-arch-specific-mem_map-init arch/sparc64/mm/init.c
+--- 25/arch/sparc64/mm/init.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/sparc64/mm/init.c	Mon Mar  7 16:43:24 2005
+@@ -1513,7 +1513,6 @@ void __init paging_init(void)
+ 
+ 		free_area_init_node(0, &contig_page_data, zones_size,
+ 				    phys_base >> PAGE_SHIFT, zholes_size);
+-		mem_map = contig_page_data.node_mem_map;
+ 	}
+ 
+ 	device_scan();
+diff -puN arch/sparc/mm/srmmu.c~no-arch-specific-mem_map-init arch/sparc/mm/srmmu.c
+--- 25/arch/sparc/mm/srmmu.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/sparc/mm/srmmu.c	Mon Mar  7 16:43:24 2005
+@@ -1343,7 +1343,6 @@ void __init srmmu_paging_init(void)
+ 
+ 		free_area_init_node(0, &contig_page_data, zones_size,
+ 				    pfn_base, zholes_size);
+-		mem_map = contig_page_data.node_mem_map;
+ 	}
  }
  
--static int get_compat_sigevent(struct sigevent *event,
--		const struct compat_sigevent __user *u_event)
--{
--	if (verify_area(VERIFY_READ, u_event, sizeof(*u_event)))
--		return -EFAULT;
--
--	return __get_user(event->sigev_value.sival_int,
--			  &u_event->sigev_value.sival_int)
--	     | __get_user(event->sigev_signo, &u_event->sigev_signo)
--	     | __get_user(event->sigev_notify, &u_event->sigev_notify)
--	     | __get_user(event->sigev_notify_thread_id,
--			  &u_event->sigev_notify_thread_id);
--}
--
- asmlinkage long compat_sys_mq_notify(mqd_t mqdes,
- 			const struct compat_sigevent __user *u_notification)
+diff -puN arch/sparc/mm/sun4c.c~no-arch-specific-mem_map-init arch/sparc/mm/sun4c.c
+--- 25/arch/sparc/mm/sun4c.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/sparc/mm/sun4c.c	Mon Mar  7 16:43:24 2005
+@@ -2117,7 +2117,6 @@ void __init sun4c_paging_init(void)
+ 
+ 		free_area_init_node(0, &contig_page_data, zones_size,
+ 				    pfn_base, zholes_size);
+-		mem_map = contig_page_data.node_mem_map;
+ 	}
+ 
+ 	cnt = 0;
+diff -puN arch/um/kernel/physmem.c~no-arch-specific-mem_map-init arch/um/kernel/physmem.c
+--- 25/arch/um/kernel/physmem.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/um/kernel/physmem.c	Mon Mar  7 16:43:24 2005
+@@ -294,7 +294,6 @@ int init_maps(unsigned long physmem, uns
+ 		INIT_LIST_HEAD(&p->lru);
+ 	}
+ 
+-	mem_map = map;
+ 	max_mapnr = total_pages;
+ 	return(0);
+ }
+diff -puN arch/v850/kernel/setup.c~no-arch-specific-mem_map-init arch/v850/kernel/setup.c
+--- 25/arch/v850/kernel/setup.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/arch/v850/kernel/setup.c	Mon Mar  7 16:43:24 2005
+@@ -283,5 +283,4 @@ init_mem_alloc (unsigned long ram_start,
+ 	NODE_DATA(0)->node_mem_map = NULL;
+ 	free_area_init_node (0, NODE_DATA(0), zones_size,
+ 			     ADDR_TO_PAGE (PAGE_OFFSET), 0);
+-	mem_map = NODE_DATA(0)->node_mem_map;
+ }
+diff -puN mm/page_alloc.c~no-arch-specific-mem_map-init mm/page_alloc.c
+--- 25/mm/page_alloc.c~no-arch-specific-mem_map-init	Mon Mar  7 16:43:24 2005
++++ 25-akpm/mm/page_alloc.c	Mon Mar  7 16:43:24 2005
+@@ -1712,14 +1712,25 @@ static void __init free_area_init_core(s
+ 	}
+ }
+ 
+-void __init node_alloc_mem_map(struct pglist_data *pgdat)
++static void __init alloc_node_mem_map(struct pglist_data *pgdat)
  {
-diff -ruNp linus-sigval/kernel/compat.c linus-sigevent/kernel/compat.c
---- linus-sigval/kernel/compat.c	2005-03-07 13:06:24.000000000 +1100
-+++ linus-sigevent/kernel/compat.c	2005-03-08 16:16:51.000000000 +1100
-@@ -630,6 +630,27 @@ long compat_sys_clock_nanosleep(clockid_
- 	return err;	
- } 
+ 	unsigned long size;
  
-+/*
-+ * We currently only need the following fields from the sigevent
-+ * structure: sigev_value, sigev_signo, sig_notify and (sometimes
-+ * sigev_notify_thread_id).  The others are handled in user mode.
-+ * We also assume that copying sigev_value.sival_int is sufficient
-+ * to keep all the bits of sigev_value.sival_ptr intact.
-+ */
-+int get_compat_sigevent(struct sigevent *event,
-+		const struct compat_sigevent __user *u_event)
-+{
-+	memset(&event, 0, sizeof(*event));
-+	return (!access_ok(VERIFY_READ, u_event, sizeof(*u_event)) ||
-+		__get_user(event->sigev_value.sival_int,
-+			&u_event->sigev_value.sival_int) ||
-+		__get_user(event->sigev_signo, &u_event->sigev_signo) ||
-+		__get_user(event->sigev_notify, &u_event->sigev_notify) ||
-+		__get_user(event->sigev_notify_thread_id,
-+			&u_event->sigev_notify_thread_id))
-+		? -EFAULT : 0;
-+}
+-	size = (pgdat->node_spanned_pages + 1) * sizeof(struct page);
+-	pgdat->node_mem_map = alloc_bootmem_node(pgdat, size);
++	/* Skip empty nodes */
++	if (!pgdat->node_spanned_pages)
++		return;
 +
- /* timer_create is architecture specific because it needs sigevent conversion */
++	/* ia64 gets its own node_mem_map, before this, without bootmem */
++	if (!pgdat->node_mem_map) {
++		size = (pgdat->node_spanned_pages + 1) * sizeof(struct page);
++		pgdat->node_mem_map = alloc_bootmem_node(pgdat, size);
++	}
+ #ifndef CONFIG_DISCONTIGMEM
+-	mem_map = contig_page_data.node_mem_map;
++	/*
++	 * With no DISCONTIG, the global mem_map is just set as node 0's
++	 */
++	if (pgdat == NODE_DATA(0))
++		mem_map = NODE_DATA(0)->node_mem_map;
+ #endif
+ }
  
- long compat_get_bitmap(unsigned long *mask, compat_ulong_t __user *umask,
+@@ -1731,8 +1742,7 @@ void __init free_area_init_node(int nid,
+ 	pgdat->node_start_pfn = node_start_pfn;
+ 	calculate_zone_totalpages(pgdat, zones_size, zholes_size);
+ 
+-	if (!pfn_to_page(node_start_pfn))
+-		node_alloc_mem_map(pgdat);
++	alloc_node_mem_map(pgdat);
+ 
+ 	free_area_init_core(pgdat, zones_size, zholes_size);
+ }
+_
