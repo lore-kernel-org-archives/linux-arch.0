@@ -1,41 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 25 Feb 2005 15:29:50 +0200
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH] set_pte() part 1 (was Re: [PATCH] ppc32: Wrong vaddr in flush_hash_one_pte())
-Message-ID: <20050225132950.GA28014@linux-sh.org>
-References: <1109145729.5412.213.camel@gaston> <20050223161138.00d8205f.davem@davemloft.net>
+Date: Fri, 25 Feb 2005 10:37:30 -0800
+From: "David S. Miller" <davem@davemloft.net>
+Subject: Re: [PATCH] set_pte() part 2 arch usage
+Message-Id: <20050225103730.75adf2f0.davem@davemloft.net>
+In-Reply-To: <1109316055.14992.60.camel@gaston>
+References: <20050223200719.2d4e8918.davem@davemloft.net>
+	<1109222328.15027.12.camel@gaston>
+	<20050224143601.12c340ca.davem@davemloft.net>
+	<1109309524.14993.56.camel@gaston>
+	<1109316055.14992.60.camel@gaston>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="Q68bSM7Ycu6FN28Q"
-Content-Disposition: inline
-In-Reply-To: <20050223161138.00d8205f.davem@davemloft.net>
-To: "David S. Miller" <davem@davemloft.net>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Fri, 25 Feb 2005 18:20:55 +1100
+Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
 
---Q68bSM7Ycu6FN28Q
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+> Ok, LTP dies on POWER5, investigation in progress ;)
 
-On Wed, Feb 23, 2005 at 04:11:38PM -0800, David S. Miller wrote:
-> I've been over this a few times this afternoon and the patch looks
-> correct.  Please test the build and boot of your platform, any build
-> failures should be trivial typos and nothing major.
->=20
-This works fine for sh and sh64 too.
+I bet the address arg is incorrect in some case.  It is easy
+to add debugging for this, for example in your set_pte_at()
+implementation you can do something like:
 
---Q68bSM7Ycu6FN28Q
-Content-Type: application/pgp-signature
-Content-Disposition: inline
+static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+			      pte_t *ptep, pte_t pte)
+{
+#ifdef DEBUG_SET_PTE_AT
+	{
+		pgd_t *pgd_check = pgd_offset(mm, addr);
+		pud_t *pud_check = pud_offset(pgd_check, addr);
+		pmd_t *pmd_check = pmd_offset(pud_check, addr);
+		pte_t *pte_check = pte_offset(pmd_check, addr);
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.2.6 (GNU/Linux)
+		BUG_ON(pte_check != ptep);
+	}
+#endif
+}
 
-iD8DBQFCHyhO1K+teJFxZ9wRApOmAJ9rSmoi882rh4OQhuRXpep9KnsBkQCeP9vX
-ikVcE6Alwk98x5JVgavfD7w=
-=RpZO
------END PGP SIGNATURE-----
-
---Q68bSM7Ycu6FN28Q--
+BUG_ON() may hinder debugging if you hit a range of such
+incorrect calculations, so maybe a single printk which
+just prints __builtin_return_address(0) or current_text_addr()
+as well.
