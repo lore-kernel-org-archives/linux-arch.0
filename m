@@ -1,32 +1,29 @@
-Return-Path: <davem@redhat.com>
-Received: from mx1.redhat.com ([66.187.233.31]:17300 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S263588AbUELX6G (ORCPT
+Return-Path: <ak@suse.de>
+Received: from ns.suse.de ([195.135.220.2]:26288 "EHLO Cantor.suse.de")
+	by vger.kernel.org with ESMTP id S263928AbUEMHnh (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 May 2004 19:58:06 -0400
-Date: Wed, 12 May 2004 16:57:06 -0700
-From: "David S. Miller" <davem@redhat.com>
+	Thu, 13 May 2004 03:43:37 -0400
+Date: Thu, 13 May 2004 09:43:36 +0200
+From: Andi Kleen <ak@suse.de>
 Subject: Re: Fw: Re: Reduce TLB flushing during process migration
-Message-Id: <20040512165706.14d3b0ea.davem@redhat.com>
-In-Reply-To: <20040512153203.5ac1b196.akpm@osdl.org>
-References: <20040512153203.5ac1b196.akpm@osdl.org>
+Message-ID: <20040513074336.GB27682@wotan.suse.de>
+References: <20040512153203.5ac1b196.akpm@osdl.org> <20040512165706.14d3b0ea.davem@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org, steiner@sgi.com, mort@wildopensource.com, jbarnes@sgi.com
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20040512165706.14d3b0ea.davem@redhat.com>
+To: "David S. Miller" <davem@redhat.com>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, steiner@sgi.com, mort@wildopensource.com, jbarnes@sgi.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 12 May 2004 15:32:03 -0700
-Andrew Morton <akpm@osdl.org> wrote:
+On Wed, May 12, 2004 at 04:57:06PM -0700, David S. Miller wrote:
+> > davem, you expressed interest in this previously.  The question is whether
+> > we should remove the whole thing, or just the ia64 component?
+> 
+> It doesn't do anything for me on sparc64.  As per the change
+> description, it's a benefit also on platforms like x86 where
+> context-switch == tlb flush anyways.
 
-> davem, you expressed interest in this previously.  The question is whether
-> we should remove the whole thing, or just the ia64 component?
+Hmm, are you sure? How would that help? 
 
-It doesn't do anything for me on sparc64.  As per the change
-description, it's a benefit also on platforms like x86 where
-context-switch == tlb flush anyways.
-
-At least that was my understanding.
-
-If it's beneficial to the ia64 folks, I'm ambivalent, so just
-put the fixed version back in once available.
+-Andi
