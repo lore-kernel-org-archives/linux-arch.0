@@ -1,56 +1,108 @@
-Return-Path: <geert@linux-m68k.org>
-Received: from witte.sonytel.be ([80.88.33.193]:63881 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S263734AbUELUt7 (ORCPT
+Return-Path: <akpm@osdl.org>
+Received: from fw.osdl.org ([65.172.181.6]:30614 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S261918AbUELW31 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 May 2004 16:49:59 -0400
-Date: Wed, 12 May 2004 22:49:28 +0200 (MEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Sender: geert@sonycom.com
-Subject: Re: Implement print_modules()
-In-Reply-To: <20040512124910.0af06300.akpm@osdl.org>
-Message-ID: <Pine.GSO.4.58.0405122247130.29476@waterleaf.sonytel.be>
-References: <20040512173905.GA24382@devserv.devel.redhat.com>
- <20040512124910.0af06300.akpm@osdl.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: Andrew Morton <akpm@osdl.org>
-Cc: Arjan van de Ven <arjanv@redhat.com>, Paul Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org
+	Wed, 12 May 2004 18:29:27 -0400
+Date: Wed, 12 May 2004 15:32:03 -0700
+From: Andrew Morton <akpm@osdl.org>
+Subject: Fw: Re: Reduce TLB flushing during process migration
+Message-Id: <20040512153203.5ac1b196.akpm@osdl.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: linux-arch@vger.kernel.org
+Cc: steiner@sgi.com, mort@wildopensource.com, jbarnes@sgi.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 12 May 2004, Andrew Morton wrote:
-> Arjan van de Ven <arjanv@redhat.com> wrote:
-> > the patch below resolves the "Not Yet Implemented" print_modules() thing.
-> > This is a really useful feature for distros; it allows us to do statistical
-> > analysis on which modules are present how often in oopses compared to how
-> > often they are used normally.
-> > In addition it helps to spot candidates for certain bugs without having to
-> > go back to the customer asking for this information.
-> >
+
+fyi, we're planning on pulling out the tlb_migrate_prepare() stuff
+again - apparently it's not welcome on ia64 in its present form.
+
+davem, you expressed interest in this previously.  The question is whether
+we should remove the whole thing, or just the ia64 component?
+
+
+
+Begin forwarded message:
+
+Date: Wed, 12 May 2004 15:08:36 -0700
+From: Andrew Morton <akpm@osdl.org>
+To: davidm@hpl.hp.com
+Cc: steiner@sgi.com, mort@wildopensource.com, jbarnes@sgi.com
+Subject: Re: Reduce TLB flushing during process migration
+
+
+David Mosberger <davidm@napali.hpl.hp.com> wrote:
 >
-> OK.  Only three architectures are calling print_modules() at this time.
-> arch maintainers should consider adding a call.  We have a stub at present
-> so the change can go in any time.
+> Please remove it until a proper solution exists.
 
-This (untested) one should do the trick for m68k:
+I'll submit this on Friday, when bugalugs returns.
 
---- linux-2.6.6/arch/m68k/kernel/traps.c	2004-05-03 11:01:24.000000000 +0200
-+++ linux-m68k-2.6.6/arch/m68k/kernel/traps.c	2004-05-12 22:44:39.000000000 +0200
-@@ -1187,6 +1187,7 @@ void die_if_kernel (char *str, struct pt
 
- 	console_verbose();
- 	printk("%s: %08x\n",str,nr);
-+	print_modules();
- 	printk("PC: [<%08lx>]",fp->pc);
- 	print_symbol(" %s\n", fp->pc);
- 	printk("\nSR: %04x  SP: %p  a2: %08lx\n",
+David Mosberger asked that this be backed out:
 
-Gr{oetje,eeting}s,
+"I do not believe that flushing the TLB before migration is be the right thing
+to do on ia64 machines which support global TLB purges (i.e., all but SGI's
+machines)."
 
-						Geert
+It was of huge benefit for the SGI machines, so work is ongoing.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+---
+
+ 25-akpm/include/asm-generic/tlb.h |    2 --
+ 25-akpm/include/asm-ia64/tlb.h    |    2 --
+ 25-akpm/kernel/sched.c            |   10 ----------
+ 3 files changed, 14 deletions(-)
+
+diff -puN include/asm-generic/tlb.h~revert-process-migration-speedup include/asm-generic/tlb.h
+--- 25/include/asm-generic/tlb.h~revert-process-migration-speedup	Wed May 12 15:04:55 2004
++++ 25-akpm/include/asm-generic/tlb.h	Wed May 12 15:05:24 2004
+@@ -146,6 +146,4 @@ static inline void tlb_remove_page(struc
+ 		__pmd_free_tlb(tlb, pmdp);			\
+ 	} while (0)
+ 
+-#define tlb_migrate_prepare(mm) do { } while(0)
+-
+ #endif /* _ASM_GENERIC__TLB_H */
+diff -puN include/asm-ia64/tlb.h~revert-process-migration-speedup include/asm-ia64/tlb.h
+--- 25/include/asm-ia64/tlb.h~revert-process-migration-speedup	Wed May 12 15:04:55 2004
++++ 25-akpm/include/asm-ia64/tlb.h	Wed May 12 15:05:24 2004
+@@ -211,8 +211,6 @@ __tlb_remove_tlb_entry (struct mmu_gathe
+ 	tlb->end_addr = address + PAGE_SIZE;
+ }
+ 
+-#define tlb_migrate_prepare(mm) flush_tlb_mm(mm)
+-
+ #define tlb_start_vma(tlb, vma)			do { } while (0)
+ #define tlb_end_vma(tlb, vma)			do { } while (0)
+ 
+diff -puN kernel/sched.c~revert-process-migration-speedup kernel/sched.c
+--- 25/kernel/sched.c~revert-process-migration-speedup	Wed May 12 15:04:55 2004
++++ 25-akpm/kernel/sched.c	Wed May 12 15:05:24 2004
+@@ -26,8 +26,6 @@
+ #include <linux/highmem.h>
+ #include <linux/smp_lock.h>
+ #include <asm/mmu_context.h>
+-#include <linux//pagemap.h>
+-#include <asm/tlb.h>
+ #include <linux/interrupt.h>
+ #include <linux/completion.h>
+ #include <linux/kernel_stat.h>
+@@ -1302,14 +1300,6 @@ static void sched_migrate_task(task_t *p
+ 		wake_up_process(mt);
+ 		put_task_struct(mt);
+ 		wait_for_completion(&req.done);
+-
+-		/*
+-		 * we want a new context here. This eliminates TLB
+-		 * flushes on the cpus where the process executed prior to
+-		 * the migration.
+-		 */
+-		tlb_migrate_prepare(current->mm);
+-
+ 		return;
+ 	}
+ out:
+
+_
