@@ -1,56 +1,109 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261430AbUKVOaK@vger.kernel.org>
-Received: from p508B767E.dip.t-dialin.net ([80.139.118.126]:2353 "EHLO
-	mail.linux-mips.net") by vger.kernel.org with ESMTP id S261387AbUKVO32
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Nov 2004 09:29:28 -0500
-Date: Mon, 22 Nov 2004 15:29:21 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: Unknown traps.
-Message-ID: <20041122142921.GB3230@linux-mips.org>
-References: <OFE35549E9.20C1C2B2-ON42256F50.00448A0C-42256F50.0049E9FE@de.ibm.com>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262124AbUKVPbD@vger.kernel.org>
+Received: from canuck.infradead.org ([205.233.218.70]:17168 "EHLO
+	canuck.infradead.org") by vger.kernel.org with ESMTP
+	id S261387AbUKVPaY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Nov 2004 10:30:24 -0500
+Subject: Re: [PATCH 9/11] - UML - fix signal mask on delivery error
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <1100507760.8015.54.camel@localhost.localdomain>
+References: <200411130201.iAD210pT005889@ccure.user-mode-linux.org>
+	 <20041112163442.45fc966f.akpm@osdl.org>
+	 <200411142213.iAEMDHbV013050@ccure.user-mode-linux.org>
+	 <1100507760.8015.54.camel@localhost.localdomain>
+Content-Type: text/plain
+Message-Id: <1101137404.8191.7494.camel@hades.cambridge.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <OFE35549E9.20C1C2B2-ON42256F50.00448A0C-42256F50.0049E9FE@de.ibm.com>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: linux-arch@vger.kernel.org
+Date: Mon, 22 Nov 2004 15:30:05 +0000
+Content-Transfer-Encoding: 7bit
+To: Jeff Dike <jdike@addtoit.com>
+Cc: paulus@samba.org, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, cagney@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Nov 18, 2004 at 03:27:20PM +0200, Martin Schwidefsky wrote:
 
-> Hi,
-> while working on a deficiency in the illegal operation handler for
-> s390 (only emits a force_sig instead of a force_sig_info) I stumbled
-> over something odd: How are unknown traps handled properly?
+On Mon, 2004-11-15 at 08:35 +0000, David Woodhouse wrote:
+> On Sun, 2004-11-14 at 17:13 -0500, Jeff Dike wrote:
+> > 	step_sighdlr.c - PTRACE_SINGLESTEPs into a signal handler, if I'm
+> > reading the code right, fails on i386
 > 
-> Of the architectures where I have some clue what they are doing:
-> 
-> i386: doesn't handle unknown traps (idt_table entries with {0,0})
-> ia64: does a force_sig with SIGILL.
-> parisc: does a force_sig_info with SIGBUS/BUS_OBJERR.
-> ppc: doesn't handle unknown traps (?).
-> s390: does a force_sig with SIGSEGV.
-> sparc: does a force_sig_info with SIGILL/ILL_ILLTRP.
-> x86_64: doesn't handle unknown traps (idt_table entries with {0,0})
-> 
-> What is correct? For s390 I'd like to do a force_sig_info of some
-> kind, SIGBUS/BUS_OBJERR is a likely choice.
+> I haven't looked at this particular test but given the description I
+> think it'll fail on ppc64 too. This ought to fix it for 2.6, along with
+> single-stepping over syscalls and single-stepping over sigreturn (which
+> is a special case). 
 
-I'm reacting a bit harsher on MIPS:
+I fixed it too hard -- we don't need to stop _twice_ at the same
+instruction on entry to a signal handler; once will suffice...
 
-asmlinkage void do_reserved(struct pt_regs *regs)
-{
-        /*
-         * Game over - no way to handle this if it ever occurs.  Most probably
-         * caused by a new unknown cpu type or after another deadly
-         * hard/software error.
-         */
-        show_regs(regs);
-        panic("Caught reserved exception %ld - should not happen.",
-              (regs->cp0_cause & 0x7f) >> 2);
-}
+--- linux-2.6.9/arch/ppc64/kernel/entry.S.sstep	2004-10-18 22:53:06.000000000 +0100
++++ linux-2.6.9/arch/ppc64/kernel/entry.S	2004-11-09 18:32:30.000000000 +0000
+@@ -162,7 +162,7 @@ syscall_error_cont:
+ 
+ 	/* check for syscall tracing or audit */
+ 	ld	r9,TI_FLAGS(r12)
+-	andi.	r0,r9,_TIF_SYSCALL_T_OR_A
++	andi.	r0,r9,(_TIF_SYSCALL_T_OR_A|_TIF_SINGLESTEP)
+ 	bne-	syscall_exit_trace
+ syscall_exit_trace_cont:
+ 
+@@ -317,7 +317,7 @@ _GLOBAL(ppc64_rt_sigreturn)
+ 	blt	syscall_exit
+ 	clrrdi	r4,r1,THREAD_SHIFT
+ 	ld	r4,TI_FLAGS(r4)
+-	andi.	r4,r4,_TIF_SYSCALL_T_OR_A
++	andi.	r4,r4,(_TIF_SYSCALL_T_OR_A|_TIF_SINGLESTEP)
+ 	beq+	81f
+ 	bl	.do_syscall_trace_leave
+ 81:	b	.ret_from_except
+--- linux-2.6.9/arch/ppc64/kernel/ptrace.c.sstep	2004-10-18 22:54:55.000000000 +0100
++++ linux-2.6.9/arch/ppc64/kernel/ptrace.c	2004-11-09 18:17:29.000000000 +0000
+@@ -318,7 +318,8 @@ void do_syscall_trace_leave(void)
+ 	if (unlikely(current->audit_context))
+ 		audit_syscall_exit(current, 0);	/* FIXME: pass pt_regs */
+ 
+-	if (test_thread_flag(TIF_SYSCALL_TRACE)
++	if ((test_thread_flag(TIF_SYSCALL_TRACE)
++	     || test_thread_flag(TIF_SINGLESTEP))
+ 	    && (current->ptrace & PT_PTRACED))
+ 		do_syscall_trace();
+ }
+--- linux-2.6.9/include/asm-ppc64/ptrace-common.h.sstep	2004-10-18 22:54:37.000000000 +0100
++++ linux-2.6.9/include/asm-ppc64/ptrace-common.h	2004-11-09 18:45:29.000000000 +0000
+@@ -58,6 +58,7 @@ static inline void set_single_step(struc
+ 	struct pt_regs *regs = task->thread.regs;
+ 	if (regs != NULL)
+ 		regs->msr |= MSR_SE;
++	set_ti_thread_flag(task->thread_info, TIF_SINGLESTEP);
+ }
+ 
+ static inline void clear_single_step(struct task_struct *task)
+@@ -65,6 +66,7 @@ static inline void clear_single_step(str
+ 	struct pt_regs *regs = task->thread.regs;
+ 	if (regs != NULL)
+ 		regs->msr &= ~MSR_SE;
++	clear_ti_thread_flag(task->thread_info, TIF_SINGLESTEP);
+ }
+ 
+ #endif /* _PPC64_PTRACE_COMMON_H */
+--- linux-2.6.9/include/asm-ppc64/thread_info.h.sstep	2004-10-18 22:53:21.000000000 +0100
++++ linux-2.6.9/include/asm-ppc64/thread_info.h	2004-11-09 18:25:59.000000000 +0000
+@@ -97,6 +97,7 @@ static inline struct thread_info *curren
+ #define TIF_RUN_LIGHT		6	/* iSeries run light */
+ #define TIF_ABI_PENDING		7	/* 32/64 bit switch needed */
+ #define TIF_SYSCALL_AUDIT	8	/* syscall auditing active */
++#define TIF_SINGLESTEP		9	/* singlestepping active */
+ 
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+@@ -108,6 +109,7 @@ static inline struct thread_info *curren
+ #define _TIF_RUN_LIGHT		(1<<TIF_RUN_LIGHT)
+ #define _TIF_ABI_PENDING	(1<<TIF_ABI_PENDING)
+ #define _TIF_SYSCALL_AUDIT	(1<<TIF_SYSCALL_AUDIT)
++#define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
+ #define _TIF_SYSCALL_T_OR_A	(_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT)
+ 
+ #define _TIF_USER_WORK_MASK	(_TIF_NOTIFY_RESUME | _TIF_SIGPENDING | \
 
-If this is happening it's a severe kernel or hardware problem and it's not
-clear if continuing is safe or how to recover, so game over.
 
-  Ralf
+
+
+-- 
+dwmw2
