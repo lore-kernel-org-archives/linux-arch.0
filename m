@@ -1,246 +1,393 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268490AbUIWOFs@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([212.18.232.186]:39174 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S268488AbUIWOFs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Sep 2004 10:05:48 -0400
-Date: Thu, 23 Sep 2004 15:05:43 +0100
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [RFC] flush_cache_page in kernel/ptrace.c
-Message-ID: <20040923150543.B24734@flint.arm.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Sender: Russell King <rmk@arm.linux.org.uk>
-To: Andrew Morton <akpm@osdl.org>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268218AbUIWSsk@vger.kernel.org>
+Received: from omx3-ext.sgi.com ([192.48.171.20]:52971 "EHLO omx3.sgi.com")
+	by vger.kernel.org with ESMTP id S268212AbUIWSsk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Sep 2004 14:48:40 -0400
+Received: from cthulhu.engr.sgi.com (cthulhu.engr.sgi.com [192.26.80.2])
+	by omx3.sgi.com (8.12.11/8.12.9/linux-outbound_gateway-1.1) with ESMTP id i8NHuvPM009555
+	for <linux-arch@vger.kernel.org>; Thu, 23 Sep 2004 10:57:00 -0700
+Received: from mill ([198.149.36.12])
+	by cthulhu.engr.sgi.com (SGI-8.12.5/8.12.5) with ESMTP id i8NImYY913083401
+	for <linux-arch@vger.kernel.org>; Thu, 23 Sep 2004 11:48:35 -0700 (PDT)
+From: Jesse Barnes <jbarnes@engr.sgi.com>
+Subject: [PATCH] I/O space write barrier
+MIME-Version: 1.0
+Date: Thu, 23 Sep 2004 14:48:21 -0400
+Content-Type: Multipart/Mixed;
+  boundary="Boundary-00=_1pxUB6zz+OrCGRj"
+Message-Id: <200409231448.21887.jbarnes@engr.sgi.com>
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Since there appears to be almost zero interest from architecture
-people in this (except jejb who seems to be solving a similar
-problem, but has okayed this), can we merge it?
+--Boundary-00=_1pxUB6zz+OrCGRj
+Content-Type: text/plain;
+  charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
 
------ Forwarded message from Russell King <rmk@arm.linux.org.uk> -----
+[Posting again to linux-arch at Ralf's suggestion.]
 
-Date:	Fri, 17 Sep 2004 16:11:47 +0100
-From:	Russell King <rmk@arm.linux.org.uk>
-To:	linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>
-Subject: Re: [RFC] flush_cache_page in kernel/ptrace.c
+On some platforms (e.g. SGI Challenge, Origin, and Altix machines), writes to 
+I/O space aren't ordered coming from different CPUs.  For the most part, this 
+isn't a problem since drivers generally spinlock around code that does writeX 
+calls, but if the last operation a driver does before it releases a lock is a 
+write and some other CPU takes the lock and immediately does a write, it's 
+possible the second CPU's write could arrive before the first's.
 
-On Fri, Sep 10, 2004 at 04:23:30PM +0100, Russell King wrote:
-> That's fine by me - please send your patches my way. 8)
+This patch adds a mmiowb() call to deal with this sort of situation, and 
+modifies the qla1280 driver to use it.  The idea is to mirror the regular, 
+cacheable memory barrier operation, wmb (arg!  I misnamed it in my patch, 
+I'll fix that up in the next rev assuming it's ok).  Example:
 
-Here's a patch which I've put together to achieve the first stage.
-We remove flush_cache_page() from kernel/ptrace.c, adding it to
-the arch-specific copy_{to,from}_user_page() where flush_cache_page
-is non-empty.
+CPU A:  spin_lock_irqsave(&dev_lock, flags)
+CPU A:  ...
+CPU A:  writel(newval, ring_ptr);
+CPU A:  spin_unlock_irqrestore(&dev_lock, flags)
+        ...
+CPU B:  spin_lock_irqsave(&dev_lock, flags)
+CPU B:  writel(newval2, ring_ptr);
+CPU B:  ...
+CPU B:  spin_unlock_irqrestore(&dev_lock, flags)
 
-Can architecture people test and check this patch please?
+In this case, newval2 could be written to ring_ptr before newval.  Fixing it 
+is easy though:
 
-Thanks.
+CPU A:  spin_lock_irqsave(&dev_lock, flags)
+CPU A:  ...
+CPU A:  writel(newval, ring_ptr);
+CPU A:  mmiowb(); /* ensure no other writes beat us to the device */
+CPU A:  spin_unlock_irqrestore(&dev_lock, flags)
+        ...
+CPU B:  spin_lock_irqsave(&dev_lock, flags)
+CPU B:  writel(newval2, ring_ptr);
+CPU B:  ...
+CPU B:  mmiowb();
+CPU B:  spin_unlock_irqrestore(&dev_lock, flags)
 
-===== Documentation/cachetlb.txt 1.11 vs edited =====
---- 1.11/Documentation/cachetlb.txt	2004-07-11 01:14:00 +01:00
-+++ edited/Documentation/cachetlb.txt	2004-09-17 14:50:31 +01:00
-@@ -354,10 +354,6 @@
- 	of arbitrary user pages (f.e. for ptrace()) it will use
- 	these two routines.
+Note that this doesn't address a related case where the driver may want to 
+actually make a given write get to the device before proceeding.  This should 
+be dealt with by immediately reading a register from the card that has no 
+side effects.  According to the PCI spec, that will guarantee that all writes 
+have arrived before being sent to the target bus.  If no such register is 
+available (in the case of card resets perhaps), reading from config space is 
+sufficient (though it may return all ones if the card isn't responding to 
+read cycles).
+
+I'm also not quite sure if I got the ppc64 case right (and obviously I need to 
+add the macro for other platforms).  The assumption is that *most* platforms 
+don't have this issue, and those that do have a chipset register or CPU 
+instruction to ensure ordering.  If that turns out not to be the case, we can 
+add an address argument to the function.
+
+Thanks,
+Jesse
+
+--Boundary-00=_1pxUB6zz+OrCGRj
+Content-Type: text/x-diff;
+  charset="us-ascii";
+  name="mmiowb.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+	filename="mmiowb.patch"
+
+===== Documentation/DocBook/deviceiobook.tmpl 1.4 vs edited =====
+--- 1.4/Documentation/DocBook/deviceiobook.tmpl	2004-02-03 21:31:10 -08:00
++++ edited/Documentation/DocBook/deviceiobook.tmpl	2004-09-22 07:59:56 -07:00
+@@ -147,8 +147,7 @@
+ 	compiler is not permitted to reorder the I/O sequence. When the 
+ 	ordering can be compiler optimised, you can use <function>
+ 	__readb</function> and friends to indicate the relaxed ordering. Use 
+-	this with care. The <function>rmb</function> provides a read memory 
+-	barrier. The <function>wmb</function> provides a write memory barrier.
++	this with care.
+       </para>
  
--	The page has been kmap()'d, and flush_cache_page() has
--	just been called for the user mapping of this page (if
--	necessary).
--
- 	Any necessary cache flushing or other coherency operations
- 	that need to occur should happen here.  If the processor's
- 	instruction cache does not snoop cpu stores, it is very
-===== kernel/ptrace.c 1.36 vs edited =====
---- 1.36/kernel/ptrace.c	2004-09-08 07:32:59 +01:00
-+++ edited/kernel/ptrace.c	2004-09-17 14:39:19 +01:00
-@@ -202,8 +202,6 @@
- 		if (bytes > PAGE_SIZE-offset)
- 			bytes = PAGE_SIZE-offset;
+       <para>
+@@ -163,6 +162,15 @@
+       </para>
  
--		flush_cache_page(vma, addr);
--
- 		maddr = kmap(page);
- 		if (write) {
- 			copy_to_user_page(vma, page, addr,
-===== include/asm-arm/cacheflush.h 1.15 vs edited =====
---- 1.15/include/asm-arm/cacheflush.h	2004-09-07 14:43:06 +01:00
-+++ edited/include/asm-arm/cacheflush.h	2004-09-17 15:15:48 +01:00
-@@ -237,11 +237,17 @@
-  * space" model to handle this.
-  */
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--do { memcpy(dst, src, len); \
--     flush_icache_user_range(vma, page, vaddr, len); \
--} while (0)
-+	do {					\
-+		flush_cache_page(vma, vaddr);	\
-+		memcpy(dst, src, len);		\
-+		flush_dcache_page(page);	\
-+	} while (0)
+       <para>
++	In addition to write posting, some large SMP systems (e.g. SGI
++	Challenge, Origin and Altix machines) won't strongly order writes
++	coming from different CPUs.  Thus it's important to properly
++	protect parts of your driver that do memory-mapped writes with
++	locks and use the <function>mmiob</function> to make sure they
++	arrive in the order intended.
++      </para>
 +
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	do {					\
-+		flush_cache_page(vma, vaddr);	\
-+		memcpy(dst, src, len);		\
-+	} while (0)
++      <para>
+ 	PCI ordering rules also guarantee that PIO read responses arrive
+ 	after any outstanding DMA writes on that bus, since for some devices
+ 	the result of a <function>readb</function> call may signal to the
+@@ -171,7 +179,9 @@
+ 	<function>readb</function> call has no relation to any previous DMA
+ 	writes performed by the device.  The driver can use
+ 	<function>readb_relaxed</function> for these cases, although only
+-	some platforms will honor the relaxed semantics.
++	some platforms will honor the relaxed semantics.  Using the relaxed
++	read functions will provide significant performance benefits on
++	platforms that support it.
+       </para>
+     </sect1>
+ 
+===== arch/ia64/sn/io/machvec/iomv.c 1.9 vs edited =====
+--- 1.9/arch/ia64/sn/io/machvec/iomv.c	2004-05-26 06:49:19 -07:00
++++ edited/arch/ia64/sn/io/machvec/iomv.c	2004-09-22 08:33:35 -07:00
+@@ -54,23 +54,19 @@
+ EXPORT_SYMBOL(sn_io_addr);
+ 
+ /**
+- * sn_mmiob - I/O space memory barrier
++ * __sn_mmiowb - I/O space write barrier
+  *
+- * Acts as a memory mapped I/O barrier for platforms that queue writes to 
+- * I/O space.  This ensures that subsequent writes to I/O space arrive after
+- * all previous writes.  For most ia64 platforms, this is a simple
+- * 'mf.a' instruction.  For other platforms, mmiob() may have to read
+- * a chipset register to ensure ordering.
++ * See include/asm-ia64/io.h and Documentation/DocBook/deviceiobook.tmpl
++ * for details.
+  *
+  * On SN2, we wait for the PIO_WRITE_STATUS SHub register to clear.
+  * See PV 871084 for details about the WAR about zero value.
+  *
+  */
+-void
+-sn_mmiob (void)
++void __sn_mmiowb(void)
+ {
+ 	while ((((volatile unsigned long) (*pda->pio_write_status_addr)) & SH_PIO_WRITE_STATUS_0_PENDING_WRITE_COUNT_MASK) != 
+ 				SH_PIO_WRITE_STATUS_0_PENDING_WRITE_COUNT_MASK)
+ 		cpu_relax();
+ }
+-EXPORT_SYMBOL(sn_mmiob);
++EXPORT_SYMBOL(__sn_mmiowb);
+===== drivers/scsi/qla1280.c 1.65 vs edited =====
+--- 1.65/drivers/scsi/qla1280.c	2004-07-28 20:59:10 -07:00
++++ edited/drivers/scsi/qla1280.c	2004-09-22 08:31:46 -07:00
+@@ -1715,7 +1715,7 @@
+ 	reg = ha->iobase;
+ 	/* enable risc and host interrupts */
+ 	WRT_REG_WORD(&reg->ictrl, (ISP_EN_INT | ISP_EN_RISC));
+-	RD_REG_WORD(&reg->ictrl);	/* PCI Posted Write flush */
++	mmiowb(); /* make sure this write arrives before any others */
+ 	ha->flags.ints_enabled = 1;
+ }
+ 
+@@ -1727,7 +1727,7 @@
+ 	reg = ha->iobase;
+ 	/* disable risc and host interrupts */
+ 	WRT_REG_WORD(&reg->ictrl, 0);
+-	RD_REG_WORD(&reg->ictrl);	/* PCI Posted Write flush */
++	mmiowb(); /* make sure this write arrives before any others */
+ 	ha->flags.ints_enabled = 0;
+ }
+ 
+@@ -3398,7 +3398,7 @@
+ 	sp->flags |= SRB_SENT;
+ 	ha->actthreads++;
+ 	WRT_REG_WORD(&reg->mailbox4, ha->req_ring_index);
+-	(void) RD_REG_WORD(&reg->mailbox4); /* PCI posted write flush */
++	mmiowb(); /* make sure this write arrives before any others */
+ 
+  out:
+ 	if (status)
+===== include/asm-ia64/io.h 1.19 vs edited =====
+--- 1.19/include/asm-ia64/io.h	2004-02-03 21:31:10 -08:00
++++ edited/include/asm-ia64/io.h	2004-09-22 08:11:50 -07:00
+@@ -91,6 +91,20 @@
+  */
+ #define __ia64_mf_a()	ia64_mfa()
+ 
++/**
++ * __ia64_mmiowb - I/O write barrier
++ *
++ * Ensure ordering of I/O space writes.  This will make sure that writes
++ * following the barrier will arrive after all previous writes.  For most
++ * ia64 platforms, this is a simple 'mf.a' instruction.
++ *
++ * See Documentation/DocBook/deviceiobook.tmpl for more information.
++ */
++static inline void __ia64_mmiowb(void)
++{
++	ia64_mfa();
++}
++
+ static inline const unsigned long
+ __ia64_get_io_port_base (void)
+ {
+@@ -267,6 +281,7 @@
+ #define __outb		platform_outb
+ #define __outw		platform_outw
+ #define __outl		platform_outl
++#define __mmiowb	platform_mmiowb
+ 
+ #define inb(p)		__inb(p)
+ #define inw(p)		__inw(p)
+@@ -280,6 +295,7 @@
+ #define outsb(p,s,c)	__outsb(p,s,c)
+ #define outsw(p,s,c)	__outsw(p,s,c)
+ #define outsl(p,s,c)	__outsl(p,s,c)
++#define mmiowb()	__mmiowb()
  
  /*
-  * Convert calls to our calling convention.
-===== include/asm-m68k/cacheflush.h 1.9 vs edited =====
---- 1.9/include/asm-m68k/cacheflush.h	2004-05-22 22:56:28 +01:00
-+++ edited/include/asm-m68k/cacheflush.h	2004-09-17 15:15:21 +01:00
-@@ -132,10 +132,18 @@
- #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
- #define flush_icache_page(vma, page)	__flush_page_to_ram(page_address(page))
- #define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
+  * The address passed to these functions are ioremap()ped already.
+===== include/asm-ia64/machvec.h 1.26 vs edited =====
+--- 1.26/include/asm-ia64/machvec.h	2004-08-03 16:05:22 -07:00
++++ edited/include/asm-ia64/machvec.h	2004-09-22 08:12:33 -07:00
+@@ -62,6 +62,7 @@
+ typedef void ia64_mv_outb_t (unsigned char, unsigned long);
+ typedef void ia64_mv_outw_t (unsigned short, unsigned long);
+ typedef void ia64_mv_outl_t (unsigned int, unsigned long);
++typedef void ia64_mv_mmiowb_t (void);
+ typedef unsigned char ia64_mv_readb_t (void *);
+ typedef unsigned short ia64_mv_readw_t (void *);
+ typedef unsigned int ia64_mv_readl_t (void *);
+@@ -130,6 +131,7 @@
+ #  define platform_outb		ia64_mv.outb
+ #  define platform_outw		ia64_mv.outw
+ #  define platform_outl		ia64_mv.outl
++#  define platform_mmiowb	ia64_mv.mmiowb
+ #  define platform_readb        ia64_mv.readb
+ #  define platform_readw        ia64_mv.readw
+ #  define platform_readl        ia64_mv.readl
+@@ -176,6 +178,7 @@
+ 	ia64_mv_outb_t *outb;
+ 	ia64_mv_outw_t *outw;
+ 	ia64_mv_outl_t *outl;
++	ia64_mv_mmiowb_t *mmiowb;
+ 	ia64_mv_readb_t *readb;
+ 	ia64_mv_readw_t *readw;
+ 	ia64_mv_readl_t *readl;
+@@ -218,6 +221,7 @@
+ 	platform_outb,				\
+ 	platform_outw,				\
+ 	platform_outl,				\
++	platform_mmiowb,			\
+ 	platform_readb,				\
+ 	platform_readw,				\
+ 	platform_readl,				\
+@@ -343,6 +347,9 @@
+ #endif
+ #ifndef platform_outl
+ # define platform_outl		__ia64_outl
++#endif
++#ifndef platform_mmiowb
++# define platform_mmiowb	__ia64_mmiowb
+ #endif
+ #ifndef platform_readb
+ # define platform_readb		__ia64_readb
+===== include/asm-ia64/machvec_init.h 1.7 vs edited =====
+--- 1.7/include/asm-ia64/machvec_init.h	2004-02-06 00:30:24 -08:00
++++ edited/include/asm-ia64/machvec_init.h	2004-09-22 08:13:45 -07:00
+@@ -12,6 +12,7 @@
+ extern ia64_mv_outb_t __ia64_outb;
+ extern ia64_mv_outw_t __ia64_outw;
+ extern ia64_mv_outl_t __ia64_outl;
++extern ia64_mv_mmiowb_t __ia64_mmiowb;
+ extern ia64_mv_readb_t __ia64_readb;
+ extern ia64_mv_readw_t __ia64_readw;
+ extern ia64_mv_readl_t __ia64_readl;
+===== include/asm-ia64/machvec_sn2.h 1.14 vs edited =====
+--- 1.14/include/asm-ia64/machvec_sn2.h	2004-07-10 17:14:00 -07:00
++++ edited/include/asm-ia64/machvec_sn2.h	2004-09-22 08:14:03 -07:00
+@@ -49,6 +49,7 @@
+ extern ia64_mv_outb_t __sn_outb;
+ extern ia64_mv_outw_t __sn_outw;
+ extern ia64_mv_outl_t __sn_outl;
++extern ia64_mv_mmiowb_t __sn_mmiowb;
+ extern ia64_mv_readb_t __sn_readb;
+ extern ia64_mv_readw_t __sn_readw;
+ extern ia64_mv_readl_t __sn_readl;
+@@ -92,6 +93,7 @@
+ #define platform_outb			__sn_outb
+ #define platform_outw			__sn_outw
+ #define platform_outl			__sn_outl
++#define platform_mmiowb			__sn_mmiowb
+ #define platform_readb			__sn_readb
+ #define platform_readw			__sn_readw
+ #define platform_readl			__sn_readl
+===== include/asm-ia64/sn/io.h 1.7 vs edited =====
+--- 1.7/include/asm-ia64/sn/io.h	2004-02-13 07:00:22 -08:00
++++ edited/include/asm-ia64/sn/io.h	2004-09-22 08:32:52 -07:00
+@@ -58,8 +58,8 @@
+ #include <asm/sn/sn2/shubio.h>
+ 
+ /*
+- * Used to ensure write ordering (like mb(), but for I/O space)
++ * Used to ensure write ordering
+  */
+-extern void sn_mmiob(void);
++extern void __sn_mmiowb(void);
+ 
+ #endif /* _ASM_IA64_SN_IO_H */
+===== include/asm-ia64/sn/sn2/io.h 1.6 vs edited =====
+--- 1.6/include/asm-ia64/sn/sn2/io.h	2004-07-22 17:00:00 -07:00
++++ edited/include/asm-ia64/sn/sn2/io.h	2004-09-22 08:15:12 -07:00
+@@ -11,8 +11,10 @@
+ #include <linux/compiler.h>
+ #include <asm/intrinsics.h>
+ 
+-extern void * sn_io_addr(unsigned long port) __attribute_const__; /* Forward definition */
+-extern void sn_mmiob(void); /* Forward definition */
++/* Forward declarations */
++struct device;
++extern void *sn_io_addr(unsigned long port) __attribute_const__;
++extern void __sn_mmiowb(void);
+ 
+ #define __sn_mf_a()   ia64_mfa()
+ 
+@@ -91,7 +93,7 @@
+ 
+ 	if ((addr = sn_io_addr(port))) {
+ 		*addr = val;
+-		sn_mmiob();
++		__sn_mmiowb();
+ 	}
+ }
+ 
+@@ -102,7 +104,7 @@
+ 
+ 	if ((addr = sn_io_addr(port))) {
+ 		*addr = val;
+-		sn_mmiob();
++		__sn_mmiowb();
+ 	}
+ }
+ 
+@@ -113,7 +115,7 @@
+ 
+ 	if ((addr = sn_io_addr(port))) {
+ 		*addr = val;
+-		sn_mmiob();
++		__sn_mmiowb();
+ 	}
+ }
+ 
+===== include/asm-mips/io.h 1.7 vs edited =====
+--- 1.7/include/asm-mips/io.h	2004-02-19 12:53:02 -08:00
++++ edited/include/asm-mips/io.h	2004-09-22 08:24:53 -07:00
+@@ -290,6 +290,9 @@
+ #define __raw_writeb(b,addr)	((*(volatile unsigned char *)(addr)) = (b))
+ #define __raw_writew(w,addr)	((*(volatile unsigned short *)(addr)) = (w))
+ #define __raw_writel(l,addr)	((*(volatile unsigned int *)(addr)) = (l))
 +
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	do {					\
-+		flush_cache_page(vma, vaddr);	\
-+		memcpy(dst, src, len);		\
-+	} while (0)
++#define mmiowb() asm volatile ("sync" ::: "memory")
 +
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	do {					\
-+		flush_cache_page(vma, vaddr);	\
-+		memcpy(dst, src, len);		\
-+	} while (0)
+ #ifdef CONFIG_MIPS32
+ #define ____raw_writeq(val,addr)						\
+ ({									\
+===== include/asm-ppc64/io.h 1.21 vs edited =====
+--- 1.21/include/asm-ppc64/io.h	2004-09-13 11:31:52 -07:00
++++ edited/include/asm-ppc64/io.h	2004-09-22 08:24:12 -07:00
+@@ -152,6 +152,8 @@
+ extern void _insl_ns(volatile u32 *port, void *buf, int nl);
+ extern void _outsl_ns(volatile u32 *port, const void *buf, int nl);
  
- extern void flush_icache_range(unsigned long address, unsigned long endaddr);
- 
-===== include/asm-parisc/cacheflush.h 1.11 vs edited =====
---- 1.11/include/asm-parisc/cacheflush.h	2004-08-13 09:23:36 +01:00
-+++ edited/include/asm-parisc/cacheflush.h	2004-09-17 16:04:02 +01:00
-@@ -77,11 +77,17 @@
- #define flush_icache_range(s,e)		do { flush_kernel_dcache_range_asm(s,e); flush_kernel_icache_range_asm(s,e); } while (0)
- 
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--do { memcpy(dst, src, len); \
--     flush_kernel_dcache_range_asm((unsigned long)dst, (unsigned long)dst + len); \
-+do { \
-+	flush_cache_page(vma, vaddr); \
-+	memcpy(dst, src, len); \
-+	flush_kernel_dcache_range_asm((unsigned long)dst, (unsigned long)dst + len); \
- } while (0)
++#define mmiowb() asm volatile ("eieio" ::: "memory")
 +
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+do { \
-+	flush_cache_page(vma, vaddr); \
-+	memcpy(dst, src, len); \
-+} while (0)
- 
- static inline void flush_cache_range(struct vm_area_struct *vma,
- 		unsigned long start, unsigned long end)
-===== include/asm-sh64/cacheflush.h 1.1 vs edited =====
---- 1.1/include/asm-sh64/cacheflush.h	2004-06-29 15:44:46 +01:00
-+++ edited/include/asm-sh64/cacheflush.h	2004-09-17 15:31:42 +01:00
-@@ -30,13 +30,17 @@
- #define flush_icache_page(vma, page)	do { } while (0)
- 
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--do { memcpy(dst, src, len); \
--     flush_icache_user_range(vma, page, vaddr, len); \
--} while (0)
-+	do {							\
-+		flush_cache_page(vma, vaddr);			\
-+		memcpy(dst, src, len);				\
-+		flush_icache_user_range(vma, page, vaddr, len);	\
-+	} while (0)
- 
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
--
-+	do {							\
-+		flush_cache_page(vma, vaddr);			\
-+		memcpy(dst, src, len);				\
-+	} while (0)
- 
- #endif /* __ASSEMBLY__ */
- 
-===== include/asm-sh/cacheflush.h 1.2 vs edited =====
---- 1.2/include/asm-sh/cacheflush.h	2003-10-02 08:11:59 +01:00
-+++ edited/include/asm-sh/cacheflush.h	2004-09-17 15:29:45 +01:00
-@@ -14,10 +14,16 @@
- #define flush_cache_vunmap(start, end)		flush_cache_all()
- 
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--do { memcpy(dst, src, len); \
--     flush_icache_user_range(vma, page, vaddr, len); \
--} while (0)
-+	do {							\
-+		flush_cache_page(vma, vaddr);			\
-+		memcpy(dst, src, len);				\
-+		flush_icache_user_range(vma, page, vaddr, len);	\
-+	} while (0)
-+
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	do {							\
-+		flush_cache_page(vma, vaddr);			\
-+		memcpy(dst, src, len);				\
-+	} while (0)
- 
- #endif /* __ASM_SH_CACHEFLUSH_H */
-===== include/asm-sparc64/cacheflush.h 1.6 vs edited =====
---- 1.6/include/asm-sparc64/cacheflush.h	2004-08-07 07:01:03 +01:00
-+++ edited/include/asm-sparc64/cacheflush.h	2004-09-17 15:58:35 +01:00
-@@ -38,9 +38,16 @@
- #define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
- 
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	do {					\
-+		flush_cache_page(vma, vaddr);	\
-+		memcpy(dst, src, len);		\
-+	} while (0)
-+
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	do {					\
-+		flush_cache_page(vma, vaddr);	\
-+		memcpy(dst, src, len);		\
-+	} while (0)
- 
- extern void flush_dcache_page(struct page *page);
- #define flush_dcache_mmap_lock(mapping)		do { } while (0)
-===== include/asm-sparc/cacheflush.h 1.5 vs edited =====
---- 1.5/include/asm-sparc/cacheflush.h	2004-05-22 22:56:28 +01:00
-+++ edited/include/asm-sparc/cacheflush.h	2004-09-17 15:57:49 +01:00
-@@ -57,9 +57,15 @@
- #define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
- 
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	do {					\
-+		flush_cache_page(vma, vaddr);	\
-+		memcpy(dst, src, len);		\
-+	} while (0)
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	do {					\
-+		flush_cache_page(vma, vaddr);	\
-+		memcpy(dst, src, len);		\
-+	} while (0)
- 
- BTFIXUPDEF_CALL(void, __flush_page_to_ram, unsigned long)
- BTFIXUPDEF_CALL(void, flush_sig_insns, struct mm_struct *, unsigned long)
+ /*
+  * output pause versions need a delay at least for the
+  * w83c105 ide controller in a p610.
 
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
-                 2.6 Serial core
-
------ End forwarded message -----
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
-                 2.6 Serial core
+--Boundary-00=_1pxUB6zz+OrCGRj--
