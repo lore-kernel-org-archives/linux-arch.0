@@ -1,13 +1,13 @@
 Return-Path: <torvalds@osdl.org>
-Received: from fw.osdl.org ([65.172.181.6]:24759 "EHLO mail.osdl.org")
-	by vger.kernel.org with ESMTP id S265179AbUEZEzD (ORCPT
+Received: from fw.osdl.org ([65.172.181.6]:47542 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S265165AbUEZEvD (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 May 2004 00:55:03 -0400
-Date: Tue, 25 May 2004 21:54:50 -0700 (PDT)
+	Wed, 26 May 2004 00:51:03 -0400
+Date: Tue, 25 May 2004 21:50:50 -0700 (PDT)
 From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH] ppc64: Fix possible race with set_pte on a present PTE
-In-Reply-To: <1085546780.5584.19.camel@gaston>
-Message-ID: <Pine.LNX.4.58.0405252151100.15534@ppc970.osdl.org>
+In-Reply-To: <1085545114.5578.11.camel@gaston>
+Message-ID: <Pine.LNX.4.58.0405252140550.15534@ppc970.osdl.org>
 References: <1085369393.15315.28.camel@gaston>  <Pine.LNX.4.58.0405232046210.25502@ppc970.osdl.org>
   <1085371988.15281.38.camel@gaston>  <Pine.LNX.4.58.0405232134480.25502@ppc970.osdl.org>
   <1085373839.14969.42.camel@gaston>  <Pine.LNX.4.58.0405232149380.25502@ppc970.osdl.org>
@@ -21,7 +21,8 @@ References: <1085369393.15315.28.camel@gaston>  <Pine.LNX.4.58.0405232046210.255
  <Pine.LNX.4.58.0405251455320.9951@ppc970.osdl.org>  <1085522860.15315.133.camel@gaston>
   <Pine.LNX.4.58.0405251514200.9951@ppc970.osdl.org>  <1085530867.14969.143.camel@gaston>
   <Pine.LNX.4.58.0405251749500.9951@ppc970.osdl.org>  <1085541906.14969.412.camel@gaston>
-  <Pine.LNX.4.58.0405252031270.15534@ppc970.osdl.org> <1085546780.5584.19.camel@gaston>
+  <Pine.LNX.4.58.0405252031270.15534@ppc970.osdl.org>  <1085544720.5580.9.camel@gaston>
+ <1085545114.5578.11.camel@gaston>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
@@ -32,24 +33,11 @@ List-ID: <linux-arch.vger.kernel.org>
 
 On Wed, 26 May 2004, Benjamin Herrenschmidt wrote:
 >
-> Ok, your patch just missed the do_wp_page() case which needs the same
-> medication as break_cow(), which leaves us with only one caller of
-> ptep_establish... the one which just sets those 2 bits and shouldn't
-> be named ptep establish at all ;)
+> Hrm... Still dies, some kind of loop it seems, I'll have a look
 
-Actually, the do_wp_page() one doesn't change the page, but it potentially
-changes _three_ bits: accessed, dirty _and_ writable.
-
-But the fix on ppc64 should be to add the writable bit to the mask of 
-things, and rename the function to reflect that fact.
-
-> I'd rather have ptep_establish do the ptep_clear_flush & set_pte, and
-> the later just do the bit flip, but then, the arch (and possibly
-> generic) implementation of that bit flip must also do the TLB flush
-> when necessary (it's not on ppc).
-
-I agree on the renaming, but please don't use the ptep_clear_flush() in 
-do_wp_page(), because it really isn't changing the virtual mapping, it's 
-only a (slightly) extended case of the same old "set another bit".
+Are you sure the it's not just taking infinite page fault because we keep 
+reloading the old value from the hash tables? That "hash fault" thing 
+still doesn't convince me. Why should the hash-refill fastpath ever look 
+at the software page tables?
 
 		Linus
