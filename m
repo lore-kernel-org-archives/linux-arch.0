@@ -1,51 +1,44 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266534AbUHMSOY@vger.kernel.org>
-Received: from mtagate1.de.ibm.com ([195.212.29.150]:17397 "EHLO
-	mtagate1.de.ibm.com") by vger.kernel.org with ESMTP id S266532AbUHMSOX
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 13 Aug 2004 14:14:23 -0400
-Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate1.de.ibm.com (8.12.10/8.12.10) with ESMTP id i7DIEKGP133838
-	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 18:14:20 GMT
-Received: from mschwid3.boeblingen.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
-	by d12nrmr1607.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id i7DIEKcL068362
-	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 20:14:20 +0200
-Received: from sky by mschwid3.boeblingen.de.ibm.com with local (Exim 3.36 #1 (Debian))
-	id 1BvgZn-0000UK-00
-	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 20:14:51 +0200
-Date: Fri, 13 Aug 2004 20:14:51 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [RFC] cputime patches.
-Message-ID: <20040813181451.GA1862@mschwid3.boeblingen.de.ibm.com>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267603AbUHMVmi@vger.kernel.org>
+Received: from mx1.redhat.com ([66.187.233.31]:47324 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S267602AbUHMVmi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 13 Aug 2004 17:42:38 -0400
+Date: Fri, 13 Aug 2004 14:41:15 -0700
+From: "David S. Miller" <davem@redhat.com>
+Subject: Re: clear_user_highpage()
+Message-Id: <20040813144115.4c59a2f0.davem@redhat.com>
+In-Reply-To: <Pine.LNX.4.58.0408111905210.1839@ppc970.osdl.org>
+References: <20040811161537.5e24c2b6.davem@redhat.com>
+	<Pine.LNX.4.58.0408111635160.1839@ppc970.osdl.org>
+	<20040812004654.GX11200@holomorphy.com>
+	<Pine.LNX.4.58.0408111905210.1839@ppc970.osdl.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: wli@holomorphy.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi folks,
-finally found the fixed point divide exception that kept haunting me.
-Here is the latest and greatest cputime patch set. It works nicely on
-s390 and doesn't seem to break anything on my thinkpad.
+On Wed, 11 Aug 2004 19:18:18 -0700 (PDT)
+Linus Torvalds <torvalds@osdl.org> wrote:
 
-Jan's virtual cputime time slice patch is now ready as well, so there
-are 7 patches:
+> I really do believe (but can't back it up with any real numbers) that we 
+> want to try to keep pages in cache as long as possible. That means keeping 
+> the pages close to the last CPU that used them, btw.
 
-[PATCH] cputime (1/7): move call to update_process_times.
-[PATCH] cputime (2/7): remove unused definitions from timex.h.
-[PATCH] cputime (3/7): move jiffies stuff to jiffies.h
-[PATCH] cputime (4/7): introduce cputime.
-[PATCH] cputime (5/7): microsecond based cputime for s390.
-[PATCH] cputime (6/7): introduce timeslices timer.
-[PATCH] cputime (7/7): add cpu steal time fields to procps.
+So I did some testing.
 
-With all these patches we finally have decent (that means usable) cpu
-accounting numbers on s390 and a fairer scheduling.
+I changed the cache-bypassing clear_user_page() into one that uses
+normal stores and does allocate in the L2 cache.
 
-The patches are against 2.6.8-rc4. I'll keep the fingers crossed
-that I didn't break any architecture.
+I ran the full build tests 3 times for each case, and the numbers were
+consistent.  It makes the full build take a full minute longer.
 
-Now what do you guys think about it?
+And I truly believe this is because of the argument William and myself
+are making, that a write protection fault does not mean the process is
+going to access a majority of the data in that page any time soon at all.
 
-blue skies,
-  Martin.
+{clear,copy}_user_page() is not some kind of "prefetch the whole page
+into the cache" for the user.  It would be if the user would access
+the entire thing in the near future, but I do not believe that is
+the typical access pattern for fresh anonymous pages.
