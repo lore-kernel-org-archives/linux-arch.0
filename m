@@ -1,45 +1,40 @@
-Return-Path: <rmk+linux-arch=vger.kernel.org@arm.linux.org.uk>
-Received: from caramon.arm.linux.org.uk ([212.18.232.186]:31239 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S262254AbUC1UsX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 28 Mar 2004 15:48:23 -0500
-Date: Sun, 28 Mar 2004 21:48:19 +0100
-From: Russell King <rmk@arm.linux.org.uk>
+Return-Path: <davem@redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:27079 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S262208AbUC1UzV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 28 Mar 2004 15:55:21 -0500
+Date: Sun, 28 Mar 2004 12:55:03 -0800
+From: "David S. Miller" <davem@redhat.com>
 Subject: Re: Future of linux-arch
-Message-ID: <20040328214819.F10358@flint.arm.linux.org.uk>
-References: <20040328120133.D2825@flint.arm.linux.org.uk> <20040328122920.404e5b37.davem@redhat.com>
+Message-Id: <20040328125503.7142af94.davem@redhat.com>
+In-Reply-To: <20040328214819.F10358@flint.arm.linux.org.uk>
+References: <20040328120133.D2825@flint.arm.linux.org.uk>
+	<20040328122920.404e5b37.davem@redhat.com>
+	<20040328214819.F10358@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20040328122920.404e5b37.davem@redhat.com>; from davem@redhat.com on Sun, Mar 28, 2004 at 12:29:20PM -0800
-Sender: Russell King <rmk@arm.linux.org.uk>
-To: "David S. Miller" <davem@redhat.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Russell King <rmk@arm.linux.org.uk>
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Mar 28, 2004 at 12:29:20PM -0800, David S. Miller wrote:
-> See, because this patch goes beyond arch issues, driver folks have to use
-> these interfaces, so logically it appears that folks outside of the arch
-> community should contribute to the design and review of said interfaces.
+On Sun, 28 Mar 2004 21:48:19 +0100
+Russell King <rmk@arm.linux.org.uk> wrote:
 
-So this is the thanks for taking hold of an issue which someone else
-raised and trying to get it sorted.  Fine.
+> Well, I'm sick to death with this issue.  Someone else can sort out
+> this problem.
 
-But that's no good if we can't even present what we think is a good
-interface from the architecture side.  Which it appears we still
-can't.
+The reality is that akpm asked me to create this alias so that
+two things could happen:
 
-Remember that it was Andrea who raised it on lkml and it moved to
-to linux-arch because all the architecture people needed to be
-involved?
+1) Andrew could contact all arch maintainers when he was messing with
+   something that could break platforms or needed explicit platform support.
 
-Well, I'm sick to death with this issue.  Someone else can sort out
-this problem.  I'm going to just do what's necessary to sort it on
-ARM and leave it at that.  If that screws someone else, tough shit.
-I've made the effort and done my best to find a reasonable solution.
+2) Arch maintainers could notify each other of problems they've found
+   in their own arch code which applies to other platforms as well.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
-                 2.6 Serial core
+So far it's worked wonderfully at both of these things.
+
+You're worked up over a seperate issue and the fact that hch is being
+his usual fucknut self about things like this, just ignore him and do
+the fantastic job you always do Russell.
