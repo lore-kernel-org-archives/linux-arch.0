@@ -1,101 +1,206 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268720AbUHUADm@vger.kernel.org>
-Received: from fw.osdl.org ([65.172.181.6]:51948 "EHLO mail.osdl.org")
-	by vger.kernel.org with ESMTP id S264973AbUHUADm (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268760AbUHUAXN@vger.kernel.org>
+Received: from mx1.redhat.com ([66.187.233.31]:43166 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S268749AbUHUAXN (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Aug 2004 20:03:42 -0400
-Date: Fri, 20 Aug 2004 17:07:12 -0700
-From: Andrew Morton <akpm@osdl.org>
-Subject: Re: copy_mount_options()
-Message-Id: <20040820170712.68e4cda9.akpm@osdl.org>
-In-Reply-To: <20040820165133.67df8d1b.davem@redhat.com>
-References: <20040820130110.07f7c23c.davem@redhat.com>
-	<20040820131053.3d5e0f9b.akpm@osdl.org>
-	<20040820141137.646c349f.davem@redhat.com>
-	<20040820143111.3fd0070e.akpm@osdl.org>
-	<20040820144052.14413a4f.davem@redhat.com>
-	<20040820154736.166b66ec.akpm@osdl.org>
-	<20040820231833.GH1945@krispykreme>
-	<20040820165133.67df8d1b.davem@redhat.com>
+	Fri, 20 Aug 2004 20:23:13 -0400
+Received: from int-mx1.corp.redhat.com (int-mx1.corp.redhat.com [172.16.52.254])
+	by mx1.redhat.com (8.12.10/8.12.10) with ESMTP id i7L0NDe1010950
+	for <linux-arch@vger.kernel.org>; Fri, 20 Aug 2004 20:23:13 -0400
+Received: from devserv.devel.redhat.com (devserv.devel.redhat.com [172.16.58.1])
+	by int-mx1.corp.redhat.com (8.11.6/8.11.6) with ESMTP id i7L0NDa20244
+	for <linux-arch@vger.kernel.org>; Fri, 20 Aug 2004 20:23:13 -0400
+Received: from cheetah.davemloft.net (localhost.localdomain [127.0.0.1])
+	by devserv.devel.redhat.com (8.12.11/8.12.10) with SMTP id i7L0NBsE023299
+	for <linux-arch@vger.kernel.org>; Fri, 20 Aug 2004 20:23:11 -0400
+Date: Fri, 20 Aug 2004 17:23:07 -0700
+From: "David S. Miller" <davem@redhat.com>
+Subject: memcpy development
+Message-Id: <20040820172307.048f3ab4.davem@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem@redhat.com>
-Cc: anton@samba.org, linux-arch@vger.kernel.org, rusty@rustcorp.com.au
+Content-Type: multipart/mixed;
+ boundary="Multipart=_Fri__20_Aug_2004_17_23_07_-0700_zAr0nP_CnmNjV_qT"
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-"David S. Miller" <davem@redhat.com> wrote:
->
-> On Sat, 21 Aug 2004 09:18:33 +1000
-> Anton Blanchard <anton@samba.org> wrote:
-> 
-> > I too hate that interface, Im continually getting it wrong. It would be
-> > nice to remove the possibility of having similar such subtle bugs.
-> 
-> I agree.
-> 
-> There used to be clever code that would truncate the pipe write
-> and stuff like that, and TCP even used to do something similar
-> at one point.  But I go look now and neither of them do that
-> any more.
-> 
-> It would even make the kernel smaller because all of these silly:
-> 
-> 	return copy_*_user(...) ? -EFAULT : 0;
-> 
-> would just expand to a direct use of the return value.
-> 
-> So many arch user copy routines would have enormous amounts
-> of complexity removed, and I saw this quite well when doing
-> the sparc64 stuff I did yesterday.
+This is a multi-part message in MIME format.
 
-I'm all for it.  I'll sneak the below patch into -mm, see what breaks.
+--Multipart=_Fri__20_Aug_2004_17_23_07_-0700_zAr0nP_CnmNjV_qT
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-It's a bit weird that the usercopy functions return unsigned long.  If they
-are to return -EFAULT they really should be changed to return an int.
 
---- 25/arch/i386/lib/usercopy.c~usercopy-return-EFAULT	Fri Aug 20 17:04:37 2004
-+++ 25-akpm/arch/i386/lib/usercopy.c	Fri Aug 20 17:05:52 2004
-@@ -560,14 +560,14 @@ survive:
- 			to += len;
- 			n -= len;
- 		}
--		return n;
-+		return n ? -EFAULT : 0;
- 	}
- #endif
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user(to, from, n);
- 	else
- 		n = __copy_user_intel(to, from, n);
--	return n;
-+	return n ? -EFAULT : 0;
- }
- 
- unsigned long
-@@ -577,7 +577,7 @@ __copy_from_user_ll(void *to, const void
- 		__copy_user_zeroing(to, from, n);
- 	else
- 		n = __copy_user_zeroing_intel(to, from, n);
--	return n;
-+	return n ? -EFAULT : 0;
- }
- 
- /**
-@@ -599,7 +599,7 @@ copy_to_user(void __user *to, const void
- 	might_sleep();
- 	if (access_ok(VERIFY_WRITE, to, n))
- 		n = __copy_to_user(to, from, n);
--	return n;
-+	return n ? -EFAULT : 0;
- }
- EXPORT_SYMBOL(copy_to_user);
- 
-@@ -627,6 +627,6 @@ copy_from_user(void *to, const void __us
- 		n = __copy_from_user(to, from, n);
- 	else
- 		memset(to, 0, n);
--	return n;
-+	return n ? -EFAULT : 0;
- }
- EXPORT_SYMBOL(copy_from_user);
-_
+Every arch developer has probably written one of these things
+at least 4 times, but I figured I'd donate my copy instead of
+losing it to the sands of time. :-)
+
+It shouldn't be too hard to hack up to use on other platforms.
+The easiest thing to get working is the verifier, for each
+of memcpy-*.c simply replace U{1,3}memcpy.S with your platforms
+memcpy implementations you want to test, add those *.S files
+and mention them properly in the Makefile.  Then just go
+"make verify", the tests are:
+
+memcpy-{1,2,bi}.c	From the gcc testsuite with some mods of
+			my own.  In particular, memcpy-2.c was
+			changed to verify every single case of modulo
+			64 byte alignment of source and destination.
+			This actually matters on sparc64 as each
+			64 % 8 alignment uses a different code path
+			in the UltraSparc-I/II/IIi/IIe memcpy routine.
+
+memcpy-mmap.c		My own little hack to make sure the routine
+			does not do loads past the end of the source
+			buffer.  This is the hardest to debug when
+			you put it into the kernel since such an error
+			can result in a complete system hang.
+
+The timings are done by test.c, it is testing the in-cache case
+of course.  test2.c is my incredibly crude attempt to try and
+get some kind of cache-miss testing.
+
+test.c takes 0, 1 or 2 arguments.
+
+- if 0 arguments, both src and dst are 64-byte aligned
+- if 1 argument, it is a byte offset to give to the src buffer
+- if 2 arguments the first is src offset, the second is dst offset
+
+So you can test the performance of various weird alignments by
+saying things like "./test 0 1 >out01; ./test 1 0 >out10;" etc.
+
+Enjoy.
+
+--Multipart=_Fri__20_Aug_2004_17_23_07_-0700_zAr0nP_CnmNjV_qT
+Content-Type: application/octet-stream;
+ name="memcpy_devel.tar.gz"
+Content-Disposition: attachment;
+ filename="memcpy_devel.tar.gz"
+Content-Transfer-Encoding: base64
+
+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
+
+--Multipart=_Fri__20_Aug_2004_17_23_07_-0700_zAr0nP_CnmNjV_qT--
