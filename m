@@ -1,21 +1,21 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266686AbUHMSQS@vger.kernel.org>
-Received: from mtagate3.de.ibm.com ([195.212.29.152]:41118 "EHLO
-	mtagate3.de.ibm.com") by vger.kernel.org with ESMTP id S266545AbUHMSQS
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266708AbUHMSQe@vger.kernel.org>
+Received: from mtagate3.de.ibm.com ([195.212.29.152]:44446 "EHLO
+	mtagate3.de.ibm.com") by vger.kernel.org with ESMTP id S266545AbUHMSQe
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 13 Aug 2004 14:16:18 -0400
-Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate3.de.ibm.com (8.12.10/8.12.10) with ESMTP id i7DIGGGm134174
-	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 18:16:16 GMT
+	Fri, 13 Aug 2004 14:16:34 -0400
+Received: from d12nrmr1507.megacenter.de.ibm.com (d12nrmr1507.megacenter.de.ibm.com [9.149.167.1])
+	by mtagate3.de.ibm.com (8.12.10/8.12.10) with ESMTP id i7DIGXGm141024
+	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 18:16:33 GMT
 Received: from mschwid3.boeblingen.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
-	by d12nrmr1607.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id i7DIGGcL068862
-	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 20:16:16 +0200
+	by d12nrmr1507.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id i7DIGX2x208302
+	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 20:16:33 +0200
 Received: from sky by mschwid3.boeblingen.de.ibm.com with local (Exim 3.36 #1 (Debian))
-	id 1Bvgbg-0000WI-00
-	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 20:16:48 +0200
-Date: Fri, 13 Aug 2004 20:16:48 +0200
+	id 1Bvgbw-0000We-00
+	for <linux-arch@vger.kernel.org>; Fri, 13 Aug 2004 20:17:04 +0200
+Date: Fri, 13 Aug 2004 20:17:04 +0200
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [PATCH] cputime (6/7): introduce timeslices timer.
-Message-ID: <20040813181648.GG1862@mschwid3.boeblingen.de.ibm.com>
+Subject: [PATCH] cputime (7/7): add cpu steal time fields to procps.
+Message-ID: <20040813181704.GH1862@mschwid3.boeblingen.de.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -23,698 +23,384 @@ Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
 To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-[PATCH] cputime (6/7): introduce timeslices timer.
+[PATCH] cputime (7/7): add cpu steal time fields to procps.
 
-From: Jan Glauber <jan.glauber@de.ibm.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-This patch changes the scheduler to enable the architecture to 
-implement time slices by a timer. 
+Make use of the cpu steal time field in /proc/stat that has been
+introduces by the cputime patch. The new output of top looks like
+this:
 
-To achieve this we change the time slice type to cputime_t,
-split up scheduler_tick() into various functions and add hooks
-for start/stop of the time slice timers.
+top - 09:50:20 up 11 min,  3 users,  load average: 8.94, 7.17, 3.82
+Tasks:  78 total,   8 running,  70 sleeping,   0 stopped,   0 zombie
+ Cpu0 : 38.7%us,  4.2%sy,  0.0%ni,  0.0%id,  2.4%wa,  1.8%hi,  0.0%si, 53.0%st
+ Cpu1 : 38.5%us,  0.6%sy,  0.0%ni,  5.1%id,  1.3%wa,  1.9%hi,  0.0%si, 52.6%st
+ Cpu2 : 54.0%us,  0.6%sy,  0.0%ni,  0.6%id,  4.9%wa,  1.2%hi,  0.0%si, 38.7%st
+ Cpu3 : 49.1%us,  0.6%sy,  0.0%ni,  1.2%id,  0.0%wa,  0.0%hi,  0.0%si, 49.1%st
+ Cpu4 : 35.9%us,  1.2%sy,  0.0%ni, 15.0%id,  0.6%wa,  1.8%hi,  0.0%si, 45.5%s
+ Cpu5 : 43.0%us,  2.1%sy,  0.7%ni,  0.0%id,  4.2%wa,  1.4%hi,  0.0%si, 48.6%st
+Mem:    251832k total,   155448k used,    96384k free,     1212k buffers
+Swap:   524248k total,    17716k used,   506532k free,    18096k cached
 
-There is a generic implementation that implements the old jiffies-based 
-functionality and an implementation for s390 that uses virtual CPU timers
-for time slices. The patch introduces no overhead for the generic 
-implementation.
-
-The patch is useful for Linux running on a virtual machines where time
-slices based on real time may be completely wrong. 
+  PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  COMMAND
+20629 root      25   0 30572  27m 7076 R 55.2 11.1   0:02.14 cc1
+20617 root      25   0 40600  37m 7076 R 47.0 15.1   0:03.04 cc1
+20635 root      24   0 26356  20m 7076 R 42.3  8.4   0:00.75 cc1
+20638 root      25   0 23196  17m 7076 R 27.0  7.2   0:00.46 cc1
+20642 root      25   0 15028 9824 7076 R 18.2  3.9   0:00.31 cc1
+20644 root      20   0 14852 9648 7076 R 17.0  3.8   0:00.29 cc1
+   26 root       5 -10     0    0    0 S  0.6  0.0   0:00.03 kblockd/5
+  915 root      16   0  3012  884 2788 R  0.6  0.4   0:02.33 top
+    1 root      16   0  2020  284 1844 S  0.0  0.1   0:00.06 init
 
 Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-diffstat:
- arch/s390/Kconfig             |    7 +
- arch/s390/kernel/Makefile     |    1 
- arch/s390/kernel/timeslice.c  |   82 ++++++++++++++
- arch/s390/kernel/vtime.c      |   38 ++++--
- include/asm-generic/cputime.h |    1 
- include/asm-s390/cputime.h    |    1 
- include/asm-s390/system.h     |    9 +
- include/asm-s390/timer.h      |    5 
- include/linux/init_task.h     |    1 
- include/linux/sched.h         |    4 
- kernel/sched.c                |  240 +++++++++++++++++++++++++++---------------
- kernel/timer.c                |    1 
- mm/oom_kill.c                 |    2 
- 13 files changed, 293 insertions(+), 99 deletions(-)
-
-diff -urN linux-2.6.8-rc4/arch/s390/Kconfig linux-2.6.8-cputime/arch/s390/Kconfig
---- linux-2.6.8-rc4/arch/s390/Kconfig	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/arch/s390/Kconfig	Fri Aug 13 19:05:31 2004
-@@ -298,6 +298,13 @@
- 	  Select this option to use CPU timer deltas to do user
- 	  process accounting.
- 
-+config VIRT_CPU_TIMESLICES
-+        bool "Base process time slices on virtual cpu timer"
-+        depends on VIRT_TIMER
-+        help
-+          Select this option to use virtual CPU time for the
-+          process time slices.
-+
- config APPLDATA_BASE
- 	bool "Linux - VM Monitor Stream, base infrastructure"
- 	depends on PROC_FS && VIRT_TIMER=y
-diff -urN linux-2.6.8-rc4/arch/s390/kernel/Makefile linux-2.6.8-cputime/arch/s390/kernel/Makefile
---- linux-2.6.8-rc4/arch/s390/kernel/Makefile	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/arch/s390/kernel/Makefile	Fri Aug 13 19:05:31 2004
-@@ -24,6 +24,7 @@
- obj-$(CONFIG_ARCH_S390X)	+= entry64.o reipl64.o
- 
- obj-$(CONFIG_VIRT_TIMER)	+= vtime.o
-+obj-$(CONFIG_VIRT_CPU_TIMESLICES) += timeslice.o
- 
- #
- # This is just to get the dependencies...
-diff -urN linux-2.6.8-rc4/arch/s390/kernel/timeslice.c linux-2.6.8-cputime/arch/s390/kernel/timeslice.c
---- linux-2.6.8-rc4/arch/s390/kernel/timeslice.c	Thu Jan  1 01:00:00 1970
-+++ linux-2.6.8-cputime/arch/s390/kernel/timeslice.c	Fri Aug 13 19:05:31 2004
-@@ -0,0 +1,82 @@
-+/*
-+ *  arch/s390/kernel/timelice.c
-+ *    Architecture specific task timeslice handling.
-+ *
-+ *  S390 version
-+ *    Copyright (C) 2004 IBM Deutschland Entwicklung GmbH, IBM Corporation
-+ *    Author(s): Jan Glauber <jan.glauber@de.ibm.com>
-+ */
-+
-+#include <linux/config.h>
-+#include <linux/module.h>
-+#include <linux/kernel.h>
-+#include <linux/time.h>
-+#include <linux/smp.h>
-+#include <linux/types.h>
-+#include <asm/timer.h>
-+
-+DEFINE_PER_CPU(struct vtimer_list, cpu_timeslice);
-+
-+/**
-+ * Stop the virtual time slice timer of the current process.
-+ */
-+void arch_stop_timeslice(void)
-+{
-+        struct vtimer_list *vtimer;
-+
-+	/**
-+	 * No timer is running for idle.
-+	 */
-+	if (idle_cpu(smp_processor_id()))
-+		return;
-+
-+        vtimer =  &__get_cpu_var(cpu_timeslice);
-+
-+	/**
-+	 * Delete the virtual timer, get the remaining time slice
-+	 * and store it into the time_slice field.
-+	 */
-+	del_virt_timer(vtimer);
-+	current->time_slice = vtimer->expires >> 12;
-+}
-+
-+/**
-+ * Start the virtual time slice timer of the current process.
-+ */
-+void arch_start_timeslice(void)
-+{
-+        struct vtimer_list *vtimer;
-+
-+	/**
-+	 * Don't start a timer for idle.
-+	 */
-+	if (idle_cpu(smp_processor_id()))
-+		return;
-+
-+        vtimer =  &__get_cpu_var(cpu_timeslice);
-+	if (current->time_slice)
-+		vtimer->expires = current->time_slice << 12;
-+	else
-+		vtimer->expires = jiffies_to_cputime(1) << 12;
-+	add_virt_timer(vtimer);
-+}
-+
-+void virtual_timeslice_callback(unsigned long data, struct pt_regs *regs)
-+{
-+        /* idle should never expire */
-+        BUG_ON(idle_cpu(smp_processor_id()));
-+	
-+	/* we can use the p->time_slice value because we didn't decrement
-+	 * it, so the programmed time_slice is still in there 
-+	 */
-+	reduce_timeslice(current, current->time_slice);	
-+}
-+
-+void init_cpu_timeslice(void)
-+{
-+	struct vtimer_list *vtimer;
-+
-+	vtimer = &__get_cpu_var(cpu_timeslice);
-+	init_virt_timer(vtimer);
-+	vtimer->function = virtual_timeslice_callback;
-+}
-diff -urN linux-2.6.8-rc4/arch/s390/kernel/vtime.c linux-2.6.8-cputime/arch/s390/kernel/vtime.c
---- linux-2.6.8-rc4/arch/s390/kernel/vtime.c	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/arch/s390/kernel/vtime.c	Fri Aug 13 19:05:31 2004
-@@ -243,6 +243,8 @@
- 		/* re-charge interval timer, we have to add the offset */
- 		if (event->interval)
- 			event->expires = event->interval + vt_list->offset;
-+		else
-+			event->expires = 0; 
- 
- 		/* move expired timer to the callback queue */
- 		list_move_tail(&event->entry, &cb_list);
-@@ -288,11 +290,6 @@
- 	return 0;
- }
- 
--static inline int vtimer_pending(struct vtimer_list *timer)
--{
--	return (!list_empty(&timer->entry));
--}
--
- /*
-  * this function should only run on the specified CPU
-  */
-@@ -477,33 +474,49 @@
- {
- 	unsigned long flags;
- 	struct vtimer_queue *vt_list;
-+        __u64 temp;
-+	int rc;
- 
- 	if (check_vtimer(timer)) {
- 		printk("del_virt_timer: timer not initialized\n");
- 		return -EINVAL;
- 	}
- 
--	/* check if timer is pending */
--	if (!vtimer_pending(timer))
--		return 0;
--
- 	vt_list = &per_cpu(virt_cpu_timer, timer->cpu);
- 	spin_lock_irqsave(&vt_list->lock, flags);
- 
-+	/* check if timer is pending */
-+	if (!vtimer_pending(timer)) {
-+		rc = 0;
-+		goto out;
-+	}
-+
- 	/* we don't interrupt a running timer, just let it expire! */
- 	list_del_init(&timer->entry);
- 
-+        /* save progress */
-+        asm volatile ("STPT %0" : "=m" (temp));
-+
-+	temp = (vt_list->to_expire - temp) + vt_list->offset;
-+	if (timer->expires > temp)
-+		timer->expires -= temp;
-+	else
-+		timer->expires = 0;
-+
- 	/* last timer removed */
- 	if (list_empty(&vt_list->list)) {
- 		vt_list->to_expire = 0;
- 		vt_list->offset = 0;
- 	}
--
-+	rc = 1;
-+out:
- 	spin_unlock_irqrestore(&vt_list->lock, flags);
--	return 1;
-+	return rc;
- }
- EXPORT_SYMBOL(del_virt_timer);
- 
-+extern void init_cpu_timeslice(void);
-+
- /*
-  * Start the virtual CPU timer on the current CPU.
-  */
-@@ -528,6 +541,9 @@
- 	vt_list->offset = 0;
- 	vt_list->idle = 0;
- 
-+#ifdef CONFIG_VIRT_CPU_TIMESLICES
-+	init_cpu_timeslice();
-+#endif
- }
- 
- static int vtimer_idle_notify(struct notifier_block *self,
-diff -urN linux-2.6.8-rc4/include/asm-generic/cputime.h linux-2.6.8-cputime/include/asm-generic/cputime.h
---- linux-2.6.8-rc4/include/asm-generic/cputime.h	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/include/asm-generic/cputime.h	Fri Aug 13 19:05:31 2004
-@@ -10,6 +10,7 @@
- #define cputime_max			((~0UL >> 1) - 1)
- #define cputime_add(__a, __b)		((__a) +  (__b))
- #define cputime_sub(__a, __b)		((__a) -  (__b))
-+#define cputime_halve(__a)		((__a) >> 1)
- #define cputime_eq(__a, __b)		((__a) == (__b))
- #define cputime_gt(__a, __b)		((__a) >  (__b))
- #define cputime_ge(__a, __b)		((__a) >= (__b))
-diff -urN linux-2.6.8-rc4/include/asm-s390/cputime.h linux-2.6.8-cputime/include/asm-s390/cputime.h
---- linux-2.6.8-rc4/include/asm-s390/cputime.h	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/include/asm-s390/cputime.h	Fri Aug 13 19:05:31 2004
-@@ -40,6 +40,7 @@
- #define cputime_max			((~0UL >> 1) - 1)
- #define cputime_add(__a, __b)		((__a) +  (__b))
- #define cputime_sub(__a, __b)		((__a) -  (__b))
-+#define cputime_halve(__a)		((__a) >> 1)
- #define cputime_eq(__a, __b)		((__a) == (__b))
- #define cputime_gt(__a, __b)		((__a) >  (__b))
- #define cputime_ge(__a, __b)		((__a) >= (__b))
-diff -urN linux-2.6.8-rc4/include/asm-s390/system.h linux-2.6.8-cputime/include/asm-s390/system.h
---- linux-2.6.8-rc4/include/asm-s390/system.h	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/include/asm-s390/system.h	Fri Aug 13 19:05:31 2004
-@@ -128,6 +128,15 @@
- 
+diff -urN procps-3.2.0/proc/sysinfo.c procps-3.2.0-steal/proc/sysinfo.c
+--- procps-3.2.0/proc/sysinfo.c	2004-07-16 09:52:29.000000000 +0200
++++ procps-3.2.0-steal/proc/sysinfo.c	2004-07-16 09:51:44.000000000 +0200
+@@ -216,11 +216,11 @@
+ #define NAN (-0.0)
  #endif
+ #define JT unsigned long long
+-void seven_cpu_numbers(double *restrict uret, double *restrict nret, double *restrict sret, double *restrict iret, double *restrict wret, double *restrict xret, double *restrict yret){
+-    double tmp_u, tmp_n, tmp_s, tmp_i, tmp_w, tmp_x, tmp_y;
++void seven_cpu_numbers(double *restrict uret, double *restrict nret, double *restrict sret, double *restrict iret, double *restrict wret, double *restrict xret, double *restrict yret, double *restrict zret){
++    double tmp_u, tmp_n, tmp_s, tmp_i, tmp_w, tmp_x, tmp_y, tmp_z;
+     double scale;  /* scale values to % */
+-    static JT old_u, old_n, old_s, old_i, old_w, old_x, old_y;
+-    JT new_u, new_n, new_s, new_i, new_w, new_x, new_y;
++    static JT old_u, old_n, old_s, old_i, old_w, old_x, old_y, old_z;
++    JT new_u, new_n, new_s, new_i, new_w, new_x, new_y, new_z;
+     JT ticks_past; /* avoid div-by-0 by not calling too often :-( */
  
-+#ifdef CONFIG_VIRT_CPU_TIMESLICES
-+
-+#define __ARCH_HAS_TIMESLICE_TIMER
-+
-+extern void arch_stop_timeslice(void);
-+extern void arch_start_timeslice(void);
-+
-+#endif
-+
- #define nop() __asm__ __volatile__ ("nop")
- 
- #define xchg(ptr,x) \
-diff -urN linux-2.6.8-rc4/include/asm-s390/timer.h linux-2.6.8-cputime/include/asm-s390/timer.h
---- linux-2.6.8-rc4/include/asm-s390/timer.h	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/include/asm-s390/timer.h	Fri Aug 13 19:05:31 2004
-@@ -43,6 +43,9 @@
- extern int mod_virt_timer(struct vtimer_list *timer, __u64 expires);
- extern int del_virt_timer(struct vtimer_list *timer);
- 
--int stop_timers(void);
-+static inline int vtimer_pending(struct vtimer_list *timer)
-+{
-+	return (!list_empty(&timer->entry));
-+}
- 
- #endif
-diff -urN linux-2.6.8-rc4/include/linux/init_task.h linux-2.6.8-cputime/include/linux/init_task.h
---- linux-2.6.8-rc4/include/linux/init_task.h	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/include/linux/init_task.h	Fri Aug 13 19:05:31 2004
-@@ -78,7 +78,6 @@
- 	.mm		= NULL,						\
- 	.active_mm	= &init_mm,					\
- 	.run_list	= LIST_HEAD_INIT(tsk.run_list),			\
--	.time_slice	= HZ,						\
- 	.tasks		= LIST_HEAD_INIT(tsk.tasks),			\
- 	.ptrace_children= LIST_HEAD_INIT(tsk.ptrace_children),		\
- 	.ptrace_list	= LIST_HEAD_INIT(tsk.ptrace_list),		\
-diff -urN linux-2.6.8-rc4/include/linux/sched.h linux-2.6.8-cputime/include/linux/sched.h
---- linux-2.6.8-rc4/include/linux/sched.h	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/include/linux/sched.h	Fri Aug 13 19:05:31 2004
-@@ -170,6 +170,7 @@
- extern void trap_init(void);
- extern void update_process_times(int user);
- extern void scheduler_tick(void);
-+extern void reduce_timeslice(struct task_struct *p, cputime_t elapsed);
- extern unsigned long cache_decay_ticks;
- 
- /* Attach to any functions which should be ignored in wchan output. */
-@@ -408,7 +409,8 @@
- 
- 	unsigned long policy;
- 	cpumask_t cpus_allowed;
--	unsigned int time_slice, first_time_slice;
-+	cputime_t time_slice, child_time_slice; 
-+	unsigned int first_time_slice;
- 
- 	struct list_head tasks;
- 	/*
-diff -urN linux-2.6.8-rc4/kernel/sched.c linux-2.6.8-cputime/kernel/sched.c
---- linux-2.6.8-rc4/kernel/sched.c	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/kernel/sched.c	Fri Aug 13 19:06:17 2004
-@@ -254,6 +254,13 @@
- # define task_running(rq, p)		((rq)->curr == (p))
- #endif
- 
-+#ifndef __ARCH_HAS_TIMESLICE_TIMER
-+
-+#define arch_stop_timeslice()	do { } while (0)
-+#define arch_start_timeslice()	do { } while (0)
-+
-+#endif
-+
- /*
-  * task_rq_lock - lock the runqueue a given task resides on and disable
-  * interrupts.  Note the ordering: we can safely lookup the task_rq without
-@@ -871,6 +878,8 @@
-  */
- void fastcall sched_fork(task_t *p)
- {
-+	cputime_t split;
-+
- 	/*
- 	 * We mark the process as running here, but have not actually
- 	 * inserted it onto the runqueue yet. This guarantees that
-@@ -896,27 +905,33 @@
- 	 * resulting in more scheduling fairness.
- 	 */
- 	local_irq_disable();
--	p->time_slice = (current->time_slice + 1) >> 1;
-+	arch_stop_timeslice();
- 	/*
- 	 * The remainder of the first timeslice might be recovered by
- 	 * the parent if the child exits early enough.
- 	 */
-+	split = cputime_halve(current->time_slice);
- 	p->first_time_slice = 1;
--	current->time_slice >>= 1;
-+	p->time_slice = cputime_sub(current->time_slice, split);
-+	current->time_slice = split;
-+	arch_start_timeslice();
- 	p->timestamp = sched_clock();
--	if (!current->time_slice) {
-+#ifndef __ARCH_HAS_TIMESLICE_TIMER
-+	if (unlikely(cputime_eq(current->time_slice, cputime_zero))) {
- 		/*
- 		 * This case is rare, it happens when the parent has only
- 		 * a single jiffy left from its timeslice. Taking the
- 		 * runqueue lock is not a problem.
- 		 */
--		current->time_slice = 1;
- 		preempt_disable();
--		scheduler_tick();
-+		reduce_timeslice(p, cputime_zero);
- 		local_irq_enable();
- 		preempt_enable();
- 	} else
- 		local_irq_enable();
-+#else
-+	local_irq_enable();
-+#endif
+     tmp_w = 0.0;
+@@ -229,10 +229,12 @@
+     new_x = 0;
+     tmp_y = 0.0;
+     new_y = 0;
++    tmp_z = 0.0;
++    new_z = 0;
+  
+     FILE_TO_BUF(STAT_FILE,stat_fd);
+-    sscanf(buf, "cpu %Lu %Lu %Lu %Lu %Lu %Lu %Lu", &new_u, &new_n, &new_s, &new_i, &new_w, &new_x, &new_y);
+-    ticks_past = (new_u+new_n+new_s+new_i+new_w+new_x+new_y)-(old_u+old_n+old_s+old_i+old_w+old_x+old_y);
++    sscanf(buf, "cpu %Lu %Lu %Lu %Lu %Lu %Lu %Lu %Lu", &new_u, &new_n, &new_s, &new_i, &new_w, &new_x, &new_y, &new_z);
++    ticks_past = (new_u+new_n+new_s+new_i+new_w+new_x+new_y+new_z)-(old_u+old_n+old_s+old_i+old_w+old_x+old_y+old_z);
+     if(ticks_past){
+       scale = 100.0 / (double)ticks_past;
+       tmp_u = ( (double)new_u - (double)old_u ) * scale;
+@@ -242,6 +244,7 @@
+       tmp_w = ( (double)new_w - (double)old_w ) * scale;
+       tmp_x = ( (double)new_x - (double)old_x ) * scale;
+       tmp_y = ( (double)new_y - (double)old_y ) * scale;
++      tmp_z = ( (double)new_z - (double)old_z ) * scale;
+     }else{
+       tmp_u = NAN;
+       tmp_n = NAN;
+@@ -250,6 +253,7 @@
+       tmp_w = NAN;
+       tmp_x = NAN;
+       tmp_y = NAN;
++      tmp_z = NAN;
+     }
+     SET_IF_DESIRED(uret, tmp_u);
+     SET_IF_DESIRED(nret, tmp_n);
+@@ -258,6 +262,7 @@
+     SET_IF_DESIRED(wret, tmp_w);
+     SET_IF_DESIRED(iret, tmp_x);
+     SET_IF_DESIRED(wret, tmp_y);
++    SET_IF_DESIRED(wret, tmp_z);
+     old_u=new_u;
+     old_n=new_n;
+     old_s=new_s;
+@@ -265,6 +270,7 @@
+     old_w=new_w;
+     old_i=new_x;
+     old_w=new_y;
++    old_z=new_z;
  }
+ #undef JT
+ #endif
+@@ -341,7 +347,7 @@
  
- /*
-@@ -975,11 +990,12 @@
- 	runqueue_t *rq;
+ /***********************************************************************/
  
- 	local_irq_save(flags);
--	if (p->first_time_slice) {
--		p->parent->time_slice += p->time_slice;
--		if (unlikely(p->parent->time_slice > MAX_TIMESLICE))
--			p->parent->time_slice = MAX_TIMESLICE;
--	}
-+	if (p == current)
-+		arch_stop_timeslice();
-+	if (p->first_time_slice)
-+		p->parent->child_time_slice =
-+			cputime_add(p->parent->child_time_slice,
-+				    p->time_slice);
- 	local_irq_restore(flags);
- 	/*
- 	 * If the child was a (relative-) CPU hog then decrease
-@@ -1027,6 +1043,7 @@
- 	 */
- 	prev_task_flags = prev->flags;
- 	finish_arch_switch(rq, prev);
-+	arch_start_timeslice();
- 	if (mm)
- 		mmdrop(mm);
- 	if (unlikely(prev_task_flags & PF_DEAD))
-@@ -1955,6 +1972,24 @@
+-void getstat(jiff *restrict cuse, jiff *restrict cice, jiff *restrict csys, jiff *restrict cide, jiff *restrict ciow, jiff *restrict cxxx, jiff *restrict cyyy,
++void getstat(jiff *restrict cuse, jiff *restrict cice, jiff *restrict csys, jiff *restrict cide, jiff *restrict ciow, jiff *restrict cxxx, jiff *restrict cyyy, jiff *restrict czzz,
+ 	     unsigned long *restrict pin, unsigned long *restrict pout, unsigned long *restrict s_in, unsigned long *restrict sout,
+ 	     unsigned *restrict intr, unsigned *restrict ctxt,
+ 	     unsigned int *restrict running, unsigned int *restrict blocked,
+@@ -363,9 +369,10 @@
+   *ciow = 0;  /* not separated out until the 2.5.41 kernel */
+   *cxxx = 0;  /* not separated out until the 2.6.0-test4 kernel */
+   *cyyy = 0;  /* not separated out until the 2.6.0-test4 kernel */
++  *czzz = 0;  /* not separated out until the 2.6.x??? kernel */
  
- EXPORT_PER_CPU_SYMBOL(kstat);
+   b = strstr(buff, "cpu ");
+-  if(b) sscanf(b,  "cpu  %Lu %Lu %Lu %Lu %Lu %Lu %Lu", cuse, cice, csys, cide, ciow, cxxx, cyyy);
++  if(b) sscanf(b,  "cpu  %Lu %Lu %Lu %Lu %Lu %Lu %Lu %Lu", cuse, cice, csys, cide, ciow, cxxx, cyyy, czzz);
  
-+static inline void reload_timeslice(struct task_struct *p)
-+{
-+        int ts; 
-+                        
-+        ts = task_timeslice(p);
-+ 
-+        p->time_slice = jiffies_to_cputime(ts);
-+	if (!cputime_eq(p->child_time_slice, cputime_zero)) {
-+		cputime_t max_slice = jiffies_to_cputime(MAX_TIMESLICE);
-+		p->time_slice = cputime_add(p->time_slice,
-+					    p->child_time_slice);
-+		if (unlikely(cputime_gt(p->time_slice, max_slice)))
-+			p->time_slice = max_slice;
-+		p->child_time_slice = cputime_zero;
-+	}
-+        p->first_time_slice = 0;
-+}
-+
- /*
-  * We place interactive tasks back into the active array, if possible.
-  *
-@@ -1972,6 +2007,110 @@
- 			((rq)->curr->static_prio > (rq)->best_expired_prio))
+   b = strstr(buff, "page ");
+   if(b) sscanf(b,  "page %lu %lu", pin, pout);
+diff -urN procps-3.2.0/proc/sysinfo.h procps-3.2.0-steal/proc/sysinfo.h
+--- procps-3.2.0/proc/sysinfo.h	2004-07-16 09:52:29.000000000 +0200
++++ procps-3.2.0-steal/proc/sysinfo.h	2004-07-16 09:51:44.000000000 +0200
+@@ -55,7 +55,7 @@
  
- /*
-+ * Timeslice is expired (either after a tick or after a timer). 
-+ * Reload it. We don't need to add it here, this is done later 
-+ * by schedule().
-+ */
-+static inline void timeslice_expired(struct task_struct *p, struct runqueue *rq)
-+{               
-+        /*
-+         * The task was running during this tick - update the
-+         * time slice counter. Note: we do not update a thread's
-+         * priority until it either goes to sleep or uses up its
-+         * timeslice. This makes it possible for interactive tasks
-+         * to use up their timeslices at their highest priority levels.
-+         */
-+        if (unlikely(rt_task(p))) {
-+                /*
-+                 * RR tasks need a special form of timeslice management.
-+                 * FIFO tasks have no timeslices.
-+                 */
-+                if (p->policy == SCHED_RR) {
-+                        reload_timeslice(p);
-+                        set_tsk_need_resched(p);
-+
-+                        /* put it at the end of the queue: */
-+                        dequeue_task(p, rq->active);
-+                        enqueue_task(p, rq->active);
-+                }
-+                return;
-+        }
-+
-+        dequeue_task(p, rq->active);
-+        set_tsk_need_resched(p);
-+        p->prio = effective_prio(p);
-+	reload_timeslice(p);
-+
-+        if (!rq->expired_timestamp)
-+        	rq->expired_timestamp = jiffies;
-+        if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
-+        	enqueue_task(p, rq->expired);
-+                if (p->static_prio < rq->best_expired_prio)
-+                	rq->best_expired_prio = p->static_prio;
-+        } else
-+        	enqueue_task(p, rq->active);
-+}
-+
-+void reduce_timeslice(struct task_struct *p, cputime_t elapsed)
-+{
-+        struct runqueue *rq;
-+
-+        rq = this_rq();
-+	if (p == rq->idle)
-+		return;
-+        spin_lock(&rq->lock);
-+
-+        /* Task might have expired already, but not scheduled off yet */
-+        if (p->array != rq->active) {
-+                set_tsk_need_resched(p);
-+                goto out_unlock;
-+        }
-+
-+        if (rt_task(p) && (p->policy == SCHED_FIFO))
-+                goto out_unlock;
-+
-+        if (cputime_ge(elapsed, p->time_slice)) {
-+                p->time_slice = cputime_zero;
-+                timeslice_expired(p, rq);
-+        } else
-+                p->time_slice = cputime_sub(p->time_slice, elapsed);
-+
-+        /* XXX interactive stuff makes no sense for virtual timeslices */
-+#ifndef __ARCH_HAS_TIMESLICE_TIMER
-+	/*
-+	 * Prevent a too long timeslice allowing a task to monopolize
-+	 * the CPU. We do this by splitting up the timeslice into
-+	 * smaller pieces.
-+	 *
-+	 * Note: this does not mean the task's timeslices expire or
-+	 * get lost in any way, they just might be preempted by
-+	 * another task of equal priority. (one with higher
-+	 * priority would have preempted this task already.) We
-+	 * requeue this task to the end of the list on this priority
-+	 * level, which is in essence a round-robin of tasks with
-+	 * equal priority.
-+	 *
-+	 * This only applies to tasks in the interactive
-+	 * delta range with at least TIMESLICE_GRANULARITY to requeue.
-+	 */
-+	if (TASK_INTERACTIVE(p) && !((task_timeslice(p) -
-+		cputime_to_jiffies(p->time_slice)) % 
-+		TIMESLICE_GRANULARITY(p)) &&
-+		(cputime_to_jiffies(p->time_slice) >= 
-+		TIMESLICE_GRANULARITY(p)) &&
-+		(p->array == rq->active)) {
-+
-+		dequeue_task(p, rq->active);
-+		set_tsk_need_resched(p);
-+		p->prio = effective_prio(p);
-+		enqueue_task(p, rq->active);
-+	}
-+#endif
-+out_unlock:
-+        spin_unlock(&rq->lock);
-+}
-+
-+/*
-  * Do the virtual cpu time signal calculations.
-  * @p: the process that the cpu time gets accounted to
-  * @cputime: the cpu time spent in user space since the last update
-@@ -2136,79 +2275,8 @@
- 	}
+ #define BUFFSIZE 8192
+ typedef unsigned long long jiff;
+-extern void getstat(jiff *restrict cuse, jiff *restrict cice, jiff *restrict csys, jiff *restrict cide, jiff *restrict ciow, jiff *restrict cxxx, jiff *restrict cyyy,
++extern void getstat(jiff *restrict cuse, jiff *restrict cice, jiff *restrict csys, jiff *restrict cide, jiff *restrict ciow, jiff *restrict cxxx, jiff *restrict cyyy, jiff *restrict czzz,
+ 	     unsigned long *restrict pin, unsigned long *restrict pout, unsigned long *restrict s_in, unsigned long *restrict sout,
+ 	     unsigned *restrict intr, unsigned *restrict ctxt,
+ 	     unsigned int *restrict running, unsigned int *restrict blocked,
+diff -urN procps-3.2.0/top.c procps-3.2.0-steal/top.c
+--- procps-3.2.0/top.c	2004-07-16 09:52:29.000000000 +0200
++++ procps-3.2.0-steal/top.c	2004-07-16 09:51:44.000000000 +0200
+@@ -904,8 +904,9 @@
+    if (!fgets(buf, sizeof(buf), fp)) std_err("failed /proc/stat read");
+    cpus[Cpu_tot].x = 0;  // FIXME: can't tell by kernel version number
+    cpus[Cpu_tot].y = 0;  // FIXME: can't tell by kernel version number
++   cpus[Cpu_tot].z = 0;  // FIXME: can't tell by kernel version number
+    if (4 > sscanf(buf, CPU_FMTS_JUST1
+-      , &cpus[Cpu_tot].u, &cpus[Cpu_tot].n, &cpus[Cpu_tot].s, &cpus[Cpu_tot].i, &cpus[Cpu_tot].w, &cpus[Cpu_tot].x, &cpus[Cpu_tot].y))
++      , &cpus[Cpu_tot].u, &cpus[Cpu_tot].n, &cpus[Cpu_tot].s, &cpus[Cpu_tot].i, &cpus[Cpu_tot].w, &cpus[Cpu_tot].x, &cpus[Cpu_tot].y, &cpus[Cpu_tot].z))
+          std_err("failed /proc/stat read");
+    // and just in case we're 2.2.xx compiled without SMP support...
+    if (1 == Cpu_tot) memcpy(cpus, &cpus[1], sizeof(CPU_t));
+@@ -918,8 +919,9 @@
+       if (!fgets(buf, sizeof(buf), fp)) std_err("failed /proc/stat read");
+       cpus[i].x = 0;  // FIXME: can't tell by kernel version number
+       cpus[i].y = 0;  // FIXME: can't tell by kernel version number
++      cpus[i].z = 0;  // FIXME: can't tell by kernel version number
+       if (4 > sscanf(buf, CPU_FMTS_MULTI
+-         , &cpus[i].u, &cpus[i].n, &cpus[i].s, &cpus[i].i, &cpus[i].w, &cpus[i].x, &cpus[i].y))
++         , &cpus[i].u, &cpus[i].n, &cpus[i].s, &cpus[i].i, &cpus[i].w, &cpus[i].x, &cpus[i].y, &cpus[i].z))
+             std_err("failed /proc/stat read");
+    }
+    return cpus;
+@@ -1587,6 +1589,8 @@
+       States_fmts = STATES_line2x5;
+    if (linux_version_code >= LINUX_VERSION(2, 6, 0))  // grrr... only some 2.6.0-testX :-(
+       States_fmts = STATES_line2x6;
++   if (linux_version_code >= LINUX_VERSION(2, 6, 7))
++      States_fmts = STATES_line2x7;
  
- 	/* Task might have expired already, but not scheduled off yet */
--	if (p->array != rq->active) {
--		set_tsk_need_resched(p);
--		goto out;
--	}
--	spin_lock(&rq->lock);
--	/*
--	 * The task was running during this tick - update the
--	 * time slice counter. Note: we do not update a thread's
--	 * priority until it either goes to sleep or uses up its
--	 * timeslice. This makes it possible for interactive tasks
--	 * to use up their timeslices at their highest priority levels.
--	 */
--	if (unlikely(rt_task(p))) {
--		/*
--		 * RR tasks need a special form of timeslice management.
--		 * FIFO tasks have no timeslices.
--		 */
--		if ((p->policy == SCHED_RR) && !--p->time_slice) {
--			p->time_slice = task_timeslice(p);
--			p->first_time_slice = 0;
--			set_tsk_need_resched(p);
--
--			/* put it at the end of the queue: */
--			dequeue_task(p, rq->active);
--			enqueue_task(p, rq->active);
--		}
--		goto out_unlock;
--	}
--	if (!--p->time_slice) {
--		dequeue_task(p, rq->active);
-+	if (p->array != rq->active)
- 		set_tsk_need_resched(p);
--		p->prio = effective_prio(p);
--		p->time_slice = task_timeslice(p);
--		p->first_time_slice = 0;
--
--		if (!rq->expired_timestamp)
--			rq->expired_timestamp = jiffies;
--		if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
--			enqueue_task(p, rq->expired);
--			if (p->static_prio < rq->best_expired_prio)
--				rq->best_expired_prio = p->static_prio;
--		} else
--			enqueue_task(p, rq->active);
--	} else {
--		/*
--		 * Prevent a too long timeslice allowing a task to monopolize
--		 * the CPU. We do this by splitting up the timeslice into
--		 * smaller pieces.
--		 *
--		 * Note: this does not mean the task's timeslices expire or
--		 * get lost in any way, they just might be preempted by
--		 * another task of equal priority. (one with higher
--		 * priority would have preempted this task already.) We
--		 * requeue this task to the end of the list on this priority
--		 * level, which is in essence a round-robin of tasks with
--		 * equal priority.
--		 *
--		 * This only applies to tasks in the interactive
--		 * delta range with at least TIMESLICE_GRANULARITY to requeue.
--		 */
--		if (TASK_INTERACTIVE(p) && !((task_timeslice(p) -
--			p->time_slice) % TIMESLICE_GRANULARITY(p)) &&
--			(p->time_slice >= TIMESLICE_GRANULARITY(p)) &&
--			(p->array == rq->active)) {
--
--			dequeue_task(p, rq->active);
--			set_tsk_need_resched(p);
--			p->prio = effective_prio(p);
--			enqueue_task(p, rq->active);
--		}
--	}
--out_unlock:
--	spin_unlock(&rq->lock);
- out:
- 	rebalance_tick(cpu, rq, NOT_IDLE);
+       /* get virtual page size -- nearing huge! */
+    Page_size = getpagesize();
+@@ -2809,7 +2813,7 @@
+    /* we'll trim to zero if we get negative time ticks,
+       which has happened with some SMP kernels (pre-2.4?) */
+ #define TRIMz(x)  ((tz = (SIC_t)(x)) < 0 ? 0 : tz)
+-   SIC_t u_frme, s_frme, n_frme, i_frme, w_frme, x_frme, y_frme, tot_frme, tz;
++   SIC_t u_frme, s_frme, n_frme, i_frme, w_frme, x_frme, y_frme, z_frme, tot_frme, tz;
+    float scale;
+ 
+    u_frme = cpu->u - cpu->u_sav;
+@@ -2819,7 +2823,8 @@
+    w_frme = cpu->w - cpu->w_sav;
+    x_frme = cpu->x - cpu->x_sav;
+    y_frme = cpu->y - cpu->y_sav;
+-   tot_frme = u_frme + s_frme + n_frme + i_frme + w_frme + x_frme + y_frme;
++   z_frme = cpu->z - cpu->z_sav;
++   tot_frme = u_frme + s_frme + n_frme + i_frme + w_frme + x_frme + y_frme + z_frme;
+    if (1 > tot_frme) tot_frme = 1;
+    scale = 100.0 / (float)tot_frme;
+ 
+@@ -2834,6 +2839,7 @@
+       , (float)w_frme * scale
+       , (float)x_frme * scale
+       , (float)y_frme * scale
++      , (float)z_frme * scale
+    ));
+    Msg_row += 1;
+ 
+@@ -2845,6 +2851,7 @@
+    cpu->w_sav = cpu->w;
+    cpu->x_sav = cpu->x;
+    cpu->y_sav = cpu->y;
++   cpu->z_sav = cpu->z;
+ 
+ #undef TRIMz
  }
-@@ -2269,7 +2337,8 @@
- 		 * task from using an unfair proportion of the
- 		 * physical cpu's resources. -ck
- 		 */
--		if (((smt_curr->time_slice * (100 - sd->per_cpu_gain) / 100) >
-+		if (((cputime_to_jiffies(smt_curr->time_slice) * 
-+			(100 - sd->per_cpu_gain) / 100) >
- 			task_timeslice(p) || rt_task(smt_curr)) &&
- 			p->mm && smt_curr->mm && !rt_task(p))
- 				ret = 1;
-@@ -2279,7 +2348,8 @@
- 		 * or wake it up if it has been put to sleep for priority
- 		 * reasons.
- 		 */
--		if ((((p->time_slice * (100 - sd->per_cpu_gain) / 100) >
-+		if ((((cputime_to_jiffies(p->time_slice) * 
-+			(100 - sd->per_cpu_gain) / 100) >
- 			task_timeslice(smt_curr) || rt_task(p)) &&
- 			smt_curr->mm && p->mm && !rt_task(smt_curr)) ||
- 			(smt_curr == smt_rq->idle && smt_rq->nr_running))
-@@ -2418,6 +2488,7 @@
- 	prev->timestamp = now;
+diff -urN procps-3.2.0/top.h procps-3.2.0-steal/top.h
+--- procps-3.2.0/top.h	2004-07-16 09:52:29.000000000 +0200
++++ procps-3.2.0-steal/top.h	2004-07-16 09:51:44.000000000 +0200
+@@ -195,8 +195,8 @@
+            calculations.  It exists primarily for SMP support but serves
+            all environments. */
+ typedef struct CPU_t {
+-   TIC_t u, n, s, i, w, x, y;                             // as represented in /proc/stat
+-   TIC_t u_sav, s_sav, n_sav, i_sav, w_sav, x_sav, y_sav; // in the order of our display
++   TIC_t u, n, s, i, w, x, y, z;                          // as represented in /proc/stat
++   TIC_t u_sav, s_sav, n_sav, i_sav, w_sav, x_sav, y_sav, z_sav; // in the order of our display
+ } CPU_t;
  
- 	if (likely(prev != next)) {
-+		arch_stop_timeslice();
- 		next->timestamp = now;
- 		rq->nr_switches++;
- 		rq->curr = next;
-@@ -3410,6 +3481,7 @@
+         /* These 2 types support rcfile compatibility */
+@@ -357,11 +357,11 @@
+         /* These are the possible fscanf formats used in /proc/stat
+            reads during history processing.
+            ( 5th number only for Linux 2.5.41 and above ) */
+-#define CPU_FMTS_JUST1  "cpu %Lu %Lu %Lu %Lu %Lu %Lu %Lu"
++#define CPU_FMTS_JUST1  "cpu %Lu %Lu %Lu %Lu %Lu %Lu %Lu %Lu"
+ #ifdef PRETEND4CPUS
+ #define CPU_FMTS_MULTI CPU_FMTS_JUST1
  #else
- 	idle->thread_info->preempt_count = 0;
+-#define CPU_FMTS_MULTI  "cpu%*d %Lu %Lu %Lu %Lu %Lu %Lu %Lu"
++#define CPU_FMTS_MULTI  "cpu%*d %Lu %Lu %Lu %Lu %Lu %Lu %Lu %Lu"
  #endif
-+	idle->time_slice = jiffies_to_cputime(HZ);
+ 
+         /* Summary Lines specially formatted string(s) --
+@@ -376,6 +376,8 @@
+    " %#5.1f%% \02user,\03 %#5.1f%% \02system,\03 %#5.1f%% \02nice,\03 %#5.1f%% \02idle,\03 %#5.1f%% \02IO-wait\03\n"
+ #define STATES_line2x6  "%s\03" \
+    " %#4.1f%% \02us,\03 %#4.1f%% \02sy,\03 %#4.1f%% \02ni,\03 %#4.1f%% \02id,\03 %#4.1f%% \02wa,\03 %#4.1f%% \02hi,\03 %#4.1f%% \02si\03\n"
++#define STATES_line2x7  "%s\03" \
++   "%#5.1f%%\02us,\03%#5.1f%%\02sy,\03%#5.1f%%\02ni,\03%#5.1f%%\02id,\03%#5.1f%%\02wa,\03%#5.1f%%\02hi,\03%#5.1f%%\02si,\03%#5.1f%%\02st\03\n"
+ #ifdef CASEUP_SUMMK
+ #define MEMORY_line1  "Mem: \03" \
+    " %8uK \02total,\03 %8uK \02used,\03 %8uK \02free,\03 %8uK \02buffers\03\n"
+diff -urN procps-3.2.0/vmstat.c procps-3.2.0-steal/vmstat.c
+--- procps-3.2.0/vmstat.c	2004-07-16 09:52:29.000000000 +0200
++++ procps-3.2.0-steal/vmstat.c	2004-07-16 10:37:11.486408880 +0200
+@@ -149,15 +149,15 @@
+ ////////////////////////////////////////////////////////////////////////////
+ 
+ static void new_header(void){
+-  printf("procs -----------memory---------- ---swap-- -----io---- --system-- ----cpu----\n");
++  printf("procs -----------memory---------- ---swap-- -----io---- -system-- -----cpu------\n");
+   printf(
+-    "%2s %2s %6s %6s %6s %6s %4s %4s %5s %5s %4s %5s %2s %2s %2s %2s\n",
++    "%2s %2s %6s %6s %6s %6s %4s %4s %5s %5s %4s %4s %2s %2s %2s %2s %2s\n",
+     "r","b",
+     "swpd", "free", a_option?"inact":"buff", a_option?"active":"cache",
+     "si","so",
+     "bi","bo",
+     "in","cs",
+-    "us","sy","id","wa"
++    "us","sy","id","wa", "st"
+   );
  }
  
- /*
-diff -urN linux-2.6.8-rc4/kernel/timer.c linux-2.6.8-cputime/kernel/timer.c
---- linux-2.6.8-rc4/kernel/timer.c	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/kernel/timer.c	Fri Aug 13 19:05:31 2004
-@@ -803,6 +803,7 @@
- 	if (rcu_pending(cpu))
- 		rcu_check_callbacks(cpu, user_tick);
- 	scheduler_tick();
-+	reduce_timeslice(current, jiffies_to_cputime(1));
+@@ -193,13 +193,13 @@
+ ////////////////////////////////////////////////////////////////////////////
+ 
+ static void new_format(void) {
+-  const char format[]="%2u %2u %6lu %6lu %6lu %6lu %4u %4u %5u %5u %4u %5u %2u %2u %2u %2u\n";
++  const char format[]="%2u %2u %6lu %6lu %6lu %6lu %4u %4u %5u %5u %4u %4u %2u %2u %2u %2u %2u\n";
+   unsigned int tog=0; /* toggle switch for cleaner code */
+   unsigned int i;
+   unsigned int hz = Hertz;
+   unsigned int running,blocked,dummy_1,dummy_2;
+-  jiff cpu_use[2], cpu_nic[2], cpu_sys[2], cpu_idl[2], cpu_iow[2], cpu_xxx[2], cpu_yyy[2];
+-  jiff duse, dsys, didl, diow, Div, divo2;
++  jiff cpu_use[2], cpu_nic[2], cpu_sys[2], cpu_idl[2], cpu_iow[2], cpu_xxx[2], cpu_yyy[2], cpu_zzz[2];
++  jiff duse, dsys, didl, diow, dstl, Div, divo2;
+   unsigned long pgpgin[2], pgpgout[2], pswpin[2], pswpout[2];
+   unsigned int intr[2], ctxt[2];
+   unsigned int sleep_half; 
+@@ -210,7 +210,7 @@
+   new_header();
+   meminfo();
+ 
+-  getstat(cpu_use,cpu_nic,cpu_sys,cpu_idl,cpu_iow,cpu_xxx,cpu_yyy,
++  getstat(cpu_use,cpu_nic,cpu_sys,cpu_idl,cpu_iow,cpu_xxx,cpu_yyy,cpu_zzz,
+ 	  pgpgin,pgpgout,pswpin,pswpout,
+ 	  intr,ctxt,
+ 	  &running,&blocked,
+@@ -220,7 +220,8 @@
+   dsys= *cpu_sys + *cpu_xxx + *cpu_yyy;
+   didl= *cpu_idl;
+   diow= *cpu_iow;
+-  Div= duse+dsys+didl+diow;
++  dstl= *cpu_zzz;
++  Div= duse+dsys+didl+diow+dstl;
+   divo2= Div/2UL;
+   printf(format,
+ 	 running, blocked,
+@@ -236,7 +237,8 @@
+ 	 (unsigned)( (100*duse                    + divo2) / Div ),
+ 	 (unsigned)( (100*dsys                    + divo2) / Div ),
+ 	 (unsigned)( (100*didl                    + divo2) / Div ),
+-	 (unsigned)( (100*diow                    + divo2) / Div )
++	 (unsigned)( (100*diow                    + divo2) / Div ),
++	 (unsigned)( (100*dstl                    + divo2) / Div )
+   );
+ 
+   for(i=1;i<num_updates;i++) { /* \\\\\\\\\\\\\\\\\\\\ main loop ////////////////// */
+@@ -246,7 +248,7 @@
+ 
+     meminfo();
+ 
+-    getstat(cpu_use+tog,cpu_nic+tog,cpu_sys+tog,cpu_idl+tog,cpu_iow+tog,cpu_xxx+tog,cpu_yyy+tog,
++    getstat(cpu_use+tog,cpu_nic+tog,cpu_sys+tog,cpu_idl+tog,cpu_iow+tog,cpu_xxx+tog,cpu_yyy+tog,cpu_zzz+tog,
+ 	  pgpgin+tog,pgpgout+tog,pswpin+tog,pswpout+tog,
+ 	  intr+tog,ctxt+tog,
+ 	  &running,&blocked,
+@@ -256,6 +258,7 @@
+     dsys= cpu_sys[tog]-cpu_sys[!tog] + cpu_xxx[tog]-cpu_xxx[!tog] + cpu_yyy[tog]-cpu_yyy[!tog];
+     didl= cpu_idl[tog]-cpu_idl[!tog];
+     diow= cpu_iow[tog]-cpu_iow[!tog];
++    dstl= cpu_zzz[tog]-cpu_zzz[!tog];
+ 
+     /* idle can run backwards for a moment -- kernel "feature" */
+     if(debt){
+@@ -267,7 +270,7 @@
+       didl = 0;
+     }
+ 
+-    Div= duse+dsys+didl+diow;
++    Div= duse+dsys+didl+diow+dstl;
+     divo2= Div/2UL;
+     printf(format,
+            running, blocked,
+@@ -283,7 +286,8 @@
+ 	   (unsigned)( (100*duse+divo2)/Div ), /*us*/
+ 	   (unsigned)( (100*dsys+divo2)/Div ), /*sy*/
+ 	   (unsigned)( (100*didl+divo2)/Div ), /*id*/
+-	   (unsigned)( (100*diow+divo2)/Div )  /*wa*/
++	   (unsigned)( (100*diow+divo2)/Div ), /*wa*/
++	   (unsigned)( (100*dstl+divo2)/Div )  /*st*/
+     );
+   }
  }
+@@ -490,13 +494,14 @@
  
- /*
-diff -urN linux-2.6.8-rc4/mm/oom_kill.c linux-2.6.8-cputime/mm/oom_kill.c
---- linux-2.6.8-rc4/mm/oom_kill.c	Fri Aug 13 19:05:52 2004
-+++ linux-2.6.8-cputime/mm/oom_kill.c	Fri Aug 13 19:05:31 2004
-@@ -149,7 +149,7 @@
- 	 * all the memory it needs. That way it should be able to
- 	 * exit() and clear out its resources quickly...
- 	 */
--	p->time_slice = HZ;
-+	p->time_slice = jiffies_to_cputime(HZ);
- 	p->flags |= PF_MEMALLOC | PF_MEMDIE;
+ static void sum_format(void) {
+   unsigned int running, blocked, btime, processes;
+-  jiff cpu_use, cpu_nic, cpu_sys, cpu_idl, cpu_iow, cpu_xxx, cpu_yyy;
++  jiff cpu_use, cpu_nic, cpu_sys, cpu_idl, cpu_iow, cpu_xxx, cpu_yyy, cpu_zzz;
+   unsigned long pgpgin, pgpgout, pswpin, pswpout;
+   unsigned int intr, ctxt;
  
- 	/* This process has hardware access, be more careful. */
+   meminfo();
+ 
+-  getstat(&cpu_use, &cpu_nic, &cpu_sys, &cpu_idl, &cpu_iow, &cpu_xxx, &cpu_yyy,
++  getstat(&cpu_use, &cpu_nic, &cpu_sys, &cpu_idl,
++          &cpu_iow, &cpu_xxx, &cpu_yyy, &cpu_zzz,
+ 	  &pgpgin, &pgpgout, &pswpin, &pswpout,
+ 	  &intr, &ctxt,
+ 	  &running, &blocked,
+@@ -519,6 +524,7 @@
+   printf("%13Lu IO-wait cpu ticks\n", cpu_iow);
+   printf("%13Lu IRQ cpu ticks\n", cpu_xxx);
+   printf("%13Lu softirq cpu ticks\n", cpu_yyy);
++  printf("%13Lu steal cpu ticks\n", cpu_zzz);
+   printf("%13lu pages paged in\n", pgpgin);
+   printf("%13lu pages paged out\n", pgpgout);
+   printf("%13lu pages swapped in\n", pswpin);
+@@ -533,11 +539,12 @@
+ 
+ static void fork_format(void) {
+   unsigned int running, blocked, btime, processes;
+-  jiff cpu_use, cpu_nic, cpu_sys, cpu_idl, cpu_iow, cpu_xxx, cpu_yyy;
++  jiff cpu_use, cpu_nic, cpu_sys, cpu_idl, cpu_iow, cpu_xxx, cpu_yyy, cpu_zzz;
+   unsigned long pgpgin, pgpgout, pswpin, pswpout;
+   unsigned int intr, ctxt;
+ 
+-  getstat(&cpu_use, &cpu_nic, &cpu_sys, &cpu_idl, &cpu_iow, &cpu_xxx, &cpu_yyy,
++  getstat(&cpu_use, &cpu_nic, &cpu_sys, &cpu_idl,
++	  &cpu_iow, &cpu_xxx, &cpu_yyy, &cpu_zzz,
+ 	  &pgpgin, &pgpgout, &pswpin, &pswpout,
+ 	  &intr, &ctxt,
+ 	  &running, &blocked,
