@@ -1,57 +1,54 @@
-Return-Path: <geert@linux-m68k.org>
-Received: from witte.sonytel.be ([80.88.33.193]:53199 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S261763AbUEWJwV (ORCPT
+Return-Path: <torvalds@osdl.org>
+Received: from fw.osdl.org ([65.172.181.6]:38329 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S264543AbUEYEAL (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 23 May 2004 05:52:21 -0400
-Date: Sun, 23 May 2004 11:37:05 +0200 (MEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Sender: geert@sonycom.com
-Subject: Re: =?iso-8859-1?Q?Re:_[PATCH]_fixing_sendfile_on_64bit_architectures?=
-In-Reply-To: <16556.19979.951743.994128@napali.hpl.hp.com>
-Message-ID: <Pine.GSO.4.58.0405231135170.2027@waterleaf.sonytel.be>
-References: <26879984$108499340940abaf81679ba6.07529629@config22.schlund.de>
- <16556.19979.951743.994128@napali.hpl.hp.com>
+	Tue, 25 May 2004 00:00:11 -0400
+Date: Mon, 24 May 2004 21:00:02 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH] ppc64: Fix possible race with set_pte on a present PTE
+In-Reply-To: <20040525034326.GT29378@dualathlon.random>
+Message-ID: <Pine.LNX.4.58.0405242051460.32189@ppc970.osdl.org>
+References: <1085369393.15315.28.camel@gaston> <Pine.LNX.4.58.0405232046210.25502@ppc970.osdl.org>
+ <1085371988.15281.38.camel@gaston> <Pine.LNX.4.58.0405232134480.25502@ppc970.osdl.org>
+ <1085373839.14969.42.camel@gaston> <Pine.LNX.4.58.0405232149380.25502@ppc970.osdl.org>
+ <20040525034326.GT29378@dualathlon.random>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: davidm@hpl.hp.com
-Cc: =?iso-8859-1?Q?Arnd_Bergmann?= <arnd@arndb.de>, =?iso-8859-1?Q?Andi_Kleen?= <ak@suse.de>, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>
+To: Andrea Arcangeli <andrea@suse.de>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@osdl.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Ben LaHaise <bcrl@kvack.org>, linux-mm@kvack.org, Architectures Group <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 19 May 2004, David Mosberger wrote:
-> >>>>> On Wed, 19 May 2004 21:26:01 +0200, Arnd Bergmann <arnd@arndb.de> said:
->
->   >> #ifdef SYS_NEED_OLD_STAT
->
->   >> instead of:
->
->   >> #if !defined(__alpha__) && !defined(__sparc__) &&
->   >> !defined(__ia64__) \ && !defined(CONFIG_ARCH_S390) &&
->   >> !defined(__hppa__) \ && !defined(__arm__) &&
->   >> !defined(CONFIG_V850) && !defined(__powerpc64__) \ &&
->   >> !defined(__mips__)
->
->   Arnd> Seconded. While it may not be that drastic in case of
->   Arnd> sys_sendfile, such constructions are always ugly and I suspect
->   Arnd> many of them would turn out to be incorrect after closer
->   Arnd> inspection.
->
-> How about the attached?  I decided to use __ARCH_OMIT_foo instead
-> of SYS_NEED_foo since that keeps the extra code in those platforms
-> that want to drop the code.
 
-Are you sure this logic is correct for obsolete features you want to keep for
-backwards compatibility reasons on old^H^H^Hlong-existing architectures?
 
-To me it sounds more logical if a new architecture would not get e.g.
-sys_oldumount() by default.
+On Tue, 25 May 2004, Andrea Arcangeli wrote:
+> 
+> The below patch should fix it, the only problem is that it can screwup
+> some arch that might use page-faults to keep track of the accessed bit,
 
-Gr{oetje,eeting}s,
+Indeed. At least alpha does this - that's where this code came from. SO 
+this will cause infinite page faults on alpha and any other "accessed bit 
+in software" architectures.
 
-						Geert
+Not good.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+I suspect we should just make a "ptep_set_bits()" inline function that 
+_atomically_ does "set the dirty/accessed bits". On x86, it would be a 
+simple
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+		asm("lock ; orl %1,%0"
+			:"m" (*ptep)
+			:"r" (entry));
+
+and similarly on most other architectures it should be quite easy to do 
+the equivalent. You can always do it with a simple compare-and-exchange 
+loop, something any SMP-capable architecture should have.
+
+Of course, arguably we can actually optimize this by "knowing" that it is
+safe to set the dirty bit, so then we don't even need an atomic operation,
+we just need one atomic write.  So we only actually need the atomic op for 
+the accessed bit case, and if we make the write-case be totally separate..
+
+Anybody willing to write up a patch for a few architectures? Is there any 
+architecture out there that would have a problem with this?
+
+		Linus
