@@ -1,12 +1,12 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266257AbUIMHYj@vger.kernel.org>
-Received: from mtagate2.de.ibm.com ([195.212.29.151]:39157 "EHLO
-	mtagate2.de.ibm.com") by vger.kernel.org with ESMTP id S266221AbUIMHYj
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266274AbUIMHZg@vger.kernel.org>
+Received: from mtagate3.de.ibm.com ([195.212.29.152]:55514 "EHLO
+	mtagate3.de.ibm.com") by vger.kernel.org with ESMTP id S266273AbUIMHZg
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Sep 2004 03:24:39 -0400
-Date: Mon, 13 Sep 2004 09:24:22 +0200
+	Mon, 13 Sep 2004 03:25:36 -0400
+Date: Mon, 13 Sep 2004 09:25:21 +0200
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [PATCH] cleanup: move call to update_process_times.
-Message-ID: <20040913072415.GA2171@mschwid3.boeblingen.de.ibm.com>
+Subject: [PATCH] cleanup: time.h, times.h, timex.h and jiffies.h.
+Message-ID: <20040913072521.GC2171@mschwid3.boeblingen.de.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -14,537 +14,847 @@ Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
 To: akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-[PATCH] cleanup: move call to update_process_times.
+[PATCH] cleanup: time.h, times.h, timex.h and jiffies.h.
 
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-For non-smp kernels the call to update_process_times is done
-in the do_timer function. It is more consistent with smp kernels
-to move this call to the architecture file which calls do_timer. 
+This patch moves some definitions among time.h, times.h, timex.h
+and jiffies.h. The purpose is to sort all jiffies related functions
+to jiffies.h, to get rid of the cyclic dependency between time.h &
+timex.h and to move all #include lines to the start of the header
+files.
 
 Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
 diffstat:
- arch/alpha/kernel/time.c                 |    3 +++
- arch/arm/kernel/time.c                   |    3 +++
- arch/arm26/kernel/time.c                 |    3 +++
- arch/cris/arch-v10/kernel/time.c         |    3 +++
- arch/h8300/kernel/time.c                 |    3 +++
- arch/ia64/kernel/time.c                  |    8 +-------
- arch/m68k/kernel/time.c                  |    3 +++
- arch/m68k/sun3/sun3ints.c                |    3 +++
- arch/m68knommu/kernel/time.c             |    3 +++
- arch/mips/au1000/common/time.c           |    9 +++++++++
- arch/mips/baget/time.c                   |    3 +++
- arch/mips/galileo-boards/ev96100/time.c  |    3 +++
- arch/mips/gt64120/common/time.c          |    3 +++
- arch/mips/kernel/time.c                  |    3 ---
- arch/mips/momentum/ocelot_g/gt-irq.c     |    3 +++
- arch/mips/sgi-ip27/ip27-timer.c          |    2 --
- arch/parisc/kernel/time.c                |    2 ++
- arch/ppc/kernel/time.c                   |    3 +++
- arch/ppc64/kernel/time.c                 |    3 +++
- arch/s390/kernel/time.c                  |    4 +++-
- arch/sh/kernel/time.c                    |    3 +++
- arch/sh64/kernel/time.c                  |    3 +++
- arch/sparc/kernel/pcic.c                 |    3 +++
- arch/sparc/kernel/time.c                 |    4 ++++
- arch/sparc64/kernel/time.c               |    1 +
- arch/um/kernel/time_kern.c               |    2 --
- arch/v850/kernel/time.c                  |    3 +++
- arch/x86_64/kernel/time.c                |    3 +++
- include/asm-arm/arch-clps711x/time.h     |    3 +++
- include/asm-arm/arch-integrator/time.h   |    3 +++
- include/asm-arm/arch-l7200/time.h        |    3 +++
- include/asm-i386/mach-default/do_timer.h |    3 +++
- include/asm-i386/mach-visws/do_timer.h   |    3 +++
- include/asm-i386/mach-voyager/do_timer.h |    3 +++
- kernel/timer.c                           |    5 -----
- 35 files changed, 95 insertions(+), 20 deletions(-)
+ arch/x86_64/kernel/vsyscall.c |    1 
+ include/linux/jiffies.h       |  350 +++++++++++++++++++++++++++++++++++++++++-
+ include/linux/time.h          |  260 -------------------------------
+ include/linux/times.h         |   54 ------
+ include/linux/timex.h         |   63 -------
+ 5 files changed, 359 insertions(+), 369 deletions(-)
 
-diff -urN linux-2.6/arch/alpha/kernel/time.c linux-2.6-patched/arch/alpha/kernel/time.c
---- linux-2.6/arch/alpha/kernel/time.c	2004-09-10 17:02:12.000000000 +0200
-+++ linux-2.6-patched/arch/alpha/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -138,6 +138,9 @@
+diff -urN linux-2.6/arch/x86_64/kernel/vsyscall.c linux-2.6-patched/arch/x86_64/kernel/vsyscall.c
+--- linux-2.6/arch/x86_64/kernel/vsyscall.c	2004-08-14 12:55:59.000000000 +0200
++++ linux-2.6-patched/arch/x86_64/kernel/vsyscall.c	2004-09-10 17:02:53.000000000 +0200
+@@ -40,6 +40,7 @@
+ #include <linux/kernel.h>
+ #include <linux/timer.h>
+ #include <linux/seqlock.h>
++#include <linux/jiffies.h>
  
- 	while (nticks > 0) {
- 		do_timer(regs);
-+#ifndef CONFIG_SMP
-+		update_process_times(user_mode(regs));
-+#endif
- 		nticks--;
- 	}
+ #include <asm/vsyscall.h>
+ #include <asm/pgtable.h>
+diff -urN linux-2.6/include/linux/jiffies.h linux-2.6-patched/include/linux/jiffies.h
+--- linux-2.6/include/linux/jiffies.h	2004-08-14 12:54:47.000000000 +0200
++++ linux-2.6-patched/include/linux/jiffies.h	2004-09-10 17:02:53.000000000 +0200
+@@ -3,10 +3,72 @@
  
-diff -urN linux-2.6/arch/arm/kernel/time.c linux-2.6-patched/arch/arm/kernel/time.c
---- linux-2.6/arch/arm/kernel/time.c	2004-09-10 17:02:12.000000000 +0200
-+++ linux-2.6-patched/arch/arm/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -311,6 +311,9 @@
- 	do_leds();
- 	do_set_rtc();
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- }
- 
- void (*init_arch_time)(void);
-diff -urN linux-2.6/arch/arm26/kernel/time.c linux-2.6-patched/arch/arm26/kernel/time.c
---- linux-2.6/arch/arm26/kernel/time.c	2004-09-10 17:02:12.000000000 +0200
-+++ linux-2.6-patched/arch/arm26/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -166,6 +166,9 @@
- static irqreturn_t timer_interrupt(int irq, void *dev_id, struct pt_regs *regs)
- {
-         do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
-         do_set_rtc(); //FIME - EVERY timer IRQ?
-         profile_tick(CPU_PROFILING, regs);
- 	return IRQ_HANDLED; //FIXME - is this right?
-diff -urN linux-2.6/arch/cris/arch-v10/kernel/time.c linux-2.6-patched/arch/cris/arch-v10/kernel/time.c
---- linux-2.6/arch/cris/arch-v10/kernel/time.c	2004-08-14 12:55:47.000000000 +0200
-+++ linux-2.6-patched/arch/cris/arch-v10/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -227,6 +227,9 @@
- 	/* call the real timer interrupt handler */
- 
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- 	
- 	/*
- 	 * If we have an externally synchronized Linux clock, then update
-diff -urN linux-2.6/arch/h8300/kernel/time.c linux-2.6-patched/arch/h8300/kernel/time.c
---- linux-2.6/arch/h8300/kernel/time.c	2004-09-10 17:02:12.000000000 +0200
-+++ linux-2.6-patched/arch/h8300/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -46,6 +46,9 @@
- 	platform_timer_eoi();
- 
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- 	profile_tick(CPU_PROFILING, regs);
- }
- 
-diff -urN linux-2.6/arch/ia64/kernel/time.c linux-2.6-patched/arch/ia64/kernel/time.c
---- linux-2.6/arch/ia64/kernel/time.c	2004-09-10 17:02:13.000000000 +0200
-+++ linux-2.6-patched/arch/ia64/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -67,14 +67,8 @@
- 	profile_tick(CPU_PROFILING, regs);
- 
- 	while (1) {
--#ifdef CONFIG_SMP
--		/*
--		 * For UP, this is done in do_timer().  Weird, but
--		 * fixing that would require updates to all
--		 * platforms.
--		 */
- 		update_process_times(user_mode(regs));
--#endif
+ #include <linux/kernel.h>
+ #include <linux/types.h>
+-#include <linux/spinlock.h>
+-#include <linux/seqlock.h>
+-#include <asm/system.h>
++#include <linux/time.h>
++#include <linux/timex.h>
+ #include <asm/param.h>			/* for HZ */
++#include <asm/div64.h>
 +
- 		new_itm += local_cpu_data->itm_delta;
- 
- 		if (smp_processor_id() == TIME_KEEPER_ID) {
-diff -urN linux-2.6/arch/m68k/kernel/time.c linux-2.6-patched/arch/m68k/kernel/time.c
---- linux-2.6/arch/m68k/kernel/time.c	2004-09-10 17:02:13.000000000 +0200
-+++ linux-2.6-patched/arch/m68k/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -45,6 +45,9 @@
- static irqreturn_t timer_interrupt(int irq, void *dummy, struct pt_regs * regs)
- {
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
++#ifndef div_long_long_rem
++#define div_long_long_rem(dividend,divisor,remainder) \
++({							\
++	u64 result = dividend;				\
++	*remainder = do_div(result,divisor);		\
++	result;						\
++})
 +#endif
- 	profile_tick(CPU_PROFILING, regs);
- 
- #ifdef CONFIG_HEARTBEAT
-diff -urN linux-2.6/arch/m68k/sun3/sun3ints.c linux-2.6-patched/arch/m68k/sun3/sun3ints.c
---- linux-2.6/arch/m68k/sun3/sun3ints.c	2004-08-14 12:56:24.000000000 +0200
-+++ linux-2.6-patched/arch/m68k/sun3/sun3ints.c	2004-09-10 17:02:51.000000000 +0200
-@@ -85,6 +85,9 @@
- 	intersil_clear();
- #endif
-         do_timer(fp);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(fp));
-+#endif
-         if(!(kstat_cpu(0).irqs[SYS_IRQS + irq] % 20))
-                 sun3_leds(led_pattern[(kstat_cpu(0).irqs[SYS_IRQS+irq]%160)
-                 /20]);
-diff -urN linux-2.6/arch/m68knommu/kernel/time.c linux-2.6-patched/arch/m68knommu/kernel/time.c
---- linux-2.6/arch/m68knommu/kernel/time.c	2004-09-10 17:02:13.000000000 +0200
-+++ linux-2.6-patched/arch/m68knommu/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -57,6 +57,9 @@
- 	write_seqlock(&xtime_lock);
- 
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- 	if (current->pid)
- 		profile_tick(CPU_PROFILING, regs);
- 
-diff -urN linux-2.6/arch/mips/au1000/common/time.c linux-2.6-patched/arch/mips/au1000/common/time.c
---- linux-2.6/arch/mips/au1000/common/time.c	2004-09-10 17:02:13.000000000 +0200
-+++ linux-2.6-patched/arch/mips/au1000/common/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -99,6 +99,9 @@
- 
- 		kstat_this_cpu.irqs[irq]++;
- 		do_timer(regs);
-+#ifndef CONFIG_SMP
-+		update_process_times(user_mode(regs));
-+#endif
- 		r4k_cur += r4k_offset;
- 		ack_r4ktimer(r4k_cur);
- 
-@@ -137,6 +140,9 @@
- 
- 	while (time_elapsed > 0) {
- 		do_timer(regs);
-+#ifndef CONFIG_SMP
-+		update_process_times(user_mode(regs));
-+#endif
- 		time_elapsed -= MATCH20_INC;
- 		last_match20 += MATCH20_INC;
- 		jiffie_drift++;
-@@ -153,6 +159,9 @@
- 	if (jiffie_drift >= 999) {
- 		jiffie_drift -= 999;
- 		do_timer(regs); /* increment jiffies by one */
-+#ifndef CONFIG_SMP
-+		update_process_times(user_mode(regs));
-+#endif
- 	}
- }
- 
-diff -urN linux-2.6/arch/mips/baget/time.c linux-2.6-patched/arch/mips/baget/time.c
---- linux-2.6/arch/mips/baget/time.c	2004-08-14 12:54:46.000000000 +0200
-+++ linux-2.6-patched/arch/mips/baget/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -52,6 +52,9 @@
- 	if (timer_intr_valid()) {
- 		sti();
- 		do_timer(regs);
-+#ifndef CONFIG_SMP
-+		update_process_times(user_mode(regs));
-+#endif
- 	}
- }
- 
-diff -urN linux-2.6/arch/mips/galileo-boards/ev96100/time.c linux-2.6-patched/arch/mips/galileo-boards/ev96100/time.c
---- linux-2.6/arch/mips/galileo-boards/ev96100/time.c	2004-08-14 12:55:32.000000000 +0200
-+++ linux-2.6-patched/arch/mips/galileo-boards/ev96100/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -73,6 +73,9 @@
- 	do {
- 		kstat_this_cpu.irqs[irq]++;
- 		do_timer(regs);
-+#ifndef CONFIG_SMP
-+		update_process_times(user_mode(regs));
-+#endif
- 		r4k_cur += r4k_offset;
- 		ack_r4ktimer(r4k_cur);
- 
-diff -urN linux-2.6/arch/mips/gt64120/common/time.c linux-2.6-patched/arch/mips/gt64120/common/time.c
---- linux-2.6/arch/mips/gt64120/common/time.c	2004-08-14 12:56:01.000000000 +0200
-+++ linux-2.6-patched/arch/mips/gt64120/common/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -36,6 +36,9 @@
- 		handled = 1;
- 		irq_src &= ~0x00000800;
- 		do_timer(regs);
-+#ifndef CONFIG_SMP
-+		update_process_times(user_mode(regs));
-+#endif
- 	}
- 
- 	GT_WRITE(GT_INTRCAUSE_OFS, 0);
-diff -urN linux-2.6/arch/mips/kernel/time.c linux-2.6-patched/arch/mips/kernel/time.c
---- linux-2.6/arch/mips/kernel/time.c	2004-09-10 17:02:13.000000000 +0200
-+++ linux-2.6-patched/arch/mips/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -418,10 +418,7 @@
- {
- 	if (current->pid)
- 		profile_tick(CPU_PROFILING, regs);
--#ifdef CONFIG_SMP
--	/* in UP mode, update_process_times() is invoked by do_timer() */
- 	update_process_times(user_mode(regs));
--#endif
- }
- 
- /*
-diff -urN linux-2.6/arch/mips/momentum/ocelot_g/gt-irq.c linux-2.6-patched/arch/mips/momentum/ocelot_g/gt-irq.c
---- linux-2.6/arch/mips/momentum/ocelot_g/gt-irq.c	2004-08-14 12:56:25.000000000 +0200
-+++ linux-2.6-patched/arch/mips/momentum/ocelot_g/gt-irq.c	2004-09-10 17:02:51.000000000 +0200
-@@ -134,6 +134,9 @@
- 
- 		/* handle the timer call */
- 		do_timer(regs);
-+#ifndef CONFIG_SMP
-+		update_process_times(user_mode(regs));
-+#endif
- 	}
- 
- 	if (irq_src) {
-diff -urN linux-2.6/arch/mips/sgi-ip27/ip27-timer.c linux-2.6-patched/arch/mips/sgi-ip27/ip27-timer.c
---- linux-2.6/arch/mips/sgi-ip27/ip27-timer.c	2004-08-14 12:55:10.000000000 +0200
-+++ linux-2.6-patched/arch/mips/sgi-ip27/ip27-timer.c	2004-09-10 17:02:51.000000000 +0200
-@@ -112,9 +112,7 @@
- 	if (cpu == 0)
- 		do_timer(regs);
- 
--#ifdef CONFIG_SMP
- 	update_process_times(user_mode(regs));
--#endif /* CONFIG_SMP */
- 
- 	/*
- 	 * If we have an externally synchronized Linux clock, then update
-diff -urN linux-2.6/arch/parisc/kernel/time.c linux-2.6-patched/arch/parisc/kernel/time.c
---- linux-2.6/arch/parisc/kernel/time.c	2004-09-10 17:02:13.000000000 +0200
-+++ linux-2.6-patched/arch/parisc/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -79,6 +79,8 @@
- 	while (nticks--) {
- #ifdef CONFIG_SMP
- 		smp_do_timer(regs);
++
++/*
++ * The following defines establish the engineering parameters of the PLL
++ * model. The HZ variable establishes the timer interrupt frequency, 100 Hz
++ * for the SunOS kernel, 256 Hz for the Ultrix kernel and 1024 Hz for the
++ * OSF/1 kernel. The SHIFT_HZ define expresses the same value as the
++ * nearest power of two in order to avoid hardware multiply operations.
++ */
++#if HZ >= 12 && HZ < 24
++# define SHIFT_HZ	4
++#elif HZ >= 24 && HZ < 48
++# define SHIFT_HZ	5
++#elif HZ >= 48 && HZ < 96
++# define SHIFT_HZ	6
++#elif HZ >= 96 && HZ < 192
++# define SHIFT_HZ	7
++#elif HZ >= 192 && HZ < 384
++# define SHIFT_HZ	8
++#elif HZ >= 384 && HZ < 768
++# define SHIFT_HZ	9
++#elif HZ >= 768 && HZ < 1536
++# define SHIFT_HZ	10
 +#else
-+		update_process_times(user_mode(regs));
- #endif
- 		if (cpu == 0) {
- 			write_seqlock(&xtime_lock);
-diff -urN linux-2.6/arch/ppc/kernel/time.c linux-2.6-patched/arch/ppc/kernel/time.c
---- linux-2.6/arch/ppc/kernel/time.c	2004-09-10 17:02:14.000000000 +0200
-+++ linux-2.6-patched/arch/ppc/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -151,6 +151,9 @@
- 		write_seqlock(&xtime_lock);
- 		tb_last_stamp = jiffy_stamp;
- 		do_timer(regs);
-+#ifndef CONFIG_SMP
-+		update_process_times(user_mode(regs));
-+#endif
- 
- 		/*
- 		 * update the rtc when needed, this should be performed on the
-diff -urN linux-2.6/arch/ppc64/kernel/time.c linux-2.6-patched/arch/ppc64/kernel/time.c
---- linux-2.6/arch/ppc64/kernel/time.c	2004-09-10 17:02:15.000000000 +0200
-+++ linux-2.6-patched/arch/ppc64/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -278,6 +278,9 @@
- 			write_seqlock(&xtime_lock);
- 			tb_last_stamp = lpaca->next_jiffy_update_tb;
- 			do_timer(regs);
-+#ifndef CONFIG_SMP
-+			update_process_times(user_mode(regs));
-+#endif
- 			timer_sync_xtime( cur_tb );
- 			timer_check_rtc();
- 			write_sequnlock(&xtime_lock);
-diff -urN linux-2.6/arch/s390/kernel/time.c linux-2.6-patched/arch/s390/kernel/time.c
---- linux-2.6/arch/s390/kernel/time.c	2004-09-10 17:02:15.000000000 +0200
-+++ linux-2.6-patched/arch/s390/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -233,8 +233,10 @@
- 	while (ticks--)
- 		update_process_times(user_mode(regs));
- #else
--	while (ticks--)
-+	while (ticks--) {
- 		do_timer(regs);
-+		update_process_times(user_mode(regs));
-+	}
- #endif
- 	s390_do_profile(regs);
- }
-diff -urN linux-2.6/arch/sh/kernel/time.c linux-2.6-patched/arch/sh/kernel/time.c
---- linux-2.6/arch/sh/kernel/time.c	2004-09-10 17:02:15.000000000 +0200
-+++ linux-2.6-patched/arch/sh/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -258,6 +258,9 @@
- static inline void do_timer_interrupt(int irq, void *dev_id, struct pt_regs *regs)
- {
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- 	profile_tick(CPU_PROFILING, regs);
- 
- #ifdef CONFIG_HEARTBEAT
-diff -urN linux-2.6/arch/sh64/kernel/time.c linux-2.6-patched/arch/sh64/kernel/time.c
---- linux-2.6/arch/sh64/kernel/time.c	2004-09-10 17:02:15.000000000 +0200
-+++ linux-2.6-patched/arch/sh64/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -309,6 +309,9 @@
- 	ctc_last_interrupt = (unsigned long) current_ctc;
- 
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- 	profile_tick(CPU_PROFILING, regs);
- 
- #ifdef CONFIG_HEARTBEAT
-diff -urN linux-2.6/arch/sparc/kernel/pcic.c linux-2.6-patched/arch/sparc/kernel/pcic.c
---- linux-2.6/arch/sparc/kernel/pcic.c	2004-09-10 17:02:15.000000000 +0200
-+++ linux-2.6-patched/arch/sparc/kernel/pcic.c	2004-09-10 17:02:51.000000000 +0200
-@@ -716,6 +716,9 @@
- 	write_seqlock(&xtime_lock);	/* Dummy, to show that we remember */
- 	pcic_clear_clock_irq();
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- 	write_sequnlock(&xtime_lock);
- 	return IRQ_HANDLED;
- }
-diff -urN linux-2.6/arch/sparc/kernel/time.c linux-2.6-patched/arch/sparc/kernel/time.c
---- linux-2.6/arch/sparc/kernel/time.c	2004-09-10 17:02:15.000000000 +0200
-+++ linux-2.6-patched/arch/sparc/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -132,6 +132,10 @@
- 	clear_clock_irq();
- 
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
++# error You lose.
 +#endif
 +
++/* LATCH is used in the interval timer and ftape setup. */
++#define LATCH  ((CLOCK_TICK_RATE + HZ/2) / HZ)	/* For divider */
++
++/* Suppose we want to devide two numbers NOM and DEN: NOM/DEN, the we can
++ * improve accuracy by shifting LSH bits, hence calculating:
++ *     (NOM << LSH) / DEN
++ * This however means trouble for large NOM, because (NOM << LSH) may no
++ * longer fit in 32 bits. The following way of calculating this gives us
++ * some slack, under the following conditions:
++ *   - (NOM / DEN) fits in (32 - LSH) bits.
++ *   - (NOM % DEN) fits in (32 - LSH) bits.
++ */
++#define SH_DIV(NOM,DEN,LSH) (   ((NOM / DEN) << LSH)                    \
++                             + (((NOM % DEN) << LSH) + DEN / 2) / DEN)
++
++/* HZ is the requested value. ACTHZ is actual HZ ("<< 8" is for accuracy) */
++#define ACTHZ (SH_DIV (CLOCK_TICK_RATE, LATCH, 8))
++
++/* TICK_NSEC is the time between ticks in nsec assuming real ACTHZ */
++#define TICK_NSEC (SH_DIV (1000000UL * 1000, ACTHZ, 8))
++
++/* TICK_USEC is the time between ticks in usec assuming fake USER_HZ */
++#define TICK_USEC ((1000000UL + USER_HZ/2) / USER_HZ)
++
++/* TICK_USEC_TO_NSEC is the time between ticks in nsec assuming real ACTHZ and	*/
++/* a value TUSEC for TICK_USEC (can be set bij adjtimex)		*/
++#define TICK_USEC_TO_NSEC(TUSEC) (SH_DIV (TUSEC * USER_HZ * 1000, ACTHZ, 8))
  
- 	/* Determine when to update the Mostek clock. */
- 	if ((time_status & STA_UNSYNC) == 0 &&
-diff -urN linux-2.6/arch/sparc64/kernel/time.c linux-2.6-patched/arch/sparc64/kernel/time.c
---- linux-2.6/arch/sparc64/kernel/time.c	2004-09-10 17:02:15.000000000 +0200
-+++ linux-2.6-patched/arch/sparc64/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -464,6 +464,7 @@
- 	do {
- #ifndef CONFIG_SMP
- 		profile_tick(CPU_PROFILING, regs);
-+		update_process_times(user_mode(regs));
+ /*
+  * The 64-bit value is not volatile - you MUST NOT read it
+@@ -50,4 +112,286 @@
+ 	 ((long)(a) - (long)(b) >= 0))
+ #define time_before_eq(a,b)	time_after_eq(b,a)
+ 
++/*
++ * Have the 32 bit jiffies value wrap 5 minutes after boot
++ * so jiffies wrap bugs show up earlier.
++ */
++#define INITIAL_JIFFIES ((unsigned long)(unsigned int) (-300*HZ))
++
++/*
++ * Change timeval to jiffies, trying to avoid the
++ * most obvious overflows..
++ *
++ * And some not so obvious.
++ *
++ * Note that we don't want to return MAX_LONG, because
++ * for various timeout reasons we often end up having
++ * to wait "jiffies+1" in order to guarantee that we wait
++ * at _least_ "jiffies" - so "jiffies+1" had better still
++ * be positive.
++ */
++#define MAX_JIFFY_OFFSET ((~0UL >> 1)-1)
++
++/*
++ * We want to do realistic conversions of time so we need to use the same
++ * values the update wall clock code uses as the jiffies size.  This value
++ * is: TICK_NSEC (which is defined in timex.h).  This
++ * is a constant and is in nanoseconds.  We will used scaled math
++ * with a set of scales defined here as SEC_JIFFIE_SC,  USEC_JIFFIE_SC and
++ * NSEC_JIFFIE_SC.  Note that these defines contain nothing but
++ * constants and so are computed at compile time.  SHIFT_HZ (computed in
++ * timex.h) adjusts the scaling for different HZ values.
++
++ * Scaled math???  What is that?
++ *
++ * Scaled math is a way to do integer math on values that would,
++ * otherwise, either overflow, underflow, or cause undesired div
++ * instructions to appear in the execution path.  In short, we "scale"
++ * up the operands so they take more bits (more precision, less
++ * underflow), do the desired operation and then "scale" the result back
++ * by the same amount.  If we do the scaling by shifting we avoid the
++ * costly mpy and the dastardly div instructions.
++
++ * Suppose, for example, we want to convert from seconds to jiffies
++ * where jiffies is defined in nanoseconds as NSEC_PER_JIFFIE.  The
++ * simple math is: jiff = (sec * NSEC_PER_SEC) / NSEC_PER_JIFFIE; We
++ * observe that (NSEC_PER_SEC / NSEC_PER_JIFFIE) is a constant which we
++ * might calculate at compile time, however, the result will only have
++ * about 3-4 bits of precision (less for smaller values of HZ).
++ *
++ * So, we scale as follows:
++ * jiff = (sec) * (NSEC_PER_SEC / NSEC_PER_JIFFIE);
++ * jiff = ((sec) * ((NSEC_PER_SEC * SCALE)/ NSEC_PER_JIFFIE)) / SCALE;
++ * Then we make SCALE a power of two so:
++ * jiff = ((sec) * ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE)) >> SCALE;
++ * Now we define:
++ * #define SEC_CONV = ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE))
++ * jiff = (sec * SEC_CONV) >> SCALE;
++ *
++ * Often the math we use will expand beyond 32-bits so we tell C how to
++ * do this and pass the 64-bit result of the mpy through the ">> SCALE"
++ * which should take the result back to 32-bits.  We want this expansion
++ * to capture as much precision as possible.  At the same time we don't
++ * want to overflow so we pick the SCALE to avoid this.  In this file,
++ * that means using a different scale for each range of HZ values (as
++ * defined in timex.h).
++ *
++ * For those who want to know, gcc will give a 64-bit result from a "*"
++ * operator if the result is a long long AND at least one of the
++ * operands is cast to long long (usually just prior to the "*" so as
++ * not to confuse it into thinking it really has a 64-bit operand,
++ * which, buy the way, it can do, but it take more code and at least 2
++ * mpys).
++
++ * We also need to be aware that one second in nanoseconds is only a
++ * couple of bits away from overflowing a 32-bit word, so we MUST use
++ * 64-bits to get the full range time in nanoseconds.
++
++ */
++
++/*
++ * Here are the scales we will use.  One for seconds, nanoseconds and
++ * microseconds.
++ *
++ * Within the limits of cpp we do a rough cut at the SEC_JIFFIE_SC and
++ * check if the sign bit is set.  If not, we bump the shift count by 1.
++ * (Gets an extra bit of precision where we can use it.)
++ * We know it is set for HZ = 1024 and HZ = 100 not for 1000.
++ * Haven't tested others.
++
++ * Limits of cpp (for #if expressions) only long (no long long), but
++ * then we only need the most signicant bit.
++ */
++
++#define SEC_JIFFIE_SC (31 - SHIFT_HZ)
++#if !((((NSEC_PER_SEC << 2) / TICK_NSEC) << (SEC_JIFFIE_SC - 2)) & 0x80000000)
++#undef SEC_JIFFIE_SC
++#define SEC_JIFFIE_SC (32 - SHIFT_HZ)
++#endif
++#define NSEC_JIFFIE_SC (SEC_JIFFIE_SC + 29)
++#define USEC_JIFFIE_SC (SEC_JIFFIE_SC + 19)
++#define SEC_CONVERSION ((unsigned long)((((u64)NSEC_PER_SEC << SEC_JIFFIE_SC) +\
++                                TICK_NSEC -1) / (u64)TICK_NSEC))
++
++#define NSEC_CONVERSION ((unsigned long)((((u64)1 << NSEC_JIFFIE_SC) +\
++                                        TICK_NSEC -1) / (u64)TICK_NSEC))
++#define USEC_CONVERSION  \
++                    ((unsigned long)((((u64)NSEC_PER_USEC << USEC_JIFFIE_SC) +\
++                                        TICK_NSEC -1) / (u64)TICK_NSEC))
++/*
++ * USEC_ROUND is used in the timeval to jiffie conversion.  See there
++ * for more details.  It is the scaled resolution rounding value.  Note
++ * that it is a 64-bit value.  Since, when it is applied, we are already
++ * in jiffies (albit scaled), it is nothing but the bits we will shift
++ * off.
++ */
++#define USEC_ROUND (u64)(((u64)1 << USEC_JIFFIE_SC) - 1)
++/*
++ * The maximum jiffie value is (MAX_INT >> 1).  Here we translate that
++ * into seconds.  The 64-bit case will overflow if we are not careful,
++ * so use the messy SH_DIV macro to do it.  Still all constants.
++ */
++#if BITS_PER_LONG < 64
++# define MAX_SEC_IN_JIFFIES \
++	(long)((u64)((u64)MAX_JIFFY_OFFSET * TICK_NSEC) / NSEC_PER_SEC)
++#else	/* take care of overflow on 64 bits machines */
++# define MAX_SEC_IN_JIFFIES \
++	(SH_DIV((MAX_JIFFY_OFFSET >> SEC_JIFFIE_SC) * TICK_NSEC, NSEC_PER_SEC, 1) - 1)
++
++#endif
++
++/*
++ * Convert jiffies to milliseconds and back.
++ *
++ * Avoid unnecessary multiplications/divisions in the
++ * two most common HZ cases:
++ */
++static inline unsigned int jiffies_to_msecs(const unsigned long j)
++{
++#if HZ <= 1000 && !(1000 % HZ)
++	return (1000 / HZ) * j;
++#elif HZ > 1000 && !(HZ % 1000)
++	return (j + (HZ / 1000) - 1)/(HZ / 1000);
++#else
++	return (j * 1000) / HZ;
++#endif
++}
++static inline unsigned long msecs_to_jiffies(const unsigned int m)
++{
++#if HZ <= 1000 && !(1000 % HZ)
++	return (m + (1000 / HZ) - 1) / (1000 / HZ);
++#elif HZ > 1000 && !(HZ % 1000)
++	return m * (HZ / 1000);
++#else
++	return (m * HZ + 999) / 1000;
++#endif
++}
++
++/*
++ * The TICK_NSEC - 1 rounds up the value to the next resolution.  Note
++ * that a remainder subtract here would not do the right thing as the
++ * resolution values don't fall on second boundries.  I.e. the line:
++ * nsec -= nsec % TICK_NSEC; is NOT a correct resolution rounding.
++ *
++ * Rather, we just shift the bits off the right.
++ *
++ * The >> (NSEC_JIFFIE_SC - SEC_JIFFIE_SC) converts the scaled nsec
++ * value to a scaled second value.
++ */
++static __inline__ unsigned long
++timespec_to_jiffies(const struct timespec *value)
++{
++	unsigned long sec = value->tv_sec;
++	long nsec = value->tv_nsec + TICK_NSEC - 1;
++
++	if (sec >= MAX_SEC_IN_JIFFIES){
++		sec = MAX_SEC_IN_JIFFIES;
++		nsec = 0;
++	}
++	return (((u64)sec * SEC_CONVERSION) +
++		(((u64)nsec * NSEC_CONVERSION) >>
++		 (NSEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
++
++}
++
++static __inline__ void
++jiffies_to_timespec(const unsigned long jiffies, struct timespec *value)
++{
++	/*
++	 * Convert jiffies to nanoseconds and separate with
++	 * one divide.
++	 */
++	u64 nsec = (u64)jiffies * TICK_NSEC; 
++	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_nsec);
++}
++
++/* Same for "timeval"
++ *
++ * Well, almost.  The problem here is that the real system resolution is
++ * in nanoseconds and the value being converted is in micro seconds.
++ * Also for some machines (those that use HZ = 1024, in-particular),
++ * there is a LARGE error in the tick size in microseconds.
++
++ * The solution we use is to do the rounding AFTER we convert the
++ * microsecond part.  Thus the USEC_ROUND, the bits to be shifted off.
++ * Instruction wise, this should cost only an additional add with carry
++ * instruction above the way it was done above.
++ */
++static __inline__ unsigned long
++timeval_to_jiffies(const struct timeval *value)
++{
++	unsigned long sec = value->tv_sec;
++	long usec = value->tv_usec;
++
++	if (sec >= MAX_SEC_IN_JIFFIES){
++		sec = MAX_SEC_IN_JIFFIES;
++		usec = 0;
++	}
++	return (((u64)sec * SEC_CONVERSION) +
++		(((u64)usec * USEC_CONVERSION + USEC_ROUND) >>
++		 (USEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
++}
++
++static __inline__ void
++jiffies_to_timeval(const unsigned long jiffies, struct timeval *value)
++{
++	/*
++	 * Convert jiffies to nanoseconds and separate with
++	 * one divide.
++	 */
++	u64 nsec = (u64)jiffies * TICK_NSEC; 
++	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_usec);
++	value->tv_usec /= NSEC_PER_USEC;
++}
++
++/*
++ * Convert jiffies/jiffies_64 to clock_t and back.
++ */
++static inline clock_t jiffies_to_clock_t(long x)
++{
++#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
++	return x / (HZ / USER_HZ);
++#else
++	u64 tmp = (u64)x * TICK_NSEC;
++	do_div(tmp, (NSEC_PER_SEC / USER_HZ));
++	return (long)tmp;
++#endif
++}
++
++static inline unsigned long clock_t_to_jiffies(unsigned long x)
++{
++#if (HZ % USER_HZ)==0
++	if (x >= ~0UL / (HZ / USER_HZ))
++		return ~0UL;
++	return x * (HZ / USER_HZ);
++#else
++	u64 jif;
++
++	/* Don't worry about loss of precision here .. */
++	if (x >= ~0UL / HZ * USER_HZ)
++		return ~0UL;
++
++	/* .. but do try to contain it here */
++	jif = x * (u64) HZ;
++	do_div(jif, USER_HZ);
++	return jif;
++#endif
++}
++
++static inline u64 jiffies_64_to_clock_t(u64 x)
++{
++#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
++	do_div(x, HZ / USER_HZ);
++#else
++	/*
++	 * There are better ways that don't overflow early,
++	 * but even this doesn't overflow in hundreds of years
++	 * in 64 bits, so..
++	 */
++	x *= TICK_NSEC;
++	do_div(x, (NSEC_PER_SEC / USER_HZ));
++#endif
++	return x;
++}
++
  #endif
- 		do_timer(regs);
+diff -urN linux-2.6/include/linux/time.h linux-2.6-patched/include/linux/time.h
+--- linux-2.6/include/linux/time.h	2004-09-10 17:02:33.000000000 +0200
++++ linux-2.6-patched/include/linux/time.h	2004-09-10 17:02:53.000000000 +0200
+@@ -1,9 +1,12 @@
+ #ifndef _LINUX_TIME_H
+ #define _LINUX_TIME_H
  
-diff -urN linux-2.6/arch/um/kernel/time_kern.c linux-2.6-patched/arch/um/kernel/time_kern.c
---- linux-2.6/arch/um/kernel/time_kern.c	2004-09-10 17:02:16.000000000 +0200
-+++ linux-2.6-patched/arch/um/kernel/time_kern.c	2004-09-10 17:02:51.000000000 +0200
-@@ -165,11 +165,9 @@
+-#include <asm/param.h>
+ #include <linux/types.h>
  
- void timer_handler(int sig, union uml_pt_regs *regs)
- {
--#ifdef CONFIG_SMP
- 	local_irq_disable();
- 	update_process_times(user_context(UPT_SP(regs)));
- 	local_irq_enable();
--#endif
- 	if(current_thread->cpu == 0)
- 		timer_irq(regs);
- }
-diff -urN linux-2.6/arch/v850/kernel/time.c linux-2.6-patched/arch/v850/kernel/time.c
---- linux-2.6/arch/v850/kernel/time.c	2004-09-10 17:02:16.000000000 +0200
-+++ linux-2.6-patched/arch/v850/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -56,6 +56,9 @@
- 	  mach_tick ();
- 
- 	do_timer (regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
++#ifdef __KERNEL__
++#include <linux/seqlock.h>
 +#endif
- 	profile_tick(CPU_PROFILING, regs);
- #if 0
- 	/*
-diff -urN linux-2.6/arch/x86_64/kernel/time.c linux-2.6-patched/arch/x86_64/kernel/time.c
---- linux-2.6/arch/x86_64/kernel/time.c	2004-09-10 17:02:16.000000000 +0200
-+++ linux-2.6-patched/arch/x86_64/kernel/time.c	2004-09-10 17:02:51.000000000 +0200
-@@ -417,6 +417,9 @@
-  */
++
+ #ifndef _STRUCT_TIMESPEC
+ #define _STRUCT_TIMESPEC
+ struct timespec {
+@@ -24,39 +27,6 @@
  
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
+ #ifdef __KERNEL__
  
- /*
-  * In the SMP case we use the local APIC timer interrupt to do the profiling,
-diff -urN linux-2.6/include/asm-arm/arch-clps711x/time.h linux-2.6-patched/include/asm-arm/arch-clps711x/time.h
---- linux-2.6/include/asm-arm/arch-clps711x/time.h	2004-08-14 12:56:24.000000000 +0200
-+++ linux-2.6-patched/include/asm-arm/arch-clps711x/time.h	2004-09-10 17:02:51.000000000 +0200
-@@ -30,6 +30,9 @@
- {
- 	do_leds();
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- 	do_profile(regs);
- 	return IRQ_HANDLED;
- }
-diff -urN linux-2.6/include/asm-arm/arch-integrator/time.h linux-2.6-patched/include/asm-arm/arch-integrator/time.h
---- linux-2.6/include/asm-arm/arch-integrator/time.h	2004-08-14 12:55:48.000000000 +0200
-+++ linux-2.6-patched/include/asm-arm/arch-integrator/time.h	2004-09-10 17:02:51.000000000 +0200
-@@ -107,6 +107,9 @@
- 
- 	do_leds();
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- 	do_profile(regs);
- 
- 	return IRQ_HANDLED;
-diff -urN linux-2.6/include/asm-arm/arch-l7200/time.h linux-2.6-patched/include/asm-arm/arch-l7200/time.h
---- linux-2.6/include/asm-arm/arch-l7200/time.h	2004-08-14 12:55:34.000000000 +0200
-+++ linux-2.6-patched/include/asm-arm/arch-l7200/time.h	2004-09-10 17:02:51.000000000 +0200
-@@ -46,6 +46,9 @@
- timer_interrupt(int irq, void *dev_id, struct pt_regs *regs)
- {
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- 	do_profile(regs);
- 	RTC_RTCC = 0;				/* Clear interrupt */
- 
-diff -urN linux-2.6/include/asm-i386/mach-default/do_timer.h linux-2.6-patched/include/asm-i386/mach-default/do_timer.h
---- linux-2.6/include/asm-i386/mach-default/do_timer.h	2004-09-10 17:02:31.000000000 +0200
-+++ linux-2.6-patched/include/asm-i386/mach-default/do_timer.h	2004-09-10 17:02:51.000000000 +0200
-@@ -16,6 +16,9 @@
- static inline void do_timer_interrupt_hook(struct pt_regs *regs)
- {
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- /*
-  * In the SMP case we use the local APIC timer interrupt to do the
-  * profiling, except when we simulate SMP mode on a uniprocessor
-diff -urN linux-2.6/include/asm-i386/mach-visws/do_timer.h linux-2.6-patched/include/asm-i386/mach-visws/do_timer.h
---- linux-2.6/include/asm-i386/mach-visws/do_timer.h	2004-09-10 17:02:31.000000000 +0200
-+++ linux-2.6-patched/include/asm-i386/mach-visws/do_timer.h	2004-09-10 17:02:51.000000000 +0200
-@@ -9,6 +9,9 @@
- 	co_cpu_write(CO_CPU_STAT,co_cpu_read(CO_CPU_STAT) & ~CO_STAT_TIMEINTR);
- 
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- /*
-  * In the SMP case we use the local APIC timer interrupt to do the
-  * profiling, except when we simulate SMP mode on a uniprocessor
-diff -urN linux-2.6/include/asm-i386/mach-voyager/do_timer.h linux-2.6-patched/include/asm-i386/mach-voyager/do_timer.h
---- linux-2.6/include/asm-i386/mach-voyager/do_timer.h	2004-08-14 12:55:48.000000000 +0200
-+++ linux-2.6-patched/include/asm-i386/mach-voyager/do_timer.h	2004-09-10 17:02:51.000000000 +0200
-@@ -4,6 +4,9 @@
- static inline void do_timer_interrupt_hook(struct pt_regs *regs)
- {
- 	do_timer(regs);
-+#ifndef CONFIG_SMP
-+	update_process_times(user_mode(regs));
-+#endif
- 
- 	voyager_timer_interrupt(regs);
- }
-diff -urN linux-2.6/kernel/timer.c linux-2.6-patched/kernel/timer.c
---- linux-2.6/kernel/timer.c	2004-09-10 17:02:34.000000000 +0200
-+++ linux-2.6-patched/kernel/timer.c	2004-09-10 17:02:51.000000000 +0200
-@@ -957,11 +957,6 @@
- void do_timer(struct pt_regs *regs)
- {
- 	jiffies_64++;
--#ifndef CONFIG_SMP
--	/* SMP process accounting uses the local APIC timer */
+-#include <linux/spinlock.h>
+-#include <linux/seqlock.h>
+-#include <linux/timex.h>
+-#include <asm/div64.h>
+-#ifndef div_long_long_rem
 -
--	update_process_times(user_mode(regs));
+-#define div_long_long_rem(dividend,divisor,remainder) ({ \
+-		       u64 result = dividend;		\
+-		       *remainder = do_div(result,divisor); \
+-		       result; })
+-
 -#endif
- 	update_times();
- }
+-
+-/*
+- * Have the 32 bit jiffies value wrap 5 minutes after boot
+- * so jiffies wrap bugs show up earlier.
+- */
+-#define INITIAL_JIFFIES ((unsigned long)(unsigned int) (-300*HZ))
+-
+-/*
+- * Change timeval to jiffies, trying to avoid the
+- * most obvious overflows..
+- *
+- * And some not so obvious.
+- *
+- * Note that we don't want to return MAX_LONG, because
+- * for various timeout reasons we often end up having
+- * to wait "jiffies+1" in order to guarantee that we wait
+- * at _least_ "jiffies" - so "jiffies+1" had better still
+- * be positive.
+- */
+-#define MAX_JIFFY_OFFSET ((~0UL >> 1)-1)
+-
+ /* Parameters used to convert the timespec values */
+ #ifndef USEC_PER_SEC
+ #define USEC_PER_SEC (1000000L)
+@@ -70,218 +40,6 @@
+ #define NSEC_PER_USEC (1000L)
+ #endif
  
+-/*
+- * We want to do realistic conversions of time so we need to use the same
+- * values the update wall clock code uses as the jiffies size.  This value
+- * is: TICK_NSEC (which is defined in timex.h).  This
+- * is a constant and is in nanoseconds.  We will used scaled math
+- * with a set of scales defined here as SEC_JIFFIE_SC,  USEC_JIFFIE_SC and
+- * NSEC_JIFFIE_SC.  Note that these defines contain nothing but
+- * constants and so are computed at compile time.  SHIFT_HZ (computed in
+- * timex.h) adjusts the scaling for different HZ values.
+-
+- * Scaled math???  What is that?
+- *
+- * Scaled math is a way to do integer math on values that would,
+- * otherwise, either overflow, underflow, or cause undesired div
+- * instructions to appear in the execution path.  In short, we "scale"
+- * up the operands so they take more bits (more precision, less
+- * underflow), do the desired operation and then "scale" the result back
+- * by the same amount.  If we do the scaling by shifting we avoid the
+- * costly mpy and the dastardly div instructions.
+-
+- * Suppose, for example, we want to convert from seconds to jiffies
+- * where jiffies is defined in nanoseconds as NSEC_PER_JIFFIE.  The
+- * simple math is: jiff = (sec * NSEC_PER_SEC) / NSEC_PER_JIFFIE; We
+- * observe that (NSEC_PER_SEC / NSEC_PER_JIFFIE) is a constant which we
+- * might calculate at compile time, however, the result will only have
+- * about 3-4 bits of precision (less for smaller values of HZ).
+- *
+- * So, we scale as follows:
+- * jiff = (sec) * (NSEC_PER_SEC / NSEC_PER_JIFFIE);
+- * jiff = ((sec) * ((NSEC_PER_SEC * SCALE)/ NSEC_PER_JIFFIE)) / SCALE;
+- * Then we make SCALE a power of two so:
+- * jiff = ((sec) * ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE)) >> SCALE;
+- * Now we define:
+- * #define SEC_CONV = ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE))
+- * jiff = (sec * SEC_CONV) >> SCALE;
+- *
+- * Often the math we use will expand beyond 32-bits so we tell C how to
+- * do this and pass the 64-bit result of the mpy through the ">> SCALE"
+- * which should take the result back to 32-bits.  We want this expansion
+- * to capture as much precision as possible.  At the same time we don't
+- * want to overflow so we pick the SCALE to avoid this.  In this file,
+- * that means using a different scale for each range of HZ values (as
+- * defined in timex.h).
+- *
+- * For those who want to know, gcc will give a 64-bit result from a "*"
+- * operator if the result is a long long AND at least one of the
+- * operands is cast to long long (usually just prior to the "*" so as
+- * not to confuse it into thinking it really has a 64-bit operand,
+- * which, buy the way, it can do, but it take more code and at least 2
+- * mpys).
+-
+- * We also need to be aware that one second in nanoseconds is only a
+- * couple of bits away from overflowing a 32-bit word, so we MUST use
+- * 64-bits to get the full range time in nanoseconds.
+-
+- */
+-
+-/*
+- * Here are the scales we will use.  One for seconds, nanoseconds and
+- * microseconds.
+- *
+- * Within the limits of cpp we do a rough cut at the SEC_JIFFIE_SC and
+- * check if the sign bit is set.  If not, we bump the shift count by 1.
+- * (Gets an extra bit of precision where we can use it.)
+- * We know it is set for HZ = 1024 and HZ = 100 not for 1000.
+- * Haven't tested others.
+-
+- * Limits of cpp (for #if expressions) only long (no long long), but
+- * then we only need the most signicant bit.
+- */
+-
+-#define SEC_JIFFIE_SC (31 - SHIFT_HZ)
+-#if !((((NSEC_PER_SEC << 2) / TICK_NSEC) << (SEC_JIFFIE_SC - 2)) & 0x80000000)
+-#undef SEC_JIFFIE_SC
+-#define SEC_JIFFIE_SC (32 - SHIFT_HZ)
+-#endif
+-#define NSEC_JIFFIE_SC (SEC_JIFFIE_SC + 29)
+-#define USEC_JIFFIE_SC (SEC_JIFFIE_SC + 19)
+-#define SEC_CONVERSION ((unsigned long)((((u64)NSEC_PER_SEC << SEC_JIFFIE_SC) +\
+-                                TICK_NSEC -1) / (u64)TICK_NSEC))
+-
+-#define NSEC_CONVERSION ((unsigned long)((((u64)1 << NSEC_JIFFIE_SC) +\
+-                                        TICK_NSEC -1) / (u64)TICK_NSEC))
+-#define USEC_CONVERSION  \
+-                    ((unsigned long)((((u64)NSEC_PER_USEC << USEC_JIFFIE_SC) +\
+-                                        TICK_NSEC -1) / (u64)TICK_NSEC))
+-/*
+- * USEC_ROUND is used in the timeval to jiffie conversion.  See there
+- * for more details.  It is the scaled resolution rounding value.  Note
+- * that it is a 64-bit value.  Since, when it is applied, we are already
+- * in jiffies (albit scaled), it is nothing but the bits we will shift
+- * off.
+- */
+-#define USEC_ROUND (u64)(((u64)1 << USEC_JIFFIE_SC) - 1)
+-/*
+- * The maximum jiffie value is (MAX_INT >> 1).  Here we translate that
+- * into seconds.  The 64-bit case will overflow if we are not careful,
+- * so use the messy SH_DIV macro to do it.  Still all constants.
+- */
+-#if BITS_PER_LONG < 64
+-# define MAX_SEC_IN_JIFFIES \
+-	(long)((u64)((u64)MAX_JIFFY_OFFSET * TICK_NSEC) / NSEC_PER_SEC)
+-#else	/* take care of overflow on 64 bits machines */
+-# define MAX_SEC_IN_JIFFIES \
+-	(SH_DIV((MAX_JIFFY_OFFSET >> SEC_JIFFIE_SC) * TICK_NSEC, NSEC_PER_SEC, 1) - 1)
+-
+-#endif
+-
+-/*
+- * Convert jiffies to milliseconds and back.
+- *
+- * Avoid unnecessary multiplications/divisions in the
+- * two most common HZ cases:
+- */
+-static inline unsigned int jiffies_to_msecs(const unsigned long j)
+-{
+-#if HZ <= 1000 && !(1000 % HZ)
+-	return (1000 / HZ) * j;
+-#elif HZ > 1000 && !(HZ % 1000)
+-	return (j + (HZ / 1000) - 1)/(HZ / 1000);
+-#else
+-	return (j * 1000) / HZ;
+-#endif
+-}
+-static inline unsigned long msecs_to_jiffies(const unsigned int m)
+-{
+-#if HZ <= 1000 && !(1000 % HZ)
+-	return (m + (1000 / HZ) - 1) / (1000 / HZ);
+-#elif HZ > 1000 && !(HZ % 1000)
+-	return m * (HZ / 1000);
+-#else
+-	return (m * HZ + 999) / 1000;
+-#endif
+-}
+-
+-/*
+- * The TICK_NSEC - 1 rounds up the value to the next resolution.  Note
+- * that a remainder subtract here would not do the right thing as the
+- * resolution values don't fall on second boundries.  I.e. the line:
+- * nsec -= nsec % TICK_NSEC; is NOT a correct resolution rounding.
+- *
+- * Rather, we just shift the bits off the right.
+- *
+- * The >> (NSEC_JIFFIE_SC - SEC_JIFFIE_SC) converts the scaled nsec
+- * value to a scaled second value.
+- */
+-static __inline__ unsigned long
+-timespec_to_jiffies(const struct timespec *value)
+-{
+-	unsigned long sec = value->tv_sec;
+-	long nsec = value->tv_nsec + TICK_NSEC - 1;
+-
+-	if (sec >= MAX_SEC_IN_JIFFIES){
+-		sec = MAX_SEC_IN_JIFFIES;
+-		nsec = 0;
+-	}
+-	return (((u64)sec * SEC_CONVERSION) +
+-		(((u64)nsec * NSEC_CONVERSION) >>
+-		 (NSEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
+-
+-}
+-
+-static __inline__ void
+-jiffies_to_timespec(const unsigned long jiffies, struct timespec *value)
+-{
+-	/*
+-	 * Convert jiffies to nanoseconds and separate with
+-	 * one divide.
+-	 */
+-	u64 nsec = (u64)jiffies * TICK_NSEC; 
+-	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_nsec);
+-}
+-
+-/* Same for "timeval"
+- *
+- * Well, almost.  The problem here is that the real system resolution is
+- * in nanoseconds and the value being converted is in micro seconds.
+- * Also for some machines (those that use HZ = 1024, in-particular),
+- * there is a LARGE error in the tick size in microseconds.
+-
+- * The solution we use is to do the rounding AFTER we convert the
+- * microsecond part.  Thus the USEC_ROUND, the bits to be shifted off.
+- * Instruction wise, this should cost only an additional add with carry
+- * instruction above the way it was done above.
+- */
+-static __inline__ unsigned long
+-timeval_to_jiffies(const struct timeval *value)
+-{
+-	unsigned long sec = value->tv_sec;
+-	long usec = value->tv_usec;
+-
+-	if (sec >= MAX_SEC_IN_JIFFIES){
+-		sec = MAX_SEC_IN_JIFFIES;
+-		usec = 0;
+-	}
+-	return (((u64)sec * SEC_CONVERSION) +
+-		(((u64)usec * USEC_CONVERSION + USEC_ROUND) >>
+-		 (USEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
+-}
+-
+-static __inline__ void
+-jiffies_to_timeval(const unsigned long jiffies, struct timeval *value)
+-{
+-	/*
+-	 * Convert jiffies to nanoseconds and separate with
+-	 * one divide.
+-	 */
+-	u64 nsec = (u64)jiffies * TICK_NSEC; 
+-	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_usec);
+-	value->tv_usec /= NSEC_PER_USEC;
+-}
+-
+ static __inline__ int timespec_equal(struct timespec *a, struct timespec *b) 
+ { 
+ 	return (a->tv_sec == b->tv_sec) && (a->tv_nsec == b->tv_nsec);
+@@ -333,11 +91,6 @@
+ 
+ #define CURRENT_TIME (current_kernel_time())
+ 
+-#endif /* __KERNEL__ */
+-
+-#define NFDBITS			__NFDBITS
+-
+-#ifdef __KERNEL__
+ extern void do_gettimeofday(struct timeval *tv);
+ extern int do_settimeofday(struct timespec *tv);
+ extern int do_sys_settimeofday(struct timespec *tv, struct timezone *tz);
+@@ -364,7 +117,10 @@
+ 	ts->tv_sec = sec;
+ 	ts->tv_nsec = nsec;
+ }
+-#endif
++
++#endif /* __KERNEL__ */
++
++#define NFDBITS			__NFDBITS
+ 
+ #define FD_SETSIZE		__FD_SETSIZE
+ #define FD_SET(fd,fdsetp)	__FD_SET(fd,fdsetp)
+diff -urN linux-2.6/include/linux/times.h linux-2.6-patched/include/linux/times.h
+--- linux-2.6/include/linux/times.h	2004-08-14 12:54:48.000000000 +0200
++++ linux-2.6-patched/include/linux/times.h	2004-09-10 17:02:53.000000000 +0200
+@@ -1,59 +1,7 @@
+ #ifndef _LINUX_TIMES_H
+ #define _LINUX_TIMES_H
+ 
+-#ifdef __KERNEL__
+-#include <linux/timex.h>
+-#include <asm/div64.h>
+-#include <asm/types.h>
+-#include <asm/param.h>
+-
+-static inline clock_t jiffies_to_clock_t(long x)
+-{
+-#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
+-	return x / (HZ / USER_HZ);
+-#else
+-	u64 tmp = (u64)x * TICK_NSEC;
+-	do_div(tmp, (NSEC_PER_SEC / USER_HZ));
+-	return (long)tmp;
+-#endif
+-}
+-
+-static inline unsigned long clock_t_to_jiffies(unsigned long x)
+-{
+-#if (HZ % USER_HZ)==0
+-	if (x >= ~0UL / (HZ / USER_HZ))
+-		return ~0UL;
+-	return x * (HZ / USER_HZ);
+-#else
+-	u64 jif;
+-
+-	/* Don't worry about loss of precision here .. */
+-	if (x >= ~0UL / HZ * USER_HZ)
+-		return ~0UL;
+-
+-	/* .. but do try to contain it here */
+-	jif = x * (u64) HZ;
+-	do_div(jif, USER_HZ);
+-	return jif;
+-#endif
+-}
+-
+-static inline u64 jiffies_64_to_clock_t(u64 x)
+-{
+-#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
+-	do_div(x, HZ / USER_HZ);
+-#else
+-	/*
+-	 * There are better ways that don't overflow early,
+-	 * but even this doesn't overflow in hundreds of years
+-	 * in 64 bits, so..
+-	 */
+-	x *= TICK_NSEC;
+-	do_div(x, (NSEC_PER_SEC / USER_HZ));
+-#endif
+-	return x;
+-}
+-#endif
++#include <linux/types.h>
+ 
+ struct tms {
+ 	clock_t tms_utime;
+diff -urN linux-2.6/include/linux/timex.h linux-2.6-patched/include/linux/timex.h
+--- linux-2.6/include/linux/timex.h	2004-09-10 17:02:33.000000000 +0200
++++ linux-2.6-patched/include/linux/timex.h	2004-09-10 17:02:53.000000000 +0200
+@@ -55,35 +55,11 @@
+ 
+ #include <linux/config.h>
+ #include <linux/compiler.h>
+-#include <linux/jiffies.h>
++#include <linux/time.h>
+ 
+ #include <asm/param.h>
+ #include <asm/io.h>
+-
+-/*
+- * The following defines establish the engineering parameters of the PLL
+- * model. The HZ variable establishes the timer interrupt frequency, 100 Hz
+- * for the SunOS kernel, 256 Hz for the Ultrix kernel and 1024 Hz for the
+- * OSF/1 kernel. The SHIFT_HZ define expresses the same value as the
+- * nearest power of two in order to avoid hardware multiply operations.
+- */
+-#if HZ >= 12 && HZ < 24
+-# define SHIFT_HZ	4
+-#elif HZ >= 24 && HZ < 48
+-# define SHIFT_HZ	5
+-#elif HZ >= 48 && HZ < 96
+-# define SHIFT_HZ	6
+-#elif HZ >= 96 && HZ < 192
+-# define SHIFT_HZ	7
+-#elif HZ >= 192 && HZ < 384
+-# define SHIFT_HZ	8
+-#elif HZ >= 384 && HZ < 768
+-# define SHIFT_HZ	9
+-#elif HZ >= 768 && HZ < 1536
+-# define SHIFT_HZ	10
+-#else
+-# error You lose.
+-#endif
++#include <asm/timex.h>
+ 
+ /*
+  * SHIFT_KG and SHIFT_KF establish the damping of the PLL and are chosen
+@@ -154,41 +130,6 @@
+ #define MAXGLITCH 30		/* pps signal glitch max (s) */
+ 
+ /*
+- * Pick up the architecture specific timex specifications
+- */
+-#include <asm/timex.h>
+-
+-/* LATCH is used in the interval timer and ftape setup. */
+-#define LATCH  ((CLOCK_TICK_RATE + HZ/2) / HZ)	/* For divider */
+-
+-/* Suppose we want to devide two numbers NOM and DEN: NOM/DEN, the we can
+- * improve accuracy by shifting LSH bits, hence calculating:
+- *     (NOM << LSH) / DEN
+- * This however means trouble for large NOM, because (NOM << LSH) may no
+- * longer fit in 32 bits. The following way of calculating this gives us
+- * some slack, under the following conditions:
+- *   - (NOM / DEN) fits in (32 - LSH) bits.
+- *   - (NOM % DEN) fits in (32 - LSH) bits.
+- */
+-#define SH_DIV(NOM,DEN,LSH) (   ((NOM / DEN) << LSH)                    \
+-                             + (((NOM % DEN) << LSH) + DEN / 2) / DEN)
+-
+-/* HZ is the requested value. ACTHZ is actual HZ ("<< 8" is for accuracy) */
+-#define ACTHZ (SH_DIV (CLOCK_TICK_RATE, LATCH, 8))
+-
+-/* TICK_NSEC is the time between ticks in nsec assuming real ACTHZ */
+-#define TICK_NSEC (SH_DIV (1000000UL * 1000, ACTHZ, 8))
+-
+-/* TICK_USEC is the time between ticks in usec assuming fake USER_HZ */
+-#define TICK_USEC ((1000000UL + USER_HZ/2) / USER_HZ)
+-
+-/* TICK_USEC_TO_NSEC is the time between ticks in nsec assuming real ACTHZ and	*/
+-/* a value TUSEC for TICK_USEC (can be set bij adjtimex)		*/
+-#define TICK_USEC_TO_NSEC(TUSEC) (SH_DIV (TUSEC * USER_HZ * 1000, ACTHZ, 8))
+-
+-
+-#include <linux/time.h>
+-/*
+  * syscall interface - used (mainly by NTP daemon)
+  * to discipline kernel clock oscillator
+  */
