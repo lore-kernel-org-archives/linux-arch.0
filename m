@@ -1,46 +1,41 @@
-Return-Path: <benh@kernel.crashing.org>
-Received: from gate.crashing.org ([63.228.1.57]:17856 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S261238AbUCAL5H (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Mar 2004 06:57:07 -0500
-Subject: Re: [RFC] Implement dma_boundary in the generic device
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <20040229164630.GH25779@parcelfarce.linux.theplanet.co.uk>
-References: <1078070182.1756.11.camel@mulgrave>
-	 <20040229164630.GH25779@parcelfarce.linux.theplanet.co.uk>
-Content-Type: text/plain
-Message-Id: <1078141601.21578.90.camel@gaston>
-Mime-Version: 1.0
-Date: Mon, 01 Mar 2004 22:46:42 +1100
-Content-Transfer-Encoding: 7bit
-To: Matthew Wilcox <willy@debian.org>
-Cc: James Bottomley <James.Bottomley@steeleye.com>, Linux Arch list <linux-arch@vger.kernel.org>, Jeff Garzik <jgarzik@pobox.com>
+Return-Path: <schwidefsky@de.ibm.com>
+Received: from mtagate1.de.ibm.com ([195.212.29.150]:59080 "EHLO
+	mtagate1.de.ibm.com") by vger.kernel.org with ESMTP id S261178AbUCAMUY convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 1 Mar 2004 07:20:24 -0500
+Subject: Re: remove irq_enter()/irq_exit() from hardirq.h
+Message-ID: <OF6F51D31D.962B15AE-ONC1256E4A.00424524-C1256E4A.00434172@de.ibm.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Date: Mon, 1 Mar 2004 13:14:36 +0100
+MIME-Version: 1.0
+Content-type: text/plain; charset=ISO-8859-1
+Content-transfer-encoding: 8BIT
+To: "David S. Miller" <davem@redhat.com>
+Cc: davidm@napali.hpl.hp.com, davidm@hpl.hp.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Ok, I have a ppc64 implementation that appear to work after a quick
-test, I'll have to hammer it more tomorrow though and will send a patch.
 
-One thing we discussed on irc but I want to raise here so we all agree
-about the "limitation" and can wire it deep into the documentation:
 
-The boundary stuff is only respected as long as the segment doesn't
-start with an "offset". If I have a 64k boundary and get passed a
-64k segment but which start with an "offset" in the first page, I
-will _not_ break it up. Same as without iommu, I don't break
-existing segments. I just prevent merging and align big segments
-properly so they stay within the boundary.
 
-Oh ... and I would still have liked (both at the struct device and
-the BIO layer) a separate "max_seg_size" .... I just figured out that
-stupid DBDMA controller used all over the place on Macs (though only
-for CD/DVD ATA/100 and sound driver on G5s with an iommu) has a limit
-of 64k ... -1 ! (0xffff is the max, 0 does NOT mean 64k shit !)
 
-Right now, I work around that in IDE since I can allocate a larger
-DMA descriptor table that the normal IDE PRD, so I allocate 512 of
-them... (drivers/ide doesn't have hooks to let the low lever driver
-set different queus sizes, sg list sizes, boundaries etc... I have
-to mimmic the "legacy" ones).
+> > but I'm wondering whether
+> > leaving irq_enter()/irq_exit() in hardirq.h might invite someone to
+> > use it outside of architecture-specific code (which is not the case at
+> > the moment, as far as I can see).
+>
+> I agree with you, it shouldn't be publicly visible.  The s390 guys will
+> need to do some work as their drivers reference these two routines (ie.
+> grep under drivers/s390/)
 
-But maybe it's not worth bothering...
+Well, drivers/s390/cio is not really a driver. The main interrupt function
+for i/o interrupts do_IRQ lives in driver/s390/cio/cio.c and not in
+arch/s390/kernel/irq.c where you might expect to find it. The irq_enter/
+irq_exit pair we just added in the sclp driver can be replaced with
+a local_bh_enable/local_bh_disable pair. So we are pretty clean.
 
-Ben.
+blue skies,
+   Martin
+
+Linux/390 Design & Development, IBM Deutschland Entwicklung GmbH
+Schönaicherstr. 220, D-71032 Böblingen, Telefon: 49 - (0)7031 - 16-2247
+E-Mail: schwidefsky@de.ibm.com
