@@ -1,41 +1,62 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266465AbUHBKla@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:5326 "EHLO Cantor.suse.de")
-	by vger.kernel.org with ESMTP id S266458AbUHBKkf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Aug 2004 06:40:35 -0400
-Date: Mon, 2 Aug 2004 12:40:22 +0200
-From: Andi Kleen <ak@suse.de>
-Subject: Re: find_next_bit return type
-Message-ID: <20040802104022.GA25951@wotan.suse.de>
-References: <20040731232434.7263b50c.akpm@osdl.org> <20040731232515.1fead83b.akpm@osdl.org> <20040731235824.249ddb23.davem@redhat.com> <20040801000213.5f01b469.akpm@osdl.org> <20040801001026.68ed7363.davem@redhat.com>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266310AbUHGHGJ@vger.kernel.org>
+Received: from mx1.redhat.com ([66.187.233.31]:58037 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S266290AbUHGHGI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Aug 2004 03:06:08 -0400
+Date: Sat, 7 Aug 2004 00:05:29 -0700
+From: "David S. Miller" <davem@redhat.com>
+Subject: copy_page_range()
+Message-Id: <20040807000529.5ca6e8fe.davem@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20040801001026.68ed7363.davem@redhat.com>
-To: "David S. Miller" <davem@redhat.com>
-Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: torvalds@osdl.org
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Aug 01, 2004 at 12:10:26AM -0700, David S. Miller wrote:
-> On Sun, 1 Aug 2004 00:02:13 -0700
-> Andrew Morton <akpm@osdl.org> wrote:
-> 
-> > Kind-of.  But it's also cringeworthy to go slinging 8-byte values around
-> > when 4-byte values would suffice.  Is it not more efficient to use
-> > integers?
-> 
-> They all go in registers, the same register that could hold the 4-byte
-> values too.  There is also no computational cost to doing 64-bit add
-> subtract and shift (ie. simple ALU's) compared to 32-bit ones.
 
-Actually at least on Intel EM64T an 64bit sub/add is slower, so it's not
-generally true. And 64bit ops generate bigger code on x86-64.
+Every couple months I look at this thing.
 
-But I still agree with you David that returning long here is better.
-Even though I consider it unlikely that anybody will search >4GB 
-bitmaps in kernel any time soon (it would be a latency disaster).
-But for the usual implementation (find_* subtracting two pointers) 
-the function has to do a 64bit subtraction anyways, otherwise
-you get a subtle "broken when crossing 4GB boundaries" bug. 
-For consistency it is better to have long here.
+The main issue is that it's very cache unfriendly,
+especially with how sparsely populated the page tables
+are for 64-bit processes.
 
--Andi
+As a simple example, it's at the top of the kernel
+profile for 64-bit lat_proc {fork,exec,shell} on
+sparc64.
+
+And it's in fact the pmd array scans that take all
+of the cache misses, and thus most of the run time.
+
+An idea I've always been entertaining is to associate
+a bitmask with each pmd table.  For example, a possible
+current implementation could be to abuse page_struct->index
+for this bitmask, and use virt_to_page(pmdp)->index to get
+at it.
+
+This divides the pmd table into BITS_PER_LONG sections.
+If the bit is set in ->index then we populated at least
+one of the pmd entries in that section.  We never clear
+bits, except at pmd table allocation time.
+
+Then the pmd scan iterates over ->index, and only actually
+dereferences the pmd entries iff it finds a set bit, and
+it only dereferences the section of pmd entries represented
+by that bit.
+
+Another idea I've also considered is to implement the
+pgd/pmd levels as a more compact tree, based upon virtual
+address, such as a radix tree.
+
+I think all of this could be experimented with if we
+abstracted out the pmd/pgd/pte iteration.  So much stuff
+in the kernel mm code is of the form:
+
+	for_each_pgd(pgdp)
+		for_each_pmd(pgdp, pmdp)
+			for_each_pte(pmdp, ptep)
+				do_something(ptep)
+
+At 2-levels, as on most of the 32-bit platforms, things
+aren't so bad.
+
+Comments?
