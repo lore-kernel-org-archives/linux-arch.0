@@ -1,50 +1,41 @@
-Return-Path: <paulus@ozlabs.org>
-Received: from ozlabs.org ([203.10.76.45]:35288 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S266186AbUHAWKz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Aug 2004 18:10:55 -0400
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <16653.27152.500547.917797@cargo.ozlabs.ibm.com>
-Date: Mon, 2 Aug 2004 08:09:20 +1000
-From: Paul Mackerras <paulus@samba.org>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266465AbUHBKla@vger.kernel.org>
+Received: from cantor.suse.de ([195.135.220.2]:5326 "EHLO Cantor.suse.de")
+	by vger.kernel.org with ESMTP id S266458AbUHBKkf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Aug 2004 06:40:35 -0400
+Date: Mon, 2 Aug 2004 12:40:22 +0200
+From: Andi Kleen <ak@suse.de>
 Subject: Re: find_next_bit return type
-In-Reply-To: <1091372708.10972.3.camel@mulgrave>
-References: <20040731232434.7263b50c.akpm@osdl.org>
-	<1091372708.10972.3.camel@mulgrave>
-To: James Bottomley <James.Bottomley@steeleye.com>
+Message-ID: <20040802104022.GA25951@wotan.suse.de>
+References: <20040731232434.7263b50c.akpm@osdl.org> <20040731232515.1fead83b.akpm@osdl.org> <20040731235824.249ddb23.davem@redhat.com> <20040801000213.5f01b469.akpm@osdl.org> <20040801001026.68ed7363.davem@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20040801001026.68ed7363.davem@redhat.com>
+To: "David S. Miller" <davem@redhat.com>
 Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-James Bottomley writes:
-
-> On Sun, 2004-08-01 at 02:24, Andrew Morton wrote:
-> > 
-> > Seems that several 64-bit architectures are returning longs from
-> > find_next_bit(), find_next_zero_bit(), etc.  x86 returns an int.  wli sent
-> > me a patch which does
-> > 
-> > 	return min(NR_CPUS, find_first_bit(srcp->bits, nbits));
-> > 
-> > so these architectures now get a zillion warnings.
-> > 
-> > We should be consistent here.  Is there any reason why these functions
-> > cannot return integers?
+On Sun, Aug 01, 2004 at 12:10:26AM -0700, David S. Miller wrote:
+> On Sun, 1 Aug 2004 00:02:13 -0700
+> Andrew Morton <akpm@osdl.org> wrote:
 > 
-> This isn't just a prototype change, it would change the actual
-> implementation on big endian 64 bit machines.
+> > Kind-of.  But it's also cringeworthy to go slinging 8-byte values around
+> > when 4-byte values would suffice.  Is it not more efficient to use
+> > integers?
 > 
-> The find_first_bit/find_next_bit macros work fine on LE because the
-> lowest bit is at the start of the bitmap.  on BE machines, the highest
-> bit is supposed to be there.  The result is that long bitmaps are
-> currently implemented LE in BE chunks (the chunk size being an unsigned
-> long).  If you change to an unsigned int, you reduce our chunk size, and
-> hence the actual layout of the bitmap, so we'd need to check there were
-> no unintended consequences of this.
+> They all go in registers, the same register that could hold the 4-byte
+> values too.  There is also no computational cost to doing 64-bit add
+> subtract and shift (ie. simple ALU's) compared to 32-bit ones.
 
-I think Andrew was talking about the return type, not the type of the
-bitmap.  The return type could easily be an int or unsigned int, while
-still having the bitmap as an array of unsigned longs (with unchanged
-layout).
+Actually at least on Intel EM64T an 64bit sub/add is slower, so it's not
+generally true. And 64bit ops generate bigger code on x86-64.
 
-Paul.
+But I still agree with you David that returning long here is better.
+Even though I consider it unlikely that anybody will search >4GB 
+bitmaps in kernel any time soon (it would be a latency disaster).
+But for the usual implementation (find_* subtracting two pointers) 
+the function has to do a 64bit subtraction anyways, otherwise
+you get a subtle "broken when crossing 4GB boundaries" bug. 
+For consistency it is better to have long here.
+
+-Andi
