@@ -1,41 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Mon, 31 Jan 2005 12:35:50 -0800
-From: "David S. Miller" <davem@davemloft.net>
-Subject: Re: TASK_SIZE is variable.
-Message-Id: <20050131123550.2dbe41e2.davem@davemloft.net>
-In-Reply-To: <20050131193828.GD12102@wotan.suse.de>
-References: <1106692012.6480.158.camel@localhost.localdomain>
-	<20050129122321.0cac707c.akpm@osdl.org>
-	<16892.7218.458371.340859@cargo.ozlabs.ibm.com>
-	<20050130110127.GA8441@wotan.suse.de>
-	<16892.52890.354277.754169@cargo.ozlabs.ibm.com>
-	<20050130182353.1a68745c.davem@davemloft.net>
-	<20050131092354.GD19740@wotan.suse.de>
-	<20050131112957.755e5a0c.davem@davemloft.net>
-	<20050131193828.GD12102@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: pci: Arch hook to determine config space size
+Date: Mon, 31 Jan 2005 21:51:04 +0100
+References: <200501281456.j0SEuI12020454@d01av01.pok.ibm.com> <41FE82B6.9060407@us.ibm.com> <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk>
+In-Reply-To: <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk>
+MIME-Version: 1.0
+Message-Id: <200501312151.05323.arnd@arndb.de>
+Content-Type: multipart/signed;
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1;
+  boundary="Boundary-02=_5op/BZQOoGRTNPl";
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-To: Andi Kleen <ak@suse.de>
-Cc: paulus@samba.org, akpm@osdl.org, dwmw2@infradead.org, linux-arch@vger.kernel.org
+To: linuxppc64-dev@ozlabs.org
+Cc: Matthew Wilcox <matthew@wil.cx>, Brian King <brking@us.ibm.com>, linux-arch@vger.kernel.org, Greg KH <greg@kroah.com>, linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-pci@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 31 Jan 2005 20:38:28 +0100
-Andi Kleen <ak@suse.de> wrote:
 
-> No, i just think it's overkill for the simple task Paul wants
-> it for. And in mmap/munmap you can just trust what TASK_SIZE
-> tells you because it's in the correct process context.
+--Boundary-02=_5op/BZQOoGRTNPl
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
 
-Lots of 64-bit platforms use a constant TASK_SIZE.
-This is why such platforms use compat syscall wrappers
-to validate mmap args.
+On Maandag 31 Januar 2005 20:29, Matthew Wilcox wrote:
+> Thanks for copying linux-pci. =A0I hate this patch.
+>=20
+> Basically, ppc64's config ops are broken and need to check the offset
+> being read.=20
 
-I'm saying that if we move over to useing mm->map_limit
-in the syscall validation checks, such schemes would no
-longer be necessary.
+To make things worse, simply allowing the larger config space will
+silently access the wrong device. The least that needs to be done
+is to pass the correct address to the firmware.=20
+This patch should do the right thing, though I don't have any PCIe
+card to test with.
 
-The arity of the address space really is an MM attribute
-even though it is inherited from the thread.  The delayed
-MM final release bug case via procfs is instrumental in
-demonstrating this fact.
+Note that at least for the rtas pci config access, the bus/devfn
+values come from the device tree, which makes it somewhat harder
+to screw them up, and rtas ought to check for obviously wrong
+addresses as well.
+
+Signed-off-by: Arnd Bergmann <arndb@de.ibm.com>
+
+=2D-- linux-mm.orig/arch/ppc64/kernel/pSeries_pci.c	2005-01-28 07:21:15.000=
+000000 -0500
++++ linux-mm/arch/ppc64/kernel/pSeries_pci.c	2005-01-31 15:56:10.244983464 =
+=2D0500
+@@ -63,7 +63,8 @@
+ 	if (where & (size - 1))
+ 		return PCIBIOS_BAD_REGISTER_NUMBER;
+=20
+=2D	addr =3D (dn->busno << 16) | (dn->devfn << 8) | where;
++	addr =3D ((where & 0xf00) << 20) | (dn->busno << 16)=20
++		| (dn->devfn << 8) | (where & 0x0ff);
+ 	buid =3D dn->phb->buid;
+ 	if (buid) {
+ 		ret =3D rtas_call(ibm_read_pci_config, 4, 2, &returnval,
+@@ -111,7 +112,8 @@
+ 	if (where & (size - 1))
+ 		return PCIBIOS_BAD_REGISTER_NUMBER;
+=20
+=2D	addr =3D (dn->busno << 16) | (dn->devfn << 8) | where;
++	addr =3D ((where & 0xf00) << 20) | (dn->busno << 16)=20
++		| (dn->devfn << 8) | (where & 0x0ff);
+ 	buid =3D dn->phb->buid;
+ 	if (buid) {
+ 		ret =3D rtas_call(ibm_write_pci_config, 5, 1, NULL, addr, buid >> 32, bu=
+id & 0xffffffff, size, (ulong) val);
+
+
+
+--Boundary-02=_5op/BZQOoGRTNPl
+Content-Type: application/pgp-signature
+Content-Description: signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.2.4 (GNU/Linux)
+
+iD8DBQBB/po55t5GS2LDRf4RAgYQAKCOKna2d1KQ/Adr0fitfwfxUpT8dgCeLA3h
+7vz/iV+NObjl0INNeD2nuwo=
+=v+1m
+-----END PGP SIGNATURE-----
+
+--Boundary-02=_5op/BZQOoGRTNPl--
