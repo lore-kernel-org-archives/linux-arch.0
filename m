@@ -1,38 +1,35 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266001AbUHQM1D@vger.kernel.org>
-Received: from mtagate2.de.ibm.com ([195.212.29.151]:3773 "EHLO
-	mtagate2.de.ibm.com") by vger.kernel.org with ESMTP id S265981AbUHQM1D
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Aug 2004 08:27:03 -0400
-Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate2.de.ibm.com (8.12.10/8.12.10) with ESMTP id i7HCR2gB156962
-	for <linux-arch@vger.kernel.org>; Tue, 17 Aug 2004 12:27:02 GMT
-Received: from d12ml062.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
-	by d12nrmr1607.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id i7HCR139061096
-	for <linux-arch@vger.kernel.org>; Tue, 17 Aug 2004 14:27:01 +0200
-Subject: Fw: [RFC] cputime patches.
-Message-ID: <OF5188AD9E.C9DAEB9C-ON42256EF3.0043FFB3-42256EF3.00447109@de.ibm.com>
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Date: Tue, 17 Aug 2004 14:27:33 +0200
-MIME-Version: 1.0
-Content-type: text/plain; charset=US-ASCII
-To: linux-arch@vger.kernel.org
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268359AbUHQRzR@vger.kernel.org>
+Received: from mx1.redhat.com ([66.187.233.31]:32917 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S268358AbUHQRzR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Aug 2004 13:55:17 -0400
+Date: Tue, 17 Aug 2004 10:52:36 -0700
+From: "David S. Miller" <davem@redhat.com>
+Subject: Re: ptep_mkdirty obsolete ?
+Message-Id: <20040817105236.5e3288d8.davem@redhat.com>
+In-Reply-To: <1092724634.9536.122.camel@gaston>
+References: <1092724532.9536.119.camel@gaston>
+	<1092724634.9536.122.camel@gaston>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Tue, 17 Aug 2004 16:37:15 +1000
+Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
 
+> On Tue, 2004-08-17 at 16:35, Benjamin Herrenschmidt wrote:
+> > Hi guys !
+> > 
+> > This is still used anywhere ? I see that we have
+> > __HAVE_ARCH_PTEP_MKDIRTY on ppc64 but no actual implementation for it
+> > and nobody either uses ptep_mkdirty of #ifdef on the macro...
+> 
+> Actually, there's a default implementation in asm-generic, I didn't see
+> it because a patch from DaveM I'm toying with is removing it ;)
+> 
+> The fact stays that it's not used anywhere and I'd like to remove it
 
-
-
-> With all these patches we finally have decent (that means usable) cpu
-> accounting numbers on s390 and a fairer scheduling.
->
-> The patches are against 2.6.8-rc4. I'll keep the fingers crossed
-> that I didn't break any architecture.
->
-> Now what do you guys think about it?
-
-Is nobody interested in the cputime stuff or has nobody anything to
-complain about it? In the later case I would forward the patches to
-Andrew for -mm.
-
-blue skies,
-   Martin
+I totally agree.
