@@ -1,46 +1,34 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268237AbUIPUn3@vger.kernel.org>
-Received: from omx2-ext.sgi.com ([192.48.171.19]:41399 "EHLO omx2.sgi.com")
-	by vger.kernel.org with ESMTP id S268240AbUIPUn3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Sep 2004 16:43:29 -0400
-From: Jesse Barnes <jbarnes@engr.sgi.com>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268240AbUIPUs7@vger.kernel.org>
+Received: from adsl-63-197-226-105.dsl.snfc21.pacbell.net ([63.197.226.105]:40644
+	"EHLO cheetah.davemloft.net") by vger.kernel.org with ESMTP
+	id S268237AbUIPUs7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Sep 2004 16:48:59 -0400
+Date: Thu, 16 Sep 2004 13:45:40 -0700
+From: "David S. Miller" <davem@davemloft.net>
 Subject: Re: RFC: being more anal about iospace accesses..
-Date: Thu, 16 Sep 2004 13:42:48 -0700
-References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org> <200409161302.49135.jbarnes@engr.sgi.com> <1095367049.2014.21.camel@mulgrave>
-In-Reply-To: <1095367049.2014.21.camel@mulgrave>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Message-Id: <20040916134540.3cea892f.davem@davemloft.net>
+In-Reply-To: <20040916201308.GA8911@havoc.gtf.org>
+References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org>
+	<20040916134152.GK642@parcelfarce.linux.theplanet.co.uk>
+	<Pine.LNX.4.58.0409161110070.2333@ppc970.osdl.org>
+	<200409161152.54691.jbarnes@engr.sgi.com>
+	<20040916130450.40b3f8a1.davem@davemloft.net>
+	<20040916201308.GA8911@havoc.gtf.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200409161342.48505.jbarnes@engr.sgi.com>
-To: James Bottomley <James.Bottomley@steeleye.com>
-Cc: Linus Torvalds <torvalds@osdl.org>, Matthew Wilcox <willy@debian.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Linux Arch list <linux-arch@vger.kernel.org>, Al Viro <viro@parcelfarce.linux.theplanet.co.uk>, Andrew Morton <akpm@osdl.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, "David S. Miller" <davem@redhat.com>, Jeff Garzik <jgarzik@pobox.com>, Grant Grundler <grundler@parisc-linux.org>
+To: Jeff Garzik <jgarzik@pobox.com>
+Cc: jbarnes@engr.sgi.com, torvalds@osdl.org, willy@debian.org, James.Bottomley@steeleye.com, geert@linux-m68k.org, linux-arch@vger.kernel.org, viro@parcelfarce.linux.theplanet.co.uk, akpm@osdl.org, alan@lxorguk.ukuu.org.uk, davem@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thursday, September 16, 2004 1:37 pm, James Bottomley wrote:
-> On Thu, 2004-09-16 at 16:02, Jesse Barnes wrote:
-> > Note that PCI-X and PCI Express allow a lack of synchronization via the
-> > relaxed ordering bit.  So platforms can either set that bit in their
-> > iomap functions and deal with synchronization via dma_sync or not use it
-> > I guess.
->
-> Now you've confused me again.  I thought the SGI implementation of this
-> relaxed read thing was *not* the same as the PCI-X RO bit which was why
-> you needed a special readX_relaxed?
+On Thu, 16 Sep 2004 16:13:08 -0400
+Jeff Garzik <jgarzik@pobox.com> wrote:
 
-Depends on how you read the specs.  I think they're compatible, but others 
-think that PCI-X RO will require a different implementation.  We'll know when 
-we see hardware that supports it.
+> On Thu, Sep 16, 2004 at 01:04:50PM -0700, David S. Miller wrote:
+> > Drivers aren't allowed to touch active DMA data areas until they
+> > call one of those interfaces (see Documentation/DMA-mapping.txt)
+> 
+> Does that include DMA memory allocated with pci_alloc_consistent?
 
-> My understanding is that Relaxed Ordering is that it's two bit (i.e. two
-> separately allowable optimisations) that allow either PIO writes to pass
-> DMA reads or PIO reads to pass DMA writes (or both) in the stream (I may
-> have this wrong, I copied Grant because he's been working on this).
->
-> I thought your readX_relaxed was only the first half of this?
-
-Only the second half, actually.  It may also apply to intra-DMA block 
-ordering.
-
-Jesse
+Good point.  No, it does not include consistent DMA memory.
+I guess they do need it after all.
