@@ -1,32 +1,25 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S261230AbVABCuW@vger.kernel.org>
-Received: from smtp207.mail.sc5.yahoo.com ([216.136.129.97]:46686 "HELO
-	smtp207.mail.sc5.yahoo.com") by vger.kernel.org with SMTP
-	id S261223AbVABCuW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 1 Jan 2005 21:50:22 -0500
-Message-ID: <41D7616C.1070100@yahoo.com.au>
-Date: Sun, 02 Jan 2005 13:50:20 +1100
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Message-ID: <41F2EB0E.30407@yahoo.com.au>
+Date: Sun, 23 Jan 2005 11:08:46 +1100
 From: Nick Piggin <nickpiggin@yahoo.com.au>
 MIME-Version: 1.0
-Subject: Converting architectures to 4 level page tables
+Subject: (resend) Converting architectures to 4 level page tables
 Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
 To: linux-arch@vger.kernel.org
-Cc: Andrew Morton <akpm@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Hello arch maintainers,
+Hi arch maintainers,
 
-Linus has just merged the 4 level page tables patch into -bk.
-However, this is slightly modified from the pml4 version you
-would have seen. Which means fewer architectures have been
-tested at this stage.
+I apologise if you have already seen this. There was apparently
+a minor problem with the mailing list so it may not have gone
+through.
 
-Fortunately, nobody should need to immediately do any fixups on
-their architectures, because we have introduced a compatibility
-header that should get things working for all archs.
-
-* Testing on all architectures would be very welcome though! *
-
+This describes the main steps that have to be done to convert
+your architecture away from the temporary 4 level "compatibility"
+header. This isn't an urgent issue (as you've hopefully already
+discovered that your architecture still works fine), but it would
+be nice to get done one day.
 
 The advantages of moving away from the compatibility header is
 that you'll get better static type checking when compiling the
@@ -35,10 +28,9 @@ some small complexities in generic code that currently handle
 the compatibility scheme.
 
 I don't think continued use of the compatibility header is any
-problem for a 2.6.11 release, provided some testing gets done.
-But for those who want to move from the compatibility header to
-the generic 'folding' headers (**), there are a few changes you'll
-need to do the following:
+problem for a 2.6.11 release. But for those who want to move from
+the compatibility header to the generic 'folding' headers (**),
+there are a few changes you'll need to do the following:
 
 
 * replace
@@ -64,11 +56,11 @@ need to do the following:
 
 * Architectures with 2-level page tables may alternatively use
    pgtable-nopmd.h rather than -nopud.h, however that will mean more
-   work to remove the existing 3 into 2 folding stuff. It would be
-   nice to get this done one day though. Look at the 2-level i386
-   conversion for ideas (actually i386 isn't the best example of
-   this because it has some code mixed in to handle 3 levels as well.
-   I've tried to clean this up a bit though).
+   work to remove the existing 3 into 2 folding stuff your architecture
+   will have. It would be   nice to get this done one day though. Look
+   at the 2-level i386 conversion for ideas (actually i386 isn't the
+   best example of this because it has some code mixed in to handle 3
+   levels as well. I've tried to clean this up a bit though).
 
 
 (**) We have introduced asm-generic/ 'folding' headers, for 2 and
