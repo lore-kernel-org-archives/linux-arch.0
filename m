@@ -1,1438 +1,1435 @@
 Return-Path: <arnd@arndb.de>
-Received: from natnoddy.rzone.de ([81.169.145.166]:48381 "EHLO
-	natnoddy.rzone.de") by vger.kernel.org with ESMTP id S262071AbUDDAf4
+Received: from natnoddy.rzone.de ([81.169.145.166]:53757 "EHLO
+	natnoddy.rzone.de") by vger.kernel.org with ESMTP id S262078AbUDDAgA
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 3 Apr 2004 19:35:56 -0500
+	Sat, 3 Apr 2004 19:36:00 -0500
 Received: from p508a8fcc.dip0.t-ipconnect.de (p508A8FCC.dip0.t-ipconnect.de [80.138.143.204])
-	by post.webmailer.de (8.12.10/8.12.10) with ESMTP id i340ZqOk016348
-	for <linux-arch@vger.kernel.org>; Sun, 4 Apr 2004 02:35:53 +0200 (MEST)
+	by post.webmailer.de (8.12.10/8.12.10) with ESMTP id i340ZqOm016348
+	for <linux-arch@vger.kernel.org>; Sun, 4 Apr 2004 02:35:57 +0200 (MEST)
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 1/4] Consolidate sys32_readv and sys32_writev
-Date: Sun, 4 Apr 2004 02:22:25 +0200
+Subject: [PATCH 3/4] Consolidate sys32_select
+Date: Sun, 4 Apr 2004 02:22:40 +0200
 References: <200404040204.03594.arnd@arndb.de>
 In-Reply-To: <200404040204.03594.arnd@arndb.de>
 MIME-Version: 1.0
 Content-Disposition: inline
-Message-Id: <200404040222.25587.arnd@arndb.de>
+Message-Id: <200404040222.41413.arnd@arndb.de>
 Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-The seven implementations of this have gone out of sync and are mostly buggy.
-The new compat_sys_* version is based on the ppc64 implementation, which
-most closely resembles the code in sys_readv/sys_writev.
+sys32_select has seven mostly but not exactly identical versions,
+so consolidate them as compat_sys_select. Based on the ppc64
+implementation, which most closely resembles sys_select.
 
-Tested with LTP on x86_64.
+Passes relevant LTP test cases on x86_64.
 
-===== arch/ia64/ia32/ia32_entry.S 1.35 vs edited =====
---- 1.35/arch/ia64/ia32/ia32_entry.S	Fri Mar 26 20:05:24 2004
-+++ edited/arch/ia64/ia32/ia32_entry.S	Sat Apr  3 19:55:45 2004
-@@ -353,8 +353,8 @@
- 	data8 sys32_select
+===== arch/ia64/ia32/ia32_entry.S 1.36 vs edited =====
+--- 1.36/arch/ia64/ia32/ia32_entry.S	Sat Apr  3 21:55:45 2004
++++ edited/arch/ia64/ia32/ia32_entry.S	Sat Apr  3 22:41:48 2004
+@@ -350,7 +350,7 @@
+ 	data8 sys_setfsgid	/* 16-bit version */
+ 	data8 sys_llseek	  /* 140 */
+ 	data8 sys32_getdents
+-	data8 sys32_select
++	data8 compat_sys_select
  	data8 sys_flock
  	data8 sys32_msync
--	data8 sys32_readv	  /* 145 */
--	data8 sys32_writev
-+	data8 compat_sys_readv	  /* 145 */
-+	data8 compat_sys_writev
- 	data8 sys_getsid
- 	data8 sys_fdatasync
- 	data8 sys32_sysctl
-===== arch/ia64/ia32/sys_ia32.c 1.93 vs edited =====
---- 1.93/arch/ia64/ia32/sys_ia32.c	Fri Mar 26 20:05:24 2004
-+++ edited/arch/ia64/ia32/sys_ia32.c	Sat Apr  3 19:51:49 2004
-@@ -941,85 +941,6 @@
- 			    (struct compat_timeval *) A(a.tvp));
- }
- 
--static struct iovec *
--get_compat_iovec (struct compat_iovec *iov32, struct iovec *iov_buf, u32 count, int type)
--{
--	u32 i, buf, len;
--	struct iovec *ivp, *iov;
--
--	/* Get the "struct iovec" from user memory */
--
--	if (!count)
--		return 0;
--	if (verify_area(VERIFY_READ, iov32, sizeof(struct compat_iovec)*count))
--		return NULL;
--	if (count > UIO_MAXIOV)
--		return NULL;
--	if (count > UIO_FASTIOV) {
--		iov = kmalloc(count*sizeof(struct iovec), GFP_KERNEL);
--		if (!iov)
--			return NULL;
--	} else
--		iov = iov_buf;
--
--	ivp = iov;
--	for (i = 0; i < count; i++) {
--		if (__get_user(len, &iov32->iov_len) || __get_user(buf, &iov32->iov_base)) {
--			if (iov != iov_buf)
--				kfree(iov);
--			return NULL;
--		}
--		if (verify_area(type, (void *)A(buf), len)) {
--			if (iov != iov_buf)
--				kfree(iov);
--			return((struct iovec *)0);
--		}
--		ivp->iov_base = (void *)A(buf);
--		ivp->iov_len = (__kernel_size_t) len;
--		iov32++;
--		ivp++;
--	}
--	return iov;
--}
--
--asmlinkage long
--sys32_readv (int fd, struct compat_iovec *vector, u32 count)
--{
--	struct iovec iovstack[UIO_FASTIOV];
--	struct iovec *iov;
--	long ret;
--	mm_segment_t old_fs = get_fs();
--
--	iov = get_compat_iovec(vector, iovstack, count, VERIFY_WRITE);
--	if (!iov)
--		return -EFAULT;
--	set_fs(KERNEL_DS);
--	ret = sys_readv(fd, iov, count);
--	set_fs(old_fs);
--	if (iov != iovstack)
--		kfree(iov);
--	return ret;
--}
--
--asmlinkage long
--sys32_writev (int fd, struct compat_iovec *vector, u32 count)
--{
--	struct iovec iovstack[UIO_FASTIOV];
--	struct iovec *iov;
--	long ret;
--	mm_segment_t old_fs = get_fs();
--
--	iov = get_compat_iovec(vector, iovstack, count, VERIFY_READ);
--	if (!iov)
--		return -EFAULT;
--	set_fs(KERNEL_DS);
--	ret = sys_writev(fd, iov, count);
--	set_fs(old_fs);
--	if (iov != iovstack)
--		kfree(iov);
--	return ret;
--}
--
- #define SEMOP		 1
- #define SEMGET		 2
- #define SEMCTL		 3
-===== arch/mips/kernel/linux32.c 1.22 vs edited =====
---- 1.22/arch/mips/kernel/linux32.c	Wed Feb 25 11:31:12 2004
-+++ edited/arch/mips/kernel/linux32.c	Sat Apr  3 19:51:49 2004
-@@ -671,150 +671,6 @@
- 	return sys_llseek(fd, offset_high, offset_low, result, origin);
- }
- 
--typedef ssize_t (*IO_fn_t)(struct file *, char *, size_t, loff_t *);
--
--static long
--do_readv_writev32(int type, struct file *file, const struct compat_iovec *vector,
--		  u32 count)
--{
--	unsigned long tot_len;
--	struct iovec iovstack[UIO_FASTIOV];
--	struct iovec *iov=iovstack, *ivp;
--	struct inode *inode;
--	long retval, i;
--	IO_fn_t fn;
--
--	/* First get the "struct iovec" from user memory and
--	 * verify all the pointers
--	 */
--	if (!count)
--		return 0;
--	if(verify_area(VERIFY_READ, vector, sizeof(struct compat_iovec)*count))
--		return -EFAULT;
--	if (count > UIO_MAXIOV)
--		return -EINVAL;
--	if (count > UIO_FASTIOV) {
--		iov = kmalloc(count*sizeof(struct iovec), GFP_KERNEL);
--		if (!iov)
--			return -ENOMEM;
--	}
--
--	tot_len = 0;
--	i = count;
--	ivp = iov;
--	while (i > 0) {
--		u32 len;
--		u32 buf;
--
--		__get_user(len, &vector->iov_len);
--		__get_user(buf, &vector->iov_base);
--		tot_len += len;
--		ivp->iov_base = (void *)A(buf);
--		ivp->iov_len = (__kernel_size_t) len;
--		vector++;
--		ivp++;
--		i--;
--	}
--
--	inode = file->f_dentry->d_inode;
--	/* VERIFY_WRITE actually means a read, as we write to user space */
--	retval = locks_verify_area((type == VERIFY_WRITE
--				    ? FLOCK_VERIFY_READ : FLOCK_VERIFY_WRITE),
--				   inode, file, file->f_pos, tot_len);
--	if (retval) {
--		if (iov != iovstack)
--			kfree(iov);
--		return retval;
--	}
--
--	/* Then do the actual IO.  Note that sockets need to be handled
--	 * specially as they have atomicity guarantees and can handle
--	 * iovec's natively
--	 */
--#ifdef CONFIG_NET
--	if (inode->i_sock) {
--		int err;
--		err = sock_readv_writev(type, inode, file, iov, count, tot_len);
--		if (iov != iovstack)
--			kfree(iov);
--		return err;
--	}
--#endif
--
--	if (!file->f_op) {
--		if (iov != iovstack)
--			kfree(iov);
--		return -EINVAL;
--	}
--	/* VERIFY_WRITE actually means a read, as we write to user space */
--	fn = file->f_op->read;
--	if (type == VERIFY_READ)
--		fn = (IO_fn_t) file->f_op->write;
--	ivp = iov;
--	while (count > 0) {
--		void * base;
--		int len, nr;
--
--		base = ivp->iov_base;
--		len = ivp->iov_len;
--		ivp++;
--		count--;
--		nr = fn(file, base, len, &file->f_pos);
--		if (nr < 0) {
--			if (retval)
--				break;
--			retval = nr;
--			break;
--		}
--		retval += nr;
--		if (nr != len)
--			break;
--	}
--	if (iov != iovstack)
--		kfree(iov);
--
--	return retval;
--}
--
--asmlinkage long
--sys32_readv(int fd, struct compat_iovec *vector, u32 count)
--{
--	struct file *file;
--	ssize_t ret;
--
--	ret = -EBADF;
--	file = fget(fd);
--	if (!file)
--		goto bad_file;
--	if (file->f_op && (file->f_mode & FMODE_READ) &&
--	    (file->f_op->readv || file->f_op->read))
--		ret = do_readv_writev32(VERIFY_WRITE, file, vector, count);
--
--	fput(file);
--
--bad_file:
--	return ret;
--}
--
--asmlinkage long
--sys32_writev(int fd, struct compat_iovec *vector, u32 count)
--{
--	struct file *file;
--	ssize_t ret;
--
--	ret = -EBADF;
--	file = fget(fd);
--	if(!file)
--		goto bad_file;
--	if (file->f_op && (file->f_mode & FMODE_WRITE) &&
--	    (file->f_op->writev || file->f_op->write))
--	        ret = do_readv_writev32(VERIFY_READ, file, vector, count);
--	fput(file);
--
--bad_file:
--	return ret;
--}
--
- /* From the Single Unix Spec: pread & pwrite act like lseek to pos + op +
-    lseek back to original location.  They fail just like lseek does on
-    non-seekable files.  */
-===== arch/mips/kernel/scall64-n32.S 1.2 vs edited =====
---- 1.2/arch/mips/kernel/scall64-n32.S	Thu Feb 19 21:53:00 2004
-+++ edited/arch/mips/kernel/scall64-n32.S	Sat Apr  3 19:55:52 2004
-@@ -128,8 +128,8 @@
- 	PTR	compat_sys_ioctl		/* 6015 */
- 	PTR	sys_pread64
- 	PTR	sys_pwrite64
--	PTR	sys32_readv
--	PTR	sys32_writev
-+	PTR	compat_sys_readv
-+	PTR	compat_sys_writev
- 	PTR	sys_access			/* 6020 */
- 	PTR	sys_pipe
- 	PTR	sys32_select
-===== arch/mips/kernel/scall64-o32.S 1.2 vs edited =====
---- 1.2/arch/mips/kernel/scall64-o32.S	Thu Feb 19 21:53:00 2004
-+++ edited/arch/mips/kernel/scall64-o32.S	Sat Apr  3 19:56:24 2004
-@@ -400,8 +400,8 @@
- 	sys	sys32_select	5
- 	sys	sys_flock	2
- 	sys	sys_msync	3
--	sys	sys32_readv	3			/* 4145 */
--	sys	sys32_writev	3
-+	sys	compat_sys_readv	3		/* 4145 */
-+	sys	compat_sys_writev	3
- 	sys	sys_cacheflush	3
- 	sys	sys_cachectl	3
- 	sys	sys_sysmips	4
-===== arch/parisc/kernel/sys_parisc32.c 1.24 vs edited =====
---- 1.24/arch/parisc/kernel/sys_parisc32.c	Fri Mar 26 20:05:25 2004
-+++ edited/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 19:51:49 2004
-@@ -607,149 +607,6 @@
+ 	data8 compat_sys_readv	  /* 145 */
+===== arch/ia64/ia32/sys_ia32.c 1.94 vs edited =====
+--- 1.94/arch/ia64/ia32/sys_ia32.c	Sat Apr  3 21:51:49 2004
++++ edited/arch/ia64/ia32/sys_ia32.c	Sat Apr  3 22:06:36 2004
+@@ -818,110 +818,6 @@
  	return error;
  }
  
--/* readv/writev stolen from mips64 */
--typedef ssize_t (*IO_fn_t)(struct file *, char *, size_t, loff_t *);
+-/*
+- * We can actually return ERESTARTSYS instead of EINTR, but I'd
+- * like to be certain this leads to no problems. So I return
+- * EINTR just for safety.
+- *
+- * Update: ERESTARTSYS breaks at least the xview clock binary, so
+- * I'm trying ERESTARTNOHAND which restart only when you want to.
+- */
+-#define MAX_SELECT_SECONDS \
+-	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
+-#define ROUND_UP_TIME(x,y) (((x)+(y)-1)/(y))
 -
--static long
--do_readv_writev32(int type, struct file *file, const struct compat_iovec *vector,
--		  u32 count)
+-asmlinkage long
+-sys32_select (int n, fd_set *inp, fd_set *outp, fd_set *exp, struct compat_timeval *tvp32)
 -{
--	unsigned long tot_len;
--	struct iovec iovstack[UIO_FASTIOV];
--	struct iovec *iov=iovstack, *ivp;
--	struct inode *inode;
--	long retval, i;
--	IO_fn_t fn;
+-	fd_set_bits fds;
+-	char *bits;
+-	long timeout;
+-	int ret, size;
 -
--	/* First get the "struct iovec" from user memory and
--	 * verify all the pointers
--	 */
--	if (!count)
--		return 0;
--	if(verify_area(VERIFY_READ, vector, sizeof(struct compat_iovec)*count))
--		return -EFAULT;
--	if (count > UIO_MAXIOV)
--		return -EINVAL;
--	if (count > UIO_FASTIOV) {
--		iov = kmalloc(count*sizeof(struct iovec), GFP_KERNEL);
--		if (!iov)
--			return -ENOMEM;
--	}
+-	timeout = MAX_SCHEDULE_TIMEOUT;
+-	if (tvp32) {
+-		time_t sec, usec;
 -
--	tot_len = 0;
--	i = count;
--	ivp = iov;
--	while (i > 0) {
--		u32 len;
--		u32 buf;
+-		ret = -EFAULT;
+-		if (get_user(sec, &tvp32->tv_sec) || get_user(usec, &tvp32->tv_usec))
+-			goto out_nofds;
 -
--		__get_user(len, &vector->iov_len);
--		__get_user(buf, &vector->iov_base);
--		tot_len += len;
--		ivp->iov_base = compat_ptr(buf);
--		ivp->iov_len = (compat_size_t) len;
--		vector++;
--		ivp++;
--		i--;
--	}
+-		ret = -EINVAL;
+-		if (sec < 0 || usec < 0)
+-			goto out_nofds;
 -
--	inode = file->f_dentry->d_inode;
--	/* VERIFY_WRITE actually means a read, as we write to user space */
--	retval = locks_verify_area((type == VERIFY_WRITE
--				    ? FLOCK_VERIFY_READ : FLOCK_VERIFY_WRITE),
--				   inode, file, file->f_pos, tot_len);
--	if (retval) {
--		if (iov != iovstack)
--			kfree(iov);
--		return retval;
--	}
--
--	/* Then do the actual IO.  Note that sockets need to be handled
--	 * specially as they have atomicity guarantees and can handle
--	 * iovec's natively
--	 */
--	if (inode->i_sock) {
--		int err;
--		err = sock_readv_writev(type, inode, file, iov, count, tot_len);
--		if (iov != iovstack)
--			kfree(iov);
--		return err;
--	}
--
--	if (!file->f_op) {
--		if (iov != iovstack)
--			kfree(iov);
--		return -EINVAL;
--	}
--	/* VERIFY_WRITE actually means a read, as we write to user space */
--	fn = file->f_op->read;
--	if (type == VERIFY_READ)
--		fn = (IO_fn_t) file->f_op->write;		
--	ivp = iov;
--	while (count > 0) {
--		void * base;
--		int len, nr;
--
--		base = ivp->iov_base;
--		len = ivp->iov_len;
--		ivp++;
--		count--;
--		nr = fn(file, base, len, &file->f_pos);
--		if (nr < 0) {
--			if (retval)
--				break;
--			retval = nr;
--			break;
+-		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
+-			timeout = ROUND_UP_TIME(usec, 1000000/HZ);
+-			timeout += sec * (unsigned long) HZ;
 -		}
--		retval += nr;
--		if (nr != len)
--			break;
 -	}
--	if (iov != iovstack)
--		kfree(iov);
 -
--	return retval;
--}
+-	ret = -EINVAL;
+-	if (n < 0)
+-		goto out_nofds;
 -
--asmlinkage long
--sys32_readv(int fd, struct compat_iovec *vector, u32 count)
--{
--	struct file *file;
--	ssize_t ret;
+-	if (n > current->files->max_fdset)
+-		n = current->files->max_fdset;
 -
--	ret = -EBADF;
--	file = fget(fd);
--	if (!file)
--		goto bad_file;
--	if (file->f_op && (file->f_mode & FMODE_READ) &&
--	    (file->f_op->readv || file->f_op->read))
--		ret = do_readv_writev32(VERIFY_WRITE, file, vector, count);
+-	/*
+-	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
+-	 * since we used fdset we need to allocate memory in units of
+-	 * long-words.
+-	 */
+-	ret = -ENOMEM;
+-	size = FDS_BYTES(n);
+-	bits = kmalloc(6 * size, GFP_KERNEL);
+-	if (!bits)
+-		goto out_nofds;
+-	fds.in      = (unsigned long *)  bits;
+-	fds.out     = (unsigned long *) (bits +   size);
+-	fds.ex      = (unsigned long *) (bits + 2*size);
+-	fds.res_in  = (unsigned long *) (bits + 3*size);
+-	fds.res_out = (unsigned long *) (bits + 4*size);
+-	fds.res_ex  = (unsigned long *) (bits + 5*size);
 -
--	fput(file);
+-	if ((ret = get_fd_set(n, inp, fds.in)) ||
+-	    (ret = get_fd_set(n, outp, fds.out)) ||
+-	    (ret = get_fd_set(n, exp, fds.ex)))
+-		goto out;
+-	zero_fd_set(n, fds.res_in);
+-	zero_fd_set(n, fds.res_out);
+-	zero_fd_set(n, fds.res_ex);
 -
--bad_file:
+-	ret = do_select(n, &fds, &timeout);
+-
+-	if (tvp32 && !(current->personality & STICKY_TIMEOUTS)) {
+-		time_t sec = 0, usec = 0;
+-		if (timeout) {
+-			sec = timeout / HZ;
+-			usec = timeout % HZ;
+-			usec *= (1000000/HZ);
+-		}
+-		if (put_user(sec, &tvp32->tv_sec) || put_user(usec, &tvp32->tv_usec)) {
+-			ret = -EFAULT;
+-			goto out;
+-		}
+-	}
+-
+-	if (ret < 0)
+-		goto out;
+-	if (!ret) {
+-		ret = -ERESTARTNOHAND;
+-		if (signal_pending(current))
+-			goto out;
+-		ret = 0;
+-	}
+-
+-	set_fd_set(n, inp, fds.res_in);
+-	set_fd_set(n, outp, fds.res_out);
+-	set_fd_set(n, exp, fds.res_ex);
+-
+-out:
+-	kfree(bits);
+-out_nofds:
 -	return ret;
 -}
 -
--asmlinkage long
--sys32_writev(int fd, struct compat_iovec *vector, u32 count)
+ struct sel_arg_struct {
+ 	unsigned int n;
+ 	unsigned int inp;
+@@ -937,8 +833,8 @@
+ 
+ 	if (copy_from_user(&a, arg, sizeof(a)))
+ 		return -EFAULT;
+-	return sys32_select(a.n, (fd_set *) A(a.inp), (fd_set *) A(a.outp), (fd_set *) A(a.exp),
+-			    (struct compat_timeval *) A(a.tvp));
++	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
++				 compat_ptr(a.exp), compat_ptr(a.tvp));
+ }
+ 
+ #define SEMOP		 1
+===== arch/mips/kernel/linux32.c 1.24 vs edited =====
+--- 1.24/arch/mips/kernel/linux32.c	Sat Apr  3 23:20:39 2004
++++ edited/arch/mips/kernel/linux32.c	Sat Apr  3 21:39:56 2004
+@@ -519,167 +519,6 @@
+ bad_file:
+ 	return ret;
+ }
+-/*
+- * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
+- * 64-bit unsigned longs.
+- */
+-
+-static inline int
+-get_fd_set32(unsigned long n, unsigned long *fdset, u32 *ufdset)
 -{
--	struct file *file;
--	ssize_t ret;
+-	if (ufdset) {
+-		unsigned long odd;
 -
--	ret = -EBADF;
--	file = fget(fd);
--	if(!file)
--		goto bad_file;
--	if (file->f_op && (file->f_mode & FMODE_WRITE) &&
--	    (file->f_op->writev || file->f_op->write))
--	        ret = do_readv_writev32(VERIFY_READ, file, vector, count);
--	fput(file);
+-		if (verify_area(VERIFY_WRITE, ufdset, n*sizeof(u32)))
+-			return -EFAULT;
 -
--bad_file:
+-		odd = n & 1UL;
+-		n &= ~1UL;
+-		while (n) {
+-			unsigned long h, l;
+-			__get_user(l, ufdset);
+-			__get_user(h, ufdset+1);
+-			ufdset += 2;
+-			*fdset++ = h << 32 | l;
+-			n -= 2;
+-		}
+-		if (odd)
+-			__get_user(*fdset, ufdset);
+-	} else {
+-		/* Tricky, must clear full unsigned long in the
+-		 * kernel fdset at the end, this makes sure that
+-		 * actually happens.
+-		 */
+-		memset(fdset, 0, ((n + 1) & ~1)*sizeof(u32));
+-	}
+-	return 0;
+-}
+-
+-static inline void
+-set_fd_set32(unsigned long n, u32 *ufdset, unsigned long *fdset)
+-{
+-	unsigned long odd;
+-
+-	if (!ufdset)
+-		return;
+-
+-	odd = n & 1UL;
+-	n &= ~1UL;
+-	while (n) {
+-		unsigned long h, l;
+-		l = *fdset++;
+-		h = l >> 32;
+-		__put_user(l, ufdset);
+-		__put_user(h, ufdset+1);
+-		ufdset += 2;
+-		n -= 2;
+-	}
+-	if (odd)
+-		__put_user(*fdset, ufdset);
+-}
+-
+-/*
+- * We can actually return ERESTARTSYS instead of EINTR, but I'd
+- * like to be certain this leads to no problems. So I return
+- * EINTR just for safety.
+- *
+- * Update: ERESTARTSYS breaks at least the xview clock binary, so
+- * I'm trying ERESTARTNOHAND which restart only when you want to.
+- */
+-#define MAX_SELECT_SECONDS \
+-	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
+-
+-asmlinkage int sys32_select(int n, u32 *inp, u32 *outp, u32 *exp, struct compat_timeval *tvp)
+-{
+-	fd_set_bits fds;
+-	char *bits;
+-	unsigned long nn;
+-	long timeout;
+-	int ret, size;
+-
+-	timeout = MAX_SCHEDULE_TIMEOUT;
+-	if (tvp) {
+-		time_t sec, usec;
+-
+-		if ((ret = verify_area(VERIFY_READ, tvp, sizeof(*tvp)))
+-		    || (ret = __get_user(sec, &tvp->tv_sec))
+-		    || (ret = __get_user(usec, &tvp->tv_usec)))
+-			goto out_nofds;
+-
+-		ret = -EINVAL;
+-		if(sec < 0 || usec < 0)
+-			goto out_nofds;
+-
+-		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
+-			timeout = (usec + 1000000/HZ - 1) / (1000000/HZ);
+-			timeout += sec * (unsigned long) HZ;
+-		}
+-	}
+-
+-	ret = -EINVAL;
+-	if (n < 0)
+-		goto out_nofds;
+-	if (n > current->files->max_fdset)
+-		n = current->files->max_fdset;
+-
+-	/*
+-	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
+-	 * since we used fdset we need to allocate memory in units of
+-	 * long-words.
+-	 */
+-	ret = -ENOMEM;
+-	size = FDS_BYTES(n);
+-	bits = kmalloc(6 * size, GFP_KERNEL);
+-	if (!bits)
+-		goto out_nofds;
+-	fds.in      = (unsigned long *)  bits;
+-	fds.out     = (unsigned long *) (bits +   size);
+-	fds.ex      = (unsigned long *) (bits + 2*size);
+-	fds.res_in  = (unsigned long *) (bits + 3*size);
+-	fds.res_out = (unsigned long *) (bits + 4*size);
+-	fds.res_ex  = (unsigned long *) (bits + 5*size);
+-
+-	nn = (n + 8*sizeof(u32) - 1) / (8*sizeof(u32));
+-	if ((ret = get_fd_set32(nn, fds.in, inp)) ||
+-	    (ret = get_fd_set32(nn, fds.out, outp)) ||
+-	    (ret = get_fd_set32(nn, fds.ex, exp)))
+-		goto out;
+-	zero_fd_set(n, fds.res_in);
+-	zero_fd_set(n, fds.res_out);
+-	zero_fd_set(n, fds.res_ex);
+-
+-	ret = do_select(n, &fds, &timeout);
+-
+-	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
+-		time_t sec = 0, usec = 0;
+-		if (timeout) {
+-			sec = timeout / HZ;
+-			usec = timeout % HZ;
+-			usec *= (1000000/HZ);
+-		}
+-		put_user(sec, &tvp->tv_sec);
+-		put_user(usec, &tvp->tv_usec);
+-	}
+-
+-	if (ret < 0)
+-		goto out;
+-	if (!ret) {
+-		ret = -ERESTARTNOHAND;
+-		if (signal_pending(current))
+-			goto out;
+-		ret = 0;
+-	}
+-
+-	set_fd_set32(nn, inp, fds.res_in);
+-	set_fd_set32(nn, outp, fds.res_out);
+-	set_fd_set32(nn, exp, fds.res_ex);
+-
+-out:
+-	kfree(bits);
+-out_nofds:
 -	return ret;
 -}
 -
- /*** copied from mips64 ***/
- /*
-  * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
-===== arch/parisc/kernel/syscall_table.S 1.5 vs edited =====
---- 1.5/arch/parisc/kernel/syscall_table.S	Sun Apr  4 00:57:02 2004
-+++ edited/arch/parisc/kernel/syscall_table.S	Sat Apr  3 23:00:24 2004
-@@ -236,8 +236,8 @@
+ 
+ asmlinkage int sys32_sched_rr_get_interval(compat_pid_t pid,
+ 	struct compat_timespec *interval)
+===== arch/mips/kernel/scall64-n32.S 1.3 vs edited =====
+--- 1.3/arch/mips/kernel/scall64-n32.S	Sat Apr  3 21:55:52 2004
++++ edited/arch/mips/kernel/scall64-n32.S	Sat Apr  3 22:41:53 2004
+@@ -132,7 +132,7 @@
+ 	PTR	compat_sys_writev
+ 	PTR	sys_access			/* 6020 */
+ 	PTR	sys_pipe
+-	PTR	sys32_select
++	PTR	compat_sys_select
+ 	PTR	sys_sched_yield
+ 	PTR	sys_mremap
+ 	PTR	sys_msync			/* 6025 */
+===== arch/mips/kernel/scall64-o32.S 1.3 vs edited =====
+--- 1.3/arch/mips/kernel/scall64-o32.S	Sat Apr  3 21:56:24 2004
++++ edited/arch/mips/kernel/scall64-o32.S	Sat Apr  3 22:42:06 2004
+@@ -397,7 +397,7 @@
+ 	sys	sys_setfsgid	1
+ 	sys	sys32_llseek	5			/* 4140 */
+ 	sys	sys32_getdents	3
+-	sys	sys32_select	5
++	sys	compat_sys_select	5
+ 	sys	sys_flock	2
+ 	sys	sys_msync	3
+ 	sys	compat_sys_readv	3		/* 4145 */
+===== arch/parisc/kernel/sys_parisc32.c 1.26 vs edited =====
+--- 1.26/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 23:16:03 2004
++++ edited/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 21:39:56 2004
+@@ -486,126 +486,6 @@
+ 		__put_user(*fdset, ufdset);
+ }
+ 
+-/*** This is a virtual copy of sys_select from fs/select.c and probably
+- *** should be compared to it from time to time
+- ***/
+-static inline void *select_bits_alloc(int size)
+-{
+-	return kmalloc(6 * size, GFP_KERNEL);
+-}
+-
+-static inline void select_bits_free(void *bits, int size)
+-{
+-	kfree(bits);
+-}
+-
+-/*
+- * We can actually return ERESTARTSYS instead of EINTR, but I'd
+- * like to be certain this leads to no problems. So I return
+- * EINTR just for safety.
+- *
+- * Update: ERESTARTSYS breaks at least the xview clock binary, so
+- * I'm trying ERESTARTNOHAND which restart only when you want to.
+- */
+-#define MAX_SELECT_SECONDS \
+-	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
+-#define DIVIDE_ROUND_UP(x,y) (((x)+(y)-1)/(y))
+-
+-asmlinkage long
+-sys32_select(int n, u32 *inp, u32 *outp, u32 *exp, struct compat_timeval *tvp)
+-{
+-	fd_set_bits fds;
+-	char *bits;
+-	long timeout;
+-	int ret, size, err;
+-
+-	timeout = MAX_SCHEDULE_TIMEOUT;
+-	if (tvp) {
+-		struct compat_timeval tv32;
+-		time_t sec, usec;
+-
+-		if ((ret = copy_from_user(&tv32, tvp, sizeof tv32)))
+-			goto out_nofds;
+-
+-		sec = tv32.tv_sec;
+-		usec = tv32.tv_usec;
+-
+-		ret = -EINVAL;
+-		if (sec < 0 || usec < 0)
+-			goto out_nofds;
+-
+-		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
+-			timeout = DIVIDE_ROUND_UP(usec, 1000000/HZ);
+-			timeout += sec * (unsigned long) HZ;
+-		}
+-	}
+-
+-	ret = -EINVAL;
+-	if (n < 0)
+-		goto out_nofds;
+-
+-	if (n > current->files->max_fdset)
+-		n = current->files->max_fdset;
+-
+-	/*
+-	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
+-	 * since we used fdset we need to allocate memory in units of
+-	 * long-words. 
+-	 */
+-	ret = -ENOMEM;
+-	size = FDS_BYTES(n);
+-	bits = select_bits_alloc(size);
+-	if (!bits)
+-		goto out_nofds;
+-	fds.in      = (unsigned long *)  bits;
+-	fds.out     = (unsigned long *) (bits +   size);
+-	fds.ex      = (unsigned long *) (bits + 2*size);
+-	fds.res_in  = (unsigned long *) (bits + 3*size);
+-	fds.res_out = (unsigned long *) (bits + 4*size);
+-	fds.res_ex  = (unsigned long *) (bits + 5*size);
+-
+-	if ((ret = get_fd_set32(n, inp, fds.in)) ||
+-	    (ret = get_fd_set32(n, outp, fds.out)) ||
+-	    (ret = get_fd_set32(n, exp, fds.ex)))
+-		goto out;
+-	zero_fd_set(n, fds.res_in);
+-	zero_fd_set(n, fds.res_out);
+-	zero_fd_set(n, fds.res_ex);
+-
+-	ret = do_select(n, &fds, &timeout);
+-
+-	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
+-		time_t sec = 0, usec = 0;
+-		if (timeout) {
+-			sec = timeout / HZ;
+-			usec = timeout % HZ;
+-			usec *= (1000000/HZ);
+-		}
+-		err = put_user(sec, &tvp->tv_sec);
+-		err |= __put_user(usec, &tvp->tv_usec);
+-		if (err)
+-			ret = -EFAULT;
+-	}
+-
+-	if (ret < 0)
+-		goto out;
+-	if (!ret) {
+-		ret = -ERESTARTNOHAND;
+-		if (signal_pending(current))
+-			goto out;
+-		ret = 0;
+-	}
+-
+-	set_fd_set32(n, inp, fds.res_in);
+-	set_fd_set32(n, outp, fds.res_out);
+-	set_fd_set32(n, exp, fds.res_ex);
+-
+-out:
+-	select_bits_free(bits, size);
+-out_nofds:
+-	return ret;
+-}
+-
+ struct msgbuf32 {
+     int mtype;
+     char mtext[1];
+@@ -662,7 +542,6 @@
+ 	kfree(mb);
+ 	return err;
+ }
+-
+ 
+ asmlinkage int sys32_sendfile(int out_fd, int in_fd, compat_off_t *offset, s32 count)
+ {
+===== arch/parisc/kernel/syscall_table.S 1.4 vs edited =====
+--- 1.4/arch/parisc/kernel/syscall_table.S	Fri Mar 26 20:05:25 2004
++++ edited/arch/parisc/kernel/syscall_table.S	Sat Apr  3 22:57:02 2004
+@@ -232,7 +232,7 @@
+ 	ENTRY_DIFF(getdents)
+ 	/* it is POSSIBLE that select will be OK because even though fd_set
+ 	 * contains longs, the macros and sizes are clever. */
+-	ENTRY_DIFF(select)
++	ENTRY_COMP(select)
  	ENTRY_SAME(flock)
  	ENTRY_SAME(msync)
  	/* struct iovec contains pointers */
--	ENTRY_DIFF(readv)		/* 145 */
--	ENTRY_DIFF(writev)
-+	ENTRY_COMP(readv)		/* 145 */
-+	ENTRY_COMP(writev)
- 	ENTRY_SAME(getsid)
- 	ENTRY_SAME(fdatasync)
- 	/* struct __sysctl_args is a mess */
-===== arch/ppc64/kernel/misc.S 1.74 vs edited =====
---- 1.74/arch/ppc64/kernel/misc.S	Fri Mar 26 20:05:26 2004
-+++ edited/arch/ppc64/kernel/misc.S	Sat Apr  3 19:56:39 2004
-@@ -717,8 +717,8 @@
- 	.llong .ppc32_select
- 	.llong .sys_flock
- 	.llong .sys_msync
--	.llong .sys32_readv		/* 145 */
--	.llong .sys32_writev
-+	.llong .compat_sys_readv	/* 145 */
-+	.llong .compat_sys_writev
- 	.llong .sys32_getsid
- 	.llong .sys_fdatasync
- 	.llong .sys32_sysctl
-===== arch/ppc64/kernel/sys_ppc32.c 1.86 vs edited =====
---- 1.86/arch/ppc64/kernel/sys_ppc32.c	Wed Mar 24 13:24:38 2004
-+++ edited/arch/ppc64/kernel/sys_ppc32.c	Sat Apr  3 19:51:49 2004
-@@ -78,178 +78,6 @@
- 
- #include "pci.h"
- 
--typedef ssize_t (*io_fn_t)(struct file *, char *, size_t, loff_t *);
--typedef ssize_t (*iov_fn_t)(struct file *, const struct iovec *, unsigned long, loff_t *);
--
--static long do_readv_writev32(int type, struct file *file,
--			      const struct compat_iovec *vector, u32 count)
--{
--	compat_ssize_t tot_len;
--	struct iovec iovstack[UIO_FASTIOV];
--	struct iovec *iov=iovstack, *ivp;
--	struct inode *inode;
--	long retval, i;
--	io_fn_t fn;
--	iov_fn_t fnv;
--
--	/*
--	 * SuS says "The readv() function *may* fail if the iovcnt argument
--	 * was less than or equal to 0, or greater than {IOV_MAX}.  Linux has
--	 * traditionally returned zero for zero segments, so...
--	 */
--	retval = 0;
--	if (count == 0)
--		goto out;
--
--	/* First get the "struct iovec" from user memory and
--	 * verify all the pointers
--	 */
--	retval = -EINVAL;
--	if (count > UIO_MAXIOV)
--		goto out;
--	if (!file->f_op)
--		goto out;
--	if (count > UIO_FASTIOV) {
--		retval = -ENOMEM;
--		iov = kmalloc(count*sizeof(struct iovec), GFP_KERNEL);
--		if (!iov)
--			goto out;
--	}
--	retval = -EFAULT;
--	if (verify_area(VERIFY_READ, vector, sizeof(struct compat_iovec)*count))
--		goto out;
--
--	/*
--	 * Single unix specification:
--	 * We should -EINVAL if an element length is not >= 0 and fitting an
--	 * ssize_t.  The total length is fitting an ssize_t
--	 *
--	 * Be careful here because iov_len is a size_t not an ssize_t
--	 */
--	tot_len = 0;
--	i = count;
--	ivp = iov;
--	retval = -EINVAL;
--	while(i > 0) {
--		compat_ssize_t tmp = tot_len;
--		compat_ssize_t len;
--		u32 buf;
--
--		if (__get_user(len, &vector->iov_len) ||
--		    __get_user(buf, &vector->iov_base)) {
--			retval = -EFAULT;
--			goto out;
--		}
--		if (len < 0)	/* size_t not fitting an compat_ssize_t .. */
--			goto out;
--		tot_len += len;
--		if (tot_len < tmp) /* maths overflow on the compat_ssize_t */
--			goto out;
--		ivp->iov_base = (void *)A(buf);
--		ivp->iov_len = (__kernel_size_t) len;
--		vector++;
--		ivp++;
--		i--;
--	}
--	if (tot_len == 0) {
--		retval = 0;
--		goto out;
--	}
--
--	inode = file->f_dentry->d_inode;
--	/* VERIFY_WRITE actually means a read, as we write to user space */
--	retval = locks_verify_area((type == READ
--				    ? FLOCK_VERIFY_READ : FLOCK_VERIFY_WRITE),
--				   inode, file, file->f_pos, tot_len);
--	if (retval)
--		goto out;
--
--	if (type == READ) {
--		fn = file->f_op->read;
--		fnv = file->f_op->readv;
--	} else {
--		fn = (io_fn_t)file->f_op->write;
--		fnv = file->f_op->writev;
--	}
--	if (fnv) {
--		retval = fnv(file, iov, count, &file->f_pos);
--		goto out;
--	}
--
--	/* Do it by hand, with file-ops */
--	ivp = iov;
--	while (count > 0) {
--		void * base;
--		int len, nr;
--
--		base = ivp->iov_base;
--		len = ivp->iov_len;
--		ivp++;
--		count--;
--
--		nr = fn(file, base, len, &file->f_pos);
--
--		if (nr < 0) {
--			if (!retval)
--				retval = nr;
--			break;
--		}
--		retval += nr;
--		if (nr != len)
--			break;
--	}
--out:
--	if (iov != iovstack)
--		kfree(iov);
--	if ((retval + (type == READ)) > 0)
--		dnotify_parent(file->f_dentry,
--			       (type == READ) ? DN_ACCESS : DN_MODIFY);
--
--	return retval;
--}
--
--asmlinkage long sys32_readv(int fd, struct compat_iovec *vector, u32 count)
--{
--	struct file *file;
--	int ret = -EBADF;
--
--	file = fget(fd);
--	if (!file || !(file->f_mode & FMODE_READ))
--		goto out; 
--
--	ret = -EINVAL;
--	if (!file->f_op || (!file->f_op->readv && !file->f_op->read))
--		goto out;
--
--	ret = do_readv_writev32(READ, file, vector, count);
--
--out:
--	if (file)
--		fput(file);
--	return ret;
--}
--
--asmlinkage long sys32_writev(int fd, struct compat_iovec *vector, u32 count)
--{
--	struct file *file;
--	int ret = -EBADF;
--
--	file = fget(fd);
--	if (!file || !(file->f_mode & FMODE_WRITE))
--		goto out;
--
--	ret = -EINVAL;
--	if (!file->f_op || (!file->f_op->writev && !file->f_op->write))
--		goto out;
--
--	ret = do_readv_writev32(WRITE, file, vector, count);
--
--out:
--	if (file)
--		fput(file);
--	return ret;
--}
--
- /* readdir & getdents */
- #define NAME_OFFSET(de) ((int) ((de)->d_name - (char *) (de)))
- #define ROUND_UP(x) (((x)+sizeof(u32)-1) & ~(sizeof(u32)-1))
-===== arch/s390/kernel/compat_linux.c 1.19 vs edited =====
---- 1.19/arch/s390/kernel/compat_linux.c	Sat Mar 27 22:46:54 2004
-+++ edited/arch/s390/kernel/compat_linux.c	Sat Apr  3 19:51:49 2004
-@@ -373,144 +373,6 @@
- 		return sys_ftruncate(fd, (high << 32) | low);
+===== arch/ppc64/kernel/sys_ppc32.c 1.88 vs edited =====
+--- 1.88/arch/ppc64/kernel/sys_ppc32.c	Sat Apr  3 23:16:41 2004
++++ edited/arch/ppc64/kernel/sys_ppc32.c	Sat Apr  3 22:11:06 2004
+@@ -226,167 +226,12 @@
+ 	return error;
  }
  
--typedef ssize_t (*io_fn_t)(struct file *, char *, size_t, loff_t *);
--typedef ssize_t (*iov_fn_t)(struct file *, const struct iovec *, unsigned long, loff_t *);
--
--static long do_readv_writev32(int type, struct file *file,
--			      const struct compat_iovec *vector, u32 count)
+-/*
+- * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
+- * 64-bit unsigned longs.
+- */
+-static inline int
+-get_fd_set32(unsigned long n, unsigned long *fdset, u32 *ufdset)
 -{
--	unsigned long tot_len;
--	struct iovec iovstack[UIO_FASTIOV];
--	struct iovec *iov=iovstack, *ivp;
--	struct inode *inode;
--	long retval, i;
--	io_fn_t fn;
--	iov_fn_t fnv;
+-	if (ufdset) {
+-		unsigned long odd;
 -
--	/* First get the "struct iovec" from user memory and
--	 * verify all the pointers
+-		if (verify_area(VERIFY_WRITE, ufdset, n*sizeof(u32)))
+-			return -EFAULT;
+-
+-		odd = n & 1UL;
+-		n &= ~1UL;
+-		while (n) {
+-			unsigned long h, l;
+-			__get_user(l, ufdset);
+-			__get_user(h, ufdset+1);
+-			ufdset += 2;
+-			*fdset++ = h << 32 | l;
+-			n -= 2;
+-		}
+-		if (odd)
+-			__get_user(*fdset, ufdset);
+-	} else {
+-		/* Tricky, must clear full unsigned long in the
+-		 * kernel fdset at the end, this makes sure that
+-		 * actually happens.
+-		 */
+-		memset(fdset, 0, ((n + 1) & ~1)*sizeof(u32));
+-	}
+-	return 0;
+-}
+-
+-static inline void
+-set_fd_set32(unsigned long n, u32 *ufdset, unsigned long *fdset)
+-{
+-	unsigned long odd;
+-
+-	if (!ufdset)
+-		return;
+-
+-	odd = n & 1UL;
+-	n &= ~1UL;
+-	while (n) {
+-		unsigned long h, l;
+-		l = *fdset++;
+-		h = l >> 32;
+-		__put_user(l, ufdset);
+-		__put_user(h, ufdset+1);
+-		ufdset += 2;
+-		n -= 2;
+-	}
+-	if (odd)
+-		__put_user(*fdset, ufdset);
+-}
+-
+-
+-
+-#define MAX_SELECT_SECONDS ((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
+-
+-asmlinkage long sys32_select(int n, u32 *inp, u32 *outp, u32 *exp, u32 tvp_x)
+-{
+-	fd_set_bits fds;
+-	struct compat_timeval *tvp = (struct compat_timeval *)AA(tvp_x);
+-	char *bits;
+-	unsigned long nn;
+-	long timeout;
+-	int ret, size, max_fdset;
+-
+-	timeout = MAX_SCHEDULE_TIMEOUT;
+-	if (tvp) {
+-		time_t sec, usec;
+-		if ((ret = verify_area(VERIFY_READ, tvp, sizeof(*tvp)))
+-		    || (ret = __get_user(sec, &tvp->tv_sec))
+-		    || (ret = __get_user(usec, &tvp->tv_usec)))
+-			goto out_nofds;
+-
+-		ret = -EINVAL;
+-		if(sec < 0 || usec < 0)
+-			goto out_nofds;
+-
+-		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
+-			timeout = (usec + 1000000/HZ - 1) / (1000000/HZ);
+-			timeout += sec * (unsigned long) HZ;
+-		}
+-	}
+-
+-	ret = -EINVAL;
+-	if (n < 0)
+-		goto out_nofds;
+-
+-	/* max_fdset can increase, so grab it once to avoid race */
+-	max_fdset = current->files->max_fdset;
+-	if (n > max_fdset)
+-		n = max_fdset;
+-
+-	/*
+-	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
+-	 * since we used fdset we need to allocate memory in units of
+-	 * long-words. 
 -	 */
--	if (!count)
--		return 0;
--	if (verify_area(VERIFY_READ, vector, sizeof(struct compat_iovec)*count))
--		return -EFAULT;
--	if (count > UIO_MAXIOV)
--		return -EINVAL;
--	if (count > UIO_FASTIOV) {
--		iov = kmalloc(count*sizeof(struct iovec), GFP_KERNEL);
--		if (!iov)
--			return -ENOMEM;
--	}
+-	ret = -ENOMEM;
+-	size = FDS_BYTES(n);
+-	bits = kmalloc(6 * size, GFP_KERNEL);
+-	if (!bits)
+-		goto out_nofds;
+-	fds.in      = (unsigned long *)  bits;
+-	fds.out     = (unsigned long *) (bits +   size);
+-	fds.ex      = (unsigned long *) (bits + 2*size);
+-	fds.res_in  = (unsigned long *) (bits + 3*size);
+-	fds.res_out = (unsigned long *) (bits + 4*size);
+-	fds.res_ex  = (unsigned long *) (bits + 5*size);
 -
--	tot_len = 0;
--	i = count;
--	ivp = iov;
--	retval = -EINVAL;
--	while(i > 0) {
--		compat_ssize_t tmp = tot_len;
--		compat_ssize_t len;
--		u32 buf;
+-	nn = (n + 8*sizeof(u32) - 1) / (8*sizeof(u32));
+-	if ((ret = get_fd_set32(nn, fds.in, inp)) ||
+-	    (ret = get_fd_set32(nn, fds.out, outp)) ||
+-	    (ret = get_fd_set32(nn, fds.ex, exp)))
+-		goto out;
+-	zero_fd_set(n, fds.res_in);
+-	zero_fd_set(n, fds.res_out);
+-	zero_fd_set(n, fds.res_ex);
 -
--		if (__get_user(len, &vector->iov_len) ||
--		    __get_user(buf, &vector->iov_base)) {
--			retval = -EFAULT;
--			goto out;
+-	ret = do_select(n, &fds, &timeout);
+-
+-	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
+-		time_t sec = 0, usec = 0;
+-		if (timeout) {
+-			sec = timeout / HZ;
+-			usec = timeout % HZ;
+-			usec *= (1000000/HZ);
 -		}
--		if (len < 0)	/* size_t not fitting an ssize_t32 .. */
+-		put_user(sec, &tvp->tv_sec);
+-		put_user(usec, &tvp->tv_usec);
+-	}
+-
+-	if (ret < 0)
+-		goto out;
+-	if (!ret) {
+-		ret = -ERESTARTNOHAND;
+-		if (signal_pending(current))
 -			goto out;
--		tot_len += len;
--		if (tot_len < tmp) /* maths overflow on the compat_ssize_t */
--			goto out;
--		ivp->iov_base = (void *)A(buf);
--		ivp->iov_len = (__kernel_size_t) len;
--		vector++;
--		ivp++;
--		i--;
--	}
--	if (tot_len == 0) {
--		retval = 0;
--		goto out;
+-		ret = 0;
 -	}
 -
--	inode = file->f_dentry->d_inode;
--	/* VERIFY_WRITE actually means a read, as we write to user space */
--	retval = locks_verify_area((type == VERIFY_WRITE
--				    ? FLOCK_VERIFY_READ : FLOCK_VERIFY_WRITE),
--				   inode, file, file->f_pos, tot_len);
--	if (retval)
--		goto out;
--
--	/* VERIFY_WRITE actually means a read, as we write to user space */
--	fnv = (type == VERIFY_WRITE ? file->f_op->readv : file->f_op->writev);
--	if (fnv) {
--		retval = fnv(file, iov, count, &file->f_pos);
--		goto out;
--	}
--
--	fn = (type == VERIFY_WRITE ? file->f_op->read :
--	      (io_fn_t) file->f_op->write);
--
--	ivp = iov;
--	while (count > 0) {
--		void * base;
--		int len, nr;
--
--		base = ivp->iov_base;
--		len = ivp->iov_len;
--		ivp++;
--		count--;
--		nr = fn(file, base, len, &file->f_pos);
--		if (nr < 0) {
--			if (!retval)
--				retval = nr;
--			break;
--		}
--		retval += nr;
--		if (nr != len)
--			break;
--	}
+-	set_fd_set32(nn, inp, fds.res_in);
+-	set_fd_set32(nn, outp, fds.res_out);
+-	set_fd_set32(nn, exp, fds.res_ex);
+-  
 -out:
--	if (iov != iovstack)
--		kfree(iov);
+-	kfree(bits);
 -
--	return retval;
--}
--
--asmlinkage long sys32_readv(int fd, struct compat_iovec *vector, unsigned long count)
--{
--	struct file *file;
--	long ret = -EBADF;
--
--	file = fget(fd);
--	if(!file)
--		goto bad_file;
--
--	if (file->f_op && (file->f_mode & FMODE_READ) &&
--	    (file->f_op->readv || file->f_op->read))
--		ret = do_readv_writev32(VERIFY_WRITE, file, vector, count);
--	fput(file);
--
--bad_file:
+-out_nofds:
 -	return ret;
 -}
 -
--asmlinkage long sys32_writev(int fd, struct compat_iovec *vector, unsigned long count)
+-int ppc32_select(u32 n, u32* inp, u32* outp, u32* exp, u32 tvp_x)
++asmlinkage long ppc32_select(u32 n, compat_ulong_t __user *inp,
++		compat_ulong_t __user *outp, compat_ulong_t __user *exp,
++		compat_uptr_t tvp_x)
+ {
+ 	/* sign extend n */
+-	return sys32_select((int)n, inp, outp, exp, tvp_x);
++	return compat_sys_select((int)n, inp, outp, exp, compat_ptr(tvp_x));
+ }
+ 
+ int cp_compat_stat(struct kstat *stat, struct compat_stat *statbuf)
+===== arch/s390/kernel/compat_linux.c 1.21 vs edited =====
+--- 1.21/arch/s390/kernel/compat_linux.c	Sat Apr  3 23:17:59 2004
++++ edited/arch/s390/kernel/compat_linux.c	Sat Apr  3 21:39:56 2004
+@@ -503,160 +503,6 @@
+ 
+ /* end of readdir & getdents */
+ 
+-/*
+- * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
+- * 64-bit unsigned longs.
+- */
+-
+-static inline int
+-get_fd_set32(unsigned long n, unsigned long *fdset, u32 *ufdset)
 -{
--	struct file *file;
--	int ret = -EBADF;
+-	if (ufdset) {
+-		unsigned long odd;
 -
--	file = fget(fd);
--	if(!file)
--		goto bad_file;
--	if (file->f_op && (file->f_mode & FMODE_WRITE) &&
--	    (file->f_op->writev || file->f_op->write))
--		ret = do_readv_writev32(VERIFY_READ, file, vector, count);
--	fput(file);
+-		if (verify_area(VERIFY_WRITE, ufdset, n*sizeof(u32)))
+-			return -EFAULT;
 -
--bad_file:
+-		odd = n & 1UL;
+-		n &= ~1UL;
+-		while (n) {
+-			unsigned long h, l;
+-			__get_user(l, ufdset);
+-			__get_user(h, ufdset+1);
+-			ufdset += 2;
+-			*fdset++ = h << 32 | l;
+-			n -= 2;
+-		}
+-		if (odd)
+-			__get_user(*fdset, ufdset);
+-	} else {
+-		/* Tricky, must clear full unsigned long in the
+-		 * kernel fdset at the end, this makes sure that
+-		 * actually happens.
+-		 */
+-		memset(fdset, 0, ((n + 1) & ~1)*sizeof(u32));
+-	}
+-	return 0;
+-}
+-
+-static inline void
+-set_fd_set32(unsigned long n, u32 *ufdset, unsigned long *fdset)
+-{
+-	unsigned long odd;
+-
+-	if (!ufdset)
+-		return;
+-
+-	odd = n & 1UL;
+-	n &= ~1UL;
+-	while (n) {
+-		unsigned long h, l;
+-		l = *fdset++;
+-		h = l >> 32;
+-		__put_user(l, ufdset);
+-		__put_user(h, ufdset+1);
+-		ufdset += 2;
+-		n -= 2;
+-	}
+-	if (odd)
+-		__put_user(*fdset, ufdset);
+-}
+-
+-#define MAX_SELECT_SECONDS \
+-	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
+-
+-asmlinkage long sys32_select(int n, u32 *inp, u32 *outp, u32 *exp,
+-				struct compat_timeval *tvp)
+-{
+-	fd_set_bits fds;
+-	char *bits;
+-	unsigned long nn;
+-	long timeout;
+-	int ret, size;
+-
+-	timeout = MAX_SCHEDULE_TIMEOUT;
+-	if (tvp) {
+-		int sec, usec;
+-
+-		if ((ret = verify_area(VERIFY_READ, tvp, sizeof(*tvp)))
+-		    || (ret = __get_user(sec, &tvp->tv_sec))
+-		    || (ret = __get_user(usec, &tvp->tv_usec)))
+-			goto out_nofds;
+-
+-		ret = -EINVAL;
+-		if(sec < 0 || usec < 0)
+-			goto out_nofds;
+-
+-		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
+-			timeout = (usec + 1000000/HZ - 1) / (1000000/HZ);
+-			timeout += sec * (unsigned long) HZ;
+-		}
+-	}
+-
+-	ret = -EINVAL;
+-	if (n < 0)
+-		goto out_nofds;
+-	if (n > current->files->max_fdset)
+-		n = current->files->max_fdset;
+-
+-	/*
+-	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
+-	 * since we used fdset we need to allocate memory in units of
+-	 * long-words. 
+-	 */
+-	ret = -ENOMEM;
+-	size = FDS_BYTES(n);
+-	bits = kmalloc(6 * size, GFP_KERNEL);
+-	if (!bits)
+-		goto out_nofds;
+-	fds.in      = (unsigned long *)  bits;
+-	fds.out     = (unsigned long *) (bits +   size);
+-	fds.ex      = (unsigned long *) (bits + 2*size);
+-	fds.res_in  = (unsigned long *) (bits + 3*size);
+-	fds.res_out = (unsigned long *) (bits + 4*size);
+-	fds.res_ex  = (unsigned long *) (bits + 5*size);
+-
+-	nn = (n + 8*sizeof(u32) - 1) / (8*sizeof(u32));
+-	if ((ret = get_fd_set32(nn, fds.in, inp)) ||
+-	    (ret = get_fd_set32(nn, fds.out, outp)) ||
+-	    (ret = get_fd_set32(nn, fds.ex, exp)))
+-		goto out;
+-	zero_fd_set(n, fds.res_in);
+-	zero_fd_set(n, fds.res_out);
+-	zero_fd_set(n, fds.res_ex);
+-
+-	ret = do_select(n, &fds, &timeout);
+-
+-	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
+-		int sec = 0, usec = 0;
+-		if (timeout) {
+-			sec = timeout / HZ;
+-			usec = timeout % HZ;
+-			usec *= (1000000/HZ);
+-		}
+-		put_user(sec, &tvp->tv_sec);
+-		put_user(usec, &tvp->tv_usec);
+-	}
+-
+-	if (ret < 0)
+-		goto out;
+-	if (!ret) {
+-		ret = -ERESTARTNOHAND;
+-		if (signal_pending(current))
+-			goto out;
+-		ret = 0;
+-	}
+-
+-	set_fd_set32(nn, inp, fds.res_in);
+-	set_fd_set32(nn, outp, fds.res_out);
+-	set_fd_set32(nn, exp, fds.res_ex);
+-
+-out:
+-	kfree(bits);
+-out_nofds:
 -	return ret;
 -}
 -
- /* readdir & getdents */
+ int cp_compat_stat(struct kstat *stat, struct compat_stat *statbuf)
+ {
+ 	int err;
+===== arch/s390/kernel/compat_wrapper.S 1.10 vs edited =====
+--- 1.10/arch/s390/kernel/compat_wrapper.S	Sat Apr  3 21:57:56 2004
++++ edited/arch/s390/kernel/compat_wrapper.S	Sat Apr  3 22:11:49 2004
+@@ -641,14 +641,14 @@
+ 	llgfr	%r4,%r4			# unsigned int
+ 	jg	sys32_getdents		# branch to system call
  
- #define NAME_OFFSET(de) ((int) ((de)->d_name - (char *) (de)))
-===== arch/s390/kernel/compat_wrapper.S 1.9 vs edited =====
---- 1.9/arch/s390/kernel/compat_wrapper.S	Sat Mar 27 22:43:12 2004
-+++ edited/arch/s390/kernel/compat_wrapper.S	Sat Apr  3 19:57:56 2004
-@@ -663,19 +663,19 @@
- 	lgfr	%r4,%r4			# int
- 	jg	sys_msync		# branch to system call
- 
--	.globl  sys32_readv_wrapper 
--sys32_readv_wrapper:
-+	.globl  compat_sys_readv_wrapper 
-+compat_sys_readv_wrapper:
+-	.globl  sys32_select_wrapper 
+-sys32_select_wrapper:
++	.globl  compat_sys_select_wrapper 
++compat_sys_select_wrapper:
  	lgfr	%r2,%r2			# int
--	llgtr	%r3,%r3			# const struct iovec_emu31 *
-+	llgtr	%r3,%r3			# const struct compat_iovec *
- 	llgfr	%r4,%r4			# unsigned long
--	jg	sys32_readv		# branch to system call
-+	jg	compat_sys_readv	# branch to system call
+-	llgtr	%r3,%r3			# fd_set *
+-	llgtr	%r4,%r4			# fd_set *
+-	llgtr	%r5,%r5			# fd_set *
+-	llgtr	%r6,%r6			# struct timeval_emu31 *
+-	jg	sys32_select		# branch to system call
++	llgtr	%r3,%r3			# compat_fd_set *
++	llgtr	%r4,%r4			# compat_fd_set *
++	llgtr	%r5,%r5			# compat_fd_set *
++	llgtr	%r6,%r6			# struct compat_timeval *
++	jg	compat_sys_select	# branch to system call
  
--	.globl  sys32_writev_wrapper 
--sys32_writev_wrapper:
-+	.globl  compat_sys_writev_wrapper 
-+compat_sys_writev_wrapper:
- 	lgfr	%r2,%r2			# int
--	llgtr	%r3,%r3			# const struct iovec_emu31 *
-+	llgtr	%r3,%r3			# const struct compat_iovec *
- 	llgfr	%r4,%r4			# unsigned long
--	jg	sys32_writev		# branch to system call
-+	jg	compat_sys_writev	# branch to system call
- 
- 	.globl  sys32_getsid_wrapper 
- sys32_getsid_wrapper:
-===== arch/s390/kernel/syscalls.S 1.9 vs edited =====
---- 1.9/arch/s390/kernel/syscalls.S	Wed Mar 17 13:02:24 2004
-+++ edited/arch/s390/kernel/syscalls.S	Sat Apr  3 19:58:13 2004
-@@ -153,8 +153,8 @@
- SYSCALL(sys_select,sys_select,sys32_select_wrapper)
+ 	.globl  sys32_flock_wrapper 
+ sys32_flock_wrapper:
+===== arch/s390/kernel/syscalls.S 1.10 vs edited =====
+--- 1.10/arch/s390/kernel/syscalls.S	Sat Apr  3 21:58:13 2004
++++ edited/arch/s390/kernel/syscalls.S	Sat Apr  3 22:12:19 2004
+@@ -150,7 +150,7 @@
+ SYSCALL(sys_setfsgid16,sys_ni_syscall,sys32_setfsgid16_wrapper)	/* old setfsgid16 syscall */
+ SYSCALL(sys_llseek,sys_llseek,sys32_llseek_wrapper)		/* 140 */
+ SYSCALL(sys_getdents,sys_getdents,sys32_getdents_wrapper)
+-SYSCALL(sys_select,sys_select,sys32_select_wrapper)
++SYSCALL(sys_select,sys_select,compat_sys_select_wrapper)
  SYSCALL(sys_flock,sys_flock,sys32_flock_wrapper)
  SYSCALL(sys_msync,sys_msync,sys32_msync_wrapper)
--SYSCALL(sys_readv,sys_readv,sys32_readv_wrapper)		/* 145 */
--SYSCALL(sys_writev,sys_writev,sys32_writev_wrapper)
-+SYSCALL(sys_readv,sys_readv,compat_sys_readv_wrapper)		/* 145 */
-+SYSCALL(sys_writev,sys_writev,compat_sys_writev_wrapper)
- SYSCALL(sys_getsid,sys_getsid,sys32_getsid_wrapper)
- SYSCALL(sys_fdatasync,sys_fdatasync,sys32_fdatasync_wrapper)
- SYSCALL(sys_sysctl,sys_sysctl,sys32_sysctl_wrapper)
-===== arch/sparc64/kernel/sys_sparc32.c 1.95 vs edited =====
---- 1.95/arch/sparc64/kernel/sys_sparc32.c	Sat Mar 27 22:46:54 2004
-+++ edited/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 19:51:49 2004
-@@ -832,182 +832,6 @@
- 		return sys_ftruncate(fd, (high << 32) | low);
- }
+ SYSCALL(sys_readv,sys_readv,compat_sys_readv_wrapper)		/* 145 */
+===== arch/sparc64/kernel/sys_sparc32.c 1.97 vs edited =====
+--- 1.97/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 23:19:17 2004
++++ edited/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 21:39:56 2004
+@@ -964,158 +964,6 @@
  
--typedef ssize_t (*io_fn_t)(struct file *, char *, size_t, loff_t *);
--typedef ssize_t (*iov_fn_t)(struct file *, const struct iovec *, unsigned long, loff_t *);
+ /* end of readdir & getdents */
+ 
+-/*
+- * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
+- * 64-bit unsigned longs.
+- */
 -
--static long do_readv_writev32(int type, struct file *file,
--			      const struct compat_iovec *vector, u32 count)
+-static int get_fd_set32(unsigned long n, unsigned long *fdset, u32 *ufdset)
 -{
--	compat_ssize_t tot_len;
--	struct iovec iovstack[UIO_FASTIOV];
--	struct iovec *iov=iovstack, *ivp;
--	struct inode *inode;
--	long retval, i;
--	io_fn_t fn;
--	iov_fn_t fnv;
+-	if (ufdset) {
+-		unsigned long odd;
 -
--	/*
--	 * SuS says "The readv() function *may* fail if the iovcnt argument
--	 * was less than or equal to 0, or greater than {IOV_MAX}.  Linux has
--	 * traditionally returned zero for zero segments, so...
--	 */
--	retval = 0;
--	if (count == 0)
--		goto out;
+-		if (verify_area(VERIFY_WRITE, ufdset, n*sizeof(u32)))
+-			return -EFAULT;
 -
--	/* First get the "struct iovec" from user memory and
--	 * verify all the pointers
--	 */
--	retval = -EINVAL;
--	if (count > UIO_MAXIOV)
--		goto out;
--	if (!file->f_op)
--		goto out;
--	if (count > UIO_FASTIOV) {
--		retval = -ENOMEM;
--		iov = kmalloc(count*sizeof(struct iovec), GFP_KERNEL);
--		if (!iov)
--			goto out;
--	}
--	retval = -EFAULT;
--	if (verify_area(VERIFY_READ, vector, sizeof(struct compat_iovec)*count))
--		goto out;
--
--	/*
--	 * Single unix specification:
--	 * We should -EINVAL if an element length is not >= 0 and fitting an
--	 * ssize_t.  The total length is fitting an ssize_t
--	 *
--	 * Be careful here because iov_len is a size_t not an ssize_t
--	 */
--	tot_len = 0;
--	i = count;
--	ivp = iov;
--	retval = -EINVAL;
--	while(i > 0) {
--		compat_ssize_t tmp = tot_len;
--		compat_ssize_t len;
--		u32 buf;
--
--		if (__get_user(len, &vector->iov_len) ||
--		    __get_user(buf, &vector->iov_base)) {
--			retval = -EFAULT;
--			goto out;
+-		odd = n & 1UL;
+-		n &= ~1UL;
+-		while (n) {
+-			unsigned long h, l;
+-			__get_user(l, ufdset);
+-			__get_user(h, ufdset+1);
+-			ufdset += 2;
+-			*fdset++ = h << 32 | l;
+-			n -= 2;
 -		}
--		if (len < 0)	/* size_t not fitting an ssize_t32 .. */
--			goto out;
--		tot_len += len;
--		if (tot_len < tmp) /* maths overflow on the compat_ssize_t */
--			goto out;
--		ivp->iov_base = (void *)A(buf);
--		ivp->iov_len = (__kernel_size_t) len;
--		vector++;
--		ivp++;
--		i--;
--	}
--	if (tot_len == 0) {
--		retval = 0;
--		goto out;
--	}
--
--	inode = file->f_dentry->d_inode;
--	/* VERIFY_WRITE actually means a read, as we write to user space */
--	retval = locks_verify_area((type == READ
--				    ? FLOCK_VERIFY_READ : FLOCK_VERIFY_WRITE),
--				   inode, file, file->f_pos, tot_len);
--	if (retval)
--		goto out;
--
--	if (type == READ) {
--		fn = file->f_op->read;
--		fnv = file->f_op->readv;
+-		if (odd)
+-			__get_user(*fdset, ufdset);
 -	} else {
--		fn = (io_fn_t)file->f_op->write;
--		fnv = file->f_op->writev;
+-		/* Tricky, must clear full unsigned long in the
+-		 * kernel fdset at the end, this makes sure that
+-		 * actually happens.
+-		 */
+-		memset(fdset, 0, ((n + 1) & ~1)*sizeof(u32));
 -	}
--	if (fnv) {
--		retval = fnv(file, iov, count, &file->f_pos);
--		goto out;
+-	return 0;
+-}
+-
+-static void set_fd_set32(unsigned long n, u32 *ufdset, unsigned long *fdset)
+-{
+-	unsigned long odd;
+-
+-	if (!ufdset)
+-		return;
+-
+-	odd = n & 1UL;
+-	n &= ~1UL;
+-	while (n) {
+-		unsigned long h, l;
+-		l = *fdset++;
+-		h = l >> 32;
+-		__put_user(l, ufdset);
+-		__put_user(h, ufdset+1);
+-		ufdset += 2;
+-		n -= 2;
 -	}
+-	if (odd)
+-		__put_user(*fdset, ufdset);
+-}
 -
--	/* Do it by hand, with file-ops */
--	ivp = iov;
--	while (count > 0) {
--		void * base;
--		int len, nr;
+-#define MAX_SELECT_SECONDS \
+-	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
 -
--		base = ivp->iov_base;
--		len = ivp->iov_len;
--		ivp++;
--		count--;
+-asmlinkage int sys32_select(int n, u32 *inp, u32 *outp, u32 *exp, u32 tvp_x)
+-{
+-	fd_set_bits fds;
+-	struct compat_timeval *tvp = (struct compat_timeval *)AA(tvp_x);
+-	char *bits;
+-	unsigned long nn;
+-	long timeout;
+-	int ret, size;
 -
--		nr = fn(file, base, len, &file->f_pos);
+-	timeout = MAX_SCHEDULE_TIMEOUT;
+-	if (tvp) {
+-		time_t sec, usec;
 -
--		if (nr < 0) {
--			if (!retval)
--				retval = nr;
--			break;
+-		if ((ret = verify_area(VERIFY_READ, tvp, sizeof(*tvp)))
+-		    || (ret = __get_user(sec, &tvp->tv_sec))
+-		    || (ret = __get_user(usec, &tvp->tv_usec)))
+-			goto out_nofds;
+-
+-		ret = -EINVAL;
+-		if(sec < 0 || usec < 0)
+-			goto out_nofds;
+-
+-		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
+-			timeout = (usec + 1000000/HZ - 1) / (1000000/HZ);
+-			timeout += sec * (unsigned long) HZ;
 -		}
--		retval += nr;
--		if (nr != len)
--			break;
 -	}
--out:
--	if (iov != iovstack)
--		kfree(iov);
--	if ((retval + (type == READ)) > 0)
--		dnotify_parent(file->f_dentry,
--			(type == READ) ? DN_ACCESS : DN_MODIFY);
 -
--	return retval;
--}
--
--asmlinkage long sys32_readv(int fd, struct compat_iovec *vector, u32 count)
--{
--	struct file *file;
--	int ret;
--
--	file = fget(fd);
--	if(!file)
--		return -EBADF;
--
--	ret = -EBADF;
--	if (!(file->f_mode & FMODE_READ))
--		goto out;
 -	ret = -EINVAL;
--	if (!file->f_op || (!file->f_op->readv && !file->f_op->read))
--		goto out;
+-	if (n < 0)
+-		goto out_nofds;
+-	if (n > current->files->max_fdset)
+-		n = current->files->max_fdset;
 -
--	ret = do_readv_writev32(READ, file, vector, count);
+-	/*
+-	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
+-	 * since we used fdset we need to allocate memory in units of
+-	 * long-words. 
+-	 */
+-	ret = -ENOMEM;
+-	size = FDS_BYTES(n);
+-	bits = kmalloc(6 * size, GFP_KERNEL);
+-	if (!bits)
+-		goto out_nofds;
+-	fds.in      = (unsigned long *)  bits;
+-	fds.out     = (unsigned long *) (bits +   size);
+-	fds.ex      = (unsigned long *) (bits + 2*size);
+-	fds.res_in  = (unsigned long *) (bits + 3*size);
+-	fds.res_out = (unsigned long *) (bits + 4*size);
+-	fds.res_ex  = (unsigned long *) (bits + 5*size);
+-
+-	nn = (n + 8*sizeof(u32) - 1) / (8*sizeof(u32));
+-	if ((ret = get_fd_set32(nn, fds.in, inp)) ||
+-	    (ret = get_fd_set32(nn, fds.out, outp)) ||
+-	    (ret = get_fd_set32(nn, fds.ex, exp)))
+-		goto out;
+-	zero_fd_set(n, fds.res_in);
+-	zero_fd_set(n, fds.res_out);
+-	zero_fd_set(n, fds.res_ex);
+-
+-	ret = do_select(n, &fds, &timeout);
+-
+-	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
+-		time_t sec = 0, usec = 0;
+-		if (timeout) {
+-			sec = timeout / HZ;
+-			usec = timeout % HZ;
+-			usec *= (1000000/HZ);
+-		}
+-		put_user(sec, &tvp->tv_sec);
+-		put_user(usec, &tvp->tv_usec);
+-	}
+-
+-	if (ret < 0)
+-		goto out;
+-	if (!ret) {
+-		ret = -ERESTARTNOHAND;
+-		if (signal_pending(current))
+-			goto out;
+-		ret = 0;
+-	}
+-
+-	set_fd_set32(nn, inp, fds.res_in);
+-	set_fd_set32(nn, outp, fds.res_out);
+-	set_fd_set32(nn, exp, fds.res_ex);
 -
 -out:
--	fput(file);
+-	kfree(bits);
+-out_nofds:
 -	return ret;
 -}
 -
--asmlinkage long sys32_writev(int fd, struct compat_iovec *vector, u32 count)
--{
--	struct file *file;
--	int ret;
--
--	file = fget(fd);
--	if(!file)
--		return -EBADF;
--
--	ret = -EBADF;
--	if (!(file->f_mode & FMODE_WRITE))
--		goto out;
--	ret = -EINVAL;
--	if (!file->f_op || (!file->f_op->writev && !file->f_op->write))
--		goto out;
--
--	ret = do_readv_writev32(WRITE, file, vector, count);
--
--out:
--	fput(file);
--	return ret;
--}
--
- /* readdir & getdents */
- 
- #define NAME_OFFSET(de) ((int) ((de)->d_name - (char *) (de)))
-===== arch/sparc64/kernel/sys_sunos32.c 1.39 vs edited =====
---- 1.39/arch/sparc64/kernel/sys_sunos32.c	Fri Mar 26 23:16:26 2004
-+++ edited/arch/sparc64/kernel/sys_sunos32.c	Sat Apr  3 20:06:40 2004
-@@ -1203,9 +1203,6 @@
+ int cp_compat_stat(struct kstat *stat, struct compat_stat *statbuf)
+ {
+ 	int err;
+===== arch/sparc64/kernel/sys_sunos32.c 1.40 vs edited =====
+--- 1.40/arch/sparc64/kernel/sys_sunos32.c	Sat Apr  3 22:06:40 2004
++++ edited/arch/sparc64/kernel/sys_sunos32.c	Sat Apr  3 22:45:08 2004
+@@ -528,18 +528,15 @@
  	return ret;
  }
  
--extern asmlinkage int sys32_readv(u32 fd, u32 vector, s32 count);
--extern asmlinkage int sys32_writev(u32 fd, u32 vector, s32 count);
+-/* SunOS mount system call emulation */
+-extern asmlinkage int
+-sys32_select(int n, u32 inp, u32 outp, u32 exp, u32 tvp);
 -
- asmlinkage int sunos_read(unsigned int fd, u32 buf, u32 count)
- {
- 	int ret;
-@@ -1218,7 +1215,7 @@
+ asmlinkage int sunos_select(int width, u32 inp, u32 outp, u32 exp, u32 tvp_x)
  {
  	int ret;
  
--	ret = check_nonblock(sys32_readv(fd, vector, count), fd);
-+	ret = check_nonblock(compat_sys_readv(fd, (void*)A(vector), count), fd);
- 	return ret;
- }
+ 	/* SunOS binaries expect that select won't change the tvp contents */
+-	ret = sys32_select (width, inp, outp, exp, tvp_x);
++	ret = compat_sys_select(width, compat_ptr(inp), compat_ptr(outp),
++				compat_ptr(exp), compat_ptr(tvp_x));
+ 	if (ret == -EINTR && tvp_x) {
+-		struct compat_timeval *tvp = (struct compat_timeval *)A(tvp_x);
++		struct compat_timeval *tvp = compat_ptr(tvp_x);
+ 		time_t sec, usec;
  
-@@ -1234,7 +1231,7 @@
- {
- 	int ret;
- 
--	ret = check_nonblock(sys32_writev(fd, vector, count), fd);
-+	ret = check_nonblock(compat_sys_writev(fd, (void*)A(vector), count), fd);
- 	return ret;
- }
- 
-===== arch/sparc64/kernel/systbls.S 1.52 vs edited =====
---- 1.52/arch/sparc64/kernel/systbls.S	Fri Mar 26 20:05:27 2004
-+++ edited/arch/sparc64/kernel/systbls.S	Sat Apr  3 20:00:19 2004
-@@ -43,7 +43,7 @@
+ 		__get_user(sec, &tvp->tv_sec);
+===== arch/sparc64/kernel/systbls.S 1.53 vs edited =====
+--- 1.53/arch/sparc64/kernel/systbls.S	Sat Apr  3 22:00:19 2004
++++ edited/arch/sparc64/kernel/systbls.S	Sat Apr  3 22:46:01 2004
+@@ -37,7 +37,7 @@
+ 	.word sys_madvise, sys_vhangup, sys32_truncate64, sys_mincore, sys32_getgroups16
+ /*80*/	.word sys32_setgroups16, sys_getpgrp, sys_setgroups, compat_sys_setitimer, sys32_ftruncate64
+ 	.word sys_swapon, compat_sys_getitimer, sys_setuid, sys_sethostname, sys_setgid
+-/*90*/	.word sys_dup2, sys_setfsuid, compat_sys_fcntl, sys32_select, sys_setfsgid
++/*90*/	.word sys_dup2, sys_setfsuid, compat_sys_fcntl, compat_sys_select, sys_setfsgid
+ 	.word sys_fsync, sys_setpriority32, sys_nis_syscall, sys_nis_syscall, sys_nis_syscall
+ /*100*/ .word sys_getpriority, sys32_rt_sigreturn, sys32_rt_sigaction, sys32_rt_sigprocmask, sys32_rt_sigpending
  	.word sys32_rt_sigtimedwait, sys32_rt_sigqueueinfo, sys32_rt_sigsuspend, sys_setresuid, sys_getresuid
- /*110*/	.word sys_setresgid, sys_getresgid, sys_setregid, sys_nis_syscall, sys_nis_syscall
- 	.word sys_getgroups, sys32_gettimeofday, compat_sys_getrusage, sys_nis_syscall, sys_getcwd
--/*120*/	.word sys32_readv, sys32_writev, sys32_settimeofday, sys32_fchown16, sys_fchmod
-+/*120*/	.word compat_sys_readv, compat_sys_writev, sys32_settimeofday, sys32_fchown16, sys_fchmod
- 	.word sys_nis_syscall, sys32_setreuid16, sys32_setregid16, sys_rename, sys_truncate
- /*130*/	.word sys_ftruncate, sys_flock, sys_lstat64, sys_nis_syscall, sys_nis_syscall
- 	.word sys_nis_syscall, sys_mkdir, sys_rmdir, sys32_utimes, sys_stat64
-===== arch/x86_64/ia32/ia32entry.S 1.30 vs edited =====
---- 1.30/arch/x86_64/ia32/ia32entry.S	Fri Mar 26 20:05:27 2004
-+++ edited/arch/x86_64/ia32/ia32entry.S	Sat Apr  3 20:00:33 2004
-@@ -450,8 +450,8 @@
- 	.quad sys32_select
+@@ -65,7 +65,7 @@
+ 	.word sys32_ipc, sys32_sigreturn, sys_clone, sys_nis_syscall, sys32_adjtimex
+ /*220*/	.word compat_sys_sigprocmask, sys_ni_syscall, sys32_delete_module, sys_ni_syscall, sys_getpgid
+ 	.word sys32_bdflush, sys32_sysfs, sys_nis_syscall, sys32_setfsuid16, sys32_setfsgid16
+-/*230*/	.word sys32_select, sys_time, sys_nis_syscall, sys_stime, compat_statfs64
++/*230*/	.word compat_sys_select, sys_time, sys_nis_syscall, sys_stime, compat_statfs64
+ 	.word compat_fstatfs64, sys_llseek, sys_mlock, sys_munlock, sys_mlockall
+ /*240*/	.word sys_munlockall, sys_sched_setparam, sys_sched_getparam, sys_sched_setscheduler, sys_sched_getscheduler
+ 	.word sys_sched_yield, sys_sched_get_priority_max, sys_sched_get_priority_min, sys32_sched_rr_get_interval, compat_sys_nanosleep
+===== arch/x86_64/ia32/ia32entry.S 1.31 vs edited =====
+--- 1.31/arch/x86_64/ia32/ia32entry.S	Sat Apr  3 22:00:33 2004
++++ edited/arch/x86_64/ia32/ia32entry.S	Sat Apr  3 22:13:48 2004
+@@ -447,7 +447,7 @@
+ 	.quad sys_setfsgid16
+ 	.quad sys_llseek		/* 140 */
+ 	.quad sys32_getdents
+-	.quad sys32_select
++	.quad compat_sys_select
  	.quad sys_flock
  	.quad sys_msync
--	.quad sys32_readv		/* 145 */
--	.quad sys32_writev
-+	.quad compat_sys_readv		/* 145 */
-+	.quad compat_sys_writev
- 	.quad sys_getsid
- 	.quad sys_fdatasync
- 	.quad sys32_sysctl	/* sysctl */
-===== arch/x86_64/ia32/sys_ia32.c 1.56 vs edited =====
---- 1.56/arch/x86_64/ia32/sys_ia32.c	Mon Mar 29 15:38:03 2004
-+++ edited/arch/x86_64/ia32/sys_ia32.c	Sat Apr  3 19:51:49 2004
-@@ -726,104 +726,6 @@
- 			    (struct compat_timeval *)A(a.tvp));
+ 	.quad compat_sys_readv		/* 145 */
+===== arch/x86_64/ia32/sys_ia32.c 1.58 vs edited =====
+--- 1.58/arch/x86_64/ia32/sys_ia32.c	Sat Apr  3 22:53:02 2004
++++ edited/arch/x86_64/ia32/sys_ia32.c	Sat Apr  3 22:13:24 2004
+@@ -606,107 +606,6 @@
+ 	return error;
  }
  
--static struct iovec *
--get_compat_iovec(struct compat_iovec *iov32, struct iovec *iov_buf, u32 *count, int type, int *errp)
+-/*
+- * We can actually return ERESTARTSYS instead of EINTR, but I'd
+- * like to be certain this leads to no problems. So I return
+- * EINTR just for safety.
+- *
+- * Update: ERESTARTSYS breaks at least the xview clock binary, so
+- * I'm trying ERESTARTNOHAND which restart only when you want to.
+- */
+-#define MAX_SELECT_SECONDS \
+-	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
+-#define ROUND_UP_TIME(x,y) (((x)+(y)-1)/(y))
+-
+-asmlinkage long
+-sys32_select(int n, fd_set *inp, fd_set *outp, fd_set *exp, struct compat_timeval *tvp32)
 -{
--	int i;
--	u32 buf, len;
--	struct iovec *ivp, *iov;
--	unsigned long totlen; 
+-	fd_set_bits fds;
+-	char *bits;
+-	long timeout;
+-	int ret, size;
 -
--	/* Get the "struct iovec" from user memory */
+-	timeout = MAX_SCHEDULE_TIMEOUT;
+-	if (tvp32) {
+-		time_t sec, usec;
 -
--	*errp = 0;
--	if (!*count)
--		return 0;
--	*errp = -EINVAL;
--	if (*count > UIO_MAXIOV)
--		return(struct iovec *)0;
--	*errp = -EFAULT;
--	if(verify_area(VERIFY_READ, iov32, sizeof(struct compat_iovec)*(*count)))
--		return(struct iovec *)0;
--	if (*count > UIO_FASTIOV) {
--		*errp = -ENOMEM; 
--		iov = kmalloc(*count*sizeof(struct iovec), GFP_KERNEL);
--		if (!iov)
--			return((struct iovec *)0);
--	} else
--		iov = iov_buf;
+-		get_user(sec, &tvp32->tv_sec);
+-		get_user(usec, &tvp32->tv_usec);
 -
--	ivp = iov;
--	totlen = 0;
--	for (i = 0; i < *count; i++) {
--		*errp = __get_user(len, &iov32->iov_len) |
--		  	__get_user(buf, &iov32->iov_base);	
--		if (*errp)
--			goto error;
--		*errp = verify_area(type, (void *)A(buf), len);
--		if (*errp) {
--			if (i > 0) { 
--				*count = i;
--				break;
--			} 
--			goto error;
+-		ret = -EINVAL;
+-		if (sec < 0 || usec < 0)
+-			goto out_nofds;
+-
+-		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
+-			timeout = ROUND_UP_TIME(usec, 1000000/HZ);
+-			timeout += sec * (unsigned long) HZ;
 -		}
--		/* SuS checks: */
--		*errp = -EINVAL; 
--		if ((int)len < 0)
--			goto error;
--		if ((totlen += len) >= 0x7fffffff)
--			goto error;			
--		ivp->iov_base = (void *)A(buf);
--		ivp->iov_len = (__kernel_size_t)len;
--		iov32++;
--		ivp++;
 -	}
--	*errp = 0;
--	return(iov);
 -
--error:
--	if (iov != iov_buf)
--		kfree(iov);
--	return NULL;
--}
+-	ret = -EINVAL;
+-	if (n < 0)
+-		goto out_nofds;
 -
--asmlinkage long
--sys32_readv(int fd, struct compat_iovec *vector, u32 count)
--{
--	struct iovec iovstack[UIO_FASTIOV];
--	struct iovec *iov;
--	int ret;
--	mm_segment_t old_fs = get_fs();
+-	if (n > current->files->max_fdset)
+-		n = current->files->max_fdset;
 -
--	if ((iov = get_compat_iovec(vector, iovstack, &count, VERIFY_WRITE, &ret)) == NULL)
--		return ret;
--	set_fs(KERNEL_DS);
--	ret = sys_readv(fd, iov, count);
--	set_fs(old_fs);
--	if (iov != iovstack)
--		kfree(iov);
+-	/*
+-	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
+-	 * since we used fdset we need to allocate memory in units of
+-	 * long-words. 
+-	 */
+-	ret = -ENOMEM;
+-	size = FDS_BYTES(n);
+-	bits = kmalloc(6 * size, GFP_KERNEL);
+-	if (!bits)
+-		goto out_nofds;
+-	fds.in      = (unsigned long *)  bits;
+-	fds.out     = (unsigned long *) (bits +   size);
+-	fds.ex      = (unsigned long *) (bits + 2*size);
+-	fds.res_in  = (unsigned long *) (bits + 3*size);
+-	fds.res_out = (unsigned long *) (bits + 4*size);
+-	fds.res_ex  = (unsigned long *) (bits + 5*size);
+-
+-	if ((ret = get_fd_set(n, inp, fds.in)) ||
+-	    (ret = get_fd_set(n, outp, fds.out)) ||
+-	    (ret = get_fd_set(n, exp, fds.ex)))
+-		goto out;
+-	zero_fd_set(n, fds.res_in);
+-	zero_fd_set(n, fds.res_out);
+-	zero_fd_set(n, fds.res_ex);
+-
+-	ret = do_select(n, &fds, &timeout);
+-
+-	if (tvp32 && !(current->personality & STICKY_TIMEOUTS)) {
+-		time_t sec = 0, usec = 0;
+-		if (timeout) {
+-			sec = timeout / HZ;
+-			usec = timeout % HZ;
+-			usec *= (1000000/HZ);
+-		}
+-		put_user(sec, (int *)&tvp32->tv_sec);
+-		put_user(usec, (int *)&tvp32->tv_usec);
+-	}
+-
+-	if (ret < 0)
+-		goto out;
+-	if (!ret) {
+-		ret = -ERESTARTNOHAND;
+-		if (signal_pending(current))
+-			goto out;
+-		ret = 0;
+-	}
+-
+-	set_fd_set(n, inp, fds.res_in);
+-	set_fd_set(n, outp, fds.res_out);
+-	set_fd_set(n, exp, fds.res_ex);
+-
+-out:
+-	kfree(bits);
+-out_nofds:
 -	return ret;
 -}
 -
--asmlinkage long
--sys32_writev(int fd, struct compat_iovec *vector, u32 count)
--{
--	struct iovec iovstack[UIO_FASTIOV];
--	struct iovec *iov;
--	int ret;
--	mm_segment_t old_fs = get_fs();
--
--	if ((iov = get_compat_iovec(vector, iovstack, &count, VERIFY_READ, &ret)) == NULL)
--		return ret;
--	set_fs(KERNEL_DS);
--	ret = sys_writev(fd, iov, count);
--	set_fs(old_fs);
--	if (iov != iovstack)
--		kfree(iov);
--	return ret;
--}
--
- /*
-  * sys_time() can be implemented in user-level using
-  * sys_gettimeofday().  x86-64 did this but i386 Linux did not
-===== fs/compat.c 1.22 vs edited =====
---- 1.22/fs/compat.c	Fri Mar 26 20:05:31 2004
-+++ edited/fs/compat.c	Sat Apr  3 19:51:49 2004
-@@ -34,9 +34,17 @@
- #include <linux/syscalls.h>
- #include <linux/ctype.h>
- #include <linux/module.h>
-+#include <linux/dnotify.h>
-+#include <linux/highuid.h>
-+#include <linux/sunrpc/svc.h>
-+#include <linux/nfsd/nfsd.h>
-+#include <linux/nfsd/syscall.h>
-+#include <linux/personality.h>
-+
- #include <net/sock.h>		/* siocdevprivate_ioctl */
+ struct sel_arg_struct {
+ 	unsigned int n;
+ 	unsigned int inp;
+@@ -722,8 +621,8 @@
  
- #include <asm/uaccess.h>
-+#include <asm/mmu_context.h>
+ 	if (copy_from_user(&a, arg, sizeof(a)))
+ 		return -EFAULT;
+-	return sys32_select(a.n, (fd_set *)A(a.inp), (fd_set *)A(a.outp), (fd_set *)A(a.exp),
+-			    (struct compat_timeval *)A(a.tvp));
++	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
++				 compat_ptr(a.exp), compat_ptr(a.tvp));
+ }
  
  /*
-  * Not all architectures have sys_utime, so implement this in terms
-@@ -794,3 +802,181 @@
+===== fs/compat.c 1.24 vs edited =====
+--- 1.24/fs/compat.c	Sat Apr  3 23:01:36 2004
++++ edited/fs/compat.c	Sat Apr  3 21:51:59 2004
+@@ -1213,3 +1213,190 @@
  	return retval;
  }
- 
-+static ssize_t compat_do_readv_writev(int type, struct file *file,
-+			       const struct compat_iovec __user *uvector,
-+			       unsigned long nr_segs, loff_t *pos)
+ #endif /* !__ia64__ */
++
++#define __COMPAT_NFDBITS       (8 * sizeof(compat_ulong_t))
++
++#define ROUND_UP(x,y) (((x)+(y)-1)/(y))
++
++/*
++ * Ooo, nasty.  We need here to frob 32-bit unsigned longs to
++ * 64-bit unsigned longs.
++ */
++static inline
++int compat_get_fd_set(unsigned long nr, compat_ulong_t __user *ufdset,
++			unsigned long *fdset)
 +{
-+	typedef ssize_t (*io_fn_t)(struct file *, char __user *, size_t, loff_t *);
-+	typedef ssize_t (*iov_fn_t)(struct file *, const struct iovec *, unsigned long, loff_t *);
++	nr = ROUND_UP(nr, __COMPAT_NFDBITS);
++	if (ufdset) {
++		unsigned long odd;
 +
-+	compat_ssize_t tot_len;
-+	struct iovec iovstack[UIO_FASTIOV];
-+	struct iovec *iov=iovstack, *vector;
-+	ssize_t ret;
-+	int seg;
-+	io_fn_t fn;
-+	iov_fn_t fnv;
-+	struct inode *inode;
++		if (verify_area(VERIFY_WRITE, ufdset, nr*sizeof(compat_ulong_t)))
++			return -EFAULT;
 +
-+	/*
-+	 * SuS says "The readv() function *may* fail if the iovcnt argument
-+	 * was less than or equal to 0, or greater than {IOV_MAX}.  Linux has
-+	 * traditionally returned zero for zero segments, so...
-+	 */
-+	ret = 0;
-+	if (nr_segs == 0)
-+		goto out;
-+
-+	/*
-+	 * First get the "struct iovec" from user memory and
-+	 * verify all the pointers
-+	 */
-+	ret = -EINVAL;
-+	if ((nr_segs > UIO_MAXIOV) || (nr_segs <= 0))
-+		goto out;
-+	if (!file->f_op)
-+		goto out;
-+	if (nr_segs > UIO_FASTIOV) {
-+		ret = -ENOMEM;
-+		iov = kmalloc(nr_segs*sizeof(struct iovec), GFP_KERNEL);
-+		if (!iov)
-+			goto out;
-+	}
-+	ret = -EFAULT;
-+	if (verify_area(VERIFY_READ, uvector, nr_segs*sizeof(*uvector)))
-+		goto out;
-+
-+	/*
-+	 * Single unix specification:
-+	 * We should -EINVAL if an element length is not >= 0 and fitting an
-+	 * ssize_t.  The total length is fitting an ssize_t
-+	 *
-+	 * Be careful here because iov_len is a size_t not an ssize_t
-+	 */
-+	tot_len = 0;
-+	vector = iov;
-+	ret = -EINVAL;
-+	for (seg = 0 ; seg < nr_segs; seg++) {
-+		compat_ssize_t tmp = tot_len;
-+		compat_ssize_t len;
-+		compat_uptr_t buf;
-+
-+		if (__get_user(len, &uvector->iov_len) ||
-+		    __get_user(buf, &uvector->iov_base)) {
-+			ret = -EFAULT;
-+			goto out;
++		odd = nr & 1UL;
++		nr &= ~1UL;
++		while (nr) {
++			unsigned long h, l;
++			__get_user(l, ufdset);
++			__get_user(h, ufdset+1);
++			ufdset += 2;
++			*fdset++ = h << 32 | l;
++			nr -= 2;
 +		}
-+		if (len < 0)	/* size_t not fitting an compat_ssize_t .. */
-+			goto out;
-+		tot_len += len;
-+		if (tot_len < tmp) /* maths overflow on the compat_ssize_t */
-+			goto out;
-+		vector->iov_base = compat_ptr(buf);
-+		vector->iov_len = (compat_size_t) len;
-+		uvector++;
-+		vector++;
-+	}
-+	if (tot_len == 0) {
-+		ret = 0;
-+		goto out;
-+	}
-+
-+	inode = file->f_dentry->d_inode;
-+	/* VERIFY_WRITE actually means a read, as we write to user space */
-+	ret = locks_verify_area((type == READ 
-+				 ? FLOCK_VERIFY_READ : FLOCK_VERIFY_WRITE),
-+				inode, file, *pos, tot_len);
-+	if (ret)
-+		goto out;
-+
-+	fnv = NULL;
-+	if (type == READ) {
-+		fn = file->f_op->read;
-+		fnv = file->f_op->readv;
++		if (odd)
++			__get_user(*fdset, ufdset);
 +	} else {
-+		fn = (io_fn_t)file->f_op->write;
-+		fnv = file->f_op->writev;
++		/* Tricky, must clear full unsigned long in the
++		 * kernel fdset at the end, this makes sure that
++		 * actually happens.
++		 */
++		memset(fdset, 0, ((nr + 1) & ~1)*sizeof(compat_ulong_t));
 +	}
-+	if (fnv) {
-+		ret = fnv(file, iov, nr_segs, pos);
-+		goto out;
++	return 0;
++}
++
++static inline
++void compat_set_fd_set(unsigned long nr, compat_ulong_t __user *ufdset,
++			unsigned long *fdset)
++{
++	unsigned long odd;
++	nr = ROUND_UP(nr, __COMPAT_NFDBITS);
++
++	if (!ufdset)
++		return;
++
++	odd = nr & 1UL;
++	nr &= ~1UL;
++	while (nr) {
++		unsigned long h, l;
++		l = *fdset++;
++		h = l >> 32;
++		__put_user(l, ufdset);
++		__put_user(h, ufdset+1);
++		ufdset += 2;
++		nr -= 2;
 +	}
++	if (odd)
++		__put_user(*fdset, ufdset);
++}
 +
-+	/* Do it by hand, with file-ops */
-+	ret = 0;
-+	vector = iov;
-+	while (nr_segs > 0) {
-+		void __user * base;
-+		size_t len;
-+		ssize_t nr;
 +
-+		base = vector->iov_base;
-+		len = vector->iov_len;
-+		vector++;
-+		nr_segs--;
++/*
++ * This is a virtual copy of sys_select from fs/select.c and probably
++ * should be compared to it from time to time
++ */
++static void *select_bits_alloc(int size)
++{
++	return kmalloc(6 * size, GFP_KERNEL);
++}
 +
-+		nr = fn(file, base, len, pos);
++static void select_bits_free(void *bits, int size)
++{
++	kfree(bits);
++}
 +
-+		if (nr < 0) {
-+			if (!ret) ret = nr;
-+			break;
++/*
++ * We can actually return ERESTARTSYS instead of EINTR, but I'd
++ * like to be certain this leads to no problems. So I return
++ * EINTR just for safety.
++ *
++ * Update: ERESTARTSYS breaks at least the xview clock binary, so
++ * I'm trying ERESTARTNOHAND which restart only when you want to.
++ */
++#define MAX_SELECT_SECONDS \
++	((unsigned long) (MAX_SCHEDULE_TIMEOUT / HZ)-1)
++
++asmlinkage long
++compat_sys_select(int n, compat_ulong_t __user *inp, compat_ulong_t __user *outp,
++		compat_ulong_t __user *exp, struct compat_timeval __user *tvp)
++{
++	fd_set_bits fds;
++	char *bits;
++	long timeout;
++	int ret, size, max_fdset;
++
++	timeout = MAX_SCHEDULE_TIMEOUT;
++	if (tvp) {
++		time_t sec, usec;
++
++		if ((ret = verify_area(VERIFY_READ, tvp, sizeof(*tvp)))
++		    || (ret = __get_user(sec, &tvp->tv_sec))
++		    || (ret = __get_user(usec, &tvp->tv_usec)))
++			goto out_nofds;
++
++		ret = -EINVAL;
++		if (sec < 0 || usec < 0)
++			goto out_nofds;
++
++		if ((unsigned long) sec < MAX_SELECT_SECONDS) {
++			timeout = ROUND_UP(usec, 1000000/HZ);
++			timeout += sec * (unsigned long) HZ;
 +		}
-+		ret += nr;
-+		if (nr != len)
-+			break;
 +	}
-+out:
-+	if (iov != iovstack)
-+		kfree(iov);
-+	if ((ret + (type == READ)) > 0)
-+		dnotify_parent(file->f_dentry,
-+				(type == READ) ? DN_ACCESS : DN_MODIFY);
-+	return ret;
-+}
-+
-+asmlinkage ssize_t
-+compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec, unsigned long vlen)
-+{
-+	struct file *file;
-+	ssize_t ret = -EBADF;
-+
-+	file = fget(fd);
-+	if (!file)
-+		return -EBADF;
-+
-+	if (!(file->f_mode & FMODE_READ))
-+		goto out; 
 +
 +	ret = -EINVAL;
-+	if (!file->f_op || (!file->f_op->readv && !file->f_op->read))
-+		goto out;
++	if (n < 0)
++		goto out_nofds;
 +
-+	ret = compat_do_readv_writev(READ, file, vec, vlen, &file->f_pos);
++	/* max_fdset can increase, so grab it once to avoid race */
++	max_fdset = current->files->max_fdset;
++	if (n > max_fdset)
++		n = max_fdset;
++
++	/*
++	 * We need 6 bitmaps (in/out/ex for both incoming and outgoing),
++	 * since we used fdset we need to allocate memory in units of
++	 * long-words. 
++	 */
++	ret = -ENOMEM;
++	size = FDS_BYTES(n);
++	bits = select_bits_alloc(size);
++	if (!bits)
++		goto out_nofds;
++	fds.in      = (unsigned long *)  bits;
++	fds.out     = (unsigned long *) (bits +   size);
++	fds.ex      = (unsigned long *) (bits + 2*size);
++	fds.res_in  = (unsigned long *) (bits + 3*size);
++	fds.res_out = (unsigned long *) (bits + 4*size);
++	fds.res_ex  = (unsigned long *) (bits + 5*size);
++
++	if ((ret = compat_get_fd_set(n, inp, fds.in)) ||
++	    (ret = compat_get_fd_set(n, outp, fds.out)) ||
++	    (ret = compat_get_fd_set(n, exp, fds.ex)))
++		goto out;
++	zero_fd_set(n, fds.res_in);
++	zero_fd_set(n, fds.res_out);
++	zero_fd_set(n, fds.res_ex);
++
++	ret = do_select(n, &fds, &timeout);
++
++	if (tvp && !(current->personality & STICKY_TIMEOUTS)) {
++		time_t sec = 0, usec = 0;
++		if (timeout) {
++			sec = timeout / HZ;
++			usec = timeout % HZ;
++			usec *= (1000000/HZ);
++		}
++		ret = __put_user(sec, &tvp->tv_sec);
++		ret |= __put_user(usec, &tvp->tv_usec);
++	}
++
++	if (ret < 0)
++		goto out;
++	if (!ret) {
++		ret = -ERESTARTNOHAND;
++		if (signal_pending(current))
++			goto out;
++		ret = 0;
++	}
++
++	compat_set_fd_set(n, inp, fds.res_in);
++	compat_set_fd_set(n, outp, fds.res_out);
++	compat_set_fd_set(n, exp, fds.res_ex);
 +
 +out:
-+	fput(file);
++	select_bits_free(bits, size);
++out_nofds:
 +	return ret;
 +}
 +
-+asmlinkage ssize_t
-+compat_sys_writev(unsigned long fd, const struct compat_iovec __user *vec, unsigned long vlen)
-+{
-+	struct file *file;
-+	ssize_t ret = -EBADF;
-+
-+	file = fget(fd);
-+	if (!file)
-+		return -EBADF;
-+	if (!(file->f_mode & FMODE_WRITE))
-+		goto out;
-+
-+	ret = -EINVAL;
-+	if (!file->f_op || (!file->f_op->writev && !file->f_op->write))
-+		goto out;
-+
-+	ret = compat_do_readv_writev(WRITE, file, vec, vlen, &file->f_pos);
-+
-+out:
-+	fput(file);
-+	return ret;
-+}
-===== include/linux/compat.h 1.19 vs edited =====
---- 1.19/include/linux/compat.h	Mon Mar 15 15:22:46 2004
-+++ edited/include/linux/compat.h	Sat Apr  3 20:03:56 2004
-@@ -100,5 +100,11 @@
- long compat_sys_shmctl(int first, int second, void __user *uptr);
- long compat_sys_semtimedop(int semid, struct sembuf __user *tsems,
- 		unsigned nsems, const struct compat_timespec __user *timeout);
-+
-+asmlinkage ssize_t compat_sys_readv(unsigned long fd,
-+		const struct compat_iovec __user *vec, unsigned long vlen);
-+asmlinkage ssize_t compat_sys_writev(unsigned long fd,
-+		const struct compat_iovec __user *vec, unsigned long vlen);
+===== include/linux/compat.h 1.21 vs edited =====
+--- 1.21/include/linux/compat.h	Sat Apr  3 22:43:52 2004
++++ edited/include/linux/compat.h	Sat Apr  3 22:16:07 2004
+@@ -109,5 +109,9 @@
+ int compat_do_execve(char * filename, compat_uptr_t __user *argv,
+ 	        compat_uptr_t __user *envp, struct pt_regs * regs);
+ 
++asmlinkage long compat_sys_select(int n, compat_ulong_t __user *inp,
++		compat_ulong_t __user *outp, compat_ulong_t __user *exp,
++		struct compat_timeval __user *tvp);
 +
  #endif /* CONFIG_COMPAT */
  #endif /* _LINUX_COMPAT_H */
