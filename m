@@ -1,49 +1,40 @@
-Return-Path: <glauber@gmx.de>
-Received: from mtagate4.de.ibm.com ([195.212.29.153]:10380 "EHLO
-	mtagate4.de.ibm.com") by vger.kernel.org with ESMTP id S264064AbUDVOB0
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Apr 2004 10:01:26 -0400
+Return-Path: <wli@holomorphy.com>
+Received: from holomorphy.com ([207.189.100.168]:57251 "EHLO holomorphy.com")
+	by vger.kernel.org with ESMTP id S264065AbUDVOGa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 22 Apr 2004 10:06:30 -0400
+Date: Thu, 22 Apr 2004 07:06:24 -0700
+From: William Lee Irwin III <wli@holomorphy.com>
 Subject: Re: [Patch] SMP call function cleanup
-From: Jan Glauber <glauber@gmx.de>
-Reply-To: glauber@gmx.de
-In-Reply-To: <20040422123318.GX22027@krispykreme>
-References: <1082636511.1332.34.camel@halo>
-	 <20040422123318.GX22027@krispykreme>
-Content-Type: text/plain
-Message-Id: <1082642408.1332.56.camel@halo>
+Message-ID: <20040422140624.GW743@holomorphy.com>
+References: <1082636511.1332.34.camel@halo> <20040422122818.GR743@holomorphy.com> <20040422123703.GY22027@krispykreme> <1082638779.1778.16.camel@mulgrave> <20040422132443.GV743@holomorphy.com> <1082641576.1714.36.camel@mulgrave>
 Mime-Version: 1.0
-Date: Thu, 22 Apr 2004 16:00:08 +0200
-Content-Transfer-Encoding: 7bit
-To: Anton Blanchard <anton@samba.org>
-Cc: Linux Architecture List <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1082641576.1714.36.camel@mulgrave>
+To: James Bottomley <James.Bottomley@steeleye.com>
+Cc: Anton Blanchard <anton@samba.org>, Jan Glauber <glauber@gmx.de>, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2004-04-22 at 14:33, Anton Blanchard wrote:
->  Hi,
-> 
-> > I've been looking into the SMP call function stuff on different
-> > archs and found many different functions...
-> > 
-> > In the common code part there are 2 functions:
-> > smp_call_function()  	// call a function on all CPUs but my own
-> > on_each_cpu()		// call a function on all CPUs
-> > 
-> > Many archs need an additional function to call a function on a 
-> > specific CPU:
-> 
-> We noticed this too. Rusty created on_one_cpu below and had a generic
-> (but costly) implementation so architectures could switch across when they
-> wanted.
+On Thu, 2004-04-22 at 09:24, William Lee Irwin III wrote:
+>> 	for_each_cpu_mask(cpu, foo->mask)
+>> 		on_one_cpu(cpu, bar, ...);
 
-Hm, why can't you just do a:
+On Thu, Apr 22, 2004 at 09:46:16AM -0400, James Bottomley wrote:
+> But the key is 'anyone in need of'.  What I'd like is for you to
+> demonstrate a need of execute on cpumask before it gets added to the
+> API.  Murphy's law says that when given a choice people invariably make
+> the wrong one, so lets not introduce choice into the api unless it's
+> absolutely necessary.
 
-for_each_cpu_mask(cpu, mask)
-        send_IPI_single(cpu)
+I remembered what cw told me. It was for ia64 repairing the suboptimal
+situation where flush_tlb_mm() does the wrong thing and flushes on all
+cpus regardless of mm->cpu_vm_mask. So we can drop this rather easily,
+as even when it's resolved, that will be pure arch code that will have
+the native IPI API's visible to it.
 
-Jan
+zwane wanted it for some 100% lockless timer code, but I think that's
+dead or not getting merged in the near future, so the same applies.
 
----
-Jan Glauber
-Linux on zSeries Development
-IBM Deutschland Entwicklung GmbH
-Phone: +49 7031 161911   Mail: jang@de.ibm.com
+
+-- wli
