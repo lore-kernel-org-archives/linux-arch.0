@@ -1,30 +1,36 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S269029AbUINPJd@vger.kernel.org>
-Received: from parcelfarce.linux.theplanet.co.uk ([195.92.249.252]:981 "EHLO
-	www.linux.org.uk") by vger.kernel.org with ESMTP id S269021AbUINPIP
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Sep 2004 11:08:15 -0400
-Message-ID: <41470952.5080108@pobox.com>
-Date: Tue, 14 Sep 2004 11:08:02 -0400
-From: Jeff Garzik <jgarzik@pobox.com>
-MIME-Version: 1.0
-Subject: Re: Add skeleton "generic IO mapping" infrastructure.
-References: <200409132206.i8DM6dSC030620@hera.kernel.org>	 <1095152147.9144.254.camel@imladris.demon.co.uk>	 <41470074.9010900@pobox.com> <1095173761.24547.203.camel@hades.cambridge.redhat.com>
-In-Reply-To: <1095173761.24547.203.camel@hades.cambridge.redhat.com>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: linux-arch@vger.kernel.org
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267186AbUIODjn@vger.kernel.org>
+Received: from are.twiddle.net ([64.81.246.98]:4226 "EHLO are.twiddle.net")
+	by vger.kernel.org with ESMTP id S267184AbUIODjn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Sep 2004 23:39:43 -0400
+Received: from are.twiddle.net (localhost.localdomain [127.0.0.1])
+	by are.twiddle.net (8.12.11/8.12.11) with ESMTP id i8F3dNae000953
+	for <linux-arch@vger.kernel.org>; Tue, 14 Sep 2004 20:39:23 -0700
+Date: Tue, 14 Sep 2004 20:39:03 -0700
+From: Richard Henderson <rth@twiddle.net>
+Subject: waitid fallout
+Message-ID: <20040915033903.GA904@twiddle.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+To: roland@redhat.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-David Woodhouse wrote:
-> No, seriously, let's not introduce a new API which is _already_
-> insufficient to disambiguate between the various things the caller might
-> want. A 'void *' is not sufficient to give both bus and address. Use a
-> tuple of { bus, addr } or { dev, addr } instead.
+Is an *entire* struct rusage required in siginfo_t for sigchld?
 
-The existing setup is perfectly sufficient.
+It's much bigger than the 24 (!) words of padding we had reserved
+for expansion in siginfo_t.
 
-You pass (dev,addr) to an arch-specific function which creates the 
-cookie in an arch-specific manner.
+Which means that the size of siginfo_t changed, which means that
+any existing "sigwaitinfo ({ SIGCHLD }, &info)" will now corrupt
+user memory.  Perhaps we think no one does this, but we should
+at least be aware of the ABI change.
 
-	Jeff
+Alpha is not yet using a VDSO for the signal frame unwind info, so
+I noticed that all of my signal cancelation tests are now failing,
+because the layout of the signal frame changed.  Perhaps I'll take
+this opportunity to update, but it does require a rather coordinated
+kernel + libc upgrade in order to keep things working smoothly...
+
+
+r~
