@@ -1,23 +1,28 @@
 Return-Path: <nickpiggin@yahoo.com.au>
-Received: from smtp106.mail.sc5.yahoo.com ([66.163.169.226]:16045 "HELO
+Received: from smtp106.mail.sc5.yahoo.com ([66.163.169.226]:38071 "HELO
 	smtp106.mail.sc5.yahoo.com") by vger.kernel.org with SMTP
-	id S261606AbUE3C5C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 29 May 2004 22:57:02 -0400
-Message-ID: <40B94D79.8090903@yahoo.com.au>
-Date: Sun, 30 May 2004 12:56:57 +1000
+	id S261606AbUE3DN5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 29 May 2004 23:13:57 -0400
+Message-ID: <40B95171.40109@yahoo.com.au>
+Date: Sun, 30 May 2004 13:13:53 +1000
 From: Nick Piggin <nickpiggin@yahoo.com.au>
 MIME-Version: 1.0
-Subject: [RFC][PATCH] Consolidate architecture context switch locking
+Subject: [RFC][PATCH] Consolidate architecture context switch locking (take
+ 2)
 Content-Type: multipart/mixed;
- boundary="------------040900080900040401020607"
+ boundary="------------030308090803020506080103"
 To: linux-arch@vger.kernel.org
 Cc: Ingo Molnar <mingo@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
 This is a multi-part message in MIME format.
---------------040900080900040401020607
+--------------030308090803020506080103
 Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
+
+I apologise if this is a duplicate post. The first one didn't seem
+to go through properly.
+---
 
 Having arch code know about scheduler locking in their context
 switch stuff is somewhat ugly I think.
@@ -42,8 +47,7 @@ Affected architectures: ia64, mips, s390, sparc, sparc64, arm.
 
 Comments?
 
-
---------------040900080900040401020607
+--------------030308090803020506080103
 Content-Type: text/x-patch;
  name="task-running-flag.patch"
 Content-Transfer-Encoding: 7bit
@@ -389,4 +393,4 @@ diff -puN include/asm-arm/system.h~task-running-flag include/asm-arm/system.h
 
 _
 
---------------040900080900040401020607--
+--------------030308090803020506080103--
