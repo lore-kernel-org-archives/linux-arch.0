@@ -1,36 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-MIME-Version: 1.0
+Date: Tue, 22 Mar 2005 23:10:58 +0100
+From: Adrian Bunk <bunk@stusta.de>
+Subject: Re: Double free of initramfs
+Message-ID: <20050322221058.GU1948@stusta.de>
+References: <20050316184932.GB16712@linux-mips.org> <20050321182146.32a20ebf.akpm@osdl.org>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <16960.38237.576884.204934@cargo.ozlabs.ibm.com>
-Date: Wed, 23 Mar 2005 08:59:57 +1100
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [PATCH] ?mb() -> smp_?mb() conversion
-In-Reply-To: <20050322091331.7b2967a1.davem@davemloft.net>
-References: <20050322163428.GD21986@parcelfarce.linux.theplanet.co.uk>
-	<20050321150619.2ea75257.davem@davemloft.net>
-	<20050321225904.GF23908@krispykreme>
-	<20072.1111488229@redhat.com>
-	<20050322131316.GC21986@parcelfarce.linux.theplanet.co.uk>
-	<20050322160324.GA4980@krispykreme>
-	<11333.1111510094@redhat.com>
-	<20050322091331.7b2967a1.davem@davemloft.net>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: David Howells <dhowells@redhat.com>, matthew@wil.cx, anton@samba.org, linux-arch@vger.kernel.org
+Content-Disposition: inline
+In-Reply-To: <20050321182146.32a20ebf.akpm@osdl.org>
+To: Andrew Morton <akpm@osdl.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-David S. Miller writes:
+On Mon, Mar 21, 2005 at 06:21:46PM -0800, Andrew Morton wrote:
+>...
+> (cc'ed Adrian, who might be interested in raising a patch ;))
 
-> This is the first time I've seen that ?mb() should order I/O
-> accesses.  My sparc64 versions certainly don't handle that
-> correctly.  :-)  That being said, I think we're all being
-> educated to so me extent in this thread.
+When did I get the MAINTAINERS entry
+  DOES ALL DUMB JOBS
+?  ;-)
 
-Certainly driver writers expect that the combination of a wmb()
-followed by a writel() will enforce ordering between any previous
-writes to memory and the I/O write in the writel (as in the typhoon.c
-example that Anton posted).  On ppc64 this means that we have to use a
-sync instruction rather than any lighter-weight memory barrier for
-wmb.
 
-Paul.
+If you two agree it's the correct solution I can prepare a patch.
+
+
+cu
+Adrian
+
+-- 
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
