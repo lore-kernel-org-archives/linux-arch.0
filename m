@@ -1,62 +1,58 @@
-Return-Path: <arnd@arndb.de>
-Received: from natsmtp00.rzone.de ([81.169.145.165]:43239 "EHLO
-	natsmtp00.rzone.de") by vger.kernel.org with ESMTP id S263028AbUESMX2
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 May 2004 08:23:28 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] fixing sendfile on 64bit architectures
-Date: Wed, 19 May 2004 14:21:48 +0200
-References: <20040519114940.6b92cf1a.ak@suse.de>
-In-Reply-To: <20040519114940.6b92cf1a.ak@suse.de>
+Return-Path: <davidm@napali.hpl.hp.com>
+Received: from palrel10.hp.com ([156.153.255.245]:55192 "EHLO palrel10.hp.com")
+	by vger.kernel.org with ESMTP id S264499AbUESSSA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 May 2004 14:18:00 -0400
+From: David Mosberger <davidm@napali.hpl.hp.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed;
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1;
-  boundary="Boundary-02=_fF1qAGIJN+c9J4G";
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Message-Id: <200405191421.51310.arnd@arndb.de>
+Message-ID: <16555.42184.694738.917744@napali.hpl.hp.com>
+Date: Wed, 19 May 2004 11:17:44 -0700
+Subject: Re: [PATCH] fixing sendfile on 64bit architectures
+In-Reply-To: <20040519114940.6b92cf1a.ak@suse.de>
+References: <20040519114940.6b92cf1a.ak@suse.de>
+Reply-To: davidm@hpl.hp.com
 To: Andi Kleen <ak@suse.de>
 Cc: linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
+>>>>> On Wed, 19 May 2004 11:49:40 +0200, Andi Kleen <ak@suse.de> said:
 
---Boundary-02=_fF1qAGIJN+c9J4G
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: inline
+  Andi> sys_sendfile has a hardcoded 2GB limit. 64bit architectures
+  Andi> should probably always use sys_sendfile64() in their native
+  Andi> system tables, because for them sizeof(off_t) ==
+  Andi> sizeof(loff_t).  This patch does this. It seemed easier to
+  Andi> just change the 64bit entry tables instead of fixing up all
+  Andi> the emulation layers to do 2GB checks on their own.
 
-On Wednesday 19 May 2004 11:49, Andi Kleen wrote:
+Argh, I had that fixed at one point (I think it was prior to
+sys_sendfile64()) but it appears that got lost somewhere along the
+line.  Thanks for (re-)catching this.
 
-> I changed all 64bit architectures except for parisc64, which seemed to=20
-> already have a sendfile64.
+  Andi> I changed all 64bit architectures except for parisc64, which
+  Andi> seemed to already have a sendfile64.
 
-And it looks like you missed s390.
+The patch looks fine to me.  My only minor quibble is that it would be
+nice if sys_sendfile() wasn't defined at all when it isn't needed and,
+in that case, do_sendfile() should be inlined (unit-at-a-time
+compilation will take care of the inlining if sys_sendfile() isn't
+defined when not needed, so that part doesn't require extra code).
 
-=3D=3D=3D=3D=3D arch/s390/kernel/syscalls.S 1.11 vs edited =3D=3D=3D=3D=3D
-=2D-- 1.11/arch/s390/kernel/syscalls.S	Thu Apr 29 11:41:09 2004
-+++ edited/arch/s390/kernel/syscalls.S	Wed May 19 14:15:36 2004
-@@ -195,7 +195,7 @@
- SYSCALL(sys_capget,sys_capget,sys32_capget_wrapper)
- SYSCALL(sys_capset,sys_capset,sys32_capset_wrapper)		/* 185 */
- SYSCALL(sys_sigaltstack_glue,sys_sigaltstack_glue,sys32_sigaltstack_glue)
-=2DSYSCALL(sys_sendfile,sys_sendfile,sys32_sendfile_wrapper)
-+SYSCALL(sys_sendfile,sys_sendfile64,sys32_sendfile_wrapper)
- NI_SYSCALL							/* streams1 */
- NI_SYSCALL							/* streams2 */
- SYSCALL(sys_vfork_glue,sys_vfork_glue,sys_vfork_glue)		/* 190 */
+I don't like adding yet another "#ifdef __ia64 && ..." though.  It
+would be nice if there was a cleaner way to get rid of unwanted
+syscall-stubs in generic code.  How would people feel about replacing
+the current #ifdef mess with "#ifdef SYS_NEED_foo" instead?  By my
+count, that would get rid of about a dozen of those ugly #ifdefs.  For
+example, in fs/stat.c we could have:
 
---Boundary-02=_fF1qAGIJN+c9J4G
-Content-Type: application/pgp-signature
-Content-Description: signature
+#ifdef SYS_NEED_OLD_STAT
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.2.4 (GNU/Linux)
+instead of:
 
-iD8DBQBAq1Ff5t5GS2LDRf4RAu0PAJ9DaMOunSjsI5nd4s/hu8KnREBlnQCcDdOe
-jPFw7kzDaucozqc4x2852EU=
-=rwis
------END PGP SIGNATURE-----
+#if !defined(__alpha__) && !defined(__sparc__) && !defined(__ia64__) \
+  && !defined(CONFIG_ARCH_S390) && !defined(__hppa__) \
+  && !defined(__arm__) && !defined(CONFIG_V850) && !defined(__powerpc64__) \
+  && !defined(__mips__)
 
---Boundary-02=_fF1qAGIJN+c9J4G--
+	--david
