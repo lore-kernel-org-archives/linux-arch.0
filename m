@@ -1,38 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 25 Jan 2005 22:41:12 -0800
-From: "David S. Miller" <davem@davemloft.net>
+Date: Wed, 26 Jan 2005 08:13:59 +0100
+From: Andi Kleen <ak@suse.de>
 Subject: Re: TASK_SIZE is variable.
-Message-Id: <20050125224112.306cd1ea.davem@davemloft.net>
-In-Reply-To: <20050126063627.GA7198@wotan.suse.de>
-References: <1106692012.6480.158.camel@localhost.localdomain>
-	<20050125155239.4bc469e6.davem@davemloft.net>
-	<20050126063627.GA7198@wotan.suse.de>
+Message-ID: <20050126071359.GD7198@wotan.suse.de>
+References: <1106692012.6480.158.camel@localhost.localdomain> <20050125155239.4bc469e6.davem@davemloft.net> <20050126063627.GA7198@wotan.suse.de> <20050125224112.306cd1ea.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Andi Kleen <ak@suse.de>
-Cc: dwmw2@infradead.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20050125224112.306cd1ea.davem@davemloft.net>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Andi Kleen <ak@suse.de>, dwmw2@infradead.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 26 Jan 2005 07:36:27 +0100
-Andi Kleen <ak@suse.de> wrote:
+> I just checked and ia64 sets thread.task_size in SET_PERSONALITY()
+> which is just fine, similarly for ppc64.  So I really wonder how
+> this problem can arise.
 
-> I still don't get it. When exactly can a process have memory > 32bit 
-> and not have the 32bit flag set that is checked by TASK_SIZE. IMHO that's 
-> the bug that needs addressing, because it will likely break more code.
+After rereading Anton's post on l-k I think the problem happens
+when a proc accesses (like read on /proc/*/cmdline) increases the 
+reference count of a mm, then the mm exits, and then the other
+process reading /proc does the final mmput. Then the exit_mmap
+executes in the context of the other process. 
 
-I think on some platforms they move over to the 32-bit setting
-in the thread struct before the address space is cleared out
-for exec.
+Maybe it would be best to just use a semaphore to synchronize
+this? 
 
-And if that is the case, I agree with Andi, that is the real bug
-that needs to be fixed.
+[BTW there seem to be some other issues in this code; I'm currently
+together with someone else trying to track down a exit mm race that causes 
+machine checks on K8 because an lazy mm task has page tables that are already
+freed and get overwritten by random data. Still haven't root caused it yet]
 
-I recall that at one point Al Viro put some fix into binfmt_elf.c
-that caused the thread compat type to change too early like that
-and it made sparc64 explode so I knew to correct it immediately
-and this happened years ago.
-
-I just checked and ia64 sets thread.task_size in SET_PERSONALITY()
-which is just fine, similarly for ppc64.  So I really wonder how
-this problem can arise.
+-Andi
