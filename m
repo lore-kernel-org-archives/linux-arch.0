@@ -1,12 +1,12 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267490AbUIJPTb@vger.kernel.org>
-Received: from mtagate4.de.ibm.com ([195.212.29.153]:56749 "EHLO
-	mtagate4.de.ibm.com") by vger.kernel.org with ESMTP id S266793AbUIJPTb
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267487AbUIJPTS@vger.kernel.org>
+Received: from mtagate2.de.ibm.com ([195.212.29.151]:64962 "EHLO
+	mtagate2.de.ibm.com") by vger.kernel.org with ESMTP id S267482AbUIJPTM
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Sep 2004 11:19:31 -0400
-Date: Fri, 10 Sep 2004 17:19:19 +0200
+	Fri, 10 Sep 2004 11:19:12 -0400
+Date: Fri, 10 Sep 2004 17:19:00 +0200
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [PATCH] cleanup: remove unused definitions from timex.h.
-Message-ID: <20040910151919.GB3632@mschwid3.boeblingen.de.ibm.com>
+Subject: [PATCH] cleanup: move call to update_process_times.
+Message-ID: <20040910151900.GA3645@mschwid3.boeblingen.de.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
