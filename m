@@ -1,38 +1,29 @@
-Return-Path: <davem@redhat.com>
-Received: from mx1.redhat.com ([66.187.233.31]:54500 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S262063AbUCXWEW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Mar 2004 17:04:22 -0500
-Date: Wed, 24 Mar 2004 14:04:19 -0800
-From: "David S. Miller" <davem@redhat.com>
-Subject: Re: [PATCH] swp_entry_t vs. swap pte.
-Message-Id: <20040324140419.29ec6a69.davem@redhat.com>
-In-Reply-To: <20040324180939.GA2599@mschwid3.boeblingen.de.ibm.com>
-References: <20040324180939.GA2599@mschwid3.boeblingen.de.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Return-Path: <arun.sharma@intel.com>
+Received: from fmr04.intel.com ([143.183.121.6]:56247 "EHLO
+	caduceus.sc.intel.com") by vger.kernel.org with ESMTP
+	id S262942AbUCYAc3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Mar 2004 19:32:29 -0500
+Message-ID: <4062287F.3050003@intel.com>
+Date: Wed, 24 Mar 2004 16:31:59 -0800
+From: Arun Sharma <arun.sharma@intel.com>
+MIME-Version: 1.0
+Subject: Re: signal-race-fix.patch
+References: <16482.871.918222.70972@napali.hpl.hp.com>
+In-Reply-To: <16482.871.918222.70972@napali.hpl.hp.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: linux-arch@vger.kernel.org
+To: davidm@hpl.hp.com
+Cc: Andrew Morton <akpm@osdl.org>, Corey Minyard <minyard@acm.org>, davem@redhat.com, linux-arch@vger.kernel.org, roland@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 24 Mar 2004 19:09:39 +0100
-Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
+On 3/24/2004 1:53 PM, David Mosberger wrote:
 
-> I created a patch that should fix the problem. It uses 
+> It looks fine to me, except that I decided to play chicken as far
+> as the give_sigsegv update of sa_handler is concerned.
 > 
->   swp_type(pte_to_swp_entry(swp_entry_to_pte(swp_entry(~0UL,0))))
-> 
-> to find the highest possible swap type number and
-> 
->   swp_offset(pte_to_swp_entry(swp_entry_to_pte(swp_entry(0,~0UL))))
-> 
-> to find the highest possible swap offset. This should work with the
-> existing __swp_entry/__swp_type/__swp_offset definitions for all
-> architectures except for s390 because I've added a BUG_ON in
-> __swp_entry if the created swap pte is dubious.  Oh, well.
+> Arun, I hope I got the ia32 emulation parts right, but you may want to
+> double-check.
 
-This looks fine to me Martin.
+Yes, the patch looks good to me and it survived a 32 bit version of Andrew's test program.
 
-I'm not going to fiddle with the swp bit fields on sparc64, the
-offset range is huge enough :-)
+	-Arun
