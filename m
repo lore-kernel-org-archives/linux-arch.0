@@ -1,38 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Mon, 7 Feb 2005 11:30:00 -0800
+Date: Mon, 7 Feb 2005 11:28:37 -0800
 From: "David S. Miller" <davem@davemloft.net>
 Subject: Re: [patch 19/24] TASK_SIZE is variable.
-Message-Id: <20050207113000.79c60358.davem@davemloft.net>
-In-Reply-To: <24245.1107773953@redhat.com>
-References: <20050204215244.1d2532f7.davem@davemloft.net>
-	<200502050150.j151osl11380@mail.osdl.org>
-	<Pine.LNX.4.58.0502041806120.2165@ppc970.osdl.org>
+Message-Id: <20050207112837.5594c314.davem@davemloft.net>
+In-Reply-To: <20050207081106.GA16035@wotan.suse.de>
+References: <Pine.LNX.4.58.0502041806120.2165@ppc970.osdl.org>
 	<Pine.LNX.4.58.0502041919300.2165@ppc970.osdl.org>
-	<24245.1107773953@redhat.com>
+	<20050205090619.C30866@flint.arm.linux.org.uk>
+	<20050205154448.1cc89ee9.davem@davemloft.net>
+	<20050206105047.GB6819@wotan.suse.de>
+	<20050206131947.6524ece9.davem@davemloft.net>
+	<20050206213148.GI18245@wotan.suse.de>
+	<20050206133110.528ce713.davem@davemloft.net>
+	<20050206215020.GJ18245@wotan.suse.de>
+	<20050206143110.59dc039f.davem@davemloft.net>
+	<20050207081106.GA16035@wotan.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, dwmw2@infradead.org, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: rmk@arm.linux.org.uk, torvalds@osdl.org, akpm@osdl.org, dwmw2@infradead.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 07 Feb 2005 10:59:13 +0000
-David Howells <dhowells@redhat.com> wrote:
+On Mon, 7 Feb 2005 09:11:06 +0100
+Andi Kleen <ak@suse.de> wrote:
 
-> David S. Miller <davem@davemloft.net> wrote:
-> 
-> > > For example, replacing TASK_SIZE in fs/namei.c with "thread->addr_limit" 
-> > > would actually clean up the code: it would mean that the games with 
-> > > "get_fs()" etc would just go away, to be replaced with something like
-> > 
-> > I think that looks nice too.
-> > 
-> > Would you be against a "mm->addr_limit"?  That's what an approach
-> > by Paulus implemented, and I was in the camp supporting that kind
-> > of direction.
-> 
-> On the other hand, this value is constant on some archs, and in those cases,
-> wouldn't it be better for it to be a compile-time constant?
+> Also BTW your proposed check wouldn't catch all cases anyways,
+> it would only handle the case where the access_ok() check is 
+> done inside the KERNEL_DS. 
 
-How can it be constant?  It would need to change when a set_fs(KERNEL_DS)
-is performed.
+There must be a verify area done (either via explicit call or
+via the user access macros which do not have the "__" prefix)
+for each range of "userspace" accesses done through the uaccess.h accessors.
