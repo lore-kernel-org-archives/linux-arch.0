@@ -1,86 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Wed, 9 Feb 2005 10:44:28 +0100
-From: Andi Kleen <ak@suse.de>
-Subject: [PATCH] Fix compat shmget overflow
-Message-ID: <20050209094428.GB23943@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-To: akpm@osdl.org, linux-arch@vger.kernel.org
-Cc: corryk@us.ibm.com
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate3.de.ibm.com (8.12.10/8.12.10) with ESMTP id j19A8sdt117404
+	for <linux-arch@vger.kernel.org>; Wed, 9 Feb 2005 10:08:54 GMT
+Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
+	by d12nrmr1607.megacenter.de.ibm.com (8.12.10/NCO/VER6.6) with ESMTP id j19A8sn1124736
+	for <linux-arch@vger.kernel.org>; Wed, 9 Feb 2005 11:08:54 +0100
+Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av02.megacenter.de.ibm.com (8.12.11/8.12.11) with ESMTP id j19A8rBW022213
+	for <linux-arch@vger.kernel.org>; Wed, 9 Feb 2005 11:08:54 +0100
+In-Reply-To: <20050209094428.GB23943@wotan.suse.de>
+Subject: Re: [PATCH] Fix compat shmget overflow
+Message-ID: <OF57C10E69.8B803A13-ON41256FA3.00360882-41256FA3.0037BF5D@de.ibm.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Date: Wed, 9 Feb 2005 11:08:54 +0100
+MIME-Version: 1.0
+Content-type: text/plain; charset=US-ASCII
+To: Andi Kleen <ak@suse.de>
+Cc: akpm@osdl.org, corryk@us.ibm.com, linux-arch@vger.kernel.org, anton@samba.org, davem@davemloft.net
 List-ID: <linux-arch.vger.kernel.org>
 
+> This fixes an incorrect sign extension in the compat layer that
+> breaks 32bit shmget that are >2GB. sys_shmget has a signed size_t size
+> argument, and the int size argument comming from 32bit user space would
+get
+> sign extended to 64bit, which is wrong.
 
-This fixes an incorrect sign extension in the compat layer that 
-breaks 32bit shmget that are >2GB. sys_shmget has a signed size_t size
-argument, and the int size argument comming from 32bit user space would get 
-sign extended to 64bit, which is wrong.
+Ok for s390 though not needed. The address space for a 31 bit programs
+is limited to 2GB anyway.
 
-I fixed it on all compat architectures, except PPC64 which was already
-ok. 
+As you mention sys_shmget, I'm currently trying to find out why the
+second argument of sys_ipc for ppc64, s390-64 and sparc64 has been
+changed from "long" to "int". This limits the maximum size of a shared
+memory segment to 2GB for the three archs. A cast to unsigned would
+allow 4GB, still not enough for a 64 bit architecture in the long run.
+Before I submit a patch to replace "int" with "long" again I'd like
+to understand the reason for the change.
 
-It was originally debugged and fixed by Karl Rister @ IBM for SLES9 on x86-64.
+blue skies,
+   Martin
 
-Signed-off-by: Andi Kleen <ak@suse.de>
-
-
-diff -u linux-2.6.11rc3/arch/sparc64/kernel/sys_sparc32.c-X linux-2.6.11rc3/arch/sparc64/kernel/sys_sparc32.c
---- linux-2.6.11rc3/arch/sparc64/kernel/sys_sparc32.c-X	2005-02-04 09:12:50.000000000 +0100
-+++ linux-2.6.11rc3/arch/sparc64/kernel/sys_sparc32.c	2005-02-09 10:39:52.000000000 +0100
-@@ -835,7 +835,7 @@
- 			err = sys_shmdt(ptr);
- 			goto out;
- 		case SHMGET:
--			err = sys_shmget(first, second, third);
-+			err = sys_shmget(first, (unsigned)second, third);
- 			goto out;
- 		case SHMCTL:
- 			err = do_sys32_shmctl(first, second, ptr);
-diff -u linux-2.6.11rc3/arch/ia64/ia32/sys_ia32.c-X linux-2.6.11rc3/arch/ia64/ia32/sys_ia32.c
---- linux-2.6.11rc3/arch/ia64/ia32/sys_ia32.c-X	2005-02-04 09:12:42.000000000 +0100
-+++ linux-2.6.11rc3/arch/ia64/ia32/sys_ia32.c	2005-02-09 10:39:03.000000000 +0100
-@@ -1415,7 +1415,7 @@
- 	      case SHMDT:
- 		return sys_shmdt(compat_ptr(ptr));
- 	      case SHMGET:
--		return sys_shmget(first, second, third);
-+		return sys_shmget(first, (unsigned)second, third);
- 	      case SHMCTL:
- 		return compat_sys_shmctl(first, second, compat_ptr(ptr));
- 
-diff -u linux-2.6.11rc3/arch/mips/kernel/linux32.c-X linux-2.6.11rc3/arch/mips/kernel/linux32.c
---- linux-2.6.11rc3/arch/mips/kernel/linux32.c-X	2005-02-04 09:12:45.000000000 +0100
-+++ linux-2.6.11rc3/arch/mips/kernel/linux32.c	2005-02-09 10:39:03.000000000 +0100
-@@ -1115,7 +1115,7 @@
- 		err = sys_shmdt ((char *)A(ptr));
- 		break;
- 	case SHMGET:
--		err = sys_shmget (first, second, third);
-+		err = sys_shmget (first, (unsigned)second, third);
- 		break;
- 	case SHMCTL:
- 		err = do_sys32_shmctl (first, second, (void *)AA(ptr));
-diff -u linux-2.6.11rc3/arch/x86_64/ia32/ipc32.c-X linux-2.6.11rc3/arch/x86_64/ia32/ipc32.c
---- linux-2.6.11rc3/arch/x86_64/ia32/ipc32.c-X	2004-04-06 13:12:04.000000000 +0200
-+++ linux-2.6.11rc3/arch/x86_64/ia32/ipc32.c	2005-02-09 10:39:03.000000000 +0100
-@@ -49,7 +49,7 @@
- 	      case SHMDT:
- 		return sys_shmdt(compat_ptr(ptr));
- 	      case SHMGET:
--		return sys_shmget(first, second, third);
-+		return sys_shmget(first, (unsigned)second, third);
- 	      case SHMCTL:
- 		return compat_sys_shmctl(first, second, compat_ptr(ptr));
- 	}
-diff -u linux-2.6.11rc3/arch/s390/kernel/compat_linux.c-X linux-2.6.11rc3/arch/s390/kernel/compat_linux.c
---- linux-2.6.11rc3/arch/s390/kernel/compat_linux.c-X	2005-02-04 09:12:49.000000000 +0100
-+++ linux-2.6.11rc3/arch/s390/kernel/compat_linux.c	2005-02-09 10:39:28.000000000 +0100
-@@ -331,7 +331,7 @@
- 	case SHMDT:
- 		return sys_shmdt(compat_ptr(ptr));
- 	case SHMGET:
--		return sys_shmget(first, second, third);
-+		return sys_shmget(first, (unsigned)second, third);
- 	case SHMCTL:
- 		return compat_sys_shmctl(first, second, compat_ptr(ptr));
- 	}
+Martin Schwidefsky
+Linux for zSeries Development & Services
+IBM Deutschland Entwicklung GmbH
