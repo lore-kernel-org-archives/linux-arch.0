@@ -1,860 +1,95 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267491AbUIJPTr@vger.kernel.org>
-Received: from mtagate3.de.ibm.com ([195.212.29.152]:22406 "EHLO
-	mtagate3.de.ibm.com") by vger.kernel.org with ESMTP id S266793AbUIJPTr
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Sep 2004 11:19:47 -0400
-Date: Fri, 10 Sep 2004 17:19:32 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [PATCH] cleanup: time.h, times.h, timex.h and jiffies.h.
-Message-ID: <20040910151932.GC3632@mschwid3.boeblingen.de.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
-To: akpm@osdl.org, linux-arch@vger.kernel.org
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267602AbUIKGKA@vger.kernel.org>
+Received: from fw.osdl.org ([65.172.181.6]:31402 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S267578AbUIKGKA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 11 Sep 2004 02:10:00 -0400
+Date: Fri, 10 Sep 2004 23:09:50 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: RFC: being more anal about iospace accesses..
+In-Reply-To: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org>
+Message-ID: <Pine.LNX.4.58.0409102253520.2303@ppc970.osdl.org>
+References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: Al Viro <viro@parcelfarce.linux.theplanet.co.uk>, Andrew Morton <akpm@osdl.org>, Linux Arch list <linux-arch@vger.kernel.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, "David S. Miller" <davem@redhat.com>, Jeff Garzik <jgarzik@pobox.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-[PATCH] cleanup: time.h, times.h, timex.h and jiffies.h.
 
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Ok, I've committed the first batch of these things. It should all compile
+to exactly the same thing, and I've tried to remove the warnings gcc
+generates for the x86/ppc64 configurations I use.
 
-This patch moves some definitions among time.h, times.h, timex.h
-and jiffies.h. The purpose is to sort all jiffies related functions
-to jiffies.h, to get rid of the cyclic dependency between time.h &
-timex.h and to move all #include lines to the start of the header
-files.
+It does generate more warnings than I'd like from gcc. As mentioned, they 
+should all be "harmless" in the sense that it doesn't affect code 
+generation, but clearly it would be good to try to fix up the worst cases. 
+Hint hint.
 
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+The sparse ones are a different matter, though: I've removed some of them.
+Quite often it's just a matter of declaring the "mmio_base" pointer with
+the right type - a one-line change in ieee1394 made hundreds of warnings 
+just go away.
 
-diffstat:
- arch/x86_64/kernel/vsyscall.c |    1 
- include/linux/jiffies.h       |  350 +++++++++++++++++++++++++++++++++++++++++-
- include/linux/time.h          |  260 -------------------------------
- include/linux/times.h         |   54 ------
- include/linux/timex.h         |   63 -------
- 5 files changed, 359 insertions(+), 369 deletions(-)
+But other times there are drivers that seem to take a perverse pleasure in 
+mixing types for IOMEM accesses, and sometims mixes the data structure 
+between containing IOMEM and IOPORT addresses (one is now "void __iomem 
+*", the other one has always been an integer). libata springs to mind, 
+where it really looks like it might be better to separate out the "mmio" 
+addresses from the "pio" addresses.
 
-diff -urN linux-2.6/arch/x86_64/kernel/vsyscall.c linux-2.6-patched/arch/x86_64/kernel/vsyscall.c
---- linux-2.6/arch/x86_64/kernel/vsyscall.c	2004-08-14 12:55:59.000000000 +0200
-+++ linux-2.6-patched/arch/x86_64/kernel/vsyscall.c	2004-09-10 17:02:53.000000000 +0200
-@@ -40,6 +40,7 @@
- #include <linux/kernel.h>
- #include <linux/timer.h>
- #include <linux/seqlock.h>
-+#include <linux/jiffies.h>
- 
- #include <asm/vsyscall.h>
- #include <asm/pgtable.h>
-diff -urN linux-2.6/include/linux/jiffies.h linux-2.6-patched/include/linux/jiffies.h
---- linux-2.6/include/linux/jiffies.h	2004-08-14 12:54:47.000000000 +0200
-+++ linux-2.6-patched/include/linux/jiffies.h	2004-09-10 17:02:53.000000000 +0200
-@@ -3,10 +3,72 @@
- 
- #include <linux/kernel.h>
- #include <linux/types.h>
--#include <linux/spinlock.h>
--#include <linux/seqlock.h>
--#include <asm/system.h>
-+#include <linux/time.h>
-+#include <linux/timex.h>
- #include <asm/param.h>			/* for HZ */
-+#include <asm/div64.h>
-+
-+#ifndef div_long_long_rem
-+#define div_long_long_rem(dividend,divisor,remainder) \
-+({							\
-+	u64 result = dividend;				\
-+	*remainder = do_div(result,divisor);		\
-+	result;						\
-+})
-+#endif
-+
-+/*
-+ * The following defines establish the engineering parameters of the PLL
-+ * model. The HZ variable establishes the timer interrupt frequency, 100 Hz
-+ * for the SunOS kernel, 256 Hz for the Ultrix kernel and 1024 Hz for the
-+ * OSF/1 kernel. The SHIFT_HZ define expresses the same value as the
-+ * nearest power of two in order to avoid hardware multiply operations.
-+ */
-+#if HZ >= 12 && HZ < 24
-+# define SHIFT_HZ	4
-+#elif HZ >= 24 && HZ < 48
-+# define SHIFT_HZ	5
-+#elif HZ >= 48 && HZ < 96
-+# define SHIFT_HZ	6
-+#elif HZ >= 96 && HZ < 192
-+# define SHIFT_HZ	7
-+#elif HZ >= 192 && HZ < 384
-+# define SHIFT_HZ	8
-+#elif HZ >= 384 && HZ < 768
-+# define SHIFT_HZ	9
-+#elif HZ >= 768 && HZ < 1536
-+# define SHIFT_HZ	10
-+#else
-+# error You lose.
-+#endif
-+
-+/* LATCH is used in the interval timer and ftape setup. */
-+#define LATCH  ((CLOCK_TICK_RATE + HZ/2) / HZ)	/* For divider */
-+
-+/* Suppose we want to devide two numbers NOM and DEN: NOM/DEN, the we can
-+ * improve accuracy by shifting LSH bits, hence calculating:
-+ *     (NOM << LSH) / DEN
-+ * This however means trouble for large NOM, because (NOM << LSH) may no
-+ * longer fit in 32 bits. The following way of calculating this gives us
-+ * some slack, under the following conditions:
-+ *   - (NOM / DEN) fits in (32 - LSH) bits.
-+ *   - (NOM % DEN) fits in (32 - LSH) bits.
-+ */
-+#define SH_DIV(NOM,DEN,LSH) (   ((NOM / DEN) << LSH)                    \
-+                             + (((NOM % DEN) << LSH) + DEN / 2) / DEN)
-+
-+/* HZ is the requested value. ACTHZ is actual HZ ("<< 8" is for accuracy) */
-+#define ACTHZ (SH_DIV (CLOCK_TICK_RATE, LATCH, 8))
-+
-+/* TICK_NSEC is the time between ticks in nsec assuming real ACTHZ */
-+#define TICK_NSEC (SH_DIV (1000000UL * 1000, ACTHZ, 8))
-+
-+/* TICK_USEC is the time between ticks in usec assuming fake USER_HZ */
-+#define TICK_USEC ((1000000UL + USER_HZ/2) / USER_HZ)
-+
-+/* TICK_USEC_TO_NSEC is the time between ticks in nsec assuming real ACTHZ and	*/
-+/* a value TUSEC for TICK_USEC (can be set bij adjtimex)		*/
-+#define TICK_USEC_TO_NSEC(TUSEC) (SH_DIV (TUSEC * USER_HZ * 1000, ACTHZ, 8))
- 
- /*
-  * The 64-bit value is not volatile - you MUST NOT read it
-@@ -50,4 +112,286 @@
- 	 ((long)(a) - (long)(b) >= 0))
- #define time_before_eq(a,b)	time_after_eq(b,a)
- 
-+/*
-+ * Have the 32 bit jiffies value wrap 5 minutes after boot
-+ * so jiffies wrap bugs show up earlier.
-+ */
-+#define INITIAL_JIFFIES ((unsigned long)(unsigned int) (-300*HZ))
-+
-+/*
-+ * Change timeval to jiffies, trying to avoid the
-+ * most obvious overflows..
-+ *
-+ * And some not so obvious.
-+ *
-+ * Note that we don't want to return MAX_LONG, because
-+ * for various timeout reasons we often end up having
-+ * to wait "jiffies+1" in order to guarantee that we wait
-+ * at _least_ "jiffies" - so "jiffies+1" had better still
-+ * be positive.
-+ */
-+#define MAX_JIFFY_OFFSET ((~0UL >> 1)-1)
-+
-+/*
-+ * We want to do realistic conversions of time so we need to use the same
-+ * values the update wall clock code uses as the jiffies size.  This value
-+ * is: TICK_NSEC (which is defined in timex.h).  This
-+ * is a constant and is in nanoseconds.  We will used scaled math
-+ * with a set of scales defined here as SEC_JIFFIE_SC,  USEC_JIFFIE_SC and
-+ * NSEC_JIFFIE_SC.  Note that these defines contain nothing but
-+ * constants and so are computed at compile time.  SHIFT_HZ (computed in
-+ * timex.h) adjusts the scaling for different HZ values.
-+
-+ * Scaled math???  What is that?
-+ *
-+ * Scaled math is a way to do integer math on values that would,
-+ * otherwise, either overflow, underflow, or cause undesired div
-+ * instructions to appear in the execution path.  In short, we "scale"
-+ * up the operands so they take more bits (more precision, less
-+ * underflow), do the desired operation and then "scale" the result back
-+ * by the same amount.  If we do the scaling by shifting we avoid the
-+ * costly mpy and the dastardly div instructions.
-+
-+ * Suppose, for example, we want to convert from seconds to jiffies
-+ * where jiffies is defined in nanoseconds as NSEC_PER_JIFFIE.  The
-+ * simple math is: jiff = (sec * NSEC_PER_SEC) / NSEC_PER_JIFFIE; We
-+ * observe that (NSEC_PER_SEC / NSEC_PER_JIFFIE) is a constant which we
-+ * might calculate at compile time, however, the result will only have
-+ * about 3-4 bits of precision (less for smaller values of HZ).
-+ *
-+ * So, we scale as follows:
-+ * jiff = (sec) * (NSEC_PER_SEC / NSEC_PER_JIFFIE);
-+ * jiff = ((sec) * ((NSEC_PER_SEC * SCALE)/ NSEC_PER_JIFFIE)) / SCALE;
-+ * Then we make SCALE a power of two so:
-+ * jiff = ((sec) * ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE)) >> SCALE;
-+ * Now we define:
-+ * #define SEC_CONV = ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE))
-+ * jiff = (sec * SEC_CONV) >> SCALE;
-+ *
-+ * Often the math we use will expand beyond 32-bits so we tell C how to
-+ * do this and pass the 64-bit result of the mpy through the ">> SCALE"
-+ * which should take the result back to 32-bits.  We want this expansion
-+ * to capture as much precision as possible.  At the same time we don't
-+ * want to overflow so we pick the SCALE to avoid this.  In this file,
-+ * that means using a different scale for each range of HZ values (as
-+ * defined in timex.h).
-+ *
-+ * For those who want to know, gcc will give a 64-bit result from a "*"
-+ * operator if the result is a long long AND at least one of the
-+ * operands is cast to long long (usually just prior to the "*" so as
-+ * not to confuse it into thinking it really has a 64-bit operand,
-+ * which, buy the way, it can do, but it take more code and at least 2
-+ * mpys).
-+
-+ * We also need to be aware that one second in nanoseconds is only a
-+ * couple of bits away from overflowing a 32-bit word, so we MUST use
-+ * 64-bits to get the full range time in nanoseconds.
-+
-+ */
-+
-+/*
-+ * Here are the scales we will use.  One for seconds, nanoseconds and
-+ * microseconds.
-+ *
-+ * Within the limits of cpp we do a rough cut at the SEC_JIFFIE_SC and
-+ * check if the sign bit is set.  If not, we bump the shift count by 1.
-+ * (Gets an extra bit of precision where we can use it.)
-+ * We know it is set for HZ = 1024 and HZ = 100 not for 1000.
-+ * Haven't tested others.
-+
-+ * Limits of cpp (for #if expressions) only long (no long long), but
-+ * then we only need the most signicant bit.
-+ */
-+
-+#define SEC_JIFFIE_SC (31 - SHIFT_HZ)
-+#if !((((NSEC_PER_SEC << 2) / TICK_NSEC) << (SEC_JIFFIE_SC - 2)) & 0x80000000)
-+#undef SEC_JIFFIE_SC
-+#define SEC_JIFFIE_SC (32 - SHIFT_HZ)
-+#endif
-+#define NSEC_JIFFIE_SC (SEC_JIFFIE_SC + 29)
-+#define USEC_JIFFIE_SC (SEC_JIFFIE_SC + 19)
-+#define SEC_CONVERSION ((unsigned long)((((u64)NSEC_PER_SEC << SEC_JIFFIE_SC) +\
-+                                TICK_NSEC -1) / (u64)TICK_NSEC))
-+
-+#define NSEC_CONVERSION ((unsigned long)((((u64)1 << NSEC_JIFFIE_SC) +\
-+                                        TICK_NSEC -1) / (u64)TICK_NSEC))
-+#define USEC_CONVERSION  \
-+                    ((unsigned long)((((u64)NSEC_PER_USEC << USEC_JIFFIE_SC) +\
-+                                        TICK_NSEC -1) / (u64)TICK_NSEC))
-+/*
-+ * USEC_ROUND is used in the timeval to jiffie conversion.  See there
-+ * for more details.  It is the scaled resolution rounding value.  Note
-+ * that it is a 64-bit value.  Since, when it is applied, we are already
-+ * in jiffies (albit scaled), it is nothing but the bits we will shift
-+ * off.
-+ */
-+#define USEC_ROUND (u64)(((u64)1 << USEC_JIFFIE_SC) - 1)
-+/*
-+ * The maximum jiffie value is (MAX_INT >> 1).  Here we translate that
-+ * into seconds.  The 64-bit case will overflow if we are not careful,
-+ * so use the messy SH_DIV macro to do it.  Still all constants.
-+ */
-+#if BITS_PER_LONG < 64
-+# define MAX_SEC_IN_JIFFIES \
-+	(long)((u64)((u64)MAX_JIFFY_OFFSET * TICK_NSEC) / NSEC_PER_SEC)
-+#else	/* take care of overflow on 64 bits machines */
-+# define MAX_SEC_IN_JIFFIES \
-+	(SH_DIV((MAX_JIFFY_OFFSET >> SEC_JIFFIE_SC) * TICK_NSEC, NSEC_PER_SEC, 1) - 1)
-+
-+#endif
-+
-+/*
-+ * Convert jiffies to milliseconds and back.
-+ *
-+ * Avoid unnecessary multiplications/divisions in the
-+ * two most common HZ cases:
-+ */
-+static inline unsigned int jiffies_to_msecs(const unsigned long j)
-+{
-+#if HZ <= 1000 && !(1000 % HZ)
-+	return (1000 / HZ) * j;
-+#elif HZ > 1000 && !(HZ % 1000)
-+	return (j + (HZ / 1000) - 1)/(HZ / 1000);
-+#else
-+	return (j * 1000) / HZ;
-+#endif
-+}
-+static inline unsigned long msecs_to_jiffies(const unsigned int m)
-+{
-+#if HZ <= 1000 && !(1000 % HZ)
-+	return (m + (1000 / HZ) - 1) / (1000 / HZ);
-+#elif HZ > 1000 && !(HZ % 1000)
-+	return m * (HZ / 1000);
-+#else
-+	return (m * HZ + 999) / 1000;
-+#endif
-+}
-+
-+/*
-+ * The TICK_NSEC - 1 rounds up the value to the next resolution.  Note
-+ * that a remainder subtract here would not do the right thing as the
-+ * resolution values don't fall on second boundries.  I.e. the line:
-+ * nsec -= nsec % TICK_NSEC; is NOT a correct resolution rounding.
-+ *
-+ * Rather, we just shift the bits off the right.
-+ *
-+ * The >> (NSEC_JIFFIE_SC - SEC_JIFFIE_SC) converts the scaled nsec
-+ * value to a scaled second value.
-+ */
-+static __inline__ unsigned long
-+timespec_to_jiffies(const struct timespec *value)
-+{
-+	unsigned long sec = value->tv_sec;
-+	long nsec = value->tv_nsec + TICK_NSEC - 1;
-+
-+	if (sec >= MAX_SEC_IN_JIFFIES){
-+		sec = MAX_SEC_IN_JIFFIES;
-+		nsec = 0;
-+	}
-+	return (((u64)sec * SEC_CONVERSION) +
-+		(((u64)nsec * NSEC_CONVERSION) >>
-+		 (NSEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
-+
-+}
-+
-+static __inline__ void
-+jiffies_to_timespec(const unsigned long jiffies, struct timespec *value)
-+{
-+	/*
-+	 * Convert jiffies to nanoseconds and separate with
-+	 * one divide.
-+	 */
-+	u64 nsec = (u64)jiffies * TICK_NSEC; 
-+	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_nsec);
-+}
-+
-+/* Same for "timeval"
-+ *
-+ * Well, almost.  The problem here is that the real system resolution is
-+ * in nanoseconds and the value being converted is in micro seconds.
-+ * Also for some machines (those that use HZ = 1024, in-particular),
-+ * there is a LARGE error in the tick size in microseconds.
-+
-+ * The solution we use is to do the rounding AFTER we convert the
-+ * microsecond part.  Thus the USEC_ROUND, the bits to be shifted off.
-+ * Instruction wise, this should cost only an additional add with carry
-+ * instruction above the way it was done above.
-+ */
-+static __inline__ unsigned long
-+timeval_to_jiffies(const struct timeval *value)
-+{
-+	unsigned long sec = value->tv_sec;
-+	long usec = value->tv_usec;
-+
-+	if (sec >= MAX_SEC_IN_JIFFIES){
-+		sec = MAX_SEC_IN_JIFFIES;
-+		usec = 0;
-+	}
-+	return (((u64)sec * SEC_CONVERSION) +
-+		(((u64)usec * USEC_CONVERSION + USEC_ROUND) >>
-+		 (USEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
-+}
-+
-+static __inline__ void
-+jiffies_to_timeval(const unsigned long jiffies, struct timeval *value)
-+{
-+	/*
-+	 * Convert jiffies to nanoseconds and separate with
-+	 * one divide.
-+	 */
-+	u64 nsec = (u64)jiffies * TICK_NSEC; 
-+	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_usec);
-+	value->tv_usec /= NSEC_PER_USEC;
-+}
-+
-+/*
-+ * Convert jiffies/jiffies_64 to clock_t and back.
-+ */
-+static inline clock_t jiffies_to_clock_t(long x)
-+{
-+#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
-+	return x / (HZ / USER_HZ);
-+#else
-+	u64 tmp = (u64)x * TICK_NSEC;
-+	do_div(tmp, (NSEC_PER_SEC / USER_HZ));
-+	return (long)tmp;
-+#endif
-+}
-+
-+static inline unsigned long clock_t_to_jiffies(unsigned long x)
-+{
-+#if (HZ % USER_HZ)==0
-+	if (x >= ~0UL / (HZ / USER_HZ))
-+		return ~0UL;
-+	return x * (HZ / USER_HZ);
-+#else
-+	u64 jif;
-+
-+	/* Don't worry about loss of precision here .. */
-+	if (x >= ~0UL / HZ * USER_HZ)
-+		return ~0UL;
-+
-+	/* .. but do try to contain it here */
-+	jif = x * (u64) HZ;
-+	do_div(jif, USER_HZ);
-+	return jif;
-+#endif
-+}
-+
-+static inline u64 jiffies_64_to_clock_t(u64 x)
-+{
-+#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
-+	do_div(x, HZ / USER_HZ);
-+#else
-+	/*
-+	 * There are better ways that don't overflow early,
-+	 * but even this doesn't overflow in hundreds of years
-+	 * in 64 bits, so..
-+	 */
-+	x *= TICK_NSEC;
-+	do_div(x, (NSEC_PER_SEC / USER_HZ));
-+#endif
-+	return x;
-+}
-+
- #endif
-diff -urN linux-2.6/include/linux/time.h linux-2.6-patched/include/linux/time.h
---- linux-2.6/include/linux/time.h	2004-09-10 17:02:33.000000000 +0200
-+++ linux-2.6-patched/include/linux/time.h	2004-09-10 17:02:53.000000000 +0200
-@@ -1,9 +1,12 @@
- #ifndef _LINUX_TIME_H
- #define _LINUX_TIME_H
- 
--#include <asm/param.h>
- #include <linux/types.h>
- 
-+#ifdef __KERNEL__
-+#include <linux/seqlock.h>
-+#endif
-+
- #ifndef _STRUCT_TIMESPEC
- #define _STRUCT_TIMESPEC
- struct timespec {
-@@ -24,39 +27,6 @@
- 
- #ifdef __KERNEL__
- 
--#include <linux/spinlock.h>
--#include <linux/seqlock.h>
--#include <linux/timex.h>
--#include <asm/div64.h>
--#ifndef div_long_long_rem
--
--#define div_long_long_rem(dividend,divisor,remainder) ({ \
--		       u64 result = dividend;		\
--		       *remainder = do_div(result,divisor); \
--		       result; })
--
--#endif
--
--/*
-- * Have the 32 bit jiffies value wrap 5 minutes after boot
-- * so jiffies wrap bugs show up earlier.
-- */
--#define INITIAL_JIFFIES ((unsigned long)(unsigned int) (-300*HZ))
--
--/*
-- * Change timeval to jiffies, trying to avoid the
-- * most obvious overflows..
-- *
-- * And some not so obvious.
-- *
-- * Note that we don't want to return MAX_LONG, because
-- * for various timeout reasons we often end up having
-- * to wait "jiffies+1" in order to guarantee that we wait
-- * at _least_ "jiffies" - so "jiffies+1" had better still
-- * be positive.
-- */
--#define MAX_JIFFY_OFFSET ((~0UL >> 1)-1)
--
- /* Parameters used to convert the timespec values */
- #ifndef USEC_PER_SEC
- #define USEC_PER_SEC (1000000L)
-@@ -70,218 +40,6 @@
- #define NSEC_PER_USEC (1000L)
- #endif
- 
--/*
-- * We want to do realistic conversions of time so we need to use the same
-- * values the update wall clock code uses as the jiffies size.  This value
-- * is: TICK_NSEC (which is defined in timex.h).  This
-- * is a constant and is in nanoseconds.  We will used scaled math
-- * with a set of scales defined here as SEC_JIFFIE_SC,  USEC_JIFFIE_SC and
-- * NSEC_JIFFIE_SC.  Note that these defines contain nothing but
-- * constants and so are computed at compile time.  SHIFT_HZ (computed in
-- * timex.h) adjusts the scaling for different HZ values.
--
-- * Scaled math???  What is that?
-- *
-- * Scaled math is a way to do integer math on values that would,
-- * otherwise, either overflow, underflow, or cause undesired div
-- * instructions to appear in the execution path.  In short, we "scale"
-- * up the operands so they take more bits (more precision, less
-- * underflow), do the desired operation and then "scale" the result back
-- * by the same amount.  If we do the scaling by shifting we avoid the
-- * costly mpy and the dastardly div instructions.
--
-- * Suppose, for example, we want to convert from seconds to jiffies
-- * where jiffies is defined in nanoseconds as NSEC_PER_JIFFIE.  The
-- * simple math is: jiff = (sec * NSEC_PER_SEC) / NSEC_PER_JIFFIE; We
-- * observe that (NSEC_PER_SEC / NSEC_PER_JIFFIE) is a constant which we
-- * might calculate at compile time, however, the result will only have
-- * about 3-4 bits of precision (less for smaller values of HZ).
-- *
-- * So, we scale as follows:
-- * jiff = (sec) * (NSEC_PER_SEC / NSEC_PER_JIFFIE);
-- * jiff = ((sec) * ((NSEC_PER_SEC * SCALE)/ NSEC_PER_JIFFIE)) / SCALE;
-- * Then we make SCALE a power of two so:
-- * jiff = ((sec) * ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE)) >> SCALE;
-- * Now we define:
-- * #define SEC_CONV = ((NSEC_PER_SEC << SCALE)/ NSEC_PER_JIFFIE))
-- * jiff = (sec * SEC_CONV) >> SCALE;
-- *
-- * Often the math we use will expand beyond 32-bits so we tell C how to
-- * do this and pass the 64-bit result of the mpy through the ">> SCALE"
-- * which should take the result back to 32-bits.  We want this expansion
-- * to capture as much precision as possible.  At the same time we don't
-- * want to overflow so we pick the SCALE to avoid this.  In this file,
-- * that means using a different scale for each range of HZ values (as
-- * defined in timex.h).
-- *
-- * For those who want to know, gcc will give a 64-bit result from a "*"
-- * operator if the result is a long long AND at least one of the
-- * operands is cast to long long (usually just prior to the "*" so as
-- * not to confuse it into thinking it really has a 64-bit operand,
-- * which, buy the way, it can do, but it take more code and at least 2
-- * mpys).
--
-- * We also need to be aware that one second in nanoseconds is only a
-- * couple of bits away from overflowing a 32-bit word, so we MUST use
-- * 64-bits to get the full range time in nanoseconds.
--
-- */
--
--/*
-- * Here are the scales we will use.  One for seconds, nanoseconds and
-- * microseconds.
-- *
-- * Within the limits of cpp we do a rough cut at the SEC_JIFFIE_SC and
-- * check if the sign bit is set.  If not, we bump the shift count by 1.
-- * (Gets an extra bit of precision where we can use it.)
-- * We know it is set for HZ = 1024 and HZ = 100 not for 1000.
-- * Haven't tested others.
--
-- * Limits of cpp (for #if expressions) only long (no long long), but
-- * then we only need the most signicant bit.
-- */
--
--#define SEC_JIFFIE_SC (31 - SHIFT_HZ)
--#if !((((NSEC_PER_SEC << 2) / TICK_NSEC) << (SEC_JIFFIE_SC - 2)) & 0x80000000)
--#undef SEC_JIFFIE_SC
--#define SEC_JIFFIE_SC (32 - SHIFT_HZ)
--#endif
--#define NSEC_JIFFIE_SC (SEC_JIFFIE_SC + 29)
--#define USEC_JIFFIE_SC (SEC_JIFFIE_SC + 19)
--#define SEC_CONVERSION ((unsigned long)((((u64)NSEC_PER_SEC << SEC_JIFFIE_SC) +\
--                                TICK_NSEC -1) / (u64)TICK_NSEC))
--
--#define NSEC_CONVERSION ((unsigned long)((((u64)1 << NSEC_JIFFIE_SC) +\
--                                        TICK_NSEC -1) / (u64)TICK_NSEC))
--#define USEC_CONVERSION  \
--                    ((unsigned long)((((u64)NSEC_PER_USEC << USEC_JIFFIE_SC) +\
--                                        TICK_NSEC -1) / (u64)TICK_NSEC))
--/*
-- * USEC_ROUND is used in the timeval to jiffie conversion.  See there
-- * for more details.  It is the scaled resolution rounding value.  Note
-- * that it is a 64-bit value.  Since, when it is applied, we are already
-- * in jiffies (albit scaled), it is nothing but the bits we will shift
-- * off.
-- */
--#define USEC_ROUND (u64)(((u64)1 << USEC_JIFFIE_SC) - 1)
--/*
-- * The maximum jiffie value is (MAX_INT >> 1).  Here we translate that
-- * into seconds.  The 64-bit case will overflow if we are not careful,
-- * so use the messy SH_DIV macro to do it.  Still all constants.
-- */
--#if BITS_PER_LONG < 64
--# define MAX_SEC_IN_JIFFIES \
--	(long)((u64)((u64)MAX_JIFFY_OFFSET * TICK_NSEC) / NSEC_PER_SEC)
--#else	/* take care of overflow on 64 bits machines */
--# define MAX_SEC_IN_JIFFIES \
--	(SH_DIV((MAX_JIFFY_OFFSET >> SEC_JIFFIE_SC) * TICK_NSEC, NSEC_PER_SEC, 1) - 1)
--
--#endif
--
--/*
-- * Convert jiffies to milliseconds and back.
-- *
-- * Avoid unnecessary multiplications/divisions in the
-- * two most common HZ cases:
-- */
--static inline unsigned int jiffies_to_msecs(const unsigned long j)
--{
--#if HZ <= 1000 && !(1000 % HZ)
--	return (1000 / HZ) * j;
--#elif HZ > 1000 && !(HZ % 1000)
--	return (j + (HZ / 1000) - 1)/(HZ / 1000);
--#else
--	return (j * 1000) / HZ;
--#endif
--}
--static inline unsigned long msecs_to_jiffies(const unsigned int m)
--{
--#if HZ <= 1000 && !(1000 % HZ)
--	return (m + (1000 / HZ) - 1) / (1000 / HZ);
--#elif HZ > 1000 && !(HZ % 1000)
--	return m * (HZ / 1000);
--#else
--	return (m * HZ + 999) / 1000;
--#endif
--}
--
--/*
-- * The TICK_NSEC - 1 rounds up the value to the next resolution.  Note
-- * that a remainder subtract here would not do the right thing as the
-- * resolution values don't fall on second boundries.  I.e. the line:
-- * nsec -= nsec % TICK_NSEC; is NOT a correct resolution rounding.
-- *
-- * Rather, we just shift the bits off the right.
-- *
-- * The >> (NSEC_JIFFIE_SC - SEC_JIFFIE_SC) converts the scaled nsec
-- * value to a scaled second value.
-- */
--static __inline__ unsigned long
--timespec_to_jiffies(const struct timespec *value)
--{
--	unsigned long sec = value->tv_sec;
--	long nsec = value->tv_nsec + TICK_NSEC - 1;
--
--	if (sec >= MAX_SEC_IN_JIFFIES){
--		sec = MAX_SEC_IN_JIFFIES;
--		nsec = 0;
--	}
--	return (((u64)sec * SEC_CONVERSION) +
--		(((u64)nsec * NSEC_CONVERSION) >>
--		 (NSEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
--
--}
--
--static __inline__ void
--jiffies_to_timespec(const unsigned long jiffies, struct timespec *value)
--{
--	/*
--	 * Convert jiffies to nanoseconds and separate with
--	 * one divide.
--	 */
--	u64 nsec = (u64)jiffies * TICK_NSEC; 
--	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_nsec);
--}
--
--/* Same for "timeval"
-- *
-- * Well, almost.  The problem here is that the real system resolution is
-- * in nanoseconds and the value being converted is in micro seconds.
-- * Also for some machines (those that use HZ = 1024, in-particular),
-- * there is a LARGE error in the tick size in microseconds.
--
-- * The solution we use is to do the rounding AFTER we convert the
-- * microsecond part.  Thus the USEC_ROUND, the bits to be shifted off.
-- * Instruction wise, this should cost only an additional add with carry
-- * instruction above the way it was done above.
-- */
--static __inline__ unsigned long
--timeval_to_jiffies(const struct timeval *value)
--{
--	unsigned long sec = value->tv_sec;
--	long usec = value->tv_usec;
--
--	if (sec >= MAX_SEC_IN_JIFFIES){
--		sec = MAX_SEC_IN_JIFFIES;
--		usec = 0;
--	}
--	return (((u64)sec * SEC_CONVERSION) +
--		(((u64)usec * USEC_CONVERSION + USEC_ROUND) >>
--		 (USEC_JIFFIE_SC - SEC_JIFFIE_SC))) >> SEC_JIFFIE_SC;
--}
--
--static __inline__ void
--jiffies_to_timeval(const unsigned long jiffies, struct timeval *value)
--{
--	/*
--	 * Convert jiffies to nanoseconds and separate with
--	 * one divide.
--	 */
--	u64 nsec = (u64)jiffies * TICK_NSEC; 
--	value->tv_sec = div_long_long_rem(nsec, NSEC_PER_SEC, &value->tv_usec);
--	value->tv_usec /= NSEC_PER_USEC;
--}
--
- static __inline__ int timespec_equal(struct timespec *a, struct timespec *b) 
- { 
- 	return (a->tv_sec == b->tv_sec) && (a->tv_nsec == b->tv_nsec);
-@@ -333,11 +91,6 @@
- 
- #define CURRENT_TIME (current_kernel_time())
- 
--#endif /* __KERNEL__ */
--
--#define NFDBITS			__NFDBITS
--
--#ifdef __KERNEL__
- extern void do_gettimeofday(struct timeval *tv);
- extern int do_settimeofday(struct timespec *tv);
- extern int do_sys_settimeofday(struct timespec *tv, struct timezone *tz);
-@@ -364,7 +117,10 @@
- 	ts->tv_sec = sec;
- 	ts->tv_nsec = nsec;
- }
--#endif
-+
-+#endif /* __KERNEL__ */
-+
-+#define NFDBITS			__NFDBITS
- 
- #define FD_SETSIZE		__FD_SETSIZE
- #define FD_SET(fd,fdsetp)	__FD_SET(fd,fdsetp)
-diff -urN linux-2.6/include/linux/times.h linux-2.6-patched/include/linux/times.h
---- linux-2.6/include/linux/times.h	2004-08-14 12:54:48.000000000 +0200
-+++ linux-2.6-patched/include/linux/times.h	2004-09-10 17:02:53.000000000 +0200
-@@ -1,59 +1,7 @@
- #ifndef _LINUX_TIMES_H
- #define _LINUX_TIMES_H
- 
--#ifdef __KERNEL__
--#include <linux/timex.h>
--#include <asm/div64.h>
--#include <asm/types.h>
--#include <asm/param.h>
--
--static inline clock_t jiffies_to_clock_t(long x)
--{
--#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
--	return x / (HZ / USER_HZ);
--#else
--	u64 tmp = (u64)x * TICK_NSEC;
--	do_div(tmp, (NSEC_PER_SEC / USER_HZ));
--	return (long)tmp;
--#endif
--}
--
--static inline unsigned long clock_t_to_jiffies(unsigned long x)
--{
--#if (HZ % USER_HZ)==0
--	if (x >= ~0UL / (HZ / USER_HZ))
--		return ~0UL;
--	return x * (HZ / USER_HZ);
--#else
--	u64 jif;
--
--	/* Don't worry about loss of precision here .. */
--	if (x >= ~0UL / HZ * USER_HZ)
--		return ~0UL;
--
--	/* .. but do try to contain it here */
--	jif = x * (u64) HZ;
--	do_div(jif, USER_HZ);
--	return jif;
--#endif
--}
--
--static inline u64 jiffies_64_to_clock_t(u64 x)
--{
--#if (TICK_NSEC % (NSEC_PER_SEC / USER_HZ)) == 0
--	do_div(x, HZ / USER_HZ);
--#else
--	/*
--	 * There are better ways that don't overflow early,
--	 * but even this doesn't overflow in hundreds of years
--	 * in 64 bits, so..
--	 */
--	x *= TICK_NSEC;
--	do_div(x, (NSEC_PER_SEC / USER_HZ));
--#endif
--	return x;
--}
--#endif
-+#include <linux/types.h>
- 
- struct tms {
- 	clock_t tms_utime;
-diff -urN linux-2.6/include/linux/timex.h linux-2.6-patched/include/linux/timex.h
---- linux-2.6/include/linux/timex.h	2004-09-10 17:02:33.000000000 +0200
-+++ linux-2.6-patched/include/linux/timex.h	2004-09-10 17:02:53.000000000 +0200
-@@ -55,35 +55,11 @@
- 
- #include <linux/config.h>
- #include <linux/compiler.h>
--#include <linux/jiffies.h>
-+#include <linux/time.h>
- 
- #include <asm/param.h>
- #include <asm/io.h>
--
--/*
-- * The following defines establish the engineering parameters of the PLL
-- * model. The HZ variable establishes the timer interrupt frequency, 100 Hz
-- * for the SunOS kernel, 256 Hz for the Ultrix kernel and 1024 Hz for the
-- * OSF/1 kernel. The SHIFT_HZ define expresses the same value as the
-- * nearest power of two in order to avoid hardware multiply operations.
-- */
--#if HZ >= 12 && HZ < 24
--# define SHIFT_HZ	4
--#elif HZ >= 24 && HZ < 48
--# define SHIFT_HZ	5
--#elif HZ >= 48 && HZ < 96
--# define SHIFT_HZ	6
--#elif HZ >= 96 && HZ < 192
--# define SHIFT_HZ	7
--#elif HZ >= 192 && HZ < 384
--# define SHIFT_HZ	8
--#elif HZ >= 384 && HZ < 768
--# define SHIFT_HZ	9
--#elif HZ >= 768 && HZ < 1536
--# define SHIFT_HZ	10
--#else
--# error You lose.
--#endif
-+#include <asm/timex.h>
- 
- /*
-  * SHIFT_KG and SHIFT_KF establish the damping of the PLL and are chosen
-@@ -154,41 +130,6 @@
- #define MAXGLITCH 30		/* pps signal glitch max (s) */
- 
- /*
-- * Pick up the architecture specific timex specifications
-- */
--#include <asm/timex.h>
--
--/* LATCH is used in the interval timer and ftape setup. */
--#define LATCH  ((CLOCK_TICK_RATE + HZ/2) / HZ)	/* For divider */
--
--/* Suppose we want to devide two numbers NOM and DEN: NOM/DEN, the we can
-- * improve accuracy by shifting LSH bits, hence calculating:
-- *     (NOM << LSH) / DEN
-- * This however means trouble for large NOM, because (NOM << LSH) may no
-- * longer fit in 32 bits. The following way of calculating this gives us
-- * some slack, under the following conditions:
-- *   - (NOM / DEN) fits in (32 - LSH) bits.
-- *   - (NOM % DEN) fits in (32 - LSH) bits.
-- */
--#define SH_DIV(NOM,DEN,LSH) (   ((NOM / DEN) << LSH)                    \
--                             + (((NOM % DEN) << LSH) + DEN / 2) / DEN)
--
--/* HZ is the requested value. ACTHZ is actual HZ ("<< 8" is for accuracy) */
--#define ACTHZ (SH_DIV (CLOCK_TICK_RATE, LATCH, 8))
--
--/* TICK_NSEC is the time between ticks in nsec assuming real ACTHZ */
--#define TICK_NSEC (SH_DIV (1000000UL * 1000, ACTHZ, 8))
--
--/* TICK_USEC is the time between ticks in usec assuming fake USER_HZ */
--#define TICK_USEC ((1000000UL + USER_HZ/2) / USER_HZ)
--
--/* TICK_USEC_TO_NSEC is the time between ticks in nsec assuming real ACTHZ and	*/
--/* a value TUSEC for TICK_USEC (can be set bij adjtimex)		*/
--#define TICK_USEC_TO_NSEC(TUSEC) (SH_DIV (TUSEC * USER_HZ * 1000, ACTHZ, 8))
--
--
--#include <linux/time.h>
--/*
-  * syscall interface - used (mainly by NTP daemon)
-  * to discipline kernel clock oscillator
-  */
+Doing the conversion was usually trivial, but sometimes showed some bugs. 
+For example, the ATI radeon fbcon driver is clearly horribly buggy:
+
+	drivers/video/aty/radeon_base.c:1725:42: warning: incorrect type in argument 2 (different address spaces)
+	drivers/video/aty/radeon_base.c:1725:42:    expected void const *from
+	drivers/video/aty/radeon_base.c:1725:42:    got void [noderef] *[assigned] base_addr<asn:2>
+	drivers/video/aty/radeon_base.c:1757:39: warning: incorrect type in argument 1 (different address spaces)
+	drivers/video/aty/radeon_base.c:1757:39:    expected void *to
+	drivers/video/aty/radeon_base.c:1757:39:    got void [noderef] *[assigned] base_addr<asn:2>
+
+comes from it doing
+
+	count -= copy_to_user(buf, base_addr+p, count);
+	..
+	count -= copy_from_user(base_addr+p, buf, count);
+
+where we are copying memory-mapped PCI space to/from user space. THIS IS
+REALLY REALLY WRONG! It's especially wrong as it can cause things like
+cache control and prefetch instructions to be used on PCI space, which
+migth well trigger serious bugs. That's ignoring the fact that on some 
+architectures the PCI IO space isn't even accessible that way in the first 
+place. At least not at the address that is the "PCI base address"..
+
+Anyway, last I remember, AMD machines could do strange things if you did 
+prefecthing on IO space. So this is not relegated to "weird 
+architectures".
+
+One such weird architecture is PPC64, which is why that one does this:
+
+	drivers/video/aty/radeon_base.c:2249:17: warning: incorrect type in assignment (different base types)
+	drivers/video/aty/radeon_base.c:2249:17:    expected void [noderef] *fb_base<asn:2>
+	drivers/video/aty/radeon_base.c:2249:17:    got unsigned long 
+
+from:
+
+		/* Argh. Scary arch !!! */
+	#ifdef CONFIG_PPC64
+		rinfo->fb_base = IO_TOKEN_TO_ADDR(rinfo->fb_base);
+	#endif
+
+which just "pre-translates" the address. Never mind that this is 
+conceptually wrong, it means that we later will "iounmap()" basically a 
+random address. Whee.
+
+I think the real fix is to write a "memcpy_fromio_touser()" and it's 
+reverse brother, just using a simple readbwl/writebwl loop with the proper 
+__get_user/__put_user. That would likely make the ppc64 horrible "Scary 
+arch" thing also go away.
+
+Benh: while doign the ppc64 thing, I also encountered something clearly
+broken in arch/ppc64/mm/init.c: iounmap_explicit(). I just commented out
+the stupid thing (it was wrong regardless of which way the preceding
+branch went: it would either call iounmap() twice on the same area, or it
+would get a NULL pointer dereference). Can you check what that is 
+_supposed_ to be doing?
+
+		Linus
