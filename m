@@ -1,117 +1,40 @@
-Return-Path: <arnd@arndb.de>
-Received: from moutng.kundenserver.de ([212.227.126.183]:56026 "EHLO
-	moutng.kundenserver.de") by vger.kernel.org with ESMTP
-	id S264853AbUGBTOI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 2 Jul 2004 15:14:08 -0400
-Subject: =?iso-8859-1?Q?Re:_compat_sys_adjtimex?=
-From: =?iso-8859-1?Q?Arnd_Bergmann?= <arnd@arndb.de>
-Message-Id: <26879984$108879494640e5b142b3ac60.19103723@config14.schlund.de>
-Content-Type: multipart/mixed; boundary="----_=_NextPart_108879494640e5b142b3ac60.19103723";
-	charset="iso-8859-1"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Date: Fri,  2 Jul 2004 21:12:01 +0200
-To: =?iso-8859-1?Q?Arun_Sharma?= <arun.sharma@intel.com>
-Cc: =?iso-8859-1?Q?Arnd_Bergmann?= <arnd@arndb.de>, =?iso-8859-1?Q?Paul_Mackerras?= <paulus@samba.org>, =?iso-8859-1?Q? David_S=2E_Miller ?= <davem@redhat.com>, linux-arch@vger.kernel.org
+Return-Path: <davidm@napali.hpl.hp.com>
+Received: from palrel12.hp.com ([156.153.255.237]:7628 "EHLO palrel12.hp.com")
+	by vger.kernel.org with ESMTP id S267899AbUGWTDv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 23 Jul 2004 15:03:51 -0400
+Received: from hplms2.hpl.hp.com (hplms2.hpl.hp.com [15.0.152.33])
+	by palrel12.hp.com (Postfix) with ESMTP id CE24C4004DC
+	for <linux-arch@vger.kernel.org>; Fri, 23 Jul 2004 12:03:50 -0700 (PDT)
+Received: from napali.hpl.hp.com (napali.hpl.hp.com [15.4.89.123])
+	by hplms2.hpl.hp.com (8.12.10/8.12.10/HPL-PA Hub) with ESMTP id i6NJ3msf028792
+	for <linux-arch@vger.kernel.org>; Fri, 23 Jul 2004 12:03:49 -0700 (PDT)
+Received: from napali.hpl.hp.com (napali [127.0.0.1])
+	by napali.hpl.hp.com (8.12.11/8.12.11/Debian-3) with ESMTP id i6NJ3m13009180
+	for <linux-arch@vger.kernel.org>; Fri, 23 Jul 2004 12:03:48 -0700
+From: David Mosberger <davidm@napali.hpl.hp.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Message-ID: <16641.24851.933837.18126@napali.hpl.hp.com>
+Date: Fri, 23 Jul 2004 12:03:47 -0700
+Subject: heads-up: may want to define elf_read_implies_exec_binary()
+Reply-To: davidm@hpl.hp.com
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Linus just checked in this patch:
 
-This is a multi-part message in MIME format.
+  http://linux.bkbits.net:8080/linux-2.5/cset@1.1865
 
-------_=_NextPart_108879494640e5b142b3ac60.19103723
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Disposition: inline
+   [PATCH] NX: allow architectures to select legacy mode dynamically
 
-Arun Sharma <arun.sharma@intel.com> schrieb am 02.07.2004, 20:21:42:
+If your architecture wants execute-permission implicitly turned on for
+memory regions that have read-permission, you'll need to add:
 
-> Updated patch to address these two issues.
+#define elf_read_implies_exec_binary(ex, have_pt_gnu_stack)	(!(have_pt_gnu_stack))
 
-Great.  The attachment contains compat my code for
-{get,set}timeofday, open, sched_rr_get_interval, sendfile,
-sysctl, sysinfo, time, ustat, utimes and all the uid16 syscalls.
+to asm-ARCH/elf.h (see asm-i386/elf.h for an example).  Of course, if
+the binary has a PT_GNU_STACK header, then that will take precedence.
 
-These are merged carefully from all seven compat architectures,
-but I never found the time to even compile testing them. Hopefully
-you can make something out of this.
-
-       Arnd <><
-
-------_=_NextPart_108879494640e5b142b3ac60.19103723
-Content-Type: application/gzip; name=compat_sys.tar.gz
-Content-Transfer-Encoding: base64
-Content-Disposition: attachment; filename="compat_sys.tar.gz"
-
-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
-AB/8gvMAeAAA
-
-
-------_=_NextPart_108879494640e5b142b3ac60.19103723--
+	--david
