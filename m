@@ -1,26 +1,64 @@
-Return-Path: <davem@redhat.com>
-Received: from mx1.redhat.com ([66.187.233.31]:38590 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S262251AbUCAF4p (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Mar 2004 00:56:45 -0500
-Date: Sun, 29 Feb 2004 21:56:32 -0800
-From: "David S. Miller" <davem@redhat.com>
-Subject: Re: compat tasks and O_LARGEFILE
-Message-Id: <20040229215632.543c084a.davem@redhat.com>
-In-Reply-To: <20040229023802.GB6964@intel.com>
-References: <20040228015709.GB6897@intel.com>
-	<20040228155626.4e45aaa6.davem@redhat.com>
-	<20040229023802.GB6964@intel.com>
+Return-Path: <benh@kernel.crashing.org>
+Received: from gate.crashing.org ([63.228.1.57]:36287 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S262251AbUCAGBe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Mar 2004 01:01:34 -0500
+Subject: Re: dma_mask semantic problems
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <20040229214750.74c4ce36.davem@redhat.com>
+References: <1078101455.10826.87.camel@gaston>
+	 <20040229214750.74c4ce36.davem@redhat.com>
+Content-Type: text/plain
+Message-Id: <1078120287.21575.12.camel@gaston>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Date: Mon, 01 Mar 2004 16:51:28 +1100
 Content-Transfer-Encoding: 7bit
-To: Arun Sharma <arun.sharma@intel.com>
-Cc: linux-arch@vger.kernel.org
+To: "David S. Miller" <davem@redhat.com>
+Cc: Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 28 Feb 2004 18:38:02 -0800
-Arun Sharma <arun.sharma@intel.com> wrote:
+On Mon, 2004-03-01 at 16:47, David S. Miller wrote:
 
-> This approach doesn't work for completely user level 32 bit emulation.
+> 1) A way to say "I can map all of physical space into the 32-bit
+>    PCI BUS DMA addressing space, ie. iommu platform.
+> 
+> 2) A way to say "I can map all of physical space using 64-bit
+>    addressing too"
+> 
+> I think the first thing is a seperate question.  Purely, the IOMMU exists
+> precisely to serve this purpose, map physical memory space (however large
+> bitness wise it is) into the 32-bit SAC PCI address space.
+> 
+> I would go so far as to propose a:
+> 
+> 	int dma_can_use_iommu(dev);
+> 	u64 dma_iommu_mask(dev);
 
-If the emulation is completely user level, then you're asking to modify the
-64-bit syscall behavior, and that's more of a linux-kernel topic probably?
+What about 32 bits archs without iommu ?
+
+> so scsi could say:
+> 
+> 	if (dma_can_use_iommu(dev) &&
+>             !(dma_iommu_mask(dev) & ~(u64)0xffffffff)) {
+> 		/* do the 32-bit space saving trick... */
+> 		dma_set_blah_mask(0xffffffff);
+> 		... etc. ...
+> 	}
+> 
+> Sound ok?
+
+Except for 32 bits archs without iommu ...
+
+Well... Assuming we fix that, then what if we can do both 64 bit
+addresses and 32 bits addresses, who decides what to use ? like we
+support DAC. Who decides wether to use it or not ?
+
+If it's the pci_map_* code that will either go through the iommu or
+not, on what bases does it make that decision ?
+
+Once the above example you pasted did return that we can indeed get
+only 32 bits addresses, we do a dma_set_dma_mask(32bits) to force
+pci_map_sg() to only return us addresses in the low 32 bits mask,
+that's fine, just make it clear that this dma_set_blah_mask is
+actually the real & good old dma/pci_set_dma_mask()...
+
+Ben.
