@@ -1,38 +1,31 @@
-Return-Path: <schwidefsky@de.ibm.com>
-Received: from mtagate3.de.ibm.com ([195.212.29.152]:47052 "EHLO
-	mtagate3.de.ibm.com") by vger.kernel.org with ESMTP id S265009AbUFAMLQ convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 1 Jun 2004 08:11:16 -0400
-Subject: Re: [PATCH] ppc64: Fix possible race with set_pte on a present PTE
-Message-ID: <OFB228E20C.FF1B818B-ONC1256EA6.004258F7-C1256EA6.0042EA55@de.ibm.com>
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Date: Tue, 1 Jun 2004 14:10:53 +0200
-MIME-Version: 1.0
-Content-type: text/plain; charset=ISO-8859-1
-Content-transfer-encoding: 8BIT
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Andrew Morton <akpm@osdl.org>, Andrea Arcangeli <andrea@suse.de>, bcrl@kvack.org, "David S. Miller" <davem@redhat.com>, Linux Arch list <linux-arch@vger.kernel.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, mingo@elte.hu, Linus Torvalds <torvalds@osdl.org>, wesolows@foobazco.org, willy@debian.org
+Return-Path: <zaitcev@redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:27275 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S263923AbUFCSCZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jun 2004 14:02:25 -0400
+Date: Thu, 3 Jun 2004 11:02:21 -0700
+From: Pete Zaitcev <zaitcev@redhat.com>
+Subject: FUTEX_CMP_REQUEUE and 6-argument syscall
+Message-Id: <20040603110221.1fe58b53.zaitcev@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: schwidefsky@de.ibm.com
+Cc: linux-arch@vger.kernel.org, zaitcev@redhat.com, akpm@osdl.org, jakub@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
+Hi, Martin,
 
+the following changeset adds an extra argument for sys_futex:
+ http://linux.bkbits.net:8080/linux-2.5/gnupatch@40bca55f9uSk3jznb3RD7ltnQvJKbA
 
+So, now we have a syscall with 6 arguments. Do you have any suggestions
+how to handle it on s390? The main decision would be if we stick to
+the C calling convention and put a pointer to the list into %r7, or
+if we just put the argument into %r7 (thus precluding syscalls with
+7 arguments for sure, but saving a get_user somewhere). After that
+we need to change arch/s390/kernel/entry.S:trace_svc, and the 31 bit
+compat wrapper.
 
+I'm curious if any other architecture was caught out by this.
 
-> I did the ppc64 impl, the x86 one (hope I got it right). I still need to
-> do ppc32 and I suppose s390 must be fixed now that ptep_estabish is gone
-> but I'll leave that to someone who understand something about these
-things ;)
-
-At the moment I can't access linux.bkbits.net so I can't test anything but
-as far as I can tell s390 should just work as is. ptep_establish is gone
-but it has been replaced by correct sequences: ptep_clear_flush & set_pte
-and set_pte & flush_tlb_page. The second sequence can be optimized to a
-ptep_clear_flush & set_pte if the _PAGE_RO bit has changed. Apart from
-that s390 is perfectly fine with the change.
-
-blue skies,
-   Martin
-
-Linux/390 Design & Development, IBM Deutschland Entwicklung GmbH
-Schönaicherstr. 220, D-71032 Böblingen, Telefon: 49 - (0)7031 - 16-2247
-E-Mail: schwidefsky@de.ibm.com
+-- Pete
