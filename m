@@ -1,31 +1,41 @@
-Return-Path: <willy@www.linux.org.uk>
-Received: from parcelfarce.linux.theplanet.co.uk ([195.92.249.252]:733 "EHLO
-	www.linux.org.uk") by vger.kernel.org with ESMTP id S261496AbUCPTSN
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Mar 2004 14:18:13 -0500
-Date: Tue, 16 Mar 2004 19:18:10 +0000
-From: Matthew Wilcox <willy@debian.org>
-Subject: Re: [patch 1/1] generic 32 bit emulation for System-V IPC
-Message-ID: <20040316191810.GX25059@parcelfarce.linux.theplanet.co.uk>
-References: <200403152253.i2FMrSE09813@mail.osdl.org> <40575155.3070208@intel.com>
+Return-Path: <akpm@osdl.org>
+Received: from fw.osdl.org ([65.172.181.6]:12423 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S262109AbUCRJF0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 18 Mar 2004 04:05:26 -0500
+Received: from bix (build.pdx.osdl.net [172.20.1.2])
+	by mail.osdl.org (8.11.6/8.11.6) with ESMTP id i2I95PE14072
+	for <linux-arch@vger.kernel.org>; Thu, 18 Mar 2004 01:05:25 -0800
+Date: Thu, 18 Mar 2004 01:05:31 -0800
+From: Andrew Morton <akpm@osdl.org>
+Subject: compat_sys_sched_setaffinity()
+Message-Id: <20040318010531.1af5b0a9.akpm@osdl.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <40575155.3070208@intel.com>
-Sender: <willy@www.linux.org.uk>
-To: Arun Sharma <arun.sharma@intel.com>
-Cc: akpm@osdl.org, torvalds@osdl.org, arnd@arndb.de, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Mar 16, 2004 at 11:11:17AM -0800, Arun Sharma wrote:
-> Could we get rid of CONFIG_SYSVIPC_COMPAT and use something like:
 
-No; not all 32-bit emulations need it.
+This is broken for NR_CPUS > 64, is it not?
 
--- 
-"Next the statesmen will invent cheap lies, putting the blame upon 
-the nation that is attacked, and every man will be glad of those
-conscience-soothing falsities, and will diligently study them, and refuse
-to examine any refutations of them; and thus he will by and by convince 
-himself that the war is just, and will thank God for the better sleep 
-he enjoys after this process of grotesque self-deception." -- Mark Twain
+asmlinkage long compat_sys_sched_setaffinity(compat_pid_t pid, 
+					     unsigned int len,
+					     compat_ulong_t *user_mask_ptr)
+{
+	unsigned long kernel_mask;
+	mm_segment_t old_fs;
+	int ret;
+
+	if (get_user(kernel_mask, user_mask_ptr))
+		return -EFAULT;
+
+	old_fs = get_fs();
+	set_fs(KERNEL_DS);
+	ret = sys_sched_setaffinity(pid,
+				    sizeof(kernel_mask),
+				    &kernel_mask);
+	set_fs(old_fs);
+
+	return ret;
+}
