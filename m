@@ -1,37 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Subject: Re: TASK_SIZE is variable.
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <20050203071913.GB29367@wotan.suse.de>
-References: <16892.7218.458371.340859@cargo.ozlabs.ibm.com>
-	 <20050130110127.GA8441@wotan.suse.de>
-	 <16892.52890.354277.754169@cargo.ozlabs.ibm.com>
-	 <20050130182353.1a68745c.davem@davemloft.net>
-	 <20050131092354.GD19740@wotan.suse.de>
-	 <20050131112957.755e5a0c.davem@davemloft.net>
-	 <20050131193828.GD12102@wotan.suse.de>
-	 <20050131123550.2dbe41e2.davem@davemloft.net>
-	 <20050202200812.100aedca.akpm@osdl.org>
-	 <20050202222841.5e380e03.davem@davemloft.net>
-	 <20050203071913.GB29367@wotan.suse.de>
-Content-Type: text/plain
-Date: Thu, 03 Feb 2005 09:23:11 +0000
-Message-Id: <1107422592.12383.39.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
-To: Andi Kleen <ak@suse.de>
-Cc: "David S. Miller" <davem@davemloft.net>, Andrew Morton <akpm@osdl.org>, paulus@samba.org, linux-arch@vger.kernel.org
+Date: Fri, 4 Feb 2005 18:16:11 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [patch 19/24] TASK_SIZE is variable.
+In-Reply-To: <200502050150.j151osl11380@mail.osdl.org>
+Message-ID: <Pine.LNX.4.58.0502041806120.2165@ppc970.osdl.org>
+References: <200502050150.j151osl11380@mail.osdl.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: Andrew Morton <akpm@osdl.org>
+Cc: dwmw2@infradead.org, Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2005-02-03 at 08:19 +0100, Andi Kleen wrote:
-> 
-> > I'm willing to go whatever way people want to get a fix quickly
-> > into 2.6.11-final.  But longer term I think the mm->vm_limit idea
-> > is the better direction longer term.
-> 
-> For 2.6.11 MM_VM_SIZE is imho the right fix. 
 
-Agreed. As Dave says, we can always implement the more cunning ideas
-later. Push what you have.
 
--- 
-dwmw2
+On Fri, 4 Feb 2005 akpm@osdl.org wrote:
+> 
+> From: David Woodhouse <dwmw2@infradead.org>
+> 
+> Bad things can happen if a 32-bit process is the last user of a 64-bit mm. 
+> TASK_SIZE isn't a constant, and we can end up clearing page tables only up
+> to the 32-bit TASK_SIZE instead of all the way.  We should probably
+> double-check every instance of TASK_SIZE or USER_PTRS_PER_PGD for this kind
+> of problem.
+
+I think this is the wrong thing.
+
+I think this is a bug in the architectures that play games with TASK_SIZE. 
+They shouldn't.
+
+TASK_SIZE and USER_PTRS_PER_PGD should _not_ be dependent on whether some 
+process is in compatibility mode or not. 
+
+The fact that a 32-bit process on a 64-bit kernel wants to limit certain
+things to the low bits does _not_ mean that TASK_SIZE should change. It
+should mean that "TASK_UNMAPPED_BASE" might change (preferably not even
+that, actually - just make the damn arch_get_unmapped_area() have explicit
+knowledge about min/max issues instead!), and that "tsk->addr_limit" might
+change. But changing TASK_SIZE is crazy. And leads to exactly the kinds of 
+problems this patch tries to fix (and who knows how many others).
+
+Would arch maintainers please look at fixing this in their architectures 
+instead? Make TASK_SIZE be the maximum size a process VM can have. 
+
+		Linus
