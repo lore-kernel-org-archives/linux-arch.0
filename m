@@ -1,54 +1,49 @@
-Return-Path: <akpm@osdl.org>
-Received: from fw.osdl.org ([65.172.181.6]:8383 "EHLO mail.osdl.org")
-	by vger.kernel.org with ESMTP id S264190AbUDHIts (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2004 04:49:48 -0400
-Date: Thu, 8 Apr 2004 01:49:31 -0700
-From: Andrew Morton <akpm@osdl.org>
+Return-Path: <manfred@colorfullife.com>
+Received: from dbl.q-ag.de ([213.172.117.3]:4566 "EHLO dbl.q-ag.de")
+	by vger.kernel.org with ESMTP id S261741AbUDHOIU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Apr 2004 10:08:20 -0400
+Message-ID: <40755CCA.8030507@colorfullife.com>
+Date: Thu, 08 Apr 2004 16:08:10 +0200
+From: Manfred Spraul <manfred@colorfullife.com>
+MIME-Version: 1.0
 Subject: Re: posix message queues
-Message-Id: <20040408014931.5d56901f.akpm@osdl.org>
+References: <20040407120720.6b937deb.akpm@osdl.org> <40745360.6000709@colorfullife.com> <200404081017.46132.arnd@arndb.de>
 In-Reply-To: <200404081017.46132.arnd@arndb.de>
-References: <20040407120720.6b937deb.akpm@osdl.org>
-	<40745360.6000709@colorfullife.com>
-	<200404081017.46132.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: manfred@colorfullife.com, linux-arch@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Arnd Bergmann <arnd@arndb.de> wrote:
+Arnd Bergmann wrote:
+
+>What worries me more than mq_attr compatibility is the conversion
+>of struct sigevent, which might turn out really hard when more
+>fields in there are used.
 >
-> > No. The unix spec mandates 'long' for the final C-library api. Using u32 
->  > would mean that glibc would have to add an emulation layer in user space 
->  > for 64-bit archs. In the long run, 64-bit kernels running 64-bit apps 
->  > will be the common case. I don't want to add an emulation layer to the 
->  > common case.
-> 
->  Coincidentally, I have just finished writing handlers for them. 
+What is the problem for the wrappers with sigevent?
 
+>+
+>+static int get_compat_sigevent(struct sigevent *event,
+>+		const struct compat_sigevent __user *u_event)
+>+{
+>+	if (verify_area(VERIFY_READ, u_event, sizeof(*u_event)))
+>+		return -EFAULT;
+>+
+>+	return __get_user(event->sigev_value.sival_int,
+>+			  &u_event->sigev_value.sival_int)
+>+	     | __get_user(event->sigev_signo, &u_event->sigev_signo)
+>+	     | __get_user(event->sigev_notify, &u_event->sigev_notify)
+>+	     | __get_user(event->sigev_notify_thread_id,
+>+			  &u_event->sigev_notify_thread_id);
+>+}
+>+
+>
+The dangerous case for the wrappers is mq_notify for SIGEV_THREAD: The 
+kernel will read (with copy_from_user()) from the pointer 
+u_event->sigev_value.sival_ptr. Fixed 32-byte buffer. The data is opaque 
+- the kernel copies it back to the same process without any 
+interpretation. Would that work on all archs?
 
-
-
-In file included from kernel/sys.c:8:
-include/linux/compat.h:98: error: `SIGEV_PAD_SIZE' undeclared here (not in a function)
-
-
----
-
- 25-akpm/include/linux/compat.h |    1 +
- 1 files changed, 1 insertion(+)
-
-diff -puN include/linux/compat.h~compat_mq-fix include/linux/compat.h
---- 25/include/linux/compat.h~compat_mq-fix	2004-04-08 01:49:19.539180328 -0700
-+++ 25-akpm/include/linux/compat.h	2004-04-08 01:49:19.541180024 -0700
-@@ -13,6 +13,7 @@
- #include <linux/sem.h>
- 
- #include <asm/compat.h>
-+#include <asm/siginfo.h>
- 
- #define compat_jiffies_to_clock_t(x)	\
- 		(((unsigned long)(x) * COMPAT_USER_HZ) / HZ)
-
-_
+--
+    Manfred
