@@ -1,76 +1,77 @@
-Return-Path: <sky@de.ibm.com>
-Received: from mtagate4.de.ibm.com ([195.212.29.153]:64927 "EHLO
-	mtagate4.de.ibm.com") by vger.kernel.org with ESMTP id S264789AbUEERp0
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 5 May 2004 13:45:26 -0400
-Date: Wed, 5 May 2004 19:42:22 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: static DEFINE_PER_CPU vs. modules
-Message-ID: <20040505174222.GA1927@mschwid3.boeblingen.de.ibm.com>
+Return-Path: <akpm@osdl.org>
+Received: from fw.osdl.org ([65.172.181.6]:40857 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S265204AbUELTuH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 May 2004 15:50:07 -0400
+Date: Wed, 12 May 2004 12:49:10 -0700
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: Implement print_modules()
+Message-Id: <20040512124910.0af06300.akpm@osdl.org>
+In-Reply-To: <20040512173905.GA24382@devserv.devel.redhat.com>
+References: <20040512173905.GA24382@devserv.devel.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
-To: rth@twiddle.net
-Cc: akpm@osdl.org, davidm@hpl.hp.com, arnd@arndb.de, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, epasch@de.ibm.com, hare@suse.de
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Arjan van de Ven <arjanv@redhat.com>
+Cc: rusty@rustycorp.com.au, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> I would think it should be possible to work around the amd64
-> compiler memory model thing by using inline assembly to access
-> the movabsq instruction and thense the 64-bit relocation.
+Arjan van de Ven <arjanv@redhat.com> wrote:
+>
+> Hi,
+> 
+> the patch below resolves the "Not Yet Implemented" print_modules() thing. 
+> This is a really useful feature for distros; it allows us to do statistical
+> analysis on which modules are present how often in oopses compared to how
+> often they are used normally.
+> In addition it helps to spot candidates for certain bugs without having to
+> go back to the customer asking for this information.
+> 
 
-Ok, I'll bite. How about the following patch:
+OK.  Only three architectures are calling print_modules() at this time. 
+arch maintainers should consider adding a call.  We have a stub at present
+so the change can go in any time.
 
-[PATCH] s390: fix per cpu for 64-bit modules.
 
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-
-Force the use of a 64 bit relocation to access the
-per_cpu__##var variables and fix a problem in the
-module loader regarding GOTENT and GOTPLTENT relocs.
-
-diff -urN linux-2.6/arch/s390/kernel/module.c linux-2.6-s390/arch/s390/kernel/module.c
---- linux-2.6/arch/s390/kernel/module.c	Sun Apr  4 05:38:13 2004
-+++ linux-2.6-s390/arch/s390/kernel/module.c	Wed May  5 19:40:22 2004
-@@ -277,7 +277,8 @@
- 			*(unsigned int *) loc = val;
- 		else if (r_type == R_390_GOTENT ||
- 			 r_type == R_390_GOTPLTENT)
--			*(unsigned int *) loc = val >> 1;
-+			*(unsigned int *) loc =
-+				(val + (Elf_Addr) me->module_core - loc) >> 1;
- 		else if (r_type == R_390_GOT64 ||
- 			 r_type == R_390_GOTPLT64)
- 			*(unsigned long *) loc = val;
-diff -urN linux-2.6/include/asm-s390/percpu.h linux-2.6-s390/include/asm-s390/percpu.h
---- linux-2.6/include/asm-s390/percpu.h	Sun Apr  4 05:38:20 2004
-+++ linux-2.6-s390/include/asm-s390/percpu.h	Wed May  5 19:40:22 2004
-@@ -5,10 +5,26 @@
- #include <asm/lowcore.h>
- 
- /*
-- * s390 uses the generic implementation for per cpu data, with the exception that
-- * the offset of the cpu local data area is cached in the cpu's lowcore memory
-+ * For builtin kernel code s390 uses the generic implementation for
-+ * per cpu data, with the exception that the offset of the cpu local
-+ * data area is cached in the cpu's lowcore memory
-+ * For 64 bit module code s390 forces the use of a GOT slot for the
-+ * address of the per cpu variable. This is needed because the module
-+ * may be more than 4G above the per cpu area.
-  */
-+#if defined(__s390x__) && defined(MODULE)
-+#define __get_got_cpu_var(var,offset) \
-+  (*({ unsigned long *__ptr; \
-+       asm ( "larl %0,per_cpu__"#var"@GOTENT" : "=a" (__ptr) ); \
-+       ((typeof(&per_cpu__##var))((*__ptr) + offset)); \
-+    }))
-+#undef __get_cpu_var
-+#define __get_cpu_var(var) __get_got_cpu_var(var,S390_lowcore.percpu_offset)
-+#undef per_cpu
-+#define per_cpu(var,cpu) __get_got_cpu_var(var,__per_cpu_offset[cpu])
-+#else
- #undef __get_cpu_var
- #define __get_cpu_var(var) (*RELOC_HIDE(&per_cpu__##var, S390_lowcore.percpu_offset))
-+#endif
- 
- #endif /* __ARCH_S390_PERCPU__ */
+> 
+> diff -purN linux-2.6.6/include/linux/module.h linux/include/linux/module.h
+> --- linux-2.6.6/include/linux/module.h	2004-05-10 04:33:10.000000000 +0200
+> +++ linux/include/linux/module.h	2004-05-12 16:40:40.746460936 +0200
+> @@ -22,7 +22,7 @@
+>  
+>  /* Not Yet Implemented */
+>  #define MODULE_SUPPORTED_DEVICE(name)
+> -#define print_modules()
+> +extern void print_modules(void);
+>  
+>  /* v850 toolchain uses a `_' prefix for all user symbols */
+>  #ifndef MODULE_SYMBOL_PREFIX
+> diff -purN linux-2.6.6/kernel/module.c linux/kernel/module.c
+> --- linux-2.6.6/kernel/module.c	2004-05-12 15:41:30.030251848 +0200
+> +++ linux/kernel/module.c	2004-05-12 16:40:26.141681200 +0200
+> @@ -1886,6 +1886,25 @@ struct module *module_text_address(unsig
+>  	return NULL;
+>  }
+>  
+> +void print_modules(void)
+> +{
+> +	unsigned long flags;
+> +	struct module *mod;
+> +	
+> +	local_irq_save(flags);
+> +	if (!spin_trylock(&modlist_lock)) {
+> +		local_irq_restore(flags);
+> +		return;
+> +	}
+> +	printk("Modules linked in: ");
+> +	list_for_each_entry(mod, &modules, list) {
+> +		printk("%s ",mod->name);
+> +	}
+> +	printk("\n");
+> +	spin_unlock(&modlist_lock);
+> +	local_irq_restore(flags);
+> +}
+> +
+>  #ifdef CONFIG_MODVERSIONS
+>  /* Generate the signature for struct module here, too, for modversions. */
+>  void struct_module(struct module *mod) { return; }
