@@ -1,61 +1,34 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267625AbUHPNBQ@vger.kernel.org>
-Received: from palrel11.hp.com ([156.153.255.246]:30103 "EHLO palrel11.hp.com")
-	by vger.kernel.org with ESMTP id S267619AbUHPNAy (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267757AbUHPQWl@vger.kernel.org>
+Received: from holomorphy.com ([207.189.100.168]:11176 "EHLO holomorphy.com")
+	by vger.kernel.org with ESMTP id S267755AbUHPQWl (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Aug 2004 09:00:54 -0400
-From: David Mosberger <davidm@napali.hpl.hp.com>
-MIME-Version: 1.0
+	Mon, 16 Aug 2004 12:22:41 -0400
+Date: Mon, 16 Aug 2004 09:22:28 -0700
+From: William Lee Irwin III <wli@holomorphy.com>
+Subject: Re: Using get_cycles for add_timer_randomness
+Message-ID: <20040816162228.GB11200@holomorphy.com>
+References: <200308160303.17612.arnd@arndb.de> <20040810162435.GK24690@krispykreme> <20040814183623.GB5637@krispykreme> <20040815154821.2d6edb03.akpm@osdl.org> <20040816161756.GC16521@thunk.org>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <16672.45037.630064.539644@napali.hpl.hp.com>
-Date: Mon, 16 Aug 2004 06:00:29 -0700
-Subject: Re: clear_user_highpage()
-In-Reply-To: <20040813144115.4c59a2f0.davem@redhat.com>
-References: <20040811161537.5e24c2b6.davem@redhat.com>
-	<Pine.LNX.4.58.0408111635160.1839@ppc970.osdl.org>
-	<20040812004654.GX11200@holomorphy.com>
-	<Pine.LNX.4.58.0408111905210.1839@ppc970.osdl.org>
-	<20040813144115.4c59a2f0.davem@redhat.com>
-Reply-To: davidm@hpl.hp.com
-To: "David S. Miller" <davem@redhat.com>
-Cc: Linus Torvalds <torvalds@osdl.org>, wli@holomorphy.com, linux-arch@vger.kernel.org
+Content-Disposition: inline
+In-Reply-To: <20040816161756.GC16521@thunk.org>
+To: Theodore Ts'o <tytso@mit.edu>
+Cc: Andrew Morton <akpm@osdl.org>, Anton Blanchard <anton@samba.org>, arnd@arndb.de, richm@oldelvet.org.uk, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
->>>>> On Fri, 13 Aug 2004 14:41:15 -0700, "David S. Miller" <davem@redhat.com> said:
+At some point in the past, Arnd Bergmann <arnd@arndb.de> wrote:
+>> I noticed that only i386 and x86-64 are currently using a high resolution
+>> timer source when adding randomness.  Since many architectures have a
+>> working get_cycles() implementation, it seems rather straightforward to use
+>> that.
 
-  DaveM> On Wed, 11 Aug 2004 19:18:18 -0700 (PDT) Linus Torvalds
-  DaveM> <torvalds@osdl.org> wrote:
+On Mon, Aug 16, 2004 at 12:17:56PM -0400, Theodore Ts'o wrote:
+> My only concern about using get_cycles is the speed question; on some
+> architectures, could (particularly those without TSC registers or
+> equivalent hardware support) could get_cycles() be slow enough to cause
+> latency problems?
 
-  >> I really do believe (but can't back it up with any real numbers)
-  >> that we want to try to keep pages in cache as long as
-  >> possible. That means keeping the pages close to the last CPU that
-  >> used them, btw.
+AFAICT most of those return 0 from get_cycles().
 
-  DaveM> So I did some testing.
 
-  DaveM> I changed the cache-bypassing clear_user_page() into one that
-  DaveM> uses normal stores and does allocate in the L2 cache.
-
-  DaveM> I ran the full build tests 3 times for each case, and the
-  DaveM> numbers were consistent.  It makes the full build take a full
-  DaveM> minute longer.
-
-Very interesting. I tried something similar on a dual 1.5GHz Itanium
-2.  I tried two versions of clear_page: one with .nta (no-temporal
-affinity hint, which is the default) and one without.  The result for
-5 runs of a fairly minimal kernel-compile (with make -j8):
-
-	with .nta:			without .nta:
-
-real	80.0 70.2 71.0 70.4 70.3	79.4 69.5 69.5 69.5 69.3
-sys	 4.6  4.6  4.6  4.6  4.5	 5.3  5.4  5.3  5.4  5.4
-
-Note that the first run was with cold page cache, hence the longer
-runtime.
-
-So, on average, dropping the .nta costs us 0.78 seconds of kernel-time
-but, overall, the kernel-builds complete about 0.94 seconds faster.
-
-Of course, it's just one (more) data-point...
-
-	--david
+-- wli
