@@ -1,31 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Mon, 31 Jan 2005 02:33:38 +0000
-From: Matthew Wilcox <matthew@wil.cx>
+Date: Mon, 31 Jan 2005 10:23:54 +0100
+From: Andi Kleen <ak@suse.de>
 Subject: Re: TASK_SIZE is variable.
-Message-ID: <20050131023338.GB31145@parcelfarce.linux.theplanet.co.uk>
-References: <1106692012.6480.158.camel@localhost.localdomain> <20050129122321.0cac707c.akpm@osdl.org> <16892.7218.458371.340859@cargo.ozlabs.ibm.com>
+Message-ID: <20050131092354.GD19740@wotan.suse.de>
+References: <1106692012.6480.158.camel@localhost.localdomain> <20050129122321.0cac707c.akpm@osdl.org> <16892.7218.458371.340859@cargo.ozlabs.ibm.com> <20050130110127.GA8441@wotan.suse.de> <16892.52890.354277.754169@cargo.ozlabs.ibm.com> <20050130182353.1a68745c.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <16892.7218.458371.340859@cargo.ozlabs.ibm.com>
-Sender: <willy@www.linux.org.uk>
-To: Paul Mackerras <paulus@samba.org>
-Cc: Andrew Morton <akpm@osdl.org>, David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org
+In-Reply-To: <20050130182353.1a68745c.davem@davemloft.net>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Paul Mackerras <paulus@samba.org>, ak@suse.de, akpm@osdl.org, dwmw2@infradead.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Jan 30, 2005 at 10:28:50AM +1100, Paul Mackerras wrote:
-> However, the default
-> MM_VM_SIZE is still (based on) TASK_SIZE, and each 64-bit arch that
-> has TASK_SIZE as a per-task property then has to override it (except
-> that parisc doesn't seem to).
+> However, I like the mm->max_addr idea because that could be used
+> for the mmap()/munmap()/mremap() sanity checks as well instead of
+> bogus TASK_SIZE.
 
-There's no 64-bit userspace for parisc yet ... that would involve dealing
-with drepper some more, and nobody wants to do that.
+Hmm, but in process context it is not bogus is it? 
 
--- 
-"Next the statesmen will invent cheap lies, putting the blame upon 
-the nation that is attacked, and every man will be glad of those
-conscience-soothing falsities, and will diligently study them, and refuse
-to examine any refutations of them; and thus he will by and by convince 
-himself that the war is just, and will thank God for the better sleep 
-he enjoys after this process of grotesque self-deception." -- Mark Twain
+-Andi
