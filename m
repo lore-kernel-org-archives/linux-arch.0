@@ -1,53 +1,137 @@
-Return-Path: <rmk+linux-arch=vger.kernel.org@arm.linux.org.uk>
-Received: from caramon.arm.linux.org.uk ([212.18.232.186]:62987 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S262609AbUCWPup (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Mar 2004 10:50:45 -0500
-Date: Tue, 23 Mar 2004 15:50:36 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: can device drivers return non-ram via vm_ops->nopage?
-Message-ID: <20040323155036.A31185@flint.arm.linux.org.uk>
-References: <405F6636.2090609@pobox.com> <20040322223509.GO2045@holomorphy.com> <1079999839.23205.40.camel@gaston> <20040323020756.GS2045@holomorphy.com> <20040323113534.GD22639@dualathlon.random> <20040323114452.GE2045@holomorphy.com> <20040323123439.GJ22639@dualathlon.random> <20040323124027.D25134@flint.arm.linux.org.uk> <Pine.LNX.4.58.0403230722120.1106@ppc970.osdl.org> <20040323153641.GM22639@dualathlon.random>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20040323153641.GM22639@dualathlon.random>; from andrea@suse.de on Tue, Mar 23, 2004 at 04:36:41PM +0100
-Sender: Russell King <rmk@arm.linux.org.uk>
-To: Andrea Arcangeli <andrea@suse.de>
-Cc: Linus Torvalds <torvalds@osdl.org>, William Lee Irwin III <wli@holomorphy.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jeff Garzik <jgarzik@pobox.com>, James Bottomley <James.Bottomley@steeleye.com>, Linux Arch list <linux-arch@vger.kernel.org>, David Woodhouse <dwmw2@infradead.org>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@osdl.org>
+Return-Path: <akpm@osdl.org>
+Received: from fw.osdl.org ([65.172.181.6]:62148 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S262781AbUCWSTJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Mar 2004 13:19:09 -0500
+Date: Tue, 23 Mar 2004 10:19:07 -0800
+Message-Id: <200403231819.i2NIJ7221153@mail.osdl.org>
+Subject: [patch 1/1] rename dma_error()
+From: akpm@osdl.org
+To: torvalds@osdl.org
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Mar 23, 2004 at 04:36:41PM +0100, Andrea Arcangeli wrote:
-> On Tue, Mar 23, 2004 at 07:25:31AM -0800, Linus Torvalds wrote:
-> > On Tue, 23 Mar 2004, Russell King wrote:
-> > > On Tue, Mar 23, 2004 at 01:34:39PM +0100, Andrea Arcangeli wrote:
-> > > > anyways Linus vetoed the lazy approch so we probably should give it up
-> > > > (the one thing I like most is to avoid the branch in the fast path).
-> > > 
-> > > I don't think he did - he vetoed adding another special condition to
-> > > the fast path, or returning non-RAM pages via ->nopage.
-> > 
-> > Indeed.
-> 
-> note that I was talking about non-ram, obviously ram pages can be
-> returned via ->nopage and that's what drivers are using already.
 
-Let's not get distracted into the other problem areas.  What we're
-talking about here is solving the "how to map memory returned from
-dma_alloc_coherent()".
 
-There's the related problem (which Jeff has - via82cxxx_audio.c)
-which is effectively a scatter-gather dma_alloc_coherent() +
-dma_coherent_mmap() problem.
+We're getting namespace collisions from the new dma_error(), and it wasn't a
+well-chosen identifier.  Rename it to dma_mapping_error().
 
-Then there's the unrelated problem where ALSA wants to map buffers
-on PCI devices coherently into user space.
 
-The these are three distinct problems, and we should not confuse
-them.
+---
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
-                 2.6 Serial core
+ 25-akpm/Documentation/DMA-API.txt            |    6 +++---
+ 25-akpm/Documentation/DMA-mapping.txt        |    4 ++--
+ 25-akpm/include/asm-generic/dma-mapping.h    |    4 ++--
+ 25-akpm/include/asm-generic/pci-dma-compat.h |    4 ++--
+ 25-akpm/include/asm-i386/dma-mapping.h       |    2 +-
+ 25-akpm/include/asm-ppc64/pci.h              |    2 +-
+ 25-akpm/include/asm-sparc64/pci.h            |    2 +-
+ 7 files changed, 12 insertions(+), 12 deletions(-)
+
+diff -puN Documentation/DMA-API.txt~rename-dma_error Documentation/DMA-API.txt
+--- 25/Documentation/DMA-API.txt~rename-dma_error	2004-03-23 10:12:37.798413704 -0800
++++ 25-akpm/Documentation/DMA-API.txt	2004-03-23 10:12:37.808412184 -0800
+@@ -279,14 +279,14 @@ recommended that you never use these unl
+ cache width is.
+ 
+ int
+-dma_error(dma_addr_t dma_addr)
++dma_mapping_error(dma_addr_t dma_addr)
+ 
+ int
+-pci_dma_error(dma_addr_t dma_addr)
++pci_dma_mapping_error(dma_addr_t dma_addr)
+ 
+ In some circumstances dma_map_single and dma_map_page will fail to create
+ a mapping. A driver can check for these errors by testing the returned
+-dma address with dma_error(). A non zero return value means the mapping
++dma address with dma_mapping_error(). A non zero return value means the mapping
+ could not be created and the driver should take appropriate action (eg
+ reduce current DMA mapping usage or delay and try again later).
+ 
+diff -puN Documentation/DMA-mapping.txt~rename-dma_error Documentation/DMA-mapping.txt
+--- 25/Documentation/DMA-mapping.txt~rename-dma_error	2004-03-23 10:12:37.799413552 -0800
++++ 25-akpm/Documentation/DMA-mapping.txt	2004-03-23 10:12:37.808412184 -0800
+@@ -850,12 +850,12 @@ failure can be determined by:
+ - checking if pci_alloc_consistent returns NULL or pci_map_sg returns 0
+ 
+ - checking the returned dma_addr_t of pci_map_single and pci_map_page
+-  by using pci_dma_error():
++  by using pci_dma_mapping_error():
+ 
+ 	dma_addr_t dma_handle;
+ 
+ 	dma_handle = pci_map_single(dev, addr, size, direction);
+-	if (pci_dma_error(dma_handle)) {
++	if (pci_dma_mapping_error(dma_handle)) {
+ 		/*
+ 		 * reduce current DMA mapping usage,
+ 		 * delay and try again later or
+diff -puN include/asm-generic/dma-mapping.h~rename-dma_error include/asm-generic/dma-mapping.h
+--- 25/include/asm-generic/dma-mapping.h~rename-dma_error	2004-03-23 10:12:37.801413248 -0800
++++ 25-akpm/include/asm-generic/dma-mapping.h	2004-03-23 10:12:37.809412032 -0800
+@@ -141,9 +141,9 @@ dma_sync_sg_for_device(struct device *de
+ }
+ 
+ static inline int
+-dma_error(dma_addr_t dma_addr)
++dma_mapping_error(dma_addr_t dma_addr)
+ {
+-	return pci_dma_error(dma_addr);
++	return pci_dma_mapping_error(dma_addr);
+ }
+ 
+ /* Now for the API extensions over the pci_ one */
+diff -puN include/asm-generic/pci-dma-compat.h~rename-dma_error include/asm-generic/pci-dma-compat.h
+--- 25/include/asm-generic/pci-dma-compat.h~rename-dma_error	2004-03-23 10:12:37.803412944 -0800
++++ 25-akpm/include/asm-generic/pci-dma-compat.h	2004-03-23 10:12:37.809412032 -0800
+@@ -99,9 +99,9 @@ pci_dma_sync_sg_for_device(struct pci_de
+ }
+ 
+ static inline int
+-pci_dma_error(dma_addr_t dma_addr)
++pci_dma_mapping_error(dma_addr_t dma_addr)
+ {
+-	return dma_error(dma_addr);
++	return dma_mapping_error(dma_addr);
+ }
+ 
+ #endif
+diff -puN include/asm-i386/dma-mapping.h~rename-dma_error include/asm-i386/dma-mapping.h
+--- 25/include/asm-i386/dma-mapping.h~rename-dma_error	2004-03-23 10:12:37.804412792 -0800
++++ 25-akpm/include/asm-i386/dma-mapping.h	2004-03-23 10:12:37.810411880 -0800
+@@ -111,7 +111,7 @@ dma_sync_sg_for_device(struct device *de
+ }
+ 
+ static inline int
+-dma_error(dma_addr_t dma_addr)
++dma_mapping_error(dma_addr_t dma_addr)
+ {
+ 	return 0;
+ }
+diff -puN include/asm-ppc64/pci.h~rename-dma_error include/asm-ppc64/pci.h
+--- 25/include/asm-ppc64/pci.h~rename-dma_error	2004-03-23 10:12:37.806412488 -0800
++++ 25-akpm/include/asm-ppc64/pci.h	2004-03-23 10:12:37.810411880 -0800
+@@ -170,7 +170,7 @@ static inline int pci_dac_dma_supported(
+ }
+ 
+ #define PCI_DMA_ERROR_CODE      (~(dma_addr_t)0x0)
+-static inline int pci_dma_error(dma_addr_t dma_addr)
++static inline int pci_dma_mapping_error(dma_addr_t dma_addr)
+ {
+ 	return (dma_addr == PCI_DMA_ERROR_CODE);
+ }
+diff -puN include/asm-sparc64/pci.h~rename-dma_error include/asm-sparc64/pci.h
+--- 25/include/asm-sparc64/pci.h~rename-dma_error	2004-03-23 10:15:28.991388416 -0800
++++ 25-akpm/include/asm-sparc64/pci.h	2004-03-23 10:15:42.161386272 -0800
+@@ -215,7 +215,7 @@ pci_dac_dma_sync_single_for_device(struc
+ 
+ #define PCI_DMA_ERROR_CODE	(~(dma_addr_t)0x0)
+ 
+-static inline int pci_dma_error(dma_addr_t dma_addr)
++static inline int pci_dma_mapping_error(dma_addr_t dma_addr)
+ {
+ 	return (dma_addr == PCI_DMA_ERROR_CODE);
+ }
+
+_
