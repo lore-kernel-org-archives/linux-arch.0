@@ -1,9 +1,10 @@
 Return-Path: <benh@kernel.crashing.org>
-Received: from gate.crashing.org ([63.228.1.57]:3465 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S265255AbUEZFpr (ORCPT
+Received: from gate.crashing.org ([63.228.1.57]:12169 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S265255AbUEZGDJ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 May 2004 01:45:47 -0400
-Subject: Re: [PATCH] ppc64: Fix possible race with set_pte on a present PTE
+	Wed, 26 May 2004 02:03:09 -0400
+Subject: Re: [PATCH] (signoff) ppc64: Fix possible race with set_pte on a
+	present PTE
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 In-Reply-To: <Pine.LNX.4.58.0405252151100.15534@ppc970.osdl.org>
 References: <1085369393.15315.28.camel@gaston>
@@ -34,13 +35,15 @@ References: <1085369393.15315.28.camel@gaston>
 	 <1085546780.5584.19.camel@gaston>
 	 <Pine.LNX.4.58.0405252151100.15534@ppc970.osdl.org>
 Content-Type: text/plain
-Message-Id: <1085550105.5584.33.camel@gaston>
+Message-Id: <1085551152.6320.38.camel@gaston>
 Mime-Version: 1.0
-Date: Wed, 26 May 2004 15:41:46 +1000
+Date: Wed, 26 May 2004 15:59:15 +1000
 Content-Transfer-Encoding: 7bit
 To: Linus Torvalds <torvalds@osdl.org>
 Cc: "David S. Miller" <davem@redhat.com>, wesolows@foobazco.org, willy@debian.org, Andrea Arcangeli <andrea@suse.de>, Andrew Morton <akpm@osdl.org>, Linux Kernel list <linux-kernel@vger.kernel.org>, mingo@elte.hu, bcrl@kvack.org, linux-mm@kvack.org, Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
+
+(Same with signoff :)
 
 Ok, here it is. I blasted ptep_establish completely and the macro
 thing and changed the function to ptep_set_access_flags() which
@@ -55,7 +58,8 @@ but I'll leave that to someone who understand something about these things ;)
 
 Here it is, boots on g5 :
 
-===== include/asm-generic/pgtable.h 1.5 vs edited =====
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+
 --- 1.5/include/asm-generic/pgtable.h	2004-05-26 06:04:54 +10:00
 +++ edited/include/asm-generic/pgtable.h	2004-05-26 15:37:02 +10:00
 @@ -1,24 +1,11 @@
