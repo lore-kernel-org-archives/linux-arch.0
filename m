@@ -1,10 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 22 Feb 2005 10:56:38 -0800
+Date: Tue, 22 Feb 2005 10:55:29 -0800
 From: "David S. Miller" <davem@davemloft.net>
-Subject: Re: [PATCH] add and use COMPAT_SIGEV_PAD_SIZE
-Message-Id: <20050222105638.57d32884.davem@davemloft.net>
-In-Reply-To: <20050222181530.5afa4e72.sfr@canb.auug.org.au>
-References: <20050222181530.5afa4e72.sfr@canb.auug.org.au>
+Subject: Re: [PATCH] Consolidate compat_sys_waitid
+Message-Id: <20050222105529.1eea1a52.davem@davemloft.net>
+In-Reply-To: <20050223004228.3ae0207e.sfr@canb.auug.org.au>
+References: <20050215140149.0b06c96b.sfr@canb.auug.org.au>
+	<20050215184307.GQ29917@parcelfarce.linux.theplanet.co.uk>
+	<20050218162229.63d69935.sfr@canb.auug.org.au>
+	<20050223003651.115d05ef.sfr@canb.auug.org.au>
+	<20050223004228.3ae0207e.sfr@canb.auug.org.au>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
@@ -12,19 +16,14 @@ To: Stephen Rothwell <sfr@canb.auug.org.au>
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 22 Feb 2005 18:15:30 +1100
+On Wed, 23 Feb 2005 00:42:28 +1100
 Stephen Rothwell <sfr@canb.auug.org.au> wrote:
 
-> All the 32 bit architectures (effectively) define SIGEV_PAD_SIZE to be
-> ((SIGEV_MAX_SIZE/sizeof(int)) - 3).  So define COMPAT_SIGEV_PAD_SIZE to be
-> this and replace SIGEV_PAD_SIZE32 where it is used.  It also needs to be
-> used in the definition of struct compat_sigevent as most of the
-> architectures would have had it 4 bytes too small in teh kernel (since we
-> were using SIGEV_PAD_SIZE).
-> 
-> Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
-> 
-> I will submit this to Andrew is it is deemed OK.  I intend to build on
-> this patch.
+> I will submit this to Andrew if there are no further comments.
 
-I'm fine with this patch too.
+I'm ok with this.
+
+In the long term, we should stop using signed argument types for
+compat_sys_*() functions.  Most of the time, it can be ok because
+it's some selector value, but often it results in signedness bugs
+and even security holes especially when dealing with length values.
