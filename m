@@ -1,37 +1,31 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262794AbUKXS34@vger.kernel.org>
-Received: from pD9562327.dip.t-dialin.net ([217.86.35.39]:48938 "EHLO
-	mail.linux-mips.net") by vger.kernel.org with ESMTP id S262793AbUKXS3y
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Nov 2004 13:29:54 -0500
-Date: Wed, 24 Nov 2004 19:29:49 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: Unknown traps.
-Message-ID: <20041124182949.GF21039@linux-mips.org>
-References: <20041122142921.GB3230@linux-mips.org> <OF7180588E.55ED6DF4-ON41256F56.00528D36-41256F56.005316AF@de.ibm.com>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262820AbUKXSqO@vger.kernel.org>
+Received: from zeus.kernel.org ([204.152.189.113]:26849 "EHLO zeus.kernel.org")
+	by vger.kernel.org with ESMTP id S262789AbUKXSnu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Nov 2004 13:43:50 -0500
+Received: from Cantor.suse.de (cantor.suse.de [195.135.220.2])
+	by zeus.kernel.org (8.12.11/8.11.6) with ESMTP id iAOFij9A018576
+	for <linux-arch@vger.kernel.org>; Wed, 24 Nov 2004 07:44:52 -0800
+Date: Wed, 24 Nov 2004 16:43:19 +0100
+From: Andi Kleen <ak@suse.de>
+Subject: Re: [patch] sys_stime needs a compat function.
+Message-ID: <20041124154319.GC2729@wotan.suse.de>
+References: <20041124154033.GA4832@mschwid3.boeblingen.de.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <OF7180588E.55ED6DF4-ON41256F56.00528D36-41256F56.005316AF@de.ibm.com>
+In-Reply-To: <20041124154033.GA4832@mschwid3.boeblingen.de.ibm.com>
 To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: linux-arch@vger.kernel.org
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, tony.luck@intel.com, ak@suse.de, ralf@linux-mips.org, matthew@wil.cx, anton@samba.org, davem@davemloft.net, jdike@addtoit.com, davidm@hpl.hp.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Nov 24, 2004 at 04:07:32PM +0100, Martin Schwidefsky wrote:
+> x86_64   : Remove sys32_time. Use compat_sys_time and compat_sys_stime
+>            in 32 bit syscall table.
+> 
+> The original stime bug is fixed for mips, parisc, s390, sparc64 and
+> x86_64. Can the arch-maintainers please take a look at this?
 
-> Makes sense, although to panic if the fault happened in user space
-> is a bit too harsh, isn't it? A do_exit(SIGSEGV) if the fault took place
-> in user space and a panic if it happened in the kernel is my favorite
-> at the moment.
+Looks good from my side.
 
-There are asynchrous exceptions that can be delivered with significant
-delay.  So could have been caused by kernel, peripherals or even a
-previous processor.  Since for an unknown exception we by definition
-don't know the cause or or state of the system after the exception or
-how to clear the condition that is causing the exception I still think
-panic is the right thing to do.
-
-> blue skies,
-
-Grey skies ...
-
-  Ralf
+Thanks,
+-Andi
