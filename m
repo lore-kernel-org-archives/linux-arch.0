@@ -1,27 +1,31 @@
-Return-Path: <davem@redhat.com>
-Received: from mx1.redhat.com ([66.187.233.31]:62154 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S262051AbUEQVSF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 May 2004 17:18:05 -0400
-Date: Mon, 17 May 2004 14:16:35 -0700
-From: "David S. Miller" <davem@redhat.com>
+Return-Path: <willy@www.linux.org.uk>
+Received: from parcelfarce.linux.theplanet.co.uk ([195.92.249.252]:5534 "EHLO
+	www.linux.org.uk") by vger.kernel.org with ESMTP id S262060AbUEQVZ3
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 17 May 2004 17:25:29 -0400
+Date: Mon, 17 May 2004 22:25:28 +0100
+From: Matthew Wilcox <willy@debian.org>
 Subject: Re: [PATCH] Allow arch override for kmem_bufctl_t
-Message-Id: <20040517141635.55101363.davem@redhat.com>
-In-Reply-To: <40A60984.1070202@colorfullife.com>
-References: <40A60984.1070202@colorfullife.com>
+Message-ID: <20040517212528.GY6484@parcelfarce.linux.theplanet.co.uk>
+References: <40A60984.1070202@colorfullife.com> <20040517141635.55101363.davem@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Manfred Spraul <manfred@colorfullife.com>
-Cc: akpm@digeo.com, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20040517141635.55101363.davem@redhat.com>
+Sender: <willy@www.linux.org.uk>
+To: "David S. Miller" <davem@redhat.com>
+Cc: Manfred Spraul <manfred@colorfullife.com>, akpm@digeo.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 15 May 2004 14:13:56 +0200
-Manfred Spraul <manfred@colorfullife.com> wrote:
+On Mon, May 17, 2004 at 02:16:35PM -0700, David S. Miller wrote:
+> Just out of curiosity, which arch knowingly has the problem?
 
-> The attached patch allows an arch override for this type: Theoretically, 
-> unsigned short is sufficient for kmem_bufctl_t and this would reduce the 
-> per-object overhead to 2 bytes. But some archs cannot operate on 16-bit 
-> values efficiently, thus it's not possible to switch everyone to ushort. 
+I think it's ARM ...
 
-Just out of curiosity, which arch knowingly has the problem?
+-- 
+"Next the statesmen will invent cheap lies, putting the blame upon 
+the nation that is attacked, and every man will be glad of those
+conscience-soothing falsities, and will diligently study them, and refuse
+to examine any refutations of them; and thus he will by and by convince 
+himself that the war is just, and will thank God for the better sleep 
+he enjoys after this process of grotesque self-deception." -- Mark Twain
