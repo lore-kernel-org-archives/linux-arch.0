@@ -1,36 +1,40 @@
 Return-Path: <rmk+linux-arch=vger.kernel.org@arm.linux.org.uk>
-Received: from caramon.arm.linux.org.uk ([212.18.232.186]:26898 "EHLO
+Received: from caramon.arm.linux.org.uk ([212.18.232.186]:4883 "EHLO
 	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S261168AbUC1LgA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 28 Mar 2004 06:36:00 -0500
-Date: Sun, 28 Mar 2004 12:35:56 +0100
+	id S261292AbUC1Mgh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 28 Mar 2004 07:36:37 -0500
+Date: Sun, 28 Mar 2004 13:36:33 +0100
 From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: [PATCH: x86] Add dma_mmap_coherent()
-Message-ID: <20040328123556.E2825@flint.arm.linux.org.uk>
-References: <20040328112216.B2825@flint.arm.linux.org.uk>
+Message-ID: <20040328133633.F2825@flint.arm.linux.org.uk>
+References: <20040328112216.B2825@flint.arm.linux.org.uk> <20040328123556.E2825@flint.arm.linux.org.uk> <20040328114047.GO791@holomorphy.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20040328112216.B2825@flint.arm.linux.org.uk>; from rmk@arm.linux.org.uk on Sun, Mar 28, 2004 at 11:22:16AM +0100
+In-Reply-To: <20040328114047.GO791@holomorphy.com>; from wli@holomorphy.com on Sun, Mar 28, 2004 at 03:40:47AM -0800
 Sender: Russell King <rmk@arm.linux.org.uk>
-To: linux-arch@vger.kernel.org, William Lee Irwin III <wli@holomorphy.com>
+To: William Lee Irwin III <wli@holomorphy.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Mar 28, 2004 at 11:22:16AM +0100, Russell King wrote:
-> This has only been compile tested.  There are two changes here:
-> 
-> 1. ensure that we zero the whole page - otherwise we may expose leak
->    kernel data to userspace in the remainder of the last page.
-> 2. add dma_mmap_coherent().  I've added checks for the offset and
->    size to ensure that we don't do anything silly (like mapping more
->    memory than the original coherent allocation covered.)  Maybe this
->    is something that remap_page_range() should be doing anyway?
+On Sun, Mar 28, 2004 at 03:40:47AM -0800, William Lee Irwin III wrote:
+> I think we're just missing an API for it e.g. break_compound_page();
+> I don't see why we shouldn't arrange for it. Alternatively, clearing
+> PG_compound by hand is possible. Though I guess it raises the question
+> of what we're trying to do; e.g. why not allocate pieces separately?
 
-Actually, there is a problem with this patch as it stands - get_free_pages
-returns kernel pages, and remap_page_range() won't touch them without
-the pages being marked reserved.  I'm also led to believe that splitting
-a struct page up into is constituent struct pages is no longer valid, so
-exactly how we do that is open to question.
+dma_alloc_coherent() is supposed to allocate a contiguous memory area.
+
+However, x86 can get around this problem if it uses the ->nopage
+method of mapping the pages into memory.
+
+This all brings up one fundamental question: what really are the
+semantics of dma_alloc_coherent() - if it returns a kernel direct
+mapped address, are the pages supposed to be marked reserved or not.
+
+And this leads on to this question: if the pages are not marked
+reserved, how do we mmap() the pages given that remap_page_range()
+won't touch them?
 
 -- 
 Russell King
