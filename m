@@ -1,65 +1,58 @@
-Return-Path: <rmk+linux-arch=vger.kernel.org@arm.linux.org.uk>
-Received: from caramon.arm.linux.org.uk ([212.18.232.186]:59911 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S261826AbUCVJah (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Mar 2004 04:30:37 -0500
-Date: Mon, 22 Mar 2004 09:30:29 +0000
-From: Russell King <rmk@arm.linux.org.uk>
+Return-Path: <andrea@suse.de>
+Received: from ppp-217-133-42-200.cust-adsl.tiscali.it ([217.133.42.200]:5293
+	"EHLO dualathlon.random") by vger.kernel.org with ESMTP
+	id S261397AbUCVL5Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Mar 2004 06:57:16 -0500
+Date: Mon, 22 Mar 2004 12:58:07 +0100
+From: Andrea Arcangeli <andrea@suse.de>
 Subject: Re: can device drivers return non-ram via vm_ops->nopage?
-Message-ID: <20040322093029.A460@flint.arm.linux.org.uk>
-References: <Pine.LNX.4.58.0403211349340.1106@ppc970.osdl.org> <20040321222327.D26708@flint.arm.linux.org.uk> <405E1859.5030906@pobox.com> <20040321225117.F26708@flint.arm.linux.org.uk> <Pine.LNX.4.58.0403211504550.1106@ppc970.osdl.org> <20040321234515.G26708@flint.arm.linux.org.uk> <20040322002349.GZ2045@holomorphy.com> <405E3387.1050505@pobox.com> <20040322034509.GB2045@holomorphy.com> <1079930497.2045.69.camel@mulgrave>
+Message-ID: <20040322115807.GO3649@dualathlon.random>
+References: <20040321225117.F26708@flint.arm.linux.org.uk> <Pine.LNX.4.58.0403211504550.1106@ppc970.osdl.org> <20040321234515.G26708@flint.arm.linux.org.uk> <20040322002349.GZ2045@holomorphy.com> <405E3387.1050505@pobox.com> <20040322034509.GB2045@holomorphy.com> <1079930497.2045.69.camel@mulgrave> <20040322044615.GC2045@holomorphy.com> <1079931403.5345.74.camel@mulgrave> <1079933188.22188.5.camel@gaston>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1079930497.2045.69.camel@mulgrave>; from James.Bottomley@steeleye.com on Sun, Mar 21, 2004 at 11:41:35PM -0500
-Sender: Russell King <rmk@arm.linux.org.uk>
-To: James Bottomley <James.Bottomley@steeleye.com>
-Cc: William Lee Irwin III <wli@holomorphy.com>, linux-arch@vger.kernel.org, Jeff Garzik <jgarzik@pobox.com>, Linus Torvalds <torvalds@osdl.org>, David Woodhouse <dwmw2@infradead.org>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@osdl.org>, Andrea Arcangeli <andrea@suse.de>
+In-Reply-To: <1079933188.22188.5.camel@gaston>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: James Bottomley <James.Bottomley@steeleye.com>, William Lee Irwin III <wli@holomorphy.com>, Linux Arch list <linux-arch@vger.kernel.org>, Jeff Garzik <jgarzik@pobox.com>, Russell King <rmk@arm.linux.org.uk>, Linus Torvalds <torvalds@osdl.org>, David Woodhouse <dwmw2@infradead.org>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Mar 21, 2004 at 11:41:35PM -0500, James Bottomley wrote:
-> Let me illustrate what would go wrong on parisc:  we have a VIPT cache
-> and the concept of an address space.
+On Mon, Mar 22, 2004 at 04:26:29PM +1100, Benjamin Herrenschmidt wrote:
+> Well, I just went over this whole discussion and I think it's just
+> going to hell.
+> 
+> So here are my 2 cents of suggestions:
+> 
+>  - We _WANT_ the ability to map coherent memory to userspace, that's
+> the normal way to map sound buffers to userland for low latency (though
+> mapping the actual DMA ptrs is a different matter and is definitely not
+> working with a bunch of sound interfaces). This is also necessary for
+> the infiniband/myrinet kind of things. DRI sort-of need that when not
+> using AGP, AGP itself is a special case but could be considered as
+> coherent memory in some platforms too (and will be with PCI Express
+> afaik) etc...
+> 
+>  - Some architectures apparently cannot do that (parisc ?)
+> 
+>  - Too bad for them... They won't have low latency audio and fast
+> networking and be done with it. Let's implement a couple of simple
+> to use (driver-wise) helpers
+> 
+>    dma_can_mmap_coherent() -> parisc returns false here
+>    dma_mmap_coherent()
+>    dma_mmap_coherent_sg()
+> 
+> And be done with it. I don't see where is the debate here ? The
+> API takes the same sglist as used for dma_map_sg, I don't see the
+> point of anything different, I agree with linus that it's not worth
+> even thinking about not having struct page here. 
 
-Is it not the case that VIPT caches are coloured, and mapping a page
-into the appropriate place results in the same virtual index for both?
+I like your three functions and the clear decription.
 
-If this isn't true, this means that SHM is also broken on PARISC since
-there is no value of SHMLBA which makes SHM mappings coherent with
-each other.
-
-> Therefore, a user trying to make use of a coherent area mmap would have
-> to flush/invalidate everything all the time just to try to make sure
-> they weren't missing device updates (because we have no mechanism for
-> the kernel to know the data has changed and call flush_dcache_page).
-
-Unfortunately, there is a class of drivers where mmaping a large DMA
-buffer into user space makes sense.  These are video capture and
-sound drivers.
-
-By saying that "we can't support DMA coherent mmap" you're forcing
-driver writers to write their own DMA coherent mmap implementations,
-which they _have_ done already, and they've screwed up the interfaces
-such that it only works on x86 today.
-
-What I want is an interface which allows most of the architectures
-which are capable of doing this to indeed do this.  Those which can't
-should fail the mmap attempt.  It has to be said that by doing this
-we're actually better off - more drivers work across more platforms
-and we have a well defined failure mode for platforms where it doesn't
-work.
-
-If those platforms want to use those drivers, they aren't actually in
-a worse situation - they had to find some way to work around this
-before now, and they still have to find some way to work around this
-afterwards, or maybe decide that the subset of drivers which need
-this are incompatible with the architecture.
-
-However, please don't prevent all architectures from being able to
-use these drivers just because a small number can't.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
-                 2.6 Serial core
+The only reason I believe a paging mechanism would been nicer, is that
+it would avoid latencies in dma_mmap_coherent (not necessairly scheduler
+latencies, but you would pay all the cost of the pagetables immediatly
+during the mmap syscall, so if you've to map gigs of ram that would tend
+to hang the task doing the mmap a little bit, I found it nicer to use
+the paging for this so we also only allocate the memory for the
+pagetables that we need, but OTOH Linus's right that in most cases it
+doesn't worth a single branch in a fast path).
