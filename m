@@ -1,50 +1,46 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268798AbUHTX0h@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:10385 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S268802AbUHTX0P (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268724AbUHTXwG@vger.kernel.org>
+Received: from mx1.redhat.com ([66.187.233.31]:13969 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S268720AbUHTXwG (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Aug 2004 19:26:15 -0400
+	Fri, 20 Aug 2004 19:52:06 -0400
+Date: Fri, 20 Aug 2004 16:51:33 -0700
+From: "David S. Miller" <davem@redhat.com>
 Subject: Re: copy_mount_options()
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <20040820130110.07f7c23c.davem@redhat.com>
+Message-Id: <20040820165133.67df8d1b.davem@redhat.com>
+In-Reply-To: <20040820231833.GH1945@krispykreme>
 References: <20040820130110.07f7c23c.davem@redhat.com>
-Content-Type: text/plain
-Message-Id: <1093043745.9529.254.camel@gaston>
+	<20040820131053.3d5e0f9b.akpm@osdl.org>
+	<20040820141137.646c349f.davem@redhat.com>
+	<20040820143111.3fd0070e.akpm@osdl.org>
+	<20040820144052.14413a4f.davem@redhat.com>
+	<20040820154736.166b66ec.akpm@osdl.org>
+	<20040820231833.GH1945@krispykreme>
 Mime-Version: 1.0
-Date: Sat, 21 Aug 2004 09:15:46 +1000
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem@redhat.com>
-Cc: Linux Arch list <linux-arch@vger.kernel.org>
+To: Anton Blanchard <anton@samba.org>
+Cc: akpm@osdl.org, linux-arch@vger.kernel.org, rusty@rustcorp.com.au
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 2004-08-21 at 06:01, David S. Miller wrote:
-> So the sparc64 user copy bug I fixed recently is pretty
-> much present on every platform.
-> 
-> Basically, copy_mount_options() requires exact byte granularity
-> to exception reporting from copy_from_user().  If you don't
-> do this it can break things like busybox's mount().
+On Sat, 21 Aug 2004 09:18:33 +1000
+Anton Blanchard <anton@samba.org> wrote:
 
-Yup, old problem, reported before several times. Another issue
-that pops up with it and busybox is that copy_mount_options will
-touch an entire page from the passed pointer. If the pointer you
-pass is near the end of your data/bss area, you end up touching
-the area between stack and bss, and potentially cause the stack
-to grow all the way down to the bss.
+> I too hate that interface, Im continually getting it wrong. It would be
+> nice to remove the possibility of having similar such subtle bugs.
 
-We have saveguards against that now on ppc, I suppose x86 has too,
-but it may be worth reminding other archs to have a look.
+I agree.
 
-> Even reporting on a word boundary is illegal.  On sparc64
-> it was quite poignant because we can report on a 64-byte
-> boundary for large copies because that is the granularity
-> of the load/store we use.
-> 
-> Other platforms will need to fix this.  I recommend a two
-> stage exception handling scheme.  Basically, on the first
-> exception, you merely note that an exception occurred
-> and you retry the user copy a byte at a time until you
-> hit the exact address that fails.  You cannot optimize
-> this to just check a page at a time, because copy_mount_options
-> wants all the data to be there.
--- 
-Benjamin Herrenschmidt <benh@kernel.crashing.org>
+There used to be clever code that would truncate the pipe write
+and stuff like that, and TCP even used to do something similar
+at one point.  But I go look now and neither of them do that
+any more.
+
+It would even make the kernel smaller because all of these silly:
+
+	return copy_*_user(...) ? -EFAULT : 0;
+
+would just expand to a direct use of the return value.
+
+So many arch user copy routines would have enormous amounts
+of complexity removed, and I saw this quite well when doing
+the sparc64 stuff I did yesterday.
