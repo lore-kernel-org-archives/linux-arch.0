@@ -1,38 +1,55 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S266670AbUHVLuo@vger.kernel.org>
-Received: from p508B7531.dip.t-dialin.net ([80.139.117.49]:44838 "EHLO
-	mail.linux-mips.net") by vger.kernel.org with ESMTP id S266669AbUHVLuo
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 22 Aug 2004 07:50:44 -0400
-Date: Sun, 22 Aug 2004 13:50:14 +0200
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: copy_mount_options()
-Message-ID: <20040822115014.GA29005@linux-mips.org>
-References: <20040820130110.07f7c23c.davem@redhat.com> <1093043745.9529.254.camel@gaston>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1093043745.9529.254.camel@gaston>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: "David S. Miller" <davem@redhat.com>, Linux Arch list <linux-arch@vger.kernel.org>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268087AbUHVTwW@vger.kernel.org>
+Received: from fw.osdl.org ([65.172.181.6]:25986 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S268085AbUHVTwW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 22 Aug 2004 15:52:22 -0400
+Date: Sun, 22 Aug 2004 12:51:04 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: clear_user_highpage()
+In-Reply-To: <16672.45037.630064.539644@napali.hpl.hp.com>
+Message-ID: <Pine.LNX.4.58.0408221245380.17766@ppc970.osdl.org>
+References: <20040811161537.5e24c2b6.davem@redhat.com>
+ <Pine.LNX.4.58.0408111635160.1839@ppc970.osdl.org> <20040812004654.GX11200@holomorphy.com>
+ <Pine.LNX.4.58.0408111905210.1839@ppc970.osdl.org> <20040813144115.4c59a2f0.davem@redhat.com>
+ <16672.45037.630064.539644@napali.hpl.hp.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: davidm@hpl.hp.com
+Cc: "David S. Miller" <davem@redhat.com>, wli@holomorphy.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, Aug 21, 2004 at 09:15:46AM +1000, Benjamin Herrenschmidt wrote:
 
-> > Basically, copy_mount_options() requires exact byte granularity
-> > to exception reporting from copy_from_user().  If you don't
-> > do this it can break things like busybox's mount().
+
+On Mon, 16 Aug 2004, David Mosberger wrote:
 > 
-> Yup, old problem, reported before several times. Another issue
-> that pops up with it and busybox is that copy_mount_options will
-> touch an entire page from the passed pointer. If the pointer you
-> pass is near the end of your data/bss area, you end up touching
-> the area between stack and bss, and potentially cause the stack
-> to grow all the way down to the bss.
+> Very interesting. I tried something similar on a dual 1.5GHz Itanium
+> 2.  I tried two versions of clear_page: one with .nta (no-temporal
+> affinity hint, which is the default) and one without.  The result for
+> 5 runs of a fairly minimal kernel-compile (with make -j8):
+> 
+> 	with .nta:			without .nta:
+> 
+> real	80.0 70.2 71.0 70.4 70.3	79.4 69.5 69.5 69.5 69.3
+> sys	 4.6  4.6  4.6  4.6  4.5	 5.3  5.4  5.3  5.4  5.4
+> 
+> Note that the first run was with cold page cache, hence the longer
+> runtime.
+> 
+> So, on average, dropping the .nta costs us 0.78 seconds of kernel-time
+> but, overall, the kernel-builds complete about 0.94 seconds faster.
 
-On MIPS it's been triggering a special case in verify_area which make
-it return -EFAULT if the arguments area includes the last byte of the
-2GB userspace as busybox does.  A proper fix of verify_area would have
-inflated the verify_area() code by one instruction so I reduced
-TASK_SIZE a bit ...
+I obviously love the result, since it validates my theory that it's better
+to have a nice hot "clear_page()" and avoid cache misses elsewhere. Score
+one for WAGging.
 
-  Ralf
+That said, I suspect it does so exactly because the Itanium 2 has largish
+caches, and it's likely that smaller (or external, slower) caches or other 
+loads will see different behaviour.
+
+My basic point stands: hotspots in profiling are NOT automatically a sign 
+of anything bad. I'd rather have hotspots where you can say "this is an 
+important function" than try to smush the costs out. I personally prefer a 
+profile that clearly shows where the work is being done to one that has 
+most of the costs in a long tail of random functions.
+
+		Linus
