@@ -1,103 +1,62 @@
-Return-Path: <ak@suse.de>
-Received: from cantor.suse.de ([195.135.220.2]:7657 "EHLO Cantor.suse.de")
-	by vger.kernel.org with ESMTP id S262956AbUESJtm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 May 2004 05:49:42 -0400
-Date: Wed, 19 May 2004 11:49:40 +0200
-From: Andi Kleen <ak@suse.de>
-Subject: [PATCH] fixing sendfile on 64bit architectures
-Message-Id: <20040519114940.6b92cf1a.ak@suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Return-Path: <arnd@arndb.de>
+Received: from natsmtp00.rzone.de ([81.169.145.165]:43239 "EHLO
+	natsmtp00.rzone.de") by vger.kernel.org with ESMTP id S263028AbUESMX2
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 May 2004 08:23:28 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] fixing sendfile on 64bit architectures
+Date: Wed, 19 May 2004 14:21:48 +0200
+References: <20040519114940.6b92cf1a.ak@suse.de>
+In-Reply-To: <20040519114940.6b92cf1a.ak@suse.de>
+MIME-Version: 1.0
+Content-Type: multipart/signed;
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1;
+  boundary="Boundary-02=_fF1qAGIJN+c9J4G";
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-To: linux-arch@vger.kernel.org
-Cc: akpm@osdl.org
+Message-Id: <200405191421.51310.arnd@arndb.de>
+To: Andi Kleen <ak@suse.de>
+Cc: linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
+--Boundary-02=_fF1qAGIJN+c9J4G
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
 
-sys_sendfile has a hardcoded 2GB limit. 64bit architectures should probably
-always use sys_sendfile64() in their native system tables, because
-for them sizeof(off_t) == sizeof(loff_t).  This patch does
-this. It seemed easier to just change the 64bit entry tables instead of 
-fixing up all the emulation layers to do 2GB checks on their own.
+On Wednesday 19 May 2004 11:49, Andi Kleen wrote:
 
-I changed all 64bit architectures except for parisc64, which seemed to 
-already have a sendfile64.
+> I changed all 64bit architectures except for parisc64, which seemed to=20
+> already have a sendfile64.
 
--Andi
+And it looks like you missed s390.
 
+=3D=3D=3D=3D=3D arch/s390/kernel/syscalls.S 1.11 vs edited =3D=3D=3D=3D=3D
+=2D-- 1.11/arch/s390/kernel/syscalls.S	Thu Apr 29 11:41:09 2004
++++ edited/arch/s390/kernel/syscalls.S	Wed May 19 14:15:36 2004
+@@ -195,7 +195,7 @@
+ SYSCALL(sys_capget,sys_capget,sys32_capget_wrapper)
+ SYSCALL(sys_capset,sys_capset,sys32_capset_wrapper)		/* 185 */
+ SYSCALL(sys_sigaltstack_glue,sys_sigaltstack_glue,sys32_sigaltstack_glue)
+=2DSYSCALL(sys_sendfile,sys_sendfile,sys32_sendfile_wrapper)
++SYSCALL(sys_sendfile,sys_sendfile64,sys32_sendfile_wrapper)
+ NI_SYSCALL							/* streams1 */
+ NI_SYSCALL							/* streams2 */
+ SYSCALL(sys_vfork_glue,sys_vfork_glue,sys_vfork_glue)		/* 190 */
 
+--Boundary-02=_fF1qAGIJN+c9J4G
+Content-Type: application/pgp-signature
+Content-Description: signature
 
-diff -u linux/include/asm-x86_64/unistd.h-o linux/include/asm-x86_64/unistd.h
---- linux/include/asm-x86_64/unistd.h-o	2004-05-19 11:42:07.000000000 +0200
-+++ linux/include/asm-x86_64/unistd.h	2004-05-19 11:42:15.000000000 +0200
-@@ -98,7 +98,7 @@
- __SYSCALL(__NR_getpid, sys_getpid)
- 
- #define __NR_sendfile                           40
--__SYSCALL(__NR_sendfile, sys_sendfile)
-+__SYSCALL(__NR_sendfile, sys_sendfile64)
- #define __NR_socket                             41
- __SYSCALL(__NR_socket, sys_socket)
- #define __NR_connect                            42
-diff -u linux/arch/sparc64/kernel/systbls.S-o linux/arch/sparc64/kernel/systbls.S
---- linux/arch/sparc64/kernel/systbls.S-o	2004-04-06 13:12:04.000000000 +0200
-+++ linux/arch/sparc64/kernel/systbls.S	2004-05-19 11:45:58.000000000 +0200
-@@ -88,7 +88,7 @@
- /*20*/	.word sys_getpid, sys_capget, sys_capset, sys_setuid, sys_getuid
- /*25*/	.word sys_nis_syscall, sys_ptrace, sys_alarm, sys_sigaltstack, sys_nis_syscall
- /*30*/	.word sys_utime, sys_nis_syscall, sys_nis_syscall, sys_access, sys_nice
--	.word sys_nis_syscall, sys_sync, sys_kill, sys_newstat, sys_sendfile
-+	.word sys_nis_syscall, sys_sync, sys_kill, sys_newstat, sys_sendfile64
- /*40*/	.word sys_newlstat, sys_dup, sys_pipe, sys_times, sys_nis_syscall
- 	.word sys_umount, sys_setgid, sys_getgid, sys_signal, sys_geteuid
- /*50*/	.word sys_getegid, sys_acct, sys_memory_ordering, sys_nis_syscall, sys_ioctl
-diff -u linux/arch/ia64/kernel/entry.S-o linux/arch/ia64/kernel/entry.S
---- linux/arch/ia64/kernel/entry.S-o	2004-05-19 11:33:01.000000000 +0200
-+++ linux/arch/ia64/kernel/entry.S	2004-05-19 11:42:26.000000000 +0200
-@@ -1437,7 +1437,7 @@
- 	data8 sys_getcwd
- 	data8 sys_capget			// 1185
- 	data8 sys_capset
--	data8 sys_sendfile
-+	data8 sys_sendfile64
- 	data8 sys_ni_syscall		// sys_getpmsg (STREAMS)
- 	data8 sys_ni_syscall		// sys_putpmsg (STREAMS)
- 	data8 sys_socket			// 1190
-diff -u linux/arch/alpha/kernel/systbls.S-o linux/arch/alpha/kernel/systbls.S
---- linux/arch/alpha/kernel/systbls.S-o	1970-01-01 01:12:51.000000000 +0100
-+++ linux/arch/alpha/kernel/systbls.S	2004-05-19 11:43:52.000000000 +0200
-@@ -389,7 +389,7 @@
- 	.quad sys_getcwd
- 	.quad sys_capget
- 	.quad sys_capset
--	.quad sys_sendfile			/* 370 */
-+	.quad sys_sendfile64			/* 370 */
- 	.quad sys_setresgid
- 	.quad sys_getresgid
- 	.quad sys_ni_syscall			/* sys_dipc */
-diff -u linux/arch/mips/kernel/scall64-64.S-o linux/arch/mips/kernel/scall64-64.S
---- linux/arch/mips/kernel/scall64-64.S-o	1970-01-01 01:12:51.000000000 +0100
-+++ linux/arch/mips/kernel/scall64-64.S	2004-05-19 11:44:22.000000000 +0200
-@@ -244,7 +244,7 @@
- 	PTR	sys_setitimer
- 	PTR	sys_alarm
- 	PTR	sys_getpid
--	PTR	sys_sendfile
-+	PTR	sys_sendfile64
- 	PTR	sys_socket			/* 5040 */
- 	PTR	sys_connect
- 	PTR	sys_accept
-diff -u linux/arch/ppc64/kernel/misc.S-o linux/arch/ppc64/kernel/misc.S
---- linux/arch/ppc64/kernel/misc.S-o	2004-05-19 11:32:12.000000000 +0200
-+++ linux/arch/ppc64/kernel/misc.S	2004-05-19 11:43:33.000000000 +0200
-@@ -1061,7 +1061,7 @@
- 	.llong .sys_capget
- 	.llong .sys_capset
- 	.llong .sys_sigaltstack	        /* 185 */
--	.llong .sys_sendfile
-+	.llong .sys_sendfile64
- 	.llong .sys_ni_syscall		/* reserved for streams1 */
- 	.llong .sys_ni_syscall		/* reserved for streams2 */
- 	.llong .sys_vfork
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.2.4 (GNU/Linux)
+
+iD8DBQBAq1Ff5t5GS2LDRf4RAu0PAJ9DaMOunSjsI5nd4s/hu8KnREBlnQCcDdOe
+jPFw7kzDaucozqc4x2852EU=
+=rwis
+-----END PGP SIGNATURE-----
+
+--Boundary-02=_fF1qAGIJN+c9J4G--
