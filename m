@@ -1,24 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Thu, 10 Mar 2005 22:54:09 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: no-arch-specific-mem_map-init
-Message-ID: <20050310225409.F1044@flint.arm.linux.org.uk>
-References: <20050309225833.6d80fc42.akpm@osdl.org>
-Mime-Version: 1.0
+Sender: jes@trained-monkey.org
+Subject: Re: ia64-specific-dev-mem-handlers.patch
+References: <20050310121618.1242b2d6.akpm@osdl.org>
+From: Jes Sorensen <jes@wildopensource.com>
+Date: 11 Mar 2005 06:16:44 -0500
+In-Reply-To: <20050310121618.1242b2d6.akpm@osdl.org>
+Message-ID: <yq0r7imzb37.fsf@jaguar.mkp.net>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20050309225833.6d80fc42.akpm@osdl.org>; from akpm@osdl.org on Wed, Mar 09, 2005 at 10:58:33PM -0800
-Sender: Russell King <rmk@arm.linux.org.uk>
 To: Andrew Morton <akpm@osdl.org>
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Mar 09, 2005 at 10:58:33PM -0800, Andrew Morton wrote:
-> Everyone OK with this?
+>>>>> "Andrew" == Andrew Morton <akpm@osdl.org> writes:
 
-Looks sane and builds ok.  I'm happy.
+Andrew> It is believed that this will be useful to other architectures
+Andrew> which allow users to uncacheably map RAM.  Could interested
+Andrew> parties please comment?
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 Serial core
+Just for background, it's used in the mspec (formerly fetchop) driver
+on ia64. If anyone wants a copy of this to look at in additiont to the
+/dev/mem patch, let me know (it's been posted to linux-kernel already).
+
+Cheers,
+Jes
