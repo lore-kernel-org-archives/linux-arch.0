@@ -1,30 +1,72 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267231AbUHZAbs@vger.kernel.org>
-Received: from fw.osdl.org ([65.172.181.6]:25985 "EHLO mail.osdl.org")
-	by vger.kernel.org with ESMTP id S267251AbUHZAbK (ORCPT
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267364AbUHZAfa@vger.kernel.org>
+Received: from fw.osdl.org ([65.172.181.6]:50561 "EHLO mail.osdl.org")
+	by vger.kernel.org with ESMTP id S267360AbUHZAdP (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Aug 2004 20:31:10 -0400
-Date: Wed, 25 Aug 2004 17:34:31 -0700
-From: Andrew Morton <akpm@osdl.org>
-Subject: Re: [patch 1/8] signal handling race fix
-Message-Id: <20040825173431.379bc000.akpm@osdl.org>
-In-Reply-To: <20040825165438.558b60c3.davem@redhat.com>
-References: <200408252140.i7PLeL131496@mail.osdl.org>
-	<Pine.LNX.4.58.0408251536360.17766@ppc970.osdl.org>
-	<20040825164900.727422e1.akpm@osdl.org>
-	<20040825165438.558b60c3.davem@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem@redhat.com>
-Cc: torvalds@osdl.org, linux-arch@vger.kernel.org, minyard@acm.org
+	Wed, 25 Aug 2004 20:33:15 -0400
+Message-Id: <200408260033.i7Q0X8132253@mail.osdl.org>
+Subject: [patch 8/8] alpha signal race fixes
+From: akpm@osdl.org
+Date: Wed, 25 Aug 2004 17:36:48 -0700
+To: torvalds@osdl.org
+Cc: linux-arch@vger.kernel.org, akpm@osdl.org, wli@holomorphy.com
 List-ID: <linux-arch.vger.kernel.org>
 
-"David S. Miller" <davem@redhat.com> wrote:
->
-> > OK, I edited all the diffs.  I'll let this cook for a bit longer.
-> 
-> Andrew please no, this bug fix has been gathering dust long
-> enough. :-)  I remember seeing the first version of it half
-> a year ago.
 
-OK.  It compiles on three architectures..
+From: William Lee Irwin III <wli@holomorphy.com>
+
+
+
+Signed-off-by: Andrew Morton <akpm@osdl.org>
+---
+
+ 25-akpm/arch/alpha/kernel/signal.c |   13 ++++++-------
+ 1 files changed, 6 insertions(+), 7 deletions(-)
+
+diff -puN arch/alpha/kernel/signal.c~signal-race-fix-alpha arch/alpha/kernel/signal.c
+--- 25/arch/alpha/kernel/signal.c~signal-race-fix-alpha	Wed Aug 25 17:13:42 2004
++++ 25-akpm/arch/alpha/kernel/signal.c	Wed Aug 25 17:13:42 2004
+@@ -470,7 +470,7 @@ setup_frame(int sig, struct k_sigaction 
+ 
+ give_sigsegv:
+ 	if (sig == SIGSEGV)
+-		ka->sa.sa_handler = SIG_DFL;
++		current->sighand->action[sig-1].sa.sa_handler = SIG_DFL;
+ 	force_sig(SIGSEGV, current);
+ }
+ 
+@@ -534,7 +534,7 @@ setup_rt_frame(int sig, struct k_sigacti
+ 
+ give_sigsegv:
+ 	if (sig == SIGSEGV)
+-		ka->sa.sa_handler = SIG_DFL;
++		current->sighand->action[sig-1].sa.sa_handler = SIG_DFL;
+ 	force_sig(SIGSEGV, current);
+ }
+ 
+@@ -608,21 +608,20 @@ do_signal(sigset_t *oldset, struct pt_re
+ 	siginfo_t info;
+ 	int signr;
+ 	unsigned long single_stepping = ptrace_cancel_bpt(current);
++	struct k_sigaction ka;
+ 
+ 	if (!oldset)
+ 		oldset = &current->blocked;
+ 
+ 	/* This lets the debugger run, ... */
+-	signr = get_signal_to_deliver(&info, regs, NULL);
++	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
+ 	/* ... so re-check the single stepping. */
+ 	single_stepping |= ptrace_cancel_bpt(current);
+ 
+ 	if (signr > 0) {
+ 		/* Whee!  Actually deliver the signal.  */
+-		struct k_sigaction *ka = &current->sighand->action[signr-1];
+-
+-		if (r0) syscall_restart(r0, r19, regs, ka);
+-		handle_signal(signr, ka, &info, oldset, regs, sw);
++		if (r0) syscall_restart(r0, r19, regs, &ka);
++		handle_signal(signr, &ka, &info, oldset, regs, sw);
+ 		if (single_stepping) 
+ 			ptrace_set_bpt(current); /* re-set bpt */
+ 		return 1;
+_
