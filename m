@@ -1,49 +1,63 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S263015AbUJ1Rc3@vger.kernel.org>
-Received: from witte.sonytel.be ([80.88.33.193]:48046 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S263005AbUJ1RbC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Oct 2004 13:31:02 -0400
-Date: Thu, 28 Oct 2004 19:30:55 +0200 (MEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Sender: geert@sonycom.com
-Subject: Re: New kbuild filename: Kbuild
-In-Reply-To: <20041028190020.GB9004@mars.ravnborg.org>
-Message-ID: <Pine.GSO.4.61.0410281930250.4228@waterleaf.sonytel.be>
-References: <20041028185917.GA9004@mars.ravnborg.org> <20041028190020.GB9004@mars.ravnborg.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Linux Kernel Development <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S262159AbUJ1Tog@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([212.18.232.186]:46599 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S261994AbUJ1Toe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Oct 2004 15:44:34 -0400
+Date: Thu, 28 Oct 2004 20:44:30 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: kbuild/all archs: Sanitize creating offsets.h
+Message-ID: <20041028204430.C11436@flint.arm.linux.org.uk>
+References: <20041028185917.GA9004@mars.ravnborg.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20041028185917.GA9004@mars.ravnborg.org>; from sam@ravnborg.org on Thu, Oct 28, 2004 at 08:59:18PM +0200
+Sender: Russell King <rmk@arm.linux.org.uk>
+To: linux-kernel@vger.kernel.org, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 28 Oct 2004, Sam Ravnborg wrote:
-> --- a/Documentation/kbuild/makefiles.txt	2004-10-28 20:46:24 +02:00
-> +++ b/Documentation/kbuild/makefiles.txt	2004-10-28 20:46:24 +02:00
->  This document is aimed towards normal developers and arch developers.
->  
->  
-> -=== 3 The kbuild Makefiles
-> +=== 3 The kbuild files
->  
->  Most Makefiles within the kernel are kbuild Makefiles that use the
->  kbuild infrastructure. This chapter introduce the syntax used in the
->  kbuild makefiles.
-> +The preferred name for the kbuild files is 'Kbuild' but 'Makefile' will
-> +continue to be supported. All new developmen is expected to use the
-                                     ^^^^^^^^^^
-				     development
-> +Kbuild filename.
->  
->  Section 3.1 "Goal definitions" is a quick intro, further chapters provide
->  more details, with real examples.
+On Thu, Oct 28, 2004 at 08:59:18PM +0200, Sam Ravnborg wrote:
+> When creating offsets.h from arch/$(ARCH)/Makefile we failed to check
+> all dependencies. A few key dependencies were listed - but a manually
+> edited list of include files are bound to be incomplete.
+> A few times I have tried building a kernel - which failed because
+> offsets.h needed to be updated but kbuild failed to do so.
+> I wonder what could happen with a kernel with an out-dated offsets.h
+> file with wrong assembler constants.
 
-Gr{oetje,eeting}s,
+This fails:
 
-						Geert
+rmk@dyn-67:[linux-2.6-rmk]:<1041> amake O=../build/rpc
+  Using /home/rmk/bk/linux-2.6-rmk as source for kernel
+  GEN    /home/rmk/bk/build/rpc/Makefile
+  CHK     include/linux/version.h
+  UPD     include/linux/version.h
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/basic/split-include
+  HOSTCC  scripts/basic/docproc
+  GEN    /home/rmk/bk/build/rpc/Makefile
+  SHIPPED scripts/kconfig/zconf.tab.h
+  HOSTCC  scripts/kconfig/conf.o
+  HOSTCC  scripts/kconfig/mconf.o
+  SHIPPED scripts/kconfig/zconf.tab.c
+  SHIPPED scripts/kconfig/lex.zconf.c
+  HOSTCC  -fPIC scripts/kconfig/zconf.tab.o
+  HOSTLLD -shared scripts/kconfig/libkconfig.so
+  HOSTLD  scripts/kconfig/conf
+scripts/kconfig/conf -s arch/arm/Kconfig
+#
+# using defaults found in .config
+#
+  SPLIT   include/linux/autoconf.h -> include/config/*
+/home/rmk/bk/linux-2.6-rmk/scripts/Makefile.build:13: /home/rmk/bk/linux-2.6-rmk/include/asm/Makefile: No such file or directory
+make[2]: *** No rule to make target `/home/rmk/bk/linux-2.6-rmk/include/asm/Makefile'.  Stop.
+make[1]: *** [prepare0] Error 2
+make: *** [_all] Error 2
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+../build/rpc only contained .version and .config
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
+                 2.6 Serial core
