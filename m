@@ -1,39 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Sat, 5 Mar 2005 21:15:52 -0800
+Date: Sat, 5 Mar 2005 21:27:45 -0800
 From: "David S. Miller" <davem@davemloft.net>
-Subject: Re: Changing  update_mmu_cache()
-Message-Id: <20050305211552.61f2bda6.davem@davemloft.net>
-In-Reply-To: <20050228091843.GA5709@linux-sh.org>
-References: <1109047997.5327.70.camel@gaston>
-	<20050222090741.B16786@flint.arm.linux.org.uk>
-	<20050222100858.27d05a86.davem@davemloft.net>
-	<20050225201538.B27842@flint.arm.linux.org.uk>
-	<20050225170905.4d98d934.davem@davemloft.net>
-	<20050227185537.GB32383@linux-sh.org>
-	<20050227201208.7e0a5217.davem@davemloft.net>
-	<20050228091843.GA5709@linux-sh.org>
+Subject: [BK] flush_cache_page() pfn arg addition
+Message-Id: <20050305212745.1edfb4ef.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: rmk@arm.linux.org.uk, linux-arch@vger.kernel.org
+To: torvalds@osdl.org
+Cc: akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 28 Feb 2005 11:18:43 +0200
-Paul Mundt <lethal@linux-sh.org> wrote:
 
-> On Sun, Feb 27, 2005 at 08:12:08PM -0800, David S. Miller wrote:
-> > What are you patching against?  In the patch I sent, which are you
-> > replying to, I made flush_icache_user_range() in this file be:
-> > 
-> > void flush_icache_user_range(struct vm_area_struct *vma,
-> >                              struct page *page, unsigned long addr, int len)
-> > {
-> >         __flush_cache_page(vma, addr,
-> >                            PHYSADDR(page_address(page)) >> PAGE_SHIFT);
-> > }
-> > 
-> Yes, you're right, wrong tree, sorry for the confusion. Here are the
-> fixes against your patch:
+Linus, please pull from:
 
-Applied, thanks Paul.
+	bk://kernel.bkbits.net/davem/flush_cache_page-2.6
+
+to get these changesets.
+
+Like the set_pte() changes I just sent off, this stuff simplifies
+ARM, SH, and SH64 ports significantly.
+
+These three chips can have cache variants which require a physical
+page frame number in order to flush the cache properly.  And like
+the set_pte() case, this new argument is available in all the
+call sites already.
+
+What these people do right now is walk the page tables for the
+given vma->vm_mm+addr combination and read out the pte, and that's
+kind of silly and expensive.
+
+Most platforms simply nop out the new arg or ignore it as is usual
+practice with such interface changes.
+
+This also has the necessary documentation updates as well.
+
+It has been build and run tested on several platforms.
+
+Thanks.
+
+ChangeSet@1.2049.4.1, 2005-02-25 16:36:06-08:00, davem@nuts.davemloft.net
+  [MM]: Add 'pfn' arg to flush_cache_page().
+  
+  Based almost entirely upon a patch by Russell King.
+  
+  Signed-off-by: David S. Miller <davem@davemloft.net>
+
+ Documentation/cachetlb.txt          |   12 +++++++---
+ arch/arm/mm/fault-armv.c            |    4 +--
+ arch/arm/mm/flush.c                 |    2 -
+ arch/mips/mm/c-r3k.c                |    3 --
+ arch/mips/mm/c-r4k.c                |    3 --
+ arch/mips/mm/c-sb1.c                |   11 +++++----
+ arch/mips/mm/c-tx39.c               |    3 --
+ arch/mips/mm/cache.c                |    2 -
+ arch/sh/mm/cache-sh4.c              |   41 +++++++++---------------------------
+ arch/sh/mm/cache-sh7705.c           |   20 +----------------
+ arch/sh64/mm/cache.c                |   28 +++---------------------
+ arch/sparc/mm/srmmu.c               |    3 --
+ fs/binfmt_elf.c                     |    2 -
+ include/asm-alpha/cacheflush.h      |    2 -
+ include/asm-arm/cacheflush.h        |   16 +++++++-------
+ include/asm-arm26/cacheflush.h      |    2 -
+ include/asm-cris/cacheflush.h       |    2 -
+ include/asm-frv/cacheflush.h        |    2 -
+ include/asm-h8300/cacheflush.h      |    2 -
+ include/asm-i386/cacheflush.h       |    2 -
+ include/asm-ia64/cacheflush.h       |    2 -
+ include/asm-m32r/cacheflush.h       |    6 ++---
+ include/asm-m68k/cacheflush.h       |   15 ++++++-------
+ include/asm-m68knommu/cacheflush.h  |    2 -
+ include/asm-mips/cacheflush.h       |    5 +---
+ include/asm-parisc/cacheflush.h     |    6 ++---
+ include/asm-ppc/cacheflush.h        |    2 -
+ include/asm-ppc64/cacheflush.h      |    2 -
+ include/asm-s390/cacheflush.h       |    2 -
+ include/asm-sh/cacheflush.h         |    4 +--
+ include/asm-sh/cpu-sh2/cacheflush.h |    4 +--
+ include/asm-sh/cpu-sh3/cacheflush.h |    6 ++---
+ include/asm-sh/cpu-sh4/cacheflush.h |    2 -
+ include/asm-sh64/cacheflush.h       |    6 ++---
+ include/asm-sparc/cacheflush.h      |   14 ++++++------
+ include/asm-sparc64/cacheflush.h    |   14 ++++++------
+ include/asm-v850/cacheflush.h       |    2 -
+ include/asm-x86_64/cacheflush.h     |    2 -
+ mm/fremap.c                         |    2 -
+ mm/memory.c                         |    4 +--
+ mm/rmap.c                           |    4 +--
+ 41 files changed, 107 insertions(+), 161 deletions(-)
+
+
+ChangeSet@1.2078, 2005-03-05 21:15:21-08:00, davem@picasso.davemloft.net
+  Merge davem@nuts:/disk1/BK/flush_cache_page-2.6
+  into picasso.davemloft.net:/home/davem/src/BK/flush_cache_page-2.6
+
+ fs/binfmt_elf.c                 |    2 +-
+ include/asm-arm/cacheflush.h    |   16 ++++++++--------
+ include/asm-parisc/cacheflush.h |    6 +++---
+ include/asm-ppc64/cacheflush.h  |    2 +-
+ mm/memory.c                     |    4 ++--
+ mm/rmap.c                       |    4 ++--
+ 6 files changed, 17 insertions(+), 17 deletions(-)
+
+
+ChangeSet@1.2079, 2005-03-05 21:23:33-08:00, lethal@linux-sh.org
+  [SH]: Cache flush simplifications after flush_cache_page() arg change.
+  
+  Signed-off-by: David S. Miller <davem@davemloft.net>
+
+ arch/sh/mm/cache-sh4.c |    3 +--
+ arch/sh64/mm/cache.c   |    7 +------
+ 2 files changed, 2 insertions(+), 8 deletions(-)
