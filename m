@@ -1,33 +1,33 @@
-Return-Path: <schwidefsky@de.ibm.com>
-Received: from mtagate5.de.ibm.com ([195.212.29.154]:33993 "EHLO
-	mtagate5.de.ibm.com") by vger.kernel.org with ESMTP id S265259AbUENLkY convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 May 2004 07:40:24 -0400
-Subject: Re: atomic ops for a VM fix
-Message-ID: <OF76EA7F60.02519DAD-ONC1256E94.003F8E14-C1256E94.003FC398@de.ibm.com>
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Date: Fri, 14 May 2004 13:36:28 +0200
+Return-Path: <manfred@colorfullife.com>
+Received: from dbl.q-ag.de ([213.172.117.3]:64224 "EHLO dbl.q-ag.de")
+	by vger.kernel.org with ESMTP id S262273AbUEOMOD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 15 May 2004 08:14:03 -0400
+Message-ID: <40A60984.1070202@colorfullife.com>
+Date: Sat, 15 May 2004 14:13:56 +0200
+From: Manfred Spraul <manfred@colorfullife.com>
 MIME-Version: 1.0
-Content-type: text/plain; charset=ISO-8859-1
-Content-transfer-encoding: 8BIT
-To: Andrew Morton <akpm@osdl.org>
-Cc: davidm@napali.hpl.hp.com, davidm@hpl.hp.com, ink@jurassic.park.msu.ru, linux-arch@vger.kernel.org
+Subject: [PATCH] Allow arch override for kmem_bufctl_t
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+To: Andrew Morton <akpm@digeo.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Hi Andrew,
 
+The slab allocator keeps track of the free objects in a slab with a 
+linked list of integers (typedef'ed to kmem_bufctl_t). Right now 
+unsigned int is used for kmem_bufctl_t, i.e. 4 bytes per-object overhead.
+The attached patch allows an arch override for this type: Theoretically, 
+unsigned short is sufficient for kmem_bufctl_t and this would reduce the 
+per-object overhead to 2 bytes. But some archs cannot operate on 16-bit 
+values efficiently, thus it's not possible to switch everyone to ushort. 
+The patch switches i386, the port maintainers should switch their arch 
+if there are no problems with 16-bit quantities. All accesses to 
+kmem_bufctl_t are under a per-cache spinlock and not in the hottest path.
 
+Could you apply it to -mm?
 
-
-> Either s390's atomic_inc_and_test() is wrong, or their
-atomic_inc_return()
-> is wrong.  I think the former.
-
-atomic_inc_return is fine, atomic_inc_and_test is broken. The __CS_LOOP always
-returns the new value.
-
-blue skies,
-   Martin
-
-Linux/390 Design & Development, IBM Deutschland Entwicklung GmbH
-Schönaicherstr. 220, D-71032 Böblingen, Telefon: 49 - (0)7031 - 16-2247
-E-Mail: schwidefsky@de.ibm.com
+--
+    Manfred
