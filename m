@@ -1,34 +1,64 @@
-Return-Path: <wli@holomorphy.com>
-Received: from holomorphy.com ([207.189.100.168]:61603 "EHLO holomorphy.com")
-	by vger.kernel.org with ESMTP id S264062AbUDVONV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Apr 2004 10:13:21 -0400
-Date: Thu, 22 Apr 2004 07:13:05 -0700
-From: William Lee Irwin III <wli@holomorphy.com>
+Return-Path: <glauber@gmx.de>
+Received: from mtagate5.de.ibm.com ([195.212.29.154]:45041 "EHLO
+	mtagate5.de.ibm.com") by vger.kernel.org with ESMTP id S264073AbUDVOQl
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 22 Apr 2004 10:16:41 -0400
 Subject: Re: [Patch] SMP call function cleanup
-Message-ID: <20040422141305.GX743@holomorphy.com>
-References: <1082636511.1332.34.camel@halo> <20040422123318.GX22027@krispykreme> <1082642408.1332.56.camel@halo>
+From: Jan Glauber <glauber@gmx.de>
+Reply-To: glauber@gmx.de
+In-Reply-To: <1082642332.1778.39.camel@mulgrave>
+References: <1082636511.1332.34.camel@halo>
+	 <20040422122818.GR743@holomorphy.com>  <20040422123703.GY22027@krispykreme>
+	 <1082638779.1778.16.camel@mulgrave>  <1082641822.1329.45.camel@halo>
+	 <1082642332.1778.39.camel@mulgrave>
+Content-Type: text/plain
+Message-Id: <1082643325.1332.66.camel@halo>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1082642408.1332.56.camel@halo>
-To: Jan Glauber <glauber@gmx.de>
-Cc: Anton Blanchard <anton@samba.org>, Linux Architecture List <linux-arch@vger.kernel.org>
+Date: Thu, 22 Apr 2004 16:15:25 +0200
+Content-Transfer-Encoding: 7bit
+To: James Bottomley <James.Bottomley@steeleye.com>
+Cc: Linux Architecture List <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2004-04-22 at 14:33, Anton Blanchard wrote:
->> We noticed this too. Rusty created on_one_cpu below and had a generic
->> (but costly) implementation so architectures could switch across when they
->> wanted.
+On Thu, 2004-04-22 at 15:58, James Bottomley wrote:
+> Because to execute on a single cpu it's less efficient than the single
+> cpu variant (even with the sparse mask traversal) and the
+> smp_call_functions are usually in the critical path, so saving cycles is
+> good...
 
-On Thu, Apr 22, 2004 at 04:00:08PM +0200, Jan Glauber wrote:
-> Hm, why can't you just do a:
-> for_each_cpu_mask(cpu, mask)
->         send_IPI_single(cpu)
+With my patch you would use on_single_cpu:
 
-I think they're concerned about API minimality. I just debunked or
-whatever both of the feature requests I had for it on my end after
-doublechecking on IRC, so there isn't a known immediate need for it.
+static inline void on_single_cpu(void (*func) (void *info), void *info,
+                                 int nonatomic, int wait, int cpu)
+{
+        cpumask_t map;
 
+        preempt_disable();
+        cpus_clear(map);
+        cpu_set(cpu, map);
+        on_cpu(func, info, nonatomic, wait, map);
+        preempt_enable();
+}
 
--- wli
+so the overhead to the single cpu variant of smp_call_function is 
+
+	cpus_clear(map);
+	cpu_set(cpu, map);
+
+on_cpu():
+	cpus_and(map, map, cpu_online_map);
+	if (cpus_empty(map))
+		goto out;
+
+and the for_each loop in on_cpu
+
+I don't know if that overhead is so much that you want to have two smp
+call functions.
+
+Jan
+
+---
+Jan Glauber
+Linux on zSeries Development
+IBM Deutschland Entwicklung GmbH
+Phone: +49 7031 161911   Mail: jang@de.ibm.com
