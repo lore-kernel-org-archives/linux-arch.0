@@ -1,32 +1,32 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267595AbUIOEuD@vger.kernel.org>
-Received: from are.twiddle.net ([64.81.246.98]:8322 "EHLO are.twiddle.net")
-	by vger.kernel.org with ESMTP id S267526AbUIOEuD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Sep 2004 00:50:03 -0400
-Received: from are.twiddle.net (localhost.localdomain [127.0.0.1])
-	by are.twiddle.net (8.12.11/8.12.11) with ESMTP id i8F4nhYT001335
-	for <linux-arch@vger.kernel.org>; Tue, 14 Sep 2004 21:49:43 -0700
-Date: Tue, 14 Sep 2004 21:49:22 -0700
-From: Richard Henderson <rth@twiddle.net>
-Subject: Re: waitid fallout
-Message-ID: <20040915044922.GA1288@twiddle.net>
-References: <20040915033903.GA904@twiddle.net>
-Mime-Version: 1.0
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267591AbUIOFet@vger.kernel.org>
+Received: from mail5.speakeasy.net ([216.254.0.205]:54750 "EHLO
+	mail5.speakeasy.net") by vger.kernel.org with ESMTP id S265697AbUIOFet
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Sep 2004 01:34:49 -0400
+Date: Tue, 14 Sep 2004 22:34:40 -0700
+Message-Id: <200409150534.i8F5YeCF011453@magilla.sf.frob.com>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20040915033903.GA904@twiddle.net>
-To: roland@redhat.com, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+From: Roland McGrath <roland@redhat.com>
+Subject: Re: waitid fallout
+In-Reply-To: Stephen Rothwell's message of  Wednesday, 15 September 2004 14:37:30 +1000 <20040915143730.6b230fbc.sfr@canb.auug.org.au>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Richard Henderson <rth@twiddle.net>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Sep 14, 2004 at 08:39:03PM -0700, Richard Henderson wrote:
-> Is an *entire* struct rusage required in siginfo_t for sigchld?
+> On Tue, 14 Sep 2004 20:39:03 -0700 Richard Henderson <rth@twiddle.net> wrote:
+> >
+> > Is an *entire* struct rusage required in siginfo_t for sigchld?
+> > 
+> > It's much bigger than the 24 (!) words of padding we had reserved
+> > for expansion in siginfo_t.
 
-FWIW, I don't see anything in 
-
-  http://www.opengroup.org/onlinepubs/009695399/functions/waitid.html
-  http://www.opengroup.org/onlinepubs/009695399/basedefs/signal.h.html
-
-that mentions rusage at all.  From whence does this feature arise?
-
-
-r~
+Ah, I only ever looked at the sizes on i386, where there was plenty of
+room.  As you can see in my posts of the waitid patches, the si_rusage
+addition is not required by POSIX.  I chose to add it so that the waitid
+call would subsume all functionality of wait4 et al and suffice as the sole
+call in the wait family that a new architecture should be obliged to
+provide in its system call table.  If we were to take it back out, then it
+would make more sense to have the system call be like SGI's waitsys that
+takes the waitid args plus a struct rusage *.  
