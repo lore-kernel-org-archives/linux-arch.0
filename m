@@ -1,47 +1,212 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267449AbUIJPXe@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([212.18.232.186]:5898 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S267370AbUIJPXe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Sep 2004 11:23:34 -0400
-Date: Fri, 10 Sep 2004 16:23:30 +0100
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [RFC] flush_cache_page in kernel/ptrace.c
-Message-ID: <20040910162330.F22599@flint.arm.linux.org.uk>
-References: <20040909225643.G6434@flint.arm.linux.org.uk> <Pine.LNX.4.58.0409091658370.5912@ppc970.osdl.org>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S267490AbUIJPTb@vger.kernel.org>
+Received: from mtagate4.de.ibm.com ([195.212.29.153]:56749 "EHLO
+	mtagate4.de.ibm.com") by vger.kernel.org with ESMTP id S266793AbUIJPTb
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Sep 2004 11:19:31 -0400
+Date: Fri, 10 Sep 2004 17:19:19 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: [PATCH] cleanup: remove unused definitions from timex.h.
+Message-ID: <20040910151919.GB3632@mschwid3.boeblingen.de.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.58.0409091658370.5912@ppc970.osdl.org>; from torvalds@osdl.org on Thu, Sep 09, 2004 at 05:06:59PM -0700
-Sender: Russell King <rmk@arm.linux.org.uk>
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>
+Sender: Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Sep 09, 2004 at 05:06:59PM -0700, Linus Torvalds wrote:
-> On Thu, 9 Sep 2004, Russell King wrote:
-> > I argue that the use of flush_cache_page() here in the generic
-> > code is wrong, and if an architecture wishes to use it for this
-> > purpose, it should do so within it's architecture private
-> > implementation of copy_to_user_page() and copy_from_user_page().
-> 
-> I can't fault that argument. Let's just make it so. Can we have the arch 
-> people involved (the normal virtual cache suspects: mips, sparc, sh, 
-> pa-risc, who else?) take a quick look and send their suggested patch to do 
-> so for their architecture. 
-> 
-> I hereby nominate Russell to be President, Vice General and Grand Poobah
-> of said patches, and charge him to remove the generic version line at the
-> appropriate time.. In recognition of this service, he'll get an extra "l" 
-> to make up for all the ones he has lost over time.
-> 
-> Russelll?
+[PATCH] cleanup: remove unused definitions from timex.h.
 
-That's fine by me - please send your patches my way. 8)
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-Thanks.
+The CLOCK_TICK_FACTOR and FINETUNE defines from <asm/timex.h>
+are not used anywhere. Kill them.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 PCMCIA      - http://pcmcia.arm.linux.org.uk/
-                 2.6 Serial core
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+
+diffstat:
+ include/asm-arm/arch-lh7a40x/timex.h |    1 -
+ include/asm-arm/arch-sa1100/timex.h  |    1 -
+ include/asm-h8300/timex.h            |    4 ----
+ include/asm-i386/timex.h             |    4 ----
+ include/asm-m68k/timex.h             |    4 ----
+ include/asm-ppc/timex.h              |    4 ----
+ include/asm-ppc64/timex.h            |    4 ----
+ include/asm-s390/timex.h             |    4 ----
+ include/asm-sh/timex.h               |    4 ----
+ include/asm-sparc/timex.h            |    4 ----
+ include/asm-sparc64/timex.h          |    4 ----
+ include/asm-v850/timex.h             |    4 ----
+ include/asm-x86_64/timex.h           |    4 ----
+ 13 files changed, 46 deletions(-)
+
+diff -urN linux-2.6/include/asm-arm/arch-lh7a40x/timex.h linux-2.6-patched/include/asm-arm/arch-lh7a40x/timex.h
+--- linux-2.6/include/asm-arm/arch-lh7a40x/timex.h	2004-08-14 12:54:48.000000000 +0200
++++ linux-2.6-patched/include/asm-arm/arch-lh7a40x/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -14,5 +14,4 @@
+ 
+ /*
+ #define CLOCK_TICK_RATE		3686400
+-#define CLOCK_TICK_FACTOR	80
+ */
+diff -urN linux-2.6/include/asm-arm/arch-sa1100/timex.h linux-2.6-patched/include/asm-arm/arch-sa1100/timex.h
+--- linux-2.6/include/asm-arm/arch-sa1100/timex.h	2004-08-14 12:55:35.000000000 +0200
++++ linux-2.6-patched/include/asm-arm/arch-sa1100/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -10,4 +10,3 @@
+  * SA1100 timer
+  */
+ #define CLOCK_TICK_RATE		3686400
+-#define CLOCK_TICK_FACTOR	80
+diff -urN linux-2.6/include/asm-h8300/timex.h linux-2.6-patched/include/asm-h8300/timex.h
+--- linux-2.6/include/asm-h8300/timex.h	2004-08-14 12:55:32.000000000 +0200
++++ linux-2.6-patched/include/asm-h8300/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -7,10 +7,6 @@
+ #define _ASM_H8300_TIMEX_H
+ 
+ #define CLOCK_TICK_RATE CONFIG_CPU_CLOCK*1000/8192 /* Timer input freq. */
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((long)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ typedef unsigned long cycles_t;
+ extern short h8300_timer_count;
+diff -urN linux-2.6/include/asm-i386/timex.h linux-2.6-patched/include/asm-i386/timex.h
+--- linux-2.6/include/asm-i386/timex.h	2004-09-10 17:02:31.000000000 +0200
++++ linux-2.6-patched/include/asm-i386/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -15,10 +15,6 @@
+ #  define CLOCK_TICK_RATE 1193182 /* Underlying HZ */
+ #endif
+ 
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((long)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ /*
+  * Standard way to access the cycle counter on i586+ CPUs.
+diff -urN linux-2.6/include/asm-m68k/timex.h linux-2.6-patched/include/asm-m68k/timex.h
+--- linux-2.6/include/asm-m68k/timex.h	2004-08-14 12:54:48.000000000 +0200
++++ linux-2.6-patched/include/asm-m68k/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -7,10 +7,6 @@
+ #define _ASMm68k_TIMEX_H
+ 
+ #define CLOCK_TICK_RATE	1193180 /* Underlying HZ */
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((long)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ typedef unsigned long cycles_t;
+ 
+diff -urN linux-2.6/include/asm-ppc/timex.h linux-2.6-patched/include/asm-ppc/timex.h
+--- linux-2.6/include/asm-ppc/timex.h	2004-08-14 12:55:32.000000000 +0200
++++ linux-2.6-patched/include/asm-ppc/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -11,10 +11,6 @@
+ #include <asm/cputable.h>
+ 
+ #define CLOCK_TICK_RATE	1193180 /* Underlying HZ */
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((long)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ typedef unsigned long cycles_t;
+ 
+diff -urN linux-2.6/include/asm-ppc64/timex.h linux-2.6-patched/include/asm-ppc64/timex.h
+--- linux-2.6/include/asm-ppc64/timex.h	2004-08-14 12:56:24.000000000 +0200
++++ linux-2.6-patched/include/asm-ppc64/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -12,10 +12,6 @@
+ #define _ASMPPC64_TIMEX_H
+ 
+ #define CLOCK_TICK_RATE	1193180 /* Underlying HZ */
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((long)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ typedef unsigned long cycles_t;
+ 
+diff -urN linux-2.6/include/asm-s390/timex.h linux-2.6-patched/include/asm-s390/timex.h
+--- linux-2.6/include/asm-s390/timex.h	2004-08-14 12:54:47.000000000 +0200
++++ linux-2.6-patched/include/asm-s390/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -12,10 +12,6 @@
+ #define _ASM_S390_TIMEX_H
+ 
+ #define CLOCK_TICK_RATE	1193180 /* Underlying HZ */
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((long)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ typedef unsigned long long cycles_t;
+ 
+diff -urN linux-2.6/include/asm-sh/timex.h linux-2.6-patched/include/asm-sh/timex.h
+--- linux-2.6/include/asm-sh/timex.h	2004-08-14 12:54:46.000000000 +0200
++++ linux-2.6-patched/include/asm-sh/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -7,10 +7,6 @@
+ #define __ASM_SH_TIMEX_H
+ 
+ #define CLOCK_TICK_RATE		(CONFIG_SH_PCLK_FREQ / 4) /* Underlying HZ */
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((long)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ typedef unsigned long long cycles_t;
+ 
+diff -urN linux-2.6/include/asm-sparc/timex.h linux-2.6-patched/include/asm-sparc/timex.h
+--- linux-2.6/include/asm-sparc/timex.h	2004-08-14 12:55:47.000000000 +0200
++++ linux-2.6-patched/include/asm-sparc/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -7,10 +7,6 @@
+ #define _ASMsparc_TIMEX_H
+ 
+ #define CLOCK_TICK_RATE	1193180 /* Underlying HZ */
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((long)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ /* XXX Maybe do something better at some point... -DaveM */
+ typedef unsigned long cycles_t;
+diff -urN linux-2.6/include/asm-sparc64/timex.h linux-2.6-patched/include/asm-sparc64/timex.h
+--- linux-2.6/include/asm-sparc64/timex.h	2004-08-14 12:55:32.000000000 +0200
++++ linux-2.6-patched/include/asm-sparc64/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -9,10 +9,6 @@
+ #include <asm/timer.h>
+ 
+ #define CLOCK_TICK_RATE	1193180 /* Underlying HZ */
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((long)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ /* Getting on the cycle counter on sparc64. */
+ typedef unsigned long cycles_t;
+diff -urN linux-2.6/include/asm-v850/timex.h linux-2.6-patched/include/asm-v850/timex.h
+--- linux-2.6/include/asm-v850/timex.h	2004-08-14 12:56:22.000000000 +0200
++++ linux-2.6-patched/include/asm-v850/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -7,10 +7,6 @@
+ #define __V850_TIMEX_H__
+ 
+ #define CLOCK_TICK_RATE	1193180 /* Underlying HZ */
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((long)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ typedef unsigned long cycles_t;
+ 
+diff -urN linux-2.6/include/asm-x86_64/timex.h linux-2.6-patched/include/asm-x86_64/timex.h
+--- linux-2.6/include/asm-x86_64/timex.h	2004-08-14 12:55:33.000000000 +0200
++++ linux-2.6-patched/include/asm-x86_64/timex.h	2004-09-10 17:02:52.000000000 +0200
+@@ -13,10 +13,6 @@
+ #include <asm/hpet.h>
+ 
+ #define CLOCK_TICK_RATE	PIT_TICK_RATE	/* Underlying HZ */
+-#define CLOCK_TICK_FACTOR	20	/* Factor of both 1000000 and CLOCK_TICK_RATE */
+-#define FINETUNE ((((((int)LATCH * HZ - CLOCK_TICK_RATE) << SHIFT_HZ) * \
+-	(1000000/CLOCK_TICK_FACTOR) / (CLOCK_TICK_RATE/CLOCK_TICK_FACTOR)) \
+-		<< (SHIFT_SCALE-SHIFT_HZ)) / HZ)
+ 
+ typedef unsigned long long cycles_t;
+ 
