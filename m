@@ -1,1480 +1,1589 @@
 Return-Path: <arnd@arndb.de>
-Received: from natnoddy.rzone.de ([81.169.145.166]:51197 "EHLO
-	natnoddy.rzone.de") by vger.kernel.org with ESMTP id S262077AbUDDAf6
+Received: from natnoddy.rzone.de ([81.169.145.166]:56573 "EHLO
+	natnoddy.rzone.de") by vger.kernel.org with ESMTP id S262079AbUDDAgD
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 3 Apr 2004 19:35:58 -0500
+	Sat, 3 Apr 2004 19:36:03 -0500
 Received: from p508a8fcc.dip0.t-ipconnect.de (p508A8FCC.dip0.t-ipconnect.de [80.138.143.204])
-	by post.webmailer.de (8.12.10/8.12.10) with ESMTP id i340ZqOl016348
-	for <linux-arch@vger.kernel.org>; Sun, 4 Apr 2004 02:35:55 +0200 (MEST)
+	by post.webmailer.de (8.12.10/8.12.10) with ESMTP id i340ZqOn016348
+	for <linux-arch@vger.kernel.org>; Sun, 4 Apr 2004 02:35:59 +0200 (MEST)
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 2/4] Consolidate do_execve32
-Date: Sun, 4 Apr 2004 02:22:35 +0200
+Subject: [PATCH 4/4] Consolidate sys32_nfsservctl
+Date: Sun, 4 Apr 2004 02:22:46 +0200
 References: <200404040204.03594.arnd@arndb.de>
 In-Reply-To: <200404040204.03594.arnd@arndb.de>
 MIME-Version: 1.0
 Content-Disposition: inline
-Message-Id: <200404040222.35467.arnd@arndb.de>
+Message-Id: <200404040222.47192.arnd@arndb.de>
 Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-The code for sys32_execve/do_execve32 in most of the seven versions
-was copied from fs/exec.c but not kept up-to-date. The new
-compat_do_execve() function is based on the mips code and has been
-resync'ed with do_execve().
+sys32_nfsservctl is the largest remaining syscall emulation handler that
+can be consolidated. mips and ia64 currently don't use this at all,
+parisc has a simpler implementation than the one used by s390, sparc, ppc
+and mips that the new compat_sys_nfsservctl is based on.
 
-IA64 has some special fixup code in sys32_execve, so I'm not touching
-that.
+The user access checks in the code are inconsistant at least, which
+should be fixed here.
 
-Tested with LTP and more 32 bit binaries on x86_64, which previously
-used an implementation derived from ia64. The consolidated version
-is larger than that but should perform better.
+Compile tested only due to lack of proper test setup.
 
-===== arch/mips/kernel/linux32.c 1.23 vs edited =====
---- 1.23/arch/mips/kernel/linux32.c	Sat Apr  3 21:51:49 2004
-+++ edited/arch/mips/kernel/linux32.c	Sat Apr  3 21:20:39 2004
-@@ -142,228 +142,6 @@
+===== arch/ia64/ia32/sys_ia32.c 1.95 vs edited =====
+--- 1.95/arch/ia64/ia32/sys_ia32.c	Sun Apr  4 00:06:36 2004
++++ edited/arch/ia64/ia32/sys_ia32.c	Sat Apr  3 23:09:57 2004
+@@ -2241,176 +2241,6 @@
+ 	return sys_setresgid(srgid, segid, ssgid);
  }
  
- /*
-- * count32() counts the number of arguments/envelopes
-- */
--static int count32(u32 * argv, int max)
+-/* Stuff for NFS server syscalls... */
+-struct nfsctl_svc32 {
+-	u16			svc32_port;
+-	s32			svc32_nthreads;
+-};
+-
+-struct nfsctl_client32 {
+-	s8			cl32_ident[NFSCLNT_IDMAX+1];
+-	s32			cl32_naddr;
+-	struct in_addr		cl32_addrlist[NFSCLNT_ADDRMAX];
+-	s32			cl32_fhkeytype;
+-	s32			cl32_fhkeylen;
+-	u8			cl32_fhkey[NFSCLNT_KEYMAX];
+-};
+-
+-struct nfsctl_export32 {
+-	s8			ex32_client[NFSCLNT_IDMAX+1];
+-	s8			ex32_path[NFS_MAXPATHLEN+1];
+-	compat_dev_t	ex32_dev;
+-	compat_ino_t	ex32_ino;
+-	s32			ex32_flags;
+-	compat_uid_t	ex32_anon_uid;
+-	compat_gid_t	ex32_anon_gid;
+-};
+-
+-struct nfsctl_arg32 {
+-	s32			ca32_version;	/* safeguard */
+-	union {
+-		struct nfsctl_svc32	u32_svc;
+-		struct nfsctl_client32	u32_client;
+-		struct nfsctl_export32	u32_export;
+-		u32			u32_debug;
+-	} u;
+-#define ca32_svc	u.u32_svc
+-#define ca32_client	u.u32_client
+-#define ca32_export	u.u32_export
+-#define ca32_debug	u.u32_debug
+-};
+-
+-union nfsctl_res32 {
+-	struct knfs_fh		cr32_getfh;
+-	u32			cr32_debug;
+-};
+-
+-static int
+-nfs_svc32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
 -{
--	int i = 0;
+-	int err;
 -
--	if (argv != NULL) {
--		for (;;) {
--			u32 p; int error;
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= __get_user(karg->ca_svc.svc_port, &arg32->ca32_svc.svc32_port);
+-	err |= __get_user(karg->ca_svc.svc_nthreads,
+-			  &arg32->ca32_svc.svc32_nthreads);
+-	return err;
+-}
 -
--			error = get_user(p,argv);
--			if (error)
--				return error;
--			if (!p)
--				break;
--			argv++;
--			if (++i > max)
--				return -E2BIG;
+-static int
+-nfs_clnt32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_client.cl_ident[0],
+-			  &arg32->ca32_client.cl32_ident[0],
+-			  NFSCLNT_IDMAX);
+-	err |= __get_user(karg->ca_client.cl_naddr,
+-			  &arg32->ca32_client.cl32_naddr);
+-	err |= copy_from_user(&karg->ca_client.cl_addrlist[0],
+-			  &arg32->ca32_client.cl32_addrlist[0],
+-			  (sizeof(struct in_addr) * NFSCLNT_ADDRMAX));
+-	err |= __get_user(karg->ca_client.cl_fhkeytype,
+-		      &arg32->ca32_client.cl32_fhkeytype);
+-	err |= __get_user(karg->ca_client.cl_fhkeylen,
+-		      &arg32->ca32_client.cl32_fhkeylen);
+-	err |= copy_from_user(&karg->ca_client.cl_fhkey[0],
+-			  &arg32->ca32_client.cl32_fhkey[0],
+-			  NFSCLNT_KEYMAX);
+-	return err;
+-}
+-
+-static int
+-nfs_exp32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_export.ex_client[0],
+-			  &arg32->ca32_export.ex32_client[0],
+-			  NFSCLNT_IDMAX);
+-	err |= copy_from_user(&karg->ca_export.ex_path[0],
+-			  &arg32->ca32_export.ex32_path[0],
+-			  NFS_MAXPATHLEN);
+-	err |= __get_user(karg->ca_export.ex_dev,
+-		      &arg32->ca32_export.ex32_dev);
+-	err |= __get_user(karg->ca_export.ex_ino,
+-		      &arg32->ca32_export.ex32_ino);
+-	err |= __get_user(karg->ca_export.ex_flags,
+-		      &arg32->ca32_export.ex32_flags);
+-	err |= __get_user(karg->ca_export.ex_anon_uid,
+-		      &arg32->ca32_export.ex32_anon_uid);
+-	err |= __get_user(karg->ca_export.ex_anon_gid,
+-		      &arg32->ca32_export.ex32_anon_gid);
+-	return err;
+-}
+-
+-static int
+-nfs_getfh32_res_trans(union nfsctl_res *kres, union nfsctl_res32 *res32)
+-{
+-	int err;
+-
+-	err = copy_to_user(&res32->cr32_getfh,
+-			&kres->cr_getfh,
+-			sizeof(res32->cr32_getfh));
+-	err |= __put_user(kres->cr_debug, &res32->cr32_debug);
+-	return err;
+-}
+-
+-int asmlinkage
+-sys32_nfsservctl(int cmd, struct nfsctl_arg32 *arg32, union nfsctl_res32 *res32)
+-{
+-	struct nfsctl_arg *karg = NULL;
+-	union nfsctl_res *kres = NULL;
+-	mm_segment_t oldfs;
+-	int err;
+-
+-	karg = kmalloc(sizeof(*karg), GFP_USER);
+-	if(!karg)
+-		return -ENOMEM;
+-	if(res32) {
+-		kres = kmalloc(sizeof(*kres), GFP_USER);
+-		if(!kres) {
+-			kfree(karg);
+-			return -ENOMEM;
 -		}
 -	}
--	return i;
+-	switch(cmd) {
+-	case NFSCTL_SVC:
+-		err = nfs_svc32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_ADDCLIENT:
+-		err = nfs_clnt32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_DELCLIENT:
+-		err = nfs_clnt32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_EXPORT:
+-		err = nfs_exp32_trans(karg, arg32);
+-		break;
+-	default:
+-		err = -EINVAL;
+-		break;
+-	}
+-	if(err)
+-		goto done;
+-	oldfs = get_fs();
+-	set_fs(KERNEL_DS);
+-	err = sys_nfsservctl(cmd, karg, kres);
+-	set_fs(oldfs);
+-
+-	if(!err && cmd == NFSCTL_GETFS)
+-		err = nfs_getfh32_res_trans(kres, res32);
+-
+-done:
+-	if(karg)
+-		kfree(karg);
+-	if(kres)
+-		kfree(kres);
+-	return err;
 -}
 -
--
--/*
-- * 'copy_strings32()' copies argument/envelope strings from user
-- * memory to free pages in kernel mem. These are in a format ready
-- * to be put directly into the top of new user memory.
-- */
--int copy_strings32(int argc, u32 * argv, struct linux_binprm *bprm)
--{
--	struct page *kmapped_page = NULL;
--	char *kaddr = NULL;
--	int ret;
--
--	while (argc-- > 0) {
--		u32 str;
--		int len;
--		unsigned long pos;
--
--		if (get_user(str, argv+argc) || !str ||
--		     !(len = strnlen_user((char *)A(str), bprm->p))) {
--			ret = -EFAULT;
--			goto out;
--		}
--
--		if (bprm->p < len)  {
--			ret = -E2BIG;
--			goto out;
--		}
--
--		bprm->p -= len;
--		/* XXX: add architecture specific overflow check here. */
--
--		pos = bprm->p;
--		while (len > 0) {
--			int i, new, err;
--			int offset, bytes_to_copy;
--			struct page *page;
--
--			offset = pos % PAGE_SIZE;
--			i = pos/PAGE_SIZE;
--			page = bprm->page[i];
--			new = 0;
--			if (!page) {
--				page = alloc_page(GFP_HIGHUSER);
--				bprm->page[i] = page;
--				if (!page) {
--					ret = -ENOMEM;
--					goto out;
--				}
--				new = 1;
--			}
--
--			if (page != kmapped_page) {
--				if (kmapped_page)
--					kunmap(kmapped_page);
--				kmapped_page = page;
--				kaddr = kmap(kmapped_page);
--			}
--			if (new && offset)
--				memset(kaddr, 0, offset);
--			bytes_to_copy = PAGE_SIZE - offset;
--			if (bytes_to_copy > len) {
--				bytes_to_copy = len;
--				if (new)
--					memset(kaddr+offset+len, 0,
--					       PAGE_SIZE-offset-len);
--			}
--			err = copy_from_user(kaddr + offset, (char *)A(str),
--			                     bytes_to_copy);
--			if (err) {
--				ret = -EFAULT;
--				goto out;
--			}
--
--			pos += bytes_to_copy;
--			str += bytes_to_copy;
--			len -= bytes_to_copy;
--		}
--	}
--	ret = 0;
--out:
--	if (kmapped_page)
--		kunmap(kmapped_page);
--	return ret;
--}
--
--#ifdef CONFIG_MMU
--
--#define free_arg_pages(bprm) do { } while (0)
--
--#else
--
--static inline void free_arg_pages(struct linux_binprm *bprm)
--{
--	int i;
--
--	for (i = 0; i < MAX_ARG_PAGES; i++) {
--		if (bprm->page[i])
--			__free_page(bprm->page[i]);
--		bprm->page[i] = NULL;
--	}
--}
--
--#endif /* CONFIG_MMU */
--
--/*
-- * sys32_execve() executes a new program.
-- */
--static inline int 
--do_execve32(char * filename, u32 * argv, u32 * envp, struct pt_regs * regs)
--{
--	struct linux_binprm bprm;
--	struct file * file;
--	int retval;
--
--	sched_balance_exec();
--
--	file = open_exec(filename);
--
--	retval = PTR_ERR(file);
--	if (IS_ERR(file))
--		return retval;
--
--	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
--	memset(bprm.page, 0, MAX_ARG_PAGES * sizeof(bprm.page[0]));
--
--	bprm.file = file;
--	bprm.filename = filename;
--	bprm.interp = filename;
--	bprm.sh_bang = 0;
--	bprm.loader = 0;
--	bprm.exec = 0;
--	bprm.security = NULL;
--	bprm.mm = mm_alloc();
--	retval = -ENOMEM;
--	if (!bprm.mm) 
--		goto out_file;
--
--	retval = init_new_context(current, bprm.mm);
--	if (retval < 0)
--		goto out_mm;
--
--	bprm.argc = count32(argv, bprm.p / sizeof(u32));
--	if ((retval = bprm.argc) < 0)
--		goto out_mm;
--
--	bprm.envc = count32(envp, bprm.p / sizeof(u32));
--	if ((retval = bprm.envc) < 0)
--		goto out_mm;
--
--	retval = security_bprm_alloc(&bprm);
--	if (retval)
--		goto out;
--
--	retval = prepare_binprm(&bprm);
--	if (retval < 0)
--		goto out;
--	
--	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
--	if (retval < 0)
--		goto out;
--
--	bprm.exec = bprm.p;
--	retval = copy_strings32(bprm.envc, envp, &bprm);
--	if (retval < 0)
--		goto out;
--
--	retval = copy_strings32(bprm.argc, argv, &bprm);
--	if (retval < 0)
--		goto out;
--
--	retval = search_binary_handler(&bprm, regs);
--	if (retval >= 0) {
--		free_arg_pages(&bprm);
--
--		/* execve success */
--		security_bprm_free(&bprm);
--		return retval;
--	}
--
--out:
--	/* Something went wrong, return the inode and free the argument pages*/
--	free_arg_pages(&bprm);
--
--	if (bprm.security)
--		security_bprm_free(&bprm);
--
--out_mm:
--	if (bprm.mm)
--		mmdrop(bprm.mm);
--
--out_file:
--	if (bprm.file) {
--		allow_write_access(bprm.file);
--		fput(bprm.file);
--	}
--	return retval;
--}
--
--/*
-  * sys_execve() executes a new program.
-  */
- asmlinkage int sys32_execve(nabi_no_regargs struct pt_regs regs)
-@@ -371,12 +149,12 @@
- 	int error;
- 	char * filename;
+ /* Handle adjtimex compatibility. */
  
--	filename = getname((char *) (long)regs.regs[4]);
-+	filename = getname(compat_ptr(regs.regs[4]));
- 	error = PTR_ERR(filename);
- 	if (IS_ERR(filename))
- 		goto out;
--	error = do_execve32(filename, (u32 *) (long)regs.regs[5],
--	                  (u32 *) (long)regs.regs[6], &regs);
-+	error = compat_do_execve(filename, compat_ptr(regs.regs[5]),
-+				 compat_ptr(regs.regs[6]), &regs);
- 	putname(filename);
- 
- out:
-===== arch/parisc/kernel/sys_parisc32.c 1.25 vs edited =====
---- 1.25/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 21:51:49 2004
-+++ edited/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 21:16:03 2004
-@@ -65,189 +65,6 @@
- #endif
- 
- /*
-- * count32() counts the number of arguments/envelopes. It is basically
-- *           a copy of count() from fs/exec.c, except that it works
-- *           with 32 bit argv and envp pointers.
-- */
--
--static int count32(u32 *argv, int max)
--{
--	int i = 0;
--
--	if (argv != NULL) {
--		for (;;) {
--			u32 p;
--			int error;
--
--			error = get_user(p,argv);
--			if (error)
--				return error;
--			if (!p)
--				break;
--			argv++;
--			if(++i > max)
--				return -E2BIG;
--		}
--	}
--	return i;
--}
--
--
--/*
-- * copy_strings32() is basically a copy of copy_strings() from fs/exec.c
-- *                  except that it works with 32 bit argv and envp pointers.
-- */
--
--
--static int copy_strings32(int argc, u32 *argv, struct linux_binprm *bprm)
--{
--	while (argc-- > 0) {
--		u32 str;
--		int len;
--		unsigned long pos;
--
--		if (get_user(str, argv + argc) ||
--		    !str ||
--		    !(len = strnlen_user((char *)compat_ptr(str), bprm->p)))
--			return -EFAULT;
--
--		if (bprm->p < len) 
--			return -E2BIG; 
--
--		bprm->p -= len;
--
--		pos = bprm->p;
--		while (len > 0) {
--			char *kaddr;
--			int i, new, err;
--			struct page *page;
--			int offset, bytes_to_copy;
--
--			offset = pos % PAGE_SIZE;
--			i = pos/PAGE_SIZE;
--			page = bprm->page[i];
--			new = 0;
--			if (!page) {
--				page = alloc_page(GFP_HIGHUSER);
--				bprm->page[i] = page;
--				if (!page)
--					return -ENOMEM;
--				new = 1;
--			}
--			kaddr = (char *)kmap(page);
--
--			if (new && offset)
--				memset(kaddr, 0, offset);
--			bytes_to_copy = PAGE_SIZE - offset;
--			if (bytes_to_copy > len) {
--				bytes_to_copy = len;
--				if (new)
--					memset(kaddr+offset+len, 0, PAGE_SIZE-offset-len);
--			}
--			err = copy_from_user(kaddr + offset, (char *)compat_ptr(str), bytes_to_copy);
--			flush_dcache_page(page);
--			kunmap(page);
--
--			if (err)
--				return -EFAULT; 
--
--			pos += bytes_to_copy;
--			str += bytes_to_copy;
--			len -= bytes_to_copy;
--		}
--	}
--	return 0;
--}
--
--/*
-- * do_execve32() is mostly a copy of do_execve(), with the exception
-- * that it processes 32 bit argv and envp pointers.
-- */
--
--static inline int 
--do_execve32(char * filename, u32 * argv, u32 * envp, struct pt_regs * regs)
--{
--	struct linux_binprm bprm;
--	struct file *file;
--	int retval;
--	int i;
--
--	file = open_exec(filename);
--
--	retval = PTR_ERR(file);
--	if (IS_ERR(file))
--		return retval;
--
--	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
--	memset(bprm.page, 0, MAX_ARG_PAGES*sizeof(bprm.page[0]));
--
--	DBG(("do_execve32(%s, %p, %p, %p)\n", filename, argv, envp, regs));
--
--	bprm.file = file;
--	bprm.filename = filename;
--	bprm.interp = filename;
--	bprm.sh_bang = 0;
--	bprm.loader = 0;
--	bprm.exec = 0;
--
--	bprm.mm = mm_alloc();
--	retval = -ENOMEM;
--	if (!bprm.mm)
--		goto out_file;
--
--	retval = init_new_context(current, bprm.mm);
--	if (retval < 0)
--		goto out_mm;
--
--	if ((bprm.argc = count32(argv, bprm.p / sizeof(u32))) < 0) 
--		goto out_mm;
--
--	if ((bprm.envc = count32(envp, bprm.p / sizeof(u32))) < 0) 
--		goto out_mm;
--
--	retval = prepare_binprm(&bprm);
--	if (retval < 0)
--		goto out;
--	
--	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
--	if (retval < 0)
--		goto out;
--
--	bprm.exec = bprm.p;
--	retval = copy_strings32(bprm.envc, envp, &bprm);
--	if (retval < 0)
--		goto out;
--
--	retval = copy_strings32(bprm.argc, argv, &bprm);
--	if (retval < 0)
--		goto out;
--
--	retval = search_binary_handler(&bprm,regs);
--	if (retval >= 0)
--		/* execve success */
--		return retval;
--
--out:
--	/* Something went wrong, return the inode and free the argument pages*/
--	for (i = 0; i < MAX_ARG_PAGES; i++) {
--		struct page *page = bprm.page[i];
--		if (page)
--			__free_page(page);
--	}
--
--out_mm:
--	mmdrop(bprm.mm);
--
--out_file:
--	if (bprm.file) {
--		allow_write_access(bprm.file);
--		fput(bprm.file);
--	}
--
--	return retval;
--}
--
--/*
-  * sys32_execve() executes a new program.
-  */
- 
-@@ -261,8 +78,8 @@
- 	error = PTR_ERR(filename);
- 	if (IS_ERR(filename))
- 		goto out;
--	error = do_execve32(filename, (u32 *) regs->gr[25],
--		(u32 *) regs->gr[24], regs);
-+	error = compat_do_execve(filename, compat_ptr(regs->gr[25]),
-+				 compat_ptr(regs->gr[24]), regs);
- 	if (error == 0)
- 		current->ptrace &= ~PT_DTRACE;
- 	putname(filename);
-===== arch/ppc64/kernel/sys_ppc32.c 1.87 vs edited =====
---- 1.87/arch/ppc64/kernel/sys_ppc32.c	Sat Apr  3 21:51:49 2004
-+++ edited/arch/ppc64/kernel/sys_ppc32.c	Sat Apr  3 21:16:41 2004
-@@ -1549,191 +1549,6 @@
- 	return ret;
- }
- 
--/*
-- * count32() counts the number of arguments/envelopes
-- */
--static int count32(u32 * argv, int max)
--{
--	int i = 0;
--
--	if (argv != NULL) {
--		for (;;) {
--			u32 p; int error;
--
--			error = get_user(p,argv);
--			if (error)
--				return error;
--			if (!p)
--				break;
--			argv++;
--			if (++i > max)
--				return -E2BIG;
--		}
--	}
--	return i;
--}
--
--/*
-- * 'copy_string32()' copies argument/envelope strings from user
-- * memory to free pages in kernel mem. These are in a format ready
-- * to be put directly into the top of new user memory.
-- */
--static int copy_strings32(int argc, u32 * argv, struct linux_binprm *bprm)
--{
--	while (argc-- > 0) {
--		u32 str;
--		int len;
--		unsigned long pos;
--
--		if (get_user(str, argv + argc) ||
--		    !str ||
--		    !(len = strnlen_user((char *)A(str), bprm->p)))
--			return -EFAULT;
--
--		if (bprm->p < len)
--			return -E2BIG;
--
--		bprm->p -= len;
--
--		pos = bprm->p;
--		while (len) {
--			char *kaddr;
--			struct page *page;
--			int offset, bytes_to_copy, new, err;
--
--			offset = pos % PAGE_SIZE;
--			page = bprm->page[pos / PAGE_SIZE];
--			new = 0;
--			if (!page) {
--				page = alloc_page(GFP_USER);
--				bprm->page[pos / PAGE_SIZE] = page;
--				if (!page)
--					return -ENOMEM;
--				new = 1;
--			}
--			kaddr = (char *)kmap(page);
--
--			if (new && offset)
--				memset(kaddr, 0, offset);
--			bytes_to_copy = PAGE_SIZE - offset;
--			if (bytes_to_copy > len) {
--				bytes_to_copy = len;
--				if (new)
--					memset(kaddr+offset+len, 0,
--					       PAGE_SIZE-offset-len);
--			}
--
--			err = copy_from_user(kaddr + offset, (char *)A(str),
--					     bytes_to_copy);
--			kunmap((unsigned long)kaddr);
--
--			if (err)
--				return -EFAULT;
--
--			pos += bytes_to_copy;
--			str += bytes_to_copy;
--			len -= bytes_to_copy;
--		}
--	}
--	return 0;
--}
--
--/*
-- * sys32_execve() executes a new program.
-- */
--static int do_execve32(char * filename, u32 * argv, u32 * envp, struct pt_regs * regs)
--{
--	struct linux_binprm bprm;
--	struct file * file;
--	int retval;
--	int i;
--
--	sched_balance_exec();
--
--	file = open_exec(filename);
--
--	retval = PTR_ERR(file);
--	if (IS_ERR(file))
--		return retval;
--
--	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
--	memset(bprm.page, 0, MAX_ARG_PAGES * sizeof(bprm.page[0]));
--
--	bprm.file = file;
--	bprm.filename = filename;
--	bprm.interp = filename;
--	bprm.sh_bang = 0;
--	bprm.loader = 0;
--	bprm.exec = 0;
--	bprm.security = NULL;
--	bprm.mm = mm_alloc();
--	retval = -ENOMEM;
--	if (!bprm.mm)
--		goto out_file;
--
--	retval = init_new_context(current, bprm.mm);
--	if (retval < 0)
--		goto out_mm;
--
--	bprm.argc = count32(argv, bprm.p / sizeof(u32));
--	if ((retval = bprm.argc) < 0)
--		goto out_mm;
--
--	bprm.envc = count32(envp, bprm.p / sizeof(u32));
--	if ((retval = bprm.envc) < 0)
--		goto out_mm;
--
--	retval = security_bprm_alloc(&bprm);
--	if (retval)
--		goto out;
--
--	retval = prepare_binprm(&bprm);
--	if (retval < 0) 
--		goto out; 
--
--	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
--	if (retval < 0) 
--		goto out; 
--
--	bprm.exec = bprm.p;
--	retval = copy_strings32(bprm.envc, envp, &bprm);
--	if (retval < 0) 
--		goto out; 
--
--	retval = copy_strings32(bprm.argc, argv, &bprm);
--	if (retval < 0) 
--		goto out; 
--
--	retval = search_binary_handler(&bprm,regs);
--	if (retval >= 0) {
--		/* execve success */
--		security_bprm_free(&bprm);
--		return retval;
--	}
--
--out:
--	/* Something went wrong, return the inode and free the argument pages*/
--	for (i = 0 ; i < MAX_ARG_PAGES ; i++) {
--		struct page * page = bprm.page[i];
--		if (page)
--			__free_page(page);
--	}
--
--	if (bprm.security)
--		security_bprm_free(&bprm);
--
--out_mm:
--	if (bprm.mm)
--		mmdrop(bprm.mm);
--
--out_file:
--	if (bprm.file) {
--		allow_write_access(bprm.file);
--		fput(bprm.file);
--	}
--	return retval;
--}
--
- long sys32_execve(unsigned long a0, unsigned long a1, unsigned long a2,
- 		  unsigned long a3, unsigned long a4, unsigned long a5,
- 		  struct pt_regs *regs)
-@@ -1752,7 +1567,7 @@
- 		giveup_altivec(current);
- #endif /* CONFIG_ALTIVEC */
- 
--	error = do_execve32(filename, (u32*) a1, (u32*) a2, regs);
-+	error = compat_do_execve(filename, compat_ptr(a1), compat_ptr(a2), regs);
- 
- 	if (error == 0)
- 		current->ptrace &= ~PT_DTRACE;
-===== arch/s390/kernel/compat_linux.c 1.20 vs edited =====
---- 1.20/arch/s390/kernel/compat_linux.c	Sat Apr  3 21:51:49 2004
-+++ edited/arch/s390/kernel/compat_linux.c	Sat Apr  3 21:17:59 2004
-@@ -906,188 +906,6 @@
- 	return ret;
- }
- 
--extern void check_pending(int signum);
--
--/*
-- * count32() counts the number of arguments/envelopes
-- */
--static int count32(u32 * argv)
--{
--	int i = 0;
--
--	if (argv != NULL) {
--		for (;;) {
--			u32 p; int error;
--
--			error = get_user(p,argv);
--			if (error) return error;
--			if (!p) break;
--			argv++; i++;
--		}
--	}
--	return i;
--}
--
--/*
-- * 'copy_string32()' copies argument/envelope strings from user
-- * memory to free pages in kernel mem. These are in a format ready
-- * to be put directly into the top of new user memory.
-- */
--static int copy_strings32(int argc, u32 * argv, struct linux_binprm *bprm)
--{
--	while (argc-- > 0) {
--		u32 str;
--		int len;
--		unsigned long pos;
--
--		if (get_user(str, argv + argc) ||
--		    !str ||
--		    !(len = strnlen_user((char *)A(str), bprm->p)))
--			return -EFAULT;
--
--		if (bprm->p < len)
--			return -E2BIG;
--
--		bprm->p -= len;
--
--		pos = bprm->p;
--		while (len) {
--			char *kaddr;
--			struct page *page;
--			int offset, bytes_to_copy, new, err;
--
--			offset = pos % PAGE_SIZE;
--			page = bprm->page[pos / PAGE_SIZE];
--			new = 0;
--			if (!page) {
--				page = alloc_page(GFP_USER);
--				bprm->page[pos / PAGE_SIZE] = page;
--				if (!page)
--					return -ENOMEM;
--				new = 1;
--			}
--			kaddr = (char *)kmap(page);
--
--			if (new && offset)
--				memset(kaddr, 0, offset);
--			bytes_to_copy = PAGE_SIZE - offset;
--			if (bytes_to_copy > len) {
--				bytes_to_copy = len;
--				if (new)
--					memset(kaddr+offset+len, 0,
--					       PAGE_SIZE-offset-len);
--			}
--
--			err = copy_from_user(kaddr + offset, (char *)A(str),
--					     bytes_to_copy);
--			kunmap(page);
--
--			if (err)
--				return -EFAULT;
--
--			pos += bytes_to_copy;
--			str += bytes_to_copy;
--			len -= bytes_to_copy;
--		}
--	}
--	return 0;
--}
--
--/*
-- * sys32_execve() executes a new program.
-- */
--static inline int 
--do_execve32(char * filename, u32 * argv, u32 * envp, struct pt_regs * regs)
--{
--	struct linux_binprm bprm;
--	struct file * file;
--	int retval;
--	int i;
--
--	sched_balance_exec();
--
--	file = open_exec(filename);
--
--	retval = PTR_ERR(file);
--	if (IS_ERR(file))
--		return retval;
--
--	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
--	memset(bprm.page, 0, MAX_ARG_PAGES * sizeof(bprm.page[0]));
--
--	bprm.file = file;
--	bprm.filename = filename;
--	bprm.interp = filename;
--	bprm.sh_bang = 0;
--	bprm.loader = 0;
--	bprm.exec = 0;
--	bprm.mm = mm_alloc();
--	retval = -ENOMEM;
--	if (!bprm.mm)
--		goto out_file;
--
--	/* init_new_context is empty for s390x. */
--
--	bprm.argc = count32(argv);
--	if ((retval = bprm.argc) < 0)
--		goto out_mm;
--
--	bprm.envc = count32(envp);
--	if ((retval = bprm.envc) < 0)
--		goto out_mm;
--
--	retval = security_bprm_alloc(&bprm);
--	if (retval)
--		goto out;
--
--	retval = prepare_binprm(&bprm);
--	if (retval < 0)
--		goto out;
--	
--	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
--	if (retval < 0)
--		goto out;
--
--	bprm.exec = bprm.p;
--	retval = copy_strings32(bprm.envc, envp, &bprm);
--	if (retval < 0)
--		goto out;
--
--	retval = copy_strings32(bprm.argc, argv, &bprm);
--	if (retval < 0)
--		goto out;
--
--	retval = search_binary_handler(&bprm, regs);
--	if (retval >= 0) {
--		/* execve success */
--		security_bprm_free(&bprm);
--		return retval;
--	}
--
--out:
--	/* Something went wrong, return the inode and free the argument pages*/
--	for (i=0 ; i<MAX_ARG_PAGES ; i++) {
--		struct page * page = bprm.page[i];
--		if (page)
--			__free_page(page);
--	}
--
--	if (bprm.security)
--		security_bprm_free(&bprm);
--
--out_mm:
--	if (bprm.mm)
--		mmdrop(bprm.mm);
--
--out_file:
--	if (bprm.file) {
--		allow_write_access(bprm.file);
--		fput(bprm.file);
--	}
--
--	return retval;
--}
--
- /*
-  * sys32_execve() executes a new program after the asm stub has set
-  * things up for us.  This should basically do what I want it to.
-@@ -1098,11 +916,12 @@
-         int error;
-         char * filename;
- 
--        filename = getname((char *)A(regs.orig_gpr2));
-+        filename = getname(compat_ptr(regs.orig_gpr2));
-         error = PTR_ERR(filename);
-         if (IS_ERR(filename))
-                 goto out;
--        error = do_execve32(filename, (u32 *)A(regs.gprs[3]), (u32 *)A(regs.gprs[4]), &regs);
-+        error = compat_do_execve(filename, compat_ptr(regs.gprs[3]),
-+				 compat_ptr(regs.gprs[4]), &regs);
- 	if (error == 0)
- 	{
- 		current->ptrace &= ~PT_DTRACE;
-===== arch/sparc64/kernel/sys_sparc32.c 1.96 vs edited =====
---- 1.96/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 21:51:49 2004
-+++ edited/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 21:19:17 2004
-@@ -1386,8 +1386,6 @@
- 	return ret;
- }
- 
--extern void check_pending(int signum);
--
- asmlinkage int sys32_sigaction (int sig, struct old_sigaction32 *act, struct old_sigaction32 *oact)
- {
-         struct k_sigaction new_ka, old_ka;
-@@ -1483,193 +1481,6 @@
+ struct timex32 {
+===== arch/parisc/kernel/sys_parisc32.c 1.27 vs edited =====
+--- 1.27/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 23:39:56 2004
++++ edited/arch/parisc/kernel/sys_parisc32.c	Sat Apr  3 23:09:57 2004
+@@ -562,94 +562,6 @@
          return ret;
  }
  
+-/* EXPORT/UNEXPORT */
+-struct nfsctl_export32 {
+-	char		ex_client[NFSCLNT_IDMAX+1];
+-	char		ex_path[NFS_MAXPATHLEN+1];
+-	__kernel_old_dev_t ex_dev;
+-	compat_ino_t	ex_ino;
+-	int		ex_flags;
+-	__kernel_uid_t	ex_anon_uid;
+-	__kernel_gid_t	ex_anon_gid;
+-};
 -
--/*
-- * count32() counts the number of arguments/envelopes
-- */
--static int count32(u32 * argv, int max)
+-struct nfsctl_arg32 {
+-	int			ca_version;	/* safeguard */
+-	/* wide kernel places this union on 8-byte boundary, narrow on 4 */
+-	union {
+-		struct nfsctl_svc	u_svc;
+-		struct nfsctl_client	u_client;
+-		struct nfsctl_export32	u_export;
+-		struct nfsctl_fdparm	u_getfd;
+-		struct nfsctl_fsparm	u_getfs;
+-	} u;
+-};
+-
+-asmlinkage int sys32_nfsservctl(int cmd, void *argp, void *resp)
 -{
--	int i = 0;
+-	int ret, tmp;
+-	struct nfsctl_arg32 n32;
+-	struct nfsctl_arg n;
 -
--	if (argv != NULL) {
--		for (;;) {
--			u32 p; int error;
+-	ret = copy_from_user(&n, argp, sizeof n.ca_version);
+-	if (ret != 0)
+-		return ret;
 -
--			error = get_user(p,argv);
--			if (error)
--				return error;
--			if (!p)
--				break;
--			argv++;
--			if (++i > max)
--				return -E2BIG;
+-	/* adjust argp to point at the union inside the user's n32 struct */
+-	tmp = (unsigned long)&n32.u - (unsigned long)&n32;
+-	argp = (void *)((unsigned long)argp + tmp);
+-	switch(cmd) {
+-	case NFSCTL_SVC:
+-		ret = copy_from_user(&n.u, argp, sizeof n.u.u_svc);
+-		break;
+-
+-	case NFSCTL_ADDCLIENT:
+-	case NFSCTL_DELCLIENT:
+-		ret = copy_from_user(&n.u, argp, sizeof n.u.u_client);
+-		break;
+-
+-	case NFSCTL_GETFD:
+-		ret = copy_from_user(&n.u, argp, sizeof n.u.u_getfd);
+-		break;
+-
+-	case NFSCTL_GETFS:
+-		ret = copy_from_user(&n.u, argp, sizeof n.u.u_getfs);
+-		break;
+-
+-	case NFSCTL_UNEXPORT:		/* nfsctl_export */
+-	case NFSCTL_EXPORT:		/* nfsctl_export */
+-		ret = copy_from_user(&n32.u, argp, sizeof n32.u.u_export);
+-#undef CP
+-#define CP(x)	n.u.u_export.ex_##x = n32.u.u_export.ex_##x
+-		memcpy(n.u.u_export.ex_client, n32.u.u_export.ex_client, sizeof n32.u.u_export.ex_client);
+-		memcpy(n.u.u_export.ex_path, n32.u.u_export.ex_path, sizeof n32.u.u_export.ex_path);
+-		CP(dev);
+-		CP(ino);
+-		CP(flags);
+-		CP(anon_uid);
+-		CP(anon_gid);
+-		break;
+-
+-	default:
+-		/* lockd probes for some other values (0x10000);
+-		 * so don't BUG() */
+-		ret = -EINVAL;
+-		break;
+-	}
+-
+-	if (ret == 0) {
+-		unsigned char rbuf[NFS_FHSIZE + sizeof (struct knfsd_fh)];
+-		KERNEL_SYSCALL(ret, sys_nfsservctl, cmd, &n, &rbuf);
+-		if (cmd == NFSCTL_GETFD) {
+-			ret = copy_to_user(resp, rbuf, NFS_FHSIZE);
+-		} else if (cmd == NFSCTL_GETFS) {
+-			ret = copy_to_user(resp, rbuf, sizeof (struct knfsd_fh));
 -		}
 -	}
--	return i;
+-
+-	return ret;
 -}
 -
--/*
-- * 'copy_string32()' copies argument/envelope strings from user
-- * memory to free pages in kernel mem. These are in a format ready
-- * to be put directly into the top of new user memory.
-- */
--static int copy_strings32(int argc, u32 * argv, struct linux_binprm *bprm)
+ typedef long __kernel_loff_t32;		/* move this to asm/posix_types.h? */
+ 
+ asmlinkage int sys32_sendfile64(int out_fd, int in_fd, __kernel_loff_t32 *offset, s32 count)
+===== arch/parisc/kernel/syscall_table.S 1.6 vs edited =====
+--- 1.6/arch/parisc/kernel/syscall_table.S	Sat Apr  3 23:05:38 2004
++++ edited/arch/parisc/kernel/syscall_table.S	Sat Apr  3 23:43:02 2004
+@@ -266,7 +266,7 @@
+ 	ENTRY_SAME(ni_syscall)		/* query_module */
+ 	ENTRY_SAME(poll)
+ 	/* structs contain pointers and an in_addr... */
+-	ENTRY_DIFF(nfsservctl)
++	ENTRY_COMP(nfsservctl)
+ 	ENTRY_SAME(setresgid)		/* 170 */
+ 	ENTRY_SAME(getresgid)
+ 	ENTRY_SAME(prctl)
+===== arch/ppc64/kernel/misc.S 1.75 vs edited =====
+--- 1.75/arch/ppc64/kernel/misc.S	Sat Apr  3 21:56:39 2004
++++ edited/arch/ppc64/kernel/misc.S	Sat Apr  3 23:40:44 2004
+@@ -740,7 +740,7 @@
+ 	.llong .sys_getresuid	        /* 165 */
+ 	.llong .sys_ni_syscall		/* old query_module syscall */
+ 	.llong .sys_poll
+-	.llong .sys32_nfsservctl
++	.llong .compat_sys_nfsservctl
+ 	.llong .sys_setresgid
+ 	.llong .sys_getresgid	        /* 170 */
+ 	.llong .sys32_prctl
+===== arch/ppc64/kernel/sys_ppc32.c 1.89 vs edited =====
+--- 1.89/arch/ppc64/kernel/sys_ppc32.c	Sun Apr  4 00:11:06 2004
++++ edited/arch/ppc64/kernel/sys_ppc32.c	Sat Apr  3 23:09:57 2004
+@@ -351,245 +351,6 @@
+ 	return ret;
+ }
+ 
+-/* Stuff for NFS server syscalls... */
+-struct nfsctl_svc32 {
+-	u16			svc32_port;
+-	s32			svc32_nthreads;
+-};
+-
+-struct nfsctl_client32 {
+-	s8			cl32_ident[NFSCLNT_IDMAX+1];
+-	s32			cl32_naddr;
+-	struct in_addr		cl32_addrlist[NFSCLNT_ADDRMAX];
+-	s32			cl32_fhkeytype;
+-	s32			cl32_fhkeylen;
+-	u8			cl32_fhkey[NFSCLNT_KEYMAX];
+-};
+-
+-struct nfsctl_export32 {
+-	s8			ex32_client[NFSCLNT_IDMAX+1];
+-	s8			ex32_path[NFS_MAXPATHLEN+1];
+-	compat_dev_t	ex32_dev;
+-	compat_ino_t	ex32_ino;
+-	s32			ex32_flags;
+-	compat_uid_t	ex32_anon_uid;
+-	compat_gid_t	ex32_anon_gid;
+-};
+-
+-struct nfsctl_fdparm32 {
+-	struct sockaddr		gd32_addr;
+-	s8			gd32_path[NFS_MAXPATHLEN+1];
+-	s32			gd32_version;
+-};
+-
+-struct nfsctl_fsparm32 {
+-	struct sockaddr		gd32_addr;
+-	s8			gd32_path[NFS_MAXPATHLEN+1];
+-	s32			gd32_maxlen;
+-};
+-
+-struct nfsctl_arg32 {
+-	s32			ca32_version;	/* safeguard */
+-	union {
+-		struct nfsctl_svc32	u32_svc;
+-		struct nfsctl_client32	u32_client;
+-		struct nfsctl_export32	u32_export;
+-		struct nfsctl_fdparm32	u32_getfd;
+-		struct nfsctl_fsparm32	u32_getfs;
+-	} u;
+-#define ca32_svc	u.u32_svc
+-#define ca32_client	u.u32_client
+-#define ca32_export	u.u32_export
+-#define ca32_getfd	u.u32_getfd
+-#define ca32_getfs	u.u32_getfs
+-};
+-
+-union nfsctl_res32 {
+-	__u8			cr32_getfh[NFS_FHSIZE];
+-	struct knfsd_fh		cr32_getfs;
+-};
+-
+-static int nfs_svc32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
 -{
--	while (argc-- > 0) {
--		u32 str;
--		int len;
--		unsigned long pos;
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= __get_user(karg->ca_svc.svc_port, &arg32->ca32_svc.svc32_port);
+-	err |= __get_user(karg->ca_svc.svc_nthreads, &arg32->ca32_svc.svc32_nthreads);
+-	return err;
+-}
 -
--		if (get_user(str, argv + argc) ||
--		    !str ||
--		    !(len = strnlen_user((char *)A(str), bprm->p)))
--			return -EFAULT;
+-static int nfs_clnt32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_client.cl_ident[0],
+-			  &arg32->ca32_client.cl32_ident[0],
+-			  NFSCLNT_IDMAX);
+-	err |= __get_user(karg->ca_client.cl_naddr, &arg32->ca32_client.cl32_naddr);
+-	err |= copy_from_user(&karg->ca_client.cl_addrlist[0],
+-			  &arg32->ca32_client.cl32_addrlist[0],
+-			  (sizeof(struct in_addr) * NFSCLNT_ADDRMAX));
+-	err |= __get_user(karg->ca_client.cl_fhkeytype,
+-		      &arg32->ca32_client.cl32_fhkeytype);
+-	err |= __get_user(karg->ca_client.cl_fhkeylen,
+-		      &arg32->ca32_client.cl32_fhkeylen);
+-	err |= copy_from_user(&karg->ca_client.cl_fhkey[0],
+-			  &arg32->ca32_client.cl32_fhkey[0],
+-			  NFSCLNT_KEYMAX);
 -
--		if (bprm->p < len)
--			return -E2BIG;
--
--		bprm->p -= len;
--
--		pos = bprm->p;
--		while (len) {
--			char *kaddr;
--			struct page *page;
--			int offset, bytes_to_copy, new, err;
--
--			offset = pos % PAGE_SIZE;
--			page = bprm->page[pos / PAGE_SIZE];
--			new = 0;
--			if (!page) {
--				page = alloc_page(GFP_USER);
--				bprm->page[pos / PAGE_SIZE] = page;
--				if (!page)
--					return -ENOMEM;
--				new = 1;
--			}
--			kaddr = kmap(page);
--
--			if (new && offset)
--				memset(kaddr, 0, offset);
--			bytes_to_copy = PAGE_SIZE - offset;
--			if (bytes_to_copy > len) {
--				bytes_to_copy = len;
--				if (new)
--					memset(kaddr+offset+len, 0,
--					       PAGE_SIZE-offset-len);
--			}
--
--			err = copy_from_user(kaddr + offset, (char *)A(str),
--					     bytes_to_copy);
--			kunmap(page);
--
--			if (err)
--				return -EFAULT;
--
--			pos += bytes_to_copy;
--			str += bytes_to_copy;
--			len -= bytes_to_copy;
--		}
--	}
+-	if(err) return -EFAULT;
 -	return 0;
 -}
 -
--/*
-- * sys32_execve() executes a new program.
-- */
--static inline int 
--do_execve32(char * filename, u32 * argv, u32 * envp, struct pt_regs * regs)
+-static int nfs_exp32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
 -{
--	struct linux_binprm bprm;
--	struct file * file;
--	int retval;
--	int i;
--
--	sched_balance_exec();
--
--	file = open_exec(filename);
--
--	retval = PTR_ERR(file);
--	if (IS_ERR(file))
--		return retval;
--
--	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
--	memset(bprm.page, 0, MAX_ARG_PAGES * sizeof(bprm.page[0]));
--
--	bprm.file = file;
--	bprm.filename = filename;
--	bprm.interp = filename;
--	bprm.sh_bang = 0;
--	bprm.loader = 0;
--	bprm.exec = 0;
--	bprm.security = NULL;
--	bprm.mm = mm_alloc();
--	retval = -ENOMEM;
--	if (!bprm.mm) 
--		goto out_file;
--
--	retval = init_new_context(current, bprm.mm);
--	if (retval < 0)
--		goto out_mm;
--
--	bprm.argc = count32(argv, bprm.p / sizeof(u32));
--	if ((retval = bprm.argc) < 0)
--		goto out_mm;
--
--	bprm.envc = count32(envp, bprm.p / sizeof(u32));
--	if ((retval = bprm.envc) < 0)
--		goto out_mm;
--
--	retval = security_bprm_alloc(&bprm);
--	if (retval)
--		goto out;
--
--	retval = prepare_binprm(&bprm);
--	if (retval < 0)
--		goto out;
+-	int err;
 -	
--	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
--	if (retval < 0)
--		goto out;
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_export.ex_client[0],
+-			  &arg32->ca32_export.ex32_client[0],
+-			  NFSCLNT_IDMAX);
+-	err |= copy_from_user(&karg->ca_export.ex_path[0],
+-			  &arg32->ca32_export.ex32_path[0],
+-			  NFS_MAXPATHLEN);
+-	err |= __get_user(karg->ca_export.ex_dev,
+-		      &arg32->ca32_export.ex32_dev);
+-	err |= __get_user(karg->ca_export.ex_ino,
+-		      &arg32->ca32_export.ex32_ino);
+-	err |= __get_user(karg->ca_export.ex_flags,
+-		      &arg32->ca32_export.ex32_flags);
+-	err |= __get_user(karg->ca_export.ex_anon_uid,
+-		      &arg32->ca32_export.ex32_anon_uid);
+-	err |= __get_user(karg->ca_export.ex_anon_gid,
+-		      &arg32->ca32_export.ex32_anon_gid);
+-	karg->ca_export.ex_anon_uid = karg->ca_export.ex_anon_uid;
+-	karg->ca_export.ex_anon_gid = karg->ca_export.ex_anon_gid;
 -
--	bprm.exec = bprm.p;
--	retval = copy_strings32(bprm.envc, envp, &bprm);
--	if (retval < 0)
--		goto out;
--
--	retval = copy_strings32(bprm.argc, argv, &bprm);
--	if (retval < 0)
--		goto out;
--
--	retval = search_binary_handler(&bprm, regs);
--	if (retval >= 0) {
--		/* execve success */
--		security_bprm_free(&bprm);
--		return retval;
--	}
--
--out:
--	/* Something went wrong, return the inode and free the argument pages*/
--	for (i = 0 ; i < MAX_ARG_PAGES ; i++) {
--		struct page * page = bprm.page[i];
--		if (page)
--			__free_page(page);
--	}
--
--	if (bprm.security)
--		security_bprm_free(&bprm);
--
--out_mm:
--	if (bprm.mm)
--		mmdrop(bprm.mm);
--
--out_file:
--	if (bprm.file) {
--		allow_write_access(bprm.file);
--		fput(bprm.file);
--	}
--	return retval;
+-	if(err) return -EFAULT;
+-	return 0;
 -}
 -
- /*
-  * sparc32_execve() executes a new program after the asm stub has set
-  * things up for us.  This should basically do what I want it to.
-@@ -1689,9 +1500,9 @@
- 	error = PTR_ERR(filename);
-         if(IS_ERR(filename))
-                 goto out;
--        error = do_execve32(filename,
--        	(u32 *)AA((u32)regs->u_regs[base + UREG_I1]),
--        	(u32 *)AA((u32)regs->u_regs[base + UREG_I2]), regs);
-+        error = compat_do_execve(filename,
-+        	compat_ptr((u32)regs->u_regs[base + UREG_I1]),
-+        	compat_ptr((u32)regs->u_regs[base + UREG_I2]), regs);
-         putname(filename);
- 
- 	if(!error) {
-===== arch/x86_64/ia32/sys_ia32.c 1.57 vs edited =====
---- 1.57/arch/x86_64/ia32/sys_ia32.c	Sat Apr  3 21:51:49 2004
-+++ edited/arch/x86_64/ia32/sys_ia32.c	Sat Apr  3 20:53:02 2004
-@@ -1224,93 +1224,22 @@
- 	return ret;
- } 
- 
--static int nargs(u32 src, char **dst) 
--{ 
--	int cnt;
--	u32 val; 
--
--	cnt = 0; 
--	do { 		
--		int ret = get_user(val, (__u32 *)(u64)src); 
--		if (ret)
--			return ret;
--		if (dst)
--			dst[cnt] = (char *)(u64)val; 
--		cnt++;
--		src += 4; 	
--		if (cnt >= (MAX_ARG_PAGES*PAGE_SIZE)/sizeof(void*))
--			return -E2BIG; 
--	} while(val); 
--	if (dst)
--		dst[cnt-1] = 0; 
--	return cnt; 
--} 
--
--asmlinkage long sys32_execve(char *name, u32 argv, u32 envp, struct pt_regs regs)
--{ 
--	mm_segment_t oldseg; 
--	char **buf = NULL; 
--	int na = 0,ne = 0;
--	int ret;
--	unsigned sz = 0; 
--
--	if (argv) {
--	na = nargs(argv, NULL); 
--	if (na < 0) 
--		return -EFAULT; 
--	} 	
--	if (envp) { 
--	ne = nargs(envp, NULL); 
--	if (ne < 0) 
--		return -EFAULT; 
--	}
--
--	if (argv || envp) { 
--	sz = (na+ne)*sizeof(void *); 
--	if (sz > PAGE_SIZE) 
--		buf = vmalloc(sz); 
--	else
--		buf = kmalloc(sz, GFP_KERNEL); 
--	if (!buf)
--		return -ENOMEM; 
--	} 
+-static int nfs_getfd32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
 -	
--	if (argv) { 
--	ret = nargs(argv, buf);
--	if (ret < 0)
--		goto free;
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_getfd.gd_addr,
+-			  &arg32->ca32_getfd.gd32_addr,
+-			  (sizeof(struct sockaddr)));
+-	err |= copy_from_user(&karg->ca_getfd.gd_path,
+-			  &arg32->ca32_getfd.gd32_path,
+-			  (NFS_MAXPATHLEN+1));
+-	err |= __get_user(karg->ca_getfd.gd_version,
+-		      &arg32->ca32_getfd.gd32_version);
+-
+-	if(err) return -EFAULT;
+-	return 0;
+-}
+-
+-static int nfs_getfs32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_getfs.gd_addr,
+-			  &arg32->ca32_getfs.gd32_addr,
+-			  (sizeof(struct sockaddr)));
+-	err |= copy_from_user(&karg->ca_getfs.gd_path,
+-			  &arg32->ca32_getfs.gd32_path,
+-			  (NFS_MAXPATHLEN+1));
+-	err |= __get_user(karg->ca_getfs.gd_maxlen,
+-		      &arg32->ca32_getfs.gd32_maxlen);
+-
+-	if(err) return -EFAULT;
+-	return 0;
+-}
+-
+-/* This really doesn't need translations, we are only passing
+- * back a union which contains opaque nfs file handle data.
+- */
+-static int nfs_getfh32_res_trans(union nfsctl_res *kres, union nfsctl_res32 *res32)
+-{
+-	int err;
+-
+-	err = copy_to_user(res32, kres, sizeof(*res32));
+-
+-	if(err) return -EFAULT;
+-	return 0;
+-}
+-
+-/* Note: it is necessary to treat cmd_parm as an unsigned int, 
+- * with the corresponding cast to a signed int to insure that the 
+- * proper conversion (sign extension) between the register representation of a signed int (msr in 32-bit mode)
+- * and the register representation of a signed int (msr in 64-bit mode) is performed.
+- */
+-int asmlinkage sys32_nfsservctl(u32 cmd_parm, struct nfsctl_arg32 *arg32, union nfsctl_res32 *res32)
+-{
+-  int cmd = (int)cmd_parm;
+-	struct nfsctl_arg *karg = NULL;
+-	union nfsctl_res *kres = NULL;
+-	mm_segment_t oldfs;
+-	int err;
+-
+-	karg = kmalloc(sizeof(*karg), GFP_USER);
+-	if(!karg)
+-		return -ENOMEM;
+-	if(res32) {
+-		kres = kmalloc(sizeof(*kres), GFP_USER);
+-		if(!kres) {
+-			kfree(karg);
+-			return -ENOMEM;
+-		}
 -	}
--
--	if (envp) { 
--	ret = nargs(envp, buf + na); 
--	if (ret < 0)
--		goto free; 
+-	switch(cmd) {
+-	case NFSCTL_SVC:
+-		err = nfs_svc32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_ADDCLIENT:
+-		err = nfs_clnt32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_DELCLIENT:
+-		err = nfs_clnt32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_EXPORT:
+-	case NFSCTL_UNEXPORT:
+-		err = nfs_exp32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_GETFD:
+-		err = nfs_getfd32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_GETFS:
+-		err = nfs_getfs32_trans(karg, arg32);
+-		break;
+-	default:
+-		err = -EINVAL;
+-		break;
 -	}
--
--	name = getname(name); 
--	ret = PTR_ERR(name); 
--	if (IS_ERR(name))
--		goto free; 
--
--	oldseg = get_fs(); 
+-	if(err)
+-		goto done;
+-	oldfs = get_fs();
 -	set_fs(KERNEL_DS);
--	ret = do_execve(name, argv ? buf : NULL, envp ? buf+na : NULL, &regs);  
--	set_fs(oldseg); 
+-	err = sys_nfsservctl(cmd, karg, kres);
+-	set_fs(oldfs);
 -
--	if (ret == 0)
-+asmlinkage long sys32_execve(char *name, compat_uptr_t __user *argv,
-+			     compat_uptr_t __user *envp, struct pt_regs regs)
-+{
-+	long error;
-+	char * filename;
-+
-+	filename = getname(name);
-+	error = PTR_ERR(filename);
-+	if (IS_ERR(filename)) 
-+		return error;
-+	error = compat_do_execve(filename, argv, envp, &regs); 
-+	if (error == 0)
- 		current->ptrace &= ~PT_DTRACE;
+-	if (err)
+-		goto done;
 -
--	putname(name);
-- 
--free:
--	if (argv || envp) { 
--	if (sz > PAGE_SIZE)
--		vfree(buf); 
--	else
--	kfree(buf);
--	}
--	return ret; 
--} 
-+	putname(filename);
-+	return error;
-+}
+-	if((cmd == NFSCTL_GETFD) ||
+-	   (cmd == NFSCTL_GETFS))
+-		err = nfs_getfh32_res_trans(kres, res32);
+-
+-done:
+-	if(karg)
+-		kfree(karg);
+-	if(kres)
+-		kfree(kres);
+-	return err;
+-}
+-
+-
  
- asmlinkage long sys32_clone(unsigned int clone_flags, unsigned int newsp, struct pt_regs regs)
- {
-===== fs/compat.c 1.23 vs edited =====
---- 1.23/fs/compat.c	Sat Apr  3 21:51:49 2004
-+++ edited/fs/compat.c	Sat Apr  3 21:01:36 2004
-@@ -980,3 +980,236 @@
- 	fput(file);
+ /* These are here just in case some old sparc32 binary calls it. */
+ asmlinkage long sys32_pause(void)
+===== arch/s390/kernel/compat_linux.c 1.22 vs edited =====
+--- 1.22/arch/s390/kernel/compat_linux.c	Sat Apr  3 23:39:56 2004
++++ edited/arch/s390/kernel/compat_linux.c	Sat Apr  3 23:09:57 2004
+@@ -815,226 +815,6 @@
+ 
+ #endif  /* CONFIG_MODULES */
+ 
+-/* Stuff for NFS server syscalls... */
+-struct nfsctl_svc32 {
+-	u16			svc32_port;
+-	s32			svc32_nthreads;
+-};
+-
+-struct nfsctl_client32 {
+-	s8			cl32_ident[NFSCLNT_IDMAX+1];
+-	s32			cl32_naddr;
+-	struct in_addr		cl32_addrlist[NFSCLNT_ADDRMAX];
+-	s32			cl32_fhkeytype;
+-	s32			cl32_fhkeylen;
+-	u8			cl32_fhkey[NFSCLNT_KEYMAX];
+-};
+-
+-struct nfsctl_export32 {
+-	s8			ex32_client[NFSCLNT_IDMAX+1];
+-	s8			ex32_path[NFS_MAXPATHLEN+1];
+-	compat_dev_t	ex32_dev;
+-	compat_ino_t	ex32_ino;
+-	s32			ex32_flags;
+-	compat_uid_t	ex32_anon_uid;
+-	compat_gid_t	ex32_anon_gid;
+-};
+-
+-struct nfsctl_fdparm32 {
+-	struct sockaddr		gd32_addr;
+-	s8			gd32_path[NFS_MAXPATHLEN+1];
+-	s32			gd32_version;
+-};
+-
+-struct nfsctl_fsparm32 {
+-	struct sockaddr		gd32_addr;
+-	s8			gd32_path[NFS_MAXPATHLEN+1];
+-	s32			gd32_maxlen;
+-};
+-
+-struct nfsctl_arg32 {
+-	s32			ca32_version;	/* safeguard */
+-	union {
+-		struct nfsctl_svc32	u32_svc;
+-		struct nfsctl_client32	u32_client;
+-		struct nfsctl_export32	u32_export;
+-		struct nfsctl_fdparm32	u32_getfd;
+-		struct nfsctl_fsparm32	u32_getfs;
+-	} u;
+-#define ca32_svc	u.u32_svc
+-#define ca32_client	u.u32_client
+-#define ca32_export	u.u32_export
+-#define ca32_getfd	u.u32_getfd
+-#define ca32_getfs	u.u32_getfs
+-#define ca32_authd	u.u32_authd
+-};
+-
+-union nfsctl_res32 {
+-	__u8			cr32_getfh[NFS_FHSIZE];
+-	struct knfsd_fh		cr32_getfs;
+-};
+-
+-static int nfs_svc32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= __get_user(karg->ca_svc.svc_port, &arg32->ca32_svc.svc32_port);
+-	err |= __get_user(karg->ca_svc.svc_nthreads, &arg32->ca32_svc.svc32_nthreads);
+-	return err;
+-}
+-
+-static int nfs_clnt32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_client.cl_ident[0],
+-			  &arg32->ca32_client.cl32_ident[0],
+-			  NFSCLNT_IDMAX);
+-	err |= __get_user(karg->ca_client.cl_naddr, &arg32->ca32_client.cl32_naddr);
+-	err |= copy_from_user(&karg->ca_client.cl_addrlist[0],
+-			  &arg32->ca32_client.cl32_addrlist[0],
+-			  (sizeof(struct in_addr) * NFSCLNT_ADDRMAX));
+-	err |= __get_user(karg->ca_client.cl_fhkeytype,
+-		      &arg32->ca32_client.cl32_fhkeytype);
+-	err |= __get_user(karg->ca_client.cl_fhkeylen,
+-		      &arg32->ca32_client.cl32_fhkeylen);
+-	err |= copy_from_user(&karg->ca_client.cl_fhkey[0],
+-			  &arg32->ca32_client.cl32_fhkey[0],
+-			  NFSCLNT_KEYMAX);
+-	return err;
+-}
+-
+-static int nfs_exp32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_export.ex_client[0],
+-			  &arg32->ca32_export.ex32_client[0],
+-			  NFSCLNT_IDMAX);
+-	err |= copy_from_user(&karg->ca_export.ex_path[0],
+-			  &arg32->ca32_export.ex32_path[0],
+-			  NFS_MAXPATHLEN);
+-	err |= __get_user(karg->ca_export.ex_dev,
+-		      &arg32->ca32_export.ex32_dev);
+-	err |= __get_user(karg->ca_export.ex_ino,
+-		      &arg32->ca32_export.ex32_ino);
+-	err |= __get_user(karg->ca_export.ex_flags,
+-		      &arg32->ca32_export.ex32_flags);
+-	err |= __get_user(karg->ca_export.ex_anon_uid,
+-		      &arg32->ca32_export.ex32_anon_uid);
+-	err |= __get_user(karg->ca_export.ex_anon_gid,
+-		      &arg32->ca32_export.ex32_anon_gid);
+-	karg->ca_export.ex_anon_uid = high2lowuid(karg->ca_export.ex_anon_uid);
+-	karg->ca_export.ex_anon_gid = high2lowgid(karg->ca_export.ex_anon_gid);
+-	return err;
+-}
+-
+-static int nfs_getfd32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_getfd.gd_addr,
+-			  &arg32->ca32_getfd.gd32_addr,
+-			  (sizeof(struct sockaddr)));
+-	err |= copy_from_user(&karg->ca_getfd.gd_path,
+-			  &arg32->ca32_getfd.gd32_path,
+-			  (NFS_MAXPATHLEN+1));
+-	err |= __get_user(karg->ca_getfd.gd_version,
+-		      &arg32->ca32_getfd.gd32_version);
+-	return err;
+-}
+-
+-static int nfs_getfs32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_getfs.gd_addr,
+-			  &arg32->ca32_getfs.gd32_addr,
+-			  (sizeof(struct sockaddr)));
+-	err |= copy_from_user(&karg->ca_getfs.gd_path,
+-			  &arg32->ca32_getfs.gd32_path,
+-			  (NFS_MAXPATHLEN+1));
+-	err |= __get_user(karg->ca_getfs.gd_maxlen,
+-		      &arg32->ca32_getfs.gd32_maxlen);
+-	return err;
+-}
+-
+-/* This really doesn't need translations, we are only passing
+- * back a union which contains opaque nfs file handle data.
+- */
+-static int nfs_getfh32_res_trans(union nfsctl_res *kres, union nfsctl_res32 *res32)
+-{
+-	return copy_to_user(res32, kres, sizeof(*res32)) ? -EFAULT : 0;
+-}
+-
+-long asmlinkage sys32_nfsservctl(int cmd, struct nfsctl_arg32 *arg32, union nfsctl_res32 *res32)
+-{
+-	struct nfsctl_arg *karg = NULL;
+-	union nfsctl_res *kres = NULL;
+-	mm_segment_t oldfs;
+-	int err;
+-
+-	karg = kmalloc(sizeof(*karg), GFP_USER);
+-	if(!karg)
+-		return -ENOMEM;
+-	if(res32) {
+-		kres = kmalloc(sizeof(*kres), GFP_USER);
+-		if(!kres) {
+-			kfree(karg);
+-			return -ENOMEM;
+-		}
+-	}
+-	switch(cmd) {
+-	case NFSCTL_SVC:
+-		err = nfs_svc32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_ADDCLIENT:
+-		err = nfs_clnt32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_DELCLIENT:
+-		err = nfs_clnt32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_EXPORT:
+-	case NFSCTL_UNEXPORT:
+-		err = nfs_exp32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_GETFD:
+-		err = nfs_getfd32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_GETFS:
+-		err = nfs_getfs32_trans(karg, arg32);
+-		break;
+-	default:
+-		err = -EINVAL;
+-		break;
+-	}
+-	if(err)
+-		goto done;
+-	oldfs = get_fs();
+-	set_fs(KERNEL_DS);
+-	err = sys_nfsservctl(cmd, karg, kres);
+-	set_fs(oldfs);
+-
+-	if (err)
+-		goto done;
+-
+-	if((cmd == NFSCTL_GETFD) ||
+-	   (cmd == NFSCTL_GETFS))
+-		err = nfs_getfh32_res_trans(kres, res32);
+-
+-done:
+-	if(karg)
+-		kfree(karg);
+-	if(kres)
+-		kfree(kres);
+-	return err;
+-}
+-
+ /* Translations due to time_t size differences.  Which affects all
+    sorts of things, like timeval and itimerval.  */
+ 
+===== arch/s390/kernel/compat_wrapper.S 1.11 vs edited =====
+--- 1.11/arch/s390/kernel/compat_wrapper.S	Sun Apr  4 00:11:49 2004
++++ edited/arch/s390/kernel/compat_wrapper.S	Sat Apr  3 23:42:13 2004
+@@ -786,12 +786,12 @@
+ 	lgfr	%r4,%r4			# long 
+ 	jg	sys_poll		# branch to system call
+ 
+-	.globl  sys32_nfsservctl_wrapper 
+-sys32_nfsservctl_wrapper:
++	.globl  compat_sys_nfsservctl_wrapper 
++compat_sys_nfsservctl_wrapper:
+ 	lgfr	%r2,%r2			# int 
+-	llgtr	%r3,%r3			# struct nfsctl_arg_emu31 * 
+-	llgtr	%r4,%r4			# union nfsctl_res_emu31 * 
+-	jg	sys32_nfsservctl	# branch to system call
++	llgtr	%r3,%r3			# struct compat_nfsctl_arg* 
++	llgtr	%r4,%r4			# union compat_nfsctl_res* 
++	jg	compat_sys_nfsservctl	# branch to system call
+ 
+ 	.globl  sys32_setresgid16_wrapper 
+ sys32_setresgid16_wrapper:
+===== arch/s390/kernel/syscalls.S 1.11 vs edited =====
+--- 1.11/arch/s390/kernel/syscalls.S	Sun Apr  4 00:12:19 2004
++++ edited/arch/s390/kernel/syscalls.S	Sat Apr  3 23:42:25 2004
+@@ -177,7 +177,7 @@
+ NI_SYSCALL							/* for vm86 */
+ NI_SYSCALL							/* old sys_query_module */
+ SYSCALL(sys_poll,sys_poll,sys32_poll_wrapper)
+-SYSCALL(sys_nfsservctl,sys_nfsservctl,sys32_nfsservctl_wrapper)
++SYSCALL(sys_nfsservctl,sys_nfsservctl,compat_sys_nfsservctl_wrapper)
+ SYSCALL(sys_setresgid16,sys_ni_syscall,sys32_setresgid16_wrapper)	/* 170 old setresgid16 syscall */
+ SYSCALL(sys_getresgid16,sys_ni_syscall,sys32_getresgid16_wrapper)	/* old getresgid16 syscall */
+ SYSCALL(sys_prctl,sys_prctl,sys32_prctl_wrapper)
+===== arch/sparc64/kernel/sys_sparc32.c 1.98 vs edited =====
+--- 1.98/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 23:39:56 2004
++++ edited/arch/sparc64/kernel/sys_sparc32.c	Sat Apr  3 23:09:57 2004
+@@ -1392,232 +1392,6 @@
+ 
+ #endif  /* CONFIG_MODULES */
+ 
+-#if defined(CONFIG_NFSD) || defined(CONFIG_NFSD_MODULE)
+-/* Stuff for NFS server syscalls... */
+-struct nfsctl_svc32 {
+-	u16			svc32_port;
+-	s32			svc32_nthreads;
+-};
+-
+-struct nfsctl_client32 {
+-	s8			cl32_ident[NFSCLNT_IDMAX+1];
+-	s32			cl32_naddr;
+-	struct in_addr		cl32_addrlist[NFSCLNT_ADDRMAX];
+-	s32			cl32_fhkeytype;
+-	s32			cl32_fhkeylen;
+-	u8			cl32_fhkey[NFSCLNT_KEYMAX];
+-};
+-
+-struct nfsctl_export32 {
+-	s8			ex32_client[NFSCLNT_IDMAX+1];
+-	s8			ex32_path[NFS_MAXPATHLEN+1];
+-	compat_dev_t	ex32_dev;
+-	compat_ino_t	ex32_ino;
+-	s32			ex32_flags;
+-	compat_uid_t	ex32_anon_uid;
+-	compat_gid_t	ex32_anon_gid;
+-};
+-
+-struct nfsctl_fdparm32 {
+-	struct sockaddr		gd32_addr;
+-	s8			gd32_path[NFS_MAXPATHLEN+1];
+-	s32			gd32_version;
+-};
+-
+-struct nfsctl_fsparm32 {
+-	struct sockaddr		gd32_addr;
+-	s8			gd32_path[NFS_MAXPATHLEN+1];
+-	s32			gd32_maxlen;
+-};
+-
+-struct nfsctl_arg32 {
+-	s32			ca32_version;	/* safeguard */
+-	union {
+-		struct nfsctl_svc32	u32_svc;
+-		struct nfsctl_client32	u32_client;
+-		struct nfsctl_export32	u32_export;
+-		struct nfsctl_fdparm32	u32_getfd;
+-		struct nfsctl_fsparm32	u32_getfs;
+-	} u;
+-#define ca32_svc	u.u32_svc
+-#define ca32_client	u.u32_client
+-#define ca32_export	u.u32_export
+-#define ca32_getfd	u.u32_getfd
+-#define ca32_getfs	u.u32_getfs
+-};
+-
+-union nfsctl_res32 {
+-	__u8			cr32_getfh[NFS_FHSIZE];
+-	struct knfsd_fh		cr32_getfs;
+-};
+-
+-static int nfs_svc32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= __get_user(karg->ca_svc.svc_port, &arg32->ca32_svc.svc32_port);
+-	err |= __get_user(karg->ca_svc.svc_nthreads, &arg32->ca32_svc.svc32_nthreads);
+-	return err;
+-}
+-
+-static int nfs_clnt32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_client.cl_ident[0],
+-			  &arg32->ca32_client.cl32_ident[0],
+-			  NFSCLNT_IDMAX);
+-	err |= __get_user(karg->ca_client.cl_naddr, &arg32->ca32_client.cl32_naddr);
+-	err |= copy_from_user(&karg->ca_client.cl_addrlist[0],
+-			  &arg32->ca32_client.cl32_addrlist[0],
+-			  (sizeof(struct in_addr) * NFSCLNT_ADDRMAX));
+-	err |= __get_user(karg->ca_client.cl_fhkeytype,
+-		      &arg32->ca32_client.cl32_fhkeytype);
+-	err |= __get_user(karg->ca_client.cl_fhkeylen,
+-		      &arg32->ca32_client.cl32_fhkeylen);
+-	err |= copy_from_user(&karg->ca_client.cl_fhkey[0],
+-			  &arg32->ca32_client.cl32_fhkey[0],
+-			  NFSCLNT_KEYMAX);
+-	return (err ? -EFAULT : 0);
+-}
+-
+-static int nfs_exp32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_export.ex_client[0],
+-			  &arg32->ca32_export.ex32_client[0],
+-			  NFSCLNT_IDMAX);
+-	err |= copy_from_user(&karg->ca_export.ex_path[0],
+-			  &arg32->ca32_export.ex32_path[0],
+-			  NFS_MAXPATHLEN);
+-	err |= __get_user(karg->ca_export.ex_dev,
+-		      &arg32->ca32_export.ex32_dev);
+-	err |= __get_user(karg->ca_export.ex_ino,
+-		      &arg32->ca32_export.ex32_ino);
+-	err |= __get_user(karg->ca_export.ex_flags,
+-		      &arg32->ca32_export.ex32_flags);
+-	err |= __get_user(karg->ca_export.ex_anon_uid,
+-		      &arg32->ca32_export.ex32_anon_uid);
+-	err |= __get_user(karg->ca_export.ex_anon_gid,
+-		      &arg32->ca32_export.ex32_anon_gid);
+-	karg->ca_export.ex_anon_uid = high2lowuid(karg->ca_export.ex_anon_uid);
+-	karg->ca_export.ex_anon_gid = high2lowgid(karg->ca_export.ex_anon_gid);
+-	return (err ? -EFAULT : 0);
+-}
+-
+-static int nfs_getfd32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_getfd.gd_addr,
+-			  &arg32->ca32_getfd.gd32_addr,
+-			  (sizeof(struct sockaddr)));
+-	err |= copy_from_user(&karg->ca_getfd.gd_path,
+-			  &arg32->ca32_getfd.gd32_path,
+-			  (NFS_MAXPATHLEN+1));
+-	err |= __get_user(karg->ca_getfd.gd_version,
+-		      &arg32->ca32_getfd.gd32_version);
+-	return (err ? -EFAULT : 0);
+-}
+-
+-static int nfs_getfs32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = __get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_getfs.gd_addr,
+-			  &arg32->ca32_getfs.gd32_addr,
+-			  (sizeof(struct sockaddr)));
+-	err |= copy_from_user(&karg->ca_getfs.gd_path,
+-			  &arg32->ca32_getfs.gd32_path,
+-			  (NFS_MAXPATHLEN+1));
+-	err |= __get_user(karg->ca_getfs.gd_maxlen,
+-		      &arg32->ca32_getfs.gd32_maxlen);
+-	return (err ? -EFAULT : 0);
+-}
+-
+-/* This really doesn't need translations, we are only passing
+- * back a union which contains opaque nfs file handle data.
+- */
+-static int nfs_getfh32_res_trans(union nfsctl_res *kres, union nfsctl_res32 *res32)
+-{
+-	return (copy_to_user(res32, kres, sizeof(*res32)) ? -EFAULT : 0);
+-}
+-
+-int asmlinkage sys32_nfsservctl(int cmd, struct nfsctl_arg32 *arg32, union nfsctl_res32 *res32)
+-{
+-	struct nfsctl_arg *karg = NULL;
+-	union nfsctl_res *kres = NULL;
+-	mm_segment_t oldfs;
+-	int err;
+-
+-	karg = kmalloc(sizeof(*karg), GFP_USER);
+-	if(!karg)
+-		return -ENOMEM;
+-	if(res32) {
+-		kres = kmalloc(sizeof(*kres), GFP_USER);
+-		if(!kres) {
+-			kfree(karg);
+-			return -ENOMEM;
+-		}
+-	}
+-	switch(cmd) {
+-	case NFSCTL_SVC:
+-		err = nfs_svc32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_ADDCLIENT:
+-		err = nfs_clnt32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_DELCLIENT:
+-		err = nfs_clnt32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_EXPORT:
+-	case NFSCTL_UNEXPORT:
+-		err = nfs_exp32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_GETFD:
+-		err = nfs_getfd32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_GETFS:
+-		err = nfs_getfs32_trans(karg, arg32);
+-		break;
+-	default:
+-		err = -EINVAL;
+-		break;
+-	}
+-	if(err)
+-		goto done;
+-	oldfs = get_fs();
+-	set_fs(KERNEL_DS);
+-	err = sys_nfsservctl(cmd, karg, kres);
+-	set_fs(oldfs);
+-
+-	if (err)
+-		goto done;
+-
+-	if((cmd == NFSCTL_GETFD) ||
+-	   (cmd == NFSCTL_GETFS))
+-		err = nfs_getfh32_res_trans(kres, res32);
+-
+-done:
+-	if(karg)
+-		kfree(karg);
+-	if(kres)
+-		kfree(kres);
+-	return err;
+-}
+-#else /* !NFSD */
+-int asmlinkage sys32_nfsservctl(int cmd, void *notused, void *notused2)
+-{
+-	return sys_ni_syscall();
+-}
+-#endif
+-
+ /* Translations due to time_t size differences.  Which affects all
+    sorts of things, like timeval and itimerval.  */
+ 
+===== arch/sparc64/kernel/systbls.S 1.54 vs edited =====
+--- 1.54/arch/sparc64/kernel/systbls.S	Sun Apr  4 00:46:01 2004
++++ edited/arch/sparc64/kernel/systbls.S	Sat Apr  3 23:42:29 2004
+@@ -69,7 +69,7 @@
+ 	.word compat_fstatfs64, sys_llseek, sys_mlock, sys_munlock, sys_mlockall
+ /*240*/	.word sys_munlockall, sys_sched_setparam, sys_sched_getparam, sys_sched_setscheduler, sys_sched_getscheduler
+ 	.word sys_sched_yield, sys_sched_get_priority_max, sys_sched_get_priority_min, sys32_sched_rr_get_interval, compat_sys_nanosleep
+-/*250*/	.word sys32_mremap, sys32_sysctl, sys_getsid, sys_fdatasync, sys32_nfsservctl
++/*250*/	.word sys32_mremap, sys32_sysctl, sys_getsid, sys_fdatasync, compat_sys_nfsservctl
+ 	.word sys_ni_syscall, compat_clock_settime, compat_clock_gettime, compat_clock_getres, compat_clock_nanosleep
+ /*260*/	.word compat_sys_sched_getaffinity, compat_sys_sched_setaffinity, compat_timer_settime, compat_timer_gettime, sys_timer_getoverrun
+ 	.word sys_timer_delete, sys32_timer_create, sys_ni_syscall, compat_sys_io_setup, sys_io_destroy
+===== arch/x86_64/ia32/ia32entry.S 1.32 vs edited =====
+--- 1.32/arch/x86_64/ia32/ia32entry.S	Sun Apr  4 00:13:48 2004
++++ edited/arch/x86_64/ia32/ia32entry.S	Sat Apr  3 23:42:43 2004
+@@ -474,7 +474,7 @@
+ 	.quad sys32_vm86_warning	/* vm86 */ 
+ 	.quad quiet_ni_syscall	/* query_module */
+ 	.quad sys_poll
+-	.quad sys32_nfsservctl
++	.quad compat_sys_nfsservctl
+ 	.quad sys_setresgid16	/* 170 */
+ 	.quad sys_getresgid16
+ 	.quad sys_prctl
+===== arch/x86_64/ia32/sys_ia32.c 1.59 vs edited =====
+--- 1.59/arch/x86_64/ia32/sys_ia32.c	Sun Apr  4 00:13:24 2004
++++ edited/arch/x86_64/ia32/sys_ia32.c	Sat Apr  3 23:09:57 2004
+@@ -1165,233 +1165,6 @@
+ }
+  
+ 
+-#if defined(CONFIG_NFSD) || defined(CONFIG_NFSD_MODULE)
+-/* Stuff for NFS server syscalls... */
+-struct nfsctl_svc32 {
+-	u16			svc32_port;
+-	s32			svc32_nthreads;
+-};
+-
+-struct nfsctl_client32 {
+-	s8			cl32_ident[NFSCLNT_IDMAX+1];
+-	s32			cl32_naddr;
+-	struct in_addr		cl32_addrlist[NFSCLNT_ADDRMAX];
+-	s32			cl32_fhkeytype;
+-	s32			cl32_fhkeylen;
+-	u8			cl32_fhkey[NFSCLNT_KEYMAX];
+-};
+-
+-struct nfsctl_export32 {
+-	s8			ex32_client[NFSCLNT_IDMAX+1];
+-	s8			ex32_path[NFS_MAXPATHLEN+1];
+-	compat_dev_t	ex32_dev;
+-	compat_ino_t	ex32_ino;
+-	s32			ex32_flags;
+-	compat_pid_t	ex32_anon_uid;
+-	compat_gid_t	ex32_anon_gid;
+-};
+-
+-struct nfsctl_fdparm32 {
+-	struct sockaddr		gd32_addr;
+-	s8			gd32_path[NFS_MAXPATHLEN+1];
+-	s32			gd32_version;
+-};
+-
+-struct nfsctl_fsparm32 {
+-	struct sockaddr		gd32_addr;
+-	s8			gd32_path[NFS_MAXPATHLEN+1];
+-	s32			gd32_maxlen;
+-};
+-
+-struct nfsctl_arg32 {
+-	s32			ca32_version;	/* safeguard */
+-	union {
+-		struct nfsctl_svc32	u32_svc;
+-		struct nfsctl_client32	u32_client;
+-		struct nfsctl_export32	u32_export;
+-		struct nfsctl_fdparm32	u32_getfd;
+-		struct nfsctl_fsparm32	u32_getfs;
+-	} u;
+-#define ca32_svc	u.u32_svc
+-#define ca32_client	u.u32_client
+-#define ca32_export	u.u32_export
+-#define ca32_getfd	u.u32_getfd
+-#define ca32_getfs	u.u32_getfs
+-};
+-
+-union nfsctl_res32 {
+-	__u8			cr32_getfh[NFS_FHSIZE];
+-	struct knfsd_fh		cr32_getfs;
+-};
+-
+-static int nfs_svc32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= __get_user(karg->ca_svc.svc_port, &arg32->ca32_svc.svc32_port);
+-	err |= __get_user(karg->ca_svc.svc_nthreads, &arg32->ca32_svc.svc32_nthreads);
+-	return err;
+-}
+-
+-static int nfs_clnt32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_client.cl_ident[0],
+-			  &arg32->ca32_client.cl32_ident[0],
+-			  NFSCLNT_IDMAX);
+-	err |= __get_user(karg->ca_client.cl_naddr, &arg32->ca32_client.cl32_naddr);
+-	err |= copy_from_user(&karg->ca_client.cl_addrlist[0],
+-			  &arg32->ca32_client.cl32_addrlist[0],
+-			  (sizeof(struct in_addr) * NFSCLNT_ADDRMAX));
+-	err |= __get_user(karg->ca_client.cl_fhkeytype,
+-		      &arg32->ca32_client.cl32_fhkeytype);
+-	err |= __get_user(karg->ca_client.cl_fhkeylen,
+-		      &arg32->ca32_client.cl32_fhkeylen);
+-	err |= copy_from_user(&karg->ca_client.cl_fhkey[0],
+-			  &arg32->ca32_client.cl32_fhkey[0],
+-			  NFSCLNT_KEYMAX);
+-	return err;
+-}
+-
+-static int nfs_exp32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_export.ex_client[0],
+-			  &arg32->ca32_export.ex32_client[0],
+-			  NFSCLNT_IDMAX);
+-	err |= copy_from_user(&karg->ca_export.ex_path[0],
+-			  &arg32->ca32_export.ex32_path[0],
+-			  NFS_MAXPATHLEN);
+-	err |= __get_user(karg->ca_export.ex_dev,
+-		      &arg32->ca32_export.ex32_dev);
+-	err |= __get_user(karg->ca_export.ex_ino,
+-		      &arg32->ca32_export.ex32_ino);
+-	err |= __get_user(karg->ca_export.ex_flags,
+-		      &arg32->ca32_export.ex32_flags);
+-	err |= __get_user(karg->ca_export.ex_anon_uid,
+-		      &arg32->ca32_export.ex32_anon_uid);
+-	err |= __get_user(karg->ca_export.ex_anon_gid,
+-		      &arg32->ca32_export.ex32_anon_gid);
+-	SET_UID(karg->ca_export.ex_anon_uid, karg->ca_export.ex_anon_uid);
+-	SET_GID(karg->ca_export.ex_anon_gid, karg->ca_export.ex_anon_gid);
+-	return err;
+-}
+-
+-
+-static int nfs_getfd32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_getfd.gd_addr,
+-			  &arg32->ca32_getfd.gd32_addr,
+-			  (sizeof(struct sockaddr)));
+-	err |= copy_from_user(&karg->ca_getfd.gd_path,
+-			  &arg32->ca32_getfd.gd32_path,
+-			  (NFS_MAXPATHLEN+1));
+-	err |= get_user(karg->ca_getfd.gd_version,
+-		      &arg32->ca32_getfd.gd32_version);
+-	return err;
+-}
+-
+-static int nfs_getfs32_trans(struct nfsctl_arg *karg, struct nfsctl_arg32 *arg32)
+-{
+-	int err;
+-	
+-	err = get_user(karg->ca_version, &arg32->ca32_version);
+-	err |= copy_from_user(&karg->ca_getfs.gd_addr,
+-			  &arg32->ca32_getfs.gd32_addr,
+-			  (sizeof(struct sockaddr)));
+-	err |= copy_from_user(&karg->ca_getfs.gd_path,
+-			  &arg32->ca32_getfs.gd32_path,
+-			  (NFS_MAXPATHLEN+1));
+-	err |= get_user(karg->ca_getfs.gd_maxlen,
+-		      &arg32->ca32_getfs.gd32_maxlen);
+-	return err;
+-}
+-
+-/* This really doesn't need translations, we are only passing
+- * back a union which contains opaque nfs file handle data.
+- */
+-static int nfs_getfh32_res_trans(union nfsctl_res *kres, union nfsctl_res32 *res32)
+-{
+-	return copy_to_user(res32, kres, sizeof(*res32)) ? -EFAULT : 0;
+-}
+-
+-long asmlinkage sys32_nfsservctl(int cmd, struct nfsctl_arg32 *arg32, union nfsctl_res32 *res32)
+-{
+-	struct nfsctl_arg *karg = NULL;
+-	union nfsctl_res *kres = NULL;
+-	mm_segment_t oldfs;
+-	int err;
+-
+-	karg = kmalloc(sizeof(*karg), GFP_USER);
+-	if(!karg)
+-		return -ENOMEM;
+-	if(res32) {
+-		kres = kmalloc(sizeof(*kres), GFP_USER);
+-		if(!kres) {
+-			kfree(karg);
+-			return -ENOMEM;
+-		}
+-	}
+-	switch(cmd) {
+-	case NFSCTL_SVC:
+-		err = nfs_svc32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_ADDCLIENT:
+-		err = nfs_clnt32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_DELCLIENT:
+-		err = nfs_clnt32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_EXPORT:
+-	case NFSCTL_UNEXPORT:
+-		err = nfs_exp32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_GETFD:
+-		err = nfs_getfd32_trans(karg, arg32);
+-		break;
+-	case NFSCTL_GETFS:
+-		err = nfs_getfs32_trans(karg, arg32);
+-		break;
+-	default:
+-		err = -EINVAL;
+-		break;
+-	}
+-	if(err)
+-		goto done;
+-	oldfs = get_fs();
+-	set_fs(KERNEL_DS);
+-	err = sys_nfsservctl(cmd, karg, kres);
+-	set_fs(oldfs);
+-
+-	if (err)
+-		goto done;
+-
+-	if((cmd == NFSCTL_GETFD) ||
+-	   (cmd == NFSCTL_GETFS))
+-		err = nfs_getfh32_res_trans(kres, res32);
+-
+-done:
+-	if(karg)
+-		kfree(karg);
+-	if(kres)
+-		kfree(kres);
+-	return err;
+-}
+-#else /* !NFSD */
+-long asmlinkage sys32_nfsservctl(int cmd, void *notused, void *notused2)
+-{
+-	return sys_ni_syscall();
+-}
+-#endif
+-
+ long sys32_io_setup(unsigned nr_reqs, u32 *ctx32p)
+ { 
+ 	long ret; 
+===== fs/compat.c 1.25 vs edited =====
+--- 1.25/fs/compat.c	Sat Apr  3 23:51:59 2004
++++ edited/fs/compat.c	Sat Apr  3 23:13:39 2004
+@@ -1400,3 +1400,242 @@
  	return ret;
  }
-+
-+#ifndef __ia64__ /* ia64 needs some extra tweaks */
-+/*
-+ * compat_count() counts the number of arguments/envelopes. It is basically
-+ * a copy of count() from fs/exec.c, except that it works with 32 bit argv
-+ * and envp pointers.
-+ */
-+static int compat_count(compat_uptr_t *argv, int max)
-+{
-+	int i = 0;
-+
-+	if (argv != NULL) {
-+		for (;;) {
-+			compat_uptr_t p;
-+
-+			if (get_user(p, argv))
-+				return -EFAULT;
-+			if (!p)
-+				break;
-+			argv++;
-+			if(++i > max)
-+				return -E2BIG;
-+		}
-+	}
-+	return i;
-+}
-+
-+/*
-+ * compat_copy_strings() is basically a copy of copy_strings() from fs/exec.c
-+ * except that it works with 32 bit argv and envp pointers.
-+ */
-+static int compat_copy_strings(int argc, compat_uptr_t __user *argv,
-+				struct linux_binprm *bprm)
-+{
-+	struct page *kmapped_page = NULL;
-+	char *kaddr = NULL;
-+	int ret;
-+
-+	while (argc-- > 0) {
-+		compat_uptr_t str;
-+		int len;
-+		unsigned long pos;
-+
-+		if (get_user(str, argv+argc) ||
-+			!(len = strnlen_user(compat_ptr(str), bprm->p))) {
-+			ret = -EFAULT;
-+			goto out;
-+		}
-+
-+		if (bprm->p < len)  {
-+			ret = -E2BIG;
-+			goto out;
-+		}
-+
-+		bprm->p -= len;
-+		/* XXX: add architecture specific overflow check here. */
-+		pos = bprm->p;
-+
-+		while (len > 0) {
-+			int i, new, err;
-+			int offset, bytes_to_copy;
-+			struct page *page;
-+
-+			offset = pos % PAGE_SIZE;
-+			i = pos/PAGE_SIZE;
-+			page = bprm->page[i];
-+			new = 0;
-+			if (!page) {
-+				page = alloc_page(GFP_HIGHUSER);
-+				bprm->page[i] = page;
-+				if (!page) {
-+					ret = -ENOMEM;
-+					goto out;
-+				}
-+				new = 1;
-+			}
-+
-+			if (page != kmapped_page) {
-+				if (kmapped_page)
-+					kunmap(kmapped_page);
-+				kmapped_page = page;
-+				kaddr = kmap(kmapped_page);
-+			}
-+			if (new && offset)
-+				memset(kaddr, 0, offset);
-+			bytes_to_copy = PAGE_SIZE - offset;
-+			if (bytes_to_copy > len) {
-+				bytes_to_copy = len;
-+				if (new)
-+					memset(kaddr+offset+len, 0,
-+						PAGE_SIZE-offset-len);
-+			}
-+			err = copy_from_user(kaddr+offset, compat_ptr(str),
-+						bytes_to_copy);
-+			if (err) {
-+				ret = -EFAULT;
-+				goto out;
-+			}
-+
-+			pos += bytes_to_copy;
-+			str += bytes_to_copy;
-+			len -= bytes_to_copy;
-+		}
-+	}
-+	ret = 0;
-+out:
-+	if (kmapped_page)
-+		kunmap(kmapped_page);
-+	return ret;
-+}
-+
-+#ifdef CONFIG_MMU
-+
-+#define free_arg_pages(bprm) do { } while (0)
-+
-+#else
-+
-+static inline void free_arg_pages(struct linux_binprm *bprm)
-+{
-+	int i;
-+
-+	for (i = 0; i < MAX_ARG_PAGES; i++) {
-+		if (bprm->page[i])
-+			__free_page(bprm->page[i]);
-+		bprm->page[i] = NULL;
-+	}
-+}
-+
-+#endif /* CONFIG_MMU */
-+
-+/*
-+ * compat_do_execve() is mostly a copy of do_execve(), with the exception
-+ * that it processes 32 bit argv and envp pointers.
-+ */
-+int compat_do_execve(char * filename,
-+	compat_uptr_t __user *argv,
-+	compat_uptr_t __user *envp,
-+	struct pt_regs * regs)
-+{
-+	struct linux_binprm bprm;
-+	struct file *file;
-+	int retval;
-+	int i;
-+
-+	sched_balance_exec();
-+
-+	file = open_exec(filename);
-+
-+	retval = PTR_ERR(file);
-+	if (IS_ERR(file))
-+		return retval;
-+
-+	bprm.p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
-+	memset(bprm.page, 0, MAX_ARG_PAGES*sizeof(bprm.page[0]));
-+
-+	bprm.file = file;
-+	bprm.filename = filename;
-+	bprm.interp = filename;
-+	bprm.sh_bang = 0;
-+	bprm.loader = 0;
-+	bprm.exec = 0;
-+	bprm.security = NULL;
-+	bprm.mm = mm_alloc();
-+	retval = -ENOMEM;
-+	if (!bprm.mm)
-+		goto out_file;
-+
-+	retval = init_new_context(current, bprm.mm);
-+	if (retval < 0)
-+		goto out_mm;
-+
-+	bprm.argc = compat_count(argv, bprm.p / sizeof(compat_uptr_t));
-+	if ((retval = bprm.argc) < 0)
-+		goto out_mm;
-+
-+	bprm.envc = compat_count(envp, bprm.p / sizeof(compat_uptr_t));
-+	if ((retval = bprm.envc) < 0)
-+		goto out_mm;
-+
-+	retval = security_bprm_alloc(&bprm);
-+	if (retval)
-+		goto out;
-+
-+	retval = prepare_binprm(&bprm);
-+	if (retval < 0)
-+		goto out;
-+
-+	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
-+	if (retval < 0)
-+		goto out;
-+
-+	bprm.exec = bprm.p;
-+	retval = compat_copy_strings(bprm.envc, envp, &bprm);
-+	if (retval < 0)
-+		goto out;
-+
-+	retval = compat_copy_strings(bprm.argc, argv, &bprm);
-+	if (retval < 0)
-+		goto out;
-+
-+	retval = search_binary_handler(&bprm,regs);
-+	if (retval >= 0) {
-+		free_arg_pages(&bprm);
-+
-+		/* execve success */
-+		security_bprm_free(&bprm);
-+		return retval;
-+	}
-+
-+out:
-+	/* Something went wrong, return the inode and free the argument pages*/
-+	for (i = 0 ; i < MAX_ARG_PAGES ; i++) {
-+		struct page * page = bprm.page[i];
-+		if (page)
-+			__free_page(page);
-+	}
-+
-+	if (bprm.security)
-+		security_bprm_free(&bprm);
-+
-+out_mm:
-+	if (bprm.mm)
-+		mmdrop(bprm.mm);
-+
-+out_file:
-+	if (bprm.file) {
-+		allow_write_access(bprm.file);
-+		fput(bprm.file);
-+	}
-+
-+	return retval;
-+}
-+#endif /* !__ia64__ */
-===== include/linux/compat.h 1.20 vs edited =====
---- 1.20/include/linux/compat.h	Sat Apr  3 22:03:56 2004
-+++ edited/include/linux/compat.h	Sat Apr  3 20:43:52 2004
-@@ -106,5 +106,8 @@
- asmlinkage ssize_t compat_sys_writev(unsigned long fd,
- 		const struct compat_iovec __user *vec, unsigned long vlen);
  
-+int compat_do_execve(char * filename, compat_uptr_t __user *argv,
-+	        compat_uptr_t __user *envp, struct pt_regs * regs);
++#if defined(CONFIG_NFSD) || defined(CONFIG_NFSD_MODULE)
++/* Stuff for NFS server syscalls... */
++struct compat_nfsctl_svc {
++	u16			svc32_port;
++	s32			svc32_nthreads;
++};
 +
- #endif /* CONFIG_COMPAT */
- #endif /* _LINUX_COMPAT_H */
++struct compat_nfsctl_client {
++	s8			cl32_ident[NFSCLNT_IDMAX+1];
++	s32			cl32_naddr;
++	struct in_addr		cl32_addrlist[NFSCLNT_ADDRMAX];
++	s32			cl32_fhkeytype;
++	s32			cl32_fhkeylen;
++	u8			cl32_fhkey[NFSCLNT_KEYMAX];
++};
++
++struct compat_nfsctl_export {
++	char		ex32_client[NFSCLNT_IDMAX+1];
++	char		ex32_path[NFS_MAXPATHLEN+1];
++	compat_dev_t	ex32_dev;
++	compat_ino_t	ex32_ino;
++	compat_int_t	ex32_flags;
++	compat_uid_t	ex32_anon_uid;
++	compat_gid_t	ex32_anon_gid;
++};
++
++struct compat_nfsctl_fdparm {
++	struct sockaddr		gd32_addr;
++	s8			gd32_path[NFS_MAXPATHLEN+1];
++	compat_int_t		gd32_version;
++};
++
++struct compat_nfsctl_fsparm {
++	struct sockaddr		gd32_addr;
++	s8			gd32_path[NFS_MAXPATHLEN+1];
++	compat_int_t		gd32_maxlen;
++};
++
++struct compat_nfsctl_arg {
++	compat_int_t		ca32_version;	/* safeguard */
++	union {
++		struct compat_nfsctl_svc	u32_svc;
++		struct compat_nfsctl_client	u32_client;
++		struct compat_nfsctl_export	u32_export;
++		struct compat_nfsctl_fdparm	u32_getfd;
++		struct compat_nfsctl_fsparm	u32_getfs;
++	} u;
++#define ca32_svc	u.u32_svc
++#define ca32_client	u.u32_client
++#define ca32_export	u.u32_export
++#define ca32_getfd	u.u32_getfd
++#define ca32_getfs	u.u32_getfs
++};
++
++union compat_nfsctl_res {
++	__u8			cr32_getfh[NFS_FHSIZE];
++	struct knfsd_fh		cr32_getfs;
++};
++
++static int compat_nfs_svc_trans(struct nfsctl_arg *karg, struct compat_nfsctl_arg *arg)
++{
++	int err;
++
++	err = access_ok(VERIFY_READ, &arg->ca32_svc, sizeof(arg->ca32_svc));
++	err |= get_user(karg->ca_version, &arg->ca32_version);
++	err |= __get_user(karg->ca_svc.svc_port, &arg->ca32_svc.svc32_port);
++	err |= __get_user(karg->ca_svc.svc_nthreads, &arg->ca32_svc.svc32_nthreads);
++	return (err) ? -EFAULT : 0;
++}
++
++static int compat_nfs_clnt_trans(struct nfsctl_arg *karg, struct compat_nfsctl_arg *arg)
++{
++	int err;
++
++	err = access_ok(VERIFY_READ, &arg->ca32_client, sizeof(arg->ca32_client));
++	err |= get_user(karg->ca_version, &arg->ca32_version);
++	err |= __copy_from_user(&karg->ca_client.cl_ident[0],
++			  &arg->ca32_client.cl32_ident[0],
++			  NFSCLNT_IDMAX);
++	err |= __get_user(karg->ca_client.cl_naddr, &arg->ca32_client.cl32_naddr);
++	err |= __copy_from_user(&karg->ca_client.cl_addrlist[0],
++			  &arg->ca32_client.cl32_addrlist[0],
++			  (sizeof(struct in_addr) * NFSCLNT_ADDRMAX));
++	err |= __get_user(karg->ca_client.cl_fhkeytype,
++		      &arg->ca32_client.cl32_fhkeytype);
++	err |= __get_user(karg->ca_client.cl_fhkeylen,
++		      &arg->ca32_client.cl32_fhkeylen);
++	err |= __copy_from_user(&karg->ca_client.cl_fhkey[0],
++			  &arg->ca32_client.cl32_fhkey[0],
++			  NFSCLNT_KEYMAX);
++
++	return (err) ? -EFAULT : 0;
++}
++
++static int compat_nfs_exp_trans(struct nfsctl_arg *karg, struct compat_nfsctl_arg *arg)
++{
++	int err;
++
++	err = access_ok(VERIFY_READ, &arg->ca32_export, sizeof(arg->ca32_export));
++	err |= get_user(karg->ca_version, &arg->ca32_version);
++	err |= __copy_from_user(&karg->ca_export.ex_client[0],
++			  &arg->ca32_export.ex32_client[0],
++			  NFSCLNT_IDMAX);
++	err |= __copy_from_user(&karg->ca_export.ex_path[0],
++			  &arg->ca32_export.ex32_path[0],
++			  NFS_MAXPATHLEN);
++	err |= __get_user(karg->ca_export.ex_dev,
++		      &arg->ca32_export.ex32_dev);
++	err |= __get_user(karg->ca_export.ex_ino,
++		      &arg->ca32_export.ex32_ino);
++	err |= __get_user(karg->ca_export.ex_flags,
++		      &arg->ca32_export.ex32_flags);
++	err |= __get_user(karg->ca_export.ex_anon_uid,
++		      &arg->ca32_export.ex32_anon_uid);
++	err |= __get_user(karg->ca_export.ex_anon_gid,
++		      &arg->ca32_export.ex32_anon_gid);
++	SET_UID(karg->ca_export.ex_anon_uid, karg->ca_export.ex_anon_uid);
++	SET_GID(karg->ca_export.ex_anon_gid, karg->ca_export.ex_anon_gid);
++
++	return (err) ? -EFAULT : 0;
++}
++
++static int compat_nfs_getfd_trans(struct nfsctl_arg *karg, struct compat_nfsctl_arg *arg)
++{
++	int err;
++	
++	err = access_ok(VERIFY_READ, &arg->ca32_getfd, sizeof(arg->ca32_getfd));
++	err |= get_user(karg->ca_version, &arg->ca32_version);
++	err |= __copy_from_user(&karg->ca_getfd.gd_addr,
++			  &arg->ca32_getfd.gd32_addr,
++			  (sizeof(struct sockaddr)));
++	err |= __copy_from_user(&karg->ca_getfd.gd_path,
++			  &arg->ca32_getfd.gd32_path,
++			  (NFS_MAXPATHLEN+1));
++	err |= __get_user(karg->ca_getfd.gd_version,
++		      &arg->ca32_getfd.gd32_version);
++
++	return (err) ? -EFAULT : 0;
++}
++
++static int compat_nfs_getfs_trans(struct nfsctl_arg *karg, struct compat_nfsctl_arg *arg)
++{
++	int err;
++
++	err = access_ok(VERIFY_READ, &arg->ca32_getfs, sizeof(arg->ca32_getfs));
++	err |= get_user(karg->ca_version, &arg->ca32_version);
++	err |= __copy_from_user(&karg->ca_getfs.gd_addr,
++			  &arg->ca32_getfs.gd32_addr,
++			  (sizeof(struct sockaddr)));
++	err |= __copy_from_user(&karg->ca_getfs.gd_path,
++			  &arg->ca32_getfs.gd32_path,
++			  (NFS_MAXPATHLEN+1));
++	err |= __get_user(karg->ca_getfs.gd_maxlen,
++		      &arg->ca32_getfs.gd32_maxlen);
++
++	return (err) ? -EFAULT : 0;
++}
++
++/* This really doesn't need translations, we are only passing
++ * back a union which contains opaque nfs file handle data.
++ */
++static int compat_nfs_getfh_res_trans(union nfsctl_res *kres, union compat_nfsctl_res *res)
++{
++	int err;
++
++	err = copy_to_user(res, kres, sizeof(*res));
++
++	return (err) ? -EFAULT : 0;
++}
++
++asmlinkage long compat_sys_nfsservctl(int cmd, struct compat_nfsctl_arg *arg,
++					union compat_nfsctl_res *res)
++{
++	struct nfsctl_arg *karg;
++	union nfsctl_res *kres;
++	mm_segment_t oldfs;
++	int err;
++
++	karg = kmalloc(sizeof(*karg), GFP_USER);
++	kres = kmalloc(sizeof(*kres), GFP_USER);
++	if(!karg || !kres) {
++		err = -ENOMEM;
++		goto done;
++	}
++
++	switch(cmd) {
++	case NFSCTL_SVC:
++		err = compat_nfs_svc_trans(karg, arg);
++		break;
++
++	case NFSCTL_ADDCLIENT:
++		err = compat_nfs_clnt_trans(karg, arg);
++		break;
++
++	case NFSCTL_DELCLIENT:
++		err = compat_nfs_clnt_trans(karg, arg);
++		break;
++
++	case NFSCTL_EXPORT:
++	case NFSCTL_UNEXPORT:
++		err = compat_nfs_exp_trans(karg, arg);
++		break;
++
++	case NFSCTL_GETFD:
++		err = compat_nfs_getfd_trans(karg, arg);
++		break;
++
++	case NFSCTL_GETFS:
++		err = compat_nfs_getfs_trans(karg, arg);
++		break;
++
++	default:
++		err = -EINVAL;
++		goto done;
++	}
++
++	oldfs = get_fs();
++	set_fs(KERNEL_DS);
++	err = sys_nfsservctl(cmd, karg, kres);
++	set_fs(oldfs);
++
++	if (err)
++		goto done;
++
++	if((cmd == NFSCTL_GETFD) ||
++	   (cmd == NFSCTL_GETFS))
++		err = compat_nfs_getfh_res_trans(kres, res);
++
++done:
++	kfree(karg);
++	kfree(kres);
++	return err;
++}
++#else /* !NFSD */
++long asmlinkage compat_sys_nfsservctl(int cmd, void *notused, void *notused2)
++{
++	return sys_ni_syscall();
++}
++#endif
