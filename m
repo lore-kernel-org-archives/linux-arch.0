@@ -1,85 +1,150 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: pci: Arch hook to determine config space size
-Date: Mon, 31 Jan 2005 21:51:04 +0100
-References: <200501281456.j0SEuI12020454@d01av01.pok.ibm.com> <41FE82B6.9060407@us.ibm.com> <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk>
-In-Reply-To: <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk>
+Message-ID: <41FEA4AA.1080407@us.ibm.com>
+Date: Mon, 31 Jan 2005 15:35:38 -0600
+From: Brian King <brking@us.ibm.com>
+Reply-To: brking@us.ibm.com
 MIME-Version: 1.0
-Message-Id: <200501312151.05323.arnd@arndb.de>
-Content-Type: multipart/signed;
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1;
-  boundary="Boundary-02=_5op/BZQOoGRTNPl";
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-To: linuxppc64-dev@ozlabs.org
-Cc: Matthew Wilcox <matthew@wil.cx>, Brian King <brking@us.ibm.com>, linux-arch@vger.kernel.org, Greg KH <greg@kroah.com>, linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-pci@vger.kernel.org
+Subject: Re: pci: Arch hook to determine config space size
+References: <200501281456.j0SEuI12020454@d01av01.pok.ibm.com> <20050128185234.GB21760@infradead.org> <20050129040647.GA6261@kroah.com> <41FE82B6.9060407@us.ibm.com> <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk>
+In-Reply-To: <20050131192955.GJ31145@parcelfarce.linux.theplanet.co.uk>
+Content-Type: multipart/mixed;
+ boundary="------------010301050405050001050904"
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Greg KH <greg@kroah.com>, Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, paulus@samba.org
 List-ID: <linux-arch.vger.kernel.org>
 
+This is a multi-part message in MIME format.
+--------------010301050405050001050904
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 
---Boundary-02=_5op/BZQOoGRTNPl
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: inline
-
-On Maandag 31 Januar 2005 20:29, Matthew Wilcox wrote:
-> Thanks for copying linux-pci. =A0I hate this patch.
->=20
+Matthew Wilcox wrote:
 > Basically, ppc64's config ops are broken and need to check the offset
-> being read.=20
+> being read.  Here's i386:
+> 
+> static int pci_conf1_write (int seg, int bus, int devfn, int reg, int len, u32 v
+> alue)
+> {
+>         unsigned long flags;
+> 
+>         if ((bus > 255) || (devfn > 255) || (reg > 255)) 
+>                 return -EINVAL;
 
-To make things worse, simply allowing the larger config space will
-silently access the wrong device. The least that needs to be done
-is to pass the correct address to the firmware.=20
-This patch should do the right thing, though I don't have any PCIe
-card to test with.
+Here is a pure ppc64 implementation that does this.
 
-Note that at least for the rtas pci config access, the bus/devfn
-values come from the device tree, which makes it somewhat harder
-to screw them up, and rtas ought to check for obviously wrong
-addresses as well.
+> 
+> I think all the config ops in ppc64 are broken and need to check for these
+> limits.  Also, it does some checks that are already performed by upper layers:
+> 
+>         if (where & (size - 1))
+>                 return PCIBIOS_BAD_REGISTER_NUMBER;
+> 
+> is checked for in drivers/pci/access.c
 
-Signed-off-by: Arnd Bergmann <arndb@de.ibm.com>
+I can submit a separate patch to clean that up.
 
-=2D-- linux-mm.orig/arch/ppc64/kernel/pSeries_pci.c	2005-01-28 07:21:15.000=
-000000 -0500
-+++ linux-mm/arch/ppc64/kernel/pSeries_pci.c	2005-01-31 15:56:10.244983464 =
-=2D0500
-@@ -63,7 +63,8 @@
+-- 
+Brian King
+eServer Storage I/O
+IBM Linux Technology Center
+
+--------------010301050405050001050904
+Content-Type: text/plain;
+ name="ppc64_pcix_mode2_cfg.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline;
+ filename="ppc64_pcix_mode2_cfg.patch"
+
+
+
+When working with a PCI-X Mode 2 adapter on a PCI-X Mode 1 PPC64
+system, the current code used to determine the config space size
+of a device results in a PCI Master abort and an EEH error, resulting
+in the device being taken offline. This patch checks OF to see if
+the PCI bridge supports PCI-X Mode 2 and fails config accesses beyond
+256 bytes if it does not.
+
+Signed-off-by: Brian King <brking@us.ibm.com>
+---
+
+ linux-2.6.11-rc2-bk9-bjking1/arch/ppc64/kernel/pSeries_pci.c |   25 +++++++++++
+ linux-2.6.11-rc2-bk9-bjking1/include/asm-ppc64/prom.h        |    1 
+ 2 files changed, 26 insertions(+)
+
+diff -puN arch/ppc64/kernel/pSeries_pci.c~ppc64_pcix_mode2_cfg arch/ppc64/kernel/pSeries_pci.c
+--- linux-2.6.11-rc2-bk9/arch/ppc64/kernel/pSeries_pci.c~ppc64_pcix_mode2_cfg	2005-01-31 14:32:01.000000000 -0600
++++ linux-2.6.11-rc2-bk9-bjking1/arch/ppc64/kernel/pSeries_pci.c	2005-01-31 15:09:53.000000000 -0600
+@@ -52,6 +52,16 @@ static int s7a_workaround;
+ 
+ extern struct mpic *pSeries_mpic;
+ 
++static int config_access_valid(struct device_node *dn, int where)
++{
++	struct device_node *hose_dn = dn->phb->arch_data;
++
++	if (where < 256 || hose_dn->pci_ext_config_space)
++		return 1;
++
++	return 0;
++}
++
+ static int rtas_read_config(struct device_node *dn, int where, int size, u32 *val)
+ {
+ 	int returnval = -1;
+@@ -62,6 +72,8 @@ static int rtas_read_config(struct devic
+ 		return PCIBIOS_DEVICE_NOT_FOUND;
  	if (where & (size - 1))
  		return PCIBIOS_BAD_REGISTER_NUMBER;
-=20
-=2D	addr =3D (dn->busno << 16) | (dn->devfn << 8) | where;
-+	addr =3D ((where & 0xf00) << 20) | (dn->busno << 16)=20
-+		| (dn->devfn << 8) | (where & 0x0ff);
- 	buid =3D dn->phb->buid;
- 	if (buid) {
- 		ret =3D rtas_call(ibm_read_pci_config, 4, 2, &returnval,
-@@ -111,7 +112,8 @@
++	if (!config_access_valid(dn, where))
++		return PCIBIOS_BAD_REGISTER_NUMBER;
+ 
+ 	addr = (dn->busno << 16) | (dn->devfn << 8) | where;
+ 	buid = dn->phb->buid;
+@@ -110,6 +122,8 @@ static int rtas_write_config(struct devi
+ 		return PCIBIOS_DEVICE_NOT_FOUND;
  	if (where & (size - 1))
  		return PCIBIOS_BAD_REGISTER_NUMBER;
-=20
-=2D	addr =3D (dn->busno << 16) | (dn->devfn << 8) | where;
-+	addr =3D ((where & 0xf00) << 20) | (dn->busno << 16)=20
-+		| (dn->devfn << 8) | (where & 0x0ff);
- 	buid =3D dn->phb->buid;
- 	if (buid) {
- 		ret =3D rtas_call(ibm_write_pci_config, 5, 1, NULL, addr, buid >> 32, bu=
-id & 0xffffffff, size, (ulong) val);
++	if (!config_access_valid(dn, where))
++		return PCIBIOS_BAD_REGISTER_NUMBER;
+ 
+ 	addr = (dn->busno << 16) | (dn->devfn << 8) | where;
+ 	buid = dn->phb->buid;
+@@ -270,6 +284,16 @@ static int phb_set_bus_ranges(struct dev
+ 	return 0;
+ }
+ 
++static void __devinit get_phb_config_space_type(struct device_node *dn)
++{
++	int *type = (int *)get_property(dn, "ibm,pci-config-space-type", NULL);
++
++	if (type && *type == 1)
++		dn->pci_ext_config_space = 1;
++	else
++		dn->pci_ext_config_space = 0;
++}
++
+ static int __devinit setup_phb(struct device_node *dev,
+ 			       struct pci_controller *phb,
+ 			       unsigned int addr_size_words)
+@@ -285,6 +309,7 @@ static int __devinit setup_phb(struct de
+ 	phb->arch_data = dev;
+ 	phb->ops = &rtas_pci_ops;
+ 	phb->buid = get_phb_buid(dev);
++	get_phb_config_space_type(dev);
+ 
+ 	return 0;
+ }
+diff -puN include/asm-ppc64/prom.h~ppc64_pcix_mode2_cfg include/asm-ppc64/prom.h
+--- linux-2.6.11-rc2-bk9/include/asm-ppc64/prom.h~ppc64_pcix_mode2_cfg	2005-01-31 14:32:01.000000000 -0600
++++ linux-2.6.11-rc2-bk9-bjking1/include/asm-ppc64/prom.h	2005-01-31 14:32:01.000000000 -0600
+@@ -137,6 +137,7 @@ struct device_node {
+ 	int	devfn;			/* for pci devices */
+ 	int	eeh_mode;		/* See eeh.h for possible EEH_MODEs */
+ 	int	eeh_config_addr;
++	int	pci_ext_config_space;	/* for phb's or bridges */
+ 	struct  pci_controller *phb;	/* for pci devices */
+ 	struct	iommu_table *iommu_table;	/* for phb's or bridges */
+ 
+_
 
-
-
---Boundary-02=_5op/BZQOoGRTNPl
-Content-Type: application/pgp-signature
-Content-Description: signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.2.4 (GNU/Linux)
-
-iD8DBQBB/po55t5GS2LDRf4RAgYQAKCOKna2d1KQ/Adr0fitfwfxUpT8dgCeLA3h
-7vz/iV+NObjl0INNeD2nuwo=
-=v+1m
------END PGP SIGNATURE-----
-
---Boundary-02=_5op/BZQOoGRTNPl--
+--------------010301050405050001050904--
