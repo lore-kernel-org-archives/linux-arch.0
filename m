@@ -1,26 +1,56 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268175AbUIKPqw@vger.kernel.org>
-Received: from the-village.bc.nu ([81.2.110.252]:30899 "EHLO
-	localhost.localdomain") by vger.kernel.org with ESMTP
-	id S268179AbUIKPpB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 11 Sep 2004 11:45:01 -0400
-Subject: Re: RFC: being more anal about iospace accesses..
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-In-Reply-To: <Pine.LNX.4.58.0409102253520.2303@ppc970.osdl.org>
-References: <Pine.LNX.4.58.0409081543320.5912@ppc970.osdl.org>
-	 <Pine.LNX.4.58.0409102253520.2303@ppc970.osdl.org>
-Content-Type: text/plain
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268349AbUIKVHE@vger.kernel.org>
+Received: from natnoddy.rzone.de ([81.169.145.166]:33693 "EHLO
+	natnoddy.rzone.de") by vger.kernel.org with ESMTP id S268342AbUIKVHE
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 11 Sep 2004 17:07:04 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] cleanup: move call to update_process_times.
+Date: Sat, 11 Sep 2004 23:06:17 +0200
+References: <20040910151900.GA3645@mschwid3.boeblingen.de.ibm.com>
+In-Reply-To: <20040910151900.GA3645@mschwid3.boeblingen.de.ibm.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed;
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1;
+  boundary="Boundary-02=_Nj2QBwif7fxK9V8";
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Message-Id: <1094913724.21088.70.camel@localhost.localdomain>
-Mime-Version: 1.0
-Date: Sat, 11 Sep 2004 15:42:05 +0100
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Al Viro <viro@parcelfarce.linux.theplanet.co.uk>, Andrew Morton <akpm@osdl.org>, Linux Arch list <linux-arch@vger.kernel.org>, "David S. Miller" <davem@redhat.com>, Jeff Garzik <jgarzik@pobox.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-Id: <200409112306.21776.arnd@arndb.de>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sad, 2004-09-11 at 07:09, Linus Torvalds wrote:
-> Anyway, last I remember, AMD machines could do strange things if you did 
-> prefecthing on IO space. So this is not relegated to "weird 
-> architectures".
 
-Correct: 
-Early Athlon cache corrupts for prefetch() of non prefetchable
+--Boundary-02=_Nj2QBwif7fxK9V8
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
+
+On Freitag, 10. September 2004 17:19, Martin Schwidefsky wrote:
+> [PATCH] cleanup: remove unused definitions from timex.h.
+>=20
+> From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+>=20
+> The CLOCK_TICK_FACTOR and FINETUNE defines from <asm/timex.h>
+> are not used anywhere. Kill them.
+>=20
+The patch doesn't match the subject, it looks like you accidentally
+sent the 'remove unused definitions from timex.h' patch twice
+instead of 'move call to update_process_times'.
+
+	Arnd <><
+
+--Boundary-02=_Nj2QBwif7fxK9V8
+Content-Type: application/pgp-signature
+Content-Description: signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.2.4 (GNU/Linux)
+
+iD8DBQBBQ2jN5t5GS2LDRf4RAiG+AJ9i5m1wFgZbMsrlPl3BAcJajkX1LwCfT1e/
+vGnkAwLC4SkDawh6qhw4J+s=
+=I3uo
+-----END PGP SIGNATURE-----
+
+--Boundary-02=_Nj2QBwif7fxK9V8--
