@@ -1,29 +1,52 @@
-Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268470AbUJOVmt@vger.kernel.org>
-Received: from [213.146.154.40] ([213.146.154.40]:39396 "EHLO
-	pentafluge.infradead.org") by vger.kernel.org with ESMTP
-	id S268463AbUJOVlu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Oct 2004 17:41:50 -0400
-Subject: Re: 4level page tables architecture porting
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <20041015193215.GA9099@wotan.suse.de>
-References: <20041015172112.73e884d9.ak@suse.de>
-	 <1097863604.13633.431.camel@hades.cambridge.redhat.com>
-	 <20041015193215.GA9099@wotan.suse.de>
+Return-Path: <linux-arch-owner+james.bottomley=40steeleye.com-S268070AbUJSHCm@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:24977 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S268058AbUJSHCm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Oct 2004 03:02:42 -0400
+Received: from localhost (localhost [127.0.0.1])
+	by gate.crashing.org (8.12.8/8.12.8) with ESMTP id i9J723BG002573
+	for <linux-arch@vger.kernel.org>; Tue, 19 Oct 2004 02:02:04 -0500
+Subject: All archs: NO_IRQ definition
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Content-Type: text/plain
-Message-Id: <1097876505.13633.741.camel@hades.cambridge.redhat.com>
+Message-Id: <1098169077.11400.51.camel@gaston>
 Mime-Version: 1.0
-Date: Fri, 15 Oct 2004 22:41:45 +0100
+Date: Tue, 19 Oct 2004 16:57:57 +1000
 Content-Transfer-Encoding: 7bit
-To: Andi Kleen <ak@suse.de>
-Cc: linux-arch@vger.kernel.org, akpm@digeo.com
+To: Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2004-10-15 at 21:32 +0200, Andi Kleen wrote:
-> Thanks. It looks like the TASK_SIZE there is not a multiple of PGDIR_MASK.
-> 
-> Does it work with this patch?
+Hi !
 
-Yes, that fixes it.
+I need to fix a few wrong cases where driver assume that irq = 0 means
+no interrupt. This is wrong, some arch have pefectly valid IRQ 0. We
+started defining NO_IRQ a while ago for that reason, but it seems lot
+of archs didn't catch up. I plan to collect a patch fixing them all but
+you guys will have to tell me what value to use for NO_IRQ (0 ? -1 ?).
 
--- 
-dwmw2
+Currently, only ppc64, arm and mips add it, and I know what to do for
+ppc, that leaves me with request for the proper value to use for those
+archs:
+
+alpha
+arm
+arm26
+cris
+h8300
+i386
+ia64
+m32r
+m68k
+m68knommu
+parisc
+sh
+sh64
+sparc
+sparc64
+um
+v850
+x86_64
+
+Thanks ! 
+
+Ben.
