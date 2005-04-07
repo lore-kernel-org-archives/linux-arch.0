@@ -1,866 +1,269 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Thu, 7 Apr 2005 01:05:01 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH] consolidate shmat usage
-Message-Id: <20050407010501.1631e14f.sfr@canb.auug.org.au>
-In-Reply-To: <20050405130312.GC16157@parcelfarce.linux.theplanet.co.uk>
-References: <20050323150123.1a78e9c4.sfr@canb.auug.org.au>
-	<20050323174810.17df4440.sfr@canb.auug.org.au>
-	<20050323145132.GJ21986@parcelfarce.linux.theplanet.co.uk>
-	<20050405180132.15e386cd.sfr@canb.auug.org.au>
-	<20050405130312.GC16157@parcelfarce.linux.theplanet.co.uk>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Thu__7_Apr_2005_01_05_01_+1000_Kqy8gRbjek1.g5L8"
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, ralf@linux-mips.org
+Date: Thu, 7 Apr 2005 02:18:33 +0100 (BST)
+From: Hugh Dickins <hugh@veritas.com>
+Subject: [PATCH 5/6] freepgt2: arch FIRST_USER_ADDRESS 0
+In-Reply-To: <Pine.LNX.4.61.0504070204390.24723@goblin.wat.veritas.com>
+Message-ID: <Pine.LNX.4.61.0504070216480.24723@goblin.wat.veritas.com>
+References: <Pine.LNX.4.61.0504070204390.24723@goblin.wat.veritas.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+To: Andrew Morton <akpm@osdl.org>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Russell King <rmk@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Thu__7_Apr_2005_01_05_01_+1000_Kqy8gRbjek1.g5L8
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Replace misleading definition of FIRST_USER_PGD_NR 0 by definition of
+FIRST_USER_ADDRESS 0 in all the MMU architectures beyond arm and arm26.
 
-On Tue, 5 Apr 2005 14:03:12 +0100 Matthew Wilcox <matthew@wil.cx> wrote:
->
-> Umm.  I think you've just discovered a bug in ARM and MIPS.  I don't see
-> any code in glibc for handling the 4-argument version of sys_shmat.
-> Russell, Ralf, could you comment?
+Signed-off-by: Hugh Dickins <hugh@veritas.com>
+---
 
-OK, assuming that using the 4 argument version of sys_shmat as a system
-call, here is another version of the patch (not tested) for comment.
+ include/asm-alpha/pgtable.h     |    2 +-
+ include/asm-cris/pgtable.h      |    2 +-
+ include/asm-frv/pgtable.h       |    2 +-
+ include/asm-i386/pgtable.h      |    2 +-
+ include/asm-ia64/pgtable.h      |    2 +-
+ include/asm-m32r/pgtable.h      |    2 +-
+ include/asm-m68k/pgtable.h      |    2 +-
+ include/asm-mips/pgtable-32.h   |    2 +-
+ include/asm-mips/pgtable-64.h   |    2 +-
+ include/asm-parisc/pgtable.h    |    2 +-
+ include/asm-ppc/pgtable.h       |    2 +-
+ include/asm-ppc64/pgtable.h     |    2 +-
+ include/asm-s390/pgtable.h      |    4 ++--
+ include/asm-sh/pgtable.h        |    2 +-
+ include/asm-sh64/pgtable.h      |    2 +-
+ include/asm-sparc/pgtable.h     |    2 +-
+ include/asm-sparc64/pgtable.h   |    2 +-
+ include/asm-um/pgtable-2level.h |    2 +-
+ include/asm-um/pgtable-3level.h |    2 +-
+ include/asm-x86_64/pgtable.h    |    2 +-
+ 20 files changed, 21 insertions(+), 21 deletions(-)
 
-we now have sys_shmat, ipc_shmat and do_shmat :-)
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
-
-diff -ruNp linus/arch/alpha/kernel/osf_sys.c linus-compat_sys_ipc.3/arch/al=
-pha/kernel/osf_sys.c
---- linus/arch/alpha/kernel/osf_sys.c	2005-03-14 13:07:08.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/alpha/kernel/osf_sys.c	2005-04-05 15:39:55.=
-000000000 +1000
-@@ -457,22 +457,6 @@ osf_getdomainname(char __user *name, int
- 	return 0;
- }
-=20
--asmlinkage long
--osf_shmat(int shmid, void __user *shmaddr, int shmflg)
--{
--	unsigned long raddr;
--	long err;
--
--	err =3D do_shmat(shmid, shmaddr, shmflg, &raddr);
--
--	/*
--	 * This works because all user-level addresses are
--	 * non-negative longs!
--	 */
--	return err ? err : (long)raddr;
--}
--
--
- /*
-  * The following stuff should move into a header file should it ever
-  * be labeled "officially supported."  Right now, there is just enough
-diff -ruNp linus/arch/alpha/kernel/systbls.S linus-compat_sys_ipc.3/arch/al=
-pha/kernel/systbls.S
---- linus/arch/alpha/kernel/systbls.S	2004-09-16 21:51:57.000000000 +1000
-+++ linus-compat_sys_ipc.3/arch/alpha/kernel/systbls.S	2005-04-05 15:39:41.=
-000000000 +1000
-@@ -227,7 +227,7 @@ sys_call_table:
- 	.quad sys_semop
- 	.quad osf_utsname
- 	.quad sys_lchown
--	.quad osf_shmat
-+	.quad sys_shmat
- 	.quad sys_shmctl			/* 210 */
- 	.quad sys_shmdt
- 	.quad sys_shmget
-diff -ruNp linus/arch/arm/kernel/sys_arm.c linus-compat_sys_ipc.3/arch/arm/=
-kernel/sys_arm.c
---- linus/arch/arm/kernel/sys_arm.c	2005-03-17 14:08:05.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/arm/kernel/sys_arm.c	2005-04-06 13:35:51.00=
-0000000 +1000
-@@ -212,13 +212,9 @@ asmlinkage int sys_ipc(uint call, int fi
-=20
- 	case SHMAT:
- 		switch (version) {
--		default: {
--			ulong raddr;
--			ret =3D do_shmat(first, (char __user *)ptr, second, &raddr);
--			if (ret)
--				return ret;
--			return put_user(raddr, (ulong __user *)third);
--		}
-+		default:
-+			return ipc_shmat(first, ptr, second,
-+					(unsigned long __user *)third);
- 		case 1: /* Of course, we don't support iBCS2! */
- 			return -EINVAL;
- 		}
-@@ -234,18 +230,6 @@ asmlinkage int sys_ipc(uint call, int fi
- 	}
- }
-=20
--asmlinkage long sys_shmat(int shmid, char __user *shmaddr, int shmflg,
--			  unsigned long __user *addr)
--{
--	unsigned long ret;
--	long err;
--
--	err =3D do_shmat(shmid, shmaddr, shmflg, &ret);
--	if (err =3D=3D 0)
--		err =3D put_user(ret, addr);
--	return err;
--}
--
- /* Fork a new task - this creates a new program thread.
-  * This is called indirectly via a small wrapper
+--- 2.6.12-rc2-mm1/include/asm-alpha/pgtable.h	2005-04-05 15:20:54.000000000 +0100
++++ linux/include/asm-alpha/pgtable.h	2005-04-05 18:59:00.000000000 +0100
+@@ -42,7 +42,7 @@
+ #define PTRS_PER_PMD	(1UL << (PAGE_SHIFT-3))
+ #define PTRS_PER_PGD	(1UL << (PAGE_SHIFT-3))
+ #define USER_PTRS_PER_PGD	(TASK_SIZE / PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ /* Number of pointers that fit on a page:  this will go away. */
+ #define PTRS_PER_PAGE	(1UL << (PAGE_SHIFT-3))
+--- 2.6.12-rc2-mm1/include/asm-cris/pgtable.h	2005-04-05 15:20:55.000000000 +0100
++++ linux/include/asm-cris/pgtable.h	2005-04-05 18:59:00.000000000 +0100
+@@ -76,7 +76,7 @@ extern void paging_init(void);
   */
-diff -ruNp linus/arch/arm26/kernel/sys_arm.c linus-compat_sys_ipc.3/arch/ar=
-m26/kernel/sys_arm.c
---- linus/arch/arm26/kernel/sys_arm.c	2005-01-04 17:05:27.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/arm26/kernel/sys_arm.c	2005-04-06 13:36:36.=
-000000000 +1000
-@@ -210,13 +210,9 @@ asmlinkage int sys_ipc (uint call, int f
-=20
- 	case SHMAT:
- 		switch (version) {
--		default: {
--			ulong raddr;
--			ret =3D do_shmat (first, (char *) ptr, second, &raddr);
--			if (ret)
--				return ret;
--			return put_user (raddr, (ulong *) third);
--		}
-+		default:
-+			return ipc_shmat(first, ptr, second,
-+					(unsigned long __user *)third);
- 		case 1:	/* iBCS2 emulator entry point */
- 			if (!segment_eq(get_fs(), get_ds()))
- 				return -EINVAL;
-diff -ruNp linus/arch/cris/kernel/sys_cris.c linus-compat_sys_ipc.3/arch/cr=
-is/kernel/sys_cris.c
---- linus/arch/cris/kernel/sys_cris.c	2004-06-04 07:19:00.000000000 +1000
-+++ linus-compat_sys_ipc.3/arch/cris/kernel/sys_cris.c	2005-04-06 13:36:47.=
-000000000 +1000
-@@ -154,13 +154,9 @@ asmlinkage int sys_ipc (uint call, int f
- 	case MSGCTL:
- 		return sys_msgctl (first, second, (struct msqid_ds __user *) ptr);
-=20
--	case SHMAT: {
--                ulong raddr;
--                ret =3D do_shmat (first, (char __user *) ptr, second, &rad=
-dr);
--                if (ret)
--                        return ret;
--                return put_user (raddr, (ulong __user *) third);
--        }
-+	case SHMAT:
-+		return ipc_shmat(first, ptr, second,
-+				(unsigned long __user *)third);
- 	case SHMDT:=20
- 		return sys_shmdt ((char __user *)ptr);
- 	case SHMGET:
-diff -ruNp linus/arch/frv/kernel/sys_frv.c linus-compat_sys_ipc.3/arch/frv/=
-kernel/sys_frv.c
---- linus/arch/frv/kernel/sys_frv.c	2005-01-06 12:05:05.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/frv/kernel/sys_frv.c	2005-04-06 13:38:50.00=
-0000000 +1000
-@@ -188,13 +188,9 @@ asmlinkage long sys_ipc(unsigned long ca
-=20
- 	case SHMAT:
- 		switch (version) {
--		default: {
--			ulong raddr;
--			ret =3D do_shmat (first, (char __user *) ptr, second, &raddr);
--			if (ret)
--				return ret;
--			return put_user (raddr, (ulong __user *) third);
--		}
-+		default:
-+			return ipc_shmat(first, ptr, second,
-+					(unsigned long __user *)third);
- 		case 1:	/* iBCS2 emulator entry point */
- 			if (!segment_eq(get_fs(), get_ds()))
- 				return -EINVAL;
-diff -ruNp linus/arch/h8300/kernel/sys_h8300.c linus-compat_sys_ipc.3/arch/=
-h8300/kernel/sys_h8300.c
---- linus/arch/h8300/kernel/sys_h8300.c	2004-03-16 08:12:17.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/h8300/kernel/sys_h8300.c	2005-04-06 13:36:5=
-6.000000000 +1000
-@@ -236,16 +236,8 @@ asmlinkage int sys_ipc (uint call, int f
- 	if (call <=3D SHMCTL)=20
- 		switch (call) {
- 		case SHMAT:
--			switch (version) {
--			default: {
--				ulong raddr;
--				ret =3D do_shmat (first, (char *) ptr,
--						 second, &raddr);
--				if (ret)
--					return ret;
--				return put_user (raddr, (ulong *) third);
--			}
--			}
-+			return ipc_shmat(first, ptr, second,
-+					(unsigned long __user *)third);
- 		case SHMDT:=20
- 			return sys_shmdt ((char *)ptr);
- 		case SHMGET:
-diff -ruNp linus/arch/i386/kernel/sys_i386.c linus-compat_sys_ipc.3/arch/i3=
-86/kernel/sys_i386.c
---- linus/arch/i386/kernel/sys_i386.c	2004-07-26 05:20:35.000000000 +1000
-+++ linus-compat_sys_ipc.3/arch/i386/kernel/sys_i386.c	2005-04-06 13:37:06.=
-000000000 +1000
-@@ -131,7 +131,7 @@ asmlinkage int old_select(struct sel_arg
- asmlinkage int sys_ipc (uint call, int first, int second,
- 			int third, void __user *ptr, long fifth)
- {
--	int version, ret;
-+	int version;
-=20
- 	version =3D call >> 16; /* hack for backward compatibility */
- 	call &=3D 0xffff;
-@@ -183,13 +183,9 @@ asmlinkage int sys_ipc (uint call, int f
-=20
- 	case SHMAT:
- 		switch (version) {
--		default: {
--			ulong raddr;
--			ret =3D do_shmat (first, (char __user *) ptr, second, &raddr);
--			if (ret)
--				return ret;
--			return put_user (raddr, (ulong __user *) third);
--		}
-+		default:
-+			return ipc_shmat(first, ptr, second,
-+					(unsigned long __user *)third);
- 		case 1:	/* iBCS2 emulator entry point */
- 			if (!segment_eq(get_fs(), get_ds()))
- 				return -EINVAL;
-diff -ruNp linus/arch/ia64/kernel/entry.S linus-compat_sys_ipc.3/arch/ia64/=
-kernel/entry.S
---- linus/arch/ia64/kernel/entry.S	2005-02-04 04:10:36.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/ia64/kernel/entry.S	2005-04-05 16:15:31.000=
-000000 +1000
-@@ -1417,7 +1417,7 @@ sys_call_table:
- 	data8 sys_msgrcv
- 	data8 sys_msgctl
- 	data8 sys_shmget
--	data8 ia64_shmat
-+	data8 sys_shmat
- 	data8 sys_shmdt				// 1115
- 	data8 sys_shmctl
- 	data8 sys_syslog
-diff -ruNp linus/arch/ia64/kernel/sys_ia64.c linus-compat_sys_ipc.3/arch/ia=
-64/kernel/sys_ia64.c
---- linus/arch/ia64/kernel/sys_ia64.c	2005-02-04 04:10:36.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/ia64/kernel/sys_ia64.c	2005-04-05 16:15:16.=
-000000000 +1000
-@@ -93,20 +93,6 @@ sys_getpagesize (void)
- }
-=20
- asmlinkage unsigned long
--ia64_shmat (int shmid, void __user *shmaddr, int shmflg)
--{
--	unsigned long raddr;
--	int retval;
--
--	retval =3D do_shmat(shmid, shmaddr, shmflg, &raddr);
--	if (retval < 0)
--		return retval;
--
--	force_successful_syscall_return();
--	return raddr;
--}
--
--asmlinkage unsigned long
- ia64_brk (unsigned long brk)
- {
- 	unsigned long rlim, retval, newbrk, oldbrk;
-diff -ruNp linus/arch/m32r/kernel/sys_m32r.c linus-compat_sys_ipc.3/arch/m3=
-2r/kernel/sys_m32r.c
---- linus/arch/m32r/kernel/sys_m32r.c	2005-03-14 13:07:08.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/m32r/kernel/sys_m32r.c	2005-04-06 13:38:46.=
-000000000 +1000
-@@ -168,17 +168,9 @@ asmlinkage int sys_ipc(uint call, int fi
- 	case MSGCTL:
- 		return sys_msgctl (first, second,
- 				   (struct msqid_ds __user *) ptr);
--	case SHMAT: {
--		ulong raddr;
--
--		if (!access_ok(VERIFY_WRITE, (ulong __user *) third,
--				      sizeof(ulong)))
--			return -EFAULT;
--		ret =3D do_shmat (first, (char __user *) ptr, second, &raddr);
--		if (ret)
--			return ret;
--		return put_user (raddr, (ulong __user *) third);
--		}
-+	case SHMAT:
-+		return ipc_shmat(first, ptr, second,
-+				(unsigned long __user *)third);
- 	case SHMDT:
- 		return sys_shmdt ((char __user *)ptr);
- 	case SHMGET:
-diff -ruNp linus/arch/m68k/kernel/sys_m68k.c linus-compat_sys_ipc.3/arch/m6=
-8k/kernel/sys_m68k.c
---- linus/arch/m68k/kernel/sys_m68k.c	2004-05-12 07:28:08.000000000 +1000
-+++ linus-compat_sys_ipc.3/arch/m68k/kernel/sys_m68k.c	2005-04-06 13:37:11.=
-000000000 +1000
-@@ -237,16 +237,8 @@ asmlinkage int sys_ipc (uint call, int f
- 	if (call <=3D SHMCTL)
- 		switch (call) {
- 		case SHMAT:
--			switch (version) {
--			default: {
--				ulong raddr;
--				ret =3D do_shmat (first, (char *) ptr,
--						 second, &raddr);
--				if (ret)
--					return ret;
--				return put_user (raddr, (ulong *) third);
--			}
--			}
-+			return ipc_shmat(first, ptr, second,
-+					(unsigned long __user *)third);
- 		case SHMDT:
- 			return sys_shmdt ((char *)ptr);
- 		case SHMGET:
-diff -ruNp linus/arch/mips/kernel/syscall.c linus-compat_sys_ipc.3/arch/mip=
-s/kernel/syscall.c
---- linus/arch/mips/kernel/syscall.c	2005-02-04 04:10:36.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/mips/kernel/syscall.c	2005-04-06 13:37:38.0=
-00000000 +1000
-@@ -349,13 +349,9 @@ asmlinkage int sys_ipc (uint call, int f
-=20
- 	case SHMAT:
- 		switch (version) {
--		default: {
--			ulong raddr;
--			ret =3D do_shmat (first, (char *) ptr, second, &raddr);
--			if (ret)
--				return ret;
--			return put_user (raddr, (ulong *) third);
--		}
-+		default:
-+			return ipc_shmat(first, ptr, second,
-+					(unsigned logn __user *)third);
- 		case 1:	/* iBCS2 emulator entry point */
- 			if (!segment_eq(get_fs(), get_ds()))
- 				return -EINVAL;
-@@ -374,22 +370,6 @@ asmlinkage int sys_ipc (uint call, int f
- }
-=20
+ 
+ #define USER_PTRS_PER_PGD       (TASK_SIZE/PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR       0
++#define FIRST_USER_ADDRESS      0
+ 
+ /* zero page used for uninitialized stuff */
+ #ifndef __ASSEMBLY__
+--- 2.6.12-rc2-mm1/include/asm-frv/pgtable.h	2005-04-05 15:20:55.000000000 +0100
++++ linux/include/asm-frv/pgtable.h	2005-04-05 18:59:00.000000000 +0100
+@@ -141,7 +141,7 @@ extern unsigned long empty_zero_page;
+ #define PTRS_PER_PTE		4096
+ 
+ #define USER_PGDS_IN_LAST_PML4	(TASK_SIZE / PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #define USER_PGD_PTRS		(PAGE_OFFSET >> PGDIR_SHIFT)
+ #define KERNEL_PGD_PTRS		(PTRS_PER_PGD - USER_PGD_PTRS)
+--- 2.6.12-rc2-mm1/include/asm-i386/pgtable.h	2005-04-05 15:20:55.000000000 +0100
++++ linux/include/asm-i386/pgtable.h	2005-04-05 18:59:00.000000000 +0100
+@@ -60,7 +60,7 @@ void paging_init(void);
+ #define PGDIR_MASK	(~(PGDIR_SIZE-1))
+ 
+ #define USER_PTRS_PER_PGD	(TASK_SIZE/PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #define USER_PGD_PTRS (PAGE_OFFSET >> PGDIR_SHIFT)
+ #define KERNEL_PGD_PTRS (PTRS_PER_PGD-USER_PGD_PTRS)
+--- 2.6.12-rc2-mm1/include/asm-ia64/pgtable.h	2005-04-05 15:22:58.000000000 +0100
++++ linux/include/asm-ia64/pgtable.h	2005-04-05 18:59:00.000000000 +0100
+@@ -93,7 +93,7 @@
+ #define PGDIR_MASK		(~(PGDIR_SIZE-1))
+ #define PTRS_PER_PGD		(1UL << (PAGE_SHIFT-3))
+ #define USER_PTRS_PER_PGD	(5*PTRS_PER_PGD/8)	/* regions 0-4 are user regions */
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
  /*
-- * Native ABI that is O32 or N64 version
-- */
--asmlinkage long sys_shmat(int shmid, char __user *shmaddr,
--                          int shmflg, unsigned long *addr)
--{
--	unsigned long raddr;
--	int err;
--
--	err =3D do_shmat(shmid, shmaddr, shmflg, &raddr);
--	if (err)
--		return err;
--
--	return put_user(raddr, addr);
--}
--
--/*
-  * No implemented yet ...
-  */
- asmlinkage int sys_cachectl(char *addr, int nbytes, int op)
-diff -ruNp linus/arch/parisc/kernel/sys_parisc.c linus-compat_sys_ipc.3/arc=
-h/parisc/kernel/sys_parisc.c
---- linus/arch/parisc/kernel/sys_parisc.c	2005-03-10 04:08:58.000000000 +11=
-00
-+++ linus-compat_sys_ipc.3/arch/parisc/kernel/sys_parisc.c	2005-04-05 15:41=
-:29.000000000 +1000
-@@ -161,17 +161,6 @@ asmlinkage unsigned long sys_mmap(unsign
- 	}
- }
-=20
--long sys_shmat_wrapper(int shmid, char __user *shmaddr, int shmflag)
--{
--	unsigned long raddr;
--	int r;
--
--	r =3D do_shmat(shmid, shmaddr, shmflag, &raddr);
--	if (r < 0)
--		return r;
--	return raddr;
--}
--
- /* Fucking broken ABI */
-=20
- #ifdef CONFIG_64BIT
-diff -ruNp linus/arch/parisc/kernel/syscall_table.S linus-compat_sys_ipc.3/=
-arch/parisc/kernel/syscall_table.S
---- linus/arch/parisc/kernel/syscall_table.S	2005-01-16 07:07:51.000000000 =
-+1100
-+++ linus-compat_sys_ipc.3/arch/parisc/kernel/syscall_table.S	2005-04-05 15=
-:43:04.000000000 +1000
-@@ -297,7 +297,7 @@
- 	ENTRY_DIFF(msgrcv)
- 	ENTRY_SAME(msgget)		/* 190 */
- 	ENTRY_SAME(msgctl)
--	ENTRY_SAME(shmat_wrapper)
-+	ENTRY_SAME(shmat)
- 	ENTRY_SAME(shmdt)
- 	ENTRY_SAME(shmget)
- 	ENTRY_SAME(shmctl)		/* 195 */
-diff -ruNp linus/arch/ppc/kernel/syscalls.c linus-compat_sys_ipc.3/arch/ppc=
-/kernel/syscalls.c
---- linus/arch/ppc/kernel/syscalls.c	2005-03-14 13:07:08.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/ppc/kernel/syscalls.c	2005-04-06 13:37:44.0=
-00000000 +1000
-@@ -114,18 +114,10 @@ sys_ipc (uint call, int first, int secon
- 	case MSGCTL:
- 		ret =3D sys_msgctl (first, second, (struct msqid_ds __user *) ptr);
- 		break;
--	case SHMAT: {
--		ulong raddr;
--
--		if ((ret =3D access_ok(VERIFY_WRITE, (ulong __user *) third,
--				       sizeof(ulong)) ? 0 : -EFAULT))
--			break;
--		ret =3D do_shmat (first, (char __user *) ptr, second, &raddr);
--		if (ret)
--			break;
--		ret =3D put_user (raddr, (ulong __user *) third);
-+	case SHMAT:
-+		ret =3D ipc_shmat(first, ptr, second,
-+				(unsigned long __user *)third);
- 		break;
--		}
- 	case SHMDT:
- 		ret =3D sys_shmdt ((char __user *)ptr);
- 		break;
-diff -ruNp linus/arch/ppc64/kernel/syscalls.c linus-compat_sys_ipc.3/arch/p=
-pc64/kernel/syscalls.c
---- linus/arch/ppc64/kernel/syscalls.c	2005-03-29 16:06:36.000000000 +1000
-+++ linus-compat_sys_ipc.3/arch/ppc64/kernel/syscalls.c	2005-04-06 13:37:50=
-.000000000 +1000
-@@ -125,15 +125,10 @@ sys_ipc (uint call, int first, unsigned=20
- 		break;
- 	case SHMAT:
- 		switch (version) {
--		default: {
--			ulong raddr;
--			ret =3D do_shmat(first, (char __user *) ptr,
--					(int)second, &raddr);
--			if (ret)
--				break;
--			ret =3D put_user (raddr, (ulong __user *) third);
-+		default:
-+			ret =3D ipc_shmat(first, ptr, second,
-+					(unsigned long __user *)third);
- 			break;
--		}
- 		case 1:	/* iBCS2 emulator entry point */
- 			ret =3D -EINVAL;
- 			if (!segment_eq(get_fs(), get_ds()))
-diff -ruNp linus/arch/s390/kernel/sys_s390.c linus-compat_sys_ipc.3/arch/s3=
-90/kernel/sys_s390.c
---- linus/arch/s390/kernel/sys_s390.c	2005-02-11 13:05:29.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/s390/kernel/sys_s390.c	2005-04-06 13:37:55.=
-000000000 +1000
-@@ -187,15 +187,9 @@ asmlinkage long sys_ipc(uint call, int f
-                 return sys_msgctl(first, (int)second,
- 				   (struct msqid_ds __user *)ptr);
-=20
--	case SHMAT: {
--		ulong raddr;
--		ret =3D do_shmat(first, (char __user *)ptr,
--				(int)second, &raddr);
--		if (ret)
--			return ret;
--		return put_user (raddr, (ulong __user *) third);
--		break;
--        }
-+	case SHMAT:
-+		return ipc_shmat(first, ptr, second,
-+				(unsigned long __user *)third);
- 	case SHMDT:
- 		return sys_shmdt ((char __user *)ptr);
- 	case SHMGET:
-diff -ruNp linus/arch/sh/kernel/sys_sh.c linus-compat_sys_ipc.3/arch/sh/ker=
-nel/sys_sh.c
---- linus/arch/sh/kernel/sys_sh.c	2004-03-25 08:30:37.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/sh/kernel/sys_sh.c	2005-04-06 13:38:03.0000=
-00000 +1000
-@@ -225,14 +225,9 @@ asmlinkage int sys_ipc(uint call, int fi
- 		switch (call) {
- 		case SHMAT:
- 			switch (version) {
--			default: {
--				ulong raddr;
--				ret =3D do_shmat (first, (char __user *) ptr,
--						 second, &raddr);
--				if (ret)
--					return ret;
--				return put_user (raddr, (ulong __user *) third);
--			}
-+			default:
-+				return ipc_shmat(first, ptr, second,
-+						(unsigned long __user *)third);
- 			case 1:	/* iBCS2 emulator entry point */
- 				if (!segment_eq(get_fs(), get_ds()))
- 					return -EINVAL;
-diff -ruNp linus/arch/sh64/kernel/sys_sh64.c linus-compat_sys_ipc.3/arch/sh=
-64/kernel/sys_sh64.c
---- linus/arch/sh64/kernel/sys_sh64.c	2005-03-09 06:08:28.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/sh64/kernel/sys_sh64.c	2005-04-06 13:38:41.=
-000000000 +1000
-@@ -245,14 +245,9 @@ asmlinkage int sys_ipc(uint call, int fi
- 		switch (call) {
- 		case SHMAT:
- 			switch (version) {
--			default: {
--				ulong raddr;
--				ret =3D do_shmat (first, (char __user *) ptr,
--						 second, &raddr);
--				if (ret)
--					return ret;
--				return put_user (raddr, (ulong __user *) third);
--			}
-+			default:
-+				return ipc_shmat(first, ptr, second,
-+						(unsigned long __user *)third);
- 			case 1:	/* iBCS2 emulator entry point */
- 				if (!segment_eq(get_fs(), get_ds()))
- 					return -EINVAL;
-@@ -283,18 +278,3 @@ asmlinkage int sys_uname(struct old_utsn
- 	up_read(&uts_sem);
- 	return err?-EFAULT:0;
- }
--
--/* Copy from mips version */
--asmlinkage long sys_shmatcall(int shmid, char __user *shmaddr,
--		int shmflg)
--{
--	unsigned long raddr;
--	int err;
--
--	err =3D do_shmat(shmid, shmaddr, shmflg, &raddr);
--	if (err)
--		return err;
--
--	err =3D raddr;
--	return err;
--}
-diff -ruNp linus/arch/sh64/kernel/syscalls.S linus-compat_sys_ipc.3/arch/sh=
-64/kernel/syscalls.S
---- linus/arch/sh64/kernel/syscalls.S	2005-03-09 06:08:28.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/sh64/kernel/syscalls.S	2005-04-05 15:34:10.=
-000000000 +1000
-@@ -268,7 +268,7 @@ sys_call_table:
- 	.long sys_msgrcv
- 	.long sys_msgget
- 	.long sys_msgctl
--	.long sys_shmatcall
-+	.long sys_shmat
- 	.long sys_shmdt			/* 245 */
- 	.long sys_shmget
- 	.long sys_shmctl
-diff -ruNp linus/arch/sparc/kernel/sys_sparc.c linus-compat_sys_ipc.3/arch/=
-sparc/kernel/sys_sparc.c
---- linus/arch/sparc/kernel/sys_sparc.c	2005-03-14 13:07:08.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/sparc/kernel/sys_sparc.c	2005-04-06 13:38:1=
-0.000000000 +1000
-@@ -185,17 +185,10 @@ asmlinkage int sys_ipc (uint call, int f
- 		switch (call) {
- 		case SHMAT:
- 			switch (version) {
--			case 0: default: {
--				ulong raddr;
--				err =3D do_shmat (first, (char __user *) ptr, second, &raddr);
--				if (err)
--					goto out;
--				err =3D -EFAULT;
--				if (put_user (raddr, (ulong __user *) third))
--					goto out;
--				err =3D 0;
-+			case 0: default:
-+				err =3D ipc_shmat(first, ptr, second,
-+						(unsigned long __user *)third);
- 				goto out;
--				}
- 			case 1:	/* iBCS2 emulator entry point */
- 				err =3D -EINVAL;
- 				goto out;
-diff -ruNp linus/arch/sparc64/kernel/sys_sparc.c linus-compat_sys_ipc.3/arc=
-h/sparc64/kernel/sys_sparc.c
---- linus/arch/sparc64/kernel/sys_sparc.c	2005-02-11 13:05:29.000000000 +11=
-00
-+++ linus-compat_sys_ipc.3/arch/sparc64/kernel/sys_sparc.c	2005-04-06 13:38=
-:14.000000000 +1000
-@@ -259,14 +259,9 @@ asmlinkage long sys_ipc(unsigned int cal
- 	}
- 	if (call <=3D SHMCTL) {
- 		switch (call) {
--		case SHMAT: {
--			ulong raddr;
--			err =3D do_shmat(first, ptr, (int)second, &raddr);
--			if (!err) {
--				if (put_user(raddr,
--					     (ulong __user *) third))
--					err =3D -EFAULT;
--			}
-+		case SHMAT:
-+			err =3D ipc_shmat(first, ptr, second,
-+					(unsigned long __user *)third);
- 			goto out;
- 		}
- 		case SHMDT:
-diff -ruNp linus/arch/um/include/sysdep-x86_64/syscalls.h linus-compat_sys_=
-ipc.3/arch/um/include/sysdep-x86_64/syscalls.h
---- linus/arch/um/include/sysdep-x86_64/syscalls.h	2005-04-01 05:09:16.0000=
-00000 +1000
-+++ linus-compat_sys_ipc.3/arch/um/include/sysdep-x86_64/syscalls.h	2005-04=
--05 15:44:11.000000000 +1000
-@@ -26,7 +26,6 @@ extern syscall_handler_t *ia32_sys_call_
- extern long old_mmap(unsigned long addr, unsigned long len,
- 		     unsigned long prot, unsigned long flags,
- 		     unsigned long fd, unsigned long pgoff);
--extern syscall_handler_t wrap_sys_shmat;
- extern syscall_handler_t sys_modify_ldt;
- extern syscall_handler_t sys_arch_prctl;
-=20
-@@ -36,7 +35,7 @@ extern syscall_handler_t sys_arch_prctl;
- 	[ __NR_mincore ] =3D (syscall_handler_t *) sys_mincore, \
- 	[ __NR_madvise ] =3D (syscall_handler_t *) sys_madvise, \
- 	[ __NR_shmget ] =3D (syscall_handler_t *) sys_shmget, \
--	[ __NR_shmat ] =3D (syscall_handler_t *) wrap_sys_shmat, \
-+	[ __NR_shmat ] =3D (syscall_handler_t *) sys_shmat, \
- 	[ __NR_shmctl ] =3D (syscall_handler_t *) sys_shmctl, \
- 	[ __NR_semop ] =3D (syscall_handler_t *) sys_semop, \
- 	[ __NR_semget ] =3D (syscall_handler_t *) sys_semget, \
-diff -ruNp linus/arch/um/sys-i386/syscalls.c linus-compat_sys_ipc.3/arch/um=
-/sys-i386/syscalls.c
---- linus/arch/um/sys-i386/syscalls.c	2005-03-14 13:07:08.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/um/sys-i386/syscalls.c	2005-04-06 13:38:22.=
-000000000 +1000
-@@ -143,13 +143,9 @@ long sys_ipc (uint call, int first, int=20
-=20
- 	case SHMAT:
- 		switch (version) {
--		default: {
--			ulong raddr;
--			ret =3D do_shmat (first, (char *) ptr, second, &raddr);
--			if (ret)
--				return ret;
--			return put_user (raddr, (ulong *) third);
--		}
-+		default:
-+			return ipc_shmat(first, ptr, second,
-+					(unsigned long __user *)third);
- 		case 1:	/* iBCS2 emulator entry point */
- 			if (!segment_eq(get_fs(), get_ds()))
- 				return -EINVAL;
-diff -ruNp linus/arch/um/sys-x86_64/syscalls.c linus-compat_sys_ipc.3/arch/=
-um/sys-x86_64/syscalls.c
---- linus/arch/um/sys-x86_64/syscalls.c	2005-03-14 13:07:08.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/um/sys-x86_64/syscalls.c	2005-04-05 15:45:5=
-1.000000000 +1000
-@@ -14,13 +14,6 @@
- #include "asm/prctl.h" /* XXX This should get the constants from libc */
- #include "choose-mode.h"
-=20
--asmlinkage long wrap_sys_shmat(int shmid, char __user *shmaddr, int shmflg)
--{
--	unsigned long raddr;
--
--	return do_shmat(shmid, shmaddr, shmflg, &raddr) ?: (long) raddr;
--}
--
- #ifdef CONFIG_MODE_TT
- extern int modify_ldt(int func, void *ptr, unsigned long bytecount);
-=20
-diff -ruNp linus/arch/v850/kernel/syscalls.c linus-compat_sys_ipc.3/arch/v8=
-50/kernel/syscalls.c
---- linus/arch/v850/kernel/syscalls.c	2005-03-14 13:07:08.000000000 +1100
-+++ linus-compat_sys_ipc.3/arch/v850/kernel/syscalls.c	2005-04-06 13:38:36.=
-000000000 +1000
-@@ -101,18 +101,10 @@ sys_ipc (uint call, int first, int secon
- 		break;
- 	case SHMAT:
- 		switch (version) {
--		default: {
--			ulong raddr;
--
--			if ((ret =3D access_ok(VERIFY_WRITE, (ulong*) third,
--					       sizeof(ulong)) ? 0 : -EFAULT))
--				break;
--			ret =3D do_shmat (first, (char *) ptr, second, &raddr);
--			if (ret)
--				break;
--			ret =3D put_user (raddr, (ulong *) third);
-+		default:
-+			ret =3D ipc_shmat(first, ptr, second,
-+					(unsigned long __user *)third);
- 			break;
--			}
- 		case 1:	/* iBCS2 emulator entry point */
- 			if (!segment_eq(get_fs(), get_ds()))
- 				break;
-diff -ruNp linus/arch/x86_64/kernel/sys_x86_64.c linus-compat_sys_ipc.3/arc=
-h/x86_64/kernel/sys_x86_64.c
---- linus/arch/x86_64/kernel/sys_x86_64.c	2005-04-01 05:09:16.000000000 +10=
-00
-+++ linus-compat_sys_ipc.3/arch/x86_64/kernel/sys_x86_64.c	2005-04-05 15:46=
-:08.000000000 +1000
-@@ -152,12 +152,6 @@ asmlinkage long sys_uname(struct new_uts
- 	return err ? -EFAULT : 0;
- }
-=20
--asmlinkage long wrap_sys_shmat(int shmid, char __user *shmaddr, int shmflg)
--{
--	unsigned long raddr;
--	return do_shmat(shmid,shmaddr,shmflg,&raddr) ?: (long)raddr;
--}
--
- asmlinkage long sys_time64(long __user * tloc)
- {
- 	struct timeval now;=20
-diff -ruNp linus/include/asm-x86_64/unistd.h linus-compat_sys_ipc.3/include=
-/asm-x86_64/unistd.h
---- linus/include/asm-x86_64/unistd.h	2005-04-01 05:09:17.000000000 +1000
-+++ linus-compat_sys_ipc.3/include/asm-x86_64/unistd.h	2005-04-05 15:46:35.=
-000000000 +1000
-@@ -76,7 +76,7 @@ __SYSCALL(__NR_madvise, sys_madvise)
- #define __NR_shmget                             29
- __SYSCALL(__NR_shmget, sys_shmget)
- #define __NR_shmat                              30
--__SYSCALL(__NR_shmat, wrap_sys_shmat)
-+__SYSCALL(__NR_shmat, sys_shmat)
- #define __NR_shmctl                             31
- __SYSCALL(__NR_shmctl, sys_shmctl)
-=20
-diff -ruNp linus/include/linux/shm.h linus-compat_sys_ipc.3/include/linux/s=
-hm.h
---- linus/include/linux/shm.h	2004-08-25 07:48:22.000000000 +1000
-+++ linus-compat_sys_ipc.3/include/linux/shm.h	2005-04-06 13:41:30.00000000=
-0 +1000
-@@ -95,12 +95,20 @@ struct shmid_kernel /* private to the ke
-=20
- #ifdef CONFIG_SYSVIPC
- long do_shmat(int shmid, char __user *shmaddr, int shmflg, unsigned long *=
-addr);
-+long ipc_shmat(int shmid, char __user *shmaddr, int shmflg,
-+		unsigned long __user *addr);
- #else
- static inline long do_shmat(int shmid, char __user *shmaddr,
- 				int shmflg, unsigned long *addr)
- {
- 	return -ENOSYS;
- }
-+
-+static inline long ipc_shmat(int shmid, char __user *shmaddr,
-+				int shmflg, unsigned long __user *addr)
-+{
-+	return -ENOSYS;
-+}
+  * Definitions for second level:
+--- 2.6.12-rc2-mm1/include/asm-m32r/pgtable.h	2005-04-05 15:20:56.000000000 +0100
++++ linux/include/asm-m32r/pgtable.h	2005-04-05 18:59:00.000000000 +0100
+@@ -51,7 +51,7 @@ extern unsigned long empty_zero_page[102
+ #define PGDIR_MASK	(~(PGDIR_SIZE - 1))
+ 
+ #define USER_PTRS_PER_PGD	(TASK_SIZE / PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #ifndef __ASSEMBLY__
+ /* Just any arbitrary offset to the start of the vmalloc VM area: the
+--- 2.6.12-rc2-mm1/include/asm-m68k/pgtable.h	2005-04-05 15:20:56.000000000 +0100
++++ linux/include/asm-m68k/pgtable.h	2005-04-05 18:59:00.000000000 +0100
+@@ -61,7 +61,7 @@
+ #define PTRS_PER_PGD	128
  #endif
-=20
- #endif /* __KERNEL__ */
-diff -ruNp linus/include/linux/syscalls.h linus-compat_sys_ipc.3/include/li=
-nux/syscalls.h
---- linus/include/linux/syscalls.h	2005-01-05 17:06:08.000000000 +1100
-+++ linus-compat_sys_ipc.3/include/linux/syscalls.h	2005-04-06 13:39:42.000=
-000000 +1000
-@@ -456,8 +456,7 @@ asmlinkage long sys_semctl(int semid, in
- asmlinkage long sys_semtimedop(int semid, struct sembuf __user *sops,
- 				unsigned nsops,
- 				const struct timespec __user *timeout);
--asmlinkage long sys_shmat(int shmid, char __user *shmaddr,
--				int shmflg, unsigned long __user *addr);
-+asmlinkage long sys_shmat(int shmid, char __user *shmaddr, int shmflg);
- asmlinkage long sys_shmget(key_t key, size_t size, int flag);
- asmlinkage long sys_shmdt(char __user *shmaddr);
- asmlinkage long sys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf=
-);
-diff -ruNp linus/ipc/shm.c linus-compat_sys_ipc.3/ipc/shm.c
---- linus/ipc/shm.c	2005-03-18 04:08:16.000000000 +1100
-+++ linus-compat_sys_ipc.3/ipc/shm.c	2005-04-06 13:42:38.000000000 +1000
-@@ -28,6 +28,7 @@
- #include <linux/security.h>
- #include <linux/syscalls.h>
- #include <linux/audit.h>
-+#include <linux/ptrace.h>	/* for force_successful_syscall_return() */
- #include <asm/uaccess.h>
-=20
- #include "util.h"
-@@ -772,6 +773,40 @@ out:
- }
-=20
- /*
-+ * Attach a shared memory segment.  This version of the system
-+ * call returns the attached address through the last parameter.
-+ */
-+long ipc_shmat(int shmid, char __user *shmaddr, int shmflg,
-+		unsigned long __user *addr)
-+{
-+	ulong raddr;
-+	long ret;
-+
-+	if (!access_ok(VERIFY_WRITE, addr, sizeof(*addr)))
-+		return -EFAULT;
-+	ret =3D do_shmat(shmid, shmaddr, shmflg, &raddr);
-+	if (ret =3D=3D 0)
-+		ret =3D __put_user(raddr, addr);
-+	return ret;
-+}
-+
-+/*
-+ * Attach a shared memory segment.  This version of the system
-+ * call returns the attached address as its return value
-+ */
-+asmlinkage long sys_shmat(int shmid, char __user *shmaddr, int shmflg)
-+{
-+	ulong raddr;
-+	long ret;
-+
-+	ret =3D do_shmat(shmid, shmaddr, shmflg, &raddr);
-+	if (ret < 0)
-+		return ret;
-+	force_successful_syscall_return();
-+	return raddr;
-+}
-+
-+/*
-  * detach and kill segment if marked destroyed.
-  * The work is done in shm_close.
+ #define USER_PTRS_PER_PGD	(TASK_SIZE/PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ /* Virtual address region for use by kernel_map() */
+ #ifdef CONFIG_SUN3
+--- 2.6.12-rc2-mm1/include/asm-mips/pgtable-32.h	2005-03-02 07:38:57.000000000 +0000
++++ linux/include/asm-mips/pgtable-32.h	2005-04-05 18:59:00.000000000 +0100
+@@ -74,7 +74,7 @@ extern int add_temporary_entry(unsigned 
+ #define PTRS_PER_PTE	((PAGE_SIZE << PTE_ORDER) / sizeof(pte_t))
+ 
+ #define USER_PTRS_PER_PGD	(0x80000000UL/PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #define VMALLOC_START     KSEG2
+ 
+--- 2.6.12-rc2-mm1/include/asm-mips/pgtable-64.h	2004-12-24 21:36:18.000000000 +0000
++++ linux/include/asm-mips/pgtable-64.h	2005-04-05 18:59:00.000000000 +0100
+@@ -89,7 +89,7 @@
+ #define PTRS_PER_PTE	((PAGE_SIZE << PTE_ORDER) / sizeof(pte_t))
+ 
+ #define USER_PTRS_PER_PGD	(TASK_SIZE / PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #define VMALLOC_START		XKSEG
+ #define VMALLOC_END	\
+--- 2.6.12-rc2-mm1/include/asm-parisc/pgtable.h	2005-04-05 15:20:57.000000000 +0100
++++ linux/include/asm-parisc/pgtable.h	2005-04-05 18:59:00.000000000 +0100
+@@ -120,7 +120,7 @@
+  * pgd entries used up by user/kernel:
   */
-diff -ruNp linus/kernel/sys_ni.c linus-compat_sys_ipc.3/kernel/sys_ni.c
---- linus/kernel/sys_ni.c	2005-03-29 16:06:38.000000000 +1000
-+++ linus-compat_sys_ipc.3/kernel/sys_ni.c	2005-04-06 13:43:03.000000000 +1=
-000
-@@ -52,6 +52,7 @@ cond_syscall(sys_msgsnd);
- cond_syscall(sys_msgrcv);
- cond_syscall(sys_msgctl);
- cond_syscall(sys_shmget);
-+cond_syscall(sys_shmat);
- cond_syscall(sys_shmdt);
- cond_syscall(sys_shmctl);
- cond_syscall(sys_mq_open);
-
---Signature=_Thu__7_Apr_2005_01_05_01_+1000_Kqy8gRbjek1.g5L8
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.0 (GNU/Linux)
-
-iD8DBQFCU/qi4CJfqux9a+8RAgNTAJ9ZrMQDlYf0cOk59FinxQIZO5uP9gCdHj/h
-NMdUQJ/6jKi+IpIxQFSuHQw=
-=1Ful
------END PGP SIGNATURE-----
-
---Signature=_Thu__7_Apr_2005_01_05_01_+1000_Kqy8gRbjek1.g5L8--
+ 
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #ifndef __ASSEMBLY__
+ extern  void *vmalloc_start;
+--- 2.6.12-rc2-mm1/include/asm-ppc/pgtable.h	2005-04-05 15:20:57.000000000 +0100
++++ linux/include/asm-ppc/pgtable.h	2005-04-05 18:59:01.000000000 +0100
+@@ -96,7 +96,7 @@ extern unsigned long ioremap_bot, iorema
+ #define PTRS_PER_PGD	(1 << (32 - PGDIR_SHIFT))
+ 
+ #define USER_PTRS_PER_PGD	(TASK_SIZE / PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #define USER_PGD_PTRS (PAGE_OFFSET >> PGDIR_SHIFT)
+ #define KERNEL_PGD_PTRS (PTRS_PER_PGD-USER_PGD_PTRS)
+--- 2.6.12-rc2-mm1/include/asm-ppc64/pgtable.h	2005-04-05 15:22:59.000000000 +0100
++++ linux/include/asm-ppc64/pgtable.h	2005-04-05 18:59:01.000000000 +0100
+@@ -41,7 +41,7 @@
+ #define PTRS_PER_PGD	(1 << PGD_INDEX_SIZE)
+ 
+ #define USER_PTRS_PER_PGD	(1024)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #define EADDR_SIZE (PTE_INDEX_SIZE + PMD_INDEX_SIZE + \
+                     PGD_INDEX_SIZE + PAGE_SHIFT) 
+--- 2.6.12-rc2-mm1/include/asm-s390/pgtable.h	2005-04-05 15:20:57.000000000 +0100
++++ linux/include/asm-s390/pgtable.h	2005-04-05 18:59:01.000000000 +0100
+@@ -95,14 +95,14 @@ extern char empty_zero_page[PAGE_SIZE];
+ # define USER_PTRS_PER_PGD  512
+ # define USER_PGD_PTRS      512
+ # define KERNEL_PGD_PTRS    512
+-# define FIRST_USER_PGD_NR  0
+ #else /* __s390x__ */
+ # define USER_PTRS_PER_PGD  2048
+ # define USER_PGD_PTRS      2048
+ # define KERNEL_PGD_PTRS    2048
+-# define FIRST_USER_PGD_NR  0
+ #endif /* __s390x__ */
+ 
++#define FIRST_USER_ADDRESS  0
++
+ #define pte_ERROR(e) \
+ 	printk("%s:%d: bad pte %p.\n", __FILE__, __LINE__, (void *) pte_val(e))
+ #define pmd_ERROR(e) \
+--- 2.6.12-rc2-mm1/include/asm-sh/pgtable.h	2005-04-05 15:20:58.000000000 +0100
++++ linux/include/asm-sh/pgtable.h	2005-04-05 18:59:01.000000000 +0100
+@@ -44,7 +44,7 @@ extern unsigned long empty_zero_page[102
+ #define PGDIR_MASK	(~(PGDIR_SIZE-1))
+ 
+ #define USER_PTRS_PER_PGD	(TASK_SIZE/PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #define PTE_PHYS_MASK	0x1ffff000
+ 
+--- 2.6.12-rc2-mm1/include/asm-sh64/pgtable.h	2005-04-05 15:20:58.000000000 +0100
++++ linux/include/asm-sh64/pgtable.h	2005-04-05 18:59:01.000000000 +0100
+@@ -238,7 +238,7 @@ static inline pmd_t * pmd_offset(pgd_t *
+ 
+ /* Round it up ! */
+ #define USER_PTRS_PER_PGD	((TASK_SIZE+PGDIR_SIZE-1)/PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #ifndef __ASSEMBLY__
+ #define VMALLOC_END	0xff000000
+--- 2.6.12-rc2-mm1/include/asm-sparc/pgtable.h	2005-04-05 15:20:58.000000000 +0100
++++ linux/include/asm-sparc/pgtable.h	2005-04-05 18:59:01.000000000 +0100
+@@ -63,7 +63,7 @@ BTFIXUPDEF_INT(page_kernel)
+ #define PTRS_PER_PMD    	BTFIXUP_SIMM13(ptrs_per_pmd)
+ #define PTRS_PER_PGD    	BTFIXUP_SIMM13(ptrs_per_pgd)
+ #define USER_PTRS_PER_PGD	BTFIXUP_SIMM13(user_ptrs_per_pgd)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ #define PTE_SIZE		(PTRS_PER_PTE*4)
+ 
+ #define PAGE_NONE      __pgprot(BTFIXUP_INT(page_none))
+--- 2.6.12-rc2-mm1/include/asm-sparc64/pgtable.h	2005-04-05 15:22:59.000000000 +0100
++++ linux/include/asm-sparc64/pgtable.h	2005-04-05 18:59:01.000000000 +0100
+@@ -78,7 +78,7 @@
+ #define PTRS_PER_PGD	(1UL << PGDIR_BITS)
+ 
+ /* Kernel has a separate 44bit address space. */
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #define pte_ERROR(e)	__builtin_trap()
+ #define pmd_ERROR(e)	__builtin_trap()
+--- 2.6.12-rc2-mm1/include/asm-um/pgtable-2level.h	2005-04-05 15:20:58.000000000 +0100
++++ linux/include/asm-um/pgtable-2level.h	2005-04-05 18:59:01.000000000 +0100
+@@ -23,7 +23,7 @@
+ #define PTRS_PER_PTE	1024
+ #define USER_PTRS_PER_PGD ((TASK_SIZE + (PGDIR_SIZE - 1)) / PGDIR_SIZE)
+ #define PTRS_PER_PGD	1024
+-#define FIRST_USER_PGD_NR       0
++#define FIRST_USER_ADDRESS	0
+ 
+ #define pte_ERROR(e) \
+         printk("%s:%d: bad pte %p(%08lx).\n", __FILE__, __LINE__, &(e), \
+--- 2.6.12-rc2-mm1/include/asm-um/pgtable-3level.h	2005-04-05 15:20:58.000000000 +0100
++++ linux/include/asm-um/pgtable-3level.h	2005-04-05 18:59:01.000000000 +0100
+@@ -31,7 +31,7 @@
+ #define PTRS_PER_PMD 512
+ #define USER_PTRS_PER_PGD ((TASK_SIZE + (PGDIR_SIZE - 1)) / PGDIR_SIZE)
+ #define PTRS_PER_PGD 512
+-#define FIRST_USER_PGD_NR       0
++#define FIRST_USER_ADDRESS	0
+ 
+ #define pte_ERROR(e) \
+         printk("%s:%d: bad pte %p(%016lx).\n", __FILE__, __LINE__, &(e), \
+--- 2.6.12-rc2-mm1/include/asm-x86_64/pgtable.h	2005-04-05 15:20:58.000000000 +0100
++++ linux/include/asm-x86_64/pgtable.h	2005-04-05 18:59:01.000000000 +0100
+@@ -114,7 +114,7 @@ extern inline void pgd_clear (pgd_t * pg
+ #define PGDIR_MASK	(~(PGDIR_SIZE-1))
+ 
+ #define USER_PTRS_PER_PGD	(TASK_SIZE/PGDIR_SIZE)
+-#define FIRST_USER_PGD_NR	0
++#define FIRST_USER_ADDRESS	0
+ 
+ #ifndef __ASSEMBLY__
+ #define MAXMEM		 0x3fffffffffffUL
