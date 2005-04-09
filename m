@@ -1,54 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Message-ID: <42577602.8090507@yahoo.com.au>
-Date: Sat, 09 Apr 2005 16:28:18 +1000
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
+Date: Sat, 9 Apr 2005 08:55:07 +0200
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [patch] sched: unlocked context-switches
-References: <B8E391BBE9FE384DAA4C5C003888BE6F033DB07E@scsmsx401.amr.corp.intel.com> <20050409043848.GA2677@elte.hu>
-In-Reply-To: <20050409043848.GA2677@elte.hu>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
-To: Ingo Molnar <mingo@elte.hu>
+Message-ID: <20050409065507.GA4866@elte.hu>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F033DB07E@scsmsx401.amr.corp.intel.com> <20050409043848.GA2677@elte.hu> <42577602.8090507@yahoo.com.au>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <42577602.8090507@yahoo.com.au>
+To: Nick Piggin <nickpiggin@yahoo.com.au>
 Cc: "Luck, Tony" <tony.luck@intel.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Ingo Molnar wrote:
-> * Luck, Tony <tony.luck@intel.com> wrote:
+
+* Nick Piggin <nickpiggin@yahoo.com.au> wrote:
+
+> Well that does look like a pretty good cleanup. It certainly is the 
+> final step in freeing complex architecture switching code from 
+> entanglement with scheduler internal locking, and unifies the locking 
+> scheme.
 > 
-> 
->>>tested on x86, and all other arches should work as well, but if an 
->>>architecture has irqs-off assumptions in its switch_to() logic 
->>>it might break. (I havent found any but there may such assumptions.)
->>
->>The ia64_switch_to() code includes a section that can change a pinned
->>MMU mapping (when the stack for the new process is in a different
->>granule from the stack for the old process).  [...]
-> 
-> 
-> thanks - updated patch below. Any other architectures that switch the 
-> kernel stack in a nonatomic way? x86/x64 switches it atomically.
-> 
+> I did propose doing unconditionally unlocked switches a while back 
+> when my patch first popped up - you were against it then, but I guess 
+> you've had second thoughts?
 
-Well that does look like a pretty good cleanup. It certainly is
-the final step in freeing complex architecture switching code
-from entanglement with scheduler internal locking, and unifies
-the locking scheme.
+the reordering of switch_to() and the switch_mm()-related logic was that 
+made it really worthwile and clean. I.e. we pick a task atomically, we 
+switch stacks, and then we switch the MM. Note that this setup still 
+leaves the possibility open to move the stack-switching back under the 
+irq-disabled section in a natural way.
 
-I did propose doing unconditionally unlocked switches a while
-back when my patch first popped up - you were against it then,
-but I guess you've had second thoughts?
+> It does add an extra couple of stores to on_cpu, and a wmb() for 
+> architectures that didn't previously need the unlocked switches. And 
+> ia64 needs the extra interrupt disable / enable. Probably worth it?
 
-It does add an extra couple of stores to on_cpu, and a wmb()
-for architectures that didn't previously need the unlocked
-switches. And ia64 needs the extra interrupt disable / enable.
-Probably worth it?
+it also removes extra stores to rq->prev_mm and other stores. I havent 
+measured any degradation on x86.
 
-Minor style request: I like that you're accessing ->on_cpu
-through functions so the !SMP case doesn't clutter the code
-with ifdefs... but can you do set_task_on_cpu(p) and
-clear_task_on_cpu(p) ?
+If the irq disable/enable becomes widespread i'll do another patch to 
+push the irq-enabling into switch_to() so the arch can do the 
+stack-switch first and then enable interrupts and do the rest - but i 
+didnt want to complicate things unnecessarily for now.
 
-Thanks.
+> Minor style request: I like that you're accessing ->on_cpu through 
+> functions so the !SMP case doesn't clutter the code with ifdefs... but 
+> can you do set_task_on_cpu(p) and clear_task_on_cpu(p) ?
 
--- 
-SUSE Labs, Novell Inc.
+yeah, i thought about these two variants and went for set_task_on_cpu() 
+so that it's less encapsulated (it's really just a conditional 
+assignment) and that it parallels set_task_cpu() use. But no strong 
+feelings either way. Anyway, lets try what we have now, i'll do the rest 
+in deltas.
+
+	Ingo
