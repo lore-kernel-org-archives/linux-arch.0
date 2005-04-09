@@ -1,55 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Sat, 9 Apr 2005 08:55:07 +0200
-From: Ingo Molnar <mingo@elte.hu>
+Message-ID: <42578019.7050501@yahoo.com.au>
+Date: Sat, 09 Apr 2005 17:11:21 +1000
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+MIME-Version: 1.0
 Subject: Re: [patch] sched: unlocked context-switches
-Message-ID: <20050409065507.GA4866@elte.hu>
-References: <B8E391BBE9FE384DAA4C5C003888BE6F033DB07E@scsmsx401.amr.corp.intel.com> <20050409043848.GA2677@elte.hu> <42577602.8090507@yahoo.com.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <42577602.8090507@yahoo.com.au>
-To: Nick Piggin <nickpiggin@yahoo.com.au>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F033DB07E@scsmsx401.amr.corp.intel.com> <20050409043848.GA2677@elte.hu> <42577602.8090507@yahoo.com.au> <20050409065507.GA4866@elte.hu>
+In-Reply-To: <20050409065507.GA4866@elte.hu>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
+To: Ingo Molnar <mingo@elte.hu>
 Cc: "Luck, Tony" <tony.luck@intel.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-
-* Nick Piggin <nickpiggin@yahoo.com.au> wrote:
-
-> Well that does look like a pretty good cleanup. It certainly is the 
-> final step in freeing complex architecture switching code from 
-> entanglement with scheduler internal locking, and unifies the locking 
-> scheme.
+Ingo Molnar wrote:
+> * Nick Piggin <nickpiggin@yahoo.com.au> wrote:
 > 
-> I did propose doing unconditionally unlocked switches a while back 
-> when my patch first popped up - you were against it then, but I guess 
-> you've had second thoughts?
+> 
 
-the reordering of switch_to() and the switch_mm()-related logic was that 
-made it really worthwile and clean. I.e. we pick a task atomically, we 
-switch stacks, and then we switch the MM. Note that this setup still 
-leaves the possibility open to move the stack-switching back under the 
-irq-disabled section in a natural way.
+>>I did propose doing unconditionally unlocked switches a while back 
+>>when my patch first popped up - you were against it then, but I guess 
+>>you've had second thoughts?
+> 
+> 
+> the reordering of switch_to() and the switch_mm()-related logic was that 
+> made it really worthwile and clean. I.e. we pick a task atomically, we 
+> switch stacks, and then we switch the MM. Note that this setup still 
+> leaves the possibility open to move the stack-switching back under the 
+> irq-disabled section in a natural way.
+> 
 
-> It does add an extra couple of stores to on_cpu, and a wmb() for 
-> architectures that didn't previously need the unlocked switches. And 
-> ia64 needs the extra interrupt disable / enable. Probably worth it?
+Yeah true. I didn't come up with code for you to look at at
+that point anyway so you were obviously just speculating!
 
-it also removes extra stores to rq->prev_mm and other stores. I havent 
-measured any degradation on x86.
+> 
+>>It does add an extra couple of stores to on_cpu, and a wmb() for 
+>>architectures that didn't previously need the unlocked switches. And 
+>>ia64 needs the extra interrupt disable / enable. Probably worth it?
+> 
+> 
+> it also removes extra stores to rq->prev_mm and other stores. I havent 
+> measured any degradation on x86.
+> 
 
-If the irq disable/enable becomes widespread i'll do another patch to 
-push the irq-enabling into switch_to() so the arch can do the 
-stack-switch first and then enable interrupts and do the rest - but i 
-didnt want to complicate things unnecessarily for now.
+Yeah true, although that is just a single cacheline (which will be
+hot for any context switch heavy workload).
 
-> Minor style request: I like that you're accessing ->on_cpu through 
-> functions so the !SMP case doesn't clutter the code with ifdefs... but 
-> can you do set_task_on_cpu(p) and clear_task_on_cpu(p) ?
+On the other hand, I tried put oncpu near other fields that are
+accessed during context switch, so maybe its not an issue.
 
-yeah, i thought about these two variants and went for set_task_on_cpu() 
-so that it's less encapsulated (it's really just a conditional 
-assignment) and that it parallels set_task_cpu() use. But no strong 
-feelings either way. Anyway, lets try what we have now, i'll do the rest 
-in deltas.
+> If the irq disable/enable becomes widespread i'll do another patch to 
+> push the irq-enabling into switch_to() so the arch can do the 
+> stack-switch first and then enable interrupts and do the rest - but i 
+> didnt want to complicate things unnecessarily for now.
+> 
+> 
+>>Minor style request: I like that you're accessing ->on_cpu through 
+>>functions so the !SMP case doesn't clutter the code with ifdefs... but 
+>>can you do set_task_on_cpu(p) and clear_task_on_cpu(p) ?
+> 
+> 
+> yeah, i thought about these two variants and went for set_task_on_cpu() 
+> so that it's less encapsulated (it's really just a conditional 
+> assignment) and that it parallels set_task_cpu() use. But no strong 
+> feelings either way. Anyway, lets try what we have now, i'll do the rest 
+> in deltas.
+> 
 
-	Ingo
+Sounds good.
+
+-- 
+SUSE Labs, Novell Inc.
