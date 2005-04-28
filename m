@@ -1,37 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
+Date: Thu, 28 Apr 2005 14:59:56 -0400
+Sender: Benjamin LaHaise <bcrl@kvack.org>
+From: Benjamin LaHaise <bcrl@kvack.org>
 Subject: Re: [RFC] unify semaphore implementations
-From: James Bottomley <James.Bottomley@steeleye.com>
-In-Reply-To: <20050428182926.GC16545@kvack.org>
-References: <20050428182926.GC16545@kvack.org>
-Content-Type: text/plain
-Date: Thu, 28 Apr 2005 11:48:09 -0700
-Message-Id: <1114714089.5022.3.camel@mulgrave>
+Message-ID: <20050428185956.GD16545@kvack.org>
+References: <20050428182926.GC16545@kvack.org> <1114714089.5022.3.camel@mulgrave>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
-To: Benjamin LaHaise <bcrl@kvack.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1114714089.5022.3.camel@mulgrave>
+To: James Bottomley <James.Bottomley@steeleye.com>
 Cc: linux-arch@vger.kernel.org, Linux Kernel <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2005-04-28 at 14:29 -0400, Benjamin LaHaise wrote:
-> Please review the following series of patches for unifying the 
-> semaphore implementation across all architectures (not posted as 
-> they're about 350K), as they have only been tested on x86-64.  The 
-> code generated is functionally identical to the earlier i386 
-> variant, but since gcc has no way of taking condition codes as 
-> results, there are two additional instructions inserted from the 
-> use of generic atomic operations.  All told the >6000 lines of code 
-> deleted makes for a much easier job for subsequent patches changing 
-> semaphore functionality.  Cheers,
+On Thu, Apr 28, 2005 at 11:48:09AM -0700, James Bottomley wrote:
+> Could you come up with a less monolithic way to share this so that we
+> can still do a spinlock semaphore implementation instead of an atomic op
+> based one?
 
-It's all very well for platforms that have efficient atomic operations.
-However, on parisc we have no such luxury (the processor has no atomic
-operations, so we have to fiddle them in the kernel using locks), so it
-looks like you're making our semaphore operations less efficient.
+As I read the code, it doesn't make a difference: parisc will take a 
+spin lock within the atomic operation and then release it, which makes 
+the old fast path for the semaphores and the new fast path pretty much 
+equivalent (they both take and release one spinlock).  The only extra 
+cost is the address computation for the spinlock.  If there is contention 
+for the atomic spinlocks, then parisc can increase the number of buckets 
+in their hashed spinlocks.
 
-Could you come up with a less monolithic way to share this so that we
-can still do a spinlock semaphore implementation instead of an atomic op
-based one?
-
-Thanks,
-
-James
+		-ben
+-- 
+"Time is what keeps everything from happening all at once." -- John Wheeler
