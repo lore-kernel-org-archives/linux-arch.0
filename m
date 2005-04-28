@@ -1,147 +1,394 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Thu, 28 Apr 2005 23:40:05 +0100
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [RFC] unify semaphore implementations
-Message-ID: <20050428234005.A19778@flint.arm.linux.org.uk>
-References: <20050428182926.GC16545@kvack.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20050428182926.GC16545@kvack.org>; from bcrl@kvack.org on Thu, Apr 28, 2005 at 02:29:26PM -0400
-Sender: Russell King <rmk@arm.linux.org.uk>
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20050428182926.GC16545@kvack.org> 
+References: <20050428182926.GC16545@kvack.org> 
+Subject: Re: [RFC] unify semaphore implementations 
+Date: Thu, 28 Apr 2005 23:54:21 +0100
+Message-ID: <10852.1114728861@redhat.com>
+Sender: dhowells@redhat.com
 To: Benjamin LaHaise <bcrl@kvack.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Apr 28, 2005 at 02:29:26PM -0400, Benjamin LaHaise wrote:
+
+Benjamin LaHaise <bcrl@kvack.org> wrote:
+
 > Please review the following series of patches for unifying the 
 > semaphore implementation across all architectures (not posted as 
-> they're about 350K), as they have only been tested on x86-64.  The 
-> code generated is functionally identical to the earlier i386 
-> variant, but since gcc has no way of taking condition codes as 
-> results, there are two additional instructions inserted from the 
-> use of generic atomic operations.  All told the >6000 lines of code 
-> deleted makes for a much easier job for subsequent patches changing 
-> semaphore functionality.  Cheers,
+> they're about 350K), as they have only been tested on x86-64.
 
-I'm not sure why we're doing this, apart from a desire to unify stuff.
-What happened to efficiency and performance?
+It's not as efficient as it could be. You get the semaphore spinlock again in
+down_*failed() after you've slept. You can probably avoid doing that. If you
+want just to wake up the first thing in the queue each time (as you seem to do
+by using add_wait_queue_exclusive_locked()) then why not do as rwsems do and
+make up() transfer ownership directly? up() has to take the spinlock anyway
+when it examines the queue of sleepers. That way up() can also transfer the
+ownership to things other than processes also; something that doesn't appear
+easy with waitqueues.
 
-It is my understanding that the inline part of the semaphore
-implementation was one of the critical areas - critical enough to
-warrant coding it in assembly for some people.
+And if you want to thoroughly test and benchmark your semaphores, see the
+attached module. It tests both semaphores (as mutexes) and rw-semaphores.
 
-So, I set about testing this implementation against the ARM
-implementation.  For this, I used this code:
+David
 
-void it(struct semaphore *sem, int *val)
+/* rwsem-any.c: run some threads to do R/W semaphore tests
+ *
+ * Copyright (C) 2005 Red Hat, Inc. All Rights Reserved.
+ * Written by David Howells (dhowells@redhat.com)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version
+ * 2 of the License, or (at your option) any later version.
+ *
+ * run as: insmod rwsem-any.ko rd=1 wr=1 dg=0 mx=0
+ */
+
+#include <linux/config.h>
+#include <linux/module.h>
+#include <linux/poll.h>
+#include <linux/moduleparam.h>
+#include <linux/stat.h>
+#include <linux/init.h>
+#include <asm/atomic.h>
+#include <linux/personality.h>
+#include <linux/smp_lock.h>
+#include <linux/delay.h>
+#include <linux/timer.h>
+#include <linux/completion.h>
+
+#define SCHED
+#define LOAD_TEST
+
+static int nummx = 0, numrd = 1, numwr = 1, numdg = 1, elapse = 5;
+static int verbose = 0;
+
+MODULE_AUTHOR("David Howells");
+MODULE_DESCRIPTION("R/W semaphore test demo");
+MODULE_LICENSE("GPL");
+
+module_param_named(v, verbose, int, 0);
+MODULE_PARM_DESC(verbose, "Verbosity");
+
+module_param_named(mx, nummx, int, 0);
+MODULE_PARM_DESC(nummx, "Number of mutex threads");
+
+module_param_named(rd, numrd, int, 0);
+MODULE_PARM_DESC(numrd, "Number of reader threads");
+
+module_param_named(wr, numwr, int, 0);
+MODULE_PARM_DESC(numwr, "Number of writer threads");
+
+module_param_named(dg, numdg, int, 0);
+MODULE_PARM_DESC(numdg, "Number of downgrader threads");
+
+module_param(elapse, int, 0);
+MODULE_PARM_DESC(elapse, "Number of seconds to run for");
+
+#ifdef LOAD_TEST
+static int load = 0;
+module_param(load, int, 0);
+MODULE_PARM_DESC(load, "Length of load in uS");
+#endif
+
+#ifdef SCHED
+static int do_sched = 0;
+module_param(do_sched, int, 0);
+MODULE_PARM_DESC(do_sched, "True if each thread should schedule regularly");
+#endif
+
+/* the semaphores under test */
+static struct semaphore mutex_sem;
+static struct rw_semaphore rwsem_sem;
+
+
+#ifdef DEBUG_RWSEM
+extern struct rw_semaphore *rwsem_to_monitor;
+#endif
+
+static atomic_t mutexes = ATOMIC_INIT(0);
+static atomic_t readers = ATOMIC_INIT(0);
+static atomic_t writers = ATOMIC_INIT(0);
+static atomic_t do_stuff = ATOMIC_INIT(0);
+static atomic_t mutexes_taken = ATOMIC_INIT(0);
+static atomic_t reads_taken = ATOMIC_INIT(0);
+static atomic_t writes_taken = ATOMIC_INIT(0);
+static atomic_t downgrades_taken = ATOMIC_INIT(0);
+
+static struct completion mx_comp[20], rd_comp[20], wr_comp[20], dg_comp[20];
+
+static struct timer_list timer;
+
+#define CHECK(expr)							\
+do {									\
+	if (!(expr))							\
+		printk("check " #expr " failed in %s\n", __func__);	\
+} while (0)
+
+#define CHECKA(var, val)									\
+do {												\
+	int x = atomic_read(&(var));								\
+	if (x != (val))										\
+		printk("check [%s != %d, == %d] failed in %s\n", #var, (val), x, __func__);	\
+} while (0)
+
+static inline void d(void)
 {
-        down(sem);
-        *val = *val + 1;
-        up(sem);
+	down(&mutex_sem);
+	atomic_inc(&mutexes);
+	atomic_inc(&mutexes_taken);
+	CHECKA(mutexes, 1);
 }
 
-which is a relatively simple test case.
+static inline void u(void)
+{
+	CHECKA(mutexes, 1);
+	atomic_dec(&mutexes);
+	up(&mutex_sem);
+}
 
-The ARM assembly implementation for this gave:
+static inline void dr(void)
+{
+	down_read(&rwsem_sem);
+	atomic_inc(&readers);
+	atomic_inc(&reads_taken);
+	CHECKA(writers, 0);
+}
 
-        str     lr, [sp, #-4]!
-        @ down_op
-        mrs     ip, cpsr		@ local_irq_save
-        orr     lr, ip, #128
-        msr     cpsr_c, lr
-        ldr     lr, [r0]
-        subs    lr, lr, #1
-        str     lr, [r0]
-        msr     cpsr_c, ip		@ local_irq_restore
-        movmi   ip, r0
-        blmi    __down_failed
-        ldr     r3, [r1, #0]
-        add     r3, r3, #1
-        str     r3, [r1, #0]
-        @ up_op
-        mrs     ip, cpsr		@ local_irq_save
-        orr     lr, ip, #128
-        msr     cpsr_c, lr
-        ldr     lr, [r0]
-        adds    lr, lr, #1
-        str     lr, [r0]
-        msr     cpsr_c, ip		@ local_irq_restore
-        movle   ip, r0
-        blle    __up_wakeup
-        ldr     pc, [sp], #4
+static inline void ur(void)
+{
+	CHECKA(writers, 0);
+	atomic_dec(&readers);
+	up_read(&rwsem_sem);
+}
 
-Stack: 1 location
-Registers: 3 on top of the two arguments
-Instructions: 23, 23 in the common execution path.
+static inline void dw(void)
+{
+	down_write(&rwsem_sem);
+	atomic_inc(&writers);
+	atomic_inc(&writes_taken);
+	CHECKA(writers, 1);
+	CHECKA(readers, 0);
+}
 
-The atomic-op based implementation gave:
+static inline void uw(void)
+{
+	CHECKA(writers, 1);
+	CHECKA(readers, 0);
+	atomic_dec(&writers);
+	up_write(&rwsem_sem);
+}
 
-        stmfd   sp!, {r4, r5, lr}
-        mov     r5, r1
-        mov     r4, r0
-        mrs     r2, cpsr                @ local_irq_save
-        orr     r1, r2, #128
-        msr     cpsr_c, r1
-        ldr     r3, [r0, #0]
-        sub     r3, r3, #1
-        str     r3, [r0, #0]
-        msr     cpsr_c, r2              @ local_irq_restore
-        cmp     r3, #0
-        blt     .L8
-.L4:    ldr     r3, [r5, #0]
-        add     r3, r3, #1
-        str     r3, [r5, #0]
-        mrs     r2, cpsr                @ local_irq_save
-        orr     r1, r2, #128
-        msr     cpsr_c, r1
-        ldr     r3, [r4, #0]
-        add     r3, r3, #1
-        str     r3, [r4, #0]
-        msr     cpsr_c, r2              @ local_irq_restore
-        cmp     r3, #0
-        mov     r0, r4
-        ldmgtfd sp!, {r4, r5, pc}
-        ldmfd   sp!, {r4, r5, lr}
-        b       up_wakeup
-.L8:    bl      down_failed
-        b       .L4
+static inline void dgw(void)
+{
+	CHECKA(writers, 1);
+	CHECKA(readers, 0);
+	atomic_dec(&writers);
+	atomic_inc(&readers);
+	downgrade_write(&rwsem_sem);
+	atomic_inc(&downgrades_taken);
+}
 
-Stack: 3 locations
-Registers: 5 on top of the two arguments
-Instructions: 29, 27 in the common execution path.
+static inline void sched(void)
+{
+#ifdef SCHED
+	if (do_sched)
+		schedule();
+#endif
+}
 
-So, Ben's implementation is more expensive in terms of stack usage,
-register usage, and number of instructions.
+int mutexer(void *arg)
+{
+	unsigned int N = (unsigned long) arg;
 
-Why is this?  The answer is that gcc is unable to properly optimise
-for ARM - I've no idea why.  One such simple thing is that the
-sequence:
+	daemonize("Mutex%u", N);
 
-	blt	.L8
-.L4:
-...
-.L8:	bl	down_failed
-	b	.L4
+	while (atomic_read(&do_stuff)) {
+		d();
+#ifdef LOAD_TEST
+		if (load)
+			udelay(load);
+#endif
+		u();
+		sched();
+	}
 
-can be easily rewritten as:
+	if (verbose)
+		printk("%s: done\n", current->comm);
+	complete_and_exit(&mx_comp[N], 0);
+}
 
-	bllt	down_failed
+int reader(void *arg)
+{
+	unsigned int N = (unsigned long) arg;
 
-Another reason for the extra code bloat is that GCC can't propagate
-PSR flags between the sub/add instructions across a memory barrier
-(which local_irq_restore is.)
+	daemonize("Read%u", N);
 
-This makes the ARM assembly code implementation superior to any unified
-version, no matter how you look at it from efficiency or performance
-points of view.  The _only_ win is that of unification.
+	while (atomic_read(&do_stuff)) {
+		dr();
+#ifdef LOAD_TEST
+		if (load)
+			udelay(load);
+#endif
+		ur();
+		sched();
+	}
 
-However, given that the kernel has bloated itself by 300K per stable
-kernel series on ARM for the same functionality, I'd prefer to keep
-my more efficient higher performance smaller code size semaphores
-please.
+	if (verbose)
+		printk("%s: done\n", current->comm);
+	complete_and_exit(&rd_comp[N], 0);
+}
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 Serial core
+int writer(void *arg)
+{
+	unsigned int N = (unsigned long) arg;
+
+	daemonize("Write%u", N);
+
+	while (atomic_read(&do_stuff)) {
+		dw();
+#ifdef LOAD_TEST
+		if (load)
+			udelay(load);
+#endif
+		uw();
+		sched();
+	}
+
+	if (verbose)
+		printk("%s: done\n", current->comm);
+	complete_and_exit(&wr_comp[N], 0);
+}
+
+int downgrader(void *arg)
+{
+	unsigned int N = (unsigned long) arg;
+
+	daemonize("Down%u", N);
+
+	while (atomic_read(&do_stuff)) {
+		dw();
+#ifdef LOAD_TEST
+		if (load)
+			udelay(load);
+#endif
+		dgw();
+#ifdef LOAD_TEST
+		if (load)
+			udelay(load);
+#endif
+		ur();
+		sched();
+	}
+
+	if (verbose)
+		printk("%s: done\n", current->comm);
+	complete_and_exit(&dg_comp[N], 0);
+}
+
+static void stop_test(unsigned long dummy)
+{
+	atomic_set(&do_stuff, 0);
+}
+
+/*****************************************************************************/
+/*
+ *
+ */
+static int __init rwsem_init_module(void)
+{
+	unsigned long loop;
+
+	if (verbose)
+		printk("\nrwsem_any starting tests...\n");
+
+	init_MUTEX(&mutex_sem);
+	init_rwsem(&rwsem_sem);
+	atomic_set(&do_stuff, 1);
+
+#ifdef DEBUG_RWSEM
+	rwsem_to_monitor = &rwsem_sem;
+#endif
+
+	/* kick off all the children */
+	for (loop = 0; loop < 20; loop++) {
+		if (loop < nummx) {
+			init_completion(&mx_comp[loop]);
+			kernel_thread(mutexer, (void *) loop, 0);
+		}
+
+		if (loop < numrd) {
+			init_completion(&rd_comp[loop]);
+			kernel_thread(reader, (void *) loop, 0);
+		}
+
+		if (loop < numwr) {
+			init_completion(&wr_comp[loop]);
+			kernel_thread(writer, (void *) loop, 0);
+		}
+
+		if (loop < numdg) {
+			init_completion(&dg_comp[loop]);
+			kernel_thread(downgrader, (void *) loop, 0);
+		}
+	}
+
+	/* set a stop timer */
+	init_timer(&timer);
+	timer.function = stop_test;
+	timer.expires = jiffies + elapse * HZ;
+	add_timer(&timer);
+
+	/* now wait until it's all done */
+	for (loop = 0; loop < nummx; loop++)
+		wait_for_completion(&mx_comp[loop]);
+
+	for (loop = 0; loop < numrd; loop++)
+		wait_for_completion(&rd_comp[loop]);
+
+	for (loop = 0; loop < numwr; loop++)
+		wait_for_completion(&wr_comp[loop]);
+
+	for (loop = 0; loop < numdg; loop++)
+		wait_for_completion(&dg_comp[loop]);
+
+	atomic_set(&do_stuff, 0);
+	del_timer(&timer);
+
+	/* print the results */
+	if (verbose) {
+#ifdef CONFIG_RWSEM_XCHGADD_ALGORITHM
+		printk("rwsem counter = %ld\n", rwsem_sem.count);
+#else
+		printk("rwsem counter = %d\n", rwsem_sem.activity);
+#endif
+
+		printk("mutexes taken: %d\n", atomic_read(&mutexes_taken));
+		printk("reads taken: %d\n", atomic_read(&reads_taken));
+		printk("writes taken: %d\n", atomic_read(&writes_taken));
+		printk("downgrades taken: %d\n", atomic_read(&downgrades_taken));
+	}
+	else {
+		printk("%3d %3d %3d %3d %c %3d %9d %9d %9d %9d\n",
+		       nummx, numrd, numwr, numdg,
+		       do_sched ? 's' : '-',
+#ifdef LOAD_TEST
+		       load,
+#else
+		       0,
+#endif
+		       atomic_read(&mutexes_taken),
+		       atomic_read(&reads_taken),
+		       atomic_read(&writes_taken),
+		       atomic_read(&downgrades_taken));
+	}
+
+#ifdef DEBUG_RWSEM
+	rwsem_to_monitor = NULL;
+#endif
+
+	/* tell insmod to discard the module */
+	return -ENOANO;
+} /* end rwsem_init_module() */
+
+module_init(rwsem_init_module);
