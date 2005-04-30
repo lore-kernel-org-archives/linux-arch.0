@@ -1,42 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Subject: Re: [RFC] unify semaphore implementations
-From: Trond Myklebust <trond.myklebust@fys.uio.no>
-In-Reply-To: <20050429141437.GA24617@kvack.org>
-References: <20050428182926.GC16545@kvack.org>
-	 <17009.33633.378204.859486@cargo.ozlabs.ibm.com>
-	 <20050429141437.GA24617@kvack.org>
-Content-Type: text/plain
-Date: Fri, 29 Apr 2005 11:42:00 -0400
-Message-Id: <1114789320.10086.81.camel@lade.trondhjem.org>
-Mime-Version: 1.0
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-To: Benjamin LaHaise <bcrl@kvack.org>
-Cc: Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <17010.58144.95239.716600@cargo.ozlabs.ibm.com>
+Date: Sat, 30 Apr 2005 11:45:04 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [RFC] unify semaphore implementations
+In-Reply-To: <1114789320.10086.81.camel@lade.trondhjem.org>
+References: <20050428182926.GC16545@kvack.org>
+	<17009.33633.378204.859486@cargo.ozlabs.ibm.com>
+	<20050429141437.GA24617@kvack.org>
+	<1114789320.10086.81.camel@lade.trondhjem.org>
+To: Trond Myklebust <trond.myklebust@fys.uio.no>
+Cc: Benjamin LaHaise <bcrl@kvack.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-fr den 29.04.2005 Klokka 10:14 (-0400) skreiv Benjamin LaHaise:
-> On Fri, Apr 29, 2005 at 10:44:17AM +1000, Paul Mackerras wrote:
-> > You have made semaphores bigger and slower on the architectures that
-> > have load-linked/store-conditional instructions, which is at least
-> > ppc, ppc64, sparc64 and alpha.  Did you take the trouble to understand
-> > the ppc semaphore implementation?
-> 
-> The ppc implementation does have some good ideas that are worth using.  
-> It's hard to know which of the 23 versions were worth using, but I'm 
-> getting a picture where at least 2 variants are need.  The atomic ops 
-> variant should use the single counter as ppc does (why did nobody port 
-> that to x86?).  A spinlock version is needed at least by parisc.
+Trond Myklebust writes:
 
-The PPC implementation would be hard to port to x86, since it relies on
-the load-linked/store-conditional stuff to provide a fast primitive for
-atomic_dec_if_positive().
-The only way I found to implement that on x86 was to use cmpxchg. On my
-machine, therefore, a spinlock-based semaphore implementation turns out
-to be at least as fast for the "fast" path (and is naturally much more
-efficient for the slow path).
+> The PPC implementation would be hard to port to x86, since it relies on
+> the load-linked/store-conditional stuff to provide a fast primitive for
+> atomic_dec_if_positive().
 
-Cheers,
-  Trond
+The only fast path that needs atomic_dec_if_positive is down_trylock.
+You can use atomic_dec for down_trylock instead; the only downside to
+that is that if somebody was holding the semaphore but nobody was
+waiting, the holder will take the slow path when it does the up.  Or
+you can use cmpxchg for down_trylock.  I believe that down_trylock is
+used much less than down and down_interruptible, so it shouldn't
+matter if down_trylock is a few nanoseconds slower than down.
 
--- 
-Trond Myklebust <trond.myklebust@fys.uio.no>
+> The only way I found to implement that on x86 was to use cmpxchg. On my
+> machine, therefore, a spinlock-based semaphore implementation turns out
+> to be at least as fast for the "fast" path (and is naturally much more
+> efficient for the slow path).
+
+What is "your machine"?  Is a single cmpxchg really slower than
+locking and unlocking a spinlock?  If so, by how much?
+
+Paul.
