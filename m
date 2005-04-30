@@ -2,26 +2,34 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Message-ID: <17010.58405.906123.715001@cargo.ozlabs.ibm.com>
-Date: Sat, 30 Apr 2005 11:49:25 +1000
+Message-ID: <17011.5098.292582.129522@cargo.ozlabs.ibm.com>
+Date: Sat, 30 Apr 2005 15:13:14 +1000
 From: Paul Mackerras <paulus@samba.org>
 Subject: Re: [RFC] unify semaphore implementations
-In-Reply-To: <20050429141437.GA24617@kvack.org>
+In-Reply-To: <17010.58144.95239.716600@cargo.ozlabs.ibm.com>
 References: <20050428182926.GC16545@kvack.org>
 	<17009.33633.378204.859486@cargo.ozlabs.ibm.com>
 	<20050429141437.GA24617@kvack.org>
-To: Benjamin LaHaise <bcrl@kvack.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+	<1114789320.10086.81.camel@lade.trondhjem.org>
+	<17010.58144.95239.716600@cargo.ozlabs.ibm.com>
+To: Trond Myklebust <trond.myklebust@fys.uio.no>, Benjamin LaHaise <bcrl@kvack.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Benjamin LaHaise writes:
+I wrote:
 
-> There are at least two users who need asynchronous semaphore/mutex 
-> operations: aio_write (which needs to acquire i_sem), and nfs.  
+> The only fast path that needs atomic_dec_if_positive is down_trylock.
+> You can use atomic_dec for down_trylock instead; the only downside to
+> that is that if somebody was holding the semaphore but nobody was
+> waiting, the holder will take the slow path when it does the up.
 
-What do you mean by asynchronous semaphore/mutex operations?  Are you
-talking about a down operation that will acquire the semaphore if it
-is free, but if not, arrange for a callback and return immediately, or
-something?
+Better still, on machines without ll/sc we can do down_trylock as:
+
+	return atomic_read(&sem->count) <= 0
+		|| atomic_add_negative(-1, &sem->count);
+
+Then we will only take the slow path unnecessarily on up() if another
+cpu decrements the count between the test and the atomic_add_negative,
+which should be very rare.  Doing the test will also avoid doing the
+atomic op if the semaphore is already held.
 
 Paul.
