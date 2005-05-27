@@ -1,37 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Message-Id: <1116478834.27371.234472372@webmail.messagingengine.com>
-From: "Deepak" <deepakgaur@fastmail.fm>
-Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain; charset="ISO-8859-1"
+From: Blaisorblade <blaisorblade@yahoo.it>
+Subject: Re: [patch 4/8] irq code: Add coherence test for PREEMPT_ACTIVE
+Date: Fri, 27 May 2005 03:06:09 +0200
+References: <20050527003843.433BA1AEE88@zion.home.lan>
+In-Reply-To: <20050527003843.433BA1AEE88@zion.home.lan>
 MIME-Version: 1.0
-Subject: Re: Real Time Signals In PowerPC Linux
-In-Reply-To: <1115336358.7568.198.camel@gaston>
-Date: Thu, 19 May 2005 14:00:34 +0900
-References: <1115185972.13333.233322686@webmail.messagingengine.com>
-   <1115278545.7628.180.camel@gaston>
-   <1115288796.27463.233424874@webmail.messagingengine.com>
-   <1115336358.7568.198.camel@gaston>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-arch@vger.kernel.org
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200505270306.09425.blaisorblade@yahoo.it>
+To: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: user-mode-linux-devel@lists.sourceforge.net, linuxsh-shmedia-dev@lists.sourceforge.net, linux-sh@m17n.org, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Yes It was indeed the issue of kill command version. I tried sending
-SIGRTMAX to a process using kill() and sigqueue() , both of them worked
-though 'kill -l' was still showing 32 signals. 
+On Friday 27 May 2005 02:38, blaisorblade@yahoo.it wrote:
+> After porting this fixlet to UML:
+>
+> http://linux.bkbits.net:8080/linux-2.5/cset@41791ab52lfMuF2i3V-eTIGRBbDYKQ
+>
+> , I've also added a warning which should refuse compilation with insane
+> values for PREEMPT_ACTIVE... maybe we should simply move PREEMPT_ACTIVE out
+> of architectures using GENERIC_IRQS.
+Ok, a grep shows that possible culprits (i.e. giving success to
+grep GENERIC_HARDIRQS arch/*/Kconfig, and using 0x4000000 as PREEMPT_ACTIVE, 
+as given by grep PREEMPT_ACTIVE include/asm-*/thread_info.h) are (at a first 
+glance): frv, sh, sh64.
 
-On Fri, 06 May 2005 09:39:18 +1000, "Benjamin Herrenschmidt"
-<benh@kernel.crashing.org> said:
-> On Thu, 2005-05-05 at 19:26 +0900, Deepak wrote:
-> > hi
-> > 
-> >   Well I did "kill -l" in linux (v2.4.20) installed on a powerpc board
-> >   and it listed only 32 signals, SIGRTMIN to SIGRTMAX were missing
-> 
-> Well, I don't know what's up with that kernel you are using, it works
-> fine here on 2.6.12 but I'm fairly sure it worked with 2.4.20 too. Maybe
-> a glibc or a kill version issue ?
-> 
-> Ben.
-> 
-> 
+After a bit of checking, I also verified if they had overriden the value of 
+HARDIRQ_BITS. Which they haven't (it seems it's defined exactly where 
+CONFIG_HARDIRQS is not used, i.e. nobody is using the ability to override it 
+currently).
+
+This was not a very deep investigation, however, so feel free to verify this 
+better.
+-- 
+Paolo Giarrusso, aka Blaisorblade
+Skype user "PaoloGiarrusso"
+Linux registered user n. 292729
+http://www.user-mode-linux.org/~blaisorblade
+
+	
+
+	
+		
+___________________________________ 
+Yahoo! Mail: gratis 1GB per i messaggi e allegati da 10MB 
+http://mail.yahoo.it
