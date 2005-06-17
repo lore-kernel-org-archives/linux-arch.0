@@ -1,88 +1,266 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chiara.elte.hu (chiara.elte.hu [157.181.150.200])
-	by mx1.elte.hu (Postfix) with ESMTP id 04A5D3240A4
-	for <linux-arch@vger.kernel.org>; Sun,  5 Jun 2005 12:41:57 +0200 (CEST)
-Date: Sun, 5 Jun 2005 12:42:46 +0200
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch] spinlock consolidation, v2
-Message-ID: <20050605104245.GA9303@elte.hu>
-References: <20050603154029.GA2995@elte.hu> <20050604113809.GD19819@infradead.org>
+Subject: Global spinlock vs local bit spin locks
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+Content-Type: multipart/mixed; boundary="=-GZ0Bqzx5/LGDqurDwtVm"
+Date: Fri, 17 Jun 2005 14:21:32 +1000
+Message-Id: <1118982092.5261.44.camel@npiggin-nld.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20050604113809.GD19819@infradead.org>
-Resent-To: linux-arch@vger.kernel.org
-Resent-Message-Id: <20050605104349.7355F1FC2@chiara.elte.hu>
-To: Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, Arjan van de Ven <arjanv@infradead.org>, Roman Zippel <zippel@linux-m68k.org>, Zwane Mwaikambo <zwane@arm.linux.org.uk>, Ingo Oeser <ioe-lkml@axxeo.de>, Andrew Morton <akpm@osdl.org>, Andi Kleen <ak@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@parcelfarce.linux.theplanet.co.uk>, "David S. Miller" <davem@redhat.com>
+To: "David S. Miller" <davem@davemloft.net>, anton@samba.org, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@osdl.org>, Peter Keilty <Peter.Keilty@hp.com>
 List-ID: <linux-arch.vger.kernel.org>
 
 
-* Christoph Hellwig <hch@infradead.org> wrote:
+--=-GZ0Bqzx5/LGDqurDwtVm
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-> > the latest version of the spinlock consolidation patch can be found at:
-> > 
-> >   http://redhat.com/~mingo/spinlock-patches/consolidate-spinlocks.patch
-> > 
-> > the patch is now complete in the sense that it does everything i wanted 
-> > it to do. If you have any other suggestions (or i have missed to 
-> > incorporate an earlier suggestion of yours), please yell.
-> 
-> Looks pretty nice, but your usage of asm-generic is totally wrong. 
-> files in asm-generic must only ever be used for default 
-> implementations of asm/ headers, and _never_ be included from common 
-> code.  But your asm-generic files are only ever used from 
-> linux/spinlock.h, so there's no point at all in splitting them out in 
-> the first time. [...]
+Hi,
 
-I see your point. My intention was to make the include file structure 
-completely symmetric and thus easy to review. The following table 
-illustrates how we build up the spinlock type and primitives in the SMP 
-and UP cases:
+Peter Keilty is running into some scalability problems with buffer
+head based IO. There are a couple of global spinlocks in the buffer
+completion path, and they're showing up on 16-way IA64 systems.
 
-   SMP                         |  UP
-   ----------------------------|-----------------------------------
-   asm/spinlock_types.h        |  asm-generic/spinlock_types_up.h
-   linux/spinlock_types.h      |  linux/spinlock_types.h
-   asm/spinlock.h              |  asm-generic/spinlock_up.h
-   linux/spinlock_smp.h        |  linux/spinlock_up.h
-   linux/spinlock.h            |  linux/spinlock.h
+Replacing these locks with a bit spin lock in the buffer head status
+field has been shown to eliminate the bouncing problem. We want to
+go with this unless anyone has an objection to the cost.
 
-as you can see in the list above, whenever something comes from the asm 
-directory, in the UP case we pick it from asm-generic. But i accept your 
-point that the use of asm-generic/ for this is improper, and i've moved 
-those files into include/linux/. (I also have renamed spinlock_smp.h and 
-spinlock_up.h to spinlock_api_smp.h and spinlock_api_up.h, to avoid the 
-filename clash.) The naming is still symmetric:
+There is a cost (though I haven't been able to measure a signficant
+change), but I think it will be outweighed by the the reduction in
+cacheline contention on even small SMPs doing IO.
 
-   SMP                         |  UP
-   ----------------------------|-----------------------------------
-   asm/spinlock_types_smp.h    |  linux/spinlock_types_up.h
-   linux/spinlock_types.h      |  linux/spinlock_types.h
-   asm/spinlock_smp.h          |  linux/spinlock_up.h
-   linux/spinlock_api_smp.h    |  linux/spinlock_api_up.h
-   linux/spinlock.h            |  linux/spinlock.h
+Any input would be appreciated.
 
-all this splitup structure was created based on a pretty simple rule:
-whenever some aspect is sufficiently dissimilar to be #ifdef
-CONFIG_SMP-ed, it gets into separate _smp and _up files. If it's generic
-and shared it gets into the main spinlock.h file. The splitups were only
-done to enable this clean structure.
+If anyone wants to run some tests, possibly the easiest would be to
+make ext2 on loopback on tmpfs (to test scalability, have one loop
+device for each CPU in the system and bind the loop threads to each
+CPU). Make sure ext2 block size is < PAGE_SIZE.
 
-> Similarly there's no point in a separate linux/spinlock_smp.h and 
-> linux/spinlock_up.h - it'll only cause some driver writers to include 
-> either of them directly and break the build for either UP or SMP. If 
-> you absolutely want to split them add an #error if not included from 
-> spinlock.h
 
-ok, i've added the #error protectors.
 
-> Little nitpick no 2: please include linux/*.h always before asm/*.h 
-> (in linux/jbd.h)
+--=-GZ0Bqzx5/LGDqurDwtVm
+Content-Disposition: attachment; filename=page_uptodate_lock-bh_lock.patch
+Content-Type: text/x-patch; name=page_uptodate_lock-bh_lock.patch; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-done.
+Use a bit spin lock in the first buffer of the page to synchronise
+asynch IO buffer completions, instead of the global page_uptodate_lock,
+which is showing some scalabilty problems.
 
-you can find the latest patch with all these fixes included, at:
+Signed-off-by: Nick Piggin <nickpiggin@yahoo.com.au>
 
-  http://redhat.com/~mingo/spinlock-patches/consolidate-spinlocks.patch
+Index: linux-2.6/fs/buffer.c
+===================================================================
+--- linux-2.6.orig/fs/buffer.c	2005-05-06 17:41:50.000000000 +1000
++++ linux-2.6/fs/buffer.c	2005-05-06 17:42:03.000000000 +1000
+@@ -538,9 +538,8 @@ static void free_more_memory(void)
+  */
+ static void end_buffer_async_read(struct buffer_head *bh, int uptodate)
+ {
+-	static DEFINE_SPINLOCK(page_uptodate_lock);
+ 	unsigned long flags;
+-	struct buffer_head *tmp;
++	struct buffer_head *first, *tmp;
+ 	struct page *page;
+ 	int page_uptodate = 1;
+ 
+@@ -561,7 +560,9 @@ static void end_buffer_async_read(struct
+ 	 * two buffer heads end IO at almost the same time and both
+ 	 * decide that the page is now completely done.
+ 	 */
+-	spin_lock_irqsave(&page_uptodate_lock, flags);
++	first = page_buffers(page);
++	local_irq_save(flags);
++	bit_spin_lock(BH_Uptd_Lock, &first->b_state);
+ 	clear_buffer_async_read(bh);
+ 	unlock_buffer(bh);
+ 	tmp = bh;
+@@ -574,7 +575,8 @@ static void end_buffer_async_read(struct
+ 		}
+ 		tmp = tmp->b_this_page;
+ 	} while (tmp != bh);
+-	spin_unlock_irqrestore(&page_uptodate_lock, flags);
++	bit_spin_unlock(BH_Uptd_Lock, &first->b_state);
++	local_irq_restore(flags);
+ 
+ 	/*
+ 	 * If none of the buffers had errors and they are all
+@@ -586,7 +588,8 @@ static void end_buffer_async_read(struct
+ 	return;
+ 
+ still_busy:
+-	spin_unlock_irqrestore(&page_uptodate_lock, flags);
++	bit_spin_unlock(BH_Uptd_Lock, &first->b_state);
++	local_irq_restore(flags);
+ 	return;
+ }
+ 
+@@ -597,9 +600,8 @@ still_busy:
+ void end_buffer_async_write(struct buffer_head *bh, int uptodate)
+ {
+ 	char b[BDEVNAME_SIZE];
+-	static DEFINE_SPINLOCK(page_uptodate_lock);
+ 	unsigned long flags;
+-	struct buffer_head *tmp;
++	struct buffer_head *tmp, *first;
+ 	struct page *page;
+ 
+ 	BUG_ON(!buffer_async_write(bh));
+@@ -619,7 +621,10 @@ void end_buffer_async_write(struct buffe
+ 		SetPageError(page);
+ 	}
+ 
+-	spin_lock_irqsave(&page_uptodate_lock, flags);
++	first = page_buffers(page);
++	local_irq_save(flags);
++	bit_spin_lock(BH_Uptd_Lock, &first->b_state);
++
+ 	clear_buffer_async_write(bh);
+ 	unlock_buffer(bh);
+ 	tmp = bh->b_this_page;
+@@ -630,12 +635,14 @@ void end_buffer_async_write(struct buffe
+ 		}
+ 		tmp = tmp->b_this_page;
+ 	}
+-	spin_unlock_irqrestore(&page_uptodate_lock, flags);
++	bit_spin_unlock(BH_Uptd_Lock, &first->b_state);
++	local_irq_restore(flags);
+ 	end_page_writeback(page);
+ 	return;
+ 
+ still_busy:
+-	spin_unlock_irqrestore(&page_uptodate_lock, flags);
++	bit_spin_unlock(BH_Uptd_Lock, &first->b_state);
++	local_irq_restore(flags);
+ 	return;
+ }
+ 
+Index: linux-2.6/include/linux/buffer_head.h
+===================================================================
+--- linux-2.6.orig/include/linux/buffer_head.h	2005-05-06 17:39:54.000000000 +1000
++++ linux-2.6/include/linux/buffer_head.h	2005-05-06 17:42:03.000000000 +1000
+@@ -19,6 +19,8 @@ enum bh_state_bits {
+ 	BH_Dirty,	/* Is dirty */
+ 	BH_Lock,	/* Is locked */
+ 	BH_Req,		/* Has been submitted for I/O */
++	BH_Uptd_Lock,	/* Only used by the first bh in a page, to serialise
++			   IO completion of other buffers in the page */
+ 
+ 	BH_Mapped,	/* Has a disk mapping */
+ 	BH_New,		/* Disk mapping was newly created by get_block */
 
-	Ingo
+
+--=-GZ0Bqzx5/LGDqurDwtVm
+Content-Disposition: attachment; filename=page_uptodate_lock-bh_lock.patch
+Content-Type: text/x-patch; name=page_uptodate_lock-bh_lock.patch; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+Use a bit spin lock in the first buffer of the page to synchronise
+asynch IO buffer completions, instead of the global page_uptodate_lock,
+which is showing some scalabilty problems.
+
+Signed-off-by: Nick Piggin <nickpiggin@yahoo.com.au>
+
+Index: linux-2.6/fs/buffer.c
+===================================================================
+--- linux-2.6.orig/fs/buffer.c	2005-05-06 17:41:50.000000000 +1000
++++ linux-2.6/fs/buffer.c	2005-05-06 17:42:03.000000000 +1000
+@@ -538,9 +538,8 @@ static void free_more_memory(void)
+  */
+ static void end_buffer_async_read(struct buffer_head *bh, int uptodate)
+ {
+-	static DEFINE_SPINLOCK(page_uptodate_lock);
+ 	unsigned long flags;
+-	struct buffer_head *tmp;
++	struct buffer_head *first, *tmp;
+ 	struct page *page;
+ 	int page_uptodate = 1;
+ 
+@@ -561,7 +560,9 @@ static void end_buffer_async_read(struct
+ 	 * two buffer heads end IO at almost the same time and both
+ 	 * decide that the page is now completely done.
+ 	 */
+-	spin_lock_irqsave(&page_uptodate_lock, flags);
++	first = page_buffers(page);
++	local_irq_save(flags);
++	bit_spin_lock(BH_Uptd_Lock, &first->b_state);
+ 	clear_buffer_async_read(bh);
+ 	unlock_buffer(bh);
+ 	tmp = bh;
+@@ -574,7 +575,8 @@ static void end_buffer_async_read(struct
+ 		}
+ 		tmp = tmp->b_this_page;
+ 	} while (tmp != bh);
+-	spin_unlock_irqrestore(&page_uptodate_lock, flags);
++	bit_spin_unlock(BH_Uptd_Lock, &first->b_state);
++	local_irq_restore(flags);
+ 
+ 	/*
+ 	 * If none of the buffers had errors and they are all
+@@ -586,7 +588,8 @@ static void end_buffer_async_read(struct
+ 	return;
+ 
+ still_busy:
+-	spin_unlock_irqrestore(&page_uptodate_lock, flags);
++	bit_spin_unlock(BH_Uptd_Lock, &first->b_state);
++	local_irq_restore(flags);
+ 	return;
+ }
+ 
+@@ -597,9 +600,8 @@ still_busy:
+ void end_buffer_async_write(struct buffer_head *bh, int uptodate)
+ {
+ 	char b[BDEVNAME_SIZE];
+-	static DEFINE_SPINLOCK(page_uptodate_lock);
+ 	unsigned long flags;
+-	struct buffer_head *tmp;
++	struct buffer_head *tmp, *first;
+ 	struct page *page;
+ 
+ 	BUG_ON(!buffer_async_write(bh));
+@@ -619,7 +621,10 @@ void end_buffer_async_write(struct buffe
+ 		SetPageError(page);
+ 	}
+ 
+-	spin_lock_irqsave(&page_uptodate_lock, flags);
++	first = page_buffers(page);
++	local_irq_save(flags);
++	bit_spin_lock(BH_Uptd_Lock, &first->b_state);
++
+ 	clear_buffer_async_write(bh);
+ 	unlock_buffer(bh);
+ 	tmp = bh->b_this_page;
+@@ -630,12 +635,14 @@ void end_buffer_async_write(struct buffe
+ 		}
+ 		tmp = tmp->b_this_page;
+ 	}
+-	spin_unlock_irqrestore(&page_uptodate_lock, flags);
++	bit_spin_unlock(BH_Uptd_Lock, &first->b_state);
++	local_irq_restore(flags);
+ 	end_page_writeback(page);
+ 	return;
+ 
+ still_busy:
+-	spin_unlock_irqrestore(&page_uptodate_lock, flags);
++	bit_spin_unlock(BH_Uptd_Lock, &first->b_state);
++	local_irq_restore(flags);
+ 	return;
+ }
+ 
+Index: linux-2.6/include/linux/buffer_head.h
+===================================================================
+--- linux-2.6.orig/include/linux/buffer_head.h	2005-05-06 17:39:54.000000000 +1000
++++ linux-2.6/include/linux/buffer_head.h	2005-05-06 17:42:03.000000000 +1000
+@@ -19,6 +19,8 @@ enum bh_state_bits {
+ 	BH_Dirty,	/* Is dirty */
+ 	BH_Lock,	/* Is locked */
+ 	BH_Req,		/* Has been submitted for I/O */
++	BH_Uptd_Lock,	/* Only used by the first bh in a page, to serialise
++			   IO completion of other buffers in the page */
+ 
+ 	BH_Mapped,	/* Has a disk mapping */
+ 	BH_New,		/* Disk mapping was newly created by get_block */
+
+
+--=-GZ0Bqzx5/LGDqurDwtVm--
+
+Send instant messages to your online friends http://au.messenger.yahoo.com 
