@@ -1,30 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 17 Jun 2005 02:15:26 -0700
-From: William Lee Irwin III <wli@holomorphy.com>
+Message-ID: <42B29635.2020700@yahoo.com.au>
+Date: Fri, 17 Jun 2005 19:21:57 +1000
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+MIME-Version: 1.0
 Subject: Re: Global spinlock vs local bit spin locks
-Message-ID: <20050617091526.GH3913@holomorphy.com>
-References: <1118982092.5261.44.camel@npiggin-nld.site> <20050617044611.GF3913@holomorphy.com> <42B28B44.9090606@yahoo.com.au> <20050617085426.GK31127@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20050617085426.GK31127@wotan.suse.de>
-To: Andi Kleen <ak@suse.de>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, "David S. Miller" <davem@davemloft.net>, anton@samba.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Peter Keilty <Peter.Keilty@hp.com>
+References: <1118982092.5261.44.camel@npiggin-nld.site> <20050617044611.GF3913@holomorphy.com> <42B28B44.9090606@yahoo.com.au> <20050617084521.GG3913@holomorphy.com>
+In-Reply-To: <20050617084521.GG3913@holomorphy.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
+To: William Lee Irwin III <wli@holomorphy.com>
+Cc: "David S. Miller" <davem@davemloft.net>, anton@samba.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Peter Keilty <Peter.Keilty@hp.com>
 List-ID: <linux-arch.vger.kernel.org>
 
->> As far as page flags go - I agree but I didn't want to use one up.
->> This is very localised and I don't think it is particularly worse
->> than what was there before, so I think we can get away with it for
->> the moment.
+William Lee Irwin III wrote:
 
-On Fri, Jun 17, 2005 at 10:54:26AM +0200, Andi Kleen wrote:
-> I'm starting to think that we need different strategies on 32bit
-> and 64bit here. 64bit has plenty of bits left; it is just 32bit
-> that is a problem here.
+> 
+> I'm ambivalent now I guess. I'm not wild about bh's in the first place,
+> so infecting core code with new dependencies on them doesn't sound hot,
+> though I still can't help cringing at using a bitflag in the first bh
+> in the list to protect against concurrent teardown of the bh list,
+> which relies on the setup/teardown patterns.
+> 
 
-Well, there are 3 bits destined to die as things stand now (2 swsusp
-via sideband bitmaps and PG_reserved) so the immediate 32-bit shortage
-does have a resolution in sight.
+It's not quite as bad as that - there will be no teardown while
+any of the buffers are still in flight. The lock is simply to
+protect concurrent completion of requests, it could just as
+easily go in the last bh.
 
+-- 
+SUSE Labs, Novell Inc.
 
--- wli
+Send instant messages to your online friends http://au.messenger.yahoo.com 
