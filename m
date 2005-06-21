@@ -1,33 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 21 Jun 2005 15:17:55 +0100
-From: Matthew Wilcox <matthew@wil.cx>
+Message-ID: <42B836F7.7060106@shadowen.org>
+Date: Tue, 21 Jun 2005 16:49:11 +0100
+From: Andy Whitcroft <apw@shadowen.org>
+MIME-Version: 1.0
 Subject: Re: sparsemem patches in -mm
-Message-ID: <20050621141755.GX11655@parcelfarce.linux.theplanet.co.uk>
-References: <20050621021352.46fc3b81.akpm@osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20050621021352.46fc3b81.akpm@osdl.org>
-Sender: <willy@www.linux.org.uk>
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Dave Hansen <haveblue@us.ibm.com>, Matt Tolentino <matthew.e.tolentino@intel.com>, Bob Picco <bob.picco@hp.com>
+References: <20050621021352.46fc3b81.akpm@osdl.org> <20050621095039.GC4171@wotan.suse.de>
+In-Reply-To: <20050621095039.GC4171@wotan.suse.de>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+To: Andi Kleen <ak@suse.de>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Dave Hansen <haveblue@us.ibm.com>, Matt Tolentino <matthew.e.tolentino@intel.com>, Bob Picco <bob.picco@hp.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Jun 21, 2005 at 02:13:52AM -0700, Andrew Morton wrote:
+Andi Kleen wrote:
+> On Tue, Jun 21, 2005 at 02:13:52AM -0700, Andrew Morton wrote:
 > 
-> Could I ask the arch maintainers to review the `sparsemem' patches from -mm,
-> please, if you haven't done so...
+>>Could I ask the arch maintainers to review the `sparsemem' patches from -mm,
+>>please, if you haven't done so...
 > 
-> They're all in http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/
+> 
+> The x86-64 part is ok for me from a review standpoint.
+> 
+> However how much testing has been done on these yet? 
+> It would be good to at least boot it on EM64T and AMD 
 
-Pretty confusing.  All kinds of options added, removed, modified, put
-back ...  let's merge it, then see how it looks.  Maybe we'll switch
-parisc from discontigmem to sparsemem.
+I've been testing this on a range of test boxes we have here, mostly x86
+and ppc.  Mostly with kernbench and the like.  So far no problems have
+reared their heads.
 
--- 
-"Next the statesmen will invent cheap lies, putting the blame upon 
-the nation that is attacked, and every man will be glad of those
-conscience-soothing falsities, and will diligently study them, and refuse
-to examine any refutations of them; and thus he will by and by convince 
-himself that the war is just, and will thank God for the better sleep 
-he enjoys after this process of grotesque self-deception." -- Mark Twain
+I've not been able to get much or a realistic test on amd64 box, I seem
+to be struggling with combinations of scsi problems on the machine from
+other changes in -mm.   The good news is that it gets far enough to
+break with scsi problems and problems in sparsemem generally lead to
+death much earlier than this.
+
+-apw
