@@ -1,32 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 17 Jun 2005 02:28:28 -0700
-From: William Lee Irwin III <wli@holomorphy.com>
-Subject: Re: Global spinlock vs local bit spin locks
-Message-ID: <20050617092828.GI3913@holomorphy.com>
-References: <1118982092.5261.44.camel@npiggin-nld.site> <20050617044611.GF3913@holomorphy.com> <42B28B44.9090606@yahoo.com.au> <20050617084521.GG3913@holomorphy.com> <42B29635.2020700@yahoo.com.au>
+Date: Tue, 21 Jun 2005 02:13:52 -0700
+From: Andrew Morton <akpm@osdl.org>
+Subject: sparsemem patches in -mm
+Message-Id: <20050621021352.46fc3b81.akpm@osdl.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <42B29635.2020700@yahoo.com.au>
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: "David S. Miller" <davem@davemloft.net>, anton@samba.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Peter Keilty <Peter.Keilty@hp.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: linux-arch@vger.kernel.org
+Cc: Andy Whitcroft <apw@shadowen.org>, Dave Hansen <haveblue@us.ibm.com>, Matt Tolentino <matthew.e.tolentino@intel.com>, Bob Picco <bob.picco@hp.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-William Lee Irwin III wrote:
->> I'm ambivalent now I guess. I'm not wild about bh's in the first place,
->> so infecting core code with new dependencies on them doesn't sound hot,
->> though I still can't help cringing at using a bitflag in the first bh
->> in the list to protect against concurrent teardown of the bh list,
->> which relies on the setup/teardown patterns.
 
-On Fri, Jun 17, 2005 at 07:21:57PM +1000, Nick Piggin wrote:
-> It's not quite as bad as that - there will be no teardown while
-> any of the buffers are still in flight. The lock is simply to
-> protect concurrent completion of requests, it could just as
-> easily go in the last bh.
+Could I ask the arch maintainers to review the `sparsemem' patches from -mm,
+please, if you haven't done so...
 
-I'd hoped what I had in mind with all that would've been clearer. It
-should be clear that I understand it is not overtly broken.
+They're all in http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/
 
+Applying order is:
 
--- wli
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/remove-non-discontig-use-of-pgdat-node_mem_map.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/resubmit-sparsemem-base-early_pfn_to_nid-works-before-sparse-is-initialized.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/resubmit-sparsemem-base-simple-numa-remap-space-allocator.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/resubmit-sparsemem-base-reorganize-page-flags-bit-operations.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/resubmit-sparsemem-base-teach-discontig-about-sparse-ranges.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/create-mm-kconfig-for-arch-independent-memory-options.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/make-each-arch-use-mm-kconfig.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/update-all-defconfigs-for-arch_discontigmem_enable.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/introduce-new-kconfig-option-for-numa-or-discontig.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/sparsemem-fix-minor-defaults-issue-in-mm-kconfig.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/mm-kconfig-kill-unused-arch_flatmem_disable.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/mm-kconfig-hide-memory-model-selection-menu.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/mm-kconfig-give-discontig-more-help-text.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/ppc64-kconfig-memory-models.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/generify-early_pfn_to_nid.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/generify-memory-present.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/sparsemem-memory-model.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/sparsemem-memory-model-for-i386.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/sparsemem-swiss-cheese-numa-layouts.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/sparsemem-hotplug-base.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/ppc64-add-early_pfn_to_nid.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/ppc64-add-memory-present.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/ppc64-sparsemem-memory-model.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/sparsemem-extreme.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/remove-direct-ref-to-contig_page_data-for-x86-64.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/add-x86-64-kconfig-options-for-sparsemem.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/reorganize-x86-64-numa-and-discontigmem-config-options.patch
+http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/add-x86-64-specific-support-for-sparsemem.patch
+
+Thanks.
