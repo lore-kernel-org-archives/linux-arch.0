@@ -1,31 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 21 Jun 2005 03:09:39 -0700
-From: Andrew Morton <akpm@osdl.org>
+Date: Tue, 21 Jun 2005 07:00:06 -0400
+From: Bob Picco <bob.picco@hp.com>
 Subject: Re: sparsemem patches in -mm
-Message-Id: <20050621030939.2c46efb2.akpm@osdl.org>
-In-Reply-To: <20050621095039.GC4171@wotan.suse.de>
+Message-ID: <20050621110006.GH23911@localhost.localdomain>
 References: <20050621021352.46fc3b81.akpm@osdl.org>
-	<20050621095039.GC4171@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Andi Kleen <ak@suse.de>
-Cc: linux-arch@vger.kernel.org, apw@shadowen.org, haveblue@us.ibm.com, matthew.e.tolentino@intel.com, bob.picco@hp.com
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20050621021352.46fc3b81.akpm@osdl.org>
+To: Andrew Morton <akpm@osdl.org>
+Cc: linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Dave Hansen <haveblue@us.ibm.com>, Matt Tolentino <matthew.e.tolentino@intel.com>, Bob Picco <bob.picco@hp.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Andi Kleen <ak@suse.de> wrote:
->
-> On Tue, Jun 21, 2005 at 02:13:52AM -0700, Andrew Morton wrote:
-> > 
-> > Could I ask the arch maintainers to review the `sparsemem' patches from -mm,
-> > please, if you haven't done so...
+Andrew Morton wrote:	[Tue Jun 21 2005, 05:13:52AM EDT]
 > 
-> The x86-64 part is ok for me from a review standpoint.
+> Could I ask the arch maintainers to review the `sparsemem' patches from -mm,
+> please, if you haven't done so...
+> 
+Well ia64 SPARSEMEM hasn't been accepted yet by ia64.  I did test 
+SPARSEMEM with recent -mm patches on ia64 (EXTREME) and x86_64 4 way 
+Opteron (!EXTREME) with OSDL aim.
 
-OK.
-
-> However how much testing has been done on these yet? 
-> It would be good to at least boot it on EM64T and AMD boxes.
-
-Works OK on my emt64 box.  Lots of people have Optera, and I haven't heard
-anything which sounds like it's sparsemem-related.
+bob
