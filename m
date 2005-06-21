@@ -1,38 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 21 Jun 2005 12:45:13 -0400
-From: Bob Picco <bob.picco@hp.com>
+Date: Tue, 21 Jun 2005 13:01:50 -0700
+From: Andrew Morton <akpm@osdl.org>
 Subject: Re: sparsemem patches in -mm
-Message-ID: <20050621164513.GI23911@localhost.localdomain>
-References: <20050621021352.46fc3b81.akpm@osdl.org> <20050621110006.GH23911@localhost.localdomain> <1119369476.27442.30.camel@localhost>
+Message-Id: <20050621130150.62fbd353.akpm@osdl.org>
+In-Reply-To: <42B83771.1050304@shadowen.org>
+References: <20050621021352.46fc3b81.akpm@osdl.org>
+	<20050621141755.GX11655@parcelfarce.linux.theplanet.co.uk>
+	<42B83771.1050304@shadowen.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1119369476.27442.30.camel@localhost>
-To: Dave Hansen <haveblue@us.ibm.com>
-Cc: Bob Picco <bob.picco@hp.com>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Matt Tolentino <matthew.e.tolentino@intel.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Andy Whitcroft <apw@shadowen.org>
+Cc: matthew@wil.cx, linux-arch@vger.kernel.org, haveblue@us.ibm.com, matthew.e.tolentino@intel.com, bob.picco@hp.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Dave Hansen wrote:	[Tue Jun 21 2005, 11:57:56AM EDT]
-> On Tue, 2005-06-21 at 07:00 -0400, Bob Picco wrote:
-> > Andrew Morton wrote:	[Tue Jun 21 2005, 05:13:52AM EDT]
-> > > 
-> > > Could I ask the arch maintainers to review the `sparsemem' patches from -mm,
-> > > please, if you haven't done so...
-> > > 
-> > Well ia64 SPARSEMEM hasn't been accepted yet by ia64.  I did test 
-> > SPARSEMEM with recent -mm patches on ia64 (EXTREME) and x86_64 4 way 
-> > Opteron (!EXTREME) with OSDL aim.
+Andy Whitcroft <apw@shadowen.org> wrote:
+>
+> Matthew Wilcox wrote:
+> > On Tue, Jun 21, 2005 at 02:13:52AM -0700, Andrew Morton wrote:
+> > 
+> >>Could I ask the arch maintainers to review the `sparsemem' patches from -mm,
+> >>please, if you haven't done so...
+> >>
+> >>They're all in http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/
+> > 
+> > 
+> > Pretty confusing.  All kinds of options added, removed, modified, put
+> > back ...  let's merge it, then see how it looks.  Maybe we'll switch
+> > parisc from discontigmem to sparsemem.
 > 
-> I think the whole set is just about ready for mainline.  If anybody
-> wants a consolidated set of patches that's easier to review, that's no
-> problem.
-> 
-> I'd only suggest that we keep the "extreme" stuff in -mm for a couple
-> more releases.  It's a pretty clean add-on, and it has only had a very
-> short time in -mm.  Bob, would you agree?
-> 
-> -- Dave
-> 
-I agree.
+> Would it make sense for me to take the current pile of patches in -mm
+> and merge the fixes into the appropriate main patches to make a
+> consolidated patch set?  If we want to do that I am happy to put the
+> effort in.
 
-bob
+I've already done some of that, but I need to do another pass.
+
+<looks>
+
+The patches I have there seem fairly logical, although there's a lot of
+Kconfig futzing going on.  Do you spy any patches which should be collapsed
+together there?  If so, which?
