@@ -1,38 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 21 Jun 2005 23:00:24 -0700
-From: Andrew Morton <akpm@osdl.org>
+Message-ID: <42BB3C26.6000603@linux-m68k.org>
+Date: Fri, 24 Jun 2005 00:48:06 +0200
+From: Roman Zippel <zippel@linux-m68k.org>
+MIME-Version: 1.0
 Subject: Re: sparsemem patches in -mm
-Message-Id: <20050621230024.4cd8d2fd.akpm@osdl.org>
-In-Reply-To: <20050621.224645.78710941.davem@davemloft.net>
 References: <20050621021352.46fc3b81.akpm@osdl.org>
-	<20050621.224645.78710941.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <20050621021352.46fc3b81.akpm@osdl.org>
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-To: "David S. Miller" <davem@davemloft.net>
-Cc: linux-arch@vger.kernel.org, apw@shadowen.org, haveblue@us.ibm.com, matthew.e.tolentino@intel.com, bob.picco@hp.com
+To: Andrew Morton <akpm@osdl.org>
+Cc: linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Dave Hansen <haveblue@us.ibm.com>, Matt Tolentino <matthew.e.tolentino@intel.com>, Bob Picco <bob.picco@hp.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-"David S. Miller" <davem@davemloft.net> wrote:
->
-> From: Andrew Morton <akpm@osdl.org>
-> Date: Tue, 21 Jun 2005 02:13:52 -0700
-> 
-> > http://www.zip.com.au/~akpm/linux/patches/stuff/sparsemem/
-> 
-> The only thing that sticks out to me in this patch is that
-> sparc64 uses a field starting at bit 24 in page->flags to
-> determine the cpu which needs a D-cache flush for a page.
+Hi,
 
-<looks>
+Andrew Morton wrote:
 
-That's a bit hacky.  Doesn't it conflict with the way in which we stuff the
-page's zone index into the top of page->flags?  I guess with a small number
-of zones and a smallish number of CPUs you got lucky.
+> Could I ask the arch maintainers to review the `sparsemem' patches from -mm,
+> please, if you haven't done so...
 
-It'd be safer to use bit 32.
+They would need a bit more work to be usable on m68k. I have a basic
+patch to use DISCONTIGMEM for m68k. There I have the problem that I have
+to deal with almost random memory configurations. So converting a
+virtual/physical address or pfn into a section number can't use a
+compile time constant, instead an offset/shift is calculated at boot
+time and patched into the kernel.
 
-> I don't think the page->flags rework makes things any different
-> than before, but it's something to keep in mind.
-
-Think so.
+bye, Roman
