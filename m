@@ -1,31 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 28 Jun 2005 14:05:35 +0200
-From: Andi Kleen <ak@suse.de>
+Date: Wed, 29 Jun 2005 02:09:44 +1000
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 Subject: Re: RFC: is_compat_task (Was: Re: input compat stuff)
-Message-ID: <20050628120534.GM8035@wotan.suse.de>
-References: <20050628072710.GA29916@lst.de> <20050628181453.387e0fac.sfr@canb.auug.org.au> <20050628091704.GP4171@wotan.suse.de> <20050628111828.GL5200@parcelfarce.linux.theplanet.co.uk>
+Message-Id: <20050629020944.1af20657.sfr@canb.auug.org.au>
+In-Reply-To: <20050628091704.GP4171@wotan.suse.de>
+References: <20050628072710.GA29916@lst.de>
+	<20050628181453.387e0fac.sfr@canb.auug.org.au>
+	<20050628091704.GP4171@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20050628111828.GL5200@parcelfarce.linux.theplanet.co.uk>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Andi Kleen <ak@suse.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Christoph Hellwig <hch@lst.de>, akpm@osdl.org, linux-kernel@vger.kernel.rg, linux-arch@vger.kernel.org
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Wed__29_Jun_2005_02_09_44_+1000_/7FjOzzZpI+uKGZm"
+To: Andi Kleen <ak@suse.de>
+Cc: hch@lst.de, akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Jun 28, 2005 at 12:18:28PM +0100, Matthew Wilcox wrote:
-> On Tue, Jun 28, 2005 at 11:17:04AM +0200, Andi Kleen wrote:
-> > No, it's not because it makes it impossible to have 64bit processes
-> > that run with 32bit ABI (not implemented right now but we don't
-> > want to break that).
-> > 
-> > Please don't do this. It is absolutely the wrong thing to do.
-> 
-> So.  You want to deliver a signal to a task.  How do you know whether
-> to send it a 64-bit signal or a 32-bit signal?
+--Signature=_Wed__29_Jun_2005_02_09_44_+1000_/7FjOzzZpI+uKGZm
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-For the 32bit-on-64bit case?  You always send 64bit.  Either the
-ABI defines 64bit signal data structures or some monitor (like
-valgrind or qemu) catches and converts signals themselves.
-For the ELF32 case you can test.
+On Tue, 28 Jun 2005 11:17:04 +0200 Andi Kleen <ak@suse.de> wrote:
+>
+> On Tue, Jun 28, 2005 at 06:14:53PM +1000, Stephen Rothwell wrote:
+> > On Tue, 28 Jun 2005 09:27:10 +0200 Christoph Hellwig <hch@lst.de> wrote:
+> > >
+> > > besides this beeing butt ugly didn't we have a rule about never check=
+ing
+> > > task flags whether we're a compat process?  And if we're going to all=
+ow
+> > > it it should be done properly.
+> >=20
+> > So, I have been thinking about this patch for a while (wondering how ba=
+dly
+> > flamed I would get when I posted it :-)).  What do you all think?  Is t=
+his
+> > a reasonable thing to do?
+>=20
+> No, it's not because it makes it impossible to have 64bit processes
+> that run with 32bit ABI (not implemented right now but we don't
+> want to break that).
 
--Andi
+Why does this make it impossible?  All I am defining is *arch specific*
+macros that tell us if the kernel was entered through a compat syscall. If
+your arch needs something other than my *examples*, then you are free to
+define it.
+
+> Please don't do this. It is absolutely the wrong thing to do.
+
+Then please tell us what the right thing to do is.
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Wed__29_Jun_2005_02_09_44_+1000_/7FjOzzZpI+uKGZm
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.1 (GNU/Linux)
+
+iD8DBQFCwXZOFdBgD/zoJvwRAvMXAJ4tUPIq2l4q+NgVMboAe22/4vzghgCfbU1W
+rMTDy6UeZGFFxQ/lLNqNYjg=
+=ht3Q
+-----END PGP SIGNATURE-----
+
+--Signature=_Wed__29_Jun_2005_02_09_44_+1000_/7FjOzzZpI+uKGZm--
