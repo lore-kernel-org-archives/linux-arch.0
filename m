@@ -1,25 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 28 Jun 2005 11:16:00 +0200
+Date: Tue, 28 Jun 2005 11:27:04 +0200
 From: Andi Kleen <ak@suse.de>
-Subject: Re: input compat stuff
-Message-ID: <20050628091600.GO4171@wotan.suse.de>
-References: <20050628072710.GA29916@lst.de>
+Subject: Re: RFC: is_compat_task
+Message-ID: <20050628092703.GK8035@wotan.suse.de>
+References: <20050628072710.GA29916@lst.de> <20050628181453.387e0fac.sfr@canb.auug.org.au> <20050628091704.GP4171@wotan.suse.de> <20050628.022346.34749336.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20050628072710.GA29916@lst.de>
-To: Christoph Hellwig <hch@lst.de>
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.rg, linux-arch@vger.kernel.org
+In-Reply-To: <20050628.022346.34749336.davem@davemloft.net>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: ak@suse.de, sfr@canb.auug.org.au, hch@lst.de, akpm@osdl.org, linux-kernel@vger.kernel.rg, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Jun 28, 2005 at 09:27:10AM +0200, Christoph Hellwig wrote:
-> http://www.kernel.org/git/gitweb.cgi?p=linux/kernel/git/torvalds/linux-2.6.git;a=commitdiff;h=52658bb685df77f71e97f1b503dee97d27a88b0f;hp=024ac44c701d43f5e2d34bd6a35b2813a36e6010
+On Tue, Jun 28, 2005 at 02:23:46AM -0700, David S. Miller wrote:
+> From: Andi Kleen <ak@suse.de>
+> Date: Tue, 28 Jun 2005 11:17:04 +0200
 > 
-> besides this beeing butt ugly didn't we have a rule about never checking
-> task flags whether we're a compat process?  And if we're going to allow
-> it it should be done properly.
+> > No, it's not because it makes it impossible to have 64bit processes
+> > that run with 32bit ABI (not implemented right now but we don't
+> > want to break that).
+> 
+> I've been hearing this for years, and still there's nothing
+> that really wants to do this.
 
-Yes, this is extremly bad and shouldn't be done. Can that
-patch be reverted please?
+
+People regularly ask for 32bit in long mode on x86-64.
+So far nobody did really implement it, but I would assume
+it will happen sooner or later.
+
+> 
+> The one case that emulates 32-bit programs from a 64-bit
+> process (ia64) makes 64-bit system calls.
+> 
+> We can't sit on our hands forever on this issue because of
+> some pseudo-feature that's been in perpetual beta since the
+> first time it was ever mentioned :-)
+
+On what issue exactly? So far all the code was relatively easily
+fixable. 
 
 -Andi
