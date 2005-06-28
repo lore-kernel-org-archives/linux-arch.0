@@ -1,32 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 28 Jun 2005 11:17:04 +0200
+Date: Tue, 28 Jun 2005 11:16:00 +0200
 From: Andi Kleen <ak@suse.de>
-Subject: Re: RFC: is_compat_task (Was: Re: input compat stuff)
-Message-ID: <20050628091704.GP4171@wotan.suse.de>
-References: <20050628072710.GA29916@lst.de> <20050628181453.387e0fac.sfr@canb.auug.org.au>
+Subject: Re: input compat stuff
+Message-ID: <20050628091600.GO4171@wotan.suse.de>
+References: <20050628072710.GA29916@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20050628181453.387e0fac.sfr@canb.auug.org.au>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Christoph Hellwig <hch@lst.de>, akpm@osdl.org, linux-kernel@vger.kernel.rg, linux-arch@vger.kernel.org
+In-Reply-To: <20050628072710.GA29916@lst.de>
+To: Christoph Hellwig <hch@lst.de>
+Cc: akpm@osdl.org, linux-kernel@vger.kernel.rg, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Jun 28, 2005 at 06:14:53PM +1000, Stephen Rothwell wrote:
-> On Tue, 28 Jun 2005 09:27:10 +0200 Christoph Hellwig <hch@lst.de> wrote:
-> >
-> > besides this beeing butt ugly didn't we have a rule about never checking
-> > task flags whether we're a compat process?  And if we're going to allow
-> > it it should be done properly.
+On Tue, Jun 28, 2005 at 09:27:10AM +0200, Christoph Hellwig wrote:
+> http://www.kernel.org/git/gitweb.cgi?p=linux/kernel/git/torvalds/linux-2.6.git;a=commitdiff;h=52658bb685df77f71e97f1b503dee97d27a88b0f;hp=024ac44c701d43f5e2d34bd6a35b2813a36e6010
 > 
-> So, I have been thinking about this patch for a while (wondering how badly
-> flamed I would get when I posted it :-)).  What do you all think?  Is this
-> a reasonable thing to do?
+> besides this beeing butt ugly didn't we have a rule about never checking
+> task flags whether we're a compat process?  And if we're going to allow
+> it it should be done properly.
 
-No, it's not because it makes it impossible to have 64bit processes
-that run with 32bit ABI (not implemented right now but we don't
-want to break that).
-
-Please don't do this. It is absolutely the wrong thing to do.
+Yes, this is extremly bad and shouldn't be done. Can that
+patch be reverted please?
 
 -Andi
