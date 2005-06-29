@@ -1,37 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Wed, 29 Jun 2005 14:12:28 +0200
-From: Andi Kleen <ak@suse.de>
-Subject: Re: RFC: is_compat_task
-Message-ID: <20050629121228.GH21575@bragg.suse.de>
-References: <20050628181453.387e0fac.sfr@canb.auug.org.au> <20050628091704.GP4171@wotan.suse.de> <20050628111828.GL5200@parcelfarce.linux.theplanet.co.uk> <20050628.134736.45885284.davem@davemloft.net> <20050629164127.58e97376.sfr@canb.auug.org.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20050629164127.58e97376.sfr@canb.auug.org.au>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: "David S. Miller" <davem@davemloft.net>, matthew@wil.cx, ak@suse.de, hch@lst.de, akpm@osdl.org, linux-arch@vger.kernel.org
+Content-class: urn:content-classes:message
+MIME-Version: 1.0
+Content-Type: text/plain;
+	charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+Subject: RE: Remaining arch problems in cpu_idle
+Date: Wed, 29 Jun 2005 14:51:25 -0700
+Message-ID: <B8E391BBE9FE384DAA4C5C003888BE6F03D0B5D6@scsmsx401.amr.corp.intel.com>
+From: "Luck, Tony" <tony.luck@intel.com>
+To: Nick Piggin <nickpiggin@yahoo.com.au>, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Jun 29, 2005 at 04:41:27PM +1000, Stephen Rothwell wrote:
-> On Tue, 28 Jun 2005 13:47:36 -0700 (PDT) "David S. Miller" <davem@davemloft.net> wrote:
-> >
-> > Why don't we do the following to resolve this issue?
-> > Create a "is_compat_syscall()" macro, in compat syscall
-> > trap entry, the bit is set, and it is cleared otherwise.
-> > 
-> > It nops out to always evaluate to "0" on non-compat platforms.
-> 
-> How about the patch below which defines is_compat_syscall() for ppc64 (and
-> all the non-compat-requiring archs)?  (Yes, the ppc64 syscall entry really
-> checks the thread flag.) The patch alos includes the fixes for the input
-> layer mess.
-> for the other 64 bit architectures.
+>h8300, ia64, and sh64 still have possible outstanding issues,
+>which I've put at the end of the Documentation/ file. It
+>would be nice to get these looked at.
 
-I think for the particular input case it would be still better
-to just define ->compat_write at the VFS level.
++ia64 - is safe_halt call racy vs interrupts? (does it sleep?) (See #4a)
 
+safe_halt() makes a call to PAL[1] to go to a lower power state.  It does
+not do anything that would require a sleep.
 
-This would require a new compat_sys_write() wrapper, but that would
-be straight forward.
+-Tony
 
--Andi
+PAL = "processor abstraction layer" ... some firmware which is used
+to hide model specific differences between ia64 processor implementations.
