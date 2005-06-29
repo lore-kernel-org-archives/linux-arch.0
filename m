@@ -1,81 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Message-ID: <42C26552.5020304@yahoo.com.au>
-Date: Wed, 29 Jun 2005 19:09:38 +1000
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
+Date: Wed, 29 Jun 2005 13:11:45 +0300
+From: Paul Mundt <lethal@linux-sh.org>
 Subject: Re: Remaining arch problems in cpu_idle
-References: <42C24874.8030702@yahoo.com.au> <20050629080058.GA2694@linux-sh.org>
-In-Reply-To: <20050629080058.GA2694@linux-sh.org>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
-To: Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20050629101145.GB2694@linux-sh.org>
+References: <42C24874.8030702@yahoo.com.au> <20050629080058.GA2694@linux-sh.org> <42C26552.5020304@yahoo.com.au>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="R3G7APHDIzY6R/pk"
+Content-Disposition: inline
+In-Reply-To: <42C26552.5020304@yahoo.com.au>
+To: Nick Piggin <nickpiggin@yahoo.com.au>
 Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Paul Mundt wrote:
-> On Wed, Jun 29, 2005 at 05:06:28PM +1000, Nick Piggin wrote:
-> 
->>h8300, ia64, and sh64 still have possible outstanding issues,
->>which I've put at the end of the Documentation/ file. It
->>would be nice to get these looked at.
->>
-> 
-> Looking at this, sh64 is pretty much in the same category as h8300. sh
-> is as well, but we seem to be missing the local_irq_disable/enable around
-> the need_resched check there completely, which is even more bogus.
-> 
 
-Well you only need to disable IRQs if you are about to go to
-sleep waiting for the next pending IRQ. So your hlt_counter
-case looks OK.
+--R3G7APHDIzY6R/pk
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-In the case that you do sleep until the next IRQ, sh64 does indeed
-disable irqs over the need_resched check, however it re-enables them
-before sleeping. So disabling at all is basically useless because
-any pending IRQs will probably all get serviced right as soon as IRQs
-are re-eanbled.
+On Wed, Jun 29, 2005 at 07:09:38PM +1000, Nick Piggin wrote:
+> Well you only need to disable IRQs if you are about to go to
+> sleep waiting for the next pending IRQ. So your hlt_counter
+> case looks OK.
+>=20
+> In the case that you do sleep until the next IRQ, sh64 does indeed
+> disable irqs over the need_resched check, however it re-enables them
+> before sleeping. So disabling at all is basically useless because
+> any pending IRQs will probably all get serviced right as soon as IRQs
+> are re-eanbled.
+>=20
+Ok, I've switched sh64 to use a similar model as sh.
 
->>+
->>+h8300 - Is such sleeping racy vs interrupts? (See #4a).
->>+        The H8/300 manual I found indicates yes, however disabling IRQs
->>+        over the sleep mean only NMIs can wake it up, so can't fix easily
->>+        without doing spin waiting.
->>+
-> 
-> We have the same problem for sh/sh64 (which isn't surprising, considering
-> they all share ancestry).
-> 
-> There are several different states that can be entered, with different
-> method for exiting, although at least the sleep and deep sleep states
-> both require an interrupt, NMI, or a reset request.
-> 
-> I can update sh and sh64 to follow the h8300 change, but that still
-> doesn't address the race. What sort of spin waiting do you have in mind?
+> Well as you probably know, but just to be clear: architectures
+> that handle this without a race have an instruction that basically
+> turns on interrupts and go to sleep at the same time. I'm not aware
+> of a simple way to do it without that facility.
+>=20
+> Unless you can easily raise an NMI from another processor as an IPI.
+>=20
+Unfortunately we don't have any such easy facility. The closest I suppose
+would to have the watchdog generate an NMI, but that severely limits the
+kind of sleep state that we are able to enter.
 
-Well as you probably know, but just to be clear: architectures
-that handle this without a race have an instruction that basically
-turns on interrupts and go to sleep at the same time. I'm not aware
-of a simple way to do it without that facility.
+> As far as spin waiting goes, something like:
+>=20
+> 	while (!need_resched())
+> 		cpu_relax();
+>=20
+> Is generally used.
+>=20
+> Now this might introduce some power and heat penalty. What's more,
+> your race isn't a fatal one: in the worst case, it should just
+> stall until the next timer interrupt (aside, that might be fatal
+> with a tickless kernel).
+>=20
+After incorporating your changes, how about this?
 
-Unless you can easily raise an NMI from another processor as an IPI.
+--
 
-As far as spin waiting goes, something like:
+diff --git a/arch/sh64/kernel/process.c b/arch/sh64/kernel/process.c
+--- a/arch/sh64/kernel/process.c
++++ b/arch/sh64/kernel/process.c
+@@ -305,44 +305,29 @@ static int __init hlt_setup(char *__unus
+ __setup("nohlt", nohlt_setup);
+ __setup("hlt", hlt_setup);
+=20
+-static inline void hlt(void)
+-{
+-	if (hlt_counter)
+-		return;
+-
+-	__asm__ __volatile__ ("sleep" : : : "memory");
+-}
+-
+ /*
+  * The idle loop on a uniprocessor SH..
+  */
+-void default_idle(void)
++void cpu_idle(void)
+ {
+ 	/* endless idle loop with no priority at all */
+ 	while (1) {
+ 		if (hlt_counter) {
+-			while (1)
+-				if (need_resched())
+-					break;
++			while (!need_resched())
++				cpu_relax();
+ 		} else {
+-			local_irq_disable();
+ 			while (!need_resched()) {
+-				local_irq_enable();
+ 				idle_trace();
+-				hlt();
+-				local_irq_disable();
++				cpu_sleep();
+ 			}
+-			local_irq_enable();
+ 		}
++
++		preempt_enable_no_resched();
+ 		schedule();
++		preempt_disable();
+ 	}
+ }
+=20
+-void cpu_idle(void)
+-{
+-	default_idle();
+-}
+-
+ void machine_restart(char * __unused)
+ {
+ 	extern void phys_stext(void);
 
-	while (!need_resched())
-		cpu_relax();
+--R3G7APHDIzY6R/pk
+Content-Type: application/pgp-signature
+Content-Disposition: inline
 
-Is generally used.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.2.6 (GNU/Linux)
 
-Now this might introduce some power and heat penalty. What's more,
-your race isn't a fatal one: in the worst case, it should just
-stall until the next timer interrupt (aside, that might be fatal
-with a tickless kernel).
+iD8DBQFCwnPh1K+teJFxZ9wRApSTAJ48YetSX4dysudng0wvgOtvOZDr/wCcDHtV
+KckmIEYm1MQaKoII0bBiBl0=
+=UaKn
+-----END PGP SIGNATURE-----
 
-So you may want a bootup or runtime switchable parameter there to
-choose between good power saving and optimal performance &
-scheduling latency.
-
--- 
-SUSE Labs, Novell Inc.
-
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+--R3G7APHDIzY6R/pk--
