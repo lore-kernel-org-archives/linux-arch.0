@@ -1,43 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Message-ID: <42F21526.90700@yahoo.com.au>
-Date: Thu, 04 Aug 2005 23:16:22 +1000
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
+Date: Thu, 4 Aug 2005 15:25:39 +0200
+From: Andi Kleen <ak@suse.de>
 Subject: Re: [patch] make spin_lock_prefetch a noop for UP
-References: <42F212F4.5020609@yahoo.com.au> <20050804131037.GC9112@wotan.suse.de>
-In-Reply-To: <20050804131037.GC9112@wotan.suse.de>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
-To: Andi Kleen <ak@suse.de>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@osdl.org>
+Message-ID: <20050804132539.GU8266@wotan.suse.de>
+References: <42F212F4.5020609@yahoo.com.au> <20050804131037.GC9112@wotan.suse.de> <42F21526.90700@yahoo.com.au>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <42F21526.90700@yahoo.com.au>
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Andi Kleen wrote:
-> On Thu, Aug 04, 2005 at 11:07:00PM +1000, Nick Piggin wrote:
+> From include/linux/prefetch.h:
 > 
->>Is this any good?
->>
->>The counter argument would be that one might prefetch a
->>spinlock in the head of a data structure, and expect
->>the rest of the cacheline to be in cache as well. Though
->>in that case, maybe prefetch/prefetchw should be used
->>instead.
+> "spin_lock_prefetch(x) - prefectches the spinlock *x for taking"
 > 
-> 
-> Can you describe what the supposed improvement of the patch is? 
-> 
+> So this would reduce icache footprint and possibly memory
+> traffic on UP where taking a spinlock is a noop.
 
- From include/linux/prefetch.h:
+Ah you want to disable it on UP? 
+Ok that makes more sense. Why didn't you just say that? :)
 
-"spin_lock_prefetch(x) - prefectches the spinlock *x for taking"
+Anyways, even on UP it might be useful on all these mutex or whatever
+lock is envogue these days preemptive kernels.
 
-So this would reduce icache footprint and possibly memory
-traffic on UP where taking a spinlock is a noop.
-
-Granted, there aren't many users of spin_lock_prefetch at the
-moment.
-
--- 
-SUSE Labs, Novell Inc.
-
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+-Andi
