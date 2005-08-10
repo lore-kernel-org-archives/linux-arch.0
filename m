@@ -1,8 +1,8 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Wed, 10 Aug 2005 14:15:29 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
+Date: Wed, 10 Aug 2005 09:28:05 -0400
+From: Jeff Dike <jdike@addtoit.com>
 Subject: Re: [PATCH] consolidate sys_ptrace
-Message-ID: <20050810131529.GB2840@linux-mips.org>
+Message-ID: <20050810132805.GA3821@ccure.user-mode-linux.org>
 References: <20050810080057.GA5295@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -13,21 +13,11 @@ Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 On Wed, Aug 10, 2005 at 10:00:57AM +0200, Christoph Hellwig wrote:
-
 > The sys_ptrace boilerplate code (everything outside the big switch
 > statement for the arch-specific requests) is shared by most
 > architectures.  This patch moves it to kernel/ptrace.c and leaves the
 > arch-specific code as arch_ptrace.
-> 
-> Some architectures have a too different ptrace so we have to exclude
-> them: alpha, ia64, m32r, parisc, sparc, sparc64.  They continue to
-> keep their implementations.  For sh64 I had to add a sh64_ptrace wrapper
-> because it does some initialization on the first call.  For um I removed
-> an ifdefed SUBARCH_PTRACE_SPECIAL block, but SUBARCH_PTRACE_SPECIAL
-> isn't defined anywhere in the tree.
-> 
-> Only tested on ppc32 so far.
 
-MIPS bits looking good.
+OK for UML.
 
-  Ralf
+		Jeff
