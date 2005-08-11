@@ -1,36 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Thu, 11 Aug 2005 10:20:23 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+Date: Thu, 11 Aug 2005 12:44:34 +0200 (CEST)
+From: Roman Zippel <zippel@linux-m68k.org>
 Subject: Re: [PATCH] consolidate sys_ptrace
-Message-Id: <20050811102023.703ebb5e.sfr@canb.auug.org.au>
-In-Reply-To: <B8E391BBE9FE384DAA4C5C003888BE6F041A27D7@scsmsx401.amr.corp.intel.com>
-References: <B8E391BBE9FE384DAA4C5C003888BE6F041A27D7@scsmsx401.amr.corp.intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: hch@lst.de, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <20050810080057.GA5295@lst.de>
+Message-ID: <Pine.LNX.4.61.0508111226530.3743@scrub.home>
+References: <20050810080057.GA5295@lst.de>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Viro <viro@parcelfarce.linux.theplanet.co.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 10 Aug 2005 09:59:01 -0700 "Luck, Tony" <tony.luck@intel.com>
-wrote:
->
-> >Some architectures have a too different ptrace so we have to exclude
-> >them: alpha, ia64, m32r, parisc, sparc, sparc64.  They continue to
-> >keep their implementations.
-> 
-> So it should be no surprise that this patch works ok for ia64, but here
-> is the ACK anyway.
-> 
-> >+#ifndef __ARCH_SYS_PTRACE
-> 
-> Most of the existing "#define ARCH_foo" uses don't have a prepended
-> "__" (current score is 20 to 3).  So there is a small question of
+Hi,
 
-As opposed to the 86 unique HAVE_ARCH_ defines ...
+On Wed, 10 Aug 2005, Christoph Hellwig wrote:
 
-(like: HAVE_ARCH_COPY_AND_CSUM_FROM_USER, HAVE_ARCH_COPY_SIGINFO etc)
--- 
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+> The sys_ptrace boilerplate code (everything outside the big switch
+> statement for the arch-specific requests) is shared by most
+> architectures.  This patch moves it to kernel/ptrace.c and leaves the
+> arch-specific code as arch_ptrace.
+
+No objection really, but I recently reformatted the m68k sys_ptrace() so 
+it would be easier to regenerate your changes on top of this. I can do 
+this for you if we can agree on to merge at least the m68k ptrace changes 
+before this.
+For reference I put the patches at www.xs4all.nl/~zippel/m68k_merge/
+(tf, p_ws, p_c are the relevant patches).
+
+Al, this also includes the updated thread_info patches, I fixed some of 
+m68k specific parts. Could you please expand a little on the objections 
+you made on IRC?
+
+bye, Roman
