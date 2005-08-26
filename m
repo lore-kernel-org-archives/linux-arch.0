@@ -1,70 +1,481 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Relay1.suse.de (mail2.suse.de [195.135.221.8])
-	(using TLSv1 with cipher DHE-RSA-AES256-SHA (256/256 bits))
-	(No client certificate requested)
-	by mx2.suse.de (Postfix) with ESMTP id BACF61D08A
-	for <linux-arch@vger.kernel.org>; Wed, 17 Aug 2005 02:32:45 +0200 (CEST)
-Received: from wotan.suse.de (wotan.suse.de [10.10.0.1])
-	by Relay1.suse.de (Postfix) with ESMTP id B31A21016C
-	for <linux-arch@vger.kernel.org>; Wed, 17 Aug 2005 02:32:45 +0200 (CEST)
-Date: Wed, 17 Aug 2005 02:32:45 +0200
-From: Andi Kleen <ak@suse.de>
-Subject: reordering pgdat list
-Message-ID: <20050817003245.GD3996@wotan.suse.de>
+Date: Fri, 26 Aug 2005 14:08:46 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 2/2] use ptrace_get_task_struct in all ptrace implementations
+Message-ID: <20050826120846.GB28490@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-To: linux-arch@vger.kernel.org
+To: akpm@osdl.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+As part of my previous sys_ptrace consolidation I introduce a
+ptrace_get_task_struct helper, that gets a reference to the taskstruct
+for a given pid, after doing all the ptrace attach checks.
+This pathces makes all but a few ptrace and compat_ptrace
+implementations use it.  The implementations not covered are:
 
-Hallo,
-
-I had some problems with bootmem allocators who need to allocate memory in
-the first 4GB.  On a NUMA system with enough memory alloc_bootmem would
-just go over the nodes with a for_each_pgdat and try them in turn. When
-the nodes are added in the straight forward order beginning from 0 to
-bootmem they end up reversed on the pgdat_list because init_bootmem_node 
-always inserts the new node at the head of the list. This results
-in alloc_bootmem to look first into the last node and if there
-is enough memory there allocate memory. Which can be beyond 4GB.
-
-Anyways, i pondered a few solutions. The best one seems to be to just
-reorder the list. I see that IA64 had some magic
-code to do the same, but it looked so hackish that I didn't want
-to duplicate it. So I just changed init_bootmem to insert at the tail.
-
-I think the generic code doing for_each_pgdat is all ok and doesn't
-care about the order, but several architectures do their own
-for_each_pgdat() and they might in theory break. 
-
-If your architecture does funky things with for_each_pgdat testing this patch
-might good. I plan to submit it when 2.6.14 opens.
-
--Andi
+  - m68k: has some large ptrace changes pending, should be converted to
+    the common sys_ptrace later
+  - ia64 (native ptrace only): does some wierd stuff about finding a
+    different thread in the same threadgroup
 
 
-Index: linux/mm/bootmem.c
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+
+Index: linux-2.6/arch/alpha/kernel/ptrace.c
 ===================================================================
---- linux.orig/mm/bootmem.c
-+++ linux/mm/bootmem.c
-@@ -61,9 +61,17 @@ static unsigned long __init init_bootmem
+--- linux-2.6.orig/arch/alpha/kernel/ptrace.c	2005-08-14 12:03:15.000000000 +0200
++++ linux-2.6/arch/alpha/kernel/ptrace.c	2005-08-24 11:45:25.000000000 +0200
+@@ -265,28 +265,7 @@
+ 	lock_kernel();
+ 	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
+ 		      request, pid, addr, data));
+-	ret = -EPERM;
+-	if (request == PTRACE_TRACEME) {
+-		/* are we already being traced? */
+-		if (current->ptrace & PT_PTRACED)
+-			goto out_notsk;
+-		ret = security_ptrace(current->parent, current);
+-		if (ret)
+-			goto out_notsk;
+-		/* set the ptrace bit in the process ptrace flags. */
+-		current->ptrace |= PT_PTRACED;
+-		ret = 0;
+-		goto out_notsk;
+-	}
+-	if (pid == 1)		/* you may not mess with init */
+-		goto out_notsk;
+-
+-	ret = -ESRCH;
+-	read_lock(&tasklist_lock);
+-	child = find_task_by_pid(pid);
+-	if (child)
+-		get_task_struct(child);
+-	read_unlock(&tasklist_lock);
++	ret = ptrace_get_task_struct(request, pid, &child);
+ 	if (!child)
+ 		goto out_notsk;
+ 
+Index: linux-2.6/arch/ia64/ia32/sys_ia32.c
+===================================================================
+--- linux-2.6.orig/arch/ia64/ia32/sys_ia32.c	2005-08-24 11:45:24.000000000 +0200
++++ linux-2.6/arch/ia64/ia32/sys_ia32.c	2005-08-24 11:45:25.000000000 +0200
+@@ -1760,22 +1760,9 @@
+ 	long i, ret;
+ 
+ 	lock_kernel();
+-	if (request == PTRACE_TRACEME) {
+-		ret = sys_ptrace(request, pid, addr, data);
+-		goto out;
+-	}
+-
+-	ret = -ESRCH;
+-	read_lock(&tasklist_lock);
+-	child = find_task_by_pid(pid);
+-	if (child)
+-		get_task_struct(child);
+-	read_unlock(&tasklist_lock);
++	ret = ptrace_get_task_struct(request, pid, &child);
+ 	if (!child)
+ 		goto out;
+-	ret = -EPERM;
+-	if (pid == 1)		/* no messing around with init! */
+-		goto out_tsk;
+ 
+ 	if (request == PTRACE_ATTACH) {
+ 		ret = sys_ptrace(request, pid, addr, data);
+Index: linux-2.6/arch/m32r/kernel/ptrace.c
+===================================================================
+--- linux-2.6.orig/arch/m32r/kernel/ptrace.c	2005-08-14 12:03:16.000000000 +0200
++++ linux-2.6/arch/m32r/kernel/ptrace.c	2005-08-24 11:45:25.000000000 +0200
+@@ -762,29 +762,10 @@
+ 	int ret;
+ 
+ 	lock_kernel();
+-	ret = -EPERM;
+-	if (request == PTRACE_TRACEME) {
+-		/* are we already being traced? */
+-		if (current->ptrace & PT_PTRACED)
+-			goto out;
+-		/* set the ptrace bit in the process flags. */
+-		current->ptrace |= PT_PTRACED;
+-		ret = 0;
+-		goto out;
+-	}
+-	ret = -ESRCH;
+-	read_lock(&tasklist_lock);
+-	child = find_task_by_pid(pid);
+-	if (child)
+-		get_task_struct(child);
+-	read_unlock(&tasklist_lock);
++	ret = ptrace_get_task_struct(request, pid, &child);
+ 	if (!child)
+ 		goto out;
+ 
+-	ret = -EPERM;
+-	if (pid == 1)		/* you may not mess with init */
+-		goto out;
+-
+ 	if (request == PTRACE_ATTACH) {
+ 		ret = ptrace_attach(child);
+ 		if (ret == 0)
+Index: linux-2.6/arch/mips/kernel/ptrace32.c
+===================================================================
+--- linux-2.6.orig/arch/mips/kernel/ptrace32.c	2005-08-14 12:03:16.000000000 +0200
++++ linux-2.6/arch/mips/kernel/ptrace32.c	2005-08-24 11:45:25.000000000 +0200
+@@ -50,31 +50,10 @@
+ 	       (unsigned long) data);
+ #endif
+ 	lock_kernel();
+-	ret = -EPERM;
+-	if (request == PTRACE_TRACEME) {
+-		/* are we already being traced? */
+-		if (current->ptrace & PT_PTRACED)
+-			goto out;
+-		if ((ret = security_ptrace(current->parent, current)))
+-			goto out;
+-		/* set the ptrace bit in the process flags. */
+-		current->ptrace |= PT_PTRACED;
+-		ret = 0;
+-		goto out;
+-	}
+-	ret = -ESRCH;
+-	read_lock(&tasklist_lock);
+-	child = find_task_by_pid(pid);
+-	if (child)
+-		get_task_struct(child);
+-	read_unlock(&tasklist_lock);
++	ret = ptrace_get_task_struct(request, pid, &child);
+ 	if (!child)
+ 		goto out;
+ 
+-	ret = -EPERM;
+-	if (pid == 1)		/* you may not mess with init */
+-		goto out_tsk;
+-
+ 	if (request == PTRACE_ATTACH) {
+ 		ret = ptrace_attach(child);
+ 		goto out_tsk;
+Index: linux-2.6/arch/parisc/kernel/ptrace.c
+===================================================================
+--- linux-2.6.orig/arch/parisc/kernel/ptrace.c	2005-08-14 12:03:16.000000000 +0200
++++ linux-2.6/arch/parisc/kernel/ptrace.c	2005-08-24 11:45:25.000000000 +0200
+@@ -87,33 +87,9 @@
+ #endif
+ 
+ 	lock_kernel();
+-	ret = -EPERM;
+-	if (request == PTRACE_TRACEME) {
+-		/* are we already being traced? */
+-		if (current->ptrace & PT_PTRACED)
+-			goto out;
+-
+-		ret = security_ptrace(current->parent, current);
+-		if (ret) 
+-			goto out;
+-
+-		/* set the ptrace bit in the process flags. */
+-		current->ptrace |= PT_PTRACED;
+-		ret = 0;
+-		goto out;
+-	}
+-
+-	ret = -ESRCH;
+-	read_lock(&tasklist_lock);
+-	child = find_task_by_pid(pid);
+-	if (child)
+-		get_task_struct(child);
+-	read_unlock(&tasklist_lock);
++	ret = ptrace_get_task_struct(request, pid, &child);
+ 	if (!child)
+ 		goto out;
+-	ret = -EPERM;
+-	if (pid == 1)		/* no messing around with init! */
+-		goto out_tsk;
+ 
+ 	if (request == PTRACE_ATTACH) {
+ 		ret = ptrace_attach(child);
+Index: linux-2.6/arch/ppc64/kernel/ptrace32.c
+===================================================================
+--- linux-2.6.orig/arch/ppc64/kernel/ptrace32.c	2005-08-14 12:03:16.000000000 +0200
++++ linux-2.6/arch/ppc64/kernel/ptrace32.c	2005-08-24 11:45:25.000000000 +0200
+@@ -45,31 +45,10 @@
+ 	int ret = -EPERM;
+ 
+ 	lock_kernel();
+-	if (request == PTRACE_TRACEME) {
+-		/* are we already being traced? */
+-		if (current->ptrace & PT_PTRACED)
+-			goto out;
+-		ret = security_ptrace(current->parent, current);
+-		if (ret)
+-			goto out;
+-		/* set the ptrace bit in the process flags. */
+-		current->ptrace |= PT_PTRACED;
+-		ret = 0;
+-		goto out;
+-	}
+-	ret = -ESRCH;
+-	read_lock(&tasklist_lock);
+-	child = find_task_by_pid(pid);
+-	if (child)
+-		get_task_struct(child);
+-	read_unlock(&tasklist_lock);
++	ret = ptrace_get_task_struct(request, pid, &child);
+ 	if (!child)
+ 		goto out;
+ 
+-	ret = -EPERM;
+-	if (pid == 1)		/* you may not mess with init */
+-		goto out_tsk;
+-
+ 	if (request == PTRACE_ATTACH) {
+ 		ret = ptrace_attach(child);
+ 		goto out_tsk;
+Index: linux-2.6/arch/s390/kernel/ptrace.c
+===================================================================
+--- linux-2.6.orig/arch/s390/kernel/ptrace.c	2005-08-14 12:03:16.000000000 +0200
++++ linux-2.6/arch/s390/kernel/ptrace.c	2005-08-24 11:45:25.000000000 +0200
+@@ -712,36 +712,11 @@
+ 	int ret;
+ 
+ 	lock_kernel();
+-
+-	if (request == PTRACE_TRACEME) {
+-		/* are we already being traced? */
+-		ret = -EPERM;
+-		if (current->ptrace & PT_PTRACED)
+-			goto out;
+-		ret = security_ptrace(current->parent, current);
+-		if (ret)
+-			goto out;
+-		/* set the ptrace bit in the process flags. */
+-		current->ptrace |= PT_PTRACED;
+-		goto out;
++	ret = ptrace_get_task_struct(request, pid, &child);
++	if (child) {
++		ret = do_ptrace(child, request, addr, data);
++		put_task_struct(child);
+ 	}
+-
+-	ret = -EPERM;
+-	if (pid == 1)		/* you may not mess with init */
+-		goto out;
+-
+-	ret = -ESRCH;
+-	read_lock(&tasklist_lock);
+-	child = find_task_by_pid(pid);
+-	if (child)
+-		get_task_struct(child);
+-	read_unlock(&tasklist_lock);
+-	if (!child)
+-		goto out;
+-
+-	ret = do_ptrace(child, request, addr, data);
+-
+-	put_task_struct(child);
+ out:
+ 	unlock_kernel();
+ 	return ret;
+Index: linux-2.6/arch/sparc/kernel/ptrace.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/kernel/ptrace.c	2005-08-14 12:03:16.000000000 +0200
++++ linux-2.6/arch/sparc/kernel/ptrace.c	2005-08-24 11:45:25.000000000 +0200
+@@ -286,40 +286,13 @@
+ 			       s, (int) request, (int) pid, addr, data, addr2);
+ 	}
+ #endif
+-	if (request == PTRACE_TRACEME) {
+-		int my_ret;
+-
+-		/* are we already being traced? */
+-		if (current->ptrace & PT_PTRACED) {
+-			pt_error_return(regs, EPERM);
+-			goto out;
+-		}
+-		my_ret = security_ptrace(current->parent, current);
+-		if (my_ret) {
+-			pt_error_return(regs, -my_ret);
+-			goto out;
+-		}
+-
+-		/* set the ptrace bit in the process flags. */
+-		current->ptrace |= PT_PTRACED;
+-		pt_succ_return(regs, 0);
+-		goto out;
+-	}
+-#ifndef ALLOW_INIT_TRACING
+-	if (pid == 1) {
+-		/* Can't dork with init. */
+-		pt_error_return(regs, EPERM);
+-		goto out;
+-	}
+-#endif
+-	read_lock(&tasklist_lock);
+-	child = find_task_by_pid(pid);
+-	if (child)
+-		get_task_struct(child);
+-	read_unlock(&tasklist_lock);
+ 
++	ret = ptrace_get_task_struct(request, pid, &child);
+ 	if (!child) {
+-		pt_error_return(regs, ESRCH);
++		if (ret)
++			pt_error_return(regs, -ret);
++		else
++			pt_succ_return(regs, 0);
+ 		goto out;
+ 	}
+ 
+Index: linux-2.6/arch/sparc64/kernel/ptrace.c
+===================================================================
+--- linux-2.6.orig/arch/sparc64/kernel/ptrace.c	2005-08-14 12:03:16.000000000 +0200
++++ linux-2.6/arch/sparc64/kernel/ptrace.c	2005-08-24 11:45:25.000000000 +0200
+@@ -188,40 +188,12 @@
+ 			       s, request, pid, addr, data, addr2);
+ 	}
+ #endif
+-	if (request == PTRACE_TRACEME) {
+-		int ret;
+-
+-		/* are we already being traced? */
+-		if (current->ptrace & PT_PTRACED) {
+-			pt_error_return(regs, EPERM);
+-			goto out;
+-		}
+-		ret = security_ptrace(current->parent, current);
+-		if (ret) {
+-			pt_error_return(regs, -ret);
+-			goto out;
+-		}
+-
+-		/* set the ptrace bit in the process flags. */
+-		current->ptrace |= PT_PTRACED;
+-		pt_succ_return(regs, 0);
+-		goto out;
+-	}
+-#ifndef ALLOW_INIT_TRACING
+-	if (pid == 1) {
+-		/* Can't dork with init. */
+-		pt_error_return(regs, EPERM);
+-		goto out;
+-	}
+-#endif
+-	read_lock(&tasklist_lock);
+-	child = find_task_by_pid(pid);
+-	if (child)
+-		get_task_struct(child);
+-	read_unlock(&tasklist_lock);
+-
++	ret = ptrace_get_task_struct(request, pid, &child);
+ 	if (!child) {
+-		pt_error_return(regs, ESRCH);
++		if (ret)
++			pt_error_return(regs, -ret);
++		else
++			pt_succ_return(regs, 0);
+ 		goto out;
+ 	}
+ 
+Index: linux-2.6/arch/x86_64/ia32/ptrace32.c
+===================================================================
+--- linux-2.6.orig/arch/x86_64/ia32/ptrace32.c	2005-08-24 11:45:22.000000000 +0200
++++ linux-2.6/arch/x86_64/ia32/ptrace32.c	2005-08-24 11:45:25.000000000 +0200
+@@ -196,36 +196,6 @@
+ 
+ #undef R32
+ 
+-static struct task_struct *find_target(int request, int pid, int *err)
+-{ 
+-	struct task_struct *child;
+-
+-	*err = -EPERM; 
+-	if (pid == 1)
+-		return NULL; 
+-
+-	*err = -ESRCH;
+-	read_lock(&tasklist_lock);
+-	child = find_task_by_pid(pid);
+-	if (child)
+-		get_task_struct(child);
+-	read_unlock(&tasklist_lock);
+-	if (child) { 
+-		*err = -EPERM;
+-		if (child->pid == 1) 
+-			goto out;
+-		*err = ptrace_check_attach(child, request == PTRACE_KILL); 
+-		if (*err < 0) 
+-			goto out;
+-		return child; 
+-	} 
+- out:
+-	if (child)
+-	put_task_struct(child);
+-	return NULL; 
+-	
+-} 
+-
+ asmlinkage long sys32_ptrace(long request, u32 pid, u32 addr, u32 data)
  {
- 	bootmem_data_t *bdata = pgdat->bdata;
- 	unsigned long mapsize = ((end - start)+7)/8;
-+	static struct pglist_data *pgdat_last;
+ 	struct task_struct *child;
+@@ -254,10 +224,14 @@
+ 		break;
+ 	} 
  
--	pgdat->pgdat_next = pgdat_list;
--	pgdat_list = pgdat;
-+	pgdat->pgdat_next = NULL;
-+	/* Add new nodes last so that bootmem always starts 
-+	   searching in the first nodes, not the last ones */
-+	if (pgdat_last)
-+		pgdat_last->pgdat_next = pgdat;
-+	else {
-+		pgdat_list = pgdat; 	
-+		pgdat_last = pgdat;
-+	}
+-	child = find_target(request, pid, &ret);
++	ret = ptrace_get_task_struct(request, pid, &child);
+ 	if (!child)
+ 		return ret;
  
- 	mapsize = ALIGN(mapsize, sizeof(long));
- 	bdata->node_bootmem_map = phys_to_virt(mapstart << PAGE_SHIFT);
++	ret = ptrace_check_attach(child, request == PTRACE_KILL);
++	if (ret < 0)
++		goto out;
++
+ 	childregs = (struct pt_regs *)(child->thread.rsp0 - sizeof(struct pt_regs)); 
+ 
+ 	switch (request) {
+@@ -373,6 +347,7 @@
+ 		break;
+ 	}
+ 
++ out:
+ 	put_task_struct(child);
+ 	return ret;
+ }
+Index: linux-2.6/kernel/ptrace.c
+===================================================================
+--- linux-2.6.orig/kernel/ptrace.c	2005-08-24 11:45:24.000000000 +0200
++++ linux-2.6/kernel/ptrace.c	2005-08-24 11:45:25.000000000 +0200
+@@ -389,9 +389,7 @@
+ 	return ret;
+ }
+ 
+-#ifndef __ARCH_SYS_PTRACE
+-static int ptrace_get_task_struct(long request, long pid,
+-		struct task_struct **childp)
++int ptrace_get_task_struct(long request, long pid, struct task_struct **childp)
+ {
+ 	struct task_struct *child;
+ 	int ret;
+@@ -437,6 +435,7 @@
+ 	return 0;
+ }
+ 
++#ifndef __ARCH_SYS_PTRACE
+ asmlinkage long sys_ptrace(long request, long pid, long addr, long data)
+ {
+ 	struct task_struct *child;
+Index: linux-2.6/include/linux/ptrace.h
+===================================================================
+--- linux-2.6.orig/include/linux/ptrace.h	2005-08-24 11:45:24.000000000 +0200
++++ linux-2.6/include/linux/ptrace.h	2005-08-24 11:45:25.000000000 +0200
+@@ -78,6 +78,7 @@
+ 
+ 
+ extern long arch_ptrace(struct task_struct *child, long request, long addr, long data);
++extern int ptrace_get_task_struct(long request, long pid, struct task_struct **childp);
+ extern int ptrace_readdata(struct task_struct *tsk, unsigned long src, char __user *dst, int len);
+ extern int ptrace_writedata(struct task_struct *tsk, char __user *src, unsigned long dst, int len);
+ extern int ptrace_attach(struct task_struct *tsk);
