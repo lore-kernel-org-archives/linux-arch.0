@@ -1,20 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Content-class: urn:content-classes:message
-MIME-Version: 1.0
-Content-Type: text/plain;
-	charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
-Subject: RE: [RFC] Consistently use the name asm-offsets.h
-Date: Thu, 8 Sep 2005 14:39:04 -0700
-Message-ID: <B8E391BBE9FE384DAA4C5C003888BE6F0456EE9E@scsmsx401.amr.corp.intel.com>
-From: "Luck, Tony" <tony.luck@intel.com>
-To: Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Date: Thu, 8 Sep 2005 23:47:42 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [RFC] Consistently use the name asm-offsets.h
+Message-ID: <20050908214741.GA16421@mars.ravnborg.org>
+References: <20050908211539.GA24714@mars.ravnborg.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20050908211539.GA24714@mars.ravnborg.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-The existing ia64 specific rule to generate offsets.h
-has to "echo #define IA64_TASK_SIZE 0 > include/asm-ia64/offsets.h"
-before building asm-offsets.s to avoid compilation errors.
+mips has it own private gen-asm-offset macro,
 
-So long as you take care of this somehow in the generic version, go wild.
+The important part being:
 
--Tony
+sed -ne "/^@@@/s///p"; \
+
+compared to the generic one:
+
+sed -ne "/^->/{s:^->\([^ ]*\) [\$$#]*\([^ ]*\) \(.*\):#define \1 \2 /* \3 */:; s:->::; p;}"; \
+
+I wonder why the assembly for mips is so different...
+So for now two architectures needs special care: mips and ia64.
+
+	Sam
