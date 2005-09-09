@@ -1,25 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 9 Sep 2005 01:04:10 -0700
-From: Paul Jackson <pj@sgi.com>
+Date: Fri, 9 Sep 2005 12:17:03 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
 Subject: Re: [RFC] Consistently use the name asm-offsets.h
-Message-Id: <20050909010410.1cefe27f.pj@sgi.com>
-In-Reply-To: <4320B69D.5010901@didntduck.org>
-References: <B8E391BBE9FE384DAA4C5C003888BE6F0456EE9E@scsmsx401.amr.corp.intel.com>
-	<4320B69D.5010901@didntduck.org>
+Message-ID: <20050909111703.GD3747@linux-mips.org>
+References: <20050908211539.GA24714@mars.ravnborg.org> <20050908214741.GA16421@mars.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Brian Gerst <bgerst@didntduck.org>
-Cc: tony.luck@intel.com, sam@ravnborg.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20050908214741.GA16421@mars.ravnborg.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Brian wrote:
-> The right fix is to get rid of that god-awful circular dependency on 
-> offset.h
+On Thu, Sep 08, 2005 at 11:47:42PM +0200, Sam Ravnborg wrote:
 
-Just try making such a patch.  I double triple dare you.
+> mips has it own private gen-asm-offset macro,
+> 
+> The important part being:
+> 
+> sed -ne "/^@@@/s///p"; \
+> 
+> compared to the generic one:
+> 
+> sed -ne "/^->/{s:^->\([^ ]*\) [\$$#]*\([^ ]*\) \(.*\):#define \1 \2 /* \3 */:; s:->::; p;}"; \
+> 
+> I wonder why the assembly for mips is so different...
+> So for now two architectures needs special care: mips and ia64.
 
--- 
-                  I won't rest till it's the best ...
-                  Programmer, Linux Scalability
-                  Paul Jackson <pj@sgi.com> 1.925.600.0401
+MIPS uses it's own rules only for readability of the generated file.
+
+  Ralf
