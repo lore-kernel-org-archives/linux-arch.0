@@ -1,72 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 9 Sep 2005 13:25:34 +0200
-From: Jan-Benedict Glaw <jbglaw@lug-owl.de>
-Subject: Re: [RFC] Consistently use the name asm-offsets.h
-Message-ID: <20050909112534.GF3539@lug-owl.de>
-References: <20050908211539.GA24714@mars.ravnborg.org>
+Date: Fri, 9 Sep 2005 19:42:54 +0100
+From: viro@ZenIV.linux.org.uk
+Subject: [RFC] killing linux/irq.h
+Message-ID: <20050909184254.GT9623@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="FUFe+yI/t+r3nyH4"
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20050908211539.GA24714@mars.ravnborg.org>
-To: Sam Ravnborg <sam@ravnborg.org>
+Sender: <viro@ftp.linux.org.uk>
+To: Linus Torvalds <torvalds@osdl.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+	We get regular portability bugs when somebody decides to include
+linux/irq.h into a driver instead of asm/irq.h.  It's almost always a
+wrong thing to do and, in fact, causes immediate breakage on e.g. arm.
 
---FUFe+yI/t+r3nyH4
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+	Here's what I'm going to do:
+* check current includes of linux/irq.h; e.g. in arch/x86_64 all but two
+had been 100% useless, one should've been asm/irq.h and one - asm/irq.h +
+asm/hw_irq.h.  The only legitimate user of linux/irq.h on amd64 was
+asm/hardirq.h.
+Situation elsewhere in arch/* is similar - most of includes are not needed
+at all.
+* remove bogus includes, arch by arch for architectures that live in main
+tree.  Switch ones that should've been asm/irq.h to that form.
+* put the current contents of linux/irq.h to asm-generic/hardirq.h (which
+is what it really is - declarations for hardirq code, relevant on many but
+not all platforms).
+* switch remaining users of linux/irq.h to asm-generic/hardirq.h (again, for
+architectures that live in main tree)
+* replace contents of linux/irq.h with #warning and
+#include <asm-generic/hardirq.h>.
+* after 2.6.14 kill linux/irq.h completely.
 
-On Thu, 2005-09-08 23:15:39 +0200, Sam Ravnborg <sam@ravnborg.org> wrote:
-> I suggest moving all the logic required to build the asm-offsets.h file
-> to a common places and do proper search&replace in architectures to make
-> the naming consitent. For frv, m32r and sparc64 we will need to create a
-> dummy file until they start using asm-offsets.h
-
-Yay! Another rule we can kill from arch-specific Makefile :-)
-
-> --- a/Makefile
-> +++ b/Makefile
-> @@ -776,14 +776,14 @@ $(vmlinux-dirs): prepare-all scripts
->  # A multi level approach is used. prepare1 is updated first, then prepar=
-e0.
->  # prepare-all is the collection point for the prepare targets.
-> =20
-> -.PHONY: prepare-all prepare prepare0 prepare1 prepare2
-> +.PHONY: prepare-all prepare prepare0 prepare1 prepare2 prepare3
-> =20
-> -# prepare2 is used to check if we are building in a separate output dire=
-ctory,
-> +# preparei3 is used to check if we are building in a separate output dir=
-ectory,
-           ^^^
-Typo?
-
-MfG, JBG
-
---=20
-Jan-Benedict Glaw       jbglaw@lug-owl.de    . +49-172-7608481             =
-_ O _
-"Eine Freie Meinung in  einem Freien Kopf    | Gegen Zensur | Gegen Krieg  =
-_ _ O
- f=C3=BCr einen Freien Staat voll Freier B=C3=BCrger"  | im Internet! |   i=
-m Irak!   O O O
-ret =3D do_actions((curr | FREE_SPEECH) & ~(NEW_COPYRIGHT_LAW | DRM | TCPA)=
-);
-
---FUFe+yI/t+r3nyH4
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-Content-Disposition: inline
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.1 (GNU/Linux)
-
-iD8DBQFDIXEuHb1edYOZ4bsRAgXRAJ93pTuxSOvGHxEmoXpIgkB167ZcBACffDAr
-/cO28KmQZSO/uwVCoQaxMhw=
-=JUBz
------END PGP SIGNATURE-----
-
---FUFe+yI/t+r3nyH4--
+	Objections?  That variant leaves out-of-tree folks with window until
+2.6.15 to convert and that's really more than enough...
