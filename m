@@ -1,38 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from westrelay02.boulder.ibm.com (westrelay02.boulder.ibm.com [9.17.195.11])
-	by e35.co.us.ibm.com (8.12.10/8.12.9) with ESMTP id j8CFfWfG327610
-	for <linux-arch@vger.kernel.org>; Mon, 12 Sep 2005 11:41:33 -0400
-Received: from d03av02.boulder.ibm.com (d03av02.boulder.ibm.com [9.17.195.168])
-	by westrelay02.boulder.ibm.com (8.12.10/NCO/VERS6.7) with ESMTP id j8CFeGHk047134
-	for <linux-arch@vger.kernel.org>; Mon, 12 Sep 2005 09:40:16 -0600
-Received: from d03av02.boulder.ibm.com (loopback [127.0.0.1])
-	by d03av02.boulder.ibm.com (8.12.11/8.13.3) with ESMTP id j8CFeFnJ014468
-	for <linux-arch@vger.kernel.org>; Mon, 12 Sep 2005 09:40:16 -0600
-Date: Mon, 12 Sep 2005 21:04:53 +0530
-From: Dipankar Sarma <dipankar@in.ibm.com>
-Subject: Re: [PATCH 3/3][RFC] remove rcuref.h
-Message-ID: <20050912153453.GB4778@in.ibm.com>
-Reply-To: dipankar@in.ibm.com
-References: <432595D5.1090502@yahoo.com.au> <4325965A.2010608@yahoo.com.au> <432596EA.3020502@yahoo.com.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <432596EA.3020502@yahoo.com.au>
-To: Nick Piggin <nickpiggin@yahoo.com.au>
+Message-ID: <4325A1D7.103@yahoo.com.au>
+Date: Tue, 13 Sep 2005 01:42:15 +1000
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+MIME-Version: 1.0
+Subject: Re: [PATCH 1/3][RFC] atomic_cmpxchg, atomic_inc_not_zero
+References: <432595D5.1090502@yahoo.com.au> <20050912153053.GA4778@in.ibm.com>
+In-Reply-To: <20050912153053.GA4778@in.ibm.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
+To: dipankar@in.ibm.com
 Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Linus Torvalds <torvalds@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Sep 13, 2005 at 12:55:38AM +1000, Nick Piggin wrote:
-> 3/3
+Dipankar Sarma wrote:
+> On Tue, Sep 13, 2005 at 12:51:01AM +1000, Nick Piggin wrote:
 > 
-> So this is something like how one would go about removing rcuref.h.
+>>The recent file_table RCU work introduced a new rcuref.h thing,
+>>which is just begging to be atomic.h. Basically it uses atomic_t,
+>>digs into the atomic_t type, and also defines its own table of
+>>spinlocks if the arch doesn't have cmpxchg() thus rendering it
+>>unsafe for any other atomic_xxx operation to be performed on it.
 > 
-> Now I'm not proposing this for inclusion just yet. Obviously it needs
-> to have the atomic_ primitives supported on all architectures and
-> be reviewed by Dipankar and lkml...
+> 
+> The rcuref_xxx primitives were for only RCU protected refcounters
+> and I implemented all the primitives needed for them and use
+> of them was mandatory.
+> 
 
-The idea looks good. Please publish the full patcheset and we can
-work towards merging them.
+Oh yes, I realise that and I did not spot a bug in your implementation.
 
-Thanks
-Dipankar
+> 
+>>Anyway, as it turns out, my lockless pagecache patches have the
+>>exact same requirement, and so I am proposing to implement two
+>>new atomic_ primitives that should be useful.
+>>
+>>Only one is actually needed, atomic_inc_not_zero being the exact
+>>fit for both, however I did atomic_cmpxchg first and it can stay
+>>around because hopefully will be a generally useful primitive.
+>>
+>>Now atomic_inc_not_zero is not really anything to do with RCU other
+>>than an RCU protected refcounted structure being an obvious user to
+>>take a reference on the read side where there is nothing to pin it.
+>>
+>>1/3 is atomic_cmpxchg, not guaranteed to even compile on most.
+> 
+> 
+> This is sooo much better. I would much rather kill rcuref.h
+> and directly use atomic_inc_not_zero() when necessary.
+> Please feel free to churn out the whole implementation and I will
+> test it.
+> 
+
+OK, once I run it past the arch maintainers I will post a new set to
+lkml (and cc you). If you are feeling brave, the atomic_cmpxchg on
+ppc64 is working with my lockless pagecache patches, but I simply
+haven't tested 3/3.
+
+Anyway, please, arch maintainers: speak now if there is something
+really nasty about doing this on your arch. Otherwise, if you can
+cook up optimised versions then please send them to me. If not, I'll
+try to do the dumb implementations as best I can.
+
+Thanks,
+Nick
+
+-- 
+SUSE Labs, Novell Inc.
+
+Send instant messages to your online friends http://au.messenger.yahoo.com 
