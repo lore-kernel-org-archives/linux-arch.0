@@ -1,32 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Sun, 11 Sep 2005 09:50:38 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Sender: geert@sonycom.com
-Subject: Re: [RFC] killing linux/irq.h
-In-Reply-To: <20050909184254.GT9623@ZenIV.linux.org.uk>
-Message-ID: <Pine.LNX.4.62.0509110949390.30752@numbat.sonytel.be>
-References: <20050909184254.GT9623@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: viro@ZenIV.linux.org.uk
-Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>
+Date: Mon, 12 Sep 2005 11:27:10 +0200
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: spinlock-consolidation.patch
+Message-ID: <20050912092710.GB5731@elte.hu>
+References: <20050909121521.12942a8d.akpm@osdl.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20050909121521.12942a8d.akpm@osdl.org>
+To: Andrew Morton <akpm@osdl.org>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 9 Sep 2005 viro@ZenIV.linux.org.uk wrote:
-> 	We get regular portability bugs when somebody decides to include
-> linux/irq.h into a driver instead of asm/irq.h.  It's almost always a
-> wrong thing to do and, in fact, causes immediate breakage on e.g. arm.
 
-Wouldn't it be more logical to make linux/irq.h the preferred include?
-Usually the linux/* versions are preferred over the asm/* versions.
+* Andrew Morton <akpm@osdl.org> wrote:
 
-Gr{oetje,eeting}s,
+> Guys, I'm planning on sending this Linuswards in about two days time.  
+> There's never a right time for this sort of thing and there may be 
+> some relatively trivial breakage for architectures I don't test for.  
+> But it kills 1300 lines of code.
 
-						Geert
+the patch goes far beyond code reduction effects: the patch also unifies 
+and centralizes all known spinlock-debugging features, which improves 
+every architecture. E.g. on x86 we can now detect spinlock deadlocks 
+even without the NMI watchdog. Even the architecture with the most 
+advanced lowlevel spinlock-debugging framework (Sparc) gets improved a 
+bit by this [by getting additional rwlock debugging code].
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+If i missed any spinlock-debugging cleverness then please holler and 
+i'll add it to the generic code.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+	Ingo
+
+ps. also, with this patch the ATOMIC_DEC_AND_LOCK uglinesses have 
+    finally become history
+
+ps2. and PREEMPT_RT gets a central spinlock type to fiddle with ;-)
