@@ -1,49 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Wed, 14 Sep 2005 13:03:53 -0700
-From: Ravikiran G Thirumalai <kiran@scalex86.org>
-Subject: Re: [patch 6/11] mm: Bigrefs -- distributed refcounters
-Message-ID: <20050914200353.GA3891@localhost.localdomain>
-References: <20050913155112.GB3570@localhost.localdomain> <20050913160412.GH3570@localhost.localdomain> <1126683374.7896.113.camel@localhost.localdomain>
+Date: Thu, 15 Sep 2005 10:34:55 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [RFC] killing linux/irq.h
+Message-ID: <20050915163455.GD16698@parisc-linux.org>
+References: <20050909184254.GT9623@ZenIV.linux.org.uk> <Pine.LNX.4.62.0509110949390.30752@numbat.sonytel.be>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1126683374.7896.113.camel@localhost.localdomain>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: linux-arch@vger.kernel.org
+In-Reply-To: <Pine.LNX.4.62.0509110949390.30752@numbat.sonytel.be>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: viro@ZenIV.linux.org.uk, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Sep 14, 2005 at 05:36:14PM +1000, Rusty Russell wrote:
-> On Tue, 2005-09-13 at 09:04 -0700, Ravikiran G Thirumalai wrote:
-> > Signed-off-by: Rusty Russel <rusty@rustcorp.com>
+On Sun, Sep 11, 2005 at 09:50:38AM +0200, Geert Uytterhoeven wrote:
+> On Fri, 9 Sep 2005 viro@ZenIV.linux.org.uk wrote:
+> > 	We get regular portability bugs when somebody decides to include
+> > linux/irq.h into a driver instead of asm/irq.h.  It's almost always a
+> > wrong thing to do and, in fact, causes immediate breakage on e.g. arm.
 > 
-> This is the second time this has happened in as many weeks, by different
-> people  Obviously, I can spell my own name, know my own email address,
+> Wouldn't it be more logical to make linux/irq.h the preferred include?
+> Usually the linux/* versions are preferred over the asm/* versions.
 
-I am extremely sorry
-
-> and did not sign off on this patch.
-
-I thought the following was applicable here: (from SubmittingPatches)
-
-        (b) The contribution is based upon previous work that, to the best
-            of my knowledge, is covered under an appropriate open source
-            license and I have the right under that license to submit that
-            work with modifications, whether created in whole or in part
-            by me, under the same open source license (unless I am
-            permitted to submit under a different license), as indicated
-            in the file; or
-
-And since it was publised on lkml (and the signoff process was not in
-place then), I thought I could sign you off with a cc.  I even added the url
-to your original posting. I guess I was wrong. Really sorry :(.
-
-> 
-> A few well-placed private slaps on wrists can probably prevent this
-> becoming common practice.
-
-Ouch.  I have learnt my lesson.
-
-Btw, what is linux-arch for?  I couldn't find the listinfo on vger-lists.
-
-Thanks,
-Kiran
+There's almost no reason to want <*/irq.h> in the first place.  Almost
+all drivers really want <linux/interrupt.h>
