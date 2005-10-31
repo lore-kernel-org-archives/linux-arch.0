@@ -1,36 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Mon, 31 Oct 2005 13:14:22 -0800
-From: Matt Mackall <mpm@selenic.com>
-Subject: Re: [PATCH 13/20] inflate: (arch) kill silly zlib typedefs
-Message-ID: <20051031211422.GC4367@waste.org>
-References: <14.196662837@selenic.com> <Pine.LNX.4.62.0510312204400.26471@numbat.sonytel.be>
+Date: Mon, 31 Oct 2005 22:43:01 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 17/20] inflate: mark some arrays as initdata
+Message-ID: <20051031224301.GF20452@flint.arm.linux.org.uk>
+References: <17.196662837@selenic.com> <18.196662837@selenic.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.62.0510312204400.26471@numbat.sonytel.be>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@osdl.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+In-Reply-To: <18.196662837@selenic.com>
+Sender: Russell King <rmk@arm.linux.org.uk>
+To: Matt Mackall <mpm@selenic.com>
+Cc: Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Oct 31, 2005 at 10:05:15PM +0100, Geert Uytterhoeven wrote:
-> On Mon, 31 Oct 2005, Matt Mackall wrote:
-> > inflate: remove legacy type definitions from callers
-> > 
-> > This replaces the legacy zlib typedefs and usage with kernel types in
-> > all the inflate users.
-> 
-> > -static ulg free_mem_ptr;
-> > -static ulg free_mem_ptr_end;
-> > +static u32 free_mem_ptr;
-> > +static u32 free_mem_ptr_end;
-> 
-> Bang, on 64-bit platforms...
+On Mon, Oct 31, 2005 at 02:54:51PM -0600, Matt Mackall wrote:
+> inflate: mark some arrays as INITDATA and define it in in-core callers
 
-That was quick.
+This breaks ARM.  Our decompressor has some rather odd requirements
+due to the way we support PIC - it's PIC text with fixed data.
 
-Yes, this is broken on Alpha. The other 64-bit arches use proper pointers
-here. But I need to change all the arches to use the same pointer
-type, probably as patch 8.5 in the series.
+This means that all fixed initialised data must be "const" or initialised
+by code.  This patch breaks that assertion.
 
 -- 
-Mathematics is the supreme nostalgia of our time.
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
