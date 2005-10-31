@@ -1,514 +1,628 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Mon, 31 Oct 2005 14:54:51 -0600
+Date: Mon, 31 Oct 2005 14:54:52 -0600
 From: Matt Mackall <mpm@selenic.com>
-In-Reply-To: <15.196662837@selenic.com>
-Message-Id: <16.196662837@selenic.com>
-Subject: [PATCH 15/20] inflate: (arch) tidy user declarations
+In-Reply-To: <19.196662837@selenic.com>
+Message-Id: <20.196662837@selenic.com>
+Subject: [PATCH 19/20] inflate: (arch) use proper linking
 To: Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-inflate: tidy user declarations
+inflate: remove include of lib/inflate.c and use proper linking
 
-Regroup the few remaining gzip-related declarations in users. As the
-bulk of the users are now _not_ a collection of routines copied from
-gzip, that comment is removed.
+- make free_mem_ptr vars nonstatic
+- make gunzip nonstatic
+- add gunzip prototype to new inflate.h
+- add per-arch Makefile bits
+- change inflate.c includes to inflate.h includes
+- change NO_INFLATE_MALLOC to CORE
+- compile core kernel version of inflate with -DCORE
 
 Signed-off-by: Matt Mackall <mpm@selenic.com>
 
 Index: 2.6.14/arch/alpha/boot/misc.c
 ===================================================================
---- 2.6.14.orig/arch/alpha/boot/misc.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/arch/alpha/boot/misc.c	2005-10-28 22:04:25.000000000 -0700
-@@ -1,8 +1,5 @@
- /*
-  * misc.c
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-  *
-  * Modified for ARM Linux by Russell King
-  *
-@@ -17,28 +14,23 @@
+--- 2.6.14.orig/arch/alpha/boot/misc.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/alpha/boot/misc.c	2005-10-30 13:07:25.000000000 -0800
+@@ -14,6 +14,7 @@
   */
  
  #include <linux/kernel.h>
--
++#include <linux/inflate.h>
  #include <asm/uaccess.h>
  
  #define puts		srm_printk
- extern long srm_printk(const char *, ...)
-      __attribute__ ((format (printf, 1, 2)));
+@@ -27,11 +28,7 @@ static u8 *output_data;
  
--/*
-- * gzip delarations
-- */
--
-+extern int end;
- static char *input_data;
- static int  input_data_size;
--
- static u8 *output_data;
+ #define HEAP_SIZE 0x2000
  
--extern int end;
-+#define HEAP_SIZE 0x2000
-+
-+/* gzip delarations */
- static u32 free_mem_ptr;
- static u32 free_mem_ptr_end;
- 
--#define HEAP_SIZE 0x2000
+-/* gzip delarations */
+-static u32 free_mem_ptr;
+-static u32 free_mem_ptr_end;
 -
- #include "../../../lib/inflate.c"
+-#include "../../../lib/inflate.c"
++static u32 free_mem_ptr, free_mem_ptr_end; /* for gunzip */
  
  /* flush gunzip output window */
+ static void flush_window(const u8 *buf, int len)
+Index: 2.6.14/arch/arm/boot/compressed/Makefile
+===================================================================
+--- 2.6.14.orig/arch/arm/boot/compressed/Makefile	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/arm/boot/compressed/Makefile	2005-10-30 13:07:25.000000000 -0800
+@@ -95,8 +95,11 @@ LDFLAGS_vmlinux += -p --no-undefined -X 
+ # would otherwise mess up our GOT table
+ CFLAGS_misc.o := -Dstatic=
+ 
++$(obj)/inflate.o: lib/inflate.c
++	$(call cmd,cc_o_c)
++
+ $(obj)/vmlinux: $(obj)/vmlinux.lds $(obj)/$(HEAD) $(obj)/piggy.o \
+-	 	$(addprefix $(obj)/, $(OBJS)) FORCE
++	 	$(addprefix $(obj)/, $(OBJS)) $(obj)/inflate.o FORCE
+ 	$(call if_changed,ld)
+ 	@:
+ 
 Index: 2.6.14/arch/arm/boot/compressed/misc.c
 ===================================================================
---- 2.6.14.orig/arch/arm/boot/compressed/misc.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/arch/arm/boot/compressed/misc.c	2005-10-28 22:04:25.000000000 -0700
-@@ -1,8 +1,5 @@
- /*
-  * misc.c
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-  *
-  * Modified for ARM Linux by Russell King
-  *
-@@ -17,7 +14,6 @@
+--- 2.6.14.orig/arch/arm/boot/compressed/misc.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/arm/boot/compressed/misc.c	2005-10-30 13:07:25.000000000 -0800
+@@ -14,6 +14,7 @@
  unsigned int __machine_arch_type;
  
  #include <linux/string.h>
--
++#include <linux/inflate.h>
  #include <asm/arch/uncompress.h>
  
  #ifdef STANDALONE_DEBUG
-Index: 2.6.14/arch/arm26/boot/compressed/misc.c
-===================================================================
---- 2.6.14.orig/arch/arm26/boot/compressed/misc.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/arch/arm26/boot/compressed/misc.c	2005-10-28 22:04:25.000000000 -0700
-@@ -1,8 +1,5 @@
- /*
-  * misc.c
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-  *
-  * Modified for ARM Linux by Russell King
-  *
-@@ -17,7 +14,6 @@
- unsigned int __machine_arch_type;
+@@ -36,31 +37,17 @@ icedcc_putstr(const char *ptr)
  
- #include <linux/kernel.h>
--
- #include <asm/uaccess.h>
- #include "uncompress.h"
- 
-@@ -25,24 +21,19 @@ unsigned int __machine_arch_type;
- #define puts printf
  #endif
  
 -#define __ptr_t void *
 -
 -/*
-- * gzip delarations
-- */
--
-+extern int end;
- extern char input_data[];
- extern char input_data_end[];
- static u8 *output_data;
- 
- static void puts(const char *);
- 
--extern int end;
-+#define HEAP_SIZE 0x2000
-+
-+/* gzip delarations */
- static u32 free_mem_ptr;
- static u32 free_mem_ptr_end;
- 
--#define HEAP_SIZE 0x2000
--
- #include "../../../../lib/inflate.c"
- 
- #ifdef STANDALONE_DEBUG
-Index: 2.6.14/arch/cris/arch-v10/boot/compressed/misc.c
-===================================================================
---- 2.6.14.orig/arch/cris/arch-v10/boot/compressed/misc.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/arch/cris/arch-v10/boot/compressed/misc.c	2005-10-28 22:04:25.000000000 -0700
-@@ -1,14 +1,9 @@
- /*
-  * misc.c
-  *
-- * $Id: misc.c,v 1.6 2003/10/27 08:04:31 starvik Exp $
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-- *
-  * puts by Nick Holloway 1993, better puts by Martin Mares 1995
-  * adoptation for Linux/CRIS Axis Communications AB, 1999
-- * 
-+ *
-  */
- 
- /* where the piggybacked kernel image expects itself to live.
-@@ -20,24 +15,17 @@
- #define KERNEL_LOAD_ADR 0x40004000
- 
- #include <linux/config.h>
--
- #include <linux/types.h>
- #include <asm/arch/svinto.h>
- 
--/*
 - * gzip declarations
 - */
 -
--unsigned compsize; /* compressed size, used by head.S */
--
-+extern int end; /* the "heap" is put directly after the BSS ends, at end */
-+extern unsigned compsize; /* compressed size, used by head.S */
- extern char *input_data;  /* lives in head.S */
+ extern char input_data[];
+ extern char input_data_end[];
++extern int end;
+ 
  static u8 *output_data;
+-
+ static void putstr(const char *);
+ 
+-extern int end;
+-static u32 free_mem_ptr;
+-static u32 free_mem_ptr_end;
++u32 free_mem_ptr, free_mem_ptr_end; /* for gunzip */
+ 
+ #define HEAP_SIZE 0x2000
+ 
+-#include "../../../../lib/inflate.c"
+-
+-#ifdef STANDALONE_DEBUG
+-#define NO_INFLATE_MALLOC
+-#endif
+-
+ /* flush gunzip output window */
+ static void flush_window(const u8 *buf, int len)
+ {
+Index: 2.6.14/arch/arm26/boot/compressed/Makefile
+===================================================================
+--- 2.6.14.orig/arch/arm26/boot/compressed/Makefile	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/arm26/boot/compressed/Makefile	2005-10-30 13:07:25.000000000 -0800
+@@ -8,7 +8,7 @@
+ #
+ 
+ HEAD	= head.o
+-OBJS	= misc.o
++OBJS	= misc.o inflate.o
+ FONTC	= drivers/video/console/font_acorn_8x8.c
+ 
+ OBJS		+= ll_char_wr.o font.o
+@@ -40,11 +40,14 @@ LDFLAGS_piggy.o := -r -b binary
+ $(obj)/piggy.o:  $(obj)/piggy.gz FORCE
+ 	$(call if_changed,ld)
+ 
++$(obj)/inflate.o: lib/inflate.c
++        $(call cmd,cc_o_c)
++
+ $(obj)/font.o: $(FONTC)
+ 	$(CC) $(CFLAGS) -Dstatic= -c $(FONTC) -o $(obj)/font.o
+ 
+ $(obj)/vmlinux.lds: $(obj)/vmlinux.lds.in Makefile arch/arm26/boot/Makefile .config
+ 	@sed "$(SEDFLAGS)" < $< > $@
+ 
+-$(obj)/misc.o: $(obj)/misc.c $(obj)/uncompress.h lib/inflate.c
++$(obj)/misc.o: $(obj)/misc.c $(obj)/uncompress.h
+ 
+Index: 2.6.14/arch/arm26/boot/compressed/misc.c
+===================================================================
+--- 2.6.14.orig/arch/arm26/boot/compressed/misc.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/arm26/boot/compressed/misc.c	2005-10-30 13:07:25.000000000 -0800
+@@ -14,6 +14,7 @@
+ unsigned int __machine_arch_type;
+ 
+ #include <linux/kernel.h>
++#include <linux/inflate.h>
+ #include <asm/uaccess.h>
+ #include "uncompress.h"
+ 
+@@ -30,15 +31,7 @@ static void puts(const char *);
+ 
+ #define HEAP_SIZE 0x2000
+ 
+-/* gzip delarations */
+-static u32 free_mem_ptr;
+-static u32 free_mem_ptr_end;
+-
+-#include "../../../../lib/inflate.c"
+-
+-#ifdef STANDALONE_DEBUG
+-#define NO_INFLATE_MALLOC
+-#endif
++u32 free_mem_ptr, free_mem_ptr_end; /* for gunzip */
+ 
+ /* flush the gunzip output window */
+ static void flush_window(const u8 *buf, int len)
+Index: 2.6.14/arch/cris/arch-v10/boot/compressed/Makefile
+===================================================================
+--- 2.6.14.orig/arch/cris/arch-v10/boot/compressed/Makefile	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/cris/arch-v10/boot/compressed/Makefile	2005-10-30 13:07:25.000000000 -0800
+@@ -9,7 +9,7 @@ CFLAGS = -O2
+ LD = ld-cris
+ OBJCOPY = objcopy-cris
+ OBJCOPYFLAGS = -O binary --remove-section=.bss
+-OBJECTS = $(target)/head.o $(target)/misc.o
++OBJECTS = $(target)/head.o $(target)/misc.o $(target)/inflate.o
+ 
+ # files to compress
+ SYSTEM = $(objtree)/vmlinux.bin
+@@ -29,6 +29,9 @@ $(target_compressed_dir)/vmlinuz: $(targ
+ $(target)/head.o: $(src)/head.S
+ 	$(CC) -D__ASSEMBLY__ -traditional -c $< -o $@
+ 
++$(target)/inflate.o: lib/inflate.c
++	$(CC) -D__KERNEL__ -c $< -o $@
++
+ $(target)/misc.o: $(src)/misc.c
+ 	$(CC) -D__KERNEL__ -c $< -o $@
+ 
+Index: 2.6.14/arch/cris/arch-v10/boot/compressed/misc.c
+===================================================================
+--- 2.6.14.orig/arch/cris/arch-v10/boot/compressed/misc.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/cris/arch-v10/boot/compressed/misc.c	2005-10-30 13:07:25.000000000 -0800
+@@ -16,6 +16,7 @@
+ 
+ #include <linux/config.h>
+ #include <linux/types.h>
++#include <linux/inflate.h>
+ #include <asm/arch/svinto.h>
+ 
+ extern int end; /* the "heap" is put directly after the BSS ends, at end */
+@@ -25,11 +26,8 @@ static u8 *output_data;
  
  static void puts(const char *);
  
--/* the "heap" is put directly after the BSS ends, at end */
--  
--extern int end;
-+/* gzip declarations */
- static long free_mem_ptr = (long)&end;
- static long free_mem_end_ptr = 0xffffffff;
+-/* gzip declarations */
+-static long free_mem_ptr = (long)&end;
+-static long free_mem_end_ptr = 0xffffffff;
+-
+-#include "../../../../../lib/inflate.c"
++/* for gunzip */
++long free_mem_ptr = (long)&end, free_mem_end_ptr = 0xffffffff;
+ 
+ /* decompressor info and error messages to serial console */
+ 
+Index: 2.6.14/arch/cris/arch-v32/boot/compressed/Makefile
+===================================================================
+--- 2.6.14.orig/arch/cris/arch-v32/boot/compressed/Makefile	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/cris/arch-v32/boot/compressed/Makefile	2005-10-30 13:07:25.000000000 -0800
+@@ -12,7 +12,7 @@ CFLAGS = -O2
+ LD = gcc-cris -mlinux -march=v32 -nostdlib
+ OBJCOPY = objcopy-cris
+ OBJCOPYFLAGS = -O binary --remove-section=.bss
+-OBJECTS = $(target)/head.o $(target)/misc.o
++OBJECTS = $(target)/head.o $(target)/misc.o $(target)/inflate.o
+ 
+ # files to compress
+ SYSTEM = $(objtree)/vmlinux.bin
+@@ -28,6 +28,9 @@ $(objtree)/vmlinuz: $(target) piggy.img 
+ 	rm -f piggy.img
+ 	cp $(objtree)/vmlinuz $(src)
+ 
++$(target)/inflate.o: lib/inflate.c
++	$(call cmd,cc_o_c)
++
+ $(target)/head.o: $(src)/head.S
+ 	$(CC) -D__ASSEMBLY__ -c $< -o $@
  
 Index: 2.6.14/arch/cris/arch-v32/boot/compressed/misc.c
 ===================================================================
---- 2.6.14.orig/arch/cris/arch-v32/boot/compressed/misc.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/arch/cris/arch-v32/boot/compressed/misc.c	2005-10-28 22:04:25.000000000 -0700
-@@ -1,11 +1,6 @@
- /*
-  * misc.c
-  *
-- * $Id: misc.c,v 1.8 2005/04/24 18:34:29 starvik Exp $
-- *
-- * This is a collection of several routines from gzip-1.0.3
-- * adapted for Linux.
-- *
-  * puts by Nick Holloway 1993, better puts by Martin Mares 1995
-  * adoptation for Linux/CRIS Axis Communications AB, 1999
-  *
-@@ -20,24 +15,18 @@
- #define KERNEL_LOAD_ADR 0x40004000
+--- 2.6.14.orig/arch/cris/arch-v32/boot/compressed/misc.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/cris/arch-v32/boot/compressed/misc.c	2005-10-30 13:07:25.000000000 -0800
+@@ -16,6 +16,7 @@
  
  #include <linux/config.h>
--
  #include <linux/types.h>
++#include <linux/inflate.h>
  #include <asm/arch/hwregs/reg_rdwr.h>
  #include <asm/arch/hwregs/reg_map.h>
  #include <asm/arch/hwregs/ser_defs.h>
- 
--/*
-- * gzip declarations
-- */
--
-+extern int _end; /* the "heap" is put directly after the BSS ends, at end */
- extern char *input_data;  /* lives in head.S */
- static u8 *output_data;
+@@ -26,11 +27,8 @@ static u8 *output_data;
  
  static void puts(const char *);
  
--/* the "heap" is put directly after the BSS ends, at end */
+-/* gzip declarations */
+-static long free_mem_ptr = (long)&_end;
+-static long free_mem_end_ptr = 0xffffffff;
 -
--extern int _end;
-+/* gzip declarations */
- static long free_mem_ptr = (long)&_end;
- static long free_mem_end_ptr = 0xffffffff;
+-#include "../../../../../lib/inflate.c"
++/* for gunzip */
++long free_mem_ptr = (long)&_end, free_mem_end_ptr = 0xffffffff;
+ 
+ /* decompressor info and error messages to serial console */
+ 
+Index: 2.6.14/arch/i386/boot/compressed/Makefile
+===================================================================
+--- 2.6.14.orig/arch/i386/boot/compressed/Makefile	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/i386/boot/compressed/Makefile	2005-10-30 13:07:25.000000000 -0800
+@@ -9,7 +9,11 @@ EXTRA_AFLAGS	:= -traditional
+ 
+ LDFLAGS_vmlinux := -Ttext $(IMAGE_OFFSET) -e startup_32
+ 
+-$(obj)/vmlinux: $(obj)/head.o $(obj)/misc.o $(obj)/piggy.o FORCE
++$(obj)/inflate.o: lib/inflate.c
++	$(call cmd,cc_o_c)
++
++$(obj)/vmlinux: $(obj)/head.o $(obj)/misc.o $(obj)/piggy.o $(obj)/inflate.o \
++		FORCE
+ 	$(call if_changed,ld)
+ 	@:
  
 Index: 2.6.14/arch/i386/boot/compressed/misc.c
 ===================================================================
---- 2.6.14.orig/arch/i386/boot/compressed/misc.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/arch/i386/boot/compressed/misc.c	2005-10-28 22:04:25.000000000 -0700
-@@ -1,8 +1,5 @@
- /*
-  * misc.c
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-  *
-  * puts by Nick Holloway 1993, better puts by Martin Mares 1995
-  * High loaded stuff by Hans Lermen & Werner Almesberger, Feb. 1996
-@@ -15,16 +12,6 @@
+--- 2.6.14.orig/arch/i386/boot/compressed/misc.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/i386/boot/compressed/misc.c	2005-10-30 13:07:25.000000000 -0800
+@@ -8,6 +8,7 @@
+ #include <linux/linkage.h>
+ #include <linux/vmalloc.h>
+ #include <linux/tty.h>
++#include <linux/inflate.h>
+ #include <asm/io.h>
  #include <asm/page.h>
  
- /*
-- * gzip declarations
-- */
--
--/*
-- * Why do we do this? Don't ask me..
-- *
-- * Incomprehensible are the ways of bootloaders.
-- */
--
--/*
-  * This is set up by the setup-routine at boot-time
-  */
- static unsigned char *real_mode; /* Pointer to real-mode data */
-@@ -35,6 +22,7 @@ static unsigned char *real_mode; /* Poin
- #endif
- #define RM_SCREEN_INFO (*(struct screen_info *)(real_mode+0))
- 
-+extern int end;
- extern char input_data[];
- extern int input_len;
- static long bytes_out;
-@@ -42,10 +30,6 @@ static u8 *output_data;
- 
- static void putstr(const char *);
- 
--extern int end;
--static long free_mem_ptr = (long)&end;
--static long free_mem_end_ptr;
--
- #define INPLACE_MOVE_ROUTINE  0x1000
- #define LOW_BUFFER_START      0x2000
- #define LOW_BUFFER_MAX       0x90000
-@@ -62,6 +46,10 @@ static int lines, cols;
+@@ -46,11 +47,7 @@ static int lines, cols;
  static void * xquad_portio = NULL;
  #endif
  
-+/* gzip declarations */
-+static long free_mem_ptr = (long)&end;
-+static long free_mem_end_ptr;
-+
- #include "../../../../lib/inflate.c"
- 
- static void scroll(void)
-Index: 2.6.14/arch/m32r/boot/compressed/misc.c
-===================================================================
---- 2.6.14.orig/arch/m32r/boot/compressed/misc.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/arch/m32r/boot/compressed/misc.c	2005-10-28 22:04:25.000000000 -0700
-@@ -1,9 +1,6 @@
- /*
-  * arch/m32r/boot/compressed/misc.c
-  *
-- * This is a collection of several routines from gzip-1.0.3
-- * adapted for Linux.
-- *
-  * Adapted for SH by Stuart Menefy, Aug 1999
-  *
-  * 2003-02-12:	Support M32R by Takeo Takahashi
-@@ -13,21 +10,18 @@
- #include <linux/config.h>
- #include <linux/string.h>
- 
--/*
-- * gzip declarations
-- */
--
- static unsigned char *input_data;
- static int input_len;
- static u8 *output_data;
- 
- #include "m32r_sio.c"
- 
-+#define HEAP_SIZE             0x10000
-+
-+/* gzip declarations */
- static unsigned long free_mem_ptr;
- static unsigned long free_mem_end_ptr;
- 
--#define HEAP_SIZE             0x10000
--
- #include "../../../../lib/inflate.c"
- 
- /* flush the gunzip output buffer */
-Index: 2.6.14/arch/sh/boot/compressed/misc.c
-===================================================================
---- 2.6.14.orig/arch/sh/boot/compressed/misc.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/arch/sh/boot/compressed/misc.c	2005-10-28 22:04:25.000000000 -0700
-@@ -1,9 +1,6 @@
- /*
-  * arch/sh/boot/compressed/misc.c
-  *
-- * This is a collection of several routines from gzip-1.0.3
-- * adapted for Linux.
-- *
-  * Adapted for SH by Stuart Menefy, Aug 1999
-  *
-  * Modified to use standard LinuxSH BIOS by Greg Banks 7Jul2000
-@@ -15,23 +12,20 @@
- #include <asm/sh_bios.h>
- #endif
- 
--/*
-- * gzip declarations
-- */
--
-+extern int _text;		/* Defined in vmlinux.lds.S */
-+extern int _end;
- extern char input_data[];
- extern int input_len;
- static u8 *output_data;
- 
- int puts(const char *);
- 
--extern int _text;		/* Defined in vmlinux.lds.S */
--extern int _end;
-+#define HEAP_SIZE             0x10000
-+
-+/* gzip declarations */
- static unsigned long free_mem_ptr;
- static unsigned long free_mem_end_ptr;
- 
--#define HEAP_SIZE             0x10000
--
- #include "../../../../lib/inflate.c"
- 
- #ifdef CONFIG_SH_STANDARD_BIOS
-Index: 2.6.14/arch/sh64/boot/compressed/misc.c
-===================================================================
---- 2.6.14.orig/arch/sh64/boot/compressed/misc.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/arch/sh64/boot/compressed/misc.c	2005-10-28 22:04:25.000000000 -0700
-@@ -1,9 +1,6 @@
- /*
-  * arch/shmedia/boot/compressed/misc.c
-  *
-- * This is a collection of several routines from gzip-1.0.3
-- * adapted for Linux.
-- *
-  * Adapted for SHmedia from sh by Stuart Menefy, May 2002
-  */
- 
-@@ -15,23 +12,20 @@
- #define CACHE_DISABLE     1
- int cache_control(unsigned int command);
- 
--/*
-- * gzip declarations
-- */
--
-+extern int _text;		/* Defined in vmlinux.lds.S */
-+extern int _end;
- extern char input_data[];
- extern int input_len;
- static u8 *output_data;
- 
- static void puts(const char *);
- 
--extern int _text;		/* Defined in vmlinux.lds.S */
--extern int _end;
-+#define HEAP_SIZE             0x10000
-+
-+/* gzip declarations */
- static unsigned long free_mem_ptr;
- static unsigned long free_mem_end_ptr;
- 
--#define HEAP_SIZE             0x10000
--
- #include "../../../../lib/inflate.c"
- 
- void puts(const char *s)
-Index: 2.6.14/arch/x86_64/boot/compressed/misc.c
-===================================================================
---- 2.6.14.orig/arch/x86_64/boot/compressed/misc.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/arch/x86_64/boot/compressed/misc.c	2005-10-28 22:04:25.000000000 -0700
-@@ -1,8 +1,5 @@
- /*
-  * misc.c
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-  *
-  * puts by Nick Holloway 1993, better puts by Martin Mares 1995
-  * High loaded stuff by Hans Lermen & Werner Almesberger, Feb. 1996
-@@ -13,10 +10,6 @@
- #include <asm/page.h>
- 
- /*
-- * gzip declarations
-- */
--
--/*
-  * This is set up by the setup-routine at boot-time
-  */
- static unsigned char *real_mode; /* Pointer to real-mode data */
-@@ -29,16 +22,11 @@ static unsigned char *real_mode; /* Poin
- 
- extern unsigned char input_data[];
- extern int input_len;
--
-+extern int end;
- static long bytes_out;
- static u8 *output_data;
--
- static void putstr(const char *);
- 
--extern int end;
+-/* gzip declarations */
 -static long free_mem_ptr = (long)&end;
 -static long free_mem_end_ptr;
 -
- #define INPLACE_MOVE_ROUTINE  0x1000
- #define LOW_BUFFER_START      0x2000
- #define LOW_BUFFER_MAX       0x90000
-@@ -51,6 +39,10 @@ static char *vidmem = (char *)0xb8000;
+-#include "../../../../lib/inflate.c"
++long free_mem_ptr = (long)&end, free_mem_end_ptr; /* for gunzip */
+ 
+ static void scroll(void)
+ {
+Index: 2.6.14/arch/m32r/boot/compressed/Makefile
+===================================================================
+--- 2.6.14.orig/arch/m32r/boot/compressed/Makefile	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/m32r/boot/compressed/Makefile	2005-10-30 13:07:25.000000000 -0800
+@@ -18,7 +18,11 @@ OBJECTS = $(obj)/head.o $(obj)/misc.o
+ 
+ LDFLAGS_vmlinux := -T
+ 
+-$(obj)/vmlinux: $(obj)/vmlinux.lds $(OBJECTS) $(obj)/piggy.o FORCE
++$(obj)/inflate.o: lib/inflate.c
++	$(call cmd,cc_o_c)
++
++$(obj)/vmlinux: $(obj)/vmlinux.lds $(OBJECTS) $(obj)/piggy.o $(obj)/inflate.o \
++		FORCE
+ 	$(call if_changed,ld)
+ 	@:
+ 
+Index: 2.6.14/arch/m32r/boot/compressed/misc.c
+===================================================================
+--- 2.6.14.orig/arch/m32r/boot/compressed/misc.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/m32r/boot/compressed/misc.c	2005-10-30 13:07:25.000000000 -0800
+@@ -9,6 +9,7 @@
+ 
+ #include <linux/config.h>
+ #include <linux/string.h>
++#include <linux/inflate.h>
+ 
+ static unsigned char *input_data;
+ static int input_len;
+@@ -18,11 +19,7 @@ static u8 *output_data;
+ 
+ #define HEAP_SIZE             0x10000
+ 
+-/* gzip declarations */
+-static unsigned long free_mem_ptr;
+-static unsigned long free_mem_end_ptr;
+-
+-#include "../../../../lib/inflate.c"
++unsigned long free_mem_ptr, free_mem_end_ptr; /* for gunzip */
+ 
+ /* flush the gunzip output buffer */
+ static void flush_window(const u8 *buf, int len)
+Index: 2.6.14/arch/sh/boot/compressed/Makefile
+===================================================================
+--- 2.6.14.orig/arch/sh/boot/compressed/Makefile	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/sh/boot/compressed/Makefile	2005-10-30 13:07:25.000000000 -0800
+@@ -24,7 +24,10 @@ IMAGE_OFFSET := $(shell printf "0x%8x" $
+ 
+ LDFLAGS_vmlinux := -Ttext $(IMAGE_OFFSET) -e startup -T $(obj)/../../kernel/vmlinux.lds
+ 
+-$(obj)/vmlinux: $(OBJECTS) $(obj)/piggy.o FORCE
++$(obj)/inflate.o: lib/inflate.c
++	$(call cmd,cc_o_c)
++
++$(obj)/vmlinux: $(OBJECTS) $(obj)/piggy.o $(obj)/inflate.o FORCE
+ 	$(call if_changed,ld)
+ 	@:
+ 
+Index: 2.6.14/arch/sh/boot/compressed/misc.c
+===================================================================
+--- 2.6.14.orig/arch/sh/boot/compressed/misc.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/sh/boot/compressed/misc.c	2005-10-30 13:07:59.000000000 -0800
+@@ -7,6 +7,7 @@
+  */
+ 
+ #include <linux/config.h>
++#include <linux/inflate.h>
+ #include <asm/uaccess.h>
+ #ifdef CONFIG_SH_STANDARD_BIOS
+ #include <asm/sh_bios.h>
+@@ -22,11 +23,7 @@ int puts(const char *);
+ 
+ #define HEAP_SIZE             0x10000
+ 
+-/* gzip declarations */
+-static unsigned long free_mem_ptr;
+-static unsigned long free_mem_end_ptr;
+-
+-#include "../../../../lib/inflate.c"
++unsigned long free_mem_ptr, free_mem_end_ptr; /* for gunzip */
+ 
+ #ifdef CONFIG_SH_STANDARD_BIOS
+ size_t strlen(const char *s)
+Index: 2.6.14/arch/sh64/boot/compressed/Makefile
+===================================================================
+--- 2.6.14.orig/arch/sh64/boot/compressed/Makefile	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/sh64/boot/compressed/Makefile	2005-10-30 13:07:25.000000000 -0800
+@@ -28,7 +28,10 @@ LDFLAGS_vmlinux := -Ttext $(ZIMAGE_OFFSE
+ 		    -T $(obj)/../../kernel/vmlinux.lds \
+ 		    --no-warn-mismatch
+ 
+-$(obj)/vmlinux: $(OBJECTS) $(obj)/piggy.o FORCE
++$(obj)/inflate.o: lib/inflate.c
++	$(call cmd,cc_o_c)
++
++$(obj)/vmlinux: $(OBJECTS) $(obj)/piggy.o $(obj)/inflate.o FORCE
+ 	$(call if_changed,ld)
+ 	@:
+ 
+Index: 2.6.14/arch/sh64/boot/compressed/misc.c
+===================================================================
+--- 2.6.14.orig/arch/sh64/boot/compressed/misc.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/sh64/boot/compressed/misc.c	2005-10-30 13:07:25.000000000 -0800
+@@ -5,6 +5,7 @@
+  */
+ 
+ #include <linux/config.h>
++#include <linux/inflate.h>
+ #include <asm/uaccess.h>
+ 
+ /* cache.c */
+@@ -22,11 +23,7 @@ static void puts(const char *);
+ 
+ #define HEAP_SIZE             0x10000
+ 
+-/* gzip declarations */
+-static unsigned long free_mem_ptr;
+-static unsigned long free_mem_end_ptr;
+-
+-#include "../../../../lib/inflate.c"
++unsigned long free_mem_ptr, free_mem_end_ptr; /* for gunzip */
+ 
+ void puts(const char *s)
+ {
+Index: 2.6.14/arch/x86_64/boot/compressed/Makefile
+===================================================================
+--- 2.6.14.orig/arch/x86_64/boot/compressed/Makefile	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/x86_64/boot/compressed/Makefile	2005-10-30 13:07:25.000000000 -0800
+@@ -16,7 +16,11 @@ LDFLAGS := -m elf_i386
+ 
+ LDFLAGS_vmlinux := -Ttext $(IMAGE_OFFSET) -e startup_32 -m elf_i386
+ 
+-$(obj)/vmlinux: $(obj)/head.o $(obj)/misc.o $(obj)/piggy.o FORCE
++$(obj)/inflate.o: lib/inflate.c
++	$(call cmd,cc_o_c)
++
++$(obj)/vmlinux: $(obj)/head.o $(obj)/misc.o $(obj)/piggy.o $(obj)/inflate.o \
++		FORCE
+ 	$(call if_changed,ld)
+ 	@:
+ 
+Index: 2.6.14/arch/x86_64/boot/compressed/misc.c
+===================================================================
+--- 2.6.14.orig/arch/x86_64/boot/compressed/misc.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/arch/x86_64/boot/compressed/misc.c	2005-10-30 13:07:25.000000000 -0800
+@@ -6,6 +6,7 @@
+  */
+ 
+ #include "miscsetup.h"
++#include <linux/inflate.h>
+ #include <asm/io.h>
+ #include <asm/page.h>
+ 
+@@ -39,11 +40,7 @@ static char *vidmem = (char *)0xb8000;
  static int vidport;
  static int lines, cols;
  
-+/* gzip declarations */
-+static long free_mem_ptr = (long)&end;
-+static long free_mem_end_ptr;
-+
- #include "../../../../lib/inflate.c"
+-/* gzip declarations */
+-static long free_mem_ptr = (long)&end;
+-static long free_mem_end_ptr;
+-
+-#include "../../../../lib/inflate.c"
++long free_mem_ptr = (long)&end, free_mem_end_ptr; /* for gunzip */
  
  static void scroll(void)
+ {
+Index: 2.6.14/include/linux/inflate.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ 2.6.14/include/linux/inflate.h	2005-10-30 13:07:25.000000000 -0800
+@@ -0,0 +1,9 @@
++#ifndef _LINUX_INFLATE_H
++#define _LINUX_INFLATE_H
++
++int gunzip(u8 *ibuf, int isize, void (*fill)(u8 *buf, int size),
++	   void (*flush)(const u8 *buf, int size),
++	   void (*error)(const char *msg));
++
++#endif /* _LINUX_INFLATE_H */
++
 Index: 2.6.14/init/do_mounts_rd.c
 ===================================================================
---- 2.6.14.orig/init/do_mounts_rd.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/init/do_mounts_rd.c	2005-10-28 22:04:25.000000000 -0700
-@@ -269,9 +269,11 @@ int __init rd_load_disk(int n)
+--- 2.6.14.orig/init/do_mounts_rd.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/init/do_mounts_rd.c	2005-10-30 13:07:25.000000000 -0800
+@@ -1,4 +1,3 @@
+-
+ #include <linux/kernel.h>
+ #include <linux/fs.h>
+ #include <linux/minix_fs.h>
+@@ -7,6 +6,7 @@
+ #include <linux/cramfs_fs.h>
+ #include <linux/initrd.h>
+ #include <linux/string.h>
++#include <linux/inflate.h>
+ 
+ #include "do_mounts.h"
+ 
+@@ -269,13 +269,6 @@ int __init rd_load_disk(int n)
  
  #ifdef BUILD_CRAMDISK
  
--/*
-- * gzip declarations
-- */
-+/* gzip declarations */
-+#define INIT __init
-+#define NO_INFLATE_MALLOC
-+
-+#include "../lib/inflate.c"
- 
- #define INBUFSIZ 4096
- static u8 *inbuf;
-@@ -279,12 +281,6 @@ static int exit_code;
- static int unzip_error;
- static int crd_infd, crd_outfd;
- 
+-/* gzip declarations */
 -#define INIT __init
--
+-#define INITDATA __initdata
 -#define NO_INFLATE_MALLOC
 -
 -#include "../lib/inflate.c"
 -
- static void __init error(const char *x)
- {
- 	printk(KERN_ERR "%s\n", x);
+ #define INBUFSIZ 4096
+ static u8 *inbuf;
+ static int exit_code;
 Index: 2.6.14/init/initramfs.c
 ===================================================================
---- 2.6.14.orig/init/initramfs.c	2005-10-28 22:04:23.000000000 -0700
-+++ 2.6.14/init/initramfs.c	2005-10-28 22:04:25.000000000 -0700
-@@ -329,12 +329,9 @@ static void __init flush_buffer(const u8
+--- 2.6.14.orig/init/initramfs.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/init/initramfs.c	2005-10-30 13:07:25.000000000 -0800
+@@ -6,6 +6,7 @@
+ #include <linux/delay.h>
+ #include <linux/string.h>
+ #include <linux/syscalls.h>
++#include <linux/inflate.h>
+ 
+ static __initdata const char *message;
+ static void __init error(const char *x)
+@@ -329,14 +330,6 @@ static void __init flush_buffer(const u8
  	}
  }
  
--/*
-- * gzip declarations
-- */
-+/* gzip declarations */
- 
- #define INIT __init
+-/* gzip declarations */
 -
- #define NO_INFLATE_MALLOC
+-#define INIT __init
+-#define INITDATA __initdata
+-#define NO_INFLATE_MALLOC
+-
+-#include "../lib/inflate.c"
+-
+ static const char * __init unpack_to_rootfs(char *buf, unsigned len,
+ 					    int check_only)
+ {
+Index: 2.6.14/lib/Makefile
+===================================================================
+--- 2.6.14.orig/lib/Makefile	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/lib/Makefile	2005-10-30 13:07:25.000000000 -0800
+@@ -5,12 +5,14 @@
+ lib-y := errno.o ctype.o string.o vsprintf.o cmdline.o \
+ 	 bust_spinlocks.o rbtree.o radix-tree.o dump_stack.o \
+ 	 idr.o div64.o int_sqrt.o bitmap.o extable.o prio_tree.o \
+-	 sha1.o
++	 sha1.o inflate.o
  
- #include "../lib/inflate.c"
+ lib-y	+= kobject.o kref.o kobject_uevent.o klist.o
+ 
+ obj-y += sort.o parser.o halfmd4.o
+ 
++CFLAGS_inflate.o += -DCORE
++
+ ifeq ($(CONFIG_DEBUG_KOBJECT),y)
+ CFLAGS_kobject.o += -DDEBUG
+ CFLAGS_kobject_uevent.o += -DDEBUG
+Index: 2.6.14/lib/inflate.c
+===================================================================
+--- 2.6.14.orig/lib/inflate.c	2005-10-30 13:07:19.000000000 -0800
++++ 2.6.14/lib/inflate.c	2005-10-30 13:07:25.000000000 -0800
+@@ -99,22 +99,19 @@
+       a repeat code (16, 17, or 18) to go across the boundary between
+       the two sets of lengths.
+  */
++#include <linux/kernel.h>
+ #include <linux/compiler.h>
++#include <asm/types.h>
+ 
+-#ifndef INIT
++#ifndef CORE
+ #define INIT
+-#endif
+-#ifndef INITDATA
+ #define INITDATA
+-#endif
+-
+-#include <asm/types.h>
+ 
+-#ifndef NO_INFLATE_MALLOC
+ /* A trivial malloc implementation, adapted from
+  *  malloc by Hannu Savolainen 1993 and Matthias Urlichs 1994
+  */
+ 
++extern long free_mem_ptr, free_mem_end_ptr;
+ static unsigned long malloc_ptr;
+ static int malloc_count;
+ 
+@@ -148,10 +145,17 @@ static void free(void *where)
+ }
+ 
+ static u8 INITDATA window[0x8000]; /* use a statically allocated window */
++
+ #else
++
++#include <linux/module.h>
++
+ static u8 *window; /* dynamically allocate */
+ #define malloc(a) kmalloc(a, GFP_KERNEL)
+ #define free(a) kfree(a)
++#define INIT __init
++#define INITDATA __initdata
++
+ #endif
+ 
+ static u32 crc_32_tab[256];
+@@ -937,9 +941,9 @@ static void INIT makecrc(void)
+  * @flush: function to flush the output pool
+  * @error: function to report an error
+  */
+-static int INIT gunzip(u8 *ibuf, int isize, void (*fill)(u8 *buf, int size),
+-		       void (*flush)(const u8 *buf, int size),
+-		       void (*error)(const char *msg))
++int INIT gunzip(u8 *ibuf, int isize, void (*fill)(u8 *buf, int size),
++		void (*flush)(const u8 *buf, int size),
++		void (*error)(const char *msg))
+ {
+ 	u8 flags;
+ 	unsigned char magic[2];	/* magic header */
