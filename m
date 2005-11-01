@@ -1,33 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20051101051221.GA26017@lst.de> 
-References: <20051101051221.GA26017@lst.de>  <20051101050900.GA25793@lst.de> 
-Subject: Re: [PATCH consolidate sys_ptrace 
-Date: Tue, 01 Nov 2005 11:37:54 +0000
-Message-ID: <10611.1130845074@warthog.cambridge.redhat.com>
-Sender: dhowells@redhat.com
+Date: Tue, 1 Nov 2005 18:12:00 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH consolidate sys_ptrace
+Message-ID: <20051101181200.GB18205@flint.arm.linux.org.uk>
+References: <20051101050900.GA25793@lst.de> <20051101051221.GA26017@lst.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20051101051221.GA26017@lst.de>
+Sender: Russell King <rmk@arm.linux.org.uk>
 To: Christoph Hellwig <hch@lst.de>
 Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Hellwig <hch@lst.de> wrote:
-
+On Tue, Nov 01, 2005 at 06:12:21AM +0100, Christoph Hellwig wrote:
+> On Tue, Nov 01, 2005 at 06:09:00AM +0100, Christoph Hellwig wrote:
+> > [Let's try again now that sys_ptrace returns long everywhere mainline..]
+> > 
 > > The sys_ptrace boilerplate code (everything outside the big switch
 > > statement for the arch-specific requests) is shared by most
 > > architectures.  This patch moves it to kernel/ptrace.c and leaves the
 > > arch-specific code as arch_ptrace.
+> > 
+> > Some architectures have a too different ptrace so we have to exclude
+> > them.  They continue to keep their implementations.  For sh64 I had to
+> > add a sh64_ptrace wrapper because it does some initialization on the
+> > first call.  For um I removed an ifdefed SUBARCH_PTRACE_SPECIAL block,
+> > but SUBARCH_PTRACE_SPECIAL isn't defined anywhere in the tree.
+> 
+> Umm, it might be a good idea to actually send the current patch instead
+> of the old one.  I really should write this text from scratch instead
+> of copying it :)
+> 
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
 
-Looks okay to me. I do have a concern about all the extra indirections we're
-acquiring by this mad rush to centralise everything. It's going to slow things
-down and consume more stack space. Is there any way we can:
+Thanks Christoph.
 
- (1) Make a sys_ptrace() *jump* to arch_ptrace() instead of calling it, thus
-     obviating the extra return step.
-
- (2) Drop the use of lock_kernel().
-
-Otherwise, the patch looks valid:
-
-Acked-By: David Howells <dhowells@redhat.com>
-
-David
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
