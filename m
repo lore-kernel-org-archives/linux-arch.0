@@ -1,52 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: Rob Landley <rob@landley.net>
-Subject: Re: [PATCH 1/20] inflate: lindent and manual formatting changes
-Date: Tue, 1 Nov 2005 01:50:21 -0600
-References: <2.196662837@selenic.com> <17254.46523.698248.169639@cargo.ozlabs.ibm.com> <20051101013955.GG4367@waste.org>
-In-Reply-To: <20051101013955.GG4367@waste.org>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Date: Tue, 1 Nov 2005 09:57:40 +0100
+From: Willy Tarreau <willy@w.ods.org>
+Subject: Re: [PATCH 13/20] inflate: (arch) kill silly zlib typedefs
+Message-ID: <20051101085740.GR22601@alpha.home.local>
+References: <14.196662837@selenic.com> <Pine.LNX.4.62.0510312204400.26471@numbat.sonytel.be> <20051031211422.GC4367@waste.org> <20051101065327.GP22601@alpha.home.local> <Pine.LNX.4.62.0511010850190.2739@numbat.sonytel.be>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200511010150.21851.rob@landley.net>
-To: Matt Mackall <mpm@selenic.com>
-Cc: Paul Mackerras <paulus@samba.org>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <Pine.LNX.4.62.0511010850190.2739@numbat.sonytel.be>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Matt Mackall <mpm@selenic.com>, Andrew Morton <akpm@osdl.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Monday 31 October 2005 19:39, Matt Mackall wrote:
-> On Tue, Nov 01, 2005 at 11:24:27AM +1100, Paul Mackerras wrote:
-> > Matt,
-> >
-> > My concern about this series of patches is that it will make it harder
-> > to keep the kernel zlib in sync with the upstream zlib.
->
-> This code is very long out of sync with the existing upstream zlib in
-> terms of coding style and content, so I doubt my changes will make
-> much difference from that perspective.
->
-> As one of my eventual goals is to get us down to exactly one copy of
-> this in the kernel, I think it's a step forward. This set of patches
-> goes a long way towards that goal by making inflate support just a
-> couple lines for most of the kernel uses.
->
-> > Are you signing up to track the upstream zlib and apply any changes
-> > made there to the kernel version, for the forseeable future?
->
-> I will fix any security-relevant bugs, provided other folks don't beat
-> me to them.
+On Tue, Nov 01, 2005 at 08:50:43AM +0100, Geert Uytterhoeven wrote:
+> On Tue, 1 Nov 2005, Willy Tarreau wrote:
+> > But if it's a pointer why don't you declare them unsigned long then ?
+> > C defines the long as the integer the right size to store a pointer.
+>   ^
+> Is it C?
 
-Something that may help:
+Yes, that's what I read quite a time ago, and it appears that it was an
+interpretation of the spec which is not true anymore with LLP64 models :-(
 
-The zlib developers take down old versions because they don't want people 
-using out of date stuff with known security bugs, but I asked the zlib 
-developers nicely if they could put the history up anyway, because busybox 
-also contains its own somewhat-shrunk fork of the gzip code, and we want to 
-make sure we don't miss any security fixes.  They were nice enough to 
-populate "http://zlib.net/fossils/", which you might find useful too.
+> Since on Wintendo P64 it's not true...
 
-Rob
+I don't know if x86_64 is LP64 or LLP64 on Linux, but at least my alpha
+and sparc64 are LP64, so is another PPC64 I use for code validation.
+LPC64 is the recommended model for easier 32 to 64 portability (where
+ints are 32 ; long, longlong, ptrs are 64).
 
-(Not that I've had time to go through and see what if any security fixes 
-relevant to busybox there might be in there yet.  If you find anything 
-interesting, could you let me know? :)
+There's an interesting reading about this here :
+
+   http://www.usenix.org/publications/login/standards/10.data.html
+
+So Matt, you have to use void* or char* in your types.
+
+> Gr{oetje,eeting}s,
+> 
+> 						Geert
+
+Thanks Geert for the notification, it was an opportunity to refresh my
+thoughts about portability practices. I think it will be time to buy
+an x86_64 :-/
+
+Willy
