@@ -1,26 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 1 Nov 2005 10:30:01 +0000
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH consolidate sys_ptrace
-Message-ID: <20051101103001.GA2693@linux-mips.org>
-References: <20051101050900.GA25793@lst.de> <20051101051221.GA26017@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20051101051221.GA26017@lst.de>
-To: Christoph Hellwig <hch@lst.de>
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Date: Tue, 1 Nov 2005 12:27:36 +0100 (CET)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Sender: geert@sonycom.com
+Subject: Re: [PATCH 13/20] inflate: (arch) kill silly zlib typedefs
+In-Reply-To: <20051101085740.GR22601@alpha.home.local>
+Message-ID: <Pine.LNX.4.62.0511011223410.2739@numbat.sonytel.be>
+References: <14.196662837@selenic.com> <Pine.LNX.4.62.0510312204400.26471@numbat.sonytel.be>
+ <20051031211422.GC4367@waste.org> <20051101065327.GP22601@alpha.home.local>
+ <Pine.LNX.4.62.0511010850190.2739@numbat.sonytel.be> <20051101085740.GR22601@alpha.home.local>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: Willy Tarreau <willy@w.ods.org>
+Cc: Matt Mackall <mpm@selenic.com>, Andrew Morton <akpm@osdl.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Nov 01, 2005 at 06:12:21AM +0100, Christoph Hellwig wrote:
-
-> Umm, it might be a good idea to actually send the current patch instead
-> of the old one.  I really should write this text from scratch instead
-> of copying it :)
+On Tue, 1 Nov 2005, Willy Tarreau wrote:
+> On Tue, Nov 01, 2005 at 08:50:43AM +0100, Geert Uytterhoeven wrote:
+> > On Tue, 1 Nov 2005, Willy Tarreau wrote:
+> > > But if it's a pointer why don't you declare them unsigned long then ?
+> > > C defines the long as the integer the right size to store a pointer.
+> >   ^
+> > Is it C?
 > 
+> Yes, that's what I read quite a time ago, and it appears that it was an
+> interpretation of the spec which is not true anymore with LLP64 models :-(
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> > Since on Wintendo P64 it's not true...
+> 
+> I don't know if x86_64 is LP64 or LLP64 on Linux, but at least my alpha
+> and sparc64 are LP64, so is another PPC64 I use for code validation.
+> LPC64 is the recommended model for easier 32 to 64 portability (where
+> ints are 32 ; long, longlong, ptrs are 64).
 
-Signed-off-by: <ralf@linux-mips.org>
+Linux on x86_64 uses LP64, like all other 64-bit platforms Linux runs on.
 
-  Ralf
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
