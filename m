@@ -1,39 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 1 Nov 2005 10:28:16 -0800
-From: Matt Mackall <mpm@selenic.com>
-Subject: Oops! Forgot [PATCH 0/20] inflate cleanups
-Message-ID: <20051101182816.GA8126@waste.org>
-References: <2.196662837@selenic.com>
+Date: Wed, 2 Nov 2005 15:31:43 +1100
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: [PATCH consolidate sys_ptrace
+Message-Id: <20051102153143.5005a87b.akpm@osdl.org>
+In-Reply-To: <10611.1130845074@warthog.cambridge.redhat.com>
+References: <20051101051221.GA26017@lst.de>
+	<20051101050900.GA25793@lst.de>
+	<10611.1130845074@warthog.cambridge.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <2.196662837@selenic.com>
-To: Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: David Howells <dhowells@redhat.com>
+Cc: hch@lst.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-[Just realized that my 0/20 description didn't go out, so here it is.
-I'll wait a bit more before respinning the set with feedback.]
+David Howells <dhowells@redhat.com> wrote:
+>
+> Christoph Hellwig <hch@lst.de> wrote:
+> 
+> > > The sys_ptrace boilerplate code (everything outside the big switch
+> > > statement for the arch-specific requests) is shared by most
+> > > architectures.  This patch moves it to kernel/ptrace.c and leaves the
+> > > arch-specific code as arch_ptrace.
+> 
+> Looks okay to me. I do have a concern about all the extra indirections we're
+> acquiring by this mad rush to centralise everything. It's going to slow things
+> down and consume more stack space. Is there any way we can:
+> 
+>  (1) Make a sys_ptrace() *jump* to arch_ptrace() instead of calling it, thus
+>      obviating the extra return step.
+> 
+>  (2) Drop the use of lock_kernel().
 
-This is a refactored version of the lib/inflate.c I posted about a
-year ago. It has a few end goals:
+If we can remove the lock_kernel() and move the final put_task_struct()
+into each arch_ptrace() then we can end sys_ptrace() with
 
-- clean up some really ugly code
-- clean up atrocities like '#include "../../../lib/inflate.c"'
-- drop a ton of cut and paste code from the kernel boot
-- move towards making the boot decompressor pluggable
-- move towards unifying the multiple inflate implementations
-- save space
+	return arch_ptrace(....);
 
-This touches 11 architectures, which makes things slightly
-interesting. Rather than break the patches out by arch, I've gone the
-route of making a number of small incremental changes that sweep
-across the tree. Patches that touch the per-arch code are marked
-"(arch)".
+and with luck, gcc will convert it into a tailcall for us.
 
-I've been primarily testing this on x86, but various versions of this
-code have gotten testing on a variety of architectures as part of my
-linux-tiny tree.
-
--- 
-Mathematics is the supreme nostalgia of our time.
+It's probably not the first place to start doing such optimisation tho.
