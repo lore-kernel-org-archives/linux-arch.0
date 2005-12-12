@@ -1,79 +1,213 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Message-Id: <200512100031.jBA0VqRP021369@shell0.pdx.osdl.net>
-Subject: [patch 1/1] Don't attempt to power off if power off is not implemented.
-From: akpm@osdl.org
-Date: Fri,  9 Dec 2005 16:33:21 -0800
-To: linux-arch@vger.kernel.org
-Cc: akpm@osdl.org, ebiederm@xmission.com
+Date: Mon, 12 Dec 2005 23:45:47 GMT
+Message-Id: <200512122345.jBCNjlH9009031@warthog.cambridge.redhat.com>
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 3/19] MUTEX: x86_64 arch mutex
+In-Reply-To: <dhowells1134431145@warthog.cambridge.redhat.com>
+References: <dhowells1134431145@warthog.cambridge.redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain
+To: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+The attached patch renames the functions of the x86_64 traditional semaphore
+implementation to include "_sem" in their names and to remove the MUTEX macros
+that are now provided by the new mutex facility.
 
-From: Eric W. Biederman <ebiederm@xmission.com>
-
-The problem.  It is expected that /sbin/halt -p works exactly like
-/sbin/halt, when the kernel does not implement power off functionality.
-
-The kernel can do a lot of work in the reboot notifiers and in
-device_shutdown before we even get to machine_power_off.  Some of that
-shutdown is not safe if you are leaving the power on, and it definitely
-gets in the way of using sysrq or pressing ctrl-alt-del.  Since the
-shutdown happens in generic code there is no way to fix this in
-architecture specific code :(
-
-Some machines are kernel oopsing today because of this.
-
-The simple solution is to turn LINUX_REBOOT_CMD_POWER_OFF into
-LINUX_REBOOT_CMD_HALT if power_off functionality is not implemented.
-
-This has the unfortunate side effect of disabling the power off
-functionality on architectures that leave pm_power_off to null and still
-implement something in machine_power_off.  And it will break the build on
-some architectures that don't have a pm_power_off variable at all.
-
-On both counts I say tough.
-
-For architectures like alpha that don't implement the pm_power_off variable
-pm_power_off is declared in linux/pm.h and it is a generic part of our
-power management code, and all architectures should implement it.
-
-For architectures like parisc that have a default power off method in
-machine_power_off if pm_power_off is not implemented or fails.  It is easy
-enough to set the pm_power_off variable.  And nothing bad happens there,
-the machines just stop powering off.
-
-The current semantics are impossible without a flag at the top level so we
-can avoid the problem code if a power off is not implemented.  pm_power_off
-is as good a flag as any with the bonus that it works without modification
-on at least x86, x86_64, powerpc, and ppc today.
-
-Andrew can you pick this up and put this in the mm tree.  Kernels that
-don't compile or don't power off seem saner than kernels that oops or
-panic.  Until we get the arch specific patches for the problem
-architectures this probably isn't smart to push into the stable kernel. 
-Unfortunately I don't have the time at the moment to walk through every
-architecture and make them work.  And even if I did I couldn't test it :(
-
-Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
-Signed-off-by: Andrew Morton <akpm@osdl.org>
+Signed-Off-By: David Howells <dhowells@redhat.com>
 ---
+warthog>diffstat -p1 mutex-x86_64-2615rc5.diff
+ arch/x86_64/kernel/x8664_ksyms.c |   10 +++----
+ arch/x86_64/lib/thunk.S          |    8 +++---
+ include/asm-x86_64/mmu.h         |    4 +--
+ include/asm-x86_64/semaphore.h   |   49 ++++++++++++++-------------------------
+ 4 files changed, 29 insertions(+), 42 deletions(-)
 
- kernel/sys.c |    6 ++++++
- 1 files changed, 6 insertions(+)
-
-diff -puN kernel/sys.c~dont-attempt-to-power-off-if-power-off-is-not-implemented kernel/sys.c
---- 25/kernel/sys.c~dont-attempt-to-power-off-if-power-off-is-not-implemented	Fri Dec  9 16:32:58 2005
-+++ 25-akpm/kernel/sys.c	Fri Dec  9 16:32:58 2005
-@@ -488,6 +488,12 @@ asmlinkage long sys_reboot(int magic1, i
- 	                magic2 != LINUX_REBOOT_MAGIC2C))
- 		return -EINVAL;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/asm-x86_64/mmu.h linux-2.6.15-rc5-mutex/include/asm-x86_64/mmu.h
+--- /warthog/kernels/linux-2.6.15-rc5/include/asm-x86_64/mmu.h	2004-06-18 13:42:14.000000000 +0100
++++ linux-2.6.15-rc5-mutex/include/asm-x86_64/mmu.h	2005-12-12 19:50:13.000000000 +0000
+@@ -2,7 +2,7 @@
+ #define __x86_64_MMU_H
  
-+	/* Instead of trying to make the power_off code look like
-+	 * halt when pm_power_off is not set do it the easy way.
-+	 */
-+	if ((cmd == LINUX_REBOOT_CMD_POWER_OFF) && !pm_power_off)
-+		cmd = LINUX_REBOOT_CMD_HALT;
+ #include <linux/spinlock.h>
+-#include <asm/semaphore.h>
++#include <linux/mutex.h>
+ 
+ /*
+  * The x86_64 doesn't have a mmu context, but
+@@ -14,7 +14,7 @@ typedef struct { 
+ 	void *ldt;
+ 	rwlock_t ldtlock; 
+ 	int size;
+-	struct semaphore sem; 
++	struct mutex sem; 
+ } mm_context_t;
+ 
+ #endif
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/asm-x86_64/semaphore.h linux-2.6.15-rc5-mutex/include/asm-x86_64/semaphore.h
+--- /warthog/kernels/linux-2.6.15-rc5/include/asm-x86_64/semaphore.h	2005-12-08 16:23:54.000000000 +0000
++++ linux-2.6.15-rc5-mutex/include/asm-x86_64/semaphore.h	2005-12-12 22:28:09.000000000 +0000
+@@ -59,9 +59,6 @@ struct semaphore {
+ #define __DECLARE_SEMAPHORE_GENERIC(name,count) \
+ 	struct semaphore name = __SEMAPHORE_INITIALIZER(name,count)
+ 
+-#define DECLARE_MUTEX(name) __DECLARE_SEMAPHORE_GENERIC(name,1)
+-#define DECLARE_MUTEX_LOCKED(name) __DECLARE_SEMAPHORE_GENERIC(name,0)
+-
+ static inline void sema_init (struct semaphore *sem, int val)
+ {
+ /*
+@@ -75,32 +72,22 @@ static inline void sema_init (struct sem
+ 	init_waitqueue_head(&sem->wait);
+ }
+ 
+-static inline void init_MUTEX (struct semaphore *sem)
+-{
+-	sema_init(sem, 1);
+-}
+-
+-static inline void init_MUTEX_LOCKED (struct semaphore *sem)
+-{
+-	sema_init(sem, 0);
+-}
+-
+-asmlinkage void __down_failed(void /* special register calling convention */);
+-asmlinkage int  __down_failed_interruptible(void  /* params in registers */);
+-asmlinkage int  __down_failed_trylock(void  /* params in registers */);
+-asmlinkage void __up_wakeup(void /* special register calling convention */);
+-
+-asmlinkage void __down(struct semaphore * sem);
+-asmlinkage int  __down_interruptible(struct semaphore * sem);
+-asmlinkage int  __down_trylock(struct semaphore * sem);
+-asmlinkage void __up(struct semaphore * sem);
++asmlinkage void __down_sem_failed(void /* special register calling convention */);
++asmlinkage int  __down_sem_failed_interruptible(void  /* params in registers */);
++asmlinkage int  __down_sem_failed_trylock(void  /* params in registers */);
++asmlinkage void __up_sem_wakeup(void /* special register calling convention */);
 +
- 	lock_kernel();
- 	switch (cmd) {
- 	case LINUX_REBOOT_CMD_RESTART:
-_
++asmlinkage void __down_sem(struct semaphore * sem);
++asmlinkage int  __down_sem_interruptible(struct semaphore * sem);
++asmlinkage int  __down_sem_trylock(struct semaphore * sem);
++asmlinkage void __up_sem(struct semaphore * sem);
+ 
+ /*
+  * This is ugly, but we want the default case to fall through.
+- * "__down_failed" is a special asm handler that calls the C
++ * "__down_sem_failed" is a special asm handler that calls the C
+  * routine that actually waits. See arch/x86_64/kernel/semaphore.c
+  */
+-static inline void down(struct semaphore * sem)
++static inline void down_sem(struct semaphore * sem)
+ {
+ 	might_sleep();
+ 
+@@ -110,7 +97,7 @@ static inline void down(struct semaphore
+ 		"js 2f\n"
+ 		"1:\n"
+ 		LOCK_SECTION_START("")
+-		"2:\tcall __down_failed\n\t"
++		"2:\tcall __down_sem_failed\n\t"
+ 		"jmp 1b\n"
+ 		LOCK_SECTION_END
+ 		:"=m" (sem->count)
+@@ -122,7 +109,7 @@ static inline void down(struct semaphore
+  * Interruptible try to acquire a semaphore.  If we obtained
+  * it, return zero.  If we were interrupted, returns -EINTR
+  */
+-static inline int down_interruptible(struct semaphore * sem)
++static inline int down_sem_interruptible(struct semaphore * sem)
+ {
+ 	int result;
+ 
+@@ -135,7 +122,7 @@ static inline int down_interruptible(str
+ 		"xorl %0,%0\n"
+ 		"1:\n"
+ 		LOCK_SECTION_START("")
+-		"2:\tcall __down_failed_interruptible\n\t"
++		"2:\tcall __down_sem_failed_interruptible\n\t"
+ 		"jmp 1b\n"
+ 		LOCK_SECTION_END
+ 		:"=a" (result), "=m" (sem->count)
+@@ -148,7 +135,7 @@ static inline int down_interruptible(str
+  * Non-blockingly attempt to down() a semaphore.
+  * Returns zero if we acquired it
+  */
+-static inline int down_trylock(struct semaphore * sem)
++static inline int down_sem_trylock(struct semaphore * sem)
+ {
+ 	int result;
+ 
+@@ -159,7 +146,7 @@ static inline int down_trylock(struct se
+ 		"xorl %0,%0\n"
+ 		"1:\n"
+ 		LOCK_SECTION_START("")
+-		"2:\tcall __down_failed_trylock\n\t"
++		"2:\tcall __down_sem_failed_trylock\n\t"
+ 		"jmp 1b\n"
+ 		LOCK_SECTION_END
+ 		:"=a" (result), "=m" (sem->count)
+@@ -174,7 +161,7 @@ static inline int down_trylock(struct se
+  * The default case (no contention) will result in NO
+  * jumps for both down() and up().
+  */
+-static inline void up(struct semaphore * sem)
++static inline void up_sem(struct semaphore * sem)
+ {
+ 	__asm__ __volatile__(
+ 		"# atomic up operation\n\t"
+@@ -182,7 +169,7 @@ static inline void up(struct semaphore *
+ 		"jle 2f\n"
+ 		"1:\n"
+ 		LOCK_SECTION_START("")
+-		"2:\tcall __up_wakeup\n\t"
++		"2:\tcall __up_sem_wakeup\n\t"
+ 		"jmp 1b\n"
+ 		LOCK_SECTION_END
+ 		:"=m" (sem->count)
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/arch/x86_64/kernel/x8664_ksyms.c linux-2.6.15-rc5-mutex/arch/x86_64/kernel/x8664_ksyms.c
+--- /warthog/kernels/linux-2.6.15-rc5/arch/x86_64/kernel/x8664_ksyms.c	2005-12-08 16:23:37.000000000 +0000
++++ linux-2.6.15-rc5-mutex/arch/x86_64/kernel/x8664_ksyms.c	2005-12-12 22:33:36.000000000 +0000
+@@ -14,8 +14,8 @@
+ #include <linux/syscalls.h>
+ #include <linux/tty.h>
+ #include <linux/ioctl32.h>
++#include <linux/semaphore.h>
+ 
+-#include <asm/semaphore.h>
+ #include <asm/processor.h>
+ #include <asm/i387.h>
+ #include <asm/uaccess.h>
+@@ -62,10 +62,10 @@ EXPORT_SYMBOL(pm_idle);
+ EXPORT_SYMBOL(pm_power_off);
+ EXPORT_SYMBOL(get_cmos_time);
+ 
+-EXPORT_SYMBOL(__down_failed);
+-EXPORT_SYMBOL(__down_failed_interruptible);
+-EXPORT_SYMBOL(__down_failed_trylock);
+-EXPORT_SYMBOL(__up_wakeup);
++EXPORT_SYMBOL(__down_sem_failed);
++EXPORT_SYMBOL(__down_sem_failed_interruptible);
++EXPORT_SYMBOL(__down_sem_failed_trylock);
++EXPORT_SYMBOL(__up_sem_wakeup);
+ /* Networking helper routines. */
+ EXPORT_SYMBOL(csum_partial_copy_nocheck);
+ EXPORT_SYMBOL(ip_compute_csum);
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/arch/x86_64/lib/thunk.S linux-2.6.15-rc5-mutex/arch/x86_64/lib/thunk.S
+--- /warthog/kernels/linux-2.6.15-rc5/arch/x86_64/lib/thunk.S	2004-06-18 13:41:13.000000000 +0100
++++ linux-2.6.15-rc5-mutex/arch/x86_64/lib/thunk.S	2005-12-12 22:32:51.000000000 +0000
+@@ -44,10 +44,10 @@
+ #endif	
+ 	thunk do_softirq_thunk,do_softirq
+ 	
+-	thunk __down_failed,__down
+-	thunk_retrax __down_failed_interruptible,__down_interruptible
+-	thunk_retrax __down_failed_trylock,__down_trylock
+-	thunk __up_wakeup,__up
++	thunk __down_sem_failed,__down_sem
++	thunk_retrax __down_sem_failed_interruptible,__down_sem_interruptible
++	thunk_retrax __down_sem_failed_trylock,__down_sem_trylock
++	thunk __up_sem_wakeup,__up_sem
+ 	
+ 	/* SAVE_ARGS below is used only for the .cfi directives it contains. */
+ 	CFI_STARTPROC
