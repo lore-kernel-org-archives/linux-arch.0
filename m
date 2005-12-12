@@ -1,8 +1,8 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Mon, 12 Dec 2005 23:45:49 GMT
-Message-Id: <200512122345.jBCNjnNQ009063@warthog.cambridge.redhat.com>
+Date: Mon, 12 Dec 2005 23:45:47 GMT
+Message-Id: <200512122345.jBCNjlcb009037@warthog.cambridge.redhat.com>
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 19/19] MUTEX: Sound changes
+Subject: [PATCH 6/19] MUTEX: Drivers A-E changes
 In-Reply-To: <dhowells1134431145@warthog.cambridge.redhat.com>
 References: <dhowells1134431145@warthog.cambridge.redhat.com>
 MIME-Version: 1.0
@@ -11,1168 +11,881 @@ To: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, ma
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-The attached patch modifies the sound files to use the new mutex functions.
+The attached patch modifies the files of the drivers/a* thru drivers/e* to use
+the new mutex functions.
 
 Signed-Off-By: David Howells <dhowells@redhat.com>
 ---
-warthog>diffstat -p1 mutex-sound-2615rc5.diff
- include/sound/ac97_codec.h          |    4 ++--
- include/sound/ad1848.h              |    2 +-
- include/sound/ak4531_codec.h        |    2 +-
- include/sound/core.h                |    4 ++--
- include/sound/cs4231.h              |    4 ++--
- include/sound/cs46xx.h              |    2 +-
- include/sound/emu10k1.h             |    4 ++--
- include/sound/emux_synth.h          |    2 +-
- include/sound/gus.h                 |    6 +++---
- include/sound/hwdep.h               |    2 +-
- include/sound/i2c.h                 |    2 +-
- include/sound/info.h                |    2 +-
- include/sound/mixer_oss.h           |    2 +-
- include/sound/opl3.h                |    2 +-
- include/sound/pcm.h                 |    2 +-
- include/sound/pcm_oss.h             |    2 +-
- include/sound/rawmidi.h             |    4 ++--
- include/sound/sb16_csp.h            |    2 +-
- include/sound/seq_instr.h           |    2 +-
- include/sound/soundfont.h           |    2 +-
- include/sound/util_mem.h            |    2 +-
- include/sound/vx_core.h             |    2 +-
- sound/arm/aaci.h                    |    2 +-
- sound/arm/pxa2xx-ac97.c             |    2 +-
- sound/arm/sa11xx-uda1341.c          |    2 +-
- sound/core/memalloc.c               |    2 +-
- sound/core/seq/seq_clientmgr.h      |    2 +-
- sound/core/seq/seq_device.c         |    2 +-
- sound/core/seq/seq_midi.c           |    2 +-
- sound/core/seq/seq_queue.h          |    2 +-
- sound/core/timer.c                  |    2 +-
- sound/drivers/opl4/opl4_local.h     |    2 +-
- sound/oss/ac97_codec.c              |    2 +-
- sound/oss/aci.c                     |    4 ++--
- sound/oss/ad1889.h                  |    2 +-
- sound/oss/ali5455.c                 |    2 +-
- sound/oss/au1000.c                  |    4 ++--
- sound/oss/au1550_ac97.c             |    4 ++--
- sound/oss/btaudio.c                 |    2 +-
- sound/oss/cmpci.c                   |    2 +-
- sound/oss/cs4281/cs4281m.c          |    6 +++---
- sound/oss/cs46xx.c                  |    6 +++---
- sound/oss/dmasound/dmasound_awacs.c |    2 +-
- sound/oss/emu10k1/hwaccess.h        |    2 +-
- sound/oss/es1370.c                  |    4 ++--
- sound/oss/es1371.c                  |    4 ++--
- sound/oss/esssolo1.c                |    2 +-
- sound/oss/forte.c                   |    2 +-
- sound/oss/hal2.c                    |    2 +-
- sound/oss/i810_audio.c              |    2 +-
- sound/oss/ite8172.c                 |    2 +-
- sound/oss/maestro.c                 |    2 +-
- sound/oss/maestro3.c                |    2 +-
- sound/oss/nec_vrc5477.c             |    2 +-
- sound/oss/rme96xx.c                 |    2 +-
- sound/oss/sonicvibes.c              |    2 +-
- sound/oss/swarm_cs4297a.c           |    6 +++---
- sound/oss/trident.c                 |    4 ++--
- sound/oss/via82cxxx_audio.c         |    6 +++---
- sound/oss/vwsnd.c                   |    8 ++++----
- sound/oss/ymfpci.h                  |    2 +-
- sound/pci/atiixp.c                  |    2 +-
- sound/pci/atiixp_modem.c            |    2 +-
- sound/pci/cmipci.c                  |    2 +-
- sound/pci/ens1370.c                 |    2 +-
- sound/pci/es1968.c                  |    2 +-
- sound/pci/hda/hda_codec.h           |    4 ++--
- sound/pci/hda/hda_intel.c           |    2 +-
- sound/pci/hda/patch_analog.c        |    2 +-
- sound/pci/ice1712/ice1712.h         |    6 +++---
- sound/pci/korg1212/korg1212.c       |    2 +-
- sound/pci/mixart/mixart.h           |    6 +++---
- sound/pci/nm256/nm256.c             |    2 +-
- sound/sparc/cs4231.c                |    4 ++--
- sound/usb/usx2y/usbusx2y.h          |    2 +-
- 75 files changed, 105 insertions(+), 105 deletions(-)
+warthog>diffstat -p1 mutex-drivers-AtoE-2615rc5.diff
+ drivers/acpi/ec.c                   |    2 +-
+ drivers/acpi/osl.c                  |   10 +++++-----
+ drivers/acpi/video.c                |    2 +-
+ drivers/atm/ambassador.h            |    2 +-
+ drivers/atm/fore200e.h              |    2 +-
+ drivers/atm/idt77252.c              |    2 +-
+ drivers/atm/idt77252.h              |    2 +-
+ drivers/base/core.c                 |    2 +-
+ drivers/base/firmware_class.c       |    2 +-
+ drivers/base/map.c                  |    6 +++---
+ drivers/base/power/power.h          |    4 ++--
+ drivers/base/power/shutdown.c       |    2 +-
+ drivers/base/sys.c                  |    2 +-
+ drivers/block/aoe/aoechr.c          |    4 ++--
+ drivers/block/cryptoloop.c          |    2 +-
+ drivers/block/pktcdvd.c             |    2 +-
+ drivers/block/sx8.c                 |    4 ++--
+ drivers/char/agp/frontend.c         |    2 +-
+ drivers/char/drm/drmP.h             |    4 ++--
+ drivers/char/drm/drm_stub.c         |    4 ++--
+ drivers/char/generic_serial.c       |    2 +-
+ drivers/char/ipmi/ipmi_devintf.c    |    6 +++---
+ drivers/char/ipmi/ipmi_msghandler.c |    2 +-
+ drivers/char/mbcs.h                 |    6 +++---
+ drivers/char/moxa.c                 |    2 +-
+ drivers/char/rio/rioboot.c          |    2 +-
+ drivers/char/rio/riocmd.c           |    2 +-
+ drivers/char/rio/rioctrl.c          |    2 +-
+ drivers/char/rio/rioinit.c          |    2 +-
+ drivers/char/rio/riointr.c          |    2 +-
+ drivers/char/rio/rioparam.c         |    2 +-
+ drivers/char/rio/rioroute.c         |    2 +-
+ drivers/char/rio/riotable.c         |    2 +-
+ drivers/char/rio/riotty.c           |    2 +-
+ drivers/char/rocket.c               |    4 ++--
+ drivers/char/rocket_int.h           |    2 +-
+ drivers/char/ser_a2232.c            |    2 +-
+ drivers/char/snsc.c                 |    4 ++--
+ drivers/char/snsc.h                 |    6 +++---
+ drivers/char/sonypi.c               |    2 +-
+ drivers/char/tpm/tpm.h              |    4 ++--
+ drivers/char/tty_io.c               |    4 ++--
+ drivers/char/viotape.c              |   20 ++++++++++----------
+ drivers/char/watchdog/cpu5wdt.c     |    2 +-
+ drivers/char/watchdog/pcwd_usb.c    |    2 +-
+ drivers/char/watchdog/sc1200wdt.c   |    6 +++---
+ drivers/char/watchdog/scx200_wdt.c  |    4 ++--
+ drivers/char/watchdog/wdt_pci.c     |    4 ++--
+ 48 files changed, 82 insertions(+), 82 deletions(-)
 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/ac97_codec.h linux-2.6.15-rc5-mutex/include/sound/ac97_codec.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/ac97_codec.h	2005-12-08 16:23:55.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/ac97_codec.h	2005-12-12 19:38:31.000000000 +0000
-@@ -486,8 +486,8 @@ struct _snd_ac97 {
- 	snd_info_entry_t *proc_regs;
- 	unsigned short subsystem_vendor;
- 	unsigned short subsystem_device;
--	struct semaphore reg_mutex;
--	struct semaphore page_mutex;	/* mutex for AD18xx multi-codecs and paging (2.3) */
-+	struct mutex reg_mutex;
-+	struct mutex page_mutex; /* mutex for AD18xx multi-codecs and paging (2.3) */
- 	unsigned short num;	/* number of codec: 0 = primary, 1 = secondary */
- 	unsigned short addr;	/* physical address of codec [0-3] */
- 	unsigned int id;	/* identification of codec */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/ad1848.h linux-2.6.15-rc5-mutex/include/sound/ad1848.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/ad1848.h	2005-03-02 12:09:01.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/ad1848.h	2005-12-12 19:41:15.000000000 +0000
-@@ -149,7 +149,7 @@ struct _snd_ad1848 {
- 	int thinkpad_flag;		/* Thinkpad CS4248 needs some extra help */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/acpi/ec.c linux-2.6.15-rc5-mutex/drivers/acpi/ec.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/acpi/ec.c	2005-11-01 13:19:04.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/acpi/ec.c	2005-12-12 17:40:34.000000000 +0000
+@@ -103,7 +103,7 @@ union acpi_ec {
+ 		unsigned int expect_event;
+ 		atomic_t leaving_burst;	/* 0 : No, 1 : Yes, 2: abort */
+ 		atomic_t pending_gpe;
+-		struct semaphore sem;
++		struct mutex sem;
+ 		wait_queue_head_t wait;
+ 	} burst;
  
- 	spinlock_t reg_lock;
--	struct semaphore open_mutex;
-+	struct mutex open_mutex;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/acpi/osl.c linux-2.6.15-rc5-mutex/drivers/acpi/osl.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/acpi/osl.c	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/acpi/osl.c	2005-12-12 17:49:01.000000000 +0000
+@@ -813,7 +813,7 @@ acpi_status acpi_os_wait_semaphore(acpi_
+ 		 * (a.k.a. 'would block').
+ 		 */
+ 	case 0:
+-		if (down_trylock(sem))
++		if (down_sem_trylock(sem))
+ 			status = AE_TIME;
+ 		break;
+ 
+@@ -822,7 +822,7 @@ acpi_status acpi_os_wait_semaphore(acpi_
+ 		 * ------------------
+ 		 */
+ 	case ACPI_WAIT_FOREVER:
+-		down(sem);
++		down_sem(sem);
+ 		break;
+ 
+ 		/*
+@@ -835,10 +835,10 @@ acpi_status acpi_os_wait_semaphore(acpi_
+ 			int i = 0;
+ 			static const int quantum_ms = 1000 / HZ;
+ 
+-			ret = down_trylock(sem);
++			ret = down_sem_trylock(sem);
+ 			for (i = timeout; (i > 0 && ret < 0); i -= quantum_ms) {
+ 				schedule_timeout_interruptible(1);
+-				ret = down_trylock(sem);
++				ret = down_sem_trylock(sem);
+ 			}
+ 
+ 			if (ret != 0)
+@@ -881,7 +881,7 @@ acpi_status acpi_os_signal_semaphore(acp
+ 	ACPI_DEBUG_PRINT((ACPI_DB_MUTEX, "Signaling semaphore[%p|%d]\n", handle,
+ 			  units));
+ 
+-	up(sem);
++	up_sem(sem);
+ 
+ 	return_ACPI_STATUS(AE_OK);
+ }
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/acpi/video.c linux-2.6.15-rc5-mutex/drivers/acpi/video.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/acpi/video.c	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/acpi/video.c	2005-12-12 21:13:16.000000000 +0000
+@@ -123,7 +123,7 @@ struct acpi_video_bus {
+ 	u8 attached_count;
+ 	struct acpi_video_bus_cap cap;
+ 	struct acpi_video_bus_flags flags;
+-	struct semaphore sem;
++	struct mutex sem;
+ 	struct list_head video_device_list;
+ 	struct proc_dir_entry *dir;
  };
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/atm/ambassador.h linux-2.6.15-rc5-mutex/drivers/atm/ambassador.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/atm/ambassador.h	2005-06-22 13:51:45.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/atm/ambassador.h	2005-12-12 20:59:29.000000000 +0000
+@@ -639,7 +639,7 @@ struct amb_dev {
+   amb_txq          txq;
+   amb_rxq          rxq[NUM_RX_POOLS];
+   
+-  struct semaphore vcc_sf;
++  struct mutex     vcc_sf;
+   amb_tx_info      txer[NUM_VCS];
+   struct atm_vcc * rxer[NUM_VCS];
+   unsigned int     tx_avail;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/atm/fore200e.h linux-2.6.15-rc5-mutex/drivers/atm/fore200e.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/atm/fore200e.h	2005-06-22 13:51:45.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/atm/fore200e.h	2005-12-12 20:59:38.000000000 +0000
+@@ -870,7 +870,7 @@ typedef struct fore200e {
  
- typedef struct _snd_ad1848 ad1848_t;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/ak4531_codec.h linux-2.6.15-rc5-mutex/include/sound/ak4531_codec.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/ak4531_codec.h	2005-03-02 12:09:01.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/ak4531_codec.h	2005-12-12 19:39:14.000000000 +0000
-@@ -72,7 +72,7 @@ struct _snd_ak4531 {
- 	void (*private_free) (ak4531_t *ak4531);
- 	/* --- */
- 	unsigned char regs[0x20];
--	struct semaphore reg_mutex;
-+	struct mutex reg_mutex;
- };
- 
- int snd_ak4531_mixer(snd_card_t * card, ak4531_t * _ak4531, ak4531_t ** rak4531);
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/core.h linux-2.6.15-rc5-mutex/include/sound/core.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/core.h	2005-12-08 16:23:55.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/core.h	2005-12-12 22:12:49.000000000 +0000
-@@ -23,7 +23,7 @@
-  */
- 
- #include <linux/sched.h>		/* wake_up() */
--#include <asm/semaphore.h>		/* struct semaphore */
-+#include <linux/semaphore.h>		/* struct mutex */
- #include <linux/rwsem.h>		/* struct rw_semaphore */
- #include <linux/workqueue.h>		/* struct workqueue_struct */
- #include <linux/pm.h>			/* pm_message_t */
-@@ -176,7 +176,7 @@ struct _snd_card {
- 	int (*pm_resume)(snd_card_t *card);
- 	void *pm_private_data;
- 	unsigned int power_state;	/* power state */
--	struct semaphore power_lock;	/* power lock */
-+	struct mutex power_lock;	/* power lock */
- 	wait_queue_head_t power_sleep;
- #endif
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/cs4231.h linux-2.6.15-rc5-mutex/include/sound/cs4231.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/cs4231.h	2005-03-02 12:09:01.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/cs4231.h	2005-12-12 19:38:41.000000000 +0000
-@@ -287,8 +287,8 @@ struct _snd_cs4231 {
- #endif
- 
- 	spinlock_t reg_lock;
--	struct semaphore mce_mutex;
--	struct semaphore open_mutex;
-+	struct mutex mce_mutex;
-+	struct mutex open_mutex;
- 
- 	int (*rate_constraint) (snd_pcm_runtime_t *runtime);
- 	void (*set_playback_format) (cs4231_t *chip, snd_pcm_hw_params_t *hw_params, unsigned char pdfr);
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/cs46xx.h linux-2.6.15-rc5-mutex/include/sound/cs46xx.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/cs46xx.h	2005-11-01 13:19:22.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/cs46xx.h	2005-12-12 19:41:15.000000000 +0000
-@@ -1712,7 +1712,7 @@ struct _snd_cs46xx {
- 	int current_gpio;
- #endif
- #ifdef CONFIG_SND_CS46XX_NEW_DSP
--	struct semaphore spos_mutex;
-+	struct mutex spos_mutex;
- 
- 	dsp_spos_instance_t * dsp_spos_instance;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/emu10k1.h linux-2.6.15-rc5-mutex/include/sound/emu10k1.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/emu10k1.h	2005-12-08 16:23:55.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/emu10k1.h	2005-12-12 19:41:15.000000000 +0000
-@@ -1024,7 +1024,7 @@ typedef struct {
- 	int gpr_size;			/* size of allocated GPR controls */
- 	int gpr_count;			/* count of used kcontrols */
- 	struct list_head gpr_ctl;	/* GPR controls */
--	struct semaphore lock;
-+	struct mutex lock;
- 	snd_emu10k1_fx8010_pcm_t pcm[8];
- 	spinlock_t irq_lock;
- 	snd_emu10k1_fx8010_irq_t *irq_handlers;
-@@ -1118,7 +1118,7 @@ struct _snd_emu10k1 {
- 	spinlock_t reg_lock;
- 	spinlock_t emu_lock;
- 	spinlock_t voice_lock;
--	struct semaphore ptb_lock;
-+	struct mutex ptb_lock;
- 
- 	emu10k1_voice_t voices[NUM_G];
- 	emu10k1_voice_t p16v_voices[4];
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/emux_synth.h linux-2.6.15-rc5-mutex/include/sound/emux_synth.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/emux_synth.h	2004-06-18 13:44:05.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/include/sound/emux_synth.h	2005-12-12 19:41:15.000000000 +0000
-@@ -112,7 +112,7 @@ struct snd_emux {
- 	snd_emux_voice_t *voices;	/* Voices (EMU 'channel') */
- 	int use_time;	/* allocation counter */
- 	spinlock_t voice_lock;	/* Lock for voice access */
--	struct semaphore register_mutex;
-+	struct mutex register_mutex;
- 	int client;		/* For the sequencer client */
- 	int ports[SNDRV_EMUX_MAX_PORTS];	/* The ports for this device */
- 	snd_emux_port_t *portptrs[SNDRV_EMUX_MAX_PORTS];
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/gus.h linux-2.6.15-rc5-mutex/include/sound/gus.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/gus.h	2005-11-01 13:19:22.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/gus.h	2005-12-12 19:39:26.000000000 +0000
-@@ -210,7 +210,7 @@ typedef struct _snd_gf1_mem {
- 	snd_gf1_bank_info_t banks_16[4];
- 	snd_gf1_mem_block_t *first;
- 	snd_gf1_mem_block_t *last;
--	struct semaphore memory_mutex;
-+	struct mutex memory_mutex;
- } snd_gf1_mem_t;
- 
- typedef struct snd_gf1_dma_block {
-@@ -468,8 +468,8 @@ struct _snd_gus_card {
- 	spinlock_t dma_lock;
- 	spinlock_t pcm_volume_level_lock;
- 	spinlock_t uart_cmd_lock;
--	struct semaphore dma_mutex;
--	struct semaphore register_mutex;
-+	struct mutex dma_mutex;
-+	struct mutex register_mutex;
- };
- 
- /* I/O functions for GF1/InterWave chip - gus_io.c */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/hwdep.h linux-2.6.15-rc5-mutex/include/sound/hwdep.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/hwdep.h	2005-06-22 13:52:33.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/include/sound/hwdep.h	2005-12-12 19:38:54.000000000 +0000
-@@ -62,7 +62,7 @@ struct _snd_hwdep {
- 	void *private_data;
- 	void (*private_free) (snd_hwdep_t *hwdep);
- 
--	struct semaphore open_mutex;
-+	struct mutex open_mutex;
- 	int used;
- 	unsigned int dsp_loaded;
- 	unsigned int exclusive: 1;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/i2c.h linux-2.6.15-rc5-mutex/include/sound/i2c.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/i2c.h	2004-06-18 13:42:21.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/include/sound/i2c.h	2005-12-12 19:39:11.000000000 +0000
-@@ -58,7 +58,7 @@ struct _snd_i2c_bus {
- 	snd_card_t *card;	/* card which I2C belongs to */
- 	char name[32];		/* some useful label */
- 
--	struct semaphore lock_mutex;
-+	struct mutex lock_mutex;
- 
- 	snd_i2c_bus_t *master;	/* master bus when SCK/SCL is shared */
- 	struct list_head buses;	/* master: slave buses sharing SCK/SCL, slave: link list */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/info.h linux-2.6.15-rc5-mutex/include/sound/info.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/info.h	2005-03-02 12:09:01.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/info.h	2005-12-12 19:38:46.000000000 +0000
-@@ -86,7 +86,7 @@ struct snd_info_entry {
- 	void *private_data;
- 	void (*private_free)(snd_info_entry_t *entry);
- 	struct proc_dir_entry *p;
--	struct semaphore access;
-+	struct mutex access;
- };
- 
- extern int snd_info_check_reserved_words(const char *str);
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/mixer_oss.h linux-2.6.15-rc5-mutex/include/sound/mixer_oss.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/mixer_oss.h	2005-06-22 13:52:33.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/include/sound/mixer_oss.h	2005-12-12 19:39:05.000000000 +0000
-@@ -59,7 +59,7 @@ struct _snd_oss_mixer {
- 	snd_mixer_oss_put_recsrce_t put_recsrc;
- 	void *private_data_recsrc;
- 	void (*private_free_recsrc)(snd_mixer_oss_t *mixer);
--	struct semaphore reg_mutex;
-+	struct mutex reg_mutex;
- 	snd_info_entry_t *proc_entry;
- 	int oss_dev_alloc;
- 	/* --- */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/opl3.h linux-2.6.15-rc5-mutex/include/sound/opl3.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/opl3.h	2005-01-04 11:13:56.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/opl3.h	2005-12-12 19:38:35.000000000 +0000
-@@ -312,7 +312,7 @@ struct snd_opl3 {
- 	int sys_timer_status;		/* system timer run status */
- 	spinlock_t sys_timer_lock;	/* Lock for system timer access */
- #endif
--	struct semaphore access_mutex;	/* locking */
-+	struct mutex access_mutex;	/* locking */
- };
- 
- /* opl3.c */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/pcm.h linux-2.6.15-rc5-mutex/include/sound/pcm.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/pcm.h	2005-12-08 16:23:55.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/pcm.h	2005-12-12 19:38:51.000000000 +0000
-@@ -445,7 +445,7 @@ struct _snd_pcm {
- 	char id[64];
- 	char name[80];
- 	snd_pcm_str_t streams[2];
--	struct semaphore open_mutex;
-+	struct mutex open_mutex;
- 	wait_queue_head_t open_wait;
- 	void *private_data;
- 	void (*private_free) (snd_pcm_t *pcm);
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/pcm_oss.h linux-2.6.15-rc5-mutex/include/sound/pcm_oss.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/pcm_oss.h	2005-11-01 13:19:22.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/pcm_oss.h	2005-12-12 19:37:46.000000000 +0000
-@@ -76,7 +76,7 @@ typedef struct _snd_pcm_oss_substream {
- 
- typedef struct _snd_pcm_oss_stream {
- 	snd_pcm_oss_setup_t *setup_list;	/* setup list */
--        struct semaphore setup_mutex;
-+        struct mutex setup_mutex;
- 	snd_info_entry_t *proc_entry;
- } snd_pcm_oss_stream_t;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/rawmidi.h linux-2.6.15-rc5-mutex/include/sound/rawmidi.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/rawmidi.h	2005-06-22 13:52:33.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/include/sound/rawmidi.h	2005-12-12 22:12:49.000000000 +0000
-@@ -26,7 +26,7 @@
- #include <linux/interrupt.h>
- #include <linux/spinlock.h>
+     struct stats*              stats;                  /* last snapshot of the stats         */
+     
+-    struct semaphore           rate_sf;                /* protects rate reservation ops      */
++    struct mutex               rate_sf;                /* protects rate reservation ops      */
+     spinlock_t                 q_lock;                 /* protects queue ops                 */
+ #ifdef FORE200E_USE_TASKLET
+     struct tasklet_struct      tx_tasklet;             /* performs tx interrupt work         */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/atm/idt77252.c linux-2.6.15-rc5-mutex/drivers/atm/idt77252.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/atm/idt77252.c	2005-11-01 13:19:04.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/atm/idt77252.c	2005-12-12 22:12:50.000000000 +0000
+@@ -47,7 +47,7 @@ static char const rcsid[] =
+ #include <linux/bitops.h>
  #include <linux/wait.h>
+ #include <linux/jiffies.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/io.h>
+ #include <asm/uaccess.h>
+ #include <asm/atomic.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/atm/idt77252.h linux-2.6.15-rc5-mutex/drivers/atm/idt77252.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/atm/idt77252.h	2005-03-02 12:08:03.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/atm/idt77252.h	2005-12-12 20:59:11.000000000 +0000
+@@ -359,7 +359,7 @@ struct idt77252_dev
+ 	unsigned long		srambase;	/* SAR's sram  base address */
+ 	void __iomem		*fbq[4];	/* FBQ fill addresses */
+ 
+-	struct semaphore	mutex;
++	struct mutex		mutex;
+ 	spinlock_t		cmd_lock;	/* for r/w utility/sram */
+ 
+ 	unsigned long		softstat;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/base/core.c linux-2.6.15-rc5-mutex/drivers/base/core.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/base/core.c	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/base/core.c	2005-12-12 22:12:49.000000000 +0000
+@@ -16,7 +16,7 @@
+ #include <linux/slab.h>
+ #include <linux/string.h>
+ 
 -#include <asm/semaphore.h>
 +#include <linux/semaphore.h>
  
- #if defined(CONFIG_SND_SEQUENCER) || defined(CONFIG_SND_SEQUENCER_MODULE)
- #include "seq_device.h"
-@@ -136,7 +136,7 @@ struct _snd_rawmidi {
- 	void *private_data;
- 	void (*private_free) (snd_rawmidi_t *rmidi);
+ #include "base.h"
+ #include "power/power.h"
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/base/firmware_class.c linux-2.6.15-rc5-mutex/drivers/base/firmware_class.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/base/firmware_class.c	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/base/firmware_class.c	2005-12-12 22:12:49.000000000 +0000
+@@ -14,7 +14,7 @@
+ #include <linux/vmalloc.h>
+ #include <linux/interrupt.h>
+ #include <linux/bitops.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
  
--	struct semaphore open_mutex;
-+	struct mutex open_mutex;
- 	wait_queue_head_t open_wait;
- 
- 	snd_info_entry_t *dev;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/sb16_csp.h linux-2.6.15-rc5-mutex/include/sound/sb16_csp.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/sb16_csp.h	2004-06-18 13:42:21.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/include/sound/sb16_csp.h	2005-12-12 19:41:15.000000000 +0000
-@@ -158,7 +158,7 @@ struct snd_sb_csp {
- 	snd_kcontrol_t *qsound_switch;
- 	snd_kcontrol_t *qsound_space;
- 
--	struct semaphore access_mutex;	/* locking */
-+	struct mutex access_mutex;	/* locking */
+ #include <linux/firmware.h>
+ #include "base.h"
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/base/map.c linux-2.6.15-rc5-mutex/drivers/base/map.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/base/map.c	2005-11-01 13:19:05.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/base/map.c	2005-12-12 17:42:33.000000000 +0000
+@@ -25,7 +25,7 @@ struct kobj_map {
+ 		int (*lock)(dev_t, void *);
+ 		void *data;
+ 	} *probes[255];
+-	struct semaphore *sem;
++	struct mutex *sem;
  };
  
- int snd_sb_csp_new(sb_t *chip, int device, snd_hwdep_t ** rhwdep);
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/seq_instr.h linux-2.6.15-rc5-mutex/include/sound/seq_instr.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/seq_instr.h	2004-06-18 13:44:06.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/include/sound/seq_instr.h	2005-12-12 19:39:20.000000000 +0000
-@@ -66,7 +66,7 @@ typedef struct {
+ int kobj_map(struct kobj_map *domain, dev_t dev, unsigned long range,
+@@ -132,7 +132,7 @@ retry:
+ 	return NULL;
+ }
  
- 	spinlock_t lock;
- 	spinlock_t ops_lock;
--	struct semaphore ops_mutex;
-+	struct mutex ops_mutex;
- 	unsigned long ops_flags;
- } snd_seq_kinstr_list_t;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/soundfont.h linux-2.6.15-rc5-mutex/include/sound/soundfont.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/soundfont.h	2005-03-02 12:09:01.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/include/sound/soundfont.h	2005-12-12 19:41:15.000000000 +0000
-@@ -96,7 +96,7 @@ typedef struct snd_sf_list {
- 	int sample_locked;	/* locked time for sample */
- 	snd_sf_callback_t callback;	/* callback functions */
- 	int presets_locked;
--	struct semaphore presets_mutex;
-+	struct mutex presets_mutex;
- 	spinlock_t lock;
- 	snd_util_memhdr_t *memhdr;
- } snd_sf_list_t;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/util_mem.h linux-2.6.15-rc5-mutex/include/sound/util_mem.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/util_mem.h	2004-06-18 13:42:21.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/include/sound/util_mem.h	2005-12-12 19:38:48.000000000 +0000
-@@ -44,7 +44,7 @@ struct snd_util_memhdr {
- 	int nblocks;			/* # of allocated blocks */
- 	snd_util_unit_t used;		/* used memory size */
- 	int block_extra_size;		/* extra data size of chunk */
--	struct semaphore block_mutex;	/* lock */
-+	struct mutex block_mutex;	/* lock */
- };
+-struct kobj_map *kobj_map_init(kobj_probe_t *base_probe, struct semaphore *sem)
++struct kobj_map *kobj_map_init(kobj_probe_t *base_probe, struct mutex *mutex)
+ {
+ 	struct kobj_map *p = kmalloc(sizeof(struct kobj_map), GFP_KERNEL);
+ 	struct probe *base = kzalloc(sizeof(*base), GFP_KERNEL);
+@@ -149,6 +149,6 @@ struct kobj_map *kobj_map_init(kobj_prob
+ 	base->get = base_probe;
+ 	for (i = 0; i < 255; i++)
+ 		p->probes[i] = base;
+-	p->sem = sem;
++	p->sem = mutex;
+ 	return p;
+ }
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/base/power/power.h linux-2.6.15-rc5-mutex/drivers/base/power/power.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/base/power/power.h	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/base/power/power.h	2005-12-12 17:44:20.000000000 +0000
+@@ -14,12 +14,12 @@ extern void device_shutdown(void);
+ /*
+  * Used to synchronize global power management operations.
+  */
+-extern struct semaphore dpm_sem;
++extern struct mutex dpm_sem;
  
  /*
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/include/sound/vx_core.h linux-2.6.15-rc5-mutex/include/sound/vx_core.h
---- /warthog/kernels/linux-2.6.15-rc5/include/sound/vx_core.h	2005-08-30 13:56:38.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/include/sound/vx_core.h	2005-12-12 19:41:15.000000000 +0000
-@@ -207,7 +207,7 @@ struct snd_vx_core {
- 	int audio_monitor[4];			/* playback hw-monitor level */
- 	unsigned char audio_monitor_active[4];	/* playback hw-monitor mute/unmute */
+  * Used to serialize changes to the dpm_* lists.
+  */
+-extern struct semaphore dpm_list_sem;
++extern struct mutex dpm_list_sem;
  
--	struct semaphore mixer_mutex;
-+	struct mutex mixer_mutex;
+ /*
+  * The PM lists.
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/base/power/shutdown.c linux-2.6.15-rc5-mutex/drivers/base/power/shutdown.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/base/power/shutdown.c	2005-06-22 13:51:45.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/base/power/shutdown.c	2005-12-12 22:12:49.000000000 +0000
+@@ -10,7 +10,7 @@
  
- 	const struct firmware *firmware[4]; /* loaded firmware data */
- };
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/arm/aaci.h linux-2.6.15-rc5-mutex/sound/arm/aaci.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/arm/aaci.h	2005-11-01 13:19:26.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/arm/aaci.h	2005-12-12 20:40:39.000000000 +0000
-@@ -227,7 +227,7 @@ struct aaci {
- 	unsigned int		fifosize;
- 
- 	/* AC'97 */
--	struct semaphore	ac97_sem;
-+	struct mutex		ac97_sem;
- 	ac97_bus_t		*ac97_bus;
- 
- 	u32			maincr;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/arm/pxa2xx-ac97.c linux-2.6.15-rc5-mutex/sound/arm/pxa2xx-ac97.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/arm/pxa2xx-ac97.c	2005-12-08 16:23:57.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/arm/pxa2xx-ac97.c	2005-12-12 22:12:50.000000000 +0000
-@@ -17,6 +17,7 @@
- #include <linux/interrupt.h>
- #include <linux/wait.h>
- #include <linux/delay.h>
+ #include <linux/config.h>
+ #include <linux/device.h>
+-#include <asm/semaphore.h>
 +#include <linux/semaphore.h>
  
- #include <sound/driver.h>
- #include <sound/core.h>
-@@ -25,7 +26,6 @@
- #include <sound/initval.h>
+ #include "power.h"
  
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/base/sys.c linux-2.6.15-rc5-mutex/drivers/base/sys.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/base/sys.c	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/base/sys.c	2005-12-12 22:12:49.000000000 +0000
+@@ -21,7 +21,7 @@
+ #include <linux/slab.h>
+ #include <linux/string.h>
+ #include <linux/pm.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ 
+ extern struct subsystem devices_subsys;
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/block/aoe/aoechr.c linux-2.6.15-rc5-mutex/drivers/block/aoe/aoechr.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/block/aoe/aoechr.c	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/block/aoe/aoechr.c	2005-12-12 21:28:14.000000000 +0000
+@@ -96,7 +96,7 @@ bail:		spin_unlock_irqrestore(&emsgs_loc
+ 	spin_unlock_irqrestore(&emsgs_lock, flags);
+ 
+ 	if (nblocked_emsgs_readers)
+-		up(&emsgs_sema);
++		up_sem(&emsgs_sema);
+ }
+ 
+ static ssize_t
+@@ -164,7 +164,7 @@ loop:
+ 
+ 			spin_unlock_irqrestore(&emsgs_lock, flags);
+ 
+-			n = down_interruptible(&emsgs_sema);
++			n = down_sem_interruptible(&emsgs_sema);
+ 
+ 			spin_lock_irqsave(&emsgs_lock, flags);
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/block/cryptoloop.c linux-2.6.15-rc5-mutex/drivers/block/cryptoloop.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/block/cryptoloop.c	2005-11-01 13:19:05.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/block/cryptoloop.c	2005-12-12 22:08:48.000000000 +0000
+@@ -26,7 +26,7 @@
+ #include <linux/crypto.h>
+ #include <linux/blkdev.h>
+ #include <linux/loop.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ MODULE_LICENSE("GPL");
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/block/pktcdvd.c linux-2.6.15-rc5-mutex/drivers/block/pktcdvd.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/block/pktcdvd.c	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/block/pktcdvd.c	2005-12-12 21:28:17.000000000 +0000
+@@ -82,7 +82,7 @@
+ static struct pktcdvd_device *pkt_devs[MAX_WRITERS];
+ static struct proc_dir_entry *pkt_proc;
+ static int pkt_major;
+-static struct semaphore ctl_mutex;	/* Serialize open/close/setup/teardown */
++static struct mutex ctl_mutex;	/* Serialize open/close/setup/teardown */
+ static mempool_t *psd_pool;
+ 
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/block/sx8.c linux-2.6.15-rc5-mutex/drivers/block/sx8.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/block/sx8.c	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/block/sx8.c	2005-12-12 22:08:48.000000000 +0000
+@@ -28,7 +28,7 @@
+ #include <linux/hdreg.h>
+ #include <linux/dma-mapping.h>
+ #include <asm/io.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ #if 0
+@@ -303,7 +303,7 @@ struct carm_host {
+ 
+ 	struct work_struct		fsm_task;
+ 
+-	struct semaphore		probe_sem;
++	struct mutex			probe_sem;
+ };
+ 
+ struct carm_response {
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/agp/frontend.c linux-2.6.15-rc5-mutex/drivers/char/agp/frontend.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/agp/frontend.c	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/agp/frontend.c	2005-12-12 20:15:38.000000000 +0000
+@@ -1081,7 +1081,7 @@ static struct miscdevice agp_miscdev =
+ int agp_frontend_initialize(void)
+ {
+ 	memset(&agp_fe, 0, sizeof(struct agp_front_data));
+-	sema_init(&(agp_fe.agp_mutex), 1);
++	init_MUTEX(&(agp_fe.agp_mutex));
+ 
+ 	if (misc_register(&agp_miscdev)) {
+ 		printk(KERN_ERR PFX "unable to get minor: %d\n", AGPGART_MINOR);
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/drm/drmP.h linux-2.6.15-rc5-mutex/drivers/char/drm/drmP.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/drm/drmP.h	2005-12-08 16:23:38.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/drm/drmP.h	2005-12-12 20:17:29.000000000 +0000
+@@ -625,7 +625,7 @@ typedef struct drm_device {
+ 	/** \name Locks */
+ 	/*@{ */
+ 	spinlock_t count_lock;		/**< For inuse, drm_device::open_count, drm_device::buf_use */
+-	struct semaphore struct_sem;	/**< For others */
++	struct mutex struct_sem;	/**< For others */
+ 	/*@} */
+ 
+ 	/** \name Usage Counters */
+@@ -660,7 +660,7 @@ typedef struct drm_device {
+ 	/*@{ */
+ 	drm_ctx_list_t *ctxlist;	/**< Linked list of context handles */
+ 	int ctx_count;			/**< Number of context handles */
+-	struct semaphore ctxlist_sem;	/**< For ctxlist */
++	struct mutex ctxlist_sem;	/**< For ctxlist */
+ 
+ 	drm_map_t **context_sareas;	    /**< per-context SAREA's */
+ 	int max_context;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/drm/drm_stub.c linux-2.6.15-rc5-mutex/drivers/char/drm/drm_stub.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/drm/drm_stub.c	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/drm/drm_stub.c	2005-12-12 20:24:32.000000000 +0000
+@@ -61,8 +61,8 @@ static int drm_fill_in_dev(drm_device_t 
+ 
+ 	spin_lock_init(&dev->count_lock);
+ 	init_timer(&dev->timer);
+-	sema_init(&dev->struct_sem, 1);
+-	sema_init(&dev->ctxlist_sem, 1);
++	init_MUTEX(&dev->struct_sem);
++	init_MUTEX(&dev->ctxlist_sem);
+ 
+ 	dev->pdev = pdev;
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/generic_serial.c linux-2.6.15-rc5-mutex/drivers/char/generic_serial.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/generic_serial.c	2005-06-22 13:51:47.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/generic_serial.c	2005-12-12 22:08:48.000000000 +0000
+@@ -28,7 +28,7 @@
+ #include <linux/interrupt.h>
+ #include <linux/tty_flip.h>
+ #include <linux/delay.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ #define DEBUG 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/ipmi/ipmi_devintf.c linux-2.6.15-rc5-mutex/drivers/char/ipmi/ipmi_devintf.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/ipmi/ipmi_devintf.c	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/ipmi/ipmi_devintf.c	2005-12-12 22:08:48.000000000 +0000
+@@ -42,7 +42,7 @@
+ #include <linux/slab.h>
+ #include <linux/devfs_fs_kernel.h>
+ #include <linux/ipmi.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <linux/init.h>
+ #include <linux/device.h>
+ #include <linux/compat.h>
+@@ -55,7 +55,7 @@ struct ipmi_file_private
+ 	struct file          *file;
+ 	struct fasync_struct *fasync_queue;
+ 	wait_queue_head_t    wait;
+-	struct semaphore     recv_sem;
++	struct mutex         recv_sem;
+ 	int                  default_retries;
+ 	unsigned int         default_retry_time_ms;
+ };
+@@ -141,7 +141,7 @@ static int ipmi_open(struct inode *inode
+ 	INIT_LIST_HEAD(&(priv->recv_msgs));
+ 	init_waitqueue_head(&priv->wait);
+ 	priv->fasync_queue = NULL;
+-	sema_init(&(priv->recv_sem), 1);
++	init_MUTEX(&(priv->recv_sem));
+ 
+ 	/* Use the low-level defaults. */
+ 	priv->default_retries = -1;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/ipmi/ipmi_msghandler.c linux-2.6.15-rc5-mutex/drivers/char/ipmi/ipmi_msghandler.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/ipmi/ipmi_msghandler.c	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/ipmi/ipmi_msghandler.c	2005-12-12 21:30:10.000000000 +0000
+@@ -209,7 +209,7 @@ struct ipmi_smi
+ 
+ 	/* The list of command receivers that are registered for commands
+ 	   on this interface. */
+-	struct semaphore cmd_rcvrs_lock;
++	struct mutex     cmd_rcvrs_lock;
+ 	struct list_head cmd_rcvrs;
+ 
+ 	/* Events that were queues because no one was there to receive
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/mbcs.h linux-2.6.15-rc5-mutex/drivers/char/mbcs.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/mbcs.h	2005-06-22 13:51:47.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/mbcs.h	2005-12-12 21:29:18.000000000 +0000
+@@ -537,9 +537,9 @@ struct mbcs_soft {
+ 	atomic_t dmawrite_done;
+ 	atomic_t dmaread_done;
+ 	atomic_t algo_done;
+-	struct semaphore dmawritelock;
+-	struct semaphore dmareadlock;
+-	struct semaphore algolock;
++	struct mutex dmawritelock;
++	struct mutex dmareadlock;
++	struct mutex algolock;
+ };
+ 
+ extern int mbcs_open(struct inode *ip, struct file *fp);
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/moxa.c linux-2.6.15-rc5-mutex/drivers/char/moxa.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/moxa.c	2005-11-01 13:19:06.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/moxa.c	2005-12-12 21:29:08.000000000 +0000
+@@ -216,7 +216,7 @@ static int moxaTimer_on;
+ static struct timer_list moxaTimer;
+ static int moxaEmptyTimer_on[MAX_PORTS];
+ static struct timer_list moxaEmptyTimer[MAX_PORTS];
+-static struct semaphore moxaBuffSem;
++static struct mutex moxaBuffSem;
+ 
+ /*
+  * static functions:
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/rioboot.c linux-2.6.15-rc5-mutex/drivers/char/rio/rioboot.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/rioboot.c	2005-08-30 13:56:16.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/rio/rioboot.c	2005-12-12 22:08:48.000000000 +0000
+@@ -41,7 +41,7 @@ static char *_rioboot_c_sccs_ = "@(#)rio
+ #include <asm/io.h>
+ #include <asm/system.h>
+ #include <asm/string.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ 
+ 
+ #include <linux/termios.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/riocmd.c linux-2.6.15-rc5-mutex/drivers/char/rio/riocmd.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/riocmd.c	2005-06-22 13:51:47.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/rio/riocmd.c	2005-12-12 22:08:48.000000000 +0000
+@@ -41,7 +41,7 @@ static char *_riocmd_c_sccs_ = "@(#)rioc
+ #include <asm/io.h>
+ #include <asm/system.h>
+ #include <asm/string.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ 
+ #include <linux/termios.h>
+ #include <linux/serial.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/rioctrl.c linux-2.6.15-rc5-mutex/drivers/char/rio/rioctrl.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/rioctrl.c	2005-03-02 12:08:06.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/rio/rioctrl.c	2005-12-12 22:08:48.000000000 +0000
+@@ -40,7 +40,7 @@ static char *_rioctrl_c_sccs_ = "@(#)rio
+ #include <asm/io.h>
+ #include <asm/system.h>
+ #include <asm/string.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ #include <linux/termios.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/rioinit.c linux-2.6.15-rc5-mutex/drivers/char/rio/rioinit.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/rioinit.c	2005-08-30 13:56:16.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/rio/rioinit.c	2005-12-12 22:08:48.000000000 +0000
+@@ -41,7 +41,7 @@ static char *_rioinit_c_sccs_ = "@(#)rio
+ #include <asm/io.h>
+ #include <asm/system.h>
+ #include <asm/string.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ #include <linux/termios.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/riointr.c linux-2.6.15-rc5-mutex/drivers/char/rio/riointr.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/riointr.c	2005-03-02 12:08:06.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/rio/riointr.c	2005-12-12 22:08:48.000000000 +0000
+@@ -41,7 +41,7 @@ static char *_riointr_c_sccs_ = "@(#)rio
+ #include <asm/io.h>
+ #include <asm/system.h>
+ #include <asm/string.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ #include <linux/termios.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/rioparam.c linux-2.6.15-rc5-mutex/drivers/char/rio/rioparam.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/rioparam.c	2004-06-18 13:41:42.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/rio/rioparam.c	2005-12-12 22:08:48.000000000 +0000
+@@ -41,7 +41,7 @@ static char *_rioparam_c_sccs_ = "@(#)ri
+ #include <asm/io.h>
+ #include <asm/system.h>
+ #include <asm/string.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ #include <linux/termios.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/rioroute.c linux-2.6.15-rc5-mutex/drivers/char/rio/rioroute.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/rioroute.c	2005-08-30 13:56:16.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/rio/rioroute.c	2005-12-12 22:08:48.000000000 +0000
+@@ -39,7 +39,7 @@ static char *_rioroute_c_sccs_ = "@(#)ri
+ #include <asm/io.h>
+ #include <asm/system.h>
+ #include <asm/string.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ #include <linux/termios.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/riotable.c linux-2.6.15-rc5-mutex/drivers/char/rio/riotable.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/riotable.c	2005-08-30 13:56:16.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/rio/riotable.c	2005-12-12 22:08:48.000000000 +0000
+@@ -42,7 +42,7 @@ static char *_riotable_c_sccs_ = "@(#)ri
+ #include <asm/io.h>
+ #include <asm/system.h>
+ #include <asm/string.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ #include <linux/termios.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/riotty.c linux-2.6.15-rc5-mutex/drivers/char/rio/riotty.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rio/riotty.c	2005-08-30 13:56:16.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/rio/riotty.c	2005-12-12 22:08:48.000000000 +0000
+@@ -44,7 +44,7 @@ static char *_riotty_c_sccs_ = "@(#)riot
+ #include <asm/io.h>
+ #include <asm/system.h>
+ #include <asm/string.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ #include <linux/termios.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rocket.c linux-2.6.15-rc5-mutex/drivers/char/rocket.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rocket.c	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/rocket.c	2005-12-12 22:08:48.000000000 +0000
+@@ -93,7 +93,7 @@
+ #include <asm/atomic.h>
+ #include <linux/bitops.h>
+ #include <linux/spinlock.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <linux/init.h>
+ 
+ /****** RocketPort includes ******/
+@@ -716,7 +716,7 @@ static void init_r_port(int board, int a
+ 		}
+ 	}
+ 	spin_lock_init(&info->slock);
+-	sema_init(&info->write_sem, 1);
++	init_MUTEX(&info->write_sem);
+ 	rp_table[line] = info;
+ 	if (pci_dev)
+ 		tty_register_device(rocket_driver, line, &pci_dev->dev);
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/rocket_int.h linux-2.6.15-rc5-mutex/drivers/char/rocket_int.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/rocket_int.h	2005-08-30 13:56:16.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/rocket_int.h	2005-12-12 20:15:24.000000000 +0000
+@@ -1171,7 +1171,7 @@ struct r_port {
+ 	struct wait_queue *close_wait;
+ #endif
+ 	spinlock_t slock;
+-	struct semaphore write_sem;
++	struct mutex write_sem;
+ };
+ 
+ #define RPORT_MAGIC 0x525001
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/ser_a2232.c linux-2.6.15-rc5-mutex/drivers/char/ser_a2232.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/ser_a2232.c	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/ser_a2232.c	2005-12-12 22:08:48.000000000 +0000
+@@ -97,7 +97,7 @@
+ #include <asm/amigahw.h>
+ #include <linux/zorro.h>
  #include <asm/irq.h>
 -#include <asm/semaphore.h>
- #include <asm/hardware.h>
- #include <asm/arch/pxa-regs.h>
- #include <asm/arch/audio.h>
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/arm/sa11xx-uda1341.c linux-2.6.15-rc5-mutex/sound/arm/sa11xx-uda1341.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/arm/sa11xx-uda1341.c	2005-11-01 13:19:27.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/arm/sa11xx-uda1341.c	2005-12-12 22:12:50.000000000 +0000
-@@ -79,7 +79,7 @@
- #include <asm/dma.h>
- 
- #ifdef CONFIG_H3600_HAL
--#include <asm/semaphore.h>
 +#include <linux/semaphore.h>
- #include <asm/uaccess.h>
- #include <asm/arch/h3600_hal.h>
- #endif
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/core/memalloc.c linux-2.6.15-rc5-mutex/sound/core/memalloc.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/core/memalloc.c	2005-12-08 16:23:57.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/core/memalloc.c	2005-12-12 22:12:50.000000000 +0000
-@@ -31,7 +31,7 @@
- #include <asm/uaccess.h>
- #include <linux/dma-mapping.h>
- #include <linux/moduleparam.h>
--#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
- #include <sound/memalloc.h>
- #ifdef CONFIG_SBUS
- #include <asm/sbus.h>
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/core/seq/seq_clientmgr.h linux-2.6.15-rc5-mutex/sound/core/seq/seq_clientmgr.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/core/seq/seq_clientmgr.h	2005-03-02 12:09:12.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/core/seq/seq_clientmgr.h	2005-12-12 20:41:17.000000000 +0000
-@@ -61,7 +61,7 @@ struct _snd_seq_client {
- 	int num_ports;		/* number of ports */
- 	struct list_head ports_list_head;
- 	rwlock_t ports_lock;
--	struct semaphore ports_mutex;
-+	struct mutex ports_mutex;
- 	int convert32;		/* convert 32->64bit */
  
- 	/* output pool */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/core/seq/seq_device.c linux-2.6.15-rc5-mutex/sound/core/seq/seq_device.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/core/seq/seq_device.c	2005-11-01 13:19:27.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/core/seq/seq_device.c	2005-12-12 20:41:14.000000000 +0000
-@@ -74,7 +74,7 @@ struct ops_list {
- 	struct list_head dev_list;	/* list of devices */
- 	int num_devices;	/* number of associated devices */
- 	int num_init_devices;	/* number of initialized devices */
--	struct semaphore reg_mutex;
-+	struct mutex reg_mutex;
- 
- 	struct list_head list;	/* next driver */
- };
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/core/seq/seq_midi.c linux-2.6.15-rc5-mutex/sound/core/seq/seq_midi.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/core/seq/seq_midi.c	2005-12-08 16:23:57.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/core/seq/seq_midi.c	2005-12-12 22:12:50.000000000 +0000
-@@ -32,7 +32,7 @@ Possible options for midisynth module:
- #include <linux/errno.h>
- #include <linux/string.h>
- #include <linux/moduleparam.h>
--#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
- #include <sound/core.h>
- #include <sound/rawmidi.h>
- #include <sound/seq_kernel.h>
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/core/seq/seq_queue.h linux-2.6.15-rc5-mutex/sound/core/seq/seq_queue.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/core/seq/seq_queue.h	2005-08-30 13:56:45.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/core/seq/seq_queue.h	2005-12-12 20:41:11.000000000 +0000
-@@ -54,7 +54,7 @@ struct _snd_seq_queue {
- 	/* clients which uses this queue (bitmap) */
- 	DECLARE_BITMAP(clients_bitmap, SNDRV_SEQ_MAX_CLIENTS);
- 	unsigned int clients;	/* users of this queue */
--	struct semaphore timer_mutex;
-+	struct mutex timer_mutex;
- 
- 	snd_use_lock_t use_lock;
- };
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/core/timer.c linux-2.6.15-rc5-mutex/sound/core/timer.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/core/timer.c	2005-12-08 16:23:57.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/core/timer.c	2005-12-12 20:41:08.000000000 +0000
-@@ -70,7 +70,7 @@ typedef struct {
- 	struct timespec tstamp;		/* trigger tstamp */
- 	wait_queue_head_t qchange_sleep;
- 	struct fasync_struct *fasync;
--	struct semaphore tread_sem;
-+	struct mutex tread_sem;
- } snd_timer_user_t;
- 
- /* list of timers */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/drivers/opl4/opl4_local.h linux-2.6.15-rc5-mutex/sound/drivers/opl4/opl4_local.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/drivers/opl4/opl4_local.h	2004-10-19 10:42:23.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/drivers/opl4/opl4_local.h	2005-12-12 20:45:26.000000000 +0000
-@@ -182,7 +182,7 @@ struct opl4 {
- 	snd_info_entry_t *proc_entry;
- 	int memory_access;
- #endif
--	struct semaphore access_mutex;
-+	struct mutex access_mutex;
- 
- #if defined(CONFIG_SND_SEQUENCER) || defined(CONFIG_SND_SEQUENCER_MODULE)
- 	int used;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/ac97_codec.c linux-2.6.15-rc5-mutex/sound/oss/ac97_codec.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/ac97_codec.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/ac97_codec.c	2005-12-12 22:12:50.000000000 +0000
-@@ -54,8 +54,8 @@
  #include <linux/delay.h>
- #include <linux/pci.h>
- #include <linux/ac97_codec.h>
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/snsc.c linux-2.6.15-rc5-mutex/drivers/char/snsc.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/snsc.c	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/snsc.c	2005-12-12 20:16:07.000000000 +0000
+@@ -99,8 +99,8 @@ scdrv_open(struct inode *inode, struct f
+ 	spin_lock_init(&sd->sd_wlock);
+ 	init_waitqueue_head(&sd->sd_rq);
+ 	init_waitqueue_head(&sd->sd_wq);
+-	sema_init(&sd->sd_rbs, 1);
+-	sema_init(&sd->sd_wbs, 1);
++	init_MUTEX(&sd->sd_rbs);
++	init_MUTEX(&sd->sd_wbs);
+ 
+ 	file->private_data = sd;
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/snsc.h linux-2.6.15-rc5-mutex/drivers/char/snsc.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/snsc.h	2005-06-22 13:51:47.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/snsc.h	2005-12-12 22:12:49.000000000 +0000
+@@ -22,8 +22,8 @@
+ #include <linux/kobject.h>
+ #include <linux/fs.h>
+ #include <linux/cdev.h>
 +#include <linux/semaphore.h>
- #include <asm/uaccess.h>
+ #include <asm/sn/types.h>
 -#include <asm/semaphore.h>
  
- #define CODEC_ID_BUFSZ 14
+ #define CHUNKSIZE 127
  
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/aci.c linux-2.6.15-rc5-mutex/sound/oss/aci.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/aci.c	2005-03-02 12:09:13.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/aci.c	2005-12-12 22:12:50.000000000 +0000
-@@ -56,7 +56,7 @@
- #include <linux/module.h> 
- #include <linux/proc_fs.h>
- #include <linux/slab.h>
--#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
- #include <asm/io.h>
- #include <asm/uaccess.h>
- #include "sound_config.h"
-@@ -79,7 +79,7 @@ static int aci_micpreamp=3; /* microphon
- 			 * checked with ACI versions prior to 0xb0	*/
+@@ -35,8 +35,8 @@ struct subch_data_s {
+ 	spinlock_t sd_wlock;	/* monitor lock for wsv */
+ 	wait_queue_head_t sd_rq;	/* wait queue for readers */
+ 	wait_queue_head_t sd_wq;	/* wait queue for writers */
+-	struct semaphore sd_rbs;	/* semaphore for read buffer */
+-	struct semaphore sd_wbs;	/* semaphore for write buffer */
++	struct mutex sd_rbs;	/* semaphore for read buffer */
++	struct mutex sd_wbs;	/* semaphore for write buffer */
  
- static int mixer_device;
--static struct semaphore aci_sem;
-+static struct mutex aci_sem;
- 
- #ifdef MODULE
- static int reset;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/ad1889.h linux-2.6.15-rc5-mutex/sound/oss/ad1889.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/ad1889.h	2005-01-04 11:14:02.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/ad1889.h	2005-12-12 20:41:45.000000000 +0000
-@@ -100,7 +100,7 @@ typedef struct ad1889_state {
- 		unsigned int subdivision;
- 	} dmabuf;
- 
--	struct semaphore sem;
-+	struct mutex sem;
- } ad1889_state_t;
- 
- typedef struct ad1889_dev {
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/ali5455.c linux-2.6.15-rc5-mutex/sound/oss/ali5455.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/ali5455.c	2005-06-22 13:52:38.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/ali5455.c	2005-12-12 20:43:28.000000000 +0000
-@@ -234,7 +234,7 @@ struct ali_state {
- 	struct ali_card *card;	/* Card info */
- 
- 	/* single open lock mechanism, only used for recording */
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	wait_queue_head_t open_wait;
- 
- 	/* file mode */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/au1000.c linux-2.6.15-rc5-mutex/sound/oss/au1000.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/au1000.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/au1000.c	2005-12-12 20:43:55.000000000 +0000
-@@ -120,8 +120,8 @@ struct au1000_state {
- 	int             no_vra;	// do not use VRA
- 
- 	spinlock_t      lock;
--	struct semaphore open_sem;
--	struct semaphore sem;
-+	struct mutex open_sem;
-+	struct mutex sem;
- 	mode_t          open_mode;
- 	wait_queue_head_t open_wait;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/au1550_ac97.c linux-2.6.15-rc5-mutex/sound/oss/au1550_ac97.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/au1550_ac97.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/au1550_ac97.c	2005-12-12 20:43:16.000000000 +0000
-@@ -90,8 +90,8 @@ static struct au1550_state {
- 	int             no_vra;		/* do not use VRA */
- 
- 	spinlock_t      lock;
--	struct semaphore open_sem;
--	struct semaphore sem;
-+	struct mutex open_sem;
-+	struct mutex sem;
- 	mode_t          open_mode;
- 	wait_queue_head_t open_wait;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/btaudio.c linux-2.6.15-rc5-mutex/sound/oss/btaudio.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/btaudio.c	2005-06-22 13:52:38.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/btaudio.c	2005-12-12 20:41:39.000000000 +0000
-@@ -108,7 +108,7 @@ struct btaudio {
- 
- 	/* locking */
- 	int            users;
+ 	char sd_rb[CHUNKSIZE];	/* read buffer */
+ 	char sd_wb[CHUNKSIZE];	/* write buffer */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/sonypi.c linux-2.6.15-rc5-mutex/drivers/char/sonypi.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/sonypi.c	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/sonypi.c	2005-12-12 21:28:40.000000000 +0000
+@@ -480,7 +480,7 @@ static struct sonypi_device {
+ 	u16 evtype_offset;
+ 	int camera_power;
+ 	int bluetooth_power;
 -	struct semaphore lock;
-+	struct mutex   lock;
++	struct mutex lock;
+ 	struct kfifo *fifo;
+ 	spinlock_t fifo_lock;
+ 	wait_queue_head_t fifo_proc_list;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/tpm/tpm.h linux-2.6.15-rc5-mutex/drivers/char/tpm/tpm.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/tpm/tpm.h	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/tpm/tpm.h	2005-12-12 21:28:57.000000000 +0000
+@@ -74,11 +74,11 @@ struct tpm_chip {
+ 	/* Data passed to and from the tpm via the read/write calls */
+ 	u8 *data_buffer;
+ 	atomic_t data_pending;
+-	struct semaphore buffer_mutex;
++	struct mutex buffer_mutex;
  
- 	/* risc instructions */
- 	unsigned int   risc_size;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/cmpci.c linux-2.6.15-rc5-mutex/sound/oss/cmpci.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/cmpci.c	2005-08-30 13:56:46.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/cmpci.c	2005-12-12 20:44:06.000000000 +0000
-@@ -392,7 +392,7 @@ struct cm_state {
- 	unsigned char fmt, enable;
+ 	struct timer_list user_read_timer;	/* user needs to claim result */
+ 	struct work_struct work;
+-	struct semaphore tpm_mutex;	/* tpm is processing */
++	struct mutex tpm_mutex;	/* tpm is processing */
  
- 	spinlock_t lock;
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	mode_t open_mode;
- 	wait_queue_head_t open_wait;
+ 	struct tpm_vendor_specific *vendor;
  
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/cs4281/cs4281m.c linux-2.6.15-rc5-mutex/sound/oss/cs4281/cs4281m.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/cs4281/cs4281m.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/cs4281/cs4281m.c	2005-12-12 20:41:30.000000000 +0000
-@@ -245,9 +245,9 @@ struct cs4281_state {
- 	void *tmpbuff;		// tmp buffer for sample conversions
- 	unsigned ena;
- 	spinlock_t lock;
--	struct semaphore open_sem;
--	struct semaphore open_sem_adc;
--	struct semaphore open_sem_dac;
-+	struct mutex open_sem;
-+	struct mutex open_sem_adc;
-+	struct mutex open_sem_dac;
- 	mode_t open_mode;
- 	wait_queue_head_t open_wait;
- 	wait_queue_head_t open_wait_adc;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/cs46xx.c linux-2.6.15-rc5-mutex/sound/oss/cs46xx.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/cs46xx.c	2005-08-30 13:56:46.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/cs46xx.c	2005-12-12 20:43:37.000000000 +0000
-@@ -238,7 +238,7 @@ struct cs_state {
- 	struct cs_card *card;	/* Card info */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/tty_io.c linux-2.6.15-rc5-mutex/drivers/char/tty_io.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/tty_io.c	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/tty_io.c	2005-12-12 17:48:17.000000000 +0000
+@@ -2677,8 +2677,8 @@ static void initialize_tty_struct(struct
+ 	init_waitqueue_head(&tty->write_wait);
+ 	init_waitqueue_head(&tty->read_wait);
+ 	INIT_WORK(&tty->hangup_work, do_tty_hangup, tty);
+-	sema_init(&tty->atomic_read, 1);
+-	sema_init(&tty->atomic_write, 1);
++	init_MUTEX(&tty->atomic_read);
++	init_MUTEX(&tty->atomic_write);
+ 	spin_lock_init(&tty->read_lock);
+ 	INIT_LIST_HEAD(&tty->tty_files);
+ 	INIT_WORK(&tty->SAK_work, NULL, NULL);
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/viotape.c linux-2.6.15-rc5-mutex/drivers/char/viotape.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/viotape.c	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/viotape.c	2005-12-12 20:20:37.000000000 +0000
+@@ -454,12 +454,12 @@ static ssize_t viotap_write(struct file 
+ 	 * semaphore
+ 	 */
+ 	if (noblock) {
+-		if (down_trylock(&reqSem)) {
++		if (down_sem_trylock(&reqSem)) {
+ 			ret = -EWOULDBLOCK;
+ 			goto free_op;
+ 		}
+ 	} else
+-		down(&reqSem);
++		down_sem(&reqSem);
  
- 	/* single open lock mechanism, only used for recording */
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	wait_queue_head_t open_wait;
+ 	/* Allocate a DMA buffer */
+ 	op->dev = tape_device[devi.devno];
+@@ -515,7 +515,7 @@ static ssize_t viotap_write(struct file 
+ free_dma:
+ 	dma_free_coherent(op->dev, count, op->buffer, op->dmaaddr);
+ up_sem:
+-	up(&reqSem);
++	up_sem(&reqSem);
+ free_op:
+ 	free_op_struct(op);
+ 	return ret;
+@@ -544,12 +544,12 @@ static ssize_t viotap_read(struct file *
+ 	 * semaphore
+ 	 */
+ 	if (noblock) {
+-		if (down_trylock(&reqSem)) {
++		if (down_sem_trylock(&reqSem)) {
+ 			ret = -EWOULDBLOCK;
+ 			goto free_op;
+ 		}
+ 	} else
+-		down(&reqSem);
++		down_sem(&reqSem);
  
- 	/* file mode */
-@@ -297,7 +297,7 @@ struct cs_state {
- 		unsigned subdivision;
- 	} dmabuf;
- 	/* Guard against mmap/write/read races */
--	struct semaphore sem;
-+	struct mutex sem;
+ 	chg_state(devi.devno, VIOT_READING, file);
+ 
+@@ -595,7 +595,7 @@ static ssize_t viotap_read(struct file *
+ free_dma:
+ 	dma_free_coherent(op->dev, count, op->buffer, op->dmaaddr);
+ up_sem:
+-	up(&reqSem);
++	up_sem(&reqSem);
+ free_op:
+ 	free_op_struct(op);
+ 	return ret;
+@@ -617,7 +617,7 @@ static int viotap_ioctl(struct inode *in
+ 
+ 	get_dev_info(file->f_dentry->d_inode, &devi);
+ 
+-	down(&reqSem);
++	down_sem(&reqSem);
+ 
+ 	ret = -EINVAL;
+ 
+@@ -748,7 +748,7 @@ static int viotap_ioctl(struct inode *in
+ 		/* Operation is complete - grab the error code */
+ 		ret = tape_rc_to_errno(op->rc, "get status", devi.devno);
+ 		free_op_struct(op);
+-		up(&reqSem);
++		up_sem(&reqSem);
+ 
+ 		if ((ret == 0) && copy_to_user((void *)arg,
+ 					&viomtget[devi.devno],
+@@ -766,7 +766,7 @@ static int viotap_ioctl(struct inode *in
+ 
+ free_op:
+ 	free_op_struct(op);
+-	up(&reqSem);
++	up_sem(&reqSem);
+ 	return ret;
+ }
+ 
+@@ -918,7 +918,7 @@ static void vioHandleTapeEvent(struct Hv
+ 			dma_free_coherent(op->dev, op->count,
+ 					op->buffer, op->dmaaddr);
+ 			free_op_struct(op);
+-			up(&reqSem);
++			up_sem(&reqSem);
+ 		} else {
+ 			op->rc = tevent->sub_type_result;
+ 			op->count = tevent->len;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/watchdog/cpu5wdt.c linux-2.6.15-rc5-mutex/drivers/char/watchdog/cpu5wdt.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/watchdog/cpu5wdt.c	2005-12-08 16:23:39.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/watchdog/cpu5wdt.c	2005-12-12 21:29:41.000000000 +0000
+@@ -57,7 +57,7 @@ static int ticks = 10000;
+ /* some device data */
+ 
+ static struct {
+-	struct semaphore stop;
++	struct mutex stop;
+ 	volatile int running;
+ 	struct timer_list timer;
+ 	volatile int queue;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/watchdog/pcwd_usb.c linux-2.6.15-rc5-mutex/drivers/char/watchdog/pcwd_usb.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/watchdog/pcwd_usb.c	2005-08-30 13:56:16.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/watchdog/pcwd_usb.c	2005-12-12 21:29:35.000000000 +0000
+@@ -138,7 +138,7 @@ struct usb_pcwd_private {
+ 	atomic_t		cmd_received;		/* true if we received a report after a command */
+ 
+ 	int			exists;			/* Wether or not the device exists */
+-	struct semaphore	sem;			/* locks this structure */
++	struct mutex		sem;			/* locks this structure */
  };
+ static struct usb_pcwd_private *usb_pcwd_device;
  
- struct cs_card {
-@@ -375,7 +375,7 @@ struct cs_card {
- 		unsigned char ibuf[CS_MIDIINBUF];
- 		unsigned char obuf[CS_MIDIOUTBUF];
- 		mode_t open_mode;
--		struct semaphore open_sem;
-+		struct mutex open_sem;
- 	} midi;
- 	struct cs46xx_pm pm;
- };
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/dmasound/dmasound_awacs.c linux-2.6.15-rc5-mutex/sound/oss/dmasound/dmasound_awacs.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/dmasound/dmasound_awacs.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/dmasound/dmasound_awacs.c	2005-12-12 22:12:50.000000000 +0000
-@@ -80,7 +80,7 @@
- #include <linux/kmod.h>
- #include <linux/interrupt.h>
- #include <linux/input.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/watchdog/sc1200wdt.c linux-2.6.15-rc5-mutex/drivers/char/watchdog/sc1200wdt.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/watchdog/sc1200wdt.c	2005-08-30 13:56:16.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/watchdog/sc1200wdt.c	2005-12-12 22:08:48.000000000 +0000
+@@ -41,7 +41,7 @@
+ #include <linux/fs.h>
+ #include <linux/pci.h>
+ 
 -#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
- #ifdef CONFIG_ADB_CUDA
- #include <linux/cuda.h>
- #endif
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/emu10k1/hwaccess.h linux-2.6.15-rc5-mutex/sound/oss/emu10k1/hwaccess.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/emu10k1/hwaccess.h	2005-03-02 12:09:13.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/emu10k1/hwaccess.h	2005-12-12 20:43:59.000000000 +0000
-@@ -181,7 +181,7 @@ struct emu10k1_card 
- 	struct emu10k1_mpuout	*mpuout;
- 	struct emu10k1_mpuin	*mpuin;
- 
--	struct semaphore	open_sem;
-+	struct mutex		open_sem;
- 	mode_t			open_mode;
- 	wait_queue_head_t	open_wait;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/es1370.c linux-2.6.15-rc5-mutex/sound/oss/es1370.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/es1370.c	2005-08-30 13:56:47.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/es1370.c	2005-12-12 20:43:50.000000000 +0000
-@@ -346,7 +346,7 @@ struct es1370_state {
- 	unsigned sctrl;
- 
- 	spinlock_t lock;
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	mode_t open_mode;
- 	wait_queue_head_t open_wait;
- 
-@@ -393,7 +393,7 @@ struct es1370_state {
- 	struct gameport *gameport;
- #endif
- 
--	struct semaphore sem;
-+	struct mutex sem;
- };
- 
- /* --------------------------------------------------------------------- */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/es1371.c linux-2.6.15-rc5-mutex/sound/oss/es1371.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/es1371.c	2005-08-30 13:56:47.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/es1371.c	2005-12-12 20:44:25.000000000 +0000
-@@ -419,7 +419,7 @@ struct es1371_state {
- 	unsigned dac1rate, dac2rate, adcrate;
- 
- 	spinlock_t lock;
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	mode_t open_mode;
- 	wait_queue_head_t open_wait;
- 
-@@ -462,7 +462,7 @@ struct es1371_state {
- 	struct gameport *gameport;
- #endif
- 
--	struct semaphore sem;
-+	struct mutex sem;
- };
- 
- /* --------------------------------------------------------------------- */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/esssolo1.c linux-2.6.15-rc5-mutex/sound/oss/esssolo1.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/esssolo1.c	2005-08-30 13:56:47.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/esssolo1.c	2005-12-12 20:41:23.000000000 +0000
-@@ -191,7 +191,7 @@ struct solo1_state {
- 	unsigned ena;
- 
- 	spinlock_t lock;
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	mode_t open_mode;
- 	wait_queue_head_t open_wait;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/forte.c linux-2.6.15-rc5-mutex/sound/oss/forte.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/forte.c	2005-03-02 12:09:13.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/forte.c	2005-12-12 20:43:40.000000000 +0000
-@@ -185,7 +185,7 @@ struct forte_chip {
- 	unsigned long		iobase;
- 	int			irq;
- 
--	struct semaphore	open_sem; 	/* Device access */
-+	struct mutex		open_sem; 	/* Device access */
- 	spinlock_t		lock;		/* State */
- 
- 	spinlock_t		ac97_lock;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/hal2.c linux-2.6.15-rc5-mutex/sound/oss/hal2.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/hal2.c	2004-09-16 12:06:29.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/hal2.c	2005-12-12 20:43:45.000000000 +0000
-@@ -92,7 +92,7 @@ struct hal2_codec {
- 
- 	wait_queue_head_t dma_wait;
- 	spinlock_t lock;
--	struct semaphore sem;
-+	struct mutex sem;
- 
- 	int usecount;			/* recording and playback are
- 					 * independent */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/i810_audio.c linux-2.6.15-rc5-mutex/sound/oss/i810_audio.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/i810_audio.c	2005-08-30 13:56:47.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/i810_audio.c	2005-12-12 20:41:42.000000000 +0000
-@@ -330,7 +330,7 @@ struct i810_state {
- 	struct i810_card *card;	/* Card info */
- 
- 	/* single open lock mechanism, only used for recording */
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	wait_queue_head_t open_wait;
- 
- 	/* file mode */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/ite8172.c linux-2.6.15-rc5-mutex/sound/oss/ite8172.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/ite8172.c	2005-11-01 13:19:27.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/ite8172.c	2005-12-12 20:43:43.000000000 +0000
-@@ -304,7 +304,7 @@ struct it8172_state {
- 	unsigned dacrate, adcrate;
- 
- 	spinlock_t lock;
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	mode_t open_mode;
- 	wait_queue_head_t open_wait;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/maestro3.c linux-2.6.15-rc5-mutex/sound/oss/maestro3.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/maestro3.c	2005-06-22 13:52:39.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/maestro3.c	2005-12-12 20:44:31.000000000 +0000
-@@ -205,7 +205,7 @@ struct m3_state {
- 		when irqhandler uses s->lock
- 		and m3_assp_read uses card->lock ?
- 		*/
--    struct semaphore open_sem;
-+    struct mutex open_sem;
-     wait_queue_head_t open_wait;
-     mode_t open_mode;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/maestro.c linux-2.6.15-rc5-mutex/sound/oss/maestro.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/maestro.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/maestro.c	2005-12-12 20:43:09.000000000 +0000
-@@ -401,7 +401,7 @@ struct ess_state {
- 	/* this locks around the oss state in the driver */
- 	spinlock_t lock;
- 	/* only let 1 be opening at a time */
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	wait_queue_head_t open_wait;
- 	mode_t open_mode;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/nec_vrc5477.c linux-2.6.15-rc5-mutex/sound/oss/nec_vrc5477.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/nec_vrc5477.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/nec_vrc5477.c	2005-12-12 20:44:11.000000000 +0000
-@@ -198,7 +198,7 @@ struct vrc5477_ac97_state {
- 	unsigned short extended_status;
- 
- 	spinlock_t lock;
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	mode_t open_mode;
- 	wait_queue_head_t open_wait;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/rme96xx.c linux-2.6.15-rc5-mutex/sound/oss/rme96xx.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/rme96xx.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/rme96xx.c	2005-12-12 20:43:12.000000000 +0000
-@@ -326,7 +326,7 @@ typedef struct _rme96xx_info {
- 
- 		/* waiting and locking */
- 		wait_queue_head_t wait;
--		struct semaphore  open_sem;
-+		struct mutex  open_sem;
- 		wait_queue_head_t open_wait;
- 
- 	} dma[RME96xx_MAX_DEVS]; 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/sonicvibes.c linux-2.6.15-rc5-mutex/sound/oss/sonicvibes.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/sonicvibes.c	2005-08-30 13:56:47.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/sonicvibes.c	2005-12-12 20:41:34.000000000 +0000
-@@ -328,7 +328,7 @@ struct sv_state {
- 	unsigned char fmt, enable;
- 
- 	spinlock_t lock;
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 	mode_t open_mode;
- 	wait_queue_head_t open_wait;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/swarm_cs4297a.c linux-2.6.15-rc5-mutex/sound/oss/swarm_cs4297a.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/swarm_cs4297a.c	2005-03-02 12:09:15.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/swarm_cs4297a.c	2005-12-12 20:43:25.000000000 +0000
-@@ -291,9 +291,9 @@ struct cs4297a_state {
- 	unsigned conversion:1;	// conversion from 16 to 8 bit in progress
- 	unsigned ena;
- 	spinlock_t lock;
--	struct semaphore open_sem;
--	struct semaphore open_sem_adc;
--	struct semaphore open_sem_dac;
-+	struct mutex open_sem;
-+	struct mutex open_sem_adc;
-+	struct mutex open_sem_dac;
- 	mode_t open_mode;
- 	wait_queue_head_t open_wait;
- 	wait_queue_head_t open_wait_adc;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/trident.c linux-2.6.15-rc5-mutex/sound/oss/trident.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/trident.c	2005-08-30 13:56:47.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/trident.c	2005-12-12 20:44:04.000000000 +0000
-@@ -351,7 +351,7 @@ struct trident_state {
- 	unsigned chans_num;
- 	unsigned long fmt_flag;
- 	/* Guard against mmap/write/read races */
--	struct semaphore sem;
-+	struct mutex sem;
- 
- };
- 
-@@ -404,7 +404,7 @@ struct trident_card {
- 	struct trident_card *next;
- 
- 	/* single open lock mechanism, only used for recording */
--	struct semaphore open_sem;
-+	struct mutex open_sem;
- 
- 	/* The trident has a certain amount of cross channel interaction
- 	   so we use a single per card lock */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/via82cxxx_audio.c linux-2.6.15-rc5-mutex/sound/oss/via82cxxx_audio.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/via82cxxx_audio.c	2005-08-30 13:56:47.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/oss/via82cxxx_audio.c	2005-12-12 22:12:50.000000000 +0000
-@@ -36,9 +36,9 @@
- #include <linux/ioport.h>
- #include <linux/delay.h>
- #include <linux/dma-mapping.h>
 +#include <linux/semaphore.h>
  #include <asm/io.h>
  #include <asm/uaccess.h>
--#include <asm/semaphore.h>
- #include "sound_config.h"
- #include "dev_table.h"
- #include "mpu401.h"
-@@ -311,8 +311,8 @@ struct via_info {
- 	
- 	int mixer_vol;		/* 8233/35 volume  - not yet implemented */
  
--	struct semaphore syscall_sem;
--	struct semaphore open_sem;
-+	struct mutex syscall_sem;
-+	struct mutex open_sem;
+@@ -74,7 +74,7 @@ static char banner[] __initdata = KERN_I
+ static int timeout = 1;
+ static int io = -1;
+ static int io_len = 2;		/* for non plug and play */
+-static struct semaphore open_sem;
++static struct mutex open_sem;
+ static char expect_close;
+ static spinlock_t sc1200wdt_lock;	/* io port access serialisation */
  
- 	/* The 8233/8235 have 4 DX audio channels, two record and
- 	   one six channel out. We bind ch_in to DX 1, ch_out to multichannel
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/vwsnd.c linux-2.6.15-rc5-mutex/sound/oss/vwsnd.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/vwsnd.c	2005-03-02 12:09:15.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/vwsnd.c	2005-12-12 22:12:50.000000000 +0000
-@@ -148,7 +148,7 @@
- #include <linux/smp_lock.h>
- #include <linux/wait.h>
- #include <linux/interrupt.h>
--#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
- #include <asm/mach-visws/cobalt.h>
+@@ -380,7 +380,7 @@ static int __init sc1200wdt_init(void)
+ 	printk(banner);
  
- #include "sound_config.h"
-@@ -1507,9 +1507,9 @@ typedef struct vwsnd_dev {
- 	int		audio_minor;	/* minor number of audio device */
- 	int		mixer_minor;	/* minor number of mixer device */
+ 	spin_lock_init(&sc1200wdt_lock);
+-	sema_init(&open_sem, 1);
++	init_MUTEX(&open_sem);
  
--	struct semaphore open_sema;
--	struct semaphore io_sema;
--	struct semaphore mix_sema;
-+	struct mutex open_sema;
-+	struct mutex io_sema;
-+	struct mutex mix_sema;
- 	mode_t		open_mode;
- 	wait_queue_head_t open_wait;
+ #if defined CONFIG_PNP
+ 	if (isapnp) {
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/watchdog/scx200_wdt.c linux-2.6.15-rc5-mutex/drivers/char/watchdog/scx200_wdt.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/watchdog/scx200_wdt.c	2005-11-01 13:19:06.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/char/watchdog/scx200_wdt.c	2005-12-12 20:18:41.000000000 +0000
+@@ -48,7 +48,7 @@ module_param(nowayout, int, 0);
+ MODULE_PARM_DESC(nowayout, "Disable watchdog shutdown on close");
  
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/oss/ymfpci.h linux-2.6.15-rc5-mutex/sound/oss/ymfpci.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/oss/ymfpci.h	2005-01-04 11:14:03.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/oss/ymfpci.h	2005-12-12 20:44:28.000000000 +0000
-@@ -279,7 +279,7 @@ struct ymf_unit {
+ static u16 wdto_restart;
+-static struct semaphore open_semaphore;
++static struct mutex open_semaphore;
+ static char expect_close;
  
- 	/* soundcore stuff */
- 	int dev_audio;
--	struct semaphore open_sem;
-+	struct mutex open_sem;
+ /* Bits of the WDCNFG register */
+@@ -230,7 +230,7 @@ static int __init scx200_wdt_init(void)
+ 	scx200_wdt_update_margin();
+ 	scx200_wdt_disable();
  
- 	struct list_head ymf_devs;
- 	struct list_head states;	/* List of states for this unit */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/atiixp.c linux-2.6.15-rc5-mutex/sound/pci/atiixp.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/atiixp.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/pci/atiixp.c	2005-12-12 20:45:15.000000000 +0000
-@@ -280,7 +280,7 @@ struct snd_atiixp {
- 	unsigned int codec_not_ready_bits;	/* for codec detection */
+-	sema_init(&open_semaphore, 1);
++	init_MUTEX(&open_semaphore);
  
- 	int spdif_over_aclink;		/* passed from the module option */
--	struct semaphore open_mutex;	/* playback open mutex */
-+	struct mutex open_mutex;	/* playback open mutex */
- };
+ 	r = misc_register(&scx200_wdt_miscdev);
+ 	if (r) {
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/char/watchdog/wdt_pci.c linux-2.6.15-rc5-mutex/drivers/char/watchdog/wdt_pci.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/char/watchdog/wdt_pci.c	2005-08-30 13:56:16.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/char/watchdog/wdt_pci.c	2005-12-12 20:18:17.000000000 +0000
+@@ -74,7 +74,7 @@
+ /* We can only use 1 card due to the /dev/watchdog restriction */
+ static int dev_count;
  
+-static struct semaphore open_sem;
++static struct mutex open_sem;
+ static spinlock_t wdtpci_lock;
+ static char expect_close;
  
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/atiixp_modem.c linux-2.6.15-rc5-mutex/sound/pci/atiixp_modem.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/atiixp_modem.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/pci/atiixp_modem.c	2005-12-12 20:45:13.000000000 +0000
-@@ -258,7 +258,7 @@ struct snd_atiixp {
- 	unsigned int codec_not_ready_bits;	/* for codec detection */
+@@ -607,7 +607,7 @@ static int __devinit wdtpci_init_one (st
+ 		goto out_pci;
+ 	}
  
- 	int spdif_over_aclink;		/* passed from the module option */
--	struct semaphore open_mutex;	/* playback open mutex */
-+	struct mutex open_mutex;	/* playback open mutex */
- };
+-	sema_init(&open_sem, 1);
++	init_MUTEX(&open_sem);
+ 	spin_lock_init(&wdtpci_lock);
  
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/cmipci.c linux-2.6.15-rc5-mutex/sound/pci/cmipci.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/cmipci.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/pci/cmipci.c	2005-12-12 20:45:08.000000000 +0000
-@@ -440,7 +440,7 @@ struct snd_stru_cmipci {
- 	snd_pcm_hardware_t *hw_info[3]; /* for playbacks */
- 
- 	int opened[2];	/* open mode */
--	struct semaphore open_mutex;
-+	struct mutex open_mutex;
- 
- 	unsigned int mixer_insensitive: 1;
- 	snd_kcontrol_t *mixer_res_ctl[CM_SAVED_MIXERS];
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/ens1370.c linux-2.6.15-rc5-mutex/sound/pci/ens1370.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/ens1370.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/pci/ens1370.c	2005-12-12 20:44:36.000000000 +0000
-@@ -364,7 +364,7 @@ typedef struct _snd_ensoniq ensoniq_t;
- 
- struct _snd_ensoniq {
- 	spinlock_t reg_lock;
--	struct semaphore src_mutex;
-+	struct mutex src_mutex;
- 
- 	int irq;
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/es1968.c linux-2.6.15-rc5-mutex/sound/pci/es1968.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/es1968.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/pci/es1968.c	2005-12-12 20:45:10.000000000 +0000
-@@ -573,7 +573,7 @@ struct snd_es1968 {
- 	u16 maestro_map[32];
- 	int bobclient;		/* active timer instancs */
- 	int bob_freq;		/* timer frequency */
--	struct semaphore memory_mutex;	/* memory lock */
-+	struct mutex memory_mutex;	/* memory lock */
- 
- 	/* APU states */
- 	unsigned char apu[NR_APUS];
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/hda/hda_codec.h linux-2.6.15-rc5-mutex/sound/pci/hda/hda_codec.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/hda/hda_codec.h	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/pci/hda/hda_codec.h	2005-12-12 21:45:18.000000000 +0000
-@@ -432,7 +432,7 @@ struct hda_bus {
- 	struct list_head codec_list;
- 	struct hda_codec *caddr_tbl[HDA_MAX_CODEC_ADDRESS + 1]; /* caddr -> codec */
- 
--	struct semaphore cmd_mutex;
-+	struct mutex cmd_mutex;
- 
- 	/* unsolicited event queue */
- 	struct hda_bus_unsolicited *unsol;
-@@ -547,7 +547,7 @@ struct hda_codec {
- 	int num_amp_entries;
- 	struct hda_amp_info amp_info[128]; /* big enough? */
- 
--	struct semaphore spdif_mutex;
-+	struct mutex spdif_mutex;
- 	unsigned int spdif_status;	/* IEC958 status bits */
- 	unsigned short spdif_ctls;	/* SPDIF control bits */
- 	unsigned int spdif_in_enable;	/* SPDIF input enable? */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/hda/hda_intel.c linux-2.6.15-rc5-mutex/sound/pci/hda/hda_intel.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/hda/hda_intel.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/pci/hda/hda_intel.c	2005-12-12 21:45:18.000000000 +0000
-@@ -298,7 +298,7 @@ struct snd_azx {
- 
- 	/* locks */
- 	spinlock_t reg_lock;
--	struct semaphore open_mutex;
-+	struct mutex open_mutex;
- 
- 	/* streams (x num_streams) */
- 	azx_dev_t *azx_dev;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/hda/patch_analog.c linux-2.6.15-rc5-mutex/sound/pci/hda/patch_analog.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/hda/patch_analog.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/pci/hda/patch_analog.c	2005-12-12 21:45:18.000000000 +0000
-@@ -58,7 +58,7 @@ struct ad198x_spec {
- 	/* PCM information */
- 	struct hda_pcm pcm_rec[2];	/* used in alc_build_pcms() */
- 
--	struct semaphore amp_mutex;	/* PCM volume/mute control mutex */
-+	struct mutex amp_mutex;	/* PCM volume/mute control mutex */
- 	unsigned int spdif_route;
- };
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/ice1712/ice1712.h linux-2.6.15-rc5-mutex/sound/pci/ice1712/ice1712.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/ice1712/ice1712.h	2005-08-30 13:56:48.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/pci/ice1712/ice1712.h	2005-12-12 20:45:01.000000000 +0000
-@@ -334,7 +334,7 @@ struct _snd_ice1712 {
- 	unsigned int num_total_adcs;	/* total ADCs */
- 	unsigned int cur_rate;		/* current rate */
- 
--	struct semaphore open_mutex;
-+	struct mutex open_mutex;
- 	snd_pcm_substream_t *pcm_reserved[4];
- 	snd_pcm_hw_constraint_list_t *hw_rates; /* card-specific rate constraints */
- 
-@@ -342,7 +342,7 @@ struct _snd_ice1712 {
- 	akm4xxx_t *akm;
- 	struct snd_ice1712_spdif spdif;
- 
--	struct semaphore i2c_mutex;	/* I2C mutex for ICE1724 registers */
-+	struct mutex i2c_mutex;	/* I2C mutex for ICE1724 registers */
- 	snd_i2c_bus_t *i2c;		/* I2C bus */
- 	snd_i2c_device_t *cs8427;	/* CS8427 I2C device */
- 	unsigned int cs8427_timeout;	/* CS8427 reset timeout in HZ/100 */
-@@ -360,7 +360,7 @@ struct _snd_ice1712 {
- 		void (*set_pro_rate)(ice1712_t *ice, unsigned int rate);
- 		void (*i2s_mclk_changed)(ice1712_t *ice);
- 	} gpio;
--	struct semaphore gpio_mutex;
-+	struct mutex gpio_mutex;
- 
- 	/* other board-specific data */
- 	union {
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/korg1212/korg1212.c linux-2.6.15-rc5-mutex/sound/pci/korg1212/korg1212.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/korg1212/korg1212.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/pci/korg1212/korg1212.c	2005-12-12 20:44:34.000000000 +0000
-@@ -324,7 +324,7 @@ struct _snd_korg1212 {
-         int irq;
- 
-         spinlock_t    lock;
--	struct semaphore open_mutex;
-+	struct mutex open_mutex;
- 
- 	struct timer_list timer;	/* timer callback for checking ack of stop request */
- 	int stop_pending_cnt;		/* counter for stop pending check */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/mixart/mixart.h linux-2.6.15-rc5-mutex/sound/pci/mixart/mixart.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/mixart/mixart.h	2005-06-22 13:52:39.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/sound/pci/mixart/mixart.h	2005-12-12 20:45:19.000000000 +0000
-@@ -107,9 +107,9 @@ struct snd_mixart_mgr {
- 
- 	spinlock_t lock;              /* interrupt spinlock */
- 	spinlock_t msg_lock;          /* mailbox spinlock */
--	struct semaphore msg_mutex;   /* mutex for blocking_requests */
-+	struct mutex msg_mutex;   /* mutex for blocking_requests */
- 
--	struct semaphore setup_mutex; /* mutex used in hw_params, open and close */
-+	struct mutex setup_mutex; /* mutex used in hw_params, open and close */
- 
- 	/* hardware interface */
- 	unsigned int dsp_loaded;      /* bit flags of loaded dsp indices */
-@@ -122,7 +122,7 @@ struct snd_mixart_mgr {
- 	int sample_rate;
- 	int ref_count_rate;
- 
--	struct semaphore mixer_mutex; /* mutex for mixer */
-+	struct mutex mixer_mutex; /* mutex for mixer */
- 
- };
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/pci/nm256/nm256.c linux-2.6.15-rc5-mutex/sound/pci/nm256/nm256.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/pci/nm256/nm256.c	2005-12-08 16:23:58.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/pci/nm256/nm256.c	2005-12-12 20:45:23.000000000 +0000
-@@ -242,7 +242,7 @@ struct snd_nm256 {
- 	int irq_acks;
- 	irqreturn_t (*interrupt)(int, void *, struct pt_regs *);
- 	int badintrcount;		/* counter to check bogus interrupts */
--	struct semaphore irq_mutex;
-+	struct mutex irq_mutex;
- 
- 	nm256_stream_t streams[2];
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/sparc/cs4231.c linux-2.6.15-rc5-mutex/sound/sparc/cs4231.c
---- /warthog/kernels/linux-2.6.15-rc5/sound/sparc/cs4231.c	2005-12-08 16:23:59.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/sparc/cs4231.c	2005-12-12 20:40:31.000000000 +0000
-@@ -116,8 +116,8 @@ struct snd_cs4231 {
- 	unsigned char		image[32];	/* registers image */
- 	int			mce_bit;
- 	int			calibrate_mute;
--	struct semaphore	mce_mutex;
--	struct semaphore	open_mutex;
-+	struct mutex		mce_mutex;
-+	struct mutex		open_mutex;
- 
- 	union {
- #ifdef SBUS_SUPPORT
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/sound/usb/usx2y/usbusx2y.h linux-2.6.15-rc5-mutex/sound/usb/usx2y/usbusx2y.h
---- /warthog/kernels/linux-2.6.15-rc5/sound/usb/usx2y/usbusx2y.h	2005-03-02 12:09:17.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/sound/usb/usx2y/usbusx2y.h	2005-12-12 20:40:25.000000000 +0000
-@@ -35,7 +35,7 @@ typedef struct {
- 	unsigned int		rate,
- 				format;
- 	int			chip_status;
--	struct semaphore	prepare_mutex;
-+	struct mutex		prepare_mutex;
- 	us428ctls_sharedmem_t	*us428ctls_sharedmem;
- 	int			wait_iso_frame;
- 	wait_queue_head_t	us428ctls_wait_queue_head;
+ 	irq = dev->irq;
