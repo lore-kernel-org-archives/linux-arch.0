@@ -1,8 +1,8 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Date: Mon, 12 Dec 2005 23:45:48 GMT
-Message-Id: <200512122345.jBCNjmFQ009045@warthog.cambridge.redhat.com>
+Message-Id: <200512122345.jBCNjmUF009043@warthog.cambridge.redhat.com>
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 10/19] MUTEX: Drivers N-P changes
+Subject: [PATCH 9/19] MUTEX: Drivers L-M changes
 In-Reply-To: <dhowells1134431145@warthog.cambridge.redhat.com>
 References: <dhowells1134431145@warthog.cambridge.redhat.com>
 MIME-Version: 1.0
@@ -11,608 +11,1194 @@ To: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, ma
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-The attached patch modifies the files of the drivers/n* thru drivers/p* to use
+The attached patch modifies the files of the drivers/l* thru drivers/m* to use
 the new mutex functions.
 
 Signed-Off-By: David Howells <dhowells@redhat.com>
 ---
-warthog>diffstat -p1 mutex-drivers-NtoP-2615rc5.diff
- drivers/net/3c527.c                       |    4 ++--
- drivers/net/cassini.h                     |    2 +-
- drivers/net/chelsio/common.h              |    2 +-
- drivers/net/hamradio/6pack.c              |    4 ++--
- drivers/net/hamradio/mkiss.c              |    2 +-
- drivers/net/ibmveth.c                     |    2 +-
- drivers/net/irda/sir-dev.h                |    2 +-
- drivers/net/irda/vlsi_ir.h                |    2 +-
- drivers/net/plip.c                        |    4 ++--
- drivers/net/ppp_async.c                   |    2 +-
- drivers/net/ppp_synctty.c                 |    4 ++--
- drivers/net/sungem.h                      |    2 +-
- drivers/net/wan/cosa.c                    |    2 +-
- drivers/net/wireless/airo.c               |    4 ++--
- drivers/net/wireless/hostap/hostap_wlan.h |    2 +-
- drivers/net/wireless/ipw2100.c            |    4 ++--
- drivers/net/wireless/ipw2100.h            |    4 ++--
- drivers/net/wireless/ipw2200.h            |    2 +-
- drivers/net/wireless/prism54/isl_ioctl.c  |    4 ++--
- drivers/net/wireless/prism54/islpci_dev.c |    4 ++--
- drivers/net/wireless/prism54/islpci_dev.h |    8 ++++----
- drivers/oprofile/event_buffer.h           |    4 ++--
- drivers/oprofile/oprof.c                  |    2 +-
- drivers/pci/hotplug/acpiphp.h             |    2 +-
- drivers/pci/hotplug/acpiphp_glue.c        |    2 +-
- drivers/pci/hotplug/cpci_hotplug_core.c   |    4 ++--
- drivers/pci/hotplug/cpqphp.h              |    2 +-
- drivers/pci/hotplug/cpqphp_ctrl.c         |    6 +++---
- drivers/pci/hotplug/ibmphp_hpc.c          |    6 +++---
- drivers/pci/hotplug/pciehp.h              |    2 +-
- drivers/pci/hotplug/pciehp_ctrl.c         |    4 ++--
- drivers/pci/hotplug/rpadlpar_core.c       |    2 +-
- drivers/pci/hotplug/rpaphp_core.c         |    2 +-
- drivers/pci/hotplug/shpchp.h              |    2 +-
- drivers/pci/hotplug/shpchp_ctrl.c         |    4 ++--
- drivers/pcmcia/soc_common.h               |    2 +-
- drivers/pnp/interface.c                   |    2 +-
- 37 files changed, 57 insertions(+), 57 deletions(-)
+warthog>diffstat -p1 mutex-drivers-LtoM-2615rc5.diff
+ drivers/macintosh/adb.c                           |    2 +-
+ drivers/macintosh/mediabay.c                      |    2 +-
+ drivers/macintosh/therm_windtunnel.c              |    2 +-
+ drivers/md/dm-raid1.c                             |   10 +++++-----
+ drivers/md/dm.c                                   |    2 +-
+ drivers/md/kcopyd.c                               |    2 +-
+ drivers/media/dvb/b2c2/flexcop-common.h           |    2 +-
+ drivers/media/dvb/b2c2/flexcop-i2c.c              |    2 +-
+ drivers/media/dvb/bt8xx/bt878.h                   |    2 +-
+ drivers/media/dvb/bt8xx/dst.c                     |    2 +-
+ drivers/media/dvb/bt8xx/dst_common.h              |    2 +-
+ drivers/media/dvb/bt8xx/dvb-bt8xx.h               |    2 +-
+ drivers/media/dvb/cinergyT2/cinergyT2.c           |    2 +-
+ drivers/media/dvb/dvb-core/dmxdev.c               |    4 ++--
+ drivers/media/dvb/dvb-core/dmxdev.h               |    6 +++---
+ drivers/media/dvb/dvb-core/dvb_demux.c            |    2 +-
+ drivers/media/dvb/dvb-core/dvb_demux.h            |    4 ++--
+ drivers/media/dvb/dvb-core/dvb_frontend.c         |    4 ++--
+ drivers/media/dvb/dvb-core/dvb_frontend.h         |    2 +-
+ drivers/media/dvb/dvb-core/dvb_net.c              |    2 +-
+ drivers/media/dvb/dvb-usb/dvb-usb-init.c          |    4 ++--
+ drivers/media/dvb/dvb-usb/dvb-usb.h               |    4 ++--
+ drivers/media/dvb/frontends/bcm3510.c             |    4 ++--
+ drivers/media/dvb/ttpci/av7110.c                  |    8 ++++----
+ drivers/media/dvb/ttpci/av7110.h                  |    6 +++---
+ drivers/media/dvb/ttpci/budget.h                  |    2 +-
+ drivers/media/dvb/ttusb-budget/dvb-ttusb-budget.c |   10 +++++-----
+ drivers/media/dvb/ttusb-dec/ttusb_dec.c           |   10 +++++-----
+ drivers/media/radio/miropcm20-rds-core.c          |    4 ++--
+ drivers/media/radio/radio-aimslab.c               |    4 ++--
+ drivers/media/radio/radio-aztech.c                |    2 +-
+ drivers/media/radio/radio-maestro.c               |    4 ++--
+ drivers/media/radio/radio-maxiradio.c             |    4 ++--
+ drivers/media/radio/radio-sf16fmi.c               |    4 ++--
+ drivers/media/radio/radio-sf16fmr2.c              |    4 ++--
+ drivers/media/radio/radio-typhoon.c               |    2 +-
+ drivers/media/radio/radio-zoltrix.c               |    2 +-
+ drivers/media/video/arv.c                         |    4 ++--
+ drivers/media/video/bttvp.h                       |    4 ++--
+ drivers/media/video/bw-qcam.c                     |    2 +-
+ drivers/media/video/bw-qcam.h                     |    2 +-
+ drivers/media/video/c-qcam.c                      |    4 ++--
+ drivers/media/video/cpia.c                        |    2 +-
+ drivers/media/video/cpia.h                        |    4 ++--
+ drivers/media/video/cx88/cx88.h                   |    2 +-
+ drivers/media/video/em28xx/em28xx.h               |    2 +-
+ drivers/media/video/ir-kbd-i2c.c                  |    2 +-
+ drivers/media/video/meye.h                        |    2 +-
+ drivers/media/video/msp3400.c                     |    2 +-
+ drivers/media/video/planb.c                       |    2 +-
+ drivers/media/video/planb.h                       |    2 +-
+ drivers/media/video/pms.c                         |    2 +-
+ drivers/media/video/saa5246a.c                    |    2 +-
+ drivers/media/video/saa5249.c                     |    2 +-
+ drivers/media/video/saa7134/saa7134.h             |    4 ++--
+ drivers/media/video/tvmixer.c                     |    2 +-
+ drivers/media/video/videodev.c                    |    2 +-
+ drivers/media/video/vino.c                        |    4 ++--
+ drivers/media/video/zoran.h                       |    2 +-
+ drivers/message/fusion/mptbase.h                  |    4 ++--
+ drivers/message/fusion/mptctl.c                   |    2 +-
+ drivers/mfd/ucb1x00-core.c                        |    4 ++--
+ drivers/mfd/ucb1x00-ts.c                          |    2 +-
+ drivers/mmc/mmc_queue.h                           |    2 +-
+ drivers/mtd/devices/blkmtd.c                      |    2 +-
+ drivers/mtd/devices/block2mtd.c                   |    2 +-
+ drivers/mtd/mtd_blkdevs.c                         |    4 ++--
+ drivers/mtd/mtdblock.c                            |    2 +-
+ 68 files changed, 108 insertions(+), 108 deletions(-)
 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/3c527.c linux-2.6.15-rc5-mutex/drivers/net/3c527.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/3c527.c	2005-06-22 13:51:53.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/drivers/net/3c527.c	2005-12-12 22:08:48.000000000 +0000
-@@ -104,7 +104,7 @@ DRV_NAME ".c:v" DRV_VERSION " " DRV_RELD
- #include <linux/completion.h>
- #include <linux/bitops.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/macintosh/adb.c linux-2.6.15-rc5-mutex/drivers/macintosh/adb.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/macintosh/adb.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/macintosh/adb.c	2005-12-12 22:12:49.000000000 +0000
+@@ -39,7 +39,7 @@
+ #include <linux/devfs_fs_kernel.h>
  
--#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
- #include <asm/uaccess.h>
- #include <asm/system.h>
- #include <asm/io.h>
-@@ -182,7 +182,7 @@ struct mc32_local 
- 
- 	u16 rx_ring_tail;       /* index to rx de-queue end */ 
- 
--	struct semaphore cmd_mutex;    /* Serialises issuing of execute commands */
-+	struct mutex cmd_mutex; /* Serialises issuing of execute commands */
-         struct completion execution_cmd; /* Card has completed an execute command */
- 	struct completion xceiver_cmd;   /* Card has completed a tx or rx command */
- };
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/cassini.h linux-2.6.15-rc5-mutex/drivers/net/cassini.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/cassini.h	2005-11-01 13:19:09.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/cassini.h	2005-12-12 21:16:15.000000000 +0000
-@@ -4284,7 +4284,7 @@ struct cas {
- 	 * (ie. not power managed) */
- 	int hw_running;
- 	int opened;
--	struct semaphore pm_sem; /* open/close/suspend/resume */
-+	struct mutex pm_sem; /* open/close/suspend/resume */
- 
- 	struct cas_init_block *init_block;
- 	struct cas_tx_desc *init_txds[MAX_TX_RINGS];
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/chelsio/common.h linux-2.6.15-rc5-mutex/drivers/net/chelsio/common.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/chelsio/common.h	2005-11-01 13:19:09.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/chelsio/common.h	2005-12-12 21:18:32.000000000 +0000
-@@ -213,7 +213,7 @@ struct adapter {
- 	struct work_struct stats_update_task;
- 	struct timer_list stats_update_timer;
- 
--	struct semaphore mib_mutex;
-+	struct mutex mib_mutex;
- 	spinlock_t tpi_lock;
- 	spinlock_t work_lock;
- 	/* guards async operations */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/hamradio/6pack.c linux-2.6.15-rc5-mutex/drivers/net/hamradio/6pack.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/hamradio/6pack.c	2005-11-01 13:19:10.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/hamradio/6pack.c	2005-12-12 22:08:48.000000000 +0000
-@@ -34,7 +34,7 @@
- #include <linux/init.h>
- #include <linux/ip.h>
- #include <linux/tcp.h>
--#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
- #include <asm/atomic.h>
- 
- #define SIXPACK_VERSION    "Revision: 0.3.0"
-@@ -124,7 +124,7 @@ struct sixpack {
- 	struct timer_list	tx_t;
- 	struct timer_list	resync_t;
- 	atomic_t		refcnt;
--	struct semaphore	dead_sem;
-+	struct mutex		dead_sem;
- 	spinlock_t		lock;
- };
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/hamradio/mkiss.c linux-2.6.15-rc5-mutex/drivers/net/hamradio/mkiss.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/hamradio/mkiss.c	2005-12-08 16:23:42.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/hamradio/mkiss.c	2005-12-12 21:16:51.000000000 +0000
-@@ -85,7 +85,7 @@ struct mkiss {
- #define CRC_MODE_SMACK_TEST	4
- 
- 	atomic_t		refcnt;
--	struct semaphore	dead_sem;
-+	struct mutex		dead_sem;
- };
- 
- /*---------------------------------------------------------------------------*/
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/ibmveth.c linux-2.6.15-rc5-mutex/drivers/net/ibmveth.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/ibmveth.c	2005-12-08 16:23:42.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/ibmveth.c	2005-12-12 22:08:48.000000000 +0000
-@@ -48,7 +48,7 @@
- #include <linux/mm.h>
- #include <linux/ethtool.h>
- #include <linux/proc_fs.h>
--#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
- #include <asm/hvcall.h>
- #include <asm/atomic.h>
- #include <asm/iommu.h>
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/irda/sir-dev.h linux-2.6.15-rc5-mutex/drivers/net/irda/sir-dev.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/irda/sir-dev.h	2004-06-18 13:41:36.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/drivers/net/irda/sir-dev.h	2005-12-12 21:15:51.000000000 +0000
-@@ -30,7 +30,7 @@ struct irda_request {
- };
- 
- struct sir_fsm {
--	struct semaphore	sem;
-+	struct mutex		sem;
- 	struct irda_request	rq;
- 	unsigned		state, substate;
- 	int			param;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/irda/vlsi_ir.h linux-2.6.15-rc5-mutex/drivers/net/irda/vlsi_ir.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/irda/vlsi_ir.h	2005-11-01 13:19:10.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/irda/vlsi_ir.h	2005-12-12 21:15:45.000000000 +0000
-@@ -761,7 +761,7 @@ typedef struct vlsi_irda_dev {
- 	struct timeval		last_rx;
- 
- 	spinlock_t		lock;
--	struct semaphore	sem;
-+	struct mutex		sem;
- 
- 	u8			resume_ok;	
- 	struct proc_dir_entry	*proc_entry;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/plip.c linux-2.6.15-rc5-mutex/drivers/net/plip.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/plip.c	2005-08-30 13:56:19.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/drivers/net/plip.c	2005-12-12 22:08:48.000000000 +0000
-@@ -116,7 +116,7 @@ static const char version[] = "NET3 PLIP
- #include <asm/system.h>
- #include <asm/irq.h>
- #include <asm/byteorder.h>
--#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
- 
- /* Maximum number of devices to support. */
- #define PLIP_MAX  8
-@@ -229,7 +229,7 @@ struct net_local {
- 	                              struct hh_cache *hh);
- 	spinlock_t lock;
- 	atomic_t kill_timer;
--	struct semaphore killed_timer_sem;
-+	struct mutex killed_timer_sem;
- };
- 
- static inline void enable_parport_interrupts (struct net_device *dev)
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/ppp_async.c linux-2.6.15-rc5-mutex/drivers/net/ppp_async.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/ppp_async.c	2005-12-08 16:23:43.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/ppp_async.c	2005-12-12 21:18:00.000000000 +0000
-@@ -66,7 +66,7 @@ struct asyncppp {
- 	struct tasklet_struct tsk;
- 
- 	atomic_t	refcnt;
--	struct semaphore dead_sem;
-+	struct mutex	dead_sem;
- 	struct ppp_channel chan;	/* interface to generic ppp layer */
- 	unsigned char	obuf[OBUFSIZE];
- };
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/ppp_synctty.c linux-2.6.15-rc5-mutex/drivers/net/ppp_synctty.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/ppp_synctty.c	2005-08-30 13:56:19.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/drivers/net/ppp_synctty.c	2005-12-12 22:08:48.000000000 +0000
-@@ -44,7 +44,7 @@
- #include <linux/spinlock.h>
- #include <linux/init.h>
  #include <asm/uaccess.h>
 -#include <asm/semaphore.h>
 +#include <linux/semaphore.h>
- 
- #define PPP_VERSION	"2.4.2"
- 
-@@ -70,7 +70,7 @@ struct syncppp {
- 	struct tasklet_struct tsk;
- 
- 	atomic_t	refcnt;
--	struct semaphore dead_sem;
-+	struct mutex	dead_sem;
- 	struct ppp_channel chan;	/* interface to generic ppp layer */
- };
- 
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/sungem.h linux-2.6.15-rc5-mutex/drivers/net/sungem.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/sungem.h	2005-11-01 13:19:10.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/sungem.h	2005-12-12 21:16:30.000000000 +0000
-@@ -988,7 +988,7 @@ struct gem {
- 	/* cell enable count, protected by lock */
- 	int			cell_enabled;  
+ #ifdef CONFIG_PPC
+ #include <asm/prom.h>
+ #endif
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/macintosh/mediabay.c linux-2.6.15-rc5-mutex/drivers/macintosh/mediabay.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/macintosh/mediabay.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/macintosh/mediabay.c	2005-12-12 21:45:18.000000000 +0000
+@@ -78,7 +78,7 @@ struct media_bay_info {
+ 	int				index;
+ 	int				cached_gpio;
+ 	int				sleeping;
+-	struct semaphore		lock;
++	struct mutex			lock;
+ #ifdef CONFIG_BLK_DEV_IDE
+ 	void __iomem			*cd_base;
+ 	int 				cd_index;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/macintosh/therm_windtunnel.c linux-2.6.15-rc5-mutex/drivers/macintosh/therm_windtunnel.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/macintosh/therm_windtunnel.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/macintosh/therm_windtunnel.c	2005-12-12 21:45:18.000000000 +0000
+@@ -64,7 +64,7 @@ static struct {
+ 	struct completion	completion;
+ 	pid_t			poll_task;
  	
--	struct semaphore	pm_sem;
-+	struct mutex		pm_sem;
+-	struct semaphore 	lock;
++	struct mutex		lock;
+ 	struct of_device	*of_dev;
+ 	
+ 	struct i2c_client	*thermostat;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/md/dm.c linux-2.6.15-rc5-mutex/drivers/md/dm.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/md/dm.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/md/dm.c	2005-12-12 20:57:20.000000000 +0000
+@@ -58,7 +58,7 @@ union map_info *dm_get_mapinfo(struct bi
  
- 	u32			msg_enable;
- 	u32			status;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/wan/cosa.c linux-2.6.15-rc5-mutex/drivers/net/wan/cosa.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/wan/cosa.c	2005-12-08 16:23:43.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/wan/cosa.c	2005-12-12 21:17:43.000000000 +0000
-@@ -131,7 +131,7 @@ struct channel_data {
- 	int (*tx_done)(struct channel_data *channel, int size);
+ struct mapped_device {
+ 	struct rw_semaphore io_lock;
+-	struct semaphore suspend_lock;
++	struct mutex suspend_lock;
+ 	rwlock_t map_lock;
+ 	atomic_t holders;
  
- 	/* Character device parts */
--	struct semaphore rsem, wsem;
-+	struct mutex rsem, wsem;
- 	char *rxdata;
- 	int rxsize;
- 	wait_queue_head_t txwaitq, rxwaitq;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/airo.c linux-2.6.15-rc5-mutex/drivers/net/wireless/airo.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/airo.c	2005-12-08 16:23:43.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/wireless/airo.c	2005-12-12 20:11:38.000000000 +0000
-@@ -1176,7 +1176,7 @@ struct airo_info {
- 	unsigned short *flash;
- 	tdsRssiEntry *rssi;
- 	struct task_struct *task;
--	struct semaphore sem;
-+	struct mutex sem;
- 	pid_t thr_pid;
- 	wait_queue_head_t thr_wait;
- 	struct completion thr_exited;
-@@ -2718,7 +2718,7 @@ static struct net_device *_init_airo_car
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/md/dm-raid1.c linux-2.6.15-rc5-mutex/drivers/md/dm-raid1.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/md/dm-raid1.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/md/dm-raid1.c	2005-12-12 20:31:51.000000000 +0000
+@@ -358,7 +358,7 @@ static void rh_update_states(struct regi
+ 		rh->log->type->clear_region(rh->log, reg->key);
+ 		rh->log->type->complete_resync_work(rh->log, reg->key, 1);
+ 		dispatch_bios(rh->ms, &reg->delayed_bios);
+-		up(&rh->recovery_count);
++		up_sem(&rh->recovery_count);
+ 		mempool_free(reg, rh->region_pool);
  	}
-         ai->dev = dev;
- 	spin_lock_init(&ai->aux_lock);
--	sema_init(&ai->sem, 1);
-+	init_MUTEX(&ai->sem);
- 	ai->config.len = 0;
- 	ai->pci = pci;
- 	init_waitqueue_head (&ai->thr_wait);
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/hostap/hostap_wlan.h linux-2.6.15-rc5-mutex/drivers/net/wireless/hostap/hostap_wlan.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/hostap/hostap_wlan.h	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/wireless/hostap/hostap_wlan.h	2005-12-12 21:17:35.000000000 +0000
-@@ -637,7 +637,7 @@ struct local_info {
- 			      * when removing entries from the list.
- 			      * TX and RX paths can use read lock. */
- 	spinlock_t cmdlock, baplock, lock;
--	struct semaphore rid_bap_sem;
-+	struct mutex rid_bap_sem;
- 	u16 infofid; /* MAC buffer id for info frame */
- 	/* txfid, intransmitfid, next_txtid, and next_alloc are protected by
- 	 * txfidlock */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/ipw2100.c linux-2.6.15-rc5-mutex/drivers/net/wireless/ipw2100.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/ipw2100.c	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/wireless/ipw2100.c	2005-12-12 20:12:25.000000000 +0000
-@@ -6413,8 +6413,8 @@ static struct net_device *ipw2100_alloc_
- 	strcpy(priv->nick, "ipw2100");
  
- 	spin_lock_init(&priv->low_lock);
--	sema_init(&priv->action_sem, 1);
--	sema_init(&priv->adapter_sem, 1);
-+	init_MUTEX(&priv->action_sem);
-+	init_MUTEX(&priv->adapter_sem);
+@@ -468,9 +468,9 @@ static int __rh_recovery_prepare(struct 
  
- 	init_waitqueue_head(&priv->wait_command_queue);
+ static void rh_recovery_prepare(struct region_hash *rh)
+ {
+-	while (!down_trylock(&rh->recovery_count))
++	while (!down_sem_trylock(&rh->recovery_count))
+ 		if (__rh_recovery_prepare(rh) <= 0) {
+-			up(&rh->recovery_count);
++			up_sem(&rh->recovery_count);
+ 			break;
+ 		}
+ }
+@@ -526,7 +526,7 @@ static void rh_stop_recovery(struct regi
  
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/ipw2100.h linux-2.6.15-rc5-mutex/drivers/net/wireless/ipw2100.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/ipw2100.h	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/wireless/ipw2100.h	2005-12-12 20:12:15.000000000 +0000
-@@ -588,8 +588,8 @@ struct ipw2100_priv {
- 	int inta_other;
+ 	/* wait for any recovering regions */
+ 	for (i = 0; i < MAX_RECOVERY; i++)
+-		down(&rh->recovery_count);
++		down_sem(&rh->recovery_count);
+ }
  
- 	spinlock_t low_lock;
--	struct semaphore action_sem;
--	struct semaphore adapter_sem;
-+	struct mutex action_sem;
-+	struct mutex adapter_sem;
+ static void rh_start_recovery(struct region_hash *rh)
+@@ -534,7 +534,7 @@ static void rh_start_recovery(struct reg
+ 	int i;
  
- 	wait_queue_head_t wait_command_queue;
+ 	for (i = 0; i < MAX_RECOVERY; i++)
+-		up(&rh->recovery_count);
++		up_sem(&rh->recovery_count);
+ 
+ 	wake();
+ }
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/md/kcopyd.c linux-2.6.15-rc5-mutex/drivers/md/kcopyd.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/md/kcopyd.c	2005-03-02 12:08:10.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/md/kcopyd.c	2005-12-12 20:57:05.000000000 +0000
+@@ -191,7 +191,7 @@ struct kcopyd_job {
+ 	 * These fields are only used if the job has been split
+ 	 * into more manageable parts.
+ 	 */
+-	struct semaphore lock;
++	struct mutex lock;
+ 	atomic_t sub_jobs;
+ 	sector_t progress;
  };
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/ipw2200.h linux-2.6.15-rc5-mutex/drivers/net/wireless/ipw2200.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/ipw2200.h	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/wireless/ipw2200.h	2005-12-12 21:17:20.000000000 +0000
-@@ -1120,7 +1120,7 @@ struct ipw_priv {
- 	struct ieee80211_device *ieee;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/b2c2/flexcop-common.h linux-2.6.15-rc5-mutex/drivers/media/dvb/b2c2/flexcop-common.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/b2c2/flexcop-common.h	2005-08-30 13:56:18.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/b2c2/flexcop-common.h	2005-12-12 20:02:23.000000000 +0000
+@@ -73,7 +73,7 @@ struct flexcop_device {
+ 	int (*fe_sleep) (struct dvb_frontend *);
  
- 	spinlock_t lock;
+ 	struct i2c_adapter i2c_adap;
+-	struct semaphore i2c_sem;
++	struct mutex i2c_sem;
+ 
+ 	struct module *owner;
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/b2c2/flexcop-i2c.c linux-2.6.15-rc5-mutex/drivers/media/dvb/b2c2/flexcop-i2c.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/b2c2/flexcop-i2c.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/b2c2/flexcop-i2c.c	2005-12-12 20:01:59.000000000 +0000
+@@ -180,7 +180,7 @@ int flexcop_i2c_init(struct flexcop_devi
+ {
+ 	int ret;
+ 
+-	sema_init(&fc->i2c_sem,1);
++	init_MUTEX(&fc->i2c_sem);
+ 
+ 	memset(&fc->i2c_adap, 0, sizeof(struct i2c_adapter));
+ 	strncpy(fc->i2c_adap.name, "B2C2 FlexCop device",I2C_NAME_SIZE);
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/bt8xx/bt878.h linux-2.6.15-rc5-mutex/drivers/media/dvb/bt8xx/bt878.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/bt8xx/bt878.h	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/bt8xx/bt878.h	2005-12-12 21:01:28.000000000 +0000
+@@ -91,7 +91,7 @@
+ extern int bt878_num;
+ 
+ struct bt878 {
+-	struct semaphore  gpio_lock;
++	struct mutex  gpio_lock;
+ 	unsigned int nr;
+ 	unsigned int bttv_nr;
+ 	struct i2c_adapter *adapter;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/bt8xx/dst.c linux-2.6.15-rc5-mutex/drivers/media/dvb/bt8xx/dst.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/bt8xx/dst.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/bt8xx/dst.c	2005-12-12 20:05:44.000000000 +0000
+@@ -910,7 +910,7 @@ static int dst_get_device_id(struct dst_
+ 
+ static int dst_probe(struct dst_state *state)
+ {
+-	sema_init(&state->dst_mutex, 1);
++	init_MUTEX(&state->dst_mutex);
+ 	if ((rdc_8820_reset(state)) < 0) {
+ 		dprintk(verbose, DST_ERROR, 1, "RDC 8820 RESET Failed.");
+ 		return -1;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/bt8xx/dst_common.h linux-2.6.15-rc5-mutex/drivers/media/dvb/bt8xx/dst_common.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/bt8xx/dst_common.h	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/bt8xx/dst_common.h	2005-12-12 20:05:57.000000000 +0000
+@@ -121,7 +121,7 @@ struct dst_state {
+ 	u8 vendor[8];
+ 	u8 board_info[8];
+ 
+-	struct semaphore dst_mutex;
++	struct mutex dst_mutex;
+ };
+ 
+ struct dst_types {
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/bt8xx/dvb-bt8xx.h linux-2.6.15-rc5-mutex/drivers/media/dvb/bt8xx/dvb-bt8xx.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/bt8xx/dvb-bt8xx.h	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/bt8xx/dvb-bt8xx.h	2005-12-12 21:01:24.000000000 +0000
+@@ -38,7 +38,7 @@
+ #include "lgdt330x.h"
+ 
+ struct dvb_bt8xx_card {
+-	struct semaphore lock;
++	struct mutex lock;
+ 	int nfeeds;
+ 	char card_name[32];
+ 	struct dvb_adapter dvb_adapter;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/cinergyT2/cinergyT2.c linux-2.6.15-rc5-mutex/drivers/media/dvb/cinergyT2/cinergyT2.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/cinergyT2/cinergyT2.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/cinergyT2/cinergyT2.c	2005-12-12 21:01:13.000000000 +0000
+@@ -116,7 +116,7 @@ static struct dvb_frontend_info cinergyt
+ struct cinergyt2 {
+ 	struct dvb_demux demux;
+ 	struct usb_device *udev;
 -	struct semaphore sem;
 +	struct mutex sem;
+ 	struct dvb_adapter adapter;
+ 	struct dvb_device *fedev;
+ 	struct dmxdev dmxdev;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dmxdev.c linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dmxdev.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dmxdev.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dmxdev.c	2005-12-12 20:01:25.000000000 +0000
+@@ -701,7 +701,7 @@ static int dvb_demux_open(struct inode *
+ 	}
  
- 	/* basic pci-network driver stuff */
- 	struct pci_dev *pci_dev;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/prism54/isl_ioctl.c linux-2.6.15-rc5-mutex/drivers/net/wireless/prism54/isl_ioctl.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/prism54/isl_ioctl.c	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/wireless/prism54/isl_ioctl.c	2005-12-12 20:24:32.000000000 +0000
-@@ -1255,7 +1255,7 @@ prism54_set_raw(struct net_device *ndev,
- void
- prism54_acl_init(struct islpci_acl *acl)
- {
--	sema_init(&acl->sem, 1);
-+	init_MUTEX(&acl->sem);
- 	INIT_LIST_HEAD(&acl->mac_list);
- 	acl->size = 0;
- 	acl->policy = MAC_POLICY_OPEN;
-@@ -1686,7 +1686,7 @@ void
- prism54_wpa_ie_init(islpci_private *priv)
- {
- 	INIT_LIST_HEAD(&priv->bss_wpa_list);
--	sema_init(&priv->wpa_sem, 1);
-+	init_MUTEX(&priv->wpa_sem);
- }
+ 	dmxdevfilter=&dmxdev->filter[i];
+-	sema_init(&dmxdevfilter->mutex, 1);
++	init_MUTEX(&dmxdevfilter->mutex);
+ 	dmxdevfilter->dvbdev=dmxdev->dvbdev;
+ 	file->private_data=dmxdevfilter;
  
- void
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/prism54/islpci_dev.c linux-2.6.15-rc5-mutex/drivers/net/wireless/prism54/islpci_dev.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/prism54/islpci_dev.c	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/wireless/prism54/islpci_dev.c	2005-12-12 20:13:30.000000000 +0000
-@@ -850,10 +850,10 @@ islpci_setup(struct pci_dev *pdev)
- 	init_waitqueue_head(&priv->reset_done);
+@@ -1113,7 +1113,7 @@ dvb_dmxdev_init(struct dmxdev *dmxdev, s
+ 		return -ENOMEM;
+ 	}
  
- 	/* init the queue read locks, process wait counter */
--	sema_init(&priv->mgmt_sem, 1);
-+	init_MUTEX(&priv->mgmt_sem);
- 	priv->mgmt_received = NULL;
- 	init_waitqueue_head(&priv->mgmt_wqueue);
--	sema_init(&priv->stats_sem, 1);
-+	init_MUTEX(&priv->stats_sem);
- 	spin_lock_init(&priv->slock);
+-	sema_init(&dmxdev->mutex, 1);
++	init_MUTEX(&dmxdev->mutex);
+ 	spin_lock_init(&dmxdev->lock);
+ 	for (i=0; i<dmxdev->filternum; i++) {
+ 		dmxdev->filter[i].dev=dmxdev;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dmxdev.h linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dmxdev.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dmxdev.h	2005-06-22 13:51:50.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dmxdev.h	2005-12-12 22:12:50.000000000 +0000
+@@ -30,7 +30,7 @@
+ #include <linux/wait.h>
+ #include <linux/fs.h>
+ #include <linux/string.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
  
- 	/* init state machine with off#1 state */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/prism54/islpci_dev.h linux-2.6.15-rc5-mutex/drivers/net/wireless/prism54/islpci_dev.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/net/wireless/prism54/islpci_dev.h	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/net/wireless/prism54/islpci_dev.h	2005-12-12 20:13:24.000000000 +0000
-@@ -55,7 +55,7 @@ struct islpci_acl {
-    enum { MAC_POLICY_OPEN=0, MAC_POLICY_ACCEPT=1, MAC_POLICY_REJECT=2 } policy;
-    struct list_head mac_list;  /* a list of mac_entry */
-    int size;   /* size of queue */
--   struct semaphore sem;   /* accessed in ioctls and trap_work */
-+   struct mutex sem;   /* accessed in ioctls and trap_work */
+ #include <linux/dvb/dmx.h>
+ 
+@@ -83,7 +83,7 @@ struct dmxdev_filter {
+         struct dmxdev *dev;
+         struct dmxdev_buffer buffer;
+ 
+-	struct semaphore mutex;
++	struct mutex mutex;
+ 
+         /* only for sections */
+         struct timer_list timer;
+@@ -117,7 +117,7 @@ struct dmxdev {
+         struct dmxdev_buffer dvr_buffer;
+ #define DVR_BUFFER_SIZE (10*188*1024)
+ 
+-	struct semaphore mutex;
++	struct mutex mutex;
+ 	spinlock_t lock;
  };
  
- struct islpci_membuf {
-@@ -88,7 +88,7 @@ typedef struct {
- 	
- 	/* Take care of the wireless stats */
- 	struct work_struct stats_work;
--	struct semaphore stats_sem;
-+	struct mutex stats_sem;
- 	/* remember when we last updated the stats */
- 	unsigned long stats_timestamp;
- 	/* The first is accessed under semaphore locking.
-@@ -165,7 +165,7 @@ typedef struct {
- 	wait_queue_head_t reset_done;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dvb_demux.c linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dvb_demux.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dvb_demux.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dvb_demux.c	2005-12-12 20:00:22.000000000 +0000
+@@ -1215,7 +1215,7 @@ int dvb_dmx_init(struct dvb_demux *dvbde
+ 	dmx->disconnect_frontend = dvbdmx_disconnect_frontend;
+ 	dmx->get_pes_pids = dvbdmx_get_pes_pids;
  
- 	/* used by islpci_mgt_transaction */
--	struct semaphore mgmt_sem; /* serialize access to mailbox and wqueue */
-+	struct mutex mgmt_sem; /* serialize access to mailbox and wqueue */
- 	struct islpci_mgmtframe *mgmt_received;	  /* mbox for incoming frame */
- 	wait_queue_head_t mgmt_wqueue;            /* waitqueue for mbox */
+-	sema_init(&dvbdemux->mutex, 1);
++	init_MUTEX(&dvbdemux->mutex);
+ 	spin_lock_init(&dvbdemux->lock);
  
-@@ -178,7 +178,7 @@ typedef struct {
- 	int wpa; /* WPA mode enabled */
- 	struct list_head bss_wpa_list;
- 	int num_bss_wpa;
--	struct semaphore wpa_sem;
-+	struct mutex wpa_sem;
- 
- 	struct work_struct reset_task;
- 	int reset_task_pending;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/oprofile/event_buffer.h linux-2.6.15-rc5-mutex/drivers/oprofile/event_buffer.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/oprofile/event_buffer.h	2005-08-30 13:56:21.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/drivers/oprofile/event_buffer.h	2005-12-12 22:08:48.000000000 +0000
-@@ -11,7 +11,7 @@
- #define EVENT_BUFFER_H
- 
- #include <linux/types.h> 
--#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
-  
- int alloc_event_buffer(void);
- 
-@@ -46,6 +46,6 @@ extern struct file_operations event_buff
- /* mutex between sync_cpu_buffers() and the
-  * file reading code.
-  */
--extern struct semaphore buffer_sem;
-+extern struct mutex buffer_sem;
-  
- #endif /* EVENT_BUFFER_H */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/oprofile/oprof.c linux-2.6.15-rc5-mutex/drivers/oprofile/oprof.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/oprofile/oprof.c	2005-03-02 12:08:20.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/oprofile/oprof.c	2005-12-12 22:08:48.000000000 +0000
-@@ -12,7 +12,7 @@
- #include <linux/init.h>
- #include <linux/oprofile.h>
- #include <linux/moduleparam.h>
+ 	return 0;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dvb_demux.h linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dvb_demux.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dvb_demux.h	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dvb_demux.h	2005-12-12 22:12:50.000000000 +0000
+@@ -26,7 +26,7 @@
+ #include <linux/time.h>
+ #include <linux/timer.h>
+ #include <linux/spinlock.h>
 -#include <asm/semaphore.h>
 +#include <linux/semaphore.h>
  
- #include "oprof.h"
- #include "event_buffer.h"
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/acpiphp_glue.c linux-2.6.15-rc5-mutex/drivers/pci/hotplug/acpiphp_glue.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/acpiphp_glue.c	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/acpiphp_glue.c	2005-12-12 22:08:48.000000000 +0000
-@@ -46,7 +46,7 @@
- #include <linux/kernel.h>
- #include <linux/pci.h>
- #include <linux/smp_lock.h>
+ #include "demux.h"
+ 
+@@ -125,7 +125,7 @@ struct dvb_demux {
+ 	u8 tsbuf[204];
+ 	int tsbufp;
+ 
+-	struct semaphore mutex;
++	struct mutex mutex;
+ 	spinlock_t lock;
+ };
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dvb_frontend.c linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dvb_frontend.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dvb_frontend.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dvb_frontend.c	2005-12-12 22:12:50.000000000 +0000
+@@ -37,7 +37,7 @@
+ #include <linux/suspend.h>
+ #include <linux/jiffies.h>
+ #include <asm/processor.h>
 -#include <asm/semaphore.h>
 +#include <linux/semaphore.h>
  
- #include "../pci.h"
- #include "pci_hotplug.h"
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/acpiphp.h linux-2.6.15-rc5-mutex/drivers/pci/hotplug/acpiphp.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/acpiphp.h	2005-08-30 13:56:21.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/acpiphp.h	2005-12-12 21:42:44.000000000 +0000
-@@ -118,7 +118,7 @@ struct acpiphp_slot {
- 	struct acpiphp_bridge *bridge;	/* parent */
- 	struct list_head funcs;		/* one slot may have different
- 					   objects (i.e. for each function) */
--	struct semaphore crit_sect;
-+	struct mutex	crit_sect;
+ #include "dvb_frontend.h"
+ #include "dvbdev.h"
+@@ -95,7 +95,7 @@ struct dvb_frontend_private {
+ 	struct dvb_device *dvbdev;
+ 	struct dvb_frontend_parameters parameters;
+ 	struct dvb_fe_events events;
+-	struct semaphore sem;
++	struct mutex sem;
+ 	struct list_head list_head;
+ 	wait_queue_head_t wait_queue;
+ 	pid_t thread_pid;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dvb_frontend.h linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dvb_frontend.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dvb_frontend.h	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dvb_frontend.h	2005-12-12 21:00:24.000000000 +0000
+@@ -86,7 +86,7 @@ struct dvb_fe_events {
+ 	int			  eventr;
+ 	int			  overflow;
+ 	wait_queue_head_t	  wait_queue;
+-	struct semaphore	  sem;
++	struct mutex		  sem;
+ };
  
- 	u32		id;		/* slot id (serial #) for hotplug core */
- 	u8		device;		/* pci device# */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/cpci_hotplug_core.c linux-2.6.15-rc5-mutex/drivers/pci/hotplug/cpci_hotplug_core.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/cpci_hotplug_core.c	2005-06-22 13:51:55.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/cpci_hotplug_core.c	2005-12-12 21:42:53.000000000 +0000
-@@ -60,8 +60,8 @@ static int slots;
- static atomic_t extracting;
- int cpci_debug;
- static struct cpci_hp_controller *controller;
--static struct semaphore event_semaphore;	/* mutex for process loop (up if something to process) */
--static struct semaphore thread_exit;		/* guard ensure thread has exited before calling it quits */
-+static struct mutex event_semaphore;	/* mutex for process loop (up if something to process) */
-+static struct mutex thread_exit;	/* guard ensure thread has exited before calling it quits */
- static int thread_finished = 1;
+ struct dvb_frontend {
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dvb_net.c linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dvb_net.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-core/dvb_net.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-core/dvb_net.c	2005-12-12 21:00:56.000000000 +0000
+@@ -152,7 +152,7 @@ struct dvb_net_priv {
+ 	int ule_sndu_remain;			/* Nr. of bytes still required for current ULE SNDU. */
+ 	unsigned long ts_count;			/* Current ts cell counter. */
  
- static int enable_slot(struct hotplug_slot *slot);
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/cpqphp_ctrl.c linux-2.6.15-rc5-mutex/drivers/pci/hotplug/cpqphp_ctrl.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/cpqphp_ctrl.c	2005-01-04 11:13:24.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/cpqphp_ctrl.c	2005-12-12 21:43:08.000000000 +0000
-@@ -45,13 +45,13 @@ static int configure_new_function(struct
- 			u8 behind_bridge, struct resource_lists *resources);
- static void interrupt_event_handler(struct controller *ctrl);
+-	struct semaphore mutex;
++	struct mutex mutex;
+ };
  
--static struct semaphore event_semaphore;	/* mutex for process loop (up if something to process) */
--static struct semaphore event_exit;		/* guard ensure thread has exited before calling it quits */
-+static struct mutex event_semaphore;	/* mutex for process loop (up if something to process) */
-+static struct mutex event_exit;		/* guard ensure thread has exited before calling it quits */
- static int event_finished;
- static unsigned long pushbutton_pending;	/* = 0 */
  
- /* things needed for the long_delay function */
--static struct semaphore		delay_sem;
-+static struct mutex		delay_sem;
- static wait_queue_head_t	delay_wait;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-usb/dvb-usb.h linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-usb/dvb-usb.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-usb/dvb-usb.h	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-usb/dvb-usb.h	2005-12-12 20:03:48.000000000 +0000
+@@ -276,10 +276,10 @@ struct dvb_usb_device {
+ 	int pid_filtering;
  
- /* delay is in jiffies to wait for */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/cpqphp.h linux-2.6.15-rc5-mutex/drivers/pci/hotplug/cpqphp.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/cpqphp.h	2005-01-04 11:13:24.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/cpqphp.h	2005-12-12 21:43:24.000000000 +0000
-@@ -286,7 +286,7 @@ struct event_info {
- struct controller {
- 	struct controller *next;
- 	u32 ctrl_int_comp;
--	struct semaphore crit_sect;	/* critical section semaphore */
-+	struct mutex crit_sect;		/* critical section semaphore */
- 	void __iomem *hpc_reg;		/* cookie for our pci controller location */
- 	struct pci_resource *mem_head;
- 	struct pci_resource *p_mem_head;
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/ibmphp_hpc.c linux-2.6.15-rc5-mutex/drivers/pci/hotplug/ibmphp_hpc.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/ibmphp_hpc.c	2005-06-22 13:51:55.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/ibmphp_hpc.c	2005-12-12 21:41:50.000000000 +0000
-@@ -101,10 +101,10 @@ static int to_debug = FALSE;
- //----------------------------------------------------------------------------
- static int ibmphp_shutdown;
- static int tid_poll;
--static struct semaphore sem_hpcaccess;	// lock access to HPC
--static struct semaphore semOperations;	// lock all operations and
-+static struct mutex sem_hpcaccess;	// lock access to HPC
-+static struct mutex semOperations;	// lock all operations and
- 					// access to data structures
--static struct semaphore sem_exit;	// make sure polling thread goes away
-+static struct mutex sem_exit;		// make sure polling thread goes away
- //----------------------------------------------------------------------------
- // local function prototypes
- //----------------------------------------------------------------------------
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/pciehp_ctrl.c linux-2.6.15-rc5-mutex/drivers/pci/hotplug/pciehp_ctrl.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/pciehp_ctrl.c	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/pciehp_ctrl.c	2005-12-12 21:41:30.000000000 +0000
-@@ -37,8 +37,8 @@
+ 	/* locking */
+-	struct semaphore usb_sem;
++	struct mutex usb_sem;
  
- static void interrupt_event_handler(struct controller *ctrl);
+ 	/* i2c */
+-	struct semaphore i2c_sem;
++	struct mutex i2c_sem;
+ 	struct i2c_adapter i2c_adap;
  
--static struct semaphore event_semaphore;	/* mutex for process loop (up if something to process) */
--static struct semaphore event_exit;		/* guard ensure thread has exited before calling it quits */
-+static struct mutex event_semaphore;	/* mutex for process loop (up if something to process) */
-+static struct mutex event_exit;		/* guard ensure thread has exited before calling it quits */
- static int event_finished;
- static unsigned long pushbutton_pending;	/* = 0 */
- static unsigned long surprise_rm_pending;	/* = 0 */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/pciehp.h linux-2.6.15-rc5-mutex/drivers/pci/hotplug/pciehp.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/pciehp.h	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/pciehp.h	2005-12-12 21:41:59.000000000 +0000
-@@ -95,7 +95,7 @@ struct php_ctlr_state_s {
- #define MAX_EVENTS		10
- struct controller {
- 	struct controller *next;
--	struct semaphore crit_sect;	/* critical section semaphore */
-+	struct mutex crit_sect;	/* critical section semaphore */
- 	struct php_ctlr_state_s *hpc_ctlr_handle; /* HPC controller handle */
- 	int num_slots;			/* Number of slots on ctlr */
- 	int slot_num_inc;		/* 1 or -1 */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/rpadlpar_core.c linux-2.6.15-rc5-mutex/drivers/pci/hotplug/rpadlpar_core.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/rpadlpar_core.c	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/rpadlpar_core.c	2005-12-12 22:08:48.000000000 +0000
+ 	/* tuner programming information */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-usb/dvb-usb-init.c linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-usb/dvb-usb-init.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/dvb-usb/dvb-usb-init.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/dvb-usb/dvb-usb-init.c	2005-12-12 20:03:58.000000000 +0000
+@@ -42,8 +42,8 @@ static int dvb_usb_init(struct dvb_usb_d
+ {
+ 	int ret = 0;
+ 
+-	sema_init(&d->usb_sem, 1);
+-	sema_init(&d->i2c_sem, 1);
++	init_MUTEX(&d->usb_sem);
++	init_MUTEX(&d->i2c_sem);
+ 
+ 	d->state = DVB_USB_STATE_INIT;
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/frontends/bcm3510.c linux-2.6.15-rc5-mutex/drivers/media/dvb/frontends/bcm3510.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/frontends/bcm3510.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/frontends/bcm3510.c	2005-12-12 20:00:14.000000000 +0000
+@@ -52,7 +52,7 @@ struct bcm3510_state {
+ 	struct dvb_frontend frontend;
+ 
+ 	/* demodulator private data */
+-	struct semaphore hab_sem;
++	struct mutex hab_sem;
+ 	u8 firmware_loaded:1;
+ 
+ 	unsigned long next_status_check;
+@@ -797,7 +797,7 @@ struct dvb_frontend* bcm3510_attach(cons
+ 	state->frontend.ops = &state->ops;
+ 	state->frontend.demodulator_priv = state;
+ 
+-	sema_init(&state->hab_sem, 1);
++	init_MUTEX(&state->hab_sem);
+ 
+ 	if ((ret = bcm3510_readB(state,0xe0,&v)) < 0)
+ 		goto error;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/ttpci/av7110.c linux-2.6.15-rc5-mutex/drivers/media/dvb/ttpci/av7110.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/ttpci/av7110.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/ttpci/av7110.c	2005-12-12 22:12:50.000000000 +0000
+@@ -54,7 +54,7 @@
+ #include <linux/i2c.h>
+ 
+ #include <asm/system.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ 
+ #include <linux/dvb/frontend.h>
+ 
+@@ -2650,16 +2650,16 @@ static int av7110_attach(struct saa7146_
+ 	tasklet_init (&av7110->debi_tasklet, debiirq, (unsigned long) av7110);
+ 	tasklet_init (&av7110->gpio_tasklet, gpioirq, (unsigned long) av7110);
+ 
+-	sema_init(&av7110->pid_mutex, 1);
++	init_SEMA(&av7110->pid_mutex);
+ 
+ 	/* locks for data transfers from/to AV7110 */
+ 	spin_lock_init(&av7110->debilock);
+-	sema_init(&av7110->dcomlock, 1);
++	init_MUTEX(&av7110->dcomlock);
+ 	av7110->debitype = -1;
+ 
+ 	/* default OSD window */
+ 	av7110->osdwin = 1;
+-	sema_init(&av7110->osd_sema, 1);
++	init_MUTEX(&av7110->osd_sema);
+ 
+ 	/* ARM "watchdog" */
+ 	init_waitqueue_head(&av7110->arm_wait);
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/ttpci/av7110.h linux-2.6.15-rc5-mutex/drivers/media/dvb/ttpci/av7110.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/ttpci/av7110.h	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/ttpci/av7110.h	2005-12-12 20:03:15.000000000 +0000
+@@ -126,7 +126,7 @@ struct av7110 {
+ 	/* DEBI and polled command interface */
+ 
+ 	spinlock_t		debilock;
+-	struct semaphore	dcomlock;
++	struct mutex		dcomlock;
+ 	volatile int		debitype;
+ 	volatile int		debilen;
+ 
+@@ -145,7 +145,7 @@ struct av7110 {
+ 
+ 	int			osdwin;      /* currently active window */
+ 	u16			osdbpp[8];
+-	struct semaphore	osd_sema;
++	struct mutex		osd_sema;
+ 
+ 	/* CA */
+ 
+@@ -171,7 +171,7 @@ struct av7110 {
+ 	struct tasklet_struct   vpe_tasklet;
+ 
+ 	int			fe_synced;
+-	struct semaphore	pid_mutex;
++	struct mutex		pid_mutex;
+ 
+ 	int			video_blank;
+ 	struct video_status	videostate;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/ttpci/budget.h linux-2.6.15-rc5-mutex/drivers/media/dvb/ttpci/budget.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/ttpci/budget.h	2005-06-22 13:51:52.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/ttpci/budget.h	2005-12-12 21:01:03.000000000 +0000
+@@ -51,7 +51,7 @@ struct budget {
+ 	struct dmx_frontend mem_frontend;
+ 
+ 	int fe_synced;
+-	struct semaphore pid_mutex;
++	struct mutex pid_mutex;
+ 
+ 	int ci_present;
+ 	int video_port;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/ttusb-budget/dvb-ttusb-budget.c linux-2.6.15-rc5-mutex/drivers/media/dvb/ttusb-budget/dvb-ttusb-budget.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/ttusb-budget/dvb-ttusb-budget.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/ttusb-budget/dvb-ttusb-budget.c	2005-12-12 22:12:50.000000000 +0000
 @@ -19,7 +19,7 @@
- #include <linux/string.h>
- 
- #include <asm/pci-bridge.h>
+ #include <linux/time.h>
+ #include <linux/errno.h>
+ #include <linux/jiffies.h>
 -#include <asm/semaphore.h>
 +#include <linux/semaphore.h>
- #include <asm/rtas.h>
- #include <asm/vio.h>
  
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/rpaphp_core.c linux-2.6.15-rc5-mutex/drivers/pci/hotplug/rpaphp_core.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/rpaphp_core.c	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/rpaphp_core.c	2005-12-12 21:42:32.000000000 +0000
-@@ -40,7 +40,7 @@
- #include "pci_hotplug.h"
+ #include "dvb_frontend.h"
+ #include "dmxdev.h"
+@@ -83,8 +83,8 @@ struct ttusb {
+ 	struct dvb_net dvbnet;
  
- int debug;
--static struct semaphore rpaphp_sem;
-+static struct mutex rpaphp_sem;
- LIST_HEAD(rpaphp_slot_head);
- int num_slots;
+ 	/* and one for USB access. */
+-	struct semaphore semi2c;
+-	struct semaphore semusb;
++	struct mutex semi2c;
++	struct mutex semusb;
  
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/shpchp_ctrl.c linux-2.6.15-rc5-mutex/drivers/pci/hotplug/shpchp_ctrl.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/shpchp_ctrl.c	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/shpchp_ctrl.c	2005-12-12 21:42:10.000000000 +0000
-@@ -37,8 +37,8 @@
+ 	struct dvb_adapter adapter;
+ 	struct usb_device *dev;
+@@ -1497,8 +1497,8 @@ static int ttusb_probe(struct usb_interf
+ 	ttusb->dev = udev;
+ 	ttusb->c = 0;
+ 	ttusb->mux_state = 0;
+-	sema_init(&ttusb->semi2c, 0);
+-	sema_init(&ttusb->semusb, 1);
++	init_MUTEX_LOCKED(&ttusb->semi2c);
++	init_MUTEX(&ttusb->semusb);
  
- static void interrupt_event_handler(struct controller *ctrl);
+ 	ttusb_setup_interfaces(ttusb);
  
--static struct semaphore event_semaphore;	/* mutex for process loop (up if something to process) */
--static struct semaphore event_exit;		/* guard ensure thread has exited before calling it quits */
-+static struct mutex event_semaphore;	/* mutex for process loop (up if something to process) */
-+static struct mutex event_exit;		/* guard ensure thread has exited before calling it quits */
- static int event_finished;
- static unsigned long pushbutton_pending;	/* = 0 */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/ttusb-dec/ttusb_dec.c linux-2.6.15-rc5-mutex/drivers/media/dvb/ttusb-dec/ttusb_dec.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/dvb/ttusb-dec/ttusb_dec.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/dvb/ttusb-dec/ttusb_dec.c	2005-12-12 22:12:50.000000000 +0000
+@@ -20,7 +20,7 @@
+  *
+  */
  
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/shpchp.h linux-2.6.15-rc5-mutex/drivers/pci/hotplug/shpchp.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pci/hotplug/shpchp.h	2005-12-08 16:23:44.000000000 +0000
-+++ linux-2.6.15-rc5-mutex/drivers/pci/hotplug/shpchp.h	2005-12-12 21:42:20.000000000 +0000
-@@ -79,7 +79,7 @@ struct event_info {
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <linux/list.h>
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
+@@ -115,7 +115,7 @@ struct ttusb_dec {
+ 	unsigned int			out_pipe;
+ 	unsigned int			irq_pipe;
+ 	enum ttusb_dec_interface	interface;
+-	struct semaphore		usb_sem;
++	struct mutex			usb_sem;
  
- struct controller {
- 	struct controller *next;
--	struct semaphore crit_sect;	/* critical section semaphore */
-+	struct mutex crit_sect;	/* critical section semaphore */
- 	struct php_ctlr_state_s *hpc_ctlr_handle; /* HPC controller handle */
- 	int num_slots;			/* Number of slots on ctlr */
- 	int slot_num_inc;		/* 1 or -1 */
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pcmcia/soc_common.h linux-2.6.15-rc5-mutex/drivers/pcmcia/soc_common.h
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pcmcia/soc_common.h	2005-08-30 13:56:22.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/drivers/pcmcia/soc_common.h	2005-12-12 21:30:49.000000000 +0000
-@@ -133,7 +133,7 @@ extern void soc_common_pcmcia_get_timing
+ 	void			*irq_buffer;
+ 	struct urb		*irq_urb;
+@@ -124,7 +124,7 @@ struct ttusb_dec {
+ 	dma_addr_t		iso_dma_handle;
+ 	struct urb		*iso_urb[ISO_BUF_COUNT];
+ 	int			iso_stream_count;
+-	struct semaphore	iso_sem;
++	struct mutex		iso_sem;
+ 
+ 	u8				packet[MAX_PVA_LENGTH + 4];
+ 	enum ttusb_dec_packet_type	packet_type;
+@@ -1230,8 +1230,8 @@ static int ttusb_dec_init_usb(struct ttu
+ {
+ 	dprintk("%s\n", __FUNCTION__);
+ 
+-	sema_init(&dec->usb_sem, 1);
+-	sema_init(&dec->iso_sem, 1);
++	init_MUTEX(&dec->usb_sem);
++	init_MUTEX(&dec->iso_sem);
+ 
+ 	dec->command_pipe = usb_sndbulkpipe(dec->udev, COMMAND_PIPE);
+ 	dec->result_pipe = usb_rcvbulkpipe(dec->udev, RESULT_PIPE);
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/miropcm20-rds-core.c linux-2.6.15-rc5-mutex/drivers/media/radio/miropcm20-rds-core.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/miropcm20-rds-core.c	2004-06-18 13:41:41.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/radio/miropcm20-rds-core.c	2005-12-12 22:12:50.000000000 +0000
+@@ -18,14 +18,14 @@
+ #include <linux/string.h>
+ #include <linux/init.h>
+ #include <linux/slab.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/io.h>
+ #include "../../../sound/oss/aci.h"
+ #include "miropcm20-rds-core.h"
+ 
+ #define DEBUG 0
+ 
+-static struct semaphore aci_rds_sem;
++static struct mutex aci_rds_sem;
+ 
+ #define RDS_DATASHIFT          2   /* Bit 2 */
+ #define RDS_DATAMASK        (1 << RDS_DATASHIFT)
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-aimslab.c linux-2.6.15-rc5-mutex/drivers/media/radio/radio-aimslab.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-aimslab.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/radio/radio-aimslab.c	2005-12-12 22:12:50.000000000 +0000
+@@ -35,7 +35,7 @@
+ #include <asm/uaccess.h>	/* copy to/from user		*/
+ #include <linux/videodev.h>	/* kernel radio structs		*/
+ #include <linux/config.h>	/* CONFIG_RADIO_RTRACK_PORT 	*/
+-#include <asm/semaphore.h>	/* Lock for the I/O 		*/
++#include <linux/semaphore.h>	/* Lock for the I/O 		*/
+ 
+ #ifndef CONFIG_RADIO_RTRACK_PORT
+ #define CONFIG_RADIO_RTRACK_PORT -1
+@@ -43,7 +43,7 @@
+ 
+ static int io = CONFIG_RADIO_RTRACK_PORT; 
+ static int radio_nr = -1;
+-static struct semaphore lock;
++static struct mutex lock;
+ 
+ struct rt_device
+ {
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-aztech.c linux-2.6.15-rc5-mutex/drivers/media/radio/radio-aztech.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-aztech.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/radio/radio-aztech.c	2005-12-12 21:02:32.000000000 +0000
+@@ -42,7 +42,7 @@
+ static int io = CONFIG_RADIO_AZTECH_PORT; 
+ static int radio_nr = -1;
+ static int radio_wait_time = 1000;
+-static struct semaphore lock;
++static struct mutex lock;
+ 
+ struct az_device
+ {
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-maestro.c linux-2.6.15-rc5-mutex/drivers/media/radio/radio-maestro.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-maestro.c	2005-08-30 13:56:18.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/radio/radio-maestro.c	2005-12-12 22:12:50.000000000 +0000
+@@ -23,7 +23,7 @@
+ #include <linux/sched.h>
+ #include <asm/io.h>
+ #include <asm/uaccess.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <linux/pci.h>
+ #include <linux/videodev.h>
+ 
+@@ -90,7 +90,7 @@ static struct radio_device
+ 		muted,	/* VIDEO_AUDIO_MUTE */
+ 		stereo,	/* VIDEO_TUNER_STEREO_ON */	
+ 		tuned;	/* signal strength (0 or 0xffff) */
+-	struct  semaphore lock;
++	struct  mutex lock;
+ } radio_unit = {0, 0, 0, 0, };
+ 
+ static __u32 radio_bits_get(struct radio_device *dev)
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-maxiradio.c linux-2.6.15-rc5-mutex/drivers/media/radio/radio-maxiradio.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-maxiradio.c	2005-08-30 13:56:18.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/radio/radio-maxiradio.c	2005-12-12 22:12:50.000000000 +0000
+@@ -37,7 +37,7 @@
+ #include <linux/sched.h>
+ #include <asm/io.h>
+ #include <asm/uaccess.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <linux/pci.h>
+ #include <linux/videodev.h>
+ 
+@@ -100,7 +100,7 @@ static struct radio_device
+ 		
+ 	unsigned long freq;
+ 	
+-	struct  semaphore lock;
++	struct  mutex lock;
+ } radio_unit = {0, 0, 0, 0, };
  
  
- extern struct list_head soc_pcmcia_sockets;
--extern struct semaphore soc_pcmcia_sockets_lock;
-+extern struct mutex soc_pcmcia_sockets_lock;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-sf16fmi.c linux-2.6.15-rc5-mutex/drivers/media/radio/radio-sf16fmi.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-sf16fmi.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/radio/radio-sf16fmi.c	2005-12-12 22:12:50.000000000 +0000
+@@ -24,7 +24,7 @@
+ #include <linux/isapnp.h>
+ #include <asm/io.h>		/* outb, outb_p			*/
+ #include <asm/uaccess.h>	/* copy to/from user		*/
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
  
- extern int soc_common_drv_pcmcia_probe(struct device *dev, struct pcmcia_low_level *ops, int first, int nr);
- extern int soc_common_drv_pcmcia_remove(struct device *dev);
-diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/pnp/interface.c linux-2.6.15-rc5-mutex/drivers/pnp/interface.c
---- /warthog/kernels/linux-2.6.15-rc5/drivers/pnp/interface.c	2005-08-30 13:56:22.000000000 +0100
-+++ linux-2.6.15-rc5-mutex/drivers/pnp/interface.c	2005-12-12 21:41:07.000000000 +0000
-@@ -305,7 +305,7 @@ static ssize_t pnp_show_current_resource
- 	return ret;
+ struct fmi_device
+ {
+@@ -37,7 +37,7 @@ struct fmi_device
+ static int io = -1; 
+ static int radio_nr = -1;
+ static struct pnp_dev *dev = NULL;
+-static struct semaphore lock;
++static struct mutex lock;
+ 
+ /* freq is in 1/16 kHz to internal number, hw precision is 50 kHz */
+ /* It is only useful to give freq in intervall of 800 (=0.05Mhz),
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-sf16fmr2.c linux-2.6.15-rc5-mutex/drivers/media/radio/radio-sf16fmr2.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-sf16fmr2.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/radio/radio-sf16fmr2.c	2005-12-12 22:12:50.000000000 +0000
+@@ -19,9 +19,9 @@
+ #include <asm/io.h>		/* outb, outb_p			*/
+ #include <asm/uaccess.h>	/* copy to/from user		*/
+ #include <linux/videodev.h>	/* kernel radio structs		*/
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ 
+-static struct semaphore lock;
++static struct mutex lock;
+ 
+ #undef DEBUG
+ //#define DEBUG 1
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-typhoon.c linux-2.6.15-rc5-mutex/drivers/media/radio/radio-typhoon.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-typhoon.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/radio/radio-typhoon.c	2005-12-12 21:04:13.000000000 +0000
+@@ -59,7 +59,7 @@ struct typhoon_device {
+ 	int muted;
+ 	unsigned long curfreq;
+ 	unsigned long mutefreq;
+-	struct semaphore lock;
++	struct mutex lock;
+ };
+ 
+ static void typhoon_setvol_generic(struct typhoon_device *dev, int vol);
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-zoltrix.c linux-2.6.15-rc5-mutex/drivers/media/radio/radio-zoltrix.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/radio/radio-zoltrix.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/radio/radio-zoltrix.c	2005-12-12 21:03:32.000000000 +0000
+@@ -48,7 +48,7 @@ struct zol_device {
+ 	unsigned long curfreq;
+ 	int muted;
+ 	unsigned int stereo;
+-	struct semaphore lock;
++	struct mutex lock;
+ };
+ 
+ static int zol_setvol(struct zol_device *dev, int vol)
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/arv.c linux-2.6.15-rc5-mutex/drivers/media/video/arv.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/arv.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/arv.c	2005-12-12 22:12:50.000000000 +0000
+@@ -32,7 +32,7 @@
+ #include <linux/sched.h>
+ #include <linux/videodev.h>
+ 
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ #include <asm/m32r.h>
+ #include <asm/io.h>
+@@ -117,7 +117,7 @@ struct ar_device {
+ 	int width, height;
+ 	int frame_bytes, line_bytes;
+ 	wait_queue_head_t wait;
+-	struct semaphore lock;
++	struct mutex lock;
+ };
+ 
+ static int video_nr = -1;	/* video device number (first free) */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/bttvp.h linux-2.6.15-rc5-mutex/drivers/media/video/bttvp.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/bttvp.h	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/bttvp.h	2005-12-12 21:07:01.000000000 +0000
+@@ -303,9 +303,9 @@ struct bttv {
+ 
+ 	/* locking */
+ 	spinlock_t s_lock;
+-	struct semaphore lock;
++	struct mutex lock;
+ 	int resources;
+-	struct semaphore reslock;
++	struct mutex reslock;
+ #ifdef VIDIOC_G_PRIORITY
+ 	struct v4l2_prio_state prio;
+ #endif
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/bw-qcam.c linux-2.6.15-rc5-mutex/drivers/media/video/bw-qcam.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/bw-qcam.c	2005-03-02 12:08:11.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/bw-qcam.c	2005-12-12 22:12:50.000000000 +0000
+@@ -73,7 +73,7 @@ OTHER DEALINGS IN THE SOFTWARE.
+ #include <linux/parport.h>
+ #include <linux/sched.h>
+ #include <linux/videodev.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ #include "bw-qcam.h"
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/bw-qcam.h linux-2.6.15-rc5-mutex/drivers/media/video/bw-qcam.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/bw-qcam.h	2004-06-18 13:41:41.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/video/bw-qcam.h	2005-12-12 21:05:53.000000000 +0000
+@@ -55,7 +55,7 @@ struct qcam_device {
+ 	struct video_device vdev;
+ 	struct pardevice *pdev;
+ 	struct parport *pport;
+-	struct semaphore lock;
++	struct mutex lock;
+ 	int width, height;
+ 	int bpp;
+ 	int mode;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/cpia.c linux-2.6.15-rc5-mutex/drivers/media/video/cpia.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/cpia.c	2005-11-01 13:19:08.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/cpia.c	2005-12-12 22:12:50.000000000 +0000
+@@ -39,7 +39,7 @@
+ #include <linux/pagemap.h>
+ #include <linux/delay.h>
+ #include <asm/io.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ 
+ #ifdef CONFIG_KMOD
+ #include <linux/kmod.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/cpia.h linux-2.6.15-rc5-mutex/drivers/media/video/cpia.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/cpia.h	2004-06-18 13:41:41.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/video/cpia.h	2005-12-12 21:06:15.000000000 +0000
+@@ -246,7 +246,7 @@ enum v4l_camstates {
+ struct cam_data {
+ 	struct list_head cam_data_list;
+ 
+-        struct semaphore busy_lock;     /* guard against SMP multithreading */
++        struct mutex busy_lock;		/* guard against SMP multithreading */
+ 	struct cpia_camera_ops *ops;	/* lowlevel driver operations */
+ 	void *lowlevel_data;		/* private data for lowlevel driver */
+ 	u8 *raw_image;			/* buffer for raw image data */
+@@ -261,7 +261,7 @@ struct cam_data {
+ 	u8 mainsFreq;			/* for flicker control */
+ 
+ 				/* proc interface */
+-	struct semaphore param_lock;	/* params lock for this camera */
++	struct mutex param_lock;	/* params lock for this camera */
+ 	struct cam_params params;	/* camera settings */
+ 	struct proc_dir_entry *proc_entry;	/* /proc/cpia/videoX */
+ 	
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/c-qcam.c linux-2.6.15-rc5-mutex/drivers/media/video/c-qcam.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/c-qcam.c	2005-06-22 13:51:52.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/video/c-qcam.c	2005-12-12 22:12:50.000000000 +0000
+@@ -34,7 +34,7 @@
+ #include <linux/parport.h>
+ #include <linux/sched.h>
+ #include <linux/videodev.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ struct qcam_device {
+@@ -47,7 +47,7 @@ struct qcam_device {
+ 	int contrast, brightness, whitebal;
+ 	int top, left;
+ 	unsigned int bidirectional;
+-	struct semaphore lock;
++	struct mutex lock;
+ };
+ 
+ /* cameras maximum */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/cx88/cx88.h linux-2.6.15-rc5-mutex/drivers/media/video/cx88/cx88.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/cx88/cx88.h	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/cx88/cx88.h	2005-12-12 21:05:06.000000000 +0000
+@@ -297,7 +297,7 @@ struct cx88_core {
+ 	/* IR remote control state */
+ 	struct cx88_IR             *ir;
+ 
+-	struct semaphore           lock;
++	struct mutex               lock;
+ 
+ 	/* various v4l controls */
+ 	u32                        freq;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/em28xx/em28xx.h linux-2.6.15-rc5-mutex/drivers/media/video/em28xx/em28xx.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/em28xx/em28xx.h	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/em28xx/em28xx.h	2005-12-12 21:45:51.000000000 +0000
+@@ -254,7 +254,7 @@ struct em28xx {
+ 	enum em28xx_stream_state stream;
+ 	enum em28xx_io_method io;
+ 	/* locks */
+-	struct semaphore lock, fileop_lock;
++	struct mutex mutex, mutex_lock;
+ 	spinlock_t queue_lock;
+ 	struct list_head inqueue, outqueue;
+ 	wait_queue_head_t open, wait_frame, wait_stream;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/ir-kbd-i2c.c linux-2.6.15-rc5-mutex/drivers/media/video/ir-kbd-i2c.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/ir-kbd-i2c.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/ir-kbd-i2c.c	2005-12-12 22:12:50.000000000 +0000
+@@ -39,7 +39,7 @@
+ #include <linux/slab.h>
+ #include <linux/i2c.h>
+ #include <linux/workqueue.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <media/ir-common.h>
+ #include <media/ir-kbd-i2c.h>
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/meye.h linux-2.6.15-rc5-mutex/drivers/media/video/meye.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/meye.h	2005-01-04 11:13:16.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/meye.h	2005-12-12 21:05:41.000000000 +0000
+@@ -301,7 +301,7 @@ struct meye {
+ 					/* list of buffers */
+ 	struct meye_grab_buffer grab_buffer[MEYE_MAX_BUFNBRS];
+ 	int vma_use_count[MEYE_MAX_BUFNBRS]; /* mmap count */
+-	struct semaphore lock;		/* semaphore for open/mmap... */
++	struct mutex lock;		/* semaphore for open/mmap... */
+ 	struct kfifo *grabq;		/* queue for buffers to be grabbed */
+ 	spinlock_t grabq_lock;		/* lock protecting the queue */
+ 	struct kfifo *doneq;		/* queue for grabbed buffers */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/msp3400.c linux-2.6.15-rc5-mutex/drivers/media/video/msp3400.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/msp3400.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/msp3400.c	2005-12-12 22:12:50.000000000 +0000
+@@ -50,7 +50,7 @@
+ #include <linux/smp_lock.h>
+ #include <linux/kthread.h>
+ #include <linux/suspend.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/pgtable.h>
+ 
+ #include <media/audiochip.h>
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/planb.c linux-2.6.15-rc5-mutex/drivers/media/video/planb.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/planb.c	2005-06-22 13:51:52.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/video/planb.c	2005-12-12 22:12:50.000000000 +0000
+@@ -48,7 +48,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/page.h>
+ #include <asm/irq.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ 
+ #include "planb.h"
+ #include "saa7196.h"
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/planb.h linux-2.6.15-rc5-mutex/drivers/media/video/planb.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/planb.h	2004-06-18 13:41:41.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/video/planb.h	2005-12-12 21:05:11.000000000 +0000
+@@ -174,7 +174,7 @@ struct planb {
+ 	int	user;
+ 	unsigned int tab_size;
+ 	int     maxlines;
+-	struct semaphore lock;
++	struct mutex lock;
+ 	unsigned int	irq;			/* interrupt number */
+ 	volatile unsigned int intr_mask;
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/pms.c linux-2.6.15-rc5-mutex/drivers/media/video/pms.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/pms.c	2005-03-02 12:08:12.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/pms.c	2005-12-12 21:05:35.000000000 +0000
+@@ -44,7 +44,7 @@ struct pms_device
+ 	struct video_picture picture;
+ 	int height;
+ 	int width;
+-	struct semaphore lock;
++	struct mutex lock;
+ };
+ 
+ struct i2c_info
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/saa5246a.c linux-2.6.15-rc5-mutex/drivers/media/video/saa5246a.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/saa5246a.c	2005-08-30 13:56:18.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/video/saa5246a.c	2005-12-12 21:07:15.000000000 +0000
+@@ -57,7 +57,7 @@ struct saa5246a_device
+ 	u8     pgbuf[NUM_DAUS][VTX_VIRTUALSIZE];
+ 	int    is_searching[NUM_DAUS];
+ 	struct i2c_client *client;
+-	struct semaphore lock;
++	struct mutex lock;
+ };
+ 
+ static struct video_device saa_template;	/* Declared near bottom */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/saa5249.c linux-2.6.15-rc5-mutex/drivers/media/video/saa5249.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/saa5249.c	2005-08-30 13:56:18.000000000 +0100
++++ linux-2.6.15-rc5-mutex/drivers/media/video/saa5249.c	2005-12-12 21:07:26.000000000 +0000
+@@ -105,7 +105,7 @@ struct saa5249_device
+ 	int disp_mode;
+ 	int virtual_mode;
+ 	struct i2c_client *client;
+-	struct semaphore lock;
++	struct mutex lock;
+ };
+ 
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/saa7134/saa7134.h linux-2.6.15-rc5-mutex/drivers/media/video/saa7134/saa7134.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/saa7134/saa7134.h	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/saa7134/saa7134.h	2005-12-12 21:06:33.000000000 +0000
+@@ -358,7 +358,7 @@ struct saa7134_fh {
+ 
+ /* dmasound dsp status */
+ struct saa7134_dmasound {
+-	struct semaphore           lock;
++	struct mutex               lock;
+ 	int                        minor_mixer;
+ 	int                        minor_dsp;
+ 	unsigned int               users_dsp;
+@@ -422,7 +422,7 @@ struct saa7134_mpeg_ops {
+ /* global device status */
+ struct saa7134_dev {
+ 	struct list_head           devlist;
+-	struct semaphore           lock;
++	struct mutex               lock;
+ 	spinlock_t                 slock;
+ #ifdef VIDIOC_G_PRIORITY
+ 	struct v4l2_prio_state     prio;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/tvmixer.c linux-2.6.15-rc5-mutex/drivers/media/video/tvmixer.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/tvmixer.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/tvmixer.c	2005-12-12 22:12:50.000000000 +0000
+@@ -16,8 +16,8 @@
+ #include <linux/kdev_t.h>
+ #include <linux/sound.h>
+ #include <linux/soundcard.h>
++#include <linux/semaphore.h>
+ 
+-#include <asm/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/videodev.c linux-2.6.15-rc5-mutex/drivers/media/video/videodev.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/videodev.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/videodev.c	2005-12-12 22:12:50.000000000 +0000
+@@ -29,7 +29,7 @@
+ #include <linux/devfs_fs_kernel.h>
+ #include <asm/uaccess.h>
+ #include <asm/system.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ 
+ #include <linux/videodev.h>
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/vino.c linux-2.6.15-rc5-mutex/drivers/media/video/vino.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/vino.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/vino.c	2005-12-12 21:06:48.000000000 +0000
+@@ -245,7 +245,7 @@ struct vino_framebuffer_queue {
+ 	struct vino_framebuffer *buffer[VINO_FRAMEBUFFER_COUNT_MAX];
+ 
+ 	spinlock_t queue_lock;
+-	struct semaphore queue_sem;
++	struct mutex queue_sem;
+ 	wait_queue_head_t frame_wait_queue;
+ };
+ 
+@@ -283,7 +283,7 @@ struct vino_channel_settings {
+ 	/* the driver is currently processing the queue */
+ 	int capturing;
+ 
+-	struct semaphore sem;
++	struct mutex sem;
+ 	spinlock_t capture_lock;
+ 
+ 	unsigned int users;
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/zoran.h linux-2.6.15-rc5-mutex/drivers/media/video/zoran.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/media/video/zoran.h	2005-01-04 11:13:17.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/media/video/zoran.h	2005-12-12 21:07:22.000000000 +0000
+@@ -395,7 +395,7 @@ struct zoran {
+ 	struct videocodec *codec;	/* video codec */
+ 	struct videocodec *vfe;	/* video front end */
+ 
+-	struct semaphore resource_lock;	/* prevent evil stuff */
++	struct mutex resource_lock;	/* prevent evil stuff */
+ 
+ 	u8 initialized;		/* flag if zoran has been correctly initalized */
+ 	int user;		/* number of current users */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/message/fusion/mptbase.h linux-2.6.15-rc5-mutex/drivers/message/fusion/mptbase.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/message/fusion/mptbase.h	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/message/fusion/mptbase.h	2005-12-12 20:08:51.000000000 +0000
+@@ -417,7 +417,7 @@ typedef struct _MPT_IOCTL {
+ 	u8			 status;	/* current command status */
+ 	u8			 reset;		/* 1 if bus reset allowed */
+ 	u8			 target;	/* target for reset */
+-	struct semaphore	 sem_ioc;
++	struct mutex		sem_ioc;
+ } MPT_IOCTL;
+ 
+ #define MPT_SAS_MGMT_STATUS_RF_VALID	0x02	/* The Reply Frame is VALID */
+@@ -425,7 +425,7 @@ typedef struct _MPT_IOCTL {
+ #define MPT_SAS_MGMT_STATUS_TM_FAILED	0x40	/* User TM request failed */
+ 
+ typedef struct _MPT_SAS_MGMT {
+-	struct semaphore	 mutex;
++	struct mutex		 mutex;
+ 	struct completion	 done;
+ 	u8			 reply[MPT_DEFAULT_FRAME_SIZE]; /* reply frame data */
+ 	u8			 status;	/* current command status */
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/message/fusion/mptctl.c linux-2.6.15-rc5-mutex/drivers/message/fusion/mptctl.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/message/fusion/mptctl.c	2005-12-08 16:23:41.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/message/fusion/mptctl.c	2005-12-12 20:24:32.000000000 +0000
+@@ -2745,7 +2745,7 @@ mptctl_probe(struct pci_dev *pdev, const
+ 	memset(mem, 0, sz);
+ 	ioc->ioctl = (MPT_IOCTL *) mem;
+ 	ioc->ioctl->ioc = ioc;
+-	sema_init(&ioc->ioctl->sem_ioc, 1);
++	init_MUTEX(&ioc->ioctl->sem_ioc);
+ 	return 0;
+ 
+ out_fail:
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/mfd/ucb1x00-core.c linux-2.6.15-rc5-mutex/drivers/mfd/ucb1x00-core.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/mfd/ucb1x00-core.c	2005-11-01 13:19:09.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/mfd/ucb1x00-core.c	2005-12-12 20:32:38.000000000 +0000
+@@ -135,7 +135,7 @@ unsigned int ucb1x00_io_read(struct ucb1
+  */
+ void ucb1x00_adc_enable(struct ucb1x00 *ucb)
+ {
+-	down(&ucb->adc_sem);
++	down_sem(&ucb->adc_sem);
+ 
+ 	ucb->adc_cr |= UCB_ADC_ENA;
+ 
+@@ -193,7 +193,7 @@ void ucb1x00_adc_disable(struct ucb1x00 
+ 	ucb1x00_reg_write(ucb, UCB_ADC_CR, ucb->adc_cr);
+ 	ucb1x00_disable(ucb);
+ 
+-	up(&ucb->adc_sem);
++	up_sem(&ucb->adc_sem);
  }
  
--extern struct semaphore pnp_res_mutex;
-+extern struct mutex pnp_res_mutex;
+ /*
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/mfd/ucb1x00-ts.c linux-2.6.15-rc5-mutex/drivers/mfd/ucb1x00-ts.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/mfd/ucb1x00-ts.c	2005-12-08 16:23:42.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/mfd/ucb1x00-ts.c	2005-12-12 22:12:50.000000000 +0000
+@@ -35,7 +35,7 @@
+ #include <linux/delay.h>
  
- static ssize_t
- pnp_set_current_resources(struct device * dmdev, struct device_attribute *attr, const char * ubuf, size_t count)
+ #include <asm/dma.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/arch/collie.h>
+ #include <asm/mach-types.h>
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/mmc/mmc_queue.h linux-2.6.15-rc5-mutex/drivers/mmc/mmc_queue.h
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/mmc/mmc_queue.h	2005-01-04 11:13:17.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/mmc/mmc_queue.h	2005-12-12 20:58:14.000000000 +0000
+@@ -8,7 +8,7 @@ struct mmc_queue {
+ 	struct mmc_card		*card;
+ 	struct completion	thread_complete;
+ 	wait_queue_head_t	thread_wq;
+-	struct semaphore	thread_sem;
++	struct mutex		thread_sem;
+ 	unsigned int		flags;
+ 	struct request		*req;
+ 	int			(*prep_fn)(struct mmc_queue *, struct request *);
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/mtd/devices/blkmtd.c linux-2.6.15-rc5-mutex/drivers/mtd/devices/blkmtd.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/mtd/devices/blkmtd.c	2005-12-08 16:23:42.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/mtd/devices/blkmtd.c	2005-12-12 21:19:07.000000000 +0000
+@@ -46,7 +46,7 @@ struct blkmtd_dev {
+ 	struct list_head list;
+ 	struct block_device *blkdev;
+ 	struct mtd_info mtd_info;
+-	struct semaphore wrbuf_mutex;
++	struct mutex wrbuf_mutex;
+ };
+ 
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/mtd/devices/block2mtd.c linux-2.6.15-rc5-mutex/drivers/mtd/devices/block2mtd.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/mtd/devices/block2mtd.c	2005-12-08 16:23:42.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/mtd/devices/block2mtd.c	2005-12-12 21:19:09.000000000 +0000
+@@ -31,7 +31,7 @@ struct block2mtd_dev {
+ 	struct list_head list;
+ 	struct block_device *blkdev;
+ 	struct mtd_info mtd;
+-	struct semaphore write_mutex;
++	struct mutex write_mutex;
+ };
+ 
+ 
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/mtd/mtd_blkdevs.c linux-2.6.15-rc5-mutex/drivers/mtd/mtd_blkdevs.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/mtd/mtd_blkdevs.c	2005-12-08 16:23:42.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/mtd/mtd_blkdevs.c	2005-12-12 22:08:48.000000000 +0000
+@@ -19,12 +19,12 @@
+ #include <linux/spinlock.h>
+ #include <linux/hdreg.h>
+ #include <linux/init.h>
+-#include <asm/semaphore.h>
++#include <linux/semaphore.h>
+ #include <asm/uaccess.h>
+ 
+ static LIST_HEAD(blktrans_majors);
+ 
+-extern struct semaphore mtd_table_mutex;
++extern struct mutex mtd_table_mutex;
+ extern struct mtd_info *mtd_table[];
+ 
+ struct mtd_blkcore_priv {
+diff -uNrp /warthog/kernels/linux-2.6.15-rc5/drivers/mtd/mtdblock.c linux-2.6.15-rc5-mutex/drivers/mtd/mtdblock.c
+--- /warthog/kernels/linux-2.6.15-rc5/drivers/mtd/mtdblock.c	2005-12-08 16:23:42.000000000 +0000
++++ linux-2.6.15-rc5-mutex/drivers/mtd/mtdblock.c	2005-12-12 21:19:16.000000000 +0000
+@@ -23,7 +23,7 @@
+ static struct mtdblk_dev {
+ 	struct mtd_info *mtd;
+ 	int count;
+-	struct semaphore cache_sem;
++	struct mutex cache_sem;
+ 	unsigned char *cache_data;
+ 	unsigned long cache_offset;
+ 	unsigned int cache_size;
