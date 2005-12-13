@@ -1,21 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 10:30:57 -0700
+Date: Tue, 13 Dec 2005 10:34:34 -0700
 From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [PATCH 1/3] move rtc compat ioctl handling to fs/compat_ioctl.c
-Message-ID: <20051213173057.GO9286@parisc-linux.org>
-References: <20051213172312.GA16392@lst.de>
+Subject: Re: [PATCH 3/3] sanitize building of fs/compat_ioctl.c
+Message-ID: <20051213173434.GP9286@parisc-linux.org>
+References: <20051213172325.GC16392@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20051213172312.GA16392@lst.de>
+In-Reply-To: <20051213172325.GC16392@lst.de>
 To: Christoph Hellwig <hch@lst.de>
 Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Dec 13, 2005 at 06:23:12PM +0100, Christoph Hellwig wrote:
-> parisc used COMPAT_IOCTL or generic w_long handlers for these whichce
-> is wrong and can't work because the ioctls encode sizeof(unsigned long)
-> in their ioctl number.  parisc also duplicated COMPAT_IOCTL entries for
-> other rtc ioctls which I remove in this patch, too.
+On Tue, Dec 13, 2005 at 06:23:25PM +0100, Christoph Hellwig wrote:
+> [1] parisc still had it's PPP handler left, which is not fully correct
+>     for ppp and besides that ppp uses the generic SIOCPRIV ioctl so it'd
+>     kick in for all netdevice users.  We can introduce a proper handler
+>     in one of the next patch series by adding a compat_ioctl method to
+>     struct net_device but for now let's just kill it - parisc doesn't
+>     compile in mainline anyway and I don't want this to block this
+>     patchset.
 
-ACK.
+parisc probably does compile in mainline these days.  It's certainly
+much closer than it ever was before.  The 64-bit code doesn't compile
+because Andi keeps blocking the is_compat_task() stuff.  Why not do the
+netdevice compat_ioctl patch before killing this?  I'd hate to have to
+back out this patch in the PA tree.
