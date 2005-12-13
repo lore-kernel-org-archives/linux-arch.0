@@ -1,63 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <439EDC3D.5040808@nortel.com> 
-References: <439EDC3D.5040808@nortel.com>  <1134479118.11732.14.camel@localhost.localdomain> <dhowells1134431145@warthog.cambridge.redhat.com> <3874.1134480759@warthog.cambridge.redhat.com> 
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
-Date: Tue, 13 Dec 2005 15:39:33 +0000
-Message-ID: <15167.1134488373@warthog.cambridge.redhat.com>
-Sender: dhowells@redhat.com
-To: Christopher Friesen <cfriesen@nortel.com>
-Cc: David Howells <dhowells@redhat.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Date: Tue, 13 Dec 2005 08:16:39 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+In-Reply-To: <20051213084926.GN23384@wotan.suse.de>
+Message-ID: <Pine.LNX.4.64.0512130812020.15597@g5.osdl.org>
+References: <dhowells1134431145@warthog.cambridge.redhat.com>
+ <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu>
+ <20051213075835.GZ15804@wotan.suse.de> <20051213004257.0f87d814.akpm@osdl.org>
+ <20051213084926.GN23384@wotan.suse.de>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: Andi Kleen <ak@suse.de>
+Cc: Andrew Morton <akpm@osdl.org>, mingo@elte.hu, dhowells@redhat.com, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Christopher Friesen <cfriesen@nortel.com> wrote:
 
-> > Which would be a _lot_ more work. It would involve about ten times as many
-> > changes, I think, and thus be more prone to errors.
+
+On Tue, 13 Dec 2005, Andi Kleen wrote:
 > 
-> "lots of work" has never been a valid reason for not doing a kernel change...
+> Remove -Wdeclaration-after-statement
 
-There are a number of considerations:
+Please don't.
 
- (1) If _I_ am going to be doing the work, then I'm quite happy to reduce the
-     load by 90%. And I think it'd be at least that, probably more. Finding
-     struct semaphore with grep is much easier than finding up/down with grep
-     because of:
+It's a coding style issue. We put our variable declarations where people 
+can _find_ them, not in random places in the code.
 
-	(a) comments
+Putting variables in the middle of code only improves readability when you 
+have messy code. 
 
-	(b) other instances of up/down names, including rw_semaphores
+Now, one feature that _may_ be worth it is the loop counter thing:
 
-     There are a lot fewer instances of struct semaphore than up and down.
+	for (int i = 10; i; i--)
+		...
 
- (2) It makes it easier for other people. In most cases, all they need do is
-     change "struct semaphore" to "struct mutex". If they've used
-     DECLARE_MUTEX() then they need do nothing at all, and if they've used
-     init_MUTEX(), then they don't need to convert sema_init() either.
+kind of syntax actually makes sense and is a real feature (it makes "i" 
+local to the loop, and can actually help people avoid bugs - you can't use 
+"i" by mistake after the loop).
 
- (3) It forces people to reconsider how they want to use their semaphores.
+But I think you need "--std=c99" for gcc to take that.
 
-I have no objection to making life easier for other people. I suspect most
-other people don't care that their semaphores are now mutexes, and think of
-them that way anyway.
-
-I admit that there are downsides:
-
- (1) up and down now do something effectively different (though in most cases
-     it's also exactly the same).
-
- (2) Users of counting semaphores have to change, but they're in the minority
-     by quite a way.
-
- (3) Some people want mutexes to be:
-
-     (a) only releasable in the same context as they were taken
-
-     (b) not accessible in interrupt context, or that (a) applies here also
-
-     (c) not initialisable to the locked state
-
-     But this means that the current usages all have to be carefully audited,
-     and sometimes that unobvious.
-
-David
+			Linus
