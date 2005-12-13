@@ -1,30 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
+Message-ID: <439E38A4.30204@rtr.ca>
+Date: Mon, 12 Dec 2005 21:57:40 -0500
+From: Mark Lord <lkml@rtr.ca>
+MIME-Version: 1.0
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-From: Daniel Walker <dwalker@mvista.com>
-In-Reply-To: <dhowells1134431145@warthog.cambridge.redhat.com>
 References: <dhowells1134431145@warthog.cambridge.redhat.com>
-Content-Type: text/plain
-Date: Mon, 12 Dec 2005 16:57:38 -0800
-Message-Id: <1134435458.22269.11.camel@localhost.localdomain>
-Mime-Version: 1.0
+In-Reply-To: <dhowells1134431145@warthog.cambridge.redhat.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
 To: David Howells <dhowells@redhat.com>
 Cc: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2005-12-12 at 23:45 +0000, David Howells wrote:
+ > (5) Redirects the following to apply to the new mutexes rather than the
+ >     traditional semaphores:
+ >
+ >	down()
+ >	down_trylock()
+ >	down_interruptible()
+ >	up()
 
->  (1) Provides a simple xchg() based semaphore as a default for all
->      architectures that don't wish to override it and provide their own.
-> 
->      Overriding is possible by setting CONFIG_ARCH_IMPLEMENTS_MUTEX and
->      supplying asm/mutex.h
-> 
->      Partial overriding is possible by #defining mutex_grab(), mutex_release()
->      and is_mutex_locked() to perform the appropriate optimised functions.
+This will BREAK a lot of out-of-tree stuff if merged.
 
-Your code is really similar to the RT mutex, which does everything that
-your mutex does at least ? Assuming you've reviewed the RT mutex, why
-would we want to use yours over it?
+So please figure out some way to hang a HUGE banner out there
+so that the external codebases know they need updating.
 
-Daniel
+The simplest way would be to NOT re-use the up()/down() symbols,
+but rather to either keep them as-is (counting semaphores),
+or delete them entirely (so that external code *knows* of the change).
+
+Cheers
