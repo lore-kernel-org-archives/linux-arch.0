@@ -1,32 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 11:13:00 +0100
-From: Ingo Molnar <mingo@elte.hu>
+Date: Tue, 13 Dec 2005 05:15:42 -0500
+From: Jakub Jelinek <jakub@redhat.com>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Message-ID: <20051213101300.GA2178@elte.hu>
-References: <439E122E.3080902@yahoo.com.au> <dhowells1134431145@warthog.cambridge.redhat.com> <22479.1134467689@warthog.cambridge.redhat.com>
+Message-ID: <20051213101542.GJ31785@devserv.devel.redhat.com>
+Reply-To: Jakub Jelinek <jakub@redhat.com>
+References: <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu> <20051213075835.GZ15804@wotan.suse.de> <20051213004257.0f87d814.akpm@osdl.org> <20051213084926.GN23384@wotan.suse.de> <20051213010126.0832356d.akpm@osdl.org> <20051213010233.50fce969.akpm@osdl.org> <20051213100715.GH31785@devserv.devel.redhat.com> <20051213101152.GU23384@wotan.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <22479.1134467689@warthog.cambridge.redhat.com>
-To: David Howells <dhowells@redhat.com>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <20051213101152.GU23384@wotan.suse.de>
+To: Andi Kleen <ak@suse.de>
+Cc: Andrew Morton <akpm@osdl.org>, mingo@elte.hu, dhowells@redhat.com, torvalds@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-
-* David Howells <dhowells@redhat.com> wrote:
-
-> Nick Piggin <nickpiggin@yahoo.com.au> wrote:
+On Tue, Dec 13, 2005 at 11:11:53AM +0100, Andi Kleen wrote:
+> > Guess
+> > 
+> > #if __GNUC__ == 3 && __GNUC_MINOR__ < 3
+> > #error Your compiler is too buggy; it is known to miscompile kernels.
+> > #error    Known good compilers: 3.3, 3.4, 4.0
+> > #endif
+> > 
+> > would be better.  __GNUC__ < 2 will certainly be errored about in other
+> > places and it is bad to suggest compilers that are no longer supported
+> > as known good ones.
 > 
-> > We have atomic_cmpxchg. Can you use that for a sufficient generic
-> > implementation?
+> Are there really any known serious miscompilation with 3.1/3.2?  
+> (I knew it used to miscompile some loops on x86-64, but I think I worked
+> around all that) 
 > 
-> No. CMPXCHG/CAS is not as available as XCHG, and it's also unnecessary.
+> Preventing SLES9 and RHEL3 users from easily compiling new kernels
+> isn't good.
 
-take a look at the PREEMPT_RT implementation of mutexes: it uses 
-cmpxchg(), and thus both the down() and the up() fastpath is lockless!  
-(And that is a mutex type that does alot more things, as it supports 
-priority inheritance.)
+The above is ARM solely, the comment there mentions some ARM postreload bug
+that was only fixed in 3.3+.
+I'd say 3.2 should be generally supported for the time being on arches
+where there weren't significant problems with it.
 
-architectures which dont have cmpxchg can use a spinlock just fine.
-
-	Ingo
+	Jakub
