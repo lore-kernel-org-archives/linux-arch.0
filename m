@@ -1,31 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 11:54:59 +0100
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Message-ID: <20051213105459.GA9879@elte.hu>
-References: <dhowells1134431145@warthog.cambridge.redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <dhowells1134431145@warthog.cambridge.redhat.com>
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <439E1381.2060201@yahoo.com.au> 
+References: <439E1381.2060201@yahoo.com.au>  <dhowells1134431145@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
+Date: Tue, 13 Dec 2005 11:23:01 +0000
+Message-ID: <974.1134472981@warthog.cambridge.redhat.com>
+Sender: dhowells@redhat.com
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Nick Piggin <nickpiggin@yahoo.com.au> wrote:
 
-* David Howells <dhowells@redhat.com> wrote:
+> Any reason why you're setting up your own style of waitqueue in
+> mutex-simple.c instead of just using the kernel's style of waitqueue?
 
->      	init_MUTEX_LOCKED()
-> 	DECLARE_MUTEX_LOCKED()
+Because I can steal the code from FRV's semaphores or rw-semaphores, and this
+way I can be sure of what I'm doing.
 
-please kill these two in the simple mutex implementation - they are a 
-sign of mutexes used as completions.
+Note that the sleeping processes are generally dequeued and dispatched by the
+up() function, which means they don't have to take the spinlock themselves.
+This may be possible to do magically with the waitqueue stuff, but I'm not sure
+how to do it; it's horribly complicated to read through the sources and there
+isn't much documentation.
 
->  (7) Provides a debugging config option CONFIG_DEBUG_MUTEX_OWNER by which the
->      mutex owner can be tracked and by which over-upping can be detected.
+> > +	mb();
+> 
+> This should be smp_mb(), I think.
 
-another simplification: also enforce that only the owner can unlock the 
-mutex. This is what we are doing in the -rt patch. (This rule also 
-ensures that such mutexes can be used for priority inheritance.)
+Yes.
 
-	Ingo
+David
