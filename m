@@ -1,29 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 14:48:54 -0800 (PST)
-Message-Id: <20051213.144854.73497707.davem@davemloft.net>
-Subject: Re: [PATCH 1/3] move rtc compat ioctl handling to fs/compat_ioctl.c
+Date: Tue, 13 Dec 2005 14:51:09 -0800 (PST)
+Message-Id: <20051213.145109.20744871.davem@davemloft.net>
+Subject: Re: [PATCH 3/3] sanitize building of fs/compat_ioctl.c
 From: "David S. Miller" <davem@davemloft.net>
-In-Reply-To: <20051213172312.GA16392@lst.de>
-References: <20051213172312.GA16392@lst.de>
+In-Reply-To: <20051213173434.GP9286@parisc-linux.org>
+References: <20051213172325.GC16392@lst.de>
+	<20051213173434.GP9286@parisc-linux.org>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-To: hch@lst.de
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: matthew@wil.cx
+Cc: hch@lst.de, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Christoph Hellwig <hch@lst.de>
-Date: Tue, 13 Dec 2005 18:23:12 +0100
+From: Matthew Wilcox <matthew@wil.cx>
+Date: Tue, 13 Dec 2005 10:34:34 -0700
 
-> This patch implements generic handling of RTC_IRQP_READ32, RTC_IRQP_SET32,
-> RTC_EPOCH_READ32 and RTC_EPOCH_SET32 in fs/compat_ioctl.c.  It's based on
-> the x86_64 code which needed a little massaging to be endian-clean.
-> 
-> parisc used COMPAT_IOCTL or generic w_long handlers for these whichce
-> is wrong and can't work because the ioctls encode sizeof(unsigned long)
-> in their ioctl number.  parisc also duplicated COMPAT_IOCTL entries for
-> other rtc ioctls which I remove in this patch, too.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> The 64-bit code doesn't compile because Andi keeps blocking the
+> is_compat_task() stuff.
 
-Looks good to me.
+The one place where I ever thought that was necessary, the
+USB async userspace I/O operation stuff, was solved much more
+cleanly with ->compat_ioctl() file_operations handlers.
+
+What do you really still need it for at this point?
+
+I also would like to avoid it if possible.
