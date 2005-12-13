@@ -1,46 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
+Date: Tue, 13 Dec 2005 00:42:57 -0800
+From: Andrew Morton <akpm@osdl.org>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-From: Arjan van de Ven <arjan@infradead.org>
-In-Reply-To: <20051213075441.GB6765@elte.hu>
+Message-Id: <20051213004257.0f87d814.akpm@osdl.org>
+In-Reply-To: <20051213075835.GZ15804@wotan.suse.de>
 References: <dhowells1134431145@warthog.cambridge.redhat.com>
-	 <20051212161944.3185a3f9.akpm@osdl.org>  <20051213075441.GB6765@elte.hu>
-Content-Type: text/plain
-Date: Tue, 13 Dec 2005 09:00:04 +0100
-Message-Id: <1134460804.2866.17.camel@laptopd505.fenrus.org>
+	<20051212161944.3185a3f9.akpm@osdl.org>
+	<20051213075441.GB6765@elte.hu>
+	<20051213075835.GZ15804@wotan.suse.de>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: mingo@elte.hu, dhowells@redhat.com, torvalds@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2005-12-13 at 08:54 +0100, Ingo Molnar wrote:
-> * Andrew Morton <akpm@osdl.org> wrote:
+Andi Kleen <ak@suse.de> wrote:
+>
+> > - i introduced a 'type-sensitive' macro wrapper that switches down() 
+> >   (and the other APIs) to either to the assembly variant (if the 
+> >   variable's type is struct compat_semaphore), or switches it to the new 
+> >   generic mutex (if the type is struct semaphore), at build-time. There 
+> >   is no runtime overhead due to this build-time-switching.
 > 
-> > I'd have thought that the way to do this is to simply reimplement 
-> > down(), up(), down_trylock(), etc using the new xchg-based code and to 
-> > then hunt down those few parts of the kernel which actually use the 
-> > old semaphore's counting feature and convert them to use down_sem(), 
-> > up_sem(), etc.  And rename all the old semaphore code: 
-> > s/down/down_sem/etc.
+> Didn't that drop compatibility with 2.95?  The necessary builtins
+> are only in 3.x. 
 > 
-> even better than that, why not use the solution that we've implemented 
-> for the -rt patchset, more than a year ago?
+> Not that I'm not in favour - I would like to use C99 everywhere 
+> and it would get of the ugly spinlock workaround for i386
+> and x86-64 doesn't support earlier compilers anyways - 
+> but others might not agree.
 > 
-> the solution i took was this:
-> 
-> - i did not touch the 'struct semaphore' namespace, but introduced a
->   'struct compat_semaphore'.
 
-which I think is wrong. THis naming sucks. Sure doing a full sed on the
-tree is not pretty but it's also not THAT painful. And the pain of wrong
-names is something the kernel needs to carry around for years.
-> 
-> - i introduced a 'type-sensitive' macro wrapper that switches down() 
->   (and the other APIs) to either to the assembly variant (if the 
->   variable's type is struct compat_semaphore), or switches it to the new 
->   generic mutex (if the type is struct semaphore), at build-time. There 
->   is no runtime overhead due to this build-time-switching.
+2.95.x is basically buggered at present.  There's one scsi driver which
+doesn't compile due to weird __VA_ARGS__ tricks and the rather useful
+scsi/sd.c is currently getting an ICE.  None of the new SAS code compiles,
+due to extensive use of anonymous unions.  The V4L guys are very good at
+exploiting the gcc-2.95.x macro expansion bug (_why_ does each driver need
+to implement its own debug macros?) and various people keep on sneaking in
+anonymous unions.
 
-while this is a smart trick, I rather prefer seperate functions, just so
-that people are "aware" which they use. Since 99% of the users is a
-mutex anyway, the new names are only used in a few special cases.
+It's time to give up on it and just drink more coffee or play more tetris
+or something, I'm afraid.
