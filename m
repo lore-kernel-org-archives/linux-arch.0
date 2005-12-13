@@ -1,22 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Message-ID: <439EDBC9.5000304@rtr.ca>
-Date: Tue, 13 Dec 2005 09:33:45 -0500
-From: Mark Lord <lkml@rtr.ca>
-MIME-Version: 1.0
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-References: <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu> <1134460804.2866.17.camel@laptopd505.fenrus.org> <20051213090349.GE10088@elte.hu> <20051213090917.GC15804@wotan.suse.de> <20051213093427.GA26097@elte.hu>
-In-Reply-To: <20051213093427.GA26097@elte.hu>
-Content-Type: text/plain; charset=us-ascii; format=flowed
+From: Arjan van de Ven <arjan@infradead.org>
+In-Reply-To: <439EDC3D.5040808@nortel.com>
+References: <1134479118.11732.14.camel@localhost.localdomain>
+	 <dhowells1134431145@warthog.cambridge.redhat.com>
+	 <3874.1134480759@warthog.cambridge.redhat.com>
+	 <439EDC3D.5040808@nortel.com>
+Content-Type: text/plain
+Date: Tue, 13 Dec 2005 15:44:22 +0100
+Message-Id: <1134485062.9814.0.camel@laptopd505.fenrus.org>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Andi Kleen <ak@suse.de>, Arjan van de Ven <arjan@infradead.org>, Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Christopher Friesen <cfriesen@nortel.com>
+Cc: David Howells <dhowells@redhat.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
- >'struct compat_semaphore'
+On Tue, 2005-12-13 at 08:35 -0600, Christopher Friesen wrote:
+> David Howells wrote:
+> > Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
+> 
+> >>It seems to me it would be far far saner to define something like
+> >>
+> >>	sleep_lock(&foo)
+> >>	sleep_unlock(&foo)
+> >>	sleep_trylock(&foo)
+> > 
+> > Which would be a _lot_ more work. It would involve about ten times as many
+> > changes, I think, and thus be more prone to errors.
+> 
+> "lots of work" has never been a valid reason for not doing a kernel 
+> change...
+> 
+> In this case, introducing a new API means the changes can be made over time.
 
-I really think this data type needs a better name,
-one that reflects what it does.
-
-Something like 'struct binary_semaphore' or something.
-
-Cheers
+in this case, doing this change gradual I think is a mistake. We should
+do all of the in-kernel code at least... 
