@@ -1,25 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 10:21:51 +0100
-From: Andi Kleen <ak@suse.de>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Message-ID: <20051213092151.GR23384@wotan.suse.de>
-References: <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu> <20051213075835.GZ15804@wotan.suse.de> <20051213004257.0f87d814.akpm@osdl.org> <20051213084926.GN23384@wotan.suse.de> <20051213090941.GA20490@elte.hu>
+From: Arjan van de Ven <arjan@infradead.org>
+In-Reply-To: <20051213090349.GE10088@elte.hu>
+References: <dhowells1134431145@warthog.cambridge.redhat.com>
+	 <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu>
+	 <1134460804.2866.17.camel@laptopd505.fenrus.org>
+	 <20051213090349.GE10088@elte.hu>
+Content-Type: text/plain
+Date: Tue, 13 Dec 2005 10:19:30 +0100
+Message-Id: <1134465570.7362.0.camel@laptopd505.fenrus.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20051213090941.GA20490@elte.hu>
+Content-Transfer-Encoding: 7bit
 To: Ingo Molnar <mingo@elte.hu>
-Cc: Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, dhowells@redhat.com, torvalds@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> > Or start using icecream (http://wiki.kde.org/icecream)
+On Tue, 2005-12-13 at 10:03 +0100, Ingo Molnar wrote:
+> * Arjan van de Ven <arjan@infradead.org> wrote:
 > 
-> distcc is pretty good too. I have a minimal kernel build done in 19 
-> seconds, a fuller build (1.5MB bzImage that boots on all my testboxes) 
-> done in 45 seconds, using gcc 4.0.2.
+> > > even better than that, why not use the solution that we've implemented 
+> > > for the -rt patchset, more than a year ago?
+> > > 
+> > > the solution i took was this:
+> > > 
+> > > - i did not touch the 'struct semaphore' namespace, but introduced a
+> > >   'struct compat_semaphore'.
+> > 
+> > which I think is wrong. THis naming sucks. Sure doing a full sed on 
+> > the tree is not pretty but it's also not THAT painful. And the pain of 
+> > wrong names is something the kernel needs to carry around for years.
+> 
+> well, i'm all for renaming struct semaphore to struct mutex, but dont 
+> the same arguments apply as to 'struct timer_list'?
 
-icecream is better though - it reacts dynamically to your network
-and it handles different installed compiler versions and cross compilation
-nicely.
-
--Andi
+don't think so; this is not a "lets do them one by one over the year",
+this is a "do them all right now at once" move.
