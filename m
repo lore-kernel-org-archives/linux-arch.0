@@ -1,35 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 11:00:15 +0100
-From: Ingo Molnar <mingo@elte.hu>
+Date: Tue, 13 Dec 2005 05:07:15 -0500
+From: Jakub Jelinek <jakub@redhat.com>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Message-ID: <20051213100015.GA32194@elte.hu>
-References: <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu> <20051213090219.GA27857@infradead.org> <20051213093949.GC26097@elte.hu>
+Message-ID: <20051213100715.GH31785@devserv.devel.redhat.com>
+Reply-To: Jakub Jelinek <jakub@redhat.com>
+References: <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu> <20051213075835.GZ15804@wotan.suse.de> <20051213004257.0f87d814.akpm@osdl.org> <20051213084926.GN23384@wotan.suse.de> <20051213010126.0832356d.akpm@osdl.org> <20051213010233.50fce969.akpm@osdl.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20051213093949.GC26097@elte.hu>
-To: Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <20051213010233.50fce969.akpm@osdl.org>
+To: Andrew Morton <akpm@osdl.org>
+Cc: ak@suse.de, mingo@elte.hu, dhowells@redhat.com, torvalds@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-
-* Ingo Molnar <mingo@elte.hu> wrote:
-
-> > On Tue, Dec 13, 2005 at 08:54:41AM +0100, Ingo Molnar wrote:
-> > > - i did not touch the 'struct semaphore' namespace, but introduced a
-> > >   'struct compat_semaphore'.
-> > 
-> > Because it's totally braindead.  Your compat_semaphore is a real 
-> > semaphore and your semaphore is a mutex.  So name them as such.
+On Tue, Dec 13, 2005 at 01:02:33AM -0800, Andrew Morton wrote:
+> Andrew Morton <akpm@osdl.org> wrote:
+> >
+> > Thus far I have this:
+> >
 > 
-> well, i had the choice between a 30K patch, a 300K patch and a 3000K 
-> patch. I went for the 30K patch ;-)
+> And this:
+> 
+> 
+> From: Andrew Morton <akpm@osdl.org>
+> 
+> Remove various things which were checking for gcc-1.x and gcc-2.x compilers.
 
-in that sense i'm all for going for the 300K patch, which is roughly the 
-direction David is heading into: rename to 'struct mutex' but keep the 
-down/up APIs, and introduce sem_down()/sem_up()/ for the cases that need 
-full semaphores.
+> --- devel/arch/arm/kernel/asm-offsets.c~remove-gcc2-checks	2005-12-13 00:51:14.000000000 -0800
+> +++ devel-akpm/arch/arm/kernel/asm-offsets.c	2005-12-13 00:53:27.000000000 -0800
+> @@ -23,18 +23,13 @@
+>  #error Sorry, your compiler targets APCS-26 but this kernel requires APCS-32
+>  #endif
+>  /*
+> - * GCC 2.95.1, 2.95.2: ignores register clobber list in asm().
+>   * GCC 3.0, 3.1: general bad code generation.
+>   * GCC 3.2.0: incorrect function argument offset calculation.
+>   * GCC 3.2.x: miscompiles NEW_AUX_ENT in fs/binfmt_elf.c
+>   *            (http://gcc.gnu.org/PR8896) and incorrect structure
+>   *	      initialisation in fs/jffs2/erase.c
+>   */
+> -#if __GNUC__ < 2 || \
+> -   (__GNUC__ == 2 && __GNUC_MINOR__ < 95) || \
+> -   (__GNUC__ == 2 && __GNUC_MINOR__ == 95 && __GNUC_PATCHLEVEL__ != 0 && \
+> -					     __GNUC_PATCHLEVEL__ < 3) || \
+> -   (__GNUC__ == 3 && __GNUC_MINOR__ < 3)
+> +#if __GNUC__ < 2 || (__GNUC__ == 3 && __GNUC_MINOR__ < 3)
+>  #error Your compiler is too buggy; it is known to miscompile kernels.
+>  #error    Known good compilers: 2.95.3, 2.95.4, 2.96, 3.3
+>  #endif
 
-i dont think the 3000K patch (full API rename, introduction of 
-mutex_down()/mutex_up()) is realistic.
+Guess
 
-	Ingo
+#if __GNUC__ == 3 && __GNUC_MINOR__ < 3
+#error Your compiler is too buggy; it is known to miscompile kernels.
+#error    Known good compilers: 3.3, 3.4, 4.0
+#endif
+
+would be better.  __GNUC__ < 2 will certainly be errored about in other
+places and it is bad to suggest compilers that are no longer supported
+as known good ones.
+
+	Jakub
