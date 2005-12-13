@@ -1,56 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
 From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-In-Reply-To: <dhowells1134431145@warthog.cambridge.redhat.com>
-References: <dhowells1134431145@warthog.cambridge.redhat.com>
+In-Reply-To: <200512131347.30464.oliver@neukum.org>
+References: <439E122E.3080902@yahoo.com.au> <20051213101300.GA2178@elte.hu>
+	 <20051213103420.GA6681@elte.hu>  <200512131347.30464.oliver@neukum.org>
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Date: Tue, 13 Dec 2005 13:05:18 +0000
-Message-Id: <1134479118.11732.14.camel@localhost.localdomain>
+Date: Tue, 13 Dec 2005 13:09:31 +0000
+Message-Id: <1134479371.11732.19.camel@localhost.localdomain>
 Mime-Version: 1.0
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Oliver Neukum <oliver@neukum.org>
+Cc: Ingo Molnar <mingo@elte.hu>, David Howells <dhowells@redhat.com>, Nick Piggin <nickpiggin@yahoo.com.au>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Llu, 2005-12-12 at 23:45 +0000, David Howells wrote:
->  (5) Redirects the following to apply to the new mutexes rather than the
->      traditional semaphores:
+On Maw, 2005-12-13 at 13:47 +0100, Oliver Neukum wrote:
+> > spinlock to do the cmpxchg. This means that there wont be one single 
+> > global spinlock to emulate cmpxchg, but the mutex's own spinlock can be 
+> > used for it.
 > 
-> 	down()
-> 	down_trylock()
-> 	down_interruptible()
-> 	up()
-> 	init_MUTEX()
->      	init_MUTEX_LOCKED()
-> 	DECLARE_MUTEX()
-> 	DECLARE_MUTEX_LOCKED()
+> Can't you use the pointer as a hash input?
 
-And you've audited every occurence ?
-
->      On the basis that most usages of semaphores are as mutexes, this makes
->      sense for in most cases it's just then a matter of changing the type from
->      struct semaphore to struct mutex. 
-
-You propose to rename the existing up and down, which are counting
-semaphores, documented and used that way everywhere with mutexes which
-are not. Worse still up/down are, second to P/V, the usual forms of
-referring to _counting_ semaphores.
-
-It seems to me it would be far far saner to define something like
-
-	sleep_lock(&foo)
-	sleep_unlock(&foo)
-	sleep_trylock(&foo)
-
-given the new mutex interface is actually a sleeping interface with the
-semantics of the spin_lock interface. Its then obvious what it does, you
-don't randomly break other drivers you've not reviewed and the interface
-is intuitive rather than obfuscated.
-
-It won't take long for people to then change the name of the performance
-critical cases and the others will catch up in time.
-
-It also saves breaking every piece of out of tree kernel code for now
-good reason.
-
-Alan
+Some platforms already do this for certain sets of operations like
+atomic_t. The downside however is that you no longer control the lock
+contention or cache line bouncing. It becomes a question of luck rather
+than science as to how well it scales.
