@@ -1,33 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: Oliver Neukum <oliver@neukum.org>
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Date: Tue, 13 Dec 2005 14:24:08 +0100
-References: <439E122E.3080902@yahoo.com.au> <200512131347.30464.oliver@neukum.org> <1134479371.11732.19.camel@localhost.localdomain>
-In-Reply-To: <1134479371.11732.19.camel@localhost.localdomain>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200512131424.09522.oliver@neukum.org>
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1134479118.11732.14.camel@localhost.localdomain> 
+References: <1134479118.11732.14.camel@localhost.localdomain>  <dhowells1134431145@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
+Date: Tue, 13 Dec 2005 13:32:39 +0000
+Message-ID: <3874.1134480759@warthog.cambridge.redhat.com>
+Sender: dhowells@redhat.com
 To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Ingo Molnar <mingo@elte.hu>, David Howells <dhowells@redhat.com>, Nick Piggin <nickpiggin@yahoo.com.au>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Am Dienstag, 13. Dezember 2005 14:09 schrieb Alan Cox:
-> On Maw, 2005-12-13 at 13:47 +0100, Oliver Neukum wrote:
-> > > spinlock to do the cmpxchg. This means that there wont be one single 
-> > > global spinlock to emulate cmpxchg, but the mutex's own spinlock can be 
-> > > used for it.
+Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
+
+> >  (5) Redirects the following to apply to the new mutexes rather than the
+> >      traditional semaphores:
 > > 
-> > Can't you use the pointer as a hash input?
+> > 	down()
+> ...
 > 
-> Some platforms already do this for certain sets of operations like
-> atomic_t. The downside however is that you no longer control the lock
-> contention or cache line bouncing. It becomes a question of luck rather
-> than science as to how well it scales.
+> And you've audited every occurence ?
 
-On the other hand you don't control cache eviction either, do you?
+Outside of the arch directories, yes; but I don't know that I've made the
+correct decision in 100% of the cases.
 
-	Regards
-		Oliver
+I've changed some of the uses into completions, and found about a dozen or so
+uses of counting semaphores; but the vast majority of occurrences seem to be
+wanting mutex behaviour.
+
+> It seems to me it would be far far saner to define something like
+> 
+> 	sleep_lock(&foo)
+> 	sleep_unlock(&foo)
+> 	sleep_trylock(&foo)
+
+Which would be a _lot_ more work. It would involve about ten times as many
+changes, I think, and thus be more prone to errors.
+
+> Its then obvious what it does, you don't randomly break other drivers you've
+> not reviewed and the interface is intuitive rather than obfuscated.
+
+I've attempted to review everything in 2.6.15-rc5 outside of most of the archs.
+I can't easily modify any driver not contained in that tarball, but at least
+the compiler will barf and force a review.
+
+> It won't take long for people to then change the name of the performance
+> critical cases and the others will catch up in time.
+
+It took about ten hours to go through the declarations of struct semaphore and
+review them; I hate to think how long it'd take to go through all the ups and
+downs too.
+
+> It also saves breaking every piece of out of tree kernel code for now
+> good reason.
+
+But my patch means the changes required are in the most cases minimal: just
+changing struct semaphore to struct mutex is sufficient for the vast majority
+of cases.
+
+Your way requires a lot more work, both in the tree and out of it.
+
+David
