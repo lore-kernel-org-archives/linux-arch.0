@@ -1,62 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1134479118.11732.14.camel@localhost.localdomain> 
-References: <1134479118.11732.14.camel@localhost.localdomain>  <dhowells1134431145@warthog.cambridge.redhat.com> 
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
-Date: Tue, 13 Dec 2005 13:32:39 +0000
-Message-ID: <3874.1134480759@warthog.cambridge.redhat.com>
-Sender: dhowells@redhat.com
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Date: Tue, 13 Dec 2005 14:45:08 +0100
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+Message-ID: <20051213134508.GA933@elte.hu>
+References: <20051213105459.GA9879@elte.hu> <dhowells1134431145@warthog.cambridge.redhat.com> <1036.1134473085@warthog.cambridge.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1036.1134473085@warthog.cambridge.redhat.com>
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
 
-> >  (5) Redirects the following to apply to the new mutexes rather than the
-> >      traditional semaphores:
+* David Howells <dhowells@redhat.com> wrote:
+
+> Ingo Molnar <mingo@elte.hu> wrote:
+> 
+> > >      	init_MUTEX_LOCKED()
+> > > 	DECLARE_MUTEX_LOCKED()
 > > 
-> > 	down()
-> ...
+> > please kill these two in the simple mutex implementation - they are a 
+> > sign of mutexes used as completions.
 > 
-> And you've audited every occurence ?
+> That can be done later. It's not necessary to do it in this particular 
+> patch set.
 
-Outside of the arch directories, yes; but I don't know that I've made the
-correct decision in 100% of the cases.
+i disagree - it's necessary that we dont build complexities into the 
+'simple' mutex type, or the whole game starts again. I.e. the 'owner 
+unlocks the mutex' rule must be enforced - which makes 
+DECLARE_MUTEX_LOCKED() meaningless.
 
-I've changed some of the uses into completions, and found about a dozen or so
-uses of counting semaphores; but the vast majority of occurrences seem to be
-wanting mutex behaviour.
-
-> It seems to me it would be far far saner to define something like
-> 
-> 	sleep_lock(&foo)
-> 	sleep_unlock(&foo)
-> 	sleep_trylock(&foo)
-
-Which would be a _lot_ more work. It would involve about ten times as many
-changes, I think, and thus be more prone to errors.
-
-> Its then obvious what it does, you don't randomly break other drivers you've
-> not reviewed and the interface is intuitive rather than obfuscated.
-
-I've attempted to review everything in 2.6.15-rc5 outside of most of the archs.
-I can't easily modify any driver not contained in that tarball, but at least
-the compiler will barf and force a review.
-
-> It won't take long for people to then change the name of the performance
-> critical cases and the others will catch up in time.
-
-It took about ten hours to go through the declarations of struct semaphore and
-review them; I hate to think how long it'd take to go through all the ups and
-downs too.
-
-> It also saves breaking every piece of out of tree kernel code for now
-> good reason.
-
-But my patch means the changes required are in the most cases minimal: just
-changing struct semaphore to struct mutex is sufficient for the vast majority
-of cases.
-
-Your way requires a lot more work, both in the tree and out of it.
-
-David
+	Ingo
