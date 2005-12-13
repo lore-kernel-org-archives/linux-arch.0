@@ -1,28 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 15:00:54 -0800 (PST)
-Message-Id: <20051213.150054.130520681.davem@davemloft.net>
-Subject: Re: [PATCH 3/3] sanitize building of fs/compat_ioctl.c
-From: "David S. Miller" <davem@davemloft.net>
-In-Reply-To: <20051213225347.GT9286@parisc-linux.org>
-References: <20051213173434.GP9286@parisc-linux.org>
-	<20051213.145109.20744871.davem@davemloft.net>
-	<20051213225347.GT9286@parisc-linux.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+From: Nikita Danilov <nikita@clusterfs.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-To: matthew@wil.cx
-Cc: hch@lst.de, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <17311.22374.434801.753813@gargle.gargle.HOWL>
+Date: Wed, 14 Dec 2005 02:21:10 +0300
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+In-Reply-To: <1134479713.11732.25.camel@localhost.localdomain>
+References: <dhowells1134431145@warthog.cambridge.redhat.com>
+	<1134479118.11732.14.camel@localhost.localdomain>
+	<1134479713.11732.25.camel@localhost.localdomain>
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Matthew Wilcox <matthew@wil.cx>
-Date: Tue, 13 Dec 2005 15:53:47 -0700
+Alan Cox writes:
+ > Actually a PS to this while I think about it. spin_locks and mutex type
+ > locks could both do with a macro for
+ > 
+ > 	call_locked(&lock, foo(a,b,c,d))
 
-> On Tue, Dec 13, 2005 at 02:51:09PM -0800, David S. Miller wrote:
-> > What do you really still need it for at this point?
-> 
-> PPP.
+reiser4 code was publicly humiliated for such macros, but indeed they
+are useful. The only problem is that one needs two macros: one for foo()
+returning void and one for all other cases.
 
-Please show me offline how PPP needs this in a way that
-can't be solved by ->compat_ioctl() or similar.  Thanks.
-I looked at arch/parisc/kernel/ioctl32.c and didn't see
-anything obvious.
+ > 
+ > to cut down on all the error path forgot to release a lock type errors.
+ > 
+
+Nikita.
