@@ -1,30 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
+Message-ID: <439EE1E9.9050203@nortel.com>
+Date: Tue, 13 Dec 2005 08:59:53 -0600
+From: "Christopher Friesen" <cfriesen@nortel.com>
+MIME-Version: 1.0
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-From: Arjan van de Ven <arjan@infradead.org>
-In-Reply-To: <439EDBC9.5000304@rtr.ca>
-References: <dhowells1134431145@warthog.cambridge.redhat.com>
-	 <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu>
-	 <1134460804.2866.17.camel@laptopd505.fenrus.org>
-	 <20051213090349.GE10088@elte.hu> <20051213090917.GC15804@wotan.suse.de>
-	 <20051213093427.GA26097@elte.hu>  <439EDBC9.5000304@rtr.ca>
-Content-Type: text/plain
-Date: Tue, 13 Dec 2005 15:45:08 +0100
-Message-Id: <1134485109.9814.2.camel@laptopd505.fenrus.org>
-Mime-Version: 1.0
+References: <1134479118.11732.14.camel@localhost.localdomain>	 <dhowells1134431145@warthog.cambridge.redhat.com>	 <3874.1134480759@warthog.cambridge.redhat.com>	 <439EDC3D.5040808@nortel.com> <1134485062.9814.0.camel@laptopd505.fenrus.org>
+In-Reply-To: <1134485062.9814.0.camel@laptopd505.fenrus.org>
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
-To: Mark Lord <lkml@rtr.ca>
-Cc: Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: David Howells <dhowells@redhat.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2005-12-13 at 09:33 -0500, Mark Lord wrote:
->  >'struct compat_semaphore'
-> 
-> I really think this data type needs a better name,
-> one that reflects what it does.
-> 
-> Something like 'struct binary_semaphore' or something.
+Arjan van de Ven wrote:
+> On Tue, 2005-12-13 at 08:35 -0600, Christopher Friesen wrote:
 
-see the thing is.. this is the counting one ;)
-the -rt naming is just too confusing (but done to keep patch maintenance
-reasonable, which is fair enough for that purpose, but not good enough
-for kernel.org)
+>>In this case, introducing a new API means the changes can be made over time.
+> 
+> 
+> in this case, doing this change gradual I think is a mistake. We should
+> do all of the in-kernel code at least... 
+
+This means verifying all the users before patch submission, which may be 
+problematic.
+
+I guess the point I'm trying to make is that if you create a new API you 
+have the option of converting the obvious cases first, which should 
+cover the majority of users.  Anywhere the behaviour is non-obvious can 
+be left using the old API, and the out-of-tree users will continue to 
+work correctly.
+
+Chris
