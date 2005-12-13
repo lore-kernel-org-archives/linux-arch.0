@@ -1,39 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 10:39:49 +0100
-From: Ingo Molnar <mingo@elte.hu>
+Date: Tue, 13 Dec 2005 01:44:37 -0800
+From: Andrew Morton <akpm@osdl.org>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Message-ID: <20051213093949.GC26097@elte.hu>
-References: <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu> <20051213090219.GA27857@infradead.org>
+Message-Id: <20051213014437.6954d26c.akpm@osdl.org>
+In-Reply-To: <20051213092437.GS23384@wotan.suse.de>
+References: <dhowells1134431145@warthog.cambridge.redhat.com>
+	<20051212161944.3185a3f9.akpm@osdl.org>
+	<20051213075441.GB6765@elte.hu>
+	<20051213075835.GZ15804@wotan.suse.de>
+	<20051213004257.0f87d814.akpm@osdl.org>
+	<20051213084926.GN23384@wotan.suse.de>
+	<20051213010126.0832356d.akpm@osdl.org>
+	<20051213090517.GQ23384@wotan.suse.de>
+	<20051213011540.3070176f.akpm@osdl.org>
+	<20051213092437.GS23384@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20051213090219.GA27857@infradead.org>
-To: Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: Andi Kleen <ak@suse.de>
+Cc: mingo@elte.hu, dhowells@redhat.com, torvalds@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-
-* Christoph Hellwig <hch@infradead.org> wrote:
-
-> On Tue, Dec 13, 2005 at 08:54:41AM +0100, Ingo Molnar wrote:
-> > - i did not touch the 'struct semaphore' namespace, but introduced a
-> >   'struct compat_semaphore'.
+Andi Kleen <ak@suse.de> wrote:
+>
+> > There are a few places in the tree which refuse to compile with 3.1 and 3.2.
 > 
-> Because it's totally braindead.  Your compat_semaphore is a real 
-> semaphore and your semaphore is a mutex.  So name them as such.
+>  Really? Which ones? 
 
-well, i had the choice between a 30K patch, a 300K patch and a 3000K 
-patch. I went for the 30K patch ;-)
-
-> > - i introduced a 'type-sensitive' macro wrapper that switches down() 
-> >   (and the other APIs) to either to the assembly variant (if the 
-> >   variable's type is struct compat_semaphore), or switches it to the new 
-> >   generic mutex (if the type is struct semaphore), at build-time. There 
-> >   is no runtime overhead due to this build-time-switching.
-> 
-> And this one is probably is a great help to win the obsfucated C 
-> contests, but otherwise just harmfull.
-
-i never found it to be harmful in any way, and we've now got a year of 
-experience with them. Could you elaborate?
-
-	Ingo
+grep for __GNUC_MINOR__
