@@ -1,52 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 23:18:10 +0100
-From: Adrian Bunk <bunk@stusta.de>
+Date: Tue, 13 Dec 2005 14:31:47 -0800
+From: Paul Jackson <pj@sgi.com>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Message-ID: <20051213221810.GU23349@stusta.de>
-References: <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu> <20051213075835.GZ15804@wotan.suse.de> <20051213004257.0f87d814.akpm@osdl.org> <20051213084926.GN23384@wotan.suse.de> <20051213010126.0832356d.akpm@osdl.org> <20051213090517.GQ23384@wotan.suse.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20051213090517.GQ23384@wotan.suse.de>
-To: Andi Kleen <ak@suse.de>
-Cc: Andrew Morton <akpm@osdl.org>, mingo@elte.hu, dhowells@redhat.com, torvalds@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-Id: <20051213143147.d2a57fb3.pj@sgi.com>
+In-Reply-To: <6281.1134498864@warthog.cambridge.redhat.com>
+References: <20051213094053.33284360.pj@sgi.com>
+	<dhowells1134431145@warthog.cambridge.redhat.com>
+	<20051212161944.3185a3f9.akpm@osdl.org>
+	<20051213075441.GB6765@elte.hu>
+	<20051213090219.GA27857@infradead.org>
+	<20051213093949.GC26097@elte.hu>
+	<20051213100015.GA32194@elte.hu>
+	<6281.1134498864@warthog.cambridge.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: David Howells <dhowells@redhat.com>
+Cc: mingo@elte.hu, hch@infradead.org, akpm@osdl.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Dec 13, 2005 at 10:05:18AM +0100, Andi Kleen wrote:
-> On Tue, Dec 13, 2005 at 01:01:26AM -0800, Andrew Morton wrote:
-> > Andi Kleen <ak@suse.de> wrote:
-> > >
-> > > Can you please apply the following patch then? 
-> > > 
-> > >  Remove -Wdeclaration-after-statement
-> > 
-> > OK.
-> > 
-> > Thus far I have this:
-> 
-> Would it be possible to drop support for gcc 3.0 too? 
-> AFAIK it has never been widely used. If we assume 3.1+ minimum it has the 
-> advantage that named assembly arguments work, which make
-> the inline assembly often a lot easier to read and maintain.
+> I'd be especially impressed if you can get it to also analyse the context in
+> which the semaphore is used and determine whether or not it should be a
+> counting semaphore, a mutex or a completion
 
-3.2+ would be better than 3.1+
+That would impress me too, if I could do that.
 
-Remember that 3.2 would have been named 3.1.2 if there wasn't the C++
-ABI change, and I don't remember any big Linux distribution actually 
-using gcc 3.1 as default compiler.
+I think that is well beyond my humble capabilities.
 
-And since gcc 3.2 was released one and a half years before kernel 2.6.0, 
-I doubt there's any distribution both supporting kernel 2.6 and not 
-shipping any gcc >= 3.2 .
-
-> -Andi
-
-cu
-Adrian
+The sed/perl script to make the textual change should be practical.
+Indeed, I would claim that the initial big patch -should- be done
+that way.  Keep refining a sed script until manual inspection and
+trial builds of all arch's, allconfig, show that it seems to be right.
+Each time you find an error doing this, don't manually edit the
+kernel source; rather refine the script and try applying it again.
 
 -- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
+                  I won't rest till it's the best ...
+                  Programmer, Linux Scalability
+                  Paul Jackson <pj@sgi.com> 1.925.600.0401
