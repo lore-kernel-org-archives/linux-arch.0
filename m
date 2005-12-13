@@ -1,34 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 14:45:08 +0100
-From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Message-ID: <20051213134508.GA933@elte.hu>
-References: <20051213105459.GA9879@elte.hu> <dhowells1134431145@warthog.cambridge.redhat.com> <1036.1134473085@warthog.cambridge.redhat.com>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+In-Reply-To: <3874.1134480759@warthog.cambridge.redhat.com>
+References: <1134479118.11732.14.camel@localhost.localdomain>
+	 <dhowells1134431145@warthog.cambridge.redhat.com>
+	 <3874.1134480759@warthog.cambridge.redhat.com>
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Date: Tue, 13 Dec 2005 14:00:08 +0000
+Message-Id: <1134482408.11732.30.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1036.1134473085@warthog.cambridge.redhat.com>
 To: David Howells <dhowells@redhat.com>
 Cc: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-
-* David Howells <dhowells@redhat.com> wrote:
-
-> Ingo Molnar <mingo@elte.hu> wrote:
+On Maw, 2005-12-13 at 13:32 +0000, David Howells wrote:
+> > Its then obvious what it does, you don't randomly break other drivers you've
+> > not reviewed and the interface is intuitive rather than obfuscated.
 > 
-> > >      	init_MUTEX_LOCKED()
-> > > 	DECLARE_MUTEX_LOCKED()
-> > 
-> > please kill these two in the simple mutex implementation - they are a 
-> > sign of mutexes used as completions.
-> 
-> That can be done later. It's not necessary to do it in this particular 
-> patch set.
+> I've attempted to review everything in 2.6.15-rc5 outside of most of the archs.
+> I can't easily modify any driver not contained in that tarball, but at least
+> the compiler will barf and force a review.
 
-i disagree - it's necessary that we dont build complexities into the 
-'simple' mutex type, or the whole game starts again. I.e. the 'owner 
-unlocks the mutex' rule must be enforced - which makes 
-DECLARE_MUTEX_LOCKED() meaningless.
 
-	Ingo
+Is there a reason you didnt answer the comment about down/up being the
+usual way computing refers to the operations on counting semaphores but
+just deleted it ?
