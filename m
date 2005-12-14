@@ -1,34 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Subject: Re: [PATCH 2/3] add ->compat_ioctl to dasd
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <20051213172320.GB16392@lst.de>
-References: <20051213172320.GB16392@lst.de>
-Content-Type: text/plain
-Date: Wed, 14 Dec 2005 13:07:14 +0100
-Message-Id: <1134562034.5496.3.camel@localhost.localdomain>
+Date: Wed, 14 Dec 2005 12:17:39 +0000
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+Message-ID: <20051214121739.GA20587@infradead.org>
+References: <1134479118.11732.14.camel@localhost.localdomain> <dhowells1134431145@warthog.cambridge.redhat.com> <3874.1134480759@warthog.cambridge.redhat.com> <15167.1134488373@warthog.cambridge.redhat.com> <1134490205.11732.97.camel@localhost.localdomain> <1134556187.2894.7.camel@laptopd505.fenrus.org> <1134558188.25663.5.camel@localhost.localdomain> <1134558507.2894.22.camel@laptopd505.fenrus.org> <1134559470.25663.22.camel@localhost.localdomain> <20051214033536.05183668.akpm@osdl.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20051214033536.05183668.akpm@osdl.org>
+To: Andrew Morton <akpm@osdl.org>
+Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, arjan@infradead.org, dhowells@redhat.com, cfriesen@nortel.com, torvalds@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2005-12-13 at 18:23 +0100, Christoph Hellwig wrote:
-> Add a compat_ioctl method to the dasd driver so the last entries in
-> arch/s390/kernel/compat_ioctl.c can go away.  Unlike the previous
-> attempt this one does not replace the ioctl method with an
-> unlocked_ioctl method so that the ioctl_by_bdev calls in s390 partition
-> code continue to work.
+On Wed, Dec 14, 2005 at 03:35:36AM -0800, Andrew Morton wrote:
+> 
+> Could someone please remind me why we're even discussing this, given that
+> mutex_down() is slightly more costly than current down(), and mutex_up() is
+> appreciably more costly than current up()?
 
-Looks better but still doesn't work. The dasd driver specific ioctls do
-work but there are some generic ones that are only available on the
-normal ioctl path, including BLKFLSBUF, BLKROSET and HDIO_GETGEO. That
-makes e.g. the 32 bit version of fdasd fail with "IOCTL error".
+That's a good question.  The new mutex implementation here is big regression
+to what we have right now.  What I had in mind when brainstorming something
+like this would be to have a slow-path pure C semaphore implementation that
+is cross-platform, and keep the current semaphore code as mutex.  Once that
+is done the mutex code could be optimized further because it doesn't need to
+deal with the broader uses of the semaphore, and we could add lots of useful
+debugging.
 
--- 
-blue skies,
-   Martin
+The current patchkit is far from that.
 
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
+What might be more useful as a start is to implement a mutex type ontop
+of the current semaphore that has lots of additional checks for the DEBUG
+build so we have nice diagnostics.  Once we have all users of mutex semantics
+using that API we can change the underlying implementation to whatever we want.
