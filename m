@@ -1,43 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Subject: Re: [PATCH 2/3] add ->compat_ioctl to dasd
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <20051214122405.GA1556@lst.de>
-References: <20051213172320.GB16392@lst.de>
-	 <1134562034.5496.3.camel@localhost.localdomain>
-	 <20051214122405.GA1556@lst.de>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+From: Thomas Gleixner <tglx@linutronix.de>
+Reply-To: tglx@linutronix.de
+In-Reply-To: <16315.1134563707@warthog.cambridge.redhat.com>
+References: <1134559121.25663.14.camel@localhost.localdomain>
+	 <13820.1134558138@warthog.cambridge.redhat.com>
+	 <20051213143147.d2a57fb3.pj@sgi.com> <20051213094053.33284360.pj@sgi.com>
+	 <dhowells1134431145@warthog.cambridge.redhat.com>
+	 <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu>
+	 <20051213090219.GA27857@infradead.org> <20051213093949.GC26097@elte.hu>
+	 <20051213100015.GA32194@elte.hu>
+	 <6281.1134498864@warthog.cambridge.redhat.com>
+	 <14242.1134558772@warthog.cambridge.redhat.com>
+	 <16315.1134563707@warthog.cambridge.redhat.com>
 Content-Type: text/plain
-Date: Wed, 14 Dec 2005 13:38:58 +0100
-Message-Id: <1134563938.5496.6.camel@localhost.localdomain>
+Date: Wed, 14 Dec 2005 14:58:50 +0100
+Message-Id: <1134568731.4275.4.camel@tglx.tec.linutronix.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, Paul Jackson <pj@sgi.com>, mingo@elte.hu, hch@infradead.org, akpm@osdl.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 2005-12-14 at 13:24 +0100, Christoph Hellwig wrote:
-> On Wed, Dec 14, 2005 at 01:07:14PM +0100, Martin Schwidefsky wrote:
-> > On Tue, 2005-12-13 at 18:23 +0100, Christoph Hellwig wrote:
-> > > Add a compat_ioctl method to the dasd driver so the last entries in
-> > > arch/s390/kernel/compat_ioctl.c can go away.  Unlike the previous
-> > > attempt this one does not replace the ioctl method with an
-> > > unlocked_ioctl method so that the ioctl_by_bdev calls in s390 partition
-> > > code continue to work.
-> > 
-> > Looks better but still doesn't work. The dasd driver specific ioctls do
-> > work but there are some generic ones that are only available on the
-> > normal ioctl path, including BLKFLSBUF, BLKROSET and HDIO_GETGEO. That
-> > makes e.g. the 32 bit version of fdasd fail with "IOCTL error".
+On Wed, 2005-12-14 at 12:35 +0000, David Howells wrote:
+> Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
 > 
-> Sorry, that's the ENOIOCTLCMD thing again, I forgot it in the first
-> revision of the last patch aswell.
+> > Why bother. As has already been discussed up and down are the natural
+> > and normal names for counting semaphores. You don't need to obsolete the
+> > old API thats just silly, you need to add a new one and wait for people
+> > to use it.
+> 
+> The vast majority of ups and downs are actually mutex related not semaphore
+> related, so by majority share, up/down perhaps ought to be repurposed to
+> mutexes: they _are_ the preeminent uses.
+> 
+> From my modified tree, I see:
+> 
+> 	semaphore	up	down	down_in	down_try
+> 	Counting	41	59	1	0
+> 	Mutex		4405	2824	362	107
+> 
+> > The old API is still very useful for some applications that want
+> > counting semaphores.
+> 
+> Whilst that is true, they're in a small minority, and it'd be easier to change
+> them.
 
-Oh yes, I should have remember that fix. It works fine now. 
+You can do a full scripted rename of up/down to the mutex API and then
+fix up the 100 places used by semaphores manually.
 
--- 
-blue skies,
-   Martin
-
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
+	tglx
