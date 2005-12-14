@@ -1,31 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: Nikita Danilov <nikita@clusterfs.com>
+Message-ID: <439F6EAB.6030903@yahoo.com.au>
+Date: Wed, 14 Dec 2005 12:00:27 +1100
+From: Nick Piggin <nickpiggin@yahoo.com.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <17311.22374.434801.753813@gargle.gargle.HOWL>
-Date: Wed, 14 Dec 2005 02:21:10 +0300
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-In-Reply-To: <1134479713.11732.25.camel@localhost.localdomain>
-References: <dhowells1134431145@warthog.cambridge.redhat.com>
-	<1134479118.11732.14.camel@localhost.localdomain>
-	<1134479713.11732.25.camel@localhost.localdomain>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+References: <439E122E.3080902@yahoo.com.au>  <dhowells1134431145@warthog.cambridge.redhat.com> <22479.1134467689@warthog.cambridge.redhat.com>
+In-Reply-To: <22479.1134467689@warthog.cambridge.redhat.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
+To: David Howells <dhowells@redhat.com>
 Cc: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Alan Cox writes:
- > Actually a PS to this while I think about it. spin_locks and mutex type
- > locks could both do with a macro for
- > 
- > 	call_locked(&lock, foo(a,b,c,d))
+David Howells wrote:
+> Nick Piggin <nickpiggin@yahoo.com.au> wrote:
+> 
+> 
+>>We have atomic_cmpxchg. Can you use that for a sufficient generic
+>>implementation?
+> 
+> 
+> No. CMPXCHG/CAS is not as available as XCHG, and it's also unnecessary.
+> 
 
-reiser4 code was publicly humiliated for such macros, but indeed they
-are useful. The only problem is that one needs two macros: one for foo()
-returning void and one for all other cases.
+atomic_cmpxchg should be available on all platforms.
 
- > 
- > to cut down on all the error path forgot to release a lock type errors.
- > 
+While it may be strictly unnecessary, if it can be used to avoid
+having a crappy default implementation that requires it to be
+reimplemented in all architectures then that would be a good thing.
 
-Nikita.
+Any arguments about bad scalability or RT behaviour of the hashed
+spinlock emulation atomic_t implementations are silly because they
+are used by all atomic_ operations. It is an arch implementation
+detail that generic code should not have to worry about.
+
+-- 
+SUSE Labs, Novell Inc.
+
+Send instant messages to your online friends http://au.messenger.yahoo.com 
