@@ -1,30 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Wed, 14 Dec 2005 07:19:27 -0500
-From: Jakub Jelinek <jakub@redhat.com>
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Message-ID: <20051214121927.GY31785@devserv.devel.redhat.com>
-Reply-To: Jakub Jelinek <jakub@redhat.com>
-References: <dhowells1134431145@warthog.cambridge.redhat.com> <3874.1134480759@warthog.cambridge.redhat.com> <15167.1134488373@warthog.cambridge.redhat.com> <1134490205.11732.97.camel@localhost.localdomain> <1134556187.2894.7.camel@laptopd505.fenrus.org> <1134558188.25663.5.camel@localhost.localdomain> <1134558507.2894.22.camel@laptopd505.fenrus.org> <1134559470.25663.22.camel@localhost.localdomain> <20051214033536.05183668.akpm@osdl.org> <15412.1134561432@warthog.cambridge.redhat.com>
+Date: Wed, 14 Dec 2005 13:24:05 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 2/3] add ->compat_ioctl to dasd
+Message-ID: <20051214122405.GA1556@lst.de>
+References: <20051213172320.GB16392@lst.de> <1134562034.5496.3.camel@localhost.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <15412.1134561432@warthog.cambridge.redhat.com>
-To: David Howells <dhowells@redhat.com>
-Cc: Arjan van de Ven <arjan@infradead.org>, Andrew Morton <akpm@osdl.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, cfriesen@nortel.com, torvalds@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <1134562034.5496.3.camel@localhost.localdomain>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Christoph Hellwig <hch@lst.de>, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Dec 14, 2005 at 11:57:12AM +0000, David Howells wrote:
->  (1) Those that only have a limited exchange functionality. Several archs do
->      fall into this category: arm, frv, mn10300, 68000, i386.
+On Wed, Dec 14, 2005 at 01:07:14PM +0100, Martin Schwidefsky wrote:
+> On Tue, 2005-12-13 at 18:23 +0100, Christoph Hellwig wrote:
+> > Add a compat_ioctl method to the dasd driver so the last entries in
+> > arch/s390/kernel/compat_ioctl.c can go away.  Unlike the previous
+> > attempt this one does not replace the ioctl method with an
+> > unlocked_ioctl method so that the ioctl_by_bdev calls in s390 partition
+> > code continue to work.
+> 
+> Looks better but still doesn't work. The dasd driver specific ioctls do
+> work but there are some generic ones that are only available on the
+> normal ioctl path, including BLKFLSBUF, BLKROSET and HDIO_GETGEO. That
+> makes e.g. the 32 bit version of fdasd fail with "IOCTL error".
 
-sparc (32-bit CPUs) fall into this category too.  V7 CPUs have just
-atomic load byte and store 0xff, later CPUs have swap insn, which is like
-ia32 xchg.
+Sorry, that's the ENOIOCTLCMD thing again, I forgot it in the first
+revision of the last patch aswell.
 
->  (2) Those that have CMPXCHG or equivalent: 68020, i486+, x86_64, ia64, sparc.
+Here's the fix for that:
 
-sparc64 here.
 
->  (3) Those that have LL/SC or equivalent: mips (some), alpha, powerpc, arm6.
-
-	Jakub
+Index: linux-2.6.15-rc5/drivers/s390/block/dasd_ioctl.c
+===================================================================
+--- linux-2.6.15-rc5.orig/drivers/s390/block/dasd_ioctl.c	2005-12-13 18:25:34.000000000 +0100
++++ linux-2.6.15-rc5/drivers/s390/block/dasd_ioctl.c	2005-12-14 13:23:16.000000000 +0100
+@@ -127,7 +127,7 @@
+ 	rval = dasd_ioctl(filp->f_dentry->d_inode, filp, cmd, arg);
+ 	unlock_kernel();
+ 
+-	return rval;
++	return (rval == -EINVAL) ? -ENOIOCTLCMD : rval;
+ }
+ 
+ static int
