@@ -1,31 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Wed, 14 Dec 2005 03:40:37 +0100
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [PATCH 3/3] sanitize building of fs/compat_ioctl.c
-Message-ID: <20051214024037.GC23384@wotan.suse.de>
-References: <20051213173434.GP9286@parisc-linux.org> <20051213.145109.20744871.davem@davemloft.net> <p73r78g8nft.fsf@verdi.suse.de> <20051213.182340.102535288.davem@davemloft.net>
+Date: Wed, 14 Dec 2005 09:31:33 +0100
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+Message-ID: <20051214083133.GA17532@elte.hu>
+References: <439EDC3D.5040808@nortel.com> <1134479118.11732.14.camel@localhost.localdomain> <dhowells1134431145@warthog.cambridge.redhat.com> <3874.1134480759@warthog.cambridge.redhat.com> <15167.1134488373@warthog.cambridge.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20051213.182340.102535288.davem@davemloft.net>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: ak@suse.de, hch@lst.de, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <15167.1134488373@warthog.cambridge.redhat.com>
+To: David Howells <dhowells@redhat.com>
+Cc: Christopher Friesen <cfriesen@nortel.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> I suppose.  We could also funnel down ->compat_{read,write}() and
-> so on down the call chain, but that would likely be even uglier.
 
-The problem is that this would need to be done for all variants
-(write, writev, aio_write, send{,msg,to} etc.) Same for read. I probably forgot
-one or two. 
+* David Howells <dhowells@redhat.com> wrote:
 
+>  (3) Some people want mutexes to be:
+> 
+>      (a) only releasable in the same context as they were taken
+> 
+>      (b) not accessible in interrupt context, or that (a) applies here also
+> 
+>      (c) not initialisable to the locked state
+> 
+>      But this means that the current usages all have to be carefully audited,
+>      and sometimes that unobvious.
 
-> I guess with is_compat_task() we can do the netlink and pfkeyv2 compat
-> stuff on ia64/x86_64.  I don't look forward to reviewing a patch
-> implementing that, however :-/
+(a) and (c) is not a big problem, are they are essentially the 
+constraints of -rt mutexes. As long as there's good debugging code, it's 
+very much doable. We dont want to change semantics _yet again_, later 
+down the line.
 
-And iptables, although that would be probably *really* ugly.
-It's a bit of a sore spot on x86-64 though. 64bit kernel with full
-32bit userland works usually great except for iptables and ipsec.
-
--Andi
+	Ingo
