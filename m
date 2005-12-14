@@ -1,140 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Message-ID: <43A08D50.30707@yahoo.com.au>
-Date: Thu, 15 Dec 2005 08:23:28 +1100
-From: Nick Piggin <nickpiggin@yahoo.com.au>
+Message-ID: <43A0AD54.6050109@rtr.ca>
+Date: Wed, 14 Dec 2005 18:40:04 -0500
+From: Mark Lord <lkml@rtr.ca>
 MIME-Version: 1.0
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-References: <439FFF63.6020105@yahoo.com.au>  <439F6EAB.6030903@yahoo.com.au> <439E122E.3080902@yahoo.com.au> <dhowells1134431145@warthog.cambridge.redhat.com> <22479.1134467689@warthog.cambridge.redhat.com> <13613.1134557656@warthog.cambridge.redhat.com> <15157.1134560767@warthog.cambridge.redhat.com>
-In-Reply-To: <15157.1134560767@warthog.cambridge.redhat.com>
+References: <1134559121.25663.14.camel@localhost.localdomain>	 <13820.1134558138@warthog.cambridge.redhat.com>	 <20051213143147.d2a57fb3.pj@sgi.com> <20051213094053.33284360.pj@sgi.com>	 <dhowells1134431145@warthog.cambridge.redhat.com>	 <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu>	 <20051213090219.GA27857@infradead.org> <20051213093949.GC26097@elte.hu>	 <20051213100015.GA32194@elte.hu>	 <6281.1134498864@warthog.cambridge.redhat.com>	 <14242.1134558772@warthog.cambridge.redhat.com>	 <16315.1134563707@warthog.cambridge.redhat.com> <1134568731.4275.4.camel@tglx.tec.linutronix.de>
+In-Reply-To: <1134568731.4275.4.camel@tglx.tec.linutronix.de>
 Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: tglx@linutronix.de
+Cc: David Howells <dhowells@redhat.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Paul Jackson <pj@sgi.com>, mingo@elte.hu, hch@infradead.org, akpm@osdl.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-David Howells wrote:
-> Nick Piggin <nickpiggin@yahoo.com.au> wrote:
-> 
-> 
->>> (1) If it's using spinlocks, then it's pointless to use atomic_cmpxchg.
->>>
->>
->>Why?
-> 
-> 
-> Because you're going to end up with loops around the cmpxchg bit in certain
-> places, and if you do, then you've effectively got this:
-> 
-> 	spin_lock_irqsave(mutexlock, flags);
-> 	do {
-> 		new = calc_state(orig, oldstate);
-> 		spin_lock_irqsave(atomiclock, flags2);
-> 		oldstate = __cmpxchg(&mutex->count, orig, new)
-> 		spin_unlock_irqrestore(atomiclock, flags2);
-+> 	} while (oldstate != orig);
-> 	spin_unlock_irqrestore(mutexlock, flags);
-> 
-> which is very bad. You _should_ have:
-> 
-> 	spin_lock_irqsave(mutexlock, flags);
-> 	oldstate = mutex->count;
-> 	mutex->count = modify_state(mutex->count);
-> 	spin_unlock_irqrestore(mutexlock, flags);
-> 
-> instead.
+Thomas Gleixner wrote:
+>
+> You can do a full scripted rename of up/down to the mutex API and then
+> fix up the 100 places used by semaphores manually.
 
-I was under the impression that with cmpxchg, you don't need the mutex lock.
-If you do then sure, cmpxchg doesn't buy you anything (even if the arch does
-natively support it).
+Again, folks, this only works for current in-tree kernel code.
 
-> 
-> No. If you have XCHG/TAS/BSET/SWAP, but not CMPXCHG/CAS then you can do a lot
-> better by not pretending that cmpxchg exists. That way the fast paths don't
-> have to take any spinlocks at all.
-> 
-> And if you've got LLD/SCD or LDARX/STDCX or similar then you can probably do
-> better than CMPXCHG also.
-> 
-> If you want an illustration, then consider this:
-> 
-> 	#define __mutex_trylock(mutex)					\
-> 	({								\
-> 		int oldstate;						\
-> 									\
-> 		asm volatile("swap%I0 %M0,%1"				\
-> 			     : "+m"(mutex->state), "=r"(oldstate)	\
-> 			     : "1"(1)					\
-> 			     : "memory");				\
-> 									\
-> 		oldstate == 0;						\
-> 	})
-> 
-> 	static inline int down_trylock(struct mutex *mutex)
-> 	{
-> 		if (likely(__mutex_trylock(mutex))) {
-> 			/* success */
-> 			return 0;
-> 		}
-> 
-> 		/* failure */
-> 		return 1;
-> 	}
-> 
-> 	void fastcall __sched down(struct mutex *mutex)
-> 	{
-> 		if (down_trylock(mutex) == 1)
-> 			__down(mutex);
-> 	}
-> 
-> 	EXPORT_SYMBOL(down);
-> 
-> On FRV, this can be made to map to:
-> 
-> 	setlos	0x1,gr4
-> 	ori	gr4,0,gr5
-> 	swap	@(gr8,gr0),gr5
-> 	subicc	gr5,0,gr0,icc0
-> 	beqlr	icc0,0x2	<-- probable-rated conditional return
-> 	sethi.p	0xc01c,gr14
-> 	setlo	0x9df0,gr14
-> 	jmpl	@(gr14,gr0)
-> 
-> That's an out-of-line fast path of _5_ instructions. Attempting to emulate
-> CMPXCHG requires a lot more. On FRV, the case is alleviated somewhat since it
-> doesn't yet provide spinlocks and support SMP, but you'd be very hard pressed
-> to squeeze it down to just five instructions.
-> 
+There are huge amounts of kernel code out-of-tree that still use
+up/down as (or potentially as) counting semaphores.
 
-I think all of about parisc and sparc32 "emulate" cmpxchg with spinlocks.
-For architectures like i386, x86_64, ppc, ia64, etc. the cmpxchg will
-give good code.
+Yes, some of that code is closed-source, but most of it is open-source
+stuff in people's "queues", such as the network patch-o-matic queue
+and other stuff.  Lots of open-source out-of-tree drivers, too.
 
-Then if FRV was still unhappy, then you could override the mutex in that
-architecture. This just seemed better to me than having a crappy simple
-implementation that *everyone* will want to override (and I see FRV
-overrides it as well, I don't see how you can complain about that).
+Re-using the existing up()/down() names for a new purpose is
+a very very Bad Idea.  Removing up()/down() entirely is not quite so bad,
+because at least then people will eventually notice the change.
 
-But I guess that's moot if you can't to do a lockless version using
-cmpxchg.
+Leaving up()/down() as-is is really the most sensible option.
 
-> 
->>> (2) atomic_t is a 32-bit type, and on a 64-bit platform I will want a
->>>     64-bit type so that I can stick the owner address in there (I've got
->>>     a second variant not yet released).
->>>
->>
->>I'm sure you could use a seperate field as it would be a debug
->>option, right?
-> 
-> 
-> True. Ingo suggested this, and it seems reasonable. OTOH, shrinking the count
-> by 4 bytes would allow the whole structure to shrink by 8 on a 64-bit platform
-> with a 4-byte spinlock, which would be even better.
-> 
-
-I'm sure you'd manage. spinlocks can get pretty large with debugging on too.
-
--- 
-SUSE Labs, Novell Inc.
-
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+Cheers
