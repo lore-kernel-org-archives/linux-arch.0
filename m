@@ -1,46 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Wed, 14 Dec 2005 13:24:05 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 2/3] add ->compat_ioctl to dasd
-Message-ID: <20051214122405.GA1556@lst.de>
-References: <20051213172320.GB16392@lst.de> <1134562034.5496.3.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1134562034.5496.3.camel@localhost.localdomain>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Christoph Hellwig <hch@lst.de>, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1134559121.25663.14.camel@localhost.localdomain> 
+References: <1134559121.25663.14.camel@localhost.localdomain>  <13820.1134558138@warthog.cambridge.redhat.com> <20051213143147.d2a57fb3.pj@sgi.com> <20051213094053.33284360.pj@sgi.com> <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu> <20051213090219.GA27857@infradead.org> <20051213093949.GC26097@elte.hu> <20051213100015.GA32194@elte.hu> <6281.1134498864@warthog.cambridge.redhat.com> <14242.1134558772@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
+Date: Wed, 14 Dec 2005 12:35:07 +0000
+Message-ID: <16315.1134563707@warthog.cambridge.redhat.com>
+Sender: dhowells@redhat.com
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: David Howells <dhowells@redhat.com>, Paul Jackson <pj@sgi.com>, mingo@elte.hu, hch@infradead.org, akpm@osdl.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Dec 14, 2005 at 01:07:14PM +0100, Martin Schwidefsky wrote:
-> On Tue, 2005-12-13 at 18:23 +0100, Christoph Hellwig wrote:
-> > Add a compat_ioctl method to the dasd driver so the last entries in
-> > arch/s390/kernel/compat_ioctl.c can go away.  Unlike the previous
-> > attempt this one does not replace the ioctl method with an
-> > unlocked_ioctl method so that the ioctl_by_bdev calls in s390 partition
-> > code continue to work.
-> 
-> Looks better but still doesn't work. The dasd driver specific ioctls do
-> work but there are some generic ones that are only available on the
-> normal ioctl path, including BLKFLSBUF, BLKROSET and HDIO_GETGEO. That
-> makes e.g. the 32 bit version of fdasd fail with "IOCTL error".
+Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
 
-Sorry, that's the ENOIOCTLCMD thing again, I forgot it in the first
-revision of the last patch aswell.
+> Why bother. As has already been discussed up and down are the natural
+> and normal names for counting semaphores. You don't need to obsolete the
+> old API thats just silly, you need to add a new one and wait for people
+> to use it.
 
-Here's the fix for that:
+The vast majority of ups and downs are actually mutex related not semaphore
+related, so by majority share, up/down perhaps ought to be repurposed to
+mutexes: they _are_ the preeminent uses.
 
+From my modified tree, I see:
 
-Index: linux-2.6.15-rc5/drivers/s390/block/dasd_ioctl.c
-===================================================================
---- linux-2.6.15-rc5.orig/drivers/s390/block/dasd_ioctl.c	2005-12-13 18:25:34.000000000 +0100
-+++ linux-2.6.15-rc5/drivers/s390/block/dasd_ioctl.c	2005-12-14 13:23:16.000000000 +0100
-@@ -127,7 +127,7 @@
- 	rval = dasd_ioctl(filp->f_dentry->d_inode, filp, cmd, arg);
- 	unlock_kernel();
- 
--	return rval;
-+	return (rval == -EINVAL) ? -ENOIOCTLCMD : rval;
- }
- 
- static int
+	semaphore	up	down	down_in	down_try
+	Counting	41	59	1	0
+	Mutex		4405	2824	362	107
+
+> The old API is still very useful for some applications that want
+> counting semaphores.
+
+Whilst that is true, they're in a small minority, and it'd be easier to change
+them.
+
+David
