@@ -1,37 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Tue, 13 Dec 2005 18:23:40 -0800 (PST)
-Message-Id: <20051213.182340.102535288.davem@davemloft.net>
+Date: Wed, 14 Dec 2005 03:40:37 +0100
+From: Andi Kleen <ak@suse.de>
 Subject: Re: [PATCH 3/3] sanitize building of fs/compat_ioctl.c
-From: "David S. Miller" <davem@davemloft.net>
-In-Reply-To: <p73r78g8nft.fsf@verdi.suse.de>
-References: <20051213173434.GP9286@parisc-linux.org>
-	<20051213.145109.20744871.davem@davemloft.net>
-	<p73r78g8nft.fsf@verdi.suse.de>
+Message-ID: <20051214024037.GC23384@wotan.suse.de>
+References: <20051213173434.GP9286@parisc-linux.org> <20051213.145109.20744871.davem@davemloft.net> <p73r78g8nft.fsf@verdi.suse.de> <20051213.182340.102535288.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-To: ak@suse.de
-Cc: hch@lst.de, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20051213.182340.102535288.davem@davemloft.net>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: ak@suse.de, hch@lst.de, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Andi Kleen <ak@suse.de>
-Date: 14 Dec 2005 02:41:42 +0100
+> I suppose.  We could also funnel down ->compat_{read,write}() and
+> so on down the call chain, but that would likely be even uglier.
 
-> "David S. Miller" <davem@davemloft.net> writes:
-> 
-> > What do you really still need it for at this point?
-> 
-> input needs it :/ Take a look at drivers/input/evdev.c:evdev_write_compat
- ...
-> I have given in for now. Assuming the test is done on a flag that is only set
-> by the system call entry path. But I still think it will result in
-> a lot of ugly code. For for read/write it's hard to avoid because
-> there are so many variants and we have too many message passing
-> protocols now.
+The problem is that this would need to be done for all variants
+(write, writev, aio_write, send{,msg,to} etc.) Same for read. I probably forgot
+one or two. 
 
-I suppose.  We could also funnel down ->compat_{read,write}() and
-so on down the call chain, but that would likely be even uglier.
 
-I guess with is_compat_task() we can do the netlink and pfkeyv2 compat
-stuff on ia64/x86_64.  I don't look forward to reviewing a patch
-implementing that, however :-/
+> I guess with is_compat_task() we can do the netlink and pfkeyv2 compat
+> stuff on ia64/x86_64.  I don't look forward to reviewing a patch
+> implementing that, however :-/
+
+And iptables, although that would be probably *really* ugly.
+It's a bit of a sore spot on x86-64 though. 64bit kernel with full
+32bit userland works usually great except for iptables and ipsec.
+
+-Andi
