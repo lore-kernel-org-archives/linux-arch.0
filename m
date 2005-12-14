@@ -1,37 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
+Date: Wed, 14 Dec 2005 10:46:57 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-From: Arjan van de Ven <arjan@infradead.org>
-In-Reply-To: <1134490205.11732.97.camel@localhost.localdomain>
-References: <439EDC3D.5040808@nortel.com>
-	 <1134479118.11732.14.camel@localhost.localdomain>
-	 <dhowells1134431145@warthog.cambridge.redhat.com>
-	 <3874.1134480759@warthog.cambridge.redhat.com>
-	 <15167.1134488373@warthog.cambridge.redhat.com>
-	 <1134490205.11732.97.camel@localhost.localdomain>
-Content-Type: text/plain
-Date: Wed, 14 Dec 2005 11:29:41 +0100
-Message-Id: <1134556187.2894.7.camel@laptopd505.fenrus.org>
+Message-ID: <20051214104657.GA30957@flint.arm.linux.org.uk>
+References: <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu> <20051213075835.GZ15804@wotan.suse.de> <20051213004257.0f87d814.akpm@osdl.org> <20051213084926.GN23384@wotan.suse.de> <20051213010126.0832356d.akpm@osdl.org> <20051213010233.50fce969.akpm@osdl.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: David Howells <dhowells@redhat.com>, Christopher Friesen <cfriesen@nortel.com>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20051213010233.50fce969.akpm@osdl.org>
+Sender: Russell King <rmk@arm.linux.org.uk>
+To: Andrew Morton <akpm@osdl.org>
+Cc: ak@suse.de, mingo@elte.hu, dhowells@redhat.com, torvalds@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2005-12-13 at 16:10 +0000, Alan Cox wrote:
-> On Maw, 2005-12-13 at 15:39 +0000, David Howells wrote:
-> >  (3) Some people want mutexes to be:
-> > 
-> >      (a) only releasable in the same context as they were taken
-> > 
-> >      (b) not accessible in interrupt context, or that (a) applies here also
-> > 
-> >      (c) not initialisable to the locked state
-> > 
-> >      But this means that the current usages all have to be carefully audited,
-> >      and sometimes that unobvious.
-> 
-> Only if you insist on replacing them immediately. If you submit a
-> *small* patch which just adds the new mutexes then a series of small
-> patches can gradually convert code where mutexes are better. 
+On Tue, Dec 13, 2005 at 01:02:33AM -0800, Andrew Morton wrote:
+> diff -puN arch/arm/kernel/asm-offsets.c~remove-gcc2-checks arch/arm/kernel/asm-offsets.c
+> --- devel/arch/arm/kernel/asm-offsets.c~remove-gcc2-checks	2005-12-13 00:51:14.000000000 -0800
+> +++ devel-akpm/arch/arm/kernel/asm-offsets.c	2005-12-13 00:53:27.000000000 -0800
+> @@ -23,18 +23,13 @@
+>  #error Sorry, your compiler targets APCS-26 but this kernel requires APCS-32
+>  #endif
+>  /*
+> - * GCC 2.95.1, 2.95.2: ignores register clobber list in asm().
+>   * GCC 3.0, 3.1: general bad code generation.
+>   * GCC 3.2.0: incorrect function argument offset calculation.
+>   * GCC 3.2.x: miscompiles NEW_AUX_ENT in fs/binfmt_elf.c
+>   *            (http://gcc.gnu.org/PR8896) and incorrect structure
+>   *	      initialisation in fs/jffs2/erase.c
+>   */
+> -#if __GNUC__ < 2 || \
+> -   (__GNUC__ == 2 && __GNUC_MINOR__ < 95) || \
+> -   (__GNUC__ == 2 && __GNUC_MINOR__ == 95 && __GNUC_PATCHLEVEL__ != 0 && \
+> -					     __GNUC_PATCHLEVEL__ < 3) || \
+> -   (__GNUC__ == 3 && __GNUC_MINOR__ < 3)
+> +#if __GNUC__ < 2 || (__GNUC__ == 3 && __GNUC_MINOR__ < 3)
 
-this unfortunately is not very realistic in practice... 
+Shouldn't this be:
+
++#if __GNUC__ < 3 || (__GNUC__ == 3 && __GNUC_MINOR__ < 3)
+
+?
+
+>  #error Your compiler is too buggy; it is known to miscompile kernels.
+>  #error    Known good compilers: 2.95.3, 2.95.4, 2.96, 3.3
+
+And this should also have the 2.95 and 2.96 stuff edited out.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
