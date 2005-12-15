@@ -1,44 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Wed, 14 Dec 2005 18:46:10 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-In-Reply-To: <1134605406.2542.91.camel@tglx.tec.linutronix.de>
-Message-ID: <Pine.LNX.4.64.0512141840370.3292@g5.osdl.org>
-References: <1134559121.25663.14.camel@localhost.localdomain>
- <13820.1134558138@warthog.cambridge.redhat.com>  <20051213143147.d2a57fb3.pj@sgi.com>
- <20051213094053.33284360.pj@sgi.com>  <dhowells1134431145@warthog.cambridge.redhat.com>
-  <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu>
- <20051213090219.GA27857@infradead.org> <20051213093949.GC26097@elte.hu>
- <20051213100015.GA32194@elte.hu>  <6281.1134498864@warthog.cambridge.redhat.com>
-  <14242.1134558772@warthog.cambridge.redhat.com>  <16315.1134563707@warthog.cambridge.redhat.com>
-  <1134568731.4275.4.camel@tglx.tec.linutronix.de> <43A0AD54.6050109@rtr.ca>
-  <1134604667.2542.86.camel@tglx.tec.linutronix.de> <43A0B172.7020800@rtr.ca>
- <1134605406.2542.91.camel@tglx.tec.linutronix.de>
+References: <dhowells1134431145@warthog.cambridge.redhat.com>
+	<20051212161944.3185a3f9.akpm@osdl.org>
+	<20051213075441.GB6765@elte.hu> <20051213075835.GZ15804@wotan.suse.de>
+	<20051213004257.0f87d814.akpm@osdl.org>
+	<20051213084926.GN23384@wotan.suse.de>
+	<20051213090429.GC27857@infradead.org>
+	<20051213101141.GI31785@devserv.devel.redhat.com>
+	<20051213101938.GA30118@infradead.org>
+From: Miles Bader <miles.bader@necel.com>
+Reply-To: Miles Bader <miles@gnu.org>
+Date: Thu, 15 Dec 2005 13:53:11 +0900
+In-Reply-To: <20051213101938.GA30118@infradead.org> (Christoph Hellwig's message of "Tue, 13 Dec 2005 10:19:38 +0000")
+Message-Id: <buod5jz6jwo.fsf@dhapc248.dev.necel.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mark Lord <lkml@rtr.ca>, David Howells <dhowells@redhat.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Paul Jackson <pj@sgi.com>, mingo@elte.hu, hch@infradead.org, akpm@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Sender: miles.bader@necel.com
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Jakub Jelinek <jakub@redhat.com>, Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, mingo@elte.hu, dhowells@redhat.com, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Christoph Hellwig <hch@infradead.org> writes:
+> But serious, having to look all over the source instead of just a block
+> beginning decreases code readability a lot.
 
+My experience is quite the opposite.
 
-On Thu, 15 Dec 2005, Thomas Gleixner wrote:
-> 
-> Well, depends on the POV. A counting sempahore is a different beast than
-> a mutex. At least as far as my limited knowledge of concurrency controls
-> goes.
+Being forced to put declarations at the beginning of the block in
+practice means that people simply separate declarations from the first
+assignment.  That uglifies and bloats the code, and seems to often cause
+bugs as well (because people seem to often not pay attention to what
+happens to a variable between the declaration and first assignment;
+having it simply _not exist_ before the first assignment helps quite a
+bit).
 
-A real semaphore is counting. 
-
-Dammit, unless the pure mutex has a _huge_ performance advantage on major 
-architectures, we're not changing it. There's absolutely zero point. A 
-counting semaphore is a perfectly fine mutex - the fact that it can _also_ 
-be used to allow more than 1 user into a critical region and generally do 
-other things is totally immaterial.
-
-It's _extra_ stupid to re-use the names "down()" and "up()" on a 
-non-counting mutex, since then the names make zero sense at all. Use 
-"lock_mutex()" and "unlock_mutex()" or something, and don't break existing 
-code for no measurable gain.
-
-			Linus
+-Miles
+-- 
+Run away!  Run away!
