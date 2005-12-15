@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Thu, 15 Dec 2005 11:21:15 -0800
+Date: Thu, 15 Dec 2005 11:28:55 -0800
 From: Andrew Morton <akpm@osdl.org>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Message-Id: <20051215112115.7c4bfbea.akpm@osdl.org>
-In-Reply-To: <Pine.LNX.4.64.0512150945410.3292@g5.osdl.org>
-References: <20051215085602.c98f22ef.pj@sgi.com>
+Message-Id: <20051215112855.31669dc1.akpm@osdl.org>
+In-Reply-To: <4336.1134661053@warthog.cambridge.redhat.com>
+References: <20051214155432.320f2950.akpm@osdl.org>
 	<1134559121.25663.14.camel@localhost.localdomain>
 	<13820.1134558138@warthog.cambridge.redhat.com>
 	<20051213143147.d2a57fb3.pj@sgi.com>
@@ -20,35 +20,18 @@ References: <20051215085602.c98f22ef.pj@sgi.com>
 	<16315.1134563707@warthog.cambridge.redhat.com>
 	<1134568731.4275.4.camel@tglx.tec.linutronix.de>
 	<43A0AD54.6050109@rtr.ca>
-	<20051214155432.320f2950.akpm@osdl.org>
-	<17313.29296.170999.539035@gargle.gargle.HOWL>
-	<1134658579.12421.59.camel@localhost.localdomain>
-	<4743.1134662116@warthog.cambridge.redhat.com>
-	<7140.1134667736@warthog.cambridge.redhat.com>
-	<Pine.LNX.4.64.0512150945410.3292@g5.osdl.org>
+	<4336.1134661053@warthog.cambridge.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: dhowells@redhat.com, pj@sgi.com, nikita@clusterfs.com, alan@lxorguk.ukuu.org.uk, tglx@linutronix.de, mingo@elte.hu, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: lkml@rtr.ca, tglx@linutronix.de, alan@lxorguk.ukuu.org.uk, pj@sgi.com, mingo@elte.hu, hch@infradead.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Linus Torvalds <torvalds@osdl.org> wrote:
+David Howells <dhowells@redhat.com> wrote:
 >
-> On Thu, 15 Dec 2005, David Howells wrote:
->  > 
->  > 	FROM				TO
->  > 	==============================	=========================
->  > 	DECLARE_MUTEX			DECLARE_SEM_MUTEX
->  > 	DECLARE_MUTEX_LOCKED		DECLARE_SEM_MUTEX_LOCKED
->  > 	Proper counting semaphore	DECLARE_SEM
-> 
->  That sounds fine.
+> So... Would you then object to an implementation of a mutex appearing in the
+>  tree which semaphores that are being used as strict mutexes can be migrated
+>  over to as the opportunity arises?
 
-They should be renamed to DEFINE_* while we're there.  A "declaration" is
-"this thing is defined somewhere else".  A "definition" is "this thing is
-defined here".
-
-> I wouldn't be adverse to doing that
-
-argh.
+That would be sane.  The semaphore->completion migration didn't hurt.
