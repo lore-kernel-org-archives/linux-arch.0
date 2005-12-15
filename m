@@ -1,20 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <Pine.LNX.4.64.0512150817170.3292@g5.osdl.org> 
-References: <Pine.LNX.4.64.0512150817170.3292@g5.osdl.org>  <17313.37200.728099.873988@gargle.gargle.HOWL> <1134559121.25663.14.camel@localhost.localdomain> <13820.1134558138@warthog.cambridge.redhat.com> <20051213143147.d2a57fb3.pj@sgi.com> <20051213094053.33284360.pj@sgi.com> <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu> <20051213090219.GA27857@infradead.org> <20051213093949.GC26097@elte.hu> <20051213100015.GA32194@elte.hu> <6281.1134498864@warthog.cambridge.redhat.com> <14242.1134558772@warthog.cambridge.redhat.com> <16315.1134563707@warthog.cambridge.redhat.com> <1134568731.4275.4.camel@tglx.tec.linutronix.de> <43A0AD54.6050109@rtr.ca> <20051214155432.320f2950.akpm@osdl.org> <17313.29296.170999.539035@gargle.gargle.HOWL> <1134658579.12421.59.camel@localhost.localdomain> <4743.1134662116@warthog.cambridge.redhat.com> 
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
-Date: Thu, 15 Dec 2005 16:51:02 +0000
-Message-ID: <6256.1134665462@warthog.cambridge.redhat.com>
-Sender: dhowells@redhat.com
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, Nikita Danilov <nikita@clusterfs.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andrew Morton <akpm@osdl.org>, tglx@linutronix.de, pj@sgi.com, mingo@elte.hu, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Date: Thu, 15 Dec 2005 08:56:02 -0800
+From: Paul Jackson <pj@sgi.com>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+Message-Id: <20051215085602.c98f22ef.pj@sgi.com>
+In-Reply-To: <4743.1134662116@warthog.cambridge.redhat.com>
+References: <17313.37200.728099.873988@gargle.gargle.HOWL>
+	<1134559121.25663.14.camel@localhost.localdomain>
+	<13820.1134558138@warthog.cambridge.redhat.com>
+	<20051213143147.d2a57fb3.pj@sgi.com>
+	<20051213094053.33284360.pj@sgi.com>
+	<dhowells1134431145@warthog.cambridge.redhat.com>
+	<20051212161944.3185a3f9.akpm@osdl.org>
+	<20051213075441.GB6765@elte.hu>
+	<20051213090219.GA27857@infradead.org>
+	<20051213093949.GC26097@elte.hu>
+	<20051213100015.GA32194@elte.hu>
+	<6281.1134498864@warthog.cambridge.redhat.com>
+	<14242.1134558772@warthog.cambridge.redhat.com>
+	<16315.1134563707@warthog.cambridge.redhat.com>
+	<1134568731.4275.4.camel@tglx.tec.linutronix.de>
+	<43A0AD54.6050109@rtr.ca>
+	<20051214155432.320f2950.akpm@osdl.org>
+	<17313.29296.170999.539035@gargle.gargle.HOWL>
+	<1134658579.12421.59.camel@localhost.localdomain>
+	<4743.1134662116@warthog.cambridge.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+To: David Howells <dhowells@redhat.com>
+Cc: nikita@clusterfs.com, alan@lxorguk.ukuu.org.uk, akpm@osdl.org, tglx@linutronix.de, mingo@elte.hu, hch@infradead.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Linus Torvalds <torvalds@osdl.org> wrote:
+> But what to do about DECLARE_MUTEX? :-/
 
-> Think about it a bit. We don't have DECLARE_SPINLOCK either. Why?
+A phased change of just the renames:
+	DECLARE_MUTEX ==> DECLARE_SEM
+	init_MUTEX ==> init_SEM
+	DECLARE_MUTEX_LOCKED ==> DECLARE_SEM_LOCKED
+	init_MUTEX_LOCKED ==> init_SEM_LOCKED
 
-I thought it was something to do with initialising struct list_heads, which
-spinlocks don't have.
+seems doable.  A scripted replacement, so long as it specifies whole
+word replacement only, seems to be a very robust replacement for these
+four symbols, unlike "up"/"down", which are scary at best to consider
+wholesale replacement.
 
-David
+Add the new *_SEM in one release as aliases for the current *_MUTEX,
+do the wholesale replacement of the above names, leaving the old as
+aliases in a second release, remove the old *_MUTEX aliases in a third
+release, and them restore them as new 'real mutex' methods in a fourth
+release.  Be sure that the new *_MUTEX versions will generate a compile
+error if handed the old counting semaphore type.
+
+I'm a stickler for names ... at least until Linus/Andrew show me
+the foolishness of my ways, I could find such a change appealing.
+
+Of course, they're the ones with all the sweat equity on the line,
+not me.
+
+... I'd better duck and get back to bug fixing, before I get hit ...
+
+-- 
+                  I won't rest till it's the best ...
+                  Programmer, Linux Scalability
+                  Paul Jackson <pj@sgi.com> 1.925.600.0401
