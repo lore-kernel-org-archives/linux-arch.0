@@ -1,76 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
+Date: Fri, 16 Dec 2005 10:45:08 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-From: Steven Rostedt <rostedt@goodmis.org>
-In-Reply-To: <20051215121817.2abb0166.akpm@osdl.org>
-References: <20051214155432.320f2950.akpm@osdl.org>
-	 <1134559121.25663.14.camel@localhost.localdomain>
-	 <13820.1134558138@warthog.cambridge.redhat.com>
-	 <20051213143147.d2a57fb3.pj@sgi.com> <20051213094053.33284360.pj@sgi.com>
-	 <dhowells1134431145@warthog.cambridge.redhat.com>
-	 <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu>
-	 <20051213090219.GA27857@infradead.org> <20051213093949.GC26097@elte.hu>
-	 <20051213100015.GA32194@elte.hu>
-	 <6281.1134498864@warthog.cambridge.redhat.com>
-	 <14242.1134558772@warthog.cambridge.redhat.com>
-	 <16315.1134563707@warthog.cambridge.redhat.com>
-	 <1134568731.4275.4.camel@tglx.tec.linutronix.de> <43A0AD54.6050109@rtr.ca>
-	 <4336.1134661053@warthog.cambridge.redhat.com>
-	 <20051215112855.31669dc1.akpm@osdl.org>
-	 <20051215121817.2abb0166.akpm@osdl.org>
-Content-Type: text/plain
-Date: Thu, 15 Dec 2005 16:28:15 -0500
-Message-Id: <1134682095.13138.99.camel@localhost.localdomain>
+Message-Id: <20051216104508.40f2281f.sfr@canb.auug.org.au>
+In-Reply-To: <20051215203818.GA11487@ccure.user-mode-linux.org>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F0535A549@scsmsx401.amr.corp.intel.com>
+	<20051215203818.GA11487@ccure.user-mode-linux.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, matthew@wil.cx, arjan@infradead.org, torvalds@osdl.org, hch@infradead.org, mingo@elte.hu, pj@sgi.com, alan@lxorguk.ukuu.org.uk, tglx@linutronix.de, lkml@rtr.ca, dhowells@redhat.com
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Fri__16_Dec_2005_10_45_08_+1100_+EYlZj8dVwFJjKEj"
+To: Jeff Dike <jdike@addtoit.com>
+Cc: tony.luck@intel.com, dhowells@redhat.com, akpm@osdl.org, lkml@rtr.ca, tglx@linutronix.de, alan@lxorguk.ukuu.org.uk, pj@sgi.com, mingo@elte.hu, hch@infradead.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2005-12-15 at 12:18 -0800, Andrew Morton wrote:
-> Andrew Morton <akpm@osdl.org> wrote:
-> >
-> > David Howells <dhowells@redhat.com> wrote:
-> > >
-> > > So... Would you then object to an implementation of a mutex appearing in the
-> > >  tree which semaphores that are being used as strict mutexes can be migrated
-> > >  over to as the opportunity arises?
-> > 
-> > That would be sane.
-> >
-> 
-> But not very.
-> 
-> Look at it from the POV of major architectures: there's no way the new
-> mutex code will be faster than down() and up(), so we're adding a bunch of
-> new tricky locking code which bloats the kernel and has to be understood
-> and debugged for no gain.
+--Signature=_Fri__16_Dec_2005_10_45_08_+1100_+EYlZj8dVwFJjKEj
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-I see it as a stepping stone for RT ;)
+On Thu, 15 Dec 2005 15:38:18 -0500 Jeff Dike <jdike@addtoit.com> wrote:
+>
+> On Thu, Dec 15, 2005 at 09:45:10AM -0800, Luck, Tony wrote:
+> > There was a USENIX paper a couple of decades ago that described how
+> > to do a fast s/w disable of interrupts on machines where really disabli=
+ng
+> > interrupts was expensive.  The rough gist was that the spl[1-7]()
+> > functions would just set a flag in memory to hold the desired interrupt
+> > mask.  If an interrupt actually occurred when it was s/w blocked, the
+> > handler would set a pending flag, and just rfi with interrupts disabled.
+> > Then the splx() code checked to see whether there was a pending interru=
+pt
+> > and dealt with it if there was.
+>=20
+> ... and this is currently implemented (but not yet merged to mainline) in
+> UML.
 
-> 
-> And I don't buy the debuggability argument really.  It'd be pretty simple
-> to add debug code to the existing semaphore code to trap non-mutex usages. 
-> Then go through the few valid non-mutex users and do:
-> 
-> #if debug
-> 	sem->this_is_not_a_mutex = 1;
-> #endif
+And, of course, this is the way the PowerPC iSeries has always worked becau=
+se
+we are not allowed to disable hardware interrupts for long periods of time =
+or
+the hypervisor will consider that our logical partition is dead.
 
-That just looks plain ugly.  Still, if you want to keep the major archs
-unchanged (at least until RT is in!) then just add the following:
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
-#define mutex_lock(x) down(x)
-#define mutex_unlock(x) up(x)
-#define mutex_trylock(x) (!down_trylock(x))  /* see previous email! */
+--Signature=_Fri__16_Dec_2005_10_45_08_+1100_+EYlZj8dVwFJjKEj
+Content-Type: application/pgp-signature
 
-Then you can add your ugly patch ;) where on debug we define those
-declared with DEFINE_SEM(x) add the this_is_not_a_mutex = 1
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.2 (GNU/Linux)
 
--- Steve
+iD8DBQFDogAJFdBgD/zoJvwRArRWAJ0bPwkMQYITF4mMPa03bCV1YqfzFwCfZMC6
+zyIod/e5yGhzpZr8LRlXboM=
+=MJ3A
+-----END PGP SIGNATURE-----
 
-
-> -
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+--Signature=_Fri__16_Dec_2005_10_45_08_+1100_+EYlZj8dVwFJjKEj--
