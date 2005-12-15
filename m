@@ -1,51 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Message-ID: <43A0F9A8.1010109@yahoo.com.au>
-Date: Thu, 15 Dec 2005 16:05:44 +1100
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-References: <dhowells1134431145@warthog.cambridge.redhat.com>	<20051212161944.3185a3f9.akpm@osdl.org>	<20051213075441.GB6765@elte.hu> <20051213075835.GZ15804@wotan.suse.de>	<20051213004257.0f87d814.akpm@osdl.org>	<20051213084926.GN23384@wotan.suse.de>	<20051213090429.GC27857@infradead.org>	<20051213101141.GI31785@devserv.devel.redhat.com>	<20051213101938.GA30118@infradead.org> <buod5jz6jwo.fsf@dhapc248.dev.necel.com>
-In-Reply-To: <buod5jz6jwo.fsf@dhapc248.dev.necel.com>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
-To: Miles Bader <miles@gnu.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Jakub Jelinek <jakub@redhat.com>, Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, mingo@elte.hu, dhowells@redhat.com, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+References: <1134482408.11732.30.camel@localhost.localdomain>
+	<1134479118.11732.14.camel@localhost.localdomain>
+	<dhowells1134431145@warthog.cambridge.redhat.com>
+	<3874.1134480759@warthog.cambridge.redhat.com>
+	<14796.1134487414@warthog.cambridge.redhat.com>
+From: Miles Bader <miles.bader@necel.com>
+Reply-To: Miles Bader <miles@gnu.org>
+Date: Thu, 15 Dec 2005 14:24:08 +0900
+In-Reply-To: <14796.1134487414@warthog.cambridge.redhat.com> (David Howells's message of "Tue, 13 Dec 2005 15:23:34 +0000")
+Message-Id: <buo7ja76ih3.fsf@dhapc248.dev.necel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Sender: miles.bader@necel.com
+To: David Howells <dhowells@redhat.com>
+Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Miles Bader wrote:
-> Christoph Hellwig <hch@infradead.org> writes:
-> 
->>But serious, having to look all over the source instead of just a block
->>beginning decreases code readability a lot.
-> 
-> 
-> My experience is quite the opposite.
-> 
-> Being forced to put declarations at the beginning of the block in
-> practice means that people simply separate declarations from the first
-> assignment.  That uglifies and bloats the code, and seems to often cause
-> bugs as well (because people seem to often not pay attention to what
-> happens to a variable between the declaration and first assignment;
-> having it simply _not exist_ before the first assignment helps quite a
-> bit).
-> 
+David Howells <dhowells@redhat.com> writes:
+>> Is there a reason you didnt answer the comment about down/up being the
+>> usual way computing refers to the operations on counting semaphores but
+>> just deleted it ?
+>
+> up/down is also used in conjunction with mutexes and R/W semaphores, so
+> counting semaphores do not have exclusive rights to the terminology.
 
-If your blocks are so big that you lose track of variables like
-this... then it is too big and/or complex.
+I suspect that is only the case where the author of the mutex was
+accustomed to using semaphores as mutexes before-hand; "up/down" are
+rather poor names for mutex operations otherwise.  lock/unlock are much
+better.
 
-And the argument about having it simply _not exist_ before the
-first assignment isn't convincing to me, because you cannot
-undeclare variables after you finish with them (do you also see
-code where people cause bugs by forgetting about the variable after
-its last use?).
-
-IMO, the system of declaring all variables at the top of the block
-and they all disappear at the end is nice and symmetric... although
-I probably agree with Linus on the 'for (int i = 0;' feature.
-
-Nick
-
+-Miles
 -- 
-SUSE Labs, Novell Inc.
-
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+Next to fried food, the South has suffered most from oratory.
+  			-- Walter Hines Page
