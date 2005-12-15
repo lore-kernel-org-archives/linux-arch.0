@@ -1,51 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Thu, 15 Dec 2005 11:38:19 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
+Date: Thu, 15 Dec 2005 15:38:18 -0500
+From: Jeff Dike <jdike@addtoit.com>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-In-Reply-To: <20051215112115.7c4bfbea.akpm@osdl.org>
-Message-ID: <Pine.LNX.4.64.0512151135080.3292@g5.osdl.org>
-References: <20051215085602.c98f22ef.pj@sgi.com> <13820.1134558138@warthog.cambridge.redhat.com>
- <20051213143147.d2a57fb3.pj@sgi.com> <20051213094053.33284360.pj@sgi.com>
- <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org>
- <20051213075441.GB6765@elte.hu> <20051213090219.GA27857@infradead.org>
- <20051213093949.GC26097@elte.hu> <20051213100015.GA32194@elte.hu>
- <6281.1134498864@warthog.cambridge.redhat.com> <14242.1134558772@warthog.cambridge.redhat.com>
- <16315.1134563707@warthog.cambridge.redhat.com> <1134568731.4275.4.camel@tglx.tec.linutronix.de>
- <43A0AD54.6050109@rtr.ca> <20051214155432.320f2950.akpm@osdl.org>
- <17313.29296.170999.539035@gargle.gargle.HOWL> <1134658579.12421.59.camel@localhost.localdomain>
- <4743.1134662116@warthog.cambridge.redhat.com> <7140.1134667736@warthog.cambridge.redhat.com>
- <Pine.LNX.4.64.0512150945410.3292@g5.osdl.org> <20051215112115.7c4bfbea.akpm@osdl.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: Andrew Morton <akpm@osdl.org>
-Cc: dhowells@redhat.com, pj@sgi.com, nikita@clusterfs.com, alan@lxorguk.ukuu.org.uk, tglx@linutronix.de, mingo@elte.hu, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20051215203818.GA11487@ccure.user-mode-linux.org>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F0535A549@scsmsx401.amr.corp.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <B8E391BBE9FE384DAA4C5C003888BE6F0535A549@scsmsx401.amr.corp.intel.com>
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: dhowells@redhat.com, Andrew Morton <akpm@osdl.org>, Mark Lord <lkml@rtr.ca>, tglx@linutronix.de, alan@lxorguk.ukuu.org.uk, pj@sgi.com, mingo@elte.hu, hch@infradead.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Thu, Dec 15, 2005 at 09:45:10AM -0800, Luck, Tony wrote:
+> There was a USENIX paper a couple of decades ago that described how
+> to do a fast s/w disable of interrupts on machines where really disabling
+> interrupts was expensive.  The rough gist was that the spl[1-7]()
+> functions would just set a flag in memory to hold the desired interrupt
+> mask.  If an interrupt actually occurred when it was s/w blocked, the
+> handler would set a pending flag, and just rfi with interrupts disabled.
+> Then the splx() code checked to see whether there was a pending interrupt
+> and dealt with it if there was.
 
+... and this is currently implemented (but not yet merged to mainline) in
+UML.
 
-On Thu, 15 Dec 2005, Andrew Morton wrote:
-> 
-> They should be renamed to DEFINE_* while we're there.  A "declaration" is
-> "this thing is defined somewhere else".  A "definition" is "this thing is
-> defined here".
-
-Yeah, I confuse the two. Although by now I've gotten so used to DECLARE_ 
-that at least me personally I like it. 
-
-> > I wouldn't be adverse to doing that
-> 
-> argh.
-
-Heh. At least there's only 310 DECLARE_MUTEX* references in the whole 
-kernel. So we're not actually talking about a huge patch. 
-
-It's also fairly simple to work with in out-of-tree drivers, since it's 
-always bound to be a #define, so you can do things like
-
-	#ifndef DECLARE_SEM_MUTEX
-	#define DECLARE_SEM_MUTEX(x) DECLARE_MUTEX(x)
-	#endif
-
-or something.
-
-		Linus
+				Jeff
