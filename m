@@ -1,9 +1,8 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
 From: Steven Rostedt <rostedt@goodmis.org>
-In-Reply-To: <17313.46085.921398.819760@gargle.gargle.HOWL>
-References: <20051215085602.c98f22ef.pj@sgi.com>
-	 <17313.37200.728099.873988@gargle.gargle.HOWL>
+In-Reply-To: <20051215121817.2abb0166.akpm@osdl.org>
+References: <20051214155432.320f2950.akpm@osdl.org>
 	 <1134559121.25663.14.camel@localhost.localdomain>
 	 <13820.1134558138@warthog.cambridge.redhat.com>
 	 <20051213143147.d2a57fb3.pj@sgi.com> <20051213094053.33284360.pj@sgi.com>
@@ -15,54 +14,63 @@ References: <20051215085602.c98f22ef.pj@sgi.com>
 	 <14242.1134558772@warthog.cambridge.redhat.com>
 	 <16315.1134563707@warthog.cambridge.redhat.com>
 	 <1134568731.4275.4.camel@tglx.tec.linutronix.de> <43A0AD54.6050109@rtr.ca>
-	 <20051214155432.320f2950.akpm@osdl.org>
-	 <17313.29296.170999.539035@gargle.gargle.HOWL>
-	 <1134658579.12421.59.camel@localhost.localdomain>
-	 <4743.1134662116@warthog.cambridge.redhat.com>
-	 <7140.1134667736@warthog.cambridge.redhat.com>
-	 <Pine.LNX.4.64.0512150945410.3292@g5.osdl.org>
-	 <17313.46085.921398.819760@gargle.gargle.HOWL>
+	 <4336.1134661053@warthog.cambridge.redhat.com>
+	 <20051215112855.31669dc1.akpm@osdl.org>
+	 <20051215121817.2abb0166.akpm@osdl.org>
 Content-Type: text/plain
-Date: Thu, 15 Dec 2005 15:58:27 -0500
-Message-Id: <1134680307.13138.74.camel@localhost.localdomain>
+Date: Thu, 15 Dec 2005 16:28:15 -0500
+Message-Id: <1134682095.13138.99.camel@localhost.localdomain>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-To: Nikita Danilov <nikita@clusterfs.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, matthew@wil.cx, arjan@infradead.org, hch@infradead.org, mingo@elte.hu, tglx@linutronix.de, akpm@osdl.org, alan@lxorguk.ukuu.org.uk, Paul Jackson <pj@sgi.com>, David Howells <dhowells@redhat.com>, Linus Torvalds <torvalds@osdl.org>
+To: Andrew Morton <akpm@osdl.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, matthew@wil.cx, arjan@infradead.org, torvalds@osdl.org, hch@infradead.org, mingo@elte.hu, pj@sgi.com, alan@lxorguk.ukuu.org.uk, tglx@linutronix.de, lkml@rtr.ca, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2005-12-15 at 21:20 +0300, Nikita Danilov wrote:
+On Thu, 2005-12-15 at 12:18 -0800, Andrew Morton wrote:
+> Andrew Morton <akpm@osdl.org> wrote:
+> >
+> > David Howells <dhowells@redhat.com> wrote:
+> > >
+> > > So... Would you then object to an implementation of a mutex appearing in the
+> > >  tree which semaphores that are being used as strict mutexes can be migrated
+> > >  over to as the opportunity arises?
+> > 
+> > That would be sane.
+> >
+> 
+> But not very.
+> 
+> Look at it from the POV of major architectures: there's no way the new
+> mutex code will be faster than down() and up(), so we're adding a bunch of
+> new tricky locking code which bloats the kernel and has to be understood
+> and debugged for no gain.
 
-> Going off at a tangent (or tangle, rather), why do we need DECLARE_FOO()
-> macros at all? They
-> 
->  - do not look like C variable declarations, hide variable type, and
->  hence are confusing,
-> 
->  - contrary to their naming actually _define_ rather than _declare_ an
->  object.
-> 
-> In most cases 
-> 
->         type var = INIT_FOO;
-> 
-> is much better (more readable and easier to understand) than
-> 
->         DECLARE_FOO(var); /* what is the type of var? */
-> 
-> In the cases where initializer needs an address of object being
-> initialized
-> 
->         type var = INIT_FOO(var);
-> 
-> can be used.
+I see it as a stepping stone for RT ;)
 
-That's just error prone.  In the RT patch we had several bugs caused by
-cut and paste errors like:
+> 
+> And I don't buy the debuggability argument really.  It'd be pretty simple
+> to add debug code to the existing semaphore code to trap non-mutex usages. 
+> Then go through the few valid non-mutex users and do:
+> 
+> #if debug
+> 	sem->this_is_not_a_mutex = 1;
+> #endif
 
-type foo = INIT_TYPE(foo);
-type bar = INIT_TYPE(foo);
+That just looks plain ugly.  Still, if you want to keep the major archs
+unchanged (at least until RT is in!) then just add the following:
 
-These are not always easy to find.
+#define mutex_lock(x) down(x)
+#define mutex_unlock(x) up(x)
+#define mutex_trylock(x) (!down_trylock(x))  /* see previous email! */
+
+Then you can add your ugly patch ;) where on debug we define those
+declared with DEFINE_SEM(x) add the this_is_not_a_mutex = 1
 
 -- Steve
+
+
+> -
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
