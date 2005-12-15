@@ -1,30 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Subject: RE: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-From: James Bottomley <James.Bottomley@steeleye.com>
-In-Reply-To: <B8E391BBE9FE384DAA4C5C003888BE6F0535A549@scsmsx401.amr.corp.intel.com>
-References: <B8E391BBE9FE384DAA4C5C003888BE6F0535A549@scsmsx401.amr.corp.intel.com>
-Content-Type: text/plain
-Date: Thu, 15 Dec 2005 10:48:48 -0800
-Message-Id: <1134672528.3751.0.camel@mulgrave>
+Date: Thu, 15 Dec 2005 11:21:15 -0800
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+Message-Id: <20051215112115.7c4bfbea.akpm@osdl.org>
+In-Reply-To: <Pine.LNX.4.64.0512150945410.3292@g5.osdl.org>
+References: <20051215085602.c98f22ef.pj@sgi.com>
+	<1134559121.25663.14.camel@localhost.localdomain>
+	<13820.1134558138@warthog.cambridge.redhat.com>
+	<20051213143147.d2a57fb3.pj@sgi.com>
+	<20051213094053.33284360.pj@sgi.com>
+	<dhowells1134431145@warthog.cambridge.redhat.com>
+	<20051212161944.3185a3f9.akpm@osdl.org>
+	<20051213075441.GB6765@elte.hu>
+	<20051213090219.GA27857@infradead.org>
+	<20051213093949.GC26097@elte.hu>
+	<20051213100015.GA32194@elte.hu>
+	<6281.1134498864@warthog.cambridge.redhat.com>
+	<14242.1134558772@warthog.cambridge.redhat.com>
+	<16315.1134563707@warthog.cambridge.redhat.com>
+	<1134568731.4275.4.camel@tglx.tec.linutronix.de>
+	<43A0AD54.6050109@rtr.ca>
+	<20051214155432.320f2950.akpm@osdl.org>
+	<17313.29296.170999.539035@gargle.gargle.HOWL>
+	<1134658579.12421.59.camel@localhost.localdomain>
+	<4743.1134662116@warthog.cambridge.redhat.com>
+	<7140.1134667736@warthog.cambridge.redhat.com>
+	<Pine.LNX.4.64.0512150945410.3292@g5.osdl.org>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: dhowells@redhat.com, Andrew Morton <akpm@osdl.org>, Mark Lord <lkml@rtr.ca>, tglx@linutronix.de, alan@lxorguk.ukuu.org.uk, pj@sgi.com, mingo@elte.hu, hch@infradead.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: dhowells@redhat.com, pj@sgi.com, nikita@clusterfs.com, alan@lxorguk.ukuu.org.uk, tglx@linutronix.de, mingo@elte.hu, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2005-12-15 at 09:45 -0800, Luck, Tony wrote:
-> There was a USENIX paper a couple of decades ago that described how
-> to do a fast s/w disable of interrupts on machines where really disabling
-> interrupts was expensive.  The rough gist was that the spl[1-7]()
-> functions would just set a flag in memory to hold the desired interrupt
-> mask.  If an interrupt actually occurred when it was s/w blocked, the
-> handler would set a pending flag, and just rfi with interrupts disabled.
-> Then the splx() code checked to see whether there was a pending interrupt
-> and dealt with it if there was.
+Linus Torvalds <torvalds@osdl.org> wrote:
+>
+> On Thu, 15 Dec 2005, David Howells wrote:
+>  > 
+>  > 	FROM				TO
+>  > 	==============================	=========================
+>  > 	DECLARE_MUTEX			DECLARE_SEM_MUTEX
+>  > 	DECLARE_MUTEX_LOCKED		DECLARE_SEM_MUTEX_LOCKED
+>  > 	Proper counting semaphore	DECLARE_SEM
+> 
+>  That sounds fine.
 
-Would you believe that that paper was written about the NCR Voyager
-architecture (The VIC is very expensive for interrupt disables) and that
-the current Linux Voyager Subarchitecture still makes partial use of the
-scheme.
+They should be renamed to DEFINE_* while we're there.  A "declaration" is
+"this thing is defined somewhere else".  A "definition" is "this thing is
+defined here".
 
-James
+> I wouldn't be adverse to doing that
+
+argh.
