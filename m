@@ -1,32 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Content-class: urn:content-classes:message
+Date: Thu, 15 Dec 2005 09:48:07 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
+In-Reply-To: <7140.1134667736@warthog.cambridge.redhat.com>
+Message-ID: <Pine.LNX.4.64.0512150945410.3292@g5.osdl.org>
+References: <20051215085602.c98f22ef.pj@sgi.com>  <17313.37200.728099.873988@gargle.gargle.HOWL>
+ <1134559121.25663.14.camel@localhost.localdomain> <13820.1134558138@warthog.cambridge.redhat.com>
+ <20051213143147.d2a57fb3.pj@sgi.com> <20051213094053.33284360.pj@sgi.com>
+ <dhowells1134431145@warthog.cambridge.redhat.com> <20051212161944.3185a3f9.akpm@osdl.org>
+ <20051213075441.GB6765@elte.hu> <20051213090219.GA27857@infradead.org>
+ <20051213093949.GC26097@elte.hu> <20051213100015.GA32194@elte.hu>
+ <6281.1134498864@warthog.cambridge.redhat.com> <14242.1134558772@warthog.cambridge.redhat.com>
+ <16315.1134563707@warthog.cambridge.redhat.com> <1134568731.4275.4.camel@tglx.tec.linutronix.de>
+ <43A0AD54.6050109@rtr.ca> <20051214155432.320f2950.akpm@osdl.org>
+ <17313.29296.170999.539035@gargle.gargle.HOWL> <1134658579.12421.59.camel@localhost.localdomain>
+ <4743.1134662116@warthog.cambridge.redhat.com>  <7140.1134667736@warthog.cambridge.redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-	charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
-Subject: RE: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
-Date: Thu, 15 Dec 2005 09:45:10 -0800
-Message-ID: <B8E391BBE9FE384DAA4C5C003888BE6F0535A549@scsmsx401.amr.corp.intel.com>
-From: "Luck, Tony" <tony.luck@intel.com>
-To: dhowells@redhat.com, Andrew Morton <akpm@osdl.org>
-Cc: Mark Lord <lkml@rtr.ca>, tglx@linutronix.de, alan@lxorguk.ukuu.org.uk, pj@sgi.com, mingo@elte.hu, hch@infradead.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: David Howells <dhowells@redhat.com>
+Cc: Paul Jackson <pj@sgi.com>, nikita@clusterfs.com, alan@lxorguk.ukuu.org.uk, akpm@osdl.org, tglx@linutronix.de, mingo@elte.hu, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-     Okay, spinlocks are null ops when CONFIG_SMP and CONFIG_DEBUG_SPINLOCK
-     are both disabled, but you still have to disable interrupts, and that
-     slows things down, sometimes quite appreciably. It is, for example,
-     something I really want to avoid doing on FRV as it takes a *lot* of
-     cycles.
 
-There was a USENIX paper a couple of decades ago that described how
-to do a fast s/w disable of interrupts on machines where really disabling
-interrupts was expensive.  The rough gist was that the spl[1-7]()
-functions would just set a flag in memory to hold the desired interrupt
-mask.  If an interrupt actually occurred when it was s/w blocked, the
-handler would set a pending flag, and just rfi with interrupts disabled.
-Then the splx() code checked to see whether there was a pending interrupt
-and dealt with it if there was.
 
--Tony
+On Thu, 15 Dec 2005, David Howells wrote:
+> 
+> 	FROM				TO
+> 	==============================	=========================
+> 	DECLARE_MUTEX			DECLARE_SEM_MUTEX
+> 	DECLARE_MUTEX_LOCKED		DECLARE_SEM_MUTEX_LOCKED
+> 	Proper counting semaphore	DECLARE_SEM
 
- 
+That sounds fine. I wouldn't be adverse to doing that - but it would have 
+to be independently of any other changes, and it would need to simmer for 
+a while for out-of-tree drivers etc to notice (ie you should _not_ just 
+introduce a new "DECLARE_MUTEX()" immediately to confuse things).
+
+The patch could probably be fairly trivially generated with some trivial 
+sed-script. Not that I'll take it at this point, but after the next 
+release..
+
+		Linus
