@@ -1,7 +1,7 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-In-Reply-To: <17313.29296.170999.539035@gargle.gargle.HOWL>
+From: Steven Rostedt <rostedt@goodmis.org>
+In-Reply-To: <20051214155432.320f2950.akpm@osdl.org>
 References: <1134559121.25663.14.camel@localhost.localdomain>
 	 <13820.1134558138@warthog.cambridge.redhat.com>
 	 <20051213143147.d2a57fb3.pj@sgi.com> <20051213094053.33284360.pj@sgi.com>
@@ -14,28 +14,34 @@ References: <1134559121.25663.14.camel@localhost.localdomain>
 	 <16315.1134563707@warthog.cambridge.redhat.com>
 	 <1134568731.4275.4.camel@tglx.tec.linutronix.de> <43A0AD54.6050109@rtr.ca>
 	 <20051214155432.320f2950.akpm@osdl.org>
-	 <17313.29296.170999.539035@gargle.gargle.HOWL>
 Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Date: Thu, 15 Dec 2005 14:56:19 +0000
-Message-Id: <1134658579.12421.59.camel@localhost.localdomain>
+Date: Thu, 15 Dec 2005 09:41:30 -0500
+Message-Id: <1134657690.13138.39.camel@localhost.localdomain>
 Mime-Version: 1.0
-To: Nikita Danilov <nikita@clusterfs.com>
-Cc: Andrew Morton <akpm@osdl.org>, tglx@linutronix.de, dhowells@redhat.com, pj@sgi.com, mingo@elte.hu, hch@infradead.org, torvalds@osdl.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+To: Andrew Morton <akpm@osdl.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, matthew@wil.cx, arjan@infradead.org, torvalds@osdl.org, hch@infradead.org, mingo@elte.hu, pj@sgi.com, alan@lxorguk.ukuu.org.uk, dhowells@redhat.com, tglx@linutronix.de, Mark Lord <lkml@rtr.ca>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Iau, 2005-12-15 at 16:41 +0300, Nikita Danilov wrote:
-> But this change is about fixing bugs: mutex assumes that
+On Wed, 2005-12-14 at 15:54 -0800, Andrew Morton wrote:
+> Mark Lord <lkml@rtr.ca> wrote:
+> >
+> > Leaving up()/down() as-is is really the most sensible option.
+> >
 > 
->  - only owner can unlock, and
+> Absolutely.
 > 
->  - owner cannot lock (immediate self-deadlock).
+> I must say that my interest in this stuff is down in
+> needs-an-electron-microscope-to-locate territory.  down() and up() work
+> just fine and they're small, efficient, well-debugged and well-understood. 
+> We need a damn good reason for taking on tree-wide churn or incompatible
+> renames or addition of risk.  What's the damn good reason here?
+> 
 
-So add mutex_up/mutex_down that use the same semaphores but do extra
-checks if lock debugging is enabled. All you need is an owner field for
-debugging.
+****
+> Please.  Go fix some bugs.  We're not short of them.
+****
 
-Now generate a trace dump on up when up and to check for sleeping on a
-lock you already hold (for both sem and mutex).
+I'd give that the quote of the day!
 
-Alan
+-- Steve
