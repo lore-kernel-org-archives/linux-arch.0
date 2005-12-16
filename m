@@ -1,31 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <43A2BE49.4000102@yahoo.com.au> 
-References: <43A2BE49.4000102@yahoo.com.au>  <43A08D50.30707@yahoo.com.au> <439FFF63.6020105@yahoo.com.au> <439F6EAB.6030903@yahoo.com.au> <439E122E.3080902@yahoo.com.au> <dhowells1134431145@warthog.cambridge.redhat.com> <22479.1134467689@warthog.cambridge.redhat.com> <13613.1134557656@warthog.cambridge.redhat.com> <15157.1134560767@warthog.cambridge.redhat.com> <12832.1134734438@warthog.cambridge.redhat.com> 
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
-Date: Fri, 16 Dec 2005 16:02:11 +0000
-Message-ID: <20450.1134748931@warthog.cambridge.redhat.com>
-Sender: dhowells@redhat.com
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Date: Fri, 16 Dec 2005 15:58:11 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+Message-ID: <20051216155811.GE1222@flint.arm.linux.org.uk>
+References: <1134558188.25663.5.camel@localhost.localdomain> <1134558507.2894.22.camel@laptopd505.fenrus.org> <1134559470.25663.22.camel@localhost.localdomain> <20051214033536.05183668.akpm@osdl.org> <15412.1134561432@warthog.cambridge.redhat.com> <11202.1134730942@warthog.cambridge.redhat.com> <43A2BAA7.5000807@yahoo.com.au> <20051216132123.GB1222@flint.arm.linux.org.uk> <wn564ppnohn.fsf@linhd-2.ca.nortel.com> <20058.1134748001@warthog.cambridge.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20058.1134748001@warthog.cambridge.redhat.com>
+Sender: Russell King <rmk@arm.linux.org.uk>
+To: David Howells <dhowells@redhat.com>
+Cc: Linh Dang <linhd@nortel.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Andrew Morton <akpm@osdl.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Christopher Friesen <cfriesen@nortel.com>, torvalds@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin <nickpiggin@yahoo.com.au> wrote:
+On Fri, Dec 16, 2005 at 03:46:41PM +0000, David Howells wrote:
+> Russell King <rmk+lkml@arm.linux.org.uk> wrote:
+> 
+> > Do you now see what I mean?  (yup, ARM is a llsc architecture.)
+> 
+> Out of interest, at what point did ARM become so? ARM6?
 
-> So I don't know why you're so worried about sparc32 and parisc while
-> preferring to introduce a worse default implementation that even your frv
-> architecture wants to override...?
+Yes, ARM architecture version 6.
 
-I now think the base default should be a wrapper around the counting
-semaphores, because that is the easiest path (they already exist) and it's
-also the fastest path on some platforms.
+See the ldrex (load exclusive) / strex (store exclusive) instructions.
 
-But I want to be able to override the implementation on such as FRV because I
-can do a better mutex than a counting semaphore there as I only have SWAP
-available as an atomic op.
-
-However, I would like to make the unconditional-exchange mutex a template that
-can be overridden so that other archs can use it with one Kconfig option and a
-few #defines in asm/system.h.
-
-David
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
