@@ -3,8 +3,8 @@ From: David Howells <dhowells@redhat.com>
 In-Reply-To: <43A2BE49.4000102@yahoo.com.au> 
 References: <43A2BE49.4000102@yahoo.com.au>  <43A08D50.30707@yahoo.com.au> <439FFF63.6020105@yahoo.com.au> <439F6EAB.6030903@yahoo.com.au> <439E122E.3080902@yahoo.com.au> <dhowells1134431145@warthog.cambridge.redhat.com> <22479.1134467689@warthog.cambridge.redhat.com> <13613.1134557656@warthog.cambridge.redhat.com> <15157.1134560767@warthog.cambridge.redhat.com> <12832.1134734438@warthog.cambridge.redhat.com> 
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
-Date: Fri, 16 Dec 2005 15:53:51 +0000
-Message-ID: <20220.1134748431@warthog.cambridge.redhat.com>
+Date: Fri, 16 Dec 2005 16:02:11 +0000
+Message-ID: <20450.1134748931@warthog.cambridge.redhat.com>
 Sender: dhowells@redhat.com
 To: Nick Piggin <nickpiggin@yahoo.com.au>
 Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
@@ -12,42 +12,20 @@ List-ID: <linux-arch.vger.kernel.org>
 
 Nick Piggin <nickpiggin@yahoo.com.au> wrote:
 
-> Yes, the architecture code knows whether or not it implements atomic ops
-> with spinlocks, so that architecture is in the position to decide to override
-> the mutex implementation. *generic* code shouldn't worry about that, it should
-> use the interfaces available, and if that isn't optimal on some architecture
-> then that architecture can override it.
+> So I don't know why you're so worried about sparc32 and parisc while
+> preferring to introduce a worse default implementation that even your frv
+> architecture wants to override...?
 
-However, a number of generic templates can be provided if it makes things
-easier for the arches because all they need to is:
+I now think the base default should be a wrapper around the counting
+semaphores, because that is the easiest path (they already exist) and it's
+also the fastest path on some platforms.
 
-	[arch/wibble/Kconfig]
-	config MUTEX_TYPE_FOO
-		bool
-		default y
+But I want to be able to override the implementation on such as FRV because I
+can do a better mutex than a counting semaphore there as I only have SWAP
+available as an atomic op.
 
-	[include/asm-wibble/system.h]
-	#define __mutex_foo_this() { ... }
-	#define __mutex_foo_that() { ... }
-
-The unconditional two-state exchange I think will be a useful template for a
-number of archs that don't have anything more advanced than XCHG/TAS/BSET/SWAP.
-
-> It is not even clear that any ll/sc based architectures would need to override
-> an atomic_cmpxchg variant at all because you can assume an unlocked fastpath
-
-That's irrelevant. Any arch that has LL/SC almost certainly emulates CMPXCHG
-with LL/SC.
-
-> and not do the additional initial load to prime the cmpxchg.
-
-Two points:
-
- (1) LL/SC does not require an additional initial load.
-
- (2) CMPXCHG does an implicit load; how else can it compare?
-
-LL/SC can never be worse than CMPXCHG, if only because you're very unlikely to
-have both, but it can be better.
+However, I would like to make the unconditional-exchange mutex a template that
+can be overridden so that other archs can use it with one Kconfig option and a
+few #defines in asm/system.h.
 
 David
