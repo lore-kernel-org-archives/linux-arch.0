@@ -1,60 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 16 Dec 2005 14:38:47 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
-In-Reply-To: <20051216.142349.89717140.davem@davemloft.net>
-Message-ID: <Pine.LNX.4.64.0512161429500.3698@g5.osdl.org>
-References: <15412.1134561432@warthog.cambridge.redhat.com>
- <12186.1134732601@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0512160829180.3060@g5.osdl.org>
- <20051216.142349.89717140.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: "David S. Miller" <davem@davemloft.net>
-Cc: dhowells@redhat.com, nickpiggin@yahoo.com.au, arjan@infradead.org, akpm@osdl.org, alan@lxorguk.ukuu.org.uk, cfriesen@nortel.com, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+From: Thomas Gleixner <tglx@linutronix.de>
+Reply-To: tglx@linutronix.de
+In-Reply-To: <Pine.LNX.4.64.0512161414370.3698@g5.osdl.org>
+References: <20051215085602.c98f22ef.pj@sgi.com>
+	 <20051213143147.d2a57fb3.pj@sgi.com> <20051213093949.GC26097@elte.hu>
+	 <20051213100015.GA32194@elte.hu>
+	 <6281.1134498864@warthog.cambridge.redhat.com>
+	 <14242.1134558772@warthog.cambridge.redhat.com>
+	 <16315.1134563707@warthog.cambridge.redhat.com>
+	 <1134568731.4275.4.camel@tglx.tec.linutronix.de> <43A0AD54.6050109@rtr.ca>
+	 <20051214155432.320f2950.akpm@osdl.org>
+	 <17313.29296.170999.539035@gargle.gargle.HOWL>
+	 <1134658579.12421.59.camel@localhost.localdomain>
+	 <4743.1134662116@warthog.cambridge.redhat.com>
+	 <7140.1134667736@warthog.cambridge.redhat.com>
+	 <Pine.LNX.4.64.0512150945410.3292@g5.osdl.org>
+	 <20051215112115.7c4bfbea.akpm@osdl.org>
+	 <1134678532.13138.44.camel@localhost.localdomain>
+	 <Pine.LNX.4.62.0512152130390.16426@pademelon.sonytel.be>
+	 <1134769269.2806.17.camel@tglx.tec.linutronix.de>
+	 <Pine.LNX.4.64.0512161339140.3698@g5.osdl.org>
+	 <1134770778.2806.31.camel@tglx.tec.linutronix.de>
+	 <Pine.LNX.4.64.0512161414370.3698@g5.osdl.org>
+Content-Type: text/plain
+Date: Fri, 16 Dec 2005 23:42:44 +0100
+Message-Id: <1134772964.2806.50.camel@tglx.tec.linutronix.de>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, matthew@wil.cx, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, mingo@elte.hu, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Fri, 16 Dec 2005, David S. Miller wrote:
+On Fri, 2005-12-16 at 14:19 -0800, Linus Torvalds wrote:
 > 
-> Actually, this points out a problem with "compare and swap".  The
-> typical loop is of the form:
+> On Fri, 16 Dec 2005, Thomas Gleixner wrote:
+> > 
+> > Well, in case of a semaphore it is a semantically correct use case. In
+> > case of of a mutex it is not.
 > 
-> 	LOAD [MEM], REG1
-> 	OP   REG1, X, REG2
-> 	CAS  [MEM], REG1, REG2
+> I disagree.
 > 
-> That first LOAD instruction, if it misses in the L2, causes the cache
-> line to be requested for sharing.  Then the CAS instruction will need
-> to issue another cache coherency transaction to get the cache line
-> into owned state.
+> Think of "initialization" as a user. The system starts out initializing 
+> stuff, and as such the mutex should start out being held. It's that 
+> simple. It _is_ mutual exclusion, with one user being the early bootup 
+> state.
 
-A number of architectures have a "prefetch for write ownership" 
-instruction that you can use for this. Exactly because "ld+cas" should 
-not get a shared line initially.
+Mutual exclusion is available with various semantical characteristics.
+If you want to have a particular semantical functionality you have to
+chose a variant which fits that need. Arguing that the underlying
+mechanism (implemenation) can handle your request is broken by
+definition. It can, but it still is semantically wrong.
 
-I though sparc had an ASI to do the same? No?
+Mutexes have a well defined semantic of lock ownership, i.e. the thread
+which locked a mutex has to unlock it. Semaphores do not have this
+semantical requirement.
 
-> (Are there any CPUs that peek forward and look for the CAS
->  instruction to decide to issue the more appropriate request
->  for the cache line in Owned state?  That would be cool...)
+Therefor, if you want to handle that "init protection" scenario, do not
+use a mutex, because the owner can not be defined at compile -
+allocation time.
 
-I don't think anybody does, although it wouldn't be impossible. Any OoO 
-processor would _tend_ to have enough visibility that they could see any 
-stores that are "close" (not just a cas) and might be clever enough to 
-modify a memory read to be a read-with-intent-to-write op.
+You can still implement (chose a mechanism) a mutex on top - or in case
+of lack of priority inheritance or debugging with exactly the same -
+mechanism as a semaphore, but this does not change the semantical
+difference at all.
 
-Of course, if it was in memory (as opposed to somebody elses caches), I 
-think most cache protocols will start it up in exclusive state anyway. 
-Same may or may not happen when you have a dirty hit on another CPU that 
-requires a write-back (ie the other CPU would always invalidate on 
-writeback).
-
-It would seem to be the obvious thing to do for better lock performance, 
-and I'd assume that locks are some of the most common cases of real cache 
-interactions, so maybe the shared case only effectively happens if two 
-CPU's are reading at the same time.
-
-Somebody who looks at cache protocol diagrams could check. I'm too lazy.
-
-		Linus
+	tglx
