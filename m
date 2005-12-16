@@ -1,9 +1,9 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 16 Dec 2005 14:41:16 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
+Date: Fri, 16 Dec 2005 17:49:28 -0500 (EST)
+From: Steven Rostedt <rostedt@goodmis.org>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-In-Reply-To: <1134772964.2806.50.camel@tglx.tec.linutronix.de>
-Message-ID: <Pine.LNX.4.64.0512161439330.3698@g5.osdl.org>
+In-Reply-To: <Pine.LNX.4.64.0512161439330.3698@g5.osdl.org>
+Message-ID: <Pine.LNX.4.58.0512161749020.3602@gandalf.stny.rr.com>
 References: <20051215085602.c98f22ef.pj@sgi.com>  <20051213143147.d2a57fb3.pj@sgi.com>
  <43A0AD54.6050109@rtr.ca>  <20051214155432.320f2950.akpm@osdl.org>
  <17313.29296.170999.539035@gargle.gargle.HOWL>  <1134658579.12421.59.camel@localhost.localdomain>
@@ -14,31 +14,22 @@ References: <20051215085602.c98f22ef.pj@sgi.com>  <20051213143147.d2a57fb3.pj@sg
  <1134769269.2806.17.camel@tglx.tec.linutronix.de>  <Pine.LNX.4.64.0512161339140.3698@g5.osdl.org>
   <1134770778.2806.31.camel@tglx.tec.linutronix.de>
  <Pine.LNX.4.64.0512161414370.3698@g5.osdl.org> <1134772964.2806.50.camel@tglx.tec.linutronix.de>
+ <Pine.LNX.4.64.0512161439330.3698@g5.osdl.org>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, matthew@wil.cx, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, mingo@elte.hu, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, matthew@wil.cx, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, mingo@elte.hu, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
 
 
-On Fri, 16 Dec 2005, Thomas Gleixner wrote:
-> 
-> Therefor, if you want to handle that "init protection" scenario, do not
-> use a mutex, because the owner can not be defined at compile -
-> allocation time.
+On Fri, 16 Dec 2005, Linus Torvalds wrote:
 
-Sure it could. We certainly have "init_task", for example. It may or may 
-not be the right thing to use, of course. Depends on what the situation 
-is.
+>
+> "Friends don't let friends use priority inheritance".
+>
+> Just don't do it. If you really need it, your system is broken anyway.
 
-> You can still implement (chose a mechanism) a mutex on top - or in case
-> of lack of priority inheritance or debugging with exactly the same -
-> mechanism as a semaphore, but this does not change the semantical
-> difference at all.
+You've been hanging around Victor Yodaiken too much ;)
 
-"Friends don't let friends use priority inheritance".
-
-Just don't do it. If you really need it, your system is broken anyway.
-
-		Linus
+-- Steve
