@@ -1,56 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 16 Dec 2005 14:53:06 -0800 (PST)
-Message-Id: <20051216.145306.132052494.davem@davemloft.net>
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
-From: "David S. Miller" <davem@davemloft.net>
-In-Reply-To: <Pine.LNX.4.64.0512161429500.3698@g5.osdl.org>
-References: <Pine.LNX.4.64.0512160829180.3060@g5.osdl.org>
-	<20051216.142349.89717140.davem@davemloft.net>
-	<Pine.LNX.4.64.0512161429500.3698@g5.osdl.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-To: torvalds@osdl.org
-Cc: dhowells@redhat.com, nickpiggin@yahoo.com.au, arjan@infradead.org, akpm@osdl.org, alan@lxorguk.ukuu.org.uk, cfriesen@nortel.com, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Date: Fri, 16 Dec 2005 23:13:07 GMT
+Message-Id: <200512162313.jBGND7m0019625@warthog.cambridge.redhat.com>
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 2/12]: MUTEX: Provide SWAP-based mutex for FRV
+In-Reply-To: <dhowells1134774786@warthog.cambridge.redhat.com>
+References: <dhowells1134774786@warthog.cambridge.redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain
+To: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Linus Torvalds <torvalds@osdl.org>
-Date: Fri, 16 Dec 2005 14:38:47 -0800 (PST)
+The attached patch permits the FRV architecture to make use of the xchg()
+based mutex, overriding the use of xchg() with something based on the FRV
+SWAP/SWAPI atomic op instructions. Note that xchg() in FRV is not actually
+based on SWAP/SWAPI at the moment.
 
-> A number of architectures have a "prefetch for write ownership" 
-> instruction that you can use for this. Exactly because "ld+cas" should 
-> not get a shared line initially.
-> 
-> I though sparc had an ASI to do the same? No?
+The patch also renames DECLARE_MUTEX*() for this arch to DECLARE_SEM_MUTEX*().
 
-No, no special ASI exists to do that, although it would be nice. :-)
-I'd have to use a prefetch for write.
+Signed-Off-By: David Howells <dhowells@redhat.com>
+---
+warthog>diffstat -p1 mutex-frv-2615rc5-2.diff
+ arch/frv/Kconfig         |    4 ++++
+ arch/frv/kernel/irq.c    |    2 +-
+ include/asm-frv/system.h |   19 +++++++++++++++++++
+ 3 files changed, 24 insertions(+), 1 deletion(-)
 
-BTW, it is interesting that you can use CAS to get a cache line into
-the local processor in Owned state with %100 certainty (unlike
-prefetch for write which might get cancelled) by doing something like:
-
-	CAS	[MEM], ZERO, ZERO
-
-and you can do this to any valid memory address without changing the
-contents.  This is useful for doing things like resetting parity bits
-while doing memory error recorvery.
-
-> It would seem to be the obvious thing to do for better lock performance, 
-> and I'd assume that locks are some of the most common cases of real cache 
-> interactions, so maybe the shared case only effectively happens if two 
-> CPU's are reading at the same time.
-> 
-> Somebody who looks at cache protocol diagrams could check. I'm too lazy.
-
-For both MOESI and MOSI cache coherency protocols, misses on loads
-result in a Shared state cache line when another processor has the
-data in it's cache too, regardless of whether that line in the other
-cpu is dirty or not.
-
-When the write comes along, the next transaction occurs to kick it
-out the other cpu(s) caches and then the local line is placed into
-Owned state.
-
-I'll have to add "put write prefetch in CAS sequences" onto my sparc64
-TODO list :-)
+diff -uNrp linux-2.6.15-rc5/arch/frv/Kconfig linux-2.6.15-rc5-mutex/arch/frv/Kconfig
+--- linux-2.6.15-rc5/arch/frv/Kconfig	2005-08-30 13:56:10.000000000 +0100
++++ linux-2.6.15-rc5-mutex/arch/frv/Kconfig	2005-12-16 17:40:50.000000000 +0000
+@@ -10,6 +10,10 @@ config UID16
+ 	bool
+ 	default y
+ 
++config ARCH_XCHG_MUTEX
++	bool
++	default y
++
+ config RWSEM_GENERIC_SPINLOCK
+ 	bool
+ 	default y
+diff -uNrp linux-2.6.15-rc5/include/asm-frv/system.h linux-2.6.15-rc5-mutex/include/asm-frv/system.h
+--- linux-2.6.15-rc5/include/asm-frv/system.h	2005-06-22 13:52:26.000000000 +0100
++++ linux-2.6.15-rc5-mutex/include/asm-frv/system.h	2005-12-16 21:43:32.000000000 +0000
+@@ -99,6 +99,25 @@ do {							\
+ 	((__get_PSR() & PSR_PIL) >= PSR_PIL_14)
+ 
+ /*
++ * mutex implementation
++ */
++#define __mutex_trylock(mutex)					\
++({								\
++	int oldstate;						\
++								\
++	asm volatile("swap%I0 %M0,%1"				\
++		     : "+m"(mutex->state), "=r"(oldstate)	\
++		     : "1"(1)					\
++		     : "memory");				\
++								\
++	oldstate == 0;						\
++})
++
++#define __mutex_release(mutex)	do { (mutex)->state = 0; } while(0)
++
++#define mutex_is_locked(mutex)	((mutex)->state)
++
++/*
+  * Force strict CPU ordering.
+  */
+ #define nop()			asm volatile ("nop"::)
+diff -uNrp linux-2.6.15-rc5/arch/frv/kernel/irq.c linux-2.6.15-rc5-mutex/arch/frv/kernel/irq.c
+--- linux-2.6.15-rc5/arch/frv/kernel/irq.c	2005-03-02 12:07:44.000000000 +0000
++++ linux-2.6.15-rc5-mutex/arch/frv/kernel/irq.c	2005-12-15 17:14:56.000000000 +0000
+@@ -503,7 +503,7 @@ void free_irq(unsigned int irq, void *de
+  * unassigned IRQ will cause GxICR_DETECT to be set
+  */
+ 
+-static DECLARE_MUTEX(probe_sem);
++static DECLARE_SEM_MUTEX(probe_sem);
+ 
+ /**
+  *	probe_irq_on	- begin an interrupt autodetect
