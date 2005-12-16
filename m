@@ -1,39 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 16 Dec 2005 08:33:10 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
-In-Reply-To: <12186.1134732601@warthog.cambridge.redhat.com>
-Message-ID: <Pine.LNX.4.64.0512160829180.3060@g5.osdl.org>
-References: <11202.1134730942@warthog.cambridge.redhat.com>
- <43A21E55.3060907@yahoo.com.au> <1134560671.2894.30.camel@laptopd505.fenrus.org>
- <439EDC3D.5040808@nortel.com> <1134479118.11732.14.camel@localhost.localdomain>
- <dhowells1134431145@warthog.cambridge.redhat.com> <3874.1134480759@warthog.cambridge.redhat.com>
- <15167.1134488373@warthog.cambridge.redhat.com> <1134490205.11732.97.camel@localhost.localdomain>
- <1134556187.2894.7.camel@laptopd505.fenrus.org> <1134558188.25663.5.camel@localhost.localdomain>
- <1134558507.2894.22.camel@laptopd505.fenrus.org> <1134559470.25663.22.camel@localhost.localdomain>
- <20051214033536.05183668.akpm@osdl.org> <15412.1134561432@warthog.cambridge.redhat.com>
-  <12186.1134732601@warthog.cambridge.redhat.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: David Howells <dhowells@redhat.com>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Andrew Morton <akpm@osdl.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, cfriesen@nortel.com, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+From: Thomas Gleixner <tglx@linutronix.de>
+Reply-To: tglx@linutronix.de
+In-Reply-To: <Pine.LNX.4.62.0512152130390.16426@pademelon.sonytel.be>
+References: <20051215085602.c98f22ef.pj@sgi.com>
+	 <20051213143147.d2a57fb3.pj@sgi.com> <20051213094053.33284360.pj@sgi.com>
+	 <dhowells1134431145@warthog.cambridge.redhat.com>
+	 <20051212161944.3185a3f9.akpm@osdl.org> <20051213075441.GB6765@elte.hu>
+	 <20051213090219.GA27857@infradead.org> <20051213093949.GC26097@elte.hu>
+	 <20051213100015.GA32194@elte.hu>
+	 <6281.1134498864@warthog.cambridge.redhat.com>
+	 <14242.1134558772@warthog.cambridge.redhat.com>
+	 <16315.1134563707@warthog.cambridge.redhat.com>
+	 <1134568731.4275.4.camel@tglx.tec.linutronix.de> <43A0AD54.6050109@rtr.ca>
+	 <20051214155432.320f2950.akpm@osdl.org>
+	 <17313.29296.170999.539035@gargle.gargle.HOWL>
+	 <1134658579.12421.59.camel@localhost.localdomain>
+	 <4743.1134662116@warthog.cambridge.redhat.com>
+	 <7140.1134667736@warthog.cambridge.redhat.com>
+	 <Pine.LNX.4.64.0512150945410.3292@g5.osdl.org>
+	 <20051215112115.7c4bfbea.akpm@osdl.org>
+	 <1134678532.13138.44.camel@localhost.localdomain>
+	 <Pine.LNX.4.62.0512152130390.16426@pademelon.sonytel.be>
+Content-Type: text/plain
+Date: Fri, 16 Dec 2005 22:41:09 +0100
+Message-Id: <1134769269.2806.17.camel@tglx.tec.linutronix.de>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, matthew@wil.cx, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, mingo@elte.hu, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com, Linus Torvalds <torvalds@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Fri, 16 Dec 2005, David Howells wrote:
+On Thu, 2005-12-15 at 21:32 +0100, Geert Uytterhoeven wrote:
+> > Why have the "MUTEX" part in there?  Shouldn't that just be DECLARE_SEM
+> > (oops, I mean DEFINE_SEM).  Especially that MUTEX_LOCKED! What is that?
+> > How does a MUTEX start off as locked.  It can't, since a mutex must
+> > always have an owner (which, by the way, helped us in the -rt patch to
+> > find our "compat_semaphores").  So who's the owner of a
+> > DEFINE_SEM_MUTEX_LOCKED?
 > 
-> Of course, CMPXCHG doesn't have to store either, though it still performs a
-> locked-write-cycle on x86 if I remember correctly.
+> No one. It's not really a mutex, but a completion.
 
-It does so on any sane architecture (side note: you don't do locked 
-memory cycles on the bus these days. You do cache coherency protocols).
+Well, then let us use a completion and not some semantically wrong
+workaround
 
-From a bus standpoint you _have_ to do the initial read with intent to 
-write, nothing else makes any sense. You'll just waste bus cycles 
-otherwise. Sure, the write may never come, but it just isn't sensible to 
-optimize for the case where the compare will fail. If that's the common 
-case, then software is doing something wrong (it should do just a much 
-cheaper "load + compare" first if it knows it's probably going to fail).
-
-		Linus
+	tglx
