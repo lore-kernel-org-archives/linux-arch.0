@@ -1,139 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <43A08D50.30707@yahoo.com.au> 
-References: <43A08D50.30707@yahoo.com.au>  <439FFF63.6020105@yahoo.com.au> <439F6EAB.6030903@yahoo.com.au> <439E122E.3080902@yahoo.com.au> <dhowells1134431145@warthog.cambridge.redhat.com> <22479.1134467689@warthog.cambridge.redhat.com> <13613.1134557656@warthog.cambridge.redhat.com> <15157.1134560767@warthog.cambridge.redhat.com> 
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation 
-Date: Fri, 16 Dec 2005 12:00:38 +0000
-Message-ID: <12832.1134734438@warthog.cambridge.redhat.com>
-Sender: dhowells@redhat.com
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <43A2BAA7.5000807@yahoo.com.au>
+Date: Sat, 17 Dec 2005 00:01:27 +1100
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+MIME-Version: 1.0
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+References: <43A21E55.3060907@yahoo.com.au>  <1134560671.2894.30.camel@laptopd505.fenrus.org> <439EDC3D.5040808@nortel.com> <1134479118.11732.14.camel@localhost.localdomain> <dhowells1134431145@warthog.cambridge.redhat.com> <3874.1134480759@warthog.cambridge.redhat.com> <15167.1134488373@warthog.cambridge.redhat.com> <1134490205.11732.97.camel@localhost.localdomain> <1134556187.2894.7.camel@laptopd505.fenrus.org> <1134558188.25663.5.camel@localhost.localdomain> <1134558507.2894.22.camel@laptopd505.fenrus.org> <1134559470.25663.22.camel@localhost.localdomain> <20051214033536.05183668.akpm@osdl.org> <15412.1134561432@warthog.cambridge.redhat.com> <11202.1134730942@warthog.cambridge.redhat.com>
+In-Reply-To: <11202.1134730942@warthog.cambridge.redhat.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
+To: David Howells <dhowells@redhat.com>
+Cc: Arjan van de Ven <arjan@infradead.org>, Andrew Morton <akpm@osdl.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, cfriesen@nortel.com, torvalds@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin <nickpiggin@yahoo.com.au> wrote:
+David Howells wrote:
+> Nick Piggin <nickpiggin@yahoo.com.au> wrote:
+> 
+> 
+>>> (2) Those that have CMPXCHG or equivalent: 68020, i486+, x86_64, ia64,
+>>>sparc.
+>>> (3) Those that have LL/SC or equivalent: mips (some), alpha, powerpc, arm6.
+>>>
+>>
+>>cmpxchg is basically exactly equivalent to a store-conditional, so 2 and 3
+>>are the same level.
+> 
+> 
+> No, they're not. LL/SC is more flexible than CMPXCHG because under some
+> circumstances, you can get away without doing the SC, and because sometimes
+> you can do one LL/SC in lieu of two CMPXCHG's because LL/SC allows you to
+> retrieve the value, consider it and then modify it if you want to. With
+> CMPXCHG you have to anticipate, and so you're more likely to get it wrong.
+> 
 
-> I was under the impression that with cmpxchg, you don't need the mutex lock.
-> If you do then sure, cmpxchg doesn't buy you anything (even if the arch does
-> natively support it).
+I don't think that is more flexible, just different. For example with
+cmpxchg you may not have to do the explicit load if you anticipate an
+unlocked mutex as the fastpath.
 
-Consider the slow path...
+My point is that they are of semantically equal strength.
 
-Imagine the mutex has three states: 0 (unset), 1 (held), 3 (contention).
+> 
+>>I don't know why you don't implement a "good" default implementation with
+>>atomic_cmpxchg.
+> 
+> 
+> Because it wouldn't be a good default.
 
-	MUTEX	PROCESS A	PROCESS B	PROCESS C
-	======	==============	==============	==============
-	1,B,-
-	1,B,-	-->mutex_lock()
-	1,B,-	cmpxchg(0,1) [failed]
-	1,B,-	-->__mutex_lock()
-	1,B,-			-->mutex_unlock()
-	1,B,-			cmpxchg(1,0) [success]
-	0,-,-			<--mutex_unlock()
-	0,-,-	spin_lock
-	0,-,A	cmpxchg(0,1) [success]
-	1,A,A	spin_unlock
-	1,A,-	<--__mutex_lock()
-	1,A,-	<--mutex_lock()
+You were proposing a worse default, which is the reason I suggested it.
 
-Or:
+> I'm thinking the best default is simply
+> to wrap a counting semaphore.
 
-	MUTEX	PROCESS A	PROCESS B	PROCESS C
-	======	==============	==============	==============	
-	1,B,-
-	1,B,-	-->mutex_lock()
-	1,B,-	cmpxchg(0,1) [failed]
-	1,B,-	-->__mutex_lock()
-	1,B,-	spin_lock
-	1,B,A	cmpxchg(0,1) [failed]
-	1,B,A			-->mutex_unlock()
-	1,B,A			cmpxchg(1,0) [success]
-	0,-,A			<--mutex_unlock()
-	0,-,A	cmpxchg(1,3) [failed]
-	0,-,A	cmpxchg(0,1) [success]
-	1,A,A	spin_unlock
-	1,A,-	<--__mutex_lock()
-	1,A,-	<--mutex_lock()
+Probably.
 
-Or:
-
-	MUTEX	PROCESS A	PROCESS B	PROCESS C
-	======	==============	==============	==============
-	1,B,-
-	1,B,-	-->mutex_lock()
-	1,B,-	cmpxchg(0,1) [failed]
-	1,B,-	-->__mutex_lock()
-	1,B,-	spin_lock
-	1,B,A	cmpxchg(0,1) [failed]
-	1,B,A			-->mutex_unlock()
-	1,B,A			cmpxchg(1,0) [success]
-	0,-,A			<--mutex_unlock()
-	0,-,A	cmpxchg(1,3) [failed]
-	0,-,A					-->mutex_lock()
-	0,-,A					cmpxchg(0,1) [success]
-	1,C,A					<--mutex_lock()
-	1,C,A	cmpxchg(0,1) [failed]
-	1,C,A	cmpxchg(1,3) [success]
-	3,A,A	spin_unlock
-	3,A,-	<--__mutex_lock()
-	3,A,-	<--mutex_lock()
-
-See how many cmpxchgs you may end up doing? Now imagine that cmpxchg() is
-implemented as:
-
-	spin_lock_irqsave(&common_lock[N], flags);
-	actual = *state;
-	if (actual == old)
-		*state = new;
-	spin_unlock_irqrestore(&common_lock[N], flags);
-
-Now my point about using LL/SC is that:
-
-	1,C,A	cmpxchg(0,1) [failed]
-	1,C,A	cmpxchg(1,3) [success]
-	3,C,A	...
-
-Can be turned into:
-
-	1,C,A	x = LL()
-	1,C,A	x |= 2;
-	1,C,A	SC(3) [success]
-	3,C,A	...
-
-On x86 you could use:
-
-	1,C,A	LOCK OR (2)
-	3,C,A	...
-
-instead.
-
-Now, contention isn't very likely, so using CMPXCHG _may_ be good enough _if_
-you have it. But if you have to emulate it by using spinlocks, you're far
-better off just wrapping the entire thing in spinlocks and not pretending use
-atomic ops to access the counter; unless, of course, you have somthing that
-can do a 1-bit XCHG or better...
-
-	MUTEX	PROCESS A	PROCESS B	PROCESS C
-	======	==============	==============	==============
-	0,-,-			-->mutex_lock()
-	0,-,-			xchg(1) == 0
-	1,B,-			<--mutex_lock()
-	1,B,-
-	1,B,-	-->mutex_lock()
-	1,B,-	xchg(1) == 1
-	1,B,-	-->__mutex_lock()
-	1,B,-			-->mutex_unlock()
-	1,B,B			spin_lock
-	1,B,B			set(0)
-	0,-,B			spin_unlock
-	0,-,-			<--mutex_unlock()
-	0,-,-	spin_lock
-	0,-,A	xchg(1) == 0
-	1,A,A	spin_unlock
-	1,A,-	<--__mutex_lock()
-	1,A,-	<--mutex_lock()
-
-mutex_unlock() should get the spinlock here before modifying the count,
-because if there's anything on the queue, it should wake up the first waiter
-rather than clearing the count.
-
-David
+Send instant messages to your online friends http://au.messenger.yahoo.com 
