@@ -1,42 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Sat, 17 Dec 2005 21:44:02 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [PATCH 1/12]: MUTEX: Implement mutexes
-Message-ID: <20051217214401.GB31551@flint.arm.linux.org.uk>
-References: <Pine.LNX.4.64.0512162334440.3698@g5.osdl.org> <dhowells1134774786@warthog.cambridge.redhat.com> <200512162313.jBGND7g4019623@warthog.cambridge.redhat.com> <1134791914.13138.167.camel@localhost.localdomain> <14917.1134847311@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0512171201200.3698@g5.osdl.org>
+Date: Sat, 17 Dec 2005 14:38:24 -0800
+From: Richard Henderson <rth@twiddle.net>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+Message-ID: <20051217223824.GA16736@twiddle.net>
+References: <Pine.LNX.4.64.0512160829180.3060@g5.osdl.org> <20051216.142349.89717140.davem@davemloft.net> <Pine.LNX.4.64.0512161429500.3698@g5.osdl.org> <20051216.145306.132052494.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0512171201200.3698@g5.osdl.org>
-Sender: Russell King <rmk@arm.linux.org.uk>
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@osdl.org
+In-Reply-To: <20051216.145306.132052494.davem@davemloft.net>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: torvalds@osdl.org, dhowells@redhat.com, nickpiggin@yahoo.com.au, arjan@infradead.org, akpm@osdl.org, alan@lxorguk.ukuu.org.uk, cfriesen@nortel.com, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, Dec 17, 2005 at 12:11:39PM -0800, Linus Torvalds wrote:
-> Of the other architectures you list, only ARM is really important. And no, 
-> arm doesn't do swap. It does LL/SC (except they call it "ldrex/strex", 
-> which I assume stands for "load/store with reservation and X just because 
-> X is cool. Yeah, we're cool" (*)).
+On Fri, Dec 16, 2005 at 02:53:06PM -0800, David S. Miller wrote:
+> I'll have to add "put write prefetch in CAS sequences" onto my sparc64
+> TODO list :-)
 
-> (*) Actually, some arm docs I found implies that "ex" stands for 
-> "exclusive", but that leaves me wondering what the "r" stands for? 
+You might consider just beginning your loops like
 
-FYI.  The standard instructions:
+	mov	zero, old
+	cas	[mem], zero, old
 
-ldr = load register
-str = store register
+to do the initial read, since old will now contain the 
+contents of the memory, and we havn't changed the memory.
 
-The new (ARM architecture v6 and above) atomic instructions:
 
-ldrex = load register exclusive
-strex = store register exclusive
-
-Previous architecture versions only have the 32-bit and 8 bit
-unconditional swap instructions.  Luckily they're unlikely to be
-used for SMP in the field.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 Serial core
+r~
