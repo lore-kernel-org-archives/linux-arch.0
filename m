@@ -1,53 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Fri, 16 Dec 2005 22:13:14 -0500 (EST)
+Subject: Re: [PATCH 1/12]: MUTEX: Implement mutexes
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-In-Reply-To: <Pine.LNX.4.64.0512161647570.3698@g5.osdl.org>
-Message-ID: <Pine.LNX.4.58.0512162211320.6498@gandalf.stny.rr.com>
-References: <Pine.LNX.4.64.0512150945410.3292@g5.osdl.org>
- <20051215112115.7c4bfbea.akpm@osdl.org> <1134678532.13138.44.camel@localhost.localdomain>
- <Pine.LNX.4.62.0512152130390.16426@pademelon.sonytel.be>
- <1134769269.2806.17.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161339140.3698@g5.osdl.org>
- <1134770778.2806.31.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161414370.3698@g5.osdl.org>
- <1134772964.2806.50.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161439330.3698@g5.osdl.org>
- <20051217002929.GA7151@tsunami.ccur.com> <Pine.LNX.4.64.0512161647570.3698@g5.osdl.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Joe Korty <joe.korty@ccur.com>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, matthew@wil.cx, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, mingo@elte.hu, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com
+In-Reply-To: <200512162313.jBGND7g4019623@warthog.cambridge.redhat.com>
+References: <dhowells1134774786@warthog.cambridge.redhat.com>
+	 <200512162313.jBGND7g4019623@warthog.cambridge.redhat.com>
+Content-Type: text/plain
+Date: Fri, 16 Dec 2005 22:58:34 -0500
+Message-Id: <1134791914.13138.167.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@osdl.org, torvalds@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Fri, 2005-12-16 at 23:13 +0000, David Howells wrote:
+> The attached patch introduces a simple mutex implementation as an alternative
+> to the usual semaphore implementation where simple mutex functionality is all
+> that is required.
+> 
+> This is useful in two ways:
+> 
+>  (1) A number of archs only provide very simple atomic instructions (such as
+>      XCHG on i386, TAS on M68K, SWAP on FRV) which aren't sufficient to
+>      implement full semaphore support directly. Instead spinlocks must be
+>      employed to implement fuller functionality.
+> 
+>  (2) This makes it more obvious that a mutex is a mutex and restricts the
+>      capabilites to make it more easier to debug.
+> 
+> This patch set does the following:
+> 
+>  (1) Renames DECLARE_MUTEX and DECLARE_MUTEX_LOCKED to be DECLARE_SEM_MUTEX and
+>      DECLARE_SEM_MUTEX_LOCKED for counting semaphores.
+> 
 
-On Fri, 16 Dec 2005, Linus Torvalds wrote:
->
-> On Fri, 16 Dec 2005, Joe Korty wrote:
-> >
-> > The Mars Pathfinder incident is sufficient proof that some solution to
-> > the priority inversion problem is required in real systems.
->
-> Ehh.
->
-> The Mars Pathfinder is just about the worst case "real system", and if I
-> recall correctly, the reason it was able to continue was _not_ because it
-> handled priority inversion, but because it reset itself every 24 hours or
-> something like that, and had debugging facilities..
->
-> The _real_ lesson you should take away from it is not that priority
-> inheritance is a good solution to priority inversion, but that having a
-> failsafe switch when everthing goes wrong is critical. You don't know
-> _what_ bug you'll encounter.
->
-> The bug itself could have been solved without priority inheritance,
-> although I think in this case enabling that in VxWorks was the particular
-> solution to the problem as being the least invasive.
->
-> Personally, I don't care what user space does. If some app wants to use
-> priority inheritance to solve its bugs, that's fine. But it's like
-> recursive locks: it's generally a _bandaid_ for bad locking. I definitely
-> don't want the kernel depending on either.
+Could we really get rid of that "MUTEX" part.  A counting semaphore is
+_not_ a mutex, although a mutex _is_ a counting semaphore.  As is a Jack
+Russell is a dog, but a dog is not a Jack Russell.
 
-So how does one handle real-time tasks that must contend with locks within
-the kernel that is shared with low priority tasks?  Do you prefer the RTAI
-approach?
+What's the reason not to just use DECLARE_SEM and DECLARE_SEM_LOCKED?
 
 -- Steve
