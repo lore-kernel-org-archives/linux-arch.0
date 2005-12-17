@@ -1,43 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Subject: Re: [PATCH 1/12]: MUTEX: Implement mutexes
-From: Steven Rostedt <rostedt@goodmis.org>
-In-Reply-To: <200512162313.jBGND7g4019623@warthog.cambridge.redhat.com>
-References: <dhowells1134774786@warthog.cambridge.redhat.com>
-	 <200512162313.jBGND7g4019623@warthog.cambridge.redhat.com>
-Content-Type: text/plain
-Date: Fri, 16 Dec 2005 22:58:34 -0500
-Message-Id: <1134791914.13138.167.camel@localhost.localdomain>
+Date: Fri, 16 Dec 2005 23:10:56 -0800 (PST)
+Message-Id: <20051216.231056.124758189.davem@davemloft.net>
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+From: "David S. Miller" <davem@davemloft.net>
+In-Reply-To: <200512161641.49571.jbarnes@virtuousgeek.org>
+References: <Pine.LNX.4.64.0512161429500.3698@g5.osdl.org>
+	<20051216.145306.132052494.davem@davemloft.net>
+	<200512161641.49571.jbarnes@virtuousgeek.org>
 Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@osdl.org, torvalds@osdl.org
+To: jbarnes@virtuousgeek.org
+Cc: torvalds@osdl.org, dhowells@redhat.com, nickpiggin@yahoo.com.au, arjan@infradead.org, akpm@osdl.org, alan@lxorguk.ukuu.org.uk, cfriesen@nortel.com, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2005-12-16 at 23:13 +0000, David Howells wrote:
-> The attached patch introduces a simple mutex implementation as an alternative
-> to the usual semaphore implementation where simple mutex functionality is all
-> that is required.
-> 
-> This is useful in two ways:
-> 
->  (1) A number of archs only provide very simple atomic instructions (such as
->      XCHG on i386, TAS on M68K, SWAP on FRV) which aren't sufficient to
->      implement full semaphore support directly. Instead spinlocks must be
->      employed to implement fuller functionality.
-> 
->  (2) This makes it more obvious that a mutex is a mutex and restricts the
->      capabilites to make it more easier to debug.
-> 
-> This patch set does the following:
-> 
->  (1) Renames DECLARE_MUTEX and DECLARE_MUTEX_LOCKED to be DECLARE_SEM_MUTEX and
->      DECLARE_SEM_MUTEX_LOCKED for counting semaphores.
-> 
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Date: Fri, 16 Dec 2005 16:41:49 -0800
 
-Could we really get rid of that "MUTEX" part.  A counting semaphore is
-_not_ a mutex, although a mutex _is_ a counting semaphore.  As is a Jack
-Russell is a dog, but a dog is not a Jack Russell.
+> Note that under contention prefetching with a write bias can cause a lot 
+> more cache line bouncing than a regular load into shared state (assuming 
+> you do a load and test before you try the CAS).
 
-What's the reason not to just use DECLARE_SEM and DECLARE_SEM_LOCKED?
+If there is some test guarding the CAS, yes.
 
--- Steve
+But if there isn't, for things like atomic increment and
+decrement, where the CAS is unconditional, you'll always
+eat the two bus transactions without the prefetch for write.
