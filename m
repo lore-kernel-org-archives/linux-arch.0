@@ -1,33 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Date: Fri, 16 Dec 2005 17:00:09 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Date: Fri, 16 Dec 2005 16:41:49 -0800
-References: <Pine.LNX.4.64.0512160829180.3060@g5.osdl.org> <Pine.LNX.4.64.0512161429500.3698@g5.osdl.org> <20051216.145306.132052494.davem@davemloft.net>
-In-Reply-To: <20051216.145306.132052494.davem@davemloft.net>
+In-Reply-To: <20051217002929.GA7151@tsunami.ccur.com>
+Message-ID: <Pine.LNX.4.64.0512161647570.3698@g5.osdl.org>
+References: <Pine.LNX.4.64.0512150945410.3292@g5.osdl.org>
+ <20051215112115.7c4bfbea.akpm@osdl.org> <1134678532.13138.44.camel@localhost.localdomain>
+ <Pine.LNX.4.62.0512152130390.16426@pademelon.sonytel.be>
+ <1134769269.2806.17.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161339140.3698@g5.osdl.org>
+ <1134770778.2806.31.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161414370.3698@g5.osdl.org>
+ <1134772964.2806.50.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161439330.3698@g5.osdl.org>
+ <20051217002929.GA7151@tsunami.ccur.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200512161641.49571.jbarnes@virtuousgeek.org>
-To: "David S. Miller" <davem@davemloft.net>
-Cc: torvalds@osdl.org, dhowells@redhat.com, nickpiggin@yahoo.com.au, arjan@infradead.org, akpm@osdl.org, alan@lxorguk.ukuu.org.uk, cfriesen@nortel.com, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: Joe Korty <joe.korty@ccur.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, matthew@wil.cx, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, mingo@elte.hu, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Friday, December 16, 2005 2:53 pm, David S. Miller wrote:
-> When the write comes along, the next transaction occurs to kick it
-> out the other cpu(s) caches and then the local line is placed into
-> Owned state.
->
-> I'll have to add "put write prefetch in CAS sequences" onto my sparc64
-> TODO list :-)
 
-Note that under contention prefetching with a write bias can cause a lot 
-more cache line bouncing than a regular load into shared state (assuming 
-you do a load and test before you try the CAS).  We actually saw this on 
-large Altix machines, 
-http://lia64.bkbits.net:8080/to-linus-2.5/cset%403f2082b3xCvMG9OSeNu3aWhoe6jnOg?nav=index.html|
-src/.|src/include|src/include/asm-ia64|
-related/include/asm-ia64/spinlock.h fixed things up for us.
 
-Jesse
+On Fri, 16 Dec 2005, Joe Korty wrote:
+> 
+> The Mars Pathfinder incident is sufficient proof that some solution to
+> the priority inversion problem is required in real systems.
+
+Ehh. 
+
+The Mars Pathfinder is just about the worst case "real system", and if I 
+recall correctly, the reason it was able to continue was _not_ because it 
+handled priority inversion, but because it reset itself every 24 hours or 
+something like that, and had debugging facilities..
+
+The _real_ lesson you should take away from it is not that priority 
+inheritance is a good solution to priority inversion, but that having a 
+failsafe switch when everthing goes wrong is critical. You don't know 
+_what_ bug you'll encounter.
+
+The bug itself could have been solved without priority inheritance, 
+although I think in this case enabling that in VxWorks was the particular 
+solution to the problem as being the least invasive.
+
+Personally, I don't care what user space does. If some app wants to use 
+priority inheritance to solve its bugs, that's fine. But it's like 
+recursive locks: it's generally a _bandaid_ for bad locking. I definitely 
+don't want the kernel depending on either.
+
+So put a watchdog on your critical systems, and make sure you can debug 
+them. Especially if they're on Mars.
+
+			Linus
