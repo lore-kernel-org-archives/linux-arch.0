@@ -1,51 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Sat, 17 Dec 2005 12:11:39 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
-Subject: Re: [PATCH 1/12]: MUTEX: Implement mutexes 
-In-Reply-To: <14917.1134847311@warthog.cambridge.redhat.com>
-Message-ID: <Pine.LNX.4.64.0512171201200.3698@g5.osdl.org>
-References: <Pine.LNX.4.64.0512162334440.3698@g5.osdl.org>
- <dhowells1134774786@warthog.cambridge.redhat.com>
- <200512162313.jBGND7g4019623@warthog.cambridge.redhat.com>
- <1134791914.13138.167.camel@localhost.localdomain>
- <14917.1134847311@warthog.cambridge.redhat.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-To: David Howells <dhowells@redhat.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@osdl.org
+Date: Sat, 17 Dec 2005 21:44:02 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 1/12]: MUTEX: Implement mutexes
+Message-ID: <20051217214401.GB31551@flint.arm.linux.org.uk>
+References: <Pine.LNX.4.64.0512162334440.3698@g5.osdl.org> <dhowells1134774786@warthog.cambridge.redhat.com> <200512162313.jBGND7g4019623@warthog.cambridge.redhat.com> <1134791914.13138.167.camel@localhost.localdomain> <14917.1134847311@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0512171201200.3698@g5.osdl.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0512171201200.3698@g5.osdl.org>
+Sender: Russell King <rmk@arm.linux.org.uk>
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: David Howells <dhowells@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Sat, Dec 17, 2005 at 12:11:39PM -0800, Linus Torvalds wrote:
+> Of the other architectures you list, only ARM is really important. And no, 
+> arm doesn't do swap. It does LL/SC (except they call it "ldrex/strex", 
+> which I assume stands for "load/store with reservation and X just because 
+> X is cool. Yeah, we're cool" (*)).
 
+> (*) Actually, some arm docs I found implies that "ex" stands for 
+> "exclusive", but that leaves me wondering what the "r" stands for? 
 
-On Sat, 17 Dec 2005, David Howells wrote:
-> 
-> Linux supports a number of those archs. Amongst them are 68000 (TAS), arm (SWP
-> I think), i386 (XCHG), and FRV (SWAP). I'm also looking at another that only
-> has BSET/BCLR.
+FYI.  The standard instructions:
 
-Don't bother putting i386 in that list.
+ldr = load register
+str = store register
 
-Quite frankly, you've done it before, and I think it's intellectually 
-totally dishonest.
+The new (ARM architecture v6 and above) atomic instructions:
 
-i386 does semaphores with a "lock decl". You CANNOT DO IT FASTER. I dare 
-you. Why the hell do you try to make it sound as if x86 would need this 
-new thing, when it absolutely does NOT need it.
+ldrex = load register exclusive
+strex = store register exclusive
 
-Yes, x86 _also_ has an xchg instruction, but hey, that's a total 
-non-argument. We don't actually use that. 
+Previous architecture versions only have the 32-bit and 8 bit
+unconditional swap instructions.  Luckily they're unlikely to be
+used for SMP in the field.
 
-Of the other architectures you list, only ARM is really important. And no, 
-arm doesn't do swap. It does LL/SC (except they call it "ldrex/strex", 
-which I assume stands for "load/store with reservation and X just because 
-X is cool. Yeah, we're cool" (*)).
-
-68k is dead. Nobody cares. So just say it outright: this is totally just a 
-FRV feature, and NOBODY ELSE IS IN THE LEAST INTERESTED.
-
-Ok? Just to inject a little honesty here.
-
-			Linus
-
-(*) Actually, some arm docs I found implies that "ex" stands for 
-"exclusive", but that leaves me wondering what the "r" stands for? 
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
