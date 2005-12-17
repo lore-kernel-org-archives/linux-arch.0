@@ -1,54 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Sat, 17 Dec 2005 07:36:50 -0500 (EST)
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 1/12]: MUTEX: Implement mutexes
-In-Reply-To: <43A3C461.2030900@yahoo.com.au>
-Message-ID: <Pine.LNX.4.58.0512170731271.12362@gandalf.stny.rr.com>
-References: <dhowells1134774786@warthog.cambridge.redhat.com>
- <200512162313.jBGND7g4019623@warthog.cambridge.redhat.com>
- <1134791914.13138.167.camel@localhost.localdomain> <43A3C461.2030900@yahoo.com.au>
+From: Nikita Danilov <nikita@clusterfs.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Message-ID: <17316.13699.45888.529393@gargle.gargle.HOWL>
+Date: Sat, 17 Dec 2005 18:57:55 +0300
+Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
+In-Reply-To: <43A2BAA7.5000807@yahoo.com.au>
+References: <43A21E55.3060907@yahoo.com.au>
+	<1134560671.2894.30.camel@laptopd505.fenrus.org>
+	<439EDC3D.5040808@nortel.com>
+	<1134479118.11732.14.camel@localhost.localdomain>
+	<dhowells1134431145@warthog.cambridge.redhat.com>
+	<3874.1134480759@warthog.cambridge.redhat.com>
+	<15167.1134488373@warthog.cambridge.redhat.com>
+	<1134490205.11732.97.camel@localhost.localdomain>
+	<1134556187.2894.7.camel@laptopd505.fenrus.org>
+	<1134558188.25663.5.camel@localhost.localdomain>
+	<1134558507.2894.22.camel@laptopd505.fenrus.org>
+	<1134559470.25663.22.camel@localhost.localdomain>
+	<20051214033536.05183668.akpm@osdl.org>
+	<15412.1134561432@warthog.cambridge.redhat.com>
+	<11202.1134730942@warthog.cambridge.redhat.com>
+	<43A2BAA7.5000807@yahoo.com.au>
 To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@osdl.org, torvalds@osdl.org
+Cc: Arjan van de Ven <arjan@infradead.org>, Andrew Morton <akpm@osdl.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, cfriesen@nortel.com, torvalds@osdl.org, hch@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Nick Piggin writes:
+ > David Howells wrote:
+ > > Nick Piggin <nickpiggin@yahoo.com.au> wrote:
+ > > 
+ > > 
+ > >>> (2) Those that have CMPXCHG or equivalent: 68020, i486+, x86_64, ia64,
+ > >>>sparc.
+ > >>> (3) Those that have LL/SC or equivalent: mips (some), alpha, powerpc, arm6.
+ > >>>
+ > >>
+ > >>cmpxchg is basically exactly equivalent to a store-conditional, so 2 and 3
+ > >>are the same level.
+ > > 
+ > > 
+ > > No, they're not. LL/SC is more flexible than CMPXCHG because under some
+ > > circumstances, you can get away without doing the SC, and because sometimes
+ > > you can do one LL/SC in lieu of two CMPXCHG's because LL/SC allows you to
+ > > retrieve the value, consider it and then modify it if you want to. With
+ > > CMPXCHG you have to anticipate, and so you're more likely to get it wrong.
+ > > 
+ > 
+ > I don't think that is more flexible, just different. For example with
+ > cmpxchg you may not have to do the explicit load if you anticipate an
+ > unlocked mutex as the fastpath.
+ > 
+ > My point is that they are of semantically equal strength.
 
-On Sat, 17 Dec 2005, Nick Piggin wrote:
+In the context of implementing mutex they most likely are. But not
+generally: LL/SC fails when _any_ write was made into monitored
+location, whereas CAS fails only when value stored in that location
+changes. As a result, CAS has to deal with "ABA problem" when value
+(e.g., first element in a queue) is changed from A to B (head of the
+queue is removed) and then back to A (old head is inserted back).
 
-> Steven Rostedt wrote:
-> > On Fri, 2005-12-16 at 23:13 +0000, David Howells wrote:
->
-> >>This patch set does the following:
-> >>
-> >> (1) Renames DECLARE_MUTEX and DECLARE_MUTEX_LOCKED to be DECLARE_SEM_MUTEX and
-> >>     DECLARE_SEM_MUTEX_LOCKED for counting semaphores.
-> >>
-> >
-> >
-> > Could we really get rid of that "MUTEX" part.  A counting semaphore is
-> > _not_ a mutex, although a mutex _is_ a counting semaphore.  As is a Jack
-> > Russell is a dog, but a dog is not a Jack Russell.
-> >
->
-> Really?
->
-> A Jack Russell is a dog because anything you say about a dog can
-> also be said about a Jack Russell.
-
-I said a Jack Russell _is_ a dog, but a dog is not a Jack Russell.
-Everything you can say about a dog you can't say about a Jack Russell.
-Since, a dog can have other characteristics than a Jack Russell has. A dog
-can be big and lazy, but I would not say that about a Jack Russell.
-
->
-> A counting semaphore is a mutex for the same reason (and observe
-> that 99% of users use the semaphore as a mutex). A mutex definitely
-> is not a counting semaphore. David's implementation of mutexes
-> don't count at all.
-
-But a counting semaphore of (one) _is_ a mutex!  But a mutex can't have
-more than one.   As for David's code, that's just arguing implementation,
-and not the semantics of it.
-
--- Steve
+Nikita.
