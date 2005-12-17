@@ -1,54 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Message-ID: <43A350C0.8030805@yahoo.com.au>
-Date: Sat, 17 Dec 2005 10:41:52 +1100
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
+Date: Fri, 16 Dec 2005 19:29:29 -0500
+From: Joe Korty <joe.korty@ccur.com>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-References: <43A2BE49.4000102@yahoo.com.au>  <43A08D50.30707@yahoo.com.au> <439FFF63.6020105@yahoo.com.au> <439F6EAB.6030903@yahoo.com.au> <439E122E.3080902@yahoo.com.au> <dhowells1134431145@warthog.cambridge.redhat.com> <22479.1134467689@warthog.cambridge.redhat.com> <13613.1134557656@warthog.cambridge.redhat.com> <15157.1134560767@warthog.cambridge.redhat.com> <12832.1134734438@warthog.cambridge.redhat.com> <20220.1134748431@warthog.cambridge.redhat.com>
-In-Reply-To: <20220.1134748431@warthog.cambridge.redhat.com>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, hch@infradead.org, arjan@infradead.org, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20051217002929.GA7151@tsunami.ccur.com>
+Reply-To: joe.korty@ccur.com
+References: <Pine.LNX.4.64.0512150945410.3292@g5.osdl.org> <20051215112115.7c4bfbea.akpm@osdl.org> <1134678532.13138.44.camel@localhost.localdomain> <Pine.LNX.4.62.0512152130390.16426@pademelon.sonytel.be> <1134769269.2806.17.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161339140.3698@g5.osdl.org> <1134770778.2806.31.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161414370.3698@g5.osdl.org> <1134772964.2806.50.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161439330.3698@g5.osdl.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0512161439330.3698@g5.osdl.org>
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, matthew@wil.cx, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, mingo@elte.hu, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-David Howells wrote:
+On Fri, Dec 16, 2005 at 02:41:16PM -0800, Linus Torvalds wrote:
 
->>It is not even clear that any ll/sc based architectures would need to override
->>an atomic_cmpxchg variant at all because you can assume an unlocked fastpath
+> "Friends don't let friends use priority inheritance".
 > 
-> 
-> That's irrelevant. Any arch that has LL/SC almost certainly emulates CMPXCHG
-> with LL/SC.
-> 
+> Just don't do it. If you really need it, your system is broken anyway.
 
-It is not irrelevant because many architectures that would care are ll/sc
-based and many others have a native cmpxchg ie. cmpxchg wouldn't be a bad
-choice for default.
+The Mars Pathfinder incident is sufficient proof that some solution to
+the priority inversion problem is required in real systems.
 
-> 
->>and not do the additional initial load to prime the cmpxchg.
-> 
-> 
-> Two points:
-> 
->  (1) LL/SC does not require an additional initial load.
-> 
+	http://www.cs.cmu.edu/afs/cs/user/raj/www/mars.html
 
-?? I was only talking about cmpxchg
-
->  (2) CMPXCHG does an implicit load; how else can it compare?
-> 
-
-Read Russell's posts. He points out that most usages of cmpxchg
-will require an additional load compared with an llsc in order to
-find the value to work on.
-
-cmpxchg(lock, UNLOCKED, LOCKED)
-
-does not (although it may still require an extra branch).
-
--- 
-SUSE Labs, Novell Inc.
-
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+Regards,
+Joe
+--
+"All the revision in the world will not save a bad first draft, for the
+architecture of the thing comes, or fails to come, in the first conception,
+and revision only affects the detail and ornament. -- T.E. Lawrence
