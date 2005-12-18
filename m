@@ -1,61 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Date: Sun, 18 Dec 2005 12:29:56 -0500 (EST)
-From: Nicolas Pitre <nico@cam.org>
+Date: Sun, 18 Dec 2005 10:42:42 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH 1/12]: MUTEX: Implement mutexes
-In-reply-to: <Pine.LNX.4.64.0512172227280.3698@g5.osdl.org>
-Message-id: <Pine.LNX.4.64.0512181221510.26663@localhost.localdomain>
-MIME-version: 1.0
-Content-type: TEXT/PLAIN; charset=US-ASCII
-Content-transfer-encoding: 7BIT
+In-Reply-To: <20051218092616.GA17308@flint.arm.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0512181027220.4827@g5.osdl.org>
 References: <Pine.LNX.4.64.0512162334440.3698@g5.osdl.org>
  <dhowells1134774786@warthog.cambridge.redhat.com>
  <200512162313.jBGND7g4019623@warthog.cambridge.redhat.com>
  <1134791914.13138.167.camel@localhost.localdomain>
- <14917.1134847311@warthog.cambridge.redhat.com>
- <Pine.LNX.4.64.0512171201200.3698@g5.osdl.org>
+ <14917.1134847311@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0512171201200.3698@g5.osdl.org>
  <Pine.LNX.4.64.0512172018410.26663@localhost.localdomain>
  <Pine.LNX.4.64.0512171803580.3698@g5.osdl.org>
  <Pine.LNX.4.64.0512172150260.26663@localhost.localdomain>
- <Pine.LNX.4.64.0512172227280.3698@g5.osdl.org>
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, lkml <linux-kernel@vger.kernel.org>, mingo@redhat.com, Andrew Morton <akpm@osdl.org>
+ <Pine.LNX.4.64.0512172227280.3698@g5.osdl.org> <20051218092616.GA17308@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Nicolas Pitre <nico@cam.org>, David Howells <dhowells@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, lkml <linux-kernel@vger.kernel.org>, mingo@redhat.com, Andrew Morton <akpm@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 17 Dec 2005, Linus Torvalds wrote:
 
+
+On Sun, 18 Dec 2005, Russell King wrote:
+>
+> On Sat, Dec 17, 2005 at 10:30:41PM -0800, Linus Torvalds wrote:
+> > An interrupt can never change the value without changing it back, except 
+> > for the old-fashioned use of "up()" as a completion (which I don't think 
+> > we do any more - we used to do it for IO completion a looong time ago).
 > 
+> I doubt you can guarantee that statement, or has the kernel source
+> been audited for this recently?
+
+Well, _if_ it's a noticeable performance win, we should just do it. We 
+already know that people don't call "down()" in interrupts (it just 
+wouldn't work), we can instrument "up()" too.
+
+It's easy enough to add a "might_sleep()" to the up(). Not strictly true, 
+but conceptually it would make sense to make up/down match in that sense. 
+We'd have to mark the (few) places that do down_trylock() + up() in 
+interrupt context with a special "up_in_interrupt()", but that would be ok 
+even from a documentation standpoint.
+
+> However, the real consideration is stability - if a semaphore was
+> used for a completion and it was merged, would it be found and
+> fixed?  Probably not, because it won't cause any problems on
+> architectures where semaphores have atomic properties.
+
+Actually, the reason we have completions is that using semaphores as 
+completions caused some really subtle problems that had nothing to do with 
+atomicity of the operations themselves, so if you find somebody who uses a 
+semaphore from an interrupt, I think we want to know about it.
+
+Completions actually have another - and more important - property than the 
+fact that they have a more logical name for a particular usage.
+
+The completion has "don't touch me" guarantees. A thread or interrupt that 
+does an "up()" on a semaphore may still touch the memory that was 
+allocated for the semaphore after the "down()" part has been released. 
+And THAT was the reason for the completions: we allocate them on the stack 
+or in temporary allocations, and the thing that does the "down()" to wait 
+for something to finish will also do the _release_ of the memory.
+
+With semaphores, that caused problems, because the side doing the "up()" 
+would thus possibly touch memory that got released from under it.
+
+This problem happens only on SMP (since you need to have the downer and 
+the upper running at the same time), but it's totally independent of the 
+other atomicity issues. And almost any semaphore that is used as a 
+completion from an interrupt will have this problem, so yes, if you find 
+somebody doing an "up()" in interrupt context, we'll fix it.
+
+It would be good to make the rules clear, that you can never touch a 
+semaphore from irq context without changing it back before you return.
+
+Of course, that still leaves the following sequence
+
+	if (!down_trylock(..)) {
+		... do something ..
+		up(..);
+	}
+
+which is actually used from interrupts too. At least the console layer 
+does that (printk() can happen from interrupts, and we do a down_trylock 
+on the console semaphore. But that one shouldn't mess with the _count_, 
+although it does mean that the wait-queue preparation etc (for when the 
+fast case fails) does still need to be protected against interrupts.
+
+But that would be the slow case, so from a performance standpoint, it 
+would still allow the case that really _matters_ to be done with 
+interrupts enabled.
+
+> Unless of course sparse can be extended to detect the use of unbalanced 
+> semaphores in interrupt contexts.
+
+In theory, yes, but in practice I'd much rather just do the stupid brute 
+force things.
+
+> > (Of course, maybe it's not worth it. It might not be a big performance 
+> > issue).
 > 
-> On Sat, 17 Dec 2005, Nicolas Pitre wrote:
-> > 
-> > Now if you don't disable interrupts then nothing prevents an interrupt 
-> > handler, or another thread if kernel preemption is allowed
-> 
-> Preemption, yes. Interrupts no.
-> 
-> >							 to come 
-> > along right between (2) and (4) to call up() or down() which will 
-> > make the sem count inconsistent as soon as the interrupted down() or 
-> > up() is resumed.
-> 
-> An interrupt can never change the value without changing it back, except 
-> for the old-fashioned use of "up()" as a completion (which I don't think 
-> we do any more - we used to do it for IO completion a looong time ago).
+> Balancing the elimination of 4 instructions per semaphore operation,
+> totalling about 4 to 6 cycles, vs stability I'd go for stability
+> unless we can prove the above assertion via (eg) sparse.
 
-Maybe, but I would not bet anything on that statement.  I'm sure there 
-are people still using semaphores for IO completion, calling up() from 
-interrupt handlers.  And the fact is that it still works fine.
+I agree, if arm interrupt disables are fast. For example, on x86 (where 
+this isn't needed, because you can have an "interrupt-safe" decrement by 
+just having it as a single instruction, even if it isn't SMP-safe), 
+disabling and re-enabling interrupts is just one instruction each, but the 
+combination is usually something like 50+ cycles. So if this was an issue 
+on x86, we'd definitely care.
 
-> So I think the interrupt disable could be removed for UP, at least for
-> non-preemption.
+But if you don't think it's a big issue on ARM, it just doesn't matter.
 
-This is IMHO too fragile and too easy to screw up.  And it puts extra 
-conditions on the usage of semaphores that don't exist today.
-
-This is why I think spliting counting semaphores and mutexes _is_ a good 
-thing.  There is no special "no from interrupt" issue to care about with 
-the unlock operation, it has better performances where the count is not 
-important (the vast majority of all semaphores) and it produces even 
-smaller code (and we're all for smaller kernels, right?).
-
-
-Nicolas
+			Linus
