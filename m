@@ -1,102 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:10354 "EHLO
-	relais.videotron.ca") by vger.kernel.org with ESMTP
-	id S1030251AbVLSBsT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 18 Dec 2005 20:48:19 -0500
-Date: Sun, 18 Dec 2005 20:48:15 -0500 (EST)
-From: Nicolas Pitre <nico@cam.org>
+Received: from caramon.arm.linux.org.uk ([212.18.232.186]:30472 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S932675AbVLSJ1y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 19 Dec 2005 04:27:54 -0500
+Date: Mon, 19 Dec 2005 09:27:44 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH 1/12]: MUTEX: Implement mutexes
-In-reply-to: <Pine.LNX.4.64.0512181027220.4827@g5.osdl.org>
-Message-id: <Pine.LNX.4.64.0512181657050.26663@localhost.localdomain>
-MIME-version: 1.0
-Content-type: TEXT/PLAIN; charset=US-ASCII
-Content-transfer-encoding: 7BIT
-References: <Pine.LNX.4.64.0512162334440.3698@g5.osdl.org>
- <dhowells1134774786@warthog.cambridge.redhat.com>
- <200512162313.jBGND7g4019623@warthog.cambridge.redhat.com>
- <1134791914.13138.167.camel@localhost.localdomain>
- <14917.1134847311@warthog.cambridge.redhat.com>
- <Pine.LNX.4.64.0512171201200.3698@g5.osdl.org>
- <Pine.LNX.4.64.0512172018410.26663@localhost.localdomain>
- <Pine.LNX.4.64.0512171803580.3698@g5.osdl.org>
- <Pine.LNX.4.64.0512172150260.26663@localhost.localdomain>
- <Pine.LNX.4.64.0512172227280.3698@g5.osdl.org>
- <20051218092616.GA17308@flint.arm.linux.org.uk>
- <Pine.LNX.4.64.0512181027220.4827@g5.osdl.org>
+Message-ID: <20051219092743.GA9609@flint.arm.linux.org.uk>
+References: <1134791914.13138.167.camel@localhost.localdomain> <14917.1134847311@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0512171201200.3698@g5.osdl.org> <Pine.LNX.4.64.0512172018410.26663@localhost.localdomain> <Pine.LNX.4.64.0512171803580.3698@g5.osdl.org> <Pine.LNX.4.64.0512172150260.26663@localhost.localdomain> <Pine.LNX.4.64.0512172227280.3698@g5.osdl.org> <20051218092616.GA17308@flint.arm.linux.org.uk> <Pine.LNX.4.64.0512181027220.4827@g5.osdl.org> <Pine.LNX.4.64.0512181657050.26663@localhost.localdomain>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0512181657050.26663@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, lkml <linux-kernel@vger.kernel.org>, mingo@redhat.com, Andrew Morton <akpm@osdl.org>
+To: Nicolas Pitre <nico@cam.org>
+Cc: Linus Torvalds <torvalds@osdl.org>, David Howells <dhowells@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, lkml <linux-kernel@vger.kernel.org>, mingo@redhat.com, Andrew Morton <akpm@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 18 Dec 2005, Linus Torvalds wrote:
-
-> 
-> 
-> On Sun, 18 Dec 2005, Russell King wrote:
-> >
-> > On Sat, Dec 17, 2005 at 10:30:41PM -0800, Linus Torvalds wrote:
-> > > An interrupt can never change the value without changing it back, except 
-> > > for the old-fashioned use of "up()" as a completion (which I don't think 
-> > > we do any more - we used to do it for IO completion a looong time ago).
+On Sun, Dec 18, 2005 at 08:48:15PM -0500, Nicolas Pitre wrote:
+> On Sun, 18 Dec 2005, Linus Torvalds wrote:
+> > I agree, if arm interrupt disables are fast. For example, on x86 (where 
+> > this isn't needed, because you can have an "interrupt-safe" decrement by 
+> > just having it as a single instruction, even if it isn't SMP-safe), 
+> > disabling and re-enabling interrupts is just one instruction each, but the 
+> > combination is usually something like 50+ cycles. So if this was an issue 
+> > on x86, we'd definitely care.
 > > 
-> > I doubt you can guarantee that statement, or has the kernel source
-> > been audited for this recently?
+> > But if you don't think it's a big issue on ARM, it just doesn't matter.
 > 
-> Well, _if_ it's a noticeable performance win, we should just do it. We 
-> already know that people don't call "down()" in interrupts (it just 
-> wouldn't work), we can instrument "up()" too.
-
-And how would that prevent the kernel preemption issue?
-
-> > Balancing the elimination of 4 instructions per semaphore operation,
-> > totalling about 4 to 6 cycles, vs stability I'd go for stability
-> > unless we can prove the above assertion via (eg) sparse.
+> Let's see.  The core of the uncontended down() on ARM looks like this:
 > 
-> I agree, if arm interrupt disables are fast. For example, on x86 (where 
-> this isn't needed, because you can have an "interrupt-safe" decrement by 
-> just having it as a single instruction, even if it isn't SMP-safe), 
-> disabling and re-enabling interrupts is just one instruction each, but the 
-> combination is usually something like 50+ cycles. So if this was an issue 
-> on x86, we'd definitely care.
+> 	mrs     r0, cpsr
+> 	orr     r1, r0, #128
+> 	msr     cpsr_c, r1
+> 	ldr     r1, [%0]
+> 	subs     r1, r1, #1
+> 	str     r1, [%0]
+> 	msr     cpsr_c, r0
+> 	blt	__contention
 > 
-> But if you don't think it's a big issue on ARM, it just doesn't matter.
+> On a 624MHz ARMv5 processor I can execute this sequence approximately 
+> 266100 times in 10 ms, which means approx 23 cycles.  The uncontended 
+> up() is the same except the sub is replaced by an add.
+> 
+> Removing the interrupt masking/unmasking reduces the above sequence to 4 
+> instructions using 6 cycles.
 
-Let's see.  The core of the uncontended down() on ARM looks like this:
+I think you're comparing applies with oranges here - you measured the
+above function by executing it, and the reduced version by some other
+method (you appear to be absolutely certain that it's 6 cycles, but
+the previous was approximate).
 
-	mrs     r0, cpsr
-	orr     r1, r0, #128
-	msr     cpsr_c, r1
-	ldr     r1, [%0]
-	subs     r1, r1, #1
-	str     r1, [%0]
-	msr     cpsr_c, r0
-	blt	__contention
+> Now if we consider simple mutexes, the core of it becomes this on ARM:
+> 
+> 	mov	r0, #1
+> 	swp	r1, r0, [%0]
+> 	cmp	r1, #0
+> 	bne	__contention
+> 
+> The above takes 8 cycles.  It uses 4 instructions, and it could even be 
+> reduced to 3 when gcc's cse optimization can find a register that 
+> already contains the value 1 (then using only 7 cycles).  It is 
+> interrupt safe.  It is preemption safe.  It is small.
 
-On a 624MHz ARMv5 processor I can execute this sequence approximately 
-266100 times in 10 ms, which means approx 23 cycles.  The uncontended 
-up() is the same except the sub is replaced by an add.
+That's over-simplified, and is the easy bit.  Now work out how you handle
+the unlock operation.
 
-Removing the interrupt masking/unmasking reduces the above sequence to 4 
-instructions using 6 cycles.  However it becomes completely unsafe wrt 
-usage of up() from interrupt handlers, and it is completely preemption 
-unsafe.
+You don't know whether the lock is contended or not in the unlock path,
+so you always have to do the "wake up" thing.  (You can't rely on the
+value of the lock since another thread may well be between this swp
+instruction and entering the __contention function.  Hence you can't
+use the value of the lock to determine whether there's anyone sleeping
+on it.)
 
-Now if we consider simple mutexes, the core of it becomes this on ARM:
+Therefore, I suspect that while the lock may be faster, the unlock
+won't be.
 
-	mov	r0, #1
-	swp	r1, r0, [%0]
-	cmp	r1, #0
-	bne	__contention
-
-The above takes 8 cycles.  It uses 4 instructions, and it could even be 
-reduced to 3 when gcc's cse optimization can find a register that 
-already contains the value 1 (then using only 7 cycles).  It is 
-interrupt safe.  It is preemption safe.  It is small.
-
-So if you think ARM is important, and if you consider the above a good 
-enough improvement (I do), then that should talk in favor of simple 
-mutexes for the kernel.  And it will have the nice side effect of making 
-it easier on some other more obscur architectures.
-
-
-Nicolas
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
