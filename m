@@ -1,67 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:26773 "EHLO mx3.mail.elte.hu")
-	by vger.kernel.org with ESMTP id S964798AbVLSQJr (ORCPT
+Received: from mail.ocs.com.au ([202.147.117.210]:58564 "EHLO mail.ocs.com.au")
+	by vger.kernel.org with ESMTP id S1750706AbVLSXq2 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 19 Dec 2005 11:09:47 -0500
-Date: Mon, 19 Dec 2005 17:08:54 +0100
-From: Ingo Molnar <mingo@elte.hu>
+	Mon, 19 Dec 2005 18:46:28 -0500
+From: Keith Owens <kaos@ocs.com.au>
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-Message-ID: <20051219160854.GA7934@elte.hu>
-References: <1134769269.2806.17.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161339140.3698@g5.osdl.org> <1134770778.2806.31.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161414370.3698@g5.osdl.org> <1134772964.2806.50.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161439330.3698@g5.osdl.org> <20051217002929.GA7151@tsunami.ccur.com> <Pine.LNX.4.64.0512161647570.3698@g5.osdl.org> <Pine.LNX.4.58.0512162211320.6498@gandalf.stny.rr.com> <Pine.LNX.4.64.0512162323140.3698@g5.osdl.org>
+In-reply-to: Your message of "Fri, 16 Dec 2005 17:00:09 -0800."
+             <Pine.LNX.4.64.0512161647570.3698@g5.osdl.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0512162323140.3698@g5.osdl.org>
+Date: Tue, 20 Dec 2005 10:46:14 +1100
+Message-ID: <20054.1135035974@ocs3.ocs.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@osdl.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Joe Korty <joe.korty@ccur.com>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, matthew@wil.cx, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com
+Cc: Joe Korty <joe.korty@ccur.com>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, matthew@wil.cx, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, mingo@elte.hu, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
+On Fri, 16 Dec 2005 17:00:09 -0800 (PST),
+Linus Torvalds <torvalds@osdl.org> wrote:
+>The Mars Pathfinder is just about the worst case "real system", and if I
+>recall correctly, the reason it was able to continue was _not_ because it
+>handled priority inversion, but because it reset itself every 24 hours or
+>something like that, and had debugging facilities..
+>...
+>So put a watchdog on your critical systems, and make sure you can debug
+>them. Especially if they're on Mars.
 
-* Linus Torvalds <torvalds@osdl.org> wrote:
+Who are you and what have you done with the real[1]
 
-> I really can't think of any blocking kernel lock where priority 
-> inheritance would make _any_ sense at all. Please give me an example.
+  Linus "I'm a sick and twisted person, and I trust people who write code
+  without debuggers a lot more than I trust those who don't" Torvalds :-)
 
-you are completely right, most of the blocking kernel locks we have in 
-Linux are an extremely poor candidate for priority inheritance. Most of 
-them are totally noncritical, or cover so long codepaths that 'latency 
-guarantees' and 'priority inheritance' make little sense for them.
+[1] http://www.ussg.iu.edu/hypermail/linux/kernel/9510/0103.html
 
-the reason why we still have transformed most of the stock semaphore 
-users to generic mutexes in the -rt kernel is mostly because i wanted to 
-have _one_ central lock implementation. Firstly, it makes alot of sense 
-to consolidate code on embedded platforms anyway. Secondly, it was much 
-easier to implement (and validate) one robust locking primitive, than to 
-implement 5 separate primitives. The fact that this also made semaphores 
-PI-able is just a side-effect, with little to no practical relevance.
-
-maybe ->i_sem is one notable exception: it is often held in critical 
-codepaths, and it's really hard for even the most-well-controlled RT app 
-to achieve _total_ isolation from the 'unprivileged' filesystem space.  
-So occasional 'resource sharing' in form of hitting an i_sem of another 
-task may still occur, and PI can at least reduce the worst-case cost 
-somehow. (even though i_sem codepaths are by no means deterministic!)
-
-so in the -rt kernel, every semaphore, rw-semaphore, spinlock, rwlock 
-and seqlock [and in the latest -rt patches, every futex too] is 
-abstracted off a central generic mutex type, which mutex is blocking and 
-supports priority queueing and priority inheritance. It also has an 
-extensive debugging framework, which we didnt want to duplicate for 
-every separate lock object.
-
-we also have a facility in the -rt kernel that traces the worst-case 
-latency path of critical applications (the 'latency tracer'), when mixed 
-with non-critical workloads, so we have quite good experience about what 
-kind of locks make a difference and what kind of locks make no 
-difference.
-
-we also definitely know that priority inheritance done over _all_ these 
-lock objects makes a very real quality difference in practice, resulting 
-in real-time apps experiencing much lower worst-case latencies than 
-under the stock kernel. It is true that you could live without priority 
-inheritance, in cases were the RT app can be rewritten to have totally 
-separated resources, but in practice that is only possible for the 
-simplest applications.
-
-	Ingo
