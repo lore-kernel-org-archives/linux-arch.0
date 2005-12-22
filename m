@@ -1,515 +1,302 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from waste.org ([64.81.244.121]:11984 "EHLO waste.org")
-	by vger.kernel.org with ESMTP id S1030271AbVLVS2I (ORCPT
+Received: from waste.org ([64.81.244.121]:17104 "EHLO waste.org")
+	by vger.kernel.org with ESMTP id S1030270AbVLVS2T (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Dec 2005 13:28:08 -0500
-Date: Thu, 22 Dec 2005 12:26:48 -0600
+	Thu, 22 Dec 2005 13:28:19 -0500
+Date: Thu, 22 Dec 2005 12:26:52 -0600
 From: Matt Mackall <mpm@selenic.com>
-In-Reply-To: <14.150843412@selenic.com>
-Message-Id: <15.150843412@selenic.com>
-Subject: [PATCH 14/20] inflate: (arch) use an error callback rather than a global
+In-Reply-To: <16.150843412@selenic.com>
+Message-Id: <17.150843412@selenic.com>
+Subject: [PATCH 16/20] inflate: remove legacy DEBG macros
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@osdl.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-tiny@selenic.com
 List-ID: <linux-arch.vger.kernel.org>
 
-inflate: error handling cleanup
-
-This passes the error function as a callback rather than using a
-global symbol.
+inflate: remove legacy DEBG macros
 
 Signed-off-by: Matt Mackall <mpm@selenic.com>
 
-Index: 2.6.14-inflate/arch/alpha/boot/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/alpha/boot/misc.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/arch/alpha/boot/misc.c	2005-12-21 21:46:15.000000000 -0600
-@@ -28,8 +28,6 @@ extern long srm_printk(const char *, ...
-  * gzip delarations
-  */
- 
--static void error(char *m);
--
- static char *input_data;
- static int  input_data_size;
- 
-@@ -49,7 +47,7 @@ static void flush_window(const u8 *buf, 
- 		*output_data++ = *buf++;
- }
- 
--static void error(char *x)
-+static void error(const char *x)
- {
- 	puts("\n\n");
- 	puts(x);
-@@ -75,7 +73,7 @@ decompress_kernel(void *output_start,
- 	/* FIXME FIXME FIXME */
- 
- /*	puts("Uncompressing Linux..."); */
--	count = gunzip(input_data, input_data_size, NULL, flush_window);
-+	count = gunzip(input_data, input_data_size, NULL, flush_window, error);
- /*	puts(" done, booting the kernel.\n"); */
- 	return count;
- }
-Index: 2.6.14-inflate/arch/arm/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/arm/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/arch/arm/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
-@@ -46,8 +46,6 @@ icedcc_putstr(const char *ptr)
-  * gzip declarations
-  */
- 
--static void error(char *m);
--
- extern char input_data[];
- extern char input_data_end[];
- 
-@@ -78,7 +76,7 @@ static void flush_window(const u8 *buf, 
- #define arch_error(x)
- #endif
- 
--static void error(char *x)
-+static void error(const char *x)
- {
- 	arch_error(x);
- 
-@@ -103,7 +101,8 @@ decompress_kernel(u32 output_start, u32 
- 	arch_decomp_setup();
- 
- 	putstr("Uncompressing Linux...");
--	gunzip(input_data, input_data_end - input_data, NULL, flush_window);
-+	gunzip(input_data, input_data_end - input_data, NULL, flush_window,
-+	       error);
- 	putstr(" done, booting the kernel.\n");
- 	return output_ptr;
- }
-@@ -116,7 +115,8 @@ int main()
- 	output_data = output_buffer;
- 
- 	putstr("Uncompressing Linux...");
--	gunzip(input_data, input_data_end - input_data, NULL, flush_window);
-+	gunzip(input_data, input_data_end - input_data, NULL, flush_window,
-+	       error);
- 	putstr("done.\n");
- 	return 0;
- }
-Index: 2.6.14-inflate/arch/arm26/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/arm26/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/arch/arm26/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
-@@ -31,8 +31,6 @@ unsigned int __machine_arch_type;
-  * gzip delarations
-  */
- 
--static void error(char *m);
--
- extern char input_data[];
- extern char input_data_end[];
- static u8 *output_data;
-@@ -58,7 +56,7 @@ static void flush_window(const u8 *buf, 
- 	puts(".");
- }
- 
--static void error(char *x)
-+static void error(const char *x)
- {
- 	int ptr;
- 
-@@ -83,7 +81,8 @@ decompress_kernel(u32 output_start, u32 
- 	arch_decomp_setup();
- 
- 	puts("Uncompressing Linux...");
--	gunzip(input_data, input_data_end - input_data, NULL, flush_window);
-+	gunzip(input_data, input_data_end - input_data, NULL, flush_window,
-+	       error);
- 	puts(" done, booting the kernel.\n");
- 	return output_ptr;
- }
-@@ -96,7 +95,8 @@ int main()
- 	output_data = output_buffer;
- 
- 	puts("Uncompressing Linux...");
--	gunzip(input_data, input_data_end - input_data, NULL, flush_window);
-+	gunzip(input_data, input_data_end - input_data, NULL, flush_window,
-+	       error);
- 	puts("done.\n");
- 	return 0;
- }
-Index: 2.6.14-inflate/arch/cris/arch-v10/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/cris/arch-v10/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/arch/cris/arch-v10/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
-@@ -30,8 +30,6 @@
- 
- unsigned compsize; /* compressed size, used by head.S */
- 
--static void error(char *m);
--
- extern char *input_data;  /* lives in head.S */
- static u8 *output_data;
- 
-@@ -79,8 +77,7 @@ static void flush_window(const u8 *buf, 
- 		*output_data++ = *buf++;
- }
- 
--static void
--error(char *x)
-+static void error(const char *x)
- {
- 	puts("\n\n");
- 	puts(x);
-@@ -136,6 +133,6 @@ decompress_kernel()
- 	}
- 
- 	puts("Uncompressing Linux...\n");
--	compsize = gunzip(input_data, 0x7fffffff, NULL, flush_window);
-+	compsize = gunzip(input_data, 0x7fffffff, NULL, flush_window, error);
- 	puts("Done. Now booting the kernel.\n");
- }
-Index: 2.6.14-inflate/arch/cris/arch-v32/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/cris/arch-v32/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/arch/cris/arch-v32/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
-@@ -30,8 +30,6 @@
-  * gzip declarations
-  */
- 
--static void error(char *m);
--
- extern char *input_data;  /* lives in head.S */
- static u8 *output_data;
- 
-@@ -91,8 +89,7 @@ static void flush_window(const u8 *buf, 
- 		*output_data++ = *buf++;
- }
- 
--static void
--error(char *x)
-+static void error(const char *x)
- {
- 	puts("\n\n");
- 	puts(x);
-@@ -179,6 +176,6 @@ decompress_kernel()
- 	}
- 
- 	puts("Uncompressing Linux...\n");
--	gunzip(input_data, 0x7fffffff, NULL, flush_window);
-+	gunzip(input_data, 0x7fffffff, NULL, flush_window, error);
- 	puts("Done. Now booting the kernel.\n");
- }
-Index: 2.6.14-inflate/arch/i386/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/i386/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/arch/i386/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
-@@ -24,8 +24,6 @@
-  * Incomprehensible are the ways of bootloaders.
-  */
- 
--static void error(char *m);
--
- /*
-  * This is set up by the setup-routine at boot-time
-  */
-@@ -124,7 +122,7 @@ static void flush_window(const u8 *buf, 
- 	}
- }
- 
--static void error(char *x)
-+static void error(const char *x)
- {
- 	putstr("\n\n");
- 	putstr(x);
-@@ -213,7 +211,7 @@ asmlinkage int decompress_kernel(struct 
- 	else setup_output_buffer_if_we_run_high(mv);
- 
- 	putstr("Uncompressing Linux... ");
--	gunzip(input_data, input_len, NULL, flush_window);
-+	gunzip(input_data, input_len, NULL, flush_window, error);
- 	putstr("Ok, booting the kernel.\n");
- 	if (high_loaded) close_output_buffer_if_we_run_high(mv);
- 	return high_loaded;
-Index: 2.6.14-inflate/arch/m32r/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/m32r/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/arch/m32r/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
-@@ -17,8 +17,6 @@
-  * gzip declarations
-  */
- 
--static void error(char *m);
--
- static unsigned char *input_data;
- static int input_len;
- static u8 *output_data;
-@@ -39,7 +37,7 @@ static void flush_window(const u8 *buf, 
- 		*output_data++ = *buf++;
- }
- 
--static void error(char *x)
-+static void error(const char *x)
- {
- 	puts("\n\n");
- 	puts(x);
-@@ -61,6 +59,6 @@ decompress_kernel(int mmu_on, unsigned c
- 	input_len = zimage_len;
- 
- 	puts("Uncompressing Linux... ");
--	gunzip(input_data, input_len, NULL, flush_window);
-+	gunzip(input_data, input_len, NULL, flush_window, error);
- 	puts("Ok, booting the kernel.\n");
- }
-Index: 2.6.14-inflate/arch/sh/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/sh/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/arch/sh/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
-@@ -19,8 +19,6 @@
-  * gzip declarations
-  */
- 
--static void error(char *m);
--
- extern char input_data[];
- extern int input_len;
- static u8 *output_data;
-@@ -66,7 +64,7 @@ static void flush_window(const u8 *buf, 
- 		*output_data++ = *buf++;
- }
- 
--static void error(char *x)
-+static void error(const char *x)
- {
- 	puts("\n\n");
- 	puts(x);
-@@ -87,6 +85,6 @@ void decompress_kernel(void)
- 	free_mem_end_ptr = free_mem_ptr + HEAP_SIZE;
- 
- 	puts("Uncompressing Linux... ");
--	gunzip(input_data, input_len, NULL, flush_window);
-+	gunzip(input_data, input_len, NULL, flush_window, error);
- 	puts("Ok, booting the kernel.\n");
- }
-Index: 2.6.14-inflate/arch/sh64/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/sh64/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/arch/sh64/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
-@@ -19,8 +19,6 @@ int cache_control(unsigned int command);
-  * gzip declarations
-  */
- 
--static void error(char *m);
--
- extern char input_data[];
- extern int input_len;
- static u8 *output_data;
-@@ -48,7 +46,7 @@ static void flush_window(const u8 *buf, 
- 	puts(".");
- }
- 
--static void error(char *x)
-+static void error(const char *x)
- {
- 	puts("\n\n");
- 	puts(x);
-@@ -69,7 +67,7 @@ void decompress_kernel(void)
- 
- 	puts("Uncompressing Linux... ");
- 	cache_control(CACHE_ENABLE);
--	gunzip(input_data, input_len, NULL, flush_window);
-+	gunzip(input_data, input_len, NULL, flush_window, error);
- 	puts("\n");
- 
- #if 0
-Index: 2.6.14-inflate/arch/x86_64/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/x86_64/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/arch/x86_64/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
-@@ -16,8 +16,6 @@
-  * gzip declarations
-  */
- 
--static void error(char *m);
--
- /*
-  * This is set up by the setup-routine at boot-time
-  */
-@@ -113,7 +111,7 @@ static void flush_window(const u8 *buf, 
- 	}
- }
- 
--static void error(char *x)
-+static void error(const char *x)
- {
- 	putstr("\n\n");
- 	putstr(x);
-@@ -191,7 +189,7 @@ int decompress_kernel(struct moveparams 
- 	else setup_output_buffer_if_we_run_high(mv);
- 
- 	putstr(".\nDecompressing Linux...");
--	gunzip(input_data, input_len, NULL, flush_window);
-+	gunzip(input_data, input_len, NULL, flush_window, error);
- 	putstr("done.\nBooting the kernel.\n");
- 	if (high_loaded) close_output_buffer_if_we_run_high(mv);
- 	return high_loaded;
-Index: 2.6.14-inflate/init/do_mounts_rd.c
-===================================================================
---- 2.6.14-inflate.orig/init/do_mounts_rd.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/init/do_mounts_rd.c	2005-12-21 21:46:15.000000000 -0600
-@@ -281,12 +281,17 @@ static int crd_infd, crd_outfd;
- 
- #define INIT __init
- 
--static void __init error(char *m);
--
- #define NO_INFLATE_MALLOC
- 
- #include "../lib/inflate.c"
- 
-+static void __init error(const char *x)
-+{
-+	printk(KERN_ERR "%s\n", x);
-+	exit_code = 1;
-+	unzip_error = 1;
-+}
-+
- /*
-  * Fill the input buffer. This is called only when the buffer is empty
-  * and at least one byte is really needed.
-@@ -310,13 +315,6 @@ static void __init flush_buffer(const u8
- 	}
- }
- 
--static void __init error(char *x)
--{
--	printk(KERN_ERR "%s\n", x);
--	exit_code = 1;
--	unzip_error = 1;
--}
--
- static int __init crd_load(int in_fd, int out_fd)
- {
- 	int result;
-@@ -330,7 +328,7 @@ static int __init crd_load(int in_fd, in
- 		printk(KERN_ERR "RAMDISK: Couldn't allocate gzip buffer\n");
- 		return -1;
- 	}
--	result = gunzip(inbuf, INBUFSIZ, fill_inbuf, flush_buffer);
-+	result = gunzip(inbuf, INBUFSIZ, fill_inbuf, flush_buffer, error);
- 	if (unzip_error)
- 		result = 1;
- 	kfree(inbuf);
-Index: 2.6.14-inflate/init/initramfs.c
-===================================================================
---- 2.6.14-inflate.orig/init/initramfs.c	2005-12-21 21:46:14.000000000 -0600
-+++ 2.6.14-inflate/init/initramfs.c	2005-12-21 21:46:15.000000000 -0600
-@@ -7,8 +7,8 @@
- #include <linux/string.h>
- #include <linux/syscalls.h>
- 
--static __initdata char *message;
--static void __init error(char *x)
-+static __initdata const char *message;
-+static void __init error(const char *x)
- {
- 	if (!message)
- 		message = x;
-@@ -335,13 +335,12 @@ static void __init flush_buffer(const u8
- 
- #define INIT __init
- 
--static void __init error(char *m);
--
- #define NO_INFLATE_MALLOC
- 
- #include "../lib/inflate.c"
- 
--static char * __init unpack_to_rootfs(char *buf, unsigned len, int check_only)
-+static const char * __init unpack_to_rootfs(char *buf, unsigned len,
-+					    int check_only)
- {
- 	int written, cnt;
- 	dry_run = check_only;
-@@ -369,7 +368,7 @@ static char * __init unpack_to_rootfs(ch
- 			continue;
- 		}
- 		this_header = 0;
--		cnt = gunzip(buf, len, NULL, flush_buffer);
-+		cnt = gunzip(buf, len, NULL, flush_buffer, error);
- 		if (state != Reset)
- 			error("junk in gzipped archive");
- 		this_header = saved_offset + cnt;
-@@ -397,8 +396,9 @@ static void __init free_initrd(void)
- 
- void __init populate_rootfs(void)
- {
--	char *err = unpack_to_rootfs(__initramfs_start,
--			 __initramfs_end - __initramfs_start, 0);
-+	const char *err =
-+		unpack_to_rootfs(__initramfs_start,
-+				 __initramfs_end - __initramfs_start, 0);
- 	if (err)
- 		panic(err);
- #ifdef CONFIG_BLK_DEV_INITRD
 Index: 2.6.14-inflate/lib/inflate.c
 ===================================================================
---- 2.6.14-inflate.orig/lib/inflate.c	2005-12-21 21:46:13.000000000 -0600
-+++ 2.6.14-inflate/lib/inflate.c	2005-12-21 21:46:15.000000000 -0600
-@@ -121,8 +121,9 @@ static void *malloc(int size)
+--- 2.6.14-inflate.orig/lib/inflate.c	2005-12-21 21:46:15.000000000 -0600
++++ 2.6.14-inflate/lib/inflate.c	2005-12-21 21:46:28.000000000 -0600
+@@ -1,5 +1,3 @@
+-#define DEBG(x)
+-#define DEBG1(x)
+ /* inflate.c -- Not copyrighted 1992 by Mark Adler
+  * version c10p1, 10 January 1993
+  *
+@@ -415,8 +413,6 @@ static int INIT huft_build(unsigned *b, 
+ 	int y;			/* number of dummy codes added */
+ 	unsigned z;		/* number of entries in current table */
+ 
+-	DEBG("huft1 ");
+-
+ 	for (i = 0; i < BMAX + 1; i++)
+ 		c[i] = 0;
+ 
+@@ -434,8 +430,6 @@ static int INIT huft_build(unsigned *b, 
+ 		return 2;
+ 	}
+ 
+-	DEBG("huft2 ");
+-
+ 	/* Find minimum and maximum length, bound *m by those */
+ 	l = *m;
+ 	for (j = 1; j <= BMAX; j++)
+@@ -454,8 +448,6 @@ static int INIT huft_build(unsigned *b, 
+ 		l = i;
+ 	*m = l;
+ 
+-	DEBG("huft3 ");
+-
+ 	/* Adjust last length count to fill out codes, if needed */
+ 	for (y = 1 << j; j < i; j++, y <<= 1) {
+ 		y -= c[j];
+@@ -468,8 +460,6 @@ static int INIT huft_build(unsigned *b, 
+ 		return 2;
+ 	c[i] += y;
+ 
+-	DEBG("huft4 ");
+-
+ 	/* Generate starting offsets into the value table for each length */
+ 	x[1] = j = 0;
+ 	p = c + 1;
+@@ -482,8 +472,6 @@ static int INIT huft_build(unsigned *b, 
+ 		xp++;
+ 	}
+ 
+-	DEBG("huft5 ");
+-
+ 	/* Make a table of values in order of bit lengths */
+ 	p = b;
+ 	i = 0;
+@@ -495,8 +483,6 @@ static int INIT huft_build(unsigned *b, 
+ 
+ 	n = x[g];                   /* set n to length of v */
+ 
+-	DEBG("h6 ");
+-
+ 	/* Generate the Huffman codes and for each, make the table entries */
+ 	x[0] = i = 0; /* first Huffman code is zero */
+ 	p = v; /* grab values in bit order */
+@@ -505,18 +491,14 @@ static int INIT huft_build(unsigned *b, 
+ 	u[0] = NULL; /* just to keep compilers happy */
+ 	q = NULL; /* ditto */
+ 	z = 0; /* ditto */
+-	DEBG("h6a ");
+ 
+ 	/* go through the bit lengths (k already is bits in shortest code) */
+ 	for (; k <= g; k++) {
+-		DEBG("h6b ");
+ 		a = c[k];
+ 		while (a--) {
+-			DEBG("h6b1 ");
+ 			/* i is the Huffman code of length k for value *p */
+ 			/* make tables up to required level */
+ 			while (k > w + l) {
+-				DEBG1("1 ");
+ 				h++;
+ 				w += l;	/* previous table always l bits */
+ 
+@@ -529,7 +511,6 @@ static int INIT huft_build(unsigned *b, 
+ 				f = 1 << j;
+ 				if (f > a + 1) {
+ 					/* too few codes for k-w bit table */
+-					DEBG1("2 ");
+ 					/* deduct codes from patterns left */
+ 					f -= a + 1;
+ 					xp = c + k;
+@@ -546,7 +527,6 @@ static int INIT huft_build(unsigned *b, 
+ 					}
+     				}
+ 
+-				DEBG1("3 ");
+ 				/* table entries for j-bit table */
+ 				z = 1 << j;
+ 
+@@ -558,13 +538,11 @@ static int INIT huft_build(unsigned *b, 
+ 					return 3;	/* not enough memory */
+ 				}
+ 
+-				DEBG1("4 ");
+ 				*t = q + 1; /* link to list for huft_free */
+ 				t = &q->next;
+ 				*t = NULL;
+ 				u[h] = ++q;	/* table starts after link */
+ 
+-				DEBG1("5 ");
+ 				/* connect to last table, if there is one */
+ 				if (h) {
+ 					/* save pattern for backing up */
+@@ -580,9 +558,7 @@ static int INIT huft_build(unsigned *b, 
+ 					/* connect to last table */
+ 					u[h - 1][j] = r;
+ 				}
+-				DEBG1("6 ");
+ 			}
+-			DEBG("h6c ");
+ 
+ 			/* set up table entry in r */
+ 			r.bits = (u8)(k - w);
+@@ -600,7 +576,6 @@ static int INIT huft_build(unsigned *b, 
+ 				r.extra = (u8)e[*p - s];
+ 				r.val = d[*p++ - s];
+ 			}
+-			DEBG("h6d ");
+ 
+ 			/* fill code-like entries with r */
+ 			f = 1 << (k - w);
+@@ -617,13 +592,9 @@ static int INIT huft_build(unsigned *b, 
+ 				h--;	/* don't need to update q */
+ 				w -= l;
+ 			}
+-			DEBG("h6e ");
+ 		}
+-		DEBG("h6f ");
+ 	}
+ 
+-	DEBG("huft7 ");
+-
+ 	/* Return true (1) if we were given an incomplete table */
+ 	return y && g != 1;
+ }
+@@ -712,8 +683,6 @@ static int INIT inflate_stored(struct io
  {
- 	char *p;
+ 	unsigned n;		/* number of bytes in block */
  
--	if (size <0)
--		error("Malloc error");
-+	if (size < 0)
-+		return NULL;
-+
- 	if (!malloc_ptr)
- 		malloc_ptr = free_mem_ptr;
+-	DEBG("<stor");
+-
+ 	/* go to byte boundary */
+ 	dumpbits(io, io->bits & 7);
  
-@@ -131,7 +132,7 @@ static void *malloc(int size)
- 	malloc_ptr += size;
+@@ -726,7 +695,6 @@ static int INIT inflate_stored(struct io
+ 	while (n--)
+ 		put_byte(io, readbyte(io));
  
- 	if (malloc_ptr >= free_mem_end_ptr)
--		error("Out of memory");
-+		return NULL;
+-	DEBG(">");
+ 	return 0;
+ }
  
- 	malloc_count++;
- 	return p;
-@@ -175,6 +176,7 @@ struct iostate {
- 	int ipos, isize, itotal, opos, osize, ototal, bits;
- 	void (*fill)(u8 *ibuf, int len);
- 	void (*flush)(const u8 *obuf, int len);
-+	void (*error)(const char *msg);
- 	u32 buf, crc;
- };
+@@ -749,8 +717,6 @@ static int noinline INIT inflate_fixed(s
+ 	int bd;			/* lookup bits for td */
+ 	unsigned l[N_MAX];	/* length list for huft_build */
  
-@@ -878,7 +880,7 @@ static int noinline INIT inflate_dynamic
+-	DEBG("<fix");
+-
+ 	/* set up literal table */
+ 	for (i = 0; i < 144; i++)
+ 		l[i] = 8;
+@@ -771,7 +737,6 @@ static int noinline INIT inflate_fixed(s
+ 	if ((i = huft_build(l, 30, 0, cpdist, cpdext, &td, &bd)) > 1) {
+ 		huft_free(tl);
+ 
+-		DEBG(">");
+ 		return i;
+ 	}
+ 
+@@ -805,8 +770,6 @@ static int noinline INIT inflate_dynamic
+ 	unsigned nd;		/* number of distance codes */
+ 	unsigned ll[286 + 30];	/* literal/length and distance code lengths */
+ 
+-	DEBG("<dyn");
+-
+ 	/* read in table lengths */
+ 	nl = 257 + pullbits(io, 5); /* number of literal/length codes */
+ 	nd = 1 + pullbits(io, 5); /* number of distance codes */
+@@ -814,16 +777,12 @@ static int noinline INIT inflate_dynamic
+ 	if (nl > 286 || nd > 30)
+ 		return 1;	/* bad lengths */
+ 
+-	DEBG("dyn1 ");
+-
+ 	/* read in bit-length-code lengths */
+ 	for (j = 0; j < nb; j++)
+ 		ll[border[j]] = pullbits(io, 3);
+ 	for (; j < 19; j++)
+ 		ll[border[j]] = 0;
+ 
+-	DEBG("dyn2 ");
+-
+ 	/* build decoding table for trees--single level, 7 bit lookup */
+ 	bl = 7;
+ 	if ((i = huft_build(ll, 19, 19, 0, 0, &tl, &bl))) {
+@@ -832,8 +791,6 @@ static int noinline INIT inflate_dynamic
+ 		return i;	/* incomplete code set */
+ 	}
+ 
+-	DEBG("dyn3 ");
+-
+ 	/* read in literal and distance code lengths */
+ 	n = nl + nd;
+ 	i = l = 0;
+@@ -866,29 +823,21 @@ static int noinline INIT inflate_dynamic
+ 		}
+ 	}
+ 
+-	DEBG("dyn4 ");
+-
+ 	/* free decoding table for trees */
+ 	huft_free(tl);
+ 
+-	DEBG("dyn5 ");
+-
+-	DEBG("dyn5a ");
+-
+ 	/* build the decoding tables for literal/length and distance codes */
+ 	bl = lbits;
  	if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl))) {
- 		DEBG("dyn5b ");
+-		DEBG("dyn5b ");
  		if (i == 1) {
--			error("incomplete literal tree");
-+			io->error("incomplete literal tree");
+ 			io->error("incomplete literal tree");
  			huft_free(tl);
  		}
  		return i;	/* incomplete code set */
-@@ -888,7 +890,7 @@ static int noinline INIT inflate_dynamic
+ 	}
+-	DEBG("dyn5c ");
++
+ 	bd = dbits;
  	if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd))) {
- 		DEBG("dyn5d ");
+-		DEBG("dyn5d ");
  		if (i == 1) {
--			error("incomplete distance tree");
-+			io->error("incomplete distance tree");
+ 			io->error("incomplete distance tree");
  			huft_free(td);
- 		}
- 		huft_free(tl);
-@@ -991,9 +993,11 @@ static void INIT makecrc(void)
-  * @isize: size of pool
-  * @fill: function to fill the input pool
-  * @flush: function to flush the output pool
-+ * @error: function to report an error
-  */
- static int INIT gunzip(u8 *ibuf, int isize, void (*fill)(u8 *buf, int size),
--		       void (*flush)(const u8 *buf, int size))
-+		       void (*flush)(const u8 *buf, int size),
-+		       void (*error)(const char *msg))
+@@ -897,19 +846,14 @@ static int noinline INIT inflate_dynamic
+ 		return i;	/* incomplete code set */
+ 	}
+ 
+-	DEBG("dyn6 ");
+-
+ 	/* decompress until an end-of-block code */
+ 	if (inflate_codes(io, tl, td, bl, bd))
+ 		return 1;
+ 
+-	DEBG("dyn7 ");
+-
+ 	/* free the decoding tables, return */
+ 	huft_free(tl);
+ 	huft_free(td);
+ 
+-	DEBG(">");
+ 	return 0;
+ }
+ 
+@@ -921,8 +865,6 @@ static int INIT inflate_block(struct ios
  {
- 	u8 flags;
- 	unsigned char magic[2];	/* magic header */
+ 	unsigned t;		/* block type */
+ 
+-	DEBG("<blk");
+-
+ 	*e = pullbits(io, 1); /* read in last block bit */
+ 	t = pullbits(io, 2); /* read in block type */
+ 
+@@ -934,8 +876,6 @@ static int INIT inflate_block(struct ios
+ 	if (t == 1)
+ 		return inflate_fixed(io);
+ 
+-	DEBG(">");
+-
+ 	/* bad block type */
+ 	return 2;
+ }
