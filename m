@@ -1,35 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.ocs.com.au ([202.147.117.210]:58564 "EHLO mail.ocs.com.au")
-	by vger.kernel.org with ESMTP id S1750706AbVLSXq2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 19 Dec 2005 18:46:28 -0500
-From: Keith Owens <kaos@ocs.com.au>
+Received: from adsl-69-232-92-238.dsl.sndg02.pacbell.net ([69.232.92.238]:15269
+	"EHLO gnuppy.monkey.org") by vger.kernel.org with ESMTP
+	id S932305AbVLVMbU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 22 Dec 2005 07:31:20 -0500
+Date: Thu, 22 Dec 2005 04:27:43 -0800
 Subject: Re: [PATCH 1/19] MUTEX: Introduce simple mutex implementation
-In-reply-to: Your message of "Fri, 16 Dec 2005 17:00:09 -0800."
-             <Pine.LNX.4.64.0512161647570.3698@g5.osdl.org>
-Mime-Version: 1.0
+Message-ID: <20051222122743.GA14633@gnuppy.monkey.org>
+References: <Pine.LNX.4.64.0512161339140.3698@g5.osdl.org> <1134770778.2806.31.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161414370.3698@g5.osdl.org> <1134772964.2806.50.camel@tglx.tec.linutronix.de> <Pine.LNX.4.64.0512161439330.3698@g5.osdl.org> <20051217002929.GA7151@tsunami.ccur.com> <Pine.LNX.4.64.0512161647570.3698@g5.osdl.org> <Pine.LNX.4.58.0512162211320.6498@gandalf.stny.rr.com> <Pine.LNX.4.64.0512162323140.3698@g5.osdl.org> <20051217234305.GH2361@parisc-linux.org>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Date: Tue, 20 Dec 2005 10:46:14 +1100
-Message-ID: <20054.1135035974@ocs3.ocs.com.au>
+Content-Disposition: inline
+In-Reply-To: <20051217234305.GH2361@parisc-linux.org>
+From: Bill Huey (hui) <billh@gnuppy.monkey.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Joe Korty <joe.korty@ccur.com>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, matthew@wil.cx, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, mingo@elte.hu, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Linus Torvalds <torvalds@osdl.org>, Steven Rostedt <rostedt@goodmis.org>, Joe Korty <joe.korty@ccur.com>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, arjan@infradead.org, Christoph Hellwig <hch@infradead.org>, mingo@elte.hu, Alan Cox <alan@lxorguk.ukuu.org.uk>, nikita@clusterfs.com, pj@sgi.com, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 16 Dec 2005 17:00:09 -0800 (PST),
-Linus Torvalds <torvalds@osdl.org> wrote:
->The Mars Pathfinder is just about the worst case "real system", and if I
->recall correctly, the reason it was able to continue was _not_ because it
->handled priority inversion, but because it reset itself every 24 hours or
->something like that, and had debugging facilities..
->...
->So put a watchdog on your critical systems, and make sure you can debug
->them. Especially if they're on Mars.
+On Sat, Dec 17, 2005 at 04:43:05PM -0700, Matthew Wilcox wrote:
+> I have a better example of something we currently get wrong that I
+> haven't heard any RT person worry about yet.  If two tasks are sleeping
+> on the same semaphore, the one to be woken up will be the first one to
+> wait for it, not the highest-priority task.
+> 
+> Obviously, this was introduced by the wake-one semantics.  But how to
+> fix it?  Should we scan the entire queue looking for the best task to
+> wake?  Should we try to maintain the wait list in priority order?  Or
+> should we just not care?  Should we document that we don't care?  ;-)
 
-Who are you and what have you done with the real[1]
+-rt deals with this using priority sorted wait queue and direct ownership
+hand off to the woken thread. It's working fine for now, but things like
+wake-all and company should probably be explored for various uses. A
+strict general purpose and RT usage of the Linux kernel have different
+performance characteristic and mutex selection at compile time should
+address things precisely.
 
-  Linus "I'm a sick and twisted person, and I trust people who write code
-  without debuggers a lot more than I trust those who don't" Torvalds :-)
-
-[1] http://www.ussg.iu.edu/hypermail/linux/kernel/9510/0103.html
+bill
 
