@@ -1,842 +1,748 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from waste.org ([64.81.244.121]:8912 "EHLO waste.org")
-	by vger.kernel.org with ESMTP id S1030268AbVLVS2D (ORCPT
+Received: from waste.org ([64.81.244.121]:464 "EHLO waste.org")
+	by vger.kernel.org with ESMTP id S1030256AbVLVS1t (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Dec 2005 13:28:03 -0500
-Date: Thu, 22 Dec 2005 12:26:43 -0600
+	Thu, 22 Dec 2005 13:27:49 -0500
+Date: Thu, 22 Dec 2005 12:26:26 -0600
 From: Matt Mackall <mpm@selenic.com>
-In-Reply-To: <11.150843412@selenic.com>
-Message-Id: <12.150843412@selenic.com>
-Subject: [PATCH 11/20] inflate: (arch) kill get_byte
+In-Reply-To: <2.150843412@selenic.com>
+Message-Id: <3.150843412@selenic.com>
+Subject: [PATCH 2/20] inflate: kill legacy bits
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@osdl.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-tiny@selenic.com
 List-ID: <linux-arch.vger.kernel.org>
 
-inflate: replace get_byte with readbyte
+inflate: kill legacy bits
 
-Each inflate user was providing a get_byte macro that hid the details
-of tracking the input buffer. This is now handled with new variables
-in the iostate structure and a callback (most users pass NULL as the
-entire input is provided in a single buffer).
+Kill RCSID
+Kill old includes and defines
+Kill screwy types
+Kill unused memory usage tracking
+Kill 'register' usage
+Kill unused tracing calls
 
 Signed-off-by: Matt Mackall <mpm@selenic.com>
 
-Index: 2.6.14-inflate/arch/alpha/boot/misc.c
+Index: tiny/lib/inflate.c
 ===================================================================
---- 2.6.14-inflate.orig/arch/alpha/boot/misc.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/alpha/boot/misc.c	2005-11-29 18:30:19.000000000 -0600
-@@ -35,16 +35,9 @@ typedef unsigned long  ulg;
- #define WSIZE 0x8000		/* Window size must be at least 32k, */
- 				/* and a power of two */
- 
--static uch *inbuf;		/* input buffer */
- static uch *window;		/* Sliding window buffer */
--
--static unsigned insize;		/* valid bytes in inbuf */
--static unsigned inptr;		/* index of next byte to be processed in inbuf */
- static unsigned outcnt;		/* bytes in output buffer */
- 
--#define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf())
--
--static int  fill_inbuf(void);
- static void flush_window(void);
- static void error(char *m);
- 
-@@ -63,22 +56,6 @@ static char *free_mem_ptr, *free_mem_ptr
- #include "../../../lib/inflate.c"
- 
- /* ===========================================================================
-- * Fill the input buffer. This is called only when the buffer is empty
-- * and at least one byte is really needed.
-- */
--int fill_inbuf(void)
--{
--	if (insize != 0)
--		error("ran out of input data");
--
--	inbuf = input_data;
--	insize = input_data_size;
--
--	inptr = 1;
--	return inbuf[0];
--}
--
--/* ===========================================================================
-  * Write the output window window[0..outcnt-1] and update bytes_out.
-  * (Used for the decompressed data only.)
+--- tiny.orig/lib/inflate.c	2005-09-28 18:19:05.000000000 -0700
++++ tiny/lib/inflate.c	2005-09-28 18:25:25.000000000 -0700
+@@ -103,26 +103,11 @@
   */
-@@ -126,7 +103,7 @@ decompress_kernel(void *output_start,
- 	window = malloc(WSIZE);
+ #include <linux/compiler.h>
  
- /*	puts("Uncompressing Linux..."); */
--	gunzip();
-+	gunzip(input_data, input_data_size, NULL);
- /*	puts(" done, booting the kernel.\n"); */
- 	return output_ptr;
- }
-Index: 2.6.14-inflate/arch/arm/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/arm/boot/compressed/misc.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/arm/boot/compressed/misc.c	2005-11-29 18:30:19.000000000 -0600
-@@ -53,16 +53,9 @@ typedef unsigned long  ulg;
- #define WSIZE 0x8000		/* Window size must be at least 32k, */
- 				/* and a power of two */
- 
--static uch *inbuf;		/* input buffer */
- static uch window[WSIZE];	/* Sliding window buffer */
+-#ifdef RCSID
+-static char rcsid[] = "#Id: inflate.c,v 0.14 1993/06/10 13:27:04 jloup Exp #";
+-#endif
 -
--static unsigned insize;		/* valid bytes in inbuf */
--static unsigned inptr;		/* index of next byte to be processed in inbuf */
- static unsigned outcnt;		/* bytes in output buffer */
- 
--#define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf())
+-#ifndef STATIC
 -
--static int  fill_inbuf(void);
- static void flush_window(void);
- static void error(char *m);
- 
-@@ -87,22 +80,6 @@ static char *free_mem_ptr, *free_mem_ptr
+-#if defined(STDC_HEADERS) || defined(HAVE_STDLIB_H)
+-#  include <sys/types.h>
+-#  include <stdlib.h>
+-#endif
+-
+-#include "gzip.h"
+-#define STATIC
+-#endif /* !STATIC */
+-
+ #ifndef INIT
+ #define INIT
  #endif
  
- /* ===========================================================================
-- * Fill the input buffer. This is called only when the buffer is empty
-- * and at least one byte is really needed.
-- */
--int fill_inbuf(void)
--{
--	if (insize != 0)
--		error("ran out of input data");
--
--	inbuf = input_data;
--	insize = &input_data_end[0] - &input_data[0];
--
--	inptr = 1;
--	return inbuf[0];
--}
--
--/* ===========================================================================
-  * Write the output window window[0..outcnt-1] and update bytes_out.
-  * (Used for the decompressed data only.)
-  */
-@@ -151,7 +128,7 @@ decompress_kernel(ulg output_start, ulg 
- 	arch_decomp_setup();
+-#define slide window
++#include <asm/types.h>
  
- 	putstr("Uncompressing Linux...");
--	gunzip();
-+	gunzip(input_data, input_data_end - input_data, NULL);
- 	putstr(" done, booting the kernel.\n");
- 	return output_ptr;
- }
-@@ -164,7 +141,7 @@ int main()
- 	output_data = output_buffer;
- 
- 	putstr("Uncompressing Linux...");
--	gunzip();
-+	gunzip(input_data, input_data_end - input_data, NULL);
- 	putstr("done.\n");
- 	return 0;
- }
-Index: 2.6.14-inflate/arch/arm26/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/arm26/boot/compressed/misc.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/arm26/boot/compressed/misc.c	2005-11-29 18:30:19.000000000 -0600
-@@ -38,16 +38,9 @@ typedef unsigned long  ulg;
- #define WSIZE 0x8000		/* Window size must be at least 32k, */
- 				/* and a power of two */
- 
--static uch *inbuf;		/* input buffer */
- static uch window[WSIZE];	/* Sliding window buffer */
--
--static unsigned insize;		/* valid bytes in inbuf */
--static unsigned inptr;		/* index of next byte to be processed in inbuf */
- static unsigned outcnt;		/* bytes in output buffer */
- 
--#define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf())
--
--static int  fill_inbuf(void);
- static void flush_window(void);
- static void error(char *m);
- 
-@@ -72,22 +65,6 @@ static char *free_mem_ptr, *free_mem_ptr
- #endif
- 
- /* ===========================================================================
-- * Fill the input buffer. This is called only when the buffer is empty
-- * and at least one byte is really needed.
-- */
--int fill_inbuf(void)
--{
--	if (insize != 0)
--		error("ran out of input data");
--
--	inbuf = input_data;
--	insize = &input_data_end[0] - &input_data[0];
--
--	inptr = 1;
--	return inbuf[0];
--}
--
--/* ===========================================================================
-  * Write the output window window[0..outcnt-1] and update bytes_out.
-  * (Used for the decompressed data only.)
-  */
-@@ -132,7 +109,7 @@ decompress_kernel(ulg output_start, ulg 
- 	arch_decomp_setup();
- 
- 	puts("Uncompressing Linux...");
--	gunzip();
-+	gunzip(input_data, input_data_end - input_data, NULL);
- 	puts(" done, booting the kernel.\n");
- 	return output_ptr;
- }
-@@ -145,7 +122,7 @@ int main()
- 	output_data = output_buffer;
- 
- 	puts("Uncompressing Linux...");
--	gunzip();
-+	gunzip(input_data, input_data_end - input_data, NULL);
- 	puts("done.\n");
- 	return 0;
- }
-Index: 2.6.14-inflate/arch/cris/arch-v10/boot/compressed/head.S
-===================================================================
---- 2.6.14-inflate.orig/arch/cris/arch-v10/boot/compressed/head.S	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/cris/arch-v10/boot/compressed/head.S	2005-11-29 18:30:19.000000000 -0600
-@@ -104,7 +104,7 @@ basse:	move.d	pc, r5
- 	;; when mounting from flash
- 
- 	move.d	[_input_data], r9	; flash address of compressed kernel
--	add.d	[_inptr], r9		; size of compressed kernel
-+	add.d	[_compsize], r9		; size of compressed kernel
- 
- 	;; Restore command line magic and address.
- 	move.d  _cmd_line_magic, $r10
-Index: 2.6.14-inflate/arch/cris/arch-v10/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/cris/arch-v10/boot/compressed/misc.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/cris/arch-v10/boot/compressed/misc.c	2005-11-29 18:30:19.000000000 -0600
-@@ -35,19 +35,10 @@ typedef unsigned long  ulg;
- #define WSIZE 0x8000		/* Window size must be at least 32k, */
- 				/* and a power of two */
- 
--static uch *inbuf;	     /* input buffer */
- static uch window[WSIZE];    /* Sliding window buffer */
--
--unsigned inptr = 0;	/* index of next byte to be processed in inbuf
--			 * After decompression it will contain the
--			 * compressed size, and head.S will read it.
--			 */
--
-+unsigned compsize; /* compressed size, used by head.S */
- static unsigned outcnt = 0;  /* bytes in output buffer */
- 
--#define get_byte() inbuf[inptr++]
--
--static int  fill_inbuf(void);
- static void flush_window(void);
- static void error(char *m);
- 
-@@ -172,6 +163,6 @@ decompress_kernel()
- 	}
- 
- 	puts("Uncompressing Linux...\n");
--	gunzip();
-+	compsize = gunzip(input_data, 0x7fffffff, NULL);
- 	puts("Done. Now booting the kernel.\n");
- }
-Index: 2.6.14-inflate/arch/cris/arch-v32/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/cris/arch-v32/boot/compressed/misc.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/cris/arch-v32/boot/compressed/misc.c	2005-11-29 18:30:19.000000000 -0600
-@@ -37,19 +37,9 @@ typedef unsigned long  ulg;
- #define WSIZE 0x8000		/* Window size must be at least 32k, */
- 				/* and a power of two */
- 
--static uch *inbuf;	     /* input buffer */
- static uch window[WSIZE];    /* Sliding window buffer */
--
--unsigned inptr = 0;	/* index of next byte to be processed in inbuf
--			 * After decompression it will contain the
--			 * compressed size, and head.S will read it.
--			 */
--
- static unsigned outcnt = 0;  /* bytes in output buffer */
- 
--#define get_byte() inbuf[inptr++]
--
--static int  fill_inbuf(void);
- static void flush_window(void);
- static void error(char *m);
- 
-@@ -217,6 +207,6 @@ decompress_kernel()
- 	}
- 
- 	puts("Uncompressing Linux...\n");
--	gunzip();
-+	gunzip(input_data, 0x7fffffff, NULL);
- 	puts("Done. Now booting the kernel.\n");
- }
-Index: 2.6.14-inflate/arch/i386/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/i386/boot/compressed/misc.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/i386/boot/compressed/misc.c	2005-11-29 18:30:19.000000000 -0600
-@@ -30,16 +30,9 @@ typedef unsigned long  ulg;
- #define WSIZE 0x8000		/* Window size must be at least 32k, */
- 				/* and a power of two */
- 
--static uch *inbuf;	     /* input buffer */
- static uch window[WSIZE];    /* Sliding window buffer */
--
--static unsigned insize = 0;  /* valid bytes in inbuf */
--static unsigned inptr = 0;   /* index of next byte to be processed in inbuf */
- static unsigned outcnt = 0;  /* bytes in output buffer */
- 
--#define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf())
--
--static int  fill_inbuf(void);
- static void flush_window(void);
- static void error(char *m);
- 
-@@ -133,22 +126,6 @@ static void putstr(const char *s)
- }
- 
- /* ===========================================================================
-- * Fill the input buffer. This is called only when the buffer is empty
-- * and at least one byte is really needed.
-- */
--static int fill_inbuf(void)
--{
--	if (insize != 0) {
--		error("ran out of input data");
--	}
--
--	inbuf = input_data;
--	insize = input_len;
--	inptr = 1;
--	return inbuf[0];
--}
--
--/* ===========================================================================
-  * Write the output window window[0..outcnt-1] and update bytes_out.
-  * (Used for the decompressed data only.)
-  */
-@@ -276,7 +253,7 @@ asmlinkage int decompress_kernel(struct 
- 	else setup_output_buffer_if_we_run_high(mv);
- 
- 	putstr("Uncompressing Linux... ");
--	gunzip();
-+	gunzip(input_data, input_len, NULL);
- 	putstr("Ok, booting the kernel.\n");
- 	if (high_loaded) close_output_buffer_if_we_run_high(mv);
- 	return high_loaded;
-Index: 2.6.14-inflate/arch/m32r/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/m32r/boot/compressed/misc.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/m32r/boot/compressed/misc.c	2005-11-29 18:30:19.000000000 -0600
-@@ -24,16 +24,9 @@ typedef unsigned long  ulg;
- #define WSIZE 0x8000		/* Window size must be at least 32k, */
- 				/* and a power of two */
- 
--static uch *inbuf;	     /* input buffer */
- static uch window[WSIZE];    /* Sliding window buffer */
--
--static unsigned insize = 0;  /* valid bytes in inbuf */
--static unsigned inptr = 0;   /* index of next byte to be processed in inbuf */
- static unsigned outcnt = 0;  /* bytes in output buffer */
- 
--#define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf())
--
--static int  fill_inbuf(void);
- static void flush_window(void);
- static void error(char *m);
- 
-@@ -54,22 +47,6 @@ static char *free_mem_end_ptr;
- #include "../../../../lib/inflate.c"
- 
- /* ===========================================================================
-- * Fill the input buffer. This is called only when the buffer is empty
-- * and at least one byte is really needed.
-- */
--static int fill_inbuf(void)
--{
--	if (insize != 0) {
--		error("ran out of input data");
--	}
--
--	inbuf = input_data;
--	insize = input_len;
--	inptr = 1;
--	return inbuf[0];
--}
--
--/* ===========================================================================
-  * Write the output window window[0..outcnt-1] and update bytes_out.
-  * (Used for the decompressed data only.)
-  */
-@@ -110,6 +87,6 @@ decompress_kernel(int mmu_on, unsigned c
- 	input_len = zimage_len;
- 
- 	puts("Uncompressing Linux... ");
--	gunzip();
-+	gunzip(input_data, input_len, NULL);
- 	puts("Ok, booting the kernel.\n");
- }
-Index: 2.6.14-inflate/arch/sh/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/sh/boot/compressed/misc.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/sh/boot/compressed/misc.c	2005-11-29 18:30:19.000000000 -0600
-@@ -26,16 +26,9 @@ typedef unsigned long  ulg;
- #define WSIZE 0x8000		/* Window size must be at least 32k, */
- 				/* and a power of two */
- 
--static uch *inbuf;	     /* input buffer */
- static uch window[WSIZE];    /* Sliding window buffer */
--
--static unsigned insize = 0;  /* valid bytes in inbuf */
--static unsigned inptr = 0;   /* index of next byte to be processed in inbuf */
- static unsigned outcnt = 0;  /* bytes in output buffer */
- 
--#define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf())
--
--static int  fill_inbuf(void);
- static void flush_window(void);
- static void error(char *m);
- 
-@@ -81,22 +74,6 @@ int puts(const char *s)
- #endif
- 
- /* ===========================================================================
-- * Fill the input buffer. This is called only when the buffer is empty
-- * and at least one byte is really needed.
-- */
--static int fill_inbuf(void)
--{
--	if (insize != 0) {
--		error("ran out of input data");
--	}
--
--	inbuf = input_data;
--	insize = input_len;
--	inptr = 1;
--	return inbuf[0];
--}
--
--/* ===========================================================================
-  * Write the output window window[0..outcnt-1] and update bytes_out.
-  * (Used for the decompressed data only.)
-  */
-@@ -136,6 +113,6 @@ void decompress_kernel(void)
- 	free_mem_end_ptr = free_mem_ptr + HEAP_SIZE;
- 
- 	puts("Uncompressing Linux... ");
--	gunzip();
-+	gunzip(input_data, input_len, NULL);
- 	puts("Ok, booting the kernel.\n");
- }
-Index: 2.6.14-inflate/arch/sh64/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/sh64/boot/compressed/misc.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/sh64/boot/compressed/misc.c	2005-11-29 18:30:19.000000000 -0600
-@@ -26,16 +26,9 @@ typedef unsigned long ulg;
- #define WSIZE 0x8000		/* Window size must be at least 32k, */
- 				/* and a power of two */
- 
--static uch *inbuf;		/* input buffer */
- static uch window[WSIZE];	/* Sliding window buffer */
--
--static unsigned insize = 0;	/* valid bytes in inbuf */
--static unsigned inptr = 0;	/* index of next byte to be processed in inbuf */
- static unsigned outcnt = 0;	/* bytes in output buffer */
- 
--#define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf())
--
--static int fill_inbuf(void);
- static void flush_window(void);
- static void error(char *m);
- 
-@@ -61,22 +54,6 @@ void puts(const char *s)
- }
- 
- /* ===========================================================================
-- * Fill the input buffer. This is called only when the buffer is empty
-- * and at least one byte is really needed.
-- */
--static int fill_inbuf(void)
--{
--	if (insize != 0) {
--		error("ran out of input data\n");
--	}
--
--	inbuf = input_data;
--	insize = input_len;
--	inptr = 1;
--	return inbuf[0];
--}
--
--/* ===========================================================================
-  * Write the output window window[0..outcnt-1] and update bytes_out.
-  * (Used for the decompressed data only.)
-  */
-@@ -117,7 +94,7 @@ void decompress_kernel(void)
- 
- 	puts("Uncompressing Linux... ");
- 	cache_control(CACHE_ENABLE);
--	gunzip();
-+	gunzip(input_data, input_len, NULL);
- 	puts("\n");
- 
- #if 0
-Index: 2.6.14-inflate/arch/x86_64/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/x86_64/boot/compressed/misc.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/arch/x86_64/boot/compressed/misc.c	2005-11-29 18:30:19.000000000 -0600
-@@ -23,16 +23,9 @@ typedef unsigned long  ulg;
- #define WSIZE 0x8000		/* Window size must be at least 32k, */
- 				/* and a power of two */
- 
--static uch *inbuf;	     /* input buffer */
- static uch window[WSIZE];    /* Sliding window buffer */
--
--static unsigned insize = 0;  /* valid bytes in inbuf */
--static unsigned inptr = 0;   /* index of next byte to be processed in inbuf */
- static unsigned outcnt = 0;  /* bytes in output buffer */
- 
--#define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf())
--
--static int  fill_inbuf(void);
- static void flush_window(void);
- static void error(char *m);
- 
-@@ -122,22 +115,6 @@ static void putstr(const char *s)
- }
- 
- /* ===========================================================================
-- * Fill the input buffer. This is called only when the buffer is empty
-- * and at least one byte is really needed.
-- */
--static int fill_inbuf(void)
--{
--	if (insize != 0) {
--		error("ran out of input data");
--	}
--
--	inbuf = input_data;
--	insize = input_len;
--	inptr = 1;
--	return inbuf[0];
--}
--
--/* ===========================================================================
-  * Write the output window window[0..outcnt-1] and update bytes_out.
-  * (Used for the decompressed data only.)
-  */
-@@ -254,7 +231,7 @@ int decompress_kernel(struct moveparams 
- 	else setup_output_buffer_if_we_run_high(mv);
- 
- 	putstr(".\nDecompressing Linux...");
--	gunzip();
-+	gunzip(input_data, input_len, NULL);
- 	putstr("done.\nBooting the kernel.\n");
- 	if (high_loaded) close_output_buffer_if_we_run_high(mv);
- 	return high_loaded;
-Index: 2.6.14-inflate/init/do_mounts_rd.c
-===================================================================
---- 2.6.14-inflate.orig/init/do_mounts_rd.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/init/do_mounts_rd.c	2005-11-29 18:30:19.000000000 -0600
-@@ -283,20 +283,14 @@ typedef unsigned long  ulg;
- 
- static uch *inbuf;
- static uch *window;
--
--static unsigned insize;  /* valid bytes in inbuf */
--static unsigned inptr;   /* index of next byte to be processed in inbuf */
- static unsigned outcnt;  /* bytes in output buffer */
- static int exit_code;
- static int unzip_error;
- static long bytes_out;
- static int crd_infd, crd_outfd;
- 
--#define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf())
--
- #define INIT __init
- 
--static int  __init fill_inbuf(void);
- static void __init flush_window(void);
- static void __init error(char *m);
- 
-@@ -304,24 +298,14 @@ static void __init error(char *m);
- 
- #include "../lib/inflate.c"
- 
--/* ===========================================================================
-+/*
-  * Fill the input buffer. This is called only when the buffer is empty
-  * and at least one byte is really needed.
-- * Returning -1 does not guarantee that gunzip() will ever return.
-  */
--static int __init fill_inbuf(void)
-+static void __init fill_inbuf(u8 *buf, int len)
- {
--	if (exit_code) return -1;
--	
--	insize = sys_read(crd_infd, inbuf, INBUFSIZ);
--	if (insize == 0) {
-+	if (!sys_read(crd_infd, buf, len))
- 		error("RAMDISK: ran out of compressed data");
--		return -1;
--	}
--
--	inptr = 1;
--
--	return inbuf[0];
- }
- 
- /* ===========================================================================
-@@ -358,8 +342,6 @@ static int __init crd_load(int in_fd, in
- {
- 	int result;
- 
--	insize = 0;		/* valid bytes in inbuf */
--	inptr = 0;		/* index of next byte to be processed in inbuf */
- 	outcnt = 0;		/* bytes in output buffer */
- 	exit_code = 0;
- 	bytes_out = 0;
-@@ -377,7 +359,7 @@ static int __init crd_load(int in_fd, in
- 		kfree(inbuf);
- 		return -1;
- 	}
--	result = gunzip();
-+	result = gunzip(inbuf, INBUFSIZ, fill_inbuf);
- 	if (unzip_error)
- 		result = 1;
- 	kfree(inbuf);
-Index: 2.6.14-inflate/init/initramfs.c
-===================================================================
---- 2.6.14-inflate.orig/init/initramfs.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/init/initramfs.c	2005-11-29 18:30:19.000000000 -0600
-@@ -340,16 +340,11 @@ typedef unsigned long  ulg;
- #define WSIZE 0x8000    /* window size--must be a power of two, and */
- 			/*  at least 32K for zip's deflate method */
- 
--static uch *inbuf;
- static uch *window;
- 
--static unsigned insize;  /* valid bytes in inbuf */
--static unsigned inptr;   /* index of next byte to be processed in inbuf */
- static unsigned outcnt;  /* bytes in output buffer */
- static long bytes_out;
- 
--#define get_byte()  (inptr < insize ? inbuf[inptr++] : -1)
--
- #define INIT __init
- 
- static void __init flush_window(void);
-@@ -379,7 +374,7 @@ static void __init flush_window(void)
- 
- static char * __init unpack_to_rootfs(char *buf, unsigned len, int check_only)
- {
--	int written;
-+	int written, cnt;
- 	dry_run = check_only;
- 	header_buf = kmalloc(110, GFP_KERNEL);
- 	symlink_buf = kmalloc(PATH_MAX + N_ALIGN(PATH_MAX) + 1, GFP_KERNEL);
-@@ -406,17 +401,14 @@ static char * __init unpack_to_rootfs(ch
- 			continue;
- 		}
- 		this_header = 0;
--		insize = len;
--		inbuf = buf;
--		inptr = 0;
- 		outcnt = 0;		/* bytes in output buffer */
- 		bytes_out = 0;
--		gunzip();
-+		cnt = gunzip(buf, len, NULL);
- 		if (state != Reset)
- 			error("junk in gzipped archive");
--		this_header = saved_offset + inptr;
--		buf += inptr;
--		len -= inptr;
-+		this_header = saved_offset + cnt;
-+		buf += cnt;
-+		len -= cnt;
- 	}
- 	kfree(window);
- 	kfree(name_buf);
-Index: 2.6.14-inflate/lib/inflate.c
-===================================================================
---- 2.6.14-inflate.orig/lib/inflate.c	2005-11-29 18:30:03.000000000 -0600
-+++ 2.6.14-inflate/lib/inflate.c	2005-11-29 18:30:19.000000000 -0600
-@@ -168,8 +168,9 @@ struct huft {
+ /* Huffman code lookup table entry--this entry is four bytes for machines
+    that have 16-bit pointers (e.g. PC's in the small or medium model).
+@@ -132,36 +117,35 @@ static char rcsid[] = "#Id: inflate.c,v 
+    an unused code.  If a code with e == 99 is looked up, this implies an
+    error in the data. */
+ struct huft {
+-	uch e;			/* number of extra bits or operation */
+-	uch b;			/* number of bits in this code or subcode */
++	u8 e;			/* number of extra bits or operation */
++	u8 b;			/* number of bits in this code or subcode */
+ 	union {
+-		ush n;		/* literal, length base, or distance base */
++		u16 n;		/* literal, length base, or distance base */
+ 		struct huft *t;	/* pointer to next level of table */
+ 	} v;
  };
  
- struct iostate {
--	u8 *window;
--	int opos, osize, bits;
-+	u8 *window, *ibuf;
-+	int ipos, isize, itotal, opos, osize, bits;
-+	void (*fill)(u8 *ibuf, int len);
- 	u32 buf, crc;
+ /* Function prototypes */
+-STATIC int INIT huft_build OF((unsigned *, unsigned, unsigned,
+-		const ush *, const ush *, struct huft **, int *));
+-STATIC int INIT huft_free OF((struct huft *));
+-STATIC int INIT inflate_codes OF((struct huft *, struct huft *, int, int));
+-STATIC int INIT inflate_stored OF((void));
+-STATIC int INIT inflate_fixed OF((void));
+-STATIC int INIT inflate_dynamic OF((void));
+-STATIC int INIT inflate_block OF((int *));
+-STATIC int INIT inflate OF((void));
++static int INIT huft_build(unsigned *, unsigned, unsigned,
++			  const u16 *, const u16 *, struct huft **, int *);
++static int INIT huft_free(struct huft *);
++static int INIT inflate_codes(struct huft *, struct huft *, int, int);
++static int INIT inflate_stored(void);
++static int INIT inflate_fixed(void);
++static int INIT inflate_dynamic(void);
++static int INIT inflate_block(int *);
++static int INIT inflate(void);
+ 
+ /* The inflate algorithm uses a sliding 32 K byte window on the uncompressed
+    stream to find repeated byte strings.  This is implemented here as a
+    circular buffer.  The index is updated simply by incrementing and then
+    ANDing with 0x7fff (32K-1). */
+ /* It is left to other modules to supply the 32 K area.  It is assumed
+-   to be usable as if it were declared "uch slide[32768];" or as just
+-   "uch *slide;" and then malloc'ed in the latter case.  The definition
++   to be usable as if it were declared "u8 window[32768];" or as just
++   "u8 *window;" and then malloc'ed in the latter case.  The definition
+    must be in unzip.h, included above. */
+-/* unsigned wp;             current position in slide */
+-#define wp outcnt
+-#define flush_output(w) (wp=(w),flush_window())
++
++#define flush_output(w) (outcnt=(w),flush_window())
+ 
+ /* Tables for deflate from PKZIP's appnote.txt. */
+ 
+@@ -171,7 +155,7 @@ static const unsigned border[] = {
  };
  
-@@ -296,10 +297,21 @@ static const u16 cpdext[] = {
+ /* Copy lengths for literal codes 257..285 */
+-static const ush cplens[] = {
++static const u16 cplens[] = {
+ 	3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
+ 	35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
+ };
+@@ -180,20 +164,20 @@ static const ush cplens[] = {
+  * note: see note #13 above about the 258 in this list.
+  * 99==invalid
+  */
+-static const ush cplext[] = {
++static const u16 cplext[] = {
+ 	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
+ 	3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99
+ };
+ 
+ /* Copy offsets for distance codes 0..29 */
+-static const ush cpdist[] = {
++static const u16 cpdist[] = {
+ 	1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
+ 	257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
+ 	8193, 12289, 16385, 24577
+ };
+ 
+ /* Extra bits for distance codes */
+-static const ush cpdext[] = {
++static const u16 cpdext[] = {
+ 	0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
+ 	7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
+ 	12, 12, 13, 13
+@@ -207,10 +191,10 @@ static const ush cpdext[] = {
+         DUMPBITS(j)
+ 
+    where NEEDBITS makes sure that b has at least j bits in it, and
+-   DUMPBITS removes the bits from b.  The macros use the variable k
+-   for the number of bits in b.  Normally, b and k are register
+-   variables for speed, and are initialized at the beginning of a
+-   routine that uses these macros from a global bit buffer and count.
++   DUMPBITS removes the bits from b. The macros use the variable k for
++   the number of bits in b. Normally, b and k are initialized at the
++   beginning of a routine that uses these macros from a global bit
++   buffer and count.
+ 
+    If we assume that EOB will be the longest code, then we will never
+    ask for bits with NEEDBITS that are beyond the end of the stream.
+@@ -229,17 +213,17 @@ static const ush cpdext[] = {
     the stream.
   */
  
-+static inline u32 readbyte(struct iostate *io)
-+{
-+	if (io->ipos == io->isize) {
-+		io->fill(io->ibuf, io->isize);
-+		io->itotal += io->ipos;
-+		io->ipos = 0;
-+	}
-+
-+	return io->ibuf[io->ipos++];
-+}
-+
- static inline u32 readbits(struct iostate *io, int n)
- {
- 	for( ; io->bits < n; io->bits += 8)
--		io->buf |= (u32)get_byte() << io->bits;
-+		io->buf |= readbyte(io) << io->bits;
- 	return io->buf & ((1 << n) - 1);
- }
+-STATIC ulg bb;			/* bit buffer */
+-STATIC unsigned bk;		/* bits in bit buffer */
++static u32 bb;			/* bit buffer */
++static unsigned bk;		/* bits in bit buffer */
  
-@@ -318,7 +330,7 @@ static inline u32 pullbits(struct iostat
+-STATIC const ush mask_bits[] = {
++static const u16 mask_bits[] = {
+ 	0x0000,
+ 	0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
+ 	0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
+ };
  
- static inline void popbytes(struct iostate *io)
- {
--	inptr -= (io->bits >> 3);
-+	io->ipos -= (io->bits >> 3);
- 	io->bits &= 7;
- }
- 
-@@ -710,7 +722,7 @@ static int INIT inflate_stored(struct io
- 
- 	/* read and output the compressed data */
- 	while (n--)
--		put_byte(io, get_byte());
-+		put_byte(io, readbyte(io));
- 
- 	DEBG(">");
- 	return 0;
-@@ -974,9 +986,12 @@ static void INIT makecrc(void)
- #define RESERVED     0xC0 /* bit 6,7:   reserved */
+-#define NEXTBYTE()  ({ int v = get_byte(); if (v < 0) goto underrun; (uch)v; })
+-#define NEEDBITS(n) do {while(k<(n)){b|=((ulg)NEXTBYTE())<<k;k+=8;}} while(0)
++#define NEXTBYTE()  ({ int v = get_byte(); if (v < 0) goto underrun; (u8)v; })
++#define NEEDBITS(n) do {while(k<(n)){b|=((u32)NEXTBYTE())<<k;k+=8;}} while(0)
+ #define DUMPBITS(n) do {b>>=(n);k-=(n);} while(0)
  
  /*
-- * Do the uncompression!
-+ * gunzip - do the uncompression!
-+ * @ibuf: input character pool
-+ * @isize: size of pool
-+ * @fill: function to fill the input pool
+@@ -274,15 +258,13 @@ STATIC const ush mask_bits[] = {
+    possibly even between compilers.  Your mileage may vary.
   */
--static int INIT gunzip(void)
-+static int INIT gunzip(u8 *ibuf, int isize, void (*fill)(u8 *buf, int size))
+ 
+-STATIC const int lbits = 9;	/* bits in base literal/length lookup table */
+-STATIC const int dbits = 6;	/* bits in base distance lookup table */
++static const int lbits = 9;	/* bits in base literal/length lookup table */
++static const int dbits = 6;	/* bits in base distance lookup table */
+ 
+-/* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
++/* If BMAX needs to be larger than 16, then h and x[] should be u32. */
+ #define BMAX 16		/* maximum bit length of any code (16 for explode) */
+ #define N_MAX 288	/* maximum number of codes in any set */
+ 
+-STATIC unsigned hufts;		/* track memory usage */
+-
+ /*
+  * huft-build - build a huffman decoding table
+  * @b: code lengths in bits (all assumed <= BMAX)
+@@ -300,24 +282,24 @@ STATIC unsigned hufts;		/* track memory 
+  * an oversubscribed set of lengths), and three if not enough
+  * memory.
+  */
+-STATIC int INIT huft_build(unsigned *b, unsigned n, unsigned s, const ush * d,
+-		      const ush * e, struct huft **t, int *m)
++static int INIT huft_build(unsigned *b, unsigned n, unsigned s, const u16 * d,
++		      const u16 * e, struct huft **t, int *m)
  {
- 	u8 flags;
+ 	unsigned a;		/* counter for codes of length k */
+ 	unsigned c[BMAX + 1];	/* bit length count table */
+ 	unsigned f;		/* i repeats in table every f entries */
+ 	int g;			/* maximum code length */
+ 	int h;			/* table level */
+-	register unsigned i;	/* counter, current code */
+-	register unsigned j;	/* counter */
+-	register int k;		/* number of bits in current code */
++	unsigned i;	/* counter, current code */
++	unsigned j;	/* counter */
++	int k;		/* number of bits in current code */
+ 	int l;			/* bits per table (returned in m) */
+-	register unsigned *p;	/* pointer into c[], b[], or v[] */
+-	register struct huft *q;	/* points to current table */
++	unsigned *p;	/* pointer into c[], b[], or v[] */
++	struct huft *q;	/* points to current table */
+ 	struct huft r;		/* table entry for structure assignment */
+ 	struct huft *u[BMAX];	/* table stack */
+ 	unsigned v[N_MAX];	/* values in order of bit length */
+-	register int w;		/* bits before this table == (l * h) */
++	int w;		/* bits before this table == (l * h) */
+ 	unsigned x[BMAX + 1];	/* bit offsets, then code stack */
+ 	unsigned *xp;		/* pointer into x */
+ 	int y;			/* number of dummy codes added */
+@@ -330,14 +312,12 @@ STATIC int INIT huft_build(unsigned *b, 
+ 	p = b;
+ 	i = n;
+ 	do {
+-		Tracecv(*p, (stderr, (n - i >= ' ' && n - i <= '~' ?
+-				      "%c %d\n" : "0x%x %d\n"), n - i, *p));
+ 		c[*p]++;	/* assume all entries <= BMAX */
+ 		p++;
+ 	} while (--i);
+ 
+ 	if (c[0] == n) {	/* null input--all zero length codes */
+-		*t = (struct huft *)NULL;
++		*t = 0;
+ 		*m = 0;
+ 		return 2;
+ 	}
+@@ -389,7 +369,7 @@ STATIC int INIT huft_build(unsigned *b, 
+ 	p = b;
+ 	i = 0;
+ 	do {
+-		if ((j = *p++) != 0)
++		if ((j = *p++))
+ 			v[x[j]++] = i;
+ 	} while (++i < n);
+ 
+@@ -402,8 +382,8 @@ STATIC int INIT huft_build(unsigned *b, 
+ 	p = v; /* grab values in bit order */
+ 	h = -1; /* no tables yet--level -1 */
+ 	w = -l;	/* bits decoded == (l * h) */
+-	u[0] = (struct huft *)NULL; /* just to keep compilers happy */
+-	q = (struct huft *)NULL; /* ditto */
++	u[0] = NULL; /* just to keep compilers happy */
++	q = NULL; /* ditto */
+ 	z = 0; /* ditto */
+ 	DEBG("h6a ");
+ 
+@@ -448,17 +428,15 @@ STATIC int INIT huft_build(unsigned *b, 
+ 				z = 1 << j;
+ 
+ 				/* allocate and link in new table */
+-				if ((q = (struct huft *)malloc(
+-					     (z + 1) * sizeof(struct huft)))
+-				    == (struct huft *)NULL) {
++				if (!(q = (struct huft *)malloc(
++					     (z + 1) * sizeof(struct huft)))) {
+ 					if (h)
+ 						huft_free(u[0]);
+ 					return 3;	/* not enough memory */
+ 				}
+ 				DEBG1("4 ");
+-				hufts += z + 1;	/* track memory usage */
+ 				*t = q + 1; /* link to list for huft_free */
+-				*(t = &(q->v.t)) = (struct huft *)NULL;
++				*(t = &(q->v.t)) = 0;
+ 				u[h] = ++q;	/* table starts after link */
+ 
+ 				DEBG1("5 ");
+@@ -467,9 +445,9 @@ STATIC int INIT huft_build(unsigned *b, 
+ 					/* save pattern for backing up */
+ 					x[h] = i;
+ 					/* bits to dump before this table */
+-					r.b = (uch)l;
++					r.b = (u8)l;
+ 					/* bits in this table */
+-					r.e = (uch)(16 + j);
++					r.e = (u8)(16 + j);
+ 					/* pointer to this table */
+ 					r.v.t = q;
+ 					/* (get around Turbo C bug) */
+@@ -482,19 +460,19 @@ STATIC int INIT huft_build(unsigned *b, 
+ 			DEBG("h6c ");
+ 
+ 			/* set up table entry in r */
+-			r.b = (uch) (k - w);
++			r.b = (u8) (k - w);
+ 			if (p >= v + n)
+ 				r.e = 99; /* out of values--invalid code */
+ 			else if (*p < s) {
+ 				/* 256 is end-of-block code */
+-				r.e = (uch) (*p < 256 ? 16 : 15);
++				r.e = (u8)(*p < 256 ? 16 : 15);
+ 				/* simple code is just the value */
+-				r.v.n = (ush) (*p);
++				r.v.n = (u16)(*p);
+ 				/* one compiler does not like *p++ */
+ 				p++;
+ 			} else {
+ 				/* non-simple--look up in lists */
+-				r.e = (uch)e[*p - s];
++				r.e = (u8)e[*p - s];
+ 				r.v.n = d[*p++ - s];
+ 			}
+ 			DEBG("h6d ");
+@@ -522,7 +500,7 @@ STATIC int INIT huft_build(unsigned *b, 
+ 	DEBG("huft7 ");
+ 
+ 	/* Return true (1) if we were given an incomplete table */
+-	return y != 0 && g != 1;
++	return y && g != 1;
+ }
+ 
+ /*
+@@ -535,11 +513,11 @@ STATIC int INIT huft_build(unsigned *b, 
+  */
+ STATIC int INIT huft_free(struct huft *t)
+ {
+-	register struct huft *p, *q;
++	struct huft *p, *q;
+ 
+ 	/* Go through list, freeing from the malloced (t[-1]) address. */
+ 	p = t;
+-	while (p != (struct huft *)NULL) {
++	while (p) {
+ 		q = (--p)->v.t;
+ 		free((char *)p);
+ 		p = q;
+@@ -557,20 +535,20 @@ STATIC int INIT huft_free(struct huft *t
+  * inflate (decompress) the codes in a deflated (compressed) block.
+  * Return an error code or zero if it all goes ok.
+  */
+-STATIC int inflate_codes(struct huft *tl, struct huft *td, int bl, int bd)
++static int inflate_codes(struct huft *tl, struct huft *td, int bl, int bd)
+ {
+-	register unsigned e;	/* table entry flag/number of extra bits */
++	unsigned e;	/* table entry flag/number of extra bits */
+ 	unsigned n, d;		/* length and index for copy */
+ 	unsigned w;		/* current window position */
+ 	struct huft *t;		/* pointer to table entry */
+ 	unsigned ml, md;	/* masks for bl and bd bits */
+-	register ulg b;		/* bit buffer */
+-	register unsigned k;	/* number of bits in bit buffer */
++	u32 b;		/* bit buffer */
++	unsigned k;	/* number of bits in bit buffer */
+ 
+ 	/* make local copies of globals */
+ 	b = bb;			/* initialize bit buffer */
+ 	k = bk;
+-	w = wp;			/* initialize window position */
++	w = outcnt;			/* initialize window position */
+ 
+ 	/* inflate the coded data */
+ 	ml = mask_bits[bl];	/* precompute masks for speed */
+@@ -588,8 +566,7 @@ STATIC int inflate_codes(struct huft *tl
+ 						     mask_bits[e]))->e) > 16);
+ 		DUMPBITS(t->b);
+ 		if (e == 16) {	/* then it's a literal */
+-			slide[w++] = (uch)t->v.n;
+-			Tracevv((stderr, "%c", slide[w - 1]));
++			window[w++] = (u8)t->v.n;
+ 			if (w == WSIZE) {
+ 				flush_output(w);
+ 				w = 0;
+@@ -619,7 +596,6 @@ STATIC int inflate_codes(struct huft *tl
+ 			NEEDBITS(e);
+ 			d = w - t->v.n - ((unsigned)b & mask_bits[e]);
+ 			DUMPBITS(e)
+-			    Tracevv((stderr, "\\[%d,%d]", w - d, n));
+ 
+ 			/* do the copy */
+ 			do {
+@@ -628,16 +604,14 @@ STATIC int inflate_codes(struct huft *tl
+ #if !defined(NOMEMCPY) && !defined(DEBUG)
+ 				/* (this test assumes unsigned comparison) */
+ 				if (w - d >= e) {
+-					memcpy(slide + w, slide + d, e);
++					memcpy(window + w, window + d, e);
+ 					w += e;
+ 					d += e;
+ 				} else
+ #endif				/* !NOMEMCPY */
+ 					/* avoid memcpy() overlap */
+ 					do {
+-						slide[w++] = slide[d++];
+-						Tracevv((stderr, "%c",
+-							 slide[w - 1]));
++						window[w++] = window[d++];
+ 					} while (--e);
+ 				if (w == WSIZE) {
+ 					flush_output(w);
+@@ -648,7 +622,7 @@ STATIC int inflate_codes(struct huft *tl
+ 	}
+ 
+ 	/* restore the globals from the locals */
+-	wp = w;			/* restore global window pointer */
++	outcnt = w;			/* restore global window pointer */
+ 	bb = b;			/* restore global bit buffer */
+ 	bk = k;
+ 
+@@ -660,19 +634,19 @@ STATIC int inflate_codes(struct huft *tl
+ }
+ 
+ /* inflate_stored - "decompress" an inflated type 0 (stored) block. */
+-STATIC int INIT inflate_stored(void)
++static int INIT inflate_stored(void)
+ {
+ 	unsigned n;		/* number of bytes in block */
+ 	unsigned w;		/* current window position */
+-	register ulg b;		/* bit buffer */
+-	register unsigned k;	/* number of bits in bit buffer */
++	u32 b;		/* bit buffer */
++	unsigned k;	/* number of bits in bit buffer */
+ 
+ 	DEBG("<stor");
+ 
+ 	/* make local copies of globals */
+ 	b = bb;			/* initialize bit buffer */
+ 	k = bk;
+-	w = wp;			/* initialize window position */
++	w = outcnt;			/* initialize window position */
+ 
+ 	/* go to byte boundary */
+ 	n = k & 7;
+@@ -690,7 +664,7 @@ STATIC int INIT inflate_stored(void)
+ 	/* read and output the compressed data */
+ 	while (n--) {
+ 		NEEDBITS(8);
+-		slide[w++] = (uch)b;
++		window[w++] = (u8)b;
+ 		if (w == WSIZE) {
+ 			flush_output(w);
+ 			w = 0;
+@@ -699,7 +673,7 @@ STATIC int INIT inflate_stored(void)
+ 	}
+ 
+ 	/* restore the globals from the locals */
+-	wp = w;			/* restore global window pointer */
++	outcnt = w;			/* restore global window pointer */
+ 	bb = b;			/* restore global bit buffer */
+ 	bk = k;
+ 
+@@ -719,14 +693,14 @@ STATIC int INIT inflate_stored(void)
+  *
+  * We use `noinline' here to prevent gcc-3.5 from using too much stack space
+  */
+-STATIC int noinline INIT inflate_fixed(void)
++static int noinline INIT inflate_fixed(void)
+ {
+ 	int i;			/* temporary variable */
+ 	struct huft *tl;	/* literal/length code table */
+ 	struct huft *td;	/* distance code table */
+ 	int bl;			/* lookup bits for tl */
+ 	int bd;			/* lookup bits for td */
+-	unsigned l[288];	/* length list for huft_build */
++	unsigned l[N_MAX];	/* length list for huft_build */
+ 
+ 	DEBG("<fix");
+ 
+@@ -737,10 +711,10 @@ STATIC int noinline INIT inflate_fixed(v
+ 		l[i] = 9;
+ 	for (; i < 280; i++)
+ 		l[i] = 7;
+-	for (; i < 288; i++)	/* make a complete, but wrong code set */
++	for (; i < N_MAX; i++)	/* make a complete, but wrong code set */
+ 		l[i] = 8;
+ 	bl = 7;
+-	if ((i = huft_build(l, 288, 257, cplens, cplext, &tl, &bl)) != 0)
++	if ((i = huft_build(l, N_MAX, 257, cplens, cplext, &tl, &bl)))
+ 		return i;
+ 
+ 	/* set up distance table */
+@@ -769,7 +743,7 @@ STATIC int noinline INIT inflate_fixed(v
+  *
+  * We use `noinline' here to prevent gcc-3.5 from using too much stack space
+  */
+-STATIC int noinline INIT inflate_dynamic(void)
++static int noinline INIT inflate_dynamic(void)
+ {
+ 	int i;			/* temporary variables */
+ 	unsigned j;
+@@ -783,13 +757,9 @@ STATIC int noinline INIT inflate_dynamic
+ 	unsigned nb;		/* number of bit length codes */
+ 	unsigned nl;		/* number of literal/length codes */
+ 	unsigned nd;		/* number of distance codes */
+-#ifdef PKZIP_BUG_WORKAROUND
+-	unsigned ll[288 + 32];	/* literal/length and distance code lengths */
+-#else
+ 	unsigned ll[286 + 30];	/* literal/length and distance code lengths */
+-#endif
+-	register ulg b;		/* bit buffer */
+-	register unsigned k;	/* number of bits in bit buffer */
++	u32 b;		/* bit buffer */
++	unsigned k;	/* number of bits in bit buffer */
+ 
+ 	DEBG("<dyn");
+ 
+@@ -807,11 +777,7 @@ STATIC int noinline INIT inflate_dynamic
+ 	NEEDBITS(4);
+ 	nb = 4 + ((unsigned)b & 0xf);	/* number of bit length codes */
+ 	DUMPBITS(4);
+-#ifdef PKZIP_BUG_WORKAROUND
+-	if (nl > 288 || nd > 32)
+-#else
+ 	if (nl > 286 || nd > 30)
+-#endif
+ 		return 1;	/* bad lengths */
+ 
+ 	DEBG("dyn1 ");
+@@ -829,7 +795,7 @@ STATIC int noinline INIT inflate_dynamic
+ 
+ 	/* build decoding table for trees--single level, 7 bit lookup */
+ 	bl = 7;
+-	if ((i = huft_build(ll, 19, 19, NULL, NULL, &tl, &bl)) != 0) {
++	if ((i = huft_build(ll, 19, 19, 0, 0, &tl, &bl))) {
+ 		if (i == 1)
+ 			huft_free(tl);
+ 		return i;	/* incomplete code set */
+@@ -892,7 +858,7 @@ STATIC int noinline INIT inflate_dynamic
+ 
+ 	/* build the decoding tables for literal/length and distance codes */
+ 	bl = lbits;
+-	if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl)) != 0) {
++	if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl))) {
+ 		DEBG("dyn5b ");
+ 		if (i == 1) {
+ 			error("incomplete literal tree");
+@@ -902,19 +868,14 @@ STATIC int noinline INIT inflate_dynamic
+ 	}
+ 	DEBG("dyn5c ");
+ 	bd = dbits;
+-	if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd)) != 0) {
++	if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd))) {
+ 		DEBG("dyn5d ");
+ 		if (i == 1) {
+ 			error("incomplete distance tree");
+-#ifdef PKZIP_BUG_WORKAROUND
+-			i = 0;
+-		}
+-#else
+ 			huft_free(td);
+ 		}
+ 		huft_free(tl);
+ 		return i;	/* incomplete code set */
+-#endif
+ 	}
+ 
+ 	DEBG("dyn6 ");
+@@ -939,11 +900,11 @@ STATIC int noinline INIT inflate_dynamic
+ /* inflate_block - decompress a deflated block
+  * @e: last block flag
+  */
+-STATIC int INIT inflate_block(int *e)
++static int INIT inflate_block(int *e)
+ {
+ 	unsigned t;		/* block type */
+-	register ulg b;		/* bit buffer */
+-	register unsigned k;	/* number of bits in bit buffer */
++	u32 b;		/* bit buffer */
++	unsigned k;	/* number of bits in bit buffer */
+ 
+ 	DEBG("<blk");
+ 
+@@ -983,30 +944,25 @@ STATIC int INIT inflate_block(int *e)
+ }
+ 
+ /* inflate - decompress an inflated entry */
+-STATIC int INIT inflate(void)
++static int INIT inflate(void)
+ {
+ 	int e;			/* last block flag */
+ 	int r;			/* result code */
+-	unsigned h;		/* maximum struct huft's malloc'ed */
+ 	void *ptr;
+ 
+ 	/* initialize window, bit buffer */
+-	wp = 0;
++	outcnt = 0;
+ 	bk = 0;
+ 	bb = 0;
+ 
+ 	/* decompress until the last block */
+-	h = 0;
+ 	do {
+-		hufts = 0;
+ 		gzip_mark(&ptr);
+-		if ((r = inflate_block(&e)) != 0) {
++		if ((r = inflate_block(&e))) {
+ 			gzip_release(&ptr);
+ 			return r;
+ 		}
+ 		gzip_release(&ptr);
+-		if (hufts > h)
+-			h = hufts;
+ 	} while (!e);
+ 
+ 	/* Undo too much lookahead. The next read will be byte aligned so we
+@@ -1017,13 +973,10 @@ STATIC int INIT inflate(void)
+ 		inptr--;
+ 	}
+ 
+-	/* flush out slide */
+-	flush_output(wp);
++	/* flush out window */
++	flush_output(outcnt);
+ 
+ 	/* return success */
+-#ifdef DEBUG
+-	fprintf(stderr, "<%u> ", h);
+-#endif				/* DEBUG */
+ 	return 0;
+ }
+ 
+@@ -1033,8 +986,8 @@ STATIC int INIT inflate(void)
+  *
+  **********************************************************************/
+ 
+-static ulg crc_32_tab[256];
+-static ulg crc;		/* initialized in makecrc() so it'll reside in bss */
++static u32 crc_32_tab[256];
++static u32 crc;		/* initialized in makecrc() so it'll reside in bss */
+ #define CRC_VALUE (crc ^ 0xffffffffUL)
+ 
+ /*
+@@ -1073,7 +1026,7 @@ static void INIT makecrc(void)
+ 	}
+ 
+ 	/* this is initialized here so this code could reside in ROM */
+-	crc = (ulg)0xffffffffUL;	/* shift register contents */
++	crc = 0xffffffffUL;	/* shift register contents */
+ }
+ 
+ /* gzip flag byte */
+@@ -1090,11 +1043,11 @@ static void INIT makecrc(void)
+  */
+ static int INIT gunzip(void)
+ {
+-	uch flags;
++	u8 flags;
  	unsigned char magic[2];	/* magic header */
-@@ -988,14 +1003,17 @@ static int INIT gunzip(void)
+ 	char method;
+-	ulg orig_crc = 0;	/* original crc */
+-	ulg orig_len = 0;	/* original uncompressed length */
++	u32 orig_crc = 0;	/* original crc */
++	u32 orig_len = 0;	/* original uncompressed length */
+ 	int res;
  
- 	io.window = window;
- 	io.osize = WSIZE;
--	io.opos = io.bits = io.buf = 0;
-+	io.opos = io.bits = io.buf = io.ipos = io.itotal = 0;
- 	io.crc = 0xffffffffUL;
-+	io.isize = isize;
-+	io.ibuf = ibuf;
-+	io.fill = fill;
- 
- 	makecrc(); /* initialize the CRC table */
- 
--	magic[0] = get_byte();
--	magic[1] = get_byte();
--	method = get_byte();
-+	magic[0] = readbyte(&io);
-+	magic[1] = readbyte(&io);
-+	method = readbyte(&io);
- 
- 	if (magic[0] != 037 || ((magic[1] != 0213) && (magic[1] != 0236))) {
- 		error("bad gzip magic numbers");
-@@ -1008,7 +1026,7 @@ static int INIT gunzip(void)
+ 	magic[0] = NEXTBYTE();
+@@ -1112,16 +1065,16 @@ static int INIT gunzip(void)
  		return -1;
  	}
  
--	flags = (u8)get_byte();
-+	flags = readbyte(&io);
- 	if (flags & ENCRYPTED) {
+-	flags = (uch)get_byte();
+-	if ((flags & ENCRYPTED) != 0) {
++	flags = (u8)get_byte();
++	if (flags & ENCRYPTED) {
  		error("Input is encrypted");
  		return -1;
-@@ -1021,29 +1039,29 @@ static int INIT gunzip(void)
+ 	}
+-	if ((flags & CONTINUATION) != 0) {
++	if (flags & CONTINUATION) {
+ 		error("Multi part input");
+ 		return -1;
+ 	}
+-	if ((flags & RESERVED) != 0) {
++	if (flags & RESERVED) {
  		error("Input has invalid flags");
  		return -1;
  	}
--	get_byte();		/* Get timestamp */
--	get_byte();
--	get_byte();
--	get_byte();
-+	readbyte(&io); /* skip timestamp */
-+	readbyte(&io);
-+	readbyte(&io);
-+	readbyte(&io);
+@@ -1133,25 +1086,22 @@ static int INIT gunzip(void)
+ 	(void)NEXTBYTE();	/* Ignore extra flags for the moment */
+ 	(void)NEXTBYTE();	/* Ignore OS type for the moment */
  
--	get_byte();	/* Ignore extra flags for the moment */
--	get_byte();	/* Ignore OS type for the moment */
-+	readbyte(&io); /* Ignore extra flags */
-+	readbyte(&io); /* Ignore OS type */
- 
- 	if (flags & EXTRA_FIELD) {
--		unsigned len = (unsigned)get_byte();
--		len |= ((unsigned)get_byte()) << 8;
-+		unsigned len = readbyte(&io);
-+		len |= readbyte(&io) << 8;
+-	if ((flags & EXTRA_FIELD) != 0) {
++	if (flags & EXTRA_FIELD) {
+ 		unsigned len = (unsigned)NEXTBYTE();
+ 		len |= ((unsigned)NEXTBYTE()) << 8;
  		while (len--)
--			get_byte();
-+			readbyte(&io);
+ 			(void)NEXTBYTE();
  	}
  
- 	/* Discard original file name if it was truncated */
- 	if (flags & ORIG_NAME)
--		while (get_byte())
-+		while (readbyte(&io))
+-	/* Get original file name if it was truncated */
+-	if ((flags & ORIG_NAME) != 0) {
+-		/* Discard the old name */
+-		while (NEXTBYTE() != 0)	/* null */
++	/* Discard original file name if it was truncated */
++	if (flags & ORIG_NAME)
++		while (NEXTBYTE())
  			;
+-	}
  
  	/* Discard file comment if any */
- 	if (flags & COMMENT)
--		while (get_byte())
-+		while (readbyte(&io))
+-	if ((flags & COMMENT) != 0) {
+-		while (NEXTBYTE() != 0)	/* null */
++	if (flags & COMMENT)
++		while (NEXTBYTE())
  			;
+-	}
  
  	/* Decompress */
-@@ -1072,15 +1090,15 @@ static int INIT gunzip(void)
- 	/* Get the crc and original length
+ 	if ((res = inflate())) {
+@@ -1180,15 +1130,15 @@ static int INIT gunzip(void)
+ 	/* crc32  (see algorithm.doc)
  	 * uncompressed input size modulo 2^32
  	 */
--	orig_crc = (u32)get_byte();
--	orig_crc |= (u32)get_byte() << 8;
--	orig_crc |= (u32)get_byte() << 16;
--	orig_crc |= (u32)get_byte() << 24;
+-	orig_crc = (ulg)NEXTBYTE();
+-	orig_crc |= (ulg)NEXTBYTE() << 8;
+-	orig_crc |= (ulg)NEXTBYTE() << 16;
+-	orig_crc |= (ulg)NEXTBYTE() << 24;
 -
--	orig_len = (u32)get_byte();
--	orig_len |= (u32)get_byte() << 8;
--	orig_len |= (u32)get_byte() << 16;
--	orig_len |= (u32)get_byte() << 24;
-+	orig_crc = readbyte(&io);
-+	orig_crc |= readbyte(&io) << 8;
-+	orig_crc |= readbyte(&io) << 16;
-+	orig_crc |= readbyte(&io) << 24;
+-	orig_len = (ulg)NEXTBYTE();
+-	orig_len |= (ulg)NEXTBYTE() << 8;
+-	orig_len |= (ulg)NEXTBYTE() << 16;
+-	orig_len |= (ulg)NEXTBYTE() << 24;
++	orig_crc = (u32)NEXTBYTE();
++	orig_crc |= (u32)NEXTBYTE() << 8;
++	orig_crc |= (u32)NEXTBYTE() << 16;
++	orig_crc |= (u32)NEXTBYTE() << 24;
 +
-+	orig_len = readbyte(&io);
-+	orig_len |= readbyte(&io) << 8;
-+	orig_len |= readbyte(&io) << 16;
-+	orig_len |= readbyte(&io) << 24;
++	orig_len = (u32)NEXTBYTE();
++	orig_len |= (u32)NEXTBYTE() << 8;
++	orig_len |= (u32)NEXTBYTE() << 16;
++	orig_len |= (u32)NEXTBYTE() << 24;
  
  	/* Validate decompression */
- 	if (orig_crc != ~io.crc) {
-@@ -1091,5 +1109,6 @@ static int INIT gunzip(void)
- 		error("length error");
- 		return -1;
- 	}
--	return 0;
-+
-+	return io.itotal + io.ipos;
- }
+ 	if (orig_crc != CRC_VALUE) {
