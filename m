@@ -1,96 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from waste.org ([64.81.244.121]:22224 "EHLO waste.org")
-	by vger.kernel.org with ESMTP id S1030278AbVLVS2Z (ORCPT
+Received: from waste.org ([64.81.244.121]:25040 "EHLO waste.org")
+	by vger.kernel.org with ESMTP id S1030279AbVLVS22 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Dec 2005 13:28:25 -0500
-Date: Thu, 22 Dec 2005 12:26:56 -0600
+	Thu, 22 Dec 2005 13:28:28 -0500
+Date: Thu, 22 Dec 2005 12:27:07 -0600
 From: Matt Mackall <mpm@selenic.com>
-In-Reply-To: <17.150843412@selenic.com>
-Message-Id: <18.150843412@selenic.com>
-Subject: [PATCH 17/20] inflate: mark some arrays as initdata
+In-Reply-To: <18.150843412@selenic.com>
+Message-Id: <19.150843412@selenic.com>
+Subject: [PATCH 18/20] inflate: minor const changes
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@osdl.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-tiny@selenic.com
 List-ID: <linux-arch.vger.kernel.org>
 
-inflate: mark some arrays as INITDATA and define it in in-core callers
+inflate: small constant tidy-up
 
 Signed-off-by: Matt Mackall <mpm@selenic.com>
 
-Index: 2.6.14-inflate/init/do_mounts_rd.c
-===================================================================
---- 2.6.14-inflate.orig/init/do_mounts_rd.c	2005-11-29 18:36:24.000000000 -0600
-+++ 2.6.14-inflate/init/do_mounts_rd.c	2005-12-21 21:17:00.000000000 -0600
-@@ -271,6 +271,7 @@ int __init rd_load_disk(int n)
- 
- /* gzip declarations */
- #define INIT __init
-+#define INITDATA __initdata
- #define NO_INFLATE_MALLOC
- 
- #include "../lib/inflate.c"
 Index: 2.6.14-inflate/lib/inflate.c
 ===================================================================
---- 2.6.14-inflate.orig/lib/inflate.c	2005-11-29 18:41:59.000000000 -0600
-+++ 2.6.14-inflate/lib/inflate.c	2005-12-21 21:17:00.000000000 -0600
-@@ -104,6 +104,9 @@
- #ifndef INIT
- #define INIT
- #endif
-+#ifndef INITDATA
-+#define INITDATA const
-+#endif
- 
- #include <asm/types.h>
- 
-@@ -235,12 +238,12 @@ static void copy_bytes(struct iostate *i
- /* Tables for deflate from PKZIP's appnote.txt. */
- 
- /* Order of the bit length code lengths */
--static const unsigned border[] = {
-+static INITDATA unsigned border[] = {
- 	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
- };
- 
- /* Copy lengths for literal codes 257..285 */
--static const u16 cplens[] = {
-+static INITDATA u16 cplens[] = {
- 	3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
- 	35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
- };
-@@ -249,20 +252,20 @@ static const u16 cplens[] = {
-  * note: see note #13 above about the 258 in this list.
-  * 99==invalid
+--- 2.6.14-inflate.orig/lib/inflate.c	2005-11-29 18:42:29.000000000 -0600
++++ 2.6.14-inflate/lib/inflate.c	2005-11-29 18:43:25.000000000 -0600
+@@ -52,7 +52,7 @@
+    The Huffman codes themselves are decoded using a multi-level table
+    lookup, in order to maximize the speed of decoding plus the speed of
+    building the decoding tables.  See the comments below that precede the
+-   lbits and dbits tuning parameters.
++   LBITS and dbits tuning parameters.
   */
--static const u16 cplext[] = {
-+static INITDATA u16 cplext[] = {
- 	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
- 	3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99
- };
  
- /* Copy offsets for distance codes 0..29 */
--static const u16 cpdist[] = {
-+static INITDATA u16 cpdist[] = {
- 	1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
- 	257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
- 	8193, 12289, 16385, 24577
- };
+ /*
+@@ -349,9 +349,9 @@ static inline void popbytes(struct iosta
+    the longer codes.  The time it costs to decode the longer codes is
+    then traded against the time it takes to make longer tables.
  
- /* Extra bits for distance codes */
--static const u16 cpdext[] = {
-+static INITDATA u16 cpdext[] = {
- 	0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
- 	7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
- 	12, 12, 13, 13
-Index: 2.6.14-inflate/init/initramfs.c
-===================================================================
---- 2.6.14-inflate.orig/init/initramfs.c	2005-11-29 18:36:24.000000000 -0600
-+++ 2.6.14-inflate/init/initramfs.c	2005-12-21 21:17:00.000000000 -0600
-@@ -332,6 +332,7 @@ static void __init flush_buffer(const u8
- /* gzip declarations */
+-   This results of this trade are in the variables lbits and dbits
+-   below.  lbits is the number of bits the first level table for literal/
+-   length codes can decode in one step, and dbits is the same thing for
++   This results of this trade are in the variables LBITS and DBITS
++   below.  LBITS is the number of bits the first level table for literal/
++   length codes can decode in one step, and DBITS is the same thing for
+    the distance codes.  Subsequent tables are also less than or equal to
+    those sizes.  These values may be adjusted either when all of the
+    codes are shorter than that, in which case the longest code length in
+@@ -364,17 +364,15 @@ static inline void popbytes(struct iosta
+    codes 286 possible values, or in a flat code, a little over eight
+    bits.  The distance table codes 30 possible values, or a little less
+    than five bits, flat.  The optimum values for speed end up being
+-   about one bit more than those, so lbits is 8+1 and dbits is 5+1.
++   about one bit more than those, so LBITS is 8+1 and DBITS is 5+1.
+    The optimum values may differ though from machine to machine, and
+    possibly even between compilers.  Your mileage may vary.
+  */
  
- #define INIT __init
-+#define INITDATA __initdata
- #define NO_INFLATE_MALLOC
+-static const int lbits = 9;	/* bits in base literal/length lookup table */
+-static const int dbits = 6;	/* bits in base distance lookup table */
+-
+-/* If BMAX needs to be larger than 16, then h and x[] should be u32. */
+-#define BMAX 16		/* maximum bit length of any code (16 for explode) */
+-#define N_MAX 288	/* maximum number of codes in any set */
++#define LBITS 9 /* bits in base literal/length lookup table */
++#define DBITS 6 /* bits in base distance lookup table */
++#define BMAX 16 /* maximum bit length of any code (16 for explode) */
++#define N_MAX 288 /* maximum number of codes in any set */
  
- #include "../lib/inflate.c"
+ /*
+  * huft-build - build a huffman decoding table
+@@ -830,7 +828,7 @@ static int noinline INIT inflate_dynamic
+ 	huft_free(tl);
+ 
+ 	/* build the decoding tables for literal/length and distance codes */
+-	bl = lbits;
++	bl = LBITS;
+ 	if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl))) {
+ 		if (i == 1) {
+ 			io->error("incomplete literal tree");
+@@ -839,7 +837,7 @@ static int noinline INIT inflate_dynamic
+ 		return i;	/* incomplete code set */
+ 	}
+ 
+-	bd = dbits;
++	bd = DBITS;
+ 	if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd))) {
+ 		if (i == 1) {
+ 			io->error("incomplete distance tree");
