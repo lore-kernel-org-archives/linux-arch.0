@@ -1,271 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from waste.org ([64.81.244.121]:3536 "EHLO waste.org")
-	by vger.kernel.org with ESMTP id S1030262AbVLVS1w (ORCPT
+Received: from waste.org ([64.81.244.121]:27344 "EHLO waste.org")
+	by vger.kernel.org with ESMTP id S1030267AbVLVS2a (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Dec 2005 13:27:52 -0500
-Date: Thu, 22 Dec 2005 12:26:33 -0600
+	Thu, 22 Dec 2005 13:28:30 -0500
+Date: Thu, 22 Dec 2005 12:27:13 -0600
 From: Matt Mackall <mpm@selenic.com>
-In-Reply-To: <5.150843412@selenic.com>
-Message-Id: <6.150843412@selenic.com>
-Subject: [PATCH 5/20] inflate: cleanup Huffman table code
+In-Reply-To: <20.150843412@selenic.com>
+Message-Id: <21.150843412@selenic.com>
+Subject: [PATCH 20/20] inflate: make in-core inflate share common CRC
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@osdl.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-tiny@selenic.com
 List-ID: <linux-arch.vger.kernel.org>
 
-inflate: cleanup huffman table code
-
-sensible names for huft struct members
-get rid of assignment-in-expression usage
+inflate: make in-core inflate share common CRC code
 
 Signed-off-by: Matt Mackall <mpm@selenic.com>
 
-Index: 2.6.14/lib/inflate.c
+Index: 2.6.14-inflate/lib/inflate.c
 ===================================================================
---- 2.6.14.orig/lib/inflate.c	2005-10-28 21:03:12.000000000 -0700
-+++ 2.6.14/lib/inflate.c	2005-10-28 21:04:46.000000000 -0700
-@@ -117,12 +117,12 @@
-    an unused code.  If a code with e == 99 is looked up, this implies an
-    error in the data. */
- struct huft {
--	u8 e;			/* number of extra bits or operation */
--	u8 b;			/* number of bits in this code or subcode */
- 	union {
--		u16 n;		/* literal, length base, or distance base */
--		struct huft *t;	/* pointer to next level of table */
--	} v;
-+		u16 val; /* literal, length base, or distance base */
-+		struct huft *next; /* pointer to next level of table */
-+	};
-+	u8 extra; /* number of extra bits or operation */
-+	u8 bits; /* number of bits in this code or subcode */
- };
+--- 2.6.14-inflate.orig/lib/inflate.c	2005-12-21 21:19:36.000000000 -0600
++++ 2.6.14-inflate/lib/inflate.c	2005-12-21 21:20:51.000000000 -0600
+@@ -142,24 +142,46 @@ static void free(void *where)
  
- struct iostate {
-@@ -393,11 +393,14 @@ static int INIT huft_build(unsigned *b, 
- 	DEBG("huft3 ");
+ static u8 window[0x8000]; /* use a statically allocated window */
  
- 	/* Adjust last length count to fill out codes, if needed */
--	for (y = 1 << j; j < i; j++, y <<= 1)
--		if ((y -= c[j]) < 0)
-+	for (y = 1 << j; j < i; j++, y <<= 1) {
-+		y -= c[j];
-+		if (y < 0)
- 			return 2; /* bad input: more codes than bits */
-+	}
- 
--	if ((y -= c[i]) < 0)
-+	y -= c[i];
-+	if (y < 0)
- 		return 2;
- 	c[i] += y;
- 
-@@ -408,8 +411,12 @@ static int INIT huft_build(unsigned *b, 
- 	p = c + 1;
- 	xp = x + 2;
- 	/* note that i == g from above */
--	while (--i)
--		*xp++ = (j += *p++);
-+	while (--i) {
-+		j += *p;
-+		*xp = j;
-+		p++;
-+		xp++;
-+	}
- 
- 	DEBG("huft5 ");
- 
-@@ -417,7 +424,8 @@ static int INIT huft_build(unsigned *b, 
- 	p = b;
- 	i = 0;
- 	do {
--		if ((j = *p++))
-+		j = *p++;
-+		if (j)
- 			v[x[j]++] = i;
- 	} while (++i < n);
- 
-@@ -450,10 +458,12 @@ static int INIT huft_build(unsigned *b, 
- 
- 				/* compute min size <= l bits */
- 				/* upper limit on table size */
--				z = (z = g - w) > (unsigned)l ? l : z;
-+				z = min(l, g - w);
- 
- 				/* try a k-w bit table */
--				if ((f = 1 << (j = k - w)) > a + 1) {
-+				j = k - w;
-+				f = 1 << j;
-+				if (f > a + 1) {
- 					/* too few codes for k-w bit table */
- 					DEBG1("2 ");
- 					/* deduct codes from patterns left */
-@@ -463,7 +473,8 @@ static int INIT huft_build(unsigned *b, 
- 					if (j < z) {
- 						/* enough codes for j bits? */
- 						while (++j < z) {
--							if ((f <<= 1) <= *++xp)
-+							f <<= 1;
-+							if (f <= *++xp)
- 								break;
- 							/* deduct from pats */
- 							f -= *xp;
-@@ -476,15 +487,17 @@ static int INIT huft_build(unsigned *b, 
- 				z = 1 << j;
- 
- 				/* allocate and link in new table */
--				if (!(q = (struct huft *)malloc(
--					     (z + 1) * sizeof(struct huft)))) {
-+				q = malloc((z + 1) * sizeof(struct huft));
-+				if (!q) {
- 					if (h)
- 						huft_free(u[0]);
- 					return 3;	/* not enough memory */
- 				}
++/* simple CRC calculation */
++static u32 crc_32_tab[256];
++#define CRCPOLY_LE 0xedb88320
 +
- 				DEBG1("4 ");
- 				*t = q + 1; /* link to list for huft_free */
--				*(t = &(q->v.t)) = 0;
-+				t = &q->next;
-+				*t = NULL;
- 				u[h] = ++q;	/* table starts after link */
+ #define INIT
+ #define INITDATA const
  
- 				DEBG1("5 ");
-@@ -493,11 +506,11 @@ static int INIT huft_build(unsigned *b, 
- 					/* save pattern for backing up */
- 					x[h] = i;
- 					/* bits to dump before this table */
--					r.b = (u8)l;
-+					r.bits = (u8)l;
- 					/* bits in this table */
--					r.e = (u8)(16 + j);
-+					r.extra = (u8)(16 + j);
- 					/* pointer to this table */
--					r.v.t = q;
-+					r.next = q;
- 					/* (get around Turbo C bug) */
- 					j = i >> (w - l);
- 					/* connect to last table */
-@@ -508,20 +521,20 @@ static int INIT huft_build(unsigned *b, 
- 			DEBG("h6c ");
++static void makecrc(void)
++{
++	unsigned i, j;
++	u32 c = 1;
++
++	for (i = 128; i; i >>= 1) {
++		c = (c >> 1) ^ ((c & 1) ? CRCPOLY_LE : 0);
++		for (j = 0; j < 256; j += 2 * i)
++			crc_32_tab[i + j] = c ^ crc_32_tab[j];
++	}
++}
++
++static u32 crc32_le(u32 crc, unsigned char const *p, size_t len)
++{
++	while (len--)
++		crc = crc_32_tab[(*p++ ^ crc) & 0xff] ^ (crc >> 8);
++
++	return crc;
++}
+ #else
  
- 			/* set up table entry in r */
--			r.b = (u8) (k - w);
-+			r.bits = (u8)(k - w);
- 			if (p >= v + n)
--				r.e = 99; /* out of values--invalid code */
-+				r.extra = 99; /* out of values--invalid code */
- 			else if (*p < s) {
- 				/* 256 is end-of-block code */
--				r.e = (u8)(*p < 256 ? 16 : 15);
-+				r.extra = (u8)(*p < 256 ? 16 : 15);
- 				/* simple code is just the value */
--				r.v.n = (u16)(*p);
-+				r.val = (u16)(*p);
- 				/* one compiler does not like *p++ */
- 				p++;
- 			} else {
- 				/* non-simple--look up in lists */
--				r.e = (u8)e[*p - s];
--				r.v.n = d[*p++ - s];
-+				r.extra = (u8)e[*p - s];
-+				r.val = d[*p++ - s];
- 			}
- 			DEBG("h6d ");
+ #include <linux/module.h>
++#include <linux/crc32.h>
  
-@@ -559,16 +572,16 @@ static int INIT huft_build(unsigned *b, 
-  * linked list of the tables it made, with the links in a dummy first
-  * entry of each table.
-  */
--STATIC int INIT huft_free(struct huft *t)
-+static int INIT huft_free(struct huft *t)
+ static u8 *window; /* dynamically allocate */
+ #define malloc(a) kmalloc(a, GFP_KERNEL)
+ #define free(a) kfree(a)
++#define makecrc()
+ #define INIT __init
+ #define INITDATA __initdata
+ 
+ #endif
+ 
+-static u32 crc_32_tab[256];
+-#define CRCPOLY_LE 0xedb88320
+-
+ /* Huffman code lookup table entry--this entry is four bytes for machines
+    that have 16-bit pointers (e.g. PC's in the small or medium model).
+    Valid extra bits are 0..13.  e == 15 is EOB (end of block), e == 16
+@@ -204,12 +226,7 @@ static int INIT inflate(struct iostate *
+ 
+ static void flush_output(struct iostate *io)
  {
--	struct huft *p, *q;
-+	struct huft *q;
- 
- 	/* Go through list, freeing from the malloced (t[-1]) address. */
--	p = t;
--	while (p) {
--		q = (--p)->v.t;
--		free((char *)p);
--		p = q;
-+	while (t) {
-+		t -= 1;
-+		q = t->next;
-+		free(t);
-+		t = q;
- 	}
+-	int i;
+-
+-	for (i = 0; i < io->opos; i++)
+-		io->crc = crc_32_tab[(io->window[i] ^ (int)io->crc) & 0xff]
+-			^ (io->crc >> 8);
+-
++	io->crc = crc32_le(io->crc, io->window, io->opos);
+ 	io->flush(io->window, io->opos);
+ 	io->ototal += io->opos;
+ 	io->opos = 0;
+@@ -905,24 +922,6 @@ static int INIT inflate(struct iostate *
  	return 0;
  }
-@@ -587,45 +600,40 @@ STATIC int INIT huft_free(struct huft *t
- static int INIT inflate_codes(struct iostate *io, struct huft *tl, struct huft *td,
- 			 int bl, int bd)
- {
--	unsigned e;	/* table entry flag/number of extra bits */
- 	unsigned len, dist;
- 	struct huft *t;		/* pointer to table entry */
  
- 	/* inflate the coded data */
- 	for (;;) {		/* do until end of block */
- 		t = tl + readbits(io, bl);
--		e = t->e;
--		while (e > 16) {
--			if (e == 99)
-+		while (t->extra > 16) {
-+			if (t->extra == 99)
- 				return 1;
--			dumpbits(io, t->b);
--			t = t->v.t + readbits(io, e - 16);
--			e = t->e;
-+			dumpbits(io, t->bits);
-+			t = &t->next[readbits(io, t->extra - 16)];
- 		}
--		dumpbits(io, t->b);
--		if (e == 16) {	/* then it's a literal */
--			put_byte(io, t->v.n);
-+		dumpbits(io, t->bits);
-+		if (t->extra == 16) {	/* then it's a literal */
-+			put_byte(io, t->val);
- 		} else {	/* it's an EOB or a length */
- 			/* exit if end of block */
--			if (e == 15)
-+			if (t->extra == 15)
- 				break;
- 
- 			/* get length of block to copy */
--			len = t->v.n + pullbits(io, e);
-+			len = t->val + pullbits(io, t->extra);
- 
- 			/* decode distance of block to copy */
- 			t = td + readbits(io, bd);
--			e = t->e;
--			while (e > 16) {
--				if (e == 99)
-+			while (t->extra > 16) {
-+				if (t->extra == 99)
- 					return 1;
--				dumpbits(io, t->b);
--				t = t->v.t + readbits(io, e - 16);
--				e = t->e;
-+				dumpbits(io, t->bits);
-+				t = &t->next[readbits(io, t->extra - 16)];
- 			}
--			dumpbits(io, t->b);
-+			dumpbits(io, t->bits);
- 
--			dist = t->v.n + pullbits(io, e);
-+			dist = t->val + pullbits(io, t->extra);
- 			copy_bytes(io, len, dist);
- 		}
- 	}
-@@ -767,8 +775,8 @@ static int noinline INIT inflate_dynamic
- 	i = l = 0;
- 	while ((unsigned)i < n) {
- 		td = tl + readbits(io, bl);
--		dumpbits(io, td->b);
--		j = td->v.n;
-+		dumpbits(io, td->bits);
-+		j = td->val;
- 		if (j < 16)	/* length of code in bits (0..15) */
- 			ll[i++] = l = j;	/* save last length in l */
- 		else if (j == 16) {	/* repeat last length 3 to 6 times */
+-/**********************************************************************
+- *
+- * The following are support routines for inflate.c
+- *
+- **********************************************************************/
+-
+-static void INIT makecrc(void)
+-{
+-	unsigned i, j;
+-	u32 c = 1;
+-
+-	for (i = 128; i; i >>= 1) {
+-		c = (c >> 1) ^ ((c & 1) ? CRCPOLY_LE : 0);
+-		for (j = 0; j < 256; j += 2 * i)
+-			crc_32_tab[i + j] = c ^ crc_32_tab[j];
+-	}
+-}
+-
+ /* gzip flag byte */
+ #define ASCII_FLAG   0x01 /* bit 0 set: file probably ASCII text */
+ #define CONTINUATION 0x02 /* bit 1 set: continuation of multi-part gzip file */
