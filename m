@@ -1,511 +1,515 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from waste.org ([64.81.244.121]:15056 "EHLO waste.org")
-	by vger.kernel.org with ESMTP id S1030275AbVLVS2O (ORCPT
+Received: from waste.org ([64.81.244.121]:11984 "EHLO waste.org")
+	by vger.kernel.org with ESMTP id S1030271AbVLVS2I (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Dec 2005 13:28:14 -0500
-Date: Thu, 22 Dec 2005 12:26:50 -0600
+	Thu, 22 Dec 2005 13:28:08 -0500
+Date: Thu, 22 Dec 2005 12:26:48 -0600
 From: Matt Mackall <mpm@selenic.com>
-In-Reply-To: <15.150843412@selenic.com>
-Message-Id: <16.150843412@selenic.com>
-Subject: [PATCH 15/20] inflate: (arch) tidy user declarations
+In-Reply-To: <14.150843412@selenic.com>
+Message-Id: <15.150843412@selenic.com>
+Subject: [PATCH 14/20] inflate: (arch) use an error callback rather than a global
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@osdl.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-tiny@selenic.com
 List-ID: <linux-arch.vger.kernel.org>
 
-inflate: tidy user declarations
+inflate: error handling cleanup
 
-Regroup the few remaining gzip-related declarations in users. As the
-bulk of the users are now _not_ a collection of routines copied from
-gzip, that comment is removed.
+This passes the error function as a callback rather than using a
+global symbol.
 
 Signed-off-by: Matt Mackall <mpm@selenic.com>
 
 Index: 2.6.14-inflate/arch/alpha/boot/misc.c
 ===================================================================
---- 2.6.14-inflate.orig/arch/alpha/boot/misc.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/arch/alpha/boot/misc.c	2005-11-29 18:36:44.000000000 -0600
-@@ -1,8 +1,5 @@
- /*
-  * misc.c
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-  *
-  * Modified for ARM Linux by Russell King
-  *
-@@ -17,27 +14,22 @@
+--- 2.6.14-inflate.orig/arch/alpha/boot/misc.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/arch/alpha/boot/misc.c	2005-12-21 21:46:15.000000000 -0600
+@@ -28,8 +28,6 @@ extern long srm_printk(const char *, ...
+  * gzip delarations
   */
  
- #include <linux/kernel.h>
+-static void error(char *m);
 -
- #include <asm/uaccess.h>
- 
- #define puts		srm_printk
- extern long srm_printk(const char *, ...)
-      __attribute__ ((format (printf, 1, 2)));
- 
--/*
-- * gzip delarations
-- */
--
-+extern int end;
  static char *input_data;
  static int  input_data_size;
--
- static u8 *output_data;
  
--extern int end;
--static char *free_mem_ptr, *free_mem_ptr_end;
--
- #define HEAP_SIZE 0x2000
+@@ -49,7 +47,7 @@ static void flush_window(const u8 *buf, 
+ 		*output_data++ = *buf++;
+ }
  
-+/* gzip delarations */
-+static char *free_mem_ptr, *free_mem_ptr_end;
-+
- #include "../../../lib/inflate.c"
+-static void error(char *x)
++static void error(const char *x)
+ {
+ 	puts("\n\n");
+ 	puts(x);
+@@ -75,7 +73,7 @@ decompress_kernel(void *output_start,
+ 	/* FIXME FIXME FIXME */
  
- /* flush gunzip output window */
+ /*	puts("Uncompressing Linux..."); */
+-	count = gunzip(input_data, input_data_size, NULL, flush_window);
++	count = gunzip(input_data, input_data_size, NULL, flush_window, error);
+ /*	puts(" done, booting the kernel.\n"); */
+ 	return count;
+ }
 Index: 2.6.14-inflate/arch/arm/boot/compressed/misc.c
 ===================================================================
---- 2.6.14-inflate.orig/arch/arm/boot/compressed/misc.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/arch/arm/boot/compressed/misc.c	2005-11-29 18:36:24.000000000 -0600
-@@ -1,8 +1,5 @@
- /*
-  * misc.c
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-  *
-  * Modified for ARM Linux by Russell King
-  *
-@@ -17,7 +14,6 @@
- unsigned int __machine_arch_type;
+--- 2.6.14-inflate.orig/arch/arm/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/arch/arm/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
+@@ -46,8 +46,6 @@ icedcc_putstr(const char *ptr)
+  * gzip declarations
+  */
  
- #include <linux/string.h>
+-static void error(char *m);
 -
- #include <asm/arch/uncompress.h>
+ extern char input_data[];
+ extern char input_data_end[];
  
- #ifdef STANDALONE_DEBUG
-Index: 2.6.14-inflate/arch/arm26/boot/compressed/misc.c
-===================================================================
---- 2.6.14-inflate.orig/arch/arm26/boot/compressed/misc.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/arch/arm26/boot/compressed/misc.c	2005-11-29 18:36:58.000000000 -0600
-@@ -1,8 +1,5 @@
- /*
-  * misc.c
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-  *
-  * Modified for ARM Linux by Russell King
-  *
-@@ -17,7 +14,6 @@
- unsigned int __machine_arch_type;
- 
- #include <linux/kernel.h>
--
- #include <asm/uaccess.h>
- #include "uncompress.h"
- 
-@@ -25,23 +21,18 @@ unsigned int __machine_arch_type;
- #define puts printf
+@@ -78,7 +76,7 @@ static void flush_window(const u8 *buf, 
+ #define arch_error(x)
  #endif
  
--#define __ptr_t void *
+-static void error(char *x)
++static void error(const char *x)
+ {
+ 	arch_error(x);
+ 
+@@ -103,7 +101,8 @@ decompress_kernel(u32 output_start, u32 
+ 	arch_decomp_setup();
+ 
+ 	putstr("Uncompressing Linux...");
+-	gunzip(input_data, input_data_end - input_data, NULL, flush_window);
++	gunzip(input_data, input_data_end - input_data, NULL, flush_window,
++	       error);
+ 	putstr(" done, booting the kernel.\n");
+ 	return output_ptr;
+ }
+@@ -116,7 +115,8 @@ int main()
+ 	output_data = output_buffer;
+ 
+ 	putstr("Uncompressing Linux...");
+-	gunzip(input_data, input_data_end - input_data, NULL, flush_window);
++	gunzip(input_data, input_data_end - input_data, NULL, flush_window,
++	       error);
+ 	putstr("done.\n");
+ 	return 0;
+ }
+Index: 2.6.14-inflate/arch/arm26/boot/compressed/misc.c
+===================================================================
+--- 2.6.14-inflate.orig/arch/arm26/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/arch/arm26/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
+@@ -31,8 +31,6 @@ unsigned int __machine_arch_type;
+  * gzip delarations
+  */
+ 
+-static void error(char *m);
 -
--/*
-- * gzip delarations
-- */
--
-+extern int end;
  extern char input_data[];
  extern char input_data_end[];
  static u8 *output_data;
+@@ -58,7 +56,7 @@ static void flush_window(const u8 *buf, 
+ 	puts(".");
+ }
  
- static void puts(const char *);
+-static void error(char *x)
++static void error(const char *x)
+ {
+ 	int ptr;
  
--extern int end;
--static char *free_mem_ptr, *free_mem_ptr_end;
--
- #define HEAP_SIZE 0x2000
+@@ -83,7 +81,8 @@ decompress_kernel(u32 output_start, u32 
+ 	arch_decomp_setup();
  
-+/* gzip delarations */
-+static char *free_mem_ptr, *free_mem_ptr_end;
-+
- #include "../../../../lib/inflate.c"
+ 	puts("Uncompressing Linux...");
+-	gunzip(input_data, input_data_end - input_data, NULL, flush_window);
++	gunzip(input_data, input_data_end - input_data, NULL, flush_window,
++	       error);
+ 	puts(" done, booting the kernel.\n");
+ 	return output_ptr;
+ }
+@@ -96,7 +95,8 @@ int main()
+ 	output_data = output_buffer;
  
- #ifdef STANDALONE_DEBUG
+ 	puts("Uncompressing Linux...");
+-	gunzip(input_data, input_data_end - input_data, NULL, flush_window);
++	gunzip(input_data, input_data_end - input_data, NULL, flush_window,
++	       error);
+ 	puts("done.\n");
+ 	return 0;
+ }
 Index: 2.6.14-inflate/arch/cris/arch-v10/boot/compressed/misc.c
 ===================================================================
---- 2.6.14-inflate.orig/arch/cris/arch-v10/boot/compressed/misc.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/arch/cris/arch-v10/boot/compressed/misc.c	2005-11-29 18:37:12.000000000 -0600
-@@ -1,14 +1,9 @@
- /*
-  * misc.c
-  *
-- * $Id: misc.c,v 1.6 2003/10/27 08:04:31 starvik Exp $
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-- *
-  * puts by Nick Holloway 1993, better puts by Martin Mares 1995
-  * adoptation for Linux/CRIS Axis Communications AB, 1999
-- * 
-+ *
-  */
+--- 2.6.14-inflate.orig/arch/cris/arch-v10/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/arch/cris/arch-v10/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
+@@ -30,8 +30,6 @@
  
- /* where the piggybacked kernel image expects itself to live.
-@@ -20,24 +15,17 @@
- #define KERNEL_LOAD_ADR 0x40004000
+ unsigned compsize; /* compressed size, used by head.S */
  
- #include <linux/config.h>
+-static void error(char *m);
 -
- #include <linux/types.h>
- #include <asm/arch/svinto.h>
- 
--/*
-- * gzip declarations
-- */
--
--unsigned compsize; /* compressed size, used by head.S */
--
-+extern int end; /* the "heap" is put directly after the BSS ends, at end */
-+extern unsigned compsize; /* compressed size, used by head.S */
  extern char *input_data;  /* lives in head.S */
  static u8 *output_data;
  
- static void puts(const char *);
+@@ -79,8 +77,7 @@ static void flush_window(const u8 *buf, 
+ 		*output_data++ = *buf++;
+ }
  
--/* the "heap" is put directly after the BSS ends, at end */
--  
--extern int end;
-+/* gzip declarations */
- static char *free_mem_ptr = (char *)&end;
- static char *free_mem_end_ptr = (char *)0xffffffff;
+-static void
+-error(char *x)
++static void error(const char *x)
+ {
+ 	puts("\n\n");
+ 	puts(x);
+@@ -136,6 +133,6 @@ decompress_kernel()
+ 	}
  
+ 	puts("Uncompressing Linux...\n");
+-	compsize = gunzip(input_data, 0x7fffffff, NULL, flush_window);
++	compsize = gunzip(input_data, 0x7fffffff, NULL, flush_window, error);
+ 	puts("Done. Now booting the kernel.\n");
+ }
 Index: 2.6.14-inflate/arch/cris/arch-v32/boot/compressed/misc.c
 ===================================================================
---- 2.6.14-inflate.orig/arch/cris/arch-v32/boot/compressed/misc.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/arch/cris/arch-v32/boot/compressed/misc.c	2005-11-29 18:37:26.000000000 -0600
-@@ -1,11 +1,6 @@
- /*
-  * misc.c
-  *
-- * $Id: misc.c,v 1.8 2005/04/24 18:34:29 starvik Exp $
-- *
-- * This is a collection of several routines from gzip-1.0.3
-- * adapted for Linux.
-- *
-  * puts by Nick Holloway 1993, better puts by Martin Mares 1995
-  * adoptation for Linux/CRIS Axis Communications AB, 1999
-  *
-@@ -20,24 +15,18 @@
- #define KERNEL_LOAD_ADR 0x40004000
+--- 2.6.14-inflate.orig/arch/cris/arch-v32/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/arch/cris/arch-v32/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
+@@ -30,8 +30,6 @@
+  * gzip declarations
+  */
  
- #include <linux/config.h>
+-static void error(char *m);
 -
- #include <linux/types.h>
- #include <asm/arch/hwregs/reg_rdwr.h>
- #include <asm/arch/hwregs/reg_map.h>
- #include <asm/arch/hwregs/ser_defs.h>
- 
--/*
-- * gzip declarations
-- */
--
-+extern int _end; /* the "heap" is put directly after the BSS ends, at end */
  extern char *input_data;  /* lives in head.S */
  static u8 *output_data;
  
- static void puts(const char *);
+@@ -91,8 +89,7 @@ static void flush_window(const u8 *buf, 
+ 		*output_data++ = *buf++;
+ }
  
--/* the "heap" is put directly after the BSS ends, at end */
--
--extern int _end;
-+/* gzip declarations */
- static char *free_mem_ptr = (char *)&_end;
- static char *free_mem_end_ptr = (char *)0xffffffff;
+-static void
+-error(char *x)
++static void error(const char *x)
+ {
+ 	puts("\n\n");
+ 	puts(x);
+@@ -179,6 +176,6 @@ decompress_kernel()
+ 	}
  
+ 	puts("Uncompressing Linux...\n");
+-	gunzip(input_data, 0x7fffffff, NULL, flush_window);
++	gunzip(input_data, 0x7fffffff, NULL, flush_window, error);
+ 	puts("Done. Now booting the kernel.\n");
+ }
 Index: 2.6.14-inflate/arch/i386/boot/compressed/misc.c
 ===================================================================
---- 2.6.14-inflate.orig/arch/i386/boot/compressed/misc.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/arch/i386/boot/compressed/misc.c	2005-11-29 18:38:49.000000000 -0600
-@@ -1,8 +1,5 @@
- /*
-  * misc.c
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-  *
-  * puts by Nick Holloway 1993, better puts by Martin Mares 1995
-  * High loaded stuff by Hans Lermen & Werner Almesberger, Feb. 1996
-@@ -15,16 +12,6 @@
- #include <asm/page.h>
+--- 2.6.14-inflate.orig/arch/i386/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/arch/i386/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
+@@ -24,8 +24,6 @@
+  * Incomprehensible are the ways of bootloaders.
+  */
  
+-static void error(char *m);
+-
  /*
-- * gzip declarations
-- */
--
--/*
-- * Why do we do this? Don't ask me..
-- *
-- * Incomprehensible are the ways of bootloaders.
-- */
--
--/*
   * This is set up by the setup-routine at boot-time
   */
- static unsigned char *real_mode; /* Pointer to real-mode data */
-@@ -35,6 +22,7 @@ static unsigned char *real_mode; /* Poin
- #endif
- #define RM_SCREEN_INFO (*(struct screen_info *)(real_mode+0))
+@@ -124,7 +122,7 @@ static void flush_window(const u8 *buf, 
+ 	}
+ }
  
-+extern int end;
- extern char input_data[];
- extern int input_len;
- static long bytes_out;
-@@ -42,9 +30,6 @@ static u8 *output_data;
+-static void error(char *x)
++static void error(const char *x)
+ {
+ 	putstr("\n\n");
+ 	putstr(x);
+@@ -213,7 +211,7 @@ asmlinkage int decompress_kernel(struct 
+ 	else setup_output_buffer_if_we_run_high(mv);
  
- static void putstr(const char *);
- 
--extern int end;
--static char *free_mem_ptr = (char *)&end, *free_mem_end_ptr;
--
- #define INPLACE_MOVE_ROUTINE  0x1000
- #define LOW_BUFFER_START      0x2000
- #define LOW_BUFFER_MAX       0x90000
-@@ -61,6 +46,9 @@ static int lines, cols;
- static void * xquad_portio = NULL;
- #endif
- 
-+/* gzip declarations */
-+static char *free_mem_ptr = (char *)&end, *free_mem_end_ptr;
-+
- #include "../../../../lib/inflate.c"
- 
- static void scroll(void)
+ 	putstr("Uncompressing Linux... ");
+-	gunzip(input_data, input_len, NULL, flush_window);
++	gunzip(input_data, input_len, NULL, flush_window, error);
+ 	putstr("Ok, booting the kernel.\n");
+ 	if (high_loaded) close_output_buffer_if_we_run_high(mv);
+ 	return high_loaded;
 Index: 2.6.14-inflate/arch/m32r/boot/compressed/misc.c
 ===================================================================
---- 2.6.14-inflate.orig/arch/m32r/boot/compressed/misc.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/arch/m32r/boot/compressed/misc.c	2005-11-29 18:39:21.000000000 -0600
-@@ -1,9 +1,6 @@
- /*
-  * arch/m32r/boot/compressed/misc.c
-  *
-- * This is a collection of several routines from gzip-1.0.3
-- * adapted for Linux.
-- *
-  * Adapted for SH by Stuart Menefy, Aug 1999
-  *
-  * 2003-02-12:	Support M32R by Takeo Takahashi
-@@ -13,21 +10,18 @@
- #include <linux/config.h>
- #include <linux/string.h>
+--- 2.6.14-inflate.orig/arch/m32r/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/arch/m32r/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
+@@ -17,8 +17,6 @@
+  * gzip declarations
+  */
  
--/*
-- * gzip declarations
-- */
+-static void error(char *m);
 -
  static unsigned char *input_data;
  static int input_len;
  static u8 *output_data;
+@@ -39,7 +37,7 @@ static void flush_window(const u8 *buf, 
+ 		*output_data++ = *buf++;
+ }
  
- #include "m32r_sio.c"
+-static void error(char *x)
++static void error(const char *x)
+ {
+ 	puts("\n\n");
+ 	puts(x);
+@@ -61,6 +59,6 @@ decompress_kernel(int mmu_on, unsigned c
+ 	input_len = zimage_len;
  
-+#define HEAP_SIZE             0x10000
-+
-+/* gzip declarations */
- static char *free_mem_ptr;
- static char *free_mem_end_ptr;
- 
--#define HEAP_SIZE             0x10000
--
- #include "../../../../lib/inflate.c"
- 
- /* flush the gunzip output buffer */
+ 	puts("Uncompressing Linux... ");
+-	gunzip(input_data, input_len, NULL, flush_window);
++	gunzip(input_data, input_len, NULL, flush_window, error);
+ 	puts("Ok, booting the kernel.\n");
+ }
 Index: 2.6.14-inflate/arch/sh/boot/compressed/misc.c
 ===================================================================
---- 2.6.14-inflate.orig/arch/sh/boot/compressed/misc.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/arch/sh/boot/compressed/misc.c	2005-11-29 18:39:36.000000000 -0600
-@@ -1,9 +1,6 @@
- /*
-  * arch/sh/boot/compressed/misc.c
-  *
-- * This is a collection of several routines from gzip-1.0.3
-- * adapted for Linux.
-- *
-  * Adapted for SH by Stuart Menefy, Aug 1999
-  *
-  * Modified to use standard LinuxSH BIOS by Greg Banks 7Jul2000
-@@ -15,22 +12,19 @@
- #include <asm/sh_bios.h>
- #endif
+--- 2.6.14-inflate.orig/arch/sh/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/arch/sh/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
+@@ -19,8 +19,6 @@
+  * gzip declarations
+  */
  
--/*
-- * gzip declarations
-- */
+-static void error(char *m);
 -
-+extern int _text;		/* Defined in vmlinux.lds.S */
-+extern int _end;
  extern char input_data[];
  extern int input_len;
  static u8 *output_data;
+@@ -66,7 +64,7 @@ static void flush_window(const u8 *buf, 
+ 		*output_data++ = *buf++;
+ }
  
- int puts(const char *);
+-static void error(char *x)
++static void error(const char *x)
+ {
+ 	puts("\n\n");
+ 	puts(x);
+@@ -87,6 +85,6 @@ void decompress_kernel(void)
+ 	free_mem_end_ptr = free_mem_ptr + HEAP_SIZE;
  
--extern int _text;		/* Defined in vmlinux.lds.S */
--extern int _end;
--static char *free_mem_ptr, *free_mem_end_ptr;
--
- #define HEAP_SIZE             0x10000
- 
-+/* gzip declarations */
-+static char *free_mem_ptr, *free_mem_end_ptr;
-+
- #include "../../../../lib/inflate.c"
- 
- #ifdef CONFIG_SH_STANDARD_BIOS
+ 	puts("Uncompressing Linux... ");
+-	gunzip(input_data, input_len, NULL, flush_window);
++	gunzip(input_data, input_len, NULL, flush_window, error);
+ 	puts("Ok, booting the kernel.\n");
+ }
 Index: 2.6.14-inflate/arch/sh64/boot/compressed/misc.c
 ===================================================================
---- 2.6.14-inflate.orig/arch/sh64/boot/compressed/misc.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/arch/sh64/boot/compressed/misc.c	2005-11-29 18:39:49.000000000 -0600
-@@ -1,9 +1,6 @@
- /*
-  * arch/shmedia/boot/compressed/misc.c
-  *
-- * This is a collection of several routines from gzip-1.0.3
-- * adapted for Linux.
-- *
-  * Adapted for SHmedia from sh by Stuart Menefy, May 2002
+--- 2.6.14-inflate.orig/arch/sh64/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/arch/sh64/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
+@@ -19,8 +19,6 @@ int cache_control(unsigned int command);
+  * gzip declarations
   */
  
-@@ -15,22 +12,19 @@
- #define CACHE_DISABLE     1
- int cache_control(unsigned int command);
- 
--/*
-- * gzip declarations
-- */
+-static void error(char *m);
 -
-+extern int _text;		/* Defined in vmlinux.lds.S */
-+extern int _end;
  extern char input_data[];
  extern int input_len;
  static u8 *output_data;
+@@ -48,7 +46,7 @@ static void flush_window(const u8 *buf, 
+ 	puts(".");
+ }
  
- static void puts(const char *);
+-static void error(char *x)
++static void error(const char *x)
+ {
+ 	puts("\n\n");
+ 	puts(x);
+@@ -69,7 +67,7 @@ void decompress_kernel(void)
  
--extern int _text;		/* Defined in vmlinux.lds.S */
--extern int _end;
--static char *free_mem_ptr, *free_mem_end_ptr;
--
- #define HEAP_SIZE             0x10000
+ 	puts("Uncompressing Linux... ");
+ 	cache_control(CACHE_ENABLE);
+-	gunzip(input_data, input_len, NULL, flush_window);
++	gunzip(input_data, input_len, NULL, flush_window, error);
+ 	puts("\n");
  
-+/* gzip declarations */
-+static char *free_mem_ptr, *free_mem_end_ptr;
-+
- #include "../../../../lib/inflate.c"
- 
- void puts(const char *s)
+ #if 0
 Index: 2.6.14-inflate/arch/x86_64/boot/compressed/misc.c
 ===================================================================
---- 2.6.14-inflate.orig/arch/x86_64/boot/compressed/misc.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/arch/x86_64/boot/compressed/misc.c	2005-11-29 18:41:41.000000000 -0600
-@@ -1,8 +1,5 @@
- /*
-  * misc.c
-- * 
-- * This is a collection of several routines from gzip-1.0.3 
-- * adapted for Linux.
-  *
-  * puts by Nick Holloway 1993, better puts by Martin Mares 1995
-  * High loaded stuff by Hans Lermen & Werner Almesberger, Feb. 1996
-@@ -13,10 +10,6 @@
- #include <asm/page.h>
+--- 2.6.14-inflate.orig/arch/x86_64/boot/compressed/misc.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/arch/x86_64/boot/compressed/misc.c	2005-12-21 21:46:15.000000000 -0600
+@@ -16,8 +16,6 @@
+  * gzip declarations
+  */
  
- /*
-- * gzip declarations
-- */
+-static void error(char *m);
 -
--/*
+ /*
   * This is set up by the setup-routine at boot-time
   */
- static unsigned char *real_mode; /* Pointer to real-mode data */
-@@ -29,15 +22,11 @@ static unsigned char *real_mode; /* Poin
- 
- extern unsigned char input_data[];
- extern int input_len;
--
-+extern int end;
- static long bytes_out;
- static u8 *output_data;
--
- static void putstr(const char *);
- 
--extern int end;
--static char *free_mem_ptr = (char *)&end, *free_mem_end_ptr;
--
- #define INPLACE_MOVE_ROUTINE  0x1000
- #define LOW_BUFFER_START      0x2000
- #define LOW_BUFFER_MAX       0x90000
-@@ -50,6 +39,9 @@ static char *vidmem = (char *)0xb8000;
- static int vidport;
- static int lines, cols;
- 
-+/* gzip declarations */
-+static char *free_mem_ptr = (char *)&end, *free_mem_end_ptr;
-+
- #include "../../../../lib/inflate.c"
- 
- static void scroll(void)
-Index: 2.6.14-inflate/init/do_mounts_rd.c
-===================================================================
---- 2.6.14-inflate.orig/init/do_mounts_rd.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/init/do_mounts_rd.c	2005-11-29 18:36:24.000000000 -0600
-@@ -269,9 +269,11 @@ int __init rd_load_disk(int n)
- 
- #ifdef BUILD_CRAMDISK
- 
--/*
-- * gzip declarations
-- */
-+/* gzip declarations */
-+#define INIT __init
-+#define NO_INFLATE_MALLOC
-+
-+#include "../lib/inflate.c"
- 
- #define INBUFSIZ 4096
- static u8 *inbuf;
-@@ -279,12 +281,6 @@ static int exit_code;
- static int unzip_error;
- static int crd_infd, crd_outfd;
- 
--#define INIT __init
--
--#define NO_INFLATE_MALLOC
--
--#include "../lib/inflate.c"
--
- static void __init error(const char *x)
- {
- 	printk(KERN_ERR "%s\n", x);
-Index: 2.6.14-inflate/init/initramfs.c
-===================================================================
---- 2.6.14-inflate.orig/init/initramfs.c	2005-11-29 18:36:19.000000000 -0600
-+++ 2.6.14-inflate/init/initramfs.c	2005-11-29 18:36:24.000000000 -0600
-@@ -329,12 +329,9 @@ static void __init flush_buffer(const u8
+@@ -113,7 +111,7 @@ static void flush_window(const u8 *buf, 
  	}
  }
  
--/*
-- * gzip declarations
-- */
-+/* gzip declarations */
+-static void error(char *x)
++static void error(const char *x)
+ {
+ 	putstr("\n\n");
+ 	putstr(x);
+@@ -191,7 +189,7 @@ int decompress_kernel(struct moveparams 
+ 	else setup_output_buffer_if_we_run_high(mv);
+ 
+ 	putstr(".\nDecompressing Linux...");
+-	gunzip(input_data, input_len, NULL, flush_window);
++	gunzip(input_data, input_len, NULL, flush_window, error);
+ 	putstr("done.\nBooting the kernel.\n");
+ 	if (high_loaded) close_output_buffer_if_we_run_high(mv);
+ 	return high_loaded;
+Index: 2.6.14-inflate/init/do_mounts_rd.c
+===================================================================
+--- 2.6.14-inflate.orig/init/do_mounts_rd.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/init/do_mounts_rd.c	2005-12-21 21:46:15.000000000 -0600
+@@ -281,12 +281,17 @@ static int crd_infd, crd_outfd;
  
  #define INIT __init
+ 
+-static void __init error(char *m);
 -
  #define NO_INFLATE_MALLOC
  
  #include "../lib/inflate.c"
+ 
++static void __init error(const char *x)
++{
++	printk(KERN_ERR "%s\n", x);
++	exit_code = 1;
++	unzip_error = 1;
++}
++
+ /*
+  * Fill the input buffer. This is called only when the buffer is empty
+  * and at least one byte is really needed.
+@@ -310,13 +315,6 @@ static void __init flush_buffer(const u8
+ 	}
+ }
+ 
+-static void __init error(char *x)
+-{
+-	printk(KERN_ERR "%s\n", x);
+-	exit_code = 1;
+-	unzip_error = 1;
+-}
+-
+ static int __init crd_load(int in_fd, int out_fd)
+ {
+ 	int result;
+@@ -330,7 +328,7 @@ static int __init crd_load(int in_fd, in
+ 		printk(KERN_ERR "RAMDISK: Couldn't allocate gzip buffer\n");
+ 		return -1;
+ 	}
+-	result = gunzip(inbuf, INBUFSIZ, fill_inbuf, flush_buffer);
++	result = gunzip(inbuf, INBUFSIZ, fill_inbuf, flush_buffer, error);
+ 	if (unzip_error)
+ 		result = 1;
+ 	kfree(inbuf);
+Index: 2.6.14-inflate/init/initramfs.c
+===================================================================
+--- 2.6.14-inflate.orig/init/initramfs.c	2005-12-21 21:46:14.000000000 -0600
++++ 2.6.14-inflate/init/initramfs.c	2005-12-21 21:46:15.000000000 -0600
+@@ -7,8 +7,8 @@
+ #include <linux/string.h>
+ #include <linux/syscalls.h>
+ 
+-static __initdata char *message;
+-static void __init error(char *x)
++static __initdata const char *message;
++static void __init error(const char *x)
+ {
+ 	if (!message)
+ 		message = x;
+@@ -335,13 +335,12 @@ static void __init flush_buffer(const u8
+ 
+ #define INIT __init
+ 
+-static void __init error(char *m);
+-
+ #define NO_INFLATE_MALLOC
+ 
+ #include "../lib/inflate.c"
+ 
+-static char * __init unpack_to_rootfs(char *buf, unsigned len, int check_only)
++static const char * __init unpack_to_rootfs(char *buf, unsigned len,
++					    int check_only)
+ {
+ 	int written, cnt;
+ 	dry_run = check_only;
+@@ -369,7 +368,7 @@ static char * __init unpack_to_rootfs(ch
+ 			continue;
+ 		}
+ 		this_header = 0;
+-		cnt = gunzip(buf, len, NULL, flush_buffer);
++		cnt = gunzip(buf, len, NULL, flush_buffer, error);
+ 		if (state != Reset)
+ 			error("junk in gzipped archive");
+ 		this_header = saved_offset + cnt;
+@@ -397,8 +396,9 @@ static void __init free_initrd(void)
+ 
+ void __init populate_rootfs(void)
+ {
+-	char *err = unpack_to_rootfs(__initramfs_start,
+-			 __initramfs_end - __initramfs_start, 0);
++	const char *err =
++		unpack_to_rootfs(__initramfs_start,
++				 __initramfs_end - __initramfs_start, 0);
+ 	if (err)
+ 		panic(err);
+ #ifdef CONFIG_BLK_DEV_INITRD
+Index: 2.6.14-inflate/lib/inflate.c
+===================================================================
+--- 2.6.14-inflate.orig/lib/inflate.c	2005-12-21 21:46:13.000000000 -0600
++++ 2.6.14-inflate/lib/inflate.c	2005-12-21 21:46:15.000000000 -0600
+@@ -121,8 +121,9 @@ static void *malloc(int size)
+ {
+ 	char *p;
+ 
+-	if (size <0)
+-		error("Malloc error");
++	if (size < 0)
++		return NULL;
++
+ 	if (!malloc_ptr)
+ 		malloc_ptr = free_mem_ptr;
+ 
+@@ -131,7 +132,7 @@ static void *malloc(int size)
+ 	malloc_ptr += size;
+ 
+ 	if (malloc_ptr >= free_mem_end_ptr)
+-		error("Out of memory");
++		return NULL;
+ 
+ 	malloc_count++;
+ 	return p;
+@@ -175,6 +176,7 @@ struct iostate {
+ 	int ipos, isize, itotal, opos, osize, ototal, bits;
+ 	void (*fill)(u8 *ibuf, int len);
+ 	void (*flush)(const u8 *obuf, int len);
++	void (*error)(const char *msg);
+ 	u32 buf, crc;
+ };
+ 
+@@ -878,7 +880,7 @@ static int noinline INIT inflate_dynamic
+ 	if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl))) {
+ 		DEBG("dyn5b ");
+ 		if (i == 1) {
+-			error("incomplete literal tree");
++			io->error("incomplete literal tree");
+ 			huft_free(tl);
+ 		}
+ 		return i;	/* incomplete code set */
+@@ -888,7 +890,7 @@ static int noinline INIT inflate_dynamic
+ 	if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd))) {
+ 		DEBG("dyn5d ");
+ 		if (i == 1) {
+-			error("incomplete distance tree");
++			io->error("incomplete distance tree");
+ 			huft_free(td);
+ 		}
+ 		huft_free(tl);
+@@ -991,9 +993,11 @@ static void INIT makecrc(void)
+  * @isize: size of pool
+  * @fill: function to fill the input pool
+  * @flush: function to flush the output pool
++ * @error: function to report an error
+  */
+ static int INIT gunzip(u8 *ibuf, int isize, void (*fill)(u8 *buf, int size),
+-		       void (*flush)(const u8 *buf, int size))
++		       void (*flush)(const u8 *buf, int size),
++		       void (*error)(const char *msg))
+ {
+ 	u8 flags;
+ 	unsigned char magic[2];	/* magic header */
