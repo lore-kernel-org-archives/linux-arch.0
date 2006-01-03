@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:38543 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932535AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:48527 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932542AbWACVHl
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 29/50] parisc: task_stack_page(), task_thread_info()
-Message-Id: <E1EttNa-0008Qv-Sf@ZenIV.linux.org.uk>
+Subject: [PATCH 49/50] mips: task_stack_page()
+Message-Id: <E1EttNb-0008Sn-Hv@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
-Date: Tue, 03 Jan 2006 21:07:38 +0000
+Date: Tue, 03 Jan 2006 21:07:39 +0000
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
@@ -19,55 +19,52 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/parisc/kernel/process.c |    6 +++---
- arch/parisc/kernel/smp.c     |    2 +-
+ arch/mips/kernel/process.c   |    6 +++---
+ include/asm-mips/processor.h |    2 +-
  2 files changed, 4 insertions(+), 4 deletions(-)
 
-4822bcc5fa9991be25482b67fb351f7c3c81ba8c
-diff --git a/arch/parisc/kernel/process.c b/arch/parisc/kernel/process.c
-index fee4f1f..1273272 100644
---- a/arch/parisc/kernel/process.c
-+++ b/arch/parisc/kernel/process.c
-@@ -295,7 +295,7 @@ copy_thread(int nr, unsigned long clone_
- 	    struct task_struct * p, struct pt_regs * pregs)
+339018b3d533fd4f589eca296752154f82ecfa8d
+diff --git a/arch/mips/kernel/process.c b/arch/mips/kernel/process.c
+index aca56f4..fa98f10 100644
+--- a/arch/mips/kernel/process.c
++++ b/arch/mips/kernel/process.c
+@@ -140,12 +140,12 @@ void flush_thread(void)
+ int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
+ 	unsigned long unused, struct task_struct *p, struct pt_regs *regs)
  {
- 	struct pt_regs * cregs = &(p->thread.regs);
 -	struct thread_info *ti = p->thread_info;
-+	void *stack = task_stack_page(p);
- 	
- 	/* We have to use void * instead of a function pointer, because
- 	 * function pointers aren't a pointer to the function on 64-bit.
-@@ -322,7 +322,7 @@ copy_thread(int nr, unsigned long clone_
- 	 */
- 	if (usp == 1) {
- 		/* kernel thread */
--		cregs->ksp = (((unsigned long)(ti)) + THREAD_SZ_ALGN);
-+		cregs->ksp = (unsigned long)stack + THREAD_SZ_ALGN;
- 		/* Must exit via ret_from_kernel_thread in order
- 		 * to call schedule_tail()
- 		 */
-@@ -344,7 +344,7 @@ copy_thread(int nr, unsigned long clone_
- 		 */
++	struct thread_info *ti = task_thread_info(p);
+ 	struct pt_regs *childregs;
+ 	long childksp;
+ 	p->set_child_tid = p->clear_child_tid = NULL;
  
- 		/* Use same stack depth as parent */
--		cregs->ksp = ((unsigned long)(ti))
-+		cregs->ksp = (unsigned long)stack
- 			+ (pregs->gr[21] & (THREAD_SIZE - 1));
- 		cregs->gr[30] = usp;
- 		if (p->personality == PER_HPUX) {
-diff --git a/arch/parisc/kernel/smp.c b/arch/parisc/kernel/smp.c
-index ce89da0..471efad 100644
---- a/arch/parisc/kernel/smp.c
-+++ b/arch/parisc/kernel/smp.c
-@@ -519,7 +519,7 @@ int __init smp_boot_one_cpu(int cpuid)
- 	if (IS_ERR(idle))
- 		panic("SMP: fork failed for CPU:%d", cpuid);
+-	childksp = (unsigned long)ti + THREAD_SIZE - 32;
++	childksp = (unsigned long)task_stack_page(p) + THREAD_SIZE - 32;
  
--	idle->thread_info->cpu = cpuid;
-+	task_thread_info(idle)->cpu = cpuid;
+ 	preempt_disable();
  
- 	/* Let _start know what logical CPU we're booting
- 	** (offset into init_tasks[],cpu_data[])
+@@ -407,7 +407,7 @@ unsigned long get_wchan(struct task_stru
+ 	if (!p || p == current || p->state == TASK_RUNNING)
+ 		return 0;
+ 
+-	stack_page = (unsigned long)p->thread_info;
++	stack_page = (unsigned long)task_stack_page(p);
+ 	if (!stack_page || !mips_frame_info_initialized)
+ 		return 0;
+ 
+diff --git a/include/asm-mips/processor.h b/include/asm-mips/processor.h
+index 2bbbf87..90370a4 100644
+--- a/include/asm-mips/processor.h
++++ b/include/asm-mips/processor.h
+@@ -201,7 +201,7 @@ extern void start_thread(struct pt_regs 
+ 
+ unsigned long get_wchan(struct task_struct *p);
+ 
+-#define __KSTK_TOS(tsk) ((unsigned long)(tsk->thread_info) + THREAD_SIZE - 32)
++#define __KSTK_TOS(tsk) ((unsigned long)task_stack_page(tsk) + THREAD_SIZE - 32)
+ #define task_pt_regs(tsk) ((struct pt_regs *)__KSTK_TOS(tsk) - 1)
+ #define KSTK_EIP(tsk) (task_pt_regs(tsk)->cp0_epc)
+ #define KSTK_ESP(tsk) (task_pt_regs(tsk)->regs[29])
 -- 
 0.99.9.GIT
 
