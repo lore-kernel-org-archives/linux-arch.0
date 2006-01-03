@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:34959 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932565AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:44687 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932574AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCH 13/50] sparc64: task_pt_regs()
-Message-Id: <E1EttNa-0008Pf-A5@ZenIV.linux.org.uk>
+Subject: [PATCH 35/50] arm26: task_thread_info()
+Message-Id: <E1EttNb-0008Ra-0r@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
-Date: Tue, 03 Jan 2006 21:07:38 +0000
+Date: Tue, 03 Jan 2006 21:07:39 +0000
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
@@ -19,91 +19,76 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/sparc64/kernel/ptrace.c    |   12 ++++++------
- include/asm-sparc64/elf.h       |    2 +-
- include/asm-sparc64/processor.h |    5 +++--
- 3 files changed, 10 insertions(+), 9 deletions(-)
+ arch/arm26/kernel/process.c     |    2 +-
+ arch/arm26/kernel/ptrace.c      |    4 ++--
+ include/asm-arm26/system.h      |    2 +-
+ include/asm-arm26/thread_info.h |    4 ++--
+ 4 files changed, 6 insertions(+), 6 deletions(-)
 
-e37dce1f4a97b22c68d77e7567aa62db3a7e47b4
-diff --git a/arch/sparc64/kernel/ptrace.c b/arch/sparc64/kernel/ptrace.c
-index 7cdb897..6003f03 100644
---- a/arch/sparc64/kernel/ptrace.c
-+++ b/arch/sparc64/kernel/ptrace.c
-@@ -320,7 +320,7 @@ asmlinkage void do_ptrace(struct pt_regs
- 	case PTRACE_GETREGS: {
- 		struct pt_regs32 __user *pregs =
- 			(struct pt_regs32 __user *) addr;
--		struct pt_regs *cregs = child->thread_info->kregs;
-+		struct pt_regs *cregs = task_pt_regs(child);
- 		int rval;
+2063057940198f124b138337a48a6a0b87406eb6
+diff --git a/arch/arm26/kernel/process.c b/arch/arm26/kernel/process.c
+index 15833a0..159f84a 100644
+--- a/arch/arm26/kernel/process.c
++++ b/arch/arm26/kernel/process.c
+@@ -277,7 +277,7 @@ int
+ copy_thread(int nr, unsigned long clone_flags, unsigned long stack_start,
+ 	    unsigned long unused, struct task_struct *p, struct pt_regs *regs)
+ {
+-	struct thread_info *thread = p->thread_info;
++	struct thread_info *thread = task_thread_info(p);
+ 	struct pt_regs *childregs;
  
- 		if (__put_user(tstate_to_psr(cregs->tstate), (&pregs->psr)) ||
-@@ -344,7 +344,7 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	childregs = __get_user_regs(thread);
+diff --git a/arch/arm26/kernel/ptrace.c b/arch/arm26/kernel/ptrace.c
+index 4e6b735..56afe1f 100644
+--- a/arch/arm26/kernel/ptrace.c
++++ b/arch/arm26/kernel/ptrace.c
+@@ -532,7 +532,7 @@ static int ptrace_setregs(struct task_st
+  */
+ static int ptrace_getfpregs(struct task_struct *tsk, void *ufp)
+ {
+-	return copy_to_user(ufp, &tsk->thread_info->fpstate,
++	return copy_to_user(ufp, &task_thread_info(tsk)->fpstate,
+ 			    sizeof(struct user_fp)) ? -EFAULT : 0;
+ }
  
- 	case PTRACE_GETREGS64: {
- 		struct pt_regs __user *pregs = (struct pt_regs __user *) addr;
--		struct pt_regs *cregs = child->thread_info->kregs;
-+		struct pt_regs *cregs = task_pt_regs(child);
- 		unsigned long tpc = cregs->tpc;
- 		int rval;
+@@ -542,7 +542,7 @@ static int ptrace_getfpregs(struct task_
+ static int ptrace_setfpregs(struct task_struct *tsk, void *ufp)
+ {
+ 	set_stopped_child_used_math(tsk);
+-	return copy_from_user(&tsk->thread_info->fpstate, ufp,
++	return copy_from_user(&task_threas_info(tsk)->fpstate, ufp,
+ 			      sizeof(struct user_fp)) ? -EFAULT : 0;
+ }
  
-@@ -372,7 +372,7 @@ asmlinkage void do_ptrace(struct pt_regs
- 	case PTRACE_SETREGS: {
- 		struct pt_regs32 __user *pregs =
- 			(struct pt_regs32 __user *) addr;
--		struct pt_regs *cregs = child->thread_info->kregs;
-+		struct pt_regs *cregs = task_pt_regs(child);
- 		unsigned int psr, pc, npc, y;
- 		int i;
+diff --git a/include/asm-arm26/system.h b/include/asm-arm26/system.h
+index f23fac1..ada34eb 100644
+--- a/include/asm-arm26/system.h
++++ b/include/asm-arm26/system.h
+@@ -111,7 +111,7 @@ extern struct task_struct *__switch_to(s
  
-@@ -405,7 +405,7 @@ asmlinkage void do_ptrace(struct pt_regs
- 
- 	case PTRACE_SETREGS64: {
- 		struct pt_regs __user *pregs = (struct pt_regs __user *) addr;
--		struct pt_regs *cregs = child->thread_info->kregs;
-+		struct pt_regs *cregs = task_pt_regs(child);
- 		unsigned long tstate, tpc, tnpc, y;
- 		int i;
- 
-@@ -586,8 +586,8 @@ asmlinkage void do_ptrace(struct pt_regs
- #ifdef DEBUG_PTRACE
- 		printk("CONT: %s [%d]: set exit_code = %x %lx %lx\n", child->comm,
- 			child->pid, child->exit_code,
--			child->thread_info->kregs->tpc,
--			child->thread_info->kregs->tnpc);
-+			task_pt_regs(child)->tpc,
-+			task_pt_regs(child)->tnpc);
- 		       
- #endif
- 		wake_up_process(child);
-diff --git a/include/asm-sparc64/elf.h b/include/asm-sparc64/elf.h
-index 9145811..69539a8 100644
---- a/include/asm-sparc64/elf.h
-+++ b/include/asm-sparc64/elf.h
-@@ -119,7 +119,7 @@ typedef struct {
- #endif
- 
- #define ELF_CORE_COPY_TASK_REGS(__tsk, __elf_regs)	\
--	({ ELF_CORE_COPY_REGS((*(__elf_regs)), (__tsk)->thread_info->kregs); 1; })
-+	({ ELF_CORE_COPY_REGS((*(__elf_regs)), task_pt_regs(__tsk)); 1; })
+ #define switch_to(prev,next,last)					\
+ do {									\
+-	last = __switch_to(prev,prev->thread_info,next->thread_info);	\
++	last = __switch_to(prev,task_thread_info(prev),task_thread_info(next));	\
+ } while (0)
  
  /*
-  * This is used to ensure we don't load something for the wrong architecture.
-diff --git a/include/asm-sparc64/processor.h b/include/asm-sparc64/processor.h
-index 3169f3e..cd8d9b4 100644
---- a/include/asm-sparc64/processor.h
-+++ b/include/asm-sparc64/processor.h
-@@ -186,8 +186,9 @@ extern pid_t kernel_thread(int (*fn)(voi
+diff --git a/include/asm-arm26/thread_info.h b/include/asm-arm26/thread_info.h
+index aff3e56..909c88d 100644
+--- a/include/asm-arm26/thread_info.h
++++ b/include/asm-arm26/thread_info.h
+@@ -91,9 +91,9 @@ extern void free_thread_info(struct thre
+ #define put_thread_info(ti)	put_task_struct((ti)->task)
  
- extern unsigned long get_wchan(struct task_struct *task);
+ #define thread_saved_pc(tsk)	\
+-	((unsigned long)(pc_pointer((tsk)->thread_info->cpu_context.pc)))
++	((unsigned long)(pc_pointer(task_thread_info(tsk)->cpu_context.pc)))
+ #define thread_saved_fp(tsk)	\
+-	((unsigned long)((tsk)->thread_info->cpu_context.fp))
++	((unsigned long)(task_thread_info(tsk)->cpu_context.fp))
  
--#define KSTK_EIP(tsk)  ((tsk)->thread_info->kregs->tpc)
--#define KSTK_ESP(tsk)  ((tsk)->thread_info->kregs->u_regs[UREG_FP])
-+#define task_pt_regs(tsk) (task_thread_info(tsk)->kregs)
-+#define KSTK_EIP(tsk)  (task_pt_regs(tsk)->tpc)
-+#define KSTK_ESP(tsk)  (task_pt_regs(tsk)->u_regs[UREG_FP])
- 
- #define cpu_relax()	barrier()
+ #else /* !__ASSEMBLY__ */
  
 -- 
 0.99.9.GIT
