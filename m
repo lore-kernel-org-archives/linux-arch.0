@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:35983 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932551AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:42127 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932555AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCH 23/50] xtensa: task_pt_regs(), task_stack_page()
-Message-Id: <E1EttNa-0008Qc-MG@ZenIV.linux.org.uk>
+Subject: [PATCH 36/50] arm26: task_pt_regs()
+Message-Id: <E1EttNb-0008Rc-1K@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
-Date: Tue, 03 Jan 2006 21:07:38 +0000
+Date: Tue, 03 Jan 2006 21:07:39 +0000
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
@@ -19,128 +19,111 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/xtensa/kernel/process.c   |    4 ++--
- arch/xtensa/kernel/ptrace.c    |   12 ++++++------
- include/asm-xtensa/processor.h |    6 +++---
- include/asm-xtensa/ptrace.h    |    4 ++--
- 4 files changed, 13 insertions(+), 13 deletions(-)
+ arch/arm26/kernel/process.c     |    3 +--
+ arch/arm26/kernel/ptrace.c      |   25 +++++--------------------
+ include/asm-arm26/thread_info.h |    2 +-
+ 3 files changed, 7 insertions(+), 23 deletions(-)
 
-05742756efda39221d12ca3923470becfc4cf860
-diff --git a/arch/xtensa/kernel/process.c b/arch/xtensa/kernel/process.c
-index 6a44b54..f1f5966 100644
---- a/arch/xtensa/kernel/process.c
-+++ b/arch/xtensa/kernel/process.c
-@@ -145,7 +145,7 @@ int copy_thread(int nr, unsigned long cl
- 	int user_mode = user_mode(regs);
- 
- 	/* Set up new TSS. */
--	tos = (unsigned long)p->thread_info + THREAD_SIZE;
-+	tos = (unsigned long)task_stack_page(p) + THREAD_SIZE;
- 	if (user_mode)
- 		childregs = (struct pt_regs*)(tos - PT_USER_SIZE);
- 	else
-@@ -217,7 +217,7 @@ int kernel_thread(int (*fn)(void *), voi
- unsigned long get_wchan(struct task_struct *p)
+3a29d6c513c9d69686d33c4baa67120116a0ea6b
+diff --git a/arch/arm26/kernel/process.c b/arch/arm26/kernel/process.c
+index 159f84a..3863056 100644
+--- a/arch/arm26/kernel/process.c
++++ b/arch/arm26/kernel/process.c
+@@ -278,9 +278,8 @@ copy_thread(int nr, unsigned long clone_
+ 	    unsigned long unused, struct task_struct *p, struct pt_regs *regs)
  {
- 	unsigned long sp, pc;
--	unsigned long stack_page = (unsigned long) p->thread_info;
-+	unsigned long stack_page = (unsigned long) task_stack_page(p);
- 	int count = 0;
+ 	struct thread_info *thread = task_thread_info(p);
+-	struct pt_regs *childregs;
++	struct pt_regs *childregs = task_pt_regs(p);
  
- 	if (!p || p == current || p->state == TASK_RUNNING)
-diff --git a/arch/xtensa/kernel/ptrace.c b/arch/xtensa/kernel/ptrace.c
-index ab5c4c6..4cc8528 100644
---- a/arch/xtensa/kernel/ptrace.c
-+++ b/arch/xtensa/kernel/ptrace.c
-@@ -72,7 +72,7 @@ long arch_ptrace(struct task_struct *chi
- 		struct pt_regs *regs;
- 		unsigned long tmp;
+-	childregs = __get_user_regs(thread);
+ 	*childregs = *regs;
+ 	childregs->ARM_r0 = 0;
+ 	childregs->ARM_sp = stack_start;
+diff --git a/arch/arm26/kernel/ptrace.c b/arch/arm26/kernel/ptrace.c
+index 56afe1f..3c3371d 100644
+--- a/arch/arm26/kernel/ptrace.c
++++ b/arch/arm26/kernel/ptrace.c
+@@ -40,21 +40,6 @@
+ #define BREAKINST_ARM	0xef9f0001
  
--		regs = xtensa_pt_regs(child);
-+		regs = task_pt_regs(child);
- 		tmp = 0;  /* Default return value. */
+ /*
+- * Get the address of the live pt_regs for the specified task.
+- * These are saved onto the top kernel stack when the process
+- * is not running.
+- *
+- * Note: if a user thread is execve'd from kernel space, the
+- * kernel stack will not be empty on entry to the kernel, so
+- * ptracing these tasks will fail.
+- */
+-static inline struct pt_regs *
+-get_user_regs(struct task_struct *task)
+-{
+-	return __get_user_regs(task->thread_info);
+-}
+-
+-/*
+  * this routine will get a word off of the processes privileged stack.
+  * the offset is how far from the base addr as stored in the THREAD.
+  * this routine assumes that all the privileged stacks are in our
+@@ -62,7 +47,7 @@ get_user_regs(struct task_struct *task)
+  */
+ static inline long get_user_reg(struct task_struct *task, int offset)
+ {
+-	return get_user_regs(task)->uregs[offset];
++	return task_pt_regs(task)->uregs[offset];
+ }
  
- 		switch(addr) {
-@@ -149,7 +149,7 @@ long arch_ptrace(struct task_struct *chi
- 	case PTRACE_POKEUSR:
- 		{
- 		struct pt_regs *regs;
--		regs = xtensa_pt_regs(child);
-+		regs = task_pt_regs(child);
+ /*
+@@ -74,7 +59,7 @@ static inline long get_user_reg(struct t
+ static inline int
+ put_user_reg(struct task_struct *task, int offset, long data)
+ {
+-	struct pt_regs newregs, *regs = get_user_regs(task);
++	struct pt_regs newregs, *regs = task_pt_regs(task);
+ 	int ret = -EINVAL;
  
- 		switch (addr) {
- 		case REG_AR_BASE ... REG_AR_BASE + XCHAL_NUM_AREGS - 1:
-@@ -240,7 +240,7 @@ long arch_ptrace(struct task_struct *chi
- 		 * elf_gregset_t format. */
+ 	newregs = *regs;
+@@ -377,7 +362,7 @@ void ptrace_set_bpt(struct task_struct *
+ 	u32 insn;
+ 	int res;
  
- 		xtensa_gregset_t format;
--		struct pt_regs *regs = xtensa_pt_regs(child);
-+		struct pt_regs *regs = task_pt_regs(child);
+-	regs = get_user_regs(child);
++	regs = task_pt_regs(child);
+ 	pc = instruction_pointer(regs);
  
- 		do_copy_regs (&format, regs, child);
+ 	res = read_instr(child, pc, &insn);
+@@ -500,7 +485,7 @@ static int ptrace_write_user(struct task
+  */
+ static int ptrace_getregs(struct task_struct *tsk, void *uregs)
+ {
+-	struct pt_regs *regs = get_user_regs(tsk);
++	struct pt_regs *regs = task_pt_regs(tsk);
  
-@@ -257,7 +257,7 @@ long arch_ptrace(struct task_struct *chi
- 		 * values in the elf_gregset_t format. */
+ 	return copy_to_user(uregs, regs, sizeof(struct pt_regs)) ? -EFAULT : 0;
+ }
+@@ -515,7 +500,7 @@ static int ptrace_setregs(struct task_st
  
- 		xtensa_gregset_t format;
--		struct pt_regs *regs = xtensa_pt_regs(child);
-+		struct pt_regs *regs = task_pt_regs(child);
+ 	ret = -EFAULT;
+ 	if (copy_from_user(&newregs, uregs, sizeof(struct pt_regs)) == 0) {
+-		struct pt_regs *regs = get_user_regs(tsk);
++		struct pt_regs *regs = task_pt_regs(tsk);
  
- 		if (copy_from_user(&format,(void *)data,sizeof(elf_gregset_t))){
- 			ret = -EFAULT;
-@@ -281,7 +281,7 @@ long arch_ptrace(struct task_struct *chi
- 		 * elf_fpregset_t format. */
+ 		ret = -EINVAL;
+ 		if (valid_user_regs(&newregs)) {
+diff --git a/include/asm-arm26/thread_info.h b/include/asm-arm26/thread_info.h
+index 909c88d..f332b40 100644
+--- a/include/asm-arm26/thread_info.h
++++ b/include/asm-arm26/thread_info.h
+@@ -82,7 +82,7 @@ static inline struct thread_info *curren
  
- 		elf_fpregset_t fpregs;
--		struct pt_regs *regs = xtensa_pt_regs(child);
-+		struct pt_regs *regs = task_pt_regs(child);
+ /* FIXME - PAGE_SIZE < 32K */
+ #define THREAD_SIZE		(8*32768) // FIXME - this needs attention (see kernel/fork.c which gets a nice div by zero if this is lower than 8*32768
+-#define __get_user_regs(x) (((struct pt_regs *)((unsigned long)(x) + THREAD_SIZE - 8)) - 1)
++#define task_pt_regs(task) ((struct pt_regs *)((unsigned long)(task)->thread_info + THREAD_SIZE - 8) - 1)
  
- 		do_save_fpregs (&fpregs, regs, child);
- 
-@@ -299,7 +299,7 @@ long arch_ptrace(struct task_struct *chi
- 		 * values in the elf_fpregset_t format.
- 		 */
- 		elf_fpregset_t fpregs;
--		struct pt_regs *regs = xtensa_pt_regs(child);
-+		struct pt_regs *regs = task_pt_regs(child);
- 
- 		ret = 0;
- 		if (copy_from_user(&fpregs, (void *)data, sizeof(elf_fpregset_t))) {
-diff --git a/include/asm-xtensa/processor.h b/include/asm-xtensa/processor.h
-index 9cab5e4..d1d72ad 100644
---- a/include/asm-xtensa/processor.h
-+++ b/include/asm-xtensa/processor.h
-@@ -184,12 +184,12 @@ extern int kernel_thread(int (*fn)(void 
- #define release_segments(mm)	do { } while(0)
- #define forget_segments()	do { } while (0)
- 
--#define thread_saved_pc(tsk)	(xtensa_pt_regs(tsk)->pc)
-+#define thread_saved_pc(tsk)	(task_pt_regs(tsk)->pc)
- 
- extern unsigned long get_wchan(struct task_struct *p);
- 
--#define KSTK_EIP(tsk)		(xtensa_pt_regs(tsk)->pc)
--#define KSTK_ESP(tsk)		(xtensa_pt_regs(tsk)->areg[1])
-+#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->pc)
-+#define KSTK_ESP(tsk)		(task_pt_regs(tsk)->areg[1])
- 
- #define cpu_relax()  do { } while (0)
- 
-diff --git a/include/asm-xtensa/ptrace.h b/include/asm-xtensa/ptrace.h
-index aa4fd7f..a5ac71a 100644
---- a/include/asm-xtensa/ptrace.h
-+++ b/include/asm-xtensa/ptrace.h
-@@ -113,8 +113,8 @@ struct pt_regs {
- };
- 
- #ifdef __KERNEL__
--# define xtensa_pt_regs(tsk) ((struct pt_regs*) \
--  (((long)(tsk)->thread_info + KERNEL_STACK_SIZE - (XCHAL_NUM_AREGS-16)*4)) - 1)
-+# define task_pt_regs(tsk) ((struct pt_regs*) \
-+  (task_stack_page(tsk) + KERNEL_STACK_SIZE - (XCHAL_NUM_AREGS-16)*4) - 1)
- # define user_mode(regs) (((regs)->ps & 0x00000020)!=0)
- # define instruction_pointer(regs) ((regs)->pc)
- extern void show_regs(struct pt_regs *);
+ extern struct thread_info *alloc_thread_info(struct task_struct *task);
+ extern void free_thread_info(struct thread_info *);
 -- 
 0.99.9.GIT
 
