@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:24207 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932522AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:38031 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932536AbWACVHl
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 01/50] missing helper - task_stack_page()
-Message-Id: <E1EttNa-0008PC-3o@ZenIV.linux.org.uk>
+Subject: [PATCH 28/50] m68knommu: task_stack_page()
+Message-Id: <E1EttNa-0008Qt-SB@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -15,43 +15,31 @@ List-ID: <linux-arch.vger.kernel.org>
 References: <20060103210515.5135@ftp.linux.org.uk>
 In-Reply-To: <20060103210515.5135@ftp.linux.org.uk>
 
-new helper - task_stack_page(task).  Returns pointer to the memory object
-containing task stack; usually thread_info of task sits in the beginning
-of that object.
-
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- include/asm-m68k/thread_info.h |    1 +
- include/linux/sched.h          |    1 +
- 2 files changed, 2 insertions(+), 0 deletions(-)
+ arch/m68knommu/kernel/process.c |    5 ++---
+ 1 files changed, 2 insertions(+), 3 deletions(-)
 
-51a180569d2190fe1d57d2ff077b3a832a408782
-diff --git a/include/asm-m68k/thread_info.h b/include/asm-m68k/thread_info.h
-index 9532ca3..c4d622a 100644
---- a/include/asm-m68k/thread_info.h
-+++ b/include/asm-m68k/thread_info.h
-@@ -37,6 +37,7 @@ struct thread_info {
- #define init_stack		(init_thread_union.stack)
- 
- #define task_thread_info(tsk)	(&(tsk)->thread.info)
-+#define task_stack_page(tsk)	((void *)(tsk)->thread_info)
- #define current_thread_info()	task_thread_info(current)
- 
- #define __HAVE_THREAD_FUNCTIONS
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index b0ad6f3..0d303f8 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1234,6 +1234,7 @@ static inline void task_unlock(struct ta
- #ifndef __HAVE_THREAD_FUNCTIONS
- 
- #define task_thread_info(task) (task)->thread_info
-+#define task_stack_page(task) ((void*)((task)->thread_info))
- 
- static inline void setup_thread_stack(struct task_struct *p, struct task_struct *org)
+3effaa23eea55b0ba8c19896de3e37524146860a
+diff --git a/arch/m68knommu/kernel/process.c b/arch/m68knommu/kernel/process.c
+index 82e7ec8..9b0fd04 100644
+--- a/arch/m68knommu/kernel/process.c
++++ b/arch/m68knommu/kernel/process.c
+@@ -198,10 +198,9 @@ int copy_thread(int nr, unsigned long cl
  {
+ 	struct pt_regs * childregs;
+ 	struct switch_stack * childstack, *stack;
+-	unsigned long stack_offset, *retp;
++	unsigned long *retp;
+ 
+-	stack_offset = THREAD_SIZE - sizeof(struct pt_regs);
+-	childregs = (struct pt_regs *) ((unsigned long) p->thread_info + stack_offset);
++	childregs = (struct pt_regs *) (task_stack_page(p) + THREAD_SIZE) - 1;
+ 
+ 	*childregs = *regs;
+ 	childregs->d0 = 0;
 -- 
 0.99.9.GIT
 
