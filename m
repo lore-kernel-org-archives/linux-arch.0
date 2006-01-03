@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:36495 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932533AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:31375 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932560AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 26/50] frv: task_thread_info(), task_stack_page()
-Message-Id: <E1EttNa-0008Qo-NX@ZenIV.linux.org.uk>
+	Tue, 3 Jan 2006 16:07:42 -0500
+Subject: [PATCH 20/50] uml: task_stack_page()
+Message-Id: <E1EttNa-0008Px-Jj@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,32 +19,69 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/frv/kernel/process.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ arch/um/kernel/skas/process_kern.c |    4 ++--
+ arch/um/kernel/tt/exec_kern.c      |    2 +-
+ arch/um/kernel/tt/process_kern.c   |    4 ++--
+ 3 files changed, 5 insertions(+), 5 deletions(-)
 
-b6d605c424ad62db9f709d51d2c0ab425d26809b
-diff --git a/arch/frv/kernel/process.c b/arch/frv/kernel/process.c
-index 54a4521..61628b6 100644
---- a/arch/frv/kernel/process.c
-+++ b/arch/frv/kernel/process.c
-@@ -204,7 +204,7 @@ int copy_thread(int nr, unsigned long cl
- 
- 	regs0 = __kernel_frame0_ptr;
- 	childregs0 = (struct pt_regs *)
--		((unsigned long) p->thread_info + THREAD_SIZE - USER_CONTEXT_SIZE);
-+		(task_stack_page(p) + THREAD_SIZE - USER_CONTEXT_SIZE);
- 	childregs = childregs0;
- 
- 	/* set up the userspace frame (the only place that the USP is stored) */
-@@ -220,7 +220,7 @@ int copy_thread(int nr, unsigned long cl
- 		*childregs = *regs;
- 		childregs->sp = (unsigned long) childregs0;
- 		childregs->next_frame = childregs0;
--		childregs->gr15 = (unsigned long) p->thread_info;
-+		childregs->gr15 = (unsigned long) task_thread_info(p);
- 		childregs->gr29 = (unsigned long) p;
+b55d7bb2f55e737c280bd0a8fb369b3bc91a8dbb
+diff --git a/arch/um/kernel/skas/process_kern.c b/arch/um/kernel/skas/process_kern.c
+index 9c99025..648dd55 100644
+--- a/arch/um/kernel/skas/process_kern.c
++++ b/arch/um/kernel/skas/process_kern.c
+@@ -119,7 +119,7 @@ int copy_thread_skas(int nr, unsigned lo
+ 		handler = new_thread_handler;
  	}
  
+-	new_thread(p->thread_info, &p->thread.mode.skas.switch_buf,
++	new_thread(task_stack_page(p), &p->thread.mode.skas.switch_buf,
+ 		   &p->thread.mode.skas.fork_buf, handler);
+ 	return(0);
+ }
+@@ -186,7 +186,7 @@ int start_uml_skas(void)
+ 
+ 	init_task.thread.request.u.thread.proc = start_kernel_proc;
+ 	init_task.thread.request.u.thread.arg = NULL;
+-	return(start_idle_thread(init_task.thread_info,
++	return(start_idle_thread(task_stack_page(&init_task),
+ 				 &init_task.thread.mode.skas.switch_buf,
+ 				 &init_task.thread.mode.skas.fork_buf));
+ }
+diff --git a/arch/um/kernel/tt/exec_kern.c b/arch/um/kernel/tt/exec_kern.c
+index 065b504..1b98330 100644
+--- a/arch/um/kernel/tt/exec_kern.c
++++ b/arch/um/kernel/tt/exec_kern.c
+@@ -40,7 +40,7 @@ void flush_thread_tt(void)
+ 		do_exit(SIGKILL);
+ 	}
+ 		
+-	new_pid = start_fork_tramp(current->thread_info, stack, 0, exec_tramp);
++	new_pid = start_fork_tramp(task_stack_page(current), stack, 0, exec_tramp);
+ 	if(new_pid < 0){
+ 		printk(KERN_ERR 
+ 		       "flush_thread : new thread failed, errno = %d\n",
+diff --git a/arch/um/kernel/tt/process_kern.c b/arch/um/kernel/tt/process_kern.c
+index 857f355..6f21c1f 100644
+--- a/arch/um/kernel/tt/process_kern.c
++++ b/arch/um/kernel/tt/process_kern.c
+@@ -254,7 +254,7 @@ int copy_thread_tt(int nr, unsigned long
+ 
+ 	clone_flags &= CLONE_VM;
+ 	p->thread.temp_stack = stack;
+-	new_pid = start_fork_tramp(p->thread_info, stack, clone_flags, tramp);
++	new_pid = start_fork_tramp(task_stack_page(p), stack, clone_flags, tramp);
+ 	if(new_pid < 0){
+ 		printk(KERN_ERR "copy_thread : clone failed - errno = %d\n", 
+ 		       -new_pid);
+@@ -426,7 +426,7 @@ int start_uml_tt(void)
+ 	int pages;
+ 
+ 	pages = (1 << CONFIG_KERNEL_STACK_ORDER);
+-	sp = (void *) ((unsigned long) init_task.thread_info) +
++	sp = task_stack_page(&init_task) +
+ 		pages * PAGE_SIZE - sizeof(unsigned long);
+ 	return(tracer(start_kernel_proc, sp));
+ }
 -- 
 0.99.9.GIT
 
