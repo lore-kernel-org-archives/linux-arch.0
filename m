@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:48271 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932543AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:24719 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932561AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 43/50] cris: task_thread_info()
-Message-Id: <E1EttNb-0008Rq-B0@ZenIV.linux.org.uk>
+	Tue, 3 Jan 2006 16:07:42 -0500
+Subject: [PATCH 03/50] alpha: task_stack_page()
+Message-Id: <E1EttNa-0008PI-4d@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
-Date: Tue, 03 Jan 2006 21:07:39 +0000
+Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
@@ -15,62 +15,76 @@ List-ID: <linux-arch.vger.kernel.org>
 References: <20060103210515.5135@ftp.linux.org.uk>
 In-Reply-To: <20060103210515.5135@ftp.linux.org.uk>
 
+use task_stack_page() for accesses to stack page of task in alpha-specific
+parts of tree
+
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/cris/arch-v32/kernel/process.c |    2 +-
- arch/cris/arch-v32/kernel/smp.c     |    4 ++--
- arch/cris/arch-v32/mm/tlb.c         |    4 ++--
+ arch/alpha/kernel/process.c |    6 +++---
+ arch/alpha/kernel/ptrace.c  |    2 +-
+ include/asm-alpha/ptrace.h  |    2 +-
  3 files changed, 5 insertions(+), 5 deletions(-)
 
-5608c115f07982afc48d4c13fb30faf80e490249
-diff --git a/arch/cris/arch-v32/kernel/process.c b/arch/cris/arch-v32/kernel/process.c
-index e88b13b..8435131 100644
---- a/arch/cris/arch-v32/kernel/process.c
-+++ b/arch/cris/arch-v32/kernel/process.c
-@@ -157,7 +157,7 @@ copy_thread(int nr, unsigned long clone_
- 	 * The TLS is in $mof beacuse it is the 5th argument to sys_clone.
- 	 */
- 	if (p->mm && (clone_flags & CLONE_SETTLS)) {
--		p->thread_info->tls = regs->mof;
-+		task_thread_info(p)->tls = regs->mof;
+87f43fe7d9b15cb3f6533391a249adcdab8effea
+diff --git a/arch/alpha/kernel/process.c b/arch/alpha/kernel/process.c
+index f15a456..04c5342 100644
+--- a/arch/alpha/kernel/process.c
++++ b/arch/alpha/kernel/process.c
+@@ -271,7 +271,7 @@ copy_thread(int nr, unsigned long clone_
+ {
+ 	extern void ret_from_fork(void);
+ 
+-	struct thread_info *childti = p->thread_info;
++	struct thread_info *childti = task_thread_info(p);
+ 	struct pt_regs * childregs;
+ 	struct switch_stack * childstack, *stack;
+ 	unsigned long stack_offset, settls;
+@@ -280,7 +280,7 @@ copy_thread(int nr, unsigned long clone_
+ 	if (!(regs->ps & 8))
+ 		stack_offset = (PAGE_SIZE-1) & (unsigned long) regs;
+ 	childregs = (struct pt_regs *)
+-	  (stack_offset + PAGE_SIZE + (long) childti);
++	  (stack_offset + PAGE_SIZE + task_stack_page(p));
+ 		
+ 	*childregs = *regs;
+ 	settls = regs->r20;
+@@ -487,7 +487,7 @@ out:
+ unsigned long
+ thread_saved_pc(task_t *t)
+ {
+-	unsigned long base = (unsigned long)t->thread_info;
++	unsigned long base = (unsigned long)task_stack_page(t);
+ 	unsigned long fp, sp = task_thread_info(t)->pcb.ksp;
+ 
+ 	if (sp > base && sp+6*8 < base + 16*1024) {
+diff --git a/arch/alpha/kernel/ptrace.c b/arch/alpha/kernel/ptrace.c
+index c83ce5d..67c0cb6 100644
+--- a/arch/alpha/kernel/ptrace.c
++++ b/arch/alpha/kernel/ptrace.c
+@@ -110,7 +110,7 @@ get_reg_addr(struct task_struct * task, 
+ 		zero = 0;
+ 		addr = &zero;
+ 	} else {
+-		addr = (void *)task->thread_info + regoff[regno];
++		addr = task_stack_page(task) + regoff[regno];
  	}
+ 	return addr;
+ }
+diff --git a/include/asm-alpha/ptrace.h b/include/asm-alpha/ptrace.h
+index 072375c..994680b 100644
+--- a/include/asm-alpha/ptrace.h
++++ b/include/asm-alpha/ptrace.h
+@@ -76,7 +76,7 @@ struct switch_stack {
+ extern void show_regs(struct pt_regs *);
  
- 	/* Put the switch stack right below the pt_regs. */
-diff --git a/arch/cris/arch-v32/kernel/smp.c b/arch/cris/arch-v32/kernel/smp.c
-index 13867f4..da40d19 100644
---- a/arch/cris/arch-v32/kernel/smp.c
-+++ b/arch/cris/arch-v32/kernel/smp.c
-@@ -113,10 +113,10 @@ smp_boot_one_cpu(int cpuid)
- 	if (IS_ERR(idle))
- 		panic("SMP: fork failed for CPU:%d", cpuid);
+ #define alpha_task_regs(task) \
+-  ((struct pt_regs *) ((long) (task)->thread_info + 2*PAGE_SIZE) - 1)
++  ((struct pt_regs *) (task_stack_page(task) + 2*PAGE_SIZE) - 1)
  
--	idle->thread_info->cpu = cpuid;
-+	task_thread_info(idle)->cpu = cpuid;
+ #define force_successful_syscall_return() (alpha_task_regs(current)->r0 = 0)
  
- 	/* Information to the CPU that is about to boot */
--	smp_init_current_idle_thread = idle->thread_info;
-+	smp_init_current_idle_thread = task_thread_info(idle);
- 	cpu_now_booting = cpuid;
- 
- 	/* Wait for CPU to come online */
-diff --git a/arch/cris/arch-v32/mm/tlb.c b/arch/cris/arch-v32/mm/tlb.c
-index b08a28b..9d75d76 100644
---- a/arch/cris/arch-v32/mm/tlb.c
-+++ b/arch/cris/arch-v32/mm/tlb.c
-@@ -198,9 +198,9 @@ switch_mm(struct mm_struct *prev, struct
- 	per_cpu(current_pgd, cpu) = next->pgd;
- 
- 	/* Switch context in the MMU. */
--        if (tsk && tsk->thread_info)
-+        if (tsk && task_thread_info(tsk))
-         {
--          SPEC_REG_WR(SPEC_REG_PID, next->context.page_id | tsk->thread_info->tls);
-+          SPEC_REG_WR(SPEC_REG_PID, next->context.page_id | task_thread_info(tsk)->tls);
-         }
-         else
-         {
 -- 
 0.99.9.GIT
 
