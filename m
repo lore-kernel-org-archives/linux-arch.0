@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:31887 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932547AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:48015 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932544AbWACVHl
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 18/50] sparc: task_stack_page()
-Message-Id: <E1EttNa-0008Pt-JB@ZenIV.linux.org.uk>
+Subject: [PATCH 42/50] cris: fix KSTK_EIP
+Message-Id: <E1EttNb-0008Ro-Ah@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
-Date: Tue, 03 Jan 2006 21:07:38 +0000
+Date: Tue, 03 Jan 2006 21:07:39 +0000
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
@@ -15,54 +15,44 @@ List-ID: <linux-arch.vger.kernel.org>
 References: <20060103210515.5135@ftp.linux.org.uk>
 In-Reply-To: <20060103210515.5135@ftp.linux.org.uk>
 
+cris KSTK_EIP looked for pt_regs at the right offset but from the wrong
+place - forgotten ->thread_info
+
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/sparc/kernel/process.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+ include/asm-cris/arch-v10/processor.h |    2 +-
+ include/asm-cris/arch-v32/processor.h |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-0015df0826bdd6f2aad29b05149ea3f9475d204a
-diff --git a/arch/sparc/kernel/process.c b/arch/sparc/kernel/process.c
-index 7eebb08..fbb05a4 100644
---- a/arch/sparc/kernel/process.c
-+++ b/arch/sparc/kernel/process.c
-@@ -302,7 +302,7 @@ void show_stack(struct task_struct *tsk,
- 	int count = 0;
- 
- 	if (tsk != NULL)
--		task_base = (unsigned long) tsk->thread_info;
-+		task_base = (unsigned long) task_stack_page(tsk);
- 	else
- 		task_base = (unsigned long) current_thread_info();
- 
-@@ -392,7 +392,7 @@ void flush_thread(void)
- 		/* We must fixup kregs as well. */
- 		/* XXX This was not fixed for ti for a while, worked. Unused? */
- 		current->thread.kregs = (struct pt_regs *)
--		    ((char *)current->thread_info + (THREAD_SIZE - TRACEREG_SZ));
-+		    (task_stack_page(current) + (THREAD_SIZE - TRACEREG_SZ));
- 	}
- }
- 
-@@ -459,7 +459,7 @@ int copy_thread(int nr, unsigned long cl
- 		unsigned long unused,
- 		struct task_struct *p, struct pt_regs *regs)
- {
--	struct thread_info *ti = p->thread_info;
-+	struct thread_info *ti = task_thread_info(p);
- 	struct pt_regs *childregs;
- 	char *new_stack;
- 
-@@ -482,7 +482,7 @@ int copy_thread(int nr, unsigned long cl
- 	 *  V                      V (stk.fr.) V  (pt_regs)  { (stk.fr.) }
- 	 *  +----- - - - - - ------+===========+============={+==========}+
- 	 */
--	new_stack = (char*)ti + THREAD_SIZE;
-+	new_stack = task_stack_page(p) + THREAD_SIZE;
- 	if (regs->psr & PSR_PS)
- 		new_stack -= STACKFRAME_SZ;
- 	new_stack -= STACKFRAME_SZ + TRACEREG_SZ;
+e176ef05ac06736721f63f36f7bebae153aa36e6
+diff --git a/include/asm-cris/arch-v10/processor.h b/include/asm-cris/arch-v10/processor.h
+index e23df8d..cc692c7 100644
+--- a/include/asm-cris/arch-v10/processor.h
++++ b/include/asm-cris/arch-v10/processor.h
+@@ -40,7 +40,7 @@ struct thread_struct {
+ #define KSTK_EIP(tsk)	\
+ ({			\
+ 	unsigned long eip = 0;   \
+-	unsigned long regs = (unsigned long)user_regs(tsk); \
++	unsigned long regs = (unsigned long)task_pt_regs(tsk); \
+ 	if (regs > PAGE_SIZE && \
+ 		virt_addr_valid(regs)) \
+ 	eip = ((struct pt_regs *)regs)->irp; \
+diff --git a/include/asm-cris/arch-v32/processor.h b/include/asm-cris/arch-v32/processor.h
+index 8c939bf..32bf2e5 100644
+--- a/include/asm-cris/arch-v32/processor.h
++++ b/include/asm-cris/arch-v32/processor.h
+@@ -36,7 +36,7 @@ struct thread_struct {
+ #define KSTK_EIP(tsk)		\
+ ({				\
+ 	unsigned long eip = 0;	\
+-	unsigned long regs = (unsigned long)user_regs(tsk); \
++	unsigned long regs = (unsigned long)task_pt_regs(tsk); \
+ 	if (regs > PAGE_SIZE && virt_addr_valid(regs))	    \
+ 		eip = ((struct pt_regs *)regs)->erp;	    \
+ 	eip; \
 -- 
 0.99.9.GIT
 
