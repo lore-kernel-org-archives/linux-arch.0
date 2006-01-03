@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:50319 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932539AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:26767 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932526AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCH 48/50] mips: task_thread_info()
-Message-Id: <E1EttNb-0008Sl-Eq@ZenIV.linux.org.uk>
+Subject: [PATCH 11/50] sparc64: task_thread_info()
+Message-Id: <E1EttNa-0008PY-7q@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
-Date: Tue, 03 Jan 2006 21:07:39 +0000
+Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
@@ -19,147 +19,197 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/mips/kernel/ptrace.c           |    2 +-
- arch/mips/kernel/ptrace32.c         |    4 ++--
- arch/mips/kernel/smp_mt.c           |    7 +++----
- arch/mips/kernel/syscall.c          |    2 +-
- arch/mips/kernel/traps.c            |    2 +-
- arch/mips/pmc-sierra/yosemite/smp.c |    4 ++--
- arch/mips/sgi-ip27/ip27-smp.c       |    4 ++--
- arch/mips/sibyte/cfe/smp.c          |    2 +-
- 8 files changed, 13 insertions(+), 14 deletions(-)
+ arch/sparc64/kernel/process.c     |    4 ++--
+ arch/sparc64/kernel/ptrace.c      |   34 +++++++++++++++++-----------------
+ arch/sparc64/kernel/setup.c       |    2 +-
+ arch/sparc64/kernel/smp.c         |    2 +-
+ include/asm-sparc64/mmu_context.h |    2 +-
+ include/asm-sparc64/system.h      |    4 ++--
+ 6 files changed, 24 insertions(+), 24 deletions(-)
 
-3d3f558e9c924cc0a4b1ed08493dba5e6aa391e9
-diff --git a/arch/mips/kernel/ptrace.c b/arch/mips/kernel/ptrace.c
-index 506fef3..9de759e 100644
---- a/arch/mips/kernel/ptrace.c
-+++ b/arch/mips/kernel/ptrace.c
-@@ -442,7 +442,7 @@ long arch_ptrace(struct task_struct *chi
- 		break;
+6cfb2e0b76db8ba49229addfc686169d48ba9e1a
+diff --git a/arch/sparc64/kernel/process.c b/arch/sparc64/kernel/process.c
+index 02f9dec..1bc7724 100644
+--- a/arch/sparc64/kernel/process.c
++++ b/arch/sparc64/kernel/process.c
+@@ -390,7 +390,7 @@ void show_regs32(struct pt_regs32 *regs)
  
- 	case PTRACE_GET_THREAD_AREA:
--		ret = put_user(child->thread_info->tp_value,
-+		ret = put_user(task_thread_info(child)->tp_value,
- 				(unsigned long __user *) data);
- 		break;
- 
-diff --git a/arch/mips/kernel/ptrace32.c b/arch/mips/kernel/ptrace32.c
-index 5d022b0..9433f06 100644
---- a/arch/mips/kernel/ptrace32.c
-+++ b/arch/mips/kernel/ptrace32.c
-@@ -393,7 +393,7 @@ asmlinkage int sys32_ptrace(int request,
- 		break;
- 
- 	case PTRACE_GET_THREAD_AREA:
--		ret = put_user(child->thread_info->tp_value,
-+		ret = put_user(task_thread_info(child)->tp_value,
- 				(unsigned int __user *) (unsigned long) data);
- 		break;
- 
-@@ -407,7 +407,7 @@ asmlinkage int sys32_ptrace(int request,
- 		break;
- 
- 	case PTRACE_GET_THREAD_AREA_3264:
--		ret = put_user(child->thread_info->tp_value,
-+		ret = put_user(task_thread_info(child)->tp_value,
- 				(unsigned long __user *) (unsigned long) data);
- 		break;
- 
-diff --git a/arch/mips/kernel/smp_mt.c b/arch/mips/kernel/smp_mt.c
-index d429544..794a1c3 100644
---- a/arch/mips/kernel/smp_mt.c
-+++ b/arch/mips/kernel/smp_mt.c
-@@ -287,6 +287,7 @@ void prom_prepare_cpus(unsigned int max_
-  */
- void prom_boot_secondary(int cpu, struct task_struct *idle)
+ unsigned long thread_saved_pc(struct task_struct *tsk)
  {
-+	struct thread_info *gp = task_thread_info(idle);
- 	dvpe();
- 	set_c0_mvpcontrol(MVPCONTROL_VPC);
+-	struct thread_info *ti = tsk->thread_info;
++	struct thread_info *ti = task_thread_info(tsk);
+ 	unsigned long ret = 0xdeadbeefUL;
+ 	
+ 	if (ti && ti->ksp) {
+@@ -847,7 +847,7 @@ unsigned long get_wchan(struct task_stru
  
-@@ -307,11 +308,9 @@ void prom_boot_secondary(int cpu, struct
- 	write_tc_gpr_sp( __KSTK_TOS(idle));
+ 	thread_info_base = (unsigned long) task->thread_info;
+ 	bias = STACK_BIAS;
+-	fp = task->thread_info->ksp + bias;
++	fp = task_thread_info(task)->ksp + bias;
  
- 	/* global pointer */
--	write_tc_gpr_gp((unsigned long)idle->thread_info);
-+	write_tc_gpr_gp((unsigned long)gp);
+ 	do {
+ 		/* Bogus frame pointer? */
+diff --git a/arch/sparc64/kernel/ptrace.c b/arch/sparc64/kernel/ptrace.c
+index 774ecbb..7cdb897 100644
+--- a/arch/sparc64/kernel/ptrace.c
++++ b/arch/sparc64/kernel/ptrace.c
+@@ -348,7 +348,7 @@ asmlinkage void do_ptrace(struct pt_regs
+ 		unsigned long tpc = cregs->tpc;
+ 		int rval;
  
--	flush_icache_range((unsigned long)idle->thread_info,
--					   (unsigned long)idle->thread_info +
--					   sizeof(struct thread_info));
-+	flush_icache_range((unsigned long)gp, (unsigned long)(gp + 1));
+-		if ((child->thread_info->flags & _TIF_32BIT) != 0)
++		if ((task_thread_info(child)->flags & _TIF_32BIT) != 0)
+ 			tpc &= 0xffffffff;
+ 		if (__put_user(cregs->tstate, (&pregs->tstate)) ||
+ 		    __put_user(tpc, (&pregs->tpc)) ||
+@@ -419,7 +419,7 @@ asmlinkage void do_ptrace(struct pt_regs
+ 			pt_error_return(regs, EFAULT);
+ 			goto out_tsk;
+ 		}
+-		if ((child->thread_info->flags & _TIF_32BIT) != 0) {
++		if ((task_thread_info(child)->flags & _TIF_32BIT) != 0) {
+ 			tpc &= 0xffffffff;
+ 			tnpc &= 0xffffffff;
+ 		}
+@@ -454,11 +454,11 @@ asmlinkage void do_ptrace(struct pt_regs
+ 			} fpq[16];
+ 		};
+ 		struct fps __user *fps = (struct fps __user *) addr;
+-		unsigned long *fpregs = child->thread_info->fpregs;
++		unsigned long *fpregs = task_thread_info(child)->fpregs;
  
- 	/* finally out of configuration and into chaos */
- 	clear_c0_mvpcontrol(MVPCONTROL_VPC);
-diff --git a/arch/mips/kernel/syscall.c b/arch/mips/kernel/syscall.c
-index ee98eeb..42fb39f 100644
---- a/arch/mips/kernel/syscall.c
-+++ b/arch/mips/kernel/syscall.c
-@@ -262,7 +262,7 @@ asmlinkage int sys_olduname(struct oldol
+ 		if (copy_to_user(&fps->regs[0], fpregs,
+ 				 (32 * sizeof(unsigned int))) ||
+-		    __put_user(child->thread_info->xfsr[0], (&fps->fsr)) ||
++		    __put_user(task_thread_info(child)->xfsr[0], (&fps->fsr)) ||
+ 		    __put_user(0, (&fps->fpqd)) ||
+ 		    __put_user(0, (&fps->flags)) ||
+ 		    __put_user(0, (&fps->extra)) ||
+@@ -476,11 +476,11 @@ asmlinkage void do_ptrace(struct pt_regs
+ 			unsigned long fsr;
+ 		};
+ 		struct fps __user *fps = (struct fps __user *) addr;
+-		unsigned long *fpregs = child->thread_info->fpregs;
++		unsigned long *fpregs = task_thread_info(child)->fpregs;
  
- void sys_set_thread_area(unsigned long addr)
- {
--	struct thread_info *ti = current->thread_info;
-+	struct thread_info *ti = task_thread_info(current);
+ 		if (copy_to_user(&fps->regs[0], fpregs,
+ 				 (64 * sizeof(unsigned int))) ||
+-		    __put_user(child->thread_info->xfsr[0], (&fps->fsr))) {
++		    __put_user(task_thread_info(child)->xfsr[0], (&fps->fsr))) {
+ 			pt_error_return(regs, EFAULT);
+ 			goto out_tsk;
+ 		}
+@@ -501,7 +501,7 @@ asmlinkage void do_ptrace(struct pt_regs
+ 			} fpq[16];
+ 		};
+ 		struct fps __user *fps = (struct fps __user *) addr;
+-		unsigned long *fpregs = child->thread_info->fpregs;
++		unsigned long *fpregs = task_thread_info(child)->fpregs;
+ 		unsigned fsr;
  
- 	ti->tp_value = addr;
+ 		if (copy_from_user(fpregs, &fps->regs[0],
+@@ -510,11 +510,11 @@ asmlinkage void do_ptrace(struct pt_regs
+ 			pt_error_return(regs, EFAULT);
+ 			goto out_tsk;
+ 		}
+-		child->thread_info->xfsr[0] &= 0xffffffff00000000UL;
+-		child->thread_info->xfsr[0] |= fsr;
+-		if (!(child->thread_info->fpsaved[0] & FPRS_FEF))
+-			child->thread_info->gsr[0] = 0;
+-		child->thread_info->fpsaved[0] |= (FPRS_FEF | FPRS_DL);
++		task_thread_info(child)->xfsr[0] &= 0xffffffff00000000UL;
++		task_thread_info(child)->xfsr[0] |= fsr;
++		if (!(task_thread_info(child)->fpsaved[0] & FPRS_FEF))
++			task_thread_info(child)->gsr[0] = 0;
++		task_thread_info(child)->fpsaved[0] |= (FPRS_FEF | FPRS_DL);
+ 		pt_succ_return(regs, 0);
+ 		goto out_tsk;
+ 	}
+@@ -525,17 +525,17 @@ asmlinkage void do_ptrace(struct pt_regs
+ 			unsigned long fsr;
+ 		};
+ 		struct fps __user *fps = (struct fps __user *) addr;
+-		unsigned long *fpregs = child->thread_info->fpregs;
++		unsigned long *fpregs = task_thread_info(child)->fpregs;
  
-diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
-index 7058893..59a1879 100644
---- a/arch/mips/kernel/traps.c
-+++ b/arch/mips/kernel/traps.c
-@@ -519,7 +519,7 @@ static inline int simulate_llsc(struct p
-  */
- static inline int simulate_rdhwr(struct pt_regs *regs)
- {
--	struct thread_info *ti = current->thread_info;
-+	struct thread_info *ti = task_thread_info(current);
- 	unsigned int opcode;
+ 		if (copy_from_user(fpregs, &fps->regs[0],
+ 				   (64 * sizeof(unsigned int))) ||
+-		    __get_user(child->thread_info->xfsr[0], (&fps->fsr))) {
++		    __get_user(task_thread_info(child)->xfsr[0], (&fps->fsr))) {
+ 			pt_error_return(regs, EFAULT);
+ 			goto out_tsk;
+ 		}
+-		if (!(child->thread_info->fpsaved[0] & FPRS_FEF))
+-			child->thread_info->gsr[0] = 0;
+-		child->thread_info->fpsaved[0] |= (FPRS_FEF | FPRS_DL | FPRS_DU);
++		if (!(task_thread_info(child)->fpsaved[0] & FPRS_FEF))
++			task_thread_info(child)->gsr[0] = 0;
++		task_thread_info(child)->fpsaved[0] |= (FPRS_FEF | FPRS_DL | FPRS_DU);
+ 		pt_succ_return(regs, 0);
+ 		goto out_tsk;
+ 	}
+diff --git a/arch/sparc64/kernel/setup.c b/arch/sparc64/kernel/setup.c
+index 4818053..2507458 100644
+--- a/arch/sparc64/kernel/setup.c
++++ b/arch/sparc64/kernel/setup.c
+@@ -520,7 +520,7 @@ void __init setup_arch(char **cmdline_p)
+ 	rd_doload = ((ram_flags & RAMDISK_LOAD_FLAG) != 0);	
+ #endif
  
- 	if (unlikely(get_insn_opcode(regs, &opcode)))
-diff --git a/arch/mips/pmc-sierra/yosemite/smp.c b/arch/mips/pmc-sierra/yosemite/smp.c
-index 0527170..f17f575 100644
---- a/arch/mips/pmc-sierra/yosemite/smp.c
-+++ b/arch/mips/pmc-sierra/yosemite/smp.c
-@@ -93,8 +93,8 @@ void __init prom_prepare_cpus(unsigned i
-  */
- void prom_boot_secondary(int cpu, struct task_struct *idle)
- {
--	unsigned long gp = (unsigned long) idle->thread_info;
--	unsigned long sp = gp + THREAD_SIZE - 32;
-+	unsigned long gp = (unsigned long) task_thread_info(idle);
-+	unsigned long sp = __KSTK_TOP(idle);
+-	init_task.thread_info->kregs = &fake_swapper_regs;
++	task_thread_info(&init_task)->kregs = &fake_swapper_regs;
  
- 	secondary_sp = sp;
- 	secondary_gp = gp;
-diff --git a/arch/mips/sgi-ip27/ip27-smp.c b/arch/mips/sgi-ip27/ip27-smp.c
-index 3a8291b..dbef3f6 100644
---- a/arch/mips/sgi-ip27/ip27-smp.c
-+++ b/arch/mips/sgi-ip27/ip27-smp.c
-@@ -168,8 +168,8 @@ void __init prom_prepare_cpus(unsigned i
-  */
- void __init prom_boot_secondary(int cpu, struct task_struct *idle)
- {
--	unsigned long gp = (unsigned long) idle->thread_info;
--	unsigned long sp = gp + THREAD_SIZE - 32;
-+	unsigned long gp = (unsigned long)task_thread_info(idle);
-+	unsigned long sp = __KSTK_TOS(idle);
+ #ifdef CONFIG_IP_PNP
+ 	if (!ic_set_manually) {
+diff --git a/arch/sparc64/kernel/smp.c b/arch/sparc64/kernel/smp.c
+index 6efc03d..1fb6323 100644
+--- a/arch/sparc64/kernel/smp.c
++++ b/arch/sparc64/kernel/smp.c
+@@ -335,7 +335,7 @@ static int __devinit smp_boot_one_cpu(un
  
- 	LAUNCH_SLAVE(cputonasid(cpu),cputoslice(cpu),
- 		(launch_proc_t)MAPPED_KERN_RW_TO_K0(smp_bootstrap),
-diff --git a/arch/mips/sibyte/cfe/smp.c b/arch/mips/sibyte/cfe/smp.c
-index e848512..4477af3 100644
---- a/arch/mips/sibyte/cfe/smp.c
-+++ b/arch/mips/sibyte/cfe/smp.c
-@@ -60,7 +60,7 @@ void prom_boot_secondary(int cpu, struct
+ 	p = fork_idle(cpu);
+ 	callin_flag = 0;
+-	cpu_new_thread = p->thread_info;
++	cpu_new_thread = task_thread_info(p);
+ 	cpu_set(cpu, cpu_callout_map);
  
- 	retval = cfe_cpu_start(cpu_logical_map(cpu), &smp_bootstrap,
- 			       __KSTK_TOS(idle),
--			       (unsigned long)idle->thread_info, 0);
-+			       (unsigned long)task_thread_info(idle), 0);
- 	if (retval != 0)
- 		printk("cfe_start_cpu(%i) returned %i\n" , cpu, retval);
- }
+ 	cpu_find_by_mid(cpu, &cpu_node);
+diff --git a/include/asm-sparc64/mmu_context.h b/include/asm-sparc64/mmu_context.h
+index 08ba72d..57ee7b3 100644
+--- a/include/asm-sparc64/mmu_context.h
++++ b/include/asm-sparc64/mmu_context.h
+@@ -60,7 +60,7 @@ do { \
+ 	register unsigned long pgd_cache asm("o4"); \
+ 	paddr = __pa((__mm)->pgd); \
+ 	pgd_cache = 0UL; \
+-	if ((__tsk)->thread_info->flags & _TIF_32BIT) \
++	if (task_thread_info(__tsk)->flags & _TIF_32BIT) \
+ 		pgd_cache = get_pgd_cache((__mm)->pgd); \
+ 	__asm__ __volatile__("wrpr	%%g0, 0x494, %%pstate\n\t" \
+ 			     "mov	%3, %%g4\n\t" \
+diff --git a/include/asm-sparc64/system.h b/include/asm-sparc64/system.h
+index b541752..f380da0 100644
+--- a/include/asm-sparc64/system.h
++++ b/include/asm-sparc64/system.h
+@@ -212,7 +212,7 @@ do {	if (test_thread_flag(TIF_PERFCTR)) 
+ 	/* If you are tempted to conditionalize the following */	\
+ 	/* so that ASI is only written if it changes, think again. */	\
+ 	__asm__ __volatile__("wr %%g0, %0, %%asi"			\
+-	: : "r" (__thread_flag_byte_ptr(next->thread_info)[TI_FLAG_BYTE_CURRENT_DS]));\
++	: : "r" (__thread_flag_byte_ptr(task_thread_info(next))[TI_FLAG_BYTE_CURRENT_DS]));\
+ 	__asm__ __volatile__(						\
+ 	"mov	%%g4, %%g7\n\t"						\
+ 	"wrpr	%%g0, 0x95, %%pstate\n\t"				\
+@@ -242,7 +242,7 @@ do {	if (test_thread_flag(TIF_PERFCTR)) 
+ 	"b,a ret_from_syscall\n\t"					\
+ 	"1:\n\t"							\
+ 	: "=&r" (last)							\
+-	: "0" (next->thread_info),					\
++	: "0" (task_thread_info(next)),					\
+ 	  "i" (TI_WSTATE), "i" (TI_KSP), "i" (TI_NEW_CHILD),            \
+ 	  "i" (TI_CWP), "i" (TI_TASK)					\
+ 	: "cc",								\
 -- 
 0.99.9.GIT
 
