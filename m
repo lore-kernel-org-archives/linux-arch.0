@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:40079 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932530AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:31119 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932568AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 27/50] m68k: task_stack_page()
-Message-Id: <E1EttNa-0008Qq-Nv@ZenIV.linux.org.uk>
+	Tue, 3 Jan 2006 16:07:42 -0500
+Subject: [PATCH 17/50] sparc: task_thread_info()
+Message-Id: <E1EttNa-0008Pr-Hg@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,36 +19,120 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/m68k/kernel/process.c |    7 +++----
- 1 files changed, 3 insertions(+), 4 deletions(-)
+ arch/sparc/kernel/process.c   |    4 ++--
+ arch/sparc/kernel/ptrace.c    |    4 ++--
+ arch/sparc/kernel/sun4d_smp.c |    2 +-
+ arch/sparc/kernel/sun4m_smp.c |    2 +-
+ arch/sparc/kernel/traps.c     |    4 ++--
+ include/asm-sparc/system.h    |    2 +-
+ 6 files changed, 9 insertions(+), 9 deletions(-)
 
-f7013b290c221e23786a21d2d5722a460dd4a52d
-diff --git a/arch/m68k/kernel/process.c b/arch/m68k/kernel/process.c
-index 13d1093..3f9cb55 100644
---- a/arch/m68k/kernel/process.c
-+++ b/arch/m68k/kernel/process.c
-@@ -238,10 +238,9 @@ int copy_thread(int nr, unsigned long cl
+57a365b614ef7e2218c53bf4c15b4ba993902906
+diff --git a/arch/sparc/kernel/process.c b/arch/sparc/kernel/process.c
+index ea86474..7eebb08 100644
+--- a/arch/sparc/kernel/process.c
++++ b/arch/sparc/kernel/process.c
+@@ -337,7 +337,7 @@ EXPORT_SYMBOL(dump_stack);
+  */
+ unsigned long thread_saved_pc(struct task_struct *tsk)
  {
- 	struct pt_regs * childregs;
- 	struct switch_stack * childstack, *stack;
--	unsigned long stack_offset, *retp;
-+	unsigned long *retp;
+-	return tsk->thread_info->kpc;
++	return task_thread_info(tsk)->kpc;
+ }
  
--	stack_offset = THREAD_SIZE - sizeof(struct pt_regs);
--	childregs = (struct pt_regs *) ((unsigned long) (p->thread_info) + stack_offset);
-+	childregs = (struct pt_regs *) (task_stack_page(p) + THREAD_SIZE) - 1;
+ /*
+@@ -724,7 +724,7 @@ unsigned long get_wchan(struct task_stru
+             task->state == TASK_RUNNING)
+ 		goto out;
  
- 	*childregs = *regs;
- 	childregs->d0 = 0;
-@@ -386,7 +385,7 @@ unsigned long get_wchan(struct task_stru
- 	if (!p || p == current || p->state == TASK_RUNNING)
- 		return 0;
- 
--	stack_page = (unsigned long)(p->thread_info);
-+	stack_page = (unsigned long)task_stack_page(p);
- 	fp = ((struct switch_stack *)p->thread.ksp)->a6;
+-	fp = task->thread_info->ksp + bias;
++	fp = task_thread_info(task)->ksp + bias;
  	do {
- 		if (fp < stack_page+sizeof(struct thread_info) ||
+ 		/* Bogus frame pointer? */
+ 		if (fp < (task_base + sizeof(struct thread_info)) ||
+diff --git a/arch/sparc/kernel/ptrace.c b/arch/sparc/kernel/ptrace.c
+index 475c4c1..34705a8 100644
+--- a/arch/sparc/kernel/ptrace.c
++++ b/arch/sparc/kernel/ptrace.c
+@@ -75,7 +75,7 @@ static inline void read_sunos_user(struc
+ 				   struct task_struct *tsk, long __user *addr)
+ {
+ 	struct pt_regs *cregs = tsk->thread.kregs;
+-	struct thread_info *t = tsk->thread_info;
++	struct thread_info *t = task_thread_info(tsk);
+ 	int v;
+ 	
+ 	if(offset >= 1024)
+@@ -170,7 +170,7 @@ static inline void write_sunos_user(stru
+ 				    struct task_struct *tsk)
+ {
+ 	struct pt_regs *cregs = tsk->thread.kregs;
+-	struct thread_info *t = tsk->thread_info;
++	struct thread_info *t = task_thread_info(tsk);
+ 	unsigned long value = regs->u_regs[UREG_I3];
+ 
+ 	if(offset >= 1024)
+diff --git a/arch/sparc/kernel/sun4d_smp.c b/arch/sparc/kernel/sun4d_smp.c
+index cc1fc89..40d426c 100644
+--- a/arch/sparc/kernel/sun4d_smp.c
++++ b/arch/sparc/kernel/sun4d_smp.c
+@@ -200,7 +200,7 @@ void __init smp4d_boot_cpus(void)
+ 			/* Cook up an idler for this guy. */
+ 			p = fork_idle(i);
+ 			cpucount++;
+-			current_set[i] = p->thread_info;
++			current_set[i] = task_thread_info(p);
+ 			for (no = 0; !cpu_find_by_instance(no, NULL, &mid)
+ 				     && mid != i; no++) ;
+ 
+diff --git a/arch/sparc/kernel/sun4m_smp.c b/arch/sparc/kernel/sun4m_smp.c
+index f113422..a21f27d 100644
+--- a/arch/sparc/kernel/sun4m_smp.c
++++ b/arch/sparc/kernel/sun4m_smp.c
+@@ -173,7 +173,7 @@ void __init smp4m_boot_cpus(void)
+ 			/* Cook up an idler for this guy. */
+ 			p = fork_idle(i);
+ 			cpucount++;
+-			current_set[i] = p->thread_info;
++			current_set[i] = task_thread_info(p);
+ 			/* See trampoline.S for details... */
+ 			entry += ((i-1) * 3);
+ 
+diff --git a/arch/sparc/kernel/traps.c b/arch/sparc/kernel/traps.c
+index 3f451ae..41d45c2 100644
+--- a/arch/sparc/kernel/traps.c
++++ b/arch/sparc/kernel/traps.c
+@@ -291,7 +291,7 @@ void do_fpe_trap(struct pt_regs *regs, u
+ #ifndef CONFIG_SMP
+ 	if(!fpt) {
+ #else
+-        if(!(fpt->thread_info->flags & _TIF_USEDFPU)) {
++        if(!(task_thread_info(fpt)->flags & _TIF_USEDFPU)) {
+ #endif
+ 		fpsave(&fake_regs[0], &fake_fsr, &fake_queue[0], &fake_depth);
+ 		regs->psr &= ~PSR_EF;
+@@ -334,7 +334,7 @@ void do_fpe_trap(struct pt_regs *regs, u
+ 	/* nope, better SIGFPE the offending process... */
+ 	       
+ #ifdef CONFIG_SMP
+-	fpt->thread_info->flags &= ~_TIF_USEDFPU;
++	task_thread_info(fpt)->flags &= ~_TIF_USEDFPU;
+ #endif
+ 	if(psr & PSR_PS) {
+ 		/* The first fsr store/load we tried trapped,
+diff --git a/include/asm-sparc/system.h b/include/asm-sparc/system.h
+index 1f6b71f..20bf381 100644
+--- a/include/asm-sparc/system.h
++++ b/include/asm-sparc/system.h
+@@ -155,7 +155,7 @@ extern void fpsave(unsigned long *fpregs
+ 	"here:\n"									\
+         : "=&r" (last)									\
+         : "r" (&(current_set[hard_smp_processor_id()])),	\
+-	  "r" ((next)->thread_info),				\
++	  "r" (task_thread_info(next)),				\
+ 	  "i" (TI_KPSR),					\
+ 	  "i" (TI_KSP),						\
+ 	  "i" (TI_TASK)						\
 -- 
 0.99.9.GIT
 
