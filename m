@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:31375 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932560AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:32655 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932537AbWACVHl
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCH 20/50] uml: task_stack_page()
-Message-Id: <E1EttNa-0008Px-Jj@ZenIV.linux.org.uk>
+	Tue, 3 Jan 2006 16:07:41 -0500
+Subject: [PATCH 19/50] uml: task_thread_info()
+Message-Id: <E1EttNa-0008Pv-JQ@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,69 +19,46 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/um/kernel/skas/process_kern.c |    4 ++--
- arch/um/kernel/tt/exec_kern.c      |    2 +-
- arch/um/kernel/tt/process_kern.c   |    4 ++--
- 3 files changed, 5 insertions(+), 5 deletions(-)
+ arch/um/kernel/process_kern.c    |    2 +-
+ arch/um/kernel/tt/process_kern.c |    4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-b55d7bb2f55e737c280bd0a8fb369b3bc91a8dbb
-diff --git a/arch/um/kernel/skas/process_kern.c b/arch/um/kernel/skas/process_kern.c
-index 9c99025..648dd55 100644
---- a/arch/um/kernel/skas/process_kern.c
-+++ b/arch/um/kernel/skas/process_kern.c
-@@ -119,7 +119,7 @@ int copy_thread_skas(int nr, unsigned lo
- 		handler = new_thread_handler;
- 	}
+515b909dadbe1dcd9253970a711bf7a54ee78bd8
+diff --git a/arch/um/kernel/process_kern.c b/arch/um/kernel/process_kern.c
+index 34b54a3..791ea3f 100644
+--- a/arch/um/kernel/process_kern.c
++++ b/arch/um/kernel/process_kern.c
+@@ -108,7 +108,7 @@ void set_current(void *t)
+ {
+ 	struct task_struct *task = t;
  
--	new_thread(p->thread_info, &p->thread.mode.skas.switch_buf,
-+	new_thread(task_stack_page(p), &p->thread.mode.skas.switch_buf,
- 		   &p->thread.mode.skas.fork_buf, handler);
- 	return(0);
+-	cpu_tasks[task->thread_info->cpu] = ((struct cpu_task) 
++	cpu_tasks[task_thread_info(task)->cpu] = ((struct cpu_task) 
+ 		{ external_pid(task), task });
  }
-@@ -186,7 +186,7 @@ int start_uml_skas(void)
  
- 	init_task.thread.request.u.thread.proc = start_kernel_proc;
- 	init_task.thread.request.u.thread.arg = NULL;
--	return(start_idle_thread(init_task.thread_info,
-+	return(start_idle_thread(task_stack_page(&init_task),
- 				 &init_task.thread.mode.skas.switch_buf,
- 				 &init_task.thread.mode.skas.fork_buf));
- }
-diff --git a/arch/um/kernel/tt/exec_kern.c b/arch/um/kernel/tt/exec_kern.c
-index 065b504..1b98330 100644
---- a/arch/um/kernel/tt/exec_kern.c
-+++ b/arch/um/kernel/tt/exec_kern.c
-@@ -40,7 +40,7 @@ void flush_thread_tt(void)
- 		do_exit(SIGKILL);
- 	}
- 		
--	new_pid = start_fork_tramp(current->thread_info, stack, 0, exec_tramp);
-+	new_pid = start_fork_tramp(task_stack_page(current), stack, 0, exec_tramp);
- 	if(new_pid < 0){
- 		printk(KERN_ERR 
- 		       "flush_thread : new thread failed, errno = %d\n",
 diff --git a/arch/um/kernel/tt/process_kern.c b/arch/um/kernel/tt/process_kern.c
-index 857f355..6f21c1f 100644
+index cfaa373..857f355 100644
 --- a/arch/um/kernel/tt/process_kern.c
 +++ b/arch/um/kernel/tt/process_kern.c
-@@ -254,7 +254,7 @@ int copy_thread_tt(int nr, unsigned long
+@@ -37,7 +37,7 @@ void switch_to_tt(void *prev, void *next
+ 	from = prev;
+ 	to = next;
  
- 	clone_flags &= CLONE_VM;
- 	p->thread.temp_stack = stack;
--	new_pid = start_fork_tramp(p->thread_info, stack, clone_flags, tramp);
-+	new_pid = start_fork_tramp(task_stack_page(p), stack, clone_flags, tramp);
- 	if(new_pid < 0){
- 		printk(KERN_ERR "copy_thread : clone failed - errno = %d\n", 
- 		       -new_pid);
-@@ -426,7 +426,7 @@ int start_uml_tt(void)
- 	int pages;
- 
- 	pages = (1 << CONFIG_KERNEL_STACK_ORDER);
--	sp = (void *) ((unsigned long) init_task.thread_info) +
-+	sp = task_stack_page(&init_task) +
- 		pages * PAGE_SIZE - sizeof(unsigned long);
- 	return(tracer(start_kernel_proc, sp));
- }
+-	cpu = from->thread_info->cpu;
++	cpu = task_thread_info(from)->cpu;
+ 	if(cpu == 0)
+ 		forward_interrupts(to->thread.mode.tt.extern_pid);
+ #ifdef CONFIG_SMP
+@@ -344,7 +344,7 @@ int do_proc_op(void *t, int proc_id)
+ 		pid = thread->request.u.exec.pid;
+ 		do_exec(thread->mode.tt.extern_pid, pid);
+ 		thread->mode.tt.extern_pid = pid;
+-		cpu_tasks[task->thread_info->cpu].pid = pid;
++		cpu_tasks[task_thread_info(task)->cpu].pid = pid;
+ 		break;
+ 	case OP_FORK:
+ 		attach_process(thread->request.u.fork.pid);
 -- 
 0.99.9.GIT
 
