@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:45967 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932546AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:27791 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932575AbWACVHl
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCH 40/50] powerpc: task_stack_page()
-Message-Id: <E1EttNb-0008Rk-5l@ZenIV.linux.org.uk>
+	Tue, 3 Jan 2006 16:07:41 -0500
+Subject: [PATCH 08/50] i386: task_thread_info()
+Message-Id: <E1EttNa-0008PS-6y@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
-Date: Tue, 03 Jan 2006 21:07:39 +0000
+Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
@@ -19,79 +19,68 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/powerpc/kernel/process.c |   10 ++++------
- arch/ppc/kernel/process.c     |    8 ++++----
- 2 files changed, 8 insertions(+), 10 deletions(-)
+ arch/i386/kernel/process.c |    4 ++--
+ arch/i386/kernel/vm86.c    |    2 +-
+ include/asm-i386/i387.h    |    8 ++++----
+ 3 files changed, 7 insertions(+), 7 deletions(-)
 
-1cf48f33ad88078b946ddf907f87ec1f313432c7
-diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
-index bc03526..1f816f0 100644
---- a/arch/powerpc/kernel/process.c
-+++ b/arch/powerpc/kernel/process.c
-@@ -503,7 +503,7 @@ int copy_thread(int nr, unsigned long cl
- {
- 	struct pt_regs *childregs, *kregs;
- 	extern void ret_from_fork(void);
--	unsigned long sp = (unsigned long)p->thread_info + THREAD_SIZE;
-+	unsigned long sp = (unsigned long)task_stack_page(p) + THREAD_SIZE;
- 
- 	CHECK_FULL_REGS(regs);
- 	/* Copy registers */
-@@ -588,10 +588,8 @@ void start_thread(struct pt_regs *regs, 
- 	 * set.  Do it now.
+d0cf455569f14bd2720d57b724aa1a8b0a2fd212
+diff --git a/arch/i386/kernel/process.c b/arch/i386/kernel/process.c
+index 2333aea..b48cfe1 100644
+--- a/arch/i386/kernel/process.c
++++ b/arch/i386/kernel/process.c
+@@ -612,8 +612,8 @@ static inline void disable_tsc(struct ta
+ 	 * gcc should eliminate the ->thread_info dereference if
+ 	 * has_secure_computing returns 0 at compile time (SECCOMP=n).
  	 */
- 	if (!current->thread.regs) {
--		unsigned long childregs = (unsigned long)current->thread_info +
--						THREAD_SIZE;
--		childregs -= sizeof(struct pt_regs);
--		current->thread.regs = (struct pt_regs *)childregs;
-+		struct pt_regs *regs = task_stack_page(current) + THREAD_SIZE;
-+		current->thread.regs = regs - 1;
- 	}
+-	prev = prev_p->thread_info;
+-	next = next_p->thread_info;
++	prev = task_thread_info(prev_p);
++	next = task_thread_info(next_p);
  
- 	memset(regs->gpr, 0, sizeof(regs->gpr));
-@@ -767,7 +765,7 @@ out:
- static int validate_sp(unsigned long sp, struct task_struct *p,
- 		       unsigned long nbytes)
- {
--	unsigned long stack_page = (unsigned long)p->thread_info;
-+	unsigned long stack_page = (unsigned long)task_stack_page(p);
+ 	if (has_secure_computing(prev) || has_secure_computing(next)) {
+ 		/* slow path here */
+diff --git a/arch/i386/kernel/vm86.c b/arch/i386/kernel/vm86.c
+index fc19935..312ee0b 100644
+--- a/arch/i386/kernel/vm86.c
++++ b/arch/i386/kernel/vm86.c
+@@ -310,7 +310,7 @@ static void do_sys_vm86(struct kernel_vm
+ 		"movl %1,%%ebp\n\t"
+ 		"jmp resume_userspace"
+ 		: /* no outputs */
+-		:"r" (&info->regs), "r" (tsk->thread_info) : "ax");
++		:"r" (&info->regs), "r" (task_thread_info(tsk)) : "ax");
+ 	/* we never return here */
+ }
  
- 	if (sp >= stack_page + sizeof(struct thread_struct)
- 	    && sp <= stack_page + THREAD_SIZE - nbytes)
-diff --git a/arch/ppc/kernel/process.c b/arch/ppc/kernel/process.c
-index c3555a8..a76b504 100644
---- a/arch/ppc/kernel/process.c
-+++ b/arch/ppc/kernel/process.c
-@@ -482,7 +482,7 @@ copy_thread(int nr, unsigned long clone_
- {
- 	struct pt_regs *childregs, *kregs;
- 	extern void ret_from_fork(void);
--	unsigned long sp = (unsigned long)p->thread_info + THREAD_SIZE;
-+	unsigned long sp = (unsigned long)task_stack_page(p) + THREAD_SIZE;
- 	unsigned long childframe;
+diff --git a/include/asm-i386/i387.h b/include/asm-i386/i387.h
+index 6747006..152d0ba 100644
+--- a/include/asm-i386/i387.h
++++ b/include/asm-i386/i387.h
+@@ -49,19 +49,19 @@ static inline void __save_init_fpu( stru
+ 		X86_FEATURE_FXSR,
+ 		"m" (tsk->thread.i387.fxsave)
+ 		:"memory");
+-	tsk->thread_info->status &= ~TS_USEDFPU;
++	task_thread_info(tsk)->status &= ~TS_USEDFPU;
+ }
  
- 	CHECK_FULL_REGS(regs);
-@@ -702,8 +702,8 @@ void show_stack(struct task_struct *tsk,
- 			sp = tsk->thread.ksp;
- 	}
+ #define __unlazy_fpu( tsk ) do { \
+-	if ((tsk)->thread_info->status & TS_USEDFPU) \
++	if (task_thread_info(tsk)->status & TS_USEDFPU) \
+ 		save_init_fpu( tsk ); \
+ } while (0)
  
--	prev_sp = (unsigned long) (tsk->thread_info + 1);
--	stack_top = (unsigned long) tsk->thread_info + THREAD_SIZE;
-+	prev_sp = (unsigned long) end_of_stack(tsk);
-+	stack_top = (unsigned long) task_stack_page(tsk) + THREAD_SIZE;
- 	while (count < 16 && sp > prev_sp && sp < stack_top && (sp & 3) == 0) {
- 		if (count == 0) {
- 			printk("Call trace:");
-@@ -832,7 +832,7 @@ void __init ll_puts(const char *s)
- unsigned long get_wchan(struct task_struct *p)
- {
- 	unsigned long ip, sp;
--	unsigned long stack_page = (unsigned long) p->thread_info;
-+	unsigned long stack_page = (unsigned long) task_stack_page(p);
- 	int count = 0;
- 	if (!p || p == current || p->state == TASK_RUNNING)
- 		return 0;
+ #define __clear_fpu( tsk )					\
+ do {								\
+-	if ((tsk)->thread_info->status & TS_USEDFPU) {		\
++	if (task_thread_info(tsk)->status & TS_USEDFPU) {		\
+ 		asm volatile("fnclex ; fwait");				\
+-		(tsk)->thread_info->status &= ~TS_USEDFPU;	\
++		task_thread_info(tsk)->status &= ~TS_USEDFPU;	\
+ 		stts();						\
+ 	}							\
+ } while (0)
 -- 
 0.99.9.GIT
 
