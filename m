@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:24463 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932571AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41871 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932552AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCH 05/50] amd64: task_thread_info()
-Message-Id: <E1EttNa-0008PM-6N@ZenIV.linux.org.uk>
+Subject: [PATCH 34/50] arm: task_stack_page()
+Message-Id: <E1EttNb-0008RS-0S@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
-Date: Tue, 03 Jan 2006 21:07:38 +0000
+Date: Tue, 03 Jan 2006 21:07:39 +0000
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
@@ -19,123 +19,74 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/x86_64/kernel/i387.c    |    2 +-
- arch/x86_64/kernel/i8259.c   |    2 +-
- arch/x86_64/kernel/process.c |    2 +-
- arch/x86_64/kernel/smpboot.c |    2 +-
- arch/x86_64/kernel/traps.c   |    4 ++--
- include/asm-x86_64/i387.h    |    8 ++++----
- 6 files changed, 10 insertions(+), 10 deletions(-)
+ arch/arm/kernel/process.c   |    2 +-
+ arch/arm/kernel/smp.c       |    4 ++--
+ arch/arm/kernel/traps.c     |    2 +-
+ include/asm-arm/processor.h |    2 +-
+ 4 files changed, 5 insertions(+), 5 deletions(-)
 
-76a5747f473913b4f63206d46410dda234b2d8b9
-diff --git a/arch/x86_64/kernel/i387.c b/arch/x86_64/kernel/i387.c
-index d9b22b6..a5d7e16 100644
---- a/arch/x86_64/kernel/i387.c
-+++ b/arch/x86_64/kernel/i387.c
-@@ -95,7 +95,7 @@ int save_i387(struct _fpstate __user *bu
- 	if (!used_math())
+00591c95d853894b7020b5d4a67a7a0e2e83eb00
+diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
+index 8c62909..1be78b0 100644
+--- a/arch/arm/kernel/process.c
++++ b/arch/arm/kernel/process.c
+@@ -461,7 +461,7 @@ unsigned long get_wchan(struct task_stru
  		return 0;
- 	clear_used_math(); /* trigger finit */
--	if (tsk->thread_info->status & TS_USEDFPU) {
-+	if (task_thread_info(tsk)->status & TS_USEDFPU) {
- 		err = save_i387_checking((struct i387_fxsave_struct __user *)buf);
- 		if (err) return err;
- 		stts();
-diff --git a/arch/x86_64/kernel/i8259.c b/arch/x86_64/kernel/i8259.c
-index 6e5101a..d7123b0 100644
---- a/arch/x86_64/kernel/i8259.c
-+++ b/arch/x86_64/kernel/i8259.c
-@@ -133,7 +133,7 @@ static void end_8259A_irq (unsigned int 
- {
- 	if (irq > 256) { 
- 		char var;
--		printk("return %p stack %p ti %p\n", __builtin_return_address(0), &var, current->thread_info); 
-+		printk("return %p stack %p ti %p\n", __builtin_return_address(0), &var, task_thread_info(current)); 
  
- 		BUG(); 
+ 	stack_start = (unsigned long)end_of_stack(p);
+-	stack_end = ((unsigned long)p->thread_info) + THREAD_SIZE;
++	stack_end = (unsigned long)task_stack_page(p) + THREAD_SIZE;
+ 
+ 	fp = thread_saved_fp(p);
+ 	do {
+diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
+index 373c095..7338948 100644
+--- a/arch/arm/kernel/smp.c
++++ b/arch/arm/kernel/smp.c
+@@ -114,7 +114,7 @@ int __cpuinit __cpu_up(unsigned int cpu)
+ 	 * We need to tell the secondary core where to find
+ 	 * its stack and the page tables.
+ 	 */
+-	secondary_data.stack = (void *)idle->thread_info + THREAD_START_SP;
++	secondary_data.stack = task_stack_page(idle) + THREAD_START_SP;
+ 	secondary_data.pgdir = virt_to_phys(pgd);
+ 	wmb();
+ 
+@@ -245,7 +245,7 @@ void __cpuexit cpu_die(void)
+ 	__asm__("mov	sp, %0\n"
+ 	"	b	secondary_start_kernel"
+ 		:
+-		: "r" ((void *)current->thread_info + THREAD_SIZE - 8));
++		: "r" (task_stack_page(current) + THREAD_SIZE - 8));
+ }
+ #endif /* CONFIG_HOTPLUG_CPU */
+ 
+diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
+index f7e733c..496bf7c 100644
+--- a/arch/arm/kernel/traps.c
++++ b/arch/arm/kernel/traps.c
+@@ -211,7 +211,7 @@ static void __die(const char *str, int e
+ 
+ 	if (!user_mode(regs) || in_interrupt()) {
+ 		dump_mem("Stack: ", regs->ARM_sp,
+-			 THREAD_SIZE + (unsigned long)tsk->thread_info);
++			 THREAD_SIZE + (unsigned long)task_stack_page(tsk));
+ 		dump_backtrace(regs, tsk);
+ 		dump_instr(regs);
  	}
-diff --git a/arch/x86_64/kernel/process.c b/arch/x86_64/kernel/process.c
-index 7519fc5..d0cfcc2 100644
---- a/arch/x86_64/kernel/process.c
-+++ b/arch/x86_64/kernel/process.c
-@@ -435,7 +435,7 @@ int copy_thread(int nr, unsigned long cl
- 	p->thread.rsp0 = (unsigned long) (childregs+1);
- 	p->thread.userrsp = me->thread.userrsp; 
+diff --git a/include/asm-arm/processor.h b/include/asm-arm/processor.h
+index fb5877e..3129069 100644
+--- a/include/asm-arm/processor.h
++++ b/include/asm-arm/processor.h
+@@ -86,7 +86,7 @@ unsigned long get_wchan(struct task_stru
+ extern int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
  
--	set_ti_thread_flag(p->thread_info, TIF_FORK);
-+	set_tsk_thread_flag(p, TIF_FORK);
+ #define task_pt_regs(p) \
+-	((struct pt_regs *)(THREAD_START_SP + (void *)(p)->thread_info) - 1)
++	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
  
- 	p->thread.fs = me->thread.fs;
- 	p->thread.gs = me->thread.gs;
-diff --git a/arch/x86_64/kernel/smpboot.c b/arch/x86_64/kernel/smpboot.c
-index ecbd7b8..e92eec2 100644
---- a/arch/x86_64/kernel/smpboot.c
-+++ b/arch/x86_64/kernel/smpboot.c
-@@ -785,7 +785,7 @@ do_rest:
- 	init_rsp = c_idle.idle->thread.rsp;
- 	per_cpu(init_tss,cpu).rsp0 = init_rsp;
- 	initial_code = start_secondary;
--	clear_ti_thread_flag(c_idle.idle->thread_info, TIF_FORK);
-+	clear_tsk_thread_flag(c_idle.idle, TIF_FORK);
- 
- 	printk(KERN_INFO "Booting processor %d/%d APIC 0x%x\n", cpu,
- 		cpus_weight(cpu_present_map),
-diff --git a/arch/x86_64/kernel/traps.c b/arch/x86_64/kernel/traps.c
-index bf337f4..96a56c0 100644
---- a/arch/x86_64/kernel/traps.c
-+++ b/arch/x86_64/kernel/traps.c
-@@ -282,7 +282,7 @@ void show_registers(struct pt_regs *regs
- 	printk("CPU %d ", cpu);
- 	__show_regs(regs);
- 	printk("Process %s (pid: %d, threadinfo %p, task %p)\n",
--		cur->comm, cur->pid, cur->thread_info, cur);
-+		cur->comm, cur->pid, task_thread_info(cur), cur);
- 
- 	/*
- 	 * When in-kernel, we also print out the stack and code at the
-@@ -867,7 +867,7 @@ asmlinkage void math_state_restore(void)
- 	if (!used_math())
- 		init_fpu(me);
- 	restore_fpu_checking(&me->thread.i387.fxsave);
--	me->thread_info->status |= TS_USEDFPU;
-+	task_thread_info(me)->status |= TS_USEDFPU;
- }
- 
- void do_call_debug(struct pt_regs *regs) 
-diff --git a/include/asm-x86_64/i387.h b/include/asm-x86_64/i387.h
-index aa39cfd..2cd852e 100644
---- a/include/asm-x86_64/i387.h
-+++ b/include/asm-x86_64/i387.h
-@@ -30,7 +30,7 @@ extern int save_i387(struct _fpstate __u
-  */
- 
- #define unlazy_fpu(tsk) do { \
--	if ((tsk)->thread_info->status & TS_USEDFPU) \
-+	if (task_thread_info(tsk)->status & TS_USEDFPU) \
- 		save_init_fpu(tsk); \
- } while (0)
- 
-@@ -46,9 +46,9 @@ static inline void tolerant_fwait(void)
- }
- 
- #define clear_fpu(tsk) do { \
--	if ((tsk)->thread_info->status & TS_USEDFPU) {		\
-+	if (task_thread_info(tsk)->status & TS_USEDFPU) {	\
- 		tolerant_fwait();				\
--		(tsk)->thread_info->status &= ~TS_USEDFPU;	\
-+		task_thread_info(tsk)->status &= ~TS_USEDFPU;	\
- 		stts();						\
- 	}							\
- } while (0)
-@@ -135,7 +135,7 @@ static inline void save_init_fpu( struct
- {
- 	asm volatile( "rex64 ; fxsave %0 ; fnclex"
- 		      : "=m" (tsk->thread.i387.fxsave));
--	tsk->thread_info->status &= ~TS_USEDFPU;
-+	task_thread_info(tsk)->status &= ~TS_USEDFPU;
- 	stts();
- }
- 
+ #define KSTK_EIP(tsk)	task_pt_regs(tsk)->ARM_pc
+ #define KSTK_ESP(tsk)	task_pt_regs(tsk)->ARM_sp
 -- 
 0.99.9.GIT
 
