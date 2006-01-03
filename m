@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:25999 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932556AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:39311 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932534AbWACVHl
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 10/50] i386: task_stack_page()
-Message-Id: <E1EttNa-0008PW-7W@ZenIV.linux.org.uk>
+Subject: [PATCH 33/50] arm: end_of_stack()
+Message-Id: <E1EttNa-0008RI-Tf@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,36 +19,36 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/i386/kernel/process.c   |    2 +-
- include/asm-i386/processor.h |    2 +-
+ arch/arm/kernel/process.c |    2 +-
+ arch/arm/kernel/traps.c   |    2 +-
  2 files changed, 2 insertions(+), 2 deletions(-)
 
-ab4d196bff8397a68d48f2a74f4726cbe759415e
-diff --git a/arch/i386/kernel/process.c b/arch/i386/kernel/process.c
-index 7765f3a..e12909b 100644
---- a/arch/i386/kernel/process.c
-+++ b/arch/i386/kernel/process.c
-@@ -782,7 +782,7 @@ unsigned long get_wchan(struct task_stru
- 	int count = 0;
+886253feedc3c113e137755e8d9c9052eaea6376
+diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
+index 6c82d6b..8c62909 100644
+--- a/arch/arm/kernel/process.c
++++ b/arch/arm/kernel/process.c
+@@ -460,7 +460,7 @@ unsigned long get_wchan(struct task_stru
  	if (!p || p == current || p->state == TASK_RUNNING)
  		return 0;
--	stack_page = (unsigned long)p->thread_info;
-+	stack_page = (unsigned long)task_stack_page(p);
- 	esp = p->thread.esp;
- 	if (!stack_page || esp < stack_page || esp > top_esp+stack_page)
- 		return 0;
-diff --git a/include/asm-i386/processor.h b/include/asm-i386/processor.h
-index 84f2fd1..f7b4983 100644
---- a/include/asm-i386/processor.h
-+++ b/include/asm-i386/processor.h
-@@ -570,7 +570,7 @@ unsigned long get_wchan(struct task_stru
- #define task_pt_regs(task)                                             \
- ({                                                                     \
-        struct pt_regs *__regs__;                                       \
--       __regs__ = (struct pt_regs *)(KSTK_TOP((task)->thread_info)-8); \
-+       __regs__ = (struct pt_regs *)(KSTK_TOP(task_stack_page(task))-8); \
-        __regs__ - 1;                                                   \
- })
+ 
+-	stack_start = (unsigned long)(p->thread_info + 1);
++	stack_start = (unsigned long)end_of_stack(p);
+ 	stack_end = ((unsigned long)p->thread_info) + THREAD_SIZE;
+ 
+ 	fp = thread_saved_fp(p);
+diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
+index 45e9ea6..f7e733c 100644
+--- a/arch/arm/kernel/traps.c
++++ b/arch/arm/kernel/traps.c
+@@ -165,7 +165,7 @@ static void dump_backtrace(struct pt_reg
+ 	} else if (verify_stack(fp)) {
+ 		printk("invalid frame pointer 0x%08x", fp);
+ 		ok = 0;
+-	} else if (fp < (unsigned long)(tsk->thread_info + 1))
++	} else if (fp < (unsigned long)end_of_stack(tsk))
+ 		printk("frame pointer underflow");
+ 	printk("\n");
  
 -- 
 0.99.9.GIT
