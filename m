@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:43151 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932567AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:38543 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932535AbWACVHl
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCH 37/50] arm26: task_stack_page()
-Message-Id: <E1EttNb-0008Re-1k@ZenIV.linux.org.uk>
+	Tue, 3 Jan 2006 16:07:41 -0500
+Subject: [PATCH 29/50] parisc: task_stack_page(), task_thread_info()
+Message-Id: <E1EttNa-0008Qv-Sf@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
-Date: Tue, 03 Jan 2006 21:07:39 +0000
+Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
@@ -19,64 +19,55 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/arm26/kernel/traps.c       |    8 ++++----
- include/asm-arm26/thread_info.h |    2 +-
- 2 files changed, 5 insertions(+), 5 deletions(-)
+ arch/parisc/kernel/process.c |    6 +++---
+ arch/parisc/kernel/smp.c     |    2 +-
+ 2 files changed, 4 insertions(+), 4 deletions(-)
 
-bab19fadfa4a61c4ee18235e025af2d2514ca86d
-diff --git a/arch/arm26/kernel/traps.c b/arch/arm26/kernel/traps.c
-index f64f590..5847ea5 100644
---- a/arch/arm26/kernel/traps.c
-+++ b/arch/arm26/kernel/traps.c
-@@ -132,7 +132,7 @@ static void dump_instr(struct pt_regs *r
- 
- /*static*/ void __dump_stack(struct task_struct *tsk, unsigned long sp)
+4822bcc5fa9991be25482b67fb351f7c3c81ba8c
+diff --git a/arch/parisc/kernel/process.c b/arch/parisc/kernel/process.c
+index fee4f1f..1273272 100644
+--- a/arch/parisc/kernel/process.c
++++ b/arch/parisc/kernel/process.c
+@@ -295,7 +295,7 @@ copy_thread(int nr, unsigned long clone_
+ 	    struct task_struct * p, struct pt_regs * pregs)
  {
--	dump_mem("Stack: ", sp, 8192+(unsigned long)tsk->thread_info);
-+	dump_mem("Stack: ", sp, 8192+(unsigned long)task_stack_page(tsk));
- }
+ 	struct pt_regs * cregs = &(p->thread.regs);
+-	struct thread_info *ti = p->thread_info;
++	void *stack = task_stack_page(p);
+ 	
+ 	/* We have to use void * instead of a function pointer, because
+ 	 * function pointers aren't a pointer to the function on 64-bit.
+@@ -322,7 +322,7 @@ copy_thread(int nr, unsigned long clone_
+ 	 */
+ 	if (usp == 1) {
+ 		/* kernel thread */
+-		cregs->ksp = (((unsigned long)(ti)) + THREAD_SZ_ALGN);
++		cregs->ksp = (unsigned long)stack + THREAD_SZ_ALGN;
+ 		/* Must exit via ret_from_kernel_thread in order
+ 		 * to call schedule_tail()
+ 		 */
+@@ -344,7 +344,7 @@ copy_thread(int nr, unsigned long clone_
+ 		 */
  
- void dump_stack(void)
-@@ -158,7 +158,7 @@ void dump_backtrace(struct pt_regs *regs
- 	} else if (verify_stack(fp)) {
- 		printk("invalid frame pointer 0x%08x", fp);
- 		ok = 0;
--	} else if (fp < (unsigned long)(tsk->thread_info + 1))
-+	} else if (fp < (unsigned long)end_of_stack(tsk))
- 		printk("frame pointer underflow");
- 	printk("\n");
+ 		/* Use same stack depth as parent */
+-		cregs->ksp = ((unsigned long)(ti))
++		cregs->ksp = (unsigned long)stack
+ 			+ (pregs->gr[21] & (THREAD_SIZE - 1));
+ 		cregs->gr[30] = usp;
+ 		if (p->personality == PER_HPUX) {
+diff --git a/arch/parisc/kernel/smp.c b/arch/parisc/kernel/smp.c
+index ce89da0..471efad 100644
+--- a/arch/parisc/kernel/smp.c
++++ b/arch/parisc/kernel/smp.c
+@@ -519,7 +519,7 @@ int __init smp_boot_one_cpu(int cpuid)
+ 	if (IS_ERR(idle))
+ 		panic("SMP: fork failed for CPU:%d", cpuid);
  
-@@ -168,7 +168,7 @@ void dump_backtrace(struct pt_regs *regs
+-	idle->thread_info->cpu = cpuid;
++	task_thread_info(idle)->cpu = cpuid;
  
- /* FIXME - this is probably wrong.. */
- void show_stack(struct task_struct *task, unsigned long *sp) {
--	dump_mem("Stack: ", (unsigned long)sp, 8192+(unsigned long)task->thread_info);
-+	dump_mem("Stack: ", (unsigned long)sp, 8192+(unsigned long)task_stack_page(task));
- }
- 
- DEFINE_SPINLOCK(die_lock);
-@@ -187,7 +187,7 @@ NORET_TYPE void die(const char *str, str
- 	printk("CPU: %d\n", smp_processor_id());
- 	show_regs(regs);
- 	printk("Process %s (pid: %d, stack limit = 0x%p)\n",
--		current->comm, current->pid, tsk->thread_info + 1);
-+		current->comm, current->pid, end_of_stack(tsk));
- 
- 	if (!user_mode(regs) || in_interrupt()) {
- 		__dump_stack(tsk, (unsigned long)(regs + 1));
-diff --git a/include/asm-arm26/thread_info.h b/include/asm-arm26/thread_info.h
-index f332b40..7a35e7a 100644
---- a/include/asm-arm26/thread_info.h
-+++ b/include/asm-arm26/thread_info.h
-@@ -82,7 +82,7 @@ static inline struct thread_info *curren
- 
- /* FIXME - PAGE_SIZE < 32K */
- #define THREAD_SIZE		(8*32768) // FIXME - this needs attention (see kernel/fork.c which gets a nice div by zero if this is lower than 8*32768
--#define task_pt_regs(task) ((struct pt_regs *)((unsigned long)(task)->thread_info + THREAD_SIZE - 8) - 1)
-+#define task_pt_regs(task) ((struct pt_regs *)(task_stack_page(task) + THREAD_SIZE - 8) - 1)
- 
- extern struct thread_info *alloc_thread_info(struct task_struct *task);
- extern void free_thread_info(struct thread_info *);
+ 	/* Let _start know what logical CPU we're booting
+ 	** (offset into init_tasks[],cpu_data[])
 -- 
 0.99.9.GIT
 
