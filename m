@@ -1,91 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:23183 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932510AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:45967 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932546AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCHSET] thread_info annotations and fixes
-Message-Id: <E1EttNa-0008PA-2x@ZenIV.linux.org.uk>
+Subject: [PATCH 40/50] powerpc: task_stack_page()
+Message-Id: <E1EttNb-0008Rk-5l@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
-Date: Tue, 03 Jan 2006 21:07:38 +0000
+Date: Tue, 03 Jan 2006 21:07:39 +0000
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Message-ID: <20060103210515.5135@ftp.linux.org.uk>
+References: <20060103210515.5135@ftp.linux.org.uk>
+In-Reply-To: <20060103210515.5135@ftp.linux.org.uk>
 
-	Patchset annotates arch/* uses of ->thread_info.  Ones that really
-are about access of thread_info of given process are simply switched to
-task_thread_info(task); ones that deal with access to objects on stack
-are switched to new helper - task_stack_page().  A _lot_ of the latter are
-actually open-coded instances of "find where pt_regs are"; those are
-consolidated into task_pt_regs(task) (many architectures actually have
-such helper already).
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
-	Note that these annotations are not mandatory - any code not
-converted to these helpers still works.  However, they clean up a lot
-of places and have actually caught a number of bugs, so converting out
-of tree ports would be a good idea...
+---
 
-	As an example of breakage caught by that stuff, see i386
-pt_regs mess - we used to have it open-coded in a bunch of places
-and when back in April Stas had fixed a bug in copy_thread(), the
-rest had been left out of sync.  That required two followup patches
-(the latest - just before 2.6.15) _and_ still had left /proc/*/stat
-eip field broken.  Try ps -eo eip on i386 and watch the junk...
+ arch/powerpc/kernel/process.c |   10 ++++------
+ arch/ppc/kernel/process.c     |    8 ++++----
+ 2 files changed, 8 insertions(+), 10 deletions(-)
 
-Patchset contents:
-      missing helper - task_stack_page()
-      alpha: task_thread_info()
-      alpha: task_stack_page()
-      alpha: task_pt_regs()
-      amd64: task_thread_info()
-      amd64: task_pt_regs()
-      amd64: task_stack_page()
-      i386: task_thread_info()
-      i386: fix task_pt_regs()
-      i386: task_stack_page()
-      sparc64: task_thread_info()
-      sparc64: task_stack_page()
-      sparc64: task_pt_regs()
-      sh: task_pt_regs()
-      sh: task_thread_info()
-      sh: task_stack_page()
-      sparc: task_thread_info()
-      sparc: task_stack_page()
-      uml: task_thread_info()
-      uml: task_stack_page()
-      s390: task_pt_regs()
-      s390: task_stack_page()
-      xtensa: task_pt_regs(), task_stack_page()
-      v850: task_stack_page(), task_pt_regs()
-      m32r: task_pt_regs(), task_stack_page(), task_thread_info()
-      frv: task_thread_info(), task_stack_page()
-      m68k: task_stack_page()
-      m68knommu: task_stack_page()
-      parisc: task_stack_page(), task_thread_info()
-      h8300: task_stack_page()
-      arm: task_thread_info()
-      arm: task_pt_regs()
-      arm: end_of_stack()
-      arm: task_stack_page()
-      arm26: task_thread_info()
-      arm26: task_pt_regs()
-      arm26: task_stack_page()
-      sh64: task_stack_page()
-      powerpc: task_thread_info()
-      powerpc: task_stack_page()
-      cris: task_pt_regs()
-      cris: fix KSTK_EIP
-      cris: task_thread_info()
-      ia64: task_thread_info()
-      ia64: task_pt_regs()
-      mips: namespace pollution: dump_regs() -> elf_dump_regs()
-      mips: task_pt_regs()
-      mips: task_thread_info()
-      mips: task_stack_page()
-      death of get_thread_info/put_thread_info
+1cf48f33ad88078b946ddf907f87ec1f313432c7
+diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
+index bc03526..1f816f0 100644
+--- a/arch/powerpc/kernel/process.c
++++ b/arch/powerpc/kernel/process.c
+@@ -503,7 +503,7 @@ int copy_thread(int nr, unsigned long cl
+ {
+ 	struct pt_regs *childregs, *kregs;
+ 	extern void ret_from_fork(void);
+-	unsigned long sp = (unsigned long)p->thread_info + THREAD_SIZE;
++	unsigned long sp = (unsigned long)task_stack_page(p) + THREAD_SIZE;
+ 
+ 	CHECK_FULL_REGS(regs);
+ 	/* Copy registers */
+@@ -588,10 +588,8 @@ void start_thread(struct pt_regs *regs, 
+ 	 * set.  Do it now.
+ 	 */
+ 	if (!current->thread.regs) {
+-		unsigned long childregs = (unsigned long)current->thread_info +
+-						THREAD_SIZE;
+-		childregs -= sizeof(struct pt_regs);
+-		current->thread.regs = (struct pt_regs *)childregs;
++		struct pt_regs *regs = task_stack_page(current) + THREAD_SIZE;
++		current->thread.regs = regs - 1;
+ 	}
+ 
+ 	memset(regs->gpr, 0, sizeof(regs->gpr));
+@@ -767,7 +765,7 @@ out:
+ static int validate_sp(unsigned long sp, struct task_struct *p,
+ 		       unsigned long nbytes)
+ {
+-	unsigned long stack_page = (unsigned long)p->thread_info;
++	unsigned long stack_page = (unsigned long)task_stack_page(p);
+ 
+ 	if (sp >= stack_page + sizeof(struct thread_struct)
+ 	    && sp <= stack_page + THREAD_SIZE - nbytes)
+diff --git a/arch/ppc/kernel/process.c b/arch/ppc/kernel/process.c
+index c3555a8..a76b504 100644
+--- a/arch/ppc/kernel/process.c
++++ b/arch/ppc/kernel/process.c
+@@ -482,7 +482,7 @@ copy_thread(int nr, unsigned long clone_
+ {
+ 	struct pt_regs *childregs, *kregs;
+ 	extern void ret_from_fork(void);
+-	unsigned long sp = (unsigned long)p->thread_info + THREAD_SIZE;
++	unsigned long sp = (unsigned long)task_stack_page(p) + THREAD_SIZE;
+ 	unsigned long childframe;
+ 
+ 	CHECK_FULL_REGS(regs);
+@@ -702,8 +702,8 @@ void show_stack(struct task_struct *tsk,
+ 			sp = tsk->thread.ksp;
+ 	}
+ 
+-	prev_sp = (unsigned long) (tsk->thread_info + 1);
+-	stack_top = (unsigned long) tsk->thread_info + THREAD_SIZE;
++	prev_sp = (unsigned long) end_of_stack(tsk);
++	stack_top = (unsigned long) task_stack_page(tsk) + THREAD_SIZE;
+ 	while (count < 16 && sp > prev_sp && sp < stack_top && (sp & 3) == 0) {
+ 		if (count == 0) {
+ 			printk("Call trace:");
+@@ -832,7 +832,7 @@ void __init ll_puts(const char *s)
+ unsigned long get_wchan(struct task_struct *p)
+ {
+ 	unsigned long ip, sp;
+-	unsigned long stack_page = (unsigned long) p->thread_info;
++	unsigned long stack_page = (unsigned long) task_stack_page(p);
+ 	int count = 0;
+ 	if (!p || p == current || p->state == TASK_RUNNING)
+ 		return 0;
+-- 
+0.99.9.GIT
 
-The only ordering requirements are that the first patch (introducing a
-trivial #define for task_stack_page()) goes before the rest and that
-patches for given architecture go in order.
