@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:37263 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932550AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:23183 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932510AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 24/50] v850: task_stack_page(), task_pt_regs()
-Message-Id: <E1EttNa-0008Qk-Mi@ZenIV.linux.org.uk>
+	Tue, 3 Jan 2006 16:07:42 -0500
+Subject: [PATCHSET] thread_info annotations and fixes
+Message-Id: <E1EttNa-0008PA-2x@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -12,64 +12,80 @@ To: torvalds@osdl.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-References: <20060103210515.5135@ftp.linux.org.uk>
-In-Reply-To: <20060103210515.5135@ftp.linux.org.uk>
+Message-ID: <20060103210515.5135@ftp.linux.org.uk>
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+	Patchset annotates arch/* uses of ->thread_info.  Ones that really
+are about access of thread_info of given process are simply switched to
+task_thread_info(task); ones that deal with access to objects on stack
+are switched to new helper - task_stack_page().  A _lot_ of the latter are
+actually open-coded instances of "find where pt_regs are"; those are
+consolidated into task_pt_regs(task) (many architectures actually have
+such helper already).
 
----
+	Note that these annotations are not mandatory - any code not
+converted to these helpers still works.  However, they clean up a lot
+of places and have actually caught a number of bugs, so converting out
+of tree ports would be a good idea...
 
- arch/v850/kernel/process.c   |    2 +-
- arch/v850/kernel/ptrace.c    |    2 +-
- include/asm-v850/processor.h |    8 ++++----
- 3 files changed, 6 insertions(+), 6 deletions(-)
+	As an example of breakage caught by that stuff, see i386
+pt_regs mess - we used to have it open-coded in a bunch of places
+and when back in April Stas had fixed a bug in copy_thread(), the
+rest had been left out of sync.  That required two followup patches
+(the latest - just before 2.6.15) _and_ still had left /proc/*/stat
+eip field broken.  Try ps -eo eip on i386 and watch the junk...
 
-f928f2928325fc0f2442e309c8dba6e6ad96ce6a
-diff --git a/arch/v850/kernel/process.c b/arch/v850/kernel/process.c
-index 39cf247..86cf333 100644
---- a/arch/v850/kernel/process.c
-+++ b/arch/v850/kernel/process.c
-@@ -114,7 +114,7 @@ int copy_thread (int nr, unsigned long c
- 		 struct task_struct *p, struct pt_regs *regs)
- {
- 	/* Start pushing stuff from the top of the child's kernel stack.  */
--	unsigned long orig_ksp = (unsigned long)p->thread_info + THREAD_SIZE;
-+	unsigned long orig_ksp = task_tos(p);
- 	unsigned long ksp = orig_ksp;
- 	/* We push two `state save' stack fames (see entry.S) on the new
- 	   kernel stack:
-diff --git a/arch/v850/kernel/ptrace.c b/arch/v850/kernel/ptrace.c
-index 18492d0..67e0575 100644
---- a/arch/v850/kernel/ptrace.c
-+++ b/arch/v850/kernel/ptrace.c
-@@ -58,7 +58,7 @@ static v850_reg_t *reg_save_addr (unsign
- 		regs = thread_saved_regs (t);
- 	else
- 		/* Register saved during kernel entry (or not available).  */
--		regs = task_regs (t);
-+		regs = task_pt_regs (t);
- 
- 	return (v850_reg_t *)((char *)regs + reg_offs);
- }
-diff --git a/include/asm-v850/processor.h b/include/asm-v850/processor.h
-index 98f9294..2d31308 100644
---- a/include/asm-v850/processor.h
-+++ b/include/asm-v850/processor.h
-@@ -98,10 +98,10 @@ unsigned long get_wchan (struct task_str
- 
- 
- /* Return some info about the user process TASK.  */
--#define task_tos(task)	((unsigned long)(task)->thread_info + THREAD_SIZE)
--#define task_regs(task) ((struct pt_regs *)task_tos (task) - 1)
--#define task_sp(task)	(task_regs (task)->gpr[GPR_SP])
--#define task_pc(task)	(task_regs (task)->pc)
-+#define task_tos(task)	((unsigned long)task_stack_page(task) + THREAD_SIZE)
-+#define task_pt_regs(task) ((struct pt_regs *)task_tos (task) - 1)
-+#define task_sp(task)	(task_pt_regs (task)->gpr[GPR_SP])
-+#define task_pc(task)	(task_pt_regs (task)->pc)
- /* Grotty old names for some.  */
- #define KSTK_EIP(task)	task_pc (task)
- #define KSTK_ESP(task)	task_sp (task)
--- 
-0.99.9.GIT
+Patchset contents:
+      missing helper - task_stack_page()
+      alpha: task_thread_info()
+      alpha: task_stack_page()
+      alpha: task_pt_regs()
+      amd64: task_thread_info()
+      amd64: task_pt_regs()
+      amd64: task_stack_page()
+      i386: task_thread_info()
+      i386: fix task_pt_regs()
+      i386: task_stack_page()
+      sparc64: task_thread_info()
+      sparc64: task_stack_page()
+      sparc64: task_pt_regs()
+      sh: task_pt_regs()
+      sh: task_thread_info()
+      sh: task_stack_page()
+      sparc: task_thread_info()
+      sparc: task_stack_page()
+      uml: task_thread_info()
+      uml: task_stack_page()
+      s390: task_pt_regs()
+      s390: task_stack_page()
+      xtensa: task_pt_regs(), task_stack_page()
+      v850: task_stack_page(), task_pt_regs()
+      m32r: task_pt_regs(), task_stack_page(), task_thread_info()
+      frv: task_thread_info(), task_stack_page()
+      m68k: task_stack_page()
+      m68knommu: task_stack_page()
+      parisc: task_stack_page(), task_thread_info()
+      h8300: task_stack_page()
+      arm: task_thread_info()
+      arm: task_pt_regs()
+      arm: end_of_stack()
+      arm: task_stack_page()
+      arm26: task_thread_info()
+      arm26: task_pt_regs()
+      arm26: task_stack_page()
+      sh64: task_stack_page()
+      powerpc: task_thread_info()
+      powerpc: task_stack_page()
+      cris: task_pt_regs()
+      cris: fix KSTK_EIP
+      cris: task_thread_info()
+      ia64: task_thread_info()
+      ia64: task_pt_regs()
+      mips: namespace pollution: dump_regs() -> elf_dump_regs()
+      mips: task_pt_regs()
+      mips: task_thread_info()
+      mips: task_stack_page()
+      death of get_thread_info/put_thread_info
 
+The only ordering requirements are that the first patch (introducing a
+trivial #define for task_stack_page()) goes before the rest and that
+patches for given architecture go in order.
