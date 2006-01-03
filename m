@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:28303 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932558AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:34959 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932565AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCH 09/50] i386: fix task_pt_regs()
-Message-Id: <E1EttNa-0008PU-7F@ZenIV.linux.org.uk>
+Subject: [PATCH 13/50] sparc64: task_pt_regs()
+Message-Id: <E1EttNa-0008Pf-A5@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -15,95 +15,95 @@ List-ID: <linux-arch.vger.kernel.org>
 References: <20060103210515.5135@ftp.linux.org.uk>
 In-Reply-To: <20060103210515.5135@ftp.linux.org.uk>
 
-task_pt_regs() needs the same offset-by-8 to match copy_thread()
-
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/i386/kernel/process.c   |   20 ++------------------
- arch/i386/kernel/smpboot.c   |    3 +--
- include/asm-i386/processor.h |   12 +++++++++++-
- 3 files changed, 14 insertions(+), 21 deletions(-)
+ arch/sparc64/kernel/ptrace.c    |   12 ++++++------
+ include/asm-sparc64/elf.h       |    2 +-
+ include/asm-sparc64/processor.h |    5 +++--
+ 3 files changed, 10 insertions(+), 9 deletions(-)
 
-a363a5cdd3f6e20f7166e4b18f9e3b2d0f043461
-diff --git a/arch/i386/kernel/process.c b/arch/i386/kernel/process.c
-index b48cfe1..7765f3a 100644
---- a/arch/i386/kernel/process.c
-+++ b/arch/i386/kernel/process.c
-@@ -435,18 +435,7 @@ int copy_thread(int nr, unsigned long cl
- 	struct task_struct *tsk;
- 	int err;
+e37dce1f4a97b22c68d77e7567aa62db3a7e47b4
+diff --git a/arch/sparc64/kernel/ptrace.c b/arch/sparc64/kernel/ptrace.c
+index 7cdb897..6003f03 100644
+--- a/arch/sparc64/kernel/ptrace.c
++++ b/arch/sparc64/kernel/ptrace.c
+@@ -320,7 +320,7 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	case PTRACE_GETREGS: {
+ 		struct pt_regs32 __user *pregs =
+ 			(struct pt_regs32 __user *) addr;
+-		struct pt_regs *cregs = child->thread_info->kregs;
++		struct pt_regs *cregs = task_pt_regs(child);
+ 		int rval;
  
--	childregs = ((struct pt_regs *) (THREAD_SIZE + (unsigned long) p->thread_info)) - 1;
--	/*
--	 * The below -8 is to reserve 8 bytes on top of the ring0 stack.
--	 * This is necessary to guarantee that the entire "struct pt_regs"
--	 * is accessable even if the CPU haven't stored the SS/ESP registers
--	 * on the stack (interrupt gate does not save these registers
--	 * when switching to the same priv ring).
--	 * Therefore beware: accessing the xss/esp fields of the
--	 * "struct pt_regs" is possible, but they may contain the
--	 * completely wrong values.
--	 */
--	childregs = (struct pt_regs *) ((unsigned long) childregs - 8);
-+	childregs = task_pt_regs(p);
- 	*childregs = *regs;
- 	childregs->eax = 0;
- 	childregs->esp = esp;
-@@ -551,12 +540,7 @@ EXPORT_SYMBOL(dump_thread);
-  */
- int dump_task_regs(struct task_struct *tsk, elf_gregset_t *regs)
- {
--	struct pt_regs ptregs;
--	
--	ptregs = *(struct pt_regs *)
--		((unsigned long)tsk->thread_info +
--		/* see comments in copy_thread() about -8 */
--		THREAD_SIZE - sizeof(ptregs) - 8);
-+	struct pt_regs ptregs = *task_pt_regs(tsk);
- 	ptregs.xcs &= 0xffff;
- 	ptregs.xds &= 0xffff;
- 	ptregs.xes &= 0xffff;
-diff --git a/arch/i386/kernel/smpboot.c b/arch/i386/kernel/smpboot.c
-index 9ed449a..b96b29f 100644
---- a/arch/i386/kernel/smpboot.c
-+++ b/arch/i386/kernel/smpboot.c
-@@ -875,8 +875,7 @@ static inline struct task_struct * alloc
- 		/* initialize thread_struct.  we really want to avoid destroy
- 		 * idle tread
- 		 */
--		idle->thread.esp = (unsigned long)(((struct pt_regs *)
--			(THREAD_SIZE + (unsigned long) idle->thread_info)) - 1);
-+		idle->thread.esp = (unsigned long)task_pt_regs(idle);
- 		init_idle(idle, cpu);
- 		return idle;
- 	}
-diff --git a/include/asm-i386/processor.h b/include/asm-i386/processor.h
-index 5c96cf6..84f2fd1 100644
---- a/include/asm-i386/processor.h
-+++ b/include/asm-i386/processor.h
-@@ -557,10 +557,20 @@ unsigned long get_wchan(struct task_stru
-        (unsigned long)(&__ptr[THREAD_SIZE_LONGS]);                     \
- })
+ 		if (__put_user(tstate_to_psr(cregs->tstate), (&pregs->psr)) ||
+@@ -344,7 +344,7 @@ asmlinkage void do_ptrace(struct pt_regs
  
-+/*
-+ * The below -8 is to reserve 8 bytes on top of the ring0 stack.
-+ * This is necessary to guarantee that the entire "struct pt_regs"
-+ * is accessable even if the CPU haven't stored the SS/ESP registers
-+ * on the stack (interrupt gate does not save these registers
-+ * when switching to the same priv ring).
-+ * Therefore beware: accessing the xss/esp fields of the
-+ * "struct pt_regs" is possible, but they may contain the
-+ * completely wrong values.
-+ */
- #define task_pt_regs(task)                                             \
- ({                                                                     \
-        struct pt_regs *__regs__;                                       \
--       __regs__ = (struct pt_regs *)KSTK_TOP((task)->thread_info);     \
-+       __regs__ = (struct pt_regs *)(KSTK_TOP((task)->thread_info)-8); \
-        __regs__ - 1;                                                   \
- })
+ 	case PTRACE_GETREGS64: {
+ 		struct pt_regs __user *pregs = (struct pt_regs __user *) addr;
+-		struct pt_regs *cregs = child->thread_info->kregs;
++		struct pt_regs *cregs = task_pt_regs(child);
+ 		unsigned long tpc = cregs->tpc;
+ 		int rval;
+ 
+@@ -372,7 +372,7 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	case PTRACE_SETREGS: {
+ 		struct pt_regs32 __user *pregs =
+ 			(struct pt_regs32 __user *) addr;
+-		struct pt_regs *cregs = child->thread_info->kregs;
++		struct pt_regs *cregs = task_pt_regs(child);
+ 		unsigned int psr, pc, npc, y;
+ 		int i;
+ 
+@@ -405,7 +405,7 @@ asmlinkage void do_ptrace(struct pt_regs
+ 
+ 	case PTRACE_SETREGS64: {
+ 		struct pt_regs __user *pregs = (struct pt_regs __user *) addr;
+-		struct pt_regs *cregs = child->thread_info->kregs;
++		struct pt_regs *cregs = task_pt_regs(child);
+ 		unsigned long tstate, tpc, tnpc, y;
+ 		int i;
+ 
+@@ -586,8 +586,8 @@ asmlinkage void do_ptrace(struct pt_regs
+ #ifdef DEBUG_PTRACE
+ 		printk("CONT: %s [%d]: set exit_code = %x %lx %lx\n", child->comm,
+ 			child->pid, child->exit_code,
+-			child->thread_info->kregs->tpc,
+-			child->thread_info->kregs->tnpc);
++			task_pt_regs(child)->tpc,
++			task_pt_regs(child)->tnpc);
+ 		       
+ #endif
+ 		wake_up_process(child);
+diff --git a/include/asm-sparc64/elf.h b/include/asm-sparc64/elf.h
+index 9145811..69539a8 100644
+--- a/include/asm-sparc64/elf.h
++++ b/include/asm-sparc64/elf.h
+@@ -119,7 +119,7 @@ typedef struct {
+ #endif
+ 
+ #define ELF_CORE_COPY_TASK_REGS(__tsk, __elf_regs)	\
+-	({ ELF_CORE_COPY_REGS((*(__elf_regs)), (__tsk)->thread_info->kregs); 1; })
++	({ ELF_CORE_COPY_REGS((*(__elf_regs)), task_pt_regs(__tsk)); 1; })
+ 
+ /*
+  * This is used to ensure we don't load something for the wrong architecture.
+diff --git a/include/asm-sparc64/processor.h b/include/asm-sparc64/processor.h
+index 3169f3e..cd8d9b4 100644
+--- a/include/asm-sparc64/processor.h
++++ b/include/asm-sparc64/processor.h
+@@ -186,8 +186,9 @@ extern pid_t kernel_thread(int (*fn)(voi
+ 
+ extern unsigned long get_wchan(struct task_struct *task);
+ 
+-#define KSTK_EIP(tsk)  ((tsk)->thread_info->kregs->tpc)
+-#define KSTK_ESP(tsk)  ((tsk)->thread_info->kregs->u_regs[UREG_FP])
++#define task_pt_regs(tsk) (task_thread_info(tsk)->kregs)
++#define KSTK_EIP(tsk)  (task_pt_regs(tsk)->tpc)
++#define KSTK_ESP(tsk)  (task_pt_regs(tsk)->u_regs[UREG_FP])
+ 
+ #define cpu_relax()	barrier()
  
 -- 
 0.99.9.GIT
