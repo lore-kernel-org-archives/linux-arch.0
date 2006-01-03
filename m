@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:29583 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932559AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:39567 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932553AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 12/50] sparc64: task_stack_page()
-Message-Id: <E1EttNa-0008Pc-9H@ZenIV.linux.org.uk>
+	Tue, 3 Jan 2006 16:07:42 -0500
+Subject: [PATCH 31/50] arm: task_thread_info()
+Message-Id: <E1EttNa-0008Qz-TC@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,60 +19,108 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/sparc64/kernel/process.c |    6 +++---
- arch/sparc64/kernel/traps.c   |    4 ++--
- 2 files changed, 5 insertions(+), 5 deletions(-)
+ arch/arm/kernel/process.c     |    4 ++--
+ arch/arm/kernel/ptrace.c      |   10 +++++-----
+ include/asm-arm/system.h      |    2 +-
+ include/asm-arm/thread_info.h |    4 ++--
+ 4 files changed, 10 insertions(+), 10 deletions(-)
 
-7fb2d76daf5bcc4a9c73f2f6a5b27902aa80e3df
-diff --git a/arch/sparc64/kernel/process.c b/arch/sparc64/kernel/process.c
-index 1bc7724..1dc3650 100644
---- a/arch/sparc64/kernel/process.c
-+++ b/arch/sparc64/kernel/process.c
-@@ -616,11 +616,11 @@ int copy_thread(int nr, unsigned long cl
- 		unsigned long unused,
- 		struct task_struct *p, struct pt_regs *regs)
+c7ac2c8f297bf79b4e036bd41a7d3152065c6d28
+diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
+index 30494aa..ca0febd 100644
+--- a/arch/arm/kernel/process.c
++++ b/arch/arm/kernel/process.c
+@@ -343,10 +343,10 @@ void flush_thread(void)
+ void release_thread(struct task_struct *dead_task)
  {
--	struct thread_info *t = p->thread_info;
-+	struct thread_info *t = task_thread_info(p);
- 	char *child_trap_frame;
+ #if defined(CONFIG_VFP)
+-	vfp_release_thread(&dead_task->thread_info->vfpstate);
++	vfp_release_thread(&task_thread_info(dead_task)->vfpstate);
+ #endif
+ #if defined(CONFIG_IWMMXT)
+-	iwmmxt_task_release(dead_task->thread_info);
++	iwmmxt_task_release(task_thread_info(dead_task));
+ #endif
+ }
  
- 	/* Calculate offset to stack_frame & pt_regs */
--	child_trap_frame = ((char *)t) + (THREAD_SIZE - (TRACEREG_SZ+STACKFRAME_SZ));
-+	child_trap_frame = task_stack_page(p) + (THREAD_SIZE - (TRACEREG_SZ+STACKFRAME_SZ));
- 	memcpy(child_trap_frame, (((struct sparc_stackf *)regs)-1), (TRACEREG_SZ+STACKFRAME_SZ));
- 
- 	t->flags = (t->flags & ~((0xffUL << TI_FLAG_CWP_SHIFT) | (0xffUL << TI_FLAG_CURRENT_DS_SHIFT))) |
-@@ -845,7 +845,7 @@ unsigned long get_wchan(struct task_stru
-             task->state == TASK_RUNNING)
- 		goto out;
- 
--	thread_info_base = (unsigned long) task->thread_info;
-+	thread_info_base = (unsigned long) task_stack_page(task);
- 	bias = STACK_BIAS;
- 	fp = task_thread_info(task)->ksp + bias;
- 
-diff --git a/arch/sparc64/kernel/traps.c b/arch/sparc64/kernel/traps.c
-index 5570e7b..8d44ae5 100644
---- a/arch/sparc64/kernel/traps.c
-+++ b/arch/sparc64/kernel/traps.c
-@@ -1808,7 +1808,7 @@ static void user_instruction_dump (unsig
- void show_stack(struct task_struct *tsk, unsigned long *_ksp)
+diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
+index 2b84f78..f003062 100644
+--- a/arch/arm/kernel/ptrace.c
++++ b/arch/arm/kernel/ptrace.c
+@@ -604,7 +604,7 @@ static int ptrace_setregs(struct task_st
+  */
+ static int ptrace_getfpregs(struct task_struct *tsk, void __user *ufp)
  {
- 	unsigned long pc, fp, thread_base, ksp;
--	struct thread_info *tp = tsk->thread_info;
-+	void *tp = task_stack_page(tsk);
- 	struct reg_window *rw;
- 	int count = 0;
+-	return copy_to_user(ufp, &tsk->thread_info->fpstate,
++	return copy_to_user(ufp, &task_thread_info(tsk)->fpstate,
+ 			    sizeof(struct user_fp)) ? -EFAULT : 0;
+ }
  
-@@ -1862,7 +1862,7 @@ static inline int is_kernel_stack(struct
- 			return 0;
- 	}
+@@ -613,7 +613,7 @@ static int ptrace_getfpregs(struct task_
+  */
+ static int ptrace_setfpregs(struct task_struct *tsk, void __user *ufp)
+ {
+-	struct thread_info *thread = tsk->thread_info;
++	struct thread_info *thread = task_thread_info(tsk);
+ 	thread->used_cp[1] = thread->used_cp[2] = 1;
+ 	return copy_from_user(&thread->fpstate, ufp,
+ 			      sizeof(struct user_fp)) ? -EFAULT : 0;
+@@ -626,7 +626,7 @@ static int ptrace_setfpregs(struct task_
+  */
+ static int ptrace_getwmmxregs(struct task_struct *tsk, void __user *ufp)
+ {
+-	struct thread_info *thread = tsk->thread_info;
++	struct thread_info *thread = task_thread_info(tsk);
+ 	void *ptr = &thread->fpstate;
  
--	thread_base = (unsigned long) task->thread_info;
-+	thread_base = (unsigned long) task_stack_page(task);
- 	thread_end = thread_base + sizeof(union thread_union);
- 	if (rw_addr >= thread_base &&
- 	    rw_addr < thread_end &&
+ 	if (!test_ti_thread_flag(thread, TIF_USING_IWMMXT))
+@@ -643,7 +643,7 @@ static int ptrace_getwmmxregs(struct tas
+  */
+ static int ptrace_setwmmxregs(struct task_struct *tsk, void __user *ufp)
+ {
+-	struct thread_info *thread = tsk->thread_info;
++	struct thread_info *thread = task_thread_info(tsk);
+ 	void *ptr = &thread->fpstate;
+ 
+ 	if (!test_ti_thread_flag(thread, TIF_USING_IWMMXT))
+@@ -779,7 +779,7 @@ long arch_ptrace(struct task_struct *chi
+ #endif
+ 
+ 		case PTRACE_GET_THREAD_AREA:
+-			ret = put_user(child->thread_info->tp_value,
++			ret = put_user(task_thread_info(child)->tp_value,
+ 				       (unsigned long __user *) data);
+ 			break;
+ 
+diff --git a/include/asm-arm/system.h b/include/asm-arm/system.h
+index 5621d61..a7da094 100644
+--- a/include/asm-arm/system.h
++++ b/include/asm-arm/system.h
+@@ -168,7 +168,7 @@ extern struct task_struct *__switch_to(s
+ 
+ #define switch_to(prev,next,last)					\
+ do {									\
+-	last = __switch_to(prev,prev->thread_info,next->thread_info);	\
++	last = __switch_to(prev,task_thread_info(prev), task_thread_info(next));	\
+ } while (0)
+ 
+ /*
+diff --git a/include/asm-arm/thread_info.h b/include/asm-arm/thread_info.h
+index 7c98557..46a4e98 100644
+--- a/include/asm-arm/thread_info.h
++++ b/include/asm-arm/thread_info.h
+@@ -100,9 +100,9 @@ extern void free_thread_info(struct thre
+ #define put_thread_info(ti)	put_task_struct((ti)->task)
+ 
+ #define thread_saved_pc(tsk)	\
+-	((unsigned long)(pc_pointer((tsk)->thread_info->cpu_context.pc)))
++	((unsigned long)(pc_pointer(task_thread_info(tsk)->cpu_context.pc)))
+ #define thread_saved_fp(tsk)	\
+-	((unsigned long)((tsk)->thread_info->cpu_context.fp))
++	((unsigned long)(task_thread_info(tsk)->cpu_context.fp))
+ 
+ extern void iwmmxt_task_disable(struct thread_info *);
+ extern void iwmmxt_task_copy(struct thread_info *, void *);
 -- 
 0.99.9.GIT
 
