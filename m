@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:35471 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932548AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:32911 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932549AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCH 21/50] s390: task_pt_regs()
-Message-Id: <E1EttNa-0008Pz-K3@ZenIV.linux.org.uk>
+Subject: [PATCH 22/50] s390: task_stack_page()
+Message-Id: <E1EttNa-0008Q1-Kk@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,206 +19,82 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/s390/kernel/binfmt_elf32.c |    2 +-
- arch/s390/kernel/process.c      |    3 +--
- arch/s390/kernel/ptrace.c       |   26 +++++++++++++-------------
- arch/s390/kernel/time.c         |    2 +-
- arch/s390/kernel/traps.c        |    2 +-
- include/asm-s390/elf.h          |    2 +-
- include/asm-s390/processor.h    |    8 ++++----
- 7 files changed, 22 insertions(+), 23 deletions(-)
+ arch/s390/kernel/process.c   |    9 ++++-----
+ arch/s390/kernel/smp.c       |    2 +-
+ arch/s390/kernel/traps.c     |    4 ++--
+ include/asm-s390/processor.h |    2 +-
+ 4 files changed, 8 insertions(+), 9 deletions(-)
 
-2f208594c40468ffa71336bd9fbab0435aea8ae7
-diff --git a/arch/s390/kernel/binfmt_elf32.c b/arch/s390/kernel/binfmt_elf32.c
-index 03ba589..1f451c2 100644
---- a/arch/s390/kernel/binfmt_elf32.c
-+++ b/arch/s390/kernel/binfmt_elf32.c
-@@ -112,7 +112,7 @@ static inline int dump_regs32(struct pt_
- 
- static inline int dump_task_regs32(struct task_struct *tsk, elf_gregset_t *regs)
- {
--	struct pt_regs *ptregs = __KSTK_PTREGS(tsk);
-+	struct pt_regs *ptregs = task_pt_regs(tsk);
- 	int i;
- 
- 	memcpy(&regs->psw.mask, &ptregs->psw.mask, 4);
+c76bf4b7050b630e0ece7a17eb7ce77a46170d8b
 diff --git a/arch/s390/kernel/process.c b/arch/s390/kernel/process.c
-index 78b64fe..6997dc5 100644
+index 6997dc5..2c77f60 100644
 --- a/arch/s390/kernel/process.c
 +++ b/arch/s390/kernel/process.c
-@@ -217,8 +217,7 @@ int copy_thread(int nr, unsigned long cl
-             struct pt_regs childregs;
-           } *frame;
- 
--        frame = ((struct fake_frame *)
--		 (THREAD_SIZE + (unsigned long) p->thread_info)) - 1;
-+        frame = container_of(task_pt_regs(p), struct fake_frame, childregs);
-         p->thread.ksp = (unsigned long) frame;
- 	/* Store access registers to kernel stack of new process. */
-         frame->childregs = *regs;
-diff --git a/arch/s390/kernel/ptrace.c b/arch/s390/kernel/ptrace.c
-index 06afa31..353dbe9 100644
---- a/arch/s390/kernel/ptrace.c
-+++ b/arch/s390/kernel/ptrace.c
-@@ -52,7 +52,7 @@ FixPerRegisters(struct task_struct *task
- 	struct pt_regs *regs;
- 	per_struct *per_info;
- 
--	regs = __KSTK_PTREGS(task);
-+	regs = task_pt_regs(task);
- 	per_info = (per_struct *) &task->thread.per_info;
- 	per_info->control_regs.bits.em_instruction_fetch =
- 		per_info->single_step | per_info->instruction_fetch;
-@@ -150,7 +150,7 @@ peek_user(struct task_struct *child, add
- 		/*
- 		 * psw and gprs are stored on the stack
- 		 */
--		tmp = *(addr_t *)((addr_t) &__KSTK_PTREGS(child)->psw + addr);
-+		tmp = *(addr_t *)((addr_t) &task_pt_regs(child)->psw + addr);
- 		if (addr == (addr_t) &dummy->regs.psw.mask)
- 			/* Remove per bit from user psw. */
- 			tmp &= ~PSW_MASK_PER;
-@@ -176,7 +176,7 @@ peek_user(struct task_struct *child, add
- 		/*
- 		 * orig_gpr2 is stored on the kernel stack
- 		 */
--		tmp = (addr_t) __KSTK_PTREGS(child)->orig_gpr2;
-+		tmp = (addr_t) task_pt_regs(child)->orig_gpr2;
- 
- 	} else if (addr < (addr_t) (&dummy->regs.fp_regs + 1)) {
- 		/* 
-@@ -243,7 +243,7 @@ poke_user(struct task_struct *child, add
- 			   high order bit but older gdb's rely on it */
- 			data |= PSW_ADDR_AMODE;
- #endif
--		*(addr_t *)((addr_t) &__KSTK_PTREGS(child)->psw + addr) = data;
-+		*(addr_t *)((addr_t) &task_pt_regs(child)->psw + addr) = data;
- 
- 	} else if (addr < (addr_t) (&dummy->regs.orig_gpr2)) {
- 		/*
-@@ -267,7 +267,7 @@ poke_user(struct task_struct *child, add
- 		/*
- 		 * orig_gpr2 is stored on the kernel stack
- 		 */
--		__KSTK_PTREGS(child)->orig_gpr2 = data;
-+		task_pt_regs(child)->orig_gpr2 = data;
- 
- 	} else if (addr < (addr_t) (&dummy->regs.fp_regs + 1)) {
- 		/*
-@@ -393,15 +393,15 @@ peek_user_emu31(struct task_struct *chil
- 		 */
- 		if (addr == (addr_t) &dummy32->regs.psw.mask) {
- 			/* Fake a 31 bit psw mask. */
--			tmp = (__u32)(__KSTK_PTREGS(child)->psw.mask >> 32);
-+			tmp = (__u32)(task_pt_regs(child)->psw.mask >> 32);
- 			tmp = PSW32_MASK_MERGE(PSW32_USER_BITS, tmp);
- 		} else if (addr == (addr_t) &dummy32->regs.psw.addr) {
- 			/* Fake a 31 bit psw address. */
--			tmp = (__u32) __KSTK_PTREGS(child)->psw.addr |
-+			tmp = (__u32) task_pt_regs(child)->psw.addr |
- 				PSW32_ADDR_AMODE31;
- 		} else {
- 			/* gpr 0-15 */
--			tmp = *(__u32 *)((addr_t) &__KSTK_PTREGS(child)->psw +
-+			tmp = *(__u32 *)((addr_t) &task_pt_regs(child)->psw +
- 					 addr*2 + 4);
- 		}
- 	} else if (addr < (addr_t) (&dummy32->regs.orig_gpr2)) {
-@@ -415,7 +415,7 @@ peek_user_emu31(struct task_struct *chil
- 		/*
- 		 * orig_gpr2 is stored on the kernel stack
- 		 */
--		tmp = *(__u32*)((addr_t) &__KSTK_PTREGS(child)->orig_gpr2 + 4);
-+		tmp = *(__u32*)((addr_t) &task_pt_regs(child)->orig_gpr2 + 4);
- 
- 	} else if (addr < (addr_t) (&dummy32->regs.fp_regs + 1)) {
- 		/*
-@@ -472,15 +472,15 @@ poke_user_emu31(struct task_struct *chil
- 			if (tmp != PSW32_MASK_MERGE(PSW32_USER_BITS, tmp))
- 				/* Invalid psw mask. */
- 				return -EINVAL;
--			__KSTK_PTREGS(child)->psw.mask =
-+			task_pt_regs(child)->psw.mask =
- 				PSW_MASK_MERGE(PSW_USER32_BITS, (__u64) tmp << 32);
- 		} else if (addr == (addr_t) &dummy32->regs.psw.addr) {
- 			/* Build a 64 bit psw address from 31 bit address. */
--			__KSTK_PTREGS(child)->psw.addr = 
-+			task_pt_regs(child)->psw.addr = 
- 				(__u64) tmp & PSW32_ADDR_INSN;
- 		} else {
- 			/* gpr 0-15 */
--			*(__u32*)((addr_t) &__KSTK_PTREGS(child)->psw
-+			*(__u32*)((addr_t) &task_pt_regs(child)->psw
- 				  + addr*2 + 4) = tmp;
- 		}
- 	} else if (addr < (addr_t) (&dummy32->regs.orig_gpr2)) {
-@@ -494,7 +494,7 @@ poke_user_emu31(struct task_struct *chil
- 		/*
- 		 * orig_gpr2 is stored on the kernel stack
- 		 */
--		*(__u32*)((addr_t) &__KSTK_PTREGS(child)->orig_gpr2 + 4) = tmp;
-+		*(__u32*)((addr_t) &task_pt_regs(child)->orig_gpr2 + 4) = tmp;
- 
- 	} else if (addr < (addr_t) (&dummy32->regs.fp_regs + 1)) {
- 		/*
-diff --git a/arch/s390/kernel/time.c b/arch/s390/kernel/time.c
-index c36353e..b0d8ca8 100644
---- a/arch/s390/kernel/time.c
-+++ b/arch/s390/kernel/time.c
-@@ -282,7 +282,7 @@ static inline void start_hz_timer(void)
+@@ -153,7 +153,7 @@ void show_regs(struct pt_regs *regs)
  {
- 	if (!cpu_isset(smp_processor_id(), nohz_cpu_mask))
- 		return;
--	account_ticks(__KSTK_PTREGS(current));
-+	account_ticks(task_pt_regs(current));
- 	cpu_clear(smp_processor_id(), nohz_cpu_mask);
- }
+ 	struct task_struct *tsk = current;
  
+-        printk("CPU:    %d    %s\n", tsk->thread_info->cpu, print_tainted());
++        printk("CPU:    %d    %s\n", task_thread_info(tsk)->cpu, print_tainted());
+         printk("Process %s (pid: %d, task: %p, ksp: %p)\n",
+ 	       current->comm, current->pid, (void *) tsk,
+ 	       (void *) tsk->thread.ksp);
+@@ -378,11 +378,10 @@ unsigned long get_wchan(struct task_stru
+ 	unsigned long return_address;
+ 	int count;
+ 
+-	if (!p || p == current || p->state == TASK_RUNNING || !p->thread_info)
++	if (!p || p == current || p->state == TASK_RUNNING || !task_stack_page(p))
+ 		return 0;
+-	low = (struct stack_frame *) p->thread_info;
+-	high = (struct stack_frame *)
+-		((unsigned long) p->thread_info + THREAD_SIZE) - 1;
++	low = task_stack_page(p);
++	high = (struct stack_frame *) task_pt_regs(p);
+ 	sf = (struct stack_frame *) (p->thread.ksp & PSW_ADDR_INSN);
+ 	if (sf <= low || sf > high)
+ 		return 0;
+diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
+index 5856b3f..7970b74 100644
+--- a/arch/s390/kernel/smp.c
++++ b/arch/s390/kernel/smp.c
+@@ -657,7 +657,7 @@ __cpu_up(unsigned int cpu)
+ 	idle = current_set[cpu];
+         cpu_lowcore = lowcore_ptr[cpu];
+ 	cpu_lowcore->kernel_stack = (unsigned long)
+-		idle->thread_info + (THREAD_SIZE);
++		task_stack_page(idle) + (THREAD_SIZE);
+ 	sf = (struct stack_frame *) (cpu_lowcore->kernel_stack
+ 				     - sizeof(struct pt_regs)
+ 				     - sizeof(struct stack_frame));
 diff --git a/arch/s390/kernel/traps.c b/arch/s390/kernel/traps.c
-index c5bd36f..bcdfd6a 100644
+index bcdfd6a..6c7ca16 100644
 --- a/arch/s390/kernel/traps.c
 +++ b/arch/s390/kernel/traps.c
-@@ -240,7 +240,7 @@ char *task_show_regs(struct task_struct 
- {
- 	struct pt_regs *regs;
- 
--	regs = __KSTK_PTREGS(task);
-+	regs = task_pt_regs(task);
- 	buffer += sprintf(buffer, "task: %p, ksp: %p\n",
- 		       task, (void *)task->thread.ksp);
- 	buffer += sprintf(buffer, "User PSW : %p %p\n",
-diff --git a/include/asm-s390/elf.h b/include/asm-s390/elf.h
-index 372d51c..710646e 100644
---- a/include/asm-s390/elf.h
-+++ b/include/asm-s390/elf.h
-@@ -163,7 +163,7 @@ static inline int dump_regs(struct pt_re
- 
- static inline int dump_task_regs(struct task_struct *tsk, elf_gregset_t *regs)
- {
--	struct pt_regs *ptregs = __KSTK_PTREGS(tsk);
-+	struct pt_regs *ptregs = task_pt_regs(tsk);
- 	memcpy(&regs->psw, &ptregs->psw, sizeof(regs->psw)+sizeof(regs->gprs));
- 	memcpy(regs->acrs, tsk->thread.acrs, sizeof(regs->acrs));
- 	regs->orig_gpr2 = ptregs->orig_gpr2;
+@@ -136,8 +136,8 @@ void show_trace(struct task_struct *task
+ 	sp = __show_trace(sp, S390_lowcore.async_stack - ASYNC_SIZE,
+ 			  S390_lowcore.async_stack);
+ 	if (task)
+-		__show_trace(sp, (unsigned long) task->thread_info,
+-			     (unsigned long) task->thread_info + THREAD_SIZE);
++		__show_trace(sp, (unsigned long) task_stack_page(task),
++			     (unsigned long) task_stack_page(task) + THREAD_SIZE);
+ 	else
+ 		__show_trace(sp, S390_lowcore.thread_info,
+ 			     S390_lowcore.thread_info + THREAD_SIZE);
 diff --git a/include/asm-s390/processor.h b/include/asm-s390/processor.h
-index 4ec652e..795bfcb 100644
+index 795bfcb..c5cbc4b 100644
 --- a/include/asm-s390/processor.h
 +++ b/include/asm-s390/processor.h
-@@ -191,10 +191,10 @@ extern void show_registers(struct pt_reg
- extern void show_trace(struct task_struct *task, unsigned long *sp);
+@@ -192,7 +192,7 @@ extern void show_trace(struct task_struc
  
  unsigned long get_wchan(struct task_struct *p);
--#define __KSTK_PTREGS(tsk) ((struct pt_regs *) \
--        ((unsigned long) tsk->thread_info + THREAD_SIZE - sizeof(struct pt_regs)))
--#define KSTK_EIP(tsk)	(__KSTK_PTREGS(tsk)->psw.addr)
--#define KSTK_ESP(tsk)	(__KSTK_PTREGS(tsk)->gprs[15])
-+#define task_pt_regs(tsk) ((struct pt_regs *) \
-+        ((void *)(tsk)->thread_info + THREAD_SIZE) - 1)
-+#define KSTK_EIP(tsk)	(task_pt_regs(tsk)->psw.addr)
-+#define KSTK_ESP(tsk)	(task_pt_regs(tsk)->gprs[15])
+ #define task_pt_regs(tsk) ((struct pt_regs *) \
+-        ((void *)(tsk)->thread_info + THREAD_SIZE) - 1)
++        (task_stack_page(tsk) + THREAD_SIZE) - 1)
+ #define KSTK_EIP(tsk)	(task_pt_regs(tsk)->psw.addr)
+ #define KSTK_ESP(tsk)	(task_pt_regs(tsk)->gprs[15])
  
- /*
-  * Give up the time slice of the virtual PU.
 -- 
 0.99.9.GIT
 
