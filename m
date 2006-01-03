@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:32655 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932537AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:29583 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932559AbWACVHl
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 19/50] uml: task_thread_info()
-Message-Id: <E1EttNa-0008Pv-JQ@ZenIV.linux.org.uk>
+Subject: [PATCH 12/50] sparc64: task_stack_page()
+Message-Id: <E1EttNa-0008Pc-9H@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,46 +19,60 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/um/kernel/process_kern.c    |    2 +-
- arch/um/kernel/tt/process_kern.c |    4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ arch/sparc64/kernel/process.c |    6 +++---
+ arch/sparc64/kernel/traps.c   |    4 ++--
+ 2 files changed, 5 insertions(+), 5 deletions(-)
 
-515b909dadbe1dcd9253970a711bf7a54ee78bd8
-diff --git a/arch/um/kernel/process_kern.c b/arch/um/kernel/process_kern.c
-index 34b54a3..791ea3f 100644
---- a/arch/um/kernel/process_kern.c
-+++ b/arch/um/kernel/process_kern.c
-@@ -108,7 +108,7 @@ void set_current(void *t)
+7fb2d76daf5bcc4a9c73f2f6a5b27902aa80e3df
+diff --git a/arch/sparc64/kernel/process.c b/arch/sparc64/kernel/process.c
+index 1bc7724..1dc3650 100644
+--- a/arch/sparc64/kernel/process.c
++++ b/arch/sparc64/kernel/process.c
+@@ -616,11 +616,11 @@ int copy_thread(int nr, unsigned long cl
+ 		unsigned long unused,
+ 		struct task_struct *p, struct pt_regs *regs)
  {
- 	struct task_struct *task = t;
+-	struct thread_info *t = p->thread_info;
++	struct thread_info *t = task_thread_info(p);
+ 	char *child_trap_frame;
  
--	cpu_tasks[task->thread_info->cpu] = ((struct cpu_task) 
-+	cpu_tasks[task_thread_info(task)->cpu] = ((struct cpu_task) 
- 		{ external_pid(task), task });
- }
+ 	/* Calculate offset to stack_frame & pt_regs */
+-	child_trap_frame = ((char *)t) + (THREAD_SIZE - (TRACEREG_SZ+STACKFRAME_SZ));
++	child_trap_frame = task_stack_page(p) + (THREAD_SIZE - (TRACEREG_SZ+STACKFRAME_SZ));
+ 	memcpy(child_trap_frame, (((struct sparc_stackf *)regs)-1), (TRACEREG_SZ+STACKFRAME_SZ));
  
-diff --git a/arch/um/kernel/tt/process_kern.c b/arch/um/kernel/tt/process_kern.c
-index cfaa373..857f355 100644
---- a/arch/um/kernel/tt/process_kern.c
-+++ b/arch/um/kernel/tt/process_kern.c
-@@ -37,7 +37,7 @@ void switch_to_tt(void *prev, void *next
- 	from = prev;
- 	to = next;
+ 	t->flags = (t->flags & ~((0xffUL << TI_FLAG_CWP_SHIFT) | (0xffUL << TI_FLAG_CURRENT_DS_SHIFT))) |
+@@ -845,7 +845,7 @@ unsigned long get_wchan(struct task_stru
+             task->state == TASK_RUNNING)
+ 		goto out;
  
--	cpu = from->thread_info->cpu;
-+	cpu = task_thread_info(from)->cpu;
- 	if(cpu == 0)
- 		forward_interrupts(to->thread.mode.tt.extern_pid);
- #ifdef CONFIG_SMP
-@@ -344,7 +344,7 @@ int do_proc_op(void *t, int proc_id)
- 		pid = thread->request.u.exec.pid;
- 		do_exec(thread->mode.tt.extern_pid, pid);
- 		thread->mode.tt.extern_pid = pid;
--		cpu_tasks[task->thread_info->cpu].pid = pid;
-+		cpu_tasks[task_thread_info(task)->cpu].pid = pid;
- 		break;
- 	case OP_FORK:
- 		attach_process(thread->request.u.fork.pid);
+-	thread_info_base = (unsigned long) task->thread_info;
++	thread_info_base = (unsigned long) task_stack_page(task);
+ 	bias = STACK_BIAS;
+ 	fp = task_thread_info(task)->ksp + bias;
+ 
+diff --git a/arch/sparc64/kernel/traps.c b/arch/sparc64/kernel/traps.c
+index 5570e7b..8d44ae5 100644
+--- a/arch/sparc64/kernel/traps.c
++++ b/arch/sparc64/kernel/traps.c
+@@ -1808,7 +1808,7 @@ static void user_instruction_dump (unsig
+ void show_stack(struct task_struct *tsk, unsigned long *_ksp)
+ {
+ 	unsigned long pc, fp, thread_base, ksp;
+-	struct thread_info *tp = tsk->thread_info;
++	void *tp = task_stack_page(tsk);
+ 	struct reg_window *rw;
+ 	int count = 0;
+ 
+@@ -1862,7 +1862,7 @@ static inline int is_kernel_stack(struct
+ 			return 0;
+ 	}
+ 
+-	thread_base = (unsigned long) task->thread_info;
++	thread_base = (unsigned long) task_stack_page(task);
+ 	thread_end = thread_base + sizeof(union thread_union);
+ 	if (rw_addr >= thread_base &&
+ 	    rw_addr < thread_end &&
 -- 
 0.99.9.GIT
 
