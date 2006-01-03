@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:36751 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932532AbWACVHm
+Received: from zeniv.linux.org.uk ([195.92.253.2]:31887 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932547AbWACVHl
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 16:07:42 -0500
-Subject: [PATCH 25/50] m32r: task_pt_regs(), task_stack_page(), task_thread_info()
-Message-Id: <E1EttNa-0008Qm-NA@ZenIV.linux.org.uk>
+	Tue, 3 Jan 2006 16:07:41 -0500
+Subject: [PATCH 18/50] sparc: task_stack_page()
+Message-Id: <E1EttNa-0008Pt-JB@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,123 +19,50 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/m32r/kernel/process.c |    5 +----
- arch/m32r/kernel/ptrace.c  |   25 ++++---------------------
- arch/m32r/kernel/smpboot.c |    2 +-
- include/asm-m32r/ptrace.h  |    3 +++
- 4 files changed, 9 insertions(+), 26 deletions(-)
+ arch/sparc/kernel/process.c |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
 
-280ab86fae79fc9399d24fbfa88baaf930fda0a3
-diff --git a/arch/m32r/kernel/process.c b/arch/m32r/kernel/process.c
-index cc4b571..9d68c0b 100644
---- a/arch/m32r/kernel/process.c
-+++ b/arch/m32r/kernel/process.c
-@@ -238,13 +238,10 @@ int dump_fpu(struct pt_regs *regs, elf_f
- int copy_thread(int nr, unsigned long clone_flags, unsigned long spu,
- 	unsigned long unused, struct task_struct *tsk, struct pt_regs *regs)
- {
--	struct pt_regs *childregs;
--	unsigned long sp = (unsigned long)tsk->thread_info + THREAD_SIZE;
-+	struct pt_regs *childregs = task_pt_regs(tsk);
- 	extern void ret_from_fork(void);
+0015df0826bdd6f2aad29b05149ea3f9475d204a
+diff --git a/arch/sparc/kernel/process.c b/arch/sparc/kernel/process.c
+index 7eebb08..fbb05a4 100644
+--- a/arch/sparc/kernel/process.c
++++ b/arch/sparc/kernel/process.c
+@@ -302,7 +302,7 @@ void show_stack(struct task_struct *tsk,
+ 	int count = 0;
  
- 	/* Copy registers */
--	sp -= sizeof (struct pt_regs);
--	childregs = (struct pt_regs *)sp;
- 	*childregs = *regs;
+ 	if (tsk != NULL)
+-		task_base = (unsigned long) tsk->thread_info;
++		task_base = (unsigned long) task_stack_page(tsk);
+ 	else
+ 		task_base = (unsigned long) current_thread_info();
  
- 	childregs->spu = spu;
-diff --git a/arch/m32r/kernel/ptrace.c b/arch/m32r/kernel/ptrace.c
-index 078d2a0..b67cabf 100644
---- a/arch/m32r/kernel/ptrace.c
-+++ b/arch/m32r/kernel/ptrace.c
-@@ -35,23 +35,6 @@
- #include <asm/mmu_context.h>
- 
- /*
-- * Get the address of the live pt_regs for the specified task.
-- * These are saved onto the top kernel stack when the process
-- * is not running.
-- *
-- * Note: if a user thread is execve'd from kernel space, the
-- * kernel stack will not be empty on entry to the kernel, so
-- * ptracing these tasks will fail.
-- */
--static inline struct pt_regs *
--get_user_regs(struct task_struct *task)
--{
--        return (struct pt_regs *)
--                ((unsigned long)task->thread_info + THREAD_SIZE
--                 - sizeof(struct pt_regs));
--}
--
--/*
-  * This routine will get a word off of the process kernel stack.
-  */
- static inline unsigned long int
-@@ -59,7 +42,7 @@ get_stack_long(struct task_struct *task,
- {
- 	unsigned long *stack;
- 
--	stack = (unsigned long *)get_user_regs(task);
-+	stack = (unsigned long *)task_pt_regs(task);
- 
- 	return stack[offset];
- }
-@@ -72,7 +55,7 @@ put_stack_long(struct task_struct *task,
- {
- 	unsigned long *stack;
- 
--	stack = (unsigned long *)get_user_regs(task);
-+	stack = (unsigned long *)task_pt_regs(task);
- 	stack[offset] = data;
- 
- 	return 0;
-@@ -208,7 +191,7 @@ static int ptrace_write_user(struct task
-  */
- static int ptrace_getregs(struct task_struct *tsk, void __user *uregs)
- {
--	struct pt_regs *regs = get_user_regs(tsk);
-+	struct pt_regs *regs = task_pt_regs(tsk);
- 
- 	return copy_to_user(uregs, regs, sizeof(struct pt_regs)) ? -EFAULT : 0;
- }
-@@ -223,7 +206,7 @@ static int ptrace_setregs(struct task_st
- 
- 	ret = -EFAULT;
- 	if (copy_from_user(&newregs, uregs, sizeof(struct pt_regs)) == 0) {
--		struct pt_regs *regs = get_user_regs(tsk);
-+		struct pt_regs *regs = task_pt_regs(tsk);
- 		*regs = newregs;
- 		ret = 0;
+@@ -392,7 +392,7 @@ void flush_thread(void)
+ 		/* We must fixup kregs as well. */
+ 		/* XXX This was not fixed for ti for a while, worked. Unused? */
+ 		current->thread.kregs = (struct pt_regs *)
+-		    ((char *)current->thread_info + (THREAD_SIZE - TRACEREG_SZ));
++		    (task_stack_page(current) + (THREAD_SIZE - TRACEREG_SZ));
  	}
-diff --git a/arch/m32r/kernel/smpboot.c b/arch/m32r/kernel/smpboot.c
-index b90c541..d7ec16e 100644
---- a/arch/m32r/kernel/smpboot.c
-+++ b/arch/m32r/kernel/smpboot.c
-@@ -286,7 +286,7 @@ static void __init do_boot_cpu(int phys_
- 	/* So we see what's up   */
- 	printk("Booting processor %d/%d\n", phys_id, cpu_id);
- 	stack_start.spi = (void *)idle->thread.sp;
--	idle->thread_info->cpu = cpu_id;
-+	task_thread_info(idle)->cpu = cpu_id;
+ }
  
- 	/*
- 	 * Send Startup IPI
-diff --git a/include/asm-m32r/ptrace.h b/include/asm-m32r/ptrace.h
-index 55cd7ec..0d058b2 100644
---- a/include/asm-m32r/ptrace.h
-+++ b/include/asm-m32r/ptrace.h
-@@ -163,6 +163,9 @@ extern void show_regs(struct pt_regs *);
+@@ -459,7 +459,7 @@ int copy_thread(int nr, unsigned long cl
+ 		unsigned long unused,
+ 		struct task_struct *p, struct pt_regs *regs)
+ {
+-	struct thread_info *ti = p->thread_info;
++	struct thread_info *ti = task_thread_info(p);
+ 	struct pt_regs *childregs;
+ 	char *new_stack;
  
- extern void withdraw_debug_trap(struct pt_regs *regs);
- 
-+#define task_pt_regs(task) \
-+        ((struct pt_regs *)(task_stack_page(task) + THREAD_SIZE) - 1)
-+
- #endif /* __KERNEL */
- 
- #endif /* _ASM_M32R_PTRACE_H */
+@@ -482,7 +482,7 @@ int copy_thread(int nr, unsigned long cl
+ 	 *  V                      V (stk.fr.) V  (pt_regs)  { (stk.fr.) }
+ 	 *  +----- - - - - - ------+===========+============={+==========}+
+ 	 */
+-	new_stack = (char*)ti + THREAD_SIZE;
++	new_stack = task_stack_page(p) + THREAD_SIZE;
+ 	if (regs->psr & PSR_PS)
+ 		new_stack -= STACKFRAME_SZ;
+ 	new_stack -= STACKFRAME_SZ + TRACEREG_SZ;
 -- 
 0.99.9.GIT
 
