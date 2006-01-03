@@ -1,31 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nproxy.gmail.com ([64.233.182.204]:17294 "EHLO nproxy.gmail.com")
-	by vger.kernel.org with ESMTP id S1751185AbWACIJQ convert rfc822-to-8bit
+Received: from zeniv.linux.org.uk ([195.92.253.2]:37263 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932550AbWACVHl
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 03:09:16 -0500
-Received: by nproxy.gmail.com with SMTP id x29so847819nfb
-        for <linux-arch@vger.kernel.org>; Tue, 03 Jan 2006 00:09:15 -0800 (PST)
-Message-ID: <2cd57c900601030009g47d92a5bs@mail.gmail.com>
-Date: Tue, 3 Jan 2006 08:09:14 +0000
-From: Coywolf Qi Hunt <coywolf@gmail.com>
-Subject: Re: flow chart tool?
-In-Reply-To: <B3B901035D23C34B99736534A74BF6D7059C11@MIMLMB01.misawa.pacaf.ds.af.mil>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Content-Disposition: inline
-References: <B3B901035D23C34B99736534A74BF6D7059C11@MIMLMB01.misawa.pacaf.ds.af.mil>
+	Tue, 3 Jan 2006 16:07:41 -0500
+Subject: [PATCH 24/50] v850: task_stack_page(), task_pt_regs()
+Message-Id: <E1EttNa-0008Qk-Mi@ZenIV.linux.org.uk>
+From: Al Viro <viro@ftp.linux.org.uk>
+Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
-To: Tyndall Erick S SSgt 35 CS/SCMG <Erick.Tyndall@misawa.af.mil>
-Cc: liudj@digitalchina.com, linux-arch@vger.kernel.org, linux-tiny@selenic.com, linux-kernel@vger.kernel.org
+To: torvalds@osdl.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-2006/1/2, Tyndall Erick S SSgt 35 CS/SCMG <Erick.Tyndall@misawa.af.mil>:
-> Wow, coywolf. Unnecessary and unhelpful...
->
-> As for the question liudj... you can try OpenOffice's 'Draw' program.
-> It's not specialized for flowcharts like Visio, but should do the trick.
+References: <20060103210515.5135@ftp.linux.org.uk>
+In-Reply-To: <20060103210515.5135@ftp.linux.org.uk>
 
-I use dia often.
---
-Coywolf Qi Hunt
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+
+---
+
+ arch/v850/kernel/process.c   |    2 +-
+ arch/v850/kernel/ptrace.c    |    2 +-
+ include/asm-v850/processor.h |    8 ++++----
+ 3 files changed, 6 insertions(+), 6 deletions(-)
+
+f928f2928325fc0f2442e309c8dba6e6ad96ce6a
+diff --git a/arch/v850/kernel/process.c b/arch/v850/kernel/process.c
+index 39cf247..86cf333 100644
+--- a/arch/v850/kernel/process.c
++++ b/arch/v850/kernel/process.c
+@@ -114,7 +114,7 @@ int copy_thread (int nr, unsigned long c
+ 		 struct task_struct *p, struct pt_regs *regs)
+ {
+ 	/* Start pushing stuff from the top of the child's kernel stack.  */
+-	unsigned long orig_ksp = (unsigned long)p->thread_info + THREAD_SIZE;
++	unsigned long orig_ksp = task_tos(p);
+ 	unsigned long ksp = orig_ksp;
+ 	/* We push two `state save' stack fames (see entry.S) on the new
+ 	   kernel stack:
+diff --git a/arch/v850/kernel/ptrace.c b/arch/v850/kernel/ptrace.c
+index 18492d0..67e0575 100644
+--- a/arch/v850/kernel/ptrace.c
++++ b/arch/v850/kernel/ptrace.c
+@@ -58,7 +58,7 @@ static v850_reg_t *reg_save_addr (unsign
+ 		regs = thread_saved_regs (t);
+ 	else
+ 		/* Register saved during kernel entry (or not available).  */
+-		regs = task_regs (t);
++		regs = task_pt_regs (t);
+ 
+ 	return (v850_reg_t *)((char *)regs + reg_offs);
+ }
+diff --git a/include/asm-v850/processor.h b/include/asm-v850/processor.h
+index 98f9294..2d31308 100644
+--- a/include/asm-v850/processor.h
++++ b/include/asm-v850/processor.h
+@@ -98,10 +98,10 @@ unsigned long get_wchan (struct task_str
+ 
+ 
+ /* Return some info about the user process TASK.  */
+-#define task_tos(task)	((unsigned long)(task)->thread_info + THREAD_SIZE)
+-#define task_regs(task) ((struct pt_regs *)task_tos (task) - 1)
+-#define task_sp(task)	(task_regs (task)->gpr[GPR_SP])
+-#define task_pc(task)	(task_regs (task)->pc)
++#define task_tos(task)	((unsigned long)task_stack_page(task) + THREAD_SIZE)
++#define task_pt_regs(task) ((struct pt_regs *)task_tos (task) - 1)
++#define task_sp(task)	(task_pt_regs (task)->gpr[GPR_SP])
++#define task_pc(task)	(task_pt_regs (task)->pc)
+ /* Grotty old names for some.  */
+ #define KSTK_EIP(task)	task_pc (task)
+ #define KSTK_ESP(task)	task_sp (task)
+-- 
+0.99.9.GIT
+
