@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:27791 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932575AbWACVHl
+Received: from zeniv.linux.org.uk ([195.92.253.2]:36751 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S932532AbWACVHm
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jan 2006 16:07:41 -0500
-Subject: [PATCH 08/50] i386: task_thread_info()
-Message-Id: <E1EttNa-0008PS-6y@ZenIV.linux.org.uk>
+	Tue, 3 Jan 2006 16:07:42 -0500
+Subject: [PATCH 25/50] m32r: task_pt_regs(), task_stack_page(), task_thread_info()
+Message-Id: <E1EttNa-0008Qm-NA@ZenIV.linux.org.uk>
 From: Al Viro <viro@ftp.linux.org.uk>
 Date: Tue, 03 Jan 2006 21:07:38 +0000
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,68 +19,123 @@ Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
 ---
 
- arch/i386/kernel/process.c |    4 ++--
- arch/i386/kernel/vm86.c    |    2 +-
- include/asm-i386/i387.h    |    8 ++++----
- 3 files changed, 7 insertions(+), 7 deletions(-)
+ arch/m32r/kernel/process.c |    5 +----
+ arch/m32r/kernel/ptrace.c  |   25 ++++---------------------
+ arch/m32r/kernel/smpboot.c |    2 +-
+ include/asm-m32r/ptrace.h  |    3 +++
+ 4 files changed, 9 insertions(+), 26 deletions(-)
 
-d0cf455569f14bd2720d57b724aa1a8b0a2fd212
-diff --git a/arch/i386/kernel/process.c b/arch/i386/kernel/process.c
-index 2333aea..b48cfe1 100644
---- a/arch/i386/kernel/process.c
-+++ b/arch/i386/kernel/process.c
-@@ -612,8 +612,8 @@ static inline void disable_tsc(struct ta
- 	 * gcc should eliminate the ->thread_info dereference if
- 	 * has_secure_computing returns 0 at compile time (SECCOMP=n).
- 	 */
--	prev = prev_p->thread_info;
--	next = next_p->thread_info;
-+	prev = task_thread_info(prev_p);
-+	next = task_thread_info(next_p);
+280ab86fae79fc9399d24fbfa88baaf930fda0a3
+diff --git a/arch/m32r/kernel/process.c b/arch/m32r/kernel/process.c
+index cc4b571..9d68c0b 100644
+--- a/arch/m32r/kernel/process.c
++++ b/arch/m32r/kernel/process.c
+@@ -238,13 +238,10 @@ int dump_fpu(struct pt_regs *regs, elf_f
+ int copy_thread(int nr, unsigned long clone_flags, unsigned long spu,
+ 	unsigned long unused, struct task_struct *tsk, struct pt_regs *regs)
+ {
+-	struct pt_regs *childregs;
+-	unsigned long sp = (unsigned long)tsk->thread_info + THREAD_SIZE;
++	struct pt_regs *childregs = task_pt_regs(tsk);
+ 	extern void ret_from_fork(void);
  
- 	if (has_secure_computing(prev) || has_secure_computing(next)) {
- 		/* slow path here */
-diff --git a/arch/i386/kernel/vm86.c b/arch/i386/kernel/vm86.c
-index fc19935..312ee0b 100644
---- a/arch/i386/kernel/vm86.c
-+++ b/arch/i386/kernel/vm86.c
-@@ -310,7 +310,7 @@ static void do_sys_vm86(struct kernel_vm
- 		"movl %1,%%ebp\n\t"
- 		"jmp resume_userspace"
- 		: /* no outputs */
--		:"r" (&info->regs), "r" (tsk->thread_info) : "ax");
-+		:"r" (&info->regs), "r" (task_thread_info(tsk)) : "ax");
- 	/* we never return here */
+ 	/* Copy registers */
+-	sp -= sizeof (struct pt_regs);
+-	childregs = (struct pt_regs *)sp;
+ 	*childregs = *regs;
+ 
+ 	childregs->spu = spu;
+diff --git a/arch/m32r/kernel/ptrace.c b/arch/m32r/kernel/ptrace.c
+index 078d2a0..b67cabf 100644
+--- a/arch/m32r/kernel/ptrace.c
++++ b/arch/m32r/kernel/ptrace.c
+@@ -35,23 +35,6 @@
+ #include <asm/mmu_context.h>
+ 
+ /*
+- * Get the address of the live pt_regs for the specified task.
+- * These are saved onto the top kernel stack when the process
+- * is not running.
+- *
+- * Note: if a user thread is execve'd from kernel space, the
+- * kernel stack will not be empty on entry to the kernel, so
+- * ptracing these tasks will fail.
+- */
+-static inline struct pt_regs *
+-get_user_regs(struct task_struct *task)
+-{
+-        return (struct pt_regs *)
+-                ((unsigned long)task->thread_info + THREAD_SIZE
+-                 - sizeof(struct pt_regs));
+-}
+-
+-/*
+  * This routine will get a word off of the process kernel stack.
+  */
+ static inline unsigned long int
+@@ -59,7 +42,7 @@ get_stack_long(struct task_struct *task,
+ {
+ 	unsigned long *stack;
+ 
+-	stack = (unsigned long *)get_user_regs(task);
++	stack = (unsigned long *)task_pt_regs(task);
+ 
+ 	return stack[offset];
  }
+@@ -72,7 +55,7 @@ put_stack_long(struct task_struct *task,
+ {
+ 	unsigned long *stack;
  
-diff --git a/include/asm-i386/i387.h b/include/asm-i386/i387.h
-index 6747006..152d0ba 100644
---- a/include/asm-i386/i387.h
-+++ b/include/asm-i386/i387.h
-@@ -49,19 +49,19 @@ static inline void __save_init_fpu( stru
- 		X86_FEATURE_FXSR,
- 		"m" (tsk->thread.i387.fxsave)
- 		:"memory");
--	tsk->thread_info->status &= ~TS_USEDFPU;
-+	task_thread_info(tsk)->status &= ~TS_USEDFPU;
+-	stack = (unsigned long *)get_user_regs(task);
++	stack = (unsigned long *)task_pt_regs(task);
+ 	stack[offset] = data;
+ 
+ 	return 0;
+@@ -208,7 +191,7 @@ static int ptrace_write_user(struct task
+  */
+ static int ptrace_getregs(struct task_struct *tsk, void __user *uregs)
+ {
+-	struct pt_regs *regs = get_user_regs(tsk);
++	struct pt_regs *regs = task_pt_regs(tsk);
+ 
+ 	return copy_to_user(uregs, regs, sizeof(struct pt_regs)) ? -EFAULT : 0;
  }
+@@ -223,7 +206,7 @@ static int ptrace_setregs(struct task_st
  
- #define __unlazy_fpu( tsk ) do { \
--	if ((tsk)->thread_info->status & TS_USEDFPU) \
-+	if (task_thread_info(tsk)->status & TS_USEDFPU) \
- 		save_init_fpu( tsk ); \
- } while (0)
+ 	ret = -EFAULT;
+ 	if (copy_from_user(&newregs, uregs, sizeof(struct pt_regs)) == 0) {
+-		struct pt_regs *regs = get_user_regs(tsk);
++		struct pt_regs *regs = task_pt_regs(tsk);
+ 		*regs = newregs;
+ 		ret = 0;
+ 	}
+diff --git a/arch/m32r/kernel/smpboot.c b/arch/m32r/kernel/smpboot.c
+index b90c541..d7ec16e 100644
+--- a/arch/m32r/kernel/smpboot.c
++++ b/arch/m32r/kernel/smpboot.c
+@@ -286,7 +286,7 @@ static void __init do_boot_cpu(int phys_
+ 	/* So we see what's up   */
+ 	printk("Booting processor %d/%d\n", phys_id, cpu_id);
+ 	stack_start.spi = (void *)idle->thread.sp;
+-	idle->thread_info->cpu = cpu_id;
++	task_thread_info(idle)->cpu = cpu_id;
  
- #define __clear_fpu( tsk )					\
- do {								\
--	if ((tsk)->thread_info->status & TS_USEDFPU) {		\
-+	if (task_thread_info(tsk)->status & TS_USEDFPU) {		\
- 		asm volatile("fnclex ; fwait");				\
--		(tsk)->thread_info->status &= ~TS_USEDFPU;	\
-+		task_thread_info(tsk)->status &= ~TS_USEDFPU;	\
- 		stts();						\
- 	}							\
- } while (0)
+ 	/*
+ 	 * Send Startup IPI
+diff --git a/include/asm-m32r/ptrace.h b/include/asm-m32r/ptrace.h
+index 55cd7ec..0d058b2 100644
+--- a/include/asm-m32r/ptrace.h
++++ b/include/asm-m32r/ptrace.h
+@@ -163,6 +163,9 @@ extern void show_regs(struct pt_regs *);
+ 
+ extern void withdraw_debug_trap(struct pt_regs *regs);
+ 
++#define task_pt_regs(task) \
++        ((struct pt_regs *)(task_stack_page(task) + THREAD_SIZE) - 1)
++
+ #endif /* __KERNEL */
+ 
+ #endif /* _ASM_M32R_PTRACE_H */
 -- 
 0.99.9.GIT
 
