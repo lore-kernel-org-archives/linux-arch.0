@@ -1,27 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from saraswathi.solana.com ([198.99.130.12]:21663 "EHLO
-	saraswathi.solana.com") by vger.kernel.org with ESMTP
-	id S1750770AbWADV3y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Jan 2006 16:29:54 -0500
-Date: Wed, 4 Jan 2006 17:22:03 -0500
-From: Jeff Dike <jdike@addtoit.com>
-Subject: Re: [RFC] Consolidate asm/futex.h
-Message-ID: <20060104222203.GA10201@ccure.user-mode-linux.org>
-References: <20060103235910.GA10792@ccure.user-mode-linux.org> <200601042058.10268.blaisorblade@yahoo.it>
+Received: from smtp.osdl.org ([65.172.181.4]:24227 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1751131AbWAEDvM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2006 22:51:12 -0500
+Date: Wed, 4 Jan 2006 19:50:57 -0800
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: [PATCH 0/20] inflate: refactor boot-time inflate code
+Message-Id: <20060104195057.75ab3fe1.akpm@osdl.org>
+In-Reply-To: <1.150843412@selenic.com>
+References: <1.150843412@selenic.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <200601042058.10268.blaisorblade@yahoo.it>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Blaisorblade <blaisorblade@yahoo.it>
-Cc: linux-arch@vger.kernel.org
+To: Matt Mackall <mpm@selenic.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-tiny@selenic.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Jan 04, 2006 at 08:58:09PM +0100, Blaisorblade wrote:
-> Don't forget mentioning in the changelog that for UML there is an 
-> implementation but it's wrong at the moment, so we're reverting it to the 
-> default stub.
+Matt Mackall <mpm@selenic.com> wrote:
+>
+> This is a refactored version of the lib/inflate.c:
 
-OK, I'll add that.
+allnoconfig fails:
 
-			Jeff
+lib/lib.a(inflate.o)(.text+0x1f): In function `flush_output':
+: undefined reference to `crc32_le'
+
