@@ -1,27 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:24227 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S1751131AbWAEDvM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2006 22:51:12 -0500
-Date: Wed, 4 Jan 2006 19:50:57 -0800
-From: Andrew Morton <akpm@osdl.org>
+Received: from waste.org ([64.81.244.121]:65236 "EHLO waste.org")
+	by vger.kernel.org with ESMTP id S1751929AbWAEFPO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jan 2006 00:15:14 -0500
+Date: Wed, 4 Jan 2006 23:09:20 -0600
+From: Matt Mackall <mpm@selenic.com>
 Subject: Re: [PATCH 0/20] inflate: refactor boot-time inflate code
-Message-Id: <20060104195057.75ab3fe1.akpm@osdl.org>
-In-Reply-To: <1.150843412@selenic.com>
-References: <1.150843412@selenic.com>
+Message-ID: <20060105050920.GF3356@waste.org>
+References: <1.150843412@selenic.com> <20060104195057.75ab3fe1.akpm@osdl.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20060104195057.75ab3fe1.akpm@osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Matt Mackall <mpm@selenic.com>
+To: Andrew Morton <akpm@osdl.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-tiny@selenic.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Matt Mackall <mpm@selenic.com> wrote:
->
-> This is a refactored version of the lib/inflate.c:
+On Wed, Jan 04, 2006 at 07:50:57PM -0800, Andrew Morton wrote:
+> Matt Mackall <mpm@selenic.com> wrote:
+> >
+> > This is a refactored version of the lib/inflate.c:
+> 
+> allnoconfig fails:
+> 
+> lib/lib.a(inflate.o)(.text+0x1f): In function `flush_output':
+> : undefined reference to `crc32_le'
 
-allnoconfig fails:
+Ahh, right. As we always support compressed initramfs, and
+decompression always uses CRC, optional/modular CRC support doesn't
+really make sense.
 
-lib/lib.a(inflate.o)(.text+0x1f): In function `flush_output':
-: undefined reference to `crc32_le'
+Drop patch 20/20 for now, I'll send something better shortly.
 
+-- 
+Mathematics is the supreme nostalgia of our time.
