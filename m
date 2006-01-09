@@ -1,52 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:51367 "EHLO smtps.tip.net.au")
-	by vger.kernel.org with ESMTP id S1751248AbWAIMAd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jan 2006 07:00:33 -0500
-Date: Mon, 9 Jan 2006 23:00:17 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+Received: from palinux.external.hp.com ([192.25.206.14]:50073 "EHLO
+	palinux.hppa") by vger.kernel.org with ESMTP id S964770AbWAIMTe
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 9 Jan 2006 07:19:34 -0500
+Date: Mon, 9 Jan 2006 05:19:34 -0700
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: Adding compat_ptrace_request
-Message-Id: <20060109230017.6ca9aed6.sfr@canb.auug.org.au>
-In-Reply-To: <20060109.010355.69867251.davem@davemloft.net>
+Message-ID: <20060109121934.GM19769@parisc-linux.org>
 References: <20060109065914.GS26499@krispykreme>
-	<20060109.010355.69867251.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Mon__9_Jan_2006_23_00_17_+1100_h3TwGJhQhw+5X6Rw"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20060109065914.GS26499@krispykreme>
 Sender: linux-arch-owner@vger.kernel.org
-To: "David S. Miller" <davem@davemloft.net>
-Cc: anton@samba.org, linux-arch@vger.kernel.org
+To: Anton Blanchard <anton@samba.org>
+Cc: linux-arch@vger.kernel.org, sfr@canb.auug.org.au
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Mon__9_Jan_2006_23_00_17_+1100_h3TwGJhQhw+5X6Rw
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Mon, Jan 09, 2006 at 05:59:14PM +1100, Anton Blanchard wrote:
+> 
+> Hi,
+> 
+> We noticed 32/64bit compat issues with GETSIGINFO and SETSIGINFO. It
+> looks like s390 are already fixing this up in architecture specific
+> code, but here is a patch from Stephen Rothwell to add some generic
+> compat ptrace helpers.
 
-On Mon, 09 Jan 2006 01:03:55 -0800 (PST) "David S. Miller" <davem@davemloft=
-.net> wrote:
->
-> > +		return copy_siginfo_to_user32(data, &lastinfo);
->=20
-> It would be nice to rename this copy_siginfo things to not
-> have "32" and instead "compat" in their names.
+I think this patch:
 
-I agree entirely.  Can I do that as a separate patch on top of this one?
+http://www.ussg.iu.edu/hypermail/linux/kernel/0601.1/0166.html
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+makes your patch obsolete ...
 
---Signature=_Mon__9_Jan_2006_23_00_17_+1100_h3TwGJhQhw+5X6Rw
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.2 (GNU/Linux)
-
-iD8DBQFDwlBYFdBgD/zoJvwRAl2+AJ4hJhhumx6N4q4V0UqkrWmNnYPulQCffcR4
-TGNfliLwOiZX4WPZjI7RPT8=
-=c/HL
------END PGP SIGNATURE-----
-
---Signature=_Mon__9_Jan_2006_23_00_17_+1100_h3TwGJhQhw+5X6Rw--
+although it only handles setsiginfo; should be a one-liner to add
+getsiginfo too.
