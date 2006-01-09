@@ -1,36 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:50073 "EHLO
-	palinux.hppa") by vger.kernel.org with ESMTP id S964770AbWAIMTe
+Received: from palinux.external.hp.com ([192.25.206.14]:10953 "EHLO
+	palinux.hppa") by vger.kernel.org with ESMTP id S964818AbWAIQ1S
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Jan 2006 07:19:34 -0500
-Date: Mon, 9 Jan 2006 05:19:34 -0700
+	Mon, 9 Jan 2006 11:27:18 -0500
+Date: Mon, 9 Jan 2006 09:27:18 -0700
 From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: Adding compat_ptrace_request
-Message-ID: <20060109121934.GM19769@parisc-linux.org>
-References: <20060109065914.GS26499@krispykreme>
+Subject: sys_pciconfig_{read,write}
+Message-ID: <20060109162718.GP19769@parisc-linux.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20060109065914.GS26499@krispykreme>
 Sender: linux-arch-owner@vger.kernel.org
-To: Anton Blanchard <anton@samba.org>
-Cc: linux-arch@vger.kernel.org, sfr@canb.auug.org.au
+To: linux-arch@vger.kernel.org, linux-pci@atrey.karlin.mff.cuni.cz
+Cc: carlos neira <cneira@srb.cl>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Jan 09, 2006 at 05:59:14PM +1100, Anton Blanchard wrote:
-> 
-> Hi,
-> 
-> We noticed 32/64bit compat issues with GETSIGINFO and SETSIGINFO. It
-> looks like s390 are already fixing this up in architecture specific
-> code, but here is a patch from Stephen Rothwell to add some generic
-> compat ptrace helpers.
 
-I think this patch:
+I bet most people don't even know we have these syscalls.  But they're
+built into every arch except X86, and only hooked up on alpha, arm,
+ia64, ppc32, sparc and sparc64.
 
-http://www.ussg.iu.edu/hypermail/linux/kernel/0601.1/0166.html
+Given the existence of sysfs and the inability of the syscalls to handle
+domains, I don't see any point in hooking them up on new architectures.
+I suspect they could even be deleted since any software trying them must
+fall back to other methods to be portable.
 
-makes your patch obsolete ...
+The syscalls also take the BKL, as pointed out by Carlos on kernel janitors.
+This is unnecessary as they're already spinlocked at a lower level.
 
-although it only handles setsiginfo; should be a one-liner to add
-getsiginfo too.
+So I propose the following three patches:
+
+1/ New Kconfig symbol CONFIG_PCI_SYSCALLS to be defined by the above
+architectures.  Makefile altered accordingly.
+
+2/ Removal of BKL from syscall implementation.
+
+3/ Removal of !CONFIG_PCI pciconfig stubs from alpha, ia64 and sparc64
+(we already have cond_syscalls for them).
+
+I don't quite understand why we need
+compat_sys_pciconfig_{read,write,iobase} on ppc64.  Can't these just
+call the normal versions?
