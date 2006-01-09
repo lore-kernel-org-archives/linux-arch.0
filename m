@@ -1,43 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:10953 "EHLO
-	palinux.hppa") by vger.kernel.org with ESMTP id S964818AbWAIQ1S
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Jan 2006 11:27:18 -0500
-Date: Mon, 9 Jan 2006 09:27:18 -0700
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: sys_pciconfig_{read,write}
-Message-ID: <20060109162718.GP19769@parisc-linux.org>
+Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:12227
+	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
+	id S1751337AbWAIUut (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 9 Jan 2006 15:50:49 -0500
+Date: Mon, 09 Jan 2006 12:51:00 -0800 (PST)
+Message-Id: <20060109.125100.44834738.davem@davemloft.net>
+Subject: Re: Adding compat_ptrace_request
+From: "David S. Miller" <davem@davemloft.net>
+In-Reply-To: <20060109230017.6ca9aed6.sfr@canb.auug.org.au>
+References: <20060109065914.GS26499@krispykreme>
+	<20060109.010355.69867251.davem@davemloft.net>
+	<20060109230017.6ca9aed6.sfr@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-pci@atrey.karlin.mff.cuni.cz
-Cc: carlos neira <cneira@srb.cl>
+To: sfr@canb.auug.org.au
+Cc: anton@samba.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Date: Mon, 9 Jan 2006 23:00:17 +1100
 
-I bet most people don't even know we have these syscalls.  But they're
-built into every arch except X86, and only hooked up on alpha, arm,
-ia64, ppc32, sparc and sparc64.
+> On Mon, 09 Jan 2006 01:03:55 -0800 (PST) "David S. Miller" <davem@davemloft.net> wrote:
+> >
+> > > +		return copy_siginfo_to_user32(data, &lastinfo);
+> > 
+> > It would be nice to rename this copy_siginfo things to not
+> > have "32" and instead "compat" in their names.
+> 
+> I agree entirely.  Can I do that as a separate patch on top of this one?
 
-Given the existence of sysfs and the inability of the syscalls to handle
-domains, I don't see any point in hooking them up on new architectures.
-I suspect they could even be deleted since any software trying them must
-fall back to other methods to be portable.
-
-The syscalls also take the BKL, as pointed out by Carlos on kernel janitors.
-This is unnecessary as they're already spinlocked at a lower level.
-
-So I propose the following three patches:
-
-1/ New Kconfig symbol CONFIG_PCI_SYSCALLS to be defined by the above
-architectures.  Makefile altered accordingly.
-
-2/ Removal of BKL from syscall implementation.
-
-3/ Removal of !CONFIG_PCI pciconfig stubs from alpha, ia64 and sparc64
-(we already have cond_syscalls for them).
-
-I don't quite understand why we need
-compat_sys_pciconfig_{read,write,iobase} on ppc64.  Can't these just
-call the normal versions?
+Do it seperately if you like.
