@@ -1,36 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:34776 "EHLO mx1.suse.de")
-	by vger.kernel.org with ESMTP id S964901AbWARDiO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Jan 2006 22:38:14 -0500
-From: Andi Kleen <ak@suse.de>
-Subject: Re: new syscalls
-Date: Wed, 18 Jan 2006 04:38:03 +0100
-References: <20060117192949.625f246b.akpm@osdl.org>
-In-Reply-To: <20060117192949.625f246b.akpm@osdl.org>
+Received: from fmr24.intel.com ([143.183.121.16]:36828 "EHLO
+	scsfmr004.sc.intel.com") by vger.kernel.org with ESMTP
+	id S1030256AbWARSzU convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jan 2006 13:55:20 -0500
+Content-class: urn:content-classes:message
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200601180438.03957.ak@suse.de>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: RE: new syscalls
+Date: Wed, 18 Jan 2006 10:55:11 -0800
+Message-ID: <B8E391BBE9FE384DAA4C5C003888BE6F05737A9F@scsmsx401.amr.corp.intel.com>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wednesday 18 January 2006 04:29, Andrew Morton wrote:
-> 
-> Verious new syscalls which are trickling their way Linuswards and will need
+> Various new syscalls which are trickling their way Linuswards and will need
 > testing and wiring up once they get there:
-> 
-> sys_migrate_pages
-> 	Merged
 
-#define __NR_migrate_pages      256
-__SYSCALL(__NR_migrate_pages, sys_migrate_pages)
+Are there test-suites for any/all of these new calls?
 
-
-We first have to wait if everybody survived crossing the 8bit boundary @)
-
--Andi
+-Tony
