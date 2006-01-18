@@ -1,49 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:46314 "EHLO smtps.tip.net.au")
-	by vger.kernel.org with ESMTP id S1751634AbWAIXh6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jan 2006 18:37:58 -0500
-Date: Tue, 10 Jan 2006 10:37:33 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: sys_pciconfig_{read,write}
-Message-Id: <20060110103733.5d0bcdef.sfr@canb.auug.org.au>
-In-Reply-To: <20060109162718.GP19769@parisc-linux.org>
-References: <20060109162718.GP19769@parisc-linux.org>
+Received: from smtp.osdl.org ([65.172.181.4]:49353 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S964893AbWARDaE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Jan 2006 22:30:04 -0500
+Received: from shell0.pdx.osdl.net (fw.osdl.org [65.172.181.6])
+	by smtp.osdl.org (8.12.8/8.12.8) with ESMTP id k0I3U3DZ006829
+	(version=TLSv1/SSLv3 cipher=EDH-RSA-DES-CBC3-SHA bits=168 verify=NO)
+	for <linux-arch@vger.kernel.org>; Tue, 17 Jan 2006 19:30:03 -0800
+Received: from bix (shell0.pdx.osdl.net [10.9.0.31])
+	by shell0.pdx.osdl.net (8.13.1/8.11.6) with SMTP id k0I3U2Iu016338
+	for <linux-arch@vger.kernel.org>; Tue, 17 Jan 2006 19:30:02 -0800
+Date: Tue, 17 Jan 2006 19:29:49 -0800
+From: Andrew Morton <akpm@osdl.org>
+Subject: new syscalls
+Message-Id: <20060117192949.625f246b.akpm@osdl.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Tue__10_Jan_2006_10_37_33_+1100_mtAiF_NUYMNzV9hf"
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: linux-arch@vger.kernel.org, linux-pci@atrey.karlin.mff.cuni.cz, cneira@srb.cl
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Tue__10_Jan_2006_10_37_33_+1100_mtAiF_NUYMNzV9hf
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
 
-On Mon, 9 Jan 2006 09:27:18 -0700 Matthew Wilcox <matthew@wil.cx> wrote:
->
-> I bet most people don't even know we have these syscalls.  But they're
-> built into every arch except X86, and only hooked up on alpha, arm,
-> ia64, ppc32, sparc and sparc64.
+Verious new syscalls which are trickling their way Linuswards and will need
+testing and wiring up once they get there:
 
-and ppc64 ...
+sys_migrate_pages
+	Merged
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+sys_openat
+sys_mkdirat
+sys_mknodat
+sys_fchownat
+sys_futimesat
+sys_newfstatat
+sys_unlinkat
+sys_renameat
+sys_linkat
+sys_symlinkat
+sys_readlinkat
+sys_fchmodat
+sys_faccessat
+	Probably this week
 
---Signature=_Tue__10_Jan_2006_10_37_33_+1100_mtAiF_NUYMNzV9hf
-Content-Type: application/pgp-signature
+sys_pselect6
+sys_ppoll
+	Probably this week
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.2 (GNU/Linux)
+sys_unshare
+	Not sure yet.  These are a bit scary and I haven't seen any
+	evidence that they've had the appropriate level of review.
 
-iD8DBQFDwvPCFdBgD/zoJvwRApi2AJ41aD7D/7Jy8Tp/8K6YYq4I752XagCfS7t6
-p0JcQrnGxdPIu/mcF1QIlOI=
-=8zBK
------END PGP SIGNATURE-----
-
---Signature=_Tue__10_Jan_2006_10_37_33_+1100_mtAiF_NUYMNzV9hf--
+sys_pepoll_wait
+	Just queued this in -mm.  Conceivably 2.6.16, more likely 2.6.17, or
+	never.
