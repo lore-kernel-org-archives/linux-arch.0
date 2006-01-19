@@ -1,44 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:44703 "EHLO mx1.suse.de")
-	by vger.kernel.org with ESMTP id S1161173AbWASCbp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jan 2006 21:31:45 -0500
-From: Andi Kleen <ak@suse.de>
+Received: from pentafluge.infradead.org ([213.146.154.40]:37349 "EHLO
+	pentafluge.infradead.org") by vger.kernel.org with ESMTP
+	id S1161320AbWASFAz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Jan 2006 00:00:55 -0500
 Subject: Re: new syscalls
-Date: Thu, 19 Jan 2006 03:30:08 +0100
-References: <B8E391BBE9FE384DAA4C5C003888BE6F05737A9F@scsmsx401.amr.corp.intel.com> <20060118133629.1cda96fd.akpm@osdl.org> <Pine.LNX.4.62.0601181716520.3217@schroedinger.engr.sgi.com>
-In-Reply-To: <Pine.LNX.4.62.0601181716520.3217@schroedinger.engr.sgi.com>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <20060118.172639.15928930.davem@davemloft.net>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F05737A9F@scsmsx401.amr.corp.intel.com>
+	 <20060118133629.1cda96fd.akpm@osdl.org>
+	 <Pine.LNX.4.63.0601181714330.6878@localhost.localdomain>
+	 <20060118.172639.15928930.davem@davemloft.net>
+Content-Type: text/plain
+Date: Thu, 19 Jan 2006 16:00:48 +1100
+Message-Id: <1137646848.30084.81.camel@localhost.localdomain>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200601190330.09115.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@engr.sgi.com>
-Cc: Andrew Morton <akpm@osdl.org>, "Luck, Tony" <tony.luck@intel.com>, linux-arch@vger.kernel.org, JANAK DESAI <janak@us.ibm.com>, Ulrich Drepper <drepper@redhat.com>, David Woodhouse <dwmw2@infradead.org>, David Howells <dhowells@redhat.com>, Davide Libenzi <davidel@xmailserver.org>, Christoph Lameter <christoph@lameter.com>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: davidel@xmailserver.org, akpm@osdl.org, tony.luck@intel.com, linux-arch@vger.kernel.org, janak@us.ibm.com, drepper@redhat.com, dhowells@redhat.com, christoph@lameter.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thursday 19 January 2006 02:19, Christoph Lameter wrote:
-> On Wed, 18 Jan 2006, Andrew Morton wrote:
-> > Guys, architecture maintainers need test suites to verify that the
-> > syscalls actually work as they wire them up.  Please share.  A stable URL
-> > would be preferred - something which can go into the changlog or
-> > conceivably into the kernel source.
->
-> sys_migrate_pages will be supported by libnuma in Andi Kleen's numactl
-> package. There is no URL that I am aware of.
+On Wed, 2006-01-18 at 17:26 -0800, David S. Miller wrote:
+> From: Davide Libenzi <davidel@xmailserver.org>
+> Date: Wed, 18 Jan 2006 17:17:20 -0800 (PST)
+> 
+> > How sophisticated this has to be? And what's the expected ETA? The 
+> > epoll_pwait is really a wrapper around epoll_wait (that did not change at 
+> > all), so the test in this case should just make sure that the signal 
+> > behaviour is the one expected.
+> 
+> Something along the lines of a smoke test is probably sufficient.
+> The platform folks just want to make sure they wired up the
+> syscall tables correctly, for the most part.
 
-The home is ftp://ftp.suse.com/pub/people/ak/numa/
+In the case of syscalls using TIF_RESTORE_SIGMASK we want to make sure
+the architecture maintainer got a little bit more right than that -- but
+the sigmasking.c test case I posted earlier ought to be mostly
+sufficient for testing that, if the arch also switches to the generic
+sys_rt_sigsuspend().
 
-The main server is a bit slow, best use a mirror like
-ftp://ftp.gwde.de/pub/linux/suse/ftp.suse.com/people/ak/numa
+-- 
+dwmw2
 
-But I haven't pushed out a  update with Christoph's patch yet
-(will do ASAP)
-
-And of course you'll need a CONFIG_NUMA=y multi node system to actually try 
-it, that probably rules it out on most architectures. On the others 
-it will always -ENOSYS.
-
--Andi
