@@ -1,58 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:39084 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1161013AbWARVsq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jan 2006 16:48:46 -0500
-Message-ID: <43CEB7A6.1030207@redhat.com>
-Date: Wed, 18 Jan 2006 13:48:22 -0800
-From: Ulrich Drepper <drepper@redhat.com>
-MIME-Version: 1.0
+Received: from x35.xmailserver.org ([69.30.125.51]:39905 "EHLO
+	x35.xmailserver.org") by vger.kernel.org with ESMTP
+	id S1161139AbWASBRW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Jan 2006 20:17:22 -0500
+Received: from [10.107.17.130]
+	by x35.dev.mdolabs.com with [XMail 1.23 ESMTP Server]
+	id <S1B8210> for <linux-arch@vger.kernel.org> from <davidel@xmailserver.org>;
+	Wed, 18 Jan 2006 17:17:20 -0800
+Date: Wed, 18 Jan 2006 17:17:20 -0800 (PST)
+From: Davide Libenzi <davidel@xmailserver.org>
 Subject: Re: new syscalls
-References: <B8E391BBE9FE384DAA4C5C003888BE6F05737A9F@scsmsx401.amr.corp.intel.com> <20060118133629.1cda96fd.akpm@osdl.org>
 In-Reply-To: <20060118133629.1cda96fd.akpm@osdl.org>
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="------------enigE86E424A75FFED1F455FEEF1"
+Message-ID: <Pine.LNX.4.63.0601181714330.6878@localhost.localdomain>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F05737A9F@scsmsx401.amr.corp.intel.com>
+ <20060118133629.1cda96fd.akpm@osdl.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@osdl.org>
-Cc: "Luck, Tony" <tony.luck@intel.com>, linux-arch@vger.kernel.org, JANAK DESAI <janak@us.ibm.com>, David Woodhouse <dwmw2@infradead.org>, David Howells <dhowells@redhat.com>, Davide Libenzi <davidel@xmailserver.org>, Christoph Lameter <christoph@lameter.com>
+Cc: "Luck, Tony" <tony.luck@intel.com>, linux-arch@vger.kernel.org, JANAK DESAI <janak@us.ibm.com>, Ulrich Drepper <drepper@redhat.com>, David Woodhouse <dwmw2@infradead.org>, David Howells <dhowells@redhat.com>, Christoph Lameter <christoph@lameter.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-This is an OpenPGP/MIME signed message (RFC 2440 and 3156)
---------------enigE86E424A75FFED1F455FEEF1
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+On Wed, 18 Jan 2006, Andrew Morton wrote:
 
-Andrew Morton wrote:
+> "Luck, Tony" <tony.luck@intel.com> wrote:
+>>
+>>> Various new syscalls which are trickling their way Linuswards and will need
+>>> testing and wiring up once they get there:
+>>
+>> Are there test-suites for any/all of these new calls?
+>>
+>
 > That's an excellent point.
->=20
-> Guys, architecture maintainers need test suites to verify that the sysc=
-alls
-> actually work as they wire them up.
+>
+> Guys, architecture maintainers need test suites to verify that the syscalls
+> actually work as they wire them up.  Please share.  A stable URL would be
+> preferred - something which can go into the changlog or conceivably into
+> the kernel source.
 
-glibc has test for all the *at syscalls, pselect.  ppoll and epoll_pwait
-will follow as soon as the syscalls are upstream and I can add the
-interfaces.  unshare testing is harder, because it likely need
-privileges.  Using the tests outside glibc isn't easy because of the
-framework for tests we are using.
-
---=20
-=E2=9E=A7 Ulrich Drepper =E2=9E=A7 Red Hat, Inc. =E2=9E=A7 444 Castro St =
-=E2=9E=A7 Mountain View, CA =E2=9D=96
+How sophisticated this has to be? And what's the expected ETA? The 
+epoll_pwait is really a wrapper around epoll_wait (that did not change at 
+all), so the test in this case should just make sure that the signal 
+behaviour is the one expected.
 
 
---------------enigE86E424A75FFED1F455FEEF1
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.2 (GNU/Linux)
-Comment: Using GnuPG with Fedora - http://enigmail.mozdev.org
+- Davide
 
-iD8DBQFDzrem2ijCOnn/RHQRAqXUAKDOMsjHVgYF27c0abBhW21/ZY+3hwCglUM9
-OnfQnnUp6AweU3jNKRdrzuE=
-=njLw
------END PGP SIGNATURE-----
 
---------------enigE86E424A75FFED1F455FEEF1--
