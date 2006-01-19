@@ -1,61 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e1.ny.us.ibm.com ([32.97.182.141]:35246 "EHLO e1.ny.us.ibm.com")
-	by vger.kernel.org with ESMTP id S1161204AbWASNui (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Jan 2006 08:50:38 -0500
-Received: from d01relay02.pok.ibm.com (d01relay02.pok.ibm.com [9.56.227.234])
-	by e1.ny.us.ibm.com (8.12.11/8.12.11) with ESMTP id k0JDobBO003698
-	for <linux-arch@vger.kernel.org>; Thu, 19 Jan 2006 08:50:37 -0500
-Received: from d01av01.pok.ibm.com (d01av01.pok.ibm.com [9.56.224.215])
-	by d01relay02.pok.ibm.com (8.12.10/NCO/VERS6.8) with ESMTP id k0JDobiA116452
-	for <linux-arch@vger.kernel.org>; Thu, 19 Jan 2006 08:50:38 -0500
-Received: from d01av01.pok.ibm.com (loopback [127.0.0.1])
-	by d01av01.pok.ibm.com (8.12.11/8.13.3) with ESMTP id k0JDoZdk021207
-	for <linux-arch@vger.kernel.org>; Thu, 19 Jan 2006 08:50:37 -0500
-Message-ID: <43CF9921.9070908@us.ibm.com>
-Date: Thu, 19 Jan 2006 08:50:25 -0500
-From: JANAK DESAI <janak@us.ibm.com>
-MIME-Version: 1.0
+Received: from x35.xmailserver.org ([69.30.125.51]:35046 "EHLO
+	x35.xmailserver.org") by vger.kernel.org with ESMTP
+	id S1161441AbWASVs2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Jan 2006 16:48:28 -0500
+Received: from [10.107.17.130]
+	by x35.dev.mdolabs.com with [XMail 1.23 ESMTP Server]
+	id <S1B856E> for <linux-arch@vger.kernel.org> from <davidel@xmailserver.org>;
+	Thu, 19 Jan 2006 13:48:25 -0800
+Date: Thu, 19 Jan 2006 13:48:21 -0800 (PST)
+From: Davide Libenzi <davidel@xmailserver.org>
 Subject: Re: new syscalls
-References: <B8E391BBE9FE384DAA4C5C003888BE6F05737A9F@scsmsx401.amr.corp.intel.com> <20060118133629.1cda96fd.akpm@osdl.org>
-In-Reply-To: <20060118133629.1cda96fd.akpm@osdl.org>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20060118172802.5155048f.akpm@osdl.org>
+Message-ID: <Pine.LNX.4.63.0601191347160.6527@localhost.localdomain>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F05737A9F@scsmsx401.amr.corp.intel.com>
+ <20060118133629.1cda96fd.akpm@osdl.org> <Pine.LNX.4.63.0601181714330.6878@localhost.localdomain>
+ <20060118172802.5155048f.akpm@osdl.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@osdl.org>
-Cc: "Luck, Tony" <tony.luck@intel.com>, linux-arch@vger.kernel.org, Ulrich Drepper <drepper@redhat.com>, David Woodhouse <dwmw2@infradead.org>, David Howells <dhowells@redhat.com>, Davide Libenzi <davidel@xmailserver.org>, Christoph Lameter <christoph@lameter.com>
+Cc: tony.luck@intel.com, linux-arch@vger.kernel.org, janak@us.ibm.com, Ulrich Drepper <drepper@redhat.com>, dwmw2@infradead.org, dhowells@redhat.com, christoph@lameter.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Andrew Morton wrote:
+On Wed, 18 Jan 2006, Andrew Morton wrote:
 
->"Luck, Tony" <tony.luck@intel.com> wrote:
->  
->
->>>Various new syscalls which are trickling their way Linuswards and will need
->>>testing and wiring up once they get there:
->>>      
->>>
->>Are there test-suites for any/all of these new calls?
+> Davide Libenzi <davidel@xmailserver.org> wrote:
 >>
->>    
->>
+>> How sophisticated this has to be?
 >
->That's an excellent point.
+> umm
 >
->Guys, architecture maintainers need test suites to verify that the syscalls
->actually work as they wire them up.  Please share.  A stable URL would be
->preferred - something which can go into the changlog or conceivably into
->the kernel source.
+> - test basic functionality
 >
->Thanks.
+> - test things which should fail: syscall arguments out-of-bounds,
+>  negative syscall args, etc.  invalid fd.  valid fd but for the wrong type
+>  of file.
 >
->  
->
-Hi Andrew,
+> - if you can, something which will test the 32bit->64bit->32bit
+>  conversions which 32-bit userspace on 64-bit kernel needs to do.
 
-I have to finish up a couple of things today, but will post the unshare 
-test by tomorrow.
+Somehow, I knew I didn't have to ask :)
 
-Thanks.
 
--Janak
+
+- Davide
+
+
