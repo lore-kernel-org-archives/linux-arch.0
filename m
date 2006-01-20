@@ -1,41 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from x35.xmailserver.org ([69.30.125.51]:41702 "EHLO
-	x35.xmailserver.org") by vger.kernel.org with ESMTP
-	id S1161422AbWATAe7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Jan 2006 19:34:59 -0500
-Received: from [10.107.17.130]
-	by x35.dev.mdolabs.com with [XMail 1.23 ESMTP Server]
-	id <S1B85DA> for <linux-arch@vger.kernel.org> from <davidel@xmailserver.org>;
-	Thu, 19 Jan 2006 16:34:52 -0800
-Date: Thu, 19 Jan 2006 16:34:52 -0800 (PST)
-From: Davide Libenzi <davidel@xmailserver.org>
+Received: from mtagate4.de.ibm.com ([195.212.29.153]:54705 "EHLO
+	mtagate4.de.ibm.com") by vger.kernel.org with ESMTP
+	id S1750765AbWATJoP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Jan 2006 04:44:15 -0500
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate4.de.ibm.com (8.12.10/8.12.10) with ESMTP id k0K9hdln178140
+	for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2006 09:43:43 GMT
+Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
+	by d12nrmr1607.megacenter.de.ibm.com (8.12.10/NCO/VERS6.8) with ESMTP id k0K9hG8Q199934
+	for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2006 10:43:16 +0100
+Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av02.megacenter.de.ibm.com (8.12.11/8.13.3) with ESMTP id k0K9hGKY032296
+	for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2006 10:43:16 +0100
+Date: Fri, 20 Jan 2006 10:43:09 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
 Subject: Re: new syscalls
-In-Reply-To: <43D02D85.90100@redhat.com>
-Message-ID: <Pine.LNX.4.63.0601191629160.6527@localhost.localdomain>
-References: <B8E391BBE9FE384DAA4C5C003888BE6F05737A9F@scsmsx401.amr.corp.intel.com>
- <20060118133629.1cda96fd.akpm@osdl.org> <Pine.LNX.4.63.0601181714330.6878@localhost.localdomain>
- <20060118172802.5155048f.akpm@osdl.org> <Pine.LNX.4.63.0601191347160.6527@localhost.localdomain>
- <Pine.LNX.4.63.0601191606300.6527@localhost.localdomain> <43D02D85.90100@redhat.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
+Message-ID: <20060120094309.GA9349@osiris.boeblingen.de.ibm.com>
+References: <20060117192949.625f246b.akpm@osdl.org> <200601180438.03957.ak@suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <200601180438.03957.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Ulrich Drepper <drepper@redhat.com>
-Cc: Andrew Morton <akpm@osdl.org>, tony.luck@intel.com, linux-arch@vger.kernel.org, janak@us.ibm.com, dwmw2@infradead.org, dhowells@redhat.com, christoph@lameter.com
+To: Andi Kleen <ak@suse.de>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 19 Jan 2006, Ulrich Drepper wrote:
+> > Verious new syscalls which are trickling their way Linuswards and will need
+> > testing and wiring up once they get there:
+> > 
+> > sys_migrate_pages
+> > 	Merged
+> 
+> #define __NR_migrate_pages      256
+> __SYSCALL(__NR_migrate_pages, sys_migrate_pages)
+> 
+> 
+> We first have to wait if everybody survived crossing the 8bit boundary @)
 
-> Davide Libenzi wrote:
->> There is a problem with the test we have inside the kernel about the
->> size of sigset_t, from the kernel (8 bytes on i386) and the glibc one
->> (128 bytes):
->
-> Not really a problem.  We always pass down _NSIG/8 as the size.
+Any reason why arch/x86_64/ia32/ia32entry.S has sys_futimesat in its syscall
+table instead of compat_sys_futimesat? Looks wrong to me...
 
-Ok, I use _NSIG/8 inside the test software now.
-
-
-
-- Davide
-
-
+Thanks,
+Heiko
