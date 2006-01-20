@@ -1,60 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:16544 "EHLO mx1.suse.de")
-	by vger.kernel.org with ESMTP id S1750779AbWATKFW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Jan 2006 05:05:22 -0500
-From: Andi Kleen <ak@suse.de>
-Subject: Re: new syscalls
-Date: Fri, 20 Jan 2006 11:04:50 +0100
-References: <B8E391BBE9FE384DAA4C5C003888BE6F05737A9F@scsmsx401.amr.corp.intel.com> <20060118133629.1cda96fd.akpm@osdl.org> <1137621188.30084.67.camel@localhost.localdomain>
-In-Reply-To: <1137621188.30084.67.camel@localhost.localdomain>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
+Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:43923
+	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
+	id S1750784AbWATKG1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Jan 2006 05:06:27 -0500
+Date: Fri, 20 Jan 2006 02:00:32 -0800 (PST)
+Message-Id: <20060120.020032.119957438.davem@davemloft.net>
+Subject: Re: sys_pciconfig_{read,write}
+From: "David S. Miller" <davem@davemloft.net>
+In-Reply-To: <20060109162718.GP19769@parisc-linux.org>
+References: <20060109162718.GP19769@parisc-linux.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200601201104.51398.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Andrew Morton <akpm@osdl.org>, "Luck, Tony" <tony.luck@intel.com>, linux-arch@vger.kernel.org, JANAK DESAI <janak@us.ibm.com>, Ulrich Drepper <drepper@redhat.com>, David Howells <dhowells@redhat.com>, Davide Libenzi <davidel@xmailserver.org>, Christoph Lameter <christoph@lameter.com>
+To: matthew@wil.cx
+Cc: linux-arch@vger.kernel.org, linux-pci@atrey.karlin.mff.cuni.cz, cneira@srb.cl
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wednesday 18 January 2006 22:53, David Woodhouse wrote:
-> On Wed, 2006-01-18 at 13:36 -0800, Andrew Morton wrote:
-> > That's an excellent point.
-> > 
-> > Guys, architecture maintainers need test suites to verify that the syscalls
-> > actually work as they wire them up.  Please share.  A stable URL would be
-> > preferred - something which can go into the changlog or conceivably into
-> > the kernel source.
+From: Matthew Wilcox <matthew@wil.cx>
+Date: Mon, 9 Jan 2006 09:27:18 -0700
+
+[ Going through some old emails I intended to get to before
+  heading off to linux.conf.au :-) ]
+
+> So I propose the following three patches:
 > 
-> http://david.woodhou.se/sigmasking.c is a good one for testing
-> sigsuspend after hooking up TIF_RESTORE_SIGMASK stuff and the generic
-> sys_rt_sigsuspend(), although it's not actually my code. There were a
-> bunch of other tests in a tarball with that (on linux-arch a year or two
-> ago) which arch maintainers should also use occasionally when they play
-> with signal or ptrace code.
+> 1/ New Kconfig symbol CONFIG_PCI_SYSCALLS to be defined by the above
+> architectures.  Makefile altered accordingly.
+> 
+> 2/ Removal of BKL from syscall implementation.
+> 
+> 3/ Removal of !CONFIG_PCI pciconfig stubs from alpha, ia64 and sparc64
+> (we already have cond_syscalls for them).
 
-Are you sure it's even working? I implemented TIF_RESTORE_SIGMASK
-for x86-64 and the SEGV part of the test fails. But it even fails
-without any of my patches applied, so if it's really broken
-it was always like this. I suspect i would have heard if such
-a fundamental thing was really broken on x86-64.
+Sounds fine to me.
 
-===== Test 2: signal SIGALRM while waiting in nanosleep() =====
+> I don't quite understand why we need
+> compat_sys_pciconfig_{read,write,iobase} on ppc64.  Can't these just
+> call the normal versions?
 
-Unblocking all signals
-Calling alarm(2)
-Calling nanosleep( 20s)
-After return from nanosleep(), blocked all signals, saved returned mask
-OK: nanosleep(): Interrupted system call
-OK: sighandler for SIGALRM (14) didn't run (invalid stack)
-OK: SIGSEGV is unmasked at end of test
-ERROR: sighandler for SIGSEGV (11) didn't run
-OK: SIGUSR1 is unmasked
-OK: SIGUSR2 is unmasked
-SIGSEGV is pending at end of test, unblocking it now ...
-Signal 11 caught
-... done
-
--Andi
+I don't see this in the current tree, were they removed as
+a result of this observation?
