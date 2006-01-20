@@ -1,29 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:2185
-	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
-	id S1750775AbWATJ4T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Jan 2006 04:56:19 -0500
-Date: Fri, 20 Jan 2006 01:49:45 -0800 (PST)
-Message-Id: <20060120.014945.107064207.davem@davemloft.net>
+Received: from mx2.suse.de ([195.135.220.15]:64685 "EHLO mx2.suse.de")
+	by vger.kernel.org with ESMTP id S1750778AbWATKFD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Jan 2006 05:05:03 -0500
+From: Andi Kleen <ak@suse.de>
 Subject: Re: new syscalls
-From: "David S. Miller" <davem@davemloft.net>
+Date: Fri, 20 Jan 2006 10:48:25 +0100
+References: <20060117192949.625f246b.akpm@osdl.org> <200601180438.03957.ak@suse.de> <20060120094309.GA9349@osiris.boeblingen.de.ibm.com>
 In-Reply-To: <20060120094309.GA9349@osiris.boeblingen.de.ibm.com>
-References: <20060117192949.625f246b.akpm@osdl.org>
-	<200601180438.03957.ak@suse.de>
-	<20060120094309.GA9349@osiris.boeblingen.de.ibm.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200601201048.25554.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: heiko.carstens@de.ibm.com
-Cc: ak@suse.de, akpm@osdl.org, linux-arch@vger.kernel.org
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Date: Fri, 20 Jan 2006 10:43:09 +0100
-
+On Friday 20 January 2006 10:43, Heiko Carstens wrote:
+> > > Verious new syscalls which are trickling their way Linuswards and will need
+> > > testing and wiring up once they get there:
+> > > 
+> > > sys_migrate_pages
+> > > 	Merged
+> > 
+> > #define __NR_migrate_pages      256
+> > __SYSCALL(__NR_migrate_pages, sys_migrate_pages)
+> > 
+> > 
+> > We first have to wait if everybody survived crossing the 8bit boundary @)
+> 
 > Any reason why arch/x86_64/ia32/ia32entry.S has sys_futimesat in its syscall
 > table instead of compat_sys_futimesat? Looks wrong to me...
 
-I made the same mistake on sparc64 (because I used the x86_64 code as
-a guide), thanks for pointing it out :)
+Yes, seems wrong. Thanks for catching. I will submit a patch.
+
+-Andi
