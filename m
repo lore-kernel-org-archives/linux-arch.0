@@ -1,43 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:43923
+Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:55497
 	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
-	id S1750784AbWATKG1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Jan 2006 05:06:27 -0500
-Date: Fri, 20 Jan 2006 02:00:32 -0800 (PST)
-Message-Id: <20060120.020032.119957438.davem@davemloft.net>
-Subject: Re: sys_pciconfig_{read,write}
+	id S1750805AbWATKZv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Jan 2006 05:25:51 -0500
+Date: Fri, 20 Jan 2006 02:15:52 -0800 (PST)
+Message-Id: <20060120.021552.119433592.davem@davemloft.net>
+Subject: Re: new syscalls
 From: "David S. Miller" <davem@davemloft.net>
-In-Reply-To: <20060109162718.GP19769@parisc-linux.org>
-References: <20060109162718.GP19769@parisc-linux.org>
+In-Reply-To: <200601201104.51398.ak@suse.de>
+References: <20060118133629.1cda96fd.akpm@osdl.org>
+	<1137621188.30084.67.camel@localhost.localdomain>
+	<200601201104.51398.ak@suse.de>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: matthew@wil.cx
-Cc: linux-arch@vger.kernel.org, linux-pci@atrey.karlin.mff.cuni.cz, cneira@srb.cl
+To: ak@suse.de
+Cc: dwmw2@infradead.org, akpm@osdl.org, tony.luck@intel.com, linux-arch@vger.kernel.org, janak@us.ibm.com, drepper@redhat.com, dhowells@redhat.com, davidel@xmailserver.org, christoph@lameter.com
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Matthew Wilcox <matthew@wil.cx>
-Date: Mon, 9 Jan 2006 09:27:18 -0700
+From: Andi Kleen <ak@suse.de>
+Date: Fri, 20 Jan 2006 11:04:50 +0100
 
-[ Going through some old emails I intended to get to before
-  heading off to linux.conf.au :-) ]
+> Are you sure it's even working? I implemented TIF_RESTORE_SIGMASK
+> for x86-64 and the SEGV part of the test fails. But it even fails
+> without any of my patches applied, so if it's really broken
+> it was always like this. I suspect i would have heard if such
+> a fundamental thing was really broken on x86-64.
 
-> So I propose the following three patches:
-> 
-> 1/ New Kconfig symbol CONFIG_PCI_SYSCALLS to be defined by the above
-> architectures.  Makefile altered accordingly.
-> 
-> 2/ Removal of BKL from syscall implementation.
-> 
-> 3/ Removal of !CONFIG_PCI pciconfig stubs from alpha, ia64 and sparc64
-> (we already have cond_syscalls for them).
+It fails similarly on sparc.
 
-Sounds fine to me.
-
-> I don't quite understand why we need
-> compat_sys_pciconfig_{read,write,iobase} on ppc64.  Can't these just
-> call the normal versions?
-
-I don't see this in the current tree, were they removed as
-a result of this observation?
+Signal stacks and SA_ONSTACK are not a very well tested feature, and I
+think that is playing a part in this.
