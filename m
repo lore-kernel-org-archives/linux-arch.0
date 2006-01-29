@@ -1,45 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cabal.ca ([134.117.69.58]:54486 "EHLO fattire.cabal.ca")
-	by vger.kernel.org with ESMTP id S1750949AbWAYQfT (ORCPT
+Received: from cantor2.suse.de ([195.135.220.15]:202 "EHLO mx2.suse.de")
+	by vger.kernel.org with ESMTP id S1750831AbWA2Fi1 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Jan 2006 11:35:19 -0500
-Date: Wed, 25 Jan 2006 11:34:36 -0500
-From: Kyle McMartin <kyle@parisc-linux.org>
-Subject: Re: [RFC] is_compat_task helper
-Message-ID: <20060125163436.GN5604@quicksilver.road.mcmartin.ca>
-References: <20060124000753.GC5604@quicksilver.road.mcmartin.ca> <200601240113.39825.ak@suse.de> <20060123.210755.31638992.davem@davemloft.net>
+	Sun, 29 Jan 2006 00:38:27 -0500
+From: Andi Kleen <ak@suse.de>
+Subject: Re: [patch 3/4] net: Percpufy frequently used variables -- proto.sockets_allocated
+Date: Sun, 29 Jan 2006 06:38:17 +0100
+References: <20060126185649.GB3651@localhost.localdomain> <20060129004459.GA24099@kvack.org> <20060128165549.262f2b90.akpm@osdl.org>
+In-Reply-To: <20060128165549.262f2b90.akpm@osdl.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20060123.210755.31638992.davem@davemloft.net>
+Message-Id: <200601290638.18630.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: "David S. Miller" <davem@davemloft.net>
-Cc: ak@suse.de, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: Benjamin LaHaise <bcrl@kvack.org>, dada1@cosmosbay.com, kiran@scalex86.org, davem@davemloft.net, linux-kernel@vger.kernel.org, shai@scalex86.org, netdev@vger.kernel.org, pravins@calsoftinc.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Jan 23, 2006 at 09:07:55PM -0800, David S. Miller wrote:
-> From: Andi Kleen <ak@suse.de>
-> Date: Tue, 24 Jan 2006 01:13:39 +0100
-> > On Tuesday 24 January 2006 01:07, Kyle McMartin wrote:
-> > > +/* Arches may override __is_compat_task from asm/compat.h */
-> > I don't think this particular patch is a good idea. PER_LINUX32 means
-> > something completely different than you think on many architectures.
-> > You can't do a default for it.
-> 
-> Indeed, it is definitely preferable to just flat out break
-> the build than give a bogus default.
+[adding linux-arch]
+
+On Sunday 29 January 2006 01:55, Andrew Morton wrote:
+> Benjamin LaHaise <bcrl@kvack.org> wrote:
+> > On Sat, Jan 28, 2006 at 01:28:20AM +0100, Eric Dumazet wrote:
+> > > We might use atomic_long_t only (and no spinlocks)
+> > > Something like this ?
+> >
+> > Erk, complex and slow...  Try using local_t instead, which is
+> > substantially cheaper on the P4 as it doesn't use the lock prefix and act
+> > as a memory barrier.  See asm/local.h.
 >
+> local_t isn't much use until we get rid of asm-generic/local.h.  Bloaty,
+> racy with nested interrupts.
 
-Sounds fine to me.
- 
-> If the build breaks, you see the failure and the platform
-> maintainer makes sure the correct implementation is made.
-> If it silently just builds, you end up with potential silent
-> failures which just sucks :)
+It is just implemented wrong. It should use 
+local_irq_save()/local_irq_restore() instead. But my bigger problem
+with local_t is these few architectures (IA64, PPC64) who implement it 
+with atomic_t. This means we can't replace local statistics counters
+with local_t because it would be regression for them. I haven't done the
+benchmarks yet, but I suspect both IA64 and PPC64 really should
+just turn off interrupts.
 
-Alrighty, would there by any objection to ripping out the 
-`generic' __is_compat_task and letting this sit in -mm for arch
-maintainers to fix their builds?
-
-Thanks,
-	Kyle
+-Andi
