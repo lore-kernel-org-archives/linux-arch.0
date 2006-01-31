@@ -1,45 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:202 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S1750831AbWA2Fi1 (ORCPT
+Received: from smtp.osdl.org ([65.172.181.4]:19112 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1751692AbWAaW3r (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 29 Jan 2006 00:38:27 -0500
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [patch 3/4] net: Percpufy frequently used variables -- proto.sockets_allocated
-Date: Sun, 29 Jan 2006 06:38:17 +0100
-References: <20060126185649.GB3651@localhost.localdomain> <20060129004459.GA24099@kvack.org> <20060128165549.262f2b90.akpm@osdl.org>
-In-Reply-To: <20060128165549.262f2b90.akpm@osdl.org>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200601290638.18630.ak@suse.de>
+	Tue, 31 Jan 2006 17:29:47 -0500
+Date: Tue, 31 Jan 2006 14:31:49 -0800
+From: Andrew Morton <akpm@osdl.org>
+Subject: Fw: [PATCH] abstract type/size specification for assembly
+Message-Id: <20060131143149.35db2e02.akpm@osdl.org>
+Mime-Version: 1.0
+Content-Type: multipart/mixed;
+ boundary="Multipart=_Tue__31_Jan_2006_14_31_49_-0800_On_xo9OI6utzn6dy"
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: Benjamin LaHaise <bcrl@kvack.org>, dada1@cosmosbay.com, kiran@scalex86.org, davem@davemloft.net, linux-kernel@vger.kernel.org, shai@scalex86.org, netdev@vger.kernel.org, pravins@calsoftinc.com, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: Jan Beulich <JBeulich@novell.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-[adding linux-arch]
+This is a multi-part message in MIME format.
 
-On Sunday 29 January 2006 01:55, Andrew Morton wrote:
-> Benjamin LaHaise <bcrl@kvack.org> wrote:
-> > On Sat, Jan 28, 2006 at 01:28:20AM +0100, Eric Dumazet wrote:
-> > > We might use atomic_long_t only (and no spinlocks)
-> > > Something like this ?
-> >
-> > Erk, complex and slow...  Try using local_t instead, which is
-> > substantially cheaper on the P4 as it doesn't use the lock prefix and act
-> > as a memory barrier.  See asm/local.h.
->
-> local_t isn't much use until we get rid of asm-generic/local.h.  Bloaty,
-> racy with nested interrupts.
+--Multipart=_Tue__31_Jan_2006_14_31_49_-0800_On_xo9OI6utzn6dy
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-It is just implemented wrong. It should use 
-local_irq_save()/local_irq_restore() instead. But my bigger problem
-with local_t is these few architectures (IA64, PPC64) who implement it 
-with atomic_t. This means we can't replace local statistics counters
-with local_t because it would be regression for them. I haven't done the
-benchmarks yet, but I suspect both IA64 and PPC64 really should
-just turn off interrupts.
 
--Andi
+OK?
+
+
+
+From: Jan Beulich <jbeulich@novell.com>
+
+Provide abstraction for generating type and size information of assembly
+routines and data.
+
+Signed-off-by: Jan Beulich <jbeulich@novell.com>
+Signed-off-by: Andrew Morton <akpm@osdl.org>
+---
+
+ include/linux/linkage.h |    5 +++++
+ 1 files changed, 5 insertions(+)
+
+diff -puN include/linux/linkage.h~abstract-type-size-specification-for-assembly include/linux/linkage.h
+--- 25/include/linux/linkage.h~abstract-type-size-specification-for-assembly	Tue Jan 31 14:30:58 2006
++++ 25-akpm/include/linux/linkage.h	Tue Jan 31 14:30:58 2006
+@@ -39,6 +39,11 @@
+   ALIGN; \
+   name:
+ 
++#define ENDPROC(name) \
++  .type name, @function; \
++  END(name)
++#define END(name) \
++  .size name, .-name
+ 
+ #endif
+ 
+_
+
+
+--Multipart=_Tue__31_Jan_2006_14_31_49_-0800_On_xo9OI6utzn6dy
+Content-Type: text/plain;
+ name="linux-2.6.16-rc1-end-endproc.patch"
+Content-Disposition: attachment;
+ filename="linux-2.6.16-rc1-end-endproc.patch"
+Content-Transfer-Encoding: 7bit
+
+From: Jan Beulich <jbeulich@novell.com>
+
+Provide abstraction for generating type and size information of
+assembly routines and data.
+
+Signed-Off-By: Jan Beulich <jbeulich@novell.com>
+
+diff -Npru /home/jbeulich/tmp/linux-2.6.16-rc1/include/linux/linkage.h 2.6.16-rc1-end-endproc/include/linux/linkage.h
+--- /home/jbeulich/tmp/linux-2.6.16-rc1/include/linux/linkage.h	2006-01-03 04:21:10.000000000 +0100
++++ 2.6.16-rc1-end-endproc/include/linux/linkage.h	2006-01-25 10:41:49.000000000 +0100
+@@ -39,6 +39,11 @@
+   ALIGN; \
+   name:
+ 
++#define ENDPROC(name) \
++  .type name, @function; \
++  END(name)
++#define END(name) \
++  .size name, .-name
+ 
+ #endif
+ 
+
+
+--Multipart=_Tue__31_Jan_2006_14_31_49_-0800_On_xo9OI6utzn6dy--
