@@ -1,72 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mipsfw.mips-uk.com ([194.74.144.146]:23838 "EHLO
+Received: from mipsfw.mips-uk.com ([194.74.144.146]:5638 "EHLO
 	bacchus.net.dhis.org") by vger.kernel.org with ESMTP
-	id S1750833AbWBBL40 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 2 Feb 2006 06:56:26 -0500
-Date: Wed, 1 Feb 2006 13:50:03 +0000
+	id S1750926AbWBBMDq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 2 Feb 2006 07:03:46 -0500
+Date: Thu, 2 Feb 2006 12:01:10 +0000
 From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: Fw: [PATCH] abstract type/size specification for assembly
-Message-ID: <20060201135002.GA6386@linux-mips.org>
-References: <20060131143149.35db2e02.akpm@osdl.org>
+Subject: Re: [PATCH] compat: fix compat_sys_openat and friends
+Message-ID: <20060202120109.GA5273@linux-mips.org>
+References: <20060202161151.58839ffd.sfr@canb.auug.org.au> <Pine.LNX.4.64.0602012134150.21884@g5.osdl.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20060131143149.35db2e02.akpm@osdl.org>
+In-Reply-To: <Pine.LNX.4.64.0602012134150.21884@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org, Jan Beulich <JBeulich@novell.com>
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Andrew Morton <akpm@osdl.org>, LKML <linux-kernel@vger.kernel.org>, Ulrich Drepper <drepper@redhat.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Jan 31, 2006 at 02:31:49PM -0800, Andrew Morton wrote:
+On Wed, Feb 01, 2006 at 09:36:40PM -0800, Linus Torvalds wrote:
 
-> OK?
+> > Most of the 64 bit architectures will zero extend the first argument to
+> > compat_sys_{openat,newfstatat,futimesat} which will fail if the 32 bit
+> > syscall was passed AT_FDCWD (which is a small negative number).  Declare
+> > the first argument to be an unsigned int which will force the correct
+> > sign extension when the internal functions are called in each case.
+> 
+> Umm.
+> 
+> Wouldn't it be _much_ better to declare the argument as a "long", since 
+> some architectures (alpha, for example) may assume that 32-bit arguments 
+> have been _sign_extended, not zero-extended.
 
-No.
+> Then, when the "compat_sys_xxxx()" function passes the "long" down to the 
+> _real_ function (which takes an "int"), those architectures (and only 
+> those architectures) that actually have assumptions about high bits will 
+> have the compiler automatically do the right zero- or sign-extensions at 
+> that call-site.
 
-> diff -puN include/linux/linkage.h~abstract-type-size-specification-for-assembly include/linux/linkage.h
-> --- 25/include/linux/linkage.h~abstract-type-size-specification-for-assembly	Tue Jan 31 14:30:58 2006
-> +++ 25-akpm/include/linux/linkage.h	Tue Jan 31 14:30:58 2006
-> @@ -39,6 +39,11 @@
->    ALIGN; \
->    name:
->  
-> +#define ENDPROC(name) \
-> +  .type name, @function; \
-> +  END(name)
-> +#define END(name) \
-> +  .size name, .-name
->  
->  #endif
-
-No.  On MIPS we need a .end directive as well; since the dawn of Linux I
-have the following in include/asm-mips/asm.h:
-
-#define END(function)                                   \
-                .end    function;                       \
-                .size   function,.-function
-
-And while we're at it, the ENTRY definition there isn't usable on MIPS
-either; we need two different definitions for leaf and no-leaf functions
-which again are in asm.h:
-
-/*
- * LEAF - declare leaf routine
- */
-#define LEAF(symbol)                                    \
-                .globl  symbol;                         \
-                .align  2;                              \
-                .type   symbol,@function;               \
-                .ent    symbol,0;                       \
-symbol:         .frame  sp,0,ra
-
-/*
- * NESTED - declare nested routine entry point
- */
-#define NESTED(symbol, framesize, rpc)                  \
-                .globl  symbol;                         \
-                .align  2;                              \
-                .type   symbol,@function;               \
-                .ent    symbol,0;                       \
-symbol:         .frame  sp, framesize, rpc
+MIPS is one of those architectures where variables are always held
+sign-extended to the full 32-bit or 64-bit size of the register.  The
+signed-ness of the C data type doesn't matter at all here so Stephen's
+change is a nop for MIPS.
 
   Ralf
