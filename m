@@ -1,42 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from public.id2-vpn.continvity.gns.novell.com ([195.33.99.129]:27164
-	"EHLO emea1-mh.id2.novell.com") by vger.kernel.org with ESMTP
-	id S932130AbWBALj6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Feb 2006 06:39:58 -0500
-Message-Id: <43E0AC2A.76F0.0078.0@novell.com>
-Date: Wed, 01 Feb 2006 12:40:10 +0100
-From: "Jan Beulich" <JBeulich@novell.com>
-Subject: Re: Fw: [PATCH] abstract type/size specification for assembly
-References: <20060131143149.35db2e02.akpm@osdl.org>  <200602010836.09932.ak@suse.de> <20060201083243.GB24893@flint.arm.linux.org.uk>
-In-Reply-To: <20060201083243.GB24893@flint.arm.linux.org.uk>
+Received: from chilli.pcug.org.au ([203.10.76.44]:26262 "EHLO smtps.tip.net.au")
+	by vger.kernel.org with ESMTP id S1161121AbWBBFMp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2006 00:12:45 -0500
+Date: Thu, 2 Feb 2006 16:11:51 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: [PATCH] compat: fix compat_sys_openat and friends
+Message-Id: <20060202161151.58839ffd.sfr@canb.auug.org.au>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: Andrew Morton <akpm@osdl.org>, Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linus <torvalds@osdl.org>, Ulrich Drepper <drepper@redhat.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
->>> Russell King <rmk@arm.linux.org.uk> 01.02.06 09:32:43 >>>
->@ is the comment character on ARM, so this can't go here - we use
->
->	.type name, %function
->
->instead.
+Most of the 64 bit architectures will zero extend the first argument to
+compat_sys_{openat,newfstatat,futimesat} which will fail if the 32 bit
+syscall was passed AT_FDCWD (which is a small negative number).  Declare
+the first argument to be an unsigned int which will force the correct
+sign extension when the internal functions are called in each case.
 
-Bad.
+Also, do some small white space cleanups in fs/compat.c.
 
->Interestingly, the info pages for as seem to indicate that
->there's a number of alternatives - maybe the most benign one should
->be used, iow:
->
->	.type name, "function"
+Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
+---
 
-While gas seems to generally accept it, ias doesn't (and the assembly language spec for ia64 doesn't either).
+ fs/compat.c              |   12 ++++++------
+ include/linux/syscalls.h |    6 +++---
+ 2 files changed, 9 insertions(+), 9 deletions(-)
 
->or alternatively make ENDPROC arch-overridable.
+This has been built on powerpc (and does the neede sign extension)
+but not tested as we have yet to wire up the syscalls there.
 
-That seems to be the only choice then. I'll send a revised patch soon.
+Also, we will need compat wrappers for the other *at syscalls for
+the same reason (sign extension of the first argument).
 
-Jan
+Also, I am wondering if we should move the declarations of the compat
+syscalls to linux/compat.h (where all previous compat syscalls are
+declated).
+-- 
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+13be12a8986f1e178e20f80b94e2fab7c46bc5fe
+diff --git a/fs/compat.c b/fs/compat.c
+index cc58a20..70c5af4 100644
+--- a/fs/compat.c
++++ b/fs/compat.c
+@@ -73,17 +73,17 @@ asmlinkage long compat_sys_utime(char __
+ 	return do_utimes(AT_FDCWD, filename, t ? tv : NULL);
+ }
+ 
+-asmlinkage long compat_sys_futimesat(int dfd, char __user *filename, struct compat_timeval __user *t)
++asmlinkage long compat_sys_futimesat(unsigned int dfd, char __user *filename, struct compat_timeval __user *t)
+ {
+ 	struct timeval tv[2];
+ 
+-	if (t) { 
++	if (t) {
+ 		if (get_user(tv[0].tv_sec, &t[0].tv_sec) ||
+ 		    get_user(tv[0].tv_usec, &t[0].tv_usec) ||
+ 		    get_user(tv[1].tv_sec, &t[1].tv_sec) ||
+ 		    get_user(tv[1].tv_usec, &t[1].tv_usec))
+-			return -EFAULT; 
+-	} 
++			return -EFAULT;
++	}
+ 	return do_utimes(dfd, filename, t ? tv : NULL);
+ }
+ 
+@@ -114,7 +114,7 @@ asmlinkage long compat_sys_newlstat(char
+ 	return error;
+ }
+ 
+-asmlinkage long compat_sys_newfstatat(int dfd, char __user *filename,
++asmlinkage long compat_sys_newfstatat(unsigned int dfd, char __user *filename,
+ 		struct compat_stat __user *statbuf, int flag)
+ {
+ 	struct kstat stat;
+@@ -1326,7 +1326,7 @@ compat_sys_open(const char __user *filen
+  * O_LARGEFILE flag.
+  */
+ asmlinkage long
+-compat_sys_openat(int dfd, const char __user *filename, int flags, int mode)
++compat_sys_openat(unsigned int dfd, const char __user *filename, int flags, int mode)
+ {
+ 	return do_sys_open(dfd, filename, flags, mode);
+ }
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index fdbd436..3877209 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -559,12 +559,12 @@ asmlinkage long sys_newfstatat(int dfd, 
+ 			       struct stat __user *statbuf, int flag);
+ asmlinkage long sys_readlinkat(int dfd, const char __user *path, char __user *buf,
+ 			       int bufsiz);
+-asmlinkage long compat_sys_futimesat(int dfd, char __user *filename,
++asmlinkage long compat_sys_futimesat(unsigned int dfd, char __user *filename,
+ 				     struct compat_timeval __user *t);
+-asmlinkage long compat_sys_newfstatat(int dfd, char __user * filename,
++asmlinkage long compat_sys_newfstatat(unsigned int dfd, char __user * filename,
+ 				      struct compat_stat __user *statbuf,
+ 				      int flag);
+-asmlinkage long compat_sys_openat(int dfd, const char __user *filename,
++asmlinkage long compat_sys_openat(unsigned int dfd, const char __user *filename,
+ 				   int flags, int mode);
+ 
+ #endif
+-- 
+1.1.5
