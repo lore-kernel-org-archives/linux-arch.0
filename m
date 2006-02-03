@@ -1,35 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from holomorphy.com ([66.93.40.71]:46011 "EHLO holomorphy.com")
-	by vger.kernel.org with ESMTP id S932199AbWBCJhk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2006 04:37:40 -0500
-Date: Fri, 3 Feb 2006 01:36:18 -0800
-From: William Lee Irwin III <wli@holomorphy.com>
+Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:13202
+	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
+	id S932224AbWBCJkH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Feb 2006 04:40:07 -0500
+Date: Fri, 03 Feb 2006 01:38:53 -0800 (PST)
+Message-Id: <20060203.013853.126416970.davem@davemloft.net>
 Subject: Re: percpu data changes
-Message-ID: <20060203093618.GF2866@holomorphy.com>
+From: "David S. Miller" <davem@davemloft.net>
+In-Reply-To: <20060203013521.3696aa64.akpm@osdl.org>
 References: <20060203011748.6fe3fee3.akpm@osdl.org>
+	<20060203011835.556f5199.akpm@osdl.org>
+	<20060203013521.3696aa64.akpm@osdl.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20060203011748.6fe3fee3.akpm@osdl.org>
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: Mikael Starvik <starvik@axis.com>, David Howells <dhowells@redhat.com>, Kyle McMartin <kyle@parisc-linux.org>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Andi Kleen <ak@muc.de>, Christian Zankel <chris@zankel.net>, Philippe Elie <phil.el@wanadoo.fr>, Nathan Scott <nathans@sgi.com>, Jens Axboe <axboe@suse.de>, linux-arch@vger.kernel.org, Eric Dumazet <dada1@cosmosbay.com>
+To: akpm@osdl.org
+Cc: starvik@axis.com, dhowells@redhat.com, kyle@parisc-linux.org, anton@samba.org, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, lethal@linux-sh.org, wli@holomorphy.com, ak@muc.de, chris@zankel.net, phil.el@wanadoo.fr, nathans@sgi.com, axboe@suse.de, linux-arch@vger.kernel.org, dada1@cosmosbay.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Feb 03, 2006 at 01:17:48AM -0800, Andrew Morton wrote:
-> It seems that powerpc has gone and changed their implementation of percpu
-> data so that there is no memory allocated for not-possible CPUs.  To save a
-> bit of RAM.
-> This means that any code which does
+From: Andrew Morton <akpm@osdl.org>
+Date: Fri, 3 Feb 2006 01:35:21 -0800
+
+> A couple more.
 > 
-> 	for (i = 0; i < NR_CPUS; i++)
-> 		touch(percpudata(i))
-> will explode on powerpc.
-> I have a patch queued up (for 2.6.16) which fixes most users of percpu
-> data.  Make them use for_each_cpu().  I'll send that in a moment.
-...
+>  net/core/dev.c   |    2 +-
+>  net/core/utils.c |    2 +-
+>  2 files changed, 2 insertions(+), 2 deletions(-)
 
-Blanket Acked-by: William Irwin <wli@holomorphy.com>
-
-
--- wli
+Looks good to me, please merge this in Andrew.
