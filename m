@@ -1,28 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cabal.ca ([134.117.69.58]:51920 "EHLO fattire.cabal.ca")
-	by vger.kernel.org with ESMTP id S1750854AbWBCPhf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2006 10:37:35 -0500
-Date: Fri, 3 Feb 2006 10:36:14 -0500
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: percpu data changes
-Message-ID: <20060203153614.GC29845@quicksilver.road.mcmartin.ca>
-References: <20060203011748.6fe3fee3.akpm@osdl.org>
+Received: from cabal.ca ([134.117.69.58]:10986 "EHLO fattire.cabal.ca")
+	by vger.kernel.org with ESMTP id S1750726AbWBETco (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 5 Feb 2006 14:32:44 -0500
+Received: from localhost (localhost.localdomain [127.0.0.1])
+	by fattire.cabal.ca (Postfix) with ESMTP id 7AD7A23E83
+	for <linux-arch@vger.kernel.org>; Sun,  5 Feb 2006 14:32:09 -0500 (EST)
+Received: from fattire.cabal.ca ([127.0.0.1])
+	by localhost (fattire [127.0.0.1]) (amavisd-new, port 10024)
+	with ESMTP id 15399-03 for <linux-arch@vger.kernel.org>;
+	Sun, 5 Feb 2006 14:32:09 -0500 (EST)
+Received: from quicksilver.road.mcmartin.ca (CPE0004ace53177-CM0012c9a9a56e.cpe.net.cable.rogers.com [70.25.68.204])
+	(using TLSv1 with cipher DHE-RSA-AES256-SHA (256/256 bits))
+	(Client CN "quicksilver.road.mcmartin.ca", Issuer "There Is No Cabal Certificate Authority" (verified OK))
+	by fattire.cabal.ca (Postfix) with ESMTP id 08B3223E82
+	for <linux-arch@vger.kernel.org>; Sun,  5 Feb 2006 14:32:08 -0500 (EST)
+Date: Sun, 5 Feb 2006 14:31:29 -0500
+From: Kyle McMartin <kyle@parisc-linux.org>
+Subject: [RFCv3] generic is_compat_task helper
+Message-ID: <20060205193129.GA7566@quicksilver.road.mcmartin.ca>
+References: <20060202065145.GA29845@quicksilver.road.mcmartin.ca>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20060203011748.6fe3fee3.akpm@osdl.org>
+In-Reply-To: <20060202065145.GA29845@quicksilver.road.mcmartin.ca>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: Mikael Starvik <starvik@axis.com>, David Howells <dhowells@redhat.com>, Kyle McMartin <kyle@parisc-linux.org>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, William Lee Irwin III <wli@holomorphy.com>, Andi Kleen <ak@muc.de>, Christian Zankel <chris@zankel.net>, Philippe Elie <phil.el@wanadoo.fr>, Nathan Scott <nathans@sgi.com>, Jens Axboe <axboe@suse.de>, linux-arch@vger.kernel.org, Eric Dumazet <dada1@cosmosbay.com>
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Feb 03, 2006 at 01:17:48AM -0800, Andrew Morton wrote:
-> Cc: Kyle McMartin <kyle@parisc-linux.org>
->
+Take 3... External facing interface implicitly uses current. Use
+backend on parisc to clean up users in arch/parisc/kernel/ptrace.c which
+act on *child. No generic CONFIG_COMPAT case, arch maintainers must add
+their own (since they know best) to asm/compat.h.
 
-Looks good.
-
-Acked-by: Kyle McMartin <kyle@parisc-linux.org>
-
-Cheers!
-	Kyle 
+diff --git a/include/asm-parisc/compat.h b/include/asm-parisc/compat.h
+index 38b918f..22e3715 100644
+--- a/include/asm-parisc/compat.h
++++ b/include/asm-parisc/compat.h
+@@ -144,4 +144,14 @@ static __inline__ void __user *compat_al
+ 	return (void __user *)regs->gr[30];
+ }
+ 
++static inline int __is_compat_task(struct task_struct *t)
++{
++	return (personality(t->personality) == PER_LINUX32);
++}
++
++static inline int is_compat_task(void)
++{
++	return __is_compat_task(current);
++}
++
+ #endif /* _ASM_PARISC_COMPAT_H */
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index f9ca534..fb6f64f 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -161,5 +161,12 @@ int copy_siginfo_to_user32(struct compat
+ int get_compat_sigevent(struct sigevent *event,
+ 		const struct compat_sigevent __user *u_event);
+ 
++#else /* !CONFIG_COMPAT */
++
++static inline int is_compat_task(void)
++{
++	return 0;
++}
++
+ #endif /* CONFIG_COMPAT */
+ #endif /* _LINUX_COMPAT_H */
