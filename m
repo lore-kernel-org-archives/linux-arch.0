@@ -1,210 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gold.veritas.com ([143.127.12.110]:40813 "EHLO gold.veritas.com")
-	by vger.kernel.org with ESMTP id S932239AbWBFRNY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Feb 2006 12:13:24 -0500
-Date: Mon, 6 Feb 2006 17:14:07 +0000 (GMT)
-From: Hugh Dickins <hugh@veritas.com>
-Subject: Re: Fw: crash on x86_64 - mm related?
-In-Reply-To: <Pine.LNX.4.61.0602031842290.14065@goblin.wat.veritas.com>
-Message-ID: <Pine.LNX.4.61.0602061703220.3560@goblin.wat.veritas.com>
-References: <Pine.LNX.4.63.0512271807130.4955@kai.makisara.local>
- <20060104172727.GA320@tau.solarneutrino.net> <Pine.LNX.4.63.0601042334310.5087@kai.makisara.local>
- <20060105201249.GB1795@tau.solarneutrino.net> <Pine.LNX.4.64.0601051312380.3169@g5.osdl.org>
- <20060109033149.GC283@tau.solarneutrino.net> <Pine.LNX.4.64.0601082000450.3169@g5.osdl.org>
- <Pine.LNX.4.61.0601090933160.7632@goblin.wat.veritas.com>
- <20060109185350.GG283@tau.solarneutrino.net> <Pine.LNX.4.61.0601091922550.15426@goblin.wat.veritas.com>
- <20060118001252.GB821@tau.solarneutrino.net> <Pine.LNX.4.61.0601181556050.9110@goblin.wat.veritas.com>
- <Pine.LNX.4.61.0602031842290.14065@goblin.wat.veritas.com>
+Received: from e5.ny.us.ibm.com ([32.97.182.145]:6312 "EHLO e5.ny.us.ibm.com")
+	by vger.kernel.org with ESMTP id S932282AbWBFTQC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Feb 2006 14:16:02 -0500
+Message-ID: <43E7A06D.80901@us.ibm.com>
+Date: Mon, 06 Feb 2006 13:15:57 -0600
+From: Brian King <brking@us.ibm.com>
+Reply-To: brking@us.ibm.com
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: [PATCH] ipr: don't doublefree pages from scatterlist
+References: <Pine.LNX.4.61.0602040004020.5406@goblin.wat.veritas.com>	 <43E66FB6.6070303@us.ibm.com>	 <Pine.LNX.4.61.0602060909180.6827@goblin.wat.veritas.com>	 <20060206.014608.22328385.davem@davemloft.net>	 <43E7613B.5060706@us.ibm.com>	 <Pine.LNX.4.61.0602061621450.3560@goblin.wat.veritas.com> <1139247516.3022.6.camel@mulgrave.il.steeleye.com>
+In-Reply-To: <1139247516.3022.6.camel@mulgrave.il.steeleye.com>
+Content-Type: multipart/mixed;
+ boundary="------------050306050202070909020808"
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Ryan Richter <ryan@tau.solarneutrino.net>, Linus Torvalds <torvalds@osdl.org>, Kai Makisara <Kai.Makisara@kolumbus.fi>, James Bottomley <James.Bottomley@steeleye.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Andrew Morton <akpm@osdl.org>, Roland Dreier <rdreier@cisco.com>, Brian King <brking@us.ibm.com>, Willem Riede <osst@riede.org>, Doug Gilbert <dougg@torque.net>, linux-arch@vger.kernel.org
+To: James Bottomley <James.Bottomley@steeleye.com>
+Cc: Hugh Dickins <hugh@veritas.com>, "David S. Miller" <davem@davemloft.net>, Andi Kleen <ak@suse.de>, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org, Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Here's the original mail I sent out on Friday, re fix to Ryan's bug,
-as context for the "[PATCH] ipr: don't doublefree pages from scatterlist"
-thread now copied to linux-arch.  Brian resisted complicating idr in this
-way, David and James agree with him, it now seems that x86_64 (and
-others?) and I interpreted DMA-API.txt too liberally, and there's
-talk of changing x86_64's coalescing instead...
+This is a multi-part message in MIME format.
+--------------050306050202070909020808
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 
-(Mike Christie has separately pointed out that the issue has been
-fixed independently for st and sg in 2.6.16-rc, by his changes to
-scsi_execute_async.)
+James Bottomley wrote:
+> On Mon, 2006-02-06 at 16:45 +0000, Hugh Dickins wrote:
+>> But I'd also want James or someone to clarify the paragraph
+>> "Please note that the sg cannot be mapped again if it has been mapped once.
+>>  The mapping process is allowed to destroy information in the sg."
+>> which I took as explicitly allowing what x86_64 does in gart_map_sg.
+>> I thought James had a scenario in mind which demands this wholesale
+>> destruction, but it seems not; and I now read that first sentence as
+>> saying the sg must be unmapped before it can be mapped a second time,
+>> not that it can only be mapped once.
+>>
+>> And add a paragraph explaining that really the one array of scatterlist
+>> entries should be regarded as two arrays of possibly different lengths,
+>> the page,offset,length array and the dma_address,dma_length array:
+>> because entries of the latter may be coalesced, so that in the end
+>> the dma_address in a scatterlength entry may bear no relation to the
+>> page pointer in that same entry, but to the page pointer in a later entry.
+>> Though it gets hard to explain given that not all architectures coalesce,
+>> so may not even have a separate dma_length field; or use different naming.
+>> If you can express this better than I, please do!
+> 
+> Yes, I added that piece after the x86_64 problem.  The original x86_64
+> bug was that you couldn't do dma_map_sg() then dma_unmap_sg() then
+> dma_map_sg() on the same scatterlist (the map was destroying information
+> which wasn't restored on the unmap, so the second map produced an
+> incorrect scatterlist), which was causing a bug in all SCSI drivers
+> (because that's the way SCSI requeueing works).
 
-Hugh
+Here is a second try at a documentation update. Any takers to fixup x86_64?
 
-On Fri, 3 Feb 2006, Hugh Dickins wrote:
-> On Wed, 18 Jan 2006, Hugh Dickins wrote:
-> > On Tue, 17 Jan 2006, Ryan Richter wrote:
-> > 
-> > > This machine experienced another random reboot today, nothing in the
-> > > logs or on the console etc.  This is the 3rd time now since I upgraded
-> > > from 2.6.11.3.  Is there any way to debug something like this?
-> > 
-> > Nasty.  I hope someone else can suggest something constructive.
-> 
-> Are they still happening?
-> 
-> > > I'm fairly certain it's not hardware-related.
-> > > Might this have something to do with the st problem?
-> > 
-> > Well, it might: I've not been able to explain that at all, so cannot
-> > rule out a relation to your reboots.
-> 
-> If no "Bad page state" has occurred earlier, we can now be sure that
-> these reboots are (unfortunately) unrelated to the st problem.
-> 
-> > The st problem (Bad page state,
-> > mapcount 2 while count 0, from sgl_unmap_user_pages) ought to be a lot
-> > easier to debug than a random reboot: but I've still no suggestion.
-> 
-> I guessed it last week, Ryan verified that booting with "iommu=nomerge"
-> worked around it, and then that the 2.6.15 patch below fixes it.
-> 
-> On some architectures (alpha, ia64, parisc, powerpc, sparc64, x86_64,
-> more?) in some configurations, dma_map_sg or pci_map_sg may coalesce
-> scatterlist entries, copying later entries down: bad news if we then
-> go on to use that coalesced scatterlist to free the pages afterwards -
-> we're quite liable to free the same page twice.
-> 
-> James' DMA-API.txt is perfectly clear that "The mapping process is
-> allowed to destroy information in the sg".  I wonder that this hasn't
-> been noticed before.  Perhaps we should have a debug option to destroy
-> everything in the scatterlist when unmapping.
-> 
-> The st code has moved on a little since 2.6.15, I'll send the 2.6.16-rc2
-> patch to Kai and lists in reply to this mail.  I've looked around for
-> similar culprits - fewer than I was expecting, but I'm not sure if
-> I've found them all:
-> 
-> drivers/infiniband/core/uverbs_mem.c
-> drivers/scsi/ipr.c
-> drivers/scsi/osst.c
-> drivers/scsi/sg.c
-> 
-> I'll reply with _untested_ patches to the maintainers and list for
-> those too.  Except for sg.c, which I'll send privately to Doug -
-> I've wasted a lot of time not quite understanding it, and don't
-> want to expose my ignorance in public.
-> 
-> Hugh
-> 
-> --- 2.6.15/drivers/scsi/st.c	2006-01-03 03:21:10.000000000 +0000
-> +++ linux/drivers/scsi/st.c	2006-01-29 17:21:47.000000000 +0000
-> @@ -188,11 +188,11 @@ static int from_buffer(struct st_buffer 
->  static void move_buffer_data(struct st_buffer *, int);
->  static void buf_to_sg(struct st_buffer *, unsigned int);
->  
-> -static int st_map_user_pages(struct scatterlist *, const unsigned int, 
-> +static int st_map_user_pages(struct st_buffer *, const unsigned int, 
->  			     unsigned long, size_t, int, unsigned long);
-> -static int sgl_map_user_pages(struct scatterlist *, const unsigned int, 
-> +static int sgl_map_user_pages(struct st_buffer *, const unsigned int, 
->  			      unsigned long, size_t, int);
-> -static int sgl_unmap_user_pages(struct scatterlist *, const unsigned int, int);
-> +static int sgl_unmap_user_pages(struct st_buffer *, const unsigned int, int);
->  
->  static int st_probe(struct device *);
->  static int st_remove(struct device *);
-> @@ -1402,7 +1402,7 @@ static int setup_buffering(struct scsi_t
->  		i = STp->try_dio && try_wdio;
->  	if (i && ((unsigned long)buf & queue_dma_alignment(
->  					STp->device->request_queue)) == 0) {
-> -		i = st_map_user_pages(&(STbp->sg[0]), STbp->use_sg,
-> +		i = st_map_user_pages(STbp, STbp->use_sg,
->  				      (unsigned long)buf, count, (is_read ? READ : WRITE),
->  				      STp->max_pfn);
->  		if (i > 0) {
-> @@ -1455,7 +1455,7 @@ static void release_buffering(struct scs
->  
->  	STbp = STp->buffer;
->  	if (STbp->do_dio) {
-> -		sgl_unmap_user_pages(&(STbp->sg[0]), STbp->do_dio, 0);
-> +		sgl_unmap_user_pages(STbp, STbp->do_dio, 0);
->  		STbp->do_dio = 0;
->  	}
->  }
-> @@ -4396,32 +4396,33 @@ static void do_create_class_files(struct
->     - any page is above max_pfn
->     (i.e., either completely successful or fails)
->  */
-> -static int st_map_user_pages(struct scatterlist *sgl, const unsigned int max_pages, 
-> +static int st_map_user_pages(struct st_buffer *STbp, const unsigned int max_pages, 
->  			     unsigned long uaddr, size_t count, int rw,
->  			     unsigned long max_pfn)
->  {
->  	int i, nr_pages;
->  
-> -	nr_pages = sgl_map_user_pages(sgl, max_pages, uaddr, count, rw);
-> +	nr_pages = sgl_map_user_pages(STbp, max_pages, uaddr, count, rw);
->  	if (nr_pages <= 0)
->  		return nr_pages;
->  
->  	for (i=0; i < nr_pages; i++) {
-> -		if (page_to_pfn(sgl[i].page) > max_pfn)
-> +		if (page_to_pfn(STbp->sg[i].page) > max_pfn)
->  			goto out_unmap;
->  	}
->  	return nr_pages;
->  
->   out_unmap:
-> -	sgl_unmap_user_pages(sgl, nr_pages, 0);
-> +	sgl_unmap_user_pages(STbp, nr_pages, 0);
->  	return 0;
->  }
->  
->  
->  /* The following functions may be useful for a larger audience. */
-> -static int sgl_map_user_pages(struct scatterlist *sgl, const unsigned int max_pages, 
-> +static int sgl_map_user_pages(struct st_buffer *STbp, const unsigned int max_pages, 
->  			      unsigned long uaddr, size_t count, int rw)
->  {
-> +	struct scatterlist *sgl = STbp->sg;
->  	unsigned long end = (uaddr + count + PAGE_SIZE - 1) >> PAGE_SHIFT;
->  	unsigned long start = uaddr >> PAGE_SHIFT;
->  	const int nr_pages = end - start;
-> @@ -4485,7 +4486,7 @@ static int sgl_map_user_pages(struct sca
->  		sgl[0].length = count;
->  	}
->  
-> -	kfree(pages);
-> +	STbp->sg_pages = pages;
->  	return nr_pages;
->  
->   out_unmap:
-> @@ -4500,13 +4501,13 @@ static int sgl_map_user_pages(struct sca
->  
->  
->  /* And unmap them... */
-> -static int sgl_unmap_user_pages(struct scatterlist *sgl, const unsigned int nr_pages,
-> +static int sgl_unmap_user_pages(struct st_buffer *STbp, const unsigned int nr_pages,
->  				int dirtied)
->  {
->  	int i;
->  
->  	for (i=0; i < nr_pages; i++) {
-> -		struct page *page = sgl[i].page;
-> +		struct page *page = STbp->sg_pages[i];
->  
->  		if (dirtied)
->  			SetPageDirty(page);
-> @@ -4516,5 +4517,7 @@ static int sgl_unmap_user_pages(struct s
->  		page_cache_release(page);
->  	}
->  
-> +	kfree(STbp->sg_pages);
-> +	STbp->sg_pages = NULL;
->  	return 0;
->  }
-> --- 2.6.15/drivers/scsi/st.h	2005-10-28 01:02:08.000000000 +0100
-> +++ linux/drivers/scsi/st.h	2006-01-29 16:52:02.000000000 +0000
-> @@ -37,6 +37,7 @@ struct st_buffer {
->  	unsigned short frp_segs;	/* number of buffer segments */
->  	unsigned int frp_sg_current;	/* driver buffer length currently in s/g list */
->  	struct st_buf_fragment *frp;	/* the allocated buffer fragment list */
-> +	struct page **sg_pages;		/* pages to be freed from s/g list */
->  	struct scatterlist sg[1];	/* MUST BE last item */
->  };
->  
+Brian
+
+-- 
+Brian King
+eServer Storage I/O
+IBM Linux Technology Center
+
+--------------050306050202070909020808
+Content-Type: text/x-patch;
+ name="dma_mapping_clarification.patch"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment;
+ filename="dma_mapping_clarification.patch"
+
+ClRoZSBjdXJyZW50IHBjaV9tYXBfc2cgQVBJIGlzIGEgYml0IHVuY2xlYXIgd2hhdCBpdCBp
+cyBhbGxvd2VkCnRvIG1vZGlmeSBpbiB0aGUgcGFzc2VkIHNjYXR0ZXJsaXN0IHdoZW4gY29h
+bGVzY2luZyBlbnRyaWVzLgpDbGFyaWZ5IHRoZSBwY2lfbWFwX3NnIEFQSSB0byBwcmV2ZW50
+IGl0IGZyb20gbW9kaWZ5aW5nCnRoZSBwYWdlLCBvZmZzZXQsIGFuZCBsZW5ndGggZmllbGRz
+IGluIHRoZSBzY2F0dGVybGlzdC4KClNpZ25lZC1vZmYtYnk6IEJyaWFuIEtpbmcgPGJya2lu
+Z0B1cy5pYm0uY29tPgotLS0KCiBsaW51eC0yLjYtYmpraW5nMS9Eb2N1bWVudGF0aW9uL0RN
+QS1BUEkudHh0ICAgICB8ICAgIDUgKysrLS0KIGxpbnV4LTIuNi1iamtpbmcxL0RvY3VtZW50
+YXRpb24vRE1BLW1hcHBpbmcudHh0IHwgICAgNSArKysrLQogMiBmaWxlcyBjaGFuZ2VkLCA3
+IGluc2VydGlvbnMoKyksIDMgZGVsZXRpb25zKC0pCgpkaWZmIC1wdU4gRG9jdW1lbnRhdGlv
+bi9ETUEtbWFwcGluZy50eHR+ZG1hX21hcHBpbmdfY2xhcmlmaWNhdGlvbiBEb2N1bWVudGF0
+aW9uL0RNQS1tYXBwaW5nLnR4dAotLS0gbGludXgtMi42L0RvY3VtZW50YXRpb24vRE1BLW1h
+cHBpbmcudHh0fmRtYV9tYXBwaW5nX2NsYXJpZmljYXRpb24JMjAwNi0wMi0wNiAxMzowNTo1
+Mi4wMDAwMDAwMDAgLTA2MDAKKysrIGxpbnV4LTIuNi1iamtpbmcxL0RvY3VtZW50YXRpb24v
+RE1BLW1hcHBpbmcudHh0CTIwMDYtMDItMDYgMTM6MDU6NTIuMDAwMDAwMDAwIC0wNjAwCkBA
+IC01MTMsNyArNTEzLDEwIEBAIGNvbnNlY3V0aXZlIHNnbGlzdCBlbnRyaWVzIGNhbiBiZSBt
+ZXJnZWQKIGVuZHMgYW5kIHRoZSBzZWNvbmQgb25lIHN0YXJ0cyBvbiBhIHBhZ2UgYm91bmRh
+cnkgLSBpbiBmYWN0IHRoaXMgaXMgYSBodWdlCiBhZHZhbnRhZ2UgZm9yIGNhcmRzIHdoaWNo
+IGVpdGhlciBjYW5ub3QgZG8gc2NhdHRlci1nYXRoZXIgb3IgaGF2ZSB2ZXJ5CiBsaW1pdGVk
+IG51bWJlciBvZiBzY2F0dGVyLWdhdGhlciBlbnRyaWVzKSBhbmQgcmV0dXJucyB0aGUgYWN0
+dWFsIG51bWJlcgotb2Ygc2cgZW50cmllcyBpdCBtYXBwZWQgdGhlbSB0by4gT24gZmFpbHVy
+ZSAwIGlzIHJldHVybmVkLgorb2Ygc2cgZW50cmllcyBpdCBtYXBwZWQgdGhlbSB0by4gVGhl
+IGltcGxlbWVudGF0aW9uIGlzIGZyZWUgdG8gZG8gdGhpcworYnkgbW9kaWZ5aW5nIHRoZSBz
+Y2F0dGVybGlzdCBmaWVsZHMgc3BlY2lmaWVkIGZvciBETUEuIFRoZSBzY2F0dGVybGlzdAor
+ZmllbGRzIHVzZWQgYXMgYW4gaW5wdXQgdG8gdGhpcyBmdW5jdGlvbiAoaS5lLiBwYWdlLCBv
+ZmZzZXQsIGFuZCBsZW5ndGgpCit3aWxsIE5PVCBiZSBtb2RpZmllZC4gT24gZmFpbHVyZSAw
+IGlzIHJldHVybmVkLgogCiBUaGVuIHlvdSBzaG91bGQgbG9vcCBjb3VudCB0aW1lcyAobm90
+ZTogdGhpcyBjYW4gYmUgbGVzcyB0aGFuIG5lbnRzIHRpbWVzKQogYW5kIHVzZSBzZ19kbWFf
+YWRkcmVzcygpIGFuZCBzZ19kbWFfbGVuKCkgbWFjcm9zIHdoZXJlIHlvdSBwcmV2aW91c2x5
+CmRpZmYgLXB1TiBEb2N1bWVudGF0aW9uL0RNQS1BUEkudHh0fmRtYV9tYXBwaW5nX2NsYXJp
+ZmljYXRpb24gRG9jdW1lbnRhdGlvbi9ETUEtQVBJLnR4dAotLS0gbGludXgtMi42L0RvY3Vt
+ZW50YXRpb24vRE1BLUFQSS50eHR+ZG1hX21hcHBpbmdfY2xhcmlmaWNhdGlvbgkyMDA2LTAy
+LTA2IDEzOjA2OjE3LjAwMDAwMDAwMCAtMDYwMAorKysgbGludXgtMi42LWJqa2luZzEvRG9j
+dW1lbnRhdGlvbi9ETUEtQVBJLnR4dAkyMDA2LTAyLTA2IDEzOjA3OjQwLjAwMDAwMDAwMCAt
+MDYwMApAQCAtMzE4LDggKzMxOCw5IEBAIHRoYW4gPG5lbnRzPiBwYXNzZWQgaW4gaWYgdGhl
+IGJsb2NrIGxheWUKIGVsZW1lbnRzIG9mIHRoZSBzY2F0dGVyL2dhdGhlciBsaXN0IGFyZSBw
+aHlzaWNhbGx5IGFkamFjZW50IGFuZCB0aHVzCiBtYXkgYmUgbWFwcGVkIHdpdGggYSBzaW5n
+bGUgZW50cnkpLgogCi1QbGVhc2Ugbm90ZSB0aGF0IHRoZSBzZyBjYW5ub3QgYmUgbWFwcGVk
+IGFnYWluIGlmIGl0IGhhcyBiZWVuIG1hcHBlZCBvbmNlLgotVGhlIG1hcHBpbmcgcHJvY2Vz
+cyBpcyBhbGxvd2VkIHRvIGRlc3Ryb3kgaW5mb3JtYXRpb24gaW4gdGhlIHNnLgorUGxlYXNl
+IG5vdGUgdGhhdCB0aGUgc2cgY2FuIGJlIG1hcHBlZCBhZ2FpbiwgYXMgbG9uZyBhcyBpdCBp
+cyB1bm1hcHBlZAorZmlyc3QuIFRoZSBtYXBwaW5nIHByb2Nlc3MgaXMgb25seSBhbGxvd2Vk
+IHRvIG1vZGlmeSB0aGUgc2NhdHRlcmxpc3QKK2ZpZWxkcyByZWxhdGVkIHRvIERNQS4KIAog
+QXMgd2l0aCB0aGUgb3RoZXIgbWFwcGluZyBpbnRlcmZhY2VzLCBkbWFfbWFwX3NnIGNhbiBm
+YWlsLiBXaGVuIGl0CiBkb2VzLCAwIGlzIHJldHVybmVkIGFuZCBhIGRyaXZlciBtdXN0IHRh
+a2UgYXBwcm9wcmlhdGUgYWN0aW9uLiBJdCBpcwpfCg==
+--------------050306050202070909020808--
