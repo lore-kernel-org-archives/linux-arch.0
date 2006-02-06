@@ -1,70 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cabal.ca ([134.117.69.58]:10986 "EHLO fattire.cabal.ca")
-	by vger.kernel.org with ESMTP id S1750726AbWBETco (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 5 Feb 2006 14:32:44 -0500
-Received: from localhost (localhost.localdomain [127.0.0.1])
-	by fattire.cabal.ca (Postfix) with ESMTP id 7AD7A23E83
-	for <linux-arch@vger.kernel.org>; Sun,  5 Feb 2006 14:32:09 -0500 (EST)
-Received: from fattire.cabal.ca ([127.0.0.1])
-	by localhost (fattire [127.0.0.1]) (amavisd-new, port 10024)
-	with ESMTP id 15399-03 for <linux-arch@vger.kernel.org>;
-	Sun, 5 Feb 2006 14:32:09 -0500 (EST)
-Received: from quicksilver.road.mcmartin.ca (CPE0004ace53177-CM0012c9a9a56e.cpe.net.cable.rogers.com [70.25.68.204])
-	(using TLSv1 with cipher DHE-RSA-AES256-SHA (256/256 bits))
-	(Client CN "quicksilver.road.mcmartin.ca", Issuer "There Is No Cabal Certificate Authority" (verified OK))
-	by fattire.cabal.ca (Postfix) with ESMTP id 08B3223E82
-	for <linux-arch@vger.kernel.org>; Sun,  5 Feb 2006 14:32:08 -0500 (EST)
-Date: Sun, 5 Feb 2006 14:31:29 -0500
-From: Kyle McMartin <kyle@parisc-linux.org>
-Subject: [RFCv3] generic is_compat_task helper
-Message-ID: <20060205193129.GA7566@quicksilver.road.mcmartin.ca>
-References: <20060202065145.GA29845@quicksilver.road.mcmartin.ca>
+Received: from gold.veritas.com ([143.127.12.110]:60563 "EHLO gold.veritas.com")
+	by vger.kernel.org with ESMTP id S932230AbWBFRBK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Feb 2006 12:01:10 -0500
+Date: Mon, 6 Feb 2006 17:01:53 +0000 (GMT)
+From: Hugh Dickins <hugh@veritas.com>
+Subject: Re: [PATCH] ipr: don't doublefree pages from scatterlist
+In-Reply-To: <1139238179.3022.2.camel@mulgrave.il.steeleye.com>
+Message-ID: <Pine.LNX.4.61.0602061646230.3560@goblin.wat.veritas.com>
+References: <Pine.LNX.4.61.0602040004020.5406@goblin.wat.veritas.com>
+ <43E66FB6.6070303@us.ibm.com>  <Pine.LNX.4.61.0602060909180.6827@goblin.wat.veritas.com>
+  <20060206.014608.22328385.davem@davemloft.net> <1139238179.3022.2.camel@mulgrave.il.steeleye.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20060202065145.GA29845@quicksilver.road.mcmartin.ca>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
+To: James Bottomley <James.Bottomley@steeleye.com>
+Cc: "David S. Miller" <davem@davemloft.net>, brking@us.ibm.com, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-scsi@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Take 3... External facing interface implicitly uses current. Use
-backend on parisc to clean up users in arch/parisc/kernel/ptrace.c which
-act on *child. No generic CONFIG_COMPAT case, arch maintainers must add
-their own (since they know best) to asm/compat.h.
+On Mon, 6 Feb 2006, James Bottomley wrote:
+> On Mon, 2006-02-06 at 01:46 -0800, David S. Miller wrote:
+> > That's a bug, frankly.  Sparc64 doesn't need to do anything like
+> > that.  Spamming the page pointers is really really bogus and I'm
+> > surprised this doesn't make more stuff explode.
+> > 
+> > It was never the intention to allow the DMA mapping support code
+> > to modify the page, offset, and length members of the scatterlist.
+> > Only the DMA components.
+> > 
+> > I'd really prefer that those assignments get fixed and an explicit
+> > note added to Documentation/DMA-mapping.txt about this.
+> > 
+> > It's rediculious that these generic subsystem drivers need to
+> > know about this. :)
+> 
+> I complained about this x86_64 behaviour ages ago.
 
-diff --git a/include/asm-parisc/compat.h b/include/asm-parisc/compat.h
-index 38b918f..22e3715 100644
---- a/include/asm-parisc/compat.h
-+++ b/include/asm-parisc/compat.h
-@@ -144,4 +144,14 @@ static __inline__ void __user *compat_al
- 	return (void __user *)regs->gr[30];
- }
- 
-+static inline int __is_compat_task(struct task_struct *t)
-+{
-+	return (personality(t->personality) == PER_LINUX32);
-+}
-+
-+static inline int is_compat_task(void)
-+{
-+	return __is_compat_task(current);
-+}
-+
- #endif /* _ASM_PARISC_COMPAT_H */
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index f9ca534..fb6f64f 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -161,5 +161,12 @@ int copy_siginfo_to_user32(struct compat
- int get_compat_sigevent(struct sigevent *event,
- 		const struct compat_sigevent __user *u_event);
- 
-+#else /* !CONFIG_COMPAT */
-+
-+static inline int is_compat_task(void)
-+{
-+	return 0;
-+}
-+
- #endif /* CONFIG_COMPAT */
- #endif /* _LINUX_COMPAT_H */
+While I agree with you, David and Brian that this would be much nicer
+for driver writers to know that the page,offset,length in the sg list
+would not be touched by map_sg, I am surprised that you didn't say so
+in DMA-API.txt, and said only that map_sg would destroy information
+there.  x86_64 seems to conform to that destruction!
+
+> Andi claimed it was
+> the only way they could get there merging algorithm to work.  It
+> actually triggered a bug in SCSI because in-flight I/O that was rejected
+> gets unmapped and then remapped (which was, originally, not working).
+> They finally fixed it by making the unmap put back the original
+> scatterlist.
+
+I don't quite get that, but whatever, it would be a good idea to cc Andi.
+
+> Perhaps this should go to linux-arch just in case anyone
+> else copied x86_64?
+
+Okay, cc'd to linux-arch also.  The one thing I have checked is that the
+coalescing architectures (if I actually got them right) do all declare
+a dma_length (perhaps differently named) distinct from input length,
+so wouldn't need that added.  Although I can see that x86_64 does
+modify the page,offset,length fields we'd prefer it not to, I didn't
+find any of the architecture's coalescing routines easy to follow,
+and would hesitate to declare any of them safe in this regard.
+
+I'd better also forward my original mail on the fix to Ryan's bug
+to Andi and linux-arch also.
+
+Hugh
