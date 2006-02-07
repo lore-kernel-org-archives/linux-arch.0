@@ -1,38 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:47297 "EHLO mx1.suse.de")
-	by vger.kernel.org with ESMTP id S964850AbWBGSbb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Feb 2006 13:31:31 -0500
-From: Andi Kleen <ak@muc.de>
+Received: from fmr23.intel.com ([143.183.121.15]:5861 "EHLO
+	scsfmr003.sc.intel.com") by vger.kernel.org with ESMTP
+	id S964859AbWBGSp3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Feb 2006 13:45:29 -0500
+Date: Tue, 7 Feb 2006 10:44:35 -0800
+From: "Luck, Tony" <tony.luck@intel.com>
 Subject: Re: [patch 1/1] Fix spinlock debugging delays to not time out too early
-Date: Tue, 7 Feb 2006 19:29:24 +0100
-References: <B8E391BBE9FE384DAA4C5C003888BE6F05A3DB05@scsmsx401.amr.corp.intel.com>
-In-Reply-To: <B8E391BBE9FE384DAA4C5C003888BE6F05A3DB05@scsmsx401.amr.corp.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Message-ID: <20060207184435.GA18589@agluck-lia64.sc.intel.com>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F05A3DB05@scsmsx401.amr.corp.intel.com> <200602071929.24762.ak@muc.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200602071929.24762.ak@muc.de>
+In-Reply-To: <200602071929.24762.ak@muc.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: "Luck, Tony" <tony.luck@intel.com>
+To: Andi Kleen <ak@muc.de>
 Cc: akpm@osdl.org, linux-arch@vger.kernel.org, mingo@elte.hu
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tuesday 07 February 2006 19:20, Luck, Tony wrote:
-> > The fix is to include a __delay(1) call in the loop, to correctly approximate
-> > the intended delay timeout of 1 second.  The code assumes that every
-> > architecture implements __delay(1) to last around 1/(loops_per_jiffy*HZ)
-> > seconds.
-> 
-> But we calculate loops_per_jiffy based on somewhat larger vales passed
-> to __delay() ... where the function call overhead is amortized away.
->
-> I'd expect that __delay(1) would last quite a bit longer than
-> 1/(loops_per_jiffy * HZ) ... so we'll wait a lot more than a
-> second.
+On Tue, Feb 07, 2006 at 07:29:24PM +0100, Andi Kleen wrote:
+> For this case that would be ok, as long as it isn't a hour or so,
+> but let's say < 1 minute.
 
-For this case that would be ok, as long as it isn't a hour or so,
-but let's say < 1 minute.
+About 9.7 seconds on ia64 for:
 
--Andi
+	for (i = 0; i < loops_per_jiffy * HZ; i++) {
+		__delay(1);
+	}
 
+so yes, well under a minute.
+
+-Tony
