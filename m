@@ -1,56 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp104.mail.mud.yahoo.com ([209.191.85.214]:43153 "HELO
-	smtp104.mail.mud.yahoo.com") by vger.kernel.org with SMTP
-	id S1422902AbWBOHDB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Feb 2006 02:03:01 -0500
-Message-ID: <43F2C7B6.3020102@yahoo.com.au>
-Date: Wed, 15 Feb 2006 17:18:30 +1100
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
-Subject: [Fwd: Re: [PATCH] madvise MADV_DONTFORK/MADV_DOFORK]
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from [194.90.237.34] ([194.90.237.34]:9089 "EHLO mtlexch01.mtl.com")
+	by vger.kernel.org with ESMTP id S1423030AbWBOIIg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Feb 2006 03:08:36 -0500
+Date: Wed, 15 Feb 2006 10:10:02 +0200
+From: "Michael S. Tsirkin" <mst@mellanox.co.il>
+Subject: Re: [Fwd: Re: [PATCH] madvise MADV_DONTFORK/MADV_DOFORK]
+Message-ID: <20060215081002.GB10026@mellanox.co.il>
+Reply-To: "Michael S. Tsirkin" <mst@mellanox.co.il>
+References: <43F2C7B6.3020102@yahoo.com.au>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <43F2C7B6.3020102@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: Andrew Morton <akpm@osdl.org>, Roland Dreier <rdreier@cisco.com>, "Michael S. Tsirkin" <mst@mellanox.co.il>, Hugh Dickins <hugh@veritas.com>
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Roland Dreier <rdreier@cisco.com>, Hugh Dickins <hugh@veritas.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Forwarding to linux-arch. Please pipe up on lkml, or send patches
-to fix your arch (either way, before 2.6.16!!) if you disagree.
+Quoting r. Nick Piggin <nickpiggin@yahoo.com.au>:
+> Subject: [Fwd: Re: [PATCH] madvise MADV_DONTFORK/MADV_DOFORK]
+> 
+> Forwarding to linux-arch. Please pipe up on lkml, or send patches
+> to fix your arch (either way, before 2.6.16!!) if you disagree.
 
-To me it would be more logical if the numbering was made densely
-packed on all architectures even if that means MADV_DONTFORK /
-DOFORK aren't consistently numbered throughout (why should they
-get special treatment?).
+I plan to move them to 9, 10 as Roland suggested.
 
-Nick
+> To me it would be more logical if the numbering was made densely
+> packed on all architectures even if that means MADV_DONTFORK /
+> DOFORK aren't consistently numbered throughout (why should they
+> get special treatment?).
 
--------- Original Message --------
-Subject: Re: [PATCH] madvise MADV_DONTFORK/MADV_DOFORK
-Date: Tue, 14 Feb 2006 22:09:34 -0800
-From: Roland Dreier <rdreier@cisco.com>
+Making the values identical on all architectures makes it possible
+to write a portable application even before distributions update
+their headers. Thats important to me.
 
-     Nick> May I ask, what is the rationale for ignoring the apparent
-     Nick> conventions of all architectures? For example parisc, you
-     Nick> appear to even go contrary to the comment.
+I assume that the values are different on different architectures
+because of legacy/backward compatibility concerns, but I dont see
+compelling reasons to mess up new values.
+Why is it important to keep the MADV_ numbers densely packed?  We have 32 bit
+for these, dont we?
 
-Looking through include/asm-*/mman.h, I have to agree.  The parisc
-example seemly especially bad, as (in addition to being in the
-reserved range as Nick notes) the DONTFORK/DOFORK values are stuck in
-a block with the page size values instead of the previous block where
-they seem more sensible.  However, in other files like the alpha
-version, where the rest of the values are in decimal, the hex defines
-look rather jarring.
-
-Michael, what led you to choose 0x30 and 0x31 for the two new values?
-It does seem that keeping them uniform across architectures is a
-reasonable thing to do, but as far as I can tell the values 9 and 10
-are unused on all architectures, and have the added merit of not
-falling in the parisc reserved range.
-
-Do we still have a chance to change this?
-
-  - R.
+What am I missing?
 
 -- 
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+Michael S. Tsirkin
+Staff Engineer, Mellanox Technologies
