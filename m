@@ -1,60 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [194.90.237.34] ([194.90.237.34]:62067 "EHLO mtlexch01.mtl.com")
-	by vger.kernel.org with ESMTP id S1751156AbWBORtu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Feb 2006 12:49:50 -0500
-Date: Wed, 15 Feb 2006 19:51:18 +0200
-From: "Michael S. Tsirkin" <mst@mellanox.co.il>
-Subject: Re: [PATCH] add asm-generic/mman.h
-Message-ID: <20060215175118.GK12974@mellanox.co.il>
-Reply-To: "Michael S. Tsirkin" <mst@mellanox.co.il>
-References: <20060215151649.GA12090@mellanox.co.il> <1140019088.21448.3.camel@dyn9047017100.beaverton.ibm.com> <20060215165016.GD12974@mellanox.co.il> <1140022377.21448.6.camel@dyn9047017100.beaverton.ibm.com> <20060215170935.GE12974@mellanox.co.il> <Pine.LNX.4.64.0602150916580.3691@g5.osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0602150916580.3691@g5.osdl.org>
+Received: from smtp102.mail.mud.yahoo.com ([209.191.85.212]:15511 "HELO
+	smtp102.mail.mud.yahoo.com") by vger.kernel.org with SMTP
+	id S1751174AbWBORzq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Feb 2006 12:55:46 -0500
+Message-ID: <43F31F27.6070908@yahoo.com.au>
+Date: Wed, 15 Feb 2006 23:31:35 +1100
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+MIME-Version: 1.0
+Subject: Re: [Fwd: Re: [PATCH] madvise MADV_DONTFORK/MADV_DOFORK]
+References: <43F2C7B6.3020102@yahoo.com.au> <20060215081002.GB10026@mellanox.co.il> <43F2E38C.5030602@yahoo.com.au> <20060215101837.GE21003@flint.arm.linux.org.uk>
+In-Reply-To: <20060215101837.GE21003@flint.arm.linux.org.uk>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Badari Pulavarty <pbadari@us.ibm.com>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Nick Piggin <nickpiggin@yahoo.com.au>, Andrew Morton <akpm@osdl.org>, Roland Dreier <rdreier@cisco.com>, Hugh Dickins <hugh@veritas.com>, Gleb Natapov <gleb@minantech.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, openib-general@openib.org, Petr Vandrovec <vandrove@vc.cvut.cz>, Matthew Wilcox <matthew@wil.cx>
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: "Michael S. Tsirkin" <mst@mellanox.co.il>, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Roland Dreier <rdreier@cisco.com>, Hugh Dickins <hugh@veritas.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Quoting r. Linus Torvalds <torvalds@osdl.org>:
-> Rule #1: use tools instead of eyeballs whenever you possibly can. Humans 
-> are bad at noticing changes like this.
+Russell King wrote:
+> On Wed, Feb 15, 2006 at 07:17:16PM +1100, Nick Piggin wrote:
+> 
+>>All I'm saying is that we can easily wait a few days until arch
+>>maintainers have had a chance to comment (you didn't think you
+>>were missing anything last time, either).
+>>
+>>We can afford to be a little bit careful about changing user APIs.
+> 
+> 
+> The new numbers only appeared very recently for ARM (iow, came in
+> with this mornings git update), so changing them sooner rather than
+> later would be preferred - cuts down the number of potential kernel
+> patches/tarballs which have the "wrong" numbers.
+> 
 
-OK, this
+I just mean, to get an agreement (or at least nobody complaining)
+before renumbering it again.
 
-#!/usr/bin/perl
-
-my %new_values;
-my @old_names;
-my @old_values;
-while (<>)
-{
-	if (m/^\+#define\s+(\S+)\s+(\S+)\s+.*$/) {
-		$new_values{$1}=$2;
-	}
-	if (m/^\-#define\s+(\S+)\s+(\S+)\s+.*$/) {
-		push @old_names, $1;
-		push @old_values, $2;
-	}
-}
-
-for (my $i = 0; $i <= $#old_values; $i++) {
-	if (oct($new_values{$old_names[$i]}) != oct($old_values[$i])) {
-		print "Changed: $old_names[$i] $old_values[$i] " .
-		      " to $new_values{$old_names[$i]}\n";
-	}
-}
-
-Shows that the only numbers changed are
-MADV_REMOVE
-MADV_DONTFORK
-MADV_DOFORK
-
-As was intended.
-OK now?
+I don't think it should be too much of a problem unless it hits 2.6.16
+(2.6.16-rc4 would be undesirable too I guess).
 
 -- 
-Michael S. Tsirkin
-Staff Engineer, Mellanox Technologies
+SUSE Labs, Novell Inc.
+Send instant messages to your online friends http://au.messenger.yahoo.com 
