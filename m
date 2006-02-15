@@ -1,49 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e36.co.us.ibm.com ([32.97.110.154]:59619 "EHLO
-	e36.co.us.ibm.com") by vger.kernel.org with ESMTP id S1751037AbWBORjo
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Feb 2006 12:39:44 -0500
+Received: from [194.90.237.34] ([194.90.237.34]:62067 "EHLO mtlexch01.mtl.com")
+	by vger.kernel.org with ESMTP id S1751156AbWBORtu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Feb 2006 12:49:50 -0500
+Date: Wed, 15 Feb 2006 19:51:18 +0200
+From: "Michael S. Tsirkin" <mst@mellanox.co.il>
 Subject: Re: [PATCH] add asm-generic/mman.h
-From: Badari Pulavarty <pbadari@us.ibm.com>
-In-Reply-To: <Pine.LNX.4.64.0602150916580.3691@g5.osdl.org>
-References: <20060215151649.GA12090@mellanox.co.il>
-	 <1140019088.21448.3.camel@dyn9047017100.beaverton.ibm.com>
-	 <20060215165016.GD12974@mellanox.co.il>
-	 <1140022377.21448.6.camel@dyn9047017100.beaverton.ibm.com>
-	 <20060215170935.GE12974@mellanox.co.il>
-	 <Pine.LNX.4.64.0602150916580.3691@g5.osdl.org>
-Content-Type: text/plain
-Date: Wed, 15 Feb 2006 09:40:50 -0800
-Message-Id: <1140025250.21448.15.camel@dyn9047017100.beaverton.ibm.com>
+Message-ID: <20060215175118.GK12974@mellanox.co.il>
+Reply-To: "Michael S. Tsirkin" <mst@mellanox.co.il>
+References: <20060215151649.GA12090@mellanox.co.il> <1140019088.21448.3.camel@dyn9047017100.beaverton.ibm.com> <20060215165016.GD12974@mellanox.co.il> <1140022377.21448.6.camel@dyn9047017100.beaverton.ibm.com> <20060215170935.GE12974@mellanox.co.il> <Pine.LNX.4.64.0602150916580.3691@g5.osdl.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0602150916580.3691@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@osdl.org>
-Cc: "Michael S. Tsirkin" <mst@mellanox.co.il>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Nick Piggin <nickpiggin@yahoo.com.au>, Andrew Morton <akpm@osdl.org>, Roland Dreier <rdreier@cisco.com>, Hugh Dickins <hugh@veritas.com>, Gleb Natapov <gleb@minantech.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, openib-general@openib.org, Petr Vandrovec <vandrove@vc.cvut.cz>, Matthew Wilcox <matthew@wil.cx>
+Cc: Badari Pulavarty <pbadari@us.ibm.com>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Nick Piggin <nickpiggin@yahoo.com.au>, Andrew Morton <akpm@osdl.org>, Roland Dreier <rdreier@cisco.com>, Hugh Dickins <hugh@veritas.com>, Gleb Natapov <gleb@minantech.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, openib-general@openib.org, Petr Vandrovec <vandrove@vc.cvut.cz>, Matthew Wilcox <matthew@wil.cx>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 2006-02-15 at 09:28 -0800, Linus Torvalds wrote:
-> 
-> On Wed, 15 Feb 2006, Michael S. Tsirkin wrote:
-> >
-> > Other numbers look right, dont they?
-> 
-> Suggestion: for each macro name, do
-> 
-> 	grep "macroname" patch
-> 
-> and if you see anything that looks even half-way suspicious, check it.
-> 
-> Here's a pipeline from hell which shows that you broke at least 
-> MADV_REMOVE (which has values 5-9 depending on architecture).
+Quoting r. Linus Torvalds <torvalds@osdl.org>:
+> Rule #1: use tools instead of eyeballs whenever you possibly can. Humans 
+> are bad at noticing changes like this.
 
-Yes. I did that earlier and checked everything.
+OK, this
 
-MADV_REMOVE is a known change. Since it added very recently,
-I guess is okay to fix it for real. But if we are going to
-change it, I am hoping to see it very soon in mainline. 
-(Before distros fork-off).
+#!/usr/bin/perl
 
-Thanks,
-Badari
+my %new_values;
+my @old_names;
+my @old_values;
+while (<>)
+{
+	if (m/^\+#define\s+(\S+)\s+(\S+)\s+.*$/) {
+		$new_values{$1}=$2;
+	}
+	if (m/^\-#define\s+(\S+)\s+(\S+)\s+.*$/) {
+		push @old_names, $1;
+		push @old_values, $2;
+	}
+}
 
+for (my $i = 0; $i <= $#old_values; $i++) {
+	if (oct($new_values{$old_names[$i]}) != oct($old_values[$i])) {
+		print "Changed: $old_names[$i] $old_values[$i] " .
+		      " to $new_values{$old_names[$i]}\n";
+	}
+}
+
+Shows that the only numbers changed are
+MADV_REMOVE
+MADV_DONTFORK
+MADV_DOFORK
+
+As was intended.
+OK now?
+
+-- 
+Michael S. Tsirkin
+Staff Engineer, Mellanox Technologies
