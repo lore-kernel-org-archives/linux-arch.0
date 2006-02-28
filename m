@@ -1,34 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [194.90.237.34] ([194.90.237.34]:55160 "EHLO mtlexch01.mtl.com")
-	by vger.kernel.org with ESMTP id S1751205AbWBOSOI (ORCPT
+Received: from gate.crashing.org ([63.228.1.57]:60375 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S932086AbWB1Ift (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Feb 2006 13:14:08 -0500
-Date: Wed, 15 Feb 2006 20:15:36 +0200
-From: "Michael S. Tsirkin" <mst@mellanox.co.il>
-Subject: Re: [PATCH] add asm-generic/mman.h
-Message-ID: <20060215181536.GN12974@mellanox.co.il>
-Reply-To: "Michael S. Tsirkin" <mst@mellanox.co.il>
-References: <20060215151649.GA12090@mellanox.co.il> <1140019088.21448.3.camel@dyn9047017100.beaverton.ibm.com> <20060215165016.GD12974@mellanox.co.il> <1140022377.21448.6.camel@dyn9047017100.beaverton.ibm.com> <20060215170935.GE12974@mellanox.co.il> <Pine.LNX.4.64.0602150916580.3691@g5.osdl.org> <1140025250.21448.15.camel@dyn9047017100.beaverton.ibm.com>
+	Tue, 28 Feb 2006 03:35:49 -0500
+Received: from localhost.localdomain (localhost [127.0.0.1])
+	by gate.crashing.org (8.12.8/8.12.8) with ESMTP id k1S8Q4WG029314
+	for <linux-arch@vger.kernel.org>; Tue, 28 Feb 2006 02:26:05 -0600
+Subject: [Fwd: [PATCH] Add mm->task_size and fix powerpc vdso]
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Content-Type: text/plain
+Date: Tue, 28 Feb 2006 19:35:46 +1100
+Message-Id: <1141115747.3767.53.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1140025250.21448.15.camel@dyn9047017100.beaverton.ibm.com>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Badari Pulavarty <pbadari@us.ibm.com>
-Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Nick Piggin <nickpiggin@yahoo.com.au>, Andrew Morton <akpm@osdl.org>, Roland Dreier <rdreier@cisco.com>, Hugh Dickins <hugh@veritas.com>, Gleb Natapov <gleb@minantech.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, openib-general@openib.org, Petr Vandrovec <vandrove@vc.cvut.cz>, Matthew Wilcox <matthew@wil.cx>
+To: Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Quoting r. Badari Pulavarty <pbadari@us.ibm.com>:
-> Yes. I did that earlier and checked everything.
-> 
-> MADV_REMOVE is a known change. Since it added very recently,
-> I guess is okay to fix it for real. But if we are going to
-> change it, I am hoping to see it very soon in mainline. 
-> (Before distros fork-off).
+Forgot this list on the CC ... Comments welcome, the idea is to finally
+track if an mm is 32 or 64 bits (knowing that I have an urgent need to
+get that fixed in 2.6.16 due to a problem with the powerpc vdso).
 
-I agree. Andrew, could take this into -mm?
-This replaces Roland's fix-up-madv_dontfork-madv_dofork-definitions.patch
+Please, arch maintainer, comment if the approach I use for setting
+mm->task_size is valid for you.
 
--- 
-Michael S. Tsirkin
-Staff Engineer, Mellanox Technologies
+Ben.
+
+
+-------- Forwarded Message --------
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Andrew Morton <akpm@osdl.org>
+Cc: linux-mm@kvack.org, hugh@veritas.com, paulus@samba.org,
+nickpiggin@yahoo.com.au, David S. Miller <davem@davemloft.net>
+Subject: [PATCH] Add mm->task_size and fix powerpc vdso
+Date: 	Tue, 28 Feb 2006 17:27:20 +1100
+
+This patch adds mm->task_size to keep track of the task size of a given
+mm and uses that to fix the powerpc vdso so that it uses the mm task
+size to decide what pages to fault in instead of the current thread
+flags (which broke when ptracing).
+
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+
+Index: linux-work/arch/powerpc/kernel/vdso.c
+===================================================================
+--- linux-work.orig/arch/powerpc/kernel/vdso.c	2005-11-29 10:56:02.000000000 +1100
++++ linux-work/arch/powerpc/kernel/vdso.c	2006-02-28 17:07:18.000000000 +1100
+@@ -182,8 +182,8 @@ static struct page * vdso_vma_nopage(str
+ 	unsigned long offset = address - vma->vm_start;
+ 	struct page *pg;
+ #ifdef CONFIG_PPC64
+-	void *vbase = test_thread_flag(TIF_32BIT) ?
+-		vdso32_kbase : vdso64_kbase;
++	void *vbase = (vma->vm_mm->task_size > TASK_SIZE_USER32) ?
++		vdso64_kbase : vdso32_kbase;
+ #else
+ 	void *vbase = vdso32_kbase;
+ #endif
+Index: linux-work/fs/exec.c
+===================================================================
+--- linux-work.orig/fs/exec.c	2006-02-17 14:38:43.000000000 +1100
++++ linux-work/fs/exec.c	2006-02-28 17:05:50.000000000 +1100
+@@ -885,6 +885,12 @@ int flush_old_exec(struct linux_binprm *
+ 	current->flags &= ~PF_RANDOMIZE;
+ 	flush_thread();
+ 
++	/* Set the new mm task size. We have to do that late because it may
++	 * depend on TIF_32BIT which is only updated in flush_thread() on
++	 * some architectures like powerpc
++	 */
++	current->mm->task_size = TASK_SIZE;
++
+ 	if (bprm->e_uid != current->euid || bprm->e_gid != current->egid || 
+ 	    file_permission(bprm->file, MAY_READ) ||
+ 	    (bprm->interp_flags & BINPRM_FLAGS_ENFORCE_NONDUMP)) {
+Index: linux-work/include/linux/sched.h
+===================================================================
+--- linux-work.orig/include/linux/sched.h	2006-02-17 14:38:43.000000000 +1100
++++ linux-work/include/linux/sched.h	2006-02-28 17:03:52.000000000 +1100
+@@ -299,6 +299,7 @@ struct mm_struct {
+ 				unsigned long pgoff, unsigned long flags);
+ 	void (*unmap_area) (struct mm_struct *mm, unsigned long addr);
+         unsigned long mmap_base;		/* base of mmap area */
++	unsigned long task_size;		/* size of task vm space */
+         unsigned long cached_hole_size;         /* if non-zero, the largest hole below free_area_cache */
+ 	unsigned long free_area_cache;		/* first hole of size cached_hole_size or larger */
+ 	pgd_t * pgd;
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+
