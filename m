@@ -1,35 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:58753 "EHLO
-	pentafluge.infradead.org") by vger.kernel.org with ESMTP
-	id S932080AbWCCUCz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Mar 2006 15:02:55 -0500
-Subject: Re: Memory barriers and spin_unlock safety
-From: Arjan van de Ven <arjan@infradead.org>
-In-Reply-To: <1146.1141404346@warthog.cambridge.redhat.com>
-References: <32518.1141401780@warthog.cambridge.redhat.com>
-	 <1146.1141404346@warthog.cambridge.redhat.com>
-Content-Type: text/plain
-Date: Fri, 03 Mar 2006 21:02:12 +0100
-Message-Id: <1141416133.10732.65.camel@laptopd505.fenrus.org>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:53990 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S932139AbWCCUQI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Mar 2006 15:16:08 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <Pine.LNX.4.64.0603030823200.22647@g5.osdl.org> 
+References: <Pine.LNX.4.64.0603030823200.22647@g5.osdl.org>  <32518.1141401780@warthog.cambridge.redhat.com> 
+Subject: Re: Memory barriers and spin_unlock safety 
+Date: Fri, 03 Mar 2006 20:15:35 +0000
+Message-ID: <5001.1141416935@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, jblunck@suse.de, bcrl@linux.intel.com, matthew@wil.cx, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: David Howells <dhowells@redhat.com>, akpm@osdl.org, mingo@redhat.com, jblunck@suse.de, bcrl@linux.intel.com, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2006-03-03 at 16:45 +0000, David Howells wrote:
-> David Howells <dhowells@redhat.com> wrote:
-> 
-> > 	WRITE mtx
-> > 	--> implies SFENCE
-> 
-> Actually, I'm not sure this is true. The AMD64 Instruction Manual's writeup of
-> SFENCE implies that writes can be reordered, which sort of contradicts what
-> the AMD64 System Programming Manual says.
+Linus Torvalds <torvalds@osdl.org> wrote:
 
-there are 2 or 3 special instructions which do "non temporal
-stores" (movntq and movnit and maybe one more). sfense is designed for
-those. 
+> The rules are, afaik, that reads can pass buffered writes, BUT WRITES 
+> CANNOT PASS READS (aka "writes to memory are always carried out in program 
+> order").
 
+So in the example I gave, a read after the spin_unlock() may actually get
+executed before the store in the spin_unlock(), but a read before the unlock
+will not get executed after.
 
+> No. Issuing a read barrier on one CPU will do absolutely _nothing_ on the 
+> other CPU.
+
+Well, I think you mean will guarantee absolutely _nothing_ on the other CPU for
+the Linux kernel.  According to the IBM powerpc book I have, it does actually
+do something on the other CPUs, though it doesn't say exactly what.
+
+Anyway, thanks.
+
+I'll write up some documentation on barriers for inclusion in the kernel.
+
+David
