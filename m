@@ -1,42 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:46742 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S1751314AbWCCVel (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Mar 2006 16:34:41 -0500
-Date: Fri, 3 Mar 2006 13:31:08 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
-Subject: Re: Memory barriers and spin_unlock safety 
-In-Reply-To: <5001.1141416935@warthog.cambridge.redhat.com>
-Message-ID: <Pine.LNX.4.64.0603031329350.22647@g5.osdl.org>
+Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:22250
+	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
+	id S1751526AbWCCVwd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Mar 2006 16:52:33 -0500
+Date: Fri, 03 Mar 2006 13:52:17 -0800 (PST)
+Message-Id: <20060303.135217.65983538.davem@davemloft.net>
+Subject: Re: Memory barriers and spin_unlock safety
+From: "David S. Miller" <davem@davemloft.net>
+In-Reply-To: <200603031518.15806.hollisb@us.ibm.com>
 References: <Pine.LNX.4.64.0603030823200.22647@g5.osdl.org>
- <32518.1141401780@warthog.cambridge.redhat.com>  <5001.1141416935@warthog.cambridge.redhat.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+	<1141419966.3888.67.camel@localhost.localdomain>
+	<200603031518.15806.hollisb@us.ibm.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: akpm@osdl.org, mingo@redhat.com, jblunck@suse.de, bcrl@linux.intel.com, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org
+To: hollisb@us.ibm.com
+Cc: linuxppc64-dev@ozlabs.org, benh@kernel.crashing.org, torvalds@osdl.org, akpm@osdl.org, linux-arch@vger.kernel.org, bcrl@linux.intel.com, matthew@wil.cx, linux-kernel@vger.kernel.org, mingo@redhat.com, jblunck@suse.de
 List-ID: <linux-arch.vger.kernel.org>
 
+From: Hollis Blanchard <hollisb@us.ibm.com>
+Date: Fri, 3 Mar 2006 15:18:13 -0600
 
-
-On Fri, 3 Mar 2006, David Howells wrote:
+> On Friday 03 March 2006 15:06, Benjamin Herrenschmidt wrote:
+> > The main problem I've had in the past with the ppc barriers is more a
+> > subtle thing in the spec that unfortunately was taken to the word by
+> > implementors, and is that the simple write barrier (eieio) will only
+> > order within the same storage space, that is will not order between
+> > cacheable and non-cacheable storage.
 > 
-> So in the example I gave, a read after the spin_unlock() may actually get
-> executed before the store in the spin_unlock(), but a read before the unlock
-> will not get executed after.
+> I've heard Sparc has the same issue... in which case it may not be a "chip 
+> designer was too literal" thing, but rather it really simplifies chip 
+> implementation to do it that way.
 
-Yes.
+There is a "membar #MemIssue" that is meant to deal with this should
+it ever matter, but for most sparc64 chips it doesn't which is why we
+don't use that memory barrier type at all in the Linux kernel.
 
-> > No. Issuing a read barrier on one CPU will do absolutely _nothing_ on the 
-> > other CPU.
-> 
-> Well, I think you mean will guarantee absolutely _nothing_ on the other CPU for
-> the Linux kernel.  According to the IBM powerpc book I have, it does actually
-> do something on the other CPUs, though it doesn't say exactly what.
+For UltraSPARC-I and II it technically could matter in Relaxed Memory
+Ordering (RMO) mode which is what we run the kernel and 64-bit
+userspace in, but I've never seen an issue resulting from it.
 
-Yeah, Power really does have some funky stuff in their memory ordering. 
-I'm not quite sure why, though. And it definitely isn't implied by any of 
-the Linux kernel barriers.
+For UltraSPARC-III and later, the chip only implements the Total Store
+Ordering (TSO) memory model and the manual explicitly states that
+cacheable and non-cacheable memory operations are ordered, even using
+language such as "there is an implicit 'membar #MemIssue' between
+them".  It further goes on to say:
 
-(They also do TLB coherency in hw etc strange things).
+	The UltraSPARCIII Cu processor maintains ordering between
+	cacheable and non-cacheable accesses.  The UltraSPARC III Cu
+	processor maintains TSO ordering between memory references
+	regardless of their cacheability.
 
-		Linus
+Niagara behaves almost identically to UltraSPARC-III in this area.
