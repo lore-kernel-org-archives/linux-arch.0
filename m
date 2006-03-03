@@ -1,55 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:22250
-	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
-	id S1751526AbWCCVwd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Mar 2006 16:52:33 -0500
-Date: Fri, 03 Mar 2006 13:52:17 -0800 (PST)
-Message-Id: <20060303.135217.65983538.davem@davemloft.net>
+Received: from fmr23.intel.com ([143.183.121.15]:64398 "EHLO
+	scsfmr003.sc.intel.com") by vger.kernel.org with ESMTP
+	id S1751698AbWCCWCL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Mar 2006 17:02:11 -0500
+Date: Fri, 3 Mar 2006 13:51:14 -0800
+From: Benjamin LaHaise <bcrl@linux.intel.com>
 Subject: Re: Memory barriers and spin_unlock safety
-From: "David S. Miller" <davem@davemloft.net>
-In-Reply-To: <200603031518.15806.hollisb@us.ibm.com>
-References: <Pine.LNX.4.64.0603030823200.22647@g5.osdl.org>
-	<1141419966.3888.67.camel@localhost.localdomain>
-	<200603031518.15806.hollisb@us.ibm.com>
+Message-ID: <20060303215114.GA13893@linux.intel.com>
+References: <Pine.LNX.4.64.0603030856260.22647@g5.osdl.org> <32518.1141401780@warthog.cambridge.redhat.com> <1146.1141404346@warthog.cambridge.redhat.com> <5041.1141417027@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0603031332140.22647@g5.osdl.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0603031332140.22647@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: hollisb@us.ibm.com
-Cc: linuxppc64-dev@ozlabs.org, benh@kernel.crashing.org, torvalds@osdl.org, akpm@osdl.org, linux-arch@vger.kernel.org, bcrl@linux.intel.com, matthew@wil.cx, linux-kernel@vger.kernel.org, mingo@redhat.com, jblunck@suse.de
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: David Howells <dhowells@redhat.com>, akpm@osdl.org, ak@suse.de, mingo@redhat.com, jblunck@suse.de, matthew@wil.cx, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Hollis Blanchard <hollisb@us.ibm.com>
-Date: Fri, 3 Mar 2006 15:18:13 -0600
+On Fri, Mar 03, 2006 at 01:34:17PM -0800, Linus Torvalds wrote:
+> Indeed. I think smp_wmb() should be a compiler fence only on x86(-64), ie 
+> just compile to a "barrier()" (and not even that on UP, of course).
 
-> On Friday 03 March 2006 15:06, Benjamin Herrenschmidt wrote:
-> > The main problem I've had in the past with the ppc barriers is more a
-> > subtle thing in the spec that unfortunately was taken to the word by
-> > implementors, and is that the simple write barrier (eieio) will only
-> > order within the same storage space, that is will not order between
-> > cacheable and non-cacheable storage.
-> 
-> I've heard Sparc has the same issue... in which case it may not be a "chip 
-> designer was too literal" thing, but rather it really simplifies chip 
-> implementation to do it that way.
+Actually, no.  At least in testing an implementation of Dekker's and 
+Peterson's algorithms as a replacement for the locked operation in 
+our spinlocks, it is absolutely necessary to have an sfence in the lock 
+to ensure the lock is visible to the other CPU before proceeding.  I'd 
+use smp_wmb() as the fence is completely unnecessary on UP and is even 
+irq-safe.  Here's a copy of the Peterson's implementation to illustrate 
+(it works, it's just slower than the existing spinlocks).
 
-There is a "membar #MemIssue" that is meant to deal with this should
-it ever matter, but for most sparc64 chips it doesn't which is why we
-don't use that memory barrier type at all in the Linux kernel.
+		-ben
 
-For UltraSPARC-I and II it technically could matter in Relaxed Memory
-Ordering (RMO) mode which is what we run the kernel and 64-bit
-userspace in, but I've never seen an issue resulting from it.
-
-For UltraSPARC-III and later, the chip only implements the Total Store
-Ordering (TSO) memory model and the manual explicitly states that
-cacheable and non-cacheable memory operations are ordered, even using
-language such as "there is an implicit 'membar #MemIssue' between
-them".  It further goes on to say:
-
-	The UltraSPARCIII Cu processor maintains ordering between
-	cacheable and non-cacheable accesses.  The UltraSPARC III Cu
-	processor maintains TSO ordering between memory references
-	regardless of their cacheability.
-
-Niagara behaves almost identically to UltraSPARC-III in this area.
+diff --git a/include/asm-x86_64/spinlock.h b/include/asm-x86_64/spinlock.h
+index fe484a6..45bd386 100644
+--- a/include/asm-x86_64/spinlock.h
++++ b/include/asm-x86_64/spinlock.h
+@@ -4,6 +4,8 @@
+ #include <asm/atomic.h>
+ #include <asm/rwlock.h>
+ #include <asm/page.h>
++#include <asm/pda.h>
++#include <asm/processor.h>
+ #include <linux/config.h>
+ 
+ /*
+@@ -18,50 +20,53 @@
+  */
+ 
+ #define __raw_spin_is_locked(x) \
+-		(*(volatile signed int *)(&(x)->slock) <= 0)
+-
+-#define __raw_spin_lock_string \
+-	"\n1:\t" \
+-	"lock ; decl %0\n\t" \
+-	"js 2f\n" \
+-	LOCK_SECTION_START("") \
+-	"2:\t" \
+-	"rep;nop\n\t" \
+-	"cmpl $0,%0\n\t" \
+-	"jle 2b\n\t" \
+-	"jmp 1b\n" \
+-	LOCK_SECTION_END
+-
+-#define __raw_spin_unlock_string \
+-	"movl $1,%0" \
+-		:"=m" (lock->slock) : : "memory"
++		((*(volatile signed int *)(x) & ~0xff) != 0)
+ 
+ static inline void __raw_spin_lock(raw_spinlock_t *lock)
+ {
+-	__asm__ __volatile__(
+-		__raw_spin_lock_string
+-		:"=m" (lock->slock) : : "memory");
++	int cpu = read_pda(cpunumber);
++
++	barrier();
++	lock->flags[cpu] = 1;
++	lock->turn = cpu ^ 1;
++	barrier();
++
++	asm volatile("sfence":::"memory");
++
++	while (lock->flags[cpu ^ 1] && (lock->turn != cpu)) {
++		cpu_relax();
++		barrier();
++	}
+ }
+ 
+ #define __raw_spin_lock_flags(lock, flags) __raw_spin_lock(lock)
+ 
+ static inline int __raw_spin_trylock(raw_spinlock_t *lock)
+ {
+-	int oldval;
+-
+-	__asm__ __volatile__(
+-		"xchgl %0,%1"
+-		:"=q" (oldval), "=m" (lock->slock)
+-		:"0" (0) : "memory");
+-
+-	return oldval > 0;
++	int cpu = read_pda(cpunumber);
++	barrier();
++	if (__raw_spin_is_locked(lock))
++		return 0;
++
++	lock->flags[cpu] = 1;
++	lock->turn = cpu ^ 1;
++	asm volatile("sfence":::"memory");
++
++	if (lock->flags[cpu ^ 1] && (lock->turn != cpu)) {
++		lock->flags[cpu] = 0;
++		barrier();
++		return 0;
++	}
++	return 1;
+ }
+ 
+ static inline void __raw_spin_unlock(raw_spinlock_t *lock)
+ {
+-	__asm__ __volatile__(
+-		__raw_spin_unlock_string
+-	);
++	int cpu;
++	//asm volatile("lfence":::"memory");
++	cpu = read_pda(cpunumber);
++	lock->flags[cpu] = 0;
++	barrier();
+ }
+ 
+ #define __raw_spin_unlock_wait(lock) \
+diff --git a/include/asm-x86_64/spinlock_types.h b/include/asm-x86_64/spinlock_types.h
+index 59efe84..a409cbf 100644
+--- a/include/asm-x86_64/spinlock_types.h
++++ b/include/asm-x86_64/spinlock_types.h
+@@ -6,10 +6,11 @@
+ #endif
+ 
+ typedef struct {
+-	volatile unsigned int slock;
++	volatile unsigned char turn;
++	volatile unsigned char flags[3];
+ } raw_spinlock_t;
+ 
+-#define __RAW_SPIN_LOCK_UNLOCKED	{ 1 }
++#define __RAW_SPIN_LOCK_UNLOCKED	{ 0, { 0, } }
+ 
+ typedef struct {
+ 	volatile unsigned int lock;
