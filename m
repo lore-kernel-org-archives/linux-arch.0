@@ -1,65 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:9639 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S932465AbWCCVG4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Mar 2006 16:06:56 -0500
+Received: from e36.co.us.ibm.com ([32.97.110.154]:36053 "EHLO
+	e36.co.us.ibm.com") by vger.kernel.org with ESMTP id S1750737AbWCCVSf
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Mar 2006 16:18:35 -0500
+From: Hollis Blanchard <hollisb@us.ibm.com>
 Subject: Re: Memory barriers and spin_unlock safety
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <Pine.LNX.4.64.0603030823200.22647@g5.osdl.org>
-References: <32518.1141401780@warthog.cambridge.redhat.com>
-	 <Pine.LNX.4.64.0603030823200.22647@g5.osdl.org>
-Content-Type: text/plain
-Date: Sat, 04 Mar 2006 08:06:05 +1100
-Message-Id: <1141419966.3888.67.camel@localhost.localdomain>
-Mime-Version: 1.0
+Date: Fri, 3 Mar 2006 15:18:13 -0600
+References: <32518.1141401780@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0603030823200.22647@g5.osdl.org> <1141419966.3888.67.camel@localhost.localdomain>
+In-Reply-To: <1141419966.3888.67.camel@localhost.localdomain>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200603031518.15806.hollisb@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, akpm@osdl.org, mingo@redhat.com, jblunck@suse.de, bcrl@linux.intel.com, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org
+To: linuxppc64-dev@ozlabs.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@osdl.org>, akpm@osdl.org, linux-arch@vger.kernel.org, bcrl@linux.intel.com, matthew@wil.cx, linux-kernel@vger.kernel.org, mingo@redhat.com, jblunck@suse.de
 List-ID: <linux-arch.vger.kernel.org>
 
+On Friday 03 March 2006 15:06, Benjamin Herrenschmidt wrote:
+> The main problem I've had in the past with the ppc barriers is more a
+> subtle thing in the spec that unfortunately was taken to the word by
+> implementors, and is that the simple write barrier (eieio) will only
+> order within the same storage space, that is will not order between
+> cacheable and non-cacheable storage.
 
-> PPC has an absolutely _horrible_ memory ordering implementation, as far as 
-> I can tell. The thing is broken. I think it's just implementation 
-> breakage, not anything really fundamental, but the fact that their write 
-> barriers are expensive is a big sign that they are doing something bad. 
+I've heard Sparc has the same issue... in which case it may not be a "chip 
+designer was too literal" thing, but rather it really simplifies chip 
+implementation to do it that way.
 
-Are they ? read barriers and full barriers are, write barriers should be
-fairly cheap (but then, I haven't measured).
-
-> For example, their write buffers may not have a way to serialize in the 
-> buffers, and at that point from an _implementation_ standpoint, you just 
-> have to serialize the whole core to make sure that writes don't pass each 
-> other. 
-
-The main problem I've had in the past with the ppc barriers is more a
-subtle thing in the spec that unfortunately was taken to the word by
-implementors, and is that the simple write barrier (eieio) will only
-order within the same storage space, that is will not order between
-cacheable and non-cacheable storage. That means IOs could leak out of
-locks etc... Which is why we use expensive barriers in MMIO wrappers for
-now (though we might investigate the use of mmioXb instead in the
-future).
-
-> No. Issuing a read barrier on one CPU will do absolutely _nothing_ on the 
-> other CPU. All barriers are purely local to one CPU, and do not generate 
-> any bus traffic what-so-ever. They only potentially affect the order of 
-> bus traffic due to the instructions around them (obviously).
-
-Actually, the ppc's full barrier (sync) will generate bus traffic, and I
-think in some case eieio barriers can propagate to the chipset to
-enforce ordering there too depending on some voodoo settings and wether
-the storage space is cacheable or not.
-
-> So a read barrier on one CPU _has_ to be paired with a write barrier on 
-> the other side in order to make sense (although the write barrier can 
-> obviously be of the implied kind, ie a lock/unlock event, or just 
-> architecture-specific knowledge of write behaviour, ie for example knowing 
-> that writes are always seen in-order on x86).
-> 
-> 		Linus
-> -
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
-
+-- 
+Hollis Blanchard
+IBM Linux Technology Center
