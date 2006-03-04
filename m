@@ -1,69 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:17562 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S932250AbWCDR3U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Mar 2006 12:29:20 -0500
-Date: Sat, 4 Mar 2006 09:28:54 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
+Received: from gate.crashing.org ([63.228.1.57]:8371 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S932285AbWCDWvU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Mar 2006 17:51:20 -0500
 Subject: Re: Memory barriers and spin_unlock safety
-In-Reply-To: <17417.29375.87604.537434@cargo.ozlabs.ibm.com>
-Message-ID: <Pine.LNX.4.64.0603040914160.22647@g5.osdl.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <17417.29372.744064.211813@cargo.ozlabs.ibm.com>
 References: <32518.1141401780@warthog.cambridge.redhat.com>
- <Pine.LNX.4.64.0603030823200.22647@g5.osdl.org> <17417.29375.87604.537434@cargo.ozlabs.ibm.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+	 <Pine.LNX.4.64.0603030823200.22647@g5.osdl.org>
+	 <1141419966.3888.67.camel@localhost.localdomain>
+	 <17417.29372.744064.211813@cargo.ozlabs.ibm.com>
+Content-Type: text/plain
+Date: Sun, 05 Mar 2006 09:49:53 +1100
+Message-Id: <1141512594.17127.16.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: Paul Mackerras <paulus@samba.org>
-Cc: David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arch@vger.kernel.org, bcrl@linux.intel.com, matthew@wil.cx, linux-kernel@vger.kernel.org, mingo@redhat.com, linuxppc64-dev@ozlabs.org, jblunck@suse.de
+Cc: Linus Torvalds <torvalds@osdl.org>, akpm@osdl.org, linux-arch@vger.kernel.org, bcrl@linux.intel.com, matthew@wil.cx, linux-kernel@vger.kernel.org, mingo@redhat.com, linuxppc64-dev@ozlabs.org, jblunck@suse.de
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Sat, 4 Mar 2006, Paul Mackerras wrote:
+On Sat, 2006-03-04 at 21:58 +1100, Paul Mackerras wrote:
+> Benjamin Herrenschmidt writes:
 > 
-> > If so, a simple write barrier should be sufficient. That's exactly what 
-> > the x86 write barriers do too, ie stores to magic IO space are _not_ 
-> > ordered wrt a normal [smp_]wmb() (or, as per how this thread started, a 
-> > spin_unlock()) at all.
+> > Actually, the ppc's full barrier (sync) will generate bus traffic, and I
+> > think in some case eieio barriers can propagate to the chipset to
+> > enforce ordering there too depending on some voodoo settings and wether
+> > the storage space is cacheable or not.
 > 
-> By magic IO space, do you mean just any old memory-mapped device
-> register in a PCI device, or do you mean something else?
+> Eieio has to go to the PCI host bridge because it is supposed to
+> prevent write-combining, both in the host bridge and in the CPU.
 
-Any old memory-mapped device that has been marked as write-combining in 
-the MTRR's or page tables.
+That can be disabled with HID bits tho ;)
 
-So the rules from the PC side (and like it or not, they end up being 
-what all the drivers are tested with) are:
+Ben.
 
- - regular stores are ordered by write barriers
- - PIO stores are always synchronous
- - MMIO stores are ordered by IO semantics
-	- PCI ordering must be honored:
-	  * write combining is only allowed on PCI memory resources
-	    that are marked prefetchable. If your host bridge does write 
-	    combining in general, it's not a "host bridge", it's a "host 
-	    disaster".
-	  * for others, writes can always be posted, but they cannot
-	    be re-ordered wrt either reads or writes to that device
-	    (ie a read will always be fully synchronizing)
-	- io_wmb must be honored
 
-In addition, it will help a hell of a lot if you follow the PC notion of 
-"per-region extra rules", ie you'd default to the non-prefetchable 
-behaviour even for areas that are prefetchable from a PCI standpoint, but 
-allow some way to relax the ordering rules in various ways.
-
-PC's use MTRR's or page table hints for this, but it's actually perfectly 
-possible to do it by virtual address (ie decide on "ioremap()" time by 
-looking at some bits that you've saved away to remap it to a certain 
-virtual address range, and then use the virtual address as a hint for 
-readl/writel whether you need to serialize or not).
-
-On x86, we already use the "virtual address" trick to distinguish between 
-PIO and MMIO for the newer ioread/iowrite interface (the older 
-inb/outb/readb/writeb interfaces obviously don't need that, since the IO 
-space is statically encoded in the function call itself).
-
-The reason I mention the MTRR emulation is again just purely compatibility 
-with drivers that get 99.9% of all the testing on a PC platform.
-
-		Linus
