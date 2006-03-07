@@ -1,44 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from detroit.securenet-server.net ([209.51.153.26]:8388 "EHLO
-	detroit.securenet-server.net") by vger.kernel.org with ESMTP
-	id S1751413AbWCGSq3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 7 Mar 2006 13:46:29 -0500
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [PATCH] Document Linux's memory barriers
-Date: Tue, 7 Mar 2006 10:46:11 -0800
-References: <200603071134.52962.ak@suse.de> <31492.1141753245@warthog.cambridge.redhat.com> <7621.1141756240@warthog.cambridge.redhat.com>
-In-Reply-To: <7621.1141756240@warthog.cambridge.redhat.com>
+Received: from spirit.analogic.com ([204.178.40.4]:23822 "EHLO
+	spirit.analogic.com") by vger.kernel.org with ESMTP
+	id S1751559AbWCGSyq convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2006 13:54:46 -0500
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200603071046.11980.jbarnes@virtuousgeek.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+In-Reply-To: <1141756825.31814.75.camel@localhost.localdomain>
+Content-class: urn:content-classes:message
+Subject: Re: [PATCH] Document Linux's memory barriers
+Date: Tue, 7 Mar 2006 13:54:33 -0500
+Message-ID: <Pine.LNX.4.61.0603071346540.9814@chaos.analogic.com>
+References: <31492.1141753245@warthog.cambridge.redhat.com> <1141756825.31814.75.camel@localhost.localdomain>
+From: "linux-os \(Dick Johnson\)" <linux-os@analogic.com>
+Reply-To: "linux-os \(Dick Johnson\)" <linux-os@analogic.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Andi Kleen <ak@suse.de>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, Linux kernel <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tuesday, March 7, 2006 10:30 am, David Howells wrote:
-> True, I suppose. I should make it clear that these accessor functions
-> imply memory barriers, if indeed they do, and that you should use them
-> rather than accessing I/O registers directly (at least, outside the
-> arch you should).
 
-But they don't, that's why we have mmiowb().  There are lots of cases to 
-handle:
-  1) memory vs. memory
-  2) memory vs. I/O
-  3) I/O vs. I/O
-(reads and writes for every case).
+On Tue, 7 Mar 2006, Alan Cox wrote:
+[SNIPPED...]
+>
+> Not always. MMIO ordering is outside of the CPU ordering rules and into
+> PCI and other bus ordering rules. Consider
+>
+> 	writel(STOP_DMA, &foodev->ctrl);
+> 	free_dma_buffers(foodev);
+>
+> This leads to horrible disasters.
 
-AFAIK, we have (1) fairly well handled with a plethora of barrier ops.  
-(2) is a bit fuzzy with the current operations I think, and for (3) all 
-we have is mmiowb() afaik.  Maybe one of the ppc64 guys can elaborate on 
-the barriers their hw needs for the above cases (I think they're the 
-pathological case, so covering them should be good enough everybody).
+This might be a good place to document:
+    dummy = readl(&foodev->ctrl);
 
-Btw, thanks for putting together this documentation, it's desperately 
-needed.
+Will flush all pending writes to the PCI bus and that:
+    (void) readl(&foodev->ctrl);
+... won't because `gcc` may optimize it away. In fact, variable
+"dummy" should be global or `gcc` may make it go away as well.
 
-Jesse
+Cheers,
+Dick Johnson
+Penguin : Linux version 2.6.15.4 on an i686 machine (5589.50 BogoMips).
+Warning : 98.36% of all statistics are fiction, book release in April.
+_
+
+
+****************************************************************
+The information transmitted in this message is confidential and may be privileged.  Any review, retransmission, dissemination, or other use of this information by persons or entities other than the intended recipient is prohibited.  If you are not the intended recipient, please notify Analogic Corporation immediately - by replying to this message or by sending an email to DeliveryErrors@analogic.com - and destroy all copies of this information, including any attachments, without reading or disclosing them.
+
+Thank you.
