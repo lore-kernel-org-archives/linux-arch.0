@@ -1,52 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from spirit.analogic.com ([204.178.40.4]:23822 "EHLO
-	spirit.analogic.com") by vger.kernel.org with ESMTP
-	id S1751559AbWCGSyq convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2006 13:54:46 -0500
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-In-Reply-To: <1141756825.31814.75.camel@localhost.localdomain>
-Content-class: urn:content-classes:message
-Subject: Re: [PATCH] Document Linux's memory barriers
-Date: Tue, 7 Mar 2006 13:54:33 -0500
-Message-ID: <Pine.LNX.4.61.0603071346540.9814@chaos.analogic.com>
-References: <31492.1141753245@warthog.cambridge.redhat.com> <1141756825.31814.75.camel@localhost.localdomain>
-From: "linux-os \(Dick Johnson\)" <linux-os@analogic.com>
-Reply-To: "linux-os \(Dick Johnson\)" <linux-os@analogic.com>
+Received: from fmr23.intel.com ([143.183.121.15]:48268 "EHLO
+	scsfmr003.sc.intel.com") by vger.kernel.org with ESMTP
+	id S1751447AbWCGTGJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Mar 2006 14:06:09 -0500
+Date: Tue, 7 Mar 2006 11:06:07 -0800
+From: "Luck, Tony" <tony.luck@intel.com>
+Subject: Re: Request for feedback on Generic Timeofday Subsystem (B20)
+Message-ID: <20060307190607.GA31533@agluck-lia64.sc.intel.com>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F05E1EDF8@scsmsx401.amr.corp.intel.com> <1141695346.11401.39.camel@cog.beaverton.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1141695346.11401.39.camel@cog.beaverton.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, Linux kernel <linux-kernel@vger.kernel.org>
+To: john stultz <johnstul@us.ibm.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+John,
 
-On Tue, 7 Mar 2006, Alan Cox wrote:
-[SNIPPED...]
->
-> Not always. MMIO ordering is outside of the CPU ordering rules and into
-> PCI and other bus ordering rules. Consider
->
-> 	writel(STOP_DMA, &foodev->ctrl);
-> 	free_dma_buffers(foodev);
->
-> This leads to horrible disasters.
+Thanks for the detailed reply.
 
-This might be a good place to document:
-    dummy = readl(&foodev->ctrl);
+On Mon, Mar 06, 2006 at 05:35:46PM -0800, john stultz wrote:
+> I'd be interested in hearing more about specifically what ia64 has done
+> (reading the fsyscall asm is not my idea of fun :)
 
-Will flush all pending writes to the PCI bus and that:
-    (void) readl(&foodev->ctrl);
-... won't because `gcc` may optimize it away. In fact, variable
-"dummy" should be global or `gcc` may make it go away as well.
+It is at least heavily commented asm ... but yes, perhaps not the
+most fun way to spend your time.  Essentially it just hooks into
+the generic time interpolator code (but without actually calling
+any of those functions due to restrictions on what fsyscall code
+can do).
 
-Cheers,
-Dick Johnson
-Penguin : Linux version 2.6.15.4 on an i686 machine (5589.50 BogoMips).
-Warning : 98.36% of all statistics are fiction, book release in April.
-_
-
+> hope is to join these divergent efforts to the benefit of all. This may
+> sound a bit naive and wide-eyed, and I'm fine allowing for arch specific
+> optimizations where they are necessary, but really, what are we doing in
+> almost all cases? Reading some hardware, converting it to nanoseconds
+> and adding it to a base value, all under a seq_read_lock.
 
-****************************************************************
-The information transmitted in this message is confidential and may be privileged.  Any review, retransmission, dissemination, or other use of this information by persons or entities other than the intended recipient is prohibited.  If you are not the intended recipient, please notify Analogic Corporation immediately - by replying to this message or by sending an email to DeliveryErrors@analogic.com - and destroy all copies of this information, including any attachments, without reading or disclosing them.
+Yes, that's pretty much what happens ... the only real complication
+is that different h/w might require diferent access methods to read it.
 
-Thank you.
+>                                                           We don't need
+> a dozen implementations of this, and it makes other features harder to
+> implement because we don't know things like: Which arches will function
+> if we disable interrupts for a bit? Or what is the hardware level
+> resolution of clock_gettime()?
+
+The fly in the ointment here is the restrictions on what can be done
+inside the fsyscall handler (see Documentation/ia64/fsys.txt for the
+gory details ... but the short form is that function calls are out,
+so everything needs to be done, carefully, in assembler).
+
+> The last time I generated numbers for i386 the patch hit gettimeofday()
+> by ~2%, which was the worst case I could generate using the clocksource
+> with the lowest overhead (TSC). Most of this was due to some extra u64
+> usage and the lack of a generic mul_u64xu32 wrapper. However for this
+> cost, you get correct behavior (which I think is *much* more important,
+> at least for i386) and nanosecond resolution in clock_gettime().
+
+Fast is indeed no use if the answer is wrong.  Performance of this
+on ia64 would be totally dependent on whether we can hook into your
+framework while staying within the restrictions of fsyscall code.
+
+> Currently I suspect the impact its a bit worse with the patches in -mm,
+> since cycle_t was set back to a u64 to be extra robust in the case of 2
+> seconds of lost ticks. That's more of a -RT tree concern, so I'd be fine
+> setting that back to a unsigned long for mainline.
+
+With Xen (and other) virtualized environments, you may need to keep that
+capability to handle 2 seconds of lost ticks.  I haven't seen any upper
+bound for how long the hypervisor may starve a guest OS!
+
+-Tony
