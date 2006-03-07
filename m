@@ -1,32 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:3791 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S932338AbWCGUJ2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2006 15:09:28 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1141756825.31814.75.camel@localhost.localdomain> 
-References: <1141756825.31814.75.camel@localhost.localdomain>  <31492.1141753245@warthog.cambridge.redhat.com> 
-Subject: Re: [PATCH] Document Linux's memory barriers 
-Date: Tue, 07 Mar 2006 20:09:07 +0000
-Message-ID: <9551.1141762147@warthog.cambridge.redhat.com>
+Received: from smtp.osdl.org ([65.172.181.4]:49823 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S932284AbWCGUWh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2006 15:22:37 -0500
+Date: Tue, 7 Mar 2006 12:21:18 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: Memory barriers and spin_unlock safety
+In-Reply-To: <1141757706.31814.80.camel@localhost.localdomain>
+Message-ID: <Pine.LNX.4.64.0603071218170.3573@g5.osdl.org>
+References: <5041.1141417027@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0603030856260.22647@g5.osdl.org>  <32518.1141401780@warthog.cambridge.redhat.com>
+  <1146.1141404346@warthog.cambridge.redhat.com>  <31420.1141753019@warthog.cambridge.redhat.com>
+  <1141755496.31814.56.camel@localhost.localdomain>
+ <Pine.LNX.4.64.0603071024550.3573@g5.osdl.org> <1141757706.31814.80.camel@localhost.localdomain>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+Cc: David Howells <dhowells@redhat.com>, akpm@osdl.org, ak@suse.de, mingo@redhat.com, jblunck@suse.de, bcrl@linux.intel.com, matthew@wil.cx, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
 
-> Better meaningful example would be barriers versus an IRQ handler. Which
-> leads nicely onto section 2
 
-Yes, except that I can't think of one that's feasible that doesn't have to do
-with I/O - which isn't a problem if you are using the proper accessor
-functions.
+On Tue, 7 Mar 2006, Alan Cox wrote:
+> 
+> In the PCI case the I/O write appears to be acked by the bridges used on
+> x86 when the write completes on the PCI bus and then back to the CPU.
+> MMIO is thankfully posted. At least thats how the timings on some
+> devices look.
 
-Such an example has to involve more than one CPU, because you don't tend to
-get memory/memory ordering problems on UP.
+Oh, absolutely. I'm sayign that you shouldn't wait for even that, since 
+it's totally pointless (it's not synchronized _anyway_) and adds 
+absolutely zero gain. To really synchronize, you need to read from the 
+device anyway.
 
-The obvious one might be circular buffers, except there's no problem there
-provided you have a memory barrier between accessing the buffer and updating
-your pointer into it.
+So the "wait for bus activity" is just making PIO slower for no good 
+reason, and keeps the core waiting when it could do something more useful.
 
-David
+On an x86, there are legacy reasons to do it (people expect certain 
+timings). But that was what I was saying - on non-x86 architectures, 
+there's no reason for the ioread/iowrite interfaces to be as serializing 
+as the old-fashioned PIO ones are. Might as well do the MMIO rules for a 
+non-cacheable region: no re-ordering, but no waiting for the bus either.
+
+		Linus
