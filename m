@@ -1,34 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:57564 "EHLO
-	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP
-	id S1751458AbWCGSPJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 7 Mar 2006 13:15:09 -0500
+Received: from smtp.osdl.org ([65.172.181.4]:25317 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1751416AbWCGS3L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2006 13:29:11 -0500
+Date: Tue, 7 Mar 2006 10:28:45 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: Memory barriers and spin_unlock safety
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-In-Reply-To: <31420.1141753019@warthog.cambridge.redhat.com>
+In-Reply-To: <1141755496.31814.56.camel@localhost.localdomain>
+Message-ID: <Pine.LNX.4.64.0603071024550.3573@g5.osdl.org>
 References: <5041.1141417027@warthog.cambridge.redhat.com>
-	 <Pine.LNX.4.64.0603030856260.22647@g5.osdl.org>
-	 <32518.1141401780@warthog.cambridge.redhat.com>
-	 <1146.1141404346@warthog.cambridge.redhat.com>
-	 <31420.1141753019@warthog.cambridge.redhat.com>
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Date: Tue, 07 Mar 2006 18:18:16 +0000
-Message-Id: <1141755496.31814.56.camel@localhost.localdomain>
-Mime-Version: 1.0
+ <Pine.LNX.4.64.0603030856260.22647@g5.osdl.org>  <32518.1141401780@warthog.cambridge.redhat.com>
+  <1146.1141404346@warthog.cambridge.redhat.com>  <31420.1141753019@warthog.cambridge.redhat.com>
+ <1141755496.31814.56.camel@localhost.localdomain>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Linus Torvalds <torvalds@osdl.org>, akpm@osdl.org, ak@suse.de, mingo@redhat.com, jblunck@suse.de, bcrl@linux.intel.com, matthew@wil.cx, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: David Howells <dhowells@redhat.com>, akpm@osdl.org, ak@suse.de, mingo@redhat.com, jblunck@suse.de, bcrl@linux.intel.com, matthew@wil.cx, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Maw, 2006-03-07 at 17:36 +0000, David Howells wrote:
-> Hmmm... We don't actually have io_wmb()... Should the following be added to
-> all archs?
+
+
+On Tue, 7 Mar 2006, Alan Cox wrote:
 > 
-> 	io_mb()
-> 	io_rmb()
-> 	io_wmb()
+> What kind of mb/rmb/wmb goes with ioread/iowrite ? It seems we actually
+> need one that can work out what to do for the general io API ?
 
-What kind of mb/rmb/wmb goes with ioread/iowrite ? It seems we actually
-need one that can work out what to do for the general io API ?
+The ioread/iowrite things only guarantee the laxer MMIO rules, since it 
+_might_ be mmio. So you'd use the mmio barriers.
 
+In fact, I would suggest that architectures that can do PIO in a more 
+relaxed manner (x86 cannot, since all the serialization is in hardware) 
+would do even a PIO in the more relaxed ordering (ie writes can at least 
+be posted, but obviously not merged, since that would be against PCI 
+specs).
+
+x86 tends to serialize PIO too much (I think at least Intel CPU's will 
+actually wait for the PIO write to be acknowledged by _something_ on the 
+bus, although it obviously can't wait for the device to have acted on it).
+
+			Linus
