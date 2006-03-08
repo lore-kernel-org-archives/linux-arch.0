@@ -1,65 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:3996 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S932566AbWCHUQc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2006 15:16:32 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20060308161829.GC3669@elf.ucw.cz> 
-References: <20060308161829.GC3669@elf.ucw.cz>  <31492.1141753245@warthog.cambridge.redhat.com> 
-Subject: Re: [PATCH] Document Linux's memory barriers 
-Date: Wed, 08 Mar 2006 20:16:11 +0000
-Message-ID: <24309.1141848971@warthog.cambridge.redhat.com>
+Received: from fmr22.intel.com ([143.183.121.14]:12984 "EHLO
+	scsfmr002.sc.intel.com") by vger.kernel.org with ESMTP
+	id S932581AbWCHVdg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Mar 2006 16:33:36 -0500
+Date: Wed, 8 Mar 2006 13:33:35 -0800
+From: "Luck, Tony" <tony.luck@intel.com>
+Subject: Re: Request for feedback on Generic Timeofday Subsystem (B20)
+Message-ID: <20060308213335.GA8131@agluck-lia64.sc.intel.com>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F05E1EDF8@scsmsx401.amr.corp.intel.com> <1141695346.11401.39.camel@cog.beaverton.ibm.com> <20060307190607.GA31533@agluck-lia64.sc.intel.com> <1141760224.21582.17.camel@leatherman> <20060307224028.GA31872@agluck-lia64.sc.intel.com> <1141772520.21582.36.camel@leatherman>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1141772520.21582.36.camel@leatherman>
 Sender: linux-arch-owner@vger.kernel.org
-To: Pavel Machek <pavel@ucw.cz>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: john stultz <johnstul@us.ibm.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Pavel Machek <pavel@ucw.cz> wrote:
+On Tue, Mar 07, 2006 at 03:01:58PM -0800, john stultz wrote:
+> You are right there. The jitter handling (if I recall, basically a
+> cmpxchg w/ the last read cycle value to be sure the clocksource doesn't
+> go backward) wouldn't be doable in userspace, but it seems that would
+> already be a pretty bad hit on performance. Is it not? And how many
+> systems actually use unsycned/jittery ITCs instead of alternative mmioed
+> clocksources?
 
-> > + (*) set_mb(var, value)
-> > + (*) set_wmb(var, value)
-> > +
-> > +     These assign the value to the variable and then insert at least a write
-> > +     barrier after it, depending on the function.
-> > +
-> 
-> I... don't understand what these do. Better explanation would
-> help.. .what is function?
+Yes the cmpxchg can be painful on a large NUMA ... so those systems tend
+to use a non-jittery source.  Smaller machines may not have access (as
+BIOS may not describe where the HPET is), and there is also a tradeoff
+since reading the "ar.itc" register is much faster[1] than reading some
+bus-based clock ... so the cmpxchg may not hurt too badly if you only
+have a few cpus.
 
-I can only guess, and hope someone corrects me if I'm wrong.
+> Regardless, if its really a blocking issue, I'm not opposed to putting
+> the direct access methods back into the structure, or going with an
+> alternative solution to make these bits doable. Ingo might have a better
+> idea for this as well.
 
-> Does it try to say that set_mb(var, value) is equivalent to var =
-> value; mb();
+I'm always open to a "better idea" ... but if one of those fails to show up
+then I'd like to have the direct access methods.
 
-Yes.
+> Do you have any other issues or questions?
 
-> but here mb() affects that one variable, only?
+Not at this time.
 
-No. set_*mb() is simply a canned sequence of assignment, memory barrier.
+-Tony
 
-The type of barrier inserted depends on which function you choose. set_mb()
-inserts an mb() and set_wmb() inserts a wmb().
-
-> "LOCK access"?
-
-The LOCK and UNLOCK functions presumably make at least one memory write apiece
-to manipulate the target lock (on SMP at least).
-
-> Does it try to say that ...will be completed after any access inside lock
-> region is completed?
-
-No. What you get in effect is something like:
-
-	LOCK { *lock = q; }
-	*A = a;
-	*B = b;
-	UNLOCK { *lock = u; }
-
-Except that the accesses to the lock memory are made using special procedures
-(LOCK prefixed instructions, XCHG, CAS/CMPXCHG, LL/SC, etc).
-
-> This makes it sound like pentium-III+ is incompatible with previous
-> CPUs. Is it really the case?
-
-Yes - hence the alternative instruction stuff.
-
-David
+[1] Ok, "is less slow than" (reading ar.itc isn't "fast" either).
