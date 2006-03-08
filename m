@@ -1,72 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:41380 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S932418AbWCHDVM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2006 22:21:12 -0500
+Received: from smtp.osdl.org ([65.172.181.4]:30909 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S932424AbWCHDbE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Mar 2006 22:31:04 -0500
+Date: Tue, 7 Mar 2006 19:30:33 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH] Document Linux's memory barriers
+In-Reply-To: <17422.19209.60360.178668@cargo.ozlabs.ibm.com>
+Message-ID: <Pine.LNX.4.64.0603071918460.32577@g5.osdl.org>
+References: <31492.1141753245@warthog.cambridge.redhat.com>
+ <17422.19209.60360.178668@cargo.ozlabs.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <17422.19865.635112.820824@cargo.ozlabs.ibm.com>
-Date: Wed, 8 Mar 2006 14:20:57 +1100
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: Memory barriers and spin_unlock safety
-In-Reply-To: <Pine.LNX.4.64.0603040914160.22647@g5.osdl.org>
-References: <32518.1141401780@warthog.cambridge.redhat.com>
-	<Pine.LNX.4.64.0603030823200.22647@g5.osdl.org>
-	<17417.29375.87604.537434@cargo.ozlabs.ibm.com>
-	<Pine.LNX.4.64.0603040914160.22647@g5.osdl.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arch@vger.kernel.org, bcrl@linux.intel.com, matthew@wil.cx, linux-kernel@vger.kernel.org, mingo@redhat.com, linuxppc64-dev@ozlabs.org, jblunck@suse.de
+To: Paul Mackerras <paulus@samba.org>
+Cc: David Howells <dhowells@redhat.com>, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Linus Torvalds writes:
 
-> So the rules from the PC side (and like it or not, they end up being 
-> what all the drivers are tested with) are:
+
+On Wed, 8 Mar 2006, Paul Mackerras wrote:
 > 
->  - regular stores are ordered by write barriers
+> Linus explained recently that wmb() on x86 does not order stores to
+> system memory w.r.t. stores to stores to prefetchable I/O memory (at
+> least that's what I think he said ;).
 
-I thought regular stores were always ordered anyway?
+In fact, it won't order stores to normal memory even wrt any 
+_non-prefetchable_ IO memory.
 
->  - PIO stores are always synchronous
+PCI (and any other sane IO fabric, for that matter) will do IO posting, so 
+the fact that the CPU _core_ may order them due to a wmb() doesn't 
+actually mean anything.
 
-By synchronous, do you mean ordered with respect to all other accesses
-(regular memory, MMIO, prefetchable MMIO, PIO)?
+The only way to _really_ synchronize with a store to an IO device is 
+literally to read from that device (*). No amount of memory barriers will 
+do it.
 
-In other words, if I store a value in regular memory, then do an
-outb() to a device, and the device does a DMA read to the location I
-just stored to, is the device guaranteed to see the value I just
-stored (assuming no other later store to the location)?
+So you can really only order stores to regular memory wrt each other, and 
+stores to IO memory wrt each other. For the former, "smp_wmb()" does it.
 
->  - MMIO stores are ordered by IO semantics
-> 	- PCI ordering must be honored:
-> 	  * write combining is only allowed on PCI memory resources
-> 	    that are marked prefetchable. If your host bridge does write 
-> 	    combining in general, it's not a "host bridge", it's a "host 
-> 	    disaster".
+For IO memory, normal IO memory is _always_ supposed to be in program 
+order (at least for PCI. It's part of how the bus is supposed to work), 
+unless the IO range allows prefetching (and you've set some MTRR). And if 
+you do, that, currently you're kind of screwed. mmiowb() should do it, but 
+nobody really uses it, and I think it's broken on x86 (it's a no-op, it 
+really should be an "sfence").
 
-Presumably the host bridge doesn't know what sort of PCI resource is
-mapped at a given address, so that information (whether the resource
-is prefetchable) must come from the CPU, which would get it from the
-TLB entry or an MTRR entry - is that right?
+A full "mb()" is probably most likely to work in practice. And yes, we 
+should clean this up.
 
-Or is there some gentleman's agreement between the host bridge and the
-BIOS that certain address ranges are only used for certain types of
-PCI memory resources?
+		Linus
 
-> 	  * for others, writes can always be posted, but they cannot
-> 	    be re-ordered wrt either reads or writes to that device
-> 	    (ie a read will always be fully synchronizing)
-> 	- io_wmb must be honored
-
-What ordering is there between stores to regular memory and stores to
-non-prefetchable MMIO?
-
-If a store to regular memory can be performed before a store to MMIO,
-does a wmb() suffice to enforce an ordering, or do you have to use
-mmiowb()?
-
-Do PCs ever use write-through caching on prefetchable MMIO resources?
-
-Thanks,
-Paul.
+(*) The "read" can of course be any event that tells you that the store 
+has happened - it doesn't necessarily have to be an actual "read[bwl]()" 
+operation. Eg the store might start a command, and when you get the 
+completion interrupt, you obviously know that the store is done, just from 
+a causal reason.
