@@ -1,40 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:20613 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S964799AbWCHRUA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2006 12:20:00 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20060308154157.GI7301@parisc-linux.org> 
-References: <20060308154157.GI7301@parisc-linux.org>  <31492.1141753245@warthog.cambridge.redhat.com> <29826.1141828678@warthog.cambridge.redhat.com> <20060308145506.GA5095@devserv.devel.redhat.com> 
-Subject: Re: [PATCH] Document Linux's memory barriers [try #2] 
-Date: Wed, 08 Mar 2006 17:19:41 +0000
-Message-ID: <10095.1141838381@warthog.cambridge.redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:7059 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1751667AbWCHRgR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2006 12:36:17 -0500
+Date: Wed, 8 Mar 2006 12:36:05 -0500
+From: Alan Cox <alan@redhat.com>
+Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
+Message-ID: <20060308173605.GB13063@devserv.devel.redhat.com>
+References: <20060308145506.GA5095@devserv.devel.redhat.com> <31492.1141753245@warthog.cambridge.redhat.com> <29826.1141828678@warthog.cambridge.redhat.com> <9834.1141837491@warthog.cambridge.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <9834.1141837491@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Alan Cox <alan@redhat.com>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Alan Cox <alan@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Matthew Wilcox <matthew@wil.cx> wrote:
-
-> > That might be worth an example with an if() because PPC will do this and
-> > if its a read with a side effect (eg I/O space) you get singed..
+On Wed, Mar 08, 2006 at 05:04:51PM +0000, David Howells wrote:
+> > [For information on bus mastering DMA and coherency please read ....]
+> > sincee have a doc on this
 > 
-> PPC does speculative memory accesses to IO?  Are you *sure*?
+> Documentation/pci.txt?
 
-Can you do speculative reads from frame buffers?
+and:
 
-> # define smp_read_barrier_depends()     do { } while(0)
+Documentation/DMA-mapping.txt
+Documentation/DMA-API.txt
+> 
+> > The use of volatile generates poorer code and hides the serialization in 
+> > type declarations that may be far from the code.
+> 
+> I'm not sure what you mean by that.
 
-What's this one meant to do?
+in foo.h
 
-> Port space is deprecated though.  PCI 2.3 says:
+	struct blah {
+		volatile int x;	/* need serialization
+	}
 
-That's sort of irrelevant for the here. I still need to document the
-interaction.
+2 million miles away
 
-> Since memory write transactions may be posted in bridges anywhere
-> in the system, and I/O writes may be posted in the host bus bridge,
+	blah.x = 1;
+	blah.y = 4;
 
-I'm not sure whether this is beyond the scope of this document. Maybe the
-document's scope needs to be expanded.
+And you've no idea that its magically serialized due to a type declaration
+in a header you've never read. Hence the "dont use volatile" rule
 
-David
+> > Is this true of IA-64 ??
+> 
+> Are you referring to non-temporal loads and stores?
+
+Yep. But Matthew answered that
+
+> > Should clarify local ordering v SMP ordering for locks implied here.
+> 
+> Do you mean explain what each sort of lock does?
+
+spin_unlock ensures that local CPU writes before the lock are visible
+to all processors before the lock is dropped but it has no effect on 
+I/O ordering. Just a need for clarity.
+
+> > > + (*) inX(), outX():
+> > > +
+> > > +     These are intended to talk to legacy i386 hardware using an alternate bus
+> > > +     addressing mode.  They are synchronous as far as the x86 CPUs are
+> > 
+> > Not really true. Lots of PCI devices use them. Need to talk about "I/O space"
+> 
+> Which bit is not really true?
+
+The "legacy i386 hardware" bit. Many processors have an I/O space.
+
