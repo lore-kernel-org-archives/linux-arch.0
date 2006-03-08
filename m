@@ -1,38 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:58596 "EHLO
-	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP
-	id S1751285AbWCHWhP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Mar 2006 17:37:15 -0500
-Subject: Re: [PATCH] Document Linux's memory barriers
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-In-Reply-To: <17423.21837.304330.623519@cargo.ozlabs.ibm.com>
-References: <1141756825.31814.75.camel@localhost.localdomain>
-	 <31492.1141753245@warthog.cambridge.redhat.com>
-	 <9551.1141762147@warthog.cambridge.redhat.com>
-	 <200603080925.19425.duncan.sands@math.u-psud.fr>
-	 <17423.21837.304330.623519@cargo.ozlabs.ibm.com>
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Date: Wed, 08 Mar 2006 22:42:29 +0000
-Message-Id: <1141857749.10606.17.camel@localhost.localdomain>
+Received: from jurassic.park.msu.ru ([195.208.223.243]:63172 "EHLO
+	jurassic.park.msu.ru") by vger.kernel.org with ESMTP
+	id S1030277AbWCHXIw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Mar 2006 18:08:52 -0500
+Date: Thu, 9 Mar 2006 02:08:51 +0300
+From: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
+Message-ID: <20060309020851.D9651@jurassic.park.msu.ru>
+References: <20060308154157.GI7301@parisc-linux.org> <31492.1141753245@warthog.cambridge.redhat.com> <29826.1141828678@warthog.cambridge.redhat.com> <20060308145506.GA5095@devserv.devel.redhat.com> <10095.1141838381@warthog.cambridge.redhat.com> <17423.22121.254026.487964@cargo.ozlabs.ibm.com>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <17423.22121.254026.487964@cargo.ozlabs.ibm.com>; from paulus@samba.org on Thu, Mar 09, 2006 at 09:10:49AM +1100
 Sender: linux-arch-owner@vger.kernel.org
 To: Paul Mackerras <paulus@samba.org>
-Cc: Duncan Sands <duncan.sands@math.u-psud.fr>, David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@osdl.org, mingo@redhat.com, linuxppc64-dev@ozlabs.org
+Cc: David Howells <dhowells@redhat.com>, Matthew Wilcox <matthew@wil.cx>, Alan Cox <alan@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Iau, 2006-03-09 at 09:06 +1100, Paul Mackerras wrote:
-> I'd be interested to know what the C standard says about whether the
-> compiler can reorder writes that may be visible to a signal handler.
-> An interrupt handler in the kernel is logically equivalent to a signal
-> handler in normal C code.
+On Thu, Mar 09, 2006 at 09:10:49AM +1100, Paul Mackerras wrote:
+> David Howells writes:
+> 
+> > > # define smp_read_barrier_depends()     do { } while(0)
+> > 
+> > What's this one meant to do?
+> 
+> On most CPUs, if you load one value and use the value you get to
+> compute the address for a second load, there is an implicit read
+> barrier between the two loads because of the dependency.  That's not
+> true on alpha, apparently, because of the way their caches are
+> structured.
 
-The C standard doesn't have much to say. POSIX has a lot to say and yes
-it can do this. You do need volatile or store barriers in signal touched
-code quite often, or for that matter locks
+Who said?! ;-)
 
-POSIX/SuS also has stuff to say about what functions are signal safe and
-what is not allowed.
+> The smp_read_barrier_depends is a read barrier that you
+> use between two loads when there is already a dependency between the
+> loads, and it is a no-op on everything except alpha (IIRC).
 
-Alan
+My "Compiler Writer's Guide for the Alpha 21264" says that if the
+result of the first load contributes to the address calculation
+of the second load, then the second load cannot issue until the data
+from the first load is available.
 
+Obviously, we don't care about earlier alphas as they are executing
+strictly in program order.
+
+Ivan.
