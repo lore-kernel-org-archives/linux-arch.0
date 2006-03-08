@@ -1,35 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:47515 "EHLO
-	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP
-	id S1750991AbWCHNIo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Mar 2006 08:08:44 -0500
-Subject: Re: Memory barriers and spin_unlock safety
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-In-Reply-To: <Pine.LNX.4.64.0603071930530.32577@g5.osdl.org>
-References: <32518.1141401780@warthog.cambridge.redhat.com>
-	 <Pine.LNX.4.64.0603030823200.22647@g5.osdl.org>
-	 <17417.29375.87604.537434@cargo.ozlabs.ibm.com>
-	 <Pine.LNX.4.64.0603040914160.22647@g5.osdl.org>
-	 <17422.19865.635112.820824@cargo.ozlabs.ibm.com>
-	 <Pine.LNX.4.64.0603071930530.32577@g5.osdl.org>
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Date: Wed, 08 Mar 2006 13:12:57 +0000
-Message-Id: <1141823577.7605.31.camel@localhost.localdomain>
-Mime-Version: 1.0
+Received: from mx1.redhat.com ([66.187.233.31]:52873 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750933AbWCHNUI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2006 08:20:08 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <17422.19209.60360.178668@cargo.ozlabs.ibm.com> 
+References: <17422.19209.60360.178668@cargo.ozlabs.ibm.com>  <31492.1141753245@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH] Document Linux's memory barriers 
+Date: Wed, 08 Mar 2006 13:19:52 +0000
+Message-ID: <28393.1141823992@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Paul Mackerras <paulus@samba.org>, David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arch@vger.kernel.org, bcrl@linux.intel.com, matthew@wil.cx, linux-kernel@vger.kernel.org, mingo@redhat.com, linuxppc64-dev@ozlabs.org, jblunck@suse.de
+To: Paul Mackerras <paulus@samba.org>
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Maw, 2006-03-07 at 19:54 -0800, Linus Torvalds wrote:
-> Close, yes. HOWEVER, it's only really ordered wrt the "innermost" bus. I 
-> don't think PCI bridges are supposed to post PIO writes, but a x86 CPU 
-> basically won't stall for them forever.
+Paul Mackerras <paulus@samba.org> wrote:
 
-The bridges I have will stall forever. You can observe this directly if
-an IDE device decides to hang the IORDY line on the IDE cable or you
-crash the GPU on an S3 card.
+> By "memory accesses" do you mean accesses to system memory, or do you
+> mean loads and stores - which may be to system memory, memory on an I/O
+> device (e.g. a framebuffer) or to memory-mapped I/O registers?
 
-Alan
+Well, I meant all loads and stores, irrespective of their destination.
 
+However, on i386, for example, you've actually got at least two different I/O
+access domains, and I don't know how they impinge upon each other (IN/OUT vs
+MOV).
+
+> Enabling/disabling interrupts doesn't imply a barrier on powerpc, and
+> nor does taking an interrupt or returning from one.
+
+Surely it ought to, otherwise what's to stop accesses done with interrupts
+disabled crossing with accesses done inside an interrupt handler?
+
+> > +Either interrupt disablement (LOCK) and enablement (UNLOCK) will barrier
+> ...
+> I don't think this is right, and I don't think it is necessary to
+> achieve the end you state, since a CPU will always see its own memory
+> accesses in program order.
+
+But what about a driver accessing some memory that its device is going to
+observe under irq disablement, and then getting an interrupt immediately after
+from that same device, the handler for which communicates with the device,
+possibly then being broken because the CPU hasn't completed all the memory
+accesses that the driver made while interrupts are disabled?
+
+Alternatively, might it be possible for communications between two CPUs to be
+stuffed because one took an interrupt that also modified common data before
+the it had committed the memory accesses done under interrupt disablement?
+This would suggest using a lock though.
+
+I'm not sure that I can come up with a feasible example for this, but Alan Cox
+seems to think that it's a valid problem too.
+
+The only likely way I can see this being a problem is with unordered I/O
+writes, which would suggest you have to place an mmiowb() before unlocking the
+spinlock in such a case, assuming it is possible to get unordered I/O writes
+(which I think it is).
+
+> What does *F+*A mean?
+
+Combined accesses.
+
+> Well, the driver should *not* be doing *ADR at all, it should be using
+> read[bwl]/write[bwl].  The architecture code has to implement
+> read*/write* in such a way that the accesses generated can't be
+> reordered.  I _think_ it also has to make sure the write accesses
+> can't be write-combined, but it would be good to have that clarified.
+
+Than what use mmiowb()?
+
+Surely write combining and out-of-order reads are reasonable for cacheable
+devices like framebuffers.
+
+David
