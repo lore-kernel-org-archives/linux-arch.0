@@ -1,53 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:21907 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S932563AbWCHUDS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2006 15:03:18 -0500
-Date: Wed, 8 Mar 2006 15:02:46 -0500
-From: Alan Cox <alan@redhat.com>
-Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
-Message-ID: <20060308200246.GA17886@devserv.devel.redhat.com>
-References: <20060308184500.GA17716@devserv.devel.redhat.com> <20060308173605.GB13063@devserv.devel.redhat.com> <20060308145506.GA5095@devserv.devel.redhat.com> <31492.1141753245@warthog.cambridge.redhat.com> <29826.1141828678@warthog.cambridge.redhat.com> <9834.1141837491@warthog.cambridge.redhat.com> <11922.1141842907@warthog.cambridge.redhat.com> <14275.1141844922@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0603081115300.32577@g5.osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0603081115300.32577@g5.osdl.org>
+Received: from mx1.redhat.com ([66.187.233.31]:3996 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S932566AbWCHUQc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2006 15:16:32 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20060308161829.GC3669@elf.ucw.cz> 
+References: <20060308161829.GC3669@elf.ucw.cz>  <31492.1141753245@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH] Document Linux's memory barriers 
+Date: Wed, 08 Mar 2006 20:16:11 +0000
+Message-ID: <24309.1141848971@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, Alan Cox <alan@redhat.com>, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: Pavel Machek <pavel@ucw.cz>
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Mar 08, 2006 at 11:26:41AM -0800, Linus Torvalds wrote:
-> Actually, since the different NUMA things may have different paths to the 
-> PCI thing, I don't think even the mmiowb() will really help. It has 
-> nothing to serialize _with_.
+Pavel Machek <pavel@ucw.cz> wrote:
 
-It serializes to the bridge. On the Altix for example this is done by reading
-a local status register with the pending write count in it and waiting until
-the chip reports the write has propogated across the fabric. At that point it
-has hit the bridge and the usual PCI posting applies, but the PCI ordering
-rule will also apply so the write won't be passed by another write issued
-after the spinlock is then dropped.
+> > + (*) set_mb(var, value)
+> > + (*) set_wmb(var, value)
+> > +
+> > +     These assign the value to the variable and then insert at least a write
+> > +     barrier after it, depending on the function.
+> > +
+> 
+> I... don't understand what these do. Better explanation would
+> help.. .what is function?
 
-> The IO might be posted somewhere on a PCI bridge, and and depending on the 
-> posting rules, the mmiowb() just isn't relevant for IO coming through 
-> another path.
+I can only guess, and hope someone corrects me if I'm wrong.
 
-Yes. mmiowb only serializes to the bridge. Thats how it is defined in the
-documentation. Thats enough to sort out things like the example with locks,
-but where a read from the device would be overkill.
+> Does it try to say that set_mb(var, value) is equivalent to var =
+> value; mb();
 
-> general, or even very commonly. The undeniable fact is that "big NUMA" 
-> machines need to validate the drivers they use separately. The fact that 
-> it works on a normal PC - and that it's been tested to death there - does 
-> not guarantee much anything.
+Yes.
 
-mmiowb comes about from the Altix folks strangley enough.
+> but here mb() affects that one variable, only?
 
-> The good news, of course, is that you don't use that kind of "big NUMA" 
-> system the same way you'd use a regular desktop SMP. You don't plug in 
-> random devices into it and just expect them to work. I'd hope ;)
+No. set_*mb() is simply a canned sequence of assignment, memory barrier.
 
-Various core drivers like tg3 use mmiowb()
+The type of barrier inserted depends on which function you choose. set_mb()
+inserts an mb() and set_wmb() inserts a wmb().
 
-Alan
+> "LOCK access"?
 
+The LOCK and UNLOCK functions presumably make at least one memory write apiece
+to manipulate the target lock (on SMP at least).
+
+> Does it try to say that ...will be completed after any access inside lock
+> region is completed?
+
+No. What you get in effect is something like:
+
+	LOCK { *lock = q; }
+	*A = a;
+	*B = b;
+	UNLOCK { *lock = u; }
+
+Except that the accesses to the lock memory are made using special procedures
+(LOCK prefixed instructions, XCHG, CAS/CMPXCHG, LL/SC, etc).
+
+> This makes it sound like pentium-III+ is incompatible with previous
+> CPUs. Is it really the case?
+
+Yes - hence the alternative instruction stuff.
+
+David
