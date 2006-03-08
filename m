@@ -1,45 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:59344 "EHLO
-	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP
-	id S1030201AbWCHV7x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Mar 2006 16:59:53 -0500
-Subject: Re: [PATCH] Document Linux's memory barriers
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-In-Reply-To: <17423.20862.764098.732463@cargo.ozlabs.ibm.com>
-References: <17422.19209.60360.178668@cargo.ozlabs.ibm.com>
-	 <31492.1141753245@warthog.cambridge.redhat.com>
-	 <28393.1141823992@warthog.cambridge.redhat.com>
-	 <17423.20862.764098.732463@cargo.ozlabs.ibm.com>
-Content-Type: text/plain
+Received: from ozlabs.org ([203.10.76.45]:9354 "EHLO ozlabs.org")
+	by vger.kernel.org with ESMTP id S932603AbWCHWK6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2006 17:10:58 -0500
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Date: Wed, 08 Mar 2006 22:05:14 +0000
-Message-Id: <1141855514.10606.10.camel@localhost.localdomain>
-Mime-Version: 1.0
+Message-ID: <17423.22121.254026.487964@cargo.ozlabs.ibm.com>
+Date: Thu, 9 Mar 2006 09:10:49 +1100
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH] Document Linux's memory barriers [try #2] 
+In-Reply-To: <10095.1141838381@warthog.cambridge.redhat.com>
+References: <20060308154157.GI7301@parisc-linux.org>
+	<31492.1141753245@warthog.cambridge.redhat.com>
+	<29826.1141828678@warthog.cambridge.redhat.com>
+	<20060308145506.GA5095@devserv.devel.redhat.com>
+	<10095.1141838381@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Matthew Wilcox <matthew@wil.cx>, Alan Cox <alan@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Iau, 2006-03-09 at 08:49 +1100, Paul Mackerras wrote:
-> If the device accesses to memory are in response to an MMIO store,
-> then the code needs an explicit wmb() between the memory stores and
-> the MMIO store.  Disabling interrupts isn't going to help here because
-> the device doesn't see the CPU interrupt enable state.
+David Howells writes:
 
-Interrupts are themselves entirely asynchronous anyway. The following
-can occur on SMP Pentium-PIII.
+> > # define smp_read_barrier_depends()     do { } while(0)
+> 
+> What's this one meant to do?
 
-	Device
-		Raise IRQ
+On most CPUs, if you load one value and use the value you get to
+compute the address for a second load, there is an implicit read
+barrier between the two loads because of the dependency.  That's not
+true on alpha, apparently, because of the way their caches are
+structured.  The smp_read_barrier_depends is a read barrier that you
+use between two loads when there is already a dependency between the
+loads, and it is a no-op on everything except alpha (IIRC).
 
-	CPU
-		writel(MASK_IRQ, &dev->ctrl);
-		readl(&dev->ctrl);
-
-	IRQ arrives
-		
-CPU specific IRQ masking is synchronous, but IRQ delivery is not,
-including IPI delivery (which is asynchronous and not guaranteed to
-occur only once per IPI but can be replayed in obscure cases on x86).
-
-
+Paul.
