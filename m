@@ -1,32 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:5349 "EHLO
-	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP
-	id S1751675AbWCHAeD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 7 Mar 2006 19:34:03 -0500
+Received: from smtp110.mail.mud.yahoo.com ([209.191.85.220]:52399 "HELO
+	smtp110.mail.mud.yahoo.com") by vger.kernel.org with SMTP
+	id S1751127AbWCHCHr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Mar 2006 21:07:47 -0500
+Message-ID: <440E3C69.2040902@yahoo.com.au>
+Date: Wed, 08 Mar 2006 13:07:37 +1100
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+MIME-Version: 1.0
 Subject: Re: [PATCH] Document Linux's memory barriers
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-In-Reply-To: <200603072224.09976.ak@suse.de>
-References: <200603071134.52962.ak@suse.de> <200603071257.24234.ak@suse.de>
-	 <1141766085.5255.12.camel@serpentine.pathscale.com>
-	 <200603072224.09976.ak@suse.de>
-Content-Type: text/plain
+References: <31492.1141753245@warthog.cambridge.redhat.com>
+In-Reply-To: <31492.1141753245@warthog.cambridge.redhat.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
-Date: Wed, 08 Mar 2006 00:36:58 +0000
-Message-Id: <1141778218.2455.25.camel@localhost.localdomain>
-Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Bryan O'Sullivan <bos@serpentine.com>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Maw, 2006-03-07 at 22:24 +0100, Andi Kleen wrote:
-> > But on most arches those accesses do indeed seem to happen in-order.  On
-> > i386 and x86_64, it's a natural consequence of program store ordering.
-> 
-> Not true for reads on x86.
+David Howells wrote:
 
-You must have a strange kernel Andi. Mine marks them as volatile
-unsigned char * references.
+>The attached patch documents the Linux kernel's memory barriers.
+>
+>Signed-Off-By: David Howells <dhowells@redhat.com>
+>---
+>
+>
 
-Alan
+Good :)
 
+>+==============================
+>+IMPLIED KERNEL MEMORY BARRIERS
+>+==============================
+>+
+>+Some of the other functions in the linux kernel imply memory barriers. For
+>+instance all the following (pseudo-)locking functions imply barriers.
+>+
+>+ (*) interrupt disablement and/or interrupts
+>
+
+Is this really the case? I mean interrupt disablement only synchronises with
+the local CPU, so it probably should not _have_ to imply barriers (eg. some
+architectures are playing around with "virtual" interrupt disablement).
+
+[...]
+
+>+
+>+Either interrupt disablement (LOCK) and enablement (UNLOCK) will barrier
+>+memory and I/O accesses individually, or interrupt handling will barrier
+>+memory and I/O accesses on entry and on exit. This prevents an interrupt
+>+routine interfering with accesses made in a disabled-interrupt section of code
+>+and vice versa.
+>+
+>
+
+But CPUs should always be consistent WRT themselves, so I'm not sure that
+it is needed?
+
+Thanks,
+Nick
+
+--
+Send instant messages to your online friends http://au.messenger.yahoo.com 
