@@ -1,30 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hierophant.serpentine.com ([66.92.13.71]:45771 "EHLO
-	demesne.serpentine.com") by vger.kernel.org with ESMTP
-	id S1751501AbWCHQkM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Mar 2006 11:40:12 -0500
-Subject: Re: [PATCH] Document Linux's memory barriers
-From: "Bryan O'Sullivan" <bos@serpentine.com>
-In-Reply-To: <27607.1141821265@warthog.cambridge.redhat.com>
-References: <Pine.LNX.4.64.0603071918460.32577@g5.osdl.org>
-	 <31492.1141753245@warthog.cambridge.redhat.com>
-	 <17422.19209.60360.178668@cargo.ozlabs.ibm.com>
-	 <27607.1141821265@warthog.cambridge.redhat.com>
-Content-Type: text/plain
-Date: Wed, 08 Mar 2006 08:40:11 -0800
-Message-Id: <1141836011.4347.22.camel@camp4.serpentine.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:48611 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1751233AbWCHRFR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2006 12:05:17 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20060308145506.GA5095@devserv.devel.redhat.com> 
+References: <20060308145506.GA5095@devserv.devel.redhat.com>  <31492.1141753245@warthog.cambridge.redhat.com> <29826.1141828678@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH] Document Linux's memory barriers [try #2] 
+Date: Wed, 08 Mar 2006 17:04:51 +0000
+Message-ID: <9834.1141837491@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Linus Torvalds <torvalds@osdl.org>, Paul Mackerras <paulus@samba.org>, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: Alan Cox <alan@redhat.com>
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 2006-03-08 at 12:34 +0000, David Howells wrote:
+Alan Cox <alan@redhat.com> wrote:
 
-> On i386 and x86_64, do IN and OUT instructions imply MFENCE?
+> [For information on bus mastering DMA and coherency please read ....]
+> 
+> sincee have a doc on this
 
-No.
+Documentation/pci.txt?
 
-	<b
+> The use of volatile generates poorer code and hides the serialization in 
+> type declarations that may be far from the code.
 
+I'm not sure what you mean by that.
+
+> Is this true of IA-64 ??
+
+Are you referring to non-temporal loads and stores?
+
+> > +There are some more advanced barriering functions:
+> 
+> "barriering" ... ick,  barrier.
+
+Picky:-)
+
+> Should clarify local ordering v SMP ordering for locks implied here.
+
+Do you mean explain what each sort of lock does?
+
+> > + (*) inX(), outX():
+> > +
+> > +     These are intended to talk to legacy i386 hardware using an alternate bus
+> > +     addressing mode.  They are synchronous as far as the x86 CPUs are
+> 
+> Not really true. Lots of PCI devices use them. Need to talk about "I/O space"
+
+Which bit is not really true?
+
+David
