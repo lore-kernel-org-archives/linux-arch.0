@@ -1,59 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:39384 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1751865AbWCINCW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 08:02:22 -0500
+Received: from mx1.redhat.com ([66.187.233.31]:2966 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1751491AbWCIOBf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 09:01:35 -0500
 From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1141907339.16745.2.camel@localhost.localdomain> 
-References: <1141907339.16745.2.camel@localhost.localdomain>  <1141855305.10606.6.camel@localhost.localdomain> <20060308161829.GC3669@elf.ucw.cz> <31492.1141753245@warthog.cambridge.redhat.com> <24309.1141848971@warthog.cambridge.redhat.com> <24280.1141904462@warthog.cambridge.redhat.com> 
-Subject: Re: [PATCH] Document Linux's memory barriers 
-Date: Thu, 09 Mar 2006 13:02:01 +0000
-Message-ID: <26313.1141909321@warthog.cambridge.redhat.com>
+In-Reply-To: <21627.1141846631@warthog.cambridge.redhat.com> 
+References: <21627.1141846631@warthog.cambridge.redhat.com>  <29826.1141828678@warthog.cambridge.redhat.com> <31492.1141753245@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH] Document Linux's memory barriers [try #3] 
+Date: Thu, 09 Mar 2006 14:01:16 +0000
+Message-ID: <27749.1141912876@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: David Howells <dhowells@redhat.com>, Pavel Machek <pavel@ucw.cz>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
 
-> > Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
-> > So, you're saying that the LOCK and UNLOCK primitives don't actually modify
-> > memory, but rather simply pin the cacheline into the CPU's cache and refuse to
-> > let anyone else touch it?
-> 
-> Basically yes
-
-What you said is incomplete: the cacheline is wangled into the Exclusive
-state, and there it sits until modified (at which point it shifts to the
-Modified state) or stolen (when it shifts to the Shared state). Whilst the x86
-CPU might pin it there for the duration of the execution of the locked
-instruction, it can't leave it there until it detects a spin_unlock() or
-equivalent.
-
-I guess LL/SC and LWARX/STWCX work by the reserved load wangling the cacheline
-into the Exclusive state, and then the conditional store only doing the store
-if the cacheline is still in that state. I don't know whether the conditional
-store may modify a cacheline that's in the Modified state, but I'd guess you'd
-need more state than that, because you have to pair it with a load reserved.
-
-
-With inter-CPU memory barriers I think you have to consider the cache part of
-the memory, not part of the CPU. The CPU _does_ make a memory modification;
-it's just that it doesn't proceed any further than the cache, until the cache
-coherency mechanisms transfer the change to another CPU, or until the cache
-becomes full and the lock's line gets ejected.
-
-> > No... it can't work like that. It *must* make a memory modification 
-> 
-> Then you'll have to argue with the chip designers because it doesn't.
-> 
-> Its all built around the cache coherency. To make a write to a cache
-> line I must be the sole owner of the line. Look up "MESI cache" in a
-> good book on the subject.
-
-http://en.wikipedia.org/wiki/MESI_protocol
-
-And a picture of the state machine may be found here:
-
-https://www.cs.tcd.ie/Jeremy.Jones/vivio/caches/MESIHelp.htm
+I'm thinking of adding the attached to the document. Any comments or
+objections?
 
 David
+
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 6eeb7e4..f9a9192 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -4,6 +4,8 @@
+ 
+ Contents:
+ 
++ (*) What do we consider memory?
++
+  (*) What are memory barriers?
+ 
+  (*) Where are memory barriers needed?
+@@ -32,6 +34,82 @@ Contents:
+  (*) References.
+ 
+ 
++===========================
++WHAT DO WE CONSIDER MEMORY?
++===========================
++
++For the purpose of this specification, "memory", at least as far as cached CPU
++vs CPU interactions go, has to include the CPU caches in the system.  Although
++any particular read or write may not actually appear outside of the CPU that
++issued it because the CPU was able to satisfy it from its own cache, it's still
++as if the memory access had taken place as far as the other CPUs are concerned
++since the cache coherency and ejection mechanisms will propegate the effects
++upon conflict.
++
++Consider the system logically as:
++
++	    <--- CPU --->         :       <----------- Memory ----------->
++	                          :
++	+--------+    +--------+  :   +--------+    +-----------+
++	|        |    |        |  :   |        |    |           |    +---------+
++	|  CPU   |    | Memory |  :   | CPU    |    |           |    |	       |
++	|  Core  |--->| Access |----->| Cache  |<-->|           |    |	       |
++	|        |    | Queue  |  :   |        |    |           |--->| Memory  |
++	|        |    |        |  :   |        |    |           |    |	       |
++	+--------+    +--------+  :   +--------+    |           |    | 	       |
++	                          :                 | Cache     |    +---------+
++	                          :                 | Coherency |
++	                          :                 | Mechanism |    +---------+
++	+--------+    +--------+  :   +--------+    |           |    |	       |
++	|        |    |        |  :   |        |    |           |    |         |
++	|  CPU   |    | Memory |  :   | CPU    |    |           |--->| Device  |
++	|  Core  |--->| Access |----->| Cache  |<-->|           |    | 	       |
++	|        |    | Queue  |  :   |        |    |           |    | 	       |
++	|        |    |        |  :   |        |    |           |    +---------+
++	+--------+    +--------+  :   +--------+    +-----------+
++	                          :
++	                          :
++
++The CPU core may execute instructions in any order it deems fit, provided the
++expected program causality appears to be maintained.  Some of the instructions
++generate load and store operations which then go into the memory access queue
++to be performed.  The core may place these in the queue in any order it wishes,
++and continue execution until it is forced to wait for an instruction to
++complete.
++
++What memory barriers are concerned with is controlling the order in which
++accesses cross from the CPU side of things to the memory side of things, and
++the order in which the effects are perceived to happen by the other observers
++in the system.
++
++
++Note that the above model does not show uncached memory or I/O accesses.  These
++procede directly from the queue to the memory or the devices, bypassing any
++cache coherency:
++
++	    <--- CPU --->         :
++       	                          :		+-----+
++	+--------+    +--------+  :             |     |
++	|        |    |        |  :             |     |              +---------+
++	|  CPU   |    | Memory |  :             |     |              |	       |
++	|  Core  |--->| Access |--------------->|     |              |	       |
++	|        |    | Queue  |  :             |     |------------->| Memory  |
++	|        |    |        |  :             |     |              |	       |
++	+--------+    +--------+  :             |     |              | 	       |
++	                          :             |     |              +---------+
++	                          :             | Bus |
++	                          :             |     |              +---------+
++	+--------+    +--------+  :             |     |              |	       |
++	|        |    |        |  :             |     |              |         |
++	|  CPU   |    | Memory |  :             |     |<------------>| Device  |
++	|  Core  |--->| Access |--------------->|     |              | 	       |
++	|        |    | Queue  |  :             |     |              | 	       |
++	|        |    |        |  :             |     |              +---------+
++	+--------+    +--------+  :             |     |
++	                          :		+-----+
++	                          :
++
++
+ =========================
+ WHAT ARE MEMORY BARRIERS?
+ =========================
+@@ -448,8 +526,8 @@ In all cases there are variants on a LOC
+ 
+      The LOCK accesses will be completed before the UNLOCK accesses.
+ 
+-And therefore an UNLOCK followed by a LOCK is equivalent to a full barrier, but
+-a LOCK followed by an UNLOCK isn't.
++     Therefore an UNLOCK followed by a LOCK is equivalent to a full barrier,
++     but a LOCK followed by an UNLOCK is not.
+ 
+ Locks and semaphores may not provide any guarantee of ordering on UP compiled
+ systems, and so can't be counted on in such a situation to actually do anything
+
