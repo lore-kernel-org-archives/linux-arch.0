@@ -1,42 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:17106 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1751104AbWCIRjZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 12:39:25 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <Pine.LNX.4.64.0603090814530.18022@g5.osdl.org> 
-References: <Pine.LNX.4.64.0603090814530.18022@g5.osdl.org>  <1141855305.10606.6.camel@localhost.localdomain> <20060308161829.GC3669@elf.ucw.cz> <31492.1141753245@warthog.cambridge.redhat.com> <24309.1141848971@warthog.cambridge.redhat.com> <24280.1141904462@warthog.cambridge.redhat.com> 
+Received: from smtp.osdl.org ([65.172.181.4]:46034 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1751199AbWCIR4o (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 12:56:44 -0500
+Date: Thu, 9 Mar 2006 09:56:17 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH] Document Linux's memory barriers 
-Date: Thu, 09 Mar 2006 17:39:05 +0000
-Message-ID: <12101.1141925945@warthog.cambridge.redhat.com>
+In-Reply-To: <Pine.LNX.4.64.0603090947290.18022@g5.osdl.org>
+Message-ID: <Pine.LNX.4.64.0603090954420.18022@g5.osdl.org>
+References: <Pine.LNX.4.64.0603090814530.18022@g5.osdl.org>
+ <1141855305.10606.6.camel@localhost.localdomain> <20060308161829.GC3669@elf.ucw.cz>
+ <31492.1141753245@warthog.cambridge.redhat.com> <24309.1141848971@warthog.cambridge.redhat.com>
+ <24280.1141904462@warthog.cambridge.redhat.com>  <12101.1141925945@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0603090947290.18022@g5.osdl.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Pavel Machek <pavel@ucw.cz>, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, Pavel Machek <pavel@ucw.cz>, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Linus Torvalds <torvalds@osdl.org> wrote:
 
-> Basically, as long as nobody else is reading the lock, the lock will stay 
-> in the caches.
 
-I think for the purposes of talking about memory barriers, we consider the
-cache to be part of the memory since the cache coherency mechanisms will give
-the same effect.
+On Thu, 9 Mar 2006, Linus Torvalds wrote:
+> 
+> So the fact that x86 SMP ops basically never guarantee any bus cycles 
+> basically means that they are fundamentally no-ops when it comes to IO 
+> serialization. That was really my only point.
 
-I suppose the way the cache can be viewed as working is that bits of memory
-are shuttled around between the CPUs, RAM and any other devices that partake
-of the coherency mechanism.
+Side note: of course, locked cycles _do_ "serialize" the core. So they'll 
+stop at least the core write merging, and speculative reads. So they do 
+have some impact on IO, but they have no way of impacting things like 
+write posting etc that is outside the CPU.
 
-> All modern CPU's do atomic operations entirely within the cache coherency 
-> logic.
-
-I know that, and I think it's irrelevant to specifying memory barriers.
-
-> I think x86 still support the notion of a "locked cycle" on the 
-> bus,
-
-I wonder if that's what XCHG and XADD do... There's no particular reason they
-should be that much slower than LOCK INCL/DECL. Of course, I've only measured
-this on my Dual-PPro test box, so other i386 arch CPUs may exhibit other
-behaviour.
-
-David
+			Linus
