@@ -1,86 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:14001 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S1161011AbWCIDp2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2006 22:45:28 -0500
+Received: from detroit.securenet-server.net ([209.51.153.26]:52150 "EHLO
+	detroit.securenet-server.net") by vger.kernel.org with ESMTP
+	id S1030202AbWCIEST (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Mar 2006 23:18:19 -0500
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
+Date: Wed, 8 Mar 2006 20:18:04 -0800
+References: <20060308184500.GA17716@devserv.devel.redhat.com> <200603081659.05786.jbarnes@virtuousgeek.org> <17423.34439.977741.295065@cargo.ozlabs.ibm.com>
+In-Reply-To: <17423.34439.977741.295065@cargo.ozlabs.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Message-ID: <17423.42185.78767.837295@cargo.ozlabs.ibm.com>
-Date: Thu, 9 Mar 2006 14:45:13 +1100
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [PATCH] Document Linux's memory barriers [try #2] 
-In-Reply-To: <Pine.LNX.4.64.0603081716400.32577@g5.osdl.org>
-References: <Pine.LNX.4.64.0603081115300.32577@g5.osdl.org>
-	<20060308184500.GA17716@devserv.devel.redhat.com>
-	<20060308173605.GB13063@devserv.devel.redhat.com>
-	<20060308145506.GA5095@devserv.devel.redhat.com>
-	<31492.1141753245@warthog.cambridge.redhat.com>
-	<29826.1141828678@warthog.cambridge.redhat.com>
-	<9834.1141837491@warthog.cambridge.redhat.com>
-	<11922.1141842907@warthog.cambridge.redhat.com>
-	<14275.1141844922@warthog.cambridge.redhat.com>
-	<19984.1141846302@warthog.cambridge.redhat.com>
-	<17423.30789.214209.462657@cargo.ozlabs.ibm.com>
-	<Pine.LNX.4.64.0603081652430.32577@g5.osdl.org>
-	<17423.32792.500628.226831@cargo.ozlabs.ibm.com>
-	<Pine.LNX.4.64.0603081716400.32577@g5.osdl.org>
+Content-Disposition: inline
+Message-Id: <200603082018.04385.jbarnes@virtuousgeek.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, Alan Cox <alan@redhat.com>, linuxppc64-dev@ozlabs.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, David Howells <dhowells@redhat.com>, Alan Cox <alan@redhat.com>, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Linus Torvalds writes:
+On Wednesday, March 08, 2006 5:36 pm, Paul Mackerras wrote:
+> Jesse Barnes writes:
+> > It uses a per-node address space to reference the local bridge. 
+> > The local bridge then waits until the remote bridge has acked the
+> > write before, then sets the outstanding write register to the
+> > appropriate value.
+>
+> That sounds like mmiowb can only be used when preemption is disabled,
+> such as inside a spin-locked region - is that right?
 
-> x86 mmiowb would have to be a real op too if there were any multi-pathed 
-> PCI buses out there for x86, methinks.
+There's a scheduler hook to flush things if a process moves.  I think 
+Brent Casavant submitted that patch recently.
 
-Not if the manufacturers wanted to be able to run existing standard
-x86 operating systems on it, surely.
-
-I presume that on x86 the PCI host bridges and caches are all part of
-the coherence domain, and that the rule about stores being observed in
-order applies to what the PCI host bridge can see as much as it does
-to any other agent in the coherence domain.  And if I have understood
-you correctly, the store ordering rule applies both to stores to
-regular cacheable memory and stores to noncacheable nonprefetchable
-MMIO registers without distinction.
-
-If that is so, then I don't see how the writel's can get out of order.
-Put another way, we expect spinlock regions to order stores to regular
-memory, and AFAICS the x86 ordering rules mean that the same guarantee
-should apply to stores to MMIO registers.  (It's entirely possible
-that I don't fully understand the x86 memory ordering rules, of
-course. :)
-
-> Basically, the issue boils down to one thing: no "normal" barrier will 
-> _ever_ show up on the bus on x86 (ie ia64, afaik). That, together with any 
-
-A spin_lock does show up on the bus, doesn't it?
-
-> Would I want the hard-to-think-about IO ordering on a regular desktop 
-> platform? No.
-
-In fact I think that mmiowb can actually be useful on PPC, if we can
-be sure that all the drivers we care about will use it correctly.
-
-If we can have the following rules:
-
-* If you have stores to regular memory, followed by an MMIO store, and
-  you want the device to see the stores to regular memory at the point
-  where it receives the MMIO store, then you need a wmb() between the
-  stores to regular memory and the MMIO store.
-
-* If you have PIO or MMIO accesses, and you need to ensure the
-  PIO/MMIO accesses don't get reordered with respect to PIO/MMIO
-  accesses on another CPU, put the accesses inside a spin-locked
-  region, and put a mmiowb() between the last access and the
-  spin_unlock.
-
-* smp_wmb() doesn't necessarily do any ordering of MMIO accesses
-  vs. other accesses, and in that sense it is weaker than wmb().
-
-... then I can remove the sync from write*, which would be nice, and
-make mmiowb() be a sync.  I wonder how long we're going to spend
-chasing driver bugs after that, though. :)
-
-Paul.
+Jesse
