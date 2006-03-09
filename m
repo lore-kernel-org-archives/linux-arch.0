@@ -1,89 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:43238 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S1750794AbWCIXfD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 18:35:03 -0500
+Received: from mout0.freenet.de ([194.97.50.131]:54971 "EHLO mout0.freenet.de")
+	by vger.kernel.org with ESMTP id S1750869AbWCIXp3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 18:45:29 -0500
+From: Michael Buesch <mbuesch@freenet.de>
+Subject: Re: [PATCH] Document Linux's memory barriers [try #4]
+Date: Fri, 10 Mar 2006 00:45:09 +0100
+References: <16835.1141936162@warthog.cambridge.redhat.com> <17424.48029.481013.502855@cargo.ozlabs.ibm.com>
+In-Reply-To: <17424.48029.481013.502855@cargo.ozlabs.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed;
+  boundary="nextPart4573827.eG2HhSmO3S";
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1
 Content-Transfer-Encoding: 7bit
-Message-ID: <17424.48029.481013.502855@cargo.ozlabs.ibm.com>
-Date: Fri, 10 Mar 2006 10:34:53 +1100
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [PATCH] Document Linux's memory barriers [try #4] 
-In-Reply-To: <16835.1141936162@warthog.cambridge.redhat.com>
-References: <16835.1141936162@warthog.cambridge.redhat.com>
+Message-Id: <200603100045.10375.mbuesch@freenet.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-David Howells writes:
+--nextPart4573827.eG2HhSmO3S
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
 
-> +On some systems, I/O writes are not strongly ordered across all CPUs, and so
-> +locking should be used, and mmiowb() should be issued prior to unlocking the
-> +critical section.
+On Friday 10 March 2006 00:34, you wrote:
+> David Howells writes:
+>=20
+> > +On some systems, I/O writes are not strongly ordered across all CPUs, =
+and so
+> > +locking should be used, and mmiowb() should be issued prior to unlocki=
+ng the
+> > +critical section.
+>=20
+> I think we should say more strongly that mmiowb() is required where
+> MMIO accesses are done under a spinlock, and that if your driver is
+> missing them then that is a bug.  I don't think it makes sense to say
+> that mmiowb is required "on some systems".
 
-I think we should say more strongly that mmiowb() is required where
-MMIO accesses are done under a spinlock, and that if your driver is
-missing them then that is a bug.  I don't think it makes sense to say
-that mmiowb is required "on some systems".
+So what about:
 
-At least, we should either make that statement, or we should not
-require any driver on any platform to use mmiowb explicitly.  (In that
-case, the platforms that need it could do something like keep a
-per-cpu count of MMIO accesses, which is zeroed in spin_lock and
-incremented by read*/write*, and if spin_unlock finds it non-zero, it
-does the mmiowb().)
+#define spin_lock_mmio(lock)	spin_lock(lock)
+#define spin_unlock_mmio(lock)	do { spin_unlock(lock); mmiowb(); } while (0)
+#define spin_lock_mmio_irqsave(lock, flags)	spin_lock_irqsave(lock, flags)
+#define spin_unlock_mmio_irqrestore(lock, flags)	do { spin_unlock_irqrestor=
+e(lock, flags); mmiowb(); } while (0)
 
-Also, this section doesn't sound right to me:
+=2D-=20
+Greetings Michael.
 
-> +	DISABLE IRQ
-> +	writew(ADDR, ctl_reg_3);
-> +	writew(DATA, y);
-> +	ENABLE IRQ
-> +	<interrupt>
-> +	writew(ADDR, ctl_reg_4);
-> +	q = readw(DATA);
-> +	</interrupt>
-> +
-> +If ordering rules are sufficiently relaxed, the write to the data register
-> +might happen after the second write to the address register.
-> +
-> +
-> +It must be assumed that accesses done inside an interrupt disabled section may
-> +leak outside of it and may interleave with accesses performed in an interrupt
-> +and vice versa unless implicit or explicit barriers are used.
-> +
-> +Normally this won't be a problem because the I/O accesses done inside such
-> +sections will include synchronous read operations on strictly ordered I/O
-> +registers that form implicit I/O barriers. If this isn't sufficient then an
-> +mmiowb() may need to be used explicitly.
+--nextPart4573827.eG2HhSmO3S
+Content-Type: application/pgp-signature
 
-There shouldn't be any problem here, because readw/writew _must_
-ensure that the device accesses are serialized.  Just saying "if this
-isn't sufficient" leaves the reader wondering when it might not be
-sufficient or how they would know when it wasn't sufficient, and
-introduces doubt where there needn't be any.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.1 (GNU/Linux)
 
-Of course, on an SMP system it would be quite possible for the
-interrupt to be taken on another CPU, and in that case disabling
-interrupts (I assume that by "DISABLE IRQ" you mean
-local_irq_disable() or some such) gets you absolutely nothing; you
-need to use a spinlock, and then the mmiowb is required.
+iD8DBQBEEL4Glb09HEdWDKgRAtBZAJ44VLY+0W3wfWIXEQDF1kmvHe2yigCgvUw2
+sietkplTWmt4zuk7puFGWhU=
+=/KRq
+-----END PGP SIGNATURE-----
 
-You may like to include these words describing some of the rules:
-
-* If you have stores to regular memory, followed by an MMIO store, and
-  you want the device to see the stores to regular memory at the point
-  where it receives the MMIO store, then you need a wmb() between the
-  stores to regular memory and the MMIO store.
-
-* If you have PIO or MMIO accesses, and you need to ensure the
-  PIO/MMIO accesses don't get reordered with respect to PIO/MMIO
-  accesses on another CPU, put the accesses inside a spin-locked
-  region, and put a mmiowb() between the last access and the
-  spin_unlock.
-
-* smp_wmb() doesn't necessarily do any ordering of MMIO accesses
-  vs. other accesses, and in that sense it is weaker than wmb().
-
-Paul.
+--nextPart4573827.eG2HhSmO3S--
