@@ -1,42 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from jurassic.park.msu.ru ([195.208.223.243]:60116 "EHLO
-	jurassic.park.msu.ru") by vger.kernel.org with ESMTP
-	id S1751099AbWCIQCD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Mar 2006 11:02:03 -0500
-Date: Thu, 9 Mar 2006 19:02:01 +0300
-From: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
-Message-ID: <20060309190201.A19243@jurassic.park.msu.ru>
-References: <20060308154157.GI7301@parisc-linux.org> <31492.1141753245@warthog.cambridge.redhat.com> <29826.1141828678@warthog.cambridge.redhat.com> <20060308145506.GA5095@devserv.devel.redhat.com> <10095.1141838381@warthog.cambridge.redhat.com> <17423.22121.254026.487964@cargo.ozlabs.ibm.com> <20060309020851.D9651@jurassic.park.msu.ru> <17423.32377.460820.710578@cargo.ozlabs.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <17423.32377.460820.710578@cargo.ozlabs.ibm.com>; from paulus@samba.org on Thu, Mar 09, 2006 at 12:01:45PM +1100
+Received: from smtp.osdl.org ([65.172.181.4]:5310 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1422638AbWCIQdK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 11:33:10 -0500
+Date: Thu, 9 Mar 2006 08:32:50 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH] Document Linux's memory barriers 
+In-Reply-To: <24280.1141904462@warthog.cambridge.redhat.com>
+Message-ID: <Pine.LNX.4.64.0603090814530.18022@g5.osdl.org>
+References: <1141855305.10606.6.camel@localhost.localdomain>
+ <20060308161829.GC3669@elf.ucw.cz> <31492.1141753245@warthog.cambridge.redhat.com>
+ <24309.1141848971@warthog.cambridge.redhat.com>  <24280.1141904462@warthog.cambridge.redhat.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: David Howells <dhowells@redhat.com>, Matthew Wilcox <matthew@wil.cx>, Alan Cox <alan@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org, Paul@ozlabs.org, E.McKenney@ozlabs.org, " <paulmck@us.ibm.com>"@ozlabs.org
+To: David Howells <dhowells@redhat.com>
+Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, Pavel Machek <pavel@ucw.cz>, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Mar 09, 2006 at 12:01:45PM +1100, Paul Mackerras wrote:
-> If you do:
-> 
-> 	CPU 0			CPU 1
-> 
-> 	foo = val;
-> 	wmb();
-> 	p = &foo;
-> 				reg = p;
-> 				bar = *reg;
-> 
-> it is apparently possible for CPU 1 to see the new value of p
-> (i.e. &foo) but an old value of foo (i.e. not val).  This can happen
-> if p and foo are in different halves of the cache on CPU 1, and there
-> are a lot of updates coming in for the half containing foo but the
-> half containing p is quiet.
 
-Indeed, this can happen according to architecture reference manual,
-so CPU 1 needs mb() as well.
 
-Thanks for clarification.
+On Thu, 9 Mar 2006, David Howells wrote:
+> 
+> So, you're saying that the LOCK and UNLOCK primitives don't actually modify
+> memory, but rather simply pin the cacheline into the CPU's cache and refuse to
+> let anyone else touch it?
+> 
+> No... it can't work like that. It *must* make a memory modification - after
+> all, the CPU doesn't know that what it's doing is a spin_unlock(), say, rather
+> than an atomic_set().
 
-Ivan.
+Basically, as long as nobody else is reading the lock, the lock will stay 
+in the caches.
+
+Only old and stupid architectures go out to the bus for locking. For 
+example, I remember the original alpha "load-locked"/"store-conditional", 
+and it was totally _horrible_ for anything that wanted performance, 
+because it would do the "pending lock" bit on the bus, so it took hundreds 
+of cycles even on UP. Gods, how I hated that. It made it almost totally 
+useless for anything that just wanted to be irq-safe - it was cheaper to 
+just disable interrupts, iirc. STUPID.
+
+All modern CPU's do atomic operations entirely within the cache coherency 
+logic. I think x86 still support the notion of a "locked cycle" on the 
+bus, but I think that's entirely relegated to horrible people doing locked 
+operations across PCI, and quite frankly, I suspect that it doesn't 
+actually mean a thing (ie I'd expect no external hardware to actually 
+react to the lock signal). However, nobody really cares, since nobody 
+would be crazy enough to do locked cycles over PCI even if they were to 
+work.
+
+So in practice, as far as I know, the way _all_ modern CPU's do locked 
+cycles is that they do it by getting exclusive ownership on the cacheline 
+on the read, and either having logic in place to refuse to do release the 
+cacheline until the write is complete (ie "locked cycles to the cache"), 
+or to re-try the instruction if the cacheline has been released by the 
+time the write is ready (ie "load-locked" + "store-conditional" + 
+"potentially loop" to the cache).
+
+NOBODY goes out to the bus for locking any more. That would be insane and 
+stupid. 
+
+Yes, many spinlocks see contention, and end up going out to the bus. But 
+similarly, many spinlocks do _not_ see any contention at all (or other 
+CPU's even looking at them), and may end up staying exclusive in a CPU 
+cache for a long time.
+
+The "no contention" case is actually pretty important. Many real loads on 
+SMP end up being largely single-threaded, and together with some basic CPU 
+affinity, you really _really_ want to make that single-threaded case go as 
+fast as possible. And a pretty big part of that is locking: the difference 
+between a lock that goes to the bus and one that does not is _huge_.
+
+And lots of trivial code is almost dominated by locking costs. In some 
+system calls on an SMP kernel, the locking cost can be (depending on how 
+good or bad the CPU is at them) quite noticeable. Just a simple small 
+read() will take several locks and/or do atomic ops, even if it was cached 
+and it looks "trivial".
+
+			Linus
