@@ -1,37 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:54948 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1751831AbWCILlY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 06:41:24 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1141855305.10606.6.camel@localhost.localdomain> 
-References: <1141855305.10606.6.camel@localhost.localdomain>  <20060308161829.GC3669@elf.ucw.cz> <31492.1141753245@warthog.cambridge.redhat.com> <24309.1141848971@warthog.cambridge.redhat.com> 
-Subject: Re: [PATCH] Document Linux's memory barriers 
-Date: Thu, 09 Mar 2006 11:41:02 +0000
-Message-ID: <24280.1141904462@warthog.cambridge.redhat.com>
+Received: from mout0.freenet.de ([194.97.50.131]:45505 "EHLO mout0.freenet.de")
+	by vger.kernel.org with ESMTP id S932096AbWCILoR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 06:44:17 -0500
+From: Michael Buesch <mbuesch@freenet.de>
+Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
+Date: Thu, 9 Mar 2006 12:44:09 +0100
+References: <Pine.LNX.4.64.0603081115300.32577@g5.osdl.org> <Pine.LNX.4.64.0603081716400.32577@g5.osdl.org> <17423.42185.78767.837295@cargo.ozlabs.ibm.com>
+In-Reply-To: <17423.42185.78767.837295@cargo.ozlabs.ibm.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed;
+  boundary="nextPart1961345.meoHJZIQSV";
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1
+Content-Transfer-Encoding: 7bit
+Message-Id: <200603091244.09621.mbuesch@freenet.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: David Howells <dhowells@redhat.com>, Pavel Machek <pavel@ucw.cz>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: Linus Torvalds <torvalds@osdl.org>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, Alan Cox <alan@redhat.com>, linuxppc64-dev@ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
+--nextPart1961345.meoHJZIQSV
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
 
-> > The LOCK and UNLOCK functions presumably make at least one memory write apiece
-> > to manipulate the target lock (on SMP at least).
-> 
-> No they merely perform the bus transactions neccessary to perform an
-> update atomically. They are however "serializing" instructions which
-> means they do cause a certain amount of serialization (see the intel
-> architecture manual on serializing instructions for detail).
-> 
-> Athlon and later know how to turn it from locked memory accesses into
-> merely an exclusive cache line grab.
+On Thursday 09 March 2006 04:45, you wrote:
+> ... then I can remove the sync from write*, which would be nice, and
+> make mmiowb() be a sync.  I wonder how long we're going to spend
+> chasing driver bugs after that, though. :)
 
-So, you're saying that the LOCK and UNLOCK primitives don't actually modify
-memory, but rather simply pin the cacheline into the CPU's cache and refuse to
-let anyone else touch it?
+Can you do a patch, which does the change, so people can actually
+test their drivers?
 
-No... it can't work like that. It *must* make a memory modification - after
-all, the CPU doesn't know that what it's doing is a spin_unlock(), say, rather
-than an atomic_set().
+=2D-=20
+Greetings Michael.
 
-David
+--nextPart1961345.meoHJZIQSV
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.1 (GNU/Linux)
+
+iD8DBQBEEBUJlb09HEdWDKgRAk/pAJ9pjsBhZ81hSzSg1kUCfW9QUcvCAgCfVm+/
+/2Z+9pH/To4hM1H6OJoPUf8=
+=FH+3
+-----END PGP SIGNATURE-----
+
+--nextPart1961345.meoHJZIQSV--
