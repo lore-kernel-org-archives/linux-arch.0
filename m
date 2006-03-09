@@ -1,64 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout0.freenet.de ([194.97.50.131]:54971 "EHLO mout0.freenet.de")
-	by vger.kernel.org with ESMTP id S1750869AbWCIXp3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 18:45:29 -0500
-From: Michael Buesch <mbuesch@freenet.de>
+Received: from smtp.osdl.org ([65.172.181.4]:10432 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1752085AbWCIX46 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 18:56:58 -0500
+Date: Thu, 9 Mar 2006 15:56:35 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH] Document Linux's memory barriers [try #4]
-Date: Fri, 10 Mar 2006 00:45:09 +0100
-References: <16835.1141936162@warthog.cambridge.redhat.com> <17424.48029.481013.502855@cargo.ozlabs.ibm.com>
-In-Reply-To: <17424.48029.481013.502855@cargo.ozlabs.ibm.com>
+In-Reply-To: <200603100045.10375.mbuesch@freenet.de>
+Message-ID: <Pine.LNX.4.64.0603091554200.18022@g5.osdl.org>
+References: <16835.1141936162@warthog.cambridge.redhat.com>
+ <17424.48029.481013.502855@cargo.ozlabs.ibm.com> <200603100045.10375.mbuesch@freenet.de>
 MIME-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart4573827.eG2HhSmO3S";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
-Content-Transfer-Encoding: 7bit
-Message-Id: <200603100045.10375.mbuesch@freenet.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
+To: Michael Buesch <mbuesch@freenet.de>
+Cc: Paul Mackerras <paulus@samba.org>, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
---nextPart4573827.eG2HhSmO3S
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: inline
 
-On Friday 10 March 2006 00:34, you wrote:
-> David Howells writes:
->=20
-> > +On some systems, I/O writes are not strongly ordered across all CPUs, =
-and so
-> > +locking should be used, and mmiowb() should be issued prior to unlocki=
-ng the
-> > +critical section.
->=20
-> I think we should say more strongly that mmiowb() is required where
-> MMIO accesses are done under a spinlock, and that if your driver is
-> missing them then that is a bug.  I don't think it makes sense to say
-> that mmiowb is required "on some systems".
 
-So what about:
+On Fri, 10 Mar 2006, Michael Buesch wrote:
+> 
+> So what about:
+> 
+> #define spin_lock_mmio(lock)	spin_lock(lock)
+> #define spin_unlock_mmio(lock)	do { spin_unlock(lock); mmiowb(); } while (0)
 
-#define spin_lock_mmio(lock)	spin_lock(lock)
-#define spin_unlock_mmio(lock)	do { spin_unlock(lock); mmiowb(); } while (0)
-#define spin_lock_mmio_irqsave(lock, flags)	spin_lock_irqsave(lock, flags)
-#define spin_unlock_mmio_irqrestore(lock, flags)	do { spin_unlock_irqrestor=
-e(lock, flags); mmiowb(); } while (0)
+You need to put the mmiowb() inside the spinlock.
 
-=2D-=20
-Greetings Michael.
+Yes, that is painful. But the point being that if it's outside, then when 
+somebody else gets the lock, the previous lock-owners MMIO stores may 
+still be in flight, which is what you didn't want in the first place.
 
---nextPart4573827.eG2HhSmO3S
-Content-Type: application/pgp-signature
+Anyway, no need to make a new name for it, since you might as well just 
+use the mmiowb() explicitly. At least until this has been shown to be a 
+really common pattern (it clearly isn't, right now ;)
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.1 (GNU/Linux)
-
-iD8DBQBEEL4Glb09HEdWDKgRAtBZAJ44VLY+0W3wfWIXEQDF1kmvHe2yigCgvUw2
-sietkplTWmt4zuk7puFGWhU=
-=/KRq
------END PGP SIGNATURE-----
-
---nextPart4573827.eG2HhSmO3S--
+		Linus
