@@ -1,47 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from jaguar.mkp.net ([192.139.46.146]:57751 "EHLO jaguar.mkp.net")
-	by vger.kernel.org with ESMTP id S1750845AbWCIKFl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 05:05:41 -0500
-Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
-References: <Pine.LNX.4.64.0603081115300.32577@g5.osdl.org>
-	<17423.32792.500628.226831@cargo.ozlabs.ibm.com>
-	<Pine.LNX.4.64.0603081716400.32577@g5.osdl.org>
-	<200603082034.00238.jbarnes@virtuousgeek.org>
-	<17423.45681.476222.143773@cargo.ozlabs.ibm.com>
-From: Jes Sorensen <jes@sgi.com>
-Date: 09 Mar 2006 05:05:39 -0500
-In-Reply-To: <17423.45681.476222.143773@cargo.ozlabs.ibm.com>
-Message-ID: <yq0mzg02arw.fsf@jaguar.mkp.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from mx1.redhat.com ([66.187.233.31]:54948 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1751831AbWCILlY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 06:41:24 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1141855305.10606.6.camel@localhost.localdomain> 
+References: <1141855305.10606.6.camel@localhost.localdomain>  <20060308161829.GC3669@elf.ucw.cz> <31492.1141753245@warthog.cambridge.redhat.com> <24309.1141848971@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH] Document Linux's memory barriers 
+Date: Thu, 09 Mar 2006 11:41:02 +0000
+Message-ID: <24280.1141904462@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Linus Torvalds <torvalds@osdl.org>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, Alan Cox <alan@redhat.com>, linuxppc64-dev@ozlabs.org
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: David Howells <dhowells@redhat.com>, Pavel Machek <pavel@ucw.cz>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
->>>>> "Paul" == Paul Mackerras <paulus@samba.org> writes:
+Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
 
-Paul> Jesse Barnes writes:
->> So ultimately mmiowb() is the only thing drivers really have to
->> care about on Altix (assuming they do DMA mapping correctly), and
->> the rules for that are fairly simple.  Then they can additionally
->> use read_relaxed() to optimize performance a bit (quite a bit on
->> big systems).
+> > The LOCK and UNLOCK functions presumably make at least one memory write apiece
+> > to manipulate the target lock (on SMP at least).
+> 
+> No they merely perform the bus transactions neccessary to perform an
+> update atomically. They are however "serializing" instructions which
+> means they do cause a certain amount of serialization (see the intel
+> architecture manual on serializing instructions for detail).
+> 
+> Athlon and later know how to turn it from locked memory accesses into
+> merely an exclusive cache line grab.
 
-Paul> If I can be sure that all the drivers we care about on PPC use
-Paul> mmiowb correctly, I can reduce or eliminate the barrier in
-Paul> write*, which would be nice.
+So, you're saying that the LOCK and UNLOCK primitives don't actually modify
+memory, but rather simply pin the cacheline into the CPU's cache and refuse to
+let anyone else touch it?
 
-Paul> Which drivers have been audited to make sure they use mmiowb
-Paul> correctly?  In particular, has the USB driver been audited?
+No... it can't work like that. It *must* make a memory modification - after
+all, the CPU doesn't know that what it's doing is a spin_unlock(), say, rather
+than an atomic_set().
 
-I think the primary drivers we've looked at are drivers/net/tg3.c,
-drivers/net/s2io.c, drivers/scsi/qla1280.c, and possibly the
-qla[234]xxx series - thats probably it!
-
-While we have USB on the systems, I don't think anyone has spend a lot
-of time verifying it in this context. At least the keyboard and mouse
-I have on this box seems to behave.
-
-Cheers,
-Jes
+David
