@@ -1,50 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout0.freenet.de ([194.97.50.131]:45505 "EHLO mout0.freenet.de")
-	by vger.kernel.org with ESMTP id S932096AbWCILoR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 06:44:17 -0500
-From: Michael Buesch <mbuesch@freenet.de>
-Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
-Date: Thu, 9 Mar 2006 12:44:09 +0100
-References: <Pine.LNX.4.64.0603081115300.32577@g5.osdl.org> <Pine.LNX.4.64.0603081716400.32577@g5.osdl.org> <17423.42185.78767.837295@cargo.ozlabs.ibm.com>
-In-Reply-To: <17423.42185.78767.837295@cargo.ozlabs.ibm.com>
-MIME-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart1961345.meoHJZIQSV";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
+Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:5326 "EHLO
+	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP
+	id S1751846AbWCIMXu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Mar 2006 07:23:50 -0500
+Subject: Re: [PATCH] Document Linux's memory barriers
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+In-Reply-To: <24280.1141904462@warthog.cambridge.redhat.com>
+References: <1141855305.10606.6.camel@localhost.localdomain>
+	 <20060308161829.GC3669@elf.ucw.cz>
+	 <31492.1141753245@warthog.cambridge.redhat.com>
+	 <24309.1141848971@warthog.cambridge.redhat.com>
+	 <24280.1141904462@warthog.cambridge.redhat.com>
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Message-Id: <200603091244.09621.mbuesch@freenet.de>
+Date: Thu, 09 Mar 2006 12:28:59 +0000
+Message-Id: <1141907339.16745.2.camel@localhost.localdomain>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: Linus Torvalds <torvalds@osdl.org>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, Alan Cox <alan@redhat.com>, linuxppc64-dev@ozlabs.org
+To: David Howells <dhowells@redhat.com>
+Cc: Pavel Machek <pavel@ucw.cz>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
---nextPart1961345.meoHJZIQSV
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: inline
+On Iau, 2006-03-09 at 11:41 +0000, David Howells wrote:
+> Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
+> So, you're saying that the LOCK and UNLOCK primitives don't actually modify
+> memory, but rather simply pin the cacheline into the CPU's cache and refuse to
+> let anyone else touch it?
 
-On Thursday 09 March 2006 04:45, you wrote:
-> ... then I can remove the sync from write*, which would be nice, and
-> make mmiowb() be a sync.  I wonder how long we're going to spend
-> chasing driver bugs after that, though. :)
+Basically yes
 
-Can you do a patch, which does the change, so people can actually
-test their drivers?
+> No... it can't work like that. It *must* make a memory modification 
 
-=2D-=20
-Greetings Michael.
+Then you'll have to argue with the chip designers because it doesn't.
 
---nextPart1961345.meoHJZIQSV
-Content-Type: application/pgp-signature
+Its all built around the cache coherency. To make a write to a cache
+line I must be the sole owner of the line. Look up "MESI cache" in a
+good book on the subject.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.1 (GNU/Linux)
+If we own the affected line then we can update just the cache and be
+sure that since we own the cache line and we will write it back if
+anyone else asks for it (or nowdays on some systems transfer it direct
+to the other cpu) that we get locked semantics
 
-iD8DBQBEEBUJlb09HEdWDKgRAk/pAJ9pjsBhZ81hSzSg1kUCfW9QUcvCAgCfVm+/
-/2Z+9pH/To4hM1H6OJoPUf8=
-=FH+3
------END PGP SIGNATURE-----
-
---nextPart1961345.meoHJZIQSV--
