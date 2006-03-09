@@ -1,54 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp105.mail.mud.yahoo.com ([209.191.85.215]:34710 "HELO
-	smtp105.mail.mud.yahoo.com") by vger.kernel.org with SMTP
-	id S1750825AbWCICis (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Mar 2006 21:38:48 -0500
-Message-ID: <440F952E.90808@yahoo.com.au>
-Date: Thu, 09 Mar 2006 13:38:38 +1100
-From: Nick Piggin <nickpiggin@yahoo.com.au>
+Received: from ozlabs.org ([203.10.76.45]:14001 "EHLO ozlabs.org")
+	by vger.kernel.org with ESMTP id S1161011AbWCIDp2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Mar 2006 22:45:28 -0500
 MIME-Version: 1.0
-Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
-References: <Pine.LNX.4.64.0603081115300.32577@g5.osdl.org> <20060308184500.GA17716@devserv.devel.redhat.com> <20060308173605.GB13063@devserv.devel.redhat.com> <20060308145506.GA5095@devserv.devel.redhat.com> <31492.1141753245@warthog.cambridge.redhat.com> <29826.1141828678@warthog.cambridge.redhat.com> <9834.1141837491@warthog.cambridge.redhat.com> <11922.1141842907@warthog.cambridge.redhat.com> <14275.1141844922@warthog.cambridge.redhat.com> <19984.1141846302@warthog.cambridge.redhat.com> <17423.30789.214209.462657@cargo.ozlabs.ibm.com> <Pine.LNX.4.64.0603081652430.32577@g5.osdl.org> <17423.32792.500628.226831@cargo.ozlabs.ibm.com> <Pine.LNX.4.64.0603081716400.32577@g5.osdl.org>
-In-Reply-To: <Pine.LNX.4.64.0603081716400.32577@g5.osdl.org>
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
+Message-ID: <17423.42185.78767.837295@cargo.ozlabs.ibm.com>
+Date: Thu, 9 Mar 2006 14:45:13 +1100
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH] Document Linux's memory barriers [try #2] 
+In-Reply-To: <Pine.LNX.4.64.0603081716400.32577@g5.osdl.org>
+References: <Pine.LNX.4.64.0603081115300.32577@g5.osdl.org>
+	<20060308184500.GA17716@devserv.devel.redhat.com>
+	<20060308173605.GB13063@devserv.devel.redhat.com>
+	<20060308145506.GA5095@devserv.devel.redhat.com>
+	<31492.1141753245@warthog.cambridge.redhat.com>
+	<29826.1141828678@warthog.cambridge.redhat.com>
+	<9834.1141837491@warthog.cambridge.redhat.com>
+	<11922.1141842907@warthog.cambridge.redhat.com>
+	<14275.1141844922@warthog.cambridge.redhat.com>
+	<19984.1141846302@warthog.cambridge.redhat.com>
+	<17423.30789.214209.462657@cargo.ozlabs.ibm.com>
+	<Pine.LNX.4.64.0603081652430.32577@g5.osdl.org>
+	<17423.32792.500628.226831@cargo.ozlabs.ibm.com>
+	<Pine.LNX.4.64.0603081716400.32577@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@osdl.org>
-Cc: Paul Mackerras <paulus@samba.org>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, Alan Cox <alan@redhat.com>, linuxppc64-dev@ozlabs.org
+Cc: akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, Alan Cox <alan@redhat.com>, linuxppc64-dev@ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Linus Torvalds wrote:
+Linus Torvalds writes:
 
->
->On Thu, 9 Mar 2006, Paul Mackerras wrote:
->
->>... and x86 mmiowb is a no-op.  It's not x86 that I think is buggy.
->>
->
->x86 mmiowb would have to be a real op too if there were any multi-pathed 
->PCI buses out there for x86, methinks.
->
->Basically, the issue boils down to one thing: no "normal" barrier will 
->_ever_ show up on the bus on x86 (ie ia64, afaik). That, together with any 
->situation where there are multiple paths to one physical device means that 
->mmiowb() _has_ to be a special op, and no spinlocks etc will _ever_ do the 
->serialization you look for.
->
->Put another way: the only way to avoid mmiowb() being special is either 
->one of:
-> (a) have the bus fabric itself be synchronizing
-> (b) pay a huge expense on the much more critical _regular_ barriers
->
->Now, I claim that (b) is just broken. I'd rather take the hit when I need 
->to, than every time. 
->
+> x86 mmiowb would have to be a real op too if there were any multi-pathed 
+> PCI buses out there for x86, methinks.
 
-I'm not very driver-minded; would it make sense to have io versions of
-locks, which can provide critical sections for IO operations?
+Not if the manufacturers wanted to be able to run existing standard
+x86 operating systems on it, surely.
 
-The number of (uncommented) memory barriers sprinkled around drivers
-looks pretty scary...
+I presume that on x86 the PCI host bridges and caches are all part of
+the coherence domain, and that the rule about stores being observed in
+order applies to what the PCI host bridge can see as much as it does
+to any other agent in the coherence domain.  And if I have understood
+you correctly, the store ordering rule applies both to stores to
+regular cacheable memory and stores to noncacheable nonprefetchable
+MMIO registers without distinction.
 
---
+If that is so, then I don't see how the writel's can get out of order.
+Put another way, we expect spinlock regions to order stores to regular
+memory, and AFAICS the x86 ordering rules mean that the same guarantee
+should apply to stores to MMIO registers.  (It's entirely possible
+that I don't fully understand the x86 memory ordering rules, of
+course. :)
 
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+> Basically, the issue boils down to one thing: no "normal" barrier will 
+> _ever_ show up on the bus on x86 (ie ia64, afaik). That, together with any 
+
+A spin_lock does show up on the bus, doesn't it?
+
+> Would I want the hard-to-think-about IO ordering on a regular desktop 
+> platform? No.
+
+In fact I think that mmiowb can actually be useful on PPC, if we can
+be sure that all the drivers we care about will use it correctly.
+
+If we can have the following rules:
+
+* If you have stores to regular memory, followed by an MMIO store, and
+  you want the device to see the stores to regular memory at the point
+  where it receives the MMIO store, then you need a wmb() between the
+  stores to regular memory and the MMIO store.
+
+* If you have PIO or MMIO accesses, and you need to ensure the
+  PIO/MMIO accesses don't get reordered with respect to PIO/MMIO
+  accesses on another CPU, put the accesses inside a spin-locked
+  region, and put a mmiowb() between the last access and the
+  spin_unlock.
+
+* smp_wmb() doesn't necessarily do any ordering of MMIO accesses
+  vs. other accesses, and in that sense it is weaker than wmb().
+
+... then I can remove the sync from write*, which would be nice, and
+make mmiowb() be a sync.  I wonder how long we're going to spend
+chasing driver bugs after that, though. :)
+
+Paul.
