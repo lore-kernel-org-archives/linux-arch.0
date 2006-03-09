@@ -1,33 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:20156 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S1750767AbWCIHlL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 02:41:11 -0500
+Received: from jaguar.mkp.net ([192.139.46.146]:57751 "EHLO jaguar.mkp.net")
+	by vger.kernel.org with ESMTP id S1750845AbWCIKFl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 05:05:41 -0500
+Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
+References: <Pine.LNX.4.64.0603081115300.32577@g5.osdl.org>
+	<17423.32792.500628.226831@cargo.ozlabs.ibm.com>
+	<Pine.LNX.4.64.0603081716400.32577@g5.osdl.org>
+	<200603082034.00238.jbarnes@virtuousgeek.org>
+	<17423.45681.476222.143773@cargo.ozlabs.ibm.com>
+From: Jes Sorensen <jes@sgi.com>
+Date: 09 Mar 2006 05:05:39 -0500
+In-Reply-To: <17423.45681.476222.143773@cargo.ozlabs.ibm.com>
+Message-ID: <yq0mzg02arw.fsf@jaguar.mkp.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <17423.56336.993754.818818@cargo.ozlabs.ibm.com>
-Date: Thu, 9 Mar 2006 18:41:04 +1100
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [PATCH] Document Linux's memory barriers [try #2]
-In-Reply-To: <200603082036.19811.jbarnes@virtuousgeek.org>
-References: <Pine.LNX.4.64.0603081115300.32577@g5.osdl.org>
-	<Pine.LNX.4.64.0603081716400.32577@g5.osdl.org>
-	<17423.42185.78767.837295@cargo.ozlabs.ibm.com>
-	<200603082036.19811.jbarnes@virtuousgeek.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: Linus Torvalds <torvalds@osdl.org>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, Alan Cox <alan@redhat.com>, linuxppc64-dev@ozlabs.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Linus Torvalds <torvalds@osdl.org>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, Alan Cox <alan@redhat.com>, linuxppc64-dev@ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Jesse Barnes writes:
+>>>>> "Paul" == Paul Mackerras <paulus@samba.org> writes:
 
-> Hm, a static checker should be able to find this stuff, shouldn't it?
+Paul> Jesse Barnes writes:
+>> So ultimately mmiowb() is the only thing drivers really have to
+>> care about on Altix (assuming they do DMA mapping correctly), and
+>> the rules for that are fairly simple.  Then they can additionally
+>> use read_relaxed() to optimize performance a bit (quite a bit on
+>> big systems).
 
-Good idea.  I wonder if sparse could be extended to do it.
+Paul> If I can be sure that all the drivers we care about on PPC use
+Paul> mmiowb correctly, I can reduce or eliminate the barrier in
+Paul> write*, which would be nice.
 
-Alternatively, it wouldn't be hard to check dynamically.  Just have a
-per-cpu count of outstanding MMIO stores.  Zero it in spin_lock and
-mmiowb, increment it in write*, and grizzle if spin_unlock finds it
-non-zero.  Should be very little overhead.
+Paul> Which drivers have been audited to make sure they use mmiowb
+Paul> correctly?  In particular, has the USB driver been audited?
 
-Paul.
+I think the primary drivers we've looked at are drivers/net/tg3.c,
+drivers/net/s2io.c, drivers/scsi/qla1280.c, and possibly the
+qla[234]xxx series - thats probably it!
+
+While we have USB on the systems, I don't think anyone has spend a lot
+of time verifying it in this context. At least the keyboard and mouse
+I have on this box seems to behave.
+
+Cheers,
+Jes
