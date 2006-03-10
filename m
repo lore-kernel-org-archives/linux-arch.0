@@ -1,40 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.suse.de ([195.135.220.2]:28056 "EHLO mx1.suse.de")
-	by vger.kernel.org with ESMTP id S1752155AbWCJBpP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 20:45:15 -0500
-From: Andi Kleen <ak@suse.de>
-Subject: Re: Request for feedback on Generic Timeofday Subsystem (B20)
-Date: Thu, 9 Mar 2006 19:18:00 +0100
-References: <B8E391BBE9FE384DAA4C5C003888BE6F05E1EDF8@scsmsx401.amr.corp.intel.com> <1141695346.11401.39.camel@cog.beaverton.ibm.com> <1141953314.20123.110.camel@cog.beaverton.ibm.com>
-In-Reply-To: <1141953314.20123.110.camel@cog.beaverton.ibm.com>
+Received: from smtp110.mail.mud.yahoo.com ([209.191.85.220]:56913 "HELO
+	smtp110.mail.mud.yahoo.com") by vger.kernel.org with SMTP
+	id S1751953AbWCJF26 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Mar 2006 00:28:58 -0500
+Message-ID: <44110E93.8060504@yahoo.com.au>
+Date: Fri, 10 Mar 2006 16:28:51 +1100
+From: Nick Piggin <nickpiggin@yahoo.com.au>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
+Subject: Re: [PATCH] Document Linux's memory barriers [try #4]
+References: <16835.1141936162@warthog.cambridge.redhat.com>
+In-Reply-To: <16835.1141936162@warthog.cambridge.redhat.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200603091918.01155.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: john stultz <johnstul@us.ibm.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Friday 10 March 2006 02:15, john stultz wrote:
+David Howells wrote:
 
-> On an x86-64 AMD server using nopmtimer/clocksource=tsc:
-> 					mainline vs TOD
-> gettimeofday():				74.2%
-> clock_gettime(CLOCK_MONOTONIC):		77.4%
-> clock_gettime(CLOCK_REALTIME):		71.6%
-> 
-> Hmmmm. I'm heading out of town for the weekend in a few moments, and I'd
-> really like to re-verify those numbers, but yea, that's a 25%
-> improvement. Might be too good to be true, but that should get Andi's
-> attention :)
+> +==========================
+> +WHAT IS CONSIDERED MEMORY?
+> +==========================
+> +
+> +For the purpose of this specification what's meant by "memory" needs to be
+> +defined, and the division between CPU and memory needs to be marked out.
+> +
+> +
+> +CACHED INTERACTIONS
+> +-------------------
+> +
+> +As far as cached CPU vs CPU[*] interactions go, "memory" has to include the CPU
+> +caches in the system.  Although any particular read or write may not actually
+> +appear outside of the CPU that issued it (the CPU may may have been able to
+> +satisfy it from its own cache), it's still as if the memory access had taken
+> +place as far as the other CPUs are concerned since the cache coherency and
+> +ejection mechanisms will propegate the effects upon conflict.
+> +
 
-What is clocksource=tsc? It doesn't exist on 64bit kernels. And what are the absolute
-numbers?
+Isn't the Alpha's split caches a counter-example of your model,
+because the coherency itself is out of order?
 
-And clock_gettime uses a completely different path from gettimeofday so if they 
-have the same percentage your results look somewhat suspicious.
+Why do you need to include caches and queues in your model? Do
+programmers care? Isn't the following sufficient...
 
--Andi
+          :    | m |
+    CPU -----> | e |
+          :    | m |
+          :    | o |
+    CPU -----> | r |
+          :    | y |
+
+... and bugger the implementation details?
+
+> + [*] Also applies to CPU vs device when accessed through a cache.
+> +
+> +The system can be considered logically as:
+> +
+> +	    <--- CPU --->         :       <----------- Memory ----------->
+> +	                          :
+> +	+--------+    +--------+  :   +--------+    +-----------+
+> +	|        |    |        |  :   |        |    |           |    +---------+
+> +	|  CPU   |    | Memory |  :   | CPU    |    |           |    |	       |
+> +	|  Core  |--->| Access |----->| Cache  |<-->|           |    |	       |
+> +	|        |    | Queue  |  :   |        |    |           |--->| Memory  |
+> +	|        |    |        |  :   |        |    |           |    |	       |
+> +	+--------+    +--------+  :   +--------+    |           |    | 	       |
+> +	                          :                 | Cache     |    +---------+
+> +	                          :                 | Coherency |
+> +	                          :                 | Mechanism |    +---------+
+> +	+--------+    +--------+  :   +--------+    |           |    |	       |
+> +	|        |    |        |  :   |        |    |           |    |         |
+> +	|  CPU   |    | Memory |  :   | CPU    |    |           |--->| Device  |
+> +	|  Core  |--->| Access |----->| Cache  |<-->|           |    | 	       |
+> +	|        |    | Queue  |  :   |        |    |           |    | 	       |
+> +	|        |    |        |  :   |        |    |           |    +---------+
+> +	+--------+    +--------+  :   +--------+    +-----------+
+> +	                          :
+> +	                          :
+> +
+
+-- 
+SUSE Labs, Novell Inc.
+Send instant messages to your online friends http://au.messenger.yahoo.com 
