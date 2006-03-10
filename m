@@ -1,75 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout1.freenet.de ([194.97.50.132]:33003 "EHLO mout1.freenet.de")
-	by vger.kernel.org with ESMTP id S1752097AbWCJAIi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 19:08:38 -0500
-From: Michael Buesch <mbuesch@freenet.de>
-Subject: Re: [PATCH] Document Linux's memory barriers [try #4]
-Date: Fri, 10 Mar 2006 01:07:46 +0100
-References: <16835.1141936162@warthog.cambridge.redhat.com> <200603100045.10375.mbuesch@freenet.de> <Pine.LNX.4.64.0603091554200.18022@g5.osdl.org>
-In-Reply-To: <Pine.LNX.4.64.0603091554200.18022@g5.osdl.org>
-MIME-Version: 1.0
-Message-Id: <200603100107.46655.mbuesch@freenet.de>
-Content-Type: multipart/signed;
-  boundary="nextPart10023134.nbRTIBHvRr";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
+Received: from e32.co.us.ibm.com ([32.97.110.150]:5846 "EHLO e32.co.us.ibm.com")
+	by vger.kernel.org with ESMTP id S1422678AbWCJBPR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2006 20:15:17 -0500
+Received: from westrelay02.boulder.ibm.com (westrelay02.boulder.ibm.com [9.17.195.11])
+	by e32.co.us.ibm.com (8.12.11/8.12.11) with ESMTP id k2A1FH0J015210
+	for <linux-arch@vger.kernel.org>; Thu, 9 Mar 2006 20:15:17 -0500
+Received: from d03av01.boulder.ibm.com (d03av01.boulder.ibm.com [9.17.195.167])
+	by westrelay02.boulder.ibm.com (8.12.10/NCO/VER6.8) with ESMTP id k2A1CWBe265806
+	for <linux-arch@vger.kernel.org>; Thu, 9 Mar 2006 18:12:32 -0700
+Received: from d03av01.boulder.ibm.com (loopback [127.0.0.1])
+	by d03av01.boulder.ibm.com (8.12.11/8.13.3) with ESMTP id k2A1FGog006535
+	for <linux-arch@vger.kernel.org>; Thu, 9 Mar 2006 18:15:16 -0700
+Subject: RE: Request for feedback on Generic Timeofday Subsystem (B20)
+From: john stultz <johnstul@us.ibm.com>
+In-Reply-To: <1141695346.11401.39.camel@cog.beaverton.ibm.com>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F05E1EDF8@scsmsx401.amr.corp.intel.com>
+	 <1141695346.11401.39.camel@cog.beaverton.ibm.com>
+Content-Type: text/plain
+Date: Thu, 09 Mar 2006 17:15:14 -0800
+Message-Id: <1141953314.20123.110.camel@cog.beaverton.ibm.com>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Paul Mackerras <paulus@samba.org>, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
---nextPart10023134.nbRTIBHvRr
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: inline
+On Mon, 2006-03-06 at 17:35 -0800, john stultz wrote:
+> The last time I generated numbers for i386 the patch hit gettimeofday()
+> by ~2%, which was the worst case I could generate using the clocksource
+> with the lowest overhead (TSC). Most of this was due to some extra u64
+> usage and the lack of a generic mul_u64xu32 wrapper. However for this
+> cost, you get correct behavior (which I think is *much* more important,
+> at least for i386) and nanosecond resolution in clock_gettime().
 
-On Friday 10 March 2006 00:56, you wrote:
->=20
-> On Fri, 10 Mar 2006, Michael Buesch wrote:
-> >=20
-> > So what about:
-> >=20
-> > #define spin_lock_mmio(lock)	spin_lock(lock)
-> > #define spin_unlock_mmio(lock)	do { spin_unlock(lock); mmiowb(); } whil=
-e (0)
->=20
-> You need to put the mmiowb() inside the spinlock.
 
-Ok, sorry. That was a typo.
-I should not do more than 3 things at the same time. :)
+Ok, so here are some rough numbers calling the various time interfaces
+all using the fastest clocksource available (TSC) for timekeeping to
+give the best code vs code comparison.
 
-> Yes, that is painful. But the point being that if it's outside, then when=
-=20
-> somebody else gets the lock, the previous lock-owners MMIO stores may=20
-> still be in flight, which is what you didn't want in the first place.
->=20
-> Anyway, no need to make a new name for it, since you might as well just=20
-> use the mmiowb() explicitly. At least until this has been shown to be a=20
-> really common pattern (it clearly isn't, right now ;)
 
-Ok, so maybe it is best if every device creates its own macros
-for convenience (if needed =3D> if it is a common pattern
-in the scope of the driver).
+On my p4m laptop w/ idle=poll and clocksource/clock=tsc
 
-Example:
-#define bcm43xx_lock(bcm, flags)	spin_lock_irqsave(&(bcm)->lock, flags)
-#define bcm43xx_unlock(bcm, flags)	do { mmiowb(); spin_unlock_irqrestore(&(=
-bcm)->lock, flags); } while (0)
+					mainline vs TOD
+gettimeofday():				106.5%
+clock_gettime(CLOCK_MONOTONIC):		99.1%
+clock_gettime(CLOCK_REALTIME):		100.1%
 
-=2D-=20
-Greetings Michael.
+So, 6% hit on gtod, the trade off being more robust timekeeping and you
+get nanosecond res from clock_gettime for free.
 
---nextPart10023134.nbRTIBHvRr
-Content-Type: application/pgp-signature
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.1 (GNU/Linux)
+Again, on my laptop w/ idle=poll and clocksource/clock=tsc + minor
+performance tweaks of moving cycle_t back to a unsigned long.
 
-iD8DBQBEEMNSlb09HEdWDKgRAuOnAKC2qlALmVCy+lkWnpAEdr215kgCrgCeKas4
-HSal0qzIVXDbUUr03kJndYo=
-=zRBo
------END PGP SIGNATURE-----
+					mainline vs TOD
+gettimeofday():				103.3%
+clock_gettime(CLOCK_MONOTONIC):		98.2%
+clock_gettime(CLOCK_REALTIME):		99.0%
 
---nextPart10023134.nbRTIBHvRr--
+Getting closer to calling it a wash.
+
+
+On an x86-64 AMD server using nopmtimer/clocksource=tsc:
+					mainline vs TOD
+gettimeofday():				74.2%
+clock_gettime(CLOCK_MONOTONIC):		77.4%
+clock_gettime(CLOCK_REALTIME):		71.6%
+
+Hmmmm. I'm heading out of town for the weekend in a few moments, and I'd
+really like to re-verify those numbers, but yea, that's a 25%
+improvement. Might be too good to be true, but that should get Andi's
+attention :)
+
+thanks
+-john
+
+
