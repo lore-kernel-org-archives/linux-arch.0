@@ -1,85 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp110.mail.mud.yahoo.com ([209.191.85.220]:56913 "HELO
-	smtp110.mail.mud.yahoo.com") by vger.kernel.org with SMTP
-	id S1751953AbWCJF26 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Mar 2006 00:28:58 -0500
-Message-ID: <44110E93.8060504@yahoo.com.au>
-Date: Fri, 10 Mar 2006 16:28:51 +1100
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
-Subject: Re: [PATCH] Document Linux's memory barriers [try #4]
-References: <16835.1141936162@warthog.cambridge.redhat.com>
-In-Reply-To: <16835.1141936162@warthog.cambridge.redhat.com>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:25241 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750792AbWCJPT1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Mar 2006 10:19:27 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <17424.48029.481013.502855@cargo.ozlabs.ibm.com> 
+References: <17424.48029.481013.502855@cargo.ozlabs.ibm.com>  <16835.1141936162@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH] Document Linux's memory barriers [try #4] 
+Date: Fri, 10 Mar 2006 15:19:10 +0000
+Message-ID: <26486.1142003950@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-David Howells wrote:
+Paul Mackerras <paulus@samba.org> wrote:
 
-> +==========================
-> +WHAT IS CONSIDERED MEMORY?
-> +==========================
-> +
-> +For the purpose of this specification what's meant by "memory" needs to be
-> +defined, and the division between CPU and memory needs to be marked out.
-> +
-> +
-> +CACHED INTERACTIONS
-> +-------------------
-> +
-> +As far as cached CPU vs CPU[*] interactions go, "memory" has to include the CPU
-> +caches in the system.  Although any particular read or write may not actually
-> +appear outside of the CPU that issued it (the CPU may may have been able to
-> +satisfy it from its own cache), it's still as if the memory access had taken
-> +place as far as the other CPUs are concerned since the cache coherency and
-> +ejection mechanisms will propegate the effects upon conflict.
-> +
+> > +On some systems, I/O writes are not strongly ordered across all CPUs, and
+> > so +locking should be used, and mmiowb() should be issued prior to
+> > unlocking the +critical section.
+> 
+> I think we should say more strongly that mmiowb() is required where
+> MMIO accesses are done under a spinlock, and that if your driver is
+> missing them then that is a bug.  I don't think it makes sense to say
+> that mmiowb is required "on some systems".
 
-Isn't the Alpha's split caches a counter-example of your model,
-because the coherency itself is out of order?
+The point I was trying to make was that on some systems writes are not
+strongly ordered, so we need mmiowb() on _all_ systems. I'll fix the text to
+make that point.
 
-Why do you need to include caches and queues in your model? Do
-programmers care? Isn't the following sufficient...
+> There shouldn't be any problem here, because readw/writew _must_
+> ensure that the device accesses are serialized.
 
-          :    | m |
-    CPU -----> | e |
-          :    | m |
-          :    | o |
-    CPU -----> | r |
-          :    | y |
+No. That depends on the properties of the memory window readw/writew write
+through, the properties of the CPU wrt memory accesses, and what explicit
+barriers at interpolated inside readw/writew themselves.
 
-... and bugger the implementation details?
+If we're accessing a frame buffer, for instance, we might want it to be able
+to reorder and combine reads and writes.
 
-> + [*] Also applies to CPU vs device when accessed through a cache.
-> +
-> +The system can be considered logically as:
-> +
-> +	    <--- CPU --->         :       <----------- Memory ----------->
-> +	                          :
-> +	+--------+    +--------+  :   +--------+    +-----------+
-> +	|        |    |        |  :   |        |    |           |    +---------+
-> +	|  CPU   |    | Memory |  :   | CPU    |    |           |    |	       |
-> +	|  Core  |--->| Access |----->| Cache  |<-->|           |    |	       |
-> +	|        |    | Queue  |  :   |        |    |           |--->| Memory  |
-> +	|        |    |        |  :   |        |    |           |    |	       |
-> +	+--------+    +--------+  :   +--------+    |           |    | 	       |
-> +	                          :                 | Cache     |    +---------+
-> +	                          :                 | Coherency |
-> +	                          :                 | Mechanism |    +---------+
-> +	+--------+    +--------+  :   +--------+    |           |    |	       |
-> +	|        |    |        |  :   |        |    |           |    |         |
-> +	|  CPU   |    | Memory |  :   | CPU    |    |           |--->| Device  |
-> +	|  Core  |--->| Access |----->| Cache  |<-->|           |    | 	       |
-> +	|        |    | Queue  |  :   |        |    |           |    | 	       |
-> +	|        |    |        |  :   |        |    |           |    +---------+
-> +	+--------+    +--------+  :   +--------+    +-----------+
-> +	                          :
-> +	                          :
-> +
+> Of course, on an SMP system it would be quite possible for the
+> interrupt to be taken on another CPU, and in that case disabling
+> interrupts (I assume that by "DISABLE IRQ" you mean
+> local_irq_disable() or some such)
 
--- 
-SUSE Labs, Novell Inc.
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+Yes. There are quite a few different ways to disable interrupts.
+
+> gets you absolutely nothing; you need to use a spinlock, and then the mmiowb
+> is required.
+
+I believe I've said that, though perhaps not sufficiently clearly.
+
+> You may like to include these words describing some of the rules:
+
+Thanks, I probably will.
+
+David
