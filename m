@@ -1,374 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtp.tele.dk ([193.162.159.95]:24073 "EHLO pasmtp.tele.dk")
-	by vger.kernel.org with ESMTP id S1751208AbWCKQLQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 11 Mar 2006 11:11:16 -0500
-Received: from mars.ravnborg.org (0x50a0757d.hrnxx9.adsl-dhcp.tele.dk [80.160.117.125])
-	by pasmtp.tele.dk (Postfix) with ESMTP id E7FD91EC32B
-	for <linux-arch@vger.kernel.org>; Sat, 11 Mar 2006 17:11:12 +0100 (CET)
-Date: Sat, 11 Mar 2006 17:11:06 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [RFC PATCH] get rid of duplicate exports from string.h
-Message-ID: <20060311161106.GA19455@mars.ravnborg.org>
+Received: from caramon.arm.linux.org.uk ([212.18.232.186]:24329 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S1751265AbWCKRvS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 11 Mar 2006 12:51:18 -0500
+Date: Sat, 11 Mar 2006 17:51:01 +0000
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: [RFC PATCH] get rid of duplicate exports from string.h
+Message-ID: <20060311175101.GA31096@flint.arm.linux.org.uk>
+References: <20060311161106.GA19455@mars.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <20060311161106.GA19455@mars.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: Sam Ravnborg <sam@mars.ravnborg.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-arch@vger.kernel.org, Sam Ravnborg <sam@mars.ravnborg.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Following patch implements my suggestion how to get rid of the duplicate
-exported symbols for the functions defined in lib/string.c and where
-we often have arch optimised versions.
+On Sat, Mar 11, 2006 at 05:11:06PM +0100, Sam Ravnborg wrote:
+> In lib/string.c export all symbols that are not defines.
+>...
+> As an example I've done it for sparc64 but the same applies
+> for most architectures.
 
-In lib/string.c export all symbols that are not defines.
-And remove export from the arch ksyms file.
+A few comments:
 
-As an example I've done it for sparc64 but the same applies
-for most architectures.
+1. it'd be nice to use #ifndef blah instead of #if !defined(blah)
 
-The latest version of kbuild - present in -mm - warns about duplicate
-exported symbols. With this approch the primary offenders will be
-removed.
+2. I don't think we normally indent for preprocessor conditionals -
+   if we did, would we not have these function definitions indented?
 
-Sample output:
-WARNING: vmlinux: 'strcpy' exported twice. Previous export was in vmlinux
-WARNING: vmlinux: 'strncpy' exported twice. Previous export was in vmlinux
-WARNING: vmlinux: 'strcat' exported twice. Previous export was in vmlinux
-WARNING: vmlinux: 'strncat' exported twice. Previous export was in vmlinux
-WARNING: vmlinux: 'strcmp' exported twice. Previous export was in vmlinux
-WARNING: vmlinux: 'strchr' exported twice. Previous export was in vmlinux
-WARNING: vmlinux: 'strrchr' exported twice. Previous export was in vmlinux
-WARNING: vmlinux: 'strnlen' exported twice. Previous export was in vmlinux
-WARNING: vmlinux: 'strpbrk' exported twice. Previous export was in vmlinux
-WARNING: vmlinux: 'strstr' exported twice. Previous export was in vmlinux
-WARNING: vmlinux: 'memchr' exported twice. Previous export was in vmlinux
+3. I don't understand how these !defined things are supposed to solve
+   the problem.  There are three cases, and use strcpy as an example:
 
+   a) an architecture decides to override the lib/string.c definition
+      with its own static inline function.  In this case, it must
+      define __HAVE_ARCH_STRCPY to exclude the lib/string.c version.
 
-I did not find a better way than:
-#if !defined(strcpy)
-	EXPORT_SYMBOL(strcpy);
-#endif
-We need to check if the symbol is defined because we cannot
-export a defined version of say memset as done by sparc64.
+      In this case, the architecture may decide against exporting the
+      named function because it'll always be inlined.
 
+   b) an architecture decides to override the lib/string.c definition
+      with its own macro version.  This case is essentially the same
+      as case (a).
 
-But if there is a better way to use the preprocessor I'm all ears.
+   c) an architecture decides to override the lib/string.c definition
+      with its own out of line version.  It must define
+      __HAVE_ARCH_STRCPY as per (a), but it wants an export.
 
-Comments welcome.
+   d) an architecture wishes to use the lib/string.c definition.  It
+      must not define __HAVE_ARCH_STRCPY.
 
-	Sam
+   With these changes, case (a) requires an additional #define strcpy strcpy
+   to prevent the EXPORT_SYMBOL being used.
 
+   Since we have case (a) in the kernel sources, I don't see any additional
+   #defines being added to prevent these exports.  Maybe you decided to
+   always cause lib/string.c to export them except for case (b) ?
 
-diff --git a/arch/sparc64/kernel/sparc64_ksyms.c b/arch/sparc64/kernel/sparc64_ksyms.c
-index 3c06bfb..f2b174b 100644
---- a/arch/sparc64/kernel/sparc64_ksyms.c
-+++ b/arch/sparc64/kernel/sparc64_ksyms.c
-@@ -277,19 +277,8 @@ EXPORT_SYMBOL(__prom_getchild);
- EXPORT_SYMBOL(__prom_getsibling);
- 
- /* sparc library symbols */
--EXPORT_SYMBOL(strlen);
--EXPORT_SYMBOL(strnlen);
- EXPORT_SYMBOL(__strlen_user);
- EXPORT_SYMBOL(__strnlen_user);
--EXPORT_SYMBOL(strcpy);
--EXPORT_SYMBOL(strncpy);
--EXPORT_SYMBOL(strcat);
--EXPORT_SYMBOL(strncat);
--EXPORT_SYMBOL(strcmp);
--EXPORT_SYMBOL(strchr);
--EXPORT_SYMBOL(strrchr);
--EXPORT_SYMBOL(strpbrk);
--EXPORT_SYMBOL(strstr);
- 
- #ifdef CONFIG_SOLARIS_EMUL_MODULE
- EXPORT_SYMBOL(linux_sparc_syscall);
-@@ -323,7 +312,6 @@ EXPORT_SYMBOL(__memscan_zero);
- EXPORT_SYMBOL(__memscan_generic);
- EXPORT_SYMBOL(__memcmp);
- EXPORT_SYMBOL(__memset);
--EXPORT_SYMBOL(memchr);
- 
- EXPORT_SYMBOL(csum_partial);
- EXPORT_SYMBOL(csum_partial_copy_nocheck);
-@@ -354,11 +342,7 @@ EXPORT_SYMBOL(pfn_to_page);
- EXPORT_SYMBOL(__ret_efault);
- 
- /* No version information on these, as gcc produces such symbols. */
--EXPORT_SYMBOL(memcmp);
--EXPORT_SYMBOL(memcpy);
- EXPORT_SYMBOL(memset);
--EXPORT_SYMBOL(memmove);
--EXPORT_SYMBOL(strncmp);
- 
- /* Delay routines. */
- EXPORT_SYMBOL(__udelay);
-diff --git a/lib/string.c b/lib/string.c
-index 037a48a..4af191e 100644
---- a/lib/string.c
-+++ b/lib/string.c
-@@ -57,7 +57,9 @@ int strnicmp(const char *s1, const char 
- 	}
- 	return (int)c1 - (int)c2;
- }
--EXPORT_SYMBOL(strnicmp);
-+#endif
-+#if !defined(strnicmp)
-+	EXPORT_SYMBOL(strnicmp);
- #endif
- 
- #ifndef __HAVE_ARCH_STRCPY
-@@ -75,7 +77,9 @@ char *strcpy(char *dest, const char *src
- 		/* nothing */;
- 	return tmp;
- }
--EXPORT_SYMBOL(strcpy);
-+#endif
-+#if !defined(strcpy)
-+	EXPORT_SYMBOL(strcpy);
- #endif
- 
- #ifndef __HAVE_ARCH_STRNCPY
-@@ -104,7 +108,9 @@ char *strncpy(char *dest, const char *sr
- 	}
- 	return dest;
- }
--EXPORT_SYMBOL(strncpy);
-+#endif
-+#if !defined(strncpy)
-+	EXPORT_SYMBOL(strncpy);
- #endif
- 
- #ifndef __HAVE_ARCH_STRLCPY
-@@ -130,7 +136,9 @@ size_t strlcpy(char *dest, const char *s
- 	}
- 	return ret;
- }
--EXPORT_SYMBOL(strlcpy);
-+#endif
-+#if !defined(strlcpy)
-+	EXPORT_SYMBOL(strlcpy);
- #endif
- 
- #ifndef __HAVE_ARCH_STRCAT
-@@ -150,7 +158,9 @@ char *strcat(char *dest, const char *src
- 		;
- 	return tmp;
- }
--EXPORT_SYMBOL(strcat);
-+#endif
-+#if !defined(strcat)
-+	EXPORT_SYMBOL(strcat);
- #endif
- 
- #ifndef __HAVE_ARCH_STRNCAT
-@@ -179,7 +189,9 @@ char *strncat(char *dest, const char *sr
- 	}
- 	return tmp;
- }
--EXPORT_SYMBOL(strncat);
-+#endif
-+#if !defined(strncat)
-+	EXPORT_SYMBOL(strncat);
- #endif
- 
- #ifndef __HAVE_ARCH_STRLCAT
-@@ -206,7 +218,9 @@ size_t strlcat(char *dest, const char *s
- 	dest[len] = 0;
- 	return res;
- }
--EXPORT_SYMBOL(strlcat);
-+#endif
-+#if !defined(strlcat)
-+	EXPORT_SYMBOL(strlcat);
- #endif
- 
- #ifndef __HAVE_ARCH_STRCMP
-@@ -226,7 +240,9 @@ int strcmp(const char *cs, const char *c
- 	}
- 	return __res;
- }
--EXPORT_SYMBOL(strcmp);
-+#endif
-+#if !defined(strcmp)
-+	EXPORT_SYMBOL(strcmp);
- #endif
- 
- #ifndef __HAVE_ARCH_STRNCMP
-@@ -247,7 +263,9 @@ int strncmp(const char *cs, const char *
- 	}
- 	return __res;
- }
--EXPORT_SYMBOL(strncmp);
-+#endif
-+#if !defined(strncmp)
-+	EXPORT_SYMBOL(strncmp);
- #endif
- 
- #ifndef __HAVE_ARCH_STRCHR
-@@ -263,7 +281,9 @@ char *strchr(const char *s, int c)
- 			return NULL;
- 	return (char *)s;
- }
--EXPORT_SYMBOL(strchr);
-+#endif
-+#if !defined(strchr)
-+	EXPORT_SYMBOL(strchr);
- #endif
- 
- #ifndef __HAVE_ARCH_STRRCHR
-@@ -281,7 +301,9 @@ char *strrchr(const char *s, int c)
-        } while (--p >= s);
-        return NULL;
- }
--EXPORT_SYMBOL(strrchr);
-+#endif
-+#if !defined(strrchr)
-+	EXPORT_SYMBOL(strrchr);
- #endif
- 
- #ifndef __HAVE_ARCH_STRNCHR
-@@ -298,7 +320,9 @@ char *strnchr(const char *s, size_t coun
- 			return (char *)s;
- 	return NULL;
- }
--EXPORT_SYMBOL(strnchr);
-+#endif
-+#if !defined(strnchr)
-+	EXPORT_SYMBOL(strnchr);
- #endif
- 
- #ifndef __HAVE_ARCH_STRLEN
-@@ -314,7 +338,9 @@ size_t strlen(const char *s)
- 		/* nothing */;
- 	return sc - s;
- }
--EXPORT_SYMBOL(strlen);
-+#endif
-+#if !defined(strlen)
-+	EXPORT_SYMBOL(strlen);
- #endif
- 
- #ifndef __HAVE_ARCH_STRNLEN
-@@ -331,7 +357,9 @@ size_t strnlen(const char *s, size_t cou
- 		/* nothing */;
- 	return sc - s;
- }
--EXPORT_SYMBOL(strnlen);
-+#endif
-+#if !defined(strnlen)
-+	EXPORT_SYMBOL(strnlen);
- #endif
- 
- #ifndef __HAVE_ARCH_STRSPN
-@@ -358,8 +386,9 @@ size_t strspn(const char *s, const char 
- 	}
- 	return count;
- }
--
--EXPORT_SYMBOL(strspn);
-+#endif
-+#if !defined(strspn)
-+	EXPORT_SYMBOL(strspn);
- #endif
- 
- /**
-@@ -403,7 +432,9 @@ char *strpbrk(const char *cs, const char
- 	}
- 	return NULL;
- }
--EXPORT_SYMBOL(strpbrk);
-+#endif
-+#if !defined(strpbrk)
-+	EXPORT_SYMBOL(strpbrk);
- #endif
- 
- #ifndef __HAVE_ARCH_STRSEP
-@@ -432,7 +463,9 @@ char *strsep(char **s, const char *ct)
- 	*s = end;
- 	return sbegin;
- }
--EXPORT_SYMBOL(strsep);
-+#endif
-+#if !defined(strsep)
-+	EXPORT_SYMBOL(strsep);
- #endif
- 
- #ifndef __HAVE_ARCH_MEMSET
-@@ -452,7 +485,9 @@ void *memset(void *s, int c, size_t coun
- 		*xs++ = c;
- 	return s;
- }
--EXPORT_SYMBOL(memset);
-+#endif
-+#if !defined(memset)
-+	EXPORT_SYMBOL(memset);
- #endif
- 
- #ifndef __HAVE_ARCH_MEMCPY
-@@ -474,7 +509,9 @@ void *memcpy(void *dest, const void *src
- 		*tmp++ = *s++;
- 	return dest;
- }
--EXPORT_SYMBOL(memcpy);
-+#endif
-+#if !defined(memcpy)
-+	EXPORT_SYMBOL(memcpy);
- #endif
- 
- #ifndef __HAVE_ARCH_MEMMOVE
-@@ -506,7 +543,9 @@ void *memmove(void *dest, const void *sr
- 	}
- 	return dest;
- }
--EXPORT_SYMBOL(memmove);
-+#endif
-+#if !defined(memmove)
-+	EXPORT_SYMBOL(memmove);
- #endif
- 
- #ifndef __HAVE_ARCH_MEMCMP
-@@ -527,7 +566,9 @@ int memcmp(const void *cs, const void *c
- 			break;
- 	return res;
- }
--EXPORT_SYMBOL(memcmp);
-+#endif
-+#if !defined(memcmp)
-+	EXPORT_SYMBOL(memcmp);
- #endif
- 
- #ifndef __HAVE_ARCH_MEMSCAN
-@@ -552,7 +593,9 @@ void *memscan(void *addr, int c, size_t 
- 	}
-   	return (void *)p;
- }
--EXPORT_SYMBOL(memscan);
-+#endif
-+#if !defined(memscan)
-+	EXPORT_SYMBOL(memscan);
- #endif
- 
- #ifndef __HAVE_ARCH_STRSTR
-@@ -577,7 +620,9 @@ char *strstr(const char *s1, const char 
- 	}
- 	return NULL;
- }
--EXPORT_SYMBOL(strstr);
-+#endif
-+#if !defined(strstr)
-+	EXPORT_SYMBOL(strstr);
- #endif
- 
- #ifndef __HAVE_ARCH_MEMCHR
-@@ -600,5 +645,7 @@ void *memchr(const void *s, int c, size_
- 	}
- 	return NULL;
- }
--EXPORT_SYMBOL(memchr);
-+#endif
-+#if !defined(memchr)
-+	EXPORT_SYMBOL(memchr);
- #endif
+All in all, I think this is a complex solution to something which should
+be simple.  We have the general rule that EXPORT_SYMBOLs should be local
+to the code which provides the function - at least within the same file.
+This change seems to be a step away from that.
+
+I much prefer the current implementation where, if you define __HAVE_ARCH_foo
+then foo is not defined nor exported by the core kernel.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
