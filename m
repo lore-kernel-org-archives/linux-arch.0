@@ -1,69 +1,374 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:57273 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S1752258AbWCKACB (ORCPT
+Received: from pasmtp.tele.dk ([193.162.159.95]:24073 "EHLO pasmtp.tele.dk")
+	by vger.kernel.org with ESMTP id S1751208AbWCKQLQ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Mar 2006 19:02:01 -0500
-MIME-Version: 1.0
+	Sat, 11 Mar 2006 11:11:16 -0500
+Received: from mars.ravnborg.org (0x50a0757d.hrnxx9.adsl-dhcp.tele.dk [80.160.117.125])
+	by pasmtp.tele.dk (Postfix) with ESMTP id E7FD91EC32B
+	for <linux-arch@vger.kernel.org>; Sat, 11 Mar 2006 17:11:12 +0100 (CET)
+Date: Sat, 11 Mar 2006 17:11:06 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [RFC PATCH] get rid of duplicate exports from string.h
+Message-ID: <20060311161106.GA19455@mars.ravnborg.org>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <17426.4977.893926.803202@cargo.ozlabs.ibm.com>
-Date: Sat, 11 Mar 2006 11:01:53 +1100
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [PATCH] Document Linux's memory barriers [try #4] 
-In-Reply-To: <26486.1142003950@warthog.cambridge.redhat.com>
-References: <17424.48029.481013.502855@cargo.ozlabs.ibm.com>
-	<16835.1141936162@warthog.cambridge.redhat.com>
-	<26486.1142003950@warthog.cambridge.redhat.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: Sam Ravnborg <sam@mars.ravnborg.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-David Howells writes:
+Following patch implements my suggestion how to get rid of the duplicate
+exported symbols for the functions defined in lib/string.c and where
+we often have arch optimised versions.
 
-> Paul Mackerras <paulus@samba.org> wrote:
-> > There shouldn't be any problem here, because readw/writew _must_
-> > ensure that the device accesses are serialized.
-> 
-> No. That depends on the properties of the memory window readw/writew write
-> through, the properties of the CPU wrt memory accesses, and what explicit
-> barriers at interpolated inside readw/writew themselves.
+In lib/string.c export all symbols that are not defines.
+And remove export from the arch ksyms file.
 
-The properties of the memory window are certainly relevant.  For a
-non-prefetchable PCI MMIO region, the readw/writew must ensure that
-the accesses are serialized w.r.t. each other, although not
-necessarily serialized with accesses to normal memory.  That is a
-requirement that the driver writer can rely on, and the implementor of
-readw/writew must ensure is met, taking into account the properties of
-the CPU (presumably by putting explicit barriers inside readw/write).
+As an example I've done it for sparc64 but the same applies
+for most architectures.
 
-For prefetchable regions, or if the cookie used with readw/writew has
-been obtained by something other than the normal ioremap{,_nocache},
-then it's more of an open question.
+The latest version of kbuild - present in -mm - warns about duplicate
+exported symbols. With this approch the primary offenders will be
+removed.
 
-> > Of course, on an SMP system it would be quite possible for the
-> > interrupt to be taken on another CPU, and in that case disabling
-> > interrupts (I assume that by "DISABLE IRQ" you mean
-> > local_irq_disable() or some such)
-> 
-> Yes. There are quite a few different ways to disable interrupts.
+Sample output:
+WARNING: vmlinux: 'strcpy' exported twice. Previous export was in vmlinux
+WARNING: vmlinux: 'strncpy' exported twice. Previous export was in vmlinux
+WARNING: vmlinux: 'strcat' exported twice. Previous export was in vmlinux
+WARNING: vmlinux: 'strncat' exported twice. Previous export was in vmlinux
+WARNING: vmlinux: 'strcmp' exported twice. Previous export was in vmlinux
+WARNING: vmlinux: 'strchr' exported twice. Previous export was in vmlinux
+WARNING: vmlinux: 'strrchr' exported twice. Previous export was in vmlinux
+WARNING: vmlinux: 'strnlen' exported twice. Previous export was in vmlinux
+WARNING: vmlinux: 'strpbrk' exported twice. Previous export was in vmlinux
+WARNING: vmlinux: 'strstr' exported twice. Previous export was in vmlinux
+WARNING: vmlinux: 'memchr' exported twice. Previous export was in vmlinux
 
-I think it wasn't clear to me which of the following you meant:
 
-(a) Telling this CPU not to take any interrupts (e.g. local_irq_disable())
-(b) Telling the interrupt controller not to allow interrupts from that
-    device (e.g. disable_irq(irq_num))
-(c) Telling the device not to generate interrupts in some
-    device-specific fashion
+I did not find a better way than:
+#if !defined(strcpy)
+	EXPORT_SYMBOL(strcpy);
+#endif
+We need to check if the symbol is defined because we cannot
+export a defined version of say memset as done by sparc64.
 
-They all have different characteristics w.r.t. timing and
-synchronization, so I think it's important to be clear which one you
-mean.  For example, if it's (c), then after doing a writel (or
-whatever) to the device, you then need at least to do a readl to make
-sure the write has got to the device, and even then there might be an
-interrupt signal still wending its way through the interrupt
-controller etc., which might arrive after the readl has finished.
 
-I think you meant (a), but DISABLE_IRQ actually sounds more like (b).
+But if there is a better way to use the preprocessor I'm all ears.
 
-Paul.
+Comments welcome.
+
+	Sam
+
+
+diff --git a/arch/sparc64/kernel/sparc64_ksyms.c b/arch/sparc64/kernel/sparc64_ksyms.c
+index 3c06bfb..f2b174b 100644
+--- a/arch/sparc64/kernel/sparc64_ksyms.c
++++ b/arch/sparc64/kernel/sparc64_ksyms.c
+@@ -277,19 +277,8 @@ EXPORT_SYMBOL(__prom_getchild);
+ EXPORT_SYMBOL(__prom_getsibling);
+ 
+ /* sparc library symbols */
+-EXPORT_SYMBOL(strlen);
+-EXPORT_SYMBOL(strnlen);
+ EXPORT_SYMBOL(__strlen_user);
+ EXPORT_SYMBOL(__strnlen_user);
+-EXPORT_SYMBOL(strcpy);
+-EXPORT_SYMBOL(strncpy);
+-EXPORT_SYMBOL(strcat);
+-EXPORT_SYMBOL(strncat);
+-EXPORT_SYMBOL(strcmp);
+-EXPORT_SYMBOL(strchr);
+-EXPORT_SYMBOL(strrchr);
+-EXPORT_SYMBOL(strpbrk);
+-EXPORT_SYMBOL(strstr);
+ 
+ #ifdef CONFIG_SOLARIS_EMUL_MODULE
+ EXPORT_SYMBOL(linux_sparc_syscall);
+@@ -323,7 +312,6 @@ EXPORT_SYMBOL(__memscan_zero);
+ EXPORT_SYMBOL(__memscan_generic);
+ EXPORT_SYMBOL(__memcmp);
+ EXPORT_SYMBOL(__memset);
+-EXPORT_SYMBOL(memchr);
+ 
+ EXPORT_SYMBOL(csum_partial);
+ EXPORT_SYMBOL(csum_partial_copy_nocheck);
+@@ -354,11 +342,7 @@ EXPORT_SYMBOL(pfn_to_page);
+ EXPORT_SYMBOL(__ret_efault);
+ 
+ /* No version information on these, as gcc produces such symbols. */
+-EXPORT_SYMBOL(memcmp);
+-EXPORT_SYMBOL(memcpy);
+ EXPORT_SYMBOL(memset);
+-EXPORT_SYMBOL(memmove);
+-EXPORT_SYMBOL(strncmp);
+ 
+ /* Delay routines. */
+ EXPORT_SYMBOL(__udelay);
+diff --git a/lib/string.c b/lib/string.c
+index 037a48a..4af191e 100644
+--- a/lib/string.c
++++ b/lib/string.c
+@@ -57,7 +57,9 @@ int strnicmp(const char *s1, const char 
+ 	}
+ 	return (int)c1 - (int)c2;
+ }
+-EXPORT_SYMBOL(strnicmp);
++#endif
++#if !defined(strnicmp)
++	EXPORT_SYMBOL(strnicmp);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRCPY
+@@ -75,7 +77,9 @@ char *strcpy(char *dest, const char *src
+ 		/* nothing */;
+ 	return tmp;
+ }
+-EXPORT_SYMBOL(strcpy);
++#endif
++#if !defined(strcpy)
++	EXPORT_SYMBOL(strcpy);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRNCPY
+@@ -104,7 +108,9 @@ char *strncpy(char *dest, const char *sr
+ 	}
+ 	return dest;
+ }
+-EXPORT_SYMBOL(strncpy);
++#endif
++#if !defined(strncpy)
++	EXPORT_SYMBOL(strncpy);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRLCPY
+@@ -130,7 +136,9 @@ size_t strlcpy(char *dest, const char *s
+ 	}
+ 	return ret;
+ }
+-EXPORT_SYMBOL(strlcpy);
++#endif
++#if !defined(strlcpy)
++	EXPORT_SYMBOL(strlcpy);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRCAT
+@@ -150,7 +158,9 @@ char *strcat(char *dest, const char *src
+ 		;
+ 	return tmp;
+ }
+-EXPORT_SYMBOL(strcat);
++#endif
++#if !defined(strcat)
++	EXPORT_SYMBOL(strcat);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRNCAT
+@@ -179,7 +189,9 @@ char *strncat(char *dest, const char *sr
+ 	}
+ 	return tmp;
+ }
+-EXPORT_SYMBOL(strncat);
++#endif
++#if !defined(strncat)
++	EXPORT_SYMBOL(strncat);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRLCAT
+@@ -206,7 +218,9 @@ size_t strlcat(char *dest, const char *s
+ 	dest[len] = 0;
+ 	return res;
+ }
+-EXPORT_SYMBOL(strlcat);
++#endif
++#if !defined(strlcat)
++	EXPORT_SYMBOL(strlcat);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRCMP
+@@ -226,7 +240,9 @@ int strcmp(const char *cs, const char *c
+ 	}
+ 	return __res;
+ }
+-EXPORT_SYMBOL(strcmp);
++#endif
++#if !defined(strcmp)
++	EXPORT_SYMBOL(strcmp);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRNCMP
+@@ -247,7 +263,9 @@ int strncmp(const char *cs, const char *
+ 	}
+ 	return __res;
+ }
+-EXPORT_SYMBOL(strncmp);
++#endif
++#if !defined(strncmp)
++	EXPORT_SYMBOL(strncmp);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRCHR
+@@ -263,7 +281,9 @@ char *strchr(const char *s, int c)
+ 			return NULL;
+ 	return (char *)s;
+ }
+-EXPORT_SYMBOL(strchr);
++#endif
++#if !defined(strchr)
++	EXPORT_SYMBOL(strchr);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRRCHR
+@@ -281,7 +301,9 @@ char *strrchr(const char *s, int c)
+        } while (--p >= s);
+        return NULL;
+ }
+-EXPORT_SYMBOL(strrchr);
++#endif
++#if !defined(strrchr)
++	EXPORT_SYMBOL(strrchr);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRNCHR
+@@ -298,7 +320,9 @@ char *strnchr(const char *s, size_t coun
+ 			return (char *)s;
+ 	return NULL;
+ }
+-EXPORT_SYMBOL(strnchr);
++#endif
++#if !defined(strnchr)
++	EXPORT_SYMBOL(strnchr);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRLEN
+@@ -314,7 +338,9 @@ size_t strlen(const char *s)
+ 		/* nothing */;
+ 	return sc - s;
+ }
+-EXPORT_SYMBOL(strlen);
++#endif
++#if !defined(strlen)
++	EXPORT_SYMBOL(strlen);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRNLEN
+@@ -331,7 +357,9 @@ size_t strnlen(const char *s, size_t cou
+ 		/* nothing */;
+ 	return sc - s;
+ }
+-EXPORT_SYMBOL(strnlen);
++#endif
++#if !defined(strnlen)
++	EXPORT_SYMBOL(strnlen);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRSPN
+@@ -358,8 +386,9 @@ size_t strspn(const char *s, const char 
+ 	}
+ 	return count;
+ }
+-
+-EXPORT_SYMBOL(strspn);
++#endif
++#if !defined(strspn)
++	EXPORT_SYMBOL(strspn);
+ #endif
+ 
+ /**
+@@ -403,7 +432,9 @@ char *strpbrk(const char *cs, const char
+ 	}
+ 	return NULL;
+ }
+-EXPORT_SYMBOL(strpbrk);
++#endif
++#if !defined(strpbrk)
++	EXPORT_SYMBOL(strpbrk);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRSEP
+@@ -432,7 +463,9 @@ char *strsep(char **s, const char *ct)
+ 	*s = end;
+ 	return sbegin;
+ }
+-EXPORT_SYMBOL(strsep);
++#endif
++#if !defined(strsep)
++	EXPORT_SYMBOL(strsep);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_MEMSET
+@@ -452,7 +485,9 @@ void *memset(void *s, int c, size_t coun
+ 		*xs++ = c;
+ 	return s;
+ }
+-EXPORT_SYMBOL(memset);
++#endif
++#if !defined(memset)
++	EXPORT_SYMBOL(memset);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_MEMCPY
+@@ -474,7 +509,9 @@ void *memcpy(void *dest, const void *src
+ 		*tmp++ = *s++;
+ 	return dest;
+ }
+-EXPORT_SYMBOL(memcpy);
++#endif
++#if !defined(memcpy)
++	EXPORT_SYMBOL(memcpy);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_MEMMOVE
+@@ -506,7 +543,9 @@ void *memmove(void *dest, const void *sr
+ 	}
+ 	return dest;
+ }
+-EXPORT_SYMBOL(memmove);
++#endif
++#if !defined(memmove)
++	EXPORT_SYMBOL(memmove);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_MEMCMP
+@@ -527,7 +566,9 @@ int memcmp(const void *cs, const void *c
+ 			break;
+ 	return res;
+ }
+-EXPORT_SYMBOL(memcmp);
++#endif
++#if !defined(memcmp)
++	EXPORT_SYMBOL(memcmp);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_MEMSCAN
+@@ -552,7 +593,9 @@ void *memscan(void *addr, int c, size_t 
+ 	}
+   	return (void *)p;
+ }
+-EXPORT_SYMBOL(memscan);
++#endif
++#if !defined(memscan)
++	EXPORT_SYMBOL(memscan);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_STRSTR
+@@ -577,7 +620,9 @@ char *strstr(const char *s1, const char 
+ 	}
+ 	return NULL;
+ }
+-EXPORT_SYMBOL(strstr);
++#endif
++#if !defined(strstr)
++	EXPORT_SYMBOL(strstr);
+ #endif
+ 
+ #ifndef __HAVE_ARCH_MEMCHR
+@@ -600,5 +645,7 @@ void *memchr(const void *s, int c, size_
+ 	}
+ 	return NULL;
+ }
+-EXPORT_SYMBOL(memchr);
++#endif
++#if !defined(memchr)
++	EXPORT_SYMBOL(memchr);
+ #endif
