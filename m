@@ -1,59 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:16595 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1751379AbWCOLKm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Mar 2006 06:10:42 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <44110E93.8060504@yahoo.com.au> 
-References: <44110E93.8060504@yahoo.com.au>  <16835.1141936162@warthog.cambridge.redhat.com> 
-Subject: Re: [PATCH] Document Linux's memory barriers [try #4] 
-Date: Wed, 15 Mar 2006 11:10:18 +0000
-Message-ID: <14886.1142421018@warthog.cambridge.redhat.com>
+Received: from smtp107.mail.mud.yahoo.com ([209.191.85.217]:8853 "HELO
+	smtp107.mail.mud.yahoo.com") by vger.kernel.org with SMTP
+	id S1751839AbWCOL65 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Mar 2006 06:58:57 -0500
+Message-ID: <4417FFC2.8040909@yahoo.com.au>
+Date: Wed, 15 Mar 2006 22:51:30 +1100
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+MIME-Version: 1.0
+Subject: Re: [PATCH] Document Linux's memory barriers [try #4]
+References: <44110E93.8060504@yahoo.com.au>  <16835.1141936162@warthog.cambridge.redhat.com> <14886.1142421018@warthog.cambridge.redhat.com>
+In-Reply-To: <14886.1142421018@warthog.cambridge.redhat.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org, "Paul E. McKenney" <paulmck@us.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin <nickpiggin@yahoo.com.au> wrote:
-
-> Isn't the Alpha's split caches a counter-example of your model,
-> because the coherency itself is out of order?
-
-I'd forgotten I need to adjust my documentation to deal with this. It seems
-this is the reason for read_barrier_depends(), and that read_barrier_depends()
-is also a partial cache sync.
-
-Do you know of any docs on Alpha's split caches? The Alpha Arch Handbook
-doesn't say very much about cache operation on the Alpha.
-
-I've looked around for what exactly is meant by "split cache" in conjunction
-with Alpha CPUs, and I've found three different opinions of what it means:
-
- (1) Separate Data and Instruction caches.
-
- (2) Serial data caches (CPU -> L1 Cache -> L2 Cache -> L3 Cache -> Memory).
-
- (3) Parallel linked data caches, where a CPU's request can be satisfied by
-     either data cache, in which whilst one data cache is being interrogated by
-     the CPU, the other one can use the memory bus (at least, that's what I
-     understand).
-
-> Why do you need to include caches and queues in your model? Do
-> programmers care? Isn't the following sufficient...
-
-I don't think it is sufficient, given the number of times the way the cache
-interacts with everything has come up in this discussion.
-
->          :    | m |
->    CPU -----> | e |
->          :    | m |
->          :    | o |
->    CPU -----> | r |
->          :    | y |
+David Howells wrote:
+> Nick Piggin <nickpiggin@yahoo.com.au> wrote:
 > 
-> ... and bugger the implementation details?
+> 
+>>Isn't the Alpha's split caches a counter-example of your model,
+>>because the coherency itself is out of order?
+> 
+> 
+> I'd forgotten I need to adjust my documentation to deal with this. It seems
+> this is the reason for read_barrier_depends(), and that read_barrier_depends()
+> is also a partial cache sync.
+> 
+> Do you know of any docs on Alpha's split caches? The Alpha Arch Handbook
+> doesn't say very much about cache operation on the Alpha.
+> 
+> I've looked around for what exactly is meant by "split cache" in conjunction
+> with Alpha CPUs, and I've found three different opinions of what it means:
+> 
+>  (1) Separate Data and Instruction caches.
+> 
+>  (2) Serial data caches (CPU -> L1 Cache -> L2 Cache -> L3 Cache -> Memory).
+> 
+>  (3) Parallel linked data caches, where a CPU's request can be satisfied by
+>      either data cache, in which whilst one data cache is being interrogated by
+>      the CPU, the other one can use the memory bus (at least, that's what I
+>      understand).
+> 
 
-Ah, but if the cache is on the CPU side of the dotted line, does that then mean
-that a write memory barrier guarantees the CPU's cache to have updated memory?
+I don't have any docs myself, Paul might be the one to talk to as he's
+done the most recent research on this (though some of it directly with
+Alpha engineers, if I remember correctly).
 
-David
+IIRC some alpha models have split cache close to what you describe in
+#3, however I'm not sure of the fine details (eg. I don't think the
+split caches are redundant, but just treated as two entities by the
+cache coherence protocol).
+
+Again, I don't have anything definitive that you can put in your docco,
+sorry.
+
+> 
+>>Why do you need to include caches and queues in your model? Do
+>>programmers care? Isn't the following sufficient...
+> 
+> 
+> I don't think it is sufficient, given the number of times the way the cache
+> interacts with everything has come up in this discussion.
+> 
+> 
+>>         :    | m |
+>>   CPU -----> | e |
+>>         :    | m |
+>>         :    | o |
+>>   CPU -----> | r |
+>>         :    | y |
+>>
+>>... and bugger the implementation details?
+> 
+> 
+> Ah, but if the cache is on the CPU side of the dotted line, does that then mean
+> that a write memory barrier guarantees the CPU's cache to have updated memory?
+> 
+
+I don't think it has to[*]. It would guarantee the _order_ in which
+"global memory" of this model ie. visibility for other "CPUs" see the
+writes, whether that visibility ultimately be implemented by cache
+coherency protocol or something else, I don't think matters (for a
+discussion of memory ordering). If anything it confused the matter
+for the case of Alpha.
+
+All the programmer needs to know is that there is some horizon (memory)
+beyond which stores are visible to other CPUs, and stores can travel
+there at different speeds so later ones can overtake earlier ones. And
+likewise loads can come from memory to the CPU at different speeds too,
+so later loads can contain earlier results.
+
+[*] Nor would your model require a smp_wmb() to update CPU caches either,
+I think: it wouldn't have to flush the store buffer, just order it.
+
+-- 
+SUSE Labs, Novell Inc.
+Send instant messages to your online friends http://au.messenger.yahoo.com 
