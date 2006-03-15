@@ -1,88 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:41707 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S932581AbWCOBr7 (ORCPT
+Received: from mx1.redhat.com ([66.187.233.31]:16595 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1751379AbWCOLKm (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Mar 2006 20:47:59 -0500
-Date: Tue, 14 Mar 2006 17:47:40 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
+	Wed, 15 Mar 2006 06:10:42 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <44110E93.8060504@yahoo.com.au> 
+References: <44110E93.8060504@yahoo.com.au>  <16835.1141936162@warthog.cambridge.redhat.com> 
 Subject: Re: [PATCH] Document Linux's memory barriers [try #4] 
-In-Reply-To: <3762.1142385542@warthog.cambridge.redhat.com>
-Message-ID: <Pine.LNX.4.64.0603141734100.3618@g5.osdl.org>
-References: <Pine.LNX.4.64.0603141609520.3618@g5.osdl.org>
- <17431.14867.211423.851470@cargo.ozlabs.ibm.com> <m1veujy47r.fsf@ebiederm.dsl.xmission.com>
- <16835.1141936162@warthog.cambridge.redhat.com> <32068.1142371612@warthog.cambridge.redhat.com>
- <2301.1142380768@warthog.cambridge.redhat.com>  <3762.1142385542@warthog.cambridge.redhat.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Date: Wed, 15 Mar 2006 11:10:18 +0000
+Message-ID: <14886.1142421018@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Paul Mackerras <paulus@samba.org>, "Eric W. Biederman" <ebiederm@xmission.com>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, alan@redhat.com, linuxppc64-dev@ozlabs.org
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, mingo@redhat.com, alan@redhat.com, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Nick Piggin <nickpiggin@yahoo.com.au> wrote:
 
+> Isn't the Alpha's split caches a counter-example of your model,
+> because the coherency itself is out of order?
 
-On Wed, 15 Mar 2006, David Howells wrote:
+I'd forgotten I need to adjust my documentation to deal with this. It seems
+this is the reason for read_barrier_depends(), and that read_barrier_depends()
+is also a partial cache sync.
 
-> Linus Torvalds <torvalds@osdl.org> wrote:
+Do you know of any docs on Alpha's split caches? The Alpha Arch Handbook
+doesn't say very much about cache operation on the Alpha.
+
+I've looked around for what exactly is meant by "split cache" in conjunction
+with Alpha CPUs, and I've found three different opinions of what it means:
+
+ (1) Separate Data and Instruction caches.
+
+ (2) Serial data caches (CPU -> L1 Cache -> L2 Cache -> L3 Cache -> Memory).
+
+ (3) Parallel linked data caches, where a CPU's request can be satisfied by
+     either data cache, in which whilst one data cache is being interrogated by
+     the CPU, the other one can use the memory bus (at least, that's what I
+     understand).
+
+> Why do you need to include caches and queues in your model? Do
+> programmers care? Isn't the following sufficient...
+
+I don't think it is sufficient, given the number of times the way the cache
+interacts with everything has come up in this discussion.
+
+>          :    | m |
+>    CPU -----> | e |
+>          :    | m |
+>          :    | o |
+>    CPU -----> | r |
+>          :    | y |
 > 
-> > That's not that different from doing
-> > 
-> > 	ptr = read a
-> > 	data = read [ptr]
-> > 
-> >   and speculating the result of the first read.
-> 
-> But that would lead to the situation I suggested (q == &b and d == a), not the
-> one Paul suggested (q == &b and d == old b) because we'd speculate on the old
-> value of the pointer, and so see it before it's updated, and thus still
-> pointing to a.
+> ... and bugger the implementation details?
 
-No. If it _speculates_ the old value, and the value has actually changed 
-when it checks the speculation, it would generally result in a uarch trap, 
-and re-do of the instruction without speculation.
+Ah, but if the cache is on the CPU side of the dotted line, does that then mean
+that a write memory barrier guarantees the CPU's cache to have updated memory?
 
-So for data speculation to make a difference in this case, it would 
-speculate the _new_ value (hey, doesn't matter _why_ - it could be that a 
-previous load at a previous time had gotten that value), and then load the 
-old value off the new pointer, and when the speculation ends up being 
-checked, it all pans out (the speculated value matched the value when "a" 
-was actually later read), and you get a "non-causal" result.
-
-Now, nobody actually does this kind of data speculation as far as I know, 
-and there are perfectly valid arguments for why outside of control 
-speculation nobody likely will (at least partly due to the fact that it 
-would screw up existing expectations for memory ordering). It's also 
-pretty damn complicated to do. But data speculation has certainly been a 
-research subject, and there are papers on it.
-
-> > Remember: the smp_wmb() only orders on the _writer_ side. Not on the 
-> > reader side. The writer may send out the stuff in a particular order, but 
-> > the reader might see them in a different order because _it_ might queue 
-> > the bus events internally for its caches (in particular, it could end up 
-> > delaying updating a particular way in the cache because it's busy).
-> 
-> Ummm... So whilst smp_wmb() commits writes to the mercy of the cache coherency
-> system in a particular order, the updates can be passed over from one cache to
-> another and committed to the reader's cache in any order, and can even be
-> delayed:
-
-Right. You should _always_ have as a rule of thinking that a "smp_wmb()" 
-on one side absolutely _has_ to be paired with a "smp_rmb()" on the other 
-side. If they aren't paired, something is _wrong_.
-
-Now, the data-dependent reads is actually a very specific optimization 
-where we say that on certain architectures you don't need it, so we relax 
-the rule to be "the reader has to have a smp_rmb() _or_ a 
-smp_read_barrier_depends(), where the latter is only valid if the address 
-of the dependent read depends directly on the first one".
-
-But the read barrier always has to be there, even though it can be of the 
-"weaker" type.
-
-And note that the address really has to have a _data_ dependency, not a 
-control dependency. If the address is dependent on the first read, but the 
-dependency is through a conditional rather than actually reading the 
-address itself, then it's a control dependency, and existing CPU's already 
-short-circuit those through branch prediction.
-
-			Linus
+David
