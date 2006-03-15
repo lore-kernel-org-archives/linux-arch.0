@@ -1,49 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:26547 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S1751248AbWCOAyw (ORCPT
+Received: from mx1.redhat.com ([66.187.233.31]:48563 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S932181AbWCOBTV (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Mar 2006 19:54:52 -0500
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <17431.26069.168489.609677@cargo.ozlabs.ibm.com>
-Date: Wed, 15 Mar 2006 11:54:45 +1100
-From: Paul Mackerras <paulus@samba.org>
+	Tue, 14 Mar 2006 20:19:21 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <Pine.LNX.4.64.0603141609520.3618@g5.osdl.org> 
+References: <Pine.LNX.4.64.0603141609520.3618@g5.osdl.org>  <17431.14867.211423.851470@cargo.ozlabs.ibm.com> <m1veujy47r.fsf@ebiederm.dsl.xmission.com> <16835.1141936162@warthog.cambridge.redhat.com> <32068.1142371612@warthog.cambridge.redhat.com> <2301.1142380768@warthog.cambridge.redhat.com> 
 Subject: Re: [PATCH] Document Linux's memory barriers [try #4] 
-In-Reply-To: <2301.1142380768@warthog.cambridge.redhat.com>
-References: <17431.14867.211423.851470@cargo.ozlabs.ibm.com>
-	<m1veujy47r.fsf@ebiederm.dsl.xmission.com>
-	<16835.1141936162@warthog.cambridge.redhat.com>
-	<32068.1142371612@warthog.cambridge.redhat.com>
-	<2301.1142380768@warthog.cambridge.redhat.com>
+Date: Wed, 15 Mar 2006 01:19:02 +0000
+Message-ID: <3762.1142385542@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@osdl.org, mingo@redhat.com, alan@redhat.com, linuxppc64-dev@ozlabs.org
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: David Howells <dhowells@redhat.com>, Paul Mackerras <paulus@samba.org>, "Eric W. Biederman" <ebiederm@xmission.com>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, alan@redhat.com, linuxppc64-dev@ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
 
-David Howells writes:
+Linus Torvalds <torvalds@osdl.org> wrote:
 
-> Paul Mackerras <paulus@samba.org> wrote:
+> That's not that different from doing
 > 
-> > No, that's not the problem.  The problem is that you can get q == &b
-> > and d == 1, believe it or not.  That is, you can see the new value of
-> > the pointer but the old value of the thing pointed to.
+> 	ptr = read a
+> 	data = read [ptr]
 > 
-> But that doesn't make any sense!
+>   and speculating the result of the first read.
 
-It certainly violates the principle of least surprise. :)
+But that would lead to the situation I suggested (q == &b and d == a), not the
+one Paul suggested (q == &b and d == old b) because we'd speculate on the old
+value of the pointer, and so see it before it's updated, and thus still
+pointing to a.
 
-Apparently this can occur on some Alpha machines that have a
-partitioned cache.  Although CPU 1 sends out the updates to b and p in
-the right order because of the smp_wmb(), it's possible that b and p
-are present in CPU 2's cache, one in each half of the cache.  If there
-are a lot of updates coming in for the half containing b, but the half
-containing p is quiet, it is possible for CPU 2 to see a new value of
-p but an old value of b, unless you put an rmb instruction between the
-two loads from memory.
+> The cache is fully coherent, but the coherency isn't _ordered_.
+> 
+> Remember: the smp_wmb() only orders on the _writer_ side. Not on the 
+> reader side. The writer may send out the stuff in a particular order, but 
+> the reader might see them in a different order because _it_ might queue 
+> the bus events internally for its caches (in particular, it could end up 
+> delaying updating a particular way in the cache because it's busy).
 
-I haven't heard of this being an issue on any other architecture.  On
-PowerPC it can't happen because the architecture specifies that a data
-dependency creates an implicit read barrier.
+Ummm... So whilst smp_wmb() commits writes to the mercy of the cache coherency
+system in a particular order, the updates can be passed over from one cache to
+another and committed to the reader's cache in any order, and can even be
+delayed:
 
-Paul.
+	CPU 1		CPU 2		COMMENT
+	===============	===============	=======================================
+					a == 0, b == 1 and p == &a, q == &a
+	b = 2;
+	smp_wmb();			Make sure b is changed before p
+	<post b=2>
+			<queue b=2>
+	p = &b;		q = p;
+	<post p=&b>
+			<queue p=&b>
+			d = *q;
+			<commit p=&b>
+			<post q=p>
+			<read *q>	Reads from b before b updated in cache
+			<post d=*q>
+			<commit b=2>
+
+I presume the Alpha MB instruction forces cache queue completion in addition
+to a partial ordering on memory accesses:
+
+	CPU 1		CPU 2		COMMENT
+	===============	===============	=======================================
+					a == 0, b == 1 and p == &a, q == &a
+	b = 2;
+	smp_wmb();			Make sure b is changed before p
+	<post b=2>
+			<queue b=2>
+	p = &b;		q = p;
+	<post p=&b>
+			<queue p=&b>
+			smp_read_barrier_depends();
+			<commit b=2>
+			<commit p=&b>
+			d = *q;
+			<post q=p>
+			<read *q>	Reads new value of b
+			<post d=*q>
+
+
+David
