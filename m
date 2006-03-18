@@ -1,131 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e34.co.us.ibm.com ([32.97.110.152]:21908 "EHLO
-	e34.co.us.ibm.com") by vger.kernel.org with ESMTP id S1751446AbWCQGWY
+Received: from e35.co.us.ibm.com ([32.97.110.153]:32447 "EHLO
+	e35.co.us.ibm.com") by vger.kernel.org with ESMTP id S1751833AbWCRAfK
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Mar 2006 01:22:24 -0500
-Date: Thu, 16 Mar 2006 22:23:00 -0800
-From: "Paul E. McKenney" <paulmck@us.ibm.com>
-Subject: Re: [PATCH] Document Linux's memory barriers [try #5]
-Message-ID: <20060317062300.GE1323@us.ibm.com>
-Reply-To: paulmck@us.ibm.com
-References: <16835.1141936162@warthog.cambridge.redhat.com> <18351.1142432599@warthog.cambridge.redhat.com> <20060316231723.GB1323@us.ibm.com> <Pine.LNX.4.64.0603161551000.3618@g5.osdl.org> <20060317012916.GD1323@us.ibm.com> <Pine.LNX.4.64.0603162118450.3618@g5.osdl.org>
+	Fri, 17 Mar 2006 19:35:10 -0500
+Received: from westrelay02.boulder.ibm.com (westrelay02.boulder.ibm.com [9.17.195.11])
+	by e35.co.us.ibm.com (8.12.11/8.12.11) with ESMTP id k2I0Z9jh016445
+	for <linux-arch@vger.kernel.org>; Fri, 17 Mar 2006 19:35:09 -0500
+Received: from d03av01.boulder.ibm.com (d03av01.boulder.ibm.com [9.17.195.167])
+	by westrelay02.boulder.ibm.com (8.12.10/NCO/VER6.8) with ESMTP id k2I0WEAg219218
+	for <linux-arch@vger.kernel.org>; Fri, 17 Mar 2006 17:32:14 -0700
+Received: from d03av01.boulder.ibm.com (loopback [127.0.0.1])
+	by d03av01.boulder.ibm.com (8.12.11/8.13.3) with ESMTP id k2I0Z9ki022190
+	for <linux-arch@vger.kernel.org>; Fri, 17 Mar 2006 17:35:09 -0700
+Subject: Re: Request for feedback on Generic Timeofday Subsystem (B20)
+From: john stultz <johnstul@us.ibm.com>
+In-Reply-To: <200603091918.01155.ak@suse.de>
+References: <B8E391BBE9FE384DAA4C5C003888BE6F05E1EDF8@scsmsx401.amr.corp.intel.com>
+	 <1141695346.11401.39.camel@cog.beaverton.ibm.com>
+	 <1141953314.20123.110.camel@cog.beaverton.ibm.com>
+	 <200603091918.01155.ak@suse.de>
+Content-Type: text/plain
+Date: Fri, 17 Mar 2006 16:35:07 -0800
+Message-Id: <1142642108.2885.37.camel@cog.beaverton.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0603162118450.3618@g5.osdl.org>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, linuxppc64-dev@ozlabs.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Andi Kleen <ak@suse.de>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Mar 16, 2006 at 09:32:03PM -0800, Linus Torvalds wrote:
+On Thu, 2006-03-09 at 19:18 +0100, Andi Kleen wrote:
+> On Friday 10 March 2006 02:15, john stultz wrote:
 > 
-> 
-> On Thu, 16 Mar 2006, Paul E. McKenney wrote:
+> > On an x86-64 AMD server using nopmtimer/clocksource=tsc:
+> > 					mainline vs TOD
+> > gettimeofday():				74.2%
+> > clock_gettime(CLOCK_MONOTONIC):		77.4%
+> > clock_gettime(CLOCK_REALTIME):		71.6%
 > > 
-> > In section 7.1.1 on page 195, it says:
-> > 
-> > 	For cacheable memory types, the following rules govern
-> > 	read ordering:
-> > 
-> > 	o	Out-of-order reads are allowed.  Out-of-order reads
-> > 		can occur as a result of out-of-order instruction
-> > 		execution or speculative execution.  The processor
-> > 		can read memory out-of-order to allow out-of-order
-> > 		to proceed.
-> > 
-> > 	o	Speculative reads are allows ... [but no effect on
-> > 		ordering beyond that given in the other rules, near
-> > 		as I can tell]
-> > 
-> > 	o	Reads can be reordered ahead of writes.  Reads are
-> > 		generally given a higher priority by the processor
-> > 		than writes because instruction execution stalls
-> > 		if the read data required by an instruction is not
-> > 		immediately available.  Allowing reads ahead of
-> > 		writes usually maximizes software performance.
+> > Hmmmm. I'm heading out of town for the weekend in a few moments, and I'd
+> > really like to re-verify those numbers, but yea, that's a 25%
+> > improvement. Might be too good to be true, but that should get Andi's
+> > attention :)
 > 
-> These are just the same as the x86 ordering. Notice how reads can pass 
-> (earlier) writes, but won't be pushed back after later writes. That's very 
-> much the x86 ordering (together with the "CPU ordering" for writes).
+> What is clocksource=tsc? It doesn't exist on 64bit kernels. 
 
-OK, so you are not arguing with the "AMD" row, but rather with the
-x86 row.  So I was looking in the wrong manual.  Specifically, you are
-saying that the x86's "Loads Reordered After Stores" cell should be
-blank rather than "Y", right?
+Its part of the new clocksource infrastructure, which is arch generic.
 
-> > > (Also, x86 doesn't have an incoherent instruction cache - some older x86 
-> > > cores have an incoherent instruction decode _buffer_, but that's a 
-> > > slightly different issue with basically no effect on any sane program).
-> > 
-> > Newer cores check the linear address, so code generated in a different
-> > address space now needs to do CPUID.  This is admittedly an unusual
-> > case -- perhaps I was getting overly worked up about it.  I based this
-> > on Section 10.6 on page 10-21 (physical page 405) of Intel's "IA-32
-> > Intel Architecture Software Developer's Manual Volume 3: System
-> > Programming Guide", 2004.  PDF available (as of 2/16/2005) from:
-> > 
-> > 	ftp://download.intel.com/design/Pentium4/manuals/25366814.pdf
-> 
-> Not according to the docs I have.
-> 
-> The _prefetch_ queue is invalidated based on the linear address, but not 
-> the caches. The caches are coherent, and the prefetch is also coherent in 
-> modern cores wrt linear address (but old cores, like the original i386, 
-> would literally not see the write, so you could do
-> 
-> 		movl $1234,1f
-> 	1:	xorl %eax,%eax
-> 
-> and the "movl" would overwrite the "xorl", but the "xorl" would still get 
-> executed if it was in the 16-byte prefetch buffer or whatever).
-> 
-> Modern cores will generally be _totally_ serialized, so if you write to 
-> the next instruction, I think most modern cores will notice it. It's only 
-> if you use paging or something to write to the physical address to 
-> something that is in the prefetch buffers that it can get you.
 
-Yep.  But I would not put it past some JIT writer to actually do something
-like double-mapping the JITed code to two different linear addresses.
+> And clock_gettime uses a completely different path from gettimeofday so if they 
+> have the same percentage your results look somewhat suspicious.
 
-> Now, the prefetching has gotten longer over time, but it is basically 
-> still just a few tens of instructions, and any serializing instruction 
-> will force it to be serialized with the cache.
+Yea, It was too good to be true. I went back to confirm the numbers and
+realized there were config differences. Using the same config didn't
+give such interesting results, but I haven't had a chance to look into
+it any closer. I've been busy reworking the patches (watch for them
+later tonight) to try to achieve a more evolutionary approach as you
+suggested. Once I get x86-64 back up and running I'll get some more hard
+numbers for you to look at.
 
-Agreed.
+Sorry for the sensationalism.  :)
+-john
 
-> It's really a non-issue, because regular self-modifying code will trigger 
-> the linear address check, and system code will always end up doing an 
-> "iret" or other serializing instruction, so it really doesn't trigger. 
-
-Only if there is a context switch between the writing of the instruction
-and the executing of it.  Might not be the case if someone double-maps
-the memory or some other similar stunt.  And I agree modern cores seem
-to be getting less aggressive in their search for instruction-level
-parallelism, but it doesn't take too much speculative-execution capability
-to (sometimes!) get some pretty strange stuff loaded into the instruction
-prefetch buffer.
-
-> So in practice, you really should see it as being entirely coherent. You 
-> have to do some _really_ strange sh*t to ever see anything different.
-
-No argument with your last sentence!  (And, believe it or not, there
-was a time when self-modifying code was considered manly rather than
-strange.  But that was back in the days of 4096-byte main memories...)
-
-I believe we are in violent agreement on this one.  The column label in
-the table is "Incoherent Instruction Cache/Pipeline".  You are saying
-that only the pipeline can be incoherent, and even then, only in strange
-situations.  But the only situation in which I would leave a cell in
-this column blank would be if -both- the cache -and- the pipeline were
--always- coherent, even in strange situations.  So I believe that this
-one still needs to stay "Y".
-
-I would rather see someone's JIT execute an extra CPUID after generating
-a new chunk of code than to see it fail strangely -- but only sometimes,
-and not reproducibly.
-
-Would it help if the column were instead labelled "Incoherent Instruction
-Cache or Pipeline", replacing the current "/" with "or"?
-
-							Thanx, Paul
