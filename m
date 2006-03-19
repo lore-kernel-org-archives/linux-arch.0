@@ -1,33 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:58542
-	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
-	id S1750925AbWCSXm0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 19 Mar 2006 18:42:26 -0500
-Date: Sun, 19 Mar 2006 15:42:23 -0800 (PST)
-Message-Id: <20060319.154223.21784367.davem@davemloft.net>
+Received: from stat9.steeleye.com ([209.192.50.41]:34016 "EHLO
+	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
+	id S1751225AbWCSXuw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 19 Mar 2006 18:50:52 -0500
 Subject: Re: Potential problem with the page_mapping macro and
- flush_dcache_page()
-From: "David S. Miller" <davem@davemloft.net>
-In-Reply-To: <1142811577.3240.75.camel@mulgrave.il.steeleye.com>
-References: <1142803783.3240.64.camel@mulgrave.il.steeleye.com>
-	<20060319.140124.69326977.davem@davemloft.net>
-	<1142811577.3240.75.camel@mulgrave.il.steeleye.com>
+	flush_dcache_page()
+From: James Bottomley <James.Bottomley@steeleye.com>
+In-Reply-To: <20060319.132603.132950779.davem@davemloft.net>
+References: <20060319.130009.102283514.davem@davemloft.net>
+	 <1142802286.3240.54.camel@mulgrave.il.steeleye.com>
+	 <1142803431.3240.58.camel@mulgrave.il.steeleye.com>
+	 <20060319.132603.132950779.davem@davemloft.net>
+Content-Type: text/plain
+Date: Sun, 19 Mar 2006 17:50:19 -0600
+Message-Id: <1142812219.3240.79.camel@mulgrave.il.steeleye.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: James.Bottomley@steeleye.com
+To: "David S. Miller" <davem@davemloft.net>
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: James Bottomley <James.Bottomley@SteelEye.com>
-Date: Sun, 19 Mar 2006 17:39:36 -0600
+On Sun, 2006-03-19 at 13:26 -0800, David S. Miller wrote:
+> flush_cache_page() is a nop on many architectures which have
+> cache aliasing issues, such as sparc64.
 
-> > What am I missing?
-> 
-> Nothing; it's always irked me that we need all these extra coherence
-> protocols for the PA VIPT cache because it's so large with such low
-> associativity.  But it also makes us a good test case for the linux
-> API ...
+Oh ... hmm .. I was just going by the comment in cachetlb.txt which says
 
-Ok, thanks for the explanation.  It is horrible though :)
+	After running, there will be no entries in the cache for
+	'vma->vm_mm' for virtual address 'addr' which translates
+	to 'pfn'.
+
+which seemed it should do what I want.
+
+It looks like there's no other API I can use for this ... do you want me
+to construct another?  something like flush_anon_page()?
+
+James
+
+
