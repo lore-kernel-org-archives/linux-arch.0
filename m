@@ -1,53 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:21425 "EHLO smtps.tip.net.au")
-	by vger.kernel.org with ESMTP id S932368AbWCWGrr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Mar 2006 01:47:47 -0500
-Date: Thu, 23 Mar 2006 17:47:19 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:36818
+	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
+	id S1030202AbWCWISE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Mar 2006 03:18:04 -0500
+Date: Thu, 23 Mar 2006 00:17:25 -0800 (PST)
+Message-Id: <20060323.001725.98089946.davem@davemloft.net>
 Subject: Re: [PATCH 1/2] create struct compat_timex and use it everywhere
-Message-Id: <20060323174719.6d4387ff.sfr@canb.auug.org.au>
-In-Reply-To: <buofyl9llau.fsf@dhapc248.dev.necel.com>
+From: "David S. Miller" <davem@davemloft.net>
+In-Reply-To: <20060323174719.6d4387ff.sfr@canb.auug.org.au>
 References: <20060323164623.699f569e.sfr@canb.auug.org.au>
 	<buofyl9llau.fsf@dhapc248.dev.necel.com>
+	<20060323174719.6d4387ff.sfr@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Thu__23_Mar_2006_17_47_19_+1100_B19FhjzL4/7qH+P+"
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Miles Bader <miles@gnu.org>
-Cc: miles.bader@necel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: sfr@canb.auug.org.au
+Cc: miles@gnu.org, miles.bader@necel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Thu__23_Mar_2006_17_47_19_+1100_B19FhjzL4/7qH+P+
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Date: Thu, 23 Mar 2006 17:47:19 +1100
 
-On Thu, 23 Mar 2006 15:36:25 +0900 Miles Bader <miles.bader@necel.com> wrot=
-e:
->
-> BTW, why not keep use the parisc version of the structure for the common
-> version, as it has comments for each field (not world breaking, but a
-> nice little thing)?
+> On Thu, 23 Mar 2006 15:36:25 +0900 Miles Bader <miles.bader@necel.com> wrote:
+> >
+> > BTW, why not keep use the parisc version of the structure for the common
+> > version, as it has comments for each field (not world breaking, but a
+> > nice little thing)?
+> 
+> I figured if you wanted to understand the structure, you could look at the
+> real struct timex.
 
-I figured if you wanted to understand the structure, you could look at the
-real struct timex.
+Agreed.
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
-
---Signature=_Thu__23_Mar_2006_17_47_19_+1100_B19FhjzL4/7qH+P+
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.2.2 (GNU/Linux)
-
-iD8DBQFEIkR8FdBgD/zoJvwRAhTVAJ9GUbyaG41Q2R9hd1s4+VOv/GmS8gCfffcx
-NTZewrVybgslsynMYYKZ3nw=
-=IdTO
------END PGP SIGNATURE-----
-
---Signature=_Thu__23_Mar_2006_17_47_19_+1100_B19FhjzL4/7qH+P+--
+I'm fine with these timex compat patches.
