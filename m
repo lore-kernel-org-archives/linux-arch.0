@@ -1,49 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:54714 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S1751224AbWCWGX4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Mar 2006 01:23:56 -0500
-Date: Wed, 22 Mar 2006 22:20:27 -0800
-From: Andrew Morton <akpm@osdl.org>
-Subject: Re: Potential problem with the page_mapping macro and
- flush_dcache_page()
-Message-Id: <20060322222027.4615e245.akpm@osdl.org>
-In-Reply-To: <1142803783.3240.64.camel@mulgrave.il.steeleye.com>
-References: <1142801589.3240.51.camel@mulgrave.il.steeleye.com>
-	<20060319.130009.102283514.davem@davemloft.net>
-	<1142802286.3240.54.camel@mulgrave.il.steeleye.com>
-	<20060319.132511.116548328.davem@davemloft.net>
-	<1142803783.3240.64.camel@mulgrave.il.steeleye.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mgate01.necel.com ([203.180.232.81]:2272 "EHLO
+	mgate01.necel.com") by vger.kernel.org with ESMTP id S932204AbWCWGgw
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Mar 2006 01:36:52 -0500
+Subject: Re: [PATCH 1/2] create struct compat_timex and use it everywhere
+References: <20060323164623.699f569e.sfr@canb.auug.org.au>
+From: Miles Bader <miles.bader@necel.com>
+Reply-To: Miles Bader <miles@gnu.org>
+Date: Thu, 23 Mar 2006 15:36:25 +0900
+In-Reply-To: <20060323164623.699f569e.sfr@canb.auug.org.au> (Stephen Rothwell's message of "Thu, 23 Mar 2006 16:46:23 +1100")
+Message-Id: <buofyl9llau.fsf@dhapc248.dev.necel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@steeleye.com>
-Cc: davem@davemloft.net, linux-arch@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-James Bottomley <James.Bottomley@SteelEye.com> wrote:
->
-> > > OK, I confess to not ever having looked at that ... does it use
->  > > get_user_pages() as well?
->  > 
->  > I believe so, Andrew knows...
-> 
->  OK I'll wait to see what he says.
+BTW, why not keep use the parisc version of the structure for the common
+version, as it has comments for each field (not world breaking, but a
+nice little thing)?
 
-<he'd made some procmailrc changes and had thought that linux-arch was
-rather quiet lately>
-
-Yes, direct-io does get_user_pages() and then uses submit_bio() to
-read/write the pages.
-
-So it should fall under
-
- 2) device DMA, where the L2 cache eviction done by the device DMA
-    will pull out the D-cache entries, or if the block I/O is via PIO
-    it will do cache flushing in there, as per some asm-*/ide.h
-    implementations of __ide_ins*()/__ide_outs*()
-
-umm, except in the case where direct-io hit a file hole.  In that case we
-memset the user's page and use flush_dcache_page().  And that's most likely
-an anonymous page.
+-miles
+-- 
+"Suppose we've chosen the wrong god. Every time we go to church we're
+just making him madder and madder." -- Homer Simpson
