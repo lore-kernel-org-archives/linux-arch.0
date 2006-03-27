@@ -1,52 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:34516 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S1751143AbWCYVvP (ORCPT
+Received: from chilli.pcug.org.au ([203.10.76.44]:9896 "EHLO smtps.tip.net.au")
+	by vger.kernel.org with ESMTP id S932151AbWC0Cgx (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 25 Mar 2006 16:51:15 -0500
-Date: Sat, 25 Mar 2006 13:47:29 -0800
-From: Andrew Morton <akpm@osdl.org>
-Subject: Re: [patch 1/1] remove fixup_cpu_present_map()
-Message-Id: <20060325134729.3db82a6c.akpm@osdl.org>
-In-Reply-To: <20060325213845.GB25788@flint.arm.linux.org.uk>
-References: <200603252027.k2PKRkpP011257@shell0.pdx.osdl.net>
-	<20060325213845.GB25788@flint.arm.linux.org.uk>
+	Sun, 26 Mar 2006 21:36:53 -0500
+Date: Mon, 27 Mar 2006 13:36:02 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 1/2] create struct compat_timex and use it everywhere
+Message-Id: <20060327133602.235ef0dc.sfr@canb.auug.org.au>
+In-Reply-To: <20060323191819.GA13794@agluck-lia64.sc.intel.com>
+References: <20060323164623.699f569e.sfr@canb.auug.org.au>
+	<20060323185234.GA13486@agluck-lia64.sc.intel.com>
+	<20060323190922.GA13695@agluck-lia64.sc.intel.com>
+	<20060323191819.GA13794@agluck-lia64.sc.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Mon__27_Mar_2006_13_36_02_+1100_FiwfBqRa6_Ltoc=r"
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: linux-arch@vger.kernel.org
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Russell King <rmk@arm.linux.org.uk> wrote:
+--Signature=_Mon__27_Mar_2006_13_36_02_+1100_FiwfBqRa6_Ltoc=r
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+Hi Tony,
+
+On Thu, 23 Mar 2006 11:18:19 -0800 "Luck, Tony" <tony.luck@intel.com> wrote:
 >
-> On Sat, Mar 25, 2006 at 12:24:11PM -0800, akpm@osdl.org wrote:
-> > A consequence of this (actually of the boot_cpu_init() change) is that the
-> > architecture _must_ populate cpu_present_map itself (probably in
-> > smp_prepare_cpus()).  fixup_cpu_present_map() won't do it any more.
-> 
-> The other side effect (though less serious) is that smp_prepare_boot_cpu()
-> no longer needs to mark the boot cpu in the online and present maps - 
-> boot_cpu_init() does that for everyone.
+> On Thu, Mar 23, 2006 at 11:09:22AM -0800, Luck, Tony wrote:
+> > -	data8 sys_ni_syscall	/* adjtimex */
+> > +	data8 sys32_adjtimex
+>=20
+> -ENOCOFFEE
+>=20
+> Of course that should be:
+>=20
+>=20
+> diff --git a/arch/ia64/ia32/ia32_entry.S b/arch/ia64/ia32/ia32_entry.S
+> index 95fe044..a32cd59 100644
+> --- a/arch/ia64/ia32/ia32_entry.S
+> +++ b/arch/ia64/ia32/ia32_entry.S
+> @@ -334,7 +334,7 @@ ia32_syscall_table:
+>  	data8 sys_setdomainname
+>  	data8 sys32_newuname
+>  	data8 sys32_modify_ldt
+> -	data8 sys_ni_syscall	/* adjtimex */
+> +	data8 compat_sys_adjtimex
+>  	data8 sys32_mprotect	  /* 125 */
+>  	data8 compat_sys_sigprocmask
+>  	data8 sys_ni_syscall	/* create_module */
 
-Yup, thanks.
 
-btw, we did that marking of the boot cpu in boot_cpu_init() to make printk
-work early in boot.  ia64 needed this, in printk():
+This patch is really just a matter for the ia64 tree, my patch was a cross
+architecture consolidation.  Now that my patches are in Linus's tree, you
+should just submit the above (as long as it works and is needed) via the
+ia64 tree.
 
-	if (!cpu_online(smp_processor_id())) {
-		/*
-		 * Some console drivers may assume that per-cpu resources have
-		 * been allocated.  So don't allow them to be called by this
-		 * CPU until it is officially up.  We shouldn't be calling into
-		 * random console drivers on a CPU which doesn't exist yet..
-		 */
-		printk_cpu = UINT_MAX;
-		spin_unlock_irqrestore(&logbuf_lock, flags);
-		goto out;
-	}
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
-So really it's only necessary to mark the boot cpu in cpu_online_map.  But
-that's supposed to be a subset of present_map, which is a subset of
-possible_map.
+--Signature=_Mon__27_Mar_2006_13_36_02_+1100_FiwfBqRa6_Ltoc=r
+Content-Type: application/pgp-signature
 
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.2.2 (GNU/Linux)
+
+iD8DBQFEJ0+XFdBgD/zoJvwRAnetAKCHsLDzNaj9UGD7dX+6A/7p8PJtJgCgh3mS
+DSak3YcCSVCesWL+Ke6tbqo=
+=F4O1
+-----END PGP SIGNATURE-----
+
+--Signature=_Mon__27_Mar_2006_13_36_02_+1100_FiwfBqRa6_Ltoc=r--
