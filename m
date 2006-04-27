@@ -1,28 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:29153 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S964985AbWD0Iq4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 Apr 2006 04:46:56 -0400
-Received: from Relay1.suse.de (mail2.suse.de [195.135.221.8])
-	(using TLSv1 with cipher DHE-RSA-AES256-SHA (256/256 bits))
-	(No client certificate requested)
-	by mx2.suse.de (Postfix) with ESMTP id 555D91EB92
-	for <linux-arch@vger.kernel.org>; Thu, 27 Apr 2006 10:46:55 +0200 (CEST)
-From: Andi Kleen <ak@suse.de>
-Subject: vmsplice compat code
-Date: Thu, 27 Apr 2006 10:46:53 +0200
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="us-ascii"
+Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:56484
+	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
+	id S965073AbWD0UZg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 27 Apr 2006 16:25:36 -0400
+Date: Thu, 27 Apr 2006 13:25:39 -0700 (PDT)
+Message-Id: <20060427.132539.18549348.davem@davemloft.net>
+Subject: Re: vmsplice compat code
+From: "David S. Miller" <davem@davemloft.net>
+In-Reply-To: <200604271046.53440.ak@suse.de>
+References: <200604271046.53440.ak@suse.de>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200604271046.53440.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
+To: ak@suse.de
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+From: Andi Kleen <ak@suse.de>
+Date: Thu, 27 Apr 2006 10:46:53 +0200
 
-Before anybody else duplicates work - i already did the compat code
-for vmsplice and will submit it later.
+> Before anybody else duplicates work - i already did the compat code
+> for vmsplice and will submit it later.
 
--Andi
+Thanks a lot Andi.
