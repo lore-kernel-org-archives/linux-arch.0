@@ -1,35 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:63120 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S964885AbWEJKQf (ORCPT
+Received: from are.twiddle.net ([64.81.246.98]:39314 "EHLO are.twiddle.net")
+	by vger.kernel.org with ESMTP id S1751465AbWEJPr2 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 May 2006 06:16:35 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1147245709.32448.74.camel@localhost.localdomain> 
-References: <1147245709.32448.74.camel@localhost.localdomain>  <17505.26159.807484.477212@cargo.ozlabs.ibm.com> <20060510051649.GD1794@lixom.net> <17505.34919.750295.170941@cargo.ozlabs.ibm.com> <20060509.233958.73723993.davem@davemloft.net> 
-Subject: Re: [RFC/PATCH] Make powerpc64 use __thread for per-cpu variables 
-Date: Wed, 10 May 2006 11:14:53 +0100
-Message-ID: <14201.1147256093@warthog.cambridge.redhat.com>
+	Wed, 10 May 2006 11:47:28 -0400
+Date: Wed, 10 May 2006 08:47:02 -0700
+From: Richard Henderson <rth@twiddle.net>
+Subject: Re: [RFC/PATCH] Make powerpc64 use __thread for per-cpu variables
+Message-ID: <20060510154702.GA28938@twiddle.net>
+References: <17505.26159.807484.477212@cargo.ozlabs.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <17505.26159.807484.477212@cargo.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: "David S. Miller" <davem@davemloft.net>, olof@lixom.net, linux-arch@vger.kernel.org, paulus@samba.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org
+To: Paul Mackerras <paulus@samba.org>, t@twiddle.net
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+On Wed, May 10, 2006 at 02:03:59PM +1000, Paul Mackerras wrote:
+> With this patch, 64-bit powerpc uses __thread for per-cpu variables.
 
-> > That first cache line of current_thread_info() should be so hot that
-> > it's probably just fine to use current_thread_info()->task since
-> > you're just doing a mask on a fixed register (r1) to implement that.
-> 
-> Iirc, he tried that, though it did bloat the kernel size a bit due the
-> the amount of occurences of current-> in there. We are now thinking
-> about either dedicating a register to current (that would avoid the
-> problem of printk() using it in start_kernel before we get the per-cpu
-> areas setup) in addition to __thread (heh, we have lots of registers on
-> ppc :) or maybe putting current back in the paca...
+How do you plan to address the compiler optimizing
 
-I dedicated registers to current and current threadinfo in the FRV arch.  As I
-recall doing that improved both performance and code size quite a bit.  It also
-means that I get sensible bug panic reports when the stack pointer overruns the
-stack space.
+	__thread int foo;
+	{
+	  use(foo);
+	  schedule();
+	  use(foo);
+	}
 
-David
+into
+
+	{
+	  int *tmp = &foo;	// tls arithmetic here
+	  use(*tmp);
+	  schedule();
+	  use(*tmp);
+	}
+
+Across the schedule, we may have changed cpus, making the cached
+address invalid.
+
+
+r~
