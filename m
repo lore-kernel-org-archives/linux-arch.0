@@ -1,51 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate3.de.ibm.com ([195.212.29.152]:42651 "EHLO
-	mtagate3.de.ibm.com") by vger.kernel.org with ESMTP id S964851AbWEJIjc
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 May 2006 04:39:32 -0400
-Subject: Re: [PATCH] Define __raw_get_cpu_var and use it
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <17505.24133.491523.358882@cargo.ozlabs.ibm.com>
-References: <17505.24133.491523.358882@cargo.ozlabs.ibm.com>
-Content-Type: text/plain
-Date: Wed, 10 May 2006 10:39:49 +0200
-Message-Id: <1147250390.7364.5.camel@localhost>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:63120 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S964885AbWEJKQf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 May 2006 06:16:35 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1147245709.32448.74.camel@localhost.localdomain> 
+References: <1147245709.32448.74.camel@localhost.localdomain>  <17505.26159.807484.477212@cargo.ozlabs.ibm.com> <20060510051649.GD1794@lixom.net> <17505.34919.750295.170941@cargo.ozlabs.ibm.com> <20060509.233958.73723993.davem@davemloft.net> 
+Subject: Re: [RFC/PATCH] Make powerpc64 use __thread for per-cpu variables 
+Date: Wed, 10 May 2006 11:14:53 +0100
+Message-ID: <14201.1147256093@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: "David S. Miller" <davem@davemloft.net>, olof@lixom.net, linux-arch@vger.kernel.org, paulus@samba.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 2006-05-10 at 13:30 +1000, Paul Mackerras wrote:
-> There are several instances of per_cpu(foo, raw_smp_processor_id()),
-> which is semantically equivalent to __get_cpu_var(foo) but without the
-> warning that smp_processor_id() can give if CONFIG_DEBUG_PREEMPT is
-> enabled.  For those architectures with optimized per-cpu
-> implementations, namely ia64, powerpc, s390, sparc64 and x86_64,
-> per_cpu() turns into more and slower code than __get_cpu_var(), so it
-> would be preferable to use __get_cpu_var on those platforms.
+Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+
+> > That first cache line of current_thread_info() should be so hot that
+> > it's probably just fine to use current_thread_info()->task since
+> > you're just doing a mask on a fixed register (r1) to implement that.
 > 
-> This defines a __raw_get_cpu_var(x) macro which turns into
-> per_cpu(x, raw_smp_processor_id()) on architectures that use the
-> generic per-cpu implementation, and turns into __get_cpu_var(x) on
-> the architectures that have an optimized per-cpu implementation.
->     
-> Signed-off-by: Paul Mackerras <paulus@samba.org>
+> Iirc, he tried that, though it did bloat the kernel size a bit due the
+> the amount of occurences of current-> in there. We are now thinking
+> about either dedicating a register to current (that would avoid the
+> problem of printk() using it in start_kernel before we get the per-cpu
+> areas setup) in addition to __thread (heh, we have lots of registers on
+> ppc :) or maybe putting current back in the paca...
 
-Nice, saves an indirection over __per_cpu_offset[]. And it works :-)
+I dedicated registers to current and current threadinfo in the FRV arch.  As I
+recall doing that improved both performance and code size quite a bit.  It also
+means that I get sensible bug panic reports when the stack pointer overruns the
+stack space.
 
-Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
-
--- 
-blue skies,
-  Martin.
-
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
-
-"Reality continues to ruin my life." - Calvin.
-
-
+David
