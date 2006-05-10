@@ -1,44 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:40077 "EHLO mx3.mail.elte.hu")
-	by vger.kernel.org with ESMTP id S1751405AbWEJHJm (ORCPT
+Received: from gate.crashing.org ([63.228.1.57]:10714 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S964836AbWEJHW0 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 May 2006 03:09:42 -0400
-Date: Wed, 10 May 2006 09:09:29 +0200
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH] Define __raw_get_cpu_var and use it
-Message-ID: <20060510070929.GA23414@elte.hu>
-References: <17505.24133.491523.358882@cargo.ozlabs.ibm.com>
+	Wed, 10 May 2006 03:22:26 -0400
+Subject: Re: [RFC/PATCH] Make powerpc64 use __thread for per-cpu variables
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <20060509.233958.73723993.davem@davemloft.net>
+References: <17505.26159.807484.477212@cargo.ozlabs.ibm.com>
+	 <20060510051649.GD1794@lixom.net>
+	 <17505.34919.750295.170941@cargo.ozlabs.ibm.com>
+	 <20060509.233958.73723993.davem@davemloft.net>
+Content-Type: text/plain
+Date: Wed, 10 May 2006 17:21:49 +1000
+Message-Id: <1147245709.32448.74.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <17505.24133.491523.358882@cargo.ozlabs.ibm.com>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: "David S. Miller" <davem@davemloft.net>
+Cc: paulus@samba.org, olof@lixom.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
 
-
-* Paul Mackerras <paulus@samba.org> wrote:
-
-> There are several instances of per_cpu(foo, raw_smp_processor_id()), 
-> which is semantically equivalent to __get_cpu_var(foo) but without the 
-> warning that smp_processor_id() can give if CONFIG_DEBUG_PREEMPT is 
-> enabled.  For those architectures with optimized per-cpu 
-> implementations, namely ia64, powerpc, s390, sparc64 and x86_64, 
-> per_cpu() turns into more and slower code than __get_cpu_var(), so it 
-> would be preferable to use __get_cpu_var on those platforms.
+On Tue, 2006-05-09 at 23:39 -0700, David S. Miller wrote:
+> From: Paul Mackerras <paulus@samba.org>
+> Date: Wed, 10 May 2006 16:29:59 +1000
 > 
-> This defines a __raw_get_cpu_var(x) macro which turns into per_cpu(x, 
-> raw_smp_processor_id()) on architectures that use the generic per-cpu 
-> implementation, and turns into __get_cpu_var(x) on the architectures 
-> that have an optimized per-cpu implementation.
->     
-> Signed-off-by: Paul Mackerras <paulus@samba.org>
+> > I have moved current, smp_processor_id and a couple of other things to
+> > per-cpu variables, and that results in the kernel text being about 8k
+> > smaller than without any of these __thread patches.  Performance seems
+> > to be very slightly better but it's hard to be sure that the change is
+> > statistically significant, from the measurements I've done so far.
+> 
+> That first cache line of current_thread_info() should be so hot that
+> it's probably just fine to use current_thread_info()->task since
+> you're just doing a mask on a fixed register (r1) to implement that.
 
-i made the original raw_smp_processor_id() changes and i never liked the 
-per_cpu() open-coding it introduced. Your patch solves this problem 
-nicely.
+Iirc, he tried that, though it did bloat the kernel size a bit due the
+the amount of occurences of current-> in there. We are now thinking
+about either dedicating a register to current (that would avoid the
+problem of printk() using it in start_kernel before we get the per-cpu
+areas setup) in addition to __thread (heh, we have lots of registers on
+ppc :) or maybe putting current back in the paca...
 
-Acked-by: Ingo Molnar <mingo@elte.hu>
+It's a bit sad that we can't get rid of the PACA because it has to be in
+the RMA (for those who don't know that it is, the RMA is an area of
+memory that is accessible in real mode on LPAR machines, that is the
+hypervisor guarantees a bunch of physically contiguous memory that is
+made accessible to the partition for use in real mode). We could have
+put the per-cpu infos in the RMA but I'm a bit freaked out by the idea
+of having those not be node-local...
 
-	Ingo
+Ben.
+
+
