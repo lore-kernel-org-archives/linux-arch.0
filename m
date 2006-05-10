@@ -1,30 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:37354
-	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
-	id S964827AbWEJGWP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 May 2006 02:22:15 -0400
-Date: Tue, 09 May 2006 23:22:15 -0700 (PDT)
-Message-Id: <20060509.232215.69573210.davem@davemloft.net>
+Received: from ozlabs.org ([203.10.76.45]:63893 "EHLO ozlabs.org")
+	by vger.kernel.org with ESMTP id S964834AbWEJGaN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 May 2006 02:30:13 -0400
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Message-ID: <17505.34919.750295.170941@cargo.ozlabs.ibm.com>
+Date: Wed, 10 May 2006 16:29:59 +1000
+From: Paul Mackerras <paulus@samba.org>
 Subject: Re: [RFC/PATCH] Make powerpc64 use __thread for per-cpu variables
-From: "David S. Miller" <davem@davemloft.net>
 In-Reply-To: <20060510051649.GD1794@lixom.net>
 References: <17505.26159.807484.477212@cargo.ozlabs.ibm.com>
 	<20060510051649.GD1794@lixom.net>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: olof@lixom.net
-Cc: paulus@samba.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org
+To: Olof Johansson <olof@lixom.net>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Olof Johansson <olof@lixom.net>
-Date: Wed, 10 May 2006 00:16:50 -0500
+Olof Johansson writes:
+
+> Looks like alot of the text growth is from the added mfsprg3 instructions:
+
+Yes, probably mostly from current.
+
+> ... so, as the PACA gets deprecated, the bloat will go away again.
+
+Yes.  I was hoping to get rid of the paca entirely, but that would
+mean it would have to be in the RMA (so that the early exception entry
+code can use it) which means that it won't be node-local any more.
+I have a patch which allocates the per-cpu areas in the RMA but now
+I'm rethinking it, since Ben H (at least) thinks the per-cpu area
+really needs to be node-local.
+
+Moving current to a per-cpu variable means that we need to allocate at
+least the boot cpu's per-cpu area earlier than we do now, since it
+seems that printk references current.  That makes it hard to make sure
+the boot cpu's per-cpu area is node-local, unless we do something
+tricky like reallocating it once the bootmem allocator is available.
 
 > It would be interesting to see benchmarks of how much it improves
 > things. I guess it doesn't really get interesting until after the paca
 > gets removed though, due to the added mfsprg's.
 
-When I moved the per-cpu base into a fixed register on sparc64,
-it definitely showed up on the micro-benchmarks because this
-shrunk the .text a lot in that case.
+I have moved current, smp_processor_id and a couple of other things to
+per-cpu variables, and that results in the kernel text being about 8k
+smaller than without any of these __thread patches.  Performance seems
+to be very slightly better but it's hard to be sure that the change is
+statistically significant, from the measurements I've done so far.
+
+Paul.
