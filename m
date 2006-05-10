@@ -1,46 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:54159 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S965062AbWEJXFu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 May 2006 19:05:50 -0400
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from mail-in-03.arcor-online.net ([151.189.21.43]:51426 "EHLO
+	mail-in-03.arcor-online.net") by vger.kernel.org with ESMTP
+	id S965076AbWEJXR5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 May 2006 19:17:57 -0400
+In-Reply-To: <17506.21908.857189.645889@cargo.ozlabs.ibm.com>
+References: <17505.26159.807484.477212@cargo.ozlabs.ibm.com> <20060510154702.GA28938@twiddle.net> <20060510.124003.04457042.davem@davemloft.net> <17506.21908.857189.645889@cargo.ozlabs.ibm.com>
+Mime-Version: 1.0 (Apple Message framework v749.3)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <49BB818F-DF88-43A3-8B6A-7F9F5C7A2C3C@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
-Message-ID: <17506.29128.591758.502430@cargo.ozlabs.ibm.com>
-Date: Thu, 11 May 2006 09:05:44 +1000
-From: Paul Mackerras <paulus@samba.org>
+From: Segher Boessenkool <segher@kernel.crashing.org>
 Subject: Re: [RFC/PATCH] Make powerpc64 use __thread for per-cpu variables
-In-Reply-To: <20060510154702.GA28938@twiddle.net>
-References: <17505.26159.807484.477212@cargo.ozlabs.ibm.com>
-	<20060510154702.GA28938@twiddle.net>
+Date: Thu, 11 May 2006 01:17:50 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Richard Henderson <rth@twiddle.net>
-Cc: t@twiddle.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org, rth@twiddle.net
 List-ID: <linux-arch.vger.kernel.org>
 
-Richard Henderson writes:
+>>> How do you plan to address the compiler optimizing
+>>  ...
+>>> Across the schedule, we may have changed cpus, making the cached
+>>> address invalid.
+>>
+>> Per-cpu variables need to be accessed only with preemption
+>> disabled.  And the preemption enable/disable operations
+>> provide a compiler memory barrier.
+>
+> No, Richard has a point, it's not the value that is the concern, it's
+> the address, which gcc could assume is still valid after a barrier.
+> Drat.
 
-> How do you plan to address the compiler optimizing
-> 
-> 	__thread int foo;
-> 	{
-> 	  use(foo);
-> 	  schedule();
-> 	  use(foo);
-> 	}
-> 
-> into
-> 
-> 	{
-> 	  int *tmp = &foo;	// tls arithmetic here
-> 	  use(*tmp);
-> 	  schedule();
-> 	  use(*tmp);
-> 	}
+Would an asm clobber of GPR13 in the schedule routines (or a wrapper
+for them, or whatever) work?
 
-Hmmm...  Would it be sufficient to use a RELOC_HIDE in __get_cpu_var,
-like this?
 
-#define __get_cpu_var(x)	(*(RELOC_HIDE(&per_cpu__##x, 0)))
+Segher
 
-Paul.
