@@ -1,36 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:40072
-	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
-	id S965101AbWEKALe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 May 2006 20:11:34 -0400
-Date: Wed, 10 May 2006 17:11:27 -0700 (PDT)
-Message-Id: <20060510.171127.42619262.davem@davemloft.net>
+Received: from are.twiddle.net ([64.81.246.98]:50322 "EHLO are.twiddle.net")
+	by vger.kernel.org with ESMTP id S965106AbWEKAWb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 May 2006 20:22:31 -0400
+Date: Wed, 10 May 2006 17:22:17 -0700
+From: Richard Henderson <rth@twiddle.net>
 Subject: Re: [RFC/PATCH] Make powerpc64 use __thread for per-cpu variables
-From: "David S. Miller" <davem@davemloft.net>
-In-Reply-To: <17506.31456.68099.57515@cargo.ozlabs.ibm.com>
-References: <20060510154702.GA28938@twiddle.net>
-	<17506.29128.591758.502430@cargo.ozlabs.ibm.com>
-	<17506.31456.68099.57515@cargo.ozlabs.ibm.com>
+Message-ID: <20060511002217.GA31481@twiddle.net>
+References: <17505.26159.807484.477212@cargo.ozlabs.ibm.com> <20060510154702.GA28938@twiddle.net> <20060510.124003.04457042.davem@davemloft.net> <17506.21908.857189.645889@cargo.ozlabs.ibm.com> <49BB818F-DF88-43A3-8B6A-7F9F5C7A2C3C@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <49BB818F-DF88-43A3-8B6A-7F9F5C7A2C3C@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: paulus@samba.org
-Cc: rth@twiddle.net, t@twiddle.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, amodra@bigpond.net
+To: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Paul Mackerras <paulus@samba.org>
-Date: Thu, 11 May 2006 09:44:32 +1000
+On Thu, May 11, 2006 at 01:17:50AM +0200, Segher Boessenkool wrote:
+> Would an asm clobber of GPR13 in the schedule routines (or a wrapper
+> for them, or whatever) work?
 
-> That means we lose the possible optimization of combining the addi
-> into a following load or store.  Bah.  However, I guess it's still
-> better than what we do at the moment.
+No.  The address is cse'd symbolically long before the r13
+reference is exposed.
 
-If you have to hide the operation so deeply like this, maybe you can
-do something similar to sparc64, by explicitly doing the per-cpu fixed
-register and offsets, and still get the single instruction relocs that
-powerpc can do for up to 64K by doing something like:
 
-	&per_cpu_blah - &per_cpu_base
-
-to calculate the offset.
+r~
