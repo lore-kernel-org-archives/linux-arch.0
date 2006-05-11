@@ -1,30 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:42154 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S965111AbWEKBV0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 May 2006 21:21:26 -0400
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <17506.37259.755099.974824@cargo.ozlabs.ibm.com>
-Date: Thu, 11 May 2006 11:21:15 +1000
-From: Paul Mackerras <paulus@samba.org>
+Received: from CPE-144-136-172-108.sa.bigpond.net.au ([144.136.172.108]:9222
+	"EHLO grove.modra.org") by vger.kernel.org with ESMTP
+	id S1751228AbWEKCB1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 May 2006 22:01:27 -0400
+Date: Thu, 11 May 2006 11:31:25 +0930
+From: Alan Modra <amodra@bigpond.net.au>
 Subject: Re: [RFC/PATCH] Make powerpc64 use __thread for per-cpu variables
-In-Reply-To: <20060511010438.GE24458@bubble.grove.modra.org>
-References: <17505.26159.807484.477212@cargo.ozlabs.ibm.com>
-	<20060510154702.GA28938@twiddle.net>
-	<20060510.124003.04457042.davem@davemloft.net>
-	<17506.21908.857189.645889@cargo.ozlabs.ibm.com>
-	<20060511010438.GE24458@bubble.grove.modra.org>
+Message-ID: <20060511020125.GF24458@bubble.grove.modra.org>
+References: <17505.26159.807484.477212@cargo.ozlabs.ibm.com> <20060510154702.GA28938@twiddle.net> <20060510.124003.04457042.davem@davemloft.net> <17506.21908.857189.645889@cargo.ozlabs.ibm.com> <20060511010438.GE24458@bubble.grove.modra.org> <17506.37259.755099.974824@cargo.ozlabs.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <17506.37259.755099.974824@cargo.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Alan Modra <amodra@bigpond.net.au>
+To: Paul Mackerras <paulus@samba.org>
 Cc: "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org, rth@twiddle.net
 List-ID: <linux-arch.vger.kernel.org>
 
-Alan Modra writes:
+On Thu, May 11, 2006 at 11:21:15AM +1000, Paul Mackerras wrote:
+> Alan Modra writes:
+> 
+> > gcc shouldn't think there is any reason to cache the address.
+> 
+> Can I rely on that being true in the future?
 
-> gcc shouldn't think there is any reason to cache the address.
+It isn't true in the *present*, except with a compiler on my home
+machine.  :-) 
 
-Can I rely on that being true in the future?
+__thread int i1;
+void
+f3 (void)
+{
+  int x = i1;
+  __asm__ __volatile__ ("#dragons be here.  %0" : "+r" (x));
+  i1 = x;
+}
 
-Paul.
+current mainline with -O2 -S -mtls-size=16
+
+f3:
+        addi 9,2,i1@tprel
+        lwz 0,0(9)
+#APP
+        #dragons be here.  0
+#NO_APP
+        stw 0,0(9)
+        blr
+
+Same thing with my modified compiler.
+
+f3:
+        lwz 0,i1@tprel(2)
+#APP
+        #dragons be here.  0
+#NO_APP
+        stw 0,i1@tprel(2)
+        blr
+
+-- 
+Alan Modra
+IBM OzLabs - Linux Technology Centre
