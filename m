@@ -1,45 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from witte.sonytel.be ([80.88.33.193]:60599 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S1751216AbWEQLSb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 May 2006 07:18:31 -0400
-Date: Wed, 17 May 2006 13:18:14 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+Received: from mtagate2.de.ibm.com ([195.212.29.151]:63637 "EHLO
+	mtagate2.de.ibm.com") by vger.kernel.org with ESMTP
+	id S1751226AbWEQLW1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 May 2006 07:22:27 -0400
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate2.de.ibm.com (8.13.6/8.13.6) with ESMTP id k4HBMP5a150074
+	for <linux-arch@vger.kernel.org>; Wed, 17 May 2006 11:22:25 GMT
+Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
+	by d12nrmr1607.megacenter.de.ibm.com (8.12.10/NCO/VER6.8) with ESMTP id k4HBNseV117454
+	for <linux-arch@vger.kernel.org>; Wed, 17 May 2006 13:23:54 +0200
+Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av02.megacenter.de.ibm.com (8.12.11/8.13.3) with ESMTP id k4HBMOuF028686
+	for <linux-arch@vger.kernel.org>; Wed, 17 May 2006 13:22:25 +0200
 Subject: Re: [patch] s390 kconfig cleanup.
-In-Reply-To: <1147853851.6661.2.camel@localhost>
-Message-ID: <Pine.LNX.4.62.0605171314440.30686@pademelon.sonytel.be>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Reply-To: schwidefsky@de.ibm.com
+In-Reply-To: <Pine.LNX.4.62.0605171314440.30686@pademelon.sonytel.be>
 References: <20060515171645.GA11397@skybase> <200605151930.32241.ak@suse.de>
- <20060515212431.GA25010@moss.sous-sol.org> <1147766908.5289.4.camel@localhost>
- <20060516211216.GE23243@moss.sous-sol.org> <1147853851.6661.2.camel@localhost>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+	 <20060515212431.GA25010@moss.sous-sol.org>
+	 <1147766908.5289.4.camel@localhost>
+	 <20060516211216.GE23243@moss.sous-sol.org>
+	 <1147853851.6661.2.camel@localhost>
+	 <Pine.LNX.4.62.0605171314440.30686@pademelon.sonytel.be>
+Content-Type: text/plain
+Date: Wed, 17 May 2006 13:22:26 +0200
+Message-Id: <1147864946.5540.1.camel@localhost>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Chris Wright <chrisw@sous-sol.org>, Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org, Keir Fraser <Keir.Fraser@cl.cam.ac.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 17 May 2006, Martin Schwidefsky wrote:
-> --- linux-2.6/drivers/char/Kconfig	2006-04-13 10:36:54.000000000 +0200
-> +++ linux-2.6-kconfig/drivers/char/Kconfig	2006-05-15 13:21:15.000000000 +0200
-> @@ -761,7 +763,7 @@ config SGI_IP27_RTC
->  
->  config GEN_RTC
->  	tristate "Generic /dev/rtc emulation"
-> -	depends on RTC!=y && !IA64 && !ARM && !M32R && !SPARC && !FRV
-> +	depends on RTC!=y && !IA64 && !ARM && !M32R && !SPARC && !FRV && !S390
->  	---help---
->  	  If you say Y here and create a character special file /dev/rtc with
->  	  major number 10 and minor number 135 using mknod ("man mknod"), you
+On Wed, 2006-05-17 at 13:18 +0200, Geert Uytterhoeven wrote:
+> Which driver do you use for /dev/rtc? I couldn't find it at first sight.
 
-Which driver do you use for /dev/rtc? I couldn't find it at first sight.
+s390 does not have /dev/rtc.
 
-Gr{oetje,eeting}s,
+-- 
+blue skies,
+  Martin.
 
-						Geert
+Martin Schwidefsky
+Linux for zSeries Development & Services
+IBM Deutschland Entwicklung GmbH
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+"Reality continues to ruin my life." - Calvin.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+
