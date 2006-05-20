@@ -1,43 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:47029 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S1751110AbWERXuI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 May 2006 19:50:08 -0400
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from stat9.steeleye.com ([209.192.50.41]:31406 "EHLO
+	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
+	id S1751419AbWETQSz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 20 May 2006 12:18:55 -0400
+Received: from midgard.sc.steeleye.com (midgard.sc.steeleye.com [172.17.6.40])
+	by hancock.sc.steeleye.com (8.11.6/8.11.6) with ESMTP id k4KGIsa25414
+	for <linux-arch@vger.kernel.org>; Sat, 20 May 2006 12:18:54 -0400
+Subject: Problem with sg_dma_address() on ia64, sh and sh64
+From: James Bottomley <James.Bottomley@steeleye.com>
+Content-Type: text/plain
+Date: Sat, 20 May 2006 11:18:53 -0500
+Message-Id: <1148141933.3529.25.camel@mulgrave.il.steeleye.com>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Message-ID: <17517.2088.150094.338667@cargo.ozlabs.ibm.com>
-Date: Fri, 19 May 2006 09:50:00 +1000
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [RFC/PATCH] Make powerpc64 use __thread for per-cpu variables
-In-Reply-To: <20060510.171127.42619262.davem@davemloft.net>
-References: <20060510154702.GA28938@twiddle.net>
-	<17506.29128.591758.502430@cargo.ozlabs.ibm.com>
-	<17506.31456.68099.57515@cargo.ozlabs.ibm.com>
-	<20060510.171127.42619262.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
-To: "David S. Miller" <davem@davemloft.net>
-Cc: rth@twiddle.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, amodra@bigpond.net
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-David S. Miller writes:
+This is the defined accessor to our struct scatterlist.  These three
+architectures define it in asm/pci.h rather than asm/scatterlist.h.
+This means that one doesn't get the accessor simply by including
+linux/scatterlist.h, which one should.  This means that non-pci uses
+don't work (like our budding libsrp).
 
-> If you have to hide the operation so deeply like this, maybe you can
-> do something similar to sparc64, by explicitly doing the per-cpu fixed
-> register and offsets, and still get the single instruction relocs that
-> powerpc can do for up to 64K by doing something like:
-> 
-> 	&per_cpu_blah - &per_cpu_base
-> 
-> to calculate the offset.
+Could you all move it to where it should be?
 
-I don't know how to tell gcc that (&per_cpu_blah - &per_cpu_base) is a
-quantity that the linker can compute and that will fit into a 16-bit
-offset.  If I use an inline asm, then I have to generate the address
-and let gcc dereference it, because __get_cpu_var is used both as an
-lvalue and an rvalue.  That means two instructions where one would
-suffice.  So there doesn't seem to be a way to get the optimal code,
-unless the gcc folks are willing to add a -fkernel or something for
-us. :)
+Thanks,
 
-Paul.
+James
+
+
