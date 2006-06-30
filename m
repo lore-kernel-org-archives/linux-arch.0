@@ -1,36 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from witte.sonytel.be ([80.88.33.193]:48895 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S932201AbWF3NU3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 Jun 2006 09:20:29 -0400
-Date: Fri, 30 Jun 2006 15:20:21 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+Received: from mtagate6.de.ibm.com ([195.212.29.155]:41203 "EHLO
+	mtagate6.de.ibm.com") by vger.kernel.org with ESMTP id S932228AbWF3N2N
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 Jun 2006 09:28:13 -0400
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate6.de.ibm.com (8.13.6/8.13.6) with ESMTP id k5UDSAD9129116
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=FAIL)
+	for <linux-arch@vger.kernel.org>; Fri, 30 Jun 2006 13:28:11 GMT
+Received: from d12av04.megacenter.de.ibm.com (d12av04.megacenter.de.ibm.com [9.149.165.229])
+	by d12nrmr1607.megacenter.de.ibm.com (8.13.6/NCO/VER7.0) with ESMTP id k5UDUk6Y147066
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=NO)
+	for <linux-arch@vger.kernel.org>; Fri, 30 Jun 2006 15:30:46 +0200
+Received: from d12av04.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av04.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id k5UDS9sI000597
+	for <linux-arch@vger.kernel.org>; Fri, 30 Jun 2006 15:28:09 +0200
 Subject: Re: [patch] s390 kconfig cleanup, 2nd version.
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Reply-To: schwidefsky@de.ibm.com
 In-Reply-To: <200606301509.16981.ak@suse.de>
-Message-ID: <Pine.LNX.4.62.0606301517540.12536@pademelon.sonytel.be>
-References: <1151670404.11575.5.camel@localhost> <200606301444.26446.ak@suse.de>
- <1151672682.11575.16.camel@localhost> <200606301509.16981.ak@suse.de>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+References: <1151670404.11575.5.camel@localhost>
+	 <200606301444.26446.ak@suse.de> <1151672682.11575.16.camel@localhost>
+	 <200606301509.16981.ak@suse.de>
+Content-Type: text/plain
+Date: Fri, 30 Jun 2006 15:28:06 +0200
+Message-Id: <1151674086.11575.24.camel@localhost>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: Andi Kleen <ak@suse.de>
-Cc: schwidefsky@de.ibm.com, linux-arch@vger.kernel.org, Keir.Fraser@cl.cam.ac.uk, chrisw@sous-sol.org, matthew@wil.cx, Andrew Morton <akpm@osdl.org>
+Cc: linux-arch@vger.kernel.org, geert@linux-m68k.org, Keir.Fraser@cl.cam.ac.uk, chrisw@sous-sol.org, matthew@wil.cx, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 30 Jun 2006, Andi Kleen wrote:
-> On Friday 30 June 2006 15:04, Martin Schwidefsky wrote:
-> > On Fri, 2006-06-30 at 14:44 +0200, Andi Kleen wrote:
-> > > On Friday 30 June 2006 14:26, Martin Schwidefsky wrote:
-> > > > Hi folks,
-> > > > it has been a few weeks since the s390 kconfig discussion died down.
-> > > > I have put together a new patch that includes all of the suggestions
-> > > > made so far. With this patch "make allyesconfig" and "make allmodconfig"
-> > > > now works on s390.
-> > > > 
-> > > > Please check that it does not break anything on your favorite 
-> > > > architecture. It really shouldn't but you never know. I want to push
-> > > > this patch soon.
-> > > 
+On Fri, 2006-06-30 at 15:09 +0200, Andi Kleen wrote:
 > > > I must say I still hate the negative !S390. It would be much better
 > > > to define something positive. If PCI doesn't work maybe something 
 > > > else.
@@ -40,6 +41,7 @@ On Fri, 30 Jun 2006, Andi Kleen wrote:
 > > positive dependency. Hardware that is built into the machine and is not
 > > attached via some kind of bus does not have any dependency. 
 > 
+> 
 > But one can be invented. 
 > 
 > DESKTOP_HARDWARE
@@ -48,20 +50,30 @@ On Fri, 30 Jun 2006, Andi Kleen wrote:
 > ...
 > 
 > Chose one.
-> 
+
+None of them seems appropriate. The things the patch deactives for s390
+are vastly different (ATA/IDE, Parallel port, Plug and Play, I2C, I2O
+and so on). You will end up adding a lot of new config options. 
+
 > What stops users from plugging a PCI sound card into your PCI slots 
 > BTW?
 
-Since Martin added several `depends on PCI', it seems like big iron doesn't
-have PCI (or perhaps PCI depends on !S390 now? :-).
+Which PCI slot? s390 doesn't have PCI slots.
 
-Gr{oetje,eeting}s,
+> Initially it can be set dependent on !S390 and then later migrated
+> into all the architectures (you can probably recruit someone on l-k
+> to do it if you don't want to do it yourself ...) 
 
-						Geert
+I don't mind doing it but the question still is how.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+-- 
+blue skies,
+  Martin.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+Martin Schwidefsky
+Linux for zSeries Development & Services
+IBM Deutschland Entwicklung GmbH
+
+"Reality continues to ruin my life." - Calvin.
+
+
