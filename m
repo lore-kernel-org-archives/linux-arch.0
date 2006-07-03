@@ -1,61 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate3.de.ibm.com ([195.212.29.152]:41446 "EHLO
-	mtagate3.de.ibm.com") by vger.kernel.org with ESMTP
-	id S1751096AbWGCKfZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Jul 2006 06:35:25 -0400
-Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate3.de.ibm.com (8.13.6/8.13.6) with ESMTP id k63AZMQk099948
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=FAIL)
-	for <linux-arch@vger.kernel.org>; Mon, 3 Jul 2006 10:35:24 GMT
-Received: from d12av01.megacenter.de.ibm.com (d12av01.megacenter.de.ibm.com [9.149.165.212])
-	by d12nrmr1607.megacenter.de.ibm.com (8.13.6/NCO/VER7.0) with ESMTP id k63Ac1Vh119984
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=NO)
-	for <linux-arch@vger.kernel.org>; Mon, 3 Jul 2006 12:38:02 +0200
-Received: from d12av01.megacenter.de.ibm.com (loopback [127.0.0.1])
-	by d12av01.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id k63AZJ9q027511
-	for <linux-arch@vger.kernel.org>; Mon, 3 Jul 2006 12:35:20 +0200
+Received: from moutng.kundenserver.de ([212.227.126.188]:8935 "EHLO
+	moutng.kundenserver.de") by vger.kernel.org with ESMTP
+	id S932066AbWGCXPo convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jul 2006 19:15:44 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [patch] s390 kconfig cleanup, 2nd version.
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <20060703022026.495cdb2c.akpm@osdl.org>
-References: <1151670404.11575.5.camel@localhost>
-	 <20060630104103.0b394b20.akpm@osdl.org> <1151917853.5334.6.camel@localhost>
-	 <20060703022026.495cdb2c.akpm@osdl.org>
-Content-Type: text/plain
-Date: Mon, 03 Jul 2006 12:35:10 +0200
-Message-Id: <1151922910.5334.10.camel@localhost>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Date: Tue, 4 Jul 2006 01:15:16 +0200
+References: <1151670404.11575.5.camel@localhost> <200606301605.53258.ak@suse.de> <1151677236.29984.11.camel@localhost>
+In-Reply-To: <1151677236.29984.11.camel@localhost>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
+Message-Id: <200607040115.18194.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org, ak@suse.de, geert@linux-m68k.org, Keir.Fraser@cl.cam.ac.uk, chrisw@sous-sol.org, matthew@wil.cx
+To: schwidefsky@de.ibm.com
+Cc: Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org, geert@linux-m68k.org, Keir.Fraser@cl.cam.ac.uk, chrisw@sous-sol.org, matthew@wil.cx, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2006-07-03 at 02:20 -0700, Andrew Morton wrote:
-> > That would be a very useful feature to have. There are some border cases
-> > where no real positive dependency exist. For that a "disable xxx" would
-> > be perfect. But we still should use positive dependencies where possible
-> > to keep the disable lists short.
-> > 
+On Friday 30 June 2006 16:20, Martin Schwidefsky wrote:
+> There are still a few more config options:
+>   IPMI
+>   SERIAL_NONSTANDARD
+>   SCSI_SATA
 > 
-> I don't understand that.
-> 
-> 	depends on !DISABLE_FOO
-> 
-> is short?
+> and numerous menues:
+>   "TPM devices" - PC_STYLE_HARDWARE
+>   "Hardware monitoring support" - PC_STYLE_HARDWARE
+>   "InfiniBand support" - don't think this is pc style hardware
+>   "ISDN subsystem" - PC_STYLE_HARDWARE
+>   "LED devices" - PC_STYLE_HARDWARE
+>   "Multimedia devices" - PC_STYLE_HARDWARE
+>   "MMC/SD Card support" - PC_STYLE_HARDWARE
+>   "PHY device support" - PC_STYLE_HARDWARE
+>   "Serial drivers" - PC_STYLE_HARDWARE
+>   "SPI support" - PC_STYLE_HARDWARE
+>   "Telephony Support" - PC_STYLE_HARDWARE
+>   "USB support" - PC_STYLE_HARDWARE
+>   "Graphics support" - PC_STYLE_HARDWARE
+>   "Dallas's 1-wire bus" - PC_STYLE_HARDWARE
+>   "Amateur Radio support" - PC_STYLE_HARDWARE
+>   "Bluetooth subsystem support" - PC_STYLE_HARDWARE
+>   "IrDA (infrared) subsystem support" - PC_STYLE_HARDWARE
+>   "EDAC - error detection and reporting" - PC_STYLE_HARDWARE
+>   "Sound" - PC_STYLE_HARDWARE
 
-I was after the options that can be dealt with an existing positive
-dependency, e.g. "depends on PCI", or "depends on ISA". I have a handful
-of these in my patch. 
+I would assume that all of these depend on memory mapped I/O
+access. So they might be more correctly depend on CONFIG_MMIO.
 
--- 
-blue skies,
-  Martin.
+>   VT
+>   "Input device support" - ??
+>   "Misc devices" - PC_STYLE_HARDWARE
+>   "Memory Technology Devices (MTD)" - PC_STYLE_HARDWARE
+>   "Wireless LAN (non-hamradio)" - PC_STYLE_HARDWARE
+>   "Real Time Clock" - PC_STYLE_HARDWARE
 
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
+For these, it's not so clear, so maybe just let the HW drivers
+depend on CONFIG_MMIO, but not the architecture in dependant
+parts.
 
-"Reality continues to ruin my life." - Calvin.
-
-
+	Arnd <><
