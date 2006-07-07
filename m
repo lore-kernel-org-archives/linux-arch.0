@@ -1,35 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:36304 "EHLO
-	palinux.external.hp.com") by vger.kernel.org with ESMTP
-	id S1751089AbWGDSJz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 4 Jul 2006 14:09:55 -0400
-Date: Tue, 4 Jul 2006 12:09:53 -0600
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [patch] s390 kconfig cleanup, 2nd version.
-Message-ID: <20060704180953.GI1605@parisc-linux.org>
-References: <1151670404.11575.5.camel@localhost> <200607040115.18194.arnd@arndb.de> <20060703233533.GE1605@parisc-linux.org> <200607041442.03913.arnd@arndb.de>
+Received: from pasmtpb.tele.dk ([80.160.77.98]:27779 "EHLO pasmtp.tele.dk")
+	by vger.kernel.org with ESMTP id S1751170AbWGGDgv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jul 2006 23:36:51 -0400
+Date: Fri, 7 Jul 2006 05:36:30 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [2.6 patch] add -Werror-implicit-function-declaration to CFLAGS
+Message-ID: <20060707033630.GA15967@mars.ravnborg.org>
+References: <20060706163728.GN26941@stusta.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <200607041442.03913.arnd@arndb.de>
+In-Reply-To: <20060706163728.GN26941@stusta.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: schwidefsky@de.ibm.com, Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org, geert@linux-m68k.org, Keir.Fraser@cl.cam.ac.uk, chrisw@sous-sol.org, akpm@osdl.org
+To: Adrian Bunk <bunk@stusta.de>
+Cc: kai@germaschewski.name, linux-kernel@vger.kernel.org, Dave Jones <davej@redhat.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Jul 04, 2006 at 02:42:03PM +0200, Arnd Bergmann wrote:
-> On Tuesday 04 July 2006 01:35, Matthew Wilcox wrote:
-> > We don't (yet) have a CONFIG_MMIO. ?If we were to have one, I would
-> > expect it to be akin to SCSI_SYM53C8XX_MMIO, VIA_RHINE_MMIO,
-> > SUNDANCE_MMIO and TULIP_MMIO. ?ie indicating a preference between PIO
-> > and MMIO rather than indicating the availability of MMIO.
+On Thu, Jul 06, 2006 at 06:37:28PM +0200, Adrian Bunk wrote:
+> Currently, using an undeclared function gives a compile warning, but it 
+> can lead to a nasty to debug runtime stack corruptions if the prototype 
+> of the function is different from what gcc guessed.
 > 
-> Hmm, maybe my terminology wasn't so good, at least you misunderstood
-> what I wanted to express. PIO is more or less a 386ism, so I tend to
-> view that as a special case of MMIO. The point with  s390 is that there
-> is neither PIO nor MMIO, which really makes it impossible to use most
-> of the device drivers, even if you could connect the hardware ;-).
+> With -Werror-implicit-function-declaration we are getting an immediate
+> compile error instead.
+This patch broke (-rc1):
 
-I understood what you wanted; I was just explaining why it's a bad name.
-CONFIG_STD_IO might be a good name.  CONFIG_PCI_IO might be confusing.
+sparc allnoconfig build
+ia64 allnoconfig build
+ppc64 allnoconfig build
+
+x86_64 succeded an allnoconfig build
+
+I did not try other architectures. We need to fix the allnoconfig cases
+at least for the popular architectures before applying this patch
+otherwise it will create too much trouble/noise.
+
+linux-arch copied in the hope that the arch maintaines may try it out
+and fix their issues.
+
+	Sam
+
+---
+
+ Makefile                               |    3 ++-
+ drivers/input/joystick/iforce/Makefile |    2 --
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+--- linux-2.6.17-mm6-full/Makefile.old	2006-07-06 12:17:02.000000000 +0200
++++ linux-2.6.17-mm6-full/Makefile	2006-07-06 12:18:52.000000000 +0200
+@@ -318,7 +318,8 @@
+ CPPFLAGS        := -D__KERNEL__ $(LINUXINCLUDE)
+ 
+ CFLAGS          := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+-                   -fno-strict-aliasing -fno-common
++                   -fno-strict-aliasing -fno-common \
++		   -Werror-implicit-function-declaration
+ # Force gcc to behave correct even for buggy distributions
+ CFLAGS          += $(call cc-option, -fno-stack-protector-all \
+                                      -fno-stack-protector)
+--- linux-2.6.17-mm6-full/drivers/input/joystick/iforce/Makefile.old	2006-07-06 12:19:08.000000000 +0200
++++ linux-2.6.17-mm6-full/drivers/input/joystick/iforce/Makefile	2006-07-06 12:19:16.000000000 +0200
+@@ -16,5 +16,3 @@
+ ifeq ($(CONFIG_JOYSTICK_IFORCE_USB),y)
+ 	iforce-objs += iforce-usb.o
+ endif
+-
+-EXTRA_CFLAGS = -Werror-implicit-function-declaration
+
 
