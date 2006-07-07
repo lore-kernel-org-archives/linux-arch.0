@@ -1,53 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([143.182.124.21]:11341 "EHLO
-	azsmga101-1.ch.intel.com") by vger.kernel.org with ESMTP
-	id S932197AbWGGRNO convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jul 2006 13:13:14 -0400
-Content-class: urn:content-classes:message
-MIME-Version: 1.0
+Received: from smtp.osdl.org ([65.172.181.4]:19407 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S932280AbWGGT1t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jul 2006 15:27:49 -0400
+Date: Fri, 7 Jul 2006 12:27:24 -0700
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: [Kconfig] add disable command (was Re: [patch] s390 kconfig
+ cleanup, 2nd version).
+Message-Id: <20060707122724.a7b5243c.akpm@osdl.org>
+In-Reply-To: <1152289148.6390.11.camel@localhost>
+References: <1151670404.11575.5.camel@localhost>
+	<20060630104103.0b394b20.akpm@osdl.org>
+	<1152289148.6390.11.camel@localhost>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Subject: RE: [2.6 patch] add -Werror-implicit-function-declaration to CFLAGS
-Date: Fri, 7 Jul 2006 10:10:39 -0700
-Message-ID: <617E1C2C70743745A92448908E030B2A300BEC@scsmsx411.amr.corp.intel.com>
-From: "Luck, Tony" <tony.luck@intel.com>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>, Adrian Bunk <bunk@stusta.de>
-Cc: kai@germaschewski.name, linux-kernel@vger.kernel.org, Dave Jones <davej@redhat.com>, linux-arch@vger.kernel.org
+To: schwidefsky@de.ibm.com
+Cc: linux-arch@vger.kernel.org, ak@suse.de, geert@linux-m68k.org, Keir.Fraser@cl.cam.ac.uk, chrisw@sous-sol.org, matthew@wil.cx, zippel@linux-m68k.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> This patch broke (-rc1):
+On Fri, 07 Jul 2006 18:19:08 +0200
+Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
+
+> On Fri, 2006-06-30 at 10:41 -0700, Andrew Morton wrote:
+> > Even better would be to teach the Kconfig sytem about this, so in
+> > arch/s390/Kconfig we do
+> > 
+> > disable	VT
+> > 
+> > and the Kconfig system knows not to offer VT, so there's no need to go
+> > adding `depends on !DISABLE_foo' all over the place.  The above DISABLE_foo
+> > convention just simulates that missing feature.
+> > 
+> > 
+> > > +	depends on !PPC && !PARISC && !IA64 && !M68K && (!SPARC || PCI) && !FRV && !ARM && !S390
+> > 
+> > Imagine not having crud like this in there.
 > 
-> sparc allnoconfig build
-> ia64 allnoconfig build
-> ppc64 allnoconfig build
+> I've given this a try and implemented the "disable" command. Seems to
+> work fine for me. The command would certainly make my life easier in
+> regard to the s390 Kconfig stuff.
 
-ia64 allnoconfig is (and has been for a while) broken for other reasons.
+Neat.  Now we all need to cower in fear at Roman's reaction ;)
 
-Almost all of the real configurations still build.  The only error
-that adding this turned up was building a generic uniprocessor config.
-
-smp_call_function_single() is used without a prototype by
-arch/ia64/sn/kernel/sn2/sn_hwperf.c:sn_hwperf_op_cpu()
-
-This isn't a real error because this function actually does return
-an "int", so the complier default is correct (plus the caller doesn't
-look at the return value, plus on a UP we'd never be able to get to
-this call-site because it is in the "else" !!!).
-
-But I'll fix it anyway.
-
-diff --git a/include/asm-ia64/smp.h b/include/asm-ia64/smp.h
-index 719ff30..949e3a2 100644
---- a/include/asm-ia64/smp.h
-+++ b/include/asm-ia64/smp.h
-@@ -133,6 +133,7 @@ #else
- 
- #define cpu_logical_id(i)		0
- #define cpu_physical_id(i)		ia64_get_lid()
-+#define smp_call_function_single(cpuid, func, info, retry, wait) 0
- 
- #endif /* CONFIG_SMP */
- #endif /* _ASM_IA64_SMP_H */
-
--Tony
+One would expect that doing "/VGA_CONSOLE" in menuconfig would answer the
+question "ytf can't I enable VGA_CONSOLE".
