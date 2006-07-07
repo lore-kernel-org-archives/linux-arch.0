@@ -1,47 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:19407 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S932280AbWGGT1t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jul 2006 15:27:49 -0400
-Date: Fri, 7 Jul 2006 12:27:24 -0700
-From: Andrew Morton <akpm@osdl.org>
-Subject: Re: [Kconfig] add disable command (was Re: [patch] s390 kconfig
- cleanup, 2nd version).
-Message-Id: <20060707122724.a7b5243c.akpm@osdl.org>
-In-Reply-To: <1152289148.6390.11.camel@localhost>
-References: <1151670404.11575.5.camel@localhost>
-	<20060630104103.0b394b20.akpm@osdl.org>
-	<1152289148.6390.11.camel@localhost>
+Received: from palinux.external.hp.com ([192.25.206.14]:39145 "EHLO
+	palinux.external.hp.com") by vger.kernel.org with ESMTP
+	id S932288AbWGGTso (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 7 Jul 2006 15:48:44 -0400
+Date: Fri, 7 Jul 2006 13:48:43 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [Kconfig] use disable command (was Re: [patch] s390 kconfig cleanup, 2nd version).
+Message-ID: <20060707194843.GC1605@parisc-linux.org>
+References: <1151670404.11575.5.camel@localhost> <20060630104103.0b394b20.akpm@osdl.org> <1152289149.6390.12.camel@localhost>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1152289149.6390.12.camel@localhost>
 Sender: linux-arch-owner@vger.kernel.org
-To: schwidefsky@de.ibm.com
-Cc: linux-arch@vger.kernel.org, ak@suse.de, geert@linux-m68k.org, Keir.Fraser@cl.cam.ac.uk, chrisw@sous-sol.org, matthew@wil.cx, zippel@linux-m68k.org
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, ak@suse.de, geert@linux-m68k.org, Keir.Fraser@cl.cam.ac.uk, chrisw@sous-sol.org, zippel@linux-m68k.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 07 Jul 2006 18:19:08 +0200
-Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
-
-> On Fri, 2006-06-30 at 10:41 -0700, Andrew Morton wrote:
-> > Even better would be to teach the Kconfig sytem about this, so in
-> > arch/s390/Kconfig we do
-> > 
-> > disable	VT
-> > 
-> > and the Kconfig system knows not to offer VT, so there's no need to go
-> > adding `depends on !DISABLE_foo' all over the place.  The above DISABLE_foo
-> > convention just simulates that missing feature.
-> > 
-> > 
+On Fri, Jul 07, 2006 at 06:19:09PM +0200, Martin Schwidefsky wrote:
 > > > +	depends on !PPC && !PARISC && !IA64 && !M68K && (!SPARC || PCI) && !FRV && !ARM && !S390
 > > 
 > > Imagine not having crud like this in there.
 > 
-> I've given this a try and implemented the "disable" command. Seems to
-> work fine for me. The command would certainly make my life easier in
-> regard to the s390 Kconfig stuff.
+> And this patch uses the disable option to simplify a few config options,
+> e.g. the above depends line.
 
-Neat.  Now we all need to cower in fear at Roman's reaction ;)
+Yes, but that's one which simply needs its conditions inverted.  eg:
 
-One would expect that doing "/VGA_CONSOLE" in menuconfig would answer the
-question "ytf can't I enable VGA_CONSOLE".
+@@ -713,7 +713,7 @@ config NVRAM
+ 
+ config RTC
+        tristate "Enhanced Real Time Clock Support"
+-       depends on !PPC && !PARISC && !IA64 && !M68K && (!SPARC || PCI) && !FRV && !ARM
++       depends on ALPHA || CRIS || H8300 || X86 || M32R || MIPS || SUPERH || (SPARC && PCI) || V850
+
+(I suspect CRIS, H8300, V850 and M32R should not be in this list.
+Presumably the maintainers are on this list; could they comment?)
+
