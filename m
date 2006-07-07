@@ -1,38 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate4.uk.ibm.com ([195.212.29.137]:31799 "EHLO
-	mtagate4.uk.ibm.com") by vger.kernel.org with ESMTP
-	id S1750953AbWGGHvM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Jul 2006 03:51:12 -0400
-Date: Fri, 7 Jul 2006 09:49:18 +0200
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Received: from pasmtpb.tele.dk ([80.160.77.98]:4533 "EHLO pasmtp.tele.dk")
+	by vger.kernel.org with ESMTP id S932088AbWGGJeA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jul 2006 05:34:00 -0400
+Date: Fri, 7 Jul 2006 11:33:31 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: [2.6 patch] add -Werror-implicit-function-declaration to CFLAGS
-Message-ID: <20060707074918.GB9480@osiris.boeblingen.de.ibm.com>
-References: <20060706163728.GN26941@stusta.de> <20060707033630.GA15967@mars.ravnborg.org>
-MIME-Version: 1.0
+Message-ID: <20060707093331.GA25846@mars.ravnborg.org>
+References: <20060706163728.GN26941@stusta.de> <20060707033630.GA15967@mars.ravnborg.org> <20060707074918.GB9480@osiris.boeblingen.de.ibm.com>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20060707033630.GA15967@mars.ravnborg.org>
+In-Reply-To: <20060707074918.GB9480@osiris.boeblingen.de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
 Cc: Adrian Bunk <bunk@stusta.de>, kai@germaschewski.name, linux-kernel@vger.kernel.org, Dave Jones <davej@redhat.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> > Currently, using an undeclared function gives a compile warning, but it 
-> > can lead to a nasty to debug runtime stack corruptions if the prototype 
-> > of the function is different from what gcc guessed.
+On Fri, Jul 07, 2006 at 09:49:18AM +0200, Heiko Carstens wrote:
+> > > Currently, using an undeclared function gives a compile warning, but it 
+> > > can lead to a nasty to debug runtime stack corruptions if the prototype 
+> > > of the function is different from what gcc guessed.
+> > > 
+> > > With -Werror-implicit-function-declaration we are getting an immediate
+> > > compile error instead.
+> > This patch broke (-rc1):
 > > 
-> > With -Werror-implicit-function-declaration we are getting an immediate
-> > compile error instead.
-> This patch broke (-rc1):
+> > sparc allnoconfig build
+> > ia64 allnoconfig build
+> > ppc64 allnoconfig build
+> > 
+> > x86_64 succeded an allnoconfig build
+> > 
+> > I did not try other architectures. We need to fix the allnoconfig cases
+> > at least for the popular architectures before applying this patch
+> > otherwise it will create too much trouble/noise.
 > 
-> sparc allnoconfig build
-> ia64 allnoconfig build
-> ppc64 allnoconfig build
-> 
-> x86_64 succeded an allnoconfig build
-> 
-> I did not try other architectures. We need to fix the allnoconfig cases
-> at least for the popular architectures before applying this patch
-> otherwise it will create too much trouble/noise.
+> s390 builds with defconfig and allnoconfig and a few other variants as well.
+Thanks for testing.
 
-s390 builds with defconfig and allnoconfig and a few other variants as well.
+	Sam
