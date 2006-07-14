@@ -1,51 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:1254 "EHLO
-	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S1030423AbWGHXmX
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 8 Jul 2006 19:42:23 -0400
-Received: from localhost.localdomain ([127.0.0.1]:3258 "EHLO bacchus.dhis.org")
-	by ftp.linux-mips.org with ESMTP id S8133583AbWGHXmW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jul 2006 00:42:22 +0100
-Date: Sun, 9 Jul 2006 00:42:00 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [Kconfig] use disable command (was Re: [patch] s390 kconfig cleanup, 2nd version).
-Message-ID: <20060708234200.GA2729@linux-mips.org>
-References: <1151670404.11575.5.camel@localhost> <20060630104103.0b394b20.akpm@osdl.org> <1152289149.6390.12.camel@localhost> <20060707194843.GC1605@parisc-linux.org>
+Received: from ms-smtp-01.nyroc.rr.com ([24.24.2.55]:30148 "EHLO
+	ms-smtp-01.nyroc.rr.com") by vger.kernel.org with ESMTP
+	id S1422744AbWGNUFS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 14 Jul 2006 16:05:18 -0400
+Subject: [PATCH 00/02] remove set_wmb
+From: Steven Rostedt <rostedt@goodmis.org>
+In-Reply-To: <20060714105841.4490c0e2.akpm@osdl.org>
+References: <1152882288.1883.30.camel@localhost.localdomain>
+	 <Pine.LNX.4.64.0607140757080.5623@g5.osdl.org>
+	 <Pine.LNX.4.64.0607141017520.5623@g5.osdl.org>
+	 <1152898699.27135.20.camel@localhost.localdomain>
+	 <Pine.LNX.4.64.0607141040550.5623@g5.osdl.org>
+	 <20060714105841.4490c0e2.akpm@osdl.org>
+Content-Type: text/plain
+Date: Fri, 14 Jul 2006 16:04:57 -0400
+Message-Id: <1152907497.27135.43.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20060707194843.GC1605@parisc-linux.org>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, ak@suse.de, geert@linux-m68k.org, Keir.Fraser@cl.cam.ac.uk, chrisw@sous-sol.org, zippel@linux-m68k.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: Linus Torvalds <torvalds@osdl.org>, mingo@elte.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Jul 07, 2006 at 01:48:43PM -0600, Matthew Wilcox wrote:
+set_wmb(var, value) is not used anywhere in the kernel. And it doesn't
+do anything special but shorten the typing of:
 
->  config RTC
->         tristate "Enhanced Real Time Clock Support"
-> -       depends on !PPC && !PARISC && !IA64 && !M68K && (!SPARC || PCI) && !FRV && !ARM
-> +       depends on ALPHA || CRIS || H8300 || X86 || M32R || MIPS || SUPERH || (SPARC && PCI) || V850
-> 
-> (I suspect CRIS, H8300, V850 and M32R should not be in this list.
-> Presumably the maintainers are on this list; could they comment?)
+  var = value;
+  wmb();
 
-Making this depend on the CPU is grosly simplifying things - and wrong.  On
-MIPS the MC146818 is used in several systems but not all and chances are
-the driver will crash the system if selected on some of the systems.  So
-in the end I would suggeste something like in drivers/char/Kconfig:
+Which the above is much more readable, and thus set_wmb is just
+something to confuse developers even more.
 
-config RTC
-	tristate "Enhanced Real Time Clock Support"
-	depends on SYS_HAS_MC146818
+So this patch series removes set_wmb from the kernel.  It's not
+currently used in the kernel, and any out-of-kernel branch can easily
+replace it.  So there should be no harm in removing it.
 
-config SYS_HAS_MC146818
-	bool
+The first patch removes it from Documentation/memory-barriers.txt and
+the second patch does a sweep through all the architectures to get rid
+of it.  All archs do the above code except ia64 and sparc which do a
+mb() instead.  But regardless, it's still not used.
 
-and somewhere from arch/*/Kconfig SYS_HAS_MC146818 will have to be selected.
+-- Steve
 
-The other rant of course is that the symbol CONFIG_RTC looks like it is
-generic RTC support while it really only is for MC146818 and lookalikes.
-So it should be renamed to something like CONFIG_MC146818.
-
-  Ralf
