@@ -1,48 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ms-smtp-01.nyroc.rr.com ([24.24.2.55]:16068 "EHLO
-	ms-smtp-01.nyroc.rr.com") by vger.kernel.org with ESMTP
-	id S1422743AbWGNUFP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Jul 2006 16:05:15 -0400
-Subject: [PATCH 01/02] remove set_wmb - doc update
-From: Steven Rostedt <rostedt@goodmis.org>
-In-Reply-To: <20060714105841.4490c0e2.akpm@osdl.org>
-References: <1152882288.1883.30.camel@localhost.localdomain>
-	 <Pine.LNX.4.64.0607140757080.5623@g5.osdl.org>
-	 <Pine.LNX.4.64.0607141017520.5623@g5.osdl.org>
-	 <1152898699.27135.20.camel@localhost.localdomain>
-	 <Pine.LNX.4.64.0607141040550.5623@g5.osdl.org>
-	 <20060714105841.4490c0e2.akpm@osdl.org>
-Content-Type: text/plain
-Date: Fri, 14 Jul 2006 16:05:01 -0400
-Message-Id: <1152907501.27135.44.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from palinux.external.hp.com ([192.25.206.14]:52455 "EHLO
+	palinux.external.hp.com") by vger.kernel.org with ESMTP
+	id S1945978AbWGOCWe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 14 Jul 2006 22:22:34 -0400
+Date: Fri, 14 Jul 2006 20:22:33 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH 01/02] remove set_wmb - doc update
+Message-ID: <20060715022233.GA1578@parisc-linux.org>
+References: <1152882288.1883.30.camel@localhost.localdomain> <Pine.LNX.4.64.0607140757080.5623@g5.osdl.org> <Pine.LNX.4.64.0607141017520.5623@g5.osdl.org> <1152898699.27135.20.camel@localhost.localdomain> <Pine.LNX.4.64.0607141040550.5623@g5.osdl.org> <20060714105841.4490c0e2.akpm@osdl.org> <1152907501.27135.44.camel@localhost.localdomain>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1152907501.27135.44.camel@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: Linus Torvalds <torvalds@osdl.org>, mingo@elte.hu, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, LKML <linux-kernel@vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Andrew Morton <akpm@osdl.org>, Linus Torvalds <torvalds@osdl.org>, mingo@elte.hu, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, LKML <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-This patch removes the reference to set_wmb from memory-barriers.txt
-since it shouldn't be used.
+On Fri, Jul 14, 2006 at 04:05:01PM -0400, Steven Rostedt wrote:
+>  There are some more advanced barrier functions:
+>  
+>   (*) set_mb(var, value)
+> - (*) set_wmb(var, value)
+>  
+> -     These assign the value to the variable and then insert at least a write
+> -     barrier after it, depending on the function.  They aren't guaranteed to
+> +     This assigns the value to the variable and then inserts at least a write
+> +     barrier after it, depending on the function.  It isn't guaranteed to
+>       insert anything more than a compiler barrier in a UP compilation.
 
-Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+"There is one more advanced barrier function"?  ;-)  Or did you want to
+remove set_mb()?
 
-Index: linux-2.6.18-rc1/Documentation/memory-barriers.txt
-===================================================================
---- linux-2.6.18-rc1.orig/Documentation/memory-barriers.txt	2006-07-14 15:33:44.000000000 -0400
-+++ linux-2.6.18-rc1/Documentation/memory-barriers.txt	2006-07-14 15:38:05.000000000 -0400
-@@ -1015,10 +1015,9 @@ CPU from reordering them.
- There are some more advanced barrier functions:
- 
-  (*) set_mb(var, value)
-- (*) set_wmb(var, value)
- 
--     These assign the value to the variable and then insert at least a write
--     barrier after it, depending on the function.  They aren't guaranteed to
-+     This assigns the value to the variable and then inserts at least a write
-+     barrier after it, depending on the function.  It isn't guaranteed to
-      insert anything more than a compiler barrier in a UP compilation.
- 
- 
+Plus, the "depending on the function" bit means "respectively".  So what
+you really want as help is something like:
 
-
+	This assigns the value to the variable and then inserts a
+	barrier after the assignment.  It isn't guaranteed to insert
+	anything more than a compiler barrier in a UP compilation.
