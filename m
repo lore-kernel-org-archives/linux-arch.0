@@ -1,29 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:47798
-	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
-	id S1422662AbWHEANG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Aug 2006 20:13:06 -0400
-Date: Fri, 04 Aug 2006 17:13:11 -0700 (PDT)
-Message-Id: <20060804.171311.08346387.davem@davemloft.net>
-Subject: Re: [RFC] Generic ioremap_page_range
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <17619.56062.114311.902273@cargo.ozlabs.ibm.com>
-References: <1152892123.24925.67.camel@localhost.localdomain>
-	<20060804094700.40a63a78@cad-250-152.norway.atmel.com>
-	<17619.56062.114311.902273@cargo.ozlabs.ibm.com>
+Received: from stat9.steeleye.com ([209.192.50.41]:20681 "EHLO
+	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
+	id S932558AbWHFOpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 6 Aug 2006 10:45:12 -0400
+Received: from midgard.sc.steeleye.com (midgard.sc.steeleye.com [172.17.6.40])
+	by hancock.sc.steeleye.com (8.11.6/8.11.6) with ESMTP id k76EjAY20123
+	for <linux-arch@vger.kernel.org>; Sun, 6 Aug 2006 10:45:11 -0400
+Subject: Re: Proposed update to the kernel kmap/kunmap API [patch]
+From: James Bottomley <James.Bottomley@steeleye.com>
+In-Reply-To: <1154098166.9447.31.camel@mulgrave.il.steeleye.com>
+References: <1154097354.9447.24.camel@mulgrave.il.steeleye.com>
+	 <1154098166.9447.31.camel@mulgrave.il.steeleye.com>
+Content-Type: text/plain
+Date: Sun, 06 Aug 2006 09:45:03 -0500
+Message-Id: <1154875504.3683.195.camel@mulgrave.il.steeleye.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: paulus@samba.org
-Cc: hskinnemoen@atmel.com, haveblue@us.ibm.com, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Paul Mackerras <paulus@samba.org>
-Date: Sat, 5 Aug 2006 09:40:46 +1000
+On Fri, 2006-07-28 at 09:49 -0500, James Bottomley wrote:
+> The simple part of the proposal is to give non-highmem architectures
+> access to the kmap API for the purposes of overriding (this is what the
+> attached patch does).
+> 
+> The more controversial part of the proposal is that we should now
+> require all architectures with coherence issues to manage data coherence
+> via the kmap/kunmap API.
 
-> This would need to be set_pte_at(...) for this to be useful on
-> PowerPC.
+I take silence to indicate assent, and everyone's fine with every aspect
+of this, so I'll transfer the debate (or lack thereof) to lkml.
 
-I'm surprised set_pte() still exists, we should kill it off
-so nobody can add new uses even accidently.
+James
+
+
