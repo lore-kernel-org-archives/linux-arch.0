@@ -1,46 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:38278 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S1751239AbWHHFOf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2006 01:14:35 -0400
-From: Andi Kleen <ak@suse.de>
+Received: from mtagate6.uk.ibm.com ([195.212.29.139]:19250 "EHLO
+	mtagate6.uk.ibm.com") by vger.kernel.org with ESMTP id S932565AbWHHISo
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Aug 2006 04:18:44 -0400
 Subject: Re: [PATCH] x86_64: Make NR_IRQS configurable in Kconfig
-Date: Tue, 8 Aug 2006 07:14:21 +0200
-References: <m1irl4ftya.fsf@ebiederm.dsl.xmission.com> <20060807194159.f7c741b5.akpm@osdl.org> <17624.7310.856480.704542@cargo.ozlabs.ibm.com>
-In-Reply-To: <17624.7310.856480.704542@cargo.ozlabs.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Reply-To: schwidefsky@de.ibm.com
+In-Reply-To: <200608080714.21151.ak@suse.de>
+References: <m1irl4ftya.fsf@ebiederm.dsl.xmission.com>
+	 <20060807194159.f7c741b5.akpm@osdl.org>
+	 <17624.7310.856480.704542@cargo.ozlabs.ibm.com>
+	 <200608080714.21151.ak@suse.de>
+Content-Type: text/plain
+Date: Tue, 08 Aug 2006 10:17:53 +0200
+Message-Id: <1155025073.26277.18.camel@localhost>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200608080714.21151.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: Andrew Morton <akpm@osdl.org>, "Eric W. Biederman" <ebiederm@xmission.com>, "Randy.Dunlap" <rdunlap@xenotime.net>, "Protasevich, Natalie" <Natalie.Protasevich@unisys.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: Paul Mackerras <paulus@samba.org>, Andrew Morton <akpm@osdl.org>, "Eric W. Biederman" <ebiederm@xmission.com>, "Randy.Dunlap" <rdunlap@xenotime.net>, "Protasevich, Natalie" <Natalie.Protasevich@unisys.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tuesday 08 August 2006 07:09, Paul Mackerras wrote:
-> Andrew Morton writes:
-
-[adding linux-arch; talking about doing extensible per cpu areas
-by prereserving virtual space and then later fill it up as needed]
-
-> > > Drawback would be some more TLB misses.
+On Tue, 2006-08-08 at 07:14 +0200, Andi Kleen wrote:
+> > > > Drawback would be some more TLB misses.
+> > > 
+> > > yup.  On some (important) architectures - I'm not sure which architectures
+> > > do the bigpage-for-kernel trick.
 > > 
-> > yup.  On some (important) architectures - I'm not sure which architectures
-> > do the bigpage-for-kernel trick.
+> > I looked at optimizing the per-cpu data accessors on PowerPC and only
+> > ever saw fractions of a percent change in overall performance, which
+> > says to me that we don't actually use per-cpu data all that much.  So
+> > unless you make per-cpu data really really slow, I doubt that we'll
+> > see any significant performance difference.
 > 
-> I looked at optimizing the per-cpu data accessors on PowerPC and only
-> ever saw fractions of a percent change in overall performance, which
-> says to me that we don't actually use per-cpu data all that much.  So
-> unless you make per-cpu data really really slow, I doubt that we'll
-> see any significant performance difference.
+> The main problem is that we would need a "vmalloc reserve first; allocate pages
+> later" interface. On x86 it would be easy by just splitting up vmalloc/vmap a bit
+> again. Does anybody else see problems with implementing that on any
+> other architecture? 
 
-The main problem is that we would need a "vmalloc reserve first; allocate pages
-later" interface. On x86 it would be easy by just splitting up vmalloc/vmap a bit
-again. Does anybody else see problems with implementing that on any
-other architecture? 
+"vmalloc reserve first; allocate pages later" would be a really nice
+feature. We could use this on s390 to implement the virtual mem_map
+array spanning the whole 64 bit address range (with holes in it). To
+make it perfect a "deallocate pages; keep vmalloc reserve" should be
+added, then we could free parts of the mem_map array again on hot memory
+remove. 
+I don't see a problem for s390.
 
-This wouldn't be truly demand paged, just pages initialized on allocation.
+-- 
+blue skies,
+  Martin.
 
--Andi
+Martin Schwidefsky
+Linux for zSeries Development & Services
+IBM Deutschland Entwicklung GmbH
+
+"Reality continues to ruin my life." - Calvin.
+
 
