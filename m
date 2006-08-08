@@ -1,61 +1,150 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:18139 "EHLO
-	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S964831AbWHHLEd
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Aug 2006 07:04:33 -0400
-Received: from localhost.localdomain ([127.0.0.1]:63980 "EHLO bacchus.dhis.org")
-	by ftp.linux-mips.org with ESMTP id S20040258AbWHHLEe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2006 12:04:34 +0100
-Received: from denk.linux-mips.net (denk.linux-mips.net [127.0.0.1])
-	by bacchus.dhis.org (8.13.7/8.13.4) with ESMTP id k78B4b1W020108
-	for <linux-arch@vger.kernel.org>; Tue, 8 Aug 2006 12:04:37 +0100
-Received: (from ralf@localhost)
-	by denk.linux-mips.net (8.13.7/8.13.7/Submit) id k78B4bSp020107
-	for linux-arch@vger.kernel.org; Tue, 8 Aug 2006 12:04:37 +0100
-Date: Tue, 8 Aug 2006 12:04:37 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Signal restarting happing multiple time in do_signal
-Message-ID: <20060808110437.GB18770@linux-mips.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Received: from nat-132.atmel.no ([80.232.32.132]:15862 "EHLO relay.atmel.no")
+	by vger.kernel.org with ESMTP id S964831AbWHHMXX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2006 08:23:23 -0400
+From: Haavard Skinnemoen <hskinnemoen@atmel.com>
+Subject: [PATCH 6/13] Generic ioremap_page_range: i386 conversion
+Reply-To: Haavard Skinnemoen <hskinnemoen@atmel.com>
+Date: Tue, 08 Aug 2006 14:23:08 +0200
+Message-Id: <11550397964177-git-send-email-hskinnemoen@atmel.com>
+In-Reply-To: <1155039796165-git-send-email-hskinnemoen@atmel.com>
+References: <11550397951750-git-send-email-hskinnemoen@atmel.com> <11550397954098-git-send-email-hskinnemoen@atmel.com> <11550397954093-git-send-email-hskinnemoen@atmel.com> <11550397963310-git-send-email-hskinnemoen@atmel.com> <11550397962723-git-send-email-hskinnemoen@atmel.com> <1155039796165-git-send-email-hskinnemoen@atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
+Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-In the MIPS entry.S the symbol resume_userspace to the call to
-do_notify_resume form a loop through which the kernel will iterate as
-long as work is pending.  If we iterate through this loop more than once
-with no signal pending for at least one but the last iteration we will
-perform the syscall restarting multiple times resulting in a syscall
-return prior to the the syscall instruction in userspace because the
-return program counter will be adjusted several times by:
+Convert i386 to use generic ioremap_page_range()
 
-        regs->regs[7] = regs->regs[26];
-        regs->cp0_epc -= 8;
+Signed-off-by: Haavard Skinnemoen <hskinnemoen@atmel.com>
+---
+ arch/i386/mm/ioremap.c |   85 +++---------------------------------------------
+ 1 files changed, 6 insertions(+), 79 deletions(-)
 
-resulting in return to userspace at a too low address.  On MIPS this often
-happens to be a stackpointer adjustment but in many cases this may also
-just be a harmless instruction such as reloading the syscall number so
-may go unnoticed.
-
-We were able to trigger this when debugging a multithreaded programs.
-At least i386 uses virtually identical algorithms so I think is likely
-to have the same issue.
-
-The fix in case of MIPS is trivial:
-
-diff --git a/arch/mips/kernel/signal.c b/arch/mips/kernel/signal.c
-index 73f8aad..8676055 100644
---- a/arch/mips/kernel/signal.c
-+++ b/arch/mips/kernel/signal.c
-@@ -465,6 +464,7 @@ void do_signal(struct pt_regs *regs)
- 			regs->regs[7] = regs->regs[26];
- 			regs->cp0_epc -= 4;
- 		}
-+		regs->regs[0] = 0;	/* Don't deal with this again.  */
+diff --git a/arch/i386/mm/ioremap.c b/arch/i386/mm/ioremap.c
+index 247fde7..f773126 100644
+--- a/arch/i386/mm/ioremap.c
++++ b/arch/i386/mm/ioremap.c
+@@ -12,91 +12,14 @@ #include <linux/vmalloc.h>
+ #include <linux/init.h>
+ #include <linux/slab.h>
+ #include <linux/module.h>
+-#include <asm/io.h>
++#include <linux/io.h>
+ #include <asm/fixmap.h>
+-#include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
+ #include <asm/pgtable.h>
+ 
+ #define ISA_START_ADDRESS	0xa0000
+ #define ISA_END_ADDRESS		0x100000
+ 
+-static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
+-		unsigned long end, unsigned long phys_addr, unsigned long flags)
+-{
+-	pte_t *pte;
+-	unsigned long pfn;
+-
+-	pfn = phys_addr >> PAGE_SHIFT;
+-	pte = pte_alloc_kernel(pmd, addr);
+-	if (!pte)
+-		return -ENOMEM;
+-	do {
+-		BUG_ON(!pte_none(*pte));
+-		set_pte(pte, pfn_pte(pfn, __pgprot(_PAGE_PRESENT | _PAGE_RW | 
+-					_PAGE_DIRTY | _PAGE_ACCESSED | flags)));
+-		pfn++;
+-	} while (pte++, addr += PAGE_SIZE, addr != end);
+-	return 0;
+-}
+-
+-static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
+-		unsigned long end, unsigned long phys_addr, unsigned long flags)
+-{
+-	pmd_t *pmd;
+-	unsigned long next;
+-
+-	phys_addr -= addr;
+-	pmd = pmd_alloc(&init_mm, pud, addr);
+-	if (!pmd)
+-		return -ENOMEM;
+-	do {
+-		next = pmd_addr_end(addr, end);
+-		if (ioremap_pte_range(pmd, addr, next, phys_addr + addr, flags))
+-			return -ENOMEM;
+-	} while (pmd++, addr = next, addr != end);
+-	return 0;
+-}
+-
+-static inline int ioremap_pud_range(pgd_t *pgd, unsigned long addr,
+-		unsigned long end, unsigned long phys_addr, unsigned long flags)
+-{
+-	pud_t *pud;
+-	unsigned long next;
+-
+-	phys_addr -= addr;
+-	pud = pud_alloc(&init_mm, pgd, addr);
+-	if (!pud)
+-		return -ENOMEM;
+-	do {
+-		next = pud_addr_end(addr, end);
+-		if (ioremap_pmd_range(pud, addr, next, phys_addr + addr, flags))
+-			return -ENOMEM;
+-	} while (pud++, addr = next, addr != end);
+-	return 0;
+-}
+-
+-static int ioremap_page_range(unsigned long addr,
+-		unsigned long end, unsigned long phys_addr, unsigned long flags)
+-{
+-	pgd_t *pgd;
+-	unsigned long next;
+-	int err;
+-
+-	BUG_ON(addr >= end);
+-	flush_cache_all();
+-	phys_addr -= addr;
+-	pgd = pgd_offset_k(addr);
+-	do {
+-		next = pgd_addr_end(addr, end);
+-		err = ioremap_pud_range(pgd, addr, next, phys_addr+addr, flags);
+-		if (err)
+-			break;
+-	} while (pgd++, addr = next, addr != end);
+-	flush_tlb_all();
+-	return err;
+-}
+-
+ /*
+  * Generic mapping function (not visible outside):
+  */
+@@ -115,6 +38,7 @@ void __iomem * __ioremap(unsigned long p
+ 	void __iomem * addr;
+ 	struct vm_struct * area;
+ 	unsigned long offset, last_addr;
++	pgprot_t prot;
+ 
+ 	/* Don't allow wraparound or zero size */
+ 	last_addr = phys_addr + size - 1;
+@@ -142,6 +66,9 @@ void __iomem * __ioremap(unsigned long p
+ 				return NULL;
  	}
  
++	prot = __pgprot(_PAGE_PRESENT | _PAGE_RW | _PAGE_DIRTY
++			| _PAGE_ACCESSED | flags);
++
  	/*
+ 	 * Mappings have to be page-aligned
+ 	 */
+@@ -158,7 +85,7 @@ void __iomem * __ioremap(unsigned long p
+ 	area->phys_addr = phys_addr;
+ 	addr = (void __iomem *) area->addr;
+ 	if (ioremap_page_range((unsigned long) addr,
+-			(unsigned long) addr + size, phys_addr, flags)) {
++			(unsigned long) addr + size, phys_addr, prot)) {
+ 		vunmap((void __force *) addr);
+ 		return NULL;
+ 	}
+-- 
+1.4.0
 
-  Ralf
