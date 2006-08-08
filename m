@@ -1,59 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate6.uk.ibm.com ([195.212.29.139]:19250 "EHLO
-	mtagate6.uk.ibm.com") by vger.kernel.org with ESMTP id S932565AbWHHISo
+Received: from ftp.linux-mips.org ([194.74.144.162]:18139 "EHLO
+	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S964831AbWHHLEd
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Aug 2006 04:18:44 -0400
-Subject: Re: [PATCH] x86_64: Make NR_IRQS configurable in Kconfig
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <200608080714.21151.ak@suse.de>
-References: <m1irl4ftya.fsf@ebiederm.dsl.xmission.com>
-	 <20060807194159.f7c741b5.akpm@osdl.org>
-	 <17624.7310.856480.704542@cargo.ozlabs.ibm.com>
-	 <200608080714.21151.ak@suse.de>
-Content-Type: text/plain
-Date: Tue, 08 Aug 2006 10:17:53 +0200
-Message-Id: <1155025073.26277.18.camel@localhost>
+	Tue, 8 Aug 2006 07:04:33 -0400
+Received: from localhost.localdomain ([127.0.0.1]:63980 "EHLO bacchus.dhis.org")
+	by ftp.linux-mips.org with ESMTP id S20040258AbWHHLEe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2006 12:04:34 +0100
+Received: from denk.linux-mips.net (denk.linux-mips.net [127.0.0.1])
+	by bacchus.dhis.org (8.13.7/8.13.4) with ESMTP id k78B4b1W020108
+	for <linux-arch@vger.kernel.org>; Tue, 8 Aug 2006 12:04:37 +0100
+Received: (from ralf@localhost)
+	by denk.linux-mips.net (8.13.7/8.13.7/Submit) id k78B4bSp020107
+	for linux-arch@vger.kernel.org; Tue, 8 Aug 2006 12:04:37 +0100
+Date: Tue, 8 Aug 2006 12:04:37 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Signal restarting happing multiple time in do_signal
+Message-ID: <20060808110437.GB18770@linux-mips.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Paul Mackerras <paulus@samba.org>, Andrew Morton <akpm@osdl.org>, "Eric W. Biederman" <ebiederm@xmission.com>, "Randy.Dunlap" <rdunlap@xenotime.net>, "Protasevich, Natalie" <Natalie.Protasevich@unisys.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2006-08-08 at 07:14 +0200, Andi Kleen wrote:
-> > > > Drawback would be some more TLB misses.
-> > > 
-> > > yup.  On some (important) architectures - I'm not sure which architectures
-> > > do the bigpage-for-kernel trick.
-> > 
-> > I looked at optimizing the per-cpu data accessors on PowerPC and only
-> > ever saw fractions of a percent change in overall performance, which
-> > says to me that we don't actually use per-cpu data all that much.  So
-> > unless you make per-cpu data really really slow, I doubt that we'll
-> > see any significant performance difference.
-> 
-> The main problem is that we would need a "vmalloc reserve first; allocate pages
-> later" interface. On x86 it would be easy by just splitting up vmalloc/vmap a bit
-> again. Does anybody else see problems with implementing that on any
-> other architecture? 
+In the MIPS entry.S the symbol resume_userspace to the call to
+do_notify_resume form a loop through which the kernel will iterate as
+long as work is pending.  If we iterate through this loop more than once
+with no signal pending for at least one but the last iteration we will
+perform the syscall restarting multiple times resulting in a syscall
+return prior to the the syscall instruction in userspace because the
+return program counter will be adjusted several times by:
 
-"vmalloc reserve first; allocate pages later" would be a really nice
-feature. We could use this on s390 to implement the virtual mem_map
-array spanning the whole 64 bit address range (with holes in it). To
-make it perfect a "deallocate pages; keep vmalloc reserve" should be
-added, then we could free parts of the mem_map array again on hot memory
-remove. 
-I don't see a problem for s390.
+        regs->regs[7] = regs->regs[26];
+        regs->cp0_epc -= 8;
 
--- 
-blue skies,
-  Martin.
+resulting in return to userspace at a too low address.  On MIPS this often
+happens to be a stackpointer adjustment but in many cases this may also
+just be a harmless instruction such as reloading the syscall number so
+may go unnoticed.
 
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
+We were able to trigger this when debugging a multithreaded programs.
+At least i386 uses virtually identical algorithms so I think is likely
+to have the same issue.
 
-"Reality continues to ruin my life." - Calvin.
+The fix in case of MIPS is trivial:
 
+diff --git a/arch/mips/kernel/signal.c b/arch/mips/kernel/signal.c
+index 73f8aad..8676055 100644
+--- a/arch/mips/kernel/signal.c
++++ b/arch/mips/kernel/signal.c
+@@ -465,6 +464,7 @@ void do_signal(struct pt_regs *regs)
+ 			regs->regs[7] = regs->regs[26];
+ 			regs->cp0_epc -= 4;
+ 		}
++		regs->regs[0] = 0;	/* Don't deal with this again.  */
+ 	}
+ 
+ 	/*
 
+  Ralf
