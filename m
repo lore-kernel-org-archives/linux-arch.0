@@ -1,49 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from stat9.steeleye.com ([209.192.50.41]:35980 "EHLO
-	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
-	id S964961AbWHHPhq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Aug 2006 11:37:46 -0400
-Subject: Re: [PATCH 9/13] Generic ioremap_page_range: parisc conversion
-From: James Bottomley <James.Bottomley@steeleye.com>
-In-Reply-To: <20060808144850.GD4896@athena.road.mcmartin.ca>
-References: <11550397951750-git-send-email-hskinnemoen@atmel.com>
-	 <11550397954098-git-send-email-hskinnemoen@atmel.com>
-	 <11550397954093-git-send-email-hskinnemoen@atmel.com>
-	 <11550397963310-git-send-email-hskinnemoen@atmel.com>
-	 <11550397962723-git-send-email-hskinnemoen@atmel.com>
-	 <1155039796165-git-send-email-hskinnemoen@atmel.com>
-	 <11550397964177-git-send-email-hskinnemoen@atmel.com>
-	 <1155039796529-git-send-email-hskinnemoen@atmel.com>
-	 <11550397963281-git-send-email-hskinnemoen@atmel.com>
-	 <11550397961615-git-send-email-hskinnemoen@atmel.com>
-	 <20060808144850.GD4896@athena.road.mcmartin.ca>
-Content-Type: text/plain
-Date: Tue, 08 Aug 2006 10:37:25 -0500
-Message-Id: <1155051445.26517.5.camel@mulgrave.il.steeleye.com>
+Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:12507
+	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
+	id S1030283AbWHHWY7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Aug 2006 18:24:59 -0400
+Date: Tue, 08 Aug 2006 15:25:04 -0700 (PDT)
+Message-Id: <20060808.152504.55835990.davem@davemloft.net>
+Subject: Re: Signal restarting happing multiple time in do_signal
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20060808110437.GB18770@linux-mips.org>
+References: <20060808110437.GB18770@linux-mips.org>
 Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>, linux-arch@vger.kernel.org
+To: ralf@linux-mips.org
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2006-08-08 at 10:48 -0400, Kyle McMartin wrote:
-> On second thought, you've compressed two different flushes into
-> flush_cache_vmap[1] where flush_tlb_all used to be...
-> 
-> I don't think this would be a problem because we're creating a
-> new mapping, but James will probably prove my assumption wrong
-> as usual. :)
-> 
-> [1 - flush_cache_vmap is just a flush_cache_all on the arches
->  I've looked at with VI-caches.]
+From: Ralf Baechle <ralf@linux-mips.org>
+Date: Tue, 8 Aug 2006 12:04:37 +0100
 
-The problem the flush_tlb_all() is trying to solve is to avoid stale tlb
-entries in the ioremap area.  We're just being conservative by flushing
-on both map and unmap.  Technically what vmalloc/vfree does (only flush
-the tlb on unmap) is just fine because it means that the only tlb
-entries in the remap area must belong to in-use mappings.
+> We were able to trigger this when debugging a multithreaded programs.
+> At least i386 uses virtually identical algorithms so I think is likely
+> to have the same issue.
 
-James
+Other platforms, including x86, clear the state out in one way or
+another before the next iteration.
 
+Actually on x86 it occurs as a side effect of setting
+regs->eax, it is reset to the system call number requested
+at syscall trap time, so it will not match any of the
+error return values in this switch statement:
 
+	/* Are we from a system call? */
+	if (regs->orig_eax >= 0) {
+		/* If so, check system call restarting.. */
+		switch (regs->eax) {
+		        case -ERESTART_RESTARTBLOCK:
+			case -ERESTARTNOHAND:
+				regs->eax = -EINTR;
+				break;
+
+			case -ERESTARTSYS:
+				if (!(ka->sa.sa_flags & SA_RESTART)) {
+					regs->eax = -EINTR;
+					break;
+				}
+			/* fallthrough */
+			case -ERESTARTNOINTR:
+				regs->eax = regs->orig_eax;
+				regs->eip -= 2;
+		}
+	}
+
+So after the first iteration, the next time through here we
+won't be "from a system call".
