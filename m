@@ -1,66 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nat-132.atmel.no ([80.232.32.132]:63436 "EHLO relay.atmel.no")
-	by vger.kernel.org with ESMTP id S964795AbWHHMXW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2006 08:23:22 -0400
+Received: from nat-132.atmel.no ([80.232.32.132]:59342 "EHLO relay.atmel.no")
+	by vger.kernel.org with ESMTP id S932586AbWHHMXV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2006 08:23:21 -0400
 From: Haavard Skinnemoen <hskinnemoen@atmel.com>
-Subject: [PATCH 5/13] Generic ioremap_page_range: cris conversion
+Subject: [PATCH 10/13] Generic ioremap_page_range: s390 conversion
 Reply-To: Haavard Skinnemoen <hskinnemoen@atmel.com>
-Date: Tue, 08 Aug 2006 14:23:07 +0200
-Message-Id: <1155039796165-git-send-email-hskinnemoen@atmel.com>
-In-Reply-To: <11550397962723-git-send-email-hskinnemoen@atmel.com>
-References: <11550397951750-git-send-email-hskinnemoen@atmel.com> <11550397954098-git-send-email-hskinnemoen@atmel.com> <11550397954093-git-send-email-hskinnemoen@atmel.com> <11550397963310-git-send-email-hskinnemoen@atmel.com> <11550397962723-git-send-email-hskinnemoen@atmel.com>
+Date: Tue, 08 Aug 2006 14:23:12 +0200
+Message-Id: <11550397961711-git-send-email-hskinnemoen@atmel.com>
+In-Reply-To: <11550397961615-git-send-email-hskinnemoen@atmel.com>
+References: <11550397951750-git-send-email-hskinnemoen@atmel.com> <11550397954098-git-send-email-hskinnemoen@atmel.com> <11550397954093-git-send-email-hskinnemoen@atmel.com> <11550397963310-git-send-email-hskinnemoen@atmel.com> <11550397962723-git-send-email-hskinnemoen@atmel.com> <1155039796165-git-send-email-hskinnemoen@atmel.com> <11550397964177-git-send-email-hskinnemoen@atmel.com> <1155039796529-git-send-email-hskinnemoen@atmel.com> <11550397963281-git-send-email-hskinnemoen@atmel.com> <11550397961615-git-send-email-hskinnemoen@atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Convert CRIS to use generic ioremap_page_range()
+Convert S390 to use generic ioremap_page_range()
 
 Signed-off-by: Haavard Skinnemoen <hskinnemoen@atmel.com>
 ---
- arch/cris/mm/ioremap.c |   88 ++----------------------------------------------
- 1 files changed, 3 insertions(+), 85 deletions(-)
+ arch/s390/mm/ioremap.c |   84 ++----------------------------------------------
+ 1 files changed, 3 insertions(+), 81 deletions(-)
 
-diff --git a/arch/cris/mm/ioremap.c b/arch/cris/mm/ioremap.c
-index 1780df3..8b0b934 100644
---- a/arch/cris/mm/ioremap.c
-+++ b/arch/cris/mm/ioremap.c
-@@ -10,93 +10,10 @@
-  */
+diff --git a/arch/s390/mm/ioremap.c b/arch/s390/mm/ioremap.c
+index 0f6e9ec..3d2100a 100644
+--- a/arch/s390/mm/ioremap.c
++++ b/arch/s390/mm/ioremap.c
+@@ -15,87 +15,8 @@
  
  #include <linux/vmalloc.h>
+ #include <linux/mm.h>
 -#include <asm/io.h>
 +#include <linux/io.h>
  #include <asm/pgalloc.h>
 -#include <asm/cacheflush.h>
 -#include <asm/tlbflush.h>
- #include <asm/arch/memmap.h>
- 
--static inline void remap_area_pte(pte_t * pte, unsigned long address, unsigned long size,
--	unsigned long phys_addr, pgprot_t prot)
--{
--	unsigned long end;
 -
--	address &= ~PMD_MASK;
--	end = address + size;
--	if (end > PMD_SIZE)
--		end = PMD_SIZE;
+-static inline void remap_area_pte(pte_t * pte, unsigned long address, unsigned long size,
+-        unsigned long phys_addr, unsigned long flags)
+-{
+-        unsigned long end;
+-        unsigned long pfn;
+-
+-        address &= ~PMD_MASK;
+-        end = address + size;
+-        if (end > PMD_SIZE)
+-                end = PMD_SIZE;
 -	if (address >= end)
 -		BUG();
--	do {
--		if (!pte_none(*pte)) {
--			printk("remap_area_pte: page already exists\n");
+-        pfn = phys_addr >> PAGE_SHIFT;
+-        do {
+-                if (!pte_none(*pte)) {
+-                        printk("remap_area_pte: page already exists\n");
 -			BUG();
 -		}
--		set_pte(pte, mk_pte_phys(phys_addr, prot));
--		address += PAGE_SIZE;
--		phys_addr += PAGE_SIZE;
--		pte++;
--	} while (address && (address < end));
+-                set_pte(pte, pfn_pte(pfn, __pgprot(flags)));
+-                address += PAGE_SIZE;
+-                pfn++;
+-                pte++;
+-        } while (address && (address < end));
 -}
 -
 -static inline int remap_area_pmd(pmd_t * pmd, unsigned long address, unsigned long size,
--	unsigned long phys_addr, pgprot_t prot)
+-        unsigned long phys_addr, unsigned long flags)
 -{
 -	unsigned long end;
 -
@@ -75,7 +76,7 @@ index 1780df3..8b0b934 100644
 -		pte_t * pte = pte_alloc_kernel(pmd, address);
 -		if (!pte)
 -			return -ENOMEM;
--		remap_area_pte(pte, address, end - address, address + phys_addr, prot);
+-		remap_area_pte(pte, address, end - address, address + phys_addr, flags);
 -		address = (address + PMD_SIZE) & PMD_MASK;
 -		pmd++;
 -	} while (address && (address < end));
@@ -83,7 +84,7 @@ index 1780df3..8b0b934 100644
 -}
 -
 -static int remap_area_pages(unsigned long address, unsigned long phys_addr,
--				 unsigned long size, pgprot_t prot)
+-				 unsigned long size, unsigned long flags)
 -{
 -	int error;
 -	pgd_t * dir;
@@ -95,39 +96,32 @@ index 1780df3..8b0b934 100644
 -	if (address >= end)
 -		BUG();
 -	do {
--		pud_t *pud;
 -		pmd_t *pmd;
--
+-		pmd = pmd_alloc(&init_mm, dir, address);
 -		error = -ENOMEM;
--		pud = pud_alloc(&init_mm, dir, address);
--		if (!pud)
--			break;
--		pmd = pmd_alloc(&init_mm, pud, address);
--
 -		if (!pmd)
 -			break;
 -		if (remap_area_pmd(pmd, address, end - address,
--				   phys_addr + address, prot))
+-					 phys_addr + address, flags))
 -			break;
 -		error = 0;
 -		address = (address + PGDIR_SIZE) & PGDIR_MASK;
 -		dir++;
 -	} while (address && (address < end));
 -	flush_tlb_all();
--	return error;
+-	return 0;
 -}
--
+ 
  /*
   * Generic mapping function (not visible outside):
-  */
-@@ -135,7 +52,8 @@ void __iomem * __ioremap_prot(unsigned l
+@@ -122,7 +43,8 @@ void * __ioremap(unsigned long phys_addr
  	if (!area)
  		return NULL;
- 	addr = (void __iomem *)area->addr;
--	if (remap_area_pages((unsigned long) addr, phys_addr, size, prot)) {
+ 	addr = area->addr;
+-	if (remap_area_pages((unsigned long) addr, phys_addr, size, flags)) {
 +	if (ioremap_page_range((unsigned long)addr, (unsigned long)addr + size,
-+			       phys_addr, prot)) {
- 		vfree((void __force *)addr);
++			       phys_addr, __pgprot(flags))) {
+ 		vfree(addr);
  		return NULL;
  	}
 -- 
