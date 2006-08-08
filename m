@@ -1,164 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nat-132.atmel.no ([80.232.32.132]:18394 "EHLO relay.atmel.no")
-	by vger.kernel.org with ESMTP id S932582AbWHHMXX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2006 08:23:23 -0400
+Received: from nat-132.atmel.no ([80.232.32.132]:28893 "EHLO relay.atmel.no")
+	by vger.kernel.org with ESMTP id S932582AbWHHMXV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2006 08:23:21 -0400
 From: Haavard Skinnemoen <hskinnemoen@atmel.com>
-Subject: [PATCH 12/13] Generic ioremap_page_range: sh64 conversion
+Subject: [PATCH 0/13] Generic ioremap_page_range: introduction
 Reply-To: Haavard Skinnemoen <hskinnemoen@atmel.com>
-Date: Tue, 08 Aug 2006 14:23:14 +0200
-Message-Id: <11550397961392-git-send-email-hskinnemoen@atmel.com>
-In-Reply-To: <11550397961826-git-send-email-hskinnemoen@atmel.com>
-References: <11550397951750-git-send-email-hskinnemoen@atmel.com> <11550397954098-git-send-email-hskinnemoen@atmel.com> <11550397954093-git-send-email-hskinnemoen@atmel.com> <11550397963310-git-send-email-hskinnemoen@atmel.com> <11550397962723-git-send-email-hskinnemoen@atmel.com> <1155039796165-git-send-email-hskinnemoen@atmel.com> <11550397964177-git-send-email-hskinnemoen@atmel.com> <1155039796529-git-send-email-hskinnemoen@atmel.com> <11550397963281-git-send-email-hskinnemoen@atmel.com> <11550397961615-git-send-email-hskinnemoen@atmel.com> <11550397961711-git-send-email-hskinnemoen@atmel.com> <11550397961826-git-send-email-hskinnemoen@atmel.com>
+Date: Tue, 08 Aug 2006 14:23:02 +0200
+Message-Id: <11550397951750-git-send-email-hskinnemoen@atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Convert SH64 to use generic ioremap_page_range()
+Since no one seemed to have any serious objections, here's a complete
+patchset with an updated ioremap_page_range() based on suggestions from
+Dave Hansen, Paul Mackerras and David Miller.
 
-Signed-off-by: Haavard Skinnemoen <hskinnemoen@atmel.com>
----
- arch/sh64/mm/ioremap.c |  100 ++++--------------------------------------------
- 1 files changed, 8 insertions(+), 92 deletions(-)
+This also updates all architectures that were relatively trivial to
+convert. Most of remaining architectures implement ioremap() as a
+no-op or something close. Exceptions are m68k, powerpc and sparc.
 
-diff --git a/arch/sh64/mm/ioremap.c b/arch/sh64/mm/ioremap.c
-index fb1866f..e77d85f 100644
---- a/arch/sh64/mm/ioremap.c
-+++ b/arch/sh64/mm/ioremap.c
-@@ -18,7 +18,7 @@ #include <linux/slab.h>
- #include <linux/vmalloc.h>
- #include <linux/sched.h>
- #include <linux/string.h>
--#include <asm/io.h>
-+#include <linux/io.h>
- #include <asm/pgalloc.h>
- #include <asm/tlbflush.h>
- #include <linux/ioport.h>
-@@ -28,96 +28,6 @@ #include <linux/proc_fs.h>
- static void shmedia_mapioaddr(unsigned long, unsigned long);
- static unsigned long shmedia_ioremap(struct resource *, u32, int);
- 
--static inline void remap_area_pte(pte_t * pte, unsigned long address, unsigned long size,
--	unsigned long phys_addr, unsigned long flags)
--{
--	unsigned long end;
--	unsigned long pfn;
--	pgprot_t pgprot = __pgprot(_PAGE_PRESENT  | _PAGE_READ   |
--				   _PAGE_WRITE    | _PAGE_DIRTY  |
--				   _PAGE_ACCESSED | _PAGE_SHARED | flags);
--
--	address &= ~PMD_MASK;
--	end = address + size;
--	if (end > PMD_SIZE)
--		end = PMD_SIZE;
--	if (address >= end)
--		BUG();
--
--	pfn = phys_addr >> PAGE_SHIFT;
--
--	pr_debug("    %s: pte %p address %lx size %lx phys_addr %lx\n",
--		 __FUNCTION__,pte,address,size,phys_addr);
--
--	do {
--		if (!pte_none(*pte)) {
--			printk("remap_area_pte: page already exists\n");
--			BUG();
--		}
--
--		set_pte(pte, pfn_pte(pfn, pgprot));
--		address += PAGE_SIZE;
--		pfn++;
--		pte++;
--	} while (address && (address < end));
--}
--
--static inline int remap_area_pmd(pmd_t * pmd, unsigned long address, unsigned long size,
--	unsigned long phys_addr, unsigned long flags)
--{
--	unsigned long end;
--
--	address &= ~PGDIR_MASK;
--	end = address + size;
--
--	if (end > PGDIR_SIZE)
--		end = PGDIR_SIZE;
--
--	phys_addr -= address;
--
--	if (address >= end)
--		BUG();
--
--	do {
--		pte_t * pte = pte_alloc_kernel(pmd, address);
--		if (!pte)
--			return -ENOMEM;
--		remap_area_pte(pte, address, end - address, address + phys_addr, flags);
--		address = (address + PMD_SIZE) & PMD_MASK;
--		pmd++;
--	} while (address && (address < end));
--	return 0;
--}
--
--static int remap_area_pages(unsigned long address, unsigned long phys_addr,
--				 unsigned long size, unsigned long flags)
--{
--	int error;
--	pgd_t * dir;
--	unsigned long end = address + size;
--
--	phys_addr -= address;
--	dir = pgd_offset_k(address);
--	flush_cache_all();
--	if (address >= end)
--		BUG();
--	do {
--		pmd_t *pmd = pmd_alloc(&init_mm, dir, address);
--		error = -ENOMEM;
--		if (!pmd)
--			break;
--		if (remap_area_pmd(pmd, address, end - address,
--				   phys_addr + address, flags)) {
--			 break;
--		}
--		error = 0;
--		address = (address + PGDIR_SIZE) & PGDIR_MASK;
--		dir++;
--	} while (address && (address < end));
--	flush_tlb_all();
--	return 0;
--}
--
- /*
-  * Generic mapping function (not visible outside):
-  */
-@@ -136,12 +46,17 @@ void * __ioremap(unsigned long phys_addr
- 	void * addr;
- 	struct vm_struct * area;
- 	unsigned long offset, last_addr;
-+	pgprot_t pgprot;
- 
- 	/* Don't allow wraparound or zero size */
- 	last_addr = phys_addr + size - 1;
- 	if (!size || last_addr < phys_addr)
- 		return NULL;
- 
-+	pgprot = __pgprot(_PAGE_PRESENT  | _PAGE_READ   |
-+			  _PAGE_WRITE    | _PAGE_DIRTY  |
-+			  _PAGE_ACCESSED | _PAGE_SHARED | flags);
-+
- 	/*
- 	 * Mappings have to be page-aligned
- 	 */
-@@ -158,7 +73,8 @@ void * __ioremap(unsigned long phys_addr
- 		return NULL;
- 	area->phys_addr = phys_addr;
- 	addr = area->addr;
--	if (remap_area_pages((unsigned long)addr, phys_addr, size, flags)) {
-+	if (ioremap_page_range((unsigned long)addr, (unsigned long)addr + size,
-+			       phys_addr, pgprot)) {
- 		vunmap(addr);
- 		return NULL;
- 	}
--- 
-1.4.0
+m68k has some CPU-dependent logic in the middle of the loop.
 
+powerpc could probably use generic ioremap_page_range(), but doing so
+would probably increase the code size, as the map_page() functions
+have other users in addition to ioremap().
+
+sparc seems to do something completely different than everyone else.
+
+I'll post the implementation as well as one patch per architecture
+conversion right after this. I haven't compile-tested most of the
+architecture changes, but it compiles and runs on AVR32.
+
+Overall diffstat below.
+
+Haavard
+
+ arch/alpha/kernel/proto.h |   15 +++++-
+ arch/alpha/mm/Makefile    |    2 -
+ arch/alpha/mm/remap.c     |   86 --------------------------------
+ arch/arm/mm/ioremap.c     |   95 ++----------------------------------
+ arch/avr32/mm/ioremap.c   |  120 ++-------------------------------------------
+ arch/cris/mm/ioremap.c    |   88 +--------------------------------
+ arch/i386/mm/ioremap.c    |   85 ++------------------------------
+ arch/m32r/mm/ioremap.c    |   93 +++--------------------------------
+ arch/mips/mm/ioremap.c    |   95 +++---------------------------------
+ arch/parisc/mm/ioremap.c  |  111 +++---------------------------------------
+ arch/s390/mm/ioremap.c    |   84 +-------------------------------
+ arch/sh/mm/ioremap.c      |   97 +++---------------------------------
+ arch/sh64/mm/ioremap.c    |  100 +++-----------------------------------
+ arch/x86_64/mm/ioremap.c  |  110 ++---------------------------------------
+ include/linux/io.h        |    4 ++
+ lib/Makefile              |    2 -
+ lib/ioremap.c             |   91 ++++++++++++++++++++++++++++++++++
+ 17 files changed, 174 insertions(+), 1104 deletions(-)
