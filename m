@@ -1,182 +1,164 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nat-132.atmel.no ([80.232.32.132]:22986 "EHLO relay.atmel.no")
-	by vger.kernel.org with ESMTP id S932593AbWHHMXW (ORCPT
+Received: from nat-132.atmel.no ([80.232.32.132]:8425 "EHLO relay.atmel.no")
+	by vger.kernel.org with ESMTP id S932592AbWHHMXW (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2006 08:23:22 -0400
 From: Haavard Skinnemoen <hskinnemoen@atmel.com>
-Subject: [PATCH 4/13] Generic ioremap_page_range: avr32 conversion
+Subject: [PATCH 1/13] Generic ioremap_page_range: implementation
 Reply-To: Haavard Skinnemoen <hskinnemoen@atmel.com>
-Date: Tue, 08 Aug 2006 14:23:06 +0200
-Message-Id: <11550397962723-git-send-email-hskinnemoen@atmel.com>
-In-Reply-To: <11550397963310-git-send-email-hskinnemoen@atmel.com>
-References: <11550397951750-git-send-email-hskinnemoen@atmel.com> <11550397954098-git-send-email-hskinnemoen@atmel.com> <11550397954093-git-send-email-hskinnemoen@atmel.com> <11550397963310-git-send-email-hskinnemoen@atmel.com>
+Date: Tue, 08 Aug 2006 14:23:03 +0200
+Message-Id: <11550397954098-git-send-email-hskinnemoen@atmel.com>
+In-Reply-To: <11550397951750-git-send-email-hskinnemoen@atmel.com>
+References: <11550397951750-git-send-email-hskinnemoen@atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Convert AVR32 to use generic ioremap_page_range()
+This patch adds a generic implementation of ioremap_page_range() in
+lib/ioremap.c based on the i386 implementation. It differs from the
+i386 version in the following ways:
+
+  * The PTE flags are passed as a pgprot_t argument and must be
+    determined up front by the arch-specific code. No additional
+    PTE flags are added.
+  * Uses set_pte_at() instead of set_pte()
+  * Doesn't call flush_cache_all() and flush_tlb_all(). Instead, it
+    calls flush_cache_vmap() after all PTEs have been set up.
 
 Signed-off-by: Haavard Skinnemoen <hskinnemoen@atmel.com>
 ---
- arch/avr32/mm/ioremap.c |  120 ++---------------------------------------------
- 1 files changed, 6 insertions(+), 114 deletions(-)
+ include/linux/io.h |    4 ++
+ lib/Makefile       |    2 +
+ lib/ioremap.c      |   91 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 96 insertions(+), 1 deletions(-)
 
-diff --git a/arch/avr32/mm/ioremap.c b/arch/avr32/mm/ioremap.c
-index 5360218..8cfec65 100644
---- a/arch/avr32/mm/ioremap.c
-+++ b/arch/avr32/mm/ioremap.c
-@@ -7,119 +7,11 @@
-  */
- #include <linux/vmalloc.h>
- #include <linux/module.h>
+diff --git a/include/linux/io.h b/include/linux/io.h
+index 420e2fd..aa3f5af 100644
+--- a/include/linux/io.h
++++ b/include/linux/io.h
+@@ -19,8 +19,12 @@ #ifndef _LINUX_IO_H
+ #define _LINUX_IO_H
+ 
+ #include <asm/io.h>
++#include <asm/page.h>
+ 
+ void __iowrite32_copy(void __iomem *to, const void *from, size_t count);
+ void __iowrite64_copy(void __iomem *to, const void *from, size_t count);
+ 
++int ioremap_page_range(unsigned long addr, unsigned long end,
++		       unsigned long phys_addr, pgprot_t prot);
++
+ #endif /* _LINUX_IO_H */
+diff --git a/lib/Makefile b/lib/Makefile
+index be9719a..a4dcb07 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -5,7 +5,7 @@ #
+ lib-y := errno.o ctype.o string.o vsprintf.o cmdline.o \
+ 	 bust_spinlocks.o rbtree.o radix-tree.o dump_stack.o \
+ 	 idr.o div64.o int_sqrt.o bitmap.o extable.o prio_tree.o \
+-	 sha1.o
++	 sha1.o ioremap.o
+ 
+ lib-$(CONFIG_SMP) += cpumask.o
+ 
+diff --git a/lib/ioremap.c b/lib/ioremap.c
+new file mode 100644
+index 0000000..d2cb1eb
+--- /dev/null
++++ b/lib/ioremap.c
+@@ -0,0 +1,91 @@
++/*
++ * Re-map IO memory to kernel address space so that we can access it.
++ * This is needed for high PCI addresses that aren't mapped in the
++ * 640k-1MB IO memory area on PC's
++ *
++ * (C) Copyright 1995 1996 Linus Torvalds
++ */
 +#include <linux/io.h>
- 
--#include <asm/io.h>
- #include <asm/pgtable.h>
--#include <asm/cacheflush.h>
--#include <asm/tlbflush.h>
- #include <asm/addrspace.h>
- 
--static inline int remap_area_pte(pte_t *pte, unsigned long address,
--				  unsigned long end, unsigned long phys_addr,
--				  pgprot_t prot)
--{
--	unsigned long pfn;
--
--	pfn = phys_addr >> PAGE_SHIFT;
--	do {
--		WARN_ON(!pte_none(*pte));
--
--		set_pte(pte, pfn_pte(pfn, prot));
--		address += PAGE_SIZE;
--		pfn++;
--		pte++;
--	} while (address && (address < end));
--
--	return 0;
--}
--
--static inline int remap_area_pmd(pmd_t *pmd, unsigned long address,
--				 unsigned long end, unsigned long phys_addr,
--				 pgprot_t prot)
--{
--	unsigned long next;
--
--	phys_addr -= address;
--
--	do {
--		pte_t *pte = pte_alloc_kernel(pmd, address);
--		if (!pte)
--			return -ENOMEM;
--
--		next = (address + PMD_SIZE) & PMD_MASK;
--		if (remap_area_pte(pte, address, next,
--				   address + phys_addr, prot))
--			return -ENOMEM;
--
--		address = next;
--		pmd++;
--	} while (address && (address < end));
--	return 0;
--}
--
--static int remap_area_pud(pud_t *pud, unsigned long address,
--			  unsigned long end, unsigned long phys_addr,
--			  pgprot_t prot)
--{
--	unsigned long next;
--
--	phys_addr -= address;
--
--	do {
--		pmd_t *pmd = pmd_alloc(&init_mm, pud, address);
--		if (!pmd)
--			return -ENOMEM;
--		next = (address + PUD_SIZE) & PUD_MASK;
--		if (remap_area_pmd(pmd, address, next,
--				   phys_addr + address, prot))
--			return -ENOMEM;
--
--		address = next;
--		pud++;
--	} while (address && address < end);
--
--	return 0;
--}
--
--static int remap_area_pages(unsigned long address, unsigned long phys_addr,
--			    size_t size, pgprot_t prot)
--{
--	unsigned long end = address + size;
--	unsigned long next;
--	pgd_t *pgd;
--	int err = 0;
--
--	phys_addr -= address;
--
--	pgd = pgd_offset_k(address);
--	flush_cache_all();
--	BUG_ON(address >= end);
--
--	spin_lock(&init_mm.page_table_lock);
--	do {
--		pud_t *pud = pud_alloc(&init_mm, pgd, address);
--
--		err = -ENOMEM;
--		if (!pud)
--			break;
--
--		next = (address + PGDIR_SIZE) & PGDIR_MASK;
--		if (next < address || next > end)
--			next = end;
--		err = remap_area_pud(pud, address, next,
--				     phys_addr + address, prot);
--		if (err)
--			break;
--
--		address = next;
--		pgd++;
--	} while (address && (address < end));
--
--	spin_unlock(&init_mm.page_table_lock);
--	flush_tlb_all();
--	return err;
--}
--
- /*
-  * Re-map an arbitrary physical address space into the kernel virtual
-  * address space. Needed when the kernel wants to access physical
-@@ -128,7 +20,7 @@ static int remap_area_pages(unsigned lon
- void __iomem *__ioremap(unsigned long phys_addr, size_t size,
- 			unsigned long flags)
- {
--	void *addr;
-+	unsigned long addr;
- 	struct vm_struct *area;
- 	unsigned long offset, last_addr;
- 	pgprot_t prot;
-@@ -159,7 +51,7 @@ void __iomem *__ioremap(unsigned long ph
- 	phys_addr &= PAGE_MASK;
- 	size = PAGE_ALIGN(last_addr + 1) - phys_addr;
- 
--	prot = __pgprot(_PAGE_PRESENT | _PAGE_RW | _PAGE_DIRTY
-+	prot = __pgprot(_PAGE_PRESENT | _PAGE_GLOBAL | _PAGE_RW | _PAGE_DIRTY
- 			| _PAGE_ACCESSED | _PAGE_TYPE_SMALL | flags);
- 
- 	/*
-@@ -169,9 +61,9 @@ void __iomem *__ioremap(unsigned long ph
- 	if (!area)
- 		return NULL;
- 	area->phys_addr = phys_addr;
--	addr = area->addr;
--	if (remap_area_pages((unsigned long)addr, phys_addr, size, prot)) {
--		vunmap(addr);
-+	addr = (unsigned long )area->addr;
-+	if (ioremap_page_range(addr, addr + size, phys_addr, prot)) {
-+		vunmap((void *)addr);
- 		return NULL;
- 	}
- 
++#include <linux/vmalloc.h>
++
++#include <asm/cacheflush.h>
++#include <asm/pgtable.h>
++
++static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
++		unsigned long end, unsigned long phys_addr, pgprot_t prot)
++{
++	pte_t *pte;
++	unsigned long pfn;
++
++	pfn = phys_addr >> PAGE_SHIFT;
++	pte = pte_alloc_kernel(pmd, addr);
++	if (!pte)
++		return -ENOMEM;
++	do {
++		BUG_ON(!pte_none(*pte));
++		set_pte_at(&init_mm, addr, pte, pfn_pte(pfn, prot));
++		pfn++;
++	} while (pte++, addr += PAGE_SIZE, addr != end);
++	return 0;
++}
++
++static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
++		unsigned long end, unsigned long phys_addr, pgprot_t prot)
++{
++	pmd_t *pmd;
++	unsigned long next;
++
++	phys_addr -= addr;
++	pmd = pmd_alloc(&init_mm, pud, addr);
++	if (!pmd)
++		return -ENOMEM;
++	do {
++		next = pmd_addr_end(addr, end);
++		if (ioremap_pte_range(pmd, addr, next, phys_addr + addr, prot))
++			return -ENOMEM;
++	} while (pmd++, addr = next, addr != end);
++	return 0;
++}
++
++static inline int ioremap_pud_range(pgd_t *pgd, unsigned long addr,
++		unsigned long end, unsigned long phys_addr, pgprot_t prot)
++{
++	pud_t *pud;
++	unsigned long next;
++
++	phys_addr -= addr;
++	pud = pud_alloc(&init_mm, pgd, addr);
++	if (!pud)
++		return -ENOMEM;
++	do {
++		next = pud_addr_end(addr, end);
++		if (ioremap_pmd_range(pud, addr, next, phys_addr + addr, prot))
++			return -ENOMEM;
++	} while (pud++, addr = next, addr != end);
++	return 0;
++}
++
++int ioremap_page_range(unsigned long addr,
++		       unsigned long end, unsigned long phys_addr, pgprot_t prot)
++{
++	pgd_t *pgd;
++	unsigned long start;
++	unsigned long next;
++	int err;
++
++	BUG_ON(addr >= end);
++
++	start = addr;
++	phys_addr -= addr;
++	pgd = pgd_offset_k(addr);
++	do {
++		next = pgd_addr_end(addr, end);
++		err = ioremap_pud_range(pgd, addr, next, phys_addr+addr, prot);
++		if (err)
++			break;
++	} while (pgd++, addr = next, addr != end);
++
++	flush_cache_vmap(start, end);
++
++	return err;
++}
 -- 
 1.4.0
 
