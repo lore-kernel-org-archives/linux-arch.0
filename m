@@ -1,60 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lug-owl.de ([195.71.106.12]:56283 "EHLO lug-owl.de")
-	by vger.kernel.org with ESMTP id S964872AbWHHMak (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2006 08:30:40 -0400
-Date: Tue, 8 Aug 2006 14:30:39 +0200
-From: Jan-Benedict Glaw <jbglaw@lug-owl.de>
-Subject: Re: [PATCH 13/13] Generic ioremap_page_range: x86_64 conversion
-Message-ID: <20060808123038.GE4352@lug-owl.de>
-References: <11550397951750-git-send-email-hskinnemoen@atmel.com> <11550397961392-git-send-email-hskinnemoen@atmel.com> <11550397963540-git-send-email-hskinnemoen@atmel.com> <200608081428.11276.ak@suse.de>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="cQXOx3fnlpmgJsTP"
+Received: from stout.engsoc.carleton.ca ([134.117.69.22]:4749 "EHLO
+	stout.engsoc.carleton.ca") by vger.kernel.org with ESMTP
+	id S964927AbWHHOjJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Aug 2006 10:39:09 -0400
+Date: Tue, 8 Aug 2006 10:38:31 -0400
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [PATCH 9/13] Generic ioremap_page_range: parisc conversion
+Message-ID: <20060808143831.GC4896@athena.road.mcmartin.ca>
+References: <11550397951750-git-send-email-hskinnemoen@atmel.com> <11550397954098-git-send-email-hskinnemoen@atmel.com> <11550397954093-git-send-email-hskinnemoen@atmel.com> <11550397963310-git-send-email-hskinnemoen@atmel.com> <11550397962723-git-send-email-hskinnemoen@atmel.com> <1155039796165-git-send-email-hskinnemoen@atmel.com> <11550397964177-git-send-email-hskinnemoen@atmel.com> <1155039796529-git-send-email-hskinnemoen@atmel.com> <11550397963281-git-send-email-hskinnemoen@atmel.com> <11550397961615-git-send-email-hskinnemoen@atmel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <200608081428.11276.ak@suse.de>
+In-Reply-To: <11550397961615-git-send-email-hskinnemoen@atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>, linux-arch@vger.kernel.org
+To: Haavard Skinnemoen <hskinnemoen@atmel.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Tue, Aug 08, 2006 at 02:23:11PM +0200, Haavard Skinnemoen wrote:
+> Convert parisc to use generic ioremap_page_range()
+> 
+> Signed-off-by: Haavard Skinnemoen <hskinnemoen@atmel.com>
+> 
 
---cQXOx3fnlpmgJsTP
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Looks good. Nice to see such a big reduction in LoC.
 
-On Tue, 2006-08-08 14:28:11 +0200, Andi Kleen <ak@suse.de> wrote:
-> On Tuesday 08 August 2006 14:23, Haavard Skinnemoen wrote:
-> > Convert x86_64 to use generic ioremap_page_range()
-
-> But linux-arch is normally not for patches, just for discussion.
-> You should send the mails directly to the responsible people, probably
-> cc l-k.
-
-Erm, no, please let's continue posting patches like this to this list.
-For me, it's nice having the important stuff right here, so I don't
-need to search the archives.
-
-MfG, JBG
-
---=20
-       Jan-Benedict Glaw       jbglaw@lug-owl.de                +49-172-760=
-8481
- Signature of:                     ...und wenn Du denkst, es geht nicht meh=
-r,
- the second  :                            kommt irgendwo ein Lichtlein her.
-
---cQXOx3fnlpmgJsTP
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-Content-Disposition: inline
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.1 (GNU/Linux)
-
-iD8DBQFE2IPuHb1edYOZ4bsRAr2NAJ9hzu5rxEaHbu+lARNmt2M9Z6cvTwCeJB3S
-QOdb99QY273IaU2++ldQPoc=
-=Wf6y
------END PGP SIGNATURE-----
-
---cQXOx3fnlpmgJsTP--
+Acked-by: Kyle McMartin <kyle@parisc-linux.org>
