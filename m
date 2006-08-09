@@ -1,56 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate3.uk.ibm.com ([195.212.29.136]:64746 "EHLO
-	mtagate3.uk.ibm.com") by vger.kernel.org with ESMTP
-	id S1030658AbWHIK2V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 Aug 2006 06:28:21 -0400
-Subject: Re: [PATCH 2/3] Kprobes: Define retval helper
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <20060809101948.GA1701@in.ibm.com>
-References: <20060807115537.GA15253@in.ibm.com>
-	 <20060809094311.GA20050@in.ibm.com> <20060809094516.GA17993@infradead.org>
-	 <200608091155.50842.ak@suse.de>  <20060809101948.GA1701@in.ibm.com>
-Content-Type: text/plain
-Date: Wed, 09 Aug 2006 12:28:18 +0200
-Message-Id: <1155119298.4641.1.camel@localhost>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:30444 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750761AbWHINSY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Aug 2006 09:18:24 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20060809094516.GA17993@infradead.org> 
+References: <20060809094516.GA17993@infradead.org>  <20060807115537.GA15253@in.ibm.com> <20060807120024.GD15253@in.ibm.com> <20060808162559.GB28647@infradead.org> <20060809094311.GA20050@in.ibm.com> 
+Subject: Re: [PATCH 2/3] Kprobes: Define retval helper 
+Date: Wed, 09 Aug 2006 14:16:04 +0100
+Message-ID: <26750.1155129364@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: ananth@in.ibm.com
-Cc: Andi Kleen <ak@suse.de>, Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, Prasanna S Panchamukhi <prasanna@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Jim Keniston <jkenisto@us.ibm.com>, linux-arch@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>, linux-kernel@vger.kernel.org, Prasanna S Panchamukhi <prasanna@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Jim Keniston <jkenisto@us.ibm.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 2006-08-09 at 15:49 +0530, Ananth N Mavinakayanahalli wrote:
-> Updated patch ...
-> 
-> Add the "return_value" macro that just extracts the return value given
-> the pt_regs. Useful in situations such as while using function-return
-> probes.
+Christoph Hellwig <hch@infradead.org> wrote:
 
-return_value definition for s390 see below.
+> > > Good idea.  You should add parentheses around regs, otherwise the C
+> > > preprocessor might bite users.  Also the shouting name is quite ugly.
+> > > In fact it should probably go to asm/system.h or similar and not have
+> > > a kprobes name - it just extracts the return value from a struct pt_regs
+> > > after all.
+> > 
+> > Done! How does this look? I added it to asm/ptrace.h so it lives along
+> > with the instruction_pointer() definition.
 
--- 
-blue skies,
-  Martin.
+I presume we don't care about return values that span multiple registers - for
+instance if you return a 64-bit value on i386 it'll wind up in EDX:EAX.
 
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
-
-"Reality continues to ruin my life." - Calvin.
-
----
-
-diff -urpN linux-2.6.18-rc3/include/asm-s390/ptrace.h linux-2.6.18-s390/include/asm-s390/ptrace.h
---- linux-2.6.18-rc3/include/asm-s390/ptrace.h	2006-06-29 12:47:32.000000000 +0200
-+++ linux-2.6.18-s390/include/asm-s390/ptrace.h	2006-08-09 12:25:23.000000000 +0200
-@@ -472,6 +472,7 @@ struct user_regs_struct
- 
- #define user_mode(regs) (((regs)->psw.mask & PSW_MASK_PSTATE) != 0)
- #define instruction_pointer(regs) ((regs)->psw.addr & PSW_ADDR_INSN)
-+#define return_value(regs)((regs)->gprs[2])
- #define profile_pc(regs) instruction_pointer(regs)
- extern void show_regs(struct pt_regs * regs);
- #endif
-
-
+David
