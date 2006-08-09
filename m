@@ -1,30 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:30444 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1750761AbWHINSY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Aug 2006 09:18:24 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20060809094516.GA17993@infradead.org> 
-References: <20060809094516.GA17993@infradead.org>  <20060807115537.GA15253@in.ibm.com> <20060807120024.GD15253@in.ibm.com> <20060808162559.GB28647@infradead.org> <20060809094311.GA20050@in.ibm.com> 
-Subject: Re: [PATCH 2/3] Kprobes: Define retval helper 
-Date: Wed, 09 Aug 2006 14:16:04 +0100
-Message-ID: <26750.1155129364@warthog.cambridge.redhat.com>
+Received: from e1.ny.us.ibm.com ([32.97.182.141]:13022 "EHLO e1.ny.us.ibm.com")
+	by vger.kernel.org with ESMTP id S1750749AbWHIPTB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Aug 2006 11:19:01 -0400
+Date: Wed, 9 Aug 2006 20:50:18 +0530
+From: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Subject: Re: [PATCH 2/3] Kprobes: Define retval helper
+Message-ID: <20060809152018.GA17486@in.ibm.com>
+Reply-To: ananth@in.ibm.com
+References: <20060809094516.GA17993@infradead.org> <20060807115537.GA15253@in.ibm.com> <20060807120024.GD15253@in.ibm.com> <20060808162559.GB28647@infradead.org> <20060809094311.GA20050@in.ibm.com> <26750.1155129364@warthog.cambridge.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <26750.1155129364@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>, linux-kernel@vger.kernel.org, Prasanna S Panchamukhi <prasanna@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Jim Keniston <jkenisto@us.ibm.com>, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, Prasanna S Panchamukhi <prasanna@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Jim Keniston <jkenisto@us.ibm.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Hellwig <hch@infradead.org> wrote:
+On Wed, Aug 09, 2006 at 02:16:04PM +0100, David Howells wrote:
+> Christoph Hellwig <hch@infradead.org> wrote:
+> 
+> > > > Good idea.  You should add parentheses around regs, otherwise the C
+> > > > preprocessor might bite users.  Also the shouting name is quite ugly.
+> > > > In fact it should probably go to asm/system.h or similar and not have
+> > > > a kprobes name - it just extracts the return value from a struct pt_regs
+> > > > after all.
+> > > 
+> > > Done! How does this look? I added it to asm/ptrace.h so it lives along
+> > > with the instruction_pointer() definition.
+> 
+> I presume we don't care about return values that span multiple registers - for
+> instance if you return a 64-bit value on i386 it'll wind up in EDX:EAX.
 
-> > > Good idea.  You should add parentheses around regs, otherwise the C
-> > > preprocessor might bite users.  Also the shouting name is quite ugly.
-> > > In fact it should probably go to asm/system.h or similar and not have
-> > > a kprobes name - it just extracts the return value from a struct pt_regs
-> > > after all.
-> > 
-> > Done! How does this look? I added it to asm/ptrace.h so it lives along
-> > with the instruction_pointer() definition.
+Yes. This helper is mostly to address the common case, not the 64-bit
+one.
 
-I presume we don't care about return values that span multiple registers - for
-instance if you return a 64-bit value on i386 it'll wind up in EDX:EAX.
-
-David
+Ananth
