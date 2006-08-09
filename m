@@ -1,105 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:38025 "EHLO
-	pentafluge.infradead.org") by vger.kernel.org with ESMTP
-	id S1030613AbWHIJpX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 Aug 2006 05:45:23 -0400
-Date: Wed, 9 Aug 2006 10:45:16 +0100
-From: Christoph Hellwig <hch@infradead.org>
+Received: from mx2.suse.de ([195.135.220.15]:59540 "EHLO mx2.suse.de")
+	by vger.kernel.org with ESMTP id S1030625AbWHIJ4N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Aug 2006 05:56:13 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: [PATCH 2/3] Kprobes: Define retval helper
-Message-ID: <20060809094516.GA17993@infradead.org>
-References: <20060807115537.GA15253@in.ibm.com> <20060807120024.GD15253@in.ibm.com> <20060808162559.GB28647@infradead.org> <20060809094311.GA20050@in.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Date: Wed, 9 Aug 2006 11:55:50 +0200
+References: <20060807115537.GA15253@in.ibm.com> <20060809094311.GA20050@in.ibm.com> <20060809094516.GA17993@infradead.org>
+In-Reply-To: <20060809094516.GA17993@infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20060809094311.GA20050@in.ibm.com>
+Message-Id: <200608091155.50842.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, Prasanna S Panchamukhi <prasanna@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Jim Keniston <jkenisto@us.ibm.com>, linux-arch@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>, linux-kernel@vger.kernel.org, Prasanna S Panchamukhi <prasanna@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Jim Keniston <jkenisto@us.ibm.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Aug 09, 2006 at 03:13:11PM +0530, Ananth N Mavinakayanahalli wrote:
-> > Good idea.  You should add parentheses around regs, otherwise the C
-> > preprocessor might bite users.  Also the shouting name is quite ugly.
-> > In fact it should probably go to asm/system.h or similar and not have
-> > a kprobes name - it just extracts the return value from a struct pt_regs
-> > after all.
-> 
-> Done! How does this look? I added it to asm/ptrace.h so it lives along
-> with the instruction_pointer() definition.
 
-Looks good, but it would be much better if we had it for every single
-architecture.  I've cc'ed linux-arch so the arch maintainers can comments.
+> >  #define instruction_pointer(regs) ((regs)->eip)
+> > +#define get_retval(regs) ((regs)->eax)
 
-Even if we don't manage to get every architecture maintainer to help out
-you should at least add sparc and s390 to have full coverage of
-architectures with kprobes support
+return_value() would match the names of the existing macro better
 
-> Add the "get_retval" macro that just extracts the return value given the
-> pt_regs. Useful in situations such as while using function-return
-> probes.
-> 
-> Signed-off-by: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-> 
-> ---
->  include/asm-i386/ptrace.h    |    3 +++
->  include/asm-ia64/ptrace.h    |    3 +++
->  include/asm-powerpc/ptrace.h |    2 ++
->  include/asm-x86_64/ptrace.h  |    2 ++
->  4 files changed, 10 insertions(+)
-> 
-> Index: linux-2.6.18-rc3/include/asm-i386/ptrace.h
-> ===================================================================
-> --- linux-2.6.18-rc3.orig/include/asm-i386/ptrace.h
-> +++ linux-2.6.18-rc3/include/asm-i386/ptrace.h
-> @@ -79,7 +79,10 @@ static inline int user_mode_vm(struct pt
->  {
->  	return ((regs->xcs & 3) | (regs->eflags & VM_MASK)) != 0;
->  }
-> +
->  #define instruction_pointer(regs) ((regs)->eip)
-> +#define get_retval(regs) ((regs)->eax)
-> +
->  #if defined(CONFIG_SMP) && defined(CONFIG_FRAME_POINTER)
->  extern unsigned long profile_pc(struct pt_regs *regs);
->  #else
-> Index: linux-2.6.18-rc3/include/asm-ia64/ptrace.h
-> ===================================================================
-> --- linux-2.6.18-rc3.orig/include/asm-ia64/ptrace.h
-> +++ linux-2.6.18-rc3/include/asm-ia64/ptrace.h
-> @@ -237,6 +237,9 @@ struct switch_stack {
->   * the canonical representation by adding to instruction pointer.
->   */
->  # define instruction_pointer(regs) ((regs)->cr_iip + ia64_psr(regs)->ri)
-> +
-> +#define get_retval(regs) ((regs)->r8)
-> +
->  /* Conserve space in histogram by encoding slot bits in address
->   * bits 2 and 3 rather than bits 0 and 1.
->   */
-> Index: linux-2.6.18-rc3/include/asm-powerpc/ptrace.h
-> ===================================================================
-> --- linux-2.6.18-rc3.orig/include/asm-powerpc/ptrace.h
-> +++ linux-2.6.18-rc3/include/asm-powerpc/ptrace.h
-> @@ -73,6 +73,8 @@ struct pt_regs {
->  #ifndef __ASSEMBLY__
->  
->  #define instruction_pointer(regs) ((regs)->nip)
-> +#define get_retval(regs) ((regs)->gpr[3])
-> +
->  #ifdef CONFIG_SMP
->  extern unsigned long profile_pc(struct pt_regs *regs);
->  #else
-> Index: linux-2.6.18-rc3/include/asm-x86_64/ptrace.h
-> ===================================================================
-> --- linux-2.6.18-rc3.orig/include/asm-x86_64/ptrace.h
-> +++ linux-2.6.18-rc3/include/asm-x86_64/ptrace.h
-> @@ -84,6 +84,8 @@ struct pt_regs {
->  #define user_mode(regs) (!!((regs)->cs & 3))
->  #define user_mode_vm(regs) user_mode(regs)
->  #define instruction_pointer(regs) ((regs)->rip)
-> +#define get_retval(regs) ((regs)->rax)
-> +
->  extern unsigned long profile_pc(struct pt_regs *regs);
->  void signal_fault(struct pt_regs *regs, void __user *frame, char *where);
->  
----end quoted text---
+-Andi
+
