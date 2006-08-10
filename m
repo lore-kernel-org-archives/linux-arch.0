@@ -1,169 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nat-132.atmel.no ([80.232.32.132]:22983 "EHLO relay.atmel.no")
-	by vger.kernel.org with ESMTP id S1161376AbWHJQET (ORCPT
+Received: from nat-132.atmel.no ([80.232.32.132]:18916 "EHLO relay.atmel.no")
+	by vger.kernel.org with ESMTP id S1161360AbWHJQES (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Aug 2006 12:04:19 -0400
+	Thu, 10 Aug 2006 12:04:18 -0400
 From: Haavard Skinnemoen <hskinnemoen@atmel.com>
-Subject: [PATCH 3/14] Generic ioremap_page_range: alpha conversion
+Subject: [PATCH 4/14] Generic ioremap_page_range: arm conversion
 Reply-To: Haavard Skinnemoen <hskinnemoen@atmel.com>
-Date: Thu, 10 Aug 2006 18:03:35 +0200
-Message-Id: <115522582724-git-send-email-hskinnemoen@atmel.com>
-In-Reply-To: <11552258271630-git-send-email-hskinnemoen@atmel.com>
-References: <1155225826761-git-send-email-hskinnemoen@atmel.com> <1155225827754-git-send-email-hskinnemoen@atmel.com> <11552258271630-git-send-email-hskinnemoen@atmel.com>
+Date: Thu, 10 Aug 2006 18:03:36 +0200
+Message-Id: <11552258272417-git-send-email-hskinnemoen@atmel.com>
+In-Reply-To: <115522582724-git-send-email-hskinnemoen@atmel.com>
+References: <1155225826761-git-send-email-hskinnemoen@atmel.com> <1155225827754-git-send-email-hskinnemoen@atmel.com> <11552258271630-git-send-email-hskinnemoen@atmel.com> <115522582724-git-send-email-hskinnemoen@atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@osdl.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@atmel.com>, Richard Henderson <rth@twiddle.net>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@atmel.com>, Russell King <rmk@arm.linux.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Richard Henderson <rth@twiddle.net>
+From: Russell King <rmk@arm.linux.org.uk>
 
-Convert Alpha to use generic ioremap_page_range() by turning
-__alpha_remap_area_pages() into an inline wrapper around
-ioremap_page_range().
+Convert ARM to use generic ioremap_page_range()
 
 Signed-off-by: Haavard Skinnemoen <hskinnemoen@atmel.com>
 ---
- arch/alpha/kernel/proto.h |   15 ++++++--
- arch/alpha/mm/Makefile    |    2 +
- arch/alpha/mm/remap.c     |   86 ---------------------------------------------
- 3 files changed, 13 insertions(+), 90 deletions(-)
+ arch/arm/mm/ioremap.c |   95 +++----------------------------------------------
+ 1 files changed, 5 insertions(+), 90 deletions(-)
 
-diff --git a/arch/alpha/kernel/proto.h b/arch/alpha/kernel/proto.h
-index 2a6e3da..21f7128 100644
---- a/arch/alpha/kernel/proto.h
-+++ b/arch/alpha/kernel/proto.h
-@@ -1,5 +1,7 @@
- #include <linux/interrupt.h>
+diff --git a/arch/arm/mm/ioremap.c b/arch/arm/mm/ioremap.c
+index 88a999d..942a1ee 100644
+--- a/arch/arm/mm/ioremap.c
++++ b/arch/arm/mm/ioremap.c
+@@ -22,11 +22,11 @@
+  */
+ #include <linux/module.h>
+ #include <linux/errno.h>
 +#include <linux/io.h>
+ #include <linux/mm.h>
+ #include <linux/vmalloc.h>
  
-+#include <asm/pgtable.h>
+ #include <asm/cacheflush.h>
+-#include <asm/io.h>
+ #include <asm/mmu_context.h>
+ #include <asm/pgalloc.h>
+ #include <asm/tlbflush.h>
+@@ -38,94 +38,6 @@ #include <asm/sizes.h>
+  */
+ #define VM_ARM_SECTION_MAPPING	0x80000000
  
- /* Prototypes of functions used across modules here in this directory.  */
- 
-@@ -181,9 +183,16 @@ extern void titan_dispatch_irqs(u64, str
- extern void switch_to_system_map(void);
- extern void srm_paging_stop(void);
- 
--/* ../mm/remap.c */
--extern int __alpha_remap_area_pages(unsigned long, unsigned long, 
--				    unsigned long, unsigned long);
-+static inline int
-+__alpha_remap_area_pages(unsigned long address, unsigned long phys_addr,
-+			 unsigned long size, unsigned long flags)
-+{
-+	pgprot_t prot;
-+
-+	prot = __pgprot(_PAGE_VALID | _PAGE_ASM | _PAGE_KRE
-+			| _PAGE_KWE | flags);
-+	return ioremap_page_range(address, address + size, phys_addr, prot);
-+}
- 
- /* irq.c */
- 
-diff --git a/arch/alpha/mm/Makefile b/arch/alpha/mm/Makefile
-index 6edd9a0..09399c5 100644
---- a/arch/alpha/mm/Makefile
-+++ b/arch/alpha/mm/Makefile
-@@ -4,6 +4,6 @@ #
- 
- EXTRA_CFLAGS := -Werror
- 
--obj-y	:= init.o fault.o extable.o remap.o
-+obj-y	:= init.o fault.o extable.o
- 
- obj-$(CONFIG_DISCONTIGMEM) += numa.o
-diff --git a/arch/alpha/mm/remap.c b/arch/alpha/mm/remap.c
-deleted file mode 100644
-index a78356c..0000000
---- a/arch/alpha/mm/remap.c
-+++ /dev/null
-@@ -1,86 +0,0 @@
--#include <linux/vmalloc.h>
--#include <asm/pgalloc.h>
--#include <asm/cacheflush.h>
--
--static inline void 
--remap_area_pte(pte_t * pte, unsigned long address, unsigned long size, 
--	       unsigned long phys_addr, unsigned long flags)
+-static inline void
+-remap_area_pte(pte_t * pte, unsigned long address, unsigned long size,
+-	       unsigned long phys_addr, pgprot_t pgprot)
 -{
 -	unsigned long end;
--	unsigned long pfn;
 -
 -	address &= ~PMD_MASK;
 -	end = address + size;
 -	if (end > PMD_SIZE)
 -		end = PMD_SIZE;
--	if (address >= end)
--		BUG();
--	pfn = phys_addr >> PAGE_SHIFT;
+-	BUG_ON(address >= end);
 -	do {
--		if (!pte_none(*pte)) {
--			printk("remap_area_pte: page already exists\n");
--			BUG();
--		}
--		set_pte(pte, pfn_pte(pfn, 
--				     __pgprot(_PAGE_VALID | _PAGE_ASM | 
--				              _PAGE_KRE | _PAGE_KWE | flags)));
+-		if (!pte_none(*pte))
+-			goto bad;
+-
+-		set_pte(pte, pfn_pte(phys_addr >> PAGE_SHIFT, pgprot));
 -		address += PAGE_SIZE;
--		pfn++;
+-		phys_addr += PAGE_SIZE;
 -		pte++;
 -	} while (address && (address < end));
+-	return;
+-
+- bad:
+-	printk("remap_area_pte: page already exists\n");
+-	BUG();
 -}
 -
--static inline int 
--remap_area_pmd(pmd_t * pmd, unsigned long address, unsigned long size, 
+-static inline int
+-remap_area_pmd(pmd_t * pmd, unsigned long address, unsigned long size,
 -	       unsigned long phys_addr, unsigned long flags)
 -{
 -	unsigned long end;
+-	pgprot_t pgprot;
 -
 -	address &= ~PGDIR_MASK;
 -	end = address + size;
+-
 -	if (end > PGDIR_SIZE)
 -		end = PGDIR_SIZE;
+-
 -	phys_addr -= address;
--	if (address >= end)
--		BUG();
+-	BUG_ON(address >= end);
+-
+-	pgprot = __pgprot(L_PTE_PRESENT | L_PTE_YOUNG | L_PTE_DIRTY | L_PTE_WRITE | flags);
 -	do {
 -		pte_t * pte = pte_alloc_kernel(pmd, address);
 -		if (!pte)
 -			return -ENOMEM;
--		remap_area_pte(pte, address, end - address, 
--				     address + phys_addr, flags);
+-		remap_area_pte(pte, address, end - address, address + phys_addr, pgprot);
 -		address = (address + PMD_SIZE) & PMD_MASK;
 -		pmd++;
 -	} while (address && (address < end));
 -	return 0;
 -}
 -
--int
--__alpha_remap_area_pages(unsigned long address, unsigned long phys_addr,
--			 unsigned long size, unsigned long flags)
+-static int
+-remap_area_pages(unsigned long start, unsigned long pfn,
+-		 unsigned long size, unsigned long flags)
 -{
+-	unsigned long address = start;
+-	unsigned long end = start + size;
+-	unsigned long phys_addr = __pfn_to_phys(pfn);
+-	int err = 0;
 -	pgd_t * dir;
--	int error = 0;
--	unsigned long end = address + size;
 -
 -	phys_addr -= address;
 -	dir = pgd_offset(&init_mm, address);
--	flush_cache_all();
--	if (address >= end)
--		BUG();
+-	BUG_ON(address >= end);
 -	do {
--		pmd_t *pmd;
--		pmd = pmd_alloc(&init_mm, dir, address);
--		error = -ENOMEM;
--		if (!pmd)
+-		pmd_t *pmd = pmd_alloc(&init_mm, dir, address);
+-		if (!pmd) {
+-			err = -ENOMEM;
 -			break;
+-		}
 -		if (remap_area_pmd(pmd, address, end - address,
--			           phys_addr + address, flags))
+-					 phys_addr + address, flags)) {
+-			err = -ENOMEM;
 -			break;
--		error = 0;
+-		}
+-
 -		address = (address + PGDIR_SIZE) & PGDIR_MASK;
 -		dir++;
 -	} while (address && (address < end));
--	return error;
+-
+-	return err;
 -}
 -
+-
+ void __check_kvm_seq(struct mm_struct *mm)
+ {
+ 	unsigned int seq;
+@@ -326,7 +238,10 @@ #ifndef CONFIG_SMP
+ 		err = remap_area_sections(addr, pfn, size, flags);
+ 	} else
+ #endif
+-		err = remap_area_pages(addr, pfn, size, flags);
++		err = ioremap_page_range(addr, addr + size, pfn << PAGE_SHIFT,
++					 __pgprot(L_PTE_PRESENT | L_PTE_YOUNG
++						  | L_PTE_DIRTY | L_PTE_WRITE
++						  | flags));
+ 
+ 	if (err) {
+  		vunmap((void *)addr);
 -- 
 1.4.0
 
