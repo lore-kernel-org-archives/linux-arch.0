@@ -1,51 +1,174 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate1.uk.ibm.com ([195.212.29.134]:53890 "EHLO
-	mtagate1.uk.ibm.com") by vger.kernel.org with ESMTP
-	id S1161288AbWHJOxw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Aug 2006 10:53:52 -0400
-Subject: Re: [PATCH] x86_64: Make NR_IRQS configurable in Kconfig
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <44DB4547.80007@shadowen.org>
-References: <m1irl4ftya.fsf@ebiederm.dsl.xmission.com>
-	 <20060807194159.f7c741b5.akpm@osdl.org>
-	 <17624.7310.856480.704542@cargo.ozlabs.ibm.com>
-	 <200608080714.21151.ak@suse.de> <1155025073.26277.18.camel@localhost>
-	 <20060809175854.GA14382@intel.com>
-	 <1155147948.19249.171.camel@localhost.localdomain>
-	 <1155214538.14749.54.camel@localhost>  <44DB4547.80007@shadowen.org>
-Content-Type: text/plain
-Date: Thu, 10 Aug 2006 16:53:48 +0200
-Message-Id: <1155221628.14749.60.camel@localhost>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from nat-132.atmel.no ([80.232.32.132]:61384 "EHLO relay.atmel.no")
+	by vger.kernel.org with ESMTP id S1161374AbWHJQFK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Aug 2006 12:05:10 -0400
+From: Haavard Skinnemoen <hskinnemoen@atmel.com>
+Subject: [PATCH 10/14] Generic ioremap_page_range: parisc conversion
+Reply-To: Haavard Skinnemoen <hskinnemoen@atmel.com>
+Date: Thu, 10 Aug 2006 18:03:42 +0200
+Message-Id: <11552258272884-git-send-email-hskinnemoen@atmel.com>
+In-Reply-To: <11552258271464-git-send-email-hskinnemoen@atmel.com>
+References: <1155225826761-git-send-email-hskinnemoen@atmel.com> <1155225827754-git-send-email-hskinnemoen@atmel.com> <11552258271630-git-send-email-hskinnemoen@atmel.com> <115522582724-git-send-email-hskinnemoen@atmel.com> <11552258272417-git-send-email-hskinnemoen@atmel.com> <11552258273292-git-send-email-hskinnemoen@atmel.com> <11552258272265-git-send-email-hskinnemoen@atmel.com> <11552258271169-git-send-email-hskinnemoen@atmel.com> <11552258273246-git-send-email-hskinnemoen@atmel.com> <11552258271464-git-send-email-hskinnemoen@atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andy Whitcroft <apw@shadowen.org>
-Cc: Dave Hansen <haveblue@us.ibm.com>, "Luck, Tony" <tony.luck@intel.com>, Andi Kleen <ak@suse.de>, Paul Mackerras <paulus@samba.org>, Andrew Morton <akpm@osdl.org>, "Eric W. Biederman" <ebiederm@xmission.com>, "Randy.Dunlap" <rdunlap@xenotime.net>, "Protasevich, Natalie" <Natalie.Protasevich@unisys.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@atmel.com>, Kyle McMartin <kyle@parisc-linux.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2006-08-10 at 15:40 +0100, Andy Whitcroft wrote:
-> Well you could do something more fun with the top of the address.  You
-> don't need to keep the bytes in the same order for instance.  If this
-> is really a fair size chunk at the bottom and one at the top then
-> taking the address and swapping the bytes like:
-> 
->         ABCDEFGH => BCDAEFGH
-> 
-> Would be a pretty trivial bit of register wibbling (ie very quick),
-> but would probabally mean a single flat, smaller sparsemem table would
-> cover all likely areas. 
+From: Kyle McMartin <kyle@parisc-linux.org>
 
-Not if you don't know where the objects will be mapped..
+Convert parisc to use generic ioremap_page_range()
 
+Signed-off-by: Haavard Skinnemoen <hskinnemoen@atmel.com>
+Acked-by: Kyle McMartin <kyle@parisc-linux.org>
+---
+ arch/parisc/mm/ioremap.c |  111 +++-------------------------------------------
+ 1 files changed, 7 insertions(+), 104 deletions(-)
+
+diff --git a/arch/parisc/mm/ioremap.c b/arch/parisc/mm/ioremap.c
+index 2738456..a31da6c 100644
+--- a/arch/parisc/mm/ioremap.c
++++ b/arch/parisc/mm/ioremap.c
+@@ -9,110 +9,8 @@
+ #include <linux/vmalloc.h>
+ #include <linux/errno.h>
+ #include <linux/module.h>
+-#include <asm/io.h>
++#include <linux/io.h>
+ #include <asm/pgalloc.h>
+-#include <asm/tlbflush.h>
+-#include <asm/cacheflush.h>
+-
+-static inline void 
+-remap_area_pte(pte_t *pte, unsigned long address, unsigned long size,
+-	       unsigned long phys_addr, unsigned long flags)
+-{
+-	unsigned long end, pfn;
+-	pgprot_t pgprot = __pgprot(_PAGE_PRESENT | _PAGE_RW | _PAGE_DIRTY |
+-				   _PAGE_ACCESSED | flags);
+-
+-	address &= ~PMD_MASK;
+-
+-	end = address + size;
+-	if (end > PMD_SIZE)
+-		end = PMD_SIZE;
+-
+-	BUG_ON(address >= end);
+-
+-	pfn = phys_addr >> PAGE_SHIFT;
+-	do {
+-		BUG_ON(!pte_none(*pte));
+-
+-		set_pte(pte, pfn_pte(pfn, pgprot));
+-
+-		address += PAGE_SIZE;
+-		pfn++;
+-		pte++;
+-	} while (address && (address < end));
+-}
+-
+-static inline int 
+-remap_area_pmd(pmd_t *pmd, unsigned long address, unsigned long size,
+-	       unsigned long phys_addr, unsigned long flags)
+-{
+-	unsigned long end;
+-
+-	address &= ~PGDIR_MASK;
+-
+-	end = address + size;
+-	if (end > PGDIR_SIZE)
+-		end = PGDIR_SIZE;
+-
+-	BUG_ON(address >= end);
+-
+-	phys_addr -= address;
+-	do {
+-		pte_t *pte = pte_alloc_kernel(pmd, address);
+-		if (!pte)
+-			return -ENOMEM;
+-
+-		remap_area_pte(pte, address, end - address, 
+-			       address + phys_addr, flags);
+-
+-		address = (address + PMD_SIZE) & PMD_MASK;
+-		pmd++;
+-	} while (address && (address < end));
+-
+-	return 0;
+-}
+-
+-static int 
+-remap_area_pages(unsigned long address, unsigned long phys_addr,
+-		 unsigned long size, unsigned long flags)
+-{
+-	pgd_t *dir;
+-	int error = 0;
+-	unsigned long end = address + size;
+-
+-	BUG_ON(address >= end);
+-
+-	phys_addr -= address;
+-	dir = pgd_offset_k(address);
+-
+-	flush_cache_all();
+-
+-	do {
+-		pud_t *pud;
+-		pmd_t *pmd;
+-
+-		error = -ENOMEM;
+-		pud = pud_alloc(&init_mm, dir, address);
+-		if (!pud)
+-			break;
+-
+-		pmd = pmd_alloc(&init_mm, pud, address);
+-		if (!pmd)
+-			break;
+-
+-		if (remap_area_pmd(pmd, address, end - address,
+-				   phys_addr + address, flags))
+-			break;
+-
+-		error = 0;
+-		address = (address + PGDIR_SIZE) & PGDIR_MASK;
+-		dir++;
+-	} while (address && (address < end));
+-
+-	flush_tlb_all();
+-
+-	return error;
+-}
+ 
+ /*
+  * Generic mapping function (not visible outside):
+@@ -131,6 +29,7 @@ void __iomem * __ioremap(unsigned long p
+ 	void *addr;
+ 	struct vm_struct *area;
+ 	unsigned long offset, last_addr;
++	pgprot_t pgprot;
+ 
+ #ifdef CONFIG_EISA
+ 	unsigned long end = phys_addr + size - 1;
+@@ -164,6 +63,9 @@ #endif
+ 		}
+ 	}
+ 
++	pgprot = __pgprot(_PAGE_PRESENT | _PAGE_RW | _PAGE_DIRTY |
++			  _PAGE_ACCESSED | flags);
++
+ 	/*
+ 	 * Mappings have to be page-aligned
+ 	 */
+@@ -179,7 +81,8 @@ #endif
+ 		return NULL;
+ 
+ 	addr = area->addr;
+-	if (remap_area_pages((unsigned long) addr, phys_addr, size, flags)) {
++	if (ioremap_page_range((unsigned long)addr, (unsigned long)addr + size,
++			       phys_addr, pgprot)) {
+ 		vfree(addr);
+ 		return NULL;
+ 	}
 -- 
-blue skies,
-  Martin.
-
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
-
-"Reality continues to ruin my life." - Calvin.
-
+1.4.0
 
