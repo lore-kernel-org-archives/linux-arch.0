@@ -1,38 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:21937 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S1751846AbWHNFA1 (ORCPT
+Received: from pasmtpb.tele.dk ([80.160.77.98]:57835 "EHLO pasmtp.tele.dk")
+	by vger.kernel.org with ESMTP id S1751046AbWHNFit (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Aug 2006 01:00:27 -0400
-From: Andi Kleen <ak@suse.de>
+	Mon, 14 Aug 2006 01:38:49 -0400
+Date: Mon, 14 Aug 2006 07:38:31 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: module compiler version check still needed?
-Date: Mon, 14 Aug 2006 06:59:49 +0200
-References: <31645.1155445159@ocs10w.ocs.com.au> <200608132227.24719.ak@suse.de> <20060813221456.GC789@parisc-linux.org>
-In-Reply-To: <20060813221456.GC789@parisc-linux.org>
+Message-ID: <20060814053831.GA23871@mars.ravnborg.org>
+References: <31645.1155445159@ocs10w.ocs.com.au> <200608132227.24719.ak@suse.de> <20060813221456.GC789@parisc-linux.org> <200608140659.49462.ak@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200608140659.49462.ak@suse.de>
+In-Reply-To: <200608140659.49462.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Keith Owens <kaos@ocs.com.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: Matthew Wilcox <matthew@wil.cx>, Keith Owens <kaos@ocs.com.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Monday 14 August 2006 00:14, Matthew Wilcox wrote:
-> On Sun, Aug 13, 2006 at 10:27:24PM +0200, Andi Kleen wrote:
-> > On Sunday 13 August 2006 06:59, Keith Owens wrote:
-> > > IA64 still needs the check.  include/asm-ia64/spinlock.h generates
-> > > different calls to the out of line spinlock handler, depending on the
-> > > version of gcc.
-> > 
-> > Thanks. But I guess it could be used to MODULE_ARCH_VERMAGIC for ia64 only then.
-> > If nobody else complains I will do that.
+On Mon, Aug 14, 2006 at 06:59:49AM +0200, Andi Kleen wrote:
+ > 
+> > Will we remember to add the check back in when we introduce new
+> > dependencies on compiler versions?
 > 
-> Will we remember to add the check back in when we introduce new
-> dependencies on compiler versions?
+> If something breaks it be readded. I see it only as a special
+> hack for some extraordinary, and hopefully these problems won't happen again.
+What we should add should be some kind of cabability mask.
+There is no need to require that modules are built with exactly the same
+compiler as the kernel when it is only a very few compiler versions that
+causes layout/ABI differences.
 
-If something breaks it be readded. I see it only as a special
-hack for some extraordinary, and hopefully these problems won't happen again.
-
--Andi
+	Sam
