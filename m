@@ -1,40 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:12418 "EHLO mx1.suse.de")
-	by vger.kernel.org with ESMTP id S1751442AbWHNFpW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Aug 2006 01:45:22 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: module compiler version check still needed?
-Date: Mon, 14 Aug 2006 07:45:14 +0200
-References: <31645.1155445159@ocs10w.ocs.com.au> <200608140659.49462.ak@suse.de> <20060814053831.GA23871@mars.ravnborg.org>
-In-Reply-To: <20060814053831.GA23871@mars.ravnborg.org>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:41738 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S1751811AbWHNHUC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 14 Aug 2006 03:20:02 -0400
+Date: Mon, 14 Aug 2006 08:19:56 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 4/14] Generic ioremap_page_range: arm conversion
+Message-ID: <20060814071955.GA26225@flint.arm.linux.org.uk>
+References: <1155225826761-git-send-email-hskinnemoen@atmel.com> <1155225827754-git-send-email-hskinnemoen@atmel.com> <11552258271630-git-send-email-hskinnemoen@atmel.com> <115522582724-git-send-email-hskinnemoen@atmel.com> <11552258272417-git-send-email-hskinnemoen@atmel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200608140745.14435.ak@suse.de>
+In-Reply-To: <11552258272417-git-send-email-hskinnemoen@atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Keith Owens <kaos@ocs.com.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Haavard Skinnemoen <hskinnemoen@atmel.com>
+Cc: Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Monday 14 August 2006 07:38, Sam Ravnborg wrote:
-> On Mon, Aug 14, 2006 at 06:59:49AM +0200, Andi Kleen wrote:
->  > 
-> > > Will we remember to add the check back in when we introduce new
-> > > dependencies on compiler versions?
-> > 
-> > If something breaks it be readded. I see it only as a special
-> > hack for some extraordinary, and hopefully these problems won't happen again.
-> What we should add should be some kind of cabability mask.
+On Thu, Aug 10, 2006 at 06:03:36PM +0200, Haavard Skinnemoen wrote:
+> From: Russell King <rmk@arm.linux.org.uk>
+> 
+> Convert ARM to use generic ioremap_page_range()
 
-It would be probably overkill.
+NAK.  There are already issues with using the xxx_kernel variants of
+the page table functions for IO mappings on later architectures (caused
+by speculative loads hitting IO regions.)  This code needs to change
+slightly so that we have xxx_io versions of pte_alloc and friends.
 
-> There is no need to require that modules are built with exactly the same
-> compiler as the kernel when it is only a very few compiler versions that
-> causes layout/ABI differences.
+(It also means that we need an ioremap region and a separate vmalloc
+region on ARM...)
 
-On i386/x86-64 that's not the case anymore as far as I know.
-
--Andi
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
