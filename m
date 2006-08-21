@@ -1,47 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.tip.net.au ([203.10.76.45]:13788 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S932392AbWHUAhA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 20 Aug 2006 20:37:00 -0400
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <17641.30.670343.779791@cargo.ozlabs.ibm.com>
-Date: Mon, 21 Aug 2006 10:36:46 +1000
-From: Paul Mackerras <paulus@samba.org>
+Received: from saraswathi.solana.com ([198.99.130.12]:27277 "EHLO
+	saraswathi.solana.com") by vger.kernel.org with ESMTP
+	id S1751803AbWHUB5H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 20 Aug 2006 21:57:07 -0400
+Date: Sun, 20 Aug 2006 21:55:17 -0400
+From: Jeff Dike <jdike@addtoit.com>
 Subject: Re: [PATCH] introduce kernel_execve function to replace __KERNEL_SYSCALLS__
-In-Reply-To: <200608201913.39989.arnd@arndb.de>
-References: <20060819073031.GA25711@atjola.homenet>
-	<200608201501.29296.arnd@arndb.de>
-	<20060820134745.GA11843@atjola.homenet>
-	<200608201913.39989.arnd@arndb.de>
+Message-ID: <20060821015517.GA22062@ccure.user-mode-linux.org>
+References: <20060819073031.GA25711@atjola.homenet> <200608201237.13194.chase.venters@clientec.com> <20060820112523.f14fc6dc.akpm@osdl.org> <200608201333.02951.chase.venters@clientec.com> <20060820194552.GB11843@atjola.homenet> <1156103446.23756.60.camel@laptopd505.fenrus.org> <20060820201118.GC11843@atjola.homenet> <1156105229.23756.65.camel@laptopd505.fenrus.org> <20060820203604.GD11843@atjola.homenet>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20060820203604.GD11843@atjola.homenet>
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: =?iso-8859-1?q?Bj=F6rn_Steinbrink?= <B.Steinbrink@gmx.de>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@osdl.org>, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Bj?rn Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Arnd Bergmann writes:
+On Sun, Aug 20, 2006 at 10:36:04PM +0200, Bj?rn Steinbrink wrote:
+> For example check_host_supports_tls in arch/um/os-Linux/sys-i386/tls.c
+> which even uses the global errno (although in that case the whole
+> else part could probably be just removed).
 
-> Iit turned out most of the architectures that already implement
-> their own execve() call instead of using the _syscall3 function
-> for it end up passing the return value of sys_execve down, 
-> instead of setting errno.
+UML is different.  It uses errno extensively (as it must) on the glibc side
+of things.  On the kernel side, there are no uses of errno that I'm aware of.
 
-I really don't like having an "errno" variable in the kernel.  What if
-two processes are doing an execve concurrently?
-
-Anyway, your patch returns the (positive) errno value here:
-
-> +	WARN_ON(segment_eq(fs, USER_DS));
-> +	ret = execve(filename, (char **)argv, (char **)envp);
-> +	if (ret)
-> +		ret = errno;
-> +
-> +	return ret;
-
-but here we are testing for a negative value to mean error:
-
-> -	if (execve("/sbin/shutdown", argv, envp) < 0) {
-> +	if (kernel_execve("/sbin/shutdown", argv, envp) < 0) {
-
-Paul.
+				Jeff
