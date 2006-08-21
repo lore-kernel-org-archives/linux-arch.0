@@ -1,85 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.183]:14064 "EHLO
-	moutng.kundenserver.de") by vger.kernel.org with ESMTP
-	id S1422681AbWHUPMb convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Aug 2006 11:12:31 -0400
-From: Arnd Bergmann <arnd@arndb.de>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:9232 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S1030301AbWHUPRb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 Aug 2006 11:17:31 -0400
+Date: Mon, 21 Aug 2006 16:17:20 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH] introduce kernel_execve function to replace __KERNEL_SYSCALLS__
-Date: Mon, 21 Aug 2006 17:12:17 +0200
-References: <20060819073031.GA25711@atjola.homenet> <200608201913.39989.arnd@arndb.de> <17641.30.670343.779791@cargo.ozlabs.ibm.com>
-In-Reply-To: <17641.30.670343.779791@cargo.ozlabs.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
+Message-ID: <20060821151720.GB11266@flint.arm.linux.org.uk>
+References: <20060819073031.GA25711@atjola.homenet> <200608201913.39989.arnd@arndb.de> <17641.30.670343.779791@cargo.ozlabs.ibm.com> <200608211712.17780.arnd@arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200608211712.17780.arnd@arndb.de>
+In-Reply-To: <200608211712.17780.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: =?iso-8859-1?q?Bj=F6rn_Steinbrink?= <B.Steinbrink@gmx.de>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@osdl.org>, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Paul Mackerras <paulus@samba.org>, Bj?rn Steinbrink <B.Steinbrink@gmx.de>, Andrew Morton <akpm@osdl.org>, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Monday 21 August 2006 02:36, Paul Mackerras wrote:
-> > Iit turned out most of the architectures that already implement
-> > their own execve() call instead of using the _syscall3 function
-> > for it end up passing the return value of sys_execve down, 
-> > instead of setting errno.
+On Mon, Aug 21, 2006 at 05:12:17PM +0200, Arnd Bergmann wrote:
+> On Monday 21 August 2006 02:36, Paul Mackerras wrote:
+> > > Iit turned out most of the architectures that already implement
+> > > their own execve() call instead of using the _syscall3 function
+> > > for it end up passing the return value of sys_execve down, 
+> > > instead of setting errno.
+> > 
+> > I really don't like having an "errno" variable in the kernel. ?What if
+> > two processes are doing an execve concurrently?
 > 
-> I really don't like having an "errno" variable in the kernel.  What if
-> two processes are doing an execve concurrently?
-
-The point is that we have two different schemes in the kernel that
-conflict:
-
-alpha, arm{,26}, ia64, parisc, powerpc and x86_64 pass the error
-code from execve, all others pass -1 and set the global errno.
-
-So the caller does not really have a chance to get the correct error
-value at all. Bjoern's first patch changed one caller from looking
-at the return value to looking at errno in case of an error, which
-shifts the problem to other architectures.
-
-My patch makes the errno variable local to execve, which slightly
-helps, and makes it easier to get it right completely right
-by doing the same as powerpc or parisc.
-
-Now, we could do a truely evil involving a nested function, like
-
-#include <asm/bug.h>
-#include <asm/uaccess.h>
-#define __KERNEL_SYSCALLS__
-#include <linux/unistd.h>
-int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-{
-	mm_segment_t fs = get_fs();
-	int errno;
-	int ret;
-	_syscall3(int,execve,const char *,file,char *const*,argv,char *const*,envp)
-	WARN_ON(segment_eq(fs, USER_DS));
-	ret = execve(filename, argv, envp);
-	if (ret)
-		ret = -errno;
-	return ret;
-}
-
-That would solve the problem of races on the errno variable,
-but set a bad example to other hackers.
-
-> Anyway, your patch returns the (positive) errno value here:
+> The point is that we have two different schemes in the kernel that
+> conflict:
 > 
-> > +     WARN_ON(segment_eq(fs, USER_DS));
-> > +     ret = execve(filename, (char **)argv, (char **)envp);
-> > +     if (ret)
-> > +             ret = errno;
-> > +
-> > +     return ret;
-> 
-> but here we are testing for a negative value to mean error:
-> 
-> > -     if (execve("/sbin/shutdown", argv, envp) < 0) {
-> > +     if (kernel_execve("/sbin/shutdown", argv, envp) < 0) {
+> alpha, arm{,26}, ia64, parisc, powerpc and x86_64 pass the error
+> code from execve, all others pass -1 and set the global errno.
 
-Yes, Chase Venters already noticed that bug. If obviously needs
-to be 'ret = -errno;'.
+Indeed, and rather than fixing execve() for one set of architectures
+and by doing that breaking the other set, the point of this change is
+to fix _all_ architectures in the most expedient way.
 
-	Arnd <><
+At a later date, those architectures who are using the global errno
+can have that _separate_ bug fixed.
+
+Let's fix one bug at a time.  Especially as this probably needs to go
+in to -rc.
+
+Arnd - thanks for taking this on.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
