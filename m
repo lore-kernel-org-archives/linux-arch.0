@@ -1,39 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [198.99.130.12] ([198.99.130.12]:11940 "EHLO
-	saraswathi.solana.com") by vger.kernel.org with ESMTP
-	id S932322AbWHVPia (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Aug 2006 11:38:30 -0400
-Date: Tue, 22 Aug 2006 11:37:23 -0400
-From: Jeff Dike <jdike@addtoit.com>
+Received: from mail.gmx.de ([213.165.64.20]:15334 "HELO mail.gmx.net")
+	by vger.kernel.org with SMTP id S1751034AbWHVIAt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Aug 2006 04:00:49 -0400
+Date: Tue, 22 Aug 2006 10:00:46 +0200
+From: =?iso-8859-1?Q?Bj=F6rn?= Steinbrink <B.Steinbrink@gmx.de>
 Subject: Re: [PATCH] introduce kernel_execve function to replace __KERNEL_SYSCALLS__
-Message-ID: <20060822153723.GA4949@ccure.user-mode-linux.org>
-References: <20060819073031.GA25711@atjola.homenet> <200608221207.00344.arnd@arndb.de> <20060822133945.GA3813@ccure.user-mode-linux.org> <200608221713.40165.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Message-ID: <20060822080046.GA22572@atjola.homenet>
+References: <20060819073031.GA25711@atjola.homenet> <200608201913.39989.arnd@arndb.de> <17641.30.670343.779791@cargo.ozlabs.ibm.com> <200608211712.17780.arnd@arndb.de> <1156231742.21752.101.camel@localhost.localdomain>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <200608221713.40165.arnd@arndb.de>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1156231742.21752.101.camel@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Bj?rn Steinbrink <B.Steinbrink@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@osdl.org>, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Paul Mackerras <paulus@samba.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@osdl.org>, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Aug 22, 2006 at 05:13:39PM +0200, Arnd Bergmann wrote:
-> No, that's not what I was referring to. I was thinking of the calls:
+On 2006.08.22 17:29:02 +1000, Benjamin Herrenschmidt wrote:
+> On Mon, 2006-08-21 at 17:12 +0200, Arnd Bergmann wrote:
+> > On Monday 21 August 2006 02:36, Paul Mackerras wrote:
+> > > > Iit turned out most of the architectures that already implement
+> > > > their own execve() call instead of using the _syscall3 function
+> > > > for it end up passing the return value of sys_execve down, 
+> > > > instead of setting errno.
+> > > 
+> > > I really don't like having an "errno" variable in the kernel.  What if
+> > > two processes are doing an execve concurrently?
+> > 
+> > The point is that we have two different schemes in the kernel that
+> > conflict:
+> > 
+> > alpha, arm{,26}, ia64, parisc, powerpc and x86_64 pass the error
+> > code from execve, all others pass -1 and set the global errno.
 > 
-> arch/um/os-Linux/process.c:inline _syscall0(pid_t, getpid)
-> arch/um/os-Linux/sys-i386/tls.c:static _syscall1(int, get_thread_area, user_desc_t *, u_info);
-> arch/um/os-Linux/tls.c:static _syscall1(int, get_thread_area, user_desc_t *, u_info);
-> arch/um/os-Linux/tls.c:static _syscall1(int, set_thread_area, user_desc_t *, u_info);
-> arch/um/sys-i386/unmap.c:static inline _syscall2(int,munmap,void *,start,size_t,len)
-> arch/um/sys-i386/unmap.c:static inline _syscall6(void *,mmap2,void *,addr,size_t,len,int,prot,int,flags,int,fd,off_t,offset)
-> arch/um/sys-x86_64/unmap.c:static inline _syscall2(int,munmap,void *,start,size_t,len)
-> arch/um/sys-x86_64/unmap.c:static inline _syscall6(void *,mmap,void *,addr,size_t,len,int,prot,int,flags,int,fd,off_t,offset)
-> 
-> Are these for calling the host OS or calling the UML kernel?
-> If they are for the host, they can be implemented using syscall(),
-> otherwise by calling the sys_* functions directly.
+> All other need to be fixed then... having an errno is just plain wrong.
 
-OK, these are all calling the host, and using syscall() instead sounds
-reasonable.
+I'm working on a patch loosely based on Arnd's that changes the
+in-kernel syscall macros to directly return the error codes. Once
+kernel_execve is implemented for each arch, only um should remain as a
+user and I found only two calls there that care about the exact
+non-zero return value, both are simple to adapt.
+That should allow to get rid of errno completely. If someone knows a
+reason why this is destined to fail (maybe syscalls returning char?!),
+please let me know before I waste too much time on it ;)
 
-				Jeff
+Björn
