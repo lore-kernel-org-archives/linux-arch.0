@@ -1,42 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:8105 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S932069AbWHVHa0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Aug 2006 03:30:26 -0400
-Subject: Re: [PATCH] introduce kernel_execve function to replace
-	__KERNEL_SYSCALLS__
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <200608211712.17780.arnd@arndb.de>
-References: <20060819073031.GA25711@atjola.homenet>
-	 <200608201913.39989.arnd@arndb.de>
-	 <17641.30.670343.779791@cargo.ozlabs.ibm.com>
-	 <200608211712.17780.arnd@arndb.de>
-Content-Type: text/plain
-Date: Tue, 22 Aug 2006 17:29:02 +1000
-Message-Id: <1156231742.21752.101.camel@localhost.localdomain>
+Received: from saraswathi.solana.com ([198.99.130.12]:46242 "EHLO
+	saraswathi.solana.com") by vger.kernel.org with ESMTP
+	id S932245AbWHVNl0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Aug 2006 09:41:26 -0400
+Date: Tue, 22 Aug 2006 09:39:45 -0400
+From: Jeff Dike <jdike@addtoit.com>
+Subject: Re: [PATCH] introduce kernel_execve function to replace __KERNEL_SYSCALLS__
+Message-ID: <20060822133945.GA3813@ccure.user-mode-linux.org>
+References: <20060819073031.GA25711@atjola.homenet> <1156231742.21752.101.camel@localhost.localdomain> <20060822080046.GA22572@atjola.homenet> <200608221207.00344.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <200608221207.00344.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Paul Mackerras <paulus@samba.org>, =?ISO-8859-1?Q?Bj=F6rn?= Steinbrink <B.Steinbrink@gmx.de>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@osdl.org>, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Bj?rn Steinbrink <B.Steinbrink@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@osdl.org>, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2006-08-21 at 17:12 +0200, Arnd Bergmann wrote:
-> On Monday 21 August 2006 02:36, Paul Mackerras wrote:
-> > > Iit turned out most of the architectures that already implement
-> > > their own execve() call instead of using the _syscall3 function
-> > > for it end up passing the return value of sys_execve down, 
-> > > instead of setting errno.
-> > 
-> > I really don't like having an "errno" variable in the kernel.  What if
-> > two processes are doing an execve concurrently?
-> 
-> The point is that we have two different schemes in the kernel that
-> conflict:
-> 
-> alpha, arm{,26}, ia64, parisc, powerpc and x86_64 pass the error
-> code from execve, all others pass -1 and set the global errno.
+On Tue, Aug 22, 2006 at 12:06:59PM +0200, Arnd Bergmann wrote:
+> UML can be converted to use the syscall function provided by libc
+> in order to call the host OS.
 
-All other need to be fixed then... having an errno is just plain wrong.
+You're contemplating changing UML to do, e.g.
+	syscall(NR_write, fd, buf, len)
+instead of the current
+	write(fd, buf,len)
+?
 
+That hardly seems like an improvement and it seems fairly unnecessary.
 
+				Jeff
