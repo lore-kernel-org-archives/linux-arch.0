@@ -1,36 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.ocgnet.org ([64.20.243.3]:53992 "EHLO smtp.ocgnet.org")
-	by vger.kernel.org with ESMTP id S965065AbWHYFbb (ORCPT
+Received: from witte.sonytel.be ([80.88.33.193]:6311 "EHLO witte.sonytel.be")
+	by vger.kernel.org with ESMTP id S1751270AbWHYIL5 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Aug 2006 01:31:31 -0400
-Date: Fri, 25 Aug 2006 14:31:27 +0900
-From: Paul Mundt <lethal@linux-sh.org>
+	Fri, 25 Aug 2006 04:11:57 -0400
+Date: Fri, 25 Aug 2006 10:11:44 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [RFC][PATCH] unify all architecture PAGE_SIZE definitions
-Message-ID: <20060825053127.GA9066@localhost.hsdv.com>
+In-Reply-To: <20060824234445.6B519D52@localhost.localdomain>
+Message-ID: <Pine.LNX.4.62.0608251006390.3267@pademelon.sonytel.be>
 References: <20060824234445.6B519D52@localhost.localdomain>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20060824234445.6B519D52@localhost.localdomain>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: Dave Hansen <haveblue@us.ibm.com>
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Aug 24, 2006 at 04:44:45PM -0700, Dave Hansen wrote:
-> This patch unifies all of those definitions.  It defines PAGE_SIZE in
-> a single header which gets its definitions from Kconfig.  The new
-> Kconfig options mirror what used to be done with #ifdefs and
-> arch-specific Kconfig options.  The new Kconfig menu eliminates
-> the need for parisc, ia64, and sparc64 to have their own "choice"
-> menus for selecting page size.  The help text has been adapted from
-> these three architectures, but is now more generic.
-> 
-I like the idea of asm-generic/page_size.h (though why not just use
-asm-generic/page.h?) and ripping that out from the architecture headers,
-though the mm/Kconfig bits look like something best left in the
-architecture Kconfigs.
+On Thu, 24 Aug 2006, Dave Hansen wrote:
+> +config PAGE_SHIFT
+> +	int
+> +	default "13" if PAGE_SIZE_8KB || ALPHA || SUN3 || SUN4
+> +	default "14" if PAGE_SIZE_16KB || FRV || CRIS
+> +	default "16" if PAGE_SIZE_64KB || FRV || CRIS
 
-PAGE_SHIFT is really the only thing of interest, and that can be handled
-without the CONFIG_PAGE_SIZE mess. The architectures that really care
-about it can use their current hacks or just check PAGE_SHIFT.
+Why do we have `|| FRV || CRIS' twice? Won't it always select 14 for FRV and
+CRIS? Or am I missing some important Kconfig rule?
+
+> +	default "19" if PAGE_SIZE_512KB
+> +	default "22" if PAGE_SIZE_4MB
+> +	default "12" # arm || h8300 || i386 | m68knommu |ppc
+> +		     # s390 || um || v850 || xtensa
+> +
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
