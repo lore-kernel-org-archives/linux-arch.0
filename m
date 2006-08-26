@@ -1,132 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.ocgnet.org ([64.20.243.3]:14754 "EHLO smtp.ocgnet.org")
-	by vger.kernel.org with ESMTP id S1751108AbWHZBRp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Aug 2006 21:17:45 -0400
-Date: Sat, 26 Aug 2006 10:17:37 +0900
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [RFC][PATCH] unify all architecture PAGE_SIZE definitions
-Message-ID: <20060826011737.GA10344@localhost.usen.ad.jp>
-References: <20060824234445.6B519D52@localhost.localdomain> <20060825053127.GA9066@localhost.hsdv.com> <1156539879.12011.206.camel@localhost.localdomain> <20060824234445.6B519D52@localhost.localdomain> <20060825053127.GA9066@localhost.hsdv.com> <1156518223.12011.175.camel@localhost.localdomain>
-MIME-Version: 1.0
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:36625 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S964931AbWHZIU1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Aug 2006 04:20:27 -0400
+Date: Sat, 26 Aug 2006 09:20:17 +0100
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: Cache alias handling in copy_user_page / copy_user_highpage
+Message-ID: <20060826082017.GE725@flint.arm.linux.org.uk>
+References: <20060819122520.GA18180@linux-mips.org>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1156539879.12011.206.camel@localhost.localdomain> <1156518223.12011.175.camel@localhost.localdomain>
+In-Reply-To: <20060819122520.GA18180@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Dave Hansen <haveblue@us.ibm.com>
-Cc: linux-arch@vger.kernel.org
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Aug 25, 2006 at 08:03:43AM -0700, Dave Hansen wrote:
-> On Fri, 2006-08-25 at 14:31 +0900, Paul Mundt wrote:
-> I just changed this around a little bit so that only the architectures
-> that care see the prompt:
+On Sat, Aug 19, 2006 at 01:25:20PM +0100, Ralf Baechle wrote:
+> A common implementation of copy_user_page performs a copy_page and a
+> cacheflush operation and this implementation is suspect to above problem.
+> I know MIPS and PARISC suffer from the problem.  ARM and m68k look suspect
+> to me at which point I stopped looking at further architectures.
 > 
-> > choice
-> >         prompt "Kernel Page Size"
-> >         depends on IA64 || SPARC64 || PARISC || MIPS
-> >         default PAGE_SIZE_4KB if MIPS
-> >         default PAGE_SIZE_8KB if IA64 || SPARC64 || PARISC
-> > config PAGE_SIZE_4KB
-> ...
+> The only sane solution I can see is setting up temporary kernel mappings
+> for source and destination pages with virtual addresses choosen to be
+> congruent to userspace addresses.  cachetlb.txt's wording describes this
+> as if it was an optional fancy implementation.
+
+Even this won't work for VIVT caches.  Luckily, VIVT don't feature on ARM
+SMP machines that much, so the only case we have to worry about there is
+the preempt one.  The immediately obvious solution to that is to disable
+preemption over the critical area.  This solves the preemption race, but
+I suspect the preempt people will be very unhappy because it'll increase
+latency.
+
+For ARM SMP, VIVT isn't that much of an issue - the production ARM SMP
+machines are VIPT, and we already map pages in our copy_user_page function.
+The kmap interface is entirely wrong for this sort of thing, and if we
+ever get ARM SMP+highmem, the kmap interface would need to be changed.
+
+In fact, on such a platform, the kmap step would be entirely redundant
+given this implementation, and would only serve to waste CPU cycles.
+
+> 1) Move copy_user_highpage into the arch code.  This will allow the arch code
+> to create any sort of crazy mapping it wants.  The old copy_user_page as
+> kernel API is only called from copy_user_highpage and would therefore be
+> obsoleted.
 > 
-> That at least consolidates the four architectures.  I guess I could move
-> them back, but some of the help text was _really_ similar and it all
-> seemed pretty redundant.
+> 2) Introduce a new kmap_atomic variant to create a congruent mapping.
+> copy_user_highpage would change into something like this:
 > 
-With only 4 architectures it's manageable, but I wonder what will happen
-as more architectures decide to make this configurable. The number of
-architectures is constantly growing, is it really worth having
-centralized config options with special casing for virtually every
-architecture supported by the kernel? This seems like a questionable
-precedent to set and follow.
-
-On the other hand, consolidating the help text is not a bad idea.
-Amusingly this would not have been a problem with Configure.help ;-)
-
-On Fri, Aug 25, 2006 at 02:04:39PM -0700, Dave Hansen wrote:
-> On Fri, 2006-08-25 at 14:31 +0900, Paul Mundt wrote:
-> > I like the idea of asm-generic/page_size.h (though why not just use
-> > asm-generic/page.h?)
+> static inline void copy_user_highpage(struct page *to, struct page *from,
+> 	unsigned long vaddr)
+> {
+>         char *vfrom, *vto;
 > 
-> One reason is that get_order() is defined on a few architectures.  There
-> would need to be some separate Kconfig and #ifdef work to get it
-> conditionally defined.
+>         vfrom = kmap_coherent(from, KM_USER0, vaddr);
+>         vto = kmap_coherent(to, KM_USER1, vaddr);
+>         copy_page(vto, vfrom);
+>         kunmap_coherent(vfrom, KM_USER0, vaddr);
+>         kunmap_coherent(vto, KM_USER1, vaddr);
+>         /* Make sure this page is cleared on other CPU's too before using it */
+>         smp_wmb();
+> }
 > 
-What about HAVE_ARCH_GET_ORDER? We've done it for just about everything
-else, and there aren't many users.
+> I lean toward 2) since kmap_coherent is a more versatile interface.
 
---
+This gives me cause for concern - if we move the VIPT remapping of pages
+into kmap_coherent(), it's wrong for VIVT caches, and we already build
+kernels which run-time configure themselves depending on what they find.
 
- include/asm-generic/page.h |    2 ++
- include/asm-ia64/page.h    |    3 +++
- include/asm-ppc/page.h     |    2 ++
- include/asm-xtensa/page.h  |    2 ++
- 4 files changed, 9 insertions(+)
+So I'm in favour of (1), where the architecture specific details can be
+properly handled by the architecture specific code, perhaps by indirecting
+copy_user_highpage() via a function pointer when necessary.
 
-diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
-index a96b5d9..c7a3153 100644
---- a/include/asm-generic/page.h
-+++ b/include/asm-generic/page.h
-@@ -6,6 +6,7 @@ #ifndef __ASSEMBLY__
- 
- #include <linux/compiler.h>
- 
-+#ifndef HAVE_ARCH_GET_ORDER
- /* Pure 2^n version of get_order */
- static __inline__ __attribute_const__ int get_order(unsigned long size)
- {
-@@ -19,6 +20,7 @@ static __inline__ __attribute_const__ in
- 	} while (size);
- 	return order;
- }
-+#endif
- 
- #endif	/* __ASSEMBLY__ */
- #endif	/* __KERNEL__ */
-diff --git a/include/asm-ia64/page.h b/include/asm-ia64/page.h
-index f5a949e..a4108b6 100644
---- a/include/asm-ia64/page.h
-+++ b/include/asm-ia64/page.h
-@@ -174,6 +174,9 @@ get_order (unsigned long size)
- 	return order;
- }
- 
-+#define HAVE_ARCH_GET_ORDER
-+#include <asm-generic/page.h>
-+
- # endif /* __KERNEL__ */
- #endif /* !__ASSEMBLY__ */
- 
-diff --git a/include/asm-ppc/page.h b/include/asm-ppc/page.h
-index fe95c82..a4073e8 100644
---- a/include/asm-ppc/page.h
-+++ b/include/asm-ppc/page.h
-@@ -172,7 +172,9 @@ #define VM_DATA_DEFAULT_FLAGS	(VM_READ |
- 
- /* We do define AT_SYSINFO_EHDR but don't use the gate mechanism */
- #define __HAVE_ARCH_GATE_AREA		1
-+#define HAVE_ARCH_GET_ORDER
- 
- #include <asm-generic/memory_model.h>
-+#include <asm-generic/page.h>
- #endif /* __KERNEL__ */
- #endif /* _PPC_PAGE_H */
-diff --git a/include/asm-xtensa/page.h b/include/asm-xtensa/page.h
-index 40f4c6c..b19e409 100644
---- a/include/asm-xtensa/page.h
-+++ b/include/asm-xtensa/page.h
-@@ -80,6 +80,7 @@ #else
- #endif
- }
- 
-+#define HAVE_ARCH_GET_ORDER
- 
- struct page;
- extern void clear_page(void *page);
-@@ -127,4 +128,5 @@ #define VM_DATA_DEFAULT_FLAGS	(VM_READ |
- 
- #endif /* __KERNEL__ */
- #include <asm-generic/memory_model.h>
-+#include <asm-generic/page.h>
- #endif /* _XTENSA_PAGE_H */
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
