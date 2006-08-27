@@ -1,136 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:10738 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.187]:51184 "EHLO
 	moutng.kundenserver.de") by vger.kernel.org with ESMTP
-	id S932319AbWH0X7H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Aug 2006 19:59:07 -0400
-Message-Id: <20060827215637.781868000@klappe.arndb.de>
+	id S932312AbWH0X6u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Aug 2006 19:58:50 -0400
+Message-Id: <200608280000.50961.arnd@arndb.de>
 References: <20060827214734.252316000@klappe.arndb.de>
-Date: Sun, 27 Aug 2006 23:47:41 +0200
+Date: Mon, 28 Aug 2006 00:00:49 +0200
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 7/7] remove the global errno from the kernel
-Content-Disposition: inline; filename=kernel_execve3.diff
+Subject: [PATCH 5/7] sh64: remove the use of kernel syscalls
+Content-Disposition: inline
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
+Cc: linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au, linuxsh-shmedia-dev@lists.sourceforge.net, lethal@linux-sh.org, rc@rc0.org.uk
 List-ID: <linux-arch.vger.kernel.org>
 
-The last in-kernel user of errno is gone, so we should
-remove the definition and everything referring to it.
-This also removes the now-unused lib/execve.c file
-that was introduced earlier.
+sh64 is using system call macros to call some functions
+from the kernel. Remove those so we can get rid of
+kernel syscalls.
 
-Also remove a few bogus definitions of __KERNEL_SYSCALLS__
-that were already unused.
+This is probably not the best implementation and may
+need to be redone.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Index: linux-cg/lib/Makefile
+Index: linux-cg/arch/sh64/kernel/process.c
 ===================================================================
---- linux-cg.orig/lib/Makefile	2006-08-27 23:44:35.000000000 +0200
-+++ linux-cg/lib/Makefile	2006-08-27 23:44:38.000000000 +0200
-@@ -2,7 +2,7 @@
- # Makefile for some libs needed in the kernel.
- #
- 
--lib-y := errno.o ctype.o string.o vsprintf.o cmdline.o \
-+lib-y := ctype.o string.o vsprintf.o cmdline.o \
- 	 bust_spinlocks.o rbtree.o radix-tree.o dump_stack.o \
- 	 idr.o div64.o int_sqrt.o bitmap.o extable.o prio_tree.o \
- 	 sha1.o
-Index: linux-cg/lib/execve.c
-===================================================================
---- linux-cg.orig/lib/execve.c	2006-08-27 23:44:35.000000000 +0200
-+++ /dev/null	1970-01-01 00:00:00.000000000 +0000
-@@ -1,23 +0,0 @@
--#include <asm/bug.h>
--#include <asm/uaccess.h>
--
--#define __KERNEL_SYSCALLS__
--static int errno __attribute__((unused));
--#include <asm/unistd.h>
--
--#ifdef _syscall3
--int kernel_execve (const char *filename, char *const argv[], char *const envp[])
--								__attribute__((__weak__));
--int kernel_execve (const char *filename, char *const argv[], char *const envp[])
--{
--	mm_segment_t fs = get_fs();
--	int ret;
--
--	WARN_ON(segment_eq(fs, USER_DS));
--	ret = execve(filename, (char **)argv, (char **)envp);
--	if (ret)
--		ret = -errno;
--
--	return ret;
--}
--#endif
-Index: linux-cg/include/linux/unistd.h
-===================================================================
---- linux-cg.orig/include/linux/unistd.h	2006-08-27 23:41:34.000000000 +0200
-+++ linux-cg/include/linux/unistd.h	2006-08-27 23:44:38.000000000 +0200
-@@ -1,12 +1,8 @@
- #ifndef _LINUX_UNISTD_H_
- #define _LINUX_UNISTD_H_
- 
--#ifdef __KERNEL__
--extern int errno;
--#endif
--
- /*
-- * Include machine specific syscallX macros
-+ * Include machine specific syscall numbers
-  */
- #include <asm/unistd.h>
- 
-Index: linux-cg/lib/errno.c
-===================================================================
---- linux-cg.orig/lib/errno.c	2006-08-27 23:41:34.000000000 +0200
-+++ /dev/null	1970-01-01 00:00:00.000000000 +0000
-@@ -1,7 +0,0 @@
--/*
-- *  linux/lib/errno.c
-- *
-- *  Copyright (C) 1991, 1992  Linus Torvalds
-- */
--
--int errno;
-Index: linux-cg/arch/ia64/kernel/process.c
-===================================================================
---- linux-cg.orig/arch/ia64/kernel/process.c	2006-08-27 23:44:53.000000000 +0200
-+++ linux-cg/arch/ia64/kernel/process.c	2006-08-27 23:44:54.000000000 +0200
-@@ -8,8 +8,6 @@
-  * 2005-10-07 Keith Owens <kaos@sgi.com>
-  *	      Add notify_die() hooks.
-  */
--#define __KERNEL_SYSCALLS__	/* see <asm/unistd.h> */
--
- #include <linux/cpu.h>
- #include <linux/pm.h>
- #include <linux/elf.h>
-Index: linux-cg/drivers/media/dvb/dvb-core/dvb_ringbuffer.c
-===================================================================
---- linux-cg.orig/drivers/media/dvb/dvb-core/dvb_ringbuffer.c	2006-08-27 23:44:53.000000000 +0200
-+++ linux-cg/drivers/media/dvb/dvb-core/dvb_ringbuffer.c	2006-08-27 23:44:54.000000000 +0200
-@@ -26,7 +26,6 @@
- 
- 
+--- linux-cg.orig/arch/sh64/kernel/process.c	2006-08-27 23:36:34.000000000 +0200
++++ linux-cg/arch/sh64/kernel/process.c	2006-08-27 23:40:13.000000000 +0200
+@@ -32,7 +32,6 @@
+ #undef IDLE_TRACE
+ /* Temporary flags/tests. All to be removed/undefined. END */
  
 -#define __KERNEL_SYSCALLS__
- #include <linux/errno.h>
+ #include <stdarg.h>
+ 
  #include <linux/kernel.h>
- #include <linux/module.h>
-Index: linux-cg/drivers/net/wireless/ipw2100.c
-===================================================================
---- linux-cg.orig/drivers/net/wireless/ipw2100.c	2006-08-27 23:44:53.000000000 +0200
-+++ linux-cg/drivers/net/wireless/ipw2100.c	2006-08-27 23:44:54.000000000 +0200
-@@ -150,7 +150,6 @@
- #include <linux/skbuff.h>
- #include <asm/uaccess.h>
- #include <asm/io.h>
--#define __KERNEL_SYSCALLS__
- #include <linux/fs.h>
- #include <linux/mm.h>
- #include <linux/slab.h>
+@@ -230,13 +229,10 @@
+ void idle_trace(void)
+ {
+ 
+-	_syscall0(int, getpid)
+-	_syscall1(int, getpgid, int, pid)
+-
+ 	if (!once) {
+         	/* VM allocation/deallocation simple test */
+ 		test_VM();
+-		pid = getpid();
++		pid = sys_getpid();
+ 
+         	printk("Got all through to Idle !!\n");
+         	printk("I'm now going to loop forever ...\n");
+@@ -268,7 +264,7 @@
+ 		}
+ 		old_jiffies = jiffies;
+ 	}
+-	pgid = getpgid(pid);
++	pgid = sys_getpgid(pid);
+ 	printk(".");
+ }
+ #else
+@@ -628,18 +624,23 @@
+  * a system call from a "real" process, but the process memory space will
+  * not be free'd until both the parent and the child have exited.
+  */
++#error please implement a working kernel_thread function like the other architectures
++/* _syscallN() does not work any more. this probably needs to call
++ * do_fork directly */
+ int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags)
+ {
+-	/* A bit less processor dependent than older sh ... */
+-	unsigned int reply;
+-
+-static __inline__ _syscall2(int,clone,unsigned long,flags,unsigned long,newsp)
+-static __inline__ _syscall1(int,exit,int,ret)
++	register unsigned long reply asm ("r9") = ((0x13 << 16) | __NR_clone);
++	register unsigned long __flags asm ("r2") = flags | CLONE_VM;
++	register unsigned long __newsp asm ("r3") = 0;
++
++	__asm__ __volatile__ ("trapa	%1 !\t\t\t clone(%2,%3)"
++	: "=r" (__sc0) : "r" (__sc0), "r" (__sc2), "r" (__sc3));
++	__asm__ __volatile__ ("!dummy	%0 %1"
++	: : "r" (__sc0), "r" (__sc2), "r" (__sc3) : "memory");
+ 
+-	reply = clone(flags | CLONE_VM, 0);
+ 	if (!reply) {
+ 		/* Child */
+-		reply = exit(fn(arg));
++		reply = sys_exit(fn(arg));
+ 	}
+ 
+ 	return reply;
 
 --
 
