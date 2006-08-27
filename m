@@ -1,168 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:30193 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.187]:10738 "EHLO
 	moutng.kundenserver.de") by vger.kernel.org with ESMTP
-	id S932317AbWH0X65 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Aug 2006 19:58:57 -0400
-Message-Id: <20060827215636.797086000@klappe.arndb.de>
+	id S932319AbWH0X7H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Aug 2006 19:59:07 -0400
+Message-Id: <20060827215637.781868000@klappe.arndb.de>
 References: <20060827214734.252316000@klappe.arndb.de>
-Date: Sun, 27 Aug 2006 23:47:38 +0200
+Date: Sun, 27 Aug 2006 23:47:41 +0200
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 4/7] Remove the use of _syscallX macros in UML
-Content-Disposition: inline; filename=uml-syscalls.diff
+Subject: [PATCH 7/7] remove the global errno from the kernel
+Content-Disposition: inline; filename=kernel_execve3.diff
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
 List-ID: <linux-arch.vger.kernel.org>
 
-User mode linux uses _syscallX() to call into the host kernel.
-The recommended way to do this is to use the syscall() function
-from libc.
+The last in-kernel user of errno is gone, so we should
+remove the definition and everything referring to it.
+This also removes the now-unused lib/execve.c file
+that was introduced earlier.
+
+Also remove a few bogus definitions of __KERNEL_SYSCALLS__
+that were already unused.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Index: linux-cg/arch/um/os-Linux/process.c
+Index: linux-cg/lib/Makefile
 ===================================================================
---- linux-cg.orig/arch/um/os-Linux/process.c	2006-08-16 12:08:06.000000000 +0200
-+++ linux-cg/arch/um/os-Linux/process.c	2006-08-27 21:51:06.000000000 +0200
-@@ -12,6 +12,7 @@
- #include <sys/mman.h>
- #include <sys/wait.h>
- #include <sys/mman.h>
-+#include <sys/syscall.h>
- #include "ptrace_user.h"
- #include "os.h"
- #include "user.h"
-@@ -141,11 +142,9 @@
-  * syscalls, and also breaks with clone(), which does not unshare the TLS.
+--- linux-cg.orig/lib/Makefile	2006-08-27 23:44:35.000000000 +0200
++++ linux-cg/lib/Makefile	2006-08-27 23:44:38.000000000 +0200
+@@ -2,7 +2,7 @@
+ # Makefile for some libs needed in the kernel.
+ #
+ 
+-lib-y := errno.o ctype.o string.o vsprintf.o cmdline.o \
++lib-y := ctype.o string.o vsprintf.o cmdline.o \
+ 	 bust_spinlocks.o rbtree.o radix-tree.o dump_stack.o \
+ 	 idr.o div64.o int_sqrt.o bitmap.o extable.o prio_tree.o \
+ 	 sha1.o
+Index: linux-cg/lib/execve.c
+===================================================================
+--- linux-cg.orig/lib/execve.c	2006-08-27 23:44:35.000000000 +0200
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+@@ -1,23 +0,0 @@
+-#include <asm/bug.h>
+-#include <asm/uaccess.h>
+-
+-#define __KERNEL_SYSCALLS__
+-static int errno __attribute__((unused));
+-#include <asm/unistd.h>
+-
+-#ifdef _syscall3
+-int kernel_execve (const char *filename, char *const argv[], char *const envp[])
+-								__attribute__((__weak__));
+-int kernel_execve (const char *filename, char *const argv[], char *const envp[])
+-{
+-	mm_segment_t fs = get_fs();
+-	int ret;
+-
+-	WARN_ON(segment_eq(fs, USER_DS));
+-	ret = execve(filename, (char **)argv, (char **)envp);
+-	if (ret)
+-		ret = -errno;
+-
+-	return ret;
+-}
+-#endif
+Index: linux-cg/include/linux/unistd.h
+===================================================================
+--- linux-cg.orig/include/linux/unistd.h	2006-08-27 23:41:34.000000000 +0200
++++ linux-cg/include/linux/unistd.h	2006-08-27 23:44:38.000000000 +0200
+@@ -1,12 +1,8 @@
+ #ifndef _LINUX_UNISTD_H_
+ #define _LINUX_UNISTD_H_
+ 
+-#ifdef __KERNEL__
+-extern int errno;
+-#endif
+-
+ /*
+- * Include machine specific syscallX macros
++ * Include machine specific syscall numbers
   */
- 
--inline _syscall0(pid_t, getpid)
--
- int os_getpid(void)
- {
--	return(getpid());
-+	return(syscall(__NR_getpid));
- }
- 
- int os_getpgrp(void)
-Index: linux-cg/arch/um/os-Linux/sys-i386/tls.c
-===================================================================
---- linux-cg.orig/arch/um/os-Linux/sys-i386/tls.c	2006-04-14 13:18:17.000000000 +0200
-+++ linux-cg/arch/um/os-Linux/sys-i386/tls.c	2006-08-27 21:51:21.000000000 +0200
-@@ -1,10 +1,9 @@
- #include <errno.h>
- #include <linux/unistd.h>
-+#include <sys/syscall.h>
- #include "sysdep/tls.h"
- #include "user_util.h"
- 
--static _syscall1(int, get_thread_area, user_desc_t *, u_info);
--
- /* Checks whether host supports TLS, and sets *tls_min according to the value
-  * valid on the host.
-  * i386 host have it == 6; x86_64 host have it == 12, for i386 emulation. */
-@@ -17,7 +16,7 @@
- 		user_desc_t info;
- 		info.entry_number = val[i];
- 
--		if (get_thread_area(&info) == 0) {
-+		if (syscall(__NR_get_thread_area, &info) == 0) {
- 			*tls_min = val[i];
- 			*supports_tls = 1;
- 			return;
-Index: linux-cg/arch/um/os-Linux/tls.c
-===================================================================
---- linux-cg.orig/arch/um/os-Linux/tls.c	2006-04-02 23:16:55.000000000 +0200
-+++ linux-cg/arch/um/os-Linux/tls.c	2006-08-27 21:52:23.000000000 +0200
-@@ -1,5 +1,6 @@
- #include <errno.h>
- #include <sys/ptrace.h>
-+#include <sys/syscall.h>
- #include <asm/ldt.h>
- #include "sysdep/tls.h"
- #include "uml-config.h"
-@@ -48,14 +49,11 @@
- #ifdef UML_CONFIG_MODE_TT
- #include "linux/unistd.h"
- 
--static _syscall1(int, get_thread_area, user_desc_t *, u_info);
--static _syscall1(int, set_thread_area, user_desc_t *, u_info);
--
- int do_set_thread_area_tt(user_desc_t *info)
- {
- 	int ret;
- 
--	ret = set_thread_area(info);
-+	ret = syscall(__NR_set_thread_area,info);
- 	if (ret < 0) {
- 		ret = -errno;
- 	}
-@@ -66,7 +64,7 @@
- {
- 	int ret;
- 
--	ret = get_thread_area(info);
-+	ret = syscall(__NR_get_thread_area,info);
- 	if (ret < 0) {
- 		ret = -errno;
- 	}
-Index: linux-cg/arch/um/sys-i386/unmap.c
-===================================================================
---- linux-cg.orig/arch/um/sys-i386/unmap.c	2005-11-05 01:59:23.000000000 +0100
-+++ linux-cg/arch/um/sys-i386/unmap.c	2006-08-27 21:50:44.000000000 +0200
-@@ -5,20 +5,17 @@
- 
- #include <linux/mman.h>
  #include <asm/unistd.h>
-+#include <sys/syscall.h>
  
--static int errno;
--
--static inline _syscall2(int,munmap,void *,start,size_t,len)
--static inline _syscall6(void *,mmap2,void *,addr,size_t,len,int,prot,int,flags,int,fd,off_t,offset)
- int switcheroo(int fd, int prot, void *from, void *to, int size)
- {
--	if(munmap(to, size) < 0){
-+	if (syscall(__NR_munmap, to, size) < 0){
- 		return(-1);
- 	}
--	if(mmap2(to, size, prot, MAP_SHARED | MAP_FIXED, fd, 0) == (void*) -1 ){
-+	if (syscall(__NR_mmap2, to, size, prot, MAP_SHARED | MAP_FIXED, fd, 0) == (void*) -1 ){
- 		return(-1);
- 	}
--	if(munmap(from, size) < 0){
-+	if (syscall(__NR_munmap, from, size) < 0){
- 		return(-1);
- 	}
- 	return(0);
-Index: linux-cg/arch/um/sys-x86_64/unmap.c
+Index: linux-cg/lib/errno.c
 ===================================================================
---- linux-cg.orig/arch/um/sys-x86_64/unmap.c	2005-11-05 01:59:23.000000000 +0100
-+++ linux-cg/arch/um/sys-x86_64/unmap.c	2006-08-27 21:54:04.000000000 +0200
-@@ -5,20 +5,17 @@
- 
- #include <linux/mman.h>
- #include <asm/unistd.h>
-+#include <sys/syscall.h>
- 
--static int errno;
+--- linux-cg.orig/lib/errno.c	2006-08-27 23:41:34.000000000 +0200
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+@@ -1,7 +0,0 @@
+-/*
+- *  linux/lib/errno.c
+- *
+- *  Copyright (C) 1991, 1992  Linus Torvalds
+- */
 -
--static inline _syscall2(int,munmap,void *,start,size_t,len)
--static inline _syscall6(void *,mmap,void *,addr,size_t,len,int,prot,int,flags,int,fd,off_t,offset)
- int switcheroo(int fd, int prot, void *from, void *to, int size)
- {
--	if(munmap(to, size) < 0){
-+	if (syscall(munmap, to, size) < 0){
- 		return(-1);
- 	}
--	if(mmap(to, size, prot, MAP_SHARED | MAP_FIXED, fd, 0) == (void*) -1){
-+	if (syscall(mmap, to, size, prot, MAP_SHARED | MAP_FIXED, fd, 0) == (void*) -1){
- 		return(-1);
- 	}
--	if(munmap(from, size) < 0){
-+	if (syscall(munmap, from, size) < 0){
- 		return(-1);
- 	}
- 	return(0);
+-int errno;
+Index: linux-cg/arch/ia64/kernel/process.c
+===================================================================
+--- linux-cg.orig/arch/ia64/kernel/process.c	2006-08-27 23:44:53.000000000 +0200
++++ linux-cg/arch/ia64/kernel/process.c	2006-08-27 23:44:54.000000000 +0200
+@@ -8,8 +8,6 @@
+  * 2005-10-07 Keith Owens <kaos@sgi.com>
+  *	      Add notify_die() hooks.
+  */
+-#define __KERNEL_SYSCALLS__	/* see <asm/unistd.h> */
+-
+ #include <linux/cpu.h>
+ #include <linux/pm.h>
+ #include <linux/elf.h>
+Index: linux-cg/drivers/media/dvb/dvb-core/dvb_ringbuffer.c
+===================================================================
+--- linux-cg.orig/drivers/media/dvb/dvb-core/dvb_ringbuffer.c	2006-08-27 23:44:53.000000000 +0200
++++ linux-cg/drivers/media/dvb/dvb-core/dvb_ringbuffer.c	2006-08-27 23:44:54.000000000 +0200
+@@ -26,7 +26,6 @@
+ 
+ 
+ 
+-#define __KERNEL_SYSCALLS__
+ #include <linux/errno.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+Index: linux-cg/drivers/net/wireless/ipw2100.c
+===================================================================
+--- linux-cg.orig/drivers/net/wireless/ipw2100.c	2006-08-27 23:44:53.000000000 +0200
++++ linux-cg/drivers/net/wireless/ipw2100.c	2006-08-27 23:44:54.000000000 +0200
+@@ -150,7 +150,6 @@
+ #include <linux/skbuff.h>
+ #include <asm/uaccess.h>
+ #include <asm/io.h>
+-#define __KERNEL_SYSCALLS__
+ #include <linux/fs.h>
+ #include <linux/mm.h>
+ #include <linux/slab.h>
 
 --
 
