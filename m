@@ -1,51 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:24763 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S932471AbWH1JZv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Aug 2006 05:25:51 -0400
-From: Andreas Schwab <schwab@suse.de>
-Subject: Re: [PATCH 4/7] Remove the use of _syscallX macros in UML
-References: <20060827214734.252316000@klappe.arndb.de>
-	<20060827215636.797086000@klappe.arndb.de>
-Date: Mon, 28 Aug 2006 11:25:40 +0200
-In-Reply-To: <20060827215636.797086000@klappe.arndb.de> (Arnd Bergmann's
-	message of "Sun, 27 Aug 2006 23:47:38 +0200")
-Message-ID: <jey7t9gqjv.fsf@sykes.suse.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Received: from pentafluge.infradead.org ([213.146.154.40]:15262 "EHLO
+	pentafluge.infradead.org") by vger.kernel.org with ESMTP
+	id S964776AbWH1KBZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Aug 2006 06:01:25 -0400
+Subject: Re: [PATCH 6/7] remove all remaining _syscallX macros
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <200608281053.11142.ak@suse.de>
+References: <200608281003.02757.ak@suse.de> <200608281028.13652.ak@suse.de>
+	 <1156754436.5340.20.camel@pmac.infradead.org>
+	 <200608281053.11142.ak@suse.de>
+Content-Type: text/plain
+Date: Mon, 28 Aug 2006 11:00:32 +0100
+Message-Id: <1156759232.5340.36.camel@pmac.infradead.org>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
+To: Andi Kleen <ak@suse.de>
+Cc: David Miller <davem@davemloft.net>, arnd@arndb.de, linux-arch@vger.kernel.org, jdike@addtoit.com, B.Steinbrink@gmx.de, arjan@infradead.org, chase.venters@clientec.com, akpm@osdl.org, rmk+lkml@arm.linux.org.uk, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Arnd Bergmann <arnd@arndb.de> writes:
+On Mon, 2006-08-28 at 10:53 +0200, Andi Kleen wrote:
+> 
+> > /usr/include/linux is _not_ a place to dump "reference code" in lieu of
+> > documentation on using kernel interfaces.
+> 
+> At least for the system call interface it was always. It is not
+> my fault you're trying to suddenly redefine it to be something else.
 
->  int switcheroo(int fd, int prot, void *from, void *to, int size)
->  {
-> -	if(munmap(to, size) < 0){
-> +	if (syscall(munmap, to, size) < 0){
+I'm trying to 'suddenly redefine' kernel headers as something that
+_isn't_ just a library of random crap for people to abuse in userspace
+as they see fit, then whine when something breaks even though it was
+never really guaranteed to work when abused in that way anyway.
 
-s/unmap/__NR_unmap/
+So far, you're just reminding me why that needed to be done.
 
->  		return(-1);
->  	}
-> -	if(mmap(to, size, prot, MAP_SHARED | MAP_FIXED, fd, 0) == (void*) -1){
-> +	if (syscall(mmap, to, size, prot, MAP_SHARED | MAP_FIXED, fd, 0) == (void*) -1){
+> > Besides, the _syscallX implementations in the kernel were generally
+> > unsuitable for use [as a reference implementation]
+> 
+> I disagree. I used them and they worked great for me.
 
-s/mmap/__NR_mmap/
+Really? You used them as a reference implementation? Didn't you already
+know how x86_64 syscalls work?
 
->  		return(-1);
->  	}
-> -	if(munmap(from, size) < 0){
-> +	if (syscall(munmap, from, size) < 0){
-
-s/unmap/__NR_unmap/
-
-Andreas.
+Or were you saying you just happened to use the x86_64 implementation of
+_syscallX stuff in some userspace hacks, and it happened to work? In
+which case go and line up behind the guy who said that about atomic.h on
+i386 and only ever tested it on UP. The doctor will get to you later.
 
 -- 
-Andreas Schwab, SuSE Labs, schwab@suse.de
-SuSE Linux Products GmbH, Maxfeldstraße 5, 90409 Nürnberg, Germany
-PGP key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
-"And now for something completely different."
+dwmw2
+
