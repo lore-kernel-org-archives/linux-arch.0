@@ -1,32 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:20912 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S932412AbWH1HgB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Aug 2006 03:36:01 -0400
+Received: from moutng.kundenserver.de ([212.227.126.171]:38650 "EHLO
+	moutng.kundenserver.de") by vger.kernel.org with ESMTP
+	id S932419AbWH1Hld (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Aug 2006 03:41:33 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH 6/7] remove all remaining _syscallX macros
-References: <20060827214734.252316000@klappe.arndb.de>
-	<20060827215637.555365000@klappe.arndb.de>
-From: Andi Kleen <ak@suse.de>
-Date: 28 Aug 2006 09:35:17 +0200
-In-Reply-To: <20060827215637.555365000@klappe.arndb.de>
-Message-ID: <p73ac5pe2iy.fsf@verdi.suse.de>
+Date: Mon, 28 Aug 2006 09:41:10 +0200
+References: <20060827214734.252316000@klappe.arndb.de> <20060827215637.555365000@klappe.arndb.de> <p73ac5pe2iy.fsf@verdi.suse.de>
+In-Reply-To: <p73ac5pe2iy.fsf@verdi.suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200608280941.10965.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
+To: Andi Kleen <ak@suse.de>
 Cc: linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Arnd Bergmann <arnd@arndb.de> writes:
+On Monday 28 August 2006 09:35, Andi Kleen wrote:
+> I would prefer to keep them on i386/x86-64 at least because
+> a lot of my test programs are using them.
+> 
+Hmm, maybe we should have an asm-generic/unistd.h then
+containing something like
 
-> The _syscallX macros were originally used by libc implementations,
-> but now there is no libc that can be built against an up-to-date
-> kernel an relies on them.
-> The only users of these macros are the __KERNEL_SYSCALLS_, which
-> are now gone as well, after execve has been removed from the
-> kernel.
+#ifndef __KERNEL__
+#include <sys/syscall.h>
+#define _syscall0(type,name) \
+type name(type1 arg1) \
+{ \
+	return syscall(__NR_ ## name); \
+}
+#define _syscall1(type,name,type1,arg1) \
+type name(type1 arg1) \
+{ \
+	return syscall(__NR_ ## name, arg1); \
+}
+#define _syscall1(type,name,type1,arg1,type2,arg2) \
+type name(type1 arg1, type2 arg2) \
+{ \
+	return syscall(__NR_ ## name, arg1, arg2); \
+}
+// ...
+#endif
 
-I would prefer to keep them on i386/x86-64 at least because
-a lot of my test programs are using them.
-
--Andi
+	Arnd <><
