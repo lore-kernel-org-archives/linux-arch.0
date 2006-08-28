@@ -1,44 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.suse.de ([195.135.220.2]:726 "EHLO mx1.suse.de")
-	by vger.kernel.org with ESMTP id S1751318AbWH1Ixo (ORCPT
+Received: from cantor2.suse.de ([195.135.220.15]:24763 "EHLO mx2.suse.de")
+	by vger.kernel.org with ESMTP id S932471AbWH1JZv (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Aug 2006 04:53:44 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [PATCH 6/7] remove all remaining _syscallX macros
-Date: Mon, 28 Aug 2006 10:53:11 +0200
-References: <200608281003.02757.ak@suse.de> <200608281028.13652.ak@suse.de> <1156754436.5340.20.camel@pmac.infradead.org>
-In-Reply-To: <1156754436.5340.20.camel@pmac.infradead.org>
+	Mon, 28 Aug 2006 05:25:51 -0400
+From: Andreas Schwab <schwab@suse.de>
+Subject: Re: [PATCH 4/7] Remove the use of _syscallX macros in UML
+References: <20060827214734.252316000@klappe.arndb.de>
+	<20060827215636.797086000@klappe.arndb.de>
+Date: Mon, 28 Aug 2006 11:25:40 +0200
+In-Reply-To: <20060827215636.797086000@klappe.arndb.de> (Arnd Bergmann's
+	message of "Sun, 27 Aug 2006 23:47:38 +0200")
+Message-ID: <jey7t9gqjv.fsf@sykes.suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200608281053.11142.ak@suse.de>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: David Miller <davem@davemloft.net>, arnd@arndb.de, linux-arch@vger.kernel.org, jdike@addtoit.com, B.Steinbrink@gmx.de, arjan@infradead.org, chase.venters@clientec.com, akpm@osdl.org, rmk+lkml@arm.linux.org.uk, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
 List-ID: <linux-arch.vger.kernel.org>
 
+Arnd Bergmann <arnd@arndb.de> writes:
 
+>  int switcheroo(int fd, int prot, void *from, void *to, int size)
+>  {
+> -	if(munmap(to, size) < 0){
+> +	if (syscall(munmap, to, size) < 0){
 
-> /usr/include/linux is _not_ a place to dump "reference code" in lieu of
-> documentation on using kernel interfaces.
+s/unmap/__NR_unmap/
 
-At least for the system call interface it was always. It is not
-my fault you're trying to suddenly redefine it to be something else.
+>  		return(-1);
+>  	}
+> -	if(mmap(to, size, prot, MAP_SHARED | MAP_FIXED, fd, 0) == (void*) -1){
+> +	if (syscall(mmap, to, size, prot, MAP_SHARED | MAP_FIXED, fd, 0) == (void*) -1){
 
-> 
-> Besides, the _syscallX implementations in the kernel were generally
-> unsuitable for use 
+s/mmap/__NR_mmap/
 
-I disagree. I used them and they worked great for me.
+>  		return(-1);
+>  	}
+> -	if(munmap(from, size) < 0){
+> +	if (syscall(munmap, from, size) < 0){
 
-> in that way anyway -- I'd be much more inclined to 
-> rely on the libc version. The kernel version would do strange things
-> like break with PIC code by using an unavailable register (i386),
-> misalign 64-bit syscall arguments on 32-bit machines (MIPS), etc. 
+s/unmap/__NR_unmap/
 
-The glibc versions would do similar things. Just try to use a 6 argument
-call on i386 for once.
+Andreas.
 
--Andi
+-- 
+Andreas Schwab, SuSE Labs, schwab@suse.de
+SuSE Linux Products GmbH, Maxfeldstraße 5, 90409 Nürnberg, Germany
+PGP key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
+"And now for something completely different."
