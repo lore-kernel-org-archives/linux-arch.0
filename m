@@ -1,38 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wx-out-0506.google.com ([66.249.82.233]:50415 "EHLO
-	wx-out-0506.google.com") by vger.kernel.org with ESMTP
-	id S964796AbWH2Ji2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 05:38:28 -0400
-Received: by wx-out-0506.google.com with SMTP id s14so2002509wxc
-        for <linux-arch@vger.kernel.org>; Tue, 29 Aug 2006 02:38:28 -0700 (PDT)
-Message-ID: <1defaf580608290238k584af24fjc97ddb276706a423@mail.gmail.com>
-Date: Tue, 29 Aug 2006 11:38:27 +0200
-From: "Haavard Skinnemoen" <hskinnemoen@gmail.com>
-Subject: Re: [PATCH 0/7] kill __KERNEL_SYSCALLS__
-In-Reply-To: <10191.1156842767@warthog.cambridge.redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-References: <20060827214734.252316000@klappe.arndb.de>
-	 <10191.1156842767@warthog.cambridge.redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:49824 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S964886AbWH2KFq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Aug 2006 06:05:46 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <44F395DE.10804@yahoo.com.au> 
+References: <44F395DE.10804@yahoo.com.au>  <a2ebde260608271222x2b51693fnaa600965fcfaa6d2@mail.gmail.com> <1156750249.3034.155.camel@laptopd505.fenrus.org> 
+Subject: Re: Why Semaphore Hardware-Dependent? 
+Date: Tue, 29 Aug 2006 11:05:27 +0100
+Message-ID: <11861.1156845927@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, ak@suse.de, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On 8/29/06, David Howells <dhowells@redhat.com> wrote:
-> Arnd Bergmann <arnd@arndb.de> wrote:
->
-> > Ok, next try. This time a full series that tries to kill
-> > off __KERNEL_SYSCALLS__, _syscallX() and the global errno
-> > for good.
->
-> Have you checked uClibc?  Does that use _syscallX()?
+Nick Piggin <nickpiggin@yahoo.com.au> wrote:
 
-At least the latest version provides its own set of _syscallX()
-macros. I removed _syscallX() from the AVR32 kernel a few weeks ago as
-suggested by David Woodhouse, and uClibc doesn't seem to have a
-problem with it.
+> I wonder if we can just start with the nice powerpc code that uses
+> atomic_add_return and cmpxchg (should use atomic_cmpxchg)
 
-Haavard
+Because i386 (and x86_64) can do better by using XADDL/XADDQ.
+
+The problem with CMPXCHG is that it might fail and you might have to attempt
+it again.  This may be unlikely - it depends on the circumstances.  The same
+applies to LL/ST equivalents.
+
+On i386, CMPXCHG also ties you to what registers you may use for what to some
+extent.  OTOH, whilst XADD does less so, the slowpath function does instead,
+though with the XADD version, we can make sure that the semaphore address is
+in EAX, something we can't do with CMPXCHG.
+
+For those archs where CMPXCHG is the best available, a better algorithm than
+the XADD based one is available, though I haven't submitted it.  I may still
+have the patch somewhere.
+
+However!  If what you have is LL/ST equivalents than emulating CMPXCHG to
+emulate the XADD algorithm probably isn't the most optimal way either.  Don't
+get stuck on using LL/ST to emulate what other CPUs have available.
+
+> and chuck out the "crappy" rwsem fallback implementation,
+
+CMPXCHG is not available on all archs, and may not be implemented on all archs
+through other atomic instructions.
+
+> as well as all the arch specific code?
+
+Using CMPXCHG is only optimal where that's the best available.
+
+David
