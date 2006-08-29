@@ -1,42 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:58271 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S965251AbWH2S5H (ORCPT
+Received: from kanga.kvack.org ([66.96.29.28]:31979 "EHLO kanga.kvack.org")
+	by vger.kernel.org with ESMTP id S965139AbWH2TK3 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 14:57:07 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <200608292033.25194.ak@suse.de> 
-References: <200608292033.25194.ak@suse.de>  <200608292018.01602.ak@suse.de> <Pine.LNX.4.64.0608291033380.19174@schroedinger.engr.sgi.com> <809.1156876259@warthog.cambridge.redhat.com> 
-Subject: Re: Why Semaphore Hardware-Dependent? 
-Date: Tue, 29 Aug 2006 19:56:52 +0100
-Message-ID: <3450.1156877812@warthog.cambridge.redhat.com>
+	Tue, 29 Aug 2006 15:10:29 -0400
+Date: Tue, 29 Aug 2006 15:10:15 -0400
+From: Benjamin LaHaise <bcrl@kvack.org>
+Subject: Re: Why Semaphore Hardware-Dependent?
+Message-ID: <20060829191015.GL18092@kvack.org>
+References: <44F395DE.10804@yahoo.com.au> <1156750249.3034.155.camel@laptopd505.fenrus.org> <11861.1156845927@warthog.cambridge.redhat.com> <200608291256.54665.ak@suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <200608291256.54665.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 To: Andi Kleen <ak@suse.de>
-Cc: David Howells <dhowells@redhat.com>, Christoph Lameter <clameter@sgi.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: David Howells <dhowells@redhat.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Andi Kleen <ak@suse.de> wrote:
+On Tue, Aug 29, 2006 at 12:56:54PM +0200, Andi Kleen wrote:
+> We've completely given up these kinds of micro optimization for spinlocks,
+> which are 1000x as critical as rwsems.  And nobody was able to benchmark
+> a difference.
 
-> > > BTW maybe it would be a good idea to switch the wait list to a hlist,
-> > > then the last user in the queue wouldn't need to 
-> > > touch the cache line of the head. Or maybe even a single linked
-> > > list then some more cache bounces might be avoidable.
-> > 
-> > You need a list_head to get O(1) push at one end and O(1) pop at the other.
-> 
-> The poper should know its node address already because it's on its own stack.
+That is false.  It shows up on things like netperf on the P4, or the AF_UNIX 
+component of lmbench.
 
-No.  The popper (__rwsem_do_wake) runs in the context of up_xxxx(), not
-down_xxxx().  Remember: up() may need to wake up several processes if there's
-a batch of readers at the front of the queue.
-
-Remember also: rwsems, unlike mutexes, are completely fair.
-
-> > In addition a singly-linked list makes interruptible ops non-O(1) also.
-> 
-> When they are interrupted I guess? Hardly a problem to make that slower.
-
-Currently interruptible rwsems are not available, but that may change, and
-whilst I agree making it slower probably isn't a problem, it's still a point
-that has to be considered.
-
-David
+		-ben
+-- 
+"Time is of no importance, Mr. President, only life is important."
+Don't Email: <dont@kvack.org>.
