@@ -1,50 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:49824 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S964886AbWH2KFq (ORCPT
+Received: from ns2.suse.de ([195.135.220.15]:59020 "EHLO mx2.suse.de")
+	by vger.kernel.org with ESMTP id S932284AbWH2K5K (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 06:05:46 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <44F395DE.10804@yahoo.com.au> 
-References: <44F395DE.10804@yahoo.com.au>  <a2ebde260608271222x2b51693fnaa600965fcfaa6d2@mail.gmail.com> <1156750249.3034.155.camel@laptopd505.fenrus.org> 
-Subject: Re: Why Semaphore Hardware-Dependent? 
-Date: Tue, 29 Aug 2006 11:05:27 +0100
-Message-ID: <11861.1156845927@warthog.cambridge.redhat.com>
+	Tue, 29 Aug 2006 06:57:10 -0400
+From: Andi Kleen <ak@suse.de>
+Subject: Re: Why Semaphore Hardware-Dependent?
+Date: Tue, 29 Aug 2006 12:56:54 +0200
+References: <44F395DE.10804@yahoo.com.au> <1156750249.3034.155.camel@laptopd505.fenrus.org> <11861.1156845927@warthog.cambridge.redhat.com>
+In-Reply-To: <11861.1156845927@warthog.cambridge.redhat.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+Message-Id: <200608291256.54665.ak@suse.de>
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, ak@suse.de, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
+To: David Howells <dhowells@redhat.com>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin <nickpiggin@yahoo.com.au> wrote:
+On Tuesday 29 August 2006 12:05, David Howells wrote:
 
-> I wonder if we can just start with the nice powerpc code that uses
-> atomic_add_return and cmpxchg (should use atomic_cmpxchg)
+>Because i386 (and x86_64) can do better by using XADDL/XADDQ.
 
-Because i386 (and x86_64) can do better by using XADDL/XADDQ.
+x86-64 has always used the spinlock based version.
 
-The problem with CMPXCHG is that it might fail and you might have to attempt
-it again.  This may be unlikely - it depends on the circumstances.  The same
-applies to LL/ST equivalents.
+> On i386, CMPXCHG also ties you to what registers you may use for what to some
+> extent. 
 
-On i386, CMPXCHG also ties you to what registers you may use for what to some
-extent.  OTOH, whilst XADD does less so, the slowpath function does instead,
-though with the XADD version, we can make sure that the semaphore address is
-in EAX, something we can't do with CMPXCHG.
+We've completely given up these kinds of micro optimization for spinlocks,
+which are 1000x as critical as rwsems.  And nobody was able to benchmark
+a difference.
 
-For those archs where CMPXCHG is the best available, a better algorithm than
-the XADD based one is available, though I haven't submitted it.  I may still
-have the patch somewhere.
+It is very very likely nobody could benchmark a difference on rwsems either.
 
-However!  If what you have is LL/ST equivalents than emulating CMPXCHG to
-emulate the XADD algorithm probably isn't the most optimal way either.  Don't
-get stuck on using LL/ST to emulate what other CPUs have available.
+While I'm sure it's an interesting intellectual exercise to do these
+advanced rwsems it would be better for everybody else to go for a single 
+maintainable C implementation.
 
-> and chuck out the "crappy" rwsem fallback implementation,
-
-CMPXCHG is not available on all archs, and may not be implemented on all archs
-through other atomic instructions.
-
-> as well as all the arch specific code?
-
-Using CMPXCHG is only optimal where that's the best available.
-
-David
+-Andi
