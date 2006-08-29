@@ -1,39 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:3756 "EHLO mx1.suse.de")
-	by vger.kernel.org with ESMTP id S965253AbWH2Sdg (ORCPT
+Received: from mx1.redhat.com ([66.187.233.31]:23690 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S965203AbWH2SbW (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 14:33:36 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: Why Semaphore Hardware-Dependent?
-Date: Tue, 29 Aug 2006 20:33:25 +0200
-References: <200608292018.01602.ak@suse.de> <Pine.LNX.4.64.0608291033380.19174@schroedinger.engr.sgi.com> <809.1156876259@warthog.cambridge.redhat.com>
-In-Reply-To: <809.1156876259@warthog.cambridge.redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200608292033.25194.ak@suse.de>
+	Tue, 29 Aug 2006 14:31:22 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <200608292018.01602.ak@suse.de> 
+References: <200608292018.01602.ak@suse.de>  <44F395DE.10804@yahoo.com.au> <200608291922.04354.ak@suse.de> <Pine.LNX.4.64.0608291033380.19174@schroedinger.engr.sgi.com> 
+Subject: Re: Why Semaphore Hardware-Dependent? 
+Date: Tue, 29 Aug 2006 19:30:59 +0100
+Message-ID: <809.1156876259@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Christoph Lameter <clameter@sgi.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tuesday 29 August 2006 20:30, David Howells wrote:
-> Andi Kleen <ak@suse.de> wrote:
-> 
-> > BTW maybe it would be a good idea to switch the wait list to a hlist,
-> > then the last user in the queue wouldn't need to 
-> > touch the cache line of the head. Or maybe even a single linked
-> > list then some more cache bounces might be avoidable.
-> 
-> You need a list_head to get O(1) push at one end and O(1) pop at the other.
+Andi Kleen <ak@suse.de> wrote:
 
-The poper should know its node address already because it's on its own stack.
+> BTW maybe it would be a good idea to switch the wait list to a hlist,
+> then the last user in the queue wouldn't need to 
+> touch the cache line of the head. Or maybe even a single linked
+> list then some more cache bounces might be avoidable.
 
-> In addition a singly-linked list makes interruptible ops non-O(1) also.
+You need a list_head to get O(1) push at one end and O(1) pop at the other.
+In addition a singly-linked list makes interruptible ops non-O(1) also.
 
-When they are interrupted I guess? Hardly a problem to make that slower.
-
--Andi
-
+David
