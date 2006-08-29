@@ -1,30 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:11968 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1751107AbWH2RXg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 13:23:36 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20060827215637.781868000@klappe.arndb.de> 
-References: <20060827215637.781868000@klappe.arndb.de>  <20060827214734.252316000@klappe.arndb.de> 
-Subject: Re: [PATCH 7/7] remove the global errno from the kernel 
-Date: Tue, 29 Aug 2006 18:23:18 +0100
-Message-ID: <26089.1156872198@warthog.cambridge.redhat.com>
+Received: from omx1-ext.sgi.com ([192.48.179.11]:58275 "EHLO
+	omx1.americas.sgi.com") by vger.kernel.org with ESMTP
+	id S965174AbWH2Rg1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Aug 2006 13:36:27 -0400
+Date: Tue, 29 Aug 2006 10:36:16 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: Why Semaphore Hardware-Dependent?
+In-Reply-To: <200608291922.04354.ak@suse.de>
+Message-ID: <Pine.LNX.4.64.0608291033380.19174@schroedinger.engr.sgi.com>
+References: <44F395DE.10804@yahoo.com.au> <11861.1156845927@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0608290855510.18031@schroedinger.engr.sgi.com>
+ <200608291922.04354.ak@suse.de>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
+To: Andi Kleen <ak@suse.de>
+Cc: David Howells <dhowells@redhat.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Arnd Bergmann <arnd@arndb.de> wrote:
+On Tue, 29 Aug 2006, Andi Kleen wrote:
 
-> The last in-kernel user of errno is gone, so we should
-> remove the definition and everything referring to it.
-> This also removes the now-unused lib/execve.c file
-> that was introduced earlier.
+> On Tuesday 29 August 2006 17:56, Christoph Lameter wrote:
+> > On Tue, 29 Aug 2006, David Howells wrote:
+> > 
+> > > Because i386 (and x86_64) can do better by using XADDL/XADDQ.
+> > 
+> > And Ia64 would like to use fetchadd....
+> 
+> This might be a dumb question, but I would expect even on altix 
+> with lots of parallel faulting threads rwsem performance be basically
+> limited by aquiring the cache line and releasing it later to another CPU.
 
-	  CC      lib/execve.o
-	frv-linux-gnu-gcc: lib/execve.c: No such file or directory
-	frv-linux-gnu-gcc: no input files
+Correct. However, a cmpxchg may have to acquire that cacheline multiple 
+times in a highly contented situation. A fetchadd acquires the cacheline 
+only once.
 
-You perchance forgot to remove something added in patch 1/7.
+> Do you really think it will make much difference what particular atomic
+> operation is used? The basic cost of sending the cache line over the
+> interconnect should be all the same, no? And once the cache line is local
+> it should be reasonably fast either way.
 
-David
+We have long tuned that portion of the code and therefore we are 
+skeptical of changes. But if we cannot measure a difference to a 
+generic implemenentation then it would be okay.
+
