@@ -1,34 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.suse.de ([195.135.220.2]:46754 "EHLO mx1.suse.de")
-	by vger.kernel.org with ESMTP id S1751237AbWH2GH7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 02:07:59 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: Why Semaphore Hardware-Dependent?
-Date: Tue, 29 Aug 2006 08:07:40 +0200
-References: <a2ebde260608271222x2b51693fnaa600965fcfaa6d2@mail.gmail.com> <1156750249.3034.155.camel@laptopd505.fenrus.org> <44F395DE.10804@yahoo.com.au>
-In-Reply-To: <44F395DE.10804@yahoo.com.au>
-MIME-Version: 1.0
-Content-Disposition: inline
-Message-Id: <200608290807.40963.ak@suse.de>
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:55689
+	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
+	id S932116AbWH2Gg7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Aug 2006 02:36:59 -0400
+Date: Mon, 28 Aug 2006 23:36:56 -0700 (PDT)
+Message-Id: <20060828.233656.59469351.davem@davemloft.net>
+Subject: Re: Cache alias handling in copy_user_page / copy_user_highpage
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20060819122520.GA18180@linux-mips.org>
+References: <20060819122520.GA18180@linux-mips.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
+To: ralf@linux-mips.org
+Cc: linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> and chuck out the "crappy" rwsem fallback implementation
+From: Ralf Baechle <ralf@linux-mips.org>
+Date: Sat, 19 Aug 2006 13:25:20 +0100
 
-What is crappy with it?
+> So here are two alterantive fixes for the API:
+> 
+> 1) Move copy_user_highpage into the arch code.  This will allow the arch code
+> to create any sort of crazy mapping it wants.  The old copy_user_page as
+> kernel API is only called from copy_user_highpage and would therefore be
+> obsoleted.
+> 
+> 2) Introduce a new kmap_atomic variant to create a congruent mapping.
 
-I went with it because there were some serious concerns about
-the complexity of the i386 rwsem code and so far nobody has complained
-about them being too slow.
+I think you will find that copy_user_highpage() and
+clear_user_highpage() are performance critical enough
+that you will want to implement it totally in hand-crafted
+assembler which disables preemption, loads up the TLB
+entries by hand, does the copy, and flushes out the
+temp mappings.
 
-But yes rwsems could need some big cleanup.
+This is essentially what the code in arch/sparc64/lib/copy_page.S and
+clear_page.S is all about.
 
--Andi
+So I'd lean towards #1.  That's the reason copy_user_page() gets
+a virtual address in the first place.  It's just HIGHMEM configs
+that make it difficult and try to do the mapping for you.
 
-
+You're definitely right that if you try to use a cache flush to
+implement clear_user_page() and copy_user_page(), you will risk
+data corruption.
