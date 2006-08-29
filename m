@@ -1,42 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from witte.sonytel.be ([80.88.33.193]:63124 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S965122AbWH2Q7t (ORCPT
+Received: from ns1.suse.de ([195.135.220.2]:18078 "EHLO mx1.suse.de")
+	by vger.kernel.org with ESMTP id S965156AbWH2RZE (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 12:59:49 -0400
-Date: Tue, 29 Aug 2006 18:58:45 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+	Tue, 29 Aug 2006 13:25:04 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: Why Semaphore Hardware-Dependent?
-In-Reply-To: <20060829165352.GA20453@linux-mips.org>
-Message-ID: <Pine.LNX.4.62.0608291858300.3907@pademelon.sonytel.be>
-References: <20060829162055.GA31159@linux-mips.org> <44F395DE.10804@yahoo.com.au>
- <a2ebde260608271222x2b51693fnaa600965fcfaa6d2@mail.gmail.com>
- <1156750249.3034.155.camel@laptopd505.fenrus.org> <11861.1156845927@warthog.cambridge.redhat.com>
- <Pine.LNX.4.64.0608290855510.18031@schroedinger.engr.sgi.com>
- <5878.1156868702@warthog.cambridge.redhat.com> <20060829165352.GA20453@linux-mips.org>
+Date: Tue, 29 Aug 2006 19:22:04 +0200
+References: <44F395DE.10804@yahoo.com.au> <11861.1156845927@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0608290855510.18031@schroedinger.engr.sgi.com>
+In-Reply-To: <Pine.LNX.4.64.0608290855510.18031@schroedinger.engr.sgi.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200608291922.04354.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: David Howells <dhowells@redhat.com>, Christoph Lameter <clameter@sgi.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, ak@suse.de, Paul Mackerras <paulus@samba.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: David Howells <dhowells@redhat.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 29 Aug 2006, Ralf Baechle wrote:
-> On Tue, Aug 29, 2006 at 05:25:02PM +0100, David Howells wrote:
+On Tuesday 29 August 2006 17:56, Christoph Lameter wrote:
+> On Tue, 29 Aug 2006, David Howells wrote:
 > 
-> > Some of these have LL/SC or equivalent instead, but ARM5 and before, FRV, M68K
-> > before 68020 to name but a few.
+> > Because i386 (and x86_64) can do better by using XADDL/XADDQ.
 > 
-> 68k before 68020 isn't supported by Linux anyway.
+> And Ia64 would like to use fetchadd....
 
-uClinux anyone?
+This might be a dumb question, but I would expect even on altix 
+with lots of parallel faulting threads rwsem performance be basically
+limited by aquiring the cache line and releasing it later to another CPU.
 
-Gr{oetje,eeting}s,
+Do you really think it will make much difference what particular atomic
+operation is used? The basic cost of sending the cache line over the
+interconnect should be all the same, no? And once the cache line is local
+it should be reasonably fast either way.
 
-						Geert
+> > CMPXCHG is not available on all archs, and may not be implemented on all archs
+> > through other atomic instructions.
+> 
+> Which arches do not support cmpxchg?
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+parisc at least iirc (it practically doesn't support very much atomically)
+and likely sparcv8.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+-Andi 
