@@ -1,27 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:23690 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S965203AbWH2SbW (ORCPT
+Received: from mail.suse.de ([195.135.220.2]:36520 "EHLO mx1.suse.de")
+	by vger.kernel.org with ESMTP id S1751148AbWH2SSC (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 14:31:22 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <200608292018.01602.ak@suse.de> 
-References: <200608292018.01602.ak@suse.de>  <44F395DE.10804@yahoo.com.au> <200608291922.04354.ak@suse.de> <Pine.LNX.4.64.0608291033380.19174@schroedinger.engr.sgi.com> 
-Subject: Re: Why Semaphore Hardware-Dependent? 
-Date: Tue, 29 Aug 2006 19:30:59 +0100
-Message-ID: <809.1156876259@warthog.cambridge.redhat.com>
+	Tue, 29 Aug 2006 14:18:02 -0400
+From: Andi Kleen <ak@suse.de>
+Subject: Re: Why Semaphore Hardware-Dependent?
+Date: Tue, 29 Aug 2006 20:18:01 +0200
+References: <44F395DE.10804@yahoo.com.au> <200608291922.04354.ak@suse.de> <Pine.LNX.4.64.0608291033380.19174@schroedinger.engr.sgi.com>
+In-Reply-To: <Pine.LNX.4.64.0608291033380.19174@schroedinger.engr.sgi.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200608292018.01602.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: David Howells <dhowells@redhat.com>, Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Andi Kleen <ak@suse.de> wrote:
+On Tuesday 29 August 2006 19:36, Christoph Lameter wrote:
+> On Tue, 29 Aug 2006, Andi Kleen wrote:
+> 
+> > On Tuesday 29 August 2006 17:56, Christoph Lameter wrote:
+> > > On Tue, 29 Aug 2006, David Howells wrote:
+> > > 
+> > > > Because i386 (and x86_64) can do better by using XADDL/XADDQ.
+> > > 
+> > > And Ia64 would like to use fetchadd....
+> > 
+> > This might be a dumb question, but I would expect even on altix 
+> > with lots of parallel faulting threads rwsem performance be basically
+> > limited by aquiring the cache line and releasing it later to another CPU.
+> 
+> Correct. However, a cmpxchg may have to acquire that cacheline multiple 
+> times in a highly contented situation.
 
-> BTW maybe it would be a good idea to switch the wait list to a hlist,
-> then the last user in the queue wouldn't need to 
-> touch the cache line of the head. Or maybe even a single linked
-> list then some more cache bounces might be avoidable.
+Hmm, thinking about it that sounds unlikely because only the first and the last
+user should touch the rwsem head. But ok it might be possible.
 
-You need a list_head to get O(1) push at one end and O(1) pop at the other.
-In addition a singly-linked list makes interruptible ops non-O(1) also.
+BTW maybe it would be a good idea to switch the wait list to a hlist,
+then the last user in the queue wouldn't need to 
+touch the cache line of the head. Or maybe even a single linked
+list then some more cache bounces might be avoidable.
 
-David
+That is really why we need a single C implementation. If we had that 
+such optimizations would be pretty easy. Without it it's a big mess.
+
+> We have long tuned that portion of the code and therefore we are 
+> skeptical of changes. But if we cannot measure a difference to a 
+> generic implemenentation then it would be okay.
+
+Would you be willing to run numbers comparing them? (or provide a benchmark?) 
+
+-Andi
