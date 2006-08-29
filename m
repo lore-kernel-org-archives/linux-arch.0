@@ -1,48 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:55689
-	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
-	id S932116AbWH2Gg7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 02:36:59 -0400
-Date: Mon, 28 Aug 2006 23:36:56 -0700 (PDT)
-Message-Id: <20060828.233656.59469351.davem@davemloft.net>
-Subject: Re: Cache alias handling in copy_user_page / copy_user_highpage
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20060819122520.GA18180@linux-mips.org>
-References: <20060819122520.GA18180@linux-mips.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:23425 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S932210AbWH2JNY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Aug 2006 05:13:24 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20060827214734.252316000@klappe.arndb.de> 
+References: <20060827214734.252316000@klappe.arndb.de> 
+Subject: Re: [PATCH 0/7] kill __KERNEL_SYSCALLS__ 
+Date: Tue, 29 Aug 2006 10:12:47 +0100
+Message-ID: <10191.1156842767@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: ralf@linux-mips.org
-Cc: linux-arch@vger.kernel.org, akpm@osdl.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Ralf Baechle <ralf@linux-mips.org>
-Date: Sat, 19 Aug 2006 13:25:20 +0100
+Arnd Bergmann <arnd@arndb.de> wrote:
 
-> So here are two alterantive fixes for the API:
-> 
-> 1) Move copy_user_highpage into the arch code.  This will allow the arch code
-> to create any sort of crazy mapping it wants.  The old copy_user_page as
-> kernel API is only called from copy_user_highpage and would therefore be
-> obsoleted.
-> 
-> 2) Introduce a new kmap_atomic variant to create a congruent mapping.
+> Ok, next try. This time a full series that tries to kill
+> off __KERNEL_SYSCALLS__, _syscallX() and the global errno
+> for good.
 
-I think you will find that copy_user_highpage() and
-clear_user_highpage() are performance critical enough
-that you will want to implement it totally in hand-crafted
-assembler which disables preemption, loads up the TLB
-entries by hand, does the copy, and flushes out the
-temp mappings.
+Have you checked uClibc?  Does that use _syscallX()?
 
-This is essentially what the code in arch/sparc64/lib/copy_page.S and
-clear_page.S is all about.
-
-So I'd lean towards #1.  That's the reason copy_user_page() gets
-a virtual address in the first place.  It's just HIGHMEM configs
-that make it difficult and try to do the mapping for you.
-
-You're definitely right that if you try to use a cache flush to
-implement clear_user_page() and copy_user_page(), you will risk
-data corruption.
+David
