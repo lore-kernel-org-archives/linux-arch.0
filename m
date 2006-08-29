@@ -1,25 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:23425 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S932210AbWH2JNY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 05:13:24 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20060827214734.252316000@klappe.arndb.de> 
-References: <20060827214734.252316000@klappe.arndb.de> 
-Subject: Re: [PATCH 0/7] kill __KERNEL_SYSCALLS__ 
-Date: Tue, 29 Aug 2006 10:12:47 +0100
-Message-ID: <10191.1156842767@warthog.cambridge.redhat.com>
+Received: from moutng.kundenserver.de ([212.227.126.177]:65534 "EHLO
+	moutng.kundenserver.de") by vger.kernel.org with ESMTP
+	id S964812AbWH2Jif convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Aug 2006 05:38:35 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/7] kill __KERNEL_SYSCALLS__
+Date: Tue, 29 Aug 2006 11:37:43 +0200
+References: <20060827214734.252316000@klappe.arndb.de> <10191.1156842767@warthog.cambridge.redhat.com>
+In-Reply-To: <10191.1156842767@warthog.cambridge.redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
+Message-Id: <200608291137.44649.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
+To: David Howells <dhowells@redhat.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
 List-ID: <linux-arch.vger.kernel.org>
 
-Arnd Bergmann <arnd@arndb.de> wrote:
+On Tuesday 29 August 2006 11:12, David Howells wrote:
+> > Ok, next try. This time a full series that tries to kill
+> > off __KERNEL_SYSCALLS__, _syscallX() and the global errno
+> > for good.
+> 
+> Have you checked uClibc?  Does that use _syscallX()?
 
-> Ok, next try. This time a full series that tries to kill
-> off __KERNEL_SYSCALLS__, _syscallX() and the global errno
-> for good.
+uClibc has its own copy of these macros.
 
-Have you checked uClibc?  Does that use _syscallX()?
-
-David
+	Arnd <><
