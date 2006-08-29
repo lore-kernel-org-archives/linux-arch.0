@@ -1,31 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.177]:65534 "EHLO
-	moutng.kundenserver.de") by vger.kernel.org with ESMTP
-	id S964812AbWH2Jif convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Aug 2006 05:38:35 -0400
-From: Arnd Bergmann <arnd@arndb.de>
+Received: from wx-out-0506.google.com ([66.249.82.233]:50415 "EHLO
+	wx-out-0506.google.com") by vger.kernel.org with ESMTP
+	id S964796AbWH2Ji2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Aug 2006 05:38:28 -0400
+Received: by wx-out-0506.google.com with SMTP id s14so2002509wxc
+        for <linux-arch@vger.kernel.org>; Tue, 29 Aug 2006 02:38:28 -0700 (PDT)
+Message-ID: <1defaf580608290238k584af24fjc97ddb276706a423@mail.gmail.com>
+Date: Tue, 29 Aug 2006 11:38:27 +0200
+From: "Haavard Skinnemoen" <hskinnemoen@gmail.com>
 Subject: Re: [PATCH 0/7] kill __KERNEL_SYSCALLS__
-Date: Tue, 29 Aug 2006 11:37:43 +0200
-References: <20060827214734.252316000@klappe.arndb.de> <10191.1156842767@warthog.cambridge.redhat.com>
 In-Reply-To: <10191.1156842767@warthog.cambridge.redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-Message-Id: <200608291137.44649.arnd@arndb.de>
+References: <20060827214734.252316000@klappe.arndb.de>
+	 <10191.1156842767@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: David Howells <dhowells@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tuesday 29 August 2006 11:12, David Howells wrote:
+On 8/29/06, David Howells <dhowells@redhat.com> wrote:
+> Arnd Bergmann <arnd@arndb.de> wrote:
+>
 > > Ok, next try. This time a full series that tries to kill
 > > off __KERNEL_SYSCALLS__, _syscallX() and the global errno
 > > for good.
-> 
-> Have you checked uClibc?  Does that use _syscallX()?
+>
+> Have you checked uClibc?  Does that use _syscallX()?
 
-uClibc has its own copy of these macros.
+At least the latest version provides its own set of _syscallX()
+macros. I removed _syscallX() from the AVR32 kernel a few weeks ago as
+suggested by David Woodhouse, and uClibc doesn't seem to have a
+problem with it.
 
-	Arnd <><
+Haavard
