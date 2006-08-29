@@ -1,41 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:59020 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S932284AbWH2K5K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Aug 2006 06:57:10 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: Why Semaphore Hardware-Dependent?
-Date: Tue, 29 Aug 2006 12:56:54 +0200
-References: <44F395DE.10804@yahoo.com.au> <1156750249.3034.155.camel@laptopd505.fenrus.org> <11861.1156845927@warthog.cambridge.redhat.com>
-In-Reply-To: <11861.1156845927@warthog.cambridge.redhat.com>
-MIME-Version: 1.0
+Received: from ftp.linux-mips.org ([194.74.144.162]:19614 "EHLO
+	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S964891AbWH2LTJ
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Aug 2006 07:19:09 -0400
+Received: from localhost.localdomain ([127.0.0.1]:6805 "EHLO
+	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
+	id S20039435AbWH2LTH (ORCPT <rfc822;linux-arch@vger.kernel.org>
+	+ 1 other); Tue, 29 Aug 2006 12:19:07 +0100
+Date: Tue, 29 Aug 2006 03:22:09 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH 3/7] provide kernel_execve on all architectures
+Message-ID: <20060829022209.GA14661@linux-mips.org>
+References: <20060827214734.252316000@klappe.arndb.de> <20060827215636.263883000@klappe.arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200608291256.54665.ak@suse.de>
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20060827215636.263883000@klappe.arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tuesday 29 August 2006 12:05, David Howells wrote:
+On Sun, Aug 27, 2006 at 11:47:37PM +0200, Arnd Bergmann wrote:
 
->Because i386 (and x86_64) can do better by using XADDL/XADDQ.
+> This adds the new kernel_execve function on all architectures
+> that were using _syscall3() to implement execve.
+> 
+> The implementation uses code from the _syscall3 macros provided
+> in the unistd.h header file. I don't have cross-compilers for
+> any of these architectures, so the patch is untested with the
+> exception of i386.
+> 
+> Most architectures can probably implement this in a nicer way
+> in assembly or by combining it with the sys_execve implementation
+> itself, but this should do it for now.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-x86-64 has always used the spinlock based version.
+Two bugs in your MIPS version of kernel_execve(); the inline asm which
+was copying from _syscall3 macro was still using the #stringify
+operation.  It also didn't get the result return in case of errors
+right - $a3 = 1 indicates an error in which case $v0 will contain the
+positive error number.
 
-> On i386, CMPXCHG also ties you to what registers you may use for what to some
-> extent. 
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 
-We've completely given up these kinds of micro optimization for spinlocks,
-which are 1000x as critical as rwsems.  And nobody was able to benchmark
-a difference.
-
-It is very very likely nobody could benchmark a difference on rwsems either.
-
-While I'm sure it's an interesting intellectual exercise to do these
-advanced rwsems it would be better for everybody else to go for a single 
-maintainable C implementation.
-
--Andi
+diff --git a/arch/mips/kernel/syscall.c b/arch/mips/kernel/syscall.c
+index 0721314..b73b26c 100644
+--- a/arch/mips/kernel/syscall.c
++++ b/arch/mips/kernel/syscall.c
+@@ -399,3 +399,32 @@ asmlinkage void bad_stack(void)
+ {
+ 	do_exit(SIGSEGV);
+ }
++
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	register unsigned long __a0 asm("$4") = (unsigned long) filename;
++	register unsigned long __a1 asm("$5") = (unsigned long) argv;
++	register unsigned long __a2 asm("$6") = (unsigned long) envp;
++	register unsigned long __a3 asm("$7");
++	unsigned long __v0;
++
++	__asm__ volatile ("					\n"
++	"	.set	noreorder				\n"
++	"	li	$2, %5		# __NR_execve		\n"
++	"	syscall						\n"
++	"	move	%0, $2					\n"
++	"	.set	reorder					\n"
++	: "=&r" (__v0), "=r" (__a3)
++	: "r" (__a0), "r" (__a1), "r" (__a2), "i" (__NR_execve)
++	: "$2", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$24",
++	  "memory");
++
++	if (__a3 == 0)
++		return __v0;
++
++	return -__v0;
++}
