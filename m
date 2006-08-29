@@ -1,54 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp105.mail.mud.yahoo.com ([209.191.85.215]:24673 "HELO
-	smtp105.mail.mud.yahoo.com") by vger.kernel.org with SMTP
-	id S1750836AbWH2BSt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Aug 2006 21:18:49 -0400
-Message-ID: <44F395DE.10804@yahoo.com.au>
-Date: Tue, 29 Aug 2006 11:18:22 +1000
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
+Received: from mx1.suse.de ([195.135.220.2]:46754 "EHLO mx1.suse.de")
+	by vger.kernel.org with ESMTP id S1751237AbWH2GH7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Aug 2006 02:07:59 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: Why Semaphore Hardware-Dependent?
-References: <a2ebde260608271222x2b51693fnaa600965fcfaa6d2@mail.gmail.com> <1156750249.3034.155.camel@laptopd505.fenrus.org>
-In-Reply-To: <1156750249.3034.155.camel@laptopd505.fenrus.org>
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Date: Tue, 29 Aug 2006 08:07:40 +0200
+References: <a2ebde260608271222x2b51693fnaa600965fcfaa6d2@mail.gmail.com> <1156750249.3034.155.camel@laptopd505.fenrus.org> <44F395DE.10804@yahoo.com.au>
+In-Reply-To: <44F395DE.10804@yahoo.com.au>
+MIME-Version: 1.0
+Content-Disposition: inline
+Message-Id: <200608290807.40963.ak@suse.de>
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Arjan van de Ven <arjan@infradead.org>
-Cc: Dong Feng <middle.fengdong@gmail.com>, ak@suse.de, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Arjan van de Ven wrote:
-> On Mon, 2006-08-28 at 03:22 +0800, Dong Feng wrote:
-> 
->>Why can't we have a hardware-independent semaphore definition while we
->>have already had hardware-dependent spinlock, rwlock, and rcu lock? It
->>seems the semaphore definitions classified into two major categories.
->>The main deference is whether there is a member variable _sleeper_.
-> 
-> 
-> btw semaphores are a deprecated construct mostly; mutexes are the way to
-> go for new code if they fit the usage model of mutexes. And mutexes are
-> indeed generic (with a architecture hook to allow a specific operation
-> to be optimized using assembly)
+> and chuck out the "crappy" rwsem fallback implementation
 
-That's true, although rwsems are still very important for mmap_sem (if
-nothing else). There is not yet an rw/se-mutex.
+What is crappy with it?
 
-rwsem is another place that has a huge proliferation of assembly code.
-I wonder if we can just start with the nice powerpc code that uses
-atomic_add_return and cmpxchg (should use atomic_cmpxchg), and chuck
-out the "crappy" rwsem fallback implementation, as well as all the arch
-specific code?
+I went with it because there were some serious concerns about
+the complexity of the i386 rwsem code and so far nobody has complained
+about them being too slow.
 
-That would seem to be able to rid us of vast swaths of tricky asm, and
-also double the test coverage of the out of line lib/ code. Should still
-generate close to optimal code on i386. The only architectures that might
-slightly care are those who's atomics hash to locks (in that case, you'd
-really rather take a lock in the rwsem's cacheline than a random atomic
-lock... but I don't think incredible parisc/sparc SMP performance is
-worth the current situation!)
+But yes rwsems could need some big cleanup.
 
--- 
-SUSE Labs, Novell Inc.
+-Andi
 
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+
