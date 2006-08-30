@@ -1,28 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.suse.de ([195.135.220.2]:38815 "EHLO mx1.suse.de")
-	by vger.kernel.org with ESMTP id S1750775AbWH3HZB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Aug 2006 03:25:01 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [PATCH 6/7] remove all remaining _syscallX macros
-Date: Wed, 30 Aug 2006 09:22:09 +0200
-References: <200608281003.02757.ak@suse.de> <200608281642.21737.ak@suse.de> <44F525BC.4020608@zytor.com>
-In-Reply-To: <44F525BC.4020608@zytor.com>
+Received: from moutng.kundenserver.de ([212.227.126.171]:30689 "EHLO
+	moutng.kundenserver.de") by vger.kernel.org with ESMTP
+	id S1750805AbWH3MjU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Aug 2006 08:39:20 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 4/7] Remove the use of _syscallX macros in UML
+Date: Wed, 30 Aug 2006 14:38:41 +0200
+References: <20060827214734.252316000@klappe.arndb.de> <20060827215636.797086000@klappe.arndb.de> <44F524EE.90304@zytor.com>
+In-Reply-To: <44F524EE.90304@zytor.com>
 MIME-Version: 1.0
-Content-Disposition: inline
-Message-Id: <200608300922.09436.ak@suse.de>
 Content-Type: text/plain;
-  charset="iso-8859-15"
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200608301438.42079.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, David Woodhouse <dwmw2@infradead.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, jdike@addtoit.com, B.Steinbrink@gmx.de, arjan@infradead.org, chase.venters@clientec.com, akpm@osdl.org, rmk+lkml@arm.linux.org.uk, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, rusty@rustcorp.com.au
 List-ID: <linux-arch.vger.kernel.org>
 
+On Wednesday 30 August 2006 07:41, H. Peter Anvin wrote:
+> syscall() is a horrible botch; it is in fact unimplementable (without 
+> enormous switch statements) on a number of architectures.
+> 
+Ok, good point. I'll leave the _syscallX() macros in for now and only
+remove the kernel syscalls in my next submission, so we get at least
+the non-controversial part done.
 
-> Why don't you just have a private version of the macros?
-
-Because I don't write a libc, just test programs, preferably
-without a huge amount of cut'n'pasted code
-
--Andi
+	Arnd <><
