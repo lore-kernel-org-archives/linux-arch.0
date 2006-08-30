@@ -1,437 +1,930 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:43468 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.177]:9191 "EHLO
 	moutng.kundenserver.de") by vger.kernel.org with ESMTP
-	id S1750928AbWH3Mxf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Aug 2006 08:53:35 -0400
-Message-Id: <20060830125037.876668000@klappe.arndb.de>
+	id S1750945AbWH3Mxz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Aug 2006 08:53:55 -0400
+Message-Id: <20060830125038.391610000@klappe.arndb.de>
 References: <20060830124356.567568000@klappe.arndb.de>
-Date: Wed, 30 Aug 2006 14:43:59 +0200
+Date: Wed, 30 Aug 2006 14:44:02 +0200
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 3/6] provide kernel_execve on all architectures
-Content-Disposition: inline; filename=kerne-execve2.diff
+Subject: [PATCH 6/6]  remove remaining errno and __KERNEL_SYSCALLS__ references
+Content-Disposition: inline; filename=kernel-execve-2.5.diff
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, Andi Kleen <ak@suse.de>, "H. Peter Anvin" <hpa@zytor.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-This adds the new kernel_execve function on all architectures
-that were using _syscall3() to implement execve.
+The last in-kernel user of errno is gone, so we should
+remove the definition and everything referring to it.
+This also removes the now-unused lib/execve.c file
+that was introduced earlier.
 
-The implementation uses code from the _syscall3 macros provided
-in the unistd.h header file. I don't have cross-compilers for
-any of these architectures, so the patch is untested with the
-exception of i386.
-
-Most architectures can probably implement this in a nicer way
-in assembly or by combining it with the sys_execve implementation
-itself, but this should do it for now.
+Also remove every trace of __KERNEL_SYSCALLS__ that still
+remained in the kernel.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Index: linux-cg/arch/h8300/kernel/sys_h8300.c
+Index: linux-cg/include/asm-cris/unistd.h
 ===================================================================
---- linux-cg.orig/arch/h8300/kernel/sys_h8300.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/h8300/kernel/sys_h8300.c	2006-08-29 19:49:33.000000000 +0200
-@@ -280,3 +280,26 @@
-                ((regs->pc)&0xffffff)-2,regs->orig_er0,regs->er1,regs->er2,regs->er3,regs->er0);
- }
+--- linux-cg.orig/include/asm-cris/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-cris/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -324,67 +324,6 @@
+ #define __ARCH_WANT_SYS_RT_SIGACTION
  #endif
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	register long res __asm__("er0");
-+	register const char * _a __asm__("er1") = filename;
-+	register void *_b __asm__("er2") = argv;
-+	register void *_c __asm__("er3") = envp;
-+	__asm__ __volatile__ ("mov.l %1,er0\n\t"
-+			"trapa	#0\n\t"
-+			: "=r" (res)
-+			: "g" (__NR_execve),
-+			  "g" (_a),
-+			  "g" (_b),
-+			  "g" (_c)
-+			: "cc", "memory");
-+	return res;
-+}
-+
-+
-Index: linux-cg/arch/i386/kernel/sys_i386.c
-===================================================================
---- linux-cg.orig/arch/i386/kernel/sys_i386.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/i386/kernel/sys_i386.c	2006-08-29 19:49:33.000000000 +0200
-@@ -243,3 +243,17 @@
  
- 	return error;
- }
-+
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	long __res;
-+	asm volatile ("push %%ebx ; movl %2,%%ebx ; int $0x80 ; pop %%ebx"
-+	: "=a" (__res)
-+	: "0" (__NR_execve),"ri" (filename),"c" (argv), "d" (envp) : "memory");
-+	return __res;
-+}
-Index: linux-cg/arch/m32r/kernel/sys_m32r.c
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-#include <linux/linkage.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-#define __NR__exit __NR_exit
+-static inline _syscall0(pid_t,setsid)
+-static inline _syscall3(int,write,int,fd,const char *,buf,off_t,count)
+-static inline _syscall3(int,read,int,fd,char *,buf,off_t,count)
+-static inline _syscall3(off_t,lseek,int,fd,off_t,offset,int,count)
+-static inline _syscall1(int,dup,int,fd)
+-static inline _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-static inline _syscall3(int,open,const char *,file,int,flag,int,mode)
+-static inline _syscall1(int,close,int,fd)
+-
+-struct pt_regs;
+-asmlinkage long sys_mmap2(
+-			unsigned long addr, unsigned long len,
+-			unsigned long prot, unsigned long flags,
+-			unsigned long fd, unsigned long pgoff);
+-asmlinkage int sys_execve(const char *fname, char **argv, char **envp,
+-			long r13, long mof, long srp, struct pt_regs *regs);
+-asmlinkage int sys_clone(unsigned long newusp, unsigned long flags,
+-			int* parent_tid, int* child_tid, long mof, long srp,
+-			struct pt_regs *regs);
+-asmlinkage int sys_fork(long r10, long r11, long r12, long r13,
+-			long mof, long srp, struct pt_regs *regs);
+-asmlinkage int sys_vfork(long r10, long r11, long r12, long r13,
+-			long mof, long srp, struct pt_regs *regs);
+-asmlinkage int sys_pipe(unsigned long __user *fildes);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				const struct sigaction __user *act,
+-				struct sigaction __user *oact,
+-				size_t sigsetsize);
+-
+-/*
+- * Since we define it "external", it collides with the built-in
+- * definition, which has the "noreturn" attribute and will cause
+- * complaints.  We don't want to use -fno-builtin, so just use a
+- * different name when in the kernel.
+- */
+-#define _exit kernel_syscall_exit
+-static inline _syscall1(int,_exit,int,exitcode)
+-static inline _syscall3(pid_t,waitpid,pid_t,pid,int *,wait_stat,int,options)
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+-
+ /*
+  * "Conditional" syscalls
+  *
+Index: linux-cg/include/asm-frv/unistd.h
 ===================================================================
---- linux-cg.orig/arch/m32r/kernel/sys_m32r.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/m32r/kernel/sys_m32r.c	2006-08-29 19:49:33.000000000 +0200
-@@ -25,6 +25,8 @@
- #include <asm/cachectl.h>
- #include <asm/cacheflush.h>
- #include <asm/ipc.h>
-+#include <asm/syscall.h>
-+#include <asm/unistd.h>
+--- linux-cg.orig/include/asm-frv/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-frv/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -439,31 +439,6 @@
+ 	__syscall_return(type, __sc0);								 \
+ }
+ 
+-
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-#include <linux/linkage.h>
+-#include <asm/ptrace.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-#define __NR__exit __NR_exit
+-static inline _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ #define __ARCH_WANT_IPC_PARSE_VERSION
+ /* #define __ARCH_WANT_OLD_READDIR */
+ #define __ARCH_WANT_OLD_STAT
+Index: linux-cg/include/asm-h8300/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-h8300/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-h8300/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -485,57 +485,6 @@
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+ #define __ARCH_WANT_SYS_RT_SIGACTION
+ 
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-#define __NR__exit __NR_exit
+-static inline _syscall0(int,pause)
+-static inline _syscall0(int,sync)
+-static inline _syscall0(pid_t,setsid)
+-static inline _syscall3(int,write,int,fd,const char *,buf,off_t,count)
+-static inline _syscall3(int,read,int,fd,char *,buf,off_t,count)
+-static inline _syscall3(off_t,lseek,int,fd,off_t,offset,int,count)
+-static inline _syscall1(int,dup,int,fd)
+-static inline _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-static inline _syscall3(int,open,const char *,file,int,flag,int,mode)
+-static inline _syscall1(int,close,int,fd)
+-static inline _syscall1(int,_exit,int,exitcode)
+-static inline _syscall3(pid_t,waitpid,pid_t,pid,int *,wait_stat,int,options)
+-static inline _syscall1(int,delete_module,const char *,name)
+-
+-static inline pid_t wait(int * wait_stat)
+-{
+-	return waitpid(-1,wait_stat,0);
+-}
+-
+-asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
+-			unsigned long prot, unsigned long flags,
+-			unsigned long fd, unsigned long pgoff);
+-asmlinkage int sys_execve(char *name, char **argv, char **envp,
+-			int dummy, ...);
+-asmlinkage int sys_pipe(unsigned long *fildes);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				const struct sigaction __user *act,
+-				struct sigaction __user *oact,
+-				size_t sigsetsize);
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ /*
+  * "Conditional" syscalls
+  */
+Index: linux-cg/include/asm-m32r/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-m32r/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-m32r/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -423,43 +423,6 @@
+ #define __ARCH_WANT_SYS_OLDUMOUNT
+ #define __ARCH_WANT_SYS_RT_SIGACTION
+ 
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-#include <linux/linkage.h>
+-#include <asm/ptrace.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-static __inline__ _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-
+-asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
+-			  unsigned long prot, unsigned long flags,
+-			  unsigned long fd, unsigned long pgoff);
+-asmlinkage int sys_execve(struct pt_regs regs);
+-asmlinkage int sys_clone(struct pt_regs regs);
+-asmlinkage int sys_fork(struct pt_regs regs);
+-asmlinkage int sys_vfork(struct pt_regs regs);
+-asmlinkage int sys_pipe(unsigned long __user *fildes);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				 const struct sigaction __user *act,
+-				 struct sigaction __user *oact,
+-				 size_t sigsetsize);
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ /*
+  * "Conditional" syscalls
+  *
+Index: linux-cg/include/asm-m68k/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-m68k/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-m68k/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -408,12 +408,6 @@
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+ #define __ARCH_WANT_SYS_RT_SIGACTION
+ 
+-#ifdef __KERNEL_SYSCALLS__
+-
+-static inline _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ /*
+  * "Conditional" syscalls
+  *
+Index: linux-cg/include/asm-m68knommu/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-m68knommu/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-m68knommu/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -462,61 +462,6 @@
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+ #define __ARCH_WANT_SYS_RT_SIGACTION
+ 
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/interrupt.h>
+-#include <linux/types.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-#define __NR__exit __NR_exit
+-static inline _syscall0(int,pause)
+-static inline _syscall0(int,sync)
+-static inline _syscall0(pid_t,setsid)
+-static inline _syscall3(int,write,int,fd,const char *,buf,off_t,count)
+-static inline _syscall3(int,read,int,fd,char *,buf,off_t,count)
+-static inline _syscall3(off_t,lseek,int,fd,off_t,offset,int,count)
+-static inline _syscall1(int,dup,int,fd)
+-static inline _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-static inline _syscall3(int,open,const char *,file,int,flag,int,mode)
+-static inline _syscall1(int,close,int,fd)
+-static inline _syscall1(int,_exit,int,exitcode)
+-static inline _syscall3(pid_t,waitpid,pid_t,pid,int *,wait_stat,int,options)
+-static inline _syscall1(int,delete_module,const char *,name)
+-
+-static inline pid_t wait(int * wait_stat)
+-{
+-	return waitpid(-1,wait_stat,0);
+-}
+-asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
+-			unsigned long prot, unsigned long flags,
+-			unsigned long fd, unsigned long pgoff);
+-asmlinkage int sys_execve(char *name, char **argv, char **envp);
+-asmlinkage int sys_pipe(unsigned long *fildes);
+-struct pt_regs;
+-int sys_request_irq(unsigned int,
+-			irqreturn_t (*)(int, void *, struct pt_regs *),
+-			unsigned long, const char *, void *);
+-void sys_free_irq(unsigned int, void *);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				const struct sigaction __user *act,
+-				struct sigaction __user *oact,
+-				size_t sigsetsize);
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ /*
+  * "Conditional" syscalls
+  *
+Index: linux-cg/include/asm-mips/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-mips/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-mips/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -1206,45 +1206,6 @@
+ #  define __ARCH_WANT_COMPAT_SYS_TIME
+ # endif
+ 
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-#include <linux/linkage.h>
+-#include <asm/ptrace.h>
+-#include <asm/sim.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-static inline _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-
+-asmlinkage unsigned long sys_mmap(
+-				unsigned long addr, size_t len,
+-				int prot, int flags,
+-				int fd, off_t offset);
+-asmlinkage long sys_mmap2(
+-			unsigned long addr, unsigned long len,
+-			unsigned long prot, unsigned long flags,
+-			unsigned long fd, unsigned long pgoff);
+-asmlinkage int sys_execve(nabi_no_regargs struct pt_regs regs);
+-asmlinkage int sys_pipe(nabi_no_regargs struct pt_regs regs);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				const struct sigaction __user *act,
+-				struct sigaction __user *oact,
+-				size_t sigsetsize);
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+ #endif /* !__ASSEMBLY__ */
  
  /*
-  * sys_tas() - test-and-set
-@@ -223,3 +225,21 @@
- 	return -ENOSYS;
+Index: linux-cg/include/asm-s390/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-s390/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-s390/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -573,57 +573,6 @@
+ #   define __ARCH_WANT_COMPAT_SYS_RT_SIGSUSPEND
+ # endif
+ 
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-#include <asm/ptrace.h>
+-#include <asm/stat.h>
+-#include <linux/syscalls.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-#define __NR__exit __NR_exit
+-static inline _syscall0(pid_t,setsid)
+-static inline _syscall3(int,write,int,fd,const char *,buf,off_t,count)
+-static inline _syscall3(int,read,int,fd,char *,buf,off_t,count)
+-static inline _syscall3(off_t,lseek,int,fd,off_t,offset,int,count)
+-static inline _syscall1(int,dup,int,fd)
+-static inline _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-static inline _syscall3(int,open,const char *,file,int,flag,int,mode)
+-static inline _syscall1(int,close,int,fd)
+-static inline _syscall2(long,stat,char *,filename,struct stat *,statbuf)
+-
+-static inline pid_t waitpid(int pid, int *wait_stat, int flags)
+-{
+-	return sys_wait4(pid, wait_stat, flags, NULL);
+-}
+-struct mmap_arg_struct;
+-asmlinkage long sys_mmap2(struct mmap_arg_struct __user *arg);
+-
+-asmlinkage long sys_execve(struct pt_regs regs);
+-asmlinkage long sys_clone(struct pt_regs regs);
+-asmlinkage long sys_fork(struct pt_regs regs);
+-asmlinkage long sys_vfork(struct pt_regs regs);
+-asmlinkage long sys_pipe(unsigned long __user *fildes);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				const struct sigaction __user *act,
+-				struct sigaction __user *oact,
+-				size_t sigsetsize);
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ /*
+  * "Conditional" syscalls
+  *
+Index: linux-cg/include/asm-sh/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-sh/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-sh/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -445,76 +445,6 @@
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+ #define __ARCH_WANT_SYS_RT_SIGACTION
+ 
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-#include <linux/linkage.h>
+-#include <asm/ptrace.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-#define __NR__exit __NR_exit
+-static __inline__ _syscall0(int,pause)
+-static __inline__ _syscall0(int,sync)
+-static __inline__ _syscall0(pid_t,setsid)
+-static __inline__ _syscall3(int,write,int,fd,const char *,buf,off_t,count)
+-static __inline__ _syscall3(int,read,int,fd,char *,buf,off_t,count)
+-static __inline__ _syscall3(off_t,lseek,int,fd,off_t,offset,int,count)
+-static __inline__ _syscall1(int,dup,int,fd)
+-static __inline__ _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-static __inline__ _syscall3(int,open,const char *,file,int,flag,int,mode)
+-static __inline__ _syscall1(int,close,int,fd)
+-static __inline__ _syscall3(pid_t,waitpid,pid_t,pid,int *,wait_stat,int,options)
+-static __inline__ _syscall1(int,delete_module,const char *,name)
+-
+-static __inline__ pid_t wait(int * wait_stat)
+-{
+-	return waitpid(-1,wait_stat,0);
+-}
+-
+-asmlinkage long sys_mmap2(
+-			unsigned long addr, unsigned long len,
+-			unsigned long prot, unsigned long flags,
+-			unsigned long fd, unsigned long pgoff);
+-asmlinkage int sys_execve(char *ufilename, char **uargv,
+-			char **uenvp, unsigned long r7,
+-			struct pt_regs regs);
+-asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
+-			unsigned long parent_tidptr,
+-			unsigned long child_tidptr,
+-			struct pt_regs regs);
+-asmlinkage int sys_fork(unsigned long r4, unsigned long r5,
+-			unsigned long r6, unsigned long r7,
+-			struct pt_regs regs);
+-asmlinkage int sys_vfork(unsigned long r4, unsigned long r5,
+-			unsigned long r6, unsigned long r7,
+-			struct pt_regs regs);
+-asmlinkage int sys_pipe(unsigned long r4, unsigned long r5,
+-			unsigned long r6, unsigned long r7,
+-			struct pt_regs regs);
+-asmlinkage ssize_t sys_pread_wrapper(unsigned int fd, char *buf,
+-				size_t count, long dummy, loff_t pos);
+-asmlinkage ssize_t sys_pwrite_wrapper(unsigned int fd, const char *buf,
+-				size_t count, long dummy, loff_t pos);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				const struct sigaction __user *act,
+-				struct sigaction __user *oact,
+-				size_t sigsetsize);
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ /*
+  * "Conditional" syscalls
+  *
+Index: linux-cg/include/asm-sh64/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-sh64/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-sh64/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -511,47 +511,6 @@
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+ #define __ARCH_WANT_SYS_RT_SIGACTION
+ 
+-#ifdef __KERNEL_SYSCALLS__
+-
+-/* Copy from sh */
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-#include <asm/ptrace.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-#define __NR__exit __NR_exit
+-static inline _syscall0(int,pause)
+-static inline _syscall1(int,setup,int,magic)
+-static inline _syscall0(int,sync)
+-static inline _syscall0(pid_t,setsid)
+-static inline _syscall3(int,write,int,fd,const char *,buf,off_t,count)
+-static inline _syscall3(int,read,int,fd,char *,buf,off_t,count)
+-static inline _syscall3(off_t,lseek,int,fd,off_t,offset,int,count)
+-static inline _syscall1(int,dup,int,fd)
+-static inline _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-static inline _syscall3(int,open,const char *,file,int,flag,int,mode)
+-static inline _syscall1(int,close,int,fd)
+-static inline _syscall1(int,_exit,int,exitcode)
+-static inline _syscall3(pid_t,waitpid,pid_t,pid,int *,wait_stat,int,options)
+-static inline _syscall1(int,delete_module,const char *,name)
+-
+-static inline pid_t wait(int * wait_stat)
+-{
+-	return waitpid(-1,wait_stat,0);
+-}
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ /*
+  * "Conditional" syscalls
+  *
+Index: linux-cg/include/asm-sparc/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-sparc/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-sparc/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -478,53 +478,6 @@
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+ #define __ARCH_WANT_SYS_RT_SIGSUSPEND
+ 
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-#define __NR__exit __NR_exit
+-static __inline__ _syscall0(pid_t,setsid)
+-static __inline__ _syscall3(int,write,int,fd,__const__ char *,buf,off_t,count)
+-static __inline__ _syscall3(int,read,int,fd,char *,buf,off_t,count)
+-static __inline__ _syscall3(off_t,lseek,int,fd,off_t,offset,int,count)
+-static __inline__ _syscall1(int,dup,int,fd)
+-static __inline__ _syscall3(int,execve,__const__ char *,file,char **,argv,char **,envp)
+-static __inline__ _syscall3(int,open,__const__ char *,file,int,flag,int,mode)
+-static __inline__ _syscall1(int,close,int,fd)
+-static __inline__ _syscall3(pid_t,waitpid,pid_t,pid,int *,wait_stat,int,options)
+-
+-#include <linux/linkage.h>
+-
+-asmlinkage unsigned long sys_mmap(
+-				unsigned long addr, unsigned long len,
+-				unsigned long prot, unsigned long flags,
+-				unsigned long fd, unsigned long off);
+-asmlinkage unsigned long sys_mmap2(
+-				unsigned long addr, unsigned long len,
+-				unsigned long prot, unsigned long flags,
+-				unsigned long fd, unsigned long pgoff);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				const struct sigaction __user *act,
+-				struct sigaction __user *oact,
+-				void __user *restorer,
+-				size_t sigsetsize);
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ /*
+  * "Conditional" syscalls
+  *
+Index: linux-cg/include/asm-sparc64/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-sparc64/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-sparc64/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -445,48 +445,6 @@
+ errno = -__res; \
+ return -1; \
+ }
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-#define __NR__exit __NR_exit
+-static __inline__ _syscall0(pid_t,setsid)
+-static __inline__ _syscall3(int,write,int,fd,__const__ char *,buf,off_t,count)
+-static __inline__ _syscall3(int,read,int,fd,char *,buf,off_t,count)
+-static __inline__ _syscall3(off_t,lseek,int,fd,off_t,offset,int,count)
+-static __inline__ _syscall1(int,dup,int,fd)
+-static __inline__ _syscall3(int,execve,__const__ char *,file,char **,argv,char **,envp)
+-static __inline__ _syscall3(int,open,__const__ char *,file,int,flag,int,mode)
+-static __inline__ _syscall1(int,close,int,fd)
+-static __inline__ _syscall3(pid_t,waitpid,pid_t,pid,int *,wait_stat,int,options)
+-
+-#include <linux/linkage.h>
+-
+-asmlinkage unsigned long sys_mmap(
+-				unsigned long addr, unsigned long len,
+-				unsigned long prot, unsigned long flags,
+-				unsigned long fd, unsigned long off);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				const struct sigaction __user *act,
+-				struct sigaction __user *oact,
+-				void __user *restorer,
+-				size_t sigsetsize);
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+ 
+ /* sysconf options, for SunOS compatibility */
+ #define   _SC_ARG_MAX             1
+Index: linux-cg/include/asm-v850/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-v850/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-v850/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -386,57 +386,6 @@
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+ #define __ARCH_WANT_SYS_RT_SIGACTION
+ 
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-#define __NR__exit __NR_exit
+-extern inline _syscall0(pid_t,setsid)
+-extern inline _syscall3(int,write,int,fd,const char *,buf,off_t,count)
+-extern inline _syscall3(int,read,int,fd,char *,buf,off_t,count)
+-extern inline _syscall3(off_t,lseek,int,fd,off_t,offset,int,count)
+-extern inline _syscall1(int,dup,int,fd)
+-extern inline _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-extern inline _syscall3(int,open,const char *,file,int,flag,int,mode)
+-extern inline _syscall1(int,close,int,fd)
+-extern inline _syscall1(int,_exit,int,exitcode)
+-extern inline _syscall3(pid_t,waitpid,pid_t,pid,int *,wait_stat,int,options)
+-
+-extern inline pid_t wait(int * wait_stat)
+-{
+-	return waitpid (-1, wait_stat, 0);
+-}
+-
+-unsigned long sys_mmap(unsigned long addr, size_t len,
+-			unsigned long prot, unsigned long flags,
+-			unsigned long fd, off_t offset);
+-unsigned long sys_mmap2(unsigned long addr, size_t len,
+-			unsigned long prot, unsigned long flags,
+-			unsigned long fd, unsigned long pgoff);
+-struct pt_regs;
+-int sys_execve (char *name, char **argv, char **envp, struct pt_regs *regs);
+-int sys_pipe (int *fildes);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				const struct sigaction __user *act,
+-				struct sigaction __user *oact,
+-				size_t sigsetsize);
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ /*
+  * "Conditional" syscalls
+  */
+Index: linux-cg/include/asm-xtensa/unistd.h
+===================================================================
+--- linux-cg.orig/include/asm-xtensa/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-xtensa/unistd.h	2006-08-30 14:43:16.000000000 +0200
+@@ -402,11 +402,6 @@
+ __syscall_return(type,__res); \
  }
  
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	register long __scno __asm__ ("r7") = __NR_execve;
-+	register long __arg3 __asm__ ("r2") = (long)(envp);
-+	register long __arg2 __asm__ ("r1") = (long)(argv);
-+	register long __res __asm__ ("r0") = (long)(filename);
-+	__asm__ __volatile__ (
-+		"trap #" SYSCALL_VECTOR "|| nop"
-+		: "=r" (__res)
-+		: "r" (__scno), "0" (__res), "r" (__arg2),
-+			"r" (__arg3)
-+		: "memory");
-+	return __res;
-+}
-Index: linux-cg/arch/m68k/kernel/sys_m68k.c
+-
+-#ifdef __KERNEL_SYSCALLS__
+-static __inline__ _syscall3(int,execve,const char*,file,char**,argv,char**,envp)
+-#endif
+-
+ /*
+  * "Conditional" syscalls
+  *
+Index: linux-cg/include/asm-i386/unistd.h
 ===================================================================
---- linux-cg.orig/arch/m68k/kernel/sys_m68k.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/m68k/kernel/sys_m68k.c	2006-08-29 19:49:33.000000000 +0200
-@@ -663,3 +663,18 @@
- {
- 	return PAGE_SIZE;
- }
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	register long __res asm ("%d0") = __NR_execve;
-+	register long __a asm ("%d1") = (long)(filename);
-+	register long __b asm ("%d2") = (long)(argv);
-+	register long __c asm ("%d3") = (long)(envp);
-+	asm volatile ("trap  #0" : "+d" (__res)
-+			: "d" (__a), "d" (__b), "d" (__c));
-+	return __res;
-+}
-Index: linux-cg/arch/m68knommu/kernel/sys_m68k.c
-===================================================================
---- linux-cg.orig/arch/m68knommu/kernel/sys_m68k.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/m68knommu/kernel/sys_m68k.c	2006-08-29 19:49:33.000000000 +0200
-@@ -206,3 +206,17 @@
- 	return PAGE_SIZE;
- }
+--- linux-cg.orig/include/asm-i386/unistd.h	2006-08-30 14:38:49.000000000 +0200
++++ linux-cg/include/asm-i386/unistd.h	2006-08-30 14:39:16.000000000 +0200
+@@ -449,45 +449,6 @@
+ #define __ARCH_WANT_SYS_RT_SIGACTION
+ #define __ARCH_WANT_SYS_RT_SIGSUSPEND
  
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	register long __res asm ("%d0") = __NR_execve;
-+	register long __a asm ("%d1") = (long)(filename);
-+	register long __b asm ("%d2") = (long)(argv);
-+	register long __c asm ("%d3") = (long)(envp);
-+	asm volatile ("trap  #0" : "+d" (__res)
-+			: "d" (__a), "d" (__b), "d" (__c));
-+	return __res;
-+}
-Index: linux-cg/arch/mips/kernel/syscall.c
+-#ifdef __KERNEL_SYSCALLS__
+-
+-#include <linux/compiler.h>
+-#include <linux/types.h>
+-#include <linux/linkage.h>
+-#include <asm/ptrace.h>
+-
+-/*
+- * we need this inline - forking from kernel space will result
+- * in NO COPY ON WRITE (!!!), until an execve is executed. This
+- * is no problem, but for the stack. This is handled by not letting
+- * main() use the stack at all after fork(). Thus, no function
+- * calls - which means inline code for fork too, as otherwise we
+- * would use the stack upon exit from 'fork()'.
+- *
+- * Actually only pause and fork are needed inline, so that there
+- * won't be any messing with the stack from main(), but we define
+- * some others too.
+- */
+-static inline _syscall3(int,execve,const char *,file,char **,argv,char **,envp)
+-
+-asmlinkage int sys_modify_ldt(int func, void __user *ptr, unsigned long bytecount);
+-asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
+-			unsigned long prot, unsigned long flags,
+-			unsigned long fd, unsigned long pgoff);
+-asmlinkage int sys_execve(struct pt_regs regs);
+-asmlinkage int sys_clone(struct pt_regs regs);
+-asmlinkage int sys_fork(struct pt_regs regs);
+-asmlinkage int sys_vfork(struct pt_regs regs);
+-asmlinkage int sys_pipe(unsigned long __user *fildes);
+-asmlinkage long sys_iopl(unsigned long unused);
+-struct sigaction;
+-asmlinkage long sys_rt_sigaction(int sig,
+-				const struct sigaction __user *act,
+-				struct sigaction __user *oact,
+-				size_t sigsetsize);
+-
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ /*
+  * "Conditional" syscalls
+  *
+Index: linux-cg/arch/ia64/kernel/process.c
 ===================================================================
---- linux-cg.orig/arch/mips/kernel/syscall.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/mips/kernel/syscall.c	2006-08-29 19:49:33.000000000 +0200
-@@ -399,3 +399,27 @@
- {
- 	do_exit(SIGSEGV);
- }
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	register unsigned long __a0 asm("$4") = (unsigned long) filename;
-+	register unsigned long __a1 asm("$5") = (unsigned long) argv;
-+	register unsigned long __a2 asm("$6") = (unsigned long) envp;
-+	register unsigned long __a3 asm("$7");
-+	unsigned long __v0;
-+	__asm__ volatile (
-+	".set\tnoreorder\n\t"
-+	"li\t$2, %5\t\t\t# " #name "\n\t"
-+	"syscall\n\t"
-+	"move\t%0, $2\n\t"
-+	".set\treorder"
-+	: "=&r" (__v0), "=r" (__a3)
-+	: "r" (__a0), "r" (__a1), "r" (__a2), "i" (__NR_execve)
-+	: "$2", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$24",
-+	  "memory");
-+	return __v0;
-+}
-Index: linux-cg/arch/s390/kernel/sys_s390.c
+--- linux-cg.orig/arch/ia64/kernel/process.c	2006-08-30 14:40:15.000000000 +0200
++++ linux-cg/arch/ia64/kernel/process.c	2006-08-30 14:41:06.000000000 +0200
+@@ -8,8 +8,6 @@
+  * 2005-10-07 Keith Owens <kaos@sgi.com>
+  *	      Add notify_die() hooks.
+  */
+-#define __KERNEL_SYSCALLS__	/* see <asm/unistd.h> */
+-
+ #include <linux/cpu.h>
+ #include <linux/pm.h>
+ #include <linux/elf.h>
+Index: linux-cg/drivers/media/dvb/dvb-core/dvb_ringbuffer.c
 ===================================================================
---- linux-cg.orig/arch/s390/kernel/sys_s390.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/s390/kernel/sys_s390.c	2006-08-29 19:49:33.000000000 +0200
-@@ -266,3 +266,21 @@
- 	return sys_fadvise64_64(a.fd, a.offset, a.len, a.advice);
- }
+--- linux-cg.orig/drivers/media/dvb/dvb-core/dvb_ringbuffer.c	2006-08-30 14:40:15.000000000 +0200
++++ linux-cg/drivers/media/dvb/dvb-core/dvb_ringbuffer.c	2006-08-30 14:41:06.000000000 +0200
+@@ -26,7 +26,6 @@
  
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	register const char *__arg1 asm("2") = filename;
-+	register void *__arg2 asm("3") = argv;
-+	register void *__arg3 asm("4") = envp;
-+	register long __svcres asm("2");
-+	asm volatile ("svc %b1"
-+		: "=d" (__svcres)
-+		: "i" (__NR_execve),
-+		  "0" (__arg1),
-+		  "d" (__arg2),
-+		  "d" (__arg3) : "1", "cc", "memory");
-+	return __svcres;
-+}
-Index: linux-cg/arch/sh/kernel/sys_sh.c
-===================================================================
---- linux-cg.orig/arch/sh/kernel/sys_sh.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/sh/kernel/sys_sh.c	2006-08-29 19:49:33.000000000 +0200
-@@ -295,3 +295,19 @@
- 				(u64)len0 << 32 | len1,	advice);
- #endif
- }
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	register long __sc0 __asm__ ("r3") = __NR_execve;
-+	register long __sc4 __asm__ ("r4") = (long) filename;
-+	register long __sc5 __asm__ ("r5") = (long) argv;
-+	register long __sc6 __asm__ ("r6") = (long) envp;
-+	__asm__ __volatile__ ("trapa	#0x13" : "=z" (__sc0)
-+			: "0" (__sc0), "r" (__sc4), "r" (__sc5), "r" (__sc6)
-+			: "memory");
-+	return __sc0;
-+}
-Index: linux-cg/arch/sh64/kernel/sys_sh64.c
-===================================================================
---- linux-cg.orig/arch/sh64/kernel/sys_sh64.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/sh64/kernel/sys_sh64.c	2006-08-29 19:49:33.000000000 +0200
-@@ -283,3 +283,21 @@
- 	up_read(&uts_sem);
- 	return err?-EFAULT:0;
- }
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	register unsigned long __sc0 __asm__ ("r9") = ((0x13 << 16) | __NR_execve);
-+	register unsigned long __sc2 __asm__ ("r2") = (unsigned long) filename;
-+	register unsigned long __sc3 __asm__ ("r3") = (unsigned long) argv;
-+	register unsigned long __sc4 __asm__ ("r4") = (unsigned long) envp;
-+	__asm__ __volatile__ ("trapa	%1 !\t\t\t execve(%2,%3,%4)"
-+	: "=r" (__sc0)
-+	: "r" (__sc0), "r" (__sc2), "r" (__sc3), "r" (__sc4) );
-+	__asm__ __volatile__ ("!dummy	%0 %1 %2 %3"
-+	: : "r" (__sc0), "r" (__sc2), "r" (__sc3), "r" (__sc4) : "memory");
-+	return __sc0;
-+}
-Index: linux-cg/arch/sparc/kernel/sys_sparc.c
-===================================================================
---- linux-cg.orig/arch/sparc/kernel/sys_sparc.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/sparc/kernel/sys_sparc.c	2006-08-29 19:49:33.000000000 +0200
-@@ -483,3 +483,25 @@
- 	up_read(&uts_sem);
- 	return err;
- }
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	long __res;
-+	register long __g1 __asm__ ("g1") = __NR_execve;
-+	register long __o0 __asm__ ("o0") = (long)(filename);
-+	register long __o1 __asm__ ("o1") = (long)(argv);
-+	register long __o2 __asm__ ("o2") = (long)(envp);
-+	asm volatile ("t 0x10\n\t"
-+		      "bcc 1f\n\t"
-+		      "mov %%o0, %0\n\t"
-+		      "sub %%g0, %%o0, %0\n\t"
-+		      "1:\n\t"
-+		      : "=r" (__res), "=&r" (__o0)
-+		      : "1" (__o0), "r" (__o1), "r" (__o2), "r" (__g1)
-+		      : "cc");
-+	return __res;
-+}
-Index: linux-cg/arch/sparc64/kernel/sys_sparc.c
-===================================================================
---- linux-cg.orig/arch/sparc64/kernel/sys_sparc.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/sparc64/kernel/sys_sparc.c	2006-08-29 19:49:33.000000000 +0200
-@@ -957,3 +957,23 @@
- 	};
- 	return err;
- }
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	long __res;
-+	register long __g1 __asm__ ("g1") = __NR_execve;
-+	register long __o0 __asm__ ("o0") = (long)(filename);
-+	register long __o1 __asm__ ("o1") = (long)(argv);
-+	register long __o2 __asm__ ("o2") = (long)(envp);
-+	asm volatile ("t 0x6d\n\t"
-+		      "sub %%g0, %%o0, %0\n\t"
-+		      "movcc %%xcc, %%o0, %0\n\t"
-+		      : "=r" (__res), "=&r" (__o0)
-+		      : "1" (__o0), "r" (__o1), "r" (__o2), "r" (__g1)
-+		      : "cc");
-+	return __res;
-+}
-Index: linux-cg/arch/v850/kernel/syscalls.c
-===================================================================
---- linux-cg.orig/arch/v850/kernel/syscalls.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/v850/kernel/syscalls.c	2006-08-29 19:49:33.000000000 +0200
-@@ -194,3 +194,22 @@
- out:
- 	return err;
- }
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	register char *__a __asm__ ("r6") = filename;
-+	register void *__b __asm__ ("r7") = argv;
-+	register void *__c __asm__ ("r8") = envp;
-+	register unsigned long __syscall __asm__ ("r12") = __NR_execve;
-+	register unsigned long __ret __asm__ ("r10");
-+	__asm__ __volatile__ ("trap 0"
-+			: "=r" (__ret), "=r" (__syscall)
-+			: "1" (__syscall), "r" (__a), "r" (__b), "r" (__c)
-+			: "r1", "r5", "r11", "r13", "r14",
-+			  "r15", "r16", "r17", "r18", "r19");
-+	return __ret;
-+}
-Index: linux-cg/arch/xtensa/kernel/syscalls.c
-===================================================================
---- linux-cg.orig/arch/xtensa/kernel/syscalls.c	2006-08-29 19:49:13.000000000 +0200
-+++ linux-cg/arch/xtensa/kernel/syscalls.c	2006-08-29 19:49:33.000000000 +0200
-@@ -266,3 +266,23 @@
- 	regs->areg[2] = res;
- 	do_syscall_trace();
- }
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+{
-+	long __res;
-+	asm volatile (
-+		"  mov   a5, %2 \n"
-+		"  mov   a4, %4 \n"
-+		"  mov   a3, %3 \n"
-+		"  movi  a2, %1 \n"
-+		"  syscall      \n"
-+		"  mov   %0, a2 \n"
-+		: "=a" (__res)
-+		: "i" (__NR_execve), "a" (filename), "a" (argv), "a" (envp)
-+		: "a2", "a3", "a4", "a5");
-+	return __res;
-+}
-Index: linux-cg/arch/frv/kernel/Makefile
-===================================================================
---- linux-cg.orig/arch/frv/kernel/Makefile	2006-04-02 23:16:53.000000000 +0200
-+++ linux-cg/arch/frv/kernel/Makefile	2006-08-29 20:02:13.000000000 +0200
-@@ -8,7 +8,7 @@
- extra-y:= head.o init_task.o vmlinux.lds
  
- obj-y := $(heads-y) entry.o entry-table.o break.o switch_to.o kernel_thread.o \
--	 process.o traps.o ptrace.o signal.o dma.o \
-+	 kernel_execve.o process.o traps.o ptrace.o signal.o dma.o \
- 	 sys_frv.o time.o semaphore.o setup.o frv_ksyms.o \
- 	 debug-stub.o irq.o irq-routing.o sleep.o uaccess.o
  
-Index: linux-cg/arch/frv/kernel/kernel_execve.S
+-#define __KERNEL_SYSCALLS__
+ #include <linux/errno.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+Index: linux-cg/drivers/net/wireless/ipw2100.c
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-cg/arch/frv/kernel/kernel_execve.S	2006-08-29 20:02:13.000000000 +0200
-@@ -0,0 +1,33 @@
-+/* in-kernel program execution
-+ *
-+ * Copyright (C) 2006 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
-+ */
-+
-+#include <linux/linkage.h>
-+#include <asm/unistd.h>
-+
-+###############################################################################
-+#
-+# Do a system call from kernel instead of calling sys_execve so we end up with
-+# proper pt_regs.
-+#
-+# int kernel_execve(const char *filename, char *const argv[], char *const envp[])
-+#
-+# On entry: GR8/GR9/GR10: arguments to function
-+# On return: GR8: syscall return.
-+#
-+###############################################################################
-+	.globl		kernel_execve
-+	.type		kernel_execve,@function
-+kernel_execve:
-+	setlos		__NR_execve,gr7
-+	tira		gr0,#0
-+	bralr
-+
-+	.size		kernel_execve,.-kernel_execve
+--- linux-cg.orig/drivers/net/wireless/ipw2100.c	2006-08-30 14:40:15.000000000 +0200
++++ linux-cg/drivers/net/wireless/ipw2100.c	2006-08-30 14:41:06.000000000 +0200
+@@ -150,7 +150,6 @@
+ #include <linux/skbuff.h>
+ #include <asm/uaccess.h>
+ #include <asm/io.h>
+-#define __KERNEL_SYSCALLS__
+ #include <linux/fs.h>
+ #include <linux/mm.h>
+ #include <linux/slab.h>
+Index: linux-cg/include/linux/unistd.h
+===================================================================
+--- linux-cg.orig/include/linux/unistd.h	2006-08-30 14:40:15.000000000 +0200
++++ linux-cg/include/linux/unistd.h	2006-08-30 14:41:06.000000000 +0200
+@@ -1,12 +1,8 @@
+ #ifndef _LINUX_UNISTD_H_
+ #define _LINUX_UNISTD_H_
+ 
+-#ifdef __KERNEL__
+-extern int errno;
+-#endif
+-
+ /*
+- * Include machine specific syscallX macros
++ * Include machine specific syscall numbers
+  */
+ #include <asm/unistd.h>
+ 
+Index: linux-cg/lib/Makefile
+===================================================================
+--- linux-cg.orig/lib/Makefile	2006-08-30 14:40:15.000000000 +0200
++++ linux-cg/lib/Makefile	2006-08-30 14:41:06.000000000 +0200
+@@ -2,7 +2,7 @@
+ # Makefile for some libs needed in the kernel.
+ #
+ 
+-lib-y := errno.o ctype.o string.o vsprintf.o cmdline.o \
++lib-y := ctype.o string.o vsprintf.o cmdline.o \
+ 	 bust_spinlocks.o rbtree.o radix-tree.o dump_stack.o \
+ 	 idr.o div64.o int_sqrt.o bitmap.o extable.o prio_tree.o \
+ 	 sha1.o
+@@ -33,8 +33,6 @@
+   lib-y += dec_and_lock.o
+ endif
+ 
+-lib-y += execve.o
+-
+ obj-$(CONFIG_CRC_CCITT)	+= crc-ccitt.o
+ obj-$(CONFIG_CRC16)	+= crc16.o
+ obj-$(CONFIG_CRC32)	+= crc32.o
+Index: linux-cg/lib/errno.c
+===================================================================
+--- linux-cg.orig/lib/errno.c	2006-08-30 14:40:15.000000000 +0200
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+@@ -1,7 +0,0 @@
+-/*
+- *  linux/lib/errno.c
+- *
+- *  Copyright (C) 1991, 1992  Linus Torvalds
+- */
+-
+-int errno;
+Index: linux-cg/lib/execve.c
+===================================================================
+--- linux-cg.orig/lib/execve.c	2006-08-30 14:40:15.000000000 +0200
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+@@ -1,23 +0,0 @@
+-#include <asm/bug.h>
+-#include <asm/uaccess.h>
+-
+-#define __KERNEL_SYSCALLS__
+-static int errno __attribute__((unused));
+-#include <asm/unistd.h>
+-
+-#ifdef _syscall3
+-int kernel_execve (const char *filename, char *const argv[], char *const envp[])
+-								__attribute__((__weak__));
+-int kernel_execve (const char *filename, char *const argv[], char *const envp[])
+-{
+-	mm_segment_t fs = get_fs();
+-	int ret;
+-
+-	WARN_ON(segment_eq(fs, USER_DS));
+-	ret = execve(filename, (char **)argv, (char **)envp);
+-	if (ret)
+-		ret = -errno;
+-
+-	return ret;
+-}
+-#endif
 
 --
 
