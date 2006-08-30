@@ -1,777 +1,437 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.183]:21989 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.186]:43468 "EHLO
 	moutng.kundenserver.de") by vger.kernel.org with ESMTP
-	id S1750931AbWH3Mxw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Aug 2006 08:53:52 -0400
-Message-Id: <20060830125037.585774000@klappe.arndb.de>
+	id S1750928AbWH3Mxf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Aug 2006 08:53:35 -0400
+Message-Id: <20060830125037.876668000@klappe.arndb.de>
 References: <20060830124356.567568000@klappe.arndb.de>
-Date: Wed, 30 Aug 2006 14:43:58 +0200
+Date: Wed, 30 Aug 2006 14:43:59 +0200
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 2/6] rename the provided execve functions to kernel_execve
-Content-Disposition: inline; filename=kernel_execve.diff
+Subject: [PATCH 3/6] provide kernel_execve on all architectures
+Content-Disposition: inline; filename=kerne-execve2.diff
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, Andi Kleen <ak@suse.de>, "H. Peter Anvin" <hpa@zytor.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Some architectures provide an execve function that does not
-set errno, but instead returns the result code directly.
-Rename these to kernel_execve to get the right semantics there.
-Moreover, there is no reasone for any of these architectures to
-still provide __KERNEL_SYSCALLS__ or _syscallN macros, so
-remove these right away.
+This adds the new kernel_execve function on all architectures
+that were using _syscall3() to implement execve.
+
+The implementation uses code from the _syscall3 macros provided
+in the unistd.h header file. I don't have cross-compilers for
+any of these architectures, so the patch is untested with the
+exception of i386.
+
+Most architectures can probably implement this in a nicer way
+in assembly or by combining it with the sys_execve implementation
+itself, but this should do it for now.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Index: linux-cg/drivers/sbus/char/bbc_envctrl.c
+Index: linux-cg/arch/h8300/kernel/sys_h8300.c
 ===================================================================
---- linux-cg.orig/drivers/sbus/char/bbc_envctrl.c	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/drivers/sbus/char/bbc_envctrl.c	2006-08-30 14:31:18.000000000 +0200
-@@ -4,9 +4,6 @@
-  * Copyright (C) 2001 David S. Miller (davem@redhat.com)
-  */
- 
--#define __KERNEL_SYSCALLS__
--static int errno;
--
- #include <linux/kernel.h>
- #include <linux/kthread.h>
- #include <linux/sched.h>
-@@ -200,7 +197,7 @@
- 	printk(KERN_CRIT "kenvctrld: Shutting down the system now.\n");
- 
- 	shutting_down = 1;
--	if (execve("/sbin/shutdown", argv, envp) < 0)
-+	if (kernel_execve("/sbin/shutdown", argv, envp) < 0)
- 		printk(KERN_CRIT "envctrl: shutdown execution failed\n");
+--- linux-cg.orig/arch/h8300/kernel/sys_h8300.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/h8300/kernel/sys_h8300.c	2006-08-29 19:49:33.000000000 +0200
+@@ -280,3 +280,26 @@
+                ((regs->pc)&0xffffff)-2,regs->orig_er0,regs->er1,regs->er2,regs->er3,regs->er0);
  }
- 
-Index: linux-cg/drivers/sbus/char/envctrl.c
-===================================================================
---- linux-cg.orig/drivers/sbus/char/envctrl.c	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/drivers/sbus/char/envctrl.c	2006-08-30 14:31:18.000000000 +0200
-@@ -19,9 +19,6 @@
-  *              Daniele Bellucci <bellucda@tiscali.it>
-  */
- 
--#define __KERNEL_SYSCALLS__
--static int errno;
--
- #include <linux/module.h>
- #include <linux/sched.h>
- #include <linux/kthread.h>
-@@ -976,13 +973,15 @@
- 		"HOME=/", "TERM=linux", "PATH=/sbin:/usr/sbin:/bin:/usr/bin", NULL };
- 	char *argv[] = { 
- 		"/sbin/shutdown", "-h", "now", NULL };	
-+	int ret;
- 
- 	if (inprog != 0)
- 		return;
- 
- 	inprog = 1;
- 	printk(KERN_CRIT "kenvctrld: WARNING: Shutting down the system now.\n");
--	if (0 > execve("/sbin/shutdown", argv, envp)) {
-+	ret = kernel_execve("/sbin/shutdown", argv, envp);
-+	if (ret < 0) {
- 		printk(KERN_CRIT "kenvctrld: WARNING: system shutdown failed!\n"); 
- 		inprog = 0;  /* unlikely to succeed, but we could try again */
- 	}
-Index: linux-cg/arch/alpha/kernel/entry.S
-===================================================================
---- linux-cg.orig/arch/alpha/kernel/entry.S	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/arch/alpha/kernel/entry.S	2006-08-30 14:31:18.000000000 +0200
-@@ -655,12 +655,12 @@
- .end kernel_thread
- 
- /*
-- * execve(path, argv, envp)
-+ * kernel_execve(path, argv, envp)
-  */
- 	.align	4
--	.globl	execve
--	.ent	execve
--execve:
-+	.globl	kernel_execve
-+	.ent	kernel_execve
-+kernel_execve:
- 	/* We can be called from a module.  */
- 	ldgp	$gp, 0($27)
- 	lda	$sp, -(32+SIZEOF_PT_REGS+8)($sp)
-@@ -704,7 +704,7 @@
- 
- 1:	lda	$sp, 32+SIZEOF_PT_REGS+8($sp)
- 	ret
--.end execve
-+.end kernel_execve
- 
- 
- /*
-Index: linux-cg/arch/arm/kernel/sys_arm.c
-===================================================================
---- linux-cg.orig/arch/arm/kernel/sys_arm.c	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/arch/arm/kernel/sys_arm.c	2006-08-30 14:31:18.000000000 +0200
-@@ -279,7 +279,7 @@
- 	return error;
- }
- 
--long execve(const char *filename, char **argv, char **envp)
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[]);
- {
- 	struct pt_regs regs;
- 	int ret;
-@@ -317,7 +317,7 @@
-  out:
- 	return ret;
- }
--EXPORT_SYMBOL(execve);
-+EXPORT_SYMBOL(kernel_execve);
- 
- /*
-  * Since loff_t is a 64 bit type we avoid a lot of ABI hastle
-Index: linux-cg/arch/arm26/kernel/sys_arm.c
-===================================================================
---- linux-cg.orig/arch/arm26/kernel/sys_arm.c	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/arch/arm26/kernel/sys_arm.c	2006-08-30 14:31:18.000000000 +0200
-@@ -283,7 +283,7 @@
- }
- 
- /* FIXME - see if this is correct for arm26 */
--long execve(const char *filename, char **argv, char **envp)
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[]);
- {
- 	struct pt_regs regs;
-         int ret;
-@@ -320,4 +320,4 @@
-         return ret;
- }
- 
--EXPORT_SYMBOL(execve);
-+EXPORT_SYMBOL(kernel_execve);
-Index: linux-cg/arch/powerpc/kernel/misc_32.S
-===================================================================
---- linux-cg.orig/arch/powerpc/kernel/misc_32.S	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/arch/powerpc/kernel/misc_32.S	2006-08-30 14:31:18.000000000 +0200
-@@ -843,7 +843,7 @@
- 	addi	r1,r1,16
- 	blr
- 
--_GLOBAL(execve)
-+_GLOBAL(kernel_execve)
- 	li	r0,__NR_execve
- 	sc
- 	bnslr
-Index: linux-cg/arch/powerpc/kernel/misc_64.S
-===================================================================
---- linux-cg.orig/arch/powerpc/kernel/misc_64.S	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/arch/powerpc/kernel/misc_64.S	2006-08-30 14:31:18.000000000 +0200
-@@ -556,7 +556,7 @@
- 
- #endif /* CONFIG_ALTIVEC */
- 
--_GLOBAL(execve)
-+_GLOBAL(kernel_execve)
- 	li	r0,__NR_execve
- 	sc
- 	bnslr
-Index: linux-cg/include/asm-alpha/unistd.h
-===================================================================
---- linux-cg.orig/include/asm-alpha/unistd.h	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/include/asm-alpha/unistd.h	2006-08-30 14:31:18.000000000 +0200
-@@ -580,75 +580,6 @@
- #define __ARCH_WANT_SYS_OLDUMOUNT
- #define __ARCH_WANT_SYS_SIGPENDING
- 
--#ifdef __KERNEL_SYSCALLS__
--
--#include <linux/compiler.h>
--#include <linux/types.h>
--#include <linux/string.h>
--#include <linux/signal.h>
--#include <linux/syscalls.h>
--#include <asm/ptrace.h>
--
--static inline long open(const char * name, int mode, int flags)
--{
--	return sys_open(name, mode, flags);
--}
--
--static inline long dup(int fd)
--{
--	return sys_dup(fd);
--}
--
--static inline long close(int fd)
--{
--	return sys_close(fd);
--}
--
--static inline off_t lseek(int fd, off_t off, int whence)
--{
--	return sys_lseek(fd, off, whence);
--}
--
--static inline void _exit(int value)
--{
--	sys_exit(value);
--}
--
--#define exit(x) _exit(x)
--
--static inline long write(int fd, const char * buf, size_t nr)
--{
--	return sys_write(fd, buf, nr);
--}
--
--static inline long read(int fd, char * buf, size_t nr)
--{
--	return sys_read(fd, buf, nr);
--}
--
--extern int execve(char *, char **, char **);
--
--static inline long setsid(void)
--{
--	return sys_setsid();
--}
--
--static inline pid_t waitpid(int pid, int * wait_stat, int flags)
--{
--	return sys_wait4(pid, wait_stat, flags, NULL);
--}
--
--asmlinkage int sys_execve(char *ufilename, char **argv, char **envp,
--			unsigned long a3, unsigned long a4, unsigned long a5,
--			struct pt_regs regs);
--asmlinkage long sys_rt_sigaction(int sig,
--				const struct sigaction __user *act,
--				struct sigaction __user *oact,
--				size_t sigsetsize,
--				void *restorer);
--
--#endif /* __KERNEL_SYSCALLS__ */
--
- /* "Conditional" syscalls.  What we want is
- 
- 	__attribute__((weak,alias("sys_ni_syscall")))
-Index: linux-cg/include/asm-arm/unistd.h
-===================================================================
---- linux-cg.orig/include/asm-arm/unistd.h	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/include/asm-arm/unistd.h	2006-08-30 14:31:18.000000000 +0200
-@@ -548,30 +548,6 @@
- #define __ARCH_WANT_SYS_SOCKETCALL
  #endif
- 
--#ifdef __KERNEL_SYSCALLS__
--
--#include <linux/compiler.h>
--#include <linux/types.h>
--#include <linux/syscalls.h>
--
--extern long execve(const char *file, char **argv, char **envp);
--
--struct pt_regs;
--asmlinkage int sys_execve(char *filenamei, char **argv, char **envp,
--			struct pt_regs *regs);
--asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
--			struct pt_regs *regs);
--asmlinkage int sys_fork(struct pt_regs *regs);
--asmlinkage int sys_vfork(struct pt_regs *regs);
--asmlinkage int sys_pipe(unsigned long *fildes);
--struct sigaction;
--asmlinkage long sys_rt_sigaction(int sig,
--				const struct sigaction __user *act,
--				struct sigaction __user *oact,
--				size_t sigsetsize);
--
--#endif /* __KERNEL_SYSCALLS__ */
--
- /*
-  * "Conditional" syscalls
-  *
-Index: linux-cg/include/asm-arm26/unistd.h
-===================================================================
---- linux-cg.orig/include/asm-arm26/unistd.h	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/include/asm-arm26/unistd.h	2006-08-30 14:31:18.000000000 +0200
-@@ -463,30 +463,6 @@
- #define __ARCH_WANT_SYS_SIGPROCMASK
- #define __ARCH_WANT_SYS_RT_SIGACTION
- 
--#ifdef __KERNEL_SYSCALLS__
--
--#include <linux/compiler.h>
--#include <linux/types.h>
--#include <linux/syscalls.h>
--
--extern long execve(const char *file, char **argv, char **envp);
--
--struct pt_regs;
--asmlinkage int sys_execve(char *filenamei, char **argv, char **envp,
--			struct pt_regs *regs);
--asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
--			struct pt_regs *regs);
--asmlinkage int sys_fork(struct pt_regs *regs);
--asmlinkage int sys_vfork(struct pt_regs *regs);
--asmlinkage int sys_pipe(unsigned long *fildes);
--struct sigaction;
--asmlinkage long sys_rt_sigaction(int sig,
--				const struct sigaction __user *act,
--				struct sigaction __user *oact,
--				size_t sigsetsize);
--
--#endif /* __KERNEL_SYSCALLS__ */
--
- /*
-  * "Conditional" syscalls
-  *
-Index: linux-cg/include/asm-parisc/unistd.h
-===================================================================
---- linux-cg.orig/include/asm-parisc/unistd.h	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/include/asm-parisc/unistd.h	2006-08-30 14:31:18.000000000 +0200
-@@ -952,92 +952,6 @@
- #define __ARCH_WANT_SYS_SIGPROCMASK
- #define __ARCH_WANT_SYS_RT_SIGACTION
- 
--/* mmap & mmap2 take 6 arguments */
--#define _syscall6(type,name,type1,arg1,type2,arg2,type3,arg3,type4,arg4,type5,arg5,type6,arg6) \
--type name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, type5 arg5, type6 arg6) \
--{									        \
--    return K_INLINE_SYSCALL(name, 6, arg1, arg2, arg3, arg4, arg5, arg6);	\
--}
--
--#ifdef __KERNEL_SYSCALLS__
--
--#include <asm/current.h>
--#include <linux/compiler.h>
--#include <linux/types.h>
--#include <linux/syscalls.h>
--
--static inline pid_t setsid(void)
--{
--	return sys_setsid();
--}
--
--static inline int write(int fd, const char *buf, off_t count)
--{
--	return sys_write(fd, buf, count);
--}
--
--static inline int read(int fd, char *buf, off_t count)
--{
--	return sys_read(fd, buf, count);
--}
--
--static inline off_t lseek(int fd, off_t offset, int count)
--{
--	return sys_lseek(fd, offset, count);
--}
--
--static inline int dup(int fd)
--{
--	return sys_dup(fd);
--}
--
--static inline int execve(char *filename, char * argv [],
--	char * envp[])
--{
--	extern int __execve(char *, char **, char **, struct task_struct *);
--	return __execve(filename, argv, envp, current);
--}
--
--static inline int open(const char *file, int flag, int mode)
--{
--	return sys_open(file, flag, mode);
--}
--
--static inline int close(int fd)
--{
--	return sys_close(fd);
--}
--
--static inline void _exit(int exitcode)
--{
--	sys_exit(exitcode);
--}
--
--static inline pid_t waitpid(pid_t pid, int *wait_stat, int options)
--{
--	return sys_wait4(pid, wait_stat, options, NULL);
--}
--
--asmlinkage unsigned long sys_mmap(unsigned long addr, unsigned long len,
--				unsigned long prot, unsigned long flags,
--				unsigned long fd, unsigned long offset);
--asmlinkage unsigned long sys_mmap2(unsigned long addr, unsigned long len,
--				unsigned long prot, unsigned long flags,
--				unsigned long fd, unsigned long pgoff);
--struct pt_regs;
--asmlinkage int sys_execve(struct pt_regs *regs);
--int sys_clone(unsigned long clone_flags, unsigned long usp,
--		struct pt_regs *regs);
--int sys_vfork(struct pt_regs *regs);
--int sys_pipe(int *fildes);
--struct sigaction;
--asmlinkage long sys_rt_sigaction(int sig,
--				const struct sigaction __user *act,
--				struct sigaction __user *oact,
--				size_t sigsetsize);
--
--#endif	/* __KERNEL_SYSCALLS__ */
--
- #endif /* __ASSEMBLY__ */
- 
- #undef STR
-Index: linux-cg/include/asm-powerpc/unistd.h
-===================================================================
---- linux-cg.orig/include/asm-powerpc/unistd.h	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/include/asm-powerpc/unistd.h	2006-08-30 14:31:18.000000000 +0200
-@@ -479,13 +479,6 @@
- #endif
- 
- /*
-- * System call prototypes.
-- */
--#ifdef __KERNEL_SYSCALLS__
--extern int execve(const char *file, char **argv, char **envp);
--#endif /* __KERNEL_SYSCALLS__ */
--
--/*
-  * "Conditional" syscalls
-  *
-  * What we want is __attribute__((weak,alias("sys_ni_syscall"))),
-Index: linux-cg/include/asm-um/unistd.h
-===================================================================
---- linux-cg.orig/include/asm-um/unistd.h	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/include/asm-um/unistd.h	2006-08-30 14:31:18.000000000 +0200
-@@ -37,34 +37,6 @@
- #define __ARCH_WANT_SYS_RT_SIGSUSPEND
- #endif
- 
--#ifdef __KERNEL_SYSCALLS__
--
--#include <linux/compiler.h>
--#include <linux/types.h>
--
--static inline int execve(const char *filename, char *const argv[],
--			 char *const envp[])
--{
--	mm_segment_t fs;
--	int ret;
--
--	fs = get_fs();
--	set_fs(KERNEL_DS);
--	ret = um_execve(filename, argv, envp);
--	set_fs(fs);
--
--	if (ret >= 0)
--		return ret;
--
--	errno = -(long)ret;
--	return -1;
--}
--
--int sys_execve(char *file, char **argv, char **env);
--
--#endif /* __KERNEL_SYSCALLS__ */
--
--#undef __KERNEL_SYSCALLS__
- #include "asm/arch/unistd.h"
- 
- #endif /* _UM_UNISTD_H_*/
-Index: linux-cg/include/linux/syscalls.h
-===================================================================
---- linux-cg.orig/include/linux/syscalls.h	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/include/linux/syscalls.h	2006-08-30 14:31:18.000000000 +0200
-@@ -597,4 +597,6 @@
- asmlinkage long sys_set_robust_list(struct robust_list_head __user *head,
- 				    size_t len);
- 
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[]);
 +
- #endif
-Index: linux-cg/arch/ia64/kernel/entry.S
-===================================================================
---- linux-cg.orig/arch/ia64/kernel/entry.S	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/arch/ia64/kernel/entry.S	2006-08-30 14:31:18.000000000 +0200
-@@ -492,11 +492,11 @@
- 	br.ret.sptk.many rp
- END(prefetch_stack)
- 
--GLOBAL_ENTRY(execve)
-+GLOBAL_ENTRY(kernel_execve)
- 	mov r15=__NR_execve			// put syscall number in place
- 	break __BREAK_SYSCALL
- 	br.ret.sptk.many rp
--END(execve)
-+END(kernel_execve)
- 
- GLOBAL_ENTRY(clone)
- 	mov r15=__NR_clone			// put syscall number in place
-Index: linux-cg/arch/parisc/kernel/process.c
-===================================================================
---- linux-cg.orig/arch/parisc/kernel/process.c	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/arch/parisc/kernel/process.c	2006-08-30 14:31:18.000000000 +0200
-@@ -368,7 +368,14 @@
- 	return error;
- }
- 
--unsigned long 
-+extern int __execve(const char *filename, char *const argv[],
-+		char *const envp[], struct task_struct *task);
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[]);
-+{
-+	return __execve(filename, argv, envp, current);
-+}
-+
-+unsigned long
- get_wchan(struct task_struct *p)
- {
- 	struct unwind_frame_info info;
-Index: linux-cg/arch/um/kernel/syscall.c
-===================================================================
---- linux-cg.orig/arch/um/kernel/syscall.c	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/arch/um/kernel/syscall.c	2006-08-30 14:31:18.000000000 +0200
-@@ -164,3 +164,16 @@
- 	spin_unlock(&syscall_lock);
- 	return(ret);
- }
-+
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
 +int kernel_execve(const char *filename, char *const argv[], char *const envp[])
 +{
-+	mm_segment_t fs;
-+	int ret;
-+
-+	fs = get_fs();
-+	set_fs(KERNEL_DS);
-+	ret = um_execve(filename, argv, envp);
-+	set_fs(fs);
-+
-+	return ret;
++	register long res __asm__("er0");
++	register const char * _a __asm__("er1") = filename;
++	register void *_b __asm__("er2") = argv;
++	register void *_c __asm__("er3") = envp;
++	__asm__ __volatile__ ("mov.l %1,er0\n\t"
++			"trapa	#0\n\t"
++			: "=r" (res)
++			: "g" (__NR_execve),
++			  "g" (_a),
++			  "g" (_b),
++			  "g" (_c)
++			: "cc", "memory");
++	return res;
 +}
-Index: linux-cg/include/asm-ia64/unistd.h
++
++
+Index: linux-cg/arch/i386/kernel/sys_i386.c
 ===================================================================
---- linux-cg.orig/include/asm-ia64/unistd.h	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/include/asm-ia64/unistd.h	2006-08-30 14:31:18.000000000 +0200
-@@ -319,78 +319,6 @@
+--- linux-cg.orig/arch/i386/kernel/sys_i386.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/i386/kernel/sys_i386.c	2006-08-29 19:49:33.000000000 +0200
+@@ -243,3 +243,17 @@
  
- extern long __ia64_syscall (long a0, long a1, long a2, long a3, long a4, long nr);
- 
--#ifdef __KERNEL_SYSCALLS__
--
--#include <linux/compiler.h>
--#include <linux/string.h>
--#include <linux/signal.h>
--#include <asm/ptrace.h>
--#include <linux/stringify.h>
--#include <linux/syscalls.h>
--
--static inline long
--open (const char * name, int mode, int flags)
--{
--	return sys_open(name, mode, flags);
--}
--
--static inline long
--dup (int fd)
--{
--	return sys_dup(fd);
--}
--
--static inline long
--close (int fd)
--{
--	return sys_close(fd);
--}
--
--static inline off_t
--lseek (int fd, off_t off, int whence)
--{
--	return sys_lseek(fd, off, whence);
--}
--
--static inline void
--_exit (int value)
--{
--	sys_exit(value);
--}
--
--#define exit(x) _exit(x)
--
--static inline long
--write (int fd, const char * buf, size_t nr)
--{
--	return sys_write(fd, buf, nr);
--}
--
--static inline long
--read (int fd, char * buf, size_t nr)
--{
--	return sys_read(fd, buf, nr);
--}
--
--
--static inline long
--setsid (void)
--{
--	return sys_setsid();
--}
--
--static inline pid_t
--waitpid (int pid, int * wait_stat, int flags)
--{
--	return sys_wait4(pid, wait_stat, flags, NULL);
--}
--
--
--extern int execve (const char *filename, char *const av[], char *const ep[]);
--extern pid_t clone (unsigned long flags, void *sp);
--
--#endif /* __KERNEL_SYSCALLS__ */
--
- asmlinkage unsigned long sys_mmap(
- 				unsigned long addr, unsigned long len,
- 				int prot, int flags,
-Index: linux-cg/arch/alpha/kernel/alpha_ksyms.c
+ 	return error;
+ }
++
++
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	long __res;
++	asm volatile ("push %%ebx ; movl %2,%%ebx ; int $0x80 ; pop %%ebx"
++	: "=a" (__res)
++	: "0" (__NR_execve),"ri" (filename),"c" (argv), "d" (envp) : "memory");
++	return __res;
++}
+Index: linux-cg/arch/m32r/kernel/sys_m32r.c
 ===================================================================
---- linux-cg.orig/arch/alpha/kernel/alpha_ksyms.c	2006-08-30 14:31:00.000000000 +0200
-+++ linux-cg/arch/alpha/kernel/alpha_ksyms.c	2006-08-30 14:31:18.000000000 +0200
-@@ -36,7 +36,6 @@
+--- linux-cg.orig/arch/m32r/kernel/sys_m32r.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/m32r/kernel/sys_m32r.c	2006-08-29 19:49:33.000000000 +0200
+@@ -25,6 +25,8 @@
+ #include <asm/cachectl.h>
  #include <asm/cacheflush.h>
- #include <asm/vga.h>
+ #include <asm/ipc.h>
++#include <asm/syscall.h>
++#include <asm/unistd.h>
  
--#define __KERNEL_SYSCALLS__
- #include <asm/unistd.h>
- 
- extern struct hwrpb_struct *hwrpb;
-@@ -116,7 +115,7 @@
- EXPORT_SYMBOL(sys_exit);
- EXPORT_SYMBOL(sys_write);
- EXPORT_SYMBOL(sys_lseek);
--EXPORT_SYMBOL(execve);
-+EXPORT_SYMBOL(kernel_execve);
- EXPORT_SYMBOL(sys_setsid);
- EXPORT_SYMBOL(sys_wait4);
- 
-Index: linux-cg/arch/x86_64/kernel/entry.S
-===================================================================
---- linux-cg.orig/arch/x86_64/kernel/entry.S	2006-08-30 14:31:15.000000000 +0200
-+++ linux-cg/arch/x86_64/kernel/entry.S	2006-08-30 14:31:22.000000000 +0200
-@@ -1000,7 +1000,7 @@
-  * do_sys_execve asm fallback arguments:
-  *	rdi: name, rsi: argv, rdx: envp, fake frame on the stack
-  */
--ENTRY(execve)
-+ENTRY(kernel_execve)
- 	CFI_STARTPROC
- 	FAKE_STACK_FRAME $0
- 	SAVE_ALL	
-@@ -1013,7 +1013,7 @@
- 	UNFAKE_STACK_FRAME
- 	ret
- 	CFI_ENDPROC
--ENDPROC(execve)
-+ENDPROC(kernel_execve)
- 
- KPROBE_ENTRY(page_fault)
- 	errorentry do_page_fault
-Index: linux-cg/include/asm-x86_64/unistd.h
-===================================================================
---- linux-cg.orig/include/asm-x86_64/unistd.h	2006-08-30 14:31:15.000000000 +0200
-+++ linux-cg/include/asm-x86_64/unistd.h	2006-08-30 14:31:22.000000000 +0200
-@@ -661,8 +661,6 @@
- #define __ARCH_WANT_SYS_TIME
- #define __ARCH_WANT_COMPAT_SYS_TIME
- 
--#ifndef __KERNEL_SYSCALLS__
--
- #define __syscall "syscall"
- 
- #define _syscall0(type,name) \
-@@ -744,85 +742,6 @@
- __syscall_return(type,__res); \
+ /*
+  * sys_tas() - test-and-set
+@@ -223,3 +225,21 @@
+ 	return -ENOSYS;
  }
  
--#else /* __KERNEL_SYSCALLS__ */
--
--#include <linux/syscalls.h>
--#include <asm/ptrace.h>
--
--/*
-- * we need this inline - forking from kernel space will result
-- * in NO COPY ON WRITE (!!!), until an execve is executed. This
-- * is no problem, but for the stack. This is handled by not letting
-- * main() use the stack at all after fork(). Thus, no function
-- * calls - which means inline code for fork too, as otherwise we
-- * would use the stack upon exit from 'fork()'.
-- *
-- * Actually only pause and fork are needed inline, so that there
-- * won't be any messing with the stack from main(), but we define
-- * some others too.
-- */
--#define __NR__exit __NR_exit
--
--static inline pid_t setsid(void)
--{
--	return sys_setsid();
--}
--
--static inline ssize_t write(unsigned int fd, char * buf, size_t count)
--{
--	return sys_write(fd, buf, count);
--}
--
--static inline ssize_t read(unsigned int fd, char * buf, size_t count)
--{
--	return sys_read(fd, buf, count);
--}
--
--static inline off_t lseek(unsigned int fd, off_t offset, unsigned int origin)
--{
--	return sys_lseek(fd, offset, origin);
--}
--
--static inline long dup(unsigned int fd)
--{
--	return sys_dup(fd);
--}
--
--/* implemented in asm in arch/x86_64/kernel/entry.S */
--extern int execve(const char *, char * const *, char * const *);
--
--static inline long open(const char * filename, int flags, int mode)
--{
--	return sys_open(filename, flags, mode);
--}
--
--static inline long close(unsigned int fd)
--{
--	return sys_close(fd);
--}
--
--static inline pid_t waitpid(int pid, int * wait_stat, int flags)
--{
--	return sys_wait4(pid, wait_stat, flags, NULL);
--}
--
--extern long sys_mmap(unsigned long addr, unsigned long len,
--			unsigned long prot, unsigned long flags,
--			unsigned long fd, unsigned long off);
--
--extern int sys_modify_ldt(int func, void *ptr, unsigned long bytecount);
--
--asmlinkage long sys_execve(char *name, char **argv, char **envp,
--			struct pt_regs regs);
--asmlinkage long sys_clone(unsigned long clone_flags, unsigned long newsp,
--			void *parent_tid, void *child_tid,
--			struct pt_regs regs);
--asmlinkage long sys_fork(struct pt_regs regs);
--asmlinkage long sys_vfork(struct pt_regs regs);
--asmlinkage long sys_pipe(int *fildes);
--
--#endif /* __KERNEL_SYSCALLS__ */
--
- #ifndef __ASSEMBLY__
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	register long __scno __asm__ ("r7") = __NR_execve;
++	register long __arg3 __asm__ ("r2") = (long)(envp);
++	register long __arg2 __asm__ ("r1") = (long)(argv);
++	register long __res __asm__ ("r0") = (long)(filename);
++	__asm__ __volatile__ (
++		"trap #" SYSCALL_VECTOR "|| nop"
++		: "=r" (__res)
++		: "r" (__scno), "0" (__res), "r" (__arg2),
++			"r" (__arg3)
++		: "memory");
++	return __res;
++}
+Index: linux-cg/arch/m68k/kernel/sys_m68k.c
+===================================================================
+--- linux-cg.orig/arch/m68k/kernel/sys_m68k.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/m68k/kernel/sys_m68k.c	2006-08-29 19:49:33.000000000 +0200
+@@ -663,3 +663,18 @@
+ {
+ 	return PAGE_SIZE;
+ }
++
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	register long __res asm ("%d0") = __NR_execve;
++	register long __a asm ("%d1") = (long)(filename);
++	register long __b asm ("%d2") = (long)(argv);
++	register long __c asm ("%d3") = (long)(envp);
++	asm volatile ("trap  #0" : "+d" (__res)
++			: "d" (__a), "d" (__b), "d" (__c));
++	return __res;
++}
+Index: linux-cg/arch/m68knommu/kernel/sys_m68k.c
+===================================================================
+--- linux-cg.orig/arch/m68knommu/kernel/sys_m68k.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/m68knommu/kernel/sys_m68k.c	2006-08-29 19:49:33.000000000 +0200
+@@ -206,3 +206,17 @@
+ 	return PAGE_SIZE;
+ }
  
- #include <linux/linkage.h>
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	register long __res asm ("%d0") = __NR_execve;
++	register long __a asm ("%d1") = (long)(filename);
++	register long __b asm ("%d2") = (long)(argv);
++	register long __c asm ("%d3") = (long)(envp);
++	asm volatile ("trap  #0" : "+d" (__res)
++			: "d" (__a), "d" (__b), "d" (__c));
++	return __res;
++}
+Index: linux-cg/arch/mips/kernel/syscall.c
+===================================================================
+--- linux-cg.orig/arch/mips/kernel/syscall.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/mips/kernel/syscall.c	2006-08-29 19:49:33.000000000 +0200
+@@ -399,3 +399,27 @@
+ {
+ 	do_exit(SIGSEGV);
+ }
++
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	register unsigned long __a0 asm("$4") = (unsigned long) filename;
++	register unsigned long __a1 asm("$5") = (unsigned long) argv;
++	register unsigned long __a2 asm("$6") = (unsigned long) envp;
++	register unsigned long __a3 asm("$7");
++	unsigned long __v0;
++	__asm__ volatile (
++	".set\tnoreorder\n\t"
++	"li\t$2, %5\t\t\t# " #name "\n\t"
++	"syscall\n\t"
++	"move\t%0, $2\n\t"
++	".set\treorder"
++	: "=&r" (__v0), "=r" (__a3)
++	: "r" (__a0), "r" (__a1), "r" (__a2), "i" (__NR_execve)
++	: "$2", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$24",
++	  "memory");
++	return __v0;
++}
+Index: linux-cg/arch/s390/kernel/sys_s390.c
+===================================================================
+--- linux-cg.orig/arch/s390/kernel/sys_s390.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/s390/kernel/sys_s390.c	2006-08-29 19:49:33.000000000 +0200
+@@ -266,3 +266,21 @@
+ 	return sys_fadvise64_64(a.fd, a.offset, a.len, a.advice);
+ }
+ 
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	register const char *__arg1 asm("2") = filename;
++	register void *__arg2 asm("3") = argv;
++	register void *__arg3 asm("4") = envp;
++	register long __svcres asm("2");
++	asm volatile ("svc %b1"
++		: "=d" (__svcres)
++		: "i" (__NR_execve),
++		  "0" (__arg1),
++		  "d" (__arg2),
++		  "d" (__arg3) : "1", "cc", "memory");
++	return __svcres;
++}
+Index: linux-cg/arch/sh/kernel/sys_sh.c
+===================================================================
+--- linux-cg.orig/arch/sh/kernel/sys_sh.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/sh/kernel/sys_sh.c	2006-08-29 19:49:33.000000000 +0200
+@@ -295,3 +295,19 @@
+ 				(u64)len0 << 32 | len1,	advice);
+ #endif
+ }
++
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	register long __sc0 __asm__ ("r3") = __NR_execve;
++	register long __sc4 __asm__ ("r4") = (long) filename;
++	register long __sc5 __asm__ ("r5") = (long) argv;
++	register long __sc6 __asm__ ("r6") = (long) envp;
++	__asm__ __volatile__ ("trapa	#0x13" : "=z" (__sc0)
++			: "0" (__sc0), "r" (__sc4), "r" (__sc5), "r" (__sc6)
++			: "memory");
++	return __sc0;
++}
+Index: linux-cg/arch/sh64/kernel/sys_sh64.c
+===================================================================
+--- linux-cg.orig/arch/sh64/kernel/sys_sh64.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/sh64/kernel/sys_sh64.c	2006-08-29 19:49:33.000000000 +0200
+@@ -283,3 +283,21 @@
+ 	up_read(&uts_sem);
+ 	return err?-EFAULT:0;
+ }
++
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	register unsigned long __sc0 __asm__ ("r9") = ((0x13 << 16) | __NR_execve);
++	register unsigned long __sc2 __asm__ ("r2") = (unsigned long) filename;
++	register unsigned long __sc3 __asm__ ("r3") = (unsigned long) argv;
++	register unsigned long __sc4 __asm__ ("r4") = (unsigned long) envp;
++	__asm__ __volatile__ ("trapa	%1 !\t\t\t execve(%2,%3,%4)"
++	: "=r" (__sc0)
++	: "r" (__sc0), "r" (__sc2), "r" (__sc3), "r" (__sc4) );
++	__asm__ __volatile__ ("!dummy	%0 %1 %2 %3"
++	: : "r" (__sc0), "r" (__sc2), "r" (__sc3), "r" (__sc4) : "memory");
++	return __sc0;
++}
+Index: linux-cg/arch/sparc/kernel/sys_sparc.c
+===================================================================
+--- linux-cg.orig/arch/sparc/kernel/sys_sparc.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/sparc/kernel/sys_sparc.c	2006-08-29 19:49:33.000000000 +0200
+@@ -483,3 +483,25 @@
+ 	up_read(&uts_sem);
+ 	return err;
+ }
++
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	long __res;
++	register long __g1 __asm__ ("g1") = __NR_execve;
++	register long __o0 __asm__ ("o0") = (long)(filename);
++	register long __o1 __asm__ ("o1") = (long)(argv);
++	register long __o2 __asm__ ("o2") = (long)(envp);
++	asm volatile ("t 0x10\n\t"
++		      "bcc 1f\n\t"
++		      "mov %%o0, %0\n\t"
++		      "sub %%g0, %%o0, %0\n\t"
++		      "1:\n\t"
++		      : "=r" (__res), "=&r" (__o0)
++		      : "1" (__o0), "r" (__o1), "r" (__o2), "r" (__g1)
++		      : "cc");
++	return __res;
++}
+Index: linux-cg/arch/sparc64/kernel/sys_sparc.c
+===================================================================
+--- linux-cg.orig/arch/sparc64/kernel/sys_sparc.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/sparc64/kernel/sys_sparc.c	2006-08-29 19:49:33.000000000 +0200
+@@ -957,3 +957,23 @@
+ 	};
+ 	return err;
+ }
++
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	long __res;
++	register long __g1 __asm__ ("g1") = __NR_execve;
++	register long __o0 __asm__ ("o0") = (long)(filename);
++	register long __o1 __asm__ ("o1") = (long)(argv);
++	register long __o2 __asm__ ("o2") = (long)(envp);
++	asm volatile ("t 0x6d\n\t"
++		      "sub %%g0, %%o0, %0\n\t"
++		      "movcc %%xcc, %%o0, %0\n\t"
++		      : "=r" (__res), "=&r" (__o0)
++		      : "1" (__o0), "r" (__o1), "r" (__o2), "r" (__g1)
++		      : "cc");
++	return __res;
++}
+Index: linux-cg/arch/v850/kernel/syscalls.c
+===================================================================
+--- linux-cg.orig/arch/v850/kernel/syscalls.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/v850/kernel/syscalls.c	2006-08-29 19:49:33.000000000 +0200
+@@ -194,3 +194,22 @@
+ out:
+ 	return err;
+ }
++
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	register char *__a __asm__ ("r6") = filename;
++	register void *__b __asm__ ("r7") = argv;
++	register void *__c __asm__ ("r8") = envp;
++	register unsigned long __syscall __asm__ ("r12") = __NR_execve;
++	register unsigned long __ret __asm__ ("r10");
++	__asm__ __volatile__ ("trap 0"
++			: "=r" (__ret), "=r" (__syscall)
++			: "1" (__syscall), "r" (__a), "r" (__b), "r" (__c)
++			: "r1", "r5", "r11", "r13", "r14",
++			  "r15", "r16", "r17", "r18", "r19");
++	return __ret;
++}
+Index: linux-cg/arch/xtensa/kernel/syscalls.c
+===================================================================
+--- linux-cg.orig/arch/xtensa/kernel/syscalls.c	2006-08-29 19:49:13.000000000 +0200
++++ linux-cg/arch/xtensa/kernel/syscalls.c	2006-08-29 19:49:33.000000000 +0200
+@@ -266,3 +266,23 @@
+ 	regs->areg[2] = res;
+ 	do_syscall_trace();
+ }
++
++/*
++ * Do a system call from kernel instead of calling sys_execve so we
++ * end up with proper pt_regs.
++ */
++int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++{
++	long __res;
++	asm volatile (
++		"  mov   a5, %2 \n"
++		"  mov   a4, %4 \n"
++		"  mov   a3, %3 \n"
++		"  movi  a2, %1 \n"
++		"  syscall      \n"
++		"  mov   %0, a2 \n"
++		: "=a" (__res)
++		: "i" (__NR_execve), "a" (filename), "a" (argv), "a" (envp)
++		: "a2", "a3", "a4", "a5");
++	return __res;
++}
+Index: linux-cg/arch/frv/kernel/Makefile
+===================================================================
+--- linux-cg.orig/arch/frv/kernel/Makefile	2006-04-02 23:16:53.000000000 +0200
++++ linux-cg/arch/frv/kernel/Makefile	2006-08-29 20:02:13.000000000 +0200
+@@ -8,7 +8,7 @@
+ extra-y:= head.o init_task.o vmlinux.lds
+ 
+ obj-y := $(heads-y) entry.o entry-table.o break.o switch_to.o kernel_thread.o \
+-	 process.o traps.o ptrace.o signal.o dma.o \
++	 kernel_execve.o process.o traps.o ptrace.o signal.o dma.o \
+ 	 sys_frv.o time.o semaphore.o setup.o frv_ksyms.o \
+ 	 debug-stub.o irq.o irq-routing.o sleep.o uaccess.o
+ 
+Index: linux-cg/arch/frv/kernel/kernel_execve.S
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cg/arch/frv/kernel/kernel_execve.S	2006-08-29 20:02:13.000000000 +0200
+@@ -0,0 +1,33 @@
++/* in-kernel program execution
++ *
++ * Copyright (C) 2006 Red Hat, Inc. All Rights Reserved.
++ * Written by David Howells (dhowells@redhat.com)
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version
++ * 2 of the License, or (at your option) any later version.
++ */
++
++#include <linux/linkage.h>
++#include <asm/unistd.h>
++
++###############################################################################
++#
++# Do a system call from kernel instead of calling sys_execve so we end up with
++# proper pt_regs.
++#
++# int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++#
++# On entry: GR8/GR9/GR10: arguments to function
++# On return: GR8: syscall return.
++#
++###############################################################################
++	.globl		kernel_execve
++	.type		kernel_execve,@function
++kernel_execve:
++	setlos		__NR_execve,gr7
++	tira		gr0,#0
++	bralr
++
++	.size		kernel_execve,.-kernel_execve
 
 --
 
