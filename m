@@ -1,38 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([192.83.249.54]:18841 "EHLO
-	terminus.zytor.com") by vger.kernel.org with ESMTP id S1751527AbWH3Fpv
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Aug 2006 01:45:51 -0400
-Message-ID: <44F525BC.4020608@zytor.com>
-Date: Tue, 29 Aug 2006 22:44:28 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
+Received: from mail.suse.de ([195.135.220.2]:38815 "EHLO mx1.suse.de")
+	by vger.kernel.org with ESMTP id S1750775AbWH3HZB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Aug 2006 03:25:01 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: [PATCH 6/7] remove all remaining _syscallX macros
-References: <200608281003.02757.ak@suse.de> <1156759232.5340.36.camel@pmac.infradead.org> <200608281606.00602.arnd@arndb.de> <200608281642.21737.ak@suse.de>
-In-Reply-To: <200608281642.21737.ak@suse.de>
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
+Date: Wed, 30 Aug 2006 09:22:09 +0200
+References: <200608281003.02757.ak@suse.de> <200608281642.21737.ak@suse.de> <44F525BC.4020608@zytor.com>
+In-Reply-To: <44F525BC.4020608@zytor.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+Message-Id: <200608300922.09436.ak@suse.de>
+Content-Type: text/plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
+To: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Arnd Bergmann <arnd@arndb.de>, David Woodhouse <dwmw2@infradead.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, jdike@addtoit.com, B.Steinbrink@gmx.de, arjan@infradead.org, chase.venters@clientec.com, akpm@osdl.org, rmk+lkml@arm.linux.org.uk, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Andi Kleen wrote:
-> On Monday 28 August 2006 16:05, Arnd Bergmann wrote:
-> 
->> The patch below should address both these issues, as long as the libc
->> has a working implementation of syscall(2).
-> 
-> I would prefer the _syscall() macros to stay independent of the 
-> actual glibc version. Or what do you do otherwise on a system
-> with old glibc? Upgrading glibc is normally a major PITA.
-> 
 
-Why don't you just have a private version of the macros?
+> Why don't you just have a private version of the macros?
 
-syscall(2) is, again, a horrible botch -- on architectures which 
-requires alignment for register pairs, the extra register buggers up the 
-alignment.  One *can* work around it by making the syscall number 64 
-bits, but I think it's safe to say that no libc does that currently.
+Because I don't write a libc, just test programs, preferably
+without a huge amount of cut'n'pasted code
 
-	-hpa
+-Andi
