@@ -1,32 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:28069 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S932134AbWH3Vve (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Aug 2006 17:51:34 -0400
+Received: from palinux.external.hp.com ([192.25.206.14]:39561 "EHLO
+	mail.parisc-linux.org") by vger.kernel.org with ESMTP
+	id S932311AbWHaNm4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Aug 2006 09:42:56 -0400
+Date: Thu, 31 Aug 2006 07:42:55 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: generic__raw_read_trylock Considered Harmful
+Message-ID: <20060831134254.GE4919@parisc-linux.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <17654.1898.640805.571107@cargo.ozlabs.ibm.com>
-Date: Thu, 31 Aug 2006 07:47:22 +1000
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [PATCH 2/6] rename the provided execve functions to kernel_execve
-In-Reply-To: <20060830125037.585774000@klappe.arndb.de>
-References: <20060830124356.567568000@klappe.arndb.de>
-	<20060830125037.585774000@klappe.arndb.de>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Bjoern Steinbrink <B.Steinbrink@gmx.de>, Arjan van de Ven <arjan@infradead.org>, Chase Venters <chase.venters@clientec.com>, Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, Andi Kleen <ak@suse.de>, "H. Peter Anvin" <hpa@zytor.com>
+To: linux-arch@vger.kernel.org
+Cc: rmk@arm.linux.org.uk, takata@linux-m32r.org, lethal@linux-sh.org, kkojima@rr.iij4u.or.jp, linuxsh-dev@lists.sourceforge.net, wli@holomorphy.com, sparclinux@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Arnd Bergmann writes:
 
-> Some architectures provide an execve function that does not
-> set errno, but instead returns the result code directly.
-> Rename these to kernel_execve to get the right semantics there.
-> Moreover, there is no reasone for any of these architectures to
-> still provide __KERNEL_SYSCALLS__ or _syscallN macros, so
-> remove these right away.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Back in January 2005, Ingo wrote:
 
-Acked-by: Paul Mackerras <paulus@samba.org>
+NOTE to architecture maintainers: generic_raw_read_trylock() is a crude
+version that should be replaced with the proper arch-optimized version
+ASAP.
+
+He didn't really phrase that strongly enough.  It should have read:
+
+NOTE to architecture maintainers: generic_raw_read_trylock() is
+completely unfit for use and will cause lockups if used in interrupt
+context.
+
+I propose we delete this from the tree, turning a rather nasty and hard
+to track down runtime failure into a simple to fix buildtime failure on
+the following architectures:
+
+include/asm-arm/spinlock.h:#define __raw_read_trylock(lock) generic__raw_read_trylock(lock)
+include/asm-m32r/spinlock.h:#define __raw_read_trylock(lock) generic__raw_read_trylock(lock)
+include/asm-mips/spinlock.h:#define __raw_read_trylock(lock) generic__raw_read_trylock(lock)
+include/asm-parisc/spinlock.h:#define __raw_read_trylock(lock) generic__raw_read_trylock(lock)
+include/asm-sh/spinlock.h:#define __raw_read_trylock(lock) generic__raw_read_trylock(lock)
+include/asm-sparc/spinlock.h:#define __raw_read_trylock(lock) generic__raw_read_trylock(lock)
+
+MIPS is already fixed out of tree.  ARM, M32R, SH and SPARC need to
+be fixed.  We're redoing the PA-RISC implementation right now, which is
+how I noticed this, er, minor problem.
+
+diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
+index 31473db..6ed1e54 100644
+--- a/include/linux/spinlock.h
++++ b/include/linux/spinlock.h
+@@ -77,8 +77,6 @@ #define __lockfunc fastcall __attribute_
+  */
+ #include <linux/spinlock_types.h>
+ 
+-extern int __lockfunc generic__raw_read_trylock(raw_rwlock_t *lock);
+-
+ /*
+  * Pull the __raw*() functions/declarations (UP-nondebug doesnt need them):
+  */
+diff --git a/kernel/spinlock.c b/kernel/spinlock.c
+index bfd6ad9..c9f1541 100644
+--- a/kernel/spinlock.c
++++ b/kernel/spinlock.c
+@@ -16,17 +16,6 @@ #include <linux/interrupt.h>
+ #include <linux/debug_locks.h>
+ #include <linux/module.h>
+ 
+-/*
+- * Generic declaration of the raw read_trylock() function,
+- * architectures are supposed to optimize this:
+- */
+-int __lockfunc generic__raw_read_trylock(raw_rwlock_t *lock)
+-{
+-	__raw_read_lock(lock);
+-	return 1;
+-}
+-EXPORT_SYMBOL(generic__raw_read_trylock);
+-
+ int __lockfunc _spin_trylock(spinlock_t *lock)
+ {
+ 	preempt_disable();
