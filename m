@@ -1,71 +1,249 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:4287 "EHLO e32.co.us.ibm.com")
-	by vger.kernel.org with ESMTP id S1751057AbWIATIH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Sep 2006 15:08:07 -0400
+Received: from e36.co.us.ibm.com ([32.97.110.154]:25025 "EHLO
+	e36.co.us.ibm.com") by vger.kernel.org with ESMTP id S1751118AbWIATIK
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Sep 2006 15:08:10 -0400
 Received: from westrelay02.boulder.ibm.com (westrelay02.boulder.ibm.com [9.17.195.11])
-	by e32.co.us.ibm.com (8.13.8/8.12.11) with ESMTP id k81J86po031563
-	for <linux-arch@vger.kernel.org>; Fri, 1 Sep 2006 15:08:06 -0400
-Received: from d03av02.boulder.ibm.com (d03av02.boulder.ibm.com [9.17.195.168])
-	by westrelay02.boulder.ibm.com (8.13.6/8.13.6/NCO v8.1.1) with ESMTP id k81J86SN374000
-	for <linux-arch@vger.kernel.org>; Fri, 1 Sep 2006 13:08:06 -0600
-Received: from d03av02.boulder.ibm.com (loopback [127.0.0.1])
-	by d03av02.boulder.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id k81J86gn031242
-	for <linux-arch@vger.kernel.org>; Fri, 1 Sep 2006 13:08:06 -0600
-Subject: [PATCH 0/9] generic PAGE_SIZE infrastructure (v5)
+	by e36.co.us.ibm.com (8.13.8/8.12.11) with ESMTP id k81J89Gb029087
+	for <linux-arch@vger.kernel.org>; Fri, 1 Sep 2006 15:08:09 -0400
+Received: from d03av03.boulder.ibm.com (d03av03.boulder.ibm.com [9.17.195.169])
+	by westrelay02.boulder.ibm.com (8.13.6/8.13.6/NCO v8.1.1) with ESMTP id k81J89A2374008
+	for <linux-arch@vger.kernel.org>; Fri, 1 Sep 2006 13:08:09 -0600
+Received: from d03av03.boulder.ibm.com (loopback [127.0.0.1])
+	by d03av03.boulder.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id k81J89iE015577
+	for <linux-arch@vger.kernel.org>; Fri, 1 Sep 2006 13:08:09 -0600
+Subject: [PATCH 5/9] sparc64 generic PAGE_SIZE
 From: Dave Hansen <haveblue@us.ibm.com>
-Date: Fri, 01 Sep 2006 12:08:05 -0700
-Message-Id: <20060901190805.C906A21A@localhost.localdomain>
+Date: Fri, 01 Sep 2006 12:08:08 -0700
+References: <20060901190805.C906A21A@localhost.localdomain>
+In-Reply-To: <20060901190805.C906A21A@localhost.localdomain>
+Message-Id: <20060901190808.3B21F360@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Dave Hansen <haveblue@us.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-I went through a couple of rounds with these on linux-mm, and
-linux-ia64, so I thought I'd give them one more round on linux-arch
-before I send them into -mm.
 
-Changes from v4:
-- much improved help text (thanks to Christoph Lameter)
+This is the sparc64 portion to convert it over to the generic PAGE_SIZE
+framework.
 
-Changes from v3:
-- fixed spurious delete of PTE_MASK in sh arch
-- replaced ALIGN() macro with one which only evaluates the
-  address a single time.  (Thanks Nikita)
-- replaced ppc _ALIGN* definitions with include of align.h
+* Change all references to CONFIG_SPARC64_PAGE_SIZE_*KB to
+  CONFIG_PAGE_SIZE_* and update the defconfig.
+* remove sparc64-specific Kconfig menu
+* add sparc64 default of 8k pages to mm/Kconfig
+* remove generic support for 4k pages
+* add support for 8k, 64k, 512k, and 4MB pages
 
-Changes from v2:
-- included get_order() code to make it safe to include
-  generic/page.h everywhere (using ARCH_HAS_GET_ORDER)
-- updated mm/Kconfig text to make it more fitting for ia64
-- added patch to consolidate _ALIGN with kernel.h's ALIGN()
-  The assembly one has been left alone, but I guess we could
-  put it here.  However, the meaning of the two is quite different.
-
+Signed-off-by: Dave Hansen <haveblue@us.ibm.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
 ---
 
-All architectures currently explicitly define their page size.  In some
-cases (ppc, parisc, ia64, sparc64, mips) this size is somewhat
-configurable.
+ threadalloc-dave/include/asm-sparc64/mmu.h     |    8 +++---
+ threadalloc-dave/include/asm-sparc64/page.h    |   19 --------------
+ threadalloc-dave/include/asm-sparc64/pgtable.h |    1 
+ threadalloc-dave/arch/sparc64/Kconfig          |   32 +++----------------------
+ threadalloc-dave/arch/sparc64/defconfig        |    8 +++---
+ threadalloc-dave/arch/sparc64/mm/tsb.c         |    8 +++---
+ threadalloc-dave/mm/Kconfig                    |    8 ++++--
+ 7 files changed, 24 insertions(+), 60 deletions(-)
 
-There several reimplementations of ways to make sure that PAGE_SIZE
-is usable in assembly code, yet still somewhat type safe for use in
-C code (as a UL type).  These are all very similar.  There are also a
-number of macros based off of PAGE_SIZE/SHIFT which are duplicated
-across architectures.
-
-This patch unifies all of those definitions.  It defines PAGE_SIZE in
-a single header which gets its definitions from Kconfig.  The new
-Kconfig options mirror what used to be done with #ifdefs and
-arch-specific Kconfig options.  The new Kconfig menu eliminates
-the need for parisc, ia64, and sparc64 to have their own "choice"
-menus for selecting page size.  The help text has been adapted from
-these three architectures, but is now more generic.
-
-Why am I doing this?  The OpenVZ beancounter patch hooks into the
-alloc_thread_info() path, but only in two architectures.  It is silly
-to patch each and every architecture when they all just do the same
-thing.  This is the first step to have a single place in which to
-do alloc_thread_info().  Oh, and this series removes about 300 lines
-of code.
-
-  59 files changed, 217 insertions(+), 502 deletions(-)
+diff -puN include/asm-sparc64/mmu.h~sparc64 include/asm-sparc64/mmu.h
+--- threadalloc/include/asm-sparc64/mmu.h~sparc64	2006-09-01 11:28:14.000000000 -0700
++++ threadalloc-dave/include/asm-sparc64/mmu.h	2006-09-01 11:30:57.000000000 -0700
+@@ -30,13 +30,13 @@
+ #define CTX_PGSZ_MASK		((CTX_PGSZ_BITS << CTX_PGSZ0_SHIFT) | \
+ 				 (CTX_PGSZ_BITS << CTX_PGSZ1_SHIFT))
+ 
+-#if defined(CONFIG_SPARC64_PAGE_SIZE_8KB)
++#if defined(CONFIG_PAGE_SIZE_8KB)
+ #define CTX_PGSZ_BASE	CTX_PGSZ_8KB
+-#elif defined(CONFIG_SPARC64_PAGE_SIZE_64KB)
++#elif defined(CONFIG_PAGE_SIZE_64KB)
+ #define CTX_PGSZ_BASE	CTX_PGSZ_64KB
+-#elif defined(CONFIG_SPARC64_PAGE_SIZE_512KB)
++#elif defined(CONFIG_PAGE_SIZE_512KB)
+ #define CTX_PGSZ_BASE	CTX_PGSZ_512KB
+-#elif defined(CONFIG_SPARC64_PAGE_SIZE_4MB)
++#elif defined(CONFIG_PAGE_SIZE_4MB)
+ #define CTX_PGSZ_BASE	CTX_PGSZ_4MB
+ #else
+ #error No page size specified in kernel configuration
+diff -puN include/asm-sparc64/page.h~sparc64 include/asm-sparc64/page.h
+--- threadalloc/include/asm-sparc64/page.h~sparc64	2006-09-01 11:28:14.000000000 -0700
++++ threadalloc-dave/include/asm-sparc64/page.h	2006-09-01 11:30:57.000000000 -0700
+@@ -4,21 +4,7 @@
+ #define _SPARC64_PAGE_H
+ 
+ #include <asm/const.h>
+-
+-#if defined(CONFIG_SPARC64_PAGE_SIZE_8KB)
+-#define PAGE_SHIFT   13
+-#elif defined(CONFIG_SPARC64_PAGE_SIZE_64KB)
+-#define PAGE_SHIFT   16
+-#elif defined(CONFIG_SPARC64_PAGE_SIZE_512KB)
+-#define PAGE_SHIFT   19
+-#elif defined(CONFIG_SPARC64_PAGE_SIZE_4MB)
+-#define PAGE_SHIFT   22
+-#else
+-#error No page size specified in kernel configuration
+-#endif
+-
+-#define PAGE_SIZE    (_AC(1,UL) << PAGE_SHIFT)
+-#define PAGE_MASK    (~(PAGE_SIZE-1))
++#include <asm-generic/page.h>
+ 
+ /* Flushing for D-cache alias handling is only needed if
+  * the page size is smaller than 16K.
+@@ -114,9 +100,6 @@ typedef unsigned long pgprot_t;
+ 
+ #endif /* !(__ASSEMBLY__) */
+ 
+-/* to align the pointer to the (next) page boundary */
+-#define PAGE_ALIGN(addr)	(((addr)+PAGE_SIZE-1)&PAGE_MASK)
+-
+ /* We used to stick this into a hard-coded global register (%g4)
+  * but that does not make sense anymore.
+  */
+diff -puN include/asm-sparc64/pgtable.h~sparc64 include/asm-sparc64/pgtable.h
+--- threadalloc/include/asm-sparc64/pgtable.h~sparc64	2006-09-01 11:28:14.000000000 -0700
++++ threadalloc-dave/include/asm-sparc64/pgtable.h	2006-09-01 11:30:57.000000000 -0700
+@@ -13,6 +13,7 @@
+  */
+ 
+ #include <asm-generic/pgtable-nopud.h>
++#include <asm-generic/page.h>
+ 
+ #include <linux/compiler.h>
+ #include <asm/types.h>
+diff -puN arch/sparc64/Kconfig~sparc64 arch/sparc64/Kconfig
+--- threadalloc/arch/sparc64/Kconfig~sparc64	2006-09-01 11:28:14.000000000 -0700
++++ threadalloc-dave/arch/sparc64/Kconfig	2006-09-01 11:30:57.000000000 -0700
+@@ -34,32 +34,8 @@ config ARCH_MAY_HAVE_PC_FDC
+ 	bool
+ 	default y
+ 
+-choice
+-	prompt "Kernel page size"
+-	default SPARC64_PAGE_SIZE_8KB
+-
+-config SPARC64_PAGE_SIZE_8KB
+-	bool "8KB"
+-	help
+-	  This lets you select the page size of the kernel.
+-
+-	  8KB and 64KB work quite well, since Sparc ELF sections
+-	  provide for up to 64KB alignment.
+-
+-	  Therefore, 512KB and 4MB are for expert hackers only.
+-
+-	  If you don't know what to do, choose 8KB.
+-
+-config SPARC64_PAGE_SIZE_64KB
+-	bool "64KB"
+-
+-config SPARC64_PAGE_SIZE_512KB
+-	bool "512KB"
+-
+-config SPARC64_PAGE_SIZE_4MB
+-	bool "4MB"
+-
+-endchoice
++config ARCH_GENERIC_PAGE_SIZE
++	def_bool y
+ 
+ config SECCOMP
+ 	bool "Enable seccomp to safely compute untrusted bytecode"
+@@ -187,11 +163,11 @@ config HUGETLB_PAGE_SIZE_4MB
+ 	bool "4MB"
+ 
+ config HUGETLB_PAGE_SIZE_512K
+-	depends on !SPARC64_PAGE_SIZE_4MB && !SPARC64_PAGE_SIZE_512KB
++	depends on !PAGE_SIZE_4MB && !PAGE_SIZE_512KB
+ 	bool "512K"
+ 
+ config HUGETLB_PAGE_SIZE_64K
+-	depends on !SPARC64_PAGE_SIZE_4MB && !SPARC64_PAGE_SIZE_512KB && !SPARC64_PAGE_SIZE_64KB
++	depends on !PAGE_SIZE_4MB && !PAGE_SIZE_512KB && !PAGE_SIZE_64KB
+ 	bool "64K"
+ 
+ endchoice
+diff -puN arch/sparc64/defconfig~sparc64 arch/sparc64/defconfig
+--- threadalloc/arch/sparc64/defconfig~sparc64	2006-09-01 11:28:15.000000000 -0700
++++ threadalloc-dave/arch/sparc64/defconfig	2006-09-01 11:30:57.000000000 -0700
+@@ -9,10 +9,10 @@ CONFIG_64BIT=y
+ CONFIG_MMU=y
+ CONFIG_TIME_INTERPOLATION=y
+ CONFIG_ARCH_MAY_HAVE_PC_FDC=y
+-CONFIG_SPARC64_PAGE_SIZE_8KB=y
+-# CONFIG_SPARC64_PAGE_SIZE_64KB is not set
+-# CONFIG_SPARC64_PAGE_SIZE_512KB is not set
+-# CONFIG_SPARC64_PAGE_SIZE_4MB is not set
++CONFIG_PAGE_SIZE_8KB=y
++# CONFIG_PAGE_SIZE_64KB is not set
++# CONFIG_PAGE_SIZE_512KB is not set
++# CONFIG_PAGE_SIZE_4MB is not set
+ CONFIG_SECCOMP=y
+ # CONFIG_HZ_100 is not set
+ CONFIG_HZ_250=y
+diff -puN arch/sparc64/mm/tsb.c~sparc64 arch/sparc64/mm/tsb.c
+--- threadalloc/arch/sparc64/mm/tsb.c~sparc64	2006-09-01 11:28:15.000000000 -0700
++++ threadalloc-dave/arch/sparc64/mm/tsb.c	2006-09-01 11:30:57.000000000 -0700
+@@ -90,16 +90,16 @@ void flush_tsb_user(struct mmu_gather *m
+ 	spin_unlock_irqrestore(&mm->context.lock, flags);
+ }
+ 
+-#if defined(CONFIG_SPARC64_PAGE_SIZE_8KB)
++#if defined(CONFIG_PAGE_SIZE_8KB)
+ #define HV_PGSZ_IDX_BASE	HV_PGSZ_IDX_8K
+ #define HV_PGSZ_MASK_BASE	HV_PGSZ_MASK_8K
+-#elif defined(CONFIG_SPARC64_PAGE_SIZE_64KB)
++#elif defined(CONFIG_PAGE_SIZE_64KB)
+ #define HV_PGSZ_IDX_BASE	HV_PGSZ_IDX_64K
+ #define HV_PGSZ_MASK_BASE	HV_PGSZ_MASK_64K
+-#elif defined(CONFIG_SPARC64_PAGE_SIZE_512KB)
++#elif defined(CONFIG_PAGE_SIZE_512KB)
+ #define HV_PGSZ_IDX_BASE	HV_PGSZ_IDX_512K
+ #define HV_PGSZ_MASK_BASE	HV_PGSZ_MASK_512K
+-#elif defined(CONFIG_SPARC64_PAGE_SIZE_4MB)
++#elif defined(CONFIG_PAGE_SIZE_4MB)
+ #define HV_PGSZ_IDX_BASE	HV_PGSZ_IDX_4MB
+ #define HV_PGSZ_MASK_BASE	HV_PGSZ_MASK_4MB
+ #else
+diff -puN mm/Kconfig~sparc64 mm/Kconfig
+--- threadalloc/mm/Kconfig~sparc64	2006-09-01 11:30:56.000000000 -0700
++++ threadalloc-dave/mm/Kconfig	2006-09-01 11:30:57.000000000 -0700
+@@ -5,9 +5,11 @@ config ARCH_HAVE_GET_ORDER
+ choice
+ 	prompt "Kernel page size"
+ 	depends on ARCH_GENERIC_PAGE_SIZE
++	default PAGE_SIZE_8KB if SPARC64
+ 	default PAGE_SIZE_16KB if IA64
+ config PAGE_SIZE_4KB
+ 	bool "4KB"
++	depends on !SPARC64
+ 	help
+ 	  The kernel page size determines the basic chunk of memory handled
+ 	  by the Linux VM.  If these pages are larger, the kernel can
+@@ -27,17 +29,19 @@ config PAGE_SIZE_4KB
+ 
+ config PAGE_SIZE_8KB
+ 	bool "8KB"
+-	depends on IA64
++	depends on IA64 || SPARC64
+ config PAGE_SIZE_16KB
+ 	bool "16KB"
+ 	depends on IA64
+ config PAGE_SIZE_64KB
+ 	bool "64KB"
+-	depends on (IA64 && !ITANIUM)
++	depends on (IA64 && !ITANIUM) || SPARC64
+ config PAGE_SIZE_512KB
+ 	bool "512KB"
++	depends on SPARC64
+ config PAGE_SIZE_4MB
+ 	bool "4MB"
++	depends on SPARC64
+ endchoice
+ 
+ config PAGE_SHIFT
+_
