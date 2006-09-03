@@ -1,177 +1,155 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e6.ny.us.ibm.com ([32.97.182.146]:25058 "EHLO e6.ny.us.ibm.com")
-	by vger.kernel.org with ESMTP id S1750950AbWIATJO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Sep 2006 15:09:14 -0400
-Received: from d01relay02.pok.ibm.com (d01relay02.pok.ibm.com [9.56.227.234])
-	by e6.ny.us.ibm.com (8.13.8/8.12.11) with ESMTP id k81J9D9c022254
-	for <linux-arch@vger.kernel.org>; Fri, 1 Sep 2006 15:09:13 -0400
-Received: from d01av02.pok.ibm.com (d01av02.pok.ibm.com [9.56.224.216])
-	by d01relay02.pok.ibm.com (8.13.6/8.13.6/NCO v8.1.1) with ESMTP id k81J8A6l293932
-	for <linux-arch@vger.kernel.org>; Fri, 1 Sep 2006 15:08:10 -0400
-Received: from d01av02.pok.ibm.com (loopback [127.0.0.1])
-	by d01av02.pok.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id k81J8A75019643
-	for <linux-arch@vger.kernel.org>; Fri, 1 Sep 2006 15:08:10 -0400
-Subject: [PATCH 6/9] mips generic PAGE_SIZE
-From: Dave Hansen <haveblue@us.ibm.com>
-Date: Fri, 01 Sep 2006 12:08:08 -0700
-References: <20060901190805.C906A21A@localhost.localdomain>
-In-Reply-To: <20060901190805.C906A21A@localhost.localdomain>
-Message-Id: <20060901190808.DCAA6590@localhost.localdomain>
+Received: from ns.sitour.cz ([212.158.149.14]:49906 "EHLO kali.sitour.cz")
+	by vger.kernel.org with ESMTP id S1750724AbWICWZD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Sep 2006 18:25:03 -0400
+Received: from localhost (localhost.localdomain [127.0.0.1])
+	by kali.sitour.cz (Postfix) with ESMTP id 3782F22647
+	for <linux-arch@vger.kernel.org>; Mon,  4 Sep 2006 00:22:35 +0200 (CEST)
+Received: from kali.sitour.cz ([127.0.0.1])
+	by localhost (kali [127.0.0.1]) (amavisd-new, port 10024) with ESMTP
+	id 18269-06 for <linux-arch@vger.kernel.org>;
+	Mon, 4 Sep 2006 00:22:27 +0200 (CEST)
+Received: from marvin.zlicinnet.cz (r2ac52.net.upc.cz [62.245.92.52])
+	by kali.sitour.cz (Postfix) with ESMTP id 35B812261D
+	for <linux-arch@vger.kernel.org>; Mon,  4 Sep 2006 00:22:27 +0200 (CEST)
+Received: from [127.0.0.1] (localhost [127.0.0.1])
+	by marvin.zlicinnet.cz (8.13.4/8.13.4/Debian-3sarge1) with ESMTP id k83MOqPB016517
+	for <linux-arch@vger.kernel.org>; Mon, 4 Sep 2006 00:24:52 +0200
+Message-ID: <44FB5634.7060002@mydatex.cz>
+Date: Mon, 04 Sep 2006 00:24:52 +0200
+From: Daniel Smolik <marvin@mydatex.cz>
+MIME-Version: 1.0
+Subject: OOPS 2.6.18-rc5 Ultra 5
+Content-Type: multipart/mixed;
+ boundary="------------050604020706080005070806"
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Dave Hansen <haveblue@us.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
+This is a multi-part message in MIME format.
+--------------050604020706080005070806
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
 
-This is the mips portion to convert it over to the generic PAGE_SIZE
-framework.
+Hi,
 
-* remove mips-specific Kconfig menu
-* add mips default of 4k pages to mm/Kconfig
-* replace mips Kconfig menu with plain bool variables to preserve
-  dependencies on specific CPUs.  Add to mm/Kconfig
+I get Ultra 5 to my colection of Sun machine. I instaled Sarge and start playing 
+with kernel. I now compile 2.6.18-rc5 and get this:
+
+rtc_sun_init: Registered Mostek RTC driver.
+OBP Flash: RD 1fff0000000[100000] WR 1fff0000000[100000]
+Unable to handle kernel NULL pointer dereference
+tsk->{mm,active_mm}->context = 0000000000000970
+tsk->{mm,active_mm}->pgd = fffff80016148000
+               \|/ ____ \|/
+               "@'/ .. \`@"
+               /_| \__/ |_\
+                  \__U_/
+discover(2007): Oops [#1]
+TSTATE: 0000004411009607 TPC: 0000000000428644 TNPC: 0000000000428648 Y: 
+00000000    Not tainted
+TPC: <of_find_property+0xc/0x60>
+g0: fffff80016823231 g1: 0000000020004f07 g2: 0000000020004c00 g3: 0000000000000f7c
+g4: fffff80017c30e00 g5: 0000000000000000 g6: fffff80016820000 g7: 0000000000000000
+o0: fffff80017f38940 o1: 00000000000000d0 o2: 0000000001010101 o3: 0000000080808080
+o4: 0000000053554e57 o5: 0000000073627573 sp: fffff800168231f1 ret_pc: 
+00000000f7fa8db0
+RPC: <0xf7fa8db8>
+l0: 000000000000058c l1: 00000000f7fad4a0 l2: 00000000f7fbef78 l3: 0000000000000000
+l4: 0000000000000000 l5: 0000000000000000 l6: 0000000000000000 l7: 00000000f7fbe7ac
+i0: 0000000000000000 i1: fffff800179bb004 i2: fffff80016823c2c i3: fffff800179bb000
+i4: 0000000000000000 i5: 0000000000000000 i6: fffff800168232b1 i7: 00000000004286b0
+I7: <of_get_property+0x18/0x40>
+Caller[00000000004286b0]: of_get_property+0x18/0x40
+Caller[00000000005c8e70]: opromgetprop+0x18/0xa0
+Caller[00000000005c92b0]: openprom_sunos_ioctl+0xf8/0x240
+Caller[00000000005c9c8c]: openprom_compat_ioctl+0x54/0x60
+Caller[00000000004c773c]: compat_sys_ioctl+0x204/0x280
+Caller[00000000004069d4]: linux_sparc_syscall32+0x3c/0x40
+Caller[00000000f7fa8d54]: 0xf7fa8d5c
+Instruction DUMP: 01000000  01000000  9de3bf40 <f05e2028> 02c60011  01000000 
+d05e0000  4004c0c3  92100019
+usbcore: registered new driver usbfs
+usbcore: registered new driver hub
+ohci_hcd: 2005 April 22 USB 1.1 'Open' Host Controller (OHCI) Driver (PCI)
+USB Universal Host Controller Interface driver v3.0
+eth0: Link is up using internal transceiver at 100Mb/s, Full Duplex.
+NET: Registered protocol family 10
+lo: Disabled Privacy Extensions
+IPv6 over IPv4 tunneling driver
+eth0: no IPv6 routers present
+ioctl32(XFree86:2842): Unknown cmd fd(5) cmd(40584606){00} arg(ff7c3b50) on /dev/fb0
+ioctl32(XFree86:2842): Unknown cmd fd(5) cmd(40184600){00} arg(ff7c3b58) on /dev/fb0
+
+How can I help ?
 
 
-Signed-off-by: Dave Hansen <haveblue@us.ibm.com>
----
+		Dan
 
- threadalloc-dave/include/asm-mips/page.h |   23 ----------------
- threadalloc-dave/arch/mips/Kconfig       |   43 +++++--------------------------
- threadalloc-dave/mm/Kconfig              |    7 ++---
- 3 files changed, 13 insertions(+), 60 deletions(-)
 
-diff -puN include/asm-mips/page.h~mips include/asm-mips/page.h
---- threadalloc/include/asm-mips/page.h~mips	2006-09-01 11:28:14.000000000 -0700
-+++ threadalloc-dave/include/asm-mips/page.h	2006-09-01 11:30:58.000000000 -0700
-@@ -9,6 +9,7 @@
- #ifndef _ASM_PAGE_H
- #define _ASM_PAGE_H
- 
-+#include <asm-generic/page.h>
- 
- #ifdef __KERNEL__
- 
-@@ -16,25 +17,6 @@
- 
- #endif
- 
--/*
-- * PAGE_SHIFT determines the page size
-- */
--#ifdef CONFIG_PAGE_SIZE_4KB
--#define PAGE_SHIFT	12
--#endif
--#ifdef CONFIG_PAGE_SIZE_8KB
--#define PAGE_SHIFT	13
--#endif
--#ifdef CONFIG_PAGE_SIZE_16KB
--#define PAGE_SHIFT	14
--#endif
--#ifdef CONFIG_PAGE_SIZE_64KB
--#define PAGE_SHIFT	16
--#endif
--#define PAGE_SIZE	(1UL << PAGE_SHIFT)
--#define PAGE_MASK       (~((1 << PAGE_SHIFT) - 1))
--
--
- #ifdef __KERNEL__
- #ifndef __ASSEMBLY__
- 
-@@ -130,9 +112,6 @@ typedef struct { unsigned long pgprot; }
- 
- #endif /* !__ASSEMBLY__ */
- 
--/* to align the pointer to the (next) page boundary */
--#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
--
- #define __pa(x)			((unsigned long) (x) - PAGE_OFFSET)
- #define __va(x)			((void *)((unsigned long) (x) + PAGE_OFFSET))
- 
-diff -puN arch/mips/Kconfig~mips arch/mips/Kconfig
---- threadalloc/arch/mips/Kconfig~mips	2006-09-01 11:28:14.000000000 -0700
-+++ threadalloc-dave/arch/mips/Kconfig	2006-09-01 11:30:58.000000000 -0700
-@@ -1432,47 +1432,20 @@ config 64BIT
- 
- endchoice
- 
--choice
--	prompt "Kernel page size"
--	default PAGE_SIZE_4KB
--
--config PAGE_SIZE_4KB
--	bool "4kB"
--	help
--	 This option select the standard 4kB Linux page size.  On some
--	 R3000-family processors this is the only available page size.  Using
--	 4kB page size will minimize memory consumption and is therefore
--	 recommended for low memory systems.
--
--config PAGE_SIZE_8KB
--	bool "8kB"
-+config MIPS_PAGE_SIZE_8KB
-+	def_bool y
- 	depends on EXPERIMENTAL && CPU_R8000
--	help
--	  Using 8kB page size will result in higher performance kernel at
--	  the price of higher memory consumption.  This option is available
--	  only on the R8000 processor.  Not that at the time of this writing
--	  this option is still high experimental; there are also issues with
--	  compatibility of user applications.
- 
--config PAGE_SIZE_16KB
--	bool "16kB"
-+config MIPS_PAGE_SIZE_16KB
-+	def_bool y
- 	depends on !CPU_R3000 && !CPU_TX39XX
--	help
--	  Using 16kB page size will result in higher performance kernel at
--	  the price of higher memory consumption.  This option is available on
--	  all non-R3000 family processors.  Note that you will need a suitable
--	  Linux distribution to support this.
- 
--config PAGE_SIZE_64KB
--	bool "64kB"
-+config MIPS_PAGE_SIZE_64KB
-+	def_bool y
- 	depends on EXPERIMENTAL && !CPU_R3000 && !CPU_TX39XX
--	help
--	  Using 64kB page size will result in higher performance kernel at
--	  the price of higher memory consumption.  This option is available on
--	  all non-R3000 family processor.  Not that at the time of this
--	  writing this option is still high experimental.
- 
--endchoice
-+config ARCH_GENERIC_PAGE_SIZE
-+	def_bool y
- 
- config BOARD_SCACHE
- 	bool
-diff -puN mm/Kconfig~mips mm/Kconfig
---- threadalloc/mm/Kconfig~mips	2006-09-01 11:30:57.000000000 -0700
-+++ threadalloc-dave/mm/Kconfig	2006-09-01 11:30:58.000000000 -0700
-@@ -5,6 +5,7 @@ config ARCH_HAVE_GET_ORDER
- choice
- 	prompt "Kernel page size"
- 	depends on ARCH_GENERIC_PAGE_SIZE
-+	default PAGE_SIZE_4KB if MIPS
- 	default PAGE_SIZE_8KB if SPARC64
- 	default PAGE_SIZE_16KB if IA64
- config PAGE_SIZE_4KB
-@@ -29,13 +30,13 @@ config PAGE_SIZE_4KB
- 
- config PAGE_SIZE_8KB
- 	bool "8KB"
--	depends on IA64 || SPARC64
-+	depends on IA64 || SPARC64 || MIPS_PAGE_SIZE_8KB
- config PAGE_SIZE_16KB
- 	bool "16KB"
--	depends on IA64
-+	depends on IA64 || MIPS_PAGE_SIZE_16KB
- config PAGE_SIZE_64KB
- 	bool "64KB"
--	depends on (IA64 && !ITANIUM) || SPARC64
-+	depends on (IA64 && !ITANIUM) || SPARC64 || MIPS_PAGE_SIZE_64KB
- config PAGE_SIZE_512KB
- 	bool "512KB"
- 	depends on SPARC64
-_
+--------------050604020706080005070806
+Content-Type: text/plain;
+ name="oops.txt"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline;
+ filename="oops.txt"
+
+rtc_sun_init: Registered Mostek RTC driver.
+OBP Flash: RD 1fff0000000[100000] WR 1fff0000000[100000]
+Unable to handle kernel NULL pointer dereference
+tsk->{mm,active_mm}->context =3D 0000000000000970
+tsk->{mm,active_mm}->pgd =3D fffff80016148000
+              \|/ ____ \|/
+              "@'/ .. \=00"
+              /_| \__/ |_\
+                 \__U_/
+discover(2007): Oops [#1]
+TSTATE: 0000004411009607 TPC: 0000000000428644 TNPC: 0000000000428648 Y: =
+00000000    Not tainted
+TPC: <of_find_property+0xc/0x60>
+g0: fffff80016823231 g1: 0000000020004f07 g2: 0000000020004c00 g3: 000000=
+0000000f7c
+g4: fffff80017c30e00 g5: 0000000000000000 g6: fffff80016820000 g7: 000000=
+0000000000
+o0: fffff80017f38940 o1: 00000000000000d0 o2: 0000000001010101 o3: 000000=
+0080808080
+o4: 0000000053554e57 o5: 0000000073627573 sp: fffff800168231f1 ret_pc: 00=
+000000f7fa8db0
+RPC: <0xf7fa8db8>
+l0: 000000000000058c l1: 00000000f7fad4a0 l2: 00000000f7fbef78 l3: 000000=
+0000000000
+l4: 0000000000000000 l5: 0000000000000000 l6: 0000000000000000 l7: 000000=
+00f7fbe7ac
+i0: 0000000000000000 i1: fffff800179bb004 i2: fffff80016823c2c i3: fffff8=
+00179bb000
+i4: 0000000000000000 i5: 0000000000000000 i6: fffff800168232b1 i7: 000000=
+00004286b0
+I7: <of_get_property+0x18/0x40>
+Caller[00000000004286b0]: of_get_property+0x18/0x40
+Caller[00000000005c8e70]: opromgetprop+0x18/0xa0
+Caller[00000000005c92b0]: openprom_sunos_ioctl+0xf8/0x240
+Caller[00000000005c9c8c]: openprom_compat_ioctl+0x54/0x60
+Caller[00000000004c773c]: compat_sys_ioctl+0x204/0x280
+Caller[00000000004069d4]: linux_sparc_syscall32+0x3c/0x40
+Caller[00000000f7fa8d54]: 0xf7fa8d5c
+Instruction DUMP: 01000000  01000000  9de3bf40 <f05e2028> 02c60011  01000=
+000  d05e0000  4004c0c3  92100019=20
+usbcore: registered new driver usbfs
+usbcore: registered new driver hub
+ohci_hcd: 2005 April 22 USB 1.1 'Open' Host Controller (OHCI) Driver (PCI=
+)
+USB Universal Host Controller Interface driver v3.0
+eth0: Link is up using internal transceiver at 100Mb/s, Full Duplex.
+NET: Registered protocol family 10
+lo: Disabled Privacy Extensions
+IPv6 over IPv4 tunneling driver
+eth0: no IPv6 routers present
+ioctl32(XFree86:2842): Unknown cmd fd(5) cmd(40584606){00} arg(ff7c3b50) =
+on /dev/fb0
+ioctl32(XFree86:2842): Unknown cmd fd(5) cmd(40184600){00} arg(ff7c3b58) =
+on /dev/fb0
+
+--------------050604020706080005070806--
+
+-- 
+VGER BF report: U 0.519882
