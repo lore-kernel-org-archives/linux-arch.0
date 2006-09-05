@@ -1,60 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:55776 "EHLO
+Received: from pentafluge.infradead.org ([213.146.154.40]:34464 "EHLO
 	pentafluge.infradead.org") by vger.kernel.org with ESMTP
-	id S1751482AbWIDVQx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 4 Sep 2006 17:16:53 -0400
-Subject: Re: [PATCH] Revert [i386/x86_64]: Remove __KERNEL__ ifdef around
-	_syscall*()
+	id S965159AbWIEF2M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Sep 2006 01:28:12 -0400
+Subject: Re: [PATCH 3/9] actual generic PAGE_SIZE infrastructure
 From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <200609042230.13455.ak@suse.de>
-References: <200608302359.k7UNxIZW027536@hera.kernel.org>
-	 <1157398050.2473.137.camel@shinybook.infradead.org>
-	 <200609042230.13455.ak@suse.de>
+In-Reply-To: <20060901190807.522EDD97@localhost.localdomain>
+References: <20060901190805.C906A21A@localhost.localdomain>
+	 <20060901190807.522EDD97@localhost.localdomain>
 Content-Type: text/plain
-Date: Mon, 04 Sep 2006 14:16:48 -0700
-Message-Id: <1157404608.2473.205.camel@shinybook.infradead.org>
+Date: Mon, 04 Sep 2006 22:28:04 -0700
+Message-Id: <1157434085.2413.22.camel@shinybook.infradead.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: torvalds@osdl.org, akpm@osdl.org, linux-arch@vger.kernel.org
+To: Dave Hansen <haveblue@us.ibm.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2006-09-04 at 22:30 +0200, Andi Kleen wrote:
-> > 1. C libraries have their own syscall(); there's no _need_ for these
-> >    macros to be exported by the kernel.
-> 
-> I like having them there. I find it it useful for my test programs.
+On Fri, 2006-09-01 at 12:08 -0700, Dave Hansen wrote:
+> * Note that this moves the compiler.h define outside of the
+>   #ifdef __KERNEL__, but that's OK because it has its own.
 
-Nevertheless, you could happily use syscall() as provided by glibc -- or
-you could keep your own copy of _syscallX around. You don't need to
-pollute the kernel with this stuff just so that you can use it in your
-own test programs.
+No it isn't OK -- compiler.h isn't listed in include/linux/Kbuild, and
+hence doesn't exist at _all_ outside the kernel. And why are you doing
+it? The userspace version of your new asm-generic/page.h still doesn't
+do anything _but_ include compiler.h and align.h, so why do you feel the
+need to move those inclusions outside the ifdef?
 
-> It's also useful for numactl for once.
+Actually, I suppose it _is_ OK because asm-generic/page.h doesn't exist
+in userspace either, because it isn't listed in asm-generic/Kbuild. But
+I assume that was just an oversight on your part and you did mean to
+export it?
 
-What makes you say that? Numactl seems used glibc's syscall(), not the
-kernel's _syscallX(). Although it does provide its own syscall6() on
-both i386 and x86_64 -- citing bugs in both kernel and glibc versions,
-although not actually giving bug numbers. But basically, it's using
-glibc's syscall().
+There's a similar problem with the new <linux/align.h> which you create,
+don't (and probably shouldn't) add to the Kbuild file, and then include
+from outside the confines of #ifdef __KERNEL__.
 
-> > 3. We should be consistent about what we provide in kernel headers.
-> >    Since we don't provide these macros on other architectures, we should
-> >    not do so on i386 and x86_64 -- especially as the reason for doing so
-> >    seems to be just that the arch maintainer doesn't want to use the
-> >    proper glibc function in his test hacks.
-> 
-> We've always provided them and continuing to do so is consistent.
+Also, if you're touching all this and making it generic then it's
+probably worth spelling 'KiB' and 'MiB' correctly throughout. It's
+powers of two, not powers of ten.
 
-They've always been broken, and we've _never_ been consistent about what
-we provide to userspace in kernel headers in the past -- we're only
-recently starting to get our act together in that respect, and your
-patches _reverted_ some of the cleanup which was part of that process.
-
-Our best option, at this point, is to remove the kernel versions again
-and let userspace use syscall(). Like numactl() already does.
-
+It does look like you've correctly refrained from making the new
+PAGE_SIZE definitions visible to userspace, which is good. Userspace
+should be using sysconf(), not hardcoded PAGE_SIZE.
 -- 
 dwmw2
 
