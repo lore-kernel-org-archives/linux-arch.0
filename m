@@ -1,66 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:9920 "EHLO
-	pentafluge.infradead.org") by vger.kernel.org with ESMTP
-	id S1030234AbWIETMb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Sep 2006 15:12:31 -0400
-Subject: Re: [PATCH 3/9] actual generic PAGE_SIZE infrastructure
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <1157478771.3186.30.camel@localhost.localdomain>
-References: <20060901190805.C906A21A@localhost.localdomain>
-	 <20060901190807.522EDD97@localhost.localdomain>
-	 <1157434085.2413.22.camel@shinybook.infradead.org>
-	 <1157434669.2413.30.camel@shinybook.infradead.org>
-	 <1157478771.3186.30.camel@localhost.localdomain>
-Content-Type: text/plain
-Date: Tue, 05 Sep 2006 11:39:01 -0700
-Message-Id: <1157481541.2477.21.camel@shinybook.infradead.org>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:57106 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S1750749AbWIGGa7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Sep 2006 02:30:59 -0400
+Date: Thu, 7 Sep 2006 07:30:49 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [2.6 patch] re-add -ffreestanding
+Message-ID: <20060907063049.GA15029@flint.arm.linux.org.uk>
+References: <20060830175727.GI18276@stusta.de> <200608302013.58122.ak@suse.de> <20060830183905.GB31594@flint.arm.linux.org.uk> <20060906223748.GC12157@stusta.de>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20060906223748.GC12157@stusta.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Dave Hansen <haveblue@us.ibm.com>
-Cc: linux-arch@vger.kernel.org
+To: Adrian Bunk <bunk@stusta.de>
+Cc: Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, Roman Zippel <zippel@linux-m68k.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2006-09-05 at 10:52 -0700, Dave Hansen wrote:
-> On Mon, 2006-09-04 at 22:37 -0700, David Woodhouse wrote:
-> > The above can be summarised: In general, please remember to run 
-> > 'make headers_install' and check the sanity of the result if you're
-> > making changes which are going to affect user-visible headers.
+On Thu, Sep 07, 2006 at 12:37:48AM +0200, Adrian Bunk wrote:
+> On Wed, Aug 30, 2006 at 07:39:05PM +0100, Russell King wrote:
+> > Looking at the effect of -ffreestanding on ARM, it appears that on one
+> > hand, the overall image size is reduced by 0.016% but we end up with worse
+> > code - eg, strlen() of the same string in the same function evaluated
+> > multiple times vs once without -ffreestanding.
+> > 
+> > The difference probably comes down to the lack of __attribute__((pure))
+> > on our string functions in linux/string.h.
+> > 
+> > If we are going to go for -ffreestanding, we need to fix linux/string.h
+> > in that respect _first_.
 > 
-> Did you spot anything that looked like a problem?
+> We are talking about reverting the patch that removed -ffreestanding, 
+> and that broke at least two architectures although it wrongly claimed 
+> it would have been a safe patch.
 
-I pointed out a few things that looked like a problem in the previous
-mail, which I was quoting when I said "the above can be summarised".
+Wrong.  Your patch unconditionally adds it for _ALL_ architectures.
+Below is the extract which you posted which supports this fact.
 
-I objected to the inclusion of <linux/compiler.h> from outside the
-protection of #ifdef __KERNEL__ -- but in fact I was wrong. That one is
-automatically stripped out by the export script, which also strips out
-all instances of __user etc.
+For the elimination of any doubt, I do _NOT_ want this patch merged as
+is.  Take that as the _third_ architecture maintainer who has NACK'd
+your patch (as you should've taken my first objection as that and
+apparantly didn't.)
 
-But you are including <asm-generic/page.h> from some places (like
-asm-parisc/page.h) without it being in #ifdef __KERNEL__ -- and since
-you haven't exported <asm-generic/page.h>, that _isn't_ OK. Admittedly,
-we do want <asm/page.h> to stop being exported some time soon -- but we
-haven't got there _yet_ so we should refrain from breaking them.
+... and maybe you should copy linux-arch with architecture-wide changes
+so that all architecture maintainers are aware of what you're trying to
+do?
 
-You've got #ifdef __KERNEL__ in your new <asm-generic/page.h> despite
-the fact that it isn't exported so can never be compiled without
-__KERNEL__ being defined, which seems strange. If you _did_ intend it to
-be exported, then you need to add it to the Kbuild file -- and then
-it'll be a problem that you're including <linux/align.h> from it -- and
-_that_ isn't exported either.
+--- linux-2.6.18-rc4-mm3/Makefile.old   2006-08-30 16:59:31.000000000 +0200
++++ linux-2.6.18-rc4-mm3/Makefile       2006-08-30 17:02:42.000000000 +0200
+@@ -308,7 +308,7 @@
+ CPPFLAGS        := -D__KERNEL__ $(LINUXINCLUDE)
 
-> How do I check the sanity?  Just that none of my headers showed up in
-> the new include directory.  Or, if they did, that all of their meat is
-> inside of an #ifdef __KERNEL__?
+ CFLAGS          := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+-                   -fno-strict-aliasing -fno-common
++                   -fno-strict-aliasing -fno-common -ffreestanding
+ AFLAGS          := -D__ASSEMBLY__
 
-Running e.g. 'make headers_check' should at least do a simple test which
-should catch the inclusion of missing files, although I don't think
-we've finished making it pass yet for some architectures. In general,
-cross-exporting with 'make ARCH=parisc header_check' ought to work
-because it shouldn't even require that you actually have a toolchain
-installed. 
+ # Read KERNELRELEASE from include/config/kernel.release (if it exists)
 
 -- 
-dwmw2
-
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
