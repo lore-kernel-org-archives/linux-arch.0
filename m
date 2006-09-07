@@ -1,64 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:57106 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S1750749AbWIGGa7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Sep 2006 02:30:59 -0400
-Date: Thu, 7 Sep 2006 07:30:49 +0100
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+Received: from mailout.stusta.mhn.de ([141.84.69.5]:46088 "HELO
+	mailout.stusta.mhn.de") by vger.kernel.org with SMTP
+	id S1751340AbWIGK1m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Sep 2006 06:27:42 -0400
+Date: Thu, 7 Sep 2006 12:27:40 +0200
+From: Adrian Bunk <bunk@stusta.de>
 Subject: Re: [2.6 patch] re-add -ffreestanding
-Message-ID: <20060907063049.GA15029@flint.arm.linux.org.uk>
-References: <20060830175727.GI18276@stusta.de> <200608302013.58122.ak@suse.de> <20060830183905.GB31594@flint.arm.linux.org.uk> <20060906223748.GC12157@stusta.de>
-Mime-Version: 1.0
+Message-ID: <20060907102740.GH25473@stusta.de>
+References: <20060830175727.GI18276@stusta.de> <200608302013.58122.ak@suse.de> <20060830183905.GB31594@flint.arm.linux.org.uk> <20060906223748.GC12157@stusta.de> <20060907063049.GA15029@flint.arm.linux.org.uk>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20060906223748.GC12157@stusta.de>
+In-Reply-To: <20060907063049.GA15029@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
-To: Adrian Bunk <bunk@stusta.de>
-Cc: Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, Roman Zippel <zippel@linux-m68k.org>, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, Roman Zippel <zippel@linux-m68k.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Sep 07, 2006 at 12:37:48AM +0200, Adrian Bunk wrote:
-> On Wed, Aug 30, 2006 at 07:39:05PM +0100, Russell King wrote:
-> > Looking at the effect of -ffreestanding on ARM, it appears that on one
-> > hand, the overall image size is reduced by 0.016% but we end up with worse
-> > code - eg, strlen() of the same string in the same function evaluated
-> > multiple times vs once without -ffreestanding.
-> > 
-> > The difference probably comes down to the lack of __attribute__((pure))
-> > on our string functions in linux/string.h.
-> > 
-> > If we are going to go for -ffreestanding, we need to fix linux/string.h
-> > in that respect _first_.
-> 
-> We are talking about reverting the patch that removed -ffreestanding, 
-> and that broke at least two architectures although it wrongly claimed 
-> it would have been a safe patch.
+On Thu, Sep 07, 2006 at 07:30:49AM +0100, Russell King wrote:
+>...
+> ... and maybe you should copy linux-arch with architecture-wide changes
+> so that all architecture maintainers are aware of what you're trying to
+> do?
+>...
 
-Wrong.  Your patch unconditionally adds it for _ALL_ architectures.
-Below is the extract which you posted which supports this fact.
+Andis patch "x86_64: Don't define string functions to builtin" (sic) 
+that removed -ffreestanding for all architectures except i386 and that 
+broke at least two architectures was neither sent to linux-arch nor to 
+linux-kernel.
 
-For the elimination of any doubt, I do _NOT_ want this patch merged as
-is.  Take that as the _third_ architecture maintainer who has NACK'd
-your patch (as you should've taken my first objection as that and
-apparantly didn't.)
+And I'm getting bashed for sendind a patch to revert it "only" to 
+linux-kernel...
 
-... and maybe you should copy linux-arch with architecture-wide changes
-so that all architecture maintainers are aware of what you're trying to
-do?
+> Russell King
 
---- linux-2.6.18-rc4-mm3/Makefile.old   2006-08-30 16:59:31.000000000 +0200
-+++ linux-2.6.18-rc4-mm3/Makefile       2006-08-30 17:02:42.000000000 +0200
-@@ -308,7 +308,7 @@
- CPPFLAGS        := -D__KERNEL__ $(LINUXINCLUDE)
-
- CFLAGS          := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
--                   -fno-strict-aliasing -fno-common
-+                   -fno-strict-aliasing -fno-common -ffreestanding
- AFLAGS          := -D__ASSEMBLY__
-
- # Read KERNELRELEASE from include/config/kernel.release (if it exists)
+cu
+Adrian
+(who has just deleted all his cross compilers for getting rid of all 
+ these troubles)
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:  2.6 Serial core
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
+
