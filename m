@@ -1,47 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout.stusta.mhn.de ([141.84.69.5]:46088 "HELO
-	mailout.stusta.mhn.de") by vger.kernel.org with SMTP
-	id S1751340AbWIGK1m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Sep 2006 06:27:42 -0400
-Date: Thu, 7 Sep 2006 12:27:40 +0200
-From: Adrian Bunk <bunk@stusta.de>
+Received: from scrub.xs4all.nl ([194.109.195.176]:16066 "EHLO scrub.xs4all.nl")
+	by vger.kernel.org with ESMTP id S1750896AbWIGLkd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Sep 2006 07:40:33 -0400
+Date: Thu, 7 Sep 2006 13:40:28 +0200 (CEST)
+From: Roman Zippel <zippel@linux-m68k.org>
 Subject: Re: [2.6 patch] re-add -ffreestanding
-Message-ID: <20060907102740.GH25473@stusta.de>
-References: <20060830175727.GI18276@stusta.de> <200608302013.58122.ak@suse.de> <20060830183905.GB31594@flint.arm.linux.org.uk> <20060906223748.GC12157@stusta.de> <20060907063049.GA15029@flint.arm.linux.org.uk>
+In-Reply-To: <20060907102740.GH25473@stusta.de>
+Message-ID: <Pine.LNX.4.64.0609071332500.6761@scrub.home>
+References: <20060830175727.GI18276@stusta.de> <200608302013.58122.ak@suse.de>
+ <20060830183905.GB31594@flint.arm.linux.org.uk> <20060906223748.GC12157@stusta.de>
+ <20060907063049.GA15029@flint.arm.linux.org.uk> <20060907102740.GH25473@stusta.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20060907063049.GA15029@flint.arm.linux.org.uk>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, Roman Zippel <zippel@linux-m68k.org>, linux-arch@vger.kernel.org
+To: Adrian Bunk <bunk@stusta.de>
+Cc: Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Sep 07, 2006 at 07:30:49AM +0100, Russell King wrote:
->...
-> ... and maybe you should copy linux-arch with architecture-wide changes
-> so that all architecture maintainers are aware of what you're trying to
-> do?
->...
+Hi,
 
-Andis patch "x86_64: Don't define string functions to builtin" (sic) 
-that removed -ffreestanding for all architectures except i386 and that 
-broke at least two architectures was neither sent to linux-arch nor to 
-linux-kernel.
+On Thu, 7 Sep 2006, Adrian Bunk wrote:
 
-And I'm getting bashed for sendind a patch to revert it "only" to 
-linux-kernel...
+> And I'm getting bashed for sendind a patch to revert it "only" to 
+> linux-kernel...
 
-> Russell King
+No, you get "bashed" for pushing a patch that only hides problems instead 
+of fixing them and that only creates new problems.
 
-cu
-Adrian
-(who has just deleted all his cross compilers for getting rid of all 
- these troubles)
+> (who has just deleted all his cross compilers for getting rid of all 
+>  these troubles)
 
--- 
+Your help is certainly appreciated, but you have to work a bit more with 
+the people who actually use these platforms.
 
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
-
+bye, Roman
