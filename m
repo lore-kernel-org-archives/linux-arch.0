@@ -1,39 +1,243 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from scrub.xs4all.nl ([194.109.195.176]:7108 "EHLO scrub.xs4all.nl")
-	by vger.kernel.org with ESMTP id S1751775AbWIGOaI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Sep 2006 10:30:08 -0400
-Date: Thu, 7 Sep 2006 16:29:34 +0200 (CEST)
-From: Roman Zippel <zippel@linux-m68k.org>
-Subject: Re: [2.6 patch] re-add -ffreestanding
-In-Reply-To: <A93564A8-3F3A-4BA3-9557-F3D75BE59052@mac.com>
-Message-ID: <Pine.LNX.4.64.0609071618590.6761@scrub.home>
-References: <20060830175727.GI18276@stusta.de> <200608302013.58122.ak@suse.de>
- <20060830183905.GB31594@flint.arm.linux.org.uk> <20060906223748.GC12157@stusta.de>
- <20060907063049.GA15029@flint.arm.linux.org.uk> <20060907102740.GH25473@stusta.de>
- <20060907114358.GA26551@flint.arm.linux.org.uk> <A93564A8-3F3A-4BA3-9557-F3D75BE59052@mac.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from stat9.steeleye.com ([209.192.50.41]:59111 "EHLO
+	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
+	id S1751371AbWIISvg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 9 Sep 2006 14:51:36 -0400
+Received: from midgard.sc.steeleye.com (midgard.sc.steeleye.com [172.17.6.40])
+	by hancock.sc.steeleye.com (8.11.6/8.11.6) with ESMTP id k89IpY528275
+	for <linux-arch@vger.kernel.org>; Sat, 9 Sep 2006 14:51:34 -0400
+Subject: [PATCH] update generic irq for parisc
+From: James Bottomley <James.Bottomley@steeleye.com>
+Content-Type: text/plain
+Date: Sat, 09 Sep 2006 13:51:33 -0500
+Message-Id: <1157827893.3462.19.camel@mulgrave.il.steeleye.com>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Kyle Moffett <mrmacman_g4@mac.com>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Adrian Bunk <bunk@stusta.de>, Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi,
+We have had a specific problem with the current generic linux IRQ code
+for ages, in that indirection via function pointers is horribly
+expensive for us (basically, the CPU pipes stall).  We'd like to use the
+new genirq infrastructure to mitigate some of the problem.
 
-On Thu, 7 Sep 2006, Kyle Moffett wrote:
+I didn't want simply to move the irq handlers back into our arch code
+again, since that would remove all the benefits of common handling code.
+What I did was template out the common code in a way that keeps it
+common but allows an architecture to modify it (for us to put our acks
+and eoi's in as functions instead of function pointers).
 
-> So it may be OK for sprintf(buf,"%s",str); to decay to strcpy(buf, str) in the
-> kernel, but if it's not the ONLY ways to turn it off are -fno-builtin-sprintf,
-> -fno-builtin, and -ffreestanding.  Explicitly disabling these optimizations is
-> virtually guaranteed that we'll miss one, we should turn them all off and
-> selectively enable the ones that make sense.
+If everyone is OK with this, I'll introduce a new type of interrupt with
+a specific handler (so for our heavily called interrupts like timer and
+IPI we don't even need to indirect through action->handler()).
 
-No, that would be a complete PITA and so far no arch maintainer wants to 
-do this.
-gcc cannot do arbitrary transformations, the result has to be the same 
-according to the standard and since the standard functions we provide are 
-standards compliant (modulo bugs, minus fp support) there is no problem. 
-It's possible that gcc generates a call to a function we don't provide, 
-but the resulting link failure is hard to miss.
+James
 
-bye, Roman
+Index: parisc-2.6/include/linux/irq_helpers.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ parisc-2.6/include/linux/irq_helpers.h	2006-09-09 08:21:31.000000000 -0700
+@@ -0,0 +1,64 @@
++#ifdef CONFIG_SMP
++#define HANDLE_PERCPU_IRQ(NAME, ACK, EOI)				\
++void fastcall								\
++handle_percpu_irq##NAME(unsigned int irq, struct irq_desc *desc,	\
++			struct pt_regs *regs)				\
++{									\
++	irqreturn_t action_ret;						\
++									\
++	kstat_this_cpu.irqs[irq]++;					\
++									\
++	ACK(desc, irq);							\
++									\
++	action_ret = handle_IRQ_event(irq, regs, desc->action);		\
++	if (!noirqdebug)						\
++		note_interrupt(irq, desc, action_ret, regs);		\
++									\
++	EOI(desc,irq);							\
++}
++#else
++#define HANDLE_PERCPU_IRQ(NAME, ACK, END)
++#endif /* CONFIG_SMP */
++
++#define HANDLE_LEVEL_IRQ(NAME, MASK, UNMASK)				\
++void fastcall								\
++handle_level_irq##NAME(unsigned int irq, struct irq_desc *desc,		\
++			struct pt_regs *regs)				\
++{									\
++	unsigned int cpu = smp_processor_id();				\
++	struct irqaction *action;					\
++	irqreturn_t action_ret;						\
++									\
++	spin_lock(&desc->lock);						\
++	MASK(desc, irq);						\
++									\
++	if (unlikely(desc->status & IRQ_INPROGRESS))			\
++		goto out;						\
++	desc->status &= ~(IRQ_REPLAY | IRQ_WAITING);			\
++	kstat_cpu(cpu).irqs[irq]++;					\
++									\
++	/*								\
++	 * If its disabled or no action available			\
++	 * keep it masked and get out of here				\
++	 */								\
++	action = desc->action;						\
++	if (unlikely(!action || (desc->status & IRQ_DISABLED))) {	\
++		desc->status |= IRQ_PENDING;				\
++		goto out;						\
++	}								\
++									\
++	desc->status |= IRQ_INPROGRESS;					\
++	desc->status &= ~IRQ_PENDING;					\
++	spin_unlock(&desc->lock);					\
++									\
++	action_ret = handle_IRQ_event(irq, regs, action);		\
++	if (!noirqdebug)						\
++		note_interrupt(irq, desc, action_ret, regs);		\
++									\
++	spin_lock(&desc->lock);						\
++	desc->status &= ~IRQ_INPROGRESS;				\
++out:									\
++	UNMASK(desc,irq);						\
++	spin_unlock(&desc->lock);					\
++}
++
+Index: parisc-2.6/kernel/irq/chip.c
+===================================================================
+--- parisc-2.6.orig/kernel/irq/chip.c	2006-09-09 07:32:35.000000000 -0700
++++ parisc-2.6/kernel/irq/chip.c	2006-09-09 07:58:45.000000000 -0700
+@@ -14,6 +14,7 @@
+ #include <linux/module.h>
+ #include <linux/interrupt.h>
+ #include <linux/kernel_stat.h>
++#include <linux/irq_helpers.h>
+ 
+ #include "internals.h"
+ 
+@@ -186,6 +187,24 @@
+ 	}
+ }
+ 
++static inline void unmask_enabled_irq(struct irq_desc *desc, int irq)
++{
++	if (!(desc->status & IRQ_DISABLED) && desc->chip->unmask)
++		desc->chip->unmask(irq);
++}
++
++static inline void ack_irq(struct irq_desc *desc, int irq)
++{
++	if (desc->chip->ack)
++		desc->chip->ack(irq);
++}
++
++static inline void eoi_irq(struct irq_desc *desc, int irq)
++{
++	if (desc->chip->eoi)
++		desc->chip->eoi(irq);
++}
++
+ /**
+  *	handle_simple_irq - Simple and software-decoded IRQs.
+  *	@irq:	the interrupt number
+@@ -241,46 +260,7 @@
+  *	it after the associated handler has acknowledged the device, so the
+  *	interrupt line is back to inactive.
+  */
+-void fastcall
+-handle_level_irq(unsigned int irq, struct irq_desc *desc, struct pt_regs *regs)
+-{
+-	unsigned int cpu = smp_processor_id();
+-	struct irqaction *action;
+-	irqreturn_t action_ret;
+-
+-	spin_lock(&desc->lock);
+-	mask_ack_irq(desc, irq);
+-
+-	if (unlikely(desc->status & IRQ_INPROGRESS))
+-		goto out;
+-	desc->status &= ~(IRQ_REPLAY | IRQ_WAITING);
+-	kstat_cpu(cpu).irqs[irq]++;
+-
+-	/*
+-	 * If its disabled or no action available
+-	 * keep it masked and get out of here
+-	 */
+-	action = desc->action;
+-	if (unlikely(!action || (desc->status & IRQ_DISABLED))) {
+-		desc->status |= IRQ_PENDING;
+-		goto out;
+-	}
+-
+-	desc->status |= IRQ_INPROGRESS;
+-	desc->status &= ~IRQ_PENDING;
+-	spin_unlock(&desc->lock);
+-
+-	action_ret = handle_IRQ_event(irq, regs, action);
+-	if (!noirqdebug)
+-		note_interrupt(irq, desc, action_ret, regs);
+-
+-	spin_lock(&desc->lock);
+-	desc->status &= ~IRQ_INPROGRESS;
+-out:
+-	if (!(desc->status & IRQ_DISABLED) && desc->chip->unmask)
+-		desc->chip->unmask(irq);
+-	spin_unlock(&desc->lock);
+-}
++HANDLE_LEVEL_IRQ(, mask_ack_irq, unmask_enabled_irq)
+ 
+ /**
+  *	handle_fasteoi_irq - irq handler for transparent controllers
+@@ -416,7 +396,6 @@
+ 	spin_unlock(&desc->lock);
+ }
+ 
+-#ifdef CONFIG_SMP
+ /**
+  *	handle_percpu_IRQ - Per CPU local irq handler
+  *	@irq:	the interrupt number
+@@ -425,25 +404,19 @@
+  *
+  *	Per CPU interrupts on SMP machines without locking requirements
+  */
+-void fastcall
+-handle_percpu_irq(unsigned int irq, struct irq_desc *desc, struct pt_regs *regs)
+-{
+-	irqreturn_t action_ret;
+-
+-	kstat_this_cpu.irqs[irq]++;
++HANDLE_PERCPU_IRQ(, ack_irq, eoi_irq)
+ 
+-	if (desc->chip->ack)
+-		desc->chip->ack(irq);
+-
+-	action_ret = handle_IRQ_event(irq, regs, desc->action);
+-	if (!noirqdebug)
+-		note_interrupt(irq, desc, action_ret, regs);
+-
+-	if (desc->chip->eoi)
+-		desc->chip->eoi(irq);
++#ifdef ARCH_HAS_IRQ_HANDLERS
++#include <asm/irq-handlers.h>
++#else
++static inline char *arch_handle_irq_name(void fastcall (*handle)(unsigned int,
++							struct irq_desc *,
++							struct pt_regs *))
++{
++	return NULL;
+ }
++#endif
+ 
+-#endif /* CONFIG_SMP */
+ 
+ void
+ __set_irq_handler(unsigned int irq,
+@@ -533,5 +506,5 @@
+ 	if (handle == handle_bad_irq)
+ 		return "bad    ";
+ 
+-	return NULL;
++	return arch_handle_irq_name(handle);
+ }
+
+
