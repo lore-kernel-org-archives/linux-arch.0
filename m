@@ -1,46 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:49559 "EHLO
+Received: from pentafluge.infradead.org ([213.146.154.40]:42718 "EHLO
 	pentafluge.infradead.org") by vger.kernel.org with ESMTP
-	id S1750723AbWIJKbq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Sep 2006 06:31:46 -0400
-Subject: Re: [PATCH] Revert [i386/x86_64]: Remove __KERNEL__ ifdef around
-	_syscall*()
+	id S1750820AbWIJKrC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 10 Sep 2006 06:47:02 -0400
+Subject: Re: [PATCH RFC]: New termios take 2
 From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <200609101033.41833.ak@suse.de>
-References: <200608302359.k7UNxIZW027536@hera.kernel.org>
-	 <20060904123801.905fabc6.akpm@osdl.org>
-	 <1157881687.2977.111.camel@pmac.infradead.org>
-	 <200609101033.41833.ak@suse.de>
+In-Reply-To: <1157472883.9018.79.camel@localhost.localdomain>
+References: <1157472883.9018.79.camel@localhost.localdomain>
 Content-Type: text/plain
-Date: Sun, 10 Sep 2006 11:30:57 +0100
-Message-Id: <1157884257.2977.124.camel@pmac.infradead.org>
+Date: Sun, 10 Sep 2006 11:46:20 +0100
+Message-Id: <1157885180.2977.133.camel@pmac.infradead.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Andrew Morton <akpm@osdl.org>, torvalds@osdl.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 2006-09-10 at 10:33 +0200, Andi Kleen wrote:
-> I don't think there is anything unacceptable in 2.6.18 in this area right now.
-> So 2.6.18 should be fine, and hopefully in the future we will keep this
-> useful facility too.
+On Tue, 2006-09-05 at 17:14 +0100, Alan Cox wrote:
+> +
+> +#define TCGETS2                _IOR('T',0x2A, struct termios)
+> +#define TCSETS2                _IOW('T',0x2B, struct termios)
+> +#define TCSETSW2       _IOW('T',0x2C, struct termios)
+> +#define TCSETSF2       _IOW('T',0x2D, struct termios)
 
-A facility which isn't needed in-kernel and which has patches lined up
-in -mm to remove it entirely.
+So existing code compiled against this will be using the new 'struct
+termios' but the old TCGETS. Should we rename the existing ioctl to 
+TCGETS_OLD, and have TCGETS be the new one?
 
-A facility which isn't provided to userspace on other architectures, and
-which has been historically broken on i386 anyway.
-
-A facility which is unnecessary because glibc provides a functional
-version of its own (which even your own numactl uses).
-
-Kernel headers are _not_ a dumping ground for random crap like this.
-We're supposed to be trying to clean them up; in fact we _had_ cleaned
-this particular wart up -- and you reverted the fix, afaict without even
-the courtesy a Cc to myself, linux-arch or linux-kernel.
-
-Please fix this regression before 2.6.18.
+I suppose to a large extent it doesn't really matter as long as existing
+C libraries happen to get it right -- and since the new structure only
+has the new field added, the discrepancy shouldn't matter _too_ much.
+But still...
 
 -- 
 dwmw2
