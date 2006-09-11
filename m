@@ -1,27 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from saraswathi.solana.com ([198.99.130.12]:12988 "EHLO
-	saraswathi.solana.com") by vger.kernel.org with ESMTP
-	id S964860AbWIKAw0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Sep 2006 20:52:26 -0400
-Date: Sun, 10 Sep 2006 20:51:18 -0400
-From: Jeff Dike <jdike@addtoit.com>
-Subject: Re: [RFC][PATCH] unify all architecture PAGE_SIZE definitions
-Message-ID: <20060911005118.GA22161@ccure.user-mode-linux.org>
-References: <20060824234445.6B519D52@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20060824234445.6B519D52@localhost.localdomain>
+Received: from mx1.redhat.com ([66.187.233.31]:58013 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1751354AbWIKKNd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Sep 2006 06:13:33 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1157891081.23085.1.camel@localhost.localdomain> 
+References: <1157891081.23085.1.camel@localhost.localdomain>  <1157472883.9018.79.camel@localhost.localdomain> <1157885180.2977.133.camel@pmac.infradead.org> <1157886908.22571.11.camel@localhost.localdomain> <1157887240.2977.147.camel@pmac.infradead.org> 
+Subject: Re: [PATCH RFC]: New termios take 2 
+Date: Mon, 11 Sep 2006 11:13:24 +0100
+Message-ID: <8398.1157969604@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Dave Hansen <haveblue@us.ibm.com>
-Cc: linux-arch@vger.kernel.org
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: David Woodhouse <dwmw2@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> +	default "12" # arm || h8300 || i386 | m68knommu |ppc
-> +		     # s390 || um || v850 || xtensa
+Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
 
-UML inherits its page size from the host architecture.  So far, that's
-always 4096, but as soon as that changes, the construction above breaks
-it.
+> glibc needs them, nobody else does.
 
-				Jeff
+And uClibc, though that's a glibc equivalent.
+
+David
