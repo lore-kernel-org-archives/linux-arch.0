@@ -1,30 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from saraswathi.solana.com ([198.99.130.12]:17608 "EHLO
-	saraswathi.solana.com") by vger.kernel.org with ESMTP
-	id S965087AbWIKXmB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Sep 2006 19:42:01 -0400
-Date: Mon, 11 Sep 2006 19:40:50 -0400
-From: Jeff Dike <jdike@addtoit.com>
-Subject: Re: [RFC][PATCH] unify all architecture PAGE_SIZE definitions
-Message-ID: <20060911234050.GB6855@ccure.user-mode-linux.org>
-References: <20060824234445.6B519D52@localhost.localdomain> <20060911005118.GA22161@ccure.user-mode-linux.org> <1158000185.26324.137.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1158000185.26324.137.camel@localhost.localdomain>
+Received: from mx1.redhat.com ([66.187.233.31]:19138 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1030227AbWILO6h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Sep 2006 10:58:37 -0400
+Received: from int-mx1.corp.redhat.com (int-mx1.corp.redhat.com [172.16.52.254])
+	by mx1.redhat.com (8.12.11.20060308/8.12.11) with ESMTP id k8CEwab7017779
+	for <linux-arch@vger.kernel.org>; Tue, 12 Sep 2006 10:58:36 -0400
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 1/3] IRQ: Typedef the IRQ flow handler function type
+Date: Tue, 12 Sep 2006 15:58:34 +0100
+Message-Id: <20060912145834.26862.84739.stgit@warthog.cambridge.redhat.com>
+Content-Type: text/plain; charset=utf-8; format=fixed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Dave Hansen <haveblue@us.ibm.com>
+To: mingo@redhat.com
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Sep 11, 2006 at 11:43:05AM -0700, Dave Hansen wrote:
-> When UML needs this, the thing to do is to make a set of UML Kconfig
-> options, just like sparc64 has.
-> 
-> config UML_PAGE_SIZE_NNNK
-> 	def_bool y
+From: David Howells <dhowells@redhat.com>
 
-OK, just wanted to check that this wasn't precluding non-4K page sizes
-for UML.
+Typedef the IRQ flow handler function type.
 
-				Jeff
+Signed-Off-By: David Howells <dhowells@redhat.com>
+---
+
+ include/linux/irq.h |   30 ++++++++++++------------------
+ kernel/irq/chip.c   |   12 +++---------
+ 2 files changed, 15 insertions(+), 27 deletions(-)
+
+diff --git a/include/linux/irq.h b/include/linux/irq.h
+index 48d3cb3..8e1e1d8 100644
+--- a/include/linux/irq.h
++++ b/include/linux/irq.h
+@@ -22,6 +22,12 @@ #include <linux/irqreturn.h>
+ #include <asm/irq.h>
+ #include <asm/ptrace.h>
+ 
++struct irq_desc;
++typedef	void fastcall (*irq_flow_handler_t)(unsigned int irq,
++					    struct irq_desc *desc,
++					    struct pt_regs *regs);
++
++
+ /*
+  * IRQ line status.
+  *
+@@ -139,9 +145,7 @@ #endif
+  * Pad this out to 32 bytes for cache and indexing reasons.
+  */
+ struct irq_desc {
+-	void fastcall		(*handle_irq)(unsigned int irq,
+-					      struct irq_desc *desc,
+-					      struct pt_regs *regs);
++	irq_flow_handler_t	handle_irq;
+ 	struct irq_chip		*chip;
+ 	void			*handler_data;
+ 	void			*chip_data;
+@@ -312,9 +316,7 @@ handle_bad_irq(unsigned int irq, struct 
+  * Get a descriptive string for the highlevel handler, for
+  * /proc/interrupts output:
+  */
+-extern const char *
+-handle_irq_name(void fastcall (*handle)(unsigned int, struct irq_desc *,
+-					struct pt_regs *));
++extern const char *handle_irq_name(irq_flow_handler_t handle);
+ 
+ /*
+  * Monolithic do_IRQ implementation.
+@@ -366,22 +368,15 @@ extern struct irq_chip dummy_irq_chip;
+ 
+ extern void
+ set_irq_chip_and_handler(unsigned int irq, struct irq_chip *chip,
+-			 void fastcall (*handle)(unsigned int,
+-						 struct irq_desc *,
+-						 struct pt_regs *));
++			 irq_flow_handler_t handle);
+ extern void
+-__set_irq_handler(unsigned int irq,
+-		  void fastcall (*handle)(unsigned int, struct irq_desc *,
+-					  struct pt_regs *),
+-		  int is_chained);
++__set_irq_handler(unsigned int irq, irq_flow_handler_t handle, int is_chained);
+ 
+ /*
+  * Set a highlevel flow handler for a given IRQ:
+  */
+ static inline void
+-set_irq_handler(unsigned int irq,
+-		void fastcall (*handle)(unsigned int, struct irq_desc *,
+-					struct pt_regs *))
++set_irq_handler(unsigned int irq, irq_flow_handler_t handle)
+ {
+ 	__set_irq_handler(irq, handle, 0);
+ }
+@@ -393,8 +388,7 @@ set_irq_handler(unsigned int irq,
+  */
+ static inline void
+ set_irq_chained_handler(unsigned int irq,
+-			void fastcall (*handle)(unsigned int, struct irq_desc *,
+-						struct pt_regs *))
++			irq_flow_handler_t handle)
+ {
+ 	__set_irq_handler(irq, handle, 1);
+ }
+diff --git a/kernel/irq/chip.c b/kernel/irq/chip.c
+index 9336f2e..53fe07e 100644
+--- a/kernel/irq/chip.c
++++ b/kernel/irq/chip.c
+@@ -446,10 +446,7 @@ handle_percpu_irq(unsigned int irq, stru
+ #endif /* CONFIG_SMP */
+ 
+ void
+-__set_irq_handler(unsigned int irq,
+-		  void fastcall (*handle)(unsigned int, irq_desc_t *,
+-					  struct pt_regs *),
+-		  int is_chained)
++__set_irq_handler(unsigned int irq, irq_flow_handler_t handle, int is_chained)
+ {
+ 	struct irq_desc *desc;
+ 	unsigned long flags;
+@@ -502,9 +499,7 @@ __set_irq_handler(unsigned int irq,
+ 
+ void
+ set_irq_chip_and_handler(unsigned int irq, struct irq_chip *chip,
+-			 void fastcall (*handle)(unsigned int,
+-						 struct irq_desc *,
+-						 struct pt_regs *))
++			 irq_flow_handler_t handle)
+ {
+ 	set_irq_chip(irq, chip);
+ 	__set_irq_handler(irq, handle, 0);
+@@ -515,8 +510,7 @@ set_irq_chip_and_handler(unsigned int ir
+  * /proc/interrupts output:
+  */
+ const char *
+-handle_irq_name(void fastcall (*handle)(unsigned int, struct irq_desc *,
+-					struct pt_regs *))
++handle_irq_name(irq_flow_handler_t handle)
+ {
+ 	if (handle == handle_level_irq)
+ 		return "level  ";
