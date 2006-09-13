@@ -1,50 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:54185 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1750772AbWIMQvQ (ORCPT
+Received: from mx1.redhat.com ([66.187.233.31]:36526 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750768AbWIMQ6i (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Sep 2006 12:51:16 -0400
+	Wed, 13 Sep 2006 12:58:38 -0400
 From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20060913155734.GA6355@intel.com> 
-References: <20060913155734.GA6355@intel.com>  <20060913130253.32022.69230.stgit@warthog.cambridge.redhat.com> <20060913130300.32022.69743.stgit@warthog.cambridge.redhat.com> 
+In-Reply-To: <20060913163806.GA15563@flint.arm.linux.org.uk> 
+References: <20060913163806.GA15563@flint.arm.linux.org.uk>  <20060913130253.32022.69230.stgit@warthog.cambridge.redhat.com> <20060913130300.32022.69743.stgit@warthog.cambridge.redhat.com> <20060913161734.GE3564@stusta.de> <20060913163136.GA2585@parisc-linux.org> 
 Subject: Re: [PATCH 4/6] Implement a general log2 facility in the kernel 
-Date: Wed, 13 Sep 2006 17:50:52 +0100
-Message-ID: <4005.1158166252@warthog.cambridge.redhat.com>
+Date: Wed, 13 Sep 2006 17:56:55 +0100
+Message-ID: <4143.1158166615@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Matthew Wilcox <matthew@wil.cx>, Adrian Bunk <bunk@stusta.de>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Luck, Tony <tony.luck@intel.com> wrote:
+Russell King <rmk+lkml@arm.linux.org.uk> wrote:
 
-> > This facility provides three entry points:
-> > 
-> > 	log2()		Log base 2 of u32
-> > 	ll_log2()	Log base 2 of u64
-> > 	long_log2()	Log base 2 of unsigned long
-> 
-> The names are rather counter-intuitive. "ll" sounds like "long long", so
-> why does it opearte on *unsigned* 64-bit?  Ditto for "long_log2()".
-> Perhaps they should be log2_u32(), log2_u64(), etc.
+> Therefore, re-using "log2()" is about as bad as re-using the "strcmp()"
+> name to implement a function which copies strings.
 
-Well, given that you can't represent a log of a negative number, I'm not sure
-it matters.
+I should probably use ilog2() then which would at least be consistent with the
+powerpc arch.
 
-Note that long_log2() already exists and is of arch-dependent size.
+> t.c:2: warning: conflicting types for built-in function 'log2'
 
-> Even better if someone can come up with the right pre-processor magic
-> using sizeof/typeof so that you could just use "log2(any type)"
-
-I then end up with 32 of these per usage if I pass in a definite 32-bit value:
-
-	warning: comparison is always false due to limited range of data type
-
-because of the:
-
-		n >= (1ULL << 63) ? 63 :	\
-		n >= (1ULL << 62) ? 62 :	\
-		n >= (1ULL << 61) ? 61 :	\
-	...
-
-in ll_log2().
+Which, of course, I didn't see because I didn't define it as a function,
+merely as a macro.
 
 David
