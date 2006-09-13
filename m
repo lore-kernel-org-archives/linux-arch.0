@@ -1,14 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:44486 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1750777AbWIMNDK (ORCPT
+Received: from mx1.redhat.com ([66.187.233.31]:45766 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750779AbWIMNDK (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Wed, 13 Sep 2006 09:03:10 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 6/6] Alter roundup_pow_of_two() so that it can make use of long_log2() on a constant
-Date: Wed, 13 Sep 2006 14:03:04 +0100
-Message-Id: <20060913130304.32022.10732.stgit@warthog.cambridge.redhat.com>
-In-Reply-To: <20060913130253.32022.69230.stgit@warthog.cambridge.redhat.com>
-References: <20060913130253.32022.69230.stgit@warthog.cambridge.redhat.com>
+Subject: [PATCH 1/6] FRV: Fix fls() to handle bit 31 being set correctly
+Date: Wed, 13 Sep 2006 14:02:53 +0100
+Message-Id: <20060913130253.32022.69230.stgit@warthog.cambridge.redhat.com>
 Content-Type: text/plain; charset=utf-8; format=fixed
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
@@ -18,72 +16,49 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: David Howells <dhowells@redhat.com>
 
-Alter roundup_pow_of_two() so that it can make use of long_log2() on a constant
-to produce a constant value, retaining the ability for an arch to override it
-in the non-const case.
-
-This permits the function to be used to initialise variables.
+Fix FRV fls() to handle bit 31 being set correctly (it should return 32 not 0).
 
 Signed-Off-By: David Howells <dhowells@redhat.com>
 ---
 
- include/linux/kernel.h |    6 ------
- include/linux/log2.h   |   23 +++++++++++++++++++++++
- 2 files changed, 23 insertions(+), 6 deletions(-)
+ include/asm-frv/bitops.h |   21 +++++++++++++++++----
+ 1 files changed, 17 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index e8c6c66..e5947fb 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -155,12 +155,6 @@ #endif
+diff --git a/include/asm-frv/bitops.h b/include/asm-frv/bitops.h
+index 980ae1b..97fb746 100644
+--- a/include/asm-frv/bitops.h
++++ b/include/asm-frv/bitops.h
+@@ -161,16 +161,29 @@ #include <asm-generic/bitops/ffs.h>
+ #include <asm-generic/bitops/__ffs.h>
+ #include <asm-generic/bitops/find.h>
  
- unsigned long int_sqrt(unsigned long);
+-/*
+- * fls: find last bit set.
++/**
++ * fls - find last bit set
++ * @x: the word to search
++ *
++ * This is defined the same way as ffs:
++ * - return 32..1 to indicate bit 31..0 most significant bit set
++ * - return 0 to indicate no bits set
+  */
+ #define fls(x)						\
+ ({							\
+ 	int bit;					\
+ 							\
+-	asm("scan %1,gr0,%0" : "=r"(bit) : "r"(x));	\
++	asm("	subcc	%1,gr0,gr0,icc0		\n"	\
++	    "	ckne	icc0,cc4		\n"	\
++	    "	cscan.p	%1,gr0,%0	,cc4,#1	\n"	\
++	    "	csub	%0,%0,%0	,cc4,#0	\n"	\
++	    "   csub    %2,%0,%0	,cc4,#1	\n"	\
++	    : "=&r"(bit)				\
++	    : "r"(x), "r"(32)				\
++	    : "icc0", "cc4"				\
++	    );						\
+ 							\
+-	bit ? 33 - bit : bit;				\
++	bit;						\
+ })
  
--static inline unsigned long
--__attribute_const__ roundup_pow_of_two(unsigned long x)
--{
--	return 1UL << fls_long(x - 1);
--}
--
- extern int printk_ratelimit(void);
- extern int __printk_ratelimit(int ratelimit_jiffies, int ratelimit_burst);
- 
-diff --git a/include/linux/log2.h b/include/linux/log2.h
-index a2f6858..2b55af0 100644
---- a/include/linux/log2.h
-+++ b/include/linux/log2.h
-@@ -74,6 +74,15 @@ #endif
- #endif
- 
- /*
-+ * round up to nearest power of two
-+ */
-+static inline __attribute__((const))
-+unsigned long __roundup_pow_of_two(unsigned long n)
-+{
-+	return 1UL << fls_long(n - 1);
-+}
-+
-+/*
-  * constant-capable 32-bit log of base 2 calculation
-  * - this can be used to initialise global variables from constant data, hence
-  *   the massive ternary operator construction
-@@ -218,4 +227,18 @@ (									\
- 	__get_order(n, PAGE_SHIFT)					\
-  )
- 
-+/*
-+ * round up to nearest power of two
-+ * - the result is undefined when n == 0
-+ * - this can be used to initialise global variables from constant data
-+ */
-+#define roundup_pow_of_two(n)				\
-+(							\
-+	__builtin_constant_p(n) ? (			\
-+		(n == 1) ? 0 :				\
-+		(1UL << (long_log2((n) - 1) + 1))	\
-+				   ) :			\
-+	__roundup_pow_of_two(n)				\
-+ )
-+
- #endif /* _LINUX_LOG2_H */
+ #include <asm-generic/bitops/fls64.h>
