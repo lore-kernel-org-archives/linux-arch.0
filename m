@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:64989 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1750904AbWIMSA1 (ORCPT
+Received: from mx1.redhat.com ([66.187.233.31]:47069 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750904AbWIMSAH (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Sep 2006 14:00:27 -0400
+	Wed, 13 Sep 2006 14:00:07 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 3/7] FRV: Optimise ffs() [try #2]
-Date: Wed, 13 Sep 2006 18:59:38 +0100
-Message-Id: <20060913175938.21216.77494.stgit@warthog.cambridge.redhat.com>
+Subject: [PATCH 6/7] Alter roundup_pow_of_two() so that it can make use of ilog2() on a constant [try #2]
+Date: Wed, 13 Sep 2006 18:59:45 +0100
+Message-Id: <20060913175945.21216.44026.stgit@warthog.cambridge.redhat.com>
 In-Reply-To: <20060913175934.21216.73561.stgit@warthog.cambridge.redhat.com>
 References: <20060913175934.21216.73561.stgit@warthog.cambridge.redhat.com>
 Content-Type: text/plain; charset=utf-8; format=fixed
@@ -18,63 +18,75 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: David Howells <dhowells@redhat.com>
 
-Optimise ffs(x) by using fls(x & x - 1) which we optimise to use the SCAN
-instruction.
+Alter roundup_pow_of_two() so that it can make use of ilog2() on a constant to
+produce a constant value, retaining the ability for an arch to override it in
+the non-const case.
+
+This permits the function to be used to initialise variables.
 
 Signed-Off-By: David Howells <dhowells@redhat.com>
 ---
 
- include/asm-frv/bitops.h |   33 +++++++++++++++++++++++++++++++--
- 1 files changed, 31 insertions(+), 2 deletions(-)
+ include/linux/kernel.h |    6 ------
+ include/linux/log2.h   |   26 ++++++++++++++++++++++++++
+ 2 files changed, 26 insertions(+), 6 deletions(-)
 
-diff --git a/include/asm-frv/bitops.h b/include/asm-frv/bitops.h
-index 591eecc..1f70d47 100644
---- a/include/asm-frv/bitops.h
-+++ b/include/asm-frv/bitops.h
-@@ -157,8 +157,6 @@ (__builtin_constant_p(nr) ? \
-  __constant_test_bit((nr),(addr)) : \
-  __test_bit((nr),(addr)))
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index e8c6c66..e5947fb 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -155,12 +155,6 @@ #endif
  
--#include <asm-generic/bitops/ffs.h>
--#include <asm-generic/bitops/__ffs.h>
- #include <asm-generic/bitops/find.h>
+ unsigned long int_sqrt(unsigned long);
  
- /**
-@@ -227,6 +225,37 @@ int fls64(u64 n)
+-static inline unsigned long
+-__attribute_const__ roundup_pow_of_two(unsigned long x)
+-{
+-	return 1UL << fls_long(x - 1);
+-}
+-
+ extern int printk_ratelimit(void);
+ extern int __printk_ratelimit(int ratelimit_jiffies, int ratelimit_burst);
  
+diff --git a/include/linux/log2.h b/include/linux/log2.h
+index 88b7b0e..c7574a6 100644
+--- a/include/linux/log2.h
++++ b/include/linux/log2.h
+@@ -73,6 +73,15 @@ #endif
  }
+ #endif
  
-+/**
-+ * ffs - find first bit set
-+ * @x: the word to search
-+ *
-+ * - return 32..1 to indicate bit 31..0 most least significant bit set
-+ * - return 0 to indicate no bits set
++/*
++ * round up to nearest power of two
 + */
 +static inline __attribute__((const))
-+int ffs(int x)
++unsigned long __roundup_pow_of_two(unsigned long n)
 +{
-+	/* Note: (x & -x) gives us a mask that is the least significant
-+	 * (rightmost) 1-bit of the value in x.
-+	 */
-+	return fls(x & -x);
++	return 1UL << fls_long(n - 1);
 +}
 +
-+/**
-+ * __ffs - find first bit set
-+ * @x: the word to search
-+ *
-+ * - return 31..0 to indicate bit 31..0 most least significant bit set
-+ * - if no bits are set in x, the result is undefined
-+ */
-+static inline __attribute__((const))
-+int __ffs(unsigned long x)
-+{
-+	int bit;
-+	asm("scan %1,gr0,%0" : "=r"(bit) : "r"(x & -x));
-+	return 31 - bit;
-+}
-+
- #include <asm-generic/bitops/sched.h>
- #include <asm-generic/bitops/hweight.h>
+ /**
+  * ilog2_u32 - log of base 2 of 32-bit unsigned value
+  * @n - parameter
+@@ -230,4 +239,21 @@ (									\
+ 	__get_order(n, PAGE_SHIFT)					\
+  )
  
++/**
++ * roundup_pow_of_two - round the given value up to nearest power of two
++ * @n - parameter
++ *
++ * round the given balue up to the nearest power of two
++ * - the result is undefined when n == 0
++ * - this can be used to initialise global variables from constant data
++ */
++#define roundup_pow_of_two(n)			\
++(						\
++	__builtin_constant_p(n) ? (		\
++		(n == 1) ? 0 :			\
++		(1UL << (ilog2((n) - 1) + 1))	\
++				   ) :		\
++	__roundup_pow_of_two(n)			\
++ )
++
+ #endif /* _LINUX_LOG2_H */
