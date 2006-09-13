@@ -1,41 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:25501 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1751093AbWIMSvQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Sep 2006 14:51:16 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <45084833.4040602@yahoo.com.au> 
-References: <45084833.4040602@yahoo.com.au>  <44F395DE.10804@yahoo.com.au> <a2ebde260608271222x2b51693fnaa600965fcfaa6d2@mail.gmail.com> <1156750249.3034.155.camel@laptopd505.fenrus.org> <11861.1156845927@warthog.cambridge.redhat.com> 
-Subject: Re: Why Semaphore Hardware-Dependent? 
-Date: Wed, 13 Sep 2006 19:50:55 +0100
-Message-ID: <22461.1158173455@warthog.cambridge.redhat.com>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:3086 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S1751101AbWIMSqM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Sep 2006 14:46:12 -0400
+Date: Wed, 13 Sep 2006 19:45:58 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 4/6] Implement a general log2 facility in the kernel
+Message-ID: <20060913184558.GB15563@flint.arm.linux.org.uk>
+References: <20060913163806.GA15563@flint.arm.linux.org.uk> <20060913130253.32022.69230.stgit@warthog.cambridge.redhat.com> <20060913130300.32022.69743.stgit@warthog.cambridge.redhat.com> <20060913161734.GE3564@stusta.de> <20060913163136.GA2585@parisc-linux.org> <4143.1158166615@warthog.cambridge.redhat.com> <Pine.LNX.4.62.0609132038350.27940@pademelon.sonytel.be>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.62.0609132038350.27940@pademelon.sonytel.be>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: David Howells <dhowells@redhat.com>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, ak@suse.de, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: David Howells <dhowells@redhat.com>, Matthew Wilcox <matthew@wil.cx>, Adrian Bunk <bunk@stusta.de>, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@osdl.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin <nickpiggin@yahoo.com.au> wrote:
+On Wed, Sep 13, 2006 at 08:38:59PM +0200, Geert Uytterhoeven wrote:
+> On Wed, 13 Sep 2006, David Howells wrote:
+> > Russell King <rmk+lkml@arm.linux.org.uk> wrote:
+> > 
+> > > Therefore, re-using "log2()" is about as bad as re-using the "strcmp()"
+> > > name to implement a function which copies strings.
+> > 
+> > I should probably use ilog2() then which would at least be consistent with the
+> > powerpc arch.
+> > 
+> > > t.c:2: warning: conflicting types for built-in function 'log2'
+> 
+> And apparently gcc < 4.0 doesn't give the warning.
 
-> +	while ((tmp = atomic_read(&sem->count)) >= 0) {
-> +		if (tmp == atomic_cmpxchg(&sem->count, tmp,
-> +				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
+Eh?  That's gcc 3.4.3 producing that warning.  It probably depends on
+the target configuration.
 
-NAK for FRV.  Do not use atomic_cmpxchg() there as it isn't strictly atomic
-(FRV only has one strictly atomic operation: SWAP).  Please leave FRV as using
-the spinlock version which is more efficient on UP.
-
-Please also show benchmarks to show the performance difference between your
-version and the old version before Ingo messed it up and made everything
-unconditionally out of line without cleaning the inline asm up.
-
-If you are going to generalise, you should get rid of everything barring the
-spinlock-based version and stick with that.  It will cost you performance
-under some circumstances, but it's better under others than attempting to use
-atomic_cmpxchg() which may not really exist on all archs.
-
-You've also caused another problem: the spinlock based version permits up to
-2^31 - 1 readers at one time, the inline optimised version, on a 32-bit arch,
-will only permit up to 2^16 - 1 at most.  By doing this to x86_64, you've
-reduced the number of processes it can support.
-
-David
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
