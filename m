@@ -1,34 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp106.mail.mud.yahoo.com ([209.191.85.216]:24937 "HELO
-	smtp106.mail.mud.yahoo.com") by vger.kernel.org with SMTP
-	id S1750847AbWIMRyo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Sep 2006 13:54:44 -0400
-Message-ID: <450845CC.6000402@yahoo.com.au>
-Date: Thu, 14 Sep 2006 03:54:20 +1000
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
-Subject: Re: Why Semaphore Hardware-Dependent?
-References: <a2ebde260608271222x2b51693fnaa600965fcfaa6d2@mail.gmail.com> <1156750249.3034.155.camel@laptopd505.fenrus.org> <44F395DE.10804@yahoo.com.au> <200608290807.40963.ak@suse.de>
-In-Reply-To: <200608290807.40963.ak@suse.de>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:50397 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750895AbWIMSAJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Sep 2006 14:00:09 -0400
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 7/7] Provide ilog2() fallbacks for powerpc [try #2]
+Date: Wed, 13 Sep 2006 18:59:47 +0100
+Message-Id: <20060913175947.21216.12478.stgit@warthog.cambridge.redhat.com>
+In-Reply-To: <20060913175934.21216.73561.stgit@warthog.cambridge.redhat.com>
+References: <20060913175934.21216.73561.stgit@warthog.cambridge.redhat.com>
+Content-Type: text/plain; charset=utf-8; format=fixed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
+To: torvalds@osdl.org, akpm@osdl.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-[sorry, I missed some emails when I was out of action a while back. Catching up...]
+From: David Howells <dhowells@redhat.com>
 
-Andi Kleen wrote:
->>and chuck out the "crappy" rwsem fallback implementation
-> 
-> 
-> What is crappy with it?
+Provide ilog2() fallbacks for powerpc for 32-bit numbers and 64-bit numbers on
+ppc64.
 
-I just mean that it is supposedly the second class implementation. Just
-seems wrong when powerpc has implemented the "better" version in a completely
-generic way (patch to follow).
+Signed-Off-By: David Howells <dhowells@redhat.com>
+---
 
--- 
-SUSE Labs, Novell Inc.
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+ include/asm-powerpc/bitops.h |   23 ++++++++++++++++++++++-
+ 1 files changed, 22 insertions(+), 1 deletions(-)
+
+diff --git a/include/asm-powerpc/bitops.h b/include/asm-powerpc/bitops.h
+index c341063..b6b1169 100644
+--- a/include/asm-powerpc/bitops.h
++++ b/include/asm-powerpc/bitops.h
+@@ -190,7 +190,8 @@ #include <asm-generic/bitops/non-atomic.
+  * Return the zero-based bit position (LE, not IBM bit numbering) of
+  * the most significant 1-bit in a double word.
+  */
+-static __inline__ int __ilog2(unsigned long x)
++static __inline__ __attribute__((const))
++int __ilog2(unsigned long x)
+ {
+ 	int lz;
+ 
+@@ -198,6 +199,26 @@ static __inline__ int __ilog2(unsigned l
+ 	return BITS_PER_LONG - 1 - lz;
+ }
+ 
++#define ARCH_HAS_ILOG2_U32
++static inline __attribute__((const))
++int __ilog2_u32(u32 n)
++{
++	int bit;
++	asm ("cntlzw %0,%1" : "=r" (bit) : "r" (n));
++	return 31 - bit;
++}
++
++#ifdef __powerpc64__
++#define ARCH_HAS_ILOG2_U64
++static inline __attribute__((const))
++int __ilog2_u64(u32 n)
++{
++	int bit;
++	asm ("cntlzd %0,%1" : "=r" (bit) : "r" (n));
++	return 63 - bit;
++}
++#endif
++
+ /*
+  * Determines the bit position of the least significant 0 bit in the
+  * specified double word. The returned bit position will be
