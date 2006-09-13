@@ -1,14 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:50397 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1750895AbWIMSAJ (ORCPT
+Received: from mx1.redhat.com ([66.187.233.31]:38109 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750889AbWIMSAC (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Sep 2006 14:00:09 -0400
+	Wed, 13 Sep 2006 14:00:02 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 7/7] Provide ilog2() fallbacks for powerpc [try #2]
-Date: Wed, 13 Sep 2006 18:59:47 +0100
-Message-Id: <20060913175947.21216.12478.stgit@warthog.cambridge.redhat.com>
-In-Reply-To: <20060913175934.21216.73561.stgit@warthog.cambridge.redhat.com>
-References: <20060913175934.21216.73561.stgit@warthog.cambridge.redhat.com>
+Subject: [PATCH 1/7] FRV: Fix fls() to handle bit 31 being set correctly [try #2]
+Date: Wed, 13 Sep 2006 18:59:34 +0100
+Message-Id: <20060913175934.21216.73561.stgit@warthog.cambridge.redhat.com>
 Content-Type: text/plain; charset=utf-8; format=fixed
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
@@ -18,53 +16,49 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: David Howells <dhowells@redhat.com>
 
-Provide ilog2() fallbacks for powerpc for 32-bit numbers and 64-bit numbers on
-ppc64.
+Fix FRV fls() to handle bit 31 being set correctly (it should return 32 not 0).
 
 Signed-Off-By: David Howells <dhowells@redhat.com>
 ---
 
- include/asm-powerpc/bitops.h |   23 ++++++++++++++++++++++-
- 1 files changed, 22 insertions(+), 1 deletions(-)
+ include/asm-frv/bitops.h |   21 +++++++++++++++++----
+ 1 files changed, 17 insertions(+), 4 deletions(-)
 
-diff --git a/include/asm-powerpc/bitops.h b/include/asm-powerpc/bitops.h
-index c341063..b6b1169 100644
---- a/include/asm-powerpc/bitops.h
-+++ b/include/asm-powerpc/bitops.h
-@@ -190,7 +190,8 @@ #include <asm-generic/bitops/non-atomic.
-  * Return the zero-based bit position (LE, not IBM bit numbering) of
-  * the most significant 1-bit in a double word.
+diff --git a/include/asm-frv/bitops.h b/include/asm-frv/bitops.h
+index 980ae1b..97fb746 100644
+--- a/include/asm-frv/bitops.h
++++ b/include/asm-frv/bitops.h
+@@ -161,16 +161,29 @@ #include <asm-generic/bitops/ffs.h>
+ #include <asm-generic/bitops/__ffs.h>
+ #include <asm-generic/bitops/find.h>
+ 
+-/*
+- * fls: find last bit set.
++/**
++ * fls - find last bit set
++ * @x: the word to search
++ *
++ * This is defined the same way as ffs:
++ * - return 32..1 to indicate bit 31..0 most significant bit set
++ * - return 0 to indicate no bits set
   */
--static __inline__ int __ilog2(unsigned long x)
-+static __inline__ __attribute__((const))
-+int __ilog2(unsigned long x)
- {
- 	int lz;
+ #define fls(x)						\
+ ({							\
+ 	int bit;					\
+ 							\
+-	asm("scan %1,gr0,%0" : "=r"(bit) : "r"(x));	\
++	asm("	subcc	%1,gr0,gr0,icc0		\n"	\
++	    "	ckne	icc0,cc4		\n"	\
++	    "	cscan.p	%1,gr0,%0	,cc4,#1	\n"	\
++	    "	csub	%0,%0,%0	,cc4,#0	\n"	\
++	    "   csub    %2,%0,%0	,cc4,#1	\n"	\
++	    : "=&r"(bit)				\
++	    : "r"(x), "r"(32)				\
++	    : "icc0", "cc4"				\
++	    );						\
+ 							\
+-	bit ? 33 - bit : bit;				\
++	bit;						\
+ })
  
-@@ -198,6 +199,26 @@ static __inline__ int __ilog2(unsigned l
- 	return BITS_PER_LONG - 1 - lz;
- }
- 
-+#define ARCH_HAS_ILOG2_U32
-+static inline __attribute__((const))
-+int __ilog2_u32(u32 n)
-+{
-+	int bit;
-+	asm ("cntlzw %0,%1" : "=r" (bit) : "r" (n));
-+	return 31 - bit;
-+}
-+
-+#ifdef __powerpc64__
-+#define ARCH_HAS_ILOG2_U64
-+static inline __attribute__((const))
-+int __ilog2_u64(u32 n)
-+{
-+	int bit;
-+	asm ("cntlzd %0,%1" : "=r" (bit) : "r" (n));
-+	return 63 - bit;
-+}
-+#endif
-+
- /*
-  * Determines the bit position of the least significant 0 bit in the
-  * specified double word. The returned bit position will be
+ #include <asm-generic/bitops/fls64.h>
