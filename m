@@ -1,352 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:48070 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1750771AbWIMNDM (ORCPT
+Received: from mx1.redhat.com ([66.187.233.31]:23271 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750970AbWIMPzI (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Sep 2006 09:03:12 -0400
+	Wed, 13 Sep 2006 11:55:08 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 4/6] Implement a general log2 facility in the kernel
-Date: Wed, 13 Sep 2006 14:03:00 +0100
-Message-Id: <20060913130300.32022.69743.stgit@warthog.cambridge.redhat.com>
-In-Reply-To: <20060913130253.32022.69230.stgit@warthog.cambridge.redhat.com>
-References: <20060913130253.32022.69230.stgit@warthog.cambridge.redhat.com>
+Subject: [PATCH] FRV: Fix header exports
+Date: Wed, 13 Sep 2006 16:54:57 +0100
+Message-Id: <20060913155457.2507.24080.stgit@warthog.cambridge.redhat.com>
 Content-Type: text/plain; charset=utf-8; format=fixed
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
-To: torvalds@osdl.org, akpm@osdl.org
+To: dwmw2@infradead.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
 From: David Howells <dhowells@redhat.com>
 
-This facility provides three entry points:
-
-	log2()		Log base 2 of u32
-	ll_log2()	Log base 2 of u64
-	long_log2()	Log base 2 of unsigned long
-
-These facilities can either be used inside functions on dynamic data:
-
-	int do_something(long q)
-	{
-		...;
-		y = log2(x)
-		...;
-	}
-
-Or can be used to statically initialise global variables with constant values:
-
-	unsigned n = log2(27);
-
-When performing static initialisation, the compiler will report "error:
-initializer element is not constant" if asked to take a log of zero or of
-something not reducible to a constant.  They treat negative numbers as
-unsigned.
-
-
-When not dealing with a constant, they fall back to using fls() which permits
-them to use arch-specific log calculation instructions - such as BSR on
-x86/x86_64 or SCAN on FRV - if available.
+Fix FRV header file exports to userspace so that "make header_check" works.
 
 Signed-Off-By: David Howells <dhowells@redhat.com>
 ---
 
- fs/ext2/super.c          |    2 -
- fs/ext3/super.c          |    2 -
- include/asm-frv/bitops.h |   44 +++++++++++
- include/linux/kernel.h   |    9 --
- include/linux/log2.h     |  179 ++++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 224 insertions(+), 12 deletions(-)
+ include/asm-frv/Kbuild      |    2 ++
+ include/asm-frv/page.h      |    2 +-
+ include/asm-frv/ptrace.h    |    8 ++++++--
+ include/asm-frv/registers.h |    6 ++++--
+ include/asm-frv/termios.h   |    4 ++--
+ 5 files changed, 15 insertions(+), 7 deletions(-)
 
-diff --git a/fs/ext2/super.c b/fs/ext2/super.c
-index 681dea8..a4573b6 100644
---- a/fs/ext2/super.c
-+++ b/fs/ext2/super.c
-@@ -548,8 +548,6 @@ static int ext2_check_descriptors (struc
- 	return 1;
- }
+diff --git a/include/asm-frv/Kbuild b/include/asm-frv/Kbuild
+index c68e168..9682e0a 100644
+--- a/include/asm-frv/Kbuild
++++ b/include/asm-frv/Kbuild
+@@ -1 +1,3 @@
+ include include/asm-generic/Kbuild.asm
++
++unifdef-y += registers.h
+diff --git a/include/asm-frv/page.h b/include/asm-frv/page.h
+index 134cc0c..bd53767 100644
+--- a/include/asm-frv/page.h
++++ b/include/asm-frv/page.h
+@@ -76,7 +76,6 @@ #endif
  
--#define log2(n) ffz(~(n))
-- 
- /*
-  * Maximal file size.  There is a direct, and {,double-,triple-}indirect
-  * block limit, and also a limit of (2^32 - 1) 512-byte sectors in i_blocks.
-diff --git a/fs/ext3/super.c b/fs/ext3/super.c
-index 813d589..af1424d 100644
---- a/fs/ext3/super.c
-+++ b/fs/ext3/super.c
-@@ -1294,8 +1294,6 @@ #endif
- 	sb->s_flags = s_flags; /* Restore MS_RDONLY status */
- }
+ #endif /* __ASSEMBLY__ */
  
--#define log2(n) ffz(~(n))
+-#endif /* __KERNEL__ */
+ 
+ #ifdef CONFIG_CONTIGUOUS_PAGE_ALLOC
+ #define WANT_PAGE_VIRTUAL	1
+@@ -85,4 +84,5 @@ #endif
+ #include <asm-generic/memory_model.h>
+ #include <asm-generic/page.h>
+ 
++#endif /* __KERNEL__ */
+ #endif /* _ASM_PAGE_H */
+diff --git a/include/asm-frv/ptrace.h b/include/asm-frv/ptrace.h
+index 9a2241b..80dcd86 100644
+--- a/include/asm-frv/ptrace.h
++++ b/include/asm-frv/ptrace.h
+@@ -11,10 +11,10 @@
+ #ifndef _ASM_PTRACE_H
+ #define _ASM_PTRACE_H
+ 
++#ifdef __KERNEL__
+ #include <asm/registers.h>
+ #include <asm/irq_regs.h>
 -
+-#define in_syscall(regs) (((regs)->tbr & TBR_TT) == TBR_TT_TRAP0)
++#endif
+ 
+ 
+ #define PT_PSR		0
+@@ -60,6 +60,7 @@ #define PTRACE_GETFDPIC		31	/* get the E
+ #define PTRACE_GETFDPIC_EXEC	0	/* [addr] request the executable loadmap */
+ #define PTRACE_GETFDPIC_INTERP	1	/* [addr] request the interpreter loadmap */
+ 
++#ifdef __KERNEL__
+ #ifndef __ASSEMBLY__
+ 
  /*
-  * Maximal file size.  There is a direct, and {,double-,triple-}indirect
-  * block limit, and also a limit of (2^32 - 1) 512-byte sectors in i_blocks.
-diff --git a/include/asm-frv/bitops.h b/include/asm-frv/bitops.h
-index 1f70d47..41a5866 100644
---- a/include/asm-frv/bitops.h
-+++ b/include/asm-frv/bitops.h
-@@ -256,6 +256,50 @@ int __ffs(unsigned long x)
- 	return 31 - bit;
- }
+@@ -75,5 +76,8 @@ extern unsigned long user_stack(const st
+ extern void show_regs(struct pt_regs *);
+ #define profile_pc(regs) ((regs)->pc)
  
-+/*
-+ * special slimline version of fls() for calculating log2()
-+ * - note: no protection against n == 0
-+ */
-+#define ARCH_HAS_LOG2
-+static inline __attribute__((const))
-+int __log2(u32 n)
-+{
-+	int bit;
-+	asm("scan %1,gr0,%0" : "=r"(bit) : "r"(n));
-+	return 31 - bit;
-+}
++#define in_syscall(regs) (((regs)->tbr & TBR_TT) == TBR_TT_TRAP0)
 +
-+/*
-+ * special slimline version of fls64() for calculating ll_log2()
-+ * - note: no protection against n == 0
-+ */
-+#define ARCH_HAS_LL_LOG2
-+static inline __attribute__((const))
-+int __ll_log2(u64 n)
-+{
-+	union {
-+		u64 ll;
-+		struct { u32 h, l; };
-+	} _;
-+	int bit, x, y;
-+
-+	_.ll = n;
-+
-+	asm("	subcc		%3,gr0,gr0,icc0		\n"
-+	    "	ckeq		icc0,cc4		\n"
-+	    "	cscan.p		%3,gr0,%0	,cc4,0	\n"
-+	    "   setlos		#63,%1			\n"
-+	    "	cscan.p		%4,gr0,%0	,cc4,1	\n"
-+	    "   setlos		#31,%2			\n"
-+	    "	csub.p		%1,%0,%0	,cc4,0	\n"
-+	    "	csub		%2,%0,%0	,cc4,1	\n"
-+	    : "=&r"(bit), "=r"(x), "=r"(y)
-+	    : "0r"(_.h), "r"(_.l)
-+	    : "icc0", "cc4"
-+	    );
-+	return bit;
-+}
-+
- #include <asm-generic/bitops/sched.h>
- #include <asm-generic/bitops/hweight.h>
+ #endif /* !__ASSEMBLY__ */
++#endif /* __KERNEL__ */
+ #endif /* _ASM_PTRACE_H */
+diff --git a/include/asm-frv/registers.h b/include/asm-frv/registers.h
+index 9666119..82bf05b 100644
+--- a/include/asm-frv/registers.h
++++ b/include/asm-frv/registers.h
+@@ -140,7 +140,7 @@ #define REG_CURR_TASK	REG_GR(29)	/* curr
+ /*
+  * debugging registers
+  */
+-#ifndef __ASSEMBLY__
++#if !defined(__ASSEMBLY__) && defined(__KERNEL__)
  
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index 851aa1b..e8c6c66 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -13,6 +13,7 @@ #include <linux/stddef.h>
- #include <linux/types.h>
- #include <linux/compiler.h>
- #include <linux/bitops.h>
-+#include <linux/log2.h>
- #include <asm/byteorder.h>
- #include <asm/bug.h>
- 
-@@ -154,14 +155,6 @@ #endif
- 
- unsigned long int_sqrt(unsigned long);
- 
--static inline int __attribute_pure__ long_log2(unsigned long x)
--{
--	int r = 0;
--	for (x >>= 1; x > 0; x >>= 1)
--		r++;
--	return r;
--}
--
- static inline unsigned long
- __attribute_const__ roundup_pow_of_two(unsigned long x)
+ struct frv_debug_regs
  {
-diff --git a/include/linux/log2.h b/include/linux/log2.h
-new file mode 100644
-index 0000000..9bef055
---- /dev/null
-+++ b/include/linux/log2.h
-@@ -0,0 +1,179 @@
-+/* Log base 2 calculation
-+ *
-+ * Copyright (C) 2006 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
-+ */
+@@ -206,6 +206,7 @@ struct user_context
+ 	void *extension;
+ } __attribute__((aligned(8)));
+ 
++#ifdef __KERNEL__
+ struct frv_frame0 {
+ 	union {
+ 		struct pt_regs		regs;
+@@ -215,9 +216,10 @@ struct frv_frame0 {
+ 	struct frv_debug_regs		debug;
+ 
+ } __attribute__((aligned(32)));
+-
+ #endif
+ 
++#endif /* !__ASSEMBLY__ */
 +
-+#ifndef _LINUX_LOG2_H
-+#define _LINUX_LOG2_H
+ #define __INT_GR(R)		__OFFSET(__INT_GR0,		(R))
+ 
+ #define __FPMEDIA_FR(R)		__OFFSET(__FPMEDIA_FR0,		(R))
+diff --git a/include/asm-frv/termios.h b/include/asm-frv/termios.h
+index b4a664e..87c6cbc 100644
+--- a/include/asm-frv/termios.h
++++ b/include/asm-frv/termios.h
+@@ -29,6 +29,8 @@ #ifdef __KERNEL__
+ 	eol2=\0
+ */
+ #define INIT_C_CC "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0"
 +
-+#include <linux/types.h>
-+#include <linux/bitops.h>
-+
-+/*
-+ * deal with unrepresentable constant logarithms
-+ */
-+extern __attribute__((const, noreturn))
-+int ____log2_NaN(void);
-+
-+/*
-+ * non-constant log of base 2 calculation
-+ * - the arch may override these in asm/bitops.h if they can be implemented
-+ *   more efficiently than using fls() and fls64()
-+ */
-+#ifndef ARCH_HAS_LOG2
-+static inline __attribute__((const))
-+int __log2(u32 n)
-+{
-+	return fls(n) - 1;
-+}
-+#endif
-+
-+#ifndef ARCH_HAS_LL_LOG2
-+static inline __attribute__((const))
-+int __ll_log2(u64 n)
-+{
-+	return fls64(n) - 1;
-+}
-+#endif
-+
-+/*
-+ * constant-capable 32-bit log of base 2 calculation
-+ * - this can be used to initialise global variables from constant data, hence
-+ *   the massive ternary operator construction
-+ */
-+#define log2(n)					\
-+(						\
-+	__builtin_constant_p(n) ? (		\
-+		n < 1 ? ____log2_NaN() :	\
-+		n >= (1ULL << 31) ? 31 :	\
-+		n >= (1ULL << 30) ? 30 :	\
-+		n >= (1ULL << 29) ? 29 :	\
-+		n >= (1ULL << 28) ? 28 :	\
-+		n >= (1ULL << 27) ? 27 :	\
-+		n >= (1ULL << 26) ? 26 :	\
-+		n >= (1ULL << 25) ? 25 :	\
-+		n >= (1ULL << 24) ? 24 :	\
-+		n >= (1ULL << 23) ? 23 :	\
-+		n >= (1ULL << 22) ? 22 :	\
-+		n >= (1ULL << 21) ? 21 :	\
-+		n >= (1ULL << 20) ? 20 :	\
-+		n >= (1ULL << 19) ? 19 :	\
-+		n >= (1ULL << 18) ? 18 :	\
-+		n >= (1ULL << 17) ? 17 :	\
-+		n >= (1ULL << 16) ? 16 :	\
-+		n >= (1ULL << 15) ? 15 :	\
-+		n >= (1ULL << 14) ? 14 :	\
-+		n >= (1ULL << 13) ? 13 :	\
-+		n >= (1ULL << 12) ? 12 :	\
-+		n >= (1ULL << 11) ? 11 :	\
-+		n >= (1ULL << 10) ? 10 :	\
-+		n >= (1ULL <<  9) ?  9 :	\
-+		n >= (1ULL <<  8) ?  8 :	\
-+		n >= (1ULL <<  7) ?  7 :	\
-+		n >= (1ULL <<  6) ?  6 :	\
-+		n >= (1ULL <<  5) ?  5 :	\
-+		n >= (1ULL <<  4) ?  4 :	\
-+		n >= (1ULL <<  3) ?  3 :	\
-+		n >= (1ULL <<  2) ?  2 :	\
-+		n >= (1ULL <<  1) ?  1 :	\
-+		n >= (1ULL <<  0) ?  0 :	\
-+		____log2_NaN()			\
-+				   ) :		\
-+	__log2(n)				\
-+ )
-+
-+/*
-+ * constant-capable 64-bit log of base 2 calculation
-+ * - this can be used to initialise global variables from constant data, hence
-+ *   the massive ternary operator construction
-+ */
-+#define ll_log2(n)				\
-+(						\
-+	__builtin_constant_p(n) ? (		\
-+		n < 1 ? ____log2_NaN() :	\
-+		n >= (1ULL << 63) ? 63 :	\
-+		n >= (1ULL << 62) ? 62 :	\
-+		n >= (1ULL << 61) ? 61 :	\
-+		n >= (1ULL << 60) ? 60 :	\
-+		n >= (1ULL << 59) ? 59 :	\
-+		n >= (1ULL << 58) ? 58 :	\
-+		n >= (1ULL << 57) ? 57 :	\
-+		n >= (1ULL << 56) ? 56 :	\
-+		n >= (1ULL << 55) ? 55 :	\
-+		n >= (1ULL << 54) ? 54 :	\
-+		n >= (1ULL << 53) ? 53 :	\
-+		n >= (1ULL << 52) ? 52 :	\
-+		n >= (1ULL << 51) ? 51 :	\
-+		n >= (1ULL << 50) ? 50 :	\
-+		n >= (1ULL << 49) ? 49 :	\
-+		n >= (1ULL << 48) ? 48 :	\
-+		n >= (1ULL << 47) ? 47 :	\
-+		n >= (1ULL << 46) ? 46 :	\
-+		n >= (1ULL << 45) ? 45 :	\
-+		n >= (1ULL << 44) ? 44 :	\
-+		n >= (1ULL << 43) ? 43 :	\
-+		n >= (1ULL << 42) ? 42 :	\
-+		n >= (1ULL << 41) ? 41 :	\
-+		n >= (1ULL << 40) ? 40 :	\
-+		n >= (1ULL << 39) ? 39 :	\
-+		n >= (1ULL << 38) ? 38 :	\
-+		n >= (1ULL << 37) ? 37 :	\
-+		n >= (1ULL << 36) ? 36 :	\
-+		n >= (1ULL << 35) ? 35 :	\
-+		n >= (1ULL << 34) ? 34 :	\
-+		n >= (1ULL << 33) ? 33 :	\
-+		n >= (1ULL << 32) ? 32 :	\
-+		n >= (1ULL << 31) ? 31 :	\
-+		n >= (1ULL << 30) ? 30 :	\
-+		n >= (1ULL << 29) ? 29 :	\
-+		n >= (1ULL << 28) ? 28 :	\
-+		n >= (1ULL << 27) ? 27 :	\
-+		n >= (1ULL << 26) ? 26 :	\
-+		n >= (1ULL << 25) ? 25 :	\
-+		n >= (1ULL << 24) ? 24 :	\
-+		n >= (1ULL << 23) ? 23 :	\
-+		n >= (1ULL << 22) ? 22 :	\
-+		n >= (1ULL << 21) ? 21 :	\
-+		n >= (1ULL << 20) ? 20 :	\
-+		n >= (1ULL << 19) ? 19 :	\
-+		n >= (1ULL << 18) ? 18 :	\
-+		n >= (1ULL << 17) ? 17 :	\
-+		n >= (1ULL << 16) ? 16 :	\
-+		n >= (1ULL << 15) ? 15 :	\
-+		n >= (1ULL << 14) ? 14 :	\
-+		n >= (1ULL << 13) ? 13 :	\
-+		n >= (1ULL << 12) ? 12 :	\
-+		n >= (1ULL << 11) ? 11 :	\
-+		n >= (1ULL << 10) ? 10 :	\
-+		n >= (1ULL <<  9) ?  9 :	\
-+		n >= (1ULL <<  8) ?  8 :	\
-+		n >= (1ULL <<  7) ?  7 :	\
-+		n >= (1ULL <<  6) ?  6 :	\
-+		n >= (1ULL <<  5) ?  5 :	\
-+		n >= (1ULL <<  4) ?  4 :	\
-+		n >= (1ULL <<  3) ?  3 :	\
-+		n >= (1ULL <<  2) ?  2 :	\
-+		n >= (1ULL <<  1) ?  1 :	\
-+		n >= (1ULL <<  0) ?  0 :	\
-+		____log2_NaN()			\
-+				   ) :		\
-+	__ll_log2(n)				\
-+ )
-+
-+/*
-+ * constant-capable unsigned long log of base 2 calculation
-+ * - this can be used to initialise global variables from constant data
-+ */
-+#if BITS_PER_LONG == 32
-+#define long_log2(n) log2(n)
-+#else
-+#define long_log2(n) ll_log2(n)
-+#endif
-+
-+#endif /* _LINUX_LOG2_H */
++#include <asm-generic/termios.h>
+ #endif
+ 
+ /* modem lines */
+@@ -69,6 +71,4 @@ #define N_HDLC		13	/* synchronous HDLC *
+ #define N_SYNC_PPP	14
+ #define N_HCI		15  /* Bluetooth HCI UART */
+ 
+-#include <asm-generic/termios.h>
+-
+ #endif /* _ASM_TERMIOS_H */
