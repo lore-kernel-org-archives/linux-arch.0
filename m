@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:50909 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1750907AbWIMSAL (ORCPT
+Received: from mx1.redhat.com ([66.187.233.31]:42461 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750895AbWIMSAE (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Sep 2006 14:00:11 -0400
+	Wed, 13 Sep 2006 14:00:04 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 5/7] Alter get_order() so that it can make use of ilog2() on a constant [try #2]
-Date: Wed, 13 Sep 2006 18:59:43 +0100
-Message-Id: <20060913175943.21216.8956.stgit@warthog.cambridge.redhat.com>
+Subject: [PATCH 2/7] FRV: Implement fls64() [try #2]
+Date: Wed, 13 Sep 2006 18:59:36 +0100
+Message-Id: <20060913175936.21216.72521.stgit@warthog.cambridge.redhat.com>
 In-Reply-To: <20060913175934.21216.73561.stgit@warthog.cambridge.redhat.com>
 References: <20060913175934.21216.73561.stgit@warthog.cambridge.redhat.com>
 Content-Type: text/plain; charset=utf-8; format=fixed
@@ -18,107 +18,64 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: David Howells <dhowells@redhat.com>
 
-Alter get_order() so that it can make use of ilog2() on a constant to produce a
-constant value, retaining the ability for an arch to override it in the
-non-const case.
+Implement fls64() for FRV without recource to conditional jumps.
 
 Signed-Off-By: David Howells <dhowells@redhat.com>
 ---
 
- include/asm-generic/page.h |   14 --------------
- include/linux/log2.h       |   45 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 45 insertions(+), 14 deletions(-)
+ include/asm-frv/bitops.h |   42 +++++++++++++++++++++++++++++++++++++++++-
+ 1 files changed, 41 insertions(+), 1 deletions(-)
 
-diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
-index a96b5d9..a7e374e 100644
---- a/include/asm-generic/page.h
-+++ b/include/asm-generic/page.h
-@@ -6,20 +6,6 @@ #ifndef __ASSEMBLY__
+diff --git a/include/asm-frv/bitops.h b/include/asm-frv/bitops.h
+index 97fb746..591eecc 100644
+--- a/include/asm-frv/bitops.h
++++ b/include/asm-frv/bitops.h
+@@ -186,7 +186,47 @@ ({							\
+ 	bit;						\
+ })
  
- #include <linux/compiler.h>
- 
--/* Pure 2^n version of get_order */
--static __inline__ __attribute_const__ int get_order(unsigned long size)
--{
--	int order;
--
--	size = (size - 1) >> (PAGE_SHIFT - 1);
--	order = -1;
--	do {
--		size >>= 1;
--		order++;
--	} while (size);
--	return order;
--}
--
- #endif	/* __ASSEMBLY__ */
- #endif	/* __KERNEL__ */
- 
-diff --git a/include/linux/log2.h b/include/linux/log2.h
-index 6ce81b7..88b7b0e 100644
---- a/include/linux/log2.h
-+++ b/include/linux/log2.h
-@@ -25,6 +25,7 @@ int ____ilog2_NaN(void);
-  * non-constant log of base 2 calculators
-  * - the arch may override these in asm/bitops.h if they can be implemented
-  *   more efficiently than using fls() and fls64()
-+ * - the arch is not required to handle n==0 if implementing the fallback
-  */
- #ifndef ARCH_HAS_ILOG2_U32
- static inline __attribute__((const))
-@@ -42,6 +43,36 @@ int __ilog2_u64(u64 n)
- }
- #endif
- 
-+/*
-+ * non-const pure 2^n version of get_order
-+ * - the arch may override these in asm/bitops.h if they can be implemented
-+ *   more efficiently than using the arch log2 routines
-+ * - we use the non-const log2() instead if the arch has defined one suitable
-+ */
-+#ifndef ARCH_HAS_GET_ORDER
-+static inline __attribute__((const))
-+int __get_order(unsigned long size, int page_shift)
-+{
-+#if BITS_PER_LONG == 32 && defined(ARCH_HAS_ILOG2_U32)
-+	int order = __ilog2_u32(size) - page_shift;
-+	return order >= 0 ? order : 0;
-+#elif BITS_PER_LONG == 64 && defined(ARCH_HAS_ILOG2_U64)
-+	int order = __ilog2_u64(size) - page_shift;
-+	return order >= 0 ? order : 0;
-+#else
-+	int order;
-+
-+	size = (size - 1) >> (page_shift - 1);
-+	order = -1;
-+	do {
-+		size >>= 1;
-+		order++;
-+	} while (size);
-+	return order;
-+#endif
-+}
-+#endif
-+
- /**
-  * ilog2_u32 - log of base 2 of 32-bit unsigned value
-  * @n - parameter
-@@ -185,4 +216,18 @@ #else
- #define ilog2(n) ilog2_u64(n)
- #endif
- 
+-#include <asm-generic/bitops/fls64.h>
 +/**
-+ * get_order - calculate log2(pages) to hold a block of the specified size
-+ * @n - size
++ * fls64 - find last bit set in a 64-bit value
++ * @n: the value to search
 + *
-+ * calculate allocation order based on the current page size
-+ * - this can be used to initialise global variables from constant data
++ * This is defined the same way as ffs:
++ * - return 64..1 to indicate bit 63..0 most significant bit set
++ * - return 0 to indicate no bits set
 + */
-+#define get_order(n)							\
-+(									\
-+	__builtin_constant_p(n) ?					\
-+	((n < (1UL << PAGE_SHIFT)) ? 0 : ilog2(n) - PAGE_SHIFT) :	\
-+	__get_order(n, PAGE_SHIFT)					\
-+ )
++static inline __attribute__((const))
++int fls64(u64 n)
++{
++	union {
++		u64 ll;
++		struct { u32 h, l; };
++	} _;
++	int bit, x, y;
 +
- #endif /* _LINUX_LOG2_H */
++	_.ll = n;
++
++	asm("	subcc.p		%3,gr0,gr0,icc0		\n"
++	    "	subcc		%4,gr0,gr0,icc1		\n"
++	    "	ckne		icc0,cc4		\n"
++	    "	ckne		icc1,cc5		\n"
++	    "	norcr		cc4,cc5,cc6		\n"
++	    "	csub.p		%0,%0,%0	,cc6,1	\n"
++	    "	orcr		cc5,cc4,cc4		\n"
++	    "	andcr		cc4,cc5,cc4		\n"
++	    "	cscan.p		%3,gr0,%0	,cc4,0	\n"
++	    "   setlos		#64,%1			\n"
++	    "	cscan.p		%4,gr0,%0	,cc4,1	\n"
++	    "   setlos		#32,%2			\n"
++	    "	csub.p		%1,%0,%0	,cc4,0	\n"
++	    "	csub		%2,%0,%0	,cc4,1	\n"
++	    : "=&r"(bit), "=r"(x), "=r"(y)
++	    : "0r"(_.h), "r"(_.l)
++	    : "icc0", "icc1", "cc4", "cc5", "cc6"
++	    );
++	return bit;
++
++}
++
+ #include <asm-generic/bitops/sched.h>
+ #include <asm-generic/bitops/hweight.h>
+ 
