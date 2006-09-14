@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:49070 "EHLO smtps.tip.net.au")
-	by vger.kernel.org with ESMTP id S1751296AbWINBTs (ORCPT
+Received: from chilli.pcug.org.au ([203.10.76.44]:46256 "EHLO smtps.tip.net.au")
+	by vger.kernel.org with ESMTP id S1751312AbWINBYe (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Sep 2006 21:19:48 -0400
-Date: Thu, 14 Sep 2006 11:19:48 +1000
+	Wed, 13 Sep 2006 21:24:34 -0400
+Date: Thu, 14 Sep 2006 11:24:35 +1000
 From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 4/7] Implement a general integer log2 facility in the
- kernel [try #3]
-Message-Id: <20060914111948.3c11242d.sfr@canb.auug.org.au>
-In-Reply-To: <20060913183529.22109.76479.stgit@warthog.cambridge.redhat.com>
+Subject: Re: [PATCH 5/7] Alter get_order() so that it can make use of
+ ilog2() on a constant [try #3]
+Message-Id: <20060914112435.4ce28290.sfr@canb.auug.org.au>
+In-Reply-To: <20060913183531.22109.85723.stgit@warthog.cambridge.redhat.com>
 References: <20060913183522.22109.10565.stgit@warthog.cambridge.redhat.com>
-	<20060913183529.22109.76479.stgit@warthog.cambridge.redhat.com>
+	<20060913183531.22109.85723.stgit@warthog.cambridge.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
@@ -21,25 +21,36 @@ List-ID: <linux-arch.vger.kernel.org>
 
 Hi David,
 
-Just a small nit ...
-
-On Wed, 13 Sep 2006 19:35:29 +0100 David Howells <dhowells@redhat.com> wrote:
+On Wed, 13 Sep 2006 19:35:31 +0100 David Howells <dhowells@redhat.com> wrote:
 >
-> diff --git a/fs/ext2/super.c b/fs/ext2/super.c
-> index 681dea8..b4b4eae 100644
-> --- a/fs/ext2/super.c
-> +++ b/fs/ext2/super.c
-> @@ -784,9 +782,9 @@ static int ext2_fill_super(struct super_
->  	sbi->s_sbh = bh;
->  	sbi->s_mount_state = le16_to_cpu(es->s_state);
->  	sbi->s_addr_per_block_bits =
-> -		log2 (EXT2_ADDR_PER_BLOCK(sb));
-> +		ilog2 (EXT2_ADDR_PER_BLOCK(sb));
->  	sbi->s_desc_per_block_bits =
-> -		log2 (EXT2_DESC_PER_BLOCK(sb));
-> +		ilog2 (EXT2_DESC_PER_BLOCK(sb));
+> diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+> index a96b5d9..a7e374e 100644
+> --- a/include/asm-generic/page.h
+> +++ b/include/asm-generic/page.h
+> @@ -6,20 +6,6 @@ #ifndef __ASSEMBLY__
+>  
+>  #include <linux/compiler.h>
+>  
+> -/* Pure 2^n version of get_order */
+> -static __inline__ __attribute_const__ int get_order(unsigned long size)
+> -{
+> -	int order;
+> -
+> -	size = (size - 1) >> (PAGE_SHIFT - 1);
+> -	order = -1;
+> -	do {
+> -		size >>= 1;
+> -		order++;
+> -	} while (size);
+> -	return order;
+> -}
+> -
+>  #endif	/* __ASSEMBLY__ */
+>  #endif	/* __KERNEL__ */
 
-While you are here, could you get rid of the spaces before the parentheses?
+After this patch, you don't need to include <linux/compiler.h> any more
+(and, in fact, the file ends up essentially empty).  Is there a good
+reason to move this function out of asm-generic/page.h?
 
 -- 
 Cheers,
