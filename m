@@ -1,15 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:54722 "EHLO
+Received: from pentafluge.infradead.org ([213.146.154.40]:33952 "EHLO
 	pentafluge.infradead.org") by vger.kernel.org with ESMTP
-	id S932068AbWINWgc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Sep 2006 18:36:32 -0400
-Subject: [PATCH] [3/5] Fix 'make headers_check' on ia64 for 2.6.18
+	id S932072AbWINWg5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Sep 2006 18:36:57 -0400
+Subject: [PATCH] [4/5] Fix 'make headers_check' on x86_64 for 2.6.18
 From: David Woodhouse <dwmw2@infradead.org>
 In-Reply-To: <1158079495.9189.125.camel@hades.cambridge.redhat.com>
 References: <1158079495.9189.125.camel@hades.cambridge.redhat.com>
 Content-Type: text/plain
-Date: Thu, 14 Sep 2006 23:36:10 +0100
-Message-Id: <1158273370.4312.142.camel@pmac.infradead.org>
+Date: Thu, 14 Sep 2006 23:36:54 +0100
+Message-Id: <1158273414.4312.143.camel@pmac.infradead.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
@@ -18,114 +18,167 @@ Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 On Tue, 2006-09-12 at 17:44 +0100, David Woodhouse wrote:
-> asm-ia64/ptrace.h requires asm/asm-offsets.h, which does not exist
-> asm-ia64/resource.h requires asm/ustack.h, which does not exist 
+> asm-x86_64/elf.h requires asm/processor.h, which does not exist
+> asm-x86_64/signal.h requires linux/linkage.h, which does not exist
+> asm-x86_64/unistd.h requires linux/linkage.h, which does not exist
+> asm-x86_64/vsyscall.h requires linux/seqlock.h, which does not exist 
 
-Hide parts which shouldn't be visible to userspace.
+Again, move stuff which shouldn't be visible inside (mostly already
+existing) #ifdef __KERNEL__.
+
+This fixes a bunch of mislabelled and unlabelled #endifs in unistd.h and
+also cleans that up to conform with what's visible on other
+architectures, since the minimal fix for the error reported about would
+have involved a more intrusive patch, renesting other ifdefs.
 
 Signed-off-by: David Woodhouse <dwmw2@infradead.org>
 
-index 85d6f80..f1cb00f 100644
---- a/include/asm-ia64/Kbuild
-+++ b/include/asm-ia64/Kbuild
-@@ -4,4 +4,4 @@ header-y += break.h fpu.h fpswa.h gcc_in
- 	 intel_intrin.h intrinsics.h perfmon_default_smpl.h	\
- 	 ptrace_offsets.h rse.h setup.h ucontext.h
+diff --git a/include/asm-x86_64/Kbuild b/include/asm-x86_64/Kbuild
+diff --git a/include/asm-x86_64/elf.h b/include/asm-x86_64/elf.h
+index b4f8f4a..a406fcb 100644
+--- a/include/asm-x86_64/elf.h
++++ b/include/asm-x86_64/elf.h
+@@ -7,8 +7,6 @@ #define __ASM_X86_64_ELF_H
  
--unifdef-y += perfmon.h
-+unifdef-y += perfmon.h ustack.h
-diff --git a/include/asm-ia64/page.h b/include/asm-ia64/page.h
-index f5a949e..947cb72 100644
---- a/include/asm-ia64/page.h
-+++ b/include/asm-ia64/page.h
-@@ -7,6 +7,7 @@ #define _ASM_IA64_PAGE_H
-  *	David Mosberger-Tang <davidm@hpl.hp.com>
-  */
+ #include <asm/ptrace.h>
+ #include <asm/user.h>
+-#include <asm/processor.h>
+-#include <asm/compat.h>
  
-+# ifdef __KERNEL__
- 
- #include <asm/intrinsics.h>
- #include <asm/types.h>
-@@ -64,7 +65,6 @@ #ifdef __ASSEMBLY__
- # define __pa(x)		((x) - PAGE_OFFSET)
- # define __va(x)		((x) + PAGE_OFFSET)
- #else /* !__ASSEMBLY */
--# ifdef __KERNEL__
- #  define STRICT_MM_TYPECHECKS
- 
- extern void clear_page (void *page);
-@@ -174,7 +174,6 @@ get_order (unsigned long size)
- 	return order;
- }
- 
--# endif /* __KERNEL__ */
- #endif /* !__ASSEMBLY__ */
- 
- #ifdef STRICT_MM_TYPECHECKS
-@@ -228,4 +227,5 @@ #define VM_DATA_DEFAULT_FLAGS		(VM_READ 
- 					 (((current->personality & READ_IMPLIES_EXEC) != 0)	\
- 					  ? VM_EXEC : 0))
- 
-+# endif /* __KERNEL__ */
- #endif /* _ASM_IA64_PAGE_H */
-diff --git a/include/asm-ia64/ptrace.h b/include/asm-ia64/ptrace.h
-index 415abb2..1414316 100644
---- a/include/asm-ia64/ptrace.h
-+++ b/include/asm-ia64/ptrace.h
-@@ -56,6 +56,8 @@ #define _ASM_IA64_PTRACE_H
- 
- 
- #include <asm/fpu.h>
-+
-+#ifdef __KERNEL__
- #ifndef ASM_OFFSETS_C
- #include <asm/asm-offsets.h>
- #endif
-@@ -79,10 +81,9 @@ #define IA64_STK_OFFSET			((1 << KERNEL_
- 
- #define KERNEL_STACK_SIZE		IA64_STK_OFFSET
- 
--#ifndef __ASSEMBLY__
-+#endif /* __KERNEL__ */
- 
--#include <asm/current.h>
--#include <asm/page.h>
-+#ifndef __ASSEMBLY__
+ /* x86-64 relocation types */
+ #define R_X86_64_NONE		0	/* No reloc */
+@@ -39,18 +37,23 @@ typedef elf_greg_t elf_gregset_t[ELF_NGR
+ typedef struct user_i387_struct elf_fpregset_t;
  
  /*
-  * This struct defines the way the registers are saved on system
-@@ -229,6 +230,9 @@ struct switch_stack {
+- * This is used to ensure we don't load something for the wrong architecture.
+- */
+-#define elf_check_arch(x) \
+-	((x)->e_machine == EM_X86_64)
+-
+-/*
+  * These are used to set parameters in the core dumps.
+  */
+ #define ELF_CLASS	ELFCLASS64
+ #define ELF_DATA	ELFDATA2LSB
+ #define ELF_ARCH	EM_X86_64
+ 
++#ifdef __KERNEL__
++#include <asm/processor.h>
++#include <asm/compat.h>
++
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ */
++#define elf_check_arch(x) \
++	((x)->e_machine == EM_X86_64)
++
++
+ /* SVR4/i386 ABI (pages 3-31, 3-32) says that when the program starts %edx
+    contains a pointer to a function which might be registered using `atexit'.
+    This provides a mean for the dynamic linker to call DT_FINI functions for
+@@ -141,7 +144,6 @@ #define ELF_HWCAP	(boot_cpu_data.x86_cap
+ /* I'm not sure if we can use '-' here */
+ #define ELF_PLATFORM  ("x86_64")
+ 
+-#ifdef __KERNEL__
+ extern void set_personality_64bit(void);
+ #define SET_PERSONALITY(ex, ibcs2) set_personality_64bit()
+ /*
+diff --git a/include/asm-x86_64/signal.h b/include/asm-x86_64/signal.h
+index cef7a7d..3ede2a6 100644
+--- a/include/asm-x86_64/signal.h
++++ b/include/asm-x86_64/signal.h
+@@ -3,13 +3,13 @@ #define _ASMx8664_SIGNAL_H
+ 
+ #ifndef __ASSEMBLY__
+ #include <linux/types.h>
+-#include <linux/linkage.h>
+ #include <linux/time.h>
+ 
+ /* Avoid too many header ordering problems.  */
+ struct siginfo;
  
  #ifdef __KERNEL__
++#include <linux/linkage.h>
+ /* Most things should be clean enough to redefine this at will, if care
+    is taken to make libc match.  */
  
-+#include <asm/current.h>
-+#include <asm/page.h>
-+
- #define __ARCH_SYS_PTRACE	1
- 
- /*
-diff --git a/include/asm-ia64/ustack.h b/include/asm-ia64/ustack.h
-index da55c91..a349467 100644
---- a/include/asm-ia64/ustack.h
-+++ b/include/asm-ia64/ustack.h
-@@ -5,12 +5,15 @@ #define _ASM_IA64_USTACK_H
-  * Constants for the user stack size
-  */
+diff --git a/include/asm-x86_64/unistd.h b/include/asm-x86_64/unistd.h
+index 2d89d30..80fd48e 100644
+--- a/include/asm-x86_64/unistd.h
++++ b/include/asm-x86_64/unistd.h
+@@ -620,6 +620,8 @@ __SYSCALL(__NR_vmsplice, sys_vmsplice)
+ #define __NR_move_pages		279
+ __SYSCALL(__NR_move_pages, sys_move_pages)
  
 +#ifdef __KERNEL__
- #include <asm/page.h>
- 
- /* The absolute hard limit for stack size is 1/2 of the mappable space in the region */
- #define MAX_USER_STACK_SIZE	(RGN_MAP_LIMIT/2)
--/* Make a default stack size of 2GB */
--#define DEFAULT_USER_STACK_SIZE	(1UL << 31)
- #define STACK_TOP		(0x6000000000000000UL + RGN_MAP_LIMIT)
-+#endif
 +
-+/* Make a default stack size of 2GiB */
-+#define DEFAULT_USER_STACK_SIZE	(1UL << 31)
+ #define __NR_syscall_max __NR_move_pages
  
- #endif /* _ASM_IA64_USTACK_H */
+ #ifndef __NO_STUBS
+@@ -744,8 +746,6 @@ __syscall_return(type,__res); \
+ 
+ #else /* __KERNEL_SYSCALLS__ */
+ 
+-#ifdef __KERNEL__
+-
+ #include <linux/syscalls.h>
+ #include <asm/ptrace.h>
+ 
+@@ -821,8 +821,6 @@ asmlinkage long sys_fork(struct pt_regs 
+ asmlinkage long sys_vfork(struct pt_regs regs);
+ asmlinkage long sys_pipe(int *fildes);
+ 
+-#endif /* __KERNEL_SYSCALLS__ */
+-
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/linkage.h>
+@@ -838,9 +836,9 @@ asmlinkage long sys_rt_sigaction(int sig
+ 				struct sigaction __user *oact,
+ 				size_t sigsetsize);
+ 
+-#endif
++#endif  /* __ASSEMBLY__ */
+ 
+-#endif
++#endif /* __KERNEL_SYSCALLS__ */
+ 
+ /*
+  * "Conditional" syscalls
+@@ -850,6 +848,8 @@ #endif
+  */
+ #define cond_syscall(x) asm(".weak\t" #x "\n\t.set\t" #x ",sys_ni_syscall")
+ 
+-#endif
++#endif /* __NO_STUBS */
+ 
+-#endif
++#endif /* __KERNEL__ */
++
++#endif /* _ASM_X86_64_UNISTD_H_ */
+diff --git a/include/asm-x86_64/vsyscall.h b/include/asm-x86_64/vsyscall.h
+index a85e16f..146b244 100644
+--- a/include/asm-x86_64/vsyscall.h
++++ b/include/asm-x86_64/vsyscall.h
+@@ -1,8 +1,6 @@
+ #ifndef _ASM_X86_64_VSYSCALL_H_
+ #define _ASM_X86_64_VSYSCALL_H_
+ 
+-#include <linux/seqlock.h>
+-
+ enum vsyscall_num {
+ 	__NR_vgettimeofday,
+ 	__NR_vtime,
+@@ -14,6 +12,7 @@ #define VSYSCALL_END (-2UL << 20)
+ #define VSYSCALL_ADDR(vsyscall_nr) (VSYSCALL_START+VSYSCALL_SIZE*(vsyscall_nr))
+ 
+ #ifdef __KERNEL__
++#include <linux/seqlock.h>
+ 
+ #define __section_vxtime __attribute__ ((unused, __section__ (".vxtime"), aligned(16)))
+ #define __section_wall_jiffies __attribute__ ((unused, __section__ (".wall_jiffies"), aligned(16)))
 
 -- 
 dwmw2
