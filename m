@@ -1,50 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate2.uk.ibm.com ([195.212.29.135]:54817 "EHLO
-	mtagate2.uk.ibm.com") by vger.kernel.org with ESMTP
-	id S1750733AbWIOIZM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Sep 2006 04:25:12 -0400
-Received: from d06nrmr1407.portsmouth.uk.ibm.com (d06nrmr1407.portsmouth.uk.ibm.com [9.149.38.185])
-	by mtagate2.uk.ibm.com (8.13.8/8.13.8) with ESMTP id k8F8PBHt152566
-	for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2006 08:25:11 GMT
-Received: from d06av01.portsmouth.uk.ibm.com (d06av01.portsmouth.uk.ibm.com [9.149.37.212])
-	by d06nrmr1407.portsmouth.uk.ibm.com (8.13.6/8.13.6/NCO v8.1.1) with ESMTP id k8F8RMq71482978
-	for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2006 09:27:22 +0100
-Received: from d06av01.portsmouth.uk.ibm.com (loopback [127.0.0.1])
-	by d06av01.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id k8F8PAbH027570
-	for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2006 09:25:10 +0100
-Subject: Re: [PATCH] [2/5] Fix 'make headers_check' on s390 for 2.6.18
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <1158273343.4312.141.camel@pmac.infradead.org>
-References: <1158079495.9189.125.camel@hades.cambridge.redhat.com>
-	 <1158273343.4312.141.camel@pmac.infradead.org>
-Content-Type: text/plain
-Date: Fri, 15 Sep 2006 10:25:09 +0200
-Message-Id: <1158308709.23993.0.camel@localhost>
+Received: from colin.muc.de ([193.149.48.1]:50443 "EHLO mail.muc.de")
+	by vger.kernel.org with ESMTP id S1750762AbWIOIrv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Sep 2006 04:47:51 -0400
+Date: 15 Sep 2006 10:47:49 +0200
+Date: Fri, 15 Sep 2006 10:47:49 +0200
+From: Andi Kleen <ak@muc.de>
+Subject: Re: [patch 1/1] make PROT_WRITE imply PROT_READ
+Message-ID: <20060915084749.GC9672@muc.de>
+References: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: torvalds@osdl.org, akpm@osdl.org, linux-arch@vger.kernel.org
+To: akpm@osdl.org
+Cc: linux-arch@vger.kernel.org, jbaron@redhat.com, alan@lxorguk.ukuu.org.uk, arjan@linux.intel.com, benh@kernel.crashing.org, geert@linux-m68k.org, hugh@veritas.com, kkojima@rr.iij4u.or.jp, lethal@linux-sh.org, paulus@samba.org, rmk@arm.linux.org.uk, spyro@f2s.com, tony.luck@intel.com, zippel@linux-m68k.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2006-09-14 at 23:35 +0100, David Woodhouse wrote:
-> > asm-s390/debug.h requires linux/string.h, which does not exist
-> > asm-s390/elf.h requires asm/system.h, which does not exist 
+On Thu, Sep 14, 2006 at 06:39:47PM -0700, akpm@osdl.org wrote:
+> From: Jason Baron <jbaron@redhat.com>
 > 
-> Move things around slightly so the right things end up within 
-> #ifdef __KERNEL__ and thus don't pollute the exported headers.
+> (akpm: needs to be split into nine patches and fed through arch trees. 
+> Later.)
+> 
+> (err, make it's easier to just collect some acks?)
 
-Thanks David, looks good.
+x86_64 part is ok for me.
 
--- 
-blue skies,
-  Martin.
-
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
-
-"Reality continues to ruin my life." - Calvin.
-
-
+-Andi
