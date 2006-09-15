@@ -1,33 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:7125 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1750704AbWIOJAF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Sep 2006 05:00:05 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <450974F2.1020104@yahoo.com.au> 
-References: <450974F2.1020104@yahoo.com.au>  <45085B31.3080504@yahoo.com.au> <45084833.4040602@yahoo.com.au> <44F395DE.10804@yahoo.com.au> <a2ebde260608271222x2b51693fnaa600965fcfaa6d2@mail.gmail.com> <1156750249.3034.155.camel@laptopd505.fenrus.org> <11861.1156845927@warthog.cambridge.redhat.com> <22461.1158173455@warthog.cambridge.redhat.com> <21102.1158234082@warthog.cambridge.redhat.com> 
-Subject: Re: Why Semaphore Hardware-Dependent? 
-Date: Fri, 15 Sep 2006 09:59:44 +0100
-Message-ID: <30414.1158310784@warthog.cambridge.redhat.com>
+Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:34688 "EHLO
+	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP
+	id S1751004AbWIOKgy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Sep 2006 06:36:54 -0400
+Subject: Re: [patch 1/1] make PROT_WRITE imply PROT_READ
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+In-Reply-To: <Pine.LNX.4.62.0609151000480.4692@pademelon.sonytel.be>
+References: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
+	 <Pine.LNX.4.62.0609151000480.4692@pademelon.sonytel.be>
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Date: Fri, 15 Sep 2006 11:58:36 +0100
+Message-Id: <1158317916.29932.7.camel@localhost.localdomain>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: David Howells <dhowells@redhat.com>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, ak@suse.de, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, jbaron@redhat.com, ak@muc.de, arjan@linux.intel.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, hugh@veritas.com, kkojima@rr.iij4u.or.jp, lethal@linux-sh.org, Paul Mackerras <paulus@samba.org>, Russell King <rmk@arm.linux.org.uk>, spyro@f2s.com, tony.luck@intel.com, Roman Zippel <zippel@linux-m68k.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin <nickpiggin@yahoo.com.au> wrote:
+Ar Gwe, 2006-09-15 am 10:06 +0200, ysgrifennodd Geert Uytterhoeven:
+> The same can be said about not initializing local variables, using delete vs.
+> delete [], ...: sometimes it works, sometimes it fails. It's still an
+> application bug to rely on `may' behavior.
 
-> It is actually larger here.
-> 
->    text    data     bss     dec     hex filename
->     970       0       0     970     3ca lib/rwsem-spinlock.o
->     576       0       0     576     240 kernel/spinlock.o
->   =1546
-> 
->    text    data     bss     dec     hex filename
->    1310       0       0    1310     51e lib/rwsem.o
->     193       0       0     193      c1 kernel/rwsem.o
->   =1503
+And as a result programmers have to resort to tools like valgrind. Even
+valgrind can't save you in this case and AFAIK there is no debugging
+tool for this problem.
 
-What arch? FRV?
+Programming is *hard* (correct programming), don't make it any harder
+when it is easy to make it more predictable. Murphy's law says that the
+user who hits the actual bug will be on the other side of the globe,
+busy and not speak the same language...
 
-David
+Alan
+
