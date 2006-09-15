@@ -1,73 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:39298 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S932101AbWINW4N (ORCPT
+Received: from chilli.pcug.org.au ([203.10.76.44]:52948 "EHLO smtps.tip.net.au")
+	by vger.kernel.org with ESMTP id S1751416AbWIOBfR (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Sep 2006 18:56:13 -0400
-Date: Thu, 14 Sep 2006 15:56:08 -0700
-From: Andrew Morton <akpm@osdl.org>
-Subject: Re: [Fwd: [PATCH] Proposed update to the kernel kmap/kunmap API]
-Message-Id: <20060914155608.e749000b.akpm@osdl.org>
-In-Reply-To: <1158082434.3461.29.camel@mulgrave.il.steeleye.com>
-References: <1158082434.3461.29.camel@mulgrave.il.steeleye.com>
+	Thu, 14 Sep 2006 21:35:17 -0400
+Date: Fri, 15 Sep 2006 11:35:16 +1000
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 5/7] Alter get_order() so that it can make use of
+ ilog2() on a constant [try #3]
+Message-Id: <20060915113516.ae2c788c.sfr@canb.auug.org.au>
+In-Reply-To: <21308.1158234724@warthog.cambridge.redhat.com>
+References: <20060914112435.4ce28290.sfr@canb.auug.org.au>
+	<20060913183522.22109.10565.stgit@warthog.cambridge.redhat.com>
+	<20060913183531.22109.85723.stgit@warthog.cambridge.redhat.com>
+	<21308.1158234724@warthog.cambridge.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@steeleye.com>
-Cc: linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Hi David,
 
-(cc linux-arch for general-arch-maintainer-headsup)
+On Thu, 14 Sep 2006 12:52:04 +0100 David Howells <dhowells@redhat.com> wrote:
+>
+> Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+> 
+> > After this patch, you don't need to include <linux/compiler.h> any more
+> > (and, in fact, the file ends up essentially empty).
+> 
+> True.  I could possibly delete the whole file, depending on who else has
+> designs on it.
 
-On Tue, 12 Sep 2006 12:33:54 -0500
-James Bottomley <James.Bottomley@SteelEye.com> wrote:
+I think the patch consolidating PAGE_SIZE may want it.
 
-> The simple part of the proposal is to give non-highmem architectures
-> access to the kmap API for the purposes of overriding (this is what the
-> attached patch does).
+> > Is there a good reason to move this function out of asm-generic/page.h?
 > 
-> The more controversial part of the proposal is that we should now
-> require all architectures with coherence issues to manage data coherence
-> via the kmap/kunmap API.  Thus driver writers never have to write code
-> like
-> 
-> kmap(page)
-> modify data in page
-> flush_kernel_dcache_page(page)
-> kunmap(page)
-> 
-> instead, kmap/kunmap will manage the coherence and driver (and
-> filesystem) writers don't need to worry about how to flush between kmap
-> and kunmap.   For most architectures, the page only needs to be flushed
-> if it was actually written to *and* there are user mappings of it, so
-> the best implementation looks to be:  clear the page dirty pte bit in
-> the kernel page tables on kmap and on kunmap, check page->mappings for
-> user maps, and then the dirty bit, and only flush if it both has user
-> mappings and is dirty.
-> 
-> James
-> 
-> Index: linux-2.6/include/linux/highmem.h
-> ===================================================================
-> --- linux-2.6.orig/include/linux/highmem.h      2006-07-26 17:51:09.000000000 -0700
-> +++ linux-2.6/include/linux/highmem.h   2006-07-26 17:51:18.000000000 -0700
-> @@ -29,6 +29,7 @@
->  
->  static inline unsigned int nr_free_highpages(void) { return 0; }
->  
-> +#ifndef ARCH_HAS_KMAP
->  static inline void *kmap(struct page *page)
->  {
->         might_sleep();
-> @@ -41,6 +42,7 @@
->  #define kunmap_atomic(addr, idx)       do { } while (0)
->  #define kmap_atomic_pfn(pfn, idx)      page_address(pfn_to_page(pfn))
->  #define kmap_atomic_to_page(ptr)       virt_to_page(ptr)
-> +#endif
->  
->  #endif /* CONFIG_HIGHMEM */
+> So that all the general log2-based functions are grouped together was what I
+> was thinking (at least their primary interfaces).
 
-I really really really would prefer to do this only for atomic kmaps. 
-Normal sleeping kmap() is lame and slow and deadlocky and deprecated, so we
-want to discourage its use.  Possible?
+Except the get_order() interface is purely related to pages (the fact
+that you have reimplemented it using the log2-based functions is just an
+implementation detail.
+
+-- 
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
