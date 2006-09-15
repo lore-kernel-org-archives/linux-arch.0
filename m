@@ -1,47 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from witte.sonytel.be ([80.88.33.193]:35327 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S1751392AbWIOIHb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Sep 2006 04:07:31 -0400
-Date: Fri, 15 Sep 2006 10:06:08 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [patch 1/1] make PROT_WRITE imply PROT_READ
-In-Reply-To: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
-Message-ID: <Pine.LNX.4.62.0609151000480.4692@pademelon.sonytel.be>
-References: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from mtagate2.uk.ibm.com ([195.212.29.135]:54817 "EHLO
+	mtagate2.uk.ibm.com") by vger.kernel.org with ESMTP
+	id S1750733AbWIOIZM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Sep 2006 04:25:12 -0400
+Received: from d06nrmr1407.portsmouth.uk.ibm.com (d06nrmr1407.portsmouth.uk.ibm.com [9.149.38.185])
+	by mtagate2.uk.ibm.com (8.13.8/8.13.8) with ESMTP id k8F8PBHt152566
+	for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2006 08:25:11 GMT
+Received: from d06av01.portsmouth.uk.ibm.com (d06av01.portsmouth.uk.ibm.com [9.149.37.212])
+	by d06nrmr1407.portsmouth.uk.ibm.com (8.13.6/8.13.6/NCO v8.1.1) with ESMTP id k8F8RMq71482978
+	for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2006 09:27:22 +0100
+Received: from d06av01.portsmouth.uk.ibm.com (loopback [127.0.0.1])
+	by d06av01.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id k8F8PAbH027570
+	for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2006 09:25:10 +0100
+Subject: Re: [PATCH] [2/5] Fix 'make headers_check' on s390 for 2.6.18
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Reply-To: schwidefsky@de.ibm.com
+In-Reply-To: <1158273343.4312.141.camel@pmac.infradead.org>
+References: <1158079495.9189.125.camel@hades.cambridge.redhat.com>
+	 <1158273343.4312.141.camel@pmac.infradead.org>
+Content-Type: text/plain
+Date: Fri, 15 Sep 2006 10:25:09 +0200
+Message-Id: <1158308709.23993.0.camel@localhost>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org, jbaron@redhat.com, ak@muc.de, Alan Cox <alan@lxorguk.ukuu.org.uk>, arjan@linux.intel.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, hugh@veritas.com, kkojima@rr.iij4u.or.jp, lethal@linux-sh.org, Paul Mackerras <paulus@samba.org>, Russell King <rmk@arm.linux.org.uk>, spyro@f2s.com, tony.luck@intel.com, Roman Zippel <zippel@linux-m68k.org>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: torvalds@osdl.org, akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 14 Sep 2006 akpm@osdl.org wrote:
-> According to the SuSv3 spec, "if the application requests only PROT_WRITE,
-> the implementation may also allow read access." Also as mentioned, some
-> archtectures, such as alpha, shown above already take the approach that i am
-> suggesting.
->
-> The counter-argument to this raised by Arjan, is that the kernel is enforcing
-> the write only mapping the best it can given the h/w limitations.  This is
-> true, however Alan Cox, and myself would argue that the inconsitency in
-> behavior, that is applications can sometimes work/sometimes fails is highly
-> undesireable.  If you read through the thread, i think people, came to an
-> agreement on the last patch i posted, as nobody has objected to it...
+On Thu, 2006-09-14 at 23:35 +0100, David Woodhouse wrote:
+> > asm-s390/debug.h requires linux/string.h, which does not exist
+> > asm-s390/elf.h requires asm/system.h, which does not exist 
+> 
+> Move things around slightly so the right things end up within 
+> #ifdef __KERNEL__ and thus don't pollute the exported headers.
 
-The same can be said about not initializing local variables, using delete vs.
-delete [], ...: sometimes it works, sometimes it fails. It's still an
-application bug to rely on `may' behavior.
+Thanks David, looks good.
 
-So I tend to agree with Arjan.
+-- 
+blue skies,
+  Martin.
 
-Gr{oetje,eeting}s,
+Martin Schwidefsky
+Linux for zSeries Development & Services
+IBM Deutschland Entwicklung GmbH
 
-						Geert
+"Reality continues to ruin my life." - Calvin.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
