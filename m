@@ -1,48 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate5.de.ibm.com ([195.212.29.154]:20032 "EHLO
-	mtagate5.de.ibm.com") by vger.kernel.org with ESMTP
-	id S1751272AbWIOLa1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Sep 2006 07:30:27 -0400
-Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate5.de.ibm.com (8.13.8/8.13.8) with ESMTP id k8FBUQCO080612
-	for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2006 11:30:26 GMT
-Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
-	by d12nrmr1607.megacenter.de.ibm.com (8.13.6/8.13.6/NCO v8.1.1) with ESMTP id k8FBZ5oL2891838
-	for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2006 13:35:05 +0200
-Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
-	by d12av02.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id k8FBUPX2016752
-	for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2006 13:30:25 +0200
-Date: Fri, 15 Sep 2006 13:30:24 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [patch 0/2] Directed yield.
-Message-ID: <20060915113024.GD23134@skybase>
+Received: from ozlabs.org ([203.10.76.45]:49126 "EHLO ozlabs.org")
+	by vger.kernel.org with ESMTP id S1751293AbWIOL7O (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Sep 2006 07:59:14 -0400
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Transfer-Encoding: 7bit
+Message-ID: <17674.38270.541900.580212@cargo.ozlabs.ibm.com>
+Date: Fri, 15 Sep 2006 21:58:54 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [patch 1/2] Directed yield: cpu_relax variants for spinlocks and rw-locks.
+In-Reply-To: <20060915113039.GE23134@skybase>
+References: <20060915113039.GE23134@skybase>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, mingo@elte.hu
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, mingo@elte.hu
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi folks,
-with CONFIG_PREEMPT=y the spin_lock/read_lock/write_lock functions are
-defined in kernel/spinlock.c with a loop over _raw_##op##_trylock. If
-the lock could not be taken cpu_relax is called. The architecture can't
-choose to do something else instead of cpu_relax. To implement a
-directed yield that gives up the timeslice of a virtual cpu in
-favour of a specific cpu, the cpu_relax needs to be replaced with
-something new: _raw_spin_relax, _raw_read_relax or _raw_write_relax.
+Martin Schwidefsky writes:
 
-Patch #01 introduces the new primitives and patch #02 has the s390
-implementation for directed yield as example for the use of the
-primitives.
+> In order to implement a spinlock that yields the cpu in favour of
+> the current lock holder cpu_relax variants for spinlocks and
+> read/write locks are needed. The new _raw_spin_relax, _raw_read_relax
+> and _raw_write_relax primitives have an additional argument: the
+> pointer to the lock structure.
 
--- 
-blue skies,
-  Martin.
+This will be useful on powerpc as well.  We need:
 
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
+#define _raw_spin_relax(lock)	__spin_yield(lock)
+#define _raw_read_relax(lock)	__rw_yield(lock)
+#define _raw_write_relax(lock)	__rw_yield(lock)
 
-"Reality continues to ruin my life." - Calvin.
+in order to define your new primitives in terms of what we already
+have defined in asm-powerpc/spinlock.h.
 
+Thanks,
+Paul.
