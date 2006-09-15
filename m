@@ -1,31 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from colin.muc.de ([193.149.48.1]:50443 "EHLO mail.muc.de")
-	by vger.kernel.org with ESMTP id S1750762AbWIOIrv (ORCPT
+Received: from mx1.redhat.com ([66.187.233.31]:7125 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1750704AbWIOJAF (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Sep 2006 04:47:51 -0400
-Date: 15 Sep 2006 10:47:49 +0200
-Date: Fri, 15 Sep 2006 10:47:49 +0200
-From: Andi Kleen <ak@muc.de>
-Subject: Re: [patch 1/1] make PROT_WRITE imply PROT_READ
-Message-ID: <20060915084749.GC9672@muc.de>
-References: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
+	Fri, 15 Sep 2006 05:00:05 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <450974F2.1020104@yahoo.com.au> 
+References: <450974F2.1020104@yahoo.com.au>  <45085B31.3080504@yahoo.com.au> <45084833.4040602@yahoo.com.au> <44F395DE.10804@yahoo.com.au> <a2ebde260608271222x2b51693fnaa600965fcfaa6d2@mail.gmail.com> <1156750249.3034.155.camel@laptopd505.fenrus.org> <11861.1156845927@warthog.cambridge.redhat.com> <22461.1158173455@warthog.cambridge.redhat.com> <21102.1158234082@warthog.cambridge.redhat.com> 
+Subject: Re: Why Semaphore Hardware-Dependent? 
+Date: Fri, 15 Sep 2006 09:59:44 +0100
+Message-ID: <30414.1158310784@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@osdl.org
-Cc: linux-arch@vger.kernel.org, jbaron@redhat.com, alan@lxorguk.ukuu.org.uk, arjan@linux.intel.com, benh@kernel.crashing.org, geert@linux-m68k.org, hugh@veritas.com, kkojima@rr.iij4u.or.jp, lethal@linux-sh.org, paulus@samba.org, rmk@arm.linux.org.uk, spyro@f2s.com, tony.luck@intel.com, zippel@linux-m68k.org
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: David Howells <dhowells@redhat.com>, Arjan van de Ven <arjan@infradead.org>, Dong Feng <middle.fengdong@gmail.com>, ak@suse.de, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Sep 14, 2006 at 06:39:47PM -0700, akpm@osdl.org wrote:
-> From: Jason Baron <jbaron@redhat.com>
-> 
-> (akpm: needs to be split into nine patches and fed through arch trees. 
-> Later.)
-> 
-> (err, make it's easier to just collect some acks?)
+Nick Piggin <nickpiggin@yahoo.com.au> wrote:
 
-x86_64 part is ok for me.
+> It is actually larger here.
+> 
+>    text    data     bss     dec     hex filename
+>     970       0       0     970     3ca lib/rwsem-spinlock.o
+>     576       0       0     576     240 kernel/spinlock.o
+>   =1546
+> 
+>    text    data     bss     dec     hex filename
+>    1310       0       0    1310     51e lib/rwsem.o
+>     193       0       0     193      c1 kernel/rwsem.o
+>   =1503
 
--Andi
+What arch? FRV?
+
+David
