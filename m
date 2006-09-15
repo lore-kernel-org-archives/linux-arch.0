@@ -1,28 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.89]:41907 "EHLO
-	fmsmga101.fm.intel.com") by vger.kernel.org with ESMTP
-	id S1750704AbWIOEyC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Sep 2006 00:54:02 -0400
-Message-ID: <450A31D4.1020108@linux.intel.com>
-Date: Fri, 15 Sep 2006 06:53:40 +0200
-From: Arjan van de Ven <arjan@linux.intel.com>
-MIME-Version: 1.0
+Received: from witte.sonytel.be ([80.88.33.193]:35327 "EHLO witte.sonytel.be")
+	by vger.kernel.org with ESMTP id S1751392AbWIOIHb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Sep 2006 04:07:31 -0400
+Date: Fri, 15 Sep 2006 10:06:08 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [patch 1/1] make PROT_WRITE imply PROT_READ
-References: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
 In-Reply-To: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Message-ID: <Pine.LNX.4.62.0609151000480.4692@pademelon.sonytel.be>
+References: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@osdl.org
-Cc: linux-arch@vger.kernel.org, jbaron@redhat.com, ak@muc.de, alan@lxorguk.ukuu.org.uk, benh@kernel.crashing.org, geert@linux-m68k.org, hugh@veritas.com, kkojima@rr.iij4u.or.jp, lethal@linux-sh.org, paulus@samba.org, rmk@arm.linux.org.uk, spyro@f2s.com, tony.luck@intel.com, zippel@linux-m68k.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: linux-arch@vger.kernel.org, jbaron@redhat.com, ak@muc.de, Alan Cox <alan@lxorguk.ukuu.org.uk>, arjan@linux.intel.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, hugh@veritas.com, kkojima@rr.iij4u.or.jp, lethal@linux-sh.org, Paul Mackerras <paulus@samba.org>, Russell King <rmk@arm.linux.org.uk>, spyro@f2s.com, tony.luck@intel.com, Roman Zippel <zippel@linux-m68k.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-> Additional discussion:
-> 
-> Several architectures, including x86, can not support write-only mappings. 
+On Thu, 14 Sep 2006 akpm@osdl.org wrote:
+> According to the SuSv3 spec, "if the application requests only PROT_WRITE,
+> the implementation may also allow read access." Also as mentioned, some
+> archtectures, such as alpha, shown above already take the approach that i am
+> suggesting.
+>
+> The counter-argument to this raised by Arjan, is that the kernel is enforcing
+> the write only mapping the best it can given the h/w limitations.  This is
+> true, however Alan Cox, and myself would argue that the inconsitency in
+> behavior, that is applications can sometimes work/sometimes fails is highly
+> undesireable.  If you read through the thread, i think people, came to an
+> agreement on the last patch i posted, as nobody has objected to it...
 
-actually on x86 the kernel can support it, just that it's highly expensive in
-terms of performance so we don't currently do it. We could if we wanted to though.
+The same can be said about not initializing local variables, using delete vs.
+delete [], ...: sometimes it works, sometimes it fails. It's still an
+application bug to rely on `may' behavior.
 
-This patch will create a userspace ABI precedent that will hurt us if we ever
-decide to implement this, or if Intel or AMD add support for this to the cpu...
+So I tend to agree with Arjan.
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
