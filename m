@@ -1,79 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hoboe2bl1.telenet-ops.be ([195.130.137.73]:24547 "EHLO
-	hoboe2bl1.telenet-ops.be") by vger.kernel.org with ESMTP
-	id S964814AbWIQJwx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 17 Sep 2006 05:52:53 -0400
-Date: Sun, 17 Sep 2006 11:52:48 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: All arch maintainers: 'make headers_check' fails on most
- architectures.
-In-Reply-To: <1158079495.9189.125.camel@hades.cambridge.redhat.com>
-Message-ID: <Pine.LNX.4.64.0609171149210.5726@anakin>
-References: <1158079495.9189.125.camel@hades.cambridge.redhat.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from chilli.pcug.org.au ([203.10.76.44]:29410 "EHLO smtps.tip.net.au")
+	by vger.kernel.org with ESMTP id S964855AbWIQKEn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 17 Sep 2006 06:04:43 -0400
+Date: Sun, 17 Sep 2006 20:04:51 +1000
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 5/7] Alter get_order() so that it can make use of
+ ilog2() on a constant [try #3]
+Message-Id: <20060917200451.53251886.sfr@canb.auug.org.au>
+In-Reply-To: <13274.1158331362@warthog.cambridge.redhat.com>
+References: <20060915113516.ae2c788c.sfr@canb.auug.org.au>
+	<20060914112435.4ce28290.sfr@canb.auug.org.au>
+	<20060913183522.22109.10565.stgit@warthog.cambridge.redhat.com>
+	<20060913183531.22109.85723.stgit@warthog.cambridge.redhat.com>
+	<21308.1158234724@warthog.cambridge.redhat.com>
+	<13274.1158331362@warthog.cambridge.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: linux-arch@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 12 Sep 2006, David Woodhouse wrote:
-> This is just a basic check that the headers which _are_ exported don't
-> try to include other headers which aren't. This can happen either
-> because the former should not, or the latter _should_ be exported.
-> Mostly, however, the solution is just to make sure the latter is
-> included only within #ifdef __KERNEL__, because it's only needed within
-> that ifdef anyway.
+On Fri, 15 Sep 2006 15:42:42 +0100 David Howells <dhowells@redhat.com> wrote:
+>
+> Stephen Rothwell <sfr@canb.auug.org.au> wrote:
 > 
-> Admittedly, much of the time this is only seen in files like asm/page.h
-> or asm/elf.h which we really don't expect anyone in userspace to be
-> using anyway -- but it would be good to fix them anyway.
+> > Except the get_order() interface is purely related to pages (the fact
+> > that you have reimplemented it using the log2-based functions is just an
+> > implementation detail.
+> 
+> Do you have a major objection to it moving to linux/log2.h (do you count the
+> one you've just raised as "major")?
 
-> asm-m68k/page.h requires asm-generic/page.h, which does not exist
+I just think that things should be grouped according to the function they
+provide (and not their implemetation) and get_order is part of the paging
+API.
 
-Like this?
+> I'd rather avoid including linux/log2.h or linux/kernel.h in asm/page.h, plus
+> asm-generic/page.h isn't used by all archs (though that's a minor point).
 
---- linux-2.6.18-rc7/include/asm-m68k/page.h.orig	2006-09-04 11:03:01.000000000 +0200
-+++ linux-2.6.18-rc7/include/asm-m68k/page.h	2006-09-17 11:44:09.000000000 +0200
-@@ -2,6 +2,8 @@
- #define _M68K_PAGE_H
- 
- 
-+#ifdef __KERNEL__
-+
- /* PAGE_SHIFT determines the page size */
- #ifndef CONFIG_SUN3
- #define PAGE_SHIFT	(12)
-@@ -15,8 +17,6 @@
- #endif
- #define PAGE_MASK	(~(PAGE_SIZE-1))
- 
--#ifdef __KERNEL__
--
- #include <asm/setup.h>
- 
- #if PAGE_SHIFT < 13
-@@ -175,8 +175,8 @@ static inline void *__va(unsigned long x
- #define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
- 				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
- 
--#endif /* __KERNEL__ */
--
- #include <asm-generic/page.h>
- 
-+#endif /* __KERNEL__ */
-+
- #endif /* _M68K_PAGE_H */
+You only have to include linux/log2.h in asm-generic/page.h.  Presumably
+the architectures that don't use asm-generic/page.h won't want the new
+implementation of get_order() either (I didn't keep the original patch).
 
-BTW, what about adding headers_check to `make help'?
+Won't you need to include linux/log2.h in some places to get get_order(),
+now?  And if I was needing the paging API, I am much more likely to look
+for it in {linux,asm}/page.h than in linux/log2.h.
 
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+-- 
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
