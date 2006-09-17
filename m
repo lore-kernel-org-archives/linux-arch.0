@@ -1,43 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.ocgnet.org ([64.20.243.3]:30922 "EHLO smtp.ocgnet.org")
-	by vger.kernel.org with ESMTP id S932420AbWIQMvO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 17 Sep 2006 08:51:14 -0400
-Date: Sun, 17 Sep 2006 21:51:10 +0900
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: All arch maintainers: 'make headers_check' fails on most architectures.
-Message-ID: <20060917125110.GA21192@localhost.usen.ad.jp>
-References: <1158079495.9189.125.camel@hades.cambridge.redhat.com> <1158478779.24527.209.camel@pmac.infradead.org> <20060917115137.GA19084@localhost.usen.ad.jp> <1158495004.24527.236.camel@pmac.infradead.org>
+Received: from smtp103.sbc.mail.mud.yahoo.com ([68.142.198.202]:9572 "HELO
+	smtp103.sbc.mail.mud.yahoo.com") by vger.kernel.org with SMTP
+	id S932395AbWIQUYM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 17 Sep 2006 16:24:12 -0400
+Date: Sun, 17 Sep 2006 13:24:08 -0700
+From: Chris Wedgwood <cw@f00f.org>
+Subject: Re: [patch 1/1] make PROT_WRITE imply PROT_READ
+Message-ID: <20060917202408.GA10031@tuatara.stupidest.org>
+References: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1158495004.24527.236.camel@pmac.infradead.org>
+In-Reply-To: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: linux-arch@vger.kernel.org, drepper@redhat.com
+To: akpm@osdl.org
+Cc: linux-arch@vger.kernel.org, jbaron@redhat.com, ak@muc.de, alan@lxorguk.ukuu.org.uk, arjan@linux.intel.com, benh@kernel.crashing.org, geert@linux-m68k.org, hugh@veritas.com, kkojima@rr.iij4u.or.jp, lethal@linux-sh.org, paulus@samba.org, rmk@arm.linux.org.uk, spyro@f2s.com, tony.luck@intel.com, zippel@linux-m68k.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Sep 17, 2006 at 01:10:04PM +0100, David Woodhouse wrote:
-> A bunch of architectures define it as PAGE_SIZE anyway, which is broken
-> when PAGE_SIZE gets killed off -- which we're doing either because it's
-> dynamic on the arch in question or just because we're killing it on a
-> bunch of architectures so we should kill it on all for consistency.
-> Userspace needs to learn to use getpagesize() or sysconf(_SC_PAGE_SIZE).
-> 
-The other thing I forgot to mention is that PAGE_SIZE is really the
-wrong thing here anyways. On the systems with an aliasing dcache, it's
-the 4k pages that are generally the problem. On those platforms you can
-still switch to larger page sizes and then not have to worry about it.
+On Thu, Sep 14, 2006 at 06:39:47PM -0700, akpm@osdl.org wrote:
 
-So something like:
+> Make PROT_WRITE imply PROT_READ for a number of architectures which
+> don't support write only in hardware.
 
-> Hm, is there a sysconf(_SC_SHMLBA) ?
+Why don't we WARN where PROT_WRITE is used w/o PROT_READ?  Do
+non-trivial or non-contrived applications really use PROT_WRITE and
+assume reads are OK?
 
-would be much more useful. This would stop userspace libc's from doing
-things like #define SHMLBA (getpagesize() * 4)..
+It seems once we do this there will be little or no chance of ever
+doing write-only mappings should we want to in the future using this
+mechanism.
 
-In the 4k PAGE_SIZE case you still need the dcache specifics to figure
-out whether to bump up SHMLBA or not. So you either go with the safe
-route of using a "big enough" size that covers the worst-case aliasing
-scenario, or find a way to do it at run-time (ie, via the auxvt or
-_SC_SHMLBA).
+We could just update the definition of PROT_WRITE in the userspace
+headers...
