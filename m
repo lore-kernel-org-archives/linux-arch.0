@@ -1,55 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:29410 "EHLO smtps.tip.net.au")
-	by vger.kernel.org with ESMTP id S964855AbWIQKEn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 17 Sep 2006 06:04:43 -0400
-Date: Sun, 17 Sep 2006 20:04:51 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 5/7] Alter get_order() so that it can make use of
- ilog2() on a constant [try #3]
-Message-Id: <20060917200451.53251886.sfr@canb.auug.org.au>
-In-Reply-To: <13274.1158331362@warthog.cambridge.redhat.com>
-References: <20060915113516.ae2c788c.sfr@canb.auug.org.au>
-	<20060914112435.4ce28290.sfr@canb.auug.org.au>
-	<20060913183522.22109.10565.stgit@warthog.cambridge.redhat.com>
-	<20060913183531.22109.85723.stgit@warthog.cambridge.redhat.com>
-	<21308.1158234724@warthog.cambridge.redhat.com>
-	<13274.1158331362@warthog.cambridge.redhat.com>
+Received: from pentafluge.infradead.org ([213.146.154.40]:14550 "EHLO
+	pentafluge.infradead.org") by vger.kernel.org with ESMTP
+	id S964916AbWIQKg3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 17 Sep 2006 06:36:29 -0400
+Subject: Re: All arch maintainers: 'make headers_check' fails on most
+	architectures.
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <Pine.LNX.4.64.0609171149210.5726@anakin>
+References: <1158079495.9189.125.camel@hades.cambridge.redhat.com>
+	 <Pine.LNX.4.64.0609171149210.5726@anakin>
+Content-Type: text/plain
+Date: Sun, 17 Sep 2006 11:36:07 +0100
+Message-Id: <1158489367.24527.222.camel@pmac.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-arch@vger.kernel.org, akpm@osdl.org, torvalds@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 15 Sep 2006 15:42:42 +0100 David Howells <dhowells@redhat.com> wrote:
->
-> Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+On Sun, 2006-09-17 at 11:52 +0200, Geert Uytterhoeven wrote:
+> > asm-m68k/page.h requires asm-generic/page.h, which does not exist
 > 
-> > Except the get_order() interface is purely related to pages (the fact
-> > that you have reimplemented it using the log2-based functions is just an
-> > implementation detail.
-> 
-> Do you have a major objection to it moving to linux/log2.h (do you count the
-> one you've just raised as "major")?
+> Like this?
 
-I just think that things should be grouped according to the function they
-provide (and not their implemetation) and get_order is part of the paging
-API.
+Looks sane to me, yes. Thanks. Care to add a Signed-off-by and send it
+to Linus?
 
-> I'd rather avoid including linux/log2.h or linux/kernel.h in asm/page.h, plus
-> asm-generic/page.h isn't used by all archs (though that's a minor point).
+> BTW, what about adding headers_check to `make help'?
 
-You only have to include linux/log2.h in asm-generic/page.h.  Presumably
-the architectures that don't use asm-generic/page.h won't want the new
-implementation of get_order() either (I didn't keep the original patch).
+Yeah, good idea.
 
-Won't you need to include linux/log2.h in some places to get get_order(),
-now?  And if I was needing the paging API, I am much more likely to look
-for it in {linux,asm}/page.h than in linux/log2.h.
+----
+[PATCH] Add headers_check' target to output of 'make help'
+
+Signed-off-by: David Woodhouse <dwmw2@infradead.org>
+
+diff --git a/Makefile b/Makefile
+index eab5a8c..7646fc9 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1082,6 +1082,7 @@ help:
+ 	@echo  'Static analysers'
+ 	@echo  '  checkstack      - Generate a list of stack hogs'
+ 	@echo  '  namespacecheck  - Name space analysis on compiled kernel'
++	@echo  '  headers_check   - Sanity check on exported headers'
+ 	@echo  ''
+ 	@echo  'Kernel packaging:'
+ 	@$(MAKE) $(build)=$(package-dir) help
+
 
 -- 
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+dwmw2
+
