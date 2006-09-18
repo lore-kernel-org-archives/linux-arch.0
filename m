@@ -1,36 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:40947 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.177]:13787 "EHLO
 	moutng.kundenserver.de") by vger.kernel.org with ESMTP
-	id S965205AbWIRBiS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S965212AbWIRBiS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Sun, 17 Sep 2006 21:38:18 -0400
-Message-Id: <20060918012740.407846000@klappe.arndb.de>
+Message-Id: <20060918013216.335200000@klappe.arndb.de>
+References: <20060918012740.407846000@klappe.arndb.de>
 In-Reply-To: <1158079495.9189.125.camel@hades.cambridge.redhat.com>
-Date: Mon, 18 Sep 2006 03:27:40 +0200
+Date: Mon, 18 Sep 2006 03:27:41 +0200
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [patch 0/8] Re: All arch maintainers: 'make headers_check' fails on most architectures.
+Subject: [patch 1/8] extend make headers_check to detect more problems
+Content-Disposition: inline; filename=headercheck-base.diff
 Sender: linux-arch-owner@vger.kernel.org
 To: David Woodhouse <dwmw2@infradead.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tuesday 12 September 2006 18:44, David Woodhouse wrote:
+In addition to the problem of including non-existant header
+files, a number of other things can go wrong with header
+files exported to user space. This adds checks for some
+common problems:
 
-> Basically all but PowerPC and i386 have problems; and the latter works
-> only if you apply the patches I sent to Linus a few days ago.
->
-> This is just a basic check that the headers which _are_ exported don't
-> try to include other headers which aren't. This can happen either
-> because the former should not, or the latter _should_ be exported.
-> Mostly, however, the solution is just to make sure the latter is
-> included only within #ifdef __KERNEL__, because it's only needed within
-> that ifdef anyway.
+- The header fails to include the files it needs, which
+  results in build errors when a program tries to include
+  it. Check this by doing a dummy compile.
 
-I have extended that script somewhat to check for more problems,
-and fixed a number of problems in the process.
+- There is a declarations of a static variable or non-inline
+  function in the header, which results in object code
+  in every file including it. Check for symbols in the object
+  with 'nm'.
 
-The bad news is that with this extended script, there will be even
-more work for each architecture maintainer to make it check without
-warnings.
+- Part of the header is subject to conditional compilation
+  based on CONFIG_*. Add a regex search for this.
 
-	Arnd <><
+I found many problems with this, which I then fixed for
+powerpc, s390 and i386, in subsequent patches.
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Index: linux-cg/scripts/hdrcheck.sh
+===================================================================
+--- linux-cg.orig/scripts/hdrcheck.sh	2006-09-18 02:04:44.000000000 +0200
++++ linux-cg/scripts/hdrcheck.sh	2006-09-18 02:04:45.000000000 +0200
+@@ -1,8 +1,28 @@
+ #!/bin/sh
+ 
++# check if all included files exist
+ for FILE in `grep '^[ \t]*#[ \t]*include[ \t]*<' $2 | cut -f2 -d\< | cut -f1 -d\> | egrep ^linux\|^asm` ; do
+     if [ ! -r $1/$FILE ]; then
+ 	echo $2 requires $FILE, which does not exist in exported headers
+ 	exit 1
+     fi
+ done
++
++# try to compile in order to see CC warnings, show only the first few
++CHECK_CFLAGS=`grep @headercheck: $2 | sed -e 's/^.*@headercheck:\([^@]*\)@.*$/\1/'`
++CFLAGS="-Wall -std=gnu99 -xc -O2 -I$1 ${CHECK_CFLAGS}"
++tmpfile=`mktemp`
++${CC:-gcc} ${CFLAGS} -c $2 -o $tmpfile 2>&1 | sed -e "s:$1:include:g" >&2
++
++# check if object file is empty
++if [ "`nm $tmpfile`" ] ; then
++    echo include${2#$1}: warning: non-empty output >&2
++fi
++rm $tmpfile
++
++# check if we use a CONFIG_ symbol, which is not allowed in installed headers
++grep '^[ \t]*#[ \t]*if.*\<CONFIG_[[:alnum:]_]*\>' -n $2 |
++while read i ; do
++    echo include${2#$1}:${i%%:*}: warning: invalid use of `echo $i |
++	sed -e 's/.*\(\<CONFIG_[[:alnum:]_]*\>\).*/\1/g'` >&2
++done
+
+--
 
