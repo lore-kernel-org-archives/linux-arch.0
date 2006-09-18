@@ -1,243 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from omx1-ext.sgi.com ([192.48.179.11]:43214 "EHLO
+Received: from omx1-ext.sgi.com ([192.48.179.11]:55246 "EHLO
 	omx1.americas.sgi.com") by vger.kernel.org with ESMTP
-	id S1750730AbWIRSg4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Sep 2006 14:36:56 -0400
-Date: Mon, 18 Sep 2006 11:36:29 -0700 (PDT)
+	id S1750957AbWIRShK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Sep 2006 14:37:10 -0400
+Date: Mon, 18 Sep 2006 11:36:45 -0700 (PDT)
 From: Christoph Lameter <clameter@sgi.com>
-Message-Id: <20060918183629.19679.48193.sendpatchset@schroedinger.engr.sgi.com>
+Message-Id: <20060918183645.19679.4719.sendpatchset@schroedinger.engr.sgi.com>
 In-Reply-To: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
 References: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
-Subject: [PATCH 3/8] Optional ZONE_DMA in the VM
+Subject: [PATCH 6/8] Optional ZONE_DMA for ia64
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Paul Mundt <lethal@linux-sh.org>, Christoph Hellwig <hch@infradead.org>, James Bottomley <James.Bottomley@steeleye.com>, Arjan van de Ven <arjan@infradead.org>, linux-mm@kvack.org, Russell King <rmk@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, Andi Kleen <ak@suse.de>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Cc: Paul Mundt <lethal@linux-sh.org>, Christoph Hellwig <hch@infradead.org>, James Bottomley <James.Bottomley@steeleye.com>, Arjan van de Ven <arjan@infradead.org>, linux-mm@kvack.org, Russell King <rmk@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Andi Kleen <ak@suse.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-Make ZONE_DMA optional in core code.
+ZONE_DMA less operation for IA64 SGI platform
 
-- ifdef all code for ZONE_DMA and related definitions following
-  the example for ZONE_DMA32 and ZONE_HIGHMEM.
-
-- Without ZONE_DMA, ZONE_HIGHMEM and ZONE_DMA32 we get to a
-  ZONES_SHIFT of 0.
-
-- Modify the VM statistics to work correctly without a DMA
-  zone.
-
-- Modify slab to not create DMA slabs if there is no
-  ZONE_DMA.
+Disable ZONE_DMA for SGI SN2. All memory is addressable by all
+devices and we do not need any special memory pool.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 
-Index: linux-2.6.18-rc6-mm2/include/linux/mmzone.h
+Index: linux-2.6.18-rc6-mm1/arch/ia64/mm/discontig.c
 ===================================================================
---- linux-2.6.18-rc6-mm2.orig/include/linux/mmzone.h	2006-09-18 13:16:14.450122635 -0500
-+++ linux-2.6.18-rc6-mm2/include/linux/mmzone.h	2006-09-18 13:16:29.139812806 -0500
-@@ -91,6 +91,7 @@ struct per_cpu_pageset {
- #endif
- 
- enum zone_type {
+--- linux-2.6.18-rc6-mm1.orig/arch/ia64/mm/discontig.c	2006-09-11 16:42:07.206714114 -0500
++++ linux-2.6.18-rc6-mm1/arch/ia64/mm/discontig.c	2006-09-11 16:51:50.094129334 -0500
+@@ -37,7 +37,9 @@
+ 	unsigned long pernode_size;
+ 	struct bootmem_data bootmem_data;
+ 	unsigned long num_physpages;
 +#ifdef CONFIG_ZONE_DMA
- 	/*
- 	 * ZONE_DMA is used when there are devices that are not able
- 	 * to do DMA to all of addressable memory (ZONE_NORMAL). Then we
-@@ -111,6 +112,7 @@ enum zone_type {
- 	 * 			<16M.
- 	 */
- 	ZONE_DMA,
+ 	unsigned long num_dma_physpages;
 +#endif
- #ifdef CONFIG_ZONE_DMA32
- 	/*
- 	 * x86_64 needs two ZONE_DMAs because it supports devices that are
-@@ -148,7 +150,11 @@ enum zone_type {
-  */
+ 	unsigned long min_pfn;
+ 	unsigned long max_pfn;
+ };
+@@ -656,9 +658,11 @@
  
- #if !defined(CONFIG_ZONE_DMA32) && !defined(CONFIG_HIGHMEM)
-+#if !defined(CONFIG_ZONE_DMA)
-+#define ZONES_SHIFT 0
-+#else
- #define ZONES_SHIFT 1
-+#endif
- #else
- #define ZONES_SHIFT 2
- #endif
-@@ -453,7 +459,11 @@ static inline int is_dma32(struct zone *
- 
- static inline int is_dma(struct zone *zone)
- {
+ 	add_active_range(node, start >> PAGE_SHIFT, end >> PAGE_SHIFT);
+ 	mem_data[node].num_physpages += len >> PAGE_SHIFT;
 +#ifdef CONFIG_ZONE_DMA
- 	return zone == zone->zone_pgdat->node_zones + ZONE_DMA;
-+#else
-+	return 0;
+ 	if (start <= __pa(MAX_DMA_ADDRESS))
+ 		mem_data[node].num_dma_physpages +=
+ 			(min(end, __pa(MAX_DMA_ADDRESS)) - start) >>PAGE_SHIFT;
 +#endif
- }
- 
- /* These two functions are used to setup the per zone pages min values */
-Index: linux-2.6.18-rc6-mm2/mm/page_alloc.c
-===================================================================
---- linux-2.6.18-rc6-mm2.orig/mm/page_alloc.c	2006-09-18 13:16:18.945611213 -0500
-+++ linux-2.6.18-rc6-mm2/mm/page_alloc.c	2006-09-18 13:16:29.159345669 -0500
-@@ -71,7 +71,9 @@ static void __free_pages_ok(struct page 
-  * don't need any ZONE_NORMAL reservation
-  */
- int sysctl_lowmem_reserve_ratio[MAX_NR_ZONES-1] = {
-+#ifdef CONFIG_ZONE_DMA
- 	 256,
-+#endif
- #ifdef CONFIG_ZONE_DMA32
- 	 256,
- #endif
-@@ -90,7 +92,9 @@ struct zone *zone_table[1 << ZONETABLE_S
- EXPORT_SYMBOL(zone_table);
- 
- static char *zone_names[MAX_NR_ZONES] = {
-+#ifdef CONFIG_ZONE_DMA
- 	 "DMA",
-+#endif
- #ifdef CONFIG_ZONE_DMA32
- 	 "DMA32",
- #endif
-Index: linux-2.6.18-rc6-mm2/include/linux/gfp.h
-===================================================================
---- linux-2.6.18-rc6-mm2.orig/include/linux/gfp.h	2006-09-18 13:16:13.307450110 -0500
-+++ linux-2.6.18-rc6-mm2/include/linux/gfp.h	2006-09-18 13:16:29.170088744 -0500
-@@ -80,8 +80,10 @@ struct vm_area_struct;
- 
- static inline enum zone_type gfp_zone(gfp_t flags)
- {
-+#ifdef CONFIG_ZONE_DMA
- 	if (flags & __GFP_DMA)
- 		return ZONE_DMA;
-+#endif
- #ifdef CONFIG_ZONE_DMA32
- 	if (flags & __GFP_DMA32)
- 		return ZONE_DMA32;
-Index: linux-2.6.18-rc6-mm2/mm/slab.c
-===================================================================
---- linux-2.6.18-rc6-mm2.orig/mm/slab.c	2006-09-18 13:16:15.423835889 -0500
-+++ linux-2.6.18-rc6-mm2/mm/slab.c	2006-09-18 13:16:29.187668322 -0500
-@@ -1441,13 +1441,14 @@ void __init kmem_cache_init(void)
- 					ARCH_KMALLOC_FLAGS|SLAB_PANIC,
- 					NULL, NULL);
- 		}
--
-+#ifdef CONFIG_ZONE_DMA
- 		sizes->cs_dmacachep = kmem_cache_create(names->name_dma,
- 					sizes->cs_size,
- 					ARCH_KMALLOC_MINALIGN,
- 					ARCH_KMALLOC_FLAGS|SLAB_CACHE_DMA|
- 						SLAB_PANIC,
- 					NULL, NULL);
-+#endif
- 		sizes++;
- 		names++;
+ 	start = GRANULEROUNDDOWN(start);
+ 	start = ORDERROUNDDOWN(start);
+ 	end = GRANULEROUNDUP(end);
+@@ -709,7 +713,9 @@
+ 			max_pfn = mem_data[node].max_pfn;
  	}
-@@ -2275,8 +2276,10 @@ kmem_cache_create (const char *name, siz
- 	cachep->slab_size = slab_size;
- 	cachep->flags = flags;
- 	cachep->gfpflags = 0;
-+#ifdef CONFIG_ZONE_DMA
- 	if (flags & SLAB_CACHE_DMA)
- 		cachep->gfpflags |= GFP_DMA;
-+#endif
- 	cachep->buffer_size = size;
  
- 	if (flags & CFLGS_OFF_SLAB) {
-Index: linux-2.6.18-rc6-mm2/include/linux/slab.h
++#ifdef CONFIG_ZONE_DMA
+ 	max_zone_pfns[ZONE_DMA] = max_dma;
++#endif
+ 	max_zone_pfns[ZONE_NORMAL] = max_pfn;
+ 	free_area_init_nodes(max_zone_pfns);
+ 
+Index: linux-2.6.18-rc6-mm1/arch/ia64/mm/contig.c
 ===================================================================
---- linux-2.6.18-rc6-mm2.orig/include/linux/slab.h	2006-09-18 13:07:52.648958109 -0500
-+++ linux-2.6.18-rc6-mm2/include/linux/slab.h	2006-09-18 13:16:29.199388040 -0500
-@@ -72,7 +72,11 @@ extern const char *kmem_cache_name(kmem_
- struct cache_sizes {
- 	size_t		 cs_size;
- 	kmem_cache_t	*cs_cachep;
-+#ifdef CONFIG_ZONE_DMA
- 	kmem_cache_t	*cs_dmacachep;
-+#else
-+#define cs_dmacachep cs_cachep
-+#endif
- };
- extern struct cache_sizes malloc_sizes[];
+--- linux-2.6.18-rc6-mm1.orig/arch/ia64/mm/contig.c	2006-09-11 16:42:07.215503923 -0500
++++ linux-2.6.18-rc6-mm1/arch/ia64/mm/contig.c	2006-09-11 16:51:50.104872434 -0500
+@@ -231,8 +231,10 @@
+ 	num_physpages = 0;
+ 	efi_memmap_walk(count_pages, &num_physpages);
  
-Index: linux-2.6.18-rc6-mm2/mm/vmstat.c
++#ifdef CONFIG_ZONE_DMA
+ 	max_dma = virt_to_phys((void *) MAX_DMA_ADDRESS) >> PAGE_SHIFT;
+ 	max_zone_pfns[ZONE_DMA] = max_dma;
++#endif
+ 	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
+ 
+ #ifdef CONFIG_VIRTUAL_MEM_MAP
+Index: linux-2.6.18-rc6-mm1/arch/ia64/Kconfig
 ===================================================================
---- linux-2.6.18-rc6-mm2.orig/mm/vmstat.c	2006-09-18 13:07:52.686070541 -0500
-+++ linux-2.6.18-rc6-mm2/mm/vmstat.c	2006-09-18 13:16:29.207201186 -0500
-@@ -437,6 +437,12 @@ struct seq_operations fragmentation_op =
- 	.show	= frag_show,
- };
+--- linux-2.6.18-rc6-mm1.orig/arch/ia64/Kconfig	2006-09-11 16:44:55.649739769 -0500
++++ linux-2.6.18-rc6-mm1/arch/ia64/Kconfig	2006-09-11 16:51:50.114638888 -0500
+@@ -23,8 +23,8 @@
+ 	default y
  
-+#ifdef CONFIG_ZONE_DMA
-+#define TEXT_FOR_DMA(xx) xx "_dma",
-+#else
-+#define TEXT_FOR_DMA(xx)
-+#endif
-+
- #ifdef CONFIG_ZONE_DMA32
- #define TEXT_FOR_DMA32(xx) xx "_dma32",
- #else
-@@ -449,7 +455,7 @@ struct seq_operations fragmentation_op =
- #define TEXT_FOR_HIGHMEM(xx)
- #endif
+ config ZONE_DMA
+-	bool
+-	default y
++	def_bool y
++	depends on !IA64_SGI_SN2
  
--#define TEXTS_FOR_ZONES(xx) xx "_dma", TEXT_FOR_DMA32(xx) xx "_normal", \
-+#define TEXTS_FOR_ZONES(xx) TEXT_FOR_DMA(xx) TEXT_FOR_DMA32(xx) xx "_normal", \
- 					TEXT_FOR_HIGHMEM(xx)
- 
- static char *vmstat_text[] = {
-Index: linux-2.6.18-rc6-mm2/include/linux/vmstat.h
-===================================================================
---- linux-2.6.18-rc6-mm2.orig/include/linux/vmstat.h	2006-09-18 13:07:52.660677824 -0500
-+++ linux-2.6.18-rc6-mm2/include/linux/vmstat.h	2006-09-18 13:16:29.215990974 -0500
-@@ -17,6 +17,12 @@
-  * generated will simply be the increment of a global address.
-  */
- 
-+#ifdef CONFIG_ZONE_DMA
-+#define DMA_ZONE(xx) xx##_DMA,
-+#else
-+#define DMA_ZONE(xx)
-+#endif
-+
- #ifdef CONFIG_ZONE_DMA32
- #define DMA32_ZONE(xx) xx##_DMA32,
- #else
-@@ -29,7 +35,7 @@
- #define HIGHMEM_ZONE(xx)
- #endif
- 
--#define FOR_ALL_ZONES(xx) xx##_DMA, DMA32_ZONE(xx) xx##_NORMAL HIGHMEM_ZONE(xx)
-+#define FOR_ALL_ZONES(xx) DMA_ZONE(xx) DMA32_ZONE(xx) xx##_NORMAL HIGHMEM_ZONE(xx)
- 
- enum vm_event_item { PGPGIN, PGPGOUT, PSWPIN, PSWPOUT,
- 		FOR_ALL_ZONES(PGALLOC),
-@@ -88,7 +94,8 @@ extern void vm_events_fold_cpu(int cpu);
- #endif /* CONFIG_VM_EVENT_COUNTERS */
- 
- #define __count_zone_vm_events(item, zone, delta) \
--			__count_vm_events(item##_DMA + zone_idx(zone), delta)
-+		__count_vm_events(item##_NORMAL - ZONE_NORMAL + \
-+		zone_idx(zone), delta)
- 
- /*
-  * Zone based page accounting with per cpu differentials.
-@@ -135,14 +142,16 @@ static inline unsigned long node_page_st
- 	struct zone *zones = NODE_DATA(node)->node_zones;
- 
- 	return
-+#ifdef CONFIG_ZONE_DMA
-+		zone_page_state(&zones[ZONE_DMA], item) +
-+#endif
- #ifdef CONFIG_ZONE_DMA32
- 		zone_page_state(&zones[ZONE_DMA32], item) +
- #endif
--		zone_page_state(&zones[ZONE_NORMAL], item) +
- #ifdef CONFIG_HIGHMEM
- 		zone_page_state(&zones[ZONE_HIGHMEM], item) +
- #endif
--		zone_page_state(&zones[ZONE_DMA], item);
-+		zone_page_state(&zones[ZONE_NORMAL], item);
- }
- 
- extern void zone_statistics(struct zonelist *, struct zone *);
+ config MMU
+ 	bool
