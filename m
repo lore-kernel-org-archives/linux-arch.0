@@ -1,43 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:58007 "EHLO
-	pentafluge.infradead.org") by vger.kernel.org with ESMTP
-	id S965547AbWIRILE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Sep 2006 04:11:04 -0400
-Subject: Re: [patch 1/8] extend make headers_check to detect more problems
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <200609181005.36817.arnd@arndb.de>
-References: <20060918012740.407846000@klappe.arndb.de>
-	 <20060918013216.335200000@klappe.arndb.de>
-	 <20060918062152.GA7088@uranus.ravnborg.org>
-	 <200609181005.36817.arnd@arndb.de>
-Content-Type: text/plain
-Date: Mon, 18 Sep 2006 09:10:41 +0100
-Message-Id: <1158567041.24527.310.camel@pmac.infradead.org>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from witte.sonytel.be ([80.88.33.193]:37361 "EHLO witte.sonytel.be")
+	by vger.kernel.org with ESMTP id S965560AbWIRIRf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Sep 2006 04:17:35 -0400
+Date: Mon, 18 Sep 2006 10:15:14 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [patch 1/1] make PROT_WRITE imply PROT_READ
+In-Reply-To: <20060918043100.GA15828@tuatara.stupidest.org>
+Message-ID: <Pine.LNX.4.62.0609181014440.17583@pademelon.sonytel.be>
+References: <200609150139.k8F1dl7Y014791@shell0.pdx.osdl.net>
+ <20060917202408.GA10031@tuatara.stupidest.org> <1158527646.6069.67.camel@localhost.localdomain>
+ <20060918005723.GB12662@tuatara.stupidest.org> <17677.65159.433214.4524@cargo.ozlabs.ibm.com>
+ <20060918043100.GA15828@tuatara.stupidest.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Chris Wedgwood <cw@f00f.org>
+Cc: Paul Mackerras <paulus@samba.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, jbaron@redhat.com, ak@muc.de, arjan@linux.intel.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, hugh@veritas.com, kkojima@rr.iij4u.or.jp, lethal@linux-sh.org, Russell King <rmk@arm.linux.org.uk>, spyro@f2s.com, tony.luck@intel.com, Roman Zippel <zippel@linux-m68k.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2006-09-18 at 10:05 +0200, Arnd Bergmann wrote:
+On Sun, 17 Sep 2006, Chris Wedgwood wrote:
+> On Mon, Sep 18, 2006 at 12:03:51PM +1000, Paul Mackerras wrote:
+> > I think the problem is that these applications break randomly,
 > 
-> +headers-y    Files that are installed verbatim from the source
-> +            directory, as well subdirectories that also contain
-> +            installable header files.
-> +objhdr-y     Files that are installed from the object directory,
-> +            having been generated during the kernel build.
-> +unifdef-y    Files that have both parts for installations and
-> +            parts that are private to the kernel. These files
-> +            are run through the 'unifdef'(1) program that will
-> +            strip all parts inside of '#ifdef __KERNEL__'.
+> which means they are broken surely?
+> 
+> > depending on exactly when page faults happen, and these patches make
+> > the behaviour consistent and deterministic.
+> 
+> so would detecting PROT_WRITE w/o PROT_READ and returning -EINVAL
+> surely then?
+> 
+> it would still be broken so no loss there and we wouldn't have to make
+> such a long term change
 
- objhdr-y      Files that are generated automatically during the
-               build process (i.e. include/linux/version.h) and
-               are installed verbatim from the build directory.
+That would break apps that use PROT_WRITE correctly (i.e. for writing only).
 
-Looks good, thanks for doing the documentation.
+Gr{oetje,eeting}s,
 
--- 
-dwmw2
+						Geert
 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
