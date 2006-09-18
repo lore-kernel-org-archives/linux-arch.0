@@ -1,64 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from omx2-ext.sgi.com ([192.48.171.19]:56492 "EHLO omx2.sgi.com")
-	by vger.kernel.org with ESMTP id S1750947AbWIRShF (ORCPT
+Received: from omx2-ext.sgi.com ([192.48.171.19]:52140 "EHLO omx2.sgi.com")
+	by vger.kernel.org with ESMTP id S1750739AbWIRSg5 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Sep 2006 14:37:05 -0400
-Date: Mon, 18 Sep 2006 11:36:55 -0700 (PDT)
+	Mon, 18 Sep 2006 14:36:57 -0400
+Date: Mon, 18 Sep 2006 11:36:19 -0700 (PDT)
 From: Christoph Lameter <clameter@sgi.com>
-Message-Id: <20060918183655.19679.51633.sendpatchset@schroedinger.engr.sgi.com>
+Message-Id: <20060918183619.19679.67911.sendpatchset@schroedinger.engr.sgi.com>
 In-Reply-To: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
 References: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
-Subject: [PATCH 8/8] Remove ZONE_DMA remains from sh/sh64
+Subject: [PATCH 1/8] Deal with cases of ZONE_DMA meaning the first zone
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Paul Mundt <lethal@linux-sh.org>, Christoph Hellwig <hch@infradead.org>, James Bottomley <James.Bottomley@steeleye.com>, Arjan van de Ven <arjan@infradead.org>, linux-mm@kvack.org, Russell King <rmk@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Andi Kleen <ak@suse.de>
+Cc: Paul Mundt <lethal@linux-sh.org>, Christoph Hellwig <hch@infradead.org>, James Bottomley <James.Bottomley@steeleye.com>, Arjan van de Ven <arjan@infradead.org>, linux-mm@kvack.org, Russell King <rmk@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, Andi Kleen <ak@suse.de>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-sh / sh64: Remove ZONE_DMA remains.
+Optional DMA zone: Replace uses of ZONE_DMA as the first zone
 
-Both arches do not need ZONE_DMA
+In two places in the VM we use ZONE_DMA to refer to the first zone.
+If ZONE_DMA is optional then other zones may be first. So simply
+replace ZONE_DMA with zone 0.
 
+This also fixes ZONETABLE_PGSHIFT. If we have only a single zone then
+ZONES_PGSHIFT may become 0 because there is no need anymore to encode the
+zone number related to a pgdat. However, we still need a zonetable to index
+all the zones for each node if this is a NUMA system. Therefore define
+ZONETABLE_SHIFT unconditionally as the offset of the ZONE field in page flags.
+
+Acked-by: Christoph Hellwig <hch@infradead.org>
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 
-Index: linux-2.6.18-rc6-mm2/arch/sh/mm/init.c
+Index: linux-2.6.18-rc6-mm2/mm/mempolicy.c
 ===================================================================
---- linux-2.6.18-rc6-mm2.orig/arch/sh/mm/init.c	2006-09-18 12:54:04.733274009 -0500
-+++ linux-2.6.18-rc6-mm2/arch/sh/mm/init.c	2006-09-18 12:58:58.563038661 -0500
-@@ -156,7 +156,6 @@ void __init paging_init(void)
- 	 * Setup some defaults for the zone sizes.. these should be safe
- 	 * regardless of distcontiguous memory or MMU settings.
- 	 */
--	zones_size[ZONE_DMA] = 0 >> PAGE_SHIFT;
- 	zones_size[ZONE_NORMAL] = __MEMORY_SIZE >> PAGE_SHIFT;
- #ifdef CONFIG_HIGHMEM
- 	zones_size[ZONE_HIGHMEM] = 0 >> PAGE_SHIFT;
-Index: linux-2.6.18-rc6-mm2/arch/sh64/mm/init.c
+--- linux-2.6.18-rc6-mm2.orig/mm/mempolicy.c	2006-09-18 13:07:53.318935179 -0500
++++ linux-2.6.18-rc6-mm2/mm/mempolicy.c	2006-09-18 13:16:18.929008279 -0500
+@@ -105,7 +105,7 @@ static struct kmem_cache *sn_cache;
+ 
+ /* Highest zone. An specific allocation for a zone below that is not
+    policied. */
+-enum zone_type policy_zone = ZONE_DMA;
++enum zone_type policy_zone = 0;
+ 
+ struct mempolicy default_policy = {
+ 	.refcnt = ATOMIC_INIT(1), /* never free it */
+Index: linux-2.6.18-rc6-mm2/mm/page_alloc.c
 ===================================================================
---- linux-2.6.18-rc6-mm2.orig/arch/sh64/mm/init.c	2006-09-18 12:54:04.745970361 -0500
-+++ linux-2.6.18-rc6-mm2/arch/sh64/mm/init.c	2006-09-18 12:58:58.577688302 -0500
-@@ -118,10 +118,7 @@ void __init paging_init(void)
+--- linux-2.6.18-rc6-mm2.orig/mm/page_alloc.c	2006-09-18 13:16:14.463795639 -0500
++++ linux-2.6.18-rc6-mm2/mm/page_alloc.c	2006-09-18 13:27:53.271625765 -0500
+@@ -2486,11 +2486,11 @@ static void __meminit free_area_init_cor
+ 				"  %s zone: %lu pages exceeds realsize %lu\n",
+ 				zone_names[j], memmap_pages, realsize);
  
- 	mmu_context_cache = MMU_CONTEXT_FIRST_VERSION;
+-		/* Account for reserved DMA pages */
+-		if (j == ZONE_DMA && realsize > dma_reserve) {
++		/* Account for reserved pages */
++		if (j == 0 && realsize > dma_reserve) {
+ 			realsize -= dma_reserve;
+-			printk(KERN_DEBUG "  DMA zone: %lu pages reserved\n",
+-								dma_reserve);
++			printk(KERN_DEBUG "  %s zone: %lu pages reserved\n",
++					zone_names[0], dma_reserve);
+ 		}
  
--        /*
--	 * All memory is good as ZONE_NORMAL (fall-through) and ZONE_DMA.
--         */
--	zones_size[ZONE_DMA] = MAX_LOW_PFN - START_PFN;
-+	zones_size[ZONE_NORMAL] = MAX_LOW_PFN - START_PFN;
- 	NODE_DATA(0)->node_mem_map = NULL;
- 	free_area_init_node(0, NODE_DATA(0), zones_size, __MEMORY_START >> PAGE_SHIFT, 0);
- }
-Index: linux-2.6.18-rc6-mm2/arch/sh64/Kconfig
+ 		if (!is_highmem_idx(j))
+Index: linux-2.6.18-rc6-mm2/include/linux/mm.h
 ===================================================================
---- linux-2.6.18-rc6-mm2.orig/arch/sh64/Kconfig	2006-09-18 12:33:04.000000000 -0500
-+++ linux-2.6.18-rc6-mm2/arch/sh64/Kconfig	2006-09-18 13:01:07.919367272 -0500
-@@ -36,9 +36,6 @@ config GENERIC_CALIBRATE_DELAY
- config RWSEM_XCHGADD_ALGORITHM
- 	bool
+--- linux-2.6.18-rc6-mm2.orig/include/linux/mm.h	2006-09-18 13:16:14.000000000 -0500
++++ linux-2.6.18-rc6-mm2/include/linux/mm.h	2006-09-18 13:28:52.406396556 -0500
+@@ -416,7 +416,7 @@ void split_page(struct page *page, unsig
+ #else
+ #define ZONETABLE_SHIFT		(SECTIONS_SHIFT + ZONES_SHIFT)
+ #endif
+-#define ZONETABLE_PGSHIFT	ZONES_PGSHIFT
++#define ZONETABLE_PGSHIFT	ZONES_PGOFF
  
--config GENERIC_ISA_DMA
--	bool
--
- source init/Kconfig
- 
- menu "System type"
+ #if SECTIONS_WIDTH+NODES_WIDTH+ZONES_WIDTH > FLAGS_RESERVED
+ #error SECTIONS_WIDTH+NODES_WIDTH+ZONES_WIDTH > FLAGS_RESERVED
