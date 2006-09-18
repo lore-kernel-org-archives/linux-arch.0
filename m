@@ -1,77 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from omx2-ext.sgi.com ([192.48.171.19]:52140 "EHLO omx2.sgi.com")
-	by vger.kernel.org with ESMTP id S1750739AbWIRSg5 (ORCPT
+Received: from omx2-ext.sgi.com ([192.48.171.19]:55980 "EHLO omx2.sgi.com")
+	by vger.kernel.org with ESMTP id S1750832AbWIRShD (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Sep 2006 14:36:57 -0400
-Date: Mon, 18 Sep 2006 11:36:19 -0700 (PDT)
+	Mon, 18 Sep 2006 14:37:03 -0400
+Date: Mon, 18 Sep 2006 11:36:50 -0700 (PDT)
 From: Christoph Lameter <clameter@sgi.com>
-Message-Id: <20060918183619.19679.67911.sendpatchset@schroedinger.engr.sgi.com>
+Message-Id: <20060918183650.19679.81541.sendpatchset@schroedinger.engr.sgi.com>
 In-Reply-To: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
 References: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
-Subject: [PATCH 1/8] Deal with cases of ZONE_DMA meaning the first zone
+Subject: [PATCH 7/8] Remove ZONE_DMA remains from parisc
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Paul Mundt <lethal@linux-sh.org>, Christoph Hellwig <hch@infradead.org>, James Bottomley <James.Bottomley@steeleye.com>, Arjan van de Ven <arjan@infradead.org>, linux-mm@kvack.org, Russell King <rmk@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, Andi Kleen <ak@suse.de>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Optional DMA zone: Replace uses of ZONE_DMA as the first zone
+parisc: arch does not need ZONE_DMA
 
-In two places in the VM we use ZONE_DMA to refer to the first zone.
-If ZONE_DMA is optional then other zones may be first. So simply
-replace ZONE_DMA with zone 0.
+Remove ZONE_DMA remains from parisc so that kernels are build without
+ZONE_DMA.
 
-This also fixes ZONETABLE_PGSHIFT. If we have only a single zone then
-ZONES_PGSHIFT may become 0 because there is no need anymore to encode the
-zone number related to a pgdat. However, we still need a zonetable to index
-all the zones for each node if this is a NUMA system. Therefore define
-ZONETABLE_SHIFT unconditionally as the offset of the ZONE field in page flags.
-
-Acked-by: Christoph Hellwig <hch@infradead.org>
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 
-Index: linux-2.6.18-rc6-mm2/mm/mempolicy.c
+Index: linux-2.6.18-rc6-mm2/arch/parisc/Kconfig
 ===================================================================
---- linux-2.6.18-rc6-mm2.orig/mm/mempolicy.c	2006-09-18 13:07:53.318935179 -0500
-+++ linux-2.6.18-rc6-mm2/mm/mempolicy.c	2006-09-18 13:16:18.929008279 -0500
-@@ -105,7 +105,7 @@ static struct kmem_cache *sn_cache;
+--- linux-2.6.18-rc6-mm2.orig/arch/parisc/Kconfig	2006-09-18 12:52:05.203892680 -0500
++++ linux-2.6.18-rc6-mm2/arch/parisc/Kconfig	2006-09-18 12:55:43.140754129 -0500
+@@ -42,9 +42,6 @@ config TIME_LOW_RES
+ 	depends on SMP
+ 	default y
  
- /* Highest zone. An specific allocation for a zone below that is not
-    policied. */
--enum zone_type policy_zone = ZONE_DMA;
-+enum zone_type policy_zone = 0;
+-config GENERIC_ISA_DMA
+-	bool
+-
+ config GENERIC_HARDIRQS
+ 	def_bool y
  
- struct mempolicy default_policy = {
- 	.refcnt = ATOMIC_INIT(1), /* never free it */
-Index: linux-2.6.18-rc6-mm2/mm/page_alloc.c
+Index: linux-2.6.18-rc6-mm2/arch/parisc/mm/init.c
 ===================================================================
---- linux-2.6.18-rc6-mm2.orig/mm/page_alloc.c	2006-09-18 13:16:14.463795639 -0500
-+++ linux-2.6.18-rc6-mm2/mm/page_alloc.c	2006-09-18 13:27:53.271625765 -0500
-@@ -2486,11 +2486,11 @@ static void __meminit free_area_init_cor
- 				"  %s zone: %lu pages exceeds realsize %lu\n",
- 				zone_names[j], memmap_pages, realsize);
+--- linux-2.6.18-rc6-mm2.orig/arch/parisc/mm/init.c	2006-09-18 12:52:05.217565682 -0500
++++ linux-2.6.18-rc6-mm2/arch/parisc/mm/init.c	2006-09-18 12:55:43.153450483 -0500
+@@ -808,9 +808,7 @@ void __init paging_init(void)
+ 	for (i = 0; i < npmem_ranges; i++) {
+ 		unsigned long zones_size[MAX_NR_ZONES] = { 0, };
  
--		/* Account for reserved DMA pages */
--		if (j == ZONE_DMA && realsize > dma_reserve) {
-+		/* Account for reserved pages */
-+		if (j == 0 && realsize > dma_reserve) {
- 			realsize -= dma_reserve;
--			printk(KERN_DEBUG "  DMA zone: %lu pages reserved\n",
--								dma_reserve);
-+			printk(KERN_DEBUG "  %s zone: %lu pages reserved\n",
-+					zone_names[0], dma_reserve);
- 		}
+-		/* We have an IOMMU, so all memory can go into a single
+-		   ZONE_DMA zone. */
+-		zones_size[ZONE_DMA] = pmem_ranges[i].pages;
++		zones_size[ZONE_NORMAL] = pmem_ranges[i].pages;
  
- 		if (!is_highmem_idx(j))
-Index: linux-2.6.18-rc6-mm2/include/linux/mm.h
-===================================================================
---- linux-2.6.18-rc6-mm2.orig/include/linux/mm.h	2006-09-18 13:16:14.000000000 -0500
-+++ linux-2.6.18-rc6-mm2/include/linux/mm.h	2006-09-18 13:28:52.406396556 -0500
-@@ -416,7 +416,7 @@ void split_page(struct page *page, unsig
- #else
- #define ZONETABLE_SHIFT		(SECTIONS_SHIFT + ZONES_SHIFT)
- #endif
--#define ZONETABLE_PGSHIFT	ZONES_PGSHIFT
-+#define ZONETABLE_PGSHIFT	ZONES_PGOFF
- 
- #if SECTIONS_WIDTH+NODES_WIDTH+ZONES_WIDTH > FLAGS_RESERVED
- #error SECTIONS_WIDTH+NODES_WIDTH+ZONES_WIDTH > FLAGS_RESERVED
+ #ifdef CONFIG_DISCONTIGMEM
+ 		/* Need to initialize the pfnnid_map before we can initialize
