@@ -1,101 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from omx2-ext.sgi.com ([192.48.171.19]:52396 "EHLO omx2.sgi.com")
-	by vger.kernel.org with ESMTP id S1750826AbWIRSg5 (ORCPT
+Received: from omx2-ext.sgi.com ([192.48.171.19]:56492 "EHLO omx2.sgi.com")
+	by vger.kernel.org with ESMTP id S1750947AbWIRShF (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Sep 2006 14:36:57 -0400
-Date: Mon, 18 Sep 2006 11:36:34 -0700 (PDT)
+	Mon, 18 Sep 2006 14:37:05 -0400
+Date: Mon, 18 Sep 2006 11:36:55 -0700 (PDT)
 From: Christoph Lameter <clameter@sgi.com>
-Message-Id: <20060918183634.19679.98513.sendpatchset@schroedinger.engr.sgi.com>
+Message-Id: <20060918183655.19679.51633.sendpatchset@schroedinger.engr.sgi.com>
 In-Reply-To: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
 References: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
-Subject: [PATCH 4/8] Optional ZONE_DMA for i386
+Subject: [PATCH 8/8] Remove ZONE_DMA remains from sh/sh64
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Paul Mundt <lethal@linux-sh.org>, Christoph Hellwig <hch@infradead.org>, James Bottomley <James.Bottomley@steeleye.com>, Arjan van de Ven <arjan@infradead.org>, linux-mm@kvack.org, Russell King <rmk@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Andi Kleen <ak@suse.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-i386: Optional ZONE_DMA
+sh / sh64: Remove ZONE_DMA remains.
 
-ZONE_DMA depends on GENERIC_ISA_DMA. We allow the user to configure
-GENERIC_ISA_DMA. If it is switched off then ISA_DMA_API is also
-switched off which will deselect all drivers that depend on ISA
-functionality.
+Both arches do not need ZONE_DMA
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 
-Index: linux-2.6.18-rc6-mm1/arch/i386/Kconfig
+Index: linux-2.6.18-rc6-mm2/arch/sh/mm/init.c
 ===================================================================
---- linux-2.6.18-rc6-mm1.orig/arch/i386/Kconfig	2006-09-08 06:42:11.697455315 -0500
-+++ linux-2.6.18-rc6-mm1/arch/i386/Kconfig	2006-09-11 15:41:55.911259588 -0500
-@@ -41,10 +41,6 @@
- config SBUS
+--- linux-2.6.18-rc6-mm2.orig/arch/sh/mm/init.c	2006-09-18 12:54:04.733274009 -0500
++++ linux-2.6.18-rc6-mm2/arch/sh/mm/init.c	2006-09-18 12:58:58.563038661 -0500
+@@ -156,7 +156,6 @@ void __init paging_init(void)
+ 	 * Setup some defaults for the zone sizes.. these should be safe
+ 	 * regardless of distcontiguous memory or MMU settings.
+ 	 */
+-	zones_size[ZONE_DMA] = 0 >> PAGE_SHIFT;
+ 	zones_size[ZONE_NORMAL] = __MEMORY_SIZE >> PAGE_SHIFT;
+ #ifdef CONFIG_HIGHMEM
+ 	zones_size[ZONE_HIGHMEM] = 0 >> PAGE_SHIFT;
+Index: linux-2.6.18-rc6-mm2/arch/sh64/mm/init.c
+===================================================================
+--- linux-2.6.18-rc6-mm2.orig/arch/sh64/mm/init.c	2006-09-18 12:54:04.745970361 -0500
++++ linux-2.6.18-rc6-mm2/arch/sh64/mm/init.c	2006-09-18 12:58:58.577688302 -0500
+@@ -118,10 +118,7 @@ void __init paging_init(void)
+ 
+ 	mmu_context_cache = MMU_CONTEXT_FIRST_VERSION;
+ 
+-        /*
+-	 * All memory is good as ZONE_NORMAL (fall-through) and ZONE_DMA.
+-         */
+-	zones_size[ZONE_DMA] = MAX_LOW_PFN - START_PFN;
++	zones_size[ZONE_NORMAL] = MAX_LOW_PFN - START_PFN;
+ 	NODE_DATA(0)->node_mem_map = NULL;
+ 	free_area_init_node(0, NODE_DATA(0), zones_size, __MEMORY_START >> PAGE_SHIFT, 0);
+ }
+Index: linux-2.6.18-rc6-mm2/arch/sh64/Kconfig
+===================================================================
+--- linux-2.6.18-rc6-mm2.orig/arch/sh64/Kconfig	2006-09-18 12:33:04.000000000 -0500
++++ linux-2.6.18-rc6-mm2/arch/sh64/Kconfig	2006-09-18 13:01:07.919367272 -0500
+@@ -36,9 +36,6 @@ config GENERIC_CALIBRATE_DELAY
+ config RWSEM_XCHGADD_ALGORITHM
  	bool
  
 -config GENERIC_ISA_DMA
 -	bool
--	default y
 -
- config GENERIC_IOMAP
- 	bool
- 	default y
-@@ -346,6 +342,15 @@
-           XFree86 to initialize some video cards via BIOS. Disabling this
-           option saves about 6k.
+ source init/Kconfig
  
-+config GENERIC_ISA_DMA
-+	bool "ISA DMA zone (to support ISA legacy DMA)"
-+	default y
-+	help
-+	  If DMA for ISA boards needs to be supported then this option
-+	  needs to be enabled. An additional DMA zone for <16MB memory
-+	  will be created and memory below 16MB will be used for those
-+	  devices.
-+
- config TOSHIBA
- 	tristate "Toshiba Laptop support"
- 	---help---
-@@ -1071,6 +1076,7 @@
- 
- config ISA_DMA_API
- 	bool
-+	depends on GENERIC_ISA_DMA
- 	default y
- 
- config ISA
-Index: linux-2.6.18-rc6-mm1/arch/i386/kernel/Makefile
-===================================================================
---- linux-2.6.18-rc6-mm1.orig/arch/i386/kernel/Makefile	2006-09-08 06:42:11.780470103 -0500
-+++ linux-2.6.18-rc6-mm1/arch/i386/kernel/Makefile	2006-09-11 15:41:55.950325419 -0500
-@@ -7,8 +7,9 @@
- obj-y	:= process.o signal.o entry.o traps.o irq.o \
- 		ptrace.o time.o ioport.o ldt.o setup.o i8259.o sys_i386.o \
- 		pci-dma.o i386_ksyms.o i387.o bootflag.o \
--		quirks.o i8237.o topology.o alternative.o i8253.o tsc.o
-+		quirks.o topology.o alternative.o i8253.o tsc.o
- 
-+obj-$(CONFIG_GENERIC_ISA_DMA)	+= i8237.o
- obj-$(CONFIG_STACKTRACE)	+= stacktrace.o
- obj-y				+= cpu/
- obj-y				+= acpi/
-Index: linux-2.6.18-rc6-mm1/arch/i386/kernel/setup.c
-===================================================================
---- linux-2.6.18-rc6-mm1.orig/arch/i386/kernel/setup.c	2006-09-08 06:42:12.269769024 -0500
-+++ linux-2.6.18-rc6-mm1/arch/i386/kernel/setup.c	2006-09-11 15:41:55.982554730 -0500
-@@ -1075,13 +1075,17 @@
- {
- #ifdef CONFIG_HIGHMEM
- 	unsigned long max_zone_pfns[MAX_NR_ZONES] = {
-+#ifdef CONFIG_ZONE_DMA
- 			virt_to_phys((char *)MAX_DMA_ADDRESS) >> PAGE_SHIFT,
-+#endif
- 			max_low_pfn,
- 			highend_pfn};
- 	add_active_range(0, 0, highend_pfn);
- #else
- 	unsigned long max_zone_pfns[MAX_NR_ZONES] = {
-+#ifdef CONFIG_ZONE_DMA
- 			virt_to_phys((char *)MAX_DMA_ADDRESS) >> PAGE_SHIFT,
-+#endif
- 			max_low_pfn};
- 	add_active_range(0, 0, max_low_pfn);
- #endif
+ menu "System type"
