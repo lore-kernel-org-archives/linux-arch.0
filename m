@@ -1,271 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nf-out-0910.google.com ([64.233.182.187]:35092 "EHLO
-	nf-out-0910.google.com") by vger.kernel.org with ESMTP
-	id S965380AbWIREnx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Sep 2006 00:43:53 -0400
-Received: by nf-out-0910.google.com with SMTP id o25so2667927nfa
-        for <linux-arch@vger.kernel.org>; Sun, 17 Sep 2006 21:43:52 -0700 (PDT)
-Date: Mon, 18 Sep 2006 08:43:48 +0400
-From: Alexey Dobriyan <adobriyan@gmail.com>
-Subject: [PATCH] proper flags type of spin_lock_irqsave()
-Message-ID: <20060918044348.GA5364@martell.zuzino.mipt.ru>
+Received: from pasmtpa.tele.dk ([80.160.77.114]:22441 "EHLO pasmtpA.tele.dk")
+	by vger.kernel.org with ESMTP id S965464AbWIRGQy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Sep 2006 02:16:54 -0400
+Date: Mon, 18 Sep 2006 08:21:52 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [patch 1/8] extend make headers_check to detect more problems
+Message-ID: <20060918062152.GA7088@uranus.ravnborg.org>
+References: <20060918012740.407846000@klappe.arndb.de> <20060918013216.335200000@klappe.arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <20060918013216.335200000@klappe.arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
----
+> --- linux-cg.orig/scripts/hdrcheck.sh	2006-09-18 02:04:44.000000000 +0200
+> +++ linux-cg/scripts/hdrcheck.sh	2006-09-18 02:04:45.000000000 +0200
+> @@ -1,8 +1,28 @@
+>  #!/bin/sh
+>  
+> +# check if all included files exist
+>  for FILE in `grep '^[ \t]*#[ \t]*include[ \t]*<' $2 | cut -f2 -d\< | cut -f1 -d\> | egrep ^linux\|^asm` ; do
+>      if [ ! -r $1/$FILE ]; then
+>  	echo $2 requires $FILE, which does not exist in exported headers
+>  	exit 1
+>      fi
+>  done
+> +
+> +# try to compile in order to see CC warnings, show only the first few
+> +CHECK_CFLAGS=`grep @headercheck: $2 | sed -e 's/^.*@headercheck:\([^@]*\)@.*$/\1/'`
 
- So far results of incomplete spin_lock_irqsave audit, and there is also
- local_irq_save()... I'll eventually add
+The purpose of @headercheck: should be documented sonewhere.
+A simple way to do so would be to paste the content of the changelog that
+describe it in the top of this file.
 
-	typedef unsigned long __bitwise__ lock_flags_t;
+> +CFLAGS="-Wall -std=gnu99 -xc -O2 -I$1 ${CHECK_CFLAGS}"
+> +tmpfile=`mktemp`
+Can't we do this with a hdrchk$$$ filename to avoid using
+random entropy for each compile?
 
- so sparse could find future offenders. name OK?
+> +${CC:-gcc} ${CFLAGS} -c $2 -o $tmpfile 2>&1 | sed -e "s:$1:include:g" >&2
+> +
+> +# check if object file is empty
+> +if [ "`nm $tmpfile`" ] ; then
+Replace nm with {NM:-nm} to obtain correct NM when cross compiling.
 
- arch/ia64/kernel/mca.c             |    2 +-
- arch/ia64/sn/pci/pcibr/pcibr_ate.c |    2 +-
- arch/ia64/sn/pci/pcibr/pcibr_dma.c |    2 +-
- arch/parisc/kernel/firmware.c      |    7 ++++---
- arch/v850/kernel/memcons.c         |    2 +-
- arch/v850/kernel/rte_cb_leds.c     |    2 +-
- arch/v850/kernel/rte_mb_a_pci.c    |   12 ++++++------
- drivers/char/ds1286.c              |   15 ++++++++-------
- drivers/i2c/busses/i2c-ite.c       |    2 +-
- sound/oss/swarm_cs4297a.c          |    2 +-
- 10 files changed, 25 insertions(+), 23 deletions(-)
+> +    echo include${2#$1}: warning: non-empty output >&2
+Paste output of nm so one can see what is defined?
 
---- a/arch/ia64/kernel/mca.c
-+++ b/arch/ia64/kernel/mca.c
-@@ -221,7 +221,7 @@ ia64_log_get(int sal_info_type, u8 **buf
- {
- 	sal_log_record_header_t     *log_buffer;
- 	u64                         total_len = 0;
--	int                         s;
-+	unsigned long               s;
- 
- 	IA64_LOG_LOCK(sal_info_type);
- 
---- a/arch/ia64/sn/pci/pcibr/pcibr_ate.c
-+++ b/arch/ia64/sn/pci/pcibr/pcibr_ate.c
-@@ -160,7 +160,7 @@ void pcibr_ate_free(struct pcibus_info *
- 
- 	volatile u64 ate;
- 	int count;
--	u64 flags;
-+	unsigned long flags;
- 
- 	if (pcibr_invalidate_ate) {
- 		/* For debugging purposes, clear the valid bit in the ATE */
---- a/arch/ia64/sn/pci/pcibr/pcibr_dma.c
-+++ b/arch/ia64/sn/pci/pcibr/pcibr_dma.c
-@@ -237,7 +237,7 @@ void sn_dma_flush(u64 addr)
- 	int is_tio;
- 	int wid_num;
- 	int i, j;
--	u64 flags;
-+	unsigned long flags;
- 	u64 itte;
- 	struct hubdev_info *hubinfo;
- 	struct sn_flush_device_kernel *p;
---- a/arch/parisc/kernel/firmware.c
-+++ b/arch/parisc/kernel/firmware.c
-@@ -1049,7 +1049,7 @@ void pdc_iodc_putc(unsigned char c)
-         static int __attribute__((aligned(8)))   iodc_retbuf[32];
-         static char __attribute__((aligned(64))) iodc_dbuf[4096];
-         unsigned int n;
--	unsigned int flags;
-+	unsigned long flags;
- 
-         switch (c) {
-         case '\n':
-@@ -1088,7 +1088,8 @@ void pdc_iodc_putc(unsigned char c)
-  */
- void pdc_iodc_outc(unsigned char c)
- {
--	unsigned int n, flags;
-+	unsigned int n;
-+	unsigned long flags;
- 
- 	/* fill buffer with one caracter and print it */
-         static int __attribute__((aligned(8)))   iodc_retbuf[32];
-@@ -1113,7 +1114,7 @@ void pdc_iodc_outc(unsigned char c)
-  */
- int pdc_iodc_getc(void)
- {
--	unsigned int flags;
-+	unsigned long flags;
-         static int __attribute__((aligned(8)))   iodc_retbuf[32];
-         static char __attribute__((aligned(64))) iodc_dbuf[4096];
- 	int ch;
---- a/arch/v850/kernel/memcons.c
-+++ b/arch/v850/kernel/memcons.c
-@@ -30,7 +30,7 @@ static DEFINE_SPINLOCK(memcons_lock);
- 
- static size_t write (const char *buf, size_t len)
- {
--	int flags;
-+	unsigned long flags;
- 	char *point;
- 
- 	spin_lock_irqsave (memcons_lock, flags);
---- a/arch/v850/kernel/rte_cb_leds.c
-+++ b/arch/v850/kernel/rte_cb_leds.c
-@@ -42,7 +42,7 @@ do {									\
- 			len = LED_NUM_DIGITS - pos;			\
- 									\
- 		if (len > 0) {						\
--			int _flags;					\
-+			unsigned long _flags;				\
- 			const char *_end = buf + len;			\
- 			img_decl = &leds_image[pos];			\
- 									\
---- a/arch/v850/kernel/rte_mb_a_pci.c
-+++ b/arch/v850/kernel/rte_mb_a_pci.c
-@@ -365,7 +365,7 @@ static DEFINE_SPINLOCK(mb_sram_lock);
- static void *alloc_mb_sram (size_t size)
- {
- 	struct mb_sram_free_area *prev, *fa;
--	int flags;
-+	unsigned long flags;
- 	void *mem = 0;
- 
- 	spin_lock_irqsave (mb_sram_lock, flags);
-@@ -406,7 +406,7 @@ static void *alloc_mb_sram (size_t size)
- static void free_mb_sram (void *mem, size_t size)
- {
- 	struct mb_sram_free_area *prev, *fa, *new_fa;
--	int flags;
-+	unsigned long flags;
- 	void *end = mem + size;
- 
- 	spin_lock_irqsave (mb_sram_lock, flags);
-@@ -517,7 +517,7 @@ static DEFINE_SPINLOCK(dma_mappings_lock
- 
- static struct dma_mapping *new_dma_mapping (size_t size)
- {
--	int flags;
-+	unsigned long flags;
- 	struct dma_mapping *mapping;
- 	void *mb_sram_block = alloc_mb_sram (size);
- 
-@@ -575,7 +575,7 @@ static struct dma_mapping *new_dma_mappi
- 
- static struct dma_mapping *find_dma_mapping (void *mb_sram_addr)
- {
--	int flags;
-+	unsigned long flags;
- 	struct dma_mapping *mapping;
- 
- 	spin_lock_irqsave (dma_mappings_lock, flags);
-@@ -592,7 +592,7 @@ static struct dma_mapping *find_dma_mapp
- 
- static struct dma_mapping *deactivate_dma_mapping (void *mb_sram_addr)
- {
--	int flags;
-+	unsigned long flags;
- 	struct dma_mapping *mapping, *prev;
- 
- 	spin_lock_irqsave (dma_mappings_lock, flags);
-@@ -622,7 +622,7 @@ static struct dma_mapping *deactivate_dm
- static inline void
- free_dma_mapping (struct dma_mapping *mapping)
- {
--	int flags;
-+	unsigned long flags;
- 
- 	free_mb_sram (mapping->mb_sram_addr, mapping->size);
- 
---- a/drivers/char/ds1286.c
-+++ b/drivers/char/ds1286.c
-@@ -104,7 +104,7 @@ static int ds1286_ioctl(struct inode *in
- 	switch (cmd) {
- 	case RTC_AIE_OFF:	/* Mask alarm int. enab. bit	*/
- 	{
--		unsigned int flags;
-+		unsigned long flags;
- 		unsigned char val;
- 
- 		if (!capable(CAP_SYS_TIME))
-@@ -120,7 +120,7 @@ static int ds1286_ioctl(struct inode *in
- 	}
- 	case RTC_AIE_ON:	/* Allow alarm interrupts.	*/
- 	{
--		unsigned int flags;
-+		unsigned long flags;
- 		unsigned char val;
- 
- 		if (!capable(CAP_SYS_TIME))
-@@ -136,7 +136,7 @@ static int ds1286_ioctl(struct inode *in
- 	}
- 	case RTC_WIE_OFF:	/* Mask watchdog int. enab. bit	*/
- 	{
--		unsigned int flags;
-+		unsigned long flags;
- 		unsigned char val;
- 
- 		if (!capable(CAP_SYS_TIME))
-@@ -152,7 +152,7 @@ static int ds1286_ioctl(struct inode *in
- 	}
- 	case RTC_WIE_ON:	/* Allow watchdog interrupts.	*/
- 	{
--		unsigned int flags;
-+		unsigned long flags;
- 		unsigned char val;
- 
- 		if (!capable(CAP_SYS_TIME))
-@@ -434,7 +434,7 @@ static inline unsigned char ds1286_is_up
- static void ds1286_get_time(struct rtc_time *rtc_tm)
- {
- 	unsigned char save_control;
--	unsigned int flags;
-+	unsigned long flags;
- 	unsigned long uip_watchdog = jiffies;
- 
- 	/*
-@@ -494,7 +494,8 @@ static int ds1286_set_time(struct rtc_ti
- {
- 	unsigned char mon, day, hrs, min, sec, leap_yr;
- 	unsigned char save_control;
--	unsigned int yrs, flags;
-+	unsigned int yrs;
-+	unsigned long flags;
- 
- 
- 	yrs = rtc_tm->tm_year + 1900;
-@@ -552,7 +553,7 @@ static int ds1286_set_time(struct rtc_ti
- static void ds1286_get_alm_time(struct rtc_time *alm_tm)
- {
- 	unsigned char cmd;
--	unsigned int flags;
-+	unsigned long flags;
- 
- 	/*
- 	 * Only the values that we read from the RTC are set. That
---- a/drivers/i2c/busses/i2c-ite.c
-+++ b/drivers/i2c/busses/i2c-ite.c
-@@ -109,7 +109,7 @@ static int iic_ite_getclock(void *data)
- static void iic_ite_waitforpin(void) {
-    DEFINE_WAIT(wait);
-    int timeout = 2;
--   long flags;
-+   unsigned long flags;
- 
-    /* If interrupts are enabled (which they are), then put the process to
-     * sleep.  This process will be awakened by two events -- either the
---- a/sound/oss/swarm_cs4297a.c
-+++ b/sound/oss/swarm_cs4297a.c
-@@ -725,7 +725,7 @@ static int serdma_reg_access(struct cs42
-         serdma_t *d = &s->dma_dac;
-         u64 *data_p;
-         unsigned swptr;
--        int flags;
-+        unsigned long flags;
-         serdma_descr_t *descr;
- 
-         if (s->reg_request) {
-
+	Sam
