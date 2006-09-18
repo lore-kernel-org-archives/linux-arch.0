@@ -1,39 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from omx2-ext.sgi.com ([192.48.171.19]:47510 "EHLO omx2.sgi.com")
-	by vger.kernel.org with ESMTP id S1750816AbWIRRdX (ORCPT
+Received: from smtp.osdl.org ([65.172.181.4]:49610 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1751866AbWIRRyH (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Sep 2006 13:33:23 -0400
-Date: Mon, 18 Sep 2006 10:33:00 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 2/6] Introduce CONFIG_ZONE_DMA
-In-Reply-To: <20060918152243.GA4320@localhost.na.rta>
-Message-ID: <Pine.LNX.4.64.0609181031420.19312@schroedinger.engr.sgi.com>
-References: <20060911222729.4849.69497.sendpatchset@schroedinger.engr.sgi.com>
- <20060911222739.4849.79915.sendpatchset@schroedinger.engr.sgi.com>
- <20060918135559.GB15096@infradead.org> <20060918152243.GA4320@localhost.na.rta>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+	Mon, 18 Sep 2006 13:54:07 -0400
+Date: Mon, 18 Sep 2006 10:53:50 -0700
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: [patch 0/3] Directed yield.
+Message-Id: <20060918105350.25f02252.akpm@osdl.org>
+In-Reply-To: <20060918121959.GA3290@skybase>
+References: <20060918121959.GA3290@skybase>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: Christoph Hellwig <hch@infradead.org>, linux-mm@kvack.org, Nick Piggin <nickpiggin@yahoo.com.au>, linux-ia64@vger.kernel.org, Marcelo Tosatti <marcelo@kvack.org>, Arjan van de Ven <arjan@infradead.org>, Martin Bligh <mbligh@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, mingo@elte.hu, paulus@samba.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 19 Sep 2006, Paul Mundt wrote:
+On Mon, 18 Sep 2006 14:19:59 +0200
+Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
 
-> sh and sh64 have no use for ZONE_DMA, it's effectively ZONE_DMA ==
-> ZONE_NORMAL anyways, so it can be safely switched off (though
-> arch/sh/mm/init.c should then be changed to use ZONE_NORMAL if ZONE_DMA
-> goes away, as we currently place all lowmem in ZONE_DMA, likewise for
-> sh64). None of our DMA controllers have any particular limitations where
-> ZONE_DMA would be useful at least.
+> nobody has complained about my spinlock yield patches.
 
-Ok. I dropped the CONFIG_ZONE_DMA for sh so you will no longer have a DMA 
-zone when this patch goes in.
- 
-sh64 has the same strange code as parisc:
+Complain.
 
-config GENERIC_ISA_DMA
-        bool
+I had to hunt around a bit to discover that this functionality has
+something to do with "giving up the timeslice of a virtual cpu in favour of
+a specific cpu".  And also that it is expected to be of some
+briefly-alluded-to benefit on powerpc.
 
-You do not have ISA_DMA so I should drop these lines?
+So...  Could you please flesh out the description/rationale rather a lot
+and cc linux-kernel on the patches?
 
+Thanks.
