@@ -1,120 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from omx1-ext.sgi.com ([192.48.179.11]:43470 "EHLO
-	omx1.americas.sgi.com") by vger.kernel.org with ESMTP
-	id S1750735AbWIRSg4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Sep 2006 14:36:56 -0400
-Date: Mon, 18 Sep 2006 11:36:14 -0700 (PDT)
+Received: from omx2-ext.sgi.com ([192.48.171.19]:52396 "EHLO omx2.sgi.com")
+	by vger.kernel.org with ESMTP id S1750826AbWIRSg5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Sep 2006 14:36:57 -0400
+Date: Mon, 18 Sep 2006 11:36:34 -0700 (PDT)
 From: Christoph Lameter <clameter@sgi.com>
-Message-Id: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
-Subject: [PATCH 0/8] Optional ZONE_DMA V2
+Message-Id: <20060918183634.19679.98513.sendpatchset@schroedinger.engr.sgi.com>
+In-Reply-To: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
+References: <20060918183614.19679.50359.sendpatchset@schroedinger.engr.sgi.com>
+Subject: [PATCH 4/8] Optional ZONE_DMA for i386
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Paul Mundt <lethal@linux-sh.org>, Christoph Hellwig <hch@infradead.org>, James Bottomley <James.Bottomley@steeleye.com>, Arjan van de Ven <arjan@infradead.org>, linux-mm@kvack.org, Russell King <rmk@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Andi Kleen <ak@suse.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-Optional ZONE_DMA V2
+i386: Optional ZONE_DMA
 
-V1->V2
-- Sh sh64 and parisc do not need ZONE_DMA so do not define
-  CONFIG_ZONE_DMA for those zones. Add patches for those
-  arches to remove the use of ZONE_DMA (untested since
-  I do not have those arches).
-- Update documentation after feedback from V1.
+ZONE_DMA depends on GENERIC_ISA_DMA. We allow the user to configure
+GENERIC_ISA_DMA. If it is switched off then ISA_DMA_API is also
+switched off which will deselect all drivers that depend on ISA
+functionality.
 
-This patch follows up on the earlier work in Andrew's tree to reduce
-the number of zones. The patches allow to go to a minimum of 2 zones.
-This one allows also to make ZONE_DMA optional and therefore the
-number of zones can be reduced to one.
+Signed-off-by: Christoph Lameter <clameter@sgi.com>
 
-ZONE_DMA is usually used for ISA DMA devices. There are a number
-of reasons why we would not want to have ZONE_DMA
-
-1. Some arches do not need ZONE_DMA at all.
-
-2. With the advent of IOMMUs DMA zones are no longer needed.
-   The necessity of DMA zones may drastically be reduced
-   in the future. This patchset allows a compilation of
-   a kernel without that overhead.
-
-3. Devices that require ISA DMA get rare these days. All
-   my systems do not have any need for ISA DMA.
-
-4. The presence of an additional zone unecessarily complicates
-   VM operations because it must be scanned and balancing
-   logic must operate on its.
-
-5. With only ZONE_NORMAL one can reach the situation where
-   we have only one zone. This will allow the unrolling of many
-   loops in the VM and allows the optimization of varous
-   code paths in the VM.
-
-6. Having only a single zone in a NUMA system results in a
-   1-1 correspondence between nodes and zones. Various additional
-   optimizations to critical VM paths become possible.
-
-Many systems today can operate just fine with a single zone.
-If you look at what is in ZONE_DMA then one usually sees that nothing
-uses it. The DMA slabs are empty (Some arches use ZONE_DMA instead
-of ZONE_NORMAL, then ZONE_NORMAL will be empty instead).
-
-On all of my systems (i386, x86_64, ia64) ZONE_DMA is completely empty.
-Why constantly look at an empty zone in /proc/zoneinfo and empty slab
-in /proc/slabinfo?  Non i386 also frequently have no need for ZONE_DMA
-and zones stay empty.
-
-The patchset was tested on i386 (UP / SMP), x86_64 (UP, NUMA) and
-ia64 (NUMA).
-
-The RFC posted earlier (see
-http://marc.theaimsgroup.com/?l=linux-kernel&m=115231723513008&w=2)
-had lots of #ifdefs in them. An effort has been made to minize the number
-of #ifdefs and make this as compact as possible. The job was made much easier
-by the ongoing efforts of others to extract common arch specific functionality.
-
-I have been running this for awhile now on my desktop and finally Linux is
-using all my available RAM instead of leaving the 16MB in ZONE_DMA untouched:
-
-christoph@pentium940:~$ cat /proc/zoneinfo
-Node 0, zone   Normal
-  pages free     4435
-        min      1448
-        low      1810
-        high     2172
-        active   241786
-        inactive 210170
-        scanned  0 (a: 0 i: 0)
-        spanned  524224
-        present  524224
-    nr_anon_pages 61680
-    nr_mapped    14271
-    nr_file_pages 390264
-    nr_slab_reclaimable 27564
-    nr_slab_unreclaimable 1793
-    nr_page_table_pages 449
-    nr_dirty     39
-    nr_writeback 0
-    nr_unstable  0
-    nr_bounce    0
-    cpu: 0 pcp: 0
-              count: 156
-              high:  186
-              batch: 31
-    cpu: 0 pcp: 1
-              count: 9
-              high:  62
-              batch: 15
-  vm stats threshold: 20
-    cpu: 1 pcp: 0
-              count: 177
-              high:  186
-              batch: 31
-    cpu: 1 pcp: 1
-              count: 12
-              high:  62
-              batch: 15
-  vm stats threshold: 20
-  all_unreclaimable: 0
-  prev_priority:     12
-  temp_priority:     12
-  start_pfn:         0
-
+Index: linux-2.6.18-rc6-mm1/arch/i386/Kconfig
+===================================================================
+--- linux-2.6.18-rc6-mm1.orig/arch/i386/Kconfig	2006-09-08 06:42:11.697455315 -0500
++++ linux-2.6.18-rc6-mm1/arch/i386/Kconfig	2006-09-11 15:41:55.911259588 -0500
+@@ -41,10 +41,6 @@
+ config SBUS
+ 	bool
+ 
+-config GENERIC_ISA_DMA
+-	bool
+-	default y
+-
+ config GENERIC_IOMAP
+ 	bool
+ 	default y
+@@ -346,6 +342,15 @@
+           XFree86 to initialize some video cards via BIOS. Disabling this
+           option saves about 6k.
+ 
++config GENERIC_ISA_DMA
++	bool "ISA DMA zone (to support ISA legacy DMA)"
++	default y
++	help
++	  If DMA for ISA boards needs to be supported then this option
++	  needs to be enabled. An additional DMA zone for <16MB memory
++	  will be created and memory below 16MB will be used for those
++	  devices.
++
+ config TOSHIBA
+ 	tristate "Toshiba Laptop support"
+ 	---help---
+@@ -1071,6 +1076,7 @@
+ 
+ config ISA_DMA_API
+ 	bool
++	depends on GENERIC_ISA_DMA
+ 	default y
+ 
+ config ISA
+Index: linux-2.6.18-rc6-mm1/arch/i386/kernel/Makefile
+===================================================================
+--- linux-2.6.18-rc6-mm1.orig/arch/i386/kernel/Makefile	2006-09-08 06:42:11.780470103 -0500
++++ linux-2.6.18-rc6-mm1/arch/i386/kernel/Makefile	2006-09-11 15:41:55.950325419 -0500
+@@ -7,8 +7,9 @@
+ obj-y	:= process.o signal.o entry.o traps.o irq.o \
+ 		ptrace.o time.o ioport.o ldt.o setup.o i8259.o sys_i386.o \
+ 		pci-dma.o i386_ksyms.o i387.o bootflag.o \
+-		quirks.o i8237.o topology.o alternative.o i8253.o tsc.o
++		quirks.o topology.o alternative.o i8253.o tsc.o
+ 
++obj-$(CONFIG_GENERIC_ISA_DMA)	+= i8237.o
+ obj-$(CONFIG_STACKTRACE)	+= stacktrace.o
+ obj-y				+= cpu/
+ obj-y				+= acpi/
+Index: linux-2.6.18-rc6-mm1/arch/i386/kernel/setup.c
+===================================================================
+--- linux-2.6.18-rc6-mm1.orig/arch/i386/kernel/setup.c	2006-09-08 06:42:12.269769024 -0500
++++ linux-2.6.18-rc6-mm1/arch/i386/kernel/setup.c	2006-09-11 15:41:55.982554730 -0500
+@@ -1075,13 +1075,17 @@
+ {
+ #ifdef CONFIG_HIGHMEM
+ 	unsigned long max_zone_pfns[MAX_NR_ZONES] = {
++#ifdef CONFIG_ZONE_DMA
+ 			virt_to_phys((char *)MAX_DMA_ADDRESS) >> PAGE_SHIFT,
++#endif
+ 			max_low_pfn,
+ 			highend_pfn};
+ 	add_active_range(0, 0, highend_pfn);
+ #else
+ 	unsigned long max_zone_pfns[MAX_NR_ZONES] = {
++#ifdef CONFIG_ZONE_DMA
+ 			virt_to_phys((char *)MAX_DMA_ADDRESS) >> PAGE_SHIFT,
++#endif
+ 			max_low_pfn};
+ 	add_active_range(0, 0, max_low_pfn);
+ #endif
