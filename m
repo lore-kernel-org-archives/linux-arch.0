@@ -1,45 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate6.uk.ibm.com ([195.212.29.139]:29959 "EHLO
-	mtagate6.uk.ibm.com") by vger.kernel.org with ESMTP
-	id S1751303AbWISIDg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Sep 2006 04:03:36 -0400
-Subject: Re: [PATCH 2/6] Introduce CONFIG_ZONE_DMA
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <Pine.LNX.4.64.0609181027440.19312@schroedinger.engr.sgi.com>
-References: <20060911222729.4849.69497.sendpatchset@schroedinger.engr.sgi.com>
-	 <20060911222739.4849.79915.sendpatchset@schroedinger.engr.sgi.com>
-	 <20060918135559.GB15096@infradead.org> <1158588487.31364.3.camel@localhost>
-	 <Pine.LNX.4.64.0609181027440.19312@schroedinger.engr.sgi.com>
-Content-Type: text/plain
-Date: Tue, 19 Sep 2006 10:03:32 +0200
-Message-Id: <1158653012.17979.2.camel@localhost>
-Mime-Version: 1.0
+Received: from outmail1.freedom2surf.net ([194.106.33.237]:23704 "EHLO
+	outmail.freedom2surf.net") by vger.kernel.org with ESMTP
+	id S1751426AbWISIZ7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Sep 2006 04:25:59 -0400
+Message-ID: <450FA986.4060303@f2s.com>
+Date: Tue, 19 Sep 2006 09:25:42 +0100
+From: Ian Molton <spyro@f2s.com>
+MIME-Version: 1.0
+Subject: Re: All arch maintainers: 'make headers_check' fails on most	architectures.
+References: <1158079495.9189.125.camel@hades.cambridge.redhat.com> <1158478779.24527.209.camel@pmac.infradead.org>
+In-Reply-To: <1158478779.24527.209.camel@pmac.infradead.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Christoph Hellwig <hch@infradead.org>, linux-mm@vger.kernel.org, Nick Piggin <nickpiggin@yahoo.com.au>, linux-ia64@vger.kernel.org, Marcelo Tosatti <marcelo@kvack.org>, Arjan van de Ven <arjan@infradead.org>, Martin Bligh <mbligh@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: linux-arch@vger.kernel.org, starvik@axis.com, ysato@users.sourceforge.jp, takata@linux-m32r.org, geert@linux-m68k.org, lethal@linux-sh.org, davem@davemloft.net, wli@holomorphy.com, jdike@karaya.com, uclinux-v850@lsi.nec.co.jp, chris@zankel.net, rmk@arm.linux.org.uk, dhowells <dhowells@redhat.com>, ralf@linux-mips.org, kyle@parisc-linux.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2006-09-18 at 10:28 -0700, Christoph Lameter wrote:
-> > s390 needs ZONE_DMA for the memory area below 2GB. That is required for
-> > the control structure of channel based I/O. It is not ISA but
-> > conceptually related. Can we rename GENERIC_ISA_DMA into GENERIC_IO_DMA
-> > or something similar?
+
 > 
-> The patchset defines CONFIG_ZONE_DMA for s390 so you are fine.
+> It may be that UM and ARM26 don't need to be exporting headers,
 
-Ok, I've looked at the patch and defining ZONE_DMA is the
-straightforward solution. No need to make detours over GENERIC_ISA_DMA.
+Hi.
 
--- 
-blue skies,
-  Martin.
-
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
-
-"Reality continues to ruin my life." - Calvin.
-
-
+This got lost among 6000 odd spams I received a while back. I'll take a 
+look.
