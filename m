@@ -1,27 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outmail1.freedom2surf.net ([194.106.33.237]:23704 "EHLO
-	outmail.freedom2surf.net") by vger.kernel.org with ESMTP
-	id S1751426AbWISIZ7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Sep 2006 04:25:59 -0400
-Message-ID: <450FA986.4060303@f2s.com>
-Date: Tue, 19 Sep 2006 09:25:42 +0100
-From: Ian Molton <spyro@f2s.com>
-MIME-Version: 1.0
-Subject: Re: All arch maintainers: 'make headers_check' fails on most	architectures.
-References: <1158079495.9189.125.camel@hades.cambridge.redhat.com> <1158478779.24527.209.camel@pmac.infradead.org>
-In-Reply-To: <1158478779.24527.209.camel@pmac.infradead.org>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:56024 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1751666AbWISJIX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Sep 2006 05:08:23 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20060919003031.166d08a4.akpm@osdl.org> 
+References: <20060919003031.166d08a4.akpm@osdl.org>  <20060913183522.22109.10565.stgit@warthog.cambridge.redhat.com> <20060913183531.22109.85723.stgit@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH 5/7] Alter get_order() so that it can make use of ilog2() on a constant [try #3] 
+Date: Tue, 19 Sep 2006 10:08:17 +0100
+Message-ID: <23843.1158656897@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: linux-arch@vger.kernel.org, starvik@axis.com, ysato@users.sourceforge.jp, takata@linux-m32r.org, geert@linux-m68k.org, lethal@linux-sh.org, davem@davemloft.net, wli@holomorphy.com, jdike@karaya.com, uclinux-v850@lsi.nec.co.jp, chris@zankel.net, rmk@arm.linux.org.uk, dhowells <dhowells@redhat.com>, ralf@linux-mips.org, kyle@parisc-linux.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Andrew Morton <akpm@osdl.org> wrote:
 
-> 
-> It may be that UM and ARM26 don't need to be exporting headers,
+> This breaks ia64:
 
-Hi.
+Okay, drop it for now.
 
-This got lost among 6000 odd spams I received a while back. I'll take a 
-look.
+> But for some reason putting ARCH_HAS_GET_ORDER into
+> include/asm-ia64/bitops.h and including linux/log2.h in
+> include/asm-ia64/page.h doesn't fix it.
+
+Seems I need to get an IA64 cross-compiler.
+
+> I didn't pursue it further, because sprinkling ARCH_HAS_FOO things into
+> bitops.h(!) is all rather hacky.  Better to use CONFIG_* so they're always
+> visible and one knows where to go to find things.
+
+But (1) they're not config options, and (2) there's plenty of precedent for
+this sort of thing (ARCH_HAS_PREFETCH for example).
+
+David
