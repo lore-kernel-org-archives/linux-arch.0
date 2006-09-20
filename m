@@ -1,35 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from saraswathi.solana.com ([198.99.130.12]:64450 "EHLO
-	saraswathi.solana.com") by vger.kernel.org with ESMTP
-	id S1751600AbWITPIL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Sep 2006 11:08:11 -0400
-Date: Wed, 20 Sep 2006 11:02:52 -0400
-From: Jeff Dike <jdike@addtoit.com>
-Subject: Re: All arch maintainers: 'make headers_check' fails on most architectures.
-Message-ID: <20060920150252.GC4134@ccure.user-mode-linux.org>
-References: <1158079495.9189.125.camel@hades.cambridge.redhat.com> <1158680369.24527.443.camel@pmac.infradead.org> <20060919220338.GB7435@ccure.user-mode-linux.org> <200609200818.51572.arnd.bergmann@de.ibm.com>
-Mime-Version: 1.0
+Received: from palinux.external.hp.com ([192.25.206.14]:4579 "EHLO
+	mail.parisc-linux.org") by vger.kernel.org with ESMTP
+	id S1751633AbWITPdp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Sep 2006 11:33:45 -0400
+Date: Wed, 20 Sep 2006 09:33:44 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: generic__raw_read_trylock Considered Harmful
+Message-ID: <20060920153344.GI2585@parisc-linux.org>
+References: <20060831134254.GE4919@parisc-linux.org> <20060919.155317.22126004.davem@davemloft.net>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <200609200818.51572.arnd.bergmann@de.ibm.com>
+In-Reply-To: <20060919.155317.22126004.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd.bergmann@de.ibm.com>
-Cc: David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org, spyro@f2s.com, starvik@axis.com, ysato@users.sourceforge.jp, takata@linux-m32r.org, geert@linux-m68k.org, lethal@linux-sh.org, davem@davemloft.net, wli@holomorphy.com, uclinux-v850@lsi.nec.co.jp, chris@zankel.net, rmk@arm.linux.org.uk, dhowells <dhowells@redhat.com>, ralf@linux-mips.org, kyle@parisc-linux.org
+To: David Miller <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, takata@linux-m32r.org, lethal@linux-sh.org, kkojima@rr.iij4u.or.jp, linuxsh-dev@lists.sourceforge.net, wli@holomorphy.com, sparclinux@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Sep 20, 2006 at 08:18:50AM +0200, Arnd Bergmann wrote:
-> headers_check should check whatever files are installed by headers_install.
-> I think the most sensible two choices there are:
+On Tue, Sep 19, 2006 at 03:53:17PM -0700, David Miller wrote:
+> From: Matthew Wilcox <matthew@wil.cx>
+> > NOTE to architecture maintainers: generic_raw_read_trylock() is
+> > completely unfit for use and will cause lockups if used in interrupt
+> > context.
 > 
-> 1. install the headers for the actual underlying architecture (SUBARCH)
-> instead of the um headers.
+> I was about to go an fix SPARC but then looked in the tree
+> for actual users, and I see one, and only one, in the lockdep
+> code which tries to grab the tasklist_lock.
+> 
+> That's it (well.. there's one strange IA64 specific case in the MCA
+> code too).
+> 
+> You say you were fixing up PARISC and actually hit this problem, was
+> it exactly this lockdep case?  I really doubt it...
 
-I don't think UML should be installing i386 headers.
+That's not quite what I said; I was chasing some problems on parisc
+where we were getting read_lock deadlocks, and spotted this problem.
+It's not beyond the bounds of possibility that we'll have a real user
+for this function in the future.
 
-> 2. if ARCH=um, don't provide headers_install or headers_check targets.
+The real bug was almost certainly elsewhere:
 
-Those are provided by the toplevel Makefile, so this would involve
-wrapping an ifneq($ARCH, "um") around them, which doesn't seem too
-palatable.
+http://git.parisc-linux.org/?p=linux-2.6.git;a=commit;h=513b38677e9bb51d32f4cb401105bf828dfcd685
+http://git.parisc-linux.org/?p=linux-2.6.git;a=commit;h=93d8d8dff74923dc9eb511c96ee3ccb918666049
 
-				Jeff
+Essentially, a fix for one rather subtle bug introduced a somewhat less
+subtle one (which nevertheless went unfound for, er, 11 months ;-)
+
