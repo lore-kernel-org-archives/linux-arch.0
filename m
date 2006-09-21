@@ -1,28 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:25297 "EHLO
-	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP
-	id S1750776AbWIUAkS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Sep 2006 20:40:18 -0400
-Subject: Re: ZONE_DMA (was: Re: 2.6.19 -mm merge plans)
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-In-Reply-To: <Pine.LNX.4.64.0609201724490.2403@schroedinger.engr.sgi.com>
-References: <20060920135438.d7dd362b.akpm@osdl.org>
-	 <4511D855.7050100@mbligh.org> <20060920172253.f6d11445.akpm@osdl.org>
-	 <Pine.LNX.4.64.0609201724490.2403@schroedinger.engr.sgi.com>
-Content-Type: text/plain
+Received: from ozlabs.org ([203.10.76.45]:32207 "EHLO ozlabs.org")
+	by vger.kernel.org with ESMTP id S1751142AbWIUMfa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Sep 2006 08:35:30 -0400
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Date: Thu, 21 Sep 2006 02:03:50 +0100
-Message-Id: <1158800630.11109.72.camel@localhost.localdomain>
-Mime-Version: 1.0
+Message-ID: <17682.34548.763586.32814@cargo.ozlabs.ibm.com>
+Date: Thu, 21 Sep 2006 22:35:00 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [patch 2/3] Directed yield: direct yield of spinlocks for powerpc.
+In-Reply-To: <20060919111950.GD21713@skybase>
+References: <20060919111950.GD21713@skybase>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Andrew Morton <akpm@osdl.org>, "Martin J. Bligh" <mbligh@mbligh.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@osdl.org, mingo@elte.hu
 List-ID: <linux-arch.vger.kernel.org>
 
-Ar Mer, 2006-09-20 am 17:31 -0700, ysgrifennodd Christoph Lameter:
-> ZONE_DMA does not have a bright future with IOMMUs and other things 
-> around. None of my system uses ZONE_DMA and I have a variety of them.
+Martin Schwidefsky writes:
 
-IOMMUs don't always help. They IOMMU aperture on AMD64 for example is
-too high to help devices with below 32bit limits.
+> Powerpc already has a directed yield for CONFIG_PREEMPT="n". To make
+> it work with CONFIG_PREEMPT="y" as well the _raw_{spin,read,write}_relax
+> primitives need to be defined to call __spin_yield() for spinlocks and
+> __rw_yield() for rw-locks.
 
+Acked-by: Paul Mackerras <paulus@samba.org>
