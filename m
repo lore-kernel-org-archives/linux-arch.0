@@ -1,48 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:4579 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S1751633AbWITPdp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Sep 2006 11:33:45 -0400
-Date: Wed, 20 Sep 2006 09:33:44 -0600
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: generic__raw_read_trylock Considered Harmful
-Message-ID: <20060920153344.GI2585@parisc-linux.org>
-References: <20060831134254.GE4919@parisc-linux.org> <20060919.155317.22126004.davem@davemloft.net>
+Received: from omx1-ext.sgi.com ([192.48.179.11]:49358 "EHLO
+	omx1.americas.sgi.com") by vger.kernel.org with ESMTP
+	id S1750833AbWIUAcC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Sep 2006 20:32:02 -0400
+Date: Wed, 20 Sep 2006 17:31:54 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: ZONE_DMA (was: Re: 2.6.19 -mm merge plans)
+In-Reply-To: <20060920172253.f6d11445.akpm@osdl.org>
+Message-ID: <Pine.LNX.4.64.0609201724490.2403@schroedinger.engr.sgi.com>
+References: <20060920135438.d7dd362b.akpm@osdl.org> <4511D855.7050100@mbligh.org>
+ <20060920172253.f6d11445.akpm@osdl.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20060919.155317.22126004.davem@davemloft.net>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, takata@linux-m32r.org, lethal@linux-sh.org, kkojima@rr.iij4u.or.jp, linuxsh-dev@lists.sourceforge.net, wli@holomorphy.com, sparclinux@vger.kernel.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: "Martin J. Bligh" <mbligh@mbligh.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Sep 19, 2006 at 03:53:17PM -0700, David Miller wrote:
-> From: Matthew Wilcox <matthew@wil.cx>
-> > NOTE to architecture maintainers: generic_raw_read_trylock() is
-> > completely unfit for use and will cause lockups if used in interrupt
-> > context.
-> 
-> I was about to go an fix SPARC but then looked in the tree
-> for actual users, and I see one, and only one, in the lockdep
-> code which tries to grab the tasklist_lock.
-> 
-> That's it (well.. there's one strange IA64 specific case in the MCA
-> code too).
-> 
-> You say you were fixing up PARISC and actually hit this problem, was
-> it exactly this lockdep case?  I really doubt it...
+On Wed, 20 Sep 2006, Andrew Morton wrote:
 
-That's not quite what I said; I was chasing some problems on parisc
-where we were getting read_lock deadlocks, and spotted this problem.
-It's not beyond the bounds of possibility that we'll have a real user
-for this function in the future.
+> > Would it not make sense to define what ZONE_DMA actually means
+> > consistently before trying to change it? The current mess across
+> > different architectures seems like a disaster area to me.
+> > 
+> > What DOES requesting ZONE_DMA from a driver actually mean?
 
-The real bug was almost certainly elsewhere:
+ZONE_DMA is a memory area that is needed by an arch for devices that 
+cannot do DMA to all of memory. The high boundary is set by 
+MAX_DMA_ADDRESS.
 
-http://git.parisc-linux.org/?p=linux-2.6.git;a=commit;h=513b38677e9bb51d32f4cb401105bf828dfcd685
-http://git.parisc-linux.org/?p=linux-2.6.git;a=commit;h=93d8d8dff74923dc9eb511c96ee3ccb918666049
+> My concern about these patches is that they'll only be useful for
+> self-compiled kernels, because distros will be forced to enable ZONE_DMA
+> for evermore anyway.
 
-Essentially, a fix for one rather subtle bug introduced a somewhat less
-subtle one (which nevertheless went unfound for, er, 11 months ;-)
+We already have 4 arches now that do not need ZONE_DMA at all.
+
+ZONE_DMA does not have a bright future with IOMMUs and other things 
+around. None of my system uses ZONE_DMA and I have a variety of them.
+
+And yes if we do not have this facility in the kernel then distros cannot 
+pick it up. At least on IA64 I know that hardware from the major vendors 
+has not been needing ZONE_DMA for a while now.
+
+Also ZONE_DMA is a very bad concept. Multiple drivers may have different 
+address requirements. What we need is some way for a driver to tell the 
+kernel what the required range of addresses is. If a device is only 
+capable of handling 30 valid address bits then we may have to use 
+ZONE_DMA and only allow the use of the lower 16MB. It would be better to 
+develop a different mechanism.
+
 
