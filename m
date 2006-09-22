@@ -1,33 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from stat9.steeleye.com ([209.192.50.41]:45749 "EHLO
-	hancock.sc.steeleye.com") by vger.kernel.org with ESMTP
-	id S1751295AbWIUQAR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Sep 2006 12:00:17 -0400
-Subject: Re: ZONE_DMA (was: Re: 2.6.19 -mm merge plans)
-From: James Bottomley <James.Bottomley@steeleye.com>
-In-Reply-To: <1158800630.11109.72.camel@localhost.localdomain>
-References: <20060920135438.d7dd362b.akpm@osdl.org>
-	 <4511D855.7050100@mbligh.org> <20060920172253.f6d11445.akpm@osdl.org>
-	 <Pine.LNX.4.64.0609201724490.2403@schroedinger.engr.sgi.com>
-	 <1158800630.11109.72.camel@localhost.localdomain>
-Content-Type: text/plain
-Date: Thu, 21 Sep 2006 11:59:51 -0400
-Message-Id: <1158854391.14329.1.camel@mulgrave.il.steeleye.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from smtp.ocgnet.org ([64.20.243.3]:25235 "EHLO smtp.ocgnet.org")
+	by vger.kernel.org with ESMTP id S1750891AbWIVHs3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 22 Sep 2006 03:48:29 -0400
+Date: Fri, 22 Sep 2006 16:48:13 +0900
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH] m32r: Revise __raw_read_trylock()
+Message-ID: <20060922074813.GA20921@localhost.Internal.Linux-SH.ORG>
+References: <swfzmcse7mm.wl%takata@linux-m32r.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <swfzmcse7mm.wl%takata@linux-m32r.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Christoph Lameter <clameter@sgi.com>, Andrew Morton <akpm@osdl.org>, "Martin J. Bligh" <mbligh@mbligh.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>
+To: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2006-09-21 at 02:03 +0100, Alan Cox wrote:
-> IOMMUs don't always help. They IOMMU aperture on AMD64 for example is
-> too high to help devices with below 32bit limits.
+On Fri, Sep 22, 2006 at 03:29:53PM +0900, Hirokazu Takata wrote:
+> Matthew Wilcox pointed out that generic__raw_read_trylock() is
+> unfit for use.
+> 
+> Here is a patch to fix __raw_read_trylock() for m32r.
+> It is taken from the i386 implementation.
+> 
+This might be a stupid question, but why exactly are we ripping out
+generic__raw_read_trylock() if architectures are going to implement a
+generic implementation anyways, rather than just changing it to match
+the proper semantics?
 
-That's because it's not an IOMMU; it's a GART.  A true IOMMU separates
-the machine physical and bus physical address spaces ... a GART merely
-remaps a hole in physical address space.
+With this the m32r patch can be dropped and the rest of the
+architectures can switch over as necessary to optimized versions, rather
+than being fundamentally broken.
 
-James
+Signed-off-by: Paul Mundt <lethal@linux-sh.org>
 
+--
 
+ include/asm-i386/spinlock.h |   10 +---------
+ kernel/spinlock.c           |    9 +++++++--
+ 2 files changed, 8 insertions(+), 11 deletions(-)
+
+diff --git a/include/asm-i386/spinlock.h b/include/asm-i386/spinlock.h
+index d102036..2aba6b3 100644
+--- a/include/asm-i386/spinlock.h
++++ b/include/asm-i386/spinlock.h
+@@ -169,15 +169,7 @@ static inline void __raw_write_lock(raw_
+ 	__build_write_lock(rw, "__write_lock_failed");
+ }
+ 
+-static inline int __raw_read_trylock(raw_rwlock_t *lock)
+-{
+-	atomic_t *count = (atomic_t *)lock;
+-	atomic_dec(count);
+-	if (atomic_read(count) >= 0)
+-		return 1;
+-	atomic_inc(count);
+-	return 0;
+-}
++#define __raw_read_trylock(lock) generic__raw_read_trylock(lock)
+ 
+ static inline int __raw_write_trylock(raw_rwlock_t *lock)
+ {
+diff --git a/kernel/spinlock.c b/kernel/spinlock.c
+index fb524b0..8d50b9d 100644
+--- a/kernel/spinlock.c
++++ b/kernel/spinlock.c
+@@ -15,6 +15,7 @@ #include <linux/spinlock.h>
+ #include <linux/interrupt.h>
+ #include <linux/debug_locks.h>
+ #include <linux/module.h>
++#include <asm/atomic.h>
+ 
+ /*
+  * Generic declaration of the raw read_trylock() function,
+@@ -22,8 +23,12 @@ #include <linux/module.h>
+  */
+ int __lockfunc generic__raw_read_trylock(raw_rwlock_t *lock)
+ {
+-	__raw_read_lock(lock);
+-	return 1;
++	atomic_t *count = (atomic_t *)lock;
++	atomic_dec(count);
++	if (atomic_read(count) >= 0)
++		return 1;
++	atomic_inc(count);
++	return 0;
+ }
+ EXPORT_SYMBOL(generic__raw_read_trylock);
