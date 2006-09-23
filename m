@@ -1,60 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:46482 "EHLO
-	pentafluge.infradead.org") by vger.kernel.org with ESMTP
-	id S1750720AbWIWLE0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 23 Sep 2006 07:04:26 -0400
+Received: from [212.227.126.186] ([212.227.126.186]:4571 "EHLO
+	moutng.kundenserver.de") by vger.kernel.org with ESMTP
+	id S1751107AbWIWNSf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 23 Sep 2006 09:18:35 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [patch 1/8] extend make headers_check to detect more problems
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <20060918013216.335200000@klappe.arndb.de>
-References: <20060918012740.407846000@klappe.arndb.de>
-	 <20060918013216.335200000@klappe.arndb.de>
-Content-Type: text/plain
-Date: Sat, 23 Sep 2006 12:04:21 +0100
-Message-Id: <1159009461.24527.920.camel@pmac.infradead.org>
-Mime-Version: 1.0
+Date: Sat, 23 Sep 2006 15:18:15 +0200
+References: <20060918012740.407846000@klappe.arndb.de> <20060918013216.335200000@klappe.arndb.de> <1159009461.24527.920.camel@pmac.infradead.org>
+In-Reply-To: <1159009461.24527.920.camel@pmac.infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200609231518.16201.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
+To: David Woodhouse <dwmw2@infradead.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2006-09-18 at 03:27 +0200, Arnd Bergmann wrote:
-> plain text document attachment (headercheck-base.diff)
-> In addition to the problem of including non-existant header
-> files, a number of other things can go wrong with header
-> files exported to user space. This adds checks for some
-> common problems:
+On Saturday 23 September 2006 13:04, David Woodhouse wrote:
+> It would be good to fix these problems, it's true -- but bear in mind
+> that none of these are actually fatal problems -- they're just caveats
+> of (ab)using kernel-private headers in userspace. 
 > 
-> - The header fails to include the files it needs, which
->   results in build errors when a program tries to include
->   it. Check this by doing a dummy compile.
+> On the other hand, it would be good to get people used to running
+> 'make headers_check' whenever they make a change -- so introducing more
+> breakage right now may be counterproductive from that point of view.
 > 
-> - There is a declarations of a static variable or non-inline
->   function in the header, which results in object code
->   in every file including it. Check for symbols in the object
->   with 'nm'.
+> So I think I'd prefer to leave this for now, or at least limit it to
+> 'make CHECKMEHARDER=1 headers_check' so that we can wean people onto
+> using headers_check slowly and relatively painlessly.
+
+yes, that sounds fair.
+
+> > I found many problems with this, which I then fixed for
+> > powerpc, s390 and i386, in subsequent patches.
 > 
-> - Part of the header is subject to conditional compilation
->   based on CONFIG_*. Add a regex search for this.
+> Can you -include <linux/types.h> _every_ time, to reduce the number of
+> places you have to add '/* @headercheck: -include linux/types.h @ */' ?
 
-It would be good to fix these problems, it's true -- but bear in mind
-that none of these are actually fatal problems -- they're just caveats
-of (ab)using kernel-private headers in userspace. 
+The problem with this are a few files which have code like
 
-On the other hand, it would be good to get people used to running
-'make headers_check' whenever they make a change -- so introducing more
-breakage right now may be counterproductive from that point of view.
+#ifndef __KERNEL__
+#include <sys/types.h>
+#include <stdint.h>
+#endif
 
-So I think I'd prefer to leave this for now, or at least limit it to
-'make CHECKMEHARDER=1 headers_check' so that we can wean people onto
-using headers_check slowly and relatively painlessly.
+or similar. These break heavily if you include <linux/types.h> before the
+the glibc provided headers, because linux/types.h provides some of the
+types that are normally defined elsewhere and duplicate typedefs result
+in compile errors.
 
-> I found many problems with this, which I then fixed for
-> powerpc, s390 and i386, in subsequent patches.
+To solve this, we would need to make all headers build fine with
+gcc -D__STRICT_KERNEL_NAMES -include linux/types.h.
+That is a valueable goal as well, since it avoids a number of problems,
+but it is actually a larger change than this.
 
-Can you -include <linux/types.h> _every_ time, to reduce the number of
-places you have to add '/* @headercheck: -include linux/types.h @ */' ?
+Now one option we could take would be to always pass -include linux/types.h
+to gcc and put /* @headercheck: -D__STRICT_KERNEL_NAMES */ into the few
+places that break otherwise.
 
--- 
-dwmw2
-
+	Arnd <><
