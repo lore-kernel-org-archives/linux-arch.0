@@ -1,64 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [212.227.126.186] ([212.227.126.186]:4571 "EHLO
-	moutng.kundenserver.de") by vger.kernel.org with ESMTP
-	id S1751107AbWIWNSf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 23 Sep 2006 09:18:35 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [patch 1/8] extend make headers_check to detect more problems
-Date: Sat, 23 Sep 2006 15:18:15 +0200
-References: <20060918012740.407846000@klappe.arndb.de> <20060918013216.335200000@klappe.arndb.de> <1159009461.24527.920.camel@pmac.infradead.org>
-In-Reply-To: <1159009461.24527.920.camel@pmac.infradead.org>
+Received: from smtp.ocgnet.org ([64.20.243.3]:48587 "EHLO smtp.ocgnet.org")
+	by vger.kernel.org with ESMTP id S1751298AbWIYGJi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Sep 2006 02:09:38 -0400
+Date: Mon, 25 Sep 2006 15:09:17 +0900
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH] m32r: Revise __raw_read_trylock()
+Message-ID: <20060925060917.GA8422@localhost.na.rta>
+References: <swfzmcse7mm.wl%takata@linux-m32r.org> <20060922074813.GA20921@localhost.Internal.Linux-SH.ORG> <20060922112708.GR2585@parisc-linux.org>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200609231518.16201.arnd@arndb.de>
+In-Reply-To: <20060922112708.GR2585@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Hirokazu Takata <takata@linux-m32r.org>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Saturday 23 September 2006 13:04, David Woodhouse wrote:
-> It would be good to fix these problems, it's true -- but bear in mind
-> that none of these are actually fatal problems -- they're just caveats
-> of (ab)using kernel-private headers in userspace. 
+On Fri, Sep 22, 2006 at 05:27:08AM -0600, Matthew Wilcox wrote:
+> You're assuming:
 > 
-> On the other hand, it would be good to get people used to running
-> 'make headers_check' whenever they make a change -- so introducing more
-> breakage right now may be counterproductive from that point of view.
+>  - a spinlock is an atomic_t.
+>  - Said atomic_t uses RW_LOCK_BIAS to indicate locked/unlocked.
 > 
-> So I think I'd prefer to leave this for now, or at least limit it to
-> 'make CHECKMEHARDER=1 headers_check' so that we can wean people onto
-> using headers_check slowly and relatively painlessly.
+> This is true for m32r, but not for sparc.
 
-yes, that sounds fair.
+That makes sense, thanks for the clarification.
 
-> > I found many problems with this, which I then fixed for
-> > powerpc, s390 and i386, in subsequent patches.
-> 
-> Can you -include <linux/types.h> _every_ time, to reduce the number of
-> places you have to add '/* @headercheck: -include linux/types.h @ */' ?
+> SuperH looks completely broken -- I don't see how holding a read lock
+> prevents someone else from getting a write lock.  The SH write_trylock
+> uses RW_LOCK_BIAS, but write_lock doesn't.  Are there any SMP SH
+> machines?
 
-The problem with this are a few files which have code like
-
-#ifndef __KERNEL__
-#include <sys/types.h>
-#include <stdint.h>
-#endif
-
-or similar. These break heavily if you include <linux/types.h> before the
-the glibc provided headers, because linux/types.h provides some of the
-types that are normally defined elsewhere and duplicate typedefs result
-in compile errors.
-
-To solve this, we would need to make all headers build fine with
-gcc -D__STRICT_KERNEL_NAMES -include linux/types.h.
-That is a valueable goal as well, since it avoids a number of problems,
-but it is actually a larger change than this.
-
-Now one option we could take would be to always pass -include linux/types.h
-to gcc and put /* @headercheck: -D__STRICT_KERNEL_NAMES */ into the few
-places that break otherwise.
-
-	Arnd <><
+Yes, it's broken, most of the work for that has been happening out of
+tree, and we'll have to sync it up again. The initial work was targetted
+at a pair of microcontrollers, but there were too many other issues
+there that the work was eventually abandoned. Recently it's started up
+again on more reasonable CPUs, so we'll be fixing these things up in
+order.
