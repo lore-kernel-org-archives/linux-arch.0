@@ -1,40 +1,320 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.ocgnet.org ([64.20.243.3]:48587 "EHLO smtp.ocgnet.org")
-	by vger.kernel.org with ESMTP id S1751298AbWIYGJi (ORCPT
+Received: from smtp.osdl.org ([65.172.181.4]:17858 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1750711AbWI0ALw (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Sep 2006 02:09:38 -0400
-Date: Mon, 25 Sep 2006 15:09:17 +0900
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH] m32r: Revise __raw_read_trylock()
-Message-ID: <20060925060917.GA8422@localhost.na.rta>
-References: <swfzmcse7mm.wl%takata@linux-m32r.org> <20060922074813.GA20921@localhost.Internal.Linux-SH.ORG> <20060922112708.GR2585@parisc-linux.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20060922112708.GR2585@parisc-linux.org>
+	Tue, 26 Sep 2006 20:11:52 -0400
+Received: from shell0.pdx.osdl.net (fw.osdl.org [65.172.181.6])
+	by smtp.osdl.org (8.12.8/8.12.8) with ESMTP id k8R0BpnW028909
+	(version=TLSv1/SSLv3 cipher=EDH-RSA-DES-CBC3-SHA bits=168 verify=NO)
+	for <linux-arch@vger.kernel.org>; Tue, 26 Sep 2006 17:11:51 -0700
+Received: from akpm.corp.google.com (shell0.pdx.osdl.net [10.9.0.31])
+	by shell0.pdx.osdl.net (8.13.1/8.11.6) with SMTP id k8R0Bot1008381
+	for <linux-arch@vger.kernel.org>; Tue, 26 Sep 2006 17:11:50 -0700
+Date: Tue, 26 Sep 2006 17:11:50 -0700
+From: Andrew Morton <akpm@osdl.org>
+Subject: Fw: [PATCH] Fix zeroing on exception in copy_*_user
+Message-Id: <20060926171150.bab8a5c1.akpm@osdl.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Hirokazu Takata <takata@linux-m32r.org>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Sep 22, 2006 at 05:27:08AM -0600, Matthew Wilcox wrote:
-> You're assuming:
-> 
->  - a spinlock is an atomic_t.
->  - Said atomic_t uses RW_LOCK_BIAS to indicate locked/unlocked.
-> 
-> This is true for m32r, but not for sparc.
 
-That makes sense, thanks for the clarification.
+I guess other architectures will need to do this.  See
+01408c4939479ec46c15aa7ef6e2406be50eeeca and
+7c12d81134b130ccd4c286b434ca48c4cda71a2f for the rationale.
 
-> SuperH looks completely broken -- I don't see how holding a read lock
-> prevents someone else from getting a write lock.  The SH write_trylock
-> uses RW_LOCK_BIAS, but write_lock doesn't.  Are there any SMP SH
-> machines?
 
-Yes, it's broken, most of the work for that has been happening out of
-tree, and we'll have to sync it up again. The initial work was targetted
-at a pair of microcontrollers, but there were too many other issues
-there that the work was eventually abandoned. Recently it's started up
-again on more reasonable CPUs, so we'll be fixing these things up in
-order.
+Begin forwarded message:
+
+Date: Tue, 26 Sep 2006 23:03:58 GMT
+From: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: git-commits-head@vger.kernel.org
+Subject: [PATCH] Fix zeroing on exception in copy_*_user
+
+
+commit 3022d734a54cbd2b65eea9a024564821101b4a9a
+tree a1445aeaf8fbdf84898c8cdc13dd98c550b5be0f
+parent f0f4c3432e5e1087b3a8c0e6bd4113d3c37497ff
+author Andi Kleen <ak@suse.de> 1159260759 +0200
+committer Andi Kleen <andi@basil.nowhere.org> 1159260759 +0200
+
+[PATCH] Fix zeroing on exception in copy_*_user
+
+- Don't zero for __copy_from_user_inatomic following i386.
+This will prevent spurious zeros for parallel file system writers when
+one does a exception
+- The string instruction version didn't zero the output on
+exception. Oops.
+
+Also I cleaned up the code a bit while I was at it and added a minor
+optimization to the string instruction path.
+
+Signed-off-by: Andi Kleen <ak@suse.de>
+
+ arch/x86_64/kernel/x8664_ksyms.c |    1 
+ arch/x86_64/lib/copy_user.S      |  124 ++++++++++++++++++++++++---------------
+ include/asm-x86_64/uaccess.h     |    6 -
+ 3 files changed, 83 insertions(+), 48 deletions(-)
+
+diff --git a/arch/x86_64/kernel/x8664_ksyms.c b/arch/x86_64/kernel/x8664_ksyms.c
+index 370952c..c3454af 100644
+--- a/arch/x86_64/kernel/x8664_ksyms.c
++++ b/arch/x86_64/kernel/x8664_ksyms.c
+@@ -29,6 +29,7 @@ EXPORT_SYMBOL(__put_user_8);
+ EXPORT_SYMBOL(copy_user_generic);
+ EXPORT_SYMBOL(copy_from_user);
+ EXPORT_SYMBOL(copy_to_user);
++EXPORT_SYMBOL(__copy_from_user_inatomic);
+ 
+ EXPORT_SYMBOL(copy_page);
+ EXPORT_SYMBOL(clear_page);
+diff --git a/arch/x86_64/lib/copy_user.S b/arch/x86_64/lib/copy_user.S
+index 962f3a6..70bebd3 100644
+--- a/arch/x86_64/lib/copy_user.S
++++ b/arch/x86_64/lib/copy_user.S
+@@ -9,10 +9,29 @@ #include <asm/dwarf2.h>
+ 
+ #define FIX_ALIGNMENT 1
+ 
+-	#include <asm/current.h>
+-	#include <asm/asm-offsets.h>
+-	#include <asm/thread_info.h>
+-	#include <asm/cpufeature.h>
++#include <asm/current.h>
++#include <asm/asm-offsets.h>
++#include <asm/thread_info.h>
++#include <asm/cpufeature.h>
++
++	.macro ALTERNATIVE_JUMP feature,orig,alt
++0:
++	.byte 0xe9	/* 32bit jump */
++	.long \orig-1f	/* by default jump to orig */
++1:
++	.section .altinstr_replacement,"ax"
++2:	.byte 0xe9	             /* near jump with 32bit immediate */
++	.long \alt-1b /* offset */   /* or alternatively to alt */
++	.previous
++	.section .altinstructions,"a"
++	.align 8
++	.quad  0b
++	.quad  2b
++	.byte  \feature		     /* when feature is set */
++	.byte  5
++	.byte  5
++	.previous
++	.endm
+ 
+ /* Standard copy_to_user with segment limit checking */		
+ ENTRY(copy_to_user)
+@@ -23,25 +42,21 @@ ENTRY(copy_to_user)
+ 	jc  bad_to_user
+ 	cmpq threadinfo_addr_limit(%rax),%rcx
+ 	jae bad_to_user
+-2:
+-	.byte 0xe9	/* 32bit jump */
+-	.long .Lcug-1f
+-1:
++	xorl %eax,%eax	/* clear zero flag */
++	ALTERNATIVE_JUMP X86_FEATURE_REP_GOOD,copy_user_generic_unrolled,copy_user_generic_string
+ 	CFI_ENDPROC
+-ENDPROC(copy_to_user)
+ 
+-	.section .altinstr_replacement,"ax"
+-3:	.byte 0xe9			/* replacement jmp with 32 bit immediate */
+-	.long copy_user_generic_c-1b	/* offset */
+-	.previous
+-	.section .altinstructions,"a"
+-	.align 8
+-	.quad  2b
+-	.quad  3b
+-	.byte  X86_FEATURE_REP_GOOD
+-	.byte  5
+-	.byte  5
+-	.previous
++ENTRY(copy_user_generic)
++	CFI_STARTPROC
++	movl $1,%ecx	/* set zero flag */
++	ALTERNATIVE_JUMP X86_FEATURE_REP_GOOD,copy_user_generic_unrolled,copy_user_generic_string
++	CFI_ENDPROC
++
++ENTRY(__copy_from_user_inatomic)
++	CFI_STARTPROC
++	xorl %ecx,%ecx	/* clear zero flag */
++	ALTERNATIVE_JUMP X86_FEATURE_REP_GOOD,copy_user_generic_unrolled,copy_user_generic_string
++	CFI_ENDPROC
+ 
+ /* Standard copy_from_user with segment limit checking */	
+ ENTRY(copy_from_user)
+@@ -52,7 +67,8 @@ ENTRY(copy_from_user)
+ 	jc  bad_from_user
+ 	cmpq threadinfo_addr_limit(%rax),%rcx
+ 	jae  bad_from_user
+-	/* FALL THROUGH to copy_user_generic */
++	movl $1,%ecx	/* set zero flag */
++	ALTERNATIVE_JUMP X86_FEATURE_REP_GOOD,copy_user_generic_unrolled,copy_user_generic_string
+ 	CFI_ENDPROC
+ ENDPROC(copy_from_user)
+ 	
+@@ -73,37 +89,26 @@ END(bad_from_user)
+ 	
+ 		
+ /*
+- * copy_user_generic - memory copy with exception handling.
++ * copy_user_generic_unrolled - memory copy with exception handling.
++ * This version is for CPUs like P4 that don't have efficient micro code for rep movsq
+  * 	
+  * Input:	
+  * rdi destination
+  * rsi source
+  * rdx count
++ * ecx zero flag -- if true zero destination on error
+  *
+  * Output:		
+  * eax uncopied bytes or 0 if successful.
+  */
+-ENTRY(copy_user_generic)
++ENTRY(copy_user_generic_unrolled)
+ 	CFI_STARTPROC
+-	.byte 0x66,0x66,0x90	/* 5 byte nop for replacement jump */
+-	.byte 0x66,0x90
+-1:
+-	.section .altinstr_replacement,"ax"
+-2:	.byte 0xe9	             /* near jump with 32bit immediate */
+-	.long copy_user_generic_c-1b /* offset */
+-	.previous
+-	.section .altinstructions,"a"
+-	.align 8
+-	.quad  copy_user_generic
+-	.quad  2b
+-	.byte  X86_FEATURE_REP_GOOD
+-	.byte  5
+-	.byte  5
+-	.previous
+-.Lcug:
+ 	pushq %rbx
+ 	CFI_ADJUST_CFA_OFFSET 8
+ 	CFI_REL_OFFSET rbx, 0
++	pushq %rcx
++	CFI_ADJUST_CFA_OFFSET 8
++	CFI_REL_OFFSET rcx, 0
+ 	xorl %eax,%eax		/*zero for the exception handler */
+ 
+ #ifdef FIX_ALIGNMENT
+@@ -179,6 +184,9 @@ #endif
+ 
+ 	CFI_REMEMBER_STATE
+ .Lende:
++	popq %rcx
++	CFI_ADJUST_CFA_OFFSET -8
++	CFI_RESTORE rcx
+ 	popq %rbx
+ 	CFI_ADJUST_CFA_OFFSET -8
+ 	CFI_RESTORE rbx
+@@ -265,6 +273,8 @@ #endif
+ 	addl %ecx,%edx
+ 	/* edx: bytes to zero, rdi: dest, eax:zero */
+ .Lzero_rest:
++	cmpl $0,(%rsp)
++	jz   .Le_zero
+ 	movq %rdx,%rcx
+ .Le_byte:
+ 	xorl %eax,%eax
+@@ -286,6 +296,7 @@ ENDPROC(copy_user_generic)
+  /* rdi	destination
+   * rsi source
+   * rdx count
++  * ecx zero flag
+   *
+   * Output:
+   * eax uncopied bytes or 0 if successfull.
+@@ -296,25 +307,48 @@ ENDPROC(copy_user_generic)
+   * And more would be dangerous because both Intel and AMD have
+   * errata with rep movsq > 4GB. If someone feels the need to fix
+   * this please consider this.
+-   */
+-copy_user_generic_c:
++  */
++ENTRY(copy_user_generic_string)
+ 	CFI_STARTPROC
++	movl %ecx,%r8d		/* save zero flag */
+ 	movl %edx,%ecx
+ 	shrl $3,%ecx
+ 	andl $7,%edx	
++	jz   10f
+ 1:	rep 
+ 	movsq 
+ 	movl %edx,%ecx
+ 2:	rep
+ 	movsb
+-4:	movl %ecx,%eax
++9:	movl %ecx,%eax
+ 	ret
+-3:	lea (%rdx,%rcx,8),%rax
++
++	/* multiple of 8 byte */
++10:	rep
++	movsq
++	xor %eax,%eax
+ 	ret
++
++	/* exception handling */
++3:      lea (%rdx,%rcx,8),%rax	/* exception on quad loop */
++	jmp 6f
++5:	movl %ecx,%eax		/* exception on byte loop */
++	/* eax: left over bytes */
++6:	testl %r8d,%r8d		/* zero flag set? */
++	jz 7f
++	movl %eax,%ecx		/* initialize x86 loop counter */
++	push %rax
++	xorl %eax,%eax
++8:	rep
++	stosb 			/* zero the rest */
++11:	pop %rax
++7:	ret
+ 	CFI_ENDPROC
+ END(copy_user_generic_c)
+ 
+ 	.section __ex_table,"a"
+ 	.quad 1b,3b
+-	.quad 2b,4b
++	.quad 2b,5b
++	.quad 8b,11b
++	.quad 10b,3b
+ 	.previous
+diff --git a/include/asm-x86_64/uaccess.h b/include/asm-x86_64/uaccess.h
+index 1e1fa00..bc68120 100644
+--- a/include/asm-x86_64/uaccess.h
++++ b/include/asm-x86_64/uaccess.h
+@@ -238,6 +238,7 @@ #define __get_user_asm(x, addr, err, ity
+ 
+ /* Handles exceptions in both to and from, but doesn't do access_ok */
+ extern unsigned long copy_user_generic(void *to, const void *from, unsigned len); 
++extern unsigned long copy_user_generic_dontzero(void *to, const void *from, unsigned len);
+ 
+ extern unsigned long copy_to_user(void __user *to, const void *from, unsigned len); 
+ extern unsigned long copy_from_user(void *to, const void __user *from, unsigned len); 
+@@ -303,7 +304,6 @@ static __always_inline int __copy_to_use
+ 	}
+ }	
+ 
+-
+ static __always_inline int __copy_in_user(void __user *dst, const void __user *src, unsigned size)
+ { 
+        int ret = 0;
+@@ -352,7 +352,7 @@ long strlen_user(const char __user *str)
+ unsigned long clear_user(void __user *mem, unsigned long len);
+ unsigned long __clear_user(void __user *mem, unsigned long len);
+ 
+-#define __copy_to_user_inatomic __copy_to_user
+-#define __copy_from_user_inatomic __copy_from_user
++extern long __copy_from_user_inatomic(void *dst, const void __user *src, unsigned size);
++#define __copy_to_user_inatomic copy_user_generic
+ 
+ #endif /* __X86_64_UACCESS_H */
+-
+To unsubscribe from this list: send the line "unsubscribe git-commits-head" in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
