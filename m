@@ -1,57 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:14768 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S965101AbWJBUzK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Oct 2006 16:55:10 -0400
-Date: Mon, 2 Oct 2006 13:54:33 -0700 (PDT)
-From: Linus Torvalds <torvalds@osdl.org>
+Received: from smtp.osdl.org ([65.172.181.4]:10417 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S965107AbWJBU5L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Oct 2006 16:57:11 -0400
+Date: Mon, 2 Oct 2006 13:56:48 -0700
+From: Andrew Morton <akpm@osdl.org>
 Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than
  passing to IRQ handlers
-In-Reply-To: <20061002201836.GB31365@elte.hu>
-Message-ID: <Pine.LNX.4.64.0610021349090.3952@g5.osdl.org>
+Message-Id: <20061002135648.9250b51d.akpm@osdl.org>
+In-Reply-To: <d120d5000610021343h45bf1414ica2246f3b10ff46d@mail.gmail.com>
 References: <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
- <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
- <20061002132116.2663d7a3.akpm@osdl.org> <20061002201836.GB31365@elte.hu>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+	<20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
+	<20061002132116.2663d7a3.akpm@osdl.org>
+	<d120d5000610021343h45bf1414ica2246f3b10ff46d@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
+To: Dmitry Torokhov <dmitry.torokhov@gmail.com>
+Cc: David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
+On Mon, 2 Oct 2006 16:43:38 -0400
+"Dmitry Torokhov" <dmitry.torokhov@gmail.com> wrote:
 
-
-On Mon, 2 Oct 2006, Ingo Molnar wrote:
->
-> i agree that we should do this in one go and in Linus' tree. I suspect 
-> David has a script for this, so we can do it anytime for any tree, 
-> right?
+> >
+> > I think the change is good.  But I don't want to maintain this whopper
+> > out-of-tree for two months!  If we want to do this, we should just smash it
+> > in and grit our teeth.
 > 
-> the amount of code that truly relies on regs being present is very low. 
-> Mostly only sysrq type of stuff and the timer interrupt is such.
+> Yes, lets drop it in while we still not reached rc1.
 
-Yeah, well, it's been discussed before, and the real problem is not the 
-patch itself, it's the damn drivers maintained outside the tree, and 
-people who want to maintain the same driver for multiple different 
-versions of the kernel.
-
-Things like the kernel graphics direct-rendering code, for example - 
-mostly maintained in X.org trees that then want to compile with other 
-kernels too.
-
-I don't personally mind the patch, I just wanted to bring that issue up. 
-
-So far, when this has come up, the gains it gives have not been worth the 
-pain. I don't quite see why FRV is so broken that it would matter 20% 
-worth, and I suspect that number was somehow really not real, but more a 
-matter of "this small code snippet that is part of the irq delivery and 
-isn't really measurable improves by 20%", which is a different thing.
-
-That said, it's almost certainly worth it, and I don't think anybody 
-really objects deep down.
-
-So if the patch works against my current tree, and nobody objects, I can 
-certainly apply it.
-
-So speak up, people...
-
-		Linus
+Doing it after -rc1 would be saner, when the tree isn't changing at a
+megabyte-per-minute.  Give people at least a couple of days to review it,
+test it, etc.
