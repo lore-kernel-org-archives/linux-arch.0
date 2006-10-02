@@ -1,51 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp112.sbc.mail.mud.yahoo.com ([68.142.198.211]:17077 "HELO
-	smtp112.sbc.mail.mud.yahoo.com") by vger.kernel.org with SMTP
-	id S965499AbWJBXA2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Oct 2006 19:00:28 -0400
-From: David Brownell <david-b@pacbell.net>
+Received: from cantor.suse.de ([195.135.220.2]:63703 "EHLO mx1.suse.de")
+	by vger.kernel.org with ESMTP id S965092AbWJBXxH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Oct 2006 19:53:07 -0400
+Date: Mon, 2 Oct 2006 16:52:46 -0700
+From: Greg KH <greg@kroah.com>
 Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers
-Date: Mon, 2 Oct 2006 16:00:22 -0700
-References: <Pine.LNX.4.44L0.0610021729490.8219-100000@iolanthe.rowland.org>
-In-Reply-To: <Pine.LNX.4.44L0.0610021729490.8219-100000@iolanthe.rowland.org>
+Message-ID: <20061002235246.GA27274@kroah.com>
+References: <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com> <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com> <20061002132116.2663d7a3.akpm@osdl.org> <d120d5000610021343h45bf1414ica2246f3b10ff46d@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200610021600.24477.david-b@pacbell.net>
+In-Reply-To: <d120d5000610021343h45bf1414ica2246f3b10ff46d@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>
+To: Dmitry Torokhov <dmitry.torokhov@gmail.com>
+Cc: Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Monday 02 October 2006 2:34 pm, Alan Stern wrote:
-> On Mon, 2 Oct 2006, David Brownell wrote:
+On Mon, Oct 02, 2006 at 04:43:38PM -0400, Dmitry Torokhov wrote:
+> On 10/2/06, Andrew Morton <akpm@osdl.org> wrote:
+> >On Mon, 02 Oct 2006 17:21:09 +0100
+> >David Howells <dhowells@redhat.com> wrote:
+> >
+> >> Maintain a per-CPU global "struct pt_regs *" variable which can be used 
+> >instead
+> >> of passing regs around manually through all ~1800 interrupt handlers in 
+> >the
+> >> Linux kernel.
+> >>
 > 
-> > > >  (*) finish_unlinks() in drivers/usb/host/ohci-q.c needs checking.  It does
-> > > >      something different depending on whether it's been supplied with a regs
-> > > >      pointer or not.
-> > 
-> > gaak!  where did that come from?  I'll be surprised if removing
-> > that causes any problem at all.
+> Nice! I was wanting to do that for a long time...
+
+Yeah!  Finally get rid of that from every single fricken USB urb
+callback.  I have been wanting that gone for a very long time.
+
+> >I think the change is good.  But I don't want to maintain this whopper
+> >out-of-tree for two months!  If we want to do this, we should just smash it
+> >in and grit our teeth.
 > 
-> Here's the statement in question:
-> 
-> 	if (likely (regs && HC_IS_RUNNING(ohci_to_hcd(ohci)->state))) {
+> Yes, lets drop it in while we still not reached rc1.
 
-Where as I said, removing the "regs &&" should be just fine.
-(Is the plan that David Howells re-issue that patch?  If so, I'l
-expect e will just fix it that way...)
+I don't care when it goes it, I have no objection to it at all.
 
-> 		...
-> 
-> Notice another questionable use of hcd->state. 
+David, thanks a lot for doing this.
 
-Questionable in what way?  When that code is called to clean up
-after driver death, that loop must be ignored ... every pending I/O
-can safely be scrubbed.  That's the main point of that particular
-HC_IS_RUNNING() test.  In other cases, it's essential not to touch
-DMA queue entries that the host controller is still using.
-
-- Dave
-
+greg k-h
