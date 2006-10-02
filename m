@@ -1,33 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:6592 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S965202AbWJBVUP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Oct 2006 17:20:15 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers
-Date: Mon, 2 Oct 2006 23:19:59 +0200
-References: <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com> <20061002140121.f588b463.akpm@osdl.org> <Pine.LNX.4.64.0610021412200.3952@g5.osdl.org>
-In-Reply-To: <Pine.LNX.4.64.0610021412200.3952@g5.osdl.org>
+Received: from iolanthe.rowland.org ([192.131.102.54]:51468 "HELO
+	iolanthe.rowland.org") by vger.kernel.org with SMTP id S965413AbWJBVel
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Oct 2006 17:34:41 -0400
+Date: Mon, 2 Oct 2006 17:34:40 -0400 (EDT)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than
+ passing to IRQ handlers
+In-Reply-To: <200610021346.13135.david-b@pacbell.net>
+Message-ID: <Pine.LNX.4.44L0.0610021729490.8219-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200610022319.59029.ak@suse.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Andrew Morton <akpm@osdl.org>, Ingo Molnar <mingo@elte.hu>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
+To: David Brownell <david-b@pacbell.net>
+Cc: Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Monday 02 October 2006 23:12, Linus Torvalds wrote:
-> 
-> On Mon, 2 Oct 2006, Andrew Morton wrote:
-> > 
-> > Whimper.   Later in the week, please.
-> 
-> Sure. Somebody send me a (tested) version that works against pure -rc1, 
-> and we're set to go.
+On Mon, 2 Oct 2006, David Brownell wrote:
 
-How would you test something like this? It would touch all architectures
-and nearly all drivers too.
+> > >  (*) finish_unlinks() in drivers/usb/host/ohci-q.c needs checking.  It does
+> > >      something different depending on whether it's been supplied with a regs
+> > >      pointer or not.
+> 
+> gaak!  where did that come from?  I'll be surprised if removing
+> that causes any problem at all.
 
--Andi
+Here's the statement in question:
+
+	if (likely (regs && HC_IS_RUNNING(ohci_to_hcd(ohci)->state))) {
+		...
+
+Notice another questionable use of hcd->state.  I don't know what the 
+correct change here is, but I suspect David H's isn't optimal.
+
+Alan Stern
+
