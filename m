@@ -1,73 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:16566 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S965069AbWJBQUz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Oct 2006 12:20:55 -0400
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 2/3] IRQ: Typedef the IRQ handler function type
-Date: Mon, 02 Oct 2006 17:20:51 +0100
-Message-Id: <20061002162051.17763.72448.stgit@warthog.cambridge.redhat.com>
-In-Reply-To: <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
-References: <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
-Content-Type: text/plain; charset=utf-8; format=fixed
-Content-Transfer-Encoding: 8bit
+Received: from mx2.mail.elte.hu ([157.181.151.9]:64424 "EHLO mx2.mail.elte.hu")
+	by vger.kernel.org with ESMTP id S964981AbWJBU0S (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Oct 2006 16:26:18 -0400
+Date: Mon, 2 Oct 2006 22:18:36 +0200
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers
+Message-ID: <20061002201836.GB31365@elte.hu>
+References: <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com> <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com> <20061002132116.2663d7a3.akpm@osdl.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20061002132116.2663d7a3.akpm@osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: torvalds@osdl.org, akpm@osdl.org
-Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
-From: David Howells <dhowells@redhat.com>
 
-Typedef the IRQ handler function type.
+* Andrew Morton <akpm@osdl.org> wrote:
 
-Signed-Off-By: David Howells <dhowells@redhat.com>
----
+> I think the change is good.  But I don't want to maintain this whopper 
+> out-of-tree for two months!  If we want to do this, we should just 
+> smash it in and grit our teeth.  But I am a bit concerned about the 
+> non-x86 architectures.  I assume they'll continue to compile-and-work?
+> 
+> What does Ingo think?
 
- include/linux/interrupt.h |    7 ++++---
- kernel/irq/manage.c       |    4 +---
- 2 files changed, 5 insertions(+), 6 deletions(-)
+i agree that we should do this in one go and in Linus' tree. I suspect 
+David has a script for this, so we can do it anytime for any tree, 
+right?
 
-diff --git a/include/linux/interrupt.h b/include/linux/interrupt.h
-index 1f97e3d..1978235 100644
---- a/include/linux/interrupt.h
-+++ b/include/linux/interrupt.h
-@@ -64,8 +64,10 @@ #define SA_TRIGGER_FALLING	IRQF_TRIGGER_
- #define SA_TRIGGER_RISING	IRQF_TRIGGER_RISING
- #define SA_TRIGGER_MASK		IRQF_TRIGGER_MASK
- 
-+typedef irqreturn_t (*irq_handler_t)(int, void *, struct pt_regs *);
-+
- struct irqaction {
--	irqreturn_t (*handler)(int, void *, struct pt_regs *);
-+	irq_handler_t handler;
- 	unsigned long flags;
- 	cpumask_t mask;
- 	const char *name;
-@@ -76,8 +78,7 @@ struct irqaction {
- };
- 
- extern irqreturn_t no_action(int cpl, void *dev_id, struct pt_regs *regs);
--extern int request_irq(unsigned int,
--		       irqreturn_t (*handler)(int, void *, struct pt_regs *),
-+extern int request_irq(unsigned int, irq_handler_t handler,
- 		       unsigned long, const char *, void *);
- extern void free_irq(unsigned int, void *);
- 
-diff --git a/kernel/irq/manage.c b/kernel/irq/manage.c
-index 92be519..6879202 100644
---- a/kernel/irq/manage.c
-+++ b/kernel/irq/manage.c
-@@ -427,8 +427,7 @@ EXPORT_SYMBOL(free_irq);
-  *	IRQF_SAMPLE_RANDOM	The interrupt can be used for entropy
-  *
-  */
--int request_irq(unsigned int irq,
--		irqreturn_t (*handler)(int, void *, struct pt_regs *),
-+int request_irq(unsigned int irq, irq_handler_t handler,
- 		unsigned long irqflags, const char *devname, void *dev_id)
- {
- 	struct irqaction *action;
-@@ -475,4 +474,3 @@ #endif
- 	return retval;
- }
- EXPORT_SYMBOL(request_irq);
--
+the amount of code that truly relies on regs being present is very low. 
+Mostly only sysrq type of stuff and the timer interrupt is such. Any 
+arch should be able to adopt to that promptly, but i'd favor a 
+switchover that works on 99% of the arches, just to have this pain over 
+instantly (sans small bugs).
+
+	Ingo
