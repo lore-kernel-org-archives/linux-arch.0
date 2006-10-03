@@ -1,25 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:10945 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1030220AbWJCKcC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Oct 2006 06:32:02 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <10243.1159869674@warthog.cambridge.redhat.com> 
-References: <10243.1159869674@warthog.cambridge.redhat.com>  <20061002201836.GB31365@elte.hu> <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com> <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com> <20061002132116.2663d7a3.akpm@osdl.org> 
-Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers 
-Date: Tue, 03 Oct 2006 11:30:04 +0100
-Message-ID: <10922.1159871404@warthog.cambridge.redhat.com>
+Received: from mx2.mail.elte.hu ([157.181.151.9]:25783 "EHLO mx2.mail.elte.hu")
+	by vger.kernel.org with ESMTP id S1030288AbWJCKvj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Oct 2006 06:51:39 -0400
+Date: Tue, 3 Oct 2006 12:43:16 +0200
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers
+Message-ID: <20061003104316.GA6830@elte.hu>
+References: <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com> <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com> <20061002132116.2663d7a3.akpm@osdl.org> <20061002201836.GB31365@elte.hu> <Pine.LNX.4.64.0610021349090.3952@g5.osdl.org> <20061002140121.f588b463.akpm@osdl.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20061002140121.f588b463.akpm@osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@osdl.org>, Thomas Gleixner <tglx@linutronix.de>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
+To: Andrew Morton <akpm@osdl.org>
+Cc: Linus Torvalds <torvalds@osdl.org>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
-David Howells <dhowells@redhat.com> wrote:
 
-> I wish.  No, it's not simple enough to script.  All the usages of struct
-> pt_regs have to be eyeballed and have to be poked with the compiler.  The
-> problem is when an interrupt handler passes regs down to someone else - that I
-> can't find.
+* Andrew Morton <akpm@osdl.org> wrote:
 
-Can't find with grep, I mean.
+> > I don't personally mind the patch, I just wanted to bring that issue 
+> > up.
+> 
+> yup.  Perhaps we could add
+> 
+> #define IRQ_HANDLERS_DONT_USE_PTREGS
+> 
+> so that out-of-tree drivers can reliably do their ifdefing.
 
-David
+i'd suggest we do something like:
+
+ #define __PT_REGS
+
+so that backportable drivers can do:
+
+  static irqreturn_t irq_handler(int irq, void *dev_id __PT_REGS)
+
+instead of an #ifdef jungle. Older kernel bases can define __PT_REGS in 
+their interrupt.h (or in the backported driver's header, in one place)
+
+ #ifndef __PT_REGS
+ # define __PT_REGS , struct pt_regs *regs
+ #endif
+
+this would minimize the direct impact in the source-code.
+
+	Ingo
