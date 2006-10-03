@@ -1,63 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.ocs.com.au ([202.147.117.210]:44854 "EHLO mail.ocs.com.au")
-	by vger.kernel.org with ESMTP id S965540AbWJCAJy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Oct 2006 20:09:54 -0400
-From: Keith Owens <kaos@sgi.com>
-Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers 
-In-reply-to: Your message of "Tue, 12 Sep 2006 17:27:14 +0100."
-             <3951.1158078434@warthog.cambridge.redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Date: Tue, 03 Oct 2006 10:10:25 +1000
-Message-ID: <18466.1159834225@ocs3.ocs.com.au>
+Received: from wx-out-0506.google.com ([66.249.82.226]:53065 "EHLO
+	wx-out-0506.google.com") by vger.kernel.org with ESMTP
+	id S965545AbWJCAg4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Oct 2006 20:36:56 -0400
+Received: by wx-out-0506.google.com with SMTP id s14so1863728wxc
+        for <linux-arch@vger.kernel.org>; Mon, 02 Oct 2006 17:36:56 -0700 (PDT)
+Message-ID: <21d7e9970610021736s2335a04ap42f3b5bf961cb704@mail.gmail.com>
+Date: Tue, 3 Oct 2006 10:36:53 +1000
+From: "Dave Airlie" <airlied@gmail.com>
+Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers
+In-Reply-To: <Pine.LNX.4.64.0610021349090.3952@g5.osdl.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+References: <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
+	 <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
+	 <20061002132116.2663d7a3.akpm@osdl.org>
+	 <20061002201836.GB31365@elte.hu>
+	 <Pine.LNX.4.64.0610021349090.3952@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: mingo@redhat.com, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
-David Howells (on Tue, 12 Sep 2006 17:27:14 +0100) wrote:
 >
->Patch 3/3 seems to be stuck on the linux-arch mailing list and is either
->delayed or maybe has been discarded, probably due to its size (about a
->megabyte).  It can be downloaded from here:
->
->	http://people.redhat.com/~dhowells/irq-global-regs.diff.bz2
+> Things like the kernel graphics direct-rendering code, for example -
+> mostly maintained in X.org trees that then want to compile with other
+> kernels too.
 
-This blows up immediately on IA64.
+Well in the DRM case we don't worry about that too much, the external
+DRM git tree has all the compat code hidden away and I've got lots of
+version check macros, so one more won't make a difference, the in-tree
+version has none of the that stuff anyways....
 
-  GEN     /build/kaos/2.6.18-irq-global/obj/Makefile
-scripts/kconfig/conf -s arch/ia64/Kconfig
-  Using /build/kaos/2.6.18-irq-global/linux-2.6 as source for kernel
-  GEN     /build/kaos/2.6.18-irq-global/obj/Makefile
-  CHK     include/linux/version.h
-  CHK     include/linux/utsrelease.h
-  SYMLINK include/asm -> include/asm-ia64
-  CC      arch/ia64/kernel/asm-offsets.s
-In file included from include2/asm/hardirq.h:11,
-                 from /build/kaos/2.6.18-irq-global/linux-2.6/include/linux/hardirq.h:7,
-                 from /build/kaos/2.6.18-irq-global/linux-2.6/include/linux/interrupt.h:11,
-                 from /build/kaos/2.6.18-irq-global/linux-2.6/include/asm-ia64/mca.h:16,
-                 from /build/kaos/2.6.18-irq-global/linux-2.6/arch/ia64/kernel/asm-offsets.c:15:
-/build/kaos/2.6.18-irq-global/linux-2.6/include/linux/irq.h:24:26: error: asm/irq_regs.h: No such file or directory
+Now it might break nvidia and ATI but that is all code that is in
+their "public" source...
 
-Are you expecting the include path to automatically fallback to
-include/asm-generic if a file does not exist in include/asm-$(ARCH)?
-That does not happen.
-
-Workaround with "cp include/asm-generic/irq_regs.h include/asm-ia64/",
-then there are several compile errors in IA64 specific code, patches to
-follow.
-
-I am concerned about code that has been missed in this patch.  For
-example,
-
-arch/ia64/kernel/perfmon.c:
-  static int
-  pfm_do_interrupt_handler(int irq, void *arg, struct pt_regs *regs)
-
-BTW, this patch is going to cause major headaches for KDB, it uses
-pt_regs all over the place.  Having said that, I think the patch is
-worthwhile.  Tracking down the pt_regs in the register stack in an IA64
-dump can be a major headache, using a global structure will make life
-easier.
-
+Dave.
