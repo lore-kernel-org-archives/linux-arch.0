@@ -1,42 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:47786 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S1030190AbWJCPVO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Oct 2006 11:21:14 -0400
-Date: Tue, 3 Oct 2006 09:21:13 -0600
-From: Matthew Wilcox <matthew@wil.cx>
+Received: from x35.xmailserver.org ([69.30.125.51]:54448 "EHLO
+	x35.xmailserver.org") by vger.kernel.org with ESMTP
+	id S1030348AbWJCRbx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Oct 2006 13:31:53 -0400
+Received: from alien.or.mcafeemobile.com
+	by xmailserver.org with [XMail 1.23 ESMTP Server]
+	id <S1EF6EB> for <linux-arch@vger.kernel.org> from <davidel@xmailserver.org>;
+	Tue, 3 Oct 2006 10:31:51 -0700
+Date: Tue, 3 Oct 2006 10:31:47 -0700 (PDT)
+From: Davide Libenzi <davidel@xmailserver.org>
 Subject: Re: epoll_pwait
-Message-ID: <20061003152112.GS16272@parisc-linux.org>
-References: <20061003002728.01133537.akpm@osdl.org> <1159862233.3438.45.camel@pmac.infradead.org> <1159864949.3438.55.camel@pmac.infradead.org>
+In-Reply-To: <20061003002728.01133537.akpm@osdl.org>
+Message-ID: <Pine.LNX.4.64.0610031031080.5702@alien.or.mcafeemobile.com>
+References: <20061003002728.01133537.akpm@osdl.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1159864949.3438.55.camel@pmac.infradead.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Davide Libenzi <davidel@xmailserver.org>, Michael Kerrisk <mtk-manpages@gmx.net>, Ulrich Drepper <drepper@redhat.com>, Roland McGrath <roland@redhat.com>, paulus@samba.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: linux-arch@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>, Michael Kerrisk <mtk-manpages@gmx.net>, Ulrich Drepper <drepper@redhat.com>, Roland McGrath <roland@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Oct 03, 2006 at 09:42:29AM +0100, David Woodhouse wrote:
-> --- a/include/linux/eventpoll.h
-> +++ b/include/linux/eventpoll.h
-> @@ -29,8 +29,11 @@ #define EPOLLONESHOT (1 << 30)
->  #define EPOLLET (1 << 31)
->  
->  /* 
-> - * On x86-64 make the 64bit structure have the same alignment as the
-> - * 32bit structure. This makes 32bit emulation easier.
-> + * On i386, the u64 won't be aligned to 64-bits. So on x86_64 we pack
-> + * the structure to be compatible. It seems that other 32-bit architectures
-> + * will align the u64 naturally anyway, so we don't have to worry there.
-> + * For example, both ppc and ppc64 put an extra 32 bits of padding in 
-> + * between the fields.
->   */
->  #ifdef __x86_64__
->  #define EPOLL_PACKED __attribute__((packed))
+On Tue, 3 Oct 2006, Andrew Morton wrote:
 
-Obviously, this should be
+> 
+> 
+> I'm about to send this Linuswards.  Architectures which implement
+> TIF_RESTORE_SIGMASK can wire it up.
+> 
+> David, do you have a test app which people can use?
 
-#if (defined(__x86_64__) || defined(__ia64))
+The good&old one :)
 
-since they both COMPAT i386.
+http://www.xmailserver.org/epoll_pwait_test.c
+
+
+
+- Davide
+
+
