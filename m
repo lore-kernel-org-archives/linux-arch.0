@@ -1,40 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from x35.xmailserver.org ([69.30.125.51]:54448 "EHLO
-	x35.xmailserver.org") by vger.kernel.org with ESMTP
-	id S1030348AbWJCRbx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Oct 2006 13:31:53 -0400
-Received: from alien.or.mcafeemobile.com
-	by xmailserver.org with [XMail 1.23 ESMTP Server]
-	id <S1EF6EB> for <linux-arch@vger.kernel.org> from <davidel@xmailserver.org>;
-	Tue, 3 Oct 2006 10:31:51 -0700
-Date: Tue, 3 Oct 2006 10:31:47 -0700 (PDT)
-From: Davide Libenzi <davidel@xmailserver.org>
-Subject: Re: epoll_pwait
-In-Reply-To: <20061003002728.01133537.akpm@osdl.org>
-Message-ID: <Pine.LNX.4.64.0610031031080.5702@alien.or.mcafeemobile.com>
-References: <20061003002728.01133537.akpm@osdl.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from gate.crashing.org ([63.228.1.57]:24002 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S1161070AbWJDDOs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Oct 2006 23:14:48 -0400
+Subject: Re: [PATCH] update generic irq for parisc
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <1157827893.3462.19.camel@mulgrave.il.steeleye.com>
+References: <1157827893.3462.19.camel@mulgrave.il.steeleye.com>
+Content-Type: text/plain
+Date: Wed, 04 Oct 2006 13:14:38 +1000
+Message-Id: <1159931678.8469.2.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: linux-arch@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>, Michael Kerrisk <mtk-manpages@gmx.net>, Ulrich Drepper <drepper@redhat.com>, Roland McGrath <roland@redhat.com>
+To: James Bottomley <James.Bottomley@steeleye.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 3 Oct 2006, Andrew Morton wrote:
-
+On Sat, 2006-09-09 at 13:51 -0500, James Bottomley wrote:
+> We have had a specific problem with the current generic linux IRQ code
+> for ages, in that indirection via function pointers is horribly
+> expensive for us (basically, the CPU pipes stall).  We'd like to use the
+> new genirq infrastructure to mitigate some of the problem.
 > 
+> I didn't want simply to move the irq handlers back into our arch code
+> again, since that would remove all the benefits of common handling code.
+> What I did was template out the common code in a way that keeps it
+> common but allows an architecture to modify it (for us to put our acks
+> and eoi's in as functions instead of function pointers).
 > 
-> I'm about to send this Linuswards.  Architectures which implement
-> TIF_RESTORE_SIGMASK can wire it up.
-> 
-> David, do you have a test app which people can use?
+> If everyone is OK with this, I'll introduce a new type of interrupt with
+> a specific handler (so for our heavily called interrupts like timer and
+> IPI we don't even need to indirect through action->handler()).
 
-The good&old one :)
+I don't have any objection to this patch as long as the current
+behaviour with function pointers still works fine (which seems to be the
+case from a quick look through the patch). On PowerPC, we have a huge
+variety of interrupt controllers and cascaded controllers and thus we
+can't really apply your shortcut.
 
-http://www.xmailserver.org/epoll_pwait_test.c
-
-
-
-- Davide
+Ben.
 
 
