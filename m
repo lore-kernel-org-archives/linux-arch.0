@@ -1,39 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:15770 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S1751722AbWJER0M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Oct 2006 13:26:12 -0400
-Date: Thu, 5 Oct 2006 11:26:11 -0600
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [PATCH] Use linux/io.h instead of asm/io.h
-Message-ID: <20061005172611.GB2563@parisc-linux.org>
-References: <11600679551209-git-send-email-matthew@wil.cx> <45253EAE.2070600@garzik.org>
+Received: from srv5.dvmed.net ([207.36.208.214]:63979 "EHLO mail.dvmed.net")
+	by vger.kernel.org with ESMTP id S932188AbWJERUT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2006 13:20:19 -0400
+Message-ID: <45253ECF.8080709@garzik.org>
+Date: Thu, 05 Oct 2006 13:20:15 -0400
+From: Jeff Garzik <jeff@garzik.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <45253EAE.2070600@garzik.org>
+Subject: Re: [PATCH] Consolidate check_signature
+References: <11600679551209-git-send-email-matthew@wil.cx> <11600679552794-git-send-email-matthew@wil.cx>
+In-Reply-To: <11600679552794-git-send-email-matthew@wil.cx>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Jeff Garzik <jeff@garzik.org>
-Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Matthew Wilcox <willy@parisc-linux.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Oct 05, 2006 at 01:19:42PM -0400, Jeff Garzik wrote:
-> Matthew Wilcox wrote:
-> >In preparation for moving check_signature, change these users from
-> >asm/io.h to linux/io.h
+Matthew Wilcox wrote:
+> There's nothing arch-specific about check_signature(), so move it to
+> <linux/io.h>.  Use a cross between the Alpha and i386 implementations
+> as the generic one.
 > 
-> The vast majority of drivers include asm/io.h.
+> Signed-off-by: Matthew Wilcox <willy@parisc-linux.org>
 
-Yes.  linux/io.h was only created recently.  It's proper style to
-include linux/foo.h when both linux/foo.h and asm/foo.h exist [1]
-This is just a transition which hasn't been completed yet (indeed, has
-barely begun).
+IMO this isn't 2.6.19-rc1 material.
 
-> Wouldn't it be better to move check_signature to 
-> include/asm-generic/io.h, and include that where needed?
+Much more appropriate for 2.6.20, after living in -mm for a while.
 
-I really don't think that proliferating header files unnecessarily is a
-good idea.
+	Jeff
 
-[1] Except, of course, <linux/irq.h>, but I thought rmk was going to fix
-that.
+
+
