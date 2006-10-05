@@ -1,35 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:11961 "EHLO
-	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S932377AbWJEW3M
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Oct 2006 18:29:12 -0400
-Received: from localhost.localdomain ([127.0.0.1]:41110 "EHLO
-	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20039439AbWJEW3K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Oct 2006 23:29:10 +0100
-Date: Thu, 5 Oct 2006 23:28:34 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: Cache alias handling in copy_user_page / copy_user_highpage
-Message-ID: <20061005222834.GA19258@linux-mips.org>
-References: <20060819122520.GA18180@linux-mips.org> <20060828.233656.59469351.davem@davemloft.net> <20061005165429.GA18700@linux-mips.org> <20061005.130631.63128675.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061005.130631.63128675.davem@davemloft.net>
+Received: from smtp.osdl.org ([65.172.181.4]:22218 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1751474AbWJEXff (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2006 19:35:35 -0400
+Date: Thu, 5 Oct 2006 16:35:02 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than
+ passing to IRQ handlers
+In-Reply-To: <18975.1160058127@warthog.cambridge.redhat.com>
+Message-ID: <Pine.LNX.4.64.0610051632250.3952@g5.osdl.org>
+References: <20061002132116.2663d7a3.akpm@osdl.org>
+ <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
+ <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
+ <18975.1160058127@warthog.cambridge.redhat.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: linux-arch@vger.kernel.org, akpm@osdl.org
+To: David Howells <dhowells@redhat.com>
+Cc: Andrew Morton <akpm@osdl.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Oct 05, 2006 at 01:06:31PM -0700, David Miller wrote:
 
-> > I found it to be much more maintainable to deal with this in C due to a
-> > large number of processor variations to be supported.
+
+On Thu, 5 Oct 2006, David Howells wrote:
 > 
-> It is a reasonable reason to use code patching :-)
+> Anyway, I've made a GIT tree with just IRQ my patches in.  It can be browsed
+> at:
+> 
+> 	http://git.infradead.org/?p=users/dhowells/irq-2.6.git;a=shortlog
+> 
+> Or pulled from:
+> 
+> 	git://git.infradead.org/~dhowells/irq-2.6.git
 
-In which case I guess you will enjoy arch/mips/mm/tlbex.c which is
-custom tayloring TLB exception handler for the particular CPU type, errata
-workaround, UP/SMP and alot of other stuff ;)
+Gaah. It has those ugly "cherry-picked from" messages (please use "-r" 
+when cherry-picking, or "-e" and edit them out), but it looks fine 
+otherwise, and I think I heard a _very_ convincing "please do it" from 
+everybody involved when this was discussed, so I've pulled. 
 
-  Ralf
+Any fall-out from this should be both obvious and pretty trivial to fix 
+up.
+
+		Linus
