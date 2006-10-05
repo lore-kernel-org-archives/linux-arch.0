@@ -1,28 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kroah.org ([69.55.234.183]:41962 "EHLO perch.kroah.org")
-	by vger.kernel.org with ESMTP id S932082AbWJEUlT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2006 16:41:19 -0400
-Date: Thu, 5 Oct 2006 13:34:24 -0700
-From: Greg KH <greg@kroah.com>
-Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers
-Message-ID: <20061005203424.GA16932@kroah.com>
-References: <20061002132116.2663d7a3.akpm@osdl.org> <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com> <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com> <18975.1160058127@warthog.cambridge.redhat.com> <20061005124601.94ed7194.akpm@osdl.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061005124601.94ed7194.akpm@osdl.org>
+Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:34779 "EHLO
+	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP id S932246AbWJEVkU
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Oct 2006 17:40:20 -0400
+Subject: Re: [PATCH] Use linux/io.h instead of asm/io.h
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+In-Reply-To: <11600679551209-git-send-email-matthew@wil.cx>
+References: <11600679551209-git-send-email-matthew@wil.cx>
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Date: Thu, 05 Oct 2006 23:04:12 +0100
+Message-Id: <1160085852.1607.39.camel@localhost.localdomain>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Matthew Wilcox <willy@parisc-linux.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Oct 05, 2006 at 12:46:01PM -0700, Andrew Morton wrote:
-> A quick survey of the wreckage:
+Ar Iau, 2006-10-05 am 11:05 -0600, ysgrifennodd Matthew Wilcox:
+> In preparation for moving check_signature, change these users from
+> asm/io.h to linux/io.h
 > 
-> - five of Greg's USB patches need fixing
+> Signed-off-by: Matthew Wilcox <willy@parisc-linux.org>
 
-I'll fix my stuff up, no objection from me at all, push it in :)
+Acked-by: Alan Cox <alan@redhat.com>
 
-thanks,
-
-greg k-h
