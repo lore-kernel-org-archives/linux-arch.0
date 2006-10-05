@@ -1,27 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:34779 "EHLO
-	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP id S932246AbWJEVkU
+Received: from ftp.linux-mips.org ([194.74.144.162]:11961 "EHLO
+	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S932377AbWJEW3M
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Oct 2006 17:40:20 -0400
-Subject: Re: [PATCH] Use linux/io.h instead of asm/io.h
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-In-Reply-To: <11600679551209-git-send-email-matthew@wil.cx>
-References: <11600679551209-git-send-email-matthew@wil.cx>
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Date: Thu, 05 Oct 2006 23:04:12 +0100
-Message-Id: <1160085852.1607.39.camel@localhost.localdomain>
+	Thu, 5 Oct 2006 18:29:12 -0400
+Received: from localhost.localdomain ([127.0.0.1]:41110 "EHLO
+	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
+	id S20039439AbWJEW3K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Oct 2006 23:29:10 +0100
+Date: Thu, 5 Oct 2006 23:28:34 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: Cache alias handling in copy_user_page / copy_user_highpage
+Message-ID: <20061005222834.GA19258@linux-mips.org>
+References: <20060819122520.GA18180@linux-mips.org> <20060828.233656.59469351.davem@davemloft.net> <20061005165429.GA18700@linux-mips.org> <20061005.130631.63128675.davem@davemloft.net>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20061005.130631.63128675.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Matthew Wilcox <willy@parisc-linux.org>
+To: David Miller <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Ar Iau, 2006-10-05 am 11:05 -0600, ysgrifennodd Matthew Wilcox:
-> In preparation for moving check_signature, change these users from
-> asm/io.h to linux/io.h
+On Thu, Oct 05, 2006 at 01:06:31PM -0700, David Miller wrote:
+
+> > I found it to be much more maintainable to deal with this in C due to a
+> > large number of processor variations to be supported.
 > 
-> Signed-off-by: Matthew Wilcox <willy@parisc-linux.org>
+> It is a reasonable reason to use code patching :-)
 
-Acked-by: Alan Cox <alan@redhat.com>
+In which case I guess you will enjoy arch/mips/mm/tlbex.c which is
+custom tayloring TLB exception handler for the particular CPU type, errata
+workaround, UP/SMP and alot of other stuff ;)
 
+  Ralf
