@@ -1,49 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:14532 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S932186AbWJERc0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Oct 2006 13:32:26 -0400
-Date: Thu, 5 Oct 2006 11:32:25 -0600
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [PATCH] Centralise definitions of sector_t and blkcnt_t
-Message-ID: <20061005173225.GC2563@parisc-linux.org>
-References: <11600678512429-git-send-email-matthew@wil.cx> <45253F27.7080707@garzik.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <45253F27.7080707@garzik.org>
+Received: from smtp.osdl.org ([65.172.181.4]:3718 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1750886AbWJETq6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2006 15:46:58 -0400
+Date: Thu, 5 Oct 2006 12:46:01 -0700
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than
+ passing to IRQ handlers
+Message-Id: <20061005124601.94ed7194.akpm@osdl.org>
+In-Reply-To: <18975.1160058127@warthog.cambridge.redhat.com>
+References: <20061002132116.2663d7a3.akpm@osdl.org>
+	<20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
+	<20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
+	<18975.1160058127@warthog.cambridge.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Jeff Garzik <jeff@garzik.org>
-Cc: Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Oct 05, 2006 at 01:21:43PM -0400, Jeff Garzik wrote:
-> Matthew Wilcox wrote:
-> >CONFIG_LBD and CONFIG_LSF are spread into asm/types.h for no particularly
-> >good reason.  Centralising the definition in linux/types.h means that arch
-> >maintainers don't need to bother adding it, as well as fixing the problem
-> >with x86-64 users being asked to make a decision that has absolutely no
-> >effect.  The H8/300 porters seem particularly confused since I'm not aware
-> >of any microcontrollers that need to support 2TB filesystems these days.
-> >
-> >Signed-off-by: Matthew Wilcox <matthew@wil.cx>
+On Thu, 05 Oct 2006 15:22:07 +0100
+David Howells <dhowells@redhat.com> wrote:
+
+> Andrew Morton <akpm@osdl.org> wrote:
 > 
-> Doesn't look like 2.6.19-rc1 material to me...
+> > These should just use __get_cpu_var().
 > 
-> The only apparently "problem" has no real effect, according to you.
+> Done.
+> 
+> > And could we please remove the irq_regs macro?
+> 
+> Done.
+> 
+> > I think the change is good.  But I don't want to maintain this whopper
+> > out-of-tree for two months!  If we want to do this, we should just smash it
+> > in and grit our teeth.  But I am a bit concerned about the non-x86
+> > architectures.  I assume they'll continue to compile-and-work?
+> 
+> Well, it seems that IA64 and MIPS don't build as of 2.6.19-rc1 without my
+> having to do anything.  i386, x86_64, powerpc and frv build for at least one
+> configuration each.  The other archs I haven't touched, so will definitely
+> break.
+> 
+> Can those arch maintainers give me patches?
+> 
+> 
+> Anyway, I've made a GIT tree with just IRQ my patches in.  It can be browsed
+> at:
+> 
+> 	http://git.infradead.org/?p=users/dhowells/irq-2.6.git;a=shortlog
+> 
+> Or pulled from:
+> 
+> 	git://git.infradead.org/~dhowells/irq-2.6.git
+> 
+> David
+> 
+> ---
+> The following changes since commit d223a60106891bfe46febfacf46b20cd8509aaad:
+>   Linus Torvalds:
+>         Linux 2.6.19-rc1
+> 
+> are found in the git repository at:
+> 
+>   git://git.infradead.org/~dhowells/irq-2.6.git
+> 
 
-Huh?  It adds LBD/LSF support to a bunch of architectures that haven't
-noticed that they needed to do anything.  It stops annoying X86_64 users
-with a question that has no effect.  It reduces memory consumption for
-the h8/300 port.
+A quick survey of the wreckage:
 
-It's been submitted before.  I had thought it was in a tree that Linus
-had pulled, but upon reviewing the diff, found out it was one of the
-patches that got left out.  It was even in -mm for a while, but got
-chucked out due to rejects.
+- Dmitry's input git tree breaks a bit
 
-Why are you opposed to it going in after -rc1?  This seems like the
-ideal time to make this kind of change -- the mad merge rush is over and
-patches which touch a lot of files and have a high probability of
-causing rejects should go in at this point, IMO.  See also the
-discussion around the pt_regs removal from interrupt handlers.
+- five of Greg's USB patches need fixing
+
+- a few random -mm patches need touchups
+
+- The hrtimer+dynticks i386 patch takes rather a hit and will need redoing.
+
+So, not too bad at all.  It's a bit rough on the poor old arch maintainers,
+but it's pretty simple stuff.
+
+I'd say let's do it...
