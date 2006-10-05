@@ -1,45 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:40166 "EHLO
-	pentafluge.infradead.org") by vger.kernel.org with ESMTP
-	id S1751203AbWJEICL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Oct 2006 04:02:11 -0400
-Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than
-	passing to IRQ handlers
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <Pine.LNX.4.64.0610021349090.3952@g5.osdl.org>
-References: <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
-	 <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
-	 <20061002132116.2663d7a3.akpm@osdl.org> <20061002201836.GB31365@elte.hu>
-	 <Pine.LNX.4.64.0610021349090.3952@g5.osdl.org>
-Content-Type: text/plain
-Date: Thu, 05 Oct 2006 09:01:55 +0100
-Message-Id: <1160035315.26064.20.camel@pmac.infradead.org>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:25544 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1751466AbWJEOYQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2006 10:24:16 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20655.1159932383@kao2.melbourne.sgi.com> 
+References: <20655.1159932383@kao2.melbourne.sgi.com> 
+Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers 
+Date: Thu, 05 Oct 2006 15:24:11 +0100
+Message-ID: <19038.1160058251@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@osdl.org>, David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
+To: Keith Owens <kaos@sgi.com>
+Cc: David Howells <dhowells@redhat.com>, mingo@redhat.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2006-10-02 at 13:54 -0700, Linus Torvalds wrote:
-> Yeah, well, it's been discussed before, and the real problem is not the 
-> patch itself, it's the damn drivers maintained outside the tree, and 
-> people who want to maintain the same driver for multiple different 
-> versions of the kernel.
+Keith Owens <kaos@sgi.com> wrote:
 
-Maintaining drivers out of tree is shameless autoflagellation at the
-best of times. We really don't care -- if we didn't make life hard for
-them in this way they'd only go and stick pins under their fingernails
-to make up for the lack of pain. If you think about it like that, we're
-probably doing them a favour -- at least this way they're _safe_.
+> That is the one that I am using, and it blows up immediately on IA64.
+> There is no automatic default to scan include/asm-generic after
+> asm-$(ARCH).
 
-> So if the patch works against my current tree, and nobody objects, I can 
-> certainly apply it.
-> 
-> So speak up, people...
+Sigh.  Forgot to tell StGIT to add the new files again.  Sorry about that.
+I'll post a new patch soon.
 
-Go for it.
-
--- 
-dwmw2
-
+David
