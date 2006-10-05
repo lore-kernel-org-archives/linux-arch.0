@@ -1,33 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from srv5.dvmed.net ([207.36.208.214]:63979 "EHLO mail.dvmed.net")
-	by vger.kernel.org with ESMTP id S932188AbWJERUT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2006 13:20:19 -0400
-Message-ID: <45253ECF.8080709@garzik.org>
-Date: Thu, 05 Oct 2006 13:20:15 -0400
-From: Jeff Garzik <jeff@garzik.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:14532 "EHLO
+	mail.parisc-linux.org") by vger.kernel.org with ESMTP
+	id S932186AbWJERc0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Oct 2006 13:32:26 -0400
+Date: Thu, 5 Oct 2006 11:32:25 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH] Centralise definitions of sector_t and blkcnt_t
+Message-ID: <20061005173225.GC2563@parisc-linux.org>
+References: <11600678512429-git-send-email-matthew@wil.cx> <45253F27.7080707@garzik.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH] Consolidate check_signature
-References: <11600679551209-git-send-email-matthew@wil.cx> <11600679552794-git-send-email-matthew@wil.cx>
-In-Reply-To: <11600679552794-git-send-email-matthew@wil.cx>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <45253F27.7080707@garzik.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Matthew Wilcox <willy@parisc-linux.org>
+To: Jeff Garzik <jeff@garzik.org>
+Cc: Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Matthew Wilcox wrote:
-> There's nothing arch-specific about check_signature(), so move it to
-> <linux/io.h>.  Use a cross between the Alpha and i386 implementations
-> as the generic one.
+On Thu, Oct 05, 2006 at 01:21:43PM -0400, Jeff Garzik wrote:
+> Matthew Wilcox wrote:
+> >CONFIG_LBD and CONFIG_LSF are spread into asm/types.h for no particularly
+> >good reason.  Centralising the definition in linux/types.h means that arch
+> >maintainers don't need to bother adding it, as well as fixing the problem
+> >with x86-64 users being asked to make a decision that has absolutely no
+> >effect.  The H8/300 porters seem particularly confused since I'm not aware
+> >of any microcontrollers that need to support 2TB filesystems these days.
+> >
+> >Signed-off-by: Matthew Wilcox <matthew@wil.cx>
 > 
-> Signed-off-by: Matthew Wilcox <willy@parisc-linux.org>
+> Doesn't look like 2.6.19-rc1 material to me...
+> 
+> The only apparently "problem" has no real effect, according to you.
 
-IMO this isn't 2.6.19-rc1 material.
+Huh?  It adds LBD/LSF support to a bunch of architectures that haven't
+noticed that they needed to do anything.  It stops annoying X86_64 users
+with a question that has no effect.  It reduces memory consumption for
+the h8/300 port.
 
-Much more appropriate for 2.6.20, after living in -mm for a while.
+It's been submitted before.  I had thought it was in a tree that Linus
+had pulled, but upon reviewing the diff, found out it was one of the
+patches that got left out.  It was even in -mm for a while, but got
+chucked out due to rejects.
 
-	Jeff
-
-
-
+Why are you opposed to it going in after -rc1?  This seems like the
+ideal time to make this kind of change -- the mad merge rush is over and
+patches which touch a lot of files and have a high probability of
+causing rejects should go in at this point, IMO.  See also the
+discussion around the pt_regs removal from interrupt handlers.
