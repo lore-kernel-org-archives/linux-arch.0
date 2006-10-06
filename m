@@ -1,50 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wx-out-0506.google.com ([66.249.82.236]:32584 "EHLO
-	wx-out-0506.google.com") by vger.kernel.org with ESMTP
-	id S1750756AbWJFIDr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 6 Oct 2006 04:03:47 -0400
-Received: by wx-out-0506.google.com with SMTP id s14so768632wxc
-        for <linux-arch@vger.kernel.org>; Fri, 06 Oct 2006 01:03:47 -0700 (PDT)
-Message-ID: <9d2cd630610060103y1703f6b4w86bb6e08f872238c@mail.gmail.com>
-Date: Fri, 6 Oct 2006 10:03:46 +0200
-From: "Gregor Jasny" <gjasny@googlemail.com>
-Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers
-In-Reply-To: <18975.1160058127@warthog.cambridge.redhat.com>
-MIME-Version: 1.0
-Content-Type: multipart/mixed;
-	boundary="----=_Part_163467_15113183.1160121826742"
-References: <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
+Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:3279 "EHLO
+	lxorguk.ukuu.org.uk") by vger.kernel.org with ESMTP
+	id S1751481AbWJFLC5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 6 Oct 2006 07:02:57 -0400
+Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than
+	passing to IRQ handlers
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+In-Reply-To: <4525A8D8.9050504@garzik.org>
+References: <20061002132116.2663d7a3.akpm@osdl.org>
+	 <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
 	 <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
-	 <20061002132116.2663d7a3.akpm@osdl.org>
 	 <18975.1160058127@warthog.cambridge.redhat.com>
+	 <4525A8D8.9050504@garzik.org>
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Date: Fri, 06 Oct 2006 12:25:32 +0100
+Message-Id: <1160133932.1607.68.camel@localhost.localdomain>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Andrew Morton <akpm@osdl.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
+To: Jeff Garzik <jeff@garzik.org>
+Cc: David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
-------=_Part_163467_15113183.1160121826742
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
+Ar Iau, 2006-10-05 am 20:52 -0400, ysgrifennodd Jeff Garzik:
+> The overwhelming majority of irq handlers don't use the 'irq' argument 
+> either...  the driver-supplied pointer is what drivers use, exclusively, 
+> to differentiate between different instances.
+> 
+> If we are going to break all the irq handlers, I'd suggest going ahead 
+> and removing that one too.
 
-Hi,
+NAK to that, it will mess up a lot of older drivers which still use the
+irq field and also those who want it to print
 
-I need the following patch to compile the latest git snapshot from Linus.
-
-Gregor
-
-------=_Part_163467_15113183.1160121826742
-Content-Type: text/x-patch; name=apic-irq.diff; charset=ANSI_X3.4-1968
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_esyagib8
-Content-Disposition: attachment; filename="apic-irq.diff"
-
-U2lnbmVkLW9mZi1ieTogR3JlZ29yIEphc255IDxnamFzbnlAd2ViLmRlPgotLS0gCmRpZmYgLS1n
-aXQgYS9hcmNoL2kzODYva2VybmVsL2FwaWMuYyBiL2FyY2gvaTM4Ni9rZXJuZWwvYXBpYy5jCmlu
-ZGV4IDdkNTAwZGEuLjJmZDRiN2QgMTAwNjQ0Ci0tLSBhL2FyY2gvaTM4Ni9rZXJuZWwvYXBpYy5j
-CisrKyBiL2FyY2gvaTM4Ni9rZXJuZWwvYXBpYy5jCkBAIC0xMTk3LDcgKzExOTcsNyBAQCBpbmxp
-bmUgdm9pZCBzbXBfbG9jYWxfdGltZXJfaW50ZXJydXB0KHZvCiB7CiAJcHJvZmlsZV90aWNrKENQ
-VV9QUk9GSUxJTkcpOwogI2lmZGVmIENPTkZJR19TTVAKLQl1cGRhdGVfcHJvY2Vzc190aW1lcyh1
-c2VyX21vZGVfdm0oaXJxX3JlZ3MpKTsKKwl1cGRhdGVfcHJvY2Vzc190aW1lcyh1c2VyX21vZGVf
-dm0oZ2V0X2lycV9yZWdzKCkpKTsKICNlbmRpZgogCiAJLyoK
-------=_Part_163467_15113183.1160121826742--
