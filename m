@@ -1,11 +1,11 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:35490 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S932335AbWJFNfA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Oct 2006 09:35:00 -0400
+Received: from mx1.redhat.com ([66.187.233.31]:20898 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S932310AbWJFNei (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Oct 2006 09:34:38 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 2/4] LOG2: Alter roundup_pow_of_two() so that it can use a ilog2() on a constant [try #4]
-Date: Fri, 06 Oct 2006 14:34:17 +0100
-Message-Id: <20061006133417.9972.76941.stgit@warthog.cambridge.redhat.com>
+Subject: [PATCH 4/4] LOG2: Provide ilog2() fallbacks for powerpc [try #4]
+Date: Fri, 06 Oct 2006 14:34:22 +0100
+Message-Id: <20061006133422.9972.29416.stgit@warthog.cambridge.redhat.com>
 In-Reply-To: <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com>
 References: <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com>
 Content-Type: text/plain; charset=utf-8; format=fixed
@@ -17,75 +17,92 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: David Howells <dhowells@redhat.com>
 
-Alter roundup_pow_of_two() so that it can make use of ilog2() on a constant to
-produce a constant value, retaining the ability for an arch to override it in
-the non-const case.
-
-This permits the function to be used to initialise variables.
+Provide ilog2() fallbacks for powerpc for 32-bit numbers and 64-bit numbers on
+ppc64.
 
 Signed-Off-By: David Howells <dhowells@redhat.com>
 ---
 
- include/linux/kernel.h |    6 ------
- include/linux/log2.h   |   26 ++++++++++++++++++++++++++
- 2 files changed, 26 insertions(+), 6 deletions(-)
+ arch/powerpc/Kconfig          |    4 ++--
+ include/asm-powerpc/bitops.h  |   21 ++++++++++++++++++++-
+ include/asm-powerpc/page_32.h |   10 +---------
+ 3 files changed, 23 insertions(+), 12 deletions(-)
 
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index 473101a..67ca3ad 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -156,12 +156,6 @@ #endif
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 1cf67b7..9515489 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -43,11 +43,11 @@ config RWSEM_XCHGADD_ALGORITHM
  
- unsigned long int_sqrt(unsigned long);
+ config ARCH_HAS_ILOG2_U32
+ 	bool
+-	default n
++	default y
  
--static inline unsigned long
--__attribute_const__ roundup_pow_of_two(unsigned long x)
--{
--	return 1UL << fls_long(x - 1);
--}
--
- extern int printk_ratelimit(void);
- extern int __printk_ratelimit(int ratelimit_jiffies, int ratelimit_burst);
+ config ARCH_HAS_ILOG2_U64
+ 	bool
+-	default n
++	default y if 64BIT
  
-diff --git a/include/linux/log2.h b/include/linux/log2.h
-index 3979c60..d02e1a5 100644
---- a/include/linux/log2.h
-+++ b/include/linux/log2.h
-@@ -43,6 +43,15 @@ int __ilog2_u64(u64 n)
+ config GENERIC_HWEIGHT
+ 	bool
+diff --git a/include/asm-powerpc/bitops.h b/include/asm-powerpc/bitops.h
+index c341063..0288144 100644
+--- a/include/asm-powerpc/bitops.h
++++ b/include/asm-powerpc/bitops.h
+@@ -190,7 +190,8 @@ #include <asm-generic/bitops/non-atomic.
+  * Return the zero-based bit position (LE, not IBM bit numbering) of
+  * the most significant 1-bit in a double word.
+  */
+-static __inline__ int __ilog2(unsigned long x)
++static __inline__ __attribute__((const))
++int __ilog2(unsigned long x)
+ {
+ 	int lz;
+ 
+@@ -198,6 +199,24 @@ static __inline__ int __ilog2(unsigned l
+ 	return BITS_PER_LONG - 1 - lz;
  }
- #endif
  
-+/*
-+ * round up to nearest power of two
-+ */
 +static inline __attribute__((const))
-+unsigned long __roundup_pow_of_two(unsigned long n)
++int __ilog2_u32(u32 n)
 +{
-+	return 1UL << fls_long(n - 1);
++	int bit;
++	asm ("cntlzw %0,%1" : "=r" (bit) : "r" (n));
++	return 31 - bit;
 +}
 +
- /**
-  * ilog2 - log of base 2 of 32-bit or a 64-bit unsigned value
-  * @n - parameter
-@@ -128,4 +137,21 @@ (						\
- 	__ilog2_u64(n)				\
-  )
- 
-+/**
-+ * roundup_pow_of_two - round the given value up to nearest power of two
-+ * @n - parameter
-+ *
-+ * round the given balue up to the nearest power of two
-+ * - the result is undefined when n == 0
-+ * - this can be used to initialise global variables from constant data
-+ */
-+#define roundup_pow_of_two(n)			\
-+(						\
-+	__builtin_constant_p(n) ? (		\
-+		(n == 1) ? 0 :			\
-+		(1UL << (ilog2((n) - 1) + 1))	\
-+				   ) :		\
-+	__roundup_pow_of_two(n)			\
-+ )
++#ifdef __powerpc64__
++static inline __attribute__((const))
++int __ilog2_u64(u32 n)
++{
++	int bit;
++	asm ("cntlzd %0,%1" : "=r" (bit) : "r" (n));
++	return 63 - bit;
++}
++#endif
 +
- #endif /* _LINUX_LOG2_H */
+ /*
+  * Determines the bit position of the least significant 0 bit in the
+  * specified double word. The returned bit position will be
+diff --git a/include/asm-powerpc/page_32.h b/include/asm-powerpc/page_32.h
+index 2677bad..07f6d3c 100644
+--- a/include/asm-powerpc/page_32.h
++++ b/include/asm-powerpc/page_32.h
+@@ -26,15 +26,7 @@ extern void clear_pages(void *page, int 
+ static inline void clear_page(void *page) { clear_pages(page, 0); }
+ extern void copy_page(void *to, void *from);
+ 
+-/* Pure 2^n version of get_order */
+-extern __inline__ int get_order(unsigned long size)
+-{
+-	int lz;
+-
+-	size = (size-1) >> PAGE_SHIFT;
+-	asm ("cntlzw %0,%1" : "=r" (lz) : "r" (size));
+-	return 32 - lz;
+-}
++#include <asm-generic/page.h>
+ 
+ #endif /* __ASSEMBLY__ */
+ 
