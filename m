@@ -1,64 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from srv5.dvmed.net ([207.36.208.214]:11938 "EHLO mail.dvmed.net")
-	by vger.kernel.org with ESMTP id S932439AbWJFQjL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Oct 2006 12:39:11 -0400
-Message-ID: <452686A3.9050004@garzik.org>
-Date: Fri, 06 Oct 2006 12:38:59 -0400
-From: Jeff Garzik <jeff@garzik.org>
+Received: from smtp.osdl.org ([65.172.181.4]:492 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1422703AbWJFQnn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Oct 2006 12:43:43 -0400
+Date: Fri, 6 Oct 2006 09:40:24 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH, RAW] IRQ: Maintain irq number globally rather than
+ passing to IRQ handlers
+In-Reply-To: <d120d5000610060921q493a3f58n45285e6dcc037156@mail.gmail.com>
+Message-ID: <Pine.LNX.4.64.0610060937120.3952@g5.osdl.org>
+References: <20061002132116.2663d7a3.akpm@osdl.org>
+ <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
+ <18975.1160058127@warthog.cambridge.redhat.com>  <4525A8D8.9050504@garzik.org>
+  <1160133932.1607.68.camel@localhost.localdomain>  <45263ABC.4050604@garzik.org>
+ <20061006111156.GA19678@elte.hu>  <45263D9C.9030200@garzik.org>
+ <452673AC.1080602@garzik.org>  <Pine.LNX.4.64.0610060841320.3952@g5.osdl.org>
+ <d120d5000610060921q493a3f58n45285e6dcc037156@mail.gmail.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH, RAW] IRQ: Maintain irq number globally rather than passing
- to IRQ handlers
-References: <20061002132116.2663d7a3.akpm@osdl.org> <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com> <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com> <18975.1160058127@warthog.cambridge.redhat.com> <4525A8D8.9050504@garzik.org> <1160133932.1607.68.camel@localhost.localdomain> <45263ABC.4050604@garzik.org> <20061006111156.GA19678@elte.hu> <45263D9C.9030200@garzik.org> <452673AC.1080602@garzik.org> <Pine.LNX.4.64.0610060841320.3952@g5.osdl.org>
-In-Reply-To: <Pine.LNX.4.64.0610060841320.3952@g5.osdl.org>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andrew Morton <akpm@osdl.org>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
+To: Dmitry Torokhov <dmitry.torokhov@gmail.com>
+Cc: Jeff Garzik <jeff@garzik.org>, David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andrew Morton <akpm@osdl.org>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
-Linus Torvalds wrote:
+
+
+On Fri, 6 Oct 2006, Dmitry Torokhov wrote:
 > 
-> On Fri, 6 Oct 2006, Jeff Garzik wrote:
->> Here is the raw, un-split-up first pass of the irq argument removal patch
->> (500K):	http://gtf.org/garzik/misc/patch.irq-remove
-> 
-> So I'm not at all as sure about this as about the "regs" stuff.
-> 
-> The "regs" value has always been controversial. It's pretty much always 
-> existed (due to the keyboard hander and the magic debugging keysequences), 
-> and anybody who looks at 0.01 will quickly realize that the keyboard 
-> driver was one of the very first drivers (I think it's even written in 
-> assembly at that point: originally _all_ of what was to become Linux was 
-> pure asm, the whole "oh, cool, I could write this part in C" came later). 
-> But it's been pretty much a special case since day #1, purely for that 
-> "press a key to see where the h*ck we hung" case.
+> But drivers rarely care about exact IRQ that caused their interrupt
+> routines to be called.
 
-Chuckle :)
+Sure. But it's not a _cleanup_ as far as I can tell.
 
-> In contrast, the irq argument itself is really no different from the 
-> cookie we pass in on registration - it's just passing it back to the 
-> driver that requested the thing. So unlike "regs", there's not really 
-> anything strange about it, and there's nothing really "wrong" with having 
-> it there.
+> Drivers that truly need to know IRQ can have it added to dev_id cookie
+> and use separate dev_ids.
 
-It doesn't have the colorful history of pt_regs, but the 'irq' argument 
-is dead weight.  I'd say the wrongness stems from its utter uselessness.
+I'm not saying that what you describe is impossible. I'm just saying that 
+it's pointless. 
 
-Out of ~1100 irq handlers, the irq parameter is used in ~50.  The vast 
-majority of those 50 uses are debug printks, or abused as a "did I call 
-myself?" internal driver flag.  The number of "real" uses is under 15, 
-and those are all ancient ISA or platform drivers that pre-date my ~10 
-year history with Linux.
+What's wrong with passing in "irq"? It makes sense from a logical angle, 
+and it's something you kind of expect if you think of irq's as "signals 
+for the kernel" (which they almost literally used to be, why do you think 
+it was called "SA_SHIRQ" etc?).
 
-So, I don't see any convincing argument to keep it.  And if we are going 
-to kill it, given the pt_regs churn, this is probably the best 
-opportunity we'll have in years.
+So there is absolutely nothing wrong with passing in irq from a conceptual 
+or a practical angle, and some routines _do_ use it.
 
-Another weak-but-still-present argument in favor of killing it is that 
-this change would IMO future-proof irq handlers, against more exotic irq 
-handling methods that may come down the pipe.
-
-	Jeff
-
-
+		Linus
