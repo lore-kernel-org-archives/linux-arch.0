@@ -1,49 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:48606 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S1751503AbWJFPsq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Oct 2006 11:48:46 -0400
-Date: Fri, 6 Oct 2006 08:47:42 -0700 (PDT)
-From: Linus Torvalds <torvalds@osdl.org>
-Subject: Re: [PATCH, RAW] IRQ: Maintain irq number globally rather than
- passing to IRQ handlers
-In-Reply-To: <452673AC.1080602@garzik.org>
-Message-ID: <Pine.LNX.4.64.0610060841320.3952@g5.osdl.org>
-References: <20061002132116.2663d7a3.akpm@osdl.org>
- <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
- <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
- <18975.1160058127@warthog.cambridge.redhat.com> <4525A8D8.9050504@garzik.org>
- <1160133932.1607.68.camel@localhost.localdomain> <45263ABC.4050604@garzik.org>
- <20061006111156.GA19678@elte.hu> <45263D9C.9030200@garzik.org>
- <452673AC.1080602@garzik.org>
+Received: from ug-out-1314.google.com ([66.249.92.175]:48944 "EHLO
+	ug-out-1314.google.com") by vger.kernel.org with ESMTP
+	id S932437AbWJFQV3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 6 Oct 2006 12:21:29 -0400
+Received: by ug-out-1314.google.com with SMTP id o38so342543ugd
+        for <linux-arch@vger.kernel.org>; Fri, 06 Oct 2006 09:21:27 -0700 (PDT)
+Message-ID: <d120d5000610060921q493a3f58n45285e6dcc037156@mail.gmail.com>
+Date: Fri, 6 Oct 2006 12:21:27 -0400
+From: "Dmitry Torokhov" <dmitry.torokhov@gmail.com>
+Subject: Re: [PATCH, RAW] IRQ: Maintain irq number globally rather than passing to IRQ handlers
+In-Reply-To: <Pine.LNX.4.64.0610060841320.3952@g5.osdl.org>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+References: <20061002132116.2663d7a3.akpm@osdl.org>
+	 <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
+	 <18975.1160058127@warthog.cambridge.redhat.com>
+	 <4525A8D8.9050504@garzik.org>
+	 <1160133932.1607.68.camel@localhost.localdomain>
+	 <45263ABC.4050604@garzik.org> <20061006111156.GA19678@elte.hu>
+	 <45263D9C.9030200@garzik.org> <452673AC.1080602@garzik.org>
+	 <Pine.LNX.4.64.0610060841320.3952@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Jeff Garzik <jeff@garzik.org>
-Cc: David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andrew Morton <akpm@osdl.org>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Jeff Garzik <jeff@garzik.org>, David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andrew Morton <akpm@osdl.org>, Thomas Gleixner <tglx@linutronix.de>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
+On 10/6/06, Linus Torvalds <torvalds@osdl.org> wrote:
 
-
-On Fri, 6 Oct 2006, Jeff Garzik wrote:
+> In contrast, the irq argument itself is really no different from the
+> cookie we pass in on registration - it's just passing it back to the
+> driver that requested the thing. So unlike "regs", there's not really
+> anything strange about it, and there's nothing really "wrong" with having
+> it there.
 >
-> Here is the raw, un-split-up first pass of the irq argument removal patch
-> (500K):	http://gtf.org/garzik/misc/patch.irq-remove
+> So I'm not at all as convinced about this one.
 
-So I'm not at all as sure about this as about the "regs" stuff.
+But drivers rarely care about exact IRQ that caused their interrupt
+routines to be called. I looked at some of them and they normally use
+it just to print warnings which is not critical (and data can still be
+retrieved form elsewhere). And without it the only argument can very
+nicely be passed via a register (if regparm is allowed).
 
-The "regs" value has always been controversial. It's pretty much always 
-existed (due to the keyboard hander and the magic debugging keysequences), 
-and anybody who looks at 0.01 will quickly realize that the keyboard 
-driver was one of the very first drivers (I think it's even written in 
-assembly at that point: originally _all_ of what was to become Linux was 
-pure asm, the whole "oh, cool, I could write this part in C" came later). 
-But it's been pretty much a special case since day #1, purely for that 
-"press a key to see where the h*ck we hung" case.
+Drivers that truly need to know IRQ can have it added to dev_id cookie
+and use separate dev_ids.
 
-In contrast, the irq argument itself is really no different from the 
-cookie we pass in on registration - it's just passing it back to the 
-driver that requested the thing. So unlike "regs", there's not really 
-anything strange about it, and there's nothing really "wrong" with having 
-it there.
-
-So I'm not at all as convinced about this one.
+-- 
+Dmitry
