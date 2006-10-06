@@ -1,42 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:13972 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S932107AbWJFSCX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Oct 2006 14:02:23 -0400
-Date: Fri, 6 Oct 2006 11:01:24 -0700 (PDT)
-From: Linus Torvalds <torvalds@osdl.org>
-Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than
- passing to IRQ handlers
-In-Reply-To: <20061006164211.GA15321@flint.arm.linux.org.uk>
-Message-ID: <Pine.LNX.4.64.0610061055490.3952@g5.osdl.org>
+Received: from witte.sonytel.be ([80.88.33.193]:62911 "EHLO witte.sonytel.be")
+	by vger.kernel.org with ESMTP id S1422647AbWJFTKa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Oct 2006 15:10:30 -0400
+Date: Fri, 6 Oct 2006 21:09:07 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] fix mesh compile errors after irq changes
+In-Reply-To: <20061006185310.GA6757@aepfle.de>
+Message-ID: <Pine.LNX.4.62.0610062108300.23747@pademelon.sonytel.be>
 References: <20061002132116.2663d7a3.akpm@osdl.org>
  <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com>
  <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com>
  <18975.1160058127@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0610051632250.3952@g5.osdl.org>
- <20061006164211.GA15321@flint.arm.linux.org.uk>
+ <20061006185310.GA6757@aepfle.de>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
+To: Olaf Hering <olaf@aepfle.de>
+Cc: Linus Torvalds <torvalds@osdl.org>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Dmitry Torokhov <dtor@mail.ru>, Greg KH <greg@kroah.com>, David Brownell <david-b@pacbell.net>, Alan Stern <stern@rowland.harvard.edu>
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Fri, 6 Oct 2006, Russell King wrote:
+On Fri, 6 Oct 2006, Olaf Hering wrote:
+> drivers/scsi/mesh.c:469: error: too many arguments to function 'mesh_interrupt'
+> drivers/scsi/mesh.c:507: error: too many arguments to function 'mesh_interrupt'
 > 
-> If it's obvious and trivial, it should be easy for anyone to fix, even
-> the person who broke it.  Especially as there are build logs automatically
-> generated for every -git tree at http://armlinux.simtec.co.uk/kautobuild/
+> Signed-off-by: Olaf Hering <olaf@aepfle.de>
+> 
+> ---
+>  drivers/scsi/mesh.c |    4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> Index: linux-2.6/drivers/scsi/mesh.c
+> ===================================================================
+> --- linux-2.6.orig/drivers/scsi/mesh.c
+> +++ linux-2.6/drivers/scsi/mesh.c
+> @@ -466,7 +466,7 @@ static void mesh_start_cmd(struct mesh_s
+>  				dlog(ms, "intr b4 arb, intr/exc/err/fc=%.8x",
+>  				     MKWORD(mr->interrupt, mr->exception,
+>  					    mr->error, mr->fifo_count));
+> -				mesh_interrupt(0, (void *)ms, NULL);
+> +				mesh_interrupt(0, (void *)ms);
+                                                  ^^^^^^^^
+>  				if (ms->phase != arbitrating)
+>  					return;
+>  			}
+> @@ -504,7 +504,7 @@ static void mesh_start_cmd(struct mesh_s
+>  		dlog(ms, "intr after disresel, intr/exc/err/fc=%.8x",
+>  		     MKWORD(mr->interrupt, mr->exception,
+>  			    mr->error, mr->fifo_count));
+> -		mesh_interrupt(0, (void *)ms, NULL);
+> +		mesh_interrupt(0, (void *)ms);
+                                  ^^^^^^^^
+These casts are superfluous, right?
 
-Ok, I just committed a rough first cut at fixing up arm/.
+Gr{oetje,eeting}s,
 
-I don't have a cross-build environment, and am too lazy to set one up, but 
-that should likely fix 99% of the issues, and any missing things should be 
-fairly obvious from the compiler warnings and errors that are bound to 
-remain.
+						Geert
 
-Somebody with an arm environment, please test and send in any remaining 
-missing parts, and we'll get it all sorted out long before rmk comes back 
-from holidays ;)
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-		Linus
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
