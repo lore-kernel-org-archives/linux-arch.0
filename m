@@ -1,45 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:41376 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S932116AbWJGOoy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 7 Oct 2006 10:44:54 -0400
-Date: Sat, 7 Oct 2006 08:44:53 -0600
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [PATCH 3/3] IRQ: Maintain regs pointer globally rather than passing to IRQ handlers
-Message-ID: <20061007144453.GY2563@parisc-linux.org>
-References: <20061002132116.2663d7a3.akpm@osdl.org> <20061002162049.17763.39576.stgit@warthog.cambridge.redhat.com> <20061002162053.17763.26032.stgit@warthog.cambridge.redhat.com> <18975.1160058127@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0610051632250.3952@g5.osdl.org> <20061006164211.GA15321@flint.arm.linux.org.uk> <Pine.LNX.4.64.0610061055490.3952@g5.osdl.org> <20061007025444.GV2563@parisc-linux.org>
+Received: from scrub.xs4all.nl ([194.109.195.176]:35995 "EHLO scrub.xs4all.nl")
+	by vger.kernel.org with ESMTP id S932521AbWJGXzR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Oct 2006 19:55:17 -0400
+From: Roman Zippel <zippel@linux-m68k.org>
+Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in the kernel [try #4]
+Date: Sun, 8 Oct 2006 01:50:39 +0200
+References: <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com>
+In-Reply-To: <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20061007025444.GV2563@parisc-linux.org>
+Message-Id: <200610080150.41268.zippel@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, parisc-linux@parisc-linux.org
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Oct 06, 2006 at 08:54:44PM -0600, Matthew Wilcox wrote:
-> git-pull git://git.parisc-linux.org/git/linux-2.6.git irq-fixes
-> 
-> Or apply the patch below, if that's easier
+Hi,
 
-And the next series of patches actually make it boot.
+On Friday 06 October 2006 15:34, David Howells wrote:
 
-git-pull git://git.parisc-linux.org/git/linux-2.6.git irq-fixes
+> +config ARCH_HAS_ILOG2_U32
+> +	bool
+> +	default n
 
-Kyle McMartin:
-      [PARISC] Make firmware calls irqsafe-ish...
+This actually doesn't do much, so you only have to add it, where it's 'y' 
+and "def_bool y" is shorter there.
 
-Matthew Wilcox:
-      [PARISC] Use set_irq_regs
-      [PA-RISC] Fix boot breakage
-      [PARISC] pdc_init no longer exists
-      [PARISC] More pt_regs removal
-
- arch/parisc/kernel/drivers.c  |    6 -
- arch/parisc/kernel/firmware.c |  250 +++++++++++++++++++++++++-----------------
- arch/parisc/kernel/irq.c      |    3 
- arch/parisc/kernel/smp.c      |   15 --
- arch/parisc/kernel/time.c     |   32 ++---
- include/asm-parisc/pdc.h      |    2 
- 6 files changed, 177 insertions(+), 131 deletions(-)
-
+bye, Roman
