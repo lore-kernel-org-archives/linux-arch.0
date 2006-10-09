@@ -1,62 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:24791 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1751384AbWJIMJ7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2006 08:09:59 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <Pine.LNX.4.64.0610090403490.25336@schroedinger.engr.sgi.com> 
-References: <Pine.LNX.4.64.0610090403490.25336@schroedinger.engr.sgi.com>  <Pine.LNX.4.64.0610061015570.14591@schroedinger.engr.sgi.com> <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com> <20061006141704.GH2563@parisc-linux.org> <7795.1160388696@redhat.com> 
-Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in the kernel [try #4] 
-Date: Mon, 09 Oct 2006 13:09:28 +0100
-Message-ID: <9954.1160395768@redhat.com>
+Received: from emailer.gwdg.de ([134.76.10.24]:37264 "EHLO emailer.gwdg.de")
+	by vger.kernel.org with ESMTP id S1751859AbWJIM14 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2006 08:27:56 -0400
+Date: Mon, 9 Oct 2006 14:20:26 +0200 (MEST)
+From: Jan Engelhardt <jengelh@linux01.gwdg.de>
+Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in
+ the kernel [try #4]
+In-Reply-To: <EE65413A-0E34-40DA-9037-72423C18CD0C@mac.com>
+Message-ID: <Pine.LNX.4.61.0610091416290.4279@yvahk01.tjqt.qr>
+References: <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr>
+ <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.61.0610062232210.30417@yvahk01.tjqt.qr> <20061006203919.GS2563@parisc-linux.org>
+ <5267.1160381168@redhat.com> <Pine.LNX.4.61.0610091032470.24127@yvahk01.tjqt.qr>
+ <EE65413A-0E34-40DA-9037-72423C18CD0C@mac.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Matthew Wilcox <matthew@wil.cx>, torvalds@osdl.org, akpm@osdl.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Kyle Moffett <mrmacman_g4@mac.com>
+Cc: David Howells <dhowells@redhat.com>, Matthew Wilcox <matthew@wil.cx>, torvalds@osdl.org, akpm@osdl.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Lameter <clameter@sgi.com> wrote:
+>> > > > Were you planning on porting Linux to a machine with
+>> > > > non-8-bit-bytes any
+>> > > > time soon?  Because there's a lot more to fix than this.
+>> > > 
+>> > > I am considering the case [assuming 8-bit-byte machines] where
+>> > > sizeof(u32) is not 4. Though I suppose GCC will probably make a
+>> > > 32-bit
+>> > > type up if the hardware does not know one.
+>> > 
+>> > If the machine has 8-bit bytes, how can sizeof(u32) be anything other
+>> > than 4?
+>> 
+>> typedef unsigned int u32;
+>> 
+>> Though this should not be seen in the linux kernel.
+>
+> Well, uhh, actually...
+>
+> All presently-supported architectures do exactly that.  Well, some do:
+>
+> typedef unsigned int __u32;
+> #ifdef __KERNEL__
+> typedef __u32 u32;
+> #endif
 
-> So this is a case for a wrapper.
+Ouch ouch ouch. It should better be
 
-But it _is_ a wrapper - but the arch gets to decide around what.  We fall back
-to fls() or fls64() if no other inspiration strikes or is available, but in
-some cases we can do better.
+typedef uint32_t __u32;
 
-> Good stuff. I have always wanted that. The wrapper could check for a 
-> constant.
+So that even if there happens to be a compiler that does sizeof(int)=8,
+sizeof(u32) will actually be 4. Say, if there happens to be an
+architecture that does only know 64-bit integers, the compiler will
+have some extra magic to make uint32_t behave like a 32-bit type in C
+and transparently use 64-bit assembler. So far the theory.
 
-That's the main reason I put it in a common file.  The const-case wrapper is
-large and probably best not repeated.
 
-> >  (3) ilog2(n) != fls(n)
-> > 
-> >      This means that the asm-optimised version for one might be less
-> >      optimal for the other (for example, ilog2() produces an undefined
-> >      result if n <= 1, fls() must return 0).
-> 
-> Ok these are boundary checks that are easily coded around. Some 
-> variations on fls even exist that also do various flavors of end case 
-> handling.
-
-On FRV, for example, I don't want to wrap fls() because the code for ilog2()
-can be shorter and simpler.
-
-If I did fls() as a wrapper around ilog2() then it would have to involve a
-conditional jump because the compiler can't alter the inline asm of ilog2() to
-turn the SCAN instruction into CSCAN (which is a conditionally executed
-version of SCAN).
-
-So fls() is 5 insns and __ilog2_u32() is 1 because of the requirement that
-fls() must return 0 on a zero input value.  Similarly fls64() is 14 vs 8 for
-__ilog2_u64().
-
-(I have defined ilog2(n) as returning an undefined value if n < 1).
-
-> >  (5) fls() and fls64() can't be used to initialise a variable at compile
-> >      time, ilog2() can.
-> 
-> Well that is the same issue as (4).
-
-Not quite.  I think (4) might be sufficiently achievable with an inline
-function, but (5) is definitely not.
-
-David
+	-`J'
+-- 
