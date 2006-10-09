@@ -1,44 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:35466 "EHLO mx1.redhat.com")
-	by vger.kernel.org with ESMTP id S1751763AbWJIKL5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2006 06:11:57 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <Pine.LNX.4.64.0610061015570.14591@schroedinger.engr.sgi.com> 
-References: <Pine.LNX.4.64.0610061015570.14591@schroedinger.engr.sgi.com>  <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com> <20061006141704.GH2563@parisc-linux.org> 
-Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in the kernel [try #4] 
-Date: Mon, 09 Oct 2006 11:11:36 +0100
-Message-ID: <7795.1160388696@redhat.com>
+Received: from e6.ny.us.ibm.com ([32.97.182.146]:41094 "EHLO e6.ny.us.ibm.com")
+	by vger.kernel.org with ESMTP id S1751781AbWJIK1G convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 9 Oct 2006 06:27:06 -0400
+From: Arnd Bergmann <arnd.bergmann@de.ibm.com>
+Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in the kernel [try #4]
+Date: Mon, 9 Oct 2006 12:26:59 +0200
+References: <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr> <Pine.LNX.4.61.0610091032470.24127@yvahk01.tjqt.qr> <EE65413A-0E34-40DA-9037-72423C18CD0C@mac.com>
+In-Reply-To: <EE65413A-0E34-40DA-9037-72423C18CD0C@mac.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
+Message-Id: <200610091227.02310.arnd.bergmann@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Matthew Wilcox <matthew@wil.cx>, torvalds@osdl.org, akpm@osdl.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Kyle Moffett <mrmacman_g4@mac.com>
+Cc: Jan Engelhardt <jengelh@linux01.gwdg.de>, David Howells <dhowells@redhat.com>, Matthew Wilcox <matthew@wil.cx>, torvalds@osdl.org, akpm@osdl.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Lameter <clameter@sgi.com> wrote:
+On Monday 09 October 2006 11:51, Kyle Moffett wrote:
+>    #if defined(CONFIG_ARCH_HAS_64BIT_WORD)
+>    typedef unsigned long  __u64;
+>    typedef   signed long  __s64;
+>    #elif defined(__GNUC__)
+>    __extension__ typedef unsigned long long __u64;
+>    __extension__ typedef   signed long long __s64;
+>    #endif
+> 
 
-> Why so complicated and why do it at all? We already have fls and ffs 
-> amoung the bit operations and those map to cpu instructions on arches 
-> that support these. fls can be used as a log 2 facilities. If you need 
-> another name and further refine it then just add an inline function.
+Well, some architectures currently expext __u64/__s64 to be
+long long even with 64 bits. Changing that will likely cause
+a number of new compiler warnings about conversion between
+these. Of course it would be nice to clean these up, since
+it's already a pain to printk() a variable of type u64.
 
-There are a number of reasons:
+More importantly, your code has the problem that it relies
+on a CONFIG_* symbol, which will break when user space includes
+the file, because that does not have config.h.
 
- (1) There are a bunch of independent log2 implementations lying around in the
-     code.  It'd be nice to just have one set that anyone can use.
-
- (2) Not everyone realises that fls() can be used to do log2().
-
- (3) ilog2(n) != fls(n)
-
-     This means that the asm-optimised version for one might be less optimal
-     for the other (for example, ilog2() produces an undefined result if n <=
-     1, fls() must return 0).
-
- (4) There are occasions when you might want to take a log2 of a constant.
-     With the totally inline asm approach, it would always execute some code,
-     though it should be unnecessary.  What I've done permits you to avoid that
-     as the answer is always going to be the same.
-
- (5) fls() and fls64() can't be used to initialise a variable at compile time,
-     ilog2() can.
-
-David
+	Arnd <><
