@@ -1,35 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e34.co.us.ibm.com ([32.97.110.152]:18388 "EHLO
-	e34.co.us.ibm.com") by vger.kernel.org with ESMTP id S932112AbWJIQrK
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Oct 2006 12:47:10 -0400
-From: Arnd Bergmann <arnd.bergmann@de.ibm.com>
-Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in the kernel [try #4]
-Date: Mon, 9 Oct 2006 18:47:03 +0200
-References: <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr> <200610091727.34780.arnd.bergmann@de.ibm.com> <Pine.LNX.4.62.0610091729420.16048@pademelon.sonytel.be>
-In-Reply-To: <Pine.LNX.4.62.0610091729420.16048@pademelon.sonytel.be>
+Received: from omx2-ext.sgi.com ([192.48.171.19]:3463 "EHLO omx2.sgi.com")
+	by vger.kernel.org with ESMTP id S932098AbWJIRRd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2006 13:17:33 -0400
+Date: Mon, 9 Oct 2006 10:17:09 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in
+ the kernel [try #4]
+In-Reply-To: <9954.1160395768@redhat.com>
+Message-ID: <Pine.LNX.4.64.0610091012330.27355@schroedinger.engr.sgi.com>
+References: <Pine.LNX.4.64.0610090403490.25336@schroedinger.engr.sgi.com>
+ <Pine.LNX.4.64.0610061015570.14591@schroedinger.engr.sgi.com>
+ <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com>
+ <20061006141704.GH2563@parisc-linux.org> <7795.1160388696@redhat.com>
+ <9954.1160395768@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200610091847.05441.arnd.bergmann@de.ibm.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Jan Engelhardt <jengelh@linux01.gwdg.de>, Kyle Moffett <mrmacman_g4@mac.com>, David Howells <dhowells@redhat.com>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@osdl.org>, sfr@canb.auug.org.au, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Matthew Wilcox <matthew@wil.cx>, torvalds@osdl.org, akpm@osdl.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Monday 09 October 2006 17:31, Geert Uytterhoeven wrote:
-> Well, I meant that of course you have to include <stdint.h> at the top of
-> <linux/types.h>. I just thought inside that particular #ifdef wasn't the right
-> place.
+On Mon, 9 Oct 2006, David Howells wrote:
+
+> On FRV, for example, I don't want to wrap fls() because the code for ilog2()
+> can be shorter and simpler.
 > 
+> If I did fls() as a wrapper around ilog2() then it would have to involve a
+> conditional jump because the compiler can't alter the inline asm of ilog2() to
+> turn the SCAN instruction into CSCAN (which is a conditionally executed
+> version of SCAN).
 
-That has the potential of breaking other source files that don't expect
-linux/types.h to bring in the whole stdint.h file.
+Hmmm.. Why not? If you can define fls on a per arch basis then that should 
+be possible? You can tell the compiler to produce the correct version of 
+the scan instructions. We do that frequently on IA64.
+ 
+> (I have defined ilog2(n) as returning an undefined value if n < 1).
 
-Also, it may break some other linux header files that include <linux/types.h>
-and expect to get stuff like uid_t, which you don't get if a glibc header is
-included first, because of __KERNEL_STRICT_NAMES.
+Undefined values are bad. Could you produce a runtime error instead?
 
-	Arnd <><
+> > >  (5) fls() and fls64() can't be used to initialise a variable at compile
+> > >      time, ilog2() can.
+> > 
+> > Well that is the same issue as (4).
+> 
+> Not quite.  I think (4) might be sufficiently achievable with an inline
+> function, but (5) is definitely not.
+
+With the appropriate per arch modification of fls() this should also be 
+possible within the existing framework.
+
