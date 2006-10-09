@@ -1,53 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from witte.sonytel.be ([80.88.33.193]:6815 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S932923AbWJIPGM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2006 11:06:12 -0400
-Date: Mon, 9 Oct 2006 17:05:48 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in
- the kernel [try #4]
-In-Reply-To: <200610091652.26209.arnd.bergmann@de.ibm.com>
-Message-ID: <Pine.LNX.4.62.0610091705070.16048@pademelon.sonytel.be>
-References: <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr>
- <Pine.LNX.4.61.0610091416290.4279@yvahk01.tjqt.qr>
- <Pine.LNX.4.62.0610091508240.16048@pademelon.sonytel.be>
- <200610091652.26209.arnd.bergmann@de.ibm.com>
+Received: from e5.ny.us.ibm.com ([32.97.182.145]:32951 "EHLO e5.ny.us.ibm.com")
+	by vger.kernel.org with ESMTP id S932933AbWJIP1j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2006 11:27:39 -0400
+From: Arnd Bergmann <arnd.bergmann@de.ibm.com>
+Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in the kernel [try #4]
+Date: Mon, 9 Oct 2006 17:27:32 +0200
+References: <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr> <200610091652.26209.arnd.bergmann@de.ibm.com> <Pine.LNX.4.62.0610091705070.16048@pademelon.sonytel.be>
+In-Reply-To: <Pine.LNX.4.62.0610091705070.16048@pademelon.sonytel.be>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200610091727.34780.arnd.bergmann@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd.bergmann@de.ibm.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Jan Engelhardt <jengelh@linux01.gwdg.de>, Kyle Moffett <mrmacman_g4@mac.com>, David Howells <dhowells@redhat.com>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@osdl.org>, sfr@canb.auug.org.au, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 9 Oct 2006, Arnd Bergmann wrote:
-> On Monday 09 October 2006 15:09, Geert Uytterhoeven wrote:
-> > On Mon, 9 Oct 2006, Jan Engelhardt wrote:
-> > > 
-> > > Ouch ouch ouch. It should better be
-> > > 
-> > > typedef uint32_t __u32;
-> > 
-> > You mean
-> > 
-> > #ifdef __KERNEL__
-> > typedef __u32 u32;
-> > #else
-> > // Assumed we did #include <stdint.h> before
-> > typedef uint32_t __u32;
-> > #endif
+On Monday 09 October 2006 17:05, Geert Uytterhoeven wrote:
 > 
-> Why should that be a valid assumption? Right now, it works
-> if you don't include stdint.h in advance.
+> On Mon, 9 Oct 2006, Arnd Bergmann wrote:
+> > On Monday 09 October 2006 15:09, Geert Uytterhoeven wrote:
+> > > On Mon, 9 Oct 2006, Jan Engelhardt wrote:
+> > > > 
+> > > > Ouch ouch ouch. It should better be
+> > > > 
+> > > > typedef uint32_t __u32;
+> > > 
+> > > You mean
+> > > 
+> > > #ifdef __KERNEL__
+> > > typedef __u32 u32;
+> > > #else
+> > > // Assumed we did #include <stdint.h> before
+> > > typedef uint32_t __u32;
+> > > #endif
+> > 
+> > Why should that be a valid assumption? Right now, it works
+> > if you don't include stdint.h in advance.
+> 
+> According to C99 section 7.18 you need to include <stdint.h> first.
 
-According to C99 section 7.18 you need to include <stdint.h> first.
+Sorry, I need to rephrase: you can include <linux/types.h> without
+including <stdint.h> first, and many people do that.
+Relying on uint32_t would mean we break existing source.
 
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+	Arnd <><
