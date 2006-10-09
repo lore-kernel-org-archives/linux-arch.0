@@ -1,60 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from emailer.gwdg.de ([134.76.10.24]:37264 "EHLO emailer.gwdg.de")
-	by vger.kernel.org with ESMTP id S1751859AbWJIM14 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2006 08:27:56 -0400
-Date: Mon, 9 Oct 2006 14:20:26 +0200 (MEST)
-From: Jan Engelhardt <jengelh@linux01.gwdg.de>
-Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in
- the kernel [try #4]
-In-Reply-To: <EE65413A-0E34-40DA-9037-72423C18CD0C@mac.com>
-Message-ID: <Pine.LNX.4.61.0610091416290.4279@yvahk01.tjqt.qr>
-References: <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr>
- <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com>
- <Pine.LNX.4.61.0610062232210.30417@yvahk01.tjqt.qr> <20061006203919.GS2563@parisc-linux.org>
- <5267.1160381168@redhat.com> <Pine.LNX.4.61.0610091032470.24127@yvahk01.tjqt.qr>
- <EE65413A-0E34-40DA-9037-72423C18CD0C@mac.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from mx1.redhat.com ([66.187.233.31]:23937 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1751865AbWJIMle (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2006 08:41:34 -0400
+From: David Howells <dhowells@redhat.com>
+Subject: Please pull linux-2.6-irq.git 'master' branch
+Date: Mon, 09 Oct 2006 13:41:19 +0100
+Message-ID: <10553.1160397679@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Kyle Moffett <mrmacman_g4@mac.com>
-Cc: David Howells <dhowells@redhat.com>, Matthew Wilcox <matthew@wil.cx>, torvalds@osdl.org, akpm@osdl.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: torvalds@osdl.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
->> > > > Were you planning on porting Linux to a machine with
->> > > > non-8-bit-bytes any
->> > > > time soon?  Because there's a lot more to fix than this.
->> > > 
->> > > I am considering the case [assuming 8-bit-byte machines] where
->> > > sizeof(u32) is not 4. Though I suppose GCC will probably make a
->> > > 32-bit
->> > > type up if the hardware does not know one.
->> > 
->> > If the machine has 8-bit bytes, how can sizeof(u32) be anything other
->> > than 4?
->> 
->> typedef unsigned int u32;
->> 
->> Though this should not be seen in the linux kernel.
->
-> Well, uhh, actually...
->
-> All presently-supported architectures do exactly that.  Well, some do:
->
-> typedef unsigned int __u32;
-> #ifdef __KERNEL__
-> typedef __u32 u32;
-> #endif
 
-Ouch ouch ouch. It should better be
+The patch here can also be found at:
 
-typedef uint32_t __u32;
+	http://people.redhat.com/~dhowells/irq-fixup-typedefs.diff
 
-So that even if there happens to be a compiler that does sizeof(int)=8,
-sizeof(u32) will actually be 4. Say, if there happens to be an
-architecture that does only know 64-bit integers, the compiler will
-have some extra magic to make uint32_t behave like a 32-bit type in C
-and transparently use 64-bit assembler. So far the theory.
+It converts usages of the function pointer "irqreturn_t (*)(int, void *)" to
+instead use the irq_handler_t typedef previously added.
 
+David
+---
+The following changes since commit 58ba81dba77eab43633ea47d82e96245ae3ff666:
+  Al Viro:
+        m68k/kernel/dma.c assumes !MMU_SUN3
 
-	-`J'
--- 
+are found in the git repository at:
+
+  git://git.infradead.org/~dhowells/irq-2.6.git
+
+David Howells:
+      IRQ: Use the new typedef for interrupt handler function pointers
+
+ arch/arm/mach-pxa/corgi.c                 |    2 +-
+ arch/arm/mach-pxa/idp.c                   |    2 +-
+ arch/arm/mach-pxa/lubbock.c               |    4 ++--
+ arch/arm/mach-pxa/mainstone.c             |    2 +-
+ arch/arm/mach-pxa/poodle.c                |    2 +-
+ arch/arm/mach-pxa/spitz.c                 |    2 +-
+ arch/arm/mach-pxa/tosa.c                  |    2 +-
+ arch/arm/mach-pxa/trizeps4.c              |    2 +-
+ arch/ia64/hp/sim/simserial.c              |    2 +-
+ arch/m68k/amiga/config.c                  |    4 ++--
+ arch/m68k/apollo/config.c                 |    6 +++---
+ arch/m68k/atari/config.c                  |    2 +-
+ arch/m68k/atari/stdma.c                   |    4 ++--
+ arch/m68k/atari/time.c                    |    2 +-
+ arch/m68k/bvme6000/config.c               |    6 +++---
+ arch/m68k/hp300/time.c                    |    4 ++--
+ arch/m68k/hp300/time.h                    |    2 +-
+ arch/m68k/kernel/ints.c                   |    2 +-
+ arch/m68k/kernel/setup.c                  |    2 +-
+ arch/m68k/mac/config.c                    |    4 ++--
+ arch/m68k/mac/via.c                       |    2 +-
+ arch/m68k/mvme147/config.c                |    6 +++---
+ arch/m68k/mvme16x/config.c                |    6 +++---
+ arch/m68k/q40/config.c                    |    2 +-
+ arch/m68k/q40/q40ints.c                   |    4 ++--
+ arch/m68k/sun3/config.c                   |    4 ++--
+ arch/m68k/sun3x/time.c                    |    2 +-
+ arch/m68k/sun3x/time.h                    |    2 +-
+ arch/mips/au1000/common/dma.c             |    2 +-
+ arch/mips/au1000/common/irq.c             |    2 +-
+ arch/mips/au1000/common/time.c            |    2 +-
+ arch/powerpc/kernel/ibmebus.c             |    2 +-
+ arch/sparc/kernel/irq.c                   |   10 +++++-----
+ arch/sparc/kernel/sun4c_irq.c             |    2 +-
+ arch/sparc/kernel/sun4d_irq.c             |    4 ++--
+ arch/sparc/kernel/sun4m_irq.c             |    2 +-
+ arch/sparc/kernel/tick14.c                |    2 +-
+ arch/um/include/irq_kern.h                |    4 ++--
+ arch/um/kernel/irq.c                      |    4 ++--
+ include/asm-arm/arch-pxa/mmc.h            |    2 +-
+ include/asm-m68k/atari_stdma.h            |    2 +-
+ include/asm-m68k/ide.h                    |    2 +-
+ include/asm-m68k/machdep.h                |    2 +-
+ include/asm-mips/mach-au1x00/au1000_dma.h |    2 +-
+ include/asm-powerpc/ibmebus.h             |    2 +-
+ include/asm-sparc/irq.h                   |    6 +++---
+ 46 files changed, 70 insertions(+), 70 deletions(-)
