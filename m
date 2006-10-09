@@ -1,57 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:30634 "EHLO smtps.tip.net.au")
-	by vger.kernel.org with ESMTP id S1751048AbWJIKcg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2006 06:32:36 -0400
-Date: Mon, 9 Oct 2006 20:32:35 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+Received: from omx1-ext.sgi.com ([192.48.179.11]:24967 "EHLO
+	omx1.americas.sgi.com") by vger.kernel.org with ESMTP
+	id S1751799AbWJILHM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 9 Oct 2006 07:07:12 -0400
+Date: Mon, 9 Oct 2006 04:06:41 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in
  the kernel [try #4]
-Message-Id: <20061009203235.57e4c20a.sfr@canb.auug.org.au>
-In-Reply-To: <EE65413A-0E34-40DA-9037-72423C18CD0C@mac.com>
-References: <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr>
-	<20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com>
-	<Pine.LNX.4.61.0610062232210.30417@yvahk01.tjqt.qr>
-	<20061006203919.GS2563@parisc-linux.org>
-	<5267.1160381168@redhat.com>
-	<Pine.LNX.4.61.0610091032470.24127@yvahk01.tjqt.qr>
-	<EE65413A-0E34-40DA-9037-72423C18CD0C@mac.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Mon__9_Oct_2006_20_32_35_+1000_O2BmMAwhoOfS2OC."
+In-Reply-To: <7795.1160388696@redhat.com>
+Message-ID: <Pine.LNX.4.64.0610090403490.25336@schroedinger.engr.sgi.com>
+References: <Pine.LNX.4.64.0610061015570.14591@schroedinger.engr.sgi.com>
+ <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com>
+ <20061006141704.GH2563@parisc-linux.org>  <7795.1160388696@redhat.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Kyle Moffett <mrmacman_g4@mac.com>
-Cc: Jan Engelhardt <jengelh@linux01.gwdg.de>, David Howells <dhowells@redhat.com>, Matthew Wilcox <matthew@wil.cx>, torvalds@osdl.org, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Matthew Wilcox <matthew@wil.cx>, torvalds@osdl.org, akpm@osdl.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Mon__9_Oct_2006_20_32_35_+1000_O2BmMAwhoOfS2OC.
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
+On Mon, 9 Oct 2006, David Howells wrote:
 
-On Mon, 9 Oct 2006 05:51:14 -0400 Kyle Moffett <mrmacman_g4@mac.com> wrote:
->
-> It might be possible to clean up the types.h files a bit with
-> something like the following in linux/types.h (nearly identical code
-> is found in all of the asm-*/types.h files):
+> There are a number of reasons:
+> 
+>  (1) There are a bunch of independent log2 implementations lying around in the
+>      code.  It'd be nice to just have one set that anyone can use.
 
-Even better might be to put this in asm-generic/types.h and include
-that from wherever is sensible.
+True. So wrap around what is there but do not add gazillion of definitions 
+to all arches.
+ 
+>  (2) Not everyone realises that fls() can be used to do log2().
 
---
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+So this is a case for a wrapper.
+ 
+>  (3) ilog2(n) != fls(n)
+> 
+>      This means that the asm-optimised version for one might be less optimal
+>      for the other (for example, ilog2() produces an undefined result if n <=
+>      1, fls() must return 0).
 
---Signature=_Mon__9_Oct_2006_20_32_35_+1000_O2BmMAwhoOfS2OC.
-Content-Type: application/pgp-signature
+Ok these are boundary checks that are easily coded around. Some 
+variations on fls even exist that also do various flavors of end case 
+handling.
+ 
+>  (4) There are occasions when you might want to take a log2 of a constant.
+>      With the totally inline asm approach, it would always execute some code,
+>      though it should be unnecessary.  What I've done permits you to avoid that
+>      as the answer is always going to be the same.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.5 (GNU/Linux)
+Good stuff. I have always wanted that. The wrapper could check for a 
+constant.
+ 
+>  (5) fls() and fls64() can't be used to initialise a variable at compile time,
+>      ilog2() can.
 
-iD8DBQFFKiVDFdBgD/zoJvwRAvAlAJ47hcWab4ZzALlh73EsBAAYd+JpfQCfYoUj
-LYn9h7Ys0jzgM/eGH+eFD7I=
-=+gZT
------END PGP SIGNATURE-----
-
---Signature=_Mon__9_Oct_2006_20_32_35_+1000_O2BmMAwhoOfS2OC.--
+Well that is the same issue as (4).
