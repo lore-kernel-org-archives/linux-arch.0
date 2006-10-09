@@ -1,31 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:8910 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S1751450AbWJHUY1
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 8 Oct 2006 16:24:27 -0400
-Date: Sun, 8 Oct 2006 21:24:24 +0100
-From: Al Viro <viro@ftp.linux.org.uk>
-Subject: Re: [PATCH] Consolidate check_signature
-Message-ID: <20061008202423.GC29920@ftp.linux.org.uk>
-References: <11600679551209-git-send-email-matthew@wil.cx> <11600679552794-git-send-email-matthew@wil.cx> <20061008132147.958dc6a8.akpm@osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061008132147.958dc6a8.akpm@osdl.org>
+Received: from mx1.redhat.com ([66.187.233.31]:33198 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S932367AbWJIIGd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2006 04:06:33 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr> 
+References: <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr>  <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.61.0610062232210.30417@yvahk01.tjqt.qr> <20061006203919.GS2563@parisc-linux.org> 
+Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in the kernel [try #4] 
+Date: Mon, 09 Oct 2006 09:06:08 +0100
+Message-ID: <5267.1160381168@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Matthew Wilcox <willy@parisc-linux.org>
+To: Jan Engelhardt <jengelh@linux01.gwdg.de>
+Cc: Matthew Wilcox <matthew@wil.cx>, torvalds@osdl.org, akpm@osdl.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Oct 08, 2006 at 01:21:47PM -0700, Andrew Morton wrote:
-> On Thu, 05 Oct 2006 11:05:55 -0600
-> Matthew Wilcox <matthew@wil.cx> wrote:
-> 
-> > There's nothing arch-specific about check_signature(), so move it to
-> > <linux/io.h>.  Use a cross between the Alpha and i386 implementations
-> > as the generic one.
-> 
-> It wuld have been nice to have uninlined it too.  And to have given
-> it a less crappy name.
+Jan Engelhardt <jengelh@linux01.gwdg.de> wrote:
 
-memcmp_withio(), to follow the general style?
+> >Were you planning on porting Linux to a machine with non-8-bit-bytes any
+> >time soon?  Because there's a lot more to fix than this.
+> 
+> I am considering the case [assuming 8-bit-byte machines] where 
+> sizeof(u32) is not 4. Though I suppose GCC will probably make a 32-bit 
+> type up if the hardware does not know one.
+
+If the machine has 8-bit bytes, how can sizeof(u32) be anything other than 4?
+
+David
