@@ -1,67 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:34754 "EHLO
-	e31.co.us.ibm.com") by vger.kernel.org with ESMTP id S965135AbWJJMNI
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Oct 2006 08:13:08 -0400
-From: Arnd Bergmann <arnd.bergmann@de.ibm.com>
+Received: from mx1.redhat.com ([66.187.233.31]:56709 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S965000AbWJJMYI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Oct 2006 08:24:08 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <Pine.LNX.4.61.0610091416290.4279@yvahk01.tjqt.qr>
+References: <Pine.LNX.4.61.0610091416290.4279@yvahk01.tjqt.qr>  <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr> <20061006133414.9972.79007.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.61.0610062232210.30417@yvahk01.tjqt.qr> <20061006203919.GS2563@parisc-linux.org> <5267.1160381168@redhat.com> <Pine.LNX.4.61.0610091032470.24127@yvahk01.tjqt.qr> <EE65413A-0E34-40DA-9037-72423C18CD0C@mac.com>
 Subject: Re: [PATCH 1/4] LOG2: Implement a general integer log2 facility in the kernel [try #4]
-Date: Tue, 10 Oct 2006 14:12:57 +0200
-References: <Pine.LNX.4.61.0610062250090.30417@yvahk01.tjqt.qr> <200610091847.05441.arnd.bergmann@de.ibm.com> <1160466933.7920.25.camel@pmac.infradead.org>
-In-Reply-To: <1160466933.7920.25.camel@pmac.infradead.org>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200610101413.00952.arnd.bergmann@de.ibm.com>
+Date: Tue, 10 Oct 2006 13:23:34 +0100
+Message-ID: <5167.1160483014@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Jan Engelhardt <jengelh@linux01.gwdg.de>, Kyle Moffett <mrmacman_g4@mac.com>, David Howells <dhowells@redhat.com>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@osdl.org>, sfr@canb.auug.org.au, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Jan Engelhardt <jengelh@linux01.gwdg.de>
+Cc: Kyle Moffett <mrmacman_g4@mac.com>, Matthew Wilcox <matthew@wil.cx>, torvalds@osdl.org, akpm@osdl.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tuesday 10 October 2006 09:55, David Woodhouse wrote:
-> On Mon, 2006-10-09 at 18:47 +0200, Arnd Bergmann wrote:
-> > That has the potential of breaking other source files that don't expect
-> > linux/types.h to bring in the whole stdint.h file.
-> 
-> I don't think we need to care about those. Userspace in _general_
-> shouldn't be including our header files -- this is only for low-level
-> system stuff, and that can be expected to deal with the fact that we
-> define and use some standard C types from last century.
 
-Some of our headers are traditionally included by libc headers.
-E.g. sys/stat.h might include asm/stat.h, but must not include
-stdint.h.
+Jan Engelhardt <jengelh@linux01.gwdg.de> wrote:
 
-It's somewhat different for file that are completely outside
-of the scope of posix, e.g. <mtd/*.h>, that don't give any
-guarantees about what they include.
+> Ouch ouch ouch. It should better be
+>
+> typedef uint32_t __u32;
 
-> > Also, it may break some other linux header files that include <linux/types.h>
-> > and expect to get stuff like uid_t, which you don't get if a glibc header is
-> > included first, because of __KERNEL_STRICT_NAMES.
-> 
-> We have that problem already, don't we?
 
-It would get worse.
+Actually, if you want to guarantee the size of an integer variable with gcc,
+you can do, for example, this:
 
-An application can now do
+	typedef int __attribute__((mode(SI))) siint;
 
-#include <linux/types.h>
-#include <linux/signal.h>
-#include <stdint.h>
+which creates a 32-bit signed integer type called "siint".
 
-but not
+The "mode" attribute is parameterised with one of the following values to
+indicate the specific size of integer required:
 
-#include <stdint.h>
-#include <linux/types.h>
-#include <linux/signal.h>
+	QI	8-bit
+	HI	16-bit
+	SI	32-bit
+	DI	64-bit
+	TI	128-bit
 
-If <linux/types.h> includes <stdint.h> itself, the first examples breaks
-as well.
-
-I'd prefer to clean up all of our headers so they work with
-__KERNEL_STRICT_NAMES and in any order, but that's a lot of work and in
-the meantime we should make sure we don't make matters worse.
-
-	Arnd <><
+David
