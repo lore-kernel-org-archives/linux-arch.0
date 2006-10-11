@@ -1,63 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from amsfep17-int.chello.nl ([213.46.243.15]:61967 "EHLO
-	amsfep14-int.chello.nl") by vger.kernel.org with ESMTP
-	id S1751276AbWJKNOQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Oct 2006 09:14:16 -0400
+Received: from smtp-out.google.com ([216.239.33.17]:7039 "EHLO
+	smtp-out.google.com") by vger.kernel.org with ESMTP
+	id S1161149AbWJKRNe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 Oct 2006 13:13:34 -0400
+Received: from spaceape8.eur.corp.google.com (spaceape8.eur.corp.google.com [172.28.16.142])
+	by smtp-out.google.com with ESMTP id k9BHDS9G011687
+	for <linux-arch@vger.kernel.org>; Wed, 11 Oct 2006 18:13:31 +0100
+Received: from nf-out-0910.google.com (nfal36.prod.google.com [10.48.63.36])
+	by spaceape8.eur.corp.google.com with ESMTP id k9BHDR32013536
+	for <linux-arch@vger.kernel.org>; Wed, 11 Oct 2006 18:13:27 +0100
+Received: by nf-out-0910.google.com with SMTP id l36so685755nfa
+        for <linux-arch@vger.kernel.org>; Wed, 11 Oct 2006 10:13:27 -0700 (PDT)
+Message-ID: <65dd6fd50610111013t6c783f3esc038c64abbcddeb0@mail.gmail.com>
+Date: Wed, 11 Oct 2006 10:13:26 -0700
+From: "Ollie Wild" <aaw@google.com>
 Subject: Re: Removing MAX_ARG_PAGES (request for comments/assistance)
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-In-Reply-To: <65dd6fd50610101705t3db93a72sc0847cd120aa05d3@mail.gmail.com>
-References: <65dd6fd50610101705t3db93a72sc0847cd120aa05d3@mail.gmail.com>
-Content-Type: text/plain
-Date: Wed, 11 Oct 2006 15:14:20 +0200
-Message-Id: <1160572460.2006.79.camel@taijtu>
-Mime-Version: 1.0
+In-Reply-To: <1160553621.3000.355.camel@laptopd505.fenrus.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+References: <65dd6fd50610101705t3db93a72sc0847cd120aa05d3@mail.gmail.com>
+	 <1160553621.3000.355.camel@laptopd505.fenrus.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Ollie Wild <aaw@google.com>
-Cc: linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, Linus Torvalds <torvalds@osdl.org>, Arjan van de Ven <arjan@infradead.org>, Ingo Molnar <mingo@elte.hu>, linux-mm@kvack.org, Andrew Morton <akpm@osdl.org>, Andi Kleen <ak@muc.de>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, Linus Torvalds <torvalds@osdl.org>, Ingo Molnar <mingo@elte.hu>, linux-mm@kvack.org, Andrew Morton <akpm@osdl.org>, Andi Kleen <ak@muc.de>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2006-10-10 at 17:05 -0700, Ollie Wild wrote:
+> on first sight it looks like you pin the entire userspace buffer at the
+> same time (but I can misread the code; this stuff is a bit of a
+> spaghetti by nature); that would be a DoS scenario if true...
 
-> +                       vma->vm_flags &= ~VM_EXEC;
-> +               // FIXME: Are the next two lines sufficient, or do I need to
-> +               // do some additional magic?
-> +               vma->vm_flags |= mm->def_flags;
-> +               vma->vm_page_prot = protection_map[vma->vm_flags & 0x7];
+I'm not sure I understand.  Could you please elaborate?
 
-Yeah, you'll need to change the PTEs for those pages you created by
-calling get_user_page() by calling an mprotect like function; perhaps
-something like:
-
- struct vm_area_struct *prev;
- unsigned long vm_flags = vma->vm_flags;
-
- s/vma->vm_flags/vm_flags/g
-
- err = mprotect_fixup(vma, &prev, vma->vm_start, vma->vm_end, vm_flags);
- BUG_ON(prev != vma);
-
-mprotect_fixup will then set the new protection on all PTEs and update
-vma->vm_flags and vma->vm_page_prot.
-
-> +               /* Move stack pages down in memory. */
-> +               if (stack_shift) {
-> +                       // FIXME: Verify the shift is OK.
-> +
-
-What exactly are you wondering about? the call to move_vma looks sane to
-me
-
-> +                       /* This should be safe even with overlap because we
-> +                        * are shifting down. */
-> +                       ret = move_vma(vma, vma->vm_start,
-> +                                       vma->vm_end - vma->vm_start,
-> +                                       vma->vm_end - vma->vm_start,
-> +                                       vma->vm_start - stack_shift);
-> +                       if (ret & ~PAGE_MASK) {
-> +                               up_write(&mm->mmap_sem);
-> +                               return ret;
-> +                       }
->                 }
-
-
+Thanks,
+Ollie
