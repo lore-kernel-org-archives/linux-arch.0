@@ -1,115 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.ocs.com.au ([202.147.117.210]:25900 "EHLO mail.ocs.com.au")
-	by vger.kernel.org with ESMTP id S1750725AbWJMNYb (ORCPT
+Received: from mail.ocs.com.au ([202.147.117.210]:24364 "EHLO mail.ocs.com.au")
+	by vger.kernel.org with ESMTP id S1750719AbWJMNXO (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 13 Oct 2006 09:24:31 -0400
-Received: from ocs3.ocs.com.au (ocs3w.ocs.com.au [192.168.254.3])
-	by mail.ocs.com.au (Postfix) with ESMTP id A4DDDE0B20A
-	for <linux-arch@vger.kernel.org>; Fri, 13 Oct 2006 23:24:29 +1000 (EST)
-Received: from ocs3.ocs.com.au (localhost [127.0.0.1])
-	by ocs3.ocs.com.au (Postfix) with ESMTP id EE45881EE7
-	for <linux-arch@vger.kernel.org>; Fri, 13 Oct 2006 23:24:51 +1000 (EST)
+	Fri, 13 Oct 2006 09:23:14 -0400
 From: Keith Owens <kaos@sgi.com>
-Subject: [RFC] crash_stop: crash_stop_headers
-In-reply-to: Your message of "Fri, 13 Oct 2006 23:23:35 +1000."
-             <26656.1160745815@ocs3.ocs.com.au>
+Reply-To: linux-arch@vger.kernel.org
+Subject: [RFC] Common API for bring the system to a crash_stop state
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Date: Fri, 13 Oct 2006 23:24:51 +1000
-Message-ID: <27420.1160745891@ocs3.ocs.com.au>
+Date: Fri, 13 Oct 2006 23:23:35 +1000
+Message-ID: <26656.1160745815@ocs3.ocs.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
+Cc: kdb@oss.sgi.com, fastboot@lists.osdl.org, lkcd-devel.lists.sourceforge.net@ocs.com.au, info@linsyssoft.com, Jan Beulich <JBeulich@novell.com>, James.Bottomley@HansenPartnership.com, linux-visws-devel@lists.sf.ne
 List-ID: <linux-arch.vger.kernel.org>
 
-crash_stop() headers.  The common header defines the API.  The
-architecture headers define arch dependent state that is saved on each
-cpu, this is typically the data that is required to get a decent
-backtrace.
+This initial mail is going to a wide distribution because there are
+several different people and groups who are working on kernel debug
+style tools.  These tools include debuggers such as kdb, kgdb, nlkd.
+There are also kernel dump tools like netdump, lkcd, crash, kexec/kdump
+and others.  To cut down the cross list noise, I have arbitrarily
+designated linux-arch@vger.kernel.org as the only list to receive and
+discuss the patches that follow this initial mail.
 
----
- include/asm-i386/crash_stop.h |   14 ++++++++++
- include/linux/crash_stop.h    |   57 ++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 71 insertions(+)
+Reply-To is set to linux-arch@vger.kernel.org, please honour it and
+trim the rest of the cc: list.
 
-Index: linux/include/asm-i386/crash_stop.h
-===================================================================
---- /dev/null
-+++ linux/include/asm-i386/crash_stop.h
-@@ -0,0 +1,14 @@
-+#ifndef _ASM_CRASH_STOP_H
-+#define _ASM_CRASH_STOP_H
-+
-+/* CONFIG_4KSTACKS means that the registers (including eip) at the time of the
-+ * interrupt can be on one stack while the crash_stop code is running on
-+ * another stack.  We have to save the current esp and eip.
-+ */
-+struct crash_stop_running_process_arch
-+{
-+	unsigned long esp;
-+	unsigned long eip;
-+};
-+
-+#endif	/* _ASM_CRASH_STOP_H */
-Index: linux/include/linux/crash_stop.h
-===================================================================
---- /dev/null
-+++ linux/include/linux/crash_stop.h
-@@ -0,0 +1,57 @@
-+#ifndef _LINUX_CRASH_STOP_H
-+#define _LINUX_CRASH_STOP_H
-+
-+#ifdef	CONFIG_CRASH_STOP_SUPPORTED
-+
-+#include <linux/cpumask.h>
-+#include <linux/ptrace.h>
-+#include <asm/crash_stop.h>
-+
-+typedef asmlinkage int (*printk_t)(const char * fmt, ...)
-+	__attribute__ ((format (printf, 1, 2)));
-+
-+/* These five entries are the only ones used by code outside crash_stop itself.
-+ * Anything starting with 'crash_stop' is part of the external ABI, anything
-+ * starting with'cs_' is only to be used by internal crash_stop code.
-+ */
-+extern int crash_stop(void (*callback)(int monarch, void *data),
-+		      void *data, struct pt_regs *regs, printk_t print,
-+		      const char *text);
-+extern int crash_stop_recovered(void);
-+extern void crash_stop_cpu(int monarch, struct pt_regs *regs);
-+extern int crash_stop_sent_nmi(void);
-+struct crash_stop_running_process {
-+	struct task_struct *p;
-+	struct pt_regs *regs;
-+	struct crash_stop_running_process *prev;
-+	struct crash_stop_running_process_arch arch;
-+};
-+
-+extern void cs_common_ipi(struct pt_regs *regs);
-+extern void cs_arch_send_ipi(int);
-+extern void cs_arch_send_nmi(int);
-+
-+extern void cs_arch_cpu(int, struct crash_stop_running_process *);
-+extern void cs_common_cpu(int);
-+
-+extern spinlock_t cs_lock;
-+extern int cs_monarch;
-+extern int cs_notify_chain;
-+
-+struct cs_global {
-+	void (*callback)(int monarch, void *data);
-+	void *data;
-+	printk_t print;
-+};
-+extern struct cs_global cs_global;
-+
-+#else	/* !CONFIG_CRASH_STOP_SUPPORTED */
-+
-+#define crash_stop(callback, data, regs, print, text) {(void) data; (void) regs; -ENOSYS}
-+#define crash_stop_recovered() do {} while(0)
-+#define crash_stop_cpu(monarch, regs) {(void) monarch; (void)regs}
-+#define crash_stop_sent_nmi() 0
-+
-+#endif	/* CONFIG_CRASH_STOP_SUPPORTED */
-+
-+#endif	/* _LINUX_CRASH_STOP_H */
+-------------------------------------------------------------------------------------
+
+All the kernel debug style tools (kdb, kgdb, nlkd, netdump, lkcd,
+crash, kdump etc.) have a common requirement, they need to do a crash
+stop of the systems.  This means stopping all the cpus, even if some of
+the cpus are spinning disabled.  In addition, each cpu has to save
+enough state to start diagnosis of the problem.
+
+* Each debug style tool has written its own code for interrupting the
+  other cpus and for saving cpu state.
+
+* Some tools try a normal IPI first then send a non-maskable interrupt
+  after a delay.
+
+* Some tools always send a NMI first, which can result in incomplete
+  machine state if it arrives at the wrong time.
+
+* Most of the tools do not know how to cope with the IA64 architecture
+  defined rendezvous algorithm, which interferes with an OS driven
+  rendezvous.
+
+* Needless to say, every single patch set conflicts with all the
+  others, which makes it very difficult to install more than one of the
+  tools at a time.
+
+The solution is to define a common crash_stop API that can be used by
+_all_ of the debug style tools, without reinventing the wheel each
+time.
+
+The following crash_stop patches will only appear on linux-arch.
+
+crash_stop_headers         The common and i386 crash_stop.h files
+
+crash_stop_i386_handler    Add the crash_stop i386 interrupt handlers.
+                           This patch changes existing i386 files.  It
+                           needs testing on visw and updating for
+                           voyager.
+
+crash_stop_i386            I386 specific crash_stop code.
+
+crash_stop_common          Architecture independent crash_stop code.
+
+crash_stop_common_Kconfig  Kconfig change to activate crash_stop.
+
+crash_stop_demo            A demo module to test crash_stop().
+
+This is a work in progress, it does most of the job on i386.  x86_64
+will be easy once i386 is working.  I have an incomplete patch for
+ia64, coexxisting with the MCA/INIT rendezvous algorithm is
+non-trivial.  At the moment, I am more interested in feedback on the
+design of the API, to ensure that it suits everybody's requirements.
+
+Most of the design documentation is in the crash_stop_common patch.
+Please read that before replying.
 
