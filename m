@@ -1,83 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.ocs.com.au ([202.147.117.210]:24364 "EHLO mail.ocs.com.au")
-	by vger.kernel.org with ESMTP id S1750719AbWJMNXO (ORCPT
+Received: from mail.ocs.com.au ([202.147.117.210]:26156 "EHLO mail.ocs.com.au")
+	by vger.kernel.org with ESMTP id S1750735AbWJMNZU (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 13 Oct 2006 09:23:14 -0400
+	Fri, 13 Oct 2006 09:25:20 -0400
+Received: from ocs3.ocs.com.au (ocs3w.ocs.com.au [192.168.254.3])
+	by mail.ocs.com.au (Postfix) with ESMTP id B6560E0B20A
+	for <linux-arch@vger.kernel.org>; Fri, 13 Oct 2006 23:25:18 +1000 (EST)
+Received: from ocs3.ocs.com.au (localhost [127.0.0.1])
+	by ocs3.ocs.com.au (Postfix) with ESMTP id F15A781EE7
+	for <linux-arch@vger.kernel.org>; Fri, 13 Oct 2006 23:25:40 +1000 (EST)
 From: Keith Owens <kaos@sgi.com>
-Reply-To: linux-arch@vger.kernel.org
-Subject: [RFC] Common API for bring the system to a crash_stop state
+Subject: [RFC] crash_stop: crash_stop_i386_handler
+In-reply-to: Your message of "Fri, 13 Oct 2006 23:23:35 +1000."
+             <26656.1160745815@ocs3.ocs.com.au>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Date: Fri, 13 Oct 2006 23:23:35 +1000
-Message-ID: <26656.1160745815@ocs3.ocs.com.au>
+Date: Fri, 13 Oct 2006 23:25:40 +1000
+Message-ID: <27440.1160745940@ocs3.ocs.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: kdb@oss.sgi.com, fastboot@lists.osdl.org, lkcd-devel.lists.sourceforge.net@ocs.com.au, info@linsyssoft.com, Jan Beulich <JBeulich@novell.com>, James.Bottomley@HansenPartnership.com, linux-visws-devel@lists.sf.ne
 List-ID: <linux-arch.vger.kernel.org>
 
-This initial mail is going to a wide distribution because there are
-several different people and groups who are working on kernel debug
-style tools.  These tools include debuggers such as kdb, kgdb, nlkd.
-There are also kernel dump tools like netdump, lkcd, crash, kexec/kdump
-and others.  To cut down the cross list noise, I have arbitrarily
-designated linux-arch@vger.kernel.org as the only list to receive and
-discuss the patches that follow this initial mail.
+Define the i386 crash_stop() interrupt handler and associated routines.
 
-Reply-To is set to linux-arch@vger.kernel.org, please honour it and
-trim the rest of the cc: list.
+Yes, I know that CRASH_STOP_VECTOR conflicts with the lkcd vector.
+This is deliberate, one aim of the crash_stop() API is to remove all
+the interrupt code from the various kernel debug patches.
 
--------------------------------------------------------------------------------------
+Note 1: I have patched visw but I cannot test it, no hardware.
 
-All the kernel debug style tools (kdb, kgdb, nlkd, netdump, lkcd,
-crash, kdump etc.) have a common requirement, they need to do a crash
-stop of the systems.  This means stopping all the cpus, even if some of
-the cpus are spinning disabled.  In addition, each cpu has to save
-enough state to start diagnosis of the problem.
+Note 2: This patch does not cover i386 voyager.  I do not understand
+        the voyager interrupt mechanism well enough to define its
+        interrupt handlers (hint, hint).
 
-* Each debug style tool has written its own code for interrupting the
-  other cpus and for saving cpu state.
+---
+ arch/i386/kernel/smp.c                      |   21 +++++++++++++++++++++
+ arch/i386/kernel/smpboot.c                  |    4 ++++
+ include/asm-i386/hw_irq.h                   |    1 +
+ include/asm-i386/mach-default/entry_arch.h  |    3 +++
+ include/asm-i386/mach-default/irq_vectors.h |    1 +
+ include/asm-i386/mach-visws/entry_arch.h    |    3 +++
+ 6 files changed, 33 insertions(+)
 
-* Some tools try a normal IPI first then send a non-maskable interrupt
-  after a delay.
-
-* Some tools always send a NMI first, which can result in incomplete
-  machine state if it arrives at the wrong time.
-
-* Most of the tools do not know how to cope with the IA64 architecture
-  defined rendezvous algorithm, which interferes with an OS driven
-  rendezvous.
-
-* Needless to say, every single patch set conflicts with all the
-  others, which makes it very difficult to install more than one of the
-  tools at a time.
-
-The solution is to define a common crash_stop API that can be used by
-_all_ of the debug style tools, without reinventing the wheel each
-time.
-
-The following crash_stop patches will only appear on linux-arch.
-
-crash_stop_headers         The common and i386 crash_stop.h files
-
-crash_stop_i386_handler    Add the crash_stop i386 interrupt handlers.
-                           This patch changes existing i386 files.  It
-                           needs testing on visw and updating for
-                           voyager.
-
-crash_stop_i386            I386 specific crash_stop code.
-
-crash_stop_common          Architecture independent crash_stop code.
-
-crash_stop_common_Kconfig  Kconfig change to activate crash_stop.
-
-crash_stop_demo            A demo module to test crash_stop().
-
-This is a work in progress, it does most of the job on i386.  x86_64
-will be easy once i386 is working.  I have an incomplete patch for
-ia64, coexxisting with the MCA/INIT rendezvous algorithm is
-non-trivial.  At the moment, I am more interested in feedback on the
-design of the API, to ensure that it suits everybody's requirements.
-
-Most of the design documentation is in the crash_stop_common patch.
-Please read that before replying.
+Index: linux/arch/i386/kernel/smp.c
+===================================================================
+--- linux.orig/arch/i386/kernel/smp.c
++++ linux/arch/i386/kernel/smp.c
+@@ -20,6 +20,7 @@
+ #include <linux/interrupt.h>
+ #include <linux/cpu.h>
+ #include <linux/module.h>
++#include <linux/crash_stop.h>
+ 
+ #include <asm/mtrr.h>
+ #include <asm/tlbflush.h>
+@@ -727,3 +728,23 @@ int safe_smp_processor_id(void)
+ 
+ 	return cpuid >= 0 ? cpuid : 0;
+ }
++
++#ifdef	CONFIG_CRASH_STOP_SUPPORTED
++void
++cs_arch_send_ipi(int cpu)
++{
++	send_IPI_mask(cpumask_of_cpu(cpu), CRASH_STOP_VECTOR);
++}
++
++void
++cs_arch_send_nmi(int cpu)
++{
++	send_IPI_mask(cpumask_of_cpu(cpu), NMI_VECTOR);
++}
++
++fastcall void smp_crash_stop_interrupt(struct pt_regs *regs)
++{
++	ack_APIC_irq();
++	cs_common_ipi(regs);
++}
++#endif	/* CONFIG_CRASH_STOP_SUPPORTED */
+Index: linux/arch/i386/kernel/smpboot.c
+===================================================================
+--- linux.orig/arch/i386/kernel/smpboot.c
++++ linux/arch/i386/kernel/smpboot.c
+@@ -1497,6 +1497,10 @@ void __init smp_intr_init(void)
+ 
+ 	/* IPI for generic function call */
+ 	set_intr_gate(CALL_FUNCTION_VECTOR, call_function_interrupt);
++
++#ifdef	CONFIG_CRASH_STOP_SUPPORTED
++	set_intr_gate(CRASH_STOP_VECTOR, crash_stop_interrupt);
++#endif	/* CONFIG_CRASH_STOP_SUPPORTED */
+ }
+ 
+ /*
+Index: linux/include/asm-i386/hw_irq.h
+===================================================================
+--- linux.orig/include/asm-i386/hw_irq.h
++++ linux/include/asm-i386/hw_irq.h
+@@ -35,6 +35,7 @@ extern void (*interrupt[NR_IRQS])(void);
+ fastcall void reschedule_interrupt(void);
+ fastcall void invalidate_interrupt(void);
+ fastcall void call_function_interrupt(void);
++fastcall void crash_stop_interrupt(void);
+ #endif
+ 
+ #ifdef CONFIG_X86_LOCAL_APIC
+Index: linux/include/asm-i386/mach-default/entry_arch.h
+===================================================================
+--- linux.orig/include/asm-i386/mach-default/entry_arch.h
++++ linux/include/asm-i386/mach-default/entry_arch.h
+@@ -13,6 +13,9 @@
+ BUILD_INTERRUPT(reschedule_interrupt,RESCHEDULE_VECTOR)
+ BUILD_INTERRUPT(invalidate_interrupt,INVALIDATE_TLB_VECTOR)
+ BUILD_INTERRUPT(call_function_interrupt,CALL_FUNCTION_VECTOR)
++#ifdef	CONFIG_CRASH_STOP_SUPPORTED
++BUILD_INTERRUPT(crash_stop_interrupt,CRASH_STOP_VECTOR)
++#endif	/* CONFIG_CRASH_STOP_SUPPORTED */
+ #endif
+ 
+ /*
+Index: linux/include/asm-i386/mach-default/irq_vectors.h
+===================================================================
+--- linux.orig/include/asm-i386/mach-default/irq_vectors.h
++++ linux/include/asm-i386/mach-default/irq_vectors.h
+@@ -48,6 +48,7 @@
+ #define INVALIDATE_TLB_VECTOR	0xfd
+ #define RESCHEDULE_VECTOR	0xfc
+ #define CALL_FUNCTION_VECTOR	0xfb
++#define CRASH_STOP_VECTOR	0xfa
+ 
+ #define THERMAL_APIC_VECTOR	0xf0
+ /*
+Index: linux/include/asm-i386/mach-visws/entry_arch.h
+===================================================================
+--- linux.orig/include/asm-i386/mach-visws/entry_arch.h
++++ linux/include/asm-i386/mach-visws/entry_arch.h
+@@ -7,6 +7,9 @@
+ BUILD_INTERRUPT(reschedule_interrupt,RESCHEDULE_VECTOR)
+ BUILD_INTERRUPT(invalidate_interrupt,INVALIDATE_TLB_VECTOR)
+ BUILD_INTERRUPT(call_function_interrupt,CALL_FUNCTION_VECTOR)
++#ifdef	CONFIG_CRASH_STOP_SUPPORTED
++BUILD_INTERRUPT(crash_stop_interrupt,CRASH_STOP_VECTOR)
++#endif	/* CONFIG_CRASH_STOP_SUPPORTED */
+ #endif
+ 
+ /*
 
