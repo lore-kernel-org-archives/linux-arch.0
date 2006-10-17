@@ -1,46 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:7871 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S1030178AbWJQAu0
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Oct 2006 20:50:26 -0400
-Date: Tue, 17 Oct 2006 01:50:25 +0100
-From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [RFC] typechecking for get_unaligned/put_unaligned
-Message-ID: <20061017005025.GF29920@ftp.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Received: from smtp.osdl.org ([65.172.181.4]:55777 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S932139AbWJQBvG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Oct 2006 21:51:06 -0400
+Date: Mon, 16 Oct 2006 18:50:54 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [RFC] typechecking for get_unaligned/put_unaligned
+In-Reply-To: <20061017005025.GF29920@ftp.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org>
+References: <20061017005025.GF29920@ftp.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
+To: Al Viro <viro@ftp.linux.org.uk>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-	What kind of typechecking do we want for those?
 
-AFAICS, current constraints are
-	* {put,get}_unaligned() should be passed a pointer to object; void *
-is not acceptable
-	* sizeof(*ptr) should be one of 1, 2, 4, 8
-	* assignment of val to *ptr should be valid C.
 
-Questions:
-	a) do we want all of the above to be enforced on all targets?
-	b) do we really want to allow use of that when sizeof(*ptr) is 1?
-It's almost certainly a sloppy code (and I don't see any instances in
-the tree), but I might be missing some potentially valid use in macros.
-	c) how about gradually switching to linux/unaligned.h?  In this
-case we can do it nicely; start with mutual #include in asm/unaligned.h
-and linux/unaligned.h (in the beginning of each), then switch users
-and once they'd been all gone for a while, have asm/unaligned.h contain
-#ifndef __LINUX_UNALGINED_H__
-#error include linux/unaligned.h instead
-#endif
-instead of
-#include <linux/unaligned.h>
-	d) any objections to having asm/unaligned.h defining
-__{get,put}_unaligned{2,4,8} and linux/unaligned.h doing __builtin_choose_expr()
-to pick the right one?  AFAICS, that should not have any bad effects on the
-generated code and it would allow to put all typechecking in one place.
-Helpers in question would take pointers to u{16,32,64} and value of the
-same type.  Even the targets doing a simple assignment in all cases would
-get the same code generated, AFAICS...
+On Tue, 17 Oct 2006, Al Viro wrote:
+>
+> 	What kind of typechecking do we want for those?
+> 
+> AFAICS, current constraints are
+> 	* {put,get}_unaligned() should be passed a pointer to object; void *
+> is not acceptable
+> 	* sizeof(*ptr) should be one of 1, 2, 4, 8
+> 	* assignment of val to *ptr should be valid C.
+
+Have we ever really had any problems with this?
+
+I think that as far as typing, we should just make sure that 
+[get|put]_unaligned() has the same behaviour as a dereference. Sure, 
+checking the size might be worth it, but it doesn't sound like we'd 
+actually find any real bugs (ie wrong sizes should just result in compile 
+or link errors on architectures where you need special code for it).
+
+> 	c) how about gradually switching to linux/unaligned.h?
+
+I'd prefer not to, if only because it's an unnecessary compile-time 
+overhead for nice sane architectures like x86, which don't need any of the 
+unaligned crap.
+
+Since x86[-64] is clearly the main architecture, dis-optimizing for that 
+one sounds like a bad idea.
+
+		Linus
