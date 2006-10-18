@@ -1,25 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:3751 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S1751491AbWJRQVO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Oct 2006 12:21:14 -0400
-Date: Wed, 18 Oct 2006 10:21:14 -0600
-From: Matthew Wilcox <matthew@wil.cx>
+Received: from smtp.osdl.org ([65.172.181.4]:12479 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1422643AbWJRQcT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Oct 2006 12:32:19 -0400
+Date: Wed, 18 Oct 2006 09:32:08 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: dealing with excessive includes
-Message-ID: <20061018162114.GU22289@parisc-linux.org>
-References: <20061017005025.GF29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610170821580.3962@g5.osdl.org> <20061018044054.GH29920@ftp.linux.org.uk> <20061018091944.GA5343@martell.zuzino.mipt.ru> <20061018093126.GM29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610180759070.3962@g5.osdl.org> <Pine.LNX.4.61.0610181814100.31301@yvahk01.tjqt.qr>
+In-Reply-To: <20061018160609.GO29920@ftp.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0610180926380.3962@g5.osdl.org>
+References: <20061017005025.GF29920@ftp.linux.org.uk>
+ <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk>
+ <Pine.LNX.4.64.0610170821580.3962@g5.osdl.org> <20061018044054.GH29920@ftp.linux.org.uk>
+ <20061018091944.GA5343@martell.zuzino.mipt.ru> <20061018093126.GM29920@ftp.linux.org.uk>
+ <Pine.LNX.4.64.0610180759070.3962@g5.osdl.org> <20061018160609.GO29920@ftp.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.61.0610181814100.31301@yvahk01.tjqt.qr>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Jan Engelhardt <jengelh@linux01.gwdg.de>
-Cc: Linus Torvalds <torvalds@osdl.org>, Al Viro <viro@ftp.linux.org.uk>, Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Oct 18, 2006 at 06:15:27PM +0200, Jan Engelhardt wrote:
-> So how about:
-> 
-> static inline void lock_super(struct super_block *sb)
 
-Please start again at the top of the thread.  Thanks.
+
+On Wed, 18 Oct 2006, Al Viro wrote:
+> 
+> Actually, after reading that code I suspect that get_fs_excl() in there
+> is the wrong thing to do.  Why?  Because the logics is all wrong.
+> 
+> Look what we do under lock_super().  There are two things: ->remount_fs()
+> and ->write_super().  Plus whatever low-level filesystems are using
+> lock_super() for.
+
+I think this all boils down to the fact that "lock_super()" really is a 
+very old and broken interface. It pretty much harks back to the original 
+filesystem code, and yes, every "lock_super()" _should_ probably be 
+replaced by a lower-level lock.
+
+I think ext2 was already fixed to use its own spinlocks for bitmap 
+accesses, although it looks like somebody re-introduced "lock_super()" 
+there for xattr handling.
+
+[ Which in turn is probably just a bug, since nothing else uses it, so 
+  having a single lock_user() in all of ext2 is almost certainly totally 
+  pointless - there is nothing that it actually _protects_ against. I 
+  guess it protects against "sync()", but that's pretty much it. ]
+
+That said, I'd rather do any lock_super() cleanup totally _independently_ 
+of a include file cleanup. 
+
+So since it's clearly not performance-critical, how about just making it 
+be out-of-line in fs/super.c, and turn the header file into just a 
+declaration?
+
+			Linus
