@@ -1,43 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nf-out-0910.google.com ([64.233.182.190]:3423 "EHLO
-	nf-out-0910.google.com") by vger.kernel.org with ESMTP
-	id S1751455AbWJRKBP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Oct 2006 06:01:15 -0400
-Received: by nf-out-0910.google.com with SMTP id c2so617064nfe
-        for <linux-arch@vger.kernel.org>; Wed, 18 Oct 2006 03:01:14 -0700 (PDT)
-Date: Wed, 18 Oct 2006 14:00:57 +0400
-From: Alexey Dobriyan <adobriyan@gmail.com>
+Received: from smtp.osdl.org ([65.172.181.4]:41370 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1161121AbWJRPEg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Oct 2006 11:04:36 -0400
+Date: Wed, 18 Oct 2006 08:04:24 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: dealing with excessive includes
-Message-ID: <20061018100057.GB5343@martell.zuzino.mipt.ru>
-References: <20061017005025.GF29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610170821580.3962@g5.osdl.org> <20061018044054.GH29920@ftp.linux.org.uk> <20061018091944.GA5343@martell.zuzino.mipt.ru> <20061018093126.GM29920@ftp.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
 In-Reply-To: <20061018093126.GM29920@ftp.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0610180759070.3962@g5.osdl.org>
+References: <20061017005025.GF29920@ftp.linux.org.uk>
+ <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk>
+ <Pine.LNX.4.64.0610170821580.3962@g5.osdl.org> <20061018044054.GH29920@ftp.linux.org.uk>
+ <20061018091944.GA5343@martell.zuzino.mipt.ru> <20061018093126.GM29920@ftp.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: Al Viro <viro@ftp.linux.org.uk>
-Cc: Linus Torvalds <torvalds@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Oct 18, 2006 at 10:31:26AM +0100, Al Viro wrote:
-> On Wed, Oct 18, 2006 at 01:19:44PM +0400, Alexey Dobriyan wrote:
-> > > module.h is trickier.  First of all, we want extern for wake_up_process().
-> >
-> > When I came up with this to l-k, Nick and Christoph told me that duplicate
-> > proto sucks. So module.h/sched.h is
-> > a) uninline module_put()
-> > b) remove #include <linux/sched.h>
+
+
+On Wed, 18 Oct 2006, Al Viro wrote:
 >
-> 	Works for me...  OTOH, wake_up_process() is not likely to change
-> prototype, so I'm not sure how strong that argument actually is.
+> +#define lock_super(x) do {		\
+> +	struct super_block *sb = x;	\
+> +	get_fs_excl();			\
+> +	mutex_lock(&sb->s_lock);	\
+> +} while(0)
 
-Actually, it's pretty good argument. module_put() is not on hot paths
-and duplicate prototypes tend to diverge.
+Don't do this. The "x" passed in may be "sb", and then you end up with 
+bogus code.
 
-> 	Anyway, that patch is obviously preliminary - at the very least
-> it needs be checked on more configs (and more targets - e.g. mips and
-> parisc hadn't been checked at all).
+I think the solution to these kinds of things is either
+ - just bite the bullet, and make it out-of-line. A function call isn't 
+   that expensive, and is sometimes actually cheaper due to I$ issues.
+ - have a separate trivial header file, and only include it for people who 
+   actually need these things (very few files, actually - it's usually 
+   just one file per filesystem)
 
-configs. Is ftp://ftp.linux.org.uk/pub/people/viro/config/ still
-relevant? Or can you just post	ls $CONFIGDIR	?
+In this case, since it's _so_ simple, and since it's _so_ specialized, I 
+think #2 is the right one. Normally, uninlining would be.
 
+		Linus
