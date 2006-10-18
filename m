@@ -1,23 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:7401 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S1161162AbWJRPNU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Oct 2006 11:13:20 -0400
-Date: Wed, 18 Oct 2006 09:13:19 -0600
-From: Matthew Wilcox <matthew@wil.cx>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:10926 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S1161225AbWJRQGK
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Oct 2006 12:06:10 -0400
+Date: Wed, 18 Oct 2006 17:06:09 +0100
+From: Al Viro <viro@ftp.linux.org.uk>
 Subject: Re: dealing with excessive includes
-Message-ID: <20061018151319.GQ22289@parisc-linux.org>
+Message-ID: <20061018160609.GO29920@ftp.linux.org.uk>
 References: <20061017005025.GF29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610170821580.3962@g5.osdl.org> <20061018044054.GH29920@ftp.linux.org.uk> <20061018091944.GA5343@martell.zuzino.mipt.ru> <20061018093126.GM29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610180759070.3962@g5.osdl.org>
-MIME-Version: 1.0
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 In-Reply-To: <Pine.LNX.4.64.0610180759070.3962@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@osdl.org>
-Cc: Al Viro <viro@ftp.linux.org.uk>, Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 On Wed, Oct 18, 2006 at 08:04:24AM -0700, Linus Torvalds wrote:
+> 
+> 
 > On Wed, 18 Oct 2006, Al Viro wrote:
 > >
 > > +#define lock_super(x) do {		\
@@ -29,16 +31,26 @@ On Wed, Oct 18, 2006 at 08:04:24AM -0700, Linus Torvalds wrote:
 > Don't do this. The "x" passed in may be "sb", and then you end up with 
 > bogus code.
 
-For this one, I see a third way:
+*duh*
+ 
+> I think the solution to these kinds of things is either
+>  - just bite the bullet, and make it out-of-line. A function call isn't 
+>    that expensive, and is sometimes actually cheaper due to I$ issues.
+>  - have a separate trivial header file, and only include it for people who 
+>    actually need these things (very few files, actually - it's usually 
+>    just one file per filesystem)
+> 
+> In this case, since it's _so_ simple, and since it's _so_ specialized, I 
+> think #2 is the right one. Normally, uninlining would be.
 
-#define lock_super(sb) do {		\
-	get_fs_excl();			\
-	mutex_lock(&(sb)->s_lock);	\
-} while (0)
+Actually, after reading that code I suspect that get_fs_excl() in there
+is the wrong thing to do.  Why?  Because the logics is all wrong.
 
-It does have the disadvantage that you can pass *anything* that has
-an s_lock field in ... but I don't think that's a very likely thing
-to happen.
+Look what we do under lock_super().  There are two things: ->remount_fs()
+and ->write_super().  Plus whatever low-level filesystems are using
+lock_super() for.
 
-Or you could use _sb as the local variable, since it's a reserved
-identifier.
+I would argue that we want to move get_fs_excl() down to the places in
+->write_super() that actually want to do something deserving it.  And
+to be honest, I'm not at all sure that lock_super() should survive
+at upper layers, but that's a longer story...
