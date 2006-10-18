@@ -1,55 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:12479 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S1422643AbWJRQcT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Oct 2006 12:32:19 -0400
-Date: Wed, 18 Oct 2006 09:32:08 -0700 (PDT)
-From: Linus Torvalds <torvalds@osdl.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:43423 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S1751486AbWJRRm7
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Oct 2006 13:42:59 -0400
+Date: Wed, 18 Oct 2006 18:42:57 +0100
+From: Al Viro <viro@ftp.linux.org.uk>
 Subject: Re: dealing with excessive includes
-In-Reply-To: <20061018160609.GO29920@ftp.linux.org.uk>
-Message-ID: <Pine.LNX.4.64.0610180926380.3962@g5.osdl.org>
-References: <20061017005025.GF29920@ftp.linux.org.uk>
- <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk>
- <Pine.LNX.4.64.0610170821580.3962@g5.osdl.org> <20061018044054.GH29920@ftp.linux.org.uk>
- <20061018091944.GA5343@martell.zuzino.mipt.ru> <20061018093126.GM29920@ftp.linux.org.uk>
- <Pine.LNX.4.64.0610180759070.3962@g5.osdl.org> <20061018160609.GO29920@ftp.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Message-ID: <20061018174257.GP29920@ftp.linux.org.uk>
+References: <20061017005025.GF29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610170821580.3962@g5.osdl.org> <20061018044054.GH29920@ftp.linux.org.uk> <20061018091944.GA5343@martell.zuzino.mipt.ru> <20061018093126.GM29920@ftp.linux.org.uk> <20061018100057.GB5343@martell.zuzino.mipt.ru>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20061018100057.GB5343@martell.zuzino.mipt.ru>
 Sender: linux-arch-owner@vger.kernel.org
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: Linus Torvalds <torvalds@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Wed, 18 Oct 2006, Al Viro wrote:
+On Wed, Oct 18, 2006 at 02:00:57PM +0400, Alexey Dobriyan wrote:
+> > 	Anyway, that patch is obviously preliminary - at the very least
+> > it needs be checked on more configs (and more targets - e.g. mips and
+> > parisc hadn't been checked at all).
 > 
-> Actually, after reading that code I suspect that get_fs_excl() in there
-> is the wrong thing to do.  Why?  Because the logics is all wrong.
-> 
-> Look what we do under lock_super().  There are two things: ->remount_fs()
-> and ->write_super().  Plus whatever low-level filesystems are using
-> lock_super() for.
+> configs. Is ftp://ftp.linux.org.uk/pub/people/viro/config/ still
+> relevant?
 
-I think this all boils down to the fact that "lock_super()" really is a 
-very old and broken interface. It pretty much harks back to the original 
-filesystem code, and yes, every "lock_super()" _should_ probably be 
-replaced by a lower-level lock.
-
-I think ext2 was already fixed to use its own spinlocks for bitmap 
-accesses, although it looks like somebody re-introduced "lock_super()" 
-there for xattr handling.
-
-[ Which in turn is probably just a bug, since nothing else uses it, so 
-  having a single lock_user() in all of ext2 is almost certainly totally 
-  pointless - there is nothing that it actually _protects_ against. I 
-  guess it protects against "sync()", but that's pretty much it. ]
-
-That said, I'd rather do any lock_super() cleanup totally _independently_ 
-of a include file cleanup. 
-
-So since it's clearly not performance-critical, how about just making it 
-be out-of-line in fs/super.c, and turn the header file into just a 
-declaration?
-
-			Linus
+Updated.  Changes since the last time:
+	ARCH=ppc targets dropped
+	a couple of weird ones (sun3 and sun4 ;-) added
+	drift in Kconfig required more explicit option disabling in some
+cases
