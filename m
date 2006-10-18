@@ -1,62 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:49096 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S964777AbWJRGFE
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Oct 2006 02:05:04 -0400
-Date: Wed, 18 Oct 2006 07:05:00 +0100
-From: Al Viro <viro@ftp.linux.org.uk>
-Subject: Re: [RFC] typechecking for get_unaligned/put_unaligned
-Message-ID: <20061018060500.GI29920@ftp.linux.org.uk>
-References: <20061017005025.GF29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk> <20061018054242.GA21266@redhat.com>
+Received: from ug-out-1314.google.com ([66.249.92.169]:44360 "EHLO
+	ug-out-1314.google.com") by vger.kernel.org with ESMTP
+	id S932157AbWJRJUD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Oct 2006 05:20:03 -0400
+Received: by ug-out-1314.google.com with SMTP id o38so126186ugd
+        for <linux-arch@vger.kernel.org>; Wed, 18 Oct 2006 02:20:02 -0700 (PDT)
+Date: Wed, 18 Oct 2006 13:19:44 +0400
+From: Alexey Dobriyan <adobriyan@gmail.com>
+Subject: Re: dealing with excessive includes
+Message-ID: <20061018091944.GA5343@martell.zuzino.mipt.ru>
+References: <20061017005025.GF29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610170821580.3962@g5.osdl.org> <20061018044054.GH29920@ftp.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20061018054242.GA21266@redhat.com>
+In-Reply-To: <20061018044054.GH29920@ftp.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
-To: Dave Jones <davej@redhat.com>, Linus Torvalds <torvalds@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: Linus Torvalds <torvalds@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Oct 18, 2006 at 01:42:42AM -0400, Dave Jones wrote:
-> On Tue, Oct 17, 2006 at 05:37:26AM +0100, Al Viro wrote:
-> 
->  > There are several #includes with very high impact; the worst happens
->  > to be module.h -> sched.h
-> 
-> I gave up fighting to get that fixed a year and a half ago..
-> http://lkml.org/lkml/2005/1/26/11
-> 
-> rediffing trees with lots of include file juggling gets boring real fast.
+> module.h is trickier.  First of all, we want extern for wake_up_process().
 
-I don't see a lot of files touched by that one...
- arch/i386/kernel/alternative.c            |    1 +
- arch/i386/kernel/cpu/mcheck/therm_throt.c |    1 +
- drivers/base/cpu.c                        |    1 +
- drivers/hwmon/abituguru.c                 |    1 +
- drivers/leds/ledtrig-ide-disk.c           |    1 +
- drivers/leds/ledtrig-timer.c              |    1 +
- drivers/scsi/scsi_transport_sas.c         |    1 +
- drivers/w1/slaves/w1_therm.c              |    1 +
- include/asm-x86_64/elf.h                  |    1 -
- include/linux/acct.h                      |    1 +
- include/linux/module.h                    |    3 ++-
- include/linux/phy.h                       |    2 ++
- include/scsi/libiscsi.h                   |    2 ++
- kernel/latency.c                          |    1 +
- kernel/module.c                           |    2 +-
-is hardly a lot.
+When I came up with this to l-k, Nick and Christoph told me that duplicate
+proto sucks. So module.h/sched.h is
+a) uninline module_put()
+b) remove #include <linux/sched.h>
 
-That's the point, actually - apparently we have several high-impact includes
-that are easy to sever and that are really worth being severed.  The part
-that was not aproiri obvious:
-	* there are clusters of headers around certain dependency
-counts.
-	* such clusters tend to have leaders - header that pulls the
-rest and even though other headers are apparently independently included,
-all such includes end up being hidden by includes of the leader.
-	* gaps between the clusters are pretty large.
-	* dependency graph *on* *clusters* is worth being studied; includes
-of cluster leader from cluster around slightly smaller dependency count
-are prime targets for severing.
+> And unlike the first severed include, we *do* have files that need something
+> from sched.h and rely on pulling it implicitly via module.h.  Fortunately,
+> there are few of those.  For amd64 allmodconfig we only need to touch includes
+> in
+>  arch/i386/kernel/cpu/mcheck/therm_throt.c
+>  drivers/hwmon/abituguru.c
+>  drivers/leds/ledtrig-ide-disk.c
+>  drivers/leds/ledtrig-timer.c
+>  drivers/scsi/scsi_transport_sas.c
+>  drivers/w1/slaves/w1_therm.c
+>  include/linux/phy.h
+>  kernel/latency.c
+> and in almost all cases we are actually missing jiffies.h, not sched.h.
+> However, at that point we really need to look at other targets; they
+> do add several extra places, but again not much.  Below is what I've got
+> from my usual mix of cross-builds; for resulting dependeny counts (again,
+> amd64 allmodconfig) see ftp://ftp.linux.org.uk/pub/people/viro/counts-after.
 
-That is the new part here.  Not just "dependency graph is a mess and ought
-to be cleaned up" - _that_ is neither new nor particulary useful...
+> --- a/include/linux/module.h
+> +++ b/include/linux/module.h
+> @@ -6,7 +6,6 @@ #define _LINUX_MODULE_H
+>   * Rewritten by Richard Henderson <rth@tamu.edu> Dec 1996
+>   * Rewritten again by Rusty Russell, 2002
+>   */
+> -#include <linux/sched.h>
+>  #include <linux/spinlock.h>
+>  #include <linux/list.h>
+>  #include <linux/stat.h>
+> @@ -410,6 +409,8 @@ static inline int try_module_get(struct
+>  	return ret;
+>  }
+>
+> +extern int FASTCALL(wake_up_process(struct task_struct * tsk));
+> +
+>  static inline void module_put(struct module *module)
+>  {
+>  	if (module) {
+
