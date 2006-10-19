@@ -1,61 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp101.mail.mud.yahoo.com ([209.191.85.211]:56952 "HELO
-	smtp101.mail.mud.yahoo.com") by vger.kernel.org with SMTP
-	id S1161390AbWJSKyq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Oct 2006 06:54:46 -0400
-Message-ID: <45375971.8080707@yahoo.com.au>
-Date: Thu, 19 Oct 2006 20:54:41 +1000
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
-Subject: Re: [RFC][PATCH 1/4] mm: arch do_page_fault() vs in_atomic()
-References: <20061019101722.805147000@chello.nl> <20061019102309.179968000@chello.nl>
-In-Reply-To: <20061019102309.179968000@chello.nl>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from zeniv.linux.org.uk ([195.92.253.2]:61585 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S1946174AbWJSQXQ
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Oct 2006 12:23:16 -0400
+Date: Thu, 19 Oct 2006 17:23:08 +0100
+From: Al Viro <viro@ftp.linux.org.uk>
+Subject: Re: dealing with excessive includes
+Message-ID: <20061019162308.GT29920@ftp.linux.org.uk>
+References: <20061017005025.GF29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610170821580.3962@g5.osdl.org> <20061018044054.GH29920@ftp.linux.org.uk> <20061018091944.GA5343@martell.zuzino.mipt.ru> <20061018093126.GM29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610180759070.3962@g5.osdl.org> <20061018160609.GO29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610180926380.3962@g5.osdl.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0610180926380.3962@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@osdl.org>
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi Peter,
-This patchset looks pretty nice to me.
-
-Acked-by: Nick Piggin <npiggin@suse.de>
-
-One minor nit:
-
-Peter Zijlstra wrote:
-> In light of the recent pagefault and filemap_copy_from_user work I've
-> gone through all the arch pagefault handlers to make sure the 
-> inc_preempt_count() 'feature' works as expected.
+On Wed, Oct 18, 2006 at 09:32:08AM -0700, Linus Torvalds wrote:
+> That said, I'd rather do any lock_super() cleanup totally _independently_ 
+> of a include file cleanup. 
 > 
-> Several sections of code (including the new filemap_copy_from_user) rely
-> on the fact that faults do not take locks under increased preempt count.
-> 
-> arch/x86_64 - good
-> arch/powerpc - good
-> arch/cris - fixed
-> arch/i386 - good
-> arch/parisc - fixed
-> arch/sh - good
-> arch/sparc - good
-> arch/s390 - good
-> arch/m68k - fixed
-> arch/ppc - good
-> arch/alpha - fixed
-> arch/mips - good
-> arch/sparc64 - good
-> arch/ia64 - good
-> arch/arm - fixed
-> arch/um - NA
+> So since it's clearly not performance-critical, how about just making it 
+> be out-of-line in fs/super.c, and turn the header file into just a 
+> declaration?
 
-um does have a fault handler (in kernel/trap.c), but it gets the
-in_atomic check correct.
+Next fun question on strategy: we have a very good bunch of candidates on
+killable includes in skbuff.h - highmem.h, mm.h and poll.h.  I've done
+preliminary variants on amd64 and they give nice reductions of deps
+counts with small patches.  The tricky part is a couple of helpers -
+k{un,}map_skb_frag().  They require highmem.h; nothing else in skbuff.h
+does.  Only two places are using them - net/core/skbuff.c and
+net/appletalk/ddp.c (the latter in one function - dealing with Apple's
+take on checksums[1]).
 
-Thanks for doing this.
+Possible variants:
+	* turn into macros.  Works for a test run, not nice for final
+variant.
+	* new header just for those two in include/net
+	* new header in net/core, with ddp.c including ../core/skb_kmap.h
+	* inline in net/core/skbuff.h, extern in ddp.c; then normal paths
+get it inlined and appletalk can live with uninlined version.
 
-Nick
+Preferences?
 
--- 
-SUSE Labs, Novell Inc.
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+[1] appletalk: the proof that Vogon neuroanatomy was not entirely fictional.
