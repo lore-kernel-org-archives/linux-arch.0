@@ -1,47 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:61585 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S1946174AbWJSQXQ
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Oct 2006 12:23:16 -0400
-Date: Thu, 19 Oct 2006 17:23:08 +0100
-From: Al Viro <viro@ftp.linux.org.uk>
-Subject: Re: dealing with excessive includes
-Message-ID: <20061019162308.GT29920@ftp.linux.org.uk>
-References: <20061017005025.GF29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610161847210.3962@g5.osdl.org> <20061017043726.GG29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610170821580.3962@g5.osdl.org> <20061018044054.GH29920@ftp.linux.org.uk> <20061018091944.GA5343@martell.zuzino.mipt.ru> <20061018093126.GM29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610180759070.3962@g5.osdl.org> <20061018160609.GO29920@ftp.linux.org.uk> <Pine.LNX.4.64.0610180926380.3962@g5.osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from ug-out-1314.google.com ([66.249.92.168]:36742 "EHLO
+	ug-out-1314.google.com") by vger.kernel.org with ESMTP
+	id S1946228AbWJSQyi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Oct 2006 12:54:38 -0400
+Received: by ug-out-1314.google.com with SMTP id o38so514952ugd
+        for <linux-arch@vger.kernel.org>; Thu, 19 Oct 2006 09:54:35 -0700 (PDT)
+From: Denis Vlasenko <vda.linux@googlemail.com>
+Subject: Re: [RFC] typechecking for get_unaligned/put_unaligned
+Date: Thu, 19 Oct 2006 18:52:50 +0200
+References: <20061017005025.GF29920@ftp.linux.org.uk> <20061018054242.GA21266@redhat.com> <20061018060500.GI29920@ftp.linux.org.uk>
+In-Reply-To: <20061018060500.GI29920@ftp.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0610180926380.3962@g5.osdl.org>
+Message-Id: <200610191852.50967.vda.linux@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: Dave Jones <davej@redhat.com>, Linus Torvalds <torvalds@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Oct 18, 2006 at 09:32:08AM -0700, Linus Torvalds wrote:
-> That said, I'd rather do any lock_super() cleanup totally _independently_ 
-> of a include file cleanup. 
+On Wednesday 18 October 2006 08:05, Al Viro wrote:
+> That's the point, actually - apparently we have several high-impact includes
+> that are easy to sever and that are really worth being severed.  The part
+> that was not aproiri obvious:
+> 	* there are clusters of headers around certain dependency
+> counts.
+> 	* such clusters tend to have leaders - header that pulls the
+> rest and even though other headers are apparently independently included,
+> all such includes end up being hidden by includes of the leader.
+> 	* gaps between the clusters are pretty large.
+> 	* dependency graph *on* *clusters* is worth being studied; includes
+> of cluster leader from cluster around slightly smaller dependency count
+> are prime targets for severing.
 > 
-> So since it's clearly not performance-critical, how about just making it 
-> be out-of-line in fs/super.c, and turn the header file into just a 
-> declaration?
+> That is the new part here.  Not just "dependency graph is a mess and ought
+> to be cleaned up" - _that_ is neither new nor particulary useful...
 
-Next fun question on strategy: we have a very good bunch of candidates on
-killable includes in skbuff.h - highmem.h, mm.h and poll.h.  I've done
-preliminary variants on amd64 and they give nice reductions of deps
-counts with small patches.  The tricky part is a couple of helpers -
-k{un,}map_skb_frag().  They require highmem.h; nothing else in skbuff.h
-does.  Only two places are using them - net/core/skbuff.c and
-net/appletalk/ddp.c (the latter in one function - dealing with Apple's
-take on checksums[1]).
+Well, logically for any given .config a set of all kernel header files
+define a set of typedefs, structs, functions and so on.
+If only we can read and parse them just once, and then reuse
+already parsed information when we compile each .c file -
+that will give you the biggest time savings.
 
-Possible variants:
-	* turn into macros.  Works for a test run, not nice for final
-variant.
-	* new header just for those two in include/net
-	* new header in net/core, with ddp.c including ../core/skb_kmap.h
-	* inline in net/core/skbuff.h, extern in ddp.c; then normal paths
-get it inlined and appletalk can live with uninlined version.
+gcc has some facility for that ("precompiled headers")
+http://gcc.gnu.org/onlinedocs/gcc/Precompiled-Headers.html
 
-Preferences?
-
-[1] appletalk: the proof that Vogon neuroanatomy was not entirely fictional.
+I don't know how hard it will be to adapt build system to using that
+and there is a danger that using this thing will increase
+recompile times when you change just a few CONFIG_XXXs.
+--
+vda
