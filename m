@@ -1,50 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:42449 "EHLO
-	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S2992803AbWJTVs7
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Oct 2006 17:48:59 -0400
-Received: from localhost.localdomain ([127.0.0.1]:17819 "EHLO
-	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20038952AbWJTVs5 (ORCPT <rfc822;linux-arch@vger.kernel.org>
-	+ 1 other); Fri, 20 Oct 2006 22:48:57 +0100
-Date: Fri, 20 Oct 2006 22:49:16 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
+Received: from smtp.osdl.org ([65.172.181.4]:18059 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S2992880AbWJTWEn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Oct 2006 18:04:43 -0400
+Date: Fri, 20 Oct 2006 15:02:39 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
-Message-ID: <20061020214916.GA27810@linux-mips.org>
-References: <Pine.LNX.4.64.0610200846260.3962@g5.osdl.org> <20061020.123635.95058911.davem@davemloft.net> <Pine.LNX.4.64.0610201251440.3962@g5.osdl.org> <20061020.125851.115909797.davem@davemloft.net> <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
+In-Reply-To: <20061020214916.GA27810@linux-mips.org>
+Message-ID: <Pine.LNX.4.64.0610201500040.3962@g5.osdl.org>
+References: <Pine.LNX.4.64.0610200846260.3962@g5.osdl.org>
+ <20061020.123635.95058911.davem@davemloft.net> <Pine.LNX.4.64.0610201251440.3962@g5.osdl.org>
+ <20061020.125851.115909797.davem@davemloft.net> <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
+ <20061020214916.GA27810@linux-mips.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
+To: Ralf Baechle <ralf@linux-mips.org>
 Cc: David Miller <davem@davemloft.net>, nickpiggin@yahoo.com.au, Andrew Morton <akpm@osdl.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, James Bottomley <James.Bottomley@steeleye.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Oct 20, 2006 at 01:10:59PM -0700, Linus Torvalds wrote:
 
-> Ok, this sounds sane.
+
+On Fri, 20 Oct 2006, Ralf Baechle wrote:
 > 
-> What should we do about this? How does this patch look to people?
-> 
-> (Totally untested, and I'm not sure we should even do that whole 
-> "oldmm->mm_users" test, but I'm throwing it out here for discussion, in 
-> case it matters for performance. The second D$ flush should obviously be 
-> unnecessary for the common unthreaded case, which is why none of this has 
-> mattered historically, I think).
-> 
-> Comments? We need ARM, MIPS, sparc and S390 at the very least to sign off 
-> on this, and somebody to write a nice explanation for the changelog (and 
-> preferably do this through -mm too).
+> As a minimal solution your patch would work for MIPS but performance would be
+> suboptimal.
 
-As a minimal solution your patch would work for MIPS but performance would be
-suboptimal.
+Not so.
 
-With my D-cache alias series applied the flush_cache_mm() in dup_mmap()
-becomes entirely redundant.  When I delete the call (not part of my patchset)
-it means 12% faster fork.  But I'm not proposing this for 2.6.19.
+> With my D-cache alias series applied the flush_cache_mm() in dup_mmap()
+> becomes entirely redundant.
 
-Note this does not make the flush_cache_mm() on process termination
-redundant ...
+No it does not, as pointed out by  Nick.
 
-  Ralf
+If there are dirty lines in the virtual cache, they _must_ be flushd long 
+before the COW happens. Because if they are not, they don't show up in the 
+child of the fork (which only sees it's _own_ virtual cache). See?
+
+> When I delete the call (not part of my patchset) it means 12% faster 
+> fork.  But I'm not proposing this for 2.6.19.
+
+I just suspect it means a _buggy_ fork.
+
+It so happens (I think), that fork is big enough that it probably flushes 
+the L1 cache _anyway_. 
+
+Does MIPS have some kind of "flush_cache_mm()" that could only flush 
+user-level caches? Maybe the overhead is from flushing all dirty 
+cachelines, regardless of whether they are kernel or not (and dirty kernel 
+cachelines are going to be the most common by far in that path).
+
+		Linus
