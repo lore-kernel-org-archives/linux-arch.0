@@ -1,64 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:39145 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S1030332AbWJTVN6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Oct 2006 17:13:58 -0400
-Date: Fri, 20 Oct 2006 14:12:11 -0700 (PDT)
-From: Linus Torvalds <torvalds@osdl.org>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:27664 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S1030355AbWJTVRj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Oct 2006 17:17:39 -0400
+Date: Fri, 20 Oct 2006 22:17:23 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
-In-Reply-To: <20061020205929.GE8894@flint.arm.linux.org.uk>
-Message-ID: <Pine.LNX.4.64.0610201408070.3962@g5.osdl.org>
-References: <Pine.LNX.4.64.0610200846260.3962@g5.osdl.org>
- <20061020.123635.95058911.davem@davemloft.net> <Pine.LNX.4.64.0610201251440.3962@g5.osdl.org>
- <20061020.125851.115909797.davem@davemloft.net> <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
- <20061020205929.GE8894@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Message-ID: <20061020211723.GF8894@flint.arm.linux.org.uk>
+References: <20061020.125851.115909797.davem@davemloft.net> <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org> <20061020205929.GE8894@flint.arm.linux.org.uk> <20061020.140619.11628819.davem@davemloft.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20061020.140619.11628819.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: David Miller <davem@davemloft.net>, nickpiggin@yahoo.com.au, ralf@linux-mips.org, Andrew Morton <akpm@osdl.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: David Miller <davem@davemloft.net>
+Cc: torvalds@osdl.org, nickpiggin@yahoo.com.au, ralf@linux-mips.org, akpm@osdl.org, linux-kernel@vger.kernel.org, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Fri, 20 Oct 2006, Russell King wrote:
+On Fri, Oct 20, 2006 at 02:06:19PM -0700, David Miller wrote:
+> From: Russell King <rmk+lkml@arm.linux.org.uk>
+> Date: Fri, 20 Oct 2006 21:59:29 +0100
 > 
-> Well, looking at do_wp_page() I'm now quite concerned about ARM and COW.
-> I can't see how this code could _possibly_ work with a virtually indexed
-> cache as it stands.  Yet, the kernel does appear to work.
+> > However, when I look at this code now, I see _no where_ where we synchronise
+> > the cache between the userspace mapping and the kernel space mapping before
+> > copying a COW page.
+> 
+> When the user obtains write access to the page, we'll flush.
+> 
+> Since there are many locations at which write access can be
+> obtained, there are many locations where the synchronization
+> is obtained.
+> 
+> One popular way to obtain the synchronization is to implement
+> flush_dcache_page() to flush, and implement clear_page() and
+> copy_user_page() to clear and copy pages in kernel space at
+> special temporrary mappings whose virtual address will alias
+> up properly with userspace's mapping.  That's why we pass a
+> virtual address to these two arch functions.
 
-It really shouldn't need any extra code, exactly because by the time it 
-hits any page-fault, the caches had better be in sync with the physical 
-page contents _anyway_ (yes, being virtual, the caches will _duplicate_ 
-the contents, but since the pages are read-only, that aliasing should be 
-perfectly fine).
+I did say I had a VIVT cache.  With such a cache, the *only* place where
+you can read data written via one mapping is via that very same mapping.
+There is no other virtual address which will give you coherent access to
+the data in another mapping.
 
-> I'm afraid I'm utterly confused with the Linux MM in this day and age, so
-> I don't think I can even consider commenting on this change.
+The majority of ARMs to date have been VIVT, and the majority of Linux
+kernels have worked fine (albiet the "recent" breakage of PIO block IO.)
 
-Well, we'd need somebody to verify that it still works, but quite frankly, 
-the likelihood of it breaking anything seems basically nil.
+I'm now in the situation where I come back to look at the MM code and,
+to put it quite frankly, I can't see any possible way for ARM to work
+with this code.  In practice, however, it does appear to work.  I just
+can't see _why_ it's working.
 
-> However, when I look at this code now, I see _no where_ where we synchronise
-> the cache between the userspace mapping and the kernel space mapping before
-> copying a COW page.
+Hence why I'm declaring the "I don't understand" flag and refraining to
+endorse the patch - I _can't_ endorse what I don't understand.
 
-At the COW, it should be synchronized already, exactly because we did the 
-cache_flush_mm() when we _created_ the COW mapping in the first place.
-
-It's just that we weren't quite careful enough at that time (and even 
-then, that would only matter for some really really unlikely and strange 
-situations that only happen when you fork() from a _threaded_ environment, 
-so it shouldn't be anything you'd notice under normal load).
-
-I think.
-
-> So I'm afraid I'm going to have to hold up my hand and say "I don't
-> understand the Linux MM anymore".
-
-There are few enough people who understand it even though they're supposed 
-to. I certainly have to always go back and look and read the code when 
-there is anything subtle going on, and even then I want to be backed up by 
-one of the _competent_ people ;)
-
-			Linus
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
