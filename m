@@ -1,89 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from xenotime.net ([66.160.160.81]:40637 "HELO xenotime.net")
-	by vger.kernel.org with SMTP id S1946390AbWJTQL3 (ORCPT
+Received: from smtp.osdl.org ([65.172.181.4]:63134 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S964800AbWJTRQm (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Oct 2006 12:11:29 -0400
-Received: from midway.site ([71.117.236.95]) by xenotime.net for <linux-arch@vger.kernel.org>; Fri, 20 Oct 2006 09:11:26 -0700
-Date: Fri, 20 Oct 2006 09:13:02 -0700
-From: Randy Dunlap <rdunlap@xenotime.net>
-Subject: Re: dealing with excessive includes
-Message-Id: <20061020091302.a2a85fb1.rdunlap@xenotime.net>
-In-Reply-To: <45389662.6010604@s5r6.in-berlin.de>
-References: <20061017005025.GF29920@ftp.linux.org.uk>
-	<Pine.LNX.4.64.0610161847210.3962@g5.osdl.org>
-	<20061017043726.GG29920@ftp.linux.org.uk>
-	<Pine.LNX.4.64.0610170821580.3962@g5.osdl.org>
-	<20061018044054.GH29920@ftp.linux.org.uk>
-	<20061018091944.GA5343@martell.zuzino.mipt.ru>
-	<20061018093126.GM29920@ftp.linux.org.uk>
-	<Pine.LNX.4.64.0610180759070.3962@g5.osdl.org>
-	<20061018160609.GO29920@ftp.linux.org.uk>
-	<Pine.LNX.4.64.0610180926380.3962@g5.osdl.org>
-	<20061020005337.GV29920@ftp.linux.org.uk>
-	<20061019213545.bf5a51c1.rdunlap@xenotime.net>
-	<45389662.6010604@s5r6.in-berlin.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+	Fri, 20 Oct 2006 13:16:42 -0400
+Date: Fri, 20 Oct 2006 10:16:15 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
+In-Reply-To: <4538FDBC.6070301@yahoo.com.au>
+Message-ID: <Pine.LNX.4.64.0610201004520.3962@g5.osdl.org>
+References: <1161275748231-git-send-email-ralf@linux-mips.org>
+ <4537B9FB.7050303@yahoo.com.au> <20061019181346.GA5421@linux-mips.org>
+ <20061019.155939.48528489.davem@davemloft.net> <4538DFAC.1090206@yahoo.com.au>
+ <Pine.LNX.4.64.0610200846260.3962@g5.osdl.org> <4538F1EC.1020806@yahoo.com.au>
+ <Pine.LNX.4.64.0610200935290.3962@g5.osdl.org> <4538FDBC.6070301@yahoo.com.au>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Stefan Richter <stefanr@s5r6.in-berlin.de>
-Cc: Al Viro <viro@ftp.linux.org.uk>, Linus Torvalds <torvalds@osdl.org>, Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: David Miller <davem@davemloft.net>, ralf@linux-mips.org, Andrew Morton <akpm@osdl.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 20 Oct 2006 11:26:58 +0200 Stefan Richter wrote:
 
-> Randy Dunlap wrote:
-> > Here's about half of checking includers of linux/smp_lock.h to see
-> > if they actually use any of its interfaces.  (most don't)
-> > 
-> > Yet to do:  fs/* and arch/*
-> > Built only on x86_64.
-> [...]
-> >  drivers/acpi/osl.c                            |    1 -
-> >  drivers/block/acsi_slm.c                      |    1 -
-> >  drivers/block/umem.c                          |    1 -
-> >  drivers/char/ds1620.c                         |    1 -
-> >  drivers/char/dsp56k.c                         |    1 -
-> >  drivers/char/dtlk.c                           |    1 -
-> >  drivers/char/ec3104_keyb.c                    |    1 -
-> >  drivers/char/ftape/zftape/zftape-init.c       |    1 -
-> >  drivers/char/hangcheck-timer.c                |    1 -
-> >  drivers/char/ip27-rtc.c                       |    1 -
-> >  drivers/char/lp.c                             |    1 -
-> >  drivers/char/mem.c                            |    1 -
-> >  drivers/char/mxser.c                          |    1 -
-> >  drivers/char/ppdev.c                          |    1 -
-> >  drivers/char/sysrq.c                          |    1 -
-> >  drivers/char/vc_screen.c                      |    1 -
-> >  drivers/char/watchdog/omap_wdt.c              |    1 -
-> >  drivers/char/watchdog/pcwd_usb.c              |    1 -
-> >  drivers/i2c/busses/scx200_acb.c               |    1 -
-> >  drivers/i2c/i2c-dev.c                         |    1 -
-> >  drivers/ieee1394/raw1394.c                    |    1 -
-> >  drivers/infiniband/ulp/iser/iser_verbs.c      |    1 -
-> >  drivers/input/evdev.c                         |    1 -
-> >  drivers/input/input.c                         |    1 -
-> [... etc. pp. ...]
-> >  sound/oss/swarm_cs4297a.c                     |    1 -
-> >  sound/oss/trident.c                           |    1 -
-> >  sound/oss/via82cxxx_audio.c                   |    1 -
-> >  166 files changed, 166 deletions(-)
-> [...]
+
+On Sat, 21 Oct 2006, Nick Piggin wrote:
+> > So maybe the COW D$ aliasing patch-series is just the right thing to do. Not
+> > worry about D$ at _all_ when doing the actual fork, and only worry about it
+> > on an actual COW event. Hmm?
 > 
-> I am afraid in many of these cases a proper cleanup would _replace_ the
-> include by the correct one, not just delete it. For example,
-> drivers/ieee1394/raw1394.c should include linux/spinlock.h. AFAICS it
-> does so at the moment only indirectly via another header.
+> Well if we have the calls in there, we should at least make them work
+> right for the architectures there now. At the moment the flush_cache_mm
+> before the copy_page_range wouldn't seem to do anything if you can still
+> have threads dirty the cache again through existing TLB entries.
+>
+> I don't think that flushing on COW is exactly right though, because dirty
+> data can remain invisible if you're only doing reads (no write, no flush).
 
-I don't think that we can fix it all at once.  This is just one step.
-AFAICT for raw1394.c, it's not incorrect as is, but more is needed,
-sure.
+You're right. A virtually indexed cache needs the flush _before_ we return 
+from the fork into a new process (since otherwise the dirty data won't be 
+visible in the new virtual address space).
 
-Yes, we have lots of header include indirection going on.
-I don't know of a good tool to detect/fix it.
+So you've convinced me. Flushing at COW time _cannot_ be right, because it 
+by definition means that there has been a time when the new process didn't 
+see the dirty data in the case of a virtual index. And in the case of a 
+physical index it cannot matter.
 
-What Al is doing is good stuff, but I'd still prefer to see an even
-better tool, like gcc-preprocessor or sparse based (I guess).
+So I think the right thing to do is to forget about the COW D$ series 
+(which probably _hides_ most of the problems in practice, so it "works" 
+that way) and instead go with Ralf's last patch that just moves the 
+flush_cache_mm() to after the TLB flush.
 
----
-~Randy
+We do need to have all the architecture people (especially S390, which has 
+been very strange in this regard in the past) check that it's ok. The 
+_mappings_ are still valid, so S390 should be able to do the write-back, 
+but there may be architectures that would want to do the flush _both_ 
+before and after (for performance reasons - if writing out dirty data 
+requires a TLB lookup, doing most fo the writeback before is probably a 
+better thing, and then we can do a _second_ writeback after the flush to 
+close the race with some other thread dirtying the pages before the TLB 
+was marked read-only).
+
+I added linux-arch and Martin Schwidefsky (s390) to the Cc:.
+
+Guys, in case you missed the earlier discussion: there's a suggested patch 
+by Ralf Baechle on linux-kernel (but it does just the "flush after" 
+version, not the "perhaps we need it both before and after" thing I 
+theorise about above). Message-ID: 20061020160538.GB18649@linux-mips.org.
+
+		Linus
