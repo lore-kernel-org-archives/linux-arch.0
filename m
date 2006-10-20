@@ -1,52 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from einhorn.in-berlin.de ([192.109.42.8]:63398 "EHLO
-	einhorn.in-berlin.de") by vger.kernel.org with ESMTP
-	id S1030260AbWJTRvy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Oct 2006 13:51:54 -0400
-Message-ID: <45390CAC.7090409@s5r6.in-berlin.de>
-Date: Fri, 20 Oct 2006 19:51:40 +0200
-From: Stefan Richter <stefanr@s5r6.in-berlin.de>
+Received: from smtp.osdl.org ([65.172.181.4]:4822 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1946457AbWJTULm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Oct 2006 16:11:42 -0400
+Date: Fri, 20 Oct 2006 13:10:59 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
+In-Reply-To: <20061020.125851.115909797.davem@davemloft.net>
+Message-ID: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
+References: <Pine.LNX.4.64.0610200846260.3962@g5.osdl.org>
+ <20061020.123635.95058911.davem@davemloft.net> <Pine.LNX.4.64.0610201251440.3962@g5.osdl.org>
+ <20061020.125851.115909797.davem@davemloft.net>
 MIME-Version: 1.0
-Subject: Re: dealing with excessive includes
-References: <20061017005025.GF29920@ftp.linux.org.uk>	<Pine.LNX.4.64.0610161847210.3962@g5.osdl.org>	<20061017043726.GG29920@ftp.linux.org.uk>	<Pine.LNX.4.64.0610170821580.3962@g5.osdl.org>	<20061018044054.GH29920@ftp.linux.org.uk>	<20061018091944.GA5343@martell.zuzino.mipt.ru>	<20061018093126.GM29920@ftp.linux.org.uk>	<Pine.LNX.4.64.0610180759070.3962@g5.osdl.org>	<20061018160609.GO29920@ftp.linux.org.uk>	<Pine.LNX.4.64.0610180926380.3962@g5.osdl.org>	<20061020005337.GV29920@ftp.linux.org.uk>	<20061019213545.bf5a51c1.rdunlap@xenotime.net>	<45389662.6010604@s5r6.in-berlin.de> <20061020091302.a2a85fb1.rdunlap@xenotime.net>
-In-Reply-To: <20061020091302.a2a85fb1.rdunlap@xenotime.net>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Randy Dunlap <rdunlap@xenotime.net>
-Cc: Al Viro <viro@ftp.linux.org.uk>, Linus Torvalds <torvalds@osdl.org>, Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: nickpiggin@yahoo.com.au, ralf@linux-mips.org, Andrew Morton <akpm@osdl.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Randy Dunlap wrote:
-> On Fri, 20 Oct 2006 11:26:58 +0200 Stefan Richter wrote:
->> I am afraid in many of these cases a proper cleanup would _replace_ the
->> include by the correct one, not just delete it. For example,
->> drivers/ieee1394/raw1394.c should include linux/spinlock.h. AFAICS it
->> does so at the moment only indirectly via another header.
+
+
+On Fri, 20 Oct 2006, David Miller wrote:
 > 
-> I don't think that we can fix it all at once.  This is just one step.
-> AFAICT for raw1394.c, it's not incorrect as is, but more is needed,
-> sure.
+> I did some more digging, here's what I think the hardware actually
+> does:
 
-Yes, it's probably still correct after your patch. I just referred to
-the sensible rule that necessary headers should be directly included
-where they are used, not indirectly via other headers.
+Ok, this sounds sane.
 
-> Yes, we have lots of header include indirection going on.
-> I don't know of a good tool to detect/fix it.
+What should we do about this? How does this patch look to people?
 
-Me neither. I manually cleansed the ieee1394 core's and sbp2's includes
-recently; this is a mind-numbing janitorial job.
+(Totally untested, and I'm not sure we should even do that whole 
+"oldmm->mm_users" test, but I'm throwing it out here for discussion, in 
+case it matters for performance. The second D$ flush should obviously be 
+unnecessary for the common unthreaded case, which is why none of this has 
+mattered historically, I think).
 
-> What Al is doing is good stuff, but I'd still prefer to see an even
-> better tool, like gcc-preprocessor or sparse based (I guess).
+Comments? We need ARM, MIPS, sparc and S390 at the very least to sign off 
+on this, and somebody to write a nice explanation for the changelog (and 
+preferably do this through -mm too).
 
-On the surface, tools like LXR and cscope "know" where function are
-declared or macros and types are defined. But oftentimes, other headers
-than these tools turn up are to be included by API users. Cf. the
-definition of atomic_t. (IOW the "necessary" header is not always the
-one which has the actual definition.)
--- 
-Stefan Richter
--=====-=-==- =-=- =-=--
-http://arcgraph.de/sr/
+		Linus
+
+---
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 29ebb30..14c6a1d 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -287,8 +287,18 @@ static inline int dup_mmap(struct mm_str
+ 	}
+ 	retval = 0;
+ out:
+-	up_write(&mm->mmap_sem);
+ 	flush_tlb_mm(oldmm);
++	/*
++	 * If we have other threads using the old mm, we need to
++	 * flush the D$ again - the other threads might have dirtied
++	 * it more before the TLB got flushed.
++	 *
++	 * After the flush, they can no longer dirty more pages,
++	 * since they are now marked read-only, of course.
++	 */
++	if (atomic_read(&oldmm->mm_users) != 1)
++		flush_cache_mm(oldmm);
++	up_write(&mm->mmap_sem);
+ 	up_write(&oldmm->mmap_sem);
+ 	return retval;
+ fail_nomem_policy:
