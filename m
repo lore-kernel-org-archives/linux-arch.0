@@ -1,60 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:17845 "EHLO
-	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S1422831AbWJTWvA
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Oct 2006 18:51:00 -0400
-Received: from localhost.localdomain ([127.0.0.1]:54724 "EHLO
-	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20038952AbWJTWu6 (ORCPT <rfc822;linux-arch@vger.kernel.org>
-	+ 1 other); Fri, 20 Oct 2006 23:50:58 +0100
-Date: Fri, 20 Oct 2006 23:51:18 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
+Received: from smtp.osdl.org ([65.172.181.4]:48033 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1750931AbWJTX36 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Oct 2006 19:29:58 -0400
+Date: Fri, 20 Oct 2006 16:28:37 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
-Message-ID: <20061020225118.GA30965@linux-mips.org>
-References: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org> <20061020214916.GA27810@linux-mips.org> <Pine.LNX.4.64.0610201500040.3962@g5.osdl.org> <20061020.152247.111203913.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061020.152247.111203913.davem@davemloft.net>
+In-Reply-To: <20061020225118.GA30965@linux-mips.org>
+Message-ID: <Pine.LNX.4.64.0610201625190.3962@g5.osdl.org>
+References: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
+ <20061020214916.GA27810@linux-mips.org> <Pine.LNX.4.64.0610201500040.3962@g5.osdl.org>
+ <20061020.152247.111203913.davem@davemloft.net> <20061020225118.GA30965@linux-mips.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: torvalds@osdl.org, nickpiggin@yahoo.com.au, akpm@osdl.org, linux-kernel@vger.kernel.org, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, James.Bottomley@steeleye.com
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: David Miller <davem@davemloft.net>, nickpiggin@yahoo.com.au, akpm@osdl.org, linux-kernel@vger.kernel.org, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, James.Bottomley@steeleye.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Oct 20, 2006 at 03:22:47PM -0700, David Miller wrote:
 
-> > On Fri, 20 Oct 2006, Ralf Baechle wrote:
-> > > When I delete the call (not part of my patchset) it means 12% faster 
-> > > fork.  But I'm not proposing this for 2.6.19.
-> > 
-> > I just suspect it means a _buggy_ fork.
-> > 
-> > It so happens (I think), that fork is big enough that it probably flushes 
-> > the L1 cache _anyway_. 
 
-I doubt it; I've tested this on 64K I-cache VIPT, 64K D-cache VIPT.
+On Fri, 20 Oct 2006, Ralf Baechle wrote:
+> 
+> > My understanding is that this works because in Ralf's original patch
+> > (which is the context in which he is removing the flush_cache_mm()
+> > call), he uses kmap()/kunmap() to map the page(s) being accessed at a
+> > kernel virtual address which will fall into the same cache color as
+> > the user virtual address --> no alias problems.
+> >
+> > Since he does this for every page touched on the kernel side during
+> > dup_mmap(), the existing flush_cache_mm() call in dup_mmap() does in
+> > fact become redundant.
+> 
+> Correct.
+> 
+> It means no cache flush operation to deal with aliases at all left in
+> fork and COW code.
 
-> My understanding is that this works because in Ralf's original patch
-> (which is the context in which he is removing the flush_cache_mm()
-> call), he uses kmap()/kunmap() to map the page(s) being accessed at a
-> kernel virtual address which will fall into the same cache color as
-> the user virtual address --> no alias problems.
->
-> Since he does this for every page touched on the kernel side during
-> dup_mmap(), the existing flush_cache_mm() call in dup_mmap() does in
-> fact become redundant.
+Umm. That would seem to only happen to work for a direct-mapped virtually 
+indexed cache where the index is taken purely from the virtual address, 
+and there are no "process context" bits in the virtually indexed D$.
 
-Correct.
+The moment there are process context bits involved, afaik you absolutely 
+_need_ to flush, because otherwise the other process will never pick up 
+the dirty state (which it would need to reload from memory).
 
-It means no cache flush operation to deal with aliases at all left in
-fork and COW code.
+That said, maybe nobody does that. Virtual caches are a total braindamage 
+in the first place, so hopefully they have limited use.
 
-Another advantage of this strategy is that we will never have to handle
-less virtual coherency exceptions.  A virtual coherency exception is raised
-on some MIPS processors when they detect the creation of a cache alias.
-This allows the software to cleanup caches.  Neat as an alarm system for
-alias debugging but rather expensive to service if large numbers are
-raised, not available on all processors and also detects the creation of
-harmless aliases of clean lines, thus a slight annoyance.
-
-  Ralf
+		Linus
