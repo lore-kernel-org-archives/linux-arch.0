@@ -1,68 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.4]:4822 "EHLO smtp.osdl.org")
-	by vger.kernel.org with ESMTP id S1946457AbWJTULm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Oct 2006 16:11:42 -0400
-Date: Fri, 20 Oct 2006 13:10:59 -0700 (PDT)
-From: Linus Torvalds <torvalds@osdl.org>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:58893 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S1946502AbWJTU74 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Oct 2006 16:59:56 -0400
+Date: Fri, 20 Oct 2006 21:59:29 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
-In-Reply-To: <20061020.125851.115909797.davem@davemloft.net>
-Message-ID: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
-References: <Pine.LNX.4.64.0610200846260.3962@g5.osdl.org>
- <20061020.123635.95058911.davem@davemloft.net> <Pine.LNX.4.64.0610201251440.3962@g5.osdl.org>
- <20061020.125851.115909797.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Message-ID: <20061020205929.GE8894@flint.arm.linux.org.uk>
+References: <Pine.LNX.4.64.0610200846260.3962@g5.osdl.org> <20061020.123635.95058911.davem@davemloft.net> <Pine.LNX.4.64.0610201251440.3962@g5.osdl.org> <20061020.125851.115909797.davem@davemloft.net> <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: nickpiggin@yahoo.com.au, ralf@linux-mips.org, Andrew Morton <akpm@osdl.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: David Miller <davem@davemloft.net>, nickpiggin@yahoo.com.au, ralf@linux-mips.org, Andrew Morton <akpm@osdl.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Fri, 20 Oct 2006, David Miller wrote:
+On Fri, Oct 20, 2006 at 01:10:59PM -0700, Linus Torvalds wrote:
+> On Fri, 20 Oct 2006, David Miller wrote:
+> > I did some more digging, here's what I think the hardware actually
+> > does:
 > 
-> I did some more digging, here's what I think the hardware actually
-> does:
+> Ok, this sounds sane.
+> 
+> What should we do about this? How does this patch look to people?
+> 
+> (Totally untested, and I'm not sure we should even do that whole 
+> "oldmm->mm_users" test, but I'm throwing it out here for discussion, in 
+> case it matters for performance. The second D$ flush should obviously be 
+> unnecessary for the common unthreaded case, which is why none of this has 
+> mattered historically, I think).
+> 
+> Comments? We need ARM, MIPS, sparc and S390 at the very least to sign off 
+> on this, and somebody to write a nice explanation for the changelog (and 
+> preferably do this through -mm too).
 
-Ok, this sounds sane.
+Well, looking at do_wp_page() I'm now quite concerned about ARM and COW.
+I can't see how this code could _possibly_ work with a virtually indexed
+cache as it stands.  Yet, the kernel does appear to work.
 
-What should we do about this? How does this patch look to people?
+I'm afraid I'm utterly confused with the Linux MM in this day and age, so
+I don't think I can even consider commenting on this change.
 
-(Totally untested, and I'm not sure we should even do that whole 
-"oldmm->mm_users" test, but I'm throwing it out here for discussion, in 
-case it matters for performance. The second D$ flush should obviously be 
-unnecessary for the common unthreaded case, which is why none of this has 
-mattered historically, I think).
+The majority of ARM caches are VIVT, so data read via the kernel mappings
+definitely does not hit the same cache lines as data accessed via the user
+mappings.
 
-Comments? We need ARM, MIPS, sparc and S390 at the very least to sign off 
-on this, and somebody to write a nice explanation for the changelog (and 
-preferably do this through -mm too).
+Our copy_user_page() function merely copies between the two kernel mappings
+of the pages so with VIVT caches the kernel mappings - as it always has done
+since it's original invention.
 
-		Linus
+However, when I look at this code now, I see _no where_ where we synchronise
+the cache between the userspace mapping and the kernel space mapping before
+copying a COW page.
 
----
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 29ebb30..14c6a1d 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -287,8 +287,18 @@ static inline int dup_mmap(struct mm_str
- 	}
- 	retval = 0;
- out:
--	up_write(&mm->mmap_sem);
- 	flush_tlb_mm(oldmm);
-+	/*
-+	 * If we have other threads using the old mm, we need to
-+	 * flush the D$ again - the other threads might have dirtied
-+	 * it more before the TLB got flushed.
-+	 *
-+	 * After the flush, they can no longer dirty more pages,
-+	 * since they are now marked read-only, of course.
-+	 */
-+	if (atomic_read(&oldmm->mm_users) != 1)
-+		flush_cache_mm(oldmm);
-+	up_write(&mm->mmap_sem);
- 	up_write(&oldmm->mmap_sem);
- 	return retval;
- fail_nomem_policy:
+So I'm afraid I'm going to have to hold up my hand and say "I don't
+understand the Linux MM anymore".
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
