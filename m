@@ -1,96 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mba.ocn.ne.jp ([210.190.142.172]:52452 "EHLO smtp.mba.ocn.ne.jp")
-	by vger.kernel.org with ESMTP id S1161005AbWJUQ0T (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 21 Oct 2006 12:26:19 -0400
-Date: Sun, 22 Oct 2006 01:28:39 +0900 (JST)
-Message-Id: <20061022.012839.108306870.anemo@mba.ocn.ne.jp>
+Received: from ftp.linux-mips.org ([194.74.144.162]:59862 "EHLO
+	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S1422691AbWJUS0p
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 21 Oct 2006 14:26:45 -0400
+Received: from localhost.localdomain ([127.0.0.1]:41653 "EHLO
+	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
+	id S20038430AbWJUS0n (ORCPT <rfc822;linux-arch@vger.kernel.org>
+	+ 1 other); Sat, 21 Oct 2006 19:26:43 +0100
+Date: Sat, 21 Oct 2006 19:27:01 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
 Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
-From: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
-In-Reply-To: <20061020214122.GA29237@linux-mips.org>
-References: <20061020205929.GE8894@flint.arm.linux.org.uk>
-	<Pine.LNX.4.64.0610201408070.3962@g5.osdl.org>
-	<20061020214122.GA29237@linux-mips.org>
+Message-ID: <20061021182701.GA22194@linux-mips.org>
+References: <Pine.LNX.4.64.0610201625190.3962@g5.osdl.org> <20061021000609.GA32701@linux-mips.org> <Pine.LNX.4.64.0610201733490.3962@g5.osdl.org> <20061020.191134.63996591.davem@davemloft.net> <Pine.LNX.4.64.0610201934170.3962@g5.osdl.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0610201934170.3962@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: ralf@linux-mips.org
-Cc: torvalds@osdl.org, rmk+lkml@arm.linux.org.uk, davem@davemloft.net, nickpiggin@yahoo.com.au, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, James.Bottomley@steeleye.com
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: David Miller <davem@davemloft.net>, nickpiggin@yahoo.com.au, akpm@osdl.org, linux-kernel@vger.kernel.org, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, James.Bottomley@steeleye.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 20 Oct 2006 22:41:22 +0100, Ralf Baechle <ralf@linux-mips.org> wrote:
-> > It's just that we weren't quite careful enough at that time (and even 
-> > then, that would only matter for some really really unlikely and strange 
-> > situations that only happen when you fork() from a _threaded_ environment, 
-> > so it shouldn't be anything you'd notice under normal load).
-> > 
-> > I think.
+On Fri, Oct 20, 2006 at 07:37:24PM -0700, Linus Torvalds wrote:
+
+> Well, if you can re-create the performance numbers (Ralf - can you send 
+> the full series with the final "remove the now unnecessary flush" to 
+> Davem?), that will make deciding things easier, I think.
 > 
-> The flush is there since a very long time.  I have it in my tree since
-> ~ 2.1.36 and I get the feeling anybody every has been seriously revisited
-> the issue since.
+> I suspect sparc, mips and arm are the main architectures where virtually 
+> indexed caching really matters enough for this to be an issue at all.
 
-I think calling fork() (or system() or popen() or so) in threaded
-program is neither very unlikely or strange.  But this breakage happens
-very rarely indeed, especially non-preemptive kernel.
+What I was using for my fork benchmark was basically the series as posted
+in this thread + the quick hack patch below.
 
-During debugging this issue, I had used this test program and slightly
-modified kernel --- inserting yield() at middle of dup_mmap().
+I'll dig up some numbers for the posted patchset and will send them later.
 
-With the modified kernel on 32KB VIPT D$, running this test program
-some times could reproduce the breakage ("BAD!" messages).  I heard
-PARISC people had successed to reproduce it too.
+   Ralf
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
-static void *thread_func(void *arg)
-{
-	unsigned char buf[2048], j;
-	int i;
-	for (j = 0; ; j++) {
-		/* fill buf[] with j */
-		memset(buf, j, sizeof(buf)/2);
-		sched_yield();
-		memset(buf + sizeof(buf)/2, j, sizeof(buf)/2);
-		sched_yield();
-		/* check buf[] contents */
-		for (i = 0; i < sizeof(buf); i++) {
-			if (buf[i] != j) {
-				printf("BAD! %p (%d != %d)\n",
-				       buf + i, buf[i], j);
-				exit(1);
-			}
-		}
-	}
-}
-
-int main(int argc, char *argv[])
-{
-	int i;
-	pid_t pid;
-	pthread_t tid;
-	for (i = 0; i < 4; i++)
-		pthread_create(&tid, NULL, thread_func, NULL);
-	for (i = 0; i < 100; i++) {
-		pid = fork();
-		if (pid == -1) {
-			perror("fork");
-			exit(1);
-		}
-		if (pid)
-			waitpid(pid, NULL, 0);
-		else
-			exit(0);
-	}
-	return 0;
-}
-
----
-Atsushi Nemoto
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 29ebb30..c83d226 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -202,7 +202,6 @@ static inline int dup_mmap(struct mm_str
+ 	struct mempolicy *pol;
+ 
+ 	down_write(&oldmm->mmap_sem);
+-	flush_cache_mm(oldmm);
+ 	/*
+ 	 * Not linked in yet - no deadlock potential:
+ 	 */
