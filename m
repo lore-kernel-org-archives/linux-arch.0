@@ -1,103 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:14749 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S2992997AbWJUMz6 (ORCPT
+Received: from mba.ocn.ne.jp ([210.190.142.172]:52452 "EHLO smtp.mba.ocn.ne.jp")
+	by vger.kernel.org with ESMTP id S1161005AbWJUQ0T (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 21 Oct 2006 08:55:58 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: RFC: rewrite Documentation/pci.txt v3
-Date: Sat, 21 Oct 2006 14:55:29 +0200
-References: <20061021071436.GA29248@colo.lackof.org>
-In-Reply-To: <20061021071436.GA29248@colo.lackof.org>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+	Sat, 21 Oct 2006 12:26:19 -0400
+Date: Sun, 22 Oct 2006 01:28:39 +0900 (JST)
+Message-Id: <20061022.012839.108306870.anemo@mba.ocn.ne.jp>
+Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
+From: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
+In-Reply-To: <20061020214122.GA29237@linux-mips.org>
+References: <20061020205929.GE8894@flint.arm.linux.org.uk>
+	<Pine.LNX.4.64.0610201408070.3962@g5.osdl.org>
+	<20061020214122.GA29237@linux-mips.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200610211455.29837.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Grant Grundler <grundler@parisc-linux.org>
-Cc: Greg KH <greg@kroah.com>, Matthew Wilcox <matthew@wil.cx>, linux-pci@atrey.karlin.mff.cuni.cz, Linux Arch list <linux-arch@vger.kernel.org>
+To: ralf@linux-mips.org
+Cc: torvalds@osdl.org, rmk+lkml@arm.linux.org.uk, davem@davemloft.net, nickpiggin@yahoo.com.au, akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, James.Bottomley@steeleye.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Saturday 21 October 2006 09:14, Grant Grundler wrote:
-
-I think you should add a note somewhere that the driver
-should be prepared to initialize the device from any
-state it put it in before. That is important for kexec
-which tries to reinit the drivers after a crash.
-
-And add a reference to kerneldoc somewhere too? There
-is some PCI documentation in there (although it probably
-could need some overall editing) 
-
-> 3.2 Set the DMA mask size
-> ~~~~~~~~~~~~~~~~~~~~~~~~~
-> [ If anything below doesn't make sense, it means you need to read
->   Documentation/DMA-API.txt. This section is just a reminder that
->   drivers need to indicate DMA capabilities of the device and is not
->   an authoritative source for DMA interfaces. ]
+On Fri, 20 Oct 2006 22:41:22 +0100, Ralf Baechle <ralf@linux-mips.org> wrote:
+> > It's just that we weren't quite careful enough at that time (and even 
+> > then, that would only matter for some really really unlikely and strange 
+> > situations that only happen when you fork() from a _threaded_ environment, 
+> > so it shouldn't be anything you'd notice under normal load).
+> > 
+> > I think.
 > 
-> While all drivers should explictly indicate the DMA capability
+> The flush is there since a very long time.  I have it in my tree since
+> ~ 2.1.36 and I get the feeling anybody every has been seriously revisited
+> the issue since.
 
-I think it's ok to rely on the defaults if 0xffffffff is suitable
+I think calling fork() (or system() or popen() or so) in threaded
+program is neither very unlikely or strange.  But this breakage happens
+very rarely indeed, especially non-preemptive kernel.
 
-And perhaps one sentence what a consistent allocation is.
+During debugging this issue, I had used this test program and slightly
+modified kernel --- inserting yield() at middle of dup_mmap().
 
-> 4  PCI device shutdown
-> ~~~~~~~~~~~~~~~~~~~~~~
-> When a PCI device driver is being unloaded, most of the follow 
-> steps need to be performed:
-> 
-> 	disable the device from generating IRQs
-> 	release the IRQ (free_irq())
-> 	stop all DMA activity
-> 	release DMA buffers (both streaming and consistent)
-> 	unregister from other subsystems (e.g. scsi or netdev)
-> 	Disable device from responding to MMIO/IO Port addresses
-> 	release MMIO/IO Port resource(s)
+With the modified kernel on 32KB VIPT D$, running this test program
+some times could reproduce the breakage ("BAD!" messages).  I heard
+PARISC people had successed to reproduce it too.
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
-put the pci_dev you got during explicit probing? For the normal
-probing path the higher layer takes care of it I think.
+static void *thread_func(void *arg)
+{
+	unsigned char buf[2048], j;
+	int i;
+	for (j = 0; ; j++) {
+		/* fill buf[] with j */
+		memset(buf, j, sizeof(buf)/2);
+		sched_yield();
+		memset(buf + sizeof(buf)/2, j, sizeof(buf)/2);
+		sched_yield();
+		/* check buf[] contents */
+		for (i = 0; i < sizeof(buf); i++) {
+			if (buf[i] != j) {
+				printf("BAD! %p (%d != %d)\n",
+				       buf + i, buf[i], j);
+				exit(1);
+			}
+		}
+	}
+}
 
- 
->    If you don't have a struct pci_dev available, you can call
-> pci_bus_(read|write)_config_(byte|word|dword) to access a given device
-> and function on that bus.
+int main(int argc, char *argv[])
+{
+	int i;
+	pid_t pid;
+	pthread_t tid;
+	for (i = 0; i < 4; i++)
+		pthread_create(&tid, NULL, thread_func, NULL);
+	for (i = 0; i < 100; i++) {
+		pid = fork();
+		if (pid == -1) {
+			perror("fork");
+			exit(1);
+		}
+		if (pid)
+			waitpid(pid, NULL, 0);
+		else
+			exit(0);
+	}
+	return 0;
+}
 
-
-This shouldn't happen in driver code right? I would remove it.
-
-People who want to do such low level things can read the source
-or kerneldoc.
- 
->    If you access fields in the standard portion of the config header, please
-> use symbolic names of locations and bits declared in <linux/pci.h>.
-> 
->    If you need to access Extended PCI Capability registers, just call
-> pci_find_capability() for the particular capability and it will find the
-> corresponding register block for you.
-> 
-> 
-> 6. Other interesting functions
-> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-> pci_find_slot()			Find pci_dev corresponding to given bus and
-> 				slot numbers.
-
-Again i don't think that fits here.
-
-> pci_set_power_state()		Set PCI Power Management state (0=D0 ... 3=D3)
-> pci_find_capability()		Find specified capability in device's capability
-> 				list.
-> pci_module_init()		Inline helper function for ensuring correct
-> 				pci_driver initialization and error handling.
-
-Perhaps that should be described at the beginning?
-
-> pci_resource_start()		Returns bus start address for a given PCI region
-> pci_resource_end()		Returns bus end address for a given PCI region
-> pci_resource_len()		Returns the byte length of a PCI region
-
-And that in the section for resources?
-
--Andi
+---
+Atsushi Nemoto
