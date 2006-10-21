@@ -1,79 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:34764 "EHLO
-	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S1030355AbWJUAGF
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Oct 2006 20:06:05 -0400
-Received: from localhost.localdomain ([127.0.0.1]:63116 "EHLO
-	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20038960AbWJUAGA (ORCPT <rfc822;linux-arch@vger.kernel.org>
-	+ 1 other); Sat, 21 Oct 2006 01:06:00 +0100
-Date: Sat, 21 Oct 2006 01:06:09 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
+Received: from smtp.osdl.org ([65.172.181.4]:10158 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1030366AbWJUAjM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Oct 2006 20:39:12 -0400
+Date: Fri, 20 Oct 2006 17:38:32 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
-Message-ID: <20061021000609.GA32701@linux-mips.org>
-References: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org> <20061020214916.GA27810@linux-mips.org> <Pine.LNX.4.64.0610201500040.3962@g5.osdl.org> <20061020.152247.111203913.davem@davemloft.net> <20061020225118.GA30965@linux-mips.org> <Pine.LNX.4.64.0610201625190.3962@g5.osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0610201625190.3962@g5.osdl.org>
+In-Reply-To: <20061021000609.GA32701@linux-mips.org>
+Message-ID: <Pine.LNX.4.64.0610201733490.3962@g5.osdl.org>
+References: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
+ <20061020214916.GA27810@linux-mips.org> <Pine.LNX.4.64.0610201500040.3962@g5.osdl.org>
+ <20061020.152247.111203913.davem@davemloft.net> <20061020225118.GA30965@linux-mips.org>
+ <Pine.LNX.4.64.0610201625190.3962@g5.osdl.org> <20061021000609.GA32701@linux-mips.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
+To: Ralf Baechle <ralf@linux-mips.org>
 Cc: David Miller <davem@davemloft.net>, nickpiggin@yahoo.com.au, akpm@osdl.org, linux-kernel@vger.kernel.org, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, James.Bottomley@steeleye.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Oct 20, 2006 at 04:28:37PM -0700, Linus Torvalds wrote:
 
-> > > My understanding is that this works because in Ralf's original patch
-> > > (which is the context in which he is removing the flush_cache_mm()
-> > > call), he uses kmap()/kunmap() to map the page(s) being accessed at a
-> > > kernel virtual address which will fall into the same cache color as
-> > > the user virtual address --> no alias problems.
-> > >
-> > > Since he does this for every page touched on the kernel side during
-> > > dup_mmap(), the existing flush_cache_mm() call in dup_mmap() does in
-> > > fact become redundant.
-> > 
-> > Correct.
-> > 
-> > It means no cache flush operation to deal with aliases at all left in
-> > fork and COW code.
+
+On Sat, 21 Oct 2006, Ralf Baechle wrote:
+>
+> > That said, maybe nobody does that. Virtual caches are a total braindamage 
+> > in the first place, so hopefully they have limited use.
 > 
-> Umm. That would seem to only happen to work for a direct-mapped virtually 
-> indexed cache where the index is taken purely from the virtual address, 
-> and there are no "process context" bits in the virtually indexed D$.
+> On MIPS we never had pure virtual caches.
 
-No MIPS processor has something like that.  See below.
+Ok, so on MIPS my schenario doesn't matter.
 
-> The moment there are process context bits involved, afaik you absolutely 
-> _need_ to flush, because otherwise the other process will never pick up 
-> the dirty state (which it would need to reload from memory).
+I think (but may be mistaken) that ARM _does_ have pure virtual caches 
+with a process ID, but people have always ended up flushing them at 
+context switch simply because it just causes too much trouble.
 
-Correct.
+Sparc? VIPT too? Davem?
 
-> That said, maybe nobody does that. Virtual caches are a total braindamage 
-> in the first place, so hopefully they have limited use.
+I have absolutely zero clue about s390.
 
-On MIPS we never had pure virtual caches.  The major variants in existence
-are:
+Anyway, it sounds to me like this is too big to decide for 2.6.19 anyway, 
+and as far as I can tell this i snot a regression, right? Ie we've always 
+had the aliasing issue. Ralf?
 
- o D-cache PIPT, I-cache PIPT
- o PIVT (no typo!)
-   Only the R6000 has this and it's not supported by Linux.
- o D-cache VIPT, I-cache VIPT
-   This is by far the most common on any MIPS designed since '91.
-   A variant of these caches has hardware logic to detect cache aliases and
-   fix them automatically and therefore is equivalent to PIPT even though
-   they are not implemented as PIPT.  And obviously the alias replay of the
-   pipe will cost a few cycles.  The R10000 family of SGI belongs into this
-   class and the 24K/34K family of synthesizable cores by MIPS Technologies
-   have this as a synthesis option.
-   Another variant throws virtual coherency exceptions as I've explained in
-   another thread.
- o D-cache PIPT, I-cache VIVT with additional address space tags.
- o Cacheless.  Not usually running Linux but heck, it's working anyway.
+But it would be good to have something for the early -rc1 sequence for 
+2.6.20, and maybe the MIPS COW D$ patches are it, if it has performance 
+advantages on MIPS that can also be translated to other virtual cache 
+users..
 
-Be sure I'm sending a CPU designers a strong message about aliases.  And I
-think they're slowly getting the message that kernel hackers like to poke
-needles into voodoo dolls for aliases ;-)
+> Be sure I'm sending a CPU designers a strong message about aliases.
 
-  Ralf
+Castration. That's the best solution. We don't want those people 
+procreating.
+
+			Linus
