@@ -1,30 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:33502 "EHLO ozlabs.org")
-	by vger.kernel.org with ESMTP id S2992775AbWJUB3i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Oct 2006 21:29:38 -0400
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <17721.30698.868001.739660@cargo.ozlabs.ibm.com>
-Date: Sat, 21 Oct 2006 11:29:14 +1000
-From: Paul Mackerras <paulus@samba.org>
+Received: from dsl027-180-168.sfo1.dsl.speakeasy.net ([216.27.180.168]:2445
+	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
+	id S2992772AbWJUCLd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Oct 2006 22:11:33 -0400
+Date: Fri, 20 Oct 2006 19:11:34 -0700 (PDT)
+Message-Id: <20061020.191134.63996591.davem@davemloft.net>
 Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
+From: David Miller <davem@davemloft.net>
 In-Reply-To: <Pine.LNX.4.64.0610201733490.3962@g5.osdl.org>
-References: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
-	<20061020214916.GA27810@linux-mips.org>
-	<Pine.LNX.4.64.0610201500040.3962@g5.osdl.org>
-	<20061020.152247.111203913.davem@davemloft.net>
-	<20061020225118.GA30965@linux-mips.org>
-	<Pine.LNX.4.64.0610201625190.3962@g5.osdl.org>
+References: <Pine.LNX.4.64.0610201625190.3962@g5.osdl.org>
 	<20061021000609.GA32701@linux-mips.org>
 	<Pine.LNX.4.64.0610201733490.3962@g5.osdl.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, nickpiggin@yahoo.com.au, akpm@osdl.org, linux-kernel@vger.kernel.org, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, James.Bottomley@steeleye.com
+To: torvalds@osdl.org
+Cc: ralf@linux-mips.org, nickpiggin@yahoo.com.au, akpm@osdl.org, linux-kernel@vger.kernel.org, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, James.Bottomley@steeleye.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Linus Torvalds writes:
+From: Linus Torvalds <torvalds@osdl.org>
+Date: Fri, 20 Oct 2006 17:38:32 -0700 (PDT)
 
 > I think (but may be mistaken) that ARM _does_ have pure virtual caches 
 > with a process ID, but people have always ended up flushing them at 
@@ -32,9 +28,12 @@ Linus Torvalds writes:
 > 
 > Sparc? VIPT too? Davem?
 
-There is one PowerPC embedded chip family, the PPC440, which has a
-virtual i-cache with a process ID tag.  The d-cache is sane though.
-Of course, the i-cache being readonly means we avoid the nastier
-issues.
+sun4c is VIVT, but has no SMP variants.
+sun4m has both VIPT and PIPT.
 
-Paul.
+> But it would be good to have something for the early -rc1 sequence for 
+> 2.6.20, and maybe the MIPS COW D$ patches are it, if it has performance 
+> advantages on MIPS that can also be translated to other virtual cache 
+> users..
+
+I think it could help for sun4m highmem configs.
