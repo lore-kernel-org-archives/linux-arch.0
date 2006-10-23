@@ -1,49 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp104.mail.mud.yahoo.com ([209.191.85.214]:19593 "HELO
-	smtp104.mail.mud.yahoo.com") by vger.kernel.org with SMTP
-	id S1751143AbWJWBt6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 22 Oct 2006 21:49:58 -0400
-Message-ID: <453C1FB5.9070007@yahoo.com.au>
-Date: Mon, 23 Oct 2006 11:49:41 +1000
-From: Nick Piggin <nickpiggin@yahoo.com.au>
-MIME-Version: 1.0
-Subject: Re: dealing with excessive includes
-References: <20061018091944.GA5343@martell.zuzino.mipt.ru> <200610230242.58647.ak@suse.de> <20061023010812.GE25210@parisc-linux.org> <200610230331.16573.ak@suse.de> <20061023013604.GF25210@parisc-linux.org>
-In-Reply-To: <20061023013604.GF25210@parisc-linux.org>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from colo.lackof.org ([198.49.126.79]:10210 "EHLO colo.lackof.org")
+	by vger.kernel.org with ESMTP id S1751463AbWJWEUA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Oct 2006 00:20:00 -0400
+Date: Sun, 22 Oct 2006 22:19:57 -0600
+From: Grant Grundler <grundler@parisc-linux.org>
+Subject: Re: RFC: rewrite Documentation/pci.txt v3
+Message-ID: <20061023041957.GA15915@colo.lackof.org>
+References: <20061021071436.GA29248@colo.lackof.org> <200610211455.29837.ak@suse.de> <20061022190351.GA10599@colo.lackof.org> <200610222344.39355.ak@suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <200610222344.39355.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Andi Kleen <ak@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Randy Dunlap <rdunlap@xenotime.net>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Al Viro <viro@ftp.linux.org.uk>, Linus Torvalds <torvalds@osdl.org>, Alexey Dobriyan <adobriyan@gmail.com>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: Grant Grundler <grundler@parisc-linux.org>, Greg KH <greg@kroah.com>, Matthew Wilcox <matthew@wil.cx>, linux-pci@atrey.karlin.mff.cuni.cz, Linux Arch list <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Matthew Wilcox wrote:
+On Sun, Oct 22, 2006 at 11:44:39PM +0200, Andi Kleen wrote:
+...
+> The /** function arguments can be turned into Documentation.
+> When you do make pdfdocs you get a .pdf in
+> Documentation/DocBook/kernel-api.pdf
 
-> Let me try to explain the problem again, because what you wrote has
-> nothing to do with the problem.
+Ah ok. I haven't look at DocBook in a long time.
+I'll take a look at it before making references to it.
+
+...
+> > E.g. lots of SATA/IDE devices are 64-bit DMA capable but it
+> > looks like generic code is leaving them at 32-bit.
+> > Not good if the box is > 4GB (and many are now).
 > 
-> canonicalize_irq() is defined in <asm/irq.h>.  No .c file should be
-> including <asm/irq.h> in order to get it.  It should be including
-> <linux/interrupt.h>, which will indirectly pull in <asm/irq.h>
-> 
-> add_wait_queue() is defined in <linux/wait.h>.  .c files wishing to use
-> add_wait_queue() should be including <linux/wait.h> rather than relying
-> on it being pulled in through some other path.
-> 
-> This needs annotations to fix, or a big bag of unreliable heuristics.
+> Not a good example imho, usually to get >4GB on those you need to use a 
+> special interface, a standard SATA/IDE driver cannot do it.
+> It's a lot more than just thinking about it.
 
-Does fixing it really fix anything? I agree that cleaning it all up would
-be great. But the aim should be to make less work for developers, rather
-than more.
+IDE subsystem is a bad example in that it predates PCI.
+But IDE is a good example as any.  Changes to subsystems often happen
+when at least two people "think about it": the driver writer and
+the subsystem maintainer.
 
-If you have an
+ide_build_dmatable() follows some standard which dictates (and HW implements)
+an SG list structure with 32-bit addresses and 16-bit counters.
+New PCI devices are certainly capable of more than that.
 
-#ifndef _LINUX_INTERRUPT_H
-#error ...
+So I'm now certain I want to keep references to pci_set_dma_mask()
+in this document since some SATA (not IDE) could do something different
+if the SATA device driver would advertise it was 64-bit capable.
+I know jgarzik is smart and I hope he's already provided some way
+for libata users to indicate their devices are 64-bit capable.
+(Maybe Docbook would tell me that - checking :)
 
-That almost explicitly tells you which is the correct file to include to
-get all definitions from this file. Wouldn't that help?
-
--- 
-SUSE Labs, Novell Inc.
-Send instant messages to your online friends http://au.messenger.yahoo.com 
+thanks,
+grant
