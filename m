@@ -1,41 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:38054 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S1750990AbWJWAnQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 22 Oct 2006 20:43:16 -0400
-From: Andi Kleen <ak@suse.de>
+Received: from palinux.external.hp.com ([192.25.206.14]:40859 "EHLO
+	mail.parisc-linux.org") by vger.kernel.org with ESMTP
+	id S1750984AbWJWBIO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 22 Oct 2006 21:08:14 -0400
+Date: Sun, 22 Oct 2006 19:08:12 -0600
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: dealing with excessive includes
-Date: Mon, 23 Oct 2006 02:42:58 +0200
-References: <20061018091944.GA5343@martell.zuzino.mipt.ru> <Pine.LNX.4.62.0610221956380.29899@pademelon.sonytel.be> <20061023003111.GD25210@parisc-linux.org>
-In-Reply-To: <20061023003111.GD25210@parisc-linux.org>
+Message-ID: <20061023010812.GE25210@parisc-linux.org>
+References: <20061018091944.GA5343@martell.zuzino.mipt.ru> <Pine.LNX.4.62.0610221956380.29899@pademelon.sonytel.be> <20061023003111.GD25210@parisc-linux.org> <200610230242.58647.ak@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200610230242.58647.ak@suse.de>
+In-Reply-To: <200610230242.58647.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
+To: Andi Kleen <ak@suse.de>
 Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Randy Dunlap <rdunlap@xenotime.net>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Al Viro <viro@ftp.linux.org.uk>, Linus Torvalds <torvalds@osdl.org>, Alexey Dobriyan <adobriyan@gmail.com>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Mon, Oct 23, 2006 at 02:42:58AM +0200, Andi Kleen wrote:
+> 
+> > /*+
+> >  * Provides: struct sched
+> >  * Provides: total_forks, nr_threads, process_counts, nr_processes()
+> >  * Provides: nr_running(), nr_uninterruptible(), nr_active(), nr_iowait(), weighted_cpuload()
+> >  */
+> 
+> That's ugly.  If it needs that i don't think it's a good idea.
+> We really want standard C, not some Linux dialect.
 
-> /*+
->  * Provides: struct sched
->  * Provides: total_forks, nr_threads, process_counts, nr_processes()
->  * Provides: nr_running(), nr_uninterruptible(), nr_active(), nr_iowait(), weighted_cpuload()
->  */
+Um, that's a comment.  It's standard C.
 
-That's ugly.  If it needs that i don't think it's a good idea.
-We really want standard C, not some Linux dialect.
+> In theory it is even to do it automated without comments
+> just based on the referenced symbols, except if stuff is hidden in macros 
+> (but then the include defining the macro should have the right includes
+> anyways). Another issue would be different name spaces - if there is both
+> typedef foo and struct foo and nested local foo a script might have a little trouble 
+> distingushing them, but i suspect that won't be a big issue.
 
-In theory it is even to do it automated without comments
-just based on the referenced symbols, except if stuff is hidden in macros 
-(but then the include defining the macro should have the right includes
-anyways). Another issue would be different name spaces - if there is both
-typedef foo and struct foo and nested local foo a script might have a little trouble 
-distingushing them, but i suspect that won't be a big issue.
+Sorry, I assumed you'd've spent some time thinking about the problem.
 
--Andi
+Here's the problem.  If a file needs canonicalize_irq(), it should
+include <linux/interrupt.h> (which eventually ends up including
+asm/irq,h), and not <asm/irq.h> (where it's defined).
+If a file needs add_wait_queue(), it should include <linux/wait.h>
+(where it's defined) and not <linux/fs.h> (which directly includes
+linux/wait.h>.
 
-
+Please define an algorithm which distinguishes the two cases.
