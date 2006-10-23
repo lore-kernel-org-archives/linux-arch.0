@@ -1,49 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from witte.sonytel.be ([80.88.33.193]:55202 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S1751984AbWJWQNw (ORCPT
+Received: from smtp.osdl.org ([65.172.181.4]:13277 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S932144AbWJWQcD (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 Oct 2006 12:13:52 -0400
-Date: Mon, 23 Oct 2006 18:13:40 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+	Mon, 23 Oct 2006 12:32:03 -0400
+Date: Mon, 23 Oct 2006 09:31:34 -0700 (PDT)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: dealing with excessive includes
-In-Reply-To: <Pine.LNX.4.64.0610230908570.3962@g5.osdl.org>
-Message-ID: <Pine.LNX.4.62.0610231812290.1841@pademelon.sonytel.be>
+In-Reply-To: <Pine.LNX.4.62.0610231812290.1841@pademelon.sonytel.be>
+Message-ID: <Pine.LNX.4.64.0610230928430.3962@g5.osdl.org>
 References: <20061017005025.GF29920@ftp.linux.org.uk>
  <20061020091302.a2a85fb1.rdunlap@xenotime.net>
  <Pine.LNX.4.62.0610221956380.29899@pademelon.sonytel.be> <200610230059.23806.ak@suse.de>
  <Pine.LNX.4.62.0610231027130.1272@pademelon.sonytel.be>
  <Pine.LNX.4.64.0610230908570.3962@g5.osdl.org>
+ <Pine.LNX.4.62.0610231812290.1841@pademelon.sonytel.be>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Andi Kleen <ak@suse.de>, Randy Dunlap <rdunlap@xenotime.net>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Al Viro <viro@ftp.linux.org.uk>, Alexey Dobriyan <adobriyan@gmail.com>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 23 Oct 2006, Linus Torvalds wrote:
-> On Mon, 23 Oct 2006, Geert Uytterhoeven wrote:
-> > > Would be a worthy goal imho. Can it be done with scripts? 
+
+
+On Mon, 23 Oct 2006, Geert Uytterhoeven wrote:
 > > 
-> > Making them self-contained or checking whether they are? :-)
-> > 
-> > The latter is simple, just compile each of them into dummy object files, which
-> > should give no compile errors.
+> > We have tons of issues that depend on config variables and architecture 
+> > details. 
 > 
-> It's _not_ simple. Not at all.
-> 
-> We have tons of issues that depend on config variables and architecture 
-> details. 
+> Indeed, so the config variables and architecture details should be handled in
+> the include files, not in the (multiple) users of those include files.
 
-Indeed, so the config variables and architecture details should be handled in
-the include files, not in the (multiple) users of those include files.
+The point is - _verifying_ that is actually hard.
 
-Gr{oetje,eeting}s,
+If some inline function depends on a particular header, you'll have a hard 
+time checking for that if there's an #ifdef around it. Which is not 
+uncommon, we have things like:
 
-						Geert
+	#ifdef CONFIG_PROCFS
+	.. number of inline functions ..
+	#else
+	#define function1(a,b,c) do { } while (0)
+	...
+	#endif
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+so I'm just saying that "just compile it" is _not_ a way of verifying that 
+the header file is complete - because it may well be complete for the 
+particular config you're testing, but not for some other.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+So this is a hard problem. If it was easy, we'd not _have_ the problem in 
+the first place.
+
+		Linus
