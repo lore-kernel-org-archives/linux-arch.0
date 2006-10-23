@@ -1,52 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from witte.sonytel.be ([80.88.33.193]:15260 "EHLO witte.sonytel.be")
-	by vger.kernel.org with ESMTP id S1751804AbWJWIeW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 Oct 2006 04:34:22 -0400
-Date: Mon, 23 Oct 2006 10:34:16 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: dealing with excessive includes
-In-Reply-To: <200610230341.23978.ak@suse.de>
-Message-ID: <Pine.LNX.4.62.0610231029240.1272@pademelon.sonytel.be>
-References: <20061018091944.GA5343@martell.zuzino.mipt.ru> <200610230331.16573.ak@suse.de>
- <20061023013604.GF25210@parisc-linux.org> <200610230341.23978.ak@suse.de>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from mtagate1.de.ibm.com ([195.212.29.150]:55515 "EHLO
+	mtagate1.de.ibm.com") by vger.kernel.org with ESMTP
+	id S1751342AbWJWIuE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Oct 2006 04:50:04 -0400
+Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Reply-To: schwidefsky@de.ibm.com
+In-Reply-To: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
+References: <Pine.LNX.4.64.0610200846260.3962@g5.osdl.org>
+	 <20061020.123635.95058911.davem@davemloft.net>
+	 <Pine.LNX.4.64.0610201251440.3962@g5.osdl.org>
+	 <20061020.125851.115909797.davem@davemloft.net>
+	 <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org>
+Content-Type: text/plain
+Date: Mon, 23 Oct 2006 10:50:00 +0200
+Message-Id: <1161593400.28813.11.camel@localhost>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Matthew Wilcox <matthew@wil.cx>, Randy Dunlap <rdunlap@xenotime.net>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Al Viro <viro@ftp.linux.org.uk>, Linus Torvalds <torvalds@osdl.org>, Alexey Dobriyan <adobriyan@gmail.com>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: David Miller <davem@davemloft.net>, nickpiggin@yahoo.com.au, ralf@linux-mips.org, Andrew Morton <akpm@osdl.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 23 Oct 2006, Andi Kleen wrote:
-> > This needs annotations to fix, or a big bag of unreliable heuristics.
+On Fri, 2006-10-20 at 13:10 -0700, Linus Torvalds wrote:
 > 
-> Ok you're right that case would need annotations.
+> On Fri, 20 Oct 2006, David Miller wrote:
+> > 
+> > I did some more digging, here's what I think the hardware actually
+> > does:
+> 
+> Ok, this sounds sane.
+> 
+> What should we do about this? How does this patch look to people?
+> 
+> (Totally untested, and I'm not sure we should even do that whole 
+> "oldmm->mm_users" test, but I'm throwing it out here for discussion, in 
+> case it matters for performance. The second D$ flush should obviously be 
+> unnecessary for the common unthreaded case, which is why none of this has 
+> mattered historically, I think).
+> 
+> Comments? We need ARM, MIPS, sparc and S390 at the very least to sign off 
+> on this, and somebody to write a nice explanation for the changelog (and 
+> preferably do this through -mm too).
 
-Annotations are a different thing. Personally, I don't like adding them.
+On s390 you never have to worry about cache flushing. It is not stated
+anywhere in the principles of operation but the architecture has to be
+PIPT, otherwise it couldn't possibly work. The best indication for it is
+that there is no cache flush instruction. The view on data in memory is
+always consistent.
 
-> I retreat my earlier statement that self sufficient include files
-> are a good idea.  If it needs such hacks to do it it's probably not worth
-> it. After all it won't fix a single bug.
+-- 
+blue skies,
+  Martin.
 
-  - It will fix bugs of the type: add #include <x.h> to y.c because on some
-    architectures x.h isn't automatically pulled in by z.h.
+Martin Schwidefsky
+Linux for zSeries Development & Services
+IBM Deutschland Entwicklung GmbH
 
-  - It would help in cleaning up the zillions of includes in the .c files,
-    decreasing compile time.
+"Reality continues to ruin my life." - Calvin.
 
-  - It would make it easier for developers, since if you need something, you
-    just have to explicitly include the header file that defines it, and not
-    have to find out the hard way what other stuff to include.
 
-I agree, that's not that many `real bugs'.
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
