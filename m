@@ -1,35 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from einhorn.in-berlin.de ([192.109.42.8]:14221 "EHLO
-	einhorn.in-berlin.de") by vger.kernel.org with ESMTP
-	id S1751597AbWJWGeg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 Oct 2006 02:34:36 -0400
-Message-ID: <453C6260.7060609@s5r6.in-berlin.de>
-Date: Mon, 23 Oct 2006 08:34:08 +0200
-From: Stefan Richter <stefanr@s5r6.in-berlin.de>
-MIME-Version: 1.0
+Received: from witte.sonytel.be ([80.88.33.193]:5275 "EHLO witte.sonytel.be")
+	by vger.kernel.org with ESMTP id S1751342AbWJWI3X (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Oct 2006 04:29:23 -0400
+Date: Mon, 23 Oct 2006 10:29:12 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: dealing with excessive includes
-References: <20061018091944.GA5343@martell.zuzino.mipt.ru> <200610230242.58647.ak@suse.de> <20061023010812.GE25210@parisc-linux.org> <200610230331.16573.ak@suse.de> <20061023013604.GF25210@parisc-linux.org> <453C1FB5.9070007@yahoo.com.au>
-In-Reply-To: <453C1FB5.9070007@yahoo.com.au>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <200610230059.23806.ak@suse.de>
+Message-ID: <Pine.LNX.4.62.0610231027130.1272@pademelon.sonytel.be>
+References: <20061017005025.GF29920@ftp.linux.org.uk>
+ <20061020091302.a2a85fb1.rdunlap@xenotime.net>
+ <Pine.LNX.4.62.0610221956380.29899@pademelon.sonytel.be> <200610230059.23806.ak@suse.de>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Matthew Wilcox <matthew@wil.cx>, Andi Kleen <ak@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Randy Dunlap <rdunlap@xenotime.net>, Al Viro <viro@ftp.linux.org.uk>, Linus Torvalds <torvalds@osdl.org>, Alexey Dobriyan <adobriyan@gmail.com>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: Randy Dunlap <rdunlap@xenotime.net>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Al Viro <viro@ftp.linux.org.uk>, Linus Torvalds <torvalds@osdl.org>, Alexey Dobriyan <adobriyan@gmail.com>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin wrote:
-...
-> If you have an
+On Mon, 23 Oct 2006, Andi Kleen wrote:
+> On Sunday 22 October 2006 19:58, Geert Uytterhoeven wrote:
+> > On Fri, 20 Oct 2006, Randy Dunlap wrote:
+> > > Yes, we have lots of header include indirection going on.
+> > > I don't know of a good tool to detect/fix it.
+> > 
+> > BTW, what about making sure all header files are self-contained (i.e. all
+> > header files include all stuff they need)? This would make it easier for the
+> > users to know which files to include.
 > 
-> #ifndef _LINUX_INTERRUPT_H
-> #error ...
-> 
-> That almost explicitly tells you which is the correct file to include to
-> get all definitions from this file. Wouldn't that help?
+> Would be a worthy goal imho. Can it be done with scripts? 
 
-This can even be evaluated by a script that searches for required header
-files, except if more than one of such clauses appear in a file.
--- 
-Stefan Richter
--=====-=-==- =-=- =-===
-http://arcgraph.de/sr/
+Making them self-contained or checking whether they are? :-)
+
+The latter is simple, just compile each of them into dummy object files, which
+should give no compile errors.
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
