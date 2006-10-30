@@ -1,50 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:13474 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S1751353AbWJ3MPW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Oct 2006 07:15:22 -0500
-Date: Mon, 30 Oct 2006 05:15:21 -0700
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: [PARISC] Remove sched.h from uaccess.h
-Message-ID: <20061030121521.GA10235@parisc-linux.org>
-References: <E1GeUeP-0002oP-8U@ZenIV.linux.org.uk>
+Received: from stout.engsoc.carleton.ca ([134.117.69.22]:21456 "EHLO
+	stout.engsoc.carleton.ca") by vger.kernel.org with ESMTP
+	id S1030538AbWJ3PrA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Oct 2006 10:47:00 -0500
+Date: Mon, 30 Oct 2006 10:46:57 -0500
+From: Kyle McMartin <kyle@parisc-linux.org>
+Subject: Re: Generic compat_sys_rt_sigqueueinfo
+Message-ID: <20061030154657.GB13625@athena.road.mcmartin.ca>
+References: <20061028223730.GC3243@athena.road.mcmartin.ca> <200610290109.08844.arnd.bergmann@de.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <E1GeUeP-0002oP-8U@ZenIV.linux.org.uk>
+In-Reply-To: <200610290109.08844.arnd.bergmann@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@osdl.org
+To: Arnd Bergmann <arnd.bergmann@de.ibm.com>
+Cc: Kyle McMartin <kyle@parisc-linux.org>, akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Sun, Oct 29, 2006 at 01:09:08AM +0200, Arnd Bergmann wrote:
+> Since sys_rt_sigqueueinfo() is so simple, I think it would be much
+> better to define the common version as 
+> 
+> <snip>
 
-Al Viro has done the same thing to x86-64 and reduced the number of
-files which depend on sched.h.  We had a missing dependency on sched.h
-in unwind.c so add the include there.
+Agreed, that seems to be the convention in compat.c for `simple'
+syscalls.
 
-Signed-off-by: Matthew Wilcox <matthew@wil.cx>
+> 	Arnd <><
+> 
 
-diff --git a/arch/parisc/kernel/unwind.c b/arch/parisc/kernel/unwind.c
-index 920bdbf..9c98ed2 100644
---- a/arch/parisc/kernel/unwind.c
-+++ b/arch/parisc/kernel/unwind.c
-@@ -10,6 +10,7 @@
- 
- #include <linux/kernel.h>
- #include <linux/init.h>
-+#include <linux/sched.h>
- #include <linux/slab.h>
- #include <linux/kallsyms.h>
- 
-diff --git a/include/asm-parisc/uaccess.h b/include/asm-parisc/uaccess.h
-index d973e8b..2e87e82 100644
---- a/include/asm-parisc/uaccess.h
-+++ b/include/asm-parisc/uaccess.h
-@@ -4,7 +4,6 @@ #define __PARISC_UACCESS_H
- /*
-  * User space memory access functions
-  */
--#include <linux/sched.h>
- #include <asm/page.h>
- #include <asm/system.h>
- #include <asm/cache.h>
+Cheers,
+	Kyle M.
