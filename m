@@ -1,53 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-6.cisco.com ([171.71.176.117]:41525 "EHLO
-	sj-iport-6.cisco.com") by vger.kernel.org with ESMTP
-	id S965161AbWJ3Qrr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Oct 2006 11:47:47 -0500
-Subject: Re: [PATCH 2/7] severing fs.h, radix-tree.h -> sched.h
-References: <E1GeUeF-0002o7-6s@ZenIV.linux.org.uk>
-From: Roland Dreier <rdreier@cisco.com>
-Date: Mon, 30 Oct 2006 08:47:44 -0800
-In-Reply-To: <E1GeUeF-0002o7-6s@ZenIV.linux.org.uk> (Al Viro's message of "Mon, 30 Oct 2006 10:45:43 +0000")
-Message-ID: <adak62hyclr.fsf@cisco.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from smtp.osdl.org ([65.172.181.4]:11753 "EHLO smtp.osdl.org")
+	by vger.kernel.org with ESMTP id S1422840AbWJaHCP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 Oct 2006 02:02:15 -0500
+Date: Mon, 30 Oct 2006 23:02:10 -0800
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: Generic compat_sys_rt_sigqueueinfo
+Message-Id: <20061030230210.041531ea.akpm@osdl.org>
+In-Reply-To: <20061030155910.GC13625@athena.road.mcmartin.ca>
+References: <20061028223730.GC3243@athena.road.mcmartin.ca>
+	<20061030155910.GC13625@athena.road.mcmartin.ca>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@osdl.org
+To: Kyle McMartin <kyle@parisc-linux.org>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Trivial comment:
+On Mon, 30 Oct 2006 10:59:10 -0500
+Kyle McMartin <kyle@parisc-linux.org> wrote:
 
- >  /*
- > + * Superblock locking.  We really ought to get rid of these two.
- > + */
- > +void lock_super(struct super_block * sb)
- > +{
- > +	get_fs_excl();
- > +	mutex_lock(&sb->s_lock);
- > +}
- > +
- > +void unlock_super(struct super_block * sb)
- > +{
- > +	put_fs_excl();
- > +	mutex_unlock(&sb->s_lock);
- > +}
- > +
- > +EXPORT_SYMBOL(lock_super);
- > +EXPORT_SYMBOL(unlock_super);
+> Every 32-on-64 arch (except parisc) was implementing effectively the
+> same sys32_rt_sigqueueinfo. Add a generic implementation taken from
+> x86_64 and add it to kernel/compat.c, which required the addition of
+> copy_siginfo_from_user32 on mips and powerpc. sparc64 had a sufficient
+> implementation for this purpose, so crib it for both those platforms.
+> 
+> This yields a nice clean up and is one step towards cleaning up some
+> of the compat signals mess parisc has been carrying out of tree for a few
+> years.
+> 
+> Incorporated Arnd's suggestion of not bothering to call sys_rt_sigqueueinfo
+> and just doing the full syscall in compat_sys_rt_sigqueueinfo.
+> 
+> Signed-off-by: Kyle McMartin <kyle@parisc-linux.org>
+> --
+> [N.B. the modification to powerpc is probably wrong, since it seems
+>  to require a wrapper for handling the signed ints like sparc64 and s390
+>  have. -- Kyle]
 
-isn't the current fashion to do this like:
+Well that's a bit sad.  Could the ppc guys please take a look?
 
-void lock_super(struct super_block * sb)
-{
-	get_fs_excl();
-	mutex_lock(&sb->s_lock);
-}
-EXPORT_SYMBOL(lock_super);
+Thanks.
 
-void unlock_super(struct super_block * sb)
-{
-	put_fs_excl();
-	mutex_unlock(&sb->s_lock);
-}
-EXPORT_SYMBOL(unlock_super);
