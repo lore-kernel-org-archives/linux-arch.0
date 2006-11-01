@@ -1,62 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from emailer.gwdg.de ([134.76.10.24]:24213 "EHLO emailer.gwdg.de")
-	by vger.kernel.org with ESMTP id S1422948AbWJaIHJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 31 Oct 2006 03:07:09 -0500
-Date: Tue, 31 Oct 2006 09:04:29 +0100 (MET)
-From: Jan Engelhardt <jengelh@linux01.gwdg.de>
-Subject: Re: [PATCH 2/7] severing fs.h, radix-tree.h -> sched.h
-In-Reply-To: <adak62hyclr.fsf@cisco.com>
-Message-ID: <Pine.LNX.4.61.0610310903080.23540@yvahk01.tjqt.qr>
-References: <E1GeUeF-0002o7-6s@ZenIV.linux.org.uk> <adak62hyclr.fsf@cisco.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from chilli.pcug.org.au ([203.10.76.44]:19692 "EHLO smtps.tip.net.au")
+	by vger.kernel.org with ESMTP id S1946058AbWKAHYQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Nov 2006 02:24:16 -0500
+Date: Wed, 1 Nov 2006 18:23:52 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: Generic compat_sys_rt_sigqueueinfo
+Message-Id: <20061101182352.c35b41ba.sfr@canb.auug.org.au>
+In-Reply-To: <20061030230210.041531ea.akpm@osdl.org>
+References: <20061028223730.GC3243@athena.road.mcmartin.ca>
+	<20061030155910.GC13625@athena.road.mcmartin.ca>
+	<20061030230210.041531ea.akpm@osdl.org>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Wed__1_Nov_2006_18_23_52_+1100_2QbEUhrfCVF1W7n."
 Sender: linux-arch-owner@vger.kernel.org
-To: Roland Dreier <rdreier@cisco.com>
-Cc: Al Viro <viro@ftp.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@osdl.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: Kyle McMartin <kyle@parisc-linux.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+--Signature=_Wed__1_Nov_2006_18_23_52_+1100_2QbEUhrfCVF1W7n.
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: 7bit
 
-> > +EXPORT_SYMBOL(lock_super);
-> > +EXPORT_SYMBOL(unlock_super);
+On Mon, 30 Oct 2006 23:02:10 -0800 Andrew Morton <akpm@osdl.org> wrote:
 >
->isn't the current fashion to do this like:
+> On Mon, 30 Oct 2006 10:59:10 -0500
+> Kyle McMartin <kyle@parisc-linux.org> wrote:
 >
->void lock_super(struct super_block * sb)
->{
->	get_fs_excl();
->	mutex_lock(&sb->s_lock);
->}
->EXPORT_SYMBOL(lock_super);
+> > [N.B. the modification to powerpc is probably wrong, since it seems
+> >  to require a wrapper for handling the signed ints like sparc64 and s390
+> >  have. -- Kyle]
 >
->void unlock_super(struct super_block * sb)
->{
->	put_fs_excl();
->	mutex_unlock(&sb->s_lock);
->}
->EXPORT_SYMBOL(unlock_super);
+> Well that's a bit sad.  Could the ppc guys please take a look?
 
+It will be fine.  Neither of the passed ints have valid negative values.
+The original comment was overly zealous.
 
-Seems to be a draw:
+However it would be nice to not have "32" in the names of gerneic compat
+functions i.e. call it copy_compat_siginfo_from_user or
+get_compat_siginfo.
 
-fs$ grep -nr EXPORT .
-./dcache.c:2113:EXPORT_SYMBOL(d_move);
-./dcache.c:2114:EXPORT_SYMBOL_GPL(d_materialise_unique);
-./dcache.c:2115:EXPORT_SYMBOL(d_path);
-./dcache.c:2116:EXPORT_SYMBOL(d_prune_aliases);
-./dcache.c:2117:EXPORT_SYMBOL(d_rehash);
-./dcache.c:2118:EXPORT_SYMBOL(d_splice_alias);
-./dcache.c:2119:EXPORT_SYMBOL(d_validate);
+--
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
-vs
+--Signature=_Wed__1_Nov_2006_18_23_52_+1100_2QbEUhrfCVF1W7n.
+Content-Type: application/pgp-signature
 
-./debugfs/file.c:86:EXPORT_SYMBOL_GPL(debugfs_create_u8);
-./debugfs/file.c:127:EXPORT_SYMBOL_GPL(debugfs_create_u16);
-./debugfs/file.c:168:EXPORT_SYMBOL_GPL(debugfs_create_u32);
-./debugfs/file.c:247:EXPORT_SYMBOL_GPL(debugfs_create_bool);
-./debugfs/file.c:292:EXPORT_SYMBOL_GPL(debugfs_create_blob);
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.5 (GNU/Linux)
 
+iD8DBQFFSEuOFdBgD/zoJvwRAmYDAJ9/ckKeGIL80LTAspRT0GntPYTpkACeKtKW
+nnDNh8hiVQ6XKlahcbkarkU=
+=Gjim
+-----END PGP SIGNATURE-----
 
-
-	-`J'
--- 
+--Signature=_Wed__1_Nov_2006_18_23_52_+1100_2QbEUhrfCVF1W7n.--
