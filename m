@@ -1,61 +1,168 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:19692 "EHLO smtps.tip.net.au")
-	by vger.kernel.org with ESMTP id S1946058AbWKAHYQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Nov 2006 02:24:16 -0500
-Date: Wed, 1 Nov 2006 18:23:52 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: Generic compat_sys_rt_sigqueueinfo
-Message-Id: <20061101182352.c35b41ba.sfr@canb.auug.org.au>
-In-Reply-To: <20061030230210.041531ea.akpm@osdl.org>
-References: <20061028223730.GC3243@athena.road.mcmartin.ca>
-	<20061030155910.GC13625@athena.road.mcmartin.ca>
-	<20061030230210.041531ea.akpm@osdl.org>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Wed__1_Nov_2006_18_23_52_+1100_2QbEUhrfCVF1W7n."
+Received: from mx1.redhat.com ([66.187.233.31]:63369 "EHLO mx1.redhat.com")
+	by vger.kernel.org with ESMTP id S1423960AbWKAMH1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Nov 2006 07:07:27 -0500
+Message-Id: <20061101120334.215917207@chello.nl>
+References: <20061101114435.234474405@chello.nl>
+Date: Wed, 01 Nov 2006 12:44:36 +0100
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 1/3] mm: arch do_page_fault() vs in_atomic()
+Content-Disposition: inline; filename=inatomic_do_page_fault.patch
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@osdl.org>
-Cc: Kyle McMartin <kyle@parisc-linux.org>, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org, Andrew Morton <akpm@osdl.org>
+Cc: Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Wed__1_Nov_2006_18_23_52_+1100_2QbEUhrfCVF1W7n.
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
+In light of the recent pagefault and filemap_copy_from_user work I've
+gone through all the arch pagefault handlers to make sure the 
+inc_preempt_count() 'feature' works as expected.
 
-On Mon, 30 Oct 2006 23:02:10 -0800 Andrew Morton <akpm@osdl.org> wrote:
->
-> On Mon, 30 Oct 2006 10:59:10 -0500
-> Kyle McMartin <kyle@parisc-linux.org> wrote:
->
-> > [N.B. the modification to powerpc is probably wrong, since it seems
-> >  to require a wrapper for handling the signed ints like sparc64 and s390
-> >  have. -- Kyle]
->
-> Well that's a bit sad.  Could the ppc guys please take a look?
+Several sections of code (including the new filemap_copy_from_user) rely
+on the fact that faults do not take locks under increased preempt count.
 
-It will be fine.  Neither of the passed ints have valid negative values.
-The original comment was overly zealous.
+arch/x86_64 - good
+arch/powerpc - good
+arch/cris - fixed
+arch/i386 - good
+arch/parisc - fixed
+arch/sh - good
+arch/sparc - good
+arch/s390 - good
+arch/m68k - fixed
+arch/ppc - good
+arch/alpha - fixed
+arch/mips - good
+arch/sparc64 - good
+arch/ia64 - good
+arch/arm - fixed
+arch/um - good
+arch/avr32 - good
+arch/h8300 - NA
+arch/m32r - good
+arch/v850 - good
+arch/frv - fixed
+arch/m68knommu - NA
+arch/arm26 - fixed
+arch/sh64 - fixed
+arch/xtensa - good
 
-However it would be nice to not have "32" in the names of gerneic compat
-functions i.e. call it copy_compat_siginfo_from_user or
-get_compat_siginfo.
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Acked-by: Nick Piggin <npiggin@suse.de>
+---
+ arch/alpha/mm/fault.c  |    2 +-
+ arch/arm/mm/fault.c    |    2 +-
+ arch/arm26/mm/fault.c  |    2 +-
+ arch/cris/mm/fault.c   |    2 +-
+ arch/frv/mm/fault.c    |    2 +-
+ arch/m68k/mm/fault.c   |    2 +-
+ arch/parisc/mm/fault.c |    2 +-
+ arch/sh64/mm/fault.c   |    2 +-
+ 8 files changed, 8 insertions(+), 8 deletions(-)
+
+Index: linux-2.6/arch/alpha/mm/fault.c
+===================================================================
+--- linux-2.6.orig/arch/alpha/mm/fault.c
++++ linux-2.6/arch/alpha/mm/fault.c
+@@ -108,7 +108,7 @@ do_page_fault(unsigned long address, uns
+ 
+ 	/* If we're in an interrupt context, or have no user context,
+ 	   we must not take the fault.  */
+-	if (!mm || in_interrupt())
++	if (!mm || in_atomic())
+ 		goto no_context;
+ 
+ #ifdef CONFIG_ALPHA_LARGE_VMALLOC
+Index: linux-2.6/arch/arm/mm/fault.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mm/fault.c
++++ linux-2.6/arch/arm/mm/fault.c
+@@ -230,7 +230,7 @@ do_page_fault(unsigned long addr, unsign
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_interrupt() || !mm)
++	if (in_atomic() || !mm)
+ 		goto no_context;
+ 
+ 	/*
+Index: linux-2.6/arch/arm26/mm/fault.c
+===================================================================
+--- linux-2.6.orig/arch/arm26/mm/fault.c
++++ linux-2.6/arch/arm26/mm/fault.c
+@@ -215,7 +215,7 @@ int do_page_fault(unsigned long addr, un
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_interrupt() || !mm)
++	if (in_atomic() || !mm)
+ 		goto no_context;
+ 
+ 	down_read(&mm->mmap_sem);
+Index: linux-2.6/arch/cris/mm/fault.c
+===================================================================
+--- linux-2.6.orig/arch/cris/mm/fault.c
++++ linux-2.6/arch/cris/mm/fault.c
+@@ -232,7 +232,7 @@ do_page_fault(unsigned long address, str
+ 	 * context, we must not take the fault..
+ 	 */
+ 
+-	if (in_interrupt() || !mm)
++	if (in_atomic() || !mm)
+ 		goto no_context;
+ 
+ 	down_read(&mm->mmap_sem);
+Index: linux-2.6/arch/frv/mm/fault.c
+===================================================================
+--- linux-2.6.orig/arch/frv/mm/fault.c
++++ linux-2.6/arch/frv/mm/fault.c
+@@ -78,7 +78,7 @@ asmlinkage void do_page_fault(int datamm
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_interrupt() || !mm)
++	if (in_atomic() || !mm)
+ 		goto no_context;
+ 
+ 	down_read(&mm->mmap_sem);
+Index: linux-2.6/arch/m68k/mm/fault.c
+===================================================================
+--- linux-2.6.orig/arch/m68k/mm/fault.c
++++ linux-2.6/arch/m68k/mm/fault.c
+@@ -99,7 +99,7 @@ int do_page_fault(struct pt_regs *regs, 
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_interrupt() || !mm)
++	if (in_atomic() || !mm)
+ 		goto no_context;
+ 
+ 	down_read(&mm->mmap_sem);
+Index: linux-2.6/arch/parisc/mm/fault.c
+===================================================================
+--- linux-2.6.orig/arch/parisc/mm/fault.c
++++ linux-2.6/arch/parisc/mm/fault.c
+@@ -152,7 +152,7 @@ void do_page_fault(struct pt_regs *regs,
+ 	const struct exception_table_entry *fix;
+ 	unsigned long acc_type;
+ 
+-	if (in_interrupt() || !mm)
++	if (in_atomic() || !mm)
+ 		goto no_context;
+ 
+ 	down_read(&mm->mmap_sem);
+Index: linux-2.6/arch/sh64/mm/fault.c
+===================================================================
+--- linux-2.6.orig/arch/sh64/mm/fault.c
++++ linux-2.6/arch/sh64/mm/fault.c
+@@ -154,7 +154,7 @@ asmlinkage void do_page_fault(struct pt_
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_interrupt() || !mm)
++	if (in_atomic() || !mm)
+ 		goto no_context;
+ 
+ 	/* TLB misses upon some cache flushes get done under cli() */
 
 --
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
 
---Signature=_Wed__1_Nov_2006_18_23_52_+1100_2QbEUhrfCVF1W7n.
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.5 (GNU/Linux)
-
-iD8DBQFFSEuOFdBgD/zoJvwRAmYDAJ9/ckKeGIL80LTAspRT0GntPYTpkACeKtKW
-nnDNh8hiVQ6XKlahcbkarkU=
-=Gjim
------END PGP SIGNATURE-----
-
---Signature=_Wed__1_Nov_2006_18_23_52_+1100_2QbEUhrfCVF1W7n.--
