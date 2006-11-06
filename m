@@ -1,38 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:30646 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S1752820AbWKFMXk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 6 Nov 2006 07:23:40 -0500
-Date: Mon, 6 Nov 2006 05:23:37 -0700
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Which architectures need 64-bit resources?
-Message-ID: <20061106122337.GK27140@parisc-linux.org>
+Received: from moutng.kundenserver.de ([212.227.126.171]:63458 "EHLO
+	moutng.kundenserver.de") by vger.kernel.org with ESMTP
+	id S1752923AbWKFMwy convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2006 07:52:54 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: Which architectures need 64-bit resources?
+Date: Mon, 6 Nov 2006 13:52:26 +0100
+References: <20061106122337.GK27140@parisc-linux.org>
+In-Reply-To: <20061106122337.GK27140@parisc-linux.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
 Content-Disposition: inline
+Message-Id: <200611061352.26667.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-I have a patch sitting in the parisc tree which does:
+On Monday 06 November 2006 13:23, Matthew Wilcox wrote:
+> +       bool "64 bit Memory and IO resources (EXPERIMENTAL)" if (!64BIT && (ARM || X86 || MIPS || PPC) && EXPERIMENTAL)
+> 
 
- config RESOURCES_64BIT
--       bool "64 bit Memory and IO resources (EXPERIMENTAL)" if (!64BIT && EXPER
-IMENTAL)
-+       bool "64 bit Memory and IO resources (EXPERIMENTAL)" if (!64BIT && !PARI
-SC && EXPERIMENTAL)
-        default 64BIT
+How about reversing the logic to make it
 
-This is a bit selfish really, and it'll lead to something pretty ugly and
-unmaintainable ...
+	bool "64 bit Memory and IO resources (EXPERIMENTAL)" if (RESOURCES_64BIT_ENABLE && EXPERIMENTAL)
 
-+       bool "64 bit Memory and IO resources (EXPERIMENTAL)" if (!64BIT && !PARISC && !M68K && !AVR && !CRIS && !FRV && !H8300 && !M32R && !S390 && !SUPERH && !SPARC && !V850 && !XTENSA && EXPERIMENTAL)
+Then each architecture could either have
 
-at least if my understanding of those arches needs is correct.  Much better
-to have the dependencies be positive:
+config RESOURCES_64BIT_ENABLE
+	def_bool y if !64BIT
 
-+       bool "64 bit Memory and IO resources (EXPERIMENTAL)" if (!64BIT && (ARM || X86 || MIPS || PPC) && EXPERIMENTAL)
+or even
 
-Do I have that set of architectures right?  Any others that need 64 bit
-resource types?  Any there that shouldn't be there?  Should we ditch
-the EXPERIMENTAL tag at the same time?
+	select RESOURCES_64BIT
+
+to switch it on unconditionally.
+
+	Arnd <><
