@@ -1,50 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:59882 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S1753969AbWKGDdu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 6 Nov 2006 22:33:50 -0500
-Date: Mon, 6 Nov 2006 20:33:49 -0700
-From: Matthew Wilcox <matthew@wil.cx>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:59402 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S1753898AbWKGJgy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Nov 2006 04:36:54 -0500
+Date: Tue, 7 Nov 2006 09:36:41 +0000
+From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: Which architectures need 64-bit resources?
-Message-ID: <20061107033349.GR27140@parisc-linux.org>
-References: <20061106122337.GK27140@parisc-linux.org> <20061106160206.GA10447@linux-mips.org> <20061106163243.GN27140@parisc-linux.org> <Pine.LNX.4.62.0611070218590.28657@pademelon.sonytel.be>
-MIME-Version: 1.0
+Message-ID: <20061107093641.GA2570@flint.arm.linux.org.uk>
+References: <20061106122337.GK27140@parisc-linux.org> <20061106160206.GA10447@linux-mips.org> <20061106163243.GN27140@parisc-linux.org>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.62.0611070218590.28657@pademelon.sonytel.be>
+In-Reply-To: <20061106163243.GN27140@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
+To: Matthew Wilcox <matthew@wil.cx>
 Cc: Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, Vivek Goyal <vgoyal@in.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Nov 07, 2006 at 02:37:46AM +0100, Geert Uytterhoeven wrote:
-> Ah, good that the `possibility' of 64-bit resources on m68k goes away, and I
-> haven't `fixed' all those printf() format warnings yet...
+On Mon, Nov 06, 2006 at 09:32:43AM -0700, Matthew Wilcox wrote:
+> On Mon, Nov 06, 2006 at 04:02:06PM +0000, Ralf Baechle wrote:
+> > On Mon, Nov 06, 2006 at 05:23:37AM -0700, Matthew Wilcox wrote:
+> > 
+> > > +       bool "64 bit Memory and IO resources (EXPERIMENTAL)" if (!64BIT && (ARM || X86 || MIPS || PPC) && EXPERIMENTAL)
+> > 
+> > For MIPS at least it would be needed for a few platforms only, so I'd
+> > like to do "select RESOURCES_64BIT" as suitable for a platform. in the
+> > big machine selection menu in arch/mips/Kconfig.
 > 
-> Speaking about that: how many recently-added silencing casts should be removed
-> on platforms without 64-bit resources?
+> I don't see why you shouldn't do that anyway ... seems like ARM wants to
+> do the same thing.  In fact, I'd go so far as to say this isn't an option
+> that users should ever be asked.  You can tell by the help text for it:
 
-Absolutely none, I'm afraid.
+For the ARM bits...
 
-struct resource {
-        resource_size_t start;
-	resource_size_t end;
-...
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
 
-GCC complains about resource_size_t, no matter what you typedef it to be.
-It'd be nice if we could tell GCC that %r meant it'd consume a
-resource_size_t, but afaict, there's no ability to define additions to
-the format attribute.
+Thanks.
 
-Viro's mused on disabling the printk checking entirely with gcc and just
-using sparse to verify format strings (so we can add our own types, etc),
-but I don't think that's realistic unless a lot more people start
-installing sparse.
-
-And widespread adoption of sparse seems unlikely, given that it's under
-OSL 1.1 which means it can't go into Debian [1].
-
-GCC's in Stage 1 ... anyone want to write a patch to c-format.c?
-
-[1] http://wiki.debian.org/DFSGLicenses#head-2b7e4b3507dcc5657dabaf145df20d6c7d41f159
-
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:  2.6 Serial core
