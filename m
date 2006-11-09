@@ -1,94 +1,194 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from omx2-ext.sgi.com ([192.48.171.19]:65152 "EHLO omx2.sgi.com")
-	by vger.kernel.org with ESMTP id S1424034AbWKIEFH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2006 23:05:07 -0500
+Received: from omx2-ext.sgi.com ([192.48.171.19]:62592 "EHLO omx2.sgi.com")
+	by vger.kernel.org with ESMTP id S1424029AbWKIEEp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2006 23:04:45 -0500
 Received: from larry.melbourne.sgi.com (larry.melbourne.sgi.com [134.14.52.130])
-	by omx2.sgi.com (8.12.11/8.12.9/linux-outbound_gateway-1.1) with SMTP id kA96mDOI005371
-	for <@external-mail-relay.sgi.com:linux-arch@vger.kernel.org>; Wed, 8 Nov 2006 22:48:14 -0800
+	by omx2.sgi.com (8.12.11/8.12.9/linux-outbound_gateway-1.1) with SMTP id kA96loJh005347
+	for <@external-mail-relay.sgi.com:linux-arch@vger.kernel.org>; Wed, 8 Nov 2006 22:47:52 -0800
 From: Keith Owens <kaos@sgi.com>
-Date: Thu, 09 Nov 2006 15:05:03 +1100
-Message-Id: <20061109040503.17391.66138.sendpatchset@chook.melbourne.sgi.com>
+Date: Thu, 09 Nov 2006 15:04:41 +1100
+Message-Id: <20061109040441.17391.12845.sendpatchset@chook.melbourne.sgi.com>
 In-Reply-To: <20061109040418.17391.16362.sendpatchset@chook.melbourne.sgi.com>
 References: <20061109040418.17391.16362.sendpatchset@chook.melbourne.sgi.com>
-Subject: [patch 2.6.19-rc5 8/12] crash_stop: ia64 interrupt handlers
+Subject: [patch 2.6.19-rc5 4/12] crash_stop: i386 specific code
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Keith Owens <kaos@sgi.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Define the ia64 crash_stop() interrupt handler and associated routines.
+Add the i386 specific crash_stop code.  This contains routines that are
+called from the common crash_stop code and from the i386 notify_die
+chain.
 
-IPI_CRASH_STOP conflicts with the KDB vector.  This is deliberate, one
-aim of the crash_stop() API is to remove all the interrupt code from
-the various kernel debug patches and use the common crash_stop code
-instead.
+Note: Not tested on visw nor voyager, no hardware.
 
 Signed-off-by: Keith Owens <kaos@sgi.com>
 ---
- arch/ia64/kernel/smp.c |   35 +++++++++++++++++++++++++++++++++++
- 1 file changed, 35 insertions(+)
+ arch/i386/kernel/Makefile     |    1 
+ arch/i386/kernel/crash_stop.c |  127 ++++++++++++++++++++++++++++++++++++++++++
+ include/asm-i386/crash_stop.h |   14 ++++
+ 3 files changed, 142 insertions(+)
 
-Index: linux/arch/ia64/kernel/smp.c
+Index: linux/arch/i386/kernel/Makefile
 ===================================================================
---- linux.orig/arch/ia64/kernel/smp.c
-+++ linux/arch/ia64/kernel/smp.c
-@@ -30,6 +30,7 @@
- #include <linux/delay.h>
- #include <linux/efi.h>
- #include <linux/bitops.h>
+--- linux.orig/arch/i386/kernel/Makefile
++++ linux/arch/i386/kernel/Makefile
+@@ -39,6 +39,7 @@ obj-$(CONFIG_VM86)		+= vm86.o
+ obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
+ obj-$(CONFIG_HPET_TIMER) 	+= hpet.o
+ obj-$(CONFIG_K8_NB)		+= k8.o
++obj-$(CONFIG_CRASH_STOP_SUPPORTED)	+= crash_stop.o
+ 
+ EXTRA_AFLAGS   := -traditional
+ 
+Index: linux/arch/i386/kernel/crash_stop.c
+===================================================================
+--- /dev/null
++++ linux/arch/i386/kernel/crash_stop.c
+@@ -0,0 +1,127 @@
++/*
++ * linux/arch/i386/crash_stop.c
++ *
++ * Copyright (C) 2006 Keith Owens <kaos@sgi.com>
++ *
++ * The i386 specific bits of the crash_stop code.  There is a little bit of
++ * crash_stop code in arch/i386/kernel/{smp,smpboot}.c to handle
++ * CRASH_STOP_VECTOR, everything else is in this file.
++ */
++
 +#include <linux/crash_stop.h>
- 
- #include <asm/atomic.h>
- #include <asm/current.h>
-@@ -66,6 +67,7 @@ static volatile struct call_data_struct 
- 
- #define IPI_CALL_FUNC		0
- #define IPI_CPU_STOP		1
-+#define IPI_CRASH_STOP		2
- 
- /* This needs to be cacheline aligned because it is written to by *other* CPUs.  */
- static DEFINE_PER_CPU(u64, ipi_operation) ____cacheline_aligned;
-@@ -156,6 +158,16 @@ handle_IPI (int irq, void *dev_id)
- 				stop_this_cpu();
- 				break;
- 
-+#ifdef	CONFIG_CRASH_STOP_SUPPORTED
-+			      case IPI_CRASH_STOP:
-+				{
-+					extern void smp_crash_stop_interrupt(
-+						    struct pt_regs *regs);
-+					smp_crash_stop_interrupt(get_irq_regs());
-+				}
-+				break;
-+#endif	/* CONFIG_CRASH_STOP_SUPPORTED */
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/ptrace.h>
++#include <asm/kdebug.h>
 +
- 			      default:
- 				printk(KERN_CRIT "Unknown IPI on CPU %d: %lu\n", this_cpu, which);
- 				break;
-@@ -379,3 +391,26 @@ setup_profiling_timer (unsigned int mult
- {
- 	return -EINVAL;
- }
-+
-+#ifdef	CONFIG_CRASH_STOP_SUPPORTED
++/* The starting point for a backtrace on a running process is set to
++ * cs_arch_cpu().  It would be nice to go up a couple of levels to start the
++ * backtrace where crash_stop() or cs_common_ipi() were invoked, but that is
++ * more work than I am willing to do in this function.  Starting the backtrace
++ * at cs_arch_cpu() is simple and reliable, which is exactly what we want when
++ * the machine is already failing.
++ */
 +void
-+cs_arch_send_ipi(int cpu)
++cs_arch_cpu(int monarch, struct crash_stop_running_process *r)
 +{
-+	send_IPI_single(cpu, IPI_CRASH_STOP);
++	r->arch.esp = current_stack_pointer;
++	r->arch.eip = (unsigned long)current_text_addr();
++	/* separate any stack changes from current_stack_pointer above */
++	barrier();
++	cs_common_cpu(monarch);
 +}
 +
-+void
-+cs_arch_send_nmi(int cpu)
++/* Called at the start of a notify_chain. */
++static int
++cs_arch_notify_start(struct notifier_block *self,
++		     unsigned long val, void *data)
 +{
-+	set_mb(cs_arch_monarch_cpu, smp_processor_id());
-+	platform_send_ipi(cpu, 0, IA64_IPI_DM_INIT, 0);
++	struct die_args *args = data;
++	switch(val) {
++	case DIE_OOPS:
++	case DIE_NMIWATCHDOG:
++		cs_notify_chain_start(args->regs);
++		break;
++	}
++	return NOTIFY_OK;
 +}
 +
-+void
-+smp_crash_stop_interrupt(struct pt_regs *regs)
++/* Called at the end of a notify_chain. */
++static int
++cs_arch_notify_end(struct notifier_block *self,
++		   unsigned long val, void *data)
 +{
-+	struct pt_regs *old_regs = set_irq_regs(regs);
-+	cs_common_ipi();
-+	set_irq_regs(old_regs);
++	switch(val) {
++	case DIE_OOPS:
++	case DIE_NMIWATCHDOG:
++		cs_notify_chain_end();
++		break;
++	}
++	return NOTIFY_OK;
 +}
-+#endif	/* CONFIG_CRASH_STOP_SUPPORTED */
++
++/* Pick up any NMI IPIs that were sent by crash_stop. */
++static int
++cs_arch_notify_nmi(struct notifier_block *self,
++		   unsigned long val, void *data)
++{
++	switch(val) {
++	case DIE_NMI_IPI:
++		if (crash_stop_sent_nmi()) {
++			crash_stop_slave();
++			return NOTIFY_STOP;
++		}
++		break;
++	}
++	return NOTIFY_OK;
++}
++
++static struct notifier_block cs_arch_nb_start = {
++	.notifier_call = cs_arch_notify_start,
++	.priority = ~0U >> 1,
++};
++
++static struct notifier_block cs_arch_nb_end = {
++	.notifier_call = cs_arch_notify_end,
++	.priority = 1,
++};
++
++static struct notifier_block cs_arch_nb_nmi = {
++	.notifier_call = cs_arch_notify_nmi,
++	.priority = 10,
++};
++
++static int __init
++cs_arch_init(void)
++{
++	int err;
++	const char *nb_name;
++	nb_name = "cs_arch_nb_start";
++	if ((err = register_die_notifier(&cs_arch_nb_start)))
++		goto error;
++	nb_name = "cs_arch_nb_end";
++	if ((err = register_die_notifier(&cs_arch_nb_end)))
++		goto error;
++	nb_name = "cs_arch_nb_nmi";
++	if ((err = register_die_notifier(&cs_arch_nb_nmi)))
++		goto error;
++	return 0;
++error:
++	printk(KERN_ERR "Failed to register %s\n", nb_name);
++	unregister_die_notifier(&cs_arch_nb_start);
++	unregister_die_notifier(&cs_arch_nb_end);
++	unregister_die_notifier(&cs_arch_nb_nmi);
++	return err;
++}
++
++static void __exit
++cs_arch_exit(void)
++{
++	unregister_die_notifier(&cs_arch_nb_nmi);
++	unregister_die_notifier(&cs_arch_nb_start);
++	unregister_die_notifier(&cs_arch_nb_end);
++	return;
++}
++
++module_init(cs_arch_init);
++module_exit(cs_arch_exit);
+Index: linux/include/asm-i386/crash_stop.h
+===================================================================
+--- /dev/null
++++ linux/include/asm-i386/crash_stop.h
+@@ -0,0 +1,14 @@
++#ifndef _ASM_CRASH_STOP_H
++#define _ASM_CRASH_STOP_H
++
++/* CONFIG_4KSTACKS means that the registers (including eip) at the time of the
++ * interrupt can be on one stack while the crash_stop code is running on
++ * another stack.  We have to save the current esp and eip.
++ */
++struct crash_stop_running_process_arch
++{
++	unsigned long esp;
++	unsigned long eip;
++};
++
++#endif	/* _ASM_CRASH_STOP_H */
