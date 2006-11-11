@@ -1,72 +1,373 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:46517 "EHLO
-	e35.co.us.ibm.com") by vger.kernel.org with ESMTP id S1946866AbWKKBpo
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Nov 2006 20:45:44 -0500
-Received: from westrelay02.boulder.ibm.com (westrelay02.boulder.ibm.com [9.17.195.11])
-	by e35.co.us.ibm.com (8.13.8/8.12.11) with ESMTP id kAB1jiLV019354
-	for <linux-arch@vger.kernel.org>; Fri, 10 Nov 2006 20:45:44 -0500
-Received: from d03av04.boulder.ibm.com (d03av04.boulder.ibm.com [9.17.195.170])
-	by westrelay02.boulder.ibm.com (8.13.6/8.13.6/NCO v8.1.1) with ESMTP id kAB1jit1511802
-	for <linux-arch@vger.kernel.org>; Fri, 10 Nov 2006 18:45:44 -0700
-Received: from d03av04.boulder.ibm.com (loopback [127.0.0.1])
-	by d03av04.boulder.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id kAB1jhJc027006
-	for <linux-arch@vger.kernel.org>; Fri, 10 Nov 2006 18:45:43 -0700
-Date: Fri, 10 Nov 2006 20:45:05 -0500
-From: Vivek Goyal <vgoyal@in.ibm.com>
-Subject: Re: [patch 2.6.19-rc5 0/12] crash_stop: Summary
-Message-ID: <20061111014505.GA12814@in.ibm.com>
-Reply-To: vgoyal@in.ibm.com
-References: <20061109040418.17391.16362.sendpatchset@chook.melbourne.sgi.com>
+Received: from gate.crashing.org ([63.228.1.57]:24537 "EHLO gate.crashing.org")
+	by vger.kernel.org with ESMTP id S1947107AbWKKGSy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 11 Nov 2006 01:18:54 -0500
+Subject: [PATCH] add dev_archdata to struct device
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Content-Type: text/plain
+Date: Sat, 11 Nov 2006 17:18:39 +1100
+Message-Id: <1163225919.4982.219.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061109040418.17391.16362.sendpatchset@chook.melbourne.sgi.com>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Keith Owens <kaos@sgi.com>
-Cc: linux-arch@vger.kernel.org
+To: Linux Arch list <linux-arch@vger.kernel.org>
+Cc: Andrew Morton <akpm@osdl.org>, Greg KH <greg@kroah.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Nov 09, 2006 at 03:04:18PM +1100, Keith Owens wrote:
-Hi Keith,
+Add arch specific dev_archdata to struct device
 
-> All the kernel debug style tools (kdb, kgdb, nlkd, netdump, lkcd,
-> crash, kdump etc.) have a common requirement, they need to do a crash
-> stop of the systems.  This means stopping all the cpus, even if some of
-> the cpus are spinning disabled.  In addition, each cpu has to save
-> enough state to start the diagnosis of the problem.
-> 
-> * Each debug style tool has written its own code for interrupting the
->   other cpus and for saving cpu state.
-> 
-> * Some tools try a normal IPI first then send a non-maskable interrupt
->   after a delay.
-> 
-> * Some tools always send a NMI first, which can result in incomplete or
->   wrong machine state if NMI arrives at the wrong time.
-> 
+Adds an arch specific struct dev_arch to struct device. This enables
+architecture to add specific fields to every device in the system, like
+DMA operation pointers, NUMA node ID, firmware specific data, etc...
 
-What kind of problem one can run into if NMI is sent directly instead
-of trying an normal IPI first?
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
 
-On a general note, I am not sure how well suited this infrastructure
-is for crash dump needs. We are trying to follow one theme and that
-is run a bare minimal code after a system crash to increase reliabitity.
+Andrew, this patch replaces:
+  add-arch-specific-dev_sysdata-to-struct-device.patch
+that you put in -mm the other day. You should also remove:
+  change-acpi-to-use-dev_sysdata-instead-of-firmware_data.patch
+as a new version of it is following, adapted to the name change
+(sysdata -> archdata).
+ 
+Index: linux-cell/include/asm-alpha/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-alpha/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-arm/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-arm/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-arm26/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-arm26/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-avr32/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-avr32/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-cris/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-cris/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-frv/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-frv/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-generic/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-generic/device.h	2006-11-11 14:29:36.000000000 +1100
+@@ -0,0 +1,12 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#ifndef _ASM_GENERIC_DEVICE_H
++#define _ASM_GENERIC_DEVICE_H
++
++struct dev_archdata {
++};
++
++#endif /* _ASM_GENERIC_DEVICE_H */
+Index: linux-cell/include/asm-h8300/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-h8300/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-i386/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-i386/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-ia64/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-ia64/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-m32r/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-m32r/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-m68k/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-m68k/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-m68knommu/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-m68knommu/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-mips/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-mips/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-parisc/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-parisc/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-powerpc/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-powerpc/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-ppc/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-ppc/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-s390/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-s390/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-sh/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-sh/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-sh64/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-sh64/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-sparc/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-sparc/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-sparc64/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-sparc64/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-um/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-um/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-v850/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-v850/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-x86_64/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-x86_64/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/asm-xtensa/device.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-cell/include/asm-xtensa/device.h	2006-11-11 14:28:46.000000000 +1100
+@@ -0,0 +1,7 @@
++/*
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++#include <asm-generic/device.h>
++
+Index: linux-cell/include/linux/device.h
+===================================================================
+--- linux-cell.orig/include/linux/device.h	2006-11-11 14:25:07.000000000 +1100
++++ linux-cell/include/linux/device.h	2006-11-11 14:30:00.000000000 +1100
+@@ -21,6 +21,7 @@
+ #include <linux/pm.h>
+ #include <asm/semaphore.h>
+ #include <asm/atomic.h>
++#include <asm/device.h>
+ 
+ #define DEVICE_NAME_SIZE	50
+ #define DEVICE_NAME_HALF	__stringify(20)	/* Less than half to accommodate slop */
+@@ -382,6 +383,8 @@
+ 
+ 	struct dma_coherent_mem	*dma_mem; /* internal for coherent mem
+ 					     override */
++	/* arch specific additions */
++	struct dev_archdata	archdata;
+ 
+ 	/* class_device migration path */
+ 	struct list_head	node;
 
-Avoid taking locks avoid relying on crashed task's stack etc. (if possible).
-Of course it is an ideal situation and we have not achieved that state but
-roughly that seems to be the long term goal. Looking at the patches it
-looks like it introduces lots of code to be run after crash and also
-uses smp_processor_id() which introduces a dependency on stack. This poses
-problem in stack overflow cases. Fernando from valinux, introduced 
-safe_smp_processor_id() call to read apic id from LAPIC instead of relying
-on the thread's stack. As of today, the crash path is no safe from stack
-overflow but we hope that someday it would be.
-
-So I think crash dump will be a little special case and we need to be 
-careful while introducing extra code that new code will be able to run even 
-if system is in very bad state. (for example stack overflow).
-
-Thanks
-Vivek
 
