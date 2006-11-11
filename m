@@ -1,50 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:19610 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S1424417AbWKJUrZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Nov 2006 15:47:25 -0500
-Subject: Re: [PATCH 1/2] Add arch specific dev_sysdata to struct device
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <20061110234757.27677dcd.sfr@canb.auug.org.au>
-References: <1163141930.4982.143.camel@localhost.localdomain>
-	 <20061110234757.27677dcd.sfr@canb.auug.org.au>
-Content-Type: text/plain
-Date: Sat, 11 Nov 2006 07:46:45 +1100
-Message-Id: <1163191605.4982.175.camel@localhost.localdomain>
+Received: from e35.co.us.ibm.com ([32.97.110.153]:46517 "EHLO
+	e35.co.us.ibm.com") by vger.kernel.org with ESMTP id S1946866AbWKKBpo
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Nov 2006 20:45:44 -0500
+Received: from westrelay02.boulder.ibm.com (westrelay02.boulder.ibm.com [9.17.195.11])
+	by e35.co.us.ibm.com (8.13.8/8.12.11) with ESMTP id kAB1jiLV019354
+	for <linux-arch@vger.kernel.org>; Fri, 10 Nov 2006 20:45:44 -0500
+Received: from d03av04.boulder.ibm.com (d03av04.boulder.ibm.com [9.17.195.170])
+	by westrelay02.boulder.ibm.com (8.13.6/8.13.6/NCO v8.1.1) with ESMTP id kAB1jit1511802
+	for <linux-arch@vger.kernel.org>; Fri, 10 Nov 2006 18:45:44 -0700
+Received: from d03av04.boulder.ibm.com (loopback [127.0.0.1])
+	by d03av04.boulder.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id kAB1jhJc027006
+	for <linux-arch@vger.kernel.org>; Fri, 10 Nov 2006 18:45:43 -0700
+Date: Fri, 10 Nov 2006 20:45:05 -0500
+From: Vivek Goyal <vgoyal@in.ibm.com>
+Subject: Re: [patch 2.6.19-rc5 0/12] crash_stop: Summary
+Message-ID: <20061111014505.GA12814@in.ibm.com>
+Reply-To: vgoyal@in.ibm.com
+References: <20061109040418.17391.16362.sendpatchset@chook.melbourne.sgi.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20061109040418.17391.16362.sendpatchset@chook.melbourne.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Linux Arch list <linux-arch@vger.kernel.org>, Len Brown <len.brown@intel.com>, Andrew Morton <akpm@osdl.org>
+To: Keith Owens <kaos@sgi.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2006-11-10 at 23:47 +1100, Stephen Rothwell wrote:
-> On Fri, 10 Nov 2006 17:58:50 +1100 Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
-> >
-> > Adds an arch specific struct dev_sysdata to struct device. This enables
-> > architecture to add specific fields to every device in the system, like
-> > DMA operation pointers, NUMA node ID, firmware specific data, etc...
-> >
-> > Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+On Thu, Nov 09, 2006 at 03:04:18PM +1100, Keith Owens wrote:
+Hi Keith,
+
+> All the kernel debug style tools (kdb, kgdb, nlkd, netdump, lkcd,
+> crash, kdump etc.) have a common requirement, they need to do a crash
+> stop of the systems.  This means stopping all the cpus, even if some of
+> the cpus are spinning disabled.  In addition, each cpu has to save
+> enough state to start the diagnosis of the problem.
 > 
-> I would have done this by creating a single line asm-xxx/device.h containing
+> * Each debug style tool has written its own code for interrupting the
+>   other cpus and for saving cpu state.
 > 
-> #include <asm-generic/device.h>
-
-A lot of archs will add custome things, so I felt it simpler that way,
-but I can do it via asm-generic... Anybody else preferring it that
-way ?
-
-> (except for asm-generic, of course)  and then as each architecture implements
-> its own dev_sysdata, it can flesh out its asm/device.h.
+> * Some tools try a normal IPI first then send a non-maskable interrupt
+>   after a delay.
 > 
-> Also, I would use _ASM_<ARCH>_DEVICE_H, but thats just my preference.
+> * Some tools always send a NMI first, which can result in incomplete or
+>   wrong machine state if NMI arrives at the wrong time.
+> 
 
-Because I'm overly lazy, I prefer just cp'ing an identical file to all
-asm-* dirs :-) Now I suppose it should be easy to do a little script to
-get it "right". I'll look into it for the patch renaming it to
-arch_data, I'll try to get that out later this morning.
+What kind of problem one can run into if NMI is sent directly instead
+of trying an normal IPI first?
 
-Ben.
+On a general note, I am not sure how well suited this infrastructure
+is for crash dump needs. We are trying to follow one theme and that
+is run a bare minimal code after a system crash to increase reliabitity.
 
+Avoid taking locks avoid relying on crashed task's stack etc. (if possible).
+Of course it is an ideal situation and we have not achieved that state but
+roughly that seems to be the long term goal. Looking at the patches it
+looks like it introduces lots of code to be run after crash and also
+uses smp_processor_id() which introduces a dependency on stack. This poses
+problem in stack overflow cases. Fernando from valinux, introduced 
+safe_smp_processor_id() call to read apic id from LAPIC instead of relying
+on the thread's stack. As of today, the crash path is no safe from stack
+overflow but we hope that someday it would be.
+
+So I think crash dump will be a little special case and we need to be 
+careful while introducing extra code that new code will be able to run even 
+if system is in very bad state. (for example stack overflow).
+
+Thanks
+Vivek
 
