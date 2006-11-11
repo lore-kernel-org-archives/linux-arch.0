@@ -1,178 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:26073 "EHLO gate.crashing.org")
-	by vger.kernel.org with ESMTP id S1947109AbWKKGT3 (ORCPT
+Received: from cantor2.suse.de ([195.135.220.15]:49894 "EHLO mx2.suse.de")
+	by vger.kernel.org with ESMTP id S1947115AbWKKGny (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 11 Nov 2006 01:19:29 -0500
-Subject: Change ACPI to use dev_archdata instead of firmware_data
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Content-Type: text/plain
-Date: Sat, 11 Nov 2006 17:18:42 +1100
-Message-Id: <1163225922.4982.221.camel@localhost.localdomain>
-Mime-Version: 1.0
+	Sat, 11 Nov 2006 01:43:54 -0500
+From: Andi Kleen <ak@suse.de>
+Subject: Re: [PATCH] add dev_archdata to struct device
+Date: Sat, 11 Nov 2006 07:43:43 +0100
+References: <1163225919.4982.219.camel@localhost.localdomain>
+In-Reply-To: <1163225919.4982.219.camel@localhost.localdomain>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200611110743.43829.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linux Arch list <linux-arch@vger.kernel.org>
-Cc: Andrew Morton <akpm@osdl.org>, Greg KH <greg@kroah.com>, lenb@kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linux Arch list <linux-arch@vger.kernel.org>, Andrew Morton <akpm@osdl.org>, Greg KH <greg@kroah.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Change ACPI to use dev_archdata instead of firmware_data
+On Saturday 11 November 2006 07:18, Benjamin Herrenschmidt wrote:
+> Add arch specific dev_archdata to struct device
+> 
+> Adds an arch specific struct dev_arch to struct device. This enables
+> architecture to add specific fields to every device in the system, like
+> DMA operation pointers, NUMA node ID, firmware specific data, etc...
 
-This patch changes ACPI to use the new dev_archdata on i386, x86_64
-and ia64 (is there any other arch using ACPI ?) to store it's
-acpi_handle.
+Fine by me from the x86 side.
 
-It also removes the firmware_data field from struct device as this
-was the only user.
-
-Only build-tested on x86
-
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
----
-
-This is a version adapted to the name change (sysdata -> archdata). Still
-only build-tested as I don't have much x86 test gear.
-
-Index: linux-cell/drivers/acpi/glue.c
-===================================================================
---- linux-cell.orig/drivers/acpi/glue.c	2006-11-11 14:34:25.000000000 +1100
-+++ linux-cell/drivers/acpi/glue.c	2006-11-11 14:35:42.000000000 +1100
-@@ -267,9 +267,9 @@
- {
- 	acpi_status status;
- 
--	if (dev->firmware_data) {
-+	if (dev->archdata.acpi_handle) {
- 		printk(KERN_WARNING PREFIX
--		       "Drivers changed 'firmware_data' for %s\n", dev->bus_id);
-+		       "Drivers changed 'acpi_handle' for %s\n", dev->bus_id);
- 		return -EINVAL;
- 	}
- 	get_device(dev);
-@@ -278,25 +278,26 @@
- 		put_device(dev);
- 		return -EINVAL;
- 	}
--	dev->firmware_data = handle;
-+	dev->archdata.acpi_handle = handle;
- 
- 	return 0;
- }
- 
- static int acpi_unbind_one(struct device *dev)
- {
--	if (!dev->firmware_data)
-+	if (!dev->archdata.acpi_handle)
- 		return 0;
--	if (dev == acpi_get_physical_device(dev->firmware_data)) {
-+	if (dev == acpi_get_physical_device(dev->archdata.acpi_handle)) {
- 		/* acpi_get_physical_device increase refcnt by one */
- 		put_device(dev);
--		acpi_detach_data(dev->firmware_data, acpi_glue_data_handler);
--		dev->firmware_data = NULL;
-+		acpi_detach_data(dev->archdata.acpi_handle,
-+				 acpi_glue_data_handler);
-+		dev->archdata.acpi_handle = NULL;
- 		/* acpi_bind_one increase refcnt by one */
- 		put_device(dev);
- 	} else {
- 		printk(KERN_ERR PREFIX
--		       "Oops, 'firmware_data' corrupt for %s\n", dev->bus_id);
-+		       "Oops, 'acpi_handle' corrupt for %s\n", dev->bus_id);
- 	}
- 	return 0;
- }
-@@ -328,7 +329,8 @@
- 	if (!ret) {
- 		struct acpi_buffer buffer = { ACPI_ALLOCATE_BUFFER, NULL };
- 
--		acpi_get_name(dev->firmware_data, ACPI_FULL_PATHNAME, &buffer);
-+		acpi_get_name(dev->archdata.acpi_handle,
-+			      ACPI_FULL_PATHNAME, &buffer);
- 		DBG("Device %s -> %s\n", dev->bus_id, (char *)buffer.pointer);
- 		kfree(buffer.pointer);
- 	} else
-Index: linux-cell/include/acpi/acpi_bus.h
-===================================================================
---- linux-cell.orig/include/acpi/acpi_bus.h	2006-11-11 14:34:25.000000000 +1100
-+++ linux-cell/include/acpi/acpi_bus.h	2006-11-11 14:35:42.000000000 +1100
-@@ -357,7 +357,7 @@
- /* helper */
- acpi_handle acpi_get_child(acpi_handle, acpi_integer);
- acpi_handle acpi_get_pci_rootbridge_handle(unsigned int, unsigned int);
--#define DEVICE_ACPI_HANDLE(dev) ((acpi_handle)((dev)->firmware_data))
-+#define DEVICE_ACPI_HANDLE(dev) ((acpi_handle)((dev)->archdata.acpi_handle))
- 
- #endif /* CONFIG_ACPI */
- 
-Index: linux-cell/include/asm-i386/device.h
-===================================================================
---- linux-cell.orig/include/asm-i386/device.h	2006-11-11 14:34:25.000000000 +1100
-+++ linux-cell/include/asm-i386/device.h	2006-11-11 14:35:42.000000000 +1100
-@@ -3,5 +3,13 @@
-  *
-  * This file is released under the GPLv2
-  */
--#include <asm-generic/device.h>
-+#ifndef _ASM_I386_DEVICE_H
-+#define _ASM_I386_DEVICE_H
- 
-+struct dev_archdata {
-+#ifdef CONFIG_ACPI
-+	void	*acpi_handle;
-+#endif
-+};
-+
-+#endif /* _ASM_I386_DEVICE_H */
-Index: linux-cell/include/linux/device.h
-===================================================================
---- linux-cell.orig/include/linux/device.h	2006-11-11 14:34:25.000000000 +1100
-+++ linux-cell/include/linux/device.h	2006-11-11 14:35:42.000000000 +1100
-@@ -368,8 +368,6 @@
- 	void		*driver_data;	/* data private to the driver */
- 	void		*platform_data;	/* Platform specific data, device
- 					   core doesn't touch it */
--	void		*firmware_data; /* Firmware specific data (e.g. ACPI,
--					   BIOS data),reserved for device core*/
- 	struct dev_pm_info	power;
- 
- 	u64		*dma_mask;	/* dma mask (if dma'able device) */
-Index: linux-cell/include/asm-x86_64/device.h
-===================================================================
---- linux-cell.orig/include/asm-x86_64/device.h	2006-11-11 14:34:25.000000000 +1100
-+++ linux-cell/include/asm-x86_64/device.h	2006-11-11 14:35:42.000000000 +1100
-@@ -3,5 +3,13 @@
-  *
-  * This file is released under the GPLv2
-  */
--#include <asm-generic/device.h>
-+#ifndef _ASM_X86_64_DEVICE_H
-+#define _ASM_X86_64_DEVICE_H
- 
-+struct dev_archdata {
-+#ifdef CONFIG_ACPI
-+	void	*acpi_handle;
-+#endif
-+};
-+
-+#endif /* _ASM_X86_64_DEVICE_H */
-Index: linux-cell/include/asm-ia64/device.h
-===================================================================
---- linux-cell.orig/include/asm-ia64/device.h	2006-11-11 14:34:25.000000000 +1100
-+++ linux-cell/include/asm-ia64/device.h	2006-11-11 14:35:42.000000000 +1100
-@@ -3,5 +3,13 @@
-  *
-  * This file is released under the GPLv2
-  */
--#include <asm-generic/device.h>
-+#ifndef _ASM_IA64_DEVICE_H
-+#define _ASM_IA64_DEVICE_H
- 
-+struct dev_archdata {
-+#ifdef CONFIG_ACPI
-+	void	*acpi_handle;
-+#endif
-+};
-+
-+#endif /* _ASM_IA64_DEVICE_H */
-
-
+-Andi
