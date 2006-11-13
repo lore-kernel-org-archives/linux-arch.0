@@ -1,365 +1,194 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:45549 "EHLO mx2.suse.de")
-	by vger.kernel.org with ESMTP id S932687AbWKMSbu (ORCPT
+Received: from cantor.suse.de ([195.135.220.2]:56241 "EHLO mx1.suse.de")
+	by vger.kernel.org with ESMTP id S932681AbWKMSbo (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Nov 2006 13:31:50 -0500
-Subject: patch driver-core-add-dev_archdata-to-struct-device.patch added to gregkh-2.6 tree
+	Mon, 13 Nov 2006 13:31:44 -0500
+Subject: patch acpi-change-acpi-to-use-dev_archdata-instead-of-firmware_data.patch added to gregkh-2.6 tree
 From: <gregkh@suse.de>
-Date: Mon, 13 Nov 2006 10:30:53 -0800
-In-Reply-To: <1163225919.4982.219.camel@localhost.localdomain>
-Message-Id: <20061113183145.CC1BA9D3F2C@imap.suse.de>
+Date: Mon, 13 Nov 2006 10:30:46 -0800
+In-Reply-To: <1163225922.4982.221.camel@localhost.localdomain>
+Message-Id: <20061113183140.5A2B59D3CAF@imap.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: benh@kernel.crashing.org, ak@suse.de, akpm@osdl.org, dhowells@redhat.com, greg@kroah.com, gregkh@suse.de, linux-arch@vger.kernel.org
+To: benh@kernel.crashing.org, akpm@osdl.org, greg@kroah.com, gregkh@suse.de, lenb@kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
 This is a note to let you know that I've just added the patch titled
 
-     Subject: Driver core: add dev_archdata to struct device
+     Subject: ACPI: Change ACPI to use dev_archdata instead of firmware_data
 
 to my gregkh-2.6 tree.  Its filename is
 
-     driver-core-add-dev_archdata-to-struct-device.patch
+     acpi-change-acpi-to-use-dev_archdata-instead-of-firmware_data.patch
 
 This tree can be found at 
     http://www.kernel.org/pub/linux/kernel/people/gregkh/gregkh-2.6/patches/
 
 
-From benh@kernel.crashing.org Fri Nov 10 22:18:51 2006
-Subject: Driver core: add dev_archdata to struct device
+From benh@kernel.crashing.org Fri Nov 10 22:19:29 2006
+Subject: ACPI: Change ACPI to use dev_archdata instead of firmware_data
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 To: Linux Arch list <linux-arch@vger.kernel.org>
-Cc: Andrew Morton <akpm@osdl.org>, Greg KH <greg@kroah.com>
+Cc: Andrew Morton <akpm@osdl.org>, Greg KH <greg@kroah.com>, <lenb@kernel.org>
 Content-Type: text/plain
-Date: Sat, 11 Nov 2006 17:18:39 +1100
-Message-Id: <1163225919.4982.219.camel@localhost.localdomain>
+Date: Sat, 11 Nov 2006 17:18:42 +1100
+Message-Id: <1163225922.4982.221.camel@localhost.localdomain>
 Mime-Version: 1.0
 
-Add arch specific dev_archdata to struct device
+Change ACPI to use dev_archdata instead of firmware_data
 
-Adds an arch specific struct dev_arch to struct device. This enables
-architecture to add specific fields to every device in the system, like
-DMA operation pointers, NUMA node ID, firmware specific data, etc...
+This patch changes ACPI to use the new dev_archdata on i386, x86_64
+and ia64 (is there any other arch using ACPI ?) to store it's
+acpi_handle.
+
+It also removes the firmware_data field from struct device as this
+was the only user.
+
+Only build-tested on x86
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Acked-by: Andi Kleen <ak@suse.de>
-Acked-By: David Howells <dhowells@redhat.com>
+Cc: Len Brown <lenb@kernel.org>
 Signed-off-by: Greg Kroah-Hartman <gregkh@suse.de>
 
 ---
- include/asm-alpha/device.h     |    7 +++++++
- include/asm-arm/device.h       |    7 +++++++
- include/asm-arm26/device.h     |    7 +++++++
- include/asm-avr32/device.h     |    7 +++++++
- include/asm-cris/device.h      |    7 +++++++
- include/asm-frv/device.h       |    7 +++++++
- include/asm-generic/device.h   |   12 ++++++++++++
- include/asm-h8300/device.h     |    7 +++++++
- include/asm-i386/device.h      |    7 +++++++
- include/asm-ia64/device.h      |    7 +++++++
- include/asm-m32r/device.h      |    7 +++++++
- include/asm-m68k/device.h      |    7 +++++++
- include/asm-m68knommu/device.h |    7 +++++++
- include/asm-mips/device.h      |    7 +++++++
- include/asm-parisc/device.h    |    7 +++++++
- include/asm-powerpc/device.h   |    7 +++++++
- include/asm-ppc/device.h       |    7 +++++++
- include/asm-s390/device.h      |    7 +++++++
- include/asm-sh/device.h        |    7 +++++++
- include/asm-sh64/device.h      |    7 +++++++
- include/asm-sparc/device.h     |    7 +++++++
- include/asm-sparc64/device.h   |    7 +++++++
- include/asm-um/device.h        |    7 +++++++
- include/asm-v850/device.h      |    7 +++++++
- include/asm-x86_64/device.h    |    7 +++++++
- include/asm-xtensa/device.h    |    7 +++++++
- include/linux/device.h         |    3 +++
- 27 files changed, 190 insertions(+)
+ drivers/acpi/glue.c         |   20 +++++++++++---------
+ include/acpi/acpi_bus.h     |    2 +-
+ include/asm-i386/device.h   |   10 +++++++++-
+ include/asm-ia64/device.h   |   10 +++++++++-
+ include/asm-x86_64/device.h |   10 +++++++++-
+ include/linux/device.h      |    2 --
+ 6 files changed, 39 insertions(+), 15 deletions(-)
 
---- /dev/null
-+++ gregkh-2.6/include/asm-alpha/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-arm/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-arm26/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-avr32/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-cris/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-frv/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-generic/device.h
-@@ -0,0 +1,12 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#ifndef _ASM_GENERIC_DEVICE_H
-+#define _ASM_GENERIC_DEVICE_H
-+
+--- gregkh-2.6.orig/drivers/acpi/glue.c
++++ gregkh-2.6/drivers/acpi/glue.c
+@@ -267,9 +267,9 @@ static int acpi_bind_one(struct device *
+ {
+ 	acpi_status status;
+ 
+-	if (dev->firmware_data) {
++	if (dev->archdata.acpi_handle) {
+ 		printk(KERN_WARNING PREFIX
+-		       "Drivers changed 'firmware_data' for %s\n", dev->bus_id);
++		       "Drivers changed 'acpi_handle' for %s\n", dev->bus_id);
+ 		return -EINVAL;
+ 	}
+ 	get_device(dev);
+@@ -278,25 +278,26 @@ static int acpi_bind_one(struct device *
+ 		put_device(dev);
+ 		return -EINVAL;
+ 	}
+-	dev->firmware_data = handle;
++	dev->archdata.acpi_handle = handle;
+ 
+ 	return 0;
+ }
+ 
+ static int acpi_unbind_one(struct device *dev)
+ {
+-	if (!dev->firmware_data)
++	if (!dev->archdata.acpi_handle)
+ 		return 0;
+-	if (dev == acpi_get_physical_device(dev->firmware_data)) {
++	if (dev == acpi_get_physical_device(dev->archdata.acpi_handle)) {
+ 		/* acpi_get_physical_device increase refcnt by one */
+ 		put_device(dev);
+-		acpi_detach_data(dev->firmware_data, acpi_glue_data_handler);
+-		dev->firmware_data = NULL;
++		acpi_detach_data(dev->archdata.acpi_handle,
++				 acpi_glue_data_handler);
++		dev->archdata.acpi_handle = NULL;
+ 		/* acpi_bind_one increase refcnt by one */
+ 		put_device(dev);
+ 	} else {
+ 		printk(KERN_ERR PREFIX
+-		       "Oops, 'firmware_data' corrupt for %s\n", dev->bus_id);
++		       "Oops, 'acpi_handle' corrupt for %s\n", dev->bus_id);
+ 	}
+ 	return 0;
+ }
+@@ -328,7 +329,8 @@ static int acpi_platform_notify(struct d
+ 	if (!ret) {
+ 		struct acpi_buffer buffer = { ACPI_ALLOCATE_BUFFER, NULL };
+ 
+-		acpi_get_name(dev->firmware_data, ACPI_FULL_PATHNAME, &buffer);
++		acpi_get_name(dev->archdata.acpi_handle,
++			      ACPI_FULL_PATHNAME, &buffer);
+ 		DBG("Device %s -> %s\n", dev->bus_id, (char *)buffer.pointer);
+ 		kfree(buffer.pointer);
+ 	} else
+--- gregkh-2.6.orig/include/acpi/acpi_bus.h
++++ gregkh-2.6/include/acpi/acpi_bus.h
+@@ -357,7 +357,7 @@ struct device *acpi_get_physical_device(
+ /* helper */
+ acpi_handle acpi_get_child(acpi_handle, acpi_integer);
+ acpi_handle acpi_get_pci_rootbridge_handle(unsigned int, unsigned int);
+-#define DEVICE_ACPI_HANDLE(dev) ((acpi_handle)((dev)->firmware_data))
++#define DEVICE_ACPI_HANDLE(dev) ((acpi_handle)((dev)->archdata.acpi_handle))
+ 
+ #endif /* CONFIG_ACPI */
+ 
+--- gregkh-2.6.orig/include/asm-i386/device.h
++++ gregkh-2.6/include/asm-i386/device.h
+@@ -3,5 +3,13 @@
+  *
+  * This file is released under the GPLv2
+  */
+-#include <asm-generic/device.h>
++#ifndef _ASM_I386_DEVICE_H
++#define _ASM_I386_DEVICE_H
+ 
 +struct dev_archdata {
++#ifdef CONFIG_ACPI
++	void	*acpi_handle;
++#endif
 +};
 +
-+#endif /* _ASM_GENERIC_DEVICE_H */
---- /dev/null
-+++ gregkh-2.6/include/asm-h8300/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-i386/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
++#endif /* _ASM_I386_DEVICE_H */
+--- gregkh-2.6.orig/include/asm-ia64/device.h
 +++ gregkh-2.6/include/asm-ia64/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
+@@ -3,5 +3,13 @@
+  *
+  * This file is released under the GPLv2
+  */
+-#include <asm-generic/device.h>
++#ifndef _ASM_IA64_DEVICE_H
++#define _ASM_IA64_DEVICE_H
+ 
++struct dev_archdata {
++#ifdef CONFIG_ACPI
++	void	*acpi_handle;
++#endif
++};
 +
---- /dev/null
-+++ gregkh-2.6/include/asm-m32r/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-m68k/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-m68knommu/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-mips/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-parisc/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-powerpc/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-ppc/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-s390/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-sh/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-sh64/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-sparc/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-sparc64/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-um/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
-+++ gregkh-2.6/include/asm-v850/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
---- /dev/null
++#endif /* _ASM_IA64_DEVICE_H */
+--- gregkh-2.6.orig/include/asm-x86_64/device.h
 +++ gregkh-2.6/include/asm-x86_64/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
+@@ -3,5 +3,13 @@
+  *
+  * This file is released under the GPLv2
+  */
+-#include <asm-generic/device.h>
++#ifndef _ASM_X86_64_DEVICE_H
++#define _ASM_X86_64_DEVICE_H
+ 
++struct dev_archdata {
++#ifdef CONFIG_ACPI
++	void	*acpi_handle;
++#endif
++};
 +
---- /dev/null
-+++ gregkh-2.6/include/asm-xtensa/device.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Arch specific extensions to struct device
-+ *
-+ * This file is released under the GPLv2
-+ */
-+#include <asm-generic/device.h>
-+
++#endif /* _ASM_X86_64_DEVICE_H */
 --- gregkh-2.6.orig/include/linux/device.h
 +++ gregkh-2.6/include/linux/device.h
-@@ -21,6 +21,7 @@
- #include <linux/pm.h>
- #include <asm/semaphore.h>
- #include <asm/atomic.h>
-+#include <asm/device.h>
+@@ -369,8 +369,6 @@ struct device {
+ 	void		*driver_data;	/* data private to the driver */
+ 	void		*platform_data;	/* Platform specific data, device
+ 					   core doesn't touch it */
+-	void		*firmware_data; /* Firmware specific data (e.g. ACPI,
+-					   BIOS data),reserved for device core*/
+ 	struct dev_pm_info	power;
  
- #define DEVICE_NAME_SIZE	50
- #define DEVICE_NAME_HALF	__stringify(20)	/* Less than half to accommodate slop */
-@@ -383,6 +384,8 @@ struct device {
- 
- 	struct dma_coherent_mem	*dma_mem; /* internal for coherent mem
- 					     override */
-+	/* arch specific additions */
-+	struct dev_archdata	archdata;
- 
- 	/* class_device migration path */
- 	struct list_head	node;
+ 	u64		*dma_mask;	/* dma mask (if dma'able device) */
 
 
 Patches currently in gregkh-2.6 which might be from benh@kernel.crashing.org are
