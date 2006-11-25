@@ -1,28 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:59076 "EHLO
-	mail.parisc-linux.org") by vger.kernel.org with ESMTP
-	id S935138AbWKYEAs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Nov 2006 23:00:48 -0500
-Date: Fri, 24 Nov 2006 21:00:48 -0700
-From: Matthew Wilcox <matthew@wil.cx>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:60289
+	"EHLO sunset.davemloft.net") by vger.kernel.org with ESMTP
+	id S935140AbWKYECb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Nov 2006 23:02:31 -0500
+Date: Fri, 24 Nov 2006 20:02:42 -0800 (PST)
+Message-Id: <20061124.200242.91313872.davem@davemloft.net>
 Subject: Re: [PATCH] Generic compat_sys_sysinfo
-Message-ID: <20061125040047.GG14076@parisc-linux.org>
-References: <20061125014313.GD11643@athena.road.mcmartin.ca>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+From: David Miller <davem@davemloft.net>
 In-Reply-To: <20061125014313.GD11643@athena.road.mcmartin.ca>
+References: <20061125014313.GD11643@athena.road.mcmartin.ca>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Kyle McMartin <kyle@parisc-linux.org>
+To: kyle@parisc-linux.org
 Cc: akpm@osdl.org, linux-arch@vger.kernel.org, parisc-linux@lists.parisc-linux.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Nov 24, 2006 at 08:43:13PM -0500, Kyle McMartin wrote:
-> Some architectures were missing the u16 pad, however, I'm going to
-> guess that a u16 is aligned on a u32 boundary and thus the padding is
-> implied there...
+From: Kyle McMartin <kyle@parisc-linux.org>
+Date: Fri, 24 Nov 2006 20:43:13 -0500
 
-It's more that a u32 gets aligned to a u32 boundary rather than a u16.
-This is true except for m68k, which doesn't have compat.
+> While tracking a bug for Thibaut Varene, I noticed that almost all
+> architectures implemented exactly the same sys32_sysinfo... except
+> parisc, where a bug was to be found in handling of the uptime. So
+> let's remove a whole whack of code for fun and profit. Cribbed
+> compat_sys_sysinfo from x86_64's implementation, since I figured
+> it would be the best tested.
+> 
+> Tested compat_sys_sysinfo() on parisc and the results look sane.
+> 
+> Signed-off-by: Kyle McMartin <kyle@parisc-linux.org>
 
-Acked-by: Matthew Wilcox <matthew@wil.cx>
+This looks good to me, at least on the sparc side of things. :)
