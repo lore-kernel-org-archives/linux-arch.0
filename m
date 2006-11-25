@@ -1,377 +1,730 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:57473 "EHLO
-	ftp.linux-mips.org") by vger.kernel.org with ESMTP id S933753AbWKWPE3
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Nov 2006 10:04:29 -0500
-Received: from localhost.localdomain ([127.0.0.1]:47491 "EHLO
-	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20038865AbWKWPE3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Nov 2006 15:04:29 +0000
-Date: Thu, 23 Nov 2006 15:04:24 +0000
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: [PATCH] Kill dma_is_consistent()
-Message-ID: <20061123150424.GA1526@linux-mips.org>
-Mime-Version: 1.0
+Received: from stout.engsoc.carleton.ca ([134.117.69.22]:10212 "EHLO
+	stout.engsoc.carleton.ca") by vger.kernel.org with ESMTP
+	id S1757605AbWKYBnY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Nov 2006 20:43:24 -0500
+Date: Fri, 24 Nov 2006 20:43:13 -0500
+From: Kyle McMartin <kyle@parisc-linux.org>
+Subject: [PATCH] Generic compat_sys_sysinfo
+Message-ID: <20061125014313.GD11643@athena.road.mcmartin.ca>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: Andrew Morton <akpm@osdl.org>
+To: akpm@osdl.org
+Cc: linux-arch@vger.kernel.org, parisc-linux@lists.parisc-linux.org
 List-ID: <linux-arch.vger.kernel.org>
 
-(Resent for linux-arch)
+While tracking a bug for Thibaut Varene, I noticed that almost all
+architectures implemented exactly the same sys32_sysinfo... except
+parisc, where a bug was to be found in handling of the uptime. So
+let's remove a whole whack of code for fun and profit. Cribbed
+compat_sys_sysinfo from x86_64's implementation, since I figured
+it would be the best tested.
 
-dma_is_consistent() is ill-designed in that it does not have a struct device
-argument which makes proper support for systems that consist of a mix of
-coherent and non-coherent DMA devices hard.  There also is just a single
-user, a BUG_ON() call in the 53c700.c SCSI driver so removing instead of
-fixing it up seems to be the thing to do.
+Tested compat_sys_sysinfo() on parisc and the results look sane.
 
-Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-
+Signed-off-by: Kyle McMartin <kyle@parisc-linux.org>
 ---
- Documentation/DMA-API.txt         |    6 ------
- arch/mips/mm/dma-coherent.c       |    7 -------
- arch/mips/mm/dma-ip27.c           |    7 -------
- arch/mips/mm/dma-ip32.c           |    7 -------
- arch/mips/mm/dma-noncoherent.c    |    7 -------
- drivers/scsi/53c700.c             |    3 ---
- include/asm-alpha/dma-mapping.h   |    1 -
- include/asm-arm/dma-mapping.h     |    5 -----
- include/asm-avr32/dma-mapping.h   |    5 -----
- include/asm-cris/dma-mapping.h    |    2 --
- include/asm-frv/dma-mapping.h     |    2 --
- include/asm-generic/dma-mapping.h |    1 -
- include/asm-i386/dma-mapping.h    |    2 --
- include/asm-ia64/dma-mapping.h    |    2 --
- include/asm-m68k/dma-mapping.h    |    5 -----
- include/asm-mips/dma-mapping.h    |    2 --
- include/asm-parisc/dma-mapping.h  |    6 ------
- include/asm-powerpc/dma-mapping.h |    5 -----
- include/asm-sparc64/dma-mapping.h |    1 -
- include/asm-um/dma-mapping.h      |    1 -
- include/asm-x86_64/dma-mapping.h  |    2 --
- include/asm-xtensa/dma-mapping.h  |    2 --
- 22 files changed, 0 insertions(+), 81 deletions(-)
+Some architectures were missing the u16 pad, however, I'm going to
+guess that a u16 is aligned on a u32 boundary and thus the padding is
+implied there...
 
-diff --git a/Documentation/DMA-API.txt b/Documentation/DMA-API.txt
-index 2ffb0d6..9c68a03 100644
---- a/Documentation/DMA-API.txt
-+++ b/Documentation/DMA-API.txt
-@@ -431,12 +431,6 @@ be identical to those passed in (and ret
- dma_alloc_noncoherent()).
- 
- int
--dma_is_consistent(dma_addr_t dma_handle)
--
--returns true if the memory pointed to by the dma_handle is actually
--consistent.
--
--int
- dma_get_cache_alignment(void)
- 
- returns the processor cache alignment.  This is the absolute minimum
-diff --git a/arch/mips/mm/dma-coherent.c b/arch/mips/mm/dma-coherent.c
-index 7fa5fd1..e67c840 100644
---- a/arch/mips/mm/dma-coherent.c
-+++ b/arch/mips/mm/dma-coherent.c
-@@ -190,13 +190,6 @@ int dma_supported(struct device *dev, u6
- 
- EXPORT_SYMBOL(dma_supported);
- 
--int dma_is_consistent(dma_addr_t dma_addr)
--{
--	return 1;
--}
--
--EXPORT_SYMBOL(dma_is_consistent);
--
- void dma_cache_sync(void *vaddr, size_t size,
- 	       enum dma_data_direction direction)
- {
-diff --git a/arch/mips/mm/dma-ip27.c b/arch/mips/mm/dma-ip27.c
-index 8da19fd..9347068 100644
---- a/arch/mips/mm/dma-ip27.c
-+++ b/arch/mips/mm/dma-ip27.c
-@@ -197,13 +197,6 @@ int dma_supported(struct device *dev, u6
- 
- EXPORT_SYMBOL(dma_supported);
- 
--int dma_is_consistent(dma_addr_t dma_addr)
--{
--	return 1;
--}
--
--EXPORT_SYMBOL(dma_is_consistent);
--
- void dma_cache_sync(void *vaddr, size_t size,
- 	       enum dma_data_direction direction)
- {
-diff --git a/arch/mips/mm/dma-ip32.c b/arch/mips/mm/dma-ip32.c
-index ec54ed0..5884e26 100644
---- a/arch/mips/mm/dma-ip32.c
-+++ b/arch/mips/mm/dma-ip32.c
-@@ -363,13 +363,6 @@ int dma_supported(struct device *dev, u6
- 
- EXPORT_SYMBOL(dma_supported);
- 
--int dma_is_consistent(dma_addr_t dma_addr)
--{
--	return 1;
--}
--
--EXPORT_SYMBOL(dma_is_consistent);
--
- void dma_cache_sync(void *vaddr, size_t size, enum dma_data_direction direction)
- {
- 	if (direction == DMA_NONE)
-diff --git a/arch/mips/mm/dma-noncoherent.c b/arch/mips/mm/dma-noncoherent.c
-index 2eeffe5..e6f4779 100644
---- a/arch/mips/mm/dma-noncoherent.c
-+++ b/arch/mips/mm/dma-noncoherent.c
-@@ -299,13 +299,6 @@ int dma_supported(struct device *dev, u6
- 
- EXPORT_SYMBOL(dma_supported);
- 
--int dma_is_consistent(dma_addr_t dma_addr)
--{
--	return 1;
--}
--
--EXPORT_SYMBOL(dma_is_consistent);
--
- void dma_cache_sync(void *vaddr, size_t size, enum dma_data_direction direction)
- {
- 	if (direction == DMA_NONE)
-diff --git a/drivers/scsi/53c700.c b/drivers/scsi/53c700.c
-index 562432d..ad799b2 100644
---- a/drivers/scsi/53c700.c
-+++ b/drivers/scsi/53c700.c
-@@ -311,9 +311,6 @@ NCR_700_detect(struct scsi_host_template
- 	hostdata->msgin = memory + MSGIN_OFFSET;
- 	hostdata->msgout = memory + MSGOUT_OFFSET;
- 	hostdata->status = memory + STATUS_OFFSET;
--	/* all of these offsets are L1_CACHE_BYTES separated.  It is fatal
--	 * if this isn't sufficient separation to avoid dma flushing issues */
--	BUG_ON(!dma_is_consistent(pScript) && L1_CACHE_BYTES < dma_get_cache_alignment());
- 	hostdata->slots = (struct NCR_700_command_slot *)(memory + SLOTS_OFFSET);
- 	hostdata->dev = dev;
- 
-diff --git a/include/asm-alpha/dma-mapping.h b/include/asm-alpha/dma-mapping.h
-index b9ff4d8..2e02d64 100644
---- a/include/asm-alpha/dma-mapping.h
-+++ b/include/asm-alpha/dma-mapping.h
-@@ -51,7 +51,6 @@ #endif	/* !CONFIG_PCI */
- 
- #define dma_alloc_noncoherent(d, s, h, f)	dma_alloc_coherent(d, s, h, f)
- #define dma_free_noncoherent(d, s, v, h)	dma_free_coherent(d, s, v, h)
--#define dma_is_consistent(dev)			(1)
- 
- int dma_set_mask(struct device *dev, u64 mask);
- 
-diff --git a/include/asm-arm/dma-mapping.h b/include/asm-arm/dma-mapping.h
-index 55eb4dc..1bca4e3 100644
---- a/include/asm-arm/dma-mapping.h
-+++ b/include/asm-arm/dma-mapping.h
-@@ -44,11 +44,6 @@ static inline int dma_get_cache_alignmen
- 	return 32;
+ arch/ia64/ia32/ia32_entry.S        |    2 -
+ arch/ia64/ia32/sys_ia32.c          |   68 -------------------------------------
+ arch/mips/kernel/linux32.c         |   44 -----------------------
+ arch/mips/kernel/scall64-n32.S     |    2 -
+ arch/mips/kernel/scall64-o32.S     |    2 -
+ arch/parisc/kernel/sys_parisc32.c  |   64 ----------------------------------
+ arch/parisc/kernel/syscall_table.S |    2 -
+ arch/powerpc/kernel/sys_ppc32.c    |   67 ------------------------------------
+ arch/s390/kernel/compat_linux.c    |   45 ------------------------
+ arch/s390/kernel/compat_wrapper.S  |    6 +--
+ arch/s390/kernel/syscalls.S        |    2 -
+ arch/sparc64/kernel/sys_sparc32.c  |   64 ----------------------------------
+ arch/sparc64/kernel/systbls.S      |    2 -
+ arch/x86_64/ia32/ia32entry.S       |    2 -
+ arch/x86_64/ia32/sys_ia32.c        |   66 -----------------------------------
+ kernel/compat.c                    |   68 +++++++++++++++++++++++++++++++++++++
+ 16 files changed, 78 insertions(+), 428 deletions(-)
+
+diff --git a/arch/ia64/ia32/ia32_entry.S b/arch/ia64/ia32/ia32_entry.S
+index 8d41c2c..d214c36 100644
+--- a/arch/ia64/ia32/ia32_entry.S
++++ b/arch/ia64/ia32/ia32_entry.S
+@@ -326,7 +326,7 @@ ia32_syscall_table:
+ 	data8 sys_ni_syscall
+ 	data8 compat_sys_wait4
+ 	data8 sys_swapoff	  /* 115 */
+-	data8 sys32_sysinfo
++	data8 compat_sys_sysinfo 
+ 	data8 sys32_ipc
+ 	data8 sys_fsync
+ 	data8 sys32_sigreturn
+diff --git a/arch/ia64/ia32/sys_ia32.c b/arch/ia64/ia32/sys_ia32.c
+index 9d6a3f2..85ac5b3 100644
+--- a/arch/ia64/ia32/sys_ia32.c
++++ b/arch/ia64/ia32/sys_ia32.c
+@@ -2209,74 +2209,6 @@ sys32_fstat64 (unsigned int fd, struct s
+ 	return ret;
  }
  
--static inline int dma_is_consistent(dma_addr_t handle)
+-struct sysinfo32 {
+-	s32 uptime;
+-	u32 loads[3];
+-	u32 totalram;
+-	u32 freeram;
+-	u32 sharedram;
+-	u32 bufferram;
+-	u32 totalswap;
+-	u32 freeswap;
+-	u16 procs;
+-	u16 pad;
+-	u32 totalhigh;
+-	u32 freehigh;
+-	u32 mem_unit;
+-	char _f[8];
+-};
+-
+-asmlinkage long
+-sys32_sysinfo (struct sysinfo32 __user *info)
 -{
--	return !!arch_is_coherent();
+-	struct sysinfo s;
+-	long ret, err;
+-	int bitcount = 0;
+-	mm_segment_t old_fs = get_fs();
+-
+-	set_fs(KERNEL_DS);
+-	ret = sys_sysinfo((struct sysinfo __user *) &s);
+-	set_fs(old_fs);
+-	/* Check to see if any memory value is too large for 32-bit and
+-	 * scale down if needed.
+-	 */
+-	if ((s.totalram >> 32) || (s.totalswap >> 32)) {
+-		while (s.mem_unit < PAGE_SIZE) {
+-			s.mem_unit <<= 1;
+-			bitcount++;
+-		}
+-		s.totalram >>= bitcount;
+-		s.freeram >>= bitcount;
+-		s.sharedram >>= bitcount;
+-		s.bufferram >>= bitcount;
+-		s.totalswap >>= bitcount;
+-		s.freeswap >>= bitcount;
+-		s.totalhigh >>= bitcount;
+-		s.freehigh >>= bitcount;
+-	}
+-
+-	if (!access_ok(VERIFY_WRITE, info, sizeof(*info)))
+-		return -EFAULT;
+-
+-	err  = __put_user(s.uptime, &info->uptime);
+-	err |= __put_user(s.loads[0], &info->loads[0]);
+-	err |= __put_user(s.loads[1], &info->loads[1]);
+-	err |= __put_user(s.loads[2], &info->loads[2]);
+-	err |= __put_user(s.totalram, &info->totalram);
+-	err |= __put_user(s.freeram, &info->freeram);
+-	err |= __put_user(s.sharedram, &info->sharedram);
+-	err |= __put_user(s.bufferram, &info->bufferram);
+-	err |= __put_user(s.totalswap, &info->totalswap);
+-	err |= __put_user(s.freeswap, &info->freeswap);
+-	err |= __put_user(s.procs, &info->procs);
+-	err |= __put_user (s.totalhigh, &info->totalhigh);
+-	err |= __put_user (s.freehigh, &info->freehigh);
+-	err |= __put_user (s.mem_unit, &info->mem_unit);
+-	if (err)
+-		return -EFAULT;
+-	return ret;
 -}
 -
- /*
-  * DMA errors are defined by all-bits-set in the DMA address.
+ asmlinkage long
+ sys32_sched_rr_get_interval (pid_t pid, struct compat_timespec __user *interval)
+ {
+diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
+index 7a3ebbe..e3677b9 100644
+--- a/arch/mips/kernel/linux32.c
++++ b/arch/mips/kernel/linux32.c
+@@ -193,50 +193,6 @@ sysn32_waitid(int which, compat_pid_t pi
+ 	return ret;
+ }
+ 
+-struct sysinfo32 {
+-        s32 uptime;
+-        u32 loads[3];
+-        u32 totalram;
+-        u32 freeram;
+-        u32 sharedram;
+-        u32 bufferram;
+-        u32 totalswap;
+-        u32 freeswap;
+-        u16 procs;
+-	u32 totalhigh;
+-	u32 freehigh;
+-	u32 mem_unit;
+-	char _f[8];
+-};
+-
+-asmlinkage int sys32_sysinfo(struct sysinfo32 __user *info)
+-{
+-	struct sysinfo s;
+-	int ret, err;
+-	mm_segment_t old_fs = get_fs ();
+-
+-	set_fs (KERNEL_DS);
+-	ret = sys_sysinfo((struct sysinfo __user *)&s);
+-	set_fs (old_fs);
+-	err = put_user (s.uptime, &info->uptime);
+-	err |= __put_user (s.loads[0], &info->loads[0]);
+-	err |= __put_user (s.loads[1], &info->loads[1]);
+-	err |= __put_user (s.loads[2], &info->loads[2]);
+-	err |= __put_user (s.totalram, &info->totalram);
+-	err |= __put_user (s.freeram, &info->freeram);
+-	err |= __put_user (s.sharedram, &info->sharedram);
+-	err |= __put_user (s.bufferram, &info->bufferram);
+-	err |= __put_user (s.totalswap, &info->totalswap);
+-	err |= __put_user (s.freeswap, &info->freeswap);
+-	err |= __put_user (s.procs, &info->procs);
+-	err |= __put_user (s.totalhigh, &info->totalhigh);
+-	err |= __put_user (s.freehigh, &info->freehigh);
+-	err |= __put_user (s.mem_unit, &info->mem_unit);
+-	if (err)
+-		return -EFAULT;
+-	return ret;
+-}
+-
+ #define RLIM_INFINITY32	0x7fffffff
+ #define RESOURCE32(x) ((x > RLIM_INFINITY32) ? RLIM_INFINITY32 : x)
+ 
+diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
+index 6bb9f91..9bc5519 100644
+--- a/arch/mips/kernel/scall64-n32.S
++++ b/arch/mips/kernel/scall64-n32.S
+@@ -217,7 +217,7 @@ EXPORT(sysn32_call_table)
+ 	PTR	sys32_gettimeofday
+ 	PTR	compat_sys_getrlimit		/* 6095 */
+ 	PTR	compat_sys_getrusage
+-	PTR	sys32_sysinfo
++	PTR	compat_sys_sysinfo
+ 	PTR	compat_sys_times
+ 	PTR	sys32_ptrace
+ 	PTR	sys_getuid			/* 6100 */
+diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
+index 28aa4fc..79b7196 100644
+--- a/arch/mips/kernel/scall64-o32.S
++++ b/arch/mips/kernel/scall64-o32.S
+@@ -321,7 +321,7 @@ sys_call_table:
+ 	PTR	sys_ni_syscall			/* sys_vm86 */
+ 	PTR	compat_sys_wait4
+ 	PTR	sys_swapoff			/* 4115 */
+-	PTR	sys32_sysinfo
++	PTR	compat_sys_sysinfo
+ 	PTR	sys32_ipc
+ 	PTR	sys_fsync
+ 	PTR	sys32_sigreturn
+diff --git a/arch/parisc/kernel/sys_parisc32.c b/arch/parisc/kernel/sys_parisc32.c
+index 29be437..ce3245f 100644
+--- a/arch/parisc/kernel/sys_parisc32.c
++++ b/arch/parisc/kernel/sys_parisc32.c
+@@ -579,70 +579,6 @@ asmlinkage int sys32_sendfile64(int out_
+ }
+ 
+ 
+-struct sysinfo32 {
+-	s32 uptime;
+-	u32 loads[3];
+-	u32 totalram;
+-	u32 freeram;
+-	u32 sharedram;
+-	u32 bufferram;
+-	u32 totalswap;
+-	u32 freeswap;
+-	unsigned short procs;
+-	u32 totalhigh;
+-	u32 freehigh;
+-	u32 mem_unit;
+-	char _f[12];
+-};
+-
+-/* We used to call sys_sysinfo and translate the result.  But sys_sysinfo
+- * undoes the good work done elsewhere, and rather than undoing the
+- * damage, I decided to just duplicate the code from sys_sysinfo here.
+- */
+-
+-asmlinkage int sys32_sysinfo(struct sysinfo32 __user *info)
+-{
+-	struct sysinfo val;
+-	int err;
+-	unsigned long seq;
+-
+-	/* We don't need a memset here because we copy the
+-	 * struct to userspace once element at a time.
+-	 */
+-
+-	do {
+-		seq = read_seqbegin(&xtime_lock);
+-		val.uptime = jiffies / HZ;
+-
+-		val.loads[0] = avenrun[0] << (SI_LOAD_SHIFT - FSHIFT);
+-		val.loads[1] = avenrun[1] << (SI_LOAD_SHIFT - FSHIFT);
+-		val.loads[2] = avenrun[2] << (SI_LOAD_SHIFT - FSHIFT);
+-
+-		val.procs = nr_threads;
+-	} while (read_seqretry(&xtime_lock, seq));
+-
+-
+-	si_meminfo(&val);
+-	si_swapinfo(&val);
+-	
+-	err = put_user (val.uptime, &info->uptime);
+-	err |= __put_user (val.loads[0], &info->loads[0]);
+-	err |= __put_user (val.loads[1], &info->loads[1]);
+-	err |= __put_user (val.loads[2], &info->loads[2]);
+-	err |= __put_user (val.totalram, &info->totalram);
+-	err |= __put_user (val.freeram, &info->freeram);
+-	err |= __put_user (val.sharedram, &info->sharedram);
+-	err |= __put_user (val.bufferram, &info->bufferram);
+-	err |= __put_user (val.totalswap, &info->totalswap);
+-	err |= __put_user (val.freeswap, &info->freeswap);
+-	err |= __put_user (val.procs, &info->procs);
+-	err |= __put_user (val.totalhigh, &info->totalhigh);
+-	err |= __put_user (val.freehigh, &info->freehigh);
+-	err |= __put_user (val.mem_unit, &info->mem_unit);
+-	return err ? -EFAULT : 0;
+-}
+-
+-
+ /* lseek() needs a wrapper because 'offset' can be negative, but the top
+  * half of the argument has been zeroed by syscall.S.
   */
-diff --git a/include/asm-avr32/dma-mapping.h b/include/asm-avr32/dma-mapping.h
-index 4c40cb4..11b8bcb 100644
---- a/include/asm-avr32/dma-mapping.h
-+++ b/include/asm-avr32/dma-mapping.h
-@@ -307,11 +307,6 @@ dma_sync_sg_for_device(struct device *de
- #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
- #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+diff --git a/arch/parisc/kernel/syscall_table.S b/arch/parisc/kernel/syscall_table.S
+index c91605b..d4523c9 100644
+--- a/arch/parisc/kernel/syscall_table.S
++++ b/arch/parisc/kernel/syscall_table.S
+@@ -197,7 +197,7 @@ #endif
+ 	/* struct rusage contains longs... */
+ 	ENTRY_COMP(wait4)
+ 	ENTRY_SAME(swapoff)		/* 115 */
+-	ENTRY_DIFF(sysinfo)
++	ENTRY_COMP(sysinfo)
+ 	ENTRY_SAME(shutdown)
+ 	ENTRY_SAME(fsync)
+ 	ENTRY_SAME(madvise)
+diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
+index d15c33e..aa6149f 100644
+--- a/arch/powerpc/kernel/sys_ppc32.c
++++ b/arch/powerpc/kernel/sys_ppc32.c
+@@ -197,73 +197,6 @@ static inline long put_tv32(struct compa
+ 		 __put_user(i->tv_usec, &o->tv_usec)));
+ }
  
--static inline int dma_is_consistent(dma_addr_t dma_addr)
+-struct sysinfo32 {
+-        s32 uptime;
+-        u32 loads[3];
+-        u32 totalram;
+-        u32 freeram;
+-        u32 sharedram;
+-        u32 bufferram;
+-        u32 totalswap;
+-        u32 freeswap;
+-        unsigned short procs;
+-	unsigned short pad;
+-	u32 totalhigh;
+-	u32 freehigh;
+-	u32 mem_unit;
+-	char _f[20-2*sizeof(int)-sizeof(int)];
+-};
+-
+-asmlinkage long compat_sys_sysinfo(struct sysinfo32 __user *info)
 -{
--	return 1;
+-	struct sysinfo s;
+-	int ret, err;
+-	int bitcount=0;
+-	mm_segment_t old_fs = get_fs ();
+-	
+-	/* The __user cast is valid due to set_fs() */
+-	set_fs (KERNEL_DS);
+-	ret = sys_sysinfo((struct sysinfo __user *)&s);
+-	set_fs (old_fs);
+-
+-	/* Check to see if any memory value is too large for 32-bit and
+-         * scale down if needed.
+-         */
+-	if ((s.totalram >> 32) || (s.totalswap >> 32)) {
+-	    while (s.mem_unit < PAGE_SIZE) {
+-		s.mem_unit <<= 1;
+-		bitcount++;
+-	    }
+-	    s.totalram >>=bitcount;
+-	    s.freeram >>= bitcount;
+-	    s.sharedram >>= bitcount;
+-	    s.bufferram >>= bitcount;
+-	    s.totalswap >>= bitcount;
+-	    s.freeswap >>= bitcount;
+-	    s.totalhigh >>= bitcount;
+-	    s.freehigh >>= bitcount;
+-	}
+-
+-	err = put_user (s.uptime, &info->uptime);
+-	err |= __put_user (s.loads[0], &info->loads[0]);
+-	err |= __put_user (s.loads[1], &info->loads[1]);
+-	err |= __put_user (s.loads[2], &info->loads[2]);
+-	err |= __put_user (s.totalram, &info->totalram);
+-	err |= __put_user (s.freeram, &info->freeram);
+-	err |= __put_user (s.sharedram, &info->sharedram);
+-	err |= __put_user (s.bufferram, &info->bufferram);
+-	err |= __put_user (s.totalswap, &info->totalswap);
+-	err |= __put_user (s.freeswap, &info->freeswap);
+-	err |= __put_user (s.procs, &info->procs);
+-	err |= __put_user (s.totalhigh, &info->totalhigh);
+-	err |= __put_user (s.freehigh, &info->freehigh);
+-	err |= __put_user (s.mem_unit, &info->mem_unit);
+-	if (err)
+-		return -EFAULT;
+-	
+-	return ret;
 -}
 -
- static inline int dma_get_cache_alignment(void)
- {
- 	return boot_cpu_data.dcache.linesz;
-diff --git a/include/asm-cris/dma-mapping.h b/include/asm-cris/dma-mapping.h
-index cbf1a98..71be55d 100644
---- a/include/asm-cris/dma-mapping.h
-+++ b/include/asm-cris/dma-mapping.h
-@@ -156,8 +156,6 @@ dma_get_cache_alignment(void)
- 	return (1 << INTERNODE_CACHE_SHIFT);
+ 
+ 
+ 
+diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
+index 295d2bb..91e07ea 100644
+--- a/arch/s390/kernel/compat_linux.c
++++ b/arch/s390/kernel/compat_linux.c
+@@ -392,51 +392,6 @@ int cp_compat_stat(struct kstat *stat, s
+ 	return err;
  }
  
--#define dma_is_consistent(d)	(1)
+-struct sysinfo32 {
+-        s32 uptime;
+-        u32 loads[3];
+-        u32 totalram;
+-        u32 freeram;
+-        u32 sharedram;
+-        u32 bufferram;
+-        u32 totalswap;
+-        u32 freeswap;
+-        unsigned short procs;
+-	unsigned short pads;
+-	u32 totalhigh;
+-	u32 freehigh;
+-	unsigned int mem_unit;
+-        char _f[8];
+-};
 -
- static inline void
- dma_cache_sync(void *vaddr, size_t size,
- 	       enum dma_data_direction direction)
-diff --git a/include/asm-frv/dma-mapping.h b/include/asm-frv/dma-mapping.h
-index e9fc1d4..d791019 100644
---- a/include/asm-frv/dma-mapping.h
-+++ b/include/asm-frv/dma-mapping.h
-@@ -172,8 +172,6 @@ int dma_get_cache_alignment(void)
- 	return 1 << L1_CACHE_SHIFT;
- }
- 
--#define dma_is_consistent(d)	(1)
--
- static inline
- void dma_cache_sync(void *vaddr, size_t size,
- 		    enum dma_data_direction direction)
-diff --git a/include/asm-generic/dma-mapping.h b/include/asm-generic/dma-mapping.h
-index b541e48..7534c47 100644
---- a/include/asm-generic/dma-mapping.h
-+++ b/include/asm-generic/dma-mapping.h
-@@ -266,7 +266,6 @@ #endif
- 
- #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
- #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
--#define dma_is_consistent(d)	(1)
- 
- static inline int
- dma_get_cache_alignment(void)
-diff --git a/include/asm-i386/dma-mapping.h b/include/asm-i386/dma-mapping.h
-index 81999a3..15741f4 100644
---- a/include/asm-i386/dma-mapping.h
-+++ b/include/asm-i386/dma-mapping.h
-@@ -156,8 +156,6 @@ dma_get_cache_alignment(void)
- 	return (1 << INTERNODE_CACHE_SHIFT);
- }
- 
--#define dma_is_consistent(d)	(1)
--
- static inline void
- dma_cache_sync(void *vaddr, size_t size,
- 	       enum dma_data_direction direction)
-diff --git a/include/asm-ia64/dma-mapping.h b/include/asm-ia64/dma-mapping.h
-index 99a8f8e..b6ebad9 100644
---- a/include/asm-ia64/dma-mapping.h
-+++ b/include/asm-ia64/dma-mapping.h
-@@ -59,6 +59,4 @@ dma_cache_sync (void *vaddr, size_t size
- 	mb();
- }
- 
--#define dma_is_consistent(dma_handle)	(1)	/* all we do is coherent memory... */
--
- #endif /* _ASM_IA64_DMA_MAPPING_H */
-diff --git a/include/asm-m68k/dma-mapping.h b/include/asm-m68k/dma-mapping.h
-index d90d841..8722b5a 100644
---- a/include/asm-m68k/dma-mapping.h
-+++ b/include/asm-m68k/dma-mapping.h
-@@ -21,11 +21,6 @@ static inline int dma_get_cache_alignmen
- 	return 1 << L1_CACHE_SHIFT;
- }
- 
--static inline int dma_is_consistent(dma_addr_t dma_addr)
+-asmlinkage long sys32_sysinfo(struct sysinfo32 __user *info)
 -{
+-	struct sysinfo s;
+-	int ret, err;
+-	mm_segment_t old_fs = get_fs ();
+-	
+-	set_fs (KERNEL_DS);
+-	ret = sys_sysinfo((struct sysinfo __user *) &s);
+-	set_fs (old_fs);
+-	err = put_user (s.uptime, &info->uptime);
+-	err |= __put_user (s.loads[0], &info->loads[0]);
+-	err |= __put_user (s.loads[1], &info->loads[1]);
+-	err |= __put_user (s.loads[2], &info->loads[2]);
+-	err |= __put_user (s.totalram, &info->totalram);
+-	err |= __put_user (s.freeram, &info->freeram);
+-	err |= __put_user (s.sharedram, &info->sharedram);
+-	err |= __put_user (s.bufferram, &info->bufferram);
+-	err |= __put_user (s.totalswap, &info->totalswap);
+-	err |= __put_user (s.freeswap, &info->freeswap);
+-	err |= __put_user (s.procs, &info->procs);
+-	err |= __put_user (s.totalhigh, &info->totalhigh);
+-	err |= __put_user (s.freehigh, &info->freehigh);
+-	err |= __put_user (s.mem_unit, &info->mem_unit);
+-	if (err)
+-		return -EFAULT;
+-	return ret;
+-}
+-
+ asmlinkage long sys32_sched_rr_get_interval(compat_pid_t pid,
+ 				struct compat_timespec __user *interval)
+ {
+diff --git a/arch/s390/kernel/compat_wrapper.S b/arch/s390/kernel/compat_wrapper.S
+index 71c1127..7e61fbe 100644
+--- a/arch/s390/kernel/compat_wrapper.S
++++ b/arch/s390/kernel/compat_wrapper.S
+@@ -517,10 +517,10 @@ sys32_swapoff_wrapper:
+ 	llgtr	%r2,%r2			# const char *
+ 	jg	sys_swapoff		# branch to system call
+ 
+-	.globl	sys32_sysinfo_wrapper
+-sys32_sysinfo_wrapper:
++	.globl	compat_sys_sysinfo_wrapper
++compat_sys_sysinfo_wrapper:
+ 	llgtr	%r2,%r2			# struct sysinfo_emu31 *
+-	jg	sys32_sysinfo		# branch to system call
++	jg	compat_sys_sysinfo	# branch to system call
+ 
+ 	.globl	sys32_ipc_wrapper
+ sys32_ipc_wrapper:
+diff --git a/arch/s390/kernel/syscalls.S b/arch/s390/kernel/syscalls.S
+index a4ceae3..a52c444 100644
+--- a/arch/s390/kernel/syscalls.S
++++ b/arch/s390/kernel/syscalls.S
+@@ -124,7 +124,7 @@ NI_SYSCALL							/* old "idle" system ca
+ NI_SYSCALL							/* vm86old for i386 */
+ SYSCALL(sys_wait4,sys_wait4,compat_sys_wait4_wrapper)
+ SYSCALL(sys_swapoff,sys_swapoff,sys32_swapoff_wrapper)		/* 115 */
+-SYSCALL(sys_sysinfo,sys_sysinfo,sys32_sysinfo_wrapper)
++SYSCALL(sys_sysinfo,sys_sysinfo,compat_sys_sysinfo_wrapper)
+ SYSCALL(sys_ipc,sys_ipc,sys32_ipc_wrapper)
+ SYSCALL(sys_fsync,sys_fsync,sys32_fsync_wrapper)
+ SYSCALL(sys_sigreturn_glue,sys_sigreturn_glue,sys32_sigreturn_glue)
+diff --git a/arch/sparc64/kernel/sys_sparc32.c b/arch/sparc64/kernel/sys_sparc32.c
+index 16ff6ff..77811e9 100644
+--- a/arch/sparc64/kernel/sys_sparc32.c
++++ b/arch/sparc64/kernel/sys_sparc32.c
+@@ -459,70 +459,6 @@ asmlinkage long compat_sys_sysfs(int opt
+ 	return sys_sysfs(option, arg1, arg2);
+ }
+ 
+-struct sysinfo32 {
+-        s32 uptime;
+-        u32 loads[3];
+-        u32 totalram;
+-        u32 freeram;
+-        u32 sharedram;
+-        u32 bufferram;
+-        u32 totalswap;
+-        u32 freeswap;
+-        unsigned short procs;
+-	unsigned short pad;
+-	u32 totalhigh;
+-	u32 freehigh;
+-	u32 mem_unit;
+-	char _f[20-2*sizeof(int)-sizeof(int)];
+-};
+-
+-asmlinkage long sys32_sysinfo(struct sysinfo32 __user *info)
+-{
+-	struct sysinfo s;
+-	int ret, err;
+-	int bitcount = 0;
+-	mm_segment_t old_fs = get_fs ();
+-	
+-	set_fs(KERNEL_DS);
+-	ret = sys_sysinfo((struct sysinfo __user *) &s);
+-	set_fs(old_fs);
+-	/* Check to see if any memory value is too large for 32-bit and
+-         * scale down if needed.
+-         */
+-	if ((s.totalram >> 32) || (s.totalswap >> 32)) {
+-		while (s.mem_unit < PAGE_SIZE) {
+-			s.mem_unit <<= 1;
+-			bitcount++;
+-		}
+-		s.totalram >>= bitcount;
+-		s.freeram >>= bitcount;
+-		s.sharedram >>= bitcount;
+-		s.bufferram >>= bitcount;
+-		s.totalswap >>= bitcount;
+-		s.freeswap >>= bitcount;
+-		s.totalhigh >>= bitcount;
+-		s.freehigh >>= bitcount;
+-	}
+-
+-	err = put_user (s.uptime, &info->uptime);
+-	err |= __put_user (s.loads[0], &info->loads[0]);
+-	err |= __put_user (s.loads[1], &info->loads[1]);
+-	err |= __put_user (s.loads[2], &info->loads[2]);
+-	err |= __put_user (s.totalram, &info->totalram);
+-	err |= __put_user (s.freeram, &info->freeram);
+-	err |= __put_user (s.sharedram, &info->sharedram);
+-	err |= __put_user (s.bufferram, &info->bufferram);
+-	err |= __put_user (s.totalswap, &info->totalswap);
+-	err |= __put_user (s.freeswap, &info->freeswap);
+-	err |= __put_user (s.procs, &info->procs);
+-	err |= __put_user (s.totalhigh, &info->totalhigh);
+-	err |= __put_user (s.freehigh, &info->freehigh);
+-	err |= __put_user (s.mem_unit, &info->mem_unit);
+-	if (err)
+-		return -EFAULT;
+-	return ret;
+-}
+-
+ asmlinkage long compat_sys_sched_rr_get_interval(compat_pid_t pid, struct compat_timespec __user *interval)
+ {
+ 	struct timespec t;
+diff --git a/arch/sparc64/kernel/systbls.S b/arch/sparc64/kernel/systbls.S
+index 9a80267..948b7d2 100644
+--- a/arch/sparc64/kernel/systbls.S
++++ b/arch/sparc64/kernel/systbls.S
+@@ -61,7 +61,7 @@ sys_call_table32:
+ 	.word sys32_epoll_wait, sys32_ioprio_set, sys_getppid, sys32_sigaction, sys_sgetmask
+ /*200*/	.word sys32_ssetmask, sys_sigsuspend, compat_sys_newlstat, sys_uselib, compat_sys_old_readdir
+ 	.word sys32_readahead, sys32_socketcall, sys32_syslog, sys32_lookup_dcookie, sys32_fadvise64
+-/*210*/	.word sys32_fadvise64_64, sys32_tgkill, sys32_waitpid, sys_swapoff, sys32_sysinfo
++/*210*/	.word sys32_fadvise64_64, sys32_tgkill, sys32_waitpid, sys_swapoff, compat_sys_sysinfo
+ 	.word sys32_ipc, sys32_sigreturn, sys_clone, sys32_ioprio_get, compat_sys_adjtimex
+ /*220*/	.word sys32_sigprocmask, sys_ni_syscall, sys32_delete_module, sys_ni_syscall, sys32_getpgid
+ 	.word sys32_bdflush, sys32_sysfs, sys_nis_syscall, sys32_setfsuid16, sys32_setfsgid16
+diff --git a/arch/x86_64/ia32/ia32entry.S b/arch/x86_64/ia32/ia32entry.S
+index 9fa991a..89519d2 100644
+--- a/arch/x86_64/ia32/ia32entry.S
++++ b/arch/x86_64/ia32/ia32entry.S
+@@ -515,7 +515,7 @@ #endif
+ 	.quad sys32_vm86_warning	/* vm86old */ 
+ 	.quad compat_sys_wait4
+ 	.quad sys_swapoff		/* 115 */
+-	.quad sys32_sysinfo
++	.quad compat_sys_sysinfo
+ 	.quad sys32_ipc
+ 	.quad sys_fsync
+ 	.quad stub32_sigreturn
+diff --git a/arch/x86_64/ia32/sys_ia32.c b/arch/x86_64/ia32/sys_ia32.c
+index db10734..061a052 100644
+--- a/arch/x86_64/ia32/sys_ia32.c
++++ b/arch/x86_64/ia32/sys_ia32.c
+@@ -523,72 +523,6 @@ sys32_sysfs(int option, u32 arg1, u32 ar
+ 	return sys_sysfs(option, arg1, arg2);
+ }
+ 
+-struct sysinfo32 {
+-        s32 uptime;
+-        u32 loads[3];
+-        u32 totalram;
+-        u32 freeram;
+-        u32 sharedram;
+-        u32 bufferram;
+-        u32 totalswap;
+-        u32 freeswap;
+-        unsigned short procs;
+-	unsigned short pad; 
+-        u32 totalhigh;
+-        u32 freehigh;
+-        u32 mem_unit;
+-        char _f[20-2*sizeof(u32)-sizeof(int)];
+-};
+-
+-asmlinkage long
+-sys32_sysinfo(struct sysinfo32 __user *info)
+-{
+-	struct sysinfo s;
+-	int ret;
+-	mm_segment_t old_fs = get_fs ();
+-	int bitcount = 0;
+-	
+-	set_fs (KERNEL_DS);
+-	ret = sys_sysinfo((struct sysinfo __user *)&s);
+-	set_fs (old_fs);
+-
+-        /* Check to see if any memory value is too large for 32-bit and scale
+-	 *  down if needed
+-	 */
+-	if ((s.totalram >> 32) || (s.totalswap >> 32)) {
+-		while (s.mem_unit < PAGE_SIZE) {
+-			s.mem_unit <<= 1;
+-			bitcount++;
+-		}
+-		s.totalram >>= bitcount;
+-		s.freeram >>= bitcount;
+-		s.sharedram >>= bitcount;
+-		s.bufferram >>= bitcount;
+-		s.totalswap >>= bitcount;
+-		s.freeswap >>= bitcount;
+-		s.totalhigh >>= bitcount;
+-		s.freehigh >>= bitcount;
+-	}
+-
+-	if (!access_ok(VERIFY_WRITE, info, sizeof(struct sysinfo32)) ||
+-	    __put_user (s.uptime, &info->uptime) ||
+-	    __put_user (s.loads[0], &info->loads[0]) ||
+-	    __put_user (s.loads[1], &info->loads[1]) ||
+-	    __put_user (s.loads[2], &info->loads[2]) ||
+-	    __put_user (s.totalram, &info->totalram) ||
+-	    __put_user (s.freeram, &info->freeram) ||
+-	    __put_user (s.sharedram, &info->sharedram) ||
+-	    __put_user (s.bufferram, &info->bufferram) ||
+-	    __put_user (s.totalswap, &info->totalswap) ||
+-	    __put_user (s.freeswap, &info->freeswap) ||
+-	    __put_user (s.procs, &info->procs) ||
+-	    __put_user (s.totalhigh, &info->totalhigh) || 
+-	    __put_user (s.freehigh, &info->freehigh) ||
+-	    __put_user (s.mem_unit, &info->mem_unit))
+-		return -EFAULT;
 -	return 0;
 -}
--
- extern void *dma_alloc_coherent(struct device *, size_t,
- 				dma_addr_t *, gfp_t);
- extern void dma_free_coherent(struct device *, size_t,
-diff --git a/include/asm-mips/dma-mapping.h b/include/asm-mips/dma-mapping.h
-index 4328863..531563b 100644
---- a/include/asm-mips/dma-mapping.h
-+++ b/include/asm-mips/dma-mapping.h
-@@ -63,8 +63,6 @@ dma_get_cache_alignment(void)
- 	return 128;
- }
- 
--extern int dma_is_consistent(dma_addr_t dma_addr);
--
- extern void dma_cache_sync(void *vaddr, size_t size,
- 	       enum dma_data_direction direction);
- 
-diff --git a/include/asm-parisc/dma-mapping.h b/include/asm-parisc/dma-mapping.h
-index 1e387e1..9e196bc 100644
---- a/include/asm-parisc/dma-mapping.h
-+++ b/include/asm-parisc/dma-mapping.h
-@@ -190,12 +190,6 @@ dma_get_cache_alignment(void)
- 	return dcache_stride;
- }
- 
--static inline int
--dma_is_consistent(dma_addr_t dma_addr)
--{
--	return (hppa_dma_ops->dma_sync_single_for_cpu == NULL);
--}
--
- static inline void
- dma_cache_sync(void *vaddr, size_t size,
- 	       enum dma_data_direction direction)
-diff --git a/include/asm-powerpc/dma-mapping.h b/include/asm-powerpc/dma-mapping.h
-index 2ab9baf..e9e3ddd 100644
---- a/include/asm-powerpc/dma-mapping.h
-+++ b/include/asm-powerpc/dma-mapping.h
-@@ -217,11 +217,6 @@ #endif
- 
- #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
- #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
--#ifdef CONFIG_NOT_COHERENT_CACHE
--#define dma_is_consistent(d)	(0)
--#else
--#define dma_is_consistent(d)	(1)
--#endif
- 
- static inline int dma_get_cache_alignment(void)
+-                
+ asmlinkage long
+ sys32_sched_rr_get_interval(compat_pid_t pid, struct compat_timespec __user *interval)
  {
-diff --git a/include/asm-sparc64/dma-mapping.h b/include/asm-sparc64/dma-mapping.h
-index 27c46fb..0b3cc27 100644
---- a/include/asm-sparc64/dma-mapping.h
-+++ b/include/asm-sparc64/dma-mapping.h
-@@ -181,7 +181,6 @@ #endif /* PCI */
- 
- #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
- #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
--#define dma_is_consistent(d)	(1)
- 
- static inline int
- dma_get_cache_alignment(void)
-diff --git a/include/asm-um/dma-mapping.h b/include/asm-um/dma-mapping.h
-index babd298..f472e6f 100644
---- a/include/asm-um/dma-mapping.h
-+++ b/include/asm-um/dma-mapping.h
-@@ -94,7 +94,6 @@ dma_sync_sg(struct device *dev, struct s
- 
- #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
- #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
--#define dma_is_consistent(d) (1)
- 
- static inline int
- dma_get_cache_alignment(void)
-diff --git a/include/asm-x86_64/dma-mapping.h b/include/asm-x86_64/dma-mapping.h
-index 10174b1..77ff135 100644
---- a/include/asm-x86_64/dma-mapping.h
-+++ b/include/asm-x86_64/dma-mapping.h
-@@ -180,8 +180,6 @@ static inline int dma_get_cache_alignmen
- 	return boot_cpu_data.x86_clflush_size;
+diff --git a/kernel/compat.c b/kernel/compat.c
+index bce5ad4..fda0e30 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -1034,3 +1034,71 @@ asmlinkage long compat_sys_migrate_pages
+ 	return sys_migrate_pages(pid, nr_bits + 1, old, new);
  }
- 
--#define dma_is_consistent(h) 1
--
- extern int dma_set_mask(struct device *dev, u64 mask);
- 
- static inline void
-diff --git a/include/asm-xtensa/dma-mapping.h b/include/asm-xtensa/dma-mapping.h
-index c39c91d..cdd75af 100644
---- a/include/asm-xtensa/dma-mapping.h
-+++ b/include/asm-xtensa/dma-mapping.h
-@@ -170,8 +170,6 @@ dma_get_cache_alignment(void)
- 	return L1_CACHE_BYTES;
- }
- 
--#define dma_is_consistent(d)	(1)
--
- static inline void
- dma_cache_sync(void *vaddr, size_t size,
- 	       enum dma_data_direction direction)
+ #endif
++
++struct compat_sysinfo {
++	s32 uptime;
++	u32 loads[3];
++	u32 totalram;
++	u32 freeram;
++	u32 sharedram;
++	u32 bufferram;
++	u32 totalswap;
++	u32 freeswap;
++	u16 procs;
++	u16 pad;
++	u32 totalhigh;
++	u32 freehigh;
++	u32 mem_unit;
++	char _f[20-2*sizeof(u32)-sizeof(int)];
++};
++
++asmlinkage long
++compat_sys_sysinfo(struct compat_sysinfo __user *info)
++{
++	struct sysinfo s;
++	int ret;
++	mm_segment_t old_fs = get_fs ();
++	int bitcount = 0;
++
++	set_fs (KERNEL_DS);
++	ret = sys_sysinfo((struct sysinfo __user *)&s);
++	set_fs (old_fs);
++
++	/* Check to see if any memory value is too large for 32-bit and scale
++	 *  down if needed
++	 */
++	if ((s.totalram >> 32) || (s.totalswap >> 32)) {
++		while (s.mem_unit < PAGE_SIZE) {
++			s.mem_unit <<= 1;
++			bitcount++;
++		}
++		s.totalram >>= bitcount;
++		s.freeram >>= bitcount;
++		s.sharedram >>= bitcount;
++		s.bufferram >>= bitcount;
++		s.totalswap >>= bitcount;
++		s.freeswap >>= bitcount;
++		s.totalhigh >>= bitcount;
++		s.freehigh >>= bitcount;
++	}
++
++	if (!access_ok(VERIFY_WRITE, info, sizeof(struct compat_sysinfo)) ||
++	    __put_user (s.uptime, &info->uptime) ||
++	    __put_user (s.loads[0], &info->loads[0]) ||
++	    __put_user (s.loads[1], &info->loads[1]) ||
++	    __put_user (s.loads[2], &info->loads[2]) ||
++	    __put_user (s.totalram, &info->totalram) ||
++	    __put_user (s.freeram, &info->freeram) ||
++	    __put_user (s.sharedram, &info->sharedram) ||
++	    __put_user (s.bufferram, &info->bufferram) ||
++	    __put_user (s.totalswap, &info->totalswap) ||
++	    __put_user (s.freeswap, &info->freeswap) ||
++	    __put_user (s.procs, &info->procs) ||
++	    __put_user (s.totalhigh, &info->totalhigh) ||
++	    __put_user (s.freehigh, &info->freehigh) ||
++	    __put_user (s.mem_unit, &info->mem_unit))
++		return -EFAULT;
++
++	return 0;
++}
++
