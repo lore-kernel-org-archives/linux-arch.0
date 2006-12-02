@@ -1,52 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:47549 "EHLO
-	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S1424349AbWLBSsX
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Dec 2006 13:48:23 -0500
-Date: Sat, 2 Dec 2006 18:48:21 +0000
-From: Al Viro <viro@ftp.linux.org.uk>
+Received: from smtpout.mac.com ([17.250.248.174]:22993 "EHLO smtpout.mac.com")
+	by vger.kernel.org with ESMTP id S1031789AbWLBUyA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Dec 2006 15:54:00 -0500
+In-Reply-To: <20061202124251.GI3078@ftp.linux.org.uk>
+References: <20061201172149.GC3078@ftp.linux.org.uk> <6911A3DA-83C4-4BE9-8553-3E960026BF51@mac.com> <20061202124251.GI3078@ftp.linux.org.uk>
+Mime-Version: 1.0 (Apple Message framework v752.2)
+Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
+Message-Id: <59A7652D-BB6A-47BF-B916-4A79459DC226@mac.com>
+Content-Transfer-Encoding: 7bit
+From: Kyle Moffett <mrmacman_g4@mac.com>
 Subject: Re: [RFC] timers, pointers to functions and type safety
-Message-ID: <20061202184821.GM3078@ftp.linux.org.uk>
-References: <20061201172149.GC3078@ftp.linux.org.uk> <1165064370.24604.36.camel@localhost.localdomain> <20061202140521.GJ3078@ftp.linux.org.uk> <1165070713.24604.50.camel@localhost.localdomain> <20061202160252.GQ14076@parisc-linux.org> <1165082803.24604.54.camel@localhost.localdomain> <20061202181957.GK3078@ftp.linux.org.uk> <1165084076.24604.56.camel@localhost.localdomain> <20061202184035.GL3078@ftp.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061202184035.GL3078@ftp.linux.org.uk>
+Date: Sat, 2 Dec 2006 15:53:48 -0500
 Sender: linux-arch-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, LKML Kernel <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, Dec 02, 2006 at 06:40:35PM +0000, Al Viro wrote:
-> On Sat, Dec 02, 2006 at 07:27:56PM +0100, Thomas Gleixner wrote:
-> > On Sat, 2006-12-02 at 18:19 +0000, Al Viro wrote:
-> > > > This is going to make a lot of data structures smaller, when the
-> > > > timer_list is embedded in the structure itself and for the lot, which
-> > > > ignores the timer callback argument anyway.
-> > > 
-> > > container_of => still lousy type safety.  All over the sodding place.
-> > 
-> > Not less than timer->data, where timer data is void *
-> 
-> RTFPosting.  It might be void *, but it's set via SETUP_TIMER which
-> does type checks before casting to void *.
-> 
-> IOW, I don't want _any_ typecasts/container_of necessary in the code.
-> 
-> Sane variant is
-> 
-> void foo_timer(struct net_device *dev)
-> {
-> 	...
-> }
-> 
-> 	struct foo_dev *p = netdev_priv(dev);
-> 	SETUP_TIMER(&p->timer, foo_timer, dev);
-> 
-> etc.
-> 
-> With warning generated if foo_timer(dev) would not be type safe.  Without
-> typecasts.  Without container_of().  Without any bleeding cruft at all.
+On Dec 02, 2006, at 07:42:51, Al Viro wrote:
+> On Sat, Dec 02, 2006 at 04:23:32AM -0500, Kyle Moffett wrote:
+>> On Dec 01, 2006, at 12:21:49, Al Viro wrote:
+>>> And that's where it gets interesting.  It would be very nice to  
+>>> get to
+>>> the following situation:
+>>>  * callbacks are void (*)(void *)
+>>>  * data is void *
+>>>  * instances can take void * or pointer to object type
+>>>  * a macro SETUP_TIMER(timer, func, data) sets callback and data  
+>>> and checks if func(data) would be valid.
+>>
+>> This is where a very limited form of C++ templates would do  
+>> nicely; you could define something like the following:
+>>
+>> template <typename T>
+>> static inline void setup_timer(struct timer_list *timer,
+>> 		void (*function)(T *), T *data)
+>> {
+>> 	timer->function = (void (*)(void *))function;
+>> 	timer->data = (void *)data;
+>> 	init_timer(timer);
+>> }
+>>
+>> Any attempts to call it with mismatched "function" and "data"  
+>> arguments would display an "Unable to find matching template"  
+>> error from the compiler.
+>>
+>> Unfortunately you can't get simple templated functions without  
+>> opening the whole barrel of monkeys involved with C++ support;
+>
+> Fortunately, you can get all checks done by gcc without involving C+ 
+> + (or related flamewars).  See original post for a way to do it in  
+> a macro and for fsck sake, leave gcc@gcc.gnu.org out of it
 
-BTW, the same goes for tasklets and for work_struct.  Separate series,
-obviously...
+Oh, I'm sorry I totally missed the CC of gcc@gcc.gnu.org.  My point  
+was just that while it _could_ be done with GCC and some ugly macros,  
+a basic form of C++ templates usually produces much nicer and more  
+descriptive error messages (leaving out all the reasons C++ isn't  
+usable in the kernel for the sake of academic discussion).  The  
+template syntax is also a bit more descriptive than is the macro  
+syntax for achieving the same thing.
+
+Cheers,
+Kyle Moffett
+
