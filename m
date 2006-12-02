@@ -1,64 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpout.mac.com ([17.250.248.174]:22993 "EHLO smtpout.mac.com")
-	by vger.kernel.org with ESMTP id S1031789AbWLBUyA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Dec 2006 15:54:00 -0500
-In-Reply-To: <20061202124251.GI3078@ftp.linux.org.uk>
-References: <20061201172149.GC3078@ftp.linux.org.uk> <6911A3DA-83C4-4BE9-8553-3E960026BF51@mac.com> <20061202124251.GI3078@ftp.linux.org.uk>
-Mime-Version: 1.0 (Apple Message framework v752.2)
-Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
-Message-Id: <59A7652D-BB6A-47BF-B916-4A79459DC226@mac.com>
-Content-Transfer-Encoding: 7bit
-From: Kyle Moffett <mrmacman_g4@mac.com>
+Received: from scrub.xs4all.nl ([194.109.195.176]:2449 "EHLO scrub.xs4all.nl")
+	by vger.kernel.org with ESMTP id S1162500AbWLBVck (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Dec 2006 16:32:40 -0500
+From: Roman Zippel <zippel@linux-m68k.org>
 Subject: Re: [RFC] timers, pointers to functions and type safety
-Date: Sat, 2 Dec 2006 15:53:48 -0500
+Date: Sat, 2 Dec 2006 22:32:01 +0100
+References: <20061201172149.GC3078@ftp.linux.org.uk> <1165070713.24604.50.camel@localhost.localdomain> <20061202160252.GQ14076@parisc-linux.org>
+In-Reply-To: <20061202160252.GQ14076@parisc-linux.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200612022232.03345.zippel@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, LKML Kernel <linux-kernel@vger.kernel.org>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@ftp.linux.org.uk>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Dec 02, 2006, at 07:42:51, Al Viro wrote:
-> On Sat, Dec 02, 2006 at 04:23:32AM -0500, Kyle Moffett wrote:
->> On Dec 01, 2006, at 12:21:49, Al Viro wrote:
->>> And that's where it gets interesting.  It would be very nice to  
->>> get to
->>> the following situation:
->>>  * callbacks are void (*)(void *)
->>>  * data is void *
->>>  * instances can take void * or pointer to object type
->>>  * a macro SETUP_TIMER(timer, func, data) sets callback and data  
->>> and checks if func(data) would be valid.
->>
->> This is where a very limited form of C++ templates would do  
->> nicely; you could define something like the following:
->>
->> template <typename T>
->> static inline void setup_timer(struct timer_list *timer,
->> 		void (*function)(T *), T *data)
->> {
->> 	timer->function = (void (*)(void *))function;
->> 	timer->data = (void *)data;
->> 	init_timer(timer);
->> }
->>
->> Any attempts to call it with mismatched "function" and "data"  
->> arguments would display an "Unable to find matching template"  
->> error from the compiler.
->>
->> Unfortunately you can't get simple templated functions without  
->> opening the whole barrel of monkeys involved with C++ support;
+Hi,
+
+On Saturday 02 December 2006 17:02, Matthew Wilcox wrote:
+
+> On Sat, Dec 02, 2006 at 03:45:12PM +0100, Thomas Gleixner wrote:
+> > What's the cruft ?
+> >
+> > struct bla = container_of(timer, struct bla, timer); ???
 >
-> Fortunately, you can get all checks done by gcc without involving C+ 
-> + (or related flamewars).  See original post for a way to do it in  
-> a macro and for fsck sake, leave gcc@gcc.gnu.org out of it
+> That's it, right there.  Any idea how much we've bloated the kernel with
+> sysfs, just by insisting that the struct device not be the first item in
+> the struct?
 
-Oh, I'm sorry I totally missed the CC of gcc@gcc.gnu.org.  My point  
-was just that while it _could_ be done with GCC and some ugly macros,  
-a basic form of C++ templates usually produces much nicer and more  
-descriptive error messages (leaving out all the reasons C++ isn't  
-usable in the kernel for the sake of academic discussion).  The  
-template syntax is also a bit more descriptive than is the macro  
-syntax for achieving the same thing.
+sysfs is a major bloat indeed, but that's not it.
+If at all this generates smaller code, as only one pointer is needed instead 
+of two.
 
-Cheers,
-Kyle Moffett
-
+bye, Roman
