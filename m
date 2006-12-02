@@ -1,54 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ug-out-1314.google.com ([66.249.92.171]:44483 "EHLO
-	ug-out-1314.google.com") by vger.kernel.org with ESMTP
-	id S1759480AbWLBK7k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Dec 2006 05:59:40 -0500
-Received: by ug-out-1314.google.com with SMTP id 44so2622816uga
-        for <linux-arch@vger.kernel.org>; Sat, 02 Dec 2006 02:59:39 -0800 (PST)
-From: Alon Bar-Lev <alon.barlev@gmail.com>
-Subject: [PATCH 20/26] Dynamic kernel command-line - sh64
-Date: Sat, 2 Dec 2006 12:55:41 +0200
-References: <200612021247.43291.alon.barlev@gmail.com>
-In-Reply-To: <200612021247.43291.alon.barlev@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from zeniv.linux.org.uk ([195.92.253.2]:60370 "EHLO
+	ZenIV.linux.org.uk") by vger.kernel.org with ESMTP id S1423801AbWLBMgw
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 Dec 2006 07:36:52 -0500
+Date: Sat, 2 Dec 2006 12:36:53 +0000
+From: Al Viro <viro@ftp.linux.org.uk>
+Subject: Re: [RFC] timers, pointers to functions and type safety
+Message-ID: <20061202123653.GH3078@ftp.linux.org.uk>
+References: <20061201172149.GC3078@ftp.linux.org.uk> <4aca3dc20612012229l18a3c5ebsdc5ee63ef7cf9240@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200612021255.42342.alon.barlev@gmail.com>
+In-Reply-To: <4aca3dc20612012229l18a3c5ebsdc5ee63ef7cf9240@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Daniel Berlin <dberlin@dberlin.org>
+Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, gcc@gcc.gnu.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Sat, Dec 02, 2006 at 01:29:32AM -0500, Daniel Berlin wrote:
+> >While that is safe (modulo the portability constraint that affects much
+> >more code than just timers), it ends up very inconvenient and leads to
+> >lousy type safety.
+> 
+> Understandable.  I assume you are trying to get more  type safety more
+> for error checking than optimization, being that the kernel still
+> defaults to -fno-strict-aliasing.
 
-1. Rename saved_command_line into boot_command_line.
-2. Set command_line as __initdata.
+Indeed.
 
-Signed-off-by: Alon Bar-Lev <alon.barlev@gmail.com>
-Acked-by: Paul Mundt <lethal@linux-sh.org>
+> >Again, that's not a portable C, even leaving aside the use of typeof.
+> >Casts between the incompatible function types are undefined behaviour;
+> >rationale is that we might have different calling conventions for those.
+> >However, here we are at much safer ground; calling conventions are not
+> >likely to change if you replace a pointer to object with void *.
+                                                ^^^^^^
+> Is this true of the ports you guys support  even if the object is a
+> function pointer or a function?
+> (Though the first case may be insane.  I can't think of a *good*
+> reason you'd pass a pointer to a function pointer to a timer
+> callback,).
 
----
+Pointer to pointer to function should be OK - it's a pointer to normal
+object type and I would be very surprised if it differed from void *,
+modulo very creative reading of 6.3.2.3(1).  I certainly wouldn't expect
+it to differ from e.g. pointer to pointer to struct, even on targets
+far odder than anything we might hope to port to.
 
-diff -urNp linux-2.6.19.org/arch/sh64/kernel/setup.c linux-2.6.19/arch/sh64/kernel/setup.c
---- linux-2.6.19.org/arch/sh64/kernel/setup.c	2006-11-29 23:57:37.000000000 +0200
-+++ linux-2.6.19/arch/sh64/kernel/setup.c	2006-12-02 11:31:33.000000000 +0200
-@@ -83,7 +83,7 @@ extern int sh64_tlb_init(void);
- #define RAMDISK_PROMPT_FLAG		0x8000
- #define RAMDISK_LOAD_FLAG		0x4000
+Pointer to function might be worse, but that's excluded by the above -
+it's not a pointer to object type.
+
+In any case, we don't do either anywhere and if the need ever arises
+we can simply put that pointer into whatever structure our timer_list
+is embedded into and pass the address of that structure (which is what
+we do in a lot of cases anyway).
+
+IOW, it's worth checking in SETUP_TIMER, but it's not going to be a
+realistic PITA in any instance.
+
+> >IOW, "gcc would ICE if it ever inlined it" kind of arguments (i.e. what
+> >had triggered gcc refusing to do direct call via such cast) doesn't apply
+> >here.  Question to gcc folks: can we expect no problems with the approach
+> >above, provided that calling conventions are the same for passing void *
+> >and pointers to objects?  No versions (including current 4.3 snapshots)
+> >create any problems here...
+> 
+> Personally, as someone who works on the pointer and alias analysis,
+> I'm much more worried about your casting of void (*)(void) to void
+> (*)(unsigned long) breaking in the future than I am about the above.
+
+That one will be gone; it's pure laziness and IMO ~10 instances mostly in
+weird ancient cdrom drivers are not worth worrying about, especially since
+getting rid of such crap is a matter of minutes.
+
+> I can't really see the above code breaking any more than what you have
+> now, and it should in fact, break a lot less.  However, the removal of
+> the argument cast (IE void (*) (void) to void (*) unsigned long) maybe
+> break eventually.  As we get into intermodule analysis and figure out
+> the conservative set of called functions for a random function
+> pointer,  the typical thing to do is to type filter the set so only
+> those address taken functions with "compatible"  signatures (for some
+> very loose definition of compatible) are said to be callable by a
+> given function pointer.  I can't imagine the definition of compatible
+> would include address taken functions with less arguments than the
+> function pointer you are calling through.  In this specific case, as
+> you point out, it's pretty unlikely we'll ever be able to come up with
+> a set without something telling us.  But I figured i'd mention it in
+> case this type of casting is prevalent elsewhere.
+
+Umm...  That type of casting worries me too, and not for timer-related
+reasons.  We do it a lot in one place: fs/bad_inode.c.  A bunch of methods
+with different arguments,
+static int return_EIO(void)
+{
+        return -EIO;
+}
+and (void *)return_EIO used to initialize them.  There's a couple of
+other places where minor turds like that are done, but that one is
+the most massive.  That's bloody annoying when doing any global call
+graph analysis (sparse-based in my case, but I wouldn't expect gcc
+folks being any happier with it)...
+
+And no, it certainly isn't good C for many reasons (any target where
+callee removes arguments from stack before returning control to caller
+and that one's toast, for starters).
  
--static char command_line[COMMAND_LINE_SIZE] = { 0, };
-+static char __initdata command_line[COMMAND_LINE_SIZE] = { 0, };
- unsigned long long memory_start = CONFIG_MEMORY_START;
- unsigned long long memory_end = CONFIG_MEMORY_START + (CONFIG_MEMORY_SIZE_IN_MB * 1024 * 1024);
- 
-@@ -95,8 +95,8 @@ static inline void parse_mem_cmdline (ch
- 	int len = 0;
- 
- 	/* Save unparsed command line copy for /proc/cmdline */
--	memcpy(saved_command_line, COMMAND_LINE, COMMAND_LINE_SIZE);
--	saved_command_line[COMMAND_LINE_SIZE-1] = '\0';
-+	memcpy(boot_command_line, COMMAND_LINE, COMMAND_LINE_SIZE);
-+	boot_command_line[COMMAND_LINE_SIZE-1] = '\0';
- 
- 	for (;;) {
- 	  /*
+> IOW, unless someone else can see a good reason, I see no reason for
+> you guys not to switch.
