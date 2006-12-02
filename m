@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nf-out-0910.google.com ([64.233.182.185]:57575 "EHLO
+Received: from nf-out-0910.google.com ([64.233.182.186]:63718 "EHLO
 	nf-out-0910.google.com") by vger.kernel.org with ESMTP
-	id S1759473AbWLBK7g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Dec 2006 05:59:36 -0500
-Received: by nf-out-0910.google.com with SMTP id o25so3809426nfa
-        for <linux-arch@vger.kernel.org>; Sat, 02 Dec 2006 02:59:35 -0800 (PST)
+	id S1759472AbWLBK7f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 Dec 2006 05:59:35 -0500
+Received: by nf-out-0910.google.com with SMTP id o25so3809425nfa
+        for <linux-arch@vger.kernel.org>; Sat, 02 Dec 2006 02:59:34 -0800 (PST)
 From: Alon Bar-Lev <alon.barlev@gmail.com>
-Subject: [PATCH 17/26] Dynamic kernel command-line - ppc
-Date: Sat, 2 Dec 2006 12:54:43 +0200
+Subject: [PATCH 16/26] Dynamic kernel command-line - powerpc
+Date: Sat, 2 Dec 2006 12:54:14 +0200
 References: <200612021247.43291.alon.barlev@gmail.com>
 In-Reply-To: <200612021247.43291.alon.barlev@gmail.com>
 MIME-Version: 1.0
@@ -15,7 +15,7 @@ Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-Message-Id: <200612021254.44149.alon.barlev@gmail.com>
+Message-Id: <200612021254.14742.alon.barlev@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -27,59 +27,53 @@ Signed-off-by: Alon Bar-Lev <alon.barlev@gmail.com>
 
 ---
 
-diff -urNp linux-2.6.19.org/arch/ppc/kernel/setup.c linux-2.6.19/arch/ppc/kernel/setup.c
---- linux-2.6.19.org/arch/ppc/kernel/setup.c	2006-11-29 23:57:37.000000000 +0200
-+++ linux-2.6.19/arch/ppc/kernel/setup.c	2006-12-02 11:31:33.000000000 +0200
-@@ -543,7 +543,7 @@ void __init setup_arch(char **cmdline_p)
- 	init_mm.brk = (unsigned long) klimit;
+diff -urNp linux-2.6.19.org/arch/powerpc/kernel/legacy_serial.c linux-2.6.19/arch/powerpc/kernel/legacy_serial.c
+--- linux-2.6.19.org/arch/powerpc/kernel/legacy_serial.c	2006-11-29 23:57:37.000000000 +0200
++++ linux-2.6.19/arch/powerpc/kernel/legacy_serial.c	2006-12-02 11:31:33.000000000 +0200
+@@ -498,7 +498,7 @@ static int __init check_legacy_serial_co
+ 	DBG(" -> check_legacy_serial_console()\n");
  
- 	/* Save unparsed command line copy for /proc/cmdline */
+ 	/* The user has requested a console so this is already set up. */
+-	if (strstr(saved_command_line, "console=")) {
++	if (strstr(boot_command_line, "console=")) {
+ 		DBG(" console was specified !\n");
+ 		return -EBUSY;
+ 	}
+diff -urNp linux-2.6.19.org/arch/powerpc/kernel/prom.c linux-2.6.19/arch/powerpc/kernel/prom.c
+--- linux-2.6.19.org/arch/powerpc/kernel/prom.c	2006-11-29 23:57:37.000000000 +0200
++++ linux-2.6.19/arch/powerpc/kernel/prom.c	2006-12-02 11:31:33.000000000 +0200
+@@ -894,7 +894,7 @@ void __init early_init_devtree(void *par
+ 	of_scan_flat_dt(early_init_dt_scan_memory, NULL);
+ 
+ 	/* Save command line for /proc/cmdline and then parse parameters */
 -	strlcpy(saved_command_line, cmd_line, COMMAND_LINE_SIZE);
 +	strlcpy(boot_command_line, cmd_line, COMMAND_LINE_SIZE);
- 	*cmdline_p = cmd_line;
- 
  	parse_early_param();
-diff -urNp linux-2.6.19.org/arch/ppc/platforms/lopec.c linux-2.6.19/arch/ppc/platforms/lopec.c
---- linux-2.6.19.org/arch/ppc/platforms/lopec.c	2006-11-29 23:57:37.000000000 +0200
-+++ linux-2.6.19/arch/ppc/platforms/lopec.c	2006-12-02 11:31:33.000000000 +0200
-@@ -344,7 +344,7 @@ lopec_setup_arch(void)
- 		 if (bootargs != NULL) {
- 			 strcpy(cmd_line, bootargs);
- 			 /* again.. */
--			 strcpy(saved_command_line, cmd_line);
-+			 strcpy(boot_command_line, cmd_line);
- 		}
+ 
+ 	/* Reserve LMB regions used by kernel, initrd, dt, etc... */
+diff -urNp linux-2.6.19.org/arch/powerpc/kernel/udbg.c linux-2.6.19/arch/powerpc/kernel/udbg.c
+--- linux-2.6.19.org/arch/powerpc/kernel/udbg.c	2006-11-29 23:57:37.000000000 +0200
++++ linux-2.6.19/arch/powerpc/kernel/udbg.c	2006-12-02 11:31:33.000000000 +0200
+@@ -146,7 +146,7 @@ void __init disable_early_printk(void)
+ {
+ 	if (!early_console_initialized)
+ 		return;
+-	if (strstr(saved_command_line, "udbg-immortal")) {
++	if (strstr(boot_command_line, "udbg-immortal")) {
+ 		printk(KERN_INFO "early console immortal !\n");
+ 		return;
  	}
- #endif
-diff -urNp linux-2.6.19.org/arch/ppc/platforms/pplus.c linux-2.6.19/arch/ppc/platforms/pplus.c
---- linux-2.6.19.org/arch/ppc/platforms/pplus.c	2006-11-29 23:57:37.000000000 +0200
-+++ linux-2.6.19/arch/ppc/platforms/pplus.c	2006-12-02 11:31:33.000000000 +0200
-@@ -592,7 +592,7 @@ static void __init pplus_setup_arch(void
- 		if (bootargs != NULL) {
- 			strcpy(cmd_line, bootargs);
- 			/* again.. */
--			strcpy(saved_command_line, cmd_line);
-+			strcpy(boot_command_line, cmd_line);
- 		}
- 	}
- #endif
-diff -urNp linux-2.6.19.org/arch/ppc/platforms/prep_setup.c linux-2.6.19/arch/ppc/platforms/prep_setup.c
---- linux-2.6.19.org/arch/ppc/platforms/prep_setup.c	2006-11-29 23:57:37.000000000 +0200
-+++ linux-2.6.19/arch/ppc/platforms/prep_setup.c	2006-12-02 11:31:33.000000000 +0200
-@@ -634,7 +634,7 @@ static void __init prep_init_sound(void)
- 	/*
- 	 * Find a way to push these informations to the cs4232 driver
- 	 * Give it out with printk, when not in cmd_line?
--	 * Append it to  cmd_line and saved_command_line?
-+	 * Append it to  cmd_line and boot_command_line?
- 	 * Format is cs4232=io,irq,dma,dma2
- 	 */
- }
-@@ -897,7 +897,7 @@ prep_setup_arch(void)
- 		 if (bootargs != NULL) {
- 			 strcpy(cmd_line, bootargs);
- 			 /* again.. */
--			 strcpy(saved_command_line, cmd_line);
-+			 strcpy(boot_command_line, cmd_line);
- 		}
- 	}
+diff -urNp linux-2.6.19.org/arch/powerpc/platforms/powermac/setup.c linux-2.6.19/arch/powerpc/platforms/powermac/setup.c
+--- linux-2.6.19.org/arch/powerpc/platforms/powermac/setup.c	2006-11-29 23:57:37.000000000 +0200
++++ linux-2.6.19/arch/powerpc/platforms/powermac/setup.c	2006-12-02 11:31:33.000000000 +0200
+@@ -505,8 +505,8 @@ void note_bootable_part(dev_t dev, int p
+ 	if ((goodness <= current_root_goodness) &&
+ 	    ROOT_DEV != DEFAULT_ROOT_DEVICE)
+ 		return;
+-	p = strstr(saved_command_line, "root=");
+-	if (p != NULL && (p == saved_command_line || p[-1] == ' '))
++	p = strstr(boot_command_line, "root=");
++	if (p != NULL && (p == boot_command_line || p[-1] == ' '))
+ 		return;
+ 
+ 	if (!found_boot) {
