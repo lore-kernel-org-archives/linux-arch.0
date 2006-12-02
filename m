@@ -1,58 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpout.mac.com ([17.250.248.186]:56516 "EHLO smtpout.mac.com")
-	by vger.kernel.org with ESMTP id S1162858AbWLBJYA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Dec 2006 04:24:00 -0500
-In-Reply-To: <20061201172149.GC3078@ftp.linux.org.uk>
-References: <20061201172149.GC3078@ftp.linux.org.uk>
-Mime-Version: 1.0 (Apple Message framework v752.2)
-Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
-Message-Id: <6911A3DA-83C4-4BE9-8553-3E960026BF51@mac.com>
-Content-Transfer-Encoding: 7bit
-From: Kyle Moffett <mrmacman_g4@mac.com>
-Subject: Re: [RFC] timers, pointers to functions and type safety
-Date: Sat, 2 Dec 2006 04:23:32 -0500
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:47882 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S1162877AbWLBJt5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 Dec 2006 04:49:57 -0500
+Date: Sat, 2 Dec 2006 09:49:29 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
+Message-ID: <20061202094929.GA12294@flint.arm.linux.org.uk>
+References: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org> <20061020214916.GA27810@linux-mips.org> <Pine.LNX.4.64.0610201500040.3962@g5.osdl.org> <20061020.152247.111203913.davem@davemloft.net> <20061020225118.GA30965@linux-mips.org> <Pine.LNX.4.64.0610201625190.3962@g5.osdl.org> <20061021000609.GA32701@linux-mips.org> <Pine.LNX.4.64.0610201733490.3962@g5.osdl.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0610201733490.3962@g5.osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, gcc@gcc.gnu.org
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, nickpiggin@yahoo.com.au, akpm@osdl.org, linux-kernel@vger.kernel.org, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, James.Bottomley@steeleye.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Dec 01, 2006, at 12:21:49, Al Viro wrote:
-> And that's where it gets interesting.  It would be very nice to get to
-> the following situation:
->  * callbacks are void (*)(void *)
->  * data is void *
->  * instances can take void * or pointer to object type
->  * a macro SETUP_TIMER(timer, func, data) sets callback and data  
-> and checks if func(data) would be valid.
+On Fri, Oct 20, 2006 at 05:38:32PM -0700, Linus Torvalds wrote:
+> On Sat, 21 Oct 2006, Ralf Baechle wrote:
+> > > That said, maybe nobody does that. Virtual caches are a total braindamage 
+> > > in the first place, so hopefully they have limited use.
+> > 
+> > On MIPS we never had pure virtual caches.
+> 
+> Ok, so on MIPS my schenario doesn't matter.
+> 
+> I think (but may be mistaken) that ARM _does_ have pure virtual caches 
+> with a process ID, but people have always ended up flushing them at 
+> context switch simply because it just causes too much trouble.
 
-This is where a very limited form of C++ templates would do nicely;  
-you could define something like the following:
+Just read this, sorry.
 
-template <typename T>
-static inline void setup_timer(struct timer_list *timer,
-		void (*function)(T *), T *data)
-{
-	timer->function = (void (*)(void *))function;
-	timer->data = (void *)data;
-	init_timer(timer);
-}
+The majority of ARM CPU implementations have pure virtual caches
+_without_ process IDs.  (Some have a nasty hack which involves
+remapping the lower 32MB of virtual memory space to other areas
+of the cache's virtual space, but obviously that limits you to
+32MB of VM.)
 
-Any attempts to call it with mismatched "function" and "data"  
-arguments would display an "Unable to find matching template" error  
-from the compiler.
+Thankfully, with ARM version 6, they had an inkling of clue, and
+decided to move to VIPT caches but with _optional_ aliasing, and
+if the CPU design was Harvard there's a possibility for D/I cache
+aliasing.
 
-Unfortunately you can't get simple templated functions without  
-opening the whole barrel of monkeys involved with C++ support;  
-including an explosion of reserved words, a 400% or more increase in  
-compilation time, a decrease in the efficiency of parts of the  
-generated code, etc.
+> > Be sure I'm sending a CPU designers a strong message about aliases.
+> 
+> Castration. That's the best solution. We don't want those people 
+> procreating.
 
-<crazy-talk>
-Maybe it's time for Linux to fork GCC and morph C99 into a language  
-whose design more fundamentally supports the kinds of type-checking  
-and static verification that we keep adding to the kernel, including  
-some of the things that sparse, lockdep, kmemleak, etc. do.
-</crazy-talk>
+Absolutely.  Can we start such a program in Cambridge, England ASAP
+please?
 
-Cheers,
-Kyle Moffett
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
