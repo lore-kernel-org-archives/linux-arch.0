@@ -1,57 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:47882 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S1162877AbWLBJt5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Dec 2006 04:49:57 -0500
-Date: Sat, 2 Dec 2006 09:49:29 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [PATCH 1/3] Fix COW D-cache aliasing on fork
-Message-ID: <20061202094929.GA12294@flint.arm.linux.org.uk>
-References: <Pine.LNX.4.64.0610201302090.3962@g5.osdl.org> <20061020214916.GA27810@linux-mips.org> <Pine.LNX.4.64.0610201500040.3962@g5.osdl.org> <20061020.152247.111203913.davem@davemloft.net> <20061020225118.GA30965@linux-mips.org> <Pine.LNX.4.64.0610201625190.3962@g5.osdl.org> <20061021000609.GA32701@linux-mips.org> <Pine.LNX.4.64.0610201733490.3962@g5.osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from moutng.kundenserver.de ([212.227.126.188]:56304 "EHLO
+	moutng.kundenserver.de") by vger.kernel.org with ESMTP
+	id S1759438AbWLBKrw convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Dec 2006 05:47:52 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC] timers, pointers to functions and type safety
+Date: Sat, 2 Dec 2006 11:47:38 +0100
+References: <20061201172149.GC3078@ftp.linux.org.uk>
+In-Reply-To: <20061201172149.GC3078@ftp.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0610201733490.3962@g5.osdl.org>
+Message-Id: <200612021147.40505.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, nickpiggin@yahoo.com.au, akpm@osdl.org, linux-kernel@vger.kernel.org, anemo@mba.ocn.ne.jp, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, James.Bottomley@steeleye.com
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, gcc@gcc.gnu.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Oct 20, 2006 at 05:38:32PM -0700, Linus Torvalds wrote:
-> On Sat, 21 Oct 2006, Ralf Baechle wrote:
-> > > That said, maybe nobody does that. Virtual caches are a total braindamage 
-> > > in the first place, so hopefully they have limited use.
-> > 
-> > On MIPS we never had pure virtual caches.
-> 
-> Ok, so on MIPS my schenario doesn't matter.
-> 
-> I think (but may be mistaken) that ARM _does_ have pure virtual caches 
-> with a process ID, but people have always ended up flushing them at 
-> context switch simply because it just causes too much trouble.
+On Friday 01 December 2006 18:21, Al Viro wrote:
+>  There is a tempting
+> possibility to do that gradually, with all intermediates still in working
+> state, provided that on all platforms currently supported by the kernel
+> unsigned long and void * are indeed passed the same way (again, only for
+> current kernel targets and existing gcc versions).  Namely, we could
+>         * introduce SETUP_TIMER variant with cast to void (*)(unsigned long)
+>         * switch to its use, converting callback instances to take pointers
+> at the same time.  That would be done in reasonably sized groups.
+>         * once it's over, flip ->function to void (*)(void *), ->data to
+> void * and update SETUP_TIMER accordingly; deal with remaining few instances
+> of ->function.
 
-Just read this, sorry.
+Another alternative might be to define an intermediate version of
+timer_list that avoids adding new macros, like
 
-The majority of ARM CPU implementations have pure virtual caches
-_without_ process IDs.  (Some have a nasty hack which involves
-remapping the lower 32MB of virtual memory space to other areas
-of the cache's virtual space, but obviously that limits you to
-32MB of VM.)
+struct timer_list {
+	struct list_head entry;
+­	unsigned long expires;
 
-Thankfully, with ARM version 6, they had an inkling of clue, and
-decided to move to VIPT caches but with _optional_ aliasing, and
-if the CPU design was Harvard there's a possibility for D/I cache
-aliasing.
+­	void (*function)(union { unsigned long l; void *p; }
+				 __attribute__((transparent_union)));
+­	union {
+		unsigned long data __deprecated;
+		void *obj;
+	};
 
-> > Be sure I'm sending a CPU designers a strong message about aliases.
-> 
-> Castration. That's the best solution. We don't want those people 
-> procreating.
+­	struct tvec_t_base_s *base;
+};
 
-Absolutely.  Can we start such a program in Cambridge, England ASAP
-please?
+Unfortunately, this relies more on gcc specific behavior than we
+may want, and it makes it possible to abuse in new ways, like defining
+a function to take an unsigned long argument, but passing the data
+as void *obj.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+	Arnd <><
