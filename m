@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nf-out-0910.google.com ([64.233.182.186]:63718 "EHLO
-	nf-out-0910.google.com") by vger.kernel.org with ESMTP
-	id S1759472AbWLBK7f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Dec 2006 05:59:35 -0500
-Received: by nf-out-0910.google.com with SMTP id o25so3809425nfa
-        for <linux-arch@vger.kernel.org>; Sat, 02 Dec 2006 02:59:34 -0800 (PST)
+Received: from ug-out-1314.google.com ([66.249.92.171]:44483 "EHLO
+	ug-out-1314.google.com") by vger.kernel.org with ESMTP
+	id S1759453AbWLBK71 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 Dec 2006 05:59:27 -0500
+Received: by ug-out-1314.google.com with SMTP id 44so2622816uga
+        for <linux-arch@vger.kernel.org>; Sat, 02 Dec 2006 02:59:27 -0800 (PST)
 From: Alon Bar-Lev <alon.barlev@gmail.com>
-Subject: [PATCH 16/26] Dynamic kernel command-line - powerpc
-Date: Sat, 2 Dec 2006 12:54:14 +0200
+Subject: [PATCH 09/26] Dynamic kernel command-line - i386
+Date: Sat, 2 Dec 2006 12:51:22 +0200
 References: <200612021247.43291.alon.barlev@gmail.com>
 In-Reply-To: <200612021247.43291.alon.barlev@gmail.com>
 MIME-Version: 1.0
@@ -15,65 +15,49 @@ Content-Type: text/plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-Message-Id: <200612021254.14742.alon.barlev@gmail.com>
+Message-Id: <200612021251.23244.alon.barlev@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
-Rename saved_command_line into boot_command_line.
+1. Rename saved_command_line into boot_command_line.
+2. Set command_line as __initdata.
 
 Signed-off-by: Alon Bar-Lev <alon.barlev@gmail.com>
 
 ---
 
-diff -urNp linux-2.6.19.org/arch/powerpc/kernel/legacy_serial.c linux-2.6.19/arch/powerpc/kernel/legacy_serial.c
---- linux-2.6.19.org/arch/powerpc/kernel/legacy_serial.c	2006-11-29 23:57:37.000000000 +0200
-+++ linux-2.6.19/arch/powerpc/kernel/legacy_serial.c	2006-12-02 11:31:33.000000000 +0200
-@@ -498,7 +498,7 @@ static int __init check_legacy_serial_co
- 	DBG(" -> check_legacy_serial_console()\n");
+diff -urNp linux-2.6.19.org/arch/i386/kernel/head.S linux-2.6.19/arch/i386/kernel/head.S
+--- linux-2.6.19.org/arch/i386/kernel/head.S	2006-11-29 23:57:37.000000000 +0200
++++ linux-2.6.19/arch/i386/kernel/head.S	2006-12-02 11:31:32.000000000 +0200
+@@ -97,7 +97,7 @@ ENTRY(startup_32)
+ 	movzwl OLD_CL_OFFSET,%esi
+ 	addl $(OLD_CL_BASE_ADDR),%esi
+ 2:
+-	movl $(saved_command_line - __PAGE_OFFSET),%edi
++	movl $(boot_command_line - __PAGE_OFFSET),%edi
+ 	movl $(COMMAND_LINE_SIZE/4),%ecx
+ 	rep
+ 	movsl
+diff -urNp linux-2.6.19.org/arch/i386/kernel/setup.c linux-2.6.19/arch/i386/kernel/setup.c
+--- linux-2.6.19.org/arch/i386/kernel/setup.c	2006-11-29 23:57:37.000000000 +0200
++++ linux-2.6.19/arch/i386/kernel/setup.c	2006-12-02 11:31:32.000000000 +0200
+@@ -145,7 +145,7 @@ unsigned long saved_videomode;
+ #define RAMDISK_PROMPT_FLAG		0x8000
+ #define RAMDISK_LOAD_FLAG		0x4000	
  
- 	/* The user has requested a console so this is already set up. */
--	if (strstr(saved_command_line, "console=")) {
-+	if (strstr(boot_command_line, "console=")) {
- 		DBG(" console was specified !\n");
- 		return -EBUSY;
+-static char command_line[COMMAND_LINE_SIZE];
++static char __initdata command_line[COMMAND_LINE_SIZE];
+ 
+ unsigned char __initdata boot_params[PARAM_SIZE];
+ 
+@@ -1405,7 +1405,7 @@ void __init setup_arch(char **cmdline_p)
+ 		print_memory_map("user");
  	}
-diff -urNp linux-2.6.19.org/arch/powerpc/kernel/prom.c linux-2.6.19/arch/powerpc/kernel/prom.c
---- linux-2.6.19.org/arch/powerpc/kernel/prom.c	2006-11-29 23:57:37.000000000 +0200
-+++ linux-2.6.19/arch/powerpc/kernel/prom.c	2006-12-02 11:31:33.000000000 +0200
-@@ -894,7 +894,7 @@ void __init early_init_devtree(void *par
- 	of_scan_flat_dt(early_init_dt_scan_memory, NULL);
  
- 	/* Save command line for /proc/cmdline and then parse parameters */
--	strlcpy(saved_command_line, cmd_line, COMMAND_LINE_SIZE);
-+	strlcpy(boot_command_line, cmd_line, COMMAND_LINE_SIZE);
- 	parse_early_param();
+-	strlcpy(command_line, saved_command_line, COMMAND_LINE_SIZE);
++	strlcpy(command_line, boot_command_line, COMMAND_LINE_SIZE);
+ 	*cmdline_p = command_line;
  
- 	/* Reserve LMB regions used by kernel, initrd, dt, etc... */
-diff -urNp linux-2.6.19.org/arch/powerpc/kernel/udbg.c linux-2.6.19/arch/powerpc/kernel/udbg.c
---- linux-2.6.19.org/arch/powerpc/kernel/udbg.c	2006-11-29 23:57:37.000000000 +0200
-+++ linux-2.6.19/arch/powerpc/kernel/udbg.c	2006-12-02 11:31:33.000000000 +0200
-@@ -146,7 +146,7 @@ void __init disable_early_printk(void)
- {
- 	if (!early_console_initialized)
- 		return;
--	if (strstr(saved_command_line, "udbg-immortal")) {
-+	if (strstr(boot_command_line, "udbg-immortal")) {
- 		printk(KERN_INFO "early console immortal !\n");
- 		return;
- 	}
-diff -urNp linux-2.6.19.org/arch/powerpc/platforms/powermac/setup.c linux-2.6.19/arch/powerpc/platforms/powermac/setup.c
---- linux-2.6.19.org/arch/powerpc/platforms/powermac/setup.c	2006-11-29 23:57:37.000000000 +0200
-+++ linux-2.6.19/arch/powerpc/platforms/powermac/setup.c	2006-12-02 11:31:33.000000000 +0200
-@@ -505,8 +505,8 @@ void note_bootable_part(dev_t dev, int p
- 	if ((goodness <= current_root_goodness) &&
- 	    ROOT_DEV != DEFAULT_ROOT_DEVICE)
- 		return;
--	p = strstr(saved_command_line, "root=");
--	if (p != NULL && (p == saved_command_line || p[-1] == ' '))
-+	p = strstr(boot_command_line, "root=");
-+	if (p != NULL && (p == boot_command_line || p[-1] == ' '))
- 		return;
- 
- 	if (!found_boot) {
+ 	max_low_pfn = setup_memory();
