@@ -1,51 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:15632 "EHLO
-	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
-	id S936689AbWLCL1S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 3 Dec 2006 06:27:18 -0500
-Date: Sun, 3 Dec 2006 11:27:07 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+Received: from scrub.xs4all.nl ([194.109.195.176]:7321 "EHLO scrub.xs4all.nl")
+	by vger.kernel.org with ESMTP id S936771AbWLCPWH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Dec 2006 10:22:07 -0500
+Date: Sun, 3 Dec 2006 16:21:25 +0100 (CET)
+From: Roman Zippel <zippel@linux-m68k.org>
 Subject: Re: [RFC] timers, pointers to functions and type safety
-Message-ID: <20061203112706.GA12722@flint.arm.linux.org.uk>
-References: <20061201172149.GC3078@ftp.linux.org.uk> <1165084076.24604.56.camel@localhost.localdomain> <20061202184035.GL3078@ftp.linux.org.uk> <200612022243.58348.zippel@linux-m68k.org> <20061202215941.GN3078@ftp.linux.org.uk> <Pine.LNX.4.64.0612022306360.1867@scrub.home> <20061202224018.GO3078@ftp.linux.org.uk> <Pine.LNX.4.64.0612022345520.1867@scrub.home> <20061203102108.GA1724@elf.ucw.cz>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061203102108.GA1724@elf.ucw.cz>
+In-Reply-To: <20061203112706.GA12722@flint.arm.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0612031602570.1867@scrub.home>
+References: <20061201172149.GC3078@ftp.linux.org.uk>
+ <1165084076.24604.56.camel@localhost.localdomain> <20061202184035.GL3078@ftp.linux.org.uk>
+ <200612022243.58348.zippel@linux-m68k.org> <20061202215941.GN3078@ftp.linux.org.uk>
+ <Pine.LNX.4.64.0612022306360.1867@scrub.home> <20061202224018.GO3078@ftp.linux.org.uk>
+ <Pine.LNX.4.64.0612022345520.1867@scrub.home> <20061203102108.GA1724@elf.ucw.cz>
+ <20061203112706.GA12722@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Pavel Machek <pavel@ucw.cz>
-Cc: Roman Zippel <zippel@linux-m68k.org>, Al Viro <viro@ftp.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Pavel Machek <pavel@ucw.cz>, Al Viro <viro@ftp.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Dec 03, 2006 at 11:21:09AM +0100, Pavel Machek wrote:
-> Hi!
-> 
-> > > > The other alternative has real _practical_ value in almost every case, 
-> > > > which I very much prefer. What's wrong with that?
-> > > 
-> > > Lack of any type safety whatsoever, magic boilerplates in callback instances,
-> > > rules more complex than "your callback should take a pointer, don't cast
-> > > anything, it's just a way to arrange for a delayed call, nothing magical
-> > > needed"?
-> > 
-> > I admit the compile check in SETUP_TIMER() is clever, but this way all the
-> > magic is in this place and is it really worth it? You're only adding _one_ 
-> > extra typecheck for mostly simple cases anyway.
-> 
-> Well, there are so many of these simple changes, that SETUP_TIMER()
-> with its clever trick looks very useful.
+Hi,
 
-I agree with Al, Matthew and Pavel.  The current timer stuff is a pita
-and needs fixing, and it seems Al has come up with a good way to do it
-without adding additional crap into every single user of timers.
+On Sun, 3 Dec 2006, Russell King wrote:
 
-There *are* times when having the additional space for storing a pointer
-is cheaper (in terms of number of bytes) than code to calculate an offset,
-and those who have read the assembly code probably know this all too well.
+> I agree with Al, Matthew and Pavel.  The current timer stuff is a pita
+> and needs fixing, and it seems Al has come up with a good way to do it
+> without adding additional crap into every single user of timers.
 
-Al - I look forward to your changes.
+What exactly is the pita here? Al only came up with some rather 
+theoretical problems with no practical relevance.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+> There *are* times when having the additional space for storing a pointer
+> is cheaper (in terms of number of bytes) than code to calculate an offset,
+> and those who have read the assembly code probably know this all too well.
+
+In simple cases gcc can optimize this away, additionally it's offset by 
+one less memory reference in the timer code, so the code executed per 
+timer would be equal or often even less. Additionally less code is needed 
+to initialize the timer.
+
+> Al - I look forward to your changes.
+
+I don't. The current API is maybe not perfect, but changing the API for no 
+practical benefit would be an even bigger pita. I'd rather keep it as is.
+
+bye, Roman
