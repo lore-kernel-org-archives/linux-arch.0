@@ -1,44 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:47833 "EHLO mx2.mail.elte.hu")
-	by vger.kernel.org with ESMTP id S936051AbWLDLuP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Dec 2006 06:50:15 -0500
-Date: Mon, 4 Dec 2006 12:48:51 +0100
-From: Ingo Molnar <mingo@elte.hu>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:9741 "EHLO
+	caramon.arm.linux.org.uk") by vger.kernel.org with ESMTP
+	id S1759693AbWLDMQ3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 4 Dec 2006 07:16:29 -0500
+Date: Mon, 4 Dec 2006 12:16:18 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [RFC] timers, pointers to functions and type safety
-Message-ID: <20061204114851.GA25859@elte.hu>
-References: <20061201172149.GC3078@ftp.linux.org.uk> <1165064370.24604.36.camel@localhost.localdomain> <20061202140521.GJ3078@ftp.linux.org.uk> <1165070713.24604.50.camel@localhost.localdomain> <20061202160252.GQ14076@parisc-linux.org> <1165082803.24604.54.camel@localhost.localdomain> <20061202181957.GK3078@ftp.linux.org.uk>
+Message-ID: <20061204121618.GB17507@flint.arm.linux.org.uk>
+References: <20061201172149.GC3078@ftp.linux.org.uk> <1165084076.24604.56.camel@localhost.localdomain> <20061202184035.GL3078@ftp.linux.org.uk> <200612022243.58348.zippel@linux-m68k.org> <20061202215941.GN3078@ftp.linux.org.uk> <Pine.LNX.4.64.0612022306360.1867@scrub.home> <20061202224018.GO3078@ftp.linux.org.uk> <Pine.LNX.4.64.0612022345520.1867@scrub.home> <20061203102108.GA1724@elf.ucw.cz> <26864.1165230869@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20061202181957.GK3078@ftp.linux.org.uk>
+In-Reply-To: <26864.1165230869@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Pavel Machek <pavel@ucw.cz>, Roman Zippel <zippel@linux-m68k.org>, Al Viro <viro@ftp.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-
-* Al Viro <viro@ftp.linux.org.uk> wrote:
-
-> > This is going to make a lot of data structures smaller, when the 
-> > timer_list is embedded in the structure itself and for the lot, 
-> > which ignores the timer callback argument anyway.
+On Mon, Dec 04, 2006 at 11:14:29AM +0000, David Howells wrote:
+> All it generally takes is two instances of a timer_list struct that use one
+> common handler function for the removal of the data member from the timer_list
+> to be a win on pretty much every platform.
 > 
-> container_of => still lousy type safety.  All over the sodding place.
+> Consider: you replace:
+> 
+> 	struct timer_list {
+> 		void (*func)(unsigned long data);
+> 		unsigned long data;
+> 	};
+> 
+> 	void handler(unsigned long data)
+> 	{
+> 		struct *foo = (struct foo *) data;
+> 		...
+> 	}
+> 
+> with:
+> 
+> 	struct timer_list {
+> 		void (*func)(struct timer_list *timer);
+> 		unsigned long data;
 
-the question is: which is more important, the type safety of a 
-container_of() [or type cast], which if we get it wrong produces a 
-/very/ trivial crash that is trivial to fix - or embedded timers data 
-structure size all around the kernel? I believe the latter is more 
-important.
+I assume you wanted to delete "data" ?
 
-and we could have a runtime debugging option to tie the type of the 
-structure to the timer list entry. For example by using 
-__builtin_classify_type(), sizeof() and offsetof() to fingerprint timer 
-structs at init_timer time, and then checking for that at container_of() 
-time - or something like that. In fact, gcc should really give us a 
-better way to categorize types than __builtin_classify_type(). We could 
-probably improve the situation by having some global registry of types 
-known to the kernel, via a huge switch() around 
-__builtin_types_compatible_p().
+> 	};
+> 
+> 	void handler(struct timer_list *timer)
+> 	{
+> 		struct *foo = container_of(timer, struct foo, mytimer);
+> 		...
+> 	}
 
-	Ingo
+Your premise is two timer_lists which use one common handler.
+
+	struct foo {
+		struct timer_list timer1;
+		strucr timer_list timer2;
+	};
+
+would preclude using a common handler for both timers.  You need two
+separate handlers, one which knows the offset of timer1 and the other
+the offset of timer2.
+
+In this case, you are removing 2 * sizeof(unsigned long) from struct
+foo, but you're adding a two add/sub instructions to each handler,
+but worse than that, this would force two veneer handlers to call the
+common handler.
+
+The point here is that we can all dream up cases where some particular
+way is a win or not.  Whether it really _is_ a win depends on the uses
+in the kernel.
+
+The only real way to find that out is to try it.  Generate a patch.
+Build it.  See what happens to the kernel code and data sizes.
+
+I strongly suggest that we do that rather than speculating. 8)  Words
+(and emails) are cheap but in the end are not really constructive.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
