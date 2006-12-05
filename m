@@ -1,108 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [198.99.130.12] ([198.99.130.12]:46938 "EHLO
-	saraswathi.solana.com" rhost-flags-FAIL-??-OK-OK) by vger.kernel.org
-	with ESMTP id S1759125AbWLDTW4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Dec 2006 14:22:56 -0500
-Message-Id: <200612041918.kB4JIdRf023003@ccure.user-mode-linux.org>
-Subject: [PATCH] x86_64/i386 - Kernel-mode faults pollute current->thead
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Date: Mon, 04 Dec 2006 14:18:39 -0500
-From: Jeff Dike <jdike@addtoit.com>
+Received: from smtp.osdl.org ([65.172.181.25]:43399 "EHLO smtp.osdl.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S968065AbWLEDo7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 4 Dec 2006 22:44:59 -0500
+Date: Mon, 4 Dec 2006 19:44:56 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH] Centralise definitions of sector_t and blkcnt_t
+In-Reply-To: <20061204103830.GA3013@parisc-linux.org>
+Message-ID: <Pine.LNX.4.64.0612041941220.3476@woody.osdl.org>
+References: <20061204103830.GA3013@parisc-linux.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@osdl.org
-Cc: Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Kernel-mode traps on x86_64 can pollute the trap information for a previous
-userspace trap for which the signal has not yet been delivered to the process.
 
-do_trap and do_general_protection set task->thread.error_code and .trapno
-for kernel traps.  If a kernel-mode trap arrives between the arrival of a
-userspace trap and the delivery of the associated SISGEGV to the process,
-the process will get the kernel trap information in its sigcontext.
 
-This causes UML process segfaults, as the trapno that the UML kernel sees is
-13, rather than the 14 for normal page faults.  So, the UML kernel passes the
-SIGSEGV along to its process.
+On Mon, 4 Dec 2006, Matthew Wilcox wrote:
+> 
+> CONFIG_LBD and CONFIG_LSF are spread into asm/types.h for no particularly
+> good reason.  Centralising the definition in linux/types.h means that arch
+> maintainers don't need to bother adding it, as well as fixing the problem
+> with x86-64 users being asked to make a decision that has absolutely no
+> effect.  The H8/300 porters seem particularly confused since I'm not aware
+> of any microcontrollers that need to support 2TB filesystems.
 
-I don't claim to fully understand the problem.  On the one hand, a check in
-do_general_protection for a pending SIGSEGV turned up nothing.  On the other
-hand, this patch fixed the UML process segfault problem.
+Applied, since this is a good cleanup regardless.
 
-The patch below moves the setting of error_code and trapno so that that only
-happens in the case of userspace faults.  As a side-effect, this should speed
-up kernel-mode fault handling a tiny bit.
+I'd still be open to switching things around further, and allow even 
+64-bit architectures to say that they only want 32-bit sector_t's and page 
+indexes (ie remove the "depends on !64BIT" and make the "unsigned long" 
+case actually be "u32" instead, so that it literally switches between 
+32-bit or 64-bit values _regardless_ or architecture).
 
-I looked at i386, and there is a similar situation.  In this case, there is
-duplicate code setting task->thread.error_code and trapno.  I deleted one,
-leaving the copy that runs in the case of a userspace fault.
+I don't know how big a deal it is, but I could imagine that we could 
+actually save memory in a smaller "struct page", for example, on 64bit 
+architectures by just using a 4-byte index.
 
-Signed-off-by: Jeff Dike <jdike@addtoit.com>
+For now, the !64BIT makes sense simply because a 64-bit architecture 
+probably doesn't care, and might as well just use 64 bits anyway (ie you 
+tend to have tons of memory there anyway). And I suspect it doesn't 
+actually even help on 64-bits due to structure alignment etc issues, but 
+am too lazy to go check.
 
-Index: linux-2.6.17.i686/arch/i386/kernel/traps.c
-===================================================================
---- linux-2.6.17.i686.orig/arch/i386/kernel/traps.c	2006-11-08 15:03:17.000000000 -0500
-+++ linux-2.6.17.i686/arch/i386/kernel/traps.c	2006-12-04 12:38:49.000000000 -0500
-@@ -444,8 +444,6 @@ static void __kprobes do_trap(int trapnr
- 			      siginfo_t *info)
- {
- 	struct task_struct *tsk = current;
--	tsk->thread.error_code = error_code;
--	tsk->thread.trap_no = trapnr;
- 
- 	if (regs->eflags & VM_MASK) {
- 		if (vm86)
-@@ -457,6 +455,9 @@ static void __kprobes do_trap(int trapnr
- 		goto kernel_trap;
- 
- 	trap_signal: {
-+		tsk->thread.error_code = error_code;
-+		tsk->thread.trap_no = trapnr;
-+
- 		if (info)
- 			force_sig_info(signr, info, tsk);
- 		else
-@@ -646,9 +647,6 @@ fastcall void __kprobes do_general_prote
- 		return;
- 	}
- 
--	current->thread.error_code = error_code;
--	current->thread.trap_no = 13;
--
- 	if (regs->eflags & VM_MASK)
- 		goto gp_in_vm86;
- 
-Index: linux-2.6.17.i686/arch/x86_64/kernel/traps.c
-===================================================================
---- linux-2.6.17.i686.orig/arch/x86_64/kernel/traps.c	2006-11-08 15:03:17.000000000 -0500
-+++ linux-2.6.17.i686/arch/x86_64/kernel/traps.c	2006-12-04 12:38:49.000000000 -0500
-@@ -490,10 +490,10 @@ static void __kprobes do_trap(int trapnr
- {
- 	struct task_struct *tsk = current;
- 
--	tsk->thread.error_code = error_code;
--	tsk->thread.trap_no = trapnr;
--
- 	if (user_mode(regs)) {
-+		tsk->thread.error_code = error_code;
-+		tsk->thread.trap_no = trapnr;
-+
- 		if (exception_trace && unhandled_signal(tsk, signr))
- 			printk(KERN_INFO
- 			       "%s[%d] trap %s rip:%lx rsp:%lx error:%lx\n",
-@@ -591,10 +591,10 @@ asmlinkage void __kprobes do_general_pro
- 
- 	conditional_sti(regs);
- 
--	tsk->thread.error_code = error_code;
--	tsk->thread.trap_no = 13;
--
- 	if (user_mode(regs)) {
-+		tsk->thread.error_code = error_code;
-+		tsk->thread.trap_no = 13;
-+
- 		if (exception_trace && unhandled_signal(tsk, SIGSEGV))
- 			printk(KERN_INFO
- 		       "%s[%d] general protection rip:%lx rsp:%lx error:%lx\n",
+Just thought I'd mention the possibility, in other words.
 
+		Linus
