@@ -1,28 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:50116 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:49447 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S937566AbWLFTqf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Dec 2006 14:46:35 -0500
+	id S937561AbWLFTnv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Dec 2006 14:43:51 -0500
 From: David Howells <dhowells@redhat.com>
-In-Reply-To: <Pine.LNX.4.64.0612061130030.3542@woody.osdl.org> 
-References: <Pine.LNX.4.64.0612061130030.3542@woody.osdl.org>  <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <Pine.LNX.4.64.0612061103260.3542@woody.osdl.org> <20061206192647.GW3013@parisc-linux.org> 
+In-Reply-To: <20061206192939.GX3013@parisc-linux.org> 
+References: <20061206192939.GX3013@parisc-linux.org>  <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <Pine.LNX.4.64.0612061103260.3542@woody.osdl.org> <20061206190828.GE4587@ftp.linux.org.uk> <Pine.LNX.4.64.0612061122120.3542@woody.osdl.org> 
 Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it 
-Date: Wed, 06 Dec 2006 19:45:40 +0000
-Message-ID: <28631.1165434340@redhat.com>
+Date: Wed, 06 Dec 2006 19:43:15 +0000
+Message-ID: <28576.1165434195@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Christoph Lameter <clameter@sgi.com>, Russell King <rmk+lkml@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, linux-arm-kernel@lists.arm.linux.org.uk, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Linus Torvalds <torvalds@osdl.org>, Al Viro <viro@ftp.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, Russell King <rmk+lkml@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, linux-arm-kernel@lists.arm.linux.org.uk, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Linus Torvalds <torvalds@osdl.org> wrote:
+Matthew Wilcox <matthew@wil.cx> wrote:
 
-> Also, I don't see quite why you think "cmpxchg()" and "atomic_cmpxchg()" 
-> would be different. ANY cmpxchg() needs to be atomic - if it's not, 
-> there's no point to the operation at all, since you'd just write it as
+> > Ok. For SMP-safety, it's important that any architecture that can't do 
+> > this needs to _share_ the same spinlock (on SMP only, of course) that it 
+> > uses for the bitops. 
+> 
+> That doesn't help, since assignment can't be guarded by any lock.
 
-It's not that atomic_cmpxchg() is different to cmpxchg(), it's that
-atomic_set() is different to direct assignment.
+It's not a problem for workqueues, since the only direct assignment to the
+management member variable is during initialisation.
 
-atomic_set() on PA-RISC, for example, has spinlocks in it.
+But in general cmpxchg() might be a problem with respect to assignment.
+
+atomic_cmpxchg() should be safe wrt atomic_set().
 
 David
