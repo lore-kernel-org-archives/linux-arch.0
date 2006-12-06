@@ -1,29 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from alephnull.demon.nl ([83.160.184.112]:41475 "EHLO
-	xi.wantstofly.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S937594AbWLFUJM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2006 15:09:12 -0500
-Date: Wed, 6 Dec 2006 21:09:09 +0100
-From: Lennert Buytenhek <buytenh@wantstofly.org>
-Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it
-Message-ID: <20061206200909.GB5481@xi.wantstofly.org>
-References: <20061206191252.GH32748@xi.wantstofly.org> <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <28668.1165434442@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <28668.1165434442@redhat.com>
+Received: from omx1-ext.sgi.com ([192.48.179.11]:55936 "EHLO omx1.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S937602AbWLFUMI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Dec 2006 15:12:08 -0500
+Date: Wed, 6 Dec 2006 12:11:01 -0800 (PST)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
+ doesn't support it
+In-Reply-To: <20061206195050.GA3013@parisc-linux.org>
+Message-ID: <Pine.LNX.4.64.0612061209240.27847@schroedinger.engr.sgi.com>
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
+ <Pine.LNX.4.64.0612061103260.3542@woody.osdl.org> <20061206192647.GW3013@parisc-linux.org>
+ <Pine.LNX.4.64.0612061128340.27363@schroedinger.engr.sgi.com>
+ <20061206193641.GY3013@parisc-linux.org> <Pine.LNX.4.64.0612061147000.27534@schroedinger.engr.sgi.com>
+ <20061206195050.GA3013@parisc-linux.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Linus Torvalds <torvalds@osdl.org>, Russell King <rmk+lkml@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, linux-arm-kernel@lists.arm.linux.org.uk, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Dec 06, 2006 at 07:47:22PM +0000, David Howells wrote:
+On Wed, 6 Dec 2006, Matthew Wilcox wrote:
 
-> > > Pre-v6 ARM doesn't support SMP according to ARM's atomic.h,
-> > 
-> > That's not quite true, there exist ARMv5 processors that in theory
-> > can support SMP.
+> On Wed, Dec 06, 2006 at 11:47:40AM -0800, Christoph Lameter wrote:
+> > Nope this is a UP implementation. There is no cpu B.
 > 
-> I meant that the Linux ARM arch doesn't support it:
+> Follow the thread back.  I'm talking about parisc.  Machines exist (are
+> still being sold) with up to 128 cores.  I think the largest we've
+> confirmed work are 8 CPUs.
 
-Ah, yes, not currently.  That's true.
+And you only have an atomic get and clear atomic op? Amazing. Is this 
+really still in production?
+
+
