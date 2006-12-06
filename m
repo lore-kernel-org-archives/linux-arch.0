@@ -1,138 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:47644 "EHLO mx1.redhat.com"
+Received: from smtp.osdl.org ([65.172.181.25]:55014 "EHLO smtp.osdl.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S936958AbWLFR4n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Dec 2006 12:56:43 -0500
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it [try #2]
-Date: Wed, 06 Dec 2006 17:56:22 +0000
-Message-Id: <20061206175622.31077.96046.stgit@warthog.cambridge.redhat.com>
-Content-Type: text/plain; charset=utf-8; format=fixed
-Content-Transfer-Encoding: 8bit
+	id S937061AbWLFSdj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Dec 2006 13:33:39 -0500
+Date: Wed, 6 Dec 2006 10:33:05 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH] Export current_is_keventd() for libphy 
+In-Reply-To: <Pine.LNX.4.64.0612060955380.3542@woody.osdl.org>
+Message-ID: <Pine.LNX.4.64.0612061017220.3542@woody.osdl.org>
+References: <Pine.LNX.4.64.0612060822260.3542@woody.osdl.org>
+ <1165125055.5320.14.camel@gullible> <20061203011625.60268114.akpm@osdl.org>
+ <Pine.LNX.4.64N.0612051642001.7108@blysk.ds.pg.gda.pl>
+ <20061205123958.497a7bd6.akpm@osdl.org> <6FD5FD7A-4CC2-481A-BC87-B869F045B347@freescale.com>
+ <20061205132643.d16db23b.akpm@osdl.org> <adaac22c9cu.fsf@cisco.com>
+ <20061205135753.9c3844f8.akpm@osdl.org> <Pine.LNX.4.64N.0612061506460.29000@blysk.ds.pg.gda.pl>
+ <20061206075729.b2b6aa52.akpm@osdl.org>  <21690.1165426993@redhat.com>
+ <Pine.LNX.4.64.0612060951150.3542@woody.osdl.org>
+ <Pine.LNX.4.64.0612060955380.3542@woody.osdl.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dhowells@redhat.com
+To: David Howells <dhowells@redhat.com>
+Cc: Andrew Morton <akpm@osdl.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Roland Dreier <rdreier@cisco.com>, Andy Fleming <afleming@freescale.com>, Ben Collins <ben.collins@ubuntu.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Implement generic UP cmpxchg() where an arch doesn't otherwise support it.
-This assuming that the arch doesn't have support SMP without providing its own
-cmpxchg() implementation.
 
-This is required because cmpxchg() is used by the reduced work queue patches to
-adjust the management data in a work_struct.
 
-Also provide ARMv6 with a cmpxchg() implementation using LDREX/STREXEQ.  Pre-v6
-ARM doesn't support SMP according to ARM's atomic.h, so the generic
-IRQ-disablement based cmpxchg() is entirely adequate there (if it isn't, then
-atomic_cmpxchg() is also broken on ARM).
+On Wed, 6 Dec 2006, Linus Torvalds wrote:
+> 
+> Sadly, gcc doesn't do it in this case. Still, I'd rather keep the source 
+> clean, and hope that the compiler improves eventually, than to make the 
+> code uglier.
 
-Signed-Off-By: David Howells <dhowells@redhat.com>
----
+Actually, it's our own damn fault.
 
- include/asm-arm/system.h      |   40 ++++++++++++++++++++++++++++++++++++
- include/asm-generic/cmpxchg.h |   46 +++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 86 insertions(+), 0 deletions(-)
+We've long had our arguments "const volatile" to test_bit(), which 
+basically means that gcc can't do the optimization. Damn.
 
-diff --git a/include/asm-arm/system.h b/include/asm-arm/system.h
-index f05fbe3..f16e42d 100644
---- a/include/asm-arm/system.h
-+++ b/include/asm-arm/system.h
-@@ -325,6 +325,46 @@ #endif
- extern void disable_hlt(void);
- extern void enable_hlt(void);
- 
-+/*
-+ * We only implement cmpxchg in ASM on ARMv6 where we have LDREX/STREX
-+ * available, and we only implement it for word-sized exchanges
-+ */
-+#if __LINUX_ARM_ARCH__ >= 6
-+extern void __bad_cmpxchg(volatile void *, int);
-+
-+#define cmpxchg(ptr, old, new)						\
-+({									\
-+	__typeof__ (ptr) ____p = (ptr);					\
-+	__typeof__(*ptr) ____old = (old);				\
-+	__typeof__(*ptr) ____new = (new);				\
-+	__typeof__(*ptr) ____oldval;					\
-+	__typeof__(*ptr) ____res;					\
-+									\
-+	switch (sizeof(____res)) {					\
-+	case 4:								\
-+		do {							\
-+			__asm__ __volatile__("@ cmpxchg\n"		\
-+			"ldrex	%1, [%2]\n"				\
-+			"mov	%0, #0\n"				\
-+			"teq	%1, %3\n"				\
-+			"strexeq %0, %4, [%2]\n"			\
-+			: "=&r" (____res), "=&r" (____oldval)		\
-+			: "r" (____p), "Ir" (____old), "r" (____new)	\
-+			: "cc");					\
-+		} while(____res);					\
-+		break;							\
-+	default:							\
-+		__bad_cmpxchg(____p, sizeof(____res));			\
-+		____oldval = 0;						\
-+		break;							\
-+	}								\
-+	____oldval;							\
-+})
-+
-+#else
-+#include <asm-generic/cmpxchg.h>
-+#endif
-+
- #endif /* __ASSEMBLY__ */
- 
- #define arch_align_stack(x) (x)
-diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
-new file mode 100644
-index 0000000..be0da99
---- /dev/null
-+++ b/include/asm-generic/cmpxchg.h
-@@ -0,0 +1,46 @@
-+/* Generic cmpxchg for those arches that don't implement it themselves
-+ *
-+ * Copyright (C) 2006 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
-+ */
-+
-+#ifndef _ASM_GENERIC_CMPXCHG_H
-+#define _ASM_GENERIC_CMPXCHG_H
-+
-+#if !defined(cmpxchg) && !defined(CONFIG_SMP)
-+
-+/**
-+ * cmpxchg - Atomically conditionally exchange one value for another.
-+ * @ptr - Pointer to the value to be altered.
-+ * @old - The value to change from.
-+ * @new - The value to change to.
-+ *
-+ * This function atomically compares the current value at the word pointed to
-+ * by @ptr, and if it's the same as @old, changes it to @new.  If it's not the
-+ * same then it's left unchanged.
-+ *
-+ * The value that was in the word pointed to by @ptr is returned, whether or
-+ * not it was changed to @new.
-+ */
-+#define cmpxchg(ptr, old, new)			\
-+({						\
-+	unsigned long ____flags;		\
-+	__typeof__ (ptr) ____p = (ptr);		\
-+	__typeof__(*ptr) ____old = (old);	\
-+	__typeof__(*ptr) ____new = (new);	\
-+	__typeof__(*ptr) ____res;		\
-+	raw_local_irq_save(____flags);		\
-+	____res = *____p;			\
-+	if (likely(____res == (____old)))	\
-+		*____p = (____new);		\
-+	raw_local_irq_restore(____flags);	\
-+	____res;				\
-+})
-+
-+#endif /* !cmpxchg && !SMP */
-+#endif /* _ASM_GENERIC_CMPXCHG_H */
+And they need to be "volatile" not because we _want_ the thing to be 
+volaile, but because these things are occationally used on volatile 
+objects (so if the function doesn't take a volatile pointer, it would 
+warn).
+
+That's why so many of these helper functions use "const volatile" 
+pointers, which on the face of it would seem strange if you don't realize 
+that it's more about a C type issue than about the _actual_ type being 
+either "const" or "volatile".
+
+Sad. I guess we could remove the "const volatile" from the _cast_, but the 
+thing is, if the underlying object we're actually looking at really _is_ 
+volatile, we shouldn't do that. GAAH.
+
+Really sad. I doubt any of the callers actually want the "volatile" access 
+at all. Things like <linux/page-flags.h> definitely _don't_ want it.
+
+I suspect we should just face up to the fact that 
+
+ (a) "volatile" on kernel data is basically always a bug, and you should 
+     use locking. "volatile" doesn't help anything at all with memory 
+     ordering and friends, so it's insane to think it "solves" anything on 
+     its own.
+ (b) on "iomem" pointers it does make sense, but those need special 
+     accessor functions _anyway_, so things like test_bit() wouldn't work 
+     on them.
+ (c) if you spin on a value changing, you should use "cpu_relax()" or 
+     "barrier()" anyway, which will force gcc to re-load any values from 
+     memory over the loop.
+
+and remove the "volatile" from all the bitop accessor functions.
+
+Or at least from "test_bit()". It's not like it's synchronous _anyway_ 
+(there's no memory barriers etc).
+
+Hmm? Comments? linux-arch added to Cc, just in case people care (this 
+particular thing is in <asm-*/bitops.h>, so it _is_ architecture- 
+specific, but we should probably all agree on it first)
+
+		Linus
