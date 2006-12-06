@@ -1,33 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:47342 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S937684AbWLFV6F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2006 16:58:05 -0500
-Date: Wed, 6 Dec 2006 21:58:03 +0000
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: utrace comments
-Message-ID: <20061206215803.GA27069@infradead.org>
-References: <20061127165138.GA2991@lst.de> <20061205095145.2A1431800E7@magilla.sf.frob.com>
-Mime-Version: 1.0
+Received: from palinux.external.hp.com ([192.25.206.14]:54471 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S937705AbWLFWFd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2006 17:05:33 -0500
+Date: Wed, 6 Dec 2006 15:05:32 -0700
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it
+Message-ID: <20061206220532.GF3013@parisc-linux.org>
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <20061206190025.GC9959@flint.arm.linux.org.uk> <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com> <20061206195820.GA15281@flint.arm.linux.org.uk> <20061206213626.GE3013@parisc-linux.org> <Pine.LNX.4.64.0612061345160.28672@schroedinger.engr.sgi.com>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20061205095145.2A1431800E7@magilla.sf.frob.com>
+In-Reply-To: <Pine.LNX.4.64.0612061345160.28672@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Roland McGrath <roland@redhat.com>
-Cc: Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Dec 05, 2006 at 01:51:45AM -0800, Roland McGrath wrote:
-> Thanks very much for your interest in utrace and for your comments.
-> Unfortunately, I cannot say exactly when I will be able to respond
-> to them in detail.  I broke my arm in September and have had a
-> difficult recovery, including a second surgery in November, two
-> weeks ago.  I am now immobilized such that I cannot type properly,
-> and will be unable to type much until some time in January.  Issues
-> in getting utrace merged are indeed my top priority after fixing
-> known bugs in the current utrace code.  My injury came at a quite
-> inopportune time.  I do not want to start the discussion in earnest
-> before I am again able to participate, and to hack on the code,
-> with the vigor and verbosity I usually expect of myself.
+On Wed, Dec 06, 2006 at 01:52:20PM -0800, Christoph Lameter wrote:
+> On Wed, 6 Dec 2006, Matthew Wilcox wrote:
+> 
+> > And for those of us with only load-and-zero, that's simply:
+> > 
+> > #define load_locked(addr) spin_lock(hash(addr)), *addr
+> > #define store_exclusive(addr, old, new) \
+> > 			*addr = new, spin_unlock(hash(addr)), 0
+> > 
+> > which is also optimal for us.
+> 
+> This means we tolerate the assignment race for SMP that was pointed out 
+> earlier?
 
-Sure, not problem to wait.  I wish you'll get better soon.
+What gave you that impression?  It simply wasn't part of this example.
+
+To be honest, it'd be much easier if we only defined these operations on
+atomic_t's.  We have all the infrastructure in place for them, and
+they're fairly well understood.  If you need different sizes, I'm OK
+with an atomic_pointer_t, or whatever.
+
