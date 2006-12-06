@@ -1,47 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from omx1-ext.sgi.com ([192.48.179.11]:54360 "EHLO omx1.sgi.com"
+Received: from omx1-ext.sgi.com ([192.48.179.11]:54572 "EHLO omx1.sgi.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S937240AbWLFTRR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Dec 2006 14:17:17 -0500
-Date: Wed, 6 Dec 2006 11:16:55 -0800 (PST)
+	id S937344AbWLFTZP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Dec 2006 14:25:15 -0500
+Date: Wed, 6 Dec 2006 11:24:58 -0800 (PST)
 From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
- doesn't support it
-In-Reply-To: <20061206190025.GC9959@flint.arm.linux.org.uk>
-Message-ID: <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
-References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
- <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
- <20061206190025.GC9959@flint.arm.linux.org.uk>
+ doesn't support it [try #2]
+In-Reply-To: <Pine.LNX.4.64.0612061101110.27047@schroedinger.engr.sgi.com>
+Message-ID: <Pine.LNX.4.64.0612061123280.27339@schroedinger.engr.sgi.com>
+References: <20061206175622.31077.96046.stgit@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0612061101110.27047@schroedinger.engr.sgi.com>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 6 Dec 2006, Russell King wrote:
+Have a look at arch/i386/kernel/cpu/intel.c. You can probably replace my 
+code that simulates cmpxchg for 386s
 
-> On Wed, Dec 06, 2006 at 10:56:14AM -0800, Christoph Lameter wrote:
-> > I'd really appreciate a cmpxchg that is generically available for 
-> > all arches. It will allow lockless implementation for various performance 
-> > criticial portions of the kernel.
-> 
-> Let's recap on cmpxchg.
-> 
-> For CPUs with no atomic operation other than SWP, it is not lockless.
+arch/i386/kernel/cpu/intel.c:
 
-But then its also just requires disable/enable interrupts on UP which may 
-be cheaper than an atomic operation.
+#ifndef CONFIG_X86_CMPXCHG
+unsigned long cmpxchg_386_u8(volatile void *ptr, u8 old, u8 new)
+{
+        u8 prev;
+        unsigned long flags;
 
-> For CPUs with load locked + store conditional, it is expensive.
+        /* Poor man's cmpxchg for 386. Unsuitable for SMP */
+        local_irq_save(flags);
+        prev = *(u8 *)ptr;
+        if (prev == old)
+                *(u8 *)ptr = new;
+        local_irq_restore(flags);
+        return prev;
+}
+EXPORT_SYMBOL(cmpxchg_386_u8);
 
-Because it locks the bus? I am not that familiar with those architectures 
-but it seems that those will have a general problem anyways.
+unsigned long cmpxchg_386_u16(volatile void *ptr, u16 old, u16 new)
+{
+        u16 prev;
+        unsigned long flags;
 
-> If you want an operation for performance critical portions of the
-> kernel, please allow architecture maintainers the freedom to use their
-> best performance enhancements.
+        /* Poor man's cmpxchg for 386. Unsuitable for SMP */
+        local_irq_save(flags);
+        prev = *(u16 *)ptr;
+        if (prev == old)
+                *(u16 *)ptr = new;
+        local_irq_restore(flags);
+        return prev;
+}
+EXPORT_SYMBOL(cmpxchg_386_u16);
 
-And thereby denying the kernel developers to use a simple atomic SMP 
-operation? Adding additional defines for each arch and each performance 
-critical piece of kernel logic?
+unsigned long cmpxchg_386_u32(volatile void *ptr, u32 old, u32 new)
+{
+        u32 prev;
+        unsigned long flags;
+
+        /* Poor man's cmpxchg for 386. Unsuitable for SMP */
+        local_irq_save(flags);
+        prev = *(u32 *)ptr;
+        if (prev == old)
+                *(u32 *)ptr = new;
+        local_irq_restore(flags);
+        return prev;
+}
+EXPORT_SYMBOL(cmpxchg_386_u32);
+#endif
+
+
