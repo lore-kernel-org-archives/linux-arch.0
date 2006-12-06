@@ -1,73 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from omx1-ext.sgi.com ([192.48.179.11]:54572 "EHLO omx1.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S937344AbWLFTZP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Dec 2006 14:25:15 -0500
-Date: Wed, 6 Dec 2006 11:24:58 -0800 (PST)
-From: Christoph Lameter <clameter@sgi.com>
+Received: from smtp.osdl.org ([65.172.181.25]:60375 "EHLO smtp.osdl.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S937167AbWLFT3I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Dec 2006 14:29:08 -0500
+Date: Wed, 6 Dec 2006 11:28:17 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
- doesn't support it [try #2]
-In-Reply-To: <Pine.LNX.4.64.0612061101110.27047@schroedinger.engr.sgi.com>
-Message-ID: <Pine.LNX.4.64.0612061123280.27339@schroedinger.engr.sgi.com>
-References: <20061206175622.31077.96046.stgit@warthog.cambridge.redhat.com>
- <Pine.LNX.4.64.0612061101110.27047@schroedinger.engr.sgi.com>
+ doesn't support it
+In-Reply-To: <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
+Message-ID: <Pine.LNX.4.64.0612061126010.3542@woody.osdl.org>
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
+ <20061206190025.GC9959@flint.arm.linux.org.uk>
+ <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Have a look at arch/i386/kernel/cpu/intel.c. You can probably replace my 
-code that simulates cmpxchg for 386s
-
-arch/i386/kernel/cpu/intel.c:
-
-#ifndef CONFIG_X86_CMPXCHG
-unsigned long cmpxchg_386_u8(volatile void *ptr, u8 old, u8 new)
-{
-        u8 prev;
-        unsigned long flags;
-
-        /* Poor man's cmpxchg for 386. Unsuitable for SMP */
-        local_irq_save(flags);
-        prev = *(u8 *)ptr;
-        if (prev == old)
-                *(u8 *)ptr = new;
-        local_irq_restore(flags);
-        return prev;
-}
-EXPORT_SYMBOL(cmpxchg_386_u8);
-
-unsigned long cmpxchg_386_u16(volatile void *ptr, u16 old, u16 new)
-{
-        u16 prev;
-        unsigned long flags;
-
-        /* Poor man's cmpxchg for 386. Unsuitable for SMP */
-        local_irq_save(flags);
-        prev = *(u16 *)ptr;
-        if (prev == old)
-                *(u16 *)ptr = new;
-        local_irq_restore(flags);
-        return prev;
-}
-EXPORT_SYMBOL(cmpxchg_386_u16);
-
-unsigned long cmpxchg_386_u32(volatile void *ptr, u32 old, u32 new)
-{
-        u32 prev;
-        unsigned long flags;
-
-        /* Poor man's cmpxchg for 386. Unsuitable for SMP */
-        local_irq_save(flags);
-        prev = *(u32 *)ptr;
-        if (prev == old)
-                *(u32 *)ptr = new;
-        local_irq_restore(flags);
-        return prev;
-}
-EXPORT_SYMBOL(cmpxchg_386_u32);
-#endif
 
 
+On Wed, 6 Dec 2006, Christoph Lameter wrote:
+> 
+> > For CPUs with load locked + store conditional, it is expensive.
+> 
+> Because it locks the bus? I am not that familiar with those architectures 
+> but it seems that those will have a general problem anyways.
+
+load_locked + store_conditional should _not_ be any more expensive than 
+any atomic sequence will always be.
+
+Atomic sequences in SMP are obviously never "cheap". But cmpxchg shouldn't 
+be any more expensive than any other atomic sequence if you have 
+load-locked and store-conditional.
+
+There are obviously _implementation_ bugs. The early alpha's had such an 
+atrocious ldl/stc that it wasn't even funny. That might be true in other 
+implementations too, but it's definitely not cmpxchg-specific if so. It 
+will affect _any_ atomic ops on such an architecture (atomic_inc() and 
+friends)
+
+			Linus
