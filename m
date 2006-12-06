@@ -1,25 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from alephnull.demon.nl ([83.160.184.112]:41380 "EHLO
-	xi.wantstofly.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S937139AbWLFTM5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2006 14:12:57 -0500
-Date: Wed, 6 Dec 2006 20:12:52 +0100
-From: Lennert Buytenhek <buytenh@wantstofly.org>
-Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it
-Message-ID: <20061206191252.GH32748@xi.wantstofly.org>
+Received: from omx1-ext.sgi.com ([192.48.179.11]:54360 "EHLO omx1.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S937240AbWLFTRR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Dec 2006 14:17:17 -0500
+Date: Wed, 6 Dec 2006 11:16:55 -0800 (PST)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
+ doesn't support it
+In-Reply-To: <20061206190025.GC9959@flint.arm.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
 References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
+ <20061206190025.GC9959@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Dec 06, 2006 at 04:43:14PM +0000, David Howells wrote:
+On Wed, 6 Dec 2006, Russell King wrote:
 
-> Pre-v6 ARM doesn't support SMP according to ARM's atomic.h,
+> On Wed, Dec 06, 2006 at 10:56:14AM -0800, Christoph Lameter wrote:
+> > I'd really appreciate a cmpxchg that is generically available for 
+> > all arches. It will allow lockless implementation for various performance 
+> > criticial portions of the kernel.
+> 
+> Let's recap on cmpxchg.
+> 
+> For CPUs with no atomic operation other than SWP, it is not lockless.
 
-That's not quite true, there exist ARMv5 processors that in theory
-can support SMP.
+But then its also just requires disable/enable interrupts on UP which may 
+be cheaper than an atomic operation.
+
+> For CPUs with load locked + store conditional, it is expensive.
+
+Because it locks the bus? I am not that familiar with those architectures 
+but it seems that those will have a general problem anyways.
+
+> If you want an operation for performance critical portions of the
+> kernel, please allow architecture maintainers the freedom to use their
+> best performance enhancements.
+
+And thereby denying the kernel developers to use a simple atomic SMP 
+operation? Adding additional defines for each arch and each performance 
+critical piece of kernel logic?
