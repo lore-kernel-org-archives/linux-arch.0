@@ -1,40 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:42333 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758543AbWLFAYK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Dec 2006 19:24:10 -0500
-Date: Wed, 6 Dec 2006 00:24:03 +0000
-From: Al Viro <viro@ftp.linux.org.uk>
-Subject: Re: [RFC] timers, pointers to functions and type safety
-Message-ID: <20061206002403.GA4587@ftp.linux.org.uk>
-References: <20061204114851.GA25859@elte.hu> <20061201172149.GC3078@ftp.linux.org.uk> <1165064370.24604.36.camel@localhost.localdomain> <20061202140521.GJ3078@ftp.linux.org.uk> <1165070713.24604.50.camel@localhost.localdomain> <20061202160252.GQ14076@parisc-linux.org> <1165082803.24604.54.camel@localhost.localdomain> <20061202181957.GK3078@ftp.linux.org.uk> <28665.1165234964@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <28665.1165234964@redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:44909 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1760438AbWLFKU2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Dec 2006 05:20:28 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20061206002403.GA4587@ftp.linux.org.uk> 
+References: <20061206002403.GA4587@ftp.linux.org.uk>  <20061204114851.GA25859@elte.hu> <20061201172149.GC3078@ftp.linux.org.uk> <1165064370.24604.36.camel@localhost.localdomain> <20061202140521.GJ3078@ftp.linux.org.uk> <1165070713.24604.50.camel@localhost.localdomain> <20061202160252.GQ14076@parisc-linux.org> <1165082803.24604.54.camel@localhost.localdomain> <20061202181957.GK3078@ftp.linux.org.uk> <28665.1165234964@redhat.com> 
+Subject: Re: [RFC] timers, pointers to functions and type safety 
+Date: Wed, 06 Dec 2006 10:20:10 +0000
+Message-ID: <17534.1165400410@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Dec 04, 2006 at 12:22:44PM +0000, David Howells wrote:
-> Ingo Molnar <mingo@elte.hu> wrote:
-> 
-> > the question is: which is more important, the type safety of a 
-> > container_of() [or type cast], which if we get it wrong produces a 
-> > /very/ trivial crash that is trivial to fix
+Al Viro <viro@ftp.linux.org.uk> wrote:
 
-The hell it is.  You get wrong fields of a big struct read and modified.
-Silently.
+> Guys, please, look at actual users of that stuff.
 
-Besides, I can show you fsckloads of cases when we do *NOT* pass a
-pointer to struct the timer is embedded into.  Some of them called directly
-(and no, the thing they get as argument doesn't point to anything that
-would contain a timer_list).
+I've been and looked at every single user of work_struct in the kernel (at
+least, I think I have), and 99% of those just expect data to be the container
+of the work_struct or a data structure linked to it.  I had to come up with a
+way to deal with cases where data is something from which you can't derive
+from the work_struct address, but I'm not sure how best to do that for timers.
 
-> > structure size all around the kernel? I believe the latter is more 
-> > important.
-> 
-> Indeed yes.
+I haven't, however, been and looked at timers, so I can't say what actually
+applies there.
 
-Guys, please, look at actual users of that stuff.
+David
