@@ -1,45 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.25]:60375 "EHLO smtp.osdl.org"
+Received: from smtp.osdl.org ([65.172.181.25]:60110 "EHLO smtp.osdl.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S937167AbWLFT3I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Dec 2006 14:29:08 -0500
-Date: Wed, 6 Dec 2006 11:28:17 -0800 (PST)
+	id S937337AbWLFT0e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Dec 2006 14:26:34 -0500
+Date: Wed, 6 Dec 2006 11:25:35 -0800 (PST)
 From: Linus Torvalds <torvalds@osdl.org>
 Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
  doesn't support it
-In-Reply-To: <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
-Message-ID: <Pine.LNX.4.64.0612061126010.3542@woody.osdl.org>
+In-Reply-To: <20061206190828.GE4587@ftp.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0612061122120.3542@woody.osdl.org>
 References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
  <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
- <20061206190025.GC9959@flint.arm.linux.org.uk>
- <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
+ <Pine.LNX.4.64.0612061103260.3542@woody.osdl.org> <20061206190828.GE4587@ftp.linux.org.uk>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: Christoph Lameter <clameter@sgi.com>, Russell King <rmk+lkml@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, linux-arm-kernel@lists.arm.linux.org.uk, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
 
-On Wed, 6 Dec 2006, Christoph Lameter wrote:
+On Wed, 6 Dec 2006, Al Viro wrote:
 > 
-> > For CPUs with load locked + store conditional, it is expensive.
-> 
-> Because it locks the bus? I am not that familiar with those architectures 
-> but it seems that those will have a general problem anyways.
+> No.  sparc32 doesn't have one, for instance.
 
-load_locked + store_conditional should _not_ be any more expensive than 
-any atomic sequence will always be.
+Ok. For SMP-safety, it's important that any architecture that can't do 
+this needs to _share_ the same spinlock (on SMP only, of course) that it 
+uses for the bitops. 
 
-Atomic sequences in SMP are obviously never "cheap". But cmpxchg shouldn't 
-be any more expensive than any other atomic sequence if you have 
-load-locked and store-conditional.
+It would be good (but perhaps not as strict a requirement) if the atomic 
+counters also use the same lock. But that is probably impossible on 
+sparc32 (since it has a per-counter "lock"-like thing, iirc). So doing a 
+cmpxchg() on an atomic_t would be a bug.
 
-There are obviously _implementation_ bugs. The early alpha's had such an 
-atrocious ldl/stc that it wasn't even funny. That might be true in other 
-implementations too, but it's definitely not cmpxchg-specific if so. It 
-will affect _any_ atomic ops on such an architecture (atomic_inc() and 
-friends)
-
-			Linus
+		Linus
