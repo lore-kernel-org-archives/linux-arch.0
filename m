@@ -1,28 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from jurassic.park.msu.ru ([195.208.223.243]:2502 "EHLO
-	jurassic.park.msu.ru" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1032190AbWLGNUf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2006 08:20:35 -0500
-Date: Thu, 7 Dec 2006 16:20:50 +0300
-From: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it
-Message-ID: <20061207162050.A5009@jurassic.park.msu.ru>
-References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <20061206190025.GC9959@flint.arm.linux.org.uk> <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com> <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <4577DF5C.5070701@yahoo.com.au>; from nickpiggin@yahoo.com.au on Thu, Dec 07, 2006 at 08:31:08PM +1100
+Received: from mx1.redhat.com ([66.187.233.31]:48216 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1032205AbWLGNZN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Dec 2006 08:25:13 -0500
+In-Reply-To: <20061207.000950.28414823.davem@davemloft.net> 
+References: <20061207.000950.28414823.davem@davemloft.net> 
+Subject: Re: cmpxchg() in kernel/workqueue.c breaks things 
+Date: Thu, 07 Dec 2006 13:24:27 +0000
+Message-ID: <2103.1165497867@redhat.com>
+From: David Howells <dhowells@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: dhowells@redhat.com, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, akpm@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Dec 07, 2006 at 08:31:08PM +1100, Nick Piggin wrote:
-> It might be reasonable to implement this watered down version, but:
-> don't some architectures have restrictions on what instructions can
-> be issued between the ll and the sc?
 
-Yes. On Alpha you cannot execute other load/stores, taken branches etc.
-So in general case the code between ll and sc cannot be written in C...
+[adding linux-arch to the CC list]
 
-Ivan.
+David Miller <davem@davemloft.net> wrote:
+
+> David, you have to fix the locking scheme used in kernel/workqueue.c,
+> you absolutely cannot assume that cmpxchg() is available on all
+> platforms.  This breaks the build on the platforms that don't
+> have such an instruction, and no it cannot emulated.
+
+Yeah, I've figured that one out.  Also, having considered things last night, I
+think the use of cmpxchg() is unnecessary.
+
+I was trying to handle against two possibilities:
+
+ (1) The pending flag may have been unset or may be cleared.  However, given
+     where it's called, the pending flag is _always_ set.  I don't think it
+     can be unset whilst we're in set_wq_data().
+
+     Once the work is enqueued to be actually run, the only way off the queue
+     is for it to be actually run.
+
+     If it's a delayed work item, then the bit can't be cleared by the timer
+     because we haven't started the timer yet.  Also, the pending bit can't be
+     cleared by cancelling the delayed work _until_ the work item has had its
+     timer started.
+
+ (2) The workqueue pointer might change.  This can only happen in two cases:
+
+     (a) The work item has just been queued to actually run, and so we're
+         protected by the appropriate workqueue spinlock.
+
+     (b) A delayed work item is being queued, and so the timer hasn't been
+     	 started yet, and so no one else knows about the work item or can
+     	 access it (the pending bit protects us).
+
+     Besides, set_wq_data() _sets_ the workqueue pointer unconditionally, so
+     it can be assigned instead.
+
+So, I think replacing the set_wq_data() with a straight assignment would be
+okay in most cases.  The problem is where we end up tangling with
+test_and_set_bit() emulated using spinlocks, and even then it's not a problem
+_provided_ test_and_set_bit() doesn't attempt to modify the word if the bit
+was set.
+
+David
