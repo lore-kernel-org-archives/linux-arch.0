@@ -1,63 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp104.mail.mud.yahoo.com ([209.191.85.214]:44264 "HELO
-	smtp104.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S968827AbWLGJXz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2006 04:23:55 -0500
-Message-ID: <4577DD75.50907@yahoo.com.au>
-Date: Thu, 07 Dec 2006 20:23:01 +1100
+Received: from smtp105.mail.mud.yahoo.com ([209.191.85.215]:22080 "HELO
+	smtp105.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1031883AbWLGJbz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2006 04:31:55 -0500
+Message-ID: <4577DF5C.5070701@yahoo.com.au>
+Date: Thu, 07 Dec 2006 20:31:08 +1100
 From: Nick Piggin <nickpiggin@yahoo.com.au>
 MIME-Version: 1.0
 Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
  doesn't support it
-References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <20061206190025.GC9959@flint.arm.linux.org.uk> <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com> <20061206195820.GA15281@flint.arm.linux.org.uk> <20061206213626.GE3013@parisc-linux.org> <Pine.LNX.4.64.0612061345160.28672@schroedinger.engr.sgi.com> <20061206220532.GF3013@parisc-linux.org> <Pine.LNX.4.64.0612070130240.1868@scrub.home> <Pine.LNX.4.64.0612061650240.3542@woody.osdl.org>
-In-Reply-To: <Pine.LNX.4.64.0612061650240.3542@woody.osdl.org>
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <20061206190025.GC9959@flint.arm.linux.org.uk> <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com> <20061206195820.GA15281@flint.arm.linux.org.uk>
+In-Reply-To: <20061206195820.GA15281@flint.arm.linux.org.uk>
 Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Roman Zippel <zippel@linux-m68k.org>, Matthew Wilcox <matthew@wil.cx>, Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Linus Torvalds wrote:
-> 
-> On Thu, 7 Dec 2006, Roman Zippel wrote:
-> 
->>On Wed, 6 Dec 2006, Matthew Wilcox wrote:
->>
->>
->>>To be honest, it'd be much easier if we only defined these operations on
->>>atomic_t's.  We have all the infrastructure in place for them, and
->>>they're fairly well understood.  If you need different sizes, I'm OK
->>>with an atomic_pointer_t, or whatever.
->>
->>FWIW Seconded.
-> 
-> 
-> I disagree.
-> 
-> Any _real_ CPU will simply never care about _anything_ else than just the 
-> size of the datum in question. There's absolutely no point to only allow 
-> it on certain types, especially as we _know_ those certain types are 
-> already going to be more than one, and we also know that they are going to 
-> be different sizes. In other words, in reality, we have to handle a 
-> sizeable subset of the whole generic situation, and the "on certain types 
-> only" situation is only going to be awkward and irritating.
-> 
-> For example, would we have a different "cmpxchg_ptr()" function for the 
-> atomic pointer thing? With any reasonable CPU just depending on the _size_ 
-> of the type, I don't see what the problem is with just doing the 
-> bog-standard "cmpxchg_8/16/32/64" and having the bog-standard case- 
-> statement in a header file to do it all automatically for you, and then we 
-> don't need to worry about it.
+Russell King wrote:
+> On Wed, Dec 06, 2006 at 11:16:55AM -0800, Christoph Lameter wrote:
 
-What's wrong with using atomic_cmpxchg? For unsigned long / pointers,
-there is a patch to implement atomic_long_cmpxchg.
+> No.  If you read what I said, you'll see that you can _cheaply_ use
+> cmpxchg in a ll/sc based implementation.  Take an atomic increment
+> operation.
+> 
+> 	do {
+> 		old = load_locked(addr);
+> 	} while (store_exclusive(old, old + 1, addr);
+> 
+> On a cmpxchg, that "store_exclusive" (loosely) becomes your cmpxchg
+> instruction, comparing the first arg, and if equal storing the second.
+> The "load_locked" macro becomes a standard pointer deref.  Ergo, x86
+> becomes:
+> 
+> 	do {
+> 		load value
+> 		manipulate it
+> 		conditional store
+> 	} while not stored
+> 
+> On ll/sc, the load_locked() macro is the load locked instruction.  The
+> store_exclusive() macro is the exclusive store and it doesn't need to
+> use the first parameter at all.  Ergo, ARM becomes:
+> 
+> 	do {
+> 		ldrex r1, [r2]
+> 		manipulate r1
+> 		strex r0, r1, [r2]
+> 	} while failed
+> 
+> Notice that both are optimal.
+> 
+> Now let's consider the cmpxchg case.
+> 
+> 	do {
+> 		val = *addr;
+> 	} while (cmpxchg(val, val + 1, addr);
+> 
+> The x86 case is _identical_ to the ll/sc based implementation.  Absolutely
+> entirely.  No impact what so ever.
+> 
+> Let's look at the ll/sc case.  The cmpxchg code implemented on this has
+> to reload the original value, compare it, if equal store the new value.
+> So:
+> 
+> 	do {
+> 		val = *addr;
+> 		(r2 = addr, 
+> 		ldrex r1, [r2]
+> 		compare r1, r0
+> 		strexeq r4, r3, [r2] (store exclusive if equal)
+> 	} while store failed or comparecondition failed
+> 
+> Note how the cmpxchg has _forced_ the ll/sc implementation to become
+> more complex.
+> 
+> So, let's recap.
+> 
+> Implementing ll/sc based accessor macros allows both ll/sc _and_ cmpxchg
+> architectures to produce optimal code.
+> 
+> Implementing an cmpxchg based accessor macro allows cmpxchg architectures
+> to produce optimal code and ll/sc non-optimal code.
+> 
+> See my point?
 
-Some architectures simply can't implement cmpxchg on memory that may
-be modified in arbitrary ways. If you add some more conditions to use
-cmpxchg, then you weaken it (ie. can't use it for synchronisation
-with userspace) and on top of that you don't get the easy static
-checking that atomic_t gives you.
+Wrong. Your ll/sc implementation with cmpxchg is buggy. The cmpxchg
+load_locked is not locked at all, and there can be interleaving writes
+between the load and cmpxchg which do not cause the store_conditional
+to fail.
+
+It might be reasonable to implement this watered down version, but:
+don't some architectures have restrictions on what instructions can
+be issued between the ll and the sc?
+
+But in general I agree with you, in that a higher level primitive is
+preferable (eg. atomic_add_unless).
 
 -- 
 SUSE Labs, Novell Inc.
