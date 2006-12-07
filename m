@@ -1,39 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:38388
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S937903AbWLGBJB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2006 20:09:01 -0500
-Date: Wed, 06 Dec 2006 17:09:11 -0800 (PST)
-Message-Id: <20061206.170911.45496956.davem@davemloft.net>
-Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an
- arch doesn't support it
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20061206190828.GE4587@ftp.linux.org.uk>
-References: <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
-	<Pine.LNX.4.64.0612061103260.3542@woody.osdl.org>
-	<20061206190828.GE4587@ftp.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from smtp.osdl.org ([65.172.181.25]:33886 "EHLO smtp.osdl.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S937909AbWLGBTZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Dec 2006 20:19:25 -0500
+Date: Wed, 6 Dec 2006 17:18:48 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
+ doesn't support it
+In-Reply-To: <Pine.LNX.4.64.0612070203520.1867@scrub.home>
+Message-ID: <Pine.LNX.4.64.0612061717030.3542@woody.osdl.org>
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
+ <20061206190025.GC9959@flint.arm.linux.org.uk>
+ <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
+ <20061206195820.GA15281@flint.arm.linux.org.uk> <20061206213626.GE3013@parisc-linux.org>
+ <Pine.LNX.4.64.0612061345160.28672@schroedinger.engr.sgi.com>
+ <20061206220532.GF3013@parisc-linux.org> <Pine.LNX.4.64.0612070130240.1868@scrub.home>
+ <Pine.LNX.4.64.0612061650240.3542@woody.osdl.org> <Pine.LNX.4.64.0612070203520.1867@scrub.home>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: viro@ftp.linux.org.uk
-Cc: torvalds@osdl.org, clameter@sgi.com, rmk+lkml@arm.linux.org.uk, dhowells@redhat.com, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Roman Zippel <zippel@linux-m68k.org>
+Cc: Matthew Wilcox <matthew@wil.cx>, Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Al Viro <viro@ftp.linux.org.uk>
-Date: Wed, 6 Dec 2006 19:08:28 +0000
 
-> On Wed, Dec 06, 2006 at 11:05:22AM -0800, Linus Torvalds wrote:
+
+On Thu, 7 Dec 2006, Roman Zippel wrote:
 > > 
-> > 
-> > On Wed, 6 Dec 2006, Christoph Lameter wrote:
-> > >
-> > > I'd really appreciate a cmpxchg that is generically available for 
-> > > all arches. It will allow lockless implementation for various performance 
-> > > criticial portions of the kernel.
-> > 
-> > I suspect ARM may have been the last one without one, no?
+> > Any _real_ CPU will simply never care about _anything_ else than just the 
+> > size of the datum in question.
 > 
-> No.  sparc32 doesn't have one, for instance.
+> ..or alignment which a dedicated atomic type would allow to be attached.
 
-That's correct.  It has an atomic swap, but not a cmpxchg.
+Can you give any example of a real CPU where alignment matters?
+
+Sure, it needs to be naturally aligned, but that's true of _any_ type in 
+the kernel. We don't do unaligneds without "get_unaligned()" and friends.
+
+Btw, if you want to leave out 8-bit and 16-bit data, that's fine. So 
+generally you'd only need to handle 32-bit (and 64-bit on a 64-bit 
+architecture) accesses anyway.
+
+		Linus
