@@ -1,37 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from scrub.xs4all.nl ([194.109.195.176]:48433 "EHLO scrub.xs4all.nl"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S937845AbWLGAi0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Dec 2006 19:38:26 -0500
-Date: Thu, 7 Dec 2006 01:37:06 +0100 (CET)
-From: Roman Zippel <zippel@linux-m68k.org>
-Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
- doesn't support it
-In-Reply-To: <20061206220532.GF3013@parisc-linux.org>
-Message-ID: <Pine.LNX.4.64.0612070130240.1868@scrub.home>
-References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
- <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
- <20061206190025.GC9959@flint.arm.linux.org.uk>
- <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
- <20061206195820.GA15281@flint.arm.linux.org.uk> <20061206213626.GE3013@parisc-linux.org>
- <Pine.LNX.4.64.0612061345160.28672@schroedinger.engr.sgi.com>
- <20061206220532.GF3013@parisc-linux.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from ftp.linux-mips.org ([194.74.144.162]:54136 "EHLO
+	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S937860AbWLGArR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2006 19:47:17 -0500
+Received: from localhost.localdomain ([127.0.0.1]:61908 "EHLO
+	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
+	id S20038452AbWLGArP (ORCPT <rfc822;linux-arch@vger.kernel.org>
+	+ 1 other); Thu, 7 Dec 2006 00:47:15 +0000
+Date: Thu, 7 Dec 2006 00:46:38 +0000
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it
+Message-ID: <20061207004638.GA24032@linux-mips.org>
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <20061206190025.GC9959@flint.arm.linux.org.uk> <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi,
+On Wed, Dec 06, 2006 at 11:16:55AM -0800, Christoph Lameter wrote:
 
-On Wed, 6 Dec 2006, Matthew Wilcox wrote:
+> But then its also just requires disable/enable interrupts on UP which may 
+> be cheaper than an atomic operation.
+> 
+> > For CPUs with load locked + store conditional, it is expensive.
+> 
+> Because it locks the bus? I am not that familiar with those architectures 
+> but it seems that those will have a general problem anyways.
 
-> To be honest, it'd be much easier if we only defined these operations on
-> atomic_t's.  We have all the infrastructure in place for them, and
-> they're fairly well understood.  If you need different sizes, I'm OK
-> with an atomic_pointer_t, or whatever.
+On a decent implementation ll/sc will have the same cost as ordinary
+non-atomic load and store instructions.  A likely uniprocessor
+implementation uses a single flip-flop ("llbit") in the CPU which is set
+by ll and cleared by any exception handler, especially interrupt.  A later
+store conditional will then simply fail if that bit is cleared.  That
+is extremly trivial stuff.  On SMP it's somewhat more complex; A
+processor will have to remember the address used with ll and start
+snooping the bus for writes to it.  The store conditional will then
+go and upgrade the cache line to exclusive state if the llbit is still
+set and perform the store.  The llbit would be cleared if the processor
+has snooped any other write to the cacheline.  Details are fun but that's
+bascially how it's implemented.
 
-FWIW Seconded.
+Of course load linked / store conditional are typically used in loops
+so there is a little extra overhead from that especially where when the
+branch is misspredicted.
 
-bye, Roman
+Also note there is no locked cycle required to implement load linked /
+store conditional.
+
+  Ralf
