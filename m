@@ -1,98 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:48216 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1032290AbWLGPcY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Dec 2006 10:32:24 -0500
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 1/3] WorkStruct: Fix up some PA-RISC work items
-Date: Thu, 07 Dec 2006 15:31:38 +0000
-Message-Id: <20061207153138.28408.94099.stgit@warthog.cambridge.redhat.com>
-Content-Type: text/plain; charset=utf-8; format=fixed
-Content-Transfer-Encoding: 8bit
+Received: from ftp.linux-mips.org ([194.74.144.162]:33061 "EHLO
+	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1032408AbWLGQv4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2006 11:51:56 -0500
+Received: from localhost.localdomain ([127.0.0.1]:20203 "EHLO
+	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
+	id S20037734AbWLGQvz (ORCPT <rfc822;linux-arch@vger.kernel.org>
+	+ 1 other); Thu, 7 Dec 2006 16:51:55 +0000
+Date: Thu, 7 Dec 2006 16:51:42 +0000
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it
+Message-ID: <20061207165142.GA9006@linux-mips.org>
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <20061206190025.GC9959@flint.arm.linux.org.uk> <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com> <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <4577DF5C.5070701@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
-To: torvalds@osdl.org, akpm@osdl.org, davem@davemloft.com, wli@holomorphy.com, matthew@wil.cx
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dhowells@redhat.com
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Fix up some PA-RISC work items broken by the workstruct reduction.
+On Thu, Dec 07, 2006 at 08:31:08PM +1100, Nick Piggin wrote:
 
-Signed-Off-By: David Howells <dhowells@redhat.com>
----
+> Wrong. Your ll/sc implementation with cmpxchg is buggy. The cmpxchg
+> load_locked is not locked at all, and there can be interleaving writes
+> between the load and cmpxchg which do not cause the store_conditional
+> to fail.
+> 
+> It might be reasonable to implement this watered down version, but:
+> don't some architectures have restrictions on what instructions can
+> be issued between the ll and the sc?
 
- drivers/parisc/led.c   |   12 ++++++------
- drivers/parisc/power.c |    4 ++--
- 2 files changed, 8 insertions(+), 8 deletions(-)
+On MIPS the restriction is no loads or stores or sync instructions between
+ll/sc.  Also there may be at most 2048 bytes between the address of the
+ll and sc instructions.  Which means ll/sc sequences should better be
+written in assembler or gcc might do a bit too creative things ...
 
-diff --git a/drivers/parisc/led.c b/drivers/parisc/led.c
-index 8dac2ba..6818c10 100644
---- a/drivers/parisc/led.c
-+++ b/drivers/parisc/led.c
-@@ -66,8 +66,8 @@ static char lcd_text_default[32]  __read
- 
- 
- static struct workqueue_struct *led_wq;
--static void led_work_func(void *);
--static DECLARE_WORK(led_task, led_work_func, NULL);
-+static void led_work_func(struct work_struct *);
-+static DECLARE_DELAYED_WORK(led_task, led_work_func);
- 
- #if 0
- #define DPRINTK(x)	printk x
-@@ -136,7 +136,7 @@ static int start_task(void) 
- 
- 	/* Create the work queue and queue the LED task */
- 	led_wq = create_singlethread_workqueue("led_wq");	
--	queue_work(led_wq, &led_task);
-+	queue_delayed_work(led_wq, &led_task, 0);
- 
- 	return 0;
- }
-@@ -443,7 +443,7 @@ #define HEARTBEAT_2ND_RANGE_END   (HEART
- 
- #define LED_UPDATE_INTERVAL (1 + (HZ*19/1000))
- 
--static void led_work_func (void *unused)
-+static void led_work_func (struct work_struct *unused)
- {
- 	static unsigned long last_jiffies;
- 	static unsigned long count_HZ; /* counter in range 0..HZ */
-@@ -590,7 +590,7 @@ int __init register_led_driver(int model
- 
- 	/* Ensure the work is queued */
- 	if (led_wq) {
--		queue_work(led_wq, &led_task);
-+		queue_delayed_work(led_wq, &led_task, 0);
- 	}
- 
- 	return 0;
-@@ -660,7 +660,7 @@ int lcd_print( char *str )
- 	
- 	/* re-queue the work */
- 	if (led_wq) {
--		queue_work(led_wq, &led_task);
-+		queue_delayed_work(led_wq, &led_task, 0);
- 	}
- 
- 	return lcd_info.lcd_width;
-diff --git a/drivers/parisc/power.c b/drivers/parisc/power.c
-index 97e9dc0..9228e21 100644
---- a/drivers/parisc/power.c
-+++ b/drivers/parisc/power.c
-@@ -82,7 +82,7 @@ #define __getDIAG(dr) ( { 			\
- } )
- 
- 
--static void deferred_poweroff(void *dummy)
-+static void deferred_poweroff(struct work_struct *unused)
- {
- 	if (kill_cad_pid(SIGINT, 1)) {
- 		/* just in case killing init process failed */
-@@ -96,7 +96,7 @@ static void deferred_poweroff(void *dumm
-  * use schedule_work().
-  */
- 
--static DECLARE_WORK(poweroff_work, deferred_poweroff, NULL);
-+static DECLARE_WORK(poweroff_work, deferred_poweroff);
- 
- static void poweroff(void)
- {
+  Ralf
