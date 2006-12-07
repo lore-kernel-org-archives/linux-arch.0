@@ -1,44 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:2874 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1032299AbWLGPGR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2006 10:06:17 -0500
-Date: Thu, 7 Dec 2006 15:06:06 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it
-Message-ID: <20061207150606.GC1255@flint.arm.linux.org.uk>
-References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <Pine.LNX.4.64.0612061103260.3542@woody.osdl.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0612061103260.3542@woody.osdl.org>
+Received: from smtp.osdl.org ([65.172.181.25]:36327 "EHLO smtp.osdl.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759384AbWLGPmC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Dec 2006 10:42:02 -0500
+Date: Thu, 7 Dec 2006 07:36:16 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
+ doesn't support it
+In-Reply-To: <4577DF5C.5070701@yahoo.com.au>
+Message-ID: <Pine.LNX.4.64.0612070730110.3615@woody.osdl.org>
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
+ <20061206190025.GC9959@flint.arm.linux.org.uk>
+ <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
+ <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@osdl.org>
-Cc: Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, linux-arm-kernel@lists.arm.linux.org.uk, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Dec 06, 2006 at 11:05:22AM -0800, Linus Torvalds wrote:
-> 
-> 
-> On Wed, 6 Dec 2006, Christoph Lameter wrote:
-> >
-> > I'd really appreciate a cmpxchg that is generically available for 
-> > all arches. It will allow lockless implementation for various performance 
-> > criticial portions of the kernel.
-> 
-> I suspect ARM may have been the last one without one, no?
-> 
-> That said, cmpxchg won't necessarily be "high-performance" unless the hw 
-> supports it naturally in hardware, so..
-> 
-> Russell, are you ok with the code DavidH posted (the "try 2" one)? I'd 
-> like to get an ack from the ARM maintainer before applying it, but it 
-> looked ok.
 
-Things seem to have moved on since this request.  Do I need to do
-anything?  I dunno.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+On Thu, 7 Dec 2006, Nick Piggin wrote:
+> 
+> It might be reasonable to implement this watered down version, but:
+> don't some architectures have restrictions on what instructions can
+> be issued between the ll and the sc?
+
+Yes. You really probably do not want to expose ll/sc on a C level because 
+of this.
+
+On alpha, the architecture manual says (I didn't go back and check, but 
+I'm pretty sure) that a ld.l and st.c cannot have a taken branch in 
+between then, for example. That basically means that you can't allow the 
+compiler to reorder the basic blocks (which it often will with a 
+while-loop).
+
+Now, I actually suspect that this was not a microarchitectural flaw, and 
+that a branch would _work_ there, and that the architecture manual was 
+just being anal, but strictly speaking, it means that these things had 
+better always be in assembly, and you can sadly not expose them (on alpha, 
+at least) as higher-level primitives as such - you can only expose the 
+end result ("cmpxchg" or similar).
+
+		Linus
