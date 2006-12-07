@@ -1,30 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:39821 "EHLO mx1.redhat.com"
+Received: from smtp.osdl.org ([65.172.181.25]:39417 "EHLO smtp.osdl.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1163377AbWLGVQQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Dec 2006 16:16:16 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1165525597.4698.46.camel@mulgrave.il.steeleye.com> 
-References: <1165525597.4698.46.camel@mulgrave.il.steeleye.com>  <20061207085409.228016a2.akpm@osdl.org> <20061207153138.28408.94099.stgit@warthog.cambridge.redhat.com> <20061207153143.28408.7274.stgit@warthog.cambridge.redhat.com> <639.1165521999@redhat.com> 
-Subject: Re: [PATCH 3/3] WorkStruct: Use direct assignment rather than cmpxchg() 
-Date: Thu, 07 Dec 2006 21:16:03 +0000
-Message-ID: <10660.1165526163@redhat.com>
+	id S1163350AbWLGVHJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Dec 2006 16:07:09 -0500
+Date: Thu, 7 Dec 2006 13:06:30 -0800
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: [PATCH 3/3] WorkStruct: Use direct assignment rather than
+ cmpxchg()
+Message-Id: <20061207130630.6c1a8d32.akpm@osdl.org>
+In-Reply-To: <639.1165521999@redhat.com>
+References: <20061207085409.228016a2.akpm@osdl.org>
+	<20061207153138.28408.94099.stgit@warthog.cambridge.redhat.com>
+	<20061207153143.28408.7274.stgit@warthog.cambridge.redhat.com>
+	<639.1165521999@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@steeleye.com>
-Cc: David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, torvalds@osdl.org, davem@davemloft.com, wli@holomorphy.com, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, davem@davemloft.com, wli@holomorphy.com, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-James Bottomley <James.Bottomley@SteelEye.com> wrote:
+On Thu, 07 Dec 2006 20:06:39 +0000
+David Howells <dhowells@redhat.com> wrote:
 
-> That we'd have to put a conditional jump in there is an incorrect
-> assumption on risc machines.
+> Andrew Morton <akpm@osdl.org> wrote:
+> 
+> > and we can assume (and ensure) that a failing test_and_set_bit() will not
+> > write to the affected word at all.
+> 
+> You may not assume that; and indeed that is not so in the generic
+> spinlock-based bitops or ARM pre-v6 or PA-RISC or sparc32 or ...
 
-I didn't say we would *have* to put a conditional jump in there.  But I don't
-know that I it can be avoided on all archs.
+Ah.  How obnoxious of them.
 
-I don't know that sparc32 can do conditional instructions for example.  If we
-force this assumption it becomes a potential limitation on the archs we can
-support.  OTOH, it may be that every arch that supports SMP and has to emulate
-bitops with spinlocks also supports conditional stores; but I don't know that.
+> Remember: if you have to put a conditional jump in there, it's going to fail
+> one way or the other a certain percentage of the time, and that's going to
+> cause a pipeline stall, and these ops are used quite a lot.
+> 
+> OTOH, I don't know that the stall would be that bad since the spin_lock and
+> spin_unlock may cause a stall anyway.
+> 
 
-David
+Yes, the branch would cost.  But in not uncommon cases that branch will save
+the machine from dirtying a cacheline.
+
+And if we add those branches, we bring those architectures' semantics in
+line with all the other architectures.  And we get better semantics
+overall.
+
+So I don't think we should rule this out.
