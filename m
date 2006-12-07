@@ -1,40 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:33061 "EHLO
-	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1032408AbWLGQv4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2006 11:51:56 -0500
-Received: from localhost.localdomain ([127.0.0.1]:20203 "EHLO
-	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20037734AbWLGQvz (ORCPT <rfc822;linux-arch@vger.kernel.org>
-	+ 1 other); Thu, 7 Dec 2006 16:51:55 +0000
-Date: Thu, 7 Dec 2006 16:51:42 +0000
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it
-Message-ID: <20061207165142.GA9006@linux-mips.org>
-References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <20061206190025.GC9959@flint.arm.linux.org.uk> <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com> <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au>
+Received: from smtp.osdl.org ([65.172.181.25]:43555 "EHLO smtp.osdl.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1032407AbWLGQzJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Dec 2006 11:55:09 -0500
+Date: Thu, 7 Dec 2006 08:54:09 -0800
+From: Andrew Morton <akpm@osdl.org>
+Subject: Re: [PATCH 3/3] WorkStruct: Use direct assignment rather than
+ cmpxchg()
+Message-Id: <20061207085409.228016a2.akpm@osdl.org>
+In-Reply-To: <20061207153143.28408.7274.stgit@warthog.cambridge.redhat.com>
+References: <20061207153138.28408.94099.stgit@warthog.cambridge.redhat.com>
+	<20061207153143.28408.7274.stgit@warthog.cambridge.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <4577DF5C.5070701@yahoo.com.au>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, davem@davemloft.com, wli@holomorphy.com, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Dec 07, 2006 at 08:31:08PM +1100, Nick Piggin wrote:
+On Thu, 07 Dec 2006 15:31:43 +0000
+David Howells <dhowells@redhat.com> wrote:
 
-> Wrong. Your ll/sc implementation with cmpxchg is buggy. The cmpxchg
-> load_locked is not locked at all, and there can be interleaving writes
-> between the load and cmpxchg which do not cause the store_conditional
-> to fail.
+> Use direct assignment rather than cmpxchg() as the latter is unavailable and
+> unimplementable on some platforms and is actually unnecessary.
 > 
-> It might be reasonable to implement this watered down version, but:
-> don't some architectures have restrictions on what instructions can
-> be issued between the ll and the sc?
+> The use of cmpxchg() was to guard against two possibilities, neither of which
+> can actually occur:
+> 
+>  (1) The pending flag may have been unset or may be cleared.  However, given
+>      where it's called, the pending flag is _always_ set.  I don't think it
+>      can be unset whilst we're in set_wq_data().
+> 
+>      Once the work is enqueued to be actually run, the only way off the queue
+>      is for it to be actually run.
+> 
+>      If it's a delayed work item, then the bit can't be cleared by the timer
+>      because we haven't started the timer yet.  Also, the pending bit can't be
+>      cleared by cancelling the delayed work _until_ the work item has had its
+>      timer started.
+> 
+>  (2) The workqueue pointer might change.  This can only happen in two cases:
+> 
+>      (a) The work item has just been queued to actually run, and so we're
+>          protected by the appropriate workqueue spinlock.
+> 
+>      (b) A delayed work item is being queued, and so the timer hasn't been
+>      	 started yet, and so no one else knows about the work item or can
+>      	 access it (the pending bit protects us).
+> 
+>      Besides, set_wq_data() _sets_ the workqueue pointer unconditionally, so
+>      it can be assigned instead.
+> 
+> So, replacing the set_wq_data() with a straight assignment would be okay in
+> most cases.  The problem is where we end up tangling with test_and_set_bit()
+> emulated using spinlocks, and even then it's not a problem _provided_
+> test_and_set_bit() doesn't attempt to modify the word if the bit was set.
+> 
+> If that's a problem, then a bitops-proofed assignment will be required -
+> equivalent to atomic_set() vs other atomic_xxx() ops.
+> 
 
-On MIPS the restriction is no loads or stores or sync instructions between
-ll/sc.  Also there may be at most 2048 bytes between the address of the
-ll and sc instructions.  Which means ll/sc sequences should better be
-written in assembler or gcc might do a bit too creative things ...
+I don't understand, as usual.
 
-  Ralf
+afacit in all (but one) cases we do
+
+	if (!test_and_set_bit(WORK_STRUCT_PENDING, &work->management)) {
+		...
+		set_wq_data(work, wq);
+		...
+		<now do stuff which makes it possible for run_workqueue()
+		 to get a look at the new work>
+	}
+
+cancel_delayed_work() looks OK too.
+
+The possible exception is schedule_on_each_cpu() which is being lazy, but
+looks fixable.
+
+
+So...  afaict in all the places where there can be a concurrent
+set_wq_data() and test_and_set_bit(), WORK_STRUCT_PENDING is reliably set,
+and we can assume (and ensure) that a failing test_and_set_bit() will not
+write to the affected word at all.
+
+What am I missing?
