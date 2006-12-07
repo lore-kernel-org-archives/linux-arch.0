@@ -1,62 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:48216 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1032205AbWLGNZN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Dec 2006 08:25:13 -0500
-In-Reply-To: <20061207.000950.28414823.davem@davemloft.net> 
-References: <20061207.000950.28414823.davem@davemloft.net> 
-Subject: Re: cmpxchg() in kernel/workqueue.c breaks things 
-Date: Thu, 07 Dec 2006 13:24:27 +0000
-Message-ID: <2103.1165497867@redhat.com>
-From: David Howells <dhowells@redhat.com>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:3053 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1032274AbWLGPDY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2006 10:03:24 -0500
+Date: Thu, 7 Dec 2006 15:03:03 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch doesn't support it
+Message-ID: <20061207150303.GB1255@flint.arm.linux.org.uk>
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <20061206190025.GC9959@flint.arm.linux.org.uk> <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com> <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <4577DF5C.5070701@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: dhowells@redhat.com, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, akpm@osdl.org, linux-arch@vger.kernel.org
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Thu, Dec 07, 2006 at 08:31:08PM +1100, Nick Piggin wrote:
+> Russell King wrote:
+> >On Wed, Dec 06, 2006 at 11:16:55AM -0800, Christoph Lameter wrote:
+> 
+> >No.  If you read what I said, you'll see that you can _cheaply_ use
+> >cmpxchg in a ll/sc based implementation.  Take an atomic increment
+> >operation.
+> >
+> >	do {
+> >		old = load_locked(addr);
+> >	} while (store_exclusive(old, old + 1, addr);
+> >
+> >On a cmpxchg, that "store_exclusive" (loosely) becomes your cmpxchg
+> >instruction, comparing the first arg, and if equal storing the second.
+> >The "load_locked" macro becomes a standard pointer deref.  Ergo, x86
+> >becomes:
+> >
+> >	do {
+> >		load value
+> >		manipulate it
+> >		conditional store
+> >	} while not stored
+> >
+> >On ll/sc, the load_locked() macro is the load locked instruction.  The
+> >store_exclusive() macro is the exclusive store and it doesn't need to
+> >use the first parameter at all.  Ergo, ARM becomes:
+> >
+> >	do {
+> >		ldrex r1, [r2]
+> >		manipulate r1
+> >		strex r0, r1, [r2]
+> >	} while failed
+> >
+> >Notice that both are optimal.
+> >
+> >Now let's consider the cmpxchg case.
+> >
+> >	do {
+> >		val = *addr;
+> >	} while (cmpxchg(val, val + 1, addr);
+> >
+> >The x86 case is _identical_ to the ll/sc based implementation.  Absolutely
+> >entirely.  No impact what so ever.
+> >
+> >Let's look at the ll/sc case.  The cmpxchg code implemented on this has
+> >to reload the original value, compare it, if equal store the new value.
+> >So:
+> >
+> >	do {
+> >		val = *addr;
+> >		(r2 = addr, 
+> >		ldrex r1, [r2]
+> >		compare r1, r0
+> >		strexeq r4, r3, [r2] (store exclusive if equal)
+> >	} while store failed or comparecondition failed
+> >
+> >Note how the cmpxchg has _forced_ the ll/sc implementation to become
+> >more complex.
+> >
+> >So, let's recap.
+> >
+> >Implementing ll/sc based accessor macros allows both ll/sc _and_ cmpxchg
+> >architectures to produce optimal code.
+> >
+> >Implementing an cmpxchg based accessor macro allows cmpxchg architectures
+> >to produce optimal code and ll/sc non-optimal code.
+> >
+> >See my point?
+> 
+> Wrong. Your ll/sc implementation with cmpxchg is buggy. The cmpxchg
+> load_locked is not locked at all,
 
-[adding linux-arch to the CC list]
+Intentional - cmpxchg architectures don't generally have a load locked.
 
-David Miller <davem@davemloft.net> wrote:
+> and there can be interleaving writes
+> between the load and cmpxchg which do not cause the store_conditional
+> to fail.
 
-> David, you have to fix the locking scheme used in kernel/workqueue.c,
-> you absolutely cannot assume that cmpxchg() is available on all
-> platforms.  This breaks the build on the platforms that don't
-> have such an instruction, and no it cannot emulated.
+In which case the cmpxchg fails and we do the atomic operation again,
+in exactly the same way that we do the operation again if the 'sc'
+fails in the ll/sc case.
 
-Yeah, I've figured that one out.  Also, having considered things last night, I
-think the use of cmpxchg() is unnecessary.
+I do not see any problem.
 
-I was trying to handle against two possibilities:
-
- (1) The pending flag may have been unset or may be cleared.  However, given
-     where it's called, the pending flag is _always_ set.  I don't think it
-     can be unset whilst we're in set_wq_data().
-
-     Once the work is enqueued to be actually run, the only way off the queue
-     is for it to be actually run.
-
-     If it's a delayed work item, then the bit can't be cleared by the timer
-     because we haven't started the timer yet.  Also, the pending bit can't be
-     cleared by cancelling the delayed work _until_ the work item has had its
-     timer started.
-
- (2) The workqueue pointer might change.  This can only happen in two cases:
-
-     (a) The work item has just been queued to actually run, and so we're
-         protected by the appropriate workqueue spinlock.
-
-     (b) A delayed work item is being queued, and so the timer hasn't been
-     	 started yet, and so no one else knows about the work item or can
-     	 access it (the pending bit protects us).
-
-     Besides, set_wq_data() _sets_ the workqueue pointer unconditionally, so
-     it can be assigned instead.
-
-So, I think replacing the set_wq_data() with a straight assignment would be
-okay in most cases.  The problem is where we end up tangling with
-test_and_set_bit() emulated using spinlocks, and even then it's not a problem
-_provided_ test_and_set_bit() doesn't attempt to modify the word if the bit
-was set.
-
-David
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
