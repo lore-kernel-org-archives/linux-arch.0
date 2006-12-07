@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.25]:33886 "EHLO smtp.osdl.org"
+Received: from scrub.xs4all.nl ([194.109.195.176]:48526 "EHLO scrub.xs4all.nl"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S937909AbWLGBTZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Dec 2006 20:19:25 -0500
-Date: Wed, 6 Dec 2006 17:18:48 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
+	id S937917AbWLGBYp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Dec 2006 20:24:45 -0500
+Date: Thu, 7 Dec 2006 02:24:30 +0100 (CET)
+From: Roman Zippel <zippel@linux-m68k.org>
 Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
  doesn't support it
-In-Reply-To: <Pine.LNX.4.64.0612070203520.1867@scrub.home>
-Message-ID: <Pine.LNX.4.64.0612061717030.3542@woody.osdl.org>
+In-Reply-To: <Pine.LNX.4.64.0612061717030.3542@woody.osdl.org>
+Message-ID: <Pine.LNX.4.64.0612070219540.1867@scrub.home>
 References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
  <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
  <20061206190025.GC9959@flint.arm.linux.org.uk>
@@ -17,29 +17,29 @@ References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
  <Pine.LNX.4.64.0612061345160.28672@schroedinger.engr.sgi.com>
  <20061206220532.GF3013@parisc-linux.org> <Pine.LNX.4.64.0612070130240.1868@scrub.home>
  <Pine.LNX.4.64.0612061650240.3542@woody.osdl.org> <Pine.LNX.4.64.0612070203520.1867@scrub.home>
+ <Pine.LNX.4.64.0612061717030.3542@woody.osdl.org>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Roman Zippel <zippel@linux-m68k.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@osdl.org>
+Cc: Matthew Wilcox <matthew@wil.cx>, Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Hi,
 
+On Wed, 6 Dec 2006, Linus Torvalds wrote:
 
-On Thu, 7 Dec 2006, Roman Zippel wrote:
+> > > Any _real_ CPU will simply never care about _anything_ else than just the 
+> > > size of the datum in question.
 > > 
-> > Any _real_ CPU will simply never care about _anything_ else than just the 
-> > size of the datum in question.
+> > ..or alignment which a dedicated atomic type would allow to be attached.
 > 
-> ..or alignment which a dedicated atomic type would allow to be attached.
+> Can you give any example of a real CPU where alignment matters?
+> 
+> Sure, it needs to be naturally aligned, but that's true of _any_ type in 
+> the kernel. We don't do unaligneds without "get_unaligned()" and friends.
 
-Can you give any example of a real CPU where alignment matters?
+m68060 produces a trap for unaligned atomic access, unfortunately standard 
+alignment is smaller than this.
 
-Sure, it needs to be naturally aligned, but that's true of _any_ type in 
-the kernel. We don't do unaligneds without "get_unaligned()" and friends.
-
-Btw, if you want to leave out 8-bit and 16-bit data, that's fine. So 
-generally you'd only need to handle 32-bit (and 64-bit on a 64-bit 
-architecture) accesses anyway.
-
-		Linus
+bye, Roman
