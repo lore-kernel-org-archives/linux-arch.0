@@ -1,48 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.25]:36327 "EHLO smtp.osdl.org"
+Received: from mx1.redhat.com ([66.187.233.31]:48217 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759384AbWLGPmC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Dec 2006 10:42:02 -0500
-Date: Thu, 7 Dec 2006 07:36:16 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
-Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
- doesn't support it
-In-Reply-To: <4577DF5C.5070701@yahoo.com.au>
-Message-ID: <Pine.LNX.4.64.0612070730110.3615@woody.osdl.org>
-References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
- <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
- <20061206190025.GC9959@flint.arm.linux.org.uk>
- <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
- <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+	id S1032296AbWLGPcY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Dec 2006 10:32:24 -0500
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 3/3] WorkStruct: Use direct assignment rather than cmpxchg()
+Date: Thu, 07 Dec 2006 15:31:43 +0000
+Message-Id: <20061207153143.28408.7274.stgit@warthog.cambridge.redhat.com>
+In-Reply-To: <20061207153138.28408.94099.stgit@warthog.cambridge.redhat.com>
+References: <20061207153138.28408.94099.stgit@warthog.cambridge.redhat.com>
+Content-Type: text/plain; charset=utf-8; format=fixed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: torvalds@osdl.org, akpm@osdl.org, davem@davemloft.com, wli@holomorphy.com, matthew@wil.cx
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
+Use direct assignment rather than cmpxchg() as the latter is unavailable and
+unimplementable on some platforms and is actually unnecessary.
 
+The use of cmpxchg() was to guard against two possibilities, neither of which
+can actually occur:
 
-On Thu, 7 Dec 2006, Nick Piggin wrote:
-> 
-> It might be reasonable to implement this watered down version, but:
-> don't some architectures have restrictions on what instructions can
-> be issued between the ll and the sc?
+ (1) The pending flag may have been unset or may be cleared.  However, given
+     where it's called, the pending flag is _always_ set.  I don't think it
+     can be unset whilst we're in set_wq_data().
 
-Yes. You really probably do not want to expose ll/sc on a C level because 
-of this.
+     Once the work is enqueued to be actually run, the only way off the queue
+     is for it to be actually run.
 
-On alpha, the architecture manual says (I didn't go back and check, but 
-I'm pretty sure) that a ld.l and st.c cannot have a taken branch in 
-between then, for example. That basically means that you can't allow the 
-compiler to reorder the basic blocks (which it often will with a 
-while-loop).
+     If it's a delayed work item, then the bit can't be cleared by the timer
+     because we haven't started the timer yet.  Also, the pending bit can't be
+     cleared by cancelling the delayed work _until_ the work item has had its
+     timer started.
 
-Now, I actually suspect that this was not a microarchitectural flaw, and 
-that a branch would _work_ there, and that the architecture manual was 
-just being anal, but strictly speaking, it means that these things had 
-better always be in assembly, and you can sadly not expose them (on alpha, 
-at least) as higher-level primitives as such - you can only expose the 
-end result ("cmpxchg" or similar).
+ (2) The workqueue pointer might change.  This can only happen in two cases:
 
-		Linus
+     (a) The work item has just been queued to actually run, and so we're
+         protected by the appropriate workqueue spinlock.
+
+     (b) A delayed work item is being queued, and so the timer hasn't been
+     	 started yet, and so no one else knows about the work item or can
+     	 access it (the pending bit protects us).
+
+     Besides, set_wq_data() _sets_ the workqueue pointer unconditionally, so
+     it can be assigned instead.
+
+So, replacing the set_wq_data() with a straight assignment would be okay in
+most cases.  The problem is where we end up tangling with test_and_set_bit()
+emulated using spinlocks, and even then it's not a problem _provided_
+test_and_set_bit() doesn't attempt to modify the word if the bit was set.
+
+If that's a problem, then a bitops-proofed assignment will be required -
+equivalent to atomic_set() vs other atomic_xxx() ops.
+
+Signed-Off-By: David Howells <dhowells@redhat.com>
+---
+
+ kernel/workqueue.c |   21 +++++++++------------
+ 1 files changed, 9 insertions(+), 12 deletions(-)
+
+diff --git a/kernel/workqueue.c b/kernel/workqueue.c
+index 8d1e7cb..f5f3819 100644
+--- a/kernel/workqueue.c
++++ b/kernel/workqueue.c
+@@ -80,22 +80,19 @@ static inline int is_single_threaded(str
+ 	return list_empty(&wq->list);
+ }
+ 
++/*
++ * Set the workqueue on which a work item is to be run
++ * - Must *only* be called if the pending flag is set
++ */
+ static inline void set_wq_data(struct work_struct *work, void *wq)
+ {
+-	unsigned long new, old, res;
++	unsigned long new;
++
++	BUG_ON(!work_pending(work));
+ 
+-	/* assume the pending flag is already set and that the task has already
+-	 * been queued on this workqueue */
+ 	new = (unsigned long) wq | (1UL << WORK_STRUCT_PENDING);
+-	res = work->management;
+-	if (res != new) {
+-		do {
+-			old = res;
+-			new = (unsigned long) wq;
+-			new |= (old & WORK_STRUCT_FLAG_MASK);
+-			res = cmpxchg(&work->management, old, new);
+-		} while (res != old);
+-	}
++	new |= work->management & WORK_STRUCT_FLAG_MASK;
++	assign_bits(new, &work->management);
+ }
+ 
+ static inline void *get_wq_data(struct work_struct *work)
