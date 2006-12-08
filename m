@@ -1,55 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:2590 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S938038AbWLHLO1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2006 06:14:27 -0500
-Date: Fri, 8 Dec 2006 11:14:11 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [PATCH 3/3] WorkStruct: Use direct assignment rather than cmpxchg()
-Message-ID: <20061208111410.GA31068@flint.arm.linux.org.uk>
-References: <20061207234250.GH1255@flint.arm.linux.org.uk> <20061207085409.228016a2.akpm@osdl.org> <20061207153138.28408.94099.stgit@warthog.cambridge.redhat.com> <20061207153143.28408.7274.stgit@warthog.cambridge.redhat.com> <639.1165521999@redhat.com> <26012.1165535903@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <26012.1165535903@redhat.com>
+Received: from mx1.redhat.com ([66.187.233.31]:51979 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1760728AbWLHN6y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Dec 2006 08:58:54 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20061208022259.GB11551@wotan.suse.de> 
+References: <20061208022259.GB11551@wotan.suse.de>  <20061204144634.GA14383@wotan.suse.de> <20061204100607.GA20529@wotan.suse.de> <29183.1165236916@redhat.com> <25001.1165350982@redhat.com> 
+Subject: Re: [patch][rfc] rwsem: generic rwsem 
+Date: Fri, 08 Dec 2006 13:58:42 +0000
+Message-ID: <4548.1165586322@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Andrew Morton <akpm@osdl.org>, torvalds@osdl.org, davem@davemloft.com, wli@holomorphy.com, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: David Howells <dhowells@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Dec 07, 2006 at 11:58:23PM +0000, David Howells wrote:
-> Russell King <rmk+lkml@arm.linux.org.uk> wrote:
-> 
-> > Incorrect.  pre-v6 ARM bitops for test_and_xxx_bit() all do:
-> > 
-> > 	save and disable irqs
-> > 	load value
-> > 	test bit
-> > 	if not in desired state, alter bit and write it back
-> > 	restore irqs
-> 
-> Hmmm...  ARM has two implementations.  One in the header files which is what I
-> consulted when writing that email:
-> 
-> static inline void ____atomic_set_bit(unsigned int bit, volatile unsigned long *p)
-> {
-> 	unsigned long flags;
-> 	unsigned long mask = 1UL << (bit & 31);
-> 
-> 	p += bit >> 5;
-> 
-> 	raw_local_irq_save(flags);
-> 	*p |= mask;
-> 	raw_local_irq_restore(flags);
-> }
-> 
-> And the other in the libs which does as you say.  Why the one in the header
-> file at all?
+Nick Piggin <npiggin@suse.de> wrote:
 
-These are the constant versions, where the compiler can optimise the
-mask and word offset itself.
+> > Look at how the counter works in the XADD-based version.  That's the way
+> > it is *because* I'm using XADD.  That's quite limiting.
+> 
+> Not really. ll/sc architectures "emulate" xadd the same as they would
+> emulate a spinlock. There is nothing suboptimal about it.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Yes, really.  You've missed the point entirely.  Look at *how* the counter
+*works*.
+
+David
