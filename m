@@ -1,38 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate4.uk.ibm.com ([195.212.29.137]:58816 "EHLO
-	mtagate4.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1425571AbWLHPgc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2006 10:36:32 -0500
-Subject: Re: [PATCH] WorkStruct: Fix S390 driver workstruct usage
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <20061208145940.21411.77769.stgit@warthog.cambridge.redhat.com>
-References: <20061208145940.21411.77769.stgit@warthog.cambridge.redhat.com>
-Content-Type: text/plain
-Date: Fri, 08 Dec 2006 16:36:24 +0100
-Message-Id: <1165592184.17999.3.camel@localhost>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from omx2-ext.sgi.com ([192.48.171.19]:39121 "EHLO omx2.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1425096AbWLHQHA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Dec 2006 11:07:00 -0500
+Date: Fri, 8 Dec 2006 08:06:23 -0800 (PST)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
+ doesn't support it
+In-Reply-To: <20061208085634.GA25751@flint.arm.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0612080758120.15242@schroedinger.engr.sgi.com>
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
+ <20061206190025.GC9959@flint.arm.linux.org.uk>
+ <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
+ <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au>
+ <20061207150303.GB1255@flint.arm.linux.org.uk> <4578BD7C.4050703@yahoo.com.au>
+ <20061208085634.GA25751@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, linux390@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2006-12-08 at 14:59 +0000, David Howells wrote:
-> Fix S390 driver workstruct reduction problems.
+On Fri, 8 Dec 2006, Russell King wrote:
 
-Bad timing. I just created similar patch and pushed it to git390. The
-only part it does not cover is the ctrlchar.c part. I hope you didn't
-spent too much time on this.
+> I'm trying to suggest a better implementation for atomic ops rather
+> than just bowing to this x86-centric "cmpxchg is the best, everyone
+> must implement it" mentality.
 
--- 
-blue skies,
-  Martin.
+cmpxchg is the simplest solution to realize many other atomic operations 
+and its widely available on a wide variety of platforms. It is the most 
+universal atomic instruction that I know of. Other atomic operations may 
+be more efficient but certainly cmpxchg is the most universal.
 
-Martin Schwidefsky
-Linux for zSeries Development & Services
-IBM Deutschland Entwicklung GmbH
-
-"Reality continues to ruin my life." - Calvin.
-
-
+Having multiple instructions with restrictions of what can be done in 
+between just complicates the use and seems to be arch specific. I have not 
+seen a better solution. Are you really advocating the weirdly complex 
+ll/sc be adopted by other architectures?
