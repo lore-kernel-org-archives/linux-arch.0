@@ -1,58 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.25]:33986 "EHLO smtp.osdl.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1761177AbWLHUfQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 8 Dec 2006 15:35:16 -0500
-Date: Fri, 8 Dec 2006 12:34:27 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
+Received: from smtp101.mail.mud.yahoo.com ([209.191.85.211]:25255 "HELO
+	smtp101.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1761225AbWLHWeF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2006 17:34:05 -0500
+Message-ID: <4579E826.80406@yahoo.com.au>
+Date: Sat, 09 Dec 2006 09:33:10 +1100
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+MIME-Version: 1.0
 Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
  doesn't support it
-In-Reply-To: <20061208195949.GK31068@flint.arm.linux.org.uk>
-Message-ID: <Pine.LNX.4.64.0612081221180.3516@woody.osdl.org>
-References: <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
- <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au>
- <20061207150303.GB1255@flint.arm.linux.org.uk> <4578BD7C.4050703@yahoo.com.au>
- <20061208085634.GA25751@flint.arm.linux.org.uk> <4595.1165597017@redhat.com>
- <Pine.LNX.4.64.0612081045430.3516@woody.osdl.org> <20061208190403.GH31068@flint.arm.linux.org.uk>
- <Pine.LNX.4.64.0612081130110.3516@woody.osdl.org> <20061208195949.GK31068@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+References: <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com> <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com> <20061206190025.GC9959@flint.arm.linux.org.uk> <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com> <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au> <20061207150303.GB1255@flint.arm.linux.org.uk> <4578BD7C.4050703@yahoo.com.au> <20061208085634.GA25751@flint.arm.linux.org.uk>
+In-Reply-To: <20061208085634.GA25751@flint.arm.linux.org.uk>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: David Howells <dhowells@redhat.com>, Christoph Lameter <clameter@sgi.com>, Nick Piggin <nickpiggin@yahoo.com.au>, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Christoph Lameter <clameter@sgi.com>, David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Russell King wrote:
+> On Fri, Dec 08, 2006 at 12:18:52PM +1100, Nick Piggin wrote:
+> 
+>>Russell King wrote:
+>>
+>>>On Thu, Dec 07, 2006 at 08:31:08PM +1100, Nick Piggin wrote:
+>>
+>>>>>Implementing ll/sc based accessor macros allows both ll/sc _and_ cmpxchg
+>>>>>architectures to produce optimal code.
+>>>>>
+>>>>>Implementing an cmpxchg based accessor macro allows cmpxchg architectures
+>>>>>to produce optimal code and ll/sc non-optimal code.
+>>>>>
+>>>>>See my point?
+>>>>
+>>>>Wrong. Your ll/sc implementation with cmpxchg is buggy. The cmpxchg
+>>>>load_locked is not locked at all,
+>>>
+>>>
+>>>Intentional - cmpxchg architectures don't generally have a load locked.
+>>
+>>Exactly, so it is wrong -- you can't implement that behaviour with
+>>load + cmpxchg.
+> 
+> 
+> I disagree.  I _have_ implemented the required behaviour.  I really
+> don't understand your point saying that it is wrong.
+> 
+> 
+>>>>and there can be interleaving writes
+>>>>between the load and cmpxchg which do not cause the store_conditional
+>>>>to fail.
+>>>
+>>>
+>>>In which case the cmpxchg fails and we do the atomic operation again,
+>>>in exactly the same way that we do the operation again if the 'sc'
+>>>fails in the ll/sc case.
+>>
+>>Not if cmpxchg sees the same value, it won't fail, regardless of how
+>>many writes have hit that memory address.
+> 
+> 
+> Don't see anything wrong with that.  If that was a problem, atomic
+> implementations using cmpxchg on x86 would be impossible.
+> 
+> I think you're trying to implement ll/sc semantics on CPUs without
+> ll/sc which is exactly not what I'm trying to do.  I'd argue that's
+> impossible.
 
+Yes, I did think that from reading your emails. It is not a problem
+as such, but it is important to be clear on semantics.
 
-On Fri, 8 Dec 2006, Russell King wrote:
->> 
-> The only instructions which affect the exclusive access state are the
-> exclusive access instructions themselves.
+> I'm trying to suggest a better implementation for atomic ops rather
+> than just bowing to this x86-centric "cmpxchg is the best, everyone
+> must implement it" mentality.
 
-Not according to the docs I found.
+Even if ARM is able to handle any arbitrary C code between the
+"load locked" and store conditional API, other architectures can not
+by definition.
 
-The ARM1136 manual explicitly states that any attempt to modify that 
-address clears the tag (for shared memory regions, by _any_ CPU, and for 
-nonshared regions by _that_ CPU).
-
-And btw, that _has_ to be true, because otherwise the whole ldrex/strex 
-sequence would be totally unusable as a way to do atomic bit operations on 
-UP in the presense of interrupts (well, you could have a clrex instruction 
-in the interrupt handler, but as far as I know you don't, so that seems to 
-be a moot point - you only seem to do it in __switch_to).
-
-In other words, I _really_ think you're wrong. 
-
-So the very code sequence you quote MUST NOT WORK the way you claim it 
-does. And not only that, since the granularity of the mark is not just for 
-the bytes in question, but potentially apparently up to 128 bytes, any 
-store even _close_ to the memory you had xclusive access to will break the 
-exclusive access.
-
-Really, Russell. Your stance makes no sense. It doesn't make any sense 
-from a microarchitectural standpoint (it's not how you'd normally 
-implement these things), but it ALSO makes no sense from the way you 
-already use those instructions (as a way to protect against other 
-processors - including your own - touching that word).
-
-                    Linus
+-- 
+SUSE Labs, Novell Inc.
+Send instant messages to your online friends http://au.messenger.yahoo.com 
