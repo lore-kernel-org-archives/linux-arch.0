@@ -1,24 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:42137 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760846AbWLHSsS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2006 13:48:18 -0500
-Date: Fri, 8 Dec 2006 18:48:15 +0000
-From: Al Viro <viro@ftp.linux.org.uk>
-Subject: Re: [PATCH] WorkStruct: Fix S390 driver workstruct usage
-Message-ID: <20061208184814.GX4587@ftp.linux.org.uk>
-References: <20061208145940.21411.77769.stgit@warthog.cambridge.redhat.com> <20061208173342.GT4587@ftp.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061208173342.GT4587@ftp.linux.org.uk>
+Received: from smtp.osdl.org ([65.172.181.25]:48219 "EHLO smtp.osdl.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1760842AbWLHSrX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Dec 2006 13:47:23 -0500
+Date: Fri, 8 Dec 2006 10:46:17 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
+ doesn't support it
+In-Reply-To: <4595.1165597017@redhat.com>
+Message-ID: <Pine.LNX.4.64.0612081045430.3516@woody.osdl.org>
+References: <Pine.LNX.4.64.0612080758120.15242@schroedinger.engr.sgi.com>
+ <20061206164314.19870.33519.stgit@warthog.cambridge.redhat.com>
+ <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
+ <20061206190025.GC9959@flint.arm.linux.org.uk>
+ <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
+ <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au>
+ <20061207150303.GB1255@flint.arm.linux.org.uk> <4578BD7C.4050703@yahoo.com.au>
+ <20061208085634.GA25751@flint.arm.linux.org.uk>  <4595.1165597017@redhat.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, schwidefsky@de.ibm.com, linux390@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Christoph Lameter <clameter@sgi.com>, Russell King <rmk+lkml@arm.linux.org.uk>, Nick Piggin <nickpiggin@yahoo.com.au>, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Dec 08, 2006 at 05:33:43PM +0000, Al Viro wrote:
 
-[snip]
 
-my apologies if that got sent more than once ;-/
+On Fri, 8 Dec 2006, David Howells wrote:
+> 
+> In fact I think more things have LL/SC than have CMPXCHG.
+
+But you cannot expose ll/sc to C, so that's a bogus argument.
+
+If you do ll/sc, you need to program in assembly language.
+
+		Linus
