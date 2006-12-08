@@ -1,40 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from omx2-ext.sgi.com ([192.48.171.19]:41383 "EHLO omx2.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1426035AbWLHRZb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 8 Dec 2006 12:25:31 -0500
-Date: Fri, 8 Dec 2006 09:23:57 -0800 (PST)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an arch
- doesn't support it
-In-Reply-To: <20061208171816.GG31068@flint.arm.linux.org.uk>
-Message-ID: <Pine.LNX.4.64.0612080919220.16029@schroedinger.engr.sgi.com>
-References: <Pine.LNX.4.64.0612061054360.27047@schroedinger.engr.sgi.com>
- <20061206190025.GC9959@flint.arm.linux.org.uk>
- <Pine.LNX.4.64.0612061111130.27263@schroedinger.engr.sgi.com>
- <20061206195820.GA15281@flint.arm.linux.org.uk> <4577DF5C.5070701@yahoo.com.au>
- <20061207150303.GB1255@flint.arm.linux.org.uk> <4578BD7C.4050703@yahoo.com.au>
- <20061208085634.GA25751@flint.arm.linux.org.uk> <4595.1165597017@redhat.com>
- <Pine.LNX.4.64.0612080903370.15959@schroedinger.engr.sgi.com>
- <20061208171816.GG31068@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from zeniv.linux.org.uk ([195.92.253.2]:42051 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760831AbWLHSqa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2006 13:46:30 -0500
+Date: Fri, 8 Dec 2006 17:33:43 +0000
+From: Al Viro <viro@ftp.linux.org.uk>
+Subject: Re: [PATCH] WorkStruct: Fix S390 driver workstruct usage
+Message-ID: <20061208173342.GT4587@ftp.linux.org.uk>
+References: <20061208145940.21411.77769.stgit@warthog.cambridge.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20061208145940.21411.77769.stgit@warthog.cambridge.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: David Howells <dhowells@redhat.com>, Nick Piggin <nickpiggin@yahoo.com.au>, torvalds@osdl.org, akpm@osdl.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, schwidefsky@de.ibm.com, linux390@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 8 Dec 2006, Russell King wrote:
+On Fri, Dec 08, 2006 at 02:59:40PM +0000, David Howells wrote:
 
-> As proven previously the reverse is also true.  And as shown previously
-> the cheaper out of the two for all platforms is the LL/SC based
-> implementation, where the architecture specific implementation can
-> be _either_ LL/SC based or cmpxchg based depending on what is
-> supported in their hardware.
+> diff --git a/drivers/s390/char/ctrlchar.c b/drivers/s390/char/ctrlchar.c
+> index 49e9628..9fcfe3a 100644
+> --- a/drivers/s390/char/ctrlchar.c
+> +++ b/drivers/s390/char/ctrlchar.c
+> @@ -15,15 +15,16 @@ #include <linux/ctype.h>
+>  #include "ctrlchar.h"
+>  
+>  #ifdef CONFIG_MAGIC_SYSRQ
+> +static struct tty_struct *ctrlchar_sysrq_tty;
+>  static int ctrlchar_sysrq_key;
+>  
+>  static void
+> -ctrlchar_handle_sysrq(void *tty)
+> +ctrlchar_handle_sysrq(struct work_struct *unused)
+>  {
+> -	handle_sysrq(ctrlchar_sysrq_key, (struct tty_struct *) tty);
+> +	handle_sysrq(ctrlchar_sysrq_key, ctrlchar_sysrq_tty);
+>  }
+>  
+> -static DECLARE_WORK(ctrlchar_work, ctrlchar_handle_sysrq, NULL);
+> +static DECLARE_WORK(ctrlchar_work, ctrlchar_handle_sysrq);
+>  #endif
+>  
+>  
+> @@ -52,8 +53,8 @@ ctrlchar_handle(const unsigned char *buf
+>  #ifdef CONFIG_MAGIC_SYSRQ
+>  	/* racy */
+>  	if (len == 3 && buf[1] == '-') {
+> +		ctrlchar_sysrq_tty = tty;
+>  		ctrlchar_sysrq_key = buf[2];
+> -		ctrlchar_work.data = tty;
+>  		schedule_work(&ctrlchar_work);
+>  		return CTRLCHAR_SYSRQ;
+>  	}
 
-As also shown in this thread: There are restrictions on what you can do 
-between ll/sc. You would not want to use C code there. ll/sc is an thing 
-that needs to be restricted to asm code. So this is not a viable proposal 
-at all. ll/sc is useful to construct various atomic functions but cannot 
-be directly used in C code. cmpxchg can be effectively realized using 
-ll/sc.
+I don't think it's a real fix.
+
+a) what protects tty from disappearing?
+b) why the hell do we need that schedule_work() at all?  handle_sysrq() is
+supposed to be safe to use from irq handler; when needed it does arrange for
+delayed execution itself.
+
+So how about we simply call handle_sysrq() there and be done with that?
+Martin?
