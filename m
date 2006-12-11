@@ -1,68 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.25]:42713 "EHLO smtp.osdl.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1762413AbWLKEuc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Dec 2006 23:50:32 -0500
-Date: Sun, 10 Dec 2006 20:49:31 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
+Received: from science.horizon.com ([192.35.100.1]:11319 "HELO
+	science.horizon.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1762567AbWLKGRw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Dec 2006 01:17:52 -0500
+Date: 11 Dec 2006 01:17:51 -0500
+Message-ID: <20061211061751.22553.qmail@science.horizon.com>
+From: linux@horizon.com
 Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an
-In-Reply-To: <20061211023054.2622.qmail@science.horizon.com>
-Message-ID: <Pine.LNX.4.64.0612102040490.12500@woody.osdl.org>
-References: <20061211023054.2622.qmail@science.horizon.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <457CDEDE.9080804@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux@horizon.com
-Cc: nickpiggin@yahoo.com.au, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org
+To: linux@horizon.com, nickpiggin@yahoo.com.au
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, torvalds@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
+>  atomic_ll() / atomic_sc() with the restriction that they cannot be
+>  nested, you cannot write any C code between them, and may only call
+>  into some specific set of atomic_llsc_xxx primitives, operating on
+>  the address given to ll, and must not have more than a given number
+>  of instructions between them. Also, the atomic_sc won't always fail
+>  if there were interleaving stores.
+
+I'm not entirely sure what you're talking about.  You generally want
+to keep the amount of code between ll and sc to an absolute minimum
+to avoid interference which causes livelock.  Processor timeouts
+are generally much longer than any reasonable code sequence.
+
+I hear you and Linus say that loads and stores are not allowed.
+I'm trying to find that documented somewhere.  Let's see... Wikipedia
+says that LL/SC is implemented on Alpha, MIPS, PowerPC, and ARM.
 
 
-On Sun, 10 Dec 2006, linux@horizon.com wrote:
-> 
-> While I agree that LL/SC can't be part of the kernel API for people to
-> get arbitrarily clever with in the device driver du jour, they are *very*
-> nice abstractions for shrinking the arch-specific code size.
+Generally, LL loads the line into cache, makes a note of what it is,
+and sets an "atomic bit".  In particular, the atomic bit is cleared if
+that cache line is evicted, or an interrupt happens.
 
-I'm not sure. 
 
-The thing is, it's _really_ hard to tell the compiler to not reload values 
-from memory in between two inline asm statements.
+MIPS clears the LLbit if:
+- There's an external (another processor) update or invalidate of the
+  affected cache line.  (There are three cases of this, but they are
+  all implementation-specific details.)
+- Or an ERET (return from exception) is executed.
 
-So what you easily end up with is 
- (a) yes, you can actually get the compiler to generate the "obvious" code 
-     sequence 99% of the time, and it will all work fine.
- (b) but it's really hard to actually guarantee it, and some subtle things 
-     can really mess you up.
+I see no restriction in internal accesses, even to the same cache line.
 
-An example of (b) is how we actually put some of these atomic data 
-structures on the stack ("struct completion" comes to mind), and it can 
-get really interesting it something works in all the tests, but then 
-subtly breaks on some microarchitectures when the data structures happen 
-to be on the stackjust because the compiler happened to do a register 
-reload to the stack at the wrong point.
 
-Now, if you don't inline any of these things, you can control things a lot 
-better, since then you end up having a much smaller set of circumstances, 
-and you never have code "around" the actual operation that changes things 
-like register reload. And yes, I do think that it might be possible to 
-have some kind of generic "ll/sc template" setup for that case. You can 
-often make gcc generate the code you want, especially if there is no real 
-register pressure and you can keep the code simple.
+Wikipedia says that the PowerPC implementation is particularly
+strong, and the IBM compiler has C builtins to perform the operations
+(http://publib.boulder.ibm.com/infocenter/pseries/v5r3/topic/com.ibm.xlcpp8a.doc/compiler/ref/bif_misc.htm),
+so I don't think it breaks on memory access.  Double-checking with the
+"PowerPC Microprocessor Family: Programming Environments Manual for 64 and
+32-bit Microprocessors" (4.2.6 Memory Synchronization Instructions--UISA,
+pp. 173-174) confirms that only a modification by ANOTHER processor,
+or a return from exception, breaks the reservation.
 
-> The semantics are widely enough shared that it's quite possible in
-> practice to write a good set of atomic primitives in terms of LL/SC
-> and then let most architectures define LL/SC and simply #include the
-> generic atomic op implementations.
 
-Well, you do have to also realize that the architectures that dont' do 
-ll/sc do end up limiting the number of useful primitives, especially 
-considering that we know that some architectures simply cannot do a lot 
-between them (which _also_ limits it).
+The ARM implementation is hard to find documentation on.  The best
+I managed is U.S. patent 6892257, which describes the implementation.
+In particular, the "external access monitor" that rmk has been describing
+appears to only apply to uncacheable accesses, where it behaves as
+described.
 
-I think we've ended up implementing most of the common ones. We have a 
-fairly big set of ops like "atomic_add_return()"-like operations, and 
-those are the obvious ones that can be done for _any_ ll/sc architecture 
-too. So I don't think there's all that much more to be had there.
+# At step 28, a check is made as to whether or not the semaphore value
+# being sought is cacheable. If the semaphore value is not cacheable, as
+# indicated within an associated MMU (not illustrated), then processing
+# proceeds to step 30. If the semaphore value is cacheable, then
+# processing proceeds to step 32.
 
-		Linus
+# At step 30, the semaphore value corresponding to the address indicated
+# by the Rm register value is stored into a register Rd specified within
+# the LDREX instruction. Furthermore, the physical address of the
+# semaphore value together with a processor identifying number for the
+# processor executing the LDREX instruction is stored within the main
+# memory monitor circuit 22. The bus arbiter 20 is triggered to provide
+# this processor identifying number to the main memory monitor circuit 22
+# by the decoding of an LDREX instruction by one of the processors 4, 6.
+# At step 30, the physical address of the semaphore data is also stored
+# within the local semaphore identifying data store 24, 26 of the
+# processor executing the LDREX instruction.
+
+# If processing from step 28 proceeds to step 32, instead of step 30, then
+# no data is written into the main memory monitor circuit 22, but the
+# physical address of the semaphore value being returned from address Rm
+# to register Rd is written into the appropriate local semaphore
+# identifying data store 24, 26.
+
+In the cacheable case (which is the onle of interest), then it works
+the same as the others, being triggered primarily by the eviction of
+the cache line.  Wading through the patentese is painful, but I
+assume there's a similar exception return case.
+
+
+It appears that the problem is on Alpha.  From the architecture handbook:
+"· If any other memory access (ECB, LDx, LDQ_U, STx, STQ_U, WH64) is executed on
+   the given processor between the LDx_L and the STx_C, the sequence above may
+   always fail on some implementations; hence, no useful program should do this.
+ · If a branch is taken between the LDx_L and the STx_C, the sequence above may
+   always fail on some implementations; hence, no useful program should do this.
+   (CMOVxx may be used to avoid branching.)"
+
+Okay, so Alpha is the special case; write those primitives directly
+in asm.  It's still possible to get three out of four.
+
+
+In truth, however, realizing that we're only talking about three
+architectures (wo of which have 32 & 64-bit versions) it's probably not
+worth it.  If there were five, it would probably be a savings, but 3x
+code duplication of some small, well-defined primitives is a fair price
+to pay for avoiding another layer of abstraction (a.k.a. obfuscation).
+
+And it lets you optimize them better.
+
+I apologize for not having counted them before.
