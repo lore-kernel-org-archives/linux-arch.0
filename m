@@ -1,68 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:59027
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1757935AbWLIWDh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Dec 2006 17:03:37 -0500
-Date: Sat, 09 Dec 2006 14:03:38 -0800 (PST)
-Message-Id: <20061209.140338.115923578.davem@davemloft.net>
-Subject: Re: [PATCH RFC] use of activate_mm in fs/aio.c:use_mm()?
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20061208154522.a03bd90b.akpm@osdl.org>
-References: <45776D54.7030409@goop.org>
-	<45777002.6050009@goop.org>
-	<20061208154522.a03bd90b.akpm@osdl.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from science.horizon.com ([192.35.100.1]:15915 "HELO
+	science.horizon.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1759658AbWLKCa4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Dec 2006 21:30:56 -0500
+Date: 10 Dec 2006 21:30:54 -0500
+Message-ID: <20061211023054.2622.qmail@science.horizon.com>
+From: linux@horizon.com
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@osdl.org
-Cc: jeremy@goop.org, zach.brown@oracle.com, pbadari@us.ibm.com, nickpiggin@yahoo.com.au, linux-kernel@vger.kernel.org, zach@vmware.com, chrisw@sous-sol.org, rusty@rustcorp.com.au, jdike@addtoit.com, torvalds@osdl.org, linux-arch@vger.kernel.org, linux-aio@kvack.org
+To: nickpiggin@yahoo.com.au, torvalds@osdl.org
+Cc: linux@horizon.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Andrew Morton <akpm@osdl.org>
-Date: Fri, 8 Dec 2006 15:45:22 -0800
+> Even if ARM is able to handle any arbitrary C code between the
+> "load locked" and store conditional API, other architectures can not
+> by definition.
 
-> On Wed, 06 Dec 2006 17:36:02 -0800
-> Jeremy Fitzhardinge <jeremy@goop.org> wrote:
-> 
-> > Jeremy Fitzhardinge wrote:
-> > > I'm wondering if activate_mm() is the right thing to be using in
-> > > use_mm(); shouldn't this be switch_mm()?
-> > >
-> > > On normal x86, they're synonymous, but for the Xen patches I'm adding a
-> > > hook which assumes that activate_mm is only used the first time a new mm
-> > > is used after creation (I have another hook for dealing with dup_mm).  I
-> > > think this use of activate_mm() is the only place where it could be used
-> > > a second time on an mm.
-> > >
-> > > From a quick look at the other architectures I think this is OK (most
-> > > simply implement one in terms of the other), but some are doing some
-> > > subtly different stuff between the two.
-> > >
-> > > Thanks,
-> > >     J
-> > >
-> > >
-> > >   
-> > Er, lets try that again:
-> > 
-> > diff -r 455b71ed4525 fs/aio.c
-> > --- a/fs/aio.c	Wed Dec 06 13:16:42 2006 -0800
-> > +++ b/fs/aio.c	Wed Dec 06 17:17:43 2006 -0800
-> > @@ -588,7 +588,7 @@ static void use_mm(struct mm_struct *mm)
-> >  	 * Note that on UML this *requires* PF_BORROWED_MM to be set, otherwise
-> >  	 * it won't work. Update it accordingly if you change it here
-> >  	 */
-> > -	activate_mm(active_mm, mm);
-> > +	switch_mm(active_mm, mm, tsk);
-> >  	task_unlock(tsk);
-> >  
-> >  	mmdrop(active_mm);
-> 
-> That to me sounds like a reasonable description of the difference between
-> activate_mm() and switch_mm().  And the change appears reasonable as well.
-> 
-> But it is a change which the architecture maintainers would need to have a
-> think about, please.
+Maybe so, but I think you and Linus are missing the middle ground.
 
-This looks absolutely correct to me.
+While I agree that LL/SC can't be part of the kernel API for people to
+get arbitrarily clever with in the device driver du jour, they are *very*
+nice abstractions for shrinking the arch-specific code size.
+
+The semantics are widely enough shared that it's quite possible in
+practice to write a good set of atomic primitives in terms of LL/SC
+and then let most architectures define LL/SC and simply #include the
+generic atomic op implementations.
+
+If there's a restriction that would pessimize the generic implementation,
+that function can be implemented specially for that arch.
+
+Then implementing things like backoff on contention can involve writing
+a whole lot less duplicated code.
+
+
+Just like you can write a set of helpers for, say, CPUs with physically
+addressed caches, even though the "real" API has to be able to handle the
+virtually addressed ones, you can write a nice set of helpers for machines
+with sane LL/SC.
