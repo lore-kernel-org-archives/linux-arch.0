@@ -1,38 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:49734 "EHLO mx2.mail.elte.hu"
+Received: from mx1.redhat.com ([66.187.233.31]:58800 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751090AbWLLKDK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Dec 2006 05:03:10 -0500
-Date: Tue, 12 Dec 2006 10:59:23 +0100
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [RFC] timers, pointers to functions and type safety
-Message-ID: <20061212095923.GA32383@elte.hu>
-References: <20061204114851.GA25859@elte.hu> <20061201172149.GC3078@ftp.linux.org.uk> <1165064370.24604.36.camel@localhost.localdomain> <20061202140521.GJ3078@ftp.linux.org.uk> <1165070713.24604.50.camel@localhost.localdomain> <20061202160252.GQ14076@parisc-linux.org> <1165082803.24604.54.camel@localhost.localdomain> <20061202181957.GK3078@ftp.linux.org.uk> <28665.1165234964@redhat.com> <20061206002403.GA4587@ftp.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061206002403.GA4587@ftp.linux.org.uk>
+	id S1751215AbWLLKhr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Dec 2006 05:37:47 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20061212032456.23036.qmail@science.horizon.com> 
+References: <20061212032456.23036.qmail@science.horizon.com> 
+Subject: Re: [PATCH] WorkStruct: Implement generic UP cmpxchg() where an 
+Date: Tue, 12 Dec 2006 10:37:15 +0000
+Message-ID: <13639.1165919835@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: David Howells <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@osdl.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@osdl.org>
+To: linux@horizon.com
+Cc: nickpiggin@yahoo.com.au, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org, torvalds@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
+linux@horizon.com wrote:
 
-* Al Viro <viro@ftp.linux.org.uk> wrote:
-
-> On Mon, Dec 04, 2006 at 12:22:44PM +0000, David Howells wrote:
-> > Ingo Molnar <mingo@elte.hu> wrote:
-> > 
-> > > the question is: which is more important, the type safety of a 
-> > > container_of() [or type cast], which if we get it wrong produces a 
-> > > /very/ trivial crash that is trivial to fix
+> do {
+> 	oldvalue = ll(addr)
+> 	newvalue = ... oldvalue ...
+> } while (!sc(addr, oldvalue, newvalue))
 > 
-> The hell it is.  You get wrong fields of a big struct read and 
-> modified. Silently.
+> Where sc() could be a cmpxchg.  But, more importantly, if the
+> architecture did implement LL/SC, it could be a "try plain SC; if
+> that fails try CMPXCHG built out of LL/SC; if that fails, loop"
 
-yeah - i think you are right. I think we should go with your changes to 
-incrase type safety for timer callbacks - and if someone wants to shrink 
-size (which patches do not exist at the moment), that person can think 
-about how to achieve that while still keeping type safety.
+If sc() is implemented with cmpxchg(), then this is a very silly piece of
+code.  cmpxchg() returns the current value if it fails, rendering a repetition
+of ll() pointless.  In some circumstances, you should really do it by putting
+the cmpxchg() up front with what you expect the most likely substitution to
+be, and that then doesn't require the initial load.
 
-	Ingo
+David
