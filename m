@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from ftp.linux-mips.org ([194.74.144.162]:34651 "EHLO
 	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932214AbWLLRPG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Dec 2006 12:15:06 -0500
+	with ESMTP id S932216AbWLLRPH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Dec 2006 12:15:07 -0500
 From: Ralf Baechle <ralf@linux-mips.org>
-Subject: [PATCH 2/4] Pass vma argument to copy_user_highpage().
-Date: Tue, 12 Dec 2006 17:14:55 +0000
-Message-Id: <11659437003509-git-send-email-ralf@linux-mips.org>
+Subject: [PATCH 3/4] MIPS: Fix COW D-cache aliasing on fork
+Date: Tue, 12 Dec 2006 17:14:56 +0000
+Message-Id: <11659437004086-git-send-email-ralf@linux-mips.org>
 In-Reply-To: <11659436971966-git-send-email-ralf@linux-mips.org>
 References: <11659436971966-git-send-email-ralf@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
@@ -16,9 +16,10 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
 
-To allow a more effective copy_user_highpage() on certain architectures,
-a vma argument is added to the function and cow_user_page() allowing
-the implementation of these functions to check for the VM_EXEC bit.
+Provide a custom copy_user_highpage() to deal with aliasing issues on
+MIPS.  It uses kmap_coherent() to map an user page for kernel with same
+color.  Rewrite copy_to_user_page() and copy_from_user_page() with the
+new interfaces to avoid extra cache flushing.
 
 The main part of this patch was originally written by Ralf Baechle;
 Atushi Nemoto did the the debugging.
@@ -26,95 +27,78 @@ Atushi Nemoto did the the debugging.
 Signed-off-by: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
 Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 
- include/linux/highmem.h |    3 ++-
- mm/hugetlb.c            |    6 +++---
- mm/memory.c             |   10 +++++-----
- 3 files changed, 10 insertions(+), 9 deletions(-)
+ arch/mips/mm/init.c     |   25 +++++++++++++++++++++++++
+ include/asm-mips/page.h |   16 ++++++----------
+ 2 files changed, 31 insertions(+), 10 deletions(-)
 
-Index: upstream-alias/mm/memory.c
+Index: upstream-alias/arch/mips/mm/init.c
 ===================================================================
---- upstream-alias.orig/mm/memory.c
-+++ upstream-alias/mm/memory.c
-@@ -1441,7 +1441,7 @@ static inline pte_t maybe_mkwrite(pte_t 
- 	return pte;
+--- upstream-alias.orig/arch/mips/mm/init.c
++++ upstream-alias/arch/mips/mm/init.c
+@@ -203,6 +203,31 @@ static inline void kunmap_coherent(struc
+ 	preempt_check_resched();
  }
  
--static inline void cow_user_page(struct page *dst, struct page *src, unsigned long va)
-+static inline void cow_user_page(struct page *dst, struct page *src, unsigned long va, struct vm_area_struct *vma)
- {
- 	/*
- 	 * If the source page was a PFN mapping, we don't have
-@@ -1464,9 +1464,9 @@ static inline void cow_user_page(struct 
- 		kunmap_atomic(kaddr, KM_USER0);
- 		flush_dcache_page(dst);
- 		return;
--		
++void copy_user_highpage(struct page *to, struct page *from,
++	unsigned long vaddr, struct vm_area_struct *vma)
++{
++	void *vfrom, *vto;
 +
- 	}
--	copy_user_highpage(dst, src, va);
-+	copy_user_highpage(dst, src, va, vma);
++	vto = kmap_atomic(to, KM_USER1);
++	if (cpu_has_dc_aliases) {
++		vfrom = kmap_coherent(from, vaddr);
++		copy_page(vto, vfrom);
++		kunmap_coherent(from);
++	} else {
++		vfrom = kmap_atomic(from, KM_USER0);
++		copy_page(vto, vfrom);
++		kunmap_atomic(vfrom, KM_USER0);
++	}
++	if (((vma->vm_flags & VM_EXEC) && !cpu_has_ic_fills_f_dc) ||
++	    pages_do_alias((unsigned long)vto, vaddr & PAGE_MASK))
++		flush_data_cache_page((unsigned long)vto);
++	kunmap_atomic(vto, KM_USER1);
++	/* Make sure this page is cleared on other CPU's too before using it */
++	smp_wmb();
++}
++
++EXPORT_SYMBOL(copy_user_highpage);
++
+ void copy_to_user_page(struct vm_area_struct *vma,
+ 	struct page *page, unsigned long vaddr, void *dst, const void *src,
+ 	unsigned long len)
+Index: upstream-alias/include/asm-mips/page.h
+===================================================================
+--- upstream-alias.orig/include/asm-mips/page.h
++++ upstream-alias/include/asm-mips/page.h
+@@ -35,7 +35,6 @@
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/pfn.h>
+-#include <asm/cpu-features.h>
+ #include <asm/io.h>
+ 
+ extern void clear_page(void * page);
+@@ -61,16 +60,13 @@ static inline void clear_user_page(void 
+ 		flush_data_cache_page((unsigned long)addr);
  }
+ 
+-static inline void copy_user_page(void *vto, void *vfrom, unsigned long vaddr,
+-	struct page *to)
+-{
+-	extern void (*flush_data_cache_page)(unsigned long addr);
++extern void copy_user_page(void *vto, void *vfrom, unsigned long vaddr,
++	struct page *to);
++struct vm_area_struct;
++extern void copy_user_highpage(struct page *to, struct page *from,
++	unsigned long vaddr, struct vm_area_struct *vma);
+ 
+-	copy_page(vto, vfrom);
+-	if (!cpu_has_ic_fills_f_dc ||
+-	    pages_do_alias((unsigned long)vto, vaddr & PAGE_MASK))
+-		flush_data_cache_page((unsigned long)vto);
+-}
++#define __HAVE_ARCH_COPY_USER_HIGHPAGE
  
  /*
-@@ -1577,7 +1577,7 @@ gotten:
- 		new_page = alloc_page_vma(GFP_HIGHUSER, vma, address);
- 		if (!new_page)
- 			goto oom;
--		cow_user_page(new_page, old_page, address);
-+		cow_user_page(new_page, old_page, address, vma);
- 	}
- 
- 	/*
-@@ -2200,7 +2200,7 @@ retry:
- 			page = alloc_page_vma(GFP_HIGHUSER, vma, address);
- 			if (!page)
- 				goto oom;
--			copy_user_highpage(page, new_page, address);
-+			copy_user_highpage(page, new_page, address, vma);
- 			page_cache_release(new_page);
- 			new_page = page;
- 			anon = 1;
-Index: upstream-alias/include/linux/highmem.h
-===================================================================
---- upstream-alias.orig/include/linux/highmem.h
-+++ upstream-alias/include/linux/highmem.h
-@@ -98,7 +98,8 @@ static inline void memclear_highpage_flu
- 
- #ifndef __HAVE_ARCH_COPY_USER_HIGHPAGE
- 
--static inline void copy_user_highpage(struct page *to, struct page *from, unsigned long vaddr)
-+static inline void copy_user_highpage(struct page *to, struct page *from,
-+	unsigned long vaddr, struct vm_area_struct *vma)
- {
- 	char *vfrom, *vto;
- 
-Index: upstream-alias/mm/hugetlb.c
-===================================================================
---- upstream-alias.orig/mm/hugetlb.c
-+++ upstream-alias/mm/hugetlb.c
-@@ -44,14 +44,14 @@ static void clear_huge_page(struct page 
- }
- 
- static void copy_huge_page(struct page *dst, struct page *src,
--			   unsigned long addr)
-+			   unsigned long addr, struct vm_area_struct *vma)
- {
- 	int i;
- 
- 	might_sleep();
- 	for (i = 0; i < HPAGE_SIZE/PAGE_SIZE; i++) {
- 		cond_resched();
--		copy_user_highpage(dst + i, src + i, addr + i*PAGE_SIZE);
-+		copy_user_highpage(dst + i, src + i, addr + i*PAGE_SIZE, vma);
- 	}
- }
- 
-@@ -442,7 +442,7 @@ static int hugetlb_cow(struct mm_struct 
- 	}
- 
- 	spin_unlock(&mm->page_table_lock);
--	copy_huge_page(new_page, old_page, address);
-+	copy_huge_page(new_page, old_page, address, vma);
- 	spin_lock(&mm->page_table_lock);
- 
- 	ptep = huge_pte_offset(mm, address & HPAGE_MASK);
+  * These are used to make use of C type-checking..
