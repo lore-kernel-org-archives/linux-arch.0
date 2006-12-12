@@ -1,29 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:49098 "EHLO ozlabs.org"
+Received: from mx1.redhat.com ([66.187.233.31]:59979 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964780AbWLLXE2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Dec 2006 18:04:28 -0500
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <17791.13647.329912.557434@cargo.ozlabs.ibm.com>
-Date: Wed, 13 Dec 2006 10:03:43 +1100
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [PATCH 1/2] WorkStruct: Add assign_bits() to give an atomic-bitops safe assignment
-In-Reply-To: <20061212225443.GA25902@flint.arm.linux.org.uk>
-References: <20061212201112.29817.22041.stgit@warthog.cambridge.redhat.com>
-	<20061212225443.GA25902@flint.arm.linux.org.uk>
+	id S932484AbWLLXRk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Dec 2006 18:17:40 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20061212225443.GA25902@flint.arm.linux.org.uk> 
+References: <20061212225443.GA25902@flint.arm.linux.org.uk>  <20061212201112.29817.22041.stgit@warthog.cambridge.redhat.com> 
+Subject: Re: [PATCH 1/2] WorkStruct: Add assign_bits() to give an atomic-bitops safe assignment 
+Date: Tue, 12 Dec 2006 23:17:22 +0000
+Message-ID: <3306.1165965442@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, davem@davemloft.com, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: David Howells <dhowells@redhat.com>, torvalds@osdl.org, akpm@osdl.org, davem@davemloft.net, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Russell King writes:
 
+Russell King <rmk+lkml@arm.linux.org.uk> wrote:
+
+> This seems to be a very silly question (and I'm bound to be utterly
+> wrong as proven in my last round) but why are we implementing a new
+> set of atomic primitives which effectively do the same thing as our
+> existing set?
+> 
 > Why can't we just use atomic_t for this?
 
-On 64-bit platforms, atomic_t tends to be 4 bytes, whereas bitops work
-on arrays of unsigned long, i.e. multiples of 8 bytes.  We could
-use atomic_long_t for this, however.
+atomic_t is the wrong thing as it's basically an int, not an unsigned long.
 
-Paul.
+atomic64_t/atomic_long_t is also probably the wrong thing to use as it's a
+signed long (and the long is also volatile on some platforms - x86_64 for
+example).  Bitops operate on unsigned long.
+
+But the most important point is that assign_bits() has to take the same pointer
+type as test_bit(), set_bit(), test_and_set_bit(), etc., and none of those
+operate on an atomic*_t.
+
+We could change that, of course, but I don't fancy tackling the task just at
+the moment.  It oughtn't to be a difficult change, but there are a lot of flags
+words in the kernel.
+
+David
