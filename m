@@ -1,73 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.25]:37203 "EHLO smtp.osdl.org"
+Received: from smtp.osdl.org ([65.172.181.25]:39312 "EHLO smtp.osdl.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932395AbWLMBT3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Dec 2006 20:19:29 -0500
-Message-Id: <200612130103.kBD13oiu023358@shell0.pdx.osdl.net>
-Subject: + workstruct-use-bitops-safe-direct-assignment.patch added to -mm tree
-From: akpm@osdl.org
-Date: Tue, 12 Dec 2006 17:03:50 -0800
+	id S964885AbWLMBta (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Dec 2006 20:49:30 -0500
+Date: Tue, 12 Dec 2006 17:36:33 -0800 (PST)
+From: Linus Torvalds <torvalds@osdl.org>
+Subject: Re: [PATCH 1/2] WorkStruct: Add assign_bits() to give an atomic-bitops
+ safe assignment
+In-Reply-To: <20061212225443.GA25902@flint.arm.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0612121726150.3535@woody.osdl.org>
+References: <20061212201112.29817.22041.stgit@warthog.cambridge.redhat.com>
+ <20061212225443.GA25902@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: David Howells <dhowells@redhat.com>, akpm@osdl.org, davem@davemloft.com, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
-The patch titled
-     workstruct: use bitops-safe direct assignment
-has been added to the -mm tree.  Its filename is
-     workstruct-use-bitops-safe-direct-assignment.patch
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
+On Tue, 12 Dec 2006, Russell King wrote:
+> 
+> This seems to be a very silly question (and I'm bound to be utterly
+> wrong as proven in my last round) but why are we implementing a new
+> set of atomic primitives which effectively do the same thing as our
+> existing set?
+> 
+> Why can't we just use atomic_t for this?
 
-------------------------------------------------------
-Subject: workstruct: use bitops-safe direct assignment
-From: David Howells <dhowells@redhat.com>
+Well, others have answered that ("wrong sizes"), but I'm wavering on using 
+atomic_long_t. I have to admit that I'd rather not add a new accessor 
+function, when it _should_ be easier to use the current ones.
 
-Replace the direct assignment in set_wq_data() with a bitops-proofed
-wrapper (assign_bits()).  This defends against the test_and_set_bit() used
-to mark a work item active.
+That does depend on every arch maintainer saying they're ok with mixing 
+bitops and "atomic*_t"s. It would also require us to at least add some 
+_minimal_ function to get at the actual value, and turn the pointer into a 
+"unsigned long *" for the bitop functions.
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@osdl.org>
----
+I would _hope_ that people hopefully already use the same locking for 
+atomic_t and for bitops, and that arch maintainers could just say "sure, 
+that works for me". Obvously, anybody with LL/SC or otherwise just 
+basically atomic bitops (which covers a fair part of the spectrum) should 
+be ok, but sparc and the usual cast of suspects would have to say that 
+it's ok.
 
- kernel/workqueue.c |    2 +-
- 1 files changed, 1 insertion(+), 1 deletion(-)
+Should we also just make the rule be that the architecture _must_ allow 
+the silly
 
-diff -puN kernel/workqueue.c~workstruct-use-bitops-safe-direct-assignment kernel/workqueue.c
---- a/kernel/workqueue.c~workstruct-use-bitops-safe-direct-assignment
-+++ a/kernel/workqueue.c
-@@ -97,7 +97,7 @@ static inline void set_wq_data(struct wo
- 
- 	new = (unsigned long) wq | (1UL << WORK_STRUCT_PENDING);
- 	new |= work->management & WORK_STRUCT_FLAG_MASK;
--	work->management = new;
-+	assign_bits(new, &work->management);
- }
- 
- static inline void *get_wq_data(struct work_struct *work)
-_
+	(atomic_long_t *) -> (unsigned long *)
 
-Patches currently in -mm which might be from dhowells@redhat.com are
+casting (so that we can make _one_ generic inline function that takes an 
+atomic_long_t and returns the same pointer as an "unsigned long *" to make 
+bitop functions happy), or would this have to be another arch-specific 
+function?
 
-origin.patch
-ieee80211softmac-fix-errors-related-to-the-work_struct-changes.patch
-fix-more-workqueue-build-breakage-tps65010.patch
-log2-make-powerpcs-__ilog2_u64-take-a-64-bit-argument.patch
-infiniband-work-around-gcc-bug-on-sparc64.patch
-workstruct-add-assign_bits-to-give-an-atomic-bitops-safe-assignment.patch
-workstruct-use-bitops-safe-direct-assignment.patch
-alsa-workqueue-fixes.patch
-nfs-represent-64-bit-fileids-as-64-bit-inode-numbers-on-32-bit-systems.patch
-pm-fix-smp-races-in-the-freezer.patch
-doc-atomic_add_unless-doesnt-imply-mb-on-failure.patch
-ecryptfs-public-key-transport-mechanism.patch
-ecryptfs-public-key-packet-management.patch
-workstruct-implement-generic-up-cmpxchg-where-an-arch-doesnt-support-it.patch
-workqueue-dont-hold-workqueue_mutex-in-flush_scheduled_work.patch
-reiser4-get_sb_dev-fix.patch
-mutex-subsystem-synchro-test-module.patch
+Comments? 
 
+			Linus
