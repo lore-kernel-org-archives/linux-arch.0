@@ -1,104 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:4681 "EHLO
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:2800 "EHLO
 	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1422981AbWLURRs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Dec 2006 12:17:48 -0500
-Date: Thu, 21 Dec 2006 17:17:39 +0000
+	with ESMTP id S1422992AbWLURfm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Dec 2006 12:35:42 -0500
+Date: Thu, 21 Dec 2006 17:35:33 +0000
 From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all that again
-Message-ID: <20061221171739.GE3958@flint.arm.linux.org.uk>
-References: <20061221152621.GB3958@flint.arm.linux.org.uk> <E1GxQF2-0000i6-00@dorka.pomaz.szeredi.hu>
+Message-ID: <20061221173532.GF3958@flint.arm.linux.org.uk>
+References: <20061221152621.GB3958@flint.arm.linux.org.uk> <1166718582.3365.1509.camel@laptopd505.fenrus.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <E1GxQF2-0000i6-00@dorka.pomaz.szeredi.hu>
+In-Reply-To: <1166718582.3365.1509.camel@laptopd505.fenrus.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Miklos Szeredi <miklos@szeredi.hu>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: Linux Kernel List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Miklos Szeredi <miklos@szeredi.hu>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Dec 21, 2006 at 04:53:56PM +0100, Miklos Szeredi wrote:
-> Yes, note the flush_dcache_page() call in fuse_copy_finish().  That
-> could be replaced by the flush_kernel_dcache_page() (added by James
-> Bottomley together with flush_anon_page()) when all relevant
-> architectures have defined it.
+On Thu, Dec 21, 2006 at 05:29:42PM +0100, Arjan van de Ven wrote:
+> 
+> > So, given all this additional complexity _and_ that it would only be
+> > safe on non-preempt UP, the question becomes: is using get_user_pages()
+> > to access the current processes memory space legal?  Given the above,
+> > I would say not.
+> 
+> I'd say that copy_from_user is the right api for this, not
+> get_user_pages + kmap hacks...
 
-I should say that flush_anon_page() in its current form is going to be
-problematic for ARM.  It is passed:
+I would tend to agree.
 
-1. the struct page
-2. the virtual address in process memory for the page
+So the question then comes down to: is there really an issue with using
+copy_*_user in fuse.
 
-It is not passed the mm or vma.  This means that we have no idea whether
-the virtual address is in the currently mapped VM space or not.  The
-common use of get_area_pages() is to get pages from other address
-spaces.
+Bearing in mind that get_user_pages() simulates page faults in the
+memory it is trying to access, we're going to either take simulated
+page faults at that time, or real page faults in copy_*_user.
 
-If we use the supplied virtual address to perform cache maintainence of
-the userspace mapping, we might end up hitting a completely different
-processes address space, which may contain some page sensitive to such
-operations, or may not contain any page and thereby could cause a page
-fault on some ARM CPUs.
-
-Hence, I first need something like this patch so I can tell if the
-page to be flushed is in the current VMs address space or not:
-
-diff --git a/Documentation/cachetlb.txt b/Documentation/cachetlb.txt
-index 73e794f..920d0f6 100644
---- a/Documentation/cachetlb.txt
-+++ b/Documentation/cachetlb.txt
-@@ -373,7 +373,8 @@ maps this page at its virtual address.
- 	likely that you will need to flush the instruction cache
- 	for copy_to_user_page().
- 
--  void flush_anon_page(struct page *page, unsigned long vmaddr)
-+  void flush_anon_page(struct vm_area_struct *vma, struct page *page,
-+                       unsigned long vmaddr)
-   	When the kernel needs to access the contents of an anonymous
- 	page, it calls this function (currently only
- 	get_user_pages()).  Note: flush_dcache_page() deliberately
-diff --git a/arch/arm/mm/flush.c b/arch/arm/mm/flush.c
-diff --git a/include/asm-arm/cacheflush.h b/include/asm-arm/cacheflush.h
-diff --git a/include/asm-parisc/cacheflush.h b/include/asm-parisc/cacheflush.h
-index aedb051..a799dd8 100644
---- a/include/asm-parisc/cacheflush.h
-+++ b/include/asm-parisc/cacheflush.h
-@@ -186,7 +186,7 @@ flush_cache_page(struct vm_area_struct *
- }
- 
- static inline void
--flush_anon_page(struct page *page, unsigned long vmaddr)
-+flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned long vmaddr)
- {
- 	if (PageAnon(page))
- 		flush_user_dcache_page(vmaddr);
-diff --git a/include/linux/highmem.h b/include/linux/highmem.h
-index ca9a602..645d440 100644
---- a/include/linux/highmem.h
-+++ b/include/linux/highmem.h
-@@ -8,7 +8,7 @@ #include <linux/uaccess.h>
- #include <asm/cacheflush.h>
- 
- #ifndef ARCH_HAS_FLUSH_ANON_PAGE
--static inline void flush_anon_page(struct page *page, unsigned long vmaddr)
-+static inline void flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned long vmaddr)
- {
- }
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index c00bac6..13970fe 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -1091,7 +1091,7 @@ int get_user_pages(struct task_struct *t
- 			if (pages) {
- 				pages[i] = page;
- 
--				flush_anon_page(page, start);
-+				flush_anon_page(vma, page, start);
- 				flush_dcache_page(page);
- 			}
- 			if (vmas)
-
+(I was just about to test a hacked up implementation of flush_anon_page()
+on my test system, but it seems its ethernet interface has warmed up
+too much and won't obtain a link with my switch... which makes download
+of kernels impossible.  Hence it's going to have to wait a few hours for
+it to cool down.)
 
 -- 
 Russell King
