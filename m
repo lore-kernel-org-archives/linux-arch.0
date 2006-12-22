@@ -1,46 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:2094 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1945987AbWLVIni (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Dec 2006 03:43:38 -0500
-Date: Fri, 22 Dec 2006 08:43:18 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all that again
-Message-ID: <20061222084318.GA5132@flint.arm.linux.org.uk>
-References: <20061221152621.GB3958@flint.arm.linux.org.uk> <E1GxQF2-0000i6-00@dorka.pomaz.szeredi.hu> <20061221171739.GE3958@flint.arm.linux.org.uk> <E1GxS8x-0000q5-00@dorka.pomaz.szeredi.hu> <20061221181156.GG3958@flint.arm.linux.org.uk> <E1GxSgF-0000uV-00@dorka.pomaz.szeredi.hu> <20061221185512.GH3958@flint.arm.linux.org.uk> <E1GxTED-0000yy-00@dorka.pomaz.szeredi.hu> <458B1E06.1030209@tausq.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <458B1E06.1030209@tausq.org>
+Received: from ip127.bb146.pacific.net.hk ([202.64.146.127]:57847 "EHLO
+	mailhub.stlglobal.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1423074AbWLVOpK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Dec 2006 09:45:10 -0500
+Message-ID: <458BEF72.6050801@tausq.org>
+Date: Fri, 22 Dec 2006 22:45:06 +0800
+From: Randolph Chung <randolph@tausq.org>
+MIME-Version: 1.0
+Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all
+ that again
+References: <20061221152621.GB3958@flint.arm.linux.org.uk> <E1GxQF2-0000i6-00@dorka.pomaz.szeredi.hu> <20061221171739.GE3958@flint.arm.linux.org.uk> <E1GxS8x-0000q5-00@dorka.pomaz.szeredi.hu> <20061221181156.GG3958@flint.arm.linux.org.uk> <E1GxSgF-0000uV-00@dorka.pomaz.szeredi.hu> <20061221185512.GH3958@flint.arm.linux.org.uk> <E1GxTED-0000yy-00@dorka.pomaz.szeredi.hu> <458B1E06.1030209@tausq.org> <20061222084318.GA5132@flint.arm.linux.org.uk>
+In-Reply-To: <20061222084318.GA5132@flint.arm.linux.org.uk>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Randolph Chung <randolph@tausq.org>
-Cc: Miklos Szeredi <miklos@szeredi.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Randolph Chung <randolph@tausq.org>, Miklos Szeredi <miklos@szeredi.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Dec 22, 2006 at 07:51:34AM +0800, Randolph Chung wrote:
-> >I understand now.  I'm not sure how the PARISC implementation can be
-> >correct in this light.
+>> Is the documentation wrong?
 > 
-> According to cachetlb.txt:
-> 
->   void flush_anon_page(struct page *page, unsigned long vmaddr)
->         When the kernel needs to access the contents of an anonymous
->         page, it calls this function (currently only
->         get_user_pages()).  Note: flush_dcache_page() deliberately
->         doesn't work for an anonymous page.  The default
->         implementation is a nop (and should remain so for all coherent
->         architectures).  For incoherent architectures, it should flush
->         the cache of the page at vmaddr in the current user process.
->                                                ^^^^^^^^^^^^^^^^^^^^
-> 
-> Is the documentation wrong?
+> Yes.  As I've already explained there is no guarantee that
+> get_user_pages() is only called to obtain pages for the current
+> process, and flush_anon_pages() is called irrespective of which
+> user process is being 'got'.
 
-Yes.  As I've already explained there is no guarantee that
-get_user_pages() is only called to obtain pages for the current
-process, and flush_anon_pages() is called irrespective of which
-user process is being 'got'.
+ok, it's easy enough to fix, I'm just trying to point out that it's 
+being implemented on parisc according to the documentation.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+randolph
+
+
+
