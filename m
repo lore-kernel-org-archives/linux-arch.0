@@ -1,34 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gw1.sa.eol.hu ([212.108.200.67]:40225 "EHLO
-	mail-gw1.sa.eol.hu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933154AbWLaMZc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 31 Dec 2006 07:25:32 -0500
-In-reply-to: <20061231100007.GC1702@flint.arm.linux.org.uk> (message from
-	Russell King on Sun, 31 Dec 2006 10:00:07 +0000)
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:3167 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030372AbWLaRh7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 31 Dec 2006 12:37:59 -0500
+Date: Sun, 31 Dec 2006 17:37:43 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all that again
-References: <20061230.212338.92583434.davem@davemloft.net> <20061231092318.GA1702@flint.arm.linux.org.uk> <1167557242.20929.647.camel@laptopd505.fenrus.org> <20061231.014756.112264804.davem@davemloft.net> <20061231100007.GC1702@flint.arm.linux.org.uk>
-Message-Id: <E1H0zkD-0003uw-00@dorka.pomaz.szeredi.hu>
-From: Miklos Szeredi <miklos@szeredi.hu>
-Date: Sun, 31 Dec 2006 13:24:53 +0100
+Message-ID: <20061231173743.GD1702@flint.arm.linux.org.uk>
+References: <20061230.212338.92583434.davem@davemloft.net> <20061231092318.GA1702@flint.arm.linux.org.uk> <1167557242.20929.647.camel@laptopd505.fenrus.org> <20061231.014756.112264804.davem@davemloft.net> <20061231100007.GC1702@flint.arm.linux.org.uk> <E1H0zkD-0003uw-00@dorka.pomaz.szeredi.hu>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <E1H0zkD-0003uw-00@dorka.pomaz.szeredi.hu>
 Sender: linux-arch-owner@vger.kernel.org
-To: rmk+lkml@arm.linux.org.uk
+To: Miklos Szeredi <miklos@szeredi.hu>
 Cc: davem@davemloft.net, arjan@infradead.org, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> I'm willing to do that - and I guess this means we can probably do this
-> instead of walking the list of VMAs for the shared mapping, thereby
-> hitting both anonymous and shared mappings with the same code?
+On Sun, Dec 31, 2006 at 01:24:53PM +0100, Miklos Szeredi wrote:
+> > I'm willing to do that - and I guess this means we can probably do this
+> > instead of walking the list of VMAs for the shared mapping, thereby
+> > hitting both anonymous and shared mappings with the same code?
+> 
+> But for the get_user_pages() case there's no point, is there?  The VMA
+> and the virtual address is already available, so trying to find it
+> again through RMAP doesn't much make sense.
+> 
+> Users of get_user_pages() don't care about any other mappings (maybe
+> ptrace does, I don't know) only about one single user mapping and one
+> kernel mapping.
+> 
+> So using flush_dcache_page() there is an overkill, trying to teach it
+> about anonymous pages is not the real solution, flush_dcache_page()
+> was never meant to be used on anything but file mapped pages.
 
-But for the get_user_pages() case there's no point, is there?  The VMA
-and the virtual address is already available, so trying to find it
-again through RMAP doesn't much make sense.
+It's not actually.  For flush_anon_page() we currently have to flush the
+user mapping and the kernel mapping.  For flush_dcache_page(), it's
+exactly the same - we have to flush the kernel mapping and the user
+mapping.
 
-Users of get_user_pages() don't care about any other mappings (maybe
-ptrace does, I don't know) only about one single user mapping and one
-kernel mapping.
+So having both calls in get_user_pages() actually means we end up flushing
+the kernel mapping _twice_ for every page.  _That_ is overkill.
 
-So using flush_dcache_page() there is an overkill, trying to teach it
-about anonymous pages is not the real solution, flush_dcache_page()
-was never meant to be used on anything but file mapped pages.
+As Dave points out, flush_dcache_page() _should_ take care of anonymous
+pages as well (which if you remember was my argument to James, who
+absolutely refused to accept it.)
 
-Miklos
+So, since Dave is in agreement with me, I'll be handling this issue as
+per the interface designer's (Dave's) suggestions which tie up directly
+with my understanding of what should be done in the first place.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
