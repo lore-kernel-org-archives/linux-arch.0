@@ -1,38 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:57646 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933101AbWLaJ1d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 31 Dec 2006 04:27:33 -0500
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:42369
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S933110AbWLaJqi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 31 Dec 2006 04:46:38 -0500
+Date: Sun, 31 Dec 2006 01:46:30 -0800 (PST)
+Message-Id: <20061231.014630.130845911.davem@davemloft.net>
 Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all
-	that again
-From: Arjan van de Ven <arjan@infradead.org>
+ that again
+From: David Miller <davem@davemloft.net>
 In-Reply-To: <20061231092318.GA1702@flint.arm.linux.org.uk>
-References: <20061230165012.GB12622@flint.arm.linux.org.uk>
-	 <Pine.LNX.4.64.0612301022200.4473@woody.osdl.org>
-	 <20061230224604.GA3350@flint.arm.linux.org.uk>
-	 <20061230.212338.92583434.davem@davemloft.net>
-	 <20061231092318.GA1702@flint.arm.linux.org.uk>
-Content-Type: text/plain
-Date: Sun, 31 Dec 2006 10:27:22 +0100
-Message-Id: <1167557242.20929.647.camel@laptopd505.fenrus.org>
+References: <20061230224604.GA3350@flint.arm.linux.org.uk>
+	<20061230.212338.92583434.davem@davemloft.net>
+	<20061231092318.GA1702@flint.arm.linux.org.uk>
 Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: David Miller <davem@davemloft.net>, torvalds@osdl.org, miklos@szeredi.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
+To: rmk+lkml@arm.linux.org.uk
+Cc: torvalds@osdl.org, miklos@szeredi.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Date: Sun, 31 Dec 2006 09:23:18 +0000
 
-> 
+> We do this on ARM - if page_mapping() is NULL, we flush the kernel
+> alias unconditionally.  However, we have no view where the user
+> mapping of that page is, which is where the problem is.  Cache lines
+> remain allocated for the user mapping and data contained within is
+> not visible via the kernel mapping.
+
+You can walk the RMAP list.
+
 > However, it's not only FUSE which is suffering - direct-IO also doesn't
-> work. 
+> work.  If my analysis is correct, only _two_ users of get_user_pages()
+> with the current process actually does the right thing and that's ptrace
+> and ELF core dumping.  All other users are buggy.
 
-for direct-IO the kernel won't touch the data *at all*... (that's the
-point ;) 
-
-is it still an issue then?
-
--- 
-if you want to mail me at work (you don't), use arjan (at) linux.intel.com
-Test the interaction between Linux and your BIOS via http://www.linuxfirmwarekit.org
-
+I do not argue that these cases need work, in fact I am aware
+of the direct-IO bit.
