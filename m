@@ -1,73 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.25]:54639 "EHLO smtp.osdl.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933221AbWLaU7q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 31 Dec 2006 15:59:46 -0500
-Date: Sun, 31 Dec 2006 12:58:45 -0800 (PST)
-From: Linus Torvalds <torvalds@osdl.org>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:40588
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S933228AbWLaVMS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 31 Dec 2006 16:12:18 -0500
+Date: Sun, 31 Dec 2006 13:12:16 -0800 (PST)
+Message-Id: <20061231.131216.105428418.davem@davemloft.net>
 Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all
  that again
-In-Reply-To: <20061231.124017.85689231.davem@davemloft.net>
-Message-ID: <Pine.LNX.4.64.0612311249240.4473@woody.osdl.org>
-References: <20061231.014756.112264804.davem@davemloft.net>
- <20061231100007.GC1702@flint.arm.linux.org.uk> <E1H0zkD-0003uw-00@dorka.pomaz.szeredi.hu>
- <20061231.124017.85689231.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <Pine.LNX.4.64.0612311249240.4473@woody.osdl.org>
+References: <E1H0zkD-0003uw-00@dorka.pomaz.szeredi.hu>
+	<20061231.124017.85689231.davem@davemloft.net>
+	<Pine.LNX.4.64.0612311249240.4473@woody.osdl.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
+To: torvalds@osdl.org
 Cc: miklos@szeredi.hu, rmk+lkml@arm.linux.org.uk, arjan@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
+From: Linus Torvalds <torvalds@osdl.org>
+Date: Sun, 31 Dec 2006 12:58:45 -0800 (PST)
 
+> So there really is two different cases here:
+> 
+>  - flush the cache as seen by A PARTICULAR virtual mapping.
+> 
+>    This is ptrace, but it's other things like "unmap page from this VM" 
+>    too.
+> 
+>  - flush the cache for all possible virtual mappings - simply because we 
+>    don't even know who has it mapped dirty. 
+> 
+>    And the thing is, the more I think about it, the more I end up 
+>    wondering:
+> 
+>    I'm not even sure how valid this is. Whatever path needs to do this is 
+>    likely doing something wrong anyway. If there are multiple possible 
+>    sources of cache conflicts, the thing is a disaster and the end result 
+>    depends on our ordering anyway, so I'd argue that it is just about as 
+>    correct to flush as it is to NOT flush.
+> 
+> So I have this nagging suspicion that "flush_dcache_page()" is always a 
+> bug when it is about "virtual caches". It should NEVER flush any virtual 
+> caches, since that whole operations is by necessity something where you 
+> should be talking about _which_ virtual cache you should flush.
 
-On Sun, 31 Dec 2006, David Miller wrote:
->
-> Even in the ptrace() case, you do want to flush all the other VMA's
-> that might be out there with an aliased cached copy in the cpu cache.
+It's the aliasing between the _1_ valid user mapping and the kernel's
+virtual mapping, that's the problem and that's very valid and that's
+why we have flush_dcache_page() to begin with.
 
-I don't think that's necessarily true.
+> So "flush_dcache_page()" is - I think - more validtly thought about as 
+> just DMA coherency (in a system where DMA does not participate in 
+> _physical_ cache coherency). Not about virtual caches at all.
 
-If the same page is cached differently (and virtually) in multiple 
-different places, the end result is random _anyway_. The only thing you 
-care about for ptrace is what the process YOU ARE TRACING sees. If 
-somebody else has something else in their cachelines, that's utterly 
-uninteresting to ptrace, imnsho.
+And I guess that's what you're trying to say here.
 
-So there really is two different cases here:
+I'm beginning to think that Ralf Baechle had the best idea here,
+where he recently made it such that platforms could override
+kmap() and friends even on non-HIGHMEM configurations.
 
- - flush the cache as seen by A PARTICULAR virtual mapping.
+In theory it's the perfect interface to handle this problem,
+you flush exactly where the physical page is made visible to
+the kernel for a cpu load/store.  All the locations where that
+happens are perfectly annotated already with kmap() calls.
 
-   This is ptrace, but it's other things like "unmap page from this VM" 
-   too.
+So then there are two ways to touch user mapped pages:
 
- - flush the cache for all possible virtual mappings - simply because we 
-   don't even know who has it mapped dirty. 
+1) Inside of a kmap()/kunmap() region.
 
-   And the thing is, the more I think about it, the more I end up 
-   wondering:
+2) Via copy_user_page()/clear_user_page()
 
-   I'm not even sure how valid this is. Whatever path needs to do this is 
-   likely doing something wrong anyway. If there are multiple possible 
-   sources of cache conflicts, the thing is a disaster and the end result 
-   depends on our ordering anyway, so I'd argue that it is just about as 
-   correct to flush as it is to NOT flush.
+The only core requirement is that the interfaces know the
+virtual address the thing is mapped at, and after Ralf's
+changes both #1 and #2 do have this information.
 
-So I have this nagging suspicion that "flush_dcache_page()" is always a 
-bug when it is about "virtual caches". It should NEVER flush any virtual 
-caches, since that whole operations is by necessity something where you 
-should be talking about _which_ virtual cache you should flush.
+Using kmap() even takes care of the PIO "dma" cases where
+the CPU reads/writes to the buffer for the data transfer.
 
-So "flush_dcache_page()" is - I think - more validtly thought about as 
-just DMA coherency (in a system where DMA does not participate in 
-_physical_ cache coherency). Not about virtual caches at all.
+Furthermore, an implementation of #1 and #2 can avoid
+cache flushing altogether.  Just like for HIGHMEM you
+have a kmap() TLB mapping area that sets up a mapping at
+the correct alias, and returns that pointer from kmap().
+Since the alias is good, no cache flush is needed to access
+the page in kernel space.
 
-(Or, possibly, we could specify that it does a _particular_ virtual cache 
-flush, namely the "kernel mapping" for that page, and nothing else. So if 
-you have done a "write()" system call, and actually updated a page cache 
-page, _then_ it makes sense to flush the KERNEL virtual mapping to memory: 
-you could think of that as the "physical" cache case).
+In fact I think this is what Ralf's implementation on MIPS is doing.
+And, this is the scheme we use on sparc64 for {copy,clear}_user_page().
 
-Hmm? What say you?
+Now, going in the opposite direction (kernel page made visible to
+userspace for the first time, so you have to kick out the kernel side
+mapping from the cache) can be handled either at set_pte_at() time
+(this is what sparc64 does) or in update_mmu_cache().
 
-		Linus
+This leaves only one (arguably broken) case of, as you mention, the
+user using MAP_SHARED at a set of several incompatible aliases.  As
+far as I can see, the only sane thing to do in that situation seems to
+be to mark the thing non-virtually-cacheable in the user mapping PTEs
+if the cpu architecture allows that.
