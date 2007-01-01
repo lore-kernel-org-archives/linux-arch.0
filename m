@@ -1,46 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hancock.steeleye.com ([71.30.118.248]:35330 "EHLO
-	hancock.sc.steeleye.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754750AbXAAXXd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jan 2007 18:23:33 -0500
-Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all
-	that again
-From: James Bottomley <James.Bottomley@steeleye.com>
-In-Reply-To: <20070101.150401.93385110.davem@davemloft.net>
-References: <Pine.LNX.4.64.0612311249240.4473@woody.osdl.org>
-	 <20061231.131216.105428418.davem@davemloft.net>
-	 <1167669876.5302.60.camel@mulgrave.il.steeleye.com>
-	 <20070101.150401.93385110.davem@davemloft.net>
-Content-Type: text/plain
-Date: Mon, 01 Jan 2007 17:23:08 -0600
-Message-Id: <1167693789.2825.6.camel@mulgrave.il.steeleye.com>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:4550 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754791AbXAAXqT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jan 2007 18:46:19 -0500
+Date: Mon, 1 Jan 2007 23:45:59 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all that again
+Message-ID: <20070101234559.GE30535@flint.arm.linux.org.uk>
+References: <20061230.212338.92583434.davem@davemloft.net> <20061231092318.GA1702@flint.arm.linux.org.uk> <1167557242.20929.647.camel@laptopd505.fenrus.org> <20061231.014756.112264804.davem@davemloft.net> <20061231100007.GC1702@flint.arm.linux.org.uk> <E1H0zkD-0003uw-00@dorka.pomaz.szeredi.hu> <20061231173743.GD1702@flint.arm.linux.org.uk> <E1H1VQu-0005oJ-00@dorka.pomaz.szeredi.hu>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <E1H1VQu-0005oJ-00@dorka.pomaz.szeredi.hu>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: torvalds@osdl.org, miklos@szeredi.hu, rmk+lkml@arm.linux.org.uk, arjan@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
+To: Miklos Szeredi <miklos@szeredi.hu>
+Cc: davem@davemloft.net, arjan@infradead.org, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2007-01-01 at 15:04 -0800, David Miller wrote:
-> I thought this was accepted and Ralf is using it on MIPS?
+On Mon, Jan 01, 2007 at 11:15:04PM +0100, Miklos Szeredi wrote:
+> > > > I'm willing to do that - and I guess this means we can probably do this
+> > > > instead of walking the list of VMAs for the shared mapping, thereby
+> > > > hitting both anonymous and shared mappings with the same code?
+> > > 
+> > > But for the get_user_pages() case there's no point, is there?  The VMA
+> > > and the virtual address is already available, so trying to find it
+> > > again through RMAP doesn't much make sense.
+> > > 
+> > > Users of get_user_pages() don't care about any other mappings (maybe
+> > > ptrace does, I don't know) only about one single user mapping and one
+> > > kernel mapping.
+> > > 
+> > > So using flush_dcache_page() there is an overkill, trying to teach it
+> > > about anonymous pages is not the real solution, flush_dcache_page()
+> > > was never meant to be used on anything but file mapped pages.
+> > 
+> > It's not actually.  For flush_anon_page() we currently have to flush the
+> > user mapping and the kernel mapping.  For flush_dcache_page(), it's
+> > exactly the same - we have to flush the kernel mapping and the user
+> > mapping.
+> 
+> I was never advocating flush_anon_page().  I was suggesting a _new_
+> cache operation:
+> 
+>    flush_kernel_user_page(page, vma, virt_addr)
+> 
+> which flushes the kernel mapping and the given user mapping.  Just
+> like flush_dcache_page() but without needing to find the user
+> mapping(s).
 
-It partially is ... we're using it on parisc as well, but only as a
-supplement to the current linux flushing APIs.  There's still no
-guarantee in the standard linux API that 
+There's a problem with defining cache coherency macros to that extent.
+You take away flexibility to efficiently implement them on various
+platforms which you didn't think about (eg, in the above case it's
+perfectly fine for VIVT, but not really VIPT.)
 
-kmap();  do something; kunmap();
+> However the cache flushing in kmap/kunmap idea might be cleaner and
+> better.
 
-leaves everything correctly coherent.
+It has the significant advantage that, unlike the flush* calls, they
+can't really be forgotten by folk programming on cache alias-free
+hardware.  That's a _very_ persuasive argument for this proposed
+interface.
 
-I have some code for parisc that implements the strong coherency around
-kmap/kunmap.  What we do is actually use the page access flags to tell
-us if the page was altered by the "do something" code and thus flush
-only where necessary (i.e. our prototype was hint free).  If everyone's
-happy with this, we can kill off flush_kernel_dcache_page() and a few
-other flush_dcache_pages() around kmaps and just let the kmap API handle
-it all.  Unfortunately, this still won't solve the anonymous page
-problem.
-
-James
-
-
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
