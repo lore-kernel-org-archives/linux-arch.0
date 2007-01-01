@@ -1,54 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:2922 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755230AbXAAQVv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jan 2007 11:21:51 -0500
-Date: Mon, 1 Jan 2007 16:21:42 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all that again
-Message-ID: <20070101162142.GA30535@flint.arm.linux.org.uk>
-References: <20061221152621.GB3958@flint.arm.linux.org.uk> <E1GxQF2-0000i6-00@dorka.pomaz.szeredi.hu> <20061221171739.GE3958@flint.arm.linux.org.uk> <20061230163955.GA12622@flint.arm.linux.org.uk> <20061230165012.GB12622@flint.arm.linux.org.uk> <Pine.LNX.4.64.0612301022200.4473@woody.osdl.org> <1167662118.5302.52.camel@mulgrave.il.steeleye.com>
+Received: from hancock.steeleye.com ([71.30.118.248]:33089 "EHLO
+	hancock.sc.steeleye.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S932413AbXAAQoy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jan 2007 11:44:54 -0500
+Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all
+	that again
+From: James Bottomley <James.Bottomley@steeleye.com>
+In-Reply-To: <20061231.131216.105428418.davem@davemloft.net>
+References: <E1H0zkD-0003uw-00@dorka.pomaz.szeredi.hu>
+	 <20061231.124017.85689231.davem@davemloft.net>
+	 <Pine.LNX.4.64.0612311249240.4473@woody.osdl.org>
+	 <20061231.131216.105428418.davem@davemloft.net>
+Content-Type: text/plain
+Date: Mon, 01 Jan 2007 10:44:36 -0600
+Message-Id: <1167669876.5302.60.camel@mulgrave.il.steeleye.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1167662118.5302.52.camel@mulgrave.il.steeleye.com>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@steeleye.com>
-Cc: Linus Torvalds <torvalds@osdl.org>, Miklos Szeredi <miklos@szeredi.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>
+To: David Miller <davem@davemloft.net>
+Cc: torvalds@osdl.org, miklos@szeredi.hu, rmk+lkml@arm.linux.org.uk, arjan@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Jan 01, 2007 at 09:35:17AM -0500, James Bottomley wrote:
-> On Sat, 2006-12-30 at 10:26 -0800, Linus Torvalds wrote:
-> > 
-> > On Sat, 30 Dec 2006, Russell King wrote:
-> > > 
-> > > And here's the flush_anon_page() part.
+On Sun, 2006-12-31 at 13:12 -0800, David Miller wrote:
+> From: Linus Torvalds <torvalds@osdl.org>
+> Date: Sun, 31 Dec 2006 12:58:45 -0800 (PST)
 > 
-> This looks fine to me (if you need my ack).
-> 
-> > > Add flush_anon_page() for ARM, to avoid data corruption issues when using
-> > > fuse or other subsystems using get_user_pages().
+> > So there really is two different cases here:
 > > 
-> > Btw, since this doesn't actually change any code for anybody but ARM, just 
-> > adds a parameter that is obviously unused by everybody else, and if it 
-> > actually fixes a real bug for ARM, I'll obviously happily take it even 
-> > before 2.6.20. So go ahead put it in your ARM tree, and we'll get some 
-> > testing through that. And just ask me to pull at some point.
+> >  - flush the cache as seen by A PARTICULAR virtual mapping.
 > > 
-> > I wonder why nobody else seems to have a "flush_anon_page()"? This would 
-> > seem to be a potential issue for architectures like sparc too.. Although 
-> > maybe sparc can do a flush by physical index with "flush_dcache_page()".
+> >    This is ptrace, but it's other things like "unmap page from this VM" 
+> >    too.
+> > 
+> >  - flush the cache for all possible virtual mappings - simply because we 
+> >    don't even know who has it mapped dirty. 
+> > 
+> >    And the thing is, the more I think about it, the more I end up 
+> >    wondering:
+> > 
+> >    I'm not even sure how valid this is. Whatever path needs to do this is 
+> >    likely doing something wrong anyway. If there are multiple possible 
+> >    sources of cache conflicts, the thing is a disaster and the end result 
+> >    depends on our ordering anyway, so I'd argue that it is just about as 
+> >    correct to flush as it is to NOT flush.
+> > 
+> > So I have this nagging suspicion that "flush_dcache_page()" is always a 
+> > bug when it is about "virtual caches". It should NEVER flush any virtual 
+> > caches, since that whole operations is by necessity something where you 
+> > should be talking about _which_ virtual cache you should flush.
 > 
-> The sparc handling of anonymous pages is different ... they accitentally
-> sweep them up in flush_dcache_page().  When I audited the architectures
-> to try to make fuse work on parisc, parisc and arm were the only ones
-> that actually needed flush_anon_page().
+> It's the aliasing between the _1_ valid user mapping and the kernel's
+> virtual mapping, that's the problem and that's very valid and that's
+> why we have flush_dcache_page() to begin with.
+> 
+> > So "flush_dcache_page()" is - I think - more validtly thought about as 
+> > just DMA coherency (in a system where DMA does not participate in 
+> > _physical_ cache coherency). Not about virtual caches at all.
+> 
+> And I guess that's what you're trying to say here.
+> 
+> I'm beginning to think that Ralf Baechle had the best idea here,
+> where he recently made it such that platforms could override
+> kmap() and friends even on non-HIGHMEM configurations.
+> 
+> In theory it's the perfect interface to handle this problem,
+> you flush exactly where the physical page is made visible to
+> the kernel for a cpu load/store.  All the locations where that
+> happens are perfectly annotated already with kmap() calls.
 
-However, as David has said, anonymous pages _are_ supposed to be handled
-by flush_dcache_page(), so I now have an (untested) implementation for
-ARM which does this.  Therefore, I'm revoking the previous two patches.
+Actually, this was proposed here:
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+http://marc.theaimsgroup.com/?t=115409754100003
+
+When I updated the interface to work for the combined VIPT/PIPT cache on
+the latest pariscs.  However, there were no takers for the idea.
+
+James
+
+
