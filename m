@@ -1,36 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gprs189-60.eurotel.cz ([160.218.189.60]:4405 "EHLO spitz.ucw.cz"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754724AbXAAXWS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 1 Jan 2007 18:22:18 -0500
-Date: Mon, 1 Jan 2007 17:28:03 +0000
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [patch] remove MAX_ARG_PAGES
-Message-ID: <20070101172803.GC4214@ucw.cz>
-References: <65dd6fd50610101705t3db93a72sc0847cd120aa05d3@mail.gmail.com> <1160572460.2006.79.camel@taijtu> <65dd6fd50610111448q7ff210e1nb5f14917c311c8d4@mail.gmail.com> <65dd6fd50610241048h24af39d9ob49c3816dfe1ca64@mail.gmail.com> <20061229200357.GA5940@elte.hu>
+Received: from hancock.steeleye.com ([71.30.118.248]:35330 "EHLO
+	hancock.sc.steeleye.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1754750AbXAAXXd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jan 2007 18:23:33 -0500
+Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all
+	that again
+From: James Bottomley <James.Bottomley@steeleye.com>
+In-Reply-To: <20070101.150401.93385110.davem@davemloft.net>
+References: <Pine.LNX.4.64.0612311249240.4473@woody.osdl.org>
+	 <20061231.131216.105428418.davem@davemloft.net>
+	 <1167669876.5302.60.camel@mulgrave.il.steeleye.com>
+	 <20070101.150401.93385110.davem@davemloft.net>
+Content-Type: text/plain
+Date: Mon, 01 Jan 2007 17:23:08 -0600
+Message-Id: <1167693789.2825.6.camel@mulgrave.il.steeleye.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20061229200357.GA5940@elte.hu>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Ollie Wild <aaw@google.com>, linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, Linus Torvalds <torvalds@osdl.org>, Arjan van de Ven <arjan@infradead.org>, linux-mm@kvack.org, Andrew Morton <akpm@osdl.org>, Andi Kleen <ak@muc.de>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+To: David Miller <davem@davemloft.net>
+Cc: torvalds@osdl.org, miklos@szeredi.hu, rmk+lkml@arm.linux.org.uk, arjan@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi!
+On Mon, 2007-01-01 at 15:04 -0800, David Miller wrote:
+> I thought this was accepted and Ralf is using it on MIPS?
 
-> FYI, i have forward ported your MAX_ARG_PAGES limit removal patch to 
-> 2.6.20-rc2 and have included it in the -rt kernel. It's working great - 
-> i can now finally do a "ls -t patches/*.patch" in my patch repository - 
-> something i havent been able to do for years ;-)
-> 
-> what is keeping this fix from going upstream?
+It partially is ... we're using it on parisc as well, but only as a
+supplement to the current linux flushing APIs.  There's still no
+guarantee in the standard linux API that 
 
-+1
+kmap();  do something; kunmap();
 
-I like this. I've been running with MAX_ARG_PAGES raised to insane
-value, and I'd love to get rid of that hack.
+leaves everything correctly coherent.
 
-							Pavel
--- 
-Thanks for all the (sleeping) penguins.
+I have some code for parisc that implements the strong coherency around
+kmap/kunmap.  What we do is actually use the page access flags to tell
+us if the page was altered by the "do something" code and thus flush
+only where necessary (i.e. our prototype was hint free).  If everyone's
+happy with this, we can kill off flush_kernel_dcache_page() and a few
+other flush_dcache_pages() around kmaps and just let the kmap API handle
+it all.  Unfortunately, this still won't solve the anonymous page
+problem.
+
+James
+
+
