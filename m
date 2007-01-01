@@ -1,102 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:40588
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S933228AbWLaVMS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 31 Dec 2006 16:12:18 -0500
-Date: Sun, 31 Dec 2006 13:12:16 -0800 (PST)
-Message-Id: <20061231.131216.105428418.davem@davemloft.net>
-Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all
- that again
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <Pine.LNX.4.64.0612311249240.4473@woody.osdl.org>
-References: <E1H0zkD-0003uw-00@dorka.pomaz.szeredi.hu>
-	<20061231.124017.85689231.davem@davemloft.net>
-	<Pine.LNX.4.64.0612311249240.4473@woody.osdl.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Received: from smtp-out.google.com ([216.239.33.17]:28187 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932918AbXAAG7J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jan 2007 01:59:09 -0500
+Received: from spaceape11.eur.corp.google.com (spaceape11.eur.corp.google.com [172.28.16.145])
+	by smtp-out.google.com with ESMTP id l016x4of010472
+	for <linux-arch@vger.kernel.org>; Mon, 1 Jan 2007 06:59:04 GMT
+Received: from nf-out-0910.google.com (nfcl37.prod.google.com [10.48.113.37])
+	by spaceape11.eur.corp.google.com with ESMTP id l016wxGS010667
+	for <linux-arch@vger.kernel.org>; Mon, 1 Jan 2007 06:58:59 GMT
+Received: by nf-out-0910.google.com with SMTP id l37so6016009nfc
+        for <linux-arch@vger.kernel.org>; Sun, 31 Dec 2006 22:58:59 -0800 (PST)
+Message-ID: <65dd6fd50612312258i3bea1928m3d06c04fdbb5a7c@mail.gmail.com>
+Date: Sun, 31 Dec 2006 22:58:59 -0800
+From: "Ollie Wild" <aaw@google.com>
+Subject: Re: [patch] remove MAX_ARG_PAGES
+In-Reply-To: <20061229200357.GA5940@elte.hu>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+References: <65dd6fd50610101705t3db93a72sc0847cd120aa05d3@mail.gmail.com>
+	 <1160572460.2006.79.camel@taijtu>
+	 <65dd6fd50610111448q7ff210e1nb5f14917c311c8d4@mail.gmail.com>
+	 <65dd6fd50610241048h24af39d9ob49c3816dfe1ca64@mail.gmail.com>
+	 <20061229200357.GA5940@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
-To: torvalds@osdl.org
-Cc: miklos@szeredi.hu, rmk+lkml@arm.linux.org.uk, arjan@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
+To: Ingo Molnar <mingo@elte.hu>
+Cc: linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, Linus Torvalds <torvalds@osdl.org>, Arjan van de Ven <arjan@infradead.org>, linux-mm@kvack.org, Andrew Morton <akpm@osdl.org>, Andi Kleen <ak@muc.de>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Linus Torvalds <torvalds@osdl.org>
-Date: Sun, 31 Dec 2006 12:58:45 -0800 (PST)
+On 12/29/06, Ingo Molnar <mingo@elte.hu> wrote:
+>
+> what is keeping this fix from going upstream?
+>
 
-> So there really is two different cases here:
-> 
->  - flush the cache as seen by A PARTICULAR virtual mapping.
-> 
->    This is ptrace, but it's other things like "unmap page from this VM" 
->    too.
-> 
->  - flush the cache for all possible virtual mappings - simply because we 
->    don't even know who has it mapped dirty. 
-> 
->    And the thing is, the more I think about it, the more I end up 
->    wondering:
-> 
->    I'm not even sure how valid this is. Whatever path needs to do this is 
->    likely doing something wrong anyway. If there are multiple possible 
->    sources of cache conflicts, the thing is a disaster and the end result 
->    depends on our ordering anyway, so I'd argue that it is just about as 
->    correct to flush as it is to NOT flush.
-> 
-> So I have this nagging suspicion that "flush_dcache_page()" is always a 
-> bug when it is about "virtual caches". It should NEVER flush any virtual 
-> caches, since that whole operations is by necessity something where you 
-> should be talking about _which_ virtual cache you should flush.
+There are still a couple outstanding issues which need to be resolved
+before this is ready for inclusion in the mainline kernel.
 
-It's the aliasing between the _1_ valid user mapping and the kernel's
-virtual mapping, that's the problem and that's very valid and that's
-why we have flush_dcache_page() to begin with.
+The main one is support for CONFIG_STACK_GROWSUP, which I think is
+just parisc.  I've been meaning to look into this for a while, but I
+was out of commision for most of November so it got punted to the back
+burner.  I'll try to revisit it soonish.  If someone from the
+parisc-linux list wants to take a look, though, that's fine by me.
 
-> So "flush_dcache_page()" is - I think - more validtly thought about as 
-> just DMA coherency (in a system where DMA does not participate in 
-> _physical_ cache coherency). Not about virtual caches at all.
+The other is support for the various executable formats.  I've tested
+elf and script pretty thoroughly, but I'm not sure how to go about
+testing most of the others -- does anyone use aout anymore?  Maybe the
+solution is just to check it in and wait to see if someone complains.
 
-And I guess that's what you're trying to say here.
-
-I'm beginning to think that Ralf Baechle had the best idea here,
-where he recently made it such that platforms could override
-kmap() and friends even on non-HIGHMEM configurations.
-
-In theory it's the perfect interface to handle this problem,
-you flush exactly where the physical page is made visible to
-the kernel for a cpu load/store.  All the locations where that
-happens are perfectly annotated already with kmap() calls.
-
-So then there are two ways to touch user mapped pages:
-
-1) Inside of a kmap()/kunmap() region.
-
-2) Via copy_user_page()/clear_user_page()
-
-The only core requirement is that the interfaces know the
-virtual address the thing is mapped at, and after Ralf's
-changes both #1 and #2 do have this information.
-
-Using kmap() even takes care of the PIO "dma" cases where
-the CPU reads/writes to the buffer for the data transfer.
-
-Furthermore, an implementation of #1 and #2 can avoid
-cache flushing altogether.  Just like for HIGHMEM you
-have a kmap() TLB mapping area that sets up a mapping at
-the correct alias, and returns that pointer from kmap().
-Since the alias is good, no cache flush is needed to access
-the page in kernel space.
-
-In fact I think this is what Ralf's implementation on MIPS is doing.
-And, this is the scheme we use on sparc64 for {copy,clear}_user_page().
-
-Now, going in the opposite direction (kernel page made visible to
-userspace for the first time, so you have to kick out the kernel side
-mapping from the cache) can be handled either at set_pte_at() time
-(this is what sparc64 does) or in update_mmu_cache().
-
-This leaves only one (arguably broken) case of, as you mention, the
-user using MAP_SHARED at a set of several incompatible aliases.  As
-far as I can see, the only sane thing to do in that situation seems to
-be to mark the thing non-virtually-cacheable in the user mapping PTEs
-if the cpu architecture allows that.
+Ollie
