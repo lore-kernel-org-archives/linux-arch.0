@@ -1,34 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:45633
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1754226AbXAAXEI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jan 2007 18:04:08 -0500
-Date: Mon, 01 Jan 2007 15:04:01 -0800 (PST)
-Message-Id: <20070101.150401.93385110.davem@davemloft.net>
-Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all
- that again
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <1167669876.5302.60.camel@mulgrave.il.steeleye.com>
-References: <Pine.LNX.4.64.0612311249240.4473@woody.osdl.org>
-	<20061231.131216.105428418.davem@davemloft.net>
-	<1167669876.5302.60.camel@mulgrave.il.steeleye.com>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:4034 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754747AbXAAXRy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jan 2007 18:17:54 -0500
+Date: Mon, 1 Jan 2007 23:17:34 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all that again
+Message-ID: <20070101231733.GD30535@flint.arm.linux.org.uk>
+References: <1167557242.20929.647.camel@laptopd505.fenrus.org> <20061231.014756.112264804.davem@davemloft.net> <1167669252.5302.57.camel@mulgrave.il.steeleye.com> <20070101.150152.15266001.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070101.150152.15266001.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
-To: James.Bottomley@steeleye.com
-Cc: torvalds@osdl.org, miklos@szeredi.hu, rmk+lkml@arm.linux.org.uk, arjan@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
+To: David Miller <davem@davemloft.net>
+Cc: James.Bottomley@steeleye.com, arjan@infradead.org, torvalds@osdl.org, miklos@szeredi.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: James Bottomley <James.Bottomley@SteelEye.com>
-Date: Mon, 01 Jan 2007 10:44:36 -0600
-
-> Actually, this was proposed here:
+On Mon, Jan 01, 2007 at 03:01:52PM -0800, David Miller wrote:
+> From: James Bottomley <James.Bottomley@SteelEye.com>
+> Date: Mon, 01 Jan 2007 10:34:12 -0600
 > 
-> http://marc.theaimsgroup.com/?t=115409754100003
+> > Erm, well the whole reason for the flush_anon_pages() was that you told
+> > me not to do it in flush_dcache_page() ...
+> > 
+> > Although this is perhaps part of the confusion over what
+> > flush_dcache_page() is actually supposed to do.
 > 
-> When I updated the interface to work for the combined VIPT/PIPT cache on
-> the latest pariscs.  However, there were no takers for the idea.
+> I completely agree, it's confusing.  I've tried to make it
+> "just a hook" where architectures do whatever is necessary
+> at that point to synchronize things.  It's a poor definition
+> and gives the implementor not much more than a rope with which
+> to hang themselves :-)
+> 
+> That's why I'm thinking strongly about perhaps encouraging
+> people to go the kmap() route.  It would avoid all the flushing
+> in exchange for some specialized TLB accesses.  If the flushes
+> are really expensive, and the TLB operations to setup/teardown
+> the kmap()'s can be relatively cheap, it might be the thing to
+> do on PARISC.
 
+This all sounds wonderful, and also means that if/when ARM starts
+implementing highmem, kmap becomes useful.  (When I looked at that
+a while back, adding the necessary flushes where required would mean
+that we ended up doing a lot of flushing all over the place.)
 
-I thought this was accepted and Ralf is using it on MIPS?
+> More and more I like Ralf's kmap() approach because you only
+> do things exactly where the kernel actually touches the page.
+> And if it would really help in some way, we can even tag the
+> kmap() calls with "KMAP_READ" or "KMAP_WRITE" type attributes
+> as appropriate.  Because let's say you don't want to do the
+> TLB mapping thing, and still want to actually cache flush,
+> then this hint about the access could guide what kind of flush
+> you do.
+
+You'd still want to do the flushing on ARM because it's mostly VIVT.
+Remapping pages with VIVT would just makes things much worse.
+
+So yes, this sounds like a great idea.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
