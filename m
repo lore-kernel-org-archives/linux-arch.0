@@ -1,80 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hancock.steeleye.com ([71.30.118.248]:33089 "EHLO
-	hancock.sc.steeleye.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S932413AbXAAQoy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jan 2007 11:44:54 -0500
-Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all
-	that again
-From: James Bottomley <James.Bottomley@steeleye.com>
-In-Reply-To: <20061231.131216.105428418.davem@davemloft.net>
-References: <E1H0zkD-0003uw-00@dorka.pomaz.szeredi.hu>
-	 <20061231.124017.85689231.davem@davemloft.net>
-	 <Pine.LNX.4.64.0612311249240.4473@woody.osdl.org>
-	 <20061231.131216.105428418.davem@davemloft.net>
-Content-Type: text/plain
-Date: Mon, 01 Jan 2007 10:44:36 -0600
-Message-Id: <1167669876.5302.60.camel@mulgrave.il.steeleye.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-gw3.sa.ew.hu ([212.108.200.82]:50162 "EHLO
+	mail-gw3.sa.ew.hu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754370AbXAAWQi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jan 2007 17:16:38 -0500
+In-reply-to: <20061231173743.GD1702@flint.arm.linux.org.uk> (message from
+	Russell King on Sun, 31 Dec 2006 17:37:43 +0000)
+Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all that again
+References: <20061230.212338.92583434.davem@davemloft.net> <20061231092318.GA1702@flint.arm.linux.org.uk> <1167557242.20929.647.camel@laptopd505.fenrus.org> <20061231.014756.112264804.davem@davemloft.net> <20061231100007.GC1702@flint.arm.linux.org.uk> <E1H0zkD-0003uw-00@dorka.pomaz.szeredi.hu> <20061231173743.GD1702@flint.arm.linux.org.uk>
+Message-Id: <E1H1VQu-0005oJ-00@dorka.pomaz.szeredi.hu>
+From: Miklos Szeredi <miklos@szeredi.hu>
+Date: Mon, 01 Jan 2007 23:15:04 +0100
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: torvalds@osdl.org, miklos@szeredi.hu, rmk+lkml@arm.linux.org.uk, arjan@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
+To: rmk+lkml@arm.linux.org.uk
+Cc: davem@davemloft.net, arjan@infradead.org, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 2006-12-31 at 13:12 -0800, David Miller wrote:
-> From: Linus Torvalds <torvalds@osdl.org>
-> Date: Sun, 31 Dec 2006 12:58:45 -0800 (PST)
-> 
-> > So there really is two different cases here:
+> > > I'm willing to do that - and I guess this means we can probably do this
+> > > instead of walking the list of VMAs for the shared mapping, thereby
+> > > hitting both anonymous and shared mappings with the same code?
 > > 
-> >  - flush the cache as seen by A PARTICULAR virtual mapping.
+> > But for the get_user_pages() case there's no point, is there?  The VMA
+> > and the virtual address is already available, so trying to find it
+> > again through RMAP doesn't much make sense.
 > > 
-> >    This is ptrace, but it's other things like "unmap page from this VM" 
-> >    too.
+> > Users of get_user_pages() don't care about any other mappings (maybe
+> > ptrace does, I don't know) only about one single user mapping and one
+> > kernel mapping.
 > > 
-> >  - flush the cache for all possible virtual mappings - simply because we 
-> >    don't even know who has it mapped dirty. 
-> > 
-> >    And the thing is, the more I think about it, the more I end up 
-> >    wondering:
-> > 
-> >    I'm not even sure how valid this is. Whatever path needs to do this is 
-> >    likely doing something wrong anyway. If there are multiple possible 
-> >    sources of cache conflicts, the thing is a disaster and the end result 
-> >    depends on our ordering anyway, so I'd argue that it is just about as 
-> >    correct to flush as it is to NOT flush.
-> > 
-> > So I have this nagging suspicion that "flush_dcache_page()" is always a 
-> > bug when it is about "virtual caches". It should NEVER flush any virtual 
-> > caches, since that whole operations is by necessity something where you 
-> > should be talking about _which_ virtual cache you should flush.
+> > So using flush_dcache_page() there is an overkill, trying to teach it
+> > about anonymous pages is not the real solution, flush_dcache_page()
+> > was never meant to be used on anything but file mapped pages.
 > 
-> It's the aliasing between the _1_ valid user mapping and the kernel's
-> virtual mapping, that's the problem and that's very valid and that's
-> why we have flush_dcache_page() to begin with.
-> 
-> > So "flush_dcache_page()" is - I think - more validtly thought about as 
-> > just DMA coherency (in a system where DMA does not participate in 
-> > _physical_ cache coherency). Not about virtual caches at all.
-> 
-> And I guess that's what you're trying to say here.
-> 
-> I'm beginning to think that Ralf Baechle had the best idea here,
-> where he recently made it such that platforms could override
-> kmap() and friends even on non-HIGHMEM configurations.
-> 
-> In theory it's the perfect interface to handle this problem,
-> you flush exactly where the physical page is made visible to
-> the kernel for a cpu load/store.  All the locations where that
-> happens are perfectly annotated already with kmap() calls.
+> It's not actually.  For flush_anon_page() we currently have to flush the
+> user mapping and the kernel mapping.  For flush_dcache_page(), it's
+> exactly the same - we have to flush the kernel mapping and the user
+> mapping.
 
-Actually, this was proposed here:
+I was never advocating flush_anon_page().  I was suggesting a _new_
+cache operation:
 
-http://marc.theaimsgroup.com/?t=115409754100003
+   flush_kernel_user_page(page, vma, virt_addr)
 
-When I updated the interface to work for the combined VIPT/PIPT cache on
-the latest pariscs.  However, there were no takers for the idea.
+which flushes the kernel mapping and the given user mapping.  Just
+like flush_dcache_page() but without needing to find the user
+mapping(s).
 
-James
+However the cache flushing in kmap/kunmap idea might be cleaner and
+better.
 
-
+Miklos
