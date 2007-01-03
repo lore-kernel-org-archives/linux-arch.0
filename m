@@ -1,118 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.gmx.net ([213.165.64.20]:51988 "HELO mail.gmx.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
-	id S932150AbXACVXS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 3 Jan 2007 16:23:18 -0500
-From: Helge Deller <deller@gmx.de>
+Received: from palinux.external.hp.com ([192.25.206.14]:51797 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932147AbXACVdP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jan 2007 16:33:15 -0500
+Date: Wed, 3 Jan 2007 14:33:13 -0700
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: + use-cycle_t-instead-of-u64-in-struct-time_interpolator.patch added to -mm tree
-Date: Wed, 3 Jan 2007 22:23:11 +0100
-References: <200701032100.l03L0REl031061@shell0.pdx.osdl.net>
-In-Reply-To: <200701032100.l03L0REl031061@shell0.pdx.osdl.net>
+Message-ID: <20070103213313.GC24620@parisc-linux.org>
+References: <200701032100.l03L0REl031061@shell0.pdx.osdl.net> <20070103210551.GB24620@parisc-linux.org> <20070103132537.7743b0bd.akpm@osdl.org>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200701032223.12418.deller@gmx.de>
+In-Reply-To: <20070103132537.7743b0bd.akpm@osdl.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@osdl.org
-Cc: linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, john stultz <johnstul@us.ibm.com>, Christoph Lameter <clameter@sgi.com>, Matthew Wilcox <matthew@wil.cx>, mm-commits@vger.kernel.org
+To: Andrew Morton <akpm@osdl.org>
+Cc: deller@gmx.de, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de
 List-ID: <linux-arch.vger.kernel.org>
 
-John, Christoph, all,
+On Wed, Jan 03, 2007 at 01:25:37PM -0800, Andrew Morton wrote:
+> Well yeah, but I think he did that because of some unrelated parisc borkage.
 
-The patch is not necessary any longer for the parisc Linux kernel.
-Nevertheless it's not wrong and makes it generelly possible to us this framework on 32bit architectures as well.
-
-I would prefer if it goes in, but I leave it up to you to decide...
-
-Helge
-
-On Wed Jan 3 2007, akpm@osdl.org wrote:
-> 
-> The patch titled
->      use cycle_t instead of u64 in struct time_interpolator
-> has been added to the -mm tree.  Its filename is
->      use-cycle_t-instead-of-u64-in-struct-time_interpolator.patch
-> 
-> See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-> out what to do about this
-> 
-> ------------------------------------------------------
-> Subject: use cycle_t instead of u64 in struct time_interpolator
-> From: Helge Deller <deller@gmx.de>
-> 
-> The 32bit and 64bit PARISC Linux kernels suffers from the problem, that the
-> gettimeofday() call sometimes returns non-monotonic times.
-> 
-> The easiest way to fix this, is to drop the PARISC-specific implementation
-> and switch over to the generic TIME_INTERPOLATION framework.
-> 
-> But in order to make it even compile on 32bit PARISC, the patch below which
-> touches the generic Linux code, is mandatory.
-> 
-> More information and the full patch with the parisc-specific changes is included in this thread: http://lists.parisc-linux.org/pipermail/parisc-linux/2006-December/031003.html
-> 
-> As far as I could see, this patch does not change anything for the existing
-> architectures which use this framework (IA64 and SPARC64), since "cycles_t"
-> is defined there as unsigned 64bit-integer anyway (which then makes this
-> patch a no-change for them).
-> 
-> Signed-off-by: Helge Deller <deller@gmx.de>
-> Cc: <linux-arch@vger.kernel.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@elte.hu>
-> Signed-off-by: Andrew Morton <akpm@osdl.org>
-> ---
-> 
->  include/linux/timex.h |    4 ++--
->  kernel/timer.c        |    6 +++---
->  2 files changed, 5 insertions(+), 5 deletions(-)
-> 
-> diff -puN include/linux/timex.h~use-cycle_t-instead-of-u64-in-struct-time_interpolator include/linux/timex.h
-> --- a/include/linux/timex.h~use-cycle_t-instead-of-u64-in-struct-time_interpolator
-> +++ a/include/linux/timex.h
-> @@ -255,10 +255,10 @@ struct time_interpolator {
->  	u8 jitter;			/* if set compensate for fluctuations */
->  	u32 nsec_per_cyc;		/* set by register_time_interpolator() */
->  	void *addr;			/* address of counter or function */
-> -	u64 mask;			/* mask the valid bits of the counter */
-> +	cycles_t mask;			/* mask the valid bits of the counter */
->  	unsigned long offset;		/* nsec offset at last update of interpolator */
->  	u64 last_counter;		/* counter value in units of the counter at last update */
-> -	u64 last_cycle;			/* Last timer value if TIME_SOURCE_JITTER is set */
-> +	cycles_t last_cycle;		/* Last timer value if TIME_SOURCE_JITTER is set */
->  	u64 frequency;			/* frequency in counts/second */
->  	long drift;			/* drift in parts-per-million (or -1) */
->  	unsigned long skips;		/* skips forward */
-> diff -puN kernel/timer.c~use-cycle_t-instead-of-u64-in-struct-time_interpolator kernel/timer.c
-> --- a/kernel/timer.c~use-cycle_t-instead-of-u64-in-struct-time_interpolator
-> +++ a/kernel/timer.c
-> @@ -1624,7 +1624,7 @@ struct time_interpolator *time_interpola
->  static struct time_interpolator *time_interpolator_list __read_mostly;
->  static DEFINE_SPINLOCK(time_interpolator_lock);
->  
-> -static inline u64 time_interpolator_get_cycles(unsigned int src)
-> +static inline cycles_t time_interpolator_get_cycles(unsigned int src)
->  {
->  	unsigned long (*x)(void);
->  
-> @@ -1650,8 +1650,8 @@ static inline u64 time_interpolator_get_
->  
->  	if (time_interpolator->jitter)
->  	{
-> -		u64 lcycle;
-> -		u64 now;
-> +		cycles_t lcycle;
-> +		cycles_t now;
->  
->  		do {
->  			lcycle = time_interpolator->last_cycle;
-> _
-> 
-> Patches currently in -mm which might be from deller@gmx.de are
-> 
-> use-cycle_t-instead-of-u64-in-struct-time_interpolator.patch
-> 
-
-
+It's simply impossible to implement cmpxchg() in the general case on
+parisc.  This was hashed out in great detail recently ...
