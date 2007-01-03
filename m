@@ -1,49 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:2588 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750858AbXACPJo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jan 2007 10:09:44 -0500
-Date: Wed, 3 Jan 2007 15:09:12 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: fuse, get_user_pages, flush_anon_page, aliasing caches and all that again
-Message-ID: <20070103150912.GB25434@flint.arm.linux.org.uk>
-References: <1167778403.3687.1.camel@mulgrave.il.steeleye.com> <20070102.151906.21595863.davem@davemloft.net> <1167780858.3687.13.camel@mulgrave.il.steeleye.com> <20070102.162058.55482337.davem@davemloft.net> <20070103141655.GA25434@flint.arm.linux.org.uk> <1167836458.2789.6.camel@mulgrave.il.steeleye.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1167836458.2789.6.camel@mulgrave.il.steeleye.com>
+Received: from smtp.osdl.org ([65.172.181.25]:49629 "EHLO smtp.osdl.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932108AbXACVCj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 3 Jan 2007 16:02:39 -0500
+Message-Id: <200701032100.l03L0REl031061@shell0.pdx.osdl.net>
+Subject: + use-cycle_t-instead-of-u64-in-struct-time_interpolator.patch added to -mm tree
+From: akpm@osdl.org
+Date: Wed, 03 Jan 2007 13:00:27 -0800
 Sender: linux-arch-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@steeleye.com>
-Cc: David Miller <davem@davemloft.net>, miklos@szeredi.hu, arjan@infradead.org, torvalds@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@osdl.org
+To: mm-commits@vger.kernel.org
+Cc: deller@gmx.de, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Jan 03, 2007 at 09:00:58AM -0600, James Bottomley wrote:
-> However, I was wondering if there might be a different way around this.
-> We can't really walk all the user mappings because of the locks, but
-> could we store the user flush hints in the page (or a related
-> structure)?  On parisc we don't care about the process id (called space
-> in our architecture) because we've turned off the pieces of the cache
-> that match on space id.  Thus, all we care about is flushing with the
-> physical address and virtual address (and only about 10 bits of this are
-> significant for matching).  We go to great lengths to ensure that every
-> mapping in user space all has the same 10 bits of virtual address, so if
-> we just new what they were we could flush the whole of the user spaces
-> for the page without having to walk any VMA lists.  Could arm do this as
-> well?
 
-I don't think so.  The organisation of the VIVT caches in terms of
-how the set index and tag correspond with virtual addresses are hardly
-ever documented.  When they are, they don't appear to lend themselves
-to such an approach.  For example,  Xscale has:
+The patch titled
+     use cycle_t instead of u64 in struct time_interpolator
+has been added to the -mm tree.  Its filename is
+     use-cycle_t-instead-of-u64-in-struct-time_interpolator.patch
 
- tag:       virtual address b31-10
- set index: b9-5
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
 
-and there's 32 ways per set.  So there's nothing to be gained from
-controlling the virtual address which individual mappings end up at
-in this case.
+------------------------------------------------------
+Subject: use cycle_t instead of u64 in struct time_interpolator
+From: Helge Deller <deller@gmx.de>
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+The 32bit and 64bit PARISC Linux kernels suffers from the problem, that the
+gettimeofday() call sometimes returns non-monotonic times.
+
+The easiest way to fix this, is to drop the PARISC-specific implementation
+and switch over to the generic TIME_INTERPOLATION framework.
+
+But in order to make it even compile on 32bit PARISC, the patch below which
+touches the generic Linux code, is mandatory.
+
+More information and the full patch with the parisc-specific changes is included in this thread: http://lists.parisc-linux.org/pipermail/parisc-linux/2006-December/031003.html
+
+As far as I could see, this patch does not change anything for the existing
+architectures which use this framework (IA64 and SPARC64), since "cycles_t"
+is defined there as unsigned 64bit-integer anyway (which then makes this
+patch a no-change for them).
+
+Signed-off-by: Helge Deller <deller@gmx.de>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@elte.hu>
+Signed-off-by: Andrew Morton <akpm@osdl.org>
+---
+
+ include/linux/timex.h |    4 ++--
+ kernel/timer.c        |    6 +++---
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff -puN include/linux/timex.h~use-cycle_t-instead-of-u64-in-struct-time_interpolator include/linux/timex.h
+--- a/include/linux/timex.h~use-cycle_t-instead-of-u64-in-struct-time_interpolator
++++ a/include/linux/timex.h
+@@ -255,10 +255,10 @@ struct time_interpolator {
+ 	u8 jitter;			/* if set compensate for fluctuations */
+ 	u32 nsec_per_cyc;		/* set by register_time_interpolator() */
+ 	void *addr;			/* address of counter or function */
+-	u64 mask;			/* mask the valid bits of the counter */
++	cycles_t mask;			/* mask the valid bits of the counter */
+ 	unsigned long offset;		/* nsec offset at last update of interpolator */
+ 	u64 last_counter;		/* counter value in units of the counter at last update */
+-	u64 last_cycle;			/* Last timer value if TIME_SOURCE_JITTER is set */
++	cycles_t last_cycle;		/* Last timer value if TIME_SOURCE_JITTER is set */
+ 	u64 frequency;			/* frequency in counts/second */
+ 	long drift;			/* drift in parts-per-million (or -1) */
+ 	unsigned long skips;		/* skips forward */
+diff -puN kernel/timer.c~use-cycle_t-instead-of-u64-in-struct-time_interpolator kernel/timer.c
+--- a/kernel/timer.c~use-cycle_t-instead-of-u64-in-struct-time_interpolator
++++ a/kernel/timer.c
+@@ -1624,7 +1624,7 @@ struct time_interpolator *time_interpola
+ static struct time_interpolator *time_interpolator_list __read_mostly;
+ static DEFINE_SPINLOCK(time_interpolator_lock);
+ 
+-static inline u64 time_interpolator_get_cycles(unsigned int src)
++static inline cycles_t time_interpolator_get_cycles(unsigned int src)
+ {
+ 	unsigned long (*x)(void);
+ 
+@@ -1650,8 +1650,8 @@ static inline u64 time_interpolator_get_
+ 
+ 	if (time_interpolator->jitter)
+ 	{
+-		u64 lcycle;
+-		u64 now;
++		cycles_t lcycle;
++		cycles_t now;
+ 
+ 		do {
+ 			lcycle = time_interpolator->last_cycle;
+_
+
+Patches currently in -mm which might be from deller@gmx.de are
+
+use-cycle_t-instead-of-u64-in-struct-time_interpolator.patch
+
