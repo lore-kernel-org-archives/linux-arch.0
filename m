@@ -1,167 +1,732 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.24]:41662 "EHLO smtp.osdl.org"
+Received: from smtp.osdl.org ([65.172.181.24]:41726 "EHLO smtp.osdl.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752291AbXBJJot (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 10 Feb 2007 04:44:49 -0500
-Message-Id: <200702100944.l1A9ihDO008860@shell0.pdx.osdl.net>
-Subject: [patch 105/241] disable init/initramfs.c
+	id S1752291AbXBJJpI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 10 Feb 2007 04:45:08 -0500
+Message-Id: <200702100945.l1A9j1c7008949@shell0.pdx.osdl.net>
+Subject: [patch 125/241] consolidate line discipline number definitions
 From: akpm@linux-foundation.org
-Date: Sat, 10 Feb 2007 01:44:43 -0800
+Date: Sat, 10 Feb 2007 01:45:00 -0800
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, jean-paul.saman@nxp.com, frederik.deweerdt@gmail.com, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk
+Cc: akpm@linux-foundation.org, tilman@imap.cc, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Jean-Paul Saman <jean-paul.saman@nxp.com>
+From: Tilman Schmidt <tilman@imap.cc>
 
-The file init/initramfs.c is always compiled and linked in the kernel
-vmlinux even when BLK_DEV_RAM and BLK_DEV_INITRD are disabled and the
-system isn't using any form of an initramfs or initrd.  In this situation
-the code is only used to unpack a (static) default initial rootfilesystem. 
-The current init/initramfs.c code.  usr/initramfs_data.o compiles to a size
-of ~15 kbytes.  Disabling BLK_DEV_RAM and BLK_DEV_INTRD shrinks the kernel
-code size with ~60 Kbytes.
+The line discipline numbers N_* are currently defined for each architecture
+individually, but (except for a seeming mistake) identically, in
+asm/termios.h.  There is no obvious reason why these numbers should be
+architecture specific, nor any apparent relationship with the termios
+structure.  The total number of these, NR_LDISCS, is defined in linux/tty.h
+anyway.  So I propose the following patch which moves the definitions of
+the individual line disciplines to linux/tty.h too.
 
-This patch avoids compiling in the code and data for initramfs support if
-CONFIG_BLK_DEV_INITRD is not defined.  Instead of the initramfs code and
-data it uses a small routine in init/noinitramfs.c to setup an initial
-static default environment for mounting a rootfilesystem later on in the
-kernel initialisation process.  The new code is: 164 bytes of size.
+Three of these numbers (N_MASC, N_PROFIBUS_FDL, and N_SMSBLOCK) are unused
+in the current kernel, but the patch still keeps the complete set in case
+there are plans to use them yet.
 
-The patch is separated in two parts:
-1) doesn't compile initramfs code when CONFIG_BLK_DEV_INITRD is not set
-2) changing all plaforms vmlinux.lds.S files to not reserve an area of
-PAGE_SIZE when CONFIG_BLK_DEV_INITRD is not set.
-
-[deweerdt@free.fr: warning fix]
-Signed-off-by: Jean-Paul Saman <jean-paul.saman@nxp.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Tilman Schmidt <tilman@imap.cc>
 Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Frederik Deweerdt <frederik.deweerdt@gmail.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- drivers/block/Kconfig |    4 ++-
- init/Kconfig          |    4 +++
- init/Makefile         |    7 ++++-
- init/noinitramfs.c    |   52 ++++++++++++++++++++++++++++++++++++++++
- usr/Makefile          |    2 -
- 5 files changed, 66 insertions(+), 3 deletions(-)
+ arch/sparc/kernel/sunos_ioctl.c     |    1 +
+ arch/sparc64/kernel/sunos_ioctl32.c |    1 +
+ include/asm-alpha/termios.h         |   18 ------------------
+ include/asm-arm/termios.h           |   18 ------------------
+ include/asm-arm26/termios.h         |   18 ------------------
+ include/asm-avr32/termios.h         |   18 ------------------
+ include/asm-cris/termios.h          |   18 ------------------
+ include/asm-frv/termios.h           |   18 ------------------
+ include/asm-h8300/termios.h         |   18 ------------------
+ include/asm-i386/termios.h          |   18 ------------------
+ include/asm-ia64/termios.h          |   18 ------------------
+ include/asm-m32r/termios.h          |   18 ------------------
+ include/asm-m68k/termios.h          |   18 ------------------
+ include/asm-mips/termios.h          |   18 ------------------
+ include/asm-parisc/termios.h        |   18 ------------------
+ include/asm-powerpc/termios.h       |   18 ------------------
+ include/asm-s390/termios.h          |   18 ------------------
+ include/asm-sh/termios.h            |   18 ------------------
+ include/asm-sh64/termios.h          |   18 ------------------
+ include/asm-sparc/termios.h         |   18 ------------------
+ include/asm-sparc64/termios.h       |   18 ------------------
+ include/asm-v850/termios.h          |   18 ------------------
+ include/asm-x86_64/termios.h        |   18 ------------------
+ include/asm-xtensa/termios.h        |   19 -------------------
+ include/linux/tty.h                 |   22 +++++++++++++++++++++-
+ 25 files changed, 23 insertions(+), 398 deletions(-)
 
-diff -puN drivers/block/Kconfig~disable-init-initramfsc-updated drivers/block/Kconfig
---- a/drivers/block/Kconfig~disable-init-initramfsc-updated
-+++ a/drivers/block/Kconfig
-@@ -417,8 +417,10 @@ config BLK_DEV_INITRD
- 	  etc. See <file:Documentation/initrd.txt> for details.
+diff -puN arch/sparc/kernel/sunos_ioctl.c~consolidate-line-discipline-number-definitions-v2 arch/sparc/kernel/sunos_ioctl.c
+--- a/arch/sparc/kernel/sunos_ioctl.c~consolidate-line-discipline-number-definitions-v2
++++ a/arch/sparc/kernel/sunos_ioctl.c
+@@ -11,6 +11,7 @@
+ #include <linux/errno.h>
+ #include <linux/string.h>
+ #include <linux/termios.h>
++#include <linux/tty.h>
+ #include <linux/ioctl.h>
+ #include <linux/route.h>
+ #include <linux/sockios.h>
+diff -puN arch/sparc64/kernel/sunos_ioctl32.c~consolidate-line-discipline-number-definitions-v2 arch/sparc64/kernel/sunos_ioctl32.c
+--- a/arch/sparc64/kernel/sunos_ioctl32.c~consolidate-line-discipline-number-definitions-v2
++++ a/arch/sparc64/kernel/sunos_ioctl32.c
+@@ -11,6 +11,7 @@
+ #include <linux/errno.h>
+ #include <linux/string.h>
+ #include <linux/termios.h>
++#include <linux/tty.h>
+ #include <linux/ioctl.h>
+ #include <linux/route.h>
+ #include <linux/sockios.h>
+diff -puN include/asm-alpha/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-alpha/termios.h
+--- a/include/asm-alpha/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-alpha/termios.h
+@@ -66,24 +66,6 @@ struct termio {
+ #define _VEOL2	6
+ #define _VSWTC	7
  
- 	  If RAM disk support (BLK_DEV_RAM) is also included, this
--	  also enables initial RAM disk (initrd) support.
-+	  also enables initial RAM disk (initrd) support and adds
-+	  15 Kbytes (more on some other architectures) to the kernel size.
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IrDa - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ /*	eof=^D		eol=\0		eol2=\0		erase=del
+ 	werase=^W	kill=^U		reprint=^R	sxtc=\0
+diff -puN include/asm-arm/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-arm/termios.h
+--- a/include/asm-arm/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-arm/termios.h
+@@ -49,24 +49,6 @@ struct termio {
  
-+	  If unsure say Y.
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
  
- config CDROM_PKTCDVD
- 	tristate "Packet writing on CD/DVD media"
-diff -puN init/Kconfig~disable-init-initramfsc-updated init/Kconfig
---- a/init/Kconfig~disable-init-initramfsc-updated
-+++ a/init/Kconfig
-@@ -280,8 +280,12 @@ config RELAY
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IrDa - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
  
- 	  If unsure, say N.
+ /*
+diff -puN include/asm-arm26/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-arm26/termios.h
+--- a/include/asm-arm26/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-arm26/termios.h
+@@ -49,24 +49,6 @@ struct termio {
  
-+if BLK_DEV_INITRD
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IrDa - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ /*
+diff -puN include/asm-avr32/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-avr32/termios.h
+--- a/include/asm-avr32/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-avr32/termios.h
+@@ -46,24 +46,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+ 	eof=^D		vtime=\0	vmin=\1		sxtc=\0
+diff -puN include/asm-cris/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-cris/termios.h
+--- a/include/asm-cris/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-cris/termios.h
+@@ -40,24 +40,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_BT		15	/* bluetooth */
+-
+ #ifdef __KERNEL__
+ 
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+diff -puN include/asm-frv/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-frv/termios.h
+--- a/include/asm-frv/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-frv/termios.h
+@@ -51,24 +51,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IrDa - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ #include <asm-generic/termios.h>
+ #endif
+diff -puN include/asm-h8300/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-h8300/termios.h
+--- a/include/asm-h8300/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-h8300/termios.h
+@@ -49,24 +49,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IrDa - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ /*
+diff -puN include/asm-i386/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-i386/termios.h
+--- a/include/asm-i386/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-i386/termios.h
+@@ -39,24 +39,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ #include <linux/module.h>
+ 
+diff -puN include/asm-ia64/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-ia64/termios.h
+--- a/include/asm-ia64/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-ia64/termios.h
+@@ -46,24 +46,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS msgs */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ # ifdef __KERNEL__
+ 
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+diff -puN include/asm-m32r/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-m32r/termios.h
+--- a/include/asm-m32r/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-m32r/termios.h
+@@ -39,24 +39,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ #include <linux/module.h>
+ 
+diff -puN include/asm-m68k/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-m68k/termios.h
+--- a/include/asm-m68k/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-m68k/termios.h
+@@ -49,24 +49,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IrDa - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ /*
+diff -puN include/asm-mips/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-mips/termios.h
+--- a/include/asm-mips/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-mips/termios.h
+@@ -87,24 +87,6 @@ struct termio {
+ #define TIOCM_OUT2	0x4000
+ #define TIOCM_LOOP	0x8000
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6		/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved fo Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IrDa - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_HCI		15	/* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ #include <linux/string.h>
+diff -puN include/asm-parisc/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-parisc/termios.h
+--- a/include/asm-parisc/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-parisc/termios.h
+@@ -39,24 +39,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+diff -puN include/asm-powerpc/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-powerpc/termios.h
+--- a/include/asm-powerpc/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-powerpc/termios.h
+@@ -71,24 +71,6 @@ struct termio {
+ #define _VEOL2	8
+ #define _VSWTC	9
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IrDa - http://www.cs.uit.no/~dagb/irda/irda.html */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ /*                   ^C  ^\ del  ^U  ^D   1   0   0   0   0  ^W  ^R  ^Z  ^Q  ^S  ^V  ^U  */
+ #define INIT_C_CC "\003\034\177\025\004\001\000\000\000\000\027\022\032\021\023\026\025" 
+diff -puN include/asm-s390/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-s390/termios.h
+--- a/include/asm-s390/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-s390/termios.h
+@@ -47,24 +47,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+diff -puN include/asm-sh/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-sh/termios.h
+--- a/include/asm-sh/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-sh/termios.h
+@@ -39,24 +39,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+diff -puN include/asm-sh64/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-sh64/termios.h
+--- a/include/asm-sh64/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-sh64/termios.h
+@@ -50,24 +50,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://www.cs.uit.no/~dagb/irda/irda.html */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15	/* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+diff -puN include/asm-sparc/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-sparc/termios.h
+--- a/include/asm-sparc/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-sparc/termios.h
+@@ -45,24 +45,6 @@ struct winsize {
+ 	unsigned short ws_ypixel;
+ };
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IrDa - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ #include <linux/module.h>
+ 
+diff -puN include/asm-sparc64/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-sparc64/termios.h
+--- a/include/asm-sparc64/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-sparc64/termios.h
+@@ -45,24 +45,6 @@ struct winsize {
+ 	unsigned short ws_ypixel;
+ };
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IrDa - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ #include <linux/module.h>
+ 
+diff -puN include/asm-v850/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-v850/termios.h
+--- a/include/asm-v850/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-v850/termios.h
+@@ -39,24 +39,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+diff -puN include/asm-x86_64/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-x86_64/termios.h
+--- a/include/asm-x86_64/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-x86_64/termios.h
+@@ -39,24 +39,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* line disciplines */
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14	/* synchronous PPP */
+-#define N_HCI		15  /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+diff -puN include/asm-xtensa/termios.h~consolidate-line-discipline-number-definitions-v2 include/asm-xtensa/termios.h
+--- a/include/asm-xtensa/termios.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/asm-xtensa/termios.h
+@@ -52,25 +52,6 @@ struct termio {
+ 
+ /* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
+ 
+-/* Line disciplines */
+-
+-#define N_TTY		0
+-#define N_SLIP		1
+-#define N_MOUSE		2
+-#define N_PPP		3
+-#define N_STRIP		4
+-#define N_AX25		5
+-#define N_X25		6	/* X.25 async */
+-#define N_6PACK		7
+-#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
+-#define N_R3964		9	/* Reserved for Simatic R3964 module */
+-#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
+-#define N_IRDA		11	/* Linux IR - http://irda.sourceforge.net/ */
+-#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data cards about SMS messages */
+-#define N_HDLC		13	/* synchronous HDLC */
+-#define N_SYNC_PPP	14
+-#define N_HCI		15      /* Bluetooth HCI UART */
+-
+ #ifdef __KERNEL__
+ 
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+diff -puN include/linux/tty.h~consolidate-line-discipline-number-definitions-v2 include/linux/tty.h
+--- a/include/linux/tty.h~consolidate-line-discipline-number-definitions-v2
++++ a/include/linux/tty.h
+@@ -24,7 +24,27 @@
+ #define NR_PTYS	CONFIG_LEGACY_PTY_COUNT   /* Number of legacy ptys */
+ #define NR_UNIX98_PTY_DEFAULT	4096      /* Default maximum for Unix98 ptys */
+ #define NR_UNIX98_PTY_MAX	(1 << MINORBITS) /* Absolute limit */
+-#define NR_LDISCS		16
++#define NR_LDISCS		17
 +
- source "usr/Kconfig"
++/* line disciplines */
++#define N_TTY		0
++#define N_SLIP		1
++#define N_MOUSE		2
++#define N_PPP		3
++#define N_STRIP		4
++#define N_AX25		5
++#define N_X25		6	/* X.25 async */
++#define N_6PACK		7
++#define N_MASC		8	/* Reserved for Mobitex module <kaz@cafe.net> */
++#define N_R3964		9	/* Reserved for Simatic R3964 module */
++#define N_PROFIBUS_FDL	10	/* Reserved for Profibus <Dave@mvhi.com> */
++#define N_IRDA		11	/* Linux IrDa - http://irda.sourceforge.net/ */
++#define N_SMSBLOCK	12	/* SMS block mode - for talking to GSM data */
++				/* cards about SMS messages */
++#define N_HDLC		13	/* synchronous HDLC */
++#define N_SYNC_PPP	14	/* synchronous PPP */
++#define N_HCI		15	/* Bluetooth HCI UART */
++#define N_GIGASET_M101	16	/* Siemens Gigaset M101 serial DECT adapter */
  
-+endif
-+
- config CC_OPTIMIZE_FOR_SIZE
- 	bool "Optimize for size (Look out for broken compilers!)"
- 	default y
-diff -puN init/Makefile~disable-init-initramfsc-updated init/Makefile
---- a/init/Makefile~disable-init-initramfsc-updated
-+++ a/init/Makefile
-@@ -2,7 +2,12 @@
- # Makefile for the linux kernel.
- #
- 
--obj-y				:= main.o version.o mounts.o initramfs.o
-+obj-y                          := main.o version.o mounts.o
-+ifneq ($(CONFIG_BLK_DEV_INITRD),y)
-+obj-y                          += noinitramfs.o
-+else
-+obj-$(CONFIG_BLK_DEV_INITRD)   += initramfs.o
-+endif
- obj-$(CONFIG_GENERIC_CALIBRATE_DELAY) += calibrate.o
- 
- mounts-y			:= do_mounts.o
-diff -puN /dev/null init/noinitramfs.c
---- /dev/null
-+++ a/init/noinitramfs.c
-@@ -0,0 +1,52 @@
-+/*
-+ * init/noinitramfs.c
-+ *
-+ * Copyright (C) 2006, NXP Semiconductors, All Rights Reserved
-+ * Author: Jean-Paul Saman <jean-paul.saman@nxp.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; version 2 of the License.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-+ */
-+#include <linux/init.h>
-+#include <linux/stat.h>
-+#include <linux/kdev_t.h>
-+#include <linux/syscalls.h>
-+
-+/*
-+ * Create a simple rootfs that is similar to the default initramfs
-+ */
-+static int __init default_rootfs(void)
-+{
-+	int err;
-+
-+	err = sys_mkdir("/dev", 0755);
-+	if (err < 0)
-+		goto out;
-+
-+	err = sys_mknod((const char __user *) "/dev/console",
-+			S_IFCHR | S_IRUSR | S_IWUSR,
-+			new_encode_dev(MKDEV(5, 1)));
-+	if (err < 0)
-+		goto out;
-+
-+	err = sys_mkdir("/root", 0700);
-+	if (err < 0)
-+		goto out;
-+
-+	return 0;
-+
-+out:
-+	printk(KERN_WARNING "Failed to create a rootfs\n");
-+	return err;
-+}
-+rootfs_initcall(default_rootfs);
-diff -puN usr/Makefile~disable-init-initramfsc-updated usr/Makefile
---- a/usr/Makefile~disable-init-initramfsc-updated
-+++ a/usr/Makefile
-@@ -7,7 +7,7 @@ PHONY += klibcdirs
- 
- 
- # Generate builtin.o based on initramfs_data.o
--obj-y := initramfs_data.o
-+obj-$(CONFIG_BLK_DEV_INITRD) := initramfs_data.o
- 
- # initramfs_data.o contains the initramfs_data.cpio.gz image.
- # The image is included using .incbin, a dependency which is not
+ /*
+  * This character is the same as _POSIX_VDISABLE: it cannot be used as
 _
