@@ -1,97 +1,178 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.24]:60355 "EHLO smtp.osdl.org"
+Received: from chilli.pcug.org.au ([203.10.76.44]:59272 "EHLO smtps.tip.net.au"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932803AbXBKWx1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 11 Feb 2007 17:53:27 -0500
-Message-Id: <200702112252.l1BMqxbo016070@shell0.pdx.osdl.net>
-Subject: - use-cycle_t-instead-of-u64-in-struct-time_interpolator.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Sun, 11 Feb 2007 14:52:59 -0800
+	id S1161005AbXBMEfM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Feb 2007 23:35:12 -0500
+Date: Tue, 13 Feb 2007 15:35:25 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [patch] (2nd try)  add epoll compat code to kernel/compat.c ...
+Message-Id: <20070213153525.c1440cff.sfr@canb.auug.org.au>
+In-Reply-To: <Pine.LNX.4.64.0702111615340.24568@alien.or.mcafeemobile.com>
+References: <Pine.LNX.4.64.0702111615340.24568@alien.or.mcafeemobile.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Tue__13_Feb_2007_15_35_25_+1100_2yaVMTYTKTP7f8t4"
 Sender: linux-arch-owner@vger.kernel.org
-To: deller@gmx.de, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, mm-commits@vger.kernel.org
+To: Davide Libenzi <davidel@xmailserver.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+--Signature=_Tue__13_Feb_2007_15_35_25_+1100_2yaVMTYTKTP7f8t4
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: 7bit
 
-The patch titled
-     use cycle_t instead of u64 in struct time_interpolator
-has been removed from the -mm tree.  Its filename was
-     use-cycle_t-instead-of-u64-in-struct-time_interpolator.patch
+Hi Davide,
 
-This patch was dropped because it was merged into mainline or a subsystem tree
+[Linux-arch readers can skip to the last few paragraphs ...]
 
-------------------------------------------------------
-Subject: use cycle_t instead of u64 in struct time_interpolator
-From: Helge Deller <deller@gmx.de>
+Just a couple of nits to start:
 
-The 32bit and 64bit PARISC Linux kernels suffers from the problem, that the
-gettimeofday() call sometimes returns non-monotonic times.
+On Sun, 11 Feb 2007 16:24:30 -0800 (PST) Davide Libenzi <davidel@xmailserver.org> wrote:
+>
+> diff -Nru linux-2.6.20/fs/eventpoll.c linux-2.6.20.mod/fs/eventpoll.c
+> --- linux-2.6.20/fs/eventpoll.c	2007-02-04 10:44:54.000000000 -0800
+> +++ linux-2.6.20.mod/fs/eventpoll.c	2007-02-11 15:26:07.000000000 -0800
 
-The easiest way to fix this, is to drop the PARISC-specific implementation
-and switch over to the generic TIME_INTERPOLATION framework.
+The changes to this file are just white space.  Don't include it with
+this patch (if at all).
 
-But in order to make it even compile on 32bit PARISC, the patch below which
-touches the generic Linux code, is mandatory.
+> diff -Nru linux-2.6.20/include/linux/compat.h linux-2.6.20.mod/include/linux/compat.h
+> --- linux-2.6.20/include/linux/compat.h	2007-02-09 16:14:20.000000000 -0800
+> +++ linux-2.6.20.mod/include/linux/compat.h	2007-02-11 16:11:37.000000000 -0800
+> @@ -234,5 +234,35 @@
+>  		compat_ulong_t maxnode, const compat_ulong_t __user *old_nodes,
+>  		const compat_ulong_t __user *new_nodes);
+>
+> +/*
+> + * epoll (fs/eventpoll.c) compat bits follow ...
+> + */
+> +struct epoll_event;
+> +
+> +struct compat_epoll_event {
+> +	u32 events;
+> +	u32 data[2];
+> +};
+> +
+> +asmlinkage long compat_sys_epoll_ctl(int epfd, int op, int fd,
+> +				     struct compat_epoll_event __user *event);
+> +asmlinkage long compat_sys_epoll_wait(int epfd, struct compat_epoll_event __user *events,
+> +				      int maxevents, int timeout);
+> +/*
+> + * Architectures that does not need "struct epoll_event" translation
+                         ^^^^
+should be "do"
 
-More information and the full patch with the parisc-specific changes is included in this thread: http://lists.parisc-linux.org/pipermail/parisc-linux/2006-December/031003.html
+> + * should wire compat_sys_epoll_pwait. The ones that needs "struct epoll_event"
+                                                        ^^^^^
+should be "need"
 
-As far as I could see, this patch does not change anything for the existing
-architectures which use this framework (IA64 and SPARC64), since "cycles_t"
-is defined there as unsigned 64bit-integer anyway (which then makes this
-patch a no-change for them).
+Sorry for the grammar lesson.
 
-Signed-off-by: Helge Deller <deller@gmx.de>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@elte.hu>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+> + * translation, should wire compat_sys_epoll_pwait2. An architecture needs
+> + * "struct epoll_event" translation is alignof(u64) in 32 bits mode is 4, and
+                                       ^^                    ^^^^
+should be "if" and we normally say "32 bit mode"
 
- include/linux/timex.h |    4 ++--
- kernel/timer.c        |    6 +++---
- 2 files changed, 5 insertions(+), 5 deletions(-)
+> + * alignof(u64) in 64 bits mode is 8.
 
-diff -puN include/linux/timex.h~use-cycle_t-instead-of-u64-in-struct-time_interpolator include/linux/timex.h
---- a/include/linux/timex.h~use-cycle_t-instead-of-u64-in-struct-time_interpolator
-+++ a/include/linux/timex.h
-@@ -255,10 +255,10 @@ struct time_interpolator {
- 	u8 jitter;			/* if set compensate for fluctuations */
- 	u32 nsec_per_cyc;		/* set by register_time_interpolator() */
- 	void *addr;			/* address of counter or function */
--	u64 mask;			/* mask the valid bits of the counter */
-+	cycles_t mask;			/* mask the valid bits of the counter */
- 	unsigned long offset;		/* nsec offset at last update of interpolator */
- 	u64 last_counter;		/* counter value in units of the counter at last update */
--	u64 last_cycle;			/* Last timer value if TIME_SOURCE_JITTER is set */
-+	cycles_t last_cycle;		/* Last timer value if TIME_SOURCE_JITTER is set */
- 	u64 frequency;			/* frequency in counts/second */
- 	long drift;			/* drift in parts-per-million (or -1) */
- 	unsigned long skips;		/* skips forward */
-diff -puN kernel/timer.c~use-cycle_t-instead-of-u64-in-struct-time_interpolator kernel/timer.c
---- a/kernel/timer.c~use-cycle_t-instead-of-u64-in-struct-time_interpolator
-+++ a/kernel/timer.c
-@@ -1624,7 +1624,7 @@ struct time_interpolator *time_interpola
- static struct time_interpolator *time_interpolator_list __read_mostly;
- static DEFINE_SPINLOCK(time_interpolator_lock);
- 
--static inline u64 time_interpolator_get_cycles(unsigned int src)
-+static inline cycles_t time_interpolator_get_cycles(unsigned int src)
- {
- 	unsigned long (*x)(void);
- 
-@@ -1650,8 +1650,8 @@ static inline u64 time_interpolator_get_
- 
- 	if (time_interpolator->jitter)
- 	{
--		u64 lcycle;
--		u64 now;
-+		cycles_t lcycle;
-+		cycles_t now;
- 
- 		do {
- 			lcycle = time_interpolator->last_cycle;
-_
+"64 bit mode"
 
-Patches currently in -mm which might be from deller@gmx.de are
+> +asmlinkage long compat_sys_epoll_pwait2(int epfd, struct compat_epoll_event __user *events,
 
-origin.patch
+Try to stay less than 80 columns wide.
 
+> diff -Nru linux-2.6.20/kernel/compat.c linux-2.6.20.mod/kernel/compat.c
+> --- linux-2.6.20/kernel/compat.c	2007-02-04 10:44:54.000000000 -0800
+> +++ linux-2.6.20.mod/kernel/compat.c	2007-02-11 16:11:01.000000000 -0800
+> +asmlinkage long compat_sys_epoll_ctl(int epfd, int op, int fd,
+> +				     struct compat_epoll_event __user *event)
+> +{
+> +	long err = 0;
+> +	struct compat_epoll_event user;
+> +	struct epoll_event __user *kernel = NULL;
+> +	union {
+> +		u64 q;
+> +		u32 d[2];
+> +	} mux;
+> +
+> +	if (event) {
+> +		if (copy_from_user(&user, event, sizeof(user)))
+> +			return -EFAULT;
+> +		kernel = compat_alloc_user_space(sizeof(struct epoll_event));
+> +		err |= __put_user(user.events, &kernel->events);
+> +		mux.d[0] = user.data[0];
+> +		mux.d[1] = user.data[1];
+> +		err |= __put_user(mux.q, &kernel->data);
+
+A better way here might be to have each 64 bit architecture define
+compat_epoll_event in its asm/compat.h and then you can just use:
+
+	if (copy_from_user(&user, event, sizeof(user)))
+		return -EFAULT;
+	kernel = compat_alloc_user_space(sizeof(struct epoll_event));
+	err |= __put_user(user.events, &kernel->events);
+	err |= __put_user(user.data, &kernel->data);
+
+And you shouldn't need the compat routine if
+offsetof(struct compat_epoll_event, data) == offsetof(struct epoll_event, data).
+
+> +asmlinkage long compat_sys_epoll_wait(int epfd, struct compat_epoll_event __user *events,
+> +				      int maxevents, int timeout)
+> +{
+> +	long i, ret, err = 0;
+> +	struct epoll_event __user *kbuf;
+> +	struct epoll_event ev;
+> +	union {
+> +		u64 q;
+> +		u32 d[2];
+> +	} mux;
+> +
+> +	if (maxevents <= 0 || maxevents > (INT_MAX / sizeof(struct epoll_event)))
+> +		return -EINVAL;
+> +	kbuf = compat_alloc_user_space(sizeof(struct epoll_event) * maxevents);
+> +	ret = sys_epoll_wait(epfd, kbuf, maxevents, timeout);
+> +	for (i = 0; i < ret; i++) {
+> +		err |= __get_user(ev.events, &kbuf[i].events);
+> +		err |= __get_user(ev.data, &kbuf[i].data);
+> +		err |= put_user(ev.events, &events->events);
+> +		mux.q = ev.data;
+> +		err |= put_user(mux.d[0], &events->data[0]);
+> +		err |= put_user(mux.d[1], &events->data[1]);
+> +		events++;
+> +	}
+
+Similarly here.
+
+OK, I have thought about this some more and I *think* the only
+architecture that needs compat_sys_epoll_ctl or compat_sys_epoll_wait is
+ia64 where the 64 bit version of struct epoll_event is different from the
+32 bit version.  On x86_64, the struct is explictly packed (so it is the
+same as the 32 bit version) and on all the other 64 bit architectures the
+alignment of the u64 is the same as the equivalent 32 bit version.
+
+Since ia64 already has its own version of these two, we only have to
+worry about epoll_pwait and then the struct epoll_event is only a problem
+for ia64.
+
+Am I right?  (I have cc'd linux-arch for guidance.)
+
+(sorry for the long early bit of this mail)
+--
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Tue__13_Feb_2007_15_35_25_+1100_2yaVMTYTKTP7f8t4
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
+
+iD8DBQFF0UATFdBgD/zoJvwRAlEkAJ9nZqypv3EX+b4P9BEydclE24Fz+ACeIbbq
+XBoEwBiG+rpWt43rOc1OEsk=
+=Q0zA
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__13_Feb_2007_15_35_25_+1100_2yaVMTYTKTP7f8t4--
