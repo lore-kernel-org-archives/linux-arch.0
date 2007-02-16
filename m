@@ -1,40 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:55904 "EHLO
-	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1945943AbXBPPux (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Feb 2007 10:50:53 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
+Received: from gw.goop.org ([64.81.55.164]:49179 "EHLO mail.goop.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1946212AbXBPSi7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Feb 2007 13:38:59 -0500
+Message-ID: <45D5F2EC.5000402@goop.org>
+Date: Fri, 16 Feb 2007 10:07:40 -0800
+From: Jeremy Fitzhardinge <jeremy@goop.org>
+MIME-Version: 1.0
 Subject: Re: [RFC] killing the NR_IRQS arrays.
 References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
-	<20070216124117.GB4218@elte.hu>
-Date: Fri, 16 Feb 2007 08:49:43 -0700
-In-Reply-To: <20070216124117.GB4218@elte.hu> (Ingo Molnar's message of "Fri,
-	16 Feb 2007 13:41:17 +0100")
-Message-ID: <m13b56drvs.fsf@ebiederm.dsl.xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+In-Reply-To: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-Ingo Molnar <mingo@elte.hu> writes:
->
-> or am i missing something fundamental?
+Eric W. Biederman wrote:
+> So I propose we remove all assumptions from the code that we actually
+> have an array of irqs.  That will allow for irq_desc to be dynamically
+> allocated instead of statically allocated saving memory and reducing
+> kernel complexity.
+>   
 
-One piece.
+Sounds good to me.  In Xen we have 1024 event channels which we need to
+map down into a smaller irq.  Aside from the complexity of maintaining a
+mapping table, that's not a huge issue for now, but when we start
+exposing pci devices to guests it all becomes more complex.  The ideal
+for us is to simply use event channel == irq, which this would allow.
 
-At the driver level this not a big scary change.  
-This is just a change with widespread effect.
-
-It should be no worse than enabling a very revealing new compiler
-warning.
-
-Every fix should be purely mechanical.  There should be no need at
-all to think to get it right (unless things are broken today and we
-just don't see it.).
-
-Yes typo's and the like will happen.  There will be issues.  But 99%
-of them will be the code doesn't compile, for an obvious reason.  
-
-Eric
+    J
