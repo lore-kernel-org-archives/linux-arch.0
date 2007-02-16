@@ -1,68 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:47556 "EHLO
+Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:60750 "EHLO
 	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1945911AbXBPPYB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Feb 2007 10:24:01 -0500
+	with ESMTP id S1945922AbXBPPgP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Feb 2007 10:36:15 -0500
 From: ebiederm@xmission.com (Eric W. Biederman)
 Subject: Re: [RFC] killing the NR_IRQS arrays.
 References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
-	<20070216124117.GB4218@elte.hu>
-Date: Fri, 16 Feb 2007 08:23:18 -0700
-In-Reply-To: <20070216124117.GB4218@elte.hu> (Ingo Molnar's message of "Fri,
-	16 Feb 2007 13:41:17 +0100")
-Message-ID: <m1bqjudt3t.fsf@ebiederm.dsl.xmission.com>
+	<200702161316.41237.ak@suse.de>
+Date: Fri, 16 Feb 2007 08:35:43 -0700
+In-Reply-To: <200702161316.41237.ak@suse.de> (Andi Kleen's message of "Fri, 16
+	Feb 2007 13:16:41 +0100")
+Message-ID: <m17iuidsj4.fsf@ebiederm.dsl.xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>
+To: Andi Kleen <ak@suse.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-Ingo Molnar <mingo@elte.hu> writes:
+Andi Kleen <ak@suse.de> writes:
 
-> * Eric W. Biederman <ebiederm@xmission.com> wrote:
+>> I expect the most it makes sense to aim for 2.6.22 are the genirq
+>> changes so the internal arch code is passing struct irq_desc
+>> everywhere internally. 
 >
->> So I propose we remove all assumptions from the code that we actually 
->> have an array of irqs.  That will allow for irq_desc to be dynamically 
->> allocated instead of statically allocated saving memory and reducing 
->> kernel complexity.
->
-> hm. I'd suggest to do this without changing request_irq() - and then we 
-> could avoid the 'massive, every driver affected' change, right?
+> Are there any livetime issues with passing pointers around? 
+> e.g. what happens on APIC hotunplug etc.? We don't necessarily
+> support that yet, but for a big interface change it should 
+> be probably kept in mind first.
 
-It is a different aspect of the problem.  But we have significant
-problematic inconsistencies in what drivers are doing.  I know at
-least one driver put an irq into an unsigned char, and passed it
-to user space that way.
+Ouch.  Let's consider the case of pci device (using msi's) hot unplug.
+That case we theoretically support today but I'm not certain we account
+for it.
 
-So I think the driver change is very much worth doing because a
-pointer is a token that is much harder to abuse, than an unsigned
-int where you think you know how it works and so can take some
-liberties.
+The only real issue (I can imagine) would come from something that is
+not part of the device driver using the irq, as the device and
+everything associated with it should have the same lifetime rules.
+(You can't unplug an ioapic without unplugging the device it is
+connected to).
 
-> i.e. because we'll (have to) have an nr_to_desc() and desc_to_nr() 
-> mapping facility anyway, lets just not change the driver APIs massively. 
-> There dont seem to be that many drivers that assume that irq_desc[] is 
-> an array - are there?
+So the things to consider would be things like /proc/interrupts and
+/proc/irq.  I think we already have some kind of revoke in place when
+the irq goes away so it probably makes sense just to make that revoke
+solid and immediate.
 
-We will have to have desc_to_nr().  I don't know about nr_to_desc().
-Even if we do nr_to_desc() probably will just be a linked list walk.
-
-There are a lot of drivers and other pieces of the kernel that don't
-believe an irq is an unsigned int, and just using an unsigned int
-makes killing the array an expensive operation because operations
-go from O(1) to O(N).  Now that isn't something anyone on a small
-machine is likely to care about (N < 32).  I have no problem
-staggering the change.   But I see a lot of benefit in going the whole
-way.
-
-> otherwise, in terms of the irqchips infrastructure and the API between 
-> genirq and the irqchip arch-level drivers, this change makes quite a bit 
-> of sense i think.
-
-Sounds good, and that is certainly the level to start.
+So I can't imagine any real lifetime issues that would cause us
+problems with a pointer.
 
 Eric
-
-
-
