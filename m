@@ -1,40 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:56516 "EHLO mail.goop.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1946072AbXBPTHB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 16 Feb 2007 14:07:01 -0500
-Message-ID: <45D600D0.9070602@goop.org>
-Date: Fri, 16 Feb 2007 11:06:56 -0800
-From: Jeremy Fitzhardinge <jeremy@goop.org>
-MIME-Version: 1.0
+Received: from moutng.kundenserver.de ([212.227.126.186]:63114 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1946083AbXBPTqH convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Feb 2007 14:46:07 -0500
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [RFC] killing the NR_IRQS arrays.
-References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>	<45D5F2EC.5000402@goop.org> <m1ps8ac4fc.fsf@ebiederm.dsl.xmission.com>
-In-Reply-To: <m1ps8ac4fc.fsf@ebiederm.dsl.xmission.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Date: Fri, 16 Feb 2007 20:45:58 +0100
+References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
+In-Reply-To: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
+Message-Id: <200702162045.58857.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 To: "Eric W. Biederman" <ebiederm@xmission.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-Eric W. Biederman wrote:
-> Well you shouldn't need to wait just run with a kernel with NR_IRQS >= 1024.
-> 1024 is stretch but it isn't to bad.  There are already x86 boxes that have
-> more pins on their ioapics then that. So x86_64 and with this latest
-> round of patches from Len Brown and I i386 should be able to support that.
->   
+On Friday 16 February 2007 13:10, Eric W. Biederman wrote:
+> To do this I believe will require a s/unsigned int irq/struct irq_desc *irq/
+> throughout the entire kernel.  Getting the arch specific code and the
+> generic kernel infrastructure fixed and ready for that change looks
+> like a pain but pretty doable.
 
-Early Xen patches did just that, but there was general criticism about
-the memory use.  And in the paravirt_ops world, a large compile-time
-static allocation is not really acceptable if its only needed by Xen. 
-But, hey, if you're OK with it I'll submit the patch ;)
+We did something like this a few years back on the s390 architecture, which
+happens to be lucky enough not to share any interrupt based drivers with
+any of the other architectures.
 
-> On the other side 1024 looks extremely limiting for exposing pci devices.  
-> If someone gets serious about pushing what is legal with MSI-X you may be
-> in trouble.  As a single device is allowed to have 4096 interrupts.   Not
-> that I can think of a user for so many but...
->   
+It helped a lot on s390, and I think the change will be beneficial on others
+as well, e.g. powerpc already uses 'virtual' interrupt numbers to collapse
+the large (sparse) range of interrupt numbers into 512 unique numbers. This
+could easily be avoided if there was simply an array of irq_desc structures
+per interrupt controller.
 
-No, I think we'll burn that bridge when we come to it.
+However, I also think we should maintain the old interface, and introduce
+a new one to deal only with those cases that benefit from it (MSI, Xen,
+powerpc VIO, ...). This means one subsystem can be converted at a time.
 
-    J
+I don't think there is a point converting the legacy ISA interrupts to
+a different interface, as the concept of IRQ numbers is part of the 
+subsystem itself (if you want to call ISA a subsystem...).
+
+For PCI, it makes a lot more sense to use something else, considering
+that PCI interrupts are defined as 'pins' instead of 'lines', and
+while an interrupt pin is defined per slot, while the line is per
+bus, in a system with multiple PCI buses, the line is still not
+necessarily unique.
+
+One interface I could imagine for PCI devices would be
+
+/* generic functions */
+int request_irq_desc(struct irq_desc *desc, irq_handler_t handler,
+		unsigned long irqflags, const char *devname, void *dev_id);
+int free_irq_desc(struct irq_desc *desc, void *dev_id);
+
+/* legacy functions */
+int request_irq(int irq, irq_handler_t handler,
+		unsigned long irqflags, const char *devname, void *dev_id)
+{
+	return request_irq_desc(lookup_irq_desc(irq), handler, irqflags,
+					devname, dev_id);
+}
+int free_irq(int irq, void *dev_id)
+{
+	return free_irq_desc(lookup_irq_desc(irq), dev_id);
+}
+
+/* pci specific */
+struct irq_desc *pci_request_irq(struct pci_device *dev, int pin,
+				 irq_handler_t handler)
+{
+	struct irq_desc *desc = pci_lookup_irq(dev, pin);
+	int ret;
+
+	if (!desc)
+		return NULL;
+
+	ret = request_irq_desc(desc, handler, IRQF_SHARED,
+			&dev->dev.bus_id, dev);
+	if (ret < 0)
+		return NULL;
+	return desc;
+}
+int pci_free_irq(struct pci_device *dev, int pin)
+{
+	return free_irq_desc(pci_lookup_irq(dev, pin), dev);
+}
+
+Now I don't know enough about MSI yet, but I could imagine
+that something along these lines would work as well, and we
+could simply require all drivers that want to support MSI
+to use the new interfaces.
+
+	Arnd <><
