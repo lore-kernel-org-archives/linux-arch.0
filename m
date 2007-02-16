@@ -1,46 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:37927 "EHLO
-	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1946043AbXBPTC0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Feb 2007 14:02:26 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [RFC] killing the NR_IRQS arrays.
-References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
-	<45D5F2EC.5000402@goop.org>
-Date: Fri, 16 Feb 2007 12:01:43 -0700
-In-Reply-To: <45D5F2EC.5000402@goop.org> (Jeremy Fitzhardinge's message of
-	"Fri, 16 Feb 2007 10:07:40 -0800")
-Message-ID: <m1ps8ac4fc.fsf@ebiederm.dsl.xmission.com>
+Received: from gw.goop.org ([64.81.55.164]:56516 "EHLO mail.goop.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1946072AbXBPTHB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Feb 2007 14:07:01 -0500
+Message-ID: <45D600D0.9070602@goop.org>
+Date: Fri, 16 Feb 2007 11:06:56 -0800
+From: Jeremy Fitzhardinge <jeremy@goop.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: Re: [RFC] killing the NR_IRQS arrays.
+References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>	<45D5F2EC.5000402@goop.org> <m1ps8ac4fc.fsf@ebiederm.dsl.xmission.com>
+In-Reply-To: <m1ps8ac4fc.fsf@ebiederm.dsl.xmission.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Jeremy Fitzhardinge <jeremy@goop.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-Jeremy Fitzhardinge <jeremy@goop.org> writes:
+Eric W. Biederman wrote:
+> Well you shouldn't need to wait just run with a kernel with NR_IRQS >= 1024.
+> 1024 is stretch but it isn't to bad.  There are already x86 boxes that have
+> more pins on their ioapics then that. So x86_64 and with this latest
+> round of patches from Len Brown and I i386 should be able to support that.
+>   
 
-> Eric W. Biederman wrote:
->> So I propose we remove all assumptions from the code that we actually
->> have an array of irqs.  That will allow for irq_desc to be dynamically
->> allocated instead of statically allocated saving memory and reducing
->> kernel complexity.
->>   
->
-> Sounds good to me.  In Xen we have 1024 event channels which we need to
-> map down into a smaller irq.  Aside from the complexity of maintaining a
-> mapping table, that's not a huge issue for now, but when we start
-> exposing pci devices to guests it all becomes more complex.  The ideal
-> for us is to simply use event channel == irq, which this would allow.
+Early Xen patches did just that, but there was general criticism about
+the memory use.  And in the paravirt_ops world, a large compile-time
+static allocation is not really acceptable if its only needed by Xen. 
+But, hey, if you're OK with it I'll submit the patch ;)
 
-Well you shouldn't need to wait just run with a kernel with NR_IRQS >= 1024.
-1024 is stretch but it isn't to bad.  There are already x86 boxes that have
-more pins on their ioapics then that. So x86_64 and with this latest
-round of patches from Len Brown and I i386 should be able to support that.
+> On the other side 1024 looks extremely limiting for exposing pci devices.  
+> If someone gets serious about pushing what is legal with MSI-X you may be
+> in trouble.  As a single device is allowed to have 4096 interrupts.   Not
+> that I can think of a user for so many but...
+>   
 
-On the other side 1024 looks extremely limiting for exposing pci devices.  
-If someone gets serious about pushing what is legal with MSI-X you may be
-in trouble.  As a single device is allowed to have 4096 interrupts.   Not
-that I can think of a user for so many but...
+No, I think we'll burn that bridge when we come to it.
 
-Eric
+    J
