@@ -1,46 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:54073 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1946145AbXBPUn7 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Feb 2007 15:43:59 -0500
-From: Arnd Bergmann <arnd@arndb.de>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:4458 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1946192AbXBPU7x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Feb 2007 15:59:53 -0500
+Date: Fri, 16 Feb 2007 20:59:42 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [RFC] killing the NR_IRQS arrays.
-Date: Fri, 16 Feb 2007 21:43:24 +0100
-References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com> <200702162045.58857.arnd@arndb.de> <20070216195256.GE2572@flint.arm.linux.org.uk>
-In-Reply-To: <20070216195256.GE2572@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 8BIT
+Message-ID: <20070216205942.GG2572@flint.arm.linux.org.uk>
+References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com> <200702162045.58857.arnd@arndb.de> <20070216195256.GE2572@flint.arm.linux.org.uk> <200702162143.25130.arnd@arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-Message-Id: <200702162143.25130.arnd@arndb.de>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <200702162143.25130.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk+lkml@arm.linux.org.uk>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Friday 16 February 2007 20:52, Russell King wrote:
-> On Fri, Feb 16, 2007 at 08:45:58PM +0100, Arnd Bergmann wrote:
-> > We did something like this a few years back on the s390 architecture, which
-> > happens to be lucky enough not to share any interrupt based drivers with
-> > any of the other architectures.
+On Fri, Feb 16, 2007 at 09:43:24PM +0100, Arnd Bergmann wrote:
+> On Friday 16 February 2007 20:52, Russell King wrote:
+> > On Fri, Feb 16, 2007 at 08:45:58PM +0100, Arnd Bergmann wrote:
+> > > We did something like this a few years back on the s390 architecture, which
+> > > happens to be lucky enough not to share any interrupt based drivers with
+> > > any of the other architectures.
+> > 
+> > What you're proposing is looking similar to a proposal I put forward some
+> > 4 years ago, but was rejected.  Maybe times have changed and there's a
+> > need for it now.
 > 
-> What you're proposing is looking similar to a proposal I put forward some
-> 4 years ago, but was rejected.  Maybe times have changed and there's a
-> need for it now.
+> Yes, I think times have changed, with the increased popularity of MSI
+> and paravirtualized devices. A few points on your old proposal though:
+> 
+> - Doing it per architecture no longer sounds feasible, I think it would
+>   need to be done per subsystem so that the drivers can be adapted to
+>   a new interface, and most drivers are used across multiple architectures.
+> - struct irq sounds much more fitting than struct irq_desc
+> - creating new irq_foo() functions to replace foo_irq() also sounds right.
+> - doing subsystem specific abstractions ideally allows the drivers to
+>   not even need to worry about the irq pointer, significantly simplifying
+>   the interface for register/unregister.
 
-Yes, I think times have changed, with the increased popularity of MSI
-and paravirtualized devices. A few points on your old proposal though:
+I agree with your points above, except for:
 
-- Doing it per architecture no longer sounds feasible, I think it would
-  need to be done per subsystem so that the drivers can be adapted to
-  a new interface, and most drivers are used across multiple architectures.
-- struct irq sounds much more fitting than struct irq_desc
-- creating new irq_foo() functions to replace foo_irq() also sounds right.
-- I don't see the point in splitting request_irq into irq_request and
-  irq_register.
-- doing subsystem specific abstractions ideally allows the drivers to
-  not even need to worry about the irq pointer, significantly simplifying
-  the interface for register/unregister.
+> - I don't see the point in splitting request_irq into irq_request and
+>   irq_register.
 
-	Arnd <><
+This was to work around those scenarios where you want to mark an IRQ
+resource as being in use prior to actually using it in much the same
+way as is done with IO ports.
+
+I've come across hardware where you need to claim the interrupt with
+the controller masked, configure the device generating the interrupt
+appropriately, and only then unmask it.  Otherwise you end up spinning.
+
+To work around that, we've had to introduce additional flags into the
+genirq subsystem - IRQF_NOAUTOEN - whereas separating the "obtain"
+from the "start using" bit of request_irq would've made this
+unnecessary.
+
+Another example where this (was|still is) used is the IDE code, but
+that's probably been cleaned up in some way now.
+
+There's nothing wrong with keeping a combined "request_irq" for the
+common case though.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
