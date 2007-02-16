@@ -1,50 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:60750 "EHLO
+Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:55904 "EHLO
 	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1945922AbXBPPgP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Feb 2007 10:36:15 -0500
+	with ESMTP id S1945943AbXBPPux (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Feb 2007 10:50:53 -0500
 From: ebiederm@xmission.com (Eric W. Biederman)
 Subject: Re: [RFC] killing the NR_IRQS arrays.
 References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
-	<200702161316.41237.ak@suse.de>
-Date: Fri, 16 Feb 2007 08:35:43 -0700
-In-Reply-To: <200702161316.41237.ak@suse.de> (Andi Kleen's message of "Fri, 16
-	Feb 2007 13:16:41 +0100")
-Message-ID: <m17iuidsj4.fsf@ebiederm.dsl.xmission.com>
+	<20070216124117.GB4218@elte.hu>
+Date: Fri, 16 Feb 2007 08:49:43 -0700
+In-Reply-To: <20070216124117.GB4218@elte.hu> (Ingo Molnar's message of "Fri,
+	16 Feb 2007 13:41:17 +0100")
+Message-ID: <m13b56drvs.fsf@ebiederm.dsl.xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-Andi Kleen <ak@suse.de> writes:
-
->> I expect the most it makes sense to aim for 2.6.22 are the genirq
->> changes so the internal arch code is passing struct irq_desc
->> everywhere internally. 
+Ingo Molnar <mingo@elte.hu> writes:
 >
-> Are there any livetime issues with passing pointers around? 
-> e.g. what happens on APIC hotunplug etc.? We don't necessarily
-> support that yet, but for a big interface change it should 
-> be probably kept in mind first.
+> or am i missing something fundamental?
 
-Ouch.  Let's consider the case of pci device (using msi's) hot unplug.
-That case we theoretically support today but I'm not certain we account
-for it.
+One piece.
 
-The only real issue (I can imagine) would come from something that is
-not part of the device driver using the irq, as the device and
-everything associated with it should have the same lifetime rules.
-(You can't unplug an ioapic without unplugging the device it is
-connected to).
+At the driver level this not a big scary change.  
+This is just a change with widespread effect.
 
-So the things to consider would be things like /proc/interrupts and
-/proc/irq.  I think we already have some kind of revoke in place when
-the irq goes away so it probably makes sense just to make that revoke
-solid and immediate.
+It should be no worse than enabling a very revealing new compiler
+warning.
 
-So I can't imagine any real lifetime issues that would cause us
-problems with a pointer.
+Every fix should be purely mechanical.  There should be no need at
+all to think to get it right (unless things are broken today and we
+just don't see it.).
+
+Yes typo's and the like will happen.  There will be issues.  But 99%
+of them will be the code doesn't compile, for an obvious reason.  
 
 Eric
