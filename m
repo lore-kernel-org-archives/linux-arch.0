@@ -1,193 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:41250 "EHLO
-	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965099AbXBQJfj convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 17 Feb 2007 04:35:39 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
+Received: from gate.crashing.org ([63.228.1.57]:44973 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932636AbXBQVEh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 17 Feb 2007 16:04:37 -0500
 Subject: Re: [RFC] killing the NR_IRQS arrays.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <m1y7mxb20a.fsf@ebiederm.dsl.xmission.com>
 References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
-	<200702162045.58857.arnd@arndb.de>
-	<20070216195256.GE2572@flint.arm.linux.org.uk>
-Date: Sat, 17 Feb 2007 02:34:39 -0700
-In-Reply-To: <20070216195256.GE2572@flint.arm.linux.org.uk> (Russell King's
-	message of "Fri, 16 Feb 2007 19:52:56 +0000")
-Message-ID: <m1k5yhb00g.fsf@ebiederm.dsl.xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
+	 <1171664993.5644.92.camel@localhost.localdomain>
+	 <m1y7mxb20a.fsf@ebiederm.dsl.xmission.com>
+Content-Type: text/plain
+Date: Sun, 18 Feb 2007 08:04:00 +1100
+Message-Id: <1171746241.5644.124.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Arnd Bergmann <arnd@arndb.de>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-Russell King <rmk+lkml@arm.linux.org.uk> writes:
 
-> On Fri, Feb 16, 2007 at 08:45:58PM +0100, Arnd Bergmann wrote:
->> On Friday 16 February 2007 13:10, Eric W. Biederman wrote:
->> > To do this I believe will require a s/unsigned int irq/struct irq_desc *irq/
->> > throughout the entire kernel.  Getting the arch specific code and the
->> > generic kernel infrastructure fixed and ready for that change looks
->> > like a pain but pretty doable.
->> 
->> We did something like this a few years back on the s390 architecture, which
->> happens to be lucky enough not to share any interrupt based drivers with
->> any of the other architectures.
->
-> What you're proposing is looking similar to a proposal I put forward some
-> 4 years ago, but was rejected.  Maybe times have changed and there's a
-> need for it now.
->
-> Message attached.
->
-> -- 
-> Russell King
->  Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
->  maintainer of:
->
-> From: 	Russell King <rmk@arm.linux.org.uk>
-> Subject: [RFC] IRQ API
-> To: 	linux-arch@vger.kernel.org
-> Cc: 	Alan Cox <alan@lxorguk.ukuu.org.uk>
-> Date: Sat, 07 Jun 2003 17:05:19 -0700
->
-> Hi,
->
-> I've recently received an updated development system from ARM Ltd,
-> which has caused me to become concerned about whether the existing
-> IRQ infrastructure for the ARM architecture is really up to the job
-> of handling the developments which will occur over the 2.6 lifetime.
-> Essentially we're going to be seeing the emergence of vectored
-> interrupt controllers, and knowing hardware designers, they'll
-> continue the practice of chaining interrupt controllers (which is
-> pretty common on ARM today.)  I have some hardware here today which
-> has a vectored interrupt controller chained after two non-vectored
-> controllers.  This vectored interrupt controller is on an add-on
-> card, and so has no fixed address space and no fixed IRQ numbering.
->
-> Rather than having the job of rewriting this code during 2.6, I'd much
-> prefer to get something sorted, even if it is ARM only before 2.6.
->
-> I believe that there are some common problems with the existing API
-> which have been hinted at over the last few days, such as large
-> NR_IRQS.  As such, I think it would be a good idea to try to thrash
-> this issue out and get something which everyone is happy with.
->
-> Additionally, I've added Alan's "reserve then hook" idea to the API;
-> I seem to remember there is a case in IDE which needs something like
-> this.
->
-> Please note that what I am proposing is not to strip out the existing
-> API between now and 2.7; what I am proposing is a structure for 2.7
-> which can optionally be implemented by architectures and used in
-> architecture specific drivers now if they feel they would benefit
-> from it.
->
-> Comments? (other than "wtf are you thinking about this so close to 2.6,
-> are you mad" 8))
->
->
-> 			Linux Interrupt API
-> 			===================
->
-> 		Russell King <rmk@arm.linux.org.uk>
->
-> The Linux Interrupt API provides a flexible mechanism to handle and
-> control interrupts within the kernel.  The design requirements for
-> this API are:
->
-> - must have as little overhead as possible for commodity hardware
-> - must be easy and obvious to use
-> - must allow complex multi-level interrupt implementations to exist
->   transparently to device drivers
-> - must be compatible with the existing API
->
-> Essentially, this means that implementation of the existing API must
-> be simple.
->
-> ------------------------------------------------------------------------------
->
-> The API.
-> ========
->
-> struct irq {
-> 	/* architecture defined information */
-> 	/* must not be dereferenced by drivers */
-> 	/* eg, x86's irq_desc_t or sparc64's struct ino_bucket */
-> };
->
-> #define NO_IRQ	<architecture-defined-int-constant>
+> No.  I don't think we should make your irq_hwnumber_t thingy general
+> because it is not general.  I don't understand why you need it to be
+> an unsigned long, that still puzzles me.  But for the rest it actually
+> appears that ppc has a simpler model to deal with.
 
-When did you need a magic constant NO_IRQ in generic code.
-One of the reasons I want to convert the drivers is so we can
-kill the NO_IRQ nonsense.
+I think you might have misunderstood becaues I do beleive it's actually
+very general :-)
 
-As for struct irq.  Instead of struct irq_desc I really don't
-care, although the C++ camp hasn't not yet weighed in and mentioned
-how that creates a namespace conflict for them. 
+Let me explain below.
 
-> /**
->  *	irq_get - increment reference count on the IRQ descriptor
->  *	@irq: interrupt descriptor
->  *
->  *	IRQ descriptor reference counting is mandatory for
->  *	implementations which provide dynamically allocated IRQ
->  *	descriptors.  statically allocated IRQ descriptor
->  *	implementations may define these to be no-ops.
->  */
-> struct irq *irq_get(struct irq *irq);
+> I don't think I actually can describe x86 hardware in you hwnumber_t
+> world.  Although I can approximate.
 
-> /**
->  *	irq_put - decrement reference count on IRQ descriptor
->  *	@irq: interrupt descriptor
->  *
->  *	Decrement the reference counter in an IRQ descriptor.
->  *	If the reference counter drops to zero, the IRQ descriptor
->  *	will be freed.
->  *
->  *	IRQ descriptor reference counting is mandatory for
->  *	implementations which provide dynamically allocated IRQ
->  *	descriptors.  statically allocated IRQ descriptor
->  *	implementations may define these to be no-ops.
->  */
-> void irq_put(struct irq *irq);
+And I think it fits well...
 
-We might need this.  But I don't think we need reference counting in
-the traditional sense.  For all practical purpose we already have
-dynamic irq allocation and it hasn't proven necessary.  I would
-prefer to go to lengths to avoid having to expose that kind of
-an issue to driver code.
+> In non-legacy mode at the top of the tree I have a network cooperating
+> irq controllers.  For each cpu there is an lapic next to each cpu that
+> catches interrupt packets and below that I have interrupt controllers
+> that throw interrupt packets.  In the network of cooperating interrupt
+> controllers a interrupt packet has a destination address that looks
+> like (cpu#, vector#) where cpu# is currently at 8 bits and slowly
+> growing and the vector# is a fixed 8 bits.
+> 
+> The interrupt controllers that throw those packets have a fixed
+> number of irq slots usually 24 or so.  Each slot (referred to in the
+> code as a pin) can be programmed which (cpu#, vector#) packet it
+> throws when an interrupt occurs. Including an option to vary the cpu#
+> between a set of cpus.
+> 
+> So to be frank to handle this model properly I need to deal with
+> this properly I need.
+> #define NR_IRQS (NR_CPUS*256)
+> 
+> There is enough flexibility in this model that hardware vectors
+> have not found a need to cascade interrupt controllers.
 
+This is roughly similar to the cell "toplevel" model where interrupt
+messages encode the source unit/node, target and class. The chip has an
+interrupt "controller" (receiver of those messages) for each thread. In
+the kernel, I use a "flat" model, that is I create one host for all of
+them and my hardware numbers are mode of a similar bit encoding of those
+"routing" infos.
 
-> Example backwards-compatible IRQ code.
-> ======================================
->
-> The following example code shows the expected back-compat code required
-> for the x86 architecture.  Since x86 uses a fixed table of interrupts,
-> this is relatively straight forward and simple.
+That is, with a remapping model like mine, the x86 non-legacy situation
+could be easily expressed by having one domain (I call them hosts in the
+code) covering the whole fabric and the hw number be your (CPU << 16) |
+vector thing.
 
-Well I just find that comment cute, in the current context :)
+In addition, but you don't need that on x86, cell has an external
+controller cascaded on one of those interrupt, I use a separate domain
+for it.
 
-I actually don't like the idea of having two version of the
-infrastructure or for that matter any driver visible changes except
-the type change at the same time.
+The reason my hwnumber thingy is a generic type is that i provide
+generic functions to create a linux interrupt for a domain/number pair
+and generic mecanism to do the reverse mapping. That's where I think my
+code might be of some use as with the "numbers" going away, pretty
+everybody will need a wat to reverse map from HW numbers back to
+irq_desc *.
 
-That makes the conversion much harder because you have to think about
-the change.  If I have to go in touch a huge percentage of the drivers
-I don't want to have to think, I don't want something I have to code
-review.  I want something that any first grader can do correct so when
-I am fatigued after having converted 1000 drivers I can still get it
-right, and so that there is a chance I don't have to convert drivers.
+I use an unsigned long because I needed to choose a type that would fit
+the biggest number potentially used by an interrupt controller, and that
+can be real big with some hypervisors for which those are "tokens" which
+are potentially 64 bits.
 
-But otherwise I agree we seem to be largely on the same wavelength.
+> Ben I have no problem with a number that is specific to an irq
+> controller for dealing with the internal irq controller
+> implementations, heck I think everyone has that to some degree
+> 
+> The linux irq number will remain an arbitrary software number for
+> use by the linux system for talking about the source of the
+> interrupt.
 
-I also don't like infrastructure changes that never get finished,
-which is the big danger with providing a backwards compatibility
-API.  Some drivers just never adapt to what is new and better.
+So you do intend to keep the linux number which is what I call the
+"virtual interrupt" number on powerpc... I wouldn't have thought that to
+be necessary except as a special case of an array of 16 entries for ISA
+interrupts...
 
-I think with a little care I can get 99% of the drivers compile
-tested by enabling everything in the kernel (allyesconfig?)  
+> Why in a sparse address space you would find it hard to allocate a
+> range of numbers to an irq controller that only has a fixed number of
+> irqs it can deal with is something I don't understand and I think
+> it is does a disservice to your users.  But that is all it is
+> a quality of implementation issue.  ia64 does the same foolish
+> thing.
 
-I guess when it comes to that I will have to see if I'm crazy or not.
+It would be fairly easy to change my powerpc code to pre-allocate a full
+range for a given domain/pic when initializing it instead of doing
+"lazy" scattered allocation like I do, though it won't bring much I
+think. It's not possible for all PICs though, for example, the pSeries
+needs to use the radix tree reverse mapper because of how large HW
+interrupt numbers can be.
 
-Eric
+I chose not to do it. In the long run, the only remotely meaningful way
+to expose interrupt to users would be to -add- columns
+to /proc/interrupts that provide the "host" and the HW number on that
+host, though I'm not sure that wouldn't break some userland tools.
+
+> The only time it really makes sense to me to let the irq number vary
+> arbitrary are when things are truly dynamic, like with MSI, a
+> hypervisor, or hot plug interrupt controllers.
+
+I don't understand why you would go to all that lenght to replace irq
+numbers with irq_desc * and ... keep then numbers :-)
+
+But again, as I said, this is in no way a fundamental limitation of the
+powerpc code. It could be modified easily to allocate the whole range of
+a given PIC that uses the "linear" remapping. It makes no sense for PICs
+that use the "radix tree" remapping though.
+
+> Sure, and I have the same issue with a big "DESIGNED FOR ppc" in the middle,
+> or "DESIGNED FOR arch/x".   However the unfortunate truth is that the x86
+> has enough volume that frequently other architectures use some x86
+> hardware and thus get some of x86's warts.   So anything that doesn't
+> cope with the x86's warts is frequently doomed to failure.
+
+I fait to see how what I described would not apply nicely to x86 ..
+
+Ben.
+
 
