@@ -1,94 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:39099 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:56269 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932932AbXBQVQV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 17 Feb 2007 16:16:21 -0500
+	id S932948AbXBQVUx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 17 Feb 2007 16:20:53 -0500
 Subject: Re: [RFC] killing the NR_IRQS arrays.
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <m1tzxlb1b0.fsf@ebiederm.dsl.xmission.com>
+In-Reply-To: <m1k5yhb00g.fsf@ebiederm.dsl.xmission.com>
 References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
+	 <200702162045.58857.arnd@arndb.de>
 	 <20070216195256.GE2572@flint.arm.linux.org.uk>
-	 <1171665426.5644.99.camel@localhost.localdomain>
-	 <200702170237.42910.arnd@arndb.de>
-	 <1171684847.5644.108.camel@localhost.localdomain>
-	 <m1tzxlb1b0.fsf@ebiederm.dsl.xmission.com>
+	 <m1k5yhb00g.fsf@ebiederm.dsl.xmission.com>
 Content-Type: text/plain
-Date: Sun, 18 Feb 2007 08:15:49 +1100
-Message-Id: <1171746949.5644.137.camel@localhost.localdomain>
+Date: Sun, 18 Feb 2007 08:20:22 +1100
+Message-Id: <1171747222.5644.143.camel@localhost.localdomain>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Russell King <rmk+lkml@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Arnd Bergmann <arnd@arndb.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 2007-02-17 at 02:06 -0700, Eric W. Biederman wrote:
-> Benjamin Herrenschmidt <benh@kernel.crashing.org> writes:
+
+> > #define NO_IRQ	<architecture-defined-int-constant>
 > 
-> > In addition, if we remove the numbers, archs will need basically the
-> > exact same services provided by the powerpc irq core for reverse mapping
-> > (going from a HW irq number on a given PIC back to an irq_desc *).
+> When did you need a magic constant NO_IRQ in generic code.
+> One of the reasons I want to convert the drivers is so we can
+> kill the NO_IRQ nonsense.
 > 
-> Ben you seem to be under misapprehension that except for the case of
-> ISA (0-16) the linux IRQ number is a hardware number.  It is an arbitrary
-> software enumeration, and I think it has been that way a very long time.
+> As for struct irq.  Instead of struct irq_desc I really don't
+> care, although the C++ camp hasn't not yet weighed in and mentioned
+> how that creates a namespace conflict for them. 
 
-Did you actually mean "is not a hardware number" ? If not, then I don't
-understand your sentence...
+Yeah, NO_IRQ would be NULL here...
 
-> I can only tell you that my impression of this last is that all the
-> world's not a PPC.
+What I do on the powerpc code is since IRQ HW numbers are defined
+locally to a domain/PIC, when creating a new domain, The PIC code passes
+a value to use as an "illegal" value in that domain. It's not exposed
+outside of the core though, it's really only used to initialize the
+remapping table with something before any interrupt on that PIC has been
+mapped. 
 
-Yeah and my grandmother is not the pope, thank you.
+> We might need this.  But I don't think we need reference counting in
+> the traditional sense.  For all practical purpose we already have
+> dynamic irq allocation and it hasn't proven necessary.  I would
+> prefer to go to lengths to avoid having to expose that kind of
+> an issue to driver code.
 
-However, PowerPC is a good example because it has such a diversity of
-very different hardware setups to deal with, ranging from the multiple
-layers of cascading controllers all over the place, to interrupts
-packets encoding vector/target etc... a bit like x86 on cell, to
-hypervisors providing a single giant number space etc etc etc...
+I think we do need proper refcounting, but I also think that most
+drivers will not need to see it.
 
-Thus, it is extremely likely that something that works well for PowerPC
-(or for ARM for that matter as it's probably as a "colorful" environment
-as PowerPC is) will end up being useful for others.
+For example, a PCI driver will most probably just do something along the
+lines of the existing request_irq(pdev->irq), the liftime of pdev->irq
+is managed by the PCI core.
 
-> I have a version of the x86 code with a partial conversion done and
-> I didn't need a reverse mapping.  What you call the hardware interrupt
-> number never happens to be interesting to me after the system is setup.
-
-Because you have the ability to tell your PIC to give you your "linux"
-interrupt number when actually sending the interrupt to the processor ?
-You need a way to get to the irq_desc * when getting an IRQ, either you
-have a way to map HW numbers back to irq_desc * in sofrware, or your HW
-allows you to do it.
-
-> I do suspect there may be an interesting chunk of your ppc work that
-> probably makes sense as a library so other arches could use it.
-
-Guess what, one of the options of my code is to not instanciate a
-remapper... for archs where it's not necessary. (We have the case for
-example of iSeries whose hypervisor can return us the number we want for
-an arbitrary interrupt).
-
-Now, I'm not saying we should take the PowerPC code and say "hey' here's
-the new generic code".
-
-I'm saying that if we're going to change the IRQ stuff that deeply, it
-would be nice if we looked into some of that stuff I've done that I
-beleive would be of use for other archs (though you seem to imply that
-it would be of no use on x86, good, still...).
-
-I found it overall very useful to have a generic remapping core and have
-cascaded PIC setups have a numbering domain local to a given PIC (pretty
-much, a domain != an irq_chip) and I'm convinced it would make life
-easier for archs with similar setups. The remapping core also shows its
-usefulness on archs with very big interrupt numbers, like sparc or
-pSeries ppc, and possibly others.
-
-Now, I -do- have a problem with one aspect of your proposed design which
-is to keep the "linux" interrupt number in the generic irq_desc, which I
-think defeats most of the purpose of moving away from those linux irq
-numbers. If you do so, then I'll have to keep a separate remapping layer
-and keep a mecanism for virtualizing linux numbers.
+Same goes with MSIs imho, the MSI core can manage the lifetime
+transparently.
 
 Ben.
 
