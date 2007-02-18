@@ -1,58 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hancock.steeleye.com ([71.30.118.248]:56171 "EHLO
-	hancock.sc.steeleye.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751244AbXBROzf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Feb 2007 09:55:35 -0500
-Subject: Re: Which architectures need to sync vmalloc mappings between
-	processes?
-From: James Bottomley <James.Bottomley@steeleye.com>
-In-Reply-To: <45D7E438.4020902@goop.org>
+Received: from mx2.suse.de ([195.135.220.15]:42640 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751479AbXBRRIX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 18 Feb 2007 12:08:23 -0500
+From: Andi Kleen <ak@suse.de>
+Subject: Re: Which architectures need to sync vmalloc mappings between processes?
+Date: Sun, 18 Feb 2007 18:08:13 +0100
 References: <45D7E438.4020902@goop.org>
-Content-Type: text/plain
-Date: Sun, 18 Feb 2007 08:55:31 -0600
-Message-Id: <1171810531.3423.5.camel@mulgrave.il.steeleye.com>
-Mime-Version: 1.0
+In-Reply-To: <45D7E438.4020902@goop.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200702181808.13576.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 To: Jeremy Fitzhardinge <jeremy@goop.org>
 Cc: linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 2007-02-17 at 21:29 -0800, Jeremy Fitzhardinge wrote:
-> I'm looking at making all architectures export a vmalloc_sync_all()
-> function, so that generic code can be sure that a particular vmalloc
-> mapping is present in all address spaces.   I need this to implement a
-> function to reserve a chunk of vmalloc address space complete with
-> constructed pagetables, but without allocating any actual data pages.
-> 
+
 > On i386 with PAE, this is not necessary because the kernel's mappings
 > are shared between all processes anyway, so it would be a no-op.  
 > However, non-PAE i386 has a separate kernel mapping for each process,
 > and so needs to sync them - typically lazily on faults, but
 > vmalloc_sync_all exists to allow mass syncing when required.
-> 
-> What other architectures would require syncing of vmalloc mappings, and
-> what architectures would implement it as a no-op?
 
-Er, but there are fundamental assumptions that vmalloc_sync_all() makes
-that simply aren't true on other architectures.  Really, it's an
-artifact of the Intel x86 processor's inability to flush by %cr3, so we
-try to keep the kernel mappings alive in a process so that a sys call
-and return doesn't do a full TLB flush ... and thus, because we have a
-hidden piece of kernel in userspace, we get the HIGHMEM issues.
+The only case that needs it right now on x86 is NMI handlers in modules
+to avoid early IRETs that could cause NMI recursion.
 
-A substantial number of other architectures do have a selective TLB
-flush, so a lot operate with a fully separated kernel and user space,
-and thus vmalloc mappings appear only in the single kernel address space
-and nowhere else.
+That's a very obscure architecture specific quirk and I wouldn't expect any 
+other architecture to suffer from this.
 
-Could you elaborate on exactly what you think you need
-vmalloc_sync_all() exported for ... your explanation of a reserved
-vmalloc range sounds reasonable, but should in no way depend on
-vmalloc_sync_all().  It really sounds like this should be an arch
-specific function so the architectures can decide the implementation
-details.
-
-James
-
-
+-Andi
