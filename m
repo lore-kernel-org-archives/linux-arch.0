@@ -1,61 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:56269 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932948AbXBQVUx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 17 Feb 2007 16:20:53 -0500
+Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:46937 "EHLO
+	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751019AbXBRD7b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 17 Feb 2007 22:59:31 -0500
+From: ebiederm@xmission.com (Eric W. Biederman)
 Subject: Re: [RFC] killing the NR_IRQS arrays.
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <m1k5yhb00g.fsf@ebiederm.dsl.xmission.com>
 References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
-	 <200702162045.58857.arnd@arndb.de>
-	 <20070216195256.GE2572@flint.arm.linux.org.uk>
-	 <m1k5yhb00g.fsf@ebiederm.dsl.xmission.com>
-Content-Type: text/plain
-Date: Sun, 18 Feb 2007 08:20:22 +1100
-Message-Id: <1171747222.5644.143.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	<200702162045.58857.arnd@arndb.de>
+	<20070216195256.GE2572@flint.arm.linux.org.uk>
+	<m1k5yhb00g.fsf@ebiederm.dsl.xmission.com>
+	<1171747222.5644.143.camel@localhost.localdomain>
+Date: Sat, 17 Feb 2007 20:58:26 -0700
+In-Reply-To: <1171747222.5644.143.camel@localhost.localdomain> (Benjamin
+	Herrenschmidt's message of "Sun, 18 Feb 2007 08:20:22 +1100")
+Message-ID: <m1zm7c9kwt.fsf@ebiederm.dsl.xmission.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Russell King <rmk+lkml@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Arnd Bergmann <arnd@arndb.de>
 List-ID: <linux-arch.vger.kernel.org>
 
+Benjamin Herrenschmidt <benh@kernel.crashing.org> writes:
 
-> > #define NO_IRQ	<architecture-defined-int-constant>
-> 
-> When did you need a magic constant NO_IRQ in generic code.
-> One of the reasons I want to convert the drivers is so we can
-> kill the NO_IRQ nonsense.
-> 
-> As for struct irq.  Instead of struct irq_desc I really don't
-> care, although the C++ camp hasn't not yet weighed in and mentioned
-> how that creates a namespace conflict for them. 
+>
+>> We might need this.  But I don't think we need reference counting in
+>> the traditional sense.  For all practical purpose we already have
+>> dynamic irq allocation and it hasn't proven necessary.  I would
+>> prefer to go to lengths to avoid having to expose that kind of
+>> an issue to driver code.
+>
+> I think we do need proper refcounting, but I also think that most
+> drivers will not need to see it.
+>
+> For example, a PCI driver will most probably just do something along the
+> lines of the existing request_irq(pdev->irq), the liftime of pdev->irq
+> is managed by the PCI core.
+>
+> Same goes with MSIs imho, the MSI core can manage the lifetime
+> transparently.
 
-Yeah, NO_IRQ would be NULL here...
+Yes.  I'm optimistic that we won't find a case where refcounting will
+be needed.
 
-What I do on the powerpc code is since IRQ HW numbers are defined
-locally to a domain/PIC, when creating a new domain, The PIC code passes
-a value to use as an "illegal" value in that domain. It's not exposed
-outside of the core though, it's really only used to initialize the
-remapping table with something before any interrupt on that PIC has been
-mapped. 
-
-> We might need this.  But I don't think we need reference counting in
-> the traditional sense.  For all practical purpose we already have
-> dynamic irq allocation and it hasn't proven necessary.  I would
-> prefer to go to lengths to avoid having to expose that kind of
-> an issue to driver code.
-
-I think we do need proper refcounting, but I also think that most
-drivers will not need to see it.
-
-For example, a PCI driver will most probably just do something along the
-lines of the existing request_irq(pdev->irq), the liftime of pdev->irq
-is managed by the PCI core.
-
-Same goes with MSIs imho, the MSI core can manage the lifetime
-transparently.
-
-Ben.
-
-
+Eric
