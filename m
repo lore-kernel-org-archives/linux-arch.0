@@ -1,51 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:60098 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751976AbXBRUCi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 18 Feb 2007 15:02:38 -0500
+Received: from pentafluge.infradead.org ([213.146.154.40]:41297 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752155AbXBRVZR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Feb 2007 16:25:17 -0500
 Subject: Re: [RFC] killing the NR_IRQS arrays.
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <m17iug9dv6.fsf@ebiederm.dsl.xmission.com>
+From: Arjan van de Ven <arjan@infradead.org>
+In-Reply-To: <20070216124117.GB4218@elte.hu>
 References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
-	 <20070216195256.GE2572@flint.arm.linux.org.uk>
-	 <1171665426.5644.99.camel@localhost.localdomain>
-	 <200702170237.42910.arnd@arndb.de>
-	 <1171684847.5644.108.camel@localhost.localdomain>
-	 <m1tzxlb1b0.fsf@ebiederm.dsl.xmission.com>
-	 <1171746949.5644.137.camel@localhost.localdomain>
-	 <m17iug9dv6.fsf@ebiederm.dsl.xmission.com>
+	 <20070216124117.GB4218@elte.hu>
 Content-Type: text/plain
-Date: Mon, 19 Feb 2007 07:01:52 +1100
-Message-Id: <1171828912.5644.170.camel@localhost.localdomain>
+Date: Sun, 18 Feb 2007 22:24:45 +0100
+Message-Id: <1171833885.3261.208.camel@laptopd505.fenrus.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Russell King <rmk+lkml@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
+On Fri, 2007-02-16 at 13:41 +0100, Ingo Molnar wrote:
+> * Eric W. Biederman <ebiederm@xmission.com> wrote:
+> 
+> > So I propose we remove all assumptions from the code that we actually 
+> > have an array of irqs.  That will allow for irq_desc to be dynamically 
+> > allocated instead of statically allocated saving memory and reducing 
+> > kernel complexity.
+> 
+> hm. I'd suggest to do this without changing request_irq() - and then we 
+> could avoid the 'massive, every driver affected' change, right?
 
-> Except for the what appears to be instability of the irq numbers on
-> simpler configurations I don't have a problem with it.
-
-I agree that's a bit annoying and I beleive it can be fixed. In
-additionm I'd like to look into exposing the domain/HW number -> virq
-mapping somewhere in sysfs maybe.
-
-> Until we find a solution for the user space side of things we seem to
-> need the unsigned int irq number for user space.  Now I don't want
-> people mapping back and forth which is why I don't intend to provide a
-> reverse function.
-
-Ok.
-
-> But of course there will be a for_each_irq in the genirq layer so if
-> people really want to they will be able to go from the linux irq to 
-> an irq_desc.  But we don't have to export that generically (except
-> possibly something for the isa irqs).
-
-Ok.
-
-Ben.
+if request_irq() changes we might as well make a variant that takes a
+PCI device struct rather than a number, for the 99% of PCI drivers that
+use that.. (and then msi and other stuff becomes simpler :)
 
 
