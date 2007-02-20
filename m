@@ -1,284 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.24]:51622 "EHLO smtp.osdl.org"
+Received: from chilli.pcug.org.au ([203.10.76.44]:46689 "EHLO smtps.tip.net.au"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030476AbXBTV7l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 20 Feb 2007 16:59:41 -0500
-Message-Id: <200702202159.l1KLxMcC021074@shell0.pdx.osdl.net>
-Subject: [patch 18/50] add epoll compat code to kernel/compat.c
-From: akpm@linux-foundation.org
-Date: Tue, 20 Feb 2007 13:57:58 -0800
+	id S1161077AbXBTXUB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Feb 2007 18:20:01 -0500
+Date: Wed, 21 Feb 2007 10:20:27 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [patch 18/50] add epoll compat code to kernel/compat.c
+Message-Id: <20070221102027.52bf703a.sfr@canb.auug.org.au>
+In-Reply-To: <200702202159.l1KLxMcC021074@shell0.pdx.osdl.net>
+References: <200702202159.l1KLxMcC021074@shell0.pdx.osdl.net>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Wed__21_Feb_2007_10_20_27_+1100_Op_rO.Jdy.moJE.M"
 Sender: linux-arch-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, davidel@xmailserver.org, dwmw2@infradead.org, linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, tony.luck@intel.com
+To: akpm@linux-foundation.org
+Cc: torvalds@linux-foundation.org, davidel@xmailserver.org, dwmw2@infradead.org, linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, tony.luck@intel.com
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Davide Libenzi <davidel@xmailserver.org>
+--Signature=_Wed__21_Feb_2007_10_20_27_+1100_Op_rO.Jdy.moJE.M
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: 7bit
 
-Add epoll compat_ code to kernel/compat.c.  IA64 and ARM-OABI are currently
-using their own version of epoll compat_ code and they could probably wire to
-the new common code.
+On Tue, 20 Feb 2007 13:57:58 -0800 akpm@linux-foundation.org wrote:
+>
+> From: Davide Libenzi <davidel@xmailserver.org>
+>
+> Add epoll compat_ code to kernel/compat.c.  IA64 and ARM-OABI are currently
+> using their own version of epoll compat_ code and they could probably wire to
+> the new common code.
 
-Unfortunately, sys_epoll_pwait needs two compat versions, one for sigset_t
-only, and one for sigset_t+epoll_event.
+So did you just ignore the discussion that went on about this patch and
+the suggestions made (by me) and accepted by the author?  i.e. why has
+this gone to Linus in this form?
 
-Architectures that do not require epoll_event translation [1] whould wire
-compat_sys_epoll_pwait, while the ones that do require it, should wire
-compat_sys_epoll_pwait2.
+Nacked-by: Stephen Rothwell <sfr@canb.auug.org.au>
 
-Architectures that do not require epoll_event translation, should *not* wire
-neither compat_sys_epoll_ctl nor compat_sys_epoll_wait.  Patch over 2.6.20.
+Whatever that means.
+--
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
+--Signature=_Wed__21_Feb_2007_10_20_27_+1100_Op_rO.Jdy.moJE.M
+Content-Type: application/pgp-signature
 
-[1] An architecture needs epoll_event translation is alignof(u64) in 32 
-    bits mode is 4, *and* alignof(u64) in 64 bits mode is 8.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
 
-[akpm@linux-foundation.org: cleanups]
-Signed-off-by: Davide Libenzi <davidel@xmailserver.org>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Russell King <rmk@arm.linux.org.uk>
-Cc: "Luck, Tony" <tony.luck@intel.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+iD8DBQFF24JAFdBgD/zoJvwRAiCHAKCPT+OuyigyOZq+VZDGhRP/TV5KjACbB0Wy
+K71fsiOO4QnpbFbI2Kx6IzU=
+=xJVG
+-----END PGP SIGNATURE-----
 
- fs/eventpoll.c         |    9 +-
- include/linux/compat.h |   34 +++++++++
- kernel/compat.c        |  145 ++++++++++++++++++++++++++++++++++++++-
- 3 files changed, 183 insertions(+), 5 deletions(-)
-
-diff -puN fs/eventpoll.c~add-epoll-compat-code-to-kernel-compatc fs/eventpoll.c
---- a/fs/eventpoll.c~add-epoll-compat-code-to-kernel-compatc
-+++ a/fs/eventpoll.c
-@@ -544,8 +544,8 @@ eexit_1:
-  * file descriptors inside the interest set.  It represents
-  * the kernel part of the user space epoll_ctl(2).
-  */
--asmlinkage long
--sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event __user *event)
-+asmlinkage long sys_epoll_ctl(int epfd, int op, int fd,
-+				struct epoll_event __user *event)
- {
- 	int error;
- 	struct file *file, *tfile;
-@@ -707,8 +707,9 @@ eexit_1:
-  * part of the user space epoll_pwait(2).
-  */
- asmlinkage long sys_epoll_pwait(int epfd, struct epoll_event __user *events,
--		int maxevents, int timeout, const sigset_t __user *sigmask,
--		size_t sigsetsize)
-+				int maxevents, int timeout,
-+				const sigset_t __user *sigmask,
-+				size_t sigsetsize)
- {
- 	int error;
- 	sigset_t ksigmask, sigsaved;
-diff -puN include/linux/compat.h~add-epoll-compat-code-to-kernel-compatc include/linux/compat.h
---- a/include/linux/compat.h~add-epoll-compat-code-to-kernel-compatc
-+++ a/include/linux/compat.h
-@@ -234,5 +234,39 @@ asmlinkage long compat_sys_migrate_pages
- 		compat_ulong_t maxnode, const compat_ulong_t __user *old_nodes,
- 		const compat_ulong_t __user *new_nodes);
- 
-+/*
-+ * epoll (fs/eventpoll.c) compat bits follow ...
-+ */
-+struct epoll_event;
-+
-+struct compat_epoll_event {
-+	u32 events;
-+	u32 data[2];
-+};
-+
-+asmlinkage long compat_sys_epoll_ctl(int epfd, int op, int fd,
-+				struct compat_epoll_event __user *event);
-+asmlinkage long compat_sys_epoll_wait(int epfd,
-+				struct compat_epoll_event __user *events,
-+				int maxevents, int timeout);
-+
-+/*
-+ * Architectures that does not need "struct epoll_event" translation
-+ * should wire compat_sys_epoll_pwait. The ones that needs "struct epoll_event"
-+ * translation, should wire compat_sys_epoll_pwait2. An architecture needs
-+ * "struct epoll_event" translation is alignof(u64) in 32 bits mode is 4, and
-+ * alignof(u64) in 64 bits mode is 8.
-+ */
-+asmlinkage long compat_sys_epoll_pwait(int epfd,
-+				struct epoll_event __user *events,
-+				int maxevents, int timeout,
-+				const compat_sigset_t __user *sigmask,
-+				compat_size_t sigsetsize);
-+asmlinkage long compat_sys_epoll_pwait2(int epfd,
-+				struct compat_epoll_event __user *events,
-+				int maxevents, int timeout,
-+				const compat_sigset_t __user *sigmask,
-+				compat_size_t sigsetsize);
-+
- #endif /* CONFIG_COMPAT */
- #endif /* _LINUX_COMPAT_H */
-diff -puN kernel/compat.c~add-epoll-compat-code-to-kernel-compatc kernel/compat.c
---- a/kernel/compat.c~add-epoll-compat-code-to-kernel-compatc
-+++ a/kernel/compat.c
-@@ -23,6 +23,7 @@
- #include <linux/timex.h>
- #include <linux/migrate.h>
- #include <linux/posix-timers.h>
-+#include <linux/eventpoll.h>
- 
- #include <asm/uaccess.h>
- 
-@@ -1017,6 +1018,149 @@ asmlinkage long compat_sys_migrate_pages
- }
- #endif
- 
-+#ifdef CONFIG_EPOLL
-+
-+/*
-+ * epoll (fs/eventpoll.c) compat functions follow ...
-+ */
-+
-+asmlinkage long compat_sys_epoll_ctl(int epfd, int op, int fd,
-+				     struct compat_epoll_event __user *event)
-+{
-+	long err = 0;
-+	struct compat_epoll_event user;
-+	struct epoll_event __user *kernel = NULL;
-+	union {
-+		u64 q;
-+		u32 d[2];
-+	} mux;
-+
-+	if (event) {
-+		if (copy_from_user(&user, event, sizeof(user)))
-+			return -EFAULT;
-+		kernel = compat_alloc_user_space(sizeof(struct epoll_event));
-+		err |= __put_user(user.events, &kernel->events);
-+		mux.d[0] = user.data[0];
-+		mux.d[1] = user.data[1];
-+		err |= __put_user(mux.q, &kernel->data);
-+	}
-+
-+	return err ? err: sys_epoll_ctl(epfd, op, fd, kernel);
-+}
-+
-+
-+asmlinkage long compat_sys_epoll_wait(int epfd,
-+				struct compat_epoll_event __user *events,
-+				int maxevents, int timeout)
-+{
-+	long i, ret, err = 0;
-+	struct epoll_event __user *kbuf;
-+	struct epoll_event ev;
-+	union {
-+		u64 q;
-+		u32 d[2];
-+	} mux;
-+
-+		if (maxevents <= 0 || maxevents > (INT_MAX /
-+						sizeof(struct epoll_event)))
-+		return -EINVAL;
-+		kbuf = compat_alloc_user_space(sizeof(struct epoll_event) *
-+						maxevents);
-+	ret = sys_epoll_wait(epfd, kbuf, maxevents, timeout);
-+	for (i = 0; i < ret; i++) {
-+		err |= __get_user(ev.events, &kbuf[i].events);
-+		err |= __get_user(ev.data, &kbuf[i].data);
-+		err |= put_user(ev.events, &events->events);
-+		mux.q = ev.data;
-+		err |= put_user(mux.d[0], &events->data[0]);
-+		err |= put_user(mux.d[1], &events->data[1]);
-+		events++;
-+	}
-+
-+	return err ? -EFAULT: ret;
-+}
-+
-+
-+#ifdef TIF_RESTORE_SIGMASK
-+
-+static long __sys_epoll_pwait(int epfd, void __user *events, int maxevents,
-+			int timeout, const compat_sigset_t __user *sigmask,
-+			compat_size_t sigsetsize,
-+			long (asmlinkage *proc)(int, void __user *, int, int))
-+{
-+	long err;
-+	compat_sigset_t ss32;
-+	sigset_t ksigmask, sigsaved;
-+
-+	/*
-+	 * If the caller wants a certain signal mask to be set during the wait,
-+	 * we apply it here.
-+	 */
-+	if (sigmask) {
-+		if (sigsetsize != sizeof(compat_sigset_t))
-+			return -EINVAL;
-+		if (copy_from_user(&ss32, sigmask, sizeof(ss32)))
-+			return -EFAULT;
-+		sigset_from_compat(&ksigmask, &ss32);
-+		sigdelsetmask(&ksigmask, sigmask(SIGKILL) | sigmask(SIGSTOP));
-+		sigprocmask(SIG_SETMASK, &ksigmask, &sigsaved);
-+	}
-+
-+	err = (*proc)(epfd, events, maxevents, timeout);
-+
-+	/*
-+	 * If we changed the signal mask, we need to restore the original one.
-+	 * In case we've got a signal while waiting, we do not restore the
-+	 * signal mask yet, and we allow do_signal() to deliver the signal on
-+	 * the way back to userspace, before the signal mask is restored.
-+	 */
-+	if (sigmask) {
-+		if (err == -EINTR) {
-+			memcpy(&current->saved_sigmask, &sigsaved,
-+			       sizeof(sigsaved));
-+			set_thread_flag(TIF_RESTORE_SIGMASK);
-+		} else
-+			sigprocmask(SIG_SETMASK, &sigsaved, NULL);
-+	}
-+
-+	return err;
-+}
-+
-+/*
-+ * Architectures that does not need "struct epoll_event" translation
-+ * should wire compat_sys_epoll_pwait. The ones that needs "struct epoll_event"
-+ * translation, should wire compat_sys_epoll_pwait2. An architecture needs
-+ * "struct epoll_event" translation is alignof(u64) in 32 bits mode is 4, and
-+ * alignof(u64) in 64 bits mode is 8.
-+ */
-+asmlinkage long compat_sys_epoll_pwait(int epfd,
-+				struct epoll_event __user *events,
-+				int maxevents, int timeout,
-+				const compat_sigset_t __user *sigmask,
-+				compat_size_t sigsetsize)
-+{
-+	return __sys_epoll_pwait(epfd, events, maxevents, timeout, sigmask,
-+			sigsetsize,
-+			(long (asmlinkage *)(int, void __user *, int, int))
-+				sys_epoll_wait);
-+}
-+
-+
-+asmlinkage long compat_sys_epoll_pwait2(int epfd,
-+				struct compat_epoll_event __user *events,
-+				int maxevents, int timeout,
-+				const compat_sigset_t __user *sigmask,
-+				compat_size_t sigsetsize)
-+{
-+	return __sys_epoll_pwait(epfd, events, maxevents, timeout, sigmask,
-+			sigsetsize,
-+			(long (asmlinkage *)(int, void __user *, int, int))
-+				compat_sys_epoll_wait);
-+}
-+
-+#endif /* TIF_RESTORE_SIGMASK */
-+#endif /* CONFIG_EPOLL */
-+
- struct compat_sysinfo {
- 	s32 uptime;
- 	u32 loads[3];
-@@ -1081,4 +1225,3 @@ compat_sys_sysinfo(struct compat_sysinfo
- 
- 	return 0;
- }
--
-_
+--Signature=_Wed__21_Feb_2007_10_20_27_+1100_Op_rO.Jdy.moJE.M--
