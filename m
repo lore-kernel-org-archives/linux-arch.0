@@ -1,23 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.24]:50044 "EHLO smtp.osdl.org"
+Received: from smtp.osdl.org ([65.172.181.24]:50124 "EHLO smtp.osdl.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030435AbXBTV1S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 20 Feb 2007 16:27:18 -0500
-Message-Id: <200702202127.l1KLR4Qv020181@shell0.pdx.osdl.net>
-Subject: - reduce-size-of-task_struct-on-64-bit-machines.patch removed from -mm tree
+	id S1030448AbXBTV30 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Feb 2007 16:29:26 -0500
+Message-Id: <200702202129.l1KLTChl020236@shell0.pdx.osdl.net>
+Subject: + reduce-size-of-task_struct-on-64-bit-machines.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Tue, 20 Feb 2007 13:25:40 -0800
+Date: Tue, 20 Feb 2007 13:27:48 -0800
 Sender: linux-arch-owner@vger.kernel.org
-To: wcohen@redhat.com, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: wcohen@redhat.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
 The patch titled
      reduce size of task_struct on 64-bit machines
-has been removed from the -mm tree.  Its filename was
+has been added to the -mm tree.  Its filename is
      reduce-size-of-task_struct-on-64-bit-machines.patch
 
-This patch was dropped because it was folded into kprobes-list-all-active-probes-in-the-system.patch
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
 
 ------------------------------------------------------
 Subject: reduce size of task_struct on 64-bit machines
@@ -52,7 +56,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 diff -puN include/linux/sched.h~reduce-size-of-task_struct-on-64-bit-machines include/linux/sched.h
 --- a/include/linux/sched.h~reduce-size-of-task_struct-on-64-bit-machines
 +++ a/include/linux/sched.h
-@@ -805,8 +805,8 @@ struct task_struct {
+@@ -802,8 +802,8 @@ struct task_struct {
  	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
  	struct thread_info *thread_info;
  	atomic_t usage;
@@ -63,7 +67,7 @@ diff -puN include/linux/sched.h~reduce-size-of-task_struct-on-64-bit-machines in
  
  	int lock_depth;		/* BKL lock depth */
  
-@@ -829,7 +829,7 @@ struct task_struct {
+@@ -826,7 +826,7 @@ struct task_struct {
  	unsigned long long sched_time; /* sched_clock time spent running */
  	enum sleep_type sleep_type;
  
@@ -72,7 +76,7 @@ diff -puN include/linux/sched.h~reduce-size-of-task_struct-on-64-bit-machines in
  	cpumask_t cpus_allowed;
  	unsigned int time_slice, first_time_slice;
  
-@@ -849,11 +849,11 @@ struct task_struct {
+@@ -846,11 +846,11 @@ struct task_struct {
  
  /* task state */
  	struct linux_binfmt *binfmt;
@@ -86,7 +90,7 @@ diff -puN include/linux/sched.h~reduce-size-of-task_struct-on-64-bit-machines in
  	unsigned did_exec:1;
  	pid_t pid;
  	pid_t tgid;
-@@ -885,7 +885,7 @@ struct task_struct {
+@@ -882,7 +882,7 @@ struct task_struct {
  	int __user *set_child_tid;		/* CLONE_CHILD_SETTID */
  	int __user *clear_child_tid;		/* CLONE_CHILD_CLEARTID */
  
@@ -99,7 +103,6 @@ _
 
 Patches currently in -mm which might be from wcohen@redhat.com are
 
-kprobes-list-all-active-probes-in-the-system.patch
 reduce-size-of-task_struct-on-64-bit-machines.patch
 reduce-size-of-task_struct-on-64-bit-machines-fix.patch
 
