@@ -1,40 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:42608 "EHLO
-	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1945910AbXBUXXn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2007 18:23:43 -0500
-Received: from localhost.localdomain ([127.0.0.1]:6340 "EHLO
-	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20038588AbXBUXXm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 Feb 2007 23:23:42 +0000
-Date: Wed, 21 Feb 2007 23:23:08 +0000
-From: Ralf Baechle <ralf@linux-mips.org>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:54677
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1751481AbXBVDCK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 Feb 2007 22:02:10 -0500
+Date: Wed, 21 Feb 2007 19:02:08 -0800 (PST)
+Message-Id: <20070221.190208.31642609.davem@davemloft.net>
 Subject: Re: [PATCH]add epoll compat code to fsl/compat.c
-Message-ID: <20070221232308.GA12989@linux-mips.org>
-References: <20070221102027.52bf703a.sfr@canb.auug.org.au> <Pine.LNX.4.64.0702201530250.2498@alien.or.mcafeemobile.com> <20070221120145.419a03ee.sfr@canb.auug.org.au> <Pine.LNX.4.64.0702201708230.2498@alien.or.mcafeemobile.com> <20070221141040.1807a368.sfr@canb.auug.org.au> <Pine.LNX.4.64.0702211209140.16904@alien.or.mcafeemobile.com> <Pine.LNX.4.64.0702211234410.4043@woody.linux-foundation.org> <Pine.LNX.4.64.0702211259440.16904@alien.or.mcafeemobile.com> <20070221221449.GE8957@linux-mips.org> <Pine.LNX.4.64.0702211423140.16904@alien.or.mcafeemobile.com>
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <Pine.LNX.4.64.0702211234410.4043@woody.linux-foundation.org>
+References: <20070221141040.1807a368.sfr@canb.auug.org.au>
+	<Pine.LNX.4.64.0702211209140.16904@alien.or.mcafeemobile.com>
+	<Pine.LNX.4.64.0702211234410.4043@woody.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0702211423140.16904@alien.or.mcafeemobile.com>
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Davide Libenzi <davidel@xmailserver.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Andrew Morton <akpm@linux-foundation.org>, David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, tony.luck@intel.com
+To: torvalds@linux-foundation.org
+Cc: davidel@xmailserver.org, sfr@canb.auug.org.au, akpm@linux-foundation.org, dwmw2@infradead.org, linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, tony.luck@intel.com, ralf@linux-mips.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Feb 21, 2007 at 02:25:09PM -0800, Davide Libenzi wrote:
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Wed, 21 Feb 2007 12:36:11 -0800 (PST)
 
-> > doesn't have to care.  A few nasty architectures (Afair old ARM and the
-> > b0rked R5900 in the Playstation 2 for 128-bit integer loads) however
-> > don't throw exceptions so __get_user / __put_user have to handle the
-> > problem manually which of course adds considerable overhead to the common
-> > case.
+> On Wed, 21 Feb 2007, Davide Libenzi wrote:
+> > 
+> > I don't think we can safely assume that we can access a potentially 
+> > 4-bytes aligned u64 on 64 bit architectures that require compat:
+> > 
+> > 	put_user(ev.data, &events->data);
 > 
-> Exactly. But at that point it'd better that the code handle the potential 
-> split operation by itself, w/out getting a fault for each mis-aligned 
-> access.
+> Oh, we can. "put_user()" and "get_user()" already have to work on totally 
+> unaligned data. If some architecture has problems with that, they have 
+> bigger issues, methinks.
+> 
+> We can't trust user pointers, and that includes not trusting them being 
+> aligned. 
 
-For these architectures it's a matter of correctness because ther won't
-be an exception, so no chance to handle the rare case of missalignment
-in the slow path.
-
-  Ralf
+Right, and on Sparc for userland they are illegal so we'll just
+SIGBUS the process if that happens.
