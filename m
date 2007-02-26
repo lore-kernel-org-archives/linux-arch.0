@@ -1,59 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:50061 "EHLO smtps.tip.net.au"
+Received: from mailhub.sw.ru ([195.214.233.200]:28385 "EHLO relay.sw.ru"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751387AbXBVEkL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 Feb 2007 23:40:11 -0500
-Date: Thu, 22 Feb 2007 15:39:52 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH]add epoll compat code to fsl/compat.c
-Message-Id: <20070222153952.1f1b5c15.sfr@canb.auug.org.au>
-In-Reply-To: <20070221.190702.88477592.davem@davemloft.net>
-References: <Pine.LNX.4.64.0702211234410.4043@woody.linux-foundation.org>
-	<Pine.LNX.4.64.0702211259440.16904@alien.or.mcafeemobile.com>
-	<Pine.LNX.4.64.0702211313560.4043@woody.linux-foundation.org>
-	<20070221.190702.88477592.davem@davemloft.net>
+	id S1030322AbXBZQn3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 Feb 2007 11:43:29 -0500
+Date: Mon, 26 Feb 2007 19:50:24 +0300
+From: Alexey Dobriyan <adobriyan@openvz.org>
+Subject: [PATCH 4/3] lutimesat: compat syscall and wire up on x86_64
+Message-ID: <20070226165024.GB11154@localhost.sw.ru>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Thu__22_Feb_2007_15_39_52_+1100_taOOCtUba=PyirzF"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: torvalds@linux-foundation.org, davidel@xmailserver.org, akpm@linux-foundation.org, dwmw2@infradead.org, linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, tony.luck@intel.com, ralf@linux-mips.org
+To: akpm@osdl.org
+Cc: linux-kernel@vger.kernel.org, devel@openvz.org, ak@suse.de, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Thu__22_Feb_2007_15_39_52_+1100_taOOCtUba=PyirzF
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
+[Apply after:
+ lutimesat-simplify-utime2.patch
+ lutimesat-extend-do_utimes-with-flags.patch
+ lutimesat-actual-syscall-and-wire-up-on-i386.patch
 
-On Wed, 21 Feb 2007 19:07:02 -0800 (PST) David Miller <davem@davemloft.net> wrote:
->
-> Nevertheless, I am to understand that in this case we're talking about
-> a "u64" object, and that (and the structure it is in) will be aligned
-> on an 8-byte boundary on both sparc32 and sparc64, so maybe there is
-> no problem here?
+ Tweak compat syscall number to match normal syscall number if needed.]
 
-Yes, I am pretty sure that the only architecture that would need this is
-IA64 where the u64 is 4 byte aligned in 32 bit mode and 8 byte aligned in
-64 bit mode.  x86_64 declared the structure packed in 64 bit (so
-presumably doesn't have a problem with unaligned u64 accesses).  All the
-other 32 bit equivalent architectures align u64s on 8 byte boundaries (I
-think).
+Signed-off-by: Alexey Dobriyan <adobriyan@openvz.org>
+---
 
---
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+ arch/x86_64/ia32/ia32entry.S |    1 +
+ fs/compat.c                  |   14 ++++++++++++++
+ fs/utimes.c                  |    2 +-
+ include/linux/time.h         |    1 +
+ 4 files changed, 17 insertions(+), 1 deletion(-)
 
---Signature=_Thu__22_Feb_2007_15_39_52_+1100_taOOCtUba=PyirzF
-Content-Type: application/pgp-signature
+--- a/arch/x86_64/ia32/ia32entry.S
++++ b/arch/x86_64/ia32/ia32entry.S
+@@ -719,4 +719,5 @@ #endif
+ 	.quad compat_sys_move_pages
+ 	.quad sys_getcpu
+ 	.quad sys_epoll_pwait
++	.quad compat_sys_lutimesat	/* 320 */
+ ia32_syscall_end:		
+--- a/fs/compat.c
++++ b/fs/compat.c
+@@ -109,6 +109,20 @@ asmlinkage long compat_sys_utimes(char _
+ 	return compat_sys_futimesat(AT_FDCWD, filename, t);
+ }
+ 
++asmlinkage long compat_sys_lutimesat(int dfd, char __user *filename, struct compat_timespec __user *utimes)
++{
++	struct timespec ts[2];
++
++	if (utimes) {
++		if (get_user(ts[0].tv_sec, &utimes[0].tv_sec) ||
++		    get_user(ts[0].tv_nsec, &utimes[0].tv_nsec) ||
++		    get_user(ts[1].tv_sec, &utimes[1].tv_sec) ||
++		    get_user(ts[1].tv_nsec, &utimes[1].tv_nsec))
++			return -EFAULT;
++	}
++	return do_utimes_nsec(dfd, filename, utimes ? ts : NULL, AT_SYMLINK_NOFOLLOW);
++}
++
+ asmlinkage long compat_sys_newstat(char __user * filename,
+ 		struct compat_stat __user *statbuf)
+ {
+--- a/fs/utimes.c
++++ b/fs/utimes.c
+@@ -40,7 +40,7 @@ #endif
+  * must be owner or have write permission.
+  * Else, update from *times, must be owner or super user.
+  */
+-static long do_utimes_nsec(int dfd, char __user *filename, struct timespec *times, int flags)
++long do_utimes_nsec(int dfd, char __user *filename, struct timespec *times, int flags)
+ {
+ 	int error = -EINVAL;
+ 	struct nameidata nd;
+--- a/include/linux/time.h
++++ b/include/linux/time.h
+@@ -110,6 +110,7 @@ extern int do_settimeofday(struct timesp
+ extern int do_sys_settimeofday(struct timespec *tv, struct timezone *tz);
+ #define do_posix_clock_monotonic_gettime(ts) ktime_get_ts(ts)
+ extern long do_utimes(int dfd, char __user *filename, struct timeval *times, int flags);
++extern long do_utimes_nsec(int dfd, char __user *filename, struct timespec *times, int flags);
+ struct itimerval;
+ extern int do_setitimer(int which, struct itimerval *value,
+ 			struct itimerval *ovalue);
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
-
-iD8DBQFF3R6kFdBgD/zoJvwRAo2tAJ4oaZ17YIhiaXFJ3YqD2cyLoHBJEACggxaK
-pFDKkJehAx2R9DJETu3Ksf4=
-=I0cc
------END PGP SIGNATURE-----
-
---Signature=_Thu__22_Feb_2007_15_39_52_+1100_taOOCtUba=PyirzF--
