@@ -1,59 +1,160 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:57129 "EHLO smtps.tip.net.au"
+Received: from gw.goop.org ([64.81.55.164]:46844 "EHLO mail.goop.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750712AbXB0DGa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Feb 2007 22:06:30 -0500
-Date: Tue, 27 Feb 2007 14:06:24 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 4/3] lutimesat: compat syscall and wire up on x86_64
-Message-Id: <20070227140624.5f9eb52d.sfr@canb.auug.org.au>
-In-Reply-To: <20070226165024.GB11154@localhost.sw.ru>
-References: <20070226165024.GB11154@localhost.sw.ru>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Tue__27_Feb_2007_14_06_24_+1100_sHr0r+S/1_IXqnI1"
+	id S932948AbXB0Iii (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 Feb 2007 03:38:38 -0500
+Message-Id: <20070227081631.921696519@goop.org>
+References: <20070227081337.434798469@goop.org>
+Date: Tue, 27 Feb 2007 00:13:45 -0800
+From: Jeremy Fitzhardinge <jeremy@goop.org>
+Subject: [patch 08/26] Xen-paravirt_ops: add hooks to intercept mm creation and destruction
+Content-Disposition: inline; filename=mm-lifetime-hooks.patch
 Sender: linux-arch-owner@vger.kernel.org
-To: Alexey Dobriyan <adobriyan@openvz.org>
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, devel@openvz.org, ak@suse.de, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@muc.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, virtualization@lists.osdl.org, xen-devel@lists.xensource.com, Chris Wright <chrisw@sous-sol.org>, Zachary Amsden <zach@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Tue__27_Feb_2007_14_06_24_+1100_sHr0r+S/1_IXqnI1
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
+Add hooks to allow a paravirt implementation to track the lifetime of
+an mm.
 
-On Mon, 26 Feb 2007 19:50:24 +0300 Alexey Dobriyan <adobriyan@openvz.org> wrote:
->
-> +asmlinkage long compat_sys_lutimesat(int dfd, char __user *filename, struct compat_timespec __user *utimes)
-> +{
-> +	struct timespec ts[2];
-> +
-> +	if (utimes) {
-> +		if (get_user(ts[0].tv_sec, &utimes[0].tv_sec) ||
-> +		    get_user(ts[0].tv_nsec, &utimes[0].tv_nsec) ||
-> +		    get_user(ts[1].tv_sec, &utimes[1].tv_sec) ||
-> +		    get_user(ts[1].tv_nsec, &utimes[1].tv_nsec))
-> +			return -EFAULT;
+Signed-off-by: Jeremy Fitzhardinge <jeremy@xensource.com>
+Cc: linux-arch@vger.kernel.org
+---
+ arch/i386/kernel/paravirt.c    |    4 ++++
+ include/asm-i386/mmu_context.h |    8 ++++++--
+ include/asm-i386/paravirt.h    |   25 +++++++++++++++++++++++++
+ include/linux/sched.h          |    6 ++++++
+ kernel/fork.c                  |    2 ++
+ mm/mmap.c                      |    3 +++
+ 6 files changed, 46 insertions(+), 2 deletions(-)
 
-		if (get_compat_timespec(&ts[0], &utimes[0]) ||
-		    get_compat_timespec(&ts[1], &utimes[1]))
-			return -EFAULT;
+===================================================================
+--- a/arch/i386/kernel/paravirt.c
++++ b/arch/i386/kernel/paravirt.c
+@@ -700,6 +700,10 @@ struct paravirt_ops paravirt_ops = {
+ 	.irq_enable_sysexit = native_irq_enable_sysexit,
+ 	.iret = native_iret,
+ 
++	.dup_mmap = paravirt_nop,
++	.exit_mmap = paravirt_nop,
++	.activate_mm = paravirt_nop,
++
+ 	.startup_ipi_hook = paravirt_nop,
+ };
+ 
+===================================================================
+--- a/include/asm-i386/mmu_context.h
++++ b/include/asm-i386/mmu_context.h
+@@ -5,6 +5,7 @@
+ #include <asm/atomic.h>
+ #include <asm/pgalloc.h>
+ #include <asm/tlbflush.h>
++#include <asm/paravirt.h>
+ 
+ /*
+  * Used for LDT copy/destruction.
+@@ -65,7 +66,10 @@ static inline void switch_mm(struct mm_s
+ #define deactivate_mm(tsk, mm)			\
+ 	asm("movl %0,%%gs": :"r" (0));
+ 
+-#define activate_mm(prev, next) \
+-	switch_mm((prev),(next),NULL)
++#define activate_mm(prev, next)				\
++	do {						\
++		arch_activate_mm(prev, next);		\
++		switch_mm((prev),(next),NULL);		\
++	} while(0);
+ 
+ #endif
+===================================================================
+--- a/include/asm-i386/paravirt.h
++++ b/include/asm-i386/paravirt.h
+@@ -123,6 +123,12 @@ struct paravirt_ops
+ 	void (*io_delay)(void);
+ 	void (*const_udelay)(unsigned long loops);
+ 
++	void (*activate_mm)(struct mm_struct *prev,
++			    struct mm_struct *next);
++	void (*dup_mmap)(struct mm_struct *oldmm,
++			 struct mm_struct *mm);
++	void (*exit_mmap)(struct mm_struct *mm);
++
+ #ifdef CONFIG_X86_LOCAL_APIC
+ 	void (*apic_write)(unsigned long reg, unsigned long v);
+ 	void (*apic_write_atomic)(unsigned long reg, unsigned long v);
+@@ -426,6 +432,24 @@ static inline void startup_ipi_hook(int 
+ }
+ #endif
+ 
++#define __HAVE_ARCH_MM_LIFETIME
++static inline void arch_activate_mm(struct mm_struct *prev,
++				    struct mm_struct *next)
++{
++	paravirt_ops.activate_mm(prev, next);
++}
++
++static inline void arch_dup_mmap(struct mm_struct *oldmm,
++				 struct mm_struct *mm)
++{
++	paravirt_ops.dup_mmap(oldmm, mm);
++}
++
++static inline void arch_exit_mmap(struct mm_struct *mm)
++{
++	paravirt_ops.exit_mmap(mm);
++}
++
+ #define __flush_tlb() paravirt_ops.flush_tlb_user()
+ #define __flush_tlb_global() paravirt_ops.flush_tlb_kernel()
+ #define __flush_tlb_single(addr) paravirt_ops.flush_tlb_single(addr)
+@@ -673,5 +697,6 @@ static inline void paravirt_pagetable_se
+ 	set_pgd(&base[0], base[USER_PTRS_PER_PGD]);
+ #endif
+ }
++
+ #endif /* CONFIG_PARAVIRT */
+ #endif	/* __ASM_PARAVIRT_H */
+===================================================================
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -374,6 +374,12 @@ struct mm_struct {
+ 	rwlock_t		ioctx_list_lock;
+ 	struct kioctx		*ioctx_list;
+ };
++
++#ifndef __HAVE_ARCH_MM_LIFETIME
++#define arch_activate_mm(prev, next)	do {} while(0)
++#define arch_dup_mmap(oldmm, mm)	do {} while(0)
++#define arch_exit_mmap(mm)		do {} while(0)
++#endif
+ 
+ struct sighand_struct {
+ 	atomic_t		count;
+===================================================================
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -286,6 +286,8 @@ static inline int dup_mmap(struct mm_str
+ 		if (retval)
+ 			goto out;
+ 	}
++	/* a new mm has just been created */
++	arch_dup_mmap(oldmm, mm);
+ 	retval = 0;
+ out:
+ 	up_write(&mm->mmap_sem);
+===================================================================
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1976,6 +1976,9 @@ void exit_mmap(struct mm_struct *mm)
+ 	struct vm_area_struct *vma = mm->mmap;
+ 	unsigned long nr_accounted = 0;
+ 	unsigned long end;
++
++	/* mm's last user has gone, and its about to be pulled down */
++	arch_exit_mmap(mm);
+ 
+ 	lru_add_drain();
+ 	flush_cache_mm(mm);
 
---
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+-- 
 
---Signature=_Tue__27_Feb_2007_14_06_24_+1100_sHr0r+S/1_IXqnI1
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
-
-iD8DBQFF46A1FdBgD/zoJvwRAhnDAKCYz7GHLl//DhfzPyeE5/mYBGkdLACdG8Yx
-6EW/gkOTs/+WB7kOQoruglA=
-=9VKZ
------END PGP SIGNATURE-----
-
---Signature=_Tue__27_Feb_2007_14_06_24_+1100_sHr0r+S/1_IXqnI1--
