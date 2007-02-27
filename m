@@ -1,108 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailhub.sw.ru ([195.214.233.200]:14778 "EHLO relay.sw.ru"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750704AbXB0LtY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Feb 2007 06:49:24 -0500
-Date: Tue, 27 Feb 2007 14:56:13 +0300
-From: Alexey Dobriyan <adobriyan@openvz.org>
-Subject: Re: [PATCH 4/3] lutimesat: compat syscall and wire up on x86_64
-Message-ID: <20070227115613.GA11176@localhost.sw.ru>
-References: <20070226165024.GB11154@localhost.sw.ru> <20070227140624.5f9eb52d.sfr@canb.auug.org.au>
+Received: from hancock.steeleye.com ([71.30.118.248]:57146 "EHLO
+	hancock.sc.steeleye.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752506AbXB0PQM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Feb 2007 10:16:12 -0500
+Subject: Re: [patch 09/26] Xen-paravirt_ops: remove HAVE_ARCH_MM_LIFETIME,
+	define no-op architecture implementations
+From: James Bottomley <James.Bottomley@steeleye.com>
+In-Reply-To: <20070227081632.356636957@goop.org>
+References: <20070227081337.434798469@goop.org>
+	 <20070227081632.356636957@goop.org>
+Content-Type: text/plain
+Date: Tue, 27 Feb 2007 09:15:58 -0600
+Message-Id: <1172589358.3408.2.camel@mulgrave.il.steeleye.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070227140624.5f9eb52d.sfr@canb.auug.org.au>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, devel@openvz.org, ak@suse.de, linux-arch@vger.kernel.org
+To: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: Andi Kleen <ak@muc.de>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, virtualization@lists.osdl.org, xen-devel@lists.xensource.com, Chris Wright <chrisw@sous-sol.org>, Zachary Amsden <zach@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Feb 27, 2007 at 02:06:24PM +1100, Stephen Rothwell wrote:
-> On Mon, 26 Feb 2007 19:50:24 +0300 Alexey Dobriyan <adobriyan@openvz.org> wrote:
-> >
-> > +asmlinkage long compat_sys_lutimesat(int dfd, char __user *filename, struct compat_timespec __user *utimes)
-> > +{
-> > +	struct timespec ts[2];
-> > +
-> > +	if (utimes) {
-> > +		if (get_user(ts[0].tv_sec, &utimes[0].tv_sec) ||
-> > +		    get_user(ts[0].tv_nsec, &utimes[0].tv_nsec) ||
-> > +		    get_user(ts[1].tv_sec, &utimes[1].tv_sec) ||
-> > +		    get_user(ts[1].tv_nsec, &utimes[1].tv_nsec))
-> > +			return -EFAULT;
->
-> 		if (get_compat_timespec(&ts[0], &utimes[0]) ||
-> 		    get_compat_timespec(&ts[1], &utimes[1]))
-> 			return -EFAULT;
+On Tue, 2007-02-27 at 00:13 -0800, Jeremy Fitzhardinge wrote:
+> plain text document attachment (kill-HAVE_ARCH_MM_LIFETIME.patch)
+> akpm:
+> > Can we lose __HAVE_ARCH_MM_LIFETIME?  Just define these (preferably in C,
+> > not in cpp) in the appropriate include/asm-foo/ files?
+> 
+> Signed-off-by: Jeremy Fitzhardinge <jeremy@xensource.com>
+> Cc: linux-arch@vger.kernel.org
+> 
+> ---
+>  include/asm-alpha/mmu_context.h     |    9 +++++++++
+>  include/asm-arm/mmu_context.h       |    9 +++++++++
+>  include/asm-arm26/mmu_context.h     |    9 +++++++++
+>  include/asm-avr32/mmu_context.h     |    9 +++++++++
+>  include/asm-cris/mmu_context.h      |    8 ++++++++
+>  include/asm-frv/mmu_context.h       |    8 ++++++++
+>  include/asm-h8300/mmu_context.h     |    8 ++++++++
+>  include/asm-i386/mmu_context.h      |    2 +-
+>  include/asm-i386/paravirt.h         |   18 +++++++++++++++---
+>  include/asm-ia64/mmu_context.h      |    8 ++++++++
+>  include/asm-m32r/mmu_context.h      |    8 ++++++++
+>  include/asm-m68k/mmu_context.h      |    8 ++++++++
+>  include/asm-m68knommu/mmu_context.h |    8 ++++++++
+>  include/asm-mips/mmu_context.h      |    8 ++++++++
+>  include/asm-parisc/mmu_context.h    |    9 +++++++++
+>  include/asm-powerpc/mmu_context.h   |   10 ++++++++++
+>  include/asm-ppc/mmu_context.h       |    9 +++++++++
+>  include/asm-s390/mmu_context.h      |    8 ++++++++
+>  include/asm-sh/mmu_context.h        |    8 ++++++++
+>  include/asm-sh64/mmu_context.h      |    8 ++++++++
+>  include/asm-sparc/mmu_context.h     |    8 ++++++++
+>  include/asm-sparc64/mmu_context.h   |    8 ++++++++
+>  include/asm-um/mmu_context.h        |    8 ++++++++
+>  include/asm-v850/mmu_context.h      |    8 ++++++++
+>  include/asm-x86_64/mmu_context.h    |    8 ++++++++
+>  include/asm-xtensa/mmu_context.h    |    9 +++++++++
+>  include/linux/sched.h               |    6 ------
+>  mm/mmap.c                           |    1 +
+>  28 files changed, 218 insertions(+), 10 deletions(-)
 
-We have it? Thank you!
+Wouldn't it be a lot easier to do this via asm-generic?
 
-[PATCH 4/3] lutimesat: compat syscall and wire up on x86_64
+James
 
-[Apply after:
- lutimesat-simplify-utime2.patch
- lutimesat-extend-do_utimes-with-flags.patch
- lutimesat-actual-syscall-and-wire-up-on-i386.patch
-
- Tweak compat syscall number to match normal syscall number if needed.]
-
-Signed-off-by: Alexey Dobriyan <adobriyan@openvz.org>
----
-
- arch/x86_64/ia32/ia32entry.S |    1 +
- fs/compat.c                  |   12 ++++++++++++
- fs/utimes.c                  |    2 +-
- include/linux/time.h         |    1 +
- 4 files changed, 15 insertions(+), 1 deletion(-)
-
---- a/arch/x86_64/ia32/ia32entry.S
-+++ b/arch/x86_64/ia32/ia32entry.S
-@@ -719,4 +719,5 @@ #endif
- 	.quad compat_sys_move_pages
- 	.quad sys_getcpu
- 	.quad sys_epoll_pwait
-+	.quad compat_sys_lutimesat	/* 320 */
- ia32_syscall_end:		
---- a/fs/compat.c
-+++ b/fs/compat.c
-@@ -109,6 +109,18 @@ asmlinkage long compat_sys_utimes(char _
- 	return compat_sys_futimesat(AT_FDCWD, filename, t);
- }
- 
-+asmlinkage long compat_sys_lutimesat(int dfd, char __user *filename, struct compat_timespec __user *utimes)
-+{
-+	struct timespec ts[2];
-+
-+	if (utimes) {
-+		if (get_compat_timespec(&ts[0], &utimes[0]) ||
-+		    get_compat_timespec(&ts[1], &utimes[1]))
-+			return -EFAULT;
-+	}
-+	return do_utimes_nsec(dfd, filename, utimes ? ts : NULL, AT_SYMLINK_NOFOLLOW);
-+}
-+
- asmlinkage long compat_sys_newstat(char __user * filename,
- 		struct compat_stat __user *statbuf)
- {
---- a/fs/utimes.c
-+++ b/fs/utimes.c
-@@ -40,7 +40,7 @@ #endif
-  * must be owner or have write permission.
-  * Else, update from *times, must be owner or super user.
-  */
--static long do_utimes_nsec(int dfd, char __user *filename, struct timespec *times, int flags)
-+long do_utimes_nsec(int dfd, char __user *filename, struct timespec *times, int flags)
- {
- 	int error = -EINVAL;
- 	struct nameidata nd;
---- a/include/linux/time.h
-+++ b/include/linux/time.h
-@@ -110,6 +110,7 @@ extern int do_settimeofday(struct timesp
- extern int do_sys_settimeofday(struct timespec *tv, struct timezone *tz);
- #define do_posix_clock_monotonic_gettime(ts) ktime_get_ts(ts)
- extern long do_utimes(int dfd, char __user *filename, struct timeval *times, int flags);
-+extern long do_utimes_nsec(int dfd, char __user *filename, struct timespec *times, int flags);
- struct itimerval;
- extern int do_setitimer(int which, struct itimerval *value,
- 			struct itimerval *ovalue);
 
