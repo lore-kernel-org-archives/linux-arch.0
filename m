@@ -1,86 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailhub.sw.ru ([195.214.233.200]:28385 "EHLO relay.sw.ru"
+Received: from chilli.pcug.org.au ([203.10.76.44]:57129 "EHLO smtps.tip.net.au"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030322AbXBZQn3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Feb 2007 11:43:29 -0500
-Date: Mon, 26 Feb 2007 19:50:24 +0300
-From: Alexey Dobriyan <adobriyan@openvz.org>
-Subject: [PATCH 4/3] lutimesat: compat syscall and wire up on x86_64
-Message-ID: <20070226165024.GB11154@localhost.sw.ru>
+	id S1750712AbXB0DGa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 Feb 2007 22:06:30 -0500
+Date: Tue, 27 Feb 2007 14:06:24 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 4/3] lutimesat: compat syscall and wire up on x86_64
+Message-Id: <20070227140624.5f9eb52d.sfr@canb.auug.org.au>
+In-Reply-To: <20070226165024.GB11154@localhost.sw.ru>
+References: <20070226165024.GB11154@localhost.sw.ru>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Tue__27_Feb_2007_14_06_24_+1100_sHr0r+S/1_IXqnI1"
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@osdl.org
-Cc: linux-kernel@vger.kernel.org, devel@openvz.org, ak@suse.de, linux-arch@vger.kernel.org
+To: Alexey Dobriyan <adobriyan@openvz.org>
+Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, devel@openvz.org, ak@suse.de, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-[Apply after:
- lutimesat-simplify-utime2.patch
- lutimesat-extend-do_utimes-with-flags.patch
- lutimesat-actual-syscall-and-wire-up-on-i386.patch
+--Signature=_Tue__27_Feb_2007_14_06_24_+1100_sHr0r+S/1_IXqnI1
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: 7bit
 
- Tweak compat syscall number to match normal syscall number if needed.]
+On Mon, 26 Feb 2007 19:50:24 +0300 Alexey Dobriyan <adobriyan@openvz.org> wrote:
+>
+> +asmlinkage long compat_sys_lutimesat(int dfd, char __user *filename, struct compat_timespec __user *utimes)
+> +{
+> +	struct timespec ts[2];
+> +
+> +	if (utimes) {
+> +		if (get_user(ts[0].tv_sec, &utimes[0].tv_sec) ||
+> +		    get_user(ts[0].tv_nsec, &utimes[0].tv_nsec) ||
+> +		    get_user(ts[1].tv_sec, &utimes[1].tv_sec) ||
+> +		    get_user(ts[1].tv_nsec, &utimes[1].tv_nsec))
+> +			return -EFAULT;
 
-Signed-off-by: Alexey Dobriyan <adobriyan@openvz.org>
----
+		if (get_compat_timespec(&ts[0], &utimes[0]) ||
+		    get_compat_timespec(&ts[1], &utimes[1]))
+			return -EFAULT;
 
- arch/x86_64/ia32/ia32entry.S |    1 +
- fs/compat.c                  |   14 ++++++++++++++
- fs/utimes.c                  |    2 +-
- include/linux/time.h         |    1 +
- 4 files changed, 17 insertions(+), 1 deletion(-)
+--
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
---- a/arch/x86_64/ia32/ia32entry.S
-+++ b/arch/x86_64/ia32/ia32entry.S
-@@ -719,4 +719,5 @@ #endif
- 	.quad compat_sys_move_pages
- 	.quad sys_getcpu
- 	.quad sys_epoll_pwait
-+	.quad compat_sys_lutimesat	/* 320 */
- ia32_syscall_end:		
---- a/fs/compat.c
-+++ b/fs/compat.c
-@@ -109,6 +109,20 @@ asmlinkage long compat_sys_utimes(char _
- 	return compat_sys_futimesat(AT_FDCWD, filename, t);
- }
- 
-+asmlinkage long compat_sys_lutimesat(int dfd, char __user *filename, struct compat_timespec __user *utimes)
-+{
-+	struct timespec ts[2];
-+
-+	if (utimes) {
-+		if (get_user(ts[0].tv_sec, &utimes[0].tv_sec) ||
-+		    get_user(ts[0].tv_nsec, &utimes[0].tv_nsec) ||
-+		    get_user(ts[1].tv_sec, &utimes[1].tv_sec) ||
-+		    get_user(ts[1].tv_nsec, &utimes[1].tv_nsec))
-+			return -EFAULT;
-+	}
-+	return do_utimes_nsec(dfd, filename, utimes ? ts : NULL, AT_SYMLINK_NOFOLLOW);
-+}
-+
- asmlinkage long compat_sys_newstat(char __user * filename,
- 		struct compat_stat __user *statbuf)
- {
---- a/fs/utimes.c
-+++ b/fs/utimes.c
-@@ -40,7 +40,7 @@ #endif
-  * must be owner or have write permission.
-  * Else, update from *times, must be owner or super user.
-  */
--static long do_utimes_nsec(int dfd, char __user *filename, struct timespec *times, int flags)
-+long do_utimes_nsec(int dfd, char __user *filename, struct timespec *times, int flags)
- {
- 	int error = -EINVAL;
- 	struct nameidata nd;
---- a/include/linux/time.h
-+++ b/include/linux/time.h
-@@ -110,6 +110,7 @@ extern int do_settimeofday(struct timesp
- extern int do_sys_settimeofday(struct timespec *tv, struct timezone *tz);
- #define do_posix_clock_monotonic_gettime(ts) ktime_get_ts(ts)
- extern long do_utimes(int dfd, char __user *filename, struct timeval *times, int flags);
-+extern long do_utimes_nsec(int dfd, char __user *filename, struct timespec *times, int flags);
- struct itimerval;
- extern int do_setitimer(int which, struct itimerval *value,
- 			struct itimerval *ovalue);
+--Signature=_Tue__27_Feb_2007_14_06_24_+1100_sHr0r+S/1_IXqnI1
+Content-Type: application/pgp-signature
 
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
+
+iD8DBQFF46A1FdBgD/zoJvwRAhnDAKCYz7GHLl//DhfzPyeE5/mYBGkdLACdG8Yx
+6EW/gkOTs/+WB7kOQoruglA=
+=9VKZ
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__27_Feb_2007_14_06_24_+1100_sHr0r+S/1_IXqnI1--
