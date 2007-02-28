@@ -1,85 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:38188 "EHLO
-	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750937AbXB1HWG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Feb 2007 02:22:06 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
+Received: from gate.crashing.org ([63.228.1.57]:60116 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751278AbXB1IMa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Feb 2007 03:12:30 -0500
 Subject: Re: [RFC] killing the NR_IRQS arrays.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <m14pp6kat9.fsf@ebiederm.dsl.xmission.com>
 References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
-	<1171844753.5644.174.camel@localhost.localdomain>
-	<m1abyzl4yw.fsf@ebiederm.dsl.xmission.com>
-	<200702280141.51420.arnd@arndb.de>
-Date: Wed, 28 Feb 2007 00:20:34 -0700
-In-Reply-To: <200702280141.51420.arnd@arndb.de> (Arnd Bergmann's message of
-	"Wed, 28 Feb 2007 01:41:50 +0100")
-Message-ID: <m14pp6kat9.fsf@ebiederm.dsl.xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+	 <1171844753.5644.174.camel@localhost.localdomain>
+	 <m1abyzl4yw.fsf@ebiederm.dsl.xmission.com>
+	 <200702280141.51420.arnd@arndb.de>
+	 <m14pp6kat9.fsf@ebiederm.dsl.xmission.com>
+Content-Type: text/plain
+Date: Wed, 28 Feb 2007 09:09:44 +0100
+Message-Id: <1172650184.11949.96.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arjan van de Ven <arjan@infradead.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Thomas Gleixner <tglx@linutronix.de>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Arjan van de Ven <arjan@infradead.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Thomas Gleixner <tglx@linutronix.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-Arnd Bergmann <arnd@arndb.de> writes:
+> What I really object to is not the irq numbers.  As an arbitrary number
+> does not impose limits.  What I object to is drivers that can't handle the
+> full range of numbers, and the limits imposed upon those numbers when
+> you require them to be indexes into an array.
+> 
+> For talking to user space I expect we will have numbers for a long time
+> to come yet.
 
->
-> Introducing the irq_request() etc. functions that take a struct irq*
-> instead of an int sounds good, but I'd hope we can avoid using those
-> in device drivers and do a separate abstraction for each bus_type
-> that deals with interrupts. I'm not sure if that's possible for
-> each bus_type, but the ones I have worked with in the past should
-> allow that:
->
-> pci: each device/function has a unique irq, drivers need not know
->      about it afaics.
-Then there is msi and with msi-x you can have up to 4K irqs.
+I wouldn't bother too much about going into bus specific bits like
+irq_request(dev, ...). Well, actually, I _do_ think it's a good thing to
+pass the struct device to irq_request but that's a different issue
+completely.
 
-> isa/pnp: numbers from 1 to 15 are the right abstraction here, that
->      how isa has worked for ages.
+I think bus types should provide bus specific helpers to obtain the
+struct irq *'s for a given device on that bus, but the API for
+requesting/freeing them shall remain generic.
 
-There is some truth there yes.  But for ISA the numbers are really
-0 to 15.  
-
-> s390: got rid of irq numbers already
-
-Yes.  I should really look at that more and see if I could bring
-s390 into the generic irq code with my planned changes.
-
-> ofw: an open firmware device can have a number of interrupts, but
->      like PCI, the driver only needs to know things like 'first
->      irq of this device', not how it's connected
-Yes.
-
-> ps3: irqs are requested from the firmware for each device, this
->      can happen under the covers.
-> mmc, usb, phy, ieee1394: these already have a higl-level abstraction
->      for interrupt events
-> platform: dunno, probably these really should use the struct irq
->      directly
-> eisa, mca, pcmcia, zorro, ...: no idea, but possibly similar to PCI.
-
-Largely for pci we already have dev->irq and the device just calls
-request_irq to get things going.  The challenge is that the token
-in dev->irq get's looked at.
-
-> Note that we can even start converting device drivers first, before
-> moving away from irq numbers. A typical PCI driver should get
-> somewhat simpler by the conversion, and when they are all converted,
-> we can replace pci_dev->irq with a struct irq* under the covers.
-
-Reasonable if it is easy and straight forward.
-Something like pci_request_irq(dev,....) and the helper looks at
-dev->irq under the covers and calls request_irq or whatever makes
-sense.  Is this what you are thinking.  Examples would help me here.
-
-
-What I really object to is not the irq numbers.  As an arbitrary number
-does not impose limits.  What I object to is drivers that can't handle the
-full range of numbers, and the limits imposed upon those numbers when
-you require them to be indexes into an array.
-
-For talking to user space I expect we will have numbers for a long time
-to come yet.
-
-Eric
+Ben.
 
