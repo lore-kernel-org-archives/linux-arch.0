@@ -1,72 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:42443 "EHLO
+Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:60616 "EHLO
 	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932325AbXB1NaM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Feb 2007 08:30:12 -0500
+	with ESMTP id S1751235AbXB1Nyr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Feb 2007 08:54:47 -0500
 From: ebiederm@xmission.com (Eric W. Biederman)
 Subject: Re: [RFC] killing the NR_IRQS arrays.
 References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
-	<1171844753.5644.174.camel@localhost.localdomain>
-	<m1abyzl4yw.fsf@ebiederm.dsl.xmission.com>
 	<200702280141.51420.arnd@arndb.de>
 	<m14pp6kat9.fsf@ebiederm.dsl.xmission.com>
-	<1172650184.11949.96.camel@localhost.localdomain>
-Date: Wed, 28 Feb 2007 06:28:38 -0700
-In-Reply-To: <1172650184.11949.96.camel@localhost.localdomain> (Benjamin
-	Herrenschmidt's message of "Wed, 28 Feb 2007 09:09:44 +0100")
-Message-ID: <m1abyyif7d.fsf@ebiederm.dsl.xmission.com>
+	<200702281324.19884.arnd@arndb.de>
+Date: Wed, 28 Feb 2007 06:53:51 -0700
+In-Reply-To: <200702281324.19884.arnd@arndb.de> (Arnd Bergmann's message of
+	"Wed, 28 Feb 2007 13:24:18 +0100")
+Message-ID: <m1649mie1c.fsf@ebiederm.dsl.xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Arjan van de Ven <arjan@infradead.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Thomas Gleixner <tglx@linutronix.de>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arjan van de Ven <arjan@infradead.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Thomas Gleixner <tglx@linutronix.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-Benjamin Herrenschmidt <benh@kernel.crashing.org> writes:
+Arnd Bergmann <arnd@arndb.de> writes:
 
->> What I really object to is not the irq numbers.  As an arbitrary number
->> does not impose limits.  What I object to is drivers that can't handle the
->> full range of numbers, and the limits imposed upon those numbers when
->> you require them to be indexes into an array.
+>
+> I have to admit I still don't really understand how this works
+> at all. Can a driver that uses msi-x have different handlers
+> for each of those interrupts registered simultaneously?
+
+Yes, and the irqs can be routed at different cpus independently.
+However not all hardware supports all 4K irqs.  4K is the implementation
+defined maximu.  Although infiniband HCA's are rumored to support a
+lot of irqs and it isn't uncommon for simpler nics to support 4 or so.
+
+Conceptually think of it as having an irq controller embedded in your
+pci device.
+
+The MSI messages are writes to special addresses that are then
+converted into CPU interrupts.
+
+> I would expect that instead there should be only one 'struct irq'
+> for the device, with the handler getting a 12 bit number argument.
+
+No.  That would be unnecessary coalescing.  Even if that was what the
+hardware layer gave us the (and it doesn't) the generic layers should
+demux these things as much as is reasonable.
+
+
+>> > s390: got rid of irq numbers already
 >> 
+>> Yes.  I should really look at that more and see if I could bring
+>> s390 into the generic irq code with my planned changes.
+>
+> I don't think there is much point in changing the s390 code, but
+> the way it is solved there may be interesting for other buses
+> as well. The interrupt handler there is not being registered
+> explicitly, but is part of the driver (in case of subchannel)
+> or of the device (in case of ccw_device) data structure.
+>
+> Similarly, in a pci device, one could imagine that the
+> struct pci_driver contains a irq_handler_t member that
+> is registered from the pci_device_probe() function
+> if present.
+
+Yes.  There is some potential there.  Although we would have to go
+through an extra hoop to make it a pci specific handler type.
+
+
+>> > Note that we can even start converting device drivers first, before
+>> > moving away from irq numbers. A typical PCI driver should get
+>> > somewhat simpler by the conversion, and when they are all converted,
+>> > we can replace pci_dev->irq with a struct irq* under the covers.
+>> 
+>> Reasonable if it is easy and straight forward.
+>> Something like pci_request_irq(dev,....) and the helper looks at
+>> dev->irq under the covers and calls request_irq or whatever makes
+>> sense.  Is this what you are thinking.  Examples would help me here.
+>
+> Ok, I had an example in on of my previous posts, but based on the
+> discussion since then, it has become significantly simpler, basically
+> reducing the work to
+>
+> struct irq *pci_irq_request(struct pci_device *dev,
+> 			    irq_handler_t handler)
+> {
+>         if (!dev->irq)
+>                 return -ENODEV;
+>
+>         return irq_request(irq, handler, IRQF_SHARED,
+> 			  &dev->driver->name, dev);
+> }
+> int pci_irq_free(struct pci_device *dev)
+> {
+>         return irq_free(dev->irq, dev);
+> }
+>
+> The most significant change of this to the current code
+> would be that we can pass arguments down to irq_request
+> automatically, e.g. the irq handler can always get the
+> pci_device as its dev_id.
+
+Yes.  Mostly.  Since dev_id is what is passed back to the irq handler,
+it makes sense to pass the device when the irq is registered.
+Passing the driver a pointer to the driver specific structure (not
+the pci device) make a lot more of sense from an efficiency
+standpoint.  Now it may make sense to remove the irq parameter
+from irq_handler_t, and require drivers to look at their dev_id to
+see which irq they really are processing.
+
+There is a danger here of making things so generic you don't have good
+performance, or the code becomes unnecessarily complex.
+
 >> For talking to user space I expect we will have numbers for a long time
 >> to come yet.
 >
-> I wouldn't bother too much about going into bus specific bits like
-> irq_request(dev, ...). Well, actually, I _do_ think it's a good thing to
-> pass the struct device to irq_request but that's a different issue
-> completely.
+> I was wondering about that. Do you only mean /proc/interrupts or
+> are there other user interfaces we need to worry about?
 
-Well irq_request is probably a bit late for associating an irq with
-a struct device.  And I don't see how to get the device name from that
-but making that association wouldn't be a bad thing.
+Yes.  There are other interfaces like /proc/irq/XXX/smp_affinity,
+for irq migration.  There are also device specific ioctls.  There is
+lspci.  I don't know what all else, and given the current state of the
+kernel it is hard to grep for.
 
-> I think bus types should provide bus specific helpers to obtain the
-> struct irq *'s for a given device on that bus, but the API for
-> requesting/freeing them shall remain generic.
+> For /proc/interrupts, what could break if we have interrupt numbers
+> only local to each controller and potentially duplicate numbers
+> in the list? It's good to be paranoid about changes to proc files,
+> but I can definitely see value in having meaningful interrupt
+> numbers in there instead of making up a more or less random mapping
+> to a flat number space.
 
-Yes.  But if you can do a good job of wrapping them so a driver
-wouldn't need to care at all that could help simplify drivers and
-remove one more tidbit of complexity from drivers.
+Well I can have meaning full flat numbers and on i386 and x86_64
+except for msi I have that.  The problem is that for the numbers
+to have meaning I get a very sparse usage of the numbers, because
+very frequently the hardware interrupt controllers has pins that
+are not connected up, so I have about an order of magnitude more
+numbers then I have actually irqs in use.  That is before I start
+reserving irq numbers for MSI.
 
-However for a widespread change.  The less you have to think about
-it the more quickly you can get it completed.  So I would rather
-do several wide spread changes in succession, that I don't have to
-think about much to do (i.e.  the change mostly meets the obviously
-correct requirement).  Then to do one single change that I have to
-think about harder to accomplish.
-
-The more thinking comes into the picture the more you open yourself up
-to breaking something by accident because it wasn't clear how the code
-should be changed, and the more it slows down the conversion.
-
-Conversions where we have had to think about things are notoriously slow
-to complete.  Even if they are a good thing to do.  The examples I can
-think of are the kthread API and the DMA api.  Last I checked there
-were still a few drivers in the kernel using virt_to_bus...
-
-I don't really get the benefits I'm after unless the conversion can
-actually be completed for everything.  So the more I have to think about
-any one piece the less I intend to do it.
+For MSI (since they cannot be shared) it would actually make a lot of
+sense to make the numbers domain,bus,device,func,(Nth device irq) but
+I can't because bus,device,func is 16bits worth of number.  Add in
+12 more bits for the worst case device assignment and I am up to
+28 bits, and the rest of the 32bits can be used for domain or
+something like that.  So while the current unsigned int irq works fine
+for that backing that with a fixed size array allocated at compile
+time is just hopeless.
 
 Eric
