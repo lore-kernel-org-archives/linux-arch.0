@@ -1,65 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-in-05.arcor-online.net ([151.189.21.45]:47772 "EHLO
-	mail-in-05.arcor-online.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932190AbXB1NCE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Feb 2007 08:02:04 -0500
-In-Reply-To: <200702281324.19884.arnd@arndb.de>
-References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com> <200702280141.51420.arnd@arndb.de> <m14pp6kat9.fsf@ebiederm.dsl.xmission.com> <200702281324.19884.arnd@arndb.de>
-Mime-Version: 1.0 (Apple Message framework v623)
-Content-Type: text/plain; charset=US-ASCII; format=flowed
-Message-Id: <1d80d625c286a59844874e000756350c@kernel.crashing.org>
-Content-Transfer-Encoding: 7bit
-From: Segher Boessenkool <segher@kernel.crashing.org>
+Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:42443 "EHLO
+	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932325AbXB1NaM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Feb 2007 08:30:12 -0500
+From: ebiederm@xmission.com (Eric W. Biederman)
 Subject: Re: [RFC] killing the NR_IRQS arrays.
-Date: Wed, 28 Feb 2007 14:02:00 +0100
+References: <m1ire2e20p.fsf@ebiederm.dsl.xmission.com>
+	<1171844753.5644.174.camel@localhost.localdomain>
+	<m1abyzl4yw.fsf@ebiederm.dsl.xmission.com>
+	<200702280141.51420.arnd@arndb.de>
+	<m14pp6kat9.fsf@ebiederm.dsl.xmission.com>
+	<1172650184.11949.96.camel@localhost.localdomain>
+Date: Wed, 28 Feb 2007 06:28:38 -0700
+In-Reply-To: <1172650184.11949.96.camel@localhost.localdomain> (Benjamin
+	Herrenschmidt's message of "Wed, 28 Feb 2007 09:09:44 +0100")
+Message-ID: <m1abyyif7d.fsf@ebiederm.dsl.xmission.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-kernel@vger.kernel.org, Andi Kleen <ak@suse.de>, Ingo Molnar <mingo@elte.hu>, Alan Cox <alan@lxorguk.ukuu.org.uk>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arjan van de Ven <arjan@infradead.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Arjan van de Ven <arjan@infradead.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Thomas Gleixner <tglx@linutronix.de>
 List-ID: <linux-arch.vger.kernel.org>
 
->>> pci: each device/function has a unique irq, drivers need not know
->>>      about it afaics.
->> Then there is msi and with msi-x you can have up to 4K irqs.
->
-> I have to admit I still don't really understand how this works
-> at all. Can a driver that uses msi-x have different handlers
-> for each of those interrupts registered simultaneously?
+Benjamin Herrenschmidt <benh@kernel.crashing.org> writes:
 
-Yes.  It doesn't have to, though.
-
-> I would expect that instead there should be only one 'struct irq'
-> for the device, with the handler getting a 12 bit number argument.
-
-Why?  The device really generates many different interrupts,
-why hide this fact.
-
->> For talking to user space I expect we will have numbers for a long 
->> time
+>> What I really object to is not the irq numbers.  As an arbitrary number
+>> does not impose limits.  What I object to is drivers that can't handle the
+>> full range of numbers, and the limits imposed upon those numbers when
+>> you require them to be indexes into an array.
+>> 
+>> For talking to user space I expect we will have numbers for a long time
 >> to come yet.
 >
-> I was wondering about that. Do you only mean /proc/interrupts or
-> are there other user interfaces we need to worry about?
+> I wouldn't bother too much about going into bus specific bits like
+> irq_request(dev, ...). Well, actually, I _do_ think it's a good thing to
+> pass the struct device to irq_request but that's a different issue
+> completely.
 
-There's the IRQ affinity stuff too.
+Well irq_request is probably a bit late for associating an irq with
+a struct device.  And I don't see how to get the device name from that
+but making that association wouldn't be a bad thing.
 
-> For /proc/interrupts, what could break if we have interrupt numbers
-> only local to each controller and potentially duplicate numbers
-> in the list? It's good to be paranoid about changes to proc files,
-> but I can definitely see value in having meaningful interrupt
-> numbers in there instead of making up a more or less random mapping
-> to a flat number space.
+> I think bus types should provide bus specific helpers to obtain the
+> struct irq *'s for a given device on that bus, but the API for
+> requesting/freeing them shall remain generic.
 
-Duplicate all this stuff into /sys in a sane format (*) and
-wait until userland catches up, then throw away the /proc
-interfaces.  It'll take a while, and until that day you will
-have to keep *some* interrupt number <-> interrupt bijection.
-Userland tools that think they know what interrupt number
-should be what are dead already.
+Yes.  But if you can do a good job of wrapping them so a driver
+wouldn't need to care at all that could help simplify drivers and
+remove one more tidbit of complexity from drivers.
 
-(*) i.e., exposing the interrupt tree as a tree, cascaded
-controllers and all.
+However for a widespread change.  The less you have to think about
+it the more quickly you can get it completed.  So I would rather
+do several wide spread changes in succession, that I don't have to
+think about much to do (i.e.  the change mostly meets the obviously
+correct requirement).  Then to do one single change that I have to
+think about harder to accomplish.
 
+The more thinking comes into the picture the more you open yourself up
+to breaking something by accident because it wasn't clear how the code
+should be changed, and the more it slows down the conversion.
 
-Segher
+Conversions where we have had to think about things are notoriously slow
+to complete.  Even if they are a good thing to do.  The examples I can
+think of are the kthread API and the DMA api.  Last I checked there
+were still a few drivers in the kernel using virt_to_bus...
 
+I don't really get the benefits I'm after unless the conversion can
+actually be completed for everything.  So the more I have to think about
+any one piece the less I intend to do it.
+
+Eric
