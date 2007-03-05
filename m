@@ -1,153 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 207.47.60.4.static.nextweb.net ([207.47.60.4]:51117 "EHLO
-	mail.goop.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1422651AbXCBA2I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Mar 2007 19:28:08 -0500
-Message-Id: <20070301232527.110592372@goop.org>
-References: <20070301232443.195603797@goop.org>
-Date: Thu, 01 Mar 2007 15:24:51 -0800
-From: Jeremy Fitzhardinge <jeremy@goop.org>
-Subject: [patch 08/26] Xen-paravirt_ops: add hooks to intercept mm creation and destruction
-Content-Disposition: inline; filename=mm-lifetime-hooks.patch
+Received: from nat-132.atmel.no ([80.232.32.132]:55984 "EHLO relay.atmel.no"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752721AbXCEIY5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 Mar 2007 03:24:57 -0500
+Date: Mon, 5 Mar 2007 09:24:35 +0100
+From: Haavard Skinnemoen <hskinnemoen@atmel.com>
+Subject: Re: [patch 1/1] avr32: dma-mapping.h
+Message-ID: <20070305092435.1b1a215b@dhcp-252-105.norway.atmel.com>
+In-Reply-To: <200703030057.l230vkoH024337@shell0.pdx.osdl.net>
+References: <200703030057.l230vkoH024337@shell0.pdx.osdl.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@muc.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, virtualization@lists.osdl.org, xen-devel@lists.xensource.com, Chris Wright <chrisw@sous-sol.org>, Zachary Amsden <zach@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org
+To: akpm@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, zambrano@broadcom.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Add hooks to allow a paravirt implementation to track the lifetime of
-an mm.
+On Fri, 02 Mar 2007 16:57:46 -0800
+akpm@linux-foundation.org wrote:
 
-Signed-off-by: Jeremy Fitzhardinge <jeremy@xensource.com>
-Cc: linux-arch@vger.kernel.org
----
- arch/i386/kernel/paravirt.c    |    4 ++++
- include/asm-i386/mmu_context.h |    8 ++++++--
- include/asm-i386/paravirt.h    |   24 ++++++++++++++++++++++++
- include/linux/sched.h          |    6 ++++++
- kernel/fork.c                  |    2 ++
- mm/mmap.c                      |    3 +++
- 6 files changed, 45 insertions(+), 2 deletions(-)
+> From: "Gary Zambrano" <zambrano@broadcom.com>
+> 
+> Added dma_sync_single_range_for_cpu/device to dma-mapping.h in asm-avr32 to
+> call dma_sync_single_for_cpu/device.  This patch enables b44 to compile on
+> systems with these cpus.  This patch was created with the assumption that
+> another method of dma_sync_single_range_for_cpu/device does not exist on these
+> architectures.
+> 
+> Signed-off by: Gary Zambrano <zambrano@broadcom.com>
+> Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>
+> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 
-===================================================================
---- a/arch/i386/kernel/paravirt.c
-+++ b/arch/i386/kernel/paravirt.c
-@@ -591,6 +591,10 @@ struct paravirt_ops paravirt_ops = {
- 	.irq_enable_sysexit = native_irq_enable_sysexit,
- 	.iret = native_iret,
- 
-+	.dup_mmap = paravirt_nop,
-+	.exit_mmap = paravirt_nop,
-+	.activate_mm = paravirt_nop,
-+
- 	.startup_ipi_hook = paravirt_nop,
- };
- 
-===================================================================
---- a/include/asm-i386/mmu_context.h
-+++ b/include/asm-i386/mmu_context.h
-@@ -5,6 +5,7 @@
- #include <asm/atomic.h>
- #include <asm/pgalloc.h>
- #include <asm/tlbflush.h>
-+#include <asm/paravirt.h>
- 
- /*
-  * Used for LDT copy/destruction.
-@@ -65,7 +66,10 @@ static inline void switch_mm(struct mm_s
- #define deactivate_mm(tsk, mm)			\
- 	asm("movl %0,%%gs": :"r" (0));
- 
--#define activate_mm(prev, next) \
--	switch_mm((prev),(next),NULL)
-+#define activate_mm(prev, next)				\
-+	do {						\
-+		arch_activate_mm(prev, next);		\
-+		switch_mm((prev),(next),NULL);		\
-+	} while(0);
- 
- #endif
-===================================================================
---- a/include/asm-i386/paravirt.h
-+++ b/include/asm-i386/paravirt.h
-@@ -118,6 +118,12 @@ struct paravirt_ops
- 	void (*io_delay)(void);
- 	void (*const_udelay)(unsigned long loops);
- 
-+	void (*activate_mm)(struct mm_struct *prev,
-+			    struct mm_struct *next);
-+	void (*dup_mmap)(struct mm_struct *oldmm,
-+			 struct mm_struct *mm);
-+	void (*exit_mmap)(struct mm_struct *mm);
-+
- #ifdef CONFIG_X86_LOCAL_APIC
- 	void (*apic_write)(unsigned long reg, unsigned long v);
- 	void (*apic_write_atomic)(unsigned long reg, unsigned long v);
-@@ -398,6 +404,24 @@ static inline void startup_ipi_hook(int 
- }
- #endif
- 
-+#define __HAVE_ARCH_MM_LIFETIME
-+static inline void arch_activate_mm(struct mm_struct *prev,
-+				    struct mm_struct *next)
-+{
-+	paravirt_ops.activate_mm(prev, next);
-+}
-+
-+static inline void arch_dup_mmap(struct mm_struct *oldmm,
-+				 struct mm_struct *mm)
-+{
-+	paravirt_ops.dup_mmap(oldmm, mm);
-+}
-+
-+static inline void arch_exit_mmap(struct mm_struct *mm)
-+{
-+	paravirt_ops.exit_mmap(mm);
-+}
-+
- #define __flush_tlb() paravirt_ops.flush_tlb_user()
- #define __flush_tlb_global() paravirt_ops.flush_tlb_kernel()
- #define __flush_tlb_single(addr) paravirt_ops.flush_tlb_single(addr)
-===================================================================
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -374,6 +374,12 @@ struct mm_struct {
- 	rwlock_t		ioctx_list_lock;
- 	struct kioctx		*ioctx_list;
- };
-+
-+#ifndef __HAVE_ARCH_MM_LIFETIME
-+#define arch_activate_mm(prev, next)	do {} while(0)
-+#define arch_dup_mmap(oldmm, mm)	do {} while(0)
-+#define arch_exit_mmap(mm)		do {} while(0)
-+#endif
- 
- struct sighand_struct {
- 	atomic_t		count;
-===================================================================
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -286,6 +286,8 @@ static inline int dup_mmap(struct mm_str
- 		if (retval)
- 			goto out;
- 	}
-+	/* a new mm has just been created */
-+	arch_dup_mmap(oldmm, mm);
- 	retval = 0;
- out:
- 	up_write(&mm->mmap_sem);
-===================================================================
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -1976,6 +1976,9 @@ void exit_mmap(struct mm_struct *mm)
- 	struct vm_area_struct *vma = mm->mmap;
- 	unsigned long nr_accounted = 0;
- 	unsigned long end;
-+
-+	/* mm's last user has gone, and its about to be pulled down */
-+	arch_exit_mmap(mm);
- 
- 	lru_add_drain();
- 	flush_cache_mm(mm);
+Applied, although it's still a mystery to me what those two functions
+are actually supposed to do and why it isn't ok to just flush the
+specified range...
 
--- 
+I also moved them below the definitions of
+dma_sync_single_for_{cpu,device}() so that it compiles.
 
+Haavard
