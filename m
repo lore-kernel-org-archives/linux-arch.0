@@ -1,74 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lug-owl.de ([195.71.106.12]:39178 "EHLO lug-owl.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752755AbXCITfZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Mar 2007 14:35:25 -0500
-Date: Fri, 9 Mar 2007 20:35:24 +0100
-From: Jan-Benedict Glaw <jbglaw@lug-owl.de>
+Received: from terminus.zytor.com ([192.83.249.54]:48641 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1767520AbXCITo2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2007 14:44:28 -0500
+Message-ID: <45F1B818.4090007@zytor.com>
+Date: Fri, 09 Mar 2007 11:40:08 -0800
+From: "H. Peter Anvin" <hpa@zytor.com>
+MIME-Version: 1.0
 Subject: Re: [PATCH] Complain about missing system calls.
-Message-ID: <20070309193524.GX18564@lug-owl.de>
-References: <1173394873.3461.510.camel@pmac.infradead.org> <p737itqbdnl.fsf@bingen.suse.de> <20070309163805.GV18564@lug-owl.de> <20070309190051.GA20521@one.firstfloor.org>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="1RhGCd1AsoFHGRHc"
-Content-Disposition: inline
-In-Reply-To: <20070309190051.GA20521@one.firstfloor.org>
+References: <1173394873.3461.510.camel@pmac.infradead.org> <p737itqbdnl.fsf@bingen.suse.de> <20070309163805.GV18564@lug-owl.de>
+In-Reply-To: <20070309163805.GV18564@lug-owl.de>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <andi@firstfloor.org>
-Cc: David Woodhouse <dwmw2@infradead.org>, akpm@osdl.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, rmk@arm.linux.org.uk, sam@ravnborg.org, linux-arch@vger.kernel.org
+To: Andi Kleen <andi@firstfloor.org>, David Woodhouse <dwmw2@infradead.org>, akpm@osdl.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, rmk@arm.linux.org.uk, sam@ravnborg.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Jan-Benedict Glaw wrote:
+> 
+> Not everybody has a simple indexed list of pointers :)  For example,
+> for vax-linux, we use a struct per syscall with the expected number of
+> on-stack longwords for the call.
+> 
+> So if something "new" is coming up, please keep in mind that it should
+> be flexible enough to represent that. :)
+> 
 
---1RhGCd1AsoFHGRHc
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+I discussed with Al Viro a while ago about using something like the 
+SYSCALLS.def file from klibc as the source format for the system calls. 
+  That would deal very flexibly with almost all kinds of stub generation.
 
-On Fri, 2007-03-09 20:00:51 +0100, Andi Kleen <andi@firstfloor.org> wrote:
-> > Not everybody has a simple indexed list of pointers :)  For example,
-> > for vax-linux, we use a struct per syscall with the expected number of
-> > on-stack longwords for the call.
-> >=20
-> > So if something "new" is coming up, please keep in mind that it should
-> > be flexible enough to represent that. :)
->=20
-> Are there plans to merge vax any time soon to mainline?=20
-
-Well...  That depends :)  For now, I'd prefer to stay out of mainline,
-until we're having gcc-trunk with a current GNU libc up'n'running.
-Until then, I plan to at least break the complete ABI once (drop old
-syscals and _only_ wire up their modern counterparts.)
-
-> Normally we don't care very much about out of tree code, especially
-> if it adds complexity like this.
-
-Sure, but at least mentioning that there's more than only a simple
-table of function pointers may or may not help to *plan* the code to
-fit future needs.
-
-> But I suspect s390 would need number of arguments anyways.
-
-Any they're already merged. Yay :)
-
-MfG, JBG
-
---=20
-      Jan-Benedict Glaw      jbglaw@lug-owl.de              +49-172-7608481
-  Signature of:                           Wenn ich wach bin, tr=C3=A4ume ic=
-h.
-  the second  :
-
---1RhGCd1AsoFHGRHc
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-Content-Disposition: inline
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.1 (GNU/Linux)
-
-iD8DBQFF8bb8Hb1edYOZ4bsRAudgAJ0e9E00kfFWDmaVhFGsYPn40r4GzgCeOjeF
-Tlc1fPEqvles7f9IUqYRw4o=
-=2Dxi
------END PGP SIGNATURE-----
-
---1RhGCd1AsoFHGRHc--
+	-hpa
