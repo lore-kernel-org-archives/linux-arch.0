@@ -1,39 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:55462
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:53424
 	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1161355AbXCIAS6 convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 8 Mar 2007 19:18:58 -0500
-Date: Thu, 08 Mar 2007 16:18:58 -0800 (PST)
-Message-Id: <20070308.161858.98552938.davem@davemloft.net>
+	by vger.kernel.org with ESMTP id S2992949AbXCIEj3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Mar 2007 23:39:29 -0500
+Date: Thu, 08 Mar 2007 20:39:29 -0800 (PST)
+Message-Id: <20070308.203929.123921762.davem@davemloft.net>
 Subject: Re: [PATCH] NET : Introduce SIOCGSTAMPNS ioctl to get timestamps
  with nanosec resolution
 From: David Miller <davem@davemloft.net>
-In-Reply-To: <45F0A3FA.5030308@cosmosbay.com>
-References: <200703081919.47732.dada1@cosmosbay.com>
-	<25904.1173388268@redhat.com>
-	<45F0A3FA.5030308@cosmosbay.com>
+In-Reply-To: <200703081517.57539.dada1@cosmosbay.com>
+References: <45E6F744.8070106@linux-foundation.org>
+	<200703021538.41284.dada1@cosmosbay.com>
+	<200703081517.57539.dada1@cosmosbay.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: dada1@cosmosbay.com
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, kaber@trash.net
+Cc: shemminger@linux-foundation.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 From: Eric Dumazet <dada1@cosmosbay.com>
-Date: Fri, 09 Mar 2007 01:02:02 +0100
+Date: Thu, 8 Mar 2007 15:17:57 +0100
 
-> David Howells a écrit :
-> > Eric Dumazet <dada1@cosmosbay.com> wrote:
-> > 
-> >> +#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
-> >> +#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
-> > 
-> > Is it worth munging these together into an asm-generic header for those arches
-> > that have the same sets of ioctl numbers?
-> > 
+> [PATCH] NET : Introduce SIOCGSTAMPNS ioctl to get timestamps with nanosec 
+> resolution
 > 
-> Yes probably... But it can be done in a distinct patch ?
+> Now network timestamps use ktime_t infrastructure, we can add a new ioctl() 
+> SIOCGSTAMPNS  command to get timestamps in 'struct timespec'.
+> User programs can thus access to nanosecond resolution.
+> 
+> Signed-off-by: Eric Dumazet <dada1@cosmosbay.com>
+> CC: Stephen Hemminger <shemminger@linux-foundation.org>
 
-I definitely think so :)
+Applied, thanks Eric.
+
+This patch points out a potential compat layer problem which sh64.  It
+defines the SIOCGSTAMP (and not SIOCGSTAMPNS) ioctls as not constants,
+but rather constant values that depend upon the size of the structure
+passed in.
+
+But the compat bridges for these timestamp ioctls simply match on the
+native ioctl value and then pass it in unchanged to the real handler.
+That won't work for sh64 compat layer for 32-bit sh applications.
+
+That's what they get for being different :-)
