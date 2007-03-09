@@ -1,59 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:42508 "EHLO
-	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965654AbXCIMBM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2007 07:01:12 -0500
-Received: from localhost.localdomain ([127.0.0.1]:32714 "EHLO
-	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20021456AbXCIMBL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Mar 2007 12:01:11 +0000
-Date: Fri, 9 Mar 2007 11:59:02 +0000
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH] [POWERPC] Wire up sys_sync_file_range
-Message-ID: <20070309115901.GA29723@linux-mips.org>
-References: <20070309152201.027c2bf5.sfr@canb.auug.org.au> <1173423341.3461.548.camel@pmac.infradead.org> <20070308.231341.41635421.davem@davemloft.net>
-Mime-Version: 1.0
+Received: from mail.suse.de ([195.135.220.2]:52324 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S2992835AbXCIPML (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Mar 2007 10:12:11 -0500
+Subject: Re: [PATCH] Complain about missing system calls.
+References: <1173394873.3461.510.camel@pmac.infradead.org>
+From: Andi Kleen <andi@firstfloor.org>
+Date: 09 Mar 2007 17:11:10 +0100
+In-Reply-To: <1173394873.3461.510.camel@pmac.infradead.org>
+Message-ID: <p737itqbdnl.fsf@bingen.suse.de>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070308.231341.41635421.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: dwmw2@infradead.org, sfr@canb.auug.org.au, paulus@samba.org, linuxppc-dev@ozlabs.org, rmk@arm.linux.org.uk, linux-arch@vger.kernel.org
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, rmk@arm.linux.org.uk, sam@ravnborg.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Mar 08, 2007 at 11:13:41PM -0800, David Miller wrote:
+David Woodhouse <dwmw2@infradead.org> writes:
 
-> > On Fri, 2007-03-09 at 15:22 +1100, Stephen Rothwell wrote:
-> > > This requires an architecture specific compat routine as u64s are passed
-> > > in odd/even (high/low) register pairs on ppc32.
-> > > 
-> > > Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
-> > 
-> > Doesn't that apply to ARM and to 32-bit MIPS too? And perhaps others?
-> 
-> Unfortunately in the MIPS case you'll have to do some ifdef'ing because
-> the order of the "high" and "low" sub-part arguments is dependant upon
-> endianness and MIPS can be both big and little endian.
+> Most system calls seem to get added to i386 first. This patch
+> automatically generates a warning for any new system call which is
+> implemented on i386 but not the architecture currently being compiled.
+> On PowerPC at the moment, for example, it results in these warnings:
+> init/missing_syscalls.h:935:3: warning: #warning syscall sync_file_range not implemented
+> init/missing_syscalls.h:947:3: warning: #warning syscall getcpu not implemented
+> init/missing_syscalls.h:950:3: warning: #warning syscall epoll_pwait not implemented
 
-I'd rather let the C compiler sort it out:
+I think a better solution would be to finally switch to auto generated
+system call tables for newer system calls. The original reason why the
+architectures have different system call numbers -- compatibility with
+another "native" Unix -- is completely obsolete now. This leaves only
+minor differences of compat stub vs non compat stub and a few
+architecture specific calls.
 
-asmlinkage long compat_sys_sync_file_range(int fd, int dummy,
-	loff_t offset, loff_t nbytes, unsigned int flags)
-{
-	sys_sync_file_range(fd, offset, nbytes, flags);
-}
+Of course the existing syscall numbers can't be changed, but for all new 
+calls one could just add automatically for everybody.
 
-Which looks like it could be portable to PPC even, so maybe a little cpp
-magic like:
+A global table with two entries (compat and non compat) and a per arch 
+override table should be sufficient.
 
-#ifdef CONFIG_ABI_NEEDS_PADDING_
-#define PAD_64BIT_ARG(x)	unsigned int x,
-#else
-#define PAD_64BIT_ARG(x)
-#endif
+Comments?
 
-[...]
-asmlinkage long sys_sync_file_range(int fd,  PAD_64BIT_ARG(pad1)
-	loff_t offset, loff_t nbytes, unsigned int flags)
-
-  Ralf
+-Andi
