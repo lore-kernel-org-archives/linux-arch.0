@@ -1,32 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.suse.de ([195.135.220.2]:37401 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752725AbXCISyn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Mar 2007 13:54:43 -0500
-From: Andi Kleen <ak@suse.de>
+Received: from one.firstfloor.org ([213.235.205.2]:50256 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1767506AbXCITTA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2007 14:19:00 -0500
+Date: Fri, 9 Mar 2007 20:00:51 +0100
+From: Andi Kleen <andi@firstfloor.org>
 Subject: Re: [PATCH] Complain about missing system calls.
-Date: Fri, 9 Mar 2007 19:54:13 +0100
-References: <1173394873.3461.510.camel@pmac.infradead.org> <p737itqbdnl.fsf@bingen.suse.de> <1173458854.24454.27.camel@localhost.localdomain>
-In-Reply-To: <1173458854.24454.27.camel@localhost.localdomain>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Message-ID: <20070309190051.GA20521@one.firstfloor.org>
+References: <1173394873.3461.510.camel@pmac.infradead.org> <p737itqbdnl.fsf@bingen.suse.de> <20070309163805.GV18564@lug-owl.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200703091954.13982.ak@suse.de>
+In-Reply-To: <20070309163805.GV18564@lug-owl.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: David Woodhouse <dwmw2@infradead.org>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, sam@ravnborg.org, rmk@arm.linux.org.uk
+To: Andi Kleen <andi@firstfloor.org>, David Woodhouse <dwmw2@infradead.org>, akpm@osdl.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, rmk@arm.linux.org.uk, sam@ravnborg.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+> Not everybody has a simple indexed list of pointers :)  For example,
+> for vax-linux, we use a struct per syscall with the expected number of
+> on-stack longwords for the call.
+> 
+> So if something "new" is coming up, please keep in mind that it should
+> be flexible enough to represent that. :)
 
-> We need additional gunk for syscalls that can be called from SPEs on
-> cell
+Are there plans to merge vax any time soon to mainline? 
 
-Can that gunk not be auto generated?
+Normally we don't care very much about out of tree code, especially
+if it adds complexity like this.
 
-I know s390 does in some cases, but it looks quite auto generatable to me.
+But I suspect s390 would need number of arguments anyways.
 
 -Andi
-
->
