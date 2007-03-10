@@ -1,40 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate6.uk.ibm.com ([195.212.29.139]:25894 "EHLO
-	mtagate6.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751320AbXCJJvh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Mar 2007 04:51:37 -0500
+Received: from mtagate1.de.ibm.com ([195.212.29.150]:64487 "EHLO
+	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751473AbXCJJ6O (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Mar 2007 04:58:14 -0500
 Subject: Re: [PATCH] Complain about missing system calls.
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <200703091954.13982.ak@suse.de>
+In-Reply-To: <20070309190051.GA20521@one.firstfloor.org>
 References: <1173394873.3461.510.camel@pmac.infradead.org>
-	 <p737itqbdnl.fsf@bingen.suse.de>
-	 <1173458854.24454.27.camel@localhost.localdomain>
-	 <200703091954.13982.ak@suse.de>
+	 <p737itqbdnl.fsf@bingen.suse.de> <20070309163805.GV18564@lug-owl.de>
+	 <20070309190051.GA20521@one.firstfloor.org>
 Content-Type: text/plain; charset=ISO-8859-1
-Date: Sat, 10 Mar 2007 10:51:36 +0100
-Message-Id: <1173520296.7128.9.camel@localhost>
+Date: Sat, 10 Mar 2007 10:58:13 +0100
+Message-Id: <1173520693.7128.17.camel@localhost>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Woodhouse <dwmw2@infradead.org>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, sam@ravnborg.org, rmk@arm.linux.org.uk
+To: Andi Kleen <andi@firstfloor.org>
+Cc: David Woodhouse <dwmw2@infradead.org>, akpm@osdl.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, rmk@arm.linux.org.uk, sam@ravnborg.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2007-03-09 at 19:54 +0100, Andi Kleen wrote:
-> > We need additional gunk for syscalls that can be called from SPEs on
-> > cell
+On Fri, 2007-03-09 at 20:00 +0100, Andi Kleen wrote:
+> > Not everybody has a simple indexed list of pointers :)  For example,
+> > for vax-linux, we use a struct per syscall with the expected number of
+> > on-stack longwords for the call.
+> > 
+> > So if something "new" is coming up, please keep in mind that it should
+> > be flexible enough to represent that. :)
 > 
-> Can that gunk not be auto generated?
+> Are there plans to merge vax any time soon to mainline? 
 > 
-> I know s390 does in some cases, but it looks quite auto generatable to me.
+> Normally we don't care very much about out of tree code, especially
+> if it adds complexity like this.
+> 
+> But I suspect s390 would need number of arguments anyways.
 
-The system call tables and the compat wrapper are all manually created.
-If we manage to get the prototypes for the system calls in a parseable
-format at least the compat wrappers could be auto-generated. I see two
-pitfalls: 1) some compat system calls are directly wired to the system
-call table while others need the compat_wrapper detour, 2) override of
-system calls with "meta" system calls like sys_socket or sys_ipc.
+I can't quite follow that line of thought. Why does s390 need the number
+of arguments? The wrapper of a compat system call implicitly knows how
+many arguments a system calls to do the conversion. For a normal system
+call we just call the function. Random example sys_read: the user space
+loads the arguments to register %r2, %r3, %r4 and calls the system. The
+register are not touched until sys_read is reached. Only sys_read cares
+about the number of arguments in this case.
 
 -- 
 blue skies,              IBM Deutschland Entwicklung GmbH
