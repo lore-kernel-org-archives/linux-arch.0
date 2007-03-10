@@ -1,47 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:43400
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S933409AbXCIWRZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2007 17:17:25 -0500
-Date: Fri, 09 Mar 2007 14:17:24 -0800 (PST)
-Message-Id: <20070309.141724.112850583.davem@davemloft.net>
-Subject: Re: [PATCH] NET : Adding SO_TIMESTAMPNS / SCM_TIMESTAMPNS support
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <200703091939.42656.dada1@cosmosbay.com>
-References: <200703021538.41284.dada1@cosmosbay.com>
-	<200703081517.57539.dada1@cosmosbay.com>
-	<200703091939.42656.dada1@cosmosbay.com>
+Received: from mtagate6.uk.ibm.com ([195.212.29.139]:25894 "EHLO
+	mtagate6.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751320AbXCJJvh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Mar 2007 04:51:37 -0500
+Subject: Re: [PATCH] Complain about missing system calls.
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Reply-To: schwidefsky@de.ibm.com
+In-Reply-To: <200703091954.13982.ak@suse.de>
+References: <1173394873.3461.510.camel@pmac.infradead.org>
+	 <p737itqbdnl.fsf@bingen.suse.de>
+	 <1173458854.24454.27.camel@localhost.localdomain>
+	 <200703091954.13982.ak@suse.de>
+Content-Type: text/plain; charset=ISO-8859-1
+Date: Sat, 10 Mar 2007 10:51:36 +0100
+Message-Id: <1173520296.7128.9.camel@localhost>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
-To: dada1@cosmosbay.com
-Cc: netdev@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Woodhouse <dwmw2@infradead.org>, akpm@osdl.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, sam@ravnborg.org, rmk@arm.linux.org.uk
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Eric Dumazet <dada1@cosmosbay.com>
-Date: Fri, 9 Mar 2007 19:39:42 +0100
+On Fri, 2007-03-09 at 19:54 +0100, Andi Kleen wrote:
+> > We need additional gunk for syscalls that can be called from SPEs on
+> > cell
+> 
+> Can that gunk not be auto generated?
+> 
+> I know s390 does in some cases, but it looks quite auto generatable to me.
 
-> [PATCH] NET : Adding SO_TIMESTAMPNS / SCM_TIMESTAMPNS support
-> 
-> Now that network timestamps use ktime_t infrastructure, we can add a new 
-> SOL_SOCKET sockopt  SO_TIMESTAMPNS.
-> 
-> This command is similar to SO_TIMESTAMP, but permits transmission of 
-> a 'timespec struct' instead of a 'timeval struct' control message. 
-> (nanosecond resolution instead of microsecond)
-> 
-> Control message is labelled SCM_TIMESTAMPNS instead of SCM_TIMESTAMP
-> 
-> A socket cannot mix SO_TIMESTAMP and SO_TIMESTAMPNS : the two modes are 
-> mutually exclusive.
-> 
-> sock_recv_timestamp() became too big to be fully inlined so I added a 
-> __sock_recv_timestamp() helper function.
-> 
-> Signed-off-by: Eric Dumazet <dada1@cosmosbay.com>
-> CC: linux-arch@vger.kernel.org
-> 
+The system call tables and the compat wrapper are all manually created.
+If we manage to get the prototypes for the system calls in a parseable
+format at least the compat wrappers could be auto-generated. I see two
+pitfalls: 1) some compat system calls are directly wired to the system
+call table while others need the compat_wrapper detour, 2) override of
+system calls with "meta" system calls like sys_socket or sys_ipc.
 
-Applied, thanks for following up on all of this nanosecond
-timestamp work.
+-- 
+blue skies,              IBM Deutschland Entwicklung GmbH
+   Martin                Vorsitzender des Aufsichtsrats: Johann Weihen
+                         Geschäftsführung: Herbert Kircher
+Martin Schwidefsky       Sitz der Gesellschaft: Böblingen
+Linux on zSeries         Registergericht: Amtsgericht Stuttgart,
+   Development           HRB 243294
+
+"Reality continues to ruin my life." - Calvin.
+
+
