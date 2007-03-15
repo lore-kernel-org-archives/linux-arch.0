@@ -1,56 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate1.de.ibm.com ([195.212.29.150]:64487 "EHLO
-	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751473AbXCJJ6O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Mar 2007 04:58:14 -0500
-Subject: Re: [PATCH] Complain about missing system calls.
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <20070309190051.GA20521@one.firstfloor.org>
-References: <1173394873.3461.510.camel@pmac.infradead.org>
-	 <p737itqbdnl.fsf@bingen.suse.de> <20070309163805.GV18564@lug-owl.de>
-	 <20070309190051.GA20521@one.firstfloor.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Date: Sat, 10 Mar 2007 10:58:13 +0100
-Message-Id: <1173520693.7128.17.camel@localhost>
+Received: from chilli.pcug.org.au ([203.10.76.44]:59886 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752797AbXCOKXS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Mar 2007 06:23:18 -0400
+Date: Thu, 15 Mar 2007 21:23:19 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH] [POWERPC] Wire up sys_sync_file_range
+Message-Id: <20070315212319.d60d0457.sfr@canb.auug.org.au>
+In-Reply-To: <20070309115901.GA29723@linux-mips.org>
+References: <20070309152201.027c2bf5.sfr@canb.auug.org.au>
+	<1173423341.3461.548.camel@pmac.infradead.org>
+	<20070308.231341.41635421.davem@davemloft.net>
+	<20070309115901.GA29723@linux-mips.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Thu__15_Mar_2007_21_23_19_+1100_kihYA12gGGvukcz_"
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <andi@firstfloor.org>
-Cc: David Woodhouse <dwmw2@infradead.org>, akpm@osdl.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, rmk@arm.linux.org.uk, sam@ravnborg.org, linux-arch@vger.kernel.org
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: David Miller <davem@davemloft.net>, dwmw2@infradead.org, paulus@samba.org, linuxppc-dev@ozlabs.org, rmk@arm.linux.org.uk, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2007-03-09 at 20:00 +0100, Andi Kleen wrote:
-> > Not everybody has a simple indexed list of pointers :)  For example,
-> > for vax-linux, we use a struct per syscall with the expected number of
-> > on-stack longwords for the call.
-> > 
-> > So if something "new" is coming up, please keep in mind that it should
-> > be flexible enough to represent that. :)
-> 
-> Are there plans to merge vax any time soon to mainline? 
-> 
-> Normally we don't care very much about out of tree code, especially
-> if it adds complexity like this.
-> 
-> But I suspect s390 would need number of arguments anyways.
+--Signature=_Thu__15_Mar_2007_21_23_19_+1100_kihYA12gGGvukcz_
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: 7bit
 
-I can't quite follow that line of thought. Why does s390 need the number
-of arguments? The wrapper of a compat system call implicitly knows how
-many arguments a system calls to do the conversion. For a normal system
-call we just call the function. Random example sys_read: the user space
-loads the arguments to register %r2, %r3, %r4 and calls the system. The
-register are not touched until sys_read is reached. Only sys_read cares
-about the number of arguments in this case.
+On Fri, 9 Mar 2007 11:59:02 +0000 Ralf Baechle <ralf@linux-mips.org> wrote:
+>
+> I'd rather let the C compiler sort it out:
+>
+> asmlinkage long compat_sys_sync_file_range(int fd, int dummy,
+> 	loff_t offset, loff_t nbytes, unsigned int flags)
+> {
+> 	sys_sync_file_range(fd, offset, nbytes, flags);
+> }
+>
+> Which looks like it could be portable to PPC even, so maybe a little cpp
+> magic like:
+>
+> #ifdef CONFIG_ABI_NEEDS_PADDING_
+> #define PAD_64BIT_ARG(x)	unsigned int x,
+> #else
+> #define PAD_64BIT_ARG(x)
+> #endif
+>
+> [...]
+> asmlinkage long sys_sync_file_range(int fd,  PAD_64BIT_ARG(pad1)
+> 	loff_t offset, loff_t nbytes, unsigned int flags)
 
--- 
-blue skies,              IBM Deutschland Entwicklung GmbH
-   Martin                Vorsitzender des Aufsichtsrats: Johann Weihen
-                         Geschäftsführung: Herbert Kircher
-Martin Schwidefsky       Sitz der Gesellschaft: Böblingen
-Linux on zSeries         Registergericht: Amtsgericht Stuttgart,
-   Development           HRB 243294
+Except the compat routines are built with a 64 bit compiler and the
+callinf convention is different for 64 bit.  i.e. on ppc64 that routine
+uses a single register for each parameter, while on 32 bit it uses 2
+registers for each of the loff_t's.  It is this difference that we have
+to cope with in the 64 bit kernel when the user process is 32 bit.
+--
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
-"Reality continues to ruin my life." - Calvin.
+--Signature=_Thu__15_Mar_2007_21_23_19_+1100_kihYA12gGGvukcz_
+Content-Type: application/pgp-signature
 
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
 
+iD8DBQFF+R6bFdBgD/zoJvwRAjf+AJsFGNfgc87UVwgabU7WyQPDCOBVXgCcC0jk
+gtjvcdo3/Iz79r5iI86FSKE=
+=TKPp
+-----END PGP SIGNATURE-----
+
+--Signature=_Thu__15_Mar_2007_21_23_19_+1100_kihYA12gGGvukcz_--
