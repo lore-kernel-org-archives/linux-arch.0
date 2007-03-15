@@ -1,73 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:59886 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752797AbXCOKXS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Mar 2007 06:23:18 -0400
-Date: Thu, 15 Mar 2007 21:23:19 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH] [POWERPC] Wire up sys_sync_file_range
-Message-Id: <20070315212319.d60d0457.sfr@canb.auug.org.au>
-In-Reply-To: <20070309115901.GA29723@linux-mips.org>
-References: <20070309152201.027c2bf5.sfr@canb.auug.org.au>
-	<1173423341.3461.548.camel@pmac.infradead.org>
-	<20070308.231341.41635421.davem@davemloft.net>
-	<20070309115901.GA29723@linux-mips.org>
+Received: from public.id2-vpn.continvity.gns.novell.com ([195.33.99.129]:8691
+	"EHLO public.id2-vpn.continvity.gns.novell.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1030334AbXCOM5n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Mar 2007 08:57:43 -0400
+Message-Id: <45F94C45.76E4.0078.0@novell.com>
+Date: Thu, 15 Mar 2007 12:38:13 +0000
+From: "Jan Beulich" <jbeulich@novell.com>
+Subject: PCI DAC DMA APIs
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Thu__15_Mar_2007_21_23_19_+1100_kihYA12gGGvukcz_"
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: David Miller <davem@davemloft.net>, dwmw2@infradead.org, paulus@samba.org, linuxppc-dev@ozlabs.org, rmk@arm.linux.org.uk, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Thu__15_Mar_2007_21_23_19_+1100_kihYA12gGGvukcz_
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
+While the kernel headers provide for this, there don't appear to be any
+in-tree users (which seems contrary to general Linux policies). Would there
+be objections to remove all of these?
 
-On Fri, 9 Mar 2007 11:59:02 +0000 Ralf Baechle <ralf@linux-mips.org> wrote:
->
-> I'd rather let the C compiler sort it out:
->
-> asmlinkage long compat_sys_sync_file_range(int fd, int dummy,
-> 	loff_t offset, loff_t nbytes, unsigned int flags)
-> {
-> 	sys_sync_file_range(fd, offset, nbytes, flags);
-> }
->
-> Which looks like it could be portable to PPC even, so maybe a little cpp
-> magic like:
->
-> #ifdef CONFIG_ABI_NEEDS_PADDING_
-> #define PAD_64BIT_ARG(x)	unsigned int x,
-> #else
-> #define PAD_64BIT_ARG(x)
-> #endif
->
-> [...]
-> asmlinkage long sys_sync_file_range(int fd,  PAD_64BIT_ARG(pad1)
-> 	loff_t offset, loff_t nbytes, unsigned int flags)
-
-Except the compat routines are built with a 64 bit compiler and the
-callinf convention is different for 64 bit.  i.e. on ppc64 that routine
-uses a single register for each parameter, while on 32 bit it uses 2
-registers for each of the loff_t's.  It is this difference that we have
-to cope with in the 64 bit kernel when the user process is 32 bit.
---
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
-
---Signature=_Thu__15_Mar_2007_21_23_19_+1100_kihYA12gGGvukcz_
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
-
-iD8DBQFF+R6bFdBgD/zoJvwRAjf+AJsFGNfgc87UVwgabU7WyQPDCOBVXgCcC0jk
-gtjvcdo3/Iz79r5iI86FSKE=
-=TKPp
------END PGP SIGNATURE-----
-
---Signature=_Thu__15_Mar_2007_21_23_19_+1100_kihYA12gGGvukcz_--
+Jan
