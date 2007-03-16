@@ -1,87 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.24]:47952 "EHLO smtp.osdl.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753503AbXCPBQZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Mar 2007 21:16:25 -0400
-Message-Id: <200703160116.l2G1G1A7031764@shell0.pdx.osdl.net>
-Subject: + revoke-wire-up-i386-system-calls.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Thu, 15 Mar 2007 17:16:01 -0800
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:44478
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S934013AbXCPBlJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Mar 2007 21:41:09 -0400
+Date: Thu, 15 Mar 2007 18:18:55 -0700 (PDT)
+Message-Id: <20070315.181855.18293618.davem@davemloft.net>
+Subject: Re: PCI DAC DMA APIs
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20070315191834.GA12603@infradead.org>
+References: <45F94C45.76E4.0078.0@novell.com>
+	<20070315191834.GA12603@infradead.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: penberg@cs.helsinki.fi, ak@suse.de, alan@redhat.com, hch@lst.de, linux-arch@vger.kernel.org, mtk-manpages@gmx.net
+To: hch@infradead.org
+Cc: jbeulich@novell.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+From: Christoph Hellwig <hch@infradead.org>
+Date: Thu, 15 Mar 2007 19:18:34 +0000
 
-The patch titled
-     revoke: wire up i386 system calls
-has been added to the -mm tree.  Its filename is
-     revoke-wire-up-i386-system-calls.patch
+> On Thu, Mar 15, 2007 at 12:38:13PM +0000, Jan Beulich wrote:
+> > While the kernel headers provide for this, there don't appear to be any
+> > in-tree users (which seems contrary to general Linux policies). Would there
+> > be objections to remove all of these?
+> 
+> They should go away.  Having them in for more than five years without
+> any users is almost a guarantee for bitrot.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+Yes, probably we should get rid of them.
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
+The idea wasn't sparc optimizations, it was for things like those
+Dolphin clustering cards that essentially want to get at all of
+physical memory from the PCI card.
 
-------------------------------------------------------
-Subject: revoke: wire up i386 system calls
-From: Pekka Enberg <penberg@cs.helsinki.fi>
+The IOMMU is a limited resource, so at the expense of lack of
+prefetching and write caching we provide a way to do unlimited DMA
+mapping with 64-bit DAC addresses.
 
-Make revokeat and frevoke system calls available to user-space on i386.
+None of these drivers ever got integrated, so it's a total loss.
 
-Acked-by: Alan Cox <alan@redhat.com>
-Signed-off-by: Pekka Enberg <penberg@cs.helsinki.fi>
-Cc: Christoph Hellwig <hch@lst.de>
-Cc: Michael Kerrisk <mtk-manpages@gmx.net>
-Cc: Andi Kleen <ak@suse.de>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/i386/kernel/syscall_table.S |    2 ++
- include/asm-i386/unistd.h        |    4 +++-
- 2 files changed, 5 insertions(+), 1 deletion(-)
-
-diff -puN arch/i386/kernel/syscall_table.S~revoke-wire-up-i386-system-calls arch/i386/kernel/syscall_table.S
---- a/arch/i386/kernel/syscall_table.S~revoke-wire-up-i386-system-calls
-+++ a/arch/i386/kernel/syscall_table.S
-@@ -320,3 +320,5 @@ ENTRY(sys_call_table)
- 	.long sys_getcpu
- 	.long sys_epoll_pwait
- 	.long sys_lutimesat		/* 320 */
-+ 	.long sys_revokeat
-+ 	.long sys_frevoke
-diff -puN include/asm-i386/unistd.h~revoke-wire-up-i386-system-calls include/asm-i386/unistd.h
---- a/include/asm-i386/unistd.h~revoke-wire-up-i386-system-calls
-+++ a/include/asm-i386/unistd.h
-@@ -326,10 +326,12 @@
- #define __NR_getcpu		318
- #define __NR_epoll_pwait	319
- #define __NR_lutimesat		320
-+#define __NR_revokeat		321
-+#define __NR_frevoke		322
- 
- #ifdef __KERNEL__
- 
--#define NR_syscalls 321
-+#define NR_syscalls 323
- 
- #define __ARCH_WANT_IPC_PARSE_VERSION
- #define __ARCH_WANT_OLD_READDIR
-_
-
-Patches currently in -mm which might be from penberg@cs.helsinki.fi are
-
-slab-introduce-krealloc.patch
-slab-introduce-krealloc-fix.patch
-unionfs-fix-slab-abuses-with-krealloc.patch
-slab-ensure-cache_alloc_refill-terminates.patch
-module-use-krealloc.patch
-slab-use-cpu_lock_.patch
-revoke-special-mmap-handling.patch
-revoke-core-code.patch
-revoke-support-for-ext2-and-ext3.patch
-revoke-add-documentation.patch
-revoke-wire-up-i386-system-calls.patch
-slab-leaks3-default-y.patch
+Someone will complain when we pull it out, but fsck them, they
+had years to do something about this. :)
 
