@@ -1,35 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:53700 "EHLO mail.goop.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965778AbXCPRin (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 16 Mar 2007 13:38:43 -0400
-Message-ID: <45FAD622.2080306@goop.org>
-Date: Fri, 16 Mar 2007 10:38:42 -0700
-From: Jeremy Fitzhardinge <jeremy@goop.org>
-MIME-Version: 1.0
-Subject: Re: [patch 08/26] Xen-paravirt_ops: add hooks to intercept mm creation
- and destruction
-References: <20070301232443.195603797@goop.org> <20070301232527.110592372@goop.org> <20070316093016.GP23174@elte.hu>
-In-Reply-To: <20070316093016.GP23174@elte.hu>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from pentafluge.infradead.org ([213.146.154.40]:47324 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933897AbXCSNbu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2007 09:31:50 -0400
+Date: Mon, 19 Mar 2007 13:31:49 +0000
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [S390] minor fault path optimization.
+Message-ID: <20070319133149.GA5781@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070319130206.GC1292@skybase>
 Sender: linux-arch-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Andi Kleen <ak@muc.de>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, virtualization@lists.osdl.org, xen-devel@lists.xensource.com, Chris Wright <chrisw@sous-sol.org>, Zachary Amsden <zach@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Ingo Molnar wrote:
-> * Jeremy Fitzhardinge <jeremy@goop.org> wrote:
->
->   
->> Add hooks to allow a paravirt implementation to track the lifetime of 
->> an mm.
->>     
->
-> (i guess this one should be merged with the ARCH-define cleanup patch)
->   
+On Mon, Mar 19, 2007 at 02:02:06PM +0100, Martin Schwidefsky wrote:
+> From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> 
+> [S390] minor fault path optimization.
+> 
+> The minor fault path has grown a lot in terms of cycles. In particular
+> the kprobes hook is very costly. Optimize the path to save a couple of
+> cycles. If kprobes is enabled more than 300 cycles can be avoided if 
+> kprobes_running() is false.
 
-Already done.  In fact, I think I did it before the last patch post. 
-Are you looking at an uptodate series of patches?
+Actually there is a lot more fishy here.  This code is duplicated over
+every single architecture.  It uses a notifier chain that only ever has
+one actual uaesr.  It exports interfaces that are potential harmful.
 
-   
+Please do the right thing to optimize this instead and rip out the brandead
+notifier chain mechanisms and directly call into the krobes handler if
+kprobes are active, in particular the DIE_PAGE_FAULT: case of 
+kprobe_exceptions_notify.  That allows you to optimize the path both
+if kprobes are active, and even further if they're not.
+
+The same should be done for all other architectures, and the other
+(ab-)uses of  the kprobes notifiers.
