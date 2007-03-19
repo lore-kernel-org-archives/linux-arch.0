@@ -1,40 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:47324 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933897AbXCSNbu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2007 09:31:50 -0400
-Date: Mon, 19 Mar 2007 13:31:49 +0000
-From: Christoph Hellwig <hch@infradead.org>
+Received: from ns1.suse.de ([195.135.220.2]:51945 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933917AbXCSOAr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 19 Mar 2007 10:00:47 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: [S390] minor fault path optimization.
-Message-ID: <20070319133149.GA5781@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Date: Mon, 19 Mar 2007 15:00:34 +0100
+References: <20070319133149.GA5781@infradead.org>
+In-Reply-To: <20070319133149.GA5781@infradead.org>
+MIME-Version: 1.0
 Content-Disposition: inline
-In-Reply-To: <20070319130206.GC1292@skybase>
+Message-Id: <200703191500.34563.ak@suse.de>
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Mar 19, 2007 at 02:02:06PM +0100, Martin Schwidefsky wrote:
-> From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+On Monday 19 March 2007 14:31, Christoph Hellwig wrote:
+> On Mon, Mar 19, 2007 at 02:02:06PM +0100, Martin Schwidefsky wrote:
+> > From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> > 
+> > [S390] minor fault path optimization.
+> > 
+> > The minor fault path has grown a lot in terms of cycles. In particular
+> > the kprobes hook is very costly. Optimize the path to save a couple of
+> > cycles. If kprobes is enabled more than 300 cycles can be avoided if 
+> > kprobes_running() is false.
 > 
-> [S390] minor fault path optimization.
-> 
-> The minor fault path has grown a lot in terms of cycles. In particular
-> the kprobes hook is very costly. Optimize the path to save a couple of
-> cycles. If kprobes is enabled more than 300 cycles can be avoided if 
-> kprobes_running() is false.
+> Actually there is a lot more fishy here.  This code is duplicated over
+> every single architecture.  It uses a notifier chain that only ever has
+> one actual uaesr.  It exports interfaces that are potential harmful.
 
-Actually there is a lot more fishy here.  This code is duplicated over
-every single architecture.  It uses a notifier chain that only ever has
-one actual uaesr.  It exports interfaces that are potential harmful.
+Agreed, it should be fixed generically.
 
-Please do the right thing to optimize this instead and rip out the brandead
-notifier chain mechanisms and directly call into the krobes handler if
-kprobes are active, in particular the DIE_PAGE_FAULT: case of 
-kprobe_exceptions_notify.  That allows you to optimize the path both
-if kprobes are active, and even further if they're not.
+I think the right fix would be to make the notifier call an inline
+that checks the call chain in the caller. That would be cheap enough,
+except for the cache line that might need to be referenced.
 
-The same should be done for all other architectures, and the other
-(ab-)uses of  the kprobes notifiers.
+For the cache line the short term fix would be to find some other
+global cache line that is referenced in the fault path anyways and put
+it on the same (e.g. by just putting the variable next to it or
+using a shared structure) 
+
+Longer term might be something like Ben LaHaise's patch that can patch
+code inline for rarely-read globals.
+
+> Please do the right thing to optimize this instead and rip out the brandead
+> notifier chain mechanisms and directly call into the krobes handler if
+> kprobes are active, 
+
+No, we should keep the debugger hooks here. Otherwise there will be a zillion
+external patches patches code in at these places for the various debuggers,
+resulting in a merge nightmare for lots of people.
+
+-Andi
