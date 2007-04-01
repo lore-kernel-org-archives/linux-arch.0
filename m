@@ -1,34 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nat-132.atmel.no ([80.232.32.132]:50018 "EHLO relay.atmel.no"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751527AbXDAJtD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 1 Apr 2007 05:49:03 -0400
-Message-ID: <51006.172.21.0.12.1175420843.squirrel@pat.norway.atmel.com>
-In-Reply-To: <20070331131522.GA15148@lst.de>
-References: <20070331131522.GA15148@lst.de>
-Date: Sun, 1 Apr 2007 11:47:23 +0200 (CEST)
-Subject: Re: missing kretprobes support on avr32 and sparc64
-From: =?iso-8859-1?Q?H=E5vard_Skinnemoen?= <hskinnemoen@atmel.com>
+Received: from mail.suse.de ([195.135.220.2]:59266 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932424AbXDAKrH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 1 Apr 2007 06:47:07 -0400
+From: Andi Kleen <ak@suse.de>
+Subject: Re: [PATCH 1/4] x86_64: Switch to SPARSE_VIRTUAL
+Date: Sun, 1 Apr 2007 12:46:51 +0200
+References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com> <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>
+In-Reply-To: <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200704011246.52238.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: hskinnemoen@atmel.com, davem@davemloft.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Martin Bligh <mbligh@google.com>, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, March 31, 2007 15:15, Christoph Hellwig wrote:
-> Currently all avr32 and sparc64 don't support kretprobes unlike all
-> other kprobes supporting architectures.  This is not nice from the
-> user interface point of view and from the ugly ifdefs point of view.
-> Is there a reason these ports can't support kretprobes or was this
-> simply an oversight / lazyness?
+On Sunday 01 April 2007 09:10, Christoph Lameter wrote:
+> x86_64 make SPARSE_VIRTUAL the default
+> 
+> x86_64 is using 2M page table entries to map its 1-1 kernel space.
+> We implement the virtual memmap also using 2M page table entries.
+> So there is no difference at all to FLATMEM. Both schemes require
+> a page table and a TLB.
 
-Lazyness on my part, I guess. It shouldn't be too hard to implement on
-avr32; It looks like the generic code sets a breakpoint on function entry,
-so all I have to do is to set a breakpoint on the return address. And
-handle the breakpoint somehow. I'll try to implement it when I get back to
-work in about a week.
+Hmm, this means there is at least 2MB worth of struct page on every node?
+Or do you have overlaps with other memory (I think you have)
+In that case you have to handle the overlap in change_page_attr()
 
-Haavard
+Also your "generic" vmemmap code doesn't look very generic, but
+rather x86 specific. I didn't think huge pages could be easily
+set up this way in many other architectures.  
+
+And when you reserve virtual space somewhere you should 
+update Documentation/x86_64/mm.txt. Also you didn't adjust 
+the end of the vmalloc area so in theory vmalloc could run
+into your vmemmap.
+
+> Thus the SPARSEMEM becomes the most efficient way of handling
+> virt_to_page, pfn_to_page and friends for UP, SMP and NUMA.
+
+Do you have any benchmarks numbers to prove it? There seem to be a few
+benchmarks where the discontig virt_to_page is a problem
+(although I know ways to make it more efficient), and sparsemem
+is normally slower. Still some numbers would be good.
+
+-Andi
 
