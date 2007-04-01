@@ -1,57 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:4124 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752965AbXDAVdm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Apr 2007 17:33:42 -0400
-Date: Sun, 1 Apr 2007 22:33:35 +0100
-From: Russell King <rmk@arm.linux.org.uk>
+Received: from moutng.kundenserver.de ([212.227.126.186]:63709 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751072AbXDAXMM convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Apr 2007 19:12:12 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: missing syscalls
-Message-ID: <20070401213335.GD24987@flint.arm.linux.org.uk>
-References: <20070401160123.GA9178@uranus.ravnborg.org> <20070401191511.GA24987@flint.arm.linux.org.uk> <20070401192355.GA10208@uranus.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Date: Mon, 2 Apr 2007 01:12:54 +0200
+References: <20070401160123.GA9178@uranus.ravnborg.org> <20070401200947.GB826@parisc-linux.org> <20070401201929.GB10652@uranus.ravnborg.org>
+In-Reply-To: <20070401201929.GB10652@uranus.ravnborg.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
 Content-Disposition: inline
-In-Reply-To: <20070401192355.GA10208@uranus.ravnborg.org>
+Message-Id: <200704020112.54931.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-arch@vger.kernel.org
+Cc: Matthew Wilcox <matthew@wil.cx>, David Miller <davem@davemloft.net>, rmk@arm.linux.org.uk, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Apr 01, 2007 at 09:23:55PM +0200, Sam Ravnborg wrote:
-> On Sun, Apr 01, 2007 at 08:15:12PM +0100, Russell King wrote:
-> > On Sun, Apr 01, 2007 at 06:01:23PM +0200, Sam Ravnborg wrote:
-> > > ============== arm ================
-> > >   CALL    /home/sam/kernel/kbuild.git/scripts/checksyscalls.sh
-> > > <stdin>:1092:2: warning: #warning syscall fadvise64 not implemented
-> > 
-> > and probably never will be.
-> > 
-> > > <stdin>:1220:2: warning: #warning syscall kexec_load not implemented
-> > 
-> > For the ARM kexec-using folk to decide.
+On Sunday 01 April 2007 22:19:29 Sam Ravnborg wrote:
+> +#define __NR_getcpu             /* 318 - not relevant */
+> +#define __NR_epoll_pwait        /* 319 - not relevant */
 
-Actually, this is the result of a typo, and should be fixed.
+This looks like it is potentially harmful, since it breaks
+user space code that does things like
 
-> > 
-> > > <stdin>:1260:2: warning: #warning syscall migrate_pages not implemented
-> > 
-> > Does this make sense for ARM?  I've no idea.
-> > 
-> > > <stdin>:1176:2: warning: #warning syscall fadvise64_64 not implemented
-> > > <stdin>:1340:2: warning: #warning syscall sync_file_range not implemented
-> > 
-> > These two are replaced by a special ARM version which sane argument
-> > ordering.  My patch for a previous version of the syscall check stuff
-> > shut these warnings up.
-> Should they be ignored only for arm (and arm26?) or in general?
+int my_getcpy(void)
+{
+#ifdef __NR_getcpu
+	return syscall(__NR_getcpu);
+#endif
+	return -1;
+}
 
-for ARM only, as per my original patch.
-
-+#define __IGNORE_fadvise64_64          /* we provide our own - see above */
-+#define __IGNORE_sync_file_range       /* we provide our own - see above */
-
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+	Arnd <><
