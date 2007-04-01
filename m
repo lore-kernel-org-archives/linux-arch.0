@@ -1,23 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:37845 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S932857AbXDAHL0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Apr 2007 03:11:26 -0400
-Date: Sun, 1 Apr 2007 00:11:25 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 1/4] x86_64: Switch to SPARSE_VIRTUAL
-In-Reply-To: <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>
-Message-ID: <Pine.LNX.4.64.0704010011100.23774@schroedinger.engr.sgi.com>
-References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com>
- <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>
+Received: from nat-132.atmel.no ([80.232.32.132]:50018 "EHLO relay.atmel.no"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751527AbXDAJtD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 1 Apr 2007 05:49:03 -0400
+Message-ID: <51006.172.21.0.12.1175420843.squirrel@pat.norway.atmel.com>
+In-Reply-To: <20070331131522.GA15148@lst.de>
+References: <20070331131522.GA15148@lst.de>
+Date: Sun, 1 Apr 2007 11:47:23 +0200 (CEST)
+Subject: Re: missing kretprobes support on avr32 and sparc64
+From: =?iso-8859-1?Q?H=E5vard_Skinnemoen?= <hskinnemoen@atmel.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Martin Bligh <mbligh@google.com>, linux-mm@kvack.org, Andi Kleen <ak@suse.de>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+To: Christoph Hellwig <hch@lst.de>
+Cc: hskinnemoen@atmel.com, davem@davemloft.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Argh. This should have been Patch 2/2. There is nothing in between.
+On Sat, March 31, 2007 15:15, Christoph Hellwig wrote:
+> Currently all avr32 and sparc64 don't support kretprobes unlike all
+> other kprobes supporting architectures.  This is not nice from the
+> user interface point of view and from the ugly ifdefs point of view.
+> Is there a reason these ports can't support kretprobes or was this
+> simply an oversight / lazyness?
 
+Lazyness on my part, I guess. It shouldn't be too hard to implement on
+avr32; It looks like the generic code sets a breakpoint on function entry,
+so all I have to do is to set a breakpoint on the return address. And
+handle the breakpoint somehow. I'll try to implement it when I get back to
+work in about a week.
 
+Haavard
 
