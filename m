@@ -1,30 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:52024 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933674AbXDBROX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Apr 2007 13:14:23 -0400
-From: Andi Kleen <ak@suse.de>
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:59440 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752366AbXDBRej (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Apr 2007 13:34:39 -0400
+Date: Mon, 2 Apr 2007 10:34:38 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [PATCH 1/4] x86_64: Switch to SPARSE_VIRTUAL
-Date: Mon, 2 Apr 2007 19:14:07 +0200
-References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com> <200704021744.39880.ak@suse.de> <Pine.LNX.4.64.0704020851300.30394@schroedinger.engr.sgi.com>
-In-Reply-To: <Pine.LNX.4.64.0704020851300.30394@schroedinger.engr.sgi.com>
+In-Reply-To: <200704021914.07541.ak@suse.de>
+Message-ID: <Pine.LNX.4.64.0704021032150.31053@schroedinger.engr.sgi.com>
+References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com>
+ <200704021744.39880.ak@suse.de> <Pine.LNX.4.64.0704020851300.30394@schroedinger.engr.sgi.com>
+ <200704021914.07541.ak@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200704021914.07541.ak@suse.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
+To: Andi Kleen <ak@suse.de>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Martin Bligh <mbligh@google.com>, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
+On Mon, 2 Apr 2007, Andi Kleen wrote:
 
-> No no no. For the gazillions time: All of 1-1 mapped kernel memory on 
-> x86_64 needs a 2 MB page table entry. The virtual memmap uses the same. 
-> There are *no* additional TLBs used.
+> > No no no. For the gazillions time: All of 1-1 mapped kernel memory on 
+> > x86_64 needs a 2 MB page table entry. The virtual memmap uses the same. 
+> > There are *no* additional TLBs used.
+> 
+> But why do you reserve an own virtual area then if you claim to not use any
+> additional mappings? 
 
-But why do you reserve an own virtual area then if you claim to not use any
-additional mappings? 
+The 1-1 area using mappings for 2MB pages right? So it uses a virtual 1-1 
+area. It already has a virtual mapping.
 
--Andi
+What we do for virtual memmap here is also use 2MB pages but order the 
+pages a bit different so that they provide a linear memory map.
+
+So the number of TLBs in use stays the same. There are a few additional 
+higher level page table pages that are needed to provide the alternate 
+view that generates the linear mapping but that is just a couple of pages.
+
