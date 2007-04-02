@@ -1,37 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:63709 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751072AbXDAXMM convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Apr 2007 19:12:12 -0400
-From: Arnd Bergmann <arnd@arndb.de>
+Received: from cantor2.suse.de ([195.135.220.15]:42484 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933430AbXDBF7F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Apr 2007 01:59:05 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: missing syscalls
-Date: Mon, 2 Apr 2007 01:12:54 +0200
-References: <20070401160123.GA9178@uranus.ravnborg.org> <20070401200947.GB826@parisc-linux.org> <20070401201929.GB10652@uranus.ravnborg.org>
-In-Reply-To: <20070401201929.GB10652@uranus.ravnborg.org>
+Date: Mon, 2 Apr 2007 07:58:51 +0200
+References: <20070401160123.GA9178@uranus.ravnborg.org> <200704012254.53224.ak@suse.de> <20070401211026.GD10761@uranus.ravnborg.org>
+In-Reply-To: <20070401211026.GD10761@uranus.ravnborg.org>
 MIME-Version: 1.0
 Content-Type: text/plain;
   charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-Message-Id: <200704020112.54931.arnd@arndb.de>
+Message-Id: <200704020758.51196.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, David Miller <davem@davemloft.net>, rmk@arm.linux.org.uk, linux-arch@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sunday 01 April 2007 22:19:29 Sam Ravnborg wrote:
-> +#define __NR_getcpu             /* 318 - not relevant */
-> +#define __NR_epoll_pwait        /* 319 - not relevant */
+On Sunday 01 April 2007 23:10, Sam Ravnborg wrote:
+> On Sun, Apr 01, 2007 at 10:54:53PM +0200, Andi Kleen wrote:
+> > 
+> > > ============== x86_64 ================
+> > >   CALL    /home/sam/kernel/kbuild.git/scripts/checksyscalls.sh
+> > > <stdin>:1356:2: warning: #warning syscall getcpu not implemented
+> > 
+> > It's implemented as a vsyscall.
+> 
+> Can I assume you take care of silence the warning?
+> A dummy entry in unistd will do the trick.
 
-This looks like it is potentially harmful, since it breaks
-user space code that does things like
+As Arnd points out that would break reasonable user space checks.
 
-int my_getcpy(void)
-{
-#ifdef __NR_getcpu
-	return syscall(__NR_getcpu);
-#endif
-	return -1;
-}
-
-	Arnd <><
+-Andi
