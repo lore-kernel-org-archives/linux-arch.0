@@ -1,36 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:55783 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934008AbXDBMbT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Apr 2007 08:31:19 -0400
-Date: Mon, 2 Apr 2007 06:31:16 -0600
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: missing syscalls
-Message-ID: <20070402123116.GE826@parisc-linux.org>
-References: <20070401160123.GA9178@uranus.ravnborg.org> <200704012254.53224.ak@suse.de> <20070401211026.GD10761@uranus.ravnborg.org> <200704020758.51196.ak@suse.de>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:45953 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752366AbXDBPhe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Apr 2007 11:37:34 -0400
+Date: Mon, 2 Apr 2007 08:37:32 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH 1/4] x86_64: Switch to SPARSE_VIRTUAL
+In-Reply-To: <200704011246.52238.ak@suse.de>
+Message-ID: <Pine.LNX.4.64.0704020832320.30394@schroedinger.engr.sgi.com>
+References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com>
+ <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>
+ <200704011246.52238.ak@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <200704020758.51196.ak@suse.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: Andi Kleen <ak@suse.de>
-Cc: Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Martin Bligh <mbligh@google.com>, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Apr 02, 2007 at 07:58:51AM +0200, Andi Kleen wrote:
-> On Sunday 01 April 2007 23:10, Sam Ravnborg wrote:
-> > On Sun, Apr 01, 2007 at 10:54:53PM +0200, Andi Kleen wrote:
-> > > 
-> > > > ============== x86_64 ================
-> > > >   CALL    /home/sam/kernel/kbuild.git/scripts/checksyscalls.sh
-> > > > <stdin>:1356:2: warning: #warning syscall getcpu not implemented
-> > > 
-> > > It's implemented as a vsyscall.
-> > 
-> > Can I assume you take care of silence the warning?
-> > A dummy entry in unistd will do the trick.
-> 
-> As Arnd points out that would break reasonable user space checks.
+On Sun, 1 Apr 2007, Andi Kleen wrote:
 
-Actually, this specific case would also be wrong -- you wouldn't want
-programs to return -1, you'd want them to call the vsyscall.
+> Hmm, this means there is at least 2MB worth of struct page on every node?
+> Or do you have overlaps with other memory (I think you have)
+> In that case you have to handle the overlap in change_page_attr()
+
+Correct. 2MB worth of struct page is 128 mb of memory. Are there nodes 
+with smaller amounts of memory? Note also that the default sparsemem
+section size is (include/asm-x86_64/sparsemem.h)
+
+#define SECTION_SIZE_BITS       27 /* matt - 128 is convenient right now */
+
+128MB ....
+
+So you currently cannot have smaller sections of memory anyways.
+
+> Also your "generic" vmemmap code doesn't look very generic, but
+> rather x86 specific. I didn't think huge pages could be easily
+> set up this way in many other architectures.  
+
+We do this pmd special casing in other parts of the core VM. I have also a 
+patch for IA64 that workks with this.
+
+> Do you have any benchmarks numbers to prove it? There seem to be a few
+> benchmarks where the discontig virt_to_page is a problem
+> (although I know ways to make it more efficient), and sparsemem
+> is normally slower. Still some numbers would be good.
+
+You want a benchmark to prove that the removal of memory references and 
+code improves performance?
+
