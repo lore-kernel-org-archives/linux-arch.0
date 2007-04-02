@@ -1,65 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:35727 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S965966AbXDBVxh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Apr 2007 17:53:37 -0400
-Date: Mon, 2 Apr 2007 14:53:34 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 1/2] Generic Virtual Memmap suport for SPARSEMEM
-In-Reply-To: <1175550151.22373.116.camel@localhost.localdomain>
-Message-ID: <Pine.LNX.4.64.0704021449200.2272@schroedinger.engr.sgi.com>
+Received: from e34.co.us.ibm.com ([32.97.110.152]:48024 "EHLO
+	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965981AbXDBV4R (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Apr 2007 17:56:17 -0400
+Subject: Re: [PATCH 1/4] x86_64: Switch to SPARSE_VIRTUAL
+From: Dave Hansen <hansendc@us.ibm.com>
+In-Reply-To: <Pine.LNX.4.64.0704021422040.2272@schroedinger.engr.sgi.com>
 References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com>
-  <1175547000.22373.89.camel@localhost.localdomain>
- <Pine.LNX.4.64.0704021351590.1224@schroedinger.engr.sgi.com>
- <1175548924.22373.109.camel@localhost.localdomain>
- <Pine.LNX.4.64.0704021428340.2272@schroedinger.engr.sgi.com>
- <1175550151.22373.116.camel@localhost.localdomain>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+	 <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>
+	 <200704011246.52238.ak@suse.de>
+	 <Pine.LNX.4.64.0704020832320.30394@schroedinger.engr.sgi.com>
+	 <1175544797.22373.62.camel@localhost.localdomain>
+	 <Pine.LNX.4.64.0704021324480.31842@schroedinger.engr.sgi.com>
+	 <1175548086.22373.99.camel@localhost.localdomain>
+	 <Pine.LNX.4.64.0704021422040.2272@schroedinger.engr.sgi.com>
+Content-Type: text/plain
+Date: Mon, 02 Apr 2007 14:56:08 -0700
+Message-Id: <1175550968.22373.122.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Dave Hansen <hansendc@us.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Martin Bligh <mbligh@google.com>, linux-mm@kvack.org, Andi Kleen <ak@suse.de>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Martin Bligh <mbligh@google.com>, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2 Apr 2007, Dave Hansen wrote:
+On Mon, 2007-04-02 at 14:28 -0700, Christoph Lameter wrote:
+> I do not care what its called as long as it 
+> covers all the bases and is not a glaring performance regresssion (like 
+> SPARSEMEM so far). 
 
-> > The slab allocator purposes is to deliver small sub page sized chunks.
-> > The page allocator is there to allocate pages. Both are optimized for its 
-> > purpose.
-> 
-> I understand that, in general, but how does that optimization help,
-> here, exactly?  My argument is that if we use the slab, it means more
-> code sharing with existing code in sparse.c.  Other than ideology, what
-> practical reasons are there in this case that keep us from doing that
-> otherwise attractive code sharing.
+I honestly don't doubt that there are regressions, somewhere.  Could you
+elaborate, and perhaps actually show us some numbers on this?  Perhaps
+instead of adding a completely new model, we can adapt the existing ones
+somehow.
 
-F.e. you are wasting memory that the slab needs to uselessly track these 
-allocations. You would need to create a special slab that has page sized
-(or huge page sized) alignment to have the proper allocation behavior. Not 
-good.
+But, without some cold, hard, data, we mere mortals without the 1024-way
+machines can only guess. ;)
 
-The rest of sparse is not MMU bound. So you may be fine. I'd recommend 
-though to use the page allocator if you are doing large allocations. I do 
-not see the point of using slab there.
-
-> I don't think the pagetable walks are generic enough to ever get used on
-> ppc, unless they start walking the Linux pagetables for the kernel
-> virtual address area.  I was trying to poke you into getting the
-> pagetable walks out of sparse.c. ;)
-
-If I would be doing that then we would end up adding these pagetable walks
-to multiple architectures. I already need to cover IA64 and x86_64 and 
-this will also do i386. Lets try to keep them generic. PPC may need to 
-disable these walks and do its own thing.
-
-> > Well think about how to handle the case that the allocatiopn of a page 
-> > table page or a vmemmap block fails. Once we have that sorted out then we 
-> > can cleanup the higher layers.
-> 
-> I think it is best to just completely replace
-> sparse_early_mem_map_alloc() for the vmemmap case.  It really is a
-> completely different beast.  You'd never, for instance, have
-> alloc_remap() come into play.
-
-What is the purpose of alloc_remap? Could not figure that one out.
+-- Dave
 
