@@ -1,37 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:50349 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752346AbXDBQSQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Apr 2007 12:18:16 -0400
-Date: Mon, 2 Apr 2007 09:18:16 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
+Received: from cantor2.suse.de ([195.135.220.15]:52024 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933674AbXDBROX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Apr 2007 13:14:23 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: [PATCH 1/4] x86_64: Switch to SPARSE_VIRTUAL
-In-Reply-To: <200704011246.52238.ak@suse.de>
-Message-ID: <Pine.LNX.4.64.0704020914280.30634@schroedinger.engr.sgi.com>
-References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com>
- <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>
- <200704011246.52238.ak@suse.de>
+Date: Mon, 2 Apr 2007 19:14:07 +0200
+References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com> <200704021744.39880.ak@suse.de> <Pine.LNX.4.64.0704020851300.30394@schroedinger.engr.sgi.com>
+In-Reply-To: <Pine.LNX.4.64.0704020851300.30394@schroedinger.engr.sgi.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200704021914.07541.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
+To: Christoph Lameter <clameter@sgi.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Martin Bligh <mbligh@google.com>, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 1 Apr 2007, Andi Kleen wrote:
 
-> Or do you have overlaps with other memory (I think you have)
+> No no no. For the gazillions time: All of 1-1 mapped kernel memory on 
+> x86_64 needs a 2 MB page table entry. The virtual memmap uses the same. 
+> There are *no* additional TLBs used.
 
-We may get into a case where some page structs are physically located
-on other nodes if there are no holes between nodes. This would be 
-particularly significant for 64MB node sizes using numa emulation.
-But there it really does not matter where the real memory is located.
-(this is really inherent in sparsemems way of mapping memory).
+But why do you reserve an own virtual area then if you claim to not use any
+additional mappings? 
 
-> In that case you have to handle the overlap in change_page_attr()
-
-Why would we use change_page_attr on page structs? I can see that the 
-pages themselves should be subject to change_page_attr but why the 
-page_structs? I think the system would panic if one would set page structs 
-to read only.
-
+-Andi
