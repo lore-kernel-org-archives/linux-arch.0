@@ -1,35 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:49661 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.10.76.45]:49621 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S2992584AbXDDEC2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Apr 2007 00:02:28 -0400
+	id S2992566AbXDDEBo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2007 00:01:44 -0400
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 04 Apr 2007 14:02:16 +1000
-Subject: [PATCH 3/14] get_unmapped_area handles MAP_FIXED on arm
-In-Reply-To: <1175659331.690672.592289266160.qpush@grosgo>
-Message-Id: <20070404040227.48AEDDDE3E@ozlabs.org>
+Date: Wed, 04 Apr 2007 14:01:32 +1000
+Subject: [PATCH 12/14] get_unmapped_area handles MAP_FIXED in /dev/mem (nommu)
+In-Reply-To: <1175659285.929428.835270667964.qpush@grosgo>
+Message-Id: <20070404040143.A42A3DDEA3@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+This also fixes a bug, I think, it used to return a pgoff (pfn)
+instead of an address. (To split ?)
+
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
 
- arch/arm/mm/mmap.c |    3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ drivers/char/mem.c |    5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-Index: linux-cell/arch/arm/mm/mmap.c
+Index: linux-cell/drivers/char/mem.c
 ===================================================================
---- linux-cell.orig/arch/arm/mm/mmap.c	2007-03-22 14:59:51.000000000 +1100
-+++ linux-cell/arch/arm/mm/mmap.c	2007-03-22 15:00:01.000000000 +1100
-@@ -49,8 +49,7 @@ arch_get_unmapped_area(struct file *filp
- #endif
+--- linux-cell.orig/drivers/char/mem.c	2007-03-22 16:24:04.000000000 +1100
++++ linux-cell/drivers/char/mem.c	2007-03-22 16:26:30.000000000 +1100
+@@ -246,9 +246,12 @@ static unsigned long get_unmapped_area_m
+ 					   unsigned long pgoff,
+ 					   unsigned long flags)
+ {
++	if (flags & MAP_FIXED)
++		if ((addr >> PAGE_SHIFT) != pgoff)
++			return (unsigned long) -EINVAL;
+ 	if (!valid_mmap_phys_addr_range(pgoff, len))
+ 		return (unsigned long) -EINVAL;
+-	return pgoff;
++	return pgoff << PAGE_SHIFT;
+ }
  
- 	/*
--	 * We should enforce the MAP_FIXED case.  However, currently
--	 * the generic kernel code doesn't allow us to handle this.
-+	 * We enforce the MAP_FIXED case.
- 	 */
- 	if (flags & MAP_FIXED) {
- 		if (aliasing && flags & MAP_SHARED && addr & (SHMLBA - 1))
+ /* can't do an in-place private mapping if there's no MMU */
