@@ -1,42 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:49672 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.10.76.45]:49664 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S2992594AbXDDECc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Apr 2007 00:02:32 -0400
+	id S2992587AbXDDEC3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2007 00:02:29 -0400
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 04 Apr 2007 14:02:21 +1000
-Subject: [PATCH 12/14] get_unmapped_area handles MAP_FIXED in /dev/mem (nommu)
+Date: Wed, 04 Apr 2007 14:02:16 +1000
+Subject: [PATCH 4/14] get_unmapped_area handles MAP_FIXED on frv 
 In-Reply-To: <1175659331.690672.592289266160.qpush@grosgo>
-Message-Id: <20070404040232.2FEF6DDEBA@ozlabs.org>
+Message-Id: <20070404040227.CDBCFDDE44@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-This also fixes a bug, I think, it used to return a pgoff (pfn)
-instead of an address. (To split ?)
-
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
 
- drivers/char/mem.c |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/frv/mm/elf-fdpic.c |    4 ++++
+ 1 file changed, 4 insertions(+)
 
-Index: linux-cell/drivers/char/mem.c
+Index: linux-cell/arch/frv/mm/elf-fdpic.c
 ===================================================================
---- linux-cell.orig/drivers/char/mem.c	2007-03-22 16:24:04.000000000 +1100
-+++ linux-cell/drivers/char/mem.c	2007-03-22 16:26:30.000000000 +1100
-@@ -246,9 +246,12 @@ static unsigned long get_unmapped_area_m
- 					   unsigned long pgoff,
- 					   unsigned long flags)
- {
-+	if (flags & MAP_FIXED)
-+		if ((addr >> PAGE_SHIFT) != pgoff)
-+			return (unsigned long) -EINVAL;
- 	if (!valid_mmap_phys_addr_range(pgoff, len))
- 		return (unsigned long) -EINVAL;
--	return pgoff;
-+	return pgoff << PAGE_SHIFT;
- }
+--- linux-cell.orig/arch/frv/mm/elf-fdpic.c	2007-03-22 15:00:50.000000000 +1100
++++ linux-cell/arch/frv/mm/elf-fdpic.c	2007-03-22 15:01:06.000000000 +1100
+@@ -64,6 +64,10 @@ unsigned long arch_get_unmapped_area(str
+ 	if (len > TASK_SIZE)
+ 		return -ENOMEM;
  
- /* can't do an in-place private mapping if there's no MMU */
++	/* handle MAP_FIXED */
++	if (flags & MAP_FIXED)
++		return addr;
++
+ 	/* only honour a hint if we're not going to clobber something doing so */
+ 	if (addr) {
+ 		addr = PAGE_ALIGN(addr);
