@@ -1,34 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:41192 "EHLO gate.crashing.org"
+Received: from ozlabs.org ([203.10.76.45]:49661 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S2992589AbXDDEE7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Apr 2007 00:04:59 -0400
-Subject: Re: [PATCH 0/14] Pass MAP_FIXED down to get_unmapped_area
+	id S2992584AbXDDEC2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2007 00:02:28 -0400
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <1175659285.929428.835270667964.qpush@grosgo>
-References: <1175659285.929428.835270667964.qpush@grosgo>
-Content-Type: text/plain
-Date: Wed, 04 Apr 2007 14:03:48 +1000
-Message-Id: <1175659428.30879.47.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Date: Wed, 04 Apr 2007 14:02:16 +1000
+Subject: [PATCH 3/14] get_unmapped_area handles MAP_FIXED on arm
+In-Reply-To: <1175659331.690672.592289266160.qpush@grosgo>
+Message-Id: <20070404040227.48AEDDDE3E@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 2007-04-04 at 14:01 +1000, Benjamin Herrenschmidt wrote:
-> This is a "first step" as there are still cleanups to be done in various
-> areas touched by that code but I think it's probably good to go as is and
-> at least enables me to implement what I need for PowerPC.
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
 
+ arch/arm/mm/mmap.c |    3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
- .../...
-
-And sorry for the double-send of some of the patches, a script hickup on
-my side.
-
-Cheers,
-Ben.
-
-
+Index: linux-cell/arch/arm/mm/mmap.c
+===================================================================
+--- linux-cell.orig/arch/arm/mm/mmap.c	2007-03-22 14:59:51.000000000 +1100
++++ linux-cell/arch/arm/mm/mmap.c	2007-03-22 15:00:01.000000000 +1100
+@@ -49,8 +49,7 @@ arch_get_unmapped_area(struct file *filp
+ #endif
+ 
+ 	/*
+-	 * We should enforce the MAP_FIXED case.  However, currently
+-	 * the generic kernel code doesn't allow us to handle this.
++	 * We enforce the MAP_FIXED case.
+ 	 */
+ 	if (flags & MAP_FIXED) {
+ 		if (aliasing && flags & MAP_SHARED && addr & (SHMLBA - 1))
