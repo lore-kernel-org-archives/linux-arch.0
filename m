@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from ozlabs.org ([203.10.76.45]:49668 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S2992586AbXDDEC3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Apr 2007 00:02:29 -0400
+	id S2992597AbXDDECd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2007 00:02:33 -0400
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 04 Apr 2007 14:02:17 +1000
-Subject: [PATCH 5/14] get_unmapped_area handles MAP_FIXED on i386
+Date: Wed, 04 Apr 2007 14:02:22 +1000
+Subject: [PATCH 14/14] get_unmapped_area doesn't need hugetlbfs hacks anymore 
 In-Reply-To: <1175659331.690672.592289266160.qpush@grosgo>
-Message-Id: <20070404040228.68D9DDDE46@ozlabs.org>
+Message-Id: <20070404040233.35EC6DDE3F@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
@@ -16,23 +16,33 @@ List-ID: <linux-arch.vger.kernel.org>
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
 
- arch/i386/mm/hugetlbpage.c |    6 ++++++
- 1 file changed, 6 insertions(+)
+ mm/mmap.c |   16 ----------------
+ 1 file changed, 16 deletions(-)
 
-Index: linux-cell/arch/i386/mm/hugetlbpage.c
+Index: linux-cell/mm/mmap.c
 ===================================================================
---- linux-cell.orig/arch/i386/mm/hugetlbpage.c	2007-03-22 16:08:12.000000000 +1100
-+++ linux-cell/arch/i386/mm/hugetlbpage.c	2007-03-22 16:14:19.000000000 +1100
-@@ -367,6 +367,12 @@ hugetlb_get_unmapped_area(struct file *f
- 	if (len > TASK_SIZE)
- 		return -ENOMEM;
+--- linux-cell.orig/mm/mmap.c	2007-03-22 16:30:24.000000000 +1100
++++ linux-cell/mm/mmap.c	2007-03-22 16:30:48.000000000 +1100
+@@ -1381,22 +1381,6 @@ get_unmapped_area(struct file *file, uns
+ 	if (addr & ~PAGE_MASK)
+ 		return -EINVAL;
  
-+	if (flags & MAP_FIXED) {
-+		if (prepare_hugepage_range(addr, len, pgoff))
-+			return -EINVAL;
-+		return addr;
-+	}
-+
- 	if (addr) {
- 		addr = ALIGN(addr, HPAGE_SIZE);
- 		vma = find_vma(mm, addr);
+-	if (file && is_file_hugepages(file))  {
+-		/*
+-		 * Check if the given range is hugepage aligned, and
+-		 * can be made suitable for hugepages.
+-		 */
+-		ret = prepare_hugepage_range(addr, len, pgoff);
+-	} else {
+-		/*
+-		 * Ensure that a normal request is not falling in a
+-		 * reserved hugepage range.  For some archs like IA-64,
+-		 * there is a separate region for hugepages.
+-		 */
+-		ret = is_hugepage_only_range(current->mm, addr, len);
+-	}
+-	if (ret)
+-		return -EINVAL;
+ 	return addr;
+ }
+ 
