@@ -1,45 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:53193 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750928AbXDDWia (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Apr 2007 18:38:30 -0400
-Date: Wed, 4 Apr 2007 15:38:28 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 1/4] x86_64: Switch to SPARSE_VIRTUAL
-In-Reply-To: <20070404212736.GI10084@localhost>
-Message-ID: <Pine.LNX.4.64.0704041531290.8127@schroedinger.engr.sgi.com>
-References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com>
- <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>
- <200704011246.52238.ak@suse.de> <Pine.LNX.4.64.0704020832320.30394@schroedinger.engr.sgi.com>
- <1175544797.22373.62.camel@localhost.localdomain>
- <Pine.LNX.4.64.0704021324480.31842@schroedinger.engr.sgi.com>
- <1175548086.22373.99.camel@localhost.localdomain>
- <Pine.LNX.4.64.0704021422040.2272@schroedinger.engr.sgi.com>
- <20070404212736.GI10084@localhost>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from gate.crashing.org ([63.228.1.57]:39139 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752715AbXDDXOH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2007 19:14:07 -0400
+Subject: Re: [PATCH 11/14] get_unmapped_area handles MAP_FIXED on ramfs
+	(nommu)
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <23091.1175681818@redhat.com>
+References: <20070404040231.A110CDDEB8@ozlabs.org>
+	 <23091.1175681818@redhat.com>
+Content-Type: text/plain
+Date: Thu, 05 Apr 2007 09:13:52 +1000
+Message-Id: <1175728433.30879.79.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Bob Picco <bob.picco@hp.com>
-Cc: Dave Hansen <hansendc@us.ibm.com>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Martin Bligh <mbligh@google.com>, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+To: David Howells <dhowells@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 4 Apr 2007, Bob Picco wrote:
+On Wed, 2007-04-04 at 11:16 +0100, David Howells wrote:
+> Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+> 
+> > -	if (!(flags & MAP_SHARED))
+> > +	/* Deal with MAP_FIXED differently ? Forbid it ? Need help from some nommu
+> > +	 * folks there... --BenH.
+> > +	 */
+> > +	if ((flags & MAP_FIXED) || !(flags & MAP_SHARED))
+> 
+> MAP_FIXED on NOMMU?  Surely you jest...
 
-> Well you must have forgotten about these two postings in regards to
-> performance numbers:
-> http://marc.info/?l=linux-ia64&m=111990276501051&w=2
-> and
-> http://marc.info/?l=linux-kernel&m=116664638611634&w=2
+Heh, see the comment, I was actually wondering about it :-)
 
-I am well aware of those but those were done with a PAGE_SIZE vmemmap 
-which is particularly bad on IA64 given the TLB fault overhead. You 
-eliminated the TLB fault overhead. Virtual Memmaps need to be designed in 
-such a way that they do not create additional overhead. The x86_64 version 
-here has no such overhead that you could eliminate with lookup tables.
+> See the first if-statement in validate_mmap_request().
+> 
+> If anything, you should be adding BUG_ON(flags & MAP_FIXED).
 
-The bad thing is that this benchmark then was used to justify 
-sparsemem on other platforms where such overhead does not exist.
+Yeah, I missed that bit. That will simplify the problem.
 
-One needs to be careful with benchmarks..... Its better to review the 
-code.
+Thanks,
+Ben.
+
 
