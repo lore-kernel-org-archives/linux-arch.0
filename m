@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:52595 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:56682 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S2992829AbXDDKRK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Apr 2007 06:17:10 -0400
+	id S2992834AbXDDKbV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2007 06:31:21 -0400
 From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20070404040231.A110CDDEB8@ozlabs.org> 
-References: <20070404040231.A110CDDEB8@ozlabs.org> 
-Subject: Re: [PATCH 11/14] get_unmapped_area handles MAP_FIXED on ramfs (nommu) 
-Date: Wed, 04 Apr 2007 11:16:58 +0100
-Message-ID: <23091.1175681818@redhat.com>
+In-Reply-To: <20070404040232.2FEF6DDEBA@ozlabs.org> 
+References: <20070404040232.2FEF6DDEBA@ozlabs.org> 
+Subject: Re: [PATCH 12/14] get_unmapped_area handles MAP_FIXED in /dev/mem (nommu) 
+Date: Wed, 04 Apr 2007 11:31:09 +0100
+Message-ID: <23349.1175682669@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
@@ -16,16 +16,16 @@ List-ID: <linux-arch.vger.kernel.org>
 
 Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
 
-> -	if (!(flags & MAP_SHARED))
-> +	/* Deal with MAP_FIXED differently ? Forbid it ? Need help from some nommu
-> +	 * folks there... --BenH.
-> +	 */
-> +	if ((flags & MAP_FIXED) || !(flags & MAP_SHARED))
+> +	if (flags & MAP_FIXED)
+> +		if ((addr >> PAGE_SHIFT) != pgoff)
+> +			return (unsigned long) -EINVAL;
 
-MAP_FIXED on NOMMU?  Surely you jest...
+Again... in NOMMU-mode there is no MAP_FIXED - it's rejected before we get
+this far.
 
-See the first if-statement in validate_mmap_request().
+> -	return pgoff;
+> +	return pgoff << PAGE_SHIFT;
 
-If anything, you should be adding BUG_ON(flags & MAP_FIXED).
+That, however, does appear to be a genuine bugfix.
 
 David
