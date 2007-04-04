@@ -1,79 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:52941 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S966129AbXDCAit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Apr 2007 20:38:49 -0400
-From: Christoph Lameter <clameter@sgi.com>
-Message-Id: <20070403003848.829.88005.sendpatchset@schroedinger.engr.sgi.com>
-In-Reply-To: <20070403003837.829.31019.sendpatchset@schroedinger.engr.sgi.com>
-References: <20070403003837.829.31019.sendpatchset@schroedinger.engr.sgi.com>
-Subject: [PATCH 3/3] IA64: Implement SPARSE_VIRTUAL
-Date: Mon,  2 Apr 2007 17:38:48 -0700 (PDT)
+Received: from ozlabs.org ([203.10.76.45]:49616 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S2992557AbXDDEBk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2007 00:01:40 -0400
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Wed, 04 Apr 2007 14:01:28 +1000
+Subject: [PATCH 4/14] get_unmapped_area handles MAP_FIXED on frv 
+In-Reply-To: <1175659285.929428.835270667964.qpush@grosgo>
+Message-Id: <20070404040139.2B61FDDE3F@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Bligh <mbligh@google.com>, linux-mm@kvack.org, Andi Kleen <ak@suse.de>, Dave Hansen <hansendc@us.ibm.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Christoph Lameter <clameter@sgi.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-[IA64] Sparse virtual implementation
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
 
-Equip IA64 sparsemem with a virtual memmap. This is similar to the existing
-CONFIG_VMEMMAP functionality for discontig. It uses a page size mapping.
+ arch/frv/mm/elf-fdpic.c |    4 ++++
+ 1 file changed, 4 insertions(+)
 
-This is provided as a minimally intrusive solution. We split the
-128TB VMALLOC area into two 64TB areas and use one for the virtual memmap.
-
-I have another patch in testing that uses granule sized 16MB pages to map
-the memmap but this would require changes to the interrupt vector table
-and there are certain discussions that would need to take place
-before we can accept such a large page size for the memmap. That version
-is better because is improves IA64 performance by reducing TLB pressure.
-
-Signed-off-by: Christoph Lameter <clameter@sgi.com>
-
-Index: linux-2.6.21-rc5-mm2/arch/ia64/Kconfig
+Index: linux-cell/arch/frv/mm/elf-fdpic.c
 ===================================================================
---- linux-2.6.21-rc5-mm2.orig/arch/ia64/Kconfig	2007-04-02 16:15:29.000000000 -0700
-+++ linux-2.6.21-rc5-mm2/arch/ia64/Kconfig	2007-04-02 16:15:50.000000000 -0700
-@@ -350,6 +350,10 @@ config ARCH_SPARSEMEM_ENABLE
- 	def_bool y
- 	depends on ARCH_DISCONTIGMEM_ENABLE
+--- linux-cell.orig/arch/frv/mm/elf-fdpic.c	2007-03-22 15:00:50.000000000 +1100
++++ linux-cell/arch/frv/mm/elf-fdpic.c	2007-03-22 15:01:06.000000000 +1100
+@@ -64,6 +64,10 @@ unsigned long arch_get_unmapped_area(str
+ 	if (len > TASK_SIZE)
+ 		return -ENOMEM;
  
-+config SPARSE_VIRTUAL
-+	def_bool y
-+	depends on ARCH_SPARSEMEM_ENABLE
++	/* handle MAP_FIXED */
++	if (flags & MAP_FIXED)
++		return addr;
 +
- config ARCH_DISCONTIGMEM_DEFAULT
- 	def_bool y if (IA64_SGI_SN2 || IA64_GENERIC || IA64_HP_ZX1 || IA64_HP_ZX1_SWIOTLB)
- 	depends on ARCH_DISCONTIGMEM_ENABLE
-Index: linux-2.6.21-rc5-mm2/include/asm-ia64/page.h
-===================================================================
---- linux-2.6.21-rc5-mm2.orig/include/asm-ia64/page.h	2007-04-02 16:15:29.000000000 -0700
-+++ linux-2.6.21-rc5-mm2/include/asm-ia64/page.h	2007-04-02 16:15:50.000000000 -0700
-@@ -106,6 +106,9 @@ extern int ia64_pfn_valid (unsigned long
- # define ia64_pfn_valid(pfn) 1
- #endif
- 
-+#define vmemmap ((struct page *)(RGN_BASE(RGN_GATE) + \
-+				(1UL << (4*PAGE_SHIFT - 10))))
-+
- #ifdef CONFIG_VIRTUAL_MEM_MAP
- extern struct page *vmem_map;
- #ifdef CONFIG_DISCONTIGMEM
-Index: linux-2.6.21-rc5-mm2/include/asm-ia64/pgtable.h
-===================================================================
---- linux-2.6.21-rc5-mm2.orig/include/asm-ia64/pgtable.h	2007-04-02 16:15:29.000000000 -0700
-+++ linux-2.6.21-rc5-mm2/include/asm-ia64/pgtable.h	2007-04-02 16:15:50.000000000 -0700
-@@ -236,8 +236,13 @@ ia64_phys_addr_valid (unsigned long addr
- # define VMALLOC_END		vmalloc_end
-   extern unsigned long vmalloc_end;
- #else
-+#if defined(CONFIG_SPARSEMEM) && defined(CONFIG_SPARSE_VIRTUAL)
-+/* SPARSE_VIRTUAL uses half of vmalloc... */
-+# define VMALLOC_END		(RGN_BASE(RGN_GATE) + (1UL << (4*PAGE_SHIFT - 10)))
-+#else
- # define VMALLOC_END		(RGN_BASE(RGN_GATE) + (1UL << (4*PAGE_SHIFT - 9)))
- #endif
-+#endif
- 
- /* fs/proc/kcore.c */
- #define	kc_vaddr_to_offset(v) ((v) - RGN_BASE(RGN_GATE))
+ 	/* only honour a hint if we're not going to clobber something doing so */
+ 	if (addr) {
+ 		addr = PAGE_ALIGN(addr);
