@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:49618 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.10.76.45]:49621 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S2992563AbXDDEBk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Apr 2007 00:01:40 -0400
+	id S934064AbXDDEBm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2007 00:01:42 -0400
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 04 Apr 2007 14:01:28 +1000
-Subject: [PATCH 5/14] get_unmapped_area handles MAP_FIXED on i386
+Date: Wed, 04 Apr 2007 14:01:30 +1000
+Subject: [PATCH 9/14] get_unmapped_area handles MAP_FIXED on x86_64
 In-Reply-To: <1175659285.929428.835270667964.qpush@grosgo>
-Message-Id: <20070404040139.B08C6DDE41@ozlabs.org>
+Message-Id: <20070404040141.E8A4BDDE46@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
@@ -16,23 +16,20 @@ List-ID: <linux-arch.vger.kernel.org>
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
 
- arch/i386/mm/hugetlbpage.c |    6 ++++++
- 1 file changed, 6 insertions(+)
+ arch/x86_64/kernel/sys_x86_64.c |    3 +++
+ 1 file changed, 3 insertions(+)
 
-Index: linux-cell/arch/i386/mm/hugetlbpage.c
+Index: linux-cell/arch/x86_64/kernel/sys_x86_64.c
 ===================================================================
---- linux-cell.orig/arch/i386/mm/hugetlbpage.c	2007-03-22 16:08:12.000000000 +1100
-+++ linux-cell/arch/i386/mm/hugetlbpage.c	2007-03-22 16:14:19.000000000 +1100
-@@ -367,6 +367,12 @@ hugetlb_get_unmapped_area(struct file *f
- 	if (len > TASK_SIZE)
- 		return -ENOMEM;
- 
-+	if (flags & MAP_FIXED) {
-+		if (prepare_hugepage_range(addr, len, pgoff))
-+			return -EINVAL;
+--- linux-cell.orig/arch/x86_64/kernel/sys_x86_64.c	2007-03-22 16:10:10.000000000 +1100
++++ linux-cell/arch/x86_64/kernel/sys_x86_64.c	2007-03-22 16:11:06.000000000 +1100
+@@ -93,6 +93,9 @@ arch_get_unmapped_area(struct file *filp
+ 	unsigned long start_addr;
+ 	unsigned long begin, end;
+ 	
++	if (flags & MAP_FIXED)
 +		return addr;
-+	}
 +
- 	if (addr) {
- 		addr = ALIGN(addr, HPAGE_SIZE);
- 		vma = find_vma(mm, addr);
+ 	find_start_end(flags, &begin, &end); 
+ 
+ 	if (len > end)
