@@ -1,35 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:49621 "EHLO ozlabs.org"
+Received: from mx1.redhat.com ([66.187.233.31]:52595 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S934064AbXDDEBm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Apr 2007 00:01:42 -0400
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 04 Apr 2007 14:01:30 +1000
-Subject: [PATCH 9/14] get_unmapped_area handles MAP_FIXED on x86_64
-In-Reply-To: <1175659285.929428.835270667964.qpush@grosgo>
-Message-Id: <20070404040141.E8A4BDDE46@ozlabs.org>
+	id S2992829AbXDDKRK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2007 06:17:10 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20070404040231.A110CDDEB8@ozlabs.org> 
+References: <20070404040231.A110CDDEB8@ozlabs.org> 
+Subject: Re: [PATCH 11/14] get_unmapped_area handles MAP_FIXED on ramfs (nommu) 
+Date: Wed, 04 Apr 2007 11:16:58 +0100
+Message-ID: <23091.1175681818@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
----
+Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
 
- arch/x86_64/kernel/sys_x86_64.c |    3 +++
- 1 file changed, 3 insertions(+)
+> -	if (!(flags & MAP_SHARED))
+> +	/* Deal with MAP_FIXED differently ? Forbid it ? Need help from some nommu
+> +	 * folks there... --BenH.
+> +	 */
+> +	if ((flags & MAP_FIXED) || !(flags & MAP_SHARED))
 
-Index: linux-cell/arch/x86_64/kernel/sys_x86_64.c
-===================================================================
---- linux-cell.orig/arch/x86_64/kernel/sys_x86_64.c	2007-03-22 16:10:10.000000000 +1100
-+++ linux-cell/arch/x86_64/kernel/sys_x86_64.c	2007-03-22 16:11:06.000000000 +1100
-@@ -93,6 +93,9 @@ arch_get_unmapped_area(struct file *filp
- 	unsigned long start_addr;
- 	unsigned long begin, end;
- 	
-+	if (flags & MAP_FIXED)
-+		return addr;
-+
- 	find_start_end(flags, &begin, &end); 
- 
- 	if (len > end)
+MAP_FIXED on NOMMU?  Surely you jest...
+
+See the first if-statement in validate_mmap_request().
+
+If anything, you should be adding BUG_ON(flags & MAP_FIXED).
+
+David
