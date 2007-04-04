@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from ozlabs.org ([203.10.76.45]:49668 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S2992593AbXDDECc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Apr 2007 00:02:32 -0400
+	id S2992590AbXDDECa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2007 00:02:30 -0400
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 04 Apr 2007 14:02:20 +1000
-Subject: [PATCH 11/14] get_unmapped_area handles MAP_FIXED on ramfs (nommu) 
+Date: Wed, 04 Apr 2007 14:02:19 +1000
+Subject: [PATCH 8/14] get_unmapped_area handles MAP_FIXED on sparc64
 In-Reply-To: <1175659331.690672.592289266160.qpush@grosgo>
-Message-Id: <20070404040231.A110CDDEB8@ozlabs.org>
+Message-Id: <20070404040230.14970DDEA0@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, Linux Memory Management <linux-mm@kvack.org>, linux-kernel@vger.kernel.org
@@ -16,22 +16,23 @@ List-ID: <linux-arch.vger.kernel.org>
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
 
- fs/ramfs/file-nommu.c |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/sparc64/mm/hugetlbpage.c |    6 ++++++
+ 1 file changed, 6 insertions(+)
 
-Index: linux-cell/fs/ramfs/file-nommu.c
+Index: linux-cell/arch/sparc64/mm/hugetlbpage.c
 ===================================================================
---- linux-cell.orig/fs/ramfs/file-nommu.c	2007-03-22 16:18:27.000000000 +1100
-+++ linux-cell/fs/ramfs/file-nommu.c	2007-03-22 16:20:14.000000000 +1100
-@@ -238,7 +238,10 @@ unsigned long ramfs_nommu_get_unmapped_a
- 	struct page **pages = NULL, **ptr, *page;
- 	loff_t isize;
+--- linux-cell.orig/arch/sparc64/mm/hugetlbpage.c	2007-03-22 16:12:57.000000000 +1100
++++ linux-cell/arch/sparc64/mm/hugetlbpage.c	2007-03-22 16:15:33.000000000 +1100
+@@ -175,6 +175,12 @@ hugetlb_get_unmapped_area(struct file *f
+ 	if (len > task_size)
+ 		return -ENOMEM;
  
--	if (!(flags & MAP_SHARED))
-+	/* Deal with MAP_FIXED differently ? Forbid it ? Need help from some nommu
-+	 * folks there... --BenH.
-+	 */
-+	if ((flags & MAP_FIXED) || !(flags & MAP_SHARED))
- 		return addr;
- 
- 	/* the mapping mustn't extend beyond the EOF */
++	if (flags & MAP_FIXED) {
++		if (prepare_hugepage_range(addr, len, pgoff))
++			return -EINVAL;
++		return addr;
++	}
++
+ 	if (addr) {
+ 		addr = ALIGN(addr, HPAGE_SIZE);
+ 		vma = find_vma(mm, addr);
