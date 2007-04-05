@@ -1,48 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hellhawk.shadowen.org ([80.68.90.175]:2358 "EHLO
+Received: from hellhawk.shadowen.org ([80.68.90.175]:2378 "EHLO
 	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S2992486AbXDEMHt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Apr 2007 08:07:49 -0400
-Message-ID: <4614E67D.7000006@shadowen.org>
-Date: Thu, 05 Apr 2007 13:07:25 +0100
+	with ESMTP id S1766961AbXDEMX5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Apr 2007 08:23:57 -0400
+Message-ID: <4614E293.3010908@shadowen.org>
+Date: Thu, 05 Apr 2007 12:50:43 +0100
 From: Andy Whitcroft <apw@shadowen.org>
 MIME-Version: 1.0
 Subject: Re: [PATCH 1/4] x86_64: Switch to SPARSE_VIRTUAL
-References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com> <Pine.LNX.4.64.0704021422040.2272@schroedinger.engr.sgi.com> <1175550968.22373.122.camel@localhost.localdomain> <200704030031.24898.ak@suse.de>
-In-Reply-To: <200704030031.24898.ak@suse.de>
-Content-Type: text/plain; charset=ISO-8859-15
+References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com>  <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>  <200704011246.52238.ak@suse.de>  <Pine.LNX.4.64.0704020832320.30394@schroedinger.engr.sgi.com> <1175544797.22373.62.camel@localhost.localdomain> <Pine.LNX.4.64.0704021324480.31842@schroedinger.engr.sgi.com> <461169CF.6060806@google.com> <Pine.LNX.4.64.0704021345110.1224@schroedinger.engr.sgi.com>
+In-Reply-To: <Pine.LNX.4.64.0704021345110.1224@schroedinger.engr.sgi.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Dave Hansen <hansendc@us.ibm.com>, Christoph Lameter <clameter@sgi.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Martin Bligh <mbligh@google.com>, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Martin Bligh <mbligh@google.com>, Dave Hansen <hansendc@us.ibm.com>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Andi Kleen wrote:
-> On Monday 02 April 2007 23:56:08 Dave Hansen wrote:
->> On Mon, 2007-04-02 at 14:28 -0700, Christoph Lameter wrote:
->>> I do not care what its called as long as it 
->>> covers all the bases and is not a glaring performance regresssion (like 
->>> SPARSEMEM so far). 
->> I honestly don't doubt that there are regressions, somewhere.  Could you
->> elaborate, and perhaps actually show us some numbers on this?  Perhaps
->> instead of adding a completely new model, we can adapt the existing ones
->> somehow.
+Christoph Lameter wrote:
+> On Mon, 2 Apr 2007, Martin Bligh wrote:
 > 
-> If it works I would be inclined to replaced old sparsemem with Christoph's
-> new one on x86-64. Perhaps that could cut down the bewildering sparsemem
-> ifdef jungle that is there currently.
+>>> Its just the opposite. The vmemmap code is so efficient that we can remove
+>>> lots of other code and gops of these alternate implementations. On x86_64
+>>> its even superior to FLATMEM since FLATMEM still needs a memory reference
+>>> for the mem_map area. So if we make SPARSE standard for all configurations
+>>> then there is no need anymore for FLATMEM DISCONTIG etc etc. Can we not
+>>> cleanup all this mess? Get rid of all the gazillions of #ifdefs please? This
+>>> would ease code maintenance significantly. I hate having to constantly
+>>> navigate my way through all the alternatives.
+>> The original plan when this was first merged was pretty much that -
+>> for sparsemem to replace discontigmem once it was well tested. Seems
+>> to have got stalled halfway through ;-(
 > 
-> But I presume it won't work on 32bit because of the limited address space?
-
-Right.  But we might be able to do switch SPARSEMEM_EXTREME users here
-if performance is better and no other regressions are detected.
-
-There seems to be a theme, we need to get some numbers.  I will try and
-get what I can with the hardware I have and see whats missing.
-
+> But you made big boboo in SPARSEMEM. Virtual memmap is a textbook case 
+> that was not covered. Instead this horrible stuff that involves calling 
+> functions in VM primitives. We could have been there years ago...
 > 
->> But, without some cold, hard, data, we mere mortals without the 1024-way
->> machines can only guess. ;)
+>> Not sure we'll get away with replacing flatmem for all arches, but
+>> we could at least get rid of discontigmem, it seems.
+> 
+> I think we could start with x86_64 and ia64. Both will work fine with 
+> SPARSE VIRTUAL (and SGIs concerns about performance are addressed) and we 
+> could remove the other alternatives. That is going to throw out lots of 
+> stuff. Then proceed to other arches
+> 
+> Could the SPARSEMEM folks take this over this patch? You have more 
+> resources and I am all alone on this. I will post another patchset today 
+> that also includes an IA64 implementation.
 
+That would be me.  I have been offline writing for OLS and did not get
+to respond before this.
+
+When we first saw these patches the reaction was a general positive
+despite skepticism on the general utility of vmemmmap.  The patches
+appear to provide an architecture neutral implementation.  At that time
+s390 was just starting to use vmemmap bringing 2x implementations into
+the kernel.  Now we have three.  Clearly, even if vemmemap was a net
+performance loss having only one implementation has to be a good thing
+for maintainability/coverage.
+
+Without some benchmarking and some general testing it certainly is
+premature to be removing the other memory models, but for sure that was
+the original plan.  The original assumption that as time went on the
+other models would wither on the vine, this has only happened on powerpc
+so far.
+
+So I will go and:
+
+1) talk to s390 and find out if they can use this same form, as one
+implementation of vmemmap only should be the goal, and
+
+2) take the current patches and try and get some benchmarks for them
+against other memory models
+
+Christoph if you could let us know which benchmarks you are seeing gains
+with that would be a help.
 
 -apw
