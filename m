@@ -1,79 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hellhawk.shadowen.org ([80.68.90.175]:2378 "EHLO
-	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1766961AbXDEMX5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Apr 2007 08:23:57 -0400
-Message-ID: <4614E293.3010908@shadowen.org>
-Date: Thu, 05 Apr 2007 12:50:43 +0100
-From: Andy Whitcroft <apw@shadowen.org>
-MIME-Version: 1.0
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:53773 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1767189AbXDES1w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Apr 2007 14:27:52 -0400
+Date: Thu, 5 Apr 2007 11:27:47 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [PATCH 1/4] x86_64: Switch to SPARSE_VIRTUAL
-References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com>  <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>  <200704011246.52238.ak@suse.de>  <Pine.LNX.4.64.0704020832320.30394@schroedinger.engr.sgi.com> <1175544797.22373.62.camel@localhost.localdomain> <Pine.LNX.4.64.0704021324480.31842@schroedinger.engr.sgi.com> <461169CF.6060806@google.com> <Pine.LNX.4.64.0704021345110.1224@schroedinger.engr.sgi.com>
-In-Reply-To: <Pine.LNX.4.64.0704021345110.1224@schroedinger.engr.sgi.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <4614E293.3010908@shadowen.org>
+Message-ID: <Pine.LNX.4.64.0704051119400.9800@schroedinger.engr.sgi.com>
+References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com>
+  <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>
+ <200704011246.52238.ak@suse.de>  <Pine.LNX.4.64.0704020832320.30394@schroedinger.engr.sgi.com>
+ <1175544797.22373.62.camel@localhost.localdomain>
+ <Pine.LNX.4.64.0704021324480.31842@schroedinger.engr.sgi.com>
+ <461169CF.6060806@google.com> <Pine.LNX.4.64.0704021345110.1224@schroedinger.engr.sgi.com>
+ <4614E293.3010908@shadowen.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
+To: Andy Whitcroft <apw@shadowen.org>
 Cc: Martin Bligh <mbligh@google.com>, Dave Hansen <hansendc@us.ibm.com>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Lameter wrote:
-> On Mon, 2 Apr 2007, Martin Bligh wrote:
-> 
->>> Its just the opposite. The vmemmap code is so efficient that we can remove
->>> lots of other code and gops of these alternate implementations. On x86_64
->>> its even superior to FLATMEM since FLATMEM still needs a memory reference
->>> for the mem_map area. So if we make SPARSE standard for all configurations
->>> then there is no need anymore for FLATMEM DISCONTIG etc etc. Can we not
->>> cleanup all this mess? Get rid of all the gazillions of #ifdefs please? This
->>> would ease code maintenance significantly. I hate having to constantly
->>> navigate my way through all the alternatives.
->> The original plan when this was first merged was pretty much that -
->> for sparsemem to replace discontigmem once it was well tested. Seems
->> to have got stalled halfway through ;-(
-> 
-> But you made big boboo in SPARSEMEM. Virtual memmap is a textbook case 
-> that was not covered. Instead this horrible stuff that involves calling 
-> functions in VM primitives. We could have been there years ago...
-> 
->> Not sure we'll get away with replacing flatmem for all arches, but
->> we could at least get rid of discontigmem, it seems.
-> 
-> I think we could start with x86_64 and ia64. Both will work fine with 
-> SPARSE VIRTUAL (and SGIs concerns about performance are addressed) and we 
-> could remove the other alternatives. That is going to throw out lots of 
-> stuff. Then proceed to other arches
-> 
-> Could the SPARSEMEM folks take this over this patch? You have more 
-> resources and I am all alone on this. I will post another patchset today 
-> that also includes an IA64 implementation.
+On Thu, 5 Apr 2007, Andy Whitcroft wrote:
 
-That would be me.  I have been offline writing for OLS and did not get
-to respond before this.
+> Christoph if you could let us know which benchmarks you are seeing gains
+> with that would be a help.
 
-When we first saw these patches the reaction was a general positive
-despite skepticism on the general utility of vmemmmap.  The patches
-appear to provide an architecture neutral implementation.  At that time
-s390 was just starting to use vmemmap bringing 2x implementations into
-the kernel.  Now we have three.  Clearly, even if vemmemap was a net
-performance loss having only one implementation has to be a good thing
-for maintainability/coverage.
+You saw the numbers that Ken got with the pipe test right?
 
-Without some benchmarking and some general testing it certainly is
-premature to be removing the other memory models, but for sure that was
-the original plan.  The original assumption that as time went on the
-other models would wither on the vine, this has only happened on powerpc
-so far.
+Then there are some minor improvements if you run AIM7.
 
-So I will go and:
+I got into this because I saw the code that was generated by sparsemem and 
+discontig. Sparsemem was doing a series of lookups and so did pure 
+discontig on x86_64. Both were really too complex for inlining. 
+Discontig/Vmemmap on IA64 was sort of cleaner but there was still a 
+reference to a variable plus it was creating the needs for lots of TLBs.
 
-1) talk to s390 and find out if they can use this same form, as one
-implementation of vmemmap only should be the goal, and
+These VM primitives are pretty critical and the code for those needs to be 
+minimal and inline. So I removed the variable ref from discontig/Vmemmap 
+and reduced the wokr to be done to the simple formula (that I also found 
+in textbooks on memmap management). Avoided the TLB pressure by using the 
+1-1 mappings page size.
 
-2) take the current patches and try and get some benchmarks for them
-against other memory models
-
-Christoph if you could let us know which benchmarks you are seeing gains
-with that would be a help.
-
--apw
+I could get real some performance numbers for this by sticking in a 
+performance counter before and after virt_to_page and page_address. But I 
+am pretty sure about the result just looking at the code.
