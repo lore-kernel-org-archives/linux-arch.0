@@ -1,467 +1,739 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.24]:34782 "EHLO smtp.osdl.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933094AbXDFV1e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 6 Apr 2007 17:27:34 -0400
-Message-Id: <200704062127.l36LRMA7019394@shell0.pdx.osdl.net>
-Subject: + expose-range-checking-functions-from-arch-specific.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Fri, 06 Apr 2007 14:27:22 -0700
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:41241 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S965944AbXDGWGR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Apr 2007 18:06:17 -0400
+Date: Sat, 7 Apr 2007 15:06:13 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH 1/4] x86_64: (SPARSE_VIRTUAL doubles sparsemem speed)
+In-Reply-To: <Pine.LNX.4.64.0704051119400.9800@schroedinger.engr.sgi.com>
+Message-ID: <Pine.LNX.4.64.0704071455060.31468@schroedinger.engr.sgi.com>
+References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com>
+  <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com>
+ <200704011246.52238.ak@suse.de>  <Pine.LNX.4.64.0704020832320.30394@schroedinger.engr.sgi.com>
+ <1175544797.22373.62.camel@localhost.localdomain>
+ <Pine.LNX.4.64.0704021324480.31842@schroedinger.engr.sgi.com>
+ <461169CF.6060806@google.com> <Pine.LNX.4.64.0704021345110.1224@schroedinger.engr.sgi.com>
+ <4614E293.3010908@shadowen.org> <Pine.LNX.4.64.0704051119400.9800@schroedinger.engr.sgi.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: rusty@rustcorp.com.au, linux-arch@vger.kernel.org, randy.dunlap@oracle.com
+To: Andy Whitcroft <apw@shadowen.org>
+Cc: Martin Bligh <mbligh@google.com>, Dave Hansen <hansendc@us.ibm.com>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
+On Thu, 5 Apr 2007, Christoph Lameter wrote:
 
-The patch titled
-     Expose range-checking functions from arch-specific uaccess.h
-has been added to the -mm tree.  Its filename is
-     expose-range-checking-functions-from-arch-specific.patch
+> On Thu, 5 Apr 2007, Andy Whitcroft wrote:
+> > Christoph if you could let us know which benchmarks you are seeing gains
+> > with that would be a help.
+> 
+> You saw the numbers that Ken got with the pipe test right?
+> 
+> Then there are some minor improvements if you run AIM7.
+> 
+> I could get real some performance numbers for this by sticking in a 
+> performance counter before and after virt_to_page and page_address. But I 
+> am pretty sure about the result just looking at the code.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+Ok. Since I keep being asked, I stuck a performance counter in kfree on 
+x86_64 to see the difference in performance:
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
+Results:
 
-------------------------------------------------------
-Subject: Expose range-checking functions from arch-specific uaccess.h
-From: Rusty Russell <rusty@rustcorp.com.au>
+x86_64 boot with virtual memmap
 
-There are some places where we want to check if a value + length is within
-a range.  This can be tricky, so it's nice to have a single routine.
+Format:               #events totaltime (min/avg/max)
 
-Also, this can be done more efficiently (with arch-dependent) carry bits,
-as shown by the __range_ok() implementation on several archs.
+kfree_virt_to_page       598430 5.6ms(3ns/9ns/322ns)
 
-This patch exposes arch-specific "val_outside(val, len, limit)" and a
-generic "range_within(start, len, base, limit)" function.  As a
-side-effect, it fixes the comment in i386/uaccess.h: __range_ok doesn't
-test "(u33)addr + (u33)size >= (u33)current->addr_limit.seg", it tests
-"(u33)addr + (u33)size > (u33)current->addr_limit.seg".
+x86_64 boot regular sparsemem
 
-Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Randy Dunlap <randy.dunlap@oracle.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+kfree_virt_to_page       596360 10.5ms(4ns/18ns/28.7us)
 
- include/asm-alpha/range.h     |    6 ++++++
- include/asm-arm/range.h       |    6 ++++++
- include/asm-arm26/range.h     |    6 ++++++
- include/asm-avr32/range.h     |    6 ++++++
- include/asm-blackfin/range.h  |    6 ++++++
- include/asm-cris/range.h      |    6 ++++++
- include/asm-frv/range.h       |    6 ++++++
- include/asm-generic/range.h   |   20 ++++++++++++++++++++
- include/asm-h8300/range.h     |    6 ++++++
- include/asm-i386/range.h      |   14 ++++++++++++++
- include/asm-i386/uaccess.h    |   16 ++++++----------
- include/asm-ia64/range.h      |    6 ++++++
- include/asm-m32r/range.h      |    6 ++++++
- include/asm-m68k/range.h      |    6 ++++++
- include/asm-m68knommu/range.h |    6 ++++++
- include/asm-mips/range.h      |    6 ++++++
- include/asm-parisc/range.h    |    6 ++++++
- include/asm-powerpc/range.h   |    6 ++++++
- include/asm-ppc/range.h       |    6 ++++++
- include/asm-s390/range.h      |    6 ++++++
- include/asm-sh/range.h        |    6 ++++++
- include/asm-sh64/range.h      |    6 ++++++
- include/asm-sparc/range.h     |    6 ++++++
- include/asm-sparc64/range.h   |    6 ++++++
- include/asm-um/range.h        |    6 ++++++
- include/asm-v850/range.h      |    6 ++++++
- include/asm-x86_64/range.h    |    6 ++++++
- include/asm-xtensa/range.h    |    6 ++++++
- include/linux/kernel.h        |   21 +++++++++++++++++++++
- 29 files changed, 211 insertions(+), 10 deletions(-)
 
-diff -puN /dev/null include/asm-alpha/range.h
---- /dev/null
-+++ a/include/asm-alpha/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-arm/range.h
---- /dev/null
-+++ a/include/asm-arm/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-arm26/range.h
---- /dev/null
-+++ a/include/asm-arm26/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-avr32/range.h
---- /dev/null
-+++ a/include/asm-avr32/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-blackfin/range.h
---- /dev/null
-+++ a/include/asm-blackfin/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-cris/range.h
---- /dev/null
-+++ a/include/asm-cris/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-frv/range.h
---- /dev/null
-+++ a/include/asm-frv/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-generic/range.h
---- /dev/null
-+++ a/include/asm-generic/range.h
-@@ -0,0 +1,20 @@
-+#ifndef _ASM_GENERIC_RANGE_H
-+#define _ASM_GENERIC_RANGE_H
-+
-+/**
-+ * val_outside - is a value and length past a limit?
-+ * @val: the start value
-+ * @len: the length from the start
-+ * @limit: the first invalid value
+On average sparsemem virtual takes half the time than of sparsemem.
+
+Note that the maximum time for regular sparsemem is way higher than
+sparse virtual. This reflects the possibility that regular sparsemem may
+once in a while have to deal with a cache miss whereas sparsemem virtual 
+has no memory reference. Thus the numbers stay consistently low. 
+
+Patch that was used to get these results (this is not very clean sorry 
+but it should be enough to verify the results):
+
+
+
+Simple Performance Counters
+
+This patch allows the use of simple performance counters to measure time
+intervals in the kernel source code. This allows a detailed analysis of the
+time spend and the amount of data processed in specific code sections of the
+kernel.
+
+Time is measured using the cycle counter (TSC on IA32, ITC on IA64) which has
+a very low latency.
+
+To use add #include <linux/perf.h> to the header of the file where the
+measurement needs to take place.
+
+Then add the folowing to the code:
+
+To declare a time stamp do
+
+	struct pc pc;
+
+To mark the beginning of the time measurement do
+
+	pc_start(&pc, <counter>)
+
+(If measurement from the beginning of a function is desired one may use
+INIT_PC(xx) instead).
+
+To mark the end of the time frame do:
+
+	pc_stop(&pc);
+
+or if the amount of data transferred needs to be measured as well:
+
+	pc_throughput(&pc, number-of-bytes);
+
+
+The measurements will show up in /proc/perf/all.
+Processor specific statistics
+may be obtained via /proc/perf/<nr-of-processor>.
+Writing to /proc/perf/reset will reset all counters. F.e.
+
+echo >/proc/perf/reset
+
+The first counter is the number of times that the time measurement was
+performed. (+ xx) is the number of samples that were thrown away since
+the processor on which the process is running changed. Cycle counters
+may not be consistent across different processors.
+
+Then follows the sum of the time spend in the code segment followed in
+parentheses by the minimum / average / maximum time spent there.
+The second block are the sizes of data processed.
+
+Signed-off-by: Christoph Lameter <clameter@sgi.com>
+
+Index: linux-2.6.21-rc5-mm4/kernel/Makefile
+===================================================================
+--- linux-2.6.21-rc5-mm4.orig/kernel/Makefile	2007-04-07 14:04:32.000000000 -0700
++++ linux-2.6.21-rc5-mm4/kernel/Makefile	2007-04-07 14:05:12.000000000 -0700
+@@ -55,6 +55,7 @@
+ obj-$(CONFIG_TASKSTATS) += taskstats.o tsacct.o
+ obj-$(CONFIG_UTRACE) += utrace.o
+ obj-$(CONFIG_PTRACE) += ptrace.o
++obj-y += perf.o
+ 
+ ifneq ($(CONFIG_SCHED_NO_NO_OMIT_FRAME_POINTER),y)
+ # According to Alan Modra <alan@linuxcare.com.au>, the -fno-omit-frame-pointer is
+Index: linux-2.6.21-rc5-mm4/include/linux/perf.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-2.6.21-rc5-mm4/include/linux/perf.h	2007-04-07 14:05:12.000000000 -0700
+@@ -0,0 +1,49 @@
++/*
++ * Performance Counters and Measurement macros
++ * (C) 2005 Silicon Graphics Incorporated
++ * by Christoph Lameter <clameter@sgi.com>, April 2005
 + *
-+ * Like val + len > limit, except with overflow checking.
++ * Counters are calculated using the cycle counter. If a process
++ * is migrated to another cpu during the measurement then the measurement
++ * is invalid.
++ *
++ * We cannot disable preemption during measurement since that may interfere
++ * with other things in the kernel and limit the usefulness of the counters.
 + */
-+static inline bool val_outside(unsigned long val, unsigned long len,
-+			       unsigned long limit)
 +
++enum pc_item {
++	PC_KFREE_VIRT_TO_PAGE,
++	PC_PTE_ALLOC,
++	PC_PTE_FREE,
++	PC_PMD_ALLOC,
++	PC_PMD_FREE,
++	PC_PUD_ALLOC,
++	PC_PUD_FREE,
++	PC_PGD_ALLOC,
++	PC_PGD_FREE,
++	NR_PC_ITEMS
++};
++
++/*
++ * Information about the start of the measurement
++ */
++struct pc {
++	unsigned long time;
++	int processor;
++	enum pc_item item;
++};
++
++static inline void pc_start(struct pc *pc, enum pc_item nr)
 +{
-+	return val + len > limit || val + len < val;
++	pc->item = nr;
++	pc->processor = smp_processor_id();
++	pc->time = get_cycles();
 +}
 +
-+#endif	/* _ASM_GENERIC_RANGE_H */
++#define INIT_PC(__var, __item) struct pc __var = \
++		{ get_cycles(), smp_processor_id(), __item }
 +
-diff -puN /dev/null include/asm-h8300/range.h
---- /dev/null
-+++ a/include/asm-h8300/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
++void pc_throughput(struct pc *pc, unsigned long bytes);
 +
-+#include <asm-generic/range.h>
++#define pc_stop(__pc) pc_throughput(__pc, 0)
 +
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-i386/range.h
---- /dev/null
-+++ a/include/asm-i386/range.h
-@@ -0,0 +1,14 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
+Index: linux-2.6.21-rc5-mm4/kernel/perf.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-2.6.21-rc5-mm4/kernel/perf.c	2007-04-07 14:05:12.000000000 -0700
+@@ -0,0 +1,345 @@
++/*
++ * Simple Performance Counter subsystem
++ *
++ * (C) 2007 sgi.
++ *
++ * April 2007, Christoph Lameter <clameter@sgi.com>
++ */
 +
-+/* Is val + size > limit? This needs 33-bit arithmetic. We have a carry... */
-+static inline bool val_outside(unsigned long val, unsigned long len,
-+			       unsigned long limit)
++#include <linux/module.h>
++#include <linux/percpu.h>
++#include <linux/seq_file.h>
++#include <linux/fs.h>
++#include <linux/proc_fs.h>
++#include <linux/cpumask.h>
++#include <linux/perf.h>
++/* For the hash function */
++#include <linux/dcache.h>
++
++#ifdef CONFIG_IA64
++#define cycles_to_ns(x) (((x) * local_cpu_data->nsec_per_cyc) >> IA64_NSEC_PER_CYC_SHIFT)
++#elif defined(CONFIG_X86_64)
++#define cycles_to_ns(x) cycles_2_ns(x)
++#else
++#error "cycles_to_ns not defined for this architecture"
++#endif
++
++const char *var_id[NR_PC_ITEMS] = {
++	"kfree_virt_to_page",
++	"pte_alloc",
++	"pte_free",
++	"pmd_alloc",
++	"pmd_free",
++	"pud_alloc",
++	"pud_free",
++	"pgd_alloc",
++	"pgd_free"
++};
++
++struct perf_counter {
++	u32 events;
++	u32 mintime;
++	u32 maxtime;
++	u32 minbytes;
++	u32 maxbytes;
++	u32 skipped;
++	u64 time;
++	u64 bytes;
++};
++
++static DEFINE_PER_CPU(struct perf_counter, perf_counters)[NR_PC_ITEMS];
++
++void pc_throughput(struct pc *pc, unsigned long bytes)
 +{
-+	unsigned long flag, roksum;
-+	asm("addl %3,%1 ; sbbl %0,%0; cmpl %1,%4; sbbl $0,%0"
-+		:"=&r" (flag), "=r" (roksum)
-+		:"1" (val), "g" (len), "rm" (limit));
-+	return flag;
++	unsigned long time = get_cycles();
++	unsigned long ns;
++	int cpu = smp_processor_id();
++	struct perf_counter *p = &get_cpu_var(perf_counters)[pc->item];
++
++	if (unlikely(pc->item >= NR_PC_ITEMS)) {
++		printk(KERN_CRIT "pc_throughput: item (%d) out of range\n",
++			pc->item);
++		dump_stack();
++		goto out;
++	}
++
++	if (unlikely(pc->processor != cpu)) {
++		/* On different processor. TSC measurement not possible. */
++		p->skipped++;
++		goto out;
++	}
++
++	ns = cycles_to_ns(time - pc->time);
++	if (unlikely(ns > (1UL << (BITS_PER_LONG - 2)))) {
++		printk(KERN_ERR "perfcount %s: invalid time difference.\n",
++			var_id[pc->item]);
++		goto out;
++	}
++
++	p->time += ns;
++	p->events++;
++
++	if (ns > p->maxtime)
++		p->maxtime = ns;
++
++	if (p->mintime == 0 || ns < p->mintime)
++		p->mintime = ns;
++
++	if (bytes) {
++		p->bytes += bytes;
++		if (bytes > p->maxbytes)
++			p->maxbytes = bytes;
++		if (p->minbytes == 0 || bytes < p->minbytes)
++			p->minbytes = bytes;
++	}
++out:
++	put_cpu_var();
++	return;
 +}
-+#endif	/* __ASM_RANGE_H */
-diff -puN include/asm-i386/uaccess.h~expose-range-checking-functions-from-arch-specific include/asm-i386/uaccess.h
---- a/include/asm-i386/uaccess.h~expose-range-checking-functions-from-arch-specific
-+++ a/include/asm-i386/uaccess.h
-@@ -49,17 +49,13 @@ extern struct movsl_mask {
-  * Returns 0 if the range is valid, nonzero otherwise.
-  *
-  * This is equivalent to the following test:
-- * (u33)addr + (u33)size >= (u33)current->addr_limit.seg
-- *
-- * This needs 33-bit arithmetic. We have a carry...
-+ * (u33)addr + (u33)size > (u33)current->addr_limit.seg
++EXPORT_SYMBOL(pc_throughput);
++
++static void reset_perfcount_item(struct perf_counter *c)
++{
++	c->events =0;
++	c->time =0;
++	c->maxtime =0;
++	c->mintime =0;
++	c->bytes =0;
++	c->minbytes =0;
++	c->maxbytes =0;
++}
++
++static void perfcount_reset(void) {
++	int cpu;
++	enum pc_item i;
++
++	for_each_online_cpu(cpu)
++		for (i = 0; i < NR_PC_ITEMS; i++)
++		 	reset_perfcount_item(
++				&per_cpu(perf_counters, cpu)[i]);
++}
++
++struct unit {
++	unsigned int n;
++	const char * s;
++};
++
++static const struct unit event_units[] = {
++	{ 1000, "" },
++	{ 1000, "K" },
++	{ 1000, "M" },
++	{ 1000, "G" },
++	{ 1000, "T" },
++	{ 1000, "P" },
++	{ 1000, "XX" },
++};
++
++
++static const struct unit time_units[] = {
++	{ 1000, "ns" },
++	{ 1000, "us" },
++	{ 1000, "ms" },
++	{ 60, "s" },
++	{ 60, "m" },
++	{ 24, "h" },
++	{ 365, "d" },
++	{ 1000, "y" },
++};
++
++static const struct unit byte_units[] = {
++	{ 1000, "b" },
++	{ 1000, "kb" },
++	{ 1000, "mb" },
++	{ 1000, "gb" },
++	{ 1000, "tb" },
++	{ 1000, "pb" },
++	{ 1000, "xb" }
++};
++
++/* Print a value using the given array of units and scale it properly */
++static void pval(struct seq_file *s, unsigned long x, const struct unit *u)
++{
++	unsigned n = 0;
++	unsigned rem = 0;
++	unsigned last_divisor = 0;
++
++	while (x >= u[n].n) {
++		last_divisor = u[n].n;
++		rem = x % last_divisor;
++		x = x / last_divisor;
++		n++;
++	}
++
++	if (last_divisor)
++		rem = (rem * 10 + last_divisor / 2) / last_divisor;
++	else
++		rem = 0;
++
++	/*
++	 * Rounding may have resulted in the need to go
++	 * to the next number
++	 */
++	if (rem == 10) {
++		x++;
++		rem = 0;
++	};
++
++	seq_printf(s, "%lu", x);
++	if (rem) {
++		seq_putc(s, '.');
++		seq_putc(s, '0' + rem);
++	}
++	seq_puts(s, u[n].s);
++}
++
++/* Print a set of statistical values in the form sum(max/avg/min) */
++static void pc_print(struct seq_file *s, const struct unit *u,
++	unsigned long count, unsigned long sum,
++	unsigned long min, unsigned long max)
++{
++	pval(s, sum, u);
++	seq_putc(s,'(');
++	pval(s, min, u);
++	seq_putc(s,'/');
++	if (count)
++		pval(s, (sum + count / 2 ) / count, u);
++	else
++		pval(s, 0, u);
++	seq_putc(s,'/');
++	pval(s, max, u);
++	seq_putc(s,')');
++}
++
++
++static int perf_show(struct seq_file *s, void *v)
++{
++	int cpu = (unsigned long)s->private;
++	enum pc_item counter = (unsigned long)v - 1;
++	struct perf_counter summary, *x;
++
++	if (cpu >= 0)
++		x = &per_cpu(perf_counters, cpu)[counter];
++	else {
++		memcpy(&summary, &per_cpu(perf_counters, 0)[counter],
++			sizeof(summary));
++		for_each_online_cpu(cpu) {
++			struct perf_counter *c =
++				&per_cpu(perf_counters, 0)[counter];
++
++			summary.events += c->events;
++			summary.skipped += c->skipped;
++			summary.time += c->time;
++			summary.bytes += c->bytes;
++
++			if (summary.maxtime < c->maxtime)
++				summary.maxtime = c->maxtime;
++
++			if (summary.mintime == 0 ||
++				(c->mintime != 0 &&
++				summary.mintime > c->mintime))
++					summary.mintime = c->mintime;
++
++			if (summary.maxbytes < c->maxbytes)
++				summary.maxbytes = c->maxbytes;
++
++			if (summary.minbytes == 0 ||
++				(c->minbytes != 0 &&
++				summary.minbytes > c->minbytes))
++					summary.minbytes = c->minbytes;
++
++		}
++		x = &summary;
++	}
++
++	seq_printf(s, "%-20s %10u ", var_id[counter], x->events);
++	if (x->skipped)
++		seq_printf(s, "(+%3u) ", x->skipped);
++	pc_print(s, time_units, x->events, x->time, x->mintime, x->maxtime);
++	if (x->bytes) {
++		seq_putc(s,' ');
++		pc_print(s, byte_units, x->events, x->bytes, x->minbytes, x->maxbytes);
++	}
++	seq_putc(s, '\n');
++	return 0;
++}
++
++static void *perf_start(struct seq_file *m, loff_t *pos)
++{
++	return (*pos < NR_PC_ITEMS) ? (void *)(*pos +1) : NULL;
++}
++
++static void *perf_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	++*pos;
++	return perf_start(m, pos);
++}
++
++static void perf_stop(struct seq_file *m, void *v)
++{
++}
++
++struct seq_operations perf_data_ops = {
++	.start  = perf_start,
++	.next   = perf_next,
++	.stop   = perf_stop,
++	.show   = perf_show,
++};
++
++static int perf_data_open(struct inode *inode, struct file *file)
++{
++	int res;
++
++	res = seq_open(file, &perf_data_ops);
++	if (!res)
++		((struct seq_file *)file->private_data)->private = PDE(inode)->data;
++
++	return res;
++}
++
++static struct file_operations perf_data_fops = {
++	.open		= perf_data_open,
++	.read		= seq_read,
++	.llseek		= seq_lseek,
++	.release	= seq_release,
++};
++
++static int perf_reset_write(struct file *file, const char __user *buffer,
++	unsigned long count, void *data)
++{
++	perfcount_reset();
++	return count;
++}
++
++static __init int init_perfcounter(void) {
++	int cpu;
++
++	struct proc_dir_entry *proc_perf, *perf_reset, *perf_all;
++
++	proc_perf = proc_mkdir("perf", NULL);
++	if (!proc_perf)
++		return -ENOMEM;
++
++	perf_reset = create_proc_entry("reset", S_IWUGO, proc_perf);
++	perf_reset->write_proc = perf_reset_write;
++
++	perf_all = create_proc_entry("all", S_IRUGO, proc_perf);
++	perf_all->proc_fops = &perf_data_fops;
++	perf_all->data = (void *)-1;
++
++	for_each_possible_cpu(cpu) {
++		char name[20];
++		struct proc_dir_entry *p;
++
++		sprintf(name, "%d", cpu);
++		p = create_proc_entry(name, S_IRUGO, proc_perf);
++
++		p->proc_fops = &perf_data_fops;
++		p->data = (void *)(unsigned long)cpu;
++	}
++
++	perfcount_reset();
++	return 0;
++}
++
++__initcall(init_perfcounter);
++
+Index: linux-2.6.21-rc5-mm4/arch/x86_64/kernel/tsc.c
+===================================================================
+--- linux-2.6.21-rc5-mm4.orig/arch/x86_64/kernel/tsc.c	2007-04-07 14:04:32.000000000 -0700
++++ linux-2.6.21-rc5-mm4/arch/x86_64/kernel/tsc.c	2007-04-07 14:05:12.000000000 -0700
+@@ -23,7 +23,7 @@
+ 	cyc2ns_scale = (NSEC_PER_MSEC << NS_SCALE) / khz;
+ }
+ 
+-static unsigned long long cycles_2_ns(unsigned long long cyc)
++unsigned long long cycles_2_ns(unsigned long long cyc)
+ {
+ 	return (cyc * cyc2ns_scale) >> NS_SCALE;
+ }
+Index: linux-2.6.21-rc5-mm4/include/asm-x86_64/timex.h
+===================================================================
+--- linux-2.6.21-rc5-mm4.orig/include/asm-x86_64/timex.h	2007-04-07 14:04:32.000000000 -0700
++++ linux-2.6.21-rc5-mm4/include/asm-x86_64/timex.h	2007-04-07 14:05:12.000000000 -0700
+@@ -29,4 +29,5 @@
+ 
+ extern void mark_tsc_unstable(void);
+ extern void set_cyc2ns_scale(unsigned long khz);
++unsigned long long cycles_2_ns(unsigned long long cyc);
+ #endif
+Index: linux-2.6.21-rc5-mm4/mm/slub.c
+===================================================================
+--- linux-2.6.21-rc5-mm4.orig/mm/slub.c	2007-04-07 14:05:11.000000000 -0700
++++ linux-2.6.21-rc5-mm4/mm/slub.c	2007-04-07 14:05:15.000000000 -0700
+@@ -20,6 +20,7 @@
+ #include <linux/mempolicy.h>
+ #include <linux/ctype.h>
+ #include <linux/kallsyms.h>
++#include <linux/perf.h>
+ 
+ /*
+  * Lock order:
+@@ -1299,8 +1302,11 @@
+ void kmem_cache_free(struct kmem_cache *s, void *x)
+ {
+ 	struct page * page;
++	struct pc pc;
+ 
++	pc_start(&pc, PC_KFREE_VIRT_TO_PAGE);
+ 	page = virt_to_page(x);
++	pc_stop(&pc);
+ 
+ 	page = compound_head(page);
+ 
+@@ -1917,11 +1923,16 @@
+ {
+ 	struct kmem_cache *s;
+ 	struct page * page;
++	struct pc pc;
+ 
+ 	if (!x)
+ 		return;
+ 
+-	page = compound_head(virt_to_page(x));
++	pc_start(&pc, PC_KFREE_VIRT_TO_PAGE);
++	page = virt_to_page(x);
++	pc_stop(&pc);
++
++	page = compound_head(page);
+ 
+ 	s = page->slab;
+ 
+Index: linux-2.6.21-rc5-mm4/kernel/fork.c
+===================================================================
+--- linux-2.6.21-rc5-mm4.orig/kernel/fork.c	2007-04-07 14:04:32.000000000 -0700
++++ linux-2.6.21-rc5-mm4/kernel/fork.c	2007-04-07 14:05:12.000000000 -0700
+@@ -58,6 +58,8 @@
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
+ 
++#include <linux/perf.h>
++
+ /*
+  * Protected counters by write_lock_irq(&tasklist_lock)
   */
--#define __range_ok(addr,size) ({ \
--	unsigned long flag,roksum; \
--	__chk_user_ptr(addr); \
--	asm("addl %3,%1 ; sbbl %0,%0; cmpl %1,%4; sbbl $0,%0" \
--		:"=&r" (flag), "=r" (roksum) \
--		:"1" (addr),"g" ((int)(size)),"rm" (current_thread_info()->addr_limit.seg)); \
--	flag; })
-+#define __range_ok(addr, size) ({				\
-+	__chk_user_ptr(addr);					\
-+	val_outside((int)(addr), (size),			\
-+		    current_thread_info()->addr_limit.seg);	\
-+})
+@@ -304,7 +306,10 @@
  
- /**
-  * access_ok: - Checks if a user space pointer is valid
-diff -puN /dev/null include/asm-ia64/range.h
---- /dev/null
-+++ a/include/asm-ia64/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
+ static inline int mm_alloc_pgd(struct mm_struct * mm)
+ {
++	INIT_PC(pc, PC_PGD_ALLOC);
 +
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-m32r/range.h
---- /dev/null
-+++ a/include/asm-m32r/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-m68k/range.h
---- /dev/null
-+++ a/include/asm-m68k/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-m68knommu/range.h
---- /dev/null
-+++ a/include/asm-m68knommu/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-mips/range.h
---- /dev/null
-+++ a/include/asm-mips/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-parisc/range.h
---- /dev/null
-+++ a/include/asm-parisc/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-powerpc/range.h
---- /dev/null
-+++ a/include/asm-powerpc/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-ppc/range.h
---- /dev/null
-+++ a/include/asm-ppc/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-s390/range.h
---- /dev/null
-+++ a/include/asm-s390/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-sh/range.h
---- /dev/null
-+++ a/include/asm-sh/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-sh64/range.h
---- /dev/null
-+++ a/include/asm-sh64/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-sparc/range.h
---- /dev/null
-+++ a/include/asm-sparc/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-sparc64/range.h
---- /dev/null
-+++ a/include/asm-sparc64/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-um/range.h
---- /dev/null
-+++ a/include/asm-um/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-v850/range.h
---- /dev/null
-+++ a/include/asm-v850/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-x86_64/range.h
---- /dev/null
-+++ a/include/asm-x86_64/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN /dev/null include/asm-xtensa/range.h
---- /dev/null
-+++ a/include/asm-xtensa/range.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_RANGE_H
-+#define __ASM_RANGE_H
-+
-+#include <asm-generic/range.h>
-+
-+#endif /* __ASM_RANGE_H */
-diff -puN include/linux/kernel.h~expose-range-checking-functions-from-arch-specific include/linux/kernel.h
---- a/include/linux/kernel.h~expose-range-checking-functions-from-arch-specific
-+++ a/include/linux/kernel.h
-@@ -16,6 +16,7 @@
- #include <linux/log2.h>
- #include <asm/byteorder.h>
- #include <asm/bug.h>
-+#include <asm/range.h>
+ 	mm->pgd = pgd_alloc(mm);
++	pc_stop(&pc);
+ 	if (unlikely(!mm->pgd))
+ 		return -ENOMEM;
+ 	return 0;
+@@ -312,7 +317,9 @@
  
- extern const char linux_banner[];
- extern const char linux_proc_banner[];
-@@ -311,6 +312,26 @@ static inline int __attribute__ ((format
- 	(void)__tmp; \
- })
+ static inline void mm_free_pgd(struct mm_struct * mm)
+ {
++	INIT_PC(pc, PC_PGD_FREE);
+ 	pgd_free(mm->pgd);
++	pc_stop(&pc);
+ }
+ #else
+ #define dup_mmap(mm, oldmm)	(0)
+Index: linux-2.6.21-rc5-mm4/mm/memory.c
+===================================================================
+--- linux-2.6.21-rc5-mm4.orig/mm/memory.c	2007-04-07 14:04:32.000000000 -0700
++++ linux-2.6.21-rc5-mm4/mm/memory.c	2007-04-07 14:05:12.000000000 -0700
+@@ -60,6 +60,8 @@
+ #include <linux/swapops.h>
+ #include <linux/elf.h>
  
-+/**
-+ * range_within - is one range within another?
-+ * @start: the start value
-+ * @len: the length from the start
-+ * @base: the first valid value
-+ * @limit: the first invalid value
-+ *
-+ * This is usually used for memory range testing.  The common cases of
-+ * constant 0 start and constant 0 len cases are optimized out.
-+ */
-+static inline bool range_within(unsigned long start, unsigned long len,
-+				unsigned long base, unsigned long limit)
-+{
-+	if (start < base)
-+		return false;
-+	if (__builtin_constant_p(len) && len == 0)
-+		return start - base <= limit - base;
-+	return !val_outside(limit, start, len);
-+}
++#include <linux/perf.h>
 +
- struct sysinfo;
- extern int do_sysinfo(struct sysinfo *info);
+ #ifndef CONFIG_NEED_MULTIPLE_NODES
+ /* use the per-pgdat data instead for discontigmem - mbligh */
+ unsigned long max_mapnr;
+@@ -302,15 +304,22 @@
  
-_
-
-Patches currently in -mm which might be from rusty@rustcorp.com.au are
-
-vmi-paravirt-ops-bugfix-for-2621.patch
-git-kbuild.patch
-git-net.patch
-rename-the-parainstructions-symbols-to-be-consistent-with-the-others.patch
-allow-boot-time-disable-of-paravirt_ops-patching.patch
-allow-per-cpu-variables-to-be-page-aligned.patch
-xfs-clean-up-shrinker-games.patch
-mm-clean-up-and-kernelify-shrinker-registration.patch
-array_size-check-for-type.patch
-array_size-check-for-type-uml-fix.patch
-module-use-krealloc.patch
-extend-print_symbol-capability.patch
-extend-print_symbol-capability-fix.patch
-futex-restartable-futex_wait.patch
-futex-restartable-futex_wait-fix.patch
-add-ability-to-keep-track-of-callers-of-symbol_getput.patch
-add-ability-to-keep-track-of-callers-of-symbol_getput-update.patch
-update-mtd-use-of-symbol_getput.patch
-update-dvb-use-of-symbol_getput.patch
-simplify-module_get_kallsym-by-dropping-length-arg.patch
-fix-race-between-rmmod-and-cat-proc-kallsyms.patch
-simplify-kallsyms_lookup.patch
-fix-race-between-cat-proc-wchan-and-rmmod-et-al.patch
-fix-race-between-cat-proc-slab_allocators-and-rmmod.patch
-expose-range-checking-functions-from-arch-specific.patch
-____call_usermodehelper-dont-flush_signals.patch
-mm-clean-up-and-kernelify-shrinker-registration-reiser4.patch
-
+ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd, unsigned long address)
+ {
++	INIT_PC(pc, PC_PTE_ALLOC);
+ 	struct page *new = pte_alloc_one(mm, address);
++
++	pc_stop(&pc);
+ 	if (!new)
+ 		return -ENOMEM;
+ 
+ 	pte_lock_init(new);
+ 	spin_lock(&mm->page_table_lock);
+ 	if (pmd_present(*pmd)) {	/* Another has populated it */
++		struct pc pc;
++
+ 		pte_lock_deinit(new);
++		pc_start(&pc, PC_PTE_FREE);
+ 		pte_free(new);
++		pc_stop(&pc);
+ 	} else {
+ 		mm->nr_ptes++;
+ 		inc_zone_page_state(new, NR_PAGETABLE);
+@@ -2509,14 +2518,20 @@
+  */
+ int __pud_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
+ {
++	INIT_PC(pc, PC_PUD_ALLOC);
+ 	pud_t *new = pud_alloc_one(mm, address);
++
++	pc_stop(&pc);
+ 	if (!new)
+ 		return -ENOMEM;
+ 
+ 	spin_lock(&mm->page_table_lock);
+ 	if (pgd_present(*pgd))		/* Another has populated it */
++	{
++		INIT_PC(pc, PC_PUD_FREE);
+ 		pud_free(new);
+-	else
++		pc_stop(&pc);
++	} else
+ 		pgd_populate(mm, pgd, new);
+ 	spin_unlock(&mm->page_table_lock);
+ 	return 0;
+@@ -2530,20 +2545,29 @@
+  */
+ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ {
++	INIT_PC(pc, PC_PMD_ALLOC);
+ 	pmd_t *new = pmd_alloc_one(mm, address);
++
++	pc_stop(&pc);
+ 	if (!new)
+ 		return -ENOMEM;
+ 
+ 	spin_lock(&mm->page_table_lock);
+ #ifndef __ARCH_HAS_4LEVEL_HACK
+ 	if (pud_present(*pud))		/* Another has populated it */
++	{
++		INIT_PC(pc, PC_PMD_FREE);
+ 		pmd_free(new);
+-	else
++		pc_stop(&pc);
++	} else
+ 		pud_populate(mm, pud, new);
+ #else
+ 	if (pgd_present(*pud))		/* Another has populated it */
++	{
++		INIT_PC(pc, PC_PMD_FREE);
+ 		pmd_free(new);
+-	else
++		pc_stop(&pc);
++	} else
+ 		pgd_populate(mm, pud, new);
+ #endif /* __ARCH_HAS_4LEVEL_HACK */
+ 	spin_unlock(&mm->page_table_lock);
+Index: linux-2.6.21-rc5-mm4/mm/slab.c
+===================================================================
+--- linux-2.6.21-rc5-mm4.orig/mm/slab.c	2007-04-07 14:22:11.000000000 -0700
++++ linux-2.6.21-rc5-mm4/mm/slab.c	2007-04-07 14:24:14.000000000 -0700
+@@ -621,7 +621,10 @@
+ 
+ static inline struct kmem_cache *virt_to_cache(const void *obj)
+ {
++	INIT_PC(PC_KFREE_VIRT_TO_PAGE);
+ 	struct page *page = virt_to_page(obj);
++
++	pc_stop(&pc);
+ 	return page_get_cache(page);
+ }
+ 
