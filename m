@@ -1,61 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.screens.ru ([213.234.233.54]:43508 "EHLO mail.screens.ru"
+Received: from mail.screens.ru ([213.234.233.54]:50156 "EHLO mail.screens.ru"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751468AbXDHQ6P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 8 Apr 2007 12:58:15 -0400
-Date: Sun, 8 Apr 2007 20:57:50 +0400
+	id S1751474AbXDHRLb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 8 Apr 2007 13:11:31 -0400
+Date: Sun, 8 Apr 2007 19:55:34 +0400
 From: Oleg Nesterov <oleg@tv-sign.ru>
-Subject: Re: [RFC, PATCH 1/3] introduce SYS_CLONE_MASK
-Message-ID: <20070408165750.GA149@tv-sign.ru>
-References: <20070408155337.GA126@tv-sign.ru> <m1lkh23kkb.fsf@ebiederm.dsl.xmission.com>
+Subject: [RFC, PATCH 3/3] use CLONE_KERNEL_THREAD
+Message-ID: <20070408155534.GA132@tv-sign.ru>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <m1lkh23kkb.fsf@ebiederm.dsl.xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, Robin Holt <holt@sgi.com>, Roland McGrath <roland@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, Robin Holt <holt@sgi.com>, Roland McGrath <roland@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On 04/08, Eric W. Biederman wrote:
-> Oleg Nesterov <oleg@tv-sign.ru> writes:
-> 
-> > For review only.
-> >
-> > To implement for-in-kerenl-use-only CLONE_ flags, we need to filter out them
-> > in sys_clone().
-> 
-> Nack
-> 
-> The current clone_flags field is for user space consumption and we
-> have proposed users for all or almost all of the remaining bits.
+For review only.
 
-OK.
+Add CLONE_KERNEL_THREAD to kthread_create() and change reparent_to_init()
+to match CLONE_KERNEL_THREAD.
 
-> If we are going to have kernel only flags please use an additional
-> argument to do_fork and copy_process.
+Signed-off-by: Oleg Nesterov <oleg@tv-sign.ru>
 
-Yes, we can do this. But we have a number of architectures which use
-sys_clone() to implement kernel_thread(). It would be nice to have an
-architecture neutral kernel_thread() implementation as you proposed.
-We should change all of them if we want to add a new parameter to
-do_fork().
+ kthread.c |    2 +-
+ exit.c    |   20 +++++++++-----------
+ 2 files changed, 10 insertions(+), 12 deletions(-)
 
-Perhaps it is better to add reparent_kthread() (next patch) to kthread()
-and forget about CLONE_KERNEL_THREAD.
-
-Anyway, re-parenting to swapper breaks pstree, it doesn't show kernel
-threads. And if ->parent == /sbin/init, we can't remove us from ->children
-(unless we forbid sub-thread-of-init exec). So the only safe change is
-set ->exit_state = -1.
-
-> Your current scheme also has the bad side that if user space supplied
-> a kernel flag it is hard to detect it and return -EINVAL.  Which
-> limits future expansion.  Silently dropping clone flags is a real
-> pain, if you are trying to detect if a new flag has been implemented.
-
-Yes. But that is what we are doing now. copy_process() just ignores
-unknown flags.
-
-Oleg.
+--- 2.6.21-rc5-mm4/kernel/kthread.c~3_USE	2007-04-05 12:18:28.000000000 +0400
++++ 2.6.21-rc5-mm4/kernel/kthread.c	2007-04-08 19:18:59.000000000 +0400
+@@ -120,7 +120,7 @@ static void keventd_create_kthread(struc
+ 	int pid;
+ 
+ 	/* We want our own signal handler (we take no signals by default). */
+-	pid = kernel_thread(kthread, create, CLONE_FS | CLONE_FILES | SIGCHLD);
++	pid = kernel_thread(kthread, create, CLONE_FS | CLONE_FILES | CLONE_KERNEL_THREAD);
+ 	if (pid < 0) {
+ 		create->result = ERR_PTR(pid);
+ 	} else {
+--- 2.6.21-rc5-mm4/kernel/exit.c~3_USE	2007-04-08 19:06:27.000000000 +0400
++++ 2.6.21-rc5-mm4/kernel/exit.c	2007-04-08 19:23:18.000000000 +0400
+@@ -279,28 +279,26 @@ static int has_stopped_jobs(struct pid *
+ }
+ 
+ /**
+- * reparent_to_init - Reparent the calling kernel thread to the init task of the pid space that the thread belongs to.
++ * reparent_kthread - Reparent the calling kernel thread to swapper.
+  *
+  * If a kernel thread is launched as a result of a system call, or if
+- * it ever exits, it should generally reparent itself to init so that
+- * it is correctly cleaned up on exit.
++ * it ever exits, it should generally reparent itself so that it is
++ * correctly cleaned up on exit.
+  *
+  * The various task state such as scheduling policy and priority may have
+  * been inherited from a user process, so we reset them to sane values here.
+  *
+- * NOTE that reparent_to_init() gives the caller full capabilities.
++ * NOTE that reparent_kthread() gives the caller full capabilities.
+  */
+-static void reparent_to_init(void)
++static void reparent_kthread(void)
+ {
+ 	write_lock_irq(&tasklist_lock);
+ 
+-	/* Reparent to init */
+ 	remove_parent(current);
+-	current->parent = child_reaper(current);
+-	add_parent(current);
+ 
+-	/* Set the exit signal to SIGCHLD so we signal init on exit */
+-	current->exit_signal = SIGCHLD;
++	current->parent = &init_task;
++	add_parent(current);
++	current->exit_signal = -1;
+ 
+ 	if (!has_rt_policy(current) && (task_nice(current) < 0))
+ 		set_user_nice(current, 0);
+@@ -423,7 +421,7 @@ void daemonize(const char *name, ...)
+ 	current->files = init_task.files;
+ 	atomic_inc(&current->files->count);
+ 
+-	reparent_to_init();
++	reparent_kthread();
+ }
+ 
+ EXPORT_SYMBOL(daemonize);
 
