@@ -1,54 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:38341 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965977AbXDGWTF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 7 Apr 2007 18:19:05 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [PATCH 1/4] x86_64: (SPARSE_VIRTUAL doubles sparsemem speed)
-Date: Sun, 8 Apr 2007 00:18:44 +0200
-References: <20070401071024.23757.4113.sendpatchset@schroedinger.engr.sgi.com> <Pine.LNX.4.64.0704051119400.9800@schroedinger.engr.sgi.com> <Pine.LNX.4.64.0704071455060.31468@schroedinger.engr.sgi.com>
-In-Reply-To: <Pine.LNX.4.64.0704071455060.31468@schroedinger.engr.sgi.com>
+Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:48584 "EHLO
+	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750717AbXDHQUz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 Apr 2007 12:20:55 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [RFC, PATCH 1/3] introduce SYS_CLONE_MASK
+References: <20070408155337.GA126@tv-sign.ru>
+Date: Sun, 08 Apr 2007 10:19:48 -0600
+In-Reply-To: <20070408155337.GA126@tv-sign.ru> (Oleg Nesterov's message of
+	"Sun, 8 Apr 2007 19:53:37 +0400")
+Message-ID: <m1lkh23kkb.fsf@ebiederm.dsl.xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200704080018.45084.ak@suse.de>
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Andy Whitcroft <apw@shadowen.org>, Martin Bligh <mbligh@google.com>, Dave Hansen <hansendc@us.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+To: Oleg Nesterov <oleg@tv-sign.ru>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, Robin Holt <holt@sgi.com>, Roland McGrath <roland@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sunday 08 April 2007 00:06:13 Christoph Lameter wrote:
+Oleg Nesterov <oleg@tv-sign.ru> writes:
 
-> Results:
-> 
-> x86_64 boot with virtual memmap
-> 
-> Format:               #events totaltime (min/avg/max)
-> 
-> kfree_virt_to_page       598430 5.6ms(3ns/9ns/322ns)
-> 
-> x86_64 boot regular sparsemem
-> 
-> kfree_virt_to_page       596360 10.5ms(4ns/18ns/28.7us)
-> 
-> 
-> On average sparsemem virtual takes half the time than of sparsemem.
+> For review only.
+>
+> To implement for-in-kerenl-use-only CLONE_ flags, we need to filter out them
+> in sys_clone().
 
-Nice.  But on what workloads? 
+Nack
 
-Anyways it looks promising. I hope we can just
-replace old style sparsemem support with this for x86-64.
+The current clone_flags field is for user space consumption and we
+have proposed users for all or almost all of the remaining bits.
 
-> Time is measured using the cycle counter (TSC on IA32, ITC on IA64) which has
-> a very low latency.
+If we are going to have kernel only flags please use an additional
+argument to do_fork and copy_process.
 
-Sorry that triggered my usual RDTSC rant...
+Your current scheme also has the bad side that if user space supplied
+a kernel flag it is hard to detect it and return -EINVAL.  Which
+limits future expansion.  Silently dropping clone flags is a real
+pain, if you are trying to detect if a new flag has been implemented.
 
-Not on NetBurst (hundred of cycles) And on the others (C2,K8) it is a bit dangerous 
-to measure short code blocks because RDTSC is not guaranteed ordered with the surrounding 
-instructions.
-
--Andi
- 
+Eric
