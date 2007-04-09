@@ -1,43 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:40682 "EHLO
-	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933127AbXDIOh3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Apr 2007 10:37:29 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:46037 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S933613AbXDIOwJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Apr 2007 10:52:09 -0400
+Date: Mon, 9 Apr 2007 09:52:04 -0500
+From: Robin Holt <holt@sgi.com>
 Subject: Re: [RFC, PATCH 1/3] introduce SYS_CLONE_MASK
-References: <20070408155337.GA126@tv-sign.ru>
-	<m1lkh23kkb.fsf@ebiederm.dsl.xmission.com>
-	<20070408165750.GA149@tv-sign.ru>
-	<m1d52e2w86.fsf@ebiederm.dsl.xmission.com>
-	<20070409090643.GA121@tv-sign.ru>
-	<20070409104302.GA14764@lnx-holt.americas.sgi.com>
-Date: Mon, 09 Apr 2007 08:36:21 -0600
-In-Reply-To: <20070409104302.GA14764@lnx-holt.americas.sgi.com> (Robin Holt's
-	message of "Mon, 9 Apr 2007 05:43:02 -0500")
-Message-ID: <m18xd13996.fsf@ebiederm.dsl.xmission.com>
-MIME-Version: 1.0
+Message-ID: <20070409145204.GB20130@lnx-holt.americas.sgi.com>
+References: <20070408155337.GA126@tv-sign.ru> <m1lkh23kkb.fsf@ebiederm.dsl.xmission.com> <20070408165750.GA149@tv-sign.ru> <m1d52e2w86.fsf@ebiederm.dsl.xmission.com> <20070409090643.GA121@tv-sign.ru> <20070409104302.GA14764@lnx-holt.americas.sgi.com> <m18xd13996.fsf@ebiederm.dsl.xmission.com>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <m18xd13996.fsf@ebiederm.dsl.xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Robin Holt <holt@sgi.com>
-Cc: Oleg Nesterov <oleg@tv-sign.ru>, Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, Roland McGrath <roland@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Robin Holt <holt@sgi.com>, Oleg Nesterov <oleg@tv-sign.ru>, Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, Roland McGrath <roland@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Robin Holt <holt@sgi.com> writes:
+On Mon, Apr 09, 2007 at 08:36:21AM -0600, Eric W. Biederman wrote:
+> Robin Holt <holt@sgi.com> writes:
+> 
+> > I would say this is more a benefit than a problem.  With a couple of these
+> > systems we are testing, the number of kernel threads is far greater than
+> > the number of user processes and having pstree not normally show them, but
+> > maybe have an option we add later to show them again would be beneficial.
+> 
+> Sure.
+> 
+> Robin how many kernel thread per cpu are you seeing?
 
-> I would say this is more a benefit than a problem.  With a couple of these
-> systems we are testing, the number of kernel threads is far greater than
-> the number of user processes and having pstree not normally show them, but
-> maybe have an option we add later to show them again would be beneficial.
+10.
 
-Sure.
+FYI, pid 1539 is kthread.
 
-Robin how many kernel thread per cpu are you seeing?
+a01:~ # ps -ef | egrep "\[.*\/255\]" 
+root       512     1  0 Apr08 ?        00:00:00 [migration/255]
+root       513     1  0 Apr08 ?        00:00:00 [ksoftirqd/255]
+root      1281     1  0 Apr08 ?        00:00:02 [events/255]
+root      2435  1539  0 Apr08 ?        00:00:00 [kblockd/255]
+root      3159  1539  0 Apr08 ?        00:00:00 [aio/255]
+root      4007  1539  0 Apr08 ?        00:00:00 [cqueue/255]
+root      8653  1539  0 Apr08 ?        00:00:00 [ata/255]
+root     17438  1539  0 Apr08 ?        00:00:00 [xfslogd/255]
+root     17950  1539  0 Apr08 ?        00:00:00 [xfsdatad/255]
+root     18426  1539  0 Apr08 ?        00:00:00 [rpciod/255]
 
-I don't know that we have a problem in this regard but it feels like
-you are seeing a lot more kernel threads per cpu than I would expect
-from looking at small systems.
 
-I am wondering if somewhere we are using per cpu kernel threads when
-we should not be...
-
-Eric
+Thanks,
+Robin
