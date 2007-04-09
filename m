@@ -1,103 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp111.sbc.mail.mud.yahoo.com ([68.142.198.210]:45130 "HELO
-	smtp111.sbc.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S966153AbXDIQ0K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Apr 2007 12:26:10 -0400
-Date: Mon, 9 Apr 2007 11:19:21 -0500
-From: "Serge E. Hallyn" <serge@hallyn.com>
-Subject: Re: [RFC, PATCH 3/3] use CLONE_KERNEL_THREAD
-Message-ID: <20070409161921.GB13709@vino.hallyn.com>
-References: <20070408155534.GA132@tv-sign.ru>
+Received: from holomorphy.com ([66.93.40.71]:37776 "EHLO holomorphy.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751205AbXDIRGU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 9 Apr 2007 13:06:20 -0400
+Date: Mon, 9 Apr 2007 09:40:29 -0700
+From: William Lee Irwin III <wli@holomorphy.com>
+Subject: Re: [PATCH 1/4] x86_64: (SPARSE_VIRTUAL doubles sparsemem speed)
+Message-ID: <20070409164029.GT2986@holomorphy.com>
+References: <20070401071029.23757.78021.sendpatchset@schroedinger.engr.sgi.com> <200704011246.52238.ak@suse.de> <Pine.LNX.4.64.0704020832320.30394@schroedinger.engr.sgi.com> <1175544797.22373.62.camel@localhost.localdomain> <Pine.LNX.4.64.0704021324480.31842@schroedinger.engr.sgi.com> <461169CF.6060806@google.com> <Pine.LNX.4.64.0704021345110.1224@schroedinger.engr.sgi.com> <4614E293.3010908@shadowen.org> <Pine.LNX.4.64.0704051119400.9800@schroedinger.engr.sgi.com> <Pine.LNX.4.64.0704071455060.31468@schroedinger.engr.sgi.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070408155534.GA132@tv-sign.ru>
+In-Reply-To: <Pine.LNX.4.64.0704071455060.31468@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@tv-sign.ru>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, Robin Holt <holt@sgi.com>, Roland McGrath <roland@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Andy Whitcroft <apw@shadowen.org>, Martin Bligh <mbligh@google.com>, Dave Hansen <hansendc@us.ibm.com>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Quoting Oleg Nesterov (oleg@tv-sign.ru):
-> For review only.
-> 
-> Add CLONE_KERNEL_THREAD to kthread_create() and change reparent_to_init()
-> to match CLONE_KERNEL_THREAD.
-> 
-> Signed-off-by: Oleg Nesterov <oleg@tv-sign.ru>
-> 
->  kthread.c |    2 +-
->  exit.c    |   20 +++++++++-----------
->  2 files changed, 10 insertions(+), 12 deletions(-)
-> 
-> --- 2.6.21-rc5-mm4/kernel/kthread.c~3_USE	2007-04-05 12:18:28.000000000 +0400
-> +++ 2.6.21-rc5-mm4/kernel/kthread.c	2007-04-08 19:18:59.000000000 +0400
-> @@ -120,7 +120,7 @@ static void keventd_create_kthread(struc
->  	int pid;
->  
->  	/* We want our own signal handler (we take no signals by default). */
-> -	pid = kernel_thread(kthread, create, CLONE_FS | CLONE_FILES | SIGCHLD);
-> +	pid = kernel_thread(kthread, create, CLONE_FS | CLONE_FILES | CLONE_KERNEL_THREAD);
->  	if (pid < 0) {
->  		create->result = ERR_PTR(pid);
->  	} else {
-> --- 2.6.21-rc5-mm4/kernel/exit.c~3_USE	2007-04-08 19:06:27.000000000 +0400
-> +++ 2.6.21-rc5-mm4/kernel/exit.c	2007-04-08 19:23:18.000000000 +0400
-> @@ -279,28 +279,26 @@ static int has_stopped_jobs(struct pid *
->  }
->  
->  /**
-> - * reparent_to_init - Reparent the calling kernel thread to the init task of the pid space that the thread belongs to.
-> + * reparent_kthread - Reparent the calling kernel thread to swapper.
->   *
->   * If a kernel thread is launched as a result of a system call, or if
-> - * it ever exits, it should generally reparent itself to init so that
-> - * it is correctly cleaned up on exit.
-> + * it ever exits, it should generally reparent itself so that it is
-> + * correctly cleaned up on exit.
->   *
->   * The various task state such as scheduling policy and priority may have
->   * been inherited from a user process, so we reset them to sane values here.
->   *
-> - * NOTE that reparent_to_init() gives the caller full capabilities.
-> + * NOTE that reparent_kthread() gives the caller full capabilities.
->   */
-> -static void reparent_to_init(void)
-> +static void reparent_kthread(void)
+On Sat, Apr 07, 2007 at 03:06:13PM -0700, Christoph Lameter wrote:
+> +/*
+> + * Performance Counters and Measurement macros
+> + * (C) 2005 Silicon Graphics Incorporated
+> + * by Christoph Lameter <clameter@sgi.com>, April 2005
+> + *
+> + * Counters are calculated using the cycle counter. If a process
+> + * is migrated to another cpu during the measurement then the measurement
+> + * is invalid.
+> + *
+> + * We cannot disable preemption during measurement since that may interfere
+> + * with other things in the kernel and limit the usefulness of the counters.
+> + */
 
-Thanks.  The use of 'child_reaper(current)' makes it clear that
-'reparent_to_init' had turned into a confusing name in the name
-of per-pidspace inits.
+Whatever's going on with the rest of this, I really like this
+instrumentation patch. It may be worthwhile to allow pc_start() to be
+overridden so things like performance counter MSR's are usable, but
+the framework looks very useful.
 
--serge
 
->  {
->  	write_lock_irq(&tasklist_lock);
->  
-> -	/* Reparent to init */
->  	remove_parent(current);
-> -	current->parent = child_reaper(current);
-> -	add_parent(current);
->  
-> -	/* Set the exit signal to SIGCHLD so we signal init on exit */
-> -	current->exit_signal = SIGCHLD;
-> +	current->parent = &init_task;
-> +	add_parent(current);
-> +	current->exit_signal = -1;
->  
->  	if (!has_rt_policy(current) && (task_nice(current) < 0))
->  		set_user_nice(current, 0);
-> @@ -423,7 +421,7 @@ void daemonize(const char *name, ...)
->  	current->files = init_task.files;
->  	atomic_inc(&current->files->count);
->  
-> -	reparent_to_init();
-> +	reparent_kthread();
->  }
->  
->  EXPORT_SYMBOL(daemonize);
-> 
-> -
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+-- wli
