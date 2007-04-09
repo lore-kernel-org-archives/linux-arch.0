@@ -1,50 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:46037 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S933613AbXDIOwJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Apr 2007 10:52:09 -0400
-Date: Mon, 9 Apr 2007 09:52:04 -0500
-From: Robin Holt <holt@sgi.com>
-Subject: Re: [RFC, PATCH 1/3] introduce SYS_CLONE_MASK
-Message-ID: <20070409145204.GB20130@lnx-holt.americas.sgi.com>
-References: <20070408155337.GA126@tv-sign.ru> <m1lkh23kkb.fsf@ebiederm.dsl.xmission.com> <20070408165750.GA149@tv-sign.ru> <m1d52e2w86.fsf@ebiederm.dsl.xmission.com> <20070409090643.GA121@tv-sign.ru> <20070409104302.GA14764@lnx-holt.americas.sgi.com> <m18xd13996.fsf@ebiederm.dsl.xmission.com>
+Received: from waste.org ([66.93.16.53]:49791 "EHLO waste.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752068AbXDIPK3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 9 Apr 2007 11:10:29 -0400
+Date: Mon, 9 Apr 2007 09:57:58 -0500
+From: Matt Mackall <mpm@selenic.com>
+Subject: Re: [PATCH] slob: handle SLAB_PANIC flag
+Message-ID: <20070409145758.GO4892@waste.org>
+References: <20070409130847.GA5048@APFDCB5C>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <m18xd13996.fsf@ebiederm.dsl.xmission.com>
+In-Reply-To: <20070409130847.GA5048@APFDCB5C>
 Sender: linux-arch-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Robin Holt <holt@sgi.com>, Oleg Nesterov <oleg@tv-sign.ru>, Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, Roland McGrath <roland@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Apr 09, 2007 at 08:36:21AM -0600, Eric W. Biederman wrote:
-> Robin Holt <holt@sgi.com> writes:
+On Mon, Apr 09, 2007 at 10:08:47PM +0900, Akinobu Mita wrote:
+> kmem_cache_create() for slob doesn't handle SLAB_PANIC.
 > 
-> > I would say this is more a benefit than a problem.  With a couple of these
-> > systems we are testing, the number of kernel threads is far greater than
-> > the number of user processes and having pstree not normally show them, but
-> > maybe have an option we add later to show them again would be beneficial.
+> Cc: Matt Mackall <mpm@selenic.com>
+> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
 > 
-> Sure.
+> ---
+>  mm/slob.c |    3 +++
+>  1 file changed, 3 insertions(+)
 > 
-> Robin how many kernel thread per cpu are you seeing?
+> Index: 2.6-mm/mm/slob.c
+> ===================================================================
+> --- 2.6-mm.orig/mm/slob.c
+> +++ 2.6-mm/mm/slob.c
+> @@ -298,6 +298,9 @@ struct kmem_cache *kmem_cache_create(con
+>  		c->align = (flags & SLAB_MUST_HWCACHE_ALIGN) ? SLOB_ALIGN : 0;
+>  		if (c->align < align)
+>  			c->align = align;
+> +	} else {
+> +		if (flags & SLAB_PANIC)
+> +			panic("Cannot create slab cache %s\n", name);
+>  	}
 
-10.
+I think this would be more canonical:
 
-FYI, pid 1539 is kthread.
+} else if (..)
+   panic();
 
-a01:~ # ps -ef | egrep "\[.*\/255\]" 
-root       512     1  0 Apr08 ?        00:00:00 [migration/255]
-root       513     1  0 Apr08 ?        00:00:00 [ksoftirqd/255]
-root      1281     1  0 Apr08 ?        00:00:02 [events/255]
-root      2435  1539  0 Apr08 ?        00:00:00 [kblockd/255]
-root      3159  1539  0 Apr08 ?        00:00:00 [aio/255]
-root      4007  1539  0 Apr08 ?        00:00:00 [cqueue/255]
-root      8653  1539  0 Apr08 ?        00:00:00 [ata/255]
-root     17438  1539  0 Apr08 ?        00:00:00 [xfslogd/255]
-root     17950  1539  0 Apr08 ?        00:00:00 [xfsdatad/255]
-root     18426  1539  0 Apr08 ?        00:00:00 [rpciod/255]
+But otherwise,
 
+Signed-off-by: Matt Mackall <mpm@selenic.com>
 
-Thanks,
-Robin
+-- 
+Mathematics is the supreme nostalgia of our time.
