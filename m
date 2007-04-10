@@ -1,58 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:45016 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753349AbXDJJ4m (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Apr 2007 05:56:42 -0400
-Date: Tue, 10 Apr 2007 04:56:39 -0500
-From: Robin Holt <holt@sgi.com>
-Subject: Re: [RFC, PATCH 1/3] introduce SYS_CLONE_MASK
-Message-ID: <20070410095639.GB17269@lnx-holt.americas.sgi.com>
-References: <20070409020600.6338BD82F4@pipsqueak.sf.frob.com> <m11wit34fo.fsf@ebiederm.dsl.xmission.com> <20070409173053.GD22997@lnx-holt.americas.sgi.com> <m1r6qtyskk.fsf@ebiederm.dsl.xmission.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <m1r6qtyskk.fsf@ebiederm.dsl.xmission.com>
+Received: from mx1.redhat.com ([66.187.233.31]:57307 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752834AbXDJKSb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Apr 2007 06:18:31 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <200704062127.l36LRMA7019394@shell0.pdx.osdl.net> 
+References: <200704062127.l36LRMA7019394@shell0.pdx.osdl.net> 
+Subject: Re: + expose-range-checking-functions-from-arch-specific.patch added to -mm tree 
+Date: Tue, 10 Apr 2007 11:17:50 +0100
+Message-ID: <6632.1176200270@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Robin Holt <holt@sgi.com>, Roland McGrath <roland@redhat.com>, Oleg Nesterov <oleg@tv-sign.ru>, Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: akpm@linux-foundation.org
+Cc: mm-commits@vger.kernel.org, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, randy.dunlap@oracle.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Apr 09, 2007 at 06:35:39PM -0600, Eric W. Biederman wrote:
-> Robin Holt <holt@sgi.com> writes:
-> 
-> > OK.  I just got the OK from management.  The system we were booting was
-> > for research only.  We had NR_CPUS=num_online_cpus()=4096 which were
-> > non-hyperthreaded.  With no attached I/O and the tweak I originally
-> > posted plus one change Jack has already gotten accepted, the machine
-> > booted in approx 12 minutes.
-> 
-> How much of that time was between the time the kernel was loaded
-> and before user space was started?
+akpm@linux-foundation.org wrote:
 
-I am scrambling for my timed boot logs.  All I am finding right now
-are boots from 512p machines.  For that machine, it took 178 seconds
-to get to mounting the root filesystem and 75 seconds to get to the
-login prompt.  Of that 75 seconds, 24 was because an NFS server was
-down and 14 was due to PBS taking time to start.
+> + * @limit: the first invalid value
 
+If this is the case, ...
 
-68.994913| Memory: 2074872032k/2082172528k available (9785k code, 7319136k reserved, 5228k data, 672k init)
-36.566117| migration_cost=3869,61218,76048
-24.074113| mount: RPC: Remote system error - No route to host
-13.972892| PBS mom
+> + *
+> + * Like val + len > limit, except with overflow checking.
+> + */
+> +static inline bool val_outside(unsigned long val, unsigned long len,
+> +			       unsigned long limit)
+> +
+> +{
+> +	return val + len > limit || val + len < val;
 
-Those are the long standouts.  There are quite a few lines in the boot
-output which take 2 seconds or less, but none of those are too surprising.
-Plain and simply, booting that large of a machine has always taken
-considerable time.  The first time we booted a 512p, it took nearly an
-hour, now that is down to 8 or 9 minutes.
+... then shouldn't that be "val + len >= limit"?
 
->
-> Twelve minutes sounds like a long time for a boot, if you aren't fsck'ing
-> filesystems.
-
-Not fsck'ing filesystems (xfs).  One of the NFS servers that was specified
-in /etc/fstab was missing, but that is unimportant.
-
-Thanks,
-Robin
+David
