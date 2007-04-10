@@ -1,64 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from holomorphy.com ([66.93.40.71]:35132 "EHLO holomorphy.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753349AbXDIS0g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Apr 2007 14:26:36 -0400
-Date: Mon, 9 Apr 2007 11:20:12 -0700
-From: William Lee Irwin III <wli@holomorphy.com>
-Subject: Re: [PATCH 1/4] x86_64: (SPARSE_VIRTUAL doubles sparsemem speed)
-Message-ID: <20070409182012.GW2986@holomorphy.com>
-References: <Pine.LNX.4.64.0704020832320.30394@schroedinger.engr.sgi.com> <1175544797.22373.62.camel@localhost.localdomain> <Pine.LNX.4.64.0704021324480.31842@schroedinger.engr.sgi.com> <461169CF.6060806@google.com> <Pine.LNX.4.64.0704021345110.1224@schroedinger.engr.sgi.com> <4614E293.3010908@shadowen.org> <Pine.LNX.4.64.0704051119400.9800@schroedinger.engr.sgi.com> <Pine.LNX.4.64.0704071455060.31468@schroedinger.engr.sgi.com> <20070409164029.GT2986@holomorphy.com> <Pine.LNX.4.64.0704091014350.4878@schroedinger.engr.sgi.com>
+Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:58958 "EHLO
+	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932344AbXDJAgl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Apr 2007 20:36:41 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [RFC, PATCH 1/3] introduce SYS_CLONE_MASK
+References: <20070409020600.6338BD82F4@pipsqueak.sf.frob.com>
+	<m11wit34fo.fsf@ebiederm.dsl.xmission.com>
+	<20070409173053.GD22997@lnx-holt.americas.sgi.com>
+Date: Mon, 09 Apr 2007 18:35:39 -0600
+In-Reply-To: <20070409173053.GD22997@lnx-holt.americas.sgi.com> (Robin Holt's
+	message of "Mon, 9 Apr 2007 12:30:53 -0500")
+Message-ID: <m1r6qtyskk.fsf@ebiederm.dsl.xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0704091014350.4878@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Andy Whitcroft <apw@shadowen.org>, Martin Bligh <mbligh@google.com>, Dave Hansen <hansendc@us.ibm.com>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+To: Robin Holt <holt@sgi.com>
+Cc: Roland McGrath <roland@redhat.com>, Oleg Nesterov <oleg@tv-sign.ru>, Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 9 Apr 2007, William Lee Irwin III wrote:
->> Whatever's going on with the rest of this, I really like this
->> instrumentation patch. It may be worthwhile to allow pc_start() to be
->> overridden so things like performance counter MSR's are usable, but
->> the framework looks very useful.
+Robin Holt <holt@sgi.com> writes:
 
-On Mon, Apr 09, 2007 at 10:16:06AM -0700, Christoph Lameter wrote:
-> Yeah. I also did some measurements on quicklists on x86_64 and it seems 
-> that caching page table pages is also useful:
-[...]
+> OK.  I just got the OK from management.  The system we were booting was
+> for research only.  We had NR_CPUS=num_online_cpus()=4096 which were
+> non-hyperthreaded.  With no attached I/O and the tweak I originally
+> posted plus one change Jack has already gotten accepted, the machine
+> booted in approx 12 minutes.
 
-Sadly these timings will not address the arguments made on behalf of
-eager zeroing, which are essentially that "precharging the cache" will
-benefit fork(). I personally still find them meaningful.
+How much of that time was between the time the kernel was loaded
+and before user space was started?
 
-I think a demonstration that will deal with more of others' concerns
-might be instrumenting fault latency after a fresh execve() and
-comparing fork() timings. This is clearly awkward given the scheduling
-opportunities in these areas, but a virtual time measurement may suffice
-to cope with those.
+Twelve minutes sounds like a long time for a boot, if you aren't fsck'ing
+filesystems.
 
-The fault latency after a fresh execve() is particularly relevant
-because it's a scenario where incremental pagetable construction occurs
-in "real life." It's actually less common for processes to merely fork()
-than to fork() then execve() and then perform most of their work in the
-context set up in execve(). The pagetables set up for fork() are most
-commonly short-lived and the utility of caching them or even
-constructing them so questionable that pagetable sharing and other
-methods of avoiding the copy are quite plausible, though perhaps in
-need of some heuristics to avoid new faults for the purposes of merely
-copying pagetables where possible (AIUI such are considered or
-implemented in pagetable sharing patches; of course, Dave McCracken has
-far more detailed knowledge of the performance considerations there).
-
-I daresay it's highly dubious to consider pagetable construction for
-fork() in isolation when the common case is to almost immediately flush
-all those pagetables down the toilet via execve().
-
-Basically, if we can establish that (1) pagetable caching doesn't hurt
-fork() or maybe even speeds it up then (2) it speeds up post-execve()
-faults, then things look good. Raw timings on the pagetable allocation
-primitives are unfortunately too micro to adequately make our case.
-
-
--- wli
+Eric
