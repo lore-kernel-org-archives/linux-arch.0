@@ -1,57 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:35733 "EHLO ozlabs.org"
+Received: from mx1.redhat.com ([66.187.233.31]:54980 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752645AbXDKNSQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Apr 2007 09:18:16 -0400
-Subject: Re: + expose-range-checking-functions-from-arch-specific.patch
-	added to -mm tree
-From: Rusty Russell <rusty@rustcorp.com.au>
-In-Reply-To: <20070410194834.b688ce55.akpm@linux-foundation.org>
-References: <200704062127.l36LRMA7019394@shell0.pdx.osdl.net>
-	 <6632.1176200270@redhat.com>
-	 <1176257950.26372.50.camel@localhost.localdomain>
-	 <20070410194834.b688ce55.akpm@linux-foundation.org>
-Content-Type: text/plain
-Date: Wed, 11 Apr 2007 23:17:58 +1000
-Message-Id: <1176297479.14322.69.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	id S1753370AbXDKRE3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 Apr 2007 13:04:29 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1176297479.14322.69.camel@localhost.localdomain> 
+References: <1176297479.14322.69.camel@localhost.localdomain>  <200704062127.l36LRMA7019394@shell0.pdx.osdl.net> <6632.1176200270@redhat.com> <1176257950.26372.50.camel@localhost.localdomain> <20070410194834.b688ce55.akpm@linux-foundation.org> 
+Subject: Re: + expose-range-checking-functions-from-arch-specific.patch added to -mm tree 
+Date: Wed, 11 Apr 2007 18:03:06 +0100
+Message-ID: <400.1176310986@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, randy.dunlap@oracle.com
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, randy.dunlap@oracle.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2007-04-10 at 19:48 -0700, Andrew Morton wrote:
-> On Wed, 11 Apr 2007 12:19:10 +1000 Rusty Russell <rusty@rustcorp.com.au> wrote:
-> > > > + * Like val + len > limit, except with overflow checking.
-> > > > + */
-> > > > +static inline bool val_outside(unsigned long val, unsigned long len,
-> > > > +			       unsigned long limit)
-> > > > +
-> > > > +{
-> > > > +	return val + len > limit || val + len < val;
+Rusty Russell <rusty@rustcorp.com.au> wrote:
 
-> I probably shouldn't look at this after a glass of red, but otoh, perhaps
-> that's a good way of ensuring that we have a built-in margin.
+> static inline bool range_over_limit(unsigned long start,
+> 				    unsigned long len,
+> 				    unsigned long limit)
 
-> I find this function incomprehensible.  I'd just avoid using the sorry
-> thing, personally.
+I'm still not sure the name is entirely clear, but it's better.  I'd still
+stick the word "check" in there personally, perhaps check_range_limit(), but
+that's just my preference.
 
-No, you're absolutely right.  Naming is vital, and something I criticise
-others for regularly.  We don't say "that is incomprehensible" anywhere
-near often enough 8(
+> PS.  Previously this identical function was called __range_ok() (and
+> returned 0 if it was not ok...)
 
-Is this clearer?
+Ummm...  Didn't __range_ok() implicitly involve get_addr_limit() rather than
+taking an explicit range?  Certainly i386 thinks so:
 
-static inline bool range_over_limit(unsigned long start,
-				    unsigned long len,
-				    unsigned long limit)
-{
-	return start + len > limit || start + len < start;
-}
+#define __range_ok(addr,size) ({ \
+	unsigned long flag,roksum; \
+	__chk_user_ptr(addr); \
+	asm("addl %3,%1 ; sbbl %0,%0; cmpl %1,%4; sbbl $0,%0" \
+		:"=&r" (flag), "=r" (roksum) \
+		:"1" (addr),"g" ((int)(size)),"rm" (current_thread_info()->addr_limit.seg)); \
+	flag; })
 
-Cheers,
-Rusty.
-PS.  Previously this identical function was called __range_ok() (and
-returned 0 if it was not ok...)
-
+David
