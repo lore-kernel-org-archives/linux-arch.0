@@ -1,41 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:54980 "EHLO mx1.redhat.com"
+Received: from smtp.osdl.org ([65.172.181.24]:55350 "EHLO smtp.osdl.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753370AbXDKRE3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Apr 2007 13:04:29 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1176297479.14322.69.camel@localhost.localdomain> 
-References: <1176297479.14322.69.camel@localhost.localdomain>  <200704062127.l36LRMA7019394@shell0.pdx.osdl.net> <6632.1176200270@redhat.com> <1176257950.26372.50.camel@localhost.localdomain> <20070410194834.b688ce55.akpm@linux-foundation.org> 
-Subject: Re: + expose-range-checking-functions-from-arch-specific.patch added to -mm tree 
-Date: Wed, 11 Apr 2007 18:03:06 +0100
-Message-ID: <400.1176310986@redhat.com>
+	id S1753540AbXDKSZc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 Apr 2007 14:25:32 -0400
+Date: Wed, 11 Apr 2007 11:24:52 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: + expose-range-checking-functions-from-arch-specific.patch
+ added to -mm tree
+Message-Id: <20070411112452.6979414c.akpm@linux-foundation.org>
+In-Reply-To: <14926.1176288559@redhat.com>
+References: <20070410194834.b688ce55.akpm@linux-foundation.org>
+	<200704062127.l36LRMA7019394@shell0.pdx.osdl.net>
+	<6632.1176200270@redhat.com>
+	<1176257950.26372.50.camel@localhost.localdomain>
+	<14926.1176288559@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, randy.dunlap@oracle.com
+To: David Howells <dhowells@redhat.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org, randy.dunlap@oracle.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Rusty Russell <rusty@rustcorp.com.au> wrote:
+On Wed, 11 Apr 2007 11:49:19 +0100
+David Howells <dhowells@redhat.com> wrote:
 
-> static inline bool range_over_limit(unsigned long start,
-> 				    unsigned long len,
-> 				    unsigned long limit)
+> Andrew Morton <akpm@linux-foundation.org> wrote:
+> 
+> > To me, "val_outside" means "true if the value is outside":
+> > 
+> > bool val_outside(val, start, len)
+> > {
+> > 	return val < start || val > (start+len-1);
+> > }
+> > 
+> > that's what my function does.
+> 
+> Seconded.  Again, I would suggest calling it something like limit_check() or
+> range_check().
+> 
 
-I'm still not sure the name is entirely clear, but it's better.  I'd still
-stick the word "check" in there personally, perhaps check_range_limit(), but
-that's just my preference.
+I suspect we would benefit from a proper suite of tools for comparing a
+single number against a range, and for comparing ranges.  As you say, it's
+something which we do an awful lot of, and we regularly get it wrong <looks
+at a great pile of coverity-derived bugfixes.  It's like using time_after()
+instead of open-coding it and then screwing it up.
 
-> PS.  Previously this identical function was called __range_ok() (and
-> returned 0 if it was not ok...)
+But considerable thought, review and documentation would need to go into
+that.  I'd then spend the next two years buried in cleanup patches <looks
+at a great pile of ARRAY_SIZE and ROUND_UP patches>.
 
-Ummm...  Didn't __range_ok() implicitly involve get_addr_limit() rather than
-taking an explicit range?  Certainly i386 thinks so:
+However Rusty's patch is merely a modest code consolidation.  And it's a
+per-arch thing, which I suspect is inappropriate for a general
+compare-a-number-with-a-range toolkit.  So I guess the above is out of
+scope.
 
-#define __range_ok(addr,size) ({ \
-	unsigned long flag,roksum; \
-	__chk_user_ptr(addr); \
-	asm("addl %3,%1 ; sbbl %0,%0; cmpl %1,%4; sbbl $0,%0" \
-		:"=&r" (flag), "=r" (roksum) \
-		:"1" (addr),"g" ((int)(size)),"rm" (current_thread_info()->addr_limit.seg)); \
-	flag; })
+But I do thing we should continue to pile on about the val_outside() naming
+and documentation ;)
 
-David
+Also, as a start on the generic range-checking toolkit I'd suggest that
+range_within() should be implemented in linux/range.h, not in
+linux/kernel.h.
+
+range_within() isn't terribly well documented.  Does it return true only if
+range1 is wholly within range2?  What if the two overlap?  What are the
+boundary cases?
+
+And the naming start, len, base, limit is hard to follow.  Wouldn't it be
+better to have
+
+bool range_within(unsigned long outer_range_start,
+		unsigned long outer_range_len,
+		unsigned long inner_range_start,
+		unsigned long inner_range_len)
+
+or similar?
+
+then we go on to 
+
+bool range_overlaps(range1_start, range1_len, range2_start, range2_len)
+bool range_wholly_less_than(lesser_range_start, lesser_range_len,
+			greater_range_start, greater_range_len)
+
+and on and on...
+
