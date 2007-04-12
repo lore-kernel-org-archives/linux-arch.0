@@ -1,29 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([143.182.124.21]:4993 "EHLO mga03.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S2992600AbXDLQFu convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Apr 2007 12:05:50 -0400
-Content-class: urn:content-classes:message
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Subject: RE: + expose-range-checking-functions-from-arch-specific.patchadded to -mm tree
-Date: Thu, 12 Apr 2007 09:05:43 -0700
-Message-ID: <617E1C2C70743745A92448908E030B2A0157430D@scsmsx411.amr.corp.intel.com>
-In-Reply-To: <1176334113.14322.130.camel@localhost.localdomain>
-From: "Luck, Tony" <tony.luck@intel.com>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:53321
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1753532AbXDLUvq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Apr 2007 16:51:46 -0400
+Date: Thu, 12 Apr 2007 13:51:47 -0700 (PDT)
+Message-Id: <20070412.135147.35685465.davem@davemloft.net>
+Subject: Re: missing syscalls
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20070401160123.GA9178@uranus.ravnborg.org>
+References: <20070401160123.GA9178@uranus.ravnborg.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>
-Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, randy.dunlap@oracle.com
+To: sam@ravnborg.org
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> Actually, I think it's brilliantly documented.  Defining base as the
-> first valid value and limit as the first invalid value makes it pretty
-> clear, IMHO.
+From: Sam Ravnborg <sam@ravnborg.org>
+Date: Sun, 1 Apr 2007 18:01:23 +0200
 
-"first invalid value" is hard to express if the range you
-want to check includes the largest value for the type
-you are using.  Either "limit" needs to be the largest
-allowable value, or you should stick to "base,len".
+> ============== sparc ================
+>   CALL    /home/sam/kernel/kbuild.git/scripts/checksyscalls.sh
+> <stdin>:752:2: warning: #warning syscall setresuid not implemented
+> <stdin>:756:2: warning: #warning syscall getresuid not implemented
+> <stdin>:776:2: warning: #warning syscall setresgid not implemented
+> <stdin>:780:2: warning: #warning syscall getresgid not implemented
 
--Tony
+I figured out what was going on here.
+
+Sparc 32-bit only has the "setresuid32", "getresuid32" variants,
+it never had the plain ones and there is no value to adding those
+old versions into the syscall table.
