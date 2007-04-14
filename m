@@ -1,205 +1,579 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.osdl.org ([65.172.181.24]:45698 "EHLO smtp.osdl.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754134AbXDMSol (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 13 Apr 2007 14:44:41 -0400
-Message-Id: <200704131844.l3DIiSiH006678@shell0.pdx.osdl.net>
-Subject: + expose-range-checking-functions-from-arch-specific-update.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Fri, 13 Apr 2007 11:44:28 -0700
+Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:42135 "EHLO
+	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753644AbXDNDPO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Apr 2007 23:15:14 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: [PATCH] kthread: Enhance kthread_stop to abort interruptible sleeps
+References: <20070413130236.GA173@tv-sign.ru>
+Date: Fri, 13 Apr 2007 21:13:13 -0600
+In-Reply-To: <20070413130236.GA173@tv-sign.ru> (Oleg Nesterov's message of
+	"Fri, 13 Apr 2007 17:02:36 +0400")
+Message-ID: <m1zm5bmywm.fsf@ebiederm.dsl.xmission.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: rusty@rustcorp.com.au, linux-arch@vger.kernel.org, randy.dunlap@oracle.com
+To: Oleg Nesterov <oleg@tv-sign.ru>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, "Rafael J. Wysocki" <rjw@sisk.pl>, Roland McGrath <roland@redhat.com>, Rusty Russell <rusty@rustcorp.com.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
-The patch titled
-     expose-range-checking-functions-from-arch-specific update
-has been added to the -mm tree.  Its filename is
-     expose-range-checking-functions-from-arch-specific-update.patch
+This patch reworks kthread_stop so it is more flexible and it causes
+the target kthread to abort interruptible sleeps.  Allowing a larger
+class of kernel threads to use to the kthread API.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+The changes start by defining TIF_KTHREAD_STOP on all architectures.
+TIF_KTHREAD_STOP is a per process flag that I can set from another
+process to indicate that a kernel thread should stop.
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
+wake_up_process in kthread_stop has been replaced by signal_wake_up
+ensuring that the kernel thread if sleeping is woken up in a timely
+manner and with TIF_SIGNAL_PENDING set, which causes us to break out
+of interruptible sleeps.
 
-------------------------------------------------------
-Subject: expose-range-checking-functions-from-arch-specific update
-From: Rusty Russell <rusty@rustcorp.com.au>
+recalc_signal_pending was modified to keep TIF_SIGNAL_PENDING set for
+as long as TIF_KTHREAD_STOP is set.
 
-range_within() was too ambitious: it started inspiring people.  Remove it.
+Arbitrary paths to do_exit are now allowed.  I have placed a
+completion on the thread stack and pointed vfork_done at it, when the
+mm_release is called from do_exit the completion will be called.
+Since the completion is stored on the stack it is important that
+kthread() now calls do_exit ensuring the stack frame that holds the
+completion is never released, and so that our exit_code is certain to
+make it unchanged all the way to do_exit.
 
-val_outside() was a terrible name, too.  Try range_over_limit().
+To allow kthread_stop to read the process exit code when exit_mm wakes
+it up  I have moved the setting of exit_code to the beginning of
+do_exit. 
 
-Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Randy Dunlap <randy.dunlap@oracle.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
 ---
+ include/asm-alpha/thread_info.h     |    1 +
+ include/asm-arm/thread_info.h       |    1 +
+ include/asm-arm26/thread_info.h     |    1 +
+ include/asm-avr32/thread_info.h     |    1 +
+ include/asm-cris/thread_info.h      |    1 +
+ include/asm-frv/thread_info.h       |    1 +
+ include/asm-h8300/thread_info.h     |    1 +
+ include/asm-i386/thread_info.h      |    1 +
+ include/asm-ia64/thread_info.h      |    1 +
+ include/asm-m32r/thread_info.h      |    1 +
+ include/asm-m68k/thread_info.h      |    1 +
+ include/asm-m68knommu/thread_info.h |    1 +
+ include/asm-mips/thread_info.h      |    1 +
+ include/asm-parisc/thread_info.h    |    1 +
+ include/asm-powerpc/thread_info.h   |    1 +
+ include/asm-s390/thread_info.h      |    1 +
+ include/asm-sh/thread_info.h        |    1 +
+ include/asm-sh64/thread_info.h      |    1 +
+ include/asm-sparc/thread_info.h     |    1 +
+ include/asm-sparc64/thread_info.h   |    1 +
+ include/asm-um/thread_info.h        |    1 +
+ include/asm-v850/thread_info.h      |    1 +
+ include/asm-x86_64/thread_info.h    |    1 +
+ include/asm-xtensa/thread_info.h    |    1 +
+ include/linux/kthread.h             |   20 ++++++++-
+ kernel/exit.c                       |    2 +-
+ kernel/kthread.c                    |   81 ++++++++++++-----------------------
+ kernel/signal.c                     |    3 +-
+ 28 files changed, 72 insertions(+), 58 deletions(-)
 
- include/asm-generic/range.h |   12 ++++++------
- include/asm-i386/range.h    |    8 ++++----
- include/asm-i386/uaccess.h  |    8 ++++----
- include/linux/kernel.h      |   21 ---------------------
- 4 files changed, 14 insertions(+), 35 deletions(-)
-
-diff -puN include/asm-generic/range.h~expose-range-checking-functions-from-arch-specific-update include/asm-generic/range.h
---- a/include/asm-generic/range.h~expose-range-checking-functions-from-arch-specific-update
-+++ a/include/asm-generic/range.h
-@@ -2,18 +2,18 @@
- #define _ASM_GENERIC_RANGE_H
+diff --git a/include/asm-alpha/thread_info.h b/include/asm-alpha/thread_info.h
+index 69ffd93..31c41e0 100644
+--- a/include/asm-alpha/thread_info.h
++++ b/include/asm-alpha/thread_info.h
+@@ -76,6 +76,7 @@ register struct thread_info *__current_thread_info __asm__("$8");
+ #define TIF_UAC_NOFIX		7
+ #define TIF_UAC_SIGBUS		8
+ #define TIF_MEMDIE		9
++#define TIF_KTHREAD_STOP	10
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+diff --git a/include/asm-arm/thread_info.h b/include/asm-arm/thread_info.h
+index 5014794..e6db6f1 100644
+--- a/include/asm-arm/thread_info.h
++++ b/include/asm-arm/thread_info.h
+@@ -148,6 +148,7 @@ extern void iwmmxt_task_switch(struct thread_info *);
+ #define TIF_USING_IWMMXT	17
+ #define TIF_MEMDIE		18
+ #define TIF_FREEZE		19
++#define TIF_KTHREAD_STOP	20
+ 
+ #define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+diff --git a/include/asm-arm26/thread_info.h b/include/asm-arm26/thread_info.h
+index 9b367eb..614cc8c 100644
+--- a/include/asm-arm26/thread_info.h
++++ b/include/asm-arm26/thread_info.h
+@@ -123,6 +123,7 @@ extern void free_thread_info(struct thread_info *);
+ #define TIF_USED_FPU		16
+ #define TIF_POLLING_NRFLAG	17
+ #define TIF_MEMDIE		18
++#define TIF_KTHREAD_STOP	19
+ 
+ #define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+diff --git a/include/asm-avr32/thread_info.h b/include/asm-avr32/thread_info.h
+index d1f5b35..2f295de 100644
+--- a/include/asm-avr32/thread_info.h
++++ b/include/asm-avr32/thread_info.h
+@@ -83,6 +83,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_SINGLE_STEP		6	/* single step after next break */
+ #define TIF_MEMDIE		7
+ #define TIF_RESTORE_SIGMASK	8	/* restore signal mask in do_signal */
++#define TIF_KTHREAD_STOP	9
+ #define TIF_USERSPACE		31      /* true if FS sets userspace */
+ 
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+diff --git a/include/asm-cris/thread_info.h b/include/asm-cris/thread_info.h
+index 7ad853c..5076b97 100644
+--- a/include/asm-cris/thread_info.h
++++ b/include/asm-cris/thread_info.h
+@@ -84,6 +84,7 @@ struct thread_info {
+ #define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+ #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		17
++#define TIF_KTHREAD_STOP	18
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+diff --git a/include/asm-frv/thread_info.h b/include/asm-frv/thread_info.h
+index d881f51..3bb68c0 100644
+--- a/include/asm-frv/thread_info.h
++++ b/include/asm-frv/thread_info.h
+@@ -117,6 +117,7 @@ register struct thread_info *__current_thread_info asm("gr15");
+ #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		17	/* OOM killer killed process */
+ #define TIF_FREEZE		18	/* freezing for suspend */
++#define TIF_KTHREAD_STOP	19
+ 
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+diff --git a/include/asm-h8300/thread_info.h b/include/asm-h8300/thread_info.h
+index 45f09dc..fda90d3 100644
+--- a/include/asm-h8300/thread_info.h
++++ b/include/asm-h8300/thread_info.h
+@@ -92,6 +92,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
+ 					   TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		5
++#define TIF_KTHREAD_STOP	6
+ 
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+diff --git a/include/asm-i386/thread_info.h b/include/asm-i386/thread_info.h
+index 4b187bb..b823054 100644
+--- a/include/asm-i386/thread_info.h
++++ b/include/asm-i386/thread_info.h
+@@ -135,6 +135,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_DEBUG		17	/* uses debug registers */
+ #define TIF_IO_BITMAP		18	/* uses I/O bitmap */
+ #define TIF_FREEZE		19	/* is freezing for suspend */
++#define TIF_KTHREAD_STOP	20
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+diff --git a/include/asm-ia64/thread_info.h b/include/asm-ia64/thread_info.h
+index 9169859..2a5391b 100644
+--- a/include/asm-ia64/thread_info.h
++++ b/include/asm-ia64/thread_info.h
+@@ -90,6 +90,7 @@ struct thread_info {
+ #define TIF_MCA_INIT		18	/* this task is processing MCA or INIT */
+ #define TIF_DB_DISABLED		19	/* debug trap disabled for fsyscall */
+ #define TIF_FREEZE		20	/* is freezing for suspend */
++#define TIF_KTHREAD_STOP	21
+ 
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+ #define _TIF_SYSCALL_AUDIT	(1 << TIF_SYSCALL_AUDIT)
+diff --git a/include/asm-m32r/thread_info.h b/include/asm-m32r/thread_info.h
+index 22aff32..6f06f93 100644
+--- a/include/asm-m32r/thread_info.h
++++ b/include/asm-m32r/thread_info.h
+@@ -154,6 +154,7 @@ static inline unsigned int get_thread_fault_code(void)
+ #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+ 					/* 31..28 fault code */
+ #define TIF_MEMDIE		17
++#define TIF_KTHREAD_STOP	18
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+diff --git a/include/asm-m68k/thread_info.h b/include/asm-m68k/thread_info.h
+index c4d622a..3c9d2f2 100644
+--- a/include/asm-m68k/thread_info.h
++++ b/include/asm-m68k/thread_info.h
+@@ -58,5 +58,6 @@ struct thread_info {
+ #define TIF_DELAYED_TRACE	14	/* single step a syscall */
+ #define TIF_SYSCALL_TRACE	15	/* syscall trace active */
+ #define TIF_MEMDIE		16
++#define TIF_KTHREAD_STOP	17
+ 
+ #endif	/* _ASM_M68K_THREAD_INFO_H */
+diff --git a/include/asm-m68knommu/thread_info.h b/include/asm-m68knommu/thread_info.h
+index b8f009e..95f44c6 100644
+--- a/include/asm-m68knommu/thread_info.h
++++ b/include/asm-m68knommu/thread_info.h
+@@ -89,6 +89,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
+ 					   TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		5
++#define TIF_KTHREAD_STOP	6
+ 
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+diff --git a/include/asm-mips/thread_info.h b/include/asm-mips/thread_info.h
+index 6cf05f4..9c425bf 100644
+--- a/include/asm-mips/thread_info.h
++++ b/include/asm-mips/thread_info.h
+@@ -120,6 +120,7 @@ register struct thread_info *__current_thread_info __asm__("$28");
+ #define TIF_MEMDIE		18
+ #define TIF_FREEZE		19
+ #define TIF_ALLOW_FP_IN_KERNEL	20
++#define TIF_KTHREAD_STOP	21
+ #define TIF_SYSCALL_TRACE	31	/* syscall trace active */
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+diff --git a/include/asm-parisc/thread_info.h b/include/asm-parisc/thread_info.h
+index 949314c..44706a5 100644
+--- a/include/asm-parisc/thread_info.h
++++ b/include/asm-parisc/thread_info.h
+@@ -63,6 +63,7 @@ struct thread_info {
+ #define TIF_32BIT               5       /* 32 bit binary */
+ #define TIF_MEMDIE		6
+ #define TIF_RESTORE_SIGMASK	7	/* restore saved signal mask */
++#define TIF_KTHREAD_STOP	8
+ 
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+diff --git a/include/asm-powerpc/thread_info.h b/include/asm-powerpc/thread_info.h
+index 3f32ca8..6e20084 100644
+--- a/include/asm-powerpc/thread_info.h
++++ b/include/asm-powerpc/thread_info.h
+@@ -123,6 +123,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_NOERROR		14	/* Force successful syscall return */
+ #define TIF_RESTORE_SIGMASK	15	/* Restore signal mask in do_signal */
+ #define TIF_FREEZE		16	/* Freezing for suspend */
++#define TIF_KTHREAD_STOP	17
+ 
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+diff --git a/include/asm-s390/thread_info.h b/include/asm-s390/thread_info.h
+index 0a51891..f345e1f 100644
+--- a/include/asm-s390/thread_info.h
++++ b/include/asm-s390/thread_info.h
+@@ -101,6 +101,7 @@ static inline struct thread_info *current_thread_info(void)
+ 					   TIF_NEED_RESCHED */
+ #define TIF_31BIT		18	/* 32bit process */ 
+ #define TIF_MEMDIE		19
++#define TIF_KTHREAD_STOP	20
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+ #define _TIF_RESTORE_SIGMASK	(1<<TIF_RESTORE_SIGMASK)
+diff --git a/include/asm-sh/thread_info.h b/include/asm-sh/thread_info.h
+index 31d55e3..8fb5d52 100644
+--- a/include/asm-sh/thread_info.h
++++ b/include/asm-sh/thread_info.h
+@@ -116,6 +116,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_POLLING_NRFLAG	17	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		18
+ #define TIF_FREEZE		19
++#define TIF_KTHREAD_STOP	20
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+diff --git a/include/asm-sh64/thread_info.h b/include/asm-sh64/thread_info.h
+index 1f825cb..cd7f7c8 100644
+--- a/include/asm-sh64/thread_info.h
++++ b/include/asm-sh64/thread_info.h
+@@ -78,6 +78,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_SIGPENDING		2	/* signal pending */
+ #define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+ #define TIF_MEMDIE		4
++#define TIF_KTHREAD_STOP	5
+ 
+ 
+ #endif /* __KERNEL__ */
+diff --git a/include/asm-sparc/thread_info.h b/include/asm-sparc/thread_info.h
+index 91b9f58..594bce5 100644
+--- a/include/asm-sparc/thread_info.h
++++ b/include/asm-sparc/thread_info.h
+@@ -137,6 +137,7 @@ BTFIXUPDEF_CALL(void, free_thread_info, struct thread_info *)
+ #define TIF_POLLING_NRFLAG	9	/* true if poll_idle() is polling
+ 					 * TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		10
++#define TIF_KTHREAD_STOP	11
+ 
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+diff --git a/include/asm-sparc64/thread_info.h b/include/asm-sparc64/thread_info.h
+index 2ebf7f2..3a5178d 100644
+--- a/include/asm-sparc64/thread_info.h
++++ b/include/asm-sparc64/thread_info.h
+@@ -236,6 +236,7 @@ register struct thread_info *current_thread_info_reg asm("g6");
+ #define TIF_ABI_PENDING		12
+ #define TIF_MEMDIE		13
+ #define TIF_POLLING_NRFLAG	14
++#define TIF_KTHREAD_STOP	15
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+diff --git a/include/asm-um/thread_info.h b/include/asm-um/thread_info.h
+index 261e2f4..f10a6ca 100644
+--- a/include/asm-um/thread_info.h
++++ b/include/asm-um/thread_info.h
+@@ -69,6 +69,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_MEMDIE	 	5
+ #define TIF_SYSCALL_AUDIT	6
+ #define TIF_RESTORE_SIGMASK	7
++#define TIF_KTHREAD_STOP	8
+ 
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+diff --git a/include/asm-v850/thread_info.h b/include/asm-v850/thread_info.h
+index 82b8f28..98d5922 100644
+--- a/include/asm-v850/thread_info.h
++++ b/include/asm-v850/thread_info.h
+@@ -83,6 +83,7 @@ struct thread_info {
+ #define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
+ 					   TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		5
++#define TIF_KTHREAD_STOP	6
+ 
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+diff --git a/include/asm-x86_64/thread_info.h b/include/asm-x86_64/thread_info.h
+index 74a6c74..9ad6545 100644
+--- a/include/asm-x86_64/thread_info.h
++++ b/include/asm-x86_64/thread_info.h
+@@ -123,6 +123,7 @@ static inline struct thread_info *stack_thread_info(void)
+ #define TIF_DEBUG		21	/* uses debug registers */
+ #define TIF_IO_BITMAP		22	/* uses I/O bitmap */
+ #define TIF_FREEZE		23	/* is freezing for suspend */
++#define TIF_KTHREAD_STOP	24
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+diff --git a/include/asm-xtensa/thread_info.h b/include/asm-xtensa/thread_info.h
+index 5ae34ab..facf5cd 100644
+--- a/include/asm-xtensa/thread_info.h
++++ b/include/asm-xtensa/thread_info.h
+@@ -117,6 +117,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_IRET		5	/* return with iret */
+ #define TIF_MEMDIE		6
+ #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
++#define TIF_KTHREAD_STOP	17
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+diff --git a/include/linux/kthread.h b/include/linux/kthread.h
+index 00dd957..a8ea31d 100644
+--- a/include/linux/kthread.h
++++ b/include/linux/kthread.h
+@@ -10,7 +10,7 @@ struct task_struct *kthread_create(int (*threadfn)(void *data),
  
  /**
-- * val_outside - is a value and length past a limit?
-- * @val: the start value
-+ * range_over_limit() - is a start and length past a limit?
-+ * @start: the start value
-  * @len: the length from the start
-  * @limit: the first invalid value
+  * kthread_run - create and wake a thread.
+- * @threadfn: the function to run until signal_pending(current).
++ * @threadfn: the function to run until kthread_should_stop().
+  * @data: data ptr for @threadfn.
+  * @namefmt: printf-style name for the thread.
   *
-- * Like val + len > limit, except with overflow checking.
-+ * Like start + len > limit, except with overflow checking.
-  */
--static inline bool val_outside(unsigned long val, unsigned long len,
--			       unsigned long limit)
-+static inline bool range_over_limit(unsigned long start, unsigned long len,
-+				    unsigned long limit)
+@@ -28,7 +28,23 @@ struct task_struct *kthread_create(int (*threadfn)(void *data),
  
+ void kthread_bind(struct task_struct *k, unsigned int cpu);
+ int kthread_stop(struct task_struct *k);
+-int kthread_should_stop(void);
++
++static inline int __kthread_should_stop(struct task_struct *tsk)
++{
++	return test_tsk_thread_flag(tsk, TIF_KTHREAD_STOP);
++}
++
++/**
++ * kthread_should_stop - should this kthread return now?
++ *
++ * When someone calls kthread_stop() on your kthread, it will be woken
++ * and this will return true.  You should then return, and your return
++ * value will be passed through to kthread_stop().
++ */
++static inline int kthread_should_stop(void)
++{
++	return __kthread_should_stop(current);
++}
+ 
+ int kthreadd(void *unused);
+ extern struct task_struct *kthreadd_task;
+diff --git a/kernel/exit.c b/kernel/exit.c
+index 8024e79..3dad696 100644
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@ -891,6 +891,7 @@ fastcall NORET_TYPE void do_exit(long code)
+ 	}
+ 
+ 	tsk->flags |= PF_EXITING;
++	tsk->exit_code = code;
+ 
+ 	if (unlikely(in_atomic()))
+ 		printk(KERN_INFO "note: %s[%d] exited with preempt_count %d\n",
+@@ -937,7 +938,6 @@ fastcall NORET_TYPE void do_exit(long code)
+ 	if (tsk->binfmt)
+ 		module_put(tsk->binfmt->module);
+ 
+-	tsk->exit_code = code;
+ 	proc_exit_connector(tsk);
+ 	exit_task_namespaces(tsk);
+ 	exit_notify(tsk);
+diff --git a/kernel/kthread.c b/kernel/kthread.c
+index df8a8e8..06c7e51 100644
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -33,38 +33,18 @@ struct kthread_create_info
+ 	struct list_head list;
+ };
+ 
+-struct kthread_stop_info
+-{
+-	struct task_struct *k;
+-	int err;
+-	struct completion done;
+-};
+-
+-/* Thread stopping is done by setthing this var: lock serializes
+- * multiple kthread_stop calls. */
+-static DEFINE_MUTEX(kthread_stop_lock);
+-static struct kthread_stop_info kthread_stop_info;
+-
+-/**
+- * kthread_should_stop - should this kthread return now?
+- *
+- * When someone calls kthread_stop() on your kthread, it will be woken
+- * and this will return true.  You should then return, and your return
+- * value will be passed through to kthread_stop().
+- */
+-int kthread_should_stop(void)
+-{
+-	return (kthread_stop_info.k == current);
+-}
+-EXPORT_SYMBOL(kthread_should_stop);
+-
+ static int kthread(void *_create)
  {
--	return val + len > limit || val + len < val;
-+	return start + len > limit || start + len < start;
+ 	struct kthread_create_info *create = _create;
++	struct completion done;
+ 	int (*threadfn)(void *data);
+ 	void *data;
+ 	int ret = -EINTR;
+ 
++	/* Setup a completion on this thread's stack */
++	init_completion(&done);
++	current->vfork_done = &done;
++
+ 	/* Copy data: it's on kthread's stack */
+ 	threadfn = create->threadfn;
+ 	data = create->data;
+@@ -77,12 +57,7 @@ static int kthread(void *_create)
+ 	if (!kthread_should_stop())
+ 		ret = threadfn(data);
+ 
+-	/* It might have exited on its own, w/o kthread_stop.  Check. */
+-	if (kthread_should_stop()) {
+-		kthread_stop_info.err = ret;
+-		complete(&kthread_stop_info.done);
+-	}
+-	return 0;
++	do_exit(ret);
  }
  
- #endif	/* _ASM_GENERIC_RANGE_H */
-diff -puN include/asm-i386/range.h~expose-range-checking-functions-from-arch-specific-update include/asm-i386/range.h
---- a/include/asm-i386/range.h~expose-range-checking-functions-from-arch-specific-update
-+++ a/include/asm-i386/range.h
-@@ -1,14 +1,14 @@
- #ifndef __ASM_RANGE_H
- #define __ASM_RANGE_H
- 
--/* Is val + size > limit? This needs 33-bit arithmetic. We have a carry... */
--static inline bool val_outside(unsigned long val, unsigned long len,
--			       unsigned long limit)
-+/* Is start + size > limit? This needs 33-bit arithmetic. We have a carry... */
-+static inline bool range_over_limit(unsigned long start, unsigned long len,
-+				    unsigned long limit)
- {
- 	unsigned long flag, roksum;
- 	asm("addl %3,%1 ; sbbl %0,%0; cmpl %1,%4; sbbl $0,%0"
- 		:"=&r" (flag), "=r" (roksum)
--		:"1" (val), "g" (len), "rm" (limit));
-+		:"1" (start), "g" (len), "rm" (limit));
- 	return flag;
- }
- #endif	/* __ASM_RANGE_H */
-diff -puN include/asm-i386/uaccess.h~expose-range-checking-functions-from-arch-specific-update include/asm-i386/uaccess.h
---- a/include/asm-i386/uaccess.h~expose-range-checking-functions-from-arch-specific-update
-+++ a/include/asm-i386/uaccess.h
-@@ -51,10 +51,10 @@ extern struct movsl_mask {
-  * This is equivalent to the following test:
-  * (u33)addr + (u33)size > (u33)current->addr_limit.seg
-  */
--#define __range_ok(addr, size) ({				\
--	__chk_user_ptr(addr);					\
--	val_outside((int)(addr), (size),			\
--		    current_thread_info()->addr_limit.seg);	\
-+#define __range_ok(addr, size) ({					\
-+	__chk_user_ptr(addr);						\
-+	range_over_limit((int)(addr), (size),				\
-+			 current_thread_info()->addr_limit.seg);	\
- })
+ static void create_kthread(struct kthread_create_info *create)
+@@ -104,7 +79,7 @@ static void create_kthread(struct kthread_create_info *create)
  
  /**
-diff -puN include/linux/kernel.h~expose-range-checking-functions-from-arch-specific-update include/linux/kernel.h
---- a/include/linux/kernel.h~expose-range-checking-functions-from-arch-specific-update
-+++ a/include/linux/kernel.h
-@@ -16,7 +16,6 @@
- #include <linux/log2.h>
- #include <asm/byteorder.h>
- #include <asm/bug.h>
--#include <asm/range.h>
+  * kthread_create - create a kthread.
+- * @threadfn: the function to run until signal_pending(current).
++ * @threadfn: the function to run until kthread_should_stop().
+  * @data: data ptr for @threadfn.
+  * @namefmt: printf-style name for the thread.
+  *
+@@ -174,38 +149,36 @@ EXPORT_SYMBOL(kthread_bind);
+  * kthread_stop - stop a thread created by kthread_create().
+  * @k: thread created by kthread_create().
+  *
+- * Sets kthread_should_stop() for @k to return true, wakes it, and
+- * waits for it to exit.  Your threadfn() must not call do_exit()
+- * itself if you use this function!  This can also be called after
+- * kthread_create() instead of calling wake_up_process(): the thread
+- * will exit without calling threadfn().
++ * Sets TIF_KTHREAD_STOP for @k, wakes it and waits for it to exit.
++ *
++ * kthread_stop should be called exactly once on @k.
++ *
++ * This can also be called after kthread_create() instead of calling
++ * wake_up_process(): the thread  will exit without calling threadfn().
++ *
++ * If your threadfn may terminate before you call kthread_stop
++ * you should call get_task_struct on @k so it is valid when you call
++ * kthread_stop.
+  *
+  * Returns the result of threadfn(), or %-EINTR if wake_up_process()
+  * was never called.
+  */
+-int kthread_stop(struct task_struct *k)
++int kthread_stop(struct task_struct *tsk)
+ {
+ 	int ret;
  
- extern const char linux_banner[];
- extern const char linux_proc_banner[];
-@@ -312,26 +311,6 @@ static inline int __attribute__ ((format
- 	(void)__tmp; \
- })
- 
--/**
-- * range_within - is one range within another?
-- * @start: the start value
-- * @len: the length from the start
-- * @base: the first valid value
-- * @limit: the first invalid value
-- *
-- * This is usually used for memory range testing.  The common cases of
-- * constant 0 start and constant 0 len cases are optimized out.
-- */
--static inline bool range_within(unsigned long start, unsigned long len,
--				unsigned long base, unsigned long limit)
--{
--	if (start < base)
--		return false;
--	if (__builtin_constant_p(len) && len == 0)
--		return start - base <= limit - base;
--	return !val_outside(limit, start, len);
--}
+-	mutex_lock(&kthread_stop_lock);
 -
- struct sysinfo;
- extern int do_sysinfo(struct sysinfo *info);
+-	/* It could exit after stop_info.k set, but before wake_up_process. */
+-	get_task_struct(k);
++	/* Ensure the task struct persists until I read the exit code. */
++	get_task_struct(tsk);
  
-_
-
-Patches currently in -mm which might be from rusty@rustcorp.com.au are
-
-fix-kernel-oops-with-badly-formatted-module-option.patch
-git-kbuild.patch
-git-net.patch
-account-for-module-percpu-space-separately-from-kernel.patch
-paravirt_ops-update-maintainers.patch
-paravirt_ops-remove-config_debug_paravirt.patch
-paravirt_ops-rename-struct-paravirt_patch-to-paravirt_patch_site-for-clarity.patch
-paravirt_ops-use-patch-site-ids-computed-from-offset-in-paravirt_ops-structure.patch
-paravirt_ops-fix-patch-site-clobbers-to-include-return-register.patch
-paravirt_ops-consistently-wrap-paravirt-ops-callsites-to-make-them-patchable.patch
-paravirt_ops-document-asm-i386-paravirth.patch
-paravirt_ops-add-common-patching-machinery.patch
-rename-the-parainstructions-symbols-to-be-consistent-with-the-others.patch
-rename-the-parainstructions-symbols-to-be-consistent-with-the-others-fix.patch
-allow-boot-time-disable-of-paravirt_ops-patching.patch
-allow-per-cpu-variables-to-be-page-aligned.patch
-xfs-clean-up-shrinker-games.patch
-mm-clean-up-and-kernelify-shrinker-registration.patch
-extend-print_symbol-capability.patch
-extend-print_symbol-capability-fix.patch
-array_size-check-for-type.patch
-array_size-check-for-type-uml-fix.patch
-module-use-krealloc.patch
-futex-restartable-futex_wait.patch
-futex-restartable-futex_wait-fix.patch
-add-ability-to-keep-track-of-callers-of-symbol_getput.patch
-add-ability-to-keep-track-of-callers-of-symbol_getput-update.patch
-update-mtd-use-of-symbol_getput.patch
-update-dvb-use-of-symbol_getput.patch
-simplify-module_get_kallsym-by-dropping-length-arg.patch
-fix-race-between-rmmod-and-cat-proc-kallsyms.patch
-simplify-kallsyms_lookup.patch
-fix-race-between-cat-proc-wchan-and-rmmod-et-al.patch
-fix-race-between-cat-proc-slab_allocators-and-rmmod.patch
-expose-range-checking-functions-from-arch-specific.patch
-expose-range-checking-functions-from-arch-specific-update.patch
-____call_usermodehelper-dont-flush_signals.patch
-futex-new-private-futexes.patch
-lguest-the-guest-code.patch
-lguest-the-host-code.patch
-lguest-the-host-code-vs-sys_futex64-allows-64bit-futexes-get_futex_key-must-check-proper-alignement-for-64bit-futexes.patch
-lguest-the-host-code-vs-futex-new-private-futexes.patch
-lguest-the-asm-offsets.patch
-lguest-the-makefile-and-kconfig.patch
-lguest-the-console-driver.patch
-lguest-the-net-driver.patch
-lguest-the-block-driver.patch
-lguest-the-documentation-example-launcher.patch
-mm-clean-up-and-kernelify-shrinker-registration-reiser4.patch
+-	/* Must init completion *before* thread sees kthread_stop_info.k */
+-	init_completion(&kthread_stop_info.done);
+-	smp_wmb();
++	set_tsk_thread_flag(tsk, TIF_KTHREAD_STOP);
++	spin_lock_irq(&tsk->sighand->siglock);
++	signal_wake_up(tsk, 1);
++	spin_unlock_irq(&tsk->sighand->siglock);
+ 
+-	/* Now set kthread_should_stop() to true, and wake it up. */
+-	kthread_stop_info.k = k;
+-	wake_up_process(k);
+-	put_task_struct(k);
++	wait_for_completion(tsk->vfork_done);
++	ret = tsk->exit_code;
+ 
+-	/* Once it dies, reset stop ptr, gather result and we're done. */
+-	wait_for_completion(&kthread_stop_info.done);
+-	kthread_stop_info.k = NULL;
+-	ret = kthread_stop_info.err;
+-	mutex_unlock(&kthread_stop_lock);
++	put_task_struct(tsk);
+ 
+ 	return ret;
+ }
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 2d437f6..fca2a45 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -26,6 +26,7 @@
+ #include <linux/freezer.h>
+ #include <linux/pid_namespace.h>
+ #include <linux/nsproxy.h>
++#include <linux/kthread.h>
+ 
+ #include <asm/param.h>
+ #include <asm/uaccess.h>
+@@ -218,7 +219,7 @@ static inline int has_pending_signals(sigset_t *signal, sigset_t *blocked)
+ fastcall void recalc_sigpending_tsk(struct task_struct *t)
+ {
+ 	if (t->signal->group_stop_count > 0 ||
+-	    (freezing(t)) ||
++	    (freezing(t)) || __kthread_should_stop(t) ||
+ 	    PENDING(&t->pending, &t->blocked) ||
+ 	    PENDING(&t->signal->shared_pending, &t->blocked))
+ 		set_tsk_thread_flag(t, TIF_SIGPENDING);
+-- 
+1.5.0.g53756
 
