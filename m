@@ -1,31 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:45730 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753673AbXDTUic (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2007 16:38:32 -0400
-Date: Fri, 20 Apr 2007 13:38:31 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: RE: Better local_t implementation needed
-In-Reply-To: <617E1C2C70743745A92448908E030B2A015F2392@scsmsx411.amr.corp.intel.com>
-Message-ID: <Pine.LNX.4.64.0704201337580.14739@schroedinger.engr.sgi.com>
-References: <617E1C2C70743745A92448908E030B2A015F2392@scsmsx411.amr.corp.intel.com>
+Received: from scrub.xs4all.nl ([194.109.195.176]:53341 "EHLO scrub.xs4all.nl"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1767281AbXDTVxD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Apr 2007 17:53:03 -0400
+From: Roman Zippel <zippel@linux-m68k.org>
+Subject: Re: Better local_t implementation needed
+Date: Fri, 20 Apr 2007 23:25:04 +0200
+References: <200704201256.13008.ak@suse.de>
+In-Reply-To: <200704201256.13008.ak@suse.de>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200704202325.06301.zippel@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: linux-arch@vger.kernel.org, Christoph Lameter <clameter@sgi.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 20 Apr 2007, Luck, Tony wrote:
+Hi,
 
-> Look for the !defined(CONFIG_IA64) in fs/proc/proc_misc.c.
-> 
-> 	for (i = 0; i < NR_IRQS; i++)
-> 		seq_printf(p, " %u", kstat_irqs(i));
-> 
-> That loop took several seconds on a big SGI box.
+On Friday 20 April 2007 12:56, Andi Kleen wrote:
 
-I guess the sum_vm_events() in mm/vmstat.c does the right thing. It goes 
-by cpu and adds up all event counter of one cpu area before going to the 
-next.
+> There used to be a portable implementation of local.h
+> that instead defines local_t as a two value array
+> indexed by in_interrupt(). I'm considering to add that back.
 
+That doesn't really work in general, interrupts can interrupt other 
+interrupts.
+
+bye, Roman
