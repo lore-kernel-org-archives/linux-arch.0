@@ -1,28 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:33462 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S2993052AbXDTRFo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2007 13:05:44 -0400
-Date: Fri, 20 Apr 2007 10:05:43 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: Better local_t implementation needed
-In-Reply-To: <200704201901.39437.ak@suse.de>
-Message-ID: <Pine.LNX.4.64.0704201004500.20647@schroedinger.engr.sgi.com>
-References: <200704201256.13008.ak@suse.de> <Pine.LNX.4.64.0704200903130.20232@schroedinger.engr.sgi.com>
- <200704201901.39437.ak@suse.de>
+Received: from mga01.intel.com ([192.55.52.88]:29899 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S2993313AbXDTSXy convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2007 14:23:54 -0400
+Content-class: urn:content-classes:message
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: RE: larger per cpu data
+Date: Fri, 20 Apr 2007 11:23:13 -0700
+Message-ID: <617E1C2C70743745A92448908E030B2A015F22CB@scsmsx411.amr.corp.intel.com>
+In-Reply-To: <200704201246.17531.ak@suse.de>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: Andi Kleen <ak@suse.de>
 Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 20 Apr 2007, Andi Kleen wrote:
+> I heard there were some problems with ia64 have those been fixed too?
 
-> > Is the per cpu access fixed on x86? Last I checked it was not atomic.
-> 
-> With upcomming patches per cpu can be directly referenced using %fs/%gs
-> Then cpu_local_add() etc will be a single instruction that is atomic
-> regarding interrupts.
+IA64 has a 64KB page allocated for each cpu for the percpu data. Right
+now we are using 28K-32K for the arch/ia64/configs/* variations.
 
-Ahh.. Great! When is that feature going to be available? 2.6.22?
+> Anybody would have a problem with increasing per CPU data in a
+> standard kernel by a few KB?
+
+How many is "a few" ... and much more importantly is your few KB
+a fixed amount, or does it scale up with the number of network cards
+(or anything else that there might be a lot of on a large system)?
+
+A fixed extra 8-10K should be fine.  #NIC * 1K would cause problems.
+
+-Tony
+ 
