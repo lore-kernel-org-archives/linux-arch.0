@@ -1,68 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:37069 "EHLO
-	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754322AbXDXRUN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2007 13:20:13 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH] kthread: Enhance kthread_stop to abort interruptible sleeps
-References: <20070413130236.GA173@tv-sign.ru>
-	<m1zm5bmywm.fsf@ebiederm.dsl.xmission.com>
-	<20070424030924.be44ebfa.akpm@linux-foundation.org>
-	<m1r6qat681.fsf@ebiederm.dsl.xmission.com>
-	<20070424150558.GA233@tv-sign.ru> <20070424155332.GA321@tv-sign.ru>
-Date: Tue, 24 Apr 2007 11:18:27 -0600
-In-Reply-To: <20070424155332.GA321@tv-sign.ru> (Oleg Nesterov's message of
-	"Tue, 24 Apr 2007 19:53:32 +0400")
-Message-ID: <m1irblu1wc.fsf@ebiederm.dsl.xmission.com>
+Received: from jaguar.mkp.net ([192.139.46.146]:44011 "EHLO jaguar.mkp.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1422829AbXDXRha (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 Apr 2007 13:37:30 -0400
+Subject: Re: larger per cpu data
+References: <617E1C2C70743745A92448908E030B2A015F2383@scsmsx411.amr.corp.intel.com>
+From: Jes Sorensen <jes@sgi.com>
+Date: 24 Apr 2007 13:14:49 -0400
+In-Reply-To: <617E1C2C70743745A92448908E030B2A015F2383@scsmsx411.amr.corp.intel.com>
+Message-ID: <yq0odldpud2.fsf@jaguar.mkp.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@tv-sign.ru>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, "Rafael J. Wysocki" <rjw@sisk.pl>, Roland McGrath <roland@redhat.com>, Rusty Russell <rusty@rustcorp.com.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Oleg Nesterov <oleg@tv-sign.ru> writes:
+>>>>> "Tony" == Luck, Tony <tony.luck@intel.com> writes:
 
-> On 04/24, Oleg Nesterov wrote:
->>
->> Hm, mm_release() clears ->vfork_done before complete().
+>> > IA64 has a 64KB page allocated for each cpu for the percpu
+>> data. Right > now we are using 28K-32K for the arch/ia64/configs/*
+>> variations.
+>> 
+>> Could that be enlarged without too much trouble?
 
-Duh.  Yes somehow I had a blind spot there.  I clearly
-need to handle that case.
+Tony> If we stick to mapping it with a single TLB entry, then the next
+Tony> size up is 256K ... which is a pretty big jump.  But the code
+Tony> that does the mapping is just about to be changed from a single
+Tony> locked TLB entry to a map-on-tlb-miss version (thanks to Ken
+Tony> Chen). Some small-ish additions to that code would allow an
+Tony> expansion to 128K by mapping each half with a 64K TLB entry on
+Tony> demand.
 
->> 	mm_release:
->> 
->> 		struct completion *vfork_done = tsk->vfork_done;
->> 
->> 		if (vfork_done) {
->> 			tsk->vfork_done = NULL;
->> 			complete(vfork_done);
->> 		}
->> 
->> 
->> 	kthread_stop:
->> 
->> 		set_tsk_thread_flag(tsk, TIF_KTHREAD_STOP);
->> 		signal_wake_up(tsk, 1);
->> 
->> 		// tsk exits, sets ->vfork_done == NULL
->> 
->> 		wait_for_completion(tsk->vfork_done);
->
-> Since the task_struct should be pinned anyway, I think kthread_stop()
-> should do:
->
-> 	vfork_done = tsk->vfork_done;
-> 	barrier();
-> 	if (vfork_done)
-> 		wait_for_completion(vfork_done);
+256KB * 1024 CPUs (or more) == verymightyhuge ..... I certainly
+wouldn't like to see this.
 
-That should work, and this may explain what is going on. I was trying
-to figure out how this could happen but if the thread is running on
-another cpu there is a race and it may exit quickly enough to cause us
-problems before we get to kthread_stop.
-
-I don't know if this is the problem but it certainly needs to be fixed.
-
-Eric
-
+Cheers,
+Jes
