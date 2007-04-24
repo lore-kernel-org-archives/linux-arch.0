@@ -1,40 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:52050 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754343AbXDXSDD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2007 14:03:03 -0400
-Message-ID: <462E4654.4030405@sgi.com>
-Date: Tue, 24 Apr 2007 20:03:00 +0200
-From: Jes Sorensen <jes@sgi.com>
-MIME-Version: 1.0
-Subject: Re: larger per cpu data
-References: <617E1C2C70743745A92448908E030B2A0162DEC4@scsmsx411.amr.corp.intel.com>
-In-Reply-To: <617E1C2C70743745A92448908E030B2A0162DEC4@scsmsx411.amr.corp.intel.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mail.screens.ru ([213.234.233.54]:44973 "EHLO mail.screens.ru"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754372AbXDXU1x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 Apr 2007 16:27:53 -0400
+Date: Wed, 25 Apr 2007 00:27:27 +0400
+From: Oleg Nesterov <oleg@tv-sign.ru>
+Subject: Re: [PATCH] kthread: Enhance kthread_stop to abort interruptible sleeps
+Message-ID: <20070424202727.GB5042@tv-sign.ru>
+References: <20070413130236.GA173@tv-sign.ru> <m1zm5bmywm.fsf@ebiederm.dsl.xmission.com> <20070424030924.be44ebfa.akpm@linux-foundation.org> <m1r6qat681.fsf@ebiederm.dsl.xmission.com> <20070424150558.GA233@tv-sign.ru> <20070424155332.GA321@tv-sign.ru> <m1irblu1wc.fsf@ebiederm.dsl.xmission.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <m1irblu1wc.fsf@ebiederm.dsl.xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Davide Libenzi <davidel@xmailserver.org>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, "Rafael J. Wysocki" <rjw@sisk.pl>, Roland McGrath <roland@redhat.com>, Rusty Russell <rusty@rustcorp.com.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Luck, Tony wrote:
->> 256KB * 1024 CPUs (or more) == verymightyhuge ..... I certainly
->> wouldn't like to see this.
+On 04/24, Eric W. Biederman wrote:
 > 
-> "Only" 256M :-)  That 1024 cpu system probably has 1TB of memory or
-> more ... so this isn't quite as terrible as it sounds (at least in
-> terms of percentage of memory used).
-> 
-> Are there customers buying high cpu count, low memory systems?
+> I don't know if this is the problem but it certainly needs to be fixed.
 
-I doubt it, but I don't have numbers. However 256M is still a good chunk
-of memory that could be put to better use.
+I guess you will re-submit these patches soon. May I suggest you to put
+this
 
-> But unless these are some fabulously useful counters that Andi
-> wants to add ... I'd prefer to keep the ia64 percpu area at 64K
-> for a while longer.
+> +	spin_lock_irq(&tsk->sighand->siglock);
+> +	signal_wake_up(tsk, 1);
+> +	spin_unlock_irq(&tsk->sighand->siglock);
 
-Nod, my thoughts exactly.
+and this
 
-Cheers,
-Jes
+>  fastcall void recalc_sigpending_tsk(struct task_struct *t)
+>  {
+>  	if (t->signal->group_stop_count > 0 ||
+> -	    (freezing(t)) ||
+> +	    (freezing(t)) || __kthread_should_stop(t) ||
+
+into the separate patch?
+
+Perhaps I am too paranoid, and most probably this change is good, but
+still I'm afraid this very subtle change may break things. In that case
+it would be easy to revert that only part (for example for the testing
+purposes).
+
+Consider,
+
+	current->flags |= PF_NOFREEZE;
+
+	while (!kthread_should_stop()) {
+
+		begin_something();
+
+		// I am a kernel thread, all signals are ignored.
+		// I don't want to contribute to loadavg, so I am
+		// waiting for the absoulutely critical event in
+		// TASK__INTERRUPTIBLE state.
+
+		if (wait_event_interruptible(condition))
+			panic("Impossible!");
+
+		commit_something();
+	}
+
+Oleg.
+
