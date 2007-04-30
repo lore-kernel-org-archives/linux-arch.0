@@ -1,45 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:51773 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423164AbXD3JL1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2007 05:11:27 -0400
-Date: Mon, 30 Apr 2007 10:11:21 +0100
-From: Christoph Hellwig <hch@infradead.org>
-Subject: condingstyle, was Re: utrace comments
-Message-ID: <20070430091121.GC31397@infradead.org>
-References: <20061127165138.GA2991@lst.de> <20070430040213.BF9901801A4@magilla.sf.frob.com>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:4487 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1031473AbXD3JSS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2007 05:18:18 -0400
+Date: Mon, 30 Apr 2007 10:18:09 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: utrace comments
+Message-ID: <20070430091808.GA11345@flint.arm.linux.org.uk>
+References: <20061127165138.GA2991@lst.de> <20070430040213.BF9901801A4@magilla.sf.frob.com> <20070430090840.GB31397@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070430040213.BF9901801A4@magilla.sf.frob.com>
+In-Reply-To: <20070430090840.GB31397@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Roland McGrath <roland@redhat.com>, akpm@osdl.org
-Cc: Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>, Roland McGrath <roland@redhat.com>, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-I've separated this out under a new subject because some style issues
-that so far aren't documented explicitly are in doubt here, and Roland
-wants and Answer from Andrew.
+On Mon, Apr 30, 2007 at 10:08:40AM +0100, Christoph Hellwig wrote:
+> Btw, is there a fundamental reason why an architecture would not support
+> single-stepping except for a transition period of porting, i.e. are there
+> real hardware limitation in any of our ports?
 
-We also should put clauses on this into CodingStyle.
+Roland's idea of single-stepping is that it *must* be supported by
+hardware for utrace to use it.  There are a number of architectures
+which can only do single-stepping by modifying the text of the
+program being single stepped.  ARM is one such example.
 
+As such, even when utrace is complete, some architectures will never
+support in-kernel single step with utrace.  I believe Roland's idea
+is to have single step supported on these via some vapourware userspace
+library.
 
-On Sun, Apr 29, 2007 at 09:02:13PM -0700, Roland McGrath wrote:
-> > 	The coding style here is wrong.  The else should be on the line
-> > 	of the closing brace.  
-> 
-> I can ordinarily ignore syntax, but this is an abomination in the sight
-> of the Lord and always will be.  Fortunately, it's far from being 100%
-> consistently used in the kernel already.  People are welcome to change
-> the code after I submit it, but I just can't make myself write it that
-> way, sorry.
+My biggest worry is that the architectures which do not support hardware
+single stepping are seen by many people as "minority architectures" which
+"don't really matter" and as such making support for a feature such a
+special case will probably result in the feature effectively being
+unavailable on those architectures.
 
-> > 	This doesn't follow kernel coding style at all, we always
-> > 	put the && or || operators at the end of the closing line.
-> 
-> I could swear I've been "corrected" in the opposite direction on this one.
-> It is not mentioned in Documentation/CodingStyle, and the existing kernel
-> code is far from consistent on it.  I really don't care which way it is,
-> but I'd like clear authoritative direction from Linus and Andrew before I
-> bother with it.
+As such I have zero motivation to continue my forrey into utrace from
+a couple of months ago.  I'd also like to see utrace become *optional*
+for architectures to support, rather than as it currently stands as
+a *mandatory* requirement when merged.
 
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
