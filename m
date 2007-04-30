@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:2929 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1031514AbXD3Jp0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2007 05:45:26 -0400
-Date: Mon, 30 Apr 2007 10:45:10 +0100
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+Received: from pentafluge.infradead.org ([213.146.154.40]:47072 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932280AbXD3KSd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2007 06:18:33 -0400
+Date: Mon, 30 Apr 2007 11:18:31 +0100
+From: Christoph Hellwig <hch@infradead.org>
 Subject: Re: utrace comments
-Message-ID: <20070430094510.GC11345@flint.arm.linux.org.uk>
+Message-ID: <20070430101831.GA9814@infradead.org>
 References: <20061127165138.GA2991@lst.de> <20070430040213.BF9901801A4@magilla.sf.frob.com> <20070430090840.GB31397@infradead.org> <20070430091808.GA11345@flint.arm.linux.org.uk> <20070430092200.GA15773@lst.de> <20070430093331.GB11345@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -17,18 +17,6 @@ To: Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, Rolan
 List-ID: <linux-arch.vger.kernel.org>
 
 On Mon, Apr 30, 2007 at 10:33:31AM +0100, Russell King wrote:
-> On Mon, Apr 30, 2007 at 11:22:00AM +0200, Christoph Hellwig wrote:
-> > On Mon, Apr 30, 2007 at 10:18:09AM +0100, Russell King wrote:
-> > > Roland's idea of single-stepping is that it *must* be supported by
-> > > hardware for utrace to use it.  There are a number of architectures
-> > > which can only do single-stepping by modifying the text of the
-> > > program being single stepped.  ARM is one such example.
-> > > 
-> > > As such, even when utrace is complete, some architectures will never
-> > > support in-kernel single step with utrace.  I believe Roland's idea
-> > > is to have single step supported on these via some vapourware userspace
-> > > library.
-> > 
 > > Does the current arm ptrace code support single stepping in kernelspace?
 > > If yes we absolutely need to continue to support it.
 > 
@@ -46,18 +34,8 @@ On Mon, Apr 30, 2007 at 10:33:31AM +0100, Russell King wrote:
 > I have no real problem with a decision being made to drop kernel-based
 > single stepping _provided_ we have some replacement strategy in place
 > and readily available.  At the moment I've not seen such a strategy.
-> 
-> I'm not sure if Roland's expecting architecture maintainers to
-> create such a strategy themselves - which would probably turn out to
-> being far worse since you could end up with different implementations
-> for each architecture.
 
-For the sake of avoiding too much rehash, here's Roland's reply to my
-initial forrey into utrace:
-
-  http://marc.info/?l=linux-kernel&m=117309251916053&w=2
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Umm, no.  A major regression in the ptrace functionality for some
+architectures is simply not acceptable.  We can't merge utrace if
+we break existing userspace ABIs, and losing single stepping support
+is exactly that.
