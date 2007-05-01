@@ -1,74 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hoefnix.telenet-ops.be ([195.130.132.54]:33460 "EHLO
-	hoefnix.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1031600AbXEAJAg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2007 05:00:36 -0400
-Date: Tue, 1 May 2007 11:00:10 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: condingstyle, was Re: utrace comments
-In-Reply-To: <a781481a0704301142sfec317cu8213750c9ab84416@mail.gmail.com>
-Message-ID: <Pine.LNX.4.64.0705011058330.27246@anakin>
-References: <20061127165138.GA2991@lst.de> <20070430040213.BF9901801A4@magilla.sf.frob.com>
- <20070430091121.GC31397@infradead.org> <20070430100917.439ebfc8.akpm@linux-foundation.org>
- <a781481a0704301142sfec317cu8213750c9ab84416@mail.gmail.com>
+Received: from ns2.suse.de ([195.135.220.15]:40953 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1031660AbXEAKjx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 May 2007 06:39:53 -0400
+Received: from Relay1.suse.de (mail2.suse.de [195.135.221.8])
+	(using TLSv1 with cipher DHE-RSA-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by mx2.suse.de (Postfix) with ESMTP id 4FDD72162A
+	for <linux-arch@vger.kernel.org>; Tue,  1 May 2007 12:39:52 +0200 (CEST)
+Date: Tue, 1 May 2007 13:37:33 +0200
+From: Andi Kleen <ak@suse.de>
+Subject: Re: You might need vmalloc_sync_all()
+Message-ID: <20070501113733.GW25929@bingen.suse.de>
+References: <20070501042655.GL25929@bingen.suse.de> <20070501074419.GA8120@flint.arm.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070501074419.GA8120@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
-To: Satyam Sharma <satyam.sharma@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Roland McGrath <roland@redhat.com>, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 1 May 2007, Satyam Sharma wrote:
-> Actually, the latter style (one condition per line and the && or ||
-> operators appearing _before_ the conditions in subsequent lines)
-> is quite popular for multi-line compound conditions (well, I've seen this
-> in kernel/workqueue.c, kernel/stop_machine.c, etc at least, and also in
-> Linus' code, if I'm not mistaken). We also align subsequent lines to the
-> column of the condition belonging to the same "logical level" on the
-> previous line using _spaces_ (note that this is alignment, not indentation,
-> using spaces). The rationale is to make the operator prominent and thus make
-> the structure of a complex multi-line compound conditional expression more
-> readable and obvious at first glance itself. For example, consider:
+> What's this?
+
+Hmm, when I look now at your source I don't see one either. Maybe
+the reporter had a strangely patched kernel.
+
+Anyways, point stands -- for on demand module mappings you likely
+want vmalloc_sync_all to avoid nested faults. If you think you 
+can handle the nested faults safely then ignore it @)
+
 > 
-> 	if (veryverylengthycondition1 &&
-> 		smallcond2 &&
-> 		(conditionnumber3a ||
-> 		condition3b)) {
-> 		...
-> 	}
+> > Apparently at least ARM has this problem.
 > 
-> versus
-> 
-> 	if (veryverylengthycondition1
-> 	    && smallcond2
-> 	    && (conditionnumber3a
-> 	        || condition3b)) {
-> 		...
-> 	}
-> 
-> ?
-> 
-> Latter wins, doesn't it?
+> Is there a bug report?
 
-... because you forgot to align subsequent lines to the column of the
-condition belonging to the same "logical level" on the previous line.
+Forwarded it.
 
-Consider this:
-
-	if (veryverylengthycondition1 &&
-	    smallcond2 &&
-	    (conditionnumber3a ||
-	     condition3b)) {
-		...
-	}
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+-Andi
