@@ -1,70 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hoefnix.telenet-ops.be ([195.130.132.54]:57392 "EHLO
-	hoefnix.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752848AbXEAPy1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2007 11:54:27 -0400
-Received: from astra.telenet-ops.be (astra.telenet-ops.be [195.130.132.58])
-	by hoefnix.telenet-ops.be (Postfix) with ESMTP id F3BD59DE9C
-	for <linux-arch@vger.kernel.org>; Tue,  1 May 2007 17:54:20 +0200 (CEST)
-Date: Tue, 1 May 2007 17:53:59 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH] m68k: export csum_partial_copy_from_user (fwd)
-Message-ID: <Pine.LNX.4.64.0705011753070.27246@anakin>
+Received: from seahorse.shentel.net ([204.111.1.244]:37185 "EHLO
+	seahorse.shentel.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753182AbXEAP4i (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2007 11:56:38 -0400
+Date: Tue, 1 May 2007 11:00:17 -0400 (EDT)
+From: "John Anthony Kazos Jr." <jakj@j-a-k-j.com>
+Subject: Re: condingstyle, was Re: utrace comments
+In-Reply-To: <1178028973.2875.78.camel@pmac.infradead.org>
+Message-ID: <alpine.DEB.0.98.0705011054060.12931@sigma.j-a-k-j.com>
+References: <20061127165138.GA2991@lst.de>  <20070430040213.BF9901801A4@magilla.sf.frob.com>
+  <20070430091121.GC31397@infradead.org>  <20070430100917.439ebfc8.akpm@linux-foundation.org>
+  <a781481a0704301142sfec317cu8213750c9ab84416@mail.gmail.com>
+ <Pine.LNX.4.64.0705011058330.27246@anakin>
+ <1178028973.2875.78.camel@pmac.infradead.org>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: David Howells <dhowells@redhat.com>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Satyam Sharma <satyam.sharma@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Roland McGrath <roland@redhat.com>, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+> >         if (veryverylengthycondition1 &&
+> >             smallcond2 &&
+> >             (conditionnumber3a ||
+> >              condition3b)) {
+> >                 ...
+> >         }
+> 
+> It's horrid. I'd much rather see
+> 
+>         if (veryverylengthycondition1 &&
+>             smallcond2 &&
+>             (conditionnumber3a || condition3b)) {
+>                 ...
+>         }
 
-FYI, so far only alpha/frv/ia64/m32r/parisc/sparc64/v850/x86_64 export it.
+	if (veryverylengthycondition1
+		&& smallcond2
+		&& (conditionnumber3a
+			|| condition3b)) {
+		...
+	}
 
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
-
----------- Forwarded message ----------
-Date: Tue, 1 May 2007 17:52:44 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-To: Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@osdl.org>
-Cc: Linux Kernel Development <linux-kernel@vger.kernel.org>
-Subject: [PATCH] m68k: export csum_partial_copy_from_user
-
-net/rxrpc/af-rxrpc.ko needs csum_partial_copy_from_user
-
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
----
- arch/m68k/lib/checksum.c |    3 +++
- 1 file changed, 3 insertions(+)
-
---- linux-m68k-2.6.21.orig/arch/m68k/lib/checksum.c
-+++ linux-m68k-2.6.21/arch/m68k/lib/checksum.c
-@@ -320,6 +320,9 @@ csum_partial_copy_from_user(const void _
- 	return(sum);
- }
- 
-+EXPORT_SYMBOL(csum_partial_copy_from_user);
-+
-+
- /*
-  * copy from kernel space while checksumming, otherwise like csum_partial
-  */
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+Clear, crisp, and 80-wide. I also like how the logical operator on the 
+following line is indented slightly into the condition of the previous 
+line. I think this is much more sensical and sensible than using spaces to 
+line them up with the parentheses. Makes clear for each operator the 
+condition to which it applies.
