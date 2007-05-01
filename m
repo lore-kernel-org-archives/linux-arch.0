@@ -1,59 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rgminet01.oracle.com ([148.87.113.118]:63307 "EHLO
-	rgminet01.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754671AbXEAPIY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2007 11:08:24 -0400
-Date: Tue, 1 May 2007 08:05:44 -0700
-From: Randy Dunlap <randy.dunlap@oracle.com>
+Received: from canuck.infradead.org ([209.217.80.40]:53876 "EHLO
+	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754740AbXEAPLd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2007 11:11:33 -0400
 Subject: Re: condingstyle, was Re: utrace comments
-Message-Id: <20070501080544.459a6ec9.randy.dunlap@oracle.com>
-In-Reply-To: <1178028973.2875.78.camel@pmac.infradead.org>
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <Pine.LNX.4.64.0705011706350.27246@anakin>
 References: <20061127165138.GA2991@lst.de>
-	<20070430040213.BF9901801A4@magilla.sf.frob.com>
-	<20070430091121.GC31397@infradead.org>
-	<20070430100917.439ebfc8.akpm@linux-foundation.org>
-	<a781481a0704301142sfec317cu8213750c9ab84416@mail.gmail.com>
-	<Pine.LNX.4.64.0705011058330.27246@anakin>
-	<1178028973.2875.78.camel@pmac.infradead.org>
+	 <20070430040213.BF9901801A4@magilla.sf.frob.com>
+	 <20070430091121.GC31397@infradead.org>
+	 <20070430100917.439ebfc8.akpm@linux-foundation.org>
+	 <a781481a0704301142sfec317cu8213750c9ab84416@mail.gmail.com>
+	 <Pine.LNX.4.64.0705011058330.27246@anakin>
+	 <1178028973.2875.78.camel@pmac.infradead.org>
+	 <Pine.LNX.4.64.0705011706350.27246@anakin>
+Content-Type: text/plain
+Date: Tue, 01 May 2007 16:11:21 +0100
+Message-Id: <1178032281.2875.83.camel@pmac.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Satyam Sharma <satyam.sharma@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Roland McGrath <roland@redhat.com>, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Satyam Sharma <satyam.sharma@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Roland McGrath <roland@redhat.com>, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 01 May 2007 15:16:13 +0100 David Woodhouse wrote:
+On Tue, 2007-05-01 at 17:07 +0200, Geert Uytterhoeven wrote:
+> For clarity, if it fits, I prefer that one, too.
 
-> On Tue, 2007-05-01 at 11:00 +0200, Geert Uytterhoeven wrote:
-> > 
-> >         if (veryverylengthycondition1 &&
-> >             smallcond2 &&
-> >             (conditionnumber3a ||
-> >              condition3b)) {
-> >                 ...
-> >         }
-> 
-> It's horrid. I'd much rather see
-> 
->         if (veryverylengthycondition1 &&
->             smallcond2 &&
->             (conditionnumber3a || condition3b)) {
->                 ...
->         }
-> 
-> Even if that does take it over 80 columns, the 'failure' mode will be
-> that it gets wrapped round to the beginning of the screen or truncated
-> at 80 columns -- and for the _majority_ of the time, it doesn't matter.
-> 
-> Unless you're paying particular attention to the logic and debugging the
-> statement, a 'high-level' view of what's going on is perfectly
-> sufficient; you don't actually read every character anyway.
+I don't think that was under question, was it?
+My point was that I prefer it even when it _doesn't_ fit.
 
-I prefer this format also, but I'm not sure that we can get it
-into CodingStyle.  CodingStyle is about (either) concensus or
-dictum, but I don't see us close to concensus...
+-- 
+dwmw2
 
----
-~Randy
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
