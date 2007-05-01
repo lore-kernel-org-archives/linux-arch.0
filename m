@@ -1,40 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:40953 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1031660AbXEAKjx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 1 May 2007 06:39:53 -0400
-Received: from Relay1.suse.de (mail2.suse.de [195.135.221.8])
-	(using TLSv1 with cipher DHE-RSA-AES256-SHA (256/256 bits))
-	(No client certificate requested)
-	by mx2.suse.de (Postfix) with ESMTP id 4FDD72162A
-	for <linux-arch@vger.kernel.org>; Tue,  1 May 2007 12:39:52 +0200 (CEST)
-Date: Tue, 1 May 2007 13:37:33 +0200
-From: Andi Kleen <ak@suse.de>
-Subject: Re: You might need vmalloc_sync_all()
-Message-ID: <20070501113733.GW25929@bingen.suse.de>
-References: <20070501042655.GL25929@bingen.suse.de> <20070501074419.GA8120@flint.arm.linux.org.uk>
+Received: from an-out-0708.google.com ([209.85.132.244]:14548 "EHLO
+	an-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1031699AbXEANLV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2007 09:11:21 -0400
+Received: by an-out-0708.google.com with SMTP id b33so1591988ana
+        for <linux-arch@vger.kernel.org>; Tue, 01 May 2007 06:11:20 -0700 (PDT)
+Message-ID: <7b69d1470705010611y8f635a9pdc2f1dd6ec03700b@mail.gmail.com>
+Date: Tue, 1 May 2007 08:11:20 -0500
+From: "Scott Preece" <sepreece@gmail.com>
+Subject: Re: condingstyle, was Re: utrace comments
+In-Reply-To: <Pine.LNX.4.64.0705011058330.27246@anakin>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20070501074419.GA8120@flint.arm.linux.org.uk>
+References: <20061127165138.GA2991@lst.de>
+	 <20070430040213.BF9901801A4@magilla.sf.frob.com>
+	 <20070430091121.GC31397@infradead.org>
+	 <20070430100917.439ebfc8.akpm@linux-foundation.org>
+	 <a781481a0704301142sfec317cu8213750c9ab84416@mail.gmail.com>
+	 <Pine.LNX.4.64.0705011058330.27246@anakin>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Satyam Sharma <satyam.sharma@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Roland McGrath <roland@redhat.com>, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> What's this?
+On 5/1/07, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> On Tue, 1 May 2007, Satyam Sharma wrote:
+> > Actually, the latter style (one condition per line and the && or ||
+> > operators appearing _before_ the conditions in subsequent lines)
+> > is quite popular for multi-line compound conditions (well, I've seen this
+> > in kernel/workqueue.c, kernel/stop_machine.c, etc at least, and also in
+> > Linus' code, if I'm not mistaken). We also align subsequent lines to the
+> > column of the condition belonging to the same "logical level" on the
+> > previous line using _spaces_ (note that this is alignment, not indentation,
+> > using spaces). The rationale is to make the operator prominent and thus make
+> > the structure of a complex multi-line compound conditional expression more
+> > readable and obvious at first glance itself. For example, consider:
+> >
+> >       if (veryverylengthycondition1 &&
+> >               smallcond2 &&
+> >               (conditionnumber3a ||
+> >               condition3b)) {
+> >               ...
+> >       }
+> >
+> > versus
+> >
+> >       if (veryverylengthycondition1
+> >           && smallcond2
+> >           && (conditionnumber3a
+> >               || condition3b)) {
+> >               ...
+> >       }
+> >
+> > ?
+> >
+> > Latter wins, doesn't it?
+>
+> ... because you forgot to align subsequent lines to the column of the
+> condition belonging to the same "logical level" on the previous line.
+>
+> Consider this:
+>
+>         if (veryverylengthycondition1 &&
+>             smallcond2 &&
+>             (conditionnumber3a ||
+>              condition3b)) {
+>                 ...
+>         }
+>
+> Gr{oetje,eeting}s,
+>
+>                                                 Geert
 
-Hmm, when I look now at your source I don't see one either. Maybe
-the reporter had a strangely patched kernel.
 
-Anyways, point stands -- for on demand module mappings you likely
-want vmalloc_sync_all to avoid nested faults. If you think you 
-can handle the nested faults safely then ignore it @)
+I still find the leading-operator style much more readable. The most
+important thing in reading a long, complex conditional is
+understanding the structure of the operators, not the operands.
+Putting the operators at the front of the line emphasizes that
+structure, especially since you can line the operators up to match the
+logical indenting, whereas the trailing-operator style leaves the
+operators scattered and hard to assemble into a logical structure.
 
-> 
-> > Apparently at least ARM has this problem.
-> 
-> Is there a bug report?
+However, there's a lot of difference of opinion on this (perhaps
+rooted in differences in cognition and reading behavior). For me it's
+not even close - expressions broken so the operators are at the head
+of the line snap into focus and those with operators at the ends of
+the lines look like undifferentiated goo. Since some of the style
+guides I've seen do it the other way, I assume some people have the
+opposite perception. I guess that's why indent offers options for
+doing it either way...
 
-Forwarded it.
-
--Andi
+scott
