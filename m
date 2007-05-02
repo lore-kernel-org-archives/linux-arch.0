@@ -1,64 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ebiederm.dsl.xmission.com ([166.70.28.69]:57890 "EHLO
-	ebiederm.dsl.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752927AbXEBCZB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2007 22:25:01 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: condingstyle, was Re: utrace comments
-References: <alpine.DEB.0.98.0705011054060.12931@sigma.j-a-k-j.com>
-	<20061127165138.GA2991@lst.de>
-	<20070430040213.BF9901801A4@magilla.sf.frob.com>
-	<20070430091121.GC31397@infradead.org>
-	<20070430100917.439ebfc8.akpm@linux-foundation.org>
-	<a781481a0704301142sfec317cu8213750c9ab84416@mail.gmail.com>
-	<Pine.LNX.4.64.0705011058330.27246@anakin>
-	<1178028973.2875.78.camel@pmac.infradead.org>
-	<9185.1178035627@redhat.com>
-Date: Tue, 01 May 2007 20:18:51 -0600
-In-Reply-To: <9185.1178035627@redhat.com> (David Howells's message of "Tue, 01
-	May 2007 17:07:07 +0100")
-Message-ID: <m1y7k8x910.fsf@ebiederm.dsl.xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from mx1.redhat.com ([66.187.233.31]:50778 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754949AbXEBJdg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 2 May 2007 05:33:36 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <m1y7k8x910.fsf@ebiederm.dsl.xmission.com> 
+References: <m1y7k8x910.fsf@ebiederm.dsl.xmission.com>  <alpine.DEB.0.98.0705011054060.12931@sigma.j-a-k-j.com> <20061127165138.GA2991@lst.de> <20070430040213.BF9901801A4@magilla.sf.frob.com> <20070430091121.GC31397@infradead.org> <20070430100917.439ebfc8.akpm@linux-foundation.org> <a781481a0704301142sfec317cu8213750c9ab84416@mail.gmail.com> <Pine.LNX.4.64.0705011058330.27246@anakin> <1178028973.2875.78.camel@pmac.infradead.org> <9185.1178035627@redhat.com> 
+Subject: Re: condingstyle, was Re: utrace comments 
+Date: Wed, 02 May 2007 10:32:51 +0100
+Message-ID: <24844.1178098371@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
 Cc: "John Anthony Kazos Jr." <jakj@j-a-k-j.com>, David Woodhouse <dwmw2@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Satyam Sharma <satyam.sharma@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Roland McGrath <roland@redhat.com>, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-David Howells <dhowells@redhat.com> writes:
+Eric W. Biederman <ebiederm@xmission.com> wrote:
 
-> John Anthony Kazos Jr. <jakj@j-a-k-j.com> wrote:
->
->> 	if (veryverylengthycondition1
->> 		&& smallcond2
->> 		&& (conditionnumber3a
->> 			|| condition3b)) {
->> 		...
->> 	}
->> 
->> Clear, crisp, and 80-wide. I also like how the logical operator on the 
->> following line is indented slightly into the condition of the previous 
->> line.
->
-> The brain works better when associated things are lined up, so:
->
-> 	if (veryverylengthycondition1 &&
-> 	    smallcond2 &&
-> 	    (conditionnumber3a ||
-> 	     condition3b)) {
->
-> is better as it gives a visual clue to association.
+> Not lining up with the code following the if statement is also
+> a plus.  Because it clearly delineates the conditions from the code.
 
-Not lining up with the code following the if statement is also
-a plus.  Because it clearly delineates the conditions from the code.
+But the condition doesn't line up with the code:
 
-Of course in many cases conditions this complex are candidates for
+	if (veryverylengthycondition1 &&
+	    smallcond2 &&
+	    (conditionnumber3a ||
+	     condition3b)) {
+		this_is_some_code();
+		this_is_some_more_code();
+	}
 
-if (!condition1)
-	continue;
-if (!condition2)
-	continue;
-if (!condition3a && !condition3b)
-	continue;
+Personally, for complicated conditions like this, I prefer:
 
-Eric
+	if (veryverylengthycondition1 &&
+	    smallcond2 &&
+	    (conditionnumber3a ||
+	     condition3b)
+	    ) {
+		this_is_some_code();
+		this_is_some_more_code();
+	}
+
+But that seems to offend Andrew for some reason (or was it Christoph? or
+both?).
+
+David
