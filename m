@@ -1,347 +1,216 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([65.172.181.25]:58819 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1766912AbXECF7k (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 May 2007 01:59:40 -0400
-Message-Id: <200705030559.l435xYIu005899@shell0.pdx.osdl.net>
-Subject: + remove-tas.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Wed, 02 May 2007 22:59:34 -0700
+Received: from canuck.infradead.org ([209.217.80.40]:60384 "EHLO
+	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1161257AbXECHtJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 May 2007 03:49:09 -0400
+Subject: Re: [PATCH] Increase slab redzone to 64bits.
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <20070502220325.6cf210be.akpm@linux-foundation.org>
+References: <1178026980.2875.68.camel@pmac.infradead.org>
+	 <20070502220325.6cf210be.akpm@linux-foundation.org>
+Content-Type: text/plain
+Date: Thu, 03 May 2007 08:48:59 +0100
+Message-Id: <1178178539.11120.139.camel@pmac.infradead.org>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: jdike@addtoit.com, blaisorblade@yahoo.it, jdike@linux.intel.com, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: torvalds@linux-foundation.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Wed, 2007-05-02 at 22:03 -0700, Andrew Morton wrote:
+> I guess it would be slightly useful to use a different pattern for the
+> other 32 bits.
 
-The patch titled
-     Remove tas()
-has been added to the -mm tree.  Its filename is
-     remove-tas.patch
+OK, we can do that. I'm sure I can come up with another 128 bits from
+somewhere...
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+> That would be the only uintNN_t in all of MM.  Stubborn chap.
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
+It's only a matter of time -- there are people graduating today who've
+never known a C standard without the standard sized types, and we don't
+have a particularly good reason for being different. 
 
-------------------------------------------------------
-Subject: Remove tas()
-From: Jeff Dike <jdike@addtoit.com>
+But OK, I've already...
 
-tas() has no users, so get rid of it.
+> More seriously, either we should use unsigned long long here, or we
+> should use u64 everywhere else.
+> And given all the hardwired "8"s, u64 would be more logical.
 
-Signed-off-by: Jeff Dike <jdike@linux.intel.com>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Paolo 'Blaisorblade' Giarrusso <blaisorblade@yahoo.it>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+... switched from uint64_t to 'unsigned long long' everywhere else just
+to stop the printk bitching (and I didn't want to _cast_ it to unsigned
+long long just to print it), so let's make it unsigned long long
+throughout, and change those hardcoded '8's to use sizeof().
 
- include/asm-alpha/system.h     |    3 ---
- include/asm-arm/system.h       |    2 --
- include/asm-arm26/system.h     |    2 --
- include/asm-blackfin/system.h  |    1 -
- include/asm-h8300/system.h     |    1 -
- include/asm-i386/system.h      |    2 --
- include/asm-m32r/system.h      |    2 --
- include/asm-m68k/system.h      |    1 -
- include/asm-m68knommu/system.h |    1 -
- include/asm-mips/system.h      |    1 -
- include/asm-powerpc/system.h   |    2 --
- include/asm-ppc/system.h       |    1 -
- include/asm-sh/system.h        |   10 ----------
- include/asm-sh64/system.h      |    2 --
- include/asm-sparc/system.h     |    1 -
- include/asm-sparc64/system.h   |    1 -
- include/asm-v850/system.h      |    1 -
- include/asm-x86_64/system.h    |    2 --
- include/asm-xtensa/system.h    |    2 --
- 19 files changed, 38 deletions(-)
+------------
+From: David Woodhouse <dwmw2@infradead.org>
+Subject: [PATCH] Increase slab redzone to 64 bits.
 
-diff -puN include/asm-alpha/system.h~remove-tas include/asm-alpha/system.h
---- a/include/asm-alpha/system.h~remove-tas
-+++ a/include/asm-alpha/system.h
-@@ -548,9 +548,6 @@ __xchg_u64_local(volatile long *m, unsig
-      		sizeof(*(ptr))); \
-   })
+There are two problems with the existing redzone implementation.
+
+Firstly, it's causing misalignment of structures which contain a 64-bit
+integer, such as netfilter's 'struct ipt_entry' -- causing netfilter
+modules to fail to load because of the misalignment. (In particular, the
+first check in net/ipv4/netfilter/ip_tables.c::check_entry_size_and_hooks())
+
+I considered just fixing this by setting ARCH_KMALLOC_MINALIGN to
+__alignof__(uint64_t) in the default case where the architecture hasn't
+already set it -- but that would disable redzone checks on those
+architectures.
+
+When investigating this, I noticed that on 64-bit platforms we're using
+a 32-bit value of RED_ACTIVE/RED_INACTIVE in the 64-bit memory location
+set aside for the redzone. Which means that the four bytes immediately
+either before or after the allocated object are 0x00,0x00,0x00,0x00 for 
+LE and BE machines, respectively. Which is probably not the most useful 
+choice of poison value.
+
+One way to fix both of those at once is just to switch to 64-bit
+redzones in all cases. Patch below; better ideas on a postcard to...
+
+Signed-off-by: David Woodhouse <dwmw2@infradead.org>
+
+diff --git a/include/linux/poison.h b/include/linux/poison.h
+index 3e628f9..2ec0e12 100644
+--- a/include/linux/poison.h
++++ b/include/linux/poison.h
+@@ -15,8 +15,8 @@
+  * Magic nums for obj red zoning.
+  * Placed in the first word before and the first word after an obj.
+  */
+-#define	RED_INACTIVE	0x5A2CF071UL	/* when obj is inactive */
+-#define	RED_ACTIVE	0x170FC2A5UL	/* when obj is active */
++#define	RED_INACTIVE	0x09F911029D74E35BULL	/* when obj is inactive */
++#define	RED_ACTIVE	0xD84156C5635688C0ULL	/* when obj is active */
  
--#define tas(ptr) (xchg((ptr),1))
--
--
- /* 
-  * Atomic compare and exchange.  Compare OLD with MEM, if identical,
-  * store NEW in MEM.  Return the initial value in MEM.  Success is
-diff -puN include/asm-arm/system.h~remove-tas include/asm-arm/system.h
---- a/include/asm-arm/system.h~remove-tas
-+++ a/include/asm-arm/system.h
-@@ -103,8 +103,6 @@ void hook_fault_code(int nr, int (*fn)(u
- #define xchg(ptr,x) \
- 	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
- 
--#define tas(ptr) (xchg((ptr),1))
--
- extern asmlinkage void __backtrace(void);
- extern asmlinkage void c_backtrace(unsigned long fp, int pmode);
- 
-diff -puN include/asm-arm26/system.h~remove-tas include/asm-arm26/system.h
---- a/include/asm-arm26/system.h~remove-tas
-+++ a/include/asm-arm26/system.h
-@@ -52,8 +52,6 @@ void hook_fault_code(int nr, int (*fn)(u
- #define xchg(ptr,x) \
- 	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
- 
--#define tas(ptr) (xchg((ptr),1))
--
- extern asmlinkage void __backtrace(void);
- 
- #define set_cr(x)					\
-diff -puN include/asm-blackfin/system.h~remove-tas include/asm-blackfin/system.h
---- a/include/asm-blackfin/system.h~remove-tas
-+++ a/include/asm-blackfin/system.h
-@@ -138,7 +138,6 @@ extern unsigned long irq_flags;
+ /* ...and for poisoning */
+ #define	POISON_INUSE	0x5a	/* for use-uninitialised poisoning */
+diff --git a/mm/slab.c b/mm/slab.c
+index 4cbac24..56c56a6 100644
+--- a/mm/slab.c
++++ b/mm/slab.c
+@@ -149,10 +149,11 @@
+  * Usually, the kmalloc caches are cache_line_size() aligned, except when
+  * DEBUG and FORCED_DEBUG are enabled, then they are BYTES_PER_WORD aligned.
+  * Some archs want to perform DMA into kmalloc caches and need a guaranteed
+- * alignment larger than BYTES_PER_WORD. ARCH_KMALLOC_MINALIGN allows that.
+- * Note that this flag disables some debug features.
++ * alignment larger than the alignment of a 64-bit integer.
++ * ARCH_KMALLOC_MINALIGN allows that.
++ * Note that increasing this value may disable some debug features.
+  */
+-#define ARCH_KMALLOC_MINALIGN 0
++#define ARCH_KMALLOC_MINALIGN __alignof__(unsigned long long)
  #endif
  
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) ((void)xchg((ptr),1))
- 
- struct __xchg_dummy {
- 	unsigned long a[100];
-diff -puN include/asm-h8300/system.h~remove-tas include/asm-h8300/system.h
---- a/include/asm-h8300/system.h~remove-tas
-+++ a/include/asm-h8300/system.h
-@@ -98,7 +98,6 @@ asmlinkage void resume(void);
- #endif
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- struct __xchg_dummy { unsigned long a[100]; };
- #define __xg(x) ((volatile struct __xchg_dummy *)(x))
-diff -puN include/asm-i386/system.h~remove-tas include/asm-i386/system.h
---- a/include/asm-i386/system.h~remove-tas
-+++ a/include/asm-i386/system.h
-@@ -197,8 +197,6 @@ static inline unsigned long get_limit(un
- 
- #define xchg(ptr,v) ((__typeof__(*(ptr)))__xchg((unsigned long)(v),(ptr),sizeof(*(ptr))))
- 
--#define tas(ptr) (xchg((ptr),1))
--
- struct __xchg_dummy { unsigned long a[100]; };
- #define __xg(x) ((struct __xchg_dummy *)(x))
- 
-diff -puN include/asm-m32r/system.h~remove-tas include/asm-m32r/system.h
---- a/include/asm-m32r/system.h~remove-tas
-+++ a/include/asm-m32r/system.h
-@@ -122,8 +122,6 @@ static inline void local_irq_disable(voi
- #define xchg(ptr,x) \
- 	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
- 
--#define tas(ptr)	(xchg((ptr),1))
--
- #ifdef CONFIG_SMP
- extern void  __xchg_called_with_bad_pointer(void);
- #endif
-diff -puN include/asm-m68k/system.h~remove-tas include/asm-m68k/system.h
---- a/include/asm-m68k/system.h~remove-tas
-+++ a/include/asm-m68k/system.h
-@@ -88,7 +88,6 @@ static inline int irqs_disabled(void)
- 
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- struct __xchg_dummy { unsigned long a[100]; };
- #define __xg(x) ((volatile struct __xchg_dummy *)(x))
-diff -puN include/asm-m68knommu/system.h~remove-tas include/asm-m68knommu/system.h
---- a/include/asm-m68knommu/system.h~remove-tas
-+++ a/include/asm-m68knommu/system.h
-@@ -120,7 +120,6 @@ asmlinkage void resume(void);
- #endif
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- struct __xchg_dummy { unsigned long a[100]; };
- #define __xg(x) ((volatile struct __xchg_dummy *)(x))
-diff -puN include/asm-mips/system.h~remove-tas include/asm-mips/system.h
---- a/include/asm-mips/system.h~remove-tas
-+++ a/include/asm-mips/system.h
-@@ -201,7 +201,6 @@ static inline unsigned long __xchg(unsig
+ #ifndef ARCH_SLAB_MINALIGN
+@@ -527,19 +528,22 @@ static int obj_size(struct kmem_cache *cachep)
+ 	return cachep->obj_size;
  }
  
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- #define __HAVE_ARCH_CMPXCHG 1
- 
-diff -puN include/asm-powerpc/system.h~remove-tas include/asm-powerpc/system.h
---- a/include/asm-powerpc/system.h~remove-tas
-+++ a/include/asm-powerpc/system.h
-@@ -335,8 +335,6 @@ __xchg_local(volatile void *ptr, unsigne
-      		(unsigned long)_x_, sizeof(*(ptr))); 			     \
-   })
- 
--#define tas(ptr) (xchg((ptr),1))
--
- /*
-  * Compare and exchange - if *p == old, set it to new,
-  * and return the old value of *p.
-diff -puN include/asm-ppc/system.h~remove-tas include/asm-ppc/system.h
---- a/include/asm-ppc/system.h~remove-tas
-+++ a/include/asm-ppc/system.h
-@@ -169,7 +169,6 @@ xchg_u32(volatile void *p, unsigned long
- extern void __xchg_called_with_bad_pointer(void);
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
+-static unsigned long *dbg_redzone1(struct kmem_cache *cachep, void *objp)
++static unsigned long long *dbg_redzone1(struct kmem_cache *cachep, void *objp)
  {
-diff -puN include/asm-sh/system.h~remove-tas include/asm-sh/system.h
---- a/include/asm-sh/system.h~remove-tas
-+++ a/include/asm-sh/system.h
-@@ -82,16 +82,6 @@ static inline void sched_cacheflush(void
+ 	BUG_ON(!(cachep->flags & SLAB_RED_ZONE));
+-	return (unsigned long*) (objp+obj_offset(cachep)-BYTES_PER_WORD);
++	return (unsigned long long*) (objp + obj_offset(cachep) -
++				      sizeof(unsigned long long));
  }
+ 
+-static unsigned long *dbg_redzone2(struct kmem_cache *cachep, void *objp)
++static unsigned long long *dbg_redzone2(struct kmem_cache *cachep, void *objp)
+ {
+ 	BUG_ON(!(cachep->flags & SLAB_RED_ZONE));
+ 	if (cachep->flags & SLAB_STORE_USER)
+-		return (unsigned long *)(objp + cachep->buffer_size -
+-					 2 * BYTES_PER_WORD);
+-	return (unsigned long *)(objp + cachep->buffer_size - BYTES_PER_WORD);
++		return (unsigned long long *)(objp + cachep->buffer_size -
++					      sizeof(unsigned long long) -
++					      BYTES_PER_WORD);
++	return (unsigned long long *) (objp + cachep->buffer_size - 
++				       sizeof(unsigned long long));
+ }
+ 
+ static void **dbg_userword(struct kmem_cache *cachep, void *objp)
+@@ -552,8 +556,8 @@ static void **dbg_userword(struct kmem_cache *cachep, void *objp)
+ 
+ #define obj_offset(x)			0
+ #define obj_size(cachep)		(cachep->buffer_size)
+-#define dbg_redzone1(cachep, objp)	({BUG(); (unsigned long *)NULL;})
+-#define dbg_redzone2(cachep, objp)	({BUG(); (unsigned long *)NULL;})
++#define dbg_redzone1(cachep, objp)	({BUG(); (unsigned long long *)NULL;})
++#define dbg_redzone2(cachep, objp)	({BUG(); (unsigned long long *)NULL;})
+ #define dbg_userword(cachep, objp)	({BUG(); (void **)NULL;})
+ 
  #endif
+@@ -1760,7 +1764,7 @@ static void print_objinfo(struct kmem_cache *cachep, void *objp, int lines)
+ 	char *realobj;
  
--static inline unsigned long tas(volatile int *m)
--{
--	unsigned long retval;
--
--	__asm__ __volatile__ ("tas.b	@%1\n\t"
--			      "movt	%0"
--			      : "=r" (retval): "r" (m): "t", "memory");
--	return retval;
--}
--
- /*
-  * A brief note on ctrl_barrier(), the control register write barrier.
-  *
-diff -puN include/asm-sh64/system.h~remove-tas include/asm-sh64/system.h
---- a/include/asm-sh64/system.h~remove-tas
-+++ a/include/asm-sh64/system.h
-@@ -43,8 +43,6 @@ extern struct task_struct *sh64_switch_t
+ 	if (cachep->flags & SLAB_RED_ZONE) {
+-		printk(KERN_ERR "Redzone: 0x%lx/0x%lx.\n",
++		printk(KERN_ERR "Redzone: 0x%llx/0x%llx.\n",
+ 			*dbg_redzone1(cachep, objp),
+ 			*dbg_redzone2(cachep, objp));
+ 	}
+@@ -2227,7 +2231,7 @@ kmem_cache_create (const char *name, size_t size, size_t align,
+ 	 * is greater than BYTES_PER_WORD.
+ 	 */
+ 	if (flags & SLAB_RED_ZONE || flags & SLAB_STORE_USER)
+-		ralign = BYTES_PER_WORD;
++		ralign = __alignof__(unsigned long long);
  
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
+ 	/* 2) arch mandated alignment */
+ 	if (ralign < ARCH_SLAB_MINALIGN) {
+@@ -2238,7 +2242,7 @@ kmem_cache_create (const char *name, size_t size, size_t align,
+ 		ralign = align;
+ 	}
+ 	/* disable debug if necessary */
+-	if (ralign > BYTES_PER_WORD)
++	if (ralign > __alignof__(unsigned long long))
+ 		flags &= ~(SLAB_RED_ZONE | SLAB_STORE_USER);
+ 	/*
+ 	 * 4) Store it.
+@@ -2259,8 +2263,8 @@ kmem_cache_create (const char *name, size_t size, size_t align,
+ 	 */
+ 	if (flags & SLAB_RED_ZONE) {
+ 		/* add space for red zone words */
+-		cachep->obj_offset += BYTES_PER_WORD;
+-		size += 2 * BYTES_PER_WORD;
++		cachep->obj_offset += sizeof(unsigned long long);
++		size += 2 * sizeof(unsigned long long);
+ 	}
+ 	if (flags & SLAB_STORE_USER) {
+ 		/* user store requires one word storage behind the end of
+@@ -2829,7 +2833,7 @@ static void kfree_debugcheck(const void *objp)
  
--#define tas(ptr) (xchg((ptr), 1))
--
- extern void __xchg_called_with_bad_pointer(void);
+ static inline void verify_redzone_free(struct kmem_cache *cache, void *obj)
+ {
+-	unsigned long redzone1, redzone2;
++	unsigned long long redzone1, redzone2;
  
- #define mb()	__asm__ __volatile__ ("synco": : :"memory")
-diff -puN include/asm-sparc/system.h~remove-tas include/asm-sparc/system.h
---- a/include/asm-sparc/system.h~remove-tas
-+++ a/include/asm-sparc/system.h
-@@ -241,7 +241,6 @@ static inline unsigned long xchg_u32(__v
+ 	redzone1 = *dbg_redzone1(cache, obj);
+ 	redzone2 = *dbg_redzone2(cache, obj);
+@@ -2845,7 +2849,7 @@ static inline void verify_redzone_free(struct kmem_cache *cache, void *obj)
+ 	else
+ 		slab_error(cache, "memory outside object was overwritten");
+ 
+-	printk(KERN_ERR "%p: redzone 1:0x%lx, redzone 2:0x%lx.\n",
++	printk(KERN_ERR "%p: redzone 1:0x%llx, redzone 2:0x%llx.\n",
+ 			obj, redzone1, redzone2);
  }
  
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- extern void __xchg_called_with_bad_pointer(void);
- 
-diff -puN include/asm-sparc64/system.h~remove-tas include/asm-sparc64/system.h
---- a/include/asm-sparc64/system.h~remove-tas
-+++ a/include/asm-sparc64/system.h
-@@ -253,7 +253,6 @@ static inline unsigned long xchg64(__vol
- }
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- extern void __xchg_called_with_bad_pointer(void);
- 
-diff -puN include/asm-v850/system.h~remove-tas include/asm-v850/system.h
---- a/include/asm-v850/system.h~remove-tas
-+++ a/include/asm-v850/system.h
-@@ -76,7 +76,6 @@ static inline int irqs_disabled (void)
- 
- #define xchg(ptr, with) \
-   ((__typeof__ (*(ptr)))__xchg ((unsigned long)(with), (ptr), sizeof (*(ptr))))
--#define tas(ptr) (xchg ((ptr), 1))
- 
- static inline unsigned long __xchg (unsigned long with,
- 				    __volatile__ void *ptr, int size)
-diff -puN include/asm-x86_64/system.h~remove-tas include/asm-x86_64/system.h
---- a/include/asm-x86_64/system.h~remove-tas
-+++ a/include/asm-x86_64/system.h
-@@ -126,8 +126,6 @@ static inline void sched_cacheflush(void
- 
- #define xchg(ptr,v) ((__typeof__(*(ptr)))__xchg((unsigned long)(v),(ptr),sizeof(*(ptr))))
- 
--#define tas(ptr) (xchg((ptr),1))
--
- #define __xg(x) ((volatile long *)(x))
- 
- static inline void set_64bit(volatile unsigned long *ptr, unsigned long val)
-diff -puN include/asm-xtensa/system.h~remove-tas include/asm-xtensa/system.h
---- a/include/asm-xtensa/system.h~remove-tas
-+++ a/include/asm-xtensa/system.h
-@@ -183,8 +183,6 @@ static inline unsigned long xchg_u32(vol
-   return tmp;
- }
- 
--#define tas(ptr) (xchg((ptr),1))
--
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
- 
- /*
-_
+@@ -3062,7 +3066,7 @@ static void *cache_alloc_debugcheck_after(struct kmem_cache *cachep,
+ 			slab_error(cachep, "double free, or memory outside"
+ 						" object was overwritten");
+ 			printk(KERN_ERR
+-				"%p: redzone 1:0x%lx, redzone 2:0x%lx\n",
++				"%p: redzone 1:0x%llx, redzone 2:0x%llx\n",
+ 				objp, *dbg_redzone1(cachep, objp),
+ 				*dbg_redzone2(cachep, objp));
+ 		}
 
-Patches currently in -mm which might be from jdike@addtoit.com are
 
-uml-delete-unused-code.patch
-uml-formatting-fixes.patch
-uml-host_info-tidying.patch
-uml-mark-tt-mode-code-for-future-removal.patch
-uml-print-coredump-limits.patch
-uml-handle-block-device-hotplug-errors.patch
-uml-driver-formatting-fixes.patch
-uml-driver-formatting-fixes-fix.patch
-uml-network-interface-hotplug-error-handling.patch
-array_size-check-for-type.patch
-uml-move-sigio-testing-to-sigioc.patch
-uml-create-archh.patch
-uml-create-as-layouth.patch
-uml-move-remaining-useful-contents-of-user_utilh.patch
-uml-remove-user_utilh.patch
-uml-add-missing-__init-declarations.patch
-remove-unused-header-file-arch-um-kernel-tt-include-mode_kern-tth.patch
-uml-speed-up-exec.patch
-uml-no-locking-needed-in-tlsc.patch
-uml-tidy-processc.patch
-uml-remove-page_size.patch
-uml-kernel_thread-shouldnt-panic.patch
-uml-tidy-fault-code.patch
-uml-kernel-segfaults-should-dump-proper-registers.patch
-uml-comment-early-boot-locking.patch
-uml-irq-locking-commentary.patch
-uml-delete-host_frame_size.patch
-uml-drivers-get-release-methods.patch
-uml-dump-registers-on-ptrace-or-wait-failure.patch
-uml-speed-up-page-table-walking.patch
-uml-remove-unused-x86_64-code.patch
-uml-start-fixing-os_read_file-and-os_write_file.patch
-uml-tidy-libc-code.patch
-uml-convert-libc-layer-to-call-read-and-write.patch
-uml-batch-i-o-requests.patch
-uml-send-pointers-instead-of-structures-to-i-o-thread.patch
-uml-send-pointers-instead-of-structures-to-i-o-thread-fix.patch
-uml-dump-core-on-panic.patch
-uml-dont-try-to-handle-signals-on-initial-process-stack.patch
-uml-change-remaining-callers-of-os_read_write_file.patch
-uml-formatting-fixes-around-os_read_write_file-callers.patch
-uml-remove-debugging-remnants.patch
-uml-rename-os_read_write_file_k-back-to-os_read_write_file.patch
-uml-aio-deadlock-avoidance.patch
-uml-speed-page-fault-path.patch
-uml-eliminate-a-piece-of-debugging-code.patch
-uml-more-page-fault-path-trimming.patch
-uml-only-flush-areas-covered-by-vma.patch
-uml-out-of-tmpfs-space-error-clarification.patch
-uml-virtualized-time-fix.patch
-uml-fix-prototypes.patch
-remove-tas.patch
-create-asm-i386-cmpxchgh.patch
-create-asm-x86_64-cmpxchgh.patch
-uml-network-and-pcap-cleanup.patch
-uml-pcap-devices-should-get-macs-from-command-line.patch
+-- 
+dwmw2                       09 F9 11 02 9D 74 E3 5B D8 41 56 C5 63 56 88 C0
 
