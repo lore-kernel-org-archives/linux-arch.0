@@ -1,40 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:26970 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752702AbXEGRq6 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2007 13:46:58 -0400
-Content-Class: urn:content-classes:message
+Received: from nic.NetDirect.CA ([216.16.235.2]:55651 "EHLO
+	rubicon.netdirect.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754641AbXEGR6b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2007 13:58:31 -0400
+Date: Mon, 7 May 2007 13:51:22 -0400 (EDT)
+From: "Robert P. J. Day" <rpjday@mindspring.com>
+Subject: Re: [PATCH] Consolidate asm/poll.h
+In-Reply-To: <20070507184510.60742ae3.sfr@canb.auug.org.au>
+Message-ID: <Pine.LNX.4.64.0705071350480.27625@localhost.localdomain>
+References: <20070507184510.60742ae3.sfr@canb.auug.org.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Subject: RE: [patch] removes MAX_ARG_PAGES
-Date: Mon, 7 May 2007 10:46:49 -0700
-Message-ID: <617E1C2C70743745A92448908E030B2A01719390@scsmsx411.amr.corp.intel.com>
-In-Reply-To: <65dd6fd50705060151m78bb9b4fpcb941b16a8c4709e@mail.gmail.com>
-From: "Luck, Tony" <tony.luck@intel.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Ollie Wild <aaw@google.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-> We've tested the following architectures: i386, x86_64, um/i386,
-> parisc, and frv.  These are representative of the various scenarios
-> which this patch addresses, but other architecture teams should try it
-> out to make sure there aren't any unexpected gotchas.
+On Mon, 7 May 2007, Stephen Rothwell wrote:
 
-Doesn't build on ia64: complaints from arch/ia64/ia32/binfmt_elf.c
-(which #includes ../../../fs/binfmt_elf.c) ...
+> These files are almost all the same.
+>
+> Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
+> ---
+>  include/asm-alpha/poll.h   |   26 +-------------------------
+>  include/asm-arm/poll.h     |   28 +---------------------------
+>  include/asm-arm26/poll.h   |   22 ++--------------------
+>  include/asm-avr32/poll.h   |   28 +---------------------------
+>  include/asm-cris/poll.h    |   27 +--------------------------
+>  include/asm-frv/poll.h     |   18 +++---------------
+>  include/asm-generic/Kbuild |    1 +
+>  include/asm-generic/poll.h |   37 +++++++++++++++++++++++++++++++++++++
+>  include/asm-h8300/poll.h   |   18 +++---------------
+>  include/asm-i386/poll.h    |   28 +---------------------------
+>  include/asm-ia64/poll.h    |   33 +--------------------------------
+>  include/asm-m32r/poll.h    |   33 +--------------------------------
+>  include/asm-m68k/poll.h    |   17 +----------------
+>  include/asm-mips/poll.h    |   21 +--------------------
+>  include/asm-parisc/poll.h  |   28 +---------------------------
+>  include/asm-powerpc/poll.h |   25 +------------------------
+>  include/asm-s390/poll.h    |   36 +-----------------------------------
+>  include/asm-sh/poll.h      |   28 +---------------------------
+>  include/asm-sh64/poll.h    |   33 ++-------------------------------
+>  include/asm-sparc/poll.h   |   14 +-------------
+>  include/asm-sparc64/poll.h |   14 +-------------
+>  include/asm-v850/poll.h    |   17 +----------------
+>  include/asm-x86_64/poll.h  |   28 +---------------------------
+>  include/asm-xtensa/poll.h  |   20 +-------------------
+>  24 files changed, 66 insertions(+), 514 deletions(-)
+>  create mode 100644 include/asm-generic/poll.h
 
-arch/ia64/ia32/binfmt_elf32.c: In function `ia32_setup_arg_pages':
-arch/ia64/ia32/binfmt_elf32.c:206: error: `MAX_ARG_PAGES' undeclared (first use in this function)
-arch/ia64/ia32/binfmt_elf32.c:206: error: (Each undeclared identifier is reported only once
-arch/ia64/ia32/binfmt_elf32.c:206: error: for each function it appears in.)
-arch/ia64/ia32/binfmt_elf32.c:240: error: structure has no member named `page'
-arch/ia64/ia32/binfmt_elf32.c:242: error: structure has no member named `page'
-arch/ia64/ia32/binfmt_elf32.c:243: warning: implicit declaration of function `install_arg_page'
-make[1]: *** [arch/ia64/ia32/binfmt_elf32.o] Error 1
+hey ... if *this* goes in, can i re-try the same thing with ioctl.h?
 
-Turning off CONFIG_IA32-SUPPORT, the kernel built, but oops'd during boot.
-My serial connection to my test machine is currently broken, so I didn't
-get a capture of the stack trace, sorry.
+rday
+-- 
+========================================================================
+Robert P. J. Day
+Linux Consulting, Training and Annoying Kernel Pedantry
+Waterloo, Ontario, CANADA
 
--Tony
+http://fsdev.net/wiki/index.php?title=Main_Page
+========================================================================
