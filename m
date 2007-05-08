@@ -1,44 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59332 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:53570 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1032345AbXEHVX1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 May 2007 17:23:27 -0400
-Subject: Re: [rfc] lock bitops
+	id S966805AbXEHVbC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 May 2007 17:31:02 -0400
+Subject: Re: [rfc] optimise unlock_page
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <20070508150631.GC10562@parisc-linux.org>
+In-Reply-To: <20070508114003.GB19294@wotan.suse.de>
 References: <20070508113709.GA19294@wotan.suse.de>
-	 <20070508150631.GC10562@parisc-linux.org>
+	 <20070508114003.GB19294@wotan.suse.de>
 Content-Type: text/plain
-Date: Wed, 09 May 2007 07:23:15 +1000
-Message-Id: <1178659395.14928.82.camel@localhost.localdomain>
+Date: Wed, 09 May 2007 07:30:27 +1000
+Message-Id: <1178659827.14928.85.camel@localhost.localdomain>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Nick Piggin <npiggin@suse.de>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Nick Piggin <npiggin@suse.de>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 2007-05-08 at 09:06 -0600, Matthew Wilcox wrote:
-> On Tue, May 08, 2007 at 01:37:09PM +0200, Nick Piggin wrote:
-> > --
-> > Introduce test_and_set_bit_lock / clear_bit_unlock bitops with lock semantics.
-> > Add non-trivial for powerpc and ia64. Convert page lock, buffer lock,
-> > bit_spin_lock, tasklet locks to use the new locks.
+On Tue, 2007-05-08 at 13:40 +0200, Nick Piggin wrote:
+> This patch trades a page flag for a significant improvement in the unlock_page
+> fastpath. Various problems in the previous version were spotted by Hugh and
+> Ben (and fixed in this one).
 > 
-> The names are a bit clumsy.  How about naming them after the effect,
-> rather than the implementation?  It struck me that really these things
-> are bit mutexes -- you can sleep while holding the lock.  How about
-> calling them bit_mutex_trylock() and bit_mutex_unlock()?
+> Comments?
+> 
+> --
+> 
+> Speed up unlock_page by introducing a new page flag to signal that there are
+> page waitqueue waiters for PG_locked. This means a memory barrier and a random
+> waitqueue hash cacheline load can be avoided in the fastpath when there is no
+> contention.
 
-Hrm... spin_trylock vs. mutex_trylock ... what difference ? :-)
+I'm not 100% familiar with the exclusive vs. non exclusive wait thingy
+but wake_up_page() does __wake_up_bit() which calls __wake_up() with
+nr_exclusive set to 1. Doesn't that mean that only one waiter will be
+woken up ?
 
-Note that if we're gonna generalize the usage as a mutex, we might want
-to extend the unlock semantic to return the first word flag atomically
-so that the caller can test for other bits without having to read
-the word back (which might be a performance hit on CPUs without store
-forwarding). That's already what Nick's new unlock_page() does (testing
-the flag again right after unlock). At first, I though it would make
-clear_bit_unlock() semantics a bit too clumsy but maybe it's worth it.
+If that's the case, then we lose because we'll have clear PG_waiters but
+only wake up one of them.
+
+Waking them all would fix it but at the risk of causing other
+problems... Maybe PG_waiters need to actually be a counter but if that
+is the case, then it complicates things even more.
+
+Any smart idea ?
 
 Ben.
 
