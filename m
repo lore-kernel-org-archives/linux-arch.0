@@ -1,274 +1,263 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([65.172.181.25]:45089 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S934504AbXEHHfG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2007 03:35:06 -0400
-Message-Id: <200705080735.l487Z0PG017681@shell0.pdx.osdl.net>
-Subject: [patch 286/455] Remove tas()
-From: akpm@linux-foundation.org
-Date: Tue, 08 May 2007 00:34:59 -0700
+Received: from ns.suse.de ([195.135.220.2]:34930 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S967334AbXEHL5j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 May 2007 07:57:39 -0400
+Date: Tue, 8 May 2007 13:40:04 +0200
+From: Nick Piggin <npiggin@suse.de>
+Subject: [rfc] optimise unlock_page
+Message-ID: <20070508114003.GB19294@wotan.suse.de>
+References: <20070508113709.GA19294@wotan.suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070508113709.GA19294@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, jdike@addtoit.com, blaisorblade@yahoo.it, jdike@linux.intel.com, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Jeff Dike <jdike@addtoit.com>
+This patch trades a page flag for a significant improvement in the unlock_page
+fastpath. Various problems in the previous version were spotted by Hugh and
+Ben (and fixed in this one).
 
-tas() has no users, so get rid of it.
+Comments?
 
-Signed-off-by: Jeff Dike <jdike@linux.intel.com>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Paolo 'Blaisorblade' Giarrusso <blaisorblade@yahoo.it>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+--
 
- include/asm-alpha/system.h     |    3 ---
- include/asm-arm/system.h       |    2 --
- include/asm-arm26/system.h     |    2 --
- include/asm-blackfin/system.h  |    1 -
- include/asm-h8300/system.h     |    1 -
- include/asm-i386/system.h      |    2 --
- include/asm-m32r/system.h      |    2 --
- include/asm-m68k/system.h      |    1 -
- include/asm-m68knommu/system.h |    1 -
- include/asm-mips/system.h      |    1 -
- include/asm-powerpc/system.h   |    2 --
- include/asm-ppc/system.h       |    1 -
- include/asm-sh/system.h        |   10 ----------
- include/asm-sh64/system.h      |    2 --
- include/asm-sparc/system.h     |    1 -
- include/asm-sparc64/system.h   |    1 -
- include/asm-v850/system.h      |    1 -
- include/asm-x86_64/system.h    |    2 --
- include/asm-xtensa/system.h    |    2 --
- 19 files changed, 38 deletions(-)
+Speed up unlock_page by introducing a new page flag to signal that there are
+page waitqueue waiters for PG_locked. This means a memory barrier and a random
+waitqueue hash cacheline load can be avoided in the fastpath when there is no
+contention.
 
-diff -puN include/asm-alpha/system.h~remove-tas include/asm-alpha/system.h
---- a/include/asm-alpha/system.h~remove-tas
-+++ a/include/asm-alpha/system.h
-@@ -548,9 +548,6 @@ __xchg_u64_local(volatile long *m, unsig
-      		sizeof(*(ptr))); \
-   })
+Index: linux-2.6/include/linux/page-flags.h
+===================================================================
+--- linux-2.6.orig/include/linux/page-flags.h	2007-05-08 15:30:39.000000000 +1000
++++ linux-2.6/include/linux/page-flags.h	2007-05-08 15:31:00.000000000 +1000
+@@ -91,6 +91,8 @@
+ #define PG_nosave_free		18	/* Used for system suspend/resume */
+ #define PG_buddy		19	/* Page is free, on buddy lists */
  
--#define tas(ptr) (xchg((ptr),1))
--
--
- /* 
-  * Atomic compare and exchange.  Compare OLD with MEM, if identical,
-  * store NEW in MEM.  Return the initial value in MEM.  Success is
-diff -puN include/asm-arm/system.h~remove-tas include/asm-arm/system.h
---- a/include/asm-arm/system.h~remove-tas
-+++ a/include/asm-arm/system.h
-@@ -103,8 +103,6 @@ void hook_fault_code(int nr, int (*fn)(u
- #define xchg(ptr,x) \
- 	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
++#define PG_waiters		20	/* Page has PG_locked waiters */
++
+ /* PG_owner_priv_1 users should have descriptive aliases */
+ #define PG_checked		PG_owner_priv_1 /* Used by some filesystems */
  
--#define tas(ptr) (xchg((ptr),1))
--
- extern asmlinkage void __backtrace(void);
- extern asmlinkage void c_backtrace(unsigned long fp, int pmode);
+@@ -123,6 +125,10 @@
+ #define TestClearPageLocked(page)	\
+ 		test_and_clear_bit(PG_locked, &(page)->flags)
  
-diff -puN include/asm-arm26/system.h~remove-tas include/asm-arm26/system.h
---- a/include/asm-arm26/system.h~remove-tas
-+++ a/include/asm-arm26/system.h
-@@ -52,8 +52,6 @@ void hook_fault_code(int nr, int (*fn)(u
- #define xchg(ptr,x) \
- 	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
++#define PageWaiters(page)	test_bit(PG_waiters, &(page)->flags)
++#define SetPageWaiters(page)	set_bit(PG_waiters, &(page)->flags)
++#define ClearPageWaiters(page)	clear_bit(PG_waiters, &(page)->flags)
++
+ #define PageError(page)		test_bit(PG_error, &(page)->flags)
+ #define SetPageError(page)	set_bit(PG_error, &(page)->flags)
+ #define ClearPageError(page)	clear_bit(PG_error, &(page)->flags)
+Index: linux-2.6/include/linux/pagemap.h
+===================================================================
+--- linux-2.6.orig/include/linux/pagemap.h	2007-05-08 15:30:39.000000000 +1000
++++ linux-2.6/include/linux/pagemap.h	2007-05-08 16:55:07.000000000 +1000
+@@ -133,7 +133,8 @@
  
--#define tas(ptr) (xchg((ptr),1))
--
- extern asmlinkage void __backtrace(void);
+ extern void FASTCALL(__lock_page(struct page *page));
+ extern void FASTCALL(__lock_page_nosync(struct page *page));
+-extern void FASTCALL(unlock_page(struct page *page));
++extern void FASTCALL(__wait_on_page_locked(struct page *page));
++extern void FASTCALL(__unlock_page(struct page *page));
  
- #define set_cr(x)					\
-diff -puN include/asm-blackfin/system.h~remove-tas include/asm-blackfin/system.h
---- a/include/asm-blackfin/system.h~remove-tas
-+++ a/include/asm-blackfin/system.h
-@@ -138,7 +138,6 @@ extern unsigned long irq_flags;
- #endif
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) ((void)xchg((ptr),1))
- 
- struct __xchg_dummy {
- 	unsigned long a[100];
-diff -puN include/asm-h8300/system.h~remove-tas include/asm-h8300/system.h
---- a/include/asm-h8300/system.h~remove-tas
-+++ a/include/asm-h8300/system.h
-@@ -98,7 +98,6 @@ asmlinkage void resume(void);
- #endif
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- struct __xchg_dummy { unsigned long a[100]; };
- #define __xg(x) ((volatile struct __xchg_dummy *)(x))
-diff -puN include/asm-i386/system.h~remove-tas include/asm-i386/system.h
---- a/include/asm-i386/system.h~remove-tas
-+++ a/include/asm-i386/system.h
-@@ -197,8 +197,6 @@ static inline unsigned long get_limit(un
- 
- #define xchg(ptr,v) ((__typeof__(*(ptr)))__xchg((unsigned long)(v),(ptr),sizeof(*(ptr))))
- 
--#define tas(ptr) (xchg((ptr),1))
--
- struct __xchg_dummy { unsigned long a[100]; };
- #define __xg(x) ((struct __xchg_dummy *)(x))
- 
-diff -puN include/asm-m32r/system.h~remove-tas include/asm-m32r/system.h
---- a/include/asm-m32r/system.h~remove-tas
-+++ a/include/asm-m32r/system.h
-@@ -122,8 +122,6 @@ static inline void local_irq_disable(voi
- #define xchg(ptr,x) \
- 	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
- 
--#define tas(ptr)	(xchg((ptr),1))
--
- #ifdef CONFIG_SMP
- extern void  __xchg_called_with_bad_pointer(void);
- #endif
-diff -puN include/asm-m68k/system.h~remove-tas include/asm-m68k/system.h
---- a/include/asm-m68k/system.h~remove-tas
-+++ a/include/asm-m68k/system.h
-@@ -88,7 +88,6 @@ static inline int irqs_disabled(void)
- 
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- struct __xchg_dummy { unsigned long a[100]; };
- #define __xg(x) ((volatile struct __xchg_dummy *)(x))
-diff -puN include/asm-m68knommu/system.h~remove-tas include/asm-m68knommu/system.h
---- a/include/asm-m68knommu/system.h~remove-tas
-+++ a/include/asm-m68knommu/system.h
-@@ -120,7 +120,6 @@ asmlinkage void resume(void);
- #endif
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- struct __xchg_dummy { unsigned long a[100]; };
- #define __xg(x) ((volatile struct __xchg_dummy *)(x))
-diff -puN include/asm-mips/system.h~remove-tas include/asm-mips/system.h
---- a/include/asm-mips/system.h~remove-tas
-+++ a/include/asm-mips/system.h
-@@ -201,7 +201,6 @@ static inline unsigned long __xchg(unsig
- }
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- #define __HAVE_ARCH_CMPXCHG 1
- 
-diff -puN include/asm-powerpc/system.h~remove-tas include/asm-powerpc/system.h
---- a/include/asm-powerpc/system.h~remove-tas
-+++ a/include/asm-powerpc/system.h
-@@ -335,8 +335,6 @@ __xchg_local(volatile void *ptr, unsigne
-      		(unsigned long)_x_, sizeof(*(ptr))); 			     \
-   })
- 
--#define tas(ptr) (xchg((ptr),1))
--
- /*
-  * Compare and exchange - if *p == old, set it to new,
-  * and return the old value of *p.
-diff -puN include/asm-ppc/system.h~remove-tas include/asm-ppc/system.h
---- a/include/asm-ppc/system.h~remove-tas
-+++ a/include/asm-ppc/system.h
-@@ -169,7 +169,6 @@ xchg_u32(volatile void *p, unsigned long
- extern void __xchg_called_with_bad_pointer(void);
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
+ static inline int trylock_page(struct page *page)
  {
-diff -puN include/asm-sh/system.h~remove-tas include/asm-sh/system.h
---- a/include/asm-sh/system.h~remove-tas
-+++ a/include/asm-sh/system.h
-@@ -82,16 +82,6 @@ static inline void sched_cacheflush(void
+@@ -160,7 +161,15 @@
+ 	if (!trylock_page(page))
+ 		__lock_page_nosync(page);
  }
+-	
++
++static inline void unlock_page(struct page *page)
++{
++	VM_BUG_ON(!PageLocked(page));
++	ClearPageLocked_Unlock(page);
++	if (unlikely(PageWaiters(page)))
++		__unlock_page(page);
++}
++
+ /*
+  * This is exported only for wait_on_page_locked/wait_on_page_writeback.
+  * Never use this directly!
+@@ -176,8 +185,9 @@
+  */
+ static inline void wait_on_page_locked(struct page *page)
+ {
++	might_sleep();
+ 	if (PageLocked(page))
+-		wait_on_page_bit(page, PG_locked);
++		__wait_on_page_locked(page);
+ }
+ 
+ /* 
+@@ -185,6 +195,7 @@
+  */
+ static inline void wait_on_page_writeback(struct page *page)
+ {
++	might_sleep();
+ 	if (PageWriteback(page))
+ 		wait_on_page_bit(page, PG_writeback);
+ }
+Index: linux-2.6/mm/filemap.c
+===================================================================
+--- linux-2.6.orig/mm/filemap.c	2007-05-08 15:30:55.000000000 +1000
++++ linux-2.6/mm/filemap.c	2007-05-08 18:04:20.000000000 +1000
+@@ -169,6 +169,7 @@
+ 	return 0;
+ }
+ 
++
+ /**
+  * __filemap_fdatawrite_range - start writeback on mapping dirty pages in range
+  * @mapping:	address space structure to write
+@@ -478,12 +479,6 @@
+ EXPORT_SYMBOL(__page_cache_alloc);
  #endif
  
--static inline unsigned long tas(volatile int *m)
+-static int __sleep_on_page_lock(void *word)
 -{
--	unsigned long retval;
--
--	__asm__ __volatile__ ("tas.b	@%1\n\t"
--			      "movt	%0"
--			      : "=r" (retval): "r" (m): "t", "memory");
--	return retval;
+-	io_schedule();
+-	return 0;
 -}
 -
  /*
-  * A brief note on ctrl_barrier(), the control register write barrier.
-  *
-diff -puN include/asm-sh64/system.h~remove-tas include/asm-sh64/system.h
---- a/include/asm-sh64/system.h~remove-tas
-+++ a/include/asm-sh64/system.h
-@@ -43,8 +43,6 @@ extern struct task_struct *sh64_switch_t
- 
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
- 
--#define tas(ptr) (xchg((ptr), 1))
--
- extern void __xchg_called_with_bad_pointer(void);
- 
- #define mb()	__asm__ __volatile__ ("synco": : :"memory")
-diff -puN include/asm-sparc/system.h~remove-tas include/asm-sparc/system.h
---- a/include/asm-sparc/system.h~remove-tas
-+++ a/include/asm-sparc/system.h
-@@ -241,7 +241,6 @@ static inline unsigned long xchg_u32(__v
+  * In order to wait for pages to become available there must be
+  * waitqueues associated with pages. By using a hash table of
+@@ -516,26 +511,22 @@
  }
+ EXPORT_SYMBOL(wait_on_page_bit);
  
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
- 
- extern void __xchg_called_with_bad_pointer(void);
- 
-diff -puN include/asm-sparc64/system.h~remove-tas include/asm-sparc64/system.h
---- a/include/asm-sparc64/system.h~remove-tas
-+++ a/include/asm-sparc64/system.h
-@@ -253,7 +253,6 @@ static inline unsigned long xchg64(__vol
+-/**
+- * unlock_page - unlock a locked page
+- * @page: the page
+- *
+- * Unlocks the page and wakes up sleepers in ___wait_on_page_locked().
+- * Also wakes sleepers in wait_on_page_writeback() because the wakeup
+- * mechananism between PageLocked pages and PageWriteback pages is shared.
+- * But that's OK - sleepers in wait_on_page_writeback() just go back to sleep.
+- *
+- * The mb is necessary to enforce ordering between the clear_bit and the read
+- * of the waitqueue (to avoid SMP races with a parallel wait_on_page_locked()).
++/*
++ * If PageWaiters was found to be set at unlock-time, __unlock_page should
++ * be called to actually perform the wakeups of waiters.
+  */
+-void fastcall unlock_page(struct page *page)
++void fastcall __unlock_page(struct page *page)
+ {
+-	VM_BUG_ON(!PageLocked(page));
+-	ClearPageLocked_Unlock(page);
++	ClearPageWaiters(page);
++ 	/*
++	 * The mb is necessary to enforce ordering between the clear_bit and
++	 * the read of the waitqueue (to avoid SMP races with a parallel
++	 * wait_on_page_locked()
++	 */
+ 	smp_mb__after_clear_bit();
+ 	wake_up_page(page, PG_locked);
  }
+-EXPORT_SYMBOL(unlock_page);
++EXPORT_SYMBOL(__unlock_page);
  
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--#define tas(ptr) (xchg((ptr),1))
+ /**
+  * end_page_writeback - end writeback against a page
+@@ -563,10 +554,16 @@
+  */
+ void fastcall __lock_page(struct page *page)
+ {
++	wait_queue_head_t *wq = page_waitqueue(page);
+ 	DEFINE_WAIT_BIT(wait, &page->flags, PG_locked);
  
- extern void __xchg_called_with_bad_pointer(void);
- 
-diff -puN include/asm-v850/system.h~remove-tas include/asm-v850/system.h
---- a/include/asm-v850/system.h~remove-tas
-+++ a/include/asm-v850/system.h
-@@ -76,7 +76,6 @@ static inline int irqs_disabled (void)
- 
- #define xchg(ptr, with) \
-   ((__typeof__ (*(ptr)))__xchg ((unsigned long)(with), (ptr), sizeof (*(ptr))))
--#define tas(ptr) (xchg ((ptr), 1))
- 
- static inline unsigned long __xchg (unsigned long with,
- 				    __volatile__ void *ptr, int size)
-diff -puN include/asm-x86_64/system.h~remove-tas include/asm-x86_64/system.h
---- a/include/asm-x86_64/system.h~remove-tas
-+++ a/include/asm-x86_64/system.h
-@@ -126,8 +126,6 @@ static inline void sched_cacheflush(void
- 
- #define xchg(ptr,v) ((__typeof__(*(ptr)))__xchg((unsigned long)(v),(ptr),sizeof(*(ptr))))
- 
--#define tas(ptr) (xchg((ptr),1))
--
- #define __xg(x) ((volatile long *)(x))
- 
- static inline void set_64bit(volatile unsigned long *ptr, unsigned long val)
-diff -puN include/asm-xtensa/system.h~remove-tas include/asm-xtensa/system.h
---- a/include/asm-xtensa/system.h~remove-tas
-+++ a/include/asm-xtensa/system.h
-@@ -183,8 +183,6 @@ static inline unsigned long xchg_u32(vol
-   return tmp;
+-	__wait_on_bit_lock(page_waitqueue(page), &wait, sync_page,
+-							TASK_UNINTERRUPTIBLE);
++	do {
++		prepare_to_wait_exclusive(wq, &wait.wait, TASK_UNINTERRUPTIBLE);
++		SetPageWaiters(page);
++		if (likely(PageLocked(page)))
++			sync_page(page);
++	} while (!trylock_page(page));
++	finish_wait(wq, &wait.wait);
  }
+ EXPORT_SYMBOL(__lock_page);
  
--#define tas(ptr) (xchg((ptr),1))
--
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
+@@ -576,10 +573,39 @@
+  */
+ void fastcall __lock_page_nosync(struct page *page)
+ {
++	wait_queue_head_t *wq = page_waitqueue(page);
+ 	DEFINE_WAIT_BIT(wait, &page->flags, PG_locked);
+-	__wait_on_bit_lock(page_waitqueue(page), &wait, __sleep_on_page_lock,
+-							TASK_UNINTERRUPTIBLE);
++
++	do {
++		prepare_to_wait_exclusive(wq, &wait.wait, TASK_UNINTERRUPTIBLE);
++		SetPageWaiters(page);
++		if (likely(PageLocked(page)))
++			io_schedule();
++	} while (!trylock_page(page));
++	finish_wait(wq, &wait.wait);
++}
++
++void fastcall __wait_on_page_locked(struct page *page)
++{
++	wait_queue_head_t *wq = page_waitqueue(page);
++	DEFINE_WAIT_BIT(wait, &page->flags, PG_locked);
++
++	do {
++		prepare_to_wait_exclusive(wq, &wait.wait, TASK_UNINTERRUPTIBLE);
++		SetPageWaiters(page);
++		if (likely(PageLocked(page)))
++			sync_page(page);
++	} while (PageLocked(page));
++	finish_wait(wq, &wait.wait);
++
++	/*
++	 * Could skip this, but that would leave PG_waiters dangling
++	 * for random pages. This keeps it tidy.
++	 */
++	if (unlikely(PageWaiters(page)))
++		__unlock_page(page);
+ }
++EXPORT_SYMBOL(__wait_on_page_locked);
  
- /*
-_
+ /**
+  * find_get_page - find and get a page reference
+Index: linux-2.6/mm/page_alloc.c
+===================================================================
+--- linux-2.6.orig/mm/page_alloc.c	2007-05-08 15:30:39.000000000 +1000
++++ linux-2.6/mm/page_alloc.c	2007-05-08 15:31:00.000000000 +1000
+@@ -203,7 +203,8 @@
+ 			1 << PG_slab    |
+ 			1 << PG_swapcache |
+ 			1 << PG_writeback |
+-			1 << PG_buddy );
++			1 << PG_buddy |
++			1 << PG_waiters );
+ 	set_page_count(page, 0);
+ 	reset_page_mapcount(page);
+ 	page->mapping = NULL;
+@@ -438,7 +439,8 @@
+ 			1 << PG_swapcache |
+ 			1 << PG_writeback |
+ 			1 << PG_reserved |
+-			1 << PG_buddy ))))
++			1 << PG_buddy |
++			1 << PG_waiters ))))
+ 		bad_page(page);
+ 	if (PageDirty(page))
+ 		__ClearPageDirty(page);
+@@ -588,7 +590,8 @@
+ 			1 << PG_swapcache |
+ 			1 << PG_writeback |
+ 			1 << PG_reserved |
+-			1 << PG_buddy ))))
++			1 << PG_buddy |
++			1 << PG_waiters ))))
+ 		bad_page(page);
+ 
+ 	/*
