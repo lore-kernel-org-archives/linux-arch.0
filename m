@@ -1,49 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:55340 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S968462AbXEHWfV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 May 2007 18:35:21 -0400
-Date: Wed, 9 May 2007 00:35:18 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [rfc] optimise unlock_page
-Message-ID: <20070508223518.GC20174@wotan.suse.de>
-References: <20070508114003.GB19294@wotan.suse.de> <20070508113709.GA19294@wotan.suse.de> <9948.1178626415@redhat.com>
-Mime-Version: 1.0
+Received: from palinux.external.hp.com ([192.25.206.14]:33335 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S968428AbXEHWki (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2007 18:40:38 -0400
+Date: Tue, 8 May 2007 16:40:36 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [rfc] lock bitops
+Message-ID: <20070508224036.GE10562@parisc-linux.org>
+References: <20070508113709.GA19294@wotan.suse.de> <20070508150631.GC10562@parisc-linux.org> <20070508222926.GA20174@wotan.suse.de>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <9948.1178626415@redhat.com>
+In-Reply-To: <20070508222926.GA20174@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
+To: Nick Piggin <npiggin@suse.de>
+Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, May 08, 2007 at 01:13:35PM +0100, David Howells wrote:
+On Wed, May 09, 2007 at 12:29:27AM +0200, Nick Piggin wrote:
+> On Tue, May 08, 2007 at 09:06:32AM -0600, Matthew Wilcox wrote:
+> > On Tue, May 08, 2007 at 01:37:09PM +0200, Nick Piggin wrote:
+> > > --
+> > > Introduce test_and_set_bit_lock / clear_bit_unlock bitops with lock semantics.
+> > > Add non-trivial for powerpc and ia64. Convert page lock, buffer lock,
+> > > bit_spin_lock, tasklet locks to use the new locks.
+> > 
+> > The names are a bit clumsy.  How about naming them after the effect,
+> > rather than the implementation?  It struck me that really these things
+> > are bit mutexes -- you can sleep while holding the lock.  How about
+> > calling them bit_mutex_trylock() and bit_mutex_unlock()?
 > 
-> Nick Piggin <npiggin@suse.de> wrote:
-> 
-> > This patch trades a page flag for a significant improvement in the unlock_page
-> > fastpath. Various problems in the previous version were spotted by Hugh and
-> > Ben (and fixed in this one).
-> 
-> It looks reasonable at first glance, though it does consume yet another page
-> flag:-/  However, I think that's probably a worthy trade.
+> bit_spin_trylock / bit_spin_unlock be OK? ;)
 
-Well, that's the big question :)
-
-
-> >  }
-> > -	
-> > +
-> > +static inline void unlock_page(struct page *page)
-> > +{
-> > +	VM_BUG_ON(!PageLocked(page));
-> > +	ClearPageLocked_Unlock(page);
-> > +	if (unlikely(PageWaiters(page)))
-> > +		__unlock_page(page);
-> > +}
-> > +
-> 
-> Please don't simply discard the documentation, we have little enough as it is:
-
-Oops, right.
-
+We already have a bit_spin_trylock -- it keeps preempt disabled until
+you bit_spin_unlock.  Oh, and it only actually sets a bit if you've got
+SMP or lock debugging on.  Nice try though ;-)
