@@ -1,32 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:49511 "EHLO mx2.suse.de"
+Received: from ns2.suse.de ([195.135.220.15]:49815 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1032486AbXEHW3k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 May 2007 18:29:40 -0400
-Date: Wed, 9 May 2007 00:29:27 +0200
+	id S968437AbXEHWdT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 May 2007 18:33:19 -0400
+Date: Wed, 9 May 2007 00:33:09 +0200
 From: Nick Piggin <npiggin@suse.de>
 Subject: Re: [rfc] lock bitops
-Message-ID: <20070508222926.GA20174@wotan.suse.de>
-References: <20070508113709.GA19294@wotan.suse.de> <20070508150631.GC10562@parisc-linux.org>
+Message-ID: <20070508223309.GB20174@wotan.suse.de>
+References: <20070508113709.GA19294@wotan.suse.de> <10196.1178626976@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070508150631.GC10562@parisc-linux.org>
+In-Reply-To: <10196.1178626976@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
+To: David Howells <dhowells@redhat.com>
 Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, May 08, 2007 at 09:06:32AM -0600, Matthew Wilcox wrote:
-> On Tue, May 08, 2007 at 01:37:09PM +0200, Nick Piggin wrote:
-> > --
-> > Introduce test_and_set_bit_lock / clear_bit_unlock bitops with lock semantics.
-> > Add non-trivial for powerpc and ia64. Convert page lock, buffer lock,
-> > bit_spin_lock, tasklet locks to use the new locks.
+On Tue, May 08, 2007 at 01:22:56PM +0100, David Howells wrote:
+> Nick Piggin <npiggin@suse.de> wrote:
 > 
-> The names are a bit clumsy.  How about naming them after the effect,
-> rather than the implementation?  It struck me that really these things
-> are bit mutexes -- you can sleep while holding the lock.  How about
-> calling them bit_mutex_trylock() and bit_mutex_unlock()?
+> > This patch (along with the subsequent one to optimise unlock_page) reduces
+> > the overhead of lock_page/unlock_page (measured with page faults and a patch
+> > to lock the page in the fault handler) by about 425 cycles on my 2-way G5.
+> 
+> Seems reasonable, though test_and_set_lock_bit() might be a better name.
 
-bit_spin_trylock / bit_spin_unlock be OK? ;)
+The postfix attaches lock semantics to the test_and_set_bit operation,
+so I don't think it is necessarily wrong to have this name. But it doesn't
+matter too much I guess.
+
+
+> > +There are two special bitops with lock barrier semantics (acquire/release,
+> > +same as spinlocks).
+> 
+> You should update Documentation/memory-barriers.txt also.
+
+Will do.
+
+
+> >  #define TestSetPageLocked(page)		\
+> >  		test_and_set_bit(PG_locked, &(page)->flags)
+> > +#define TestSetPageLocked_Lock(page)		\
+> > +		test_and_set_bit_lock(PG_locked, &(page)->flags)
+> 
+> Can we get away with just moving TestSetPageLocked() to the new function
+> rather than adding another accessor?  Or how about LockPageLocked() and
+> UnlockPageLocked() rather than SetPageLocked_Lock() that last looks wrong
+> somehow.
+
+The problem is that it implies some semantics that it may not have. Possibly
+better is to just remove them all and use only trylock/lock/unlock_page.
