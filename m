@@ -1,38 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from extu-mxob-1.symantec.com ([216.10.194.28]:50169 "EHLO
-	extu-mxob-1.symantec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S967080AbXEHVH6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2007 17:07:58 -0400
-Received: from blonde.wat.veritas.com([10.10.97.163]) (1541 bytes) by megami.veritas.com
-	via sendmail with P:esmtp/R:smart_host/T:smtp
-	(sender: <hugh@veritas.com>)
-	id <m1HlVyz-0000MYC@megami.veritas.com>
-	for <linux-arch@vger.kernel.org>; Tue, 8 May 2007 13:08:25 -0700 (PDT)
-	(Smail-3.2.0.101 1997-Dec-17 #15 built 2001-Aug-30)
-Date: Tue, 8 May 2007 21:08:09 +0100 (BST)
-From: Hugh Dickins <hugh@veritas.com>
-Subject: Re: [rfc] optimise unlock_page
-In-Reply-To: <20070508114003.GB19294@wotan.suse.de>
-Message-ID: <Pine.LNX.4.64.0705082054500.18925@blonde.wat.veritas.com>
-References: <20070508113709.GA19294@wotan.suse.de> <20070508114003.GB19294@wotan.suse.de>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from gate.crashing.org ([63.228.1.57]:59332 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1032345AbXEHVX1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 May 2007 17:23:27 -0400
+Subject: Re: [rfc] lock bitops
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <20070508150631.GC10562@parisc-linux.org>
+References: <20070508113709.GA19294@wotan.suse.de>
+	 <20070508150631.GC10562@parisc-linux.org>
+Content-Type: text/plain
+Date: Wed, 09 May 2007 07:23:15 +1000
+Message-Id: <1178659395.14928.82.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Nick Piggin <npiggin@suse.de>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 8 May 2007, Nick Piggin wrote:
-
-> This patch trades a page flag for a significant improvement in the unlock_page
-> fastpath. Various problems in the previous version were spotted by Hugh and
-> Ben (and fixed in this one).
+On Tue, 2007-05-08 at 09:06 -0600, Matthew Wilcox wrote:
+> On Tue, May 08, 2007 at 01:37:09PM +0200, Nick Piggin wrote:
+> > --
+> > Introduce test_and_set_bit_lock / clear_bit_unlock bitops with lock semantics.
+> > Add non-trivial for powerpc and ia64. Convert page lock, buffer lock,
+> > bit_spin_lock, tasklet locks to use the new locks.
 > 
-> Comments?
+> The names are a bit clumsy.  How about naming them after the effect,
+> rather than the implementation?  It struck me that really these things
+> are bit mutexes -- you can sleep while holding the lock.  How about
+> calling them bit_mutex_trylock() and bit_mutex_unlock()?
 
-Seems there's still a bug there.  I get hangs on the page lock, on
-i386 and on x86_64 and on powerpc: sometimes they unhang themselves
-after a while (presume other activity does the wakeup).  Obvious even
-while booting (Starting udevd).  Sorry, not had time to investigate.
+Hrm... spin_trylock vs. mutex_trylock ... what difference ? :-)
 
-Hugh
+Note that if we're gonna generalize the usage as a mutex, we might want
+to extend the unlock semantic to return the first word flag atomically
+so that the caller can test for other bits without having to read
+the word back (which might be a performance hit on CPUs without store
+forwarding). That's already what Nick's new unlock_page() does (testing
+the flag again right after unlock). At first, I though it would make
+clear_bit_unlock() semantics a bit too clumsy but maybe it's worth it.
+
+Ben.
+
+
