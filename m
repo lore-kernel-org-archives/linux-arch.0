@@ -1,37 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from holomorphy.com ([66.93.40.71]:60341 "EHLO holomorphy.com"
+Received: from ozlabs.org ([203.10.76.45]:47025 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S966200AbXEGTAf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 7 May 2007 15:00:35 -0400
-Date: Mon, 7 May 2007 12:01:07 -0700
-From: William Lee Irwin III <wli@holomorphy.com>
-Subject: Re: [patch] removes MAX_ARG_PAGES
-Message-ID: <20070507190107.GF19966@holomorphy.com>
-References: <65dd6fd50705060151m78bb9b4fpcb941b16a8c4709e@mail.gmail.com> <617E1C2C70743745A92448908E030B2A01719390@scsmsx411.amr.corp.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <617E1C2C70743745A92448908E030B2A01719390@scsmsx411.amr.corp.intel.com>
+	id S966632AbXEHCDO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 7 May 2007 22:03:14 -0400
+From: Michael Ellerman <michael@ellerman.id.au>
+Date: Tue, 08 May 2007 12:03:08 +1000
+Subject: [PATCH 2/2] Make pcibios_add_platform_entries() return errors
+In-Reply-To: <1178589787.623400.604851478076.qpush@cradle>
+Message-Id: <20070508020313.3301FDDE2B@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: Ollie Wild <aaw@google.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
+To: Greg Kroah-Hartman <greg@kroah.com>
+Cc: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-At some point in the past, Ollie Wild wrote:
->> We've tested the following architectures: i386, x86_64, um/i386,
->> parisc, and frv.  These are representative of the various scenarios
->> which this patch addresses, but other architecture teams should try it
->> out to make sure there aren't any unexpected gotchas.
+Currently pcibios_add_platform_entries() returns void, but could fail,
+so instead have it return an int and propagate errors up to
+pci_create_sysfs_dev_files().
 
-On Mon, May 07, 2007 at 10:46:49AM -0700, Luck, Tony wrote:
-> Doesn't build on ia64: complaints from arch/ia64/ia32/binfmt_elf.c
-> (which #includes ../../../fs/binfmt_elf.c) ...
-[...]
-> Turning off CONFIG_IA32-SUPPORT, the kernel built, but oops'd during boot.
-> My serial connection to my test machine is currently broken, so I didn't
-> get a capture of the stack trace, sorry.
+Fixes:
+arch/powerpc/kernel/pci_64.c: In function 'pcibios_add_platform_entries':
+arch/powerpc/kernel/pci_64.c:878: warning: ignoring return value of
+	'device_create_file', declared with attribute warn_unused_result
+arch/powerpc/kernel/pci_32.c: In function 'pcibios_add_platform_entries':
+  arch/powerpc/kernel/pci_32.c:1043: warning: ignoring return value of
+	'device_create_file', declared with attribute warn_unused_result
 
-It needs to sweep 32-bit emulation code more generally.
+Signed-off-by: Michael Ellerman <michael@ellerman.id.au>
+---
 
+ arch/powerpc/kernel/pci_32.c |    4 ++--
+ arch/powerpc/kernel/pci_64.c |    4 ++--
+ drivers/pci/pci-sysfs.c      |   10 +++++++---
+ include/linux/pci.h          |    2 +-
+ 4 files changed, 12 insertions(+), 8 deletions(-)
 
--- wli
+Index: powerpc/arch/powerpc/kernel/pci_32.c
+===================================================================
+--- powerpc.orig/arch/powerpc/kernel/pci_32.c
++++ powerpc/arch/powerpc/kernel/pci_32.c
+@@ -1047,10 +1047,10 @@ void pcibios_make_OF_bus_map(void)
+ #endif /* CONFIG_PPC_OF */
+ 
+ /* Add sysfs properties */
+-void pcibios_add_platform_entries(struct pci_dev *pdev)
++int pcibios_add_platform_entries(struct pci_dev *pdev)
+ {
+ #ifdef CONFIG_PPC_OF
+-	device_create_file(&pdev->dev, &dev_attr_devspec);
++	return device_create_file(&pdev->dev, &dev_attr_devspec);
+ #endif /* CONFIG_PPC_OF */
+ }
+ 
+Index: powerpc/arch/powerpc/kernel/pci_64.c
+===================================================================
+--- powerpc.orig/arch/powerpc/kernel/pci_64.c
++++ powerpc/arch/powerpc/kernel/pci_64.c
+@@ -873,9 +873,9 @@ static ssize_t pci_show_devspec(struct d
+ }
+ static DEVICE_ATTR(devspec, S_IRUGO, pci_show_devspec, NULL);
+ 
+-void pcibios_add_platform_entries(struct pci_dev *pdev)
++int pcibios_add_platform_entries(struct pci_dev *pdev)
+ {
+-	device_create_file(&pdev->dev, &dev_attr_devspec);
++	return device_create_file(&pdev->dev, &dev_attr_devspec);
+ }
+ 
+ #define ISA_SPACE_MASK 0x1
+Index: powerpc/drivers/pci/pci-sysfs.c
+===================================================================
+--- powerpc.orig/drivers/pci/pci-sysfs.c
++++ powerpc/drivers/pci/pci-sysfs.c
+@@ -600,9 +600,9 @@ static struct bin_attribute pcie_config_
+ 	.write = pci_write_config,
+ };
+ 
+-void __attribute__ ((weak)) pcibios_add_platform_entries(struct pci_dev *dev)
++int __attribute__ ((weak)) pcibios_add_platform_entries(struct pci_dev *dev)
+ {
+-	return;
++	return 0;
+ }
+ 
+ int __must_check pci_create_sysfs_dev_files (struct pci_dev *pdev)
+@@ -644,10 +644,14 @@ int __must_check pci_create_sysfs_dev_fi
+ 		}
+ 	}
+ 	/* add platform-specific attributes */
+-	pcibios_add_platform_entries(pdev);
++	if (pcibios_add_platform_entries(pdev))
++		goto err_rom_file;
+ 
+ 	return 0;
+ 
++err_rom_file:
++	if (pci_resource_len(pdev, PCI_ROM_RESOURCE))
++		sysfs_remove_bin_file(&pdev->dev.kobj, rom_attr);
+ err_rom:
+ 	kfree(rom_attr);
+ err_bin_file:
+Index: powerpc/include/linux/pci.h
+===================================================================
+--- powerpc.orig/include/linux/pci.h
++++ powerpc/include/linux/pci.h
+@@ -852,7 +852,7 @@ extern int pci_pci_problems;
+ extern unsigned long pci_cardbus_io_size;
+ extern unsigned long pci_cardbus_mem_size;
+ 
+-extern void pcibios_add_platform_entries(struct pci_dev *dev);
++extern int pcibios_add_platform_entries(struct pci_dev *dev);
+ 
+ #endif /* __KERNEL__ */
+ #endif /* LINUX_PCI_H */
