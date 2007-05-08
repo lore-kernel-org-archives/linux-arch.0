@@ -1,53 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:48030 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:50444 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S967363AbXEHMOW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 May 2007 08:14:22 -0400
+	id S934475AbXEHMXS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 May 2007 08:23:18 -0400
 From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20070508114003.GB19294@wotan.suse.de> 
-References: <20070508114003.GB19294@wotan.suse.de>  <20070508113709.GA19294@wotan.suse.de> 
-Subject: Re: [rfc] optimise unlock_page 
-Date: Tue, 08 May 2007 13:13:35 +0100
-Message-ID: <9948.1178626415@redhat.com>
+In-Reply-To: <20070508113709.GA19294@wotan.suse.de> 
+References: <20070508113709.GA19294@wotan.suse.de> 
+Subject: Re: [rfc] lock bitops 
+Date: Tue, 08 May 2007 13:22:56 +0100
+Message-ID: <10196.1178626976@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: Nick Piggin <npiggin@suse.de>
-Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
+Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-
 
 Nick Piggin <npiggin@suse.de> wrote:
 
-> This patch trades a page flag for a significant improvement in the unlock_page
-> fastpath. Various problems in the previous version were spotted by Hugh and
-> Ben (and fixed in this one).
+> This patch (along with the subsequent one to optimise unlock_page) reduces
+> the overhead of lock_page/unlock_page (measured with page faults and a patch
+> to lock the page in the fault handler) by about 425 cycles on my 2-way G5.
 
-It looks reasonable at first glance, though it does consume yet another page
-flag:-/  However, I think that's probably a worthy trade.
+Seems reasonable, though test_and_set_lock_bit() might be a better name.
 
->  }
-> -	
-> +
-> +static inline void unlock_page(struct page *page)
-> +{
-> +	VM_BUG_ON(!PageLocked(page));
-> +	ClearPageLocked_Unlock(page);
-> +	if (unlikely(PageWaiters(page)))
-> +		__unlock_page(page);
-> +}
-> +
+> +There are two special bitops with lock barrier semantics (acquire/release,
+> +same as spinlocks).
 
-Please don't simply discard the documentation, we have little enough as it is:
+You should update Documentation/memory-barriers.txt also.
 
-> -/**
-> - * unlock_page - unlock a locked page
-> - * @page: the page
-> - *
-> - * Unlocks the page and wakes up sleepers in ___wait_on_page_locked().
-> - * Also wakes sleepers in wait_on_page_writeback() because the wakeup
-> - * mechananism between PageLocked pages and PageWriteback pages is shared.
-> - * But that's OK - sleepers in wait_on_page_writeback() just go back to sleep.
-> - *
-> - * The mb is necessary to enforce ordering between the clear_bit and the read
-> - * of the waitqueue (to avoid SMP races with a parallel wait_on_page_locked()).
+>  #define TestSetPageLocked(page)		\
+>  		test_and_set_bit(PG_locked, &(page)->flags)
+> +#define TestSetPageLocked_Lock(page)		\
+> +		test_and_set_bit_lock(PG_locked, &(page)->flags)
+
+Can we get away with just moving TestSetPageLocked() to the new function
+rather than adding another accessor?  Or how about LockPageLocked() and
+UnlockPageLocked() rather than SetPageLocked_Lock() that last looks wrong
+somehow.
+
+The FRV changes look reasonable, btw.
 
 David
+
