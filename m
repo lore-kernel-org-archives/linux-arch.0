@@ -1,46 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([65.172.181.25]:43584 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753377AbXEIUsz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2007 16:48:55 -0400
-Date: Wed, 9 May 2007 13:48:15 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [patch] removes MAX_ARG_PAGES
-Message-Id: <20070509134815.81cb9aa9.akpm@linux-foundation.org>
-In-Reply-To: <65dd6fd50705060151m78bb9b4fpcb941b16a8c4709e@mail.gmail.com>
-References: <65dd6fd50705060151m78bb9b4fpcb941b16a8c4709e@mail.gmail.com>
+Received: from gate.crashing.org ([63.228.1.57]:40359 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756331AbXEIVV7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 May 2007 17:21:59 -0400
+Subject: Re: [rfc] optimise unlock_page
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <Pine.LNX.4.64.0705091950080.2909@blonde.wat.veritas.com>
+References: <20070508113709.GA19294@wotan.suse.de>
+	 <20070508114003.GB19294@wotan.suse.de>
+	 <1178659827.14928.85.camel@localhost.localdomain>
+	 <20070508224124.GD20174@wotan.suse.de>
+	 <20070508225012.GF20174@wotan.suse.de>
+	 <Pine.LNX.4.64.0705091950080.2909@blonde.wat.veritas.com>
+Content-Type: text/plain
+Date: Thu, 10 May 2007 07:21:30 +1000
+Message-Id: <1178745690.14928.167.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Ollie Wild <aaw@google.com>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
+To: Hugh Dickins <hugh@veritas.com>
+Cc: Nick Piggin <npiggin@suse.de>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 6 May 2007 01:51:34 -0700
-"Ollie Wild" <aaw@google.com> wrote:
 
-> A while back, I sent out a preliminary patch
-> (http://thread.gmane.org/gmane.linux.ports.hppa/752) to remove the
-> MAX_ARG_PAGES limit on command line sizes.  Since then, Peter Zijlstra
-> and I have fixed a number of bugs and addressed the various
-> outstanding issues.
+> Not good enough, I'm afraid.  It looks like Ben's right and you need
+> a count - and counts in the page struct are a lot harder to add than
+> page flags.
 > 
-> The attached patch incorporates the following changes:
+> I've now played around with the hangs on my three 4CPU machines
+> (all of them in io_schedule below __lock_page, waiting on pages
+> which were neither PG_locked nor PG_waiters when I looked).
 > 
-> - Fixes a BUG_ON() assertion failure discovered by Ingo Molnar.
-> - Adds CONFIG_STACK_GROWSUP (parisc) support.
-> - Adds auditing support.
-> - Reverts to the old behavior on architectures with no MMU.
-> - Fixes broken execution of 64-bit binaries from 32-bit binaries.
-> - Adds elf_fdpic support.
-> - Fixes cache coherency bugs.
-> 
-> We've tested the following architectures: i386, x86_64, um/i386,
-> parisc, and frv.  These are representative of the various scenarios
-> which this patch addresses, but other architecture teams should try it
-> out to make sure there aren't any unexpected gotchas.
+> Seeing Ben's mail, I thought the answer would be just to remove
+> the "_exclusive" from your three prepare_to_wait_exclusive()s.
+> That helped, but it didn't eliminate the hangs.
 
-I'll duck this for now, given the couple of problems which people have reported.
+There might be a way ... by having the flags manipulation always
+atomically deal with PG_locked and PG_waiters together. This is possible
+but we would need even more weirdo bitops abstractions from the arch I'm
+afraid... unless we start using atomic_* rather that bitops in order to
+manipulate multiple bits at a time.
 
-But please keep going ;)  We sorely need this.
+Ben.
+
+
