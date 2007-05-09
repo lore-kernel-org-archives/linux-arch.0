@@ -1,38 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:41481 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751581AbXEINhd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 May 2007 09:37:33 -0400
-From: Andi Kleen <ak@suse.de>
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:36168 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756135AbXEIPww (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2007 11:52:52 -0400
+Date: Wed, 9 May 2007 08:52:51 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: New slab allocator SLUB
-Date: Wed, 9 May 2007 15:36:20 +0200
+In-Reply-To: <200705091536.21526.ak@suse.de>
+Message-ID: <Pine.LNX.4.64.0705090852140.27342@schroedinger.engr.sgi.com>
 References: <Pine.LNX.4.64.0705081145360.11368@schroedinger.engr.sgi.com>
-In-Reply-To: <Pine.LNX.4.64.0705081145360.11368@schroedinger.engr.sgi.com>
+ <200705091536.21526.ak@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200705091536.21526.ak@suse.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
+To: Andi Kleen <ak@suse.de>
 Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Wed, 9 May 2007, Andi Kleen wrote:
 
->
-> i386:
->  Uses slab for pgd handling and modifies the page structs of those
->  Fix has been in Andrew's tree for awhile now.
+> Assuming you fix the performance regressions first?
 
-Should be already upstream.
+There are no unfixed performance regressions. The netperf issue with 
+Cloverton has a fix in mm.
 
-
-> I would expect that the experimental status of SLUB will be removed
-> soon. SLUB then become the default slab allocator. It may not be the
-> default when we release 2.6.22 but it is scheduled to be the default for
-> 2.6.23.
-
-Assuming you fix the performance regressions first?
-
--Andi
