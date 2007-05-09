@@ -1,131 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from extu-mxob-1.symantec.com ([216.10.194.28]:50858 "EHLO
-	extu-mxob-1.symantec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751526AbXEITdc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2007 15:33:32 -0400
-Received: from blonde.wat.veritas.com([10.10.97.163]) (5573 bytes) by megami.veritas.com
-	via sendmail with P:esmtp/R:smart_host/T:smtp
-	(sender: <hugh@veritas.com>)
-	id <m1Hlruj-0000MuC@megami.veritas.com>
-	for <linux-arch@vger.kernel.org>; Wed, 9 May 2007 12:33:29 -0700 (PDT)
-	(Smail-3.2.0.101 1997-Dec-17 #15 built 2001-Aug-30)
-Date: Wed, 9 May 2007 20:33:15 +0100 (BST)
-From: Hugh Dickins <hugh@veritas.com>
-Subject: Re: [rfc] optimise unlock_page
-In-Reply-To: <20070508225012.GF20174@wotan.suse.de>
-Message-ID: <Pine.LNX.4.64.0705091950080.2909@blonde.wat.veritas.com>
-References: <20070508113709.GA19294@wotan.suse.de> <20070508114003.GB19294@wotan.suse.de>
- <1178659827.14928.85.camel@localhost.localdomain> <20070508224124.GD20174@wotan.suse.de>
- <20070508225012.GF20174@wotan.suse.de>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from smtp1.linux-foundation.org ([65.172.181.25]:35491 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1758835AbXEIUeS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2007 16:34:18 -0400
+Message-Id: <200705092033.l49KXeQT000372@shell0.pdx.osdl.net>
+Subject: + call-percpu-smp-cacheline-algin-interface.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Wed, 09 May 2007 13:33:40 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
+To: mm-commits@vger.kernel.org
+Cc: fenghua.yu@intel.com, clameter@sgi.com, kiran@scalex86.org, linux-arch@vger.kernel.org, suresh.b.siddha@intel.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 9 May 2007, Nick Piggin wrote:
-> On Wed, May 09, 2007 at 12:41:24AM +0200, Nick Piggin wrote:
-> > On Wed, May 09, 2007 at 07:30:27AM +1000, Benjamin Herrenschmidt wrote:
-> > > 
-> > > Waking them all would fix it but at the risk of causing other
-> > > problems... Maybe PG_waiters need to actually be a counter but if that
-> > > is the case, then it complicates things even more.
-> > 
-> > It will wake up 1 exclusive waiter, but no limit on non exclusive waiters.
-> > Hmm, but it won't wake up waiters behind the exclusive guy... maybe the
-> > wake up code can check whether the waitqueue is still active after the
-> > wakeup, and set PG_waiters again in that case?
-> 
-> Hm, I don't know if we can do that without a race either...
-> 
-> OTOH, waking all non exclusive waiters may not be a really bad idea.
 
-Not good enough, I'm afraid.  It looks like Ben's right and you need
-a count - and counts in the page struct are a lot harder to add than
-page flags.
+The patch titled
+     Call percpu smp cacheline algin interface
+has been added to the -mm tree.  Its filename is
+     call-percpu-smp-cacheline-algin-interface.patch
 
-I've now played around with the hangs on my three 4CPU machines
-(all of them in io_schedule below __lock_page, waiting on pages
-which were neither PG_locked nor PG_waiters when I looked).
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
-Seeing Ben's mail, I thought the answer would be just to remove
-the "_exclusive" from your three prepare_to_wait_exclusive()s.
-That helped, but it didn't eliminate the hangs.
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
 
-After fiddling around with different ideas for some while, I came
-to realize that the ClearPageWaiters (in very misleadingly named
-__unlock_page) is hopeless.  It's just so easy for it to clear the
-PG_waiters that a third task relies upon for wakeup (and which
-cannot loop around to set it again, because it simply won't be
-woken by unlock_page/__unlock_page without it already being set).
+------------------------------------------------------
+Subject: Call percpu smp cacheline algin interface
+From: Fenghua Yu <fenghua.yu@intel.com>
 
-Below is the patch I've applied to see some tests actually running
-with your patches, but it's just a joke: absurdly racy and
-presumptuous in itself (the "3" stands for us and the cache and one
-waiter; I deleted the neighbouring mb and comment, not because I
-disagree, but because it's ridiculous to pay so much attention to
-such unlikely races when there's much worse nearby).  Though I've
-not checked: if I've got the counting wrong, then maybe all my
-pages are left marked PG_waiters by now.
+Call percpu smp cacheline align interface.
 
-(I did imagine we could go back to prepare_to_wait_exclusive
-once I'd put in the page_count test before ClearPageWaiters;
-but apparently not, that still hung.)
+Signed-off-by: Fenghua Yu <fenghua.yu@intel.com>
+Acked-by: Suresh Siddha <suresh.b.siddha@intel.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Christoph Lameter <clameter@sgi.com>
+Cc: Ravikiran G Thirumalai <kiran@scalex86.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-My intention had been to apply the patches to what I tested before
-with lmbench, to get comparative numbers; but I don't think this
-is worth the time, it's too far from being a real solution.
+ arch/i386/kernel/init_task.c   |    2 +-
+ arch/i386/kernel/irq.c         |    2 +-
+ arch/ia64/kernel/smp.c         |    2 +-
+ arch/x86_64/kernel/init_task.c |    2 +-
+ kernel/sched.c                 |    2 +-
+ 5 files changed, 5 insertions(+), 5 deletions(-)
 
-I was puzzled as to how you came up with any performance numbers
-yourself, when I could hardly boot.  I see you mentioned 2CPU G5,
-I guess you need a CPU or two more; or maybe it's that you didn't
-watch what happened as it booted, often those hangs recover later.
-
-Hugh
-
---- a/mm/filemap.c	2007-05-08 20:17:31.000000000 +0100
-+++ b/mm/filemap.c	2007-05-09 19:14:03.000000000 +0100
-@@ -517,13 +517,8 @@ EXPORT_SYMBOL(wait_on_page_bit);
-  */
- void fastcall __unlock_page(struct page *page)
- {
--	ClearPageWaiters(page);
-- 	/*
--	 * The mb is necessary to enforce ordering between the clear_bit and
--	 * the read of the waitqueue (to avoid SMP races with a parallel
--	 * wait_on_page_locked()
--	 */
--	smp_mb__after_clear_bit();
-+	if (page_count(page) <= 3 + page_has_buffers(page)+page_mapcount(page))
-+		ClearPageWaiters(page);
- 	wake_up_page(page, PG_locked);
- }
- EXPORT_SYMBOL(__unlock_page);
-@@ -558,7 +553,7 @@ void fastcall __lock_page(struct page *p
- 	DEFINE_WAIT_BIT(wait, &page->flags, PG_locked);
+diff -puN arch/i386/kernel/init_task.c~call-percpu-smp-cacheline-algin-interface arch/i386/kernel/init_task.c
+--- a/arch/i386/kernel/init_task.c~call-percpu-smp-cacheline-algin-interface
++++ a/arch/i386/kernel/init_task.c
+@@ -42,5 +42,5 @@ EXPORT_SYMBOL(init_task);
+  * per-CPU TSS segments. Threads are completely 'soft' on Linux,
+  * no more per-task TSS's.
+  */ 
+-DEFINE_PER_CPU(struct tss_struct, init_tss) ____cacheline_internodealigned_in_smp = INIT_TSS;
++DEFINE_PER_CPU_SHARED_CACHELINE_ALIGNED(struct tss_struct, init_tss) = INIT_TSS;
  
- 	do {
--		prepare_to_wait_exclusive(wq, &wait.wait, TASK_UNINTERRUPTIBLE);
-+		prepare_to_wait(wq, &wait.wait, TASK_UNINTERRUPTIBLE);
- 		SetPageWaiters(page);
- 		if (likely(PageLocked(page)))
- 			sync_page(page);
-@@ -577,7 +572,7 @@ void fastcall __lock_page_nosync(struct 
- 	DEFINE_WAIT_BIT(wait, &page->flags, PG_locked);
+diff -puN arch/i386/kernel/irq.c~call-percpu-smp-cacheline-algin-interface arch/i386/kernel/irq.c
+--- a/arch/i386/kernel/irq.c~call-percpu-smp-cacheline-algin-interface
++++ a/arch/i386/kernel/irq.c
+@@ -21,7 +21,7 @@
+ #include <asm/apic.h>
+ #include <asm/uaccess.h>
  
- 	do {
--		prepare_to_wait_exclusive(wq, &wait.wait, TASK_UNINTERRUPTIBLE);
-+		prepare_to_wait(wq, &wait.wait, TASK_UNINTERRUPTIBLE);
- 		SetPageWaiters(page);
- 		if (likely(PageLocked(page)))
- 			io_schedule();
-@@ -591,7 +586,7 @@ void fastcall __wait_on_page_locked(stru
- 	DEFINE_WAIT_BIT(wait, &page->flags, PG_locked);
+-DEFINE_PER_CPU(irq_cpustat_t, irq_stat) ____cacheline_internodealigned_in_smp;
++DEFINE_PER_CPU_SHARED_CACHELINE_ALIGNED(irq_cpustat_t, irq_stat);
+ EXPORT_PER_CPU_SYMBOL(irq_stat);
  
- 	do {
--		prepare_to_wait_exclusive(wq, &wait.wait, TASK_UNINTERRUPTIBLE);
-+		prepare_to_wait(wq, &wait.wait, TASK_UNINTERRUPTIBLE);
- 		SetPageWaiters(page);
- 		if (likely(PageLocked(page)))
- 			sync_page(page);
+ DEFINE_PER_CPU(struct pt_regs *, irq_regs);
+diff -puN arch/ia64/kernel/smp.c~call-percpu-smp-cacheline-algin-interface arch/ia64/kernel/smp.c
+--- a/arch/ia64/kernel/smp.c~call-percpu-smp-cacheline-algin-interface
++++ a/arch/ia64/kernel/smp.c
+@@ -82,7 +82,7 @@ static volatile struct call_data_struct 
+ #define IPI_KDUMP_CPU_STOP	3
+ 
+ /* This needs to be cacheline aligned because it is written to by *other* CPUs.  */
+-static DEFINE_PER_CPU(u64, ipi_operation) ____cacheline_aligned;
++static DEFINE_PER_CPU_SHARED_CACHELINE_ALIGNED(u64, ipi_operation);
+ 
+ extern void cpu_halt (void);
+ 
+diff -puN arch/x86_64/kernel/init_task.c~call-percpu-smp-cacheline-algin-interface arch/x86_64/kernel/init_task.c
+--- a/arch/x86_64/kernel/init_task.c~call-percpu-smp-cacheline-algin-interface
++++ a/arch/x86_64/kernel/init_task.c
+@@ -44,7 +44,7 @@ EXPORT_SYMBOL(init_task);
+  * section. Since TSS's are completely CPU-local, we want them
+  * on exact cacheline boundaries, to eliminate cacheline ping-pong.
+  */ 
+-DEFINE_PER_CPU(struct tss_struct, init_tss) ____cacheline_internodealigned_in_smp = INIT_TSS;
++DEFINE_PER_CPU_SHARED_CACHELINE_ALIGNED(struct tss_struct, init_tss) = INIT_TSS;
+ 
+ /* Copies of the original ist values from the tss are only accessed during
+  * debugging, no special alignment required.
+diff -puN kernel/sched.c~call-percpu-smp-cacheline-algin-interface kernel/sched.c
+--- a/kernel/sched.c~call-percpu-smp-cacheline-algin-interface
++++ a/kernel/sched.c
+@@ -304,7 +304,7 @@ struct rq {
+ 	struct lock_class_key rq_lock_key;
+ };
+ 
+-static DEFINE_PER_CPU(struct rq, runqueues) ____cacheline_aligned_in_smp;
++static DEFINE_PER_CPU_SHARED_CACHELINE_ALIGNED(struct rq, runqueues);
+ static DEFINE_MUTEX(sched_hotcpu_mutex);
+ 
+ static inline int cpu_of(struct rq *rq)
+_
+
+Patches currently in -mm which might be from fenghua.yu@intel.com are
+
+origin.patch
+define-percpu-smp-cacheline-align-interface.patch
+call-percpu-smp-cacheline-algin-interface.patch
+
