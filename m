@@ -1,36 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.suse.de ([195.135.220.2]:36664 "EHLO mx1.suse.de"
+Received: from ns.suse.de ([195.135.220.2]:41481 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754710AbXEIMUD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 May 2007 08:20:03 -0400
-Date: Wed, 9 May 2007 14:20:01 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [rfc] lock bitops
-Message-ID: <20070509122001.GB24026@wotan.suse.de>
-References: <20070508113709.GA19294@wotan.suse.de> <17985.47561.298978.466437@gargle.gargle.HOWL>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+	id S1751581AbXEINhd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 May 2007 09:37:33 -0400
+From: Andi Kleen <ak@suse.de>
+Subject: Re: New slab allocator SLUB
+Date: Wed, 9 May 2007 15:36:20 +0200
+References: <Pine.LNX.4.64.0705081145360.11368@schroedinger.engr.sgi.com>
+In-Reply-To: <Pine.LNX.4.64.0705081145360.11368@schroedinger.engr.sgi.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <17985.47561.298978.466437@gargle.gargle.HOWL>
+Message-Id: <200705091536.21526.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nikita Danilov <nikita@clusterfs.com>
-Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, May 09, 2007 at 04:08:41PM +0400, Nikita Danilov wrote:
-> Nick Piggin writes:
->  > Hi,
-> 
-> [...]
-> 
->  >  
->  >  /**
->  > + * clear_bit_unlock - Clears a bit in memory with release
->  > + * @nr: Bit to clear
->  > + * @addr: Address to start counting from
->  > + *
->  > + * clear_bit() is atomic and may not be reordered.  It does
-> 
-> s/clear_bit/clear_bit_unlock/ ?
 
-Yes :)
+>
+> i386:
+>  Uses slab for pgd handling and modifies the page structs of those
+>  Fix has been in Andrew's tree for awhile now.
+
+Should be already upstream.
+
+
+> I would expect that the experimental status of SLUB will be removed
+> soon. SLUB then become the default slab allocator. It may not be the
+> default when we release 2.6.22 but it is scheduled to be the default for
+> 2.6.23.
+
+Assuming you fix the performance regressions first?
+
+-Andi
