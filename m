@@ -1,82 +1,417 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from static-71-162-243-5.phlapa.fios.verizon.net ([71.162.243.5]:58405
-	"EHLO grelber.thyrsus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754017AbXEJCGF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2007 22:06:05 -0400
-From: Rob Landley <rob@landley.net>
-Subject: Re: [patch] removes MAX_ARG_PAGES
-Date: Wed, 9 May 2007 21:04:42 -0400
-References: <65dd6fd50705060151m78bb9b4fpcb941b16a8c4709e@mail.gmail.com> <20070509134815.81cb9aa9.akpm@linux-foundation.org>
-In-Reply-To: <20070509134815.81cb9aa9.akpm@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200705092104.43353.rob@landley.net>
+Received: from smtp.polymtl.ca ([132.207.4.11]:59556 "EHLO smtp.polymtl.ca"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751250AbXEJCXc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 May 2007 22:23:32 -0400
+Message-Id: <20070510020917.793321759@polymtl.ca>
+References: <20070510015555.973107048@polymtl.ca>
+Date: Wed, 09 May 2007 21:56:04 -0400
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Subject: [patch 09/10] Linux Kernel Markers - Use EXTRA_RWDATA in architectures
+Content-Disposition: inline; filename=linux-kernel-markers-use-extra_rwdata-in-architectures.patch
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Ollie Wild <aaw@google.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
+To: akpm@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, hch@infradead.org, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wednesday 09 May 2007 4:48 pm, Andrew Morton wrote:
-> On Sun, 6 May 2007 01:51:34 -0700
-> "Ollie Wild" <aaw@google.com> wrote:
-> 
-> > A while back, I sent out a preliminary patch
-> > (http://thread.gmane.org/gmane.linux.ports.hppa/752) to remove the
-> > MAX_ARG_PAGES limit on command line sizes.  Since then, Peter Zijlstra
-> > and I have fixed a number of bugs and addressed the various
-> > outstanding issues.
-> > 
-> > The attached patch incorporates the following changes:
-> > 
-> > - Fixes a BUG_ON() assertion failure discovered by Ingo Molnar.
-> > - Adds CONFIG_STACK_GROWSUP (parisc) support.
-> > - Adds auditing support.
-> > - Reverts to the old behavior on architectures with no MMU.
-> > - Fixes broken execution of 64-bit binaries from 32-bit binaries.
-> > - Adds elf_fdpic support.
-> > - Fixes cache coherency bugs.
-> > 
-> > We've tested the following architectures: i386, x86_64, um/i386,
-> > parisc, and frv.  These are representative of the various scenarios
-> > which this patch addresses, but other architecture teams should try it
-> > out to make sure there aren't any unexpected gotchas.
->
-> I'll duck this for now, given the couple of problems which people have
-> reported. 
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-Just FYI, a really really quick and dirty way of testing this sort of thing on 
-more architectures and you're likely to physically have?
+ arch/alpha/kernel/vmlinux.lds.S            |    1 +
+ arch/arm/kernel/vmlinux.lds.S              |    1 +
+ arch/arm26/kernel/vmlinux-arm26-xip.lds.in |    1 +
+ arch/arm26/kernel/vmlinux-arm26.lds.in     |    1 +
+ arch/avr32/kernel/vmlinux.lds.c            |    1 +
+ arch/cris/arch-v10/vmlinux.lds.S           |    1 +
+ arch/cris/arch-v32/vmlinux.lds.S           |    1 +
+ arch/frv/kernel/vmlinux.lds.S              |    1 +
+ arch/h8300/kernel/vmlinux.lds.S            |    4 +++-
+ arch/i386/kernel/vmlinux.lds.S             |    1 +
+ arch/ia64/kernel/vmlinux.lds.S             |    2 +-
+ arch/m32r/kernel/vmlinux.lds.S             |    1 +
+ arch/m68k/kernel/vmlinux-std.lds           |    1 +
+ arch/m68k/kernel/vmlinux-sun3.lds          |    1 +
+ arch/m68knommu/kernel/vmlinux.lds.S        |    1 +
+ arch/mips/kernel/vmlinux.lds.S             |    2 ++
+ arch/parisc/kernel/vmlinux.lds.S           |    1 +
+ arch/powerpc/kernel/vmlinux.lds.S          |    2 ++
+ arch/ppc/kernel/vmlinux.lds.S              |    1 +
+ arch/s390/kernel/vmlinux.lds.S             |    1 +
+ arch/sh/kernel/vmlinux.lds.S               |    1 +
+ arch/sh64/kernel/vmlinux.lds.S             |    1 +
+ arch/sparc/kernel/vmlinux.lds.S            |    1 +
+ arch/sparc64/kernel/vmlinux.lds.S          |    1 +
+ arch/um/kernel/dyn.lds.S                   |    1 +
+ arch/um/kernel/uml.lds.S                   |    1 +
+ arch/v850/kernel/vmlinux.lds.S             |    1 +
+ arch/x86_64/kernel/vmlinux.lds.S           |    1 +
+ arch/xtensa/kernel/vmlinux.lds.S           |    2 +-
+ 29 files changed, 33 insertions(+), 3 deletions(-)
 
-1) Install QEMU.
+Index: linux-2.6-lttng/arch/alpha/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/alpha/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/alpha/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -90,6 +90,7 @@
+   _data = .;
+   .data : {					/* Data */
+ 	*(.data)
++	EXTRA_RWDATA
+ 	CONSTRUCTORS
+   }
+ 
+Index: linux-2.6-lttng/arch/arm/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/arm/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/arm/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -159,6 +159,7 @@
+ 		 * and the usual data section
+ 		 */
+ 		*(.data)
++		EXTRA_RWDATA
+ 		CONSTRUCTORS
+ 
+ 		_edata = .;
+Index: linux-2.6-lttng/arch/arm26/kernel/vmlinux-arm26-xip.lds.in
+===================================================================
+--- linux-2.6-lttng.orig/arch/arm26/kernel/vmlinux-arm26-xip.lds.in	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/arm26/kernel/vmlinux-arm26-xip.lds.in	2007-05-09 18:16:17.000000000 -0400
+@@ -112,6 +112,7 @@
+ 		 * and the usual data section
+ 		 */
+ 		*(.data)
++		EXTRA_RWDATA
+ 		CONSTRUCTORS
+ 
+ 		*(.init.data)
+Index: linux-2.6-lttng/arch/arm26/kernel/vmlinux-arm26.lds.in
+===================================================================
+--- linux-2.6-lttng.orig/arch/arm26/kernel/vmlinux-arm26.lds.in	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/arm26/kernel/vmlinux-arm26.lds.in	2007-05-09 18:16:17.000000000 -0400
+@@ -107,6 +107,7 @@
+ 		 * and the usual data section
+ 		 */
+ 		*(.data)
++		EXTRA_RWDATA
+ 		CONSTRUCTORS
+ 
+ 		_edata = .;
+Index: linux-2.6-lttng/arch/avr32/kernel/vmlinux.lds.c
+===================================================================
+--- linux-2.6-lttng.orig/arch/avr32/kernel/vmlinux.lds.c	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/avr32/kernel/vmlinux.lds.c	2007-05-09 18:16:17.000000000 -0400
+@@ -113,6 +113,7 @@
+ 		/* And the rest... */
+ 		*(.data.rel*)
+ 		*(.data)
++		EXTRA_RWDATA
+ 		CONSTRUCTORS
+ 
+ 		_edata = .;
+Index: linux-2.6-lttng/arch/cris/arch-v10/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/cris/arch-v10/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/cris/arch-v10/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -45,6 +45,7 @@
+ 	__Sdata = . ;
+ 	.data : {                     /* Data */
+ 		*(.data)
++		EXTRA_RWDATA
+ 	}
+ 	__edata = . ;                 /* End of data section */
+ 	_edata = . ;
+Index: linux-2.6-lttng/arch/cris/arch-v32/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/cris/arch-v32/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/cris/arch-v32/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -50,6 +50,7 @@
+ 	__Sdata = . ;
+ 	.data : {                     /* Data */
+ 		*(.data)
++		EXTRA_RWDATA
+ 	}
+ 	__edata = . ;		/* End of data section. */
+ 	_edata = . ;
+Index: linux-2.6-lttng/arch/frv/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/frv/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/frv/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -137,6 +137,7 @@
+   .data : {			/* Data */
+ 	*(.data .data.*)
+ 	*(.exit.data)
++	EXTRA_RWDATA
+ 	CONSTRUCTORS
+ 	}
+ 
+Index: linux-2.6-lttng/arch/h8300/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/h8300/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/h8300/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -105,7 +105,9 @@
+ 	. = ALIGN(0x4) ;
+ 		*(.data)
+ 	. = ALIGN(0x4) ;
+-		*(.data.*)	
++		*(.data.*)
++	. = ALIGN(0x4) ;
++	EXTRA_RWDATA
+ 
+ 	. = ALIGN(0x4) ;
+ 	___init_begin = .;
+Index: linux-2.6-lttng/arch/i386/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/i386/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/i386/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -77,6 +77,7 @@
+   . = ALIGN(4096);
+   .data : AT(ADDR(.data) - LOAD_OFFSET) {	/* Data */
+ 	*(.data)
++	EXTRA_RWDATA
+ 	CONSTRUCTORS
+ 	} :data
+ 
+Index: linux-2.6-lttng/arch/ia64/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/ia64/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/ia64/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -214,7 +214,7 @@
+ 
+   data : { } :data
+   .data : AT(ADDR(.data) - LOAD_OFFSET)
+-	{ *(.data) *(.data1) *(.gnu.linkonce.d*) CONSTRUCTORS }
++	{ *(.data) *(.data1) *(.gnu.linkonce.d*) EXTRA_RWDATA CONSTRUCTORS }
+ 
+   . = ALIGN(16);	/* gp must be 16-byte aligned for exc. table */
+   .got : AT(ADDR(.got) - LOAD_OFFSET)
+Index: linux-2.6-lttng/arch/m32r/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/m32r/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/m32r/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -51,6 +51,7 @@
+ 	*(.spu)
+ 	*(.spi)
+ 	*(.data)
++	EXTRA_RWDATA
+ 	CONSTRUCTORS
+ 	}
+ 
+Index: linux-2.6-lttng/arch/m68k/kernel/vmlinux-std.lds
+===================================================================
+--- linux-2.6-lttng.orig/arch/m68k/kernel/vmlinux-std.lds	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/m68k/kernel/vmlinux-std.lds	2007-05-09 18:16:17.000000000 -0400
+@@ -29,6 +29,7 @@
+ 
+   .data : {			/* Data */
+ 	*(.data)
++	EXTRA_RWDATA
+ 	CONSTRUCTORS
+ 	}
+ 
+Index: linux-2.6-lttng/arch/m68k/kernel/vmlinux-sun3.lds
+===================================================================
+--- linux-2.6-lttng.orig/arch/m68k/kernel/vmlinux-sun3.lds	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/m68k/kernel/vmlinux-sun3.lds	2007-05-09 18:16:17.000000000 -0400
+@@ -24,6 +24,7 @@
+ 
+   .data : {			/* Data */
+ 	*(.data)
++	EXTRA_RWDATA
+ 	CONSTRUCTORS
+ 	. = ALIGN(16);		/* Exception table */
+ 	__start___ex_table = .;
+Index: linux-2.6-lttng/arch/m68knommu/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/m68knommu/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/m68knommu/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -134,6 +134,7 @@
+ 		. = ALIGN(4);
+ 		_sdata = . ;
+ 		*(.data)
++		EXTRA_RWDATA
+ 		. = ALIGN(8192) ;
+ 		*(.data.init_task)
+ 		_edata = . ;
+Index: linux-2.6-lttng/arch/mips/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/mips/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/mips/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -64,6 +64,8 @@
+ 
+     *(.data)
+ 
++    EXTRA_RWDATA
++
+     CONSTRUCTORS
+   }
+   _gp = . + 0x8000;
+Index: linux-2.6-lttng/arch/parisc/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/parisc/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/parisc/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -92,6 +92,7 @@
+   . = ALIGN(L1_CACHE_BYTES);
+   .data : {			/* Data */
+ 	*(.data)
++	EXTRA_RWDATA
+ 	CONSTRUCTORS
+ 	}
+ 
+Index: linux-2.6-lttng/arch/powerpc/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/powerpc/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/powerpc/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -170,11 +170,13 @@
+ 		*(.data)
+ 		*(.sdata)
+ 		*(.got.plt) *(.got)
++		EXTRA_RWDATA
+ 	}
+ #else
+ 	.data : {
+ 		*(.data .data.rel* .toc1)
+ 		*(.branch_lt)
++		EXTRA_RWDATA
+ 	}
+ 
+ 	.opd : {
+Index: linux-2.6-lttng/arch/ppc/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/ppc/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/ppc/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -73,6 +73,7 @@
+     *(.sdata2)
+     *(.got.plt) *(.got)
+     *(.dynamic)
++    EXTRA_RWDATA
+     CONSTRUCTORS
+   }
+ 
+Index: linux-2.6-lttng/arch/s390/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/s390/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/s390/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -49,6 +49,7 @@
+ 
+   .data : {			/* Data */
+ 	*(.data)
++	EXTRA_RWDATA
+ 	CONSTRUCTORS
+ 	}
+ 
+Index: linux-2.6-lttng/arch/sh/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/sh/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/sh/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -42,6 +42,7 @@
+ 
+   .data : {			/* Data */
+ 	*(.data)
++	EXTRA_RWDATA
+ 
+  	 /* Align the initial ramdisk image (INITRD) on page boundaries. */
+  	 . = ALIGN(PAGE_SIZE);
+Index: linux-2.6-lttng/arch/sh64/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/sh64/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/sh64/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -79,6 +79,7 @@
+ 
+   .data : C_PHYS(.data) {			/* Data */
+ 	*(.data)
++	EXTRA_RWDATA
+ 	CONSTRUCTORS
+ 	}
+ 
+Index: linux-2.6-lttng/arch/sparc/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/sparc/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/sparc/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -23,6 +23,7 @@
+   .data    :
+   {
+     *(.data)
++    EXTRA_RWDATA
+     CONSTRUCTORS
+   }
+   .data1   : { *(.data1) }
+Index: linux-2.6-lttng/arch/sparc64/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/sparc64/kernel/vmlinux.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/sparc64/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -28,6 +28,7 @@
+   .data    :
+   {
+     *(.data)
++    EXTRA_RWDATA
+     CONSTRUCTORS
+   }
+   .data1   : { *(.data1) }
+Index: linux-2.6-lttng/arch/um/kernel/dyn.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/um/kernel/dyn.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/um/kernel/dyn.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -98,6 +98,7 @@
+     . = ALIGN(KERNEL_STACK_SIZE);		/* init_task */
+     *(.data.init_task)
+     *(.data .data.* .gnu.linkonce.d.*)
++    EXTRA_RWDATA
+     SORT(CONSTRUCTORS)
+   }
+   .data1          : { *(.data1) }
+Index: linux-2.6-lttng/arch/um/kernel/uml.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/um/kernel/uml.lds.S	2007-05-09 18:14:50.000000000 -0400
++++ linux-2.6-lttng/arch/um/kernel/uml.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -61,6 +61,7 @@
+     *(.data.init_task)
+     *(.data)
+     *(.gnu.linkonce.d*)
++    EXTRA_RWDATA
+     CONSTRUCTORS
+   }
+   .data1   : { *(.data1) }
+Index: linux-2.6-lttng/arch/v850/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/v850/kernel/vmlinux.lds.S	2007-05-09 18:14:51.000000000 -0400
++++ linux-2.6-lttng/arch/v850/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -116,6 +116,7 @@
+         	*(.data)						      \
+ 			*(.exit.data)	/* 2.5 convention */		      \
+ 			*(.data.exit)	/* 2.4 convention */		      \
++		EXTRA_RWDATA						      \
+ 		. = ALIGN (16) ;					      \
+ 		*(.data.cacheline_aligned)				      \
+ 		. = ALIGN (0x2000) ;					      \
+Index: linux-2.6-lttng/arch/x86_64/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/x86_64/kernel/vmlinux.lds.S	2007-05-09 18:14:51.000000000 -0400
++++ linux-2.6-lttng/arch/x86_64/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -56,6 +56,7 @@
+ 				/* Data */
+   .data : AT(ADDR(.data) - LOAD_OFFSET) {
+ 	*(.data)
++	EXTRA_RWDATA
+ 	CONSTRUCTORS
+ 	} :data
+ 
+Index: linux-2.6-lttng/arch/xtensa/kernel/vmlinux.lds.S
+===================================================================
+--- linux-2.6-lttng.orig/arch/xtensa/kernel/vmlinux.lds.S	2007-05-09 18:14:51.000000000 -0400
++++ linux-2.6-lttng/arch/xtensa/kernel/vmlinux.lds.S	2007-05-09 18:16:17.000000000 -0400
+@@ -144,7 +144,7 @@
+   _fdata = .;
+   .data :
+   {
+-    *(.data) CONSTRUCTORS
++    *(.data) EXTRA_RWDATA CONSTRUCTORS
+     . = ALIGN(XCHAL_ICACHE_LINESIZE);
+     *(.data.cacheline_aligned)
+   }
 
-2) Grab http://landley.net/code/firmware (releases in the downloads directory, 
-or tarball of most recent repository snapshot is 
-wget "http://landley.net/hg/firmware?ca=tip;type=gz").
-
-3) Edit "download.sh" to point at the URL of your tarball instead of whatever 
-kernel.org version it's using.  (Or add your patch to sources/patches if it 
-applies to the version it's already using.  Note that if you set SHA1= blank 
-in download.sh it'll skip the checksum test, so you don't have to recalculate 
-the sha1sum if you don't want to.)
-
-4) Run ./build.sh for the architecture you're interested in.  (I suggest 
-armv4l, i686, mipsel, and x86_64.  Both sparc and ppc are currently broken 
-for different reasons; I'm working on it.)  Wait a longish time for it to 
-finish compiling. :)
-
-5) "cd build; ./run-armv4l.sh" and your shell prompt should now be in qemu 
-running a kernel for the appropriate architecture.  (You even have a native 
-version of gcc you can build stuff with, although you may have 
-to "ln -s /tools/lib /lib" to run the results, for reasons Linux From Scratch 
-developers will recognize. :)
-
-This won't help you test real hardware (at least hardware qemu doesn't 
-emulate), but for stuff like filesystems or executable file formats, it's 
-handy. :)
-
-Email me if something doesn't work...
-
-Rob
+-- 
+Mathieu Desnoyers
+Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
+OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
