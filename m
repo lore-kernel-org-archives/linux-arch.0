@@ -1,45 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:35421 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1755657AbXEJWVw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 May 2007 18:21:52 -0400
-Date: Thu, 10 May 2007 15:21:52 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:38775
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1755829AbXEJWaQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 May 2007 18:30:16 -0400
+Date: Thu, 10 May 2007 15:30:19 -0700 (PDT)
+Message-Id: <20070510.153019.124084029.davem@davemloft.net>
 Subject: Re: New slab allocator SLUB
-In-Reply-To: <20070510.151353.89387383.davem@davemloft.net>
-Message-ID: <Pine.LNX.4.64.0705101516520.13504@schroedinger.engr.sgi.com>
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <Pine.LNX.4.64.0705101516520.13504@schroedinger.engr.sgi.com>
 References: <Pine.LNX.4.64.0705081145360.11368@schroedinger.engr.sgi.com>
- <20070510.151353.89387383.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+	<20070510.151353.89387383.davem@davemloft.net>
+	<Pine.LNX.4.64.0705101516520.13504@schroedinger.engr.sgi.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
+To: clameter@sgi.com
 Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 10 May 2007, David Miller wrote:
+From: Christoph Lameter <clameter@sgi.com>
+Date: Thu, 10 May 2007 15:21:52 -0700 (PDT)
 
-> What SLAB allows you to do is define LARGE_ALLOCS but not necessarily
-> set MAX_ORDER large enough for the largest kmalloc SLAB.  SLAB would
-> ignore the kmalloc cache creation failures for these largest ones that
-> are over MAX_ORDER.
+> On Thu, 10 May 2007, David Miller wrote:
+> 
+> > What SLAB allows you to do is define LARGE_ALLOCS but not necessarily
+> > set MAX_ORDER large enough for the largest kmalloc SLAB.  SLAB would
+> > ignore the kmalloc cache creation failures for these largest ones that
+> > are over MAX_ORDER.
+> 
+> Hmmm... How about limiting KMALLOC_SHIFT_HIGH to max order?
 
-Hmmm... How about limiting KMALLOC_SHIFT_HIGH to max order?
+That should definitely do the trick too:
 
----
- include/linux/slub_def.h |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Signed-off-by: David S. Miller <davem@davemloft.net>
 
-Index: slub/include/linux/slub_def.h
-===================================================================
---- slub.orig/include/linux/slub_def.h	2007-05-10 15:19:39.000000000 -0700
-+++ slub/include/linux/slub_def.h	2007-05-10 15:20:39.000000000 -0700
-@@ -59,7 +59,7 @@ struct kmem_cache {
- #define KMALLOC_SHIFT_LOW 3
- 
- #ifdef CONFIG_LARGE_ALLOCS
--#define KMALLOC_SHIFT_HIGH 25
-+#define KMALLOC_SHIFT_HIGH (min(25, MAX_ORDER + PAGE_SHIFT))
- #else
- #if !defined(CONFIG_MMU) || NR_CPUS > 512 || MAX_NUMNODES > 256
- #define KMALLOC_SHIFT_HIGH 20
+I just confirmed that I don't actually need LARGE_ALLOCS on sparc64.
+I think I needed them for some reason back when I used kmalloc() to
+allocate the per-address-space TLB miss hash tables.
+
+I think the issue was that for Niagara and later really huge TLB
+hash table sizes are allowed, and I wanted to experiment with those
+and the sizes were large enough to require LARGE_ALLOCS.  But now
+I use SLAB for this and I cap the size at the pre-Niagara limit
+of 1MB because larger sizes showed no performance gains.
+
