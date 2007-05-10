@@ -1,48 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:38775
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1755829AbXEJWaQ (ORCPT
+Received: from smtp1.linux-foundation.org ([65.172.181.25]:34954 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1759354AbXEJWcj (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 May 2007 18:30:16 -0400
-Date: Thu, 10 May 2007 15:30:19 -0700 (PDT)
-Message-Id: <20070510.153019.124084029.davem@davemloft.net>
-Subject: Re: New slab allocator SLUB
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <Pine.LNX.4.64.0705101516520.13504@schroedinger.engr.sgi.com>
-References: <Pine.LNX.4.64.0705081145360.11368@schroedinger.engr.sgi.com>
-	<20070510.151353.89387383.davem@davemloft.net>
-	<Pine.LNX.4.64.0705101516520.13504@schroedinger.engr.sgi.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+	Thu, 10 May 2007 18:32:39 -0400
+Message-Id: <200705102232.l4AMWWpw032629@shell0.pdx.osdl.net>
+Subject: - markers-define-the-linker-macro-extra_rwdata.patch removed from -mm tree
+From: akpm@linux-foundation.org
+Date: Thu, 10 May 2007 15:32:32 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: clameter@sgi.com
-Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: mathieu.desnoyers@polymtl.ca, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Christoph Lameter <clameter@sgi.com>
-Date: Thu, 10 May 2007 15:21:52 -0700 (PDT)
 
-> On Thu, 10 May 2007, David Miller wrote:
-> 
-> > What SLAB allows you to do is define LARGE_ALLOCS but not necessarily
-> > set MAX_ORDER large enough for the largest kmalloc SLAB.  SLAB would
-> > ignore the kmalloc cache creation failures for these largest ones that
-> > are over MAX_ORDER.
-> 
-> Hmmm... How about limiting KMALLOC_SHIFT_HIGH to max order?
+The patch titled
+     markers: define the linker macro EXTRA_RWDATA
+has been removed from the -mm tree.  Its filename was
+     markers-define-the-linker-macro-extra_rwdata.patch
 
-That should definitely do the trick too:
+This patch was dropped because an updated version will be merged
 
-Signed-off-by: David S. Miller <davem@davemloft.net>
+------------------------------------------------------
+Subject: markers: define the linker macro EXTRA_RWDATA
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 
-I just confirmed that I don't actually need LARGE_ALLOCS on sparc64.
-I think I needed them for some reason back when I used kmalloc() to
-allocate the per-address-space TLB miss hash tables.
+Defines the linker macro EXTRA_RWDATA for the marker data section.  It puts
+the marker data in a separate section that will not pollute the normal .data
+section, which minimize the cache impact.  Markers need such a special section
+because they define a lot of spreaded and small data structures at multiple
+sites.
 
-I think the issue was that for Niagara and later really huge TLB
-hash table sizes are allowed, and I wanted to experiment with those
-and the sizes were large enough to require LARGE_ALLOCS.  But now
-I use SLAB for this and I cap the size at the pre-Niagara limit
-of 1MB because larger sizes showed no performance gains.
+This patch also creates the __markers_strings section (ro marker strings) and
+makes sure the __markers section is aligned by putting it before the
+__ksymtab_strings (not after).
+
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/asm-generic/vmlinux.lds.h |   24 +++++++++++++-----------
+ 1 file changed, 13 insertions(+), 11 deletions(-)
+
+diff -puN include/asm-generic/vmlinux.lds.h~markers-define-the-linker-macro-extra_rwdata include/asm-generic/vmlinux.lds.h
+--- a/include/asm-generic/vmlinux.lds.h~markers-define-the-linker-macro-extra_rwdata
++++ a/include/asm-generic/vmlinux.lds.h
+@@ -116,21 +116,19 @@
+ 		*(__kcrctab_gpl_future)					\
+ 		VMLINUX_SYMBOL(__stop___kcrctab_gpl_future) = .;	\
+ 	}								\
+-									\
+-	/* Kernel symbol table: strings */				\
+-        __ksymtab_strings : AT(ADDR(__ksymtab_strings) - LOAD_OFFSET) {	\
+-		*(__ksymtab_strings)					\
+-	}								\
+ 	/* Kernel markers : pointers */					\
+-	.markers : AT(ADDR(.markers) - LOAD_OFFSET) {			\
++	__markers : AT(ADDR(__markers) - LOAD_OFFSET) {			\
+ 		VMLINUX_SYMBOL(__start___markers) = .;			\
+-		*(.markers)						\
++		*(__markers)						\
+ 		VMLINUX_SYMBOL(__stop___markers) = .;			\
+ 	}								\
+-	.markers.c : AT(ADDR(.markers.c) - LOAD_OFFSET) {		\
+-		VMLINUX_SYMBOL(__start___markers_c) = .;		\
+-		*(.markers.c)						\
+-		VMLINUX_SYMBOL(__stop___markers_c) = .;			\
++	/* Kernel symbol table: strings */				\
++        __ksymtab_strings : AT(ADDR(__ksymtab_strings) - LOAD_OFFSET) {	\
++		*(__ksymtab_strings)					\
++	}								\
++	/* Kernel markers : strings */					\
++	__markers_strings : AT(ADDR(__markers_strings) - LOAD_OFFSET) {	\
++		*(__markers_strings)					\
+ 	}								\
+ 	__end_rodata = .;						\
+ 	. = ALIGN(4096);						\
+@@ -147,6 +145,10 @@
+ 									\
+ 	. = ALIGN(4096);
+ 
++#define EXTRA_RWDATA							\
++	. = ALIGN(8);							\
++	*(__markers_data)						\
++
+ #define SECURITY_INIT							\
+ 	.security_initcall.init : AT(ADDR(.security_initcall.init) - LOAD_OFFSET) { \
+ 		VMLINUX_SYMBOL(__security_initcall_start) = .;		\
+_
+
+Patches currently in -mm which might be from mathieu.desnoyers@polymtl.ca are
+
+origin.patch
+git-avr32.patch
+powerpc-promc-remove-undef-printk.patch
+markers-define-the-linker-macro-extra_rwdata.patch
+markers-use-extra_rwdata-in-architectures.patch
+port-of-blktrace-to-the-linux-kernel-markers.patch
 
