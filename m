@@ -1,91 +1,838 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from extu-mxob-1.symantec.com ([216.10.194.28]:34779 "EHLO
-	extu-mxob-1.symantec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756055AbXEKNcn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2007 09:32:43 -0400
-Received: from blonde.wat.veritas.com([10.10.97.163]) (3980 bytes) by megami.veritas.com
-	via sendmail with P:esmtp/R:smart_host/T:smtp
-	(sender: <hugh@veritas.com>)
-	id <m1HmUy3-0000RTC@megami.veritas.com>
-	for <linux-arch@vger.kernel.org>; Fri, 11 May 2007 06:15:31 -0700 (PDT)
-	(Smail-3.2.0.101 1997-Dec-17 #15 built 2001-Aug-30)
-Date: Fri, 11 May 2007 14:15:03 +0100 (BST)
-From: Hugh Dickins <hugh@veritas.com>
-Subject: Re: [rfc] optimise unlock_page
-In-Reply-To: <20070511085424.GA15352@wotan.suse.de>
-Message-ID: <Pine.LNX.4.64.0705111357120.3350@blonde.wat.veritas.com>
-References: <20070508113709.GA19294@wotan.suse.de> <20070508114003.GB19294@wotan.suse.de>
- <1178659827.14928.85.camel@localhost.localdomain> <20070508224124.GD20174@wotan.suse.de>
- <20070508225012.GF20174@wotan.suse.de> <Pine.LNX.4.64.0705091950080.2909@blonde.wat.veritas.com>
- <20070510033736.GA19196@wotan.suse.de> <Pine.LNX.4.64.0705101935590.18496@blonde.wat.veritas.com>
- <20070511085424.GA15352@wotan.suse.de>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from smtp1.linux-foundation.org ([65.172.181.25]:56715 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754752AbXELFdt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 12 May 2007 01:33:49 -0400
+Message-Id: <200705120533.l4C5XgeG002134@shell0.pdx.osdl.net>
+Subject: - consolidate-asm-pollh.patch removed from -mm tree
+From: akpm@linux-foundation.org
+Date: Fri, 11 May 2007 22:33:42 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
+To: sfr@canb.auug.org.au, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 11 May 2007, Nick Piggin wrote:
-> On Thu, May 10, 2007 at 08:14:52PM +0100, Hugh Dickins wrote:
-> > 
-> > Well, on the x86_64 I have seen a few of your io_schedule_timeout
-> > printks under load; but suspect those are no fault of your changes,
-> 
-> Hmm, I see... well I forgot to remove those from the page I sent,
-> the timeouts will kick things off again if they get stalled, so
-> maybe it just hides a problem? (OTOH, I *think* the logic is pretty
-> sound).
 
-As I said in what you snipped, I believe your debug there is showing
-up an existing problem on my machine, not a problem in your changes.
+The patch titled
+     Consolidate asm/poll.h
+has been removed from the -mm tree.  Its filename was
+     consolidate-asm-pollh.patch
 
-> > So here it looks like a good change; but not enough to atone ;)
-> 
-> Don't worry, I'm only just beginning ;) Can we then do something crazy
-> like this?  (working on x86-64 only, so far. It seems to eliminate
-> lat_pagefault and lat_proc regressions here).
+This patch was dropped because it was merged into mainline or a subsystem tree
 
-I think Mr __NickPiggin_Lock is squirming ever more desperately.
+------------------------------------------------------
+Subject: Consolidate asm/poll.h
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 
-So, in essence, you'd like to expand PG_locked from 1 to 8 bits,
-despite the fact that page flags are known to be in short supply?
-Ah, no, you're keeping it near the static mmzone FLAGS_RESERVED.
+These files are almost all the same.
 
-Hmm, well, I think that's fairly horrid, and would it even be
-guaranteed to work on all architectures?  Playing with one char
-of an unsigned long in one way, while playing with the whole of
-the unsigned long in another way (bitops) sounds very dodgy to me.
+This patch could be made even simpler if we don't mind POLLREMOVE turning
+up in a few architectures that didn't have it previously (which should be
+OK as POLLREMOVE is not used anywhere in the current tree).
 
-I think I'd rather just accept that your changes have slowed some
-microbenchmarks down: it is not always possible to fix a serious
-bug without slowing something down.  That's probably what you're
-trying to push me into saying by this patch ;)
+Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-But again I wonder just what the gain has been, once your double
-unmap_mapping_range is factored in.  When I suggested before that
-perhaps the double (well, treble including the one in truncate.c)
-unmap_mapping_range might solve the problem you set out to solve
-(I've lost sight of that!) without pagelock when faulting, you said:
+ include/asm-alpha/poll.h   |   26 ------------------------
+ include/asm-arm/poll.h     |   28 --------------------------
+ include/asm-arm26/poll.h   |   22 +-------------------
+ include/asm-avr32/poll.h   |   28 --------------------------
+ include/asm-cris/poll.h    |   27 -------------------------
+ include/asm-frv/poll.h     |   18 ++---------------
+ include/asm-generic/Kbuild |    1 
+ include/asm-generic/poll.h |   37 +++++++++++++++++++++++++++++++++++
+ include/asm-h8300/poll.h   |   18 ++---------------
+ include/asm-i386/poll.h    |   28 --------------------------
+ include/asm-ia64/poll.h    |   33 -------------------------------
+ include/asm-m32r/poll.h    |   33 -------------------------------
+ include/asm-m68k/poll.h    |   17 ----------------
+ include/asm-mips/poll.h    |   21 -------------------
+ include/asm-parisc/poll.h  |   28 --------------------------
+ include/asm-powerpc/poll.h |   25 -----------------------
+ include/asm-s390/poll.h    |   36 ----------------------------------
+ include/asm-sh/poll.h      |   28 --------------------------
+ include/asm-sh64/poll.h    |   33 +------------------------------
+ include/asm-sparc/poll.h   |   14 -------------
+ include/asm-sparc64/poll.h |   14 -------------
+ include/asm-v850/poll.h    |   17 ----------------
+ include/asm-x86_64/poll.h  |   28 --------------------------
+ include/asm-xtensa/poll.h  |   20 ------------------
+ 24 files changed, 66 insertions(+), 514 deletions(-)
 
-> Well aside from being terribly ugly, it means we can still drop
-> the dirty bit where we'd otherwise rather not, so I don't think
-> we can do that.
+diff -puN include/asm-alpha/poll.h~consolidate-asm-pollh include/asm-alpha/poll.h
+--- a/include/asm-alpha/poll.h~consolidate-asm-pollh
++++ a/include/asm-alpha/poll.h
+@@ -1,25 +1 @@
+-#ifndef __ALPHA_POLL_H
+-#define __ALPHA_POLL_H
+-
+-#define POLLIN		(1 << 0)
+-#define POLLPRI		(1 << 1)
+-#define POLLOUT		(1 << 2)
+-#define POLLERR		(1 << 3)
+-#define POLLHUP		(1 << 4)
+-#define POLLNVAL	(1 << 5)
+-#define POLLRDNORM	(1 << 6)
+-#define POLLRDBAND	(1 << 7)
+-#define POLLWRNORM	(1 << 8)
+-#define POLLWRBAND	(1 << 9)
+-#define POLLMSG		(1 << 10)
+-#define POLLREMOVE	(1 << 12)
+-#define POLLRDHUP       (1 << 13)
+-
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif
++#include <asm-generic/poll.h>
+diff -puN include/asm-arm/poll.h~consolidate-asm-pollh include/asm-arm/poll.h
+--- a/include/asm-arm/poll.h~consolidate-asm-pollh
++++ a/include/asm-arm/poll.h
+@@ -1,27 +1 @@
+-#ifndef __ASMARM_POLL_H
+-#define __ASMARM_POLL_H
+-
+-/* These are specified by iBCS2 */
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-/* The rest seem to be more-or-less nonstandard. Check them! */
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif
++#include <asm-generic/poll.h>
+diff -puN include/asm-arm26/poll.h~consolidate-asm-pollh include/asm-arm26/poll.h
+--- a/include/asm-arm26/poll.h~consolidate-asm-pollh
++++ a/include/asm-arm26/poll.h
+@@ -1,26 +1,8 @@
+ #ifndef __ASMARM_POLL_H
+ #define __ASMARM_POLL_H
+ 
+-/* These are specified by iBCS2 */
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
++#include <asm-generic/poll.h>
+ 
+-/* The rest seem to be more-or-less nonstandard. Check them! */
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
++#undef POLLREMOVE
+ 
+ #endif
+diff -puN include/asm-avr32/poll.h~consolidate-asm-pollh include/asm-avr32/poll.h
+--- a/include/asm-avr32/poll.h~consolidate-asm-pollh
++++ a/include/asm-avr32/poll.h
+@@ -1,27 +1 @@
+-#ifndef __ASM_AVR32_POLL_H
+-#define __ASM_AVR32_POLL_H
+-
+-/* These are specified by iBCS2 */
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-/* The rest seem to be more-or-less nonstandard. Check them! */
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP	0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif /* __ASM_AVR32_POLL_H */
++#include <asm-generic/poll.h>
+diff -puN include/asm-cris/poll.h~consolidate-asm-pollh include/asm-cris/poll.h
+--- a/include/asm-cris/poll.h~consolidate-asm-pollh
++++ a/include/asm-cris/poll.h
+@@ -1,26 +1 @@
+-#ifndef __ASM_CRIS_POLL_H
+-#define __ASM_CRIS_POLL_H
+-
+-/* taken from asm-alpha */
+-
+-#define POLLIN		1
+-#define POLLPRI		2
+-#define POLLOUT		4
+-#define POLLERR		8
+-#define POLLHUP		16
+-#define POLLNVAL	32
+-#define POLLRDNORM	64
+-#define POLLRDBAND	128
+-#define POLLWRNORM	256
+-#define POLLWRBAND	512
+-#define POLLMSG		1024
+-#define POLLREMOVE	4096
+-#define POLLRDHUP       8192
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif
++#include <asm-generic/poll.h>
+diff -puN include/asm-frv/poll.h~consolidate-asm-pollh include/asm-frv/poll.h
+--- a/include/asm-frv/poll.h~consolidate-asm-pollh
++++ a/include/asm-frv/poll.h
+@@ -1,24 +1,12 @@
+ #ifndef _ASM_POLL_H
+ #define _ASM_POLL_H
+ 
+-#define POLLIN		  1
+-#define POLLPRI		  2
+-#define POLLOUT		  4
+-#define POLLERR		  8
+-#define POLLHUP		 16
+-#define POLLNVAL	 32
+-#define POLLRDNORM	 64
+ #define POLLWRNORM	POLLOUT
+-#define POLLRDBAND	128
+ #define POLLWRBAND	256
+-#define POLLMSG		0x0400
+-#define POLLRDHUP       0x2000
+ 
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
++#include <asm-generic/poll.h>
++
++#undef POLLREMOVE
+ 
+ #endif
+ 
+diff -puN include/asm-generic/Kbuild~consolidate-asm-pollh include/asm-generic/Kbuild
+--- a/include/asm-generic/Kbuild~consolidate-asm-pollh
++++ a/include/asm-generic/Kbuild
+@@ -4,6 +4,7 @@ header-y += fcntl.h
+ header-y += ioctl.h
+ header-y += ipc.h
+ header-y += mman.h
++header-y += poll.h
+ header-y += signal.h
+ header-y += statfs.h
+ 
+diff -puN /dev/null include/asm-generic/poll.h
+--- /dev/null
++++ a/include/asm-generic/poll.h
+@@ -0,0 +1,37 @@
++#ifndef __ASM_GENERIC_POLL_H
++#define __ASM_GENERIC_POLL_H
++
++/* These are specified by iBCS2 */
++#define POLLIN		0x0001
++#define POLLPRI		0x0002
++#define POLLOUT		0x0004
++#define POLLERR		0x0008
++#define POLLHUP		0x0010
++#define POLLNVAL	0x0020
++
++/* The rest seem to be more-or-less nonstandard. Check them! */
++#define POLLRDNORM	0x0040
++#define POLLRDBAND	0x0080
++#ifndef POLLWRNORM
++#define POLLWRNORM	0x0100
++#endif
++#ifndef POLLWRBAND
++#define POLLWRBAND	0x0200
++#endif
++#ifndef POLLMSG
++#define POLLMSG		0x0400
++#endif
++#ifndef POLLREMOVE
++#define POLLREMOVE	0x1000
++#endif
++#ifndef POLLRDHUP
++#define POLLRDHUP       0x2000
++#endif
++
++struct pollfd {
++	int fd;
++	short events;
++	short revents;
++};
++
++#endif	/* __ASM_GENERIC_POLL_H */
+diff -puN include/asm-h8300/poll.h~consolidate-asm-pollh include/asm-h8300/poll.h
+--- a/include/asm-h8300/poll.h~consolidate-asm-pollh
++++ a/include/asm-h8300/poll.h
+@@ -1,23 +1,11 @@
+ #ifndef __H8300_POLL_H
+ #define __H8300_POLL_H
+ 
+-#define POLLIN		  1
+-#define POLLPRI		  2
+-#define POLLOUT		  4
+-#define POLLERR		  8
+-#define POLLHUP		 16
+-#define POLLNVAL	 32
+-#define POLLRDNORM	 64
+ #define POLLWRNORM	POLLOUT
+-#define POLLRDBAND	128
+ #define POLLWRBAND	256
+-#define POLLMSG		0x0400
+-#define POLLRDHUP       0x2000
+ 
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
++#include <asm-generic/poll.h>
++
++#undef POLLREMOVE
+ 
+ #endif
+diff -puN include/asm-i386/poll.h~consolidate-asm-pollh include/asm-i386/poll.h
+--- a/include/asm-i386/poll.h~consolidate-asm-pollh
++++ a/include/asm-i386/poll.h
+@@ -1,27 +1 @@
+-#ifndef __i386_POLL_H
+-#define __i386_POLL_H
+-
+-/* These are specified by iBCS2 */
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-/* The rest seem to be more-or-less nonstandard. Check them! */
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif
++#include <asm-generic/poll.h>
+diff -puN include/asm-ia64/poll.h~consolidate-asm-pollh include/asm-ia64/poll.h
+--- a/include/asm-ia64/poll.h~consolidate-asm-pollh
++++ a/include/asm-ia64/poll.h
+@@ -1,32 +1 @@
+-#ifndef _ASM_IA64_POLL_H
+-#define _ASM_IA64_POLL_H
+-
+-/*
+- * poll(2) bit definitions.  Based on <asm-i386/poll.h>.
+- *
+- * Modified 1998, 1999, 2002
+- *	David Mosberger-Tang <davidm@hpl.hp.com>, Hewlett-Packard Co
+- */
+-
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif /* _ASM_IA64_POLL_H */
++#include <asm-generic/poll.h>
+diff -puN include/asm-m32r/poll.h~consolidate-asm-pollh include/asm-m32r/poll.h
+--- a/include/asm-m32r/poll.h~consolidate-asm-pollh
++++ a/include/asm-m32r/poll.h
+@@ -1,32 +1 @@
+-#ifndef _ASM_M32R_POLL_H
+-#define _ASM_M32R_POLL_H
+-
+-/*
+- * poll(2) bit definitions.  Based on <asm-i386/poll.h>.
+- *
+- * Modified 2004
+- *      Hirokazu Takata <takata at linux-m32r.org>
+- */
+-
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif  /* _ASM_M32R_POLL_H */
++#include <asm-generic/poll.h>
+diff -puN include/asm-m68k/poll.h~consolidate-asm-pollh include/asm-m68k/poll.h
+--- a/include/asm-m68k/poll.h~consolidate-asm-pollh
++++ a/include/asm-m68k/poll.h
+@@ -1,24 +1,9 @@
+ #ifndef __m68k_POLL_H
+ #define __m68k_POLL_H
+ 
+-#define POLLIN		  1
+-#define POLLPRI		  2
+-#define POLLOUT		  4
+-#define POLLERR		  8
+-#define POLLHUP		 16
+-#define POLLNVAL	 32
+-#define POLLRDNORM	 64
+ #define POLLWRNORM	POLLOUT
+-#define POLLRDBAND	128
+ #define POLLWRBAND	256
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+ 
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
++#include <asm-generic/poll.h>
+ 
+ #endif
+diff -puN include/asm-mips/poll.h~consolidate-asm-pollh include/asm-mips/poll.h
+--- a/include/asm-mips/poll.h~consolidate-asm-pollh
++++ a/include/asm-mips/poll.h
+@@ -1,28 +1,9 @@
+ #ifndef __ASM_POLL_H
+ #define __ASM_POLL_H
+ 
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+ #define POLLWRNORM	POLLOUT
+ #define POLLWRBAND	0x0100
+ 
+-/* These seem to be more or less nonstandard ...  */
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
++#include <asm-generic/poll.h>
+ 
+ #endif /* __ASM_POLL_H */
+diff -puN include/asm-parisc/poll.h~consolidate-asm-pollh include/asm-parisc/poll.h
+--- a/include/asm-parisc/poll.h~consolidate-asm-pollh
++++ a/include/asm-parisc/poll.h
+@@ -1,27 +1 @@
+-#ifndef __PARISC_POLL_H
+-#define __PARISC_POLL_H
+-
+-/* These are specified by iBCS2 */
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-/* The rest seem to be more-or-less nonstandard. Check them! */
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif
++#include <asm-generic/poll.h>
+diff -puN include/asm-powerpc/poll.h~consolidate-asm-pollh include/asm-powerpc/poll.h
+--- a/include/asm-powerpc/poll.h~consolidate-asm-pollh
++++ a/include/asm-powerpc/poll.h
+@@ -1,24 +1 @@
+-#ifndef _ASM_POWERPC_POLL_H
+-#define _ASM_POWERPC_POLL_H
+-
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif	/* _ASM_POWERPC_POLL_H */
++#include <asm-generic/poll.h>
+diff -puN include/asm-s390/poll.h~consolidate-asm-pollh include/asm-s390/poll.h
+--- a/include/asm-s390/poll.h~consolidate-asm-pollh
++++ a/include/asm-s390/poll.h
+@@ -1,35 +1 @@
+-/*
+- *  include/asm-s390/poll.h
+- *
+- *  S390 version
+- *
+- *  Derived from "include/asm-i386/poll.h"
+- */
+-
+-#ifndef __S390_POLL_H
+-#define __S390_POLL_H
+-
+-/* These are specified by iBCS2 */
+-#define POLLIN          0x0001
+-#define POLLPRI         0x0002
+-#define POLLOUT         0x0004
+-#define POLLERR         0x0008
+-#define POLLHUP         0x0010
+-#define POLLNVAL        0x0020
+-
+-/* The rest seem to be more-or-less nonstandard. Check them! */
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif
++#include <asm-generic/poll.h>
+diff -puN include/asm-sh/poll.h~consolidate-asm-pollh include/asm-sh/poll.h
+--- a/include/asm-sh/poll.h~consolidate-asm-pollh
++++ a/include/asm-sh/poll.h
+@@ -1,27 +1 @@
+-#ifndef __ASM_SH_POLL_H
+-#define __ASM_SH_POLL_H
+-
+-/* These are specified by iBCS2 */
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-/* The rest seem to be more-or-less nonstandard. Check them! */
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif /* __ASM_SH_POLL_H */
++#include <asm-generic/poll.h>
+diff -puN include/asm-sh64/poll.h~consolidate-asm-pollh include/asm-sh64/poll.h
+--- a/include/asm-sh64/poll.h~consolidate-asm-pollh
++++ a/include/asm-sh64/poll.h
+@@ -1,37 +1,8 @@
+ #ifndef __ASM_SH64_POLL_H
+ #define __ASM_SH64_POLL_H
+ 
+-/*
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License.  See the file "COPYING" in the main directory of this archive
+- * for more details.
+- *
+- * include/asm-sh64/poll.h
+- *
+- * Copyright (C) 2000, 2001  Paolo Alberelli
+- *
+- */
++#include <asm-generic/poll.h>
+ 
+-/* These are specified by iBCS2 */
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-/* The rest seem to be more-or-less nonstandard. Check them! */
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
++#undef POLLREMOVE
+ 
+ #endif /* __ASM_SH64_POLL_H */
+diff -puN include/asm-sparc/poll.h~consolidate-asm-pollh include/asm-sparc/poll.h
+--- a/include/asm-sparc/poll.h~consolidate-asm-pollh
++++ a/include/asm-sparc/poll.h
+@@ -1,24 +1,12 @@
+ #ifndef __SPARC_POLL_H
+ #define __SPARC_POLL_H
+ 
+-#define POLLIN		  1
+-#define POLLPRI		  2
+-#define POLLOUT		  4
+-#define POLLERR		  8
+-#define POLLHUP		 16
+-#define POLLNVAL	 32
+-#define POLLRDNORM	 64
+ #define POLLWRNORM	POLLOUT
+-#define POLLRDBAND	128
+ #define POLLWRBAND	256
+ #define POLLMSG		512
+ #define POLLREMOVE	1024
+ #define POLLRDHUP       2048
+ 
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
++#include <asm-generic/poll.h>
+ 
+ #endif
+diff -puN include/asm-sparc64/poll.h~consolidate-asm-pollh include/asm-sparc64/poll.h
+--- a/include/asm-sparc64/poll.h~consolidate-asm-pollh
++++ a/include/asm-sparc64/poll.h
+@@ -1,24 +1,12 @@
+ #ifndef __SPARC64_POLL_H
+ #define __SPARC64_POLL_H
+ 
+-#define POLLIN		  1
+-#define POLLPRI		  2
+-#define POLLOUT		  4
+-#define POLLERR		  8
+-#define POLLHUP		 16
+-#define POLLNVAL	 32
+-#define POLLRDNORM	 64
+ #define POLLWRNORM	POLLOUT
+-#define POLLRDBAND	128
+ #define POLLWRBAND	256
+ #define POLLMSG		512
+ #define POLLREMOVE	1024
+ #define POLLRDHUP       2048
+ 
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
++#include <asm-generic/poll.h>
+ 
+ #endif
+diff -puN include/asm-v850/poll.h~consolidate-asm-pollh include/asm-v850/poll.h
+--- a/include/asm-v850/poll.h~consolidate-asm-pollh
++++ a/include/asm-v850/poll.h
+@@ -1,24 +1,9 @@
+ #ifndef __V850_POLL_H__
+ #define __V850_POLL_H__
+ 
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-#define POLLRDNORM	0x0040
+ #define POLLWRNORM	POLLOUT
+-#define POLLRDBAND	0x0080
+ #define POLLWRBAND	0x0100
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+ 
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
++#include <asm-generic/poll.h>
+ 
+ #endif /* __V850_POLL_H__ */
+diff -puN include/asm-x86_64/poll.h~consolidate-asm-pollh include/asm-x86_64/poll.h
+--- a/include/asm-x86_64/poll.h~consolidate-asm-pollh
++++ a/include/asm-x86_64/poll.h
+@@ -1,27 +1 @@
+-#ifndef __x86_64_POLL_H
+-#define __x86_64_POLL_H
+-
+-/* These are specified by iBCS2 */
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-/* The rest seem to be more-or-less nonstandard. Check them! */
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+-#define POLLWRNORM	0x0100
+-#define POLLWRBAND	0x0200
+-#define POLLMSG		0x0400
+-#define POLLREMOVE	0x1000
+-#define POLLRDHUP       0x2000
+-
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
+-
+-#endif
++#include <asm-generic/poll.h>
+diff -puN include/asm-xtensa/poll.h~consolidate-asm-pollh include/asm-xtensa/poll.h
+--- a/include/asm-xtensa/poll.h~consolidate-asm-pollh
++++ a/include/asm-xtensa/poll.h
+@@ -11,28 +11,10 @@
+ #ifndef _XTENSA_POLL_H
+ #define _XTENSA_POLL_H
+ 
+-
+-#define POLLIN		0x0001
+-#define POLLPRI		0x0002
+-#define POLLOUT		0x0004
+-
+-#define POLLERR		0x0008
+-#define POLLHUP		0x0010
+-#define POLLNVAL	0x0020
+-
+-#define POLLRDNORM	0x0040
+-#define POLLRDBAND	0x0080
+ #define POLLWRNORM	POLLOUT
+ #define POLLWRBAND	0x0100
+-
+-#define POLLMSG		0x0400
+ #define POLLREMOVE	0x0800
+-#define POLLRDHUP       0x2000
+ 
+-struct pollfd {
+-	int fd;
+-	short events;
+-	short revents;
+-};
++#include <asm-generic/poll.h>
+ 
+ #endif /* _XTENSA_POLL_H */
+_
 
-but that didn't give me enough information to agree or disagree.
+Patches currently in -mm which might be from sfr@canb.auug.org.au are
 
-> 
-> What architecture and workloads are you testing with, btw?
+origin.patch
+missing-include-file-in-tpm_atmelh.patch
+maintainers-remove-invalid-list-address-for-tpm.patch
+powerpc64-symbols-start-with.patch
 
-i386 (2*HT P4 Xeons), x86_64 (2*HT P4 Xeons), PowerPC (G5 Quad).
-
-Workloads mostly lmbench and my usual pair of make -j20 kernel builds,
-one to tmpfs and one to ext2 looped on tmpfs, restricted to 512M RAM
-plus swap.  Which is ever so old but still finds enough to keep me busy.
-
-Hugh
-
-> --
-> 
-> Put PG_locked in its own byte from other PG_bits, so we can use non-atomic
-> stores to unlock it.
