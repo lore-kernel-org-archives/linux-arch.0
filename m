@@ -1,838 +1,456 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([65.172.181.25]:56715 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754752AbXELFdt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 12 May 2007 01:33:49 -0400
-Message-Id: <200705120533.l4C5XgeG002134@shell0.pdx.osdl.net>
-Subject: - consolidate-asm-pollh.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Fri, 11 May 2007 22:33:42 -0700
+Received: from pasmtpb.tele.dk ([80.160.77.98]:42960 "EHLO pasmtpB.tele.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751998AbXELWai (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 12 May 2007 18:30:38 -0400
+Date: Sun, 13 May 2007 00:31:33 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [PATCH] consolidate .text section definition in asm-generic
+Message-ID: <20070512223133.GA9813@uranus.ravnborg.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: sfr@canb.auug.org.au, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
+To: linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
+Move definition of .text section to asm-generic.
 
-The patch titled
-     Consolidate asm/poll.h
-has been removed from the -mm tree.  Its filename was
-     consolidate-asm-pollh.patch
-
-This patch was dropped because it was merged into mainline or a subsystem tree
-
-------------------------------------------------------
-Subject: Consolidate asm/poll.h
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-
-These files are almost all the same.
-
-This patch could be made even simpler if we don't mind POLLREMOVE turning
-up in a few architectures that didn't have it previously (which should be
-OK as POLLREMOVE is not used anywhere in the current tree).
-
-Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
 ---
+As-is this patch looks pointless but I need
+to add another section in parallel with .text
+so this patch allows me to do so in one place
+instead of touching all .lds files.
 
- include/asm-alpha/poll.h   |   26 ------------------------
- include/asm-arm/poll.h     |   28 --------------------------
- include/asm-arm26/poll.h   |   22 +-------------------
- include/asm-avr32/poll.h   |   28 --------------------------
- include/asm-cris/poll.h    |   27 -------------------------
- include/asm-frv/poll.h     |   18 ++---------------
- include/asm-generic/Kbuild |    1 
- include/asm-generic/poll.h |   37 +++++++++++++++++++++++++++++++++++
- include/asm-h8300/poll.h   |   18 ++---------------
- include/asm-i386/poll.h    |   28 --------------------------
- include/asm-ia64/poll.h    |   33 -------------------------------
- include/asm-m32r/poll.h    |   33 -------------------------------
- include/asm-m68k/poll.h    |   17 ----------------
- include/asm-mips/poll.h    |   21 -------------------
- include/asm-parisc/poll.h  |   28 --------------------------
- include/asm-powerpc/poll.h |   25 -----------------------
- include/asm-s390/poll.h    |   36 ----------------------------------
- include/asm-sh/poll.h      |   28 --------------------------
- include/asm-sh64/poll.h    |   33 +------------------------------
- include/asm-sparc/poll.h   |   14 -------------
- include/asm-sparc64/poll.h |   14 -------------
- include/asm-v850/poll.h    |   17 ----------------
- include/asm-x86_64/poll.h  |   28 --------------------------
- include/asm-xtensa/poll.h  |   20 ------------------
- 24 files changed, 66 insertions(+), 514 deletions(-)
+Question: Some arch's reference .text.* -
+can I add this one to asm-generic too?
 
-diff -puN include/asm-alpha/poll.h~consolidate-asm-pollh include/asm-alpha/poll.h
---- a/include/asm-alpha/poll.h~consolidate-asm-pollh
-+++ a/include/asm-alpha/poll.h
-@@ -1,25 +1 @@
--#ifndef __ALPHA_POLL_H
--#define __ALPHA_POLL_H
--
--#define POLLIN		(1 << 0)
--#define POLLPRI		(1 << 1)
--#define POLLOUT		(1 << 2)
--#define POLLERR		(1 << 3)
--#define POLLHUP		(1 << 4)
--#define POLLNVAL	(1 << 5)
--#define POLLRDNORM	(1 << 6)
--#define POLLRDBAND	(1 << 7)
--#define POLLWRNORM	(1 << 8)
--#define POLLWRBAND	(1 << 9)
--#define POLLMSG		(1 << 10)
--#define POLLREMOVE	(1 << 12)
--#define POLLRDHUP       (1 << 13)
--
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif
-+#include <asm-generic/poll.h>
-diff -puN include/asm-arm/poll.h~consolidate-asm-pollh include/asm-arm/poll.h
---- a/include/asm-arm/poll.h~consolidate-asm-pollh
-+++ a/include/asm-arm/poll.h
-@@ -1,27 +1 @@
--#ifndef __ASMARM_POLL_H
--#define __ASMARM_POLL_H
--
--/* These are specified by iBCS2 */
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--/* The rest seem to be more-or-less nonstandard. Check them! */
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif
-+#include <asm-generic/poll.h>
-diff -puN include/asm-arm26/poll.h~consolidate-asm-pollh include/asm-arm26/poll.h
---- a/include/asm-arm26/poll.h~consolidate-asm-pollh
-+++ a/include/asm-arm26/poll.h
-@@ -1,26 +1,8 @@
- #ifndef __ASMARM_POLL_H
- #define __ASMARM_POLL_H
- 
--/* These are specified by iBCS2 */
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
-+#include <asm-generic/poll.h>
- 
--/* The rest seem to be more-or-less nonstandard. Check them! */
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
-+#undef POLLREMOVE
- 
- #endif
-diff -puN include/asm-avr32/poll.h~consolidate-asm-pollh include/asm-avr32/poll.h
---- a/include/asm-avr32/poll.h~consolidate-asm-pollh
-+++ a/include/asm-avr32/poll.h
-@@ -1,27 +1 @@
--#ifndef __ASM_AVR32_POLL_H
--#define __ASM_AVR32_POLL_H
--
--/* These are specified by iBCS2 */
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--/* The rest seem to be more-or-less nonstandard. Check them! */
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP	0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif /* __ASM_AVR32_POLL_H */
-+#include <asm-generic/poll.h>
-diff -puN include/asm-cris/poll.h~consolidate-asm-pollh include/asm-cris/poll.h
---- a/include/asm-cris/poll.h~consolidate-asm-pollh
-+++ a/include/asm-cris/poll.h
-@@ -1,26 +1 @@
--#ifndef __ASM_CRIS_POLL_H
--#define __ASM_CRIS_POLL_H
--
--/* taken from asm-alpha */
--
--#define POLLIN		1
--#define POLLPRI		2
--#define POLLOUT		4
--#define POLLERR		8
--#define POLLHUP		16
--#define POLLNVAL	32
--#define POLLRDNORM	64
--#define POLLRDBAND	128
--#define POLLWRNORM	256
--#define POLLWRBAND	512
--#define POLLMSG		1024
--#define POLLREMOVE	4096
--#define POLLRDHUP       8192
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif
-+#include <asm-generic/poll.h>
-diff -puN include/asm-frv/poll.h~consolidate-asm-pollh include/asm-frv/poll.h
---- a/include/asm-frv/poll.h~consolidate-asm-pollh
-+++ a/include/asm-frv/poll.h
-@@ -1,24 +1,12 @@
- #ifndef _ASM_POLL_H
- #define _ASM_POLL_H
- 
--#define POLLIN		  1
--#define POLLPRI		  2
--#define POLLOUT		  4
--#define POLLERR		  8
--#define POLLHUP		 16
--#define POLLNVAL	 32
--#define POLLRDNORM	 64
- #define POLLWRNORM	POLLOUT
--#define POLLRDBAND	128
- #define POLLWRBAND	256
--#define POLLMSG		0x0400
--#define POLLRDHUP       0x2000
- 
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
-+#include <asm-generic/poll.h>
-+
-+#undef POLLREMOVE
- 
- #endif
- 
-diff -puN include/asm-generic/Kbuild~consolidate-asm-pollh include/asm-generic/Kbuild
---- a/include/asm-generic/Kbuild~consolidate-asm-pollh
-+++ a/include/asm-generic/Kbuild
-@@ -4,6 +4,7 @@ header-y += fcntl.h
- header-y += ioctl.h
- header-y += ipc.h
- header-y += mman.h
-+header-y += poll.h
- header-y += signal.h
- header-y += statfs.h
- 
-diff -puN /dev/null include/asm-generic/poll.h
---- /dev/null
-+++ a/include/asm-generic/poll.h
-@@ -0,0 +1,37 @@
-+#ifndef __ASM_GENERIC_POLL_H
-+#define __ASM_GENERIC_POLL_H
-+
-+/* These are specified by iBCS2 */
-+#define POLLIN		0x0001
-+#define POLLPRI		0x0002
-+#define POLLOUT		0x0004
-+#define POLLERR		0x0008
-+#define POLLHUP		0x0010
-+#define POLLNVAL	0x0020
-+
-+/* The rest seem to be more-or-less nonstandard. Check them! */
-+#define POLLRDNORM	0x0040
-+#define POLLRDBAND	0x0080
-+#ifndef POLLWRNORM
-+#define POLLWRNORM	0x0100
-+#endif
-+#ifndef POLLWRBAND
-+#define POLLWRBAND	0x0200
-+#endif
-+#ifndef POLLMSG
-+#define POLLMSG		0x0400
-+#endif
-+#ifndef POLLREMOVE
-+#define POLLREMOVE	0x1000
-+#endif
-+#ifndef POLLRDHUP
-+#define POLLRDHUP       0x2000
-+#endif
-+
-+struct pollfd {
-+	int fd;
-+	short events;
-+	short revents;
-+};
-+
-+#endif	/* __ASM_GENERIC_POLL_H */
-diff -puN include/asm-h8300/poll.h~consolidate-asm-pollh include/asm-h8300/poll.h
---- a/include/asm-h8300/poll.h~consolidate-asm-pollh
-+++ a/include/asm-h8300/poll.h
-@@ -1,23 +1,11 @@
- #ifndef __H8300_POLL_H
- #define __H8300_POLL_H
- 
--#define POLLIN		  1
--#define POLLPRI		  2
--#define POLLOUT		  4
--#define POLLERR		  8
--#define POLLHUP		 16
--#define POLLNVAL	 32
--#define POLLRDNORM	 64
- #define POLLWRNORM	POLLOUT
--#define POLLRDBAND	128
- #define POLLWRBAND	256
--#define POLLMSG		0x0400
--#define POLLRDHUP       0x2000
- 
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
-+#include <asm-generic/poll.h>
-+
-+#undef POLLREMOVE
- 
- #endif
-diff -puN include/asm-i386/poll.h~consolidate-asm-pollh include/asm-i386/poll.h
---- a/include/asm-i386/poll.h~consolidate-asm-pollh
-+++ a/include/asm-i386/poll.h
-@@ -1,27 +1 @@
--#ifndef __i386_POLL_H
--#define __i386_POLL_H
--
--/* These are specified by iBCS2 */
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--/* The rest seem to be more-or-less nonstandard. Check them! */
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif
-+#include <asm-generic/poll.h>
-diff -puN include/asm-ia64/poll.h~consolidate-asm-pollh include/asm-ia64/poll.h
---- a/include/asm-ia64/poll.h~consolidate-asm-pollh
-+++ a/include/asm-ia64/poll.h
-@@ -1,32 +1 @@
--#ifndef _ASM_IA64_POLL_H
--#define _ASM_IA64_POLL_H
--
--/*
-- * poll(2) bit definitions.  Based on <asm-i386/poll.h>.
-- *
-- * Modified 1998, 1999, 2002
-- *	David Mosberger-Tang <davidm@hpl.hp.com>, Hewlett-Packard Co
-- */
--
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif /* _ASM_IA64_POLL_H */
-+#include <asm-generic/poll.h>
-diff -puN include/asm-m32r/poll.h~consolidate-asm-pollh include/asm-m32r/poll.h
---- a/include/asm-m32r/poll.h~consolidate-asm-pollh
-+++ a/include/asm-m32r/poll.h
-@@ -1,32 +1 @@
--#ifndef _ASM_M32R_POLL_H
--#define _ASM_M32R_POLL_H
--
--/*
-- * poll(2) bit definitions.  Based on <asm-i386/poll.h>.
-- *
-- * Modified 2004
-- *      Hirokazu Takata <takata at linux-m32r.org>
-- */
--
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif  /* _ASM_M32R_POLL_H */
-+#include <asm-generic/poll.h>
-diff -puN include/asm-m68k/poll.h~consolidate-asm-pollh include/asm-m68k/poll.h
---- a/include/asm-m68k/poll.h~consolidate-asm-pollh
-+++ a/include/asm-m68k/poll.h
-@@ -1,24 +1,9 @@
- #ifndef __m68k_POLL_H
- #define __m68k_POLL_H
- 
--#define POLLIN		  1
--#define POLLPRI		  2
--#define POLLOUT		  4
--#define POLLERR		  8
--#define POLLHUP		 16
--#define POLLNVAL	 32
--#define POLLRDNORM	 64
- #define POLLWRNORM	POLLOUT
--#define POLLRDBAND	128
- #define POLLWRBAND	256
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
- 
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
-+#include <asm-generic/poll.h>
- 
- #endif
-diff -puN include/asm-mips/poll.h~consolidate-asm-pollh include/asm-mips/poll.h
---- a/include/asm-mips/poll.h~consolidate-asm-pollh
-+++ a/include/asm-mips/poll.h
-@@ -1,28 +1,9 @@
- #ifndef __ASM_POLL_H
- #define __ASM_POLL_H
- 
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
- #define POLLWRNORM	POLLOUT
- #define POLLWRBAND	0x0100
- 
--/* These seem to be more or less nonstandard ...  */
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
-+#include <asm-generic/poll.h>
- 
- #endif /* __ASM_POLL_H */
-diff -puN include/asm-parisc/poll.h~consolidate-asm-pollh include/asm-parisc/poll.h
---- a/include/asm-parisc/poll.h~consolidate-asm-pollh
-+++ a/include/asm-parisc/poll.h
-@@ -1,27 +1 @@
--#ifndef __PARISC_POLL_H
--#define __PARISC_POLL_H
--
--/* These are specified by iBCS2 */
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--/* The rest seem to be more-or-less nonstandard. Check them! */
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif
-+#include <asm-generic/poll.h>
-diff -puN include/asm-powerpc/poll.h~consolidate-asm-pollh include/asm-powerpc/poll.h
---- a/include/asm-powerpc/poll.h~consolidate-asm-pollh
-+++ a/include/asm-powerpc/poll.h
-@@ -1,24 +1 @@
--#ifndef _ASM_POWERPC_POLL_H
--#define _ASM_POWERPC_POLL_H
--
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif	/* _ASM_POWERPC_POLL_H */
-+#include <asm-generic/poll.h>
-diff -puN include/asm-s390/poll.h~consolidate-asm-pollh include/asm-s390/poll.h
---- a/include/asm-s390/poll.h~consolidate-asm-pollh
-+++ a/include/asm-s390/poll.h
-@@ -1,35 +1 @@
--/*
-- *  include/asm-s390/poll.h
-- *
-- *  S390 version
-- *
-- *  Derived from "include/asm-i386/poll.h"
-- */
--
--#ifndef __S390_POLL_H
--#define __S390_POLL_H
--
--/* These are specified by iBCS2 */
--#define POLLIN          0x0001
--#define POLLPRI         0x0002
--#define POLLOUT         0x0004
--#define POLLERR         0x0008
--#define POLLHUP         0x0010
--#define POLLNVAL        0x0020
--
--/* The rest seem to be more-or-less nonstandard. Check them! */
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif
-+#include <asm-generic/poll.h>
-diff -puN include/asm-sh/poll.h~consolidate-asm-pollh include/asm-sh/poll.h
---- a/include/asm-sh/poll.h~consolidate-asm-pollh
-+++ a/include/asm-sh/poll.h
-@@ -1,27 +1 @@
--#ifndef __ASM_SH_POLL_H
--#define __ASM_SH_POLL_H
--
--/* These are specified by iBCS2 */
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--/* The rest seem to be more-or-less nonstandard. Check them! */
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif /* __ASM_SH_POLL_H */
-+#include <asm-generic/poll.h>
-diff -puN include/asm-sh64/poll.h~consolidate-asm-pollh include/asm-sh64/poll.h
---- a/include/asm-sh64/poll.h~consolidate-asm-pollh
-+++ a/include/asm-sh64/poll.h
-@@ -1,37 +1,8 @@
- #ifndef __ASM_SH64_POLL_H
- #define __ASM_SH64_POLL_H
- 
--/*
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file "COPYING" in the main directory of this archive
-- * for more details.
-- *
-- * include/asm-sh64/poll.h
-- *
-- * Copyright (C) 2000, 2001  Paolo Alberelli
-- *
-- */
-+#include <asm-generic/poll.h>
- 
--/* These are specified by iBCS2 */
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--/* The rest seem to be more-or-less nonstandard. Check them! */
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
-+#undef POLLREMOVE
- 
- #endif /* __ASM_SH64_POLL_H */
-diff -puN include/asm-sparc/poll.h~consolidate-asm-pollh include/asm-sparc/poll.h
---- a/include/asm-sparc/poll.h~consolidate-asm-pollh
-+++ a/include/asm-sparc/poll.h
-@@ -1,24 +1,12 @@
- #ifndef __SPARC_POLL_H
- #define __SPARC_POLL_H
- 
--#define POLLIN		  1
--#define POLLPRI		  2
--#define POLLOUT		  4
--#define POLLERR		  8
--#define POLLHUP		 16
--#define POLLNVAL	 32
--#define POLLRDNORM	 64
- #define POLLWRNORM	POLLOUT
--#define POLLRDBAND	128
- #define POLLWRBAND	256
- #define POLLMSG		512
- #define POLLREMOVE	1024
- #define POLLRDHUP       2048
- 
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
-+#include <asm-generic/poll.h>
- 
- #endif
-diff -puN include/asm-sparc64/poll.h~consolidate-asm-pollh include/asm-sparc64/poll.h
---- a/include/asm-sparc64/poll.h~consolidate-asm-pollh
-+++ a/include/asm-sparc64/poll.h
-@@ -1,24 +1,12 @@
- #ifndef __SPARC64_POLL_H
- #define __SPARC64_POLL_H
- 
--#define POLLIN		  1
--#define POLLPRI		  2
--#define POLLOUT		  4
--#define POLLERR		  8
--#define POLLHUP		 16
--#define POLLNVAL	 32
--#define POLLRDNORM	 64
- #define POLLWRNORM	POLLOUT
--#define POLLRDBAND	128
- #define POLLWRBAND	256
- #define POLLMSG		512
- #define POLLREMOVE	1024
- #define POLLRDHUP       2048
- 
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
-+#include <asm-generic/poll.h>
- 
- #endif
-diff -puN include/asm-v850/poll.h~consolidate-asm-pollh include/asm-v850/poll.h
---- a/include/asm-v850/poll.h~consolidate-asm-pollh
-+++ a/include/asm-v850/poll.h
-@@ -1,24 +1,9 @@
- #ifndef __V850_POLL_H__
- #define __V850_POLL_H__
- 
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--#define POLLRDNORM	0x0040
- #define POLLWRNORM	POLLOUT
--#define POLLRDBAND	0x0080
- #define POLLWRBAND	0x0100
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
- 
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
-+#include <asm-generic/poll.h>
- 
- #endif /* __V850_POLL_H__ */
-diff -puN include/asm-x86_64/poll.h~consolidate-asm-pollh include/asm-x86_64/poll.h
---- a/include/asm-x86_64/poll.h~consolidate-asm-pollh
-+++ a/include/asm-x86_64/poll.h
-@@ -1,27 +1 @@
--#ifndef __x86_64_POLL_H
--#define __x86_64_POLL_H
--
--/* These are specified by iBCS2 */
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--/* The rest seem to be more-or-less nonstandard. Check them! */
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
--#define POLLWRNORM	0x0100
--#define POLLWRBAND	0x0200
--#define POLLMSG		0x0400
--#define POLLREMOVE	0x1000
--#define POLLRDHUP       0x2000
--
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
--
--#endif
-+#include <asm-generic/poll.h>
-diff -puN include/asm-xtensa/poll.h~consolidate-asm-pollh include/asm-xtensa/poll.h
---- a/include/asm-xtensa/poll.h~consolidate-asm-pollh
-+++ a/include/asm-xtensa/poll.h
-@@ -11,28 +11,10 @@
- #ifndef _XTENSA_POLL_H
- #define _XTENSA_POLL_H
- 
--
--#define POLLIN		0x0001
--#define POLLPRI		0x0002
--#define POLLOUT		0x0004
--
--#define POLLERR		0x0008
--#define POLLHUP		0x0010
--#define POLLNVAL	0x0020
--
--#define POLLRDNORM	0x0040
--#define POLLRDBAND	0x0080
- #define POLLWRNORM	POLLOUT
- #define POLLWRBAND	0x0100
--
--#define POLLMSG		0x0400
- #define POLLREMOVE	0x0800
--#define POLLRDHUP       0x2000
- 
--struct pollfd {
--	int fd;
--	short events;
--	short revents;
--};
-+#include <asm-generic/poll.h>
- 
- #endif /* _XTENSA_POLL_H */
-_
+From the diffstat it is obvious a lot of files are touced
+but changes are minimal.
+The lds files could use some janitorial effort....
 
-Patches currently in -mm which might be from sfr@canb.auug.org.au are
+	Sam
 
-origin.patch
-missing-include-file-in-tpm_atmelh.patch
-maintainers-remove-invalid-list-address-for-tpm.patch
-powerpc64-symbols-start-with.patch
+ arch/v850/kernel/vmlinux.lds.S               |    2 +-
+ b/arch/alpha/kernel/vmlinux.lds.S            |    2 +-
+ b/arch/arm/kernel/vmlinux.lds.S              |    2 +-
+ b/arch/arm26/kernel/vmlinux-arm26-xip.lds.in |    2 +-
+ b/arch/arm26/kernel/vmlinux-arm26.lds.in     |    2 +-
+ b/arch/avr32/kernel/vmlinux.lds.c            |    2 +-
+ b/arch/blackfin/kernel/vmlinux.lds.S         |    2 +-
+ b/arch/frv/kernel/vmlinux.lds.S              |    3 ++-
+ b/arch/h8300/kernel/vmlinux.lds.S            |    2 +-
+ b/arch/i386/kernel/vmlinux.lds.S             |    2 +-
+ b/arch/ia64/kernel/vmlinux.lds.S             |    2 +-
+ b/arch/m32r/kernel/vmlinux.lds.S             |    2 +-
+ b/arch/m68k/kernel/vmlinux-std.lds           |    2 +-
+ b/arch/m68k/kernel/vmlinux-sun3.lds          |    2 +-
+ b/arch/m68knommu/kernel/vmlinux.lds.S        |    2 +-
+ b/arch/mips/kernel/vmlinux.lds.S             |    2 +-
+ b/arch/parisc/kernel/vmlinux.lds.S           |    2 +-
+ b/arch/powerpc/kernel/vmlinux.lds.S          |    3 ++-
+ b/arch/ppc/kernel/vmlinux.lds.S              |    2 +-
+ b/arch/s390/kernel/vmlinux.lds.S             |    2 +-
+ b/arch/sh/kernel/vmlinux.lds.S               |    2 +-
+ b/arch/sh64/kernel/vmlinux.lds.S             |    2 +-
+ b/arch/sparc/kernel/vmlinux.lds.S            |    2 +-
+ b/arch/sparc64/kernel/vmlinux.lds.S          |    2 +-
+ b/arch/um/kernel/dyn.lds.S                   |    2 +-
+ b/arch/um/kernel/uml.lds.S                   |    2 +-
+ b/arch/x86_64/kernel/vmlinux.lds.S           |    2 +-
+ b/arch/xtensa/kernel/vmlinux.lds.S           |    3 ++-
+ b/include/asm-generic/vmlinux.lds.h          |    6 ++++++
+ 29 files changed, 37 insertions(+), 28 deletions(-)
 
+diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
+index cf1e6fc..ab60e81 100644
+--- a/arch/alpha/kernel/vmlinux.lds.S
++++ b/arch/alpha/kernel/vmlinux.lds.S
+@@ -15,7 +15,7 @@ SECTIONS
+ 
+   _text = .;					/* Text and read-only data */
+   .text : { 
+-	*(.text) 
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	*(.fixup)
+diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+index e4156e7..8d4e248 100644
+--- a/arch/arm/kernel/vmlinux.lds.S
++++ b/arch/arm/kernel/vmlinux.lds.S
+@@ -90,7 +90,7 @@ SECTIONS
+ 			__exception_text_start = .;
+ 			*(.exception.text)
+ 			__exception_text_end = .;
+-			*(.text)
++			TEXT_TEXT
+ 			SCHED_TEXT
+ 			LOCK_TEXT
+ #ifdef CONFIG_MMU
+diff --git a/arch/arm26/kernel/vmlinux-arm26-xip.lds.in b/arch/arm26/kernel/vmlinux-arm26-xip.lds.in
+index 046a850..89c806a 100644
+--- a/arch/arm26/kernel/vmlinux-arm26-xip.lds.in
++++ b/arch/arm26/kernel/vmlinux-arm26-xip.lds.in
+@@ -64,7 +64,7 @@ SECTIONS
+ 
+ 	.text : {			/* Real text segment		*/
+ 		_text = .;		/* Text and read-only data	*/
+-			*(.text)
++			TEXT_TEXT
+ 			SCHED_TEXT
+ 			LOCK_TEXT       /* FIXME - borrowed from arm32 - check*/
+ 			*(.fixup)
+diff --git a/arch/arm26/kernel/vmlinux-arm26.lds.in b/arch/arm26/kernel/vmlinux-arm26.lds.in
+index 1d2949e..e3f9b18 100644
+--- a/arch/arm26/kernel/vmlinux-arm26.lds.in
++++ b/arch/arm26/kernel/vmlinux-arm26.lds.in
+@@ -65,7 +65,7 @@ SECTIONS
+ 
+ 	.text : {			/* Real text segment		*/
+ 		_text = .;		/* Text and read-only data	*/
+-			*(.text)
++			TEXT_TEXT
+ 			SCHED_TEXT
+ 			LOCK_TEXT
+ 			*(.fixup)
+diff --git a/arch/avr32/kernel/vmlinux.lds.c b/arch/avr32/kernel/vmlinux.lds.c
+index e7f72c9..dbba391 100644
+--- a/arch/avr32/kernel/vmlinux.lds.c
++++ b/arch/avr32/kernel/vmlinux.lds.c
+@@ -76,7 +76,7 @@ SECTIONS
+ 		. = 0x100;
+ 		*(.scall.text)
+ 		*(.irq.text)
+-		*(.text)
++		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+ 		KPROBES_TEXT
+diff --git a/arch/blackfin/kernel/vmlinux.lds.S b/arch/blackfin/kernel/vmlinux.lds.S
+index 6ae9ebb..36fcc77 100644
+--- a/arch/blackfin/kernel/vmlinux.lds.S
++++ b/arch/blackfin/kernel/vmlinux.lds.S
+@@ -54,7 +54,7 @@ SECTIONS
+ 	{
+ 		 _text = .;
+ 		 __stext = .;
+-		*(.text)
++		TEXT_TEXT
+ 		SCHED_TEXT
+ 		*(.text.lock)
+ 		. = ALIGN(16);
+diff --git a/arch/frv/kernel/vmlinux.lds.S b/arch/frv/kernel/vmlinux.lds.S
+index 28eae97..7e0998f 100644
+--- a/arch/frv/kernel/vmlinux.lds.S
++++ b/arch/frv/kernel/vmlinux.lds.S
+@@ -101,13 +101,14 @@ SECTIONS
+   _stext = .;
+   .text : {
+ 	*(
+-		.text.start .text .text.*
++		.text.start .text.*
+ #ifdef CONFIG_DEBUG_INFO
+ 	.init.text
+ 	.exit.text
+ 	.exitcall.exit
+ #endif
+ 	)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	*(.fixup)
+diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
+index 65f1cdc..4365162 100644
+--- a/arch/h8300/kernel/vmlinux.lds.S
++++ b/arch/h8300/kernel/vmlinux.lds.S
+@@ -75,7 +75,7 @@ SECTIONS
+ 	*(.int_redirect)
+ #endif
+ 	__stext = . ;
+-        	*(.text)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	__etext = . ;
+diff --git a/arch/i386/kernel/vmlinux.lds.S b/arch/i386/kernel/vmlinux.lds.S
+index 80bec66..dfc439a 100644
+--- a/arch/i386/kernel/vmlinux.lds.S
++++ b/arch/i386/kernel/vmlinux.lds.S
+@@ -44,7 +44,7 @@ SECTIONS
+ 
+   /* read-only */
+   .text : AT(ADDR(.text) - LOAD_OFFSET) {
+-	*(.text)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	KPROBES_TEXT
+diff --git a/arch/ia64/kernel/vmlinux.lds.S b/arch/ia64/kernel/vmlinux.lds.S
+index 6923826..19108d0 100644
+--- a/arch/ia64/kernel/vmlinux.lds.S
++++ b/arch/ia64/kernel/vmlinux.lds.S
+@@ -44,7 +44,7 @@ SECTIONS
+   .text : AT(ADDR(.text) - LOAD_OFFSET)
+     {
+ 	IVT_TEXT
+-	*(.text)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	KPROBES_TEXT
+diff --git a/arch/m32r/kernel/vmlinux.lds.S b/arch/m32r/kernel/vmlinux.lds.S
+index 6c73bca..bb1a2f5 100644
+--- a/arch/m32r/kernel/vmlinux.lds.S
++++ b/arch/m32r/kernel/vmlinux.lds.S
+@@ -27,7 +27,7 @@ SECTIONS
+   _text = .;			/* Text and read-only data */
+   .boot : { *(.boot) } = 0
+   .text : {
+-	*(.text)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	*(.fixup)
+diff --git a/arch/m68k/kernel/vmlinux-std.lds b/arch/m68k/kernel/vmlinux-std.lds
+index 437b4f8..a65cef8 100644
+--- a/arch/m68k/kernel/vmlinux-std.lds
++++ b/arch/m68k/kernel/vmlinux-std.lds
+@@ -11,7 +11,7 @@ SECTIONS
+   . = 0x1000;
+   _text = .;			/* Text and read-only data */
+   .text : {
+-	*(.text)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	*(.fixup)
+diff --git a/arch/m68k/kernel/vmlinux-sun3.lds b/arch/m68k/kernel/vmlinux-sun3.lds
+index 2868e20..fa44d6c 100644
+--- a/arch/m68k/kernel/vmlinux-sun3.lds
++++ b/arch/m68k/kernel/vmlinux-sun3.lds
+@@ -12,7 +12,7 @@ SECTIONS
+   _text = .;			/* Text and read-only data */
+   .text : {
+ 	*(.head)
+-	*(.text)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	*(.fixup)
+diff --git a/arch/m68knommu/kernel/vmlinux.lds.S b/arch/m68knommu/kernel/vmlinux.lds.S
+index c86a1bf..6d4585e 100644
+--- a/arch/m68knommu/kernel/vmlinux.lds.S
++++ b/arch/m68knommu/kernel/vmlinux.lds.S
+@@ -62,7 +62,7 @@ SECTIONS {
+ 	.text : {
+ 		_text = .;
+ 		_stext = . ;
+-        	*(.text)
++		TEXT_TEXT
+ 		SCHED_TEXT
+         	*(.text.lock)
+ 
+diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.S
+index 043f637..cfe4b67 100644
+--- a/arch/mips/kernel/vmlinux.lds.S
++++ b/arch/mips/kernel/vmlinux.lds.S
+@@ -27,7 +27,7 @@ SECTIONS
+   /* read-only */
+   _text = .;			/* Text and read-only data */
+   .text : {
+-    *(.text)
++    TEXT_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+     *(.fixup)
+diff --git a/arch/parisc/kernel/vmlinux.lds.S b/arch/parisc/kernel/vmlinux.lds.S
+index c745859..321de82 100644
+--- a/arch/parisc/kernel/vmlinux.lds.S
++++ b/arch/parisc/kernel/vmlinux.lds.S
+@@ -51,7 +51,7 @@ SECTIONS
+ 
+   _text = .;			/* Text and read-only data */
+   .text ALIGN(16) : {
+-	*(.text)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	*(.text.do_softirq)
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index 1320673..f266209 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -34,7 +34,8 @@ SECTIONS
+ 	/* Text and gots */
+ 	.text : {
+ 		_text = .;
+-		*(.text .text.*)
++		*(.text.*)
++		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+ 		KPROBES_TEXT
+diff --git a/arch/ppc/kernel/vmlinux.lds.S b/arch/ppc/kernel/vmlinux.lds.S
+index 44cd128..419ef7e 100644
+--- a/arch/ppc/kernel/vmlinux.lds.S
++++ b/arch/ppc/kernel/vmlinux.lds.S
+@@ -32,7 +32,7 @@ SECTIONS
+   .text      :
+   {
+     _text = .;
+-    *(.text)
++    TEXT_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+     *(.fixup)
+diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
+index e9d3432..89c2ec5 100644
+--- a/arch/s390/kernel/vmlinux.lds.S
++++ b/arch/s390/kernel/vmlinux.lds.S
+@@ -21,7 +21,7 @@ SECTIONS
+   . = 0x00000000;
+   _text = .;			/* Text and read-only data */
+   .text : {
+-	*(.text)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	KPROBES_TEXT
+diff --git a/arch/sh/kernel/vmlinux.lds.S b/arch/sh/kernel/vmlinux.lds.S
+index d83143c..2367869 100644
+--- a/arch/sh/kernel/vmlinux.lds.S
++++ b/arch/sh/kernel/vmlinux.lds.S
+@@ -22,7 +22,7 @@ SECTIONS
+ 	*(.empty_zero_page)
+ 	} = 0
+   .text : {
+-	*(.text)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	*(.fixup)
+diff --git a/arch/sh64/kernel/vmlinux.lds.S b/arch/sh64/kernel/vmlinux.lds.S
+index 4f9616f..fdf72ce 100644
+--- a/arch/sh64/kernel/vmlinux.lds.S
++++ b/arch/sh64/kernel/vmlinux.lds.S
+@@ -54,7 +54,7 @@ SECTIONS
+ 	} = 0
+ 
+   .text : C_PHYS(.text) {
+-	*(.text)
++	TEXT_TEXT
+ 	*(.text64)
+         *(.text..SHmedia32)
+ 	SCHED_TEXT
+diff --git a/arch/sparc/kernel/vmlinux.lds.S b/arch/sparc/kernel/vmlinux.lds.S
+index f0bb6e6..5cb600e 100644
+--- a/arch/sparc/kernel/vmlinux.lds.S
++++ b/arch/sparc/kernel/vmlinux.lds.S
+@@ -12,7 +12,7 @@ SECTIONS
+   .text 0xf0004000 :
+   {
+     _text = .;
+-    *(.text)
++    TEXT_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+     *(.gnu.warning)
+diff --git a/arch/sparc64/kernel/vmlinux.lds.S b/arch/sparc64/kernel/vmlinux.lds.S
+index 13fa2a2..f06da20 100644
+--- a/arch/sparc64/kernel/vmlinux.lds.S
++++ b/arch/sparc64/kernel/vmlinux.lds.S
+@@ -14,7 +14,7 @@ SECTIONS
+   .text 0x0000000000404000 :
+   {
+     _text = .;
+-    *(.text)
++    TEXT_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+     KPROBES_TEXT
+diff --git a/arch/um/kernel/dyn.lds.S b/arch/um/kernel/dyn.lds.S
+index 87a4e44..ec8477d 100644
+--- a/arch/um/kernel/dyn.lds.S
++++ b/arch/um/kernel/dyn.lds.S
+@@ -62,7 +62,7 @@ SECTIONS
+   } =0x90909090
+   .plt            : { *(.plt) }
+   .text           : {
+-    *(.text)
++    TEXT_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+     *(.fixup)
+diff --git a/arch/um/kernel/uml.lds.S b/arch/um/kernel/uml.lds.S
+index bc59f97..8435105 100644
+--- a/arch/um/kernel/uml.lds.S
++++ b/arch/um/kernel/uml.lds.S
+@@ -37,7 +37,7 @@ SECTIONS
+ 
+   .text      :
+   {
+-    *(.text)
++    TEXT_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+     *(.fixup)
+diff --git a/arch/um/kernel/vmlinux.lds.S b/arch/um/kernel/vmlinux.lds.S
+diff --git a/arch/v850/kernel/vmlinux.lds.S b/arch/v850/kernel/vmlinux.lds.S
+index 3563082..9e2b4bc 100644
+--- a/arch/v850/kernel/vmlinux.lds.S
++++ b/arch/v850/kernel/vmlinux.lds.S
+@@ -92,7 +92,7 @@
+ #define TEXT_CONTENTS							      \
+ 		_text = .;						      \
+ 		__stext = . ;						      \
+-        	*(.text)						      \
++		TEXT_TEXT						      \
+ 		SCHED_TEXT						      \
+ 			*(.exit.text)	/* 2.5 convention */		      \
+ 			*(.text.exit)	/* 2.4 convention */		      \
+diff --git a/arch/x86_64/kernel/vmlinux.lds.S b/arch/x86_64/kernel/vmlinux.lds.S
+index 88cfa50..c77142d 100644
+--- a/arch/x86_64/kernel/vmlinux.lds.S
++++ b/arch/x86_64/kernel/vmlinux.lds.S
+@@ -31,7 +31,7 @@ SECTIONS
+ 	*(.bootstrap.text)
+ 	_stext = .;
+ 	/* Then the rest */
+-	*(.text)
++	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+ 	KPROBES_TEXT
+diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
+index 4fbd66a..7d2dfb2 100644
+--- a/arch/xtensa/kernel/vmlinux.lds.S
++++ b/arch/xtensa/kernel/vmlinux.lds.S
+@@ -84,7 +84,8 @@ SECTIONS
+   {
+     /* The .head.text section must be the first section! */
+     *(.head.text)
+-    *(.literal .text)
++    *(.literal)
++    TEXT_TEXT
+     *(.srom.text)
+     VMLINUX_SYMBOL(__sched_text_start) = .;
+     *(.sched.literal .sched.text)
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index f3806a7..a464227 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -139,6 +139,12 @@
+ 		VMLINUX_SYMBOL(__security_initcall_end) = .;		\
+ 	}
+ 
++/* .text section. Map to function alignment to avoid address changes
++ * during second ld run in second ld pass when generating System.map */
++#define TEXT_TEXT							\
++		ALIGN_FUNCTION();					\
++		*(.text)
++
+ /* sched.text is aling to function alignment to secure we have same
+  * address even at second ld pass when generating System.map */
+ #define SCHED_TEXT							\
