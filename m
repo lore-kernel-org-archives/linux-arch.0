@@ -1,456 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:42960 "EHLO pasmtpB.tele.dk"
+Received: from mx2.suse.de ([195.135.220.15]:56205 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751998AbXELWai (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 12 May 2007 18:30:38 -0400
-Date: Sun, 13 May 2007 00:31:33 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH] consolidate .text section definition in asm-generic
-Message-ID: <20070512223133.GA9813@uranus.ravnborg.org>
+	id S1755998AbXEMDc3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 12 May 2007 23:32:29 -0400
+Date: Sun, 13 May 2007 05:32:10 +0200
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [rfc] optimise unlock_page
+Message-ID: <20070513033210.GA3667@wotan.suse.de>
+References: <20070508113709.GA19294@wotan.suse.de> <20070508114003.GB19294@wotan.suse.de> <1178659827.14928.85.camel@localhost.localdomain> <20070508224124.GD20174@wotan.suse.de> <20070508225012.GF20174@wotan.suse.de> <Pine.LNX.4.64.0705091950080.2909@blonde.wat.veritas.com> <20070510033736.GA19196@wotan.suse.de> <Pine.LNX.4.64.0705101935590.18496@blonde.wat.veritas.com> <20070511085424.GA15352@wotan.suse.de> <Pine.LNX.4.64.0705111357120.3350@blonde.wat.veritas.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0705111357120.3350@blonde.wat.veritas.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+To: Hugh Dickins <hugh@veritas.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Move definition of .text section to asm-generic.
+On Fri, May 11, 2007 at 02:15:03PM +0100, Hugh Dickins wrote:
+> On Fri, 11 May 2007, Nick Piggin wrote:
+> > 
+> > Don't worry, I'm only just beginning ;) Can we then do something crazy
+> > like this?  (working on x86-64 only, so far. It seems to eliminate
+> > lat_pagefault and lat_proc regressions here).
+> 
+> I think Mr __NickPiggin_Lock is squirming ever more desperately.
 
-Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
----
-As-is this patch looks pointless but I need
-to add another section in parallel with .text
-so this patch allows me to do so in one place
-instead of touching all .lds files.
+Really? I thought it was pretty cool to be able to shave several
+hundreds of cycles off our page lock :)
 
-Question: Some arch's reference .text.* -
-can I add this one to asm-generic too?
 
-From the diffstat it is obvious a lot of files are touced
-but changes are minimal.
-The lds files could use some janitorial effort....
+> So, in essence, you'd like to expand PG_locked from 1 to 8 bits,
+> despite the fact that page flags are known to be in short supply?
+> Ah, no, you're keeping it near the static mmzone FLAGS_RESERVED.
 
-	Sam
+Yep, no flags bloating at all.
 
- arch/v850/kernel/vmlinux.lds.S               |    2 +-
- b/arch/alpha/kernel/vmlinux.lds.S            |    2 +-
- b/arch/arm/kernel/vmlinux.lds.S              |    2 +-
- b/arch/arm26/kernel/vmlinux-arm26-xip.lds.in |    2 +-
- b/arch/arm26/kernel/vmlinux-arm26.lds.in     |    2 +-
- b/arch/avr32/kernel/vmlinux.lds.c            |    2 +-
- b/arch/blackfin/kernel/vmlinux.lds.S         |    2 +-
- b/arch/frv/kernel/vmlinux.lds.S              |    3 ++-
- b/arch/h8300/kernel/vmlinux.lds.S            |    2 +-
- b/arch/i386/kernel/vmlinux.lds.S             |    2 +-
- b/arch/ia64/kernel/vmlinux.lds.S             |    2 +-
- b/arch/m32r/kernel/vmlinux.lds.S             |    2 +-
- b/arch/m68k/kernel/vmlinux-std.lds           |    2 +-
- b/arch/m68k/kernel/vmlinux-sun3.lds          |    2 +-
- b/arch/m68knommu/kernel/vmlinux.lds.S        |    2 +-
- b/arch/mips/kernel/vmlinux.lds.S             |    2 +-
- b/arch/parisc/kernel/vmlinux.lds.S           |    2 +-
- b/arch/powerpc/kernel/vmlinux.lds.S          |    3 ++-
- b/arch/ppc/kernel/vmlinux.lds.S              |    2 +-
- b/arch/s390/kernel/vmlinux.lds.S             |    2 +-
- b/arch/sh/kernel/vmlinux.lds.S               |    2 +-
- b/arch/sh64/kernel/vmlinux.lds.S             |    2 +-
- b/arch/sparc/kernel/vmlinux.lds.S            |    2 +-
- b/arch/sparc64/kernel/vmlinux.lds.S          |    2 +-
- b/arch/um/kernel/dyn.lds.S                   |    2 +-
- b/arch/um/kernel/uml.lds.S                   |    2 +-
- b/arch/x86_64/kernel/vmlinux.lds.S           |    2 +-
- b/arch/xtensa/kernel/vmlinux.lds.S           |    3 ++-
- b/include/asm-generic/vmlinux.lds.h          |    6 ++++++
- 29 files changed, 37 insertions(+), 28 deletions(-)
 
-diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
-index cf1e6fc..ab60e81 100644
---- a/arch/alpha/kernel/vmlinux.lds.S
-+++ b/arch/alpha/kernel/vmlinux.lds.S
-@@ -15,7 +15,7 @@ SECTIONS
- 
-   _text = .;					/* Text and read-only data */
-   .text : { 
--	*(.text) 
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	*(.fixup)
-diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
-index e4156e7..8d4e248 100644
---- a/arch/arm/kernel/vmlinux.lds.S
-+++ b/arch/arm/kernel/vmlinux.lds.S
-@@ -90,7 +90,7 @@ SECTIONS
- 			__exception_text_start = .;
- 			*(.exception.text)
- 			__exception_text_end = .;
--			*(.text)
-+			TEXT_TEXT
- 			SCHED_TEXT
- 			LOCK_TEXT
- #ifdef CONFIG_MMU
-diff --git a/arch/arm26/kernel/vmlinux-arm26-xip.lds.in b/arch/arm26/kernel/vmlinux-arm26-xip.lds.in
-index 046a850..89c806a 100644
---- a/arch/arm26/kernel/vmlinux-arm26-xip.lds.in
-+++ b/arch/arm26/kernel/vmlinux-arm26-xip.lds.in
-@@ -64,7 +64,7 @@ SECTIONS
- 
- 	.text : {			/* Real text segment		*/
- 		_text = .;		/* Text and read-only data	*/
--			*(.text)
-+			TEXT_TEXT
- 			SCHED_TEXT
- 			LOCK_TEXT       /* FIXME - borrowed from arm32 - check*/
- 			*(.fixup)
-diff --git a/arch/arm26/kernel/vmlinux-arm26.lds.in b/arch/arm26/kernel/vmlinux-arm26.lds.in
-index 1d2949e..e3f9b18 100644
---- a/arch/arm26/kernel/vmlinux-arm26.lds.in
-+++ b/arch/arm26/kernel/vmlinux-arm26.lds.in
-@@ -65,7 +65,7 @@ SECTIONS
- 
- 	.text : {			/* Real text segment		*/
- 		_text = .;		/* Text and read-only data	*/
--			*(.text)
-+			TEXT_TEXT
- 			SCHED_TEXT
- 			LOCK_TEXT
- 			*(.fixup)
-diff --git a/arch/avr32/kernel/vmlinux.lds.c b/arch/avr32/kernel/vmlinux.lds.c
-index e7f72c9..dbba391 100644
---- a/arch/avr32/kernel/vmlinux.lds.c
-+++ b/arch/avr32/kernel/vmlinux.lds.c
-@@ -76,7 +76,7 @@ SECTIONS
- 		. = 0x100;
- 		*(.scall.text)
- 		*(.irq.text)
--		*(.text)
-+		TEXT_TEXT
- 		SCHED_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
-diff --git a/arch/blackfin/kernel/vmlinux.lds.S b/arch/blackfin/kernel/vmlinux.lds.S
-index 6ae9ebb..36fcc77 100644
---- a/arch/blackfin/kernel/vmlinux.lds.S
-+++ b/arch/blackfin/kernel/vmlinux.lds.S
-@@ -54,7 +54,7 @@ SECTIONS
- 	{
- 		 _text = .;
- 		 __stext = .;
--		*(.text)
-+		TEXT_TEXT
- 		SCHED_TEXT
- 		*(.text.lock)
- 		. = ALIGN(16);
-diff --git a/arch/frv/kernel/vmlinux.lds.S b/arch/frv/kernel/vmlinux.lds.S
-index 28eae97..7e0998f 100644
---- a/arch/frv/kernel/vmlinux.lds.S
-+++ b/arch/frv/kernel/vmlinux.lds.S
-@@ -101,13 +101,14 @@ SECTIONS
-   _stext = .;
-   .text : {
- 	*(
--		.text.start .text .text.*
-+		.text.start .text.*
- #ifdef CONFIG_DEBUG_INFO
- 	.init.text
- 	.exit.text
- 	.exitcall.exit
- #endif
- 	)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	*(.fixup)
-diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
-index 65f1cdc..4365162 100644
---- a/arch/h8300/kernel/vmlinux.lds.S
-+++ b/arch/h8300/kernel/vmlinux.lds.S
-@@ -75,7 +75,7 @@ SECTIONS
- 	*(.int_redirect)
- #endif
- 	__stext = . ;
--        	*(.text)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	__etext = . ;
-diff --git a/arch/i386/kernel/vmlinux.lds.S b/arch/i386/kernel/vmlinux.lds.S
-index 80bec66..dfc439a 100644
---- a/arch/i386/kernel/vmlinux.lds.S
-+++ b/arch/i386/kernel/vmlinux.lds.S
-@@ -44,7 +44,7 @@ SECTIONS
- 
-   /* read-only */
-   .text : AT(ADDR(.text) - LOAD_OFFSET) {
--	*(.text)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	KPROBES_TEXT
-diff --git a/arch/ia64/kernel/vmlinux.lds.S b/arch/ia64/kernel/vmlinux.lds.S
-index 6923826..19108d0 100644
---- a/arch/ia64/kernel/vmlinux.lds.S
-+++ b/arch/ia64/kernel/vmlinux.lds.S
-@@ -44,7 +44,7 @@ SECTIONS
-   .text : AT(ADDR(.text) - LOAD_OFFSET)
-     {
- 	IVT_TEXT
--	*(.text)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	KPROBES_TEXT
-diff --git a/arch/m32r/kernel/vmlinux.lds.S b/arch/m32r/kernel/vmlinux.lds.S
-index 6c73bca..bb1a2f5 100644
---- a/arch/m32r/kernel/vmlinux.lds.S
-+++ b/arch/m32r/kernel/vmlinux.lds.S
-@@ -27,7 +27,7 @@ SECTIONS
-   _text = .;			/* Text and read-only data */
-   .boot : { *(.boot) } = 0
-   .text : {
--	*(.text)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	*(.fixup)
-diff --git a/arch/m68k/kernel/vmlinux-std.lds b/arch/m68k/kernel/vmlinux-std.lds
-index 437b4f8..a65cef8 100644
---- a/arch/m68k/kernel/vmlinux-std.lds
-+++ b/arch/m68k/kernel/vmlinux-std.lds
-@@ -11,7 +11,7 @@ SECTIONS
-   . = 0x1000;
-   _text = .;			/* Text and read-only data */
-   .text : {
--	*(.text)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	*(.fixup)
-diff --git a/arch/m68k/kernel/vmlinux-sun3.lds b/arch/m68k/kernel/vmlinux-sun3.lds
-index 2868e20..fa44d6c 100644
---- a/arch/m68k/kernel/vmlinux-sun3.lds
-+++ b/arch/m68k/kernel/vmlinux-sun3.lds
-@@ -12,7 +12,7 @@ SECTIONS
-   _text = .;			/* Text and read-only data */
-   .text : {
- 	*(.head)
--	*(.text)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	*(.fixup)
-diff --git a/arch/m68knommu/kernel/vmlinux.lds.S b/arch/m68knommu/kernel/vmlinux.lds.S
-index c86a1bf..6d4585e 100644
---- a/arch/m68knommu/kernel/vmlinux.lds.S
-+++ b/arch/m68knommu/kernel/vmlinux.lds.S
-@@ -62,7 +62,7 @@ SECTIONS {
- 	.text : {
- 		_text = .;
- 		_stext = . ;
--        	*(.text)
-+		TEXT_TEXT
- 		SCHED_TEXT
-         	*(.text.lock)
- 
-diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.S
-index 043f637..cfe4b67 100644
---- a/arch/mips/kernel/vmlinux.lds.S
-+++ b/arch/mips/kernel/vmlinux.lds.S
-@@ -27,7 +27,7 @@ SECTIONS
-   /* read-only */
-   _text = .;			/* Text and read-only data */
-   .text : {
--    *(.text)
-+    TEXT_TEXT
-     SCHED_TEXT
-     LOCK_TEXT
-     *(.fixup)
-diff --git a/arch/parisc/kernel/vmlinux.lds.S b/arch/parisc/kernel/vmlinux.lds.S
-index c745859..321de82 100644
---- a/arch/parisc/kernel/vmlinux.lds.S
-+++ b/arch/parisc/kernel/vmlinux.lds.S
-@@ -51,7 +51,7 @@ SECTIONS
- 
-   _text = .;			/* Text and read-only data */
-   .text ALIGN(16) : {
--	*(.text)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	*(.text.do_softirq)
-diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
-index 1320673..f266209 100644
---- a/arch/powerpc/kernel/vmlinux.lds.S
-+++ b/arch/powerpc/kernel/vmlinux.lds.S
-@@ -34,7 +34,8 @@ SECTIONS
- 	/* Text and gots */
- 	.text : {
- 		_text = .;
--		*(.text .text.*)
-+		*(.text.*)
-+		TEXT_TEXT
- 		SCHED_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
-diff --git a/arch/ppc/kernel/vmlinux.lds.S b/arch/ppc/kernel/vmlinux.lds.S
-index 44cd128..419ef7e 100644
---- a/arch/ppc/kernel/vmlinux.lds.S
-+++ b/arch/ppc/kernel/vmlinux.lds.S
-@@ -32,7 +32,7 @@ SECTIONS
-   .text      :
-   {
-     _text = .;
--    *(.text)
-+    TEXT_TEXT
-     SCHED_TEXT
-     LOCK_TEXT
-     *(.fixup)
-diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
-index e9d3432..89c2ec5 100644
---- a/arch/s390/kernel/vmlinux.lds.S
-+++ b/arch/s390/kernel/vmlinux.lds.S
-@@ -21,7 +21,7 @@ SECTIONS
-   . = 0x00000000;
-   _text = .;			/* Text and read-only data */
-   .text : {
--	*(.text)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	KPROBES_TEXT
-diff --git a/arch/sh/kernel/vmlinux.lds.S b/arch/sh/kernel/vmlinux.lds.S
-index d83143c..2367869 100644
---- a/arch/sh/kernel/vmlinux.lds.S
-+++ b/arch/sh/kernel/vmlinux.lds.S
-@@ -22,7 +22,7 @@ SECTIONS
- 	*(.empty_zero_page)
- 	} = 0
-   .text : {
--	*(.text)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	*(.fixup)
-diff --git a/arch/sh64/kernel/vmlinux.lds.S b/arch/sh64/kernel/vmlinux.lds.S
-index 4f9616f..fdf72ce 100644
---- a/arch/sh64/kernel/vmlinux.lds.S
-+++ b/arch/sh64/kernel/vmlinux.lds.S
-@@ -54,7 +54,7 @@ SECTIONS
- 	} = 0
- 
-   .text : C_PHYS(.text) {
--	*(.text)
-+	TEXT_TEXT
- 	*(.text64)
-         *(.text..SHmedia32)
- 	SCHED_TEXT
-diff --git a/arch/sparc/kernel/vmlinux.lds.S b/arch/sparc/kernel/vmlinux.lds.S
-index f0bb6e6..5cb600e 100644
---- a/arch/sparc/kernel/vmlinux.lds.S
-+++ b/arch/sparc/kernel/vmlinux.lds.S
-@@ -12,7 +12,7 @@ SECTIONS
-   .text 0xf0004000 :
-   {
-     _text = .;
--    *(.text)
-+    TEXT_TEXT
-     SCHED_TEXT
-     LOCK_TEXT
-     *(.gnu.warning)
-diff --git a/arch/sparc64/kernel/vmlinux.lds.S b/arch/sparc64/kernel/vmlinux.lds.S
-index 13fa2a2..f06da20 100644
---- a/arch/sparc64/kernel/vmlinux.lds.S
-+++ b/arch/sparc64/kernel/vmlinux.lds.S
-@@ -14,7 +14,7 @@ SECTIONS
-   .text 0x0000000000404000 :
-   {
-     _text = .;
--    *(.text)
-+    TEXT_TEXT
-     SCHED_TEXT
-     LOCK_TEXT
-     KPROBES_TEXT
-diff --git a/arch/um/kernel/dyn.lds.S b/arch/um/kernel/dyn.lds.S
-index 87a4e44..ec8477d 100644
---- a/arch/um/kernel/dyn.lds.S
-+++ b/arch/um/kernel/dyn.lds.S
-@@ -62,7 +62,7 @@ SECTIONS
-   } =0x90909090
-   .plt            : { *(.plt) }
-   .text           : {
--    *(.text)
-+    TEXT_TEXT
-     SCHED_TEXT
-     LOCK_TEXT
-     *(.fixup)
-diff --git a/arch/um/kernel/uml.lds.S b/arch/um/kernel/uml.lds.S
-index bc59f97..8435105 100644
---- a/arch/um/kernel/uml.lds.S
-+++ b/arch/um/kernel/uml.lds.S
-@@ -37,7 +37,7 @@ SECTIONS
- 
-   .text      :
-   {
--    *(.text)
-+    TEXT_TEXT
-     SCHED_TEXT
-     LOCK_TEXT
-     *(.fixup)
-diff --git a/arch/um/kernel/vmlinux.lds.S b/arch/um/kernel/vmlinux.lds.S
-diff --git a/arch/v850/kernel/vmlinux.lds.S b/arch/v850/kernel/vmlinux.lds.S
-index 3563082..9e2b4bc 100644
---- a/arch/v850/kernel/vmlinux.lds.S
-+++ b/arch/v850/kernel/vmlinux.lds.S
-@@ -92,7 +92,7 @@
- #define TEXT_CONTENTS							      \
- 		_text = .;						      \
- 		__stext = . ;						      \
--        	*(.text)						      \
-+		TEXT_TEXT						      \
- 		SCHED_TEXT						      \
- 			*(.exit.text)	/* 2.5 convention */		      \
- 			*(.text.exit)	/* 2.4 convention */		      \
-diff --git a/arch/x86_64/kernel/vmlinux.lds.S b/arch/x86_64/kernel/vmlinux.lds.S
-index 88cfa50..c77142d 100644
---- a/arch/x86_64/kernel/vmlinux.lds.S
-+++ b/arch/x86_64/kernel/vmlinux.lds.S
-@@ -31,7 +31,7 @@ SECTIONS
- 	*(.bootstrap.text)
- 	_stext = .;
- 	/* Then the rest */
--	*(.text)
-+	TEXT_TEXT
- 	SCHED_TEXT
- 	LOCK_TEXT
- 	KPROBES_TEXT
-diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
-index 4fbd66a..7d2dfb2 100644
---- a/arch/xtensa/kernel/vmlinux.lds.S
-+++ b/arch/xtensa/kernel/vmlinux.lds.S
-@@ -84,7 +84,8 @@ SECTIONS
-   {
-     /* The .head.text section must be the first section! */
-     *(.head.text)
--    *(.literal .text)
-+    *(.literal)
-+    TEXT_TEXT
-     *(.srom.text)
-     VMLINUX_SYMBOL(__sched_text_start) = .;
-     *(.sched.literal .sched.text)
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index f3806a7..a464227 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -139,6 +139,12 @@
- 		VMLINUX_SYMBOL(__security_initcall_end) = .;		\
- 	}
- 
-+/* .text section. Map to function alignment to avoid address changes
-+ * during second ld run in second ld pass when generating System.map */
-+#define TEXT_TEXT							\
-+		ALIGN_FUNCTION();					\
-+		*(.text)
-+
- /* sched.text is aling to function alignment to secure we have same
-  * address even at second ld pass when generating System.map */
- #define SCHED_TEXT							\
+> Hmm, well, I think that's fairly horrid, and would it even be
+> guaranteed to work on all architectures?  Playing with one char
+> of an unsigned long in one way, while playing with the whole of
+> the unsigned long in another way (bitops) sounds very dodgy to me.
+
+Of course not, but they can just use a regular atomic word sized
+bitop. The problem with i386 is that its atomic ops also imply
+memory barriers that you obviously don't need on unlock. So I think
+getting rid of them is pretty good. A grep of mm/ and fs/ for
+lock_page tells me we want this to be as fast as possible even
+if it isn't being used in the nopage fastpath.
+
+
+> I think I'd rather just accept that your changes have slowed some
+> microbenchmarks down: it is not always possible to fix a serious
+> bug without slowing something down.  That's probably what you're
+> trying to push me into saying by this patch ;)
+
+Well I was resigned to that few % regression in the page fault path
+until the G5 numbers showed that we needed to improve things. But
+now it looks like (at least on my 2*HT P4 Xeon) that we don't have to
+have any regression there.
+
+
+> But again I wonder just what the gain has been, once your double
+> unmap_mapping_range is factored in.  When I suggested before that
+> perhaps the double (well, treble including the one in truncate.c)
+> unmap_mapping_range might solve the problem you set out to solve
+> (I've lost sight of that!) without pagelock when faulting, you said:
+> 
+> > Well aside from being terribly ugly, it means we can still drop
+> > the dirty bit where we'd otherwise rather not, so I don't think
+> > we can do that.
+> 
+> but that didn't give me enough information to agree or disagree.
+
+Oh, well invalidate wants to be able to skip dirty pages or have the
+filesystem do something special with them first. Once you have taken
+the page out of the pagecache but still mapped shared, then blowing
+it away doesn't actually solve the data loss problem... only makes
+the window of VM inconsistency smaller.
+
+
+> > What architecture and workloads are you testing with, btw?
+> 
+> i386 (2*HT P4 Xeons), x86_64 (2*HT P4 Xeons), PowerPC (G5 Quad).
+> 
+> Workloads mostly lmbench and my usual pair of make -j20 kernel builds,
+> one to tmpfs and one to ext2 looped on tmpfs, restricted to 512M RAM
+> plus swap.  Which is ever so old but still finds enough to keep me busy.
+
+Thanks,
+Nick
