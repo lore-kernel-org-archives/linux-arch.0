@@ -1,84 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.suse.de ([195.135.220.2]:50674 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933277AbXEPSSx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 16 May 2007 14:18:53 -0400
-Date: Wed, 16 May 2007 20:18:47 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [rfc] optimise unlock_page
-Message-ID: <20070516181847.GD5883@wotan.suse.de>
-References: <20070508225012.GF20174@wotan.suse.de> <Pine.LNX.4.64.0705091950080.2909@blonde.wat.veritas.com> <20070510033736.GA19196@wotan.suse.de> <Pine.LNX.4.64.0705101935590.18496@blonde.wat.veritas.com> <20070511085424.GA15352@wotan.suse.de> <Pine.LNX.4.64.0705111357120.3350@blonde.wat.veritas.com> <20070513033210.GA3667@wotan.suse.de> <Pine.LNX.4.64.0705130535410.3015@blonde.wat.veritas.com> <20070513065246.GA15071@wotan.suse.de> <Pine.LNX.4.64.0705161838080.16762@blonde.wat.veritas.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0705161838080.16762@blonde.wat.veritas.com>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:40323 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756223AbXEPSgb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 May 2007 14:36:31 -0400
+Date: Wed, 16 May 2007 11:33:14 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC] Explicitly mark global functions with vmlinux with
+ __global
+In-Reply-To: <1179333273.2859.282.camel@shinybook.infradead.org>
+Message-ID: <alpine.LFD.0.98.0705161119110.3890@woody.linux-foundation.org>
+References: <1179333273.2859.282.camel@shinybook.infradead.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Hugh Dickins <hugh@veritas.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, Linus Torvalds <torvalds@linux-foundation.org>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: akpm@linux-foundation.org, sam@ravnborg.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, May 16, 2007 at 06:54:15PM +0100, Hugh Dickins wrote:
-> On Sun, 13 May 2007, Nick Piggin wrote:
-> > On Sun, May 13, 2007 at 05:39:03AM +0100, Hugh Dickins wrote:
-> > > On Sun, 13 May 2007, Nick Piggin wrote:
-> > > > On Fri, May 11, 2007 at 02:15:03PM +0100, Hugh Dickins wrote:
-> > > > 
-> > > > > Hmm, well, I think that's fairly horrid, and would it even be
-> > > > > guaranteed to work on all architectures?  Playing with one char
-> > > > > of an unsigned long in one way, while playing with the whole of
-> > > > > the unsigned long in another way (bitops) sounds very dodgy to me.
-> > > > 
-> > > > Of course not, but they can just use a regular atomic word sized
-> > > > bitop. The problem with i386 is that its atomic ops also imply
-> > > > memory barriers that you obviously don't need on unlock.
-> > > 
-> > > But is it even a valid procedure on i386?
-> > 
-> > Well I think so, but not completely sure.
-> 
-> That's not quite enough to convince me!
-
-I did ask Linus, and he was very sure it works.
 
 
-> I do retract my "fairly horrid" remark, that was a kneejerk reaction
-> to cleverness; it's quite nice, if it can be guaranteed to work (and
-> if lowering FLAGS_RESERVED from 9 to 7 doesn't upset whoever carefully
-> chose 9).
+On Thu, 17 May 2007, David Woodhouse wrote:
+>
+> A while ago, I played with using '-fwhole-program --combine' for
+> building kernel objects -- http://lwn.net/Articles/197097/
 
-Hmm, it is a _little_ bit horrid ;) Maybe slightly clever, but definitely
-slightly horrid as well!
+I'm worried about three things:
 
-Not so much from a high level view (although it does put more constraints
-on the flags layout), but from a CPU level... the way we intermix different
-sized loads and stores can run into store forwarding issues[*] which might
-be expensive as well. Not to mention that we can't do the non-atomic
-unlock on all architectures.
+ - compiler stability. Quite frankly, I don't get the warm and fuzzies 
+   about features like this that I suspect have had almost zero testing in 
+   real life projects. 
 
-OTOH, it did _seem_ to eliminate the pagefault regression on my P4 Xeon
-here, in one round of tests.
+ - memory use. I've seen some projects try to use various vendors 
+   aggressive optimizations (including things like whole-program: others 
+   have supported it for much longer than gcc has), and memory use tends 
+   to skyrocket. Which in turn means that most users wouldn't necessarily 
+   use it, just because it makes things so slow to compile.
 
-The other option of moving the bit into ->mapping hopefully avoids all
-the issues, and would probably be a little faster again on the P4, at the
-expense of being a more intrusive (but it doesn't look too bad, at first
-glance)...
+   (Related to that - if you used to just recompile a single file, you now 
+   end up recompiling a whole group, so you often have a double whammy: 
+   the compile itself is much slower, and you do a lot more of it!)
 
-[*] I did mention to Linus that we might be able to avoid the store
-forwarding stall by loading just a single byte to test PG_waiters after
-the byte store to clear PG_locked. At this point he puked. We decided
-that using another field altogether might be better.
+ - how much of a win is this on a sane and relevant architecture?
 
+   In particular, the -fwhole-program thing tends to matter a lot more on 
+   broken and/or uninteresting archtectures. Architectures like ia64, 
+   where you can do real additional optimizations that matter. While these 
+   things tend to make much less of an impact on some modern x86, which 
+   doesn't have a lot of callee-saved registers anyway, and where function 
+   calls aren't really all *that* expensive..
 
-> Please seek out those guarantees.  Like you, I can't really see how
-> it would go wrong (how could moving in the unlocked char mess with
-> the flag bits in the rest of the long? how could atomically modifying
-> the long have a chance of undoing that move?), but it feels like it
-> might take us into errata territory.
+IOW, I'd like to see numbers from something like a 64-bit Core 2 build, 
+and both for performance and size and compile time. I think that's more 
+interesting than some other architectures (ia64, alpha, ppc) that have 
+specific issues that make function boundaries artificially more painful 
+than they should be.
 
-I think we can just rely on the cache coherency protocol taking care of
-it for us, on x86. movb would not affect other data other than the dest.
-A non-atomic op _could_ of course undo the movb, but it could likewise
-undo any other store to the word or byte. An atomic op on the flags does
-not modify the movb byte so the movb before/after possibilities should
-look exactly the same regardless of the atomic operations happening.
+That said, I don't think adding "__global" annotations is wrong per se. So 
+I don't object to the patches - I think they can be a real advantage in 
+the long run, and that it can even be interesting to see which functions 
+are "internal" to a subsystem and which ones aren't, even if the compiler 
+doesn't use the information. 
 
+But I'm just not very excited about plunging into using experimental gcc 
+features unless there is some major advantage for major architectures, and 
+the disadvantages are known..
+
+		Linus
