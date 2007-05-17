@@ -1,59 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:60917 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754783AbXEQG1j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2007 02:27:39 -0400
-Date: Thu, 17 May 2007 08:27:30 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [rfc] optimise unlock_page
-Message-ID: <20070517062729.GA14350@wotan.suse.de>
-References: <Pine.LNX.4.64.0705101935590.18496@blonde.wat.veritas.com> <20070511085424.GA15352@wotan.suse.de> <Pine.LNX.4.64.0705111357120.3350@blonde.wat.veritas.com> <20070513033210.GA3667@wotan.suse.de> <Pine.LNX.4.64.0705130535410.3015@blonde.wat.veritas.com> <20070513065246.GA15071@wotan.suse.de> <Pine.LNX.4.64.0705161838080.16762@blonde.wat.veritas.com> <20070516181847.GD5883@wotan.suse.de> <Pine.LNX.4.64.0705161946170.28185@blonde.wat.veritas.com> <alpine.LFD.0.98.0705161242520.3890@woody.linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.0.98.0705161242520.3890@woody.linux-foundation.org>
+Received: from hoefnix.telenet-ops.be ([195.130.132.54]:59763 "EHLO
+	hoefnix.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754877AbXEQJtp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 May 2007 05:49:45 -0400
+Received: from assei2bl6.telenet-ops.be (assei2bl6.telenet-ops.be [195.130.133.69])
+	by hoefnix.telenet-ops.be (Postfix) with ESMTP id A06C29FF67
+	for <linux-arch@vger.kernel.org>; Thu, 17 May 2007 11:49:43 +0200 (CEST)
+Date: Thu, 17 May 2007 11:49:20 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: sparse (was: Re: [RFC] Explicitly mark global functions with vmlinux
+ with __global)
+In-Reply-To: <1179370402.2859.390.camel@shinybook.infradead.org>
+Message-ID: <Pine.LNX.4.64.0705171147240.20754@anakin>
+References: <1179333273.2859.282.camel@shinybook.infradead.org>
+ <alpine.LFD.0.98.0705161119110.3890@woody.linux-foundation.org>
+ <1179370402.2859.390.camel@shinybook.infradead.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Hugh Dickins <hugh@veritas.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, sam@ravnborg.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, May 16, 2007 at 12:47:54PM -0700, Linus Torvalds wrote:
-> 
-> On Wed, 16 May 2007, Hugh Dickins wrote:
-> 
-> > > The other option of moving the bit into ->mapping hopefully avoids all
-> > > the issues, and would probably be a little faster again on the P4, at the
-> > > expense of being a more intrusive (but it doesn't look too bad, at first
-> > > glance)...
-> > 
-> > Hmm, I'm so happy with PG_swapcache in there, that I'm reluctant to
-> > cede it to your PG_locked, though I can't deny your use should take
-> > precedence.  Perhaps we could enforce 8-byte alignment of struct
-> > address_space and struct anon_vma to make both bits available
-> > (along with the anon bit).
-> 
-> We probably could. It should be easy enough to mark "struct address_space" 
-> to be 8-byte aligned.
+On Thu, 17 May 2007, David Woodhouse wrote:
+> -- it found a few bugs with mismatching prototypes, such as the fact
+> that ipxrtr_route_packet() actually takes a 'len' argument of type
+> 'size_t', but is declared and called in af_ipx.c as if that argument is
+> 'int'. (Oops, I thought I'd chased all of combine-diff-1-fixes.patch
+> upstream already).
 
-Yeah, it might be worthwhile, because I agree that PG_swapcache would
-work nicely there too.
+I guess af_ipx.c didn't include the relevant header file?
 
+This is something sparse can find out now, too (as I found out
+yesterday): if something is non-static, sparse gives a warning if it hasn't
+seen a prototype in a header file.
 
-> > But I think you may not be appreciating how intrusive PG_locked
-> > will be.  There are many references to page->mapping (often ->host)
-> > throughout fs/ : when we keep anon/swap flags in page->mapping, we
-> > know the filesystems will never see those bits set in their pages,
-> > so no page_mapping-like conversion is needed; just a few places in
-> > common code need to adapt.
-> 
-> You're right, it could be really painful. We'd have to rename the field, 
-> and use some inline function to access it (which masks off the low bits).
+Gr{oetje,eeting}s,
 
-Yeah, I realise that the change is intrusive in terms of lines touched,
-but AFAIKS, it should not be much more complex than a search/replace...
+						Geert
 
-As far as deprecating things goes... I don't think we have to wait too
-long, its more for features, drivers, or more fundamental APIs isn't it?
-If we just point out that one must use set_page_mapping/page_mapping
-rather than page->mapping, it is trivial to fix any out of tree breakage.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
