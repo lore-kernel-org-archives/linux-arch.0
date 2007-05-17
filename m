@@ -1,61 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:54401 "EHLO ozlabs.org"
+Received: from cantor.suse.de ([195.135.220.2]:60917 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755930AbXEQE4S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2007 00:56:18 -0400
-Subject: Re: [PATCH 1/2] Use a weak symbol for the empty version of
-	pcibios_add_platform_entries()
-From: Michael Ellerman <michael@ellerman.id.au>
-Reply-To: michael@ellerman.id.au
-In-Reply-To: <1178589787.623400.604851478076.qpush@cradle>
-References: <1178589787.623400.604851478076.qpush@cradle>
-Content-Type: multipart/signed; micalg=pgp-sha1; protocol="application/pgp-signature"; boundary="=-LL4oUwICx7vTYOicqa0+"
-Date: Thu, 17 May 2007 14:56:16 +1000
-Message-Id: <1179377776.4142.11.camel@concordia.ozlabs.ibm.com>
+	id S1754783AbXEQG1j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 May 2007 02:27:39 -0400
+Date: Thu, 17 May 2007 08:27:30 +0200
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [rfc] optimise unlock_page
+Message-ID: <20070517062729.GA14350@wotan.suse.de>
+References: <Pine.LNX.4.64.0705101935590.18496@blonde.wat.veritas.com> <20070511085424.GA15352@wotan.suse.de> <Pine.LNX.4.64.0705111357120.3350@blonde.wat.veritas.com> <20070513033210.GA3667@wotan.suse.de> <Pine.LNX.4.64.0705130535410.3015@blonde.wat.veritas.com> <20070513065246.GA15071@wotan.suse.de> <Pine.LNX.4.64.0705161838080.16762@blonde.wat.veritas.com> <20070516181847.GD5883@wotan.suse.de> <Pine.LNX.4.64.0705161946170.28185@blonde.wat.veritas.com> <alpine.LFD.0.98.0705161242520.3890@woody.linux-foundation.org>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.0.98.0705161242520.3890@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Greg Kroah-Hartman <greg@kroah.com>
-Cc: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Hugh Dickins <hugh@veritas.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>
 List-ID: <linux-arch.vger.kernel.org>
 
+On Wed, May 16, 2007 at 12:47:54PM -0700, Linus Torvalds wrote:
+> 
+> On Wed, 16 May 2007, Hugh Dickins wrote:
+> 
+> > > The other option of moving the bit into ->mapping hopefully avoids all
+> > > the issues, and would probably be a little faster again on the P4, at the
+> > > expense of being a more intrusive (but it doesn't look too bad, at first
+> > > glance)...
+> > 
+> > Hmm, I'm so happy with PG_swapcache in there, that I'm reluctant to
+> > cede it to your PG_locked, though I can't deny your use should take
+> > precedence.  Perhaps we could enforce 8-byte alignment of struct
+> > address_space and struct anon_vma to make both bits available
+> > (along with the anon bit).
+> 
+> We probably could. It should be easy enough to mark "struct address_space" 
+> to be 8-byte aligned.
 
---=-LL4oUwICx7vTYOicqa0+
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
+Yeah, it might be worthwhile, because I agree that PG_swapcache would
+work nicely there too.
 
-On Tue, 2007-05-08 at 12:03 +1000, Michael Ellerman wrote:
-> Use a weak empty definition of pcibios_add_platform_entries() to avoid ha=
-ving
-> an empty definition on every arch.
 
-Hi Greg,
+> > But I think you may not be appreciating how intrusive PG_locked
+> > will be.  There are many references to page->mapping (often ->host)
+> > throughout fs/ : when we keep anon/swap flags in page->mapping, we
+> > know the filesystems will never see those bits set in their pages,
+> > so no page_mapping-like conversion is needed; just a few places in
+> > common code need to adapt.
+> 
+> You're right, it could be really painful. We'd have to rename the field, 
+> and use some inline function to access it (which masks off the low bits).
 
-I don't see this one in your tree yet. Let me know if you want me to
-resend etc.
+Yeah, I realise that the change is intrusive in terms of lines touched,
+but AFAIKS, it should not be much more complex than a search/replace...
 
-cheers
-
---=20
-Michael Ellerman
-OzLabs, IBM Australia Development Lab
-
-wwweb: http://michael.ellerman.id.au
-phone: +61 2 6212 1183 (tie line 70 21183)
-
-We do not inherit the earth from our ancestors,
-we borrow it from our children. - S.M.A.R.T Person
-
---=-LL4oUwICx7vTYOicqa0+
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Description: This is a digitally signed message part
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
-
-iD8DBQBGS+BwdSjSd0sB4dIRAjLoAKDJKbYV4aqDvOutq9D8QwrDC1Q4hgCfSzlI
-9vdMzouhmpY6uTNJ5QdofGU=
-=uVp/
------END PGP SIGNATURE-----
-
---=-LL4oUwICx7vTYOicqa0+--
+As far as deprecating things goes... I don't think we have to wait too
+long, its more for features, drivers, or more fundamental APIs isn't it?
+If we just point out that one must use set_page_mapping/page_mapping
+rather than page->mapping, it is trivial to fix any out of tree breakage.
 
