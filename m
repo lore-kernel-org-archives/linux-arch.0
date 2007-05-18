@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:52440 "EHLO pasmtpA.tele.dk"
+Received: from pasmtpb.tele.dk ([80.160.77.98]:33567 "EHLO pasmtpB.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755080AbXERGsV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2007 02:48:21 -0400
-Date: Fri, 18 May 2007 08:49:18 +0200
+	id S1755112AbXERGuP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 May 2007 02:50:15 -0400
+Date: Fri, 18 May 2007 08:51:11 +0200
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 01/14] kbuild: make modpost section warnings clearer
-Message-ID: <20070518064918.GA12284@uranus.ravnborg.org>
+Subject: [PATCH 03/14] kbuild: add "Section mismatch" warning whitelist for powerpc
+Message-ID: <20070518065111.GC12284@uranus.ravnborg.org>
 References: <20070518064126.GA12193@uranus.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -14,77 +14,67 @@ Content-Disposition: inline
 In-Reply-To: <20070518064126.GA12193@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Cc: Russell King <rmk+kernel@arm.linux.org.uk>
+Cc: Li Yang <leoli@freescale.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-From 4dba30ccfdb911b0810f6527de66b1515349d8c4 Mon Sep 17 00:00:00 2001
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Date: Thu, 10 May 2007 23:03:25 +0100
-Subject: [PATCH 01/14] kbuild: make modpost section warnings clearer
+From bdfeed222963cadd30cbfcad799c89f3a7b94e02 Mon Sep 17 00:00:00 2001
+From: Li Yang <leoli@freescale.com>
+Date: Mon, 14 May 2007 18:04:28 +0800
+Subject: [PATCH 03/14] kbuild: add "Section mismatch" warning whitelist for powerpc
 
-Change modpost section mismatch warnings to be less confusing;
-model them on the binutils linker warnings which we all know how
-to interpret.
+This patch fixes the following class of "Section mismatch" warnings when
+building powerpc platforms.
 
-Also, fix the wrong ordering of arguments for the final case -
-fromsec and refsymname were reversed.
+WARNING: arch/powerpc/kernel/built-in.o - Section mismatch: reference to .init.data:.got2 from prom_entry (offset 0x0)
+WARNING: arch/powerpc/platforms/built-in.o - Section mismatch: reference to .init.text:mpc8313_rdb_probe from .machine.desc after 'mach_mpc8313_rdb' (at offset 0x4)
+....
 
-Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Signed-off-by: Li Yang <leoli@freescale.com>
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
 ---
- scripts/mod/modpost.c |   33 ++++++++++++++++-----------------
- 1 files changed, 16 insertions(+), 17 deletions(-)
+ scripts/mod/modpost.c |   15 +++++++++++----
+ 1 files changed, 11 insertions(+), 4 deletions(-)
 
 diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 113dc77..acd28ab 100644
+index ecb0a15..b394629 100644
 --- a/scripts/mod/modpost.c
 +++ b/scripts/mod/modpost.c
-@@ -885,29 +885,28 @@ static void warn_sec_mismatch(const char *modname, const char *fromsec,
+@@ -650,9 +650,10 @@ static int strrcmp(const char *s, const char *sub)
+  *  tosec    = .init.text
+  *
+  * Pattern 10:
+- *  ia64 has machvec table for each platform. It is mixture of function
+- *  pointer of .init.text and .text.
+- *  fromsec  = .machvec
++ *  ia64 has machvec table for each platform and
++ *  powerpc has a machine desc table for each platform.
++ *  It is mixture of function pointers of .init.text and .text.
++ *  fromsec  = .machvec | .machine.desc
+  **/
+ static int secref_whitelist(const char *modname, const char *tosec,
+ 			    const char *fromsec, const char *atsym,
+@@ -751,7 +752,8 @@ static int secref_whitelist(const char *modname, const char *tosec,
+ 				return 1;
+ 
+ 	/* Check for pattern 10 */
+-	if (strcmp(fromsec, ".machvec") == 0)
++	if ((strcmp(fromsec, ".machvec") == 0) ||
++	    (strcmp(fromsec, ".machine.desc") == 0))
+ 		return 1;
+ 
+ 	return 0;
+@@ -887,6 +889,11 @@ static void warn_sec_mismatch(const char *modname, const char *fromsec,
+ 			     elf->strtab + before->st_name, refsymname))
  		return;
  
++	/* fromsec whitelist - without a valid 'before'
++	 * powerpc has a GOT table in .got2 section */
++	if (strcmp(fromsec, ".got2") == 0)
++		return;
++
  	if (before && after) {
--		warn("%s - Section mismatch: reference to %s:%s from %s "
--		     "between '%s' (at offset 0x%llx) and '%s'\n",
--		     modname, secname, refsymname, fromsec,
-+		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
-+		     "(between '%s' and '%s')\n",
-+		     modname, fromsec, (long long)r.r_offset,
-+		     secname, refsymname,
- 		     elf->strtab + before->st_name,
--		     (long long)r.r_offset,
- 		     elf->strtab + after->st_name);
- 	} else if (before) {
--		warn("%s - Section mismatch: reference to %s:%s from %s "
--		     "after '%s' (at offset 0x%llx)\n",
--		     modname, secname, refsymname, fromsec,
--		     elf->strtab + before->st_name,
--		     (long long)r.r_offset);
-+		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
-+		     "(after '%s')\n",
-+		     modname, fromsec, (long long)r.r_offset,
-+		     secname, refsymname,
-+		     elf->strtab + before->st_name);
- 	} else if (after) {
--		warn("%s - Section mismatch: reference to %s:%s from %s "
-+		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
- 		     "before '%s' (at offset -0x%llx)\n",
--		     modname, secname, refsymname, fromsec,
--		     elf->strtab + after->st_name,
--		     (long long)r.r_offset);
-+		     modname, fromsec, (long long)r.r_offset,
-+		     secname, refsymname,
-+		     elf->strtab + after->st_name);
- 	} else {
--		warn("%s - Section mismatch: reference to %s:%s from %s "
--		     "(offset 0x%llx)\n",
--		     modname, secname, fromsec, refsymname,
--		     (long long)r.r_offset);
-+		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s\n",
-+		     modname, fromsec, (long long)r.r_offset,
-+		     secname, refsymname);
- 	}
- }
- 
+ 		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
+ 		     "(between '%s' and '%s')\n",
 -- 
 1.5.1.rc3.20.gaa453
 
