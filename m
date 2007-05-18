@@ -1,47 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:52564 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754443AbXERMHI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2007 08:07:08 -0400
-From: Andi Kleen <ak@suse.de>
+Received: from extu-mxob-1.symantec.com ([216.10.194.28]:50652 "EHLO
+	extu-mxob-1.symantec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754356AbXERPme (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2007 11:42:34 -0400
+Date: Fri, 18 May 2007 16:42:10 +0100 (BST)
+From: Hugh Dickins <hugh@veritas.com>
 Subject: Re: [rfc] increase struct page size?!
-Date: Fri, 18 May 2007 14:06:39 +0200
-References: <20070518040854.GA15654@wotan.suse.de>
 In-Reply-To: <20070518040854.GA15654@wotan.suse.de>
+Message-ID: <Pine.LNX.4.64.0705181633240.24071@blonde.wat.veritas.com>
+References: <20070518040854.GA15654@wotan.suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200705181406.39702.ak@suse.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: Nick Piggin <npiggin@suse.de>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Fri, 18 May 2007, Nick Piggin wrote:
+> 
+> If we add 8 bytes to struct page on 64-bit machines, it becomes 64 bytes,
+> which is quite a nice number for cache purposes.
+> 
+> However we don't have to let those 8 bytes go to waste: we can use them
+> to store the virtual address of the page, which kind of makes sense for
+> 64-bit, because they can likely to use complicated memory models.
 
->
-> I'd say all up this is going to decrease overall cache footprint in
-> fastpaths, both by reducing text and data footprint of page_address and
-> related operations, and by reducing cacheline footprint of most batched
-> operations on struct pages.
+Sooner rather than later, don't we need those 8 bytes to expand from
+atomic_t to atomic64_t _count and _mapcount?  Not that we really need
+all 64 bits of both, but I don't know how to work atomically with less.
 
-I suspect the cache line footprint is not the main problem here (talking about
-only one other cache line), but the potential latency of fetching the other 
-half. One possible alternative instead of increasing struct page would be to 
-identify places that commonly touch a page first (e.g. using oprofile) and 
-then always add a prefetch()  there to fetch the other half of the page 
-early. 
+(Why do I have this sneaking feeling that you're actually wanting
+to stick something into the lower bits of page->virtual?)
 
-prefetch on something that is already in cache should be cheap,
-so for the structs that don't straddle cachelines it shouldn't be a big
-overhead.
-
-I don't think doing the ->virtual addition will buy very much,
-because at least the 64bit architectures will probably move
-towards vmemmap where pfn->virt is quite cheap.
-
-Of course the real long term fix for struct page cache overhead
-would be larger soft page size.
-
--Andi
+Hugh
