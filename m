@@ -1,52 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:59511
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1754052AbXERHQC (ORCPT
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:33807 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754962AbXERHVh (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2007 03:16:02 -0400
-Date: Fri, 18 May 2007 00:16:04 -0700 (PDT)
-Message-Id: <20070518.001604.23011298.davem@davemloft.net>
-Subject: Re: [PATCH 05/14] all-archs: consolidate .data section definition
- in asm-generic
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20070518065257.GE12284@uranus.ravnborg.org>
-References: <20070518064126.GA12193@uranus.ravnborg.org>
-	<20070518065257.GE12284@uranus.ravnborg.org>
+	Fri, 18 May 2007 03:21:37 -0400
+Date: Fri, 18 May 2007 00:19:05 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [rfc] increase struct page size?!
+Message-Id: <20070518001905.54cafeeb.akpm@linux-foundation.org>
+In-Reply-To: <20070518040854.GA15654@wotan.suse.de>
+References: <20070518040854.GA15654@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: sam@ravnborg.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Sam Ravnborg <sam@ravnborg.org>
-Date: Fri, 18 May 2007 08:52:57 +0200
+On Fri, 18 May 2007 06:08:54 +0200 Nick Piggin <npiggin@suse.de> wrote:
 
-> >From 653bc43c6c2c292e6abc98860fd241eb12e2c80f Mon Sep 17 00:00:00 2001
-> From: Sam Ravnborg <sam@ravnborg.org>
-> Date: Thu, 17 May 2007 13:38:44 +0200
-> Subject: [PATCH 05/14] all-archs: consolidate .data section definition in asm-generic
-> 
-> With this consolidation we can now modify the .data
-> section definition in one spot for all archs.
-> 
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Many batch operations on struct page are completely random,
 
-Thanks for doing these kinds of consolidations Sam, most of
-us arch maintainers really appreciate it.
+But they shouldn't be: we should aim to place physically contiguous pages
+into logically contiguous pagecache slots, for all the reasons we
+discussed.
 
-Looking at these patches reminds me of a quirk in the generic
-RODATA definition:
+If/when that happens, there will be a *lot* of locality of reference
+against the pageframes in a lot of important codepaths.
 
->  #define RODATA								\
->  	. = ALIGN(4096);						\
->  	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
-
-It uses ALIGN(4096) which is likely supposed to be something
-like ALIGN(PAGE_SIZE).  Perhaps we should handle this by
-definiting a LD_PAGE_SIZE at the top of vmlinux.ld.S files
-that need a value other than 4096, and define the default of
-4096 in asm-generic/vmlinux.lds.h?
-
-If you could take care of this I'd really appreciate it.
