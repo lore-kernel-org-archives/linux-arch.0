@@ -1,58 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailer.gwdg.de ([134.76.10.26]:59604 "EHLO mailer.gwdg.de"
+Received: from pasmtpa.tele.dk ([80.160.77.114]:53825 "EHLO pasmtpA.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1762195AbXERGyO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2007 02:54:14 -0400
-Date: Fri, 18 May 2007 08:52:31 +0200 (MEST)
-From: Jan Engelhardt <jengelh@linux01.gwdg.de>
-Subject: Re: [PATCH 01/14] kbuild: make modpost section warnings clearer
-In-Reply-To: <20070518064918.GA12284@uranus.ravnborg.org>
-Message-ID: <Pine.LNX.4.61.0705180851200.3231@yvahk01.tjqt.qr>
+	id S1755155AbXERG43 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 May 2007 02:56:29 -0400
+Date: Fri, 18 May 2007 08:57:11 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [PATCH 10/14] powerpc: Fix the MODALIAS generation in modpost for of devices
+Message-ID: <20070518065711.GJ12284@uranus.ravnborg.org>
 References: <20070518064126.GA12193@uranus.ravnborg.org>
- <20070518064918.GA12284@uranus.ravnborg.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070518064126.GA12193@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Russell King <rmk+kernel@arm.linux.org.uk>
+To: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Cc: Sylvain Munaut <tnt@246tNt.com>, Paul Mackerras <paulus@samba.org>
 List-ID: <linux-arch.vger.kernel.org>
 
+From 61f24a916b640ae1ac5f7bc783d3bb4d7d833c00 Mon Sep 17 00:00:00 2001
+From: Sylvain Munaut <tnt@246tNt.com>
+Date: Tue, 8 May 2007 19:59:29 +1000
+Subject: [PATCH 10/14] powerpc: Fix the MODALIAS generation in modpost for of devices
 
-On May 18 2007 08:49, Sam Ravnborg wrote:
->index 113dc77..acd28ab 100644
->--- a/scripts/mod/modpost.c
->+++ b/scripts/mod/modpost.c
->@@ -885,29 +885,28 @@ static void warn_sec_mismatch(const char *modname, const char *fromsec,
-> 		return;
-> 
-> 	if (before && after) {
->-		warn("%s - Section mismatch: reference to %s:%s from %s "
->-		     "between '%s' (at offset 0x%llx) and '%s'\n",
->-		     modname, secname, refsymname, fromsec,
->+		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
->+		     "(between '%s' and '%s')\n",
->+		     modname, fromsec, (long long)r.r_offset,
->+		     secname, refsymname,
+Since the devices may have multiple (or none) compatible properties,
+the uevent generated internally by the kernel may have multiple
+"C..." entries. So the MODALIAS stored in the module must have
+wilcard before and after the compatible entry.
+Also, if the 'compatible' field is not used for matching, there
+will be no 'C' and that must handled as well.
 
-%x always takes unsigned. %llx => (unsigned long long)r.r_offset.
-Ditto below.
+The previous code handled all those case incorrectly and it
+"mostly" worked ... but not always.
 
-> 		     elf->strtab + before->st_name,
->-		     (long long)r.r_offset,
-> 		     elf->strtab + after->st_name);
-> 	} else if (before) {
->-		warn("%s - Section mismatch: reference to %s:%s from %s "
->-		     "after '%s' (at offset 0x%llx)\n",
->-		     modname, secname, refsymname, fromsec,
->-		     elf->strtab + before->st_name,
->-		     (long long)r.r_offset);
->+		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
->+		     "(after '%s')\n",
->+		     modname, fromsec, (long long)r.r_offset,
->+		     secname, refsymname,
->+		     elf->strtab + before->st_name);
-[more occurences]
+Signed-off-by: Sylvain Munaut <tnt@246tNt.com>
+Signed-off-by: Paul Mackerras <paulus@samba.org>
+Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+---
+ scripts/mod/file2alias.c |   11 ++++++++---
+ 1 files changed, 8 insertions(+), 3 deletions(-)
 
-
-	Jan
+diff --git a/scripts/mod/file2alias.c b/scripts/mod/file2alias.c
+index ed1244d..f646381 100644
+--- a/scripts/mod/file2alias.c
++++ b/scripts/mod/file2alias.c
+@@ -353,11 +353,16 @@ static int do_pcmcia_entry(const char *filename,
+ 
+ static int do_of_entry (const char *filename, struct of_device_id *of, char *alias)
+ {
++    int len;
+     char *tmp;
+-    sprintf (alias, "of:N%sT%sC%s",
++    len = sprintf (alias, "of:N%sT%s",
+                     of->name[0] ? of->name : "*",
+-                    of->type[0] ? of->type : "*",
+-                    of->compatible[0] ? of->compatible : "*");
++                    of->type[0] ? of->type : "*");
++
++    if (of->compatible[0])
++        sprintf (&alias[len], "%sC%s",
++                     of->type[0] ? "*" : "",
++                     of->compatible);
+ 
+     /* Replace all whitespace with underscores */
+     for (tmp = alias; tmp && *tmp; tmp++)
 -- 
+1.5.1.rc3.20.gaa453
+
