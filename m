@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from extu-mxob-1.symantec.com ([216.10.194.28]:50652 "EHLO
-	extu-mxob-1.symantec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754356AbXERPme (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2007 11:42:34 -0400
-Date: Fri, 18 May 2007 16:42:10 +0100 (BST)
-From: Hugh Dickins <hugh@veritas.com>
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:58914 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1763442AbXERSO0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2007 14:14:26 -0400
+Date: Fri, 18 May 2007 11:14:26 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [rfc] increase struct page size?!
 In-Reply-To: <20070518040854.GA15654@wotan.suse.de>
-Message-ID: <Pine.LNX.4.64.0705181633240.24071@blonde.wat.veritas.com>
+Message-ID: <Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com>
 References: <20070518040854.GA15654@wotan.suse.de>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
@@ -17,19 +17,25 @@ Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Manag
 List-ID: <linux-arch.vger.kernel.org>
 
 On Fri, 18 May 2007, Nick Piggin wrote:
-> 
-> If we add 8 bytes to struct page on 64-bit machines, it becomes 64 bytes,
-> which is quite a nice number for cache purposes.
-> 
+
 > However we don't have to let those 8 bytes go to waste: we can use them
 > to store the virtual address of the page, which kind of makes sense for
 > 64-bit, because they can likely to use complicated memory models.
 
-Sooner rather than later, don't we need those 8 bytes to expand from
-atomic_t to atomic64_t _count and _mapcount?  Not that we really need
-all 64 bits of both, but I don't know how to work atomically with less.
+That is not a valid consideration anymore. There is virtual memmap update 
+pending with the sparsemem folks that will simplify things.
 
-(Why do I have this sneaking feeling that you're actually wanting
-to stick something into the lower bits of page->virtual?)
+> Many batch operations on struct page are completely random, and as such, I
+> think it is better if each struct page fits completely into a single
+> cacheline even if it means being slightly larger.
 
-Hugh
+Right. That would simplify the calculations.
+ 
+> Don't let this space go to waste though, we can use page->virtual in order
+> to optimise page_address operations.
+
+page->virtual is a benefit if the page is cache hot. Otherwise it may 
+cause a useless lookup.
+
+I wonder if there are other uses for the free space?
+
