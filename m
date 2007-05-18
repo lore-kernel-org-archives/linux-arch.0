@@ -1,51 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:52797 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755599AbXERJml (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2007 05:42:41 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20070518040854.GA15654@wotan.suse.de>
-References: <20070518040854.GA15654@wotan.suse.de>
-Subject: Re: [rfc] increase struct page size?!
-Date: Fri, 18 May 2007 10:42:30 +0100
-Message-ID: <7554.1179481350@redhat.com>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:32925
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1754856AbXERKVY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 May 2007 06:21:24 -0400
+Date: Fri, 18 May 2007 03:21:26 -0700 (PDT)
+Message-Id: <20070518.032126.93383845.davem@davemloft.net>
+Subject: Re: [PATCH 05/14] all-archs: consolidate .data section definition
+ in asm-generic
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20070518094231.GA13390@uranus.ravnborg.org>
+References: <20070518065257.GE12284@uranus.ravnborg.org>
+	<20070518.001604.23011298.davem@davemloft.net>
+	<20070518094231.GA13390@uranus.ravnborg.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: sam@ravnborg.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin <npiggin@suse.de> wrote:
+From: Sam Ravnborg <sam@ravnborg.org>
+Date: Fri, 18 May 2007 11:42:31 +0200
 
-> I'd like to be the first to propose an increase to the size of struct page
-> just for the sake of increasing it!
+> On Fri, May 18, 2007 at 12:16:04AM -0700, David Miller wrote:
+> > 
+> > Looking at these patches reminds me of a quirk in the generic
+> > RODATA definition:
+> > 
+> > >  #define RODATA								\
+> > >  	. = ALIGN(4096);						\
+> > >  	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
+> > 
+> > It uses ALIGN(4096) which is likely supposed to be something
+> > like ALIGN(PAGE_SIZE).  Perhaps we should handle this by
+> > definiting a LD_PAGE_SIZE at the top of vmlinux.ld.S files
+> > that need a value other than 4096, and define the default of
+> > 4096 in asm-generic/vmlinux.lds.h?
+> 
+> I would much rather use PAGE_SIZE direct since we have access to that symbol.
 
-Heh.  I'm surprised you haven't got more adverse reactions.
+I completely agree, that seems to be what platforms which have
+a configurable page size such as powerpc, ia64, etc. are already
+using in their vmlinux.lds.S files, and I'll likely follow suit on
+sparc64. :-)
 
-> If we add 8 bytes to struct page on 64-bit machines, it becomes 64 bytes,
-> which is quite a nice number for cache purposes.
+> > If you could take care of this I'd really appreciate it.
+> Will do.
+> And may expend the effort a bit further when attacking the .lds files.
+> 
+> It will be a week or two before I get at it.
 
-Whilst that's true, if you have to deal with a run of contiguous page structs
-(eg: the page allocator, perhaps) it's actually less efficient because it
-takes more cache to do it.  But, hey, it's a compromise whatever.
-
-In the scheme of things, if we're mostly dealing with individual page structs
-(as I think we are), then yes, I think it's probably a good thing to do -
-especially with larger page sizes.
-
-> However we don't have to let those 8 bytes go to waste: we can use them
-> to store the virtual address of the page, which kind of makes sense for
-> 64-bit, because they can likely to use complicated memory models.
-
-That's a good idea, one that's implemented on some platforms anyway.  It'll be
-especially good with NUMA, I suspect.
-
-> I'd say all up this is going to decrease overall cache footprint in 
-> fastpaths, both by reducing text and data footprint of page_address and
-> related operations, and by reducing cacheline footprint of most batched
-> operations on struct pages.
-
-kmap, filling in scatter/gather lists, crypto stuff.  I like it.
-
-Can you do this just by turning on WANT_PAGE_VIRTUAL on all 64-bit platforms?
-
-David
+Thanks a lot.
