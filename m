@@ -1,67 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:45538 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:49577 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754854AbXERH7p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2007 03:59:45 -0400
-Date: Fri, 18 May 2007 09:59:43 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [rfc] increase struct page size?!
-Message-ID: <20070518075943.GB23998@wotan.suse.de>
-References: <20070518040854.GA15654@wotan.suse.de> <20070518001905.54cafeeb.akpm@linux-foundation.org> <20070518073223.GA23998@wotan.suse.de> <20070518004304.14db3eef.akpm@linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070518004304.14db3eef.akpm@linux-foundation.org>
+	id S1755291AbXERJEF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 May 2007 05:04:05 -0400
+From: Andreas Schwab <schwab@suse.de>
+Subject: Re: [PATCH 06/14] kbuild: introduce __init_refok/__initdata_refok to supress section mismatch warnings
+References: <20070518064126.GA12193@uranus.ravnborg.org>
+	<20070518065352.GF12284@uranus.ravnborg.org>
+Date: Fri, 18 May 2007 11:03:57 +0200
+In-Reply-To: <20070518065352.GF12284@uranus.ravnborg.org> (Sam Ravnborg's
+	message of "Fri\, 18 May 2007 08\:53\:52 +0200")
+Message-ID: <jefy5uec5e.fsf@sykes.suse.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, May 18, 2007 at 12:43:04AM -0700, Andrew Morton wrote:
-> On Fri, 18 May 2007 09:32:23 +0200 Nick Piggin <npiggin@suse.de> wrote:
-> 
-> > On Fri, May 18, 2007 at 12:19:05AM -0700, Andrew Morton wrote:
-> > > On Fri, 18 May 2007 06:08:54 +0200 Nick Piggin <npiggin@suse.de> wrote:
-> > > 
-> > > > Many batch operations on struct page are completely random,
-> > > 
-> > > But they shouldn't be: we should aim to place physically contiguous pages
-> > > into logically contiguous pagecache slots, for all the reasons we
-> > > discussed.
-> > 
-> > For big IO batch operations, pagecache would be more likely to be
-> > physically contiguous, as would LRU, I suppose.
-> 
-> read(), write(), truncate(), writeback, pagefault.  Pretty common stuff.
+Sam Ravnborg <sam@ravnborg.org> writes:
 
-Of course, but if you're doing them on random-ish ranges, or multiple
-files, or continually on the same file while parts of it get reclaimed
-and reinstantiated...
+> + * The follwoing markers are used for the cases where the reference to
 
+s/follwoing/following/
 
-> > I'm more thinking of operations where things get reclaimed over time,
-> > touched or dirtied in slightly different orderings, interleaved with
-> > other allocations, etc.
-> 
-> Yes, that can happen.  But in such cases we by definition aren't touching
-> the pageframes very often.  I'd assert that when the kernel is really
-> hitting those pageframes hard, it is commonly doing this in ascending
-> pagecache order.
+Andreas.
 
-I'm not sure that I would always agree. Sure if there is random *IO*
-involved, then it is going to be slow and we won't be hitting page frames
-so hard. But if there is random pagecache access, it will hit them almost
-as hard.
-
-
-> > > If/when that happens, there will be a *lot* of locality of reference
-> > > against the pageframes in a lot of important codepaths.
-> > 
-> > And when it doesn't happen, we eat 75% more cache misses. And for that
-> > matter we eat 75% more cache misses for non-batch operations like
-> > allocating or freeing a page by slab, for example.
-> 
-> "measure twice, cut once"
-
-Definitely agree there.
-
+-- 
+Andreas Schwab, SuSE Labs, schwab@suse.de
+SuSE Linux Products GmbH, Maxfeldstraße 5, 90409 Nürnberg, Germany
+PGP key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
+"And now for something completely different."
