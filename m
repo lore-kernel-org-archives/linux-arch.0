@@ -1,71 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:54692 "EHLO pasmtpA.tele.dk"
+Received: from pasmtpa.tele.dk ([80.160.77.114]:33331 "EHLO pasmtpA.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758567AbXERHA4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2007 03:00:56 -0400
-Date: Fri, 18 May 2007 09:01:53 +0200
+	id S1753049AbXERHLi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 May 2007 03:11:38 -0400
+Date: Fri, 18 May 2007 09:12:34 +0200
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 14/14] kconfig: search harder for curses library in check-lxdialog.sh
-Message-ID: <20070518070153.GN12284@uranus.ravnborg.org>
-References: <20070518064126.GA12193@uranus.ravnborg.org>
+Subject: Re: [PATCH 01/14] kbuild: make modpost section warnings clearer
+Message-ID: <20070518071234.GA12551@uranus.ravnborg.org>
+References: <20070518064126.GA12193@uranus.ravnborg.org> <20070518064918.GA12284@uranus.ravnborg.org> <Pine.LNX.4.61.0705180851200.3231@yvahk01.tjqt.qr>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070518064126.GA12193@uranus.ravnborg.org>
+In-Reply-To: <Pine.LNX.4.61.0705180851200.3231@yvahk01.tjqt.qr>
 Sender: linux-arch-owner@vger.kernel.org
-To: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Cc: Mike Frysinger <vapier@gentoo.org>
+To: Jan Engelhardt <jengelh@linux01.gwdg.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Russell King <rmk+kernel@arm.linux.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-From 329e3a972ce593015b1e9c0b91f18dcd80cfd4fa Mon Sep 17 00:00:00 2001
-From: Mike Frysinger <vapier@gentoo.org>
-Date: Thu, 17 May 2007 15:06:31 -0400
-Subject: [PATCH 14/14] kconfig: search harder for curses library in check-lxdialog.sh
+On Fri, May 18, 2007 at 08:52:31AM +0200, Jan Engelhardt wrote:
+> 
+> On May 18 2007 08:49, Sam Ravnborg wrote:
+> >index 113dc77..acd28ab 100644
+> >--- a/scripts/mod/modpost.c
+> >+++ b/scripts/mod/modpost.c
+> >@@ -885,29 +885,28 @@ static void warn_sec_mismatch(const char *modname, const char *fromsec,
+> > 		return;
+> > 
+> > 	if (before && after) {
+> >-		warn("%s - Section mismatch: reference to %s:%s from %s "
+> >-		     "between '%s' (at offset 0x%llx) and '%s'\n",
+> >-		     modname, secname, refsymname, fromsec,
+> >+		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
+> >+		     "(between '%s' and '%s')\n",
+> >+		     modname, fromsec, (long long)r.r_offset,
+> >+		     secname, refsymname,
+> 
+> %x always takes unsigned. %llx => (unsigned long long)r.r_offset.
+> Ditto below.
+> 
+> > 		     elf->strtab + before->st_name,
+> >-		     (long long)r.r_offset,
+> > 		     elf->strtab + after->st_name);
+> > 	} else if (before) {
+> >-		warn("%s - Section mismatch: reference to %s:%s from %s "
+> >-		     "after '%s' (at offset 0x%llx)\n",
+> >-		     modname, secname, refsymname, fromsec,
+> >-		     elf->strtab + before->st_name,
+> >-		     (long long)r.r_offset);
+> >+		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
+> >+		     "(after '%s')\n",
+> >+		     modname, fromsec, (long long)r.r_offset,
+> >+		     secname, refsymname,
+> >+		     elf->strtab + before->st_name);
+> [more occurences]
 
-The check-lxdialog.sh script searches for "libFOO.so" which fails on OS X, due
-to their special naming of libraries like "libfoo.dylib".  This patch turns
-the curses lib search into extensible loops and adds dylib as a valid
-extension.
+Thanks, updated patch below.
 
-Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+	Sam
+
+From 4dba30ccfdb911b0810f6527de66b1515349d8c4 Mon Sep 17 00:00:00 2001
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Date: Thu, 10 May 2007 23:03:25 +0100
+Subject: [PATCH 01/14] kbuild: make modpost section warnings clearer
+
+Change modpost section mismatch warnings to be less confusing;
+model them on the binutils linker warnings which we all know how
+to interpret.
+
+Also, fix the wrong ordering of arguments for the final case -
+fromsec and refsymname were reversed.
+
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Acked-by: Acked-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
 ---
- scripts/kconfig/lxdialog/check-lxdialog.sh |   24 +++++++++---------------
- 1 files changed, 9 insertions(+), 15 deletions(-)
+ scripts/mod/modpost.c |   33 ++++++++++++++++-----------------
+ 1 files changed, 16 insertions(+), 17 deletions(-)
 
-diff --git a/scripts/kconfig/lxdialog/check-lxdialog.sh b/scripts/kconfig/lxdialog/check-lxdialog.sh
-index 120d624..cdca738 100644
---- a/scripts/kconfig/lxdialog/check-lxdialog.sh
-+++ b/scripts/kconfig/lxdialog/check-lxdialog.sh
-@@ -4,21 +4,15 @@
- # What library to link
- ldflags()
- {
--	$cc -print-file-name=libncursesw.so | grep -q /
--	if [ $? -eq 0 ]; then
--		echo '-lncursesw'
--		exit
--	fi
--	$cc -print-file-name=libncurses.so | grep -q /
--	if [ $? -eq 0 ]; then
--		echo '-lncurses'
--		exit
--	fi
--	$cc -print-file-name=libcurses.so | grep -q /
--	if [ $? -eq 0 ]; then
--		echo '-lcurses'
--		exit
--	fi
-+	for ext in so a dylib ; do
-+		for lib in ncursesw ncurses curses ; do
-+			$cc -print-file-name=lib${lib}.${ext} | grep -q /
-+			if [ $? -eq 0 ]; then
-+				echo "-l${lib}"
-+				exit
-+			fi
-+		done
-+	done
- 	exit 1
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 113dc77..acd28ab 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -885,29 +885,28 @@ static void warn_sec_mismatch(const char *modname, const char *fromsec,
+ 		return;
+ 
+ 	if (before && after) {
+-		warn("%s - Section mismatch: reference to %s:%s from %s "
+-		     "between '%s' (at offset 0x%llx) and '%s'\n",
+-		     modname, secname, refsymname, fromsec,
++		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
++		     "(between '%s' and '%s')\n",
++		     modname, fromsec, (unsigned long long)r.r_offset,
++		     secname, refsymname,
+ 		     elf->strtab + before->st_name,
+-		     (long long)r.r_offset,
+ 		     elf->strtab + after->st_name);
+ 	} else if (before) {
+-		warn("%s - Section mismatch: reference to %s:%s from %s "
+-		     "after '%s' (at offset 0x%llx)\n",
+-		     modname, secname, refsymname, fromsec,
+-		     elf->strtab + before->st_name,
+-		     (long long)r.r_offset);
++		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
++		     "(after '%s')\n",
++		     modname, fromsec, (unsigned long long)r.r_offset,
++		     secname, refsymname,
++		     elf->strtab + before->st_name);
+ 	} else if (after) {
+-		warn("%s - Section mismatch: reference to %s:%s from %s "
++		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
+ 		     "before '%s' (at offset -0x%llx)\n",
+-		     modname, secname, refsymname, fromsec,
+-		     elf->strtab + after->st_name,
+-		     (long long)r.r_offset);
++		     modname, fromsec, (unsigned long long)r.r_offset,
++		     secname, refsymname,
++		     elf->strtab + after->st_name);
+ 	} else {
+-		warn("%s - Section mismatch: reference to %s:%s from %s "
+-		     "(offset 0x%llx)\n",
+-		     modname, secname, fromsec, refsymname,
+-		     (long long)r.r_offset);
++		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s\n",
++		     modname, fromsec, (unsigned long long)r.r_offset,
++		     secname, refsymname);
+ 	}
  }
  
 -- 
