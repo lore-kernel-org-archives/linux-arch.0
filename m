@@ -1,65 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:54620 "EHLO pasmtpB.tele.dk"
+Received: from mx1.redhat.com ([66.187.233.31]:52797 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754656AbXERJle (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2007 05:41:34 -0400
-Date: Fri, 18 May 2007 11:42:31 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 05/14] all-archs: consolidate .data section definition in asm-generic
-Message-ID: <20070518094231.GA13390@uranus.ravnborg.org>
-References: <20070518064126.GA12193@uranus.ravnborg.org> <20070518065257.GE12284@uranus.ravnborg.org> <20070518.001604.23011298.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070518.001604.23011298.davem@davemloft.net>
+	id S1755599AbXERJml (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 May 2007 05:42:41 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20070518040854.GA15654@wotan.suse.de>
+References: <20070518040854.GA15654@wotan.suse.de>
+Subject: Re: [rfc] increase struct page size?!
+Date: Fri, 18 May 2007 10:42:30 +0100
+Message-ID: <7554.1179481350@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, May 18, 2007 at 12:16:04AM -0700, David Miller wrote:
-> 
-> Looking at these patches reminds me of a quirk in the generic
-> RODATA definition:
-> 
-> >  #define RODATA								\
-> >  	. = ALIGN(4096);						\
-> >  	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
-> 
-> It uses ALIGN(4096) which is likely supposed to be something
-> like ALIGN(PAGE_SIZE).  Perhaps we should handle this by
-> definiting a LD_PAGE_SIZE at the top of vmlinux.ld.S files
-> that need a value other than 4096, and define the default of
-> 4096 in asm-generic/vmlinux.lds.h?
+Nick Piggin <npiggin@suse.de> wrote:
 
-I would much rather use PAGE_SIZE direct since we have access to that symbol.
-I would require a small modification in most asm-*/page.h files
-so ld can parse them:
+> I'd like to be the first to propose an increase to the size of struct page
+> just for the sake of increasing it!
 
-#define PAGE_SIZE (1UL << PAGE_SHIFT)
-will become
-#define PAGE_SIZE (_AC(1,UL) << PAGE_SHIFT)
+Heh.  I'm surprised you haven't got more adverse reactions.
 
-This will allow the arch's to use that symbol in assembler too
-which is a win.
+> If we add 8 bytes to struct page on 64-bit machines, it becomes 64 bytes,
+> which is quite a nice number for cache purposes.
 
-Then we could do something like:
+Whilst that's true, if you have to deal with a run of contiguous page structs
+(eg: the page allocator, perhaps) it's actually less efficient because it
+takes more cache to do it.  But, hey, it's a compromise whatever.
 
-#define RODATA(alignment)	\
-	ALIGN(alignment)	\
+In the scheme of things, if we're mostly dealing with individual page structs
+(as I think we are), then yes, I think it's probably a good thing to do -
+especially with larger page sizes.
 
-And on the call site we will most likely use
+> However we don't have to let those 8 bytes go to waste: we can use them
+> to store the virtual address of the page, which kind of makes sense for
+> 64-bit, because they can likely to use complicated memory models.
 
-	RODATA(PAGE_SIZE)
+That's a good idea, one that's implemented on some platforms anyway.  It'll be
+especially good with NUMA, I suspect.
 
-But the architecture can override it.
-Full flexibility and acceptable documentation.
+> I'd say all up this is going to decrease overall cache footprint in 
+> fastpaths, both by reducing text and data footprint of page_address and
+> related operations, and by reducing cacheline footprint of most batched
+> operations on struct pages.
 
-> 
-> If you could take care of this I'd really appreciate it.
-Will do.
-And may expend the effort a bit further when attacking the .lds files.
+kmap, filling in scatter/gather lists, crypto stuff.  I like it.
 
-It will be a week or two before I get at it.
+Can you do this just by turning on WANT_PAGE_VIRTUAL on all 64-bit platforms?
 
-	Sam
+David
