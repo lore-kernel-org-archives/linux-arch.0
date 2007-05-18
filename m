@@ -1,111 +1,196 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:56355 "EHLO pasmtpA.tele.dk"
+Received: from pasmtpb.tele.dk ([80.160.77.98]:33433 "EHLO pasmtpB.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753278AbXERGk3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2007 02:40:29 -0400
-Date: Fri, 18 May 2007 08:41:26 +0200
+	id S1755119AbXERGt1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 May 2007 02:49:27 -0400
+Date: Fri, 18 May 2007 08:50:24 +0200
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: kbuild fixes for -rc1 (touches all arch .lds files)
-Message-ID: <20070518064126.GA12193@uranus.ravnborg.org>
+Subject: [PATCH 02/14] kbuild: make better section mismatch reports on i386, arm and mips
+Message-ID: <20070518065024.GB12284@uranus.ravnborg.org>
+References: <20070518064126.GA12193@uranus.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <20070518064126.GA12193@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Cc: sam@ravnborg.org
+Cc: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
 List-ID: <linux-arch.vger.kernel.org>
 
-I have following set of fixes queued for -rc1.
-I no major comments are raised I will request for
-inclusion tomorrow.
+From 41fa40aeb2314458b25dd2227dc71fdecb504e5e Mon Sep 17 00:00:00 2001
+From: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
+Date: Thu, 17 May 2007 01:14:38 +0900
+Subject: [PATCH 02/14] kbuild: make better section mismatch reports on i386, arm and mips
 
+On i386, ARM and MIPS, warn_sec_mismatch() sometimes fails to show
+usefull symbol name.  This is because empty 'refsym' due to 0 r_addend
+value.  This patch is to adjust r_addend value, consulting with
+apply_relocate() routine in kernel code.
 
-This patchset include the discussed infrastructure to silence
-section mismatch warnings in the legitimite cases.
-Included are also a few section mismatch fixes so my x86_64
-and i386 defconfig builds are with no section mismatchs warnings.
-modpost saw various improvements too.
+Without this patch:
+  MODPOST vmlinux
+WARNING: init/built-in.o - Section mismatch: reference to .init.text: from .text between 'rest_init' (at offset 0xf4) and 'try_name'
+WARNING: mm/built-in.o - Section mismatch: reference to .init.text: from .text between 'kmem_cache_create' (at offset 0x18a39) and 'cache_reap'
+WARNING: mm/built-in.o - Section mismatch: reference to .init.text: from .text between 'kmem_cache_create' (at offset 0x18a6b) and 'cache_reap'
 
-Mike Frysinger have improved gen_initramfs.list and made the
-source in scripts/ a tad more portable.
+With this patch:
+  MODPOST vmlinux
+WARNING: mm/built-in.o - Section mismatch: reference to .init.text:set_up_list3s from .text between 'kmem_cache_create' (at offset 0x18a39) and 'cache_reap'
+WARNING: mm/built-in.o - Section mismatch: reference to .init.text:set_up_list3s from .text between 'kmem_cache_create' (at offset 0x18a6b) and 'cache_reap'
 
-The most important bugfix is the MODALIAS fix for powerpc.
+Now modpost can detect "kernel_init" name (and whitelist it) and show
+"set_up_list3s" name.
 
+Signed-off-by: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
+Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+---
+ scripts/mod/modpost.c |   79 +++++++++++++++++++++++++++++++++++++++++++++++++
+ scripts/mod/modpost.h |    3 ++
+ 2 files changed, 82 insertions(+), 0 deletions(-)
 
-Patches will follow.
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index acd28ab..ecb0a15 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -384,6 +384,7 @@ static int parse_elf(struct elf_info *info, const char *filename)
+ 		sechdrs[i].sh_size   = TO_NATIVE(sechdrs[i].sh_size);
+ 		sechdrs[i].sh_link   = TO_NATIVE(sechdrs[i].sh_link);
+ 		sechdrs[i].sh_name   = TO_NATIVE(sechdrs[i].sh_name);
++		sechdrs[i].sh_info   = TO_NATIVE(sechdrs[i].sh_info);
+ 	}
+ 	/* Find symbol table. */
+ 	for (i = 1; i < hdr->e_shnum; i++) {
+@@ -773,6 +774,8 @@ static Elf_Sym *find_elf_symbol(struct elf_info *elf, Elf_Addr addr,
+ 	for (sym = elf->symtab_start; sym < elf->symtab_stop; sym++) {
+ 		if (sym->st_shndx != relsym->st_shndx)
+ 			continue;
++		if (ELF_ST_TYPE(sym->st_info) == STT_SECTION)
++			continue;
+ 		if (sym->st_value == addr)
+ 			return sym;
+ 	}
+@@ -910,6 +913,68 @@ static void warn_sec_mismatch(const char *modname, const char *fromsec,
+ 	}
+ }
+ 
++static void addend_386_rel(struct elf_info *elf, int section, Elf_Rela *r)
++{
++	Elf_Shdr *sechdrs = elf->sechdrs;
++	unsigned int r_typ;
++	unsigned int *location;
++
++	r_typ = ELF_R_TYPE(r->r_info);
++	location = (void *)elf->hdr +
++		sechdrs[sechdrs[section].sh_info].sh_offset + r->r_offset;
++	switch (r_typ) {
++	case R_386_32:
++		r->r_addend = TO_NATIVE(*location);
++		break;
++	case R_386_PC32:
++		r->r_addend = TO_NATIVE(*location) + 4;
++		break;
++	}
++}
++
++static void addend_arm_rel(struct elf_info *elf, int section, Elf_Rela *r)
++{
++	Elf_Shdr *sechdrs = elf->sechdrs;
++	unsigned int r_typ;
++	unsigned int *location;
++
++	r_typ = ELF_R_TYPE(r->r_info);
++	location = (void *)elf->hdr +
++		sechdrs[sechdrs[section].sh_info].sh_offset + r->r_offset;
++	switch (r_typ) {
++	case R_ARM_ABS32:
++		r->r_addend = TO_NATIVE(*location);
++		break;
++	case R_ARM_PC24:
++		r->r_addend = ((TO_NATIVE(*location) & 0x00ffffff) << 2) + 8;
++		break;
++	}
++}
++
++static int addend_mips_rel(struct elf_info *elf, int section, Elf_Rela *r)
++{
++	Elf_Shdr *sechdrs = elf->sechdrs;
++	unsigned int r_typ;
++	unsigned int *location;
++	unsigned int inst;
++
++	r_typ = ELF_R_TYPE(r->r_info);
++	if (r_typ == R_MIPS_HI16)
++		return 1;	/* skip this */
++	location = (void *)elf->hdr +
++		sechdrs[sechdrs[section].sh_info].sh_offset + r->r_offset;
++	inst = TO_NATIVE(*location);
++	switch (r_typ) {
++	case R_MIPS_LO16:
++		r->r_addend = ((inst & 0xffff) ^ 0x8000) - 0x8000;
++		break;
++	case R_MIPS_26:
++		r->r_addend = (inst & 0x03ffffff) << 2;
++		break;
++	}
++	return 0;
++}
++
+ /**
+  * A module includes a number of sections that are discarded
+  * either when loaded or when used as built-in.
+@@ -953,8 +1018,11 @@ static void check_sec_ref(struct module *mod, const char *modname,
+ 				r.r_offset = TO_NATIVE(rela->r_offset);
+ #if KERNEL_ELFCLASS == ELFCLASS64
+ 				if (hdr->e_machine == EM_MIPS) {
++					unsigned int r_typ;
+ 					r_sym = ELF64_MIPS_R_SYM(rela->r_info);
+ 					r_sym = TO_NATIVE(r_sym);
++					r_typ = ELF64_MIPS_R_TYPE(rela->r_info);
++					r.r_info = ELF64_R_INFO(r_sym, r_typ);
+ 				} else {
+ 					r.r_info = TO_NATIVE(rela->r_info);
+ 					r_sym = ELF_R_SYM(r.r_info);
+@@ -987,8 +1055,11 @@ static void check_sec_ref(struct module *mod, const char *modname,
+ 				r.r_offset = TO_NATIVE(rel->r_offset);
+ #if KERNEL_ELFCLASS == ELFCLASS64
+ 				if (hdr->e_machine == EM_MIPS) {
++					unsigned int r_typ;
+ 					r_sym = ELF64_MIPS_R_SYM(rel->r_info);
+ 					r_sym = TO_NATIVE(r_sym);
++					r_typ = ELF64_MIPS_R_TYPE(rel->r_info);
++					r.r_info = ELF64_R_INFO(r_sym, r_typ);
+ 				} else {
+ 					r.r_info = TO_NATIVE(rel->r_info);
+ 					r_sym = ELF_R_SYM(r.r_info);
+@@ -998,6 +1069,14 @@ static void check_sec_ref(struct module *mod, const char *modname,
+ 				r_sym = ELF_R_SYM(r.r_info);
+ #endif
+ 				r.r_addend = 0;
++				if (hdr->e_machine == EM_386)
++					addend_386_rel(elf, i, &r);
++				else if (hdr->e_machine == EM_ARM)
++					addend_arm_rel(elf, i, &r);
++				else if (hdr->e_machine == EM_MIPS) {
++					if (addend_mips_rel(elf, i, &r))
++						continue;
++				}
+ 				sym = elf->symtab_start + r_sym;
+ 				/* Skip special sections */
+ 				if (sym->st_shndx >= SHN_LORESERVE)
+diff --git a/scripts/mod/modpost.h b/scripts/mod/modpost.h
+index 0858caa..4156dd3 100644
+--- a/scripts/mod/modpost.h
++++ b/scripts/mod/modpost.h
+@@ -60,6 +60,9 @@ typedef union
+ #define ELF64_MIPS_R_SYM(i) \
+   ((__extension__ (_Elf64_Mips_R_Info_union)(i)).r_info_fields.r_sym)
+ 
++#define ELF64_MIPS_R_TYPE(i) \
++  ((__extension__ (_Elf64_Mips_R_Info_union)(i)).r_info_fields.r_type1)
++
+ #if KERNEL_ELFDATA != HOST_ELFDATA
+ 
+ static inline void __endian(const void *src, void *dest, unsigned int size)
+-- 
+1.5.1.rc3.20.gaa453
 
-	Sam
-
-
-Git repository:
-  git://git.kernel.org/pub/scm/linux/kernel/git/sam/kbuild.git
-
-
-Atsushi Nemoto (1):
-      kbuild: make better section mismatch reports on i386, arm and mips
-
-Li Yang (1):
-      kbuild: add "Section mismatch" warning whitelist for powerpc
-
-Mike Frysinger (4):
-      kbuild: add support for reading stdin with gen_init_cpio
-      kbuild: add support for squashing uid/gid in gen_initramfs_list.sh
-      kbuild: include limits.h in sumversion.c for PATH_MAX
-      kconfig: search harder for curses library in check-lxdialog.sh
-
-Russell King (1):
-      kbuild: make modpost section warnings clearer
-
-Sam Ravnborg (6):
-      all-archs: consolidate .text section definition in asm-generic
-      all-archs: consolidate .data section definition in asm-generic
-      kbuild: introduce __init_refok/__initdata_refok to supress section mismatch warnings
-      init/main: use __init_refok to fix section mismatch
-      mm: fix section mismatch warnings
-      mm/slab: fix section mismatch warning
-
-Sylvain Munaut (1):
-      powerpc: Fix the MODALIAS generation in modpost for of devices
-
- arch/alpha/kernel/vmlinux.lds.S            |    4 +-
- arch/arm/kernel/vmlinux.lds.S              |    4 +-
- arch/arm26/kernel/vmlinux-arm26-xip.lds.in |    4 +-
- arch/arm26/kernel/vmlinux-arm26.lds.in     |    4 +-
- arch/avr32/kernel/vmlinux.lds.c            |    4 +-
- arch/blackfin/kernel/vmlinux.lds.S         |    4 +-
- arch/frv/kernel/vmlinux.lds.S              |    6 +-
- arch/h8300/kernel/vmlinux.lds.S            |    4 +-
- arch/i386/kernel/vmlinux.lds.S             |    4 +-
- arch/ia64/kernel/vmlinux.lds.S             |    9 +-
- arch/m32r/kernel/vmlinux.lds.S             |    4 +-
- arch/m68k/kernel/vmlinux-std.lds           |    4 +-
- arch/m68k/kernel/vmlinux-sun3.lds          |    4 +-
- arch/m68knommu/kernel/vmlinux.lds.S        |    4 +-
- arch/mips/kernel/vmlinux.lds.S             |    4 +-
- arch/parisc/kernel/vmlinux.lds.S           |    4 +-
- arch/powerpc/kernel/vmlinux.lds.S          |    5 +-
- arch/ppc/kernel/vmlinux.lds.S              |    4 +-
- arch/s390/kernel/vmlinux.lds.S             |    4 +-
- arch/sh/kernel/vmlinux.lds.S               |    4 +-
- arch/sh64/kernel/vmlinux.lds.S             |    4 +-
- arch/sparc/kernel/vmlinux.lds.S            |    4 +-
- arch/sparc64/kernel/vmlinux.lds.S          |    4 +-
- arch/um/kernel/dyn.lds.S                   |    5 +-
- arch/um/kernel/uml.lds.S                   |    4 +-
- arch/v850/kernel/vmlinux.lds.S             |    4 +-
- arch/x86_64/kernel/vmlinux.lds.S           |    4 +-
- arch/xtensa/kernel/vmlinux.lds.S           |    6 +-
- include/asm-generic/vmlinux.lds.h          |   12 ++
- include/linux/init.h                       |   13 ++
- init/main.c                                |    2 +-
- mm/page_alloc.c                            |    4 +-
- mm/slab.c                                  |    2 +-
- mm/sparse.c                                |    2 +-
- scripts/gen_initramfs_list.sh              |   12 +-
- scripts/kconfig/lxdialog/check-lxdialog.sh |   24 ++---
- scripts/mod/file2alias.c                   |   11 ++-
- scripts/mod/modpost.c                      |  169 +++++++++++++++++++---------
- scripts/mod/modpost.h                      |    3 +
- scripts/mod/sumversion.c                   |    1 +
- usr/gen_init_cpio.c                        |    4 +-
- 41 files changed, 243 insertions(+), 139 deletions(-)
