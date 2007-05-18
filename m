@@ -1,27 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:58972 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1761513AbXERSPM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2007 14:15:12 -0400
-Date: Fri, 18 May 2007 11:15:12 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [rfc] increase struct page size?!
-In-Reply-To: <20070518051238.GA7696@wotan.suse.de>
-Message-ID: <Pine.LNX.4.64.0705181114470.11881@schroedinger.engr.sgi.com>
-References: <20070518040854.GA15654@wotan.suse.de> <20070517.214740.51856086.davem@davemloft.net>
- <20070518051238.GA7696@wotan.suse.de>
+Received: from mga03.intel.com ([143.182.124.21]:2545 "EHLO mga03.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752203AbXERUhM convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2007 16:37:12 -0400
+Content-Class: urn:content-classes:message
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: RE: [rfc] increase struct page size?!
+Date: Fri, 18 May 2007 13:37:09 -0700
+Message-ID: <617E1C2C70743745A92448908E030B2A017BCA67@scsmsx411.amr.corp.intel.com>
+In-Reply-To: <Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>, Nick Piggin <npiggin@suse.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 18 May 2007, Nick Piggin wrote:
+> I wonder if there are other uses for the free space?
 
-> The page->virtual thing is just a bonus (although have you seen what
-> sort of hoops SPARSEMEM has to go through to find page_address?! It
-> will definitely be a win on those architectures).
+	unsigned long moreflags;
 
-That is on the way out. See the discussion on virtual memmap support in 
-sparseme.
+Nick and Hugh were just sparring over adding a couple (or perhaps 8)
+flag bits.  This would supply 64 new bits ... maybe that would keep
+them happy for a few more years.
+
+-Tony
