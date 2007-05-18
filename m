@@ -1,47 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:33231 "EHLO pasmtpA.tele.dk"
+Received: from mailer.gwdg.de ([134.76.10.26]:59604 "EHLO mailer.gwdg.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756196AbXERGzH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2007 02:55:07 -0400
-Date: Fri, 18 May 2007 08:56:05 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 09/14] mm/slab: fix section mismatch warning
-Message-ID: <20070518065605.GI12284@uranus.ravnborg.org>
+	id S1762195AbXERGyO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 May 2007 02:54:14 -0400
+Date: Fri, 18 May 2007 08:52:31 +0200 (MEST)
+From: Jan Engelhardt <jengelh@linux01.gwdg.de>
+Subject: Re: [PATCH 01/14] kbuild: make modpost section warnings clearer
+In-Reply-To: <20070518064918.GA12284@uranus.ravnborg.org>
+Message-ID: <Pine.LNX.4.61.0705180851200.3231@yvahk01.tjqt.qr>
 References: <20070518064126.GA12193@uranus.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070518064126.GA12193@uranus.ravnborg.org>
+ <20070518064918.GA12284@uranus.ravnborg.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Russell King <rmk+kernel@arm.linux.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-From 8727055cf189053a0605919611cec5f3c725dc82 Mon Sep 17 00:00:00 2001
-From: Sam Ravnborg <sam@ravnborg.org>
-Date: Thu, 17 May 2007 23:48:19 +0200
-Subject: [PATCH 09/14] mm/slab: fix section mismatch warning
 
-Use the new __init_refok marker to avoid the
-section mismatch warning from slab.c
+On May 18 2007 08:49, Sam Ravnborg wrote:
+>index 113dc77..acd28ab 100644
+>--- a/scripts/mod/modpost.c
+>+++ b/scripts/mod/modpost.c
+>@@ -885,29 +885,28 @@ static void warn_sec_mismatch(const char *modname, const char *fromsec,
+> 		return;
+> 
+> 	if (before && after) {
+>-		warn("%s - Section mismatch: reference to %s:%s from %s "
+>-		     "between '%s' (at offset 0x%llx) and '%s'\n",
+>-		     modname, secname, refsymname, fromsec,
+>+		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
+>+		     "(between '%s' and '%s')\n",
+>+		     modname, fromsec, (long long)r.r_offset,
+>+		     secname, refsymname,
 
-Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
----
- mm/slab.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+%x always takes unsigned. %llx => (unsigned long long)r.r_offset.
+Ditto below.
 
-diff --git a/mm/slab.c b/mm/slab.c
-index 528243e..2e71a32 100644
---- a/mm/slab.c
-+++ b/mm/slab.c
-@@ -2037,7 +2037,7 @@ static size_t calculate_slab_order(struct kmem_cache *cachep,
- 	return left_over;
- }
- 
--static int setup_cpu_cache(struct kmem_cache *cachep)
-+static int __init_refok setup_cpu_cache(struct kmem_cache *cachep)
- {
- 	if (g_cpucache_up == FULL)
- 		return enable_cpucache(cachep);
+> 		     elf->strtab + before->st_name,
+>-		     (long long)r.r_offset,
+> 		     elf->strtab + after->st_name);
+> 	} else if (before) {
+>-		warn("%s - Section mismatch: reference to %s:%s from %s "
+>-		     "after '%s' (at offset 0x%llx)\n",
+>-		     modname, secname, refsymname, fromsec,
+>-		     elf->strtab + before->st_name,
+>-		     (long long)r.r_offset);
+>+		warn("%s(%s+0x%llx): Section mismatch: reference to %s:%s "
+>+		     "(after '%s')\n",
+>+		     modname, fromsec, (long long)r.r_offset,
+>+		     secname, refsymname,
+>+		     elf->strtab + before->st_name);
+[more occurences]
+
+
+	Jan
 -- 
-1.5.1.rc3.20.gaa453
-
