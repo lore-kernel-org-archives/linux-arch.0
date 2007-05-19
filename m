@@ -1,33 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:56030 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1763036AbXESSZM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 May 2007 14:25:12 -0400
-Date: Sat, 19 May 2007 11:25:12 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:37285 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756853AbXESWNQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 19 May 2007 18:13:16 -0400
+Date: Sat, 19 May 2007 15:09:34 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: [rfc] increase struct page size?!
+Message-Id: <20070519150934.bdabc9b5.akpm@linux-foundation.org>
 In-Reply-To: <20070519181501.GC19966@holomorphy.com>
-Message-ID: <Pine.LNX.4.64.0705191121480.17008@schroedinger.engr.sgi.com>
 References: <20070518040854.GA15654@wotan.suse.de>
- <Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com>
- <20070519012530.GB15569@wotan.suse.de> <20070519181501.GC19966@holomorphy.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+	<Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com>
+	<20070519012530.GB15569@wotan.suse.de>
+	<20070519181501.GC19966@holomorphy.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: William Lee Irwin III <wli@holomorphy.com>
-Cc: Nick Piggin <npiggin@suse.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+Cc: Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 19 May 2007, William Lee Irwin III wrote:
+On Sat, 19 May 2007 11:15:01 -0700 William Lee Irwin III <wli@holomorphy.com> wrote:
 
-> However, there are numerous optimizations and features made possible
-> with flag bits, which might as could be made cheap by padding struct
-> page up to the next highest power of 2 bytes with space for flag bits.
+> Much the same holds for the atomic_t's; 32 + PAGE_SHIFT is
+> 44 bits or more, about as much as is possible, and one reference per
+> page per page is not even feasible. Full-length atomic_t's are just
+> not necessary.
 
-Well the last time I tried to get this by Andi we became a bit concerned 
-when we realized that the memory map would grow by 14% in size. Given 
-that 4k page size challenged platforms have a huge amount of page structs 
-that growth is significant. I think it would be fine to do it for IA64 
-with 16k page size but not for x86_64.
-
+You can overflow a page's refcount by mapping it 4G times.  That requires
+32GB of pagetable memory.  It's quite feasible with remap_file_pages().
 
