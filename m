@@ -1,49 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:51211 "EHLO mx1.suse.de"
+Received: from ns.suse.de ([195.135.220.2]:34599 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755551AbXETM4s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 20 May 2007 08:56:48 -0400
-From: Andi Kleen <ak@suse.de>
+	id S1756091AbXETRNv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 20 May 2007 13:13:51 -0400
+Date: Sun, 20 May 2007 19:13:48 +0200
+From: Andrea Arcangeli <andrea@suse.de>
 Subject: Re: [rfc] increase struct page size?!
-Date: Sun, 20 May 2007 14:56:25 +0200
-References: <20070518040854.GA15654@wotan.suse.de> <Pine.LNX.4.64.0705191121480.17008@schroedinger.engr.sgi.com> <464FCA28.9040009@cosmosbay.com>
-In-Reply-To: <464FCA28.9040009@cosmosbay.com>
+Message-ID: <20070520171348.GC7653@v2.random>
+References: <20070518040854.GA15654@wotan.suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200705201456.26283.ak@suse.de>
+In-Reply-To: <20070518040854.GA15654@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Eric Dumazet <dada1@cosmosbay.com>
-Cc: Christoph Lameter <clameter@sgi.com>, William Lee Irwin III <wli@holomorphy.com>, Nick Piggin <npiggin@suse.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sunday 20 May 2007 06:10:16 Eric Dumazet wrote:
-> Christoph Lameter a écrit :
-> > On Sat, 19 May 2007, William Lee Irwin III wrote:
-> > 
-> >> However, there are numerous optimizations and features made possible
-> >> with flag bits, which might as could be made cheap by padding struct
-> >> page up to the next highest power of 2 bytes with space for flag bits.
-> > 
-> > Well the last time I tried to get this by Andi we became a bit concerned 
-> > when we realized that the memory map would grow by 14% in size. Given 
-> > that 4k page size challenged platforms have a huge amount of page structs 
-> > that growth is significant. I think it would be fine to do it for IA64 
-> > with 16k page size but not for x86_64.
-> 
-> This reminds me Andi attempted in the past to convert 'flags' to a 32 bits field :
-> 
-> http://marc.info/?l=linux-kernel&m=107903527523739&w=2
-> 
-> I wonder why this idea was not taken, saving 2MB per GB of memory is nice :)
+On Fri, May 18, 2007 at 06:08:54AM +0200, Nick Piggin wrote:
+> If we add 8 bytes to struct page on 64-bit machines, it becomes 64 bytes,
+> which is quite a nice number for cache purposes.
 
-It made sense in 2.4, but in 2.6 it doesn't actually save any memory because
-there is no field to put into the freed padding.
+We had those hardware alignment for many data structures where they
+were only wasting memory (i.e. vmas).
 
-Besides with the scarcity of pageflags it might make sense to do "64 bit only"
-flags at some point.
+There are few places where the hardware alignment matters, page struct
+isn't going to be one of them. But feel free to measure yourself.
 
--Andi
- 
+> I'd say all up this is going to decrease overall cache footprint in 
+> fastpaths, both by reducing text and data footprint of page_address and
+> related operations, and by reducing cacheline footprint of most batched
+> operations on struct pages.
+
+IIRC the math is faster for any x86. Overall I doubt the change is
+measurable.
+
+Even if this would be a microoptimization barely measurable in some
+microbenchmark, I don't think this one is worth doing. mem_map is such
+a bloat that it really has to be as small as it can unless we can
+improve performance _significantly_ by enlarging it.
+
+> Interestingly, the irony of 32-bit architectures setting WANT_PAGE_VIRTUAL
+> because they have slow multiplications is that without WANT_PAGE_VIRTUAL, the
+> struct is 32-bytes and so page_address can usually be calculated with a shift.
+> So WANT_PAGE_VIRTUAL just bloats up the size of struct page for those guys!
+
+If you want to drop it you can, there's nothing fundamental that
+prevents you to drop the 'virtual' completely from page struct, by
+just making the vaddr per-process and storing it on the stack like
+with the atomic kmaps, but passing it up the stack may require heavy
+changes to various apis, which is why we've taken the few-changes lazy
+way back then. If it wasn't worth back then, I doubt it worth now for
+just pae36.
