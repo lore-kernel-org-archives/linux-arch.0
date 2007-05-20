@@ -1,62 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:58288 "EHLO mx2.suse.de"
+Received: from ns1.suse.de ([195.135.220.2]:51211 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754483AbXETJZx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 20 May 2007 05:25:53 -0400
-Date: Sun, 20 May 2007 11:25:52 +0200
-From: Nick Piggin <npiggin@suse.de>
+	id S1755551AbXETM4s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 20 May 2007 08:56:48 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: [rfc] increase struct page size?!
-Message-ID: <20070520092552.GA7318@wotan.suse.de>
-References: <20070518040854.GA15654@wotan.suse.de> <Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com> <20070519012530.GB15569@wotan.suse.de> <20070519181501.GC19966@holomorphy.com> <20070520052229.GA9372@wotan.suse.de> <20070520084647.GF19966@holomorphy.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Date: Sun, 20 May 2007 14:56:25 +0200
+References: <20070518040854.GA15654@wotan.suse.de> <Pine.LNX.4.64.0705191121480.17008@schroedinger.engr.sgi.com> <464FCA28.9040009@cosmosbay.com>
+In-Reply-To: <464FCA28.9040009@cosmosbay.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8bit
 Content-Disposition: inline
-In-Reply-To: <20070520084647.GF19966@holomorphy.com>
+Message-Id: <200705201456.26283.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: William Lee Irwin III <wli@holomorphy.com>
-Cc: Christoph Lameter <clameter@sgi.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: Eric Dumazet <dada1@cosmosbay.com>
+Cc: Christoph Lameter <clameter@sgi.com>, William Lee Irwin III <wli@holomorphy.com>, Nick Piggin <npiggin@suse.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, May 20, 2007 at 01:46:47AM -0700, William Lee Irwin III wrote:
-> On Sat, May 19, 2007 at 11:15:01AM -0700, William Lee Irwin III wrote:
-> >> The cache cost argument is specious. Even misaligned, smaller is
-> >> smaller.
+On Sunday 20 May 2007 06:10:16 Eric Dumazet wrote:
+> Christoph Lameter a écrit :
+> > On Sat, 19 May 2007, William Lee Irwin III wrote:
+> > 
+> >> However, there are numerous optimizations and features made possible
+> >> with flag bits, which might as could be made cheap by padding struct
+> >> page up to the next highest power of 2 bytes with space for flag bits.
+> > 
+> > Well the last time I tried to get this by Andi we became a bit concerned 
+> > when we realized that the memory map would grow by 14% in size. Given 
+> > that 4k page size challenged platforms have a huge amount of page structs 
+> > that growth is significant. I think it would be fine to do it for IA64 
+> > with 16k page size but not for x86_64.
 > 
-> On Sun, May 20, 2007 at 07:22:29AM +0200, Nick Piggin wrote:
-> > Of course smaller is smaller ;) Why would that make the cache cost
-> > argument specious?
+> This reminds me Andi attempted in the past to convert 'flags' to a 32 bits field :
 > 
-> It's not possible to ignore aggregation. For instance, for a subset
-> of mem_map whose size ignoring alignment would otherwise fit in the
-> cache to completely avoid sharing any cachelines between page
-> structures requires page structures to be separated by at least one
-> mem_map index. This is highly unlikely in uniform distributions.
+> http://marc.info/?l=linux-kernel&m=107903527523739&w=2
+> 
+> I wonder why this idea was not taken, saving 2MB per GB of memory is nice :)
 
-But that wasn't my argument. I _know_ there are cases where the smaller
-struct would be better, and I'm sure they would even arise in a running
-kernel.
+It made sense in 2.4, but in 2.6 it doesn't actually save any memory because
+there is no field to put into the freed padding.
+
+Besides with the scarcity of pageflags it might make sense to do "64 bit only"
+flags at some point.
+
+-Andi
  
-
-> On Sat, May 19, 2007 at 11:15:01AM -0700, William Lee Irwin III wrote:
-> >> The cache footprint reduction is merely amortized,
-> >> probabilistic, etc.
-> 
-> On Sun, May 20, 2007 at 07:22:29AM +0200, Nick Piggin wrote:
-> > I don't really know what you mean by this, or what part of my cache cost
-> > argument you disagree with...
-> > I think it is that you could construct mem_map access patterns, without
-> > specifically looking at alignment, where a 56 byte struct page would suffer
-> > about 75% more cache misses than a 64 byte aligned one (and you could also
-> > get about 12% fewer cache misses with other access patterns).
-> > I also think the kernel's mem_map access patterns would be more on the
-> > random side, so overall would result in significantly fewer cache misses
-> > with 64 byte aligned pages.
-> > Which part do you disagree with?
-> 
-> The lack of consideration of the average case. I'll see what I can smoke
-> out there.
-
-I _am_ considering the average case, and I consider the aligned structure
-is likely to win on average :) I just don't have numbers for it yet.
-
-
