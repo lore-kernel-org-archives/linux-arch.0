@@ -1,54 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:34599 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756091AbXETRNv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 20 May 2007 13:13:51 -0400
-Date: Sun, 20 May 2007 19:13:48 +0200
-From: Andrea Arcangeli <andrea@suse.de>
+Received: from palinux.external.hp.com ([192.25.206.14]:56693 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757438AbXETWuT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 20 May 2007 18:50:19 -0400
+Date: Sun, 20 May 2007 16:50:17 -0600
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: [rfc] increase struct page size?!
-Message-ID: <20070520171348.GC7653@v2.random>
-References: <20070518040854.GA15654@wotan.suse.de>
+Message-ID: <20070520225017.GC10562@parisc-linux.org>
+References: <20070518040854.GA15654@wotan.suse.de> <Pine.LNX.4.64.0705181633240.24071@blonde.wat.veritas.com> <20070519175320.GB19966@holomorphy.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070518040854.GA15654@wotan.suse.de>
+In-Reply-To: <20070519175320.GB19966@holomorphy.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: William Lee Irwin III <wli@holomorphy.com>
+Cc: Hugh Dickins <hugh@veritas.com>, Nick Piggin <npiggin@suse.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, May 18, 2007 at 06:08:54AM +0200, Nick Piggin wrote:
-> If we add 8 bytes to struct page on 64-bit machines, it becomes 64 bytes,
-> which is quite a nice number for cache purposes.
+On Sat, May 19, 2007 at 10:53:20AM -0700, William Lee Irwin III wrote:
+> On Fri, May 18, 2007 at 04:42:10PM +0100, Hugh Dickins wrote:
+> > Sooner rather than later, don't we need those 8 bytes to expand from
+> > atomic_t to atomic64_t _count and _mapcount?  Not that we really need
+> > all 64 bits of both, but I don't know how to work atomically with less.
+> > (Why do I have this sneaking feeling that you're actually wanting
+> > to stick something into the lower bits of page->virtual?)
+> 
+> I wonder how close we get to overflow on ->_mapcount and ->_count.
+> (untested/uncompiled).
 
-We had those hardware alignment for many data structures where they
-were only wasting memory (i.e. vmas).
-
-There are few places where the hardware alignment matters, page struct
-isn't going to be one of them. But feel free to measure yourself.
-
-> I'd say all up this is going to decrease overall cache footprint in 
-> fastpaths, both by reducing text and data footprint of page_address and
-> related operations, and by reducing cacheline footprint of most batched
-> operations on struct pages.
-
-IIRC the math is faster for any x86. Overall I doubt the change is
-measurable.
-
-Even if this would be a microoptimization barely measurable in some
-microbenchmark, I don't think this one is worth doing. mem_map is such
-a bloat that it really has to be as small as it can unless we can
-improve performance _significantly_ by enlarging it.
-
-> Interestingly, the irony of 32-bit architectures setting WANT_PAGE_VIRTUAL
-> because they have slow multiplications is that without WANT_PAGE_VIRTUAL, the
-> struct is 32-bytes and so page_address can usually be calculated with a shift.
-> So WANT_PAGE_VIRTUAL just bloats up the size of struct page for those guys!
-
-If you want to drop it you can, there's nothing fundamental that
-prevents you to drop the 'virtual' completely from page struct, by
-just making the vaddr per-process and storing it on the stack like
-with the atomic kmaps, but passing it up the stack may require heavy
-changes to various apis, which is why we've taken the few-changes lazy
-way back then. If it wasn't worth back then, I doubt it worth now for
-just pae36.
+I think the problem is that an attacker can deliberately overflow
+->_count, not that it can happen innocuously.  By mmaping, say, the page
+of libc that contains memcpy() several million times, and forking
+enough, can't you make ->_mapcount hit 0?  I'm not a VM guy, I just
+vaguely remember people talking about this before.
