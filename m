@@ -1,40 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:60409 "EHLO mx2.suse.de"
+Received: from pfx2.jmh.fr ([194.153.89.55]:58979 "EHLO pfx2.jmh.fr"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754934AbXEUJpI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 21 May 2007 05:45:08 -0400
-Date: Mon, 21 May 2007 11:45:07 +0200
-From: Nick Piggin <npiggin@suse.de>
+	id S1754540AbXEUJvP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 May 2007 05:51:15 -0400
+Date: Mon, 21 May 2007 11:31:39 +0200
+From: Eric Dumazet <dada1@cosmosbay.com>
 Subject: Re: [rfc] increase struct page size?!
-Message-ID: <20070521094507.GB19642@wotan.suse.de>
-References: <20070518040854.GA15654@wotan.suse.de> <Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com> <20070519012530.GB15569@wotan.suse.de> <20070519181501.GC19966@holomorphy.com> <20070519150934.bdabc9b5.akpm@linux-foundation.org> <4651629B.2050505@aitel.hist.no>
+Message-Id: <20070521113140.1e9e77d2.dada1@cosmosbay.com>
+In-Reply-To: <20070521080813.GQ31925@holomorphy.com>
+References: <20070518040854.GA15654@wotan.suse.de>
+	<Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com>
+	<20070519012530.GB15569@wotan.suse.de>
+	<20070519181501.GC19966@holomorphy.com>
+	<20070520052229.GA9372@wotan.suse.de>
+	<20070520084647.GF19966@holomorphy.com>
+	<20070520092552.GA7318@wotan.suse.de>
+	<20070521080813.GQ31925@holomorphy.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <4651629B.2050505@aitel.hist.no>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Helge Hafting <helge.hafting@aitel.hist.no>
-Cc: Andrew Morton <akpm@linux-foundation.org>, William Lee Irwin III <wli@holomorphy.com>, Christoph Lameter <clameter@sgi.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: William Lee Irwin III <wli@holomorphy.com>
+Cc: Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, May 21, 2007 at 11:12:59AM +0200, Helge Hafting wrote:
-> Andrew Morton wrote:
-> >On Sat, 19 May 2007 11:15:01 -0700 William Lee Irwin III 
-> ><wli@holomorphy.com> wrote:
-> >
-> >  
-> >>Much the same holds for the atomic_t's; 32 + PAGE_SHIFT is
-> >>44 bits or more, about as much as is possible, and one reference per
-> >>page per page is not even feasible. Full-length atomic_t's are just
-> >>not necessary.
-> >>    
-> >
-> >You can overflow a page's refcount by mapping it 4G times.  That requires
-> >32GB of pagetable memory.  It's quite feasible with remap_file_pages().
-> >  
-> But do anybody ever need to do that?
-> Such an attack is easily thwarted by refusing to map it more
-> than, say 3G times? 
+On Mon, 21 May 2007 01:08:13 -0700
+William Lee Irwin III <wli@holomorphy.com> wrote:
 
-That still allows you to DoS the page.
+> Now that I've been informed of the ->_count and ->_mapcount issues,
+> I'd say that they're grave and should be corrected even at the cost
+> of sizeof(struct page).
 
+
+As long we handle 4 KB pages, adding 64 bits per page means 0.2 % of overhead. Ouch...
+
+We currently have an overhead of 1.36 % for mem_map
+
+Maybe we can still use 32 bits counters, and make sure non root users cannot
+make these counters exceed 2^30. (I believe high order bit has already a meaning, 
+check page_mapped() definition)
+
+We could use a special atomic_inc_if_not_huge() function, that could revert to
+ normal atomic_inc() on machines with less than 32 GB (using alternative_() variant)
+
+On small setups (or 32 bits arches), atomic_inc_if_not_huge() would unconditionnally 
+increment the counter.
+
+#if !defined(BIG_MACHINES)
+static int inline atomic_inc_if_not_huge(atomic_t *v)
+{
+atomic_inc(v);
+return 1;
+}
+#else
+extern int atomic_inc_if_not_huge(atomic_t *v);
+
+#endif
+
+
+/* in a .c file */
+/* could be patched at boot time if available memory < 32GB (or other limit) */
+#if defined(BIG_MACHINES)
+#define MAP_LIMIT_COUNT (2<<30)
+int atomic_inc_if_not_huge(atomic_t *v);
+{
+/* lazy test, we dont care enough to do a real atomic read-modify-write */
+if (unlikely(atomic_read(v) >= MAP_LIMIT_COUNT)) {
+	if (non_root_user())
+		return 0;
+	}
+atomic_inc(v);
+return 1;
+}
+#endif
