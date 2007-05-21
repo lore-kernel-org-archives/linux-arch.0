@@ -1,35 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:36590 "EHLO
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:38820 "EHLO
 	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1761957AbXEURGk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 May 2007 13:06:40 -0400
-Date: Mon, 21 May 2007 10:06:39 -0700 (PDT)
+	with ESMTP id S1756968AbXEURIH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 May 2007 13:08:07 -0400
+Date: Mon, 21 May 2007 10:08:06 -0700 (PDT)
 From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [rfc] increase struct page size?!
-In-Reply-To: <20070520092552.GA7318@wotan.suse.de>
-Message-ID: <Pine.LNX.4.64.0705211004340.26282@schroedinger.engr.sgi.com>
+In-Reply-To: <200705201456.26283.ak@suse.de>
+Message-ID: <Pine.LNX.4.64.0705211006550.26282@schroedinger.engr.sgi.com>
 References: <20070518040854.GA15654@wotan.suse.de>
- <Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com>
- <20070519012530.GB15569@wotan.suse.de> <20070519181501.GC19966@holomorphy.com>
- <20070520052229.GA9372@wotan.suse.de> <20070520084647.GF19966@holomorphy.com>
- <20070520092552.GA7318@wotan.suse.de>
+ <Pine.LNX.4.64.0705191121480.17008@schroedinger.engr.sgi.com>
+ <464FCA28.9040009@cosmosbay.com> <200705201456.26283.ak@suse.de>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: William Lee Irwin III <wli@holomorphy.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: Eric Dumazet <dada1@cosmosbay.com>, William Lee Irwin III <wli@holomorphy.com>, Nick Piggin <npiggin@suse.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 20 May 2007, Nick Piggin wrote:
+On Sun, 20 May 2007, Andi Kleen wrote:
 
-> I _am_ considering the average case, and I consider the aligned structure
-> is likely to win on average :) I just don't have numbers for it yet.
+> Besides with the scarcity of pageflags it might make sense to do "64 bit only"
+> flags at some point.
 
-I'd be glad too if you could get some numbers. I did some benchmarking a 
-few weeks ago on x86_64 and I found only a very minimal performance drop 
-if the calculation was simplified. 
+There is no scarcity of page flags. There is
 
-Note also that a smaller structure means that more page structs can be 
-covered by a certain amount of cachelines. Doing the alignment may cause 
-more cacheline misses.
+1. Hoarding by Andrew
+
+2. Waste by Sparsemem (section flags no longer necessary with
+   virtual memmap)
+
+2 will hopefully be addressed soon and with that 1 will go away.
 
