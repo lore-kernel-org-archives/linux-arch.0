@@ -1,125 +1,162 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hellhawk.shadowen.org ([80.68.90.175]:4670 "EHLO
+Received: from hellhawk.shadowen.org ([80.68.90.175]:4697 "EHLO
 	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755611AbXEVWrM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 May 2007 18:47:12 -0400
+	with ESMTP id S1755631AbXEVWso (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 May 2007 18:48:44 -0400
 From: Andy Whitcroft <apw@shadowen.org>
-Subject: [PATCH 4/8] x86_64: SPARSEMEM_VMEMMAP 2M page size support
+Subject: [PATCH 7/8] SPARC64: SPARSEMEM_VMEMMAP support
 References: <exportbomb.1179873917@pinky>
-Message-Id: <E1HqdKi-0003eg-HW@hellhawk.shadowen.org>
-Date: Wed, 23 May 2007 00:00:00 +0100
+Message-Id: <E1HqdME-0003gr-Dz@hellhawk.shadowen.org>
+Date: Wed, 23 May 2007 00:01:34 +0100
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-mm@kvack.org
 Cc: linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Mel Gorman <mel@csn.ul.ie>, Andy Whitcroft <apw@shadowen.org>
 List-ID: <linux-arch.vger.kernel.org>
 
 
-x86_64 uses 2M page table entries to map its 1-1 kernel space.
-We also implement the virtual memmap using 2M page table entries.  So
-there is no additional runtime overhead over FLATMEM, initialisation
-is slightly more complex.  As FLATMEM still references memory to
-obtain the mem_map pointer and SPARSEMEM_VMEMMAP uses a compile
-time constant, SPARSEMEM_VMEMMAP should be superior.
+Hey Christoph, here is sparc64 support for this stuff.
 
-With this SPARSEMEM becomes the most efficient way of handling
-virt_to_page, pfn_to_page and friends for UP, SMP and NUMA on x86_64.
+After implementing this and seeing more and more how it works, I
+really like it :-)
 
-[apw@shadowen.org: code resplit, style fixups]
-From: Christoph Lameter <clameter@sgi.com>
-Signed-off-by: Christoph Lameter <clameter@sgi.com>
+Thanks a lot for doing this work Christoph!
+
+[apw@shadowen.org: style fixups]
+From: David Miller <davem@davemloft.net>
 Signed-off-by: Andy Whitcroft <apw@shadowen.org>
 Acked-by: Mel Gorman <mel@csn.ul.ie>
 ---
-diff --git a/Documentation/x86_64/mm.txt b/Documentation/x86_64/mm.txt
-index f42798e..b89b6d2 100644
---- a/Documentation/x86_64/mm.txt
-+++ b/Documentation/x86_64/mm.txt
-@@ -9,6 +9,7 @@ ffff800000000000 - ffff80ffffffffff (=40 bits) guard hole
- ffff810000000000 - ffffc0ffffffffff (=46 bits) direct mapping of all phys. memory
- ffffc10000000000 - ffffc1ffffffffff (=40 bits) hole
- ffffc20000000000 - ffffe1ffffffffff (=45 bits) vmalloc/ioremap space
-+ffffe20000000000 - ffffe2ffffffffff (=40 bits) virtual memory map (1TB)
- ... unused hole ...
- ffffffff80000000 - ffffffff82800000 (=40 MB)   kernel text mapping, from phys 0
- ... unused hole ...
-diff --git a/arch/x86_64/Kconfig b/arch/x86_64/Kconfig
-index 2926670..029815a 100644
---- a/arch/x86_64/Kconfig
-+++ b/arch/x86_64/Kconfig
-@@ -400,6 +400,14 @@ config ARCH_SPARSEMEM_ENABLE
+diff --git a/arch/sparc64/Kconfig b/arch/sparc64/Kconfig
+index 831781c..a81979d 100644
+--- a/arch/sparc64/Kconfig
++++ b/arch/sparc64/Kconfig
+@@ -224,10 +224,17 @@ config ARCH_SPARSEMEM_ENABLE
+ 
+ config ARCH_SPARSEMEM_DEFAULT
  	def_bool y
- 	depends on (NUMA || EXPERIMENTAL)
+-	select SPARSEMEM_STATIC
+ 
+ source "mm/Kconfig"
  
 +config SPARSEMEM_VMEMMAP
 +	def_bool y
 +	depends on SPARSEMEM
 +
-+config ARCH_POPULATES_SPARSEMEM_VMEMMAP_PMD
++config ARCH_POPULATES_SPARSEMEM_VMEMMAP
 +	def_bool y
 +	depends on SPARSEMEM_VMEMMAP
 +
- config ARCH_MEMORY_PROBE
- 	def_bool y
- 	depends on MEMORY_HOTPLUG
-diff --git a/arch/x86_64/mm/init.c b/arch/x86_64/mm/init.c
-index 58db7af..a7591d3 100644
---- a/arch/x86_64/mm/init.c
-+++ b/arch/x86_64/mm/init.c
-@@ -770,3 +770,33 @@ const char *arch_vma_name(struct vm_area_struct *vma)
- 		return "[vsyscall]";
- 	return NULL;
- }
+ config ISA
+ 	bool
+ 	help
+diff --git a/arch/sparc64/kernel/ktlb.S b/arch/sparc64/kernel/ktlb.S
+index d4024ac..964527d 100644
+--- a/arch/sparc64/kernel/ktlb.S
++++ b/arch/sparc64/kernel/ktlb.S
+@@ -226,6 +226,15 @@ kvmap_dtlb_load:
+ 	ba,pt		%xcc, sun4v_dtlb_load
+ 	 mov		%g5, %g3
+ 
++kvmap_vmemmap:
++	sub		%g4, %g5, %g5
++	srlx		%g5, 22, %g5
++	sethi		%hi(vmemmap_table), %g1
++	sllx		%g5, 3, %g5
++	or		%g1, %lo(vmemmap_table), %g1
++	ba,pt		%xcc, kvmap_dtlb_load
++	 ldx		[%g1 + %g5], %g5
 +
-+#ifdef CONFIG_ARCH_POPULATES_SPARSEMEM_VMEMMAP_PMD
-+/*
-+ * Initialise the sparsemem vmemmap using huge-pages at the PMD level.
-+ */
-+int __meminit vmemmap_populate_pmd(pud_t *pud, unsigned long addr,
-+						unsigned long end, int node)
+ kvmap_dtlb_nonlinear:
+ 	/* Catch kernel NULL pointer derefs.  */
+ 	sethi		%hi(PAGE_SIZE), %g5
+@@ -233,6 +242,13 @@ kvmap_dtlb_nonlinear:
+ 	bleu,pn		%xcc, kvmap_dtlb_longpath
+ 	 nop
+ 
++	/* Do not use the TSB for vmemmap.  */
++	mov		(VMEMMAP_BASE >> 24), %g5
++	sllx		%g5, 24, %g5
++	cmp		%g4,%g5
++	bgeu,pn		%xcc, kvmap_vmemmap
++	 nop
++
+ 	KERN_TSB_LOOKUP_TL1(%g4, %g6, %g5, %g1, %g2, %g3, kvmap_dtlb_load)
+ 
+ kvmap_dtlb_tsbmiss:
+diff --git a/arch/sparc64/mm/init.c b/arch/sparc64/mm/init.c
+index 6e5b01d..6ee87cf 100644
+--- a/arch/sparc64/mm/init.c
++++ b/arch/sparc64/mm/init.c
+@@ -1639,6 +1639,58 @@ EXPORT_SYMBOL(_PAGE_E);
+ unsigned long _PAGE_CACHE __read_mostly;
+ EXPORT_SYMBOL(_PAGE_CACHE);
+ 
++#ifdef CONFIG_ARCH_POPULATES_SPARSEMEM_VMEMMAP
++
++#define VMEMMAP_CHUNK_SHIFT	22
++#define VMEMMAP_CHUNK		(1UL << VMEMMAP_CHUNK_SHIFT)
++#define VMEMMAP_CHUNK_MASK	~(VMEMMAP_CHUNK - 1UL)
++#define VMEMMAP_ALIGN(x)	(((x)+VMEMMAP_CHUNK-1UL)&VMEMMAP_CHUNK_MASK)
++
++#define VMEMMAP_SIZE	((((1UL << MAX_PHYSADDR_BITS) >> PAGE_SHIFT) * \
++			  sizeof(struct page *)) >> VMEMMAP_CHUNK_SHIFT)
++unsigned long vmemmap_table[VMEMMAP_SIZE];
++
++int __meminit vmemmap_populate(struct page *start, unsigned long nr, int node)
 +{
-+	pmd_t *pmd;
++	unsigned long vstart = (unsigned long) start;
++	unsigned long vend = (unsigned long) (start + nr);
++	unsigned long phys_start = (vstart - VMEMMAP_BASE);
++	unsigned long phys_end = (vend - VMEMMAP_BASE);
++	unsigned long addr = phys_start & VMEMMAP_CHUNK_MASK;
++	unsigned long end = VMEMMAP_ALIGN(phys_end);
++	unsigned long pte_base;
 +
-+	for (pmd = pmd_offset(pud, addr); addr < end;
-+						pmd++, addr += PMD_SIZE)
-+		if (pmd_none(*pmd)) {
-+			pte_t entry;
-+			void *p = vmemmap_alloc_block(PMD_SIZE, node);
-+			if (!p)
++	pte_base = (_PAGE_VALID | _PAGE_SZ4MB_4U |
++		    _PAGE_CP_4U | _PAGE_CV_4U |
++		    _PAGE_P_4U | _PAGE_W_4U);
++	if (tlb_type == hypervisor)
++		pte_base = (_PAGE_VALID | _PAGE_SZ4MB_4V |
++			    _PAGE_CP_4V | _PAGE_CV_4V |
++			    _PAGE_P_4V | _PAGE_W_4V);
++
++	for (; addr < end; addr += VMEMMAP_CHUNK) {
++		unsigned long *vmem_pp =
++			vmemmap_table + (addr >> VMEMMAP_CHUNK_SHIFT);
++		void *block;
++
++		if (!(*vmem_pp & _PAGE_VALID)) {
++			block = vmemmap_alloc_block(1UL << 22, node);
++			if (!block)
 +				return -ENOMEM;
 +
-+			entry = pfn_pte(__pa(p) >> PAGE_SHIFT, PAGE_KERNEL);
-+			mk_pte_huge(entry);
-+			set_pmd(pmd, __pmd(pte_val(entry)));
++			*vmem_pp = pte_base | __pa(block);
 +
-+			printk(KERN_DEBUG " [%lx-%lx] PMD ->%p on node %d\n",
-+				addr, addr + PMD_SIZE - 1, p, node);
-+		} else
-+			vmemmap_verify((pte_t *)pmd, node,
-+						pmd_addr_end(addr, end), end);
++			printk(KERN_INFO "[%p-%p] page_structs=%lu "
++			       "node=%d entry=%lu/%lu\n", start, block, nr,
++			       node,
++			       addr >> VMEMMAP_CHUNK_SHIFT,
++			       VMEMMAP_SIZE >> VMEMMAP_CHUNK_SHIFT);
++		}
++	}
 +	return 0;
 +}
-+#endif
-diff --git a/include/asm-x86_64/page.h b/include/asm-x86_64/page.h
-index 88adf1a..c3b52bc 100644
---- a/include/asm-x86_64/page.h
-+++ b/include/asm-x86_64/page.h
-@@ -134,6 +134,7 @@ extern unsigned long __phys_addr(unsigned long);
- 	 VM_READ | VM_WRITE | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++#endif /* CONFIG_ARCH_POPULATES_SPARSEMEM_VMEMMAP */
++
+ static void prot_init_common(unsigned long page_none,
+ 			     unsigned long page_shared,
+ 			     unsigned long page_copy,
+diff --git a/include/asm-sparc64/pgtable.h b/include/asm-sparc64/pgtable.h
+index 9e80ad4..5f5d9fb 100644
+--- a/include/asm-sparc64/pgtable.h
++++ b/include/asm-sparc64/pgtable.h
+@@ -42,6 +42,9 @@
+ #define HI_OBP_ADDRESS		_AC(0x0000000100000000,UL)
+ #define VMALLOC_START		_AC(0x0000000100000000,UL)
+ #define VMALLOC_END		_AC(0x0000000200000000,UL)
++#define VMEMMAP_BASE		_AC(0x0000000200000000,UL)
++
++#define vmemmap			((struct page *)VMEMMAP_BASE)
  
- #define __HAVE_ARCH_GATE_AREA 1	
-+#define vmemmap ((struct page *)VMEMMAP_START)
- 
- #include <asm-generic/memory_model.h>
- #include <asm-generic/page.h>
-diff --git a/include/asm-x86_64/pgtable.h b/include/asm-x86_64/pgtable.h
-index 44d07bf..15f0003 100644
---- a/include/asm-x86_64/pgtable.h
-+++ b/include/asm-x86_64/pgtable.h
-@@ -137,6 +137,7 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm, unsigned long
- #define MAXMEM		 _AC(0x3fffffffffff, UL)
- #define VMALLOC_START    _AC(0xffffc20000000000, UL)
- #define VMALLOC_END      _AC(0xffffe1ffffffffff, UL)
-+#define VMEMMAP_START	 _AC(0xffffe20000000000, UL)
- #define MODULES_VADDR    _AC(0xffffffff88000000, UL)
- #define MODULES_END      _AC(0xfffffffffff00000, UL)
- #define MODULES_LEN   (MODULES_END - MODULES_VADDR)
+ /* XXX All of this needs to be rethought so we can take advantage
+  * XXX cheetah's full 64-bit virtual address space, ie. no more hole
