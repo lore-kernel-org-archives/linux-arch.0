@@ -1,73 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from holomorphy.com ([66.93.40.71]:50597 "EHLO holomorphy.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756385AbXEVK6v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 May 2007 06:58:51 -0400
-Date: Tue, 22 May 2007 03:59:35 -0700
-From: William Lee Irwin III <wli@holomorphy.com>
+Received: from hoboi3bl4.telenet-ops.be ([195.130.137.79]:41884 "EHLO
+	hoboi3bl4.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755678AbXEVL0e (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 May 2007 07:26:34 -0400
+Received: from assei2bl6.telenet-ops.be (assei2bl6.telenet-ops.be [195.130.133.69])
+	by hoboi3bl4.telenet-ops.be (Postfix) with ESMTP id 2FF9324458E
+	for <linux-arch@vger.kernel.org>; Tue, 22 May 2007 11:44:41 +0200 (CEST)
+Date: Tue, 22 May 2007 11:44:17 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [rfc] increase struct page size?!
-Message-ID: <20070522105935.GR19966@holomorphy.com>
-References: <20070520052229.GA9372@wotan.suse.de> <20070520084647.GF19966@holomorphy.com> <20070520092552.GA7318@wotan.suse.de> <20070521080813.GQ31925@holomorphy.com> <20070521092742.GA19642@wotan.suse.de> <20070521224316.GC11166@waste.org> <20070522013951.GP19966@holomorphy.com> <20070522015703.GE27743@wotan.suse.de> <20070522050410.GQ19966@holomorphy.com> <20070522062452.GA29807@wotan.suse.de>
+In-Reply-To: <Pine.LNX.4.64.0705211737450.24160@schroedinger.engr.sgi.com>
+Message-ID: <Pine.LNX.4.64.0705221142340.11196@anakin>
+References: <20070518040854.GA15654@wotan.suse.de>
+ <Pine.LNX.4.64.0705191121480.17008@schroedinger.engr.sgi.com>
+ <464FCA28.9040009@cosmosbay.com> <200705201456.26283.ak@suse.de>
+ <Pine.LNX.4.64.0705211006550.26282@schroedinger.engr.sgi.com>
+ <20070522093050.0320d092.kamezawa.hiroyu@jp.fujitsu.com>
+ <Pine.LNX.4.64.0705211737450.24160@schroedinger.engr.sgi.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070522062452.GA29807@wotan.suse.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Matt Mackall <mpm@selenic.com>, Christoph Lameter <clameter@sgi.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, ak@suse.de, dada1@cosmosbay.com, wli@holomorphy.com, npiggin@suse.de, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, May 21, 2007 at 10:04:10PM -0700, William Lee Irwin III wrote:
->> The size isn't the advantage being cited; I'd actually expect the net
->> result to be larger. It's the control over the layout of the metadata
->> for cache locality and even things like having enough flags, folding
->> buffer_head -like affairs into the per-page metadata for filesystems
->> and so reaping cache locality benefits even there (assuming it works
->> out in other respects), and so on.
->> Passing pages between subsystems doesn't seem very significant to me.
->> There isn't going to be much locality of reference, or even any
->> guarantee that the subsystem gets fed a cache hot page structure. The
->> subsystem being passed the page will have its own cache hot accounting
->> structures to stick the information about the memory into.
+On Mon, 21 May 2007, Christoph Lameter wrote:
+> On Tue, 22 May 2007, KAMEZAWA Hiroyuki wrote:
+> > For i386(32bit arch), there is not enough space for vmemmap.
+> 
+> I thought 32 bit would use flatmem? Is memory really sparse on 32 
+> bit? Likely difficult due to lack of address space?
 
-On Tue, May 22, 2007 at 08:24:53AM +0200, Nick Piggin wrote:
-> Well consider the page allocator and pagecache. The page allocator
-> uses page metadata rather than eg. a bitmap, and it uses page list
-> heads for the per-cpu allocator.
-> If we were to instead perhaps use external bitmaps and arrays to 
-> keep track of pages, then the pagecache would have to go and allocate
-> its own structures rather than reuse the cache hot page allocator
-> structures.
-> Buffer heads might be something that would work well, but we'd still
-> like to be able to deallocate them without freeing the whole pagecache
-> (because they tend to be associated with less frequent operations like
-> IO). But anyway, I don't know. I'm sure there would be cases where it
-> works better.
+Throwing in more crazy comments: many m68k boxes have really sparse memory, due
+to lack of memory and large address space.
 
-The page allocator maintains a number of bitmaps, but anyway. Each
-subsystem will basically have its own cache-hot structures. Instead
-of passing around metadata that's hot, each tries to keep its own
-"working set" of metadata hot. Basically yes, it will work better in
-some situations and the current metadata passing will work better in
-others. I'd expect the control over the layout to be more advantageous
-more often, especially since it arranges cache contiguity while pages
-are in use.
+Gr{oetje,eeting}s,
 
+						Geert
 
-On Mon, May 21, 2007 at 10:04:10PM -0700, William Lee Irwin III wrote:
->> I'm not entirely sure what you're on about there, but it sounds
->> interesting.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-On Tue, May 22, 2007 at 08:24:53AM +0200, Nick Piggin wrote:
-> Heh :) Well the lockless pagecache would become basically trivial if we
-> could RCU-free pagecache pages, however doing that is really awful for
-> a number of reasons. However if you had a system where the metadata is
-> decoupled, you could simply RCU-free the 'struct page' (while still
-> immediately freeing the page itself) which would make lockless pagecache
-> (and potentially similar things) equally trivial.
-> I assumed K42 might have been into that angle.
-
-That does sound convenient. I'll add that to the list of benefits.
-
-
--- wli
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
