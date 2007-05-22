@@ -1,37 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:33103 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755872AbXEVBI3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 21 May 2007 21:08:29 -0400
-Date: Tue, 22 May 2007 03:08:23 +0200
-From: Nick Piggin <npiggin@suse.de>
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:34170 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756786AbXEVBNG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 May 2007 21:13:06 -0400
+Date: Mon, 21 May 2007 18:13:03 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [rfc] increase struct page size?!
-Message-ID: <20070522010823.GC27743@wotan.suse.de>
-References: <20070518040854.GA15654@wotan.suse.de> <Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com> <20070519012530.GB15569@wotan.suse.de> <20070519181501.GC19966@holomorphy.com> <20070520052229.GA9372@wotan.suse.de> <20070520084647.GF19966@holomorphy.com> <20070520092552.GA7318@wotan.suse.de> <20070521080813.GQ31925@holomorphy.com> <20070521092742.GA19642@wotan.suse.de> <20070521224316.GC11166@waste.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070521224316.GC11166@waste.org>
+In-Reply-To: <20070522010823.GC27743@wotan.suse.de>
+Message-ID: <Pine.LNX.4.64.0705211812440.24359@schroedinger.engr.sgi.com>
+References: <20070518040854.GA15654@wotan.suse.de>
+ <Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com>
+ <20070519012530.GB15569@wotan.suse.de> <20070519181501.GC19966@holomorphy.com>
+ <20070520052229.GA9372@wotan.suse.de> <20070520084647.GF19966@holomorphy.com>
+ <20070520092552.GA7318@wotan.suse.de> <20070521080813.GQ31925@holomorphy.com>
+ <20070521092742.GA19642@wotan.suse.de> <20070521224316.GC11166@waste.org>
+ <20070522010823.GC27743@wotan.suse.de>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Matt Mackall <mpm@selenic.com>
-Cc: William Lee Irwin III <wli@holomorphy.com>, Christoph Lameter <clameter@sgi.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Matt Mackall <mpm@selenic.com>, William Lee Irwin III <wli@holomorphy.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, May 21, 2007 at 05:43:16PM -0500, Matt Mackall wrote:
-> On Mon, May 21, 2007 at 11:27:42AM +0200, Nick Piggin wrote:
-> > 
-> > ... yeah, something like that would bypass 
-> 
-> As long as we're throwing out crazy unpopular ideas, try this one:
-> 
-> Divide struct page in two such that all the most commonly used
-> elements are in one piece that's nicely sized and the rest are in
-> another. Have two parallel arrays containing these pieces and accessor
-> functions around the unpopular bits.
-> 
-> Whether a sensible divide between popular and unpopular bits isn't
-> clear to me. But hey, I said it was crazy.
+On Tue, 22 May 2007, Nick Piggin wrote:
 
-That would be unpopular with pagecache, because that uses pretty well
-all fields.
+> That would be unpopular with pagecache, because that uses pretty well
+> all fields.
+
+SLUB also uses all fields....
 
