@@ -1,45 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail7.fujitsu.co.jp ([192.51.44.37]:60306 "EHLO
-	fgwmail7.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755786AbXEVA6q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 May 2007 20:58:46 -0400
-Date: Tue, 22 May 2007 09:58:36 +0900
-From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Received: from ns1.suse.de ([195.135.220.2]:33103 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755872AbXEVBI3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 May 2007 21:08:29 -0400
+Date: Tue, 22 May 2007 03:08:23 +0200
+From: Nick Piggin <npiggin@suse.de>
 Subject: Re: [rfc] increase struct page size?!
-Message-Id: <20070522095836.c01263ba.kamezawa.hiroyu@jp.fujitsu.com>
-In-Reply-To: <Pine.LNX.4.64.0705211737450.24160@schroedinger.engr.sgi.com>
-References: <20070518040854.GA15654@wotan.suse.de>
-	<Pine.LNX.4.64.0705191121480.17008@schroedinger.engr.sgi.com>
-	<464FCA28.9040009@cosmosbay.com>
-	<200705201456.26283.ak@suse.de>
-	<Pine.LNX.4.64.0705211006550.26282@schroedinger.engr.sgi.com>
-	<20070522093050.0320d092.kamezawa.hiroyu@jp.fujitsu.com>
-	<Pine.LNX.4.64.0705211737450.24160@schroedinger.engr.sgi.com>
+Message-ID: <20070522010823.GC27743@wotan.suse.de>
+References: <20070518040854.GA15654@wotan.suse.de> <Pine.LNX.4.64.0705181112250.11881@schroedinger.engr.sgi.com> <20070519012530.GB15569@wotan.suse.de> <20070519181501.GC19966@holomorphy.com> <20070520052229.GA9372@wotan.suse.de> <20070520084647.GF19966@holomorphy.com> <20070520092552.GA7318@wotan.suse.de> <20070521080813.GQ31925@holomorphy.com> <20070521092742.GA19642@wotan.suse.de> <20070521224316.GC11166@waste.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070521224316.GC11166@waste.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: ak@suse.de, dada1@cosmosbay.com, wli@holomorphy.com, npiggin@suse.de, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Matt Mackall <mpm@selenic.com>
+Cc: William Lee Irwin III <wli@holomorphy.com>, Christoph Lameter <clameter@sgi.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 21 May 2007 17:38:58 -0700 (PDT)
-Christoph Lameter <clameter@sgi.com> wrote:
-
-> On Tue, 22 May 2007, KAMEZAWA Hiroyuki wrote:
+On Mon, May 21, 2007 at 05:43:16PM -0500, Matt Mackall wrote:
+> On Mon, May 21, 2007 at 11:27:42AM +0200, Nick Piggin wrote:
+> > 
+> > ... yeah, something like that would bypass 
 > 
-> > For i386(32bit arch), there is not enough space for vmemmap.
+> As long as we're throwing out crazy unpopular ideas, try this one:
 > 
-> I thought 32 bit would use flatmem? Is memory really sparse on 32 
-> bit? Likely difficult due to lack of address space?
+> Divide struct page in two such that all the most commonly used
+> elements are in one piece that's nicely sized and the rest are in
+> another. Have two parallel arrays containing these pieces and accessor
+> functions around the unpopular bits.
 > 
+> Whether a sensible divide between popular and unpopular bits isn't
+> clear to me. But hey, I said it was crazy.
 
-Of course, i386 can use flatmem.
-
-I am just afraid that memory hotplug is just for sprasemem.
-But I also think we can add memory-hotplug for flatmem if necessary.
-(I myself have no plan now. I wonder memory power-save-mode may be supported
- by chipsets.)
-
--Kame
+That would be unpopular with pagecache, because that uses pretty well
+all fields.
 
