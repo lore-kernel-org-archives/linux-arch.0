@@ -1,26 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:47885 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1755861AbXEWFP1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 May 2007 01:15:27 -0400
-Date: Tue, 22 May 2007 22:15:26 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
+Received: from chilli.pcug.org.au ([203.10.76.44]:55719 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756989AbXEWHHv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 May 2007 03:07:51 -0400
+Date: Wed, 23 May 2007 17:07:36 +1000
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 Subject: Re: [PATCH 3/8] Generic Virtual Memmap support for SPARSEMEM V4
-In-Reply-To: <E1HqdKD-0003dU-5r@hellhawk.shadowen.org>
-Message-ID: <Pine.LNX.4.64.0705222214590.5218@schroedinger.engr.sgi.com>
-References: <exportbomb.1179873917@pinky> <E1HqdKD-0003dU-5r@hellhawk.shadowen.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Message-Id: <20070523170736.260d1b22.sfr@canb.auug.org.au>
+In-Reply-To: <Pine.LNX.4.64.0705222214590.5218@schroedinger.engr.sgi.com>
+References: <exportbomb.1179873917@pinky>
+	<E1HqdKD-0003dU-5r@hellhawk.shadowen.org>
+	<Pine.LNX.4.64.0705222214590.5218@schroedinger.engr.sgi.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Wed__23_May_2007_17_07_36_+1000_Qe3UP.g.beyBxc.B"
 Sender: linux-arch-owner@vger.kernel.org
-To: Andy Whitcroft <apw@shadowen.org>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Andy Whitcroft <apw@shadowen.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-I get a couple of warnings:
+--Signature=_Wed__23_May_2007_17_07_36_+1000_Qe3UP.g.beyBxc.B
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: 7bit
 
-mm/sparse.c:423: warning: '__kmalloc_section_memmap' defined but not used
-mm/sparse.c:453: warning: '__kfree_section_memmap' defined but not used
+On Tue, 22 May 2007 22:15:26 -0700 (PDT) Christoph Lameter <clameter@sgi.com> wrote:
+>
+> I get a couple of warnings:
+>
+> mm/sparse.c:423: warning: '__kmalloc_section_memmap' defined but not used
+> mm/sparse.c:453: warning: '__kfree_section_memmap' defined but not used
 
-when building on IA64
+This is fixed by my patch "Move three functions that are only needed for
+CONFIG_MEMORY_HOTPLUG" which I posted yesterday and is in Andrew's tree.
+Sorry for not cc'ing linux-mm.
+--
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
+--Signature=_Wed__23_May_2007_17_07_36_+1000_Qe3UP.g.beyBxc.B
+Content-Type: application/pgp-signature
 
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
+
+iD8DBQFGU+hBFdBgD/zoJvwRAltZAJ9UIEYzmqu39rUL/Vy2D8R1VurL+gCgocEl
+JwYPlmoTH/9Q8f430I9HbXc=
+=x+wh
+-----END PGP SIGNATURE-----
+
+--Signature=_Wed__23_May_2007_17_07_36_+1000_Qe3UP.g.beyBxc.B--
