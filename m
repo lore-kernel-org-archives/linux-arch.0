@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([207.189.120.13]:56004 "EHLO
+Received: from smtp1.linux-foundation.org ([207.189.120.13]:33182 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757099AbXEWRsL (ORCPT
+	by vger.kernel.org with ESMTP id S1755459AbXEWSOX (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 May 2007 13:48:11 -0400
-Message-Id: <200705231748.l4NHm1IM028416@shell0.pdx.osdl.net>
-Subject: + define-new-percpu-interface-for-shared-data.patch added to -mm tree
+	Wed, 23 May 2007 14:14:23 -0400
+Message-Id: <200705231814.l4NIE2NT028937@shell0.pdx.osdl.net>
+Subject: + remove-unused-tif_notify_resume-flag.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Wed, 23 May 2007 10:48:02 -0700
+Date: Wed, 23 May 2007 11:14:03 -0700
 Sender: linux-arch-owner@vger.kernel.org
 To: mm-commits@vger.kernel.org
-Cc: fenghua.yu@intel.com, clameter@sgi.com, linux-arch@vger.kernel.org, rusty@rustcorp.com.au, suresh.b.siddha@intel.com
+Cc: eranian@hpl.hp.com, linux-arch@vger.kernel.org, tony.luck@intel.com
 List-ID: <linux-arch.vger.kernel.org>
 
 
 The patch titled
-     Define new percpu interface for shared data
+     remove unused TIF_NOTIFY_RESUME flag
 has been added to the -mm tree.  Its filename is
-     define-new-percpu-interface-for-shared-data.patch
+     remove-unused-tif_notify_resume-flag.patch
 
 *** Remember to use Documentation/SubmitChecklist when testing your code ***
 
@@ -25,508 +25,690 @@ See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
 out what to do about this
 
 ------------------------------------------------------
-Subject: Define new percpu interface for shared data
-From: Fenghua Yu <fenghua.yu@intel.com>
+Subject: remove unused TIF_NOTIFY_RESUME flag
+From: Stephane Eranian <eranian@hpl.hp.com>
 
-per cpu data section contains two types of data.  One set which is exclusively
-accessed by the local cpu and the other set which is per cpu, but also shared
-by remote cpus.  In the current kernel, these two sets are not clearely
-separated out.  This can potentially cause the same data cacheline shared
-between the two sets of data, which will result in unnecessary bouncing of the
-cacheline between cpus.
+Remove unused TIF_NOTIFY_RESUME flag for all processor architectures.  The
+flag was not used excecpt on IA-64 where the patch replaces it with
+TIF_PERFMON_WORK.
 
-One way to fix the problem is to cacheline align the remotely accessed per cpu
-data, both at the beginning and at the end.  Because of the padding at both
-ends, this will likely cause some memory wastage and also the interface to
-achieve this is not clean.
-
-This patch:
-
-Moves the remotely accessed per cpu data (which is currently marked
-as ____cacheline_aligned_in_smp) into a different section, where all the data
-elements are cacheline aligned. And as such, this differentiates the local
-only data and remotely accessed data cleanly.
-
-Signed-off-by: Fenghua Yu <fenghua.yu@intel.com>
-Acked-by: Suresh Siddha <suresh.b.siddha@intel.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Christoph Lameter <clameter@sgi.com>
+Signed-off-by: stephane eranian <eranian@hpl.hp.com>
 Cc: <linux-arch@vger.kernel.org>
+Cc: "Luck, Tony" <tony.luck@intel.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/alpha/kernel/vmlinux.lds.S   |    5 +----
- arch/arm/kernel/vmlinux.lds.S     |    1 +
- arch/cris/arch-v32/vmlinux.lds.S  |    5 +----
- arch/frv/kernel/vmlinux.lds.S     |    5 +----
- arch/i386/kernel/vmlinux.lds.S    |    7 +------
- arch/ia64/kernel/vmlinux.lds.S    |    1 +
- arch/m32r/kernel/vmlinux.lds.S    |    5 +----
- arch/mips/kernel/vmlinux.lds.S    |    5 +----
- arch/parisc/kernel/vmlinux.lds.S  |    7 +++----
- arch/powerpc/kernel/vmlinux.lds.S |    7 +------
- arch/ppc/kernel/vmlinux.lds.S     |    5 +----
- arch/s390/kernel/vmlinux.lds.S    |    5 +----
- arch/sh/kernel/vmlinux.lds.S      |    5 +----
- arch/sh64/kernel/vmlinux.lds.S    |    5 +----
- arch/sparc/kernel/vmlinux.lds.S   |    5 +----
- arch/sparc64/kernel/vmlinux.lds.S |    5 +----
- arch/x86_64/kernel/vmlinux.lds.S  |    6 ++----
- arch/xtensa/kernel/vmlinux.lds.S  |    5 +----
- include/asm-generic/percpu.h      |    8 ++++++++
- include/asm-generic/vmlinux.lds.h |    8 ++++++++
- include/asm-i386/percpu.h         |    5 +++++
- include/asm-ia64/percpu.h         |   10 ++++++++++
- include/asm-powerpc/percpu.h      |    7 +++++++
- include/asm-s390/percpu.h         |    7 +++++++
- include/asm-sparc64/percpu.h      |    7 +++++++
- include/asm-x86_64/percpu.h       |    7 +++++++
- 26 files changed, 80 insertions(+), 68 deletions(-)
+ arch/arm/kernel/entry-common.S      |    2 +-
+ arch/arm26/kernel/entry.S           |    2 +-
+ arch/ia64/kernel/perfmon.c          |    4 ++--
+ arch/powerpc/kernel/entry_64.S      |    1 -
+ arch/x86_64/kernel/entry.S          |    6 +++---
+ include/asm-alpha/thread_info.h     |   21 +++++++++------------
+ include/asm-arm/thread_info.h       |    7 ++-----
+ include/asm-arm26/thread_info.h     |    7 ++-----
+ include/asm-avr32/thread_info.h     |   18 ++++++++----------
+ include/asm-blackfin/thread_info.h  |   14 ++++++--------
+ include/asm-cris/thread_info.h      |    6 ++----
+ include/asm-frv/thread_info.h       |   12 +++++-------
+ include/asm-h8300/thread_info.h     |   10 ++++------
+ include/asm-i386/thread_info.h      |   18 ++++++++----------
+ include/asm-ia64/thread_info.h      |   20 +++++++++++---------
+ include/asm-m32r/thread_info.h      |   10 ++++------
+ include/asm-m68knommu/thread_info.h |   10 ++++------
+ include/asm-mips/thread_info.h      |   10 ++++------
+ include/asm-parisc/thread_info.h    |   16 +++++++---------
+ include/asm-powerpc/thread_info.h   |   26 ++++++++++++--------------
+ include/asm-sh/thread_info.h        |   10 ++++------
+ include/asm-v850/thread_info.h      |   10 ++++------
+ include/asm-x86_64/thread_info.h    |    2 --
+ include/asm-xtensa/thread_info.h    |   12 +++++-------
+ 24 files changed, 108 insertions(+), 146 deletions(-)
 
-diff -puN arch/alpha/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/alpha/kernel/vmlinux.lds.S
---- a/arch/alpha/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/alpha/kernel/vmlinux.lds.S
-@@ -69,10 +69,7 @@ SECTIONS
-   . = ALIGN(8);
-   SECURITY_INIT
+diff -puN arch/arm26/kernel/entry.S~remove-unused-tif_notify_resume-flag arch/arm26/kernel/entry.S
+--- a/arch/arm26/kernel/entry.S~remove-unused-tif_notify_resume-flag
++++ a/arch/arm26/kernel/entry.S
+@@ -194,7 +194,7 @@ fast_work_pending:
+ work_pending:
+ 	tst	r1, #_TIF_NEED_RESCHED
+ 	bne	work_resched
+-	tst	r1, #_TIF_NOTIFY_RESUME | _TIF_SIGPENDING
++	tst	r1, #_TIF_SIGPENDING
+ 	beq	no_work_pending
+ 	mov	r0, sp				@ 'regs'
+ 	mov	r2, why				@ 'syscall'
+diff -puN arch/arm/kernel/entry-common.S~remove-unused-tif_notify_resume-flag arch/arm/kernel/entry-common.S
+--- a/arch/arm/kernel/entry-common.S~remove-unused-tif_notify_resume-flag
++++ a/arch/arm/kernel/entry-common.S
+@@ -46,7 +46,7 @@ fast_work_pending:
+ work_pending:
+ 	tst	r1, #_TIF_NEED_RESCHED
+ 	bne	work_resched
+-	tst	r1, #_TIF_NOTIFY_RESUME | _TIF_SIGPENDING
++	tst	r1, #_TIF_SIGPENDING
+ 	beq	no_work_pending
+ 	mov	r0, sp				@ 'regs'
+ 	mov	r2, why				@ 'syscall'
+diff -puN arch/ia64/kernel/perfmon.c~remove-unused-tif_notify_resume-flag arch/ia64/kernel/perfmon.c
+--- a/arch/ia64/kernel/perfmon.c~remove-unused-tif_notify_resume-flag
++++ a/arch/ia64/kernel/perfmon.c
+@@ -591,13 +591,13 @@ pfm_set_task_notify(struct task_struct *
+ 	struct thread_info *info;
  
--  . = ALIGN(8192);
--  __per_cpu_start = .;
--  .data.percpu : { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(8192)
+ 	info = (struct thread_info *) ((char *) task + IA64_TASK_SIZE);
+-	set_bit(TIF_NOTIFY_RESUME, &info->flags);
++	set_bit(TIF_PERFMON_WORK, &info->flags);
+ }
  
-   . = ALIGN(2*8192);
-   __init_end = .;
-diff -puN arch/arm/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/arm/kernel/vmlinux.lds.S
---- a/arch/arm/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/arm/kernel/vmlinux.lds.S
-@@ -66,6 +66,7 @@ SECTIONS
- 		. = ALIGN(4096);
- 		__per_cpu_start = .;
- 			*(.data.percpu)
-+			*(.data.percpu.shared_aligned)
- 		__per_cpu_end = .;
- #ifndef CONFIG_XIP_KERNEL
- 		__init_begin = _stext;
-diff -puN arch/cris/arch-v32/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/cris/arch-v32/vmlinux.lds.S
---- a/arch/cris/arch-v32/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/cris/arch-v32/vmlinux.lds.S
-@@ -91,10 +91,7 @@ SECTIONS
- 	}
- 	SECURITY_INIT
+ static inline void
+ pfm_clear_task_notify(void)
+ {
+-	clear_thread_flag(TIF_NOTIFY_RESUME);
++	clear_thread_flag(TIF_PERFMON_WORK);
+ }
  
--	. =  ALIGN (8192);
--	__per_cpu_start = .;
--	.data.percpu  : { *(.data.percpu) }
--	__per_cpu_end = .;
-+	PERCPU(8192)
+ static inline void
+diff -puN arch/powerpc/kernel/entry_64.S~remove-unused-tif_notify_resume-flag arch/powerpc/kernel/entry_64.S
+--- a/arch/powerpc/kernel/entry_64.S~remove-unused-tif_notify_resume-flag
++++ a/arch/powerpc/kernel/entry_64.S
+@@ -546,7 +546,6 @@ END_FW_FTR_SECTION_IFSET(FW_FEATURE_ISER
+ 	rfid
+ 	b	.	/* prevent speculative execution */
  
- #ifdef CONFIG_BLK_DEV_INITRD
- 	.init.ramfs : {
-diff -puN arch/frv/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/frv/kernel/vmlinux.lds.S
---- a/arch/frv/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/frv/kernel/vmlinux.lds.S
-@@ -57,10 +57,7 @@ SECTIONS
-   __alt_instructions_end = .;
-  .altinstr_replacement : { *(.altinstr_replacement) }
+-/* Note: this must change if we start using the TIF_NOTIFY_RESUME bit */
+ do_work:
+ #ifdef CONFIG_PREEMPT
+ 	andi.	r0,r3,MSR_PR	/* Returning to user mode? */
+diff -puN arch/x86_64/kernel/entry.S~remove-unused-tif_notify_resume-flag arch/x86_64/kernel/entry.S
+--- a/arch/x86_64/kernel/entry.S~remove-unused-tif_notify_resume-flag
++++ a/arch/x86_64/kernel/entry.S
+@@ -282,7 +282,7 @@ sysret_careful:
+ sysret_signal:
+ 	TRACE_IRQS_ON
+ 	sti
+-	testl $(_TIF_SIGPENDING|_TIF_NOTIFY_RESUME|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
++	testl $(_TIF_SIGPENDING|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
+ 	jz    1f
  
--  . = ALIGN(4096);
--  __per_cpu_start = .;
--  .data.percpu  : { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(4096)
- 
- #ifdef CONFIG_BLK_DEV_INITRD
-   . = ALIGN(4096);
-diff -puN arch/i386/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/i386/kernel/vmlinux.lds.S
---- a/arch/i386/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/i386/kernel/vmlinux.lds.S
-@@ -179,12 +179,7 @@ SECTIONS
- 	__initramfs_end = .;
-   }
- #endif
--  . = ALIGN(4096);
--  .data.percpu  : AT(ADDR(.data.percpu) - LOAD_OFFSET) {
--	__per_cpu_start = .;
--	*(.data.percpu)
--	__per_cpu_end = .;
--  }
-+  PERCPU(4096)
-   . = ALIGN(4096);
-   /* freed after init ends here */
+ 	/* Really a signal */
+@@ -375,7 +375,7 @@ int_very_careful:
+ 	jmp int_restore_rest
  	
-diff -puN arch/ia64/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/ia64/kernel/vmlinux.lds.S
---- a/arch/ia64/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/ia64/kernel/vmlinux.lds.S
-@@ -206,6 +206,7 @@ SECTIONS
- 	{
- 		__per_cpu_start = .;
- 		*(.data.percpu)
-+		*(.data.percpu.shared_aligned)
- 		__per_cpu_end = .;
- 	}
-   . = __phys_per_cpu_start + PERCPU_PAGE_SIZE;	/* ensure percpu data fits
-diff -puN arch/m32r/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/m32r/kernel/vmlinux.lds.S
---- a/arch/m32r/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/m32r/kernel/vmlinux.lds.S
-@@ -110,10 +110,7 @@ SECTIONS
-   __initramfs_end = .;
- #endif
+ int_signal:
+-	testl $(_TIF_NOTIFY_RESUME|_TIF_SIGPENDING|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
++	testl $(_TIF_SIGPENDING|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
+ 	jz 1f
+ 	movq %rsp,%rdi		# &ptregs -> arg1
+ 	xorl %esi,%esi		# oldset -> arg2
+@@ -599,7 +599,7 @@ retint_careful:
+ 	jmp retint_check
+ 	
+ retint_signal:
+-	testl $(_TIF_SIGPENDING|_TIF_NOTIFY_RESUME|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
++	testl $(_TIF_SIGPENDING|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
+ 	jz    retint_swapgs
+ 	TRACE_IRQS_ON
+ 	sti
+diff -puN include/asm-alpha/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-alpha/thread_info.h
+--- a/include/asm-alpha/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-alpha/thread_info.h
+@@ -67,25 +67,22 @@ register struct thread_info *__current_t
+  * TIF_SYSCALL_TRACE is known to be 0 via blbs.
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_POLLING_NRFLAG	4	/* poll_idle is polling NEED_RESCHED */
+-#define TIF_DIE_IF_KERNEL	5	/* dik recursion lock */
+-#define TIF_UAC_NOPRINT		6	/* see sysinfo.h */
+-#define TIF_UAC_NOFIX		7
+-#define TIF_UAC_SIGBUS		8
+-#define TIF_MEMDIE		9
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_POLLING_NRFLAG	3	/* poll_idle is polling NEED_RESCHED */
++#define TIF_DIE_IF_KERNEL	4	/* dik recursion lock */
++#define TIF_UAC_NOPRINT		5	/* see sysinfo.h */
++#define TIF_UAC_NOFIX		6
++#define TIF_UAC_SIGBUS		7
++#define TIF_MEMDIE		8
  
--  . = ALIGN(4096);
--  __per_cpu_start = .;
--  .data.percpu  : { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(4096)
-   . = ALIGN(4096);
-   __init_end = .;
-   /* freed after init ends here */
-diff -puN arch/mips/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/mips/kernel/vmlinux.lds.S
---- a/arch/mips/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/mips/kernel/vmlinux.lds.S
-@@ -119,10 +119,7 @@ SECTIONS
-   .init.ramfs : { *(.init.ramfs) }
-   __initramfs_end = .;
- #endif
--  . = ALIGN(_PAGE_SIZE);
--  __per_cpu_start = .;
--  .data.percpu  : { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(_PAGE_SIZE)
-   . = ALIGN(_PAGE_SIZE);
-   __init_end = .;
-   /* freed after init ends here */
-diff -puN arch/parisc/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/parisc/kernel/vmlinux.lds.S
---- a/arch/parisc/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/parisc/kernel/vmlinux.lds.S
-@@ -181,10 +181,9 @@ SECTIONS
-   .init.ramfs : { *(.init.ramfs) }
-   __initramfs_end = .;
- #endif
--  . = ALIGN(ASM_PAGE_SIZE);
--  __per_cpu_start = .;
--  .data.percpu  : { *(.data.percpu) }
--  __per_cpu_end = .;
-+
-+  PERCPU(ASM_PAGE_SIZE)
-+
-   . = ALIGN(ASM_PAGE_SIZE);
-   __init_end = .;
-   /* freed after init ends here */
-diff -puN arch/powerpc/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/powerpc/kernel/vmlinux.lds.S
---- a/arch/powerpc/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/powerpc/kernel/vmlinux.lds.S
-@@ -139,12 +139,7 @@ SECTIONS
- 		__initramfs_end = .;
- 	}
- #endif
--	. = ALIGN(PAGE_SIZE);
--	.data.percpu : {
--		__per_cpu_start = .;
--		*(.data.percpu)
--		__per_cpu_end = .;
--	}
-+	PERCPU(PAGE_SIZE)
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
  
- 	. = ALIGN(8);
- 	.machine.desc : {
-diff -puN arch/ppc/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/ppc/kernel/vmlinux.lds.S
---- a/arch/ppc/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/ppc/kernel/vmlinux.lds.S
-@@ -130,10 +130,7 @@ SECTIONS
-   __ftr_fixup : { *(__ftr_fixup) }
-   __stop___ftr_fixup = .;
+ /* Work to do on interrupt/exception return.  */
+-#define _TIF_WORK_MASK		(_TIF_NOTIFY_RESUME	\
+-				 | _TIF_SIGPENDING	\
++#define _TIF_WORK_MASK		(_TIF_SIGPENDING	\
+ 				 | _TIF_NEED_RESCHED)
  
--  . = ALIGN(4096);
--  __per_cpu_start = .;
--  .data.percpu  : { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(4096)
- 
- #ifdef CONFIG_BLK_DEV_INITRD
-   . = ALIGN(4096);
-diff -puN arch/s390/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/s390/kernel/vmlinux.lds.S
---- a/arch/s390/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/s390/kernel/vmlinux.lds.S
-@@ -107,10 +107,7 @@ SECTIONS
-   . = ALIGN(2);
-   __initramfs_end = .;
- #endif
--  . = ALIGN(4096);
--  __per_cpu_start = .;
--  .data.percpu  : { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(4096)
-   . = ALIGN(4096);
-   __init_end = .;
-   /* freed after init ends here */
-diff -puN arch/sh/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/sh/kernel/vmlinux.lds.S
---- a/arch/sh/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/sh/kernel/vmlinux.lds.S
-@@ -60,10 +60,7 @@ SECTIONS
-   . = ALIGN(PAGE_SIZE);
-   __nosave_end = .;
- 
--  . = ALIGN(PAGE_SIZE);
--  __per_cpu_start = .;
--  .data.percpu : { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(PAGE_SIZE)
-   .data.cacheline_aligned : { *(.data.cacheline_aligned) }
- 
-   _edata = .;			/* End of data section */
-diff -puN arch/sh64/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/sh64/kernel/vmlinux.lds.S
---- a/arch/sh64/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/sh64/kernel/vmlinux.lds.S
-@@ -85,10 +85,7 @@ SECTIONS
-   . = ALIGN(PAGE_SIZE);
-   .data.page_aligned : C_PHYS(.data.page_aligned) { *(.data.page_aligned) }
- 
--  . = ALIGN(PAGE_SIZE);
--  __per_cpu_start = .;
--  .data.percpu : C_PHYS(.data.percpu) { *(.data.percpu) }
--  __per_cpu_end = . ;
-+  PERCPU(PAGE_SIZE)
-   .data.cacheline_aligned : C_PHYS(.data.cacheline_aligned) { *(.data.cacheline_aligned) }
- 
-   _edata = .;			/* End of data section */
-diff -puN arch/sparc/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/sparc/kernel/vmlinux.lds.S
---- a/arch/sparc/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/sparc/kernel/vmlinux.lds.S
-@@ -65,10 +65,7 @@ SECTIONS
-   __initramfs_end = .;
- #endif
- 
--  . = ALIGN(4096);
--  __per_cpu_start = .;
--  .data.percpu  : { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(4096)
-   . = ALIGN(4096);
-   __init_end = .;
-   . = ALIGN(32);
-diff -puN arch/sparc64/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/sparc64/kernel/vmlinux.lds.S
---- a/arch/sparc64/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/sparc64/kernel/vmlinux.lds.S
-@@ -89,10 +89,7 @@ SECTIONS
-   __initramfs_end = .;
- #endif
- 
--  . = ALIGN(8192);
--  __per_cpu_start = .;
--  .data.percpu  : { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(8192)
-   . = ALIGN(8192);
-   __init_end = .;
-   __bss_start = .;
-diff -puN arch/x86_64/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/x86_64/kernel/vmlinux.lds.S
---- a/arch/x86_64/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/x86_64/kernel/vmlinux.lds.S
-@@ -203,10 +203,8 @@ SECTIONS
-   __initramfs_end = .;
- #endif
- 
--  . = ALIGN(4096);
--  __per_cpu_start = .;
--  .data.percpu  : AT(ADDR(.data.percpu) - LOAD_OFFSET) { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(4096)
-+
-   . = ALIGN(4096);
-   __init_end = .;
- 
-diff -puN arch/xtensa/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data arch/xtensa/kernel/vmlinux.lds.S
---- a/arch/xtensa/kernel/vmlinux.lds.S~define-new-percpu-interface-for-shared-data
-+++ a/arch/xtensa/kernel/vmlinux.lds.S
-@@ -200,10 +200,7 @@ SECTIONS
-   __ftr_fixup : { *(__ftr_fixup) }
-   __stop___ftr_fixup = .;
- 
--  . = ALIGN(4096);
--  __per_cpu_start = .;
--  .data.percpu  : { *(.data.percpu) }
--  __per_cpu_end = .;
-+  PERCPU(4096)
- 
- #ifdef CONFIG_BLK_DEV_INITRD
-   . = ALIGN(4096);
-diff -puN include/asm-generic/percpu.h~define-new-percpu-interface-for-shared-data include/asm-generic/percpu.h
---- a/include/asm-generic/percpu.h~define-new-percpu-interface-for-shared-data
-+++ a/include/asm-generic/percpu.h
-@@ -14,6 +14,11 @@ extern unsigned long __per_cpu_offset[NR
- #define DEFINE_PER_CPU(type, name) \
-     __attribute__((__section__(".data.percpu"))) __typeof__(type) per_cpu__##name
- 
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)		\
-+    __attribute__((__section__(".data.percpu.shared_aligned"))) \
-+    __typeof__(type) per_cpu__##name				\
-+    ____cacheline_aligned_in_smp
-+
- /* var is in discarded region: offset to particular copy we want */
- #define per_cpu(var, cpu) (*({				\
- 	extern int simple_identifier_##var(void);	\
-@@ -34,6 +39,9 @@ do {								\
- #define DEFINE_PER_CPU(type, name) \
-     __typeof__(type) per_cpu__##name
- 
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)	\
-+    DEFINE_PER_CPU(type, name)
-+
- #define per_cpu(var, cpu)			(*((void)(cpu), &per_cpu__##var))
- #define __get_cpu_var(var)			per_cpu__##var
- #define __raw_get_cpu_var(var)			per_cpu__##var
-diff -puN include/asm-generic/vmlinux.lds.h~define-new-percpu-interface-for-shared-data include/asm-generic/vmlinux.lds.h
---- a/include/asm-generic/vmlinux.lds.h~define-new-percpu-interface-for-shared-data
-+++ a/include/asm-generic/vmlinux.lds.h
-@@ -263,3 +263,11 @@
-   	*(.initcall7.init)						\
-   	*(.initcall7s.init)
- 
-+#define PERCPU(align)							\
-+	. = ALIGN(align);						\
-+	__per_cpu_start = .;						\
-+	.data.percpu  : AT(ADDR(.data.percpu) - LOAD_OFFSET) {		\
-+		*(.data.percpu)						\
-+		*(.data.percpu.shared_aligned)				\
-+	}								\
-+	__per_cpu_end = .;
-diff -puN include/asm-i386/percpu.h~define-new-percpu-interface-for-shared-data include/asm-i386/percpu.h
---- a/include/asm-i386/percpu.h~define-new-percpu-interface-for-shared-data
-+++ a/include/asm-i386/percpu.h
-@@ -54,6 +54,11 @@ extern unsigned long __per_cpu_offset[];
- #define DEFINE_PER_CPU(type, name) \
-     __attribute__((__section__(".data.percpu"))) __typeof__(type) per_cpu__##name
- 
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)		\
-+    __attribute__((__section__(".data.percpu.shared_aligned"))) \
-+    __typeof__(type) per_cpu__##name				\
-+    ____cacheline_aligned_in_smp
-+
- /* We can use this directly for local CPU (faster). */
- DECLARE_PER_CPU(unsigned long, this_cpu_off);
- 
-diff -puN include/asm-ia64/percpu.h~define-new-percpu-interface-for-shared-data include/asm-ia64/percpu.h
---- a/include/asm-ia64/percpu.h~define-new-percpu-interface-for-shared-data
-+++ a/include/asm-ia64/percpu.h
-@@ -29,6 +29,16 @@
- 	__attribute__((__section__(".data.percpu")))		\
- 	__SMALL_ADDR_AREA __typeof__(type) per_cpu__##name
- 
-+#ifdef CONFIG_SMP
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)			\
-+	__attribute__((__section__(".data.percpu.shared_aligned")))	\
-+	__SMALL_ADDR_AREA __typeof__(type) per_cpu__##name		\
-+	____cacheline_aligned_in_smp
-+#else
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)	\
-+	DEFINE_PER_CPU(type, name)
-+#endif
-+
+ /* Work to do on any return to userspace.  */
+diff -puN include/asm-arm26/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-arm26/thread_info.h
+--- a/include/asm-arm26/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-arm26/thread_info.h
+@@ -110,21 +110,18 @@ extern void free_thread_info(struct thre
  /*
-  * Pretty much a literal copy of asm-generic/percpu.h, except that percpu_modcopy() is an
-  * external routine, to avoid include-hell.
-diff -puN include/asm-powerpc/percpu.h~define-new-percpu-interface-for-shared-data include/asm-powerpc/percpu.h
---- a/include/asm-powerpc/percpu.h~define-new-percpu-interface-for-shared-data
-+++ a/include/asm-powerpc/percpu.h
-@@ -20,6 +20,11 @@
- #define DEFINE_PER_CPU(type, name) \
-     __attribute__((__section__(".data.percpu"))) __typeof__(type) per_cpu__##name
+  * thread information flags:
+  *  TIF_SYSCALL_TRACE	- syscall trace active
+- *  TIF_NOTIFY_RESUME	- resumption notification requested
+  *  TIF_SIGPENDING	- signal pending
+  *  TIF_NEED_RESCHED	- rescheduling necessary
+  *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
+  *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
+  */
+-#define TIF_NOTIFY_RESUME	0
+-#define TIF_SIGPENDING		1
+-#define TIF_NEED_RESCHED	2
++#define TIF_SIGPENDING		0
++#define TIF_NEED_RESCHED	1
+ #define TIF_SYSCALL_TRACE	8
+ #define TIF_USED_FPU		16
+ #define TIF_POLLING_NRFLAG	17
+ #define TIF_MEMDIE		18
  
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)		\
-+    __attribute__((__section__(".data.percpu.shared_aligned"))) \
-+    __typeof__(type) per_cpu__##name				\
-+    ____cacheline_aligned_in_smp
-+
- /* var is in discarded region: offset to particular copy we want */
- #define per_cpu(var, cpu) (*RELOC_HIDE(&per_cpu__##var, __per_cpu_offset(cpu)))
- #define __get_cpu_var(var) (*RELOC_HIDE(&per_cpu__##var, __my_cpu_offset()))
-@@ -40,6 +45,8 @@ extern void setup_per_cpu_areas(void);
+-#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+diff -puN include/asm-arm/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-arm/thread_info.h
+--- a/include/asm-arm/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-arm/thread_info.h
+@@ -135,22 +135,19 @@ extern void iwmmxt_task_switch(struct th
+ /*
+  * thread information flags:
+  *  TIF_SYSCALL_TRACE	- syscall trace active
+- *  TIF_NOTIFY_RESUME	- resumption notification requested
+  *  TIF_SIGPENDING	- signal pending
+  *  TIF_NEED_RESCHED	- rescheduling necessary
+  *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
+  *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
+  */
+-#define TIF_NOTIFY_RESUME	0
+-#define TIF_SIGPENDING		1
+-#define TIF_NEED_RESCHED	2
++#define TIF_SIGPENDING		0
++#define TIF_NEED_RESCHED	1
+ #define TIF_SYSCALL_TRACE	8
+ #define TIF_POLLING_NRFLAG	16
+ #define TIF_USING_IWMMXT	17
+ #define TIF_MEMDIE		18
+ #define TIF_FREEZE		19
  
- #define DEFINE_PER_CPU(type, name) \
-     __typeof__(type) per_cpu__##name
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)	\
-+    DEFINE_PER_CPU(type, name)
+-#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+diff -puN include/asm-avr32/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-avr32/thread_info.h
+--- a/include/asm-avr32/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-avr32/thread_info.h
+@@ -74,20 +74,18 @@ static inline struct thread_info *curren
+  * - other flags in MSW
+  */
+ #define TIF_SYSCALL_TRACE       0       /* syscall trace active */
+-#define TIF_NOTIFY_RESUME       1       /* resumption notification requested */
+-#define TIF_SIGPENDING          2       /* signal pending */
+-#define TIF_NEED_RESCHED        3       /* rescheduling necessary */
+-#define TIF_POLLING_NRFLAG      4       /* true if poll_idle() is polling
++#define TIF_SIGPENDING          1       /* signal pending */
++#define TIF_NEED_RESCHED        2       /* rescheduling necessary */
++#define TIF_POLLING_NRFLAG      3       /* true if poll_idle() is polling
+ 					   TIF_NEED_RESCHED */
+-#define TIF_BREAKPOINT		5	/* true if we should break after return */
+-#define TIF_SINGLE_STEP		6	/* single step after next break */
+-#define TIF_MEMDIE		7
+-#define TIF_RESTORE_SIGMASK	8	/* restore signal mask in do_signal */
+-#define TIF_CPU_GOING_TO_SLEEP	9	/* CPU is entering sleep 0 mode */
++#define TIF_BREAKPOINT		4	/* true if we should break after return */
++#define TIF_SINGLE_STEP		5	/* single step after next break */
++#define TIF_MEMDIE		6
++#define TIF_RESTORE_SIGMASK	7	/* restore signal mask in do_signal */
++#define TIF_CPU_GOING_TO_SLEEP	8	/* CPU is entering sleep 0 mode */
+ #define TIF_USERSPACE		31      /* true if FS sets userspace */
  
- #define per_cpu(var, cpu)			(*((void)(cpu), &per_cpu__##var))
- #define __get_cpu_var(var)			per_cpu__##var
-diff -puN include/asm-s390/percpu.h~define-new-percpu-interface-for-shared-data include/asm-s390/percpu.h
---- a/include/asm-s390/percpu.h~define-new-percpu-interface-for-shared-data
-+++ a/include/asm-s390/percpu.h
-@@ -41,6 +41,11 @@ extern unsigned long __per_cpu_offset[NR
-     __attribute__((__section__(".data.percpu"))) \
-     __typeof__(type) per_cpu__##name
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+ #define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
+diff -puN include/asm-blackfin/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-blackfin/thread_info.h
+--- a/include/asm-blackfin/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-blackfin/thread_info.h
+@@ -118,18 +118,16 @@ static inline struct thread_info *curren
+  * thread information flag bit numbers
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling
+ 					   TIF_NEED_RESCHED */
+-#define TIF_MEMDIE              5
+-#define TIF_RESTORE_SIGMASK	6	/* restore signal mask in do_signal() */
+-#define TIF_FREEZE              7       /* is freezing for suspend */
++#define TIF_MEMDIE              4
++#define TIF_RESTORE_SIGMASK	5	/* restore signal mask in do_signal() */
++#define TIF_FREEZE              6       /* is freezing for suspend */
  
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)		\
-+    __attribute__((__section__(".data.percpu.shared_aligned"))) \
-+    __typeof__(type) per_cpu__##name				\
-+    ____cacheline_aligned_in_smp
-+
- #define __get_cpu_var(var) __reloc_hide(var,S390_lowcore.percpu_offset)
- #define __raw_get_cpu_var(var) __reloc_hide(var,S390_lowcore.percpu_offset)
- #define per_cpu(var,cpu) __reloc_hide(var,__per_cpu_offset[cpu])
-@@ -59,6 +64,8 @@ do {								\
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
+diff -puN include/asm-cris/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-cris/thread_info.h
+--- a/include/asm-cris/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-cris/thread_info.h
+@@ -79,14 +79,12 @@ struct thread_info {
+  * - other flags in MSW
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
+ #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		17
  
- #define DEFINE_PER_CPU(type, name) \
-     __typeof__(type) per_cpu__##name
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)	\
-+    DEFINE_PER_CPU(type, name)
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
+diff -puN include/asm-frv/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-frv/thread_info.h
+--- a/include/asm-frv/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-frv/thread_info.h
+@@ -108,18 +108,16 @@ register struct thread_info *__current_t
+  * - other flags in MSW
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
+-#define TIF_IRET		5	/* return with iret */
+-#define TIF_RESTORE_SIGMASK	6	/* restore signal mask in do_signal() */
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_SINGLESTEP		3	/* restore singlestep on return to user mode */
++#define TIF_IRET		4	/* return with iret */
++#define TIF_RESTORE_SIGMASK	5	/* restore signal mask in do_signal() */
+ #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		17	/* OOM killer killed process */
+ #define TIF_FREEZE		18	/* freezing for suspend */
  
- #define __get_cpu_var(var) __reloc_hide(var,0)
- #define __raw_get_cpu_var(var) __reloc_hide(var,0)
-diff -puN include/asm-sparc64/percpu.h~define-new-percpu-interface-for-shared-data include/asm-sparc64/percpu.h
---- a/include/asm-sparc64/percpu.h~define-new-percpu-interface-for-shared-data
-+++ a/include/asm-sparc64/percpu.h
-@@ -17,6 +17,11 @@ extern unsigned long __per_cpu_shift;
- #define DEFINE_PER_CPU(type, name) \
-     __attribute__((__section__(".data.percpu"))) __typeof__(type) per_cpu__##name
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+ #define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
+diff -puN include/asm-h8300/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-h8300/thread_info.h
+--- a/include/asm-h8300/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-h8300/thread_info.h
+@@ -86,16 +86,14 @@ static inline struct thread_info *curren
+  * thread information flag bit numbers
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling
+ 					   TIF_NEED_RESCHED */
+-#define TIF_MEMDIE		5
++#define TIF_MEMDIE		4
  
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)		\
-+    __attribute__((__section__(".data.percpu.shared_aligned"))) \
-+    __typeof__(type) per_cpu__##name				\
-+    ____cacheline_aligned_in_smp
-+
- register unsigned long __local_per_cpu_offset asm("g5");
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
+diff -puN include/asm-i386/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-i386/thread_info.h
+--- a/include/asm-i386/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-i386/thread_info.h
+@@ -124,22 +124,20 @@ static inline struct thread_info *curren
+  * - other flags in MSW
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
+-#define TIF_IRET		5	/* return with iret */
+-#define TIF_SYSCALL_EMU		6	/* syscall emulation active */
+-#define TIF_SYSCALL_AUDIT	7	/* syscall auditing active */
+-#define TIF_SECCOMP		8	/* secure computing */
+-#define TIF_RESTORE_SIGMASK	9	/* restore signal mask in do_signal() */
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_SINGLESTEP		3	/* restore singlestep on return to user mode */
++#define TIF_IRET		4	/* return with iret */
++#define TIF_SYSCALL_EMU		5	/* syscall emulation active */
++#define TIF_SYSCALL_AUDIT	6	/* syscall auditing active */
++#define TIF_SECCOMP		7	/* secure computing */
++#define TIF_RESTORE_SIGMASK	8	/* restore signal mask in do_signal() */
+ #define TIF_MEMDIE		16
+ #define TIF_DEBUG		17	/* uses debug registers */
+ #define TIF_IO_BITMAP		18	/* uses I/O bitmap */
+ #define TIF_FREEZE		19	/* is freezing for suspend */
  
- /* var is in discarded region: offset to particular copy we want */
-@@ -36,6 +41,8 @@ do {								\
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
+diff -puN include/asm-ia64/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-ia64/thread_info.h
+--- a/include/asm-ia64/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-ia64/thread_info.h
+@@ -79,13 +79,13 @@ struct thread_info {
+  * - pending work-to-be-done flags are in least-significant 16 bits, other flags
+  *   in top 16 bits
+  */
+-#define TIF_NOTIFY_RESUME	0	/* resumption notification requested */
+-#define TIF_SIGPENDING		1	/* signal pending */
+-#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
+-#define TIF_SYSCALL_TRACE	3	/* syscall trace active */
+-#define TIF_SYSCALL_AUDIT	4	/* syscall auditing active */
+-#define TIF_SINGLESTEP		5	/* restore singlestep on return to user mode */
+-#define TIF_RESTORE_SIGMASK	6	/* restore signal mask in do_signal() */
++#define TIF_SIGPENDING		0	/* signal pending */
++#define TIF_NEED_RESCHED	1	/* rescheduling necessary */
++#define TIF_SYSCALL_TRACE	2	/* syscall trace active */
++#define TIF_SYSCALL_AUDIT	3	/* syscall auditing active */
++#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
++#define TIF_RESTORE_SIGMASK	5	/* restore signal mask in do_signal() */
++#define TIF_PERFMON_WORK	6	/* work for pfm_handle_work() */
+ #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		17
+ #define TIF_MCA_INIT		18	/* this task is processing MCA or INIT */
+@@ -96,8 +96,8 @@ struct thread_info {
+ #define _TIF_SYSCALL_AUDIT	(1 << TIF_SYSCALL_AUDIT)
+ #define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
+ #define _TIF_SYSCALL_TRACEAUDIT	(_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT|_TIF_SINGLESTEP)
+-#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+ #define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
++#define _TIF_PERFMON_WORK	(1 << TIF_PERFMON_WORK)
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+ #define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
+@@ -106,7 +106,9 @@ struct thread_info {
+ #define _TIF_FREEZE		(1 << TIF_FREEZE)
  
- #define DEFINE_PER_CPU(type, name) \
-     __typeof__(type) per_cpu__##name
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)	\
-+    DEFINE_PER_CPU(type, name)
+ /* "work to do on user-return" bits */
+-#define TIF_ALLWORK_MASK	(_TIF_NOTIFY_RESUME|_TIF_SIGPENDING|_TIF_NEED_RESCHED|_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT|_TIF_RESTORE_SIGMASK)
++#define TIF_ALLWORK_MASK	(_TIF_SIGPENDING|_TIF_PERFMON_WORK|_TIF_SYSCALL_AUDIT|\
++				 _TIF_NEED_RESCHED| _TIF_SYSCALL_TRACE|\
++				 _TIF_RESTORE_SIGMASK)
+ /* like TIF_ALLWORK_BITS but sans TIF_SYSCALL_TRACE or TIF_SYSCALL_AUDIT */
+ #define TIF_WORK_MASK		(TIF_ALLWORK_MASK&~(_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT))
  
- #define per_cpu(var, cpu)			(*((void)cpu, &per_cpu__##var))
- #define __get_cpu_var(var)			per_cpu__##var
-diff -puN include/asm-x86_64/percpu.h~define-new-percpu-interface-for-shared-data include/asm-x86_64/percpu.h
---- a/include/asm-x86_64/percpu.h~define-new-percpu-interface-for-shared-data
-+++ a/include/asm-x86_64/percpu.h
-@@ -20,6 +20,11 @@
- #define DEFINE_PER_CPU(type, name) \
-     __attribute__((__section__(".data.percpu"))) __typeof__(type) per_cpu__##name
+diff -puN include/asm-m32r/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-m32r/thread_info.h
+--- a/include/asm-m32r/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-m32r/thread_info.h
+@@ -146,17 +146,15 @@ static inline unsigned int get_thread_fa
+  * - other flags in MSW
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
+-#define TIF_IRET		5	/* return with iret */
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_SINGLESTEP		3	/* restore singlestep on return to user mode */
++#define TIF_IRET		4	/* return with iret */
+ #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+ 					/* 31..28 fault code */
+ #define TIF_MEMDIE		17
  
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)		\
-+    __attribute__((__section__(".data.percpu.shared_aligned"))) \
-+    __typeof__(type) per_cpu__##name				\
-+    ____cacheline_internodealigned_in_smp
-+
- /* var is in discarded region: offset to particular copy we want */
- #define per_cpu(var, cpu) (*({				\
- 	extern int simple_identifier_##var(void);	\
-@@ -46,6 +51,8 @@ extern void setup_per_cpu_areas(void);
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
+diff -puN include/asm-m68knommu/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-m68knommu/thread_info.h
+--- a/include/asm-m68knommu/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-m68knommu/thread_info.h
+@@ -83,16 +83,14 @@ static inline struct thread_info *curren
+  * thread information flag bit numbers
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling
+ 					   TIF_NEED_RESCHED */
+-#define TIF_MEMDIE		5
++#define TIF_MEMDIE		4
  
- #define DEFINE_PER_CPU(type, name) \
-     __typeof__(type) per_cpu__##name
-+#define DEFINE_PER_CPU_SHARED_ALIGNED(type, name)	\
-+    DEFINE_PER_CPU(type, name)
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
+diff -puN include/asm-mips/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-mips/thread_info.h
+--- a/include/asm-mips/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-mips/thread_info.h
+@@ -109,11 +109,10 @@ register struct thread_info *__current_t
+  * - pending work-to-be-done flags are in LSW
+  * - other flags in MSW
+  */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_SYSCALL_AUDIT	4	/* syscall auditing active */
+-#define TIF_SECCOMP		5	/* secure computing */
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_SYSCALL_AUDIT	3	/* syscall auditing active */
++#define TIF_SECCOMP		4	/* secure computing */
+ #define TIF_RESTORE_SIGMASK	9	/* restore signal mask in do_signal() */
+ #define TIF_USEDFPU		16	/* FPU was used by this task this quantum (SMP) */
+ #define TIF_POLLING_NRFLAG	17	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+@@ -122,7 +121,6 @@ register struct thread_info *__current_t
+ #define TIF_SYSCALL_TRACE	31	/* syscall trace active */
  
- #define per_cpu(var, cpu)			(*((void)(cpu), &per_cpu__##var))
- #define __get_cpu_var(var)			per_cpu__##var
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_SYSCALL_AUDIT	(1<<TIF_SYSCALL_AUDIT)
+diff -puN include/asm-parisc/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-parisc/thread_info.h
+--- a/include/asm-parisc/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-parisc/thread_info.h
+@@ -56,23 +56,21 @@ struct thread_info {
+  * thread information flags
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+-#define TIF_32BIT               5       /* 32 bit binary */
+-#define TIF_MEMDIE		6
+-#define TIF_RESTORE_SIGMASK	7	/* restore saved signal mask */
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling TIF_NEED_RESCHED */
++#define TIF_32BIT               4       /* 32 bit binary */
++#define TIF_MEMDIE		5
++#define TIF_RESTORE_SIGMASK	6	/* restore saved signal mask */
+ 
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+ #define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
+ #define _TIF_32BIT		(1 << TIF_32BIT)
+ #define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
+ 
+-#define _TIF_USER_WORK_MASK     (_TIF_NOTIFY_RESUME | _TIF_SIGPENDING | \
++#define _TIF_USER_WORK_MASK     (_TIF_SIGPENDING | \
+                                  _TIF_NEED_RESCHED | _TIF_RESTORE_SIGMASK)
+ 
+ #endif /* __KERNEL__ */
+diff -puN include/asm-powerpc/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-powerpc/thread_info.h
+--- a/include/asm-powerpc/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-powerpc/thread_info.h
+@@ -107,26 +107,24 @@ static inline struct thread_info *curren
+  * thread information flag bit numbers
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling
+ 					   TIF_NEED_RESCHED */
+-#define TIF_32BIT		5	/* 32 bit binary */
+-#define TIF_RUNLATCH		6	/* Is the runlatch enabled? */
+-#define TIF_ABI_PENDING		7	/* 32/64 bit switch needed */
+-#define TIF_SYSCALL_AUDIT	8	/* syscall auditing active */
+-#define TIF_SINGLESTEP		9	/* singlestepping active */
+-#define TIF_MEMDIE		10
+-#define TIF_SECCOMP		11	/* secure computing */
+-#define TIF_RESTOREALL		12	/* Restore all regs (implies NOERROR) */
++#define TIF_32BIT		4	/* 32 bit binary */
++#define TIF_RUNLATCH		5	/* Is the runlatch enabled? */
++#define TIF_ABI_PENDING		6	/* 32/64 bit switch needed */
++#define TIF_SYSCALL_AUDIT	7	/* syscall auditing active */
++#define TIF_SINGLESTEP		8	/* singlestepping active */
++#define TIF_MEMDIE		9
++#define TIF_SECCOMP		10	/* secure computing */
++#define TIF_RESTOREALL		11	/* Restore all regs (implies NOERROR) */
+ #define TIF_NOERROR		14	/* Force successful syscall return */
+ #define TIF_RESTORE_SIGMASK	15	/* Restore signal mask in do_signal */
+ #define TIF_FREEZE		16	/* Freezing for suspend */
+ 
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
+@@ -142,7 +140,7 @@ static inline struct thread_info *curren
+ #define _TIF_FREEZE		(1<<TIF_FREEZE)
+ #define _TIF_SYSCALL_T_OR_A	(_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT|_TIF_SECCOMP)
+ 
+-#define _TIF_USER_WORK_MASK	(_TIF_NOTIFY_RESUME | _TIF_SIGPENDING | \
++#define _TIF_USER_WORK_MASK	( _TIF_SIGPENDING | \
+ 				 _TIF_NEED_RESCHED | _TIF_RESTORE_SIGMASK)
+ #define _TIF_PERSYSCALL_MASK	(_TIF_RESTOREALL|_TIF_NOERROR)
+ 
+diff -puN include/asm-sh/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-sh/thread_info.h
+--- a/include/asm-sh/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-sh/thread_info.h
+@@ -107,18 +107,16 @@ static inline struct thread_info *curren
+  * - other flags in MSW
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_RESTORE_SIGMASK	4	/* restore signal mask in do_signal() */
+-#define TIF_SINGLESTEP		5	/* singlestepping active */
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_RESTORE_SIGMASK	3	/* restore signal mask in do_signal() */
++#define TIF_SINGLESTEP		4	/* singlestepping active */
+ #define TIF_USEDFPU		16	/* FPU was used by this task this quantum (SMP) */
+ #define TIF_POLLING_NRFLAG	17	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		18
+ #define TIF_FREEZE		19
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_RESTORE_SIGMASK	(1<<TIF_RESTORE_SIGMASK)
+diff -puN include/asm-v850/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-v850/thread_info.h
+--- a/include/asm-v850/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-v850/thread_info.h
+@@ -77,16 +77,14 @@ struct thread_info {
+  * thread information flag bit numbers
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling
+ 					   TIF_NEED_RESCHED */
+-#define TIF_MEMDIE		5
++#define TIF_MEMDIE		4
+ 
+ /* as above, but as bit values */
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
+diff -puN include/asm-x86_64/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-x86_64/thread_info.h
+--- a/include/asm-x86_64/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-x86_64/thread_info.h
+@@ -107,7 +107,6 @@ static inline struct thread_info *stack_
+  * Warning: layout of LSW is hardcoded in entry.S
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+ #define TIF_SIGPENDING		2	/* signal pending */
+ #define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+ #define TIF_SINGLESTEP		4	/* reenable singlestep on user return*/
+@@ -126,7 +125,6 @@ static inline struct thread_info *stack_
+ #define TIF_FREEZE		23	/* is freezing for suspend */
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+diff -puN include/asm-xtensa/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-xtensa/thread_info.h
+--- a/include/asm-xtensa/thread_info.h~remove-unused-tif_notify_resume-flag
++++ a/include/asm-xtensa/thread_info.h
+@@ -110,16 +110,14 @@ static inline struct thread_info *curren
+  * - other flags in MSW
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+-#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
+-#define TIF_SIGPENDING		2	/* signal pending */
+-#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+-#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
+-#define TIF_IRET		5	/* return with iret */
+-#define TIF_MEMDIE		6
++#define TIF_SIGPENDING		1	/* signal pending */
++#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
++#define TIF_SINGLESTEP		3	/* restore singlestep on return to user mode */
++#define TIF_IRET		4	/* return with iret */
++#define TIF_MEMDIE		5
+ #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
+ 
+ #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
+-#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
+ #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
+ #define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
 _
 
-Patches currently in -mm which might be from fenghua.yu@intel.com are
+Patches currently in -mm which might be from eranian@hpl.hp.com are
 
-define-new-percpu-interface-for-shared-data.patch
-use-the-new-percpu-interface-for-shared-data.patch
+git-ia64.patch
+remove-unused-tif_notify_resume-flag.patch
 
