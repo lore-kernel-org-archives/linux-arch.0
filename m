@@ -1,28 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:59033
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1754538AbXEWEQV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 May 2007 00:16:21 -0400
-Date: Tue, 22 May 2007 21:16:24 -0700 (PDT)
-Message-Id: <20070522.211624.102772043.davem@davemloft.net>
-Subject: Re: [PATCH 0/8] Sparsemem Virtual Memmap V4
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <exportbomb.1179873917@pinky>
-References: <exportbomb.1179873917@pinky>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:47793 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756044AbXEWFMR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 May 2007 01:12:17 -0400
+Date: Tue, 22 May 2007 22:12:15 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH 5/8] IA64: SPARSEMEM_VMEMMAP 16K page size support
+In-Reply-To: <E1HqdLD-0003fb-PF@hellhawk.shadowen.org>
+Message-ID: <Pine.LNX.4.64.0705222209250.3180@schroedinger.engr.sgi.com>
+References: <exportbomb.1179873917@pinky> <E1HqdLD-0003fb-PF@hellhawk.shadowen.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: apw@shadowen.org
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, npiggin@suse.de, clameter@sgi.com, mel@csn.ul.ie
+To: Andy Whitcroft <apw@shadowen.org>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Andy Whitcroft <apw@shadowen.org>
-Date: Tue, 22 May 2007 23:57:55 +0100
-
-> This stack is against v2.6.22-rc1-mm1.  It has been compile, boot
-> and lightly tested on x86_64, ia64 and PPC64.  Sparc64 as been
-> compiled but not booted.
-
-Sparc64 boot tested successfully on Niagara t1000 with 26 cpus.
+Works fine as is with patch on top of 2.6.22-rc2 here...
