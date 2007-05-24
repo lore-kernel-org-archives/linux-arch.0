@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:40883 "EHLO pasmtpA.tele.dk"
+Received: from pasmtpa.tele.dk ([80.160.77.114]:41121 "EHLO pasmtpA.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750809AbXEXUNo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 May 2007 16:13:44 -0400
-Date: Thu, 24 May 2007 22:14:44 +0200
+	id S1750816AbXEXUOn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 24 May 2007 16:14:43 -0400
+Date: Thu, 24 May 2007 22:15:42 +0200
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH/RFC 4/5] asm-generic: add INITRAMFS to vmlinux.lds.h
-Message-ID: <20070524201444.GF1109@uranus.ravnborg.org>
+Subject: [PATCH/RFC 5/5] sparc64: use INITRAMFS in vmlinux.lds.h
+Message-ID: <20070524201542.GG1109@uranus.ravnborg.org>
 References: <20070524200440.GA1109@uranus.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -16,45 +16,31 @@ Sender: linux-arch-owner@vger.kernel.org
 To: David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Add the definition of initramfs to vmlinux.lds.h
-This simplifies arch lds script a bit.
-
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
 ---
+ arch/sparc64/kernel/vmlinux.lds.S |    9 +--------
+ 1 files changed, 1 insertions(+), 8 deletions(-)
 
-Is these 8 lines really worth it.
-I think yes - but no less than this.
-
-	Sam
-
-
- include/asm-generic/vmlinux.lds.h |   13 +++++++++++++
- 1 files changed, 13 insertions(+), 0 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 5388c41..0e3d2eb 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -140,6 +140,19 @@
- /* for backward compatibility */
- #define RODATA RO_DATA(4096)
+diff --git a/arch/sparc64/kernel/vmlinux.lds.S b/arch/sparc64/kernel/vmlinux.lds.S
+index 8559d07..2d6fb93 100644
+--- a/arch/sparc64/kernel/vmlinux.lds.S
++++ b/arch/sparc64/kernel/vmlinux.lds.S
+@@ -117,14 +117,7 @@ SECTIONS
+ 	}
+ 	__sun4v_2insn_patch_end = .;
  
-+/* INITRAMFS is used to hold the filesystem used during early boot. */
-+#ifdef CONFIG_BLK_DEV_INITRD
-+#define INITRAMFS(align)						\
-+	. = ALIGN((align));						\
-+	.init.ramfs : AT(ADDR(.init.ramfs) - LOAD_OFFSET) {		\
-+	VMLINUX_SYMBOL(__initramfs_start) = .;				\
-+		*(.init.ramfs)						\
-+	VMLINUX_SYMBOL(__initramfs_end) = .;				\
-+	}
-+#else
-+#define INITRAMFS(align)
-+#endif
-+
- #define SECURITY_INIT							\
- 	.security_initcall.init : AT(ADDR(.security_initcall.init) - LOAD_OFFSET) { \
- 		VMLINUX_SYMBOL(__security_initcall_start) = .;		\
+-#ifdef CONFIG_BLK_DEV_INITRD
+-	. = ALIGN(PAGE_SIZE);
+-	__initramfs_start = .;
+-	.init.ramfs : {
+-		*(.init.ramfs)
+-	}
+-	__initramfs_end = .;
+-#endif
++	INITRAMFS(PAGE_SIZE)
+ 
+ 	. = ALIGN(PAGE_SIZE);
+ 	__per_cpu_start = .;
 -- 
 1.5.1.rc3.20.gaa453
 
