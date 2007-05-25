@@ -1,46 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:41121 "EHLO pasmtpA.tele.dk"
+Received: from mga03.intel.com ([143.182.124.21]:55119 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750816AbXEXUOn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 May 2007 16:14:43 -0400
-Date: Thu, 24 May 2007 22:15:42 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH/RFC 5/5] sparc64: use INITRAMFS in vmlinux.lds.h
-Message-ID: <20070524201542.GG1109@uranus.ravnborg.org>
-References: <20070524200440.GA1109@uranus.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070524200440.GA1109@uranus.ravnborg.org>
+	id S1764044AbXEYSsS convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 May 2007 14:48:18 -0400
+Content-class: urn:content-classes:message
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: RE: [patch] removes MAX_ARG_PAGES
+Date: Fri, 25 May 2007 11:48:09 -0700
+Message-ID: <617E1C2C70743745A92448908E030B2A018B17DE@scsmsx411.amr.corp.intel.com>
+In-Reply-To: <1180020019.7019.133.camel@twins>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Ollie Wild <aaw@google.com>, linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
----
- arch/sparc64/kernel/vmlinux.lds.S |    9 +--------
- 1 files changed, 1 insertions(+), 8 deletions(-)
+> I just tried this on an Altix from the test lab, and ia32 bash just
+> started.
 
-diff --git a/arch/sparc64/kernel/vmlinux.lds.S b/arch/sparc64/kernel/vmlinux.lds.S
-index 8559d07..2d6fb93 100644
---- a/arch/sparc64/kernel/vmlinux.lds.S
-+++ b/arch/sparc64/kernel/vmlinux.lds.S
-@@ -117,14 +117,7 @@ SECTIONS
- 	}
- 	__sun4v_2insn_patch_end = .;
- 
--#ifdef CONFIG_BLK_DEV_INITRD
--	. = ALIGN(PAGE_SIZE);
--	__initramfs_start = .;
--	.init.ramfs : {
--		*(.init.ramfs)
--	}
--	__initramfs_end = .;
--#endif
-+	INITRAMFS(PAGE_SIZE)
- 
- 	. = ALIGN(PAGE_SIZE);
- 	__per_cpu_start = .;
--- 
-1.5.1.rc3.20.gaa453
+I don't have any native x86 binaries on my Madison-based testbox, so my
+test case was to compile a simple program that counted total length of
+argument strings on an x86 box, and copy it to my ia64 box.  So that I
+wouldn't have to copy over a bunch of libraries too, I compiled it
+with -static.  This is the test case that "hung" my system (re-running
+it today from /dev/tty1 instead of from an xterm, I see that it actually
+oopsed in rb_next()).  I wasn't even running with a long arglist.  Just
+"*" for my home directory (19 files/directories = ~170 bytes).
 
+-Tony
+
+My test program.  Compile on ia32 box with "cc -static -o args args.c"
+
+---- begin args.c ----
+main(int argc, char **argv)
+{
+	int n;
+
+	printf("argc = %d\n", argc);
+
+	n = 0;
+	while (--argc)
+		n += strlen(*++argv);
+
+	printf("bytes = %d\n", n);
+}
