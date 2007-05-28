@@ -1,65 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hancock.steeleye.com ([71.30.118.248]:43109 "EHLO
+Received: from hancock.steeleye.com ([71.30.118.248]:37998 "EHLO
 	hancock.sc.steeleye.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753305AbXE1AAe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 May 2007 20:00:34 -0400
+	with ESMTP id S1751360AbXE1Ab3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 May 2007 20:31:29 -0400
 Subject: Re: [CFT] read+shared mmap write+read data corruption
 From: James Bottomley <James.Bottomley@steeleye.com>
-In-Reply-To: <20070527222408.GA26268@xi.wantstofly.org>
+In-Reply-To: <20070527.160551.59654871.davem@davemloft.net>
 References: <20070527104930.GB25023@flint.arm.linux.org.uk>
-	 <20070527222408.GA26268@xi.wantstofly.org>
+	 <1180275384.3711.12.camel@mulgrave.il.steeleye.com>
+	 <20070527.160551.59654871.davem@davemloft.net>
 Content-Type: text/plain
-Date: Sun, 27 May 2007 19:00:31 -0500
-Message-Id: <1180310431.3711.27.camel@mulgrave.il.steeleye.com>
+Date: Sun, 27 May 2007 19:31:27 -0500
+Message-Id: <1180312287.3711.32.camel@mulgrave.il.steeleye.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Lennert Buytenhek <buytenh@wantstofly.org>
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, davej@codemonkey.org.uk
+To: David Miller <davem@davemloft.net>
+Cc: rmk@arm.linux.org.uk, linux-arch@vger.kernel.org, buytenh@wantstofly.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2007-05-28 at 00:24 +0200, Lennert Buytenhek wrote:
-> On Sun, May 27, 2007 at 11:49:30AM +0100, Russell King wrote:
+On Sun, 2007-05-27 at 16:05 -0700, David Miller wrote:
+> From: James Bottomley <James.Bottomley@SteelEye.com>
+> Date: Sun, 27 May 2007 09:16:24 -0500
 > 
-> > So, if you have a cache which needs a flush_dcache_page()
-> > implementation, can you please grab:
+> > On Sun, 2007-05-27 at 11:49 +0100, Russell King wrote:
+> > > So, if you have a cache which needs a flush_dcache_page() implementation,
+> > > can you please grab:
+> > > 
+> > >   http://www.wantstofly.org/~buytenh/cache-issue.c
+> > > 
+> > > Build this, and then run:
+> > > 
+> > > $ ./cache-issue | od -t x1 -Ax
+> > > 
+> > > If the output is a load of zero bytes instead of "0123456789abcdef" then
+> > > the read after a shared mmap() write returned stale data.
+> > > 
+> > > Note: this program is much more likely to show the issue than fsx-linux -
+> > > on my platforms, fsx-linux doesn't show any problems after several minutes
+> > > of running, whereas Lennert's program shows a problem immediately.
+> > > 
+> > > Also note that our msync() syscall is a no-op; my original test was with
+> > > a version of the above with msync(MS_INVALIDATE) in.
 > > 
-> >   http://www.wantstofly.org/~buytenh/cache-issue.c
+> > Regardless of how we implement it, the way I read POSIX, it does require
+> > at least msync(x, 4096, MS_SYNC|MS_INVALIDATE) before accessing the data
+> > in another way.
 > 
-> Davide Libenzi pointed out that there is an error in this program,
-> in that it doesn't lseek() back to the beginning of the file, so it
-> ends up reading bytes 16-31 instead.  *blush*
-
-Ah ... that explains why making the flush_dcache_page() unconditional
-didn't fix the problem ...
-
-> The program below accurately (AFAICT) reflects what fsx-linux does
-> just before it dies in this testcase.  It write(2)s to a file, reads
-> from the file via an mmap() region, read(2)s from the file, writes
-> to the file via an mmap() region, and finally, read(2)s from the file
-> again.  The last read(2) call returns the data written by the first
-> write(2) call, and doesn't see the data written by the mmap() write,
-> and so the last line of output is firstfirstfirst instead of the
-> expected secondsecondsec.
+> I used to have code in flush_cache_range() on sparc64 that would
+> have handled this case.
 > 
-> fsx-linux does call msync(), but it calls it with a third argument
-> of zero.  Changing the third msync() argument from 0 to MS_SYNC seems
-> to make the issue disappear, which makes me suspect that fsx-linux's
-> calling msync(pointer, size, 0); isn't guaranteed to be doing what it
-> expects it to be doing.
+> I think whatever in the world POSIX says, quality of implementation
+> says we should not be returning zeros in this test program, yet we
+> are. :-)
+
+I wasn't advocating ... merely point out that POSIX gives us a get out
+of jail free card.
+
+> If we accept the msync() requirement (I don't think we should) then
+> this is the kind of obscure thing that causes application programmers
+> to scratch their heads for days if not weeks, and it will only anger
+> and frustrate them further when we tell them they have to stick an
+> msync() in there to see non-corrupt data.
 > 
-> If it _is_ in fact a bug in fsx, it would seem that most of the 2615
-> fsx versions out there are affected.
+> Perhaps one way to catch this is to make the filemap read-page code
+> unconditionally call a new interface "check_dcache_page()" or similar,
+> instead of the guarded flush_dcache_page() call there now.
+> 
+> Then on unmap's of SHARED+WRITABLE mappings of files, we mark
+> or flush dirty pages as is appropriate for however the platform
+> handles D-cache aliasing.
+> 
+> On sparc64 for example, I'd set PG_arch_1 and record the cpu in
+> page->flags if PG_arch_1 wasn't already set, else I'd flush.
+> 
+> Then I'd have check_dcache_page() do something like:
+> 
+> 	if (PG_arch_1 || shared_writable_mappings_exist)
+> 		flush();
 
-Ok, output on parisc is:
-
-jejb@ioz:~$ ./a.out
-firstfirstfirst
-firstfirstfirst
-secondsecondsec
-
-Which is correct.  It remains correct even if I drop the msync().
+Actually, I'm not convinced we have a problem ... if I put an lseek back
+to zero in the original program, it works on parisc as well.  On munmap
+we do a flush_cache_range for the unmapped vmas ... we have to,
+otherwise the data might be lost as the user mapping is zapped and we
+wouldn't be able to guarantee coherency writing it to the backing store.
 
 James
+
+
 
 
