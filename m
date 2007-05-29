@@ -1,68 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:58796
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:58810
 	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1750888AbXE2F6d (ORCPT
+	by vger.kernel.org with ESMTP id S1750950AbXE2F64 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 May 2007 01:58:33 -0400
-Date: Mon, 28 May 2007 22:58:44 -0700 (PDT)
-Message-Id: <20070528.225844.59466719.davem@davemloft.net>
+	Tue, 29 May 2007 01:58:56 -0400
+Date: Mon, 28 May 2007 22:35:50 -0700 (PDT)
+Message-Id: <20070528.223550.39158516.davem@davemloft.net>
 Subject: Re: [CFT] read+shared mmap write+read data corruption
 From: David Miller <davem@davemloft.net>
-In-Reply-To: <20070528143936.GF31933@xi.wantstofly.org>
-References: <20070528100513.GC26046@flint.arm.linux.org.uk>
-	<1180361875.3689.3.camel@mulgrave.il.steeleye.com>
-	<20070528143936.GF31933@xi.wantstofly.org>
+In-Reply-To: <20070528124411.GA31764@xi.wantstofly.org>
+References: <20070527.160551.59654871.davem@davemloft.net>
+	<1180312287.3711.32.camel@mulgrave.il.steeleye.com>
+	<20070528124411.GA31764@xi.wantstofly.org>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: buytenh@wantstofly.org
-Cc: James.Bottomley@steeleye.com, rmk@arm.linux.org.uk, linux-arch@vger.kernel.org, akpm@linux-foundation.org, davej@codemonkey.org.uk
+Cc: James.Bottomley@steeleye.com, rmk@arm.linux.org.uk, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
 From: Lennert Buytenhek <buytenh@wantstofly.org>
-Date: Mon, 28 May 2007 16:39:36 +0200
+Date: Mon, 28 May 2007 14:44:11 +0200
 
-> On Mon, May 28, 2007 at 09:17:55AM -0500, James Bottomley wrote:
+> On Sun, May 27, 2007 at 07:31:27PM -0500, James Bottomley wrote:
 > 
-> > > > Ok, output on parisc is:
-> > > > 
-> > > > jejb@ioz:~$ ./a.out
-> > > > firstfirstfirst
-> > > > firstfirstfirst
-> > > > secondsecondsec
-> > > > 
-> > > > Which is correct.  It remains correct even if I drop the msync().
-> > > 
-> > > With Lennert's new program, I get mostly:
-> > > 
-> > > firstfirstfirst
-> > > firstfirstfirst
-> > > firstfirstfirst
-> > > 
-> > > but occasionally:
-> > > 
-> > > firstfirstfirst
-> > > firstfirstfirst
-> > > secondsecondsec
-> > > 
-> > > However, if I open code the memcpy() in the MAPREAD to copy one word
-> > > at a time, then I reliably get the "secondsecondsec" line.  But if I
-> > > convert the memcpy() in MAPWRITE in the same way, I'm back to mostly
-> > > getting the failure with the occasional success.  Utterly confused.
-> > > 
-> > > Unless someone's got a theory, I'm stumped.
-> > 
-> > I think you're not flushing correctly in munmap() ... but I'm not sure
-> > the linux API actually requires this.
+> > On munmap we do a flush_cache_range for the unmapped vmas ... we
+> > have to, otherwise the data might be lost as the user mapping is
+> > zapped and we wouldn't be able to guarantee coherency writing it
+> > to the backing store.
 > 
-> Having to (conditionally) invalidate the kernel direct mapping for
-> every userland page we unmap would kind of suck..
+> As far as I understand it, the munmap() does flush out the copy of
+> the data at the user virtual address, but the subsequent read() call
+> reads from an address in the kernel direct mapped window, for which
+> there is still data in the cache due to the earlier read() syscall,
+> and the mapping_writably_mapped() test fails so we don't end up
+> calling flush_dcache_page().
 
-You don't have to do it for all pages, you just have to do whatever
-flush_dcache_page() would do, for dirty+shared+writable mmap()'s of
-files.
+That is what is happening for sure.
 
-unmap's of shared+writable regions of files are so rare, only test
-programs and the odd database do it when they shut down.
+That mapping_writably_mapped() check depends upon munmap()
+flush out the lines from the cache on the user side at
+least enough to make them coherent on the kernel side.
 
+As I said my flush_cache_range() on sparc64 used to do this,
+but I removed it for whatever reason, perhaps I did not
+consider this case back then.
+
+I'm not advocating a full flush on flush_cache_range(), but rather to
+set a page state bit, which will force a flush on the
+"check_dcache_page()" call which we could replace this conditionalized
+flush_dcache_page() call with.
