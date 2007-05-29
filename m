@@ -1,106 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:42265 "EHLO pasmtpB.tele.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1764814AbXE2Sxj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 May 2007 14:53:39 -0400
-Date: Tue, 29 May 2007 20:54:38 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [patch 1/6] Use EXTRA_RWDATA in architectures
-Message-ID: <20070529185438.GB5846@uranus.ravnborg.org>
-References: <20070529183725.179570071@polymtl.ca> <20070529183758.910835109@polymtl.ca>
-Mime-Version: 1.0
+Received: from stout.engsoc.carleton.ca ([134.117.69.22]:45551 "EHLO
+	stout.engsoc.carleton.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751080AbXE2VzD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 May 2007 17:55:03 -0400
+Date: Tue, 29 May 2007 17:55:01 -0400
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: reduce-size-of-task_struct-on-64-bit-machines.patch removed from -mm tree
+Message-ID: <20070529215501.GA15944@fattire.cabal.ca>
+References: <200705090244.l492i4kH008542@shell0.pdx.osdl.net>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070529183758.910835109@polymtl.ca>
+In-Reply-To: <200705090244.l492i4kH008542@shell0.pdx.osdl.net>
 Sender: linux-arch-owner@vger.kernel.org
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: akpm@linux-foundation.org
+Cc: wcohen@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, ralf@linux-mips.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi Mathieu
-> Adds a place to declare rw data that will not be far from the .data content,
-> therefore limiting the impact on cache of data declared in sections part of the
-> EXTRA_RWDATA.
-
-No comments on the aim of the path - but a few implementation comments.
-
-I'm glad to see asm-generic/vmlinux.lds.h used - thanks.
-The general naming is USAGE_{DATA|TEXT}
-To keep with this albait vague then established naming scheme
-please consider using: EXTRARW_DATA
-
-
-> Index: linux-2.6-lttng/arch/h8300/kernel/vmlinux.lds.S
-> ===================================================================
-> --- linux-2.6-lttng.orig/arch/h8300/kernel/vmlinux.lds.S	2007-05-15 18:41:05.000000000 -0400
-> +++ linux-2.6-lttng/arch/h8300/kernel/vmlinux.lds.S	2007-05-15 18:44:20.000000000 -0400
-> @@ -105,7 +105,9 @@
->  	. = ALIGN(0x4) ;
->  		*(.data)
->  	. = ALIGN(0x4) ;
-> -		*(.data.*)	
-> +		*(.data.*)
-> +	. = ALIGN(0x4) ;
-> +	EXTRA_RWDATA
-
-The usage of ALIGN seems a bit arbitary. If there is a requirement to align
-data for EXTRA_RWDATA usage then pass alignment requirment as parameter or do
-alignment in the define.
-
-
-> Index: linux-2.6-lttng/arch/ia64/kernel/vmlinux.lds.S
-> ===================================================================
-> --- linux-2.6-lttng.orig/arch/ia64/kernel/vmlinux.lds.S	2007-05-15 18:41:05.000000000 -0400
-> +++ linux-2.6-lttng/arch/ia64/kernel/vmlinux.lds.S	2007-05-15 18:44:20.000000000 -0400
-> @@ -214,7 +214,7 @@
+On Tue, May 08, 2007 at 07:44:04PM -0700, akpm@linux-foundation.org wrote:
+> -	unsigned long flags;	/* per process flags, defined below */
+> -	unsigned long ptrace;
+> +	unsigned int flags;	/* per process flags, defined below */
+> +	unsigned int ptrace;
 >  
->    data : { } :data
->    .data : AT(ADDR(.data) - LOAD_OFFSET)
-> -	{ *(.data) *(.data1) *(.gnu.linkonce.d*) CONSTRUCTORS }
-> +	{ *(.data) *(.data1) *(.gnu.linkonce.d*) EXTRA_RWDATA CONSTRUCTORS }
->  
-Try to think of linker scripts a C-files.
-In C you would never do like this:
 
--	int i; struct type foo;
-+	int i; struct type foo; struct type2 bar;
+So.
 
-You would certainly place the new variable on a new line and maybe
-fix the bad code-style in another patch.
-My point is that you should not continue the bad-taste style used here
-but just add EXTRA_RWDATA on a single line.
+I realize I don't have much right to cry over spilled milk here, seeing
+as this has been floating around for, what, four months now?
 
-If no-one beats me I plan to go through all linker scrip files and add
-some sanity with respect to indent style etc. so they start to follow
-C-style for indent.
+But seriously, if people are going to fuck around with extremely core
+pieces of generic code, could they please check all the users[1]?
 
+Other 64-bit arch maintainers should check that they're using a 32-bit
+load/store on these fields in their assembly now (we were using a
+#define to do word on 32bit and doubleword on 64bit, which broke, badly,
+when these changed.)
 
-> Index: linux-2.6-lttng/arch/xtensa/kernel/vmlinux.lds.S
-> ===================================================================
-> --- linux-2.6-lttng.orig/arch/xtensa/kernel/vmlinux.lds.S	2007-05-15 18:41:05.000000000 -0400
-> +++ linux-2.6-lttng/arch/xtensa/kernel/vmlinux.lds.S	2007-05-15 18:44:20.000000000 -0400
-> @@ -144,7 +144,7 @@
->    _fdata = .;
->    .data :
->    {
-> -    *(.data) CONSTRUCTORS
-> +    *(.data) EXTRA_RWDATA CONSTRUCTORS
->      . = ALIGN(XCHAL_ICACHE_LINESIZE);
->      *(.data.cacheline_aligned)
+Thanks,
+	Kyle M.
 
-again..
->    }
-> Index: linux-2.6-lttng/include/asm-generic/vmlinux.lds.h
-> ===================================================================
-> --- linux-2.6-lttng.orig/include/asm-generic/vmlinux.lds.h	2007-05-15 18:44:11.000000000 -0400
-> +++ linux-2.6-lttng/include/asm-generic/vmlinux.lds.h	2007-05-15 18:44:20.000000000 -0400
-> @@ -143,6 +143,8 @@
->  									\
->  	. = ALIGN(4096);
->  
-> +#define EXTRA_RWDATA
-> +
-Please add comment that describe the purpose of EXTRA_RWDATA - verbatim
-copy from changlog is almost enough.
-
-	Sam
+1: Adding __deprecated or something to the field would give you an idea
+of where it is used, in this case asm-offsets.c...
