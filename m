@@ -1,33 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from stout.engsoc.carleton.ca ([134.117.69.22]:57835 "EHLO
-	stout.engsoc.carleton.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750903AbXE3BKR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 May 2007 21:10:17 -0400
-Date: Tue, 29 May 2007 21:10:15 -0400
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: reduce-size-of-task_struct-on-64-bit-machines.patch removed from -mm tree
-Message-ID: <20070530011015.GA16354@fattire.cabal.ca>
-References: <200705090244.l492i4kH008542@shell0.pdx.osdl.net> <20070529215501.GA15944@fattire.cabal.ca>
-MIME-Version: 1.0
+Received: from tomts43-srv.bellnexxia.net ([209.226.175.110]:52321 "EHLO
+	tomts43-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752530AbXE3OAG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 May 2007 10:00:06 -0400
+Date: Wed, 30 May 2007 09:06:03 -0400
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Subject: Re: [patch 1/6] Use EXTRA_RWDATA in architectures
+Message-ID: <20070530130603.GA25321@Krystal>
+References: <20070529183725.179570071@polymtl.ca> <20070529183758.910835109@polymtl.ca> <20070529185438.GB5846@uranus.ravnborg.org>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20070529215501.GA15944@fattire.cabal.ca>
+In-Reply-To: <20070529185438.GB5846@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: wcohen@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, ralf@linux-mips.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, May 29, 2007 at 05:55:01PM -0400, Kyle McMartin wrote:
-> Other 64-bit arch maintainers should check that they're using a 32-bit
-> load/store on these fields in their assembly now (we were using a
-> #define to do word on 32bit and doubleword on 64bit, which broke, badly,
-> when these changed.)
+Hi Sam,
+
+Thanks for the comments, will integrate in my next post. I noticed that
+this version was against 2.6.21-mm2, not what I thought it was
+(2.6.22-rc2-mm1).
+
+Mathieu
+
+
+* Sam Ravnborg (sam@ravnborg.org) wrote:
+> Hi Mathieu
+> > Adds a place to declare rw data that will not be far from the .data content,
+> > therefore limiting the impact on cache of data declared in sections part of the
+> > EXTRA_RWDATA.
 > 
+> No comments on the aim of the path - but a few implementation comments.
+> 
+> I'm glad to see asm-generic/vmlinux.lds.h used - thanks.
+> The general naming is USAGE_{DATA|TEXT}
+> To keep with this albait vague then established naming scheme
+> please consider using: EXTRARW_DATA
+> 
+> 
+> > Index: linux-2.6-lttng/arch/h8300/kernel/vmlinux.lds.S
+> > ===================================================================
+> > --- linux-2.6-lttng.orig/arch/h8300/kernel/vmlinux.lds.S	2007-05-15 18:41:05.000000000 -0400
+> > +++ linux-2.6-lttng/arch/h8300/kernel/vmlinux.lds.S	2007-05-15 18:44:20.000000000 -0400
+> > @@ -105,7 +105,9 @@
+> >  	. = ALIGN(0x4) ;
+> >  		*(.data)
+> >  	. = ALIGN(0x4) ;
+> > -		*(.data.*)	
+> > +		*(.data.*)
+> > +	. = ALIGN(0x4) ;
+> > +	EXTRA_RWDATA
+> 
+> The usage of ALIGN seems a bit arbitary. If there is a requirement to align
+> data for EXTRA_RWDATA usage then pass alignment requirment as parameter or do
+> alignment in the define.
+> 
+> 
+> > Index: linux-2.6-lttng/arch/ia64/kernel/vmlinux.lds.S
+> > ===================================================================
+> > --- linux-2.6-lttng.orig/arch/ia64/kernel/vmlinux.lds.S	2007-05-15 18:41:05.000000000 -0400
+> > +++ linux-2.6-lttng/arch/ia64/kernel/vmlinux.lds.S	2007-05-15 18:44:20.000000000 -0400
+> > @@ -214,7 +214,7 @@
+> >  
+> >    data : { } :data
+> >    .data : AT(ADDR(.data) - LOAD_OFFSET)
+> > -	{ *(.data) *(.data1) *(.gnu.linkonce.d*) CONSTRUCTORS }
+> > +	{ *(.data) *(.data1) *(.gnu.linkonce.d*) EXTRA_RWDATA CONSTRUCTORS }
+> >  
+> Try to think of linker scripts a C-files.
+> In C you would never do like this:
+> 
+> -	int i; struct type foo;
+> +	int i; struct type foo; struct type2 bar;
+> 
+> You would certainly place the new variable on a new line and maybe
+> fix the bad code-style in another patch.
+> My point is that you should not continue the bad-taste style used here
+> but just add EXTRA_RWDATA on a single line.
+> 
+> If no-one beats me I plan to go through all linker scrip files and add
+> some sanity with respect to indent style etc. so they start to follow
+> C-style for indent.
+> 
+> 
+> > Index: linux-2.6-lttng/arch/xtensa/kernel/vmlinux.lds.S
+> > ===================================================================
+> > --- linux-2.6-lttng.orig/arch/xtensa/kernel/vmlinux.lds.S	2007-05-15 18:41:05.000000000 -0400
+> > +++ linux-2.6-lttng/arch/xtensa/kernel/vmlinux.lds.S	2007-05-15 18:44:20.000000000 -0400
+> > @@ -144,7 +144,7 @@
+> >    _fdata = .;
+> >    .data :
+> >    {
+> > -    *(.data) CONSTRUCTORS
+> > +    *(.data) EXTRA_RWDATA CONSTRUCTORS
+> >      . = ALIGN(XCHAL_ICACHE_LINESIZE);
+> >      *(.data.cacheline_aligned)
+> 
+> again..
+> >    }
+> > Index: linux-2.6-lttng/include/asm-generic/vmlinux.lds.h
+> > ===================================================================
+> > --- linux-2.6-lttng.orig/include/asm-generic/vmlinux.lds.h	2007-05-15 18:44:11.000000000 -0400
+> > +++ linux-2.6-lttng/include/asm-generic/vmlinux.lds.h	2007-05-15 18:44:20.000000000 -0400
+> > @@ -143,6 +143,8 @@
+> >  									\
+> >  	. = ALIGN(4096);
+> >  
+> > +#define EXTRA_RWDATA
+> > +
+> Please add comment that describe the purpose of EXTRA_RWDATA - verbatim
+> copy from changlog is almost enough.
+> 
+> 	Sam
 
-Bummer, I just audited everyone else and we're the only people who use
-these flags in assembly. Sigh.
-
-Oh well.
-
-Cheers,
-	Kyle
+-- 
+Mathieu Desnoyers
+Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
+OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
