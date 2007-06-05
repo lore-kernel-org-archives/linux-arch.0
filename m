@@ -1,46 +1,362 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate1.uk.ibm.com ([195.212.29.134]:10606 "EHLO
-	mtagate1.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1765677AbXFEWR7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jun 2007 18:17:59 -0400
-Date: Wed, 6 Jun 2007 00:17:36 +0200
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: volatile and atomic_t/spinlock_t
-Message-ID: <20070605221736.GA9315@osiris.ibm.com>
-References: <20070605114813.GA17048@osiris.boeblingen.de.ibm.com> <617E1C2C70743745A92448908E030B2A019DD5B5@scsmsx411.amr.corp.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <617E1C2C70743745A92448908E030B2A019DD5B5@scsmsx411.amr.corp.intel.com>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:41428 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1763148AbXFEXjY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jun 2007 19:39:24 -0400
+Message-Id: <200706052339.l55NdBns005169@imap1.linux-foundation.org>
+Subject: + arch-personality-independent-stack-top.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Tue, 05 Jun 2007 16:39:10 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: a.p.zijlstra@chello.nl, aaw@google.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Jun 05, 2007 at 11:38:27AM -0700, Luck, Tony wrote:
-> > So is
-> >
-> >	while (__raw_spin_is_locked(&v));
-> >
-> > supposed to work? Or should that be 
-> >
-> >	while (__raw_spin_is_locked(&v))
-> >		cpu_relax();
-> >
-> > as well and all the volatiles can/should go away?
-> 
-> cpu_relax() is a really good idea in every spinloop on
-> hyper-threaded cores.  It lets the h/w know that we aren't
-> doing anything useful here, so resources and power can be
-> diverted to other threads sharing the core.
-> 
-> Avoiding the need for volatile or other compiler optimizer
-> defeating tricks is a side benefit.
 
-Currently it is already that it has to be
+The patch titled
+     arch: personality independent stack top
+has been added to the -mm tree.  Its filename is
+     arch-personality-independent-stack-top.patch
 
-	while (__raw_spin_is_locked(&v))
-		cpu_relax();
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
-Just like in __raw_spin_unlock_wait(). Oh well, I should have
-checked more before posting...
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
+
+------------------------------------------------------
+Subject: arch: personality independent stack top
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+
+This patch-set aims at removing the current limit on argv+env space aka. 
+MAX_ARG_PAGES.
+
+The new mm is created before the binfmt code runs, the stack is placed at the
+highest address supported by that architecture.
+
+The argv+env data is then copied from the old mm into the new mm (which is
+inactive at that time - this introduces some cache coherency issues).
+
+Then we run the binfmt code, which will compute the final stack address.  The
+existing stack will be moved downwards (or upwards on PA-RISC) to the desired
+place.
+
+This 'trick' heavily relies on the MMU, so for no-MMU archs we stay with the
+old approach.
+
+
+
+
+This patch:
+
+New arch macro STACK_TOP_MAX it gives the larges valid stack address for the
+architecture in question.
+
+It differs from STACK_TOP in that it will not distinguish between
+personalities but will always return the largest possible address.
+
+This is used to create the initial stack on execve, which we will move down to
+the proper location once the binfmt code has figured out where that is.
+
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Signed-off-by: Ollie Wild <aaw@google.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/asm-alpha/a.out.h    |    2 ++
+ include/asm-arm/a.out.h      |    1 +
+ include/asm-arm26/a.out.h    |    1 +
+ include/asm-avr32/a.out.h    |    1 +
+ include/asm-cris/a.out.h     |    1 +
+ include/asm-frv/mem-layout.h |    1 +
+ include/asm-h8300/a.out.h    |    1 +
+ include/asm-i386/a.out.h     |    1 +
+ include/asm-ia64/ustack.h    |    1 +
+ include/asm-m32r/a.out.h     |    1 +
+ include/asm-m68k/a.out.h     |    1 +
+ include/asm-mips/a.out.h     |    1 +
+ include/asm-parisc/a.out.h   |    1 +
+ include/asm-powerpc/a.out.h  |    3 +++
+ include/asm-s390/a.out.h     |    1 +
+ include/asm-sh/a.out.h       |    1 +
+ include/asm-sh64/a.out.h     |    1 +
+ include/asm-sparc/a.out.h    |    1 +
+ include/asm-sparc64/a.out.h  |    2 ++
+ include/asm-um/a.out.h       |    2 ++
+ include/asm-x86_64/a.out.h   |    3 ++-
+ include/asm-xtensa/a.out.h   |    1 +
+ 22 files changed, 28 insertions(+), 1 deletion(-)
+
+diff -puN include/asm-alpha/a.out.h~arch-personality-independent-stack-top include/asm-alpha/a.out.h
+--- a/include/asm-alpha/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-alpha/a.out.h
+@@ -101,6 +101,8 @@ struct exec
+ #define STACK_TOP \
+   (current->personality & ADDR_LIMIT_32BIT ? 0x80000000 : 0x00120000000UL)
+ 
++#define STACK_TOP_MAX	0x00120000000UL
++
+ #endif
+ 
+ #endif /* __A_OUT_GNU_H__ */
+diff -puN include/asm-arm/a.out.h~arch-personality-independent-stack-top include/asm-arm/a.out.h
+--- a/include/asm-arm/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-arm/a.out.h
+@@ -30,6 +30,7 @@ struct exec
+ #ifdef __KERNEL__
+ #define STACK_TOP	((current->personality == PER_LINUX_32BIT) ? \
+ 			 TASK_SIZE : TASK_SIZE_26)
++#define STACK_TOP_MAX	TASK_SIZE
+ #endif
+ 
+ #ifndef LIBRARY_START_TEXT
+diff -puN include/asm-arm26/a.out.h~arch-personality-independent-stack-top include/asm-arm26/a.out.h
+--- a/include/asm-arm26/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-arm26/a.out.h
+@@ -29,6 +29,7 @@ struct exec
+ 
+ #ifdef __KERNEL__
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ #endif
+ 
+ #ifndef LIBRARY_START_TEXT
+diff -puN include/asm-avr32/a.out.h~arch-personality-independent-stack-top include/asm-avr32/a.out.h
+--- a/include/asm-avr32/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-avr32/a.out.h
+@@ -20,6 +20,7 @@ struct exec
+ #ifdef __KERNEL__
+ 
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ #endif
+ 
+diff -puN include/asm-cris/a.out.h~arch-personality-independent-stack-top include/asm-cris/a.out.h
+--- a/include/asm-cris/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-cris/a.out.h
+@@ -8,6 +8,7 @@
+ 
+ /* grabbed from the intel stuff  */   
+ #define STACK_TOP TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ 
+ struct exec
+diff -puN include/asm-frv/mem-layout.h~arch-personality-independent-stack-top include/asm-frv/mem-layout.h
+--- a/include/asm-frv/mem-layout.h~arch-personality-independent-stack-top
++++ a/include/asm-frv/mem-layout.h
+@@ -60,6 +60,7 @@
+  */
+ #define BRK_BASE			__UL(2 * 1024 * 1024 + PAGE_SIZE)
+ #define STACK_TOP			__UL(2 * 1024 * 1024)
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ /* userspace process size */
+ #ifdef CONFIG_MMU
+diff -puN include/asm-h8300/a.out.h~arch-personality-independent-stack-top include/asm-h8300/a.out.h
+--- a/include/asm-h8300/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-h8300/a.out.h
+@@ -20,6 +20,7 @@ struct exec
+ #ifdef __KERNEL__
+ 
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ #endif
+ 
+diff -puN include/asm-i386/a.out.h~arch-personality-independent-stack-top include/asm-i386/a.out.h
+--- a/include/asm-i386/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-i386/a.out.h
+@@ -20,6 +20,7 @@ struct exec
+ #ifdef __KERNEL__
+ 
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ #endif
+ 
+diff -puN include/asm-ia64/ustack.h~arch-personality-independent-stack-top include/asm-ia64/ustack.h
+--- a/include/asm-ia64/ustack.h~arch-personality-independent-stack-top
++++ a/include/asm-ia64/ustack.h
+@@ -11,6 +11,7 @@
+ /* The absolute hard limit for stack size is 1/2 of the mappable space in the region */
+ #define MAX_USER_STACK_SIZE	(RGN_MAP_LIMIT/2)
+ #define STACK_TOP		(0x6000000000000000UL + RGN_MAP_LIMIT)
++#define STACK_TOP_MAX		STACK_TOP
+ #endif
+ 
+ /* Make a default stack size of 2GiB */
+diff -puN include/asm-m32r/a.out.h~arch-personality-independent-stack-top include/asm-m32r/a.out.h
+--- a/include/asm-m32r/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-m32r/a.out.h
+@@ -20,6 +20,7 @@ struct exec
+ #ifdef __KERNEL__
+ 
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ #endif
+ 
+diff -puN include/asm-m68k/a.out.h~arch-personality-independent-stack-top include/asm-m68k/a.out.h
+--- a/include/asm-m68k/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-m68k/a.out.h
+@@ -20,6 +20,7 @@ struct exec
+ #ifdef __KERNEL__
+ 
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ #endif
+ 
+diff -puN include/asm-mips/a.out.h~arch-personality-independent-stack-top include/asm-mips/a.out.h
+--- a/include/asm-mips/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-mips/a.out.h
+@@ -40,6 +40,7 @@ struct exec
+ #ifdef CONFIG_64BIT
+ #define STACK_TOP	(current->thread.mflags & MF_32BIT_ADDR ? TASK_SIZE32 : TASK_SIZE)
+ #endif
++#define STACK_TOP_MAX	TASK_SIZE
+ 
+ #endif
+ 
+diff -puN include/asm-parisc/a.out.h~arch-personality-independent-stack-top include/asm-parisc/a.out.h
+--- a/include/asm-parisc/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-parisc/a.out.h
+@@ -23,6 +23,7 @@ struct exec
+  * prumpf */
+ 
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	DEFAULT_TASK_SIZE
+ 
+ #endif
+ 
+diff -puN include/asm-powerpc/a.out.h~arch-personality-independent-stack-top include/asm-powerpc/a.out.h
+--- a/include/asm-powerpc/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-powerpc/a.out.h
+@@ -26,9 +26,12 @@ struct exec
+ #define STACK_TOP (test_thread_flag(TIF_32BIT) ? \
+ 		   STACK_TOP_USER32 : STACK_TOP_USER64)
+ 
++#define STACK_TOP_MAX STACK_TOP_USER64
++
+ #else /* __powerpc64__ */
+ 
+ #define STACK_TOP TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ #endif /* __powerpc64__ */
+ #endif /* __KERNEL__ */
+diff -puN include/asm-s390/a.out.h~arch-personality-independent-stack-top include/asm-s390/a.out.h
+--- a/include/asm-s390/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-s390/a.out.h
+@@ -32,6 +32,7 @@ struct exec
+ #ifdef __KERNEL__
+ 
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	DEFAULT_TASK_SIZE
+ 
+ #endif
+ 
+diff -puN include/asm-sh/a.out.h~arch-personality-independent-stack-top include/asm-sh/a.out.h
+--- a/include/asm-sh/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-sh/a.out.h
+@@ -20,6 +20,7 @@ struct exec
+ #ifdef __KERNEL__
+ 
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ #endif
+ 
+diff -puN include/asm-sh64/a.out.h~arch-personality-independent-stack-top include/asm-sh64/a.out.h
+--- a/include/asm-sh64/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-sh64/a.out.h
+@@ -31,6 +31,7 @@ struct exec
+ #ifdef __KERNEL__
+ 
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ #endif
+ 
+diff -puN include/asm-sparc/a.out.h~arch-personality-independent-stack-top include/asm-sparc/a.out.h
+--- a/include/asm-sparc/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-sparc/a.out.h
+@@ -92,6 +92,7 @@ struct relocation_info /* used when head
+ #include <asm/page.h>
+ 
+ #define STACK_TOP	(PAGE_OFFSET - PAGE_SIZE)
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ #endif /* __KERNEL__ */
+ 
+diff -puN include/asm-sparc64/a.out.h~arch-personality-independent-stack-top include/asm-sparc64/a.out.h
+--- a/include/asm-sparc64/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-sparc64/a.out.h
+@@ -101,6 +101,8 @@ struct relocation_info /* used when head
+ #define STACK_TOP (test_thread_flag(TIF_32BIT) ? \
+ 		   STACK_TOP32 : STACK_TOP64)
+ 
++#define STACK_TOP_MAX STACK_TOP64
++
+ #endif
+ 
+ #endif /* !(__ASSEMBLY__) */
+diff -puN include/asm-um/a.out.h~arch-personality-independent-stack-top include/asm-um/a.out.h
+--- a/include/asm-um/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-um/a.out.h
+@@ -16,4 +16,6 @@ extern int honeypot;
+ #define STACK_TOP \
+ 	CHOOSE_MODE((honeypot ? host_task_size : task_size), task_size)
+ 
++#define STACK_TOP_MAX	STACK_TOP
++
+ #endif
+diff -puN include/asm-x86_64/a.out.h~arch-personality-independent-stack-top include/asm-x86_64/a.out.h
+--- a/include/asm-x86_64/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-x86_64/a.out.h
+@@ -21,7 +21,8 @@ struct exec
+ 
+ #ifdef __KERNEL__
+ #include <linux/thread_info.h>
+-#define STACK_TOP TASK_SIZE
++#define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	TASK_SIZE64
+ #endif
+ 
+ #endif /* __A_OUT_GNU_H__ */
+diff -puN include/asm-xtensa/a.out.h~arch-personality-independent-stack-top include/asm-xtensa/a.out.h
+--- a/include/asm-xtensa/a.out.h~arch-personality-independent-stack-top
++++ a/include/asm-xtensa/a.out.h
+@@ -17,6 +17,7 @@
+ /* Note: the kernel needs the a.out definitions, even if only ELF is used. */
+ 
+ #define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX	STACK_TOP
+ 
+ struct exec
+ {
+_
+
+Patches currently in -mm which might be from a.p.zijlstra@chello.nl are
+
+lumpy-reclaim-v4.patch
+split-mmap.patch
+only-allow-nonlinear-vmas-for-ram-backed-filesystems.patch
+percpu_counters-use-cpu-notifiers.patch
+percpu_counters-use-for_each_online_cpu.patch
+arch-personality-independent-stack-top.patch
+audit-rework-execve-audit.patch
+audit-rework-execve-audit-fix.patch
+mm-move_page_tables_up.patch
+mm-variable-length-argument-support.patch
+fix-raw_spinlock_t-vs-lockdep.patch
+lockdep-sanitise-config_prove_locking.patch
+lockdep-reduce-the-ifdeffery.patch
+lockstat-core-infrastructure.patch
+lockstat-core-infrastructure-fix.patch
+lockstat-core-infrastructure-fix-fix.patch
+lockstat-human-readability-tweaks.patch
+lockstat-hook-into-spinlock_t-rwlock_t-rwsem-and-mutex.patch
+
