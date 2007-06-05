@@ -1,25 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:33346 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1762644AbXFETqW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jun 2007 15:46:22 -0400
-Date: Tue, 5 Jun 2007 12:46:20 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 3/4] mm: move_page_tables{,_up}
-In-Reply-To: <20070605151203.738393000@chello.nl>
-Message-ID: <Pine.LNX.4.64.0706051244010.3432@schroedinger.engr.sgi.com>
-References: <20070605150523.786600000@chello.nl> <20070605151203.738393000@chello.nl>
+Received: from mtagate1.uk.ibm.com ([195.212.29.134]:10606 "EHLO
+	mtagate1.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1765677AbXFEWR7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jun 2007 18:17:59 -0400
+Date: Wed, 6 Jun 2007 00:17:36 +0200
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: volatile and atomic_t/spinlock_t
+Message-ID: <20070605221736.GA9315@osiris.ibm.com>
+References: <20070605114813.GA17048@osiris.boeblingen.de.ibm.com> <617E1C2C70743745A92448908E030B2A019DD5B5@scsmsx411.amr.corp.intel.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <617E1C2C70743745A92448908E030B2A019DD5B5@scsmsx411.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Ollie Wild <aaw@google.com>, Andrew Morton <akpm@osdl.org>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>, Mel Gorman <mel@csn.ul.ie>
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 5 Jun 2007, Peter Zijlstra wrote:
+On Tue, Jun 05, 2007 at 11:38:27AM -0700, Luck, Tony wrote:
+> > So is
+> >
+> >	while (__raw_spin_is_locked(&v));
+> >
+> > supposed to work? Or should that be 
+> >
+> >	while (__raw_spin_is_locked(&v))
+> >		cpu_relax();
+> >
+> > as well and all the volatiles can/should go away?
+> 
+> cpu_relax() is a really good idea in every spinloop on
+> hyper-threaded cores.  It lets the h/w know that we aren't
+> doing anything useful here, so resources and power can be
+> diverted to other threads sharing the core.
+> 
+> Avoiding the need for volatile or other compiler optimizer
+> defeating tricks is a side benefit.
 
-> Provide functions for moving page tables upwards.
+Currently it is already that it has to be
 
-Could you make this more general so that it allows arbitrary page table 
-pages moving? That would be useful for Mel's memory defragmentation since 
-it increases the types of pages that can be moved.
+	while (__raw_spin_is_locked(&v))
+		cpu_relax();
+
+Just like in __raw_spin_unlock_wait(). Oh well, I should have
+checked more before posting...
