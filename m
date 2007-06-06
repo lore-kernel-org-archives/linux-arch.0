@@ -1,35 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from viefep18-int.chello.at ([213.46.255.22]:26498 "EHLO
-	viefep25-int.chello.at" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751189AbXFFTxx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jun 2007 15:53:53 -0400
-Subject: Re: [PATCH 3/4] mm: move_page_tables{,_up}
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-In-Reply-To: <65dd6fd50706061250l7378ec38gf86c984fe4e00b86@mail.gmail.com>
-References: <20070605150523.786600000@chello.nl>
-	 <20070605151203.738393000@chello.nl>
-	 <65dd6fd50706061206y558e7f90t3740424fae7bdc9c@mail.gmail.com>
-	 <1181157134.5676.28.camel@lappy>
-	 <65dd6fd50706061250l7378ec38gf86c984fe4e00b86@mail.gmail.com>
-Content-Type: text/plain
-Date: Wed, 06 Jun 2007 21:53:35 +0200
-Message-Id: <1181159615.5676.40.camel@lappy>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:3157 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S935030AbXFFUr7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jun 2007 16:47:59 -0400
+Date: Wed, 6 Jun 2007 21:47:49 +0100
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [RFC PATCH 0/9] Thumb-2 ISA kernel port
+Message-ID: <20070606204748.GA12482@flint.arm.linux.org.uk>
+References: <20070606172409.6689.26641.stgit@localhost.localdomain> <20070606182914.GB6303@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070606182914.GB6303@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Ollie Wild <aaw@google.com>
-Cc: linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 2007-06-06 at 12:50 -0700, Ollie Wild wrote:
-> On 6/6/07, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
-> > PA-RISC will still need it, right?
-> 
-> Originally, I thought since the PA-RISC stack grows up, we'd want to
-> place the stack at the bottom of memory and have copy_strings() and
-> friends work in the opposite direction.  It turns out, though, that
-> this ends up being way more headache than it's worth, so I just
-> manually grow the stack down with expand_downwards().
+On Wed, Jun 06, 2007 at 08:29:14PM +0200, Sam Ravnborg wrote:
+> #define FUNCTION(name)   .type name, %function
+> Introducing this simple macro in the generic ARM codebase would
+> bring down the diff significantly
 
-Ah, ok. I'll drop this whole patch then.
-
+We have such a macro already - ENDPROC().  Recently introduced,
+we should probably make more use of it.
