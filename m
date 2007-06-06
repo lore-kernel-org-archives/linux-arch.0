@@ -1,360 +1,170 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:36341 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754123AbXFFRUU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jun 2007 13:20:20 -0400
-Message-Id: <200706061719.l56HJdRl002161@imap1.linux-foundation.org>
-Subject: - arch-personality-independent-stack-top.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Wed, 06 Jun 2007 10:19:39 -0700
+Received: from pasmtpb.tele.dk ([80.160.77.98]:49738 "EHLO pasmtpB.tele.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1762974AbXFFS2O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Jun 2007 14:28:14 -0400
+Date: Wed, 6 Jun 2007 20:29:14 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [RFC PATCH 0/9] Thumb-2 ISA kernel port
+Message-ID: <20070606182914.GB6303@uranus.ravnborg.org>
+References: <20070606172409.6689.26641.stgit@localhost.localdomain>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070606172409.6689.26641.stgit@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
-To: a.p.zijlstra@chello.nl, aaw@google.com, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org
+Cc: linux-arm-kernel@lists.arm.linux.org.uk
 List-ID: <linux-arch.vger.kernel.org>
 
+On Wed, Jun 06, 2007 at 06:24:53PM +0100, Catalin Marinas wrote:
+> The following series of patches add support for compiling the kernel
+> to the Thumb-2 ISA on an ARMv7 CPU.
+> 
+> Because of the issues listed below, merging the Thumb-2 support into
+> the existing arch/arm files would clutter the existing code with
+> macros like ARM, THUMB or W (for conditional compilation and the wide
+> instruction format). The IT instruction is also not recognised by
+> older toolchains and additional (assembler) macros would be needed,
+> including support for the inline assembly. I therefore decided to
+> create a separate arch/arm_t2 directory that shares a lot of code with
+> the existing arch/arm.
 
-The patch titled
-     arch: personality independent stack top
-has been removed from the -mm tree.  Its filename was
-     arch-personality-independent-stack-top.patch
+Hi Catalin.
+Can you please share with us the strong arguments why another (third)
+arm architecture are needed?
 
-This patch was dropped because an updated version will be merged
-
-------------------------------------------------------
-Subject: arch: personality independent stack top
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-
-This patch-set aims at removing the current limit on argv+env space aka. 
-MAX_ARG_PAGES.
-
-The new mm is created before the binfmt code runs, the stack is placed at the
-highest address supported by that architecture.
-
-The argv+env data is then copied from the old mm into the new mm (which is
-inactive at that time - this introduces some cache coherency issues).
-
-Then we run the binfmt code, which will compute the final stack address.  The
-existing stack will be moved downwards (or upwards on PA-RISC) to the desired
-place.
-
-This 'trick' heavily relies on the MMU, so for no-MMU archs we stay with the
-old approach.
+Browsing through your patches there seems to be a common pattern:
+1) Adding a bit more info to many assembler function
+2) Small modifications to assembler function
+3) Almost replaced assembler functions
+4) Simpler Kconfig and Makefile
 
 
+1) Could be solved in trivial ways using a few macros.
+   One example:
+   .type   printhex8, %function
+
+Add a common macro like this:
+
+#define FUNCTION(name)   .type name, %function
+Introducing this simple macro in the generic ARM codebase would
+bring down the diff significantly
 
 
-This patch:
+2) For some parts it looked like:
+   "We can do this different so lets do it different"
+   I am rather ARM assembler ignorant so that may not hold true.
+   But if it is true then look into what is really needed to change
+   and if nothing else factor these out in files for the different
+   situations and select the right one in the Makefile.
 
-New arch macro STACK_TOP_MAX it gives the larges valid stack address for the
-architecture in question.
+3) Factor these out in separate files.
 
-It differs from STACK_TOP in that it will not distinguish between
-personalities but will always return the largest possible address.
 
-This is used to create the initial stack on execve, which we will move down to
-the proper location once the binfmt code has figured out where that is.
+4) Short term win. The maintenance will be much simpler avoiding
+the cleanup.
 
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Signed-off-by: Ollie Wild <aaw@google.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+As you are introducing a new architecture I have added linux-arch
+to list of receivers - maybe someone there has more to say.
 
- include/asm-alpha/a.out.h    |    2 ++
- include/asm-arm/a.out.h      |    1 +
- include/asm-arm26/a.out.h    |    1 +
- include/asm-avr32/a.out.h    |    1 +
- include/asm-cris/a.out.h     |    1 +
- include/asm-frv/mem-layout.h |    1 +
- include/asm-h8300/a.out.h    |    1 +
- include/asm-i386/a.out.h     |    1 +
- include/asm-ia64/ustack.h    |    1 +
- include/asm-m32r/a.out.h     |    1 +
- include/asm-m68k/a.out.h     |    1 +
- include/asm-mips/a.out.h     |    1 +
- include/asm-parisc/a.out.h   |    1 +
- include/asm-powerpc/a.out.h  |    3 +++
- include/asm-s390/a.out.h     |    1 +
- include/asm-sh/a.out.h       |    1 +
- include/asm-sh64/a.out.h     |    1 +
- include/asm-sparc/a.out.h    |    1 +
- include/asm-sparc64/a.out.h  |    2 ++
- include/asm-um/a.out.h       |    2 ++
- include/asm-x86_64/a.out.h   |    3 ++-
- include/asm-xtensa/a.out.h   |    1 +
- 22 files changed, 28 insertions(+), 1 deletion(-)
+	Sam
 
-diff -puN include/asm-alpha/a.out.h~arch-personality-independent-stack-top include/asm-alpha/a.out.h
---- a/include/asm-alpha/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-alpha/a.out.h
-@@ -101,6 +101,8 @@ struct exec
- #define STACK_TOP \
-   (current->personality & ADDR_LIMIT_32BIT ? 0x80000000 : 0x00120000000UL)
- 
-+#define STACK_TOP_MAX	0x00120000000UL
-+
- #endif
- 
- #endif /* __A_OUT_GNU_H__ */
-diff -puN include/asm-arm/a.out.h~arch-personality-independent-stack-top include/asm-arm/a.out.h
---- a/include/asm-arm/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-arm/a.out.h
-@@ -30,6 +30,7 @@ struct exec
- #ifdef __KERNEL__
- #define STACK_TOP	((current->personality == PER_LINUX_32BIT) ? \
- 			 TASK_SIZE : TASK_SIZE_26)
-+#define STACK_TOP_MAX	TASK_SIZE
- #endif
- 
- #ifndef LIBRARY_START_TEXT
-diff -puN include/asm-arm26/a.out.h~arch-personality-independent-stack-top include/asm-arm26/a.out.h
---- a/include/asm-arm26/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-arm26/a.out.h
-@@ -29,6 +29,7 @@ struct exec
- 
- #ifdef __KERNEL__
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- #endif
- 
- #ifndef LIBRARY_START_TEXT
-diff -puN include/asm-avr32/a.out.h~arch-personality-independent-stack-top include/asm-avr32/a.out.h
---- a/include/asm-avr32/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-avr32/a.out.h
-@@ -20,6 +20,7 @@ struct exec
- #ifdef __KERNEL__
- 
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- 
- #endif
- 
-diff -puN include/asm-cris/a.out.h~arch-personality-independent-stack-top include/asm-cris/a.out.h
---- a/include/asm-cris/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-cris/a.out.h
-@@ -8,6 +8,7 @@
- 
- /* grabbed from the intel stuff  */   
- #define STACK_TOP TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- 
- 
- struct exec
-diff -puN include/asm-frv/mem-layout.h~arch-personality-independent-stack-top include/asm-frv/mem-layout.h
---- a/include/asm-frv/mem-layout.h~arch-personality-independent-stack-top
-+++ a/include/asm-frv/mem-layout.h
-@@ -60,6 +60,7 @@
-  */
- #define BRK_BASE			__UL(2 * 1024 * 1024 + PAGE_SIZE)
- #define STACK_TOP			__UL(2 * 1024 * 1024)
-+#define STACK_TOP_MAX	STACK_TOP
- 
- /* userspace process size */
- #ifdef CONFIG_MMU
-diff -puN include/asm-h8300/a.out.h~arch-personality-independent-stack-top include/asm-h8300/a.out.h
---- a/include/asm-h8300/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-h8300/a.out.h
-@@ -20,6 +20,7 @@ struct exec
- #ifdef __KERNEL__
- 
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- 
- #endif
- 
-diff -puN include/asm-i386/a.out.h~arch-personality-independent-stack-top include/asm-i386/a.out.h
---- a/include/asm-i386/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-i386/a.out.h
-@@ -20,6 +20,7 @@ struct exec
- #ifdef __KERNEL__
- 
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- 
- #endif
- 
-diff -puN include/asm-ia64/ustack.h~arch-personality-independent-stack-top include/asm-ia64/ustack.h
---- a/include/asm-ia64/ustack.h~arch-personality-independent-stack-top
-+++ a/include/asm-ia64/ustack.h
-@@ -11,6 +11,7 @@
- /* The absolute hard limit for stack size is 1/2 of the mappable space in the region */
- #define MAX_USER_STACK_SIZE	(RGN_MAP_LIMIT/2)
- #define STACK_TOP		(0x6000000000000000UL + RGN_MAP_LIMIT)
-+#define STACK_TOP_MAX		STACK_TOP
- #endif
- 
- /* Make a default stack size of 2GiB */
-diff -puN include/asm-m32r/a.out.h~arch-personality-independent-stack-top include/asm-m32r/a.out.h
---- a/include/asm-m32r/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-m32r/a.out.h
-@@ -20,6 +20,7 @@ struct exec
- #ifdef __KERNEL__
- 
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- 
- #endif
- 
-diff -puN include/asm-m68k/a.out.h~arch-personality-independent-stack-top include/asm-m68k/a.out.h
---- a/include/asm-m68k/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-m68k/a.out.h
-@@ -20,6 +20,7 @@ struct exec
- #ifdef __KERNEL__
- 
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- 
- #endif
- 
-diff -puN include/asm-mips/a.out.h~arch-personality-independent-stack-top include/asm-mips/a.out.h
---- a/include/asm-mips/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-mips/a.out.h
-@@ -40,6 +40,7 @@ struct exec
- #ifdef CONFIG_64BIT
- #define STACK_TOP	(current->thread.mflags & MF_32BIT_ADDR ? TASK_SIZE32 : TASK_SIZE)
- #endif
-+#define STACK_TOP_MAX	TASK_SIZE
- 
- #endif
- 
-diff -puN include/asm-parisc/a.out.h~arch-personality-independent-stack-top include/asm-parisc/a.out.h
---- a/include/asm-parisc/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-parisc/a.out.h
-@@ -23,6 +23,7 @@ struct exec
-  * prumpf */
- 
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	DEFAULT_TASK_SIZE
- 
- #endif
- 
-diff -puN include/asm-powerpc/a.out.h~arch-personality-independent-stack-top include/asm-powerpc/a.out.h
---- a/include/asm-powerpc/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-powerpc/a.out.h
-@@ -26,9 +26,12 @@ struct exec
- #define STACK_TOP (test_thread_flag(TIF_32BIT) ? \
- 		   STACK_TOP_USER32 : STACK_TOP_USER64)
- 
-+#define STACK_TOP_MAX STACK_TOP_USER64
-+
- #else /* __powerpc64__ */
- 
- #define STACK_TOP TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- 
- #endif /* __powerpc64__ */
- #endif /* __KERNEL__ */
-diff -puN include/asm-s390/a.out.h~arch-personality-independent-stack-top include/asm-s390/a.out.h
---- a/include/asm-s390/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-s390/a.out.h
-@@ -32,6 +32,7 @@ struct exec
- #ifdef __KERNEL__
- 
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	DEFAULT_TASK_SIZE
- 
- #endif
- 
-diff -puN include/asm-sh/a.out.h~arch-personality-independent-stack-top include/asm-sh/a.out.h
---- a/include/asm-sh/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-sh/a.out.h
-@@ -20,6 +20,7 @@ struct exec
- #ifdef __KERNEL__
- 
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- 
- #endif
- 
-diff -puN include/asm-sh64/a.out.h~arch-personality-independent-stack-top include/asm-sh64/a.out.h
---- a/include/asm-sh64/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-sh64/a.out.h
-@@ -31,6 +31,7 @@ struct exec
- #ifdef __KERNEL__
- 
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- 
- #endif
- 
-diff -puN include/asm-sparc/a.out.h~arch-personality-independent-stack-top include/asm-sparc/a.out.h
---- a/include/asm-sparc/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-sparc/a.out.h
-@@ -92,6 +92,7 @@ struct relocation_info /* used when head
- #include <asm/page.h>
- 
- #define STACK_TOP	(PAGE_OFFSET - PAGE_SIZE)
-+#define STACK_TOP_MAX	STACK_TOP
- 
- #endif /* __KERNEL__ */
- 
-diff -puN include/asm-sparc64/a.out.h~arch-personality-independent-stack-top include/asm-sparc64/a.out.h
---- a/include/asm-sparc64/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-sparc64/a.out.h
-@@ -101,6 +101,8 @@ struct relocation_info /* used when head
- #define STACK_TOP (test_thread_flag(TIF_32BIT) ? \
- 		   STACK_TOP32 : STACK_TOP64)
- 
-+#define STACK_TOP_MAX STACK_TOP64
-+
- #endif
- 
- #endif /* !(__ASSEMBLY__) */
-diff -puN include/asm-um/a.out.h~arch-personality-independent-stack-top include/asm-um/a.out.h
---- a/include/asm-um/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-um/a.out.h
-@@ -16,4 +16,6 @@ extern int honeypot;
- #define STACK_TOP \
- 	CHOOSE_MODE((honeypot ? host_task_size : task_size), task_size)
- 
-+#define STACK_TOP_MAX	STACK_TOP
-+
- #endif
-diff -puN include/asm-x86_64/a.out.h~arch-personality-independent-stack-top include/asm-x86_64/a.out.h
---- a/include/asm-x86_64/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-x86_64/a.out.h
-@@ -21,7 +21,8 @@ struct exec
- 
- #ifdef __KERNEL__
- #include <linux/thread_info.h>
--#define STACK_TOP TASK_SIZE
-+#define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	TASK_SIZE64
- #endif
- 
- #endif /* __A_OUT_GNU_H__ */
-diff -puN include/asm-xtensa/a.out.h~arch-personality-independent-stack-top include/asm-xtensa/a.out.h
---- a/include/asm-xtensa/a.out.h~arch-personality-independent-stack-top
-+++ a/include/asm-xtensa/a.out.h
-@@ -17,6 +17,7 @@
- /* Note: the kernel needs the a.out definitions, even if only ELF is used. */
- 
- #define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX	STACK_TOP
- 
- struct exec
- {
-_
+[Rest of mail kept so linux-arch readers can see it]
 
-Patches currently in -mm which might be from a.p.zijlstra@chello.nl are
+Pointers to the mails with patches:
+http://marc.info/?l=linux-arm-kernel&m=118115330624752&w=2
+http://marc.info/?l=linux-arm-kernel&m=118115324023036&w=2
+http://marc.info/?l=linux-arm-kernel&m=118115281427358&w=2
+[PATCH 4/9] was not available at marc.info yet
+[PATCH 5/9] was not available at marc.info yet
+http://marc.info/?l=linux-arm-kernel&m=118115384801763&w=2
+http://marc.info/?l=linux-arm-kernel&m=118115310810711&w=2
+http://marc.info/?l=linux-arm-kernel&m=118115399504496&w=2
+http://marc.info/?l=linux-arm-kernel&m=118115421005454&w=2
 
-lumpy-reclaim-v4.patch
-split-mmap.patch
-only-allow-nonlinear-vmas-for-ram-backed-filesystems.patch
-percpu_counters-use-cpu-notifiers.patch
-percpu_counters-use-for_each_online_cpu.patch
-arch-personality-independent-stack-top.patch
-audit-rework-execve-audit.patch
-audit-rework-execve-audit-fix.patch
-mm-move_page_tables_up.patch
-mm-variable-length-argument-support.patch
-mm-variable-length-argument-support-fix.patch
-fix-raw_spinlock_t-vs-lockdep.patch
-lockdep-sanitise-config_prove_locking.patch
-lockdep-reduce-the-ifdeffery.patch
-lockstat-core-infrastructure.patch
-lockstat-core-infrastructure-fix.patch
-lockstat-core-infrastructure-fix-fix.patch
-lockstat-human-readability-tweaks.patch
-lockstat-human-readability-tweaks-fix.patch
-lockstat-hook-into-spinlock_t-rwlock_t-rwsem-and-mutex.patch
+See full list at: http://marc.info/?l=linux-arm-kernel&r=1&b=200706&w=2
 
+
+> 
+> I avoided posting the first big patch in the series as it only
+> contains the code duplicated from arch/arm into arch/arm_t2. Most of
+> the .h files only contain an #include clause to the corresponding
+> asm-arm version. Subsequent patches would show the differences with
+> the original arch/arm code, making the review a lot easier.
+> 
+> The patches are also available on my GIT tree -
+> http://www.linux-arm.org/git?p=linux-2.6.git;a=shortlog;h=2.6.21-thumb.
+> They are currently based on 2.6.21 with some additional patches for
+> the ARMv7 support (most of them being already merged by Russell in
+> 2.6.22-rc1).
+> 
+> Thumb-2 ISA consists of either 16 or 32 bit instructions and are
+> aligned to a two-byte boundary. ARM defined the unified assembler
+> language that provides a canonical form for all the ARM and Thumb-2
+> instructions. This is currently supported by the CodeSourcery's
+> toolchains.
+> 
+> Even with the unified syntax, there are some differences between the
+> instructions supported in ARM or Thumb modes (though the Thumb-2 code
+> could be compiled into ARM code but with some performance penalties).
+> 
+> 
+> Some of the main points regarding the Thumb-2 ISA:
+> 
+> - conditional execution is achieved using the IT (if-then) instruction
+>   which can specify the execution of up to four subsequent
+>   instructions (when compiling to ARM mode, this instruction is
+>   ignored)
+> 
+> - post-indexing ldr/str with a register (ldr r0, [r1], r2) is not
+>   supported in Thumb-2
+> 
+> - pre-indexing ldr/str with a shifted register only "lsl" is allowed
+>   (ldr r0, [r1, r2, lsl #2])
+> 
+> - ldrt/strt do not support post-indexing
+> 
+> - ldm/stm cannot have "sp" in the register list (the latest ARM ARM
+>   also states that ARM instructions that include "sp" in the list are
+>   deprecated)
+> 
+> - ldm cannot have both "pc" and "lr" in the list (the latest ARM ARM
+>   also states that these ARM instructions are deprecated)
+> 
+> - ldm/stm <registers-without-pc>^ are not available (kernel access to
+>   the banked "sp" and "lr" is done by switching to the System mode)
+> 
+> - ldm <registers-with-pc>^ is not available (return from exception is
+>   done with the "rfe" instruction)
+> 
+> - ldmda/stmib are not available
+> 
+> 
+> Some other issues with Thumb-2 or the unified assembler syntax:
+> 
+> - the condition flags should always be placed at the end of the
+>   instruction, i.e. "ldmiane" rather than "ldmneia". The new form is
+>   not compilable by older assemblers (though the new assembler could
+>   be modified to not warn about the old syntax)
+> 
+> - because Thumb-2 instructions are 16 bit aligned, instructions
+>   loading data from the literal pool may trigger an alignment
+>   fault. The assembler doesn't automatically align ".word" or ".long"
+>   declarations to 32 bit. This has to be explicitly set via ".align"
+> 
+> - Thumb-2 32 bit instructions can be generated by appending ".w" to
+>   the instruction, i.e. "mov.w pc, lr"
+> 
+> 
+> Comments and suggestions are welcomed.
+> 
+> Regards.
+> 
+> -- 
+> Catalin
+> 
+> -------------------------------------------------------------------
+> List admin: http://lists.arm.linux.org.uk/mailman/listinfo/linux-arm-kernel
+> FAQ:        http://www.arm.linux.org.uk/mailinglists/faq.php
+> Etiquette:  http://www.arm.linux.org.uk/mailinglists/etiquette.php
