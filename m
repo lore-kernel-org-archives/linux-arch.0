@@ -1,81 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:54746 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752497AbXFKRvQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jun 2007 13:51:16 -0400
-Date: Mon, 11 Jun 2007 10:51:03 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:2067 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753386AbXFKSI7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2007 14:08:59 -0400
+Date: Mon, 11 Jun 2007 19:08:52 +0100
+From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: [BUG] Fault handlers can deadlock
-In-Reply-To: <20070611165322.GB16265@flint.arm.linux.org.uk>
-Message-ID: <alpine.LFD.0.98.0706111041570.14121@woody.linux-foundation.org>
-References: <20070611160026.GA16265@flint.arm.linux.org.uk>
- <20070611094116.34e83ae6.akpm@linux-foundation.org>
- <20070611165322.GB16265@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=us-ascii
+Message-ID: <20070611180852.GE16265@flint.arm.linux.org.uk>
+References: <20070611160026.GA16265@flint.arm.linux.org.uk> <alpine.LFD.0.98.0706111037420.14121@woody.linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.0.98.0706111037420.14121@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Mon, 11 Jun 2007, Russell King wrote:
+On Mon, Jun 11, 2007 at 10:39:49AM -0700, Linus Torvalds wrote:
 > 
-> However, I still question whether those down_read_trylock games are
-> correct
+> 
+> On Mon, 11 Jun 2007, Russell King wrote:
+> > 
+> > The deadlock involves mmap_sem having been taken by the futex code
+> > and a page fault occuring in copy_from_user_inatomic().  We then
+> > hit this:
+> 
+> No, we don't. If you hit that code, you're buggy.
+> 
+> Look at what x86 has just before that sequence:
+> 
+>         /*
+>          * If we're in an interrupt, have no user context or are running in an
+>          * atomic region then we must not take the fault..
+>          */
+>         if (in_atomic() || !mm)
+>                 goto bad_area_nosemaphore;
+> 
+> and the whole *point* of "copy_from_user_inatomic()" is that it should 
+> trigger the "in_atomic()" check, and we will never even get to the code 
+> you point at:
+> 
+> >         /*
+> >          * As per x86, we may deadlock here.  However, since the kernel only
+> >          * validly references user space from well defined areas of the code,
+> >          * we can bug out early if this is from code which shouldn't.
+> >          */
+> >         if (!down_read_trylock(&mm->mmap_sem)) {
+> 
+> And as far as I can see, arm has the same "in_acomit()" checks too.
+> 
+> Maybe the arm implementation of in_atomic() or copy_from_user_inatomic() 
+> is broken some way?
 
-That is certainly a valid question. It may well be that we should *always* 
-do the "search_exception_tables()" for kernel accesses. As it is, we 
-aren't doing all the validity checks that we *could* do.
+Or the guy's using a very old kernel (2.6.12) and I'm pointing him at
+the wrong fix (which I was.)
 
-However, the deadlock is real, and concerns kernel *bugs*:
+However, as I said to Andrew (which didn't make it to the other recipients
+due to my mailer refusing to do so - yes, group reply only sent my followup
+to Andrew) I think the comments could do with some improvement.
 
- - if the kernel takes a (wild) page fault while holding the mmap_sem 
-   semaphore, we at one point just deadlocked instead of printign a nice 
-   oops message. Some people (including me) spent way too much time 
-   debugging silent and very-hard-to-debug lockups that should have just 
-   caused a nice oops and made the bug obvious.
+It looks like whoever did the s/in_interrupt/in_atomic/ change added
+additional commentry to x86 but omitted it from ARM, leading to the
+comments being misleading.
 
-However, I agree that the check itself conceptually should be done 
-regardless of whether the mmap_sem is taken or not.
+So, (as I also said to Andrew) I'm going to apply this patch to fix the
+comments and thereby remove the ambiguities.
 
-One solution migt be to just move the whole
+diff --git a/arch/arm/mm/fault.c b/arch/arm/mm/fault.c
+index 75d4914..368c437 100644
+--- a/arch/arm/mm/fault.c
++++ b/arch/arm/mm/fault.c
+@@ -226,8 +226,9 @@ do_page_fault(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
+ 	mm  = tsk->mm;
+ 
+ 	/*
+-	 * If we're in an interrupt or have no user
+-	 * context, we must not take the fault..
++	 * If we're in an atomic context (eg, interrupt, pagefault_disable,
++	 * etc) or have no user context, we must not take the fault...
++	 * We still search the exception tables.
+ 	 */
+ 	if (in_atomic() || !mm)
+ 		goto no_context;
+@@ -235,7 +236,8 @@ do_page_fault(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
+ 	/*
+ 	 * As per x86, we may deadlock here.  However, since the kernel only
+ 	 * validly references user space from well defined areas of the code,
+-	 * we can bug out early if this is from code which shouldn't.
++	 * we can avoid taking the semaphore entirely if the fault will lead
++	 * to an OOPS.
+ 	 */
+ 	if (!down_read_trylock(&mm->mmap_sem)) {
+ 		if (!user_mode(regs) && !search_exception_tables(regs->ARM_pc))
 
-	if (!user_mode(regs) && !search_exception_tables(pc))
-		goto no_context;
 
-to _outside_ the mmap_sem check, and change the code to basically be
-
-        /*
-         * If we're in an interrupt or have no user
-         * context, we must not take the fault..
-         */
-        if (in_atomic() || !mm)
-                goto no_context;
-
-	/*
-	 * If we're in kernel mode, and don't have the access
-	 * listed in the exception tables, we must not take
-	 * the fault...
-	 */
-	if (!user_mode(regs) && !search_exception_tables(pc))
-		goto no_context;
-
-	/* Do the fault */
-	down_read(&mm->mmap_sem);
-	fault = __do_page_fault(mm, addr, flags, tsk);
-	up_read(&mm->mmap_sem);
-
-which looks cleaner, I agree.
-
-However, one issue that I don't know was ever part of the reason is that 
-the exception table search may be expensive, and maybe skipping it when 
-getting the mmap_sem is easy is the right thing for a _performance_ 
-reason. I doubt it's a real issue (we should generally not be taking 
-a lot of faults from kernel mode!), but it's a thing to keep in mind.
-
-Comments?
-
-		Linus
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
