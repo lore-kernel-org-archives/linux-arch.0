@@ -1,38 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:2974 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755175AbXFKRiW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2007 13:38:22 -0400
-Date: Mon, 11 Jun 2007 18:38:15 +0100
-From: Russell King <rmk@arm.linux.org.uk>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:48586 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752620AbXFKRkH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jun 2007 13:40:07 -0400
+Date: Mon, 11 Jun 2007 10:39:49 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [BUG] Fault handlers can deadlock
-Message-ID: <20070611173815.GC16265@flint.arm.linux.org.uk>
-References: <20070611160026.GA16265@flint.arm.linux.org.uk> <20070611094116.34e83ae6.akpm@linux-foundation.org> <20070611165322.GB16265@flint.arm.linux.org.uk> <20070611103142.a9e55928.akpm@linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070611103142.a9e55928.akpm@linux-foundation.org>
+In-Reply-To: <20070611160026.GA16265@flint.arm.linux.org.uk>
+Message-ID: <alpine.LFD.0.98.0706111037420.14121@woody.linux-foundation.org>
+References: <20070611160026.GA16265@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Jun 11, 2007 at 10:31:42AM -0700, Andrew Morton wrote:
-> The code is there to improve debuggability and for no other reason.  It is
-> to fix the situation where the kernel references an invalida address while
-> holding down_write(mmap_sem).  We used to take the fault and then deadlock
-> on do_page_fault()'s down_read().  Now, we do the trylock and if that fails
-> we chech that a) it was running kernel code and b) the kernel didn't expect
-> a fault to occur at that EIP.  If both of those are true, go off and report
-> the oops rather than deadlocking.
+
+
+On Mon, 11 Jun 2007, Russell King wrote:
 > 
-> And I don't think I spot anything in either the ARM or i386 comments which
-> contradicts that? 
+> The deadlock involves mmap_sem having been taken by the futex code
+> and a page fault occuring in copy_from_user_inatomic().  We then
+> hit this:
 
-No, I think ARM is right and there isn't a problem (apart from
-ambiguous comments), provided people use a recent enough kernel.
+No, we don't. If you hit that code, you're buggy.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Look at what x86 has just before that sequence:
+
+        /*
+         * If we're in an interrupt, have no user context or are running in an
+         * atomic region then we must not take the fault..
+         */
+        if (in_atomic() || !mm)
+                goto bad_area_nosemaphore;
+
+and the whole *point* of "copy_from_user_inatomic()" is that it should 
+trigger the "in_atomic()" check, and we will never even get to the code 
+you point at:
+
+>         /*
+>          * As per x86, we may deadlock here.  However, since the kernel only
+>          * validly references user space from well defined areas of the code,
+>          * we can bug out early if this is from code which shouldn't.
+>          */
+>         if (!down_read_trylock(&mm->mmap_sem)) {
+
+And as far as I can see, arm has the same "in_acomit()" checks too.
+
+Maybe the arm implementation of in_atomic() or copy_from_user_inatomic() 
+is broken some way?
+
+		Linus
