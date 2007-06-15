@@ -1,67 +1,146 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from viefep18-int.chello.at ([213.46.255.22]:52793 "EHLO
-	viefep15-int.chello.at" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752004AbXFOJYn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 05:24:43 -0400
-Subject: Re: [patch 0/3] no MAX_ARG_PAGES -v2
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-In-Reply-To: <65dd6fd50706141358i39bba32aq139766c8a1a3de2b@mail.gmail.com>
-References: <20070613100334.635756997@chello.nl>
-	 <617E1C2C70743745A92448908E030B2A01AF860A@scsmsx411.amr.corp.intel.com>
-	 <65dd6fd50706132323i9c760f4m6e23687914d0c46e@mail.gmail.com>
-	 <1181810319.7348.345.camel@twins>
-	 <65dd6fd50706141358i39bba32aq139766c8a1a3de2b@mail.gmail.com>
-Content-Type: text/plain
-Date: Fri, 15 Jun 2007 11:24:38 +0200
-Message-Id: <1181899478.7348.349.camel@twins>
-Mime-Version: 1.0
+Received: from moutng.kundenserver.de ([212.227.126.171]:56593 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752496AbXFOJcV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 05:32:21 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH] Introduce compat_u64 and compat_s64 types
+Date: Fri, 15 Jun 2007 11:31:37 +0200
+References: <200706150159.l5F1xNgM000459@hera.kernel.org> <1181897905.26853.66.camel@localhost.localdomain> <200706151128.39566.arnd@arndb.de>
+In-Reply-To: <200706151128.39566.arnd@arndb.de>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200706151131.38429.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Ollie Wild <aaw@google.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2007-06-14 at 13:58 -0700, Ollie Wild wrote:
+One common problem with 32 bit system call and ioctl emulation
+is the different alignment rules between i386 and 64 bit machines.
+A number of drivers work around this by marking the compat
+structures as 'attribute((packed))', which is not the right
+solution because it breaks all the non-x86 architectures that
+want to use the same compat code.
 
->   A good heuristic, though, might be to limit
-> argument size to a percentage (say 25%) of maximum stack size and
-> validate this inside copy_strings().
+Hopefully, this patch improves the situation, it introduces two
+new types, compat_u64 and compat_s64. These are defined on all
+architectures to have the same size and alignment as the 32 bit
+version of u64 and s64.
 
-This seems to do:
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- fs/exec.c |   17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
 
-Index: linux-2.6-2/fs/exec.c
+See the discussions about 'Re: drm: fix radeon setparam on
+32/64 bit systems.' and 'diskquota: 32bit quota tools on
+64bit architectures' about where this comes from.
+
+Index: linux-2.6/include/asm-ia64/compat.h
 ===================================================================
---- linux-2.6-2.orig/fs/exec.c	2007-06-15 11:05:09.000000000 +0200
-+++ linux-2.6-2/fs/exec.c	2007-06-15 11:05:18.000000000 +0200
-@@ -199,6 +199,23 @@ static struct page *get_arg_page(struct 
- 	if (ret <= 0)
- 		return NULL;
+--- linux-2.6.orig/include/asm-ia64/compat.h
++++ linux-2.6/include/asm-ia64/compat.h
+@@ -31,8 +31,10 @@ typedef s32		compat_timer_t;
  
-+	if (write) {
-+		struct rlimit *rlim = current->signal->rlim;
-+		unsigned long size = bprm->vma->vm_end - bprm->vma->vm_start;
-+
-+		/*
-+		 * Limit to 1/4-th the stack size for the argv+env strings.
-+		 * This ensures that:
-+		 *  - the remaining binfmt code will not run out of stack space,
-+		 *  - the program will have a reasonable amount of stack left
-+		 *    to work from.
-+		 */
-+		if (size > rlim[RLIMIT_STACK].rlim_cur / 4) {
-+			put_page(page);
-+			return NULL;
-+		}
-+	}
-+
- 	return page;
- }
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64 __attribute__((aligned(4))) compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64 __attribute__((aligned(4))) compat_u64;
  
-
-
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+Index: linux-2.6/include/asm-mips/compat.h
+===================================================================
+--- linux-2.6.orig/include/asm-mips/compat.h
++++ linux-2.6/include/asm-mips/compat.h
+@@ -37,8 +37,10 @@ typedef s32		compat_key_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64		compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64		compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+Index: linux-2.6/include/asm-parisc/compat.h
+===================================================================
+--- linux-2.6.orig/include/asm-parisc/compat.h
++++ linux-2.6/include/asm-parisc/compat.h
+@@ -31,8 +31,10 @@ typedef s32	compat_timer_t;
+ 
+ typedef s32	compat_int_t;
+ typedef s32	compat_long_t;
++typedef s64	compat_s64;
+ typedef u32	compat_uint_t;
+ typedef u32	compat_ulong_t;
++typedef u64	compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t		tv_sec;
+Index: linux-2.6/include/asm-powerpc/compat.h
+===================================================================
+--- linux-2.6.orig/include/asm-powerpc/compat.h
++++ linux-2.6/include/asm-powerpc/compat.h
+@@ -33,8 +33,10 @@ typedef s32		compat_timer_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64		compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64		compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+Index: linux-2.6/include/asm-s390/compat.h
+===================================================================
+--- linux-2.6.orig/include/asm-s390/compat.h
++++ linux-2.6/include/asm-s390/compat.h
+@@ -60,8 +60,10 @@ typedef s32		compat_timer_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64		compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64		compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+Index: linux-2.6/include/asm-sparc64/compat.h
+===================================================================
+--- linux-2.6.orig/include/asm-sparc64/compat.h
++++ linux-2.6/include/asm-sparc64/compat.h
+@@ -31,8 +31,10 @@ typedef s32		compat_timer_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64		compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64		compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+Index: linux-2.6/include/asm-x86_64/compat.h
+===================================================================
+--- linux-2.6.orig/include/asm-x86_64/compat.h
++++ linux-2.6/include/asm-x86_64/compat.h
+@@ -33,8 +33,10 @@ typedef s32		compat_key_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64 __attribute__((aligned(4))) compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64 __attribute__((aligned(4))) compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
