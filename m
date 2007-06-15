@@ -1,44 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from canuck.infradead.org ([209.217.80.40]:41683 "EHLO
-	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752299AbXFOMrP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 08:47:15 -0400
+Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:58691 "EHLO
+	the-village.bc.nu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756206AbXFOMt1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 08:49:27 -0400
+Date: Fri, 15 Jun 2007 13:54:20 +0100
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
 Subject: Re: [PATCH] Introduce compat_u64 and compat_s64 types
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <200706151440.10273.ak@suse.de>
-References: <200706150159.l5F1xNgM000459@hera.kernel.org>
-	 <200706151355.57464.ak@suse.de> <200706151403.53855.arnd@arndb.de>
-	 <200706151440.10273.ak@suse.de>
-Content-Type: text/plain
-Date: Fri, 15 Jun 2007 13:47:08 +0100
-Message-Id: <1181911628.25228.483.camel@pmac.infradead.org>
+Message-ID: <20070615135420.7fe2e4c1@the-village.bc.nu>
+In-Reply-To: <200706151443.13511.ak@suse.de>
+References: <200706151355.57464.ak@suse.de>
+	<200706151131.38429.arnd@arndb.de>
+	<5717.1181909357@redhat.com>
+	<200706151443.13511.ak@suse.de>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: Andi Kleen <ak@suse.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2007-06-15 at 14:40 +0200, Andi Kleen wrote:
-> > That is broken on all non-x86 architectures, 
+> > > Why does it break them? It should just make them a little slower.
+> > Not all CPUs deliver recoverable misalignment exceptions.   
+> These CPUs are too broken to run Linux then.
 
-> It cannot be broken, it just might be somewhat slower 
+People fixed that up
+> 
+> > > The network code requires unaligned accesses to work anyways so if your
+> > > architecture doesn't support them it is already remotely crashable.
+> >
+> > I thought we'd fixed all that.
+> 
+> Did you audit the complete network stack?
 
-No, Andi. It's broken.
+For the parts used by the processors in question yes people have done
+that work so using the types without unaligned.
 
-We're speaking of a 32-bit ioctl compat routine. I would say it's more
-than 'convention' that the structure used by the compat_ioctl routine
-actually matches the 'real' structure as it gets laid out on the 32-bit
-architecture.
-
-The 'real' structure as used by the 32-bit userspace does not have the
-'packed' attribute. Thus the u64 member of the structure is aligned to 8
-bytes on _all_ relevant 32-bit architectures except for i386.
-
-By adding 'packed' in the compat_ioctl routine, you cause it to expect a
-structure which does not match what userspace is using, for all non-x86
-architectures. That's kind of not very compatible. I call that 'broken'.
-
--- 
-dwmw2
-
+Alan
