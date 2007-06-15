@@ -1,39 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:58691 "EHLO
-	the-village.bc.nu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756206AbXFOMt1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 08:49:27 -0400
-Date: Fri, 15 Jun 2007 13:54:20 +0100
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Received: from mx1.suse.de ([195.135.220.2]:48049 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753185AbXFOMyi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Jun 2007 08:54:38 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: [PATCH] Introduce compat_u64 and compat_s64 types
-Message-ID: <20070615135420.7fe2e4c1@the-village.bc.nu>
-In-Reply-To: <200706151443.13511.ak@suse.de>
-References: <200706151355.57464.ak@suse.de>
-	<200706151131.38429.arnd@arndb.de>
-	<5717.1181909357@redhat.com>
-	<200706151443.13511.ak@suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Date: Fri, 15 Jun 2007 14:54:28 +0200
+References: <200706151355.57464.ak@suse.de> <200706151443.13511.ak@suse.de> <20070615135420.7fe2e4c1@the-village.bc.nu>
+In-Reply-To: <20070615135420.7fe2e4c1@the-village.bc.nu>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200706151454.28854.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
 Cc: David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-> > > Why does it break them? It should just make them a little slower.
-> > Not all CPUs deliver recoverable misalignment exceptions.   
-> These CPUs are too broken to run Linux then.
+On Friday 15 June 2007 14:54:20 Alan Cox wrote:
 
-People fixed that up
+> > > > The network code requires unaligned accesses to work anyways so if your
+> > > > architecture doesn't support them it is already remotely crashable.
+> > >
+> > > I thought we'd fixed all that.
+> > 
+> > Did you audit the complete network stack?
 > 
-> > > The network code requires unaligned accesses to work anyways so if your
-> > > architecture doesn't support them it is already remotely crashable.
-> >
-> > I thought we'd fixed all that.
-> 
-> Did you audit the complete network stack?
+> For the parts used by the processors in question yes 
 
-For the parts used by the processors in question yes people have done
-that work so using the types without unaligned.
+That means? They're expected to run only a subset of the network stack?
+Is that expressed in Kconfig? Is it documented that the rest is dangerous?
 
-Alan
+> people have done 
+> that work so using the types without unaligned.
+
+Very brave; we're talking about around half a million lines
+of non trivial source code here.
+
+-Andi
+
