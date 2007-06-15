@@ -1,35 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:56068 "EHLO pasmtpA.tele.dk"
+Received: from gate.crashing.org ([63.228.1.57]:53945 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754273AbXFOVyb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Jun 2007 17:54:31 -0400
-Date: Fri, 15 Jun 2007 23:55:34 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [patch 1/5] Use EXTRARW_DATA in architectures
-Message-ID: <20070615215534.GB11267@uranus.ravnborg.org>
-References: <20070615202959.316963297@polymtl.ca> <20070615203550.044690775@polymtl.ca>
+	id S1752679AbXFOXzg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Jun 2007 19:55:36 -0400
+Subject: Re: [PATCH] Introduce compat_u64 and compat_s64 types
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <20070615134512.GG8154@parisc-linux.org>
+References: <200706150159.l5F1xNgM000459@hera.kernel.org>
+	 <200706151131.38429.arnd@arndb.de> <20070615121133.GF8154@parisc-linux.org>
+	 <200706151442.23939.arnd@arndb.de> <20070615134512.GG8154@parisc-linux.org>
+Content-Type: text/plain
+Date: Sat, 16 Jun 2007 09:54:22 +1000
+Message-Id: <1181951662.26853.97.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070615203550.044690775@polymtl.ca>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Arnd Bergmann <arnd@arndb.de>, David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi Mathieu.
+On Fri, 2007-06-15 at 07:45 -0600, Matthew Wilcox wrote:
 
-On Fri, Jun 15, 2007 at 04:30:00PM -0400, Mathieu Desnoyers wrote:
-> EXTRARW_DATA adds a place to declare rw data that will not be mixed with the
-> .data content; therefore limiting data cache pollution when data is put in
-> the EXTRARW_DATA sections.
+> 
+> $ ./test 
+> offset of foo->x is 8
+> offset of bar->x is 4
 
-I would suggest to embed this inside DATA_DATA in vmlinux.lds.h
-That seems reasonsable to do instead of adding it right after DATA_DATA
-for all archs.
+Looks to me like bar (that is compat_s64) is doing the right thing, no ?
 
-From your patch it looks like I originally missed out
-powerpc + xtensa when introducing DATA_DATA - would be nice if
-you could fix that.
+Ben.
 
-	Sam
+
