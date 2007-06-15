@@ -1,41 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from canuck.infradead.org ([209.217.80.40]:41634 "EHLO
-	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752612AbXFOMii (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 08:38:38 -0400
+Received: from ns2.suse.de ([195.135.220.15]:44848 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753016AbXFOMjX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Jun 2007 08:39:23 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: [PATCH] Introduce compat_u64 and compat_s64 types
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <20070615121133.GF8154@parisc-linux.org>
-References: <200706150159.l5F1xNgM000459@hera.kernel.org>
-	 <1181897905.26853.66.camel@localhost.localdomain>
-	 <200706151128.39566.arnd@arndb.de> <200706151131.38429.arnd@arndb.de>
-	 <20070615121133.GF8154@parisc-linux.org>
-Content-Type: text/plain
-Date: Fri, 15 Jun 2007 13:38:32 +0100
-Message-Id: <1181911112.25228.472.camel@pmac.infradead.org>
-Mime-Version: 1.0
+Date: Fri, 15 Jun 2007 14:38:51 +0200
+References: <200706150159.l5F1xNgM000459@hera.kernel.org> <200706151355.57464.ak@suse.de> <1181908836.25228.452.camel@pmac.infradead.org>
+In-Reply-To: <1181908836.25228.452.camel@pmac.infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200706151438.51803.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
+To: David Woodhouse <dwmw2@infradead.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2007-06-15 at 06:11 -0600, Matthew Wilcox wrote:
-> You're relying on compat_[us]64 being only used in structures which are
-> already packed. 
 
-In which case the whole exercise is pointless, on account of the
-structure being already packed. It was _already_ laid out the same on
-32-bit and 64-bit builds.
+> It's the _location_ which is wrong;
 
->  If someone uses them in a non-packed struct, they won't
-> decrease the alignment.  I think it would be more effective to specify
-> it as:
-> __attribute__((aligned(4), packed))
+As long as everybody using it sees the attribute packed it is not wrong at 
+all. ABIs are just a convention, not a law.
 
-Good point. Yes, it looks like we need the additional 'packed' in order
-for the aligned(4) to be anything other than a no-op.
-
--- 
-dwmw2
-
+-Andi
