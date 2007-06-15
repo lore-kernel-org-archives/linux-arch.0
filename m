@@ -1,31 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:55897 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752426AbXFOMKr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Jun 2007 08:10:47 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <200706151355.57464.ak@suse.de>
-References: <200706151355.57464.ak@suse.de> <200706150159.l5F1xNgM000459@hera.kernel.org> <200706151128.39566.arnd@arndb.de> <200706151131.38429.arnd@arndb.de>
+Received: from canuck.infradead.org ([209.217.80.40]:41634 "EHLO
+	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752612AbXFOMii (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 08:38:38 -0400
 Subject: Re: [PATCH] Introduce compat_u64 and compat_s64 types
-Date: Fri, 15 Jun 2007 13:09:17 +0100
-Message-ID: <5717.1181909357@redhat.com>
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <20070615121133.GF8154@parisc-linux.org>
+References: <200706150159.l5F1xNgM000459@hera.kernel.org>
+	 <1181897905.26853.66.camel@localhost.localdomain>
+	 <200706151128.39566.arnd@arndb.de> <200706151131.38429.arnd@arndb.de>
+	 <20070615121133.GF8154@parisc-linux.org>
+Content-Type: text/plain
+Date: Fri, 15 Jun 2007 13:38:32 +0100
+Message-Id: <1181911112.25228.472.camel@pmac.infradead.org>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Andi Kleen <ak@suse.de> wrote:
+On Fri, 2007-06-15 at 06:11 -0600, Matthew Wilcox wrote:
+> You're relying on compat_[us]64 being only used in structures which are
+> already packed. 
 
-> Why does it break them? It should just make them a little slower.
+In which case the whole exercise is pointless, on account of the
+structure being already packed. It was _already_ laid out the same on
+32-bit and 64-bit builds.
 
-Not all CPUs deliver recoverable misalignment exceptions.  This is probably
-particularly true of NOMMU-mode archs where the CPU designed may have taken
-the view that if a data exception is delivered, then the whole system is kaput
-anyway and must be restarted.
+>  If someone uses them in a non-packed struct, they won't
+> decrease the alignment.  I think it would be more effective to specify
+> it as:
+> __attribute__((aligned(4), packed))
 
-> The network code requires unaligned accesses to work anyways so if your
-> architecture doesn't support them it is already remotely crashable.
+Good point. Yes, it looks like we need the additional 'packed' in order
+for the aligned(4) to be anything other than a no-op.
 
-I thought we'd fixed all that.
+-- 
+dwmw2
 
-David
