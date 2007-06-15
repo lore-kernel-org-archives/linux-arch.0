@@ -1,8 +1,8 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from viefep18-int.chello.at ([213.46.255.22]:36786 "EHLO
-	viefep12-int.chello.at" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750957AbXFNVSZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jun 2007 17:18:25 -0400
+Received: from viefep18-int.chello.at ([213.46.255.22]:52793 "EHLO
+	viefep15-int.chello.at" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752004AbXFOJYn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 05:24:43 -0400
 Subject: Re: [patch 0/3] no MAX_ARG_PAGES -v2
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
 In-Reply-To: <65dd6fd50706141358i39bba32aq139766c8a1a3de2b@mail.gmail.com>
@@ -12,8 +12,8 @@ References: <20070613100334.635756997@chello.nl>
 	 <1181810319.7348.345.camel@twins>
 	 <65dd6fd50706141358i39bba32aq139766c8a1a3de2b@mail.gmail.com>
 Content-Type: text/plain
-Date: Thu, 14 Jun 2007 23:18:00 +0200
-Message-Id: <1181855880.5806.5.camel@lappy>
+Date: Fri, 15 Jun 2007 11:24:38 +0200
+Message-Id: <1181899478.7348.349.camel@twins>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,40 +22,46 @@ Cc: "Luck, Tony" <tony.luck@intel.com>, linux-kernel@vger.kernel.org, parisc-lin
 List-ID: <linux-arch.vger.kernel.org>
 
 On Thu, 2007-06-14 at 13:58 -0700, Ollie Wild wrote:
-> > @@ -1385,6 +1401,10 @@ int do_execve(char * filename,
-> >                 goto out;
-> >         bprm->argv_len = env_p - bprm->p;
-> >
-> > +       retval = expand_arg_vma(bprm);
-> > +       if (retval < 0)
-> > +               goto out;
-> > +
-> >         retval = search_binary_handler(bprm,regs);
-> >         if (retval >= 0) {
-> >                 /* execve success */
-> 
-> At this point bprm->argc hasn't been finalized yet.  For example, the
-> script binfmt reads the script header and adds additional arguments.
-> The flush_old_exec() function is a better place to call this.
 
-Sure, but at this time most of it is there, so when there are many, this
-allocates the most of it.
-
-> I'm not 100% sure this is the right way to handle this, though.  The
-> problem isn't as simple as ensuring the stack doesn't overflow during
-> argument allocation.  We also need to ensure the program has
-> sufficient stack space to run subsequently.  Otherwise, the observable
-> behavior is identical. 
-
-Well, not identical, but similar indeed.
-
->  Since we can't realistically predict
-> acceptable stack availability requirements, some amount of uncertainty
-> is always going to exist.  
-
-> A good heuristic, though, might be to limit
+>   A good heuristic, though, might be to limit
 > argument size to a percentage (say 25%) of maximum stack size and
 > validate this inside copy_strings().
 
-Right, this seems a much simpler approach. I like it.
+This seems to do:
+
+
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ fs/exec.c |   17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+Index: linux-2.6-2/fs/exec.c
+===================================================================
+--- linux-2.6-2.orig/fs/exec.c	2007-06-15 11:05:09.000000000 +0200
++++ linux-2.6-2/fs/exec.c	2007-06-15 11:05:18.000000000 +0200
+@@ -199,6 +199,23 @@ static struct page *get_arg_page(struct 
+ 	if (ret <= 0)
+ 		return NULL;
+ 
++	if (write) {
++		struct rlimit *rlim = current->signal->rlim;
++		unsigned long size = bprm->vma->vm_end - bprm->vma->vm_start;
++
++		/*
++		 * Limit to 1/4-th the stack size for the argv+env strings.
++		 * This ensures that:
++		 *  - the remaining binfmt code will not run out of stack space,
++		 *  - the program will have a reasonable amount of stack left
++		 *    to work from.
++		 */
++		if (size > rlim[RLIMIT_STACK].rlim_cur / 4) {
++			put_page(page);
++			return NULL;
++		}
++	}
++
+ 	return page;
+ }
+ 
+
 
