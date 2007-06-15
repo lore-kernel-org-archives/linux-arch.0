@@ -1,43 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.suse.de ([195.135.220.2]:48049 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753185AbXFOMyi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Jun 2007 08:54:38 -0400
-From: Andi Kleen <ak@suse.de>
+Received: from canuck.infradead.org ([209.217.80.40]:36760 "EHLO
+	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752965AbXFONAt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 09:00:49 -0400
 Subject: Re: [PATCH] Introduce compat_u64 and compat_s64 types
-Date: Fri, 15 Jun 2007 14:54:28 +0200
-References: <200706151355.57464.ak@suse.de> <200706151443.13511.ak@suse.de> <20070615135420.7fe2e4c1@the-village.bc.nu>
+From: David Woodhouse <dwmw2@infradead.org>
 In-Reply-To: <20070615135420.7fe2e4c1@the-village.bc.nu>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+References: <200706151355.57464.ak@suse.de>
+	 <200706151131.38429.arnd@arndb.de> <5717.1181909357@redhat.com>
+	 <200706151443.13511.ak@suse.de> <20070615135420.7fe2e4c1@the-village.bc.nu>
+Content-Type: text/plain
+Date: Fri, 15 Jun 2007 14:00:06 +0100
+Message-Id: <1181912406.25228.491.camel@pmac.infradead.org>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200706151454.28854.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Andi Kleen <ak@suse.de>, David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Friday 15 June 2007 14:54:20 Alan Cox wrote:
-
-> > > > The network code requires unaligned accesses to work anyways so if your
-> > > > architecture doesn't support them it is already remotely crashable.
-> > >
-> > > I thought we'd fixed all that.
-> > 
-> > Did you audit the complete network stack?
-> 
-> For the parts used by the processors in question yes 
-
-That means? They're expected to run only a subset of the network stack?
-Is that expressed in Kconfig? Is it documented that the rest is dangerous?
-
-> people have done 
+On Fri, 2007-06-15 at 13:54 +0100, Alan Cox wrote:
+> For the parts used by the processors in question yes people have done
 > that work so using the types without unaligned.
 
-Very brave; we're talking about around half a million lines
-of non trivial source code here.
+I still think we could use a 'get_maybe_but_probably_not_unaligned()',
+although it could have a better name.
 
--Andi
+People now use get_unaligned() for two reasons -- firstly because we
+_expect_ something to be unaligned, and we get a performance improvement
+if we just emit code to directly handle that instead of taking the trap.
+And more recently we've also started to use it because there's a
+_slight_ chance it could be unaligned, and some architectures can't
+cope.
+
+Where the unalignment is possible but unlikely, many architectures
+probably shouldn't be emitting code to cope with it; they should just
+take the trap in the rare case.
+
+In fact, the probability threshold at which it makes sense to just take
+the trap will vary from architecture to architecture. We should probably
+just have a get_probably_unaligned(...) macro which has its first arg as
+an _estimated_ constant probability. Then the architecture code could
+emit what it likes according to the probability.
+
+-- 
+dwmw2
 
