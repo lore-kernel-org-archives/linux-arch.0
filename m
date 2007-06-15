@@ -1,49 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from canuck.infradead.org ([209.217.80.40]:43736 "EHLO
-	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753353AbXFONcl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 09:32:41 -0400
+Received: from palinux.external.hp.com ([192.25.206.14]:55729 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753769AbXFONpP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jun 2007 09:45:15 -0400
+Date: Fri, 15 Jun 2007 07:45:12 -0600
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: [PATCH] Introduce compat_u64 and compat_s64 types
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <200706151527.45143.ak@suse.de>
-References: <200706151355.57464.ak@suse.de> <200706151454.28854.ak@suse.de>
-	 <20070615141544.5a8e234e@the-village.bc.nu> <200706151527.45143.ak@suse.de>
-Content-Type: text/plain
-Date: Fri, 15 Jun 2007 14:32:31 +0100
-Message-Id: <1181914351.25228.520.camel@pmac.infradead.org>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Message-ID: <20070615134512.GG8154@parisc-linux.org>
+References: <200706150159.l5F1xNgM000459@hera.kernel.org> <200706151131.38429.arnd@arndb.de> <20070615121133.GF8154@parisc-linux.org> <200706151442.23939.arnd@arndb.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <200706151442.23939.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2007-06-15 at 15:27 +0200, Andi Kleen wrote:
-> Hopefully everybody who deploys these systems knows this. It seems
-> like a open death trap to me, especially since the consequences
-> are so severe: remote packet of death, could be a recall for 
-> a network conntected embedded device that doesn't easily allow
-> firmware update. And they would rightfully blame Linux.
+On Fri, Jun 15, 2007 at 02:42:23PM +0200, Arnd Bergmann wrote:
+> That's what I thought as well at first, since this is how the gcc 
+> documentation seems to describe it. However, recent version of gcc
+> complain about this:
 > 
-> It would be much safer if the parts of the stack that weren't
-> audited/tested were marked this way and check for BROKEN_UNALIGNED or
-> similar.
+> gcc-4.1 -Wall -O2 test.c  -c
+> test.c:1: warning: 'packed' attribute ignored
+> 
+> I have tested versions 2.95, 3.3 and 4.1, an they all ignore do the
+> right thing when you do not specify the packed attribute.
 
-If we did the get_probably_unaligned() thing, then on architectures
-where we _do_ trap and fix up, we could actually spit out a warning
-whenever we hit a trap and it _wasn't_ marked with
-get_probably_unaligned().
+...
 
-> Also frankly I'm surprised that whoever designed these systems
-> didn't learn from the old M68000 who made this mistake the first time.
+> We might ask the gcc developers to clarify the documentation, which as of 4.1
+> states:
+> 
+>      The `aligned' attribute can only increase the alignment; but you
+>      can decrease it by specifying `packed' as well.  See below.
+> 
+> My understanding is that this only applies to statically allocated variables,
+> but not to automatic stack variables and to usage of the type inside of
+> a data structure.
 
-Mostly, the machines which can't handle traps are the machines which
-don't even have an MMU. Why add hardware when you don't really need it?
-Fundamentally, it isn't a hardware design flaw. You could perhaps ask
-interesting questions about whether Linux is _really_ the right software
-to be using on them, but the fact remains that Linux _is_ the software
-people are using on them.
+Here's a program which illustrates the source of confusion:
 
--- 
-dwmw2
+#include <stdio.h>
+#include <stddef.h>
 
+typedef unsigned long long __attribute__((aligned(4))) compat_u64;
+
+struct foo {
+        int y;
+        unsigned long long __attribute__((aligned(4))) x;
+};
+
+struct bar {
+        int y;
+        compat_u64 x;
+};
+
+int main(void)
+{
+        printf("offset of foo->x is %lu\n", offsetof(struct foo, x));
+        printf("offset of bar->x is %lu\n", offsetof(struct bar, x));
+        return 0;
+}
+
+output (on ia64, and I'm told other 64-bit platforms) is:
+
+$ ./test 
+offset of foo->x is 8
+offset of bar->x is 4
+
+I'll try and come up with some wording that works for the GCC manual.
