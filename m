@@ -1,32 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:55002 "EHLO gate.crashing.org"
+Received: from cantor2.suse.de ([195.135.220.15]:47096 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752651AbXFONVX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Jun 2007 09:21:23 -0400
+	id S1754810AbXFON2F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Jun 2007 09:28:05 -0400
+From: Andi Kleen <ak@suse.de>
 Subject: Re: [PATCH] Introduce compat_u64 and compat_s64 types
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <200706151440.10273.ak@suse.de>
-References: <200706150159.l5F1xNgM000459@hera.kernel.org>
-	 <200706151355.57464.ak@suse.de> <200706151403.53855.arnd@arndb.de>
-	 <200706151440.10273.ak@suse.de>
-Content-Type: text/plain
-Date: Fri, 15 Jun 2007 23:19:43 +1000
-Message-Id: <1181913584.26853.78.camel@localhost.localdomain>
-Mime-Version: 1.0
+Date: Fri, 15 Jun 2007 15:27:44 +0200
+References: <200706151355.57464.ak@suse.de> <200706151454.28854.ak@suse.de> <20070615141544.5a8e234e@the-village.bc.nu>
+In-Reply-To: <20070615141544.5a8e234e@the-village.bc.nu>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200706151527.45143.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2007-06-15 at 14:40 +0200, Andi Kleen wrote:
-> > That is broken on all non-x86 architectures, 
+
+> And debug simulators that can be made to trap such accesses, and in most
+> cases processors which fault such an access (so you find it) but don't
+> provide enough information to restart.
 > 
-> It cannot be broken, it just might be somewhat slower
+> The testing isn't that hard for a given embedded system and having done
+> work Linux does not need other changes re-breaking things.
 
-It is because there is already code out there that expects the padding
-(32 bits userland code that is).
+Hopefully everybody who deploys these systems knows this. It seems
+like a open death trap to me, especially since the consequences
+are so severe: remote packet of death, could be a recall for 
+a network conntected embedded device that doesn't easily allow firmware 
+update. And they would rightfully blame Linux.
 
-Ben.
+It would be much safer if the parts of the stack that weren't
+audited/tested were marked this way and check for BROKEN_UNALIGNED or similar.
 
+Also frankly I'm surprised that whoever designed these systems
+didn't learn from the old M68000 who made this mistake the first time.
 
+-Andi
