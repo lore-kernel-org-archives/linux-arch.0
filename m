@@ -1,33 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:53945 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752679AbXFOXzg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Jun 2007 19:55:36 -0400
+Received: from canuck.infradead.org ([209.217.80.40]:54678 "EHLO
+	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752598AbXFPIcM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 16 Jun 2007 04:32:12 -0400
 Subject: Re: [PATCH] Introduce compat_u64 and compat_s64 types
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <20070615134512.GG8154@parisc-linux.org>
-References: <200706150159.l5F1xNgM000459@hera.kernel.org>
-	 <200706151131.38429.arnd@arndb.de> <20070615121133.GF8154@parisc-linux.org>
-	 <200706151442.23939.arnd@arndb.de> <20070615134512.GG8154@parisc-linux.org>
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <200706152322.07739.ak@suse.de>
+References: <200706151355.57464.ak@suse.de> <200706151454.28854.ak@suse.de>
+	 <200706151650.53481.rgetz@blackfin.uclinux.org>
+	 <200706152322.07739.ak@suse.de>
 Content-Type: text/plain
-Date: Sat, 16 Jun 2007 09:54:22 +1000
-Message-Id: <1181951662.26853.97.camel@localhost.localdomain>
+Date: Sat, 16 Jun 2007 09:31:41 +0100
+Message-Id: <1181982701.25228.615.camel@pmac.infradead.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Arnd Bergmann <arnd@arndb.de>, David Woodhouse <dwmw2@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+To: Andi Kleen <ak@suse.de>
+Cc: Robin Getz <rgetz@blackfin.uclinux.org>, Alan Cox <alan@lxorguk.ukuu.org.uk>, David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dave Airlie <airlied@linux.ie>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Bernd Schmidt <bernds_cb1@t-online.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 2007-06-15 at 07:45 -0600, Matthew Wilcox wrote:
-
+On Fri, 2007-06-15 at 23:22 +0200, Andi Kleen wrote:
+> > For the architecture we use (Blackfin), it does not support unaligned
+> > accesses, and we purposely never put in the trap/fixup code - we trap, and
+> > printk("fix your source");
 > 
-> $ ./test 
-> offset of foo->x is 8
-> offset of bar->x is 4
+> For the kernel you should fix up too in addition to the printk. Otherwise
+> you risk a ping of death in the field with some more obscure protocol.
+> Also the printk should be load limited.
 
-Looks to me like bar (that is compat_s64) is doing the right thing, no ?
+Sometimes you can't. Some architectures don't even take a trap, and on
+others (FR-V without MMU) it's an imprecise exception.
 
-Ben.
-
+-- 
+dwmw2
 
