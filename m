@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts36.bellnexxia.net ([209.226.175.93]:54192 "EHLO
+Received: from tomts36-srv.bellnexxia.net ([209.226.175.93]:55535 "EHLO
 	tomts36-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750803AbXFQERd (ORCPT
+	by vger.kernel.org with ESMTP id S1751391AbXFQEZW (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 17 Jun 2007 00:17:33 -0400
-Date: Sat, 16 Jun 2007 22:29:04 -0400
+	Sun, 17 Jun 2007 00:25:22 -0400
+Date: Sat, 16 Jun 2007 22:29:39 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [PATCH] Add missing DATA_DATA to powerpc
-Message-ID: <20070617022904.GB6832@Krystal>
+Subject: [PATCH] Use DATA_DATA in xtensa
+Message-ID: <20070617022939.GC6832@Krystal>
 References: <20070615202959.316963297@polymtl.ca> <20070615203550.044690775@polymtl.ca> <20070615215534.GB11267@uranus.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -26,28 +26,27 @@ List-ID: <linux-arch.vger.kernel.org>
 > 
 > 	Sam
 
-Add missing DATA_DATA in powerpc
+Use DATA_DATA in xtensa
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
---
- arch/powerpc/kernel/vmlinux.lds.S |    4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+---
+ arch/xtensa/kernel/vmlinux.lds.S |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-Index: linux-2.6-lttng/arch/powerpc/kernel/vmlinux.lds.S
+Index: linux-2.6-lttng/arch/xtensa/kernel/vmlinux.lds.S
 ===================================================================
---- linux-2.6-lttng.orig/arch/powerpc/kernel/vmlinux.lds.S	2007-06-16 22:17:53.000000000 -0400
-+++ linux-2.6-lttng/arch/powerpc/kernel/vmlinux.lds.S	2007-06-16 22:18:32.000000000 -0400
-@@ -173,7 +173,9 @@
- 	}
- #else
- 	.data : {
--		*(.data .data.rel* .toc1)
-+		DATA_DATA
-+		*(.data.rel*)
-+		*(.toc1)
- 		*(.branch_lt)
- 	}
-
+--- linux-2.6-lttng.orig/arch/xtensa/kernel/vmlinux.lds.S	2007-06-16 22:20:09.000000000 -0400
++++ linux-2.6-lttng/arch/xtensa/kernel/vmlinux.lds.S	2007-06-16 22:20:41.000000000 -0400
+@@ -118,7 +118,8 @@
+   _fdata = .;
+   .data :
+   {
+-    *(.data) CONSTRUCTORS
++    DATA_DATA
++    CONSTRUCTORS
+     . = ALIGN(XCHAL_ICACHE_LINESIZE);
+     *(.data.cacheline_aligned)
+   }
 -- 
 Mathieu Desnoyers
 Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
