@@ -1,51 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts36.bellnexxia.net ([209.226.175.93]:55664 "EHLO
-	tomts36-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752513AbXFQEZ5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 17 Jun 2007 00:25:57 -0400
-Date: Sat, 16 Jun 2007 22:30:10 -0400
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: Re: [patch 1/5] Use EXTRARW_DATA in architectures
-Message-ID: <20070617023010.GD6832@Krystal>
-References: <20070615202959.316963297@polymtl.ca> <20070615203550.044690775@polymtl.ca> <20070615215534.GB11267@uranus.ravnborg.org>
+Received: from caramon.arm.linux.org.uk ([217.147.92.249]:3462 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756008AbXFQLsI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 17 Jun 2007 07:48:08 -0400
+Date: Sun, 17 Jun 2007 12:47:58 +0100
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: pause_on_oops
+Message-ID: <20070617114758.GA6716@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20070615215534.GB11267@uranus.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-* Sam Ravnborg (sam@ravnborg.org) wrote:
-> Hi Mathieu.
-> 
-> On Fri, Jun 15, 2007 at 04:30:00PM -0400, Mathieu Desnoyers wrote:
-> > EXTRARW_DATA adds a place to declare rw data that will not be mixed with the
-> > .data content; therefore limiting data cache pollution when data is put in
-> > the EXTRARW_DATA sections.
-> 
-> I would suggest to embed this inside DATA_DATA in vmlinux.lds.h
-> That seems reasonsable to do instead of adding it right after DATA_DATA
-> for all archs.
-> 
-Yes, it will be in my next release,
+Folk,
 
-> From your patch it looks like I originally missed out
-> powerpc + xtensa when introducing DATA_DATA - would be nice if
-> you could fix that.
-> 
-> 	Sam
+It seems that arch maintainers weren't copied on the "pause on oops"
+patch (dd287796d608fcdc3fe5e8fdb5bf762a8f1bc32a) which introduced
+some generic infrastructure (oops_enter, oops_exit).  This has been
+subsequently used by lockdep to disable itself when an oops occurs.
 
-Done.
+AFAICS only i386, powerpc and x86_64 call oops_enter() and oops_exit().
+However, ARM, MIPS, S390, SH, Sparc64, and UML support lockdep, so
+presumably it would be a good idea if they too were aware of these
+functions.
 
-Thanks,
-
-Mathieu
+I suggest _at least_ mips, s390, sh, sparc64 and uml folk look into
+adding support to their die() functions (and check whether their
+die functions are missing any other useful functionality.)
 
 -- 
-Mathieu Desnoyers
-Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
