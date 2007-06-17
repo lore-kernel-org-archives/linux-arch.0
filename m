@@ -1,36 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:3462 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756008AbXFQLsI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 17 Jun 2007 07:48:08 -0400
-Date: Sun, 17 Jun 2007 12:47:58 +0100
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: pause_on_oops
-Message-ID: <20070617114758.GA6716@flint.arm.linux.org.uk>
+Received: from gprs189-60.eurotel.cz ([160.218.189.60]:1278 "EHLO spitz.ucw.cz"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1758078AbXFQSwK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 17 Jun 2007 14:52:10 -0400
+Date: Sun, 17 Jun 2007 18:32:13 +0000
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [patch 0/3] no MAX_ARG_PAGES -v2
+Message-ID: <20070617183213.GA3892@ucw.cz>
+References: <20070613100334.635756997@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <20070613100334.635756997@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Ollie Wild <aaw@google.com>, Andrew Morton <akpm@osdl.org>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-Folk,
+Hi!
 
-It seems that arch maintainers weren't copied on the "pause on oops"
-patch (dd287796d608fcdc3fe5e8fdb5bf762a8f1bc32a) which introduced
-some generic infrastructure (oops_enter, oops_exit).  This has been
-subsequently used by lockdep to disable itself when an oops occurs.
+> This patch-set aims at removing the current limit on argv+env space aka.
+> MAX_ARG_PAGES.
 
-AFAICS only i386, powerpc and x86_64 call oops_enter() and oops_exit().
-However, ARM, MIPS, S390, SH, Sparc64, and UML support lockdep, so
-presumably it would be a good idea if they too were aware of these
-functions.
-
-I suggest _at least_ mips, s390, sh, sparc64 and uml folk look into
-adding support to their die() functions (and check whether their
-die functions are missing any other useful functionality.)
-
+Thanks a lot for solving this properly. I have been upping current limits to some
+insane ammounts to work around this.
+							Pavel
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
