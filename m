@@ -1,46 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fallback.mail.elte.hu ([157.181.151.13]:53831 "EHLO
-	fallback.mail.elte.hu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761689AbXFQTN7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 17 Jun 2007 15:13:59 -0400
-Received: from mx2.mail.elte.hu ([157.181.151.9])
-	by fallback.mail.elte.hu with esmtp (Exim)
-	id 1I00CD-0005lv-Lc
-	from <mingo@elte.hu>
-	for <linux-arch@vger.kernel.org>; Sun, 17 Jun 2007 21:13:57 +0200
-Date: Sun, 17 Jun 2007 21:07:10 +0200
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch 0/3] no MAX_ARG_PAGES -v2
-Message-ID: <20070617190710.GA20682@elte.hu>
-References: <20070613100334.635756997@chello.nl> <20070617183213.GA3892@ucw.cz>
+Received: from ozlabs.org ([203.10.76.45]:35603 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752802AbXFRFmR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Jun 2007 01:42:17 -0400
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070617183213.GA3892@ucw.cz>
+Content-Transfer-Encoding: 7bit
+Message-ID: <18038.6658.854660.4233@cargo.ozlabs.ibm.com>
+Date: Mon, 18 Jun 2007 15:37:06 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH] Wire up sys_sync_file_range() on powerpc
+In-Reply-To: <1182018044.2808.75.camel@pmac.infradead.org>
+References: <1181992681.25228.683.camel@pmac.infradead.org>
+	<1182018044.2808.75.camel@pmac.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Pavel Machek <pavel@ucw.cz>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Ollie Wild <aaw@google.com>, Andrew Morton <akpm@osdl.org>, Andi Kleen <ak@suse.de>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: akpm@osdl.org, linuxppc-dev@ozlabs.org, rmk@arm.linux.org.uk, torvalds@osdl.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+David Woodhouse writes:
 
-* Pavel Machek <pavel@ucw.cz> wrote:
+> Pants.
 
-> Hi!
-> 
-> > This patch-set aims at removing the current limit on argv+env space 
-> > aka. MAX_ARG_PAGES.
-> 
-> Thanks a lot for solving this properly. I have been upping current 
-> limits to some insane ammounts to work around this.
+Ah.  Is that a naughty word in the UK?  If so I'll have to remember
+that when I go to kernel summit. :)
 
-seconded! I have tried the patchset and it works great for me. This 
-limitation of Linux has bothered me almost since i started using Linux 
-more than a decade ago (i remember having run into it when running a 
-script on an overly large directory), and it's perhaps the oldest still 
-existing userspace-visible limitations of Linux. It was also a really 
-hard nut to crack. Kudos Peter! I really cant wait to see this in 2.6.23
-:-)
+> It doesn't work because the 'flags' argument ends up in r9, and
+> we can only use r3-r8 for syscall arguments. We'll need to do it the
+> same way as ARM does, with the flags as the second argument.
 
-Acked-by: Ingo Molnar <mingo@elte.hu>
+Yes.  We'll need a wrapper for both 32-bit and for 32-on-64.
 
-	Ingo
+> Or is it? Can we ditch sys_sync_file_range now and implement a new
+> sys_sync_file_range2 with the two 32-bit arguments first?
+
+Would be nice...
+
+Paul.
