@@ -1,228 +1,169 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:46592 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:43195 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760570AbXFSTeO (ORCPT
+	by vger.kernel.org with ESMTP id S1758549AbXFSTfZ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Jun 2007 15:34:14 -0400
-Date: Tue, 19 Jun 2007 12:33:16 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH] diskquota: 32bit quota tools on 64bit architectures
-Message-Id: <20070619123316.bccb926d.akpm@linux-foundation.org>
-In-Reply-To: <1182154907.197287.4324.nullmailer@white.sw.ru>
-References: <1182154907.197287.4324.nullmailer@white.sw.ru>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+	Tue, 19 Jun 2007 15:35:25 -0400
+Message-Id: <200706191930.l5JJU2VR019280@imap1.linux-foundation.org>
+Subject: + introduce-compat_u64-and-compat_s64-types.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Tue, 19 Jun 2007 12:30:02 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: Vasily Tarasov <vtaras@openvz.org>
-Cc: Kirill Korotaev <dev@sw.ru>, Vasily Averin <vvs@sw.ru>, OpenVZ Developers ML <devel@openvz.org>, Linux Kernel ML <linux-kernel@vger.kernel.org>, Natalie Protasevich <nataliep@google.com>, Jan Kara <jack@suse.cz>, linux-arch@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: arnd@arndb.de, ak@suse.de, benh@kernel.crashing.org, davem@davemloft.net, dwmw2@infradead.org, linux-arch@vger.kernel.org, vtaras@openvz.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 18 Jun 2007 12:21:47 +0400
-Vasily Tarasov <vtaras@openvz.org> wrote:
 
-> From: Vasily Tarasov <vtaras@openvz.org>
-> 
-> This patch should be applied after Arnd Bergmann's patch,
-> that intoduces new compat types: 
-> http://lkml.org/lkml/2007/6/15/98
-> 
-> OpenVZ Linux kernel team has discovered the problem 
-> with 32bit quota tools working on 64bit architectures.
-> In 2.6.10 kernel sys32_quotactl() function was replaced by sys_quotactl() with
-> the comment "sys_quotactl seems to be 32/64bit clean, enable it for 32bit"
-> However this isn't right. Look at if_dqblk structure:
-> 
-> struct if_dqblk {
->         __u64 dqb_bhardlimit;
->         __u64 dqb_bsoftlimit;
->         __u64 dqb_curspace;
->         __u64 dqb_ihardlimit;
->         __u64 dqb_isoftlimit;
->         __u64 dqb_curinodes;
->         __u64 dqb_btime;
->         __u64 dqb_itime;
->         __u32 dqb_valid;
-> };
-> 
-> For 32 bit quota tools sizeof(if_dqblk) == 0x44.
-> But for 64 bit kernel its size is 0x48, 'cause of alignment!
-> Thus we got a problem. Attached patch reintroduce sys32_quotactl() function,
-> that handles this and related situations.
-> 
-> Signed-off-by: Vasily Tarasov <vtaras@openvz.org>
-> 
-> ---
-> 
-> In OpenVZ technology 32 bit Virtual Environments over 
-> 64 bit OS are common, hence we have customers, that complains on this bad quota
-> behaviour: 
-> 
-> # /usr/bin/quota
-> quota: error while getting quota from /dev/sda1 for 0: Success
-> 
-> The reason is caused above.
+The patch titled
+     Introduce compat_u64 and compat_s64 types
+has been added to the -mm tree.  Its filename is
+     introduce-compat_u64-and-compat_s64-types.patch
 
-Only x86_64 and ia64 are fixed.  Would it be correct to assume that the
-other CONFIG_COMPAT architectures also need to be fixed?
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
 
-> --- linux-2.6.22-rc4-fixed/arch/x86_64/ia32/ia32entry.S.orig	2007-06-14 15:55:24.000000000 +0400
-> +++ linux-2.6.22-rc4-fixed/arch/x86_64/ia32/ia32entry.S	2007-06-14 16:22:52.000000000 +0400
-> @@ -526,7 +526,7 @@ ia32_sys_call_table:
->  	.quad sys_init_module
->  	.quad sys_delete_module
->  	.quad quiet_ni_syscall		/* 130  get_kernel_syms */
-> -	.quad sys_quotactl
-> +	.quad sys32_quotactl
->  	.quad sys_getpgid
->  	.quad sys_fchdir
->  	.quad quiet_ni_syscall	/* bdflush */
-> --- linux-2.6.22-rc4-fixed/arch/ia64/ia32/ia32_entry.S.orig	2007-06-14 15:55:24.000000000 +0400
-> +++ linux-2.6.22-rc4-fixed/arch/ia64/ia32/ia32_entry.S	2007-06-14 16:22:52.000000000 +0400
-> @@ -304,7 +304,7 @@ ia32_syscall_table:
->  	data8 sys_ni_syscall	/* init_module */
->  	data8 sys_ni_syscall	/* delete_module */
->  	data8 sys_ni_syscall	/* get_kernel_syms */  /* 130 */
-> -	data8 sys_quotactl
-> +	data8 sys32_quotactl
->  	data8 sys_getpgid
->  	data8 sys_fchdir
->  	data8 sys_ni_syscall	/* sys_bdflush */
-> --- linux-2.6.22-rc4-fixed/fs/quota.c.orig	2007-06-14 15:55:26.000000000 +0400
-> +++ linux-2.6.22-rc4-fixed/fs/quota.c	2007-06-18 12:00:56.000000000 +0400
-> @@ -10,12 +10,14 @@
->  #include <linux/slab.h>
->  #include <asm/current.h>
->  #include <asm/uaccess.h>
-> +#include <asm/compat.h>
->  #include <linux/kernel.h>
->  #include <linux/security.h>
->  #include <linux/syscalls.h>
->  #include <linux/buffer_head.h>
->  #include <linux/capability.h>
->  #include <linux/quotaops.h>
-> +#include <linux/types.h>
->  
->  /* Check validity of generic quotactl commands */
->  static int generic_quotactl_valid(struct super_block *sb, int type, int cmd, qid_t id)
-> @@ -384,3 +386,119 @@ asmlinkage long sys_quotactl(unsigned in
->  
->  	return ret;
->  }
-> +
-> +#if defined(CONFIG_X86_64) || defined(CONFIG_IA64)
-> +/*
-> + * This code works only for 32 bit quota tools over 64 bit OS (x86_64, ia64)
-> + * and is necessary due to alignment problems.
-> + */
-> +struct compat_if_dqblk {
-> +	compat_u64 dqb_bhardlimit;
-> +	compat_u64 dqb_bsoftlimit;
-> +	compat_u64 dqb_curspace;
-> +	compat_u64 dqb_ihardlimit;
-> +	compat_u64 dqb_isoftlimit;
-> +	compat_u64 dqb_curinodes;
-> +	compat_u64 dqb_btime;
-> +	compat_u64 dqb_itime;
-> +	compat_uint_t dqb_valid;
-> +};
-> +
-> +/* XFS structures */
-> +struct compat_fs_qfilestat {
-> +	compat_u64 dqb_bhardlimit;
-> +	compat_u64 qfs_nblks;
-> +	compat_uint_t qfs_nextents;
-> +};
-> +
-> +struct compat_fs_quota_stat {
-> +	__s8		qs_version;
-> +	__u16		qs_flags;
-> +	__s8		qs_pad;
-> +	struct compat_fs_qfilestat	qs_uquota;
-> +	struct compat_fs_qfilestat	qs_gquota;
-> +	compat_uint_t	qs_incoredqs;
-> +	compat_int_t	qs_btimelimit;
-> +	compat_int_t	qs_itimelimit;
-> +	compat_int_t	qs_rtbtimelimit;
-> +	__u16		qs_bwarnlimit;
-> +	__u16		qs_iwarnlimit;
-> +};
-> +
-> +asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
-> +						qid_t id, void __user *addr)
-> +{
-> +	unsigned int cmds;
-> +	struct if_dqblk __user *dqblk;
-> +	struct compat_if_dqblk __user *compat_dqblk;
-> +	struct fs_quota_stat __user *fsqstat;
-> +	struct compat_fs_quota_stat __user *compat_fsqstat;
-> +	compat_uint_t data;
-> +	u16 xdata;
-> +	long ret;
-> +
-> +	cmds = cmd >> SUBCMDSHIFT;
-> +
-> +	switch (cmds) {
-> +	case Q_GETQUOTA:
-> +		dqblk = compat_alloc_user_space(sizeof(struct if_dqblk));
-> +		compat_dqblk = addr;
-> +		ret = sys_quotactl(cmd, special, id, dqblk);
-> +		if (ret)
-> +			break;
-> +		if (copy_in_user(compat_dqblk, dqblk, sizeof(*compat_dqblk)) ||
-> +			get_user(data, &dqblk->dqb_valid) ||
-> +			put_user(data, &compat_dqblk->dqb_valid))
-> +			ret = -EFAULT;
-> +		break;
-> +	case Q_SETQUOTA:
-> +		dqblk = compat_alloc_user_space(sizeof(struct if_dqblk));
-> +		compat_dqblk = addr;
-> +		ret = -EFAULT;
-> +		if (copy_in_user(dqblk, compat_dqblk, sizeof(*compat_dqblk)) ||
-> +			get_user(data, &compat_dqblk->dqb_valid) ||
-> +			put_user(data, &dqblk->dqb_valid))
-> +			break;
-> +		ret = sys_quotactl(cmd, special, id, dqblk);
-> +		break;
-> +	case Q_XGETQSTAT:
-> +		fsqstat = compat_alloc_user_space(sizeof(struct fs_quota_stat));
-> +		compat_fsqstat = addr;
-> +		ret = sys_quotactl(cmd, special, id, fsqstat);
-> +		if (ret)
-> +			break;
-> +		ret = -EFAULT;
-> +		/* Copying qs_version, qs_flags, qs_pad */
-> +		if (copy_in_user(compat_fsqstat, fsqstat,
-> +			offsetof(struct compat_fs_quota_stat, qs_uquota)))
-> +			break;
-> +		/* Copying qs_uquota */
-> +		if (copy_in_user(&compat_fsqstat->qs_uquota,
-> +			&fsqstat->qs_uquota,
-> +			sizeof(compat_fsqstat->qs_uquota)) ||
-> +			get_user(data, &fsqstat->qs_uquota.qfs_nextents) ||
-> +			put_user(data, &compat_fsqstat->qs_uquota.qfs_nextents))
-> +			break;
-> +		/* Copying qs_gquota */
-> +		if (copy_in_user(&compat_fsqstat->qs_gquota,
-> +			&fsqstat->qs_gquota,
-> +			sizeof(compat_fsqstat->qs_gquota)) ||
-> +			get_user(data, &fsqstat->qs_gquota.qfs_nextents) ||
-> +			put_user(data, &compat_fsqstat->qs_gquota.qfs_nextents))
-> +			break;
-> +		/* Copying the rest */
-> +		if (copy_in_user(&compat_fsqstat->qs_incoredqs,
-> +			&fsqstat->qs_incoredqs,
-> +			sizeof(struct compat_fs_quota_stat) -
-> +			offsetof(struct compat_fs_quota_stat, qs_incoredqs)) ||
-> +			get_user(xdata, &fsqstat->qs_iwarnlimit) ||
-> +			put_user(xdata, &compat_fsqstat->qs_iwarnlimit))
-> +			break;
-> +		ret = 0;
-> +		break;
-> +	default:
-> +		ret = sys_quotactl(cmd, special, id, addr);
-> +	}
-> +	return ret;
-> +}
-> +#endif
+------------------------------------------------------
+Subject: Introduce compat_u64 and compat_s64 types
+From: Arnd Bergmann <arnd@arndb.de>
+
+One common problem with 32 bit system call and ioctl emulation is the
+different alignment rules between i386 and 64 bit machines.  A number of
+drivers work around this by marking the compat structures as
+'attribute((packed))', which is not the right solution because it breaks
+all the non-x86 architectures that want to use the same compat code.
+
+Hopefully, this patch improves the situation, it introduces two new types,
+compat_u64 and compat_s64.  These are defined on all architectures to have
+the same size and alignment as the 32 bit version of u64 and s64.
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: David S. Miller <davem@davemloft.net>
+Cc: David Woodhouse <dwmw2@infradead.org>
+Cc: Andi Kleen <ak@suse.de>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Vasily Tarasov <vtaras@openvz.org>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/asm-ia64/compat.h    |    2 ++
+ include/asm-mips/compat.h    |    2 ++
+ include/asm-parisc/compat.h  |    2 ++
+ include/asm-powerpc/compat.h |    2 ++
+ include/asm-s390/compat.h    |    2 ++
+ include/asm-sparc64/compat.h |    2 ++
+ include/asm-x86_64/compat.h  |    2 ++
+ 7 files changed, 14 insertions(+)
+
+diff -puN include/asm-ia64/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-ia64/compat.h
+--- a/include/asm-ia64/compat.h~introduce-compat_u64-and-compat_s64-types
++++ a/include/asm-ia64/compat.h
+@@ -31,8 +31,10 @@ typedef s32		compat_timer_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64 __attribute__((aligned(4))) compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64 __attribute__((aligned(4))) compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+diff -puN include/asm-mips/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-mips/compat.h
+--- a/include/asm-mips/compat.h~introduce-compat_u64-and-compat_s64-types
++++ a/include/asm-mips/compat.h
+@@ -37,8 +37,10 @@ typedef s32		compat_key_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64		compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64		compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+diff -puN include/asm-parisc/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-parisc/compat.h
+--- a/include/asm-parisc/compat.h~introduce-compat_u64-and-compat_s64-types
++++ a/include/asm-parisc/compat.h
+@@ -31,8 +31,10 @@ typedef s32	compat_timer_t;
+ 
+ typedef s32	compat_int_t;
+ typedef s32	compat_long_t;
++typedef s64	compat_s64;
+ typedef u32	compat_uint_t;
+ typedef u32	compat_ulong_t;
++typedef u64	compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t		tv_sec;
+diff -puN include/asm-powerpc/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-powerpc/compat.h
+--- a/include/asm-powerpc/compat.h~introduce-compat_u64-and-compat_s64-types
++++ a/include/asm-powerpc/compat.h
+@@ -33,8 +33,10 @@ typedef s32		compat_timer_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64		compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64		compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+diff -puN include/asm-s390/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-s390/compat.h
+--- a/include/asm-s390/compat.h~introduce-compat_u64-and-compat_s64-types
++++ a/include/asm-s390/compat.h
+@@ -60,8 +60,10 @@ typedef s32		compat_timer_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64		compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64		compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+diff -puN include/asm-sparc64/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-sparc64/compat.h
+--- a/include/asm-sparc64/compat.h~introduce-compat_u64-and-compat_s64-types
++++ a/include/asm-sparc64/compat.h
+@@ -31,8 +31,10 @@ typedef s32		compat_timer_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64		compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64		compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+diff -puN include/asm-x86_64/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-x86_64/compat.h
+--- a/include/asm-x86_64/compat.h~introduce-compat_u64-and-compat_s64-types
++++ a/include/asm-x86_64/compat.h
+@@ -33,8 +33,10 @@ typedef s32		compat_key_t;
+ 
+ typedef s32		compat_int_t;
+ typedef s32		compat_long_t;
++typedef s64 __attribute__((aligned(4))) compat_s64;
+ typedef u32		compat_uint_t;
+ typedef u32		compat_ulong_t;
++typedef u64 __attribute__((aligned(4))) compat_u64;
+ 
+ struct compat_timespec {
+ 	compat_time_t	tv_sec;
+_
+
+Patches currently in -mm which might be from arnd@arndb.de are
+
+git-powerpc.patch
+8xx-mpc885ads-pcmcia-support.patch
+dts-kill-hardcoded-phandles.patch
+mm-merge-nopfn-into-fault-spufs-fix.patch
+8xx-fix-whitespace-and-indentation.patch
+introduce-compat_u64-and-compat_s64-types.patch
+fallocate-implementation-on-i86-x86_64-and-powerpc.patch
+
