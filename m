@@ -1,169 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:43195 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758549AbXFSTfZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Jun 2007 15:35:25 -0400
-Message-Id: <200706191930.l5JJU2VR019280@imap1.linux-foundation.org>
-Subject: + introduce-compat_u64-and-compat_s64-types.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Tue, 19 Jun 2007 12:30:02 -0700
+Received: from aun.it.uu.se ([130.238.12.36]:45494 "EHLO aun.it.uu.se"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1762413AbXFSUKH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Jun 2007 16:10:07 -0400
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Message-ID: <18040.14306.305355.350181@alkaid.it.uu.se>
+Date: Tue, 19 Jun 2007 22:09:06 +0200
+From: Mikael Pettersson <mikpe@it.uu.se>
+Subject: Re: [PATCH] diskquota: 32bit quota tools on 64bit architectures
+In-Reply-To: <20070619123316.bccb926d.akpm@linux-foundation.org>
+References: <1182154907.197287.4324.nullmailer@white.sw.ru>
+	<20070619123316.bccb926d.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: arnd@arndb.de, ak@suse.de, benh@kernel.crashing.org, davem@davemloft.net, dwmw2@infradead.org, linux-arch@vger.kernel.org, vtaras@openvz.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Vasily Tarasov <vtaras@openvz.org>, Kirill Korotaev <dev@sw.ru>, Vasily Averin <vvs@sw.ru>, OpenVZ Developers ML <devel@openvz.org>, Linux Kernel ML <linux-kernel@vger.kernel.org>, Natalie Protasevich <nataliep@google.com>, Jan Kara <jack@suse.cz>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Andrew Morton writes:
+ > On Mon, 18 Jun 2007 12:21:47 +0400
+ > Vasily Tarasov <vtaras@openvz.org> wrote:
+ > 
+ > > From: Vasily Tarasov <vtaras@openvz.org>
+ > > 
+ > > This patch should be applied after Arnd Bergmann's patch,
+ > > that intoduces new compat types: 
+ > > http://lkml.org/lkml/2007/6/15/98
+ > > 
+ > > OpenVZ Linux kernel team has discovered the problem 
+ > > with 32bit quota tools working on 64bit architectures.
+ > > In 2.6.10 kernel sys32_quotactl() function was replaced by sys_quotactl() with
+ > > the comment "sys_quotactl seems to be 32/64bit clean, enable it for 32bit"
+ > > However this isn't right. Look at if_dqblk structure:
+ > > 
+ > > struct if_dqblk {
+ > >         __u64 dqb_bhardlimit;
+ > >         __u64 dqb_bsoftlimit;
+ > >         __u64 dqb_curspace;
+ > >         __u64 dqb_ihardlimit;
+ > >         __u64 dqb_isoftlimit;
+ > >         __u64 dqb_curinodes;
+ > >         __u64 dqb_btime;
+ > >         __u64 dqb_itime;
+ > >         __u32 dqb_valid;
+ > > };
+ > > 
+ > > For 32 bit quota tools sizeof(if_dqblk) == 0x44.
+ > > But for 64 bit kernel its size is 0x48, 'cause of alignment!
+ > > Thus we got a problem. Attached patch reintroduce sys32_quotactl() function,
+ > > that handles this and related situations.
+ > > 
+ > > Signed-off-by: Vasily Tarasov <vtaras@openvz.org>
+ > > 
+ > > ---
+ > > 
+ > > In OpenVZ technology 32 bit Virtual Environments over 
+ > > 64 bit OS are common, hence we have customers, that complains on this bad quota
+ > > behaviour: 
+ > > 
+ > > # /usr/bin/quota
+ > > quota: error while getting quota from /dev/sda1 for 0: Success
+ > > 
+ > > The reason is caused above.
+ > 
+ > Only x86_64 and ia64 are fixed.  Would it be correct to assume that the
+ > other CONFIG_COMPAT architectures also need to be fixed?
 
-The patch titled
-     Introduce compat_u64 and compat_s64 types
-has been added to the -mm tree.  Its filename is
-     introduce-compat_u64-and-compat_s64-types.patch
+I complained about this very issue when a previous version of
+this patch was submitted last week, and Arnd explained that
+non-x86 doesn't have a problem here because alignof(u64) is the
+same in 32- and 64-bit modes.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+However, the fact that the patch description talks about 32-
+and 64-bit machines _in_general_, while the patch clearly only
+handles x86-32 on x86-64 and ia64, is itself a bug. A more
+precise patch description and a better comment in the code
+is in order, I think.
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
-
-------------------------------------------------------
-Subject: Introduce compat_u64 and compat_s64 types
-From: Arnd Bergmann <arnd@arndb.de>
-
-One common problem with 32 bit system call and ioctl emulation is the
-different alignment rules between i386 and 64 bit machines.  A number of
-drivers work around this by marking the compat structures as
-'attribute((packed))', which is not the right solution because it breaks
-all the non-x86 architectures that want to use the same compat code.
-
-Hopefully, this patch improves the situation, it introduces two new types,
-compat_u64 and compat_s64.  These are defined on all architectures to have
-the same size and alignment as the 32 bit version of u64 and s64.
-
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: David S. Miller <davem@davemloft.net>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Andi Kleen <ak@suse.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Vasily Tarasov <vtaras@openvz.org>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- include/asm-ia64/compat.h    |    2 ++
- include/asm-mips/compat.h    |    2 ++
- include/asm-parisc/compat.h  |    2 ++
- include/asm-powerpc/compat.h |    2 ++
- include/asm-s390/compat.h    |    2 ++
- include/asm-sparc64/compat.h |    2 ++
- include/asm-x86_64/compat.h  |    2 ++
- 7 files changed, 14 insertions(+)
-
-diff -puN include/asm-ia64/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-ia64/compat.h
---- a/include/asm-ia64/compat.h~introduce-compat_u64-and-compat_s64-types
-+++ a/include/asm-ia64/compat.h
-@@ -31,8 +31,10 @@ typedef s32		compat_timer_t;
- 
- typedef s32		compat_int_t;
- typedef s32		compat_long_t;
-+typedef s64 __attribute__((aligned(4))) compat_s64;
- typedef u32		compat_uint_t;
- typedef u32		compat_ulong_t;
-+typedef u64 __attribute__((aligned(4))) compat_u64;
- 
- struct compat_timespec {
- 	compat_time_t	tv_sec;
-diff -puN include/asm-mips/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-mips/compat.h
---- a/include/asm-mips/compat.h~introduce-compat_u64-and-compat_s64-types
-+++ a/include/asm-mips/compat.h
-@@ -37,8 +37,10 @@ typedef s32		compat_key_t;
- 
- typedef s32		compat_int_t;
- typedef s32		compat_long_t;
-+typedef s64		compat_s64;
- typedef u32		compat_uint_t;
- typedef u32		compat_ulong_t;
-+typedef u64		compat_u64;
- 
- struct compat_timespec {
- 	compat_time_t	tv_sec;
-diff -puN include/asm-parisc/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-parisc/compat.h
---- a/include/asm-parisc/compat.h~introduce-compat_u64-and-compat_s64-types
-+++ a/include/asm-parisc/compat.h
-@@ -31,8 +31,10 @@ typedef s32	compat_timer_t;
- 
- typedef s32	compat_int_t;
- typedef s32	compat_long_t;
-+typedef s64	compat_s64;
- typedef u32	compat_uint_t;
- typedef u32	compat_ulong_t;
-+typedef u64	compat_u64;
- 
- struct compat_timespec {
- 	compat_time_t		tv_sec;
-diff -puN include/asm-powerpc/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-powerpc/compat.h
---- a/include/asm-powerpc/compat.h~introduce-compat_u64-and-compat_s64-types
-+++ a/include/asm-powerpc/compat.h
-@@ -33,8 +33,10 @@ typedef s32		compat_timer_t;
- 
- typedef s32		compat_int_t;
- typedef s32		compat_long_t;
-+typedef s64		compat_s64;
- typedef u32		compat_uint_t;
- typedef u32		compat_ulong_t;
-+typedef u64		compat_u64;
- 
- struct compat_timespec {
- 	compat_time_t	tv_sec;
-diff -puN include/asm-s390/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-s390/compat.h
---- a/include/asm-s390/compat.h~introduce-compat_u64-and-compat_s64-types
-+++ a/include/asm-s390/compat.h
-@@ -60,8 +60,10 @@ typedef s32		compat_timer_t;
- 
- typedef s32		compat_int_t;
- typedef s32		compat_long_t;
-+typedef s64		compat_s64;
- typedef u32		compat_uint_t;
- typedef u32		compat_ulong_t;
-+typedef u64		compat_u64;
- 
- struct compat_timespec {
- 	compat_time_t	tv_sec;
-diff -puN include/asm-sparc64/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-sparc64/compat.h
---- a/include/asm-sparc64/compat.h~introduce-compat_u64-and-compat_s64-types
-+++ a/include/asm-sparc64/compat.h
-@@ -31,8 +31,10 @@ typedef s32		compat_timer_t;
- 
- typedef s32		compat_int_t;
- typedef s32		compat_long_t;
-+typedef s64		compat_s64;
- typedef u32		compat_uint_t;
- typedef u32		compat_ulong_t;
-+typedef u64		compat_u64;
- 
- struct compat_timespec {
- 	compat_time_t	tv_sec;
-diff -puN include/asm-x86_64/compat.h~introduce-compat_u64-and-compat_s64-types include/asm-x86_64/compat.h
---- a/include/asm-x86_64/compat.h~introduce-compat_u64-and-compat_s64-types
-+++ a/include/asm-x86_64/compat.h
-@@ -33,8 +33,10 @@ typedef s32		compat_key_t;
- 
- typedef s32		compat_int_t;
- typedef s32		compat_long_t;
-+typedef s64 __attribute__((aligned(4))) compat_s64;
- typedef u32		compat_uint_t;
- typedef u32		compat_ulong_t;
-+typedef u64 __attribute__((aligned(4))) compat_u64;
- 
- struct compat_timespec {
- 	compat_time_t	tv_sec;
-_
-
-Patches currently in -mm which might be from arnd@arndb.de are
-
-git-powerpc.patch
-8xx-mpc885ads-pcmcia-support.patch
-dts-kill-hardcoded-phandles.patch
-mm-merge-nopfn-into-fault-spufs-fix.patch
-8xx-fix-whitespace-and-indentation.patch
-introduce-compat_u64-and-compat_s64-types.patch
-fallocate-implementation-on-i86-x86_64-and-powerpc.patch
-
+/Mikael
