@@ -1,43 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from atlanta.zankel.net ([69.61.78.146]:4323 "EHLO
-	atlanta.zankel.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754876AbXFURTK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Jun 2007 13:19:10 -0400
-Message-ID: <467AAC2A.8020101@zankel.net>
-Date: Thu, 21 Jun 2007 09:49:46 -0700
-From: Chris Zankel <chris@zankel.net>
+Received: from gw.goop.org ([64.81.55.164]:60586 "EHLO mail.goop.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752935AbXFUSci (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Jun 2007 14:32:38 -0400
+Message-ID: <467AC3F4.4080505@goop.org>
+Date: Thu, 21 Jun 2007 11:31:16 -0700
+From: Jeremy Fitzhardinge <jeremy@goop.org>
 MIME-Version: 1.0
 Subject: Re: [PATCH] cross-architecture ELF clean up
-References: <20070620230854.246399397@goop.org> <20070620230902.387008536@goop.org>
-In-Reply-To: <20070620230902.387008536@goop.org>
+References: <20070620230854.246399397@goop.org> <20070620230902.387008536@goop.org> <467AAC2A.8020101@zankel.net>
+In-Reply-To: <467AAC2A.8020101@zankel.net>
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Jeremy Fitzhardinge <jeremy@goop.org>
+To: Chris Zankel <chris@zankel.net>
 Cc: "Eric W. Biederman" <ebiederm@xmission.com>, lkml <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ian Molton <spyro@f2s.com>, Russell King <rmk@arm.linux.org.uk>, Haavard Skinnemoen <hskinnemoen@atmel.com>, Aubrey Li <aubrey.li@analog.com>, Mikael Starvik <starvik@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Andi Kleen <ak@suse.de>, Tony Luck <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Matthew Wilcox <matthew@wil.cx>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Miles Bader <uclinux-v850@lsi.nec.co.jp>
 List-ID: <linux-arch.vger.kernel.org>
 
-Jeremy,
+Chris Zankel wrote:
+> Jeremy,
+>
+> Could you please add the ELF architecture-magic number for Xtensa (94) 
+> when you finally submit this patch?
 
-Could you please add the ELF architecture-magic number for Xtensa (94) 
-when you finally submit this patch?
+I guess, but I think it would be better if you just sent an incremental 
+patch to add it.  Does my patch work OK for Xtensa?
 
-Jeremy Fitzhardinge wrote:
-> This patch cleans up the ELF headers and their users.  It does several
-> related things:
-> --- /dev/null
-> +++ b/include/linux/elf-const.h
-> @@ -0,0 +1,222 @@
-> +#ifndef _LINUX_ELF_CONST_H
-> +#define _LINUX_ELF_CONST_H
-> +
-> +/* These constants define the various ELF target machines */
-> +#define EM_NONE		0
-...
-> +#define EM_V850		87	/* NEC v850 */
-> +#define EM_M32R		88	/* Renesas M32R */
-
-#define EM_XTENSA       94
-
-Thanks,
--Chris
+    J
