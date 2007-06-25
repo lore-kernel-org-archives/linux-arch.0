@@ -1,53 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from canuck.infradead.org ([209.217.80.40]:57028 "EHLO
-	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752776AbXFYNeh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jun 2007 09:34:37 -0400
-Subject: Re: Introduce fixed sys_sync_file_range2() syscall, implement on
-	PowerPC and ARM
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <44a862a6e0b8df8765958d456d9b17d6@kernel.crashing.org>
-References: <1182761357.12109.14.camel@pmac.infradead.org>
-	 <20070625021145.b84ea186.akpm@linux-foundation.org>
-	 <20070625103535.GF22063@parisc-linux.org>
-	 <20070625110907.GA23438@flint.arm.linux.org.uk>
-	 <1182771454.12109.71.camel@pmac.infradead.org>
-	 <20070625114742.GG22063@parisc-linux.org>
-	 <2fc3aacccf036072f1b959e7b9ec3629@kernel.crashing.org>
-	 <1182774873.12109.83.camel@pmac.infradead.org>
-	 <44a862a6e0b8df8765958d456d9b17d6@kernel.crashing.org>
-Content-Type: text/plain
-Date: Mon, 25 Jun 2007 14:33:46 +0100
-Message-Id: <1182778426.12109.87.camel@pmac.infradead.org>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from scrub.xs4all.nl ([194.109.195.176]:2238 "EHLO scrub.xs4all.nl"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751324AbXFYNhB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Jun 2007 09:37:01 -0400
+Date: Mon, 25 Jun 2007 15:37:03 +0200 (CEST)
+From: Roman Zippel <zippel@linux-m68k.org>
+Subject: Re: [PATCH] cross-architecture ELF clean up
+In-Reply-To: <20070620230902.387008536@goop.org>
+Message-ID: <Pine.LNX.4.64.0706251531110.4386@scrub.home>
+References: <20070620230854.246399397@goop.org> <20070620230902.387008536@goop.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: torvalds@linux-foundation.org, Russell King <rmk@arm.linux.org.uk>, Matthew Wilcox <matthew@wil.cx>, Andrew Morton <akpm@linux-foundation.org>, drepper@redhat.com, paulus@samba.org, linux-arch@vger.kernel.org
+To: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, lkml <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Arch <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2007-06-25 at 15:10 +0200, Segher Boessenkool wrote:
-> >> I don't see any 64-bit integers here.
-> >
-> > Of course not. This is the routine which is called from 32-bit code.
-> > The prototype in the 32-bit code is (int, unsigned, loff_t, loff_t).
+Hi,
+
+On Wed, 20 Jun 2007, Jeremy Fitzhardinge wrote:
+
+> This patch cleans up the ELF headers and their users.  It does several
+> related things:
 > 
-> Ah I see, sorry for the confusion.
+> 1. split linux/elf.h into pieces
+> 
+> This splits linux/elf.h into several pieces:
+> 	linux/elf.h		- still the common elf header,
+> 				  functionally unchanged
+> 	linux/elf-const.h	- ELF constants, includable by asm code
 
-> Yes exactly, signed integers need sign extensions, which
-> makes them less efficient.  Some ABIs need zero extensions
-> too, but on a whole unsigned works better.  Most of the
-> time you don't need to do much on the (C code) kernel side
-> of things.
+We have the __ASSEMBLY__ define for this, so just for asm code we don't 
+need a separate header.
 
-Most of the time, true. But not in the case we're actually talking
-about.
+> 	linux/elf-decl.h	- ELF type declarations, without definitions
+> 	linux/elf-defn.h	- ELF type definitions
 
-> Is this enough handwaving?  I'm sure someone else can explain
-> this a lot better than me :-)
+What's the point in splitting these two?
 
-Perhaps so :)
+After this patch <linux/elf.h> seems to be pretty much empty, I'd rather 
+suggest to move the function declarations to elfcore.h and leave the basic 
+elf definitions in elf.h. Many small header files have the disadvantage 
+that it takes longer to find the needed information.
 
--- 
-dwmw2
-
+bye, Roman
