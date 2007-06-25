@@ -1,29 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from scrub.xs4all.nl ([194.109.195.176]:3870 "EHLO scrub.xs4all.nl"
+Received: from mga03.intel.com ([143.182.124.21]:23179 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755786AbXFYPSa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jun 2007 11:18:30 -0400
-Date: Mon, 25 Jun 2007 17:18:41 +0200 (CEST)
-From: Roman Zippel <zippel@linux-m68k.org>
-Subject: Re: [PATCH] cross-architecture ELF clean up
-In-Reply-To: <20070620230902.387008536@goop.org>
-Message-ID: <Pine.LNX.4.64.0706251714410.4386@scrub.home>
-References: <20070620230854.246399397@goop.org> <20070620230902.387008536@goop.org>
+	id S1752240AbXFYVgH convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jun 2007 17:36:07 -0400
+Content-class: urn:content-classes:message
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: RE: [PARISC] Handle wrapping in expand_upwards()
+Date: Mon, 25 Jun 2007 14:36:04 -0700
+Message-ID: <617E1C2C70743745A92448908E030B2A01C206AB@scsmsx411.amr.corp.intel.com>
+In-Reply-To: <20070623095548.a7117833.akpm@linux-foundation.org>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Jeremy Fitzhardinge <jeremy@goop.org>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, lkml <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Arch <linux-arch@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Kyle McMartin <kyle@parisc-linux.org>
+Cc: linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi,
+> I will magically infer from your To: line that you consider it 2.6.22
+> material, but if so I think that we'll need suitable reviewing, testing and
+> acking from Tony, please.  If he's offline (ols, perhaps?) then we might
+> have a problem.  Perhaps find a suitable ia64-enabled alternate?
 
-On Wed, 20 Jun 2007, Jeremy Fitzhardinge wrote:
+Wrap-around to zero for the ia64 RSE stack isn't possible (it must be
+in a user region (0-4), so it is far, far away from the top of the
+address space.
 
-> 	linux/elf-const.h	- ELF constants, includable by asm code
-
-BTW who's the maniac who tries to use this in asm code?
-Many of these constants are pretty useless without the corresponding 
-structure definitions.
-
-bye, Roman
+-Tony
