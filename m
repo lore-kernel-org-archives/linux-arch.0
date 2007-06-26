@@ -1,88 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:46723 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750880AbXFZGeq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Jun 2007 02:34:46 -0400
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:49942 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750832AbXFZGvp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Jun 2007 02:51:45 -0400
+Date: Mon, 25 Jun 2007 23:51:03 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: [PATCH 3/3] Make jprobes a little safer for users
-From: Michael Ellerman <michael@ellerman.id.au>
-Reply-To: michael@ellerman.id.au
-In-Reply-To: <863e9df20706252319j239eaf44wee7a46ad742c9585@mail.gmail.com>
+Message-Id: <20070625235103.2d8dea18.akpm@linux-foundation.org>
+In-Reply-To: <1182837838.6673.17.camel@concordia.ozlabs.ibm.com>
 References: <78935473b1f70c863ab0be7d6cf4bcb04922b20b.1182822366.git.michael@ellerman.id.au>
-	 <7a070581b2fe53ea65216e86c86abc4f40464341.1182822366.git.michael@ellerman.id.au>
-	 <863e9df20706252319j239eaf44wee7a46ad742c9585@mail.gmail.com>
-Content-Type: multipart/signed; micalg=pgp-sha1; protocol="application/pgp-signature"; boundary="=-7sXp+LJveeT4iXK22RD/"
-Date: Tue, 26 Jun 2007 16:34:43 +1000
-Message-Id: <1182839683.6673.22.camel@concordia.ozlabs.ibm.com>
+	<7a070581b2fe53ea65216e86c86abc4f40464341.1182822366.git.michael@ellerman.id.au>
+	<20070626055347.GB6841@lst.de>
+	<1182837838.6673.17.camel@concordia.ozlabs.ibm.com>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Abhishek Sagar <sagar.abhishek@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@osdl.org>, Christoph Hellwig <hch@lst.de>, anil.s.keshavamurthy@intel.com, ananth@in.ibm.com
+To: michael@ellerman.id.au
+Cc: Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, anil.s.keshavamurthy@intel.com, ananth@in.ibm.com
 List-ID: <linux-arch.vger.kernel.org>
 
+On Tue, 26 Jun 2007 16:03:58 +1000 Michael Ellerman <michael@ellerman.id.au> wrote:
 
---=-7sXp+LJveeT4iXK22RD/
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
+> On Tue, 2007-06-26 at 07:53 +0200, Christoph Hellwig wrote:
+> > On Tue, Jun 26, 2007 at 11:48:51AM +1000, Michael Ellerman wrote:
+> > > I realise jprobes are a razor-blades-included type of interface, but
+> > > that doesn't mean we can't try and make them safer to use. This guy I
+> > > know once wrote code like this:
+> > > 
+> > > struct jprobe jp = { .kp.symbol_name = "foo", .entry = "jprobe_foo" };
+> > > 
+> > > And then his kernel exploded. Oops.
+> > > 
+> > > This patch adds an arch hook, arch_deref_entry_point() (I don't like it either)
+> > > which takes the void * in a struct jprobe, and gives back the text address
+> > > that it represents.
+> > > 
+> > > We can then use that in register_jprobe() to check that the entry point
+> > > we're passed is actually in the kernel text, rather than just some random
+> > > value.
+> > 
+> > Please don't add more weak functions, they're utterly horrible for
+> > anyone trying to understand the code.  Otherwise this looks fine to me.
+> 
+> What do you recommend instead? #define ARCH_HAS_FOO_BAR ?
 
-On Tue, 2007-06-26 at 11:49 +0530, Abhishek Sagar wrote:
-> On 6/26/07, Michael Ellerman <michael@ellerman.id.au> wrote:
->=20
-> > We can then use that in register_jprobe() to check that the entry point
-> > we're passed is actually in the kernel text, rather than just some rand=
-om
-> > value.
->=20
-> A similar cleanup is possible even for return probes then. I wonder if
-> there are any kprobe related scenarios where the executable code may
-> be located outside the core kernel text region (e.g, ITCM?). In that
-> case would it also be wrong to assume that the jprobe handler may be
-> situated outside the kernel core text / module  region? Would it then
-> make sense to move this check from register_jprobe() to the arch
-> dependent code?
+o lord, save us, no.
 
-It did occur to me that someone might be doing something crazy like
-branching to code that's not in the kernel/module text - but I was
-hoping that wouldn't be the case. I'm not sure what ITCM is?
+> I don't see what's utterly horrible about them.
+
+Me either.
+
+> The fact that they're
+> weak is fairly reasonable documentation that they're overridden
+> somewhere else. And grep/cscope/ctags will find both the weak and
+> non-weak versions for you?
+
+yup.
+
+In this case we could just require that each jprobes-supporting
+architecture implement arch_deref_entry_point().
 
 
-> >  int __kprobes register_jprobe(struct jprobe *jp)
-> >  {
-> > +       unsigned long addr =3D arch_deref_entry_point(jp->entry);
-> > +
-> > +       if (!kernel_text_address(addr))
-> > +               return -EINVAL;
->=20
-> Seems like you're checking for the jprobe handler to be within
-> kernel/module range. Why not narrow this down to just module range
-> (!module_text_address(addr), say)? Core kernel functions would not be
-> ending with a 'jprobe_return()' anyway.
+Or one could do the Linus trick.  In each architecture which implements
+arch_deref_entry_point() do:
 
-There's jprobe code in net/ipv4/tcp_probe.c and net/dccp/probe.c that
-can be builtin or modular, so I think kernel_text_address() is right.
+#define arch_deref_entry_point arch_deref_entry_point
 
-cheers
+in the per-arch header file then, in non-arch code, do
 
---=20
-Michael Ellerman
-OzLabs, IBM Australia Development Lab
+#ifndef arch_deref_entry_point
+static unsigned long arch_deref_entry_point(...)
+{
+	<generic implementation>
+}
+#endif
 
-wwweb: http://michael.ellerman.id.au
-phone: +61 2 6212 1183 (tie line 70 21183)
-
-We do not inherit the earth from our ancestors,
-we borrow it from our children. - S.M.A.R.T Person
-
---=-7sXp+LJveeT4iXK22RD/
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Description: This is a digitally signed message part
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
-
-iD8DBQBGgLODdSjSd0sB4dIRAj+KAJ9J5aHP0M3+RIXR6GhgJ1LLVLWyKACgn3nQ
-Kfwu91i8BrTrR082hxzola0=
-=rkvM
------END PGP SIGNATURE-----
-
---=-7sXp+LJveeT4iXK22RD/--
-
+That's just the ARCH_HAS_FOO_BAR thing, only less fugly.
