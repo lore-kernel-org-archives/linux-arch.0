@@ -1,40 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:53426 "EHLO
+Received: from ftp.linux-mips.org ([194.74.144.162]:39757 "EHLO
 	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757549AbXF0NYU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jun 2007 09:24:20 -0400
-Received: from localhost.localdomain ([127.0.0.1]:9926 "EHLO
+	with ESMTP id S1752263AbXF0NgA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jun 2007 09:36:00 -0400
+Received: from localhost.localdomain ([127.0.0.1]:48261 "EHLO
 	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20022378AbXF0NYS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Jun 2007 14:24:18 +0100
-Date: Wed, 27 Jun 2007 15:22:59 +0200
+	id S20022367AbXF0NgA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Jun 2007 14:36:00 +0100
+Date: Wed, 27 Jun 2007 15:34:40 +0200
 From: Ralf Baechle <ralf@linux-mips.org>
 Subject: Re: Introduce fixed sys_sync_file_range2() syscall, implement on
 	PowerPC and ARM
-Message-ID: <20070627132259.GA5020@linux-mips.org>
-References: <1182761357.12109.14.camel@pmac.infradead.org>
+Message-ID: <20070627133440.GB5020@linux-mips.org>
+References: <1182761357.12109.14.camel@pmac.infradead.org> <20070625021145.b84ea186.akpm@linux-foundation.org> <20070625103535.GF22063@parisc-linux.org> <20070625110907.GA23438@flint.arm.linux.org.uk> <1182771454.12109.71.camel@pmac.infradead.org> <20070625114742.GG22063@parisc-linux.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1182761357.12109.14.camel@pmac.infradead.org>
+In-Reply-To: <20070625114742.GG22063@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: torvalds@osdl.org, akpm@osdl.org, paulus@samba.org, linux-arch@vger.kernel.org, drepper@redhat.com, rmk@arm.linux.org.uk
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: David Woodhouse <dwmw2@infradead.org>, Russell King <rmk@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, drepper@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Jun 25, 2007 at 09:49:17AM +0100, David Woodhouse wrote:
+On Mon, Jun 25, 2007 at 05:47:42AM -0600, Matthew Wilcox wrote:
 
-> Not all the world is an i386. Many architectures need 64-bit arguments
-> to be aligned in suitable pairs of registers, and the original
-> sys_sync_file_range(int, loff_t, loff_t, int) was therefore wasting an
-> argument register for padding after the first integer. Since we don't
-> normally have more than 6 arguments for system calls, that left no room
-> for the final argument on some architectures.
+> Also, you might want to put something in the syscall file about signed
+> vs unsigned arguments and how they behave with 32-on-64 systems.
 
-The worse side of this class of problem is that at times new syscalls are
-being invoked through pseudo-portable assembler code which on architectures
-where where 64-bit values are being passed in an aligned pair frequently
-end passing some of the arguments the wrong way.  For pread/pwrite this
-did result in actual data corruption.
+Another fine can of worms.  On some architectures function arguments are
+getting extended to full register size by the caller, on others it just
+doesn't matter.  This can have very subtle effects.  MIPS belongs into the
+first class which forces me to doublecheck each compat syscall entrypoint
+for sign/unsigned extension issues.  Ick.
 
   Ralf
