@@ -1,49 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:51307 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753540AbXF1AbI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Jun 2007 20:31:08 -0400
-From: Andi Kleen <ak@suse.de>
+Received: from hoboe1bl1.telenet-ops.be ([195.130.137.72]:56293 "EHLO
+	hoboe1bl1.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760799AbXF1CMu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jun 2007 22:12:50 -0400
+Date: Thu, 28 Jun 2007 04:12:46 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: Userspace compiler support of "long long"
-Date: Thu, 28 Jun 2007 02:30:42 +0200
-References: <467afc63.OnsqEXOk5zqMYzym%Joerg.Schilling@fokus.fraunhofer.de> <20070627173240.GR1094@stusta.de> <B3C8EEBF-71FB-4169-8ED7-7C4A410BBEE1@mac.com>
-In-Reply-To: <B3C8EEBF-71FB-4169-8ED7-7C4A410BBEE1@mac.com>
+In-Reply-To: <20070627161648.52d3786d.randy.dunlap@oracle.com>
+Message-ID: <Pine.LNX.4.64.0706280411520.26289@anakin>
+References: <467afc63.OnsqEXOk5zqMYzym%Joerg.Schilling@fokus.fraunhofer.de>
+ <Pine.LNX.4.64.0706211620080.31603@asgard.lang.hm>
+ <467b0bf2.Xfs7T8Ys4nY9ZNLW%Joerg.Schilling@fokus.fraunhofer.de>
+ <1182483527.10524.31.camel@shinybook.infradead.org> <20070622150038.GN23017@stusta.de>
+ <E27BAC4D-2F1E-4191-A75D-4DD18231C320@mac.com> <20070627154046.GN1094@stusta.de>
+ <468287a8.spBb6PdAZ4QV0j2Y%Joerg.Schilling@fokus.fraunhofer.de>
+ <20070627173240.GR1094@stusta.de> <B3C8EEBF-71FB-4169-8ED7-7C4A410BBEE1@mac.com>
+ <20070627155715.60ebc48f.randy.dunlap@oracle.com>
+ <20070627161648.52d3786d.randy.dunlap@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200706280230.42515.ak@suse.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Kyle Moffett <mrmacman_g4@mac.com>
-Cc: Adrian Bunk <bunk@stusta.de>, LKML Kernel <linux-kernel@vger.kernel.org>, David Woodhouse <dwmw2@infradead.org>, david@lang.hm, linux-arch@vger.kernel.org
+To: Randy Dunlap <randy.dunlap@oracle.com>
+Cc: Kyle Moffett <mrmacman_g4@mac.com>, Adrian Bunk <bunk@stusta.de>, LKML Kernel <linux-kernel@vger.kernel.org>, David Woodhouse <dwmw2@infradead.org>, david@lang.hm, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thursday 28 June 2007 00:30:52 Kyle Moffett wrote:
-> On Jun 27, 2007, at 13:32:40, Adrian Bunk wrote:
-> > AFAIR the Intel compiler claims to be gcc.
-> >
-> > But these are by far not the only C compilers under Linux, and the  
-> > more important points are:
-> >
-> > Is there any userspace Linux compiler that does not support "long  
-> > long"?
+On Wed, 27 Jun 2007, Randy Dunlap wrote:
+> On Wed, 27 Jun 2007 15:57:15 -0700 Randy Dunlap wrote:
+> > LDD3 ch. 11 says that long on Sparc64 is 32 bits.
+> > Same for "ppc" (don't know which power* arch. they mean by that).
 > 
-> Don't know, but I'd guess not.
+> Hm, I suppose that table only applies to userspace, not kernel...
 
-Tendra C and probably lcc. I would guess tinycc too.
+32-bit userspace?
 
-> The only trick is if you care about building 32-bit compat code using  
-> 64-bit linux kernel headers.  In that case we should probably just  
-> make all archs use "long long" for their 64-bit integers, unless  
-> there's some platform I'm not remembering where "long long" is 128- 
-> bits or bigger.  The other benefit is that people could then just use  
-> the printf format "%llu" for 64-bit integers instead of having to  
-> conditionalize it all over the place.
-> 
-> I'm working on a patch now.
+On 64-bit, `long' is 64-bit on all platforms supported by Linux.
 
-Changing this will give you a zillion warnings for printk formats.
+Gr{oetje,eeting}s,
 
--Andi
- 
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
