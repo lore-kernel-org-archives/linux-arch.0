@@ -1,50 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sovereign.computergmbh.de ([85.214.69.204]:11267 "EHLO
-	sovereign.computergmbh.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759486AbXF1GuF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jun 2007 02:50:05 -0400
-Date: Thu, 28 Jun 2007 08:50:03 +0200 (CEST)
-From: Jan Engelhardt <jengelh@computergmbh.de>
-Subject: Re: Userspace compiler support of "long long"
-In-Reply-To: <Pine.LNX.4.64.0706280411520.26289@anakin>
-Message-ID: <Pine.LNX.4.64.0706280844030.22579@fbirervta.pbzchgretzou.qr>
-References: <467afc63.OnsqEXOk5zqMYzym%Joerg.Schilling@fokus.fraunhofer.de>
- <Pine.LNX.4.64.0706211620080.31603@asgard.lang.hm>
- <467b0bf2.Xfs7T8Ys4nY9ZNLW%Joerg.Schilling@fokus.fraunhofer.de>
- <1182483527.10524.31.camel@shinybook.infradead.org> <20070622150038.GN23017@stusta.de>
- <E27BAC4D-2F1E-4191-A75D-4DD18231C320@mac.com> <20070627154046.GN1094@stusta.de>
- <468287a8.spBb6PdAZ4QV0j2Y%Joerg.Schilling@fokus.fraunhofer.de>
- <20070627173240.GR1094@stusta.de> <B3C8EEBF-71FB-4169-8ED7-7C4A410BBEE1@mac.com>
- <20070627155715.60ebc48f.randy.dunlap@oracle.com>
- <20070627161648.52d3786d.randy.dunlap@oracle.com> <Pine.LNX.4.64.0706280411520.26289@anakin>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from ozlabs.org ([203.10.76.45]:60335 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759272AbXF1HsR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Jun 2007 03:48:17 -0400
+Message-Id: <67867aa5e78ae107a62706a33a2aa643e8244256.1183016719.git.michael@ellerman.id.au>
+From: Michael Ellerman <michael@ellerman.id.au>
+Subject: [PATCH 1/1] Fix elf_core_dump() when writing arch specific notes (spu coredumps)
+Date: Thu, 28 Jun 2007 17:48:16 +1000 (EST)
 Sender: linux-arch-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Randy Dunlap <randy.dunlap@oracle.com>, Kyle Moffett <mrmacman_g4@mac.com>, Adrian Bunk <bunk@stusta.de>, LKML Kernel <linux-kernel@vger.kernel.org>, David Woodhouse <dwmw2@infradead.org>, david@lang.hm, linux-arch@vger.kernel.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: decimal@us.ibm.com, linux-arch@vger.kernel.org, Arnd Bergmann <arnd.bergmann@de.ibm.com>, cbe-oss-dev@ozlabs.org, linux-kernel@vger.kernel.org, petr@vandrovec.name, ak@suse.de, jdelsign@totalviewtech.com
 List-ID: <linux-arch.vger.kernel.org>
 
+elf_core_dump() supports dumping arch specific ELF notes, via the #define
+ELF_CORE_WRITE_EXTRA_NOTES. Currently the only user of this is the powerpc
+spu coredump code.
 
-On Jun 28 2007 04:12, Geert Uytterhoeven wrote:
->On Wed, 27 Jun 2007, Randy Dunlap wrote:
->> On Wed, 27 Jun 2007 15:57:15 -0700 Randy Dunlap wrote:
->> > LDD3 ch. 11 says that long on Sparc64 is 32 bits.
->> > Same for "ppc" (don't know which power* arch. they mean by that).
->> 
->> Hm, I suppose that table only applies to userspace, not kernel...
->
->32-bit userspace?
->
->On 64-bit, `long' is 64-bit on all platforms supported by Linux.
+There is a bug in the handling of foffset WRT the arch notes, which causes
+us to erroneously increment foffset by the size of the arch notes, leaving
+a block of zeroes in the file, and causing all subsequent data in the file
+to be at <supposed position> + <arch note size>. eg:
 
-All types are as wide as the compiler makes them.
+  LOAD  0x050000 0x00100000 0x00000000 0x20000 0x20000 R E 0x10000
 
-Compiler  short  int long llong
-Turbo C      16   16   32     -
-GCC -m32     16   32   32    64
-GCC -m64     16   32   64    64
+Tells us we should have a chunk of data at 0x50000. The truth is the data is
+at 0x90dbc = 0x50000 + 0x40dbc (the size of the arch notes).
 
+This bug prevents gdb from reading the core file correctly.
 
+The simplest fix is to simply remember the size of the arch notes, and add
+it to foffset after we've written the arch notes. The only drawback is that
+if the arch code doesn't write as many bytes as it said it would, we end up
+with a broken core dump again. For now I think that's a reasonable
+requirement.
 
-	Jan
+Tested on a Cell blade, gdb no longer complains about the core file being
+bogus.
+
+While I'm here I should point out that the spu coredump code does not work
+if we're dumping to a pipe - we'll have to wait for 23 to fix that.
+
+Signed-off-by: Michael Ellerman <michael@ellerman.id.au>
+---
+ fs/binfmt_elf.c |    7 ++++++-
+ 1 files changed, 6 insertions(+), 1 deletions(-)
+
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index fa8ea33..08e4414 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -1499,6 +1499,9 @@ static int elf_core_dump(long signr, struct pt_regs *regs, struct file *file)
+ #endif
+ 	int thread_status_size = 0;
+ 	elf_addr_t *auxv;
++#ifdef ELF_CORE_WRITE_EXTRA_NOTES
++	int extra_notes_size;
++#endif
+ 
+ 	/*
+ 	 * We no longer stop all VM operations.
+@@ -1628,7 +1631,8 @@ static int elf_core_dump(long signr, struct pt_regs *regs, struct file *file)
+ 		sz += thread_status_size;
+ 
+ #ifdef ELF_CORE_WRITE_EXTRA_NOTES
+-		sz += ELF_CORE_EXTRA_NOTES_SIZE;
++		extra_notes_size = ELF_CORE_EXTRA_NOTES_SIZE;
++		sz += extra_notes_size;
+ #endif
+ 
+ 		fill_elf_note_phdr(&phdr, sz, offset);
+@@ -1674,6 +1678,7 @@ static int elf_core_dump(long signr, struct pt_regs *regs, struct file *file)
+ 
+ #ifdef ELF_CORE_WRITE_EXTRA_NOTES
+ 	ELF_CORE_WRITE_EXTRA_NOTES;
++	foffset += extra_notes_size;
+ #endif
+ 
+ 	/* write out the thread status notes section */
 -- 
+1.5.1.3.g7a33b
+
