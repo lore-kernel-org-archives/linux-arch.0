@@ -1,57 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpout.mac.com ([17.250.248.184]:56646 "EHLO smtpout.mac.com"
+Received: from smtpout.mac.com ([17.250.248.183]:56776 "EHLO smtpout.mac.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757308AbXF1LnM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Jun 2007 07:43:12 -0400
-In-Reply-To: <200706280230.42515.ak@suse.de>
-References: <467afc63.OnsqEXOk5zqMYzym%Joerg.Schilling@fokus.fraunhofer.de> <20070627173240.GR1094@stusta.de> <B3C8EEBF-71FB-4169-8ED7-7C4A410BBEE1@mac.com> <200706280230.42515.ak@suse.de>
+	id S1758581AbXF1LyM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Jun 2007 07:54:12 -0400
+In-Reply-To: <20070628035754.GB22063@parisc-linux.org>
+References: <467afc63.OnsqEXOk5zqMYzym%Joerg.Schilling@fokus.fraunhofer.de> <Pine.LNX.4.64.0706211620080.31603@asgard.lang.hm> <467b0bf2.Xfs7T8Ys4nY9ZNLW%Joerg.Schilling@fokus.fraunhofer.de> <1182483527.10524.31.camel@shinybook.infradead.org> <20070622150038.GN23017@stusta.de> <E27BAC4D-2F1E-4191-A75D-4DD18231C320@mac.com> <20070627154046.GN1094@stusta.de> <468287a8.spBb6PdAZ4QV0j2Y%Joerg.Schilling@fokus.fraunhofer.de> <20070627173240.GR1094@stusta.de> <B3C8EEBF-71FB-4169-8ED7-7C4A410BBEE1@mac.com> <20070628035754.GB22063@parisc-linux.org>
 Mime-Version: 1.0 (Apple Message framework v752.2)
 Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
-Message-Id: <88515A48-E155-48A7-8EAE-095B080EAFE4@mac.com>
+Message-Id: <6B8385EC-8CD4-4E8B-94EF-293A02A62189@mac.com>
 Content-Transfer-Encoding: 7bit
 From: Kyle Moffett <mrmacman_g4@mac.com>
 Subject: Re: Userspace compiler support of "long long"
-Date: Thu, 28 Jun 2007 07:42:46 -0400
+Date: Thu, 28 Jun 2007 07:53:51 -0400
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Adrian Bunk <bunk@stusta.de>, LKML Kernel <linux-kernel@vger.kernel.org>, David Woodhouse <dwmw2@infradead.org>, david@lang.hm, linux-arch@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Adrian Bunk <bunk@stusta.de>, LKML Kernel <linux-kernel@vger.kernel.org>, David Woodhouse <dwmw2@infradead.org>, david@lang.hm, Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Jun 27, 2007, at 20:30:42, Andi Kleen wrote:
-> On Thursday 28 June 2007 00:30:52 Kyle Moffett wrote:
->> The only trick is if you care about building 32-bit compat code  
->> using 64-bit linux kernel headers.  In that case we should  
->> probably just make all archs use "long long" for their 64-bit  
->> integers, unless there's some platform I'm not remembering where  
->> "long long" is 128-bits or bigger.  The other benefit is that  
->> people could then just use the printf format "%llu" for 64-bit  
->> integers instead of having to conditionalize it all over the place.
+On Jun 27, 2007, at 23:57:54, Matthew Wilcox wrote:
+> On Wed, Jun 27, 2007 at 06:30:52PM -0400, Kyle Moffett wrote:
+>> Then all 64-bit archs have:
+>> typedef   signed long      __s64;
+>> typedef unsigned long      __u64;
 >>
->> I'm working on a patch now.
+>> While all 32-bit archs have:
+>> typedef   signed long long __s64;
+>> typedef unsigned long long __u64;
 >
-> Changing this will give you a zillion warnings for printk formats.
+> include/asm-parisc/types.h:typedef unsigned long long __u64;
+>
+> For both 32 and 64-bit.
+>
+> include/asm-sh64/types.h:typedef unsigned long long __u64;
+> include/asm-x86_64/types.h:typedef unsigned long long  __u64;
+>
+> So that's three architectures that violate your first assertion.
 
-Why?  If this were a problem then we'd be getting a zillion warnings  
-*now* from all the 32-bit archs (which already use "long long" for 64- 
-bit.  This would actually make it _easier_ to get the printk formats  
-right, as you could always use %ull for 64-bit types without having  
-to cast for 64-bit platforms.
-
-This is another way to get around the "build 32-bit-compat userspace  
-on 64-bit kernel headers" problem:  It tells GCC to use the  
-"smallest" available type of the given size, which ends up being  
-exactly the types we use now.  On the other hand, it only works for  
-GCC which sort of ruins most of the reason for changing the types in  
-the first place.
-
-typedef   signed __s8  __attribute__((__mode__(__QI__)));
-typedef unsigned __u8  __attribute__((__mode__(__QI__)));
-typedef   signed __s16 __attribute__((__mode__(__HI__)));
-typedef unsigned __u16 __attribute__((__mode__(__HI__)));
-typedef   signed __s32 __attribute__((__mode__(__SI__)));
-typedef unsigned __u32 __attribute__((__mode__(__SI__)));
-typedef   signed __s64 __attribute__((__mode__(__DI__)));
-typedef unsigned __u64 __attribute__((__mode__(__DI__)));
+Oh, ok, that makes it even easier to say this with certainty:   
+Changing the other 64-bit archs to use "long long" for their 64-bit  
+numbers will not cause additional warnings.  I'm also almost certain  
+there are no architectures which use "long long" for 128-bit  
+integers. (Moreover, I can't find hardly anything which does 128-bit  
+integers at all).
 
 Cheers,
 Kyle Moffett
