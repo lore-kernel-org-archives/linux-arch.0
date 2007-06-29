@@ -1,36 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:45768 "EHLO pasmtpB.tele.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757027AbXF2SLA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Jun 2007 14:11:00 -0400
-Date: Fri, 29 Jun 2007 20:12:05 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH] cross-architecture ELF clean up
-Message-ID: <20070629181205.GA16724@uranus.ravnborg.org>
-References: <20070620230854.246399397@goop.org> <20070620230902.387008536@goop.org> <Pine.LNX.4.64.0706251531110.4386@scrub.home> <468168FD.1080200@goop.org> <Pine.LNX.4.64.0706280027100.4890@scrub.home> <4683D78E.6080309@goop.org> <Pine.LNX.4.64.0706282319350.1817@scrub.home> <46851CF3.2070608@goop.org>
-Mime-Version: 1.0
+Received: from stout.engsoc.carleton.ca ([134.117.69.22]:45366 "EHLO
+	stout.engsoc.carleton.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754608AbXF2Sb4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jun 2007 14:31:56 -0400
+Date: Fri, 29 Jun 2007 10:48:20 -0400
+From: Kyle McMartin <kyle@parisc-linux.org>
+Subject: Re: [PARISC] Handle wrapping in expand_upwards()
+Message-ID: <20070629144820.GE9495@fattire.cabal.ca>
+References: <20070623095548.a7117833.akpm@linux-foundation.org> <617E1C2C70743745A92448908E030B2A01C206AB@scsmsx411.amr.corp.intel.com>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <46851CF3.2070608@goop.org>
+In-Reply-To: <617E1C2C70743745A92448908E030B2A01C206AB@scsmsx411.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Jeremy Fitzhardinge <jeremy@goop.org>
-Cc: Roman Zippel <zippel@linux-m68k.org>, "Eric W. Biederman" <ebiederm@xmission.com>, lkml <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Arch <linux-arch@vger.kernel.org>, Al Viro <viro@ftp.linux.org.uk>
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Kyle McMartin <kyle@parisc-linux.org>, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Jun 29, 2007 at 10:53:39AM -0400, Jeremy Fitzhardinge wrote:
-> Roman Zippel wrote:
-> >The problem I have is that you want to separate _all_ constants, which 
-> >doesn't really make sense to me, because many of them are useless without 
-> >the correspending structures.
-> >  
+On Mon, Jun 25, 2007 at 02:36:04PM -0700, Luck, Tony wrote:
+> > I will magically infer from your To: line that you consider it 2.6.22
+> > material, but if so I think that we'll need suitable reviewing, testing and
+> > acking from Tony, please.  If he's offline (ols, perhaps?) then we might
+> > have a problem.  Perhaps find a suitable ia64-enabled alternate?
 > 
-> It seems cleanest to just put all the constants in one place rather than 
-> scatter them around based on how they happen to be used.
+> Wrap-around to zero for the ia64 RSE stack isn't possible (it must be
+> in a user region (0-4), so it is far, far away from the top of the
+> address space.
+> 
 
-Grouping related things together is always a good approach. But the right
-factor should be used for the grouping. For the ELF file is would from a usage
-perspective be natural to have constants close to the definition that
-they are used to describe. Having constants grouped with other constants just
-_because_ they are constants does not cut here.
+Thanks, this is what I had suspected from reading the code.
 
-	Sam
+Cheers,
+	Kyle M.
+
+> -Tony
+> -
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
