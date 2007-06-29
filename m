@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:33730 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.10.76.45]:53421 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750742AbXF2ENz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Jun 2007 00:13:55 -0400
+	id S1751053AbXF2EsP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Jun 2007 00:48:15 -0400
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Message-ID: <18052.34556.48421.672836@cargo.ozlabs.ibm.com>
-Date: Fri, 29 Jun 2007 14:13:48 +1000
+Message-ID: <18052.36612.846937.794756@cargo.ozlabs.ibm.com>
+Date: Fri, 29 Jun 2007 14:48:04 +1000
 From: Paul Mackerras <paulus@samba.org>
 Subject: Re: [PATCH] cross-architecture ELF clean up
 In-Reply-To: <20070620230902.387008536@goop.org>
@@ -20,14 +20,19 @@ List-ID: <linux-arch.vger.kernel.org>
 
 Jeremy Fitzhardinge writes:
 
->   powerpc also appears to have its own duplicate copy of elf.h in
->   arch/powerpc/boot/elf.h; presumably because the standard elf.h
->   brings in too much.  Update it to just linux/elf-defn.h, which
->   should be fine.
+> ===================================================================
+> --- a/arch/powerpc/platforms/cell/io-workarounds.c
+> +++ b/arch/powerpc/platforms/cell/io-workarounds.c
+> @@ -9,6 +9,7 @@
+>  #undef DEBUG
+>  
+>  #include <linux/kernel.h>
+> +#include <linux/sched.h>
 
-No, it's because the bootwrapper is not part of the kernel and does
-not use kernel headers.  The aim is that the bootwrapper can be built
-and used outside the kernel source tree, so it needs its own copies of
-any headers that aren't in /usr/include.
+Why is this needed?  You've added #include <linux/sched.h> to 7 files
+without explanation - and I can't see that you have removed a
+corresponding #include from any header, have you?
 
 Paul.
+
+
