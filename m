@@ -1,128 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from scrub.xs4all.nl ([194.109.195.176]:4049 "EHLO scrub.xs4all.nl"
+Received: from ozlabs.org ([203.10.76.45]:33730 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1762154AbXF1VsV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Jun 2007 17:48:21 -0400
-Date: Thu, 28 Jun 2007 23:48:28 +0200 (CEST)
-From: Roman Zippel <zippel@linux-m68k.org>
-Subject: Re: [PATCH] cross-architecture ELF clean up
-In-Reply-To: <4683D78E.6080309@goop.org>
-Message-ID: <Pine.LNX.4.64.0706282319350.1817@scrub.home>
-References: <20070620230854.246399397@goop.org> <20070620230902.387008536@goop.org>
- <Pine.LNX.4.64.0706251531110.4386@scrub.home> <468168FD.1080200@goop.org>
- <Pine.LNX.4.64.0706280027100.4890@scrub.home> <4683D78E.6080309@goop.org>
+	id S1750742AbXF2ENz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Jun 2007 00:13:55 -0400
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Message-ID: <18052.34556.48421.672836@cargo.ozlabs.ibm.com>
+Date: Fri, 29 Jun 2007 14:13:48 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH] cross-architecture ELF clean up
+In-Reply-To: <20070620230902.387008536@goop.org>
+References: <20070620230854.246399397@goop.org>
+	<20070620230902.387008536@goop.org>
 Sender: linux-arch-owner@vger.kernel.org
 To: Jeremy Fitzhardinge <jeremy@goop.org>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, lkml <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Arch <linux-arch@vger.kernel.org>, Al Viro <viro@ftp.linux.org.uk>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, lkml <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ian Molton <spyro@f2s.com>, Russell King <rmk@arm.linux.org.uk>, Haavard Skinnemoen <hskinnemoen@atmel.com>, Aubrey Li <aubrey.li@analog.com>, Mikael Starvik <starvik@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Andi Kleen <ak@suse.de>, Tony Luck <tony.luck@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Matthew Wilcox <matthew@wil.cx>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Miles Bader <uclinux-v850@lsi.nec.co.jp>, Chris Zankel <chris@zankel.net>
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi,
+Jeremy Fitzhardinge writes:
 
-On Thu, 28 Jun 2007, Jeremy Fitzhardinge wrote:
+>   powerpc also appears to have its own duplicate copy of elf.h in
+>   arch/powerpc/boot/elf.h; presumably because the standard elf.h
+>   brings in too much.  Update it to just linux/elf-defn.h, which
+>   should be fine.
 
-> Roman Zippel wrote:
-> > This could be avoided by reordering things within elf.h, but is it really
-> > necessary since there is no user of this right now?
-> >   
-> 
-> Well, yes, I don't have much need to include ELF headers in asm now, but I
-> still think its worth separating the arch-specific definitions from asm/elf.h
-> and all the other stuff they pull in.  Specifically, the structure forward
-> declarations and constants have very few external dependencies, but the
-> structure definitions - particularly the arch-specific ones - have very wide
-> dependencies, which is what I'm trying to solve.  Very few pieces of code care
-> about the arch-specific structures.
+No, it's because the bootwrapper is not part of the kernel and does
+not use kernel headers.  The aim is that the bootwrapper can be built
+and used outside the kernel source tree, so it needs its own copies of
+any headers that aren't in /usr/include.
 
-The problem I have is that you want to separate _all_ constants, which 
-doesn't really make sense to me, because many of them are useless without 
-the correspending structures.
-
-> > module.h does indeed pull in way too much, but instead of hacking headers
-> > into little pieces, IMO it would be better to solve the real problem.
-> >   
-> 
-> No, that's not the real problem; its a side-effect of the real problem.  The
-> real problem is that linux/elf.h ends up bringing in too much.
-
-Please define the problem more specific. :)
-
->  arch/powerpc,
-> for example, has its own stripped down copy of elf.h for bootloader stuff in
-> order to avoid this extra crud.  The fix is to make it possible to get just
-> the appropriate ELF definitions without getting everything else.
-
-The bootloader is no kernel code and thus the elf header pull in a lot 
-less:
-
-$ gcc -c foo.c -Iusr/include --trace-includes
-. usr/include/linux/elf.h
-.. usr/include/linux/types.h
-... usr/include/linux/posix_types.h
-.... usr/include/linux/stddef.h
-.... usr/include/asm/posix_types.h
-... usr/include/asm/types.h
-.. usr/include/linux/auxvec.h
-... usr/include/asm/auxvec.h
-.. usr/include/linux/elf-em.h
-.. usr/include/asm/elf.h
-... usr/include/asm/ptrace.h
-.... usr/include/asm/ptrace-abi.h
-... usr/include/asm/user.h
-.... usr/include/asm/page.h
-
-One could remove ptrace.h but otherwise the result looks quite reasonable.
-
-> There's the secondary problem that lots of ELF stuff is copy'n'paste
-> duplicated across all the architectures, but all they really care about is one
-> of two sets of parallel definitions (32 or 64 ELF structures).  That was the
-> secondary
-
-Some of it you could put into linux/elf, e.g.:
-
-#if ELF_CLASS == ELFCLASS32
-
-typedef Elf32_Ehdr     Elf_Ehdr;
-typedef Elf32_Phdr     Elf_Phdr;
-typedef Elf32_Shdr     Elf_Shdr;
-typedef Elf32_Sym      Elf_Sym;
-typedef Elf32_Dyn      Elf_Dyn;
-typedef Elf32_Rel      Elf_Rel;
-typedef Elf32_Rela     Elf_Rela;
-
-typedef Elf32_Addr     Elf_Addr;
-
-#elif ELF_CLASS == ELFCLASS64
-
-typedef Elf64_Ehdr     Elf_Ehdr;
-typedef Elf64_Phdr     Elf_Phdr;
-typedef Elf64_Shdr     Elf_Shdr;
-typedef Elf64_Sym      Elf_Sym;
-typedef Elf64_Dyn      Elf_Dyn;
-typedef Elf64_Rel      Elf_Rel;
-typedef Elf64_Rela     Elf_Rela;
-
-typedef Elf64_Addr     Elf_Addr;
-
-#else
-#error
-#endif
-
-> > I played with it a little and the patch below moves a lot stuff out of
-> > module.h, so this would drastically reduce the header dependencies.
-> > Unless there are major objections, I can test the patch a little more and
-> > convert the other archs.
-> >   
-> 
-> Well, it seems like a large fiddly patch which only solves part of the problem
-> I want to solve; actually it doesn't help me at all, but it achieves one of
-> the side-effects of my patch. The arch changes make it look pretty awkward to
-> merge.
-
-The patch does help you quite a bit, you don't have to cleanup elf.h so 
-it's usable by the whole kernel. Only few parts now really need it and 
-depend on it, which makes the extensive splitup unnecessary only to 
-reduce header dependencies.
-
-bye, Roman
+Paul.
