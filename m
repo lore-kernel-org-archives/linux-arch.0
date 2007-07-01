@@ -1,41 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from stout.engsoc.carleton.ca ([134.117.69.22]:45366 "EHLO
-	stout.engsoc.carleton.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754608AbXF2Sb4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jun 2007 14:31:56 -0400
-Date: Fri, 29 Jun 2007 10:48:20 -0400
-From: Kyle McMartin <kyle@parisc-linux.org>
-Subject: Re: [PARISC] Handle wrapping in expand_upwards()
-Message-ID: <20070629144820.GE9495@fattire.cabal.ca>
-References: <20070623095548.a7117833.akpm@linux-foundation.org> <617E1C2C70743745A92448908E030B2A01C206AB@scsmsx411.amr.corp.intel.com>
+Received: from gw.goop.org ([64.81.55.164]:45072 "EHLO mail.goop.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752998AbXGAQXq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 1 Jul 2007 12:23:46 -0400
+Message-ID: <4687D50F.1050007@goop.org>
+Date: Sun, 01 Jul 2007 09:23:43 -0700
+From: Jeremy Fitzhardinge <jeremy@goop.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <617E1C2C70743745A92448908E030B2A01C206AB@scsmsx411.amr.corp.intel.com>
+Subject: Re: [PATCH] cross-architecture ELF clean up
+References: <20070620230854.246399397@goop.org> <20070620230902.387008536@goop.org> <Pine.LNX.4.64.0706251531110.4386@scrub.home> <468168FD.1080200@goop.org> <Pine.LNX.4.64.0706280027100.4890@scrub.home> <4683D78E.6080309@goop.org> <Pine.LNX.4.64.0706282319350.1817@scrub.home> <46851CF3.2070608@goop.org> <20070629181205.GA16724@uranus.ravnborg.org>
+In-Reply-To: <20070629181205.GA16724@uranus.ravnborg.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Kyle McMartin <kyle@parisc-linux.org>, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Roman Zippel <zippel@linux-m68k.org>, "Eric W. Biederman" <ebiederm@xmission.com>, lkml <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Arch <linux-arch@vger.kernel.org>, Al Viro <viro@ftp.linux.org.uk>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Jun 25, 2007 at 02:36:04PM -0700, Luck, Tony wrote:
-> > I will magically infer from your To: line that you consider it 2.6.22
-> > material, but if so I think that we'll need suitable reviewing, testing and
-> > acking from Tony, please.  If he's offline (ols, perhaps?) then we might
-> > have a problem.  Perhaps find a suitable ia64-enabled alternate?
-> 
-> Wrap-around to zero for the ia64 RSE stack isn't possible (it must be
-> in a user region (0-4), so it is far, far away from the top of the
-> address space.
-> 
+Sam Ravnborg wrote:
+> Grouping related things together is always a good approach. But the right
+> factor should be used for the grouping. For the ELF file is would from a usage
+> perspective be natural to have constants close to the definition that
+> they are used to describe. Having constants grouped with other constants just
+> _because_ they are constants does not cut here.
 
-Thanks, this is what I had suspected from reading the code.
+Many ELF constants are used without direct reference to their 
+corresponding structures.  My linux/elf-const.h header is just a 
+generalization of the existing linux/elf-em.h header, which just 
+contained the ELF EM_* constants.  Given that there seems to be a 
+preexisting need for the EM_* constants in a separate header, and having 
+a separate elf-*.h for each group of constants is a bad idea, it seemed 
+to me that elf-const.h was the appropriate direction to take.
 
-Cheers,
-	Kyle M.
-
-> -Tony
-> -
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+    J
