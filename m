@@ -1,64 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:57066 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:48535 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751043AbXGJUIf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jul 2007 16:08:35 -0400
-In-Reply-To: <4693AA56.9040109@zytor.com>
-References: <11840359321823-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org> <200707101721.58937.ak@suse.de> <4693AA56.9040109@zytor.com>
+	id S1757206AbXGJUKP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Jul 2007 16:10:15 -0400
+In-Reply-To: <4693D183.9060604@zytor.com>
+References: <11840359321823-git-send-email-hpa@zytor.com> <11840360383913-git-send-email-hpa@zytor.com> <11840361432207-git-send-email-hpa@zytor.com> <11840362483663-git-send-email-hpa@zytor.com> <11840363531039-git-send-email-hpa@zytor.com> <11840364593068-git-send-email-hpa@zytor.com> <1184036564610-git-send-email-hpa@zytor.com> <11840366692770-git-send-email-hpa@zytor.com> <11840367741994-git-send-email-hpa@zytor.com> <11840368791603-git-send-email-hpa@zytor.com> <11840369841576-git-send-email-hpa@zytor.com> <11840370903975-git-send-email-hpa@zytor.com> <11840371953778-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <11840374052662-git-send-email-hpa@zytor.com> <1184037510289-git-send-email-hpa@zytor.com> <11840376162370-git-send-email-hpa@zytor.com> <Pine.LNX.4.64.0707102022400.11053@fbirervta.pbzchgretzou.qr> <4693D183.9060604@zytor.com>
 Mime-Version: 1.0 (Apple Message framework v752.2)
 Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
-Message-Id: <551EA412-3D35-4BCD-ACAE-B6A7BE3CBF9B@kernel.crashing.org>
+Message-Id: <298A54C9-B331-4AB9-98B3-5C815B04381E@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
 From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
-Date: Tue, 10 Jul 2007 22:08:21 +0200
+Subject: Re: [x86 setup 16/33] String-handling functions for the new x86 setup code.
+Date: Tue, 10 Jul 2007 22:10:01 +0200
 Sender: linux-arch-owner@vger.kernel.org
 To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+Cc: Jan Engelhardt <jengelh@computergmbh.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
->>>> gcc for i386 can be used with the assembly prefix ".code16gcc" to
->>>> generate
->>>> 16-bit (real-mode) code.  This header file provides the assembly
->>>> prefix.
->>> This only works correctly with newer GCCs if you pass the
->>> -fno-toplevel-reorder option (and it only works on older
->>> GCC versions by accident).
->>
->> And on older ones (gcc-3.3-hammer / 3.4 / 4.0 ) -fno-unit-at-a-time
->>
->> Still it seems quite fragile to me agreed.
->
-> The alternative, of course, is to compile to an .s file and insert
-> .code16gcc into the .s file.  This makes the Makefile uglier, but  
-> would
-> be more resilient against oddball gcc changes.
+> Nope.  The builtins not only vary between gcc versions, but they also
+> have a nasty tendency to generate calls to library functions,  
+> sometimes
+> libgcc functions.  Hence -ffreestanding.
 
-This would be even more fragile.  The exact format of GCC's
-assembler code output isn't defined at all, so in principle
-this is a hopeless task.  In practice just putting the
-.code16gcc directive on the first line would likely work
-though, GCC never generates a .code32 AFAIK, but it isn't
-guaranteed that this will work (or will keep working).
-
-> I'm a bit surprised about the claim w.r.t. -fno-unit-at-a-time  
-> (although
-> I guess that is the default and one would thus typically not see  
-> this.)
-
--fno-unit-at-a-time is the default on three year old compilers,
-yes.  Newer compilers have unit-at-a-time enabled by default.
-
->  Got any pointers why that would cause a global asm() to be scrambled
-> around?
-
-An asm() outside of a function is a top-level thing, just
-like functions and file-scope variable definitions, and with
-unit-at-a-time compilation all such blocks can be reordered
-(or even omitted, or inlined, or whatever).  Note that even
-before unit-at-a-time was introduced there was no guarantee
-of emitting everything in the order it appears in the source
-file.
+-ffreestanding will still generate calls to libgcc functions.
+-ffreestanding doesn't disable _all_ of the C library, either.
 
 
 Segher
