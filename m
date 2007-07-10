@@ -1,35 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:37510 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751219AbXGJLsq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2007 07:48:46 -0400
-Date: Tue, 10 Jul 2007 13:48:43 +0200
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [x86 setup 09/33] Make definitions for struct e820entry and struct e820map consistent
-Message-ID: <20070710114843.GA5869@one.firstfloor.org>
-References: <2034f71d414def30de582fb59573295cadbdabb4.1184032748.git.hpa@zytor.com> <361d0a8b7b7ea9d41d0c25664b3e2b30fd99e329.1184032749.git.hpa@zytor.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <361d0a8b7b7ea9d41d0c25664b3e2b30fd99e329.1184032749.git.hpa@zytor.com>
+Received: from gate.crashing.org ([63.228.1.57]:32985 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752705AbXGJOQq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Jul 2007 10:16:46 -0400
+In-Reply-To: <11840373002601-git-send-email-hpa@zytor.com>
+References: <11840359321823-git-send-email-hpa@zytor.com> <11840360383913-git-send-email-hpa@zytor.com> <11840361432207-git-send-email-hpa@zytor.com> <11840362483663-git-send-email-hpa@zytor.com> <11840363531039-git-send-email-hpa@zytor.com> <11840364593068-git-send-email-hpa@zytor.com> <1184036564610-git-send-email-hpa@zytor.com> <11840366692770-git-send-email-hpa@zytor.com> <11840367741994-git-send-email-hpa@zytor.com> <11840368791603-git-send-email-hpa@zytor.com> <11840369841576-git-send-email-hpa@zytor.com> <11840370903975-git-send-email-hpa@zytor.com> <11840371953778-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com>
+Mime-Version: 1.0 (Apple Message framework v752.2)
+Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
+Message-Id: <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org>
+Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
+Date: Tue, 10 Jul 2007 16:16:29 +0200
 Sender: linux-arch-owner@vger.kernel.org
 To: "H. Peter Anvin" <hpa@zytor.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> diff --git a/include/asm-x86_64/e820.h b/include/asm-x86_64/e820.h
-> index 6216fa3..15eb8e2 100644
-> --- a/include/asm-x86_64/e820.h
-> +++ b/include/asm-x86_64/e820.h
-> @@ -11,7 +11,9 @@
->  #ifndef __E820_HEADER
->  #define __E820_HEADER
->  
-> -#include <linux/mmzone.h>
-> +#ifndef _SETUP
-> +# include <linux/mmzone.h>
-> +#endif
+> gcc for i386 can be used with the assembly prefix ".code16gcc" to  
+> generate
+> 16-bit (real-mode) code.  This header file provides the assembly  
+> prefix.
 
-If the ifdef is valid then the include can be completely removed.
+This only works correctly with newer GCCs if you pass the
+-fno-toplevel-reorder option (and it only works on older
+GCC versions by accident).  This option however disables
+certain optimisations; but perhaps that doesn't matter all
+that much here.
 
--Andi
+
+Segher
+
