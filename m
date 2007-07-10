@@ -1,47 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:36938 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:57066 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755632AbXGJT5W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jul 2007 15:57:22 -0400
-In-Reply-To: <200707101721.58937.ak@suse.de>
-References: <11840359321823-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org> <200707101721.58937.ak@suse.de>
+	id S1751043AbXGJUIf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Jul 2007 16:08:35 -0400
+In-Reply-To: <4693AA56.9040109@zytor.com>
+References: <11840359321823-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org> <200707101721.58937.ak@suse.de> <4693AA56.9040109@zytor.com>
 Mime-Version: 1.0 (Apple Message framework v752.2)
-Content-Type: text/plain; charset=US-ASCII; format=flowed
-Message-Id: <D6BECE27-25FA-4914-B293-4070392258D2@kernel.crashing.org>
+Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
+Message-Id: <551EA412-3D35-4BCD-ACAE-B6A7BE3CBF9B@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
 From: Segher Boessenkool <segher@kernel.crashing.org>
 Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
-Date: Tue, 10 Jul 2007 21:57:11 +0200
+Date: Tue, 10 Jul 2007 22:08:21 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
->>> gcc for i386 can be used with the assembly prefix ".code16gcc" to
->>> generate
->>> 16-bit (real-mode) code.  This header file provides the assembly
->>> prefix.
+>>>> gcc for i386 can be used with the assembly prefix ".code16gcc" to
+>>>> generate
+>>>> 16-bit (real-mode) code.  This header file provides the assembly
+>>>> prefix.
+>>> This only works correctly with newer GCCs if you pass the
+>>> -fno-toplevel-reorder option (and it only works on older
+>>> GCC versions by accident).
 >>
->> This only works correctly with newer GCCs if you pass the
->> -fno-toplevel-reorder option (and it only works on older
->> GCC versions by accident).
+>> And on older ones (gcc-3.3-hammer / 3.4 / 4.0 ) -fno-unit-at-a-time
+>>
+>> Still it seems quite fragile to me agreed.
 >
-> And on older ones (gcc-3.3-hammer / 3.4 / 4.0 ) -fno-unit-at-a-time
+> The alternative, of course, is to compile to an .s file and insert
+> .code16gcc into the .s file.  This makes the Makefile uglier, but  
+> would
+> be more resilient against oddball gcc changes.
 
-...which inhibits even more optimisations.  Still not too
-important, but the code size difference probably is
-noticeable.
+This would be even more fragile.  The exact format of GCC's
+assembler code output isn't defined at all, so in principle
+this is a hopeless task.  In practice just putting the
+.code16gcc directive on the first line would likely work
+though, GCC never generates a .code32 AFAIK, but it isn't
+guaranteed that this will work (or will keep working).
 
-> Still it seems quite fragile to me agreed.
+> I'm a bit surprised about the claim w.r.t. -fno-unit-at-a-time  
+> (although
+> I guess that is the default and one would thus typically not see  
+> this.)
 
-Well at least with -fno-toplevel-reorder it is guaranteed
-to work (not the same thing as "is working", heh, but fairly
-close).
+-fno-unit-at-a-time is the default on three year old compilers,
+yes.  Newer compilers have unit-at-a-time enabled by default.
 
-It seems to me GCC should grow an option to insert .code16gcc
-by itself (-m16 perhaps?)  Or GAS could get a flag to include
-a file as a prelude before the main thing.  Neither will help
-Linux right now of course.
+>  Got any pointers why that would cause a global asm() to be scrambled
+> around?
+
+An asm() outside of a function is a top-level thing, just
+like functions and file-scope variable definitions, and with
+unit-at-a-time compilation all such blocks can be reordered
+(or even omitted, or inlined, or whatever).  Note that even
+before unit-at-a-time was introduced there was no guarantee
+of emitting everything in the order it appears in the source
+file.
 
 
 Segher
