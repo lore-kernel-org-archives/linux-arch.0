@@ -1,47 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([192.83.249.54]:53043 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755918AbXGJSsl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2007 14:48:41 -0400
-Message-ID: <4693D463.5010900@zytor.com>
-Date: Tue, 10 Jul 2007 11:48:03 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
-Subject: Re: [x86 setup 20/33] Console-writing code for the new x86 setup
- code
-References: <11840359321823-git-send-email-hpa@zytor.com> <11840361432207-git-send-email-hpa@zytor.com> <11840362483663-git-send-email-hpa@zytor.com> <11840363531039-git-send-email-hpa@zytor.com> <11840364593068-git-send-email-hpa@zytor.com> <1184036564610-git-send-email-hpa@zytor.com> <11840366692770-git-send-email-hpa@zytor.com> <11840367741994-git-send-email-hpa@zytor.com> <11840368791603-git-send-email-hpa@zytor.com> <11840369841576-git-send-email-hpa@zytor.com> <11840370903975-git-send-email-hpa@zytor.com> <11840371953778-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <11840374052662-git-send-email-hpa@zytor.com> <1184037510289-git-send-email-hpa@zytor.com> <11840376162370-git-send-email-hpa@zytor.com> <11840377211519-git-send-email-hpa@zytor.com> <11840378261081-git-send-email-hpa@zytor.com> <11840379311574-git-send-email-hpa@zytor.com> <11840380363720-git-send-email-hpa@zytor.com> <Pine.LNX.4.64.0707102033060.11053@fbirervta.pbzchgretzou.q!
- r>
-In-Reply-To: <Pine.LNX.4.64.0707102033060.11053@fbirervta.pbzchgretzou.qr>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from gate.crashing.org ([63.228.1.57]:36938 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755632AbXGJT5W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Jul 2007 15:57:22 -0400
+In-Reply-To: <200707101721.58937.ak@suse.de>
+References: <11840359321823-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org> <200707101721.58937.ak@suse.de>
+Mime-Version: 1.0 (Apple Message framework v752.2)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <D6BECE27-25FA-4914-B293-4070392258D2@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
+Date: Tue, 10 Jul 2007 21:57:11 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Jan Engelhardt <jengelh@computergmbh.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, akpm@linux-foundation.org
+To: Andi Kleen <ak@suse.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Jan Engelhardt wrote:
-> On Jul 9 2007 19:51, H. Peter Anvin wrote:
->> +
->> +static inline int isdigit(int ch)
->> +{
->> +	return (ch >= '0') && (ch <= '9');
->> +}
-> 
-> I'd say static inline unsigned int isdigit(unsigned char), since ASCII does not
-> realistically exceed 255.
+>>> gcc for i386 can be used with the assembly prefix ".code16gcc" to
+>>> generate
+>>> 16-bit (real-mode) code.  This header file provides the assembly
+>>> prefix.
+>>
+>> This only works correctly with newer GCCs if you pass the
+>> -fno-toplevel-reorder option (and it only works on older
+>> GCC versions by accident).
+>
+> And on older ones (gcc-3.3-hammer / 3.4 / 4.0 ) -fno-unit-at-a-time
 
-If you're trying to be standard, you're doing the wrong thing (the
-standard is int, since -1 is a permitted value.)
+...which inhibits even more optimisations.  Still not too
+important, but the code size difference probably is
+noticeable.
 
-It doesn't matter anyway, and your version would probably generate
-slightly worse code.
+> Still it seems quite fragile to me agreed.
 
->> +static int strnlen(const char *s, int maxlen)
-> 
-> unsigned int,  and               unsigned int, too?
-> The glibc strnlen type also uses unsigned types.
+Well at least with -fno-toplevel-reorder it is guaranteed
+to work (not the same thing as "is working", heh, but fairly
+close).
 
-If anything it should be size_t.  Fixing, and moved to string.c, where
-it belongs.
+It seems to me GCC should grow an option to insert .code16gcc
+by itself (-m16 perhaps?)  Or GAS could get a flag to include
+a file as a prelude before the main thing.  Neither will help
+Linux right now of course.
 
-	-hpa
+
+Segher
+
