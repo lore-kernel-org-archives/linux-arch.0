@@ -1,31 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([192.83.249.54]:43744 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752633AbXGJP5J (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2007 11:57:09 -0400
-Message-ID: <4693AB6F.9030804@zytor.com>
-Date: Tue, 10 Jul 2007 08:53:19 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from gw.goop.org ([64.81.55.164]:52964 "EHLO mail.goop.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758607AbXGJQZs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Jul 2007 12:25:48 -0400
+Message-ID: <4693B2D4.2070000@goop.org>
+Date: Tue, 10 Jul 2007 09:24:52 -0700
+From: Jeremy Fitzhardinge <jeremy@goop.org>
 MIME-Version: 1.0
-Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
-References: <11840359321823-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org> <200707101721.58937.ak@suse.de> <4693AA56.9040109@zytor.com>
-In-Reply-To: <4693AA56.9040109@zytor.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: x86 setup code rewrite in C
+References: <11840359321823-git-send-email-hpa@zytor.com>
+In-Reply-To: <11840359321823-git-send-email-hpa@zytor.com>
+Content-Type: text/plain; charset=ISO-8859-15; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Segher Boessenkool <segher@kernel.crashing.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
 H. Peter Anvin wrote:
-> 
-> I'm a bit surprised about the claim w.r.t. -fno-unit-at-a-time (although
-> I guess that is the default and one would thus typically not see this.)
->  Got any pointers why that would cause a global asm() to be scrambled
-> around?
-> 
+> This patch set replaces the x86 setup code, which is currently all in
+> assembly, with a version written in C, using the ".code16gcc" feature
+> of binutils (which has been present since at least 2001.)
+>
+> The new code is vastly easier to read, and, I hope, debug.  It should
+> be noted that I found a fair number of minor bugs while going through
+> this code, and have attempted to correct them.
+>
+> In the process of doing so, it introduces several cleanups, in
+> particular:
+>
+> - Obsoletes the hd_info field in the boot_params structure; they are
+>   only ever used for ST-506 (pre-IDE) drives and are pretty much
+>   guaranteed to be wrong on current BIOSes;
+> - Unifies the CPU feature bits between i386 and x86-64.  In the
+>   future, it should be possible to use arch/i386/boot/cpucheck.c to do
+>   the post-invocation CPU check currently done in
+>   arch/x86_64/kernel/trampoline.S, although this patch set doesn't
+>   introduce that change.
+> - boot_params is now a proper structure.
+>
+> This code has been tested in -mm since early in the 2.6.22 cycle.
+>   
 
-Never mind.  It's quite right there in the gcc doc, and
--fno-unit-at-a-time is documented as the fix.
+This stuff is good.  I haven't read through this series in detail, but I 
+have been working on the code in -mm and its a clear improvement.
 
-	-hpa
+Acked-by: Jeremy Fitzhardinge <jeremy@xensource.com>
+
+    J
