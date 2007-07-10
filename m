@@ -1,63 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([192.83.249.54]:50430 "EHLO
+Received: from terminus.zytor.com ([192.83.249.54]:36540 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760110AbXGJVoN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2007 17:44:13 -0400
-Message-ID: <4693FCE7.2060308@zytor.com>
-Date: Tue, 10 Jul 2007 14:40:55 -0700
+	with ESMTP id S1756042AbXGJVxo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2007 17:53:44 -0400
+Message-ID: <4693FE48.1010606@zytor.com>
+Date: Tue, 10 Jul 2007 14:46:48 -0700
 From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
 Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
-References: <11840359321823-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org> <200707101721.58937.ak@suse.de> <D6BECE27-25FA-4914-B293-4070392258D2@kernel.crashing.org> <4693EF48.1080209@zytor.com> <763AC431-73A6-4A5F-9453-A66A86D7DEEB@kernel.crashing.org>
-In-Reply-To: <763AC431-73A6-4A5F-9453-A66A86D7DEEB@kernel.crashing.org>
-Content-Type: text/plain; charset=ISO-8859-1
+References: <11840359321823-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org> <200707101721.58937.ak@suse.de> <D6BECE27-25FA-4914-B293-4070392258D2@kernel.crashing.org> <4693EF48.1080209@zytor.com> <20070710214315.GD3492@stusta.de>
+In-Reply-To: <20070710214315.GD3492@stusta.de>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Adrian Bunk <bunk@stusta.de>
+Cc: Segher Boessenkool <segher@kernel.crashing.org>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Segher Boessenkool wrote:
-> 
->> For now, I have:
+Adrian Bunk wrote:
 >>
+>> For now, I have:
+> 
+> Can't you use the global CFLAGS and append your specific ones?
+> 
+
+No.  A lot of the x86-64 flags don't work with -m32.
+
 >> CFLAGS          := $(LINUXINCLUDE) -g -Os -D_SETUP -D__KERNEL__ \
+> 
+> -g ???
+
+Leaves debugging information in setup.elf.  It is handy sometimes.
+
 >>                    $(cflags-$(ARCH)) \
 >>                    -Wall -Wstrict-prototypes \
 >>                    -march=i386 -mregparm=3 \
->>                    -include $(srctree)/$(src)/code16gcc.h \
->>                    -fno-strict-aliasing -fomit-frame-pointer \
->>                    $(call cc-option, -ffreestanding) \
->>                    $(call cc-option, -fno-unit-at-a-time) \
->>                    $(call cc-option, -fno-toplevel-reorder) \
->>                    $(call cc-option, -fno-stack-protector) \
->>                    $(call cc-option, -mpreferred-stack-boundary=2)
->>
->> ... since that will require less violence to eventually hack in the
->> proper -m16 option if/when it becomes available.
 > 
-> Looks good, except you don't want -fno-unit-at-a-time if
-> -fno-toplevel-reorder works.  And of course it would be
-> good to get rid of -fno-strict-aliasing, but let's not
-> go there today ;-P
-> 
+> Why -march=i386 ?
 
-OK, how does this look:
-
-CFLAGS          := $(LINUXINCLUDE) -g -Os -D_SETUP -D__KERNEL__ \
-                   $(cflags-$(ARCH)) \
-                   -Wall -Wstrict-prototypes \
-                   -march=i386 -mregparm=3 \
-                   -include $(srctree)/$(src)/code16gcc.h \
-                   -fno-strict-aliasing -fomit-frame-pointer \
-                   $(call cc-option, -ffreestanding) \
-                   $(call cc-option, -fno-toplevel-reorder,\
-                        $(call cc-option, -fno-unit-at-a-time)) \
-                   $(call cc-option, -fno-stack-protector) \
-                   $(call cc-option, -mpreferred-stack-boundary=2)
-
-I think dropping -fno-strict-aliasing for this code is probably bad...
-it's pretty low-level stuff which does a lot of bitlevel manipulation.
+So we can at least spit out an error message.
 
 	-hpa
-
