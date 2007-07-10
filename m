@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([192.83.249.54]:50694 "EHLO
+Received: from terminus.zytor.com ([192.83.249.54]:39388 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754334AbXGJDcZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2007 23:32:25 -0400
+	with ESMTP id S1752591AbXGJDfx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2007 23:35:53 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [x86 setup 19/33] Command-line parsing code for the new x86 setup code
-Date: Mon,  9 Jul 2007 19:51:58 -0700
-Message-Id: <11840379311574-git-send-email-hpa@zytor.com>
-In-Reply-To: <11840378261081-git-send-email-hpa@zytor.com>
+Subject: [x86 setup 21/33] Version string for the new x86 setup code
+Date: Mon,  9 Jul 2007 19:52:00 -0700
+Message-Id: <11840381413065-git-send-email-hpa@zytor.com>
+In-Reply-To: <11840380363720-git-send-email-hpa@zytor.com>
 References: <11840359321823-git-send-email-hpa@zytor.com>
  <11840360383913-git-send-email-hpa@zytor.com>
  <11840361432207-git-send-email-hpa@zytor.com>
@@ -27,7 +27,9 @@ References: <11840359321823-git-send-email-hpa@zytor.com>
  <11840376162370-git-send-email-hpa@zytor.com>
  <11840377211519-git-send-email-hpa@zytor.com>
  <11840378261081-git-send-email-hpa@zytor.com>
-Message-Id: <3726c75f36dc97c1fce93835e872bbc814857990.1184032749.git.hpa@zytor.com>
+ <11840379311574-git-send-email-hpa@zytor.com>
+ <11840380363720-git-send-email-hpa@zytor.com>
+Message-Id: <b4eed00df1889f94e8799ca6c0ce081bc5140688.1184032749.git.hpa@zytor.com>
 In-Reply-To: <2034f71d414def30de582fb59573295cadbdabb4.1184032748.git.hpa@zytor.com>
 References: <2034f71d414def30de582fb59573295cadbdabb4.1184032748.git.hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -37,21 +39,20 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: H. Peter Anvin <hpa@zytor.com>
 
-Simple command-line parser which allows us to access the kernel command
-line from the setup code.
+Module which only includes the kernel version string.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
 ---
- arch/i386/boot/cmdline.c |   97 ++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 97 insertions(+), 0 deletions(-)
- create mode 100644 arch/i386/boot/cmdline.c
+ arch/i386/boot/version.c |   23 +++++++++++++++++++++++
+ 1 files changed, 23 insertions(+), 0 deletions(-)
+ create mode 100644 arch/i386/boot/version.c
 
-diff --git a/arch/i386/boot/cmdline.c b/arch/i386/boot/cmdline.c
+diff --git a/arch/i386/boot/version.c b/arch/i386/boot/version.c
 new file mode 100644
-index 0000000..34bb778
+index 0000000..c61462f
 --- /dev/null
-+++ b/arch/i386/boot/cmdline.c
-@@ -0,0 +1,97 @@
++++ b/arch/i386/boot/version.c
+@@ -0,0 +1,23 @@
 +/* -*- linux-c -*- ------------------------------------------------------- *
 + *
 + *   Copyright (C) 1991, 1992 Linus Torvalds
@@ -63,92 +64,18 @@ index 0000000..34bb778
 + * ----------------------------------------------------------------------- */
 +
 +/*
-+ * arch/i386/boot/cmdline.c
++ * arch/i386/boot/version.c
 + *
-+ * Simple command-line parser for early boot.
++ * Kernel version string
 + */
 +
 +#include "boot.h"
++#include <linux/utsrelease.h>
++#include <linux/compile.h>
 +
-+static inline int myisspace(u8 c)
-+{
-+	return c <= ' ';	/* Close enough approximation */
-+}
-+
-+/*
-+ * Find a non-boolean option, that is, "option=argument".  In accordance
-+ * with standard Linux practice, if this option is repeated, this returns
-+ * the last instance on the command line.
-+ *
-+ * Returns the length of the argument (regardless of if it was
-+ * truncated to fit in the buffer), or -1 on not found.
-+ */
-+int cmdline_find_option(const char *option, char *buffer, int bufsize)
-+{
-+	u32 cmdline_ptr = boot_params.hdr.cmd_line_ptr;
-+	addr_t cptr;
-+	char c;
-+	int len = -1;
-+	const char *opptr = NULL;
-+	char *bufptr = buffer;
-+	enum {
-+		st_wordstart,	/* Start of word/after whitespace */
-+		st_wordcmp,	/* Comparing this word */
-+		st_wordskip,	/* Miscompare, skip */
-+		st_bufcpy	/* Copying this to buffer */
-+	} state = st_wordstart;
-+
-+	if (!cmdline_ptr || cmdline_ptr >= 0x100000)
-+		return -1;	/* No command line, or inaccessible */
-+
-+	cptr = cmdline_ptr & 0xf;
-+	set_fs(cmdline_ptr >> 4);
-+
-+	while (cptr < 0x10000 && (c = rdfs8(cptr++))) {
-+		switch (state) {
-+		case st_wordstart:
-+			if (myisspace(c))
-+				break;
-+
-+			/* else */
-+			state = st_wordcmp;
-+			opptr = option;
-+			/* fall through */
-+
-+		case st_wordcmp:
-+			if (c == '=' && !*opptr) {
-+				len = 0;
-+				bufptr = buffer;
-+				state = st_bufcpy;
-+			} else if (myisspace(c)) {
-+				state = st_wordstart;
-+			} else if (c != *opptr++) {
-+				state = st_wordskip;
-+			}
-+			break;
-+
-+		case st_wordskip:
-+			if (myisspace(c))
-+				state = st_wordstart;
-+			break;
-+
-+		case st_bufcpy:
-+			if (myisspace(c)) {
-+				state = st_wordstart;
-+			} else {
-+				if (len < bufsize-1)
-+					*bufptr++ = c;
-+				len++;
-+			}
-+			break;
-+		}
-+	}
-+
-+	if (bufsize)
-+		*bufptr = '\0';
-+
-+	return len;
-+}
++const char kernel_version[] =
++	UTS_RELEASE " (" LINUX_COMPILE_BY "@" LINUX_COMPILE_HOST ") "
++	UTS_VERSION;
 -- 
 1.5.2.2
 
