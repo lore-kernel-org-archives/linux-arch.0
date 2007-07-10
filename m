@@ -1,38 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59345 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759807AbXGJVOv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jul 2007 17:14:51 -0400
-In-Reply-To: <4693EFBF.4070605@zytor.com>
-References: <11840359321823-git-send-email-hpa@zytor.com> <11840360383913-git-send-email-hpa@zytor.com> <11840361432207-git-send-email-hpa@zytor.com> <11840362483663-git-send-email-hpa@zytor.com> <11840363531039-git-send-email-hpa@zytor.com> <11840364593068-git-send-email-hpa@zytor.com> <1184036564610-git-send-email-hpa@zytor.com> <11840366692770-git-send-email-hpa@zytor.com> <11840367741994-git-send-email-hpa@zytor.com> <11840368791603-git-send-email-hpa@zytor.com> <11840369841576-git-send-email-hpa@zytor.com> <11840370903975-git-send-email-hpa@zytor.com> <11840371953778-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <11840374052662-git-send-email-hpa@zytor.com> <1184037510289-git-send-email-hpa@zytor.com> <11840376162370-git-send-email-hpa@zytor.com> <Pine.LNX.4.64.0707102022400.11053@fbirervta.pbzchgretzou.qr> <4693D183.9060604@zytor.com> <298A54C9-B331-4AB9-98B3-5C815B04381E@kernel.crashing.org> <4693EFBF.4070605@zytor.com>
-Mime-Version: 1.0 (Apple Message framework v752.2)
-Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
-Message-Id: <C65610C3-64A5-476D-8371-1338FA8F7D0E@kernel.crashing.org>
+Received: from terminus.zytor.com ([192.83.249.54]:37357 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757825AbXGJVX7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2007 17:23:59 -0400
+Message-ID: <4693F809.9030903@zytor.com>
+Date: Tue, 10 Jul 2007 14:20:09 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
+MIME-Version: 1.0
+Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
+References: <11840359321823-git-send-email-hpa@zytor.com>	 <11840373002601-git-send-email-hpa@zytor.com>	 <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org>	 <200707101721.58937.ak@suse.de> <4693AA56.9040109@zytor.com>	 <551EA412-3D35-4BCD-ACAE-B6A7BE3CBF9B@kernel.crashing.org>	 <4693EF8E.9070403@zytor.com> <ec870ced0707101408p25b6115ao20aa5835072e7bad@mail.gmail.com>
+In-Reply-To: <ec870ced0707101408p25b6115ao20aa5835072e7bad@mail.gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [x86 setup 16/33] String-handling functions for the new x86 setup code.
-Date: Tue, 10 Jul 2007 23:14:38 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Jan Engelhardt <jengelh@computergmbh.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, akpm@linux-foundation.org
+To: Pawel Dziepak <hryssta@gmail.com>
+Cc: Segher Boessenkool <segher@kernel.crashing.org>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
->>> Nope.  The builtins not only vary between gcc versions, but they  
->>> also
->>> have a nasty tendency to generate calls to library functions,  
->>> sometimes
->>> libgcc functions.  Hence -ffreestanding.
->>
->> -ffreestanding will still generate calls to libgcc functions.
->> -ffreestanding doesn't disable _all_ of the C library, either.
->
-> No, it doesn't, but it does inhibit builtin functions, and so  
-> provides a
-> bit more ABI stability.
+Pawel Dziepak wrote:
+> 
+> Unfortunately, .code16gcc is still experimental (at least binutils'
+> website says that). What is worse, it says that it is possible that
+> 16bit code produced on GCC won't work on pre-80386 processors (before
+> switching to protected mode you have to think about cpu as a
+> pre-80386).
+> 
 
-Yes, Linux should definitely be compiled with -ffreestanding,
-it isn't a hosted application after all ;-)
+.code16gcc has been in production use in real projects since at least 2001.
 
+16-bit code produced by gcc is indeed, guaranteed to not work on pre-386
+x86s, but so is the code we had there before.  Saying "before switching
+to protected mode you have to think about [the] cpu as a pre-80386" is
+blatantly false; 32-bit registers and addressing are readily available
+in real mode using size override prefixes (which is what ".code16gcc"
+takes care of.)
 
-Segher
+> I don't think that -m16 flag will be introduced quickly. In fact, only
+> OS developers _sometimes_ use 16 bit code...
+> 
+> I did a fast test and now I know that assembler instructions are
+> almost ignored by GCC and passed to gas. The situation is the same
+> with .code16gcc, what mean that gas has to translate 32bit code from
+> GCC to 16 bit code. The result binary was correct 16 bit program (at
+> least its code looked good), but it is IMHO too many translations from
+> C to 32bit assembler and then to 16bit assembler, that can cause
+> unpredictable errors.
 
+You're saying "I don't understand it, and it scares me."  The
+differences compared to standard .code16 are pretty minute, mostly in
+the matter of a couple of different default sizes (e.g. "call" defaults
+to "calll" not "callw".)
+
+> Additionally, I prefer to write architecture depend procedures in
+> assembler (but is only *my* opinion, and you probably disagree).
+> Assembler is faster, you have bigger control over the code, and
+> portability of C is in this circumstances not necessary.
+
+... and the code is an utter, unmaintainable mess.
+
+	-hpa
