@@ -1,30 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:48535 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757206AbXGJUKP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jul 2007 16:10:15 -0400
-In-Reply-To: <4693D183.9060604@zytor.com>
-References: <11840359321823-git-send-email-hpa@zytor.com> <11840360383913-git-send-email-hpa@zytor.com> <11840361432207-git-send-email-hpa@zytor.com> <11840362483663-git-send-email-hpa@zytor.com> <11840363531039-git-send-email-hpa@zytor.com> <11840364593068-git-send-email-hpa@zytor.com> <1184036564610-git-send-email-hpa@zytor.com> <11840366692770-git-send-email-hpa@zytor.com> <11840367741994-git-send-email-hpa@zytor.com> <11840368791603-git-send-email-hpa@zytor.com> <11840369841576-git-send-email-hpa@zytor.com> <11840370903975-git-send-email-hpa@zytor.com> <11840371953778-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <11840374052662-git-send-email-hpa@zytor.com> <1184037510289-git-send-email-hpa@zytor.com> <11840376162370-git-send-email-hpa@zytor.com> <Pine.LNX.4.64.0707102022400.11053@fbirervta.pbzchgretzou.qr> <4693D183.9060604@zytor.com>
-Mime-Version: 1.0 (Apple Message framework v752.2)
-Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
-Message-Id: <298A54C9-B331-4AB9-98B3-5C815B04381E@kernel.crashing.org>
+Received: from terminus.zytor.com ([192.83.249.54]:50366 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759802AbXGJUqK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2007 16:46:10 -0400
+Message-ID: <4693EF48.1080209@zytor.com>
+Date: Tue, 10 Jul 2007 13:42:48 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
+MIME-Version: 1.0
+Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
+References: <11840359321823-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org> <200707101721.58937.ak@suse.de> <D6BECE27-25FA-4914-B293-4070392258D2@kernel.crashing.org>
+In-Reply-To: <D6BECE27-25FA-4914-B293-4070392258D2@kernel.crashing.org>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [x86 setup 16/33] String-handling functions for the new x86 setup code.
-Date: Tue, 10 Jul 2007 22:10:01 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Jan Engelhardt <jengelh@computergmbh.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andi@firstfloor.org, akpm@linux-foundation.org
+To: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> Nope.  The builtins not only vary between gcc versions, but they also
-> have a nasty tendency to generate calls to library functions,  
-> sometimes
-> libgcc functions.  Hence -ffreestanding.
+Segher Boessenkool wrote:
+> 
+> Well at least with -fno-toplevel-reorder it is guaranteed
+> to work (not the same thing as "is working", heh, but fairly
+> close).
+> 
+> It seems to me GCC should grow an option to insert .code16gcc
+> by itself (-m16 perhaps?)  Or GAS could get a flag to include
+> a file as a prelude before the main thing.  Neither will help
+> Linux right now of course.
+> 
 
--ffreestanding will still generate calls to libgcc functions.
--ffreestanding doesn't disable _all_ of the C library, either.
+-m16 is the right thing, and it also provides a proper hook for
+eventually having a real 16-bit backend (there are at least two projects
+for doing that.)
 
+For now, I have:
 
-Segher
+CFLAGS          := $(LINUXINCLUDE) -g -Os -D_SETUP -D__KERNEL__ \
+                   $(cflags-$(ARCH)) \
+                   -Wall -Wstrict-prototypes \
+                   -march=i386 -mregparm=3 \
+                   -include $(srctree)/$(src)/code16gcc.h \
+                   -fno-strict-aliasing -fomit-frame-pointer \
+                   $(call cc-option, -ffreestanding) \
+                   $(call cc-option, -fno-unit-at-a-time) \
+                   $(call cc-option, -fno-toplevel-reorder) \
+                   $(call cc-option, -fno-stack-protector) \
+                   $(call cc-option, -mpreferred-stack-boundary=2)
 
+... since that will require less violence to eventually hack in the
+proper -m16 option if/when it becomes available.
+
+	-hpa
