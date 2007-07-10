@@ -1,63 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nf-out-0910.google.com ([64.233.182.189]:58820 "EHLO
-	nf-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760961AbXGJVIi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2007 17:08:38 -0400
-Received: by nf-out-0910.google.com with SMTP id g13so99471nfb
-        for <linux-arch@vger.kernel.org>; Tue, 10 Jul 2007 14:08:37 -0700 (PDT)
-Message-ID: <ec870ced0707101408p25b6115ao20aa5835072e7bad@mail.gmail.com>
-Date: Tue, 10 Jul 2007 23:08:33 +0200
-From: "Pawel Dziepak" <hryssta@gmail.com>
-Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
-In-Reply-To: <4693EF8E.9070403@zytor.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Received: from gate.crashing.org ([63.228.1.57]:59314 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752956AbXGJVKT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Jul 2007 17:10:19 -0400
+In-Reply-To: <4693EF48.1080209@zytor.com>
+References: <11840359321823-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org> <200707101721.58937.ak@suse.de> <D6BECE27-25FA-4914-B293-4070392258D2@kernel.crashing.org> <4693EF48.1080209@zytor.com>
+Mime-Version: 1.0 (Apple Message framework v752.2)
+Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
+Message-Id: <763AC431-73A6-4A5F-9453-A66A86D7DEEB@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-References: <11840359321823-git-send-email-hpa@zytor.com>
-	 <11840373002601-git-send-email-hpa@zytor.com>
-	 <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org>
-	 <200707101721.58937.ak@suse.de> <4693AA56.9040109@zytor.com>
-	 <551EA412-3D35-4BCD-ACAE-B6A7BE3CBF9B@kernel.crashing.org>
-	 <4693EF8E.9070403@zytor.com>
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
+Date: Tue, 10 Jul 2007 23:10:05 +0200
 Sender: linux-arch-owner@vger.kernel.org
 To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Segher Boessenkool <segher@kernel.crashing.org>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+Cc: Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On 7/10/07, Segher Boessenkool <segher@kernel.crashing.org> wrote:
-> > The alternative, of course, is to compile to an .s file and insert
-> > .code16gcc into the .s file.  This makes the Makefile uglier, but
-> > would
-> > be more resilient against oddball gcc changes.
+>> It seems to me GCC should grow an option to insert .code16gcc
+>> by itself (-m16 perhaps?)
+
+> -m16 is the right thing,
+
+Probably not actually, -m16 might have 16-bit "int" etc.
+-mabi=16 is closer to what other architectures do here.
+
+> and it also provides a proper hook for
+> eventually having a real 16-bit backend (there are at least two  
+> projects
+> for doing that.)
+
+Those would use -m16, yes.
+
+> For now, I have:
 >
-> This would be even more fragile.  The exact format of GCC's
-> assembler code output isn't defined at all, so in principle
-> this is a hopeless task.  In practice just putting the
-> .code16gcc directive on the first line would likely work
-> though, GCC never generates a .code32 AFAIK, but it isn't
-> guaranteed that this will work (or will keep working).
+> CFLAGS          := $(LINUXINCLUDE) -g -Os -D_SETUP -D__KERNEL__ \
+>                    $(cflags-$(ARCH)) \
+>                    -Wall -Wstrict-prototypes \
+>                    -march=i386 -mregparm=3 \
+>                    -include $(srctree)/$(src)/code16gcc.h \
+>                    -fno-strict-aliasing -fomit-frame-pointer \
+>                    $(call cc-option, -ffreestanding) \
+>                    $(call cc-option, -fno-unit-at-a-time) \
+>                    $(call cc-option, -fno-toplevel-reorder) \
+>                    $(call cc-option, -fno-stack-protector) \
+>                    $(call cc-option, -mpreferred-stack-boundary=2)
+>
+> ... since that will require less violence to eventually hack in the
+> proper -m16 option if/when it becomes available.
 
-Unfortunately, .code16gcc is still experimental (at least binutils'
-website says that). What is worse, it says that it is possible that
-16bit code produced on GCC won't work on pre-80386 processors (before
-switching to protected mode you have to think about cpu as a
-pre-80386).
+Looks good, except you don't want -fno-unit-at-a-time if
+-fno-toplevel-reorder works.  And of course it would be
+good to get rid of -fno-strict-aliasing, but let's not
+go there today ;-P
 
-I don't think that -m16 flag will be introduced quickly. In fact, only
-OS developers _sometimes_ use 16 bit code...
 
-I did a fast test and now I know that assembler instructions are
-almost ignored by GCC and passed to gas. The situation is the same
-with .code16gcc, what mean that gas has to translate 32bit code from
-GCC to 16 bit code. The result binary was correct 16 bit program (at
-least its code looked good), but it is IMHO too many translations from
-C to 32bit assembler and then to 16bit assembler, that can cause
-unpredictable errors.
+Segher
 
-Additionally, I prefer to write architecture depend procedures in
-assembler (but is only *my* opinion, and you probably disagree).
-Assembler is faster, you have bigger control over the code, and
-portability of C is in this circumstances not necessary.
-
-Pawel
