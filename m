@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([192.83.249.54]:57238 "EHLO
+Received: from terminus.zytor.com ([192.83.249.54]:50682 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756481AbXGJD2z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2007 23:28:55 -0400
+	with ESMTP id S1754334AbXGJDak (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2007 23:30:40 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [x86 setup 17/33] A20 handling code
-Date: Mon,  9 Jul 2007 19:51:56 -0700
-Message-Id: <11840377211519-git-send-email-hpa@zytor.com>
-In-Reply-To: <11840376162370-git-send-email-hpa@zytor.com>
+Subject: [x86 setup 18/33] APM probing code
+Date: Mon,  9 Jul 2007 19:51:57 -0700
+Message-Id: <11840378261081-git-send-email-hpa@zytor.com>
+In-Reply-To: <11840377211519-git-send-email-hpa@zytor.com>
 References: <11840359321823-git-send-email-hpa@zytor.com>
  <11840360383913-git-send-email-hpa@zytor.com>
  <11840361432207-git-send-email-hpa@zytor.com>
@@ -25,7 +25,8 @@ References: <11840359321823-git-send-email-hpa@zytor.com>
  <11840374052662-git-send-email-hpa@zytor.com>
  <1184037510289-git-send-email-hpa@zytor.com>
  <11840376162370-git-send-email-hpa@zytor.com>
-Message-Id: <17db5b2c8a43cf36b2eb36afc142ce9ca0552282.1184032749.git.hpa@zytor.com>
+ <11840377211519-git-send-email-hpa@zytor.com>
+Message-Id: <c488ae7cd0ddd799b666f55652248be3c346a076.1184032749.git.hpa@zytor.com>
 In-Reply-To: <2034f71d414def30de582fb59573295cadbdabb4.1184032748.git.hpa@zytor.com>
 References: <2034f71d414def30de582fb59573295cadbdabb4.1184032748.git.hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -35,25 +36,28 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: H. Peter Anvin <hpa@zytor.com>
 
-A20 handling code for the new x86 setup code.  This implements the same
-algorithms as the assembly version.
+APM probing code for the new x86 setup code.  This implements the
+same functionality as the assembly version.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
 ---
- arch/i386/boot/a20.c |  161 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 161 insertions(+), 0 deletions(-)
- create mode 100644 arch/i386/boot/a20.c
+ arch/i386/boot/apm.c |   97 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 97 insertions(+), 0 deletions(-)
+ create mode 100644 arch/i386/boot/apm.c
 
-diff --git a/arch/i386/boot/a20.c b/arch/i386/boot/a20.c
+diff --git a/arch/i386/boot/apm.c b/arch/i386/boot/apm.c
 new file mode 100644
-index 0000000..31348d0
+index 0000000..a34087c
 --- /dev/null
-+++ b/arch/i386/boot/a20.c
-@@ -0,0 +1,161 @@
++++ b/arch/i386/boot/apm.c
+@@ -0,0 +1,97 @@
 +/* -*- linux-c -*- ------------------------------------------------------- *
 + *
 + *   Copyright (C) 1991, 1992 Linus Torvalds
 + *   Copyright 2007 rPath, Inc. - All Rights Reserved
++ *
++ *   Original APM BIOS checking by Stephen Rothwell, May 1994
++ *   (sfr@canb.auug.org.au)
 + *
 + *   This file is part of the Linux kernel, and is made available under
 + *   the terms of the GNU General Public License version 2.
@@ -61,156 +65,89 @@ index 0000000..31348d0
 + * ----------------------------------------------------------------------- */
 +
 +/*
-+ * arch/i386/boot/a20.c
++ * arch/i386/boot/apm.c
 + *
-+ * Enable A20 gate (return -1 on failure)
++ * Get APM BIOS information
 + */
 +
 +#include "boot.h"
 +
-+#define MAX_8042_LOOPS	100000
++#if defined(CONFIG_APM) || defined(CONFIG_APM_MODULE)
 +
-+static int empty_8042(void)
++int query_apm_bios(void)
 +{
-+	u8 status;
-+	int loops = MAX_8042_LOOPS;
++	u16 ax, bx, cx, dx, di;
++	u32 ebx, esi;
++	u8 err;
 +
-+	while (loops--) {
-+		io_delay();
++	/* APM BIOS installation check */
++	ax = 0x5300;
++	bx = cx = 0;
++	asm volatile("pushl %%ebp ; int $0x15 ; popl %%ebp ; setc %0"
++		     : "=d" (err), "+a" (ax), "+b" (bx), "+c" (cx)
++		     : : "esi", "edi");
 +
-+		status = inb(0x64);
-+		if (status & 1) {
-+			/* Read and discard input data */
-+			io_delay();
-+			(void)inb(0x60);
-+		} else if (!(status & 2)) {
-+			/* Buffers empty, finished! */
-+			return 0;
-+		}
++	if (err)
++		return -1;		/* No APM BIOS */
++
++	if (bx != 0x504d)	/* "PM" signature */
++		return -1;
++
++	if (cx & 0x02)		/* 32 bits supported? */
++		return -1;
++
++	/* Disconnect first, just in case */
++	ax = 0x5304;
++	asm volatile("pushl %%ebp ; int $0x15 ; popl %%ebp"
++		     : "+a" (ax)
++		     : : "ebx", "ecx", "edx", "esi", "edi");
++
++	/* Paranoia */
++	ebx = esi = 0;
++	cx = dx = di = 0;
++
++	/* 32-bit connect */
++	asm volatile("pushl %%ebp ; int $0x15 ; popl %%ebp ; setc %6"
++		     : "=a" (ax), "+b" (ebx), "+c" (cx), "+d" (dx),
++		       "+S" (esi), "+D" (di), "=m" (err)
++		     : "a" (0x5303));
++
++	boot_params.apm_bios_info.cseg = ax;
++	boot_params.apm_bios_info.offset = ebx;
++	boot_params.apm_bios_info.cseg_16 = cx;
++	boot_params.apm_bios_info.dseg = dx;
++	boot_params.apm_bios_info.cseg_len = (u16)esi;
++	boot_params.apm_bios_info.cseg_16_len = esi >> 16;
++	boot_params.apm_bios_info.dseg_len = di;
++
++	if (err)
++		return -1;
++
++	/* Redo the installation check as the 32-bit connect;
++	   some BIOSes return different flags this way... */
++
++	ax = 0x5300;
++	bx = cx = 0;
++	asm volatile("pushl %%ebp ; int $0x15 ; popl %%ebp ; setc %0"
++		     : "=d" (err), "+a" (ax), "+b" (bx), "+c" (cx)
++		     : : "esi", "edi");
++
++	if (err || bx != 0x504d) {
++		/* Failure with 32-bit connect, try to disconect and ignore */
++		ax = 0x5304;
++		bx = 0;
++		asm volatile("pushl %%ebp ; int $0x15 ; popl %%ebp"
++			     : "+a" (ax), "+b" (bx)
++			     : : "ecx", "edx", "esi", "edi");
++		return -1;
 +	}
 +
-+	return -1;
-+}
-+
-+/* Returns nonzero if the A20 line is enabled.  The memory address
-+   used as a test is the int $0x80 vector, which should be safe. */
-+
-+#define A20_TEST_ADDR	(4*0x80)
-+#define A20_TEST_SHORT  32
-+#define A20_TEST_LONG	2097152	/* 2^21 */
-+
-+static int a20_test(int loops)
-+{
-+	int ok = 0;
-+	int saved, ctr;
-+
-+	set_fs(0x0000);
-+	set_gs(0xffff);
-+
-+	saved = ctr = rdfs32(A20_TEST_ADDR);
-+
-+	while (loops--) {
-+		wrfs32(++ctr, A20_TEST_ADDR);
-+		io_delay();	/* Serialize and make delay constant */
-+		ok = rdgs32(A20_TEST_ADDR+0x10) ^ ctr;
-+		if (ok)
-+			break;
-+	}
-+
-+	wrfs32(saved, A20_TEST_ADDR);
-+	return ok;
-+}
-+
-+/* Quick test to see if A20 is already enabled */
-+static int a20_test_short(void)
-+{
-+	return a20_test(A20_TEST_SHORT);
-+}
-+
-+/* Longer test that actually waits for A20 to come on line; this
-+   is useful when dealing with the KBC or other slow external circuitry. */
-+static int a20_test_long(void)
-+{
-+	return a20_test(A20_TEST_LONG);
-+}
-+
-+static void enable_a20_bios(void)
-+{
-+	asm volatile("pushfl; int $0x15; popfl"
-+		     : : "a" ((u16)0x2401));
-+}
-+
-+static void enable_a20_kbc(void)
-+{
-+	empty_8042();
-+
-+	outb(0xd1, 0x64);	/* Command write */
-+	empty_8042();
-+
-+	outb(0xdf, 0x60);	/* A20 on */
-+	empty_8042();
-+}
-+
-+static void enable_a20_fast(void)
-+{
-+	u8 port_a;
-+
-+	port_a = inb(0x92);	/* Configuration port A */
-+	port_a |=  0x02;	/* Enable A20 */
-+	port_a &= ~0x01;	/* Do not reset machine */
-+	outb(port_a, 0x92);
-+}
-+
-+/*
-+ * Actual routine to enable A20; return 0 on ok, -1 on failure
-+ */
-+
-+#define A20_ENABLE_LOOPS 255	/* Number of times to try */
-+
-+int enable_a20(void)
-+{
-+	int loops = A20_ENABLE_LOOPS;
-+
-+#if defined(CONFIG_X86_ELAN)
-+	/* Elan croaks if we try to touch the KBC */
-+	enable_a20_fast();
-+	while (!a20_test_long())
-+		;
++	boot_params.apm_bios_info.version = ax;
++	boot_params.apm_bios_info.flags = cx;
 +	return 0;
-+#elif defined(CONFIG_X86_VOYAGER)
-+	/* On Voyager, a20_test() is unsafe? */
-+	enable_a20_kbc();
-+	return 0;
-+#else
-+	while (loops--) {
-+		/* First, check to see if A20 is already enabled
-+		   (legacy free, etc.) */
-+		if (a20_test_short())
-+			return 0;
++}
 +
-+		/* Next, try the BIOS (INT 0x15, AX=0x2401) */
-+		enable_a20_bios();
-+		if (a20_test_short())
-+			return 0;
-+
-+		/* Try enabling A20 through the keyboard controller */
-+		empty_8042();
-+		if (a20_test_short())
-+			return 0; /* BIOS worked, but with delayed reaction */
-+
-+		enable_a20_kbc();
-+		if (a20_test_long())
-+			return 0;
-+
-+		/* Finally, try enabling the "fast A20 gate" */
-+		enable_a20_fast();
-+		if (a20_test_long())
-+			return 0;
-+	}
-+
-+	return -1;
 +#endif
-+}
 -- 
 1.5.2.2
 
