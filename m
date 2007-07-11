@@ -1,49 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:38962 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754326AbXGKAu4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jul 2007 20:50:56 -0400
+Received: from quark.didntduck.org ([69.55.226.66]:41271 "EHLO
+	quark.didntduck.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753685AbXGKBVO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2007 21:21:14 -0400
+Message-ID: <46942496.2050205@didntduck.org>
+Date: Tue, 10 Jul 2007 20:30:14 -0400
+From: Brian Gerst <bgerst@didntduck.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: Re: [x86 setup 13/33] Header file to produce 16-bit code with gcc
+References: <11840359321823-git-send-email-hpa@zytor.com> <11840373002601-git-send-email-hpa@zytor.com> <108510B6-B9BE-49D4-BDCA-E25CA20CB29B@kernel.crashing.org> <200707101721.58937.ak@suse.de> <D6BECE27-25FA-4914-B293-4070392258D2@kernel.crashing.org> <4693EF48.1080209@zytor.com> <20070710214315.GD3492@stusta.de>
+In-Reply-To: <20070710214315.GD3492@stusta.de>
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Message-ID: <18068.10601.792839.787025@cargo.ozlabs.ibm.com>
-Date: Wed, 11 Jul 2007 10:50:49 +1000
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: fallocate-implementation-on-i86-x86_64-and-powerpc.patch
-In-Reply-To: <20070710171650.642881db.akpm@linux-foundation.org>
-References: <20070710013152.ef2cd200.akpm@linux-foundation.org>
-	<20070710115251.GG2343@thunk.org>
-	<20070710101558.cea7aab1.akpm@linux-foundation.org>
-	<4693C580.2000506@garzik.org>
-	<18068.5612.100418.782729@cargo.ozlabs.ibm.com>
-	<20070710171650.642881db.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jeff Garzik <jeff@garzik.org>, Theodore Tso <tytso@mit.edu>, linux-kernel@vger.kernel.org, Amit Arora <aarora@in.ibm.com>, Andi Kleen <ak@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, "Luck, Tony" <tony.luck@intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Mark Fasheh <mark.fasheh@oracle.com>, linux-arch@vger.kernel.org
+To: Adrian Bunk <bunk@stusta.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Segher Boessenkool <segher@kernel.crashing.org>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Andrew Morton writes:
-
-> On Wed, 11 Jul 2007 09:27:40 +1000
-> Paul Mackerras <paulus@samba.org> wrote:
+Adrian Bunk wrote:
+> On Tue, Jul 10, 2007 at 01:42:48PM -0700, H. Peter Anvin wrote:
+>> Segher Boessenkool wrote:
+>>> Well at least with -fno-toplevel-reorder it is guaranteed
+>>> to work (not the same thing as "is working", heh, but fairly
+>>> close).
+>>>
+>>> It seems to me GCC should grow an option to insert .code16gcc
+>>> by itself (-m16 perhaps?)  Or GAS could get a flag to include
+>>> a file as a prelude before the main thing.  Neither will help
+>>> Linux right now of course.
+>> -m16 is the right thing, and it also provides a proper hook for 
+>> eventually having a real 16-bit backend (there are at least two 
+>> projects for doing that.)
+>>
+>> For now, I have:
 > 
-> > We did come up with an order that worked for everybody, but that
-> > discussion seemed to get totally ignored by the ext4 developers.
+> Can't you use the global CFLAGS and append your specific ones?
 > 
-> It was a long discussion.
+>> CFLAGS          := $(LINUXINCLUDE) -g -Os -D_SETUP -D__KERNEL__ \
 > 
-> Can someone please remind us what the signature of the syscall
-> (and the compat handler) should be?
+> -g ???
+> 
+>>                    $(cflags-$(ARCH)) \
+>>                    -Wall -Wstrict-prototypes \
+>>                    -march=i386 -mregparm=3 \
+> 
+> Why -march=i386 ?
 
-long sys_fallocate(loff_t offset, loff_t len, int fd, int mode)
+To prevent gcc from using instructions (particularly cmovxx) that not
+all processors will understand.
 
-should work for everybody.  The compat handler would be
-
-long compat_sys_fallocate(u32 offset_hi, u32 offset_lo, u32 len_hi, u32 len_lo,
-			  int fd, int mode)
-
-for big-endian, or swap hi/lo for little-endian.  (Actually it would
-be good to have an arch-dependent "stitch two args together" macro and
-call them offset_0, offset_1 etc.)
-
-Paul.
+--
+				Brian Gerst
