@@ -1,37 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:35928 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760895AbXGMI0N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 13 Jul 2007 04:26:13 -0400
-Date: Fri, 13 Jul 2007 01:25:41 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: - print-utsname-on-oops-on-all-architectures.patch removed from
- -mm tree
-Message-Id: <20070713012541.46fc04b8.akpm@linux-foundation.org>
-In-Reply-To: <Pine.LNX.4.64.0707091121570.617@internets.corp.google.com>
-References: <200707062207.l66M7hQA023027@imap1.linux-foundation.org>
-	<Pine.LNX.4.64.0707091121570.617@internets.corp.google.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from ftp.linux-mips.org ([194.74.144.162]:45770 "EHLO
+	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758576AbXGMM4z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 08:56:55 -0400
+Received: from localhost.localdomain ([127.0.0.1]:42630 "EHLO
+	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
+	id S20023646AbXGMM4x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 13 Jul 2007 13:56:53 +0100
+Date: Thu, 12 Jul 2007 22:36:40 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [patch] bitops: lock bitops
+Message-ID: <20070712213639.GA26969@linux-mips.org>
+References: <20070712031419.GF32414@wotan.suse.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070712031419.GF32414@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Joshua Wise <jwise@google.com>
-Cc: ak@suse.de, benh@kernel.crashing.org, ink@jurassic.park.msu.ru, linux-arch@vger.kernel.org, paulus@samba.org, rmk@arm.linux.org.uk, rth@twiddle.net, mm-commits@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Paul Mackerras <paulus@samba.org>, tony.luck@intel.com, benh@kernel.crashing.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 9 Jul 2007 11:22:45 -0700 (PDT) Joshua Wise <jwise@google.com> wrote:
+On Thu, Jul 12, 2007 at 05:14:19AM +0200, Nick Piggin wrote:
 
-> OK, how's this:
+> Not sure who else can take advantage of these. Sparc64 probably.
 
-I turned this into an incremental patch so we could see what changed.
+The default implementation is perfect for MIPS.
 
-Please prefer to copy a mailing list on all patches.  OK, linux-arch
-was copied this time, but only by luck (I suspect)
-
-Please avoid sending two copies of the patch in one email (one inlined
-and the other attached).  Because the resulting patch will apply happily
-with `patch --dry-run' and will then cause havoc when one tries to apply
-it for real.
-
-Thanks.
+  Ralf
