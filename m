@@ -1,46 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:44249 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750763AbXGLDtV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Jul 2007 23:49:21 -0400
-Date: Thu, 12 Jul 2007 05:49:14 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch] bitops: lock bitops
-Message-ID: <20070712034914.GG32414@wotan.suse.de>
-References: <20070712031419.GF32414@wotan.suse.de> <20070711.203811.92584706.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070711.203811.92584706.davem@davemloft.net>
+Received: from sovereign.computergmbh.de ([85.214.69.204]:7759 "EHLO
+	sovereign.computergmbh.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751048AbXGLIXr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jul 2007 04:23:47 -0400
+Date: Thu, 12 Jul 2007 10:23:46 +0200 (CEST)
+From: Jan Engelhardt <jengelh@computergmbh.de>
+Subject: Re: [PATCH] Pass -g to assembler under CONFIG_DEBUG_INFO
+In-Reply-To: <20070711165308.551f0c6c.akpm@linux-foundation.org>
+Message-ID: <Pine.LNX.4.64.0707121023280.11053@fbirervta.pbzchgretzou.qr>
+References: <46955BB1.20200@windriver.com> <20070711224327.9B0ED4D0555@magilla.localdomain>
+ <20070711160335.8705f742.akpm@linux-foundation.org>
+ <alpine.LFD.0.999.0707111640030.20061@woody.linux-foundation.org>
+ <20070711165308.551f0c6c.akpm@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: akpm@linux-foundation.org, paulus@samba.org, tony.luck@intel.com, benh@kernel.crashing.org, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Roland McGrath <roland@redhat.com>, Jason Wessel <jason.wessel@windriver.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Jul 11, 2007 at 08:38:11PM -0700, David Miller wrote:
-> From: Nick Piggin <npiggin@suse.de>
-> Date: Thu, 12 Jul 2007 05:14:19 +0200
-> 
-> > Here is a set of patches that aims to mitigate some of the lock_page
-> > overhead on powerpc introduced in the fault path by another set.
-> > Fortunately it also improves various other things too :)
-> > 
-> > After this set, a dd if=./big-sparse-file of=/dev/null on my G5
-> > goes from 563MB/s to 575MB/s, or about 80ns less time per page.
-> > However I won't post the full set until after getting some acks
-> > from the arch people now, because it is a fair bit of churn in core
-> > code (eg. renaming !TestSetPageLocked to trylock_page).
-> > 
-> > Not sure who else can take advantage of these. Sparc64 probably.
-> 
-> What I would code up on sparc64 would be basically equivalent to your
-> generic versions.
-> 
-> Or, more simply, I could just call test_and_clear_bit() et al.
-> directly and ignore the return value.  There wouldn't be any
-> difference.
 
-Oh OK, I stand corrected then. I thought you could avoid the
-PRE barrier on your test_and_set, and the POST barrier on
-test_and_clear, however I don't know exactly what sparc's
-barriers work.
+On Jul 11 2007 16:53, Andrew Morton wrote:
+>On Wed, 11 Jul 2007 16:40:29 -0700 (PDT)
+>Linus Torvalds <torvalds@linux-foundation.org> wrote:
+>
+>> On Wed, 11 Jul 2007, Andrew Morton wrote:
+>> >
+>> > OK, thanks.  So I ended up with the below as a probably-2.6.23 thing:
+>> > ...
+>> > +AFLAGS		+= $(call as-option, -gdwarf)
+>> 
+>> "-gdwarf2?"
+>> 
+>
+>yep, that's what the kgdb tree was using - I'll fix it up.
+
+I am all for using -ggdb/-ggdb2/-ggdb3 instead.
+
+
+
+	Jan
+-- 
