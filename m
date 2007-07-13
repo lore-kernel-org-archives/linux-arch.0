@@ -1,43 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sovereign.computergmbh.de ([85.214.69.204]:7759 "EHLO
-	sovereign.computergmbh.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751048AbXGLIXr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jul 2007 04:23:47 -0400
-Date: Thu, 12 Jul 2007 10:23:46 +0200 (CEST)
-From: Jan Engelhardt <jengelh@computergmbh.de>
-Subject: Re: [PATCH] Pass -g to assembler under CONFIG_DEBUG_INFO
-In-Reply-To: <20070711165308.551f0c6c.akpm@linux-foundation.org>
-Message-ID: <Pine.LNX.4.64.0707121023280.11053@fbirervta.pbzchgretzou.qr>
-References: <46955BB1.20200@windriver.com> <20070711224327.9B0ED4D0555@magilla.localdomain>
- <20070711160335.8705f742.akpm@linux-foundation.org>
- <alpine.LFD.0.999.0707111640030.20061@woody.linux-foundation.org>
- <20070711165308.551f0c6c.akpm@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:43863 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751774AbXGMIYQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 13 Jul 2007 04:24:16 -0400
+Message-Id: <200707130823.l6D8NhE7008162@imap1.linux-foundation.org>
+Subject: + print-utsname-on-oops-on-all-architectures-fix.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Fri, 13 Jul 2007 01:23:43 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Roland McGrath <roland@redhat.com>, Jason Wessel <jason.wessel@windriver.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: jwise@google.com, ak@suse.de, benh@kernel.crashing.org, ink@jurassic.park.msu.ru, linux-arch@vger.kernel.org, paulus@samba.org, rmk@arm.linux.org.uk, rth@twiddle.net
 List-ID: <linux-arch.vger.kernel.org>
 
 
-On Jul 11 2007 16:53, Andrew Morton wrote:
->On Wed, 11 Jul 2007 16:40:29 -0700 (PDT)
->Linus Torvalds <torvalds@linux-foundation.org> wrote:
->
->> On Wed, 11 Jul 2007, Andrew Morton wrote:
->> >
->> > OK, thanks.  So I ended up with the below as a probably-2.6.23 thing:
->> > ...
->> > +AFLAGS		+= $(call as-option, -gdwarf)
->> 
->> "-gdwarf2?"
->> 
->
->yep, that's what the kgdb tree was using - I'll fix it up.
+The patch titled
+     print-utsname-on-oops-on-all-architectures fix
+has been added to the -mm tree.  Its filename is
+     print-utsname-on-oops-on-all-architectures-fix.patch
 
-I am all for using -ggdb/-ggdb2/-ggdb3 instead.
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
 
+------------------------------------------------------
+Subject: print-utsname-on-oops-on-all-architectures fix
+From: Joshua Wise <jwise@google.com>
 
-	Jan
--- 
+- Removed the delete of the printk on ARM, as per RMK's request.
+
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Russell King <rmk@arm.linux.org.uk>
+Cc: Andi Kleen <ak@suse.de>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ arch/arm/kernel/process.c |    7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff -puN arch/arm/kernel/process.c~print-utsname-on-oops-on-all-architectures-fix arch/arm/kernel/process.c
+--- a/arch/arm/kernel/process.c~print-utsname-on-oops-on-all-architectures-fix
++++ a/arch/arm/kernel/process.c
+@@ -28,6 +28,7 @@
+ #include <linux/elfcore.h>
+ #include <linux/pm.h>
+ #include <linux/tick.h>
++#include <linux/utsname.h>
+ 
+ #include <asm/leds.h>
+ #include <asm/processor.h>
+@@ -206,8 +207,10 @@ void __show_regs(struct pt_regs *regs)
+ 	unsigned long flags;
+ 	char buf[64];
+ 
+-	printk("CPU: %d    %s\n",
+-		smp_processor_id(), print_tainted());
++	printk("CPU: %d    %s  (%s %.*s)\n",
++		smp_processor_id(), print_tainted(), init_utsname()->release,
++		(int)strcspn(init_utsname()->version, " "),
++		init_utsname()->version);
+ 	print_symbol("PC is at %s\n", instruction_pointer(regs));
+ 	print_symbol("LR is at %s\n", regs->ARM_lr);
+ 	printk("pc : [<%08lx>]    lr : [<%08lx>]    psr: %08lx\n"
+_
+
+Patches currently in -mm which might be from jwise@google.com are
+
+print-utsname-on-oops-on-all-architectures.patch
+print-utsname-on-oops-on-all-architectures-fix.patch
+
