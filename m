@@ -1,52 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:12386 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757278AbXGMWCT convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 18:02:19 -0400
-Content-class: urn:content-classes:message
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:59701 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752173AbXGMWVo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 18:21:44 -0400
+Date: Fri, 13 Jul 2007 15:21:43 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
 Subject: RE: [PATCH 0/7] Sparsemem Virtual Memmap V5
-Date: Fri, 13 Jul 2007 15:02:17 -0700
-Message-ID: <617E1C2C70743745A92448908E030B2A01EA6524@scsmsx411.amr.corp.intel.com>
-In-Reply-To: <20070713104044.0d090c79.akpm@linux-foundation.org>
-From: "Luck, Tony" <tony.luck@intel.com>
+In-Reply-To: <617E1C2C70743745A92448908E030B2A01EA6524@scsmsx411.amr.corp.intel.com>
+Message-ID: <Pine.LNX.4.64.0707131510350.25753@schroedinger.engr.sgi.com>
+References: <617E1C2C70743745A92448908E030B2A01EA6524@scsmsx411.amr.corp.intel.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <clameter@sgi.com>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-> It would be nice to see a bit of spirited reviewing from the affected arch
-> maintainers and mm people...
+On Fri, 13 Jul 2007, Luck, Tony wrote:
 
-I'm 100% in favour of the direction this patch is taking ... eventually
-it will allow getting rid of several config options, and thus 2^several
-less config options to test.
+> 1) There is a small performance regression for ia64 (which is promised
+> to go away when bigger pages are used for the mem_map, but I'd like to
+> see that this really does fix the issue).
 
-On the question of whether it should be squeezed into 2.6.23 ... I have
-mixed feelings.  On the negative side:
+The performance should be better than the existing one since we have even 
+less code here than discontig. We do no have to fetch the base anymore or 
+check boundaries (discontig was the baseline right?) but we have exactly 
+the same method of pfn_to_page and page_to_pfn as discontig/vmemmap.
 
-1) There is a small performance regression for ia64 (which is promised
-to go away when bigger pages are used for the mem_map, but I'd like to
-see that this really does fix the issue).
+These types of variation may come about due to the concurrency in memory 
+detection / reservations in the PROM on Altix systems which results in 
+variances in the placement of key memory areas. Performance often varies 
+slightly because of these issues.
 
-2) Fujitsu pointed out that there is work to be done to port HOTPLUG
-code to this.
+If performance testing done on an Altix then the solution is to redo 
+the tests a couple of time, each time rebooting the box. Or redo it again 
+on a SMP box that does not have these variations.
 
-On the positive side:
-1) There are few ia64 developers working on -mm ... so progress will
-continue to be glacial unless this goes into mainline.
+How many tests were done and on what platform?
 
-2) The patch appears to co-exist with all the existing CONFIG options,
-so it doesn't break anything (well, all my test configs still compile
-cleanly ... I haven't actually test booted them all yet).
-
-Finally one gripe with the current version of the patch.  This debug
-trace is WAY too verbose during boot!
-
-mm/sparse.c
-+			printk(KERN_DEBUG "[%lx-%lx] PTE ->%p on node %d\n",
-+				addr, addr + PAGE_SIZE - 1, p, node);
-
--Tony
