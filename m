@@ -1,34 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:42500
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1758502AbXGMWne (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 13 Jul 2007 18:43:34 -0400
-Date: Fri, 13 Jul 2007 15:43:32 -0700 (PDT)
-Message-Id: <20070713.154332.59832833.davem@davemloft.net>
-Subject: Re: [PATCH 0/7] Sparsemem Virtual Memmap V5
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20070713104044.0d090c79.akpm@linux-foundation.org>
-References: <exportbomb.1184333503@pinky>
-	<Pine.LNX.4.64.0707131001060.21777@schroedinger.engr.sgi.com>
-	<20070713104044.0d090c79.akpm@linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:57422 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S937853AbXGMWy1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 18:54:27 -0400
+Date: Fri, 13 Jul 2007 15:54:25 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: RE: [PATCH 0/7] Sparsemem Virtual Memmap V5
+In-Reply-To: <617E1C2C70743745A92448908E030B2A01EA65B9@scsmsx411.amr.corp.intel.com>
+Message-ID: <Pine.LNX.4.64.0707131553120.26572@schroedinger.engr.sgi.com>
+References: <617E1C2C70743745A92448908E030B2A01EA65B9@scsmsx411.amr.corp.intel.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: clameter@sgi.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org, npiggin@suse.de, mel@csn.ul.ie
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Fri, 13 Jul 2007 10:40:44 -0700
+On Fri, 13 Jul 2007, Luck, Tony wrote:
 
-> On Fri, 13 Jul 2007 10:04:45 -0700 (PDT) Christoph Lameter <clameter@sgi.com> wrote:
+> > How many tests were done and on what platform?
 > 
-> > Would it be possible to merge this for 2.6.23 (maybe late?).
+> Andy's part 0/7 post starts off with the performance numbers.  He
+> didn't say which ia64 platform was used for the tests.
 > 
-> It would be nice to see a bit of spirited reviewing from the affected arch
-> maintainers and mm people...
+> Looking my logs for the last few kernel builds (some built on a
+> tiger_defconfig kernel which uses CONFIG_VIRTUAL_MEM_MAP=y, and
+> some with the new CONFIG_SPARSEMEM_VMEMMAP) I'd have a tough time
+> saying whether there was a regression or not).
 
-I have no objection to this work and would like to see it go
-in sooner rather than later.
+I'd be very surprised if there is any difference because the IA64 code for 
+virtual memmap is the source of ideas and implementation for SPARSE_VIRTUAL.
+
