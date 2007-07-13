@@ -1,65 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hellhawk.shadowen.org ([80.68.90.175]:2255 "EHLO
-	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757425AbXGMNeT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 09:34:19 -0400
-From: Andy Whitcroft <apw@shadowen.org>
-Subject: [PATCH 5/7] IA64: SPARSEMEM_VMEMMAP 16K page size support
+Received: from fgwmail5.fujitsu.co.jp ([192.51.44.35]:42146 "EHLO
+	fgwmail5.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751039AbXGMOw0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 10:52:26 -0400
+Date: Fri, 13 Jul 2007 23:51:21 +0900
+From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Subject: Re: [PATCH 3/7] Generic Virtual Memmap support for SPARSEMEM
+Message-Id: <20070713235121.538ddcaf.kamezawa.hiroyu@jp.fujitsu.com>
+In-Reply-To: <E1I9LJY-00006o-GK@hellhawk.shadowen.org>
 References: <exportbomb.1184333503@pinky>
-Message-Id: <E1I9LKX-000085-HC@hellhawk.shadowen.org>
-Date: Fri, 13 Jul 2007 14:37:09 +0100
+	<E1I9LJY-00006o-GK@hellhawk.shadowen.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Mel Gorman <mel@csn.ul.ie>, Andy Whitcroft <apw@shadowen.org>
+To: Andy Whitcroft <apw@shadowen.org>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, npiggin@suse.de, clameter@sgi.com, mel@csn.ul.ie
 List-ID: <linux-arch.vger.kernel.org>
 
+On Fri, 13 Jul 2007 14:36:08 +0100
+Andy Whitcroft <apw@shadowen.org> wrote:
 
-Equip IA64 sparsemem with a virtual memmap. This is similar to the
-existing CONFIG_VIRTUAL_MEM_MAP functionality for DISCONTIGMEM.
-It uses a PAGE_SIZE mapping.
+> SPARSEMEM is a pretty nice framework that unifies quite a bit of
+> code over all the arches. It would be great if it could be the
+> default so that we can get rid of various forms of DISCONTIG and
+> other variations on memory maps. So far what has hindered this are
+> the additional lookups that SPARSEMEM introduces for virt_to_page
+> and page_address. This goes so far that the code to do this has to
+> be kept in a separate function and cannot be used inline.
+> 
+Maybe it will be our(my or Goto-san's) work to implement MEMORY_HOTADD support
+for this. Could you add !MEMORY_HOTPLUG in Kconfig ? Then, we'll write
+patch later.
+Or..If you'll add memory hotplug support by yourself, It's great, 
 
-This is provided as a minimally intrusive solution. We split the
-128TB VMALLOC area into two 64TB areas and use one for the virtual
-memmap.
-
-This should replace CONFIG_VIRTUAL_MEM_MAP long term.
-
-From: Christoph Lameter <clameter@sgi.com>
-Signed-off-by: Christoph Lameter <clameter@sgi.com>
-Signed-off-by: Andy Whitcroft <apw@shadowen.org>
-Acked-by: Mel Gorman <mel@csn.ul.ie>
----
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 7a2bd33..ac91a3f 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -360,6 +360,10 @@ config ARCH_SPARSEMEM_ENABLE
- 	def_bool y
- 	depends on ARCH_DISCONTIGMEM_ENABLE
- 
-+config SPARSEMEM_VMEMMAP
-+	def_bool y
-+	depends on SPARSEMEM
-+
- config ARCH_DISCONTIGMEM_DEFAULT
- 	def_bool y if (IA64_SGI_SN2 || IA64_GENERIC || IA64_HP_ZX1 || IA64_HP_ZX1_SWIOTLB)
- 	depends on ARCH_DISCONTIGMEM_ENABLE
-diff --git a/include/asm-ia64/pgtable.h b/include/asm-ia64/pgtable.h
-index f923d81..033e21d 100644
---- a/include/asm-ia64/pgtable.h
-+++ b/include/asm-ia64/pgtable.h
-@@ -236,8 +236,14 @@ ia64_phys_addr_valid (unsigned long addr)
- # define VMALLOC_END		vmalloc_end
-   extern unsigned long vmalloc_end;
- #else
-+#if defined(CONFIG_SPARSEMEM) && defined(CONFIG_SPARSEMEM_VMEMMAP)
-+/* SPARSEMEM_VMEMMAP uses half of vmalloc... */
-+# define VMALLOC_END		(RGN_BASE(RGN_GATE) + (1UL << (4*PAGE_SHIFT - 10)))
-+# define vmemmap		((struct page *)VMALLOC_END)
-+#else
- # define VMALLOC_END		(RGN_BASE(RGN_GATE) + (1UL << (4*PAGE_SHIFT - 9)))
- #endif
-+#endif
- 
- /* fs/proc/kcore.c */
- #define	kc_vaddr_to_offset(v) ((v) - RGN_BASE(RGN_GATE))
+-Kame
