@@ -1,30 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:20853 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S935381AbXGMWhu convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 18:37:50 -0400
-Content-class: urn:content-classes:message
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:55919 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1760370AbXGMWmc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 18:42:32 -0400
+Date: Fri, 13 Jul 2007 15:42:30 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH 3/7] Generic Virtual Memmap support for SPARSEMEM
+In-Reply-To: <20070713235121.538ddcaf.kamezawa.hiroyu@jp.fujitsu.com>
+Message-ID: <Pine.LNX.4.64.0707131541540.26109@schroedinger.engr.sgi.com>
+References: <exportbomb.1184333503@pinky> <E1I9LJY-00006o-GK@hellhawk.shadowen.org>
+ <20070713235121.538ddcaf.kamezawa.hiroyu@jp.fujitsu.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Subject: RE: [PATCH 0/7] Sparsemem Virtual Memmap V5
-Date: Fri, 13 Jul 2007 15:37:47 -0700
-Message-ID: <617E1C2C70743745A92448908E030B2A01EA65B9@scsmsx411.amr.corp.intel.com>
-In-Reply-To: <Pine.LNX.4.64.0707131510350.25753@schroedinger.engr.sgi.com>
-From: "Luck, Tony" <tony.luck@intel.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
+To: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Cc: Andy Whitcroft <apw@shadowen.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, npiggin@suse.de, mel@csn.ul.ie
 List-ID: <linux-arch.vger.kernel.org>
 
-> How many tests were done and on what platform?
+On Fri, 13 Jul 2007, KAMEZAWA Hiroyuki wrote:
 
-Andy's part 0/7 post starts off with the performance numbers.  He
-didn't say which ia64 platform was used for the tests.
+> On Fri, 13 Jul 2007 14:36:08 +0100
+> Andy Whitcroft <apw@shadowen.org> wrote:
+> 
+> > SPARSEMEM is a pretty nice framework that unifies quite a bit of
+> > code over all the arches. It would be great if it could be the
+> > default so that we can get rid of various forms of DISCONTIG and
+> > other variations on memory maps. So far what has hindered this are
+> > the additional lookups that SPARSEMEM introduces for virt_to_page
+> > and page_address. This goes so far that the code to do this has to
+> > be kept in a separate function and cannot be used inline.
+> > 
+> Maybe it will be our(my or Goto-san's) work to implement MEMORY_HOTADD support
+> for this. Could you add !MEMORY_HOTPLUG in Kconfig ? Then, we'll write
+> patch later.
+> Or..If you'll add memory hotplug support by yourself, It's great, 
 
-Looking my logs for the last few kernel builds (some built on a
-tiger_defconfig kernel which uses CONFIG_VIRTUAL_MEM_MAP=y, and
-some with the new CONFIG_SPARSEMEM_VMEMMAP) I'd have a tough time
-saying whether there was a regression or not).
+Why would hotadd not work as is?
 
--Tony
