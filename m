@@ -1,31 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:37000 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1758373AbXGMX2s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 19:28:48 -0400
-Date: Fri, 13 Jul 2007 16:28:47 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 0/7] Sparsemem Virtual Memmap V5
-In-Reply-To: <20070714082736.10af5f13.kamezawa.hiroyu@jp.fujitsu.com>
-Message-ID: <Pine.LNX.4.64.0707131628150.27014@schroedinger.engr.sgi.com>
-References: <617E1C2C70743745A92448908E030B2A01EA65B9@scsmsx411.amr.corp.intel.com>
- <Pine.LNX.4.64.0707131553120.26572@schroedinger.engr.sgi.com>
- <20070714082736.10af5f13.kamezawa.hiroyu@jp.fujitsu.com>
+Received: from mailout.stusta.mhn.de ([141.84.69.5]:60664 "EHLO
+	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1759396AbXGNBJR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 21:09:17 -0400
+Date: Sat, 14 Jul 2007 03:08:50 +0200
+From: Adrian Bunk <bunk@stusta.de>
+Subject: Re: [PATCH] Pass -g to assembler under CONFIG_DEBUG_INFO
+Message-ID: <20070714010850.GA3565@stusta.de>
+References: <46955BB1.20200@windriver.com> <20070711224327.9B0ED4D0555@magilla.localdomain> <20070711160335.8705f742.akpm@linux-foundation.org> <alpine.LFD.0.999.0707111640030.20061@woody.linux-foundation.org> <20070711165308.551f0c6c.akpm@linux-foundation.org>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20070711165308.551f0c6c.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Cc: tony.luck@intel.com, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org, npiggin@suse.de, mel@csn.ul.ie
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Roland McGrath <roland@redhat.com>, Jason Wessel <jason.wessel@windriver.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 14 Jul 2007, KAMEZAWA Hiroyuki wrote:
-
-> > I'd be very surprised if there is any difference because the IA64 code for 
-> > virtual memmap is the source of ideas and implementation for SPARSE_VIRTUAL.
+On Wed, Jul 11, 2007 at 04:53:08PM -0700, Andrew Morton wrote:
+> On Wed, 11 Jul 2007 16:40:29 -0700 (PDT)
+> Linus Torvalds <torvalds@linux-foundation.org> wrote:
+> 
 > > 
-> Maybe pfn_valid() implementation is different from ?
+> > 
+> > On Wed, 11 Jul 2007, Andrew Morton wrote:
+> > >
+> > > OK, thanks.  So I ended up with the below as a probably-2.6.23 thing:
+> > > ...
+> > > +AFLAGS		+= $(call as-option, -gdwarf)
+> > 
+> > "-gdwarf2?"
+> > 
+> 
+> yep, that's what the kgdb tree was using - I'll fix it up.
 
-Right but that should increase the speed and not decrease it since we do 
-not have the CONFIG HOLES anymore.
+Since even gcc 3.2 already supports -gdwarf-2, you can drop
+the as-option check.
 
+cu
+Adrian
+
+-- 
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
 
