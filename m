@@ -1,49 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout.stusta.mhn.de ([141.84.69.5]:60664 "EHLO
-	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1759396AbXGNBJR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2007 21:09:17 -0400
-Date: Sat, 14 Jul 2007 03:08:50 +0200
-From: Adrian Bunk <bunk@stusta.de>
-Subject: Re: [PATCH] Pass -g to assembler under CONFIG_DEBUG_INFO
-Message-ID: <20070714010850.GA3565@stusta.de>
-References: <46955BB1.20200@windriver.com> <20070711224327.9B0ED4D0555@magilla.localdomain> <20070711160335.8705f742.akpm@linux-foundation.org> <alpine.LFD.0.999.0707111640030.20061@woody.linux-foundation.org> <20070711165308.551f0c6c.akpm@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Received: from mx1.suse.de ([195.135.220.2]:49179 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751438AbXGNItk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 14 Jul 2007 04:49:40 -0400
+Date: Sat, 14 Jul 2007 10:49:31 +0200
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [PATCH 0/7] Sparsemem Virtual Memmap V5
+Message-ID: <20070714084931.GE1198@wotan.suse.de>
+References: <617E1C2C70743745A92448908E030B2A01EA6524@scsmsx411.amr.corp.intel.com> <Pine.LNX.4.64.0707131510350.25753@schroedinger.engr.sgi.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070711165308.551f0c6c.akpm@linux-foundation.org>
+In-Reply-To: <Pine.LNX.4.64.0707131510350.25753@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Roland McGrath <roland@redhat.com>, Jason Wessel <jason.wessel@windriver.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: "Luck, Tony" <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Jul 11, 2007 at 04:53:08PM -0700, Andrew Morton wrote:
-> On Wed, 11 Jul 2007 16:40:29 -0700 (PDT)
-> Linus Torvalds <torvalds@linux-foundation.org> wrote:
+On Fri, Jul 13, 2007 at 03:21:43PM -0700, Christoph Lameter wrote:
+> On Fri, 13 Jul 2007, Luck, Tony wrote:
 > 
-> > 
-> > 
-> > On Wed, 11 Jul 2007, Andrew Morton wrote:
-> > >
-> > > OK, thanks.  So I ended up with the below as a probably-2.6.23 thing:
-> > > ...
-> > > +AFLAGS		+= $(call as-option, -gdwarf)
-> > 
-> > "-gdwarf2?"
-> > 
+> > 1) There is a small performance regression for ia64 (which is promised
+> > to go away when bigger pages are used for the mem_map, but I'd like to
+> > see that this really does fix the issue).
 > 
-> yep, that's what the kgdb tree was using - I'll fix it up.
+> The performance should be better than the existing one since we have even 
+> less code here than discontig. We do no have to fetch the base anymore or 
+> check boundaries (discontig was the baseline right?) but we have exactly 
+> the same method of pfn_to_page and page_to_pfn as discontig/vmemmap.
 
-Since even gcc 3.2 already supports -gdwarf-2, you can drop
-the as-option check.
+Isn't it still possible that you could have TLB pressure that would
+result in lower performance? I wonder why the large page support for
+ia64 was shelved?
 
-cu
-Adrian
+FWIW, since I was cc'ed for comments: I really like the patches as well
+although much of it is in memory model and arch code which I'm not so
+involved with.
 
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
-
+It should allow better performance, and unification of most if not all
+memory models which will be really nice.
