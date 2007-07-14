@@ -1,38 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:33089 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752233AbXGNI6p (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 14 Jul 2007 04:58:45 -0400
-Date: Sat, 14 Jul 2007 09:57:54 +0100
-From: Russell King <rmk@arm.linux.org.uk>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:56947 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1755049AbXGNPHq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 14 Jul 2007 11:07:46 -0400
+Date: Sat, 14 Jul 2007 08:07:43 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [PATCH 0/7] Sparsemem Virtual Memmap V5
-Message-ID: <20070714085754.GA28581@flint.arm.linux.org.uk>
-References: <exportbomb.1184333503@pinky> <Pine.LNX.4.64.0707131001060.21777@schroedinger.engr.sgi.com> <20070713104044.0d090c79.akpm@linux-foundation.org> <Pine.LNX.4.64.0707131116080.22727@schroedinger.engr.sgi.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0707131116080.22727@schroedinger.engr.sgi.com>
+In-Reply-To: <20070714084931.GE1198@wotan.suse.de>
+Message-ID: <Pine.LNX.4.64.0707140803300.30485@schroedinger.engr.sgi.com>
+References: <617E1C2C70743745A92448908E030B2A01EA6524@scsmsx411.amr.corp.intel.com>
+ <Pine.LNX.4.64.0707131510350.25753@schroedinger.engr.sgi.com>
+ <20070714084931.GE1198@wotan.suse.de>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
+To: Nick Piggin <npiggin@suse.de>
+Cc: "Luck, Tony" <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andy Whitcroft <apw@shadowen.org>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Jul 13, 2007 at 11:23:20AM -0700, Christoph Lameter wrote:
-> Well without this we cannot perform the cleanup of the miscellaneous 
-> memory models around. The longer this is held up the longer the discontig 
-> etc will stay in the tree with all the associated #ifdeffery.
+On Sat, 14 Jul 2007, Nick Piggin wrote:
 
-It would also be nice to convert ARM to using sparsemem rather than
-discontigmem, but despite having a patch adding the supporting common
-infrastructure for the last year and a half or so, no one in the ARM
-community is interested in it.
+> Isn't it still possible that you could have TLB pressure that would
+> result in lower performance? I wonder why the large page support for
+> ia64 was shelved?
 
-Since I've no machines which use the present discontig support and
-have more than a single bank of memory, I've no way to test and
-progress sparsemem on ARM - and since no one's interested I'm probably
-going to drop the ARM sparsemem git branch soon.
+16M Large memmap support was shelved because 16M is too large a size for 
+a vmemmap block. It results in the vmemmap overlapping multiple nodes.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+The TLB pressure for the 16k support is the same since its the same 
+algorithm. We are measuring discontig/vmemmap 16k against sparse/vmemmap 
+16k here.
+
+We would likely see a different if we would compare sparsemem vs. 
+sparse/vmemmap. Then there may be a difference in TLB pressure. But 16k 
+discontig/vmemmap is the current default on IA64.
