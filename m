@@ -1,301 +1,540 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:59989 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:59069 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S936736AbXGQXQe (ORCPT
+	by vger.kernel.org with ESMTP id S935712AbXGQXQp (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Jul 2007 19:16:34 -0400
-Message-Id: <200707172301.l6HN1wCn011442@imap1.linux-foundation.org>
-Subject: - report-that-kernel-is-tainted-if-there-were-an-oops-before.patch removed from -mm tree
+	Tue, 17 Jul 2007 19:16:45 -0400
+Message-Id: <200707172302.l6HN20gs011446@imap1.linux-foundation.org>
+Subject: - ptrace_peekdata-consolidation.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Tue, 17 Jul 2007 16:01:58 -0700
+Date: Tue, 17 Jul 2007 16:02:00 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: xemul@openvz.org, linux-arch@vger.kernel.org, randy.dunlap@oracle.com, mm-commits@vger.kernel.org
+To: adobriyan@gmail.com, hch@lst.de, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
 The patch titled
-     Report that kernel is tainted if there was an OOPS
+     PTRACE_PEEKDATA consolidation
 has been removed from the -mm tree.  Its filename was
-     report-that-kernel-is-tainted-if-there-were-an-oops-before.patch
+     ptrace_peekdata-consolidation.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 ------------------------------------------------------
-Subject: Report that kernel is tainted if there was an OOPS
-From: Pavel Emelianov <xemul@openvz.org>
+Subject: PTRACE_PEEKDATA consolidation
+From: Alexey Dobriyan <adobriyan@gmail.com>
 
-If the kernel OOPSed or BUGed then it probably should be considered as
-tainted.  Thus, all subsequent OOPSes and SysRq dumps will report the
-tainted kernel.  This saves a lot of time explaining oddities in the
-calltraces.
+Identical implementations of PTRACE_PEEKDATA go into generic_ptrace_peekdata()
+function.
 
-Signed-off-by: Pavel Emelianov <xemul@openvz.org>
-Acked-by: Randy Dunlap <randy.dunlap@oracle.com>
+Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: Christoph Hellwig <hch@lst.de>
 Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- Documentation/oops-tracing.txt |    2 ++
- arch/alpha/kernel/traps.c      |    1 +
- arch/arm/kernel/traps.c        |    1 +
- arch/arm26/kernel/traps.c      |    1 +
- arch/avr32/kernel/traps.c      |    1 +
- arch/i386/kernel/traps.c       |    1 +
- arch/ia64/kernel/traps.c       |    1 +
- arch/m68k/kernel/traps.c       |    1 +
- arch/m68knommu/kernel/traps.c  |    1 +
- arch/mips/kernel/traps.c       |    1 +
- arch/powerpc/kernel/traps.c    |    1 +
- arch/ppc/kernel/traps.c        |    1 +
- arch/s390/kernel/traps.c       |    1 +
- arch/sh/kernel/traps.c         |    1 +
- arch/sparc/kernel/traps.c      |    1 +
- arch/sparc64/kernel/traps.c    |    1 +
- arch/x86_64/kernel/traps.c     |    1 +
- arch/xtensa/kernel/traps.c     |    1 +
- include/linux/kernel.h         |    1 +
- kernel/panic.c                 |    5 +++--
- 20 files changed, 23 insertions(+), 2 deletions(-)
+ arch/arm/kernel/ptrace.c           |    8 +-------
+ arch/arm26/kernel/ptrace.c         |    8 +-------
+ arch/avr32/kernel/ptrace.c         |    7 +------
+ arch/cris/arch-v10/kernel/ptrace.c |   14 ++------------
+ arch/frv/kernel/ptrace.c           |   12 ++----------
+ arch/i386/kernel/ptrace.c          |   12 ++----------
+ arch/m32r/kernel/ptrace.c          |    7 +------
+ arch/m68k/kernel/ptrace.c          |    5 +----
+ arch/m68knommu/kernel/ptrace.c     |   12 ++----------
+ arch/mips/kernel/ptrace.c          |   12 ++----------
+ arch/parisc/kernel/ptrace.c        |   13 ++-----------
+ arch/powerpc/kernel/ptrace.c       |   12 ++----------
+ arch/s390/kernel/ptrace.c          |    6 +-----
+ arch/sh/kernel/ptrace.c            |   13 ++-----------
+ arch/sh64/kernel/ptrace.c          |   12 ++----------
+ arch/um/kernel/ptrace.c            |   12 ++----------
+ arch/v850/kernel/ptrace.c          |    8 ++------
+ arch/x86_64/kernel/ptrace.c        |   12 ++----------
+ arch/xtensa/kernel/ptrace.c        |   12 +-----------
+ include/linux/ptrace.h             |    1 +
+ kernel/ptrace.c                    |   11 +++++++++++
+ 21 files changed, 43 insertions(+), 166 deletions(-)
 
-diff -puN Documentation/oops-tracing.txt~report-that-kernel-is-tainted-if-there-were-an-oops-before Documentation/oops-tracing.txt
---- a/Documentation/oops-tracing.txt~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/Documentation/oops-tracing.txt
-@@ -251,6 +251,8 @@ characters, each representing a particul
-   7: 'U' if a user or user application specifically requested that the
-      Tainted flag be set, ' ' otherwise.
+diff -puN arch/arm/kernel/ptrace.c~ptrace_peekdata-consolidation arch/arm/kernel/ptrace.c
+--- a/arch/arm/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/arm/kernel/ptrace.c
+@@ -657,7 +657,6 @@ static int ptrace_setcrunchregs(struct t
  
-+  8: 'D' if the kernel has died recently, i.e. there was an OOPS or BUG.
-+
- The primary reason for the 'Tainted: ' string is to tell kernel
- debuggers if this is a clean kernel or if anything unusual has
- occurred.  Tainting is permanent: even if an offending module is
-diff -puN arch/alpha/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/alpha/kernel/traps.c
---- a/arch/alpha/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/alpha/kernel/traps.c
-@@ -184,6 +184,7 @@ die_if_kernel(char * str, struct pt_regs
- #endif
- 	printk("%s(%d): %s %ld\n", current->comm, current->pid, str, err);
- 	dik_show_regs(regs, r9_15);
-+	add_taint(TAINT_DIE);
- 	dik_show_trace((unsigned long *)(regs+1));
- 	dik_show_code((unsigned int *)regs->pc);
- 
-diff -puN arch/arm/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/arm/kernel/traps.c
---- a/arch/arm/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/arm/kernel/traps.c
-@@ -249,6 +249,7 @@ NORET_TYPE void die(const char *str, str
- 	bust_spinlocks(1);
- 	__die(str, err, thread, regs);
- 	bust_spinlocks(0);
-+	add_taint(TAINT_DIE);
- 	spin_unlock_irq(&die_lock);
- 
- 	if (in_interrupt())
-diff -puN arch/arm26/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/arm26/kernel/traps.c
---- a/arch/arm26/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/arm26/kernel/traps.c
-@@ -185,6 +185,7 @@ NORET_TYPE void die(const char *str, str
- 	printk("Internal error: %s: %x\n", str, err);
- 	printk("CPU: %d\n", smp_processor_id());
- 	show_regs(regs);
-+	add_taint(TAINT_DIE);
- 	printk("Process %s (pid: %d, stack limit = 0x%p)\n",
- 		current->comm, current->pid, end_of_stack(tsk));
- 
-diff -puN arch/avr32/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/avr32/kernel/traps.c
---- a/arch/avr32/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/avr32/kernel/traps.c
-@@ -56,6 +56,7 @@ void NORET_TYPE die(const char *str, str
- 	show_regs_log_lvl(regs, KERN_EMERG);
- 	show_stack_log_lvl(current, regs->sp, regs, KERN_EMERG);
- 	bust_spinlocks(0);
-+	add_taint(TAINT_DIE);
- 	spin_unlock_irq(&die_lock);
- 
- 	if (in_interrupt())
-diff -puN arch/i386/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/i386/kernel/traps.c
---- a/arch/i386/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/i386/kernel/traps.c
-@@ -433,6 +433,7 @@ void die(const char * str, struct pt_reg
- 
- 	bust_spinlocks(0);
- 	die.lock_owner = -1;
-+	add_taint(TAINT_DIE);
- 	spin_unlock_irqrestore(&die.lock, flags);
- 
- 	if (!regs)
-diff -puN arch/ia64/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/ia64/kernel/traps.c
---- a/arch/ia64/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/ia64/kernel/traps.c
-@@ -69,6 +69,7 @@ die (const char *str, struct pt_regs *re
- 
- 	bust_spinlocks(0);
- 	die.lock_owner = -1;
-+	add_taint(TAINT_DIE);
- 	spin_unlock_irq(&die.lock);
- 
- 	if (panic_on_oops)
-diff -puN arch/m68k/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/m68k/kernel/traps.c
---- a/arch/m68k/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/m68k/kernel/traps.c
-@@ -1170,6 +1170,7 @@ void die_if_kernel (char *str, struct pt
- 	console_verbose();
- 	printk("%s: %08x\n",str,nr);
- 	show_registers(fp);
-+	add_taint(TAINT_DIE);
- 	do_exit(SIGSEGV);
- }
- 
-diff -puN arch/m68knommu/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/m68knommu/kernel/traps.c
---- a/arch/m68knommu/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/m68knommu/kernel/traps.c
-@@ -83,6 +83,7 @@ void die_if_kernel(char *str, struct pt_
- 	printk(KERN_EMERG "Process %s (pid: %d, stackpage=%08lx)\n",
- 		current->comm, current->pid, PAGE_SIZE+(unsigned long)current);
- 	show_stack(NULL, (unsigned long *)fp);
-+	add_taint(TAINT_DIE);
- 	do_exit(SIGSEGV);
- }
- 
-diff -puN arch/mips/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/mips/kernel/traps.c
---- a/arch/mips/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/mips/kernel/traps.c
-@@ -326,6 +326,7 @@ void __noreturn die(const char * str, st
- #endif /* CONFIG_MIPS_MT_SMTC */
- 	printk("%s[#%d]:\n", str, ++die_counter);
- 	show_registers(regs);
-+	add_taint(TAINT_DIE);
- 	spin_unlock_irq(&die_lock);
- 
- 	if (in_interrupt())
-diff -puN arch/powerpc/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/powerpc/kernel/traps.c
---- a/arch/powerpc/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/powerpc/kernel/traps.c
-@@ -149,6 +149,7 @@ int die(const char *str, struct pt_regs 
- 
- 	bust_spinlocks(0);
- 	die.lock_owner = -1;
-+	add_taint(TAINT_DIE);
- 	spin_unlock_irqrestore(&die.lock, flags);
- 
- 	if (kexec_should_crash(current) ||
-diff -puN arch/ppc/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/ppc/kernel/traps.c
---- a/arch/ppc/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/ppc/kernel/traps.c
-@@ -92,6 +92,7 @@ int die(const char * str, struct pt_regs
- 	if (nl)
- 		printk("\n");
- 	show_regs(fp);
-+	add_taint(TAINT_DIE);
- 	spin_unlock_irq(&die_lock);
- 	/* do_exit() should take care of panic'ing from an interrupt
- 	 * context so we don't handle it here
-diff -puN arch/s390/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/s390/kernel/traps.c
---- a/arch/s390/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/s390/kernel/traps.c
-@@ -262,6 +262,7 @@ void die(const char * str, struct pt_reg
- 	print_modules();
- 	show_regs(regs);
- 	bust_spinlocks(0);
-+	add_taint(TAINT_DIE);
- 	spin_unlock_irq(&die_lock);
- 	if (in_interrupt())
- 		panic("Fatal exception in interrupt");
-diff -puN arch/sh/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/sh/kernel/traps.c
---- a/arch/sh/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/sh/kernel/traps.c
-@@ -103,6 +103,7 @@ void die(const char * str, struct pt_reg
- 			 (unsigned long)task_stack_page(current));
- 
- 	bust_spinlocks(0);
-+	add_taint(TAINT_DIE);
- 	spin_unlock_irq(&die_lock);
- 
- 	if (kexec_should_crash(current))
-diff -puN arch/sparc/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/sparc/kernel/traps.c
---- a/arch/sparc/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/sparc/kernel/traps.c
-@@ -101,6 +101,7 @@ void die_if_kernel(char *str, struct pt_
- 
- 	printk("%s(%d): %s [#%d]\n", current->comm, current->pid, str, ++die_counter);
- 	show_regs(regs);
-+	add_taint(TAINT_DIE);
- 
- 	__SAVE; __SAVE; __SAVE; __SAVE;
- 	__SAVE; __SAVE; __SAVE; __SAVE;
-diff -puN arch/sparc64/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/sparc64/kernel/traps.c
---- a/arch/sparc64/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/sparc64/kernel/traps.c
-@@ -2225,6 +2225,7 @@ void die_if_kernel(char *str, struct pt_
- 	notify_die(DIE_OOPS, str, regs, 0, 255, SIGSEGV);
- 	__asm__ __volatile__("flushw");
- 	__show_regs(regs);
-+	add_taint(TAINT_DIE);
- 	if (regs->tstate & TSTATE_PRIV) {
- 		struct reg_window *rw = (struct reg_window *)
- 			(regs->u_regs[UREG_FP] + STACK_BIAS);
-diff -puN arch/x86_64/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/x86_64/kernel/traps.c
---- a/arch/x86_64/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/x86_64/kernel/traps.c
-@@ -518,6 +518,7 @@ void __kprobes __die(const char * str, s
- 	printk("\n");
- 	notify_die(DIE_OOPS, str, regs, err, current->thread.trap_no, SIGSEGV);
- 	show_registers(regs);
-+	add_taint(TAINT_DIE);
- 	/* Executive summary in case the oops scrolled away */
- 	printk(KERN_ALERT "RIP ");
- 	printk_address(regs->rip); 
-diff -puN arch/xtensa/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before arch/xtensa/kernel/traps.c
---- a/arch/xtensa/kernel/traps.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/arch/xtensa/kernel/traps.c
-@@ -482,6 +482,7 @@ void die(const char * str, struct pt_reg
- 	if (!user_mode(regs))
- 		show_stack(NULL, (unsigned long*)regs->areg[1]);
- 
-+	add_taint(TAINT_DIE);
- 	spin_unlock_irq(&die_lock);
- 
- 	if (in_interrupt())
-diff -puN include/linux/kernel.h~report-that-kernel-is-tainted-if-there-were-an-oops-before include/linux/kernel.h
---- a/include/linux/kernel.h~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/include/linux/kernel.h
-@@ -210,6 +210,7 @@ extern enum system_states {
- #define TAINT_MACHINE_CHECK		(1<<4)
- #define TAINT_BAD_PAGE			(1<<5)
- #define TAINT_USER			(1<<6)
-+#define TAINT_DIE			(1<<7)
- 
- extern void dump_stack(void);
- 
-diff -puN kernel/panic.c~report-that-kernel-is-tainted-if-there-were-an-oops-before kernel/panic.c
---- a/kernel/panic.c~report-that-kernel-is-tainted-if-there-were-an-oops-before
-+++ a/kernel/panic.c
-@@ -159,14 +159,15 @@ const char *print_tainted(void)
+ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
  {
- 	static char buf[20];
- 	if (tainted) {
--		snprintf(buf, sizeof(buf), "Tainted: %c%c%c%c%c%c%c",
-+		snprintf(buf, sizeof(buf), "Tainted: %c%c%c%c%c%c%c%c",
- 			tainted & TAINT_PROPRIETARY_MODULE ? 'P' : 'G',
- 			tainted & TAINT_FORCED_MODULE ? 'F' : ' ',
- 			tainted & TAINT_UNSAFE_SMP ? 'S' : ' ',
- 			tainted & TAINT_FORCED_RMMOD ? 'R' : ' ',
-  			tainted & TAINT_MACHINE_CHECK ? 'M' : ' ',
- 			tainted & TAINT_BAD_PAGE ? 'B' : ' ',
--			tainted & TAINT_USER ? 'U' : ' ');
-+			tainted & TAINT_USER ? 'U' : ' ',
-+			tainted & TAINT_DIE ? 'D' : ' ');
+-	unsigned long tmp;
+ 	int ret;
+ 
+ 	switch (request) {
+@@ -666,12 +665,7 @@ long arch_ptrace(struct task_struct *chi
+ 		 */
+ 		case PTRACE_PEEKTEXT:
+ 		case PTRACE_PEEKDATA:
+-			ret = access_process_vm(child, addr, &tmp,
+-						sizeof(unsigned long), 0);
+-			if (ret == sizeof(unsigned long))
+-				ret = put_user(tmp, (unsigned long __user *) data);
+-			else
+-				ret = -EIO;
++			ret = generic_ptrace_peekdata(child, addr, data);
+ 			break;
+ 
+ 		case PTRACE_PEEKUSR:
+diff -puN arch/arm26/kernel/ptrace.c~ptrace_peekdata-consolidation arch/arm26/kernel/ptrace.c
+--- a/arch/arm26/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/arm26/kernel/ptrace.c
+@@ -531,7 +531,6 @@ static int ptrace_setfpregs(struct task_
+ 
+ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
+ {
+-	unsigned long tmp;
+ 	int ret;
+ 
+ 	switch (request) {
+@@ -540,12 +539,7 @@ long arch_ptrace(struct task_struct *chi
+ 		 */
+ 		case PTRACE_PEEKTEXT:
+ 		case PTRACE_PEEKDATA:
+-			ret = access_process_vm(child, addr, &tmp,
+-						sizeof(unsigned long), 0);
+-			if (ret == sizeof(unsigned long))
+-				ret = put_user(tmp, (unsigned long *) data);
+-			else
+-				ret = -EIO;
++			ret = generic_ptrace_peekdata(child, addr, data);
+ 			break;
+ 
+ 		case PTRACE_PEEKUSR:
+diff -puN arch/avr32/kernel/ptrace.c~ptrace_peekdata-consolidation arch/avr32/kernel/ptrace.c
+--- a/arch/avr32/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/avr32/kernel/ptrace.c
+@@ -153,7 +153,6 @@ static int ptrace_setregs(struct task_st
+ 
+ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
+ {
+-	unsigned long tmp;
+ 	int ret;
+ 
+ 	pr_debug("arch_ptrace(%ld, %d, %#lx, %#lx)\n",
+@@ -166,11 +165,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* Read the word at location addr in the child process */
+ 	case PTRACE_PEEKTEXT:
+ 	case PTRACE_PEEKDATA:
+-		ret = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		if (ret == sizeof(tmp))
+-			ret = put_user(tmp, (unsigned long __user *)data);
+-		else
+-			ret = -EIO;
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		break;
+ 
+ 	case PTRACE_PEEKUSR:
+diff -puN arch/cris/arch-v10/kernel/ptrace.c~ptrace_peekdata-consolidation arch/cris/arch-v10/kernel/ptrace.c
+--- a/arch/cris/arch-v10/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/cris/arch-v10/kernel/ptrace.c
+@@ -83,19 +83,9 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 		/* Read word at location address. */ 
+ 		case PTRACE_PEEKTEXT:
+-		case PTRACE_PEEKDATA: {
+-			unsigned long tmp;
+-			int copied;
+-
+-			copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-			ret = -EIO;
+-			
+-			if (copied != sizeof(tmp))
+-				break;
+-			
+-			ret = put_user(tmp,datap);
++		case PTRACE_PEEKDATA:
++			ret = generic_ptrace_peekdata(child, addr, data);
+ 			break;
+-		}
+ 
+ 		/* Read the word at location address in the USER area. */
+ 		case PTRACE_PEEKUSR: {
+diff -puN arch/frv/kernel/ptrace.c~ptrace_peekdata-consolidation arch/frv/kernel/ptrace.c
+--- a/arch/frv/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/frv/kernel/ptrace.c
+@@ -112,20 +112,12 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 		/* when I and D space are separate, these will need to be fixed. */
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */
+-	case PTRACE_PEEKDATA: {
+-		int copied;
+-
++	case PTRACE_PEEKDATA:
+ 		ret = -EIO;
+ 		if (is_user_addr_valid(child, addr, sizeof(tmp)) < 0)
+ 			break;
+-
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		if (copied != sizeof(tmp))
+-			break;
+-
+-		ret = put_user(tmp,(unsigned long *) data);
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		break;
+-	}
+ 
+ 		/* read the word at location addr in the USER area. */
+ 	case PTRACE_PEEKUSR: {
+diff -puN arch/i386/kernel/ptrace.c~ptrace_peekdata-consolidation arch/i386/kernel/ptrace.c
+--- a/arch/i386/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/i386/kernel/ptrace.c
+@@ -358,17 +358,9 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 	/* when I and D space are separate, these will need to be fixed. */
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */ 
+-	case PTRACE_PEEKDATA: {
+-		unsigned long tmp;
+-		int copied;
+-
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		ret = -EIO;
+-		if (copied != sizeof(tmp))
+-			break;
+-		ret = put_user(tmp, datap);
++	case PTRACE_PEEKDATA:
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		break;
+-	}
+ 
+ 	/* read the word at location addr in the USER area. */
+ 	case PTRACE_PEEKUSR: {
+diff -puN arch/m32r/kernel/ptrace.c~ptrace_peekdata-consolidation arch/m32r/kernel/ptrace.c
+--- a/arch/m32r/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/m32r/kernel/ptrace.c
+@@ -595,7 +595,6 @@ void ptrace_disable(struct task_struct *
+ static int
+ do_ptrace(long request, struct task_struct *child, long addr, long data)
+ {
+-	unsigned long tmp;
+ 	int ret;
+ 
+ 	switch (request) {
+@@ -604,11 +603,7 @@ do_ptrace(long request, struct task_stru
+ 	 */
+ 	case PTRACE_PEEKTEXT:
+ 	case PTRACE_PEEKDATA:
+-		ret = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		if (ret == sizeof(tmp))
+-			ret = put_user(tmp,(unsigned long __user *) data);
+-		else
+-			ret = -EIO;
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		break;
+ 
+ 	/*
+diff -puN arch/m68k/kernel/ptrace.c~ptrace_peekdata-consolidation arch/m68k/kernel/ptrace.c
+--- a/arch/m68k/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/m68k/kernel/ptrace.c
+@@ -128,10 +128,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* when I and D space are separate, these will need to be fixed. */
+ 	case PTRACE_PEEKTEXT:	/* read word at location addr. */
+ 	case PTRACE_PEEKDATA:
+-		i = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		if (i != sizeof(tmp))
+-			goto out_eio;
+-		ret = put_user(tmp, (unsigned long *)data);
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		break;
+ 
+ 	/* read the word at location addr in the USER area. */
+diff -puN arch/m68knommu/kernel/ptrace.c~ptrace_peekdata-consolidation arch/m68knommu/kernel/ptrace.c
+--- a/arch/m68knommu/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/m68knommu/kernel/ptrace.c
+@@ -106,17 +106,9 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 		/* when I and D space are separate, these will need to be fixed. */
+ 		case PTRACE_PEEKTEXT: /* read word at location addr. */ 
+-		case PTRACE_PEEKDATA: {
+-			unsigned long tmp;
+-			int copied;
+-
+-			copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-			ret = -EIO;
+-			if (copied != sizeof(tmp))
+-				break;
+-			ret = put_user(tmp,(unsigned long *) data);
++		case PTRACE_PEEKDATA:
++			ret = generic_ptrace_peekdata(child, addr, data);
+ 			break;
+-		}
+ 
+ 		/* read the word at location addr in the USER area. */
+ 		case PTRACE_PEEKUSR: {
+diff -puN arch/mips/kernel/ptrace.c~ptrace_peekdata-consolidation arch/mips/kernel/ptrace.c
+--- a/arch/mips/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/mips/kernel/ptrace.c
+@@ -174,17 +174,9 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 	/* when I and D space are separate, these will need to be fixed. */
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */
+-	case PTRACE_PEEKDATA: {
+-		unsigned long tmp;
+-		int copied;
+-
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		ret = -EIO;
+-		if (copied != sizeof(tmp))
+-			break;
+-		ret = put_user(tmp,(unsigned long __user *) data);
++	case PTRACE_PEEKDATA:
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		break;
+-	}
+ 
+ 	/* Read the word at location addr in the USER area. */
+ 	case PTRACE_PEEKUSR: {
+diff -puN arch/parisc/kernel/ptrace.c~ptrace_peekdata-consolidation arch/parisc/kernel/ptrace.c
+--- a/arch/parisc/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/parisc/kernel/ptrace.c
+@@ -87,10 +87,9 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */ 
+ 	case PTRACE_PEEKDATA: {
+-		int copied;
+-
+ #ifdef CONFIG_64BIT
+ 		if (__is_compat_task(child)) {
++			int copied;
+ 			unsigned int tmp;
+ 
+ 			addr &= 0xffffffffL;
+@@ -105,15 +104,7 @@ long arch_ptrace(struct task_struct *chi
+ 		}
+ 		else
+ #endif
+-		{
+-			unsigned long tmp;
+-
+-			copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-			ret = -EIO;
+-			if (copied != sizeof(tmp))
+-				goto out_tsk;
+-			ret = put_user(tmp,(unsigned long *) data);
+-		}
++			ret = generic_ptrace_peekdata(child, addr, data);
+ 		goto out_tsk;
  	}
- 	else
- 		snprintf(buf, sizeof(buf), "Not tainted");
+ 
+diff -puN arch/powerpc/kernel/ptrace.c~ptrace_peekdata-consolidation arch/powerpc/kernel/ptrace.c
+--- a/arch/powerpc/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/powerpc/kernel/ptrace.c
+@@ -379,17 +379,9 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 	/* when I and D space are separate, these will need to be fixed. */
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */
+-	case PTRACE_PEEKDATA: {
+-		unsigned long tmp;
+-		int copied;
+-
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		ret = -EIO;
+-		if (copied != sizeof(tmp))
+-			break;
+-		ret = put_user(tmp,(unsigned long __user *) data);
++	case PTRACE_PEEKDATA:
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		break;
+-	}
+ 
+ 	/* read the word at location addr in the USER area. */
+ 	case PTRACE_PEEKUSR: {
+diff -puN arch/s390/kernel/ptrace.c~ptrace_peekdata-consolidation arch/s390/kernel/ptrace.c
+--- a/arch/s390/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/s390/kernel/ptrace.c
+@@ -294,7 +294,6 @@ poke_user(struct task_struct *child, add
+ static int
+ do_ptrace_normal(struct task_struct *child, long request, long addr, long data)
+ {
+-	unsigned long tmp;
+ 	ptrace_area parea; 
+ 	int copied, ret;
+ 
+@@ -304,10 +303,7 @@ do_ptrace_normal(struct task_struct *chi
+ 		/* Remove high order bit from address (only for 31 bit). */
+ 		addr &= PSW_ADDR_INSN;
+ 		/* read word at location addr. */
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		if (copied != sizeof(tmp))
+-			return -EIO;
+-		return put_user(tmp, (unsigned long __force __user *) data);
++		return generic_ptrace_peekdata(child, addr, data);
+ 
+ 	case PTRACE_PEEKUSR:
+ 		/* read the word at location addr in the USER area. */
+diff -puN arch/sh/kernel/ptrace.c~ptrace_peekdata-consolidation arch/sh/kernel/ptrace.c
+--- a/arch/sh/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/sh/kernel/ptrace.c
+@@ -91,17 +91,8 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 	/* when I and D space are separate, these will need to be fixed. */
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */
+-	case PTRACE_PEEKDATA: {
+-		unsigned long tmp;
+-		int copied;
+-
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		ret = -EIO;
+-		if (copied != sizeof(tmp))
+-			break;
+-		ret = put_user(tmp,(unsigned long __user *) data);
+-		break;
+-	}
++	case PTRACE_PEEKDATA:
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 
+ 	/* read the word at location addr in the USER area. */
+ 	case PTRACE_PEEKUSR: {
+diff -puN arch/sh64/kernel/ptrace.c~ptrace_peekdata-consolidation arch/sh64/kernel/ptrace.c
+--- a/arch/sh64/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/sh64/kernel/ptrace.c
+@@ -129,17 +129,9 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 	/* when I and D space are separate, these will need to be fixed. */
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */
+-	case PTRACE_PEEKDATA: {
+-		unsigned long tmp;
+-		int copied;
+-
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		ret = -EIO;
+-		if (copied != sizeof(tmp))
+-			break;
+-		ret = put_user(tmp,(unsigned long *) data);
++	case PTRACE_PEEKDATA:
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		break;
+-	}
+ 
+ 	/* read the word at location addr in the USER area. */
+ 	case PTRACE_PEEKUSR: {
+diff -puN arch/um/kernel/ptrace.c~ptrace_peekdata-consolidation arch/um/kernel/ptrace.c
+--- a/arch/um/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/um/kernel/ptrace.c
+@@ -52,17 +52,9 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 		/* when I and D space are separate, these will need to be fixed. */
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */ 
+-	case PTRACE_PEEKDATA: {
+-		unsigned long tmp;
+-		int copied;
+-
+-		ret = -EIO;
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		if (copied != sizeof(tmp))
+-			break;
+-		ret = put_user(tmp, p);
++	case PTRACE_PEEKDATA:
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		break;
+-	}
+ 
+ 	/* read the word at location addr in the USER area. */
+         case PTRACE_PEEKUSR:
+diff -puN arch/v850/kernel/ptrace.c~ptrace_peekdata-consolidation arch/v850/kernel/ptrace.c
+--- a/arch/v850/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/v850/kernel/ptrace.c
+@@ -117,15 +117,11 @@ long arch_ptrace(struct task_struct *chi
+ 	int rval;
+ 
+ 	switch (request) {
+-		unsigned long val, copied;
++		unsigned long val;
+ 
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */
+ 	case PTRACE_PEEKDATA:
+-		copied = access_process_vm(child, addr, &val, sizeof(val), 0);
+-		rval = -EIO;
+-		if (copied != sizeof(val))
+-			break;
+-		rval = put_user(val, (unsigned long *)data);
++		rval = generic_ptrace_peekdata(child, addr, data);
+ 		goto out;
+ 
+ 	case PTRACE_POKETEXT: /* write the word at location addr. */
+diff -puN arch/x86_64/kernel/ptrace.c~ptrace_peekdata-consolidation arch/x86_64/kernel/ptrace.c
+--- a/arch/x86_64/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/x86_64/kernel/ptrace.c
+@@ -313,17 +313,9 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 	/* when I and D space are separate, these will need to be fixed. */
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */ 
+-	case PTRACE_PEEKDATA: {
+-		unsigned long tmp;
+-		int copied;
+-
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		ret = -EIO;
+-		if (copied != sizeof(tmp))
+-			break;
+-		ret = put_user(tmp,(unsigned long __user *) data);
++	case PTRACE_PEEKDATA:
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		break;
+-	}
+ 
+ 	/* read the word at location addr in the USER area. */
+ 	case PTRACE_PEEKUSR: {
+diff -puN arch/xtensa/kernel/ptrace.c~ptrace_peekdata-consolidation arch/xtensa/kernel/ptrace.c
+--- a/arch/xtensa/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/arch/xtensa/kernel/ptrace.c
+@@ -50,18 +50,8 @@ long arch_ptrace(struct task_struct *chi
+ 	switch (request) {
+ 	case PTRACE_PEEKTEXT: /* read word at location addr. */
+ 	case PTRACE_PEEKDATA:
+-	{
+-		unsigned long tmp;
+-		int copied;
+-
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+-		ret = -EIO;
+-		if (copied != sizeof(tmp))
+-			break;
+-		ret = put_user(tmp,(unsigned long *) data);
+-
++		ret = generic_ptrace_peekdata(child, addr, data);
+ 		goto out;
+-	}
+ 
+ 	/* Read the word at location addr in the USER area.  */
+ 
+diff -puN include/linux/ptrace.h~ptrace_peekdata-consolidation include/linux/ptrace.h
+--- a/include/linux/ptrace.h~ptrace_peekdata-consolidation
++++ a/include/linux/ptrace.h
+@@ -110,6 +110,7 @@ static inline void ptrace_unlink(struct 
+ 		__ptrace_unlink(child);
+ }
+ 
++int generic_ptrace_peekdata(struct task_struct *tsk, long addr, long data);
+ 
+ #ifndef force_successful_syscall_return
+ /*
+diff -puN kernel/ptrace.c~ptrace_peekdata-consolidation kernel/ptrace.c
+--- a/kernel/ptrace.c~ptrace_peekdata-consolidation
++++ a/kernel/ptrace.c
+@@ -490,3 +490,14 @@ asmlinkage long sys_ptrace(long request,
+ 	return ret;
+ }
+ #endif /* __ARCH_SYS_PTRACE */
++
++int generic_ptrace_peekdata(struct task_struct *tsk, long addr, long data)
++{
++	unsigned long tmp;
++	int copied;
++
++	copied = access_process_vm(tsk, addr, &tmp, sizeof(tmp), 0);
++	if (copied != sizeof(tmp))
++		return -EIO;
++	return put_user(tmp, (unsigned long __user *)data);
++}
 _
 
-Patches currently in -mm which might be from xemul@openvz.org are
+Patches currently in -mm which might be from adobriyan@gmail.com are
 
 origin.patch
-make-input-layer-use-seq_list_xxx-helpers.patch
-fix-user-struct-leakage-with-locked-ipc-shem-segment.patch
-pid-namespaces-round-up-the-api.patch
-pid-namespaces-make-get_pid_ns-return-the-namespace-itself.patch
-pid-namespaces-dynamic-kmem-cache-allocator-for-pid-namespaces.patch
 
