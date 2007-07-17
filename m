@@ -1,31 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:59069 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:52523 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S935712AbXGQXQp (ORCPT
+	by vger.kernel.org with ESMTP id S935765AbXGQXQp (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Tue, 17 Jul 2007 19:16:45 -0400
-Message-Id: <200707172302.l6HN20gs011446@imap1.linux-foundation.org>
-Subject: - ptrace_peekdata-consolidation.patch removed from -mm tree
+Message-Id: <200707172302.l6HN23Sw011526@imap1.linux-foundation.org>
+Subject: - ptrace_pokedata-consolidation.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Tue, 17 Jul 2007 16:02:00 -0700
+Date: Tue, 17 Jul 2007 16:02:03 -0700
 Sender: linux-arch-owner@vger.kernel.org
 To: adobriyan@gmail.com, hch@lst.de, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
 The patch titled
-     PTRACE_PEEKDATA consolidation
+     PTRACE_POKEDATA consolidation
 has been removed from the -mm tree.  Its filename was
-     ptrace_peekdata-consolidation.patch
+     ptrace_pokedata-consolidation.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 ------------------------------------------------------
-Subject: PTRACE_PEEKDATA consolidation
+Subject: PTRACE_POKEDATA consolidation
 From: Alexey Dobriyan <adobriyan@gmail.com>
 
-Identical implementations of PTRACE_PEEKDATA go into generic_ptrace_peekdata()
+Identical implementations of PTRACE_POKEDATA go into generic_ptrace_pokedata()
 function.
+
+AFAICS, fix bug on xtensa where successful PTRACE_POKEDATA will nevertheless
+return EPERM.
 
 Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
 Cc: Christoph Hellwig <hch@lst.de>
@@ -33,504 +36,387 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/arm/kernel/ptrace.c           |    8 +-------
- arch/arm26/kernel/ptrace.c         |    8 +-------
- arch/avr32/kernel/ptrace.c         |    7 +------
- arch/cris/arch-v10/kernel/ptrace.c |   14 ++------------
- arch/frv/kernel/ptrace.c           |   12 ++----------
- arch/i386/kernel/ptrace.c          |   12 ++----------
- arch/m32r/kernel/ptrace.c          |    7 +------
- arch/m68k/kernel/ptrace.c          |    5 +----
- arch/m68knommu/kernel/ptrace.c     |   12 ++----------
- arch/mips/kernel/ptrace.c          |   12 ++----------
- arch/parisc/kernel/ptrace.c        |   13 ++-----------
- arch/powerpc/kernel/ptrace.c       |   12 ++----------
- arch/s390/kernel/ptrace.c          |    6 +-----
- arch/sh/kernel/ptrace.c            |   13 ++-----------
- arch/sh64/kernel/ptrace.c          |   12 ++----------
- arch/um/kernel/ptrace.c            |   12 ++----------
- arch/v850/kernel/ptrace.c          |    8 ++------
- arch/x86_64/kernel/ptrace.c        |   12 ++----------
- arch/xtensa/kernel/ptrace.c        |   12 +-----------
+ arch/alpha/kernel/ptrace.c         |    4 +---
+ arch/arm/kernel/ptrace.c           |    7 +------
+ arch/arm26/kernel/ptrace.c         |    7 +------
+ arch/avr32/kernel/ptrace.c         |    6 +-----
+ arch/cris/arch-v10/kernel/ptrace.c |    7 +------
+ arch/cris/arch-v32/kernel/ptrace.c |    7 +------
+ arch/frv/kernel/ptrace.c           |    4 +---
+ arch/h8300/kernel/ptrace.c         |    5 +----
+ arch/i386/kernel/ptrace.c          |    5 +----
+ arch/m32r/kernel/ptrace.c          |   12 +++---------
+ arch/m68k/kernel/ptrace.c          |    3 +--
+ arch/m68knommu/kernel/ptrace.c     |    5 +----
+ arch/mips/kernel/ptrace.c          |    6 +-----
+ arch/powerpc/kernel/ptrace.c       |    6 +-----
+ arch/s390/kernel/ptrace.c          |    5 +----
+ arch/sh/kernel/ptrace.c            |    5 +----
+ arch/sh64/kernel/ptrace.c          |    5 +----
+ arch/um/kernel/ptrace.c            |    6 +-----
+ arch/v850/kernel/ptrace.c          |    6 +-----
+ arch/x86_64/kernel/ptrace.c        |    5 +----
+ arch/xtensa/kernel/ptrace.c        |    5 +----
  include/linux/ptrace.h             |    1 +
- kernel/ptrace.c                    |   11 +++++++++++
- 21 files changed, 43 insertions(+), 166 deletions(-)
+ kernel/ptrace.c                    |    8 ++++++++
+ 23 files changed, 32 insertions(+), 98 deletions(-)
 
-diff -puN arch/arm/kernel/ptrace.c~ptrace_peekdata-consolidation arch/arm/kernel/ptrace.c
---- a/arch/arm/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/arm/kernel/ptrace.c
-@@ -657,7 +657,6 @@ static int ptrace_setcrunchregs(struct t
- 
- long arch_ptrace(struct task_struct *child, long request, long addr, long data)
- {
--	unsigned long tmp;
- 	int ret;
- 
- 	switch (request) {
-@@ -666,12 +665,7 @@ long arch_ptrace(struct task_struct *chi
- 		 */
- 		case PTRACE_PEEKTEXT:
- 		case PTRACE_PEEKDATA:
--			ret = access_process_vm(child, addr, &tmp,
--						sizeof(unsigned long), 0);
--			if (ret == sizeof(unsigned long))
--				ret = put_user(tmp, (unsigned long __user *) data);
--			else
--				ret = -EIO;
-+			ret = generic_ptrace_peekdata(child, addr, data);
- 			break;
- 
- 		case PTRACE_PEEKUSR:
-diff -puN arch/arm26/kernel/ptrace.c~ptrace_peekdata-consolidation arch/arm26/kernel/ptrace.c
---- a/arch/arm26/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/arm26/kernel/ptrace.c
-@@ -531,7 +531,6 @@ static int ptrace_setfpregs(struct task_
- 
- long arch_ptrace(struct task_struct *child, long request, long addr, long data)
- {
--	unsigned long tmp;
- 	int ret;
- 
- 	switch (request) {
-@@ -540,12 +539,7 @@ long arch_ptrace(struct task_struct *chi
- 		 */
- 		case PTRACE_PEEKTEXT:
- 		case PTRACE_PEEKDATA:
--			ret = access_process_vm(child, addr, &tmp,
--						sizeof(unsigned long), 0);
--			if (ret == sizeof(unsigned long))
--				ret = put_user(tmp, (unsigned long *) data);
--			else
--				ret = -EIO;
-+			ret = generic_ptrace_peekdata(child, addr, data);
- 			break;
- 
- 		case PTRACE_PEEKUSR:
-diff -puN arch/avr32/kernel/ptrace.c~ptrace_peekdata-consolidation arch/avr32/kernel/ptrace.c
---- a/arch/avr32/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/avr32/kernel/ptrace.c
-@@ -153,7 +153,6 @@ static int ptrace_setregs(struct task_st
- 
- long arch_ptrace(struct task_struct *child, long request, long addr, long data)
- {
--	unsigned long tmp;
- 	int ret;
- 
- 	pr_debug("arch_ptrace(%ld, %d, %#lx, %#lx)\n",
-@@ -166,11 +165,7 @@ long arch_ptrace(struct task_struct *chi
- 	/* Read the word at location addr in the child process */
- 	case PTRACE_PEEKTEXT:
- 	case PTRACE_PEEKDATA:
--		ret = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		if (ret == sizeof(tmp))
--			ret = put_user(tmp, (unsigned long __user *)data);
--		else
--			ret = -EIO;
-+		ret = generic_ptrace_peekdata(child, addr, data);
+diff -puN arch/alpha/kernel/ptrace.c~ptrace_pokedata-consolidation arch/alpha/kernel/ptrace.c
+--- a/arch/alpha/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/alpha/kernel/ptrace.c
+@@ -315,9 +315,7 @@ do_sys_ptrace(long request, long pid, lo
+ 	/* When I and D space are separate, this will have to be fixed.  */
+ 	case PTRACE_POKETEXT: /* write the word at location addr. */
+ 	case PTRACE_POKEDATA:
+-		tmp = data;
+-		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 1);
+-		ret = (copied == sizeof(tmp)) ? 0 : -EIO;
++		ret = generic_ptrace_pokedata(child, addr, data);
  		break;
  
- 	case PTRACE_PEEKUSR:
-diff -puN arch/cris/arch-v10/kernel/ptrace.c~ptrace_peekdata-consolidation arch/cris/arch-v10/kernel/ptrace.c
---- a/arch/cris/arch-v10/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/cris/arch-v10/kernel/ptrace.c
-@@ -83,19 +83,9 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 		/* Read word at location address. */ 
- 		case PTRACE_PEEKTEXT:
--		case PTRACE_PEEKDATA: {
--			unsigned long tmp;
--			int copied;
--
--			copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
+ 	case PTRACE_POKEUSR: /* write the specified register */
+diff -puN arch/arm/kernel/ptrace.c~ptrace_pokedata-consolidation arch/arm/kernel/ptrace.c
+--- a/arch/arm/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/arm/kernel/ptrace.c
+@@ -677,12 +677,7 @@ long arch_ptrace(struct task_struct *chi
+ 		 */
+ 		case PTRACE_POKETEXT:
+ 		case PTRACE_POKEDATA:
+-			ret = access_process_vm(child, addr, &data,
+-						sizeof(unsigned long), 1);
+-			if (ret == sizeof(unsigned long))
+-				ret = 0;
+-			else
+-				ret = -EIO;
++			ret = generic_ptrace_pokedata(child, addr, data);
+ 			break;
+ 
+ 		case PTRACE_POKEUSR:
+diff -puN arch/arm26/kernel/ptrace.c~ptrace_pokedata-consolidation arch/arm26/kernel/ptrace.c
+--- a/arch/arm26/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/arm26/kernel/ptrace.c
+@@ -551,12 +551,7 @@ long arch_ptrace(struct task_struct *chi
+ 		 */
+ 		case PTRACE_POKETEXT:
+ 		case PTRACE_POKEDATA:
+-			ret = access_process_vm(child, addr, &data,
+-						sizeof(unsigned long), 1);
+-			if (ret == sizeof(unsigned long))
+-				ret = 0;
+-			else
+-				ret = -EIO;
++			ret = generic_ptrace_pokedata(child, addr, data);
+ 			break;
+ 
+ 		case PTRACE_POKEUSR:
+diff -puN arch/avr32/kernel/ptrace.c~ptrace_pokedata-consolidation arch/avr32/kernel/ptrace.c
+--- a/arch/avr32/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/avr32/kernel/ptrace.c
+@@ -176,11 +176,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* Write the word in data at location addr */
+ 	case PTRACE_POKETEXT:
+ 	case PTRACE_POKEDATA:
+-		ret = access_process_vm(child, addr, &data, sizeof(data), 1);
+-		if (ret == sizeof(data))
+-			ret = 0;
+-		else
 -			ret = -EIO;
++		ret = generic_ptrace_pokedata(child, addr, data);
+ 		break;
+ 
+ 	case PTRACE_POKEUSR:
+diff -puN arch/cris/arch-v10/kernel/ptrace.c~ptrace_pokedata-consolidation arch/cris/arch-v10/kernel/ptrace.c
+--- a/arch/cris/arch-v10/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/cris/arch-v10/kernel/ptrace.c
+@@ -103,12 +103,7 @@ long arch_ptrace(struct task_struct *chi
+ 		/* Write the word at location address. */
+ 		case PTRACE_POKETEXT:
+ 		case PTRACE_POKEDATA:
+-			ret = 0;
 -			
--			if (copied != sizeof(tmp))
+-			if (access_process_vm(child, addr, &data, sizeof(data), 1) == sizeof(data))
 -				break;
 -			
--			ret = put_user(tmp,datap);
-+		case PTRACE_PEEKDATA:
-+			ret = generic_ptrace_peekdata(child, addr, data);
+-			ret = -EIO;
++			ret = generic_ptrace_pokedata(child, addr, data);
  			break;
--		}
- 
- 		/* Read the word at location address in the USER area. */
- 		case PTRACE_PEEKUSR: {
-diff -puN arch/frv/kernel/ptrace.c~ptrace_peekdata-consolidation arch/frv/kernel/ptrace.c
---- a/arch/frv/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/frv/kernel/ptrace.c
-@@ -112,20 +112,12 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 		/* when I and D space are separate, these will need to be fixed. */
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */
--	case PTRACE_PEEKDATA: {
--		int copied;
+  
+  		/* Write the word at location address in the USER area. */
+diff -puN arch/cris/arch-v32/kernel/ptrace.c~ptrace_pokedata-consolidation arch/cris/arch-v32/kernel/ptrace.c
+--- a/arch/cris/arch-v32/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/cris/arch-v32/kernel/ptrace.c
+@@ -146,12 +146,7 @@ long arch_ptrace(struct task_struct *chi
+ 		/* Write the word at location address. */
+ 		case PTRACE_POKETEXT:
+ 		case PTRACE_POKEDATA:
+-			ret = 0;
 -
-+	case PTRACE_PEEKDATA:
+-			if (access_process_vm(child, addr, &data, sizeof(data), 1) == sizeof(data))
+-				break;
+-
+-			ret = -EIO;
++			ret = generic_ptrace_pokedata(child, addr, data);
+ 			break;
+ 
+  		/* Write the word at location address in the USER area. */
+diff -puN arch/frv/kernel/ptrace.c~ptrace_pokedata-consolidation arch/frv/kernel/ptrace.c
+--- a/arch/frv/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/frv/kernel/ptrace.c
+@@ -168,9 +168,7 @@ long arch_ptrace(struct task_struct *chi
  		ret = -EIO;
  		if (is_user_addr_valid(child, addr, sizeof(tmp)) < 0)
  			break;
--
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		if (copied != sizeof(tmp))
+-		if (access_process_vm(child, addr, &data, sizeof(data), 1) != sizeof(data))
 -			break;
--
--		ret = put_user(tmp,(unsigned long *) data);
-+		ret = generic_ptrace_peekdata(child, addr, data);
+-		ret = 0;
++		ret = generic_ptrace_pokedata(child, addr, data);
  		break;
--	}
  
- 		/* read the word at location addr in the USER area. */
- 	case PTRACE_PEEKUSR: {
-diff -puN arch/i386/kernel/ptrace.c~ptrace_peekdata-consolidation arch/i386/kernel/ptrace.c
---- a/arch/i386/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/i386/kernel/ptrace.c
-@@ -358,17 +358,9 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 	/* when I and D space are separate, these will need to be fixed. */
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */ 
--	case PTRACE_PEEKDATA: {
--		unsigned long tmp;
--		int copied;
--
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		ret = -EIO;
--		if (copied != sizeof(tmp))
--			break;
--		ret = put_user(tmp, datap);
-+	case PTRACE_PEEKDATA:
-+		ret = generic_ptrace_peekdata(child, addr, data);
- 		break;
--	}
- 
- 	/* read the word at location addr in the USER area. */
- 	case PTRACE_PEEKUSR: {
-diff -puN arch/m32r/kernel/ptrace.c~ptrace_peekdata-consolidation arch/m32r/kernel/ptrace.c
---- a/arch/m32r/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/m32r/kernel/ptrace.c
-@@ -595,7 +595,6 @@ void ptrace_disable(struct task_struct *
- static int
- do_ptrace(long request, struct task_struct *child, long addr, long data)
- {
--	unsigned long tmp;
- 	int ret;
- 
- 	switch (request) {
-@@ -604,11 +603,7 @@ do_ptrace(long request, struct task_stru
- 	 */
- 	case PTRACE_PEEKTEXT:
- 	case PTRACE_PEEKDATA:
--		ret = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		if (ret == sizeof(tmp))
--			ret = put_user(tmp,(unsigned long __user *) data);
--		else
+ 	case PTRACE_POKEUSR: /* write the word at location addr in the USER area */
+diff -puN arch/h8300/kernel/ptrace.c~ptrace_pokedata-consolidation arch/h8300/kernel/ptrace.c
+--- a/arch/h8300/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/h8300/kernel/ptrace.c
+@@ -111,10 +111,7 @@ long arch_ptrace(struct task_struct *chi
+       /* when I and D space are separate, this will have to be fixed. */
+ 		case PTRACE_POKETEXT: /* write the word at location addr. */
+ 		case PTRACE_POKEDATA:
+-			ret = 0;
+-			if (access_process_vm(child, addr, &data, sizeof(data), 1) == sizeof(data))
+-				break;
 -			ret = -EIO;
-+		ret = generic_ptrace_peekdata(child, addr, data);
++			ret = generic_ptrace_pokedata(child, addr, data);
+ 			break;
+ 
+ 		case PTRACE_POKEUSR: /* write the word at location addr in the USER area */
+diff -puN arch/i386/kernel/ptrace.c~ptrace_pokedata-consolidation arch/i386/kernel/ptrace.c
+--- a/arch/i386/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/i386/kernel/ptrace.c
+@@ -387,10 +387,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* when I and D space are separate, this will have to be fixed. */
+ 	case PTRACE_POKETEXT: /* write the word at location addr. */
+ 	case PTRACE_POKEDATA:
+-		ret = 0;
+-		if (access_process_vm(child, addr, &data, sizeof(data), 1) == sizeof(data))
+-			break;
+-		ret = -EIO;
++		ret = generic_ptrace_pokedata(child, addr, data);
+ 		break;
+ 
+ 	case PTRACE_POKEUSR: /* write the word at location addr in the USER area */
+diff -puN arch/m32r/kernel/ptrace.c~ptrace_pokedata-consolidation arch/m32r/kernel/ptrace.c
+--- a/arch/m32r/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/m32r/kernel/ptrace.c
+@@ -619,15 +619,9 @@ do_ptrace(long request, struct task_stru
+ 	 */
+ 	case PTRACE_POKETEXT:
+ 	case PTRACE_POKEDATA:
+-		ret = access_process_vm(child, addr, &data, sizeof(data), 1);
+-		if (ret == sizeof(data)) {
+-			ret = 0;
+-			if (request == PTRACE_POKETEXT) {
+-				invalidate_cache();
+-			}
+-		} else {
+-			ret = -EIO;
+-		}
++		ret = generic_ptrace_pokedata(child, addr, data);
++		if (ret == 0 && request == PTRACE_POKETEXT)
++			invalidate_cache();
  		break;
  
  	/*
-diff -puN arch/m68k/kernel/ptrace.c~ptrace_peekdata-consolidation arch/m68k/kernel/ptrace.c
---- a/arch/m68k/kernel/ptrace.c~ptrace_peekdata-consolidation
+diff -puN arch/m68k/kernel/ptrace.c~ptrace_pokedata-consolidation arch/m68k/kernel/ptrace.c
+--- a/arch/m68k/kernel/ptrace.c~ptrace_pokedata-consolidation
 +++ a/arch/m68k/kernel/ptrace.c
-@@ -128,10 +128,7 @@ long arch_ptrace(struct task_struct *chi
- 	/* when I and D space are separate, these will need to be fixed. */
- 	case PTRACE_PEEKTEXT:	/* read word at location addr. */
- 	case PTRACE_PEEKDATA:
--		i = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		if (i != sizeof(tmp))
+@@ -157,8 +157,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* when I and D space are separate, this will have to be fixed. */
+ 	case PTRACE_POKETEXT:	/* write the word at location addr. */
+ 	case PTRACE_POKEDATA:
+-		if (access_process_vm(child, addr, &data, sizeof(data), 1) != sizeof(data))
 -			goto out_eio;
--		ret = put_user(tmp, (unsigned long *)data);
-+		ret = generic_ptrace_peekdata(child, addr, data);
++		ret = generic_ptrace_pokedata(child, addr, data);
  		break;
  
- 	/* read the word at location addr in the USER area. */
-diff -puN arch/m68knommu/kernel/ptrace.c~ptrace_peekdata-consolidation arch/m68knommu/kernel/ptrace.c
---- a/arch/m68knommu/kernel/ptrace.c~ptrace_peekdata-consolidation
+ 	case PTRACE_POKEUSR:	/* write the word at location addr in the USER area */
+diff -puN arch/m68knommu/kernel/ptrace.c~ptrace_pokedata-consolidation arch/m68knommu/kernel/ptrace.c
+--- a/arch/m68knommu/kernel/ptrace.c~ptrace_pokedata-consolidation
 +++ a/arch/m68knommu/kernel/ptrace.c
-@@ -106,17 +106,9 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 		/* when I and D space are separate, these will need to be fixed. */
- 		case PTRACE_PEEKTEXT: /* read word at location addr. */ 
--		case PTRACE_PEEKDATA: {
--			unsigned long tmp;
--			int copied;
--
--			copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--			ret = -EIO;
--			if (copied != sizeof(tmp))
+@@ -151,10 +151,7 @@ long arch_ptrace(struct task_struct *chi
+ 		/* when I and D space are separate, this will have to be fixed. */
+ 		case PTRACE_POKETEXT: /* write the word at location addr. */
+ 		case PTRACE_POKEDATA:
+-			ret = 0;
+-			if (access_process_vm(child, addr, &data, sizeof(data), 1) == sizeof(data))
 -				break;
--			ret = put_user(tmp,(unsigned long *) data);
-+		case PTRACE_PEEKDATA:
-+			ret = generic_ptrace_peekdata(child, addr, data);
- 			break;
--		}
- 
- 		/* read the word at location addr in the USER area. */
- 		case PTRACE_PEEKUSR: {
-diff -puN arch/mips/kernel/ptrace.c~ptrace_peekdata-consolidation arch/mips/kernel/ptrace.c
---- a/arch/mips/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/mips/kernel/ptrace.c
-@@ -174,17 +174,9 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 	/* when I and D space are separate, these will need to be fixed. */
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */
--	case PTRACE_PEEKDATA: {
--		unsigned long tmp;
--		int copied;
--
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		ret = -EIO;
--		if (copied != sizeof(tmp))
--			break;
--		ret = put_user(tmp,(unsigned long __user *) data);
-+	case PTRACE_PEEKDATA:
-+		ret = generic_ptrace_peekdata(child, addr, data);
- 		break;
--	}
- 
- 	/* Read the word at location addr in the USER area. */
- 	case PTRACE_PEEKUSR: {
-diff -puN arch/parisc/kernel/ptrace.c~ptrace_peekdata-consolidation arch/parisc/kernel/ptrace.c
---- a/arch/parisc/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/parisc/kernel/ptrace.c
-@@ -87,10 +87,9 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */ 
- 	case PTRACE_PEEKDATA: {
--		int copied;
--
- #ifdef CONFIG_64BIT
- 		if (__is_compat_task(child)) {
-+			int copied;
- 			unsigned int tmp;
- 
- 			addr &= 0xffffffffL;
-@@ -105,15 +104,7 @@ long arch_ptrace(struct task_struct *chi
- 		}
- 		else
- #endif
--		{
--			unsigned long tmp;
--
--			copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
 -			ret = -EIO;
--			if (copied != sizeof(tmp))
--				goto out_tsk;
--			ret = put_user(tmp,(unsigned long *) data);
--		}
-+			ret = generic_ptrace_peekdata(child, addr, data);
- 		goto out_tsk;
- 	}
++			ret = generic_ptrace_pokedata(child, addr, data);
+ 			break;
  
-diff -puN arch/powerpc/kernel/ptrace.c~ptrace_peekdata-consolidation arch/powerpc/kernel/ptrace.c
---- a/arch/powerpc/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/powerpc/kernel/ptrace.c
-@@ -379,17 +379,9 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 	/* when I and D space are separate, these will need to be fixed. */
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */
--	case PTRACE_PEEKDATA: {
--		unsigned long tmp;
--		int copied;
--
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		ret = -EIO;
--		if (copied != sizeof(tmp))
+ 		case PTRACE_POKEUSR: /* write the word at location addr in the USER area */
+diff -puN arch/mips/kernel/ptrace.c~ptrace_pokedata-consolidation arch/mips/kernel/ptrace.c
+--- a/arch/mips/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/mips/kernel/ptrace.c
+@@ -305,11 +305,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* when I and D space are separate, this will have to be fixed. */
+ 	case PTRACE_POKETEXT: /* write the word at location addr. */
+ 	case PTRACE_POKEDATA:
+-		ret = 0;
+-		if (access_process_vm(child, addr, &data, sizeof(data), 1)
+-		    == sizeof(data))
 -			break;
--		ret = put_user(tmp,(unsigned long __user *) data);
-+	case PTRACE_PEEKDATA:
-+		ret = generic_ptrace_peekdata(child, addr, data);
+-		ret = -EIO;
++		ret = generic_ptrace_pokedata(child, addr, data);
  		break;
--	}
  
- 	/* read the word at location addr in the USER area. */
- 	case PTRACE_PEEKUSR: {
-diff -puN arch/s390/kernel/ptrace.c~ptrace_peekdata-consolidation arch/s390/kernel/ptrace.c
---- a/arch/s390/kernel/ptrace.c~ptrace_peekdata-consolidation
+ 	case PTRACE_POKEUSR: {
+diff -puN arch/powerpc/kernel/ptrace.c~ptrace_pokedata-consolidation arch/powerpc/kernel/ptrace.c
+--- a/arch/powerpc/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/powerpc/kernel/ptrace.c
+@@ -413,11 +413,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* If I and D space are separate, this will have to be fixed. */
+ 	case PTRACE_POKETEXT: /* write the word at location addr. */
+ 	case PTRACE_POKEDATA:
+-		ret = 0;
+-		if (access_process_vm(child, addr, &data, sizeof(data), 1)
+-				== sizeof(data))
+-			break;
+-		ret = -EIO;
++		ret = generic_ptrace_pokedata(child, addr, data);
+ 		break;
+ 
+ 	/* write the word at location addr in the USER area */
+diff -puN arch/s390/kernel/ptrace.c~ptrace_pokedata-consolidation arch/s390/kernel/ptrace.c
+--- a/arch/s390/kernel/ptrace.c~ptrace_pokedata-consolidation
 +++ a/arch/s390/kernel/ptrace.c
-@@ -294,7 +294,6 @@ poke_user(struct task_struct *child, add
- static int
- do_ptrace_normal(struct task_struct *child, long request, long addr, long data)
- {
--	unsigned long tmp;
- 	ptrace_area parea; 
- 	int copied, ret;
- 
-@@ -304,10 +303,7 @@ do_ptrace_normal(struct task_struct *chi
+@@ -314,10 +314,7 @@ do_ptrace_normal(struct task_struct *chi
  		/* Remove high order bit from address (only for 31 bit). */
  		addr &= PSW_ADDR_INSN;
- 		/* read word at location addr. */
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		if (copied != sizeof(tmp))
+ 		/* write the word at location addr. */
+-		copied = access_process_vm(child, addr, &data, sizeof(data),1);
+-		if (copied != sizeof(data))
 -			return -EIO;
--		return put_user(tmp, (unsigned long __force __user *) data);
-+		return generic_ptrace_peekdata(child, addr, data);
+-		return 0;
++		return generic_ptrace_pokedata(child, addr, data);
  
- 	case PTRACE_PEEKUSR:
- 		/* read the word at location addr in the USER area. */
-diff -puN arch/sh/kernel/ptrace.c~ptrace_peekdata-consolidation arch/sh/kernel/ptrace.c
---- a/arch/sh/kernel/ptrace.c~ptrace_peekdata-consolidation
+ 	case PTRACE_POKEUSR:
+ 		/* write the word at location addr in the USER area */
+diff -puN arch/sh/kernel/ptrace.c~ptrace_pokedata-consolidation arch/sh/kernel/ptrace.c
+--- a/arch/sh/kernel/ptrace.c~ptrace_pokedata-consolidation
 +++ a/arch/sh/kernel/ptrace.c
-@@ -91,17 +91,8 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 	/* when I and D space are separate, these will need to be fixed. */
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */
--	case PTRACE_PEEKDATA: {
--		unsigned long tmp;
--		int copied;
--
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		ret = -EIO;
--		if (copied != sizeof(tmp))
+@@ -126,10 +126,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* when I and D space are separate, this will have to be fixed. */
+ 	case PTRACE_POKETEXT: /* write the word at location addr. */
+ 	case PTRACE_POKEDATA:
+-		ret = 0;
+-		if (access_process_vm(child, addr, &data, sizeof(data), 1) == sizeof(data))
 -			break;
--		ret = put_user(tmp,(unsigned long __user *) data);
--		break;
--	}
-+	case PTRACE_PEEKDATA:
-+		ret = generic_ptrace_peekdata(child, addr, data);
+-		ret = -EIO;
++		ret = generic_ptrace_pokedata(child, addr, data);
+ 		break;
  
- 	/* read the word at location addr in the USER area. */
- 	case PTRACE_PEEKUSR: {
-diff -puN arch/sh64/kernel/ptrace.c~ptrace_peekdata-consolidation arch/sh64/kernel/ptrace.c
---- a/arch/sh64/kernel/ptrace.c~ptrace_peekdata-consolidation
+ 	case PTRACE_POKEUSR: /* write the word at location addr in the USER area */
+diff -puN arch/sh64/kernel/ptrace.c~ptrace_pokedata-consolidation arch/sh64/kernel/ptrace.c
+--- a/arch/sh64/kernel/ptrace.c~ptrace_pokedata-consolidation
 +++ a/arch/sh64/kernel/ptrace.c
-@@ -129,17 +129,9 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 	/* when I and D space are separate, these will need to be fixed. */
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */
--	case PTRACE_PEEKDATA: {
--		unsigned long tmp;
--		int copied;
--
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		ret = -EIO;
--		if (copied != sizeof(tmp))
+@@ -158,10 +158,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* when I and D space are separate, this will have to be fixed. */
+ 	case PTRACE_POKETEXT: /* write the word at location addr. */
+ 	case PTRACE_POKEDATA:
+-		ret = 0;
+-		if (access_process_vm(child, addr, &data, sizeof(data), 1) == sizeof(data))
 -			break;
--		ret = put_user(tmp,(unsigned long *) data);
-+	case PTRACE_PEEKDATA:
-+		ret = generic_ptrace_peekdata(child, addr, data);
+-		ret = -EIO;
++		ret = generic_ptrace_pokedata(child, addr, data);
  		break;
--	}
  
- 	/* read the word at location addr in the USER area. */
- 	case PTRACE_PEEKUSR: {
-diff -puN arch/um/kernel/ptrace.c~ptrace_peekdata-consolidation arch/um/kernel/ptrace.c
---- a/arch/um/kernel/ptrace.c~ptrace_peekdata-consolidation
+ 	case PTRACE_POKEUSR:
+diff -puN arch/um/kernel/ptrace.c~ptrace_pokedata-consolidation arch/um/kernel/ptrace.c
+--- a/arch/um/kernel/ptrace.c~ptrace_pokedata-consolidation
 +++ a/arch/um/kernel/ptrace.c
-@@ -52,17 +52,9 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 		/* when I and D space are separate, these will need to be fixed. */
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */ 
--	case PTRACE_PEEKDATA: {
--		unsigned long tmp;
--		int copied;
--
+@@ -64,11 +64,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* when I and D space are separate, this will have to be fixed. */
+ 	case PTRACE_POKETEXT: /* write the word at location addr. */
+ 	case PTRACE_POKEDATA:
 -		ret = -EIO;
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		if (copied != sizeof(tmp))
+-		if (access_process_vm(child, addr, &data, sizeof(data), 
+-				      1) != sizeof(data))
 -			break;
--		ret = put_user(tmp, p);
-+	case PTRACE_PEEKDATA:
-+		ret = generic_ptrace_peekdata(child, addr, data);
+-		ret = 0;
++		ret = generic_ptrace_pokedata(child, addr, data);
  		break;
--	}
  
- 	/* read the word at location addr in the USER area. */
-         case PTRACE_PEEKUSR:
-diff -puN arch/v850/kernel/ptrace.c~ptrace_peekdata-consolidation arch/v850/kernel/ptrace.c
---- a/arch/v850/kernel/ptrace.c~ptrace_peekdata-consolidation
+ 	case PTRACE_POKEUSR: /* write the word at location addr in the USER area */
+diff -puN arch/v850/kernel/ptrace.c~ptrace_pokedata-consolidation arch/v850/kernel/ptrace.c
+--- a/arch/v850/kernel/ptrace.c~ptrace_pokedata-consolidation
 +++ a/arch/v850/kernel/ptrace.c
-@@ -117,15 +117,11 @@ long arch_ptrace(struct task_struct *chi
- 	int rval;
- 
- 	switch (request) {
--		unsigned long val, copied;
-+		unsigned long val;
- 
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */
- 	case PTRACE_PEEKDATA:
--		copied = access_process_vm(child, addr, &val, sizeof(val), 0);
--		rval = -EIO;
--		if (copied != sizeof(val))
--			break;
--		rval = put_user(val, (unsigned long *)data);
-+		rval = generic_ptrace_peekdata(child, addr, data);
- 		goto out;
+@@ -126,11 +126,7 @@ long arch_ptrace(struct task_struct *chi
  
  	case PTRACE_POKETEXT: /* write the word at location addr. */
-diff -puN arch/x86_64/kernel/ptrace.c~ptrace_peekdata-consolidation arch/x86_64/kernel/ptrace.c
---- a/arch/x86_64/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/x86_64/kernel/ptrace.c
-@@ -313,17 +313,9 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 	/* when I and D space are separate, these will need to be fixed. */
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */ 
--	case PTRACE_PEEKDATA: {
--		unsigned long tmp;
--		int copied;
--
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		ret = -EIO;
--		if (copied != sizeof(tmp))
+ 	case PTRACE_POKEDATA:
+-		rval = 0;
+-		if (access_process_vm(child, addr, &data, sizeof(data), 1)
+-		    == sizeof(data))
 -			break;
--		ret = put_user(tmp,(unsigned long __user *) data);
-+	case PTRACE_PEEKDATA:
-+		ret = generic_ptrace_peekdata(child, addr, data);
- 		break;
--	}
- 
- 	/* read the word at location addr in the USER area. */
- 	case PTRACE_PEEKUSR: {
-diff -puN arch/xtensa/kernel/ptrace.c~ptrace_peekdata-consolidation arch/xtensa/kernel/ptrace.c
---- a/arch/xtensa/kernel/ptrace.c~ptrace_peekdata-consolidation
-+++ a/arch/xtensa/kernel/ptrace.c
-@@ -50,18 +50,8 @@ long arch_ptrace(struct task_struct *chi
- 	switch (request) {
- 	case PTRACE_PEEKTEXT: /* read word at location addr. */
- 	case PTRACE_PEEKDATA:
--	{
--		unsigned long tmp;
--		int copied;
--
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		ret = -EIO;
--		if (copied != sizeof(tmp))
--			break;
--		ret = put_user(tmp,(unsigned long *) data);
--
-+		ret = generic_ptrace_peekdata(child, addr, data);
+-		rval = -EIO;
++		rval = generic_ptrace_pokedata(child, addr, data);
  		goto out;
--	}
  
- 	/* Read the word at location addr in the USER area.  */
+ 	/* Read/write the word at location ADDR in the registers.  */
+diff -puN arch/x86_64/kernel/ptrace.c~ptrace_pokedata-consolidation arch/x86_64/kernel/ptrace.c
+--- a/arch/x86_64/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/x86_64/kernel/ptrace.c
+@@ -359,10 +359,7 @@ long arch_ptrace(struct task_struct *chi
+ 	/* when I and D space are separate, this will have to be fixed. */
+ 	case PTRACE_POKETEXT: /* write the word at location addr. */
+ 	case PTRACE_POKEDATA:
+-		ret = 0;
+-		if (access_process_vm(child, addr, &data, sizeof(data), 1) == sizeof(data))
+-			break;
+-		ret = -EIO;
++		ret = generic_ptrace_pokedata(child, addr, data);
+ 		break;
  
-diff -puN include/linux/ptrace.h~ptrace_peekdata-consolidation include/linux/ptrace.h
---- a/include/linux/ptrace.h~ptrace_peekdata-consolidation
+ 	case PTRACE_POKEUSR: /* write the word at location addr in the USER area */
+diff -puN arch/xtensa/kernel/ptrace.c~ptrace_pokedata-consolidation arch/xtensa/kernel/ptrace.c
+--- a/arch/xtensa/kernel/ptrace.c~ptrace_pokedata-consolidation
++++ a/arch/xtensa/kernel/ptrace.c
+@@ -128,10 +128,7 @@ long arch_ptrace(struct task_struct *chi
+ 
+ 	case PTRACE_POKETEXT: /* write the word at location addr. */
+ 	case PTRACE_POKEDATA:
+-		if (access_process_vm(child, addr, &data, sizeof(data), 1)
+-		    == sizeof(data))
+-			break;
+-		ret = -EIO;
++		ret = generic_ptrace_pokedata(child, addr, data);
+ 		goto out;
+ 
+ 	case PTRACE_POKEUSR:
+diff -puN include/linux/ptrace.h~ptrace_pokedata-consolidation include/linux/ptrace.h
+--- a/include/linux/ptrace.h~ptrace_pokedata-consolidation
 +++ a/include/linux/ptrace.h
-@@ -110,6 +110,7 @@ static inline void ptrace_unlink(struct 
- 		__ptrace_unlink(child);
+@@ -111,6 +111,7 @@ static inline void ptrace_unlink(struct 
  }
  
-+int generic_ptrace_peekdata(struct task_struct *tsk, long addr, long data);
+ int generic_ptrace_peekdata(struct task_struct *tsk, long addr, long data);
++int generic_ptrace_pokedata(struct task_struct *tsk, long addr, long data);
  
  #ifndef force_successful_syscall_return
  /*
-diff -puN kernel/ptrace.c~ptrace_peekdata-consolidation kernel/ptrace.c
---- a/kernel/ptrace.c~ptrace_peekdata-consolidation
+diff -puN kernel/ptrace.c~ptrace_pokedata-consolidation kernel/ptrace.c
+--- a/kernel/ptrace.c~ptrace_pokedata-consolidation
 +++ a/kernel/ptrace.c
-@@ -490,3 +490,14 @@ asmlinkage long sys_ptrace(long request,
- 	return ret;
+@@ -501,3 +501,11 @@ int generic_ptrace_peekdata(struct task_
+ 		return -EIO;
+ 	return put_user(tmp, (unsigned long __user *)data);
  }
- #endif /* __ARCH_SYS_PTRACE */
 +
-+int generic_ptrace_peekdata(struct task_struct *tsk, long addr, long data)
++int generic_ptrace_pokedata(struct task_struct *tsk, long addr, long data)
 +{
-+	unsigned long tmp;
 +	int copied;
 +
-+	copied = access_process_vm(tsk, addr, &tmp, sizeof(tmp), 0);
-+	if (copied != sizeof(tmp))
-+		return -EIO;
-+	return put_user(tmp, (unsigned long __user *)data);
++	copied = access_process_vm(tsk, addr, &data, sizeof(data), 1);
++	return (copied == sizeof(data)) ? 0 : -EIO;
 +}
 _
 
