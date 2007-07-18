@@ -1,69 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([217.147.92.249]:34162 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752194AbXGRH3R (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jul 2007 03:29:17 -0400
-Date: Wed, 18 Jul 2007 08:28:58 +0100
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [patch 041/234] Report that kernel is tainted if there was an OOPS
-Message-ID: <20070718072858.GB30270@flint.arm.linux.org.uk>
-References: <200707171103.l6HB3gDf013411@imap1.linux-foundation.org> <20070717181003.GA16147@flint.arm.linux.org.uk> <469DA543.2030601@openvz.org> <20070718071658.GA30270@flint.arm.linux.org.uk> <469DBFA2.7020608@openvz.org>
+Received: from mtagate1.de.ibm.com ([195.212.29.150]:30092 "EHLO
+	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753194AbXGRHqm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jul 2007 03:46:42 -0400
+Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
+	by mtagate1.de.ibm.com (8.13.8/8.13.8) with ESMTP id l6I7kLLQ052280
+	for <linux-arch@vger.kernel.org>; Wed, 18 Jul 2007 07:46:21 GMT
+Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
+	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v8.4) with ESMTP id l6I7kL3t1536168
+	for <linux-arch@vger.kernel.org>; Wed, 18 Jul 2007 09:46:21 +0200
+Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
+	by d12av02.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id l6I7kEqF029039
+	for <linux-arch@vger.kernel.org>; Wed, 18 Jul 2007 09:46:15 +0200
+Subject: Re: + sparc64-rename-tlb_flush_mmu.patch added to -mm tree
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Reply-To: schwidefsky@de.ibm.com
+In-Reply-To: <20070717144245.7760a716.akpm@linux-foundation.org>
+References: <200707170748.l6H7m1so005969@imap1.linux-foundation.org>
+	 <20070717005551.cdb9504e.akpm@linux-foundation.org>
+	 <20070717010324.833fee7e.akpm@linux-foundation.org>
+	 <1184680583.21357.67.camel@localhost>
+	 <20070717181843.GB16147@flint.arm.linux.org.uk>
+	 <20070717120820.86a50e75.akpm@linux-foundation.org>
+	 <20070717211445.GC16147@flint.arm.linux.org.uk>
+	 <20070717144245.7760a716.akpm@linux-foundation.org>
+Content-Type: text/plain
+Date: Wed, 18 Jul 2007 09:48:57 +0200
+Message-Id: <1184744937.17915.21.camel@localhost>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <469DBFA2.7020608@openvz.org>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Pavel Emelianov <xemul@openvz.org>
-Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, randy.dunlap@oracle.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Russell King <rmk@arm.linux.org.uk>, linux-arch@vger.kernel.org, davem@davemloft.net, hugh@veritas.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Jul 18, 2007 at 11:22:10AM +0400, Pavel Emelianov wrote:
-> Russell King wrote:
-> >On Wed, Jul 18, 2007 at 09:29:39AM +0400, Pavel Emelianov wrote:
-> >>Russell King wrote:
-> >>>On Tue, Jul 17, 2007 at 04:03:42AM -0700, akpm@linux-foundation.org 
-> >>>wrote:
-> >>>>From: Pavel Emelianov <xemul@openvz.org>
-> >>>>
-> >>>>If the kernel OOPSed or BUGed then it probably should be considered as
-> >>>>tainted.  Thus, all subsequent OOPSes and SysRq dumps will report the
-> >>>>tainted kernel.  This saves a lot of time explaining oddities in the
-> >>>>calltraces.
-> >>>A bug causes an oops.  Oops are counted.  So, why do we need this
-> >>>additional complexity when we already have the '#' counter in oops
-> >>>dumps?
-> >>>
-> >>>For instance, on ARM:
-> >>>
-> >>>Unable to handle kernel NULL pointer dereference at virtual address 
-> >>>00000090
-> >>>pgd = c0004000
-> >>>[00000090] *pgd=00000000
-> >>>Internal error: Oops: 817 [#1]
-> >>>                         ^^^^
-> >>>This is the oops counter.  Anything oops report from anyone other than 
-> >>>the
-> >>>first should always be questioned.  Also note that this counter is not
-> >>>re-settable at run time, unlike the taint flags.
-> >>>
-> >>Press SysRq-P and you won't see any oops-counters, but just the info that 
-> >>the kernel is tainted. This is helpful to know that kernel oopsed when
-> >>observing the SysRq-p output. This is just one of the reasons.
-> >
-> >Maybe it'd make more sense to print the oops counter in places where
-> >the tainted status is printed?
-> >
-> 
-> Maybe. But the "tainted" mask is a common way to tell people that the 
-> kernel is not clean. Besides, the "D" taint flag and "non-zero" oops 
-> counter both mean the same thing, while "D" looks better.
+On Tue, 2007-07-17 at 14:42 -0700, Andrew Morton wrote:
+> umm, OK, well what is the spec for this new interface which Martin
+> is proposing to add?
 
-The oops counter provides further (obvious) information.
+Actually the interface is already there but so far it has been internal
+to the generic tlb gather code and most architecture variants.
 
-However, if it's no longer needed due to adding the "D" taint flag, it
-can be removed entirely.
+> It _seems_ to be that if the arch implements tlb_flush_mmu() then its
+> tlb_finish_mmu() can (should) be a no-op?
+
+Yes, tlb_flush_mmu() can be a no-op, it basically says that "now is a
+good time to get rid of the tlbs / pages gathered in the tlb gather
+structure so far". In case you have already freed everything
+tlb_flush_mmu is naturally a no-op, e.g. for arm. 
+
+> Or if the arch's tlb_finish_mmu() does a full mm "flush" (god I hate that
+> term - here we meant writeback, and perhaps invalidate??)) then its
+> tlb_flush_mmu() can (should) be a no-op.
+
+This is one case where the architecture can flush at the beginning of
+the tlb gather operation and tlb_flush_mmu turns into a nop.
+There are four difference batched tlb operations:
+1) change_protection does a number of ptep_get_and_clear()/set_pte_at()
+calls followed by a flush_tlb_range().
+2) dup_mmap/copy_page_range does ptep_set_wrprotect() on a choice of
+ptes followed by a flush_tlb_mm().
+3) unmap_region() and zap_page_range() use the tlb gatherer with
+fullmm==0 which will make zap_pte_range() call ptep_get_and_clear_full()
+with fullmm==0.
+4) exit_map() uses the tlb gatherer with fullmm==1 which will make
+zap_pte_range() call ptep_get_and_clear_full() with fullmm==1.
+
+So we have the "full" flush, the partial flush, the wrprotect flush and
+the change protection flush. I've been halfway through the code that
+introduces the notion of these four different flush types before I gave
+up because it resulted in too much code.
+
+> Or something like that.  Martin, I'd suggest that an update to
+> Documentation/cachetlb.txt is in order, spell this all out.
+
+Ok, I will see what I can do.
+
+> Doing this properly would require that Documentation/cachetlb.txt say
+> something about tlb_gather_mmu() and tlb_finish_mmu() too, I guess.
+> Please ;)
+
+That is the sore spot, we (I?) have to write documentation for all the
+primitives of the tlb gatherer.
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+blue skies,
+  Martin.
+
+"Reality continues to ruin my life." - Calvin.
+
+
