@@ -1,62 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:43231 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1762047AbXGSBUA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jul 2007 21:20:00 -0400
-Date: Wed, 18 Jul 2007 18:19:32 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 2.6.22-git5] via-rhine: Disable rx_copybreak on archs
- that don't allow unaligned DMA access
-Message-Id: <20070718181932.88809ea6.akpm@linux-foundation.org>
-In-Reply-To: <46991FBC.5070705@alcatraz.fdf.net>
-References: <46991FBC.5070705@alcatraz.fdf.net>
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:52860 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753821AbXGSHBc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Jul 2007 03:01:32 -0400
+From: Keith Owens <kaos@ocs.com.au>
+Subject: [patch 2.6.22] Do not include other cpus' interrupt 0 in nmi_watchdog
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Date: Thu, 19 Jul 2007 17:01:26 +1000
+Message-ID: <9346.1184828486@kao2.melbourne.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Dustin Marquess <jailbird@alcatraz.dnsalias.net>
-Cc: Francois Romieu <romieu@fr.zoreil.com>, Jeff Garzik <jeff@garzik.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, netdev@vger.kernel.org, linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+kstat_irqs(0) includes the count of interrupt 0 from all cpus, not just
+the current cpu.  The updated interrupt 0 on other cpus can stop the
+nmi_watchdog from tripping, so only include the current cpu's int 0.
 
-(mailing lsits and cc's added - I trust that's OK)
+Signed-off-by: Keith Owens <kaos@ocs.com.au>
 
-(Please always cc mailing list(s) on patches)
+---
+ arch/i386/kernel/nmi.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-On Sat, 14 Jul 2007 14:10:52 -0500
-Dustin Marquess <jailbird@alcatraz.dnsalias.net> wrote:
-
-> From: Dustin Marquess <jailbird@alcatraz.fdf.net>
-> 
-> Patch to disable the rx_copybreak feature on hardware architectures that
-> don't allow unaligned DMA access.
-> 
-> #ifdef code taken from tulip_core.c.  Problem pointed out by Ivan
-> Kokshaysky.
-> 
-> Signed-off-by: Dustin Marquess <jailbird@alcatraz.fdf.net>
-> ---
-> 
-> diff -uprN a/drivers/net/via-rhine.c b/drivers/net/via-rhine.c
-> --- a/drivers/net/via-rhine.c   2007-07-14 13:51:18.475341321 -0500
-> +++ b/drivers/net/via-rhine.c   2007-07-14 13:56:40.684678999 -0500
-> @@ -42,7 +42,13 @@ static int max_interrupt_work = 20;
-> 
->   /* Set the copy breakpoint for the copy-only-tiny-frames scheme.
->      Setting to > 1518 effectively disables this feature. */
-> +#if defined(__alpha__) || defined(__arm__) || defined(__hppa__) \
-> +       || defined(CONFIG_SPARC) || defined(__ia64__) \
-> +       || defined(__sh__) || defined(__mips__)
-> +static int rx_copybreak = 1518;
-> +#else
->   static int rx_copybreak;
-> +#endif
-
-I guess the patch makes sense, but boy that conditional does suck.
-
-It would be much better to go into each of those architecture's
-arch/foo/Kconfig and define a new CONFIG_NO_UNALIGNED_DMA or whatever, and
-to then use that config variable here, in tulip_core.c and wherever else
-we're doing this.
+Index: linux/arch/i386/kernel/nmi.c
+===================================================================
+--- linux.orig/arch/i386/kernel/nmi.c
++++ linux/arch/i386/kernel/nmi.c
+@@ -351,7 +351,7 @@ __kprobes int nmi_watchdog_tick(struct p
+ 	 * Take the local apic timer and PIT/HPET into account. We don't
+ 	 * know which one is active, when we have highres/dyntick on
+ 	 */
+-	sum = per_cpu(irq_stat, cpu).apic_timer_irqs + kstat_irqs(0);
++	sum = per_cpu(irq_stat, cpu).apic_timer_irqs + kstat_cpu(cpu).irqs[0];
+ 
+ 	/* if the none of the timers isn't firing, this cpu isn't doing much */
+ 	if (!touched && last_irq_sums[cpu] == sum) {
 
