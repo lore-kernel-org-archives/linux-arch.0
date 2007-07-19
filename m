@@ -1,47 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:36560 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755012AbXGSX02 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Jul 2007 19:26:28 -0400
-Date: Thu, 19 Jul 2007 16:25:29 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 4/7] x86_64: SPARSEMEM_VMEMMAP 2M page size support
-Message-Id: <20070719162529.66302406.akpm@linux-foundation.org>
-In-Reply-To: <E1I9LK3-00007i-2T@hellhawk.shadowen.org>
-References: <exportbomb.1184333503@pinky>
-	<E1I9LK3-00007i-2T@hellhawk.shadowen.org>
-Mime-Version: 1.0
+Received: from mga09.intel.com ([134.134.136.24]:8237 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1762025AbXGSXyy convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Jul 2007 19:54:54 -0400
+Content-class: urn:content-classes:message
+MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 7BIT
+Subject: RE: build fix for x86_64...
+Date: Thu, 19 Jul 2007 16:54:51 -0700
+Message-ID: <617E1C2C70743745A92448908E030B2A01FA4327@scsmsx411.amr.corp.intel.com>
+In-Reply-To: <200707200109.02039.ak@suse.de>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andy Whitcroft <apw@shadowen.org>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Mel Gorman <mel@csn.ul.ie>
+To: Andi Kleen <ak@suse.de>, Arthur Jones <arthur.jones@qlogic.com>
+Cc: Vasily Tarasov <vtaras@openvz.org>, linux-kernel@vger.kernel.org, Jan Kara <jack@ucw.cz>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 13 Jul 2007 14:36:39 +0100
-Andy Whitcroft <apw@shadowen.org> wrote:
+> Looks good.
 
-> x86_64 uses 2M page table entries to map its 1-1 kernel space.
-> We also implement the virtual memmap using 2M page table entries.  So
-> there is no additional runtime overhead over FLATMEM, initialisation
-> is slightly more complex.  As FLATMEM still references memory to
-> obtain the mem_map pointer and SPARSEMEM_VMEMMAP uses a compile
-> time constant, SPARSEMEM_VMEMMAP should be superior.
-> 
-> With this SPARSEMEM becomes the most efficient way of handling
-> virt_to_page, pfn_to_page and friends for UP, SMP and NUMA on x86_64.
-> 
-> [apw@shadowen.org: code resplit, style fixups]
-> From: Christoph Lameter <clameter@sgi.com>
-> Signed-off-by: Christoph Lameter <clameter@sgi.com>
-> Signed-off-by: Andy Whitcroft <apw@shadowen.org>
-> Acked-by: Mel Gorman <mel@csn.ul.ie>
-> ---
-> diff --git a/Documentation/x86_64/mm.txt b/Documentation/x86_64/mm.txt
+Looks good to me too (I'm to blame for the version posted by Doug
+that only fixed ia64 ... I didn't take the time to check whether
+there was a CONFIG_COMPAT option for x86_64 ... oops).
 
-Please put the From: attribution right at the top of the changelog.
+> Tony, perhaps it would make sense to define some common CONFIG
+> for COMPAT_FOR_U64_ALIGNMENT longer term to make the #ifs for this
+> case a little less ugly.
 
-Please alter your scripts to include diffstat output after the ^---
+Certainly if there is ever a third architecture that needs this the
+#if mess will be beyond bad.  But with only the two of us we'd trade
+one ugly #ifdef line here for another half-dozen lines in each of
+our Kconfig files to define the new term.  I'm not sure whether that
+is a win.
 
-Thanks.
+-Tony
