@@ -1,64 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e36.co.us.ibm.com ([32.97.110.154]:59703 "EHLO
-	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932236AbXGSPES (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Jul 2007 11:04:18 -0400
-Subject: Re: [PATCH for review] [11/48] x86_64: During VM oom condition,
-	kill all threads in process group
-From: Will Schmidt <will_schmidt@vnet.ibm.com>
-Reply-To: will_schmidt@vnet.ibm.com
-In-Reply-To: <Pine.LNX.4.64.0707191614180.7377@anakin>
-References: <20070719348.540885000@suse.de>
-	 <20070719134840.47B5114E6E@wotan.suse.de>
-	 <20070719140411.GD16279@infradead.org>
-	 <Pine.LNX.4.64.0707191614180.7377@anakin>
-Content-Type: text/plain
-Date: Thu, 19 Jul 2007 10:03:09 -0500
-Message-Id: <1184857389.22237.20.camel@farscape.rchland.ibm.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:49790 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S935544AbXGSQoV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Jul 2007 12:44:21 -0400
+Date: Thu, 19 Jul 2007 09:43:57 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [patch 059/209] mm: variable length argument support
+In-Reply-To: <200707190848.l6J8mGmT023102@imap1.linux-foundation.org>
+Message-ID: <alpine.LFD.0.999.0707190937290.8502@woody.linux-foundation.org>
+References: <200707190848.l6J8mGmT023102@imap1.linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: akpm@linux-foundation.org
+Cc: aaw@google.com, a.p.zijlstra@chello.nl, bunk@stusta.de, hugh@veritas.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2007-07-19 at 16:14 +0200, Geert Uytterhoeven wrote:
-> On Thu, 19 Jul 2007, Christoph Hellwig wrote:
-> > On Thu, Jul 19, 2007 at 03:48:40PM +0200, Andi Kleen wrote:
-> > > From: Will Schmidt <will_schmidt@vnet.ibm.com>
-> > > 
-> > > During a VM oom condition, kill all threads in the process group.
-> > > 
-> > > We have had complaints where a threaded application is left in a bad state
-> > > after one of it's threads is killed when we hit a VM: out_of_memory condition.
-> > > 
-> > > Killing just one of the process threads can leave the application in a bad
-> > > state, whereas killing the entire process group would allow for the
-> > > application to restart, or otherwise handled, and makes it very obvious that
-> > > something has gone wrong.
-> > > 
-> > > This change allows the entire process group to be taken down, rather than just
-> > > the one thread.
-> > 
-> > Shouldn't we have one patc hthat does this for every architecture instead
-> > of going through arch maintainers and probably losing half of them?
+
+
+On Thu, 19 Jul 2007, akpm@linux-foundation.org wrote:
+>
+> From: Ollie Wild <aaw@google.com>
 > 
-> Yes, please ;-)
+> Remove the arg+env limit of MAX_ARG_PAGES by copying the strings directly from
+> the old mm into the new mm.
 
-Ok, i'm convinced. :-)      I'll spin up an all-arch encompassing patch
-in the next day or so. 
+Btw, this is just a note to say "thanks". 
 
--Will
+This is my old commit from 2002 from the BK tree:
 
+	commit 1d0c3d1807bf80943ad06868ef41665766c3ff0f
+	Author: Linus Torvalds <torvalds@home.transmeta.com>
+	Date:   Tue May 28 08:01:57 2002 -0700
+	
+	    Remove re-use of "struct mm_struct" at execve() time.
+	
+	    This will eventually allow us to copy argc/argv without
+	    any intermediate storage (removing current argument size
+	    limitations).
 
+..and the "eventually" ended up being more than five years later, but hey, 
+better late than never.
 
-> 
-> Gr{oetje,eeting}s,
-> 
-> 						Geert
-> 
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-> 
-> return -EMAINTAINER_TOO_BUSY
-
+			Linus
