@@ -1,40 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:52860 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753821AbXGSHBc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Jul 2007 03:01:32 -0400
-From: Keith Owens <kaos@ocs.com.au>
-Subject: [patch 2.6.22] Do not include other cpus' interrupt 0 in nmi_watchdog
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Date: Thu, 19 Jul 2007 17:01:26 +1000
-Message-ID: <9346.1184828486@kao2.melbourne.sgi.com>
+Received: from mx2.suse.de ([195.135.220.15]:55528 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759317AbXGSIXm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Jul 2007 04:23:42 -0400
+From: Andi Kleen <ak@suse.de>
+Subject: Re: [patch 2.6.22] Do not include other cpus' interrupt 0 in nmi_watchdog
+Date: Thu, 19 Jul 2007 10:23:36 +0200
+References: <9346.1184828486@kao2.melbourne.sgi.com>
+In-Reply-To: <9346.1184828486@kao2.melbourne.sgi.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200707191023.36765.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
+To: Keith Owens <kaos@ocs.com.au>
+Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-kstat_irqs(0) includes the count of interrupt 0 from all cpus, not just
-the current cpu.  The updated interrupt 0 on other cpus can stop the
-nmi_watchdog from tripping, so only include the current cpu's int 0.
+On Thursday 19 July 2007 09:01:26 Keith Owens wrote:
+> kstat_irqs(0) includes the count of interrupt 0 from all cpus, not just
+> the current cpu.  The updated interrupt 0 on other cpus can stop the
+> nmi_watchdog from tripping, so only include the current cpu's int 0.
 
-Signed-off-by: Keith Owens <kaos@ocs.com.au>
+I queued the patch thanks.
 
----
- arch/i386/kernel/nmi.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-Index: linux/arch/i386/kernel/nmi.c
-===================================================================
---- linux.orig/arch/i386/kernel/nmi.c
-+++ linux/arch/i386/kernel/nmi.c
-@@ -351,7 +351,7 @@ __kprobes int nmi_watchdog_tick(struct p
- 	 * Take the local apic timer and PIT/HPET into account. We don't
- 	 * know which one is active, when we have highres/dyntick on
- 	 */
--	sum = per_cpu(irq_stat, cpu).apic_timer_irqs + kstat_irqs(0);
-+	sum = per_cpu(irq_stat, cpu).apic_timer_irqs + kstat_cpu(cpu).irqs[0];
- 
- 	/* if the none of the timers isn't firing, this cpu isn't doing much */
- 	if (!touched && last_irq_sums[cpu] == sum) {
-
+-Andi
