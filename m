@@ -1,35 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:58595 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1764205AbXGRSpN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jul 2007 14:45:13 -0400
-Message-ID: <469E5E90.3090702@zytor.com>
-Date: Wed, 18 Jul 2007 11:40:16 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
-Subject: Re: [patch 041/234] Report that kernel is tainted if there was an
- OOPS
-References: <200707171103.l6HB3gDf013411@imap1.linux-foundation.org> <20070717181003.GA16147@flint.arm.linux.org.uk> <469DA543.2030601@openvz.org> <20070718071658.GA30270@flint.arm.linux.org.uk> <469DBFA2.7020608@openvz.org> <20070718072858.GB30270@flint.arm.linux.org.uk>
-In-Reply-To: <20070718072858.GB30270@flint.arm.linux.org.uk>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:43231 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1762047AbXGSBUA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Jul 2007 21:20:00 -0400
+Date: Wed, 18 Jul 2007 18:19:32 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 2.6.22-git5] via-rhine: Disable rx_copybreak on archs
+ that don't allow unaligned DMA access
+Message-Id: <20070718181932.88809ea6.akpm@linux-foundation.org>
+In-Reply-To: <46991FBC.5070705@alcatraz.fdf.net>
+References: <46991FBC.5070705@alcatraz.fdf.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: Pavel Emelianov <xemul@openvz.org>, akpm@linux-foundation.org, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, randy.dunlap@oracle.com
+To: Dustin Marquess <jailbird@alcatraz.dnsalias.net>
+Cc: Francois Romieu <romieu@fr.zoreil.com>, Jeff Garzik <jeff@garzik.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, netdev@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Russell King wrote:
->>>
->> Maybe. But the "tainted" mask is a common way to tell people that the 
->> kernel is not clean. Besides, the "D" taint flag and "non-zero" oops 
->> counter both mean the same thing, while "D" looks better.
-> 
-> The oops counter provides further (obvious) information.
-> 
-> However, if it's no longer needed due to adding the "D" taint flag, it
-> can be removed entirely.
-> 
 
-I would say there is still a difference between oops [#2] or oops [#697]...
+(mailing lsits and cc's added - I trust that's OK)
 
-	-hpa
+(Please always cc mailing list(s) on patches)
+
+On Sat, 14 Jul 2007 14:10:52 -0500
+Dustin Marquess <jailbird@alcatraz.dnsalias.net> wrote:
+
+> From: Dustin Marquess <jailbird@alcatraz.fdf.net>
+> 
+> Patch to disable the rx_copybreak feature on hardware architectures that
+> don't allow unaligned DMA access.
+> 
+> #ifdef code taken from tulip_core.c.  Problem pointed out by Ivan
+> Kokshaysky.
+> 
+> Signed-off-by: Dustin Marquess <jailbird@alcatraz.fdf.net>
+> ---
+> 
+> diff -uprN a/drivers/net/via-rhine.c b/drivers/net/via-rhine.c
+> --- a/drivers/net/via-rhine.c   2007-07-14 13:51:18.475341321 -0500
+> +++ b/drivers/net/via-rhine.c   2007-07-14 13:56:40.684678999 -0500
+> @@ -42,7 +42,13 @@ static int max_interrupt_work = 20;
+> 
+>   /* Set the copy breakpoint for the copy-only-tiny-frames scheme.
+>      Setting to > 1518 effectively disables this feature. */
+> +#if defined(__alpha__) || defined(__arm__) || defined(__hppa__) \
+> +       || defined(CONFIG_SPARC) || defined(__ia64__) \
+> +       || defined(__sh__) || defined(__mips__)
+> +static int rx_copybreak = 1518;
+> +#else
+>   static int rx_copybreak;
+> +#endif
+
+I guess the patch makes sense, but boy that conditional does suck.
+
+It would be much better to go into each of those architecture's
+arch/foo/Kconfig and define a new CONFIG_NO_UNALIGNED_DMA or whatever, and
+to then use that config variable here, in tulip_core.c and wherever else
+we're doing this.
+
