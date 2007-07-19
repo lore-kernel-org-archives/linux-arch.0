@@ -1,25 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:44220 "EHLO
+Received: from pentafluge.infradead.org ([213.146.154.40]:60219 "EHLO
 	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S938817AbXGSOCa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Jul 2007 10:02:30 -0400
-Date: Thu, 19 Jul 2007 15:02:26 +0100
+	with ESMTP id S938794AbXGSOEN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Jul 2007 10:04:13 -0400
+Date: Thu, 19 Jul 2007 15:04:11 +0100
 From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH] Consolidate PTRACE_DETACH
-Message-ID: <20070719140226.GC16279@infradead.org>
-References: <20070719123800.GA31240@localhost.sw.ru>
+Subject: Re: [PATCH for review] [11/48] x86_64: During VM oom condition, kill all threads in process group
+Message-ID: <20070719140411.GD16279@infradead.org>
+References: <20070719348.540885000@suse.de> <20070719134840.47B5114E6E@wotan.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070719123800.GA31240@localhost.sw.ru>
+In-Reply-To: <20070719134840.47B5114E6E@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Alexey Dobriyan <adobriyan@sw.ru>
-Cc: akpm@osdl.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, hch@infradead.org, devel@openvz.org
+To: Andi Kleen <ak@suse.de>
+Cc: will_schmidt@vnet.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Jul 19, 2007 at 04:38:01PM +0400, Alexey Dobriyan wrote:
-> Identical handlers of PTRACE_DETACH go into ptrace_request().
-> Not touching compat code.
-> Not touching archs that don't call ptrace_request.
+On Thu, Jul 19, 2007 at 03:48:40PM +0200, Andi Kleen wrote:
+> 
+> From: Will Schmidt <will_schmidt@vnet.ibm.com>
+> 
+> During a VM oom condition, kill all threads in the process group.
+> 
+> We have had complaints where a threaded application is left in a bad state
+> after one of it's threads is killed when we hit a VM: out_of_memory condition.
+> 
+> Killing just one of the process threads can leave the application in a bad
+> state, whereas killing the entire process group would allow for the
+> application to restart, or otherwise handled, and makes it very obvious that
+> something has gone wrong.
+> 
+> This change allows the entire process group to be taken down, rather than just
+> the one thread.
 
-Looks very nice, thanks.
+Shouldn't we have one patc hthat does this for every architecture instead
+of going through arch maintainers and probably losing half of them?
+
+> Index: linux/arch/x86_64/mm/fault.c
+> ===================================================================
+> --- linux.orig/arch/x86_64/mm/fault.c
+> +++ linux/arch/x86_64/mm/fault.c
+> @@ -569,7 +569,7 @@ out_of_memory:
+>  	}
+>  	printk("VM: killing process %s\n", tsk->comm);
+>  	if (error_code & 4)
+> -		do_exit(SIGKILL);
+> +		do_group_exit(SIGKILL);
+>  	goto no_context;
+>  
+>  do_sigbus:
