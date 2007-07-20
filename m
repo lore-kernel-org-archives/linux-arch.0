@@ -1,39 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:34421 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754620AbXGTS1Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Jul 2007 14:27:25 -0400
-From: Andreas Schwab <schwab@suse.de>
-Subject: Re: build fix for x86_64...
-References: <617E1C2C70743745A92448908E030B2A01FA46A9@scsmsx411.amr.corp.intel.com>
-	<46A0EAC8.9020203@zytor.com> <jezm1rq8gz.fsf@sykes.suse.de>
-	<46A0F4AC.50809@zytor.com>
-Date: Fri, 20 Jul 2007 20:27:01 +0200
-In-Reply-To: <46A0F4AC.50809@zytor.com> (H. Peter Anvin's message of "Fri\, 20
-	Jul 2007 10\:45\:16 -0700")
-Message-ID: <je7iov2aoa.fsf@sykes.suse.de>
+Received: from terminus.zytor.com ([198.137.202.10]:41641 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1762703AbXGTTa1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jul 2007 15:30:27 -0400
+Message-ID: <46A10D12.5000903@zytor.com>
+Date: Fri, 20 Jul 2007 12:29:22 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Subject: Re: build fix for x86_64...
+References: <617E1C2C70743745A92448908E030B2A01FA46A9@scsmsx411.amr.corp.intel.com> <jezm1rq8gz.fsf@sykes.suse.de> <46A0F4AC.50809@zytor.com> <200707202013.03568.ak@suse.de>
+In-Reply-To: <200707202013.03568.ak@suse.de>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, Randy Dunlap <randy.dunlap@oracle.com>, Andi Kleen <ak@novell.com>, Arthur Jones <arthur.jones@qlogic.com>, Vasily Tarasov <vtaras@openvz.org>, linux-kernel@vger.kernel.org, Jan Kara <jack@ucw.cz>, linux-arch@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: Andreas Schwab <schwab@suse.de>, "Luck, Tony" <tony.luck@intel.com>, Randy Dunlap <randy.dunlap@oracle.com>, Arthur Jones <arthur.jones@qlogic.com>, Vasily Tarasov <vtaras@openvz.org>, linux-kernel@vger.kernel.org, Jan Kara <jack@ucw.cz>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-"H. Peter Anvin" <hpa@zytor.com> writes:
+Andi Kleen wrote:
+>> Obviously, this is not a panacea; if the original "struct foo" has also
+>> been introduced on 64 bits before the bug is caught, 
+> 
+> That's usually the case. There is already an established 64bit ABI
+> 
 
-> struct foo {
-> 	u32 bar;
-> 	compat_u64 baz;
-> 	u32 quux;
-> };
+This is true.
 
-compat_u64 is only for use in CONFIG_COMPAT code.
+Kind of makes me wonder if the right thing is to introduce an
+"interface" 64-bit type, call it __iu64 (__is64) defined as:
 
-Andreas.
+typedef __u64 __attribute__((aligned(8))) __iu64;
+typedef __s64 __attribute__((aligned(8))) __is64;
 
--- 
-Andreas Schwab, SuSE Labs, schwab@suse.de
-SuSE Linux Products GmbH, Maxfeldstraße 5, 90409 Nürnberg, Germany
-PGP key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
-"And now for something completely different."
+... and encourage people to use it when creating new interfaces.
+
+Don't know if that would do any good.
+
+	-hpa
