@@ -1,47 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:59633 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757029AbXGTR20 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Jul 2007 13:28:26 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: build fix for x86_64...
-Date: Fri, 20 Jul 2007 19:25:11 +0200
-References: <617E1C2C70743745A92448908E030B2A01FA46A9@scsmsx411.amr.corp.intel.com> <46A0EAC8.9020203@zytor.com>
-In-Reply-To: <46A0EAC8.9020203@zytor.com>
+Received: from terminus.zytor.com ([198.137.202.10]:45931 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S939365AbXGTRip (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jul 2007 13:38:45 -0400
+Message-ID: <46A0F301.4020703@zytor.com>
+Date: Fri, 20 Jul 2007 10:38:09 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Subject: Re: build fix for x86_64...
+References: <617E1C2C70743745A92448908E030B2A01FA46A9@scsmsx411.amr.corp.intel.com> <46A0EAC8.9020203@zytor.com> <200707201925.12036.ak@suse.de>
+In-Reply-To: <200707201925.12036.ak@suse.de>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200707201925.12036.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
+To: Andi Kleen <ak@suse.de>
 Cc: "Luck, Tony" <tony.luck@intel.com>, Randy Dunlap <randy.dunlap@oracle.com>, Andi Kleen <ak@novell.com>, Arthur Jones <arthur.jones@qlogic.com>, Vasily Tarasov <vtaras@openvz.org>, linux-kernel@vger.kernel.org, Jan Kara <jack@ucw.cz>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Friday 20 July 2007 19:03, H. Peter Anvin wrote:
-> Luck, Tony wrote:
-> > Which is better.  But if we unconditionally set this CONFIG variable,
-> > then the code in fs/quota.c will have to read:
-> >
-> > #if defined(CONFIG_COMPAT) && defined(CONFIG_COMPAT_FOR_U64_ALIGNMENT)
-> >
-> > We can keep it simpler if the Kconfig file does the conditional for us:
-> >
-> > config COMPAT_FOR_U64_ALIGNMENT
-> > 	def_bool y
-> > 	depends on COMPAT
->
-> No, that would be bad.  If compat_u64 is used to carry 32-bit ABIs
+Andi Kleen wrote:
+> 
+> That doesn't help for any old interfaces, like the one here. For those
+> still ifdefs are needed. Interfaces that use compat_u64 just use
+> a normal #ifdef CONFIG_COMPAT.
+> 
+> Besides I have my doubts compat_u64 will be the solution
+> to these worries. We have hundreds of people adding various interfaces
+> to Linux and it's unlikely they all heard about it. So likely
+> these cases will occur again and again.
+> 
 
-That doesn't help for any old interfaces, like the one here. For those
-still ifdefs are needed. Interfaces that use compat_u64 just use
-a normal #ifdef CONFIG_COMPAT.
+Of course they will.  compat_u64 will have no effect on a properly
+designed interface where everything is aligned.
 
-Besides I have my doubts compat_u64 will be the solution
-to these worries. We have hundreds of people adding various interfaces
-to Linux and it's unlikely they all heard about it. So likely
-these cases will occur again and again.
+To me, the whole point with compat_u64 is that when someone has designed
+an interface improperly (so it's alignment-dependent) then we can
+replace u64 with compat_u64 and use the same structure on 64 bits even
+though the original interface was broken.
 
--Andi
-
+	-hpa
