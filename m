@@ -1,39 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:44769 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S933279AbXGWTgV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jul 2007 15:36:21 -0400
-Date: Mon, 23 Jul 2007 12:36:18 -0700
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 3/7] Generic Virtual Memmap support for SPARSEMEM
-Message-ID: <20070723123618.4a25f902@schroedinger.engr.sgi.com>
-In-Reply-To: <20070714163319.GA14184@infradead.org>
-References: <exportbomb.1184333503@pinky>
-	<E1I9LJY-00006o-GK@hellhawk.shadowen.org>
-	<20070714152058.GA12478@infradead.org>
-	<Pine.LNX.4.64.0707140905140.31138@schroedinger.engr.sgi.com>
-	<20070714163319.GA14184@infradead.org>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:47042 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750756AbXGWVRM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Jul 2007 17:17:12 -0400
+Date: Mon, 23 Jul 2007 14:16:41 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH respin, was PATCH for review] During VM oom condition,
+ kill all threads in process group
+Message-Id: <20070723141641.5759a287.akpm@linux-foundation.org>
+In-Reply-To: <1185214185.22237.30.camel@farscape.rchland.ibm.com>
+References: <20070719348.540885000@suse.de>
+	<20070719134840.47B5114E6E@wotan.suse.de>
+	<20070719140411.GD16279@infradead.org>
+	<Pine.LNX.4.64.0707191614180.7377@anakin>
+	<1185214185.22237.30.camel@farscape.rchland.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Andy Whitcroft <apw@shadowen.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
+To: will_schmidt@vnet.ibm.com
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 14 Jul 2007 17:33:19 +0100
-Christoph Hellwig <hch@infradead.org> wrote:
- 
-> It's not generic.  Most of it is under a maze of obscure config
-> options. The patchset in it's current form is a complete mess of
-> obscure ifefery and not quite generic code.  And it only adds new
-> memory models without ripping old stuff out.  So while I really like
-> the basic idea the patches need quite a lot more work until they're
-> mergeable.
+On Mon, 23 Jul 2007 13:09:45 -0500
+Will Schmidt <will_schmidt@vnet.ibm.com> wrote:
 
-It is generic. If you would put the components into each arch then you
-would needlessly duplicate code. In order to rip stuff out we first
-need to have sparsemem contain all the features of discontig.
+> During VM oom condition, kill all threads in process group.
+> 
+> We have had complaints where a threaded application is left in a bad
+> state after one of it's threads is killed when we hit a VM: out_of_memory
+> condition.
+> Killing just one of the process threads can leave the application in a
+> bad state, whereas killing the entire process group would allow for
+> the application to restart, or be otherwise handled, and makes it very
+> obvious that something has gone wrong.
+> 
+> This change allows the entire process group to be taken down, rather
+> than just the one thread.
 
-Then we can start to get rid of discontig and then we will be able to
-reduce the number of memory models supported by sparsemem.
+Just checking...
+
+blackfin
+h8300
+m68knommu
+uml
+v850
+
+were not changed.  Intentional?
