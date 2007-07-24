@@ -1,60 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:35745 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755288AbXGXOaB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2007 10:30:01 -0400
-Subject: Re: [PATCH respin, was PATCH for review] During VM oom condition,
-	kill all threads in process group
-From: Will Schmidt <will_schmidt@vnet.ibm.com>
-Reply-To: will_schmidt@vnet.ibm.com
-In-Reply-To: <20070723141641.5759a287.akpm@linux-foundation.org>
-References: <20070719348.540885000@suse.de>
-	 <20070719134840.47B5114E6E@wotan.suse.de>
-	 <20070719140411.GD16279@infradead.org>
-	 <Pine.LNX.4.64.0707191614180.7377@anakin>
-	 <1185214185.22237.30.camel@farscape.rchland.ibm.com>
-	 <20070723141641.5759a287.akpm@linux-foundation.org>
-Content-Type: text/plain
-Date: Tue, 24 Jul 2007 09:28:44 -0500
-Message-Id: <1185287324.22237.39.camel@farscape.rchland.ibm.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:55999 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752679AbXGXPjS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2007 11:39:18 -0400
+Date: Tue, 24 Jul 2007 16:39:16 +0100
+From: Al Viro <viro@ftp.linux.org.uk>
+Subject: [PATCH][RFC] getting rid of stupid loop in BUG()
+Message-ID: <20070724153916.GS21668@ftp.linux.org.uk>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Andi Kleen <ak@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2007-07-23 at 14:16 -0700, Andrew Morton wrote:
-> On Mon, 23 Jul 2007 13:09:45 -0500
-> Will Schmidt <will_schmidt@vnet.ibm.com> wrote:
-> 
-> > During VM oom condition, kill all threads in process group.
-> > 
-> > We have had complaints where a threaded application is left in a bad
-> > state after one of it's threads is killed when we hit a VM: out_of_memory
-> > condition.
-> > Killing just one of the process threads can leave the application in a
-> > bad state, whereas killing the entire process group would allow for
-> > the application to restart, or be otherwise handled, and makes it very
-> > obvious that something has gone wrong.
-> > 
-> > This change allows the entire process group to be taken down, rather
-> > than just the one thread.
-> 
-> Just checking...
-> 
-> blackfin
-> h8300
-> m68knommu
-> uml
-> v850
-> 
-> were not changed.  Intentional?
+	AFAICS, the patch below should do it for i386; instead of
+using a dummy loop to tell gcc that this sucker never returns,
+we do
+static void __always_inline __noreturn __BUG(const char *file, int line);
+containing the actual asm we want to insert and define BUG() as
+__BUG(__FILE__, __LINE__).  It looks safe, but I don't claim enough
+experience with gcc __asm__ potential nastiness, so...
 
-Yes.  Those arch's don't have the VM oom code that I could see.   There
-is an occasional do_exit() reference elsewhere in the fault handler
-code, for reasons other than VM oom, so I deliberately didn't touch
-those either.    
+Comments, objections?
 
-
-
+diff --git a/include/asm-i386/bug.h b/include/asm-i386/bug.h
+index b0fd78c..294bc55 100644
+--- a/include/asm-i386/bug.h
++++ b/include/asm-i386/bug.h
+@@ -7,31 +7,27 @@
+  * The offending file and line are encoded encoded in the __bug_table section.
+  */
+ 
+-#ifdef CONFIG_BUG
+ #define HAVE_ARCH_BUG
+ 
+-#ifdef CONFIG_DEBUG_BUGVERBOSE
+-#define BUG()								\
+-	do {								\
+-		asm volatile("1:\tud2\n"				\
+-			     ".pushsection __bug_table,\"a\"\n"		\
+-			     "2:\t.long 1b, %c0\n"			\
+-			     "\t.word %c1, 0\n"				\
+-			     "\t.org 2b+%c2\n"				\
+-			     ".popsection"				\
+-			     : : "i" (__FILE__), "i" (__LINE__),	\
+-			     "i" (sizeof(struct bug_entry)));		\
+-		for(;;) ;						\
+-	} while(0)
++#define BUG() __BUG(__FILE__, __LINE__)
++
++#include <asm-generic/bug.h>
+ 
++#ifdef CONFIG_BUG
++static void __always_inline __noreturn __BUG(const char *file, int line)
++{
++#ifdef CONFIG_DEBUG_BUGVERBOSE
++	asm volatile("1:\tud2\n"
++		     ".pushsection __bug_table,\"a\"\n"
++		     "2:\t.long 1b, %c0\n"
++		     "\t.word %c1, 0\n"
++		     "\t.org 2b+%c2\n"
++		     ".popsection"
++		     : : "i" (file), "i" (line),
++		     "i" (sizeof(struct bug_entry)));
+ #else
+-#define BUG()								\
+-	do {								\
+-		asm volatile("ud2");					\
+-		for(;;) ;						\
+-	} while(0)
++	asm volatile("ud2");
+ #endif
++}
+ #endif
+-
+-#include <asm-generic/bug.h>
+ #endif
