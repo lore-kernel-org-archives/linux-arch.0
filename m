@@ -1,40 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:37380 "EHLO mail.goop.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751063AbXGXQ5N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Jul 2007 12:57:13 -0400
-Message-ID: <46A62F35.2000501@goop.org>
-Date: Tue, 24 Jul 2007 09:56:21 -0700
-From: Jeremy Fitzhardinge <jeremy@goop.org>
+Received: from terminus.zytor.com ([198.137.202.10]:52838 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753161AbXGXRHL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2007 13:07:11 -0400
+Message-ID: <46A630EF.5050403@zytor.com>
+Date: Tue, 24 Jul 2007 10:03:43 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH][RFC] getting rid of stupid loop in BUG()
-References: <20070724153916.GS21668@ftp.linux.org.uk>
-In-Reply-To: <20070724153916.GS21668@ftp.linux.org.uk>
+References: <20070724153916.GS21668@ftp.linux.org.uk> <46A62F35.2000501@goop.org>
+In-Reply-To: <46A62F35.2000501@goop.org>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: Al Viro <viro@ftp.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Al Viro wrote:
-> 	AFAICS, the patch below should do it for i386; instead of
-> using a dummy loop to tell gcc that this sucker never returns,
-> we do
-> static void __always_inline __noreturn __BUG(const char *file, int line);
-> containing the actual asm we want to insert and define BUG() as
-> __BUG(__FILE__, __LINE__).  It looks safe, but I don't claim enough
-> experience with gcc __asm__ potential nastiness, so...
->
-> Comments, objections?
->   
+Jeremy Fitzhardinge wrote:
+> Al Viro wrote:
+>> 	AFAICS, the patch below should do it for i386; instead of
+>> using a dummy loop to tell gcc that this sucker never returns,
+>> we do
+>> static void __always_inline __noreturn __BUG(const char *file, int line);
+>> containing the actual asm we want to insert and define BUG() as
+>> __BUG(__FILE__, __LINE__).  It looks safe, but I don't claim enough
+>> experience with gcc __asm__ potential nastiness, so...
+>>
+>> Comments, objections?
+>>   
+> 
+> Does it work?  When I wrote the BUG code I tried this, but gcc kept
+> warning about "noreturn function returns".  I couldn't work out a way to
+> convince gcc that the asm is the end of the line.
+> 
+> I'm actually in favour of dropping the loop and the noreturn stuff
+> altogether.  It means that gcc thinks everything is live at the time of
+> the BUG, and the debugging info at the point of the ud2a is more useful.
 
-Does it work?  When I wrote the BUG code I tried this, but gcc kept
-warning about "noreturn function returns".  I couldn't work out a way to
-convince gcc that the asm is the end of the line.
+How much code would that add to the kernel?
 
-I'm actually in favour of dropping the loop and the noreturn stuff
-altogether.  It means that gcc thinks everything is live at the time of
-the BUG, and the debugging info at the point of the ud2a is more useful.
-
-    J
+	-hpa
