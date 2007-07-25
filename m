@@ -1,53 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:56709 "EHLO mail.goop.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751856AbXGXVPy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Jul 2007 17:15:54 -0400
-Message-ID: <46A66BD1.9020802@goop.org>
-Date: Tue, 24 Jul 2007 14:14:57 -0700
-From: Jeremy Fitzhardinge <jeremy@goop.org>
-MIME-Version: 1.0
+Received: from mail1.sea5.speakeasy.net ([69.17.117.3]:36112 "EHLO
+	mail1.sea5.speakeasy.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756995AbXGYCiS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2007 22:38:18 -0400
+Date: Tue, 24 Jul 2007 19:31:36 -0700 (PDT)
+From: Trent Piepho <xyzzy@speakeasy.org>
 Subject: Re: [PATCH][RFC] getting rid of stupid loop in BUG()
-References: <20070724153916.GS21668@ftp.linux.org.uk> <46A62F35.2000501@goop.org> <20070724171455.GT21668@ftp.linux.org.uk> <46A64F4F.80107@goop.org> <20070724200401.GU21668@ftp.linux.org.uk>
-In-Reply-To: <20070724200401.GU21668@ftp.linux.org.uk>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20070724153916.GS21668@ftp.linux.org.uk>
+Message-ID: <Pine.LNX.4.58.0707241921470.30561@shell4.speakeasy.net>
+References: <20070724153916.GS21668@ftp.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: Al Viro <viro@ftp.linux.org.uk>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Al Viro wrote:
-> On Tue, Jul 24, 2007 at 12:13:19PM -0700, Jeremy Fitzhardinge wrote:
->   
->> Al Viro wrote:
->>     
->>> Works here...
->>>   
->>>       
->> Hm, doesn't here:
->>
->>   CC      arch/i386/kernel/irq.o
->> /home/jeremy/hg/xen/paravirt/linux/arch/i386/kernel/irq.c: In function '__BUG':
->> include2/asm/bug.h:29: warning: 'noreturn' function does return
->>
->> This is with current FC7 distro gcc: gcc version 4.1.2 20070502 (Red Hat
->> 4.1.2-12)
->>     
->
-> Interesting...  Looks like it's both version- and flags-dependent.
-> Oh, well...
->
-> BTW, alpha, frv, m68k and s390 have BUG() that is not recognized as
-> noreturn by gcc.
->   
+On Tue, 24 Jul 2007, Al Viro wrote:
+> 	AFAICS, the patch below should do it for i386; instead of
+> using a dummy loop to tell gcc that this sucker never returns,
+> we do
+> static void __always_inline __noreturn __BUG(const char *file, int line);
+> containing the actual asm we want to insert and define BUG() as
+> __BUG(__FILE__, __LINE__).  It looks safe, but I don't claim enough
+> experience with gcc __asm__ potential nastiness, so...
 
-Yes, it was something I added because I thought it would be useful. 
-Traditionally, BUG has not affected gcc's control flow analysis.
+Sounds like it doesn't work:
+http://gcc.gnu.org/ml/gcc/2007-02/msg00107.html
 
-The other option is trying to use __builtin_trap, which happens to
-generate ud2a on i386.  But I don't think its necessarily guaranteed to
-always do that, and I don't know if it does anything useful for other
-architectures.
+    [The] programmer won't get optimization he wants as after inlining this as
+    after inlining this attribute information becomes completely lost.
 
-    J
+    What about __builtin_trap?
+
+    It results in int 6 that might not be applicable, but adding some control
+    over it to i386 backend is definitly an option.
+
+    Honza
+
+It seems like if __BUG() is not inlined, you get the bogus noreturn does
+return warning.  If it is inlined, then you lose the noreturn attribute and
+un-reachable code paths aren't eliminated.  Adding __builtin_trap after the
+asm might be an ok fix.  It will emit a spurious int 6, but that won't even be
+reached since the asm doesn't return, and it probably be less extra code than
+the loop.
