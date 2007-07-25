@@ -1,51 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:47587 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1765448AbXGYRUw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jul 2007 13:20:52 -0400
-Date: Wed, 25 Jul 2007 18:19:56 +0100
-From: Al Viro <viro@ftp.linux.org.uk>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:46719 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753135AbXGYRUb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Jul 2007 13:20:31 -0400
+Date: Wed, 25 Jul 2007 10:19:55 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH][RFC] getting rid of stupid loop in BUG()
-Message-ID: <20070725171956.GF27237@ftp.linux.org.uk>
-References: <21803.1185331847@ocs10w.ocs.com.au> <46A6DB04.3000003@zytor.com> <46A6ECB7.7090208@goop.org> <20070724.232914.56812376.davem@davemloft.net> <alpine.LFD.0.999.0707250954400.3607@woody.linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.0.999.0707250954400.3607@woody.linux-foundation.org>
+In-Reply-To: <46A781A4.40103@goop.org>
+Message-ID: <alpine.LFD.0.999.0707251018280.3607@woody.linux-foundation.org>
+References: <21803.1185331847@ocs10w.ocs.com.au> <46A6DB04.3000003@zytor.com>
+ <46A6ECB7.7090208@goop.org> <20070724.232914.56812376.davem@davemloft.net>
+ <alpine.LFD.0.999.0707250954400.3607@woody.linux-foundation.org>
+ <46A781A4.40103@goop.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, jeremy@goop.org, hpa@zytor.com, kaos@ocs.com.au, xyzzy@speakeasy.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: David Miller <davem@davemloft.net>, hpa@zytor.com, kaos@ocs.com.au, xyzzy@speakeasy.org, viro@ftp.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Jul 25, 2007 at 09:56:12AM -0700, Linus Torvalds wrote:
-> 
-> 
-> On Tue, 24 Jul 2007, David Miller wrote:
-> >
-> > From: Jeremy Fitzhardinge <jeremy@goop.org>
-> > Date: Tue, 24 Jul 2007 23:24:55 -0700
-> > 
-> > > H. Peter Anvin wrote:
-> > > > How far back was __builtin_trap() supported?
-> > > 
-> > > I think its relatively recent, but it might be within our supported
-> > > compiler window.
-> > 
-> > I'm pretty sure it is.
-> 
-> .. and I'm pretty sure it's immaterial.
-> 
-> We don't just do the "ud2" instruction - we also do the file and line 
-> number information after it. Which means that __builtin_trap() is useless.
-> 
-> So we might as well keep the loop, since both are two-byte instructions 
-> that tell gcc that it will never continue.
 
-Umm...  Actually, we might be able to do something like
-{
-	l: __builtin_trap();
-	static struct ... v __attribute__((section(...))) = { &&l, n, file };
-}
 
-except that it would need block-local labels and those are ugly (so's
-&&<label>, while we are at it)...
+On Wed, 25 Jul 2007, Jeremy Fitzhardinge wrote:
+> 
+> No, not any more.  The file and line info is out of line, in a separate
+> section, indexed by the ud2a's eip.
+
+That's irrelevant - the point is, we need to do the ud2 by hand, since we 
+need to control the code generation in order to associate the ud2 with the 
+proper file/linenr.
+
+> The main problem with __builtin_trap is that there's no certain way to 
+> get the actual ud2a eip (ie, paste an asm label onto it).
+
+Right. Which is why we need to do it as an inline asm.
+
+		Linus
