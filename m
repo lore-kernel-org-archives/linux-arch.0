@@ -1,51 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:55250 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756782AbXGYRcR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jul 2007 13:32:17 -0400
-Message-ID: <46A786C7.9020604@zytor.com>
-Date: Wed, 25 Jul 2007 10:22:15 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
+Received: from mx1.redhat.com ([66.187.233.31]:49551 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759225AbXGYRgV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Jul 2007 13:36:21 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20070725172648.GH27237@ftp.linux.org.uk>
+References: <20070725172648.GH27237@ftp.linux.org.uk> <21803.1185331847@ocs10w.ocs.com.au> <46A6DB04.3000003@zytor.com> <46A6ECB7.7090208@goop.org> <20070724.232914.56812376.davem@davemloft.net> <alpine.LFD.0.999.0707250954400.3607@woody.linux-foundation.org> <20070725171956.GF27237@ftp.linux.org.uk> <46A786C7.9020604@zytor.com> 
 Subject: Re: [PATCH][RFC] getting rid of stupid loop in BUG()
-References: <21803.1185331847@ocs10w.ocs.com.au> <46A6DB04.3000003@zytor.com> <46A6ECB7.7090208@goop.org> <20070724.232914.56812376.davem@davemloft.net> <alpine.LFD.0.999.0707250954400.3607@woody.linux-foundation.org> <20070725171956.GF27237@ftp.linux.org.uk>
-In-Reply-To: <20070725171956.GF27237@ftp.linux.org.uk>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Date: Wed, 25 Jul 2007 18:35:43 +0100
+Message-ID: <9602.1185384943@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: Al Viro <viro@ftp.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, jeremy@goop.org, kaos@ocs.com.au, xyzzy@speakeasy.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, jeremy@goop.org, kaos@ocs.com.au, xyzzy@speakeasy.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Al Viro wrote:
-> On Wed, Jul 25, 2007 at 09:56:12AM -0700, Linus Torvalds wrote:
->>
->> On Tue, 24 Jul 2007, David Miller wrote:
->>> From: Jeremy Fitzhardinge <jeremy@goop.org>
->>> Date: Tue, 24 Jul 2007 23:24:55 -0700
->>>
->>>> H. Peter Anvin wrote:
->>>>> How far back was __builtin_trap() supported?
->>>> I think its relatively recent, but it might be within our supported
->>>> compiler window.
->>> I'm pretty sure it is.
->> .. and I'm pretty sure it's immaterial.
->>
->> We don't just do the "ud2" instruction - we also do the file and line 
->> number information after it. Which means that __builtin_trap() is useless.
->>
->> So we might as well keep the loop, since both are two-byte instructions 
->> that tell gcc that it will never continue.
-> 
-> Umm...  Actually, we might be able to do something like
-> {
-> 	l: __builtin_trap();
-> 	static struct ... v __attribute__((section(...))) = { &&l, n, file };
-> }
-> 
-> except that it would need block-local labels and those are ugly (so's
-> &&<label>, while we are at it)...
+Al Viro <viro@ftp.linux.org.uk> wrote:
 
-I thought gcc was buggy when it came to passing &&labels to assembly.
+> Where do you see passing &&<label> to assembly?  More interesting question
+> is whether gcc believes it to be const...
 
-	-hpa
+Passing labels like that to assembly didn't used to work, which is a pity as
+we could speed up things like get_user() if it could be made to.
+
+David
