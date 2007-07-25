@@ -1,33 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:48682 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752059AbXGYOkY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Jul 2007 10:40:24 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20070725113407.GG29011@wotan.suse.de>
-References: <20070725113407.GG29011@wotan.suse.de>
-Subject: Re: [patch 1/7] bitops: introduce lock bitops
-Date: Wed, 25 Jul 2007 15:40:13 +0100
-Message-ID: <27432.1185374413@redhat.com>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:53658 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1758028AbXGYQ44 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Jul 2007 12:56:56 -0400
+Date: Wed, 25 Jul 2007 09:56:12 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH][RFC] getting rid of stupid loop in BUG()
+In-Reply-To: <20070724.232914.56812376.davem@davemloft.net>
+Message-ID: <alpine.LFD.0.999.0707250954400.3607@woody.linux-foundation.org>
+References: <21803.1185331847@ocs10w.ocs.com.au> <46A6DB04.3000003@zytor.com>
+ <46A6ECB7.7090208@goop.org> <20070724.232914.56812376.davem@davemloft.net>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: David Miller <davem@davemloft.net>
+Cc: jeremy@goop.org, hpa@zytor.com, kaos@ocs.com.au, xyzzy@speakeasy.org, viro@ftp.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin <npiggin@suse.de> wrote:
 
-> I'd like to get the new lock bitop primitives in if possible. Maybe it
-> is too late for 2.6.23, but at least if I can queue them up in -mm?
+
+On Tue, 24 Jul 2007, David Miller wrote:
+>
+> From: Jeremy Fitzhardinge <jeremy@goop.org>
+> Date: Tue, 24 Jul 2007 23:24:55 -0700
 > 
-> They are pretty simple, but at least the page lock and buffer lock
-> conversions touch quite a lot of code. Not sure how to really do this
-> better to reduce merge difficulties.
+> > H. Peter Anvin wrote:
+> > > How far back was __builtin_trap() supported?
+> > 
+> > I think its relatively recent, but it might be within our supported
+> > compiler window.
+> 
+> I'm pretty sure it is.
 
-I like the way we can get away with a memory barrier before calling
-clear_bit() and not have one after.
+.. and I'm pretty sure it's immaterial.
 
-This works fine on FRV.
+We don't just do the "ud2" instruction - we also do the file and line 
+number information after it. Which means that __builtin_trap() is useless.
 
-Now all you need to do is add the kerneldoc comments...  Contingent on that:
+So we might as well keep the loop, since both are two-byte instructions 
+that tell gcc that it will never continue.
 
-Acked-By: David Howells <dhowells@redhat.com>
+		Linus
