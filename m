@@ -1,35 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:38304
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1750982AbXGYWBk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Jul 2007 18:01:40 -0400
-Date: Wed, 25 Jul 2007 15:01:39 -0700 (PDT)
-Message-Id: <20070725.150139.104063215.davem@davemloft.net>
-Subject: Re: [PATCH][RFC] getting rid of stupid loop in BUG()
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <46A7B46C.9020007@zytor.com>
-References: <46A78B47.1070500@goop.org>
-	<46A7B2BF.4000506@redhat.com>
-	<46A7B46C.9020007@zytor.com>
+Received: from cantor.suse.de ([195.135.220.2]:43330 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751904AbXGZAom (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Jul 2007 20:44:42 -0400
+Date: Thu, 26 Jul 2007 02:44:41 +0200
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [patch 1/7] bitops: introduce lock bitops
+Message-ID: <20070726004441.GA20727@wotan.suse.de>
+References: <20070725113407.GG29011@wotan.suse.de> <27432.1185374413@redhat.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <27432.1185374413@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: hpa@zytor.com
-Cc: cebbert@redhat.com, jeremy@goop.org, viro@ftp.linux.org.uk, torvalds@linux-foundation.org, kaos@ocs.com.au, xyzzy@speakeasy.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-From: "H. Peter Anvin" <hpa@zytor.com>
-Date: Wed, 25 Jul 2007 13:37:00 -0700
+On Wed, Jul 25, 2007 at 03:40:13PM +0100, David Howells wrote:
+> Nick Piggin <npiggin@suse.de> wrote:
+> 
+> > I'd like to get the new lock bitop primitives in if possible. Maybe it
+> > is too late for 2.6.23, but at least if I can queue them up in -mm?
+> > 
+> > They are pretty simple, but at least the page lock and buffer lock
+> > conversions touch quite a lot of code. Not sure how to really do this
+> > better to reduce merge difficulties.
+> 
+> I like the way we can get away with a memory barrier before calling
+> clear_bit() and not have one after.
+> 
+> This works fine on FRV.
+> 
+> Now all you need to do is add the kerneldoc comments...  Contingent on that:
+> 
+> Acked-By: David Howells <dhowells@redhat.com>
 
-> Another useful extension was a variant of __builtin_trap() which would
-> create a dummy ELF relocation for the trapping instruction with a target.
+Thanks, I can add a little something...
 
-That would be very useful.
-
-Another idea that has been tossed around is to build with dwarf2
-debugging, scan a pre-linked kernel image for conditional trap
-instructions, and use the dwarf2 info to reconstruct the file and line
-number information into the table of BUG entries.  Then perform the
-final link and strip the dwarf2 debugging info out.
