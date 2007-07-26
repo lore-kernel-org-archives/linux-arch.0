@@ -1,42 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:55144 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S933251AbXGZIFe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jul 2007 04:05:34 -0400
-Date: Thu, 26 Jul 2007 01:05:22 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [patch 1/7] bitops: introduce lock bitops
-Message-Id: <20070726010522.0faeab97.akpm@linux-foundation.org>
-In-Reply-To: <20070725113407.GG29011@wotan.suse.de>
-References: <20070725113407.GG29011@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from smtp.ocgnet.org ([64.20.243.3]:39387 "EHLO smtp.ocgnet.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933207AbXGZIFy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jul 2007 04:05:54 -0400
+Date: Thu, 26 Jul 2007 17:05:20 +0900
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH 0/7] Sparsemem Virtual Memmap V5
+Message-ID: <20070726080520.GA26394@linux-sh.org>
+References: <exportbomb.1184333503@pinky>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <exportbomb.1184333503@pinky>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Andy Whitcroft <apw@shadowen.org>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 25 Jul 2007 13:34:07 +0200 Nick Piggin <npiggin@suse.de> wrote:
-
-> I'd like to get the new lock bitop primitives in if possible. Maybe it
-> is too late for 2.6.23, but at least if I can queue them up in -mm?
+On Fri, Jul 13, 2007 at 02:34:37PM +0100, Andy Whitcroft wrote:
+> However, if there is enough virtual space available and the arch
+> already maps its 1-1 kernel space using TLBs (f.e. true of IA64
+> and x86_64) then this technique makes SPARSEMEM lookups even more
+> efficient than CONFIG_FLATMEM.  FLATMEM needs to read the contents
+> of the mem_map variable to get the start of the memmap and then add
+> the offset to the required entry.  vmemmap is a constant to which
+> we can simply add the offset.
 > 
-> They are pretty simple, but at least the page lock and buffer lock
-> conversions touch quite a lot of code.
+This is something I've been debating how to make use of on SH, but I
+haven't come to any good conclusions yet, so I think a brain-dump is in
+order (MIPS will have the same concerns I suppose).
 
-The changes look innocuous enough.  I'd prefer not to carry this for two
-months though.
+SH has lowmem (512M) directly accessible with physical/virtual and
+cached/uncached simply being a matter of flipping high bits, there are no
+TLBs for this space, as it's not really a translatable space in the
+strictest sense of the word (we only end up taking page faults for user
+addresses, special memory windows, and various other memory blocks --
+include/asm-sh/io.h:__ioremap_mode() might serve as a good example). For
+contiguous system memory it would be possible just to wrap the vmemmap
+base to the beginning of P1 space and not worry about any of this.
+However, for memories that exist outside of this space (whether it be
+highmem or other nodes built on memories in different part of the address
+space completely), it's still necessary to map with TLBs. Building a
+vmemmap for lowmem would seem to be a waste of space, and it doesn't
+really buy us anything that I can see. On the other hand, this is
+something that's desirable for the other nodes or anything translatable
+(ie, memories outside of the lowmem range) as it gives us the ability to
+construct the memmap using large TLBs.
 
-afacit all the operations which got changed were actually renamed, so any
-unconverted code will reliably fail to compile, yes?  (If not, can we find
-a way to do this?).  This means that a) if I _were_ to carry if for two
-months, any new code which gets added using the old operations will get
-reliably detected and b) there's not really much benefit in me carrying it
-all for two months.
-
-> Not sure how to really do this
-> better to reduce merge difficulties.
-
-Resend around the -rc5/6 timeframe?
+This is something that's fairly trivial to hack up with out-of-line
+__page_to_pfn()/__pfn_to_page() as we can simply reference the vmemmap
+for memory that is not in the low 512M and do the high bit mangling
+otherwise (assuming we've populated it in a similar fashion), but I
+wonder if that's the best way to approach this?
