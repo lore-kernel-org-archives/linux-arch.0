@@ -1,28 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:43734 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1762450AbXG3SfF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jul 2007 14:35:05 -0400
-Date: Mon, 30 Jul 2007 11:35:04 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 3/7] Generic Virtual Memmap support for SPARSEMEM
-In-Reply-To: <46ADF83B.3050406@shadowen.org>
-Message-ID: <Pine.LNX.4.64.0707301133350.1097@schroedinger.engr.sgi.com>
-References: <exportbomb.1184333503@pinky> <E1I9LJY-00006o-GK@hellhawk.shadowen.org>
- <20070714152058.GA12478@infradead.org> <46ADF83B.3050406@shadowen.org>
+Received: from ug-out-1314.google.com ([66.249.92.173]:59826 "EHLO
+	ug-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S967966AbXG3THV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jul 2007 15:07:21 -0400
+Received: by ug-out-1314.google.com with SMTP id j3so75ugf
+        for <linux-arch@vger.kernel.org>; Mon, 30 Jul 2007 12:07:20 -0700 (PDT)
+Date: Mon, 30 Jul 2007 23:07:15 +0400
+From: Alexey Dobriyan <adobriyan@gmail.com>
+Subject: Re: [PATCH] Remove fs.h from mm.h
+Message-ID: <20070730190715.GB5776@martell.zuzino.mipt.ru>
+References: <20070729223613.GA5916@martell.zuzino.mipt.ru> <alpine.LFD.0.999.0707291706490.3442@woody.linux-foundation.org> <swfhcnmhwqo.wl%takata.hirokazu@renesas.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <swfhcnmhwqo.wl%takata.hirokazu@renesas.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andy Whitcroft <apw@shadowen.org>
-Cc: Christoph Hellwig <hch@infradead.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
+To: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, viro@ftp.linux.org.uk
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 30 Jul 2007, Andy Whitcroft wrote:
+On Mon, Jul 30, 2007 at 10:00:47PM +0900, Hirokazu Takata wrote:
+> This change breaks m32r, too.
 
-> The code itself is generic in the sense its architecture neutral.  This
-> is "per memory model" code.  I am wondering however why it is in an
-> asm-anything include file here.  This seems to the world like it should
-> be in include/linux/memory_model.h.
-
-Riiight! Or directly in mm.h?
+Apologies. I just finished adding m32r to my cross-build setup, so there
+shouldn't be any more such breakages.
 
