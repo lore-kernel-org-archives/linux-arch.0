@@ -1,99 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hellhawk.shadowen.org ([80.68.90.175]:3322 "EHLO
-	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752358AbXG3OkS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jul 2007 10:40:18 -0400
-Message-ID: <46ADF83B.3050406@shadowen.org>
-Date: Mon, 30 Jul 2007 15:39:55 +0100
-From: Andy Whitcroft <apw@shadowen.org>
-MIME-Version: 1.0
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:43734 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1762450AbXG3SfF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jul 2007 14:35:05 -0400
+Date: Mon, 30 Jul 2007 11:35:04 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [PATCH 3/7] Generic Virtual Memmap support for SPARSEMEM
-References: <exportbomb.1184333503@pinky> <E1I9LJY-00006o-GK@hellhawk.shadowen.org> <20070714152058.GA12478@infradead.org>
-In-Reply-To: <20070714152058.GA12478@infradead.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <46ADF83B.3050406@shadowen.org>
+Message-ID: <Pine.LNX.4.64.0707301133350.1097@schroedinger.engr.sgi.com>
+References: <exportbomb.1184333503@pinky> <E1I9LJY-00006o-GK@hellhawk.shadowen.org>
+ <20070714152058.GA12478@infradead.org> <46ADF83B.3050406@shadowen.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Mel Gorman <mel@csn.ul.ie>
+To: Andy Whitcroft <apw@shadowen.org>
+Cc: Christoph Hellwig <hch@infradead.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Hellwig wrote:
->> --- a/include/asm-generic/memory_model.h
->> +++ b/include/asm-generic/memory_model.h
->> @@ -46,6 +46,12 @@
->>  	 __pgdat->node_start_pfn;					\
->>  })
->>  
->> +#elif defined(CONFIG_SPARSEMEM_VMEMMAP)
->> +
->> +/* memmap is virtually contigious.  */
->> +#define __pfn_to_page(pfn)	(vmemmap + (pfn))
->> +#define __page_to_pfn(page)	((page) - vmemmap)
->> +
->>  #elif defined(CONFIG_SPARSEMEM)
-> 
-> nice ifdef mess you have here.  and an sm-generic file should be something
-> truely generic instead of a complete ifdef forest.  I think we'd be
-> much better off duplicating the two lines above in architectures using
-> it anyway.
+On Mon, 30 Jul 2007, Andy Whitcroft wrote:
 
-The code itself is generic in the sense its architecture neutral.  This
-is "per memory model" code.  I am wondering however why it is in an
-asm-anything include file here.  This seems to the world like it should
-be in include/linux/memory_model.h.
+> The code itself is generic in the sense its architecture neutral.  This
+> is "per memory model" code.  I am wondering however why it is in an
+> asm-anything include file here.  This seems to the world like it should
+> be in include/linux/memory_model.h.
 
->> diff --git a/mm/sparse.c b/mm/sparse.c
->> index d6678ab..5cc6e74 100644
->> --- a/mm/sparse.c
->> +++ b/mm/sparse.c
->> @@ -9,6 +9,8 @@
->>  #include <linux/spinlock.h>
->>  #include <linux/vmalloc.h>
->>  #include <asm/dma.h>
->> +#include <asm/pgalloc.h>
->> +#include <asm/pgtable.h>
->>  
->>  /*
->>   * Permanent SPARSEMEM data:
->> @@ -218,6 +220,192 @@ void *alloc_bootmem_high_node(pg_data_t *pgdat, unsigned long size)
->>  	return NULL;
->>  }
->>  
->> +#ifdef CONFIG_SPARSEMEM_VMEMMAP
->> +/*
->> + * Virtual Memory Map support
->> + *
->> + * (C) 2007 sgi. Christoph Lameter <clameter@sgi.com>.
-> 
-> When did we start putting copyright lines and large block comment in the
-> middle of the file?
-> 
-> Please sort this and the ifdef mess out, I suspect a new file for this
-> code would be best.
+Riiight! Or directly in mm.h?
 
-I will have a look at how this would look pulled out into separate .c files.
-
->> +void * __meminit vmemmap_alloc_block(unsigned long size, int node)
-> 
-> void * __meminit vmemmap_alloc_block(unsigned long size, int node)
-> 
->> +#ifndef CONFIG_ARCH_POPULATES_SPARSEMEM_VMEMMAP
->> +void __meminit vmemmap_verify(pte_t *pte, int node,
->> +				unsigned long start, unsigned long end)
->> +{
->> +	unsigned long pfn = pte_pfn(*pte);
->> +	int actual_node = early_pfn_to_nid(pfn);
->> +
->> +	if (actual_node != node)
->> +		printk(KERN_WARNING "[%lx-%lx] potential offnode "
->> +			"page_structs\n", start, end - 1);
->> +}
-> 
-> Given tht this function is a tiny noop please just put them into the
-> arch dir for !CONFIG_ARCH_POPULATES_SPARSEMEM_VMEMMAP architectures
-> and save yourself both the ifdef mess and the config option.
-> 
-
-Will also look that over and see how it comes out.
-
--apw
