@@ -1,52 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nwd2mail10.analog.com ([137.71.25.55]:40014 "EHLO
-	nwd2mail10.analog.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761038AbXGaCqi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jul 2007 22:46:38 -0400
-Subject: Re: [PATCH] Remove fs.h from mm.h
-From: Bryan Wu <bryan.wu@analog.com>
-Reply-To: bryan.wu@analog.com
-In-Reply-To: <20070730194335.GE5776@martell.zuzino.mipt.ru>
-References: <20070729223613.GA5916@martell.zuzino.mipt.ru>
-	 <alpine.LFD.0.999.0707291706490.3442@woody.linux-foundation.org>
-	 <1185770527.22473.2.camel@roc-desktop>
-	 <20070730194335.GE5776@martell.zuzino.mipt.ru>
-Content-Type: text/plain
+Received: from smtp-out.google.com ([216.239.33.17]:53156 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754031AbXGaFLB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jul 2007 01:11:01 -0400
+Received: from zps35.corp.google.com (zps35.corp.google.com [172.25.146.35])
+	by smtp-out.google.com with ESMTP id l6V5AoG9019311
+	for <linux-arch@vger.kernel.org>; Tue, 31 Jul 2007 06:10:55 +0100
+Received: from py-out-1112.google.com (pyed32.prod.google.com [10.34.156.32])
+	by zps35.corp.google.com with ESMTP id l6V59pUr025459
+	for <linux-arch@vger.kernel.org>; Mon, 30 Jul 2007 22:10:43 -0700
+Received: by py-out-1112.google.com with SMTP id d32so3123857pye
+        for <linux-arch@vger.kernel.org>; Mon, 30 Jul 2007 22:10:43 -0700 (PDT)
+Message-ID: <65dd6fd50707302210y5b79a70di58eb2d46f3958025@mail.gmail.com>
+Date: Mon, 30 Jul 2007 22:10:43 -0700
+From: "Ollie Wild" <aaw@google.com>
+Subject: Re: [SPARC32] NULL pointer derefference
+In-Reply-To: <Pine.LNX.4.61.0707300301340.32210@mtfhpc.demon.co.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Date: Tue, 31 Jul 2007 10:51:37 +0800
-Message-Id: <1185850297.20043.6.camel@roc-desktop>
-Mime-Version: 1.0
+Content-Disposition: inline
+References: <Pine.LNX.4.61.0707300301340.32210@mtfhpc.demon.co.uk>
 Sender: linux-arch-owner@vger.kernel.org
-To: Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Bryan Wu <bryan.wu@analog.com>
+To: Mark Fortescue <mark@mtfhpc.demon.co.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, wli@holomorphy.com, linux-mm@kvack.org, linux-kernel@vger.kernel.org, davem@davemloft.net
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 2007-07-30 at 23:43 +0400, Alexey Dobriyan wrote:
-> On Mon, Jul 30, 2007 at 12:42:07PM +0800, Bryan Wu wrote:
-> > Can I do something to help this regression testing?
-> >
-> > Please feel free to ask me.
-> 
-> Sorry, blackfin toolchain doesn't like me, so I can't test this myself.
-> Check current -git if I screwed up anything.
-> 
-Oh, do you need use blackfin toolchain? Actually, it is very simple to
-setup it on your machine.
-please get the latest binary toolchain here:
-http://blackfin.uclinux.org/gf/download/frsrelease/344/3180/blackfin-toolchain-uclinux-SVN.tar.bz2
-http://blackfin.uclinux.org/gf/download/frsrelease/344/3181/blackfin-toolchain-linux-uclibc-SVN.tar.bz2
+On 7/29/07, Mark Fortescue <mark@mtfhpc.demon.co.uk> wrote:
+> Hi All,
+>
+> Unfortunatly Sparc32 sun4c low level memory management apears to be
+> incompatible with commit b6a2fea39318e43fee84fa7b0b90d68bed92d2ba
+> mm: variable length argument support.
 
- - untar these 2 tar ball
- - add the path to your environment variables
- - ready to compile the kernel by these blackfin cross toolchain
+I feel like I ought to help out with this since it's my change which
+broke things, but I don't have access to a Sparc32 box.  Does anyone
+have a remotely rebootable machine I can use?
 
-> It still takes too much time from clean git pull to final patch, so
-> sending it to you would  increase risk that someone will touch core
-> headers nontrivially invalidating all work.
-
-Need I to generate the patch? I will take a look at the latest git-tree.
-
-Many thanks, we hope you can add our blackfin to your cross-build check.
-
-Best Regards,
-- Bryan Wu
+Ollie
