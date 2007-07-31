@@ -1,40 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.33.17]:53156 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754031AbXGaFLB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jul 2007 01:11:01 -0400
-Received: from zps35.corp.google.com (zps35.corp.google.com [172.25.146.35])
-	by smtp-out.google.com with ESMTP id l6V5AoG9019311
-	for <linux-arch@vger.kernel.org>; Tue, 31 Jul 2007 06:10:55 +0100
-Received: from py-out-1112.google.com (pyed32.prod.google.com [10.34.156.32])
-	by zps35.corp.google.com with ESMTP id l6V59pUr025459
-	for <linux-arch@vger.kernel.org>; Mon, 30 Jul 2007 22:10:43 -0700
-Received: by py-out-1112.google.com with SMTP id d32so3123857pye
-        for <linux-arch@vger.kernel.org>; Mon, 30 Jul 2007 22:10:43 -0700 (PDT)
-Message-ID: <65dd6fd50707302210y5b79a70di58eb2d46f3958025@mail.gmail.com>
-Date: Mon, 30 Jul 2007 22:10:43 -0700
-From: "Ollie Wild" <aaw@google.com>
+Received: from anchor-post-34.mail.demon.net ([194.217.242.92]:1132 "EHLO
+	anchor-post-34.mail.demon.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751364AbXGaFfh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 Jul 2007 01:35:37 -0400
+Date: Tue, 31 Jul 2007 06:35:29 +0100 (BST)
+From: Mark Fortescue <mark@mtfhpc.demon.co.uk>
 Subject: Re: [SPARC32] NULL pointer derefference
-In-Reply-To: <Pine.LNX.4.61.0707300301340.32210@mtfhpc.demon.co.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
+In-Reply-To: <20070729.211929.78713482.davem@davemloft.net>
+Message-ID: <Pine.LNX.4.61.0707310557470.3926@mtfhpc.demon.co.uk>
 References: <Pine.LNX.4.61.0707300301340.32210@mtfhpc.demon.co.uk>
+ <20070729.211929.78713482.davem@davemloft.net>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
 Sender: linux-arch-owner@vger.kernel.org
-To: Mark Fortescue <mark@mtfhpc.demon.co.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, wli@holomorphy.com, linux-mm@kvack.org, linux-kernel@vger.kernel.org, davem@davemloft.net
+To: David Miller <davem@davemloft.net>
+Cc: aaw@google.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, wli@holomorphy.com, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On 7/29/07, Mark Fortescue <mark@mtfhpc.demon.co.uk> wrote:
-> Hi All,
+Hi David,
+
 >
-> Unfortunatly Sparc32 sun4c low level memory management apears to be
-> incompatible with commit b6a2fea39318e43fee84fa7b0b90d68bed92d2ba
-> mm: variable length argument support.
+> One possible issue is sequencing, perhaps the stack argument copy
+> is occuring before the new context is setup properly on sun4c.
+>
 
-I feel like I ought to help out with this since it's my change which
-broke things, but I don't have access to a Sparc32 box.  Does anyone
-have a remotely rebootable machine I can use?
+I think it is somthing related to this but too much has changed for me to 
+work out what is going on. At present, I don't have a good enough 
+understanding of the virtual memory system and how it interracts with the 
+sun4c mmu.
 
-Ollie
+The original code did a job lot of pte stuf in install_arg_page. The new 
+code seems to replace this using get_user_pages but I have not worked out 
+how get_user_pages gets to the point at which it allocated pte's i.e. 
+maps the stack memory it is about to put the arguments into.
+
+> Another issue might be the new flush_cache_page() call in this
+> new code in fs/exec.c, there are now cases where flush_cache_page()
+> will be called on kernel addresses, and sun4c's implementation might
+> not like that at all.
+
+I commented out the flush_cache_page callmade in the new code. This had no 
+effect on the problem. Other tests have shown it is breaking earlier than 
+this.
+
+I am going to try to narrow down exactly where the pointer gets messed up 
+as this should help.
+
+Regards
+ 	Mark Fortescue.
