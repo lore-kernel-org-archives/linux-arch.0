@@ -1,728 +1,676 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:48848 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:54917 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1761384AbXHAARe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 31 Jul 2007 20:17:34 -0400
-Message-Id: <200707312355.l6VNtmCq029274@imap1.linux-foundation.org>
-Subject: - remove-unused-tif_notify_resume-flag.patch removed from -mm tree
+	by vger.kernel.org with ESMTP id S1751303AbXHAVBT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2007 17:01:19 -0400
+Message-Id: <200708012100.l71L0bJm016939@imap1.linux-foundation.org>
+Subject: + optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Tue, 31 Jul 2007 16:55:48 -0700
+Date: Wed, 01 Aug 2007 14:00:37 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: eranian@hpl.hp.com, linux-arch@vger.kernel.org, tony.luck@intel.com, mm-commits@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: hch@lst.de, ak@suse.de, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org, prasanna@in.ibm.com
 List-ID: <linux-arch.vger.kernel.org>
 
 
 The patch titled
-     remove unused TIF_NOTIFY_RESUME flag
-has been removed from the -mm tree.  Its filename was
-     remove-unused-tif_notify_resume-flag.patch
+     x86: optimize page faults like all other achitectures and kill notifier cruft
+has been added to the -mm tree.  Its filename is
+     optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch
 
-This patch was dropped because it was merged into mainline or a subsystem tree
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
 
 ------------------------------------------------------
-Subject: remove unused TIF_NOTIFY_RESUME flag
-From: Stephane Eranian <eranian@hpl.hp.com>
+Subject: x86: optimize page faults like all other achitectures and kill notifier cruft
+From: Christoph Hellwig <hch@lst.de>
 
-Remove unused TIF_NOTIFY_RESUME flag for all processor architectures.  The
-flag was not used excecpt on IA-64 where the patch replaces it with
-TIF_PERFMON_WORK.
+x86(-64) are the last architectures still using the page fault notifier
+cruft for the kprobes page fault hook.  This patch converts them to the
+proper direct calls, and removes the now unused pagefault notifier bits
+aswell as the cruft in kprobes.c that was related to this mess.
 
-Signed-off-by: stephane eranian <eranian@hpl.hp.com>
+I know Andi didn't really like this, but all other architecture maintainers
+agreed the direct calls are much better and besides the obvious cruft
+removal a common way of dealing with kprobes across architectures is
+important aswell.
+
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Cc: Andi Kleen <ak@suse.de>
 Cc: <linux-arch@vger.kernel.org>
-Cc: "Luck, Tony" <tony.luck@intel.com>
+Cc: Prasanna S Panchamukhi <prasanna@in.ibm.com>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/arm/kernel/entry-common.S      |    2 -
- arch/arm26/kernel/entry.S           |    2 -
- arch/ia64/kernel/perfmon.c          |    4 +-
- arch/powerpc/kernel/entry_64.S      |    1 
- arch/x86_64/kernel/entry.S          |    6 ++--
- include/asm-alpha/thread_info.h     |   24 +++++++----------
- include/asm-arm/thread_info.h       |    7 +----
- include/asm-arm26/thread_info.h     |    7 +----
- include/asm-avr32/thread_info.h     |   18 +++++--------
- include/asm-blackfin/thread_info.h  |   14 ++++------
- include/asm-cris/thread_info.h      |    6 +---
- include/asm-frv/thread_info.h       |   12 +++-----
- include/asm-h8300/thread_info.h     |   12 +++-----
- include/asm-i386/thread_info.h      |   18 +++++--------
- include/asm-ia64/thread_info.h      |   20 +++++++-------
- include/asm-m32r/thread_info.h      |   10 ++-----
- include/asm-m68knommu/thread_info.h |   10 ++-----
- include/asm-mips/thread_info.h      |   10 ++-----
- include/asm-parisc/thread_info.h    |   16 +++++------
- include/asm-powerpc/thread_info.h   |   36 ++++++++++++--------------
- include/asm-sh/thread_info.h        |   10 ++-----
- include/asm-v850/thread_info.h      |   10 ++-----
- include/asm-x86_64/thread_info.h    |    2 -
- include/asm-xtensa/thread_info.h    |   14 ++++------
- 24 files changed, 116 insertions(+), 155 deletions(-)
+ arch/i386/kernel/kprobes.c    |    3 --
+ arch/i386/mm/fault.c          |   43 +++++++++++++------------------
+ arch/x86_64/kernel/kprobes.c  |    1 
+ arch/x86_64/mm/fault.c        |   44 +++++++++++++-------------------
+ include/asm-avr32/kdebug.h    |   16 -----------
+ include/asm-avr32/kprobes.h   |    2 -
+ include/asm-i386/kdebug.h     |    6 ----
+ include/asm-i386/kprobes.h    |    2 -
+ include/asm-ia64/kdebug.h     |   15 ----------
+ include/asm-ia64/kprobes.h    |    1 
+ include/asm-powerpc/kdebug.h  |   19 -------------
+ include/asm-powerpc/kprobes.h |    1 
+ include/asm-s390/kdebug.h     |   15 ----------
+ include/asm-s390/kprobes.h    |    1 
+ include/asm-sh/kdebug.h       |    2 -
+ include/asm-sparc64/kdebug.h  |   20 --------------
+ include/asm-sparc64/kprobes.h |    1 
+ include/asm-x86_64/kdebug.h   |    6 ----
+ include/asm-x86_64/kprobes.h  |    1 
+ kernel/kprobes.c              |   39 ++--------------------------
+ 20 files changed, 43 insertions(+), 195 deletions(-)
 
-diff -puN arch/arm/kernel/entry-common.S~remove-unused-tif_notify_resume-flag arch/arm/kernel/entry-common.S
---- a/arch/arm/kernel/entry-common.S~remove-unused-tif_notify_resume-flag
-+++ a/arch/arm/kernel/entry-common.S
-@@ -46,7 +46,7 @@ fast_work_pending:
- work_pending:
- 	tst	r1, #_TIF_NEED_RESCHED
- 	bne	work_resched
--	tst	r1, #_TIF_NOTIFY_RESUME | _TIF_SIGPENDING
-+	tst	r1, #_TIF_SIGPENDING
- 	beq	no_work_pending
- 	mov	r0, sp				@ 'regs'
- 	mov	r2, why				@ 'syscall'
-diff -puN arch/arm26/kernel/entry.S~remove-unused-tif_notify_resume-flag arch/arm26/kernel/entry.S
---- a/arch/arm26/kernel/entry.S~remove-unused-tif_notify_resume-flag
-+++ a/arch/arm26/kernel/entry.S
-@@ -194,7 +194,7 @@ fast_work_pending:
- work_pending:
- 	tst	r1, #_TIF_NEED_RESCHED
- 	bne	work_resched
--	tst	r1, #_TIF_NOTIFY_RESUME | _TIF_SIGPENDING
-+	tst	r1, #_TIF_SIGPENDING
- 	beq	no_work_pending
- 	mov	r0, sp				@ 'regs'
- 	mov	r2, why				@ 'syscall'
-diff -puN arch/ia64/kernel/perfmon.c~remove-unused-tif_notify_resume-flag arch/ia64/kernel/perfmon.c
---- a/arch/ia64/kernel/perfmon.c~remove-unused-tif_notify_resume-flag
-+++ a/arch/ia64/kernel/perfmon.c
-@@ -591,13 +591,13 @@ pfm_set_task_notify(struct task_struct *
- 	struct thread_info *info;
- 
- 	info = (struct thread_info *) ((char *) task + IA64_TASK_SIZE);
--	set_bit(TIF_NOTIFY_RESUME, &info->flags);
-+	set_bit(TIF_PERFMON_WORK, &info->flags);
+diff -puN arch/i386/kernel/kprobes.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft arch/i386/kernel/kprobes.c
+--- a/arch/i386/kernel/kprobes.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/arch/i386/kernel/kprobes.c
+@@ -579,7 +579,7 @@ out:
+ 	return 1;
  }
  
- static inline void
- pfm_clear_task_notify(void)
+-static int __kprobes kprobe_fault_handler(struct pt_regs *regs, int trapnr)
++int __kprobes kprobe_fault_handler(struct pt_regs *regs, int trapnr)
  {
--	clear_thread_flag(TIF_NOTIFY_RESUME);
-+	clear_thread_flag(TIF_PERFMON_WORK);
+ 	struct kprobe *cur = kprobe_running();
+ 	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
+@@ -661,7 +661,6 @@ int __kprobes kprobe_exceptions_notify(s
+ 			ret = NOTIFY_STOP;
+ 		break;
+ 	case DIE_GPF:
+-	case DIE_PAGE_FAULT:
+ 		/* kprobe_running() needs smp_processor_id() */
+ 		preempt_disable();
+ 		if (kprobe_running() &&
+diff -puN arch/i386/mm/fault.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft arch/i386/mm/fault.c
+--- a/arch/i386/mm/fault.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/arch/i386/mm/fault.c
+@@ -25,6 +25,7 @@
+ #include <linux/kprobes.h>
+ #include <linux/uaccess.h>
+ #include <linux/kdebug.h>
++#include <linux/kprobes.h>
+ 
+ #include <asm/system.h>
+ #include <asm/desc.h>
+@@ -32,33 +33,27 @@
+ 
+ extern void die(const char *,struct pt_regs *,long);
+ 
+-static ATOMIC_NOTIFIER_HEAD(notify_page_fault_chain);
+-
+-int register_page_fault_notifier(struct notifier_block *nb)
++#ifdef CONFIG_KPROBES
++static inline int notify_page_fault(struct pt_regs *regs)
+ {
+-	vmalloc_sync_all();
+-	return atomic_notifier_chain_register(&notify_page_fault_chain, nb);
+-}
+-EXPORT_SYMBOL_GPL(register_page_fault_notifier);
++	int ret = 0;
+ 
+-int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return atomic_notifier_chain_unregister(&notify_page_fault_chain, nb);
+-}
+-EXPORT_SYMBOL_GPL(unregister_page_fault_notifier);
++	/* kprobe_running() needs smp_processor_id() */
++	if (!user_mode_vm(regs)) {
++		preempt_disable();
++		if (kprobe_running() && kprobe_fault_handler(regs, 14))
++			ret = 1;
++		preempt_enable();
++	}
+ 
+-static inline int notify_page_fault(struct pt_regs *regs, long err)
++	return ret;
++}
++#else
++static inline int notify_page_fault(struct pt_regs *regs)
+ {
+-	struct die_args args = {
+-		.regs = regs,
+-		.str = "page fault",
+-		.err = err,
+-		.trapnr = 14,
+-		.signr = SIGSEGV
+-	};
+-	return atomic_notifier_call_chain(&notify_page_fault_chain,
+-	                                  DIE_PAGE_FAULT, &args);
++	return 0;
+ }
++#endif
+ 
+ /*
+  * Return EIP plus the CS segment base.  The segment limit is also
+@@ -328,7 +323,7 @@ fastcall void __kprobes do_page_fault(st
+ 	if (unlikely(address >= TASK_SIZE)) {
+ 		if (!(error_code & 0x0000000d) && vmalloc_fault(address) >= 0)
+ 			return;
+-		if (notify_page_fault(regs, error_code) == NOTIFY_STOP)
++		if (notify_page_fault(regs))
+ 			return;
+ 		/*
+ 		 * Don't take the mm semaphore here. If we fixup a prefetch
+@@ -337,7 +332,7 @@ fastcall void __kprobes do_page_fault(st
+ 		goto bad_area_nosemaphore;
+ 	}
+ 
+-	if (notify_page_fault(regs, error_code) == NOTIFY_STOP)
++	if (notify_page_fault(regs))
+ 		return;
+ 
+ 	/* It's safe to allow irq's after cr2 has been saved and the vmalloc
+diff -puN arch/x86_64/kernel/kprobes.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft arch/x86_64/kernel/kprobes.c
+--- a/arch/x86_64/kernel/kprobes.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/arch/x86_64/kernel/kprobes.c
+@@ -652,7 +652,6 @@ int __kprobes kprobe_exceptions_notify(s
+ 			ret = NOTIFY_STOP;
+ 		break;
+ 	case DIE_GPF:
+-	case DIE_PAGE_FAULT:
+ 		/* kprobe_running() needs smp_processor_id() */
+ 		preempt_disable();
+ 		if (kprobe_running() &&
+diff -puN arch/x86_64/mm/fault.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft arch/x86_64/mm/fault.c
+--- a/arch/x86_64/mm/fault.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/arch/x86_64/mm/fault.c
+@@ -25,6 +25,7 @@
+ #include <linux/kprobes.h>
+ #include <linux/uaccess.h>
+ #include <linux/kdebug.h>
++#include <linux/kprobes.h>
+ 
+ #include <asm/system.h>
+ #include <asm/pgalloc.h>
+@@ -40,34 +41,27 @@
+ #define PF_RSVD	(1<<3)
+ #define PF_INSTR	(1<<4)
+ 
+-static ATOMIC_NOTIFIER_HEAD(notify_page_fault_chain);
+-
+-/* Hook to register for page fault notifications */
+-int register_page_fault_notifier(struct notifier_block *nb)
++#ifdef CONFIG_KPROBES
++static inline int notify_page_fault(struct pt_regs *regs)
+ {
+-	vmalloc_sync_all();
+-	return atomic_notifier_chain_register(&notify_page_fault_chain, nb);
+-}
+-EXPORT_SYMBOL_GPL(register_page_fault_notifier);
++	int ret = 0;
+ 
+-int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return atomic_notifier_chain_unregister(&notify_page_fault_chain, nb);
+-}
+-EXPORT_SYMBOL_GPL(unregister_page_fault_notifier);
++	/* kprobe_running() needs smp_processor_id() */
++	if (!user_mode(regs)) {
++		preempt_disable();
++		if (kprobe_running() && kprobe_fault_handler(regs, 14))
++			ret = 1;
++		preempt_enable();
++	}
+ 
+-static inline int notify_page_fault(struct pt_regs *regs, long err)
++	return ret;
++}
++#else
++static inline int notify_page_fault(struct pt_regs *regs)
+ {
+-	struct die_args args = {
+-		.regs = regs,
+-		.str = "page fault",
+-		.err = err,
+-		.trapnr = 14,
+-		.signr = SIGSEGV
+-	};
+-	return atomic_notifier_call_chain(&notify_page_fault_chain,
+-	                                  DIE_PAGE_FAULT, &args);
++	return 0;
+ }
++#endif
+ 
+ /* Sometimes the CPU reports invalid exceptions on prefetch.
+    Check that here and ignore.
+@@ -355,7 +349,7 @@ asmlinkage void __kprobes do_page_fault(
+ 			if (vmalloc_fault(address) >= 0)
+ 				return;
+ 		}
+-		if (notify_page_fault(regs, error_code) == NOTIFY_STOP)
++		if (notify_page_fault(regs))
+ 			return;
+ 		/*
+ 		 * Don't take the mm semaphore here. If we fixup a prefetch
+@@ -364,7 +358,7 @@ asmlinkage void __kprobes do_page_fault(
+ 		goto bad_area_nosemaphore;
+ 	}
+ 
+-	if (notify_page_fault(regs, error_code) == NOTIFY_STOP)
++	if (notify_page_fault(regs))
+ 		return;
+ 
+ 	if (likely(regs->eflags & X86_EFLAGS_IF))
+diff -puN include/asm-avr32/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-avr32/kdebug.h
+--- a/include/asm-avr32/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-avr32/kdebug.h
+@@ -1,26 +1,10 @@
+ #ifndef __ASM_AVR32_KDEBUG_H
+ #define __ASM_AVR32_KDEBUG_H
+ 
+-#include <linux/notifier.h>
+-
+ /* Grossly misnamed. */
+ enum die_val {
+ 	DIE_BREAKPOINT,
+ 	DIE_SSTEP,
+ };
+ 
+-/*
+- * These are only here because kprobes.c wants them to implement a
+- * blatant layering violation.  Will hopefully go away soon once all
+- * architectures are updated.
+- */
+-static inline int register_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-static inline int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-
+ #endif /* __ASM_AVR32_KDEBUG_H */
+diff -puN include/asm-avr32/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-avr32/kprobes.h
+--- a/include/asm-avr32/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-avr32/kprobes.h
+@@ -17,8 +17,6 @@ typedef u16	kprobe_opcode_t;
+ #define BREAKPOINT_INSTRUCTION	0xd673	/* breakpoint */
+ #define MAX_INSN_SIZE		2
+ 
+-#define ARCH_INACTIVE_KPROBE_COUNT 1
+-
+ #define arch_remove_kprobe(p)	do { } while (0)
+ 
+ /* Architecture specific copy of original instruction */
+diff -puN include/asm-i386/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-i386/kdebug.h
+--- a/include/asm-i386/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-i386/kdebug.h
+@@ -5,14 +5,9 @@
+  * Aug-05 2004 Ported by Prasanna S Panchamukhi <prasanna@in.ibm.com>
+  * from x86_64 architecture.
+  */
+-#include <linux/notifier.h>
+ 
+ struct pt_regs;
+ 
+-extern int register_page_fault_notifier(struct notifier_block *);
+-extern int unregister_page_fault_notifier(struct notifier_block *);
+-
+-
+ /* Grossly misnamed. */
+ enum die_val {
+ 	DIE_OOPS = 1,
+@@ -27,7 +22,6 @@ enum die_val {
+ 	DIE_GPF,
+ 	DIE_CALL,
+ 	DIE_NMI_IPI,
+-	DIE_PAGE_FAULT,
+ };
+ 
+ #endif
+diff -puN include/asm-i386/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-i386/kprobes.h
+--- a/include/asm-i386/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-i386/kprobes.h
+@@ -43,7 +43,6 @@ typedef u8 kprobe_opcode_t;
+ 	: (((unsigned long)current_thread_info()) + THREAD_SIZE - (ADDR)))
+ 
+ #define ARCH_SUPPORTS_KRETPROBES
+-#define  ARCH_INACTIVE_KPROBE_COUNT 0
+ #define flush_insn_slot(p)	do { } while (0)
+ 
+ void arch_remove_kprobe(struct kprobe *p);
+@@ -89,4 +88,5 @@ static inline void restore_interrupts(st
+ 
+ extern int kprobe_exceptions_notify(struct notifier_block *self,
+ 				    unsigned long val, void *data);
++extern int kprobe_fault_handler(struct pt_regs *regs, int trapnr);
+ #endif				/* _ASM_KPROBES_H */
+diff -puN include/asm-ia64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-ia64/kdebug.h
+--- a/include/asm-ia64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-ia64/kdebug.h
+@@ -26,21 +26,6 @@
+  * 2005-Oct	Keith Owens <kaos@sgi.com>.  Expand notify_die to cover more
+  *		events.
+  */
+-#include <linux/notifier.h>
+-
+-/*
+- * These are only here because kprobes.c wants them to implement a
+- * blatant layering violation.  Will hopefully go away soon once all
+- * architectures are updated.
+- */
+-static inline int register_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-static inline int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+ 
+ enum die_val {
+ 	DIE_BREAK = 1,
+diff -puN include/asm-ia64/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-ia64/kprobes.h
+--- a/include/asm-ia64/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-ia64/kprobes.h
+@@ -83,7 +83,6 @@ struct kprobe_ctlblk {
+ };
+ 
+ #define ARCH_SUPPORTS_KRETPROBES
+-#define  ARCH_INACTIVE_KPROBE_COUNT 1
+ 
+ #define SLOT0_OPCODE_SHIFT	(37)
+ #define SLOT1_p1_OPCODE_SHIFT	(37 - (64-46))
+diff -puN include/asm-powerpc/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-powerpc/kdebug.h
+--- a/include/asm-powerpc/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-powerpc/kdebug.h
+@@ -2,25 +2,6 @@
+ #define _ASM_POWERPC_KDEBUG_H
+ #ifdef __KERNEL__
+ 
+-/* nearly identical to x86_64/i386 code */
+-
+-#include <linux/notifier.h>
+-
+-/*
+- * These are only here because kprobes.c wants them to implement a
+- * blatant layering violation.  Will hopefully go away soon once all
+- * architectures are updated.
+- */
+-static inline int register_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-static inline int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-extern struct atomic_notifier_head powerpc_die_chain;
+-
+ /* Grossly misnamed. */
+ enum die_val {
+ 	DIE_OOPS = 1,
+diff -puN include/asm-powerpc/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-powerpc/kprobes.h
+--- a/include/asm-powerpc/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-powerpc/kprobes.h
+@@ -81,7 +81,6 @@ typedef unsigned int kprobe_opcode_t;
+ #endif
+ 
+ #define ARCH_SUPPORTS_KRETPROBES
+-#define  ARCH_INACTIVE_KPROBE_COUNT 1
+ #define flush_insn_slot(p)	do { } while (0)
+ 
+ void kretprobe_trampoline(void);
+diff -puN include/asm-s390/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-s390/kdebug.h
+--- a/include/asm-s390/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-s390/kdebug.h
+@@ -4,24 +4,9 @@
+ /*
+  * Feb 2006 Ported to s390 <grundym@us.ibm.com>
+  */
+-#include <linux/notifier.h>
+ 
+ struct pt_regs;
+ 
+-/*
+- * These are only here because kprobes.c wants them to implement a
+- * blatant layering violation. Will hopefully go away soon once all
+- * architectures are updated.
+- */
+-static inline int register_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-static inline int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-
+ enum die_val {
+ 	DIE_OOPS = 1,
+ 	DIE_BPT,
+diff -puN include/asm-s390/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-s390/kprobes.h
+--- a/include/asm-s390/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-s390/kprobes.h
+@@ -47,7 +47,6 @@ typedef u16 kprobe_opcode_t;
+ 	: (((unsigned long)current_thread_info()) + THREAD_SIZE - (ADDR)))
+ 
+ #define ARCH_SUPPORTS_KRETPROBES
+-#define ARCH_INACTIVE_KPROBE_COUNT 0
+ 
+ #define KPROBE_SWAP_INST	0x10
+ 
+diff -puN include/asm-sh/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-sh/kdebug.h
+--- a/include/asm-sh/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-sh/kdebug.h
+@@ -1,8 +1,6 @@
+ #ifndef __ASM_SH_KDEBUG_H
+ #define __ASM_SH_KDEBUG_H
+ 
+-#include <linux/notifier.h>
+-
+ /* Grossly misnamed. */
+ enum die_val {
+ 	DIE_TRAP,
+diff -puN include/asm-sparc64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-sparc64/kdebug.h
+--- a/include/asm-sparc64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-sparc64/kdebug.h
+@@ -1,26 +1,6 @@
+ #ifndef _SPARC64_KDEBUG_H
+ #define _SPARC64_KDEBUG_H
+ 
+-/* Nearly identical to x86_64/i386 code. */
+-
+-#include <linux/notifier.h>
+-
+-struct pt_regs;
+-
+-/*
+- * These are only here because kprobes.c wants them to implement a
+- * blatant layering violation.  Will hopefully go away soon once all
+- * architectures are updated.
+- */
+-static inline int register_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-static inline int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-
+ extern void bad_trap(struct pt_regs *, long);
+ 
+ /* Grossly misnamed. */
+diff -puN include/asm-sparc64/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-sparc64/kprobes.h
+--- a/include/asm-sparc64/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-sparc64/kprobes.h
+@@ -11,7 +11,6 @@ typedef u32 kprobe_opcode_t;
+ #define MAX_INSN_SIZE 2
+ 
+ #define arch_remove_kprobe(p)	do {} while (0)
+-#define  ARCH_INACTIVE_KPROBE_COUNT 0
+ 
+ #define flush_insn_slot(p)		\
+ do { 	flushi(&(p)->ainsn.insn[0]);	\
+diff -puN include/asm-x86_64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-x86_64/kdebug.h
+--- a/include/asm-x86_64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-x86_64/kdebug.h
+@@ -1,13 +1,8 @@
+ #ifndef _X86_64_KDEBUG_H
+ #define _X86_64_KDEBUG_H 1
+ 
+-#include <linux/notifier.h>
+-
+ struct pt_regs;
+ 
+-extern int register_page_fault_notifier(struct notifier_block *);
+-extern int unregister_page_fault_notifier(struct notifier_block *);
+-
+ /* Grossly misnamed. */
+ enum die_val {
+ 	DIE_OOPS = 1,
+@@ -22,7 +17,6 @@ enum die_val {
+ 	DIE_GPF,
+ 	DIE_CALL,
+ 	DIE_NMI_IPI,
+-	DIE_PAGE_FAULT,
+ };
+ 
+ extern void printk_address(unsigned long address);
+diff -puN include/asm-x86_64/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-x86_64/kprobes.h
+--- a/include/asm-x86_64/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-x86_64/kprobes.h
+@@ -42,7 +42,6 @@ typedef u8 kprobe_opcode_t;
+ 	: (((unsigned long)current_thread_info()) + THREAD_SIZE - (ADDR)))
+ 
+ #define ARCH_SUPPORTS_KRETPROBES
+-#define  ARCH_INACTIVE_KPROBE_COUNT 1
+ 
+ void kretprobe_trampoline(void);
+ extern void arch_remove_kprobe(struct kprobe *p);
+diff -puN kernel/kprobes.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft kernel/kprobes.c
+--- a/kernel/kprobes.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/kernel/kprobes.c
+@@ -64,7 +64,6 @@
+ 
+ static struct hlist_head kprobe_table[KPROBE_TABLE_SIZE];
+ static struct hlist_head kretprobe_inst_table[KPROBE_TABLE_SIZE];
+-static atomic_t kprobe_count;
+ 
+ /* NOTE: change this value only with kprobe_mutex held */
+ static bool kprobe_enabled;
+@@ -73,11 +72,6 @@ DEFINE_MUTEX(kprobe_mutex);		/* Protects
+ DEFINE_SPINLOCK(kretprobe_lock);	/* Protects kretprobe_inst_table */
+ static DEFINE_PER_CPU(struct kprobe *, kprobe_instance) = NULL;
+ 
+-static struct notifier_block kprobe_page_fault_nb = {
+-	.notifier_call = kprobe_exceptions_notify,
+-	.priority = 0x7fffffff /* we need to notified first */
+-};
+-
+ #ifdef __ARCH_WANT_KPROBES_INSN_SLOT
+ /*
+  * kprobe->ainsn.insn points to the copy of the instruction to be
+@@ -556,8 +550,6 @@ static int __kprobes __register_kprobe(s
+ 	old_p = get_kprobe(p->addr);
+ 	if (old_p) {
+ 		ret = register_aggr_kprobe(old_p, p);
+-		if (!ret)
+-			atomic_inc(&kprobe_count);
+ 		goto out;
+ 	}
+ 
+@@ -569,13 +561,9 @@ static int __kprobes __register_kprobe(s
+ 	hlist_add_head_rcu(&p->hlist,
+ 		       &kprobe_table[hash_ptr(p->addr, KPROBE_HASH_BITS)]);
+ 
+-	if (kprobe_enabled) {
+-		if (atomic_add_return(1, &kprobe_count) == \
+-				(ARCH_INACTIVE_KPROBE_COUNT + 1))
+-			register_page_fault_notifier(&kprobe_page_fault_nb);
+-
++	if (kprobe_enabled)
+ 		arch_arm_kprobe(p);
+-	}
++
+ out:
+ 	mutex_unlock(&kprobe_mutex);
+ 
+@@ -658,16 +646,6 @@ valid_p:
+ 		}
+ 		mutex_unlock(&kprobe_mutex);
+ 	}
+-
+-	/* Call unregister_page_fault_notifier()
+-	 * if no probes are active
+-	 */
+-	mutex_lock(&kprobe_mutex);
+-	if (atomic_add_return(-1, &kprobe_count) == \
+-				ARCH_INACTIVE_KPROBE_COUNT)
+-		unregister_page_fault_notifier(&kprobe_page_fault_nb);
+-	mutex_unlock(&kprobe_mutex);
+-	return;
  }
  
- static inline void
-diff -puN arch/powerpc/kernel/entry_64.S~remove-unused-tif_notify_resume-flag arch/powerpc/kernel/entry_64.S
---- a/arch/powerpc/kernel/entry_64.S~remove-unused-tif_notify_resume-flag
-+++ a/arch/powerpc/kernel/entry_64.S
-@@ -546,7 +546,6 @@ END_FW_FTR_SECTION_IFSET(FW_FEATURE_ISER
- 	rfid
- 	b	.	/* prevent speculative execution */
+ static struct notifier_block kprobe_exceptions_nb = {
+@@ -815,7 +793,6 @@ static int __init init_kprobes(void)
+ 		INIT_HLIST_HEAD(&kprobe_table[i]);
+ 		INIT_HLIST_HEAD(&kretprobe_inst_table[i]);
+ 	}
+-	atomic_set(&kprobe_count, 0);
  
--/* Note: this must change if we start using the TIF_NOTIFY_RESUME bit */
- do_work:
- #ifdef CONFIG_PREEMPT
- 	andi.	r0,r3,MSR_PR	/* Returning to user mode? */
-diff -puN arch/x86_64/kernel/entry.S~remove-unused-tif_notify_resume-flag arch/x86_64/kernel/entry.S
---- a/arch/x86_64/kernel/entry.S~remove-unused-tif_notify_resume-flag
-+++ a/arch/x86_64/kernel/entry.S
-@@ -282,7 +282,7 @@ sysret_careful:
- sysret_signal:
- 	TRACE_IRQS_ON
- 	sti
--	testl $(_TIF_SIGPENDING|_TIF_NOTIFY_RESUME|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
-+	testl $(_TIF_SIGPENDING|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
- 	jz    1f
+ 	/* By default, kprobes are enabled */
+ 	kprobe_enabled = true;
+@@ -921,13 +898,6 @@ static void __kprobes enable_all_kprobes
+ 	if (kprobe_enabled)
+ 		goto already_enabled;
  
- 	/* Really a signal */
-@@ -375,7 +375,7 @@ int_very_careful:
- 	jmp int_restore_rest
- 	
- int_signal:
--	testl $(_TIF_NOTIFY_RESUME|_TIF_SIGPENDING|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
-+	testl $(_TIF_SIGPENDING|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
- 	jz 1f
- 	movq %rsp,%rdi		# &ptregs -> arg1
- 	xorl %esi,%esi		# oldset -> arg2
-@@ -599,7 +599,7 @@ retint_careful:
- 	jmp retint_check
- 	
- retint_signal:
--	testl $(_TIF_SIGPENDING|_TIF_NOTIFY_RESUME|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
-+	testl $(_TIF_SIGPENDING|_TIF_SINGLESTEP|_TIF_MCE_NOTIFY),%edx
- 	jz    retint_swapgs
- 	TRACE_IRQS_ON
- 	sti
-diff -puN include/asm-alpha/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-alpha/thread_info.h
---- a/include/asm-alpha/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-alpha/thread_info.h
-@@ -67,28 +67,24 @@ register struct thread_info *__current_t
-  * TIF_SYSCALL_TRACE is known to be 0 via blbs.
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_POLLING_NRFLAG	4	/* poll_idle is polling NEED_RESCHED */
--#define TIF_DIE_IF_KERNEL	5	/* dik recursion lock */
--#define TIF_UAC_NOPRINT		6	/* see sysinfo.h */
--#define TIF_UAC_NOFIX		7
--#define TIF_UAC_SIGBUS		8
--#define TIF_MEMDIE		9
--#define TIF_RESTORE_SIGMASK	10	/* restore signal mask in do_signal */
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_POLLING_NRFLAG	3	/* poll_idle is polling NEED_RESCHED */
-+#define TIF_DIE_IF_KERNEL	4	/* dik recursion lock */
-+#define TIF_UAC_NOPRINT		5	/* see sysinfo.h */
-+#define TIF_UAC_NOFIX		6
-+#define TIF_UAC_SIGBUS		7
-+#define TIF_MEMDIE		8
-+#define TIF_RESTORE_SIGMASK	9	/* restore signal mask in do_signal */
+-	/*
+-	 * Re-register the page fault notifier only if there are any
+-	 * active probes at the time of enabling kprobes globally
+-	 */
+-	if (atomic_read(&kprobe_count) > ARCH_INACTIVE_KPROBE_COUNT)
+-		register_page_fault_notifier(&kprobe_page_fault_nb);
+-
+ 	for (i = 0; i < KPROBE_TABLE_SIZE; i++) {
+ 		head = &kprobe_table[i];
+ 		hlist_for_each_entry_rcu(p, node, head, hlist)
+@@ -968,10 +938,7 @@ static void __kprobes disable_all_kprobe
+ 	mutex_unlock(&kprobe_mutex);
+ 	/* Allow all currently running kprobes to complete */
+ 	synchronize_sched();
+-
+-	mutex_lock(&kprobe_mutex);
+-	/* Unconditionally unregister the page_fault notifier */
+-	unregister_page_fault_notifier(&kprobe_page_fault_nb);
++	return;
  
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
- #define _TIF_RESTORE_SIGMASK	(1<<TIF_RESTORE_SIGMASK)
- 
- /* Work to do on interrupt/exception return.  */
--#define _TIF_WORK_MASK		(_TIF_NOTIFY_RESUME	\
--				 | _TIF_SIGPENDING	\
--				 | _TIF_NEED_RESCHED)
-+#define _TIF_WORK_MASK		(_TIF_SIGPENDING | _TIF_NEED_RESCHED)
- 
- /* Work to do on any return to userspace.  */
- #define _TIF_ALLWORK_MASK	(_TIF_WORK_MASK		\
-diff -puN include/asm-arm/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-arm/thread_info.h
---- a/include/asm-arm/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-arm/thread_info.h
-@@ -134,22 +134,19 @@ extern void iwmmxt_task_switch(struct th
- /*
-  * thread information flags:
-  *  TIF_SYSCALL_TRACE	- syscall trace active
-- *  TIF_NOTIFY_RESUME	- resumption notification requested
-  *  TIF_SIGPENDING	- signal pending
-  *  TIF_NEED_RESCHED	- rescheduling necessary
-  *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
-  *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
-  */
--#define TIF_NOTIFY_RESUME	0
--#define TIF_SIGPENDING		1
--#define TIF_NEED_RESCHED	2
-+#define TIF_SIGPENDING		0
-+#define TIF_NEED_RESCHED	1
- #define TIF_SYSCALL_TRACE	8
- #define TIF_POLLING_NRFLAG	16
- #define TIF_USING_IWMMXT	17
- #define TIF_MEMDIE		18
- #define TIF_FREEZE		19
- 
--#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
- #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
-diff -puN include/asm-arm26/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-arm26/thread_info.h
---- a/include/asm-arm26/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-arm26/thread_info.h
-@@ -110,21 +110,18 @@ extern void free_thread_info(struct thre
- /*
-  * thread information flags:
-  *  TIF_SYSCALL_TRACE	- syscall trace active
-- *  TIF_NOTIFY_RESUME	- resumption notification requested
-  *  TIF_SIGPENDING	- signal pending
-  *  TIF_NEED_RESCHED	- rescheduling necessary
-  *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
-  *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
-  */
--#define TIF_NOTIFY_RESUME	0
--#define TIF_SIGPENDING		1
--#define TIF_NEED_RESCHED	2
-+#define TIF_SIGPENDING		0
-+#define TIF_NEED_RESCHED	1
- #define TIF_SYSCALL_TRACE	8
- #define TIF_USED_FPU		16
- #define TIF_POLLING_NRFLAG	17
- #define TIF_MEMDIE		18
- 
--#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
- #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
-diff -puN include/asm-avr32/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-avr32/thread_info.h
---- a/include/asm-avr32/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-avr32/thread_info.h
-@@ -74,20 +74,18 @@ static inline struct thread_info *curren
-  * - other flags in MSW
-  */
- #define TIF_SYSCALL_TRACE       0       /* syscall trace active */
--#define TIF_NOTIFY_RESUME       1       /* resumption notification requested */
--#define TIF_SIGPENDING          2       /* signal pending */
--#define TIF_NEED_RESCHED        3       /* rescheduling necessary */
--#define TIF_POLLING_NRFLAG      4       /* true if poll_idle() is polling
-+#define TIF_SIGPENDING          1       /* signal pending */
-+#define TIF_NEED_RESCHED        2       /* rescheduling necessary */
-+#define TIF_POLLING_NRFLAG      3       /* true if poll_idle() is polling
- 					   TIF_NEED_RESCHED */
--#define TIF_BREAKPOINT		5	/* true if we should break after return */
--#define TIF_SINGLE_STEP		6	/* single step after next break */
--#define TIF_MEMDIE		7
--#define TIF_RESTORE_SIGMASK	8	/* restore signal mask in do_signal */
--#define TIF_CPU_GOING_TO_SLEEP	9	/* CPU is entering sleep 0 mode */
-+#define TIF_BREAKPOINT		4	/* true if we should break after return */
-+#define TIF_SINGLE_STEP		5	/* single step after next break */
-+#define TIF_MEMDIE		6
-+#define TIF_RESTORE_SIGMASK	7	/* restore signal mask in do_signal */
-+#define TIF_CPU_GOING_TO_SLEEP	8	/* CPU is entering sleep 0 mode */
- #define TIF_USERSPACE		31      /* true if FS sets userspace */
- 
- #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
- #define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
-diff -puN include/asm-blackfin/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-blackfin/thread_info.h
---- a/include/asm-blackfin/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-blackfin/thread_info.h
-@@ -118,18 +118,16 @@ static inline struct thread_info *curren
-  * thread information flag bit numbers
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling
- 					   TIF_NEED_RESCHED */
--#define TIF_MEMDIE              5
--#define TIF_RESTORE_SIGMASK	6	/* restore signal mask in do_signal() */
--#define TIF_FREEZE              7       /* is freezing for suspend */
-+#define TIF_MEMDIE              4
-+#define TIF_RESTORE_SIGMASK	5	/* restore signal mask in do_signal() */
-+#define TIF_FREEZE              6       /* is freezing for suspend */
- 
- /* as above, but as bit values */
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
-diff -puN include/asm-cris/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-cris/thread_info.h
---- a/include/asm-cris/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-cris/thread_info.h
-@@ -79,14 +79,12 @@ struct thread_info {
-  * - other flags in MSW
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
- #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
- #define TIF_MEMDIE		17
- 
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
-diff -puN include/asm-frv/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-frv/thread_info.h
---- a/include/asm-frv/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-frv/thread_info.h
-@@ -108,18 +108,16 @@ register struct thread_info *__current_t
-  * - other flags in MSW
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
--#define TIF_IRET		5	/* return with iret */
--#define TIF_RESTORE_SIGMASK	6	/* restore signal mask in do_signal() */
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_SINGLESTEP		3	/* restore singlestep on return to user mode */
-+#define TIF_IRET		4	/* return with iret */
-+#define TIF_RESTORE_SIGMASK	5	/* restore signal mask in do_signal() */
- #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
- #define TIF_MEMDIE		17	/* OOM killer killed process */
- #define TIF_FREEZE		18	/* freezing for suspend */
- 
- #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
- #define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
-diff -puN include/asm-h8300/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-h8300/thread_info.h
---- a/include/asm-h8300/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-h8300/thread_info.h
-@@ -86,17 +86,15 @@ static inline struct thread_info *curren
-  * thread information flag bit numbers
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling
- 					   TIF_NEED_RESCHED */
--#define TIF_MEMDIE		5
--#define TIF_RESTORE_SIGMASK	6	/* restore signal mask in do_signal() */
-+#define TIF_MEMDIE		4
-+#define TIF_RESTORE_SIGMASK	5	/* restore signal mask in do_signal() */
- 
- /* as above, but as bit values */
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
-diff -puN include/asm-i386/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-i386/thread_info.h
---- a/include/asm-i386/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-i386/thread_info.h
-@@ -124,15 +124,14 @@ static inline struct thread_info *curren
-  * - other flags in MSW
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
--#define TIF_IRET		5	/* return with iret */
--#define TIF_SYSCALL_EMU		6	/* syscall emulation active */
--#define TIF_SYSCALL_AUDIT	7	/* syscall auditing active */
--#define TIF_SECCOMP		8	/* secure computing */
--#define TIF_RESTORE_SIGMASK	9	/* restore signal mask in do_signal() */
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_SINGLESTEP		3	/* restore singlestep on return to user mode */
-+#define TIF_IRET		4	/* return with iret */
-+#define TIF_SYSCALL_EMU		5	/* syscall emulation active */
-+#define TIF_SYSCALL_AUDIT	6	/* syscall auditing active */
-+#define TIF_SECCOMP		7	/* secure computing */
-+#define TIF_RESTORE_SIGMASK	8	/* restore signal mask in do_signal() */
- #define TIF_MEMDIE		16
- #define TIF_DEBUG		17	/* uses debug registers */
- #define TIF_IO_BITMAP		18	/* uses I/O bitmap */
-@@ -140,7 +139,6 @@ static inline struct thread_info *curren
- #define TIF_NOTSC		20	/* TSC is not accessible in userland */
- 
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
-diff -puN include/asm-ia64/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-ia64/thread_info.h
---- a/include/asm-ia64/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-ia64/thread_info.h
-@@ -79,13 +79,13 @@ struct thread_info {
-  * - pending work-to-be-done flags are in least-significant 16 bits, other flags
-  *   in top 16 bits
-  */
--#define TIF_NOTIFY_RESUME	0	/* resumption notification requested */
--#define TIF_SIGPENDING		1	/* signal pending */
--#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
--#define TIF_SYSCALL_TRACE	3	/* syscall trace active */
--#define TIF_SYSCALL_AUDIT	4	/* syscall auditing active */
--#define TIF_SINGLESTEP		5	/* restore singlestep on return to user mode */
--#define TIF_RESTORE_SIGMASK	6	/* restore signal mask in do_signal() */
-+#define TIF_SIGPENDING		0	/* signal pending */
-+#define TIF_NEED_RESCHED	1	/* rescheduling necessary */
-+#define TIF_SYSCALL_TRACE	2	/* syscall trace active */
-+#define TIF_SYSCALL_AUDIT	3	/* syscall auditing active */
-+#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
-+#define TIF_RESTORE_SIGMASK	5	/* restore signal mask in do_signal() */
-+#define TIF_PERFMON_WORK	6	/* work for pfm_handle_work() */
- #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
- #define TIF_MEMDIE		17
- #define TIF_MCA_INIT		18	/* this task is processing MCA or INIT */
-@@ -96,8 +96,8 @@ struct thread_info {
- #define _TIF_SYSCALL_AUDIT	(1 << TIF_SYSCALL_AUDIT)
- #define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
- #define _TIF_SYSCALL_TRACEAUDIT	(_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT|_TIF_SINGLESTEP)
--#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
- #define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
-+#define _TIF_PERFMON_WORK	(1 << TIF_PERFMON_WORK)
- #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
- #define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
-@@ -106,7 +106,9 @@ struct thread_info {
- #define _TIF_FREEZE		(1 << TIF_FREEZE)
- 
- /* "work to do on user-return" bits */
--#define TIF_ALLWORK_MASK	(_TIF_NOTIFY_RESUME|_TIF_SIGPENDING|_TIF_NEED_RESCHED|_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT|_TIF_RESTORE_SIGMASK)
-+#define TIF_ALLWORK_MASK	(_TIF_SIGPENDING|_TIF_PERFMON_WORK|_TIF_SYSCALL_AUDIT|\
-+				 _TIF_NEED_RESCHED| _TIF_SYSCALL_TRACE|\
-+				 _TIF_RESTORE_SIGMASK)
- /* like TIF_ALLWORK_BITS but sans TIF_SYSCALL_TRACE or TIF_SYSCALL_AUDIT */
- #define TIF_WORK_MASK		(TIF_ALLWORK_MASK&~(_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT))
- 
-diff -puN include/asm-m32r/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-m32r/thread_info.h
---- a/include/asm-m32r/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-m32r/thread_info.h
-@@ -146,17 +146,15 @@ static inline unsigned int get_thread_fa
-  * - other flags in MSW
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
--#define TIF_IRET		5	/* return with iret */
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_SINGLESTEP		3	/* restore singlestep on return to user mode */
-+#define TIF_IRET		4	/* return with iret */
- #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
- 					/* 31..28 fault code */
- #define TIF_MEMDIE		17
- 
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
-diff -puN include/asm-m68knommu/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-m68knommu/thread_info.h
---- a/include/asm-m68knommu/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-m68knommu/thread_info.h
-@@ -83,16 +83,14 @@ static inline struct thread_info *curren
-  * thread information flag bit numbers
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling
- 					   TIF_NEED_RESCHED */
--#define TIF_MEMDIE		5
-+#define TIF_MEMDIE		4
- 
- /* as above, but as bit values */
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
-diff -puN include/asm-mips/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-mips/thread_info.h
---- a/include/asm-mips/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-mips/thread_info.h
-@@ -109,11 +109,10 @@ register struct thread_info *__current_t
-  * - pending work-to-be-done flags are in LSW
-  * - other flags in MSW
-  */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_SYSCALL_AUDIT	4	/* syscall auditing active */
--#define TIF_SECCOMP		5	/* secure computing */
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_SYSCALL_AUDIT	3	/* syscall auditing active */
-+#define TIF_SECCOMP		4	/* secure computing */
- #define TIF_RESTORE_SIGMASK	9	/* restore signal mask in do_signal() */
- #define TIF_USEDFPU		16	/* FPU was used by this task this quantum (SMP) */
- #define TIF_POLLING_NRFLAG	17	/* true if poll_idle() is polling TIF_NEED_RESCHED */
-@@ -122,7 +121,6 @@ register struct thread_info *__current_t
- #define TIF_SYSCALL_TRACE	31	/* syscall trace active */
- 
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_SYSCALL_AUDIT	(1<<TIF_SYSCALL_AUDIT)
-diff -puN include/asm-parisc/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-parisc/thread_info.h
---- a/include/asm-parisc/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-parisc/thread_info.h
-@@ -56,23 +56,21 @@ struct thread_info {
-  * thread information flags
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling TIF_NEED_RESCHED */
--#define TIF_32BIT               5       /* 32 bit binary */
--#define TIF_MEMDIE		6
--#define TIF_RESTORE_SIGMASK	7	/* restore saved signal mask */
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling TIF_NEED_RESCHED */
-+#define TIF_32BIT               4       /* 32 bit binary */
-+#define TIF_MEMDIE		5
-+#define TIF_RESTORE_SIGMASK	6	/* restore saved signal mask */
- 
- #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
- #define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
- #define _TIF_32BIT		(1 << TIF_32BIT)
- #define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
- 
--#define _TIF_USER_WORK_MASK     (_TIF_NOTIFY_RESUME | _TIF_SIGPENDING | \
-+#define _TIF_USER_WORK_MASK     (_TIF_SIGPENDING | \
-                                  _TIF_NEED_RESCHED | _TIF_RESTORE_SIGMASK)
- 
- #endif /* __KERNEL__ */
-diff -puN include/asm-powerpc/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-powerpc/thread_info.h
---- a/include/asm-powerpc/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-powerpc/thread_info.h
-@@ -107,28 +107,26 @@ static inline struct thread_info *curren
-  * thread information flag bit numbers
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling
- 					   TIF_NEED_RESCHED */
--#define TIF_32BIT		5	/* 32 bit binary */
--#define TIF_PERFMON_WORK	6	/* work for pfm_handle_work() */
--#define TIF_PERFMON_CTXSW	7	/* perfmon needs ctxsw calls */
--#define TIF_SYSCALL_AUDIT	8	/* syscall auditing active */
--#define TIF_SINGLESTEP		9	/* singlestepping active */
--#define TIF_MEMDIE		10
--#define TIF_SECCOMP		11	/* secure computing */
--#define TIF_RESTOREALL		12	/* Restore all regs (implies NOERROR) */
--#define TIF_NOERROR		14	/* Force successful syscall return */
--#define TIF_RESTORE_SIGMASK	15	/* Restore signal mask in do_signal */
--#define TIF_FREEZE		16	/* Freezing for suspend */
--#define TIF_RUNLATCH		17	/* Is the runlatch enabled? */
--#define TIF_ABI_PENDING		18	/* 32/64 bit switch needed */
-+#define TIF_32BIT		4	/* 32 bit binary */
-+#define TIF_PERFMON_WORK	5	/* work for pfm_handle_work() */
-+#define TIF_PERFMON_CTXSW	6	/* perfmon needs ctxsw calls */
-+#define TIF_SYSCALL_AUDIT	7	/* syscall auditing active */
-+#define TIF_SINGLESTEP		8	/* singlestepping active */
-+#define TIF_MEMDIE		9
-+#define TIF_SECCOMP		10	/* secure computing */
-+#define TIF_RESTOREALL		11	/* Restore all regs (implies NOERROR) */
-+#define TIF_NOERROR		12	/* Force successful syscall return */
-+#define TIF_RESTORE_SIGMASK	13	/* Restore signal mask in do_signal */
-+#define TIF_FREEZE		14	/* Freezing for suspend */
-+#define TIF_RUNLATCH		15	/* Is the runlatch enabled? */
-+#define TIF_ABI_PENDING		16	/* 32/64 bit switch needed */
- 
- /* as above, but as bit values */
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
-@@ -146,7 +144,7 @@ static inline struct thread_info *curren
- #define _TIF_ABI_PENDING	(1<<TIF_ABI_PENDING)
- #define _TIF_SYSCALL_T_OR_A	(_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT|_TIF_SECCOMP)
- 
--#define _TIF_USER_WORK_MASK	(_TIF_NOTIFY_RESUME | _TIF_SIGPENDING | \
-+#define _TIF_USER_WORK_MASK	( _TIF_SIGPENDING | \
- 				 _TIF_NEED_RESCHED | _TIF_RESTORE_SIGMASK)
- #define _TIF_PERSYSCALL_MASK	(_TIF_RESTOREALL|_TIF_NOERROR)
- 
-diff -puN include/asm-sh/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-sh/thread_info.h
---- a/include/asm-sh/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-sh/thread_info.h
-@@ -107,18 +107,16 @@ static inline struct thread_info *curren
-  * - other flags in MSW
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_RESTORE_SIGMASK	4	/* restore signal mask in do_signal() */
--#define TIF_SINGLESTEP		5	/* singlestepping active */
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_RESTORE_SIGMASK	3	/* restore signal mask in do_signal() */
-+#define TIF_SINGLESTEP		4	/* singlestepping active */
- #define TIF_USEDFPU		16	/* FPU was used by this task this quantum (SMP) */
- #define TIF_POLLING_NRFLAG	17	/* true if poll_idle() is polling TIF_NEED_RESCHED */
- #define TIF_MEMDIE		18
- #define TIF_FREEZE		19
- 
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_RESTORE_SIGMASK	(1<<TIF_RESTORE_SIGMASK)
-diff -puN include/asm-v850/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-v850/thread_info.h
---- a/include/asm-v850/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-v850/thread_info.h
-@@ -77,16 +77,14 @@ struct thread_info {
-  * thread information flag bit numbers
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_POLLING_NRFLAG	4	/* true if poll_idle() is polling
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_POLLING_NRFLAG	3	/* true if poll_idle() is polling
- 					   TIF_NEED_RESCHED */
--#define TIF_MEMDIE		5
-+#define TIF_MEMDIE		4
- 
- /* as above, but as bit values */
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
-diff -puN include/asm-x86_64/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-x86_64/thread_info.h
---- a/include/asm-x86_64/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-x86_64/thread_info.h
-@@ -107,7 +107,6 @@ static inline struct thread_info *stack_
-  * Warning: layout of LSW is hardcoded in entry.S
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
- #define TIF_SIGPENDING		2	/* signal pending */
- #define TIF_NEED_RESCHED	3	/* rescheduling necessary */
- #define TIF_SINGLESTEP		4	/* reenable singlestep on user return*/
-@@ -126,7 +125,6 @@ static inline struct thread_info *stack_
- #define TIF_FREEZE		23	/* is freezing for suspend */
- 
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
-diff -puN include/asm-xtensa/thread_info.h~remove-unused-tif_notify_resume-flag include/asm-xtensa/thread_info.h
---- a/include/asm-xtensa/thread_info.h~remove-unused-tif_notify_resume-flag
-+++ a/include/asm-xtensa/thread_info.h
-@@ -110,17 +110,15 @@ static inline struct thread_info *curren
-  * - other flags in MSW
-  */
- #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
--#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
--#define TIF_SIGPENDING		2	/* signal pending */
--#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
--#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
--#define TIF_IRET		5	/* return with iret */
--#define TIF_MEMDIE		6
--#define TIF_RESTORE_SIGMASK	7	/* restore signal mask in do_signal() */
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_SINGLESTEP		3	/* restore singlestep on return to user mode */
-+#define TIF_IRET		4	/* return with iret */
-+#define TIF_MEMDIE		5
-+#define TIF_RESTORE_SIGMASK	6	/* restore signal mask in do_signal() */
- #define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
- 
- #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
--#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
- #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
- #define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
+ already_disabled:
+ 	mutex_unlock(&kprobe_mutex);
 _
 
-Patches currently in -mm which might be from eranian@hpl.hp.com are
+Patches currently in -mm which might be from hch@lst.de are
 
 origin.patch
-i386-add-amd64-barcelona-pmu-msr-definitions.patch
-make-oprofile-call-shutdown-only-once-per-session.patch
-perfctr_watchdog-do-not-bug_on-when-msr-is-unknown.patch
+git-scsi-misc.patch
+partially-fix-up-the-lookup_one_noperm-mess.patch
+git-unionfs-fixup.patch
+optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch
+sysv-convert-to-new-aops.patch
+kill-declare_mutex_locked.patch
+remove-unneded-lock_kernel-in-driver-block-loopc.patch
+unprivileged-mounts-add-user-mounts-to-the-kernel.patch
+unprivileged-mounts-allow-unprivileged-umount.patch
+unprivileged-mounts-account-user-mounts.patch
+unprivileged-mounts-propagate-error-values-from-clone_mnt.patch
+unprivileged-mounts-allow-unprivileged-bind-mounts.patch
+unprivileged-mounts-put-declaration-of-put_filesystem-in-fsh.patch
+unprivileged-mounts-allow-unprivileged-mounts.patch
+unprivileged-mounts-allow-unprivileged-fuse-mounts.patch
+unprivileged-mounts-propagation-inherit-owner-from-parent.patch
+unprivileged-mounts-add-no-submounts-flag.patch
+revoke-special-mmap-handling.patch
+revoke-core-code.patch
+revoke-support-for-ext2-and-ext3.patch
+revoke-add-documentation.patch
+revoke-wire-up-i386-system-calls.patch
 
