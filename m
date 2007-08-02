@@ -1,35 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hellhawk.shadowen.org ([80.68.90.175]:3795 "EHLO
-	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754151AbXHBRkQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2007 13:40:16 -0400
-Message-ID: <46B216ED.9090404@shadowen.org>
-Date: Thu, 02 Aug 2007 18:39:57 +0100
-From: Andy Whitcroft <apw@shadowen.org>
-MIME-Version: 1.0
-Subject: Re: [PATCH 4/4] vmemmap ppc64: convert VMM_* macros to a real	function
-References: <exportbomb.1186045945@pinky>	 <E1IGWwO-0002Yc-8h@hellhawk.shadowen.org> <1186072295.18414.257.camel@localhost>
-In-Reply-To: <1186072295.18414.257.camel@localhost>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from e3.ny.us.ibm.com ([32.97.182.143]:57915 "EHLO e3.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751368AbXHBSBD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 2 Aug 2007 14:01:03 -0400
+Received: from d01relay02.pok.ibm.com (d01relay02.pok.ibm.com [9.56.227.234])
+	by e3.ny.us.ibm.com (8.13.8/8.13.8) with ESMTP id l72GuVAq012300
+	for <linux-arch@vger.kernel.org>; Thu, 2 Aug 2007 12:56:31 -0400
+Received: from d01av02.pok.ibm.com (d01av02.pok.ibm.com [9.56.224.216])
+	by d01relay02.pok.ibm.com (8.13.8/8.13.8/NCO v8.4) with ESMTP id l72I10C2431564
+	for <linux-arch@vger.kernel.org>; Thu, 2 Aug 2007 14:01:02 -0400
+Received: from d01av02.pok.ibm.com (loopback [127.0.0.1])
+	by d01av02.pok.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id l72I0wrG020877
+	for <linux-arch@vger.kernel.org>; Thu, 2 Aug 2007 14:01:00 -0400
+Subject: Re: [PATCH 4/4] vmemmap ppc64: convert VMM_* macros to a
+	real	function
+From: Dave Hansen <haveblue@us.ibm.com>
+In-Reply-To: <46B216ED.9090404@shadowen.org>
+References: <exportbomb.1186045945@pinky>
+	 <E1IGWwO-0002Yc-8h@hellhawk.shadowen.org>
+	 <1186072295.18414.257.camel@localhost>  <46B216ED.9090404@shadowen.org>
+Content-Type: text/plain
+Date: Thu, 02 Aug 2007 11:00:56 -0700
+Message-Id: <1186077656.18414.267.camel@localhost>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Dave Hansen <haveblue@us.ibm.com>
+To: Andy Whitcroft <apw@shadowen.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-Dave Hansen wrote:
-> On Thu, 2007-08-02 at 10:25 +0100, Andy Whitcroft wrote:
->> +unsigned long __meminit vmemmap_section_start(struct page *page)
->> +{
->> +       unsigned long offset = ((unsigned long)page) -
->> +                                               ((unsigned long)(vmemmap)); 
+On Thu, 2007-08-02 at 18:39 +0100, Andy Whitcroft wrote:
+> Dave Hansen wrote:
+> > On Thu, 2007-08-02 at 10:25 +0100, Andy Whitcroft wrote:
+> >> +unsigned long __meminit vmemmap_section_start(struct page *page)
+> >> +{
+> >> +       unsigned long offset = ((unsigned long)page) -
+> >> +                                               ((unsigned long)(vmemmap)); 
+> > 
+> > Isn't this basically page_to_pfn()?  Can we use it here?
 > 
-> Isn't this basically page_to_pfn()?  Can we use it here?
+> No, as that does direct subtraction of the two pointers.  Our 'page'
+> here is not guarenteed to be aligned even to a struct page boundary.
 
-No, as that does direct subtraction of the two pointers.  Our 'page'
-here is not guarenteed to be aligned even to a struct page boundary.
-When it is not so aligned the subtraction of the pointers is undefined.
- Indeed when you do subtract them when the 'page' is not aligned you get
-complete gibberish back and blammo's result.
+Are you saying that it isn't PAGE_MASK (((unsigned long)page)&PAGE_MASK
+== page) aligned.  Or, that it isn't sizeof(struct page) aligned?
 
--apw
+> +unsigned long __meminit vmemmap_section_start(struct page *page)
+...
+> @@ -204,7 +209,7 @@ int __meminit vmemmap_populated(unsigned long start, int page_size)
+>         unsigned long end = start + page_size;
+> 
+>         for (; start < end; start += (PAGES_PER_SECTION * sizeof(struct page)))
+> -               if (pfn_valid(VMM_SECTION_PAGE(start)))
+> +               if (pfn_valid(vmemmap_section_start(start)))
+>                         return 1;
+
+If "start" is an "unsigned long", why is it being passed into a function
+that takes a "struct page"?
+
+I think the types are confusing me a bit.
+
+-- Dave
+
