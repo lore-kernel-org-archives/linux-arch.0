@@ -1,58 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:49219 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756622AbXHBT2H (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2007 15:28:07 -0400
-Date: Thu, 2 Aug 2007 12:28:06 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 3/4] vmemmap: pull out the vmemmap code into its own file
-In-Reply-To: <20070802132621.GA9511@infradead.org>
-Message-ID: <Pine.LNX.4.64.0708021220220.7948@schroedinger.engr.sgi.com>
-References: <exportbomb.1186045945@pinky> <E1IGWw3-0002Xr-Dm@hellhawk.shadowen.org>
- <20070802132621.GA9511@infradead.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from pasmtpa.tele.dk ([80.160.77.114]:53796 "EHLO pasmtpA.tele.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755565AbXHBTms (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 2 Aug 2007 15:42:48 -0400
+Date: Thu, 2 Aug 2007 21:44:05 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: blackfin toolchain and build issues
+Message-ID: <20070802194405.GB3646@uranus.ravnborg.org>
+References: <20070729223613.GA5916@martell.zuzino.mipt.ru> <alpine.LFD.0.999.0707291706490.3442@woody.linux-foundation.org> <1185770527.22473.2.camel@roc-desktop> <20070730194335.GE5776@martell.zuzino.mipt.ru> <1185850297.20043.6.camel@roc-desktop>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1185850297.20043.6.camel@roc-desktop>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Andy Whitcroft <apw@shadowen.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
+To: Bryan Wu <bryan.wu@analog.com>
+Cc: Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2 Aug 2007, Christoph Hellwig wrote:
+> > 
+> Oh, do you need use blackfin toolchain? Actually, it is very simple to
+> setup it on your machine.
+> please get the latest binary toolchain here:
+> http://blackfin.uclinux.org/gf/download/frsrelease/344/3180/blackfin-toolchain-uclinux-SVN.tar.bz2
+> http://blackfin.uclinux.org/gf/download/frsrelease/344/3181/blackfin-toolchain-linux-uclibc-SVN.tar.bz2
 
-> On Thu, Aug 02, 2007 at 10:25:35AM +0100, Andy Whitcroft wrote:
-> > + * Special Kconfig settings:
-> > + *
-> > + * CONFIG_ARCH_POPULATES_SPARSEMEM_VMEMMAP
-> > + *
-> > + * 	The architecture has its own functions to populate the memory
-> > + * 	map and provides a vmemmap_populate function.
-> > + *
-> > + * CONFIG_ARCH_POPULATES_SPARSEMEM_VMEMMAP_PMD
+Thanks - installed.
 
-?? Why was this added? The arch can populate the PMDs on its own already 
-if CONFIG_ARCH_SPARSEMEM_VMEMMAP is set.
+While building latest git tree I see several 'funny' errors.
+  LD      kernel/built-in.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_futex' changed from 4 in kernel/sys_ni.o to 262 in kernel/futex.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_set_robust_list' changed from 4 in kernel/sys_ni.o to 30 in kernel/futex.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_get_robust_list' changed from 4 in kernel/sys_ni.o to 170 in kernel/futex.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setfsgid16' changed from 4 in kernel/sys_ni.o to 16 in kernel/uid16.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setfsuid16' changed from 4 in kernel/sys_ni.o to 16 in kernel/uid16.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setresgid16' changed from 4 in kernel/sys_ni.o to 36 in kernel/uid16.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setresuid16' changed from 4 in kernel/sys_ni.o to 36 in kernel/uid16.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setuid16' changed from 4 in kernel/sys_ni.o to 16 in kernel/uid16.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setreuid16' changed from 4 in kernel/sys_ni.o to 26 in kernel/uid16.o
+...
 
-> This is the kinda of mess I mean.  Which architecturs set either of these
-> and why?  This code would be a lot more acceptable if we hadn't three
-> different variants of the arch interface.
+and later:
 
-Initially at least my scheme was the following:
+  LD      .tmp_vmlinux1
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_mremap' changed from 4 in kernel/built-in.o to 82 in mm/built-in.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_ioprio_set' changed from 4 in kernel/built-in.o to 362 in fs/built-in.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_epoll_wait' changed from 4 in kernel/built-in.o to 1002 in fs/built-in.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_timerfd' changed from 4 in kernel/built-in.o to 346 in fs/built-in.o
+bfin-linux-uclibc-ld: Warning: size of symbol `_sys_ioprio_get' changed from 4 in kernel/built-in.o to 344 in fs/built-in.o
 
-In general the sparsemem code can take care of a vmemmap that is using a 
-section of the vmalloc space. In that case no arch code is needed to 
-populate the vmemmap. Typical use is by arches with large pages (like 
-IA64). This is the default if no other options are set and can simply be 
-enabled by defining some constants in the arch code to reserve a section 
-of the vmalloc space.
 
-Then there is the option of using the PMD to map a higher order page. This 
-can also be done transparently and is used by arches that have this 
-capability and a small page size. Those arches also require no additional 
-code to populate their vmemmap. This is true f.e. for i386 and x86_64. 
-These have to set CONFIG_ARCH_SUPPORTS_PMD_MAPPING
 
-Then there are arches that have the vmemmap in non standard ways. Memory 
-may not be taken from the vmalloc space, special flags may have to be set 
-for the page tables (or one may use a different mechanism for mapping). 
-Those arches have to set CONFIG_ARCH_POPULATES_VIRTUAL_MEMMAP. In that 
-case the arch must provide its own function to populate the memory map.
+I did not look into these. I assume it is a toolchain issue??
+
+PS. I had to fix a few things to get so far but as I did not do
+it the right way I have no patch.
+
+	Sam
