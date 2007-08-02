@@ -1,57 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:41032 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751842AbXHBBhK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Aug 2007 21:37:10 -0400
-Subject: What archs need flush_tlb_page() in handle_pte_fault() ?
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Content-Type: text/plain
-Date: Thu, 02 Aug 2007 11:37:01 +1000
-Message-Id: <1186018621.5495.558.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from hellhawk.shadowen.org ([80.68.90.175]:3185 "EHLO
+	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752883AbXHBJMe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2007 05:12:34 -0400
+From: Andy Whitcroft <apw@shadowen.org>
+Subject: [PATCH 0/4] vmemmap updates to V6
+Message-ID: <exportbomb.1186045945@pinky>
+Date: Thu, 02 Aug 2007 10:24:33 +0100
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-mm@kvack.org
-Cc: Linux Kernel list <linux-kernel@vger.kernel.org>, Linux Arch list <linux-arch@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Mel Gorman <mel@csn.ul.ie>, Andy Whitcroft <apw@shadowen.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Heya !
+Following this email are a four patches which represent the first
+batch of feedback on version V5.  I have some additional config
+simplifications in test at the moment, and we probabally need to
+move memory_model.h.
 
-In my page table accessor spring cleaning, one of my targets is
-flush_tlb_page(). At this stage, it's only called by generic code in one
-place (in addition to the asm-generic bits that use it to implement
-missing accessors, but I'm taking care of those spearately) :
+vmemmap-remove-excess-debugging -- remove some verbose and mostly
+  unhelpful debugging.
 
-In handle_pte_fault(), when the PTE is present -and-
-ptep_set_access_flags() returns false -and- it's a write fault, we do a
-flush_tlb_page().
+vmemmap-simplify-initialisation-code-and-reduce-duplication -- clean
+  up section initialisaion to simplify pulling out the vmemmap code.
 
-ptep_set_access_flags() returning false typically means we don't
-actually need to call update_mmu_cache() and haven't updated the PTE.
+vmemmap-pull-out-the-vmemmap-code-into-its-own-file -- pull out the
+  vmemmap code into its own file.
 
-Now, I would like to understand what archs actually need that. If we
-have lazy _PAGE_DIRTY handling, then ptep_set_access_flags() would have
-done the flush already. I can imagine people may want to avoid the SMP
-IPI in that case and only lazily flush on that CPU but that doesn't seem
-to be what i386 does today.
+vmemmap-ppc64-convert-VMM_*-macros-to-a-real-function -- replace
+  some macros with an inline function to improve type safety.
 
-In any case, I believe that this flush could be moved to inside
-ptep_set_access_flags() for archs that need it, thus totally removing
-the else { ... } clause in handle_pte_fault(). Archs that want to be
-smart can do a local flush inside ptep_set_access_flags() if !changed &&
-dirty, it all gets under arch control, and that last flush_tlb_page()
-can be removed from generic code.
+The first three should be considered as fixes the patch below,
+the last against the ppc64 support:
 
-Now, before I actually remove it, I need to understand what archs
-actually -need- that flush, so I can move it to their respective
-ptep_set_access_flags() implementations.
+	generic-virtual-memmap-support-for-sparsemem
 
-I don't see i386 needing it unless I missed something.
+All against 2.6.23-rc1-mm2.
 
-For now, I'll assume nobody needs it. So please tell me if your arch
-does and I'll make sure my patch has it fixed up properly.
+Andrew please consider for -mm.  (I found that merging the patch
+below into its parent patch before sliding these into the tree made
+the rejects must simpler.)
 
-Thanks !
-Ben.
+  fix-corruption-of-memmap-on-ia64-sparsemem-when-mem_section-is-not-a-power-of-2-fix.patch
 
-
+-apw
