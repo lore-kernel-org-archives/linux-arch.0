@@ -1,28 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:57981 "EHLO pasmtpA.tele.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750902AbXHCEbA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Aug 2007 00:31:00 -0400
-Date: Fri, 3 Aug 2007 06:32:16 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: blackfin toolchain and build issues
-Message-ID: <20070803043216.GA7003@uranus.ravnborg.org>
-References: <20070729223613.GA5916@martell.zuzino.mipt.ru> <alpine.LFD.0.999.0707291706490.3442@woody.linux-foundation.org> <1185770527.22473.2.camel@roc-desktop> <20070730194335.GE5776@martell.zuzino.mipt.ru> <1185850297.20043.6.camel@roc-desktop> <20070802194405.GB3646@uranus.ravnborg.org> <1186107481.6131.2.camel@roc-laptop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1186107481.6131.2.camel@roc-laptop>
+Received: from hellhawk.shadowen.org ([80.68.90.175]:4859 "EHLO
+	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1762484AbXHCO5j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Aug 2007 10:57:39 -0400
+Message-ID: <46B3424F.7010800@shadowen.org>
+Date: Fri, 03 Aug 2007 15:57:19 +0100
+From: Andy Whitcroft <apw@shadowen.org>
+MIME-Version: 1.0
+Subject: Re: [PATCH 3/4] vmemmap: pull out the vmemmap code into its own file
+References: <exportbomb.1186045945@pinky> <E1IGWw3-0002Xr-Dm@hellhawk.shadowen.org> <20070802132621.GA9511@infradead.org> <Pine.LNX.4.64.0708021220220.7948@schroedinger.engr.sgi.com>
+In-Reply-To: <Pine.LNX.4.64.0708021220220.7948@schroedinger.engr.sgi.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Bryan Wu <bryan.wu@analog.com>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Christoph Lameter <clameter@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Aug 03, 2007 at 10:18:01AM +0800, Bryan Wu wrote:
+Christoph Lameter wrote:
+> On Thu, 2 Aug 2007, Christoph Hellwig wrote:
 > 
-> I will check this on my side ASAP.  But the git-tree did not merge my
-> "fs.h" header file patch, how could it compiled passed like this?
+>> On Thu, Aug 02, 2007 at 10:25:35AM +0100, Andy Whitcroft wrote:
+>>> + * Special Kconfig settings:
+>>> + *
+>>> + * CONFIG_ARCH_POPULATES_SPARSEMEM_VMEMMAP
+>>> + *
+>>> + * 	The architecture has its own functions to populate the memory
+>>> + * 	map and provides a vmemmap_populate function.
+>>> + *
+>>> + * CONFIG_ARCH_POPULATES_SPARSEMEM_VMEMMAP_PMD
 > 
-I just inserted "#include <linux/fs.h> in mm.h as a temporary workaround.
-I also had to deselect a few drivers to make it build this far (used defconfig).
+> ?? Why was this added? The arch can populate the PMDs on its own already 
+> if CONFIG_ARCH_SPARSEMEM_VMEMMAP is set.
 
-	Sam
+The defines are essentially the ones which were in the V3 version of
+VMEMMAP I picked up from you.  They had slightly different names:
+
+ * CONFIG_ARCH_POPULATES_VIRTUAL_MEMMAP
+ * CONFIG_ARCH_SUPPORTS_PMD_MAPPING
+
+The names were changed based on the PMD support not really being
+generic, and to better then describe what they did.  We still have the
+same three options.
+
+>> This is the kinda of mess I mean.  Which architecturs set either of these
+>> and why?  This code would be a lot more acceptable if we hadn't three
+>> different variants of the arch interface.
+> 
+> Initially at least my scheme was the following:
+> 
+> In general the sparsemem code can take care of a vmemmap that is using a 
+> section of the vmalloc space. In that case no arch code is needed to 
+> populate the vmemmap. Typical use is by arches with large pages (like 
+> IA64). This is the default if no other options are set and can simply be 
+> enabled by defining some constants in the arch code to reserve a section 
+> of the vmalloc space.
+> 
+> Then there is the option of using the PMD to map a higher order page. This 
+> can also be done transparently and is used by arches that have this 
+> capability and a small page size. Those arches also require no additional 
+> code to populate their vmemmap. This is true f.e. for i386 and x86_64. 
+> These have to set CONFIG_ARCH_SUPPORTS_PMD_MAPPING
+> 
+> Then there are arches that have the vmemmap in non standard ways. Memory 
+> may not be taken from the vmalloc space, special flags may have to be set 
+> for the page tables (or one may use a different mechanism for mapping). 
+> Those arches have to set CONFIG_ARCH_POPULATES_VIRTUAL_MEMMAP. In that 
+> case the arch must provide its own function to populate the memory map.
+
+Yes in my view there is two parts to VMEMMAP.  There is the runtime side
+which is common to all architectures using the single virtually mapped
+mem_map using the simple addition accessors, none of these options alter
+the post-init behaviour of VMEMMAP.  Then there is the initialisation
+side, all of the configuration options here pertain to how that
+initialisation is done.
+
+There are three basic options:
+
+1) it can be completely generic in that we use base pages mapped using
+regular PTE's, or
+2) the architecture can supply a PMD level initialiser, or
+3) the architecture can supply a vmemmap_populate initialise which
+instantiates the entire map.
+
+As the PMD initialisers are only used by x86_64 we could make it supply
+a complete vmemmap_populate level initialiser but that would result in
+us duplicating the PUD level initialier function there which seems like
+a bad idea.
+
+I have been looking at a rejig of the configuration options to make them
+all positive, so that you only have to assert a single VMEMMAP_* define
+to get the correct code.  But that does not really get rid of the defines.
+
+The code as it stands would allow for us to pull out the "PTE/PMD"
+initialiser from the vmemmap code and allow the architecture to select
+it as a helper, it living in its own file again.  But that seems excessive.
+
+-apw
