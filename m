@@ -1,85 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp124.sbc.mail.sp1.yahoo.com ([69.147.64.97]:37559 "HELO
-	smtp124.sbc.mail.sp1.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1755569AbXHBVxI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2007 17:53:08 -0400
-Date: Thu, 2 Aug 2007 14:46:24 -0700
-From: Chris Wedgwood <cw@f00f.org>
-Subject: Get rid of CONFIG_EXPERIMENTAL?
-Message-ID: <20070802214624.GA31868@tuatara.stupidest.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Received: from nwd2mail10.analog.com ([137.71.25.55]:24930 "EHLO
+	nwd2mail10.analog.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750916AbXHCCSi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2007 22:18:38 -0400
+Subject: Re: blackfin toolchain and build issues
+From: Bryan Wu <bryan.wu@analog.com>
+Reply-To: bryan.wu@analog.com
+In-Reply-To: <20070802194405.GB3646@uranus.ravnborg.org>
+References: <20070729223613.GA5916@martell.zuzino.mipt.ru>
+	 <alpine.LFD.0.999.0707291706490.3442@woody.linux-foundation.org>
+	 <1185770527.22473.2.camel@roc-desktop>
+	 <20070730194335.GE5776@martell.zuzino.mipt.ru>
+	 <1185850297.20043.6.camel@roc-desktop>
+	 <20070802194405.GB3646@uranus.ravnborg.org>
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Date: Fri, 03 Aug 2007 10:18:01 +0800
+Message-Id: <1186107481.6131.2.camel@roc-laptop>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Bryan Wu <bryan.wu@analog.com>, Alexey Dobriyan <adobriyan@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-I started down the route of (one patch at a time) removing the
-EXPERIMENTAL dependency from some useful, not-so-new and
-apparently-working things --- however, there are a lot of them.
+On Thu, 2007-08-02 at 21:44 +0200, Sam Ravnborg wrote:
+> > > 
+> > Oh, do you need use blackfin toolchain? Actually, it is very simple to
+> > setup it on your machine.
+> > please get the latest binary toolchain here:
+> > http://blackfin.uclinux.org/gf/download/frsrelease/344/3180/blackfin-toolchain-uclinux-SVN.tar.bz2
+> > http://blackfin.uclinux.org/gf/download/frsrelease/344/3181/blackfin-toolchain-linux-uclibc-SVN.tar.bz2
+> 
+> Thanks - installed.
+> 
+> While building latest git tree I see several 'funny' errors.
+>   LD      kernel/built-in.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_futex' changed from 4 in kernel/sys_ni.o to 262 in kernel/futex.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_set_robust_list' changed from 4 in kernel/sys_ni.o to 30 in kernel/futex.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_get_robust_list' changed from 4 in kernel/sys_ni.o to 170 in kernel/futex.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setfsgid16' changed from 4 in kernel/sys_ni.o to 16 in kernel/uid16.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setfsuid16' changed from 4 in kernel/sys_ni.o to 16 in kernel/uid16.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setresgid16' changed from 4 in kernel/sys_ni.o to 36 in kernel/uid16.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setresuid16' changed from 4 in kernel/sys_ni.o to 36 in kernel/uid16.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setuid16' changed from 4 in kernel/sys_ni.o to 16 in kernel/uid16.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_setreuid16' changed from 4 in kernel/sys_ni.o to 26 in kernel/uid16.o
+> ...
+> 
+> and later:
+> 
+>   LD      .tmp_vmlinux1
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_mremap' changed from 4 in kernel/built-in.o to 82 in mm/built-in.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_ioprio_set' changed from 4 in kernel/built-in.o to 362 in fs/built-in.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_epoll_wait' changed from 4 in kernel/built-in.o to 1002 in fs/built-in.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_timerfd' changed from 4 in kernel/built-in.o to 346 in fs/built-in.o
+> bfin-linux-uclibc-ld: Warning: size of symbol `_sys_ioprio_get' changed from 4 in kernel/built-in.o to 344 in fs/built-in.o
+> 
+> 
 
+I will check this on my side ASAP.  But the git-tree did not merge my
+"fs.h" header file patch, how could it compiled passed like this?
 
-I'd like to suggest we just kill CONFIG_EXPERIMENTAL completely?
+> 
+> I did not look into these. I assume it is a toolchain issue??
+> 
+> PS. I had to fix a few things to get so far but as I did not do
+> it the right way I have no patch.
+> 
+> 	Sam
 
-
-I might argue:
-
-  * if you're not sure what you're doing in the first place, you
-    probably should be using a kernel from a distribution
-
-  * so many useful things depend on EXPERIMENTAL already, I suspect
-    pretty much everyone turns it on anyhow
-
-  * many things marked EXPERIMENTAL probably shouldn't be
-
-  * some things NOT marked EXPERIMENTAL probably deserve to be marked
-    this way that many things that are not
-
-
-So how about we do something like the patch below then over time we
-can cleanup the Kconfig files so as not to be overly disruptive?
-
-
-diff --git a/arch/x86_64/Kconfig b/arch/x86_64/Kconfig
-diff --git a/init/Kconfig b/init/Kconfig
-index 96b5459..f5d2009 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -10,35 +10,8 @@ config DEFCONFIG_LIST
- menu "General setup"
- 
- config EXPERIMENTAL
--	bool "Prompt for development and/or incomplete code/drivers"
--	---help---
--	  Some of the various things that Linux supports (such as network
--	  drivers, file systems, network protocols, etc.) can be in a state
--	  of development where the functionality, stability, or the level of
--	  testing is not yet high enough for general use. This is usually
--	  known as the "alpha-test" phase among developers. If a feature is
--	  currently in alpha-test, then the developers usually discourage
--	  uninformed widespread use of this feature by the general public to
--	  avoid "Why doesn't this work?" type mail messages. However, active
--	  testing and use of these systems is welcomed. Just be aware that it
--	  may not meet the normal level of reliability or it may fail to work
--	  in some special cases. Detailed bug reports from people familiar
--	  with the kernel internals are usually welcomed by the developers
--	  (before submitting bug reports, please read the documents
--	  <file:README>, <file:MAINTAINERS>, <file:REPORTING-BUGS>,
--	  <file:Documentation/BUG-HUNTING>, and
--	  <file:Documentation/oops-tracing.txt> in the kernel source).
--
--	  This option will also make obsoleted drivers available. These are
--	  drivers that have been replaced by something else, and/or are
--	  scheduled to be removed in a future kernel release.
--
--	  Unless you intend to help test and develop a feature or driver that
--	  falls into this category, or you have a situation that requires
--	  using these features, you should probably say N here, which will
--	  cause the configurator to present you with fewer choices. If
--	  you say Y here, you will be offered the choice of using features or
--	  drivers that are currently considered to be in the alpha-test phase.
-+	bool
-+	default y
- 
- config BROKEN
- 	bool
+Thanks
