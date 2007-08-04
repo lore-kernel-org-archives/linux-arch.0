@@ -1,92 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.suse.de ([195.135.220.2]:50152 "EHLO mx1.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:54206 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753390AbXH1IKV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Aug 2007 04:10:21 -0400
+	id S1753416AbXH1IK3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 Aug 2007 04:10:29 -0400
 From: Nick Piggin <npiggin@suse.de>
-Date: Sun, 05 Aug 2007 06:28:56 +1000
-Message-Id: <20070804202856.13550.61294.sendpatchset@linux.local0.net>
+Date: Sun, 05 Aug 2007 06:29:05 +1000
+Message-Id: <20070804202905.13550.90814.sendpatchset@linux.local0.net>
 In-Reply-To: <20070804202820.13550.67814.sendpatchset@linux.local0.net>
 References: <20070804202820.13550.67814.sendpatchset@linux.local0.net>
-Subject: [patch 4/8] ia64: lock bitops
+Subject: [patch 5/8] mips: fix bitops
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Nick Piggin <npiggin@suse.de>, Linux Arch <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Convert ia64 to new bitops.
+Documentation/atomic_ops.txt defines these primitives must contain a memory
+barrier both before and after their memory operation. This is consistent with
+the atomic ops implementation on mips.
 
 Signed-off-by: Nick Piggin <npiggin@suse.de>
 
 ---
- include/asm-ia64/bitops.h |   43 +++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 41 insertions(+), 2 deletions(-)
+ include/asm-mips/bitops.h |    6 ++++++
+ 1 file changed, 6 insertions(+)
 
-Index: linux-2.6/include/asm-ia64/bitops.h
+Index: linux-2.6/include/asm-mips/bitops.h
 ===================================================================
---- linux-2.6.orig/include/asm-ia64/bitops.h
-+++ linux-2.6/include/asm-ia64/bitops.h
-@@ -94,6 +94,38 @@ clear_bit (int nr, volatile void *addr)
- }
+--- linux-2.6.orig/include/asm-mips/bitops.h
++++ linux-2.6/include/asm-mips/bitops.h
+@@ -240,6 +240,8 @@ static inline int test_and_set_bit(unsig
+ 	unsigned short bit = nr & SZLONG_MASK;
+ 	unsigned long res;
  
- /**
-+ * clear_bit_unlock - Clears a bit in memory with release
-+ * @nr: Bit to clear
-+ * @addr: Address to start counting from
-+ *
-+ * clear_bit_unlock() is atomic and may not be reordered.  It does
-+ * contain a memory barrier suitable for unlock type operations.
-+ */
-+static __inline__ void
-+clear_bit_unlock (int nr, volatile void *addr)
-+{
-+	__u32 mask, old, new;
-+	volatile __u32 *m;
-+	CMPXCHG_BUGCHECK_DECL
++	smp_llsc_mb();
 +
-+	m = (volatile __u32 *) addr + (nr >> 5);
-+	mask = ~(1 << (nr & 31));
-+	do {
-+		CMPXCHG_BUGCHECK(m);
-+		old = *m;
-+		new = old & mask;
-+	} while (cmpxchg_rel(m, old, new) != old);
-+}
-+
-+/**
-+ * __clear_bit_unlock - Non-atomically clear a bit with release
-+ *
-+ * This is like clear_bit_unlock, but the implementation may use a non-atomic
-+ * store (this one uses an atomic, however).
-+ */
-+#define __clear_bit_unlock clear_bit_unlock
-+
-+/**
-  * __clear_bit - Clears a bit in memory (non-atomic version)
-  */
- static __inline__ void
-@@ -170,6 +202,15 @@ test_and_set_bit (int nr, volatile void 
- }
+ 	if (cpu_has_llsc && R10000_LLSC_WAR) {
+ 		unsigned long *m = ((unsigned long *) addr) + (nr >> SZLONG_LOG);
+ 		unsigned long temp;
+@@ -308,6 +310,8 @@ static inline int test_and_clear_bit(uns
+ 	unsigned short bit = nr & SZLONG_MASK;
+ 	unsigned long res;
  
- /**
-+ * test_and_set_bit_lock - Set a bit and return its old value for lock
-+ * @nr: Bit to set
-+ * @addr: Address to count from
-+ *
-+ * This is the same as test_and_set_bit on ia64
-+ */
-+#define test_and_set_bit_lock test_and_set_bit
++	smp_llsc_mb();
 +
-+/**
-  * __test_and_set_bit - Set a bit and return its old value
-  * @nr: Bit to set
-  * @addr: Address to count from
-@@ -371,8 +412,6 @@ hweight64 (unsigned long x)
- #define hweight16(x)	(unsigned int) hweight64((x) & 0xfffful)
- #define hweight8(x)	(unsigned int) hweight64((x) & 0xfful)
+ 	if (cpu_has_llsc && R10000_LLSC_WAR) {
+ 		unsigned long *m = ((unsigned long *) addr) + (nr >> SZLONG_LOG);
+ 		unsigned long temp;
+@@ -396,6 +400,8 @@ static inline int test_and_change_bit(un
+ 	unsigned short bit = nr & SZLONG_MASK;
+ 	unsigned long res;
  
--#include <asm-generic/bitops/lock.h>
--
- #endif /* __KERNEL__ */
- 
- #include <asm-generic/bitops/find.h>
++	smp_llsc_mb();
++
+ 	if (cpu_has_llsc && R10000_LLSC_WAR) {
+ 		unsigned long *m = ((unsigned long *) addr) + (nr >> SZLONG_LOG);
+ 		unsigned long temp;
