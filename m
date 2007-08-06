@@ -1,35 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:41632 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1758268AbXHCQ6F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Aug 2007 12:58:05 -0400
-Date: Fri, 3 Aug 2007 09:58:02 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 3/4] vmemmap: pull out the vmemmap code into its own file
-In-Reply-To: <46B3424F.7010800@shadowen.org>
-Message-ID: <Pine.LNX.4.64.0708030939140.17307@schroedinger.engr.sgi.com>
-References: <exportbomb.1186045945@pinky> <E1IGWw3-0002Xr-Dm@hellhawk.shadowen.org>
- <20070802132621.GA9511@infradead.org> <Pine.LNX.4.64.0708021220220.7948@schroedinger.engr.sgi.com>
- <46B3424F.7010800@shadowen.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from gate.crashing.org ([63.228.1.57]:59003 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753825AbXHFGhv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 6 Aug 2007 02:37:51 -0400
+Subject: Re: What archs need flush_tlb_page() in handle_pte_fault() ?
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <1186018621.5495.558.camel@localhost.localdomain>
+References: <1186018621.5495.558.camel@localhost.localdomain>
+Content-Type: text/plain
+Date: Mon, 06 Aug 2007 16:37:42 +1000
+Message-Id: <1186382262.938.35.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andy Whitcroft <apw@shadowen.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
+To: linux-mm@kvack.org
+Cc: Linux Kernel list <linux-kernel@vger.kernel.org>, Linux Arch list <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@osdl.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 3 Aug 2007, Andy Whitcroft wrote:
+On Thu, 2007-08-02 at 11:37 +1000, Benjamin Herrenschmidt wrote:
+> Heya !
+> 
+> In my page table accessor spring cleaning, one of my targets is
+> flush_tlb_page(). At this stage, it's only called by generic code in one
+> place (in addition to the asm-generic bits that use it to implement
+> missing accessors, but I'm taking care of those spearately) :
 
-> As the PMD initialisers are only used by x86_64 we could make it supply
-> a complete vmemmap_populate level initialiser but that would result in
-> us duplicating the PUD level initialier function there which seems like
-> a bad idea.
+ .../...
 
-Hmmm... at least i386 also uses it. Looked through the other arches but 
-cannot find evidence of them supporting PMD level huge page stuff.
+No reply, so I suppose I can rip it out ? :-)
 
-There are some embedded archs (example FRV) which seem to be i386 knock 
-offs and those also support the same in hardware. There is some 
-rudimentary PSE suport in FRV. Has mk_pte_huge(). So I would expect that 
-at least i386, x86_64 and FRV would benefit from a generic implementation.
+Thus any reason why that patch wouln't fly ? (not for 2.6.23 of course)
+
+This removes the last occurence of flush_tlb_page() from generic code,
+thus making this hook now optional for architectures that don't use
+the helpers in asm-generic/pgtable.h
+
+I couldn't find a case where this is actually needed, but I may well
+have missed something. If I did though, please tell me what. If an
+architecture need that call for obscure reason, it could be simply
+folded in that architecture's implementation ptep_set_access_flags().
+
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
+
+Index: linux-work/mm/memory.c
+===================================================================
+--- linux-work.orig/mm/memory.c	2007-08-06 16:32:12.000000000 +1000
++++ linux-work/mm/memory.c	2007-08-06 16:34:07.000000000 +1000
+@@ -2609,15 +2609,6 @@ static inline int handle_pte_fault(struc
+ 	if (ptep_set_access_flags(vma, address, pte, entry, write_access)) {
+ 		update_mmu_cache(vma, address, entry);
+ 		lazy_mmu_prot_update(entry);
+-	} else {
+-		/*
+-		 * This is needed only for protection faults but the arch code
+-		 * is not yet telling us if this is a protection fault or not.
+-		 * This still avoids useless tlb flushes for .text page faults
+-		 * with threads.
+-		 */
+-		if (write_access)
+-			flush_tlb_page(vma, address);
+ 	}
+ unlock:
+ 	pte_unmap_unlock(pte, ptl);
+
 
