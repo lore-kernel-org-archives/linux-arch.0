@@ -1,34 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-out.m-online.net ([212.18.0.10]:58499 "EHLO
-	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752496AbXHGUKl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Aug 2007 16:10:41 -0400
-Date: Tue, 7 Aug 2007 22:10:54 +0200
-From: Olaf Hering <olaf@aepfle.de>
-Subject: Re: [patch 3/3] mm: variable length argument support
-Message-ID: <20070807201054.GA31501@aepfle.de>
-References: <20070613100334.635756997@chello.nl> <20070613100835.014096712@chello.nl> <20070807190357.GA31139@aepfle.de> <20070807122008.fcd175d6.akpm@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20070807122008.fcd175d6.akpm@linux-foundation.org>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:55151 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S966156AbXHGVyM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Aug 2007 17:54:12 -0400
+Message-Id: <200708072153.l77LrnCU006596@imap1.linux-foundation.org>
+Subject: + add-linux-elfcore-compath.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Tue, 07 Aug 2007 14:53:49 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Ollie Wild <aaw@google.com>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
+To: mm-commits@vger.kernel.org
+Cc: roland@redhat.com, ak@suse.de, benh@kernel.crashing.org, linux-arch@vger.kernel.org, paulus@samba.org, tony.luck@intel.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Aug 07, Andrew Morton wrote:
 
-> > > +++ linux-2.6-2/include/linux/binfmts.h	2007-06-13 11:52:46.000000000 +0200
+The patch titled
+     Add linux/elfcore-compat.h
+has been added to the -mm tree.  Its filename is
+     add-linux-elfcore-compath.patch
 
-> > > -#define MAX_ARG_PAGES 32
-> > > +#define MAX_ARG_STRLEN (PAGE_SIZE * 32)
-> > > +#define MAX_ARG_STRINGS 0x7FFFFFFF
-> > 
-> > This adds a new usage of PAGE_SIZE to an exported header.
-> > How can this be fixed for 2.6.23?
-> 
-> Put #ifdef __KERNEL__ around it?
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
-No package uses linux/binfmts.h, will send a Kbuild patch to unexport
-it.
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
+
+------------------------------------------------------
+Subject: Add linux/elfcore-compat.h
+From: Roland McGrath <roland@redhat.com>
+
+This adds the linux/elfcore-compat.h header file, which is the CONFIG_COMPAT
+analog of the linux/elfcore.h header.  Each arch that needs to fake out
+fs/binfmt_elf.c for its compat code can use this header to replace the
+hand-copied definitions of the compat variants of struct elf_prstatus et al. 
+Only the pr_reg field varies by arch, so asm/{compat,elf}.h must define
+compat_elf_gregset_t before linux/elfcore-compat.h can be used.
+
+It's a clean-up that every arch with compat core dumping code can benefit
+from.  I only touched the ones I have handy to test at home.  Doing the same
+for each other arch should be straightforward, and I'm happy to offer tips.
+
+Signed-off-by: Roland McGrath <roland@redhat.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Andi Kleen <ak@suse.de>
+Cc: "Luck, Tony" <tony.luck@intel.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/linux/elfcore-compat.h |   55 +++++++++++++++++++++++++++++++
+ 1 files changed, 55 insertions(+)
+
+diff -puN /dev/null include/linux/elfcore-compat.h
+--- /dev/null
++++ a/include/linux/elfcore-compat.h
+@@ -0,0 +1,55 @@
++#ifndef _LINUX_ELFCORE_COMPAT_H
++#define _LINUX_ELFCORE_COMPAT_H
++
++#include <linux/elf.h>
++#include <linux/elfcore.h>
++#include <linux/compat.h>
++
++/*
++ * Make sure these layouts match the linux/elfcore.h native definitions.
++ */
++
++struct compat_elf_siginfo
++{
++	compat_int_t			si_signo;
++	compat_int_t			si_code;
++	compat_int_t			si_errno;
++};
++
++struct compat_elf_prstatus
++{
++	struct compat_elf_siginfo	pr_info;
++	short				pr_cursig;
++	compat_ulong_t			pr_sigpend;
++	compat_ulong_t			pr_sighold;
++	compat_pid_t			pr_pid;
++	compat_pid_t			pr_ppid;
++	compat_pid_t			pr_pgrp;
++	compat_pid_t			pr_sid;
++	struct compat_timeval		pr_utime;
++	struct compat_timeval		pr_stime;
++	struct compat_timeval		pr_cutime;
++	struct compat_timeval		pr_cstime;
++	compat_elf_gregset_t		pr_reg;
++#ifdef CONFIG_BINFMT_ELF_FDPIC
++	compat_ulong_t			pr_exec_fdpic_loadmap;
++	compat_ulong_t			pr_interp_fdpic_loadmap;
++#endif
++	compat_int_t			pr_fpvalid;
++};
++
++struct compat_elf_prpsinfo
++{
++	char				pr_state;
++	char				pr_sname;
++	char				pr_zomb;
++	char				pr_nice;
++	compat_ulong_t			pr_flag;
++	compat_uid_t			pr_uid;
++	compat_gid_t			pr_gid;
++	compat_pid_t			pr_pid, pr_ppid, pr_pgrp, pr_sid;
++	char				pr_fname[16];
++	char				pr_psargs[ELF_PRARGSZ];
++};
++
++#endif /* _LINUX_ELFCORE_COMPAT_H */
+_
+
+Patches currently in -mm which might be from roland@redhat.com are
+
+powerpc-vdso-install-unstripped-copies-on-disk.patch
+pass-g-to-assembler-under-config_debug_info.patch
+i386-vdso-install-unstripped-copies-on-disk.patch
+i386-vdso-install-unstripped-copies-on-disk-fix.patch
+x86_64-ia32-vdso-install-unstripped-copies-on-disk.patch
+clone-flag-clone_parent_tidptr-leaves-invalid-results-in-memory.patch
+add-sys-module-name-notes.patch
+do_sigaction-remove-now-unneeded-recalc_sigpending.patch
+handle-the-multi-threaded-inits-exit-properly.patch
+add-linux-elfcore-compath.patch
+x86_64-use-linux-elfcore-compath.patch
+powerpc-use-linux-elfcore-compath.patch
+
