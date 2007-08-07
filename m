@@ -1,67 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59003 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753825AbXHFGhv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 6 Aug 2007 02:37:51 -0400
-Subject: Re: What archs need flush_tlb_page() in handle_pte_fault() ?
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <1186018621.5495.558.camel@localhost.localdomain>
-References: <1186018621.5495.558.camel@localhost.localdomain>
-Content-Type: text/plain
-Date: Mon, 06 Aug 2007 16:37:42 +1000
-Message-Id: <1186382262.938.35.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-out.m-online.net ([212.18.0.10]:32849 "EHLO
+	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756546AbXHGTDo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Aug 2007 15:03:44 -0400
+Date: Tue, 7 Aug 2007 21:03:57 +0200
+From: Olaf Hering <olaf@aepfle.de>
+Subject: Re: [patch 3/3] mm: variable length argument support
+Message-ID: <20070807190357.GA31139@aepfle.de>
+References: <20070613100334.635756997@chello.nl> <20070613100835.014096712@chello.nl>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20070613100835.014096712@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-mm@kvack.org
-Cc: Linux Kernel list <linux-kernel@vger.kernel.org>, Linux Arch list <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@osdl.org>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Ollie Wild <aaw@google.com>, Andrew Morton <akpm@osdl.org>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2007-08-02 at 11:37 +1000, Benjamin Herrenschmidt wrote:
-> Heya !
+On Wed, Jun 13, Peter Zijlstra wrote:
+
+> From: Ollie Wild <aaw@google.com>
 > 
-> In my page table accessor spring cleaning, one of my targets is
-> flush_tlb_page(). At this stage, it's only called by generic code in one
-> place (in addition to the asm-generic bits that use it to implement
-> missing accessors, but I'm taking care of those spearately) :
+> Remove the arg+env limit of MAX_ARG_PAGES by copying the strings directly
+> from the old mm into the new mm.
 
- .../...
+> +++ linux-2.6-2/include/linux/binfmts.h	2007-06-13 11:52:46.000000000 +0200
+> @@ -6,11 +6,13 @@
+>  struct pt_regs;
+>  
+>  /*
+> - * MAX_ARG_PAGES defines the number of pages allocated for arguments
+> - * and envelope for the new program. 32 should suffice, this gives
+> - * a maximum env+arg of 128kB w/4KB pages!
+> + * These are the maximum length and maximum number of strings passed to the
+> + * execve() system call.  MAX_ARG_STRLEN is essentially random but serves to
+> + * prevent the kernel from being unduly impacted by misaddressed pointers.
+> + * MAX_ARG_STRINGS is chosen to fit in a signed 32-bit integer.
+>   */
+> -#define MAX_ARG_PAGES 32
+> +#define MAX_ARG_STRLEN (PAGE_SIZE * 32)
+> +#define MAX_ARG_STRINGS 0x7FFFFFFF
 
-No reply, so I suppose I can rip it out ? :-)
-
-Thus any reason why that patch wouln't fly ? (not for 2.6.23 of course)
-
-This removes the last occurence of flush_tlb_page() from generic code,
-thus making this hook now optional for architectures that don't use
-the helpers in asm-generic/pgtable.h
-
-I couldn't find a case where this is actually needed, but I may well
-have missed something. If I did though, please tell me what. If an
-architecture need that call for obscure reason, it could be simply
-folded in that architecture's implementation ptep_set_access_flags().
-
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
----
-
-Index: linux-work/mm/memory.c
-===================================================================
---- linux-work.orig/mm/memory.c	2007-08-06 16:32:12.000000000 +1000
-+++ linux-work/mm/memory.c	2007-08-06 16:34:07.000000000 +1000
-@@ -2609,15 +2609,6 @@ static inline int handle_pte_fault(struc
- 	if (ptep_set_access_flags(vma, address, pte, entry, write_access)) {
- 		update_mmu_cache(vma, address, entry);
- 		lazy_mmu_prot_update(entry);
--	} else {
--		/*
--		 * This is needed only for protection faults but the arch code
--		 * is not yet telling us if this is a protection fault or not.
--		 * This still avoids useless tlb flushes for .text page faults
--		 * with threads.
--		 */
--		if (write_access)
--			flush_tlb_page(vma, address);
- 	}
- unlock:
- 	pte_unmap_unlock(pte, ptl);
-
-
+This adds a new usage of PAGE_SIZE to an exported header.
+How can this be fixed for 2.6.23?
