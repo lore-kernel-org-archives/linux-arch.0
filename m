@@ -1,48 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:51184 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757438AbXHHPUN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Aug 2007 11:20:13 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [PATCH] Add ability to print calltraces tighter on i386
-Date: Wed, 8 Aug 2007 17:20:08 +0200
-References: <46B9D08F.8080402@openvz.org> <p73zm12qc8a.fsf@bingen.suse.de> <46B9DCAE.4010009@openvz.org>
-In-Reply-To: <46B9DCAE.4010009@openvz.org>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Received: from turing-police.cc.vt.edu ([128.173.14.107]:59025 "EHLO
+	turing-police.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761150AbXHHRr4 (ORCPT
+	<RFC822;linux-arch@vger.kernel.org>); Wed, 8 Aug 2007 13:47:56 -0400
+Subject: Re: [patch 2/2] x86_64: ticket lock spinlock
+In-Reply-To: Your message of "Wed, 08 Aug 2007 06:24:44 +0200."
+             <20070808042444.GF11018@wotan.suse.de>
+From: Valdis.Kletnieks@vt.edu
+References: <20070808042234.GE11018@wotan.suse.de>
+            <20070808042444.GF11018@wotan.suse.de>
+Mime-Version: 1.0
+Content-Type: multipart/signed; boundary="==_Exmh_1186594318_5422P";
+	 micalg=pgp-sha1; protocol="application/pgp-signature"
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200708081720.09034.ak@suse.de>
+Date: Wed, 08 Aug 2007 13:31:58 -0400
+Message-ID: <20906.1186594318@turing-police.cc.vt.edu>
 Sender: linux-arch-owner@vger.kernel.org
-To: Pavel Emelyanov <xemul@openvz.org>
-Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, devel@openvz.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
+--==_Exmh_1186594318_5422P
+Content-Type: text/plain; charset=us-ascii
 
-> Not everyone likes frame buffer
+On Wed, 08 Aug 2007 06:24:44 +0200, Nick Piggin said:
 
-You don't need the frame buffer; cards typically have text mode
-fonts upto 80x50. The node numbers vary, but you can find out yours
-with vga=ask
+> After this, we can no longer spin on any locks with preempt enabled,
+> and cannot reenable interrupts when spinning on an irq safe lock, because
+> at that point we have already taken a ticket and the would deadlock if
+> the same CPU tries to take the lock again.  These are hackish anyway: if
+> the lock happens to be called under a preempt or interrupt disabled section,
+> then it will just have the same latency problems. The real fix is to keep
+> critical sections short, and ensure locks are reasonably fair (which this
+> patch does).
 
-> but even with it any OOPs in  
-> network code which happens in softirq, io scheduler and nearby 
-> code that is called after passing through all the VFS hooks 
-> and many other examples produce long oopses.
-> 
-> Oops-es with only the calltrace of ~50 lines do happen :)
+Any guesstimates how often we do that sort of hackish thing currently, and
+how hard it will be to debug each one?  "Deadlock if the same CPU tries to
+take the lock again" is pretty easy to notice - are there more subtle failure
+modes (larger loops of locks, etc)?
 
-Normally most of it bogus. I had hoped to address this with the dwarf2
-unwinder, which tends to filter them out nicely,
-but Linus unfortunately has developed an quite irrational aversion against it and 
-it's not in.
+--==_Exmh_1186594318_5422P
+Content-Type: application/pgp-signature
 
-But the problem is with bogus entries in there you have no guarantee
-that the first of your call trace is any useful -- it might be all bogus.
-So i don't really think your option makes much sense.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.7 (GNU/Linux)
+Comment: Exmh version 2.5 07/13/2001
 
-Another way would be to not dump addresses and use multiple entries
-per line again. I guess that would make more sense as an option.
+iD8DBQFGuf4OcC3lWbTT17ARAnzNAKCv9on7T8cbTFwQeDnPhZJZQoKCZQCg6nS4
+A9DbYhG4UhU1m/to4O1YQD0=
+=czI8
+-----END PGP SIGNATURE-----
 
--Andi
+--==_Exmh_1186594318_5422P--
