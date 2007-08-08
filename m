@@ -1,32 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:36580 "EHLO pasmtpA.tele.dk"
+Received: from mga02.intel.com ([134.134.136.20]:32222 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755188AbXHHSON (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Aug 2007 14:14:13 -0400
-Date: Wed, 8 Aug 2007 20:15:30 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH] Consolidate show_regs and show_registers for i386
-Message-ID: <20070808181530.GA18620@uranus.ravnborg.org>
-References: <46B9D047.9090000@openvz.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <46B9D047.9090000@openvz.org>
+	id S1755873AbXHHXEq convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Aug 2007 19:04:46 -0400
+Content-class: urn:content-classes:message
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: Needs review from arm, sparc, pa-risc, sh, xtensa (virtual indexed cache issue in page migration)
+Date: Wed, 8 Aug 2007 16:04:44 -0700
+Message-ID: <617E1C2C70743745A92448908E030B2A0221324E@scsmsx411.amr.corp.intel.com>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Pavel Emelyanov <xemul@openvz.org>
-Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, devel@openvz.org
+To: linux-arch@vger.kernel.org
+Cc: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Aug 08, 2007 at 06:16:39PM +0400, Pavel Emelyanov wrote:
-> Both functions printk the same information, except for CRx and
-> debug registers in the show_registers() one and a bit different
-> manner. So move the common code into one place. This is already
-> done for x86_64, so I think it's worth having the same on i386.
+This didn't raise any comment on LKML ... probably the
+"ia64" in the Subject: deterred you all from reading it :-)
 
-Hi Pavel.
+I don't think I understand either the migration code or the
+virtual indexed cache issues well enough to figure this out.
 
-As a general note that also applies to your mails...
-Please do not include linux-arch for for issues that does only
-concern or are only relevant for a single architecture.
+Part 2of2 goes on to mess further with this code to cope with
+the idiosyncracies on ia64 (keeping icache and dcache coherent).
 
-	Sam
+-Tony
+
+>-----Original Message-----
+>From: KAMEZAWA Hiroyuki [mailto:kamezawa.hiroyu@jp.fujitsu.com] 
+>Sent: Tuesday, August 07, 2007 1:27 AM
+>To: KAMEZAWA Hiroyuki
+>Cc: linux-kernel@vger.kernel.org; linux-ia64@vger.kernel.org; 
+>Luck, Tony; Zoltan.Menyhart@bull.net
+>Subject: [BUGFIX][PATCH] flush icache before set_pte() in ia64 
+>take7, [1/2] migration fix
+>
+>In migration, a new page should be cache flushed before set_pte()
+>in some archs which have virtually-tagged cache..
+>
+>V6 -> V7:
+>   * adjusted against .2.6.23-rc2.
+>
+>V5 -> V6:
+>   * no changes (added new patches to the patch set)
+>V4 -> V5:
+>   * changed flush_icache_page to flush_cache_page.
+>
+>Signed-off-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+>
+>---
+> mm/migrate.c |    1 +
+> 1 file changed, 1 insertion(+)
+>
+>Index: linux-2.6.23-rc2.test/mm/migrate.c
+>===================================================================
+>--- linux-2.6.23-rc2.test.orig/mm/migrate.c
+>+++ linux-2.6.23-rc2.test/mm/migrate.c
+>@@ -171,6 +171,7 @@ static void remove_migration_pte(struct 
+> 	pte = pte_mkold(mk_pte(new, vma->vm_page_prot));
+> 	if (is_write_migration_entry(entry))
+> 		pte = pte_mkwrite(pte);
+>+	flush_cache_page(vma, addr, pte_pfn(pte));
+> 	set_pte_at(mm, addr, ptep, pte);
+> 
+> 	if (PageAnon(new))
+>
