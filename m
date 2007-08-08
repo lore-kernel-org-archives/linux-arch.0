@@ -1,54 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from turing-police.cc.vt.edu ([128.173.14.107]:59025 "EHLO
-	turing-police.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761150AbXHHRr4 (ORCPT
-	<RFC822;linux-arch@vger.kernel.org>); Wed, 8 Aug 2007 13:47:56 -0400
-Subject: Re: [patch 2/2] x86_64: ticket lock spinlock
-In-Reply-To: Your message of "Wed, 08 Aug 2007 06:24:44 +0200."
-             <20070808042444.GF11018@wotan.suse.de>
-From: Valdis.Kletnieks@vt.edu
-References: <20070808042234.GE11018@wotan.suse.de>
-            <20070808042444.GF11018@wotan.suse.de>
+Received: from pasmtpa.tele.dk ([80.160.77.114]:36580 "EHLO pasmtpA.tele.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755188AbXHHSON (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Aug 2007 14:14:13 -0400
+Date: Wed, 8 Aug 2007 20:15:30 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] Consolidate show_regs and show_registers for i386
+Message-ID: <20070808181530.GA18620@uranus.ravnborg.org>
+References: <46B9D047.9090000@openvz.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1186594318_5422P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
-Content-Transfer-Encoding: 7bit
-Date: Wed, 08 Aug 2007 13:31:58 -0400
-Message-ID: <20906.1186594318@turing-police.cc.vt.edu>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <46B9D047.9090000@openvz.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Pavel Emelyanov <xemul@openvz.org>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, devel@openvz.org
 List-ID: <linux-arch.vger.kernel.org>
 
---==_Exmh_1186594318_5422P
-Content-Type: text/plain; charset=us-ascii
+On Wed, Aug 08, 2007 at 06:16:39PM +0400, Pavel Emelyanov wrote:
+> Both functions printk the same information, except for CRx and
+> debug registers in the show_registers() one and a bit different
+> manner. So move the common code into one place. This is already
+> done for x86_64, so I think it's worth having the same on i386.
 
-On Wed, 08 Aug 2007 06:24:44 +0200, Nick Piggin said:
+Hi Pavel.
 
-> After this, we can no longer spin on any locks with preempt enabled,
-> and cannot reenable interrupts when spinning on an irq safe lock, because
-> at that point we have already taken a ticket and the would deadlock if
-> the same CPU tries to take the lock again.  These are hackish anyway: if
-> the lock happens to be called under a preempt or interrupt disabled section,
-> then it will just have the same latency problems. The real fix is to keep
-> critical sections short, and ensure locks are reasonably fair (which this
-> patch does).
+As a general note that also applies to your mails...
+Please do not include linux-arch for for issues that does only
+concern or are only relevant for a single architecture.
 
-Any guesstimates how often we do that sort of hackish thing currently, and
-how hard it will be to debug each one?  "Deadlock if the same CPU tries to
-take the lock again" is pretty easy to notice - are there more subtle failure
-modes (larger loops of locks, etc)?
-
---==_Exmh_1186594318_5422P
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.7 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
-
-iD8DBQFGuf4OcC3lWbTT17ARAnzNAKCv9on7T8cbTFwQeDnPhZJZQoKCZQCg6nS4
-A9DbYhG4UhU1m/to4O1YQD0=
-=czI8
------END PGP SIGNATURE-----
-
---==_Exmh_1186594318_5422P--
+	Sam
