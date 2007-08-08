@@ -1,128 +1,382 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:55151 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S966156AbXHGVyM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Aug 2007 17:54:12 -0400
-Message-Id: <200708072153.l77LrnCU006596@imap1.linux-foundation.org>
-Subject: + add-linux-elfcore-compath.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Tue, 07 Aug 2007 14:53:49 -0700
+Received: from mx2.suse.de ([195.135.220.15]:55781 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750907AbXHHEWg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Aug 2007 00:22:36 -0400
+Date: Wed, 8 Aug 2007 06:22:34 +0200
+From: Nick Piggin <npiggin@suse.de>
+Subject: [patch 1/2] spinlock: lockbreak cleanup
+Message-ID: <20070808042234.GE11018@wotan.suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: roland@redhat.com, ak@suse.de, benh@kernel.crashing.org, linux-arch@vger.kernel.org, paulus@samba.org, tony.luck@intel.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andi Kleen <ak@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
 
-The patch titled
-     Add linux/elfcore-compat.h
-has been added to the -mm tree.  Its filename is
-     add-linux-elfcore-compath.patch
+The break_lock data structure and code for spinlocks is quite nasty.
+Not only does it double the size of a spinlock but it changes locking to
+a potentially less optimal trylock.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+Put all of that under CONFIG_GENERIC_LOCKBREAK, and introduce a
+__raw_spin_is_contended that uses the lock data itself to determine whether
+there are waiters on the lock, to be used if CONFIG_GENERIC_LOCKBREAK is
+not set.
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
+Rename need_lockbreak to spin_needbreak, make it use spin_is_contended to
+decouple it from the spinlock implementation, and make it typesafe (rwlocks
+do not have any need_lockbreak sites -- why do they even get bloated up
+with that break_lock then?).
 
-------------------------------------------------------
-Subject: Add linux/elfcore-compat.h
-From: Roland McGrath <roland@redhat.com>
+Signed-off-by: Nick Piggin <npiggin@suse.de>
 
-This adds the linux/elfcore-compat.h header file, which is the CONFIG_COMPAT
-analog of the linux/elfcore.h header.  Each arch that needs to fake out
-fs/binfmt_elf.c for its compat code can use this header to replace the
-hand-copied definitions of the compat variants of struct elf_prstatus et al. 
-Only the pr_reg field varies by arch, so asm/{compat,elf}.h must define
-compat_elf_gregset_t before linux/elfcore-compat.h can be used.
-
-It's a clean-up that every arch with compat core dumping code can benefit
-from.  I only touched the ones I have handy to test at home.  Doing the same
-for each other arch should be straightforward, and I'm happy to offer tips.
-
-Signed-off-by: Roland McGrath <roland@redhat.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Andi Kleen <ak@suse.de>
-Cc: "Luck, Tony" <tony.luck@intel.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
-
- include/linux/elfcore-compat.h |   55 +++++++++++++++++++++++++++++++
- 1 files changed, 55 insertions(+)
-
-diff -puN /dev/null include/linux/elfcore-compat.h
---- /dev/null
-+++ a/include/linux/elfcore-compat.h
-@@ -0,0 +1,55 @@
-+#ifndef _LINUX_ELFCORE_COMPAT_H
-+#define _LINUX_ELFCORE_COMPAT_H
-+
-+#include <linux/elf.h>
-+#include <linux/elfcore.h>
-+#include <linux/compat.h>
-+
-+/*
-+ * Make sure these layouts match the linux/elfcore.h native definitions.
-+ */
-+
-+struct compat_elf_siginfo
-+{
-+	compat_int_t			si_signo;
-+	compat_int_t			si_code;
-+	compat_int_t			si_errno;
-+};
-+
-+struct compat_elf_prstatus
-+{
-+	struct compat_elf_siginfo	pr_info;
-+	short				pr_cursig;
-+	compat_ulong_t			pr_sigpend;
-+	compat_ulong_t			pr_sighold;
-+	compat_pid_t			pr_pid;
-+	compat_pid_t			pr_ppid;
-+	compat_pid_t			pr_pgrp;
-+	compat_pid_t			pr_sid;
-+	struct compat_timeval		pr_utime;
-+	struct compat_timeval		pr_stime;
-+	struct compat_timeval		pr_cutime;
-+	struct compat_timeval		pr_cstime;
-+	compat_elf_gregset_t		pr_reg;
-+#ifdef CONFIG_BINFMT_ELF_FDPIC
-+	compat_ulong_t			pr_exec_fdpic_loadmap;
-+	compat_ulong_t			pr_interp_fdpic_loadmap;
+Index: linux-2.6/include/linux/sched.h
+===================================================================
+--- linux-2.6.orig/include/linux/sched.h
++++ linux-2.6/include/linux/sched.h
+@@ -1741,26 +1741,16 @@ extern int cond_resched_softirq(void);
+ 
+ /*
+  * Does a critical section need to be broken due to another
+- * task waiting?:
++ * task waiting?: (technically does not depend on CONFIG_PREEMPT,
++ * but a general need for low latency)
+  */
+-#if defined(CONFIG_PREEMPT) && defined(CONFIG_SMP)
+-# define need_lockbreak(lock) ((lock)->break_lock)
++#ifdef CONFIG_PREEMPT
++# define spin_needbreak(lock)	spin_is_contended(lock)
+ #else
+-# define need_lockbreak(lock) 0
++# define spin_needbreak(lock)	0
+ #endif
+ 
+ /*
+- * Does a critical section need to be broken due to another
+- * task waiting or preemption being signalled:
+- */
+-static inline int lock_need_resched(spinlock_t *lock)
+-{
+-	if (need_lockbreak(lock) || need_resched())
+-		return 1;
+-	return 0;
+-}
+-
+-/*
+  * Reevaluate whether the task has signals pending delivery.
+  * Wake the task if so.
+  * This is required every time the blocked sigset_t changes.
+Index: linux-2.6/include/linux/spinlock.h
+===================================================================
+--- linux-2.6.orig/include/linux/spinlock.h
++++ linux-2.6/include/linux/spinlock.h
+@@ -120,6 +120,12 @@ do {								\
+ 
+ #define spin_is_locked(lock)	__raw_spin_is_locked(&(lock)->raw_lock)
+ 
++#ifdef CONFIG_GENERIC_LOCKBREAK
++#define spin_is_contended(lock) ((lock)->break_lock)
++#else
++#define spin_is_contended(lock)	__raw_spin_is_contended(&(lock)->raw_lock)
 +#endif
-+	compat_int_t			pr_fpvalid;
-+};
 +
-+struct compat_elf_prpsinfo
-+{
-+	char				pr_state;
-+	char				pr_sname;
-+	char				pr_zomb;
-+	char				pr_nice;
-+	compat_ulong_t			pr_flag;
-+	compat_uid_t			pr_uid;
-+	compat_gid_t			pr_gid;
-+	compat_pid_t			pr_pid, pr_ppid, pr_pgrp, pr_sid;
-+	char				pr_fname[16];
-+	char				pr_psargs[ELF_PRARGSZ];
-+};
+ /**
+  * spin_unlock_wait - wait until the spinlock gets unlocked
+  * @lock: the spinlock in question.
+Index: linux-2.6/fs/jbd/checkpoint.c
+===================================================================
+--- linux-2.6.orig/fs/jbd/checkpoint.c
++++ linux-2.6/fs/jbd/checkpoint.c
+@@ -347,7 +347,8 @@ restart:
+ 				break;
+ 			}
+ 			retry = __process_buffer(journal, jh, bhs,&batch_count);
+-			if (!retry && lock_need_resched(&journal->j_list_lock)){
++			if (!retry && (need_resched() ||
++				spin_needbreak(&journal->j_list_lock))) {
+ 				spin_unlock(&journal->j_list_lock);
+ 				retry = 1;
+ 				break;
+Index: linux-2.6/fs/jbd/commit.c
+===================================================================
+--- linux-2.6.orig/fs/jbd/commit.c
++++ linux-2.6/fs/jbd/commit.c
+@@ -265,7 +265,7 @@ write_out_data:
+ 			put_bh(bh);
+ 		}
+ 
+-		if (lock_need_resched(&journal->j_list_lock)) {
++		if (need_resched() || spin_needbreak(&journal->j_list_lock)) {
+ 			spin_unlock(&journal->j_list_lock);
+ 			goto write_out_data;
+ 		}
+Index: linux-2.6/fs/jbd2/checkpoint.c
+===================================================================
+--- linux-2.6.orig/fs/jbd2/checkpoint.c
++++ linux-2.6/fs/jbd2/checkpoint.c
+@@ -347,7 +347,8 @@ restart:
+ 				break;
+ 			}
+ 			retry = __process_buffer(journal, jh, bhs,&batch_count);
+-			if (!retry && lock_need_resched(&journal->j_list_lock)){
++			if (!retry && (need_resched() ||
++				spin_needbreak(&journal->j_list_lock))) {
+ 				spin_unlock(&journal->j_list_lock);
+ 				retry = 1;
+ 				break;
+Index: linux-2.6/fs/jbd2/commit.c
+===================================================================
+--- linux-2.6.orig/fs/jbd2/commit.c
++++ linux-2.6/fs/jbd2/commit.c
+@@ -265,7 +265,7 @@ write_out_data:
+ 			put_bh(bh);
+ 		}
+ 
+-		if (lock_need_resched(&journal->j_list_lock)) {
++		if (need_resched() || spin_needbreak(&journal->j_list_lock)) {
+ 			spin_unlock(&journal->j_list_lock);
+ 			goto write_out_data;
+ 		}
+Index: linux-2.6/include/linux/spinlock_up.h
+===================================================================
+--- linux-2.6.orig/include/linux/spinlock_up.h
++++ linux-2.6/include/linux/spinlock_up.h
+@@ -64,6 +64,8 @@ static inline void __raw_spin_unlock(raw
+ # define __raw_spin_trylock(lock)	({ (void)(lock); 1; })
+ #endif /* DEBUG_SPINLOCK */
+ 
++#define __raw_spin_is_contended(lock)	(((void)(lock), 0))
 +
-+#endif /* _LINUX_ELFCORE_COMPAT_H */
-_
-
-Patches currently in -mm which might be from roland@redhat.com are
-
-powerpc-vdso-install-unstripped-copies-on-disk.patch
-pass-g-to-assembler-under-config_debug_info.patch
-i386-vdso-install-unstripped-copies-on-disk.patch
-i386-vdso-install-unstripped-copies-on-disk-fix.patch
-x86_64-ia32-vdso-install-unstripped-copies-on-disk.patch
-clone-flag-clone_parent_tidptr-leaves-invalid-results-in-memory.patch
-add-sys-module-name-notes.patch
-do_sigaction-remove-now-unneeded-recalc_sigpending.patch
-handle-the-multi-threaded-inits-exit-properly.patch
-add-linux-elfcore-compath.patch
-x86_64-use-linux-elfcore-compath.patch
-powerpc-use-linux-elfcore-compath.patch
-
+ #define __raw_read_can_lock(lock)	(((void)(lock), 1))
+ #define __raw_write_can_lock(lock)	(((void)(lock), 1))
+ 
+Index: linux-2.6/kernel/sched.c
+===================================================================
+--- linux-2.6.orig/kernel/sched.c
++++ linux-2.6/kernel/sched.c
+@@ -4500,19 +4500,15 @@ EXPORT_SYMBOL(cond_resched);
+  */
+ int cond_resched_lock(spinlock_t *lock)
+ {
++	int resched = need_resched() && system_state == SYSTEM_RUNNING;
+ 	int ret = 0;
+ 
+-	if (need_lockbreak(lock)) {
++	if (spin_needbreak(lock) || resched) {
+ 		spin_unlock(lock);
+-		cpu_relax();
+-		ret = 1;
+-		spin_lock(lock);
+-	}
+-	if (need_resched() && system_state == SYSTEM_RUNNING) {
+-		spin_release(&lock->dep_map, 1, _THIS_IP_);
+-		_raw_spin_unlock(lock);
+-		preempt_enable_no_resched();
+-		__cond_resched();
++		if (resched && need_resched())
++			__cond_resched();
++		else
++			cpu_relax();
+ 		ret = 1;
+ 		spin_lock(lock);
+ 	}
+Index: linux-2.6/mm/memory.c
+===================================================================
+--- linux-2.6.orig/mm/memory.c
++++ linux-2.6/mm/memory.c
+@@ -514,8 +514,7 @@ again:
+ 		if (progress >= 32) {
+ 			progress = 0;
+ 			if (need_resched() ||
+-			    need_lockbreak(src_ptl) ||
+-			    need_lockbreak(dst_ptl))
++			    spin_needbreak(src_ptl) || spin_needbreak(dst_ptl))
+ 				break;
+ 		}
+ 		if (pte_none(*src_pte)) {
+@@ -854,7 +853,7 @@ unsigned long unmap_vmas(struct mmu_gath
+ 			tlb_finish_mmu(*tlbp, tlb_start, start);
+ 
+ 			if (need_resched() ||
+-				(i_mmap_lock && need_lockbreak(i_mmap_lock))) {
++				(i_mmap_lock && spin_needbreak(i_mmap_lock))) {
+ 				if (i_mmap_lock) {
+ 					*tlbp = NULL;
+ 					goto out;
+@@ -1860,8 +1859,7 @@ again:
+ 
+ 	restart_addr = zap_page_range(vma, start_addr,
+ 					end_addr - start_addr, details);
+-	need_break = need_resched() ||
+-			need_lockbreak(details->i_mmap_lock);
++	need_break = need_resched() || spin_needbreak(details->i_mmap_lock);
+ 
+ 	if (restart_addr >= end_addr) {
+ 		/* We have now completed this vma: mark it so */
+Index: linux-2.6/arch/x86_64/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/x86_64/Kconfig
++++ linux-2.6/arch/x86_64/Kconfig
+@@ -74,6 +74,11 @@ config ISA
+ config SBUS
+ 	bool
+ 
++config GENERIC_LOCKBREAK
++	bool
++	default y
++	depends on SMP && PREEMPT
++
+ config RWSEM_GENERIC_SPINLOCK
+ 	bool
+ 	default y
+Index: linux-2.6/include/linux/spinlock_types.h
+===================================================================
+--- linux-2.6.orig/include/linux/spinlock_types.h
++++ linux-2.6/include/linux/spinlock_types.h
+@@ -19,7 +19,7 @@
+ 
+ typedef struct {
+ 	raw_spinlock_t raw_lock;
+-#if defined(CONFIG_PREEMPT) && defined(CONFIG_SMP)
++#ifdef CONFIG_GENERIC_LOCKBREAK
+ 	unsigned int break_lock;
+ #endif
+ #ifdef CONFIG_DEBUG_SPINLOCK
+@@ -35,7 +35,7 @@ typedef struct {
+ 
+ typedef struct {
+ 	raw_rwlock_t raw_lock;
+-#if defined(CONFIG_PREEMPT) && defined(CONFIG_SMP)
++#ifdef CONFIG_GENERIC_LOCKBREAK
+ 	unsigned int break_lock;
+ #endif
+ #ifdef CONFIG_DEBUG_SPINLOCK
+Index: linux-2.6/kernel/spinlock.c
+===================================================================
+--- linux-2.6.orig/kernel/spinlock.c
++++ linux-2.6/kernel/spinlock.c
+@@ -65,8 +65,7 @@ EXPORT_SYMBOL(_write_trylock);
+  * even on CONFIG_PREEMPT, because lockdep assumes that interrupts are
+  * not re-enabled during lock-acquire (which the preempt-spin-ops do):
+  */
+-#if !defined(CONFIG_PREEMPT) || !defined(CONFIG_SMP) || \
+-	defined(CONFIG_DEBUG_LOCK_ALLOC)
++#if !defined(CONFIG_GENERIC_LOCKBREAK) || defined(CONFIG_DEBUG_LOCK_ALLOC)
+ 
+ void __lockfunc _read_lock(rwlock_t *lock)
+ {
+Index: linux-2.6/arch/arm/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/arm/Kconfig
++++ linux-2.6/arch/arm/Kconfig
+@@ -91,6 +91,11 @@ config GENERIC_IRQ_PROBE
+ 	bool
+ 	default y
+ 
++config GENERIC_LOCKBREAK
++	bool
++	default y
++	depends on SMP && PREEMPT
++
+ config RWSEM_GENERIC_SPINLOCK
+ 	bool
+ 	default y
+Index: linux-2.6/arch/i386/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/i386/Kconfig
++++ linux-2.6/arch/i386/Kconfig
+@@ -14,6 +14,11 @@ config X86_32
+ 	  486, 586, Pentiums, and various instruction-set-compatible chips by
+ 	  AMD, Cyrix, and others.
+ 
++config GENERIC_LOCKBREAK
++	bool
++	default y
++	depends on SMP && PREEMPT
++
+ config GENERIC_TIME
+ 	bool
+ 	default y
+Index: linux-2.6/arch/ia64/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/ia64/Kconfig
++++ linux-2.6/arch/ia64/Kconfig
+@@ -42,6 +42,11 @@ config MMU
+ config SWIOTLB
+        bool
+ 
++config GENERIC_LOCKBREAK
++	bool
++	default y
++	depends on SMP && PREEMPT
++
+ config RWSEM_XCHGADD_ALGORITHM
+ 	bool
+ 	default y
+Index: linux-2.6/arch/m32r/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/m32r/Kconfig
++++ linux-2.6/arch/m32r/Kconfig
+@@ -215,6 +215,11 @@ config IRAM_SIZE
+ # Define implied options from the CPU selection here
+ #
+ 
++config GENERIC_LOCKBREAK
++	bool
++	default y
++	depends on SMP && PREEMPT
++
+ config RWSEM_GENERIC_SPINLOCK
+ 	bool
+ 	depends on M32R
+Index: linux-2.6/arch/mips/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/mips/Kconfig
++++ linux-2.6/arch/mips/Kconfig
+@@ -647,6 +647,11 @@ source "arch/mips/philips/pnx8550/common
+ 
+ endmenu
+ 
++config GENERIC_LOCKBREAK
++	bool
++	default y
++	depends on SMP && PREEMPT
++
+ config RWSEM_GENERIC_SPINLOCK
+ 	bool
+ 	default y
+Index: linux-2.6/arch/parisc/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/parisc/Kconfig
++++ linux-2.6/arch/parisc/Kconfig
+@@ -19,6 +19,11 @@ config MMU
+ config STACK_GROWSUP
+ 	def_bool y
+ 
++config GENERIC_LOCKBREAK
++	bool
++	default y
++	depends on SMP && PREEMPT
++
+ config RWSEM_GENERIC_SPINLOCK
+ 	def_bool y
+ 
+Index: linux-2.6/arch/sparc64/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/sparc64/Kconfig
++++ linux-2.6/arch/sparc64/Kconfig
+@@ -196,6 +196,11 @@ config US2E_FREQ
+ 	  If in doubt, say N.
+ 
+ # Global things across all Sun machines.
++config GENERIC_LOCKBREAK
++	bool
++	default y
++	depends on SMP && PREEMPT
++
+ config RWSEM_GENERIC_SPINLOCK
+ 	bool
+ 
