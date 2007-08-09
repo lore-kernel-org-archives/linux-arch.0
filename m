@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:46168 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:45454 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754921AbXHINvb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 09:51:31 -0400
-Date: Thu, 9 Aug 2007 09:51:07 -0400
+	id S1762051AbXHINtv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 09:49:51 -0400
+Date: Thu, 9 Aug 2007 09:49:14 -0400
 From: Chris Snook <csnook@redhat.com>
-Subject: [PATCH 9/24] make atomic_read() behave consistently on ia64
-Message-ID: <20070809135107.GA15985@shell.boston.redhat.com>
+Subject: [PATCH 8/24] make atomic_read() behave consistently on i386
+Message-ID: <20070809134914.GA15811@shell.boston.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -17,36 +17,19 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Chris Snook <csnook@redhat.com>
 
-Purify volatile use for atomic[64]_t on ia64.
+Make atomic_read() volatile on i386, to ensure memory is actually read
+each time.
 
 Signed-off-by: Chris Snook <csnook@redhat.com>
 
---- linux-2.6.23-rc2-orig/include/asm-ia64/atomic.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.23-rc2/include/asm-ia64/atomic.h	2007-08-09 06:53:48.000000000 -0400
-@@ -17,18 +17,18 @@
- #include <asm/intrinsics.h>
- #include <asm/system.h>
- 
--/*
-- * On IA-64, counter must always be volatile to ensure that that the
-- * memory accesses are ordered.
-- */
--typedef struct { volatile __s32 counter; } atomic_t;
--typedef struct { volatile __s64 counter; } atomic64_t;
-+typedef struct { __s32 counter; } atomic_t;
-+typedef struct { __s64 counter; } atomic64_t;
- 
- #define ATOMIC_INIT(i)		((atomic_t) { (i) })
- #define ATOMIC64_INIT(i)	((atomic64_t) { (i) })
- 
+--- linux-2.6.23-rc2-orig/include/asm-i386/atomic.h	2007-07-08 19:32:17.000000000 -0400
++++ linux-2.6.23-rc2/include/asm-i386/atomic.h	2007-08-09 06:47:47.000000000 -0400
+@@ -25,7 +25,7 @@ typedef struct { int counter; } atomic_t
+  * 
+  * Atomically reads the value of @v.
+  */ 
 -#define atomic_read(v)		((v)->counter)
--#define atomic64_read(v)	((v)->counter)
-+/*
-+ * Casting to volatile here minimizes the need for barriers,
-+ * without having to declare the type itself as volatile.
-+ */
-+#define atomic_read(v)		(*(volatile __s32 *)&(v)->counter)
-+#define atomic64_read(v)	(*(volatile __s64 *)&(v)->counter)
++#define atomic_read(v)		(*(volatile int *)&(v)->counter)
  
- #define atomic_set(v,i)		(((v)->counter) = (i))
- #define atomic64_set(v,i)	(((v)->counter) = (i))
+ /**
+  * atomic_set - set atomic variable
