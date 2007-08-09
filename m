@@ -1,50 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:36138 "EHLO mx1.suse.de"
+Received: from mx1.redhat.com ([66.187.233.31]:33367 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1762800AbXHIJyk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 05:54:40 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [patch 2/2] x86_64: ticket lock spinlock
-Date: Thu, 9 Aug 2007 11:54:34 +0200
-References: <20070808042234.GE11018@wotan.suse.de> <200708081226.55651.ak@suse.de> <20070809014254.GB12539@wotan.suse.de>
-In-Reply-To: <20070809014254.GB12539@wotan.suse.de>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+	id S1758447AbXHINPI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 09:15:08 -0400
+Date: Thu, 9 Aug 2007 09:14:23 -0400
+From: Chris Snook <csnook@redhat.com>
+Subject: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Message-ID: <20070809131423.GA9927@shell.boston.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200708091154.34581.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
+Cc: netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thursday 09 August 2007 03:42:54 Nick Piggin wrote:
-> On Wed, Aug 08, 2007 at 12:26:55PM +0200, Andi Kleen wrote:
-> > 
-> > >   *
-> > >   * (the type definitions are in asm/spinlock_types.h)
-> > >   */
-> > >  
-> > > +#if (NR_CPUS > 256)
-> > > +#error spinlock supports a maximum of 256 CPUs
-> > > +#endif
-> > > +
-> > >  static inline int __raw_spin_is_locked(raw_spinlock_t *lock)
-> > >  {
-> > > -	return *(volatile signed int *)(&(lock)->slock) <= 0;
-> > > +	int tmp = *(volatile signed int *)(&(lock)->slock);
-> > 
-> > Why is slock not volatile signed int in the first place? 
-> 
-> Don't know really. Why does spin_is_locked need it to be volatile?
+As recent discussions[1], and bugs[2] have shown, there is a great deal of
+confusion about the expected behavior of atomic_read(), compounded by the
+fact that it is not the same on all architectures.  Since users expect calls
+to atomic_read() to actually perform a read, it is not desirable to allow
+the compiler to optimize this away.  Requiring the use of barrier() in this
+case is inefficient, since we only want to re-load the atomic_t variable,
+not everything else in scope.
 
-I suppose in case a caller doesn't have a memory barrier
-(they should in theory, but might not). Without any barrier
-or volatile gcc might optimize it away.
+This patchset makes the behavior of atomic_read uniform by removing the
+volatile keyword from all atomic_t and atomic64_t definitions that currently
+have it, and instead explicitly casts the variable as volatile in
+atomic_read().  This leaves little room for creative optimization by the
+compiler, and is in keeping with the principles behind "volatile considered
+harmful".
 
-The other accesses in spinlocks hopefully all have barriers.
+Busy-waiters should still use cpu_relax(), but fast paths may be able to
+reduce their use of barrier() between some atomic_read() calls.
 
-Ok anyways the patches look good.
+	-- Chris
 
--Andi
+1)	http://lkml.org/lkml/2007/7/1/52
+2)	http://lkml.org/lkml/2007/8/8/122
