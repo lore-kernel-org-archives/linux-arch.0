@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:45454 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:48303 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1762051AbXHINtv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 09:49:51 -0400
-Date: Thu, 9 Aug 2007 09:49:14 -0400
+	id S939641AbXHIN45 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 09:56:57 -0400
+Date: Thu, 9 Aug 2007 09:56:23 -0400
 From: Chris Snook <csnook@redhat.com>
-Subject: [PATCH 8/24] make atomic_read() behave consistently on i386
-Message-ID: <20070809134914.GA15811@shell.boston.redhat.com>
+Subject: [PATCH 11/24] make atomic_read() behave consistently on m68knommu
+Message-ID: <20070809135623.GA16554@shell.boston.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -17,19 +17,24 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Chris Snook <csnook@redhat.com>
 
-Make atomic_read() volatile on i386, to ensure memory is actually read
-each time.
+Make atomic_read() volatile on m68knommu.  This ensures that busy-waiting
+for an interrupt handler to change an atomic_t won't get compiled to an
+infinite loop, consistent with SMP architectures.
 
 Signed-off-by: Chris Snook <csnook@redhat.com>
 
---- linux-2.6.23-rc2-orig/include/asm-i386/atomic.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.23-rc2/include/asm-i386/atomic.h	2007-08-09 06:47:47.000000000 -0400
-@@ -25,7 +25,7 @@ typedef struct { int counter; } atomic_t
-  * 
-  * Atomically reads the value of @v.
-  */ 
--#define atomic_read(v)		((v)->counter)
-+#define atomic_read(v)		(*(volatile int *)&(v)->counter)
+--- linux-2.6.23-rc2-orig/include/asm-m68knommu/atomic.h	2007-07-08 19:32:17.000000000 -0400
++++ linux-2.6.23-rc2/include/asm-m68knommu/atomic.h	2007-08-09 07:00:24.000000000 -0400
+@@ -15,7 +15,11 @@
+ typedef struct { int counter; } atomic_t;
+ #define ATOMIC_INIT(i)	{ (i) }
  
- /**
-  * atomic_set - set atomic variable
+-#define atomic_read(v)		((v)->counter)
++/*
++ * Casting to volatile here minimizes the need for barriers,
++ * without having to declare the type itself as volatile.
++ */
++#define atomic_read(v)		(*(volatile int *)&(v)->counter)
+ #define atomic_set(v, i)	(((v)->counter) = i)
+ 
+ static __inline__ void atomic_add(int i, atomic_t *v)
