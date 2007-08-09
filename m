@@ -1,49 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:56640 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756718AbXHIBmz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Aug 2007 21:42:55 -0400
-Date: Thu, 9 Aug 2007 03:42:54 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch 2/2] x86_64: ticket lock spinlock
-Message-ID: <20070809014254.GB12539@wotan.suse.de>
-References: <20070808042234.GE11018@wotan.suse.de> <20070808042444.GF11018@wotan.suse.de> <200708081226.55651.ak@suse.de>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:57206
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1758276AbXHIBt0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Aug 2007 21:49:26 -0400
+Date: Wed, 08 Aug 2007 18:49:26 -0700 (PDT)
+Message-Id: <20070808.184926.122063745.davem@davemloft.net>
+Subject: Re: Needs review from arm, sparc, pa-risc, sh, xtensa (virtual
+ indexed cache issue in page migration)
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20070809101615.b25c456a.kamezawa.hiroyu@jp.fujitsu.com>
+References: <20070809095042.a4045780.kamezawa.hiroyu@jp.fujitsu.com>
+	<20070808.180136.67882110.davem@davemloft.net>
+	<20070809101615.b25c456a.kamezawa.hiroyu@jp.fujitsu.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <200708081226.55651.ak@suse.de>
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: kamezawa.hiroyu@jp.fujitsu.com
+Cc: tony.luck@intel.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Aug 08, 2007 at 12:26:55PM +0200, Andi Kleen wrote:
-> 
-> >   *
-> >   * (the type definitions are in asm/spinlock_types.h)
-> >   */
-> >  
-> > +#if (NR_CPUS > 256)
-> > +#error spinlock supports a maximum of 256 CPUs
-> > +#endif
-> > +
-> >  static inline int __raw_spin_is_locked(raw_spinlock_t *lock)
-> >  {
-> > -	return *(volatile signed int *)(&(lock)->slock) <= 0;
-> > +	int tmp = *(volatile signed int *)(&(lock)->slock);
-> 
-> Why is slock not volatile signed int in the first place? 
+From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Date: Thu, 9 Aug 2007 10:16:15 +0900
 
-Don't know really. Why does spin_is_locked need it to be volatile?
+> Hmm, I see. Trying to write a patch will not be much work.
+> Sigh, I didn't think this bugfix took one month...
 
+I am sorry for making things difficult.
 
-> > -	int oldval;
-> > +	short tmp;
-> > +        short oldval;
-> 
-> Broken white space?
-
-Hmm, I'll fix it.
-
-Thanks,
-Nick
+It was a suggestion, on longer terms, rather than a demand.
+:-)
