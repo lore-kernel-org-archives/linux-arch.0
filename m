@@ -1,73 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:35339 "EHLO mx1.redhat.com"
+Received: from gate.crashing.org ([63.228.1.57]:42095 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S934429AbXHIPgI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 11:36:08 -0400
-Message-ID: <46BB31A6.4080507@redhat.com>
-Date: Thu, 09 Aug 2007 11:24:22 -0400
-From: Chris Snook <csnook@redhat.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 1/24] make atomic_read() behave consistently on alpha
-References: <20070809132442.GA13042@shell.boston.redhat.com> <20070809143255.GA8424@linux.vnet.ibm.com> <46BB2A5A.5090006@redhat.com> <20070809150445.GB8424@linux.vnet.ibm.com>
-In-Reply-To: <20070809150445.GB8424@linux.vnet.ibm.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+	id S1752110AbXHIP7n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 11:59:43 -0400
+In-Reply-To: <46BB31A6.4080507@redhat.com>
+References: <20070809132442.GA13042@shell.boston.redhat.com> <20070809143255.GA8424@linux.vnet.ibm.com> <46BB2A5A.5090006@redhat.com> <20070809150445.GB8424@linux.vnet.ibm.com> <46BB31A6.4080507@redhat.com>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <3bfabd7472d6f019aa1880b14013f7a1@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH 1/24] make atomic_read() behave consistently on alpha
+Date: Thu, 9 Aug 2007 17:50:32 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: paulmck@linux.vnet.ibm.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Chris Snook <csnook@redhat.com>
+Cc: wjiang@resilience.com, rpjday@mindspring.com, wensong@linux-vs.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, ak@suse.de, netdev@vger.kernel.org, paulmck@linux.vnet.ibm.com, horms@verge.net.au, akpm@linux-foundation.org, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, torvalds@linux-foundation.org, schwidefsky@de.ibm.com, davem@davemloft.net, cfriesen@nortel.com, zlynx@acm.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Paul E. McKenney wrote:
-> On Thu, Aug 09, 2007 at 10:53:14AM -0400, Chris Snook wrote:
->> Paul E. McKenney wrote:
->>> Why not the same access-once semantics for atomic_set() as
->>> for atomic_read()?  As this patch stands, it might introduce
->>> architecture-specific compiler-induced bugs due to the fact that
->>> atomic_set() used to imply volatile behavior but no longer does.
->> When we make the volatile cast in atomic_read(), we're casting an rvalue to 
->> volatile.  This unambiguously tells the compiler that we want to re-load 
->> that register from memory.  What's "volatile behavior" for an lvalue?
-> 
-> I was absolutely -not- suggesting volatile behavior for lvalues.
-> 
-> Instead, I am asking for volatile behavior from an -rvalue-.  In the
-> case of atomic_read(), it is the atomic_t being read from.  In the case
-> of atomic_set(), it is the atomic_t being written to.  As suggested in
-> my previous email:
-> 
-> #define atomic_set(v,i)		((*(volatile int *)&(v)->counter) = (i))
-> #define atomic64_set(v,i)	((*(volatile long *)&(v)->counter) = (i))
+> We can't have split stores because we don't use atomic64_t on 32-bit 
+> architectures.
 
-That looks like a volatile lvalue to me.  I confess I didn't exactly ace 
-compilers.  Care to explain this?
+That's not true; the compiler is free to split all stores
+(and reads) from memory however it wants.  It is debatable
+whether "volatile" would prevent this as well, certainly
+it is unsafe if you want to be portable.  GCC will do its
+best to not split volatile memory accesses, but bugs in
+this area do happen a lot (because the compiler code for
+volatile isn't as well exercised as most other compiler
+code, and because it is simply a hard subject; and there
+is no real formalised model for what GCC should do).
 
-> Again, the architectures that used to have their "counter" declared
-> as volatile will lose volatile semantics on atomic_set() with your
-> patch, which might result in bugs due to overly imaginative compiler
-> optimizations.  The above would prevent any such bugs from appearing.
-> 
->>                                                                       A 
->> write to an lvalue already implies an eventual write to memory, so this 
->> would be a no-op. Maybe you'll write to the register a few times before 
->> flushing it to memory, but it will happen eventually.  With an rvalue, 
->> there's no guarantee that it will *ever* load from memory, which is what 
->> volatile fixes.
->>
->> I think what you have in mind is LOCK_PREFIX behavior, which is not the 
->> purpose of atomic_set.  We use LOCK_PREFIX in the inline assembly for the 
->> atomic_* operations that read, modify, and write a value, only because it 
->> is necessary to perform that entire transaction atomically.
-> 
-> No LOCK_PREFIX, thank you!!!  I just want to make sure that the compiler
-> doesn't push the store down out of a loop, split the store, allow the
-> store to happen twice (e.g., to allow different code paths to be merged),
-> and all the other tricks that the C standard permits compilers to pull.
+The only safe way to get atomic accesses is to write
+assembler code.  Are there any downsides to that?  I don't
+see any.
 
-We can't have split stores because we don't use atomic64_t on 32-bit 
-architectures.  volatile won't save you from pushing stores out of loops unless 
-you're also doing reads.  This is why we use reads to flush writes to mmio 
-registers.  In this case, an atomic_read() with volatile in it will suffice. 
-Storing twice is perfectly legal here, though it's unlikely that an optimizing 
-compiler smart enough to create the problem we're addressing would ever do that.
 
-	-- Chris
+Segher
+
