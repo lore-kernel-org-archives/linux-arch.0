@@ -1,72 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:62035 "EHLO mga02.intel.com"
+Received: from gate.crashing.org ([63.228.1.57]:39499 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752246AbXHIVDg convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Aug 2007 17:03:36 -0400
-Content-class: urn:content-classes:message
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Subject: RE: [PATCH 9/24] make atomic_read() behave consistently on ia64
-Date: Thu, 9 Aug 2007 14:03:33 -0700
-Message-ID: <617E1C2C70743745A92448908E030B2A02213B3C@scsmsx411.amr.corp.intel.com>
-In-Reply-To: <20070809135107.GA15985@shell.boston.redhat.com>
-References: <20070809135107.GA15985@shell.boston.redhat.com>
-From: "Luck, Tony" <tony.luck@intel.com>
+	id S1753453AbXHIWYw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 18:24:52 -0400
+In-Reply-To: <46BB74B9.4070702@nortel.com>
+References: <20070809142430.GA19817@shell.boston.redhat.com> <8f6bb8a9e4f2819a161d732bdb6c70c0@kernel.crashing.org> <46BB403D.10202@redhat.com> <0a08872e608cf5f7a3d9c0fc746a1051@kernel.crashing.org> <46BB74B9.4070702@nortel.com>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <9452870655b1844283961f8e9e406464@kernel.crashing.org>
+Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH 24/24] document volatile atomic_read() behavior
+Date: Fri, 10 Aug 2007 00:23:47 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Chris Snook <csnook@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
-Cc: netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Chris Friesen <cfriesen@nortel.com>
+Cc: wjiang@resilience.com, rpjday@mindspring.com, wensong@linux-vs.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, ak@suse.de, netdev@vger.kernel.org, horms@verge.net.au, akpm@linux-foundation.org, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, torvalds@linux-foundation.org, schwidefsky@de.ibm.com, davem@davemloft.net, zlynx@acm.org, Chris Snook <csnook@redhat.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-> +#define atomic_read(v)		(*(volatile __s32 *)&(v)->counter)
-> +#define atomic64_read(v)	(*(volatile __s64 *)&(v)->counter)
-> 
->  #define atomic_set(v,i)		(((v)->counter) = (i))
->  #define atomic64_set(v,i)	(((v)->counter) = (i))
+>> Anyway, what's the supposed advantage of *(volatile *) vs. using
+>> a real volatile object?  That you can access that same object in
+>> a non-volatile way?
+>
+> That's my understanding.  That way accesses where you don't care about 
+> volatility may be optimised.
+
+But those accesses might be done non-atomically then (for example,
+if the compiler knows it only needs to write one byte, it might not
+bother writing the rest), so that's no good if you want to read the
+thing atomically too.
+
+> For instance, in cases where there are already other things 
+> controlling visibility (as are needed for atomic increment, for 
+> example) you don't need to make the access itself volatile.
+
+Hrm, you mean within a lock or similar?  You'll get the same semantics
+as volatile anyway there.
 
 
-Losing the volatile from the "set" variants definitely changes
-the code generated.  Before the patch gcc would give us:
+Segher
 
-	st4.rel [r37]=r9
-
-after
-	st4 [r37]=r9
-
-It is unclear whether anyone relies on (or even whether they should
-rely on) the release semantics that are provided by the current
-version of atomic.h.  But making this change would require an
-audit of all the uses of atomic_set() to find an answer.
-
-There is a more worrying difference in the generated code (this
-from the ancient and venerable gcc 3.4.6 that is on my build
-machine).   In rwsem_down_failed_common I see this change (after
-disassembling vmlinux, I used sed to zap the low 32-bits of addresses
-to make the diff manageable ... that's why the addresses all end
-in xxxxxxxx):
-
-712868,712873c712913,712921
-< a0000001xxxxxxxx:                 adds r16=-1,r30
-< a0000001xxxxxxxx:     [MII]       ld8.acq r33=[r32]
-< a0000001xxxxxxxx:                 nop.i 0x0;;
-< a0000001xxxxxxxx:                 add r42=r33,r16
-< a0000001xxxxxxxx:     [MMI]       mov.m ar.ccv=r33;;
-< a0000001xxxxxxxx:                 cmpxchg8.acq r34=[r32],r42,ar.ccv
----
-> a0000001xxxxxxxx:                 adds r16=-1,r31
-> a0000001xxxxxxxx:     [MMI]       ld4.acq r14=[r32];;
-> a0000001xxxxxxxx:                 nop.m 0x0
-> a0000001xxxxxxxx:                 sxt4 r34=r14
-> a0000001xxxxxxxx:     [MMI]       nop.m 0x0;;
-> a0000001xxxxxxxx:                 nop.m 0x0
-> a0000001xxxxxxxx:                 add r15=r34,r16
-> a0000001xxxxxxxx:     [MMI]       mov.m ar.ccv=r34;;
-> a0000001xxxxxxxx:                 cmpxchg8.acq r42=[r32],r15,ar.ccv
-
-This code is probably from the rwsem_atomic_update(adjustment, sem) macro
-which is cpp'd to atomic64_add_return().  It looks really bad that the new
-code reads a 32-bit value and sign extends it rather than reading a 64-bit
-value (but I'm perplexed as to why this patch provoked this change in the
-generated code).
-
--Tony
