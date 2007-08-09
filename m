@@ -1,61 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail5.fujitsu.co.jp ([192.51.44.35]:41888 "EHLO
-	fgwmail5.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761387AbXHIBO3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Aug 2007 21:14:29 -0400
-Date: Thu, 9 Aug 2007 10:16:15 +0900
-From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Subject: Re: Needs review from arm, sparc, pa-risc, sh, xtensa (virtual
- indexed cache issue in page migration)
-Message-Id: <20070809101615.b25c456a.kamezawa.hiroyu@jp.fujitsu.com>
-In-Reply-To: <20070808.180136.67882110.davem@davemloft.net>
-References: <617E1C2C70743745A92448908E030B2A0221324E@scsmsx411.amr.corp.intel.com>
-	<20070808.161436.42223098.davem@davemloft.net>
-	<20070809095042.a4045780.kamezawa.hiroyu@jp.fujitsu.com>
-	<20070808.180136.67882110.davem@davemloft.net>
+Received: from ns2.suse.de ([195.135.220.15]:48873 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756245AbXHIBkR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Aug 2007 21:40:17 -0400
+Date: Thu, 9 Aug 2007 03:40:12 +0200
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [patch 2/2] x86_64: ticket lock spinlock
+Message-ID: <20070809014012.GA12539@wotan.suse.de>
+References: <20070808042234.GE11018@wotan.suse.de> <20070808042444.GF11018@wotan.suse.de> <20906.1186594318@turing-police.cc.vt.edu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20906.1186594318@turing-police.cc.vt.edu>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: tony.luck@intel.com, linux-arch@vger.kernel.org
+To: Valdis.Kletnieks@vt.edu
+Cc: Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <ak@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 08 Aug 2007 18:01:36 -0700 (PDT)
-David Miller <davem@davemloft.net> wrote:
+On Wed, Aug 08, 2007 at 01:31:58PM -0400, Valdis.Kletnieks@vt.edu wrote:
+> On Wed, 08 Aug 2007 06:24:44 +0200, Nick Piggin said:
+> 
+> > After this, we can no longer spin on any locks with preempt enabled,
+> > and cannot reenable interrupts when spinning on an irq safe lock, because
+> > at that point we have already taken a ticket and the would deadlock if
+> > the same CPU tries to take the lock again.  These are hackish anyway: if
+> > the lock happens to be called under a preempt or interrupt disabled section,
+> > then it will just have the same latency problems. The real fix is to keep
+> > critical sections short, and ensure locks are reasonably fair (which this
+> > patch does).
+> 
+> Any guesstimates how often we do that sort of hackish thing currently, and
+> how hard it will be to debug each one?  "Deadlock if the same CPU tries to
+> take the lock again" is pretty easy to notice - are there more subtle failure
+> modes (larger loops of locks, etc)?
 
-> From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-> Date: Thu, 9 Aug 2007 09:50:42 +0900
-> 
-> > Hmm...should I post flush_(i)cache_page() for ia64 again ?
-> > It will be the neatest, maybe.
-> 
-> The problem with the flush_*() interfaces is that it tells the
-> platform "what to do" instead of giving it information like "this just
-> happened".
-> 
-> That's why I encourage approaches that use set_pte_at() because it's
-> an event that gives information.
+I'll try to explain better:
 
-Hmm, I see. Trying to write a patch will not be much work.
-Sigh, I didn't think this bugfix took one month...
+The old spinlocks re-enable preemption and interrupts while they spin
+waiting for a held lock. This was done because people noticed some
+long latencies while spinning. The problem however is that preemption
+and interrupts can only be re-enabled if they were enabled before the
+spin_lock call. So if you have code that perhaps takes nested locks,
+or locks while interrupts are already disabled, then you get the latency
+problems back.
 
-> 
-> Different platforms need to flush when certain circumstances are
-> true.  Therefore, the better we annotate the events in the memory
-> management, the easier it will be to write correct optimized flushing
-> code for a platform.
-> 
-> But I cannot state enough that set_pte_at() and pte_clear() very
-> likely serves your needs completely if you try to use it.  Every place
-> I've seen IA64 add a hook has been right before or right after a
-> set_pte_at() call, and this is no coincidence!
-> 
-All lazy_mmu_prot_update() which were used after set_pte() have to be removed.
-It's buggy (my patch removes them)
-All cache flusing hook should be inserted before set_pte().
+So the non-hack fix is to keep critical sections short (which is what
+we've been working at forever), and to have relatively fair locks
+(which is what this patch does).
 
-Thanks,
--Kame
+A side-effect of this patch is that it can no longer enable preemption
+or ints while spinning, so my changelog is a rationale of why that
+shouldn't be a big problem.
 
 
