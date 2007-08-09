@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:47348 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:51325 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750791AbXHINyZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 09:54:25 -0400
-Date: Thu, 9 Aug 2007 09:53:48 -0400
+	id S932387AbXHIOEw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 10:04:52 -0400
+Date: Thu, 9 Aug 2007 10:04:12 -0400
 From: Chris Snook <csnook@redhat.com>
-Subject: [PATCH 10/24] make atomic_read() behave consistently on m32r
-Message-ID: <20070809135348.GA16389@shell.boston.redhat.com>
+Subject: [PATCH 15/24] make atomic_read() behave consistently on powerpc
+Message-ID: <20070809140412.GA17660@shell.boston.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -17,27 +17,45 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Chris Snook <csnook@redhat.com>
 
-Purify volatile use for atomic_t on m32r.
+Purify volatile use for atomic[64]_t on powerpc.
 
 Signed-off-by: Chris Snook <csnook@redhat.com>
 
---- linux-2.6.23-rc2-orig/include/asm-m32r/atomic.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.23-rc2/include/asm-m32r/atomic.h	2007-08-09 06:55:53.000000000 -0400
-@@ -22,7 +22,7 @@
-  * on us. We need to use _exactly_ the address the user gave us,
-  * not some alias that contains the same information.
+--- linux-2.6.23-rc2-orig/include/asm-powerpc/atomic.h	2007-07-08 19:32:17.000000000 -0400
++++ linux-2.6.23-rc2/include/asm-powerpc/atomic.h	2007-08-09 07:15:21.000000000 -0400
+@@ -5,7 +5,7 @@
+  * PowerPC atomic operations
   */
+ 
 -typedef struct { volatile int counter; } atomic_t;
 +typedef struct { int counter; } atomic_t;
  
- #define ATOMIC_INIT(i)	{ (i) }
+ #ifdef __KERNEL__
+ #include <linux/compiler.h>
+@@ -15,7 +15,11 @@ typedef struct { volatile int counter; }
  
-@@ -32,7 +32,7 @@ typedef struct { volatile int counter; }
-  *
-  * Atomically reads the value of @v.
-  */
--#define atomic_read(v)	((v)->counter)
-+#define atomic_read(v)	(*(volatile int *)&(v)->counter)
+ #define ATOMIC_INIT(i)		{ (i) }
  
- /**
-  * atomic_set - set atomic variable
+-#define atomic_read(v)		((v)->counter)
++/*
++ * Casting to volatile here minimizes the need for barriers,
++ * without having to declare the type itself as volatile.
++ */
++#define atomic_read(v)		(*(volatile int *)&(v)->counter)
+ #define atomic_set(v,i)		(((v)->counter) = (i))
+ 
+ static __inline__ void atomic_add(int a, atomic_t *v)
+@@ -240,11 +244,11 @@ static __inline__ int atomic_dec_if_posi
+ 
+ #ifdef __powerpc64__
+ 
+-typedef struct { volatile long counter; } atomic64_t;
++typedef struct { long counter; } atomic64_t;
+ 
+ #define ATOMIC64_INIT(i)	{ (i) }
+ 
+-#define atomic64_read(v)	((v)->counter)
++#define atomic64_read(v)	(*(volatile long *)&(v)->counter)
+ #define atomic64_set(v,i)	(((v)->counter) = (i))
+ 
+ static __inline__ void atomic64_add(long a, atomic64_t *v)
