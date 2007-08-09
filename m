@@ -1,51 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:34359 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:38574 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1763764AbXHIQcL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 12:32:11 -0400
-Message-ID: <46BB403D.10202@redhat.com>
-Date: Thu, 09 Aug 2007 12:26:37 -0400
+	id S933522AbXHIQmj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 12:42:39 -0400
+Message-ID: <46BB4281.7010803@redhat.com>
+Date: Thu, 09 Aug 2007 12:36:17 -0400
 From: Chris Snook <csnook@redhat.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 24/24] document volatile atomic_read() behavior
-References: <20070809142430.GA19817@shell.boston.redhat.com> <8f6bb8a9e4f2819a161d732bdb6c70c0@kernel.crashing.org>
-In-Reply-To: <8f6bb8a9e4f2819a161d732bdb6c70c0@kernel.crashing.org>
+Subject: Re: [PATCH 1/24] make atomic_read() behave consistently on alpha
+References: <20070809132442.GA13042@shell.boston.redhat.com> <20070809143255.GA8424@linux.vnet.ibm.com> <46BB2A5A.5090006@redhat.com> <20070809150445.GB8424@linux.vnet.ibm.com> <46BB31A6.4080507@redhat.com> <20070809161024.GC8424@linux.vnet.ibm.com>
+In-Reply-To: <20070809161024.GC8424@linux.vnet.ibm.com>
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: wjiang@resilience.com, wensong@linux-vs.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, netdev@vger.kernel.org, horms@verge.net.au, akpm@linux-foundation.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, schwidefsky@de.ibm.com, davem@davemloft.net, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: paulmck@linux.vnet.ibm.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Segher Boessenkool wrote:
->> Historically this has been
->> +accomplished by declaring the counter itself to be volatile, but the
->> +ambiguity of the C standard on the semantics of volatile make this 
->> practice
->> +vulnerable to overly creative interpretation by compilers.
-> 
-> It's even worse when accessing through a volatile casted pointer;
-> see for example the recent(*) GCC bugs in that area.
-> 
-> (*) Well, not _all_ that recent.  No one should be using the 3.x
-> series anymore, right?
-> 
->> Explicit
->> +casting in atomic_read() ensures consistent behavior across 
->> architectures
->> +and compilers.
-> 
-> Even modulo compiler bugs, what makes you believe that?
+Paul E. McKenney wrote:
+> The compiler is within its rights to read a 32-bit quantity 16 bits at
+> at time, even on a 32-bit machine.  I would be glad to help pummel any
+> compiler writer that pulls such a dirty trick, but the C standard really
+> does permit this.
 
-When you declare a variable volatile, you don't actually tell the compiler where 
-you want to override its default optimization behavior, giving it some freedom 
-to guess your intentions incorrectly.  When you put the cast on the data access 
-itself, there is no question about precisely where in the code you want to 
-override the compiler's default optimization behavior.  If the compiler doesn't 
-do what you want with a volatile declaration, it might have a plausible excuse 
-in the ambiguity of the C standard.  If the compiler doesn't do what you want in 
-a cast specific to a single dereference, it's just plain broken.  We try to be 
-compatible with plausibly correct compilers, but if they're completely broken, 
-we're screwed no matter what.
+Yes, but we don't write code for these compilers.  There are countless pieces of 
+kernel code which would break in this condition, and there doesn't seem to be 
+any interest in fixing this.
+
+> Use of volatile does in fact save you from the compiler pushing stores out
+> of loops regardless of whether you are also doing reads.  The C standard
+> has the notion of sequence points, which occur at various places including
+> the ends of statements and the control expressions for "if" and "while"
+> statements.  The compiler is not permitted to move volatile references
+> across a sequence point.  Therefore, the compiler is not allowed to
+> push a volatile store out of a loop.  Now the CPU might well do such a
+> reordering, but that is a separate issue to be dealt with via memory
+> barriers.  Note that it is the CPU and I/O system, not the compiler,
+> that is forcing you to use reads to flush writes to MMIO registers.
+
+Sequence points enforce read-after-write ordering, not write-after-write.  We 
+flush writes with reads for MMIO because of this effect as well as the CPU/bus 
+effects.
+
+> And you would be amazed at what compiler writers will do in order to
+> get an additional fraction of a percent out of SpecCPU...
+
+Probably not :)
+
+> In short, please retain atomic_set()'s volatility, especially on those
+> architectures that declared the atomic_t's counter to be volatile.
+
+Like i386 and x86_64?  These used to have volatile in the atomic_t declaration. 
+  We removed it, and the sky did not fall.
 
 	-- Chris
