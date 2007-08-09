@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:54325 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:58311 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S940399AbXHIOMq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 10:12:46 -0400
-Date: Thu, 9 Aug 2007 10:12:05 -0400
+	id S936719AbXHIOZG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 10:25:06 -0400
+Date: Thu, 9 Aug 2007 10:24:30 -0400
 From: Chris Snook <csnook@redhat.com>
-Subject: [PATCH 19/24] make atomic_read() behave consistently on sparc64
-Message-ID: <20070809141205.GA18672@shell.boston.redhat.com>
+Subject: [PATCH 24/24] document volatile atomic_read() behavior
+Message-ID: <20070809142430.GA19817@shell.boston.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -17,32 +17,40 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Chris Snook <csnook@redhat.com>
 
-Purify volatile use for atomic[64]_t on sparc64.
+Update atomic_ops.txt to reflect the newly consistent behavior of
+atomic_read(), and to note that volatile (in declarations) is now
+considered harmful.
 
 Signed-off-by: Chris Snook <csnook@redhat.com>
 
---- linux-2.6.23-rc2-orig/include/asm-sparc64/atomic.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.23-rc2/include/asm-sparc64/atomic.h	2007-08-09 07:48:01.000000000 -0400
-@@ -11,14 +11,18 @@
- #include <linux/types.h>
- #include <asm/system.h>
+--- linux-2.6.23-rc2-orig/Documentation/atomic_ops.txt	2007-07-08 19:32:17.000000000 -0400
++++ linux-2.6.23-rc2/Documentation/atomic_ops.txt	2007-08-09 08:24:32.000000000 -0400
+@@ -12,7 +12,7 @@
+ C integer type will fail.  Something like the following should
+ suffice:
  
--typedef struct { volatile int counter; } atomic_t;
--typedef struct { volatile __s64 counter; } atomic64_t;
-+typedef struct { int counter; } atomic_t;
-+typedef struct { __s64 counter; } atomic64_t;
+-	typedef struct { volatile int counter; } atomic_t;
++	typedef struct { int counter; } atomic_t;
  
- #define ATOMIC_INIT(i)		{ (i) }
- #define ATOMIC64_INIT(i)	{ (i) }
+ 	The first operations to implement for atomic_t's are the
+ initializers and plain reads.
+@@ -38,9 +38,17 @@
  
--#define atomic_read(v)		((v)->counter)
--#define atomic64_read(v)	((v)->counter)
-+/*
-+ * Casting to volatile here minimizes the need for barriers,
-+ * without having to declare the type itself as volatile.
-+ */
-+#define atomic_read(v)		(*(volatile int *)&(v)->counter)
-+#define atomic64_read(v)	(*(volatile __s64 *)&(v)->counter)
+ Next, we have:
  
- #define atomic_set(v, i)	(((v)->counter) = i)
- #define atomic64_set(v, i)	(((v)->counter) = i)
+-	#define atomic_read(v)	((v)->counter)
++	#define atomic_read(v)	(*(volatile int *)&(v)->counter)
+ 
+-which simply reads the current value of the counter.
++which reads the counter as though it were volatile.  This prevents the
++compiler from optimizing away repeated atomic_read() invocations without
++requiring a more expensive barrier().  Historically this has been
++accomplished by declaring the counter itself to be volatile, but the
++ambiguity of the C standard on the semantics of volatile make this practice
++vulnerable to overly creative interpretation by compilers.  Explicit
++casting in atomic_read() ensures consistent behavior across architectures
++and compilers.  Even with this convenience in atomic_read(), busy-waiters
++should call cpu_relax().
+ 
+ Now, we move onto the actual atomic operation interfaces.
+ 
