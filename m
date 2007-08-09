@@ -1,64 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailhub.sw.ru ([195.214.233.200]:14250 "EHLO relay.sw.ru"
+Received: from ns.suse.de ([195.135.220.2]:36138 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758360AbXHIIHP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 04:07:15 -0400
-Message-ID: <46BACBD8.7050308@sw.ru>
-Date: Thu, 09 Aug 2007 12:10:00 +0400
-From: Kirill Korotaev <dev@sw.ru>
+	id S1762800AbXHIJyk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 05:54:40 -0400
+From: Andi Kleen <ak@suse.de>
+Subject: Re: [patch 2/2] x86_64: ticket lock spinlock
+Date: Thu, 9 Aug 2007 11:54:34 +0200
+References: <20070808042234.GE11018@wotan.suse.de> <200708081226.55651.ak@suse.de> <20070809014254.GB12539@wotan.suse.de>
+In-Reply-To: <20070809014254.GB12539@wotan.suse.de>
 MIME-Version: 1.0
-Subject: Re: [Devel] Re: [PATCH] Add ability to print calltraces tighter on
- i386
-References: <46B9D08F.8080402@openvz.org> <p73zm12qc8a.fsf@bingen.suse.de>	<46B9DCAE.4010009@openvz.org> <200708081720.09034.ak@suse.de>
-In-Reply-To: <200708081720.09034.ak@suse.de>
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200708091154.34581.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Pavel Emelyanov <xemul@openvz.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, devel@openvz.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Andi Kleen wrote:
->>Not everyone likes frame buffer
+On Thursday 09 August 2007 03:42:54 Nick Piggin wrote:
+> On Wed, Aug 08, 2007 at 12:26:55PM +0200, Andi Kleen wrote:
+> > 
+> > >   *
+> > >   * (the type definitions are in asm/spinlock_types.h)
+> > >   */
+> > >  
+> > > +#if (NR_CPUS > 256)
+> > > +#error spinlock supports a maximum of 256 CPUs
+> > > +#endif
+> > > +
+> > >  static inline int __raw_spin_is_locked(raw_spinlock_t *lock)
+> > >  {
+> > > -	return *(volatile signed int *)(&(lock)->slock) <= 0;
+> > > +	int tmp = *(volatile signed int *)(&(lock)->slock);
+> > 
+> > Why is slock not volatile signed int in the first place? 
 > 
-> 
-> You don't need the frame buffer; cards typically have text mode
-> fonts upto 80x50. The node numbers vary, but you can find out yours
-> with vga=ask
-> 
-> 
->>but even with it any OOPs in  
->>network code which happens in softirq, io scheduler and nearby 
->>code that is called after passing through all the VFS hooks 
->>and many other examples produce long oopses.
->>
->>Oops-es with only the calltrace of ~50 lines do happen :)
-> 
-> 
-> Normally most of it bogus. I had hoped to address this with the dwarf2
-> unwinder, which tends to filter them out nicely,
-> but Linus unfortunately has developed an quite irrational aversion against it and 
-> it's not in.
+> Don't know really. Why does spin_is_locked need it to be volatile?
 
-Most - but not *all*.
-Actually I quite agree with Linus - unwinder is just a pain,
-which is the more unreliable then a plain call trace.
-Plain call trace has one advantage - it prints more then needed
-but it always print the required and clear info.
-unwinder goes totally mad when something serious happens like stack
-overflows/corruption or other bad thing. 2 my cents.
+I suppose in case a caller doesn't have a memory barrier
+(they should in theory, but might not). Without any barrier
+or volatile gcc might optimize it away.
 
-> But the problem is with bogus entries in there you have no guarantee
-> that the first of your call trace is any useful -- it might be all bogus.
-> So i don't really think your option makes much sense.
+The other accesses in spinlocks hopefully all have barriers.
 
-no. bogus entries don't make call trace irrelevant.
-And it is very easy to find relevant call trace entries in std output -
-call trace should always be correct from the top and from the bottom,
-all other entries are checked by eip following the calls.
+Ok anyways the patches look good.
 
-> Another way would be to not dump addresses and use multiple entries
-> per line again. I guess that would make more sense as an option.
-
-Thanks,
-Kirill
+-Andi
