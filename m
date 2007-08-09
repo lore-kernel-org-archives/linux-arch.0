@@ -1,37 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate2.de.ibm.com ([195.212.29.151]:62993 "EHLO
-	mtagate2.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S940661AbXHIOdL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Aug 2007 10:33:11 -0400
-Subject: Re: [PATCH 16/24] make atomic_read() behave consistently on s390
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <20070809140655.GA17731@shell.boston.redhat.com>
-References: <20070809140655.GA17731@shell.boston.redhat.com>
-Content-Type: text/plain
-Date: Thu, 09 Aug 2007 16:36:48 +0200
-Message-Id: <1186670208.9669.9.camel@localhost>
-Mime-Version: 1.0
+Received: from mx1.redhat.com ([66.187.233.31]:59988 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S937847AbXHIOad (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 10:30:33 -0400
+Message-ID: <46BB24CB.1040405@redhat.com>
+Date: Thu, 09 Aug 2007 10:29:31 -0400
+From: Chris Snook <csnook@redhat.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+References: <20070809131423.GA9927@shell.boston.redhat.com> <200708091441.28511.arnd@arndb.de>
+In-Reply-To: <200708091441.28511.arnd@arndb.de>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Chris Snook <csnook@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 2007-08-09 at 10:06 -0400, Chris Snook wrote:
-> From: Chris Snook <csnook@redhat.com>
+Arnd Bergmann wrote:
+> On Thursday 09 August 2007, Chris Snook wrote:
+>> This patchset makes the behavior of atomic_read uniform by removing the
+>> volatile keyword from all atomic_t and atomic64_t definitions that currently
+>> have it, and instead explicitly casts the variable as volatile in
+>> atomic_read().  This leaves little room for creative optimization by the
+>> compiler, and is in keeping with the principles behind "volatile considered
+>> harmful".
+>>
 > 
-> Make atomic[64]_read() volatile on s390, to ensure memory is actually read
-> each time.
+> Just an idea: since all architectures already include asm-generic/atomic.h,
+> why not move the definitions of atomic_t and atomic64_t, as well as anything
+> that does not involve architecture specific inline assembly into the generic
+> header?
 > 
-> Signed-off-by: Chris Snook <csnook@redhat.com>
+> 	Arnd <><
 
-Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+a) chicken and egg: asm-generic/atomic.h depends on definitions in asm/atomic.h
 
--- 
-blue skies,
-  Martin.
+If you can find a way to reshuffle the code and make it simpler, I personally am 
+all for it.  I'm skeptical that you'll get much to show for the effort.
 
-"Reality continues to ruin my life." - Calvin.
+b) The definitions aren't precisely identical between all architectures, so it 
+would be a mess of special cases, which gets us right back to where we are now.
 
-
+	-- Chris
