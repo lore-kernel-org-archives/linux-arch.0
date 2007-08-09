@@ -1,33 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:44930 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S966024AbXHIRAP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 13:00:15 -0400
-Message-ID: <46BB46B2.60808@redhat.com>
-Date: Thu, 09 Aug 2007 12:54:10 -0400
-From: Chris Snook <csnook@redhat.com>
+Received: from stout.engsoc.carleton.ca ([134.117.69.22]:54526 "EHLO
+	stout.engsoc.carleton.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966285AbXHIQpg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Aug 2007 12:45:36 -0400
+Date: Thu, 9 Aug 2007 12:45:34 -0400
+From: Kyle McMartin <kyle@parisc-linux.org>
+Subject: Re: [PATCH 14/24] make atomic_read() behave consistently on parisc
+Message-ID: <20070809164534.GC27558@fattire.cabal.ca>
+References: <20070809140154.GA17489@shell.boston.redhat.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
-References: <20070809134150.GA14890@shell.boston.redhat.com>
-In-Reply-To: <20070809134150.GA14890@shell.boston.redhat.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070809140154.GA17489@shell.boston.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
-Cc: netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Chris Snook <csnook@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Chris Snook wrote:
+On Thu, Aug 09, 2007 at 10:01:54AM -0400, Chris Snook wrote:
 > From: Chris Snook <csnook@redhat.com>
 > 
-> Make atomic_read() volatile on frv.  This ensures that busy-waiting
-> for an interrupt handler to change an atomic_t won't get compiled to an
-> infinite loop, consistent with SMP architectures.
+> Purify volatile use for atomic[64]_t on parisc.
+> 
+> Signed-off-by: Chris Snook <csnook@redhat.com>
+> 
 
-To head off the criticism, I admit this is an oversimplification, and true 
-busy-waiters should be using cpu_relax(), which contains a barrier.  As 
-discussed in recent threads, there are other cases which can be optimized by 
-removing the need for a barrier, and having behavior consistent with 
-architectures where the benefit is more profound is also valuable.
+Sure, why not.
 
-	-- Chris
+ACKed-by: Kyle McMartin <kyle@parisc-linux.org>
