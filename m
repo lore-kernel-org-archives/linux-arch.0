@@ -1,44 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59495 "EHLO gate.crashing.org"
+Received: from mx1.redhat.com ([66.187.233.31]:45343 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759107AbXHITZy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 15:25:54 -0400
-In-Reply-To: <46BB4B7B.4070007@redhat.com>
-References: <20070809132442.GA13042@shell.boston.redhat.com> <20070809143255.GA8424@linux.vnet.ibm.com> <46BB2A5A.5090006@redhat.com> <20070809150445.GB8424@linux.vnet.ibm.com> <46BB31A6.4080507@redhat.com> <20070809161024.GC8424@linux.vnet.ibm.com> <46BB4281.7010803@redhat.com> <20070809165853.GD8424@linux.vnet.ibm.com> <46BB4B7B.4070007@redhat.com>
-Mime-Version: 1.0 (Apple Message framework v623)
-Content-Type: text/plain; charset=US-ASCII; format=flowed
-Message-Id: <b6f6588ccebe3e91a03fb2f76febbe34@kernel.crashing.org>
-Content-Transfer-Encoding: 7bit
-From: Segher Boessenkool <segher@kernel.crashing.org>
+	id S1751145AbXHITbu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 15:31:50 -0400
+Message-ID: <46BB69F8.5000502@redhat.com>
+Date: Thu, 09 Aug 2007 15:24:40 -0400
+From: Chris Snook <csnook@redhat.com>
+MIME-Version: 1.0
 Subject: Re: [PATCH 1/24] make atomic_read() behave consistently on alpha
-Date: Thu, 9 Aug 2007 21:17:12 +0200
+References: <20070809143255.GA8424@linux.vnet.ibm.com> <46BB2A5A.5090006@redhat.com> <20070809150445.GB8424@linux.vnet.ibm.com> <46BB31A6.4080507@redhat.com> <20070809161024.GC8424@linux.vnet.ibm.com> <46BB4281.7010803@redhat.com> <20070809165853.GD8424@linux.vnet.ibm.com> <46BB4B7B.4070007@redhat.com> <20070809174150.GE8424@linux.vnet.ibm.com> <46BB5960.9040009@redhat.com> <20070809184531.GH8424@linux.vnet.ibm.com>
+In-Reply-To: <20070809184531.GH8424@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Chris Snook <csnook@redhat.com>
-Cc: wjiang@resilience.com, rpjday@mindspring.com, wensong@linux-vs.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, ak@suse.de, netdev@vger.kernel.org, paulmck@linux.vnet.ibm.com, horms@verge.net.au, akpm@linux-foundation.org, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, torvalds@linux-foundation.org, schwidefsky@de.ibm.com, davem@davemloft.net, cfriesen@nortel.com, zlynx@acm.org
+To: paulmck@linux.vnet.ibm.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-> If you need to guarantee that the value is written to memory at a 
-> particular time in your execution sequence, you either have to read it 
-> from memory to force the compiler to store it first
+Paul E. McKenney wrote:
+> On Thu, Aug 09, 2007 at 02:13:52PM -0400, Chris Snook wrote:
+>> Paul E. McKenney wrote:
+>>> On Thu, Aug 09, 2007 at 01:14:35PM -0400, Chris Snook wrote:
+>>>>                                If you're depending on volatile writes 
+>>>> being visible to other CPUs, you're screwed either way, because the CPU 
+>>>> can hold that data in cache as long as it wants before it writes it to 
+>>>> memory.  When this finally does happen, it will happen atomically, which 
+>>>> is all that atomic_set guarantees.  If you need to guarantee that the 
+>>>> value is written to memory at a particular time in your execution 
+>>>> sequence, you either have to read it from memory to force the compiler to 
+>>>> store it first (and a volatile cast in atomic_read will suffice for this) 
+>>>> or you have to use LOCK_PREFIX instructions which will invalidate remote 
+>>>> cache lines containing the same variable.  This patch doesn't change 
+>>>> either of these cases.
+>>> The case that it -can- change is interactions with interrupt handlers.
+>>> And NMI/SMI handlers, for that matter.
+>> You have a point here, but only if you can guarantee that the interrupt 
+>> handler is running on a processor sharing the cache that has the 
+>> not-yet-written volatile value.  That implies a strictly non-SMP 
+>> architecture.  At the moment, none of those have volatile in their 
+>> declaration of atomic_t, so this patch can't break any of them.
+> 
+> This can also happen when using per-CPU variables.  And there are a
+> number of per-CPU variables that are either atomic themselves or are
+> structures containing atomic fields.
 
-That isn't enough.  The CPU will happily read the datum back from
-its own store queue before it ever hit memory or cache or any
-external bus.  If you need the value to be globally visible before
-another store, you use wmb(); if you need it before some read,
-you use mb().
+Accessing per-CPU variables in this fashion reliably already requires a suitable 
+smp/non-smp read/write memory barrier.  I maintain that if we break anything 
+with this change, it was really already broken, if less obviously.  Can you give 
+a real or synthetic example of legitimate code that could break?
 
-These concepts are completely separate from both atomicity and
-volatility (which aren't the same themselves).
-
-> No, but I can reason about it and be confident that this won't break 
-> anything that isn't already broken.  At worst, this patch will make 
-> any existing subtly incorrect uses of atomic_t much more obvious and 
-> easier to track down.
-
-PR22278, PR29753 -- both P2 bugs, and both about basic *(volatile *)
-usage.  Yeah, it's definitely not problematic, esp. not if you want
-to support older compilers than 4.2 too.</sarcasm>
-
-
-Segher
-
+	-- Chris
