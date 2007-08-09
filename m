@@ -1,46 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:59988 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:41399 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S937847AbXHIOad (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Aug 2007 10:30:33 -0400
-Message-ID: <46BB24CB.1040405@redhat.com>
-Date: Thu, 09 Aug 2007 10:29:31 -0400
+	id S940208AbXHIOyI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Aug 2007 10:54:08 -0400
+Message-ID: <46BB2A5A.5090006@redhat.com>
+Date: Thu, 09 Aug 2007 10:53:14 -0400
 From: Chris Snook <csnook@redhat.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-References: <20070809131423.GA9927@shell.boston.redhat.com> <200708091441.28511.arnd@arndb.de>
-In-Reply-To: <200708091441.28511.arnd@arndb.de>
+Subject: Re: [PATCH 1/24] make atomic_read() behave consistently on alpha
+References: <20070809132442.GA13042@shell.boston.redhat.com> <20070809143255.GA8424@linux.vnet.ibm.com>
+In-Reply-To: <20070809143255.GA8424@linux.vnet.ibm.com>
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
+To: paulmck@linux.vnet.ibm.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Arnd Bergmann wrote:
-> On Thursday 09 August 2007, Chris Snook wrote:
->> This patchset makes the behavior of atomic_read uniform by removing the
->> volatile keyword from all atomic_t and atomic64_t definitions that currently
->> have it, and instead explicitly casts the variable as volatile in
->> atomic_read().  This leaves little room for creative optimization by the
->> compiler, and is in keeping with the principles behind "volatile considered
->> harmful".
->>
-> 
-> Just an idea: since all architectures already include asm-generic/atomic.h,
-> why not move the definitions of atomic_t and atomic64_t, as well as anything
-> that does not involve architecture specific inline assembly into the generic
-> header?
-> 
-> 	Arnd <><
+Paul E. McKenney wrote:
+> Why not the same access-once semantics for atomic_set() as
+> for atomic_read()?  As this patch stands, it might introduce
+> architecture-specific compiler-induced bugs due to the fact that
+> atomic_set() used to imply volatile behavior but no longer does.
 
-a) chicken and egg: asm-generic/atomic.h depends on definitions in asm/atomic.h
+When we make the volatile cast in atomic_read(), we're casting an rvalue to 
+volatile.  This unambiguously tells the compiler that we want to re-load that 
+register from memory.  What's "volatile behavior" for an lvalue?  A write to an 
+lvalue already implies an eventual write to memory, so this would be a no-op. 
+Maybe you'll write to the register a few times before flushing it to memory, but 
+it will happen eventually.  With an rvalue, there's no guarantee that it will 
+*ever* load from memory, which is what volatile fixes.
 
-If you can find a way to reshuffle the code and make it simpler, I personally am 
-all for it.  I'm skeptical that you'll get much to show for the effort.
-
-b) The definitions aren't precisely identical between all architectures, so it 
-would be a mess of special cases, which gets us right back to where we are now.
+I think what you have in mind is LOCK_PREFIX behavior, which is not the purpose 
+of atomic_set.  We use LOCK_PREFIX in the inline assembly for the atomic_* 
+operations that read, modify, and write a value, only because it is necessary to 
+perform that entire transaction atomically.
 
 	-- Chris
