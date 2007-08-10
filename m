@@ -1,48 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hellhawk.shadowen.org ([80.68.90.175]:1600 "EHLO
+Received: from hellhawk.shadowen.org ([80.68.90.175]:1613 "EHLO
 	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757339AbXHJOlF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Aug 2007 10:41:05 -0400
+	with ESMTP id S1760647AbXHJOlY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Aug 2007 10:41:24 -0400
 From: Andy Whitcroft <apw@shadowen.org>
-Subject: [PATCH 0/5] vmemmap updates to V7
-Message-ID: <exportbomb.1186756801@pinky>
-Date: Fri, 10 Aug 2007 15:40:01 +0100
+Subject: [PATCH 2/5] vmemmap x86_64: convert to new helper based initialisation
+References: <exportbomb.1186756801@pinky>
+Message-Id: <E1IJVfO-0004un-Cw@localhost.localdomain>
+Date: Fri, 10 Aug 2007 15:40:42 +0100
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>
 Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Mel Gorman <mel@csn.ul.ie>, Andy Whitcroft <apw@shadowen.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Following this email are a five patches which represent the second
-batch of feedback on version V5.  These represent a significant
-simplification in the configuration options.  There is still the
-issue of the contents of memory_model.h to deal with, will look at
-that next.
 
-The thrust of this set of changes is to standardise the architecture
-interface to vmemmap at the vmemmap_populate() function.  All
-architectures implementing this sparsemem variant must implement
-this function.  As part of this sparsemem offers several vmemmap
-related helper functions to help initialise PUD, PGD, PMD and
-PTE pages.  It also offers a standard basepage initialiser.
+Convert over to the new helper initialialisation and Kconfig options.
 
-vmemmap-generify-initialisation-via-helpers
-  conversion of the main infrastructure over to a helper based
-  system.  General helpers for initialising pte pages are supplied,
-  plus a general helper for architectures using base pages.
-
-vmemmap-x86_64-convert-to-new-helper-based-initialisation
-vmemmap-ppc64-convert-to-new-config-options
-vmemmap-sparc64-convert-to-new-config-options
-vmemmap-ia64-convert-to-new-helper-based-initialisation
-  conversion of each of the supported architectures to the new helper
-  system.  These remain broken out in the expectation that they would
-  merge with the main architecture implementations in -mm.
-
-All against 2.6.23-rc2-mm2, in addition to the patches already there.
-Again, they are split by architecture as I am assuming they will
-slot into the current vmemmap stack before merging up.  They are
-not bisectable otherwise.
-
-Andrew please consider for -mm.
-
--apw
+Signed-off-by: Andy Whitcroft <apw@shadowen.org>
+---
+ arch/x86_64/Kconfig   |    9 +--------
+ arch/x86_64/mm/init.c |   26 ++++++++++++++++++++------
+ 2 files changed, 21 insertions(+), 14 deletions(-)
+diff --git a/arch/x86_64/Kconfig b/arch/x86_64/Kconfig
+index 9ad7ab4..79a3e3c 100644
+--- a/arch/x86_64/Kconfig
++++ b/arch/x86_64/Kconfig
+@@ -405,14 +405,7 @@ config ARCH_DISCONTIGMEM_DEFAULT
+ config ARCH_SPARSEMEM_ENABLE
+ 	def_bool y
+ 	depends on (NUMA || EXPERIMENTAL)
+-
+-config SPARSEMEM_VMEMMAP
+-	def_bool y
+-	depends on SPARSEMEM
+-
+-config ARCH_POPULATES_SPARSEMEM_VMEMMAP_PMD
+-	def_bool y
+-	depends on SPARSEMEM_VMEMMAP
++	select SPARSEMEM_VMEMMAP_ENABLE
+ 
+ config ARCH_MEMORY_PROBE
+ 	def_bool y
+diff --git a/arch/x86_64/mm/init.c b/arch/x86_64/mm/init.c
+index 5d1ed03..5ac3d76 100644
+--- a/arch/x86_64/mm/init.c
++++ b/arch/x86_64/mm/init.c
+@@ -784,18 +784,31 @@ const char *arch_vma_name(struct vm_area_struct *vma)
+ 	return NULL;
+ }
+ 
+-#ifdef CONFIG_ARCH_POPULATES_SPARSEMEM_VMEMMAP_PMD
++#ifdef CONFIG_SPARSEMEM_VMEMMAP
+ /*
+  * Initialise the sparsemem vmemmap using huge-pages at the PMD level.
+  */
+-int __meminit vmemmap_populate_pmd(pud_t *pud, unsigned long addr,
+-						unsigned long end, int node)
++int __meminit vmemmap_populate(struct page *start_page,
++						unsigned long size, int node)
+ {
+-	pmd_t *pmd;
++	unsigned long addr = (unsigned long)start_page;
++	unsigned long end = (unsigned long)(start_page + size);
+ 	unsigned long next;
++	pgd_t *pgd;
++	pud_t *pud;
++	pmd_t *pmd;
+ 
+-	for (pmd = pmd_offset(pud, addr); addr < end; pmd++, addr = next) {
++	for (; addr < end; addr = next) {
+ 		next = pmd_addr_end(addr, end);
++
++		pgd = vmemmap_pgd_populate(addr, node);
++		if (!pgd)
++			return -ENOMEM;
++		pud = vmemmap_pud_populate(pgd, addr, node);
++		if (!pud)
++			return -ENOMEM;
++
++		pmd = pmd_offset(pud, addr);
+ 		if (pmd_none(*pmd)) {
+ 			pte_t entry;
+ 			void *p = vmemmap_alloc_block(PMD_SIZE, node);
+@@ -809,8 +822,9 @@ int __meminit vmemmap_populate_pmd(pud_t *pud, unsigned long addr,
+ 			printk(KERN_DEBUG " [%lx-%lx] PMD ->%p on node %d\n",
+ 				addr, addr + PMD_SIZE - 1, p, node);
+ 		} else
+-			vmemmap_verify((pte_t *)pmd, node, next, end);
++			vmemmap_verify((pte_t *)pmd, node, addr, next);
+ 	}
++
+ 	return 0;
+ }
+ #endif
