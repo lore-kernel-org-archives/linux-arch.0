@@ -1,26 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:43749 "EHLO
-	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752014AbXHJLFL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Aug 2007 07:05:11 -0400
-Date: Thu, 9 Aug 2007 21:09:27 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH 13/24] make atomic_read() behave consistently on mips
-Message-ID: <20070809200927.GA17855@linux-mips.org>
-References: <20070809140004.GA17112@shell.boston.redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070809140004.GA17112@shell.boston.redhat.com>
+Received: from hellhawk.shadowen.org ([80.68.90.175]:1600 "EHLO
+	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757339AbXHJOlF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Aug 2007 10:41:05 -0400
+From: Andy Whitcroft <apw@shadowen.org>
+Subject: [PATCH 0/5] vmemmap updates to V7
+Message-ID: <exportbomb.1186756801@pinky>
+Date: Fri, 10 Aug 2007 15:40:01 +0100
 Sender: linux-arch-owner@vger.kernel.org
-To: Chris Snook <csnook@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Mel Gorman <mel@csn.ul.ie>, Andy Whitcroft <apw@shadowen.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Aug 09, 2007 at 10:00:04AM -0400, Chris Snook wrote:
+Following this email are a five patches which represent the second
+batch of feedback on version V5.  These represent a significant
+simplification in the configuration options.  There is still the
+issue of the contents of memory_model.h to deal with, will look at
+that next.
 
-> Purify volatile use for atomic[64]_t on mips.
-> 
-> Signed-off-by: Chris Snook <csnook@redhat.com>
+The thrust of this set of changes is to standardise the architecture
+interface to vmemmap at the vmemmap_populate() function.  All
+architectures implementing this sparsemem variant must implement
+this function.  As part of this sparsemem offers several vmemmap
+related helper functions to help initialise PUD, PGD, PMD and
+PTE pages.  It also offers a standard basepage initialiser.
 
-Acked-by: Ralf Baechle <ralf@linux-mips.org>
+vmemmap-generify-initialisation-via-helpers
+  conversion of the main infrastructure over to a helper based
+  system.  General helpers for initialising pte pages are supplied,
+  plus a general helper for architectures using base pages.
+
+vmemmap-x86_64-convert-to-new-helper-based-initialisation
+vmemmap-ppc64-convert-to-new-config-options
+vmemmap-sparc64-convert-to-new-config-options
+vmemmap-ia64-convert-to-new-helper-based-initialisation
+  conversion of each of the supported architectures to the new helper
+  system.  These remain broken out in the expectation that they would
+  merge with the main architecture implementations in -mm.
+
+All against 2.6.23-rc2-mm2, in addition to the patches already there.
+Again, they are split by architecture as I am assuming they will
+slot into the current vmemmap stack before merging up.  They are
+not bisectable otherwise.
+
+Andrew please consider for -mm.
+
+-apw
