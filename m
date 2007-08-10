@@ -1,43 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e2.ny.us.ibm.com ([32.97.182.142]:52731 "EHLO e2.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754786AbXHJPCR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Aug 2007 11:02:17 -0400
-Date: Fri, 10 Aug 2007 08:02:13 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 1/24] make atomic_read() behave consistently on alpha
-Message-ID: <20070810150213.GB8511@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <E1IJPkg-0000x0-00@gondolin.me.apana.org.au> <200708101108.20897.ak@suse.de>
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:38077 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1755831AbXHJR4Z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Aug 2007 13:56:25 -0400
+Date: Fri, 10 Aug 2007 10:56:23 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH 1/5] vmemmap: generify initialisation via helpers
+In-Reply-To: <E1IJVf4-0004oZ-6G@localhost.localdomain>
+Message-ID: <Pine.LNX.4.64.0708101055360.13640@schroedinger.engr.sgi.com>
+References: <exportbomb.1186756801@pinky> <E1IJVf4-0004oZ-6G@localhost.localdomain>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <200708101108.20897.ak@suse.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, csnook@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Andy Whitcroft <apw@shadowen.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Aug 10, 2007 at 11:08:20AM +0200, Andi Kleen wrote:
-> On Friday 10 August 2007 10:21:46 Herbert Xu wrote:
-> > Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> > >
-> > > The compiler is within its rights to read a 32-bit quantity 16 bits at
-> > > at time, even on a 32-bit machine.  I would be glad to help pummel any
-> > > compiler writer that pulls such a dirty trick, but the C standard really
-> > > does permit this.
-> > 
-> > Code all over the kernel assumes that 32-bit reads/writes
-> > are atomic so while such a compiler might be legal it certainly
-> > can't compile Linux.
-> 
-> Yes, the kernel requirements are much stricter than ISO-C. And besides
-> it is a heavy user of C extensions anyways. On the other hand some of the
-> C99 extensions are not allowed. And then there is sparse, which enforces
-> a language which sometimes is quite far from standard C. You could say it is 
-> written in Linux-C, not ISO C. 
+That exports a series of new function. The function are always compiled in 
+even if not needed right?
 
-Understood.  My question is "why do we want the semantics of atomic_read()
-and atomic_set() to differ?"
+Acked-by: Christoph Lameter <clameter@sgi.com>
 
-						Thanx, Paul
+
