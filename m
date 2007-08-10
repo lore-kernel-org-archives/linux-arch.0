@@ -1,28 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:55598 "EHLO mail.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753886AbXHJXwW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Aug 2007 19:52:22 -0400
-Date: Sat, 11 Aug 2007 01:52:07 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [patch 47/59] x86: optimize page faults like all other achitectures and kill notifier cruft
-Message-ID: <20070810235207.GA28512@lst.de>
-References: <200708102200.l7AM0CnU011952@imap1.linux-foundation.org> <200708110117.34171.ak@suse.de>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:54397
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1754640AbXHJX7M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Aug 2007 19:59:12 -0400
+Date: Fri, 10 Aug 2007 16:59:13 -0700 (PDT)
+Message-Id: <20070810.165913.58962051.davem@davemloft.net>
+Subject: Re: [patch 47/59] x86: optimize page faults like all other
+ achitectures and kill notifier cruft
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20070810235207.GA28512@lst.de>
+References: <200708102200.l7AM0CnU011952@imap1.linux-foundation.org>
+	<200708110117.34171.ak@suse.de>
+	<20070810235207.GA28512@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <200708110117.34171.ak@suse.de>
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andi Kleen <ak@suse.de>
-Cc: akpm@linux-foundation.org, hch@lst.de, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org, prasanna@in.ibm.com
+To: hch@lst.de
+Cc: ak@suse.de, akpm@linux-foundation.org, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org, prasanna@in.ibm.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Sorry, but this is not your call Andi.  x86 is updated to what every
-other architecture does and is 100% more sensible.  These stupid hooks
-aren't used either by the debugger on track into mainline (kgdb),
-already in mainline (xmon) or even just commonly used (kdb), if there's
-any use it's the novell piece of junk dbeugger that no one uses at
-all.  Not to fortget our policy not to add exports for out of tree junk.
+From: Christoph Hellwig <hch@lst.de>
+Date: Sat, 11 Aug 2007 01:52:07 +0200
 
-I'm not going to let all this crappy and uneeded code rot in kprobes.c
-just because you disagree with everyone else.
+> I'm not going to let all this crappy and uneeded code rot in kprobes.c
+> just because you disagree with everyone else.
+
+FWIW I totally agree with Christoph on this.
