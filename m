@@ -1,40 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.suse.de ([195.135.220.2]:39811 "EHLO mx1.suse.de"
+Received: from mga09.intel.com ([134.134.136.24]:34079 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753399AbXHJXUG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Aug 2007 19:20:06 -0400
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [patch 47/59] x86: optimize page faults like all other achitectures and kill notifier cruft
-Date: Sat, 11 Aug 2007 01:17:33 +0200
-References: <200708102200.l7AM0CnU011952@imap1.linux-foundation.org>
-In-Reply-To: <200708102200.l7AM0CnU011952@imap1.linux-foundation.org>
+	id S933294AbXHJXco convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Aug 2007 19:32:44 -0400
+Content-class: urn:content-classes:message
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200708110117.34171.ak@suse.de>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: RE: [PATCH 9/24] make atomic_read() behave consistently on ia64
+Date: Fri, 10 Aug 2007 16:32:42 -0700
+Message-ID: <617E1C2C70743745A92448908E030B2A0224C94A@scsmsx411.amr.corp.intel.com>
+References: <20070809135107.GA15985@shell.boston.redhat.com><617E1C2C70743745A92448908E030B2A02213B3C@scsmsx411.amr.corp.intel.com><46BCC1AF.5050204@redhat.com><617E1C2C70743745A92448908E030B2A0224C777@scsmsx411.amr.corp.intel.com> <jewsw3oyl8.fsf@sykes.suse.de> <617E1C2C70743745A92448908E030B2A0224C88B@scsmsx411.amr.corp.intel.com> <46BCE9F8.4060009@redhat.com> 
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: hch@lst.de, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org, prasanna@in.ibm.com
+To: "Luck, Tony" <tony.luck@intel.com>, Chris Snook <csnook@redhat.com>
+Cc: Andreas Schwab <schwab@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Saturday 11 August 2007 00:00:12 akpm@linux-foundation.org wrote:
-> From: Christoph Hellwig <hch@lst.de>
-> 
-> x86(-64) are the last architectures still using the page fault notifier
-> cruft for the kprobes page fault hook.  This patch converts them to the
-> proper direct calls, and removes the now unused pagefault notifier bits
-> aswell as the cruft in kprobes.c that was related to this mess.
-> 
-> I know Andi didn't really like this, but all other architecture maintainers
-> agreed the direct calls are much better and besides the obvious cruft
-> removal a common way of dealing with kprobes across architectures is
-> important aswell.
+> Here are the functions in which they occur in the object file. You
+> may have to chase down some inlining to find the function that
+> actually uses atomic_*().
 
-This means the debuggers just have to readd it. Not merged.
+Ignore this ... Andreas' patch was only two lines so I
+thought I'd "save time" by just hand-editing the source over
+on my build machine.  I managed to goof that by editing the
+wrong  function for one of the cases. :-(
 
-If you worry about cycles notifiers could be probably optimized a bit
-for the nothing registered case.
+New result.  With Andreas's patch correctly applied, the generated
+vmlinux is identical with/without your patch.
 
--Andi
+-Tony
