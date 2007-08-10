@@ -1,55 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hellhawk.shadowen.org ([80.68.90.175]:1635 "EHLO
-	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1765374AbXHJOmZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Aug 2007 10:42:25 -0400
-From: Andy Whitcroft <apw@shadowen.org>
-Subject: [PATCH 5/5] vmemmap ia64: convert to new helper based initialisation
-References: <exportbomb.1186756801@pinky>
-Message-Id: <E1IJVgN-0005Am-4m@localhost.localdomain>
-Date: Fri, 10 Aug 2007 15:41:43 +0100
+Received: from e2.ny.us.ibm.com ([32.97.182.142]:52731 "EHLO e2.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754786AbXHJPCR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Aug 2007 11:02:17 -0400
+Date: Fri, 10 Aug 2007 08:02:13 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 1/24] make atomic_read() behave consistently on alpha
+Message-ID: <20070810150213.GB8511@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <E1IJPkg-0000x0-00@gondolin.me.apana.org.au> <200708101108.20897.ak@suse.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <200708101108.20897.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Christoph Lameter <clameter@sgi.com>, Mel Gorman <mel@csn.ul.ie>, Andy Whitcroft <apw@shadowen.org>
+To: Andi Kleen <ak@suse.de>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, csnook@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
+On Fri, Aug 10, 2007 at 11:08:20AM +0200, Andi Kleen wrote:
+> On Friday 10 August 2007 10:21:46 Herbert Xu wrote:
+> > Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+> > >
+> > > The compiler is within its rights to read a 32-bit quantity 16 bits at
+> > > at time, even on a 32-bit machine.  I would be glad to help pummel any
+> > > compiler writer that pulls such a dirty trick, but the C standard really
+> > > does permit this.
+> > 
+> > Code all over the kernel assumes that 32-bit reads/writes
+> > are atomic so while such a compiler might be legal it certainly
+> > can't compile Linux.
+> 
+> Yes, the kernel requirements are much stricter than ISO-C. And besides
+> it is a heavy user of C extensions anyways. On the other hand some of the
+> C99 extensions are not allowed. And then there is sparse, which enforces
+> a language which sometimes is quite far from standard C. You could say it is 
+> written in Linux-C, not ISO C. 
 
-Convert over to the new helper initialialisation and Kconfig options.
+Understood.  My question is "why do we want the semantics of atomic_read()
+and atomic_set() to differ?"
 
-Signed-off-by: Andy Whitcroft <apw@shadowen.org>
----
- arch/ia64/Kconfig        |    5 +----
- arch/ia64/mm/discontig.c |    8 ++++++++
- 2 files changed, 9 insertions(+), 4 deletions(-)
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 92d2c2d..66fafbd 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -363,10 +363,7 @@ config ARCH_FLATMEM_ENABLE
- config ARCH_SPARSEMEM_ENABLE
- 	def_bool y
- 	depends on ARCH_DISCONTIGMEM_ENABLE
--
--config SPARSEMEM_VMEMMAP
--	def_bool y
--	depends on SPARSEMEM
-+	select SPARSEMEM_VMEMMAP_ENABLE
- 
- config ARCH_DISCONTIGMEM_DEFAULT
- 	def_bool y if (IA64_SGI_SN2 || IA64_GENERIC || IA64_HP_ZX1 || IA64_HP_ZX1_SWIOTLB)
-diff --git a/arch/ia64/mm/discontig.c b/arch/ia64/mm/discontig.c
-index 8a5c1c9..05b374c 100644
---- a/arch/ia64/mm/discontig.c
-+++ b/arch/ia64/mm/discontig.c
-@@ -715,3 +715,11 @@ void arch_refresh_nodedata(int update_node, pg_data_t *update_pgdat)
- 	scatter_node_data();
- }
- #endif
-+
-+#ifdef CONFIG_SPARSEMEM_VMEMMAP
-+int __meminit vmemmap_populate(struct page *start_page,
-+						unsigned long size, int node)
-+{
-+	return vmemmap_populate_basepages(start_page, size, node);
-+}
-+#endif
+						Thanx, Paul
