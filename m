@@ -1,58 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from turing-police.cc.vt.edu ([128.173.14.107]:45759 "EHLO
-	turing-police.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750763AbXHKEkU (ORCPT
-	<RFC822;linux-arch@vger.kernel.org>); Sat, 11 Aug 2007 00:40:20 -0400
-Subject: Re: [PATCH 1/24] make atomic_read() behave consistently on alpha
-In-Reply-To: Your message of "Sat, 11 Aug 2007 02:38:40 +0200."
-             <ef7e94b08a6515d33039d187e04db5db@kernel.crashing.org>
-From: Valdis.Kletnieks@vt.edu
-References: <E1IJPkg-0000x0-00@gondolin.me.apana.org.au> <442f95ba19f8622ce04cf0334f34be11@kernel.crashing.org> <20070811000029.GA12779@gondor.apana.org.au>
-            <ef7e94b08a6515d33039d187e04db5db@kernel.crashing.org>
-Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1186807115_3018P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
-Content-Transfer-Encoding: 7bit
-Date: Sat, 11 Aug 2007 00:38:35 -0400
-Message-ID: <7943.1186807115@turing-police.cc.vt.edu>
+Received: from mx1.redhat.com ([66.187.233.31]:55507 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754699AbXHKIsm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 11 Aug 2007 04:48:42 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <46BCC26B.6080600@redhat.com>
+References: <46BCC26B.6080600@redhat.com> <46BB46B2.60808@redhat.com> <20070809134150.GA14890@shell.boston.redhat.com> <2708.1186737826@redhat.com>
+Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
+Date: Sat, 11 Aug 2007 09:47:51 +0100
+Message-ID: <7680.1186822071@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, paulmck@linux.vnet.ibm.com, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, csnook@redhat.com, rpjday@mindspring.com, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, zlynx@acm.org, schwidefsky@de.ibm.com, davem@davemloft.net, wensong@linux-vs.org, wjiang@resilience.com
+To: Chris Snook <csnook@redhat.com>
+Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
---==_Exmh_1186807115_3018P
-Content-Type: text/plain; charset=us-ascii
+Chris Snook <csnook@redhat.com> wrote:
 
-On Sat, 11 Aug 2007 02:38:40 +0200, Segher Boessenkool said:
-> >> That means GCC cannot compile Linux; it already optimises
-> >> some accesses to scalars to smaller accesses when it knows
-> >> it is allowed to.  Not often though, since it hardly ever
-> >> helps in the cost model it employs.
-> >
-> > Please give an example code snippet + gcc version + arch
-> > to back this up.
-> 
-> 	unsigned char f(unsigned long *p)
-> 	{
-> 	        return *p & 1;
-> 	}
+> cpu_relax() contains a barrier, so it should do the right thing.  For non-smp
+> architectures, I'm concerned about interacting with interrupt handlers.  Some
+> drivers do use atomic_* operations.
 
-Not really valid, because it's still able to do one atomic access to
-compute the result.
+I'm not sure that actually answers my question.  Why not smp_rmb()?
 
-Now, if you had found an example where it converts a 32-bit atomic access into
-2 separate 16-bit accesses that weren't atomic as a whole....
-
---==_Exmh_1186807115_3018P
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.7 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
-
-iD8DBQFGvT1LcC3lWbTT17ARAmccAKCRd2ZxCdpo0ruAOJZXkpds4qazcwCff1OA
-WRSvt/dpaznIWvvdf7+Q/1o=
-=uesa
------END PGP SIGNATURE-----
-
---==_Exmh_1186807115_3018P--
+David
