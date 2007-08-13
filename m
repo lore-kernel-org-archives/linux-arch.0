@@ -1,41 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:33608 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S967818AbXHMGuh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Aug 2007 02:50:37 -0400
-Message-ID: <46BFFDBD.6080804@redhat.com>
-Date: Mon, 13 Aug 2007 02:44:13 -0400
-From: Chris Snook <csnook@redhat.com>
+Received: from adicia.telenet-ops.be ([195.130.132.56]:57289 "EHLO
+	adicia.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S942348AbXHMHkZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Aug 2007 03:40:25 -0400
+Date: Mon, 13 Aug 2007 09:39:55 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 9/24] make atomic_read() behave consistently on ia64
+In-Reply-To: <46BFFA71.4080601@redhat.com>
+Message-ID: <Pine.LNX.4.64.0708130939470.16526@anakin>
+References: <20070809135107.GA15985@shell.boston.redhat.com>
+ <617E1C2C70743745A92448908E030B2A02213B3C@scsmsx411.amr.corp.intel.com>
+ <46BCC1AF.5050204@redhat.com> <617E1C2C70743745A92448908E030B2A0224C777@scsmsx411.amr.corp.intel.com>
+ <jewsw3oyl8.fsf@sykes.suse.de> <617E1C2C70743745A92448908E030B2A0224C88B@scsmsx411.amr.corp.intel.com>
+ <46BCE9F8.4060009@redhat.com> <617E1C2C70743745A92448908E030B2A0224C8D7@scsmsx411.amr.corp.intel.com>
+ <alpine.LFD.0.999.0708101607130.30176@woody.linux-foundation.org>
+ <46BCF19E.5000702@redhat.com> <18109.1084.917429.585224@cargo.ozlabs.ibm.com>
+ <46BFFA71.4080601@redhat.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
-References: <46BCC26B.6080600@redhat.com> <46BB46B2.60808@redhat.com> <20070809134150.GA14890@shell.boston.redhat.com> <2708.1186737826@redhat.com> <7680.1186822071@redhat.com>
-In-Reply-To: <7680.1186822071@redhat.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Chris Snook <csnook@redhat.com>
+Cc: Paul Mackerras <paulus@samba.org>, Linus Torvalds <torvalds@linux-foundation.org>, "Luck, Tony" <tony.luck@intel.com>, Andreas Schwab <schwab@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-David Howells wrote:
-> Chris Snook <csnook@redhat.com> wrote:
+On Mon, 13 Aug 2007, Chris Snook wrote:
+> Paul Mackerras wrote:
+> > Chris Snook writes:
+> > > I'll do this for the whole patchset.  Stay tuned for the resubmit.
+> > 
+> > Could you incorporate Segher's patch to turn atomic_{read,set} into
+> > asm on powerpc?  Segher claims that using asm is really the only
+> > reliable way to ensure that gcc does what we want, and he seems to
+> > have a point.
+> > 
+> > Paul.
 > 
->> cpu_relax() contains a barrier, so it should do the right thing.  For non-smp
->> architectures, I'm concerned about interacting with interrupt handlers.  Some
->> drivers do use atomic_* operations.
-> 
-> I'm not sure that actually answers my question.  Why not smp_rmb()?
-> 
-> David
+> I haven't seen a patch yet.  I'm going to resubmit with inline volatile-cast
+> atomic[64]_[read|set] on all architectures as a reference point, and if anyone
+> wants to go and implement some of them in assembly, that's between them and
+> the relevant arch maintainers.  I have no problem with (someone else) doing it
+> in assembly.  I just don't think it's necessary and won't let it hold up the
+> effort to get consistent behavior on all architectures.
 
-I would assume because we want to waste time efficiently even on non-smp 
-architectures, rather than frying the CPU or draining the battery.  Certain 
-looping execution patterns can cause the CPU to operate above thermal design 
-power.  I have fans on my workstation that only ever come on when running 
-LINPACK, and that's generally memory bandwidth-bound.  Just imagine what happens 
-when you're executing the same few non-serializing instructions in a tight loop 
-without ever stalling on memory fetches, or being scheduled out.
+http://lkml.org/lkml/2007/8/10/470
 
-If there's another reason, I'd like to hear it too, because I'm just guessing here.
+Gr{oetje,eeting}s,
 
-	-- Chris
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
