@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:53041 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:53404 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S968133AbXHMLft (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Aug 2007 07:35:49 -0400
-Date: Mon, 13 Aug 2007 07:34:41 -0400
+	id S938691AbXHMLgd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Aug 2007 07:36:33 -0400
+Date: Mon, 13 Aug 2007 07:36:19 -0400
 From: Chris Snook <csnook@redhat.com>
-Subject: [PATCH 17/23] make atomic_read() and atomic_set() behavior consistent on sh64
-Message-ID: <20070813113441.GQ24018@shell.boston.redhat.com>
+Subject: [PATCH 18/23] make atomic_read() and atomic_set() behavior consistent on sh
+Message-ID: <20070813113619.GR24018@shell.boston.redhat.com>
 References: <46C03885.7000109@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -19,13 +19,13 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Chris Snook <csnook@redhat.com>
 
-Use volatile consistently in atomic.h on sh64.
+Use volatile consistently in atomic.h on sh.
 
 Signed-off-by: Chris Snook <csnook@redhat.com>
 
---- linux-2.6.23-rc3-orig/include/asm-sh64/atomic.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.23-rc3/include/asm-sh64/atomic.h	2007-08-13 06:08:37.000000000 -0400
-@@ -19,12 +19,19 @@
+--- linux-2.6.23-rc3-orig/include/asm-sh/atomic.h	2007-07-08 19:32:17.000000000 -0400
++++ linux-2.6.23-rc3/include/asm-sh/atomic.h	2007-08-13 06:07:16.000000000 -0400
+@@ -7,12 +7,19 @@
   *
   */
  
@@ -46,5 +46,5 @@ Signed-off-by: Chris Snook <csnook@redhat.com>
 +        *(volatile int *)&v->counter = i;
 +}
  
+ #include <linux/compiler.h>
  #include <asm/system.h>
- 
