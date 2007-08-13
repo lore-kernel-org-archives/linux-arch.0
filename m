@@ -1,49 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e4.ny.us.ibm.com ([32.97.182.144]:42823 "EHLO e4.ny.us.ibm.com"
+Received: from mx1.redhat.com ([66.187.233.31]:54581 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754712AbXHMGDI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Aug 2007 02:03:08 -0400
-Date: Sun, 12 Aug 2007 23:03:02 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
-Message-ID: <20070813060302.GF13410@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20070811042943.GA13410@linux.vnet.ibm.com> <E1IKSHQ-0007hg-00@gondolin.me.apana.org.au>
+	id S966936AbXHMGb0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Aug 2007 02:31:26 -0400
+Message-ID: <46BFFA71.4080601@redhat.com>
+Date: Mon, 13 Aug 2007 02:30:09 -0400
+From: Chris Snook <csnook@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <E1IKSHQ-0007hg-00@gondolin.me.apana.org.au>
+Subject: Re: [PATCH 9/24] make atomic_read() behave consistently on ia64
+References: <20070809135107.GA15985@shell.boston.redhat.com>	<617E1C2C70743745A92448908E030B2A02213B3C@scsmsx411.amr.corp.intel.com>	<46BCC1AF.5050204@redhat.com>	<617E1C2C70743745A92448908E030B2A0224C777@scsmsx411.amr.corp.intel.com>	<jewsw3oyl8.fsf@sykes.suse.de>	<617E1C2C70743745A92448908E030B2A0224C88B@scsmsx411.amr.corp.intel.com>	<46BCE9F8.4060009@redhat.com>	<617E1C2C70743745A92448908E030B2A0224C8D7@scsmsx411.amr.corp.intel.com>	<alpine.LFD.0.999.0708101607130.30176@woody.linux-foundation.org>	<46BCF19E.5000702@redhat.com> <18109.1084.917429.585224@cargo.ozlabs.ibm.com>
+In-Reply-To: <18109.1084.917429.585224@cargo.ozlabs.ibm.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: csnook@redhat.com, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Paul Mackerras <paulus@samba.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "Luck, Tony" <tony.luck@intel.com>, Andreas Schwab <schwab@suse.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Aug 13, 2007 at 01:15:52PM +0800, Herbert Xu wrote:
-> Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> > On Sat, Aug 11, 2007 at 08:54:46AM +0800, Herbert Xu wrote:
-> >> Chris Snook <csnook@redhat.com> wrote:
-> >> > 
-> >> > cpu_relax() contains a barrier, so it should do the right thing.  For 
-> >> > non-smp architectures, I'm concerned about interacting with interrupt 
-> >> > handlers.  Some drivers do use atomic_* operations.
-> >> 
-> >> What problems with interrupt handlers? Access to int/long must
-> >> be atomic or we're in big trouble anyway.
-> > 
-> > Reordering due to compiler optimizations.  CPU reordering does not
-> > affect interactions with interrupt handlers on a given CPU, but
-> > reordering due to compiler code-movement optimization does.  Since
-> > volatile can in some cases suppress code-movement optimizations,
-> > it can affect interactions with interrupt handlers.
+Paul Mackerras wrote:
+> Chris Snook writes:
 > 
-> If such reordering matters, then you should use one of the
-> *mb macros or barrier() rather than relying on possibly
-> hidden volatile cast.
+>> I'll do this for the whole patchset.  Stay tuned for the resubmit.
+> 
+> Could you incorporate Segher's patch to turn atomic_{read,set} into
+> asm on powerpc?  Segher claims that using asm is really the only
+> reliable way to ensure that gcc does what we want, and he seems to
+> have a point.
+> 
+> Paul.
 
-If communicating among CPUs, sure.  However, when communicating between
-mainline and interrupt/NMI handlers on the same CPU, the barrier() and
-most expecially the *mb() macros are gross overkill.  So there really
-truly is a place for volatile -- not a large place, to be sure, but a
-place nonetheless.
+I haven't seen a patch yet.  I'm going to resubmit with inline volatile-cast 
+atomic[64]_[read|set] on all architectures as a reference point, and if anyone 
+wants to go and implement some of them in assembly, that's between them and the 
+relevant arch maintainers.  I have no problem with (someone else) doing it in 
+assembly.  I just don't think it's necessary and won't let it hold up the effort 
+to get consistent behavior on all architectures.
 
-						Thanx, Paul
+	-- Chris
