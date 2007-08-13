@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:49319 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:49736 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S967366AbXHML1G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Aug 2007 07:27:06 -0400
-Date: Mon, 13 Aug 2007 07:26:53 -0400
+	id S944260AbXHML2Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Aug 2007 07:28:16 -0400
+Date: Mon, 13 Aug 2007 07:28:04 -0400
 From: Chris Snook <csnook@redhat.com>
-Subject: [PATCH 12/23] make atomic_read() and atomic_set() behavior consistent on m68knommu
-Message-ID: <20070813112653.GL24018@shell.boston.redhat.com>
+Subject: [PATCH 13/23] make atomic_read() and atomic_set() behavior consistent on m68k
+Message-ID: <20070813112804.GM24018@shell.boston.redhat.com>
 References: <46C03885.7000109@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -19,13 +19,13 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Chris Snook <csnook@redhat.com>
 
-Use volatile consistently in atomic.h on m68knommu.
+Use volatile consistently in atomic.h on m68k.
 
 Signed-off-by: Chris Snook <csnook@redhat.com>
 
---- linux-2.6.23-rc3-orig/include/asm-m68knommu/atomic.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.23-rc3/include/asm-m68knommu/atomic.h	2007-08-13 05:47:46.000000000 -0400
-@@ -15,8 +15,15 @@
+--- linux-2.6.23-rc3-orig/include/asm-m68k/atomic.h	2007-07-08 19:32:17.000000000 -0400
++++ linux-2.6.23-rc3/include/asm-m68k/atomic.h	2007-08-13 05:45:43.000000000 -0400
+@@ -16,8 +16,15 @@
  typedef struct { int counter; } atomic_t;
  #define ATOMIC_INIT(i)	{ (i) }
  
@@ -41,5 +41,5 @@ Signed-off-by: Chris Snook <csnook@redhat.com>
 +        *(volatile int *)&v->counter = i;
 +}
  
- static __inline__ void atomic_add(int i, atomic_t *v)
+ static inline void atomic_add(int i, atomic_t *v)
  {
