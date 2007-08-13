@@ -1,34 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:38381 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:40963 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S937073AbXHMKz1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Aug 2007 06:55:27 -0400
-Message-ID: <46C03885.7000109@redhat.com>
-Date: Mon, 13 Aug 2007 06:55:01 -0400
+	id S943846AbXHMLEd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Aug 2007 07:04:33 -0400
+Date: Mon, 13 Aug 2007 07:04:15 -0400
 From: Chris Snook <csnook@redhat.com>
-MIME-Version: 1.0
-Subject: [PATCH 0/23] make atomic_read() and atomic_set() behavior consistent
- across all architectures
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Subject: [PATCH 1/23] document preferred use of volatile with atomic_t
+Message-ID: <20070813110415.GA24018@shell.boston.redhat.com>
+References: <46C03885.7000109@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <46C03885.7000109@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>, Chris Snook <csnook@redhat.com>
+Cc: akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-By popular demand, I've redone the patchset to include volatile casts in 
-atomic_set as well.  I've also converted the macros to inline functions, to help 
-catch type mismatches at compile time.
+From: Chris Snook <csnook@redhat.com>
 
-This will do weird things on ia64 without Andreas Schwab's fix:
+Document proper use of volatile for atomic_t operations.
 
-http://lkml.org/lkml/2007/8/10/410
+Signed-off-by: Chris Snook <csnook@redhat.com>
 
-Notably absent is a patch for powerpc.  I expect Segher Boessenkool's assembly 
-implementation should suffice there:
-
-http://lkml.org/lkml/2007/8/10/470
-
-Thanks to all who commented on previous incarnations.
-
-	-- Chris Snook
+--- linux-2.6.23-rc3-orig/Documentation/atomic_ops.txt	2007-07-08 19:32:17.000000000 -0400
++++ linux-2.6.23-rc3/Documentation/atomic_ops.txt	2007-08-13 03:36:43.000000000 -0400
+@@ -12,13 +12,20 @@
+ C integer type will fail.  Something like the following should
+ suffice:
+ 
+-	typedef struct { volatile int counter; } atomic_t;
++	typedef struct { int counter; } atomic_t;
++
++	Historically, counter has been declared as a volatile int.  This
++is now discouraged in favor of explicitly casting it as volatile where
++volatile behavior is required.  Most architectures will only require such
++a cast in atomic_read() and atomic_set(), as well as their 64-bit versions
++if applicable, since the more complex atomic operations directly or
++indirectly use assembly that results in volatile behavior.
+ 
+ 	The first operations to implement for atomic_t's are the
+ initializers and plain reads.
+ 
+ 	#define ATOMIC_INIT(i)		{ (i) }
+-	#define atomic_set(v, i)	((v)->counter = (i))
++	#define atomic_set(v, i)	(*(volatile int *)&(v)->counter = (i))
+ 
+ The first macro is used in definitions, such as:
+ 
+@@ -38,7 +45,7 @@
+ 
+ Next, we have:
+ 
+-	#define atomic_read(v)	((v)->counter)
++	#define atomic_read(v)	(*(volatile int *)&(v)->counter)
+ 
+ which simply reads the current value of the counter.
+ 
