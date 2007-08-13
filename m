@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:46618 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:47396 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964974AbXHMLT3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Aug 2007 07:19:29 -0400
-Date: Mon, 13 Aug 2007 07:18:14 -0400
+	id S940260AbXHMLVS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Aug 2007 07:21:18 -0400
+Date: Mon, 13 Aug 2007 07:21:05 -0400
 From: Chris Snook <csnook@redhat.com>
-Subject: [PATCH 8/23] make atomic_read() and atomic_set() behavior consistent on h8300
-Message-ID: <20070813111814.GH24018@shell.boston.redhat.com>
+Subject: [PATCH 9/23] make atomic_read() and atomic_set() behavior consistent on i386
+Message-ID: <20070813112105.GI24018@shell.boston.redhat.com>
 References: <46C03885.7000109@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -19,27 +19,33 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Chris Snook <csnook@redhat.com>
 
-Use volatile consistently in atomic.h on h8300.
+Use volatile consistently in atomic.h on i386.
 
 Signed-off-by: Chris Snook <csnook@redhat.com>
 
---- linux-2.6.23-rc3-orig/include/asm-h8300/atomic.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.23-rc3/include/asm-h8300/atomic.h	2007-08-13 05:29:05.000000000 -0400
-@@ -9,8 +9,15 @@
- typedef struct { int counter; } atomic_t;
- #define ATOMIC_INIT(i)	{ (i) }
- 
+--- linux-2.6.23-rc3-orig/include/asm-i386/atomic.h	2007-07-08 19:32:17.000000000 -0400
++++ linux-2.6.23-rc3/include/asm-i386/atomic.h	2007-08-13 05:31:45.000000000 -0400
+@@ -25,7 +25,10 @@ typedef struct { int counter; } atomic_t
+  * 
+  * Atomically reads the value of @v.
+  */ 
 -#define atomic_read(v)		((v)->counter)
--#define atomic_set(v, i)	(((v)->counter) = i)
-+static inline int atomic_read(atomic_t *v)
++static __inline__ int atomic_read(atomic_t *v)
 +{
 +        return *(volatile int *)&v->counter;
 +}
-+
-+static inline void atomic_set(atomic_t *v, int i)
+ 
+ /**
+  * atomic_set - set atomic variable
+@@ -34,7 +37,10 @@ typedef struct { int counter; } atomic_t
+  * 
+  * Atomically sets the value of @v to @i.
+  */ 
+-#define atomic_set(v,i)		(((v)->counter) = (i))
++static __inline__ void atomic_set(atomic_t *v, int i)
 +{
 +        *(volatile int *)&v->counter = i;
 +}
  
- #include <asm/system.h>
- #include <linux/kernel.h>
+ /**
+  * atomic_add - add integer to atomic variable
