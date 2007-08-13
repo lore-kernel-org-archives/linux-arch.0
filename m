@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:56149 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:55111 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S944007AbXHMLpo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Aug 2007 07:45:44 -0400
-Date: Mon, 13 Aug 2007 07:45:26 -0400
+	id S971294AbXHMLmT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Aug 2007 07:42:19 -0400
+Date: Mon, 13 Aug 2007 07:42:06 -0400
 From: Chris Snook <csnook@redhat.com>
-Subject: [PATCH 23/23] make atomic_read() and atomic_set() behavior consistent on xtensa
-Message-ID: <20070813114526.GW24018@shell.boston.redhat.com>
+Subject: [PATCH 20/23] make atomic_read() and atomic_set() behavior consistent on sparc
+Message-ID: <20070813114206.GT24018@shell.boston.redhat.com>
 References: <46C03885.7000109@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -19,42 +19,31 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Chris Snook <csnook@redhat.com>
 
-Use volatile consistently in atomic.h on xtensa.
+Use volatile consistently in atomic.h on alpha.
+Leave sparc-internal atomic24_t type alone.
 
 Signed-off-by: Chris Snook <csnook@redhat.com>
 
---- linux-2.6.23-rc3-orig/include/asm-xtensa/atomic.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.23-rc3/include/asm-xtensa/atomic.h	2007-08-13 06:31:58.000000000 -0400
-@@ -15,7 +15,7 @@
+--- linux-2.6.23-rc3-orig/include/asm-sparc/atomic.h	2007-07-08 19:32:17.000000000 -0400
++++ linux-2.6.23-rc3/include/asm-sparc/atomic.h	2007-08-13 06:12:49.000000000 -0400
+@@ -13,7 +13,7 @@
  
- #include <linux/stringify.h>
+ #include <linux/types.h>
  
 -typedef struct { volatile int counter; } atomic_t;
 +typedef struct { int counter; } atomic_t;
  
  #ifdef __KERNEL__
- #include <asm/processor.h>
-@@ -47,7 +47,10 @@ typedef struct { volatile int counter; }
-  *
-  * Atomically reads the value of @v.
-  */
--#define atomic_read(v)		((v)->counter)
+ 
+@@ -61,7 +61,10 @@ extern int atomic_cmpxchg(atomic_t *, in
+ extern int atomic_add_unless(atomic_t *, int, int);
+ extern void atomic_set(atomic_t *, int);
+ 
+-#define atomic_read(v)          ((v)->counter)
 +static inline int atomic_read(atomic_t *v)
 +{
 +        return *(volatile int *)&v->counter;
 +}
  
- /**
-  * atomic_set - set atomic variable
-@@ -56,7 +59,10 @@ typedef struct { volatile int counter; }
-  *
-  * Atomically sets the value of @v to @i.
-  */
--#define atomic_set(v,i)		((v)->counter = (i))
-+static inline void atomic_set(atomic_t *v, int i)
-+{
-+        *(volatile int *)&v->counter = i;
-+}
- 
- /**
-  * atomic_add - add integer to atomic variable
+ #define atomic_add(i, v)	((void)__atomic_add_return( (int)(i), (v)))
+ #define atomic_sub(i, v)	((void)__atomic_add_return(-(int)(i), (v)))
