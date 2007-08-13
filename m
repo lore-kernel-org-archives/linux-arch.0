@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:50777 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:51647 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S943765AbXHMLba (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Aug 2007 07:31:30 -0400
-Date: Mon, 13 Aug 2007 07:31:10 -0400
+	id S944594AbXHMLdt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Aug 2007 07:33:49 -0400
+Date: Mon, 13 Aug 2007 07:33:42 -0400
 From: Chris Snook <csnook@redhat.com>
-Subject: [PATCH 15/23] make atomic_read() and atomic_set() behavior consistent on parisc
-Message-ID: <20070813113110.GO24018@shell.boston.redhat.com>
+Subject: [PATCH 16/23] make atomic_read() and atomic_set() behavior consistent on s390
+Message-ID: <20070813113342.GP24018@shell.boston.redhat.com>
 References: <46C03885.7000109@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -19,45 +19,45 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Chris Snook <csnook@redhat.com>
 
-Use volatile consistently in atomic.h on parisc.
+Use volatile consistently in atomic.h on s390.
 
 Signed-off-by: Chris Snook <csnook@redhat.com>
 
---- linux-2.6.23-rc3-orig/include/asm-parisc/atomic.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.23-rc3/include/asm-parisc/atomic.h	2007-08-13 05:59:35.000000000 -0400
-@@ -128,7 +128,7 @@ __cmpxchg(volatile void *ptr, unsigned l
-  * Cache-line alignment would conflict with, for example, linux/module.h
-  */
+--- linux-2.6.23-rc3-orig/include/asm-s390/atomic.h	2007-08-13 03:14:13.000000000 -0400
++++ linux-2.6.23-rc3/include/asm-s390/atomic.h	2007-08-13 06:04:58.000000000 -0400
+@@ -67,8 +67,15 @@ typedef struct {
  
--typedef struct { volatile int counter; } atomic_t;
-+typedef struct { int counter; } atomic_t;
+ #endif /* __GNUC__ */
  
- /* It's possible to reduce all atomic operations to either
-  * __atomic_add_return, atomic_set and atomic_read (the latter
-@@ -159,7 +159,7 @@ static __inline__ void atomic_set(atomic
+-#define atomic_read(v)          ((v)->counter)
+-#define atomic_set(v,i)         (((v)->counter) = (i))
++static __inline__ int atomic_read(atomic_t *v)
++{
++        return *(volatile int *)&v->counter;
++}
++
++static __inline__ void atomic_set(atomic_t *v, int i)
++{
++        *(volatile int *)&v->counter = i;
++}
  
- static __inline__ int atomic_read(const atomic_t *v)
+ static __inline__ int atomic_add_return(int i, atomic_t * v)
  {
--	return v->counter;
-+	return *(volatile int *)&v->counter;
- }
+@@ -182,8 +189,15 @@ typedef struct {
  
- /* exported interface */
-@@ -227,7 +227,7 @@ static __inline__ int atomic_add_unless(
+ #endif /* __GNUC__ */
  
- #ifdef CONFIG_64BIT
+-#define atomic64_read(v)          ((v)->counter)
+-#define atomic64_set(v,i)         (((v)->counter) = (i))
++static __inline__ long long atomic64_read(atomic64_t *v)
++{
++        return *(volatile long long *)&v->counter;
++}
++
++static __inline__ void atomic64_set(atomic64_t *v, long long i)
++{
++        *(volatile long long *)&v->counter = i;
++}
  
--typedef struct { volatile s64 counter; } atomic64_t;
-+typedef struct { s64 counter; } atomic64_t;
- 
- #define ATOMIC64_INIT(i) ((atomic64_t) { (i) })
- 
-@@ -258,7 +258,7 @@ atomic64_set(atomic64_t *v, s64 i)
- static __inline__ s64
- atomic64_read(const atomic64_t *v)
+ static __inline__ long long atomic64_add_return(long long i, atomic64_t * v)
  {
--	return v->counter;
-+	return *(volatile s64 *)&v->counter;
- }
- 
- #define atomic64_add(i,v)	((void)(__atomic64_add_return( ((s64)i),(v))))
