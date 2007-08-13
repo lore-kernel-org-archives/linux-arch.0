@@ -1,31 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:45501 "EHLO
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:49305 "EHLO
 	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S970211AbXHMMUD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Aug 2007 08:20:03 -0400
-Date: Mon, 13 Aug 2007 13:19:31 +0100
+	with ESMTP id S1030892AbXHMNAV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Aug 2007 09:00:21 -0400
+Date: Mon, 13 Aug 2007 13:59:45 +0100
 From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH 3/23] make atomic_read() and atomic_set() behavior consistent on arm
-Message-ID: <20070813121931.GA9165@flint.arm.linux.org.uk>
-References: <46C03885.7000109@redhat.com> <20070813110946.GC24018@shell.boston.redhat.com>
+Message-ID: <20070813125944.GB9165@flint.arm.linux.org.uk>
+References: <46C03885.7000109@redhat.com> <20070813110946.GC24018@shell.boston.redhat.com> <20070813121931.GA9165@flint.arm.linux.org.uk> <20070813124652.GA2805@shell.boston.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070813110946.GC24018@shell.boston.redhat.com>
+In-Reply-To: <20070813124652.GA2805@shell.boston.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: Chris Snook <csnook@redhat.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Aug 13, 2007 at 07:09:46AM -0400, Chris Snook wrote:
-> From: Chris Snook <csnook@redhat.com>
+On Mon, Aug 13, 2007 at 08:46:52AM -0400, Chris Snook wrote:
+> On Mon, Aug 13, 2007 at 01:19:31PM +0100, Russell King wrote:
+> > On Mon, Aug 13, 2007 at 07:09:46AM -0400, Chris Snook wrote:
+> > > By popular demand, I've redone the patchset to include volatile casts in
+> > > atomic_set as well.  I've also converted the macros to inline functions, to
+> > > help catch type mismatches at compile time.
+> > 
+> > and in the rest of include/asm-arm/atomic.h:
+> > 
+> > #else /* ARM_ARCH_6 */
+> > 
+> > #include <asm/system.h>
+> > 
+> > #ifdef CONFIG_SMP
+> > #error SMP not supported on pre-ARMv6 CPUs
+> > #endif
+> > 
+> > #define atomic_set(v,i) (((v)->counter) = (i))
+> > 
+> > Seems you missed that.  Grep is a wonderful tool.
 > 
-> Use volatile consistently in atomic.h on arm.
-> 
-> Signed-off-by: Chris Snook <csnook@redhat.com>
-> 
+> D'oh!  Try this.
+
+Thanks.
+
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+
 > --- linux-2.6.23-rc3-orig/include/asm-arm/atomic.h	2007-07-08 19:32:17.000000000 -0400
-> +++ linux-2.6.23-rc3/include/asm-arm/atomic.h	2007-08-13 04:44:50.000000000 -0400
+> +++ linux-2.6.23-rc3/include/asm-arm/atomic.h	2007-08-13 08:39:52.000000000 -0400
 > @@ -14,13 +14,16 @@
 >  #include <linux/compiler.h>
 >  #include <asm/system.h>
@@ -45,26 +65,22 @@ On Mon, Aug 13, 2007 at 07:09:46AM -0400, Chris Snook wrote:
 >  
 >  #if __LINUX_ARM_ARCH__ >= 6
 >  
-
-...
-In the first email of the series:
-> By popular demand, I've redone the patchset to include volatile casts in
-> atomic_set as well.  I've also converted the macros to inline functions, to
-> help catch type mismatches at compile time.
-
-and in the rest of include/asm-arm/atomic.h:
-
-#else /* ARM_ARCH_6 */
-
-#include <asm/system.h>
-
-#ifdef CONFIG_SMP
-#error SMP not supported on pre-ARMv6 CPUs
-#endif
-
-#define atomic_set(v,i) (((v)->counter) = (i))
-
-Seems you missed that.  Grep is a wonderful tool.
+> @@ -122,7 +125,10 @@ static inline void atomic_clear_mask(uns
+>  #error SMP not supported on pre-ARMv6 CPUs
+>  #endif
+>  
+> -#define atomic_set(v,i)	(((v)->counter) = (i))
+> +static inline void atomic_set(atomic_t *v, int i)
+> +{
+> +        *(volatile int *)&v->counter = i;
+> +}
+>  
+>  static inline int atomic_add_return(int i, atomic_t *v)
+>  {
+> -
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
 
 -- 
 Russell King
