@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:45973 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:46618 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S941245AbXHMLRQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Aug 2007 07:17:16 -0400
-Date: Mon, 13 Aug 2007 07:15:59 -0400
+	id S964974AbXHMLT3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Aug 2007 07:19:29 -0400
+Date: Mon, 13 Aug 2007 07:18:14 -0400
 From: Chris Snook <csnook@redhat.com>
-Subject: [PATCH 7/23] make atomic_read() and atomic_set() behavior consistent on frv
-Message-ID: <20070813111559.GG24018@shell.boston.redhat.com>
+Subject: [PATCH 8/23] make atomic_read() and atomic_set() behavior consistent on h8300
+Message-ID: <20070813111814.GH24018@shell.boston.redhat.com>
 References: <46C03885.7000109@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -19,19 +19,18 @@ List-ID: <linux-arch.vger.kernel.org>
 
 From: Chris Snook <csnook@redhat.com>
 
-Use volatile consistently in atomic.h on frv.
+Use volatile consistently in atomic.h on h8300.
 
 Signed-off-by: Chris Snook <csnook@redhat.com>
 
---- linux-2.6.23-rc3-orig/include/asm-frv/atomic.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.23-rc3/include/asm-frv/atomic.h	2007-08-13 05:27:08.000000000 -0400
-@@ -40,8 +40,16 @@ typedef struct {
- } atomic_t;
+--- linux-2.6.23-rc3-orig/include/asm-h8300/atomic.h	2007-07-08 19:32:17.000000000 -0400
++++ linux-2.6.23-rc3/include/asm-h8300/atomic.h	2007-08-13 05:29:05.000000000 -0400
+@@ -9,8 +9,15 @@
+ typedef struct { int counter; } atomic_t;
+ #define ATOMIC_INIT(i)	{ (i) }
  
- #define ATOMIC_INIT(i)		{ (i) }
 -#define atomic_read(v)		((v)->counter)
--#define atomic_set(v, i)	(((v)->counter) = (i))
-+
+-#define atomic_set(v, i)	(((v)->counter) = i)
 +static inline int atomic_read(atomic_t *v)
 +{
 +        return *(volatile int *)&v->counter;
@@ -42,5 +41,5 @@ Signed-off-by: Chris Snook <csnook@redhat.com>
 +        *(volatile int *)&v->counter = i;
 +}
  
- #ifndef CONFIG_FRV_OUTOFLINE_ATOMIC_OPS
- static inline int atomic_add_return(int i, atomic_t *v)
+ #include <asm/system.h>
+ #include <linux/kernel.h>
