@@ -1,43 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.183]:55247 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S936464AbXHNWD4 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2007 18:03:56 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
-Date: Wed, 15 Aug 2007 00:01:54 +0200
-References: <20070811042943.GA13410@linux.vnet.ibm.com> <46C13EE1.1000707@yahoo.com.au> <20070814170128.GA8243@linux.vnet.ibm.com>
-In-Reply-To: <20070814170128.GA8243@linux.vnet.ibm.com>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:51794 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751393AbXHNWbQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2007 18:31:16 -0400
+Date: Tue, 14 Aug 2007 15:31:12 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+In-Reply-To: <20070809131423.GA9927@shell.boston.redhat.com>
+Message-ID: <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com>
+References: <20070809131423.GA9927@shell.boston.redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
-Content-Disposition: inline
-Message-Id: <200708150001.58217.arnd@arndb.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: paulmck@linux.vnet.ibm.com
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Herbert Xu <herbert@gondor.apana.org.au>, csnook@redhat.com, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Chris Snook <csnook@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tuesday 14 August 2007, Paul E. McKenney wrote:
-> > #define order(x) asm volatile("" : "+m" (x))
-> 
-> There was something very similar discussed earlier in this thread,
-> with quite a bit of debate as to exactly what the "m" flag should
-> look like.  I suggested something similar named ACCESS_ONCE in the
-> context of RCU (http://lkml.org/lkml/2007/7/11/664):
-> 
->         #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
-> 
-> The nice thing about this is that it works for both loads and stores.
-> Not clear that order() above does this -- I get compiler errors when
-> I try something like "b = order(a)" or "order(a) = 1" using gcc 4.1.2.
+On Thu, 9 Aug 2007, Chris Snook wrote:
 
-Well, it serves a different purpose: While your ACCESS_ONCE() macro is
-an lvalue, the order() macro is a statement that can be used in place
-of the barrier() macro. order() is the most lightweight barrier as it
-only enforces ordering on a single variable in the compiler, but does
-not have any side-effects visible to other threads, like the cache
-line access in ACCESS_ONCE has.
+> This patchset makes the behavior of atomic_read uniform by removing the
+> volatile keyword from all atomic_t and atomic64_t definitions that currently
+> have it, and instead explicitly casts the variable as volatile in
+> atomic_read().  This leaves little room for creative optimization by the
+> compiler, and is in keeping with the principles behind "volatile considered
+> harmful".
 
-	Arnd <><
+volatile is generally harmful even in atomic_read(). Barriers control
+visibility and AFAICT things are fine.
