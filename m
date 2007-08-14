@@ -1,70 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:42592 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1765483AbXHNSuS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Aug 2007 14:50:18 -0400
-Message-ID: <46C1F917.1070008@redhat.com>
-Date: Tue, 14 Aug 2007 14:48:55 -0400
-From: Chris Snook <csnook@redhat.com>
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:37636 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S936772AbXHNWLK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2007 18:11:10 -0400
+Date: Tue, 14 Aug 2007 15:11:09 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: RE: [PATCH 10/23] make atomic_read() and atomic_set() behavior
+ consistent on ia64
+In-Reply-To: <617E1C2C70743745A92448908E030B2A022A009A@scsmsx411.amr.corp.intel.com>
+Message-ID: <Pine.LNX.4.64.0708141509300.32420@schroedinger.engr.sgi.com>
+References: <46C03885.7000109@redhat.com> <20070813112334.GJ24018@shell.boston.redhat.com>
+ <617E1C2C70743745A92448908E030B2A0229FD89@scsmsx411.amr.corp.intel.com>
+ <46C1F917.1070008@redhat.com> <617E1C2C70743745A92448908E030B2A022A009A@scsmsx411.amr.corp.intel.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 10/23] make atomic_read() and atomic_set() behavior consistent
- on ia64
-References: <46C03885.7000109@redhat.com> <20070813112334.GJ24018@shell.boston.redhat.com> <617E1C2C70743745A92448908E030B2A0229FD89@scsmsx411.amr.corp.intel.com>
-In-Reply-To: <617E1C2C70743745A92448908E030B2A0229FD89@scsmsx411.amr.corp.intel.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: "Luck, Tony" <tony.luck@intel.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
+Cc: Chris Snook <csnook@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Luck, Tony wrote:
->> Use volatile consistently in atomic.h on ia64.
->> This will do weird things without Andreas Schwab's fix:
->> http://lkml.org/lkml/2007/8/10/410
+On Tue, 14 Aug 2007, Luck, Tony wrote:
+
+> I re-tried the macros ... the three warnings from mm/slub.c all result in
+> broken code ... and quite rightly too, they all come from code that does:
 > 
-> The build is very noisy with the inline versions of atomic_{read,set}
-> and their 64-bit siblings.  Here are the prime culprits (some of them
-> repeat >100 times).
+> 	atomic_read(&n->nr_slabs)
+> 
+> But the nr_slabs field is an atomic_long_t, so we shouldn't be using
+> atomic_read().  I didn't spot these last time around because I was using
+> slab, not slub for the previous build.
 
-Part of the motivation for using inline functions was to expose places where 
-we've been lazy, so this isn't unexpected.  We need to work on clearing up those 
-callers.
+Hmmmm...  Strange that this did not cause failures before on any other 
+platforms?
 
-> include/linux/skbuff.h:521: warning: passing arg 1 of `atomic_read' discards qualifiers from pointer target type
-> include/net/sock.h:1244: warning: passing arg 1 of `atomic_read' discards qualifiers from pointer target type
-> include/net/tcp.h:958: warning: passing arg 1 of `atomic_read' discards qualifiers from pointer target type
-> mm/slub.c:3115: warning: passing arg 1 of `atomic_read' from incompatible pointer type
-> mm/slub.c:3250: warning: passing arg 1 of `atomic_read' from incompatible pointer type
-> mm/slub.c:3286: warning: passing arg 1 of `atomic_read' from incompatible pointer type
 
-Do you get any warnings other than those two?
+Fix atomic_read's in slub
 
-> The inline versions also result in some structural changes in
-> the object file that make it difficult to compare with the
-> original.  Text size is 96 bytes smaller ... but even after
-> I use sed(1) to exclude the most obvious instructions that
-> differ, I still find big blocks of code with changes.  Perhaps
-> even more surprising there are entire functions that are
-> optimized out in either the 'before' or 'after' binary.
-> E.g. lookup_pi_state() was optimized away (or completely
-> inlined?) before this patch, but the function appears as
-> standalone in the 'after' version.  The reverse is true for
-> fixup_pi_state_owner().
+Signed-off-by: Christoph Lameter <clameter@sgi.com>
 
-IIRC, when you applied a version which used macros instead, there was no change. 
-  It would seem that inlining changed the optimization behavior of the compiler. 
-  If you turn down the optimization level, do the macro and inline versions look 
-the same, or at least more similar?
-
-> The binary does boot ... but I haven't run any tests to see whether
-> there are any problems.
-
-The only part of the patch that I was really worried about breaking anything was 
-the removal of the volatile declaration, in case there was some other access 
-that needed a cast.  Since the macro version didn't change anything, that's 
-covered.  Converting from a macro to an inline shouldn't really change anything 
-in this case, except perhaps for how the compiler optimizes it.  If something 
-*does* break, I'd suspect compiler bugs.
-
-	-- Chris
+diff --git a/mm/slub.c b/mm/slub.c
+index 69d02e3..0c106d7 100644
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -3112,7 +3112,7 @@ static int list_locations(struct kmem_cache *s, char *buf,
+ 		unsigned long flags;
+ 		struct page *page;
+ 
+-		if (!atomic_read(&n->nr_slabs))
++		if (!atomic_long_read(&n->nr_slabs))
+ 			continue;
+ 
+ 		spin_lock_irqsave(&n->list_lock, flags);
+@@ -3247,7 +3247,7 @@ static unsigned long slab_objects(struct kmem_cache *s,
+ 		}
+ 
+ 		if (flags & SO_FULL) {
+-			int full_slabs = atomic_read(&n->nr_slabs)
++			int full_slabs = atomic_long_read(&n->nr_slabs)
+ 					- per_cpu[node]
+ 					- n->nr_partial;
+ 
+@@ -3283,7 +3283,7 @@ static int any_slab_objects(struct kmem_cache *s)
+ 	for_each_node(node) {
+ 		struct kmem_cache_node *n = get_node(s, node);
+ 
+-		if (n->nr_partial || atomic_read(&n->nr_slabs))
++		if (n->nr_partial || atomic_long_read(&n->nr_slabs))
+ 			return 1;
+ 	}
+ 	return 0;
