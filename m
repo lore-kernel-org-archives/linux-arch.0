@@ -1,21 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:33848 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752603AbXHNJnt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Aug 2007 05:43:49 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20070813111559.GG24018@shell.boston.redhat.com>
-References: <20070813111559.GG24018@shell.boston.redhat.com> <46C03885.7000109@redhat.com>
-Subject: Re: [PATCH 7/23] make atomic_read() and atomic_set() behavior consistent on frv
-Date: Tue, 14 Aug 2007 10:42:31 +0100
-Message-ID: <1205.1187084551@redhat.com>
+Received: from gprs189-60.eurotel.cz ([160.218.189.60]:56053 "EHLO amd.ucw.cz"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1754477AbXHNLn2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Aug 2007 07:43:28 -0400
+Date: Tue, 14 Aug 2007 09:11:48 +0200
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH] Add ability to print calltraces tighter on i386
+Message-ID: <20070814071148.GA2905@elf.ucw.cz>
+References: <46B9D08F.8080402@openvz.org> <p73zm12qc8a.fsf@bingen.suse.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <p73zm12qc8a.fsf@bingen.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Chris Snook <csnook@redhat.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Pavel Emelyanov <xemul@openvz.org>, Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, devel@openvz.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Chris Snook <csnook@redhat.com> wrote:
+Hi!
 
-> Use volatile consistently in atomic.h on frv.
+> > E.g. OOPSes of 50 lines occupy ~20 with this patch.
+> > 
+> > This is an example of how it will look for i386, but if this
+> > will be found useful, I will make the patch for other arched
+> > I can test it on (at least x86_64, ia64).
+> 
+> Just use a higher resolution with vga=... 
+> I have yet to see an oops that doesn't fit on 80x50
 
-Acked-By: David Howells <dhowells@redhat.com>
+vga= does not work properly in some setups I'd like to debug, like
+kexec.
+									Pavel
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
