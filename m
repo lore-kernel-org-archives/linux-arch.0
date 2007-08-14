@@ -1,40 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rhun.apana.org.au ([64.62.148.172]:2188 "EHLO
-	arnor.apana.org.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750714AbXHNH1Y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2007 03:27:24 -0400
-Date: Tue, 14 Aug 2007 15:26:17 +0800
-From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
-Message-ID: <20070814072617.GA8766@gondor.apana.org.au>
-References: <20070811042943.GA13410@linux.vnet.ibm.com> <E1IKSHQ-0007hg-00@gondolin.me.apana.org.au> <20070813060302.GF13410@linux.vnet.ibm.com> <46C13EE1.1000707@yahoo.com.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <46C13EE1.1000707@yahoo.com.au>
+Received: from mx1.redhat.com ([66.187.233.31]:33848 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752603AbXHNJnt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Aug 2007 05:43:49 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20070813111559.GG24018@shell.boston.redhat.com>
+References: <20070813111559.GG24018@shell.boston.redhat.com> <46C03885.7000109@redhat.com>
+Subject: Re: [PATCH 7/23] make atomic_read() and atomic_set() behavior consistent on frv
+Date: Tue, 14 Aug 2007 10:42:31 +0100
+Message-ID: <1205.1187084551@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: paulmck@linux.vnet.ibm.com, csnook@redhat.com, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Chris Snook <csnook@redhat.com>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Aug 14, 2007 at 03:34:25PM +1000, Nick Piggin wrote:
->
-> What do you think of this crazy idea?
-> 
-> /* Enforce a compiler barrier for only operations to location X.
->  * Call multiple times to provide an ordering between multiple
->  * memory locations. Other memory operations can be assumed by
->  * the compiler to remain unchanged and may be reordered
->  */
-> #define order(x) asm volatile("" : "+m" (x))
+Chris Snook <csnook@redhat.com> wrote:
 
-Yes this is a very good idea.  This also makes it explicit
-that the coder is depending on this rather than the more
-vague connotations of atomic_read.
+> Use volatile consistently in atomic.h on frv.
 
-Cheers,
--- 
-Visit Openswan at http://www.openswan.org/
-Email: Herbert Xu ~{PmV>HI~} <herbert@gondor.apana.org.au>
-Home Page: http://gondor.apana.org.au/~herbert/
-PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+Acked-By: David Howells <dhowells@redhat.com>
