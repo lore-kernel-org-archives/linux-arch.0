@@ -1,40 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:54028 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S936271AbXHNWXm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Aug 2007 18:23:42 -0400
-Message-ID: <46C22AE8.80901@redhat.com>
-Date: Tue, 14 Aug 2007 18:21:28 -0400
-From: Chris Snook <csnook@redhat.com>
+Received: from moutng.kundenserver.de ([212.227.126.183]:55247 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S936464AbXHNWD4 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2007 18:03:56 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
+Date: Wed, 15 Aug 2007 00:01:54 +0200
+References: <20070811042943.GA13410@linux.vnet.ibm.com> <46C13EE1.1000707@yahoo.com.au> <20070814170128.GA8243@linux.vnet.ibm.com>
+In-Reply-To: <20070814170128.GA8243@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 10/23] make atomic_read() and atomic_set() behavior consistent
- on ia64
-References: <46C03885.7000109@redhat.com> <20070813112334.GJ24018@shell.boston.redhat.com> <617E1C2C70743745A92448908E030B2A0229FD89@scsmsx411.amr.corp.intel.com> <46C1F917.1070008@redhat.com> <617E1C2C70743745A92448908E030B2A022A009A@scsmsx411.amr.corp.intel.com> <Pine.LNX.4.64.0708141509300.32420@schroedinger.engr.sgi.com>
-In-Reply-To: <Pine.LNX.4.64.0708141509300.32420@schroedinger.engr.sgi.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
+Message-Id: <200708150001.58217.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
+To: paulmck@linux.vnet.ibm.com
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Herbert Xu <herbert@gondor.apana.org.au>, csnook@redhat.com, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Lameter wrote:
-> On Tue, 14 Aug 2007, Luck, Tony wrote:
+On Tuesday 14 August 2007, Paul E. McKenney wrote:
+> > #define order(x) asm volatile("" : "+m" (x))
 > 
->> I re-tried the macros ... the three warnings from mm/slub.c all result in
->> broken code ... and quite rightly too, they all come from code that does:
->>
->> 	atomic_read(&n->nr_slabs)
->>
->> But the nr_slabs field is an atomic_long_t, so we shouldn't be using
->> atomic_read().  I didn't spot these last time around because I was using
->> slab, not slub for the previous build.
+> There was something very similar discussed earlier in this thread,
+> with quite a bit of debate as to exactly what the "m" flag should
+> look like.  I suggested something similar named ACCESS_ONCE in the
+> context of RCU (http://lkml.org/lkml/2007/7/11/664):
 > 
-> Hmmmm...  Strange that this did not cause failures before on any other 
-> platforms?
+>         #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+> 
+> The nice thing about this is that it works for both loads and stores.
+> Not clear that order() above does this -- I get compiler errors when
+> I try something like "b = order(a)" or "order(a) = 1" using gcc 4.1.2.
 
-Prior to the patch in question, atomic_read was a macro.  I didn't use slub in 
-my cursory testing.  Tony had ia64 under a microscope because of the tricky 
-memory access ordering semantics of that architecture.
+Well, it serves a different purpose: While your ACCESS_ONCE() macro is
+an lvalue, the order() macro is a statement that can be used in place
+of the barrier() macro. order() is the most lightweight barrier as it
+only enforces ordering on a single variable in the compiler, but does
+not have any side-effects visible to other threads, like the cache
+line access in ACCESS_ONCE has.
 
-	-- Chris
+	Arnd <><
