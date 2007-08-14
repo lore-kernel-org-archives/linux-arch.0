@@ -1,65 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e1.ny.us.ibm.com ([32.97.182.141]:35518 "EHLO e1.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756530AbXHMXya (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Aug 2007 19:54:30 -0400
-Date: Mon, 13 Aug 2007 16:54:23 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 1/23] document preferred use of volatile with atomic_t
-Message-ID: <20070813235423.GO13410@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <46C03885.7000109@redhat.com> <20070813110415.GA24018@shell.boston.redhat.com>
+Received: from smtp101.mail.mud.yahoo.com ([209.191.85.211]:22287 "HELO
+	smtp101.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S942348AbXHNFnE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Aug 2007 01:43:04 -0400
+Message-ID: <46C140DD.3060509@yahoo.com.au>
+Date: Tue, 14 Aug 2007 15:42:53 +1000
+From: Nick Piggin <nickpiggin@yahoo.com.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070813110415.GA24018@shell.boston.redhat.com>
+Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
+References: <46BCC26B.6080600@redhat.com> <46BB46B2.60808@redhat.com> <20070809134150.GA14890@shell.boston.redhat.com> <2708.1186737826@redhat.com> <7680.1186822071@redhat.com> <46BFFDBD.6080804@redhat.com>
+In-Reply-To: <46BFFDBD.6080804@redhat.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: Chris Snook <csnook@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
+Cc: David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Aug 13, 2007 at 07:04:15AM -0400, Chris Snook wrote:
-> From: Chris Snook <csnook@redhat.com>
+Chris Snook wrote:
+> David Howells wrote:
 > 
-> Document proper use of volatile for atomic_t operations.
+>> Chris Snook <csnook@redhat.com> wrote:
+>>
+>>> cpu_relax() contains a barrier, so it should do the right thing.  For 
+>>> non-smp
+>>> architectures, I'm concerned about interacting with interrupt 
+>>> handlers.  Some
+>>> drivers do use atomic_* operations.
+>>
+>>
+>> I'm not sure that actually answers my question.  Why not smp_rmb()?
+>>
+>> David
+> 
+> 
+> I would assume because we want to waste time efficiently even on non-smp 
+> architectures, rather than frying the CPU or draining the battery.  
+> Certain looping execution patterns can cause the CPU to operate above 
+> thermal design power.  I have fans on my workstation that only ever come 
+> on when running LINPACK, and that's generally memory bandwidth-bound.  
+> Just imagine what happens when you're executing the same few 
+> non-serializing instructions in a tight loop without ever stalling on 
+> memory fetches, or being scheduled out.
+> 
+> If there's another reason, I'd like to hear it too, because I'm just 
+> guessing here.
 
-Looks good, as did a once-over on the arch-specific files.  Good stuff!!!
+Well if there is only one memory location involved, then smp_rmb() isn't
+going to really do anything anyway, so it would be incorrect to use it.
 
-Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Consider that smp_rmb basically will do anything from flushing the
+pipeline to invalidating loads speculatively executed out of order. AFAIK
+it will not control the visibility of stores coming from other CPUs (that
+is up to the cache coherency).
 
-> Signed-off-by: Chris Snook <csnook@redhat.com>
-> 
-> --- linux-2.6.23-rc3-orig/Documentation/atomic_ops.txt	2007-07-08 19:32:17.000000000 -0400
-> +++ linux-2.6.23-rc3/Documentation/atomic_ops.txt	2007-08-13 03:36:43.000000000 -0400
-> @@ -12,13 +12,20 @@
->  C integer type will fail.  Something like the following should
->  suffice:
-> 
-> -	typedef struct { volatile int counter; } atomic_t;
-> +	typedef struct { int counter; } atomic_t;
-> +
-> +	Historically, counter has been declared as a volatile int.  This
-> +is now discouraged in favor of explicitly casting it as volatile where
-> +volatile behavior is required.  Most architectures will only require such
-> +a cast in atomic_read() and atomic_set(), as well as their 64-bit versions
-> +if applicable, since the more complex atomic operations directly or
-> +indirectly use assembly that results in volatile behavior.
-> 
->  	The first operations to implement for atomic_t's are the
->  initializers and plain reads.
-> 
->  	#define ATOMIC_INIT(i)		{ (i) }
-> -	#define atomic_set(v, i)	((v)->counter = (i))
-> +	#define atomic_set(v, i)	(*(volatile int *)&(v)->counter = (i))
-> 
->  The first macro is used in definitions, such as:
-> 
-> @@ -38,7 +45,7 @@
-> 
->  Next, we have:
-> 
-> -	#define atomic_read(v)	((v)->counter)
-> +	#define atomic_read(v)	(*(volatile int *)&(v)->counter)
-> 
->  which simply reads the current value of the counter.
-> 
+-- 
+SUSE Labs, Novell Inc.
