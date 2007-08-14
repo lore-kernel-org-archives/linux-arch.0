@@ -1,30 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:51794 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751393AbXHNWbQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2007 18:31:16 -0400
-Date: Tue, 14 Aug 2007 15:31:12 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-In-Reply-To: <20070809131423.GA9927@shell.boston.redhat.com>
-Message-ID: <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com>
-References: <20070809131423.GA9927@shell.boston.redhat.com>
+Received: from mga09.intel.com ([134.134.136.24]:8785 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S936669AbXHNWGQ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2007 18:06:16 -0400
+Content-class: urn:content-classes:message
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: RE: [PATCH 10/23] make atomic_read() and atomic_set() behavior consistent on ia64
+Date: Tue, 14 Aug 2007 15:06:12 -0700
+Message-ID: <617E1C2C70743745A92448908E030B2A022A009A@scsmsx411.amr.corp.intel.com>
+In-Reply-To: <46C1F917.1070008@redhat.com>
+References: <46C03885.7000109@redhat.com> <20070813112334.GJ24018@shell.boston.redhat.com> <617E1C2C70743745A92448908E030B2A0229FD89@scsmsx411.amr.corp.intel.com> <46C1F917.1070008@redhat.com>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Chris Snook <csnook@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
+To: Chris Snook <csnook@redhat.com>, clameter@sgi.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 9 Aug 2007, Chris Snook wrote:
+>> include/linux/skbuff.h:521: warning: passing arg 1 of `atomic_read' discards qualifiers from pointer target type
+>> include/net/sock.h:1244: warning: passing arg 1 of `atomic_read' discards qualifiers from pointer target type
+>> include/net/tcp.h:958: warning: passing arg 1 of `atomic_read' discards qualifiers from pointer target type
+>> mm/slub.c:3115: warning: passing arg 1 of `atomic_read' from incompatible pointer type
+>> mm/slub.c:3250: warning: passing arg 1 of `atomic_read' from incompatible pointer type
+>> mm/slub.c:3286: warning: passing arg 1 of `atomic_read' from incompatible pointer type
 
-> This patchset makes the behavior of atomic_read uniform by removing the
-> volatile keyword from all atomic_t and atomic64_t definitions that currently
-> have it, and instead explicitly casts the variable as volatile in
-> atomic_read().  This leaves little room for creative optimization by the
-> compiler, and is in keeping with the principles behind "volatile considered
-> harmful".
+> Do you get any warnings other than those two?
 
-volatile is generally harmful even in atomic_read(). Barriers control
-visibility and AFAICT things are fine.
+That looks like six, not two.  But that's the whole list.
+
+>IIRC, when you applied a version which used macros instead, there was no change. 
+>  It would seem that inlining changed the optimization behavior of the compiler. 
+>  If you turn down the optimization level, do the macro and inline versions look 
+>  the same, or at least more similar?
+
+I re-tried the macros ... the three warnings from mm/slub.c all result in
+broken code ... and quite rightly too, they all come from code that does:
+
+	atomic_read(&n->nr_slabs)
+
+But the nr_slabs field is an atomic_long_t, so we shouldn't be using
+atomic_read().  I didn't spot these last time around because I was using
+slab, not slub for the previous build.
+
+I think that I'll run into other build issues if I turn down the
+optimization level (there are lots of places where the kernel relies
+on optimizing away impossible cases in switch statements.
+
+> The binary does boot ... but I haven't run any tests to see whether
+> there are any problems.
+
+-Tony
