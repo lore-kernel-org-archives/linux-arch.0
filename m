@@ -1,34 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:39455 "EHLO
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:40718 "EHLO
 	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S932317AbXHNWpa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2007 18:45:30 -0400
-Date: Tue, 14 Aug 2007 15:45:28 -0700 (PDT)
+	with ESMTP id S1753015AbXHNXOY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2007 19:14:24 -0400
+Date: Tue, 14 Aug 2007 16:14:21 -0700 (PDT)
 From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 1/23] document preferred use of volatile with atomic_t
-In-Reply-To: <20070813110415.GA24018@shell.boston.redhat.com>
-Message-ID: <Pine.LNX.4.64.0708141544001.401@schroedinger.engr.sgi.com>
-References: <46C03885.7000109@redhat.com> <20070813110415.GA24018@shell.boston.redhat.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+In-Reply-To: <46C2350A.1010807@redhat.com>
+Message-ID: <Pine.LNX.4.64.0708141612590.693@schroedinger.engr.sgi.com>
+References: <20070809131423.GA9927@shell.boston.redhat.com>
+ <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com>
+ <alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in>
+ <46C2350A.1010807@redhat.com>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: Chris Snook <csnook@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
+Cc: Satyam Sharma <satyam@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, 13 Aug 2007, Chris Snook wrote:
+On Tue, 14 Aug 2007, Chris Snook wrote:
 
-> @@ -38,7 +45,7 @@
->  
->  Next, we have:
->  
-> -	#define atomic_read(v)	((v)->counter)
-> +	#define atomic_read(v)	(*(volatile int *)&(v)->counter)
->  
->  which simply reads the current value of the counter.
+> Because atomic operations are generally used for synchronization, which
+> requires volatile behavior.  Most such codepaths currently use an inefficient
+> barrier().  Some forget to and we get bugs, because people assume that
+> atomic_read() actually reads something, and atomic_write() actually writes
+> something.  Worse, these are architecture-specific, even compiler
+> version-specific bugs that are often difficult to track down.
 
-volatile means that there is some vague notion of "read it now". But that 
-really does not exist. Instead we control visibility via barriers 
-(smp_wmb, smp_rmb). Would it not be best to not have volatile at all in 
-atomic operations and let the barriers do the work?
+Looks like we need to have lock and unlock semantics?
+
+atomic_read()
+
+which has no barrier or volatile implications.
+
+atomic_read_for_lock
+
+	Acquire semantics?
+
+
+atomic_read_for_unlock
+
+	Release semantics?
 
