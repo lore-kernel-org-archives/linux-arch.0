@@ -1,51 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:36192 "EHLO mx1.redhat.com"
+Received: from e1.ny.us.ibm.com ([32.97.182.141]:42844 "EHLO e1.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1764789AbXHNWxd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Aug 2007 18:53:33 -0400
-Message-ID: <46C2325C.8040900@redhat.com>
-Date: Tue, 14 Aug 2007 18:53:16 -0400
-From: Chris Snook <csnook@redhat.com>
+	id S1756029AbXHNWn7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Aug 2007 18:43:59 -0400
+Date: Tue, 14 Aug 2007 15:43:54 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
+Message-ID: <20070814224354.GE8243@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20070811042943.GA13410@linux.vnet.ibm.com> <46C13EE1.1000707@yahoo.com.au> <20070814170128.GA8243@linux.vnet.ibm.com> <200708150001.58217.arnd@arndb.de>
 MIME-Version: 1.0
-Subject: Re: [PATCH 1/23] document preferred use of volatile with atomic_t
-References: <46C03885.7000109@redhat.com> <20070813110415.GA24018@shell.boston.redhat.com> <Pine.LNX.4.64.0708141544001.401@schroedinger.engr.sgi.com>
-In-Reply-To: <Pine.LNX.4.64.0708141544001.401@schroedinger.engr.sgi.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <200708150001.58217.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Nick Piggin <nickpiggin@yahoo.com.au>, Herbert Xu <herbert@gondor.apana.org.au>, csnook@redhat.com, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Lameter wrote:
-> On Mon, 13 Aug 2007, Chris Snook wrote:
+On Wed, Aug 15, 2007 at 12:01:54AM +0200, Arnd Bergmann wrote:
+> On Tuesday 14 August 2007, Paul E. McKenney wrote:
+> > > #define order(x) asm volatile("" : "+m" (x))
+> > 
+> > There was something very similar discussed earlier in this thread,
+> > with quite a bit of debate as to exactly what the "m" flag should
+> > look like.  I suggested something similar named ACCESS_ONCE in the
+> > context of RCU (http://lkml.org/lkml/2007/7/11/664):
+> > 
+> >         #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+> > 
+> > The nice thing about this is that it works for both loads and stores.
+> > Not clear that order() above does this -- I get compiler errors when
+> > I try something like "b = order(a)" or "order(a) = 1" using gcc 4.1.2.
 > 
->> @@ -38,7 +45,7 @@
->>  
->>  Next, we have:
->>  
->> -	#define atomic_read(v)	((v)->counter)
->> +	#define atomic_read(v)	(*(volatile int *)&(v)->counter)
->>  
->>  which simply reads the current value of the counter.
-> 
-> volatile means that there is some vague notion of "read it now". But that 
-> really does not exist. Instead we control visibility via barriers 
-> (smp_wmb, smp_rmb). Would it not be best to not have volatile at all in 
-> atomic operations and let the barriers do the work?
+> Well, it serves a different purpose: While your ACCESS_ONCE() macro is
+> an lvalue, the order() macro is a statement that can be used in place
+> of the barrier() macro. order() is the most lightweight barrier as it
+> only enforces ordering on a single variable in the compiler, but does
+> not have any side-effects visible to other threads, like the cache
+> line access in ACCESS_ONCE has.
 
- From my reply in the other thread...
+ACCESS_ONCE() is indeed intended to be used when actually loading or
+storing the variable.  That said, I must admit that it is not clear to me
+why you would want to add an extra order() rather than ACCESS_ONCE()ing
+one or both of the adjacent accesses to that same variable.
 
-But barriers force a flush of *everything* in scope, which we generally don't 
-want.  On the other hand, we pretty much always want to flush atomic_* 
-operations.  One way or another, we should be restricting the volatile behavior 
-to the thing that needs it.  On most architectures, this patch set just moves 
-that from the declaration, where it is considered harmful, to the use, where it 
-is considered an occasional necessary evil.
+So, what am I missing?
 
-If you really, *really* distrust the compiler that much, you shouldn't be using 
-barrier, since that uses volatile under the hood too.  You should just go ahead 
-and implement the atomic operations in assembler, like Segher Boessenkool did 
-for powerpc in response to my previous patchset.
-
-	-- Chris
+						Thanx, Paul
