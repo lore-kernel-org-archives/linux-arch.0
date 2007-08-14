@@ -1,53 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:8785 "EHLO mga09.intel.com"
+Received: from mx1.redhat.com ([66.187.233.31]:36192 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S936669AbXHNWGQ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2007 18:06:16 -0400
-Content-class: urn:content-classes:message
+	id S1764789AbXHNWxd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Aug 2007 18:53:33 -0400
+Message-ID: <46C2325C.8040900@redhat.com>
+Date: Tue, 14 Aug 2007 18:53:16 -0400
+From: Chris Snook <csnook@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Subject: RE: [PATCH 10/23] make atomic_read() and atomic_set() behavior consistent on ia64
-Date: Tue, 14 Aug 2007 15:06:12 -0700
-Message-ID: <617E1C2C70743745A92448908E030B2A022A009A@scsmsx411.amr.corp.intel.com>
-In-Reply-To: <46C1F917.1070008@redhat.com>
-References: <46C03885.7000109@redhat.com> <20070813112334.GJ24018@shell.boston.redhat.com> <617E1C2C70743745A92448908E030B2A0229FD89@scsmsx411.amr.corp.intel.com> <46C1F917.1070008@redhat.com>
-From: "Luck, Tony" <tony.luck@intel.com>
+Subject: Re: [PATCH 1/23] document preferred use of volatile with atomic_t
+References: <46C03885.7000109@redhat.com> <20070813110415.GA24018@shell.boston.redhat.com> <Pine.LNX.4.64.0708141544001.401@schroedinger.engr.sgi.com>
+In-Reply-To: <Pine.LNX.4.64.0708141544001.401@schroedinger.engr.sgi.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Chris Snook <csnook@redhat.com>, clameter@sgi.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
 List-ID: <linux-arch.vger.kernel.org>
 
->> include/linux/skbuff.h:521: warning: passing arg 1 of `atomic_read' discards qualifiers from pointer target type
->> include/net/sock.h:1244: warning: passing arg 1 of `atomic_read' discards qualifiers from pointer target type
->> include/net/tcp.h:958: warning: passing arg 1 of `atomic_read' discards qualifiers from pointer target type
->> mm/slub.c:3115: warning: passing arg 1 of `atomic_read' from incompatible pointer type
->> mm/slub.c:3250: warning: passing arg 1 of `atomic_read' from incompatible pointer type
->> mm/slub.c:3286: warning: passing arg 1 of `atomic_read' from incompatible pointer type
+Christoph Lameter wrote:
+> On Mon, 13 Aug 2007, Chris Snook wrote:
+> 
+>> @@ -38,7 +45,7 @@
+>>  
+>>  Next, we have:
+>>  
+>> -	#define atomic_read(v)	((v)->counter)
+>> +	#define atomic_read(v)	(*(volatile int *)&(v)->counter)
+>>  
+>>  which simply reads the current value of the counter.
+> 
+> volatile means that there is some vague notion of "read it now". But that 
+> really does not exist. Instead we control visibility via barriers 
+> (smp_wmb, smp_rmb). Would it not be best to not have volatile at all in 
+> atomic operations and let the barriers do the work?
 
-> Do you get any warnings other than those two?
+ From my reply in the other thread...
 
-That looks like six, not two.  But that's the whole list.
+But barriers force a flush of *everything* in scope, which we generally don't 
+want.  On the other hand, we pretty much always want to flush atomic_* 
+operations.  One way or another, we should be restricting the volatile behavior 
+to the thing that needs it.  On most architectures, this patch set just moves 
+that from the declaration, where it is considered harmful, to the use, where it 
+is considered an occasional necessary evil.
 
->IIRC, when you applied a version which used macros instead, there was no change. 
->  It would seem that inlining changed the optimization behavior of the compiler. 
->  If you turn down the optimization level, do the macro and inline versions look 
->  the same, or at least more similar?
+If you really, *really* distrust the compiler that much, you shouldn't be using 
+barrier, since that uses volatile under the hood too.  You should just go ahead 
+and implement the atomic operations in assembler, like Segher Boessenkool did 
+for powerpc in response to my previous patchset.
 
-I re-tried the macros ... the three warnings from mm/slub.c all result in
-broken code ... and quite rightly too, they all come from code that does:
-
-	atomic_read(&n->nr_slabs)
-
-But the nr_slabs field is an atomic_long_t, so we shouldn't be using
-atomic_read().  I didn't spot these last time around because I was using
-slab, not slub for the previous build.
-
-I think that I'll run into other build issues if I turn down the
-optimization level (there are lots of places where the kernel relies
-on optimizing away impossible cases in switch statements.
-
-> The binary does boot ... but I haven't run any tests to see whether
-> there are any problems.
-
--Tony
+	-- Chris
