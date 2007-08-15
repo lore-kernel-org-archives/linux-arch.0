@@ -1,201 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:35720 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755535AbXHORqG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 13:46:06 -0400
-Date: Wed, 15 Aug 2007 23:25:05 +0530 (IST)
-From: Satyam Sharma <satyam@infradead.org>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-In-Reply-To: <20070815142516.GB9645@linux.vnet.ibm.com>
-Message-ID: <alpine.LFD.0.999.0708152048270.16414@enigma.security.iitk.ac.in>
-References: <20070809131423.GA9927@shell.boston.redhat.com>
- <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com>
- <alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in>
- <46C2D6F3.3070707@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
- <46C2FADB.7020407@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151906330.16414@enigma.security.iitk.ac.in>
- <20070815142516.GB9645@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([66.187.233.31]:45165 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751830AbXHORzo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Aug 2007 13:55:44 -0400
+Message-ID: <46C33E19.3050805@redhat.com>
+Date: Wed, 15 Aug 2007 13:55:37 -0400
+From: Chris Snook <csnook@redhat.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=us-ascii
+Subject: [RFP] atomic[64]_[read|set] asm implementations
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Stefan Richter <stefanr@s5r6.in-berlin.de>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org, Herbert Xu <herbert@gondor.apana.org.au>
+To: Linux Kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi Paul,
+In the fallout from the recent atomic_t volatility discussions, patches 
+have been posted to moot the compiler correctness issues by implementing 
+atomic[64]_[read|set] in inline assembly on powerpc, i386, and x86_64. 
+While I personally don't consider such implementations to be critically 
+necessary, they slightly reduce binary size and greatly reduce lkml 
+controversy, so I like them.
 
+I'm not an inline assembly expert, but I would welcome it if those who 
+are would like to submit implementations of these functions for 
+architectures they're intimately familiar with.  I'll pull them into the 
+atomic_t patch set I've stumbled into shepherding, and hopefully we can 
+commit something all at once that makes all architectures consistent, 
+resists compiler bugs, and doesn't piss off too many people.
 
-On Wed, 15 Aug 2007, Paul E. McKenney wrote:
+For architectures whose maintainers aren't worried and whose 
+developers/users aren't bothered enough to submit an inline assembly 
+patch, I'll just keep the inlines with the *(volatile foo *)& casts, 
+unless of course ISO clarifies the C standard to different effect while 
+we're arguing over semantics and micro-optimizations.
 
-> On Wed, Aug 15, 2007 at 07:17:29PM +0530, Satyam Sharma wrote:
-> > [...]
-> > No, I'd actually prefer something like what Christoph Lameter suggested,
-> > i.e. users (such as above) who want "volatile"-like behaviour from atomic
-> > ops can use alternative functions. How about something like:
-> > 
-> > #define atomic_read_volatile(v)			\
-> > 	({					\
-> > 		forget(&(v)->counter);		\
-> > 		((v)->counter);			\
-> > 	})
-> 
-> Wouldn't the above "forget" the value, throw it away, then forget
-> that it forgot it, giving non-volatile semantics?
-
-Nope, I don't think so. I wrote the following trivial testcases:
-[ See especially tp4.c and tp4.s (last example). ]
-
-==============================================================================
-$ cat tp1.c # Using volatile access casts
-
-#define atomic_read(a)	(*(volatile int *)&a)
-
-int a;
-
-void func(void)
-{
-	a = 0;
-	while (atomic_read(a))
-		;
-}
-==============================================================================
-$ gcc -Os -S tp1.c; cat tp1.s
-
-func:
-	pushl	%ebp
-	movl	%esp, %ebp
-	movl	$0, a
-.L2:
-	movl	a, %eax
-	testl	%eax, %eax
-	jne	.L2
-	popl	%ebp
-	ret
-==============================================================================
-$ cat tp2.c # Using nothing; gcc will optimize the whole loop away
-
-#define forget(x)
-
-#define atomic_read(a)		\
-	({			\
-		forget(&(a));	\
-		(a);		\
-	})
-
-int a;
-
-void func(void)
-{
-	a = 0;
-	while (atomic_read(a))
-		;
-}
-==============================================================================
-$ gcc -Os -S tp2.c; cat tp2.s
-
-func:
-	pushl	%ebp
-	movl	%esp, %ebp
-	popl	%ebp
-	movl	$0, a
-	ret
-==============================================================================
-$ cat tp3.c # Using a full memory clobber barrier
-
-#define forget(x)	asm volatile ("":::"memory")
-
-#define atomic_read(a)		\
-	({			\
-		forget(&(a));	\
-		(a);		\
-	})
-
-int a;
-
-void func(void)
-{
-	a = 0;
-	while (atomic_read(a))
-		;
-}
-==============================================================================
-$ gcc -Os -S tp3.c; cat tp3.s
-
-func:
-	pushl	%ebp
-	movl	%esp, %ebp
-	movl	$0, a
-.L2:
-	cmpl	$0, a
-	jne	.L2
-	popl	%ebp
-	ret
-==============================================================================
-$ cat tp4.c # Using a forget(var) macro
-
-#define forget(a)	__asm__ __volatile__ ("" :"=m" (a) :"m" (a))
-
-#define atomic_read(a)		\
-	({			\
-		forget(a);	\
-		(a);		\
-	})
-
-int a;
-
-void func(void)
-{
-	a = 0;
-	while (atomic_read(a))
-		;
-}
-==============================================================================
-$ gcc -Os -S tp4.c; cat tp4.s
-
-func:
-	pushl	%ebp
-	movl	%esp, %ebp
-	movl	$0, a
-.L2:
-	cmpl	$0, a
-	jne	.L2
-	popl	%ebp
-	ret
-==============================================================================
-
-
-Possibly these were too trivial to expose any potential problems that you
-may have been referring to, so would be helpful if you could write a more
-concrete example / sample code.
-
-
-> > Or possibly, implement these "volatile" atomic ops variants in inline asm
-> > like the patch that Sebastian Siewior has submitted on another thread just
-> > a while back.
-> 
-> Given that you are advocating a change (please keep in mind that
-> atomic_read() and atomic_set() had volatile semantics on almost all
-> platforms), care to give some example where these historical volatile
-> semantics are causing a problem?
-> [...]
-> Can you give even one example
-> where the pre-existing volatile semantics are causing enough of a problem
-> to justify adding yet more atomic_*() APIs?
-
-Will take this to the other sub-thread ...
-
-
-> > Of course, if we find there are more callers in the kernel who want the
-> > volatility behaviour than those who don't care, we can re-define the
-> > existing ops to such variants, and re-name the existing definitions to
-> > somethine else, say "atomic_read_nonvolatile" for all I care.
-> 
-> Do we really need another set of APIs?
-
-Well, if there's one set of users who do care about volatile behaviour,
-and another set that doesn't, it only sounds correct to provide both
-those APIs, instead of forcing one behaviour on all users.
-
-
-Thanks,
-Satyam
+	-- Chris
