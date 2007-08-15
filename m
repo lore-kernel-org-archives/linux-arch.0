@@ -1,115 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e2.ny.us.ibm.com ([32.97.182.142]:45098 "EHLO e2.ny.us.ibm.com"
+Received: from e5.ny.us.ibm.com ([32.97.182.145]:45557 "EHLO e5.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752020AbXHOUPF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Aug 2007 16:15:05 -0400
-Date: Wed, 15 Aug 2007 13:15:01 -0700
+	id S1756697AbXHOURw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Aug 2007 16:17:52 -0400
+Date: Wed, 15 Aug 2007 13:17:48 -0700
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
-Message-ID: <20070815201501.GM9645@linux.vnet.ibm.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Message-ID: <20070815201748.GN9645@linux.vnet.ibm.com>
 Reply-To: paulmck@linux.vnet.ibm.com
-References: <20070811042943.GA13410@linux.vnet.ibm.com> <E1IKSHQ-0007hg-00@gondolin.me.apana.org.au> <20070813060302.GF13410@linux.vnet.ibm.com> <46C13EE1.1000707@yahoo.com.au> <20070814170128.GA8243@linux.vnet.ibm.com> <46C2FFDD.5000600@yahoo.com.au>
+References: <E1ILCgh-00052A-00@gondolin.me.apana.org.au> <20070815081841.GA16551@osiris.boeblingen.de.ibm.com> <46C30540.2070603@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151941150.16414@enigma.security.iitk.ac.in> <20070815145207.GA23106@gondor.apana.org.au> <46C3253F.5090707@s5r6.in-berlin.de> <20070815162722.GD9645@linux.vnet.ibm.com> <d4406222873856f472b9173a14a19aa2@kernel.crashing.org> <20070815185724.GH9645@linux.vnet.ibm.com> <alpine.LFD.0.999.0708160118330.16414@enigma.security.iitk.ac.in>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <46C2FFDD.5000600@yahoo.com.au>
+In-Reply-To: <alpine.LFD.0.999.0708160118330.16414@enigma.security.iitk.ac.in>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, csnook@redhat.com, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, Arnd Bergmann <arnd@arndb.de>
+To: Satyam Sharma <satyam@infradead.org>
+Cc: Segher Boessenkool <segher@kernel.crashing.org>, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, rpjday@mindspring.com, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, Heiko Carstens <heiko.carstens@de.ibm.com>, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, clameter@sgi.com, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Aug 15, 2007 at 11:30:05PM +1000, Nick Piggin wrote:
-> Paul E. McKenney wrote:
-> >On Tue, Aug 14, 2007 at 03:34:25PM +1000, Nick Piggin wrote:
-> 
-> >>Maybe it is the safe way to go, but it does obscure cases where there
-> >>is a real need for barriers.
-> >
-> >
-> >I prefer burying barriers into other primitives.
-> 
-> When they should naturally be there, eg. locking or the RCU primitives,
-> I agree.
-> 
-> I don't like having them scattered in various "just in case" places,
-> because it makes both the users and the APIs hard to understand and
-> change.
+On Thu, Aug 16, 2007 at 01:24:42AM +0530, Satyam Sharma wrote:
+> [ The Cc: list scares me. Should probably trim it. ]
 
-I certainly agree that we shouldn't do volatile just for the fun of it,
-and also that use of volatile should be quite rare.
+Trim away!  ;-)
 
-> Especially since several big architectures don't have volatile in their
-> atomic_get and _set, I think it would be a step backwards to add them in
-> as a "just in case" thin now (unless there is a better reason).
+> On Wed, 15 Aug 2007, Paul E. McKenney wrote:
+> 
+> > On Wed, Aug 15, 2007 at 08:31:25PM +0200, Segher Boessenkool wrote:
+> > > >>How does the compiler know that msleep() has got barrier()s?
+> > > >
+> > > >Because msleep_interruptible() is in a separate compilation unit,
+> > > >the compiler has to assume that it might modify any arbitrary global.
+> > > 
+> > > No; compilation units have nothing to do with it, GCC can optimise
+> > > across compilation unit boundaries just fine, if you tell it to
+> > > compile more than one compilation unit at once.
+> > 
+> > Last I checked, the Linux kernel build system did compile each .c file
+> > as a separate compilation unit.
+> > 
+> > > What you probably mean is that the compiler has to assume any code
+> > > it cannot currently see can do anything (insofar as allowed by the
+> > > relevant standards etc.)
+> 
+> I think this was just terminology confusion here again. Isn't "any code
+> that it cannot currently see" the same as "another compilation unit",
+> and wouldn't the "compilation unit" itself expand if we ask gcc to
+> compile more than one unit at once? Or is there some more specific
+> "definition" for "compilation unit" (in gcc lingo, possibly?)
 
-Good point, except that I would expect gcc's optimization to continue
-to improve.  I would like the kernel to be able to take advantage of
-improved optimization, which means that we are going to have to make
-a few changes.  Adding volatile to atomic_get() and atomic_set() is
-IMHO one of those changes.
-
-> >>Many atomic operations are allowed to be reordered between CPUs, so
-> >>I don't have a good idea for the rationale to order them within the
-> >>CPU (also loads and stores to long and ptr types are not ordered like
-> >>this, although we do consider those to be atomic operations too).
-> >>
-> >>barrier() in a way is like enforcing sequential memory ordering
-> >>between process and interrupt context, wheras volatile is just
-> >>enforcing coherency of a single memory location (and as such is
-> >>cheaper).
-> >
-> >
-> >barrier() is useful, but it has the very painful side-effect of forcing
-> >the compiler to dump temporaries.  So we do need something that is
-> >not quite so global in effect.
-> 
-> Yep.
-> 
-> >>What do you think of this crazy idea?
-> >>
-> >>/* Enforce a compiler barrier for only operations to location X.
-> >>* Call multiple times to provide an ordering between multiple
-> >>* memory locations. Other memory operations can be assumed by
-> >>* the compiler to remain unchanged and may be reordered
-> >>*/
-> >>#define order(x) asm volatile("" : "+m" (x))
-> >
-> >There was something very similar discussed earlier in this thread,
-> >with quite a bit of debate as to exactly what the "m" flag should
-> >look like.  I suggested something similar named ACCESS_ONCE in the
-> >context of RCU (http://lkml.org/lkml/2007/7/11/664):
-> 
-> Oh, I missed that earlier debate. Will go have a look.
-> 
-> >	#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
-> >
-> >The nice thing about this is that it works for both loads and stores.
-> >Not clear that order() above does this -- I get compiler errors when
-> >I try something like "b = order(a)" or "order(a) = 1" using gcc 4.1.2.
-> 
-> As Arnd ponted out, order() is not supposed to be an lvalue, but a
-> statement like the rest of our memory ordering API.
-> 
-> As to your followup question of why to use it over ACCESS_ONCE. I
-> guess, aside from consistency with the rest of the barrier APIs, you
-> can use it in other primitives when you don't actually know what the
-> caller is going to do or if it even will make an access. You could
-> also use it between calls to _other_ primitives, etc... it just
-> seems more flexible to me, but I haven't actually used such a thing
-> in real code...
-> 
-> ACCESS_ONCE doesn't seem as descriptive. What it results in is the
-> memory location being loaded or stored (presumably once exactly),
-> but I think the more general underlying idea is a barrier point.
-
-OK, first, I am not arguing that ACCESS_ONCE() can replace all current
-uses of barrier().  Similarly, rcu_dereference(), rcu_assign_pointer(),
-and the various RCU versions of the list-manipulation API in no way
-replaced all uses of explicit memory barriers.  However, I do believe that
-these API are much easier to use (where they apply, of course) than were
-the earlier idioms involving explicit memory barriers.
-
-But we of course need to keep the explicit memory and compiler barriers
-for other situations.
+This is indeed my understanding -- "compilation unit" is whatever the
+compiler looks at in one go.  I have heard the word "module" used for
+the minimal compilation unit covering a single .c file and everything
+that it #includes, but there might be a better name for this.
 
 							Thanx, Paul
