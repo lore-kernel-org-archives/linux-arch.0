@@ -1,53 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e4.ny.us.ibm.com ([32.97.182.144]:46531 "EHLO e4.ny.us.ibm.com"
+Received: from ozlabs.org ([203.10.76.45]:60506 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S937113AbXHOWmj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Aug 2007 18:42:39 -0400
-Date: Wed, 15 Aug 2007 15:42:33 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
-Message-ID: <20070815224233.GP9645@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <46C30540.2070603@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151941150.16414@enigma.security.iitk.ac.in> <20070815145207.GA23106@gondor.apana.org.au> <46C3253F.5090707@s5r6.in-berlin.de> <20070815162722.GD9645@linux.vnet.ibm.com> <d4406222873856f472b9173a14a19aa2@kernel.crashing.org> <20070815185724.GH9645@linux.vnet.ibm.com> <alpine.LFD.0.999.0708160118330.16414@enigma.security.iitk.ac.in> <20070815201748.GN9645@linux.vnet.ibm.com> <96f3fa3929d873263891fefadb222431@kernel.crashing.org>
+	id S937230AbXHOXWv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Aug 2007 19:22:51 -0400
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <96f3fa3929d873263891fefadb222431@kernel.crashing.org>
+Content-Transfer-Encoding: 7bit
+Message-ID: <18115.35524.56393.347841@cargo.ozlabs.ibm.com>
+Date: Thu, 16 Aug 2007 09:22:44 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+In-Reply-To: <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
+References: <20070809131423.GA9927@shell.boston.redhat.com>
+	<Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com>
+	<alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in>
+	<46C2D6F3.3070707@s5r6.in-berlin.de>
+	<alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
 Sender: linux-arch-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Satyam Sharma <satyam@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, rpjday@mindspring.com, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, Heiko Carstens <heiko.carstens@de.ibm.com>, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, clameter@sgi.com, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
+To: Satyam Sharma <satyam@infradead.org>
+Cc: Stefan Richter <stefanr@s5r6.in-berlin.de>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org, Herbert Xu <herbert@gondor.apana.org.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Aug 15, 2007 at 10:52:53PM +0200, Segher Boessenkool wrote:
-> >>I think this was just terminology confusion here again. Isn't "any 
-> >>code
-> >>that it cannot currently see" the same as "another compilation unit",
-> >>and wouldn't the "compilation unit" itself expand if we ask gcc to
-> >>compile more than one unit at once? Or is there some more specific
-> >>"definition" for "compilation unit" (in gcc lingo, possibly?)
-> >
-> >This is indeed my understanding -- "compilation unit" is whatever the
-> >compiler looks at in one go.  I have heard the word "module" used for
-> >the minimal compilation unit covering a single .c file and everything
-> >that it #includes, but there might be a better name for this.
-> 
-> Yes, that's what's called "compilation unit" :-)
-> 
-> [/me double checks]
-> 
-> Erm, the C standard actually calls it "translation unit".
-> 
-> To be exact, to avoid any more confusion:
-> 
-> 5.1.1.1/1:
-> A C program need not all be translated at the same time. The
-> text of the program is kept in units called source files, (or
-> preprocessing files) in this International Standard. A source
-> file together with all the headers and source files included
-> via the preprocessing directive #include is known as a
-> preprocessing translation unit. After preprocessing, a
-> preprocessing translation unit is called a translation unit.
+Satyam Sharma writes:
 
-I am OK with "translation" and "compilation" being near-synonyms.  ;-)
+> > Doesn't "atomic WRT all processors" require volatility?
+> 
+> No, it definitely doesn't. Why should it?
+> 
+> "Atomic w.r.t. all processors" is just your normal, simple "atomicity"
+> for SMP systems (ensure that that object is modified / set / replaced
+> in main memory atomically) and has nothing to do with "volatile"
+> behaviour.
 
-						Thanx, Paul
+Atomic variables are "volatile" in the sense that they are liable to
+be changed at any time by mechanisms that are outside the knowledge of
+the C compiler, namely, other CPUs, or this CPU executing an interrupt
+routine.
+
+In the kernel we use atomic variables in precisely those situations
+where a variable is potentially accessed concurrently by multiple
+CPUs, and where each CPU needs to see updates done by other CPUs in a
+timely fashion.  That is what they are for.  Therefore the compiler
+must not cache values of atomic variables in registers; each
+atomic_read must result in a load and each atomic_set must result in a
+store.  Anything else will just lead to subtle bugs.
+
+I have no strong opinion about whether or not the best way to achieve
+this is through the use of the "volatile" C keyword.  Segher's idea of
+using asm instead seems like a good one to me.
+
+Paul.
