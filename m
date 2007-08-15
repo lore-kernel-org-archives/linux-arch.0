@@ -1,55 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:36718 "EHLO mx1.redhat.com"
+Received: from e6.ny.us.ibm.com ([32.97.182.146]:36754 "EHLO e6.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753942AbXHOQOK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Aug 2007 12:14:10 -0400
-Message-ID: <46C32618.2080108@redhat.com>
-Date: Wed, 15 Aug 2007 12:13:12 -0400
-From: Chris Snook <csnook@redhat.com>
+	id S1761679AbXHOQ10 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Aug 2007 12:27:26 -0400
+Date: Wed, 15 Aug 2007 09:27:22 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Message-ID: <20070815162722.GD9645@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <46C2350A.1010807@redhat.com> <E1ILCgh-00052A-00@gondolin.me.apana.org.au> <20070815081841.GA16551@osiris.boeblingen.de.ibm.com> <46C30540.2070603@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151941150.16414@enigma.security.iitk.ac.in> <20070815145207.GA23106@gondor.apana.org.au> <46C3253F.5090707@s5r6.in-berlin.de>
 MIME-Version: 1.0
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-References: <E1ILCgh-00052A-00@gondolin.me.apana.org.au>
-In-Reply-To: <E1ILCgh-00052A-00@gondolin.me.apana.org.au>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <46C3253F.5090707@s5r6.in-berlin.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: satyam@infradead.org, clameter@sgi.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Stefan Richter <stefanr@s5r6.in-berlin.de>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, Satyam Sharma <satyam@infradead.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Chris Snook <csnook@redhat.com>, clameter@sgi.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Herbert Xu wrote:
-> Chris Snook <csnook@redhat.com> wrote:
->> Because atomic operations are generally used for synchronization, which requires 
->> volatile behavior.  Most such codepaths currently use an inefficient barrier(). 
->>  Some forget to and we get bugs, because people assume that atomic_read() 
->> actually reads something, and atomic_write() actually writes something.  Worse, 
->> these are architecture-specific, even compiler version-specific bugs that are 
->> often difficult to track down.
+On Wed, Aug 15, 2007 at 06:09:35PM +0200, Stefan Richter wrote:
+> Herbert Xu wrote:
+> > On Wed, Aug 15, 2007 at 08:05:38PM +0530, Satyam Sharma wrote:
+> >>> I don't know if this here is affected:
 > 
-> I'm yet to see a single example from the current tree where
-> this patch series is the correct solution.  So far the only
-> example has been a buggy piece of code which has since been
-> fixed with a cpu_relax.
+> [...something like]
+> 	b = atomic_read(a);
+> 	for (i = 0; i < 4; i++) {
+> 		msleep_interruptible(63);
+> 		c = atomic_read(a);
+> 		if (c != b) {
+> 			b = c;
+> 			i = 0;
+> 		}
+> 	}
+> 
+> > Nope, we're calling schedule which is a rather heavy-weight
+> > barrier.
+> 
+> How does the compiler know that msleep() has got barrier()s?
 
-Part of the motivation here is to fix heisenbugs.  If I knew where they 
-were, I'd be posting patches for them.  Unlike most bugs, where we want 
-to expose them as obviously as possible, these can be extremely 
-difficult to track down, and are often due to people assuming that the 
-atomic_* operations have the same semantics they've historically had. 
-Remember that until recently, all SMP architectures except s390 (which 
-very few kernel developers outside of IBM, Red Hat, and SuSE do much 
-work on) had volatile declarations for atomic_t.  Removing the volatile 
-declarations from i386 and x86_64 may have created heisenbugs that won't 
-manifest themselves until GCC 6.0 comes out and people start compiling 
-kernels with -O5.  We should have consistent semantics for atomic_* 
-operations.
+Because msleep_interruptible() is in a separate compilation unit,
+the compiler has to assume that it might modify any arbitrary global.
+In many cases, the compiler also has to assume that msleep_interruptible()
+might call back into a function in the current compilation unit, thus
+possibly modifying global static variables.
 
-The other motivation is to reduce the need for the barriers used to 
-prevent/fix such problems which clobber all your registers, and instead 
-force atomic_* operations to behave in the way they're actually used. 
-After the (resubmitted) patchset is merged, we'll be able to remove a 
-whole bunch of barriers, shrinking our source and our binaries, and 
-improving performance.
-
-	-- Chris
+						Thanx, Paul
