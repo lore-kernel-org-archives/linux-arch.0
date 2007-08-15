@@ -1,29 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hellhawk.shadowen.org ([80.68.90.175]:3836 "EHLO
-	hellhawk.shadowen.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1765019AbXHOOzn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 10:55:43 -0400
-Message-ID: <46C313B3.4020409@shadowen.org>
-Date: Wed, 15 Aug 2007 15:54:43 +0100
-From: Andy Whitcroft <apw@shadowen.org>
-MIME-Version: 1.0
-Subject: Re: [PATCH 1/5] vmemmap: generify initialisation via helpers
-References: <exportbomb.1186756801@pinky> <E1IJVf4-0004oZ-6G@localhost.localdomain> <Pine.LNX.4.64.0708101055360.13640@schroedinger.engr.sgi.com>
-In-Reply-To: <Pine.LNX.4.64.0708101055360.13640@schroedinger.engr.sgi.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from rhun.apana.org.au ([64.62.148.172]:3683 "EHLO
+	arnor.apana.org.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756877AbXHOOxD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 10:53:03 -0400
+Date: Wed, 15 Aug 2007 22:52:07 +0800
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Message-ID: <20070815145207.GA23106@gondor.apana.org.au>
+References: <46C2350A.1010807@redhat.com> <E1ILCgh-00052A-00@gondolin.me.apana.org.au> <20070815081841.GA16551@osiris.boeblingen.de.ibm.com> <46C30540.2070603@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151941150.16414@enigma.security.iitk.ac.in>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.0.999.0708151941150.16414@enigma.security.iitk.ac.in>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Nick Piggin <npiggin@suse.de>, Mel Gorman <mel@csn.ul.ie>
+To: Satyam Sharma <satyam@infradead.org>
+Cc: Stefan Richter <stefanr@s5r6.in-berlin.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Chris Snook <csnook@redhat.com>, clameter@sgi.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Lameter wrote:
-> That exports a series of new function. The function are always compiled in 
-> even if not needed right?
+On Wed, Aug 15, 2007 at 08:05:38PM +0530, Satyam Sharma wrote:
+>
+> > I don't know if this here is affected:
 > 
-> Acked-by: Christoph Lameter <clameter@sgi.com>
+> Yes, I think it is. You're clearly expecting the read to actually happen
+> when you call get_hpsb_generation(). It's clearly not a busy-loop, so
+> cpu_relax() sounds pointless / wrong solution for this case, so I'm now
+> somewhat beginning to appreciate the motivation behind this series :-)
 
-Yes.  We are assuming the compiler is going to help us out.  They are
-mostly trivial and all __meminit.
+Nope, we're calling schedule which is a rather heavy-weight
+barrier.
 
--apw
+Cheers,
+-- 
+Visit Openswan at http://www.openswan.org/
+Email: Herbert Xu ~{PmV>HI~} <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
