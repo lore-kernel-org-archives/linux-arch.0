@@ -1,37 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:45165 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751830AbXHORzo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Aug 2007 13:55:44 -0400
-Message-ID: <46C33E19.3050805@redhat.com>
-Date: Wed, 15 Aug 2007 13:55:37 -0400
-From: Chris Snook <csnook@redhat.com>
+Received: from pentafluge.infradead.org ([213.146.154.40]:50615 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753774AbXHORxZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 13:53:25 -0400
+Date: Wed, 15 Aug 2007 23:35:45 +0530 (IST)
+From: Satyam Sharma <satyam@infradead.org>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+In-Reply-To: <20070815173326.GF9645@linux.vnet.ibm.com>
+Message-ID: <alpine.LFD.0.999.0708152325270.16414@enigma.security.iitk.ac.in>
+References: <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com>
+ <alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in>
+ <46C2D6F3.3070707@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
+ <46C2FADB.7020407@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151906330.16414@enigma.security.iitk.ac.in>
+ <20070815142516.GB9645@linux.vnet.ibm.com> <20070815153335.GA23593@gondor.apana.org.au>
+ <20070815160830.GC9645@linux.vnet.ibm.com>
+ <alpine.LFD.0.999.0708152244310.16414@enigma.security.iitk.ac.in>
+ <20070815173326.GF9645@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: [RFP] atomic[64]_[read|set] asm implementations
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Linux Kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
-In the fallout from the recent atomic_t volatility discussions, patches 
-have been posted to moot the compiler correctness issues by implementing 
-atomic[64]_[read|set] in inline assembly on powerpc, i386, and x86_64. 
-While I personally don't consider such implementations to be critically 
-necessary, they slightly reduce binary size and greatly reduce lkml 
-controversy, so I like them.
 
-I'm not an inline assembly expert, but I would welcome it if those who 
-are would like to submit implementations of these functions for 
-architectures they're intimately familiar with.  I'll pull them into the 
-atomic_t patch set I've stumbled into shepherding, and hopefully we can 
-commit something all at once that makes all architectures consistent, 
-resists compiler bugs, and doesn't piss off too many people.
 
-For architectures whose maintainers aren't worried and whose 
-developers/users aren't bothered enough to submit an inline assembly 
-patch, I'll just keep the inlines with the *(volatile foo *)& casts, 
-unless of course ISO clarifies the C standard to different effect while 
-we're arguing over semantics and micro-optimizations.
+On Wed, 15 Aug 2007, Paul E. McKenney wrote:
 
-	-- Chris
+> On Wed, Aug 15, 2007 at 10:48:28PM +0530, Satyam Sharma wrote:
+> > [...]
+> > Not for i386 and x86_64 -- those have atomic ops without any "volatile"
+> > semantics (currently as per existing definitions).
+> 
+> I claim unit volumes with arm, and the majority of the architectures, but
+> I cannot deny the popularity of i386 and x86_64 with many developers.  ;-)
+
+Hmm, does arm really need that "volatile int counter;"? Hopefully RMK will
+take a patch removing that "volatile" ... ;-)
+
+
+> However, I am not aware of code in the kernel that would benefit
+> from the compiler coalescing multiple atomic_set() and atomic_read()
+> invocations, thus I don't see the downside to volatility in this case.
+> Are there some performance-critical code fragments that I am missing?
+
+I don't know, and yes, code with multiple atomic_set's and atomic_read's
+getting optimized or coalesced does sound strange to start with. Anyway,
+I'm not against "volatile semantics" per se. As replied elsewhere, I do
+appreciate the motivation behind this series (to _avoid_ gotchas, not to
+fix existing ones). Just that I'd like to avoid using "volatile", for
+aforementioned reasons, especially given that there are perfectly
+reasonable alternatives to achieve the same desired behaviour.
+
+
+Satyam
