@@ -1,54 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e6.ny.us.ibm.com ([32.97.182.146]:59283 "EHLO e6.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S936067AbXHNX2i (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Aug 2007 19:28:38 -0400
-Date: Tue, 14 Aug 2007 16:28:35 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 1/23] document preferred use of volatile with atomic_t
-Message-ID: <20070814232835.GH8243@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <46C03885.7000109@redhat.com> <20070813110415.GA24018@shell.boston.redhat.com> <Pine.LNX.4.64.0708141544001.401@schroedinger.engr.sgi.com> <46C2325C.8040900@redhat.com> <Pine.LNX.4.64.0708141555300.579@schroedinger.engr.sgi.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0708141555300.579@schroedinger.engr.sgi.com>
+Received: from rhun.apana.org.au ([64.62.148.172]:2482 "EHLO
+	arnor.apana.org.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750824AbXHOGu2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 02:50:28 -0400
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+In-Reply-To: <46C2350A.1010807@redhat.com>
+Message-Id: <E1ILCgh-00052A-00@gondolin.me.apana.org.au>
+Date: Wed, 15 Aug 2007 14:49:03 +0800
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Chris Snook <csnook@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
+To: Chris Snook <csnook@redhat.com>
+Cc: satyam@infradead.org, clameter@sgi.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Aug 14, 2007 at 03:56:51PM -0700, Christoph Lameter wrote:
-> On Tue, 14 Aug 2007, Chris Snook wrote:
+Chris Snook <csnook@redhat.com> wrote:
 > 
-> > > volatile means that there is some vague notion of "read it now". But that
-> > > really does not exist. Instead we control visibility via barriers (smp_wmb,
-> > > smp_rmb). Would it not be best to not have volatile at all in atomic
-> > > operations and let the barriers do the work?
-> > 
-> > From my reply in the other thread...
-> > 
-> > But barriers force a flush of *everything* in scope, which we generally don't
-> > want.  On the other hand, we pretty much always want to flush atomic_*
-> > operations.  One way or another, we should be restricting the volatile
-> > behavior to the thing that needs it.  On most architectures, this patch set
-> > just moves that from the declaration, where it is considered harmful, to the
-> > use, where it is considered an occasional necessary evil.
-> > 
-> > If you really, *really* distrust the compiler that much, you shouldn't be
-> > using barrier, since that uses volatile under the hood too.  You should just
-> > go ahead and implement the atomic operations in assembler, like Segher
-> > Boessenkool did for powerpc in response to my previous patchset.
-> 
-> >From my reply on the other thread:
-> 
-> Maybe we need two read functions? One volatile, one not?
-> 
-> The atomic_read()s that I have in slub really do not care about when the 
-> variables are read. And if volatile creates overhead then I rather not have it.
+> Because atomic operations are generally used for synchronization, which requires 
+> volatile behavior.  Most such codepaths currently use an inefficient barrier(). 
+>  Some forget to and we get bugs, because people assume that atomic_read() 
+> actually reads something, and atomic_write() actually writes something.  Worse, 
+> these are architecture-specific, even compiler version-specific bugs that are 
+> often difficult to track down.
 
+I'm yet to see a single example from the current tree where
+this patch series is the correct solution.  So far the only
+example has been a buggy piece of code which has since been
+fixed with a cpu_relax.
 
-The overhead due to volatile access is -way- small.  Not like barrier(),
-which can flush out a fair fraction of the machine registers.
-
-						Thanx, Paul
+Cheers,
+-- 
+Visit Openswan at http://www.openswan.org/
+Email: Herbert Xu ~{PmV>HI~} <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
