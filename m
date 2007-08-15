@@ -1,98 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hp3.statik.tu-cottbus.de ([141.43.120.68]:38172 "EHLO
-	hp3.statik.tu-cottbus.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755521AbXHONIp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 09:08:45 -0400
-Message-ID: <46C2FADB.7020407@s5r6.in-berlin.de>
-Date: Wed, 15 Aug 2007 15:08:43 +0200
-From: Stefan Richter <stefanr@s5r6.in-berlin.de>
+Received: from smtp109.mail.mud.yahoo.com ([209.191.85.219]:32877 "HELO
+	smtp109.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1754284AbXHONaT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Aug 2007 09:30:19 -0400
+Message-ID: <46C2FFDD.5000600@yahoo.com.au>
+Date: Wed, 15 Aug 2007 23:30:05 +1000
+From: Nick Piggin <nickpiggin@yahoo.com.au>
 MIME-Version: 1.0
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-References: <20070809131423.GA9927@shell.boston.redhat.com> <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com> <alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in> <46C2D6F3.3070707@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
-In-Reply-To: <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH 6/24] make atomic_read() behave consistently on frv
+References: <20070811042943.GA13410@linux.vnet.ibm.com> <E1IKSHQ-0007hg-00@gondolin.me.apana.org.au> <20070813060302.GF13410@linux.vnet.ibm.com> <46C13EE1.1000707@yahoo.com.au> <20070814170128.GA8243@linux.vnet.ibm.com>
+In-Reply-To: <20070814170128.GA8243@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Satyam Sharma <satyam@infradead.org>
-Cc: Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org, Herbert Xu <herbert@gondor.apana.org.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: paulmck@linux.vnet.ibm.com
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, csnook@redhat.com, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, Arnd Bergmann <arnd@arndb.de>
 List-ID: <linux-arch.vger.kernel.org>
 
-Satyam Sharma wrote:
-> On Wed, 15 Aug 2007, Stefan Richter wrote:
->> Doesn't "atomic WRT all processors" require volatility?
+Paul E. McKenney wrote:
+> On Tue, Aug 14, 2007 at 03:34:25PM +1000, Nick Piggin wrote:
+
+>>Maybe it is the safe way to go, but it does obscure cases where there
+>>is a real need for barriers.
 > 
-> No, it definitely doesn't. Why should it?
 > 
-> "Atomic w.r.t. all processors" is just your normal, simple "atomicity"
-> for SMP systems (ensure that that object is modified / set / replaced
-> in main memory atomically) and has nothing to do with "volatile"
-> behaviour.
+> I prefer burying barriers into other primitives.
+
+When they should naturally be there, eg. locking or the RCU primitives,
+I agree.
+
+I don't like having them scattered in various "just in case" places,
+because it makes both the users and the APIs hard to understand and
+change.
+
+Especially since several big architectures don't have volatile in their
+atomic_get and _set, I think it would be a step backwards to add them in
+as a "just in case" thin now (unless there is a better reason).
+
+
+>>Many atomic operations are allowed to be reordered between CPUs, so
+>>I don't have a good idea for the rationale to order them within the
+>>CPU (also loads and stores to long and ptr types are not ordered like
+>>this, although we do consider those to be atomic operations too).
+>>
+>>barrier() in a way is like enforcing sequential memory ordering
+>>between process and interrupt context, wheras volatile is just
+>>enforcing coherency of a single memory location (and as such is
+>>cheaper).
 > 
-> "Volatile behaviour" itself isn't consistently defined (at least
-> definitely not consistently implemented in various gcc versions across
-> platforms), but it is /expected/ to mean something like: "ensure that
-> every such access actually goes all the way to memory, and is not
-> re-ordered w.r.t. to other accesses, as far as the compiler can take
-> care of these". The last "as far as compiler can take care" disclaimer
-> comes about due to CPUs doing their own re-ordering nowadays.
 > 
-> For example (say on i386):
+> barrier() is useful, but it has the very painful side-effect of forcing
+> the compiler to dump temporaries.  So we do need something that is
+> not quite so global in effect.
 
-[...]
+Yep.
 
-> In (A) the compiler optimized "a = 10;" away, but the actual store
-> of the final value "20" to "a" was still "atomic". (B) and (C) also
-> exhibit "volatile" behaviour apart from the "atomicity".
+
+>>What do you think of this crazy idea?
+>>
+>>/* Enforce a compiler barrier for only operations to location X.
+>> * Call multiple times to provide an ordering between multiple
+>> * memory locations. Other memory operations can be assumed by
+>> * the compiler to remain unchanged and may be reordered
+>> */
+>>#define order(x) asm volatile("" : "+m" (x))
 > 
-> But as others replied, it seems some callers out there depend upon
-> atomic ops exhibiting "volatile" behaviour as well, so that answers
-> my initial question, actually. I haven't looked at the code Paul
-> pointed me at, but I wonder if that "forget(x)" macro would help
-> those cases. I'd wish to avoid the "volatile" primitive, personally.
+> 
+> There was something very similar discussed earlier in this thread,
+> with quite a bit of debate as to exactly what the "m" flag should
+> look like.  I suggested something similar named ACCESS_ONCE in the
+> context of RCU (http://lkml.org/lkml/2007/7/11/664):
 
-So, looking at load instead of store, understand I correctly that in
-your opinion
+Oh, I missed that earlier debate. Will go have a look.
 
-	int b;
 
-	b = atomic_read(&a);
-	if (b)
-		do_something_time_consuming();
+> 	#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+> 
+> The nice thing about this is that it works for both loads and stores.
+> Not clear that order() above does this -- I get compiler errors when
+> I try something like "b = order(a)" or "order(a) = 1" using gcc 4.1.2.
 
-	b = atomic_read(&a);
-	if (b)
-		do_something_more();
+As Arnd ponted out, order() is not supposed to be an lvalue, but a
+statement like the rest of our memory ordering API.
 
-should be changed to explicitly forget(&a) after
-do_something_time_consuming?
+As to your followup question of why to use it over ACCESS_ONCE. I
+guess, aside from consistency with the rest of the barrier APIs, you
+can use it in other primitives when you don't actually know what the
+caller is going to do or if it even will make an access. You could
+also use it between calls to _other_ primitives, etc... it just
+seems more flexible to me, but I haven't actually used such a thing
+in real code...
 
-If so, how about the following:
+ACCESS_ONCE doesn't seem as descriptive. What it results in is the
+memory location being loaded or stored (presumably once exactly),
+but I think the more general underlying idea is a barrier point.
 
-static inline void A(atomic_t *a)
-{
-	int b = atomic_read(a);
-	if (b)
-		do_something_time_consuming();
-}
-
-static inline void B(atomic_t *a)
-{
-	int b = atomic_read(a);
-	if (b)
-		do_something_more();
-}
-
-static void C(atomic_t *a)
-{
-	A(a);
-	B(b);
-}
-
-Would this need forget(a) after A(a)?
-
-(Is the latter actually answered in C99 or is it compiler-dependent?)
 -- 
-Stefan Richter
--=====-=-=== =--- -====
-http://arcgraph.de/sr/
+SUSE Labs, Novell Inc.
