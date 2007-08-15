@@ -1,39 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:37582 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933502AbXHOSoU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 14:44:20 -0400
-Date: Wed, 15 Aug 2007 19:43:59 +0100
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [RFP] atomic[64]_[read|set] asm implementations
-Message-ID: <20070815184359.GA7300@flint.arm.linux.org.uk>
-References: <46C33E19.3050805@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <46C33E19.3050805@redhat.com>
+Received: from gate.crashing.org ([63.228.1.57]:37367 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753739AbXHOSj4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Aug 2007 14:39:56 -0400
+In-Reply-To: <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
+References: <20070809131423.GA9927@shell.boston.redhat.com> <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com> <alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in> <46C2D6F3.3070707@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <9350e9fab505c92af8d5e1f3441d6ad2@kernel.crashing.org>
+Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Date: Wed, 15 Aug 2007 20:31:31 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Chris Snook <csnook@redhat.com>
-Cc: Linux Kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Satyam Sharma <satyam@infradead.org>
+Cc: Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, rpjday@mindspring.com, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Aug 15, 2007 at 01:55:37PM -0400, Chris Snook wrote:
-> For architectures whose maintainers aren't worried and whose 
-> developers/users aren't bothered enough to submit an inline assembly 
-> patch, I'll just keep the inlines with the *(volatile foo *)& casts, 
-> unless of course ISO clarifies the C standard to different effect while 
-> we're arguing over semantics and micro-optimizations.
+> "Volatile behaviour" itself isn't consistently defined (at least
+> definitely not consistently implemented in various gcc versions across
+> platforms),
 
-I have no problem with your latest patch for ARM.  Moving ARM to
-assembly will actually remove some information which the compiler
-has when it knows about the access to be performed.
+It should be consistent across platforms; if not, file a bug please.
 
-If atomic_read() were converted to inline assembly, we'd prevent the
-compiler from knowing that a load has been performed and it should
-therefore avoid using the result of the load where possible for the
-following few instructions (due to result delays.)
+> but it is /expected/ to mean something like: "ensure that
+> every such access actually goes all the way to memory, and is not
+> re-ordered w.r.t. to other accesses, as far as the compiler can take
+> care of these". The last "as far as compiler can take care" disclaimer
+> comes about due to CPUs doing their own re-ordering nowadays.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+You can *expect* whatever you want, but this isn't in line with
+reality at all.
+
+volatile _does not_ make accesses go all the way to memory.
+volatile _does not_ prevent reordering wrt other accesses.
+
+What volatile does are a) never optimise away a read (or write)
+to the object, since the data can change in ways the compiler
+cannot see; and b) never move stores to the object across a
+sequence point.  This does not mean other accesses cannot be
+reordered wrt the volatile access.
+
+If the abstract machine would do an access to a volatile-
+qualified object, the generated machine code will do that
+access too.  But, for example, it can still be optimised
+away by the compiler, if it can prove it is allowed to.
+
+If you want stuff to go all the way to memory, you need some
+architecture-specific flush sequence; to make a store globally
+visible before another store, you need mb(); before some following
+read, you need mb(); to prevent reordering you need a barrier.
+
+
+Segher
+
