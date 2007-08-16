@@ -1,39 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:55184 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751980AbXHPA0i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 20:26:38 -0400
-Date: Wed, 15 Aug 2007 17:26:34 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-In-Reply-To: <18115.35524.56393.347841@cargo.ozlabs.ibm.com>
-Message-ID: <Pine.LNX.4.64.0708151725130.10497@schroedinger.engr.sgi.com>
-References: <20070809131423.GA9927@shell.boston.redhat.com>
- <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com>
- <alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in>
- <46C2D6F3.3070707@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
- <18115.35524.56393.347841@cargo.ozlabs.ibm.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from rhun.apana.org.au ([64.62.148.172]:1390 "EHLO
+	arnor.apana.org.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752787AbXHPAbA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 20:31:00 -0400
+Date: Thu, 16 Aug 2007 08:30:23 +0800
+From: Herbert Xu <herbert.xu@redhat.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Message-ID: <20070816003023.GA29447@gondor.apana.org.au>
+References: <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in> <46C2FADB.7020407@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151906330.16414@enigma.security.iitk.ac.in> <20070815142516.GB9645@linux.vnet.ibm.com> <4413.1187201997@redhat.com> <20070815184520.GG9645@linux.vnet.ibm.com> <20070815234146.GB28775@gondor.apana.org.au> <20070815235335.GU9645@linux.vnet.ibm.com> <20070816001248.GA29214@gondor.apana.org.au> <20070816002310.GW9645@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070816002310.GW9645@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: Satyam Sharma <satyam@infradead.org>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org, Herbert Xu <herbert@gondor.apana.org.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: David Howells <dhowells@redhat.com>, Satyam Sharma <satyam@infradead.org>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 16 Aug 2007, Paul Mackerras wrote:
+On Wed, Aug 15, 2007 at 05:23:10PM -0700, Paul E. McKenney wrote:
+> On Thu, Aug 16, 2007 at 08:12:48AM +0800, Herbert Xu wrote:
+> > On Wed, Aug 15, 2007 at 04:53:35PM -0700, Paul E. McKenney wrote:
+> > >
+> > > > > Communicating between process context and interrupt/NMI handlers using
+> > > > > per-CPU variables.
+> > > > 
+> > > > Remeber we're talking about atomic_read/atomic_set.  Please
+> > > > cite the actual file/function name you have in mind.
+> > > 
+> > > Yep, we are indeed talking about atomic_read()/atomic_set().
+> > > 
+> > > We have been through this issue already in this thread.
+> > 
+> > Sorry, but I must've missed it.  Could you cite the file or
+> > function for my benefit?
+> 
+> I might summarize the thread if there is interest, but I am not able to
+> do so right this minute.
 
-> In the kernel we use atomic variables in precisely those situations
-> where a variable is potentially accessed concurrently by multiple
-> CPUs, and where each CPU needs to see updates done by other CPUs in a
-> timely fashion.  That is what they are for.  Therefore the compiler
-> must not cache values of atomic variables in registers; each
-> atomic_read must result in a load and each atomic_set must result in a
-> store.  Anything else will just lead to subtle bugs.
+Thanks.  But I don't need a summary of the thread, I'm asking
+for an extant code snippet in our kernel that benefits from
+the volatile change and is not part of a busy-wait.
 
-This may have been the intend. However, today the visibility is controlled 
-using barriers. And we have barriers that we use with atomic operations. 
-Having volatile be the default just lead to confusion. Atomic read should 
-just read with no extras. Extras can be added by using variants like 
-atomic_read_volatile or so.
-
+Cheers,
+-- 
+Visit Openswan at http://www.openswan.org/
+Email: Herbert Xu ~{PmV>HI~} <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
