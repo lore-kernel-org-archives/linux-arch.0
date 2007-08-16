@@ -1,61 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:49983 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.10.76.45]:49943 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756641AbXHPDXT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1756295AbXHPDXT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Wed, 15 Aug 2007 23:23:19 -0400
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Message-ID: <18115.49946.522011.832468@cargo.ozlabs.ibm.com>
-Date: Thu, 16 Aug 2007 13:23:06 +1000
+Message-ID: <18115.48863.331246.638826@cargo.ozlabs.ibm.com>
+Date: Thu, 16 Aug 2007 13:05:03 +1000
 From: Paul Mackerras <paulus@samba.org>
 Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
  architectures
-In-Reply-To: <Pine.LNX.4.64.0708151917210.11736@schroedinger.engr.sgi.com>
-References: <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
+In-Reply-To: <alpine.LFD.0.999.0708160800130.24380@enigma.security.iitk.ac.in>
+References: <20070809131423.GA9927@shell.boston.redhat.com>
+	<Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com>
+	<alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in>
+	<46C2D6F3.3070707@s5r6.in-berlin.de>
+	<alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
 	<18115.35524.56393.347841@cargo.ozlabs.ibm.com>
 	<Pine.LNX.4.64.0708151725130.10497@schroedinger.engr.sgi.com>
 	<20070816003948.GY9645@linux.vnet.ibm.com>
 	<Pine.LNX.4.64.0708151740570.10497@schroedinger.engr.sgi.com>
-	<20070816005348.GA9645@linux.vnet.ibm.com>
-	<Pine.LNX.4.64.0708151757400.11196@schroedinger.engr.sgi.com>
-	<20070816011414.GC9645@linux.vnet.ibm.com>
-	<Pine.LNX.4.64.0708151839140.11520@schroedinger.engr.sgi.com>
-	<alpine.LFD.0.999.0708160730590.24380@enigma.security.iitk.ac.in>
-	<20070816020851.GA30809@gondor.apana.org.au>
-	<Pine.LNX.4.64.0708151917210.11736@schroedinger.engr.sgi.com>
+	<18115.44462.622801.683446@cargo.ozlabs.ibm.com>
+	<20070816020042.GA30650@gondor.apana.org.au>
+	<18115.45316.702491.681906@cargo.ozlabs.ibm.com>
+	<alpine.LFD.0.999.0708160800130.24380@enigma.security.iitk.ac.in>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, Satyam Sharma <satyam@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Satyam Sharma <satyam@infradead.org>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, Christoph Lameter <clameter@sgi.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Lameter writes:
+Satyam Sharma writes:
 
-> > But I have to say that I still don't know of a single place
-> > where one would actually use the volatile variant.
-> 
-> I suspect that what you say is true after we have looked at all callers.
+> I can't speak for this particular case, but there could be similar code
+> examples elsewhere, where we do the atomic ops on an atomic_t object
+> inside a higher-level locking scheme that would take care of the kind of
+> problem you're referring to here. It would be useful for such or similar
+> code if the compiler kept the value of that atomic object in a register.
 
-It seems that there could be a lot of places where atomic_t is used in
-a non-atomic fashion, and that those uses are either buggy, or there
-is some lock held at the time which guarantees that other CPUs aren't
-changing the value.  In both cases there is no point in using
-atomic_t; we might as well just use an ordinary int.
-
-In particular, atomic_read seems to lend itself to buggy uses.  People
-seem to do things like:
-
-	atomic_add(&v, something);
-	if (atomic_read(&v) > something_else) ...
-
-and expect that there is some relationship between the value that the
-atomic_add stored and the value that the atomic_read will return,
-which there isn't.  People seem to think that using atomic_t magically
-gets rid of races.  It doesn't.
-
-I'd go so far as to say that anywhere where you want a non-"volatile"
-atomic_read, either your code is buggy, or else an int would work just
-as well.
+If there is a higher-level locking scheme then there is no point to
+using atomic_t variables.  Atomic_t is specifically for the situation
+where multiple CPUs are updating a variable without locking.
 
 Paul.
-
