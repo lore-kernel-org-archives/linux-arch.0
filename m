@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:39454 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:41452 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751613AbXHPT6b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Aug 2007 15:58:31 -0400
-Message-ID: <46C4ABA5.9010804@redhat.com>
-Date: Thu, 16 Aug 2007 15:55:17 -0400
+	id S1750925AbXHPUDW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Aug 2007 16:03:22 -0400
+Message-ID: <46C4ABC5.0@redhat.com>
+Date: Thu, 16 Aug 2007 15:55:49 -0400
 From: Chris Snook <csnook@redhat.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
@@ -41,7 +41,7 @@ reason not to.  I'll allow that for some hardware drivers (possibly this
 one) such a compelling reason may exist, but hardware-independent core 
 subsystems probably have no excuse.
 
-If the maintainer of this code doesn't see a compelling reason to add 
-cpu_relax() in this loop, then it should be patched.
+If the maintainer of this code doesn't see a compelling reason not to 
+add cpu_relax() in this loop, then it should be patched.
 
 	-- Chris
