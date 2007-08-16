@@ -1,35 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:54742 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:59737 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759235AbXHPTjq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Aug 2007 15:39:46 -0400
-In-Reply-To: <20070816023050.GC14613@linux.vnet.ibm.com>
-References: <E1ILCgh-00052A-00@gondolin.me.apana.org.au> <46C32618.2080108@redhat.com> <20070815234021.GA28775@gondor.apana.org.au> <20070815235125.GT9645@linux.vnet.ibm.com> <0de0c3d833b6f543bd75f74bb17a124b@kernel.crashing.org> <20070816023050.GC14613@linux.vnet.ibm.com>
+	id S1751033AbXHPTww (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Aug 2007 15:52:52 -0400
+In-Reply-To: <18115.49946.522011.832468@cargo.ozlabs.ibm.com>
+References: <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in> <18115.35524.56393.347841@cargo.ozlabs.ibm.com> <Pine.LNX.4.64.0708151725130.10497@schroedinger.engr.sgi.com> <20070816003948.GY9645@linux.vnet.ibm.com> <Pine.LNX.4.64.0708151740570.10497@schroedinger.engr.sgi.com> <20070816005348.GA9645@linux.vnet.ibm.com> <Pine.LNX.4.64.0708151757400.11196@schroedinger.engr.sgi.com> <20070816011414.GC9645@linux.vnet.ibm.com> <Pine.LNX.4.64.0708151839140.11520@schroedinger.engr.sgi.com> <alpine.LFD.0.999.0708160730590.24380@enigma.security.iitk.ac.in> <20070816020851.GA30809@gondor.apana.org.au> <Pine.LNX.4.64.0708151917210.11736@schroedinger.engr.sgi.com> <18115.49946.522011.832468@cargo.ozlabs.ibm.com>
 Mime-Version: 1.0 (Apple Message framework v623)
 Content-Type: text/plain; charset=US-ASCII; format=flowed
-Message-Id: <d4c6e3846c4171eb1e74d0874d7c3b60@kernel.crashing.org>
+Message-Id: <cddb9608159b27a528fe87e94193dd0b@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
 From: Segher Boessenkool <segher@kernel.crashing.org>
 Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
-Date: Thu, 16 Aug 2007 21:33:40 +0200
+Date: Thu, 16 Aug 2007 21:44:14 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: paulmck@linux.vnet.ibm.com
-Cc: heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, rpjday@mindspring.com, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, zlynx@acm.org, satyam@infradead.org, clameter@sgi.com, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert.xu@redhat.com>, davem@davemloft.net, wensong@linux-vs.org, wjiang@resilience.com
+To: Paul Mackerras <paulus@samba.org>
+Cc: Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Satyam Sharma <satyam@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, rpjday@mindspring.com, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
->> The only thing volatile on an asm does is create a side effect
->> on the asm statement; in effect, it tells the compiler "do not
->> remove this asm even if you don't need any of its outputs".
->>
->> It's not disabling optimisation likely to result in bugs,
->> heisen- or otherwise; _not_ putting the volatile on an asm
->> that needs it simply _is_ a bug :-)
->
-> Yep.  And the reason it is a bug is that it fails to disable
-> the relevant compiler optimizations.  So I suspect that we might
-> actually be saying the same thing here.
+> I'd go so far as to say that anywhere where you want a non-"volatile"
+> atomic_read, either your code is buggy, or else an int would work just
+> as well.
 
-We're not saying the same thing, but we do agree :-)
+Even, the only way to implement a "non-volatile" atomic_read() is
+essentially as a plain int (you can do some tricks so you cannot
+assign to the result and stuff like that, but that's not the issue
+here).
+
+So if that would be the behaviour we wanted, just get rid of that
+whole atomic_read() thing, so no one can misuse it anymore.
 
 
 Segher
