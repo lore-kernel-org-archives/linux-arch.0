@@ -1,40 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zcars04f.nortel.com ([47.129.242.57]:63136 "EHLO
-	zcars04f.nortel.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S936156AbXHPCT6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 22:19:58 -0400
-Message-ID: <46C3B40D.3010909@nortel.com>
-Date: Wed, 15 Aug 2007 20:18:53 -0600
-From: "Chris Friesen" <cfriesen@nortel.com>
+Received: from smtp106.mail.mud.yahoo.com ([209.191.85.216]:39086 "HELO
+	smtp106.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1756576AbXHPCXV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Aug 2007 22:23:21 -0400
+Message-ID: <46C3B50E.7010702@yahoo.com.au>
+Date: Thu, 16 Aug 2007 12:23:10 +1000
+From: Nick Piggin <nickpiggin@yahoo.com.au>
 MIME-Version: 1.0
 Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
  architectures
-References: <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in> <18115.35524.56393.347841@cargo.ozlabs.ibm.com> <Pine.LNX.4.64.0708151725130.10497@schroedinger.engr.sgi.com> <20070816003948.GY9645@linux.vnet.ibm.com> <Pine.LNX.4.64.0708151740570.10497@schroedinger.engr.sgi.com> <20070816005348.GA9645@linux.vnet.ibm.com> <Pine.LNX.4.64.0708151757400.11196@schroedinger.engr.sgi.com> <20070816011414.GC9645@linux.vnet.ibm.com> <Pine.LNX.4.64.0708151839140.11520@schroedinger.engr.sgi.com> <alpine.LFD.0.999.0708160730590.24380@enigma.security.iitk.ac.in> <20070816020851.GA30809@gondor.apana.org.au>
-In-Reply-To: <20070816020851.GA30809@gondor.apana.org.au>
+References: <E1ILCgh-00052A-00@gondolin.me.apana.org.au> <46C32618.2080108@redhat.com> <20070815234021.GA28775@gondor.apana.org.au> <3694fb2e4ed1e4d9bf873c0d050c911e@kernel.crashing.org>
+In-Reply-To: <3694fb2e4ed1e4d9bf873c0d050c911e@kernel.crashing.org>
 Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Satyam Sharma <satyam@infradead.org>, Christoph Lameter <clameter@sgi.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Herbert Xu <herbert.xu@redhat.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, rpjday@mindspring.com, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, zlynx@acm.org, satyam@infradead.org, clameter@sgi.com, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, davem@davemloft.net, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Herbert Xu wrote:
+Segher Boessenkool wrote:
+>>> Part of the motivation here is to fix heisenbugs.  If I knew where they
+>>
+>>
+>> By the same token we should probably disable optimisations
+>> altogether since that too can create heisenbugs.
+> 
+> 
+> Almost everything is a tradeoff; and so is this.  I don't
+> believe most people would find disabling all compiler
+> optimisations an acceptable price to pay for some peace
+> of mind.
 
-> But I have to say that I still don't know of a single place
-> where one would actually use the volatile variant.
+So why is this a good tradeoff?
 
-Given that many of the existing users do currently have "volatile", are 
-you comfortable simply removing that behaviour from them?  Are you sure 
-that you will not introduce any issues?
+I also think that just adding things to APIs in the hope it might fix
+up some bugs isn't really a good road to go down. Where do you stop?
 
-Forcing a re-read is only a performance penalty.  Removing it can cause 
-behavioural changes.
+On the actual proposal to make atomic_operators volatile: I think the
+better approach in the long term, for both maintainability of the
+code and education of coders, is to make the use of barriers _more_
+explicit rather than sprinkling these "just in case" ones around.
 
-I would be more comfortable making the default match the majority of the 
-current implementations (ie: volatile semantics).  Then, if someone 
-cares about performance they can explicitly validate the call path and 
-convert it over to the non-volatile version.
+You may get rid of a few atomic_read heisenbugs (in noise when
+compared to all bugs), but if the coder was using a regular atomic
+load, or a test_bit (which is also atomic), etc. then they're going
+to have problems.
 
-Correctness before speed...
+It would be better for Linux if everyone was to have better awareness
+of barriers than to hide some of the cases where they're required.
+A pretty large number of bugs I see in lock free code in the VM is
+due to memory ordering problems. It's hard to find those bugs, or
+even be aware when you're writing buggy code if you don't have some
+feel for barriers.
 
-Chris
+-- 
+SUSE Labs, Novell Inc.
