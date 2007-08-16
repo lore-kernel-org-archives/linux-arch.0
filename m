@@ -1,34 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:5403 "EHLO mga01.intel.com"
+Received: from gate.crashing.org ([63.228.1.57]:40428 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751132AbXHPVIz convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Aug 2007 17:08:55 -0400
-Content-class: urn:content-classes:message
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Subject: RE: [PATCH 0/24] make atomic_read() behave consistently across all architectures
-Date: Thu, 16 Aug 2007 14:08:52 -0700
-Message-ID: <617E1C2C70743745A92448908E030B2A02322189@scsmsx411.amr.corp.intel.com>
-In-Reply-To: <46C4ABA5.9010804@redhat.com>
-References: <20070816003948.GY9645@linux.vnet.ibm.com> <Pine.LNX.4.64.0708151740570.10497@schroedinger.engr.sgi.com> <18115.44462.622801.683446@cargo.ozlabs.ibm.com> <20070816020042.GA30650@gondor.apana.org.au> <18115.45316.702491.681906@cargo.ozlabs.ibm.com> <alpine.LFD.0.999.0708160800130.24380@enigma.security.iitk.ac.in> <alpine.LFD.0.999.0708160815510.24380@enigma.security.iitk.ac.in> <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <20070816053945.GB32442@gondor.apana.org.au> <18115.62741.807704.969977@cargo.ozlabs.ibm.com> <20070816070907.GA964@gondor.apana.org.au> <Pine.LNX.4.64.0708161743500.13267@kivilampi-30.cs.helsinki.fi> <46C4ABA5.9010804@redhat.com>
-From: "Luck, Tony" <tony.luck@intel.com>
+	id S1754243AbXHPVhT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Aug 2007 17:37:19 -0400
+In-Reply-To: <46C2325C.8040900@redhat.com>
+References: <46C03885.7000109@redhat.com> <20070813110415.GA24018@shell.boston.redhat.com> <Pine.LNX.4.64.0708141544001.401@schroedinger.engr.sgi.com> <46C2325C.8040900@redhat.com>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <7913acdd6449613c49b86bc99da0d254@kernel.crashing.org>
+Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH 1/23] document preferred use of volatile with atomic_t
+Date: Thu, 16 Aug 2007 23:36:49 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Chris Snook <csnook@redhat.com>, =?iso-8859-1?Q?Ilpo_J=E4rvinen?= <ilpo.jarvinen@helsinki.fi>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, Paul Mackerras <paulus@samba.org>, Satyam Sharma <satyam@infradead.org>, Christoph Lameter <clameter@sgi.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Netdev <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, David Miller <davem@davemloft.net>, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Chris Snook <csnook@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "Robert P. J. Day" <rpjday@mindspring.com>, paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, "Luck, Tony" <tony.luck@intel.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Christoph Lameter <clameter@sgi.com>, Chris Friesen <cfriesen@nortel.com>
 List-ID: <linux-arch.vger.kernel.org>
 
->> 6674:   while (atomic_read(&j->DSPWrite) > 0)
->> 6675-           atomic_dec(&j->DSPWrite);
->
-> If the maintainer of this code doesn't see a compelling reason to add 
-> cpu_relax() in this loop, then it should be patched.
+> But barriers force a flush of *everything* in scope,
 
-Shouldn't it be just re-written without the loop:
+Nonsense, whatever "flush" is supposed to mean here.
 
-	if ((tmp = atomic_read(&j->DSPWrite)) > 0)
-		atomic_sub(&j->DSPWrite, tmp);
+> If you really, *really* distrust the compiler that much, you shouldn't 
+> be using barrier, since that uses volatile under the hood too.  You 
+> should just go ahead and implement the atomic operations in assembler, 
+> like Segher Boessenkool did for powerpc in response to my previous 
+> patchset.
 
-Has all the same bugs, but runs much faster :-)
+Puh-lease.  I DO NOT DISTRUST THE COMPILER, I just don't assume
+it will do whatever I would like it to do without telling it.
+It's a machine you know, and it is very well documented.
 
--Tony
+(And most barriers don't (need to) use volatile).
+
+Implementing the atomic ops in asm loses exactly *no* semantics,
+and it doesn't add restrictions either; it does allow you however
+to access an atomic_t with normal loads/stores independently, if
+you so choose.  The only valid issue brought up so far is Russell
+King's comment that GCC cannot schedule the machine instructions
+in and around an asm() perfectly, it doesn't look inside the asm()
+after all; but the situation isn't quite as sever as he suggests
+(GCC _does_ know you are performing loads/stores, etc.); more about
+that later, when I've finished researching the current state of
+that stuff.
+
+
+Segher
+
