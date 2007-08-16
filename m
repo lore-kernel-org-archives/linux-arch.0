@@ -1,80 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:36334 "EHLO
+Received: from pentafluge.infradead.org ([213.146.154.40]:58260 "EHLO
 	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934836AbXHPAXg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 20:23:36 -0400
-Date: Thu, 16 Aug 2007 06:06:00 +0530 (IST)
+	with ESMTP id S1761951AbXHPA0u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2007 20:26:50 -0400
+Date: Thu, 16 Aug 2007 06:09:25 +0530 (IST)
 From: Satyam Sharma <satyam@infradead.org>
-In-Reply-To: <2d2eeab6276cab2e6cc5830d36a43b98@kernel.crashing.org>
-Message-ID: <alpine.LFD.0.999.0708160338520.22701@enigma.security.iitk.ac.in>
+Subject: [PATCH] i386: Fix a couple busy loops in
+ mach_wakecpu.h:wait_for_init_deassert()
+In-Reply-To: <20070815081841.GA16551@osiris.boeblingen.de.ibm.com>
+Message-ID: <alpine.LFD.0.999.0708160606580.24380@enigma.security.iitk.ac.in>
 References: <46C2350A.1010807@redhat.com> <E1ILCgh-00052A-00@gondolin.me.apana.org.au>
- <20070815081841.GA16551@osiris.boeblingen.de.ibm.com> <46C30540.2070603@s5r6.in-berlin.de>
- <alpine.LFD.0.999.0708151941150.16414@enigma.security.iitk.ac.in>
- <20070815145207.GA23106@gondor.apana.org.au> <46C3253F.5090707@s5r6.in-berlin.de>
- <20070815162722.GD9645@linux.vnet.ibm.com> <d4406222873856f472b9173a14a19aa2@kernel.crashing.org>
- <20070815185724.GH9645@linux.vnet.ibm.com>
- <alpine.LFD.0.999.0708160118330.16414@enigma.security.iitk.ac.in>
- <2d2eeab6276cab2e6cc5830d36a43b98@kernel.crashing.org>
+ <20070815081841.GA16551@osiris.boeblingen.de.ibm.com>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, Heiko Carstens <heiko.carstens@de.ibm.com>, rpjday@mindspring.com, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, clameter@sgi.com, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, Chris Snook <csnook@redhat.com>, clameter@sgi.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
 
-On Wed, 15 Aug 2007, Segher Boessenkool wrote:
+On Wed, 15 Aug 2007, Heiko Carstens wrote:
 
-> > > > What you probably mean is that the compiler has to assume any code
-> > > > it cannot currently see can do anything (insofar as allowed by the
-> > > > relevant standards etc.)
-> > 
-> > I think this was just terminology confusion here again. Isn't "any code
-> > that it cannot currently see" the same as "another compilation unit",
+> [...]
+> Btw.: we still have
 > 
-> It is not; try  gcc -combine  or the upcoming link-time optimisation
-> stuff, for example.
+> include/asm-i386/mach-es7000/mach_wakecpu.h:  while (!atomic_read(deassert));
+> include/asm-i386/mach-default/mach_wakecpu.h: while (!atomic_read(deassert));
 > 
-> > and wouldn't the "compilation unit" itself expand if we ask gcc to
-> > compile more than one unit at once? Or is there some more specific
-> > "definition" for "compilation unit" (in gcc lingo, possibly?)
-> 
-> "compilation unit" is a C standard term.  It typically boils down
-> to "single .c file".
-
-As you mentioned later, "single .c file with all the other files (headers
-or other .c files) that it pulls in via #include" is actually "translation
-unit", both in the C standard as well as gcc docs. "Compilation unit"
-doesn't seem to be nearly as standard a term, though in most places it
-is indeed meant to be same as "translation unit", but with the new gcc
-inter-module-analysis stuff that you referred to above, I suspect one may
-reasonably want to call a "compilation unit" as all that the compiler sees
-at a given instant.
-
-BTW I did some auditing (only inside include/asm-{i386,x86_64}/ and
-arch/{i386,x86_64}/) and found a couple more callsites that don't use
-cpu_relax():
-
-arch/i386/kernel/crash.c:101
-arch/x86_64/kernel/crash.c:97
-
-that are:
-
-	while ((atomic_read(&waiting_for_crash_ipi) > 0) && msecs) {
-		mdelay(1);
-		msecs--;
-	}
-
-where mdelay() becomes __const_udelay() which happens to be in another
-translation unit (arch/i386/lib/delay.c) and hence saves this callsite
-from being a bug :-)
-
-Curiously, __const_udelay() is still marked as "inline" where it is
-implemented in lib/delay.c which is weird, considering it won't ever
-be inlined, would it? With the kernel presently being compiled one
-translation unit at a time, I don't see how the implementation would
-be visible to any callsite out there to be able to inline it.
+> Looks like they need to be fixed as well.
 
 
-Satyam
+[PATCH] i386: Fix a couple busy loops in mach_wakecpu.h:wait_for_init_deassert()
+
+Use cpu_relax() in the busy loops, as atomic_read() doesn't automatically
+imply volatility for i386 and x86_64. x86_64 doesn't have this issue because
+it open-codes the while loop in smpboot.c:smp_callin() itself that already
+uses cpu_relax().
+
+For i386, however, smpboot.c:smp_callin() calls wait_for_init_deassert()
+which is buggy for mach-default and mach-es7000 cases.
+
+[ I test-built a kernel -- smp_callin() itself got inlined in its only
+  callsite, smpboot.c:start_secondary() -- and the relevant piece of
+  code disassembles to the following:
+
+0xc1019704 <start_secondary+12>:        mov    0xc144c4c8,%eax
+0xc1019709 <start_secondary+17>:        test   %eax,%eax
+0xc101970b <start_secondary+19>:        je     0xc1019709 <start_secondary+17>
+
+  init_deasserted (at 0xc144c4c8) gets fetched into %eax only once and
+  then we loop over the test of the stale value in the register only,
+  so these look like real bugs to me. With the fix below, this becomes:
+
+0xc1019706 <start_secondary+14>:        pause
+0xc1019708 <start_secondary+16>:        cmpl   $0x0,0xc144c4c8
+0xc101970f <start_secondary+23>:        je     0xc1019706 <start_secondary+14>
+
+  which looks nice and healthy. ]
+
+Thanks to Heiko Carstens for noticing this.
+
+Signed-off-by: Satyam Sharma <satyam@infradead.org>
+
+---
+
+ include/asm-i386/mach-default/mach_wakecpu.h |    3 ++-
+ include/asm-i386/mach-es7000/mach_wakecpu.h  |    3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/include/asm-i386/mach-default/mach_wakecpu.h b/include/asm-i386/mach-default/mach_wakecpu.h
+index 673b85c..3ebb178 100644
+--- a/include/asm-i386/mach-default/mach_wakecpu.h
++++ b/include/asm-i386/mach-default/mach_wakecpu.h
+@@ -15,7 +15,8 @@
+ 
+ static inline void wait_for_init_deassert(atomic_t *deassert)
+ {
+-	while (!atomic_read(deassert));
++	while (!atomic_read(deassert))
++		cpu_relax();
+ 	return;
+ }
+ 
+diff --git a/include/asm-i386/mach-es7000/mach_wakecpu.h b/include/asm-i386/mach-es7000/mach_wakecpu.h
+index efc903b..84ff583 100644
+--- a/include/asm-i386/mach-es7000/mach_wakecpu.h
++++ b/include/asm-i386/mach-es7000/mach_wakecpu.h
+@@ -31,7 +31,8 @@ wakeup_secondary_cpu(int phys_apicid, unsigned long start_eip)
+ static inline void wait_for_init_deassert(atomic_t *deassert)
+ {
+ #ifdef WAKE_SECONDARY_VIA_INIT
+-	while (!atomic_read(deassert));
++	while (!atomic_read(deassert))
++		cpu_relax();
+ #endif
+ 	return;
+ }
