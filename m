@@ -1,59 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:49657 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750816AbXHRCDf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2007 22:03:35 -0400
-Date: Sat, 18 Aug 2007 07:45:53 +0530 (IST)
-From: Satyam Sharma <satyam@infradead.org>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-In-Reply-To: <46C59B09.8040004@cyberone.com.au>
-Message-ID: <alpine.LFD.0.999.0708180731330.3666@enigma.security.iitk.ac.in>
-References: <alpine.LFD.0.999.0708160815510.24380@enigma.security.iitk.ac.in>
- <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <20070816053945.GB32442@gondor.apana.org.au>
- <18115.62741.807704.969977@cargo.ozlabs.ibm.com> <20070816070907.GA964@gondor.apana.org.au>
- <46C40587.7050708@s5r6.in-berlin.de> <20070816081049.GA1431@gondor.apana.org.au>
- <46C41EE4.9090806@s5r6.in-berlin.de> <46C42767.4070104@s5r6.in-berlin.de>
- <20070816104250.GB2927@gondor.apana.org.au> <20070816163441.GB16957@linux.vnet.ibm.com>
- <46C512EB.7020603@yahoo.com.au> <46C54D74.60101@s5r6.in-berlin.de>
- <46C556F1.8000407@yahoo.com.au> <alpine.LFD.0.999.0708171420060.3666@enigma.security.iitk.ac.in>
- <46C5672E.4060003@cyberone.com.au> <alpine.LFD.0.999.0708171521230.3666@enigma.security.iitk.ac.in>
- <46C58B93.5000408@cyberone.com.au> <alpine.LFD.0.999.0708171737060.3666@enigma.security.iitk.ac.in>
- <46C59B09.8040004@cyberone.com.au>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=us-ascii
+Received: from gate.crashing.org ([63.228.1.57]:47882 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751479AbXHQWMN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Aug 2007 18:12:13 -0400
+In-Reply-To: <alpine.LFD.0.999.0708161953310.30176@woody.linux-foundation.org>
+References: <20070816003948.GY9645@linux.vnet.ibm.com> <Pine.LNX.4.64.0708151740570.10497@schroedinger.engr.sgi.com> <18115.44462.622801.683446@cargo.ozlabs.ibm.com> <20070816020042.GA30650@gondor.apana.org.au> <18115.45316.702491.681906@cargo.ozlabs.ibm.com> <alpine.LFD.0.999.0708160800130.24380@enigma.security.iitk.ac.in> <alpine.LFD.0.999.0708160815510.24380@enigma.security.iitk.ac.in> <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <20070816053945.GB32442@gondor.apana.org.au> <18115.62741.807704.969977@cargo.ozlabs.ibm.com> <20070816070907.GA964@gondor.apana.org.au> <Pine.LNX.4.64.0708161743500.13267@kivilampi-30.cs.helsinki.fi> <46C4ABA5.9010804@redhat.com> <Pine.LNX.4.64.0708161319000.17777@schroedinger.engr.sgi.com> <18117.1287.779351.836552@cargo.ozlabs.ibm.com> <alpine.LFD.0.999.0708161953310.30176@woody.linux-foundation.org>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <784250b50ba166650cbbb4de29b5559b@kernel.crashing.org>
+Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Date: Sat, 18 Aug 2007 00:09:45 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <piggin@cyberone.com.au>
-Cc: Stefan Richter <stefanr@s5r6.in-berlin.de>, paulmck@linux.vnet.ibm.com, Herbert Xu <herbert@gondor.apana.org.au>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Christoph Lameter <clameter@sgi.com>, Paul Mackerras <paulus@samba.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Satyam Sharma <satyam@infradead.org>, Ilpo J?rvinen <ilpo.jarvinen@helsinki.fi>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, ak@suse.de, Netdev <netdev@vger.kernel.org>, cfriesen@nortel.com, rpjday@mindspring.com, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
+> Of course, since *normal* accesses aren't necessarily limited wrt
+> re-ordering, the question then becomes one of "with regard to *what* 
+> does
+> it limit re-ordering?".
+>
+> A C compiler that re-orders two different volatile accesses that have a
+> sequence point in between them is pretty clearly a buggy compiler. So 
+> at a
+> minimum, it limits re-ordering wrt other volatiles (assuming sequence
+> points exists). It also means that the compiler cannot move it
+> speculatively across conditionals, but other than that it's starting to
+> get fuzzy.
+
+This is actually really well-defined in C, not fuzzy at all.
+"Volatile accesses" are a side effect, and no side effects can
+be reordered with respect to sequence points.  The side effects
+that matter in the kernel environment are: 1) accessing a volatile
+object; 2) modifying an object; 3) volatile asm(); 4) calling a
+function that does any of these.
+
+We certainly should avoid volatile whenever possible, but "because
+it's fuzzy wrt reordering" is not a reason -- all alternatives have
+exactly the same issues.
 
 
-On Fri, 17 Aug 2007, Nick Piggin wrote:
+Segher
 
-> Satyam Sharma wrote:
-> 
-> > I didn't quite understand what you said here, so I'll tell what I think:
-> > 
-> > * foo() is a compiler barrier if the definition of foo() is invisible to
-> >  the compiler at a callsite.
-> > 
-> > * foo() is also a compiler barrier if the definition of foo() includes
-> >  a barrier, and it is inlined at the callsite.
-> > 
-> > If the above is wrong, or if there's something else at play as well,
-> > do let me know.
-> 
-> [...]
-> If a function is not completely visible to the compiler (so it can't
-> determine whether a barrier could be in it or not), then it must always
-> assume it will contain a barrier so it always does the right thing.
-
-Yup, that's what I'd said just a few sentences above, as you can see. I
-was actually asking for "elaboration" on "how a compiler determines that
-function foo() (say foo == schedule), even when it cannot see that it has
-a barrier(), as you'd mentioned, is a 'sleeping' function" actually, and
-whether compilers have a "notion of sleep to automatically assume a
-compiler barrier whenever such a sleeping function foo() is called". But
-I think you've already qualified the discussion to this kernel, so okay,
-I shouldn't nit-pick anymore.
