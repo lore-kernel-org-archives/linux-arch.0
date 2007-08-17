@@ -1,30 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:35515 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:45347 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752062AbXHQWkM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Aug 2007 18:40:12 -0400
-In-Reply-To: <alpine.LFD.0.999.0708170945300.3666@enigma.security.iitk.ac.in>
-References: <20070809131423.GA9927@shell.boston.redhat.com> <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com> <alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in> <46C2D6F3.3070707@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in> <20070815233721.91032366.billfink@mindspring.com> <alpine.LFD.0.999.0708161045360.25951@enigma.security.iitk.ac.in> <4952d3f536060c186f40c277dfc74194@kernel.crashing.org> <alpine.LFD.0.999.0708170945300.3666@enigma.security.iitk.ac.in>
+	id S1754374AbXHQWR1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Aug 2007 18:17:27 -0400
+In-Reply-To: <46C512EB.7020603@yahoo.com.au>
+References: <alpine.LFD.0.999.0708160815510.24380@enigma.security.iitk.ac.in> <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <20070816053945.GB32442@gondor.apana.org.au> <18115.62741.807704.969977@cargo.ozlabs.ibm.com> <20070816070907.GA964@gondor.apana.org.au> <46C40587.7050708@s5r6.in-berlin.de> <20070816081049.GA1431@gondor.apana.org.au> <46C41EE4.9090806@s5r6.in-berlin.de> <46C42767.4070104@s5r6.in-berlin.de> <20070816104250.GB2927@gondor.apana.org.au> <20070816163441.GB16957@linux.vnet.ibm.com> <46C512EB.7020603@yahoo.com.au>
 Mime-Version: 1.0 (Apple Message framework v623)
 Content-Type: text/plain; charset=US-ASCII; format=flowed
-Message-Id: <33a54cfcfda7e50e43a7399780626869@kernel.crashing.org>
+Message-Id: <1f265c14b28f2c5922059a130b1d8aa5@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
 From: Segher Boessenkool <segher@kernel.crashing.org>
 Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
-Date: Sat, 18 Aug 2007 00:34:34 +0200
+Date: Sat, 18 Aug 2007 00:14:30 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Satyam Sharma <satyam@infradead.org>
-Cc: Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Bill Fink <billfink@mindspring.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, rpjday@mindspring.com, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, davids@webmaster.com, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: paulmck@linux.vnet.ibm.com, Christoph Lameter <clameter@sgi.com>, Paul Mackerras <paulus@samba.org>, heiko.carstens@de.ibm.com, Stefan Richter <stefanr@s5r6.in-berlin.de>, horms@verge.net.au, Satyam Sharma <satyam@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, rpjday@mindspring.com, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-> Now the second wording *IS* technically correct, but come on, it's
-> 24 words long whereas the original one was 3 -- and hopefully anybody
-> reading the shorter phrase *would* have known anyway what was meant,
-> without having to be pedantic about it :-)
+> (and yes, it is perfectly legitimate to
+> want a non-volatile read for a data type that you also want to do
+> atomic RMW operations on)
 
-Well you were talking pretty formal (and detailed) stuff, so
-IMHO it's good to have that exactly correct.  Sure it's nicer
-to use small words most of the time :-)
+...which is undefined behaviour in C (and GCC) when that data is
+declared volatile, which is a good argument against implementing
+atomics that way in itself.
 
 
 Segher
