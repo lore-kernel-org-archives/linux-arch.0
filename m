@@ -1,123 +1,177 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:48315 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755404AbXHQNY1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2007 09:24:27 -0400
-Date: Fri, 17 Aug 2007 19:06:20 +0530 (IST)
-From: Satyam Sharma <satyam@infradead.org>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-In-Reply-To: <46C59717.4020108@cyberone.com.au>
-Message-ID: <alpine.LFD.0.999.0708171836320.3666@enigma.security.iitk.ac.in>
-References: <18115.52863.638655.658466@cargo.ozlabs.ibm.com>
- <20070816053945.GB32442@gondor.apana.org.au> <18115.62741.807704.969977@cargo.ozlabs.ibm.com>
- <20070816070907.GA964@gondor.apana.org.au>
- <Pine.LNX.4.64.0708161743500.13267@kivilampi-30.cs.helsinki.fi>
- <46C4ABA5.9010804@redhat.com> <Pine.LNX.4.64.0708161319000.17777@schroedinger.engr.sgi.com>
- <18117.1287.779351.836552@cargo.ozlabs.ibm.com>
- <alpine.LFD.0.999.0708161953310.30176@woody.linux-foundation.org>
- <18117.6495.397597.582736@cargo.ozlabs.ibm.com> <20070817035342.GA14744@gondor.apana.org.au>
- <alpine.LFD.0.999.0708171142550.3666@enigma.security.iitk.ac.in>
- <46C55E90.7010407@yahoo.com.au> <alpine.LFD.0.999.0708171431150.3666@enigma.security.iitk.ac.in>
- <46C56ADF.8010501@cyberone.com.au> <alpine.LFD.0.999.0708171612440.3666@enigma.security.iitk.ac.in>
- <46C59717.4020108@cyberone.com.au>
+Received: from e1.ny.us.ibm.com ([32.97.182.141]:35239 "EHLO e1.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756391AbXHQObI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Aug 2007 10:31:08 -0400
+Date: Fri, 17 Aug 2007 07:31:01 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Message-ID: <20070817143101.GA8464@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20070816070907.GA964@gondor.apana.org.au> <46C40587.7050708@s5r6.in-berlin.de> <20070816081049.GA1431@gondor.apana.org.au> <46C41EE4.9090806@s5r6.in-berlin.de> <46C42767.4070104@s5r6.in-berlin.de> <20070816104250.GB2927@gondor.apana.org.au> <20070816163441.GB16957@linux.vnet.ibm.com> <20070816235902.GB11594@gondor.apana.org.au> <20070817010108.GJ16957@linux.vnet.ibm.com> <alpine.LFD.0.999.0708171232380.3666@enigma.security.iitk.ac.in>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=us-ascii
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.0.999.0708171232380.3666@enigma.security.iitk.ac.in>
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <piggin@cyberone.com.au>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, Paul Mackerras <paulus@samba.org>, Linus Torvalds <torvalds@linux-foundation.org>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Ilpo Jarvinen <ilpo.jarvinen@helsinki.fi>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Netdev <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, David Miller <davem@davemloft.net>, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Satyam Sharma <satyam@infradead.org>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Fri, 17 Aug 2007, Nick Piggin wrote:
-
-> Satyam Sharma wrote:
+On Fri, Aug 17, 2007 at 01:09:08PM +0530, Satyam Sharma wrote:
 > 
-> > On Fri, 17 Aug 2007, Nick Piggin wrote:
-> > 
-> > > Because they should be thinking about them in terms of barriers, over
-> > > which the compiler / CPU is not to reorder accesses or cache memory
-> > > operations, rather than "special" "volatile" accesses.
-> > 
-> > This is obviously just a taste thing. Whether to have that forget(x)
-> > barrier as something author should explicitly sprinkle appropriately
-> > in appropriate places in the code by himself or use a primitive that
-> > includes it itself.
 > 
-> That's not obviously just taste to me. Not when the primitive has many
-> (perhaps, the majority) of uses that do not require said barriers. And
-> this is not solely about the code generation (which, as Paul says, is
-> relatively minor even on x86).
-
-See, you do *require* people to have to repeat the same things to you!
-
-As has been written about enough times already, and if you followed the
-discussion on this thread, I am *not* proposing that atomic_read()'s
-semantics be changed to have any extra barriers. What is proposed is a
-different atomic_read_xxx() variant thereof, that those can use who do
-want that.
-
-Now whether to have a kind of barrier ("volatile", whatever) in the
-atomic_read_xxx() itself, or whether to make the code writer himself to
-explicitly write the order(x) appropriately in appropriate places in the
-code _is_ a matter of taste.
-
-
-> > That's definitely the point, why not. This is why "barrier()", being
-> > heavy-handed, is not the best option.
+> On Thu, 16 Aug 2007, Paul E. McKenney wrote:
 > 
-> That is _not_ the point [...]
-
-Again, you're requiring me to repeat things that were already made evident
-on this thread (if you follow it).
-
-This _is_ the point, because a lot of loops out there (too many of them,
-I WILL NOT bother citing file_name:line_number) end up having to use a
-barrier just because they're using a loop-exit-condition that depends
-on a value returned by atomic_read(). It would be good for them if they
-used an atomic_read_xxx() primitive that gave these "volatility" semantics
-without junking compiler optimizations for other memory references.
-
-> because there has already been an alternative posted
-
-Whether that alternative (explicitly using forget(x), or wrappers thereof,
-such as the "order_atomic" you proposed) is better than other alternatives
-(such as atomic_read_xxx() which includes the volatility behaviour in
-itself) is still open, and precisely what we started discussing just one
-mail back.
-
-(The above was also mostly stuff I had to repeated for you, sadly.)
-
-> that better conforms with Linux barrier
-> API and is much more widely useful and more usable.
-
-I don't think so.
-
-(Now *this* _is_ the "taste-dependent matter" that I mentioned earlier.)
-
-> If you are so worried
-> about
-> barrier() being too heavyweight, then you're off to a poor start by wanting to
-> add a few K of kernel text by making atomic_read volatile.
-
-Repeating myself, for the N'th time, NO, I DON'T want to make atomic_read
-have "volatile" semantics.
-
-> > > because as I also mentioned, the logical extention
-> > > to Linux's barrier API to handle this is the order(x) macro. Again, not
-> > > special volatile accessors.
+> > On Fri, Aug 17, 2007 at 07:59:02AM +0800, Herbert Xu wrote:
+> > > On Thu, Aug 16, 2007 at 09:34:41AM -0700, Paul E. McKenney wrote:
+> > > >
+> > > > The compiler can also reorder non-volatile accesses.  For an example
+> > > > patch that cares about this, please see:
+> > > > 
+> > > > 	http://lkml.org/lkml/2007/8/7/280
+> > > > 
+> > > > This patch uses an ORDERED_WRT_IRQ() in rcu_read_lock() and
+> > > > rcu_read_unlock() to ensure that accesses aren't reordered with respect
+> > > > to interrupt handlers and NMIs/SMIs running on that same CPU.
+> > > 
+> > > Good, finally we have some code to discuss (even though it's
+> > > not actually in the kernel yet).
 > > 
-> > Sure, that forget(x) macro _is_ proposed to be made part of the generic
-> > API. Doesn't explain why not to define/use primitives that has volatility
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> > semantics in itself, though (taste matters apart).
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> If you follow the discussion.... You were thinking of a reason why the
-> semantics *should* be changed or added, and I was rebutting your argument
-> that it must be used when a full barrier() is too heavy (ie. by pointing
-> out that order() has superior semantics anyway).
+> > There was some earlier in this thread as well.
+> 
+> Hmm, I never quite got what all this interrupt/NMI/SMI handling and
+> RCU business you mentioned earlier was all about, but now that you've
+> pointed to the actual code and issues with it ...
 
-Amazing. Either you have reading comprehension problems, or else, please
-try reading this thread (or at least this sub-thread) again. I don't want
-_you_ blaming _me_ for having to repeat things to you all over again.
+Glad to help...
+
+> > > First of all, I think this illustrates that what you want
+> > > here has nothing to do with atomic ops.  The ORDERED_WRT_IRQ
+> > > macro occurs a lot more times in your patch than atomic
+> > > reads/sets.  So *assuming* that it was necessary at all,
+> > > then having an ordered variant of the atomic_read/atomic_set
+> > > ops could do just as well.
+> > 
+> > Indeed.  If I could trust atomic_read()/atomic_set() to cause the compiler
+> > to maintain ordering, then I could just use them instead of having to
+> > create an  ORDERED_WRT_IRQ().  (Or ACCESS_ONCE(), as it is called in a
+> > different patch.)
+> 
+> +#define WHATEVER(x)	(*(volatile typeof(x) *)&(x))
+> 
+> I suppose one could want volatile access semantics for stuff that's
+> a bit-field too, no?
+
+One could, but this is not supported in general.  So if you want that,
+you need to use the usual bit-mask tricks and (for setting) atomic
+operations.
+
+> Also, this gives *zero* "re-ordering" guarantees that your code wants
+> as you've explained it below) -- neither w.r.t. CPU re-ordering (which
+> probably you don't care about) *nor* w.r.t. compiler re-ordering
+> (which you definitely _do_ care about).
+
+You are correct about CPU re-ordering (and about the fact that this
+example doesn't care about it), but not about compiler re-ordering.
+
+The compiler is prohibited from moving a volatile access across a sequence
+point.  One example of a sequence point is a statement boundary.  Because
+all of the volatile accesses in this code are separated by statement
+boundaries, a conforming compiler is prohibited from reordering them.
+
+> > > However, I still don't know which atomic_read/atomic_set in
+> > > your patch would be broken if there were no volatile.  Could
+> > > you please point them out?
+> > 
+> > Suppose I tried replacing the ORDERED_WRT_IRQ() calls with
+> > atomic_read() and atomic_set().  Starting with __rcu_read_lock():
+> > 
+> > o	If "ORDERED_WRT_IRQ(__get_cpu_var(rcu_flipctr)[idx])++"
+> > 	was ordered by the compiler after
+> > 	"ORDERED_WRT_IRQ(me->rcu_read_lock_nesting) = nesting + 1", then
+> > 	suppose an NMI/SMI happened after the rcu_read_lock_nesting but
+> > 	before the rcu_flipctr.
+> > 
+> > 	Then if there was an rcu_read_lock() in the SMI/NMI
+> > 	handler (which is perfectly legal), the nested rcu_read_lock()
+> > 	would believe that it could take the then-clause of the
+> > 	enclosing "if" statement.  But because the rcu_flipctr per-CPU
+> > 	variable had not yet been incremented, an RCU updater would
+> > 	be within its rights to assume that there were no RCU reads
+> > 	in progress, thus possibly yanking a data structure out from
+> > 	under the reader in the SMI/NMI function.
+> > 
+> > 	Fatal outcome.  Note that only one CPU is involved here
+> > 	because these are all either per-CPU or per-task variables.
+> 
+> Ok, so you don't care about CPU re-ordering. Still, I should let you know
+> that your ORDERED_WRT_IRQ() -- bad name, btw -- is still buggy. What you
+> want is a full compiler optimization barrier().
+
+No.  See above.
+
+> [ Your code probably works now, and emits correct code, but that's
+>   just because of gcc did what it did. Nothing in any standard,
+>   or in any documented behaviour of gcc, or anything about the real
+>   (or expected) semantics of "volatile" is protecting the code here. ]
+
+Really?  Why doesn't the prohibition against moving volatile accesses
+across sequence points take care of this?
+
+> > o	If "ORDERED_WRT_IRQ(me->rcu_read_lock_nesting) = nesting + 1"
+> > 	was ordered by the compiler to follow the
+> > 	"ORDERED_WRT_IRQ(me->rcu_flipctr_idx) = idx", and an NMI/SMI
+> > 	happened between the two, then an __rcu_read_lock() in the NMI/SMI
+> > 	would incorrectly take the "else" clause of the enclosing "if"
+> > 	statement.  If some other CPU flipped the rcu_ctrlblk.completed
+> > 	in the meantime, then the __rcu_read_lock() would (correctly)
+> > 	write the new value into rcu_flipctr_idx.
+> > 
+> > 	Well and good so far.  But the problem arises in
+> > 	__rcu_read_unlock(), which then decrements the wrong counter.
+> > 	Depending on exactly how subsequent events played out, this could
+> > 	result in either prematurely ending grace periods or never-ending
+> > 	grace periods, both of which are fatal outcomes.
+> > 
+> > And the following are not needed in the current version of the
+> > patch, but will be in a future version that either avoids disabling
+> > irqs or that dispenses with the smp_read_barrier_depends() that I
+> > have 99% convinced myself is unneeded:
+> > 
+> > o	nesting = ORDERED_WRT_IRQ(me->rcu_read_lock_nesting);
+> > 
+> > o	idx = ORDERED_WRT_IRQ(rcu_ctrlblk.completed) & 0x1;
+> > 
+> > Furthermore, in that future version, irq handlers can cause the same
+> > mischief that SMI/NMI handlers can in this version.
+> > 
+> > Next, looking at __rcu_read_unlock():
+> > 
+> > o	If "ORDERED_WRT_IRQ(me->rcu_read_lock_nesting) = nesting - 1"
+> > 	was reordered by the compiler to follow the
+> > 	"ORDERED_WRT_IRQ(__get_cpu_var(rcu_flipctr)[idx])--",
+> > 	then if an NMI/SMI containing an rcu_read_lock() occurs between
+> > 	the two, this nested rcu_read_lock() would incorrectly believe
+> > 	that it was protected by an enclosing RCU read-side critical
+> > 	section as described in the first reversal discussed for
+> > 	__rcu_read_lock() above.  Again, fatal outcome.
+> > 
+> > This is what we have now.  It is not hard to imagine situations that
+> > interact with -both- interrupt handlers -and- other CPUs, as described
+> > earlier.
+> 
+> It's not about interrupt/SMI/NMI handlers at all! What you clearly want,
+> simply put, is that a certain stream of C statements must be emitted
+> by the compiler _as they are_ with no re-ordering optimizations! You must
+> *definitely* use barrier(), IMHO.
+
+Almost.  I don't care about most of the operations, only about the loads
+and stores marked volatile.  Again, although the compiler is free to
+reorder volatile accesses that occur -within- a single statement, it
+is prohibited by the standard from moving volatile accesses from one
+statement to another.  Therefore, this code can legitimately use volatile.
+
+Or am I missing something subtle?
+
+						Thanx, Paul
