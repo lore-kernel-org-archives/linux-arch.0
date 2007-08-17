@@ -1,54 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:33480 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751522AbXHRBYT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2007 21:24:19 -0400
-Date: Fri, 17 Aug 2007 18:24:15 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-In-Reply-To: <20070818010818.GQ8464@linux.vnet.ibm.com>
-Message-ID: <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com>
-References: <20070815234021.GA28775@gondor.apana.org.au>
- <3694fb2e4ed1e4d9bf873c0d050c911e@kernel.crashing.org> <46C3B50E.7010702@yahoo.com.au>
- <194369f4c96ea0e24decf8f9197d5bad@kernel.crashing.org> <46C505B2.6030704@yahoo.com.au>
- <18117.4848.695269.72976@cargo.ozlabs.ibm.com> <46C516BA.60700@yahoo.com.au>
- <alpine.LFD.0.999.0708162045150.30176@woody.linux-foundation.org>
- <20070817235912.GA24314@linux.vnet.ibm.com> <20070818000913.GA25585@gondor.apana.org.au>
- <20070818010818.GQ8464@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from gate.crashing.org ([63.228.1.57]:39401 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754668AbXHQWpK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Aug 2007 18:45:10 -0400
+In-Reply-To: <alpine.LFD.0.999.0708170957350.3666@enigma.security.iitk.ac.in>
+References: <20070809131423.GA9927@shell.boston.redhat.com> <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com> <alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in> <46C2D6F3.3070707@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in> <20070815233721.91032366.billfink@mindspring.com> <alpine.LFD.0.999.0708161045360.25951@enigma.security.iitk.ac.in> <alpine.LFD.0.999.0708161115370.25951@enigma.security.iitk.ac.in> <43eccf425e36943ce0411c3b504b1de2@kernel.crashing.org> <alpine.LFD.0.999.0708170957350.3666@enigma.security.iitk.ac.in>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <d14d1a768bfbbef34ee9f981cfd348c6@kernel.crashing.org>
+Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Date: Sat, 18 Aug 2007 00:38:12 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <nickpiggin@yahoo.com.au>, Paul Mackerras <paulus@samba.org>, Segher Boessenkool <segher@kernel.crashing.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, rpjday@mindspring.com, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, zlynx@acm.org, satyam@infradead.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, davem@davemloft.net, wensong@linux-vs.org, wjiang@resilience.com
+To: Satyam Sharma <satyam@infradead.org>
+Cc: Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Bill Fink <billfink@mindspring.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, rpjday@mindspring.com, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 17 Aug 2007, Paul E. McKenney wrote:
+>>> Here, I should obviously admit that the semantics of *(volatile int 
+>>> *)&
+>>> aren't any neater or well-defined in the _language standard_ at all. 
+>>> The
+>>> standard does say (verbatim) "precisely what constitutes as access to
+>>> object of volatile-qualified type is implementation-defined", but GCC
+>>> does help us out here by doing the right thing.
+>>
+>> Where do you get that idea?
+>
+> Try a testcase (experimentally verify).
 
-> On Sat, Aug 18, 2007 at 08:09:13AM +0800, Herbert Xu wrote:
-> > On Fri, Aug 17, 2007 at 04:59:12PM -0700, Paul E. McKenney wrote:
-> > >
-> > > gcc bugzilla bug #33102, for whatever that ends up being worth.  ;-)
-> > 
-> > I had totally forgotten that I'd already filed that bug more
-> > than six years ago until they just closed yours as a duplicate
-> > of mine :)
-> > 
-> > Good luck in getting it fixed!
-> 
-> Well, just got done re-opening it for the third time.  And a local
-> gcc community member advised me not to give up too easily.  But I
-> must admit that I am impressed with the speed that it was identified
-> as duplicate.
-> 
-> Should be entertaining!  ;-)
+That doesn't prove anything.  Experiments can only disprove
+things.
 
-Right. ROTFL... volatile actually breaks atomic_t instead of making it 
-safe. x++ becomes a register load, increment and a register store. Without 
-volatile we can increment the memory directly. It seems that volatile 
-requires that the variable is loaded into a register first and then 
-operated upon. Understandable when you think about volatile being used to 
-access memory mapped I/O registers where a RMW operation could be 
-problematic.
+>> GCC manual, section 6.1, "When
+>> is a Volatile Object Accessed?" doesn't say anything of the
+>> kind.
+>
+> True, "implementation-defined" as per the C standard _is_ supposed to 
+> mean
+> "unspecified behaviour where each implementation documents how the 
+> choice
+> is made". So ok, probably GCC isn't "documenting" this
+> implementation-defined behaviour which it is supposed to, but can't 
+> really
+> fault them much for this, probably.
 
-See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=3506
+GCC _is_ documenting this, namely in this section 6.1.  It doesn't
+mention volatile-casted stuff.  Draw your own conclusions.
+
+
+Segher
+
