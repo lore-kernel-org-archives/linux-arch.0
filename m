@@ -1,59 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:37547 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752104AbXHRB2n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2007 21:28:43 -0400
-Date: Sat, 18 Aug 2007 07:11:01 +0530 (IST)
-From: Satyam Sharma <satyam@infradead.org>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-In-Reply-To: <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com>
-Message-ID: <alpine.LFD.0.999.0708180709060.3666@enigma.security.iitk.ac.in>
-References: <20070815234021.GA28775@gondor.apana.org.au>
- <3694fb2e4ed1e4d9bf873c0d050c911e@kernel.crashing.org> <46C3B50E.7010702@yahoo.com.au>
- <194369f4c96ea0e24decf8f9197d5bad@kernel.crashing.org> <46C505B2.6030704@yahoo.com.au>
- <18117.4848.695269.72976@cargo.ozlabs.ibm.com> <46C516BA.60700@yahoo.com.au>
- <alpine.LFD.0.999.0708162045150.30176@woody.linux-foundation.org>
- <20070817235912.GA24314@linux.vnet.ibm.com> <20070818000913.GA25585@gondor.apana.org.au>
- <20070818010818.GQ8464@linux.vnet.ibm.com>
- <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=us-ascii
+Received: from gate.crashing.org ([63.228.1.57]:35515 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752062AbXHQWkM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Aug 2007 18:40:12 -0400
+In-Reply-To: <alpine.LFD.0.999.0708170945300.3666@enigma.security.iitk.ac.in>
+References: <20070809131423.GA9927@shell.boston.redhat.com> <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com> <alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in> <46C2D6F3.3070707@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in> <20070815233721.91032366.billfink@mindspring.com> <alpine.LFD.0.999.0708161045360.25951@enigma.security.iitk.ac.in> <4952d3f536060c186f40c277dfc74194@kernel.crashing.org> <alpine.LFD.0.999.0708170945300.3666@enigma.security.iitk.ac.in>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <33a54cfcfda7e50e43a7399780626869@kernel.crashing.org>
+Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Date: Sat, 18 Aug 2007 00:34:34 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Herbert Xu <herbert@gondor.apana.org.au>, Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <nickpiggin@yahoo.com.au>, Paul Mackerras <paulus@samba.org>, Segher Boessenkool <segher@kernel.crashing.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, rpjday@mindspring.com, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, davem@davemloft.net, wensong@linux-vs.org, wjiang@resilience.com
+To: Satyam Sharma <satyam@infradead.org>
+Cc: Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Bill Fink <billfink@mindspring.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, rpjday@mindspring.com, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, davids@webmaster.com, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
+> Now the second wording *IS* technically correct, but come on, it's
+> 24 words long whereas the original one was 3 -- and hopefully anybody
+> reading the shorter phrase *would* have known anyway what was meant,
+> without having to be pedantic about it :-)
+
+Well you were talking pretty formal (and detailed) stuff, so
+IMHO it's good to have that exactly correct.  Sure it's nicer
+to use small words most of the time :-)
 
 
-On Fri, 17 Aug 2007, Christoph Lameter wrote:
+Segher
 
-> On Fri, 17 Aug 2007, Paul E. McKenney wrote:
-> 
-> > On Sat, Aug 18, 2007 at 08:09:13AM +0800, Herbert Xu wrote:
-> > > On Fri, Aug 17, 2007 at 04:59:12PM -0700, Paul E. McKenney wrote:
-> > > >
-> > > > gcc bugzilla bug #33102, for whatever that ends up being worth.  ;-)
-> > > 
-> > > I had totally forgotten that I'd already filed that bug more
-> > > than six years ago until they just closed yours as a duplicate
-> > > of mine :)
-> > > 
-> > > Good luck in getting it fixed!
-> > 
-> > Well, just got done re-opening it for the third time.  And a local
-> > gcc community member advised me not to give up too easily.  But I
-> > must admit that I am impressed with the speed that it was identified
-> > as duplicate.
-> > 
-> > Should be entertaining!  ;-)
-> 
-> Right. ROTFL... volatile actually breaks atomic_t instead of making it 
-> safe. x++ becomes a register load, increment and a register store. Without 
-> volatile we can increment the memory directly.
-
-No code does (or would do, or should do):
-
-	x.counter++;
-
-on an "atomic_t x;" anyway.
