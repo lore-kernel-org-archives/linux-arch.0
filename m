@@ -1,42 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e1.ny.us.ibm.com ([32.97.182.141]:60708 "EHLO e1.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752668AbXHQUMK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Aug 2007 16:12:10 -0400
-Date: Fri, 17 Aug 2007 13:12:05 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
-Message-ID: <20070817201205.GJ8464@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <46C55E90.7010407@yahoo.com.au> <alpine.LFD.0.999.0708171431150.3666@enigma.security.iitk.ac.in> <46C56ADF.8010501@cyberone.com.au> <alpine.LFD.0.999.0708171612440.3666@enigma.security.iitk.ac.in> <46C59717.4020108@cyberone.com.au> <alpine.LFD.0.999.0708170929580.30176@woody.linux-foundation.org> <46C5EDF9.3090507@nortel.com> <1187376873.2615.2.camel@laptopd505.fenrus.org> <20070817194924.GG8464@linux.vnet.ibm.com> <1187380142.2615.6.camel@laptopd505.fenrus.org>
+Received: from pentafluge.infradead.org ([213.146.154.40]:46455 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751348AbXHQXjI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2007 19:39:08 -0400
+Date: Sat, 18 Aug 2007 05:21:42 +0530 (IST)
+From: Satyam Sharma <satyam@infradead.org>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+In-Reply-To: <f5796b5aa38ae6305c65ffa0340ba295@kernel.crashing.org>
+Message-ID: <alpine.LFD.0.999.0708180512300.3666@enigma.security.iitk.ac.in>
+References: <E1ILCgh-00052A-00@gondolin.me.apana.org.au> <46C32618.2080108@redhat.com>
+ <20070815234021.GA28775@gondor.apana.org.au> <3694fb2e4ed1e4d9bf873c0d050c911e@kernel.crashing.org>
+ <46C3B50E.7010702@yahoo.com.au> <194369f4c96ea0e24decf8f9197d5bad@kernel.crashing.org>
+ <46C505B2.6030704@yahoo.com.au> <18117.4848.695269.72976@cargo.ozlabs.ibm.com>
+ <alpine.LFD.0.999.0708162033400.30176@woody.linux-foundation.org>
+ <alpine.LFD.0.999.0708171016160.3666@enigma.security.iitk.ac.in>
+ <f5796b5aa38ae6305c65ffa0340ba295@kernel.crashing.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1187380142.2615.6.camel@laptopd505.fenrus.org>
+Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Arjan van de Ven <arjan@infradead.org>
-Cc: Chris Friesen <cfriesen@nortel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <piggin@cyberone.com.au>, Satyam Sharma <satyam@infradead.org>, Herbert Xu <herbert@gondor.apana.org.au>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Ilpo Jarvinen <ilpo.jarvinen@helsinki.fi>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Netdev <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, David Miller <davem@davemloft.net>, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, rpjday@mindspring.com, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, Nick Piggin <nickpiggin@yahoo.com.au>, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, clameter@sgi.com, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert.xu@redhat.com>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Aug 17, 2007 at 12:49:00PM -0700, Arjan van de Ven wrote:
-> 
-> On Fri, 2007-08-17 at 12:49 -0700, Paul E. McKenney wrote:
-> > > > What about reading values modified in interrupt handlers, as in your 
-> > > > "random" case?  Or is this a bug where the user of atomic_read() is 
-> > > > invalidly expecting a read each time it is called?
-> > > 
-> > > the interrupt handler case is an SMP case since you do not know
-> > > beforehand what cpu your interrupt handler will run on.
+
+
+On Sat, 18 Aug 2007, Segher Boessenkool wrote:
+
+> > #define forget(a)	__asm__ __volatile__ ("" :"=m" (a) :"m" (a))
 > > 
-> > With the exception of per-CPU variables, yes.
+> > [ This is exactly equivalent to using "+m" in the constraints, as recently
+> >   explained on a GCC list somewhere, in response to the patch in my bitops
+> >   series a few weeks back where I thought "+m" was bogus. ]
 > 
-> if you're spinning waiting for a per-CPU variable to get changed by an
-> interrupt handler... you have bigger problems than "volatile" ;-)
+> [It wasn't explained on a GCC list in response to your patch, as
+> far as I can see -- if I missed it, please point me to an archived
+> version of it].
 
-That would be true, if you were doing that.  But you might instead be
-simply making sure that the mainline actions were seen in order by the
-interrupt handler.  My current example is the NMI-save rcu_read_lock()
-implementation for realtime.  Not the common case, I will admit, but
-still real.  ;-)
+http://gcc.gnu.org/ml/gcc-patches/2007-07/msg01758.html
 
-						Thanx, Paul
+is a follow-up in the thread on the gcc-patches@gcc.gnu.org mailing list,
+which began with:
+
+http://gcc.gnu.org/ml/gcc-patches/2007-07/msg01677.html
+
+that was posted by Jan Kubicka, as he quotes in that initial posting,
+after I had submitted:
+
+http://lkml.org/lkml/2007/7/23/252
+
+which was a (wrong) patch to "rectify" what I thought was the "bogus"
+"+m" constraint, as per the quoted extract from gcc docs (that was
+given in that (wrong) patch's changelog).
+
+That's when _I_ came to know how GCC interprets "+m", but probably
+this has been explained on those lists multiple times. Who cares,
+anyway?
+
+
+> One last time: it isn't equivalent on older (but still supported
+> by Linux) versions of GCC.  Current versions of GCC allow it, but
+> it has no documented behaviour at all, so use it at your own risk.
+
+True.
