@@ -1,168 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:44891 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751348AbXHRDUp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2007 23:20:45 -0400
-Date: Sat, 18 Aug 2007 09:03:13 +0530 (IST)
-From: Satyam Sharma <satyam@infradead.org>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:51408 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750743AbXHREPn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 18 Aug 2007 00:15:43 -0400
+Date: Fri, 17 Aug 2007 21:13:35 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
  architectures
-In-Reply-To: <67eca5ac43d3b1dbd1a04c7c36aebd5a@kernel.crashing.org>
-Message-ID: <alpine.LFD.0.999.0708180833520.3666@enigma.security.iitk.ac.in>
-References: <20070816003948.GY9645@linux.vnet.ibm.com>
- <alpine.LFD.0.999.0708160800130.24380@enigma.security.iitk.ac.in>
- <alpine.LFD.0.999.0708160815510.24380@enigma.security.iitk.ac.in>
- <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <20070816053945.GB32442@gondor.apana.org.au>
- <18115.62741.807704.969977@cargo.ozlabs.ibm.com> <20070816070907.GA964@gondor.apana.org.au>
- <Pine.LNX.4.64.0708161743500.13267@kivilampi-30.cs.helsinki.fi>
- <46C4ABA5.9010804@redhat.com> <Pine.LNX.4.64.0708161319000.17777@schroedinger.engr.sgi.com>
- <c298f0e3f9e49c9dd2d326115d156084@kernel.crashing.org>
- <alpine.LFD.0.999.0708180002290.3666@enigma.security.iitk.ac.in>
- <a51ab88dc00f8d7fd44f79400671d259@kernel.crashing.org>
- <alpine.LFD.0.999.0708180522120.3666@enigma.security.iitk.ac.in>
- <c0115c88da5d6756502e0c0499faa71f@kernel.crashing.org> <alpine.LFD.0.999.0708!
- 180556330.3666@enigma.security.iitk.ac.in>
- <67eca5ac43d3b1dbd1a04c7c36aebd5a@kernel.crashing.org>
+In-Reply-To: <alpine.LFD.0.999.0708180709060.3666@enigma.security.iitk.ac.in>
+Message-ID: <alpine.LFD.0.999.0708172110400.30176@woody.linux-foundation.org>
+References: <20070815234021.GA28775@gondor.apana.org.au>
+ <3694fb2e4ed1e4d9bf873c0d050c911e@kernel.crashing.org> <46C3B50E.7010702@yahoo.com.au>
+ <194369f4c96ea0e24decf8f9197d5bad@kernel.crashing.org> <46C505B2.6030704@yahoo.com.au>
+ <18117.4848.695269.72976@cargo.ozlabs.ibm.com> <46C516BA.60700@yahoo.com.au>
+ <alpine.LFD.0.999.0708162045150.30176@woody.linux-foundation.org>
+ <20070817235912.GA24314@linux.vnet.ibm.com> <20070818000913.GA25585@gondor.apana.org.au>
+ <20070818010818.GQ8464@linux.vnet.ibm.com> <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com>
+ <alpine.LFD.0.999.0708180709060.3666@enigma.security.iitk.ac.in>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Christoph Lameter <clameter@sgi.com>, Paul Mackerras <paulus@samba.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, =?iso-8859-15?Q?Ilpo_J=E4rvinen?= <ilpo.jarvinen@helsinki.fi>, ak@suse.de, cfriesen@nortel.com, rpjday@mindspring.com, Netdev <netdev@vger.kernel.org>, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, zlynx@acm.org, Andrew Morton <akpm@linux-foundation.org>, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
+To: Satyam Sharma <satyam@infradead.org>
+Cc: Christoph Lameter <clameter@sgi.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Herbert Xu <herbert@gondor.apana.org.au>, Nick Piggin <nickpiggin@yahoo.com.au>, Paul Mackerras <paulus@samba.org>, Segher Boessenkool <segher@kernel.crashing.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, rpjday@mindspring.com, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, davem@davemloft.net, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
 
 
-On Sat, 18 Aug 2007, Segher Boessenkool wrote:
+On Sat, 18 Aug 2007, Satyam Sharma wrote:
+> 
+> No code does (or would do, or should do):
+> 
+> 	x.counter++;
+> 
+> on an "atomic_t x;" anyway.
 
-> > > > > The "asm volatile" implementation does have exactly the same
-> > > > > reordering guarantees as the "volatile cast" thing,
-> > > > 
-> > > > I don't think so.
-> > > 
-> > > "asm volatile" creates a side effect.
-> > 
-> > Yeah.
-> > 
-> > > Side effects aren't
-> > > allowed to be reordered wrt sequence points.
-> > 
-> > Yeah.
-> > 
-> > > This is exactly
-> > > the same reason as why "volatile accesses" cannot be reordered.
-> > 
-> > No, the code in that sub-thread I earlier pointed you at *WAS* written
-> > such that there was a sequence point after all the uses of that volatile
-> > access cast macro, and _therefore_ we were safe from re-ordering
-> > (behaviour guaranteed by the C standard).
-> 
-> And exactly the same is true for the "asm" version.
-> 
-> > Now, one cannot fantasize that "volatile asms" are also sequence points.
-> 
-> Sure you can do that.  I don't though.
-> 
-> > In fact such an argument would be sadly mistaken, because "sequence
-> > points" are defined by the C standard and it'd be horribly wrong to
-> > even _try_ claiming that the C standard knows about "volatile asms".
-> 
-> That's nonsense.  GCC can extend the C standard any way they
-> bloody well please -- witness the fact that they added an
-> extra class of side effects...
-> 
-> > > > Read the relevant GCC documentation.
-> > > 
-> > > I did, yes.
-> > 
-> > No, you didn't read:
-> > 
-> > http://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
-> > 
-> > Read the bit about the need for artificial dependencies, and the example
-> > given there:
-> > 
-> > 	asm volatile("mtfsf 255,%0" : : "f" (fpenv));
-> > 	sum = x + y;
-> > 
-> > The docs explicitly say the addition can be moved before the "volatile
-> > asm". Hopefully, as you know, (x + y) is an C "expression" and hence
-> > a "sequence point" as defined by the standard.
-> 
-> The _end of a full expression_ is a sequence point, not every
-> expression.  And that is irrelevant here anyway.
-> 
-> It is perfectly fine to compute x+y any time before the
-> assignment; the C compiler is allowed to compute it _after_
-> the assignment even, if it could figure out how ;-)
-> 
-> x+y does not contain a side effect, you know.
-> 
-> > I know there is also stuff written about "side-effects" there which
-> > _could_ give the same semantic w.r.t. sequence points as the volatile
-> > access casts,
-> 
-> s/could/does/
-> 
-> > but hey, it's GCC's own documentation, you obviously can't
-> > find fault with _me_ if there's wrong stuff written in there. Say that
-> > to GCC ...
-> 
-> There's nothing wrong there.
-> 
-> > See, "volatile" C keyword, for all it's ill-definition and dodgy
-> > semantics, is still at least given somewhat of a treatment in the C
-> > standard (whose quality is ... ummm, sadly not always good and clear,
-> > but unsurprisingly, still about 5,482 orders-of-magnitude times
-> > better than GCC docs).
-> 
-> If you find any problems/shortcomings in the GCC documentation,
-> please file a PR, don't go whine on some unrelated mailing lists.
-> Thank you.
-> 
-> > Semantics of "volatile" as applies to inline
-> > asm, OTOH? You're completely relying on the compiler for that ...
-> 
-> Yes, and?  GCC promises the behaviour it has documented.
+That's just an example of a general problem.
 
-LOTS there, which obviously isn't correct, but which I'll reply to later,
-easier stuff first. (call this "handwaving" if you want, but don't worry,
-I /will/ bother myself to reply)
+No, you don't use "x.counter++". But you *do* use
 
+	if (atomic_read(&x) <= 1)
 
-> > > > [ of course, if the (latest) GCC documentation is *yet again*
-> > > >   wrong, then alright, not much I can do about it, is there. ]
-> > > 
-> > > There was (and is) nothing wrong about the "+m" documentation, if
-> > > that is what you are talking about.  It could be extended now, to
-> > > allow "+m" -- but that takes more than just "fixing" the documentation.
-> > 
-> > No, there was (and is) _everything_ wrong about the "+" documentation as
-> > applies to memory-constrained operands. I don't give a whit if it's
-> > some workaround in their gimplifier, or the other, that makes it possible
-> > to use "+m" (like the current kernel code does). The docs suggest
-> > otherwise, so there's obviously a clear disconnect between the docs and
-> > actual GCC behaviour.
-> 
-> The documentation simply doesn't say "+m" is allowed.  The code to
-> allow it was added for the benefit of people who do not read the
-> documentation.  Documentation for "+m" might get added later if it
-> is decided this [the code, not the documentation] is a sane thing
-> to have (which isn't directly obvious).
+and loading into a register is stupid and pointless, when you could just 
+do it as a regular memory-operand to the cmp instruction.
 
-Huh?
+And as far as the compiler is concerned, the problem is the 100% same: 
+combining operations with the volatile memop.
 
-"If the (current) documentation doesn't match up with the (current)
-code, then _at least one_ of them has to be (as of current) wrong."
+The fact is, a compiler that thinks that
 
-I wonder how could you even try to disagree with that.
+	movl mem,reg
+	cmpl $val,reg
 
-And I didn't go whining about this ... you asked me. (I think I'd said
-something to the effect of GCC docs are often wrong, which is true,
-but probably you feel saying that is "not allowed" on non-gcc lists?)
+is any better than
 
-As for the "PR" you're requesting me to file with GCC for this, that
-gcc-patches@ thread did precisely that and more (submitted a patch to
-said documentation -- and no, saying "documentation might get added
-later" is totally bogus and nonsensical -- documentation exists to
-document current behaviour, not past). But come on, this is wholly
-petty. I wouldn't have replied, really, if you weren't so provoking.
+	cmpl $val,mem
+
+is just not a very good compiler. But when talking about "volatile", 
+that's exactly what ytou always get (and always have gotten - this is 
+not a regression, and I doubt gcc is alone in this).
+
+			Linus
