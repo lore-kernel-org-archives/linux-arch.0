@@ -1,53 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:39401 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754668AbXHQWpK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Aug 2007 18:45:10 -0400
-In-Reply-To: <alpine.LFD.0.999.0708170957350.3666@enigma.security.iitk.ac.in>
-References: <20070809131423.GA9927@shell.boston.redhat.com> <Pine.LNX.4.64.0708141529310.32693@schroedinger.engr.sgi.com> <alpine.LFD.0.999.0708150417240.6482@enigma.security.iitk.ac.in> <46C2D6F3.3070707@s5r6.in-berlin.de> <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in> <20070815233721.91032366.billfink@mindspring.com> <alpine.LFD.0.999.0708161045360.25951@enigma.security.iitk.ac.in> <alpine.LFD.0.999.0708161115370.25951@enigma.security.iitk.ac.in> <43eccf425e36943ce0411c3b504b1de2@kernel.crashing.org> <alpine.LFD.0.999.0708170957350.3666@enigma.security.iitk.ac.in>
-Mime-Version: 1.0 (Apple Message framework v623)
-Content-Type: text/plain; charset=US-ASCII; format=flowed
-Message-Id: <d14d1a768bfbbef34ee9f981cfd348c6@kernel.crashing.org>
-Content-Transfer-Encoding: 7bit
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
-Date: Sat, 18 Aug 2007 00:38:12 +0200
+Received: from pentafluge.infradead.org ([213.146.154.40]:49657 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750816AbXHRCDf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2007 22:03:35 -0400
+Date: Sat, 18 Aug 2007 07:45:53 +0530 (IST)
+From: Satyam Sharma <satyam@infradead.org>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+In-Reply-To: <46C59B09.8040004@cyberone.com.au>
+Message-ID: <alpine.LFD.0.999.0708180731330.3666@enigma.security.iitk.ac.in>
+References: <alpine.LFD.0.999.0708160815510.24380@enigma.security.iitk.ac.in>
+ <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <20070816053945.GB32442@gondor.apana.org.au>
+ <18115.62741.807704.969977@cargo.ozlabs.ibm.com> <20070816070907.GA964@gondor.apana.org.au>
+ <46C40587.7050708@s5r6.in-berlin.de> <20070816081049.GA1431@gondor.apana.org.au>
+ <46C41EE4.9090806@s5r6.in-berlin.de> <46C42767.4070104@s5r6.in-berlin.de>
+ <20070816104250.GB2927@gondor.apana.org.au> <20070816163441.GB16957@linux.vnet.ibm.com>
+ <46C512EB.7020603@yahoo.com.au> <46C54D74.60101@s5r6.in-berlin.de>
+ <46C556F1.8000407@yahoo.com.au> <alpine.LFD.0.999.0708171420060.3666@enigma.security.iitk.ac.in>
+ <46C5672E.4060003@cyberone.com.au> <alpine.LFD.0.999.0708171521230.3666@enigma.security.iitk.ac.in>
+ <46C58B93.5000408@cyberone.com.au> <alpine.LFD.0.999.0708171737060.3666@enigma.security.iitk.ac.in>
+ <46C59B09.8040004@cyberone.com.au>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
-To: Satyam Sharma <satyam@infradead.org>
-Cc: Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Bill Fink <billfink@mindspring.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, rpjday@mindspring.com, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
+To: Nick Piggin <piggin@cyberone.com.au>
+Cc: Stefan Richter <stefanr@s5r6.in-berlin.de>, paulmck@linux.vnet.ibm.com, Herbert Xu <herbert@gondor.apana.org.au>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
->>> Here, I should obviously admit that the semantics of *(volatile int 
->>> *)&
->>> aren't any neater or well-defined in the _language standard_ at all. 
->>> The
->>> standard does say (verbatim) "precisely what constitutes as access to
->>> object of volatile-qualified type is implementation-defined", but GCC
->>> does help us out here by doing the right thing.
->>
->> Where do you get that idea?
->
-> Try a testcase (experimentally verify).
-
-That doesn't prove anything.  Experiments can only disprove
-things.
-
->> GCC manual, section 6.1, "When
->> is a Volatile Object Accessed?" doesn't say anything of the
->> kind.
->
-> True, "implementation-defined" as per the C standard _is_ supposed to 
-> mean
-> "unspecified behaviour where each implementation documents how the 
-> choice
-> is made". So ok, probably GCC isn't "documenting" this
-> implementation-defined behaviour which it is supposed to, but can't 
-> really
-> fault them much for this, probably.
-
-GCC _is_ documenting this, namely in this section 6.1.  It doesn't
-mention volatile-casted stuff.  Draw your own conclusions.
 
 
-Segher
+On Fri, 17 Aug 2007, Nick Piggin wrote:
 
+> Satyam Sharma wrote:
+> 
+> > I didn't quite understand what you said here, so I'll tell what I think:
+> > 
+> > * foo() is a compiler barrier if the definition of foo() is invisible to
+> >  the compiler at a callsite.
+> > 
+> > * foo() is also a compiler barrier if the definition of foo() includes
+> >  a barrier, and it is inlined at the callsite.
+> > 
+> > If the above is wrong, or if there's something else at play as well,
+> > do let me know.
+> 
+> [...]
+> If a function is not completely visible to the compiler (so it can't
+> determine whether a barrier could be in it or not), then it must always
+> assume it will contain a barrier so it always does the right thing.
+
+Yup, that's what I'd said just a few sentences above, as you can see. I
+was actually asking for "elaboration" on "how a compiler determines that
+function foo() (say foo == schedule), even when it cannot see that it has
+a barrier(), as you'd mentioned, is a 'sleeping' function" actually, and
+whether compilers have a "notion of sleep to automatically assume a
+compiler barrier whenever such a sleeping function foo() is called". But
+I think you've already qualified the discussion to this kernel, so okay,
+I shouldn't nit-pick anymore.
