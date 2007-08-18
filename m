@@ -1,62 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from einhorn.in-berlin.de ([192.109.42.8]:60207 "EHLO
-	einhorn.in-berlin.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751242AbXHROm7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 Aug 2007 10:42:59 -0400
-Message-ID: <46C703C9.9060507@s5r6.in-berlin.de>
-Date: Sat, 18 Aug 2007 16:35:53 +0200
-From: Stefan Richter <stefanr@s5r6.in-berlin.de>
+Received: from e6.ny.us.ibm.com ([32.97.182.146]:41446 "EHLO e6.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757544AbXHRVyR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 18 Aug 2007 17:54:17 -0400
+Date: Sat, 18 Aug 2007 14:54:09 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Message-ID: <20070818215409.GC7628@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <46C505B2.6030704@yahoo.com.au> <18117.4848.695269.72976@cargo.ozlabs.ibm.com> <46C516BA.60700@yahoo.com.au> <alpine.LFD.0.999.0708162045150.30176@woody.linux-foundation.org> <20070817235912.GA24314@linux.vnet.ibm.com> <20070818000913.GA25585@gondor.apana.org.au> <20070818010818.GQ8464@linux.vnet.ibm.com> <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com> <alpine.LFD.0.999.0708180709060.3666@enigma.security.iitk.ac.in> <alpine.LFD.0.999.0708172110400.30176@woody.linux-foundation.org>
 MIME-Version: 1.0
-Subject: LDD3 pitfalls (was Re: [PATCH 0/24] make atomic_read() behave consistently
- across all architectures)
-References: <alpine.LFD.0.999.0708160815510.24380@enigma.security.iitk.ac.in> <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <20070816053945.GB32442@gondor.apana.org.au> <18115.62741.807704.969977@cargo.ozlabs.ibm.com> <20070816070907.GA964@gondor.apana.org.au> <46C40587.7050708@s5r6.in-berlin.de> <20070816081049.GA1431@gondor.apana.org.au> <46C41EE4.9090806@s5r6.in-berlin.de> <46C42767.4070104@s5r6.in-berlin.de> <20070816104250.GB2927@gondor.apana.org.au> <20070816163441.GB16957@linux.vnet.ibm.com> <46C512EB.7020603@yahoo.com.au> <46C54D74.60101@s5r6.in-berlin.de> <46C556F1.8000407@yahoo.com.au>
-In-Reply-To: <46C556F1.8000407@yahoo.com.au>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.0.999.0708172110400.30176@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Jonathan Corbet <corbet@lwn.net>, Greg Kroah-Hartman <gregkh@suse.de>
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, paulmck@linux.vnet.ibm.com, Herbert Xu <herbert@gondor.apana.org.au>, Paul Mackerras <paulus@samba.org>, Satyam Sharma <satyam@infradead.org>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Satyam Sharma <satyam@infradead.org>, Christoph Lameter <clameter@sgi.com>, Herbert Xu <herbert@gondor.apana.org.au>, Nick Piggin <nickpiggin@yahoo.com.au>, Paul Mackerras <paulus@samba.org>, Segher Boessenkool <segher@kernel.crashing.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, rpjday@mindspring.com, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, davem@davemloft.net, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin wrote:
-> Stefan Richter wrote:
->> Nick Piggin wrote:
->>
->>> I don't know why people would assume volatile of atomics. AFAIK, most
->>> of the documentation is pretty clear that all the atomic stuff can be
->>> reordered etc. except for those that modify and return a value.
->>
->>
->> Which documentation is there?
-> 
-> Documentation/atomic_ops.txt
+On Fri, Aug 17, 2007 at 09:13:35PM -0700, Linus Torvalds wrote:
 > 
 > 
->> For driver authors, there is LDD3.  It doesn't specifically cover
->> effects of optimization on accesses to atomic_t.
->>
->> For architecture port authors, there is Documentation/atomic_ops.txt.
->> Driver authors also can learn something from that document, as it
->> indirectly documents the atomic_t and bitops APIs.
->>
+> On Sat, 18 Aug 2007, Satyam Sharma wrote:
+> > 
+> > No code does (or would do, or should do):
+> > 
+> > 	x.counter++;
+> > 
+> > on an "atomic_t x;" anyway.
 > 
-> "Semantics and Behavior of Atomic and Bitmask Operations" is
-> pretty direct :)
+> That's just an example of a general problem.
 > 
-> Sure, it says that it's for arch maintainers, but there is no
-> reason why users can't make use of it.
+> No, you don't use "x.counter++". But you *do* use
+> 
+> 	if (atomic_read(&x) <= 1)
+> 
+> and loading into a register is stupid and pointless, when you could just 
+> do it as a regular memory-operand to the cmp instruction.
+> 
+> And as far as the compiler is concerned, the problem is the 100% same: 
+> combining operations with the volatile memop.
+> 
+> The fact is, a compiler that thinks that
+> 
+> 	movl mem,reg
+> 	cmpl $val,reg
+> 
+> is any better than
+> 
+> 	cmpl $val,mem
+> 
+> is just not a very good compiler. But when talking about "volatile", 
+> that's exactly what ytou always get (and always have gotten - this is 
+> not a regression, and I doubt gcc is alone in this).
 
+One of the gcc guys claimed that he thought that the two-instruction
+sequence would be faster on some x86 machines.  I pointed out that
+there might be a concern about code size.  I chose not to point out
+that people might also care about the other x86 machines.  ;-)
 
-Note, LDD3 page 238 says:  "It is worth noting that most of the other
-kernel primitives dealing with synchronization, such as spinlock and
-atomic_t operations, also function as memory barriers."
-
-I don't know about Linux 2.6.10 against which LDD3 was written, but
-currently only _some_ atomic_t operations function as memory barriers.
-
-Besides, judging from some posts in this thread, saying that atomic_t
-operations dealt with synchronization may not be entirely precise.
--- 
-Stefan Richter
--=====-=-=== =--- =--=-
-http://arcgraph.de/sr/
+							Thanx, Paul
