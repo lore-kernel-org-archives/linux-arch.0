@@ -1,30 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:45347 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754374AbXHQWR1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Aug 2007 18:17:27 -0400
-In-Reply-To: <46C512EB.7020603@yahoo.com.au>
-References: <alpine.LFD.0.999.0708160815510.24380@enigma.security.iitk.ac.in> <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <20070816053945.GB32442@gondor.apana.org.au> <18115.62741.807704.969977@cargo.ozlabs.ibm.com> <20070816070907.GA964@gondor.apana.org.au> <46C40587.7050708@s5r6.in-berlin.de> <20070816081049.GA1431@gondor.apana.org.au> <46C41EE4.9090806@s5r6.in-berlin.de> <46C42767.4070104@s5r6.in-berlin.de> <20070816104250.GB2927@gondor.apana.org.au> <20070816163441.GB16957@linux.vnet.ibm.com> <46C512EB.7020603@yahoo.com.au>
-Mime-Version: 1.0 (Apple Message framework v623)
-Content-Type: text/plain; charset=US-ASCII; format=flowed
-Message-Id: <1f265c14b28f2c5922059a130b1d8aa5@kernel.crashing.org>
-Content-Transfer-Encoding: 7bit
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
-Date: Sat, 18 Aug 2007 00:14:30 +0200
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:33480 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751522AbXHRBYT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2007 21:24:19 -0400
+Date: Fri, 17 Aug 2007 18:24:15 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+In-Reply-To: <20070818010818.GQ8464@linux.vnet.ibm.com>
+Message-ID: <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com>
+References: <20070815234021.GA28775@gondor.apana.org.au>
+ <3694fb2e4ed1e4d9bf873c0d050c911e@kernel.crashing.org> <46C3B50E.7010702@yahoo.com.au>
+ <194369f4c96ea0e24decf8f9197d5bad@kernel.crashing.org> <46C505B2.6030704@yahoo.com.au>
+ <18117.4848.695269.72976@cargo.ozlabs.ibm.com> <46C516BA.60700@yahoo.com.au>
+ <alpine.LFD.0.999.0708162045150.30176@woody.linux-foundation.org>
+ <20070817235912.GA24314@linux.vnet.ibm.com> <20070818000913.GA25585@gondor.apana.org.au>
+ <20070818010818.GQ8464@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: paulmck@linux.vnet.ibm.com, Christoph Lameter <clameter@sgi.com>, Paul Mackerras <paulus@samba.org>, heiko.carstens@de.ibm.com, Stefan Richter <stefanr@s5r6.in-berlin.de>, horms@verge.net.au, Satyam Sharma <satyam@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, rpjday@mindspring.com, netdev@vger.kernel.org, ak@suse.de, cfriesen@nortel.com, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <nickpiggin@yahoo.com.au>, Paul Mackerras <paulus@samba.org>, Segher Boessenkool <segher@kernel.crashing.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, rpjday@mindspring.com, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, zlynx@acm.org, satyam@infradead.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, davem@davemloft.net, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-> (and yes, it is perfectly legitimate to
-> want a non-volatile read for a data type that you also want to do
-> atomic RMW operations on)
+On Fri, 17 Aug 2007, Paul E. McKenney wrote:
 
-...which is undefined behaviour in C (and GCC) when that data is
-declared volatile, which is a good argument against implementing
-atomics that way in itself.
+> On Sat, Aug 18, 2007 at 08:09:13AM +0800, Herbert Xu wrote:
+> > On Fri, Aug 17, 2007 at 04:59:12PM -0700, Paul E. McKenney wrote:
+> > >
+> > > gcc bugzilla bug #33102, for whatever that ends up being worth.  ;-)
+> > 
+> > I had totally forgotten that I'd already filed that bug more
+> > than six years ago until they just closed yours as a duplicate
+> > of mine :)
+> > 
+> > Good luck in getting it fixed!
+> 
+> Well, just got done re-opening it for the third time.  And a local
+> gcc community member advised me not to give up too easily.  But I
+> must admit that I am impressed with the speed that it was identified
+> as duplicate.
+> 
+> Should be entertaining!  ;-)
 
+Right. ROTFL... volatile actually breaks atomic_t instead of making it 
+safe. x++ becomes a register load, increment and a register store. Without 
+volatile we can increment the memory directly. It seems that volatile 
+requires that the variable is loaded into a register first and then 
+operated upon. Understandable when you think about volatile being used to 
+access memory mapped I/O registers where a RMW operation could be 
+problematic.
 
-Segher
-
+See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=3506
