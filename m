@@ -1,119 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:46846 "EHLO
-	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750963AbXHUTin (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2007 15:38:43 -0400
-Received: from d03relay04.boulder.ibm.com (d03relay04.boulder.ibm.com [9.17.195.106])
-	by e31.co.us.ibm.com (8.13.8/8.13.8) with ESMTP id l7LJcb1N010249
-	for <linux-arch@vger.kernel.org>; Tue, 21 Aug 2007 15:38:37 -0400
-Received: from d03av01.boulder.ibm.com (d03av01.boulder.ibm.com [9.17.195.167])
-	by d03relay04.boulder.ibm.com (8.13.8/8.13.8/NCO v8.5) with ESMTP id l7LJcbbj215698
-	for <linux-arch@vger.kernel.org>; Tue, 21 Aug 2007 13:38:37 -0600
-Received: from d03av01.boulder.ibm.com (loopback [127.0.0.1])
-	by d03av01.boulder.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id l7LJcafB013347
-	for <linux-arch@vger.kernel.org>; Tue, 21 Aug 2007 13:38:37 -0600
-Subject: [RFC][PATCH] introduce TASK_SIZE_OF() for all arches
-From: Dave Hansen <haveblue@us.ibm.com>
-Date: Tue, 21 Aug 2007 12:38:35 -0700
-Message-Id: <20070821193835.258D7DD4@kernel>
+Received: from palinux.external.hp.com ([192.25.206.14]:48675 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756767AbXHUTnL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2007 15:43:11 -0400
+Date: Tue, 21 Aug 2007 13:43:09 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [RFC][PATCH] introduce TASK_SIZE_OF() for all arches
+Message-ID: <20070821194309.GD9163@parisc-linux.org>
+References: <20070821193835.258D7DD4@kernel>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070821193835.258D7DD4@kernel>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: Dave Hansen <haveblue@us.ibm.com>
+To: Dave Hansen <haveblue@us.ibm.com>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Tue, Aug 21, 2007 at 12:38:35PM -0700, Dave Hansen wrote:
+> I'd like to have that for other architectures.  So, add it
+> for all the architectures that actually use "current" in 
+> their TASK_SIZE.  For the others, just add a quick #define
+> in sched.h to use plain old TASK_SIZE.
 
-For the /proc/<pid>/pagemap code[1], we need to able to query how
-much virtual address space a particular task has.  The trick is
-that we do it through /proc and can't use TASK_SIZE since it
-references "current" on some arches.  The process opening the
-/proc file might be a 32-bit process opening a 64-bit process's
-pagemap file.
+MIPS seems to do things a little differently ... Ralf, what should Dave
+be doing here?
 
-x86_64 already has a TASK_SIZE_OF() macro:
+#define TASK_SIZE32     0x7fff8000UL
+#define TASK_SIZE       0x10000000000UL
 
-#define TASK_SIZE_OF(child)     ((test_tsk_thread_flag(child, TIF_IA32)) ? IA32_PAGE_OFFSET : TASK_SIZE64)
-
-I'd like to have that for other architectures.  So, add it
-for all the architectures that actually use "current" in 
-their TASK_SIZE.  For the others, just add a quick #define
-in sched.h to use plain old TASK_SIZE.
-
-1. http://www.linuxworld.com/news/2007/042407-kernel.html
-
-Signed-off-by: Dave Hansen <haveblue@us.ibm.com>
----
-
- lxc-dave/include/asm-ia64/processor.h    |    3 ++-
- lxc-dave/include/asm-parisc/processor.h  |    3 ++-
- lxc-dave/include/asm-powerpc/processor.h |    4 +++-
- lxc-dave/include/asm-s390/processor.h    |    2 ++
- lxc-dave/include/linux/sched.h           |    4 ++++
- 5 files changed, 13 insertions(+), 3 deletions(-)
-
-diff -puN include/asm-ia64/processor.h~task_size_of include/asm-ia64/processor.h
---- lxc/include/asm-ia64/processor.h~task_size_of	2007-08-07 15:30:54.000000000 -0700
-+++ lxc-dave/include/asm-ia64/processor.h	2007-08-07 15:30:54.000000000 -0700
-@@ -31,7 +31,8 @@
-  * each (assuming 8KB page size), for a total of 8TB of user virtual
-  * address space.
-  */
--#define TASK_SIZE		(current->thread.task_size)
-+#define TASK_SIZE_OF(tsk)	((tsk)->thread.task_size)
-+#define TASK_SIZE       	TASK_SIZE_OF(current)
- 
- /*
-  * This decides where the kernel will search for a free chunk of vm
-diff -puN include/asm-parisc/processor.h~task_size_of include/asm-parisc/processor.h
---- lxc/include/asm-parisc/processor.h~task_size_of	2007-08-07 15:30:54.000000000 -0700
-+++ lxc-dave/include/asm-parisc/processor.h	2007-08-07 15:30:54.000000000 -0700
-@@ -32,7 +32,8 @@
- #endif
- #define current_text_addr() ({ void *pc; current_ia(pc); pc; })
- 
--#define TASK_SIZE               (current->thread.task_size)
-+#define TASK_SIZE_OF(tsk)       ((tsk)->thread.task_size)
-+#define TASK_SIZE	         (current->thread.task_size)
- #define TASK_UNMAPPED_BASE      (current->thread.map_base)
- 
- #define DEFAULT_TASK_SIZE32	(0xFFF00000UL)
-diff -puN include/asm-powerpc/processor.h~task_size_of include/asm-powerpc/processor.h
---- lxc/include/asm-powerpc/processor.h~task_size_of	2007-08-07 15:30:54.000000000 -0700
-+++ lxc-dave/include/asm-powerpc/processor.h	2007-08-07 15:30:54.000000000 -0700
-@@ -107,7 +107,9 @@ extern struct task_struct *last_task_use
-  */
- #define TASK_SIZE_USER32 (0x0000000100000000UL - (1*PAGE_SIZE))
- 
--#define TASK_SIZE (test_thread_flag(TIF_32BIT) ? \
-+#define TASK_SIZE	  (test_thread_flag(TIF_32BIT) ? \
-+		TASK_SIZE_USER32 : TASK_SIZE_USER64)
-+#define TASK_SIZE_OF(tsk) (test_tsk_thread_flag(tsk, TIF_32BIT) ? \
- 		TASK_SIZE_USER32 : TASK_SIZE_USER64)
- 
- /* This decides where the kernel will search for a free chunk of vm
-diff -puN include/asm-s390/processor.h~task_size_of include/asm-s390/processor.h
---- lxc/include/asm-s390/processor.h~task_size_of	2007-08-07 15:30:54.000000000 -0700
-+++ lxc-dave/include/asm-s390/processor.h	2007-08-07 15:30:54.000000000 -0700
-@@ -75,6 +75,8 @@ extern struct task_struct *last_task_use
- 
- # define TASK_SIZE		(test_thread_flag(TIF_31BIT) ? \
- 					(0x80000000UL) : (0x40000000000UL))
-+# define TASK_SIZE_OF(tsk)	(test_tsk_thread_flag(tsk, TIF_31BIT) ? \
-+					(0x80000000UL) : (0x40000000000UL))
- # define TASK_UNMAPPED_BASE	(TASK_SIZE / 2)
- # define DEFAULT_TASK_SIZE	(0x40000000000UL)
- 
-diff -puN include/linux/sched.h~task_size_of include/linux/sched.h
---- lxc/include/linux/sched.h~task_size_of	2007-08-07 15:30:54.000000000 -0700
-+++ lxc-dave/include/linux/sched.h	2007-08-07 15:30:54.000000000 -0700
-@@ -1712,6 +1712,10 @@ static inline void inc_syscw(struct task
- }
- #endif
- 
-+#ifndef TASK_SIZE_OF
-+#define TASK_SIZE_OF(tsk)	TASK_SIZE
-+#endif
-+
- #endif /* __KERNEL__ */
- 
- #endif
-_
+-- 
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
