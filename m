@@ -1,36 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:57770 "EHLO mx2.suse.de"
+Received: from mx1.redhat.com ([66.187.233.31]:33828 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756252AbXHUKoH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Aug 2007 06:44:07 -0400
-Date: Tue, 21 Aug 2007 13:37:51 +0200
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
-Message-ID: <20070821113751.GG32640@bingen.suse.de>
-References: <20070817235912.GA24314@linux.vnet.ibm.com> <20070818000913.GA25585@gondor.apana.org.au> <20070818010818.GQ8464@linux.vnet.ibm.com> <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com> <46C997B1.1010800@redhat.com> <417ebba299a7ad3c4b7a31c4f860a814@kernel.crashing.org> <20070820224859.GA16162@flint.arm.linux.org.uk> <2bdb04581125f22122f1d230e991ea92@kernel.crashing.org> <20070821070555.GA32036@flint.arm.linux.org.uk> <18122.45437.807239.395869@cargo.ozlabs.ibm.com>
+	id S1754113AbXHUOAy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Aug 2007 10:00:54 -0400
+Message-ID: <46CAED8B.9030006@redhat.com>
+Date: Tue, 21 Aug 2007 09:50:03 -0400
+From: Chris Snook <csnook@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <18122.45437.807239.395869@cargo.ozlabs.ibm.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+References: <alpine.LFD.0.999.0708170929580.30176@woody.linux-foundation.org>	<46C993DF.4080400@redhat.com>	<alpine.LFD.0.999.0708202244520.30176@woody.linux-foundation.org> <20070821.000404.39159401.davem@davemloft.net>
+In-Reply-To: <20070821.000404.39159401.davem@davemloft.net>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Segher Boessenkool <segher@kernel.crashing.org>, Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, rpjday@mindspring.com, Nick Piggin <nickpiggin@yahoo.com.au>, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, satyam@infradead.org, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
+To: David Miller <davem@davemloft.net>
+Cc: torvalds@linux-foundation.org, piggin@cyberone.com.au, satyam@infradead.org, herbert@gondor.apana.org.au, paulus@samba.org, clameter@sgi.com, ilpo.jarvinen@helsinki.fi, paulmck@linux.vnet.ibm.com, stefanr@s5r6.in-berlin.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Aug 21, 2007 at 07:33:49PM +1000, Paul Mackerras wrote:
-> So the whole discussion is irrelevant to ARM, PowerPC and any other
-> architecture except x86[-64].
+David Miller wrote:
+> From: Linus Torvalds <torvalds@linux-foundation.org>
+> Date: Mon, 20 Aug 2007 22:46:47 -0700 (PDT)
+> 
+>> Ie a "barrier()" is likely _cheaper_ than the code generation downside 
+>> from using "volatile".
+> 
+> Assuming GCC were ever better about the code generation badness
+> with volatile that has been discussed here, I much prefer
+> we tell GCC "this memory piece changed" rather than "every
+> piece of memory has changed" which is what the barrier() does.
+> 
+> I happened to have been scanning a lot of assembler lately to
+> track down a gcc-4.2 miscompilation on sparc64, and the barriers
+> do hurt quite a bit in some places.  Instead of keeping unrelated
+> variables around cached in local registers, it reloads everything.
 
-It's even irrelevant on x86 because all modifying operations on atomic_t 
-are coded in inline assembler and will always be RMW no matter
-if atomic_t is volatile or not.
+Moore's law is definitely working against us here.  Register counts, 
+pipeline depths, core counts, and clock multipliers are all increasing 
+in the long run.  At some point in the future, barrier() will be 
+universally regarded as a hammer too big for most purposes.  Whether or 
+not removing it now constitutes premature optimization is arguable, but 
+I think we should allow such optimization to happen (or not happen) in 
+architecture-dependent code, and provide a consistent API that doesn't 
+require the use of such things in arch-independent code where it might 
+turn into a totally superfluous performance killer depending on what 
+hardware it gets compiled for.
 
-[ignoring atomic_set(x, atomic_read(x) + 1) which nobody should do]
-
-The only issue is if atomic_t should have a implicit barrier or not.
-My personal opinion is yes -- better safe than sorry. And any code
-impact it may have is typically dwarved by the next cache miss anyways,
-so it doesn't matter much.
-
--Andi
-
+	-- Chris
