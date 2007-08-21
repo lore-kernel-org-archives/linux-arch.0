@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp123.sbc.mail.sp1.yahoo.com ([69.147.64.96]:40011 "HELO
-	smtp123.sbc.mail.sp1.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1755662AbXHUSYR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Aug 2007 14:24:17 -0400
-Date: Tue, 21 Aug 2007 11:25:05 -0700
-From: Chris Wedgwood <cw@f00f.org>
+Received: from ns2.suse.de ([195.135.220.15]:59798 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1761347AbXHUS0G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Aug 2007 14:26:06 -0400
+Date: Tue, 21 Aug 2007 21:19:59 +0200
+From: Andi Kleen <ak@suse.de>
 Subject: Re: RFC: drop support for gcc < 4.0
-Message-ID: <20070821182505.GA20968@puku.stupidest.org>
+Message-ID: <20070821191959.GC2642@bingen.suse.de>
 References: <20070821132038.GA22254@ff.dom.local> <20070821093103.3c097d4a.randy.dunlap@oracle.com> <20070821173550.GC30705@stusta.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -19,8 +18,23 @@ Cc: Randy Dunlap <randy.dunlap@oracle.com>, Linus Torvalds <torvalds@linux-found
 List-ID: <linux-arch.vger.kernel.org>
 
 On Tue, Aug 21, 2007 at 07:35:50PM +0200, Adrian Bunk wrote:
+> Obviously a gcc <= 3.4 [1], and therefore no unit-at-a-time.
 
-> Are there any architectures still requiring a gcc < 4.0 ?
+Actually there are widely used 3.3 variants that support unit-at-a-time
+(e.g. 3.3-hammer which was shipped by several distributions for some time)
 
-Yes, sadly in some places (embedded) there are people with older
-compiler who want newer kernels.
+There are still a lot of systems around which use gcc 3.3 (less so with
+3.4). Unless there's a major bug that is hard to work around I would
+prefer to keep it supported.
+
+Bogus warnings should be relatively harmless.
+
+> And it's becoming a real maintainance problem that not only this problem 
+> but also other problems like some section mismatches [2] are only 
+> present without unit-at-a-time.
+
+The unit-at-a-time output order is not defined, so even if it works
+with the current compiler a compiler change might still trigger
+that problem. So it would be better to fix those anyways.
+
+-Andi
