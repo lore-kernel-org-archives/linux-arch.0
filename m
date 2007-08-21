@@ -1,67 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout.stusta.mhn.de ([141.84.69.5]:56273 "EHLO
-	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S932158AbXHUSa0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2007 14:30:26 -0400
-Date: Tue, 21 Aug 2007 20:29:32 +0200
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: RFC: drop support for gcc < 4.0
-Message-ID: <20070821182932.GD30705@stusta.de>
-References: <20070821132038.GA22254@ff.dom.local> <20070821093103.3c097d4a.randy.dunlap@oracle.com> <20070821173550.GC30705@stusta.de> <20070821175453.GB19819@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20070821175453.GB19819@flint.arm.linux.org.uk>
+Received: from e31.co.us.ibm.com ([32.97.110.149]:46846 "EHLO
+	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750963AbXHUTin (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2007 15:38:43 -0400
+Received: from d03relay04.boulder.ibm.com (d03relay04.boulder.ibm.com [9.17.195.106])
+	by e31.co.us.ibm.com (8.13.8/8.13.8) with ESMTP id l7LJcb1N010249
+	for <linux-arch@vger.kernel.org>; Tue, 21 Aug 2007 15:38:37 -0400
+Received: from d03av01.boulder.ibm.com (d03av01.boulder.ibm.com [9.17.195.167])
+	by d03relay04.boulder.ibm.com (8.13.8/8.13.8/NCO v8.5) with ESMTP id l7LJcbbj215698
+	for <linux-arch@vger.kernel.org>; Tue, 21 Aug 2007 13:38:37 -0600
+Received: from d03av01.boulder.ibm.com (loopback [127.0.0.1])
+	by d03av01.boulder.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id l7LJcafB013347
+	for <linux-arch@vger.kernel.org>; Tue, 21 Aug 2007 13:38:37 -0600
+Subject: [RFC][PATCH] introduce TASK_SIZE_OF() for all arches
+From: Dave Hansen <haveblue@us.ibm.com>
+Date: Tue, 21 Aug 2007 12:38:35 -0700
+Message-Id: <20070821193835.258D7DD4@kernel>
 Sender: linux-arch-owner@vger.kernel.org
-To: Randy Dunlap <randy.dunlap@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Jarek Poplawski <jarkao2@o2.pl>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: Dave Hansen <haveblue@us.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Aug 21, 2007 at 06:54:53PM +0100, Russell King wrote:
-> On Tue, Aug 21, 2007 at 07:35:50PM +0200, Adrian Bunk wrote:
-> > On Tue, Aug 21, 2007 at 09:31:03AM -0700, Randy Dunlap wrote:
-> > > On Tue, 21 Aug 2007 15:20:38 +0200 Jarek Poplawski wrote:
-> > > 
-> > > > Here are some more of, probably well-known, warnings with attached
-> > > > testing-only .config.
-> > > >...
-> > > > drivers/pci/msi.c:686: warning: weak declaration of `arch_msi_check_device' after first use results in unspecified behavior
-> > > > drivers/pci/msi.c:698: warning: weak declaration of `arch_setup_msi_irqs' after first use results in unspecified behavior
-> > > > drivers/pci/msi.c:718: warning: weak declaration of `arch_teardown_msi_irqs' after first use results in unspecified behavior
-> > > >...
-> > > 
-> > > What gcc version?  I don't get the arch_ warnings in drivers/pci/msi.c.
-> > 
-> > Obviously a gcc <= 3.4 [1], and therefore no unit-at-a-time.
-> > 
-> > You can reproduce it with a more recent gcc when adding 
-> > -fno-unit-at-a-time to the CFLAGS.
-> > 
-> > And it's becoming a real maintainance problem that not only this problem 
-> > but also other problems like some section mismatches [2] are only 
-> > present without unit-at-a-time.
-> > 
-> > Currently we support 6 different stable gcc release series, and it might 
-> > be the right time to consider dropping support for the older ones.
-> > 
-> > Are there any architectures still requiring a gcc < 4.0 ?
-> 
-> I want to keep support for gcc 3.4.3 for ARM for the forseeable future.
-> >From my point of view, gcc 4 compilers have been something of a development
-> thing as far as the ARM architecture goes.
->...
 
-It is an option to say "gcc >= 4.0 on i386 and >= 3.4 on all other 
-architectures is required".
+For the /proc/<pid>/pagemap code[1], we need to able to query how
+much virtual address space a particular task has.  The trick is
+that we do it through /proc and can't use TASK_SIZE since it
+references "current" on some arches.  The process opening the
+/proc file might be a 32-bit process opening a 64-bit process's
+pagemap file.
 
-> Russell King
+x86_64 already has a TASK_SIZE_OF() macro:
 
-cu
-Adrian
+#define TASK_SIZE_OF(child)     ((test_tsk_thread_flag(child, TIF_IA32)) ? IA32_PAGE_OFFSET : TASK_SIZE64)
 
--- 
+I'd like to have that for other architectures.  So, add it
+for all the architectures that actually use "current" in 
+their TASK_SIZE.  For the others, just add a quick #define
+in sched.h to use plain old TASK_SIZE.
 
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
+1. http://www.linuxworld.com/news/2007/042407-kernel.html
 
+Signed-off-by: Dave Hansen <haveblue@us.ibm.com>
+---
+
+ lxc-dave/include/asm-ia64/processor.h    |    3 ++-
+ lxc-dave/include/asm-parisc/processor.h  |    3 ++-
+ lxc-dave/include/asm-powerpc/processor.h |    4 +++-
+ lxc-dave/include/asm-s390/processor.h    |    2 ++
+ lxc-dave/include/linux/sched.h           |    4 ++++
+ 5 files changed, 13 insertions(+), 3 deletions(-)
+
+diff -puN include/asm-ia64/processor.h~task_size_of include/asm-ia64/processor.h
+--- lxc/include/asm-ia64/processor.h~task_size_of	2007-08-07 15:30:54.000000000 -0700
++++ lxc-dave/include/asm-ia64/processor.h	2007-08-07 15:30:54.000000000 -0700
+@@ -31,7 +31,8 @@
+  * each (assuming 8KB page size), for a total of 8TB of user virtual
+  * address space.
+  */
+-#define TASK_SIZE		(current->thread.task_size)
++#define TASK_SIZE_OF(tsk)	((tsk)->thread.task_size)
++#define TASK_SIZE       	TASK_SIZE_OF(current)
+ 
+ /*
+  * This decides where the kernel will search for a free chunk of vm
+diff -puN include/asm-parisc/processor.h~task_size_of include/asm-parisc/processor.h
+--- lxc/include/asm-parisc/processor.h~task_size_of	2007-08-07 15:30:54.000000000 -0700
++++ lxc-dave/include/asm-parisc/processor.h	2007-08-07 15:30:54.000000000 -0700
+@@ -32,7 +32,8 @@
+ #endif
+ #define current_text_addr() ({ void *pc; current_ia(pc); pc; })
+ 
+-#define TASK_SIZE               (current->thread.task_size)
++#define TASK_SIZE_OF(tsk)       ((tsk)->thread.task_size)
++#define TASK_SIZE	         (current->thread.task_size)
+ #define TASK_UNMAPPED_BASE      (current->thread.map_base)
+ 
+ #define DEFAULT_TASK_SIZE32	(0xFFF00000UL)
+diff -puN include/asm-powerpc/processor.h~task_size_of include/asm-powerpc/processor.h
+--- lxc/include/asm-powerpc/processor.h~task_size_of	2007-08-07 15:30:54.000000000 -0700
++++ lxc-dave/include/asm-powerpc/processor.h	2007-08-07 15:30:54.000000000 -0700
+@@ -107,7 +107,9 @@ extern struct task_struct *last_task_use
+  */
+ #define TASK_SIZE_USER32 (0x0000000100000000UL - (1*PAGE_SIZE))
+ 
+-#define TASK_SIZE (test_thread_flag(TIF_32BIT) ? \
++#define TASK_SIZE	  (test_thread_flag(TIF_32BIT) ? \
++		TASK_SIZE_USER32 : TASK_SIZE_USER64)
++#define TASK_SIZE_OF(tsk) (test_tsk_thread_flag(tsk, TIF_32BIT) ? \
+ 		TASK_SIZE_USER32 : TASK_SIZE_USER64)
+ 
+ /* This decides where the kernel will search for a free chunk of vm
+diff -puN include/asm-s390/processor.h~task_size_of include/asm-s390/processor.h
+--- lxc/include/asm-s390/processor.h~task_size_of	2007-08-07 15:30:54.000000000 -0700
++++ lxc-dave/include/asm-s390/processor.h	2007-08-07 15:30:54.000000000 -0700
+@@ -75,6 +75,8 @@ extern struct task_struct *last_task_use
+ 
+ # define TASK_SIZE		(test_thread_flag(TIF_31BIT) ? \
+ 					(0x80000000UL) : (0x40000000000UL))
++# define TASK_SIZE_OF(tsk)	(test_tsk_thread_flag(tsk, TIF_31BIT) ? \
++					(0x80000000UL) : (0x40000000000UL))
+ # define TASK_UNMAPPED_BASE	(TASK_SIZE / 2)
+ # define DEFAULT_TASK_SIZE	(0x40000000000UL)
+ 
+diff -puN include/linux/sched.h~task_size_of include/linux/sched.h
+--- lxc/include/linux/sched.h~task_size_of	2007-08-07 15:30:54.000000000 -0700
++++ lxc-dave/include/linux/sched.h	2007-08-07 15:30:54.000000000 -0700
+@@ -1712,6 +1712,10 @@ static inline void inc_syscw(struct task
+ }
+ #endif
+ 
++#ifndef TASK_SIZE_OF
++#define TASK_SIZE_OF(tsk)	TASK_SIZE
++#endif
++
+ #endif /* __KERNEL__ */
+ 
+ #endif
+_
