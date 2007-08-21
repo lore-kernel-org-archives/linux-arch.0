@@ -1,49 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:33828 "EHLO mx1.redhat.com"
+Received: from gate.crashing.org ([63.228.1.57]:42512 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754113AbXHUOAy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Aug 2007 10:00:54 -0400
-Message-ID: <46CAED8B.9030006@redhat.com>
-Date: Tue, 21 Aug 2007 09:50:03 -0400
-From: Chris Snook <csnook@redhat.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-References: <alpine.LFD.0.999.0708170929580.30176@woody.linux-foundation.org>	<46C993DF.4080400@redhat.com>	<alpine.LFD.0.999.0708202244520.30176@woody.linux-foundation.org> <20070821.000404.39159401.davem@davemloft.net>
-In-Reply-To: <20070821.000404.39159401.davem@davemloft.net>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+	id S1756336AbXHUOou (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Aug 2007 10:44:50 -0400
+In-Reply-To: <20070821070555.GA32036@flint.arm.linux.org.uk>
+References: <46C516BA.60700@yahoo.com.au> <alpine.LFD.0.999.0708162045150.30176@woody.linux-foundation.org> <20070817235912.GA24314@linux.vnet.ibm.com> <20070818000913.GA25585@gondor.apana.org.au> <20070818010818.GQ8464@linux.vnet.ibm.com> <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com> <46C997B1.1010800@redhat.com> <417ebba299a7ad3c4b7a31c4f860a814@kernel.crashing.org> <20070820224859.GA16162@flint.arm.linux.org.uk> <2bdb04581125f22122f1d230e991ea92@kernel.crashing.org> <20070821070555.GA32036@flint.arm.linux.org.uk>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <0e3d1956b0b85feb2bdbdba07fad6a08@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Date: Tue, 21 Aug 2007 16:39:15 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: torvalds@linux-foundation.org, piggin@cyberone.com.au, satyam@infradead.org, herbert@gondor.apana.org.au, paulus@samba.org, clameter@sgi.com, ilpo.jarvinen@helsinki.fi, paulmck@linux.vnet.ibm.com, stefanr@s5r6.in-berlin.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Christoph Lameter <clameter@sgi.com>, Paul Mackerras <paulus@samba.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, rpjday@mindspring.com, Nick Piggin <nickpiggin@yahoo.com.au>, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, satyam@infradead.org, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-David Miller wrote:
-> From: Linus Torvalds <torvalds@linux-foundation.org>
-> Date: Mon, 20 Aug 2007 22:46:47 -0700 (PDT)
-> 
->> Ie a "barrier()" is likely _cheaper_ than the code generation downside 
->> from using "volatile".
-> 
-> Assuming GCC were ever better about the code generation badness
-> with volatile that has been discussed here, I much prefer
-> we tell GCC "this memory piece changed" rather than "every
-> piece of memory has changed" which is what the barrier() does.
-> 
-> I happened to have been scanning a lot of assembler lately to
-> track down a gcc-4.2 miscompilation on sparc64, and the barriers
-> do hurt quite a bit in some places.  Instead of keeping unrelated
-> variables around cached in local registers, it reloads everything.
+>>>> And no, RMW on MMIO isn't "problematic" at all, either.
+>>>>
+>>>> An RMW op is a read op, a modify op, and a write op, all rolled
+>>>> into one opcode.  But three actual operations.
+>>>
+>>> Maybe for some CPUs, but not all.  ARM for instance can't use the
+>>> load exclusive and store exclusive instructions to MMIO space.
+>>
+>> Sure, your CPU doesn't have RMW instructions -- how to emulate
+>> those if you don't have them is a totally different thing.
+>
+> Let me say it more clearly: On ARM, it is impossible to perform atomic
+> operations on MMIO space.
 
-Moore's law is definitely working against us here.  Register counts, 
-pipeline depths, core counts, and clock multipliers are all increasing 
-in the long run.  At some point in the future, barrier() will be 
-universally regarded as a hammer too big for most purposes.  Whether or 
-not removing it now constitutes premature optimization is arguable, but 
-I think we should allow such optimization to happen (or not happen) in 
-architecture-dependent code, and provide a consistent API that doesn't 
-require the use of such things in arch-independent code where it might 
-turn into a totally superfluous performance killer depending on what 
-hardware it gets compiled for.
+It's all completely beside the point, see the other subthread, but...
 
-	-- Chris
+Yeah, you can't do LL/SC to MMIO space; ARM isn't alone in that.
+You could still implement atomic operations on MMIO space by taking
+a lock elsewhere, in normal cacheable memory space.  Why you would
+do this is a separate question, you probably don't want it :-)
+
+
+Segher
+
