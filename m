@@ -1,59 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout.stusta.mhn.de ([141.84.69.5]:55538 "EHLO
-	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751348AbXHUWKq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2007 18:10:46 -0400
-Date: Wed, 22 Aug 2007 00:09:52 +0200
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: RFC: drop support for gcc < 4.0
-Message-ID: <20070821220952.GH30705@stusta.de>
-References: <20070821132038.GA22254@ff.dom.local> <20070821093103.3c097d4a.randy.dunlap@oracle.com> <20070821173550.GC30705@stusta.de> <20070821191959.GC2642@bingen.suse.de> <20070821195433.GE30705@stusta.de> <alpine.LFD.0.999.0708211306560.30176@woody.linux-foundation.org> <20070821202113.GF30705@stusta.de> <27c412eea99f1f80a3002e9668bd31f8@kernel.crashing.org> <20070821212129.GG30705@stusta.de> <1187732978.18410.51.camel@localhost.localdomain>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <1187732978.18410.51.camel@localhost.localdomain>
+Received: from turing-police.cc.vt.edu ([128.173.14.107]:37548 "EHLO
+	turing-police.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753158AbXHUWxq (ORCPT
+	<RFC822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2007 18:53:46 -0400
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+In-Reply-To: Your message of "Tue, 21 Aug 2007 09:16:43 PDT."
+             <20070821161643.GA7574@linux.vnet.ibm.com>
+From: Valdis.Kletnieks@vt.edu
+References: <20070818000913.GA25585@gondor.apana.org.au> <20070818010818.GQ8464@linux.vnet.ibm.com> <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com> <46C997B1.1010800@redhat.com> <417ebba299a7ad3c4b7a31c4f860a814@kernel.crashing.org> <20070820224859.GA16162@flint.arm.linux.org.uk> <2bdb04581125f22122f1d230e991ea92@kernel.crashing.org> <20070821070555.GA32036@flint.arm.linux.org.uk> <18122.45437.807239.395869@cargo.ozlabs.ibm.com> <33412cad5894a9cbdc85482db5e9a0a0@kernel.crashing.org>
+            <20070821161643.GA7574@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; boundary="==_Exmh_1187736676_2990P";
+	 micalg=pgp-sha1; protocol="application/pgp-signature"
+Content-Transfer-Encoding: 7bit
+Date: Tue, 21 Aug 2007 18:51:16 -0400
+Message-ID: <28709.1187736676@turing-police.cc.vt.edu>
 Sender: linux-arch-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@steeleye.com>
-Cc: Segher Boessenkool <segher@kernel.crashing.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jarek Poplawski <jarkao2@o2.pl>, Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
+To: paulmck@linux.vnet.ibm.com
+Cc: Segher Boessenkool <segher@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, rpjday@mindspring.com, Nick Piggin <nickpiggin@yahoo.com.au>, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, satyam@infradead.org, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Aug 21, 2007 at 04:49:38PM -0500, James Bottomley wrote:
-> On Tue, 2007-08-21 at 23:21 +0200, Adrian Bunk wrote:
-> > On Tue, Aug 21, 2007 at 10:49:49PM +0200, Segher Boessenkool wrote:
-> > >> How many people e.g. test -rc kernels compiled with gcc 3.2?
-> > >
-> > > Why would that matter?  It either works or not.  If it doesn't
-> > > work, it can either be fixed, or support for that old compiler
-> > > version can be removed.
-> > 
-> > One bug report "kernel doesn't work / crash / ... when compiled with
-> > gcc 3.2, but works when compiled with gcc 4.2" will most likely be lost 
-> > in the big pile of unhandled bugs, not cause the removal of gcc 3.2 
-> > support...
-> 
-> What's the bugzilla or pointer to this report please?  Those of us who
-> use gcc-3 as the default kernel compiler will take it seriously (if it
-> looks to have an impact to our kernel builds) otherwise we can tell you
-> it's unreproducible/not a problem etc.
+--==_Exmh_1187736676_2990P
+Content-Type: text/plain; charset=us-ascii
 
-This was an example in response to Segher's point we would remove 
-support for a gcc version in such a case.
+On Tue, 21 Aug 2007 09:16:43 PDT, "Paul E. McKenney" said:
 
-I remember we had such issues, but I don't find any pointer to a 
-specific one at the moment.
+> I agree that instant gratification is hard to come by when synching
+> up compiler and kernel versions.  Nonetheless, it should be possible
+> to create APIs that are are conditioned on the compiler version.
 
-I'll keep you informed when bug reports come in that only occur with 
-older gcc versions and that aren't easily fixable.
+We've tried that, sort of.  See the mess surrounding the whole
+extern/static/inline/__whatever boondogle, which seems to have
+changed semantics in every single gcc release since 2.95 or so.
 
-> James
+And recently mention was made that gcc4.4 will have *new* semantics
+in this area. Yee. Hah.
 
-cu
-Adrian
 
--- 
 
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
 
+
+
+--==_Exmh_1187736676_2990P
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.7 (GNU/Linux)
+Comment: Exmh version 2.5 07/13/2001
+
+iD8DBQFGy2xkcC3lWbTT17ARAhlSAKDNaADYU7Xmy2nbLFMctFnTdjkAeACfSEbb
+OM4uGVrXvWzztHDShpVKgVU=
+=U3M2
+-----END PGP SIGNATURE-----
+
+--==_Exmh_1187736676_2990P--
