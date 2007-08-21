@@ -1,38 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:54586
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1756041AbXHUHEG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Aug 2007 03:04:06 -0400
-Date: Tue, 21 Aug 2007 00:04:04 -0700 (PDT)
-Message-Id: <20070821.000404.39159401.davem@davemloft.net>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <alpine.LFD.0.999.0708202244520.30176@woody.linux-foundation.org>
-References: <alpine.LFD.0.999.0708170929580.30176@woody.linux-foundation.org>
-	<46C993DF.4080400@redhat.com>
-	<alpine.LFD.0.999.0708202244520.30176@woody.linux-foundation.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:56557 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752090AbXHUJKR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2007 05:10:17 -0400
+Date: Tue, 21 Aug 2007 08:05:55 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Message-ID: <20070821070555.GA32036@flint.arm.linux.org.uk>
+References: <46C516BA.60700@yahoo.com.au> <alpine.LFD.0.999.0708162045150.30176@woody.linux-foundation.org> <20070817235912.GA24314@linux.vnet.ibm.com> <20070818000913.GA25585@gondor.apana.org.au> <20070818010818.GQ8464@linux.vnet.ibm.com> <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com> <46C997B1.1010800@redhat.com> <417ebba299a7ad3c4b7a31c4f860a814@kernel.crashing.org> <20070820224859.GA16162@flint.arm.linux.org.uk> <2bdb04581125f22122f1d230e991ea92@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <2bdb04581125f22122f1d230e991ea92@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: csnook@redhat.com, piggin@cyberone.com.au, satyam@infradead.org, herbert@gondor.apana.org.au, paulus@samba.org, clameter@sgi.com, ilpo.jarvinen@helsinki.fi, paulmck@linux.vnet.ibm.com, stefanr@s5r6.in-berlin.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, akpm@linux-foundation.org, ak@suse.de, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Christoph Lameter <clameter@sgi.com>, Paul Mackerras <paulus@samba.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, rpjday@mindspring.com, Nick Piggin <nickpiggin@yahoo.com.au>, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, satyam@infradead.org, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 20 Aug 2007 22:46:47 -0700 (PDT)
+On Tue, Aug 21, 2007 at 01:02:01AM +0200, Segher Boessenkool wrote:
+> >>And no, RMW on MMIO isn't "problematic" at all, either.
+> >>
+> >>An RMW op is a read op, a modify op, and a write op, all rolled
+> >>into one opcode.  But three actual operations.
+> >
+> >Maybe for some CPUs, but not all.  ARM for instance can't use the
+> >load exclusive and store exclusive instructions to MMIO space.
+> 
+> Sure, your CPU doesn't have RMW instructions -- how to emulate
+> those if you don't have them is a totally different thing.
 
-> Ie a "barrier()" is likely _cheaper_ than the code generation downside 
-> from using "volatile".
+Let me say it more clearly: On ARM, it is impossible to perform atomic
+operations on MMIO space.
 
-Assuming GCC were ever better about the code generation badness
-with volatile that has been discussed here, I much prefer
-we tell GCC "this memory piece changed" rather than "every
-piece of memory has changed" which is what the barrier() does.
-
-I happened to have been scanning a lot of assembler lately to
-track down a gcc-4.2 miscompilation on sparc64, and the barriers
-do hurt quite a bit in some places.  Instead of keeping unrelated
-variables around cached in local registers, it reloads everything.
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
