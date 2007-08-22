@@ -1,42 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:47611 "EHLO mx1.redhat.com"
+Received: from gate.crashing.org ([63.228.1.57]:41771 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758159AbXHVOHK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Aug 2007 10:07:10 -0400
-Message-ID: <46CC42EF.3030602@redhat.com>
-Date: Wed, 22 Aug 2007 10:06:39 -0400
-From: Chris Snook <csnook@redhat.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 11/23] make atomic_read() and atomic_set() behavior consistent
- on m32r
-References: <46C03885.7000109@redhat.com> <20070813112452.GK24018@shell.boston.redhat.com> <swfhcmswcux.wl%takata.hirokazu@renesas.com> <swfejhww4cs.wl%takata.hirokazu@renesas.com>
-In-Reply-To: <swfejhww4cs.wl%takata.hirokazu@renesas.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+	id S1758711AbXHVOZy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Aug 2007 10:25:54 -0400
+In-Reply-To: <46CC42EF.3030602@redhat.com>
+References: <46C03885.7000109@redhat.com> <20070813112452.GK24018@shell.boston.redhat.com> <swfhcmswcux.wl%takata.hirokazu@renesas.com> <swfejhww4cs.wl%takata.hirokazu@renesas.com> <46CC42EF.3030602@redhat.com>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <8fc86c23579e12b012891d6e69b1b107@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH 11/23] make atomic_read() and atomic_set() behavior consistent on m32r
+Date: Wed, 22 Aug 2007 16:24:11 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Hirokazu Takata <takata@linux-m32r.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
+To: Chris Snook <csnook@redhat.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>, Linus Torvalds <torvalds@linux-foundation.org>, "Robert P. J. Day" <rpjday@mindspring.com>, paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, "Luck, Tony" <tony.luck@intel.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Chris Friesen <cfriesen@nortel.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Hirokazu Takata wrote:
-> I think the parameter of atomic_read() should have "const" 
-> qualifier to avoid these warnings, and IMHO this modification might be
-> worth applying on other archs.
+>> I also tried to rewrite it with inline asm code, but the kernel text 
+>> size
+>> bacame roughly 2kB larger. So, I prefer C version.
 
-I agree.
+Could you send me the source code diff between the two versions
+you tested?  2kB difference is way too much, the asm version should
+be smaller if anything.
 
-> Here is an additional patch to revise the previous one for m32r.
+> You're not the only arch maintainer who prefers doing it in C.  If you 
+> trust your compiler (a big "if", apparently), inline asm only improves 
+> code generation if you have a whole bunch of general purpose registers 
+> for the optimizer to play with.
 
-I'll incorporate this change if we get enough consensus to justify a 
-re-re-re-submit.  Since the patch is intended to be a functional no-op on m32r, 
-I'm inclined to leave it alone at the moment.
+No.  The only real difference between the *(volatile *)& version
+and the volatile asm() version is that the volatile asm() version
+has defined semantics.  There will be some code generation differences
+too, but they should be in the noise, unless GCC generates really
+bad code for either case.  We know it sometimes does that for the
+*(volatile *)& thing; if the asm() version does something bad, I'd
+like to know about that too.
 
-> I also tried to rewrite it with inline asm code, but the kernel text size
-> bacame roughly 2kB larger. So, I prefer C version.
 
-You're not the only arch maintainer who prefers doing it in C.  If you trust 
-your compiler (a big "if", apparently), inline asm only improves code generation 
-if you have a whole bunch of general purpose registers for the optimizer to play 
-with.
+Segher
 
-	-- Chris
