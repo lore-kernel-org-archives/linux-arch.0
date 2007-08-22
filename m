@@ -1,58 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:47621 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1759541AbXHVSUx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Aug 2007 14:20:53 -0400
-Date: Wed, 22 Aug 2007 11:20:02 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 11/23] make atomic_read() and atomic_set() behavior
- consistent on m32r
-In-Reply-To: <8fc86c23579e12b012891d6e69b1b107@kernel.crashing.org>
-Message-ID: <alpine.LFD.0.999.0708221116310.30176@woody.linux-foundation.org>
-References: <46C03885.7000109@redhat.com> <20070813112452.GK24018@shell.boston.redhat.com>
- <swfhcmswcux.wl%takata.hirokazu@renesas.com> <swfejhww4cs.wl%takata.hirokazu@renesas.com>
- <46CC42EF.3030602@redhat.com>
- <8fc86c23579e12b012891d6e69b1b107@kernel.crashing.org>
+Received: from emailhub.stusta.mhn.de ([141.84.69.5]:59865 "EHLO
+	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1760813AbXHVVjH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Aug 2007 17:39:07 -0400
+Date: Wed, 22 Aug 2007 23:38:00 +0200
+From: Adrian Bunk <bunk@kernel.org>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+	architectures
+Message-ID: <20070822213800.GJ30705@stusta.de>
+References: <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com> <46C997B1.1010800@redhat.com> <417ebba299a7ad3c4b7a31c4f860a814@kernel.crashing.org> <20070820224859.GA16162@flint.arm.linux.org.uk> <2bdb04581125f22122f1d230e991ea92@kernel.crashing.org> <20070821070555.GA32036@flint.arm.linux.org.uk> <18122.45437.807239.395869@cargo.ozlabs.ibm.com> <33412cad5894a9cbdc85482db5e9a0a0@kernel.crashing.org> <20070821161643.GA7574@linux.vnet.ibm.com> <28709.1187736676@turing-police.cc.vt.edu>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <28709.1187736676@turing-police.cc.vt.edu>
 Sender: linux-arch-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Chris Snook <csnook@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, "Robert P. J. Day" <rpjday@mindspring.com>, paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, "Luck, Tony" <tony.luck@intel.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Chris Friesen <cfriesen@nortel.com>
+To: Valdis.Kletnieks@vt.edu
+Cc: paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, rpjday@mindspring.com, Nick Piggin <nickpiggin@yahoo.com.au>, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, satyam@infradead.org, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-
-
-On Wed, 22 Aug 2007, Segher Boessenkool wrote:
-
-> > > I also tried to rewrite it with inline asm code, but the kernel text size
-> > > bacame roughly 2kB larger. So, I prefer C version.
+On Tue, Aug 21, 2007 at 06:51:16PM -0400, Valdis.Kletnieks@vt.edu wrote:
+> On Tue, 21 Aug 2007 09:16:43 PDT, "Paul E. McKenney" said:
 > 
-> Could you send me the source code diff between the two versions
-> you tested?  2kB difference is way too much, the asm version should
-> be smaller if anything.
+> > I agree that instant gratification is hard to come by when synching
+> > up compiler and kernel versions.  Nonetheless, it should be possible
+> > to create APIs that are are conditioned on the compiler version.
+> 
+> We've tried that, sort of.  See the mess surrounding the whole
+> extern/static/inline/__whatever boondogle, which seems to have
+> changed semantics in every single gcc release since 2.95 or so.
+>...
 
-Segher, can you please drop out of this discussion?
+There is exactly one semantics change in gcc in this area, and that is 
+the change of the "extern inline" semantics in gcc 4.3 to the
+C99 semantics.
 
-Your points are all wrong.
+cu
+Adrian
 
-The inline asm version has the EXACT SAME PROBLEM as the "volatile" 
-version has: it means that the compiler is unable to combine trivial 
-instructions. There's no way that is acceptable.
+-- 
 
-So why the *hell* you'd expect the asm version to be smaller, I can't 
-imagine. It's obvkously not going to be true.
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
 
-So here's a clue to everybody in this thread:
-
-   THE CURRENT x86 BEHAVIOUR IS THE CORRECT ONE
-
-where we don't have any "volatile" and no inline asm and no barriers, and 
-we let the compiler do the right thing. If the code needs barriers, the 
-code should damn well add them.
-
-It's worked for the past 8 months, on the most common platform there is.
-
-Stop this *idiotic* thread already.
-
-			Linus
