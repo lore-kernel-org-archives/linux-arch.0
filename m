@@ -1,76 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from noname.neutralserver.com ([70.84.186.210]:45555 "EHLO
-	noname.neutralserver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1764593AbXHVJRO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Aug 2007 05:17:14 -0400
-Date: Wed, 22 Aug 2007 11:48:52 +0300
-From: Dan Aloni <da-x@monatomic.org>
-Subject: Re: [patch 3/3] mm: variable length argument support
-Message-ID: <20070822084852.GA12314@localdomain>
-References: <20070613100334.635756997@chello.nl> <20070613100835.014096712@chello.nl>
+Received: from mx1.redhat.com ([66.187.233.31]:47611 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758159AbXHVOHK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Aug 2007 10:07:10 -0400
+Message-ID: <46CC42EF.3030602@redhat.com>
+Date: Wed, 22 Aug 2007 10:06:39 -0400
+From: Chris Snook <csnook@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070613100835.014096712@chello.nl>
+Subject: Re: [PATCH 11/23] make atomic_read() and atomic_set() behavior consistent
+ on m32r
+References: <46C03885.7000109@redhat.com> <20070813112452.GK24018@shell.boston.redhat.com> <swfhcmswcux.wl%takata.hirokazu@renesas.com> <swfejhww4cs.wl%takata.hirokazu@renesas.com>
+In-Reply-To: <swfejhww4cs.wl%takata.hirokazu@renesas.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: linux-kernel@vger.kernel.org, parisc-linux@lists.parisc-linux.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Ollie Wild <aaw@google.com>, Andrew Morton <akpm@osdl.org>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <ak@suse.de>
+To: Hirokazu Takata <takata@linux-m32r.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, "Luck, Tony" <tony.luck@intel.com>, Chris Friesen <cfriesen@nortel.com>, "Robert P. J. Day" <rpjday@mindspring.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Jun 13, 2007 at 12:03:37PM +0200, Peter Zijlstra wrote:
-> From: Ollie Wild <aaw@google.com>
-> 
-> Remove the arg+env limit of MAX_ARG_PAGES by copying the strings directly
-> from the old mm into the new mm.
-> 
-[...]
-> +static int __bprm_mm_init(struct linux_binprm *bprm)
-> +{
-[...]
-> +	vma->vm_flags = VM_STACK_FLAGS;
-> +	vma->vm_page_prot = protection_map[vma->vm_flags & 0x7];
-> +	err = insert_vm_struct(mm, vma);
-> +	if (err) {
-> +		up_write(&mm->mmap_sem);
-> +		goto err;
-> +	}
-> +
+Hirokazu Takata wrote:
+> I think the parameter of atomic_read() should have "const" 
+> qualifier to avoid these warnings, and IMHO this modification might be
+> worth applying on other archs.
 
-That change causes a crash in khelper when overcommit_memory = 2 
-under 2.6.23-rc3.
+I agree.
 
-When a khelper execs, at __bprm_mm_init() current->mm is still NULL.
-insert_vm_struct() calls security_vm_enough_memory(), which calls 
-__vm_enough_memory(), and that's where current->mm->total_vm gets 
-dereferenced.
+> Here is an additional patch to revise the previous one for m32r.
 
+I'll incorporate this change if we get enough consensus to justify a 
+re-re-re-submit.  Since the patch is intended to be a functional no-op on m32r, 
+I'm inclined to leave it alone at the moment.
 
-Signed-off-by: Dan Aloni <da-x@monatomic.org>
+> I also tried to rewrite it with inline asm code, but the kernel text size
+> bacame roughly 2kB larger. So, I prefer C version.
 
-diff --git a/mm/mmap.c b/mm/mmap.c
-index 906ed40..6e021df 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -163,10 +163,12 @@ int __vm_enough_memory(long pages, int cap_sys_admin)
- 	if (!cap_sys_admin)
- 		allowed -= allowed / 32;
- 	allowed += total_swap_pages;
--
--	/* Don't let a single process grow too big:
--	   leave 3% of the size of this process for other processes */
--	allowed -= current->mm->total_vm / 32;
-+
-+	if (current->mm) {
-+		/* Don't let a single process grow too big:
-+		   leave 3% of the size of this process for other processes */
-+		allowed -= current->mm->total_vm / 32;
-+	}
- 
- 	/*
- 	 * cast `allowed' as a signed long because vm_committed_space
+You're not the only arch maintainer who prefers doing it in C.  If you trust 
+your compiler (a big "if", apparently), inline asm only improves code generation 
+if you have a whole bunch of general purpose registers for the optimizer to play 
+with.
 
-
--- 
-Dan Aloni
-XIV LTD, http://www.xivstorage.com
-da-x (at) monatomic.org, dan (at) xiv.co.il
+	-- Chris
