@@ -1,64 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:46273 "EHLO gate.crashing.org"
+Received: from e6.ny.us.ibm.com ([32.97.182.146]:53549 "EHLO e6.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751296AbXHVAJs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Aug 2007 20:09:48 -0400
-In-Reply-To: <20070821212129.GG30705@stusta.de>
-References: <20070821132038.GA22254@ff.dom.local> <20070821093103.3c097d4a.randy.dunlap@oracle.com> <20070821173550.GC30705@stusta.de> <20070821191959.GC2642@bingen.suse.de> <20070821195433.GE30705@stusta.de> <alpine.LFD.0.999.0708211306560.30176@woody.linux-foundation.org> <20070821202113.GF30705@stusta.de> <27c412eea99f1f80a3002e9668bd31f8@kernel.crashing.org> <20070821212129.GG30705@stusta.de>
-Mime-Version: 1.0 (Apple Message framework v623)
-Content-Type: text/plain; charset=US-ASCII; format=flowed
-Message-Id: <17c0b56b663fce6f28b46e3c42dfbaf9@kernel.crashing.org>
-Content-Transfer-Encoding: 7bit
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: RFC: drop support for gcc < 4.0
-Date: Wed, 22 Aug 2007 02:08:33 +0200
+	id S1751055AbXHVAuM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Aug 2007 20:50:12 -0400
+Date: Tue, 21 Aug 2007 17:50:07 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Message-ID: <20070822005007.GG7574@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com> <46C997B1.1010800@redhat.com> <417ebba299a7ad3c4b7a31c4f860a814@kernel.crashing.org> <20070820224859.GA16162@flint.arm.linux.org.uk> <2bdb04581125f22122f1d230e991ea92@kernel.crashing.org> <20070821070555.GA32036@flint.arm.linux.org.uk> <18122.45437.807239.395869@cargo.ozlabs.ibm.com> <33412cad5894a9cbdc85482db5e9a0a0@kernel.crashing.org> <20070821161643.GA7574@linux.vnet.ibm.com> <28709.1187736676@turing-police.cc.vt.edu>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <28709.1187736676@turing-police.cc.vt.edu>
 Sender: linux-arch-owner@vger.kernel.org
-To: Adrian Bunk <bunk@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jarek Poplawski <jarkao2@o2.pl>, Andi Kleen <ak@suse.de>, linux-arch@vger.kernel.org, Randy Dunlap <randy.dunlap@oracle.com>
+To: Valdis.Kletnieks@vt.edu
+Cc: Segher Boessenkool <segher@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, rpjday@mindspring.com, Nick Piggin <nickpiggin@yahoo.com.au>, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, satyam@infradead.org, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
->>> How many people e.g. test -rc kernels compiled with gcc 3.2?
->>
->> Why would that matter?  It either works or not.  If it doesn't
->> work, it can either be fixed, or support for that old compiler
->> version can be removed.
->
-> One bug report "kernel doesn't work / crash / ... when compiled with
-> gcc 3.2, but works when compiled with gcc 4.2" will most likely be lost
-> in the big pile of unhandled bugs, not cause the removal of gcc 3.2
-> support...
+On Tue, Aug 21, 2007 at 06:51:16PM -0400, Valdis.Kletnieks@vt.edu wrote:
+> On Tue, 21 Aug 2007 09:16:43 PDT, "Paul E. McKenney" said:
+> 
+> > I agree that instant gratification is hard to come by when synching
+> > up compiler and kernel versions.  Nonetheless, it should be possible
+> > to create APIs that are are conditioned on the compiler version.
+> 
+> We've tried that, sort of.  See the mess surrounding the whole
+> extern/static/inline/__whatever boondogle, which seems to have
+> changed semantics in every single gcc release since 2.95 or so.
+> 
+> And recently mention was made that gcc4.4 will have *new* semantics
+> in this area. Yee. Hah.
 
-While that might be true, it's a separate problem.
+;-)
 
->> The only other policy than "only remove support if things are
->> badly broken" would be "only support what the GCC team supports",
->> which would be >= 4.1 now; and there are very good arguments for
->> supporting more than that with the Linux kernel.
->
-> No, it's not about bugs in gcc, it's about kernel+gcc combinations that
-> are mostly untested but officially supported.
-
-What does "officially supported" mean?  Especially the
-"officially" part.  Is this documented somewhere?
-
-> E.g. how many kernel developers use kernels compiled without
-> unit-at-a-time? And unit-at-a-time does paper over some bugs,
-> e.g. at about half a dozen section mismatch bugs I've fixed
-> recently are not present with it.
-
-If any developer is interested in supporting some certain old
-compiler version, he should be testing regularly with it.  Sounds
-like that's you ;-)
-
-If no developer is interested, we shouldn't claim to support
-using that compiler version.
-
-> But as the discussions have shown gcc 4.0 is currently too high for
-> making a cut, and it is not yet the right time for raising the minimum
-> required gcc version.
-
-Agreed.
-
-
-Segher
-
+						Thanx, Paul
