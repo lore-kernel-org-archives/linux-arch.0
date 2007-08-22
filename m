@@ -1,46 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from emailhub.stusta.mhn.de ([141.84.69.5]:59865 "EHLO
-	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1760813AbXHVVjH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Aug 2007 17:39:07 -0400
-Date: Wed, 22 Aug 2007 23:38:00 +0200
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
-	architectures
-Message-ID: <20070822213800.GJ30705@stusta.de>
-References: <Pine.LNX.4.64.0708171817050.15427@schroedinger.engr.sgi.com> <46C997B1.1010800@redhat.com> <417ebba299a7ad3c4b7a31c4f860a814@kernel.crashing.org> <20070820224859.GA16162@flint.arm.linux.org.uk> <2bdb04581125f22122f1d230e991ea92@kernel.crashing.org> <20070821070555.GA32036@flint.arm.linux.org.uk> <18122.45437.807239.395869@cargo.ozlabs.ibm.com> <33412cad5894a9cbdc85482db5e9a0a0@kernel.crashing.org> <20070821161643.GA7574@linux.vnet.ibm.com> <28709.1187736676@turing-police.cc.vt.edu>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <28709.1187736676@turing-police.cc.vt.edu>
+Received: from e35.co.us.ibm.com ([32.97.110.153]:39813 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760126AbXHVWz7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Aug 2007 18:55:59 -0400
+Received: from d03relay04.boulder.ibm.com (d03relay04.boulder.ibm.com [9.17.195.106])
+	by e35.co.us.ibm.com (8.13.8/8.13.8) with ESMTP id l7MMtq70023806
+	for <linux-arch@vger.kernel.org>; Wed, 22 Aug 2007 18:55:52 -0400
+Received: from d03av02.boulder.ibm.com (d03av02.boulder.ibm.com [9.17.195.168])
+	by d03relay04.boulder.ibm.com (8.13.8/8.13.8/NCO v8.5) with ESMTP id l7MMtq9j177096
+	for <linux-arch@vger.kernel.org>; Wed, 22 Aug 2007 16:55:52 -0600
+Received: from d03av02.boulder.ibm.com (loopback [127.0.0.1])
+	by d03av02.boulder.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id l7MMtpZD023067
+	for <linux-arch@vger.kernel.org>; Wed, 22 Aug 2007 16:55:52 -0600
+Subject: Re: [RFC][PATCH] introduce TASK_SIZE_OF() for all arches
+From: Dave Hansen <haveblue@us.ibm.com>
+In-Reply-To: <31048.1187773615@redhat.com>
+References: <20070821193835.258D7DD4@kernel>  <31048.1187773615@redhat.com>
+Content-Type: text/plain
+Date: Wed, 22 Aug 2007 15:55:50 -0700
+Message-Id: <1187823350.16177.1326.camel@localhost>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Valdis.Kletnieks@vt.edu
-Cc: paulmck@linux.vnet.ibm.com, Segher Boessenkool <segher@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Christoph Lameter <clameter@sgi.com>, heiko.carstens@de.ibm.com, horms@verge.net.au, linux-kernel@vger.kernel.org, ak@suse.de, netdev@vger.kernel.org, cfriesen@nortel.com, akpm@linux-foundation.org, rpjday@mindspring.com, Nick Piggin <nickpiggin@yahoo.com.au>, linux-arch@vger.kernel.org, jesper.juhl@gmail.com, satyam@infradead.org, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, Matt Mackall <mpm@selenic.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Aug 21, 2007 at 06:51:16PM -0400, Valdis.Kletnieks@vt.edu wrote:
-> On Tue, 21 Aug 2007 09:16:43 PDT, "Paul E. McKenney" said:
+On Wed, 2007-08-22 at 10:06 +0100, David Howells wrote:
+> Dave Hansen <haveblue@us.ibm.com> wrote:
 > 
-> > I agree that instant gratification is hard to come by when synching
-> > up compiler and kernel versions.  Nonetheless, it should be possible
-> > to create APIs that are are conditioned on the compiler version.
+> > For the /proc/<pid>/pagemap code[1], we need to able to query how
+> > much virtual address space a particular task has.
 > 
-> We've tried that, sort of.  See the mess surrounding the whole
-> extern/static/inline/__whatever boondogle, which seems to have
-> changed semantics in every single gcc release since 2.95 or so.
->...
+> How does this relate to NOMMU conditions?
 
-There is exactly one semantics change in gcc in this area, and that is 
-the change of the "extern inline" semantics in gcc 4.3 to the
-C99 semantics.
+It probably doesn't make any sense to use the /proc/<pid>/pagemap
+feature on NOMMU systems.  There are no pagetables to dump, and no
+shared pages, right?
 
-cu
-Adrian
-
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
+-- Dave
 
