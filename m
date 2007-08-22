@@ -1,24 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:36777 "EHLO mx1.redhat.com"
+Received: from sorrow.cyrius.com ([65.19.161.204]:4390 "EHLO sorrow.cyrius.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1762054AbXHVJHE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Aug 2007 05:07:04 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20070821193835.258D7DD4@kernel>
-References: <20070821193835.258D7DD4@kernel>
-Subject: Re: [RFC][PATCH] introduce TASK_SIZE_OF() for all arches
-Date: Wed, 22 Aug 2007 10:06:55 +0100
-Message-ID: <31048.1187773615@redhat.com>
+	id S1750816AbXHVJXs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Aug 2007 05:23:48 -0400
+Date: Wed, 22 Aug 2007 10:48:27 +0200
+From: Martin Michlmayr <tbm@cyrius.com>
+Subject: Re: RFC: drop support for gcc < 4.0
+Message-ID: <20070822084827.GA6302@derision.cyrius.com>
+References: <20070821132038.GA22254@ff.dom.local> <20070821093103.3c097d4a.randy.dunlap@oracle.com> <20070821173550.GC30705@stusta.de> <6101e8c40708211441g2ae20412u877082eb611f595e@mail.gmail.com> <Pine.LNX.4.64.0708220956540.20435@fbirervta.pbzchgretzou.qr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0708220956540.20435@fbirervta.pbzchgretzou.qr>
 Sender: linux-arch-owner@vger.kernel.org
-To: Dave Hansen <haveblue@us.ibm.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org
+To: Jan Engelhardt <jengelh@computergmbh.de>
+Cc: Oliver Pinter <oliver.pntr@gmail.com>, Adrian Bunk <bunk@kernel.org>, Randy Dunlap <randy.dunlap@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Jarek Poplawski <jarkao2@o2.pl>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Dave Hansen <haveblue@us.ibm.com> wrote:
+* Jan Engelhardt <jengelh@computergmbh.de> [2007-08-22 09:57]:
+> >I think it's bad idea, when removing support for gcc3.x, while some
+> >people using debian 3.1 at now and under debian 3.1 the default
+> >comiler is 3.3.5, when I good know or not!?
+> They always lag behind.
 
-> For the /proc/<pid>/pagemap code[1], we need to able to query how
-> much virtual address space a particular task has.
-
-How does this relate to NOMMU conditions?
-
-David
+Debian 4.0 has GCC 4.1 as the default compiler, and we use 4.1 to
+compile our kernels on all architectures except of m68k.
+-- 
+Martin Michlmayr
+http://www.cyrius.com/
