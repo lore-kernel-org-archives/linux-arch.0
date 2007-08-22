@@ -1,43 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:41771 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758711AbXHVOZy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Aug 2007 10:25:54 -0400
-In-Reply-To: <46CC42EF.3030602@redhat.com>
-References: <46C03885.7000109@redhat.com> <20070813112452.GK24018@shell.boston.redhat.com> <swfhcmswcux.wl%takata.hirokazu@renesas.com> <swfejhww4cs.wl%takata.hirokazu@renesas.com> <46CC42EF.3030602@redhat.com>
-Mime-Version: 1.0 (Apple Message framework v623)
-Content-Type: text/plain; charset=US-ASCII; format=flowed
-Message-Id: <8fc86c23579e12b012891d6e69b1b107@kernel.crashing.org>
-Content-Transfer-Encoding: 7bit
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [PATCH 11/23] make atomic_read() and atomic_set() behavior consistent on m32r
-Date: Wed, 22 Aug 2007 16:24:11 +0200
+Received: from ftp.linux-mips.org ([194.74.144.162]:50572 "EHLO
+	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1763875AbXHVRaq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Aug 2007 13:30:46 -0400
+Received: from localhost.localdomain ([127.0.0.1]:21715 "EHLO
+	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
+	id S20022864AbXHVRaq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Aug 2007 18:30:46 +0100
+Date: Wed, 22 Aug 2007 18:30:44 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [RFC][PATCH] introduce TASK_SIZE_OF() for all arches
+Message-ID: <20070822173044.GA1978@linux-mips.org>
+References: <20070821193835.258D7DD4@kernel> <20070821194309.GD9163@parisc-linux.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070821194309.GD9163@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Chris Snook <csnook@redhat.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>, Linus Torvalds <torvalds@linux-foundation.org>, "Robert P. J. Day" <rpjday@mindspring.com>, paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, "Luck, Tony" <tony.luck@intel.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Chris Friesen <cfriesen@nortel.com>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Dave Hansen <haveblue@us.ibm.com>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
->> I also tried to rewrite it with inline asm code, but the kernel text 
->> size
->> bacame roughly 2kB larger. So, I prefer C version.
+On Tue, Aug 21, 2007 at 01:43:09PM -0600, Matthew Wilcox wrote:
 
-Could you send me the source code diff between the two versions
-you tested?  2kB difference is way too much, the asm version should
-be smaller if anything.
+> On Tue, Aug 21, 2007 at 12:38:35PM -0700, Dave Hansen wrote:
+> > I'd like to have that for other architectures.  So, add it
+> > for all the architectures that actually use "current" in 
+> > their TASK_SIZE.  For the others, just add a quick #define
+> > in sched.h to use plain old TASK_SIZE.
+> 
+> MIPS seems to do things a little differently ... Ralf, what should Dave
+> be doing here?
+> 
+> #define TASK_SIZE32     0x7fff8000UL
+> #define TASK_SIZE       0x10000000000UL
 
-> You're not the only arch maintainer who prefers doing it in C.  If you 
-> trust your compiler (a big "if", apparently), inline asm only improves 
-> code generation if you have a whole bunch of general purpose registers 
-> for the optimizer to play with.
+Indeed. Below patch should do the trick.
 
-No.  The only real difference between the *(volatile *)& version
-and the volatile asm() version is that the volatile asm() version
-has defined semantics.  There will be some code generation differences
-too, but they should be in the noise, unless GCC generates really
-bad code for either case.  We know it sometimes does that for the
-*(volatile *)& thing; if the asm() version does something bad, I'd
-like to know about that too.
+  Ralf
 
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 
-Segher
-
+diff --git a/include/asm-mips/processor.h b/include/asm-mips/processor.h
+index 83bc945..0e79e03 100644
+--- a/include/asm-mips/processor.h
++++ b/include/asm-mips/processor.h
+@@ -45,6 +45,8 @@ extern unsigned int vced_count, vcei_count;
+  * space during mmap's.
+  */
+ #define TASK_UNMAPPED_BASE	(PAGE_ALIGN(TASK_SIZE / 3))
++#define TASK_SIZE_OF(tsk)						\
++	(test_thread_flag(TIF_32BIT_ADDR) ? TASK_SIZE32 : TASK_SIZE)
+ #endif
+ 
+ #ifdef CONFIG_64BIT
+@@ -65,6 +67,8 @@ extern unsigned int vced_count, vcei_count;
+ #define TASK_UNMAPPED_BASE						\
+ 	(test_thread_flag(TIF_32BIT_ADDR) ?				\
+ 		PAGE_ALIGN(TASK_SIZE32 / 3) : PAGE_ALIGN(TASK_SIZE / 3))
++#define TASK_SIZE_OF(tsk)						\
++	(test_thread_flag(TIF_32BIT_ADDR) ? TASK_SIZE32 : TASK_SIZE)
+ #endif
+ 
+ #define NUM_FPU_REGS	32
