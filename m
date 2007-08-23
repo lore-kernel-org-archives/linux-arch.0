@@ -1,41 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from waste.org ([66.93.16.53]:38346 "EHLO waste.org"
+Received: from mx1.redhat.com ([66.187.233.31]:49577 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932293AbXHVXss (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Aug 2007 19:48:48 -0400
-Date: Wed, 22 Aug 2007 18:50:11 -0500
-From: Matt Mackall <mpm@selenic.com>
+	id S1755659AbXHWJhr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Aug 2007 05:37:47 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1187824547.16177.1352.camel@localhost>
+References: <1187824547.16177.1352.camel@localhost> <20070821193835.258D7DD4@kernel> <31048.1187773615@redhat.com>
 Subject: Re: [RFC][PATCH] introduce TASK_SIZE_OF() for all arches
-Message-ID: <20070822235011.GP30556@waste.org>
-References: <20070821193835.258D7DD4@kernel> <31048.1187773615@redhat.com> <1187823350.16177.1326.camel@localhost>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1187823350.16177.1326.camel@localhost>
+Date: Thu, 23 Aug 2007 10:37:27 +0100
+Message-ID: <10534.1187861847@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 To: Dave Hansen <haveblue@us.ibm.com>
-Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Aug 22, 2007 at 03:55:50PM -0700, Dave Hansen wrote:
-> On Wed, 2007-08-22 at 10:06 +0100, David Howells wrote:
-> > Dave Hansen <haveblue@us.ibm.com> wrote:
-> > 
-> > > For the /proc/<pid>/pagemap code[1], we need to able to query how
-> > > much virtual address space a particular task has.
-> > 
-> > How does this relate to NOMMU conditions?
-> 
-> It probably doesn't make any sense to use the /proc/<pid>/pagemap
-> feature on NOMMU systems.  There are no pagetables to dump, and no
-> shared pages, right?
+Dave Hansen <haveblue@us.ibm.com> wrote:
 
-Nor is there any present/not present to report. VSS == RSS on NOMMU,
-right?
+> Were you asking about /proc/<pid>/pagemap, or about my TASK_SIZE_OF()
+> macro?  
 
-So we could provide pagemap, but it's not clear it'd be very
-interesting. kpagemap might be interesting, simply because of the
-flags though.
+TASK_SIZE_OF().
 
--- 
-Mathematics is the supreme nostalgia of our time.
+> As far as TASK_SIZE_OF(), it still makes sense on those systems because
+> they (at least m68k) still has TASK_SIZE.
+
+Fair enough.
+
+> Was there a particular problem you're concerned about?  I'm not very
+> intimately familiar with the NOMMU code.
+
+Since you were talking about virtual memory, I was wondering as to its
+applicability for NOMMU.
+
+David
