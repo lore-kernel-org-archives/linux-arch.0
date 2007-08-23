@@ -1,35 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:49577 "EHLO mx1.redhat.com"
+Received: from gate.crashing.org ([63.228.1.57]:54517 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755659AbXHWJhr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Aug 2007 05:37:47 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1187824547.16177.1352.camel@localhost>
-References: <1187824547.16177.1352.camel@localhost> <20070821193835.258D7DD4@kernel> <31048.1187773615@redhat.com>
-Subject: Re: [RFC][PATCH] introduce TASK_SIZE_OF() for all arches
-Date: Thu, 23 Aug 2007 10:37:27 +0100
-Message-ID: <10534.1187861847@redhat.com>
+	id S1756302AbXHWTaP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Aug 2007 15:30:15 -0400
+In-Reply-To: <alpine.LFD.0.999.0708221116310.30176@woody.linux-foundation.org>
+References: <46C03885.7000109@redhat.com> <20070813112452.GK24018@shell.boston.redhat.com> <swfhcmswcux.wl%takata.hirokazu@renesas.com> <swfejhww4cs.wl%takata.hirokazu@renesas.com> <46CC42EF.3030602@redhat.com> <8fc86c23579e12b012891d6e69b1b107@kernel.crashing.org> <alpine.LFD.0.999.0708221116310.30176@woody.linux-foundation.org>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <e8b5ee6194ed619c245eb884c5ae6b11@kernel.crashing.org>
+Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH 11/23] make atomic_read() and atomic_set() behavior consistent on m32r
+Date: Thu, 23 Aug 2007 21:29:41 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Dave Hansen <haveblue@us.ibm.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Hirokazu Takata <takata@linux-m32r.org>, "Robert P. J. Day" <rpjday@mindspring.com>, paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, "Luck, Tony" <tony.luck@intel.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Chris Snook <csnook@redhat.com>, Chris Friesen <cfriesen@nortel.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Dave Hansen <haveblue@us.ibm.com> wrote:
+> The inline asm version has the EXACT SAME PROBLEM as the "volatile"
+> version has: it means that the compiler is unable to combine trivial
+> instructions.
 
-> Were you asking about /proc/<pid>/pagemap, or about my TASK_SIZE_OF()
-> macro?  
+This simply isn't true.  The compiler *can* combine asm stuff:
 
-TASK_SIZE_OF().
 
-> As far as TASK_SIZE_OF(), it still makes sense on those systems because
-> they (at least m68k) still has TASK_SIZE.
+typedef struct { int counter; } atomic_t;
 
-Fair enough.
+static inline __attribute__((pure)) int atomic_read(const atomic_t *v)
+{
+         int x;
+         asm("ld %0,@%1" : "=r"(x) : "r"(&v->counter), "m"(v->counter));
+         return x;
+}
 
-> Was there a particular problem you're concerned about?  I'm not very
-> intimately familiar with the NOMMU code.
+int f(atomic_t *x)
+{
+         return atomic_read(x) + atomic_read(x);
+}
 
-Since you were talking about virtual memory, I was wondering as to its
-applicability for NOMMU.
+int g(atomic_t *x)
+{
+         return 0 * atomic_read(x);
+}
 
-David
+
+generates
+
+
+f:
+         ld r0,@r0
+         slli r0,#1
+         jmp lr
+
+g:
+         ldi r0,#0
+         jmp lr
+
+
+> So why the *hell* you'd expect the asm version to be smaller, I can't
+> imagine.
+
+I expect it to be smaller than the current code, which uses the
+"big hammer" volatile version.  We're talking about m32r here,
+not x86.  Even when using "volatile asm" it shouldn't generate
+much bigger code.
+
+Anyhow, I answered my own question: on m32r, you cannot use "m"
+with ld/st insns, since autoincrement modes don't work there (the
+assembler complains, at least). So you have to force the address
+into a reg instead, and _that_ causes the size increase.
+
+> If the code needs barriers, the code should damn well add them.
+
+Sure.  I'm not suggesting otherwise.
+
+
+Segher
+
