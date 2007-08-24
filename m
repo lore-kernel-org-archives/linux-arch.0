@@ -1,70 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nf-out-0910.google.com ([64.233.182.189]:59941 "EHLO
-	nf-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752485AbXHXOZ6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Aug 2007 10:25:58 -0400
-Received: by nf-out-0910.google.com with SMTP id g13so632177nfb
-        for <linux-arch@vger.kernel.org>; Fri, 24 Aug 2007 07:25:57 -0700 (PDT)
-From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: Re: [PATCH] i386: Fix a couple busy loops in mach_wakecpu.h:wait_for_init_deassert()
-Date: Fri, 24 Aug 2007 15:25:50 +0100
-References: <NBBBIGEGHIGMPCNKHCECAEPEELAA.kenn@bluetree.ie>
-In-Reply-To: <NBBBIGEGHIGMPCNKHCECAEPEELAA.kenn@bluetree.ie>
+Received: from mga02.intel.com ([134.134.136.20]:7467 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756646AbXHXQTu convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Aug 2007 12:19:50 -0400
+Content-class: urn:content-classes:message
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200708241525.51049.vda.linux@googlemail.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: RE: [PATCH] i386: Fix a couple busy loops in mach_wakecpu.h:wait_for_init_deassert()
+Date: Fri, 24 Aug 2007 09:19:47 -0700
+Message-ID: <617E1C2C70743745A92448908E030B2A023EB8FB@scsmsx411.amr.corp.intel.com>
+In-reply-to: <200708241259.33659.vda.linux@googlemail.com>
+References: <46C2350A.1010807@redhat.com> <20070815081841.GA16551@osiris.boeblingen.de.ibm.com> <alpine.LFD.0.999.0708160606580.24380@enigma.security.iitk.ac.in> <200708241259.33659.vda.linux@googlemail.com>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Kenn Humborg <kenn@bluetree.ie>
-Cc: Satyam Sharma <satyam@infradead.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Herbert Xu <herbert@gondor.apana.org.au>, Chris Snook <csnook@redhat.com>, clameter@sgi.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Denys Vlasenko <vda.linux@googlemail.com>, Satyam Sharma <satyam@infradead.org>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Herbert Xu <herbert@gondor.apana.org.au>, Chris Snook <csnook@redhat.com>, clameter@sgi.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Friday 24 August 2007 13:12, Kenn Humborg wrote:
-> > On Thursday 16 August 2007 01:39, Satyam Sharma wrote:
-> > >  static inline void wait_for_init_deassert(atomic_t *deassert)
-> > >  {
-> > > -	while (!atomic_read(deassert));
-> > > +	while (!atomic_read(deassert))
-> > > +		cpu_relax();
-> > >  	return;
-> > >  }
-> >
-> > For less-than-briliant people like me, it's totally non-obvious that
-> > cpu_relax() is needed for correctness here, not just to make P4 happy.
-> >
-> > IOW: "atomic_read" name quite unambiguously means "I will read
-> > this variable from main memory". Which is not true and creates
-> > potential for confusion and bugs.
+>>  static inline void wait_for_init_deassert(atomic_t *deassert)
+>>  {
+>> -	while (!atomic_read(deassert));
+>> +	while (!atomic_read(deassert))
+>> +		cpu_relax();
+>>  	return;
+>>  }
 >
-> To me, "atomic_read" means a read which is synchronized with other
-> changes to the variable (using the atomic_XXX functions) in such
-> a way that I will always only see the "before" or "after"
-> state of the variable - never an intermediate state while a
-> modification is happening.  It doesn't imply that I have to
-> see the "after" state immediately after another thread modifies
-> it.
+> For less-than-briliant people like me, it's totally non-obvious that
+> cpu_relax() is needed for correctness here, not just to make P4 happy.
 
-So you are ok with compiler propagating n1 to n2 here:
+Not just P4 ... there are other threaded cpus where it is useful to
+let the core know that this is a busy loop so it would be a good thing
+to let other threads have priority.
 
-n1 += atomic_read(x);
-other_variable++;
-n2 += atomic_read(x);
+Even on a non-threaded cpu the cpu_relax() could be useful in the
+future to hint to the cpu that it could drop into a lower power
+hogging state.
 
-without accessing x second time. What's the point? Any sane coder
-will say that explicitly anyway:
+But I agree with your main point that the loop without the cpu_relax()
+looks like it ought to work because atomic_read() ought to actually
+go out and read memory each time around the loop.
 
-tmp = atomic_read(x);
-n1 += tmp;
-other_variable++;
-n2 += tmp;
-
-if only for the sake of code readability. Because first code
-is definitely hinting that it reads RAM twice, and it's actively *bad*
-for code readability when in fact it's not the case!
-
-Locking, compiler and CPU barriers are complicated enough already,
-please don't make them even harder to understand.
---
-vda
+-Tony
