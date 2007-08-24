@@ -1,79 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:49817 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1764176AbXHXRlA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Aug 2007 13:41:00 -0400
-Date: Fri, 24 Aug 2007 10:34:22 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] i386: Fix a couple busy loops in
- mach_wakecpu.h:wait_for_init_deassert()
-In-Reply-To: <200708241525.51049.vda.linux@googlemail.com>
-Message-ID: <alpine.LFD.0.999.0708241025430.25853@woody.linux-foundation.org>
-References: <NBBBIGEGHIGMPCNKHCECAEPEELAA.kenn@bluetree.ie>
- <200708241525.51049.vda.linux@googlemail.com>
+Received: from hu-out-0506.google.com ([72.14.214.229]:27589 "EHLO
+	hu-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750817AbXHXUVd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Aug 2007 16:21:33 -0400
+Received: by hu-out-0506.google.com with SMTP id 19so624935hue
+        for <linux-arch@vger.kernel.org>; Fri, 24 Aug 2007 13:21:31 -0700 (PDT)
+From: Denys Vlasenko <vda.linux@googlemail.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Date: Fri, 24 Aug 2007 21:21:21 +0100
+References: <20070809131423.GA9927@shell.boston.redhat.com> <200708241350.45061.vda.linux@googlemail.com> <Pine.LNX.4.64.0708241009120.20501@schroedinger.engr.sgi.com>
+In-Reply-To: <Pine.LNX.4.64.0708241009120.20501@schroedinger.engr.sgi.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200708242121.22534.vda.linux@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: Kenn Humborg <kenn@bluetree.ie>, Satyam Sharma <satyam@infradead.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Herbert Xu <herbert@gondor.apana.org.au>, Chris Snook <csnook@redhat.com>, clameter@sgi.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Paul Mackerras <paulus@samba.org>, Satyam Sharma <satyam@infradead.org>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org, Herbert Xu <herbert@gondor.apana.org.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
+On Friday 24 August 2007 18:15, Christoph Lameter wrote:
+> On Fri, 24 Aug 2007, Denys Vlasenko wrote:
+> > On Thursday 16 August 2007 00:22, Paul Mackerras wrote:
+> > > Satyam Sharma writes:
+> > > In the kernel we use atomic variables in precisely those situations
+> > > where a variable is potentially accessed concurrently by multiple
+> > > CPUs, and where each CPU needs to see updates done by other CPUs in a
+> > > timely fashion.  That is what they are for.  Therefore the compiler
+> > > must not cache values of atomic variables in registers; each
+> > > atomic_read must result in a load and each atomic_set must result in a
+> > > store.  Anything else will just lead to subtle bugs.
+> >
+> > Amen.
+>
+> A "timely" fashion? One cannot rely on something like that when coding.
+> The visibility of updates is insured by barriers and not by some fuzzy
+> notion of "timeliness".
 
+But here you do have some notion of time:
 
-On Fri, 24 Aug 2007, Denys Vlasenko wrote:
-> 
-> So you are ok with compiler propagating n1 to n2 here:
-> 
-> n1 += atomic_read(x);
-> other_variable++;
-> n2 += atomic_read(x);
-> 
-> without accessing x second time. What's the point? Any sane coder
-> will say that explicitly anyway:
+	while (atomic_read(&x))
+		continue;
 
-No.
+"continue when other CPU(s) decrement it down to zero".
+If "read" includes an insn which accesses RAM, you will
+see "new" value sometime after other CPU decrements it.
+"Sometime after" is on the order of nanoseconds here.
+It is a valid concept of time, right?
 
-This is a common mistake, and it's total crap.
+The whole confusion is about whether atomic_read implies
+"read from RAM" or not. I am in a camp which thinks it does.
+You are in an opposite one.
 
-Any "sane coder" will often use inline functions, macros, etc helpers to 
-do certain abstract things. Those things may contain "atomic_read()" 
-calls.
+We just need a less ambiguous name.
 
-The biggest reason for compilers doing CSE is exactly the fact that many 
-opportunities for CSE simple *are*not*visible* on a source code level. 
+What about this:
 
-That is true of things like atomic_read() equally as to things like shared 
-offsets inside structure member accesses. No difference what-so-ever.
+/**
+ * atomic_read - read atomic variable
+ * @v: pointer of type atomic_t
+ *
+ * Atomically reads the value of @v.
+ * No compiler barrier implied.
+ */
+#define atomic_read(v)          ((v)->counter)
 
-Yes, we have, traditionally, tried to make it *easy* for the compiler to 
-generate good code. So when we can, and when we look at performance for 
-some really hot path, we *will* write the source code so that the compiler 
-doesn't even have the option to screw it up, and that includes things like 
-doing CSE at a source code level so that we don't see the compiler 
-re-doing accesses unnecessarily.
++/**
++ * atomic_read_uncached - read atomic variable from memory
++ * @v: pointer of type atomic_t
++ *
++ * Atomically reads the value of @v. This is guaranteed to emit an insn
++ * which accesses memory, atomically. No ordering guarantees!
++ */
++#define atomic_read_uncached(v)  asm_or_volatile_ptr_magic(v)
 
-And I'm not saying we shouldn't do that. But "performance" is not an 
-either-or kind of situation, and we should:
-
- - spend the time at a source code level: make it reasonably easy for the 
-   compiler to generate good code, and use the right algorithms at a 
-   higher level (and order structures etc so that they have good cache 
-   behaviour).
-
- - .. *and* expect the compiler to handle the cases we didn't do by hand
-   pretty well anyway. In particular, quite often, abstraction levels at a 
-   software level means that we give compilers "stupid" code, because some 
-   function may have a certain high-level abstraction rule, but then on a 
-   particular architecture it's actually a no-op, and the compiler should 
-   get to "untangle" our stupid code and generate good end results.
-
- - .. *and* expect the hardware to be sane and do a good job even when the 
-   compiler didn't generate perfect code or there were unlucky cache miss
-   patterns etc.
-
-and if we do all of that, we'll get good performance. But you really do 
-want all three levels. It's not enough to be good at any one level (or 
-even any two).
-
-			Linus
+I was thinking of s/atomic_read/atomic_get/ too, but it implies "taking"
+atomic a-la get_cpu()...
+--
+vda
