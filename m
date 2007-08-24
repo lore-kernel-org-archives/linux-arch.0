@@ -1,31 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:49283 "EHLO
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:57771 "EHLO
 	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751715AbXHXRGd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Aug 2007 13:06:33 -0400
-Date: Fri, 24 Aug 2007 10:06:29 -0700 (PDT)
+	with ESMTP id S1755859AbXHXRPt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Aug 2007 13:15:49 -0400
+Date: Fri, 24 Aug 2007 10:15:47 -0700 (PDT)
 From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [PATCH] i386: Fix a couple busy loops in mach_wakecpu.h:wait_for_init_deassert()
-In-Reply-To: <alpine.LFD.0.999.0708241812110.20322@enigma.security.iitk.ac.in>
-Message-ID: <Pine.LNX.4.64.0708241005360.20501@schroedinger.engr.sgi.com>
-References: <46C2350A.1010807@redhat.com> <20070815081841.GA16551@osiris.boeblingen.de.ibm.com>
- <alpine.LFD.0.999.0708160606580.24380@enigma.security.iitk.ac.in>
- <200708241259.33659.vda.linux@googlemail.com>
- <alpine.LFD.0.999.0708241812110.20322@enigma.security.iitk.ac.in>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+In-Reply-To: <200708241350.45061.vda.linux@googlemail.com>
+Message-ID: <Pine.LNX.4.64.0708241009120.20501@schroedinger.engr.sgi.com>
+References: <20070809131423.GA9927@shell.boston.redhat.com>
+ <alpine.LFD.0.999.0708151713080.16414@enigma.security.iitk.ac.in>
+ <18115.35524.56393.347841@cargo.ozlabs.ibm.com> <200708241350.45061.vda.linux@googlemail.com>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Satyam Sharma <satyam@infradead.org>
-Cc: Denys Vlasenko <vda.linux@googlemail.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Herbert Xu <herbert@gondor.apana.org.au>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org, Nick Piggin <nickpiggin@yahoo.com.au>
+To: Denys Vlasenko <vda.linux@googlemail.com>
+Cc: Paul Mackerras <paulus@samba.org>, Satyam Sharma <satyam@infradead.org>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Chris Snook <csnook@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, netdev@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, davem@davemloft.net, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org, Herbert Xu <herbert@gondor.apana.org.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 24 Aug 2007, Satyam Sharma wrote:
+On Fri, 24 Aug 2007, Denys Vlasenko wrote:
 
-> But if people do seem to have a mixed / confused notion of atomicity
-> and barriers, and if there's consensus, then as I'd said earlier, I
-> have no issues in going with the consensus (eg. having API variants).
-> Linus would be more difficult to convince, however, I suspect :-)
+> On Thursday 16 August 2007 00:22, Paul Mackerras wrote:
+> > Satyam Sharma writes:
+> > In the kernel we use atomic variables in precisely those situations
+> > where a variable is potentially accessed concurrently by multiple
+> > CPUs, and where each CPU needs to see updates done by other CPUs in a
+> > timely fashion.  That is what they are for.  Therefore the compiler
+> > must not cache values of atomic variables in registers; each
+> > atomic_read must result in a load and each atomic_set must result in a
+> > store.  Anything else will just lead to subtle bugs.
+> 
+> Amen.
 
-The confusion may be the result of us having barrier semantics in 
-atomic_read. If we take that out then we may avoid future confusions.
-
+A "timely" fashion? One cannot rely on something like that when coding. 
+The visibility of updates is insured by barriers and not by some fuzzy 
+notion of "timeliness".
