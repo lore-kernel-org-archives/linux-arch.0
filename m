@@ -1,29 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:54531 "EHLO mx2.suse.de"
+Received: from ns.suse.de ([195.135.220.2]:50556 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752285AbXH1IRA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Aug 2007 04:17:00 -0400
+	id S1753924AbXH1IRW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 Aug 2007 04:17:22 -0400
 From: Nick Piggin <npiggin@suse.de>
-Date: Tue, 28 Aug 2007 18:14:53 +1000
-Message-Id: <20070828081453.13582.258.sendpatchset@linux.local0.net>
-Subject: [patch 0/8] lock bitops and some bitops fixes
+Date: Tue, 28 Aug 2007 18:15:14 +1000
+Message-Id: <20070828081514.13582.92109.sendpatchset@linux.local0.net>
+In-Reply-To: <20070828081453.13582.258.sendpatchset@linux.local0.net>
+References: <20070828081453.13582.258.sendpatchset@linux.local0.net>
+Subject: [patch 2/8] alpha: fix bitops
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Nick Piggin <npiggin@suse.de>, Linux Arch <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-[Sent again with the correct date stamps, sorry for the noise :(]
+Documentation/atomic_ops.txt defines these primitives must contain a memory
+barrier both before and after their memory operation. This is consistent with
+the atomic ops implementation on alpha.
 
-Here is a new set of bitops patches that can hopefully get into the
-next merge window.
+Signed-off-by: Nick Piggin <npiggin@suse.de>
 
-I'm not sending the intrusive part of the patchset (the page lock and
-buffer lock conversions), so that you'll hopefully apply these bits
-and get them some early testing. I've just converted bit_spinlock
-over to use the lock bitops, in order to get a bit of test coverage.
+---
+ include/asm-alpha/bitops.h |    9 +++++++++
+ 1 file changed, 9 insertions(+)
 
-I've spotted some potential bugs in alpha and mips bitops functions,
-but would like acks from maintainers for _those_ specific patches.
-
-Thanks,
-Nick
+Index: linux-2.6/include/asm-alpha/bitops.h
+===================================================================
+--- linux-2.6.orig/include/asm-alpha/bitops.h
++++ linux-2.6/include/asm-alpha/bitops.h
+@@ -117,6 +117,9 @@ test_and_set_bit(unsigned long nr, volat
+ 	int *m = ((int *) addr) + (nr >> 5);
+ 
+ 	__asm__ __volatile__(
++#ifdef CONFIG_SMP
++	"	mb\n"
++#endif
+ 	"1:	ldl_l %0,%4\n"
+ 	"	and %0,%3,%2\n"
+ 	"	bne %2,2f\n"
+@@ -158,6 +161,9 @@ test_and_clear_bit(unsigned long nr, vol
+ 	int *m = ((int *) addr) + (nr >> 5);
+ 
+ 	__asm__ __volatile__(
++#ifdef CONFIG_SMP
++	"	mb\n"
++#endif
+ 	"1:	ldl_l %0,%4\n"
+ 	"	and %0,%3,%2\n"
+ 	"	beq %2,2f\n"
+@@ -199,6 +205,9 @@ test_and_change_bit(unsigned long nr, vo
+ 	int *m = ((int *) addr) + (nr >> 5);
+ 
+ 	__asm__ __volatile__(
++#ifdef CONFIG_SMP
++	"	mb\n"
++#endif
+ 	"1:	ldl_l %0,%4\n"
+ 	"	and %0,%3,%2\n"
+ 	"	xor %0,%3,%0\n"
