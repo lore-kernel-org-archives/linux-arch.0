@@ -1,78 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.suse.de ([195.135.220.2]:50665 "EHLO mx1.suse.de"
+Received: from mail.suse.de ([195.135.220.2]:50572 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758046AbXH1IST (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Aug 2007 04:18:19 -0400
+	id S1754233AbXH1IRb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 Aug 2007 04:17:31 -0400
 From: Nick Piggin <npiggin@suse.de>
-Date: Tue, 28 Aug 2007 18:16:11 +1000
-Message-Id: <20070828081611.13582.63522.sendpatchset@linux.local0.net>
+Date: Tue, 28 Aug 2007 18:15:23 +1000
+Message-Id: <20070828081523.13582.48287.sendpatchset@linux.local0.net>
 In-Reply-To: <20070828081453.13582.258.sendpatchset@linux.local0.net>
 References: <20070828081453.13582.258.sendpatchset@linux.local0.net>
-Subject: [patch 8/8] bit_spin_lock: use lock bitops
+Subject: [patch 3/8] alpha: lock bitops
 Sender: linux-arch-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Nick Piggin <npiggin@suse.de>, Linux Arch <linux-arch@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Convert bit_spin_lock to new locking bitops. Slub can use the non-atomic store
-version to clear (Christoph?)
+Alpha can avoid one mb when acquiring a lock with test_and_set_bit_lock.
 
 Signed-off-by: Nick Piggin <npiggin@suse.de>
 
 ---
- include/linux/bit_spinlock.h |   26 ++++++++++++++++++++++----
- 1 file changed, 22 insertions(+), 4 deletions(-)
+ include/asm-alpha/bitops.h |   42 +++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 41 insertions(+), 1 deletion(-)
 
-Index: linux-2.6/include/linux/bit_spinlock.h
+Index: linux-2.6/include/asm-alpha/bitops.h
 ===================================================================
---- linux-2.6.orig/include/linux/bit_spinlock.h
-+++ linux-2.6/include/linux/bit_spinlock.h
-@@ -18,7 +18,7 @@ static inline void bit_spin_lock(int bit
- 	 */
- 	preempt_disable();
- #if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
--	while (test_and_set_bit(bitnum, addr)) {
-+	while (unlikely(test_and_set_bit_lock(bitnum, addr))) {
- 		while (test_bit(bitnum, addr)) {
- 			preempt_enable();
- 			cpu_relax();
-@@ -36,7 +36,7 @@ static inline int bit_spin_trylock(int b
- {
- 	preempt_disable();
- #if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
--	if (test_and_set_bit(bitnum, addr)) {
-+	if (unlikely(test_and_set_bit_lock(bitnum, addr))) {
- 		preempt_enable();
- 		return 0;
- 	}
-@@ -50,10 +50,28 @@ static inline int bit_spin_trylock(int b
-  */
- static inline void bit_spin_unlock(int bitnum, unsigned long *addr)
- {
-+#ifdef CONFIG_DEBUG_SPINLOCK
-+	BUG_ON(!test_bit(bitnum, addr));
-+#endif
- #if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
-+	clear_bit_unlock(bitnum, addr);
-+#endif
-+	preempt_enable();
-+	__release(bitlock);
+--- linux-2.6.orig/include/asm-alpha/bitops.h
++++ linux-2.6/include/asm-alpha/bitops.h
+@@ -69,6 +69,13 @@ clear_bit(unsigned long nr, volatile voi
+ 	:"Ir" (1UL << (nr & 31)), "m" (*m));
+ }
+ 
++static inline void
++clear_bit_unlock(unsigned long nr, volatile void * addr)
++{
++	smp_mb();
++	clear_bit(nr, addr);
 +}
 +
-+/*
-+ *  bit-based spin_unlock()
-+ *  non-atomic version, which can be used eg. if the bit lock itself is
-+ *  protecting the rest of the flags in the word.
-+ */
-+static inline void __bit_spin_unlock(int bitnum, unsigned long *addr)
+ /*
+  * WARNING: non atomic version.
+  */
+@@ -81,6 +88,13 @@ __clear_bit(unsigned long nr, volatile v
+ }
+ 
+ static inline void
++__clear_bit_unlock(unsigned long nr, volatile void * addr)
 +{
-+#ifdef CONFIG_DEBUG_SPINLOCK
- 	BUG_ON(!test_bit(bitnum, addr));
--	smp_mb__before_clear_bit();
--	clear_bit(bitnum, addr);
++	smp_mb();
++	__clear_bit(nr, addr);
++}
++
++static inline void
+ change_bit(unsigned long nr, volatile void * addr)
+ {
+ 	unsigned long temp;
+@@ -139,6 +153,33 @@ test_and_set_bit(unsigned long nr, volat
+ 	return oldbit != 0;
+ }
+ 
++static inline int
++test_and_set_bit_lock(unsigned long nr, volatile void *addr)
++{
++	unsigned long oldbit;
++	unsigned long temp;
++	int *m = ((int *) addr) + (nr >> 5);
++
++	__asm__ __volatile__(
++	"1:	ldl_l %0,%4\n"
++	"	and %0,%3,%2\n"
++	"	bne %2,2f\n"
++	"	xor %0,%3,%0\n"
++	"	stl_c %0,%1\n"
++	"	beq %0,3f\n"
++	"2:\n"
++#ifdef CONFIG_SMP
++	"	mb\n"
 +#endif
-+#if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
-+	__clear_bit_unlock(bitnum, addr);
++	".subsection 2\n"
++	"3:	br 1b\n"
++	".previous"
++	:"=&r" (temp), "=m" (*m), "=&r" (oldbit)
++	:"Ir" (1UL << (nr & 31)), "m" (*m) : "memory");
++
++	return oldbit != 0;
++}
++
+ /*
+  * WARNING: non atomic version.
+  */
+@@ -376,7 +417,6 @@ static inline unsigned int hweight8(unsi
+ #else
+ #include <asm-generic/bitops/hweight.h>
  #endif
- 	preempt_enable();
- 	__release(bitlock);
+-#include <asm-generic/bitops/lock.h>
+ 
+ #endif /* __KERNEL__ */
+ 
