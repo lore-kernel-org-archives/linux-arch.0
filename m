@@ -1,41 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:48617 "EHLO
-	the-village.bc.nu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753980AbXHaWi4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Aug 2007 18:38:56 -0400
-Date: Fri, 31 Aug 2007 23:47:21 +0100
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: Heads Up: Next Batch Of Serial/TTY Changes
-Message-ID: <20070831234721.5275f5d0@the-village.bc.nu>
-In-Reply-To: <20070831.152315.39158142.davem@davemloft.net>
-References: <20070831221105.2fce9023@the-village.bc.nu>
-	<20070831.144115.48807246.davem@davemloft.net>
-	<20070831231613.6b0fcdfd@the-village.bc.nu>
-	<20070831.152315.39158142.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from ftp.linux-mips.org ([194.74.144.162]:35126 "EHLO
+	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752267AbXIDL4S (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Sep 2007 07:56:18 -0400
+Received: from localhost.localdomain ([127.0.0.1]:28039 "EHLO
+	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
+	id S20024677AbXIDL4R (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 4 Sep 2007 12:56:17 +0100
+Received: from denk.linux-mips.net (denk.linux-mips.net [127.0.0.1])
+	by dl5rb.ham-radio-op.net (8.14.1/8.13.8) with ESMTP id l84BuG0a015212
+	for <linux-arch@vger.kernel.org>; Tue, 4 Sep 2007 12:56:16 +0100
+Received: (from ralf@localhost)
+	by denk.linux-mips.net (8.14.1/8.14.1/Submit) id l84BuGHV015211
+	for linux-arch@vger.kernel.org; Tue, 4 Sep 2007 12:56:16 +0100
+Date: Tue, 4 Sep 2007 12:56:16 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Removal of dma_cache_* functions?
+Message-ID: <20070904115615.GA14986@linux-mips.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-serial@vger.kernel.org
+To: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> Who knows what other gremlins like this now live in the tree :-)
-> 
-> There was a similar spot a few lines down, both fixed
-> as follows:
+Most architectures implement the dma_cache_wback, dma_cache_wback_inv
+and dma_cache_wback_inv functions even though there is the more modern
+and much better designed DMA API and only two MIPS-specific users (one of
+which I just fixed) do remain.  So should we finally start removing it?
 
-Thanks I'll take a harder look over those. My test suite didn't check
-them just the main termios ioctls didn't scribble.
-
-> And here is the sparc patch, could you please add it to
-> your serial queue?  Thanks Alan.
-> 
-> [SPARC]: Add support for arbitrary serial speeds.
-> 
-> Signed-off-by: David S. Miller <davem@davemloft.net>cc[VEOF]); \
-
-
-Thanks
-
-Alan
+  Ralf
