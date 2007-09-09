@@ -1,34 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:58277 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758818AbXIISV2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Sep 2007 14:21:28 -0400
-Date: Sun, 9 Sep 2007 19:18:39 +0100
-From: Arjan van de Ven <arjan@infradead.org>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
- architectures
-Message-ID: <20070909191839.1fa10e88@laptopd505.fenrus.org>
-In-Reply-To: <200709091902.55388.vda.linux@googlemail.com>
-References: <18115.52863.638655.658466@cargo.ozlabs.ibm.com>
-	<46C59717.4020108@cyberone.com.au>
-	<alpine.LFD.0.999.0708170929580.30176@woody.linux-foundation.org>
-	<200709091902.55388.vda.linux@googlemail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from gate.crashing.org ([63.228.1.57]:38549 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757632AbXIIS0e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 9 Sep 2007 14:26:34 -0400
+In-Reply-To: <20070909180254.GA20086@uranus.ravnborg.org>
+References: <20070909180254.GA20086@uranus.ravnborg.org>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Message-Id: <214e7ea7cfce67dca284414d82062854@kernel.crashing.org>
 Content-Transfer-Encoding: 7bit
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: kbuild: enable possibility to specify xFLAGS on commandline
+Date: Sun, 9 Sep 2007 20:26:16 +0200
 Sender: linux-arch-owner@vger.kernel.org
-To: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <piggin@cyberone.com.au>, Satyam Sharma <satyam@infradead.org>, Herbert Xu <herbert@gondor.apana.org.au>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Ilpo Jarvinen <ilpo.jarvinen@helsinki.fi>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Netdev <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, David Miller <davem@davemloft.net>, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Andi Kleen <ak@suse.de>, linux arch <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, kbuild devel <kbuild-devel@lists.sourceforge.net>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 9 Sep 2007 19:02:54 +0100
-Denys Vlasenko <vda.linux@googlemail.com> wrote:
+> powerpc I dave a toolchain but defconfig seems not to be present.
 
-> Why is all this fixation on "volatile"? I don't think
-> people want "volatile" keyword per se, they want atomic_read(&x) to
-> _always_ compile into an memory-accessing instruction, not register
-> access.
+powerpc uses
 
-and ... why is that?
-is there any valid, non-buggy code sequence that makes that a
-reasonable requirement?
+	KBUILD_DEFCONFIG := $(shell uname -m)_defconfig
+
+to automagically pick the defconfig you want, but that obviously
+doesn't work for cross-builds.
+
+pmac32_defconfig and pseries_defconfig are probably used the most,
+you might want to test with one of those next time.
+
+
+Segher
+
