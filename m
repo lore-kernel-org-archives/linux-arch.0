@@ -1,36 +1,205 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:42555 "EHLO mx1.suse.de"
+Received: from cantor2.suse.de ([195.135.220.15]:41253 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758643AbXIISxA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 9 Sep 2007 14:53:00 -0400
-Date: Sun, 9 Sep 2007 20:52:58 +0200
+	id S1758794AbXIITIi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 9 Sep 2007 15:08:38 -0400
+Date: Sun, 9 Sep 2007 21:08:36 +0200
 From: Bernhard Walle <bwalle@suse.de>
-Subject: Re: [discuss] [patch 3/5] Use extended crashkernel command line on
-	x86_64
-Message-ID: <20070909185257.GA10600@suse.de>
-References: <20070909083914.065380136@strauss.suse.de> <20070909083914.951336895@strauss.suse.de> <86802c440709091027o32a63d11w629bad87abcc19c2@mail.gmail.com>
+Subject: Re: [patch 4/5] Use extended crashkernel command line on IA64
+Message-ID: <20070909190835.GB10600@suse.de>
+References: <20070909083914.065380136@strauss.suse.de> <20070909083915.165288618@strauss.suse.de> <20070909130139.GF6809@parisc-linux.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <86802c440709091027o32a63d11w629bad87abcc19c2@mail.gmail.com>
+In-Reply-To: <20070909130139.GF6809@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Yinghai Lu <yhlu.kernel@gmail.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Vivek Goyal <vgoyal@in.ibm.com>, linux-arch@vger.kernel.org, discuss@x86-64.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-* Yinghai Lu <yhlu.kernel@gmail.com> [2007-09-09 19:27]:
-> >
-> > +#ifdef CONFIG_KEXEC
-> ...
+* Matthew Wilcox <matthew@wil.cx> [2007-09-09 15:01]:
+> On Sun, Sep 09, 2007 at 10:39:18AM +0200, Bernhard Walle wrote:
+> > Because the total amount of System RAM must be known when calling this
+> > function, efi_memmap_init() is modified to return its comulated 
 > 
-> CONFIG_KEXEC or CONFIG_CRASH_DUMP?
+> accumulated?
 
-Good question. The crashkernel parameter was CONFIG_KEXEC before, and
-I also wondered why, but I didn't change this because maybe there's
-some reason I don't know.
+Yes, sorry.
 
-Vivek, do you know why this was CONFIG_KEXEC?
+> > total_memory variable in a pointer value. IMO that's better than making the
+> > variable global.
+> 
+> Why not make efi_memmap_init() return total_memory instead of void?
+
+Good idea:
+
+-----
+
+From: Bernhard Walle <bwalle@suse.de>
+Subject: Use extended crashkernel command line on IA64
+Cc: linux-ia64@vger.kernel.org
+
+This patch adapts IA64 to use the generic parse_crashkernel() function
+instead of its own parsing for the crashkernel command line.
+
+Because the total amount of System RAM must be known when calling this
+function, efi_memmap_init() is modified to return its accumulated
+total_memory variable in a pointer value. IMO that's better than making the
+variable global.
+
+Also, the crashkernel handling is moved in an own function in
+arch/ia64/kernel/setup.c to make the code more readable.
 
 
-Thanks,
-   Bernhard
+Signed-off-by: Bernhard Walle <bwalle@suse.de>
+
+---
+ arch/ia64/kernel/efi.c     |    4 +-
+ arch/ia64/kernel/setup.c   |   88 +++++++++++++++++++++++----------------------
+ include/asm-ia64/meminit.h |    2 -
+ 3 files changed, 50 insertions(+), 44 deletions(-)
+
+--- a/arch/ia64/kernel/efi.c
++++ b/arch/ia64/kernel/efi.c
+@@ -967,7 +967,7 @@ find_memmap_space (void)
+  * to use.  We can allocate partial granules only if the unavailable
+  * parts exist, and are WB.
+  */
+-void
++unsigned long
+ efi_memmap_init(unsigned long *s, unsigned long *e)
+ {
+ 	struct kern_memdesc *k, *prev = NULL;
+@@ -1084,6 +1084,8 @@ efi_memmap_init(unsigned long *s, unsign
+ 	/* reserve the memory we are using for kern_memmap */
+ 	*s = (u64)kern_memmap;
+ 	*e = (u64)++k;
++
++	return total_memory;
+ }
+ 
+ void
+--- a/arch/ia64/kernel/setup.c
++++ b/arch/ia64/kernel/setup.c
+@@ -208,6 +208,48 @@ static int __init register_memory(void)
+ 
+ __initcall(register_memory);
+ 
++
++#ifdef CONFIG_KEXEC
++static void setup_crashkernel(unsigned long total, int *n)
++{
++	unsigned long long base = 0, size = 0;
++	int ret;
++
++	ret = parse_crashkernel(boot_command_line, total,
++			&size, &base);
++	if (ret == 0 && size > 0) {
++		if (!base) {
++			sort_regions(rsvd_region, *n);
++			base = kdump_find_rsvd_region(size,
++					rsvd_region, *n);
++		}
++		if (base != ~0UL) {
++			printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
++					"for crashkernel (System RAM: %ldMB)\n",
++					(unsigned long)(size >> 20),
++					(unsigned long)(base >> 20),
++					(unsigned long)(total >> 20));
++			rsvd_region[*n].start =
++				(unsigned long)__va(base);
++			rsvd_region[*n].end =
++				(unsigned long)__va(base + size);
++			(*n)++;
++			crashk_res.start = base;
++			crashk_res.end = base + size - 1;
++		}
++	}
++	efi_memmap_res.start = ia64_boot_param->efi_memmap;
++	efi_memmap_res.end = efi_memmap_res.start +
++		ia64_boot_param->efi_memmap_size;
++	boot_param_res.start = __pa(ia64_boot_param);
++	boot_param_res.end = boot_param_res.start +
++		sizeof(*ia64_boot_param);
++}
++#else
++static inline void setup_crashkernel(unsigned long total, int *n)
++{}
++#endif
++
+ /**
+  * reserve_memory - setup reserved memory areas
+  *
+@@ -219,6 +261,7 @@ void __init
+ reserve_memory (void)
+ {
+ 	int n = 0;
++	unsigned long total_memory = 0;
+ 
+ 	/*
+ 	 * none of the entries in this table overlap
+@@ -254,50 +297,11 @@ reserve_memory (void)
+ 		n++;
+ #endif
+ 
+-	efi_memmap_init(&rsvd_region[n].start, &rsvd_region[n].end);
++	total_memory = efi_memmap_init(&rsvd_region[n].start, &rsvd_region[n].end);
+ 	n++;
+ 
+-#ifdef CONFIG_KEXEC
+-	/* crashkernel=size@offset specifies the size to reserve for a crash
+-	 * kernel. If offset is 0, then it is determined automatically.
+-	 * By reserving this memory we guarantee that linux never set's it
+-	 * up as a DMA target.Useful for holding code to do something
+-	 * appropriate after a kernel panic.
+-	 */
+-	{
+-		char *from = strstr(boot_command_line, "crashkernel=");
+-		unsigned long base, size;
+-		if (from) {
+-			size = memparse(from + 12, &from);
+-			if (*from == '@')
+-				base = memparse(from+1, &from);
+-			else
+-				base = 0;
+-			if (size) {
+-				if (!base) {
+-					sort_regions(rsvd_region, n);
+-					base = kdump_find_rsvd_region(size,
+-							      	rsvd_region, n);
+-					}
+-				if (base != ~0UL) {
+-					rsvd_region[n].start =
+-						(unsigned long)__va(base);
+-					rsvd_region[n].end =
+-						(unsigned long)__va(base + size);
+-					n++;
+-					crashk_res.start = base;
+-					crashk_res.end = base + size - 1;
+-				}
+-			}
+-		}
+-		efi_memmap_res.start = ia64_boot_param->efi_memmap;
+-                efi_memmap_res.end = efi_memmap_res.start +
+-                        ia64_boot_param->efi_memmap_size;
+-                boot_param_res.start = __pa(ia64_boot_param);
+-                boot_param_res.end = boot_param_res.start +
+-                        sizeof(*ia64_boot_param);
+-	}
+-#endif
++	setup_crashkernel(total_memory, &n);
++
+ 	/* end of memory marker */
+ 	rsvd_region[n].start = ~0UL;
+ 	rsvd_region[n].end   = ~0UL;
+--- a/include/asm-ia64/meminit.h
++++ b/include/asm-ia64/meminit.h
+@@ -35,7 +35,7 @@ extern void find_memory (void);
+ extern void reserve_memory (void);
+ extern void find_initrd (void);
+ extern int filter_rsvd_memory (unsigned long start, unsigned long end, void *arg);
+-extern void efi_memmap_init(unsigned long *, unsigned long *);
++extern unsigned long efi_memmap_init(unsigned long *s, unsigned long *e);
+ extern int find_max_min_low_pfn (unsigned long , unsigned long, void *);
+ 
+ extern unsigned long vmcore_find_descriptor_size(unsigned long address);
