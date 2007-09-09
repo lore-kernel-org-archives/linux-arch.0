@@ -1,127 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:35627 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752389AbXIIIjQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 9 Sep 2007 04:39:16 -0400
-Message-Id: <20070909083914.742208463@strauss.suse.de>
-References: <20070909083914.065380136@strauss.suse.de>
-Date: Sun, 09 Sep 2007 10:39:16 +0200
-From: Bernhard Walle <bwalle@suse.de>
-Subject: [patch 2/5] Use extended crashkernel command line on i386
-Content-Disposition: inline; filename=crashkernel-i386
+Received: from palinux.external.hp.com ([192.25.206.14]:41636 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754607AbXIINBk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Sep 2007 09:01:40 -0400
+Date: Sun, 9 Sep 2007 07:01:39 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [patch 4/5] Use extended crashkernel command line on IA64
+Message-ID: <20070909130139.GF6809@parisc-linux.org>
+References: <20070909083914.065380136@strauss.suse.de> <20070909083915.165288618@strauss.suse.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070909083915.165288618@strauss.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: kexec@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Bernhard Walle <bwalle@suse.de>
+Cc: kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-This patch removes the crashkernel parsing from
-arch/i386/kernel/machine_kexec.c and calls the generic function, introduced in
-the last patch, in setup_bootmem_allocator().
+On Sun, Sep 09, 2007 at 10:39:18AM +0200, Bernhard Walle wrote:
+> Because the total amount of System RAM must be known when calling this
+> function, efi_memmap_init() is modified to return its comulated 
 
-This is necessary because the amount of System RAM must be known in this
-function now because of the new syntax.
+accumulated?
 
+> total_memory variable in a pointer value. IMO that's better than making the
+> variable global.
 
-Signed-off-by: Bernhard Walle <bwalle@suse.de>
-
-
----
- arch/i386/kernel/e820.c          |    3 ++-
- arch/i386/kernel/machine_kexec.c |   22 ----------------------
- arch/i386/kernel/setup.c         |   33 ++++++++++++++++++++++++++++-----
- 3 files changed, 30 insertions(+), 28 deletions(-)
-
---- a/arch/i386/kernel/e820.c
-+++ b/arch/i386/kernel/e820.c
-@@ -288,7 +288,8 @@ legacy_init_iomem_resources(struct resou
- 			request_resource(res, code_resource);
- 			request_resource(res, data_resource);
- #ifdef CONFIG_KEXEC
--			request_resource(res, &crashk_res);
-+			if (crashk_res.start != crashk_res.end)
-+				request_resource(res, &crashk_res);
- #endif
- 		}
- 	}
---- a/arch/i386/kernel/machine_kexec.c
-+++ b/arch/i386/kernel/machine_kexec.c
-@@ -149,28 +149,6 @@ NORET_TYPE void machine_kexec(struct kim
- 			image->start, cpu_has_pae);
- }
- 
--/* crashkernel=size@addr specifies the location to reserve for
-- * a crash kernel.  By reserving this memory we guarantee
-- * that linux never sets it up as a DMA target.
-- * Useful for holding code to do something appropriate
-- * after a kernel panic.
-- */
--static int __init parse_crashkernel(char *arg)
--{
--	unsigned long size, base;
--	size = memparse(arg, &arg);
--	if (*arg == '@') {
--		base = memparse(arg+1, &arg);
--		/* FIXME: Do I want a sanity check
--		 * to validate the memory range?
--		 */
--		crashk_res.start = base;
--		crashk_res.end   = base + size - 1;
--	}
--	return 0;
--}
--early_param("crashkernel", parse_crashkernel);
--
- void arch_crash_save_vmcoreinfo(void)
- {
- #ifdef CONFIG_ARCH_DISCONTIGMEM_ENABLE
---- a/arch/i386/kernel/setup.c
-+++ b/arch/i386/kernel/setup.c
-@@ -381,6 +381,33 @@ extern unsigned long __init setup_memory
- extern void zone_sizes_init(void);
- #endif /* !CONFIG_NEED_MULTIPLE_NODES */
- 
-+#ifdef CONFIG_KEXEC
-+static void reserve_crashkernel(void)
-+{
-+	unsigned long long 	free_mem;
-+	unsigned long long 	crash_size, crash_base;
-+	int			ret;
-+
-+	free_mem = (max_low_pfn + highend_pfn - highstart_pfn) << PAGE_SHIFT;
-+
-+	ret = parse_crashkernel(boot_command_line, free_mem,
-+			&crash_size, &crash_base);
-+	if (ret == 0 && crash_size > 0) {
-+		printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
-+				"for crashkernel (System RAM: %ldMB)\n",
-+				(unsigned long)(crash_size >> 20),
-+				(unsigned long)(crash_base >> 20),
-+				(unsigned long)(free_mem >> 20));
-+		crashk_res.start = crash_base;
-+		crashk_res.end   = crash_base + crash_size;
-+		reserve_bootmem(crash_base, crash_size);
-+	}
-+}
-+#else
-+static inline void reserve_crashkernel(void)
-+{}
-+#endif
-+
- void __init setup_bootmem_allocator(void)
- {
- 	unsigned long bootmap_size;
-@@ -456,11 +483,7 @@ void __init setup_bootmem_allocator(void
- 		}
- 	}
- #endif
--#ifdef CONFIG_KEXEC
--	if (crashk_res.start != crashk_res.end)
--		reserve_bootmem(crashk_res.start,
--			crashk_res.end - crashk_res.start + 1);
--#endif
-+	reserve_crashkernel();
- }
- 
- /*
+Why not make efi_memmap_init() return total_memory instead of void?
 
 -- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
