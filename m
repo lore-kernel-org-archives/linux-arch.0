@@ -1,86 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from qb-out-0506.google.com ([72.14.204.231]:2524 "EHLO
-	qb-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756119AbXIJQqr convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2007 12:46:47 -0400
-Received: by qb-out-0506.google.com with SMTP id e11so1200185qbe
-        for <linux-arch@vger.kernel.org>; Mon, 10 Sep 2007 09:46:46 -0700 (PDT)
-From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
-Date: Mon, 10 Sep 2007 17:46:33 +0100
-References: <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <200709101516.03234.vda.linux@googlemail.com> <alpine.LFD.0.999.0709100807260.16478@woody.linux-foundation.org>
-In-Reply-To: <alpine.LFD.0.999.0709100807260.16478@woody.linux-foundation.org>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:43833 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751651AbXIJS7d (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2007 14:59:33 -0400
+Date: Mon, 10 Sep 2007 11:59:29 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all
+ architectures
+In-Reply-To: <c298f0e3f9e49c9dd2d326115d156084@kernel.crashing.org>
+Message-ID: <Pine.LNX.4.64.0709101157060.24491@schroedinger.engr.sgi.com>
+References: <20070816003948.GY9645@linux.vnet.ibm.com>
+ <Pine.LNX.4.64.0708151740570.10497@schroedinger.engr.sgi.com>
+ <18115.44462.622801.683446@cargo.ozlabs.ibm.com> <20070816020042.GA30650@gondor.apana.org.au>
+ <18115.45316.702491.681906@cargo.ozlabs.ibm.com>
+ <alpine.LFD.0.999.0708160800130.24380@enigma.security.iitk.ac.in>
+ <alpine.LFD.0.999.0708160815510.24380@enigma.security.iitk.ac.in>
+ <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <20070816053945.GB32442@gondor.apana.org.au>
+ <18115.62741.807704.969977@cargo.ozlabs.ibm.com> <20070816070907.GA964@gondor.apana.org.au>
+ <Pine.LNX.4.64.0708161743500.13267@kivilampi-30.cs.helsinki.fi>
+ <46C4ABA5.9010804@redhat.com> <Pine.LNX.4.64.0708161319000.17777@schroedinger.engr.sgi.com>
+ <c298f0e3f9e49c9dd2d326115d156084@kernel.crashing.org>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
-Content-Disposition: inline
-Message-Id: <200709101746.34513.vda.linux@googlemail.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Kyle Moffett <mrmacman_g4@mac.com>, Arjan van de Ven <arjan@infradead.org>, Nick Piggin <piggin@cyberone.com.au>, Satyam Sharma <satyam@infradead.org>, Herbert Xu <herbert@gondor.apana.org.au>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Ilpo Jarvinen <ilpo.jarvinen@helsinki.fi>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Netdev <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, David Miller <davem@davemloft.net>, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
+To: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Satyam Sharma <satyam@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, =?ISO-8859-1?Q?Ilpo_J=E4rvinen?= <ilpo.jarvinen@helsinki.fi>, ak@suse.de, cfriesen@nortel.com, rpjday@mindspring.com, Netdev <netdev@vger.kernel.org>, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
 List-ID: <linux-arch.vger.kernel.org>
 
-On Monday 10 September 2007 16:09, Linus Torvalds wrote:
-> On Mon, 10 Sep 2007, Denys Vlasenko wrote:
-> > static inline int
-> > qla2x00_wait_for_loop_ready(scsi_qla_host_t *ha)
-> > {
-> >         int      return_status = QLA_SUCCESS;
-> >         unsigned long loop_timeout ;
-> >         scsi_qla_host_t *pha = to_qla_parent(ha);
-> > 
-> >         /* wait for 5 min at the max for loop to be ready */
-> >         loop_timeout = jiffies + (MAX_LOOP_TIMEOUT * HZ);
-> > 
-> >         while ((!atomic_read(&pha->loop_down_timer) &&
-> >             atomic_read(&pha->loop_state) == LOOP_DOWN) ||
-> >             atomic_read(&pha->loop_state) != LOOP_READY) {
-> >                 if (atomic_read(&pha->loop_state) == LOOP_DEAD) {
-> ...
-> > Is above correct or buggy? Correct, because msleep is a barrier.
-> > Is it obvious? No.
-> 
-> It's *buggy*. But it has nothing to do with any msleep() in the loop, or 
-> anything else.
-> 
-> And more importantly, it would be equally buggy even *with* a "volatile" 
-> atomic_read().
+On Fri, 17 Aug 2007, Segher Boessenkool wrote:
 
-I am not saying that this code is okay, this isn't the point.
-(The code is in fact awful for several more reasons).
+> "volatile" has nothing to do with reordering.  atomic_dec() writes
+> to memory, so it _does_ have "volatile semantics", implicitly, as
+> long as the compiler cannot optimise the atomic variable away
+> completely -- any store counts as a side effect.
 
-My point is that people are confused as to what atomic_read()
-exactly means, and this is bad. Same for cpu_relax().
-First one says "read", and second one doesn't say "barrier".
+Stores can be reordered. Only x86 has (mostly) implicit write ordering. So 
+no atomic_dec has no volatile semantics and may be reordered on a variety 
+of processors. Writes to memory may not follow code order on several 
+processors.
 
-This is real code from current kernel which demonstrates this:
 
-"I don't know that cpu_relax() is a barrier already":
-
-drivers/kvm/kvm_main.c
-        while (atomic_read(&completed) != needed) {
-                cpu_relax();
-                barrier();
-        }
-
-"I think that atomic_read() is a read from memory and therefore
-I don't need a barrier":
-
-arch/x86_64/kernel/crash.c
-        msecs = 1000; /* Wait at most a second for the other cpus to stop */
-        while ((atomic_read(&waiting_for_crash_ipi) > 0) && msecs) {
-                mdelay(1);
-                msecs--;
-        }
-
-Since neither camp seems to give up, I am proposing renaming
-them to something less confusing, and make everybody happy.
-
-cpu_relax_barrier()
-atomic_value(&x)
-atomic_fetch(&x)
-
-I'm not native English speaker, do these sound better?
---
-vda
