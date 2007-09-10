@@ -1,59 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:60147 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751548AbXIJBRl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 9 Sep 2007 21:17:41 -0400
-Date: Mon, 10 Sep 2007 11:17:20 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: kbuild: enable possibility to specify xFLAGS on commandline
-Message-Id: <20070910111720.dbd4f68f.sfr@canb.auug.org.au>
-In-Reply-To: <214e7ea7cfce67dca284414d82062854@kernel.crashing.org>
-References: <20070909180254.GA20086@uranus.ravnborg.org>
-	<214e7ea7cfce67dca284414d82062854@kernel.crashing.org>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Mon__10_Sep_2007_11_17_20_+1000_UH1kmdb+M7El9AMh"
+Received: from py-out-1112.google.com ([64.233.166.183]:3667 "EHLO
+	py-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754536AbXIJK4q convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2007 06:56:46 -0400
+Received: by py-out-1112.google.com with SMTP id u77so2408751pyb
+        for <linux-arch@vger.kernel.org>; Mon, 10 Sep 2007 03:56:45 -0700 (PDT)
+From: Denys Vlasenko <vda.linux@googlemail.com>
+Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
+Date: Mon, 10 Sep 2007 11:56:29 +0100
+References: <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <200709091902.55388.vda.linux@googlemail.com> <20070909191839.1fa10e88@laptopd505.fenrus.org>
+In-Reply-To: <20070909191839.1fa10e88@laptopd505.fenrus.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
+Message-Id: <200709101156.30010.vda.linux@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Andi Kleen <ak@suse.de>, linux arch <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, kbuild devel <kbuild-devel@lists.sourceforge.net>
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <piggin@cyberone.com.au>, Satyam Sharma <satyam@infradead.org>, Herbert Xu <herbert@gondor.apana.org.au>, Paul Mackerras <paulus@samba.org>, Christoph Lameter <clameter@sgi.com>, Chris Snook <csnook@redhat.com>, Ilpo Jarvinen <ilpo.jarvinen@helsinki.fi>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Netdev <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, ak@suse.de, heiko.carstens@de.ibm.com, David Miller <davem@davemloft.net>, schwidefsky@de.ibm.com, wensong@linux-vs.org, horms@verge.net.au, wjiang@resilience.com, cfriesen@nortel.com, zlynx@acm.org, rpjday@mindspring.com, jesper.juhl@gmail.com, segher@kernel.crashing.org
 List-ID: <linux-arch.vger.kernel.org>
 
---Signature=_Mon__10_Sep_2007_11_17_20_+1000_UH1kmdb+M7El9AMh
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Sunday 09 September 2007 19:18, Arjan van de Ven wrote:
+> On Sun, 9 Sep 2007 19:02:54 +0100
+> Denys Vlasenko <vda.linux@googlemail.com> wrote:
+> 
+> > Why is all this fixation on "volatile"? I don't think
+> > people want "volatile" keyword per se, they want atomic_read(&x) to
+> > _always_ compile into an memory-accessing instruction, not register
+> > access.
+> 
+> and ... why is that?
+> is there any valid, non-buggy code sequence that makes that a
+> reasonable requirement?
 
-On Sun, 9 Sep 2007 20:26:16 +0200 Segher Boessenkool <segher@kernel.crashin=
-g.org> wrote:
->
-> powerpc uses
->=20
-> 	KBUILD_DEFCONFIG :=3D $(shell uname -m)_defconfig
->=20
-> to automagically pick the defconfig you want, but that obviously
-> doesn't work for cross-builds.
->=20
-> pmac32_defconfig and pseries_defconfig are probably used the most,
-> you might want to test with one of those next time.
+Well, if you insist on having it again:
 
-As someone else said, ppc64_defconfig would be better as that builds all
-the 64 bit platforms.
+Waiting for atomic value to be zero:
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+        while (atomic_read(&x))
+                continue;
 
---Signature=_Mon__10_Sep_2007_11_17_20_+1000_UH1kmdb+M7El9AMh
-Content-Type: application/pgp-signature
+gcc may happily convert it into:
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
+        reg = atomic_read(&x);
+        while (reg)
+                continue;
 
-iD4DBQFG5JsrTgG2atn1QN8RAuQKAJ0RDmm1o1p5jxQg6G0WIt3j0By7SQCVFgQw
-nLnqH1ErtJBy9MZVCPj3CA==
-=HzcL
------END PGP SIGNATURE-----
+Expecting every driver writer to remember that atomic_read is not in fact
+a "read from memory" is naive. That won't happen. Face it, majority of
+driver authors are a bit less talented than Ingo Molnar or Arjan van de Ven ;)
+The name of the macro is saying that it's a read.
+We are confusing users here.
 
---Signature=_Mon__10_Sep_2007_11_17_20_+1000_UH1kmdb+M7El9AMh--
+It's doubly confusing that cpy_relax(), which says _nothing_ about barriers
+in its name, is actually a barrier you need to insert here.
+--
+vda
