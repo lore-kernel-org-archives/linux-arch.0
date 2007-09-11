@@ -1,111 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e4.ny.us.ibm.com ([32.97.182.144]:51001 "EHLO e4.ny.us.ibm.com"
+Received: from mx2.suse.de ([195.135.220.15]:59304 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S966265AbXIKGPQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Sep 2007 02:15:16 -0400
-Date: Tue, 11 Sep 2007 11:45:22 +0530
-From: Vivek Goyal <vgoyal@in.ibm.com>
+	id S1757590AbXIKKBL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Sep 2007 06:01:11 -0400
+Date: Tue, 11 Sep 2007 12:01:10 +0200
+From: Bernhard Walle <bwalle@suse.de>
 Subject: Re: [patch 1/5] Extended crashkernel command line
-Message-ID: <20070911061522.GD5053@in.ibm.com>
-Reply-To: vgoyal@in.ibm.com
-References: <20070909083914.065380136@strauss.suse.de> <20070909083914.488571169@strauss.suse.de>
-Mime-Version: 1.0
+Message-ID: <20070911100110.GB31038@suse.de>
+References: <20070909083914.065380136@strauss.suse.de> <20070909083914.488571169@strauss.suse.de> <20070911061522.GD5053@in.ibm.com>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070909083914.488571169@strauss.suse.de>
+In-Reply-To: <20070911061522.GD5053@in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Bernhard Walle <bwalle@suse.de>
-Cc: kexec@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Vivek Goyal <vgoyal@in.ibm.com>
+Cc: linux-arch@vger.kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Sep 09, 2007 at 10:39:15AM +0200, Bernhard Walle wrote:
+* Vivek Goyal <vgoyal@in.ibm.com> [2007-09-11 08:15]:
+> 
+> "offset" seems to be optional in the new syntax. What happens if user does
+> not specify offset. I think crash_base will be set to zero and system will
+> try to reserve x amount of memory start at zero? That would fail?
 
-[..]
-> +
-> +/*
-> + * parsing the "crashkernel" commandline
-> + *
-> + * this code is intended to be called from architecture specific code
-> + */
-> +
-> +
-> +/*
-> + * This function parses command lines in the format
-> + *
-> + *   crashkernel=<ramsize-range>:<size>[,...][@<base>]
-> + *
-> + * The function returns 0 on success and -EINVAL on failure.
-> + */
-> +static int parse_crashkernel_mem(char 			*cmdline,
-> +				 unsigned long long 	*crash_size,
-> +				 unsigned long long 	*crash_base,
-> +				 unsigned long 		system_ram)
-> +{
-> +	char *cur = cmdline;
-> +
-> +	*crash_size = 0;
-> +	*crash_base = 0;
-> +
-> +	/* for each entry of the comma-separated list */
-> +	do {
-> +		unsigned long long start = 0, end = ULLONG_MAX;
-> +		unsigned long long size = -1;
-> +
-> +		/* get the start of the range */
-> +		start = memparse(cur, &cur);
-> +		if (*cur != '-') {
-> +			printk(KERN_WARNING "crashkernel: '-' expected\n");
-> +			return -EINVAL;
-> +		}
-> +		cur++;
-> +
-> +		/* if no ':' is here, than we read the end */
-> +		if (*cur != ':') {
-> +			end = memparse(cur, &cur);
-> +			if (end <= start) {
-> +				printk(KERN_WARNING "crashkernel: end <= start\n");
-> +				return -EINVAL;
-> +			}
-> +		}
-> +
-> +		if (*cur != ':') {
-> +			printk(KERN_WARNING "crashkernel: ':' expected\n");
-> +			return -EINVAL;
-> +		}
-> +		cur++;
-> +
-> +		size = memparse(cur, &cur);
-> +		if (size < 0) {
-> +			printk(KERN_WARNING "crashkernel: invalid size\n");
-> +			return -EINVAL;
-> +		}
-> +
-> +		/* match ? */
-> +		if (system_ram >= start  && system_ram <= end) {
-> +			*crash_size = size;
-> +			break;
-> +		}
-> +	} while (*cur++ == ',');
-> +
-> +	if (*crash_size > 0) {
-> +		while (*cur != ' ' && *cur != '@')
-> +			cur++;
-> +		if (*cur == '@')
-> +			*crash_base = memparse(cur+1, &cur);
+That's handled in the architecture specific code -- because it's
+different on each architecture and the architecture specific code does
+memory reservation. IA64 already can handle this case (on IA64,
+specifying 0 is the same than leaving out the base address, and that's
+why I wanted to keep that semantics). I think it doesn't also make
+sense on i386/x86_64 to choose 0 as real base address, because the
+value below 1 MB is special for booting ...
 
-"offset" seems to be optional in the new syntax. What happens if user does
-not specify offset. I think crash_base will be set to zero and system will
-try to reserve x amount of memory start at zero? That would fail?
+> I think we should add some intelligence for automatic selection of "offset"
+> if user has not specified one. Automatically choose a chunk of free memory.
+> This takes away the headache from user for selecting a right place. In fact
+> one "offset" might not be valid for all the systems. I remember, somebody
+> had reported that ACPI tables were mapped lower in the address space and
+> reserving memory for kdump had failed.
 
-I think we should add some intelligence for automatic selection of "offset"
-if user has not specified one. Automatically choose a chunk of free memory.
-This takes away the headache from user for selecting a right place. In fact
-one "offset" might not be valid for all the systems. I remember, somebody
-had reported that ACPI tables were mapped lower in the address space and
-reserving memory for kdump had failed.
+I think you're right -- with the relocatable kernel it makes sense to
+have the kernel to decide where to reservate that memory. But that's
+beyond of the scope of that patch series -- however, I can come up
+with a solution, after that patch has been finished.
 
-Choosing the "offset" automatically should help distributions where one
-command line is supposed to work on all the systems.
 
-Thanks
-Vivek
+Thanks,
+   Bernhard
+
