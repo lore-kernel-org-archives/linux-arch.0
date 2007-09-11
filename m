@@ -1,43 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:59462 "EHLO
-	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750808AbXIKN6V (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Sep 2007 09:58:21 -0400
-Received: from localhost.localdomain ([127.0.0.1]:53198 "EHLO
-	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20022381AbXIKN6T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Sep 2007 14:58:19 +0100
-Date: Tue, 11 Sep 2007 14:58:17 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: Removal of dma_cache_* functions?
-Message-ID: <20070911135817.GA1285@linux-mips.org>
-References: <20070904115615.GA14986@linux-mips.org> <20070904124212.GR14130@parisc-linux.org> <1188910630.3435.2.camel@localhost.localdomain> <20070904130707.GA16556@linux-mips.org> <yq0sl5le2p2.fsf@jaguar.mkp.net>
-MIME-Version: 1.0
+Received: from mga10.intel.com ([192.55.52.92]:31542 "EHLO
+	fmsmga102.fm.intel.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1755071AbXIKP2D (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Sep 2007 11:28:03 -0400
+Date: Tue, 11 Sep 2007 08:32:09 -0700
+From: "Lombard, David N" <dnlombar@ichips.intel.com>
+Subject: Re: [patch 1/5] Extended crashkernel command line
+Message-ID: <20070911153209.GA5054@nlxdcldnl2.cl.intel.com>
+References: <20070909083914.065380136@strauss.suse.de> <20070909083914.488571169@strauss.suse.de> <20070911131445.GA17460@suse.de>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <yq0sl5le2p2.fsf@jaguar.mkp.net>
+In-Reply-To: <20070911131445.GA17460@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Jes Sorensen <jes@sgi.com>
-Cc: James Bottomley <James.Bottomley@steeleye.com>, Matthew Wilcox <matthew@wil.cx>, linux-arch@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+To: Bernhard Walle <bwalle@suse.de>, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Sep 11, 2007 at 09:44:57AM -0400, Jes Sorensen wrote:
+On Tue, Sep 11, 2007 at 03:14:45PM +0200, Olaf Dabrunz wrote:
+> On 09-Sep-07, Bernhard Walle wrote:
+> > If there are multiple occurrences, then the last one is taken.  The advantage
+> > is that if you have a bootloader like lilo or elilo which allows you to append
+> > a command line parameter but not to remove one (like in GRUB), then you can add
+> > another crashkernel value for testing at the boot command line and this one
+> > overwrites the command line in the configuration then.
+> 
+> AFAIK it is the other way round: the lilo configuration-parameter
+> "append" appends the kernel parameters in the configuration to the
+> parameters given by the user on the kernel command line.
+> 
+> So the parameters set by the user during boot appear first on the
+> command line.
 
-> Only issue I could think off would be the m68k drivers, but I don't
-> know if that ever migrated to the MIPS API or stayed with the old m68k
-> one - Geert and comments?
+Given the kernel itself processes the cmdline from front to back,
+that suggests the last value is the correct value.
 
-That would only apply to out of tree drivers.  With the patch applied
-git grep -E -w -l 'dma_cache_(wback|wback_inv|inv)' only finds:
 
-arch/mips/au1000/common/dbdma.c
-arch/mips/jazz/jazzdma.c
-arch/mips/mm/dma-default.c
-drivers/net/sgiseeq.c
-drivers/scsi/dec_esp.c
-include/asm-mips/floppy.h
-include/asm-mips/io.h
+A survey of bootloaders shows differing behaviors:
 
-For sgiseeq there already is a patch in flight.
+syslinux et al.:
+  APPEND options...
+    Add one or more options to the kernel command line.  These are
+    added both for automatic and manual boots.  The options are
+    added at the very beginning of the kernel command line,
+    usually permitting explicitly entered kernel options to override
+    them.  This is the equivalent of the LILO "append" option.
 
-  Ralf
+lilo:
+  append=<string>
+
+    Appends the options specified to the parameter line passed to
+    the kernel.  This is typically used to specify hardware parameters
+    that can't be entirely auto-detected or for which probing may be
+    dangerous. Multiple kernel parameters are separated by a blank
+    space, and the string must be enclosed in double quotes.  A local
+    append= appearing withing an image= section overrides any
+    global append= appearing in the top section of the configuration file.
+    Append= may be used only once per "image=" section.
+
+    [There's also a local addappend string that's appended to the append string]
+
+elilo:
+  append=string       Append a string of options to kernel command line
+    ...
+    The user can specify a kernel and related kernel options using the image
+    label. Alternatively, the user can also specify a kernel file that is
+    not specified in the config file. In any case, some of the global options
+    (such as append) are always concatenated to whatever the user type.
+
+Grub:
+  Interactive editing of the command line...
+
+kboot
+  Config file entries precede user's values from keyboard
+
+
+
+-- 
+David N. Lombard, Intel, Irvine, CA
+I do not speak for Intel Corporation; all comments are strictly my own.
