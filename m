@@ -1,41 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:53106 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1761239AbXIKC3l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Sep 2007 22:29:41 -0400
-In-Reply-To: <Pine.LNX.4.64.0709101157060.24491@schroedinger.engr.sgi.com>
-References: <20070816003948.GY9645@linux.vnet.ibm.com> <Pine.LNX.4.64.0708151740570.10497@schroedinger.engr.sgi.com> <18115.44462.622801.683446@cargo.ozlabs.ibm.com> <20070816020042.GA30650@gondor.apana.org.au> <18115.45316.702491.681906@cargo.ozlabs.ibm.com> <alpine.LFD.0.999.0708160800130.24380@enigma.security.iitk.ac.in> <alpine.LFD.0.999.0708160815510.24380@enigma.security.iitk.ac.in> <18115.52863.638655.658466@cargo.ozlabs.ibm.com> <20070816053945.GB32442@gondor.apana.org.au> <18115.62741.807704.969977@cargo.ozlabs.ibm.com> <20070816070907.GA964@gondor.apana.org.au> <Pine.LNX.4.64.0708161743500.13267@kivilampi-30.cs.helsinki.fi> <46C4ABA5.9010804@redhat.com> <Pine.LNX.4.64.0708161319000.17777@schroedinger.engr.sgi.com> <c298f0e3f9e49c9dd2d326115d156084@kernel.crashing.org> <Pine.LNX.4.64.0709101157060.24491@schroedinger.engr.sgi.com>
-Mime-Version: 1.0 (Apple Message framework v623)
-Content-Type: text/plain; charset=US-ASCII; format=flowed
-Message-Id: <8239c744e7ef64a6f5a15449d337ac68@kernel.crashing.org>
-Content-Transfer-Encoding: 7bit
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [PATCH 0/24] make atomic_read() behave consistently across all architectures
-Date: Tue, 11 Sep 2007 04:27:22 +0200
+Received: from e33.co.us.ibm.com ([32.97.110.151]:32841 "EHLO
+	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756650AbXIKFOl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Sep 2007 01:14:41 -0400
+Date: Tue, 11 Sep 2007 10:44:53 +0530
+From: Vivek Goyal <vgoyal@in.ibm.com>
+Subject: Re: [discuss] [patch 3/5] Use extended crashkernel command line on x86_64
+Message-ID: <20070911051453.GB5053@in.ibm.com>
+Reply-To: vgoyal@in.ibm.com
+References: <20070909083914.065380136@strauss.suse.de> <20070909083914.951336895@strauss.suse.de> <86802c440709091027o32a63d11w629bad87abcc19c2@mail.gmail.com> <20070909185257.GA10600@suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070909185257.GA10600@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Paul Mackerras <paulus@samba.org>, heiko.carstens@de.ibm.com, horms@verge.net.au, Stefan Richter <stefanr@s5r6.in-berlin.de>, Satyam Sharma <satyam@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, =?ISO-8859-1?Q?Ilpo_J=E4rvinen?= <ilpo.jarvinen@helsinki.fi>, ak@suse.de, cfriesen@nortel.com, rpjday@mindspring.com, Netdev <netdev@vger.kernel.org>, jesper.juhl@gmail.com, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, zlynx@acm.org, schwidefsky@de.ibm.com, Chris Snook <csnook@redhat.com>, Herbert Xu <herbert@gondor.apana.org.au>, Linus Torvalds <torvalds@linux-foundation.org>, wensong@linux-vs.org, wjiang@resilience.com
+To: Yinghai Lu <yhlu.kernel@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org, discuss@x86-64.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, Bernhard Walle <bwalle@suse.de>
 List-ID: <linux-arch.vger.kernel.org>
 
->> "volatile" has nothing to do with reordering.  atomic_dec() writes
->> to memory, so it _does_ have "volatile semantics", implicitly, as
->> long as the compiler cannot optimise the atomic variable away
->> completely -- any store counts as a side effect.
->
-> Stores can be reordered. Only x86 has (mostly) implicit write ordering.
-> So no atomic_dec has no volatile semantics
+On Sun, Sep 09, 2007 at 08:52:58PM +0200, Bernhard Walle wrote:
+> * Yinghai Lu <yhlu.kernel@gmail.com> [2007-09-09 19:27]:
+> > >
+> > > +#ifdef CONFIG_KEXEC
+> > ...
+> > 
+> > CONFIG_KEXEC or CONFIG_CRASH_DUMP?
+> 
+> Good question. The crashkernel parameter was CONFIG_KEXEC before, and
+> I also wondered why, but I didn't change this because maybe there's
+> some reason I don't know.
+> 
+> Vivek, do you know why this was CONFIG_KEXEC?
+> 
+> 
 
-Read again: I said the C "volatile" construct has nothing to do
-with CPU memory access reordering.
+Bernhard,
 
-> and may be reordered on a variety
-> of processors. Writes to memory may not follow code order on several
-> processors.
+As Eric mentioned, CONFIG_CRASH_DUMP has been used for all dump capturing
+infrastructure and rest of the kexec and kexec on panic functionality
+has been put under CONFIG_KEXEC. 
 
-The _compiler_ isn't allowed to reorder things here.  Yes, of course
-you do need stronger barriers for many purposes, volatile isn't all
-that useful you know.
+Keeping memory reservation under CONFIG_KEXEC helps in a sense when
+somebody is not using a relocatable kernel and uses a custom kernel for dump
+capture. In that case he does not have to enable CONFIG_CRASH_DUMP in the
+first kernel.
 
-
-Segher
-
+Thanks
+Vivek
