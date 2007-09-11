@@ -1,48 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:32841 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756650AbXIKFOl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Sep 2007 01:14:41 -0400
-Date: Tue, 11 Sep 2007 10:44:53 +0530
+Received: from e2.ny.us.ibm.com ([32.97.182.142]:33809 "EHLO e2.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S966002AbXIKGI6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Sep 2007 02:08:58 -0400
+Date: Tue, 11 Sep 2007 11:39:13 +0530
 From: Vivek Goyal <vgoyal@in.ibm.com>
-Subject: Re: [discuss] [patch 3/5] Use extended crashkernel command line on x86_64
-Message-ID: <20070911051453.GB5053@in.ibm.com>
+Subject: Re: [patch 0/5] Add extended crashkernel command line syntax
+Message-ID: <20070911060913.GC5053@in.ibm.com>
 Reply-To: vgoyal@in.ibm.com
-References: <20070909083914.065380136@strauss.suse.de> <20070909083914.951336895@strauss.suse.de> <86802c440709091027o32a63d11w629bad87abcc19c2@mail.gmail.com> <20070909185257.GA10600@suse.de>
+References: <20070909083914.065380136@strauss.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070909185257.GA10600@suse.de>
+In-Reply-To: <20070909083914.065380136@strauss.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Yinghai Lu <yhlu.kernel@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org, discuss@x86-64.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, Bernhard Walle <bwalle@suse.de>
+To: Bernhard Walle <bwalle@suse.de>
+Cc: kexec@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Sep 09, 2007 at 08:52:58PM +0200, Bernhard Walle wrote:
-> * Yinghai Lu <yhlu.kernel@gmail.com> [2007-09-09 19:27]:
-> > >
-> > > +#ifdef CONFIG_KEXEC
-> > ...
-> > 
-> > CONFIG_KEXEC or CONFIG_CRASH_DUMP?
+On Sun, Sep 09, 2007 at 10:39:14AM +0200, Bernhard Walle wrote:
+> This patch adds a extended crashkernel syntax that makes the value of reserved
+> system RAM dependent on the system RAM itself:
 > 
-> Good question. The crashkernel parameter was CONFIG_KEXEC before, and
-> I also wondered why, but I didn't change this because maybe there's
-> some reason I don't know.
+>     crashkernel=<range1>:<size1>[,<range2>:<size2>,...][@offset]
+>     range=start-[end]
 > 
-> Vivek, do you know why this was CONFIG_KEXEC?
+> For example:
+> 
+>     crashkernel=512M-2G:64M,2G-:128M
+> 
+> The motivation comes from distributors that configure their crashkernel command
+> line automatically with some configuration tool (YaST, you know ;)). Of course
+> that tool knows the value of System RAM, but if the user removes RAM, then
+> the system becomes unbootable or at least unusable and error handling
+> is very difficult.
+> 
+
+System does not boot after removing memory because a large chunk of it has
+been reserved by kdump and there is not sufficient memory left for rest of
+the OS to initialize?
+
+How often does this scenario happen? Anyway, if you run into these issues
+and if it helps, I don't mind additional command line syntax for crashkernel=
+ 
+> This series implements this change for i386, x86_64 and IA64. However, if
+> the patch is accepted, I can also add all other architectures that support
+> Kdump (when my grepping was correct, this is only PPC64 and SH in addition).
+> The "simple" syntax is of course still supported.
 > 
 > 
 
-Bernhard,
-
-As Eric mentioned, CONFIG_CRASH_DUMP has been used for all dump capturing
-infrastructure and rest of the kexec and kexec on panic functionality
-has been put under CONFIG_KEXEC. 
-
-Keeping memory reservation under CONFIG_KEXEC helps in a sense when
-somebody is not using a relocatable kernel and uses a custom kernel for dump
-capture. In that case he does not have to enable CONFIG_CRASH_DUMP in the
-first kernel.
+Please make the changes for ppc64 and sh too.
 
 Thanks
 Vivek
