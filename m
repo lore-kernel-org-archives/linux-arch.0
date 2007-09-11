@@ -1,80 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga10.intel.com ([192.55.52.92]:31542 "EHLO
-	fmsmga102.fm.intel.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1755071AbXIKP2D (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Sep 2007 11:28:03 -0400
-Date: Tue, 11 Sep 2007 08:32:09 -0700
-From: "Lombard, David N" <dnlombar@ichips.intel.com>
+Received: from ns2.suse.de ([195.135.220.15]:33846 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759306AbXIKRVi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Sep 2007 13:21:38 -0400
+Date: Tue, 11 Sep 2007 19:21:37 +0200
+From: Bernhard Walle <bwalle@suse.de>
 Subject: Re: [patch 1/5] Extended crashkernel command line
-Message-ID: <20070911153209.GA5054@nlxdcldnl2.cl.intel.com>
-References: <20070909083914.065380136@strauss.suse.de> <20070909083914.488571169@strauss.suse.de> <20070911131445.GA17460@suse.de>
-Mime-Version: 1.0
+Message-ID: <20070911172137.GF20907@suse.de>
+References: <20070909083914.065380136@strauss.suse.de> <20070909083914.488571169@strauss.suse.de> <20070911131445.GA17460@suse.de> <20070911153209.GA5054@nlxdcldnl2.cl.intel.com>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20070911131445.GA17460@suse.de>
+In-Reply-To: <20070911153209.GA5054@nlxdcldnl2.cl.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Bernhard Walle <bwalle@suse.de>, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Sep 11, 2007 at 03:14:45PM +0200, Olaf Dabrunz wrote:
-> On 09-Sep-07, Bernhard Walle wrote:
-> > If there are multiple occurrences, then the last one is taken.  The advantage
-> > is that if you have a bootloader like lilo or elilo which allows you to append
-> > a command line parameter but not to remove one (like in GRUB), then you can add
-> > another crashkernel value for testing at the boot command line and this one
-> > overwrites the command line in the configuration then.
+* Lombard, David N <dnlombar@ichips.intel.com> [2007-09-11 17:32]:
 > 
-> AFAIK it is the other way round: the lilo configuration-parameter
-> "append" appends the kernel parameters in the configuration to the
-> parameters given by the user on the kernel command line.
+> lilo:
+>   append=<string>
 > 
-> So the parameters set by the user during boot appear first on the
-> command line.
+>     Appends the options specified to the parameter line passed to
+>     the kernel. 
 
-Given the kernel itself processes the cmdline from front to back,
-that suggests the last value is the correct value.
+Given that lilo appends the user-specified command line, I think it's
+the best to honor the last value. It has also been the previous
+behaviour (execpt IA64).
 
-
-A survey of bootloaders shows differing behaviors:
-
-syslinux et al.:
-  APPEND options...
-    Add one or more options to the kernel command line.  These are
-    added both for automatic and manual boots.  The options are
-    added at the very beginning of the kernel command line,
-    usually permitting explicitly entered kernel options to override
-    them.  This is the equivalent of the LILO "append" option.
-
-lilo:
-  append=<string>
-
-    Appends the options specified to the parameter line passed to
-    the kernel.  This is typically used to specify hardware parameters
-    that can't be entirely auto-detected or for which probing may be
-    dangerous. Multiple kernel parameters are separated by a blank
-    space, and the string must be enclosed in double quotes.  A local
-    append= appearing withing an image= section overrides any
-    global append= appearing in the top section of the configuration file.
-    Append= may be used only once per "image=" section.
-
-    [There's also a local addappend string that's appended to the append string]
-
-elilo:
-  append=string       Append a string of options to kernel command line
-    ...
-    The user can specify a kernel and related kernel options using the image
-    label. Alternatively, the user can also specify a kernel file that is
-    not specified in the config file. In any case, some of the global options
-    (such as append) are always concatenated to whatever the user type.
-
-Grub:
-  Interactive editing of the command line...
-
-kboot
-  Config file entries precede user's values from keyboard
+Having a different behaviour if the last or the first value is honored
+on different architectures is not what we want, IMO.
 
 
-
--- 
-David N. Lombard, Intel, Irvine, CA
-I do not speak for Intel Corporation; all comments are strictly my own.
+Thanks,
+   Bernhard
