@@ -1,49 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:59351 "EHLO mx2.suse.de"
+Received: from ns2.suse.de ([195.135.220.15]:42635 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1761495AbXIKKBq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Sep 2007 06:01:46 -0400
-Date: Tue, 11 Sep 2007 12:01:45 +0200
-From: Bernhard Walle <bwalle@suse.de>
-Subject: Re: [discuss] [patch 3/5] Use extended crashkernel command line on
-	x86_64
-Message-ID: <20070911100145.GC31038@suse.de>
-References: <20070909083914.065380136@strauss.suse.de> <20070909083914.951336895@strauss.suse.de> <86802c440709091027o32a63d11w629bad87abcc19c2@mail.gmail.com> <20070909185257.GA10600@suse.de> <20070911051453.GB5053@in.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+	id S1751595AbXIKNOq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Sep 2007 09:14:46 -0400
+Date: Tue, 11 Sep 2007 15:14:45 +0200
+From: Olaf Dabrunz <od@suse.de>
+Subject: Re: [patch 1/5] Extended crashkernel command line
+Message-ID: <20070911131445.GA17460@suse.de>
+References: <20070909083914.065380136@strauss.suse.de> <20070909083914.488571169@strauss.suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20070911051453.GB5053@in.ibm.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20070909083914.488571169@strauss.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Vivek Goyal <vgoyal@in.ibm.com>
-Cc: Yinghai Lu <yhlu.kernel@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org, discuss@x86-64.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org
+To: Bernhard Walle <bwalle@suse.de>
+Cc: kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-* Vivek Goyal <vgoyal@in.ibm.com> [2007-09-11 07:14]:
-> On Sun, Sep 09, 2007 at 08:52:58PM +0200, Bernhard Walle wrote:
-> > * Yinghai Lu <yhlu.kernel@gmail.com> [2007-09-09 19:27]:
-> > > >
-> > > > +#ifdef CONFIG_KEXEC
-> > > ...
-> > > 
-> > > CONFIG_KEXEC or CONFIG_CRASH_DUMP?
-> > 
-> > Good question. The crashkernel parameter was CONFIG_KEXEC before, and
-> > I also wondered why, but I didn't change this because maybe there's
-> > some reason I don't know.
-> > 
-> > Vivek, do you know why this was CONFIG_KEXEC?
+On 09-Sep-07, Bernhard Walle wrote:
+> If there are multiple occurrences, then the last one is taken.  The advantage
+> is that if you have a bootloader like lilo or elilo which allows you to append
+> a command line parameter but not to remove one (like in GRUB), then you can add
+> another crashkernel value for testing at the boot command line and this one
+> overwrites the command line in the configuration then.
+
+AFAIK it is the other way round: the lilo configuration-parameter
+"append" appends the kernel parameters in the configuration to the
+parameters given by the user on the kernel command line.
+
+So the parameters set by the user during boot appear first on the
+command line.
+
+> Signed-off-by: Bernhard Walle <bwalle@suse.de>
 > 
-> As Eric mentioned, CONFIG_CRASH_DUMP has been used for all dump capturing
-> infrastructure and rest of the kexec and kexec on panic functionality
-> has been put under CONFIG_KEXEC. 
+> ---
+>  include/linux/kexec.h |    2 
+>  kernel/kexec.c        |  139 ++++++++++++++++++++++++++++++++++++++++++++++++++
+>  2 files changed, 141 insertions(+)
 > 
-> Keeping memory reservation under CONFIG_KEXEC helps in a sense when
-> somebody is not using a relocatable kernel and uses a custom kernel for dump
-> capture. In that case he does not have to enable CONFIG_CRASH_DUMP in the
-> first kernel.
+> --- a/include/linux/kexec.h
+> +++ b/include/linux/kexec.h
+> @@ -179,6 +179,8 @@ extern note_buf_t *crash_notes;
+>  extern u32 vmcoreinfo_note[VMCOREINFO_NOTE_SIZE/4];
+>  extern unsigned int vmcoreinfo_size;
+>  extern unsigned int vmcoreinfo_max_size;
+> +int parse_crashkernel(char *cmdline, unsigned long long system_ram,
+> +		unsigned long long *crash_size, unsigned long long *crash_base);
+>  
+>  [...]
+>  
+> +int parse_crashkernel(char 		 *cmdline,
+> +		      unsigned long long system_ram,
+> +		      unsigned long long *crash_size,
+> +		      unsigned long long *crash_base)
+> +{
+> +	char 	*p = cmdline, *ck_cmdline = NULL;
+> +	char	*first_colon, *first_space;
+> +
+> +	/* find crashkernel and use the last one if there are more */
+> +	p = strstr(p, "crashkernel=");
+> +	while (p) {
+> +		ck_cmdline = p;
+> +		p = strstr(p+1, "crashkernel=");
+> +	}
+> +
 
-Yes, you all are right ... sorry for the noise ;)
+So perhaps something like this instead:
 
++	/* find crashkernel and use the first one if there are more */
++	p = strstr(p, "crashkernel=");
++	ck_cmdline = p;
 
-Thanks,
-   Bernhard
+> +	if (!ck_cmdline)
+> +		return -EINVAL;
+> +
+> +	ck_cmdline += 12; /* strlen("crashkernel=") */
+> +
+> +	/*
+> +	 * if the commandline contains a ':', then that's the extended
+> +	 * syntax -- if not, it must be the classic syntax
+> +	 */
+> +	first_colon = strchr(ck_cmdline, ':');
+> +	first_space = strchr(ck_cmdline, ' ');
+> +	if (first_colon && (!first_space || first_colon < first_space))
+> 
+> [...]
+
+-- 
+Olaf Dabrunz (od/odabrunz), SUSE Linux Products GmbH, Nürnberg
+
