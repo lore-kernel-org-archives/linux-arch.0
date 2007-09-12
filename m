@@ -1,24 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:35764 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:51959 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758947AbXIKWzX (ORCPT
+	by vger.kernel.org with ESMTP id S1751492AbXILIuq (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Sep 2007 18:55:23 -0400
-Message-Id: <200709112253.l8BMrc98001325@imap1.linux-foundation.org>
-Subject: - optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch removed from -mm tree
+	Wed, 12 Sep 2007 04:50:46 -0400
+Message-Id: <200709120849.l8C8n244024347@imap1.linux-foundation.org>
+Subject: + optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Tue, 11 Sep 2007 15:53:38 -0700
+Date: Wed, 12 Sep 2007 01:49:02 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: hch@lst.de, ak@suse.de, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org, prasanna@in.ibm.com, mm-commits@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: hch@lst.de, ak@suse.de, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org, prasanna@in.ibm.com
 List-ID: <linux-arch.vger.kernel.org>
 
 
 The patch titled
      x86: optimize page faults like all other achitectures and kill notifier cruft
-has been removed from the -mm tree.  Its filename was
+has been added to the -mm tree.  Its filename is
      optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch
 
-This patch was dropped because it was nacked
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
 
 ------------------------------------------------------
 Subject: x86: optimize page faults like all other achitectures and kill notifier cruft
