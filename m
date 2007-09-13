@@ -1,43 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout04.sul.t-online.de ([194.25.134.18]:36629 "EHLO
-	mailout04.sul.t-online.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750892AbXIMLYq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 13 Sep 2007 07:24:46 -0400
-Message-ID: <46E918FD.3070607@t-online.de>
-Date: Thu, 13 Sep 2007 13:03:25 +0200
-From: Bernd Schmidt <bernds_cb1@t-online.de>
+Received: from ns1.suse.de ([195.135.220.2]:41857 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751197AbXIMPCW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 13 Sep 2007 11:02:22 -0400
+Date: Thu, 13 Sep 2007 17:02:20 +0200
+From: Bernhard Walle <bwalle@suse.de>
+Subject: Re: [patch 0/5] Add extended crashkernel command line syntax
+Message-ID: <20070913150220.GM26903@suse.de>
+References: <20070909083914.065380136@strauss.suse.de> <20070911060913.GC5053@in.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [Uclinux-dist-devel] Re: [PATCH] Blackfin arch: add some missing
- syscall
-References: <1189670203.30686.15.camel@roc-desktop>	<20070913081852.GC17367@parisc-linux.org>	<8bd0f97a0709130137l55977c28w95cf8527ae8b9e24@mail.gmail.com> <1189673849.30686.28.camel@roc-desktop>
-In-Reply-To: <1189673849.30686.28.camel@roc-desktop>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070911060913.GC5053@in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: bryan.wu@analog.com
-Cc: Mike Frysinger <vapier.adi@gmail.com>, bernd.schmidt@analog.com, linux-arch@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, Linux Kernel <linux-kernel@vger.kernel.org>, Paul Mundt <lethal@linux-sh.org>, uclinux-dist-devel@blackfin.uclinux.org, Andrew Morton <akpm@linux-foundation.org>
+To: Vivek Goyal <vgoyal@in.ibm.com>
+Cc: kexec@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Bryan Wu wrote:
->>> but mremap doesn't -- there's even an implementation in mm/nommu.c.
->>> Could you check the rest of these over to see if they truly don't need
->>> to be implemented for no-mmu?
->> you're right we want mremap, my fault
->>
+* Vivek Goyal <vgoyal@in.ibm.com> [2007-09-11 08:09]:
 > 
-> Yes, I do think so, both sys_mremap and sys_munmap are implemented in
-> mm/nommu.c. How do think of this, Bernd?
+> How often does this scenario happen? Anyway, if you run into these issues
+> and if it helps, I don't mind additional command line syntax for crashkernel=
 
-There's a mremap in nommu.c, but it doesn't do a lot that is useful. 
-With some further mm changes in our tree, it's little more than a fancy 
-way of saying munmap, and uClibc does not use it, so there's no 
-compelling need to have it in userspace.
+Of course, I agree, this is a rare case.
+
+> > This series implements this change for i386, x86_64 and IA64. However, if
+> > the patch is accepted, I can also add all other architectures that support
+> > Kdump (when my grepping was correct, this is only PPC64 and SH in addition).
+> > The "simple" syntax is of course still supported.
+> 
+> Please make the changes for ppc64 and sh too.
+
+Thanks, done now. Patchset follows. It should address all issues
+mentioned by you and others.
 
 
-Bernd
--- 
-This footer brought to you by insane German lawmakers.
-Analog Devices GmbH      Wilhelm-Wagenfeld-Str. 6      80807 Muenchen
-Sitz der Gesellschaft Muenchen, Registergericht Muenchen HRB 40368
-Geschaeftsfuehrer Thomas Wessel, William A. Martin, Margaret Seif
+Thanks,
+   Bernhard
