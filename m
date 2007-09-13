@@ -1,39 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:41857 "EHLO mx1.suse.de"
+Received: from ns.suse.de ([195.135.220.2]:47266 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751197AbXIMPCW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 13 Sep 2007 11:02:22 -0400
-Date: Thu, 13 Sep 2007 17:02:20 +0200
+	id S1763275AbXIMQO3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 13 Sep 2007 12:14:29 -0400
+Message-Id: <20070913161428.343951643@strauss.suse.de>
+Date: Thu, 13 Sep 2007 18:14:28 +0200
 From: Bernhard Walle <bwalle@suse.de>
-Subject: Re: [patch 0/5] Add extended crashkernel command line syntax
-Message-ID: <20070913150220.GM26903@suse.de>
-References: <20070909083914.065380136@strauss.suse.de> <20070911060913.GC5053@in.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20070911060913.GC5053@in.ibm.com>
+Subject: [patch 0/7] Add extended crashkernel command line syntax
 Sender: linux-arch-owner@vger.kernel.org
-To: Vivek Goyal <vgoyal@in.ibm.com>
-Cc: kexec@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: kexec@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-* Vivek Goyal <vgoyal@in.ibm.com> [2007-09-11 08:09]:
-> 
-> How often does this scenario happen? Anyway, if you run into these issues
-> and if it helps, I don't mind additional command line syntax for crashkernel=
+This patch adds a extended crashkernel syntax that makes the value of reserved
+system RAM dependent on the system RAM itself:
 
-Of course, I agree, this is a rare case.
+    crashkernel=<range1>:<size1>[,<range2>:<size2>,...][@offset]
+    range=start-[end]
 
-> > This series implements this change for i386, x86_64 and IA64. However, if
-> > the patch is accepted, I can also add all other architectures that support
-> > Kdump (when my grepping was correct, this is only PPC64 and SH in addition).
-> > The "simple" syntax is of course still supported.
-> 
-> Please make the changes for ppc64 and sh too.
+For example:
 
-Thanks, done now. Patchset follows. It should address all issues
-mentioned by you and others.
+    crashkernel=512M-2G:64M,2G-:128M
+
+The motivation comes from distributors that configure their crashkernel command
+line automatically with some configuration tool (YaST, you know ;)). Of course
+that tool knows the value of System RAM, but if the user removes RAM, then
+the system becomes unbootable or at least unusable and error handling
+is very difficult.
+
+This series implements this change for i386, x86_64, ia64, ppc64 and sh. That
+should be all platforms that support kdump in current mainline. I tested all
+platforms except sh due to the lack of a sh processor.
+
+The patch series is against 2.6.23-rc4-mm1.
 
 
-Thanks,
-   Bernhard
+
+Signed-off-by: Bernhard Walle <bwalle@suse.de>
+
+-- 
