@@ -1,131 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:47519 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755203AbXITRSs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 20 Sep 2007 13:18:48 -0400
-Message-Id: <20070920171846.278376000@stravinsky.suse.de>
-References: <20070920171845.774383000@stravinsky.suse.de>
-Date: Thu, 20 Sep 2007 19:18:47 +0200
-From: Bernhard Walle <bwalle@suse.de>
-Subject: [patch 2/7] Use extended crashkernel command line on i386
-Content-Disposition: inline; filename=crashkernel-i386
+Received: from gprs189-60.eurotel.cz ([160.218.189.60]:3568 "EHLO spitz.ucw.cz"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751456AbXIVGpI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 22 Sep 2007 02:45:08 -0400
+Date: Tue, 18 Sep 2007 17:21:08 +0000
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [patch 7/7] Add documentation for extended crashkernel syntax
+Message-ID: <20070918172108.GD5966@ucw.cz>
+References: <20070913161428.343951643@strauss.suse.de> <20070913161430.686458007@strauss.suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20070913161430.686458007@strauss.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: kexec@lists.infradead.org, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Bernhard Walle <bwalle@suse.de>
+Cc: kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-This patch removes the crashkernel parsing from
-arch/i386/kernel/machine_kexec.c and calls the generic function, introduced in
-the last patch, in setup_bootmem_allocator().
+Hi!
 
-This is necessary because the amount of System RAM must be known in this
-function now because of the new syntax.
+> This adds the documentation for the extended crashkernel syntax into
+> Documentation/kdump/kdump.txt.
 
+Should you also update kernel-parameters.txt?
 
-Signed-off-by: Bernhard Walle <bwalle@suse.de>
+> +For example:
+> +
+> +    crashkernel=512M-2G:64M,2G-:128M
+> +
+> +This would mean:
+> +
+> +    1) if the RAM is smaller than 512M, then don't reserve anything
+> +       (this is the "rescue" case)
+> +    2) if the RAM size is between 512M and 2G, then reserve 64M
+> +    3) if the RAM size is larger than 2G, then reserve 128M
 
-
----
- arch/i386/kernel/e820.c          |    3 ++-
- arch/i386/kernel/machine_kexec.c |   22 ----------------------
- arch/i386/kernel/setup.c         |   37 ++++++++++++++++++++++++++++++++-----
- 3 files changed, 34 insertions(+), 28 deletions(-)
-
---- a/arch/i386/kernel/e820.c
-+++ b/arch/i386/kernel/e820.c
-@@ -288,7 +288,8 @@ legacy_init_iomem_resources(struct resou
- 			request_resource(res, code_resource);
- 			request_resource(res, data_resource);
- #ifdef CONFIG_KEXEC
--			request_resource(res, &crashk_res);
-+			if (crashk_res.start != crashk_res.end)
-+				request_resource(res, &crashk_res);
- #endif
- 		}
- 	}
---- a/arch/i386/kernel/machine_kexec.c
-+++ b/arch/i386/kernel/machine_kexec.c
-@@ -149,28 +149,6 @@ NORET_TYPE void machine_kexec(struct kim
- 			image->start, cpu_has_pae);
- }
- 
--/* crashkernel=size@addr specifies the location to reserve for
-- * a crash kernel.  By reserving this memory we guarantee
-- * that linux never sets it up as a DMA target.
-- * Useful for holding code to do something appropriate
-- * after a kernel panic.
-- */
--static int __init parse_crashkernel(char *arg)
--{
--	unsigned long size, base;
--	size = memparse(arg, &arg);
--	if (*arg == '@') {
--		base = memparse(arg+1, &arg);
--		/* FIXME: Do I want a sanity check
--		 * to validate the memory range?
--		 */
--		crashk_res.start = base;
--		crashk_res.end   = base + size - 1;
--	}
--	return 0;
--}
--early_param("crashkernel", parse_crashkernel);
--
- void arch_crash_save_vmcoreinfo(void)
- {
- #ifdef CONFIG_ARCH_DISCONTIGMEM_ENABLE
---- a/arch/i386/kernel/setup.c
-+++ b/arch/i386/kernel/setup.c
-@@ -381,6 +381,37 @@ extern unsigned long __init setup_memory
- extern void zone_sizes_init(void);
- #endif /* !CONFIG_NEED_MULTIPLE_NODES */
- 
-+#ifdef CONFIG_KEXEC
-+static void __init reserve_crashkernel(void)
-+{
-+	unsigned long long 	free_mem;
-+	unsigned long long 	crash_size, crash_base;
-+	int			ret;
-+
-+	free_mem = (max_low_pfn + highend_pfn - highstart_pfn) << PAGE_SHIFT;
-+
-+	ret = parse_crashkernel(boot_command_line, free_mem,
-+			&crash_size, &crash_base);
-+	if (ret == 0 && crash_size > 0) {
-+		if (crash_base > 0) {
-+			printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
-+					"for crashkernel (System RAM: %ldMB)\n",
-+					(unsigned long)(crash_size >> 20),
-+					(unsigned long)(crash_base >> 20),
-+					(unsigned long)(free_mem >> 20));
-+			crashk_res.start = crash_base;
-+			crashk_res.end   = crash_base + crash_size - 1;
-+			reserve_bootmem(crash_base, crash_size);
-+		} else
-+			printk(KERN_INFO "crashkernel reservation failed - "
-+					"you have to specify a base address\n");
-+	}
-+}
-+#else
-+static inline void __init reserve_crashkernel(void)
-+{}
-+#endif
-+
- void __init setup_bootmem_allocator(void)
- {
- 	unsigned long bootmap_size;
-@@ -456,11 +487,7 @@ void __init setup_bootmem_allocator(void
- 		}
- 	}
- #endif
--#ifdef CONFIG_KEXEC
--	if (crashk_res.start != crashk_res.end)
--		reserve_bootmem(crashk_res.start,
--			crashk_res.end - crashk_res.start + 1);
--#endif
-+	reserve_crashkernel();
- }
- 
- /*
+Why is this useful? I mean... if 64M is enough to save a dump, why use
+128M? ...or does the required size somehow scale with memory in
+machine? (pagetables?)
+						Pavel
 
 -- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
