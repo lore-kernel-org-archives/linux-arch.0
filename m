@@ -1,81 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:55922 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752095AbXIYTqZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 Sep 2007 15:46:25 -0400
-Date: Tue, 25 Sep 2007 12:45:34 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [patch 5/7] Use extended crashkernel command line on ppc64
-Message-Id: <20070925124534.b9da41a2.akpm@linux-foundation.org>
-In-Reply-To: <20070925182259.398924232@strauss.suse.de>
-References: <20070925182257.900701776@strauss.suse.de>
-	<20070925182259.398924232@strauss.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from barikada.upol.cz ([158.194.242.200]:41086 "EHLO
+	barikada.upol.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752138AbXIYUhx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2007 16:37:53 -0400
+Subject: Re: [patch 1/7] Extended crashkernel command line
+In-Reply-To: <20070925182258.175348676@strauss.suse.de>
+References: <20070925182257.900701776@strauss.suse.de> <20070925182258.175348676@strauss.suse.de>
+Date: Tue, 25 Sep 2007 22:53:36 +0200
+Message-Id: <E1IaHPU-00089b-Bc@flower>
+From: Oleg Verych <olecom@flower.upol.cz>
 Sender: linux-arch-owner@vger.kernel.org
 To: Bernhard Walle <bwalle@suse.de>
-Cc: kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kexec@lists.infradead.org, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 25 Sep 2007 20:23:02 +0200 Bernhard Walle <bwalle@suse.de> wrote:
+* Tue, 25 Sep 2007 20:22:58 +0200
+>
+> This is the generic part of the patch. It adds a parse_crashkernel() function
+> in kernel/kexec.c that is called by the architecture specific code that
+> actually reserves the memory. That function takes the whole command line and
+> looks itself for "crashkernel=" in it.
+[]
+> +++ b/include/linux/kexec.h
+> @@ -187,6 +187,8 @@ extern u32 vmcoreinfo_note[VMCOREINFO_NO
+>  extern size_t vmcoreinfo_size;
+>  extern size_t vmcoreinfo_max_size;
+>  
+> +int __init parse_crashkernel(char *cmdline, unsigned long long system_ram,
+> +		unsigned long long *crash_size, unsigned long long *crash_base);
 
-> This patch adapts the ppc64 code to use the generic parse_crashkernel()
-> function introduced in the generic patch of that series.
-> 
-> 
+I still want to point out my consernes about `unsigned long long long'
+bloat.
 
-I really don't like to see patches get a wholesale replacement, especially
-when they've been looked at by a few people and have had some testing, etc.
-It's not possible to see what changed and people need to re-review stuff
-they've already reviewed, etc.
+>  #else /* !CONFIG_KEXEC */
+>  struct pt_regs;
+> --- a/kernel/kexec.c
+> +++ b/kernel/kexec.c
+[]
+> +/*
+> + * This function parses command lines in the format
+> + *
+> + *   crashkernel=<ramsize-range>:<size>[,...][@<base>]
 
-So I almost always undo this mess, turn the patches back into incremental
-ones, see what pops out.
+#v+
+olecom@flower:/tmp$ grep '@offset' <extended-crashkernel-cmdline.mbox
+    crashkernel=<range1>:<size1>[,<range2>:<size2>,...][@offset]
+-       /* crashkernel=size@offset specifies the size to reserve for a crash
++While the "crashkernel=size[@offset]" syntax is sufficient for most
++    crashkernel=<range1>:<size1>[,<range2>:<size2>,...][@offset]
++       crashkernel=range1:size1[,range2:size2,...][@offset]
+olecom@flower:/tmp$ grep '@base' <extended-crashkernel-cmdline.mbox
++ *     crashkernel=size[@base]
+olecom@flower:/tmp$ grep '@<base' <extended-crashkernel-cmdline.mbox
++ *   crashkernel=<ramsize-range>:<size>[,...][@<base>]
+olecom@flower:/tmp$ grep '@<offset' <extended-crashkernel-cmdline.mbox
+olecom@flower:/tmp$
+#v-
 
-This patch is actually:
+> + *
+> + * The function returns 0 on success and -EINVAL on failure.
+> + */
+> +static int __init parse_crashkernel_mem(char 			*cmdline,
+> +					unsigned long long	system_ram,
+> +					unsigned long long	*crash_size,
+> +					unsigned long long	*crash_base)
+> +{
+> +	char *cur = cmdline;
+> +
+> +	/* for each entry of the comma-separated list */
+> +	do {
+> +		unsigned long long start = 0, end = ULLONG_MAX;
+> +		unsigned long long size = -1;
 
+memparse(), as a wrapper for somple_strtoll(), always have a return value
+(zero by default).
+<http://article.gmane.org/gmane.linux.kernel/583426>
 
-diff -puN arch/powerpc/kernel/machine_kexec.c~use-extended-crashkernel-command-line-on-ppc64-update arch/powerpc/kernel/machine_kexec.c
---- a/arch/powerpc/kernel/machine_kexec.c~use-extended-crashkernel-command-line-on-ppc64-update
-+++ a/arch/powerpc/kernel/machine_kexec.c
-@@ -63,7 +63,7 @@ NORET_TYPE void machine_kexec(struct kim
- 
- void __init reserve_crashkernel(void)
- {
--	unsigned long long crash_size = 0, crash_base;
-+	unsigned long long crash_size, crash_base;
- 	int ret;
- 
- 	/* this is necessary because of lmb_phys_mem_size() */
-_
+Consider coded error path now, please.
 
+And why not to make overall result reliable? This is kernel after all.
 
-which I suspect will now create a compiler warning.
+I.e. if there's valid `crashkernel=' option, but some parsing errors, why
+not to apply some heuristics with warning in syslog, if user have some
+conf, bootloader (random) errors, but feature still works?
 
-
-	unsigned long long crash_size, crash_base;
-	int ret;
-
-	/* this is necessary because of lmb_phys_mem_size() */
-	lmb_analyze();
-
-	/* use common parsing */
-	ret = parse_crashkernel(boot_command_line, lmb_phys_mem_size(),
-			&crash_size, &crash_base);
-	if (ret == 0 && crash_size > 0) {
-		if (crash_base == 0)
-			crash_base = KDUMP_KERNELBASE;
-		crashk_res.start = crash_base;
-	} else {
-		/* handle the device tree */
-		crash_size = crashk_res.end - crashk_res.start + 1;
-	}
-
-	if (crash_size == 0)
-		return;
-
-If so, the use of uninitialized_var() would be better than the unneeded
-initialization-to-zero.
-
+> +
+> +		/* get the start of the range */
+> +		start = memparse(cur, &cur);
+> +		if (*cur != '-') {
+> +			printk(KERN_WARNING "crashkernel: '-' expected\n");
+> +			return -EINVAL;
+> +		}
+> +		cur++;
+> +
+> +		/* if no ':' is here, than we read the end */
+> +		if (*cur != ':') {
+> +			end = memparse(cur, &cur);
+> +			if (end <= start) {
+> +				printk(KERN_WARNING "crashkernel: end <= start\n");
+> +				return -EINVAL;
+> +			}
+> +		}
+> +
+> +		if (*cur != ':') {
+> +			printk(KERN_WARNING "crashkernel: ':' expected\n");
+> +			return -EINVAL;
+> +		}
+> +		cur++;
+> +
+> +		size = memparse(cur, &cur);
+> +		if (size < 0) {
+> +			printk(KERN_WARNING "crashkernel: invalid size\n");
+> +			return -EINVAL;
+> +		}
+> +
+> +		/* match ? */
+> +		if (system_ram >= start  && system_ram <= end) {
+> +			*crash_size = size;
+> +			break;
+> +		}
+> +	} while (*cur++ == ',');
+> +
+> +	if (*crash_size > 0) {
+> +		while (*cur != ' ' && *cur != '@')
+> +			cur++;
+> +		if (*cur == '@')
+> +			*crash_base = memparse(cur+1, &cur);
+> +	}
+> +
+> +	return 0;
+> +}
+--
+-o--=O`C
+ #oo'L O
+<___=E M
