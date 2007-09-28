@@ -1,57 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:51212 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:51061 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757565AbXI1IC3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 28 Sep 2007 04:02:29 -0400
-Message-Id: <20070928074200.436463000@chello.nl>
-Date: Fri, 28 Sep 2007 09:42:00 +0200
+	id S1756738AbXI1IBe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 28 Sep 2007 04:01:34 -0400
+Message-Id: <20070928080041.661518000@chello.nl>
+References: <20070928074200.436463000@chello.nl>
+Date: Fri, 28 Sep 2007 09:42:04 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 00/12] various lockdep patches
+Subject: [PATCH 04/12] lockdep: annotate journal_start()
+Content-Disposition: inline; filename=jbd-lock.patch
 Sender: linux-arch-owner@vger.kernel.org
 To: lkml <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 Cc: Zach Brown <zach.brown@oracle.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
 List-ID: <linux-arch.vger.kernel.org>
 
-The first 3 patches provide a new lockdep check, it verifies we don't hold any
-locks when returning to userspace.
+On Fri, 2007-07-13 at 02:05 -0700, Andrew Morton wrote:
 
-	lockdep-sys_exit.patch
-	lockdep-i386-sys_exit.patch
-	lockdep-x86_64-sys_exit.patch
+> Except lockdep doesn't know about journal_start(), which has ranking
+> requirements similar to a semaphore.  
 
-Could the various arch maintainers that have support for lockdep help out
-with placing this hook?
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ fs/jbd/transaction.c |    9 +++++++++
+ include/linux/jbd.h  |    5 +++++
+ 2 files changed, 14 insertions(+)
 
-A journal_start annotation:
+Index: linux-2.6/fs/jbd/transaction.c
+===================================================================
+--- linux-2.6.orig/fs/jbd/transaction.c
++++ linux-2.6/fs/jbd/transaction.c
+@@ -233,6 +233,8 @@ out:
+ 	return ret;
+ }
+ 
++static struct lock_class_key jbd_handle_key;
++
+ /* Allocate a new handle.  This should probably be in a slab... */
+ static handle_t *new_handle(int nblocks)
+ {
+@@ -243,6 +245,8 @@ static handle_t *new_handle(int nblocks)
+ 	handle->h_buffer_credits = nblocks;
+ 	handle->h_ref = 1;
+ 
++	lockdep_init_map(&handle->h_lockdep_map, "jbd_handle", &jbd_handle_key, 0);
++
+ 	return handle;
+ }
+ 
+@@ -286,6 +290,9 @@ handle_t *journal_start(journal_t *journ
+ 		current->journal_info = NULL;
+ 		handle = ERR_PTR(err);
+ 	}
++
++	lock_acquire(&handle->h_lockdep_map, 0, 0, 0, 2, _THIS_IP_);
++
+ 	return handle;
+ }
+ 
+@@ -1411,6 +1418,8 @@ int journal_stop(handle_t *handle)
+ 		spin_unlock(&journal->j_state_lock);
+ 	}
+ 
++	lock_release(&handle->h_lockdep_map, 1, _THIS_IP_);
++
+ 	jbd_free_handle(handle);
+ 	return err;
+ }
+Index: linux-2.6/include/linux/jbd.h
+===================================================================
+--- linux-2.6.orig/include/linux/jbd.h
++++ linux-2.6/include/linux/jbd.h
+@@ -30,6 +30,7 @@
+ #include <linux/bit_spinlock.h>
+ #include <linux/mutex.h>
+ #include <linux/timer.h>
++#include <linux/lockdep.h>
+ 
+ #include <asm/semaphore.h>
+ #endif
+@@ -396,6 +397,10 @@ struct handle_s
+ 	unsigned int	h_sync:		1;	/* sync-on-close */
+ 	unsigned int	h_jdata:	1;	/* force data journaling */
+ 	unsigned int	h_aborted:	1;	/* fatal error on handle */
++
++#ifdef CONFIG_DEBUG_LOCK_ALLOC
++	struct lockdep_map	h_lockdep_map;
++#endif
+ };
+ 
+ 
 
-	jbd-lock.patch
-
-Up until this point stuff should be safe to merge (assuming there are no
-objections and bugs.. :-)
-
-The rest of the series annotates lock_page():
-
-  rework lock_page() API:
-	trylock_page.patch
-	lock_page.patch
-	lockdep-page_lock-hooks.patch
-
-  actuall lockdep annotation:
-	lockdep-depth.patch
-	lockdep-fs-page.patch
-	lockdep-page-async.patch
-	set_page_mapping.patch
-	lockdep-lock_page.patch
-
-Part of that is re-working the lock_page() API a bit. It introduces 
-trylock_page(), and removes all the raw *PageLock() usage.
-
-I've compile and boot tested this series on x86_64 (with and without lockdep).
-And it completes an LTP run with lockdep enabled.
-
-Andrew, can we start by pusing the lock_page() API rework into -mm?
-
- [ this series is against -linus, but if you're willing I'll do some 
-   patches against -mm ]
-
+--
 
