@@ -1,46 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate3.de.ibm.com ([195.212.29.152]:38188 "EHLO
-	mtagate3.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751927AbXI1MV5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Sep 2007 08:21:57 -0400
-Date: Fri, 28 Sep 2007 14:21:54 +0200
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH 01/12] lockdep: syscall exit check
-Message-ID: <20070928122154.GD25726@osiris.boeblingen.de.ibm.com>
-References: <20070928074200.436463000@chello.nl> <20070928080040.893443000@chello.nl> <20070928120331.GC25726@osiris.boeblingen.de.ibm.com> <1190981651.13204.6.camel@twins>
+Received: from mx2.suse.de ([195.135.220.15]:45221 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752628AbXI1ReQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 28 Sep 2007 13:34:16 -0400
+From: Andi Kleen <ak@suse.de>
+Subject: Re: Optimize cpumask functions for SMPs with < BITS_PER_LONG processors
+Date: Fri, 28 Sep 2007 19:34:11 +0200
+References: <20070925155200.GA7342@linux-mips.org>
+In-Reply-To: <20070925155200.GA7342@linux-mips.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <1190981651.13204.6.camel@twins>
+Message-Id: <200709281934.11957.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Zach Brown <zach.brown@oracle.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Sep 28, 2007 at 02:14:11PM +0200, Peter Zijlstra wrote:
-> On Fri, 2007-09-28 at 14:03 +0200, Heiko Carstens wrote:
-> > > +void lockdep_sys_exit(void)
-> > > +{
-> > > +	struct task_struct *curr = current;
-> > > +
-> > > +	if (unlikely(curr->lockdep_depth)) {
-> > > +		if (!debug_locks_off())
-> > > +			return;
-> > > +		printk("\n========================================\n");
-> > > +		printk(  "[ BUG: lock held at syscall exit time! ]\n");
-> > > +		printk(  "----------------------------------------\n");
-> > > +		printk("%s/%d is leaving the kernel with locks still held!\n",
-> > > +				curr->comm, curr->pid);
-> > > +		lockdep_print_held_locks(curr);
-> > > +	}
-> > > +}
-> > 
-> > By the way, the s390 patch I just posted also checks if we hold any locks
-> > when returning from interrupt context to user space. Maybe the above text
-> > could be changed to "lock held when returning to user space" ?
-> 
-> Good idea, I'll look at doing the same for i386/x86_64. Traps (page
-> faults) would also make sense I guess.
+On Tuesday 25 September 2007 17:52:00 Ralf Baechle wrote:
+> When debugging a kernel using a logic analyzer (!) a colleague recently
+> noticed that because the <linux/cpumasks.h> functions are based on the
+> generic bitops which support arbitrary size bitfields we had a relativly
+> high overhead resulting from this.  Here's the chainsaw edition of a patch
+> to optimize this for CONFIG_NR_CPUS <= BITS_PER_LONG.  Comments?
 
-Yes, traps and syscalls have the same exit path on s390. So we do that
-alreasy as well.
+The right thing to test is not CONFIG_NR_CPUS, but just
+do __builtin_constant_p(x) && (x) <= BITS_PER_LONG ? fast case : external call
+in find_*_bit()
+
+x86-64 has done this already for some time. But one issue is that 
+that the cpumask walk functions currently do (n = find_*_bit()) >= maxbit ? maxbit : n
+which also creates more overhead because some architectures get this
+wrong (including x86-64 I must admit) 
+
+-Andi
+
