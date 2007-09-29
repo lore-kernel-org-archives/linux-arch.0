@@ -1,40 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:57267 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750863AbXI2AH7 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Sep 2007 20:07:59 -0400
-From: Arnd Bergmann <arnd@arndb.de>
+Received: from smtp.ocgnet.org ([64.20.243.3]:50931 "EHLO smtp.ocgnet.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750964AbXI2HXt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 29 Sep 2007 03:23:49 -0400
+Date: Sat, 29 Sep 2007 16:23:25 +0900
+From: Paul Mundt <lethal@linux-sh.org>
 Subject: Re: [COMPAT] Add compat_merge64 helper
-Date: Sat, 29 Sep 2007 01:52:12 +0200
-References: <1191018832-18069-1-git-send-email-kyle@mcmartin.ca> <200709290138.24562.arnd@arndb.de> <20070929000131.GD25346@fattire.cabal.ca>
-In-Reply-To: <20070929000131.GD25346@fattire.cabal.ca>
+Message-ID: <20070929072325.GC1395@linux-sh.org>
+References: <1191018832-18069-1-git-send-email-kyle@mcmartin.ca> <200709290138.24562.arnd@arndb.de> <20070929000131.GD25346@fattire.cabal.ca> <20070929000247.GE25346@fattire.cabal.ca>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-Id: <200709290152.12842.arnd@arndb.de>
+In-Reply-To: <20070929000247.GE25346@fattire.cabal.ca>
 Sender: linux-arch-owner@vger.kernel.org
 To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Saturday 29 September 2007, Kyle McMartin wrote:
+On Fri, Sep 28, 2007 at 08:02:47PM -0400, Kyle McMartin wrote:
+> On Fri, Sep 28, 2007 at 08:01:31PM -0400, Kyle McMartin wrote:
+> > I checked powerpc, sparc, and mips, which are (besides parisc) the only
+> > 64-bit with 32-bit userspace big endian architectures that I could think
+> > of offhand. A quick grep shows sh64 too... Paul?
+> > 
 > 
-> On Sat, Sep 29, 2007 at 01:38:23AM +0200, Arnd Bergmann wrote:
-> > 1. Byte order matches the order in which 64 bit arguments are split
-> >    in system call conventions on all platforms.
-> 
-> I checked powerpc, sparc, and mips, which are (besides parisc) the only
-> 64-bit with 32-bit userspace big endian architectures that I could think
-> of offhand. A quick grep shows sh64 too... Paul?
-> 
+> Ah, no CONFIG_COMPAT on sh64 anyways.
 
-s390 is big-endian as well, and while it does have really weird C calling
-conventions for 64 bit arguments in 32 bit mode, these do not affect the
-system call ABI, so we should be fine here.
-
-ia64 and x86_64 are obviously little-endian, and I double-checked that they
-work with this logic.
-
-	Arnd <><
+Yes, the kernel currently runs with a 32-bit ABI, so it's not an issue
+there.
