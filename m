@@ -1,33 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate6.de.ibm.com ([195.212.29.155]:62845 "EHLO
-	mtagate6.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751241AbXI2Js4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Sep 2007 05:48:56 -0400
-Date: Sat, 29 Sep 2007 11:48:52 +0200
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [COMPAT] Add compat_merge64 helper
-Message-ID: <20070929094852.GA7715@osiris.boeblingen.de.ibm.com>
+Received: from dike.telenet-ops.be ([195.130.132.36]:49190 "EHLO
+	dike.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757527AbXI2KkG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Sep 2007 06:40:06 -0400
+Received: from europa.telenet-ops.be (europa.telenet-ops.be [195.130.137.75])
+	by dike.telenet-ops.be (Postfix) with ESMTP id 1F331823B3E
+	for <linux-arch@vger.kernel.org>; Sat, 29 Sep 2007 11:12:08 +0200 (CEST)
+Date: Sat, 29 Sep 2007 11:11:24 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] Generic compat_sys_fallocate
+In-Reply-To: <1191018832-18069-2-git-send-email-kyle@mcmartin.ca>
+Message-ID: <Pine.LNX.4.64.0709291109320.10965@anakin>
 References: <1191018832-18069-1-git-send-email-kyle@mcmartin.ca>
+ <1191018832-18069-2-git-send-email-kyle@mcmartin.ca>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1191018832-18069-1-git-send-email-kyle@mcmartin.ca>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: Kyle McMartin <kyle@mcmartin.ca>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Sep 28, 2007 at 06:33:51PM -0400, Kyle McMartin wrote:
-> To be used when endianness matters for argument ordering when reassembling
-> a 64-bit value out of two register halves.
-> 
-> Signed-off-by: Kyle McMartin <kyle@mcmartin.ca>
->
-> +static inline u64 compat_merge64(u32 left, u32 right)
+On Fri, 28 Sep 2007, Kyle McMartin wrote:
+> --- a/fs/compat.c
+> +++ b/fs/compat.c
+> @@ -2226,3 +2226,13 @@ asmlinkage long compat_sys_timerfd(int ufd, int clockid, int flags,
+>  }
+>  
+>  #endif /* CONFIG_TIMERFD */
+> +
+> +asmlinkage long compat_sys_fallocate(int fd, int mode,
+> +				     u32 offset_lo, u32 offset_hi,
+> +				     u32 len_lo, u32 len_hi)
 > +{
-> +#if defined(__BIG_ENDIAN)
-> +	return ((u64)left << 32) | right;
-> +#else /* defined (__LITTLE_ENDIAN) */
+> +	u64 offset = compat_merge64(offset_lo, offset_hi);
+> +	u64 len = compat_merge64(len_lo, len_hi);
+> +
+> +	return sys_fallocate(fd, mode, offset, len);
+> +}
 
-Could you change that to an #elif please and #error out if none is defined?
-Should safe us from subtle bugs caused by missing includes.
+To avoid confusion, you may want to rename the *_{lo,hi} parameters to
+e.g. *_{l,r}, as they don't actually mean the low and high part anymore.
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
