@@ -1,53 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dike.telenet-ops.be ([195.130.132.36]:49190 "EHLO
-	dike.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757527AbXI2KkG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Sep 2007 06:40:06 -0400
-Received: from europa.telenet-ops.be (europa.telenet-ops.be [195.130.137.75])
-	by dike.telenet-ops.be (Postfix) with ESMTP id 1F331823B3E
-	for <linux-arch@vger.kernel.org>; Sat, 29 Sep 2007 11:12:08 +0200 (CEST)
-Date: Sat, 29 Sep 2007 11:11:24 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] Generic compat_sys_fallocate
-In-Reply-To: <1191018832-18069-2-git-send-email-kyle@mcmartin.ca>
-Message-ID: <Pine.LNX.4.64.0709291109320.10965@anakin>
-References: <1191018832-18069-1-git-send-email-kyle@mcmartin.ca>
- <1191018832-18069-2-git-send-email-kyle@mcmartin.ca>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from pentafluge.infradead.org ([213.146.154.40]:45959 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753878AbXI2PGQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Sep 2007 11:06:16 -0400
+Subject: Re: [PATCH 05/12] mm: trylock_page
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+In-Reply-To: <200709281311.37616.nickpiggin@yahoo.com.au>
+References: <20070928074200.436463000@chello.nl>
+	 <20070928080041.891125000@chello.nl>
+	 <200709281311.37616.nickpiggin@yahoo.com.au>
+Content-Type: text/plain
+Date: Sat, 29 Sep 2007 17:01:34 +0200
+Message-Id: <1191078095.18147.126.camel@lappy>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Nick Piggin <nickpiggin@yahoo.com.au>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Zach Brown <zach.brown@oracle.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, 28 Sep 2007, Kyle McMartin wrote:
-> --- a/fs/compat.c
-> +++ b/fs/compat.c
-> @@ -2226,3 +2226,13 @@ asmlinkage long compat_sys_timerfd(int ufd, int clockid, int flags,
->  }
->  
->  #endif /* CONFIG_TIMERFD */
-> +
-> +asmlinkage long compat_sys_fallocate(int fd, int mode,
-> +				     u32 offset_lo, u32 offset_hi,
-> +				     u32 len_lo, u32 len_hi)
-> +{
-> +	u64 offset = compat_merge64(offset_lo, offset_hi);
-> +	u64 len = compat_merge64(len_lo, len_hi);
-> +
-> +	return sys_fallocate(fd, mode, offset, len);
-> +}
 
-To avoid confusion, you may want to rename the *_{lo,hi} parameters to
-e.g. *_{l,r}, as they don't actually mean the low and high part anymore.
+On Fri, 2007-09-28 at 13:11 +1000, Nick Piggin wrote:
+> On Friday 28 September 2007 17:42, Peter Zijlstra wrote:
+> > Replace raw TestSetPageLocked() usage with trylock_page()
+> 
+> I have such a thing queued too, for the lock bitops patches for when 2.6.24
+> opens, Andrew promises me :).
+> 
+> I guess they should be identical, except I don't like doing trylock_page in
+> place of SetPageLocked, for memory ordering performance and aesthetic
+> reasons... I've got an init_page_locked (or set_page_locked... I can't
+> remember, the patch is at home).
 
-Gr{oetje,eeting}s,
+Sure, that might work, or we could just make it so that add_to_*_cache
+is never passed an unlocked page. But sure...
 
-						Geert
+> Fine idea to lockdep the page lock, anyway. Does it show up any of the
+> buffered write deadlock possibilities? :)
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Not yet, it might just be that the concessions done to annotate this
+type of lock were too severe.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+What I basically did was treat all the page locks as a single recursive
+lock.
+
+> buffer lock is another notable bit-mutex that might be converted (I have
+> the patch to do the similar nice !tas->trylock conversion for that too). I
+> think it is used widely enough by tricky code that it would be useful to
+> annotate as well.
+
+Not at all familiar with that lock, but yeah, we could have a look at
+doing that too.
+
+> Unfortunately we can't convert bit_spinlock.h easily, I guess?
+
+Yeah, the space constraints make that rather hard. Each of these locks
+needs some form of external meta-data.
+
+For the page lock I used one lock instance per file system type.
+
