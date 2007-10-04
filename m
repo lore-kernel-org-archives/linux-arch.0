@@ -1,253 +1,134 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:50334 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752341AbXJDESt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2007 00:18:49 -0400
-Message-Id: <200710040418.l944IIRg023294@imap1.linux-foundation.org>
-Subject: - f_dupfd_cloexec-implementation-fix.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Wed, 03 Oct 2007 21:18:18 -0700
+Received: from dike.telenet-ops.be ([195.130.132.36]:48221 "EHLO
+	dike.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754430AbXJDJtE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2007 05:49:04 -0400
+Received: from adicia.telenet-ops.be (adicia.telenet-ops.be [195.130.132.56])
+	by dike.telenet-ops.be (Postfix) with ESMTP id A9B32301441
+	for <linux-arch@vger.kernel.org>; Thu,  4 Oct 2007 10:08:18 +0200 (CEST)
+Date: Thu, 4 Oct 2007 10:07:31 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH][RFC] unbreak generic futex_atomic_cmpxchg_inatomic() on
+ UP
+In-Reply-To: <200710040741.l947fcVQ012708@harpo.it.uu.se>
+Message-ID: <Pine.LNX.4.64.0710041006000.32179@anakin>
+References: <200710040741.l947fcVQ012708@harpo.it.uu.se>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org, drepper@redhat.com, hch@lst.de, kyle@mcmartin.ca, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, mm-commits@vger.kernel.org
+To: Mikael Pettersson <mikpe@it.uu.se>
+Cc: Linux Kernel Development <linux-kernel@vger.kernel.org>, riku.voipio@iki.fi, buytenh@wantstofly.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Thu, 4 Oct 2007, Mikael Pettersson wrote:
+> On Wed, 3 Oct 2007 22:33:46 +0300, Riku Voipio wrote:
+> > What's the state of this patch? I can confirm tst-robust1
+> > from glibc testsuite locks a armv5 machine hard. With this patch
+> > applied, the test succeeds.
+> 
+> There were no comments from any Linux arch or futex maintainer.
 
-The patch titled
-     f_dupfd_cloexec-implementation-fix
-has been removed from the -mm tree.  Its filename was
-     f_dupfd_cloexec-implementation-fix.patch
+Probably because it wasn't posted to linux-arch?
 
-This patch was dropped because it is obsolete
+> Because of that I intend to submit an ARM-only patch when 2.6.23
+> has been released.
+> 
+> /Mikael
+> 
+> > > The higher-end archs (x86, sparc64, ppc64, etc) provide fully-functional
+> > > asm/futex.h implementations, but a number of archs (alpha, arm, arm26,
+> > > avr32, blackfin, cris, h8300, m32r, m68k, mk68knommu, sh64, sparc, um,
+> > > v850, and xtensa) use asm-generic/futex.h, which makes robust futexes
+> > > horribly broken on them. There have also been reports recently that PI
+> > > futexes are broken due to the generic futex_atomic_cmpxchg_inatomic()
+> > > just being an -ENOSYS stub.
+> > 
+> > This an effective local DOS bug on the affected architectures, too.. 
+> > 
+> > > The patch below implements the generic futex_atomic_cmpxchg_inatomic() in
+> > > terms of __copy_{from,to}_user_inatomic() and preempt_{disable,enable}().
+> > > It obviously doesn't support SMP, but UP-only support should go a long
+> > > way for users of the affected archs.
+> > > 
+> > > I'm using this patch now and it has allowed me to build and use glibc-2.4
+> > > with NPTL on ARM (glibc-2.4-11.src.rpm from FC5 + ARM fixes).
+> > > (Finally I can ditch LinuxThreads :->)
+> > > 
+> > > Comments?
+> > > 
+> > > /Mikael
+> > > 
+> > > --- linux-2.6.22/include/asm-generic/futex.h.~1~	2007-02-04 19:44:54.000000000 +0100
+> > > +++ linux-2.6.22/include/asm-generic/futex.h	2007-08-01 19:03:43.000000000 +0200
+> > > @@ -4,6 +4,7 @@
+> > >  #ifdef __KERNEL__
+> > >  
+> > >  #include <linux/futex.h>
+> > > +#include <linux/preempt.h>
+> > >  #include <asm/errno.h>
+> > >  #include <asm/uaccess.h>
+> > >  
+> > > @@ -52,7 +53,34 @@ futex_atomic_op_inuser (int encoded_op, 
+> > >  static inline int
+> > >  futex_atomic_cmpxchg_inatomic(int __user *uaddr, int oldval, int newval)
+> > > {
+> > > +#ifdef CONFIG_SMP
+> > >  	return -ENOSYS;
+> > > +#else
+> > > +	int curval, ret;
+> > > +
+> > > +	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
+> > > +		return -EFAULT;
+> > > +
+> > > +	preempt_disable();
+> > > +
+> > > +	ret = -EFAULT;
+> > > +	if (__copy_from_user_inatomic(&curval, uaddr, sizeof(int)))
+> > > +		goto out;
+> > > +
+> > > +	ret = curval;
+> > > +	if (curval != oldval)
+> > > +		goto out;
+> > > +
+> > > +	ret = -EFAULT;
+> > > +	if (__copy_to_user_inatomic(uaddr, &newval, sizeof(int)))
+> > > +		goto out;
+> > > +
+> > > +	ret = newval;
+> > > +
+> > > + out:
+> > > +	preempt_enable();
+> > > +	return ret;
+> > > +#endif
+> > >  }
+> > >  
+> > >  #endif
+> > > -
+> > 
+> > - -- 
+> > "rm -rf" only sounds scary if you don't have backups
+> > -----BEGIN PGP SIGNATURE-----
+> > Version: GnuPG v1.4.6 (GNU/Linux)
+> > 
+> > iD8DBQFHA+6aibPvMsrqrwMRAlMuAKCBf7qpD2dETgU+RgnDG4ArVvFp3gCgrewq
+> > 4KvOt40U1MAPM7g4F/Ps5jk=
+> > =68gr
+> > -----END PGP SIGNATURE-----
+> > 
+> -
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+> 
 
-------------------------------------------------------
-Subject: f_dupfd_cloexec-implementation-fix
-From: Andrew Morton <akpm@linux-foundation.org>
+Gr{oetje,eeting}s,
 
-ok?
+						Geert
 
-Cc: <linux-arch@vger.kernel.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Christoph Hellwig <hch@lst.de>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Ulrich Drepper <drepper@redhat.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-
-diff -puN include/asm-parisc/fcntl.h~f_dupfd_cloexec-implementation-fix include/asm-parisc/fcntl.h
---- a/include/asm-parisc/fcntl.h~f_dupfd_cloexec-implementation-fix
-+++ a/include/asm-parisc/fcntl.h
-@@ -28,6 +28,7 @@
- #define F_SETOWN	12	/*  for sockets. */
- #define F_SETSIG	13	/*  for sockets. */
- #define F_GETSIG	14	/*  for sockets. */
-+#define F_DUPFD_CLOEXEC 15
- 
- /* for posix fcntl() and lockf() */
- #define F_RDLCK		01
-_
-
-Patches currently in -mm which might be from akpm@linux-foundation.org are
-
-slow-down-printk-during-boot.patch
-acpi-add-reboot-mechanism.patch
-acpi-suppress-uninitialized-var-warning.patch
-git-alsa.patch
-working-3d-dri-intel-agpko-resume-for-i815-chip.patch
-git-arm.patch
-git-dvb.patch
-git-hwmon-fixup.patch
-git-infiniband.patch
-infiniband-work-around-gcc-slub-problem.patch
-git-input.patch
-git-input-fixup.patch
-adbhid-produce-all-capslock-key-events.patch
-console-keyboard-events-and-accessibility.patch
-first-stab-at-elantech-touchpad-driver-for-26226-testers.patch
-git-jg-misc-fix.patch
-git-jg-warning-fixes.patch
-git-kbuild.patch
-git-kbuild-fixup.patch
-git-kvm.patch
-git-libata-all.patch
-ide-arm-hack.patch
-git-mips.patch
-git-mmc.patch
-git-mmc-fixup2.patch
-mmc-fix-gregkh-driver-driver-core-change-add_uevent_var-to-use-a-struct.patch
-gregkh-driver-driver-core-change-add_uevent_var-to-use-a-struct-vs-git-mmc.patch
-git-mtd.patch
-git-mtd-vs-powerpc.patch
-git-net.patch
-git-net-fixup.patch
-git-net-more-bustage.patch
-ipgc-doesnt-compile-with-with-config_highmem64g.patch
-git-net-sctp-hack.patch
-forcedeth-power-down-phy-when-interface-is-down.patch
-git-net-vs-git-nfs.patch
-git-nfs-vs-git-unionfs.patch
-git-nfsd.patch
-git-nfsd-fixup.patch
-git-ocfs2.patch
-git-r8169-fixup.patch
-fix-ide-legacy-mode-resources.patch
-git-s390.patch
-git-sched.patch
-git-scsi-misc.patch
-git-scsi-misc-fixup.patch
-git-scsi-misc-arcmsr-build-fix.patch
-advansys-printk-fix.patch
-git-block.patch
-git-block-fixup.patch
-git-unionfs.patch
-fix-gregkh-usb-usb-sisusb2vga-convert-printk-to-dev_-macros.patch
-git-wireless.patch
-git-wireless-fixup.patch
-git-net-vs-git-wireless.patch
-git-wireless-vs-gregkh-driver-driver-core-change-add_uevent_var-to-use-a-struct.patch
-net-add-ath5k-wireless-driver-fix.patch
-revert-x86_64-mm-cpa-einval.patch
-fix-x86_64-mm-sched-clock-share.patch
-intel_cacheinfo-misc-section-annotation-fixes.patch
-x86_64-cleanup-apic-c.patch
-ich-force-hpet-ich7-or-later-quirk-to-force-detect-enable.patch
-ich-force-hpet-ich5-quirk-to-force-detect-enable.patch
-asm-i386-ioh-fix-constness.patch
-x86_64-check-and-enable-mmconfig-for-amd-family-10h-opteron.patch
-x86_64-nmi_watchdog-fix-to-be-more-like-i386.patch
-convert-cpu_sibling_map-to-a-per_cpu-data-array-ppc64-fix-2.patch
-git-xfs.patch
-optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch
-git-kgdb-fixup.patch
-vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
-sparsemem-record-when-a-section-has-a-valid-mem_map-fix.patch
-readahead-combine-file_ra_stateprev_index-prev_offset-into-prev_pos-fix.patch
-readahead-combine-file_ra_stateprev_index-prev_offset-into-prev_pos-fix-2.patch
-vm-dont-run-touch_buffer-during-buffercache-lookups.patch
-mm-use-pagevec-to-rotate-reclaimable-page-fix.patch
-fs-introduce-write_begin-write_end-and-perform_write-aops.patch
-git-nfs-vs-nfs-convert-to-new-aops.patch
-git-nfs-vs-nfs-convert-to-new-aops-fix.patch
-memoryless-nodes-introduce-mask-of-nodes-with-memory-fix.patch
-memoryless-nodes-fixup-uses-of-node_online_map-in-generic-code-fix-2.patch
-memoryless-nodes-fixup-uses-of-node_online_map-in-generic-code-fix-2-3.patch
-categorize-gfp-flags-fix.patch
-bias-the-location-of-pages-freed-for-min_free_kbytes-in-the-same-max_order_nr_pages-blocks.patch
-maps2-move-the-page-walker-code-to-lib.patch
-maps2-add-proc-pid-pagemap-interface.patch
-maps2-make-proc-pid-smaps-optional-under-config_embeddedpatch-fix.patch
-slub-slab-validation-move-tracking-information-alloc-outside-of-melstuff.patch
-hugetlbfs-read-support-fix.patch
-mm-mempolicyc-cleanups-fix.patch
-mm-bdi-init-hooks.patch
-mm-per-device-dirty-threshold-warning-fix.patch
-mm-dirty-balancing-for-tasks-warning-fix.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-fix.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-fix-2.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-vs-unionfs.patch
-oom-change-all_unreclaimable-zone-member-to-flags-fix.patch
-oom-do-not-take-callback_mutex-fix.patch
-security-convert-lsm-into-a-static-interface-fix.patch
-security-convert-lsm-into-a-static-interface-fix-2.patch
-security-convert-lsm-into-a-static-interface-fix-unionfs.patch
-security-convert-lsm-into-a-static-interface-vs-fix-null-pointer-dereference-in-__vm_enough_memory.patch
-file-capabilities-clear-caps-cleanup-fix.patch
-capabilityh-remove-include-of-currenth.patch
-serial-turn-serial-console-suspend-a-boot-rather-than-compile-time-option-update.patch
-uml-clocksource-support-fix.patch
-uml-tickless-support-fix.patch
-softlockup-add-a-proc-tuning-parameter-fix.patch
-force-erroneous-inclusions-of-compiler-h-files-to-be-errors-fix.patch
-driver-for-the-atmel-on-chip-ssc-on-at32ap-and-at91-fix.patch
-add-kernel-notifierc-fix.patch
-do_sys_poll-simplify-playing-with-on-stack-data-fix.patch
-pcmcia-compactflash-driver-for-pa-semi-electra-boards.patch
-add-in-sunos-41x-compatible-mode-for-ufs-fix.patch
-core_pattern-fix-up-a-few-miscellaneous-bugs-fix.patch
-printk-add-interfaces-for-external-access-to-the-log-buffer-fix.patch
-deprecate-aout-elf-interpreters-fix.patch
-ext2-ext3-ext4-add-block-bitmap-validation-fix.patch
-pie-executable-randomization-fix-2.patch
-binfmt_flat-warning-fixes.patch
-console-events-and-accessibility-fix.patch
-track-accurate-idle-time-with-tick_schedidle_sleeptime-fix.patch
-send-quota-messages-via-netlink-fix-fix.patch
-i2o-fix-defined-but-not-used-build-warnings-fix.patch
-procfs-detect-duplicate-names-fix.patch
-procfs-detect-duplicate-names-fix-fix-2.patch
-keys-make-request_key-and-co-fundamentally-asynchronous-vs-git-mmc.patch
-reiserfs-workaround-for-dead-loop-in-finish_unfinished-fix.patch
-tty-expose-new-methods-needed-for-drivers-to-get-termios-fix.patch
-kernel-printkc-concerns-about-the-console-handover.patch
-userc-ifdef-mq_bytes-fix.patch
-jbd-config_jbd_debug-cannot-create-proc-entry-fix.patch
-binfmt_flat-minimum-support-for-the-blackfin-relocations-checkpatch-fixes.patch
-f_dupfd_cloexec-implementation-fix-2.patch
-f_dupfd_cloexec-implementation-fix.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-2.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-3.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-4.patch
-writeback-fix-comment-use-helper-function.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-5.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-6.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-7.patch
-revert-faster-ext2_clear_inode.patch
-ext2-reservations-fix-for-percpu_counter-changes.patch
-ecryptfs-printk-warning-fixes.patch
-tdfxfb-mtrr-support-fix.patch
-fbdev-fb_create_modedb-non-static-int-first-=-1-fix.patch
-intel-fb-support-for-interlaced-video-modes.patch
-export-font_vga_8x16.patch
-drivers-video-pmag-ba-fbc-improve-diagnostics-fix.patch
-fbcon-logo-disable-logo-at-boot-fix.patch
-md-software-raid-autodetect-dev-list-not-array.patch
-intel-iommu-pci-generic-helper-function.patch
-intel-iommu-iova-allocation-and-management-routines.patch
-intel-iommu-intel-iommu-driver.patch
-intel-iommu-iommu-floppy-workaround.patch
-peterz-vs-ext4-mballoc-core.patch
-64-bit-i_version-afs-fixes.patch
-r-o-bind-mounts-elevate-write-count-during-entire-ncp_ioctl-fix.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-vs-revoke.patch
-revoke-wire-up-i386-system-calls.patch
-revoke-vs-git-block.patch
-task-containersv11-basic-task-container-framework-fix.patch
-task-containersv11-shared-container-subsystem-group-arrays-include-fix.patch
-add-containerstats-v3-fix.patch
-pid-namespaces-dynamic-kmem-cache-allocator-for-pid-namespaces-fix.patch
-pid-namespaces-define-is_global_init-and-is_container_init-fix.patch
-pid-namespaces-define-is_global_init-and-is_container_init-versus-x86_64-mm-i386-show-unhandled-signals-v3.patch
-fs-superc-use-list_for_each_entry-instead-of-list_for_each-fix.patch
-pid-namespaces-helpers-to-find-the-task-by-its-numerical-ids-fix.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-use-find_task_by_pid_ns-in-places-that-operate-with-virtual-fix.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-use-find_task_by_pid_ns-in-places-that-operate-with-virtual-fix-2.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-use-find_task_by_pid_ns-in-places-that-operate-with-virtual-fix-3.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-fix.patch
-memory-controller-memory-accounting-v7-fix.patch
-memory-controller-add-per-container-lru-and-reclaim-v7-fix.patch
-memory-controller-oom-handling-v7-vs-oom-killer-stuff.patch
-memory-controller-add-switch-to-control-what-type-of-pages-to-limit-v7-fix-2.patch
-memcontrol-move-oom-task-exclusion-to-tasklist-fix.patch
-remove-bits_to_type-macro-fix.patch
-use-helpers-to-obtain-task-pid-in-printks-drm-fix.patch
-hotplug-cpu-migrate-a-task-within-its-cpuset-fix.patch
-cpu-hotplug-avoid-hotadd-when-proper-possible_map-isnt-specified-checkpatch-fixes.patch
-powerpc-lock-bitops-fix.patch
-ipc-integrate-ipc_checkid-into-ipc_lock-fix.patch
-ipc-integrate-ipc_checkid-into-ipc_lock-fix-2.patch
-use-extended-crashkernel-command-line-on-i386.patch
-rework-proc-locks-via-seq_files-and-seq_list-helpers.patch
-hook-up-group-scheduler-with-control-groups-fix.patch
-linux-kernel-markers-checkpatch-fixes.patch
-linux-kernel-markers-samples-checkpatch-fixes.patch
-uninline-forkc-exitc-checkpatch-fixes.patch
-reiser4.patch
-git-block-vs-reiser4.patch
-git-nfsd-broke-reiser4.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-vs-reiser4.patch
-page-owner-tracking-leak-detector.patch
-profile-likely-unlikely-macros-fix.patch
-check_dirty_inode_list.patch
-w1-build-fix.patch
-
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
