@@ -1,153 +1,217 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from E23SMTP06.au.ibm.com ([202.81.18.175]:35092 "EHLO
-	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932355AbXJLFdb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2007 01:33:31 -0400
-Received: from sd0109e.au.ibm.com (d23rh905.au.ibm.com [202.81.18.225])
-	by e23smtp06.au.ibm.com (8.13.1/8.13.1) with ESMTP id l9C5XMx3022213
-	for <linux-arch@vger.kernel.org>; Fri, 12 Oct 2007 15:33:22 +1000
-Received: from d23av04.au.ibm.com (d23av04.au.ibm.com [9.190.235.139])
-	by sd0109e.au.ibm.com (8.13.8/8.13.8/NCO v8.5) with ESMTP id l9C5avHR172660
-	for <linux-arch@vger.kernel.org>; Fri, 12 Oct 2007 15:36:57 +1000
-Received: from d23av04.au.ibm.com (loopback [127.0.0.1])
-	by d23av04.au.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id l9C5X6ml028266
-	for <linux-arch@vger.kernel.org>; Fri, 12 Oct 2007 15:33:06 +1000
-Message-ID: <470F06EE.9090706@au1.ibm.com>
-Date: Fri, 12 Oct 2007 15:32:30 +1000
-From: Mark Nelson <markn@au1.ibm.com>
+Received: from cerber.ds.pg.gda.pl ([153.19.208.18]:44499 "EHLO
+	cerber.ds.pg.gda.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755406AbXJLQ7h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2007 12:59:37 -0400
+Date: Fri, 12 Oct 2007 17:59:25 +0100 (BST)
+From: "Maciej W. Rozycki" <macro@linux-mips.org>
+Subject: [PATCH] defxx: Discardable strings for init and exit sections
+Message-ID: <Pine.LNX.4.64N.0710121751220.21684@blysk.ds.pg.gda.pl>
 MIME-Version: 1.0
-Subject: [PATCH 1/2] [V3] Replace NT_PRXFPREG with ELF_CORE_XFPREG_TYPE #define
-References: <18189.62344.506571.3287@cargo.ozlabs.ibm.com>
-In-Reply-To: <18189.62344.506571.3287@cargo.ozlabs.ibm.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org
+To: Franck Bui-Huu <vagabon.xyz@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Replace NT_PRXFPREG with ELF_CORE_XFPREG_TYPE in the coredump code which
-allows for more flexibility in the note type for the state of 'extended
-floating point' implementations in coredumps.  New note types can now be
-added with an appropriate #define.
+ Move strings eligible for discarding to their respective sections.
 
-This does #define ELF_CORE_XFPREG_TYPE to be NT_PRXFPREG in all
-current users so there's are no change in behaviour.
-
-This will let us use different note types on powerpc for the
-Altivec/VMX state that some PowerPC cpus have (G4, PPC970, POWER6) and
-for the SPE (signal processing extension) state that some embedded
-PowerPC cpus from Freescale have.
-
-Signed-off-by: Mark Nelson <markn@au1.ibm.com>
+Signed-off-by: Maciej W. Rozycki <macro@linux-mips.org>
 ---
- arch/ia64/ia32/elfcore32.h     |    1 +
- arch/x86_64/ia32/ia32_binfmt.c |    1 +
- fs/binfmt_elf.c                |    8 ++++----
- fs/binfmt_elf_fdpic.c          |    8 ++++----
- include/asm-i386/elf.h         |    1 +
- 5 files changed, 11 insertions(+), 8 deletions(-)
+ This patch together with the string discarding infrastructure sent 
+separately is an example of how resulting code looks like.  It builds (for 
+MIPS), it works, saving about 500 bytes of run-time memory.
 
-Index: linux/arch/ia64/ia32/elfcore32.h
-===================================================================
---- linux.orig/arch/ia64/ia32/elfcore32.h
-+++ linux/arch/ia64/ia32/elfcore32.h
-@@ -117,6 +117,7 @@ elf_core_copy_task_fpregs(struct task_st
- }
- 
- #define ELF_CORE_COPY_XFPREGS 1
-+#define ELF_CORE_XFPREG_TYPE NT_PRXFPREG
- static inline int
- elf_core_copy_task_xfpregs(struct task_struct *tsk, elf_fpxregset_t *xfpu)
- {
-Index: linux/arch/x86_64/ia32/ia32_binfmt.c
-===================================================================
---- linux.orig/arch/x86_64/ia32/ia32_binfmt.c
-+++ linux/arch/x86_64/ia32/ia32_binfmt.c
-@@ -188,6 +188,7 @@ elf_core_copy_task_fpregs(struct task_st
- }
- 
- #define ELF_CORE_COPY_XFPREGS 1
-+#define ELF_CORE_XFPREG_TYPE NT_PRXFPREG
- static inline int 
- elf_core_copy_task_xfpregs(struct task_struct *t, elf_fpxregset_t *xfpu)
- {
-Index: linux/fs/binfmt_elf.c
-===================================================================
---- linux.orig/fs/binfmt_elf.c
-+++ linux/fs/binfmt_elf.c
-@@ -1411,7 +1411,7 @@ struct elf_thread_status
- 	elf_fpregset_t fpu;		/* NT_PRFPREG */
- 	struct task_struct *thread;
- #ifdef ELF_CORE_COPY_XFPREGS
--	elf_fpxregset_t xfpu;		/* NT_PRXFPREG */
-+	elf_fpxregset_t xfpu;		/* ELF_CORE_XFPREG_TYPE */
- #endif
- 	struct memelfnote notes[3];
- 	int num_notes;
-@@ -1446,8 +1446,8 @@ static int elf_dump_thread_status(long s
- 
- #ifdef ELF_CORE_COPY_XFPREGS
- 	if (elf_core_copy_task_xfpregs(p, &t->xfpu)) {
--		fill_note(&t->notes[2], "LINUX", NT_PRXFPREG, sizeof(t->xfpu),
--			  &t->xfpu);
-+		fill_note(&t->notes[2], "LINUX", ELF_CORE_XFPREG_TYPE,
-+			  sizeof(t->xfpu), &t->xfpu);
- 		t->num_notes++;
- 		sz += notesize(&t->notes[2]);
- 	}
-@@ -1624,7 +1624,7 @@ static int elf_core_dump(long signr, str
- #ifdef ELF_CORE_COPY_XFPREGS
- 	if (elf_core_copy_task_xfpregs(current, xfpu))
- 		fill_note(notes + numnote++,
--			  "LINUX", NT_PRXFPREG, sizeof(*xfpu), xfpu);
-+			  "LINUX", ELF_CORE_XFPREG_TYPE, sizeof(*xfpu), xfpu);
- #endif	
-   
- 	fs = get_fs();
-Index: linux/fs/binfmt_elf_fdpic.c
-===================================================================
---- linux.orig/fs/binfmt_elf_fdpic.c
-+++ linux/fs/binfmt_elf_fdpic.c
-@@ -1417,7 +1417,7 @@ struct elf_thread_status
- 	elf_fpregset_t fpu;		/* NT_PRFPREG */
- 	struct task_struct *thread;
- #ifdef ELF_CORE_COPY_XFPREGS
--	elf_fpxregset_t xfpu;		/* NT_PRXFPREG */
-+	elf_fpxregset_t xfpu;		/* ELF_CORE_XFPREG_TYPE */
- #endif
- 	struct memelfnote notes[3];
- 	int num_notes;
-@@ -1453,8 +1453,8 @@ static int elf_dump_thread_status(long s
- 
- #ifdef ELF_CORE_COPY_XFPREGS
- 	if (elf_core_copy_task_xfpregs(p, &t->xfpu)) {
--		fill_note(&t->notes[2], "LINUX", NT_PRXFPREG, sizeof(t->xfpu),
--			  &t->xfpu);
-+		fill_note(&t->notes[2], "LINUX", ELF_CORE_XFPREG_TYPE,
-+			  sizeof(t->xfpu), &t->xfpu);
- 		t->num_notes++;
- 		sz += notesize(&t->notes[2]);
- 	}
-@@ -1690,7 +1690,7 @@ static int elf_fdpic_core_dump(long sign
- #ifdef ELF_CORE_COPY_XFPREGS
- 	if (elf_core_copy_task_xfpregs(current, xfpu))
- 		fill_note(notes + numnote++,
--			  "LINUX", NT_PRXFPREG, sizeof(*xfpu), xfpu);
-+			  "LINUX", ELF_CORE_XFPREG_TYPE, sizeof(*xfpu), xfpu);
- #endif
- 
- 	fs = get_fs();
-Index: linux/include/asm-i386/elf.h
-===================================================================
---- linux.orig/include/asm-i386/elf.h
-+++ linux/include/asm-i386/elf.h
-@@ -129,6 +129,7 @@ extern int dump_task_extended_fpu (struc
- #define ELF_CORE_COPY_TASK_REGS(tsk, elf_regs) dump_task_regs(tsk, elf_regs)
- #define ELF_CORE_COPY_FPREGS(tsk, elf_fpregs) dump_task_fpu(tsk, elf_fpregs)
- #define ELF_CORE_COPY_XFPREGS(tsk, elf_xfpregs) dump_task_extended_fpu(tsk, elf_xfpregs)
-+#define ELF_CORE_XFPREG_TYPE NT_PRXFPREG
- 
- #define VDSO_HIGH_BASE		(__fix_to_virt(FIX_VDSO))
- #define VDSO_CURRENT_BASE	((unsigned long)current->mm->context.vdso)
+  Maciej
 
+patch-mips-2.6.23-rc5-20070904-defxx-inexitstr-3
+diff -up --recursive --new-file linux-mips-2.6.23-rc5-20070904.macro/drivers/net/defxx.c linux-mips-2.6.23-rc5-20070904/drivers/net/defxx.c
+--- linux-mips-2.6.23-rc5-20070904.macro/drivers/net/defxx.c	2007-09-04 04:55:41.000000000 +0000
++++ linux-mips-2.6.23-rc5-20070904/drivers/net/defxx.c	2007-10-12 09:45:01.000000000 +0000
+@@ -228,7 +228,7 @@
+ #define DRV_VERSION "v1.10"
+ #define DRV_RELDATE "2006/12/14"
+ 
+-static char version[] __devinitdata =
++static const char version[] __devinitstr =
+ 	DRV_NAME ": " DRV_VERSION " " DRV_RELDATE
+ 	"  Lawrence V. Stefani and others\n";
+ 
+@@ -527,14 +527,16 @@ static int __devinit dfx_register(struct
+ 
+ 	dev = alloc_fddidev(sizeof(*bp));
+ 	if (!dev) {
+-		printk(KERN_ERR "%s: Unable to allocate fddidev, aborting\n",
++		printk(_di(KERN_ERR
++			   "%s: Unable to allocate fddidev, aborting\n"),
+ 		       print_name);
+ 		return -ENOMEM;
+ 	}
+ 
+ 	/* Enable PCI device. */
+ 	if (dfx_bus_pci && pci_enable_device(to_pci_dev(bdev))) {
+-		printk(KERN_ERR "%s: Cannot enable PCI device, aborting\n",
++		printk(_di(KERN_ERR
++			   "%s: Cannot enable PCI device, aborting\n"),
+ 		       print_name);
+ 		goto err_out;
+ 	}
+@@ -553,8 +555,8 @@ static int __devinit dfx_register(struct
+ 	else
+ 		region = request_region(bar_start, bar_len, print_name);
+ 	if (!region) {
+-		printk(KERN_ERR "%s: Cannot reserve I/O resource "
+-		       "0x%lx @ 0x%lx, aborting\n",
++		printk(_di(KERN_ERR "%s: Cannot reserve I/O resource "
++			   "0x%lx @ 0x%lx, aborting\n"),
+ 		       print_name, (long)bar_len, (long)bar_start);
+ 		err = -EBUSY;
+ 		goto err_out_disable;
+@@ -564,7 +566,8 @@ static int __devinit dfx_register(struct
+ 	if (dfx_use_mmio) {
+ 		bp->base.mem = ioremap_nocache(bar_start, bar_len);
+ 		if (!bp->base.mem) {
+-			printk(KERN_ERR "%s: Cannot map MMIO\n", print_name);
++			printk(_di(KERN_ERR "%s: Cannot map MMIO\n"),
++			       print_name);
+ 			err = -ENOMEM;
+ 			goto err_out_region;
+ 		}
+@@ -594,7 +597,7 @@ static int __devinit dfx_register(struct
+ 	if (err)
+ 		goto err_out_kfree;
+ 
+-	printk("%s: registered as %s\n", print_name, dev->name);
++	printk(_di("%s: registered as %s\n"), print_name, dev->name);
+ 	return 0;
+ 
+ err_out_kfree:
+@@ -670,7 +673,7 @@ static void __devinit dfx_bus_init(struc
+ 	int dfx_use_mmio = DFX_MMIO || dfx_bus_tc;
+ 	u8 val;
+ 
+-	DBG_printk("In dfx_bus_init...\n");
++	DBG_printk(_di("In dfx_bus_init...\n"));
+ 
+ 	/* Initialize a pointer back to the net_device struct */
+ 	bp->dev = dev;
+@@ -814,7 +817,7 @@ static void __devinit dfx_bus_uninit(str
+ 	int dfx_bus_eisa = DFX_BUS_EISA(bdev);
+ 	u8 val;
+ 
+-	DBG_printk("In dfx_bus_uninit...\n");
++	DBG_printk(_de("In dfx_bus_uninit...\n"));
+ 
+ 	/* Uninitialize adapter based on bus type */
+ 
+@@ -870,7 +873,7 @@ static void __devinit dfx_bus_config_che
+ 	int	status;				/* return code from adapter port control call */
+ 	u32	host_data;			/* LW data returned from port control call */
+ 
+-	DBG_printk("In dfx_bus_config_check...\n");
++	DBG_printk(_di("In dfx_bus_config_check...\n"));
+ 
+ 	/* Configuration check only valid for EISA adapter */
+ 
+@@ -973,9 +976,9 @@ static int __devinit dfx_driver_init(str
+ 	char *top_v, *curr_v;		/* virtual addrs into memory block */
+ 	dma_addr_t top_p, curr_p;	/* physical addrs into memory block */
+ 	u32 data, le32;			/* host data register value */
+-	char *board_name = NULL;
++	const char *board_name = NULL;
+ 
+-	DBG_printk("In dfx_driver_init...\n");
++	DBG_printk(_di("In dfx_driver_init...\n"));
+ 
+ 	/* Initialize bus-specific hardware registers */
+ 
+@@ -1018,8 +1021,8 @@ static int __devinit dfx_driver_init(str
+ 
+ 	if (dfx_hw_port_ctrl_req(bp, PI_PCTRL_M_MLA, PI_PDATA_A_MLA_K_LO, 0,
+ 				 &data) != DFX_K_SUCCESS) {
+-		printk("%s: Could not read adapter factory MAC address!\n",
+-		       print_name);
++		printk(_di("%s: Could not read "
++			   "adapter factory MAC address!\n"), print_name);
+ 		return(DFX_K_FAILURE);
+ 	}
+ 	le32 = cpu_to_le32(data);
+@@ -1027,8 +1030,8 @@ static int __devinit dfx_driver_init(str
+ 
+ 	if (dfx_hw_port_ctrl_req(bp, PI_PCTRL_M_MLA, PI_PDATA_A_MLA_K_HI, 0,
+ 				 &data) != DFX_K_SUCCESS) {
+-		printk("%s: Could not read adapter factory MAC address!\n",
+-		       print_name);
++		printk(_di("%s: Could not read "
++			   "adapter factory MAC address!\n"), print_name);
+ 		return(DFX_K_FAILURE);
+ 	}
+ 	le32 = cpu_to_le32(data);
+@@ -1043,14 +1046,14 @@ static int __devinit dfx_driver_init(str
+ 
+ 	memcpy(dev->dev_addr, bp->factory_mac_addr, FDDI_K_ALEN);
+ 	if (dfx_bus_tc)
+-		board_name = "DEFTA";
++		board_name = _di("DEFTA");
+ 	if (dfx_bus_eisa)
+-		board_name = "DEFEA";
++		board_name = _di("DEFEA");
+ 	if (dfx_bus_pci)
+-		board_name = "DEFPA";
+-	pr_info("%s: %s at %saddr = 0x%llx, IRQ = %d, "
+-		"Hardware addr = %02X-%02X-%02X-%02X-%02X-%02X\n",
+-		print_name, board_name, dfx_use_mmio ? "" : "I/O ",
++		board_name = _di("DEFPA");
++	printk(_di(KERN_INFO "%s: %s at %saddr = 0x%llx, IRQ = %d, "
++		   "Hardware addr = %02X-%02X-%02X-%02X-%02X-%02X\n"),
++		print_name, board_name, dfx_use_mmio ? "" : _di("I/O "),
+ 		(long long)bar_start, dev->irq,
+ 		dev->dev_addr[0], dev->dev_addr[1], dev->dev_addr[2],
+ 		dev->dev_addr[3], dev->dev_addr[4], dev->dev_addr[5]);
+@@ -1072,8 +1075,8 @@ static int __devinit dfx_driver_init(str
+ 						   &bp->kmalloced_dma,
+ 						   GFP_ATOMIC);
+ 	if (top_v == NULL) {
+-		printk("%s: Could not allocate memory for host buffers "
+-		       "and structures!\n", print_name);
++		printk(_di("%s: Could not allocate memory for host buffers "
++			   "and structures!\n"), print_name);
+ 		return(DFX_K_FAILURE);
+ 	}
+ 	memset(top_v, 0, alloc_size);	/* zero out memory before continuing */
+@@ -1132,17 +1135,26 @@ static int __devinit dfx_driver_init(str
+ 
+ 	/* Display virtual and physical addresses if debug driver */
+ 
+-	DBG_printk("%s: Descriptor block virt = %0lX, phys = %0X\n",
++	DBG_printk(_di("%s: Descriptor block "
++		       "virt = %0lX, phys = %0X\n"),
+ 		   print_name,
+ 		   (long)bp->descr_block_virt, bp->descr_block_phys);
+-	DBG_printk("%s: Command Request buffer virt = %0lX, phys = %0X\n",
+-		   print_name, (long)bp->cmd_req_virt, bp->cmd_req_phys);
+-	DBG_printk("%s: Command Response buffer virt = %0lX, phys = %0X\n",
+-		   print_name, (long)bp->cmd_rsp_virt, bp->cmd_rsp_phys);
+-	DBG_printk("%s: Receive buffer block virt = %0lX, phys = %0X\n",
+-		   print_name, (long)bp->rcv_block_virt, bp->rcv_block_phys);
+-	DBG_printk("%s: Consumer block virt = %0lX, phys = %0X\n",
+-		   print_name, (long)bp->cons_block_virt, bp->cons_block_phys);
++	DBG_printk(_di("%s: Command Request buffer "
++		       "virt = %0lX, phys = %0X\n"),
++		   print_name,
++		   (long)bp->cmd_req_virt, bp->cmd_req_phys);
++	DBG_printk(_di("%s: Command Response buffer "
++		       "virt = %0lX, phys = %0X\n"),
++		   print_name,
++		   (long)bp->cmd_rsp_virt, bp->cmd_rsp_phys);
++	DBG_printk(_di("%s: Receive buffer block "
++		       "virt = %0lX, phys = %0X\n"),
++		   print_name,
++		   (long)bp->rcv_block_virt, bp->rcv_block_phys);
++	DBG_printk(_di("%s: Consumer block "
++		       "virt = %0lX, phys = %0X\n"),
++		   print_name,
++		   (long)bp->cons_block_virt, bp->cons_block_phys);
+ 
+ 	return(DFX_K_SUCCESS);
+ }
