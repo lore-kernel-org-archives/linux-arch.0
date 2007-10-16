@@ -1,18 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:56304 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:39309 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756868AbXJPIZS (ORCPT
+	by vger.kernel.org with ESMTP id S964869AbXJPUaq (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Oct 2007 04:25:18 -0400
-Message-Id: <200710160824.l9G8O71V017101@imap1.linux-foundation.org>
-Subject: [patch 019/427] x86: optimize page faults like all other achitectures and kill notifier cruft
+	Tue, 16 Oct 2007 16:30:46 -0400
+Message-Id: <200710162030.l9GKUEoc014387@imap1.linux-foundation.org>
+Subject: - optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Tue, 16 Oct 2007 01:24:07 -0700
+Date: Tue, 16 Oct 2007 13:30:14 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, hch@lst.de, ak@suse.de, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org, prasanna@in.ibm.com
+To: hch@lst.de, ak@suse.de, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org, prasanna@in.ibm.com, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+
+The patch titled
+     x86: optimize page faults like all other achitectures and kill notifier cruft
+has been removed from the -mm tree.  Its filename was
+     optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch
+
+This patch was dropped because it was merged into mainline or a subsystem tree
+
+------------------------------------------------------
+Subject: x86: optimize page faults like all other achitectures and kill notifier cruft
 From: Christoph Hellwig <hch@lst.de>
 
 x86(-64) are the last architectures still using the page fault notifier
@@ -638,3 +647,69 @@ diff -puN kernel/kprobes.c~optimize-x86-page-faults-like-all-other-achitectures-
  already_disabled:
  	mutex_unlock(&kprobe_mutex);
 _
+
+Patches currently in -mm which might be from hch@lst.de are
+
+origin.patch
+partially-fix-up-the-lookup_one_noperm-mess.patch
+git-xfs.patch
+kill-declare_mutex_locked.patch
+remove-unneded-lock_kernel-in-driver-block-loopc.patch
+ufs-move-non-layout-parts-of-ufs_fsh-to-fs-ufs.patch
+fix-execute-checking-in-permission.patch
+exec-remove-unnecessary-check-for-mnt_noexec.patch
+fix-f_version-type-should-be-u64-instead-of-unsigned-long.patch
+f_dupfd_cloexec-implementation.patch
+f_dupfd_cloexec-implementation-fix-2.patch
+unprivileged-mounts-add-user-mounts-to-the-kernel.patch
+unprivileged-mounts-allow-unprivileged-umount.patch
+unprivileged-mounts-account-user-mounts.patch
+unprivileged-mounts-propagate-error-values-from-clone_mnt.patch
+unprivileged-mounts-allow-unprivileged-bind-mounts.patch
+unprivileged-mounts-put-declaration-of-put_filesystem-in-fsh.patch
+unprivileged-mounts-allow-unprivileged-mounts.patch
+unprivileged-mounts-allow-unprivileged-fuse-mounts.patch
+unprivileged-mounts-propagation-inherit-owner-from-parent.patch
+unprivileged-mounts-add-no-submounts-flag.patch
+ecryptfs-allow-lower-fs-to-interpret-attr_kill_sid.patch
+knfsd-only-set-attr_kill_sid-if-attr_mode-isnt-being-explicitly-set.patch
+reiserfs-turn-of-attr_kill_sid-at-beginning-of-reiserfs_setattr.patch
+unionfs-fix-unionfs_setattr-to-handle-attr_kill_sid.patch
+vfs-make-notify_change-pass-attr_kill_sid-to-setattr-operations.patch
+nfs-if-attr_kill_sid-bits-are-set-then-skip-mode-change.patch
+cifs-ignore-mode-change-if-its-just-for-clearing-setuid-setgid-bits.patch
+r-o-bind-mounts-filesystem-helpers-for-custom-struct-files.patch
+r-o-bind-mounts-rearrange-may_open-to-be-r-o-friendly.patch
+r-o-bind-mounts-give-permission-a-local-mnt-variable.patch
+r-o-bind-mounts-stub-functions.patch
+r-o-bind-mounts-elevate-write-count-during-entire-ncp_ioctl.patch
+r-o-bind-mounts-elevate-write-count-during-entire-ncp_ioctl-fix.patch
+r-o-bind-mounts-elevate-write-count-for-do_utimes-touch-command-causes-oops.patch
+r-o-bind-mounts-track-number-of-mount-writers.patch
+r-o-bind-mounts-honor-r-w-changes-at-do_remount-time.patch
+make-reiserfs-stop-using-struct-file-for-internal.patch
+revoke-special-mmap-handling.patch
+revoke-core-code.patch
+revoke-support-for-ext2-and-ext3.patch
+revoke-add-documentation.patch
+revoke-wire-up-i386-system-calls.patch
+exportfs-add-fid-type.patch
+exportfs-add-new-methods.patch
+ext2-new-export-ops.patch
+ext3-new-export-ops.patch
+ext4-new-export-ops.patch
+efs-new-export-ops.patch
+jfs-new-export-ops.patch
+ntfs-new-export-ops.patch
+xfs-new-export-ops.patch
+fat-new-export-ops.patch
+isofs-new-export-ops.patch
+shmem-new-export-ops.patch
+reiserfs-new-export-ops.patch
+gfs2-new-export-ops.patch
+ocfs2-new-export-ops.patch
+exportfs-remove-old-methods.patch
+exportfs-make-struct-export_operations-const.patch
+exportfs-update-documentation.patch
+vfs-allow-filesystems-to-implement-atomic-opentruncate.patch
+
