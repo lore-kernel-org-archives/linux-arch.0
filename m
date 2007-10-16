@@ -1,216 +1,640 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:44265 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:56304 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757372AbXJPD5t (ORCPT
+	by vger.kernel.org with ESMTP id S1756868AbXJPIZS (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Oct 2007 23:57:49 -0400
-Message-Id: <200710160357.l9G3vJvg007577@imap1.linux-foundation.org>
-Subject: - optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft-sparc64-fix.patch removed from -mm tree
+	Tue, 16 Oct 2007 04:25:18 -0400
+Message-Id: <200710160824.l9G8O71V017101@imap1.linux-foundation.org>
+Subject: [patch 019/427] x86: optimize page faults like all other achitectures and kill notifier cruft
 From: akpm@linux-foundation.org
-Date: Mon, 15 Oct 2007 20:57:19 -0700
+Date: Tue, 16 Oct 2007 01:24:07 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org, ak@suse.de, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, hch@lst.de, linux-arch@vger.kernel.org, prasanna@in.ibm.com, mm-commits@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, hch@lst.de, ak@suse.de, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, linux-arch@vger.kernel.org, prasanna@in.ibm.com
 List-ID: <linux-arch.vger.kernel.org>
 
+From: Christoph Hellwig <hch@lst.de>
 
-The patch titled
-     optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft-sparc64-fix
-has been removed from the -mm tree.  Its filename was
-     optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft-sparc64-fix.patch
+x86(-64) are the last architectures still using the page fault notifier
+cruft for the kprobes page fault hook.  This patch converts them to the
+proper direct calls, and removes the now unused pagefault notifier bits
+aswell as the cruft in kprobes.c that was related to this mess.
 
-This patch was dropped because it was folded into optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch
+I know Andi didn't really like this, but all other architecture maintainers
+agreed the direct calls are much better and besides the obvious cruft
+removal a common way of dealing with kprobes across architectures is
+important aswell.
 
-------------------------------------------------------
-Subject: optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft-sparc64-fix
-From: Andrew Morton <akpm@linux-foundation.org>
-
-In file included from include/linux/kdebug.h:4,
-                 from kernel/notifier.c:1:
-include/asm/kdebug.h:4: warning: "struct pt_regs" declared inside parameter list
-include/asm/kdebug.h:4: warning: its scope is only this definition or declaration, which is probably not what you want
-
-Cc: <linux-arch@vger.kernel.org>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+[akpm@linux-foundation.org: build fix]
+[akpm@linux-foundation.org: fix sparc64]
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 Cc: Andi Kleen <ak@suse.de>
-Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
-Cc: Christoph Hellwig <hch@lst.de>
+Cc: <linux-arch@vger.kernel.org>
 Cc: Prasanna S Panchamukhi <prasanna@in.ibm.com>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/asm-sparc64/kdebug.h |    2 ++
- 1 file changed, 2 insertions(+)
+ arch/x86/kernel/kprobes_32.c  |    3 --
+ arch/x86/kernel/kprobes_64.c  |    1 
+ arch/x86/mm/fault_32.c        |   43 +++++++++++++------------------
+ arch/x86/mm/fault_64.c        |   44 +++++++++++++-------------------
+ include/asm-avr32/kdebug.h    |   16 -----------
+ include/asm-avr32/kprobes.h   |    2 -
+ include/asm-ia64/kdebug.h     |   15 ----------
+ include/asm-ia64/kprobes.h    |    1 
+ include/asm-powerpc/kdebug.h  |   19 -------------
+ include/asm-powerpc/kprobes.h |    1 
+ include/asm-s390/kdebug.h     |   15 ----------
+ include/asm-s390/kprobes.h    |    1 
+ include/asm-sh/kdebug.h       |    2 -
+ include/asm-sparc64/kdebug.h  |   18 -------------
+ include/asm-sparc64/kprobes.h |    1 
+ include/asm-x86/kdebug_32.h   |    6 ----
+ include/asm-x86/kdebug_64.h   |    6 ----
+ include/asm-x86/kprobes_32.h  |    2 -
+ include/asm-x86/kprobes_64.h  |    1 
+ kernel/kprobes.c              |   39 ++--------------------------
+ 20 files changed, 44 insertions(+), 192 deletions(-)
 
-diff -puN include/asm-sparc64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft-sparc64-fix include/asm-sparc64/kdebug.h
---- a/include/asm-sparc64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft-sparc64-fix
+diff -puN arch/x86/kernel/kprobes_32.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft arch/x86/kernel/kprobes_32.c
+--- a/arch/x86/kernel/kprobes_32.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/arch/x86/kernel/kprobes_32.c
+@@ -584,7 +584,7 @@ out:
+ 	return 1;
+ }
+ 
+-static int __kprobes kprobe_fault_handler(struct pt_regs *regs, int trapnr)
++int __kprobes kprobe_fault_handler(struct pt_regs *regs, int trapnr)
+ {
+ 	struct kprobe *cur = kprobe_running();
+ 	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
+@@ -666,7 +666,6 @@ int __kprobes kprobe_exceptions_notify(s
+ 			ret = NOTIFY_STOP;
+ 		break;
+ 	case DIE_GPF:
+-	case DIE_PAGE_FAULT:
+ 		/* kprobe_running() needs smp_processor_id() */
+ 		preempt_disable();
+ 		if (kprobe_running() &&
+diff -puN arch/x86/kernel/kprobes_64.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft arch/x86/kernel/kprobes_64.c
+--- a/arch/x86/kernel/kprobes_64.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/arch/x86/kernel/kprobes_64.c
+@@ -657,7 +657,6 @@ int __kprobes kprobe_exceptions_notify(s
+ 			ret = NOTIFY_STOP;
+ 		break;
+ 	case DIE_GPF:
+-	case DIE_PAGE_FAULT:
+ 		/* kprobe_running() needs smp_processor_id() */
+ 		preempt_disable();
+ 		if (kprobe_running() &&
+diff -puN arch/x86/mm/fault_32.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft arch/x86/mm/fault_32.c
+--- a/arch/x86/mm/fault_32.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/arch/x86/mm/fault_32.c
+@@ -25,6 +25,7 @@
+ #include <linux/kprobes.h>
+ #include <linux/uaccess.h>
+ #include <linux/kdebug.h>
++#include <linux/kprobes.h>
+ 
+ #include <asm/system.h>
+ #include <asm/desc.h>
+@@ -32,33 +33,27 @@
+ 
+ extern void die(const char *,struct pt_regs *,long);
+ 
+-static ATOMIC_NOTIFIER_HEAD(notify_page_fault_chain);
+-
+-int register_page_fault_notifier(struct notifier_block *nb)
++#ifdef CONFIG_KPROBES
++static inline int notify_page_fault(struct pt_regs *regs)
+ {
+-	vmalloc_sync_all();
+-	return atomic_notifier_chain_register(&notify_page_fault_chain, nb);
+-}
+-EXPORT_SYMBOL_GPL(register_page_fault_notifier);
++	int ret = 0;
+ 
+-int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return atomic_notifier_chain_unregister(&notify_page_fault_chain, nb);
+-}
+-EXPORT_SYMBOL_GPL(unregister_page_fault_notifier);
++	/* kprobe_running() needs smp_processor_id() */
++	if (!user_mode_vm(regs)) {
++		preempt_disable();
++		if (kprobe_running() && kprobe_fault_handler(regs, 14))
++			ret = 1;
++		preempt_enable();
++	}
+ 
+-static inline int notify_page_fault(struct pt_regs *regs, long err)
++	return ret;
++}
++#else
++static inline int notify_page_fault(struct pt_regs *regs)
+ {
+-	struct die_args args = {
+-		.regs = regs,
+-		.str = "page fault",
+-		.err = err,
+-		.trapnr = 14,
+-		.signr = SIGSEGV
+-	};
+-	return atomic_notifier_call_chain(&notify_page_fault_chain,
+-	                                  DIE_PAGE_FAULT, &args);
++	return 0;
+ }
++#endif
+ 
+ /*
+  * Return EIP plus the CS segment base.  The segment limit is also
+@@ -331,7 +326,7 @@ fastcall void __kprobes do_page_fault(st
+ 	if (unlikely(address >= TASK_SIZE)) {
+ 		if (!(error_code & 0x0000000d) && vmalloc_fault(address) >= 0)
+ 			return;
+-		if (notify_page_fault(regs, error_code) == NOTIFY_STOP)
++		if (notify_page_fault(regs))
+ 			return;
+ 		/*
+ 		 * Don't take the mm semaphore here. If we fixup a prefetch
+@@ -340,7 +335,7 @@ fastcall void __kprobes do_page_fault(st
+ 		goto bad_area_nosemaphore;
+ 	}
+ 
+-	if (notify_page_fault(regs, error_code) == NOTIFY_STOP)
++	if (notify_page_fault(regs))
+ 		return;
+ 
+ 	/* It's safe to allow irq's after cr2 has been saved and the vmalloc
+diff -puN arch/x86/mm/fault_64.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft arch/x86/mm/fault_64.c
+--- a/arch/x86/mm/fault_64.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/arch/x86/mm/fault_64.c
+@@ -25,6 +25,7 @@
+ #include <linux/kprobes.h>
+ #include <linux/uaccess.h>
+ #include <linux/kdebug.h>
++#include <linux/kprobes.h>
+ 
+ #include <asm/system.h>
+ #include <asm/pgalloc.h>
+@@ -40,34 +41,27 @@
+ #define PF_RSVD	(1<<3)
+ #define PF_INSTR	(1<<4)
+ 
+-static ATOMIC_NOTIFIER_HEAD(notify_page_fault_chain);
+-
+-/* Hook to register for page fault notifications */
+-int register_page_fault_notifier(struct notifier_block *nb)
++#ifdef CONFIG_KPROBES
++static inline int notify_page_fault(struct pt_regs *regs)
+ {
+-	vmalloc_sync_all();
+-	return atomic_notifier_chain_register(&notify_page_fault_chain, nb);
+-}
+-EXPORT_SYMBOL_GPL(register_page_fault_notifier);
++	int ret = 0;
+ 
+-int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return atomic_notifier_chain_unregister(&notify_page_fault_chain, nb);
+-}
+-EXPORT_SYMBOL_GPL(unregister_page_fault_notifier);
++	/* kprobe_running() needs smp_processor_id() */
++	if (!user_mode(regs)) {
++		preempt_disable();
++		if (kprobe_running() && kprobe_fault_handler(regs, 14))
++			ret = 1;
++		preempt_enable();
++	}
+ 
+-static inline int notify_page_fault(struct pt_regs *regs, long err)
++	return ret;
++}
++#else
++static inline int notify_page_fault(struct pt_regs *regs)
+ {
+-	struct die_args args = {
+-		.regs = regs,
+-		.str = "page fault",
+-		.err = err,
+-		.trapnr = 14,
+-		.signr = SIGSEGV
+-	};
+-	return atomic_notifier_call_chain(&notify_page_fault_chain,
+-	                                  DIE_PAGE_FAULT, &args);
++	return 0;
+ }
++#endif
+ 
+ /* Sometimes the CPU reports invalid exceptions on prefetch.
+    Check that here and ignore.
+@@ -345,7 +339,7 @@ asmlinkage void __kprobes do_page_fault(
+ 			if (vmalloc_fault(address) >= 0)
+ 				return;
+ 		}
+-		if (notify_page_fault(regs, error_code) == NOTIFY_STOP)
++		if (notify_page_fault(regs))
+ 			return;
+ 		/*
+ 		 * Don't take the mm semaphore here. If we fixup a prefetch
+@@ -354,7 +348,7 @@ asmlinkage void __kprobes do_page_fault(
+ 		goto bad_area_nosemaphore;
+ 	}
+ 
+-	if (notify_page_fault(regs, error_code) == NOTIFY_STOP)
++	if (notify_page_fault(regs))
+ 		return;
+ 
+ 	if (likely(regs->eflags & X86_EFLAGS_IF))
+diff -puN include/asm-avr32/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-avr32/kdebug.h
+--- a/include/asm-avr32/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-avr32/kdebug.h
+@@ -1,26 +1,10 @@
+ #ifndef __ASM_AVR32_KDEBUG_H
+ #define __ASM_AVR32_KDEBUG_H
+ 
+-#include <linux/notifier.h>
+-
+ /* Grossly misnamed. */
+ enum die_val {
+ 	DIE_BREAKPOINT,
+ 	DIE_SSTEP,
+ };
+ 
+-/*
+- * These are only here because kprobes.c wants them to implement a
+- * blatant layering violation.  Will hopefully go away soon once all
+- * architectures are updated.
+- */
+-static inline int register_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-static inline int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-
+ #endif /* __ASM_AVR32_KDEBUG_H */
+diff -puN include/asm-avr32/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-avr32/kprobes.h
+--- a/include/asm-avr32/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-avr32/kprobes.h
+@@ -17,8 +17,6 @@ typedef u16	kprobe_opcode_t;
+ #define BREAKPOINT_INSTRUCTION	0xd673	/* breakpoint */
+ #define MAX_INSN_SIZE		2
+ 
+-#define ARCH_INACTIVE_KPROBE_COUNT 1
+-
+ #define arch_remove_kprobe(p)	do { } while (0)
+ 
+ /* Architecture specific copy of original instruction */
+diff -puN include/asm-ia64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-ia64/kdebug.h
+--- a/include/asm-ia64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-ia64/kdebug.h
+@@ -26,21 +26,6 @@
+  * 2005-Oct	Keith Owens <kaos@sgi.com>.  Expand notify_die to cover more
+  *		events.
+  */
+-#include <linux/notifier.h>
+-
+-/*
+- * These are only here because kprobes.c wants them to implement a
+- * blatant layering violation.  Will hopefully go away soon once all
+- * architectures are updated.
+- */
+-static inline int register_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-static inline int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+ 
+ enum die_val {
+ 	DIE_BREAK = 1,
+diff -puN include/asm-ia64/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-ia64/kprobes.h
+--- a/include/asm-ia64/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-ia64/kprobes.h
+@@ -83,7 +83,6 @@ struct kprobe_ctlblk {
+ };
+ 
+ #define ARCH_SUPPORTS_KRETPROBES
+-#define  ARCH_INACTIVE_KPROBE_COUNT 1
+ 
+ #define SLOT0_OPCODE_SHIFT	(37)
+ #define SLOT1_p1_OPCODE_SHIFT	(37 - (64-46))
+diff -puN include/asm-powerpc/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-powerpc/kdebug.h
+--- a/include/asm-powerpc/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-powerpc/kdebug.h
+@@ -2,25 +2,6 @@
+ #define _ASM_POWERPC_KDEBUG_H
+ #ifdef __KERNEL__
+ 
+-/* nearly identical to x86_64/i386 code */
+-
+-#include <linux/notifier.h>
+-
+-/*
+- * These are only here because kprobes.c wants them to implement a
+- * blatant layering violation.  Will hopefully go away soon once all
+- * architectures are updated.
+- */
+-static inline int register_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-static inline int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-extern struct atomic_notifier_head powerpc_die_chain;
+-
+ /* Grossly misnamed. */
+ enum die_val {
+ 	DIE_OOPS = 1,
+diff -puN include/asm-powerpc/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-powerpc/kprobes.h
+--- a/include/asm-powerpc/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-powerpc/kprobes.h
+@@ -81,7 +81,6 @@ typedef unsigned int kprobe_opcode_t;
+ #endif
+ 
+ #define ARCH_SUPPORTS_KRETPROBES
+-#define  ARCH_INACTIVE_KPROBE_COUNT 1
+ #define flush_insn_slot(p)	do { } while (0)
+ 
+ void kretprobe_trampoline(void);
+diff -puN include/asm-s390/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-s390/kdebug.h
+--- a/include/asm-s390/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-s390/kdebug.h
+@@ -4,24 +4,9 @@
+ /*
+  * Feb 2006 Ported to s390 <grundym@us.ibm.com>
+  */
+-#include <linux/notifier.h>
+ 
+ struct pt_regs;
+ 
+-/*
+- * These are only here because kprobes.c wants them to implement a
+- * blatant layering violation. Will hopefully go away soon once all
+- * architectures are updated.
+- */
+-static inline int register_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-static inline int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-
+ enum die_val {
+ 	DIE_OOPS = 1,
+ 	DIE_BPT,
+diff -puN include/asm-s390/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-s390/kprobes.h
+--- a/include/asm-s390/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-s390/kprobes.h
+@@ -47,7 +47,6 @@ typedef u16 kprobe_opcode_t;
+ 	: (((unsigned long)current_thread_info()) + THREAD_SIZE - (ADDR)))
+ 
+ #define ARCH_SUPPORTS_KRETPROBES
+-#define ARCH_INACTIVE_KPROBE_COUNT 0
+ 
+ #define KPROBE_SWAP_INST	0x10
+ 
+diff -puN include/asm-sh/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-sh/kdebug.h
+--- a/include/asm-sh/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-sh/kdebug.h
+@@ -1,8 +1,6 @@
+ #ifndef __ASM_SH_KDEBUG_H
+ #define __ASM_SH_KDEBUG_H
+ 
+-#include <linux/notifier.h>
+-
+ /* Grossly misnamed. */
+ enum die_val {
+ 	DIE_TRAP,
+diff -puN include/asm-sparc64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-sparc64/kdebug.h
+--- a/include/asm-sparc64/kdebug.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
 +++ a/include/asm-sparc64/kdebug.h
-@@ -1,6 +1,8 @@
+@@ -1,26 +1,8 @@
  #ifndef _SPARC64_KDEBUG_H
  #define _SPARC64_KDEBUG_H
  
-+struct pt_regs;
-+
+-/* Nearly identical to x86_64/i386 code. */
+-
+-#include <linux/notifier.h>
+-
+ struct pt_regs;
+ 
+-/*
+- * These are only here because kprobes.c wants them to implement a
+- * blatant layering violation.  Will hopefully go away soon once all
+- * architectures are updated.
+- */
+-static inline int register_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-static inline int unregister_page_fault_notifier(struct notifier_block *nb)
+-{
+-	return 0;
+-}
+-
  extern void bad_trap(struct pt_regs *, long);
  
  /* Grossly misnamed. */
+diff -puN include/asm-sparc64/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-sparc64/kprobes.h
+--- a/include/asm-sparc64/kprobes.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-sparc64/kprobes.h
+@@ -11,7 +11,6 @@ typedef u32 kprobe_opcode_t;
+ #define MAX_INSN_SIZE 2
+ 
+ #define arch_remove_kprobe(p)	do {} while (0)
+-#define  ARCH_INACTIVE_KPROBE_COUNT 0
+ 
+ #define flush_insn_slot(p)		\
+ do { 	flushi(&(p)->ainsn.insn[0]);	\
+diff -puN include/asm-x86/kdebug_32.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-x86/kdebug_32.h
+--- a/include/asm-x86/kdebug_32.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-x86/kdebug_32.h
+@@ -5,14 +5,9 @@
+  * Aug-05 2004 Ported by Prasanna S Panchamukhi <prasanna@in.ibm.com>
+  * from x86_64 architecture.
+  */
+-#include <linux/notifier.h>
+ 
+ struct pt_regs;
+ 
+-extern int register_page_fault_notifier(struct notifier_block *);
+-extern int unregister_page_fault_notifier(struct notifier_block *);
+-
+-
+ /* Grossly misnamed. */
+ enum die_val {
+ 	DIE_OOPS = 1,
+@@ -27,7 +22,6 @@ enum die_val {
+ 	DIE_GPF,
+ 	DIE_CALL,
+ 	DIE_NMI_IPI,
+-	DIE_PAGE_FAULT,
+ };
+ 
+ #endif
+diff -puN include/asm-x86/kdebug_64.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-x86/kdebug_64.h
+--- a/include/asm-x86/kdebug_64.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-x86/kdebug_64.h
+@@ -1,13 +1,10 @@
+ #ifndef _X86_64_KDEBUG_H
+ #define _X86_64_KDEBUG_H 1
+ 
+-#include <linux/notifier.h>
++#include <linux/compiler.h>
+ 
+ struct pt_regs;
+ 
+-extern int register_page_fault_notifier(struct notifier_block *);
+-extern int unregister_page_fault_notifier(struct notifier_block *);
+-
+ /* Grossly misnamed. */
+ enum die_val {
+ 	DIE_OOPS = 1,
+@@ -22,7 +19,6 @@ enum die_val {
+ 	DIE_GPF,
+ 	DIE_CALL,
+ 	DIE_NMI_IPI,
+-	DIE_PAGE_FAULT,
+ };
+ 
+ extern void printk_address(unsigned long address);
+diff -puN include/asm-x86/kprobes_32.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-x86/kprobes_32.h
+--- a/include/asm-x86/kprobes_32.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-x86/kprobes_32.h
+@@ -43,7 +43,6 @@ typedef u8 kprobe_opcode_t;
+ 	: (((unsigned long)current_thread_info()) + THREAD_SIZE - (ADDR)))
+ 
+ #define ARCH_SUPPORTS_KRETPROBES
+-#define  ARCH_INACTIVE_KPROBE_COUNT 0
+ #define flush_insn_slot(p)	do { } while (0)
+ 
+ void arch_remove_kprobe(struct kprobe *p);
+@@ -89,4 +88,5 @@ static inline void restore_interrupts(st
+ 
+ extern int kprobe_exceptions_notify(struct notifier_block *self,
+ 				    unsigned long val, void *data);
++extern int kprobe_fault_handler(struct pt_regs *regs, int trapnr);
+ #endif				/* _ASM_KPROBES_H */
+diff -puN include/asm-x86/kprobes_64.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft include/asm-x86/kprobes_64.h
+--- a/include/asm-x86/kprobes_64.h~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/include/asm-x86/kprobes_64.h
+@@ -42,7 +42,6 @@ typedef u8 kprobe_opcode_t;
+ 	: (((unsigned long)current_thread_info()) + THREAD_SIZE - (ADDR)))
+ 
+ #define ARCH_SUPPORTS_KRETPROBES
+-#define  ARCH_INACTIVE_KPROBE_COUNT 1
+ 
+ void kretprobe_trampoline(void);
+ extern void arch_remove_kprobe(struct kprobe *p);
+diff -puN kernel/kprobes.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft kernel/kprobes.c
+--- a/kernel/kprobes.c~optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft
++++ a/kernel/kprobes.c
+@@ -64,7 +64,6 @@
+ 
+ static struct hlist_head kprobe_table[KPROBE_TABLE_SIZE];
+ static struct hlist_head kretprobe_inst_table[KPROBE_TABLE_SIZE];
+-static atomic_t kprobe_count;
+ 
+ /* NOTE: change this value only with kprobe_mutex held */
+ static bool kprobe_enabled;
+@@ -73,11 +72,6 @@ DEFINE_MUTEX(kprobe_mutex);		/* Protects
+ DEFINE_SPINLOCK(kretprobe_lock);	/* Protects kretprobe_inst_table */
+ static DEFINE_PER_CPU(struct kprobe *, kprobe_instance) = NULL;
+ 
+-static struct notifier_block kprobe_page_fault_nb = {
+-	.notifier_call = kprobe_exceptions_notify,
+-	.priority = 0x7fffffff /* we need to notified first */
+-};
+-
+ #ifdef __ARCH_WANT_KPROBES_INSN_SLOT
+ /*
+  * kprobe->ainsn.insn points to the copy of the instruction to be
+@@ -556,8 +550,6 @@ static int __kprobes __register_kprobe(s
+ 	old_p = get_kprobe(p->addr);
+ 	if (old_p) {
+ 		ret = register_aggr_kprobe(old_p, p);
+-		if (!ret)
+-			atomic_inc(&kprobe_count);
+ 		goto out;
+ 	}
+ 
+@@ -569,13 +561,9 @@ static int __kprobes __register_kprobe(s
+ 	hlist_add_head_rcu(&p->hlist,
+ 		       &kprobe_table[hash_ptr(p->addr, KPROBE_HASH_BITS)]);
+ 
+-	if (kprobe_enabled) {
+-		if (atomic_add_return(1, &kprobe_count) == \
+-				(ARCH_INACTIVE_KPROBE_COUNT + 1))
+-			register_page_fault_notifier(&kprobe_page_fault_nb);
+-
++	if (kprobe_enabled)
+ 		arch_arm_kprobe(p);
+-	}
++
+ out:
+ 	mutex_unlock(&kprobe_mutex);
+ 
+@@ -658,16 +646,6 @@ valid_p:
+ 		}
+ 		mutex_unlock(&kprobe_mutex);
+ 	}
+-
+-	/* Call unregister_page_fault_notifier()
+-	 * if no probes are active
+-	 */
+-	mutex_lock(&kprobe_mutex);
+-	if (atomic_add_return(-1, &kprobe_count) == \
+-				ARCH_INACTIVE_KPROBE_COUNT)
+-		unregister_page_fault_notifier(&kprobe_page_fault_nb);
+-	mutex_unlock(&kprobe_mutex);
+-	return;
+ }
+ 
+ static struct notifier_block kprobe_exceptions_nb = {
+@@ -815,7 +793,6 @@ static int __init init_kprobes(void)
+ 		INIT_HLIST_HEAD(&kprobe_table[i]);
+ 		INIT_HLIST_HEAD(&kretprobe_inst_table[i]);
+ 	}
+-	atomic_set(&kprobe_count, 0);
+ 
+ 	/* By default, kprobes are enabled */
+ 	kprobe_enabled = true;
+@@ -921,13 +898,6 @@ static void __kprobes enable_all_kprobes
+ 	if (kprobe_enabled)
+ 		goto already_enabled;
+ 
+-	/*
+-	 * Re-register the page fault notifier only if there are any
+-	 * active probes at the time of enabling kprobes globally
+-	 */
+-	if (atomic_read(&kprobe_count) > ARCH_INACTIVE_KPROBE_COUNT)
+-		register_page_fault_notifier(&kprobe_page_fault_nb);
+-
+ 	for (i = 0; i < KPROBE_TABLE_SIZE; i++) {
+ 		head = &kprobe_table[i];
+ 		hlist_for_each_entry_rcu(p, node, head, hlist)
+@@ -968,10 +938,7 @@ static void __kprobes disable_all_kprobe
+ 	mutex_unlock(&kprobe_mutex);
+ 	/* Allow all currently running kprobes to complete */
+ 	synchronize_sched();
+-
+-	mutex_lock(&kprobe_mutex);
+-	/* Unconditionally unregister the page_fault notifier */
+-	unregister_page_fault_notifier(&kprobe_page_fault_nb);
++	return;
+ 
+ already_disabled:
+ 	mutex_unlock(&kprobe_mutex);
 _
-
-Patches currently in -mm which might be from akpm@linux-foundation.org are
-
-origin.patch
-slow-down-printk-during-boot.patch
-optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft.patch
-optimize-x86-page-faults-like-all-other-achitectures-and-kill-notifier-cruft-sparc64-fix.patch
-vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
-sparsemem-record-when-a-section-has-a-valid-mem_map-fix.patch
-readahead-combine-file_ra_stateprev_index-prev_offset-into-prev_pos-fix.patch
-readahead-combine-file_ra_stateprev_index-prev_offset-into-prev_pos-fix-2.patch
-vm-dont-run-touch_buffer-during-buffercache-lookups.patch
-mm-use-pagevec-to-rotate-reclaimable-page-fix.patch
-fs-introduce-write_begin-write_end-and-perform_write-aops.patch
-git-nfs-vs-nfs-convert-to-new-aops.patch
-git-nfs-vs-nfs-convert-to-new-aops-fix.patch
-fs-restore-nobh-checkpatch-fixes.patch
-memoryless-nodes-introduce-mask-of-nodes-with-memory-fix.patch
-memoryless-nodes-fixup-uses-of-node_online_map-in-generic-code-fix-2.patch
-memoryless-nodes-fixup-uses-of-node_online_map-in-generic-code-fix-2-3.patch
-categorize-gfp-flags-fix.patch
-bias-the-location-of-pages-freed-for-min_free_kbytes-in-the-same-max_order_nr_pages-blocks.patch
-maps2-move-the-page-walker-code-to-lib.patch
-maps2-add-proc-pid-pagemap-interface.patch
-maps2-make-proc-pid-smaps-optional-under-config_embeddedpatch-fix.patch
-slub-slab-validation-move-tracking-information-alloc-outside-of-melstuff.patch
-hugetlbfs-read-support-fix.patch
-mm-mempolicyc-cleanups-fix.patch
-mm-bdi-init-hooks.patch
-mm-per-device-dirty-threshold-warning-fix.patch
-mm-dirty-balancing-for-tasks-warning-fix.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-fix.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-fix-2.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-vs-unionfs.patch
-oom-change-all_unreclaimable-zone-member-to-flags-fix.patch
-oom-do-not-take-callback_mutex-fix.patch
-writeback-dont-propagate-aop_writepage_activate.patch
-security-convert-lsm-into-a-static-interface-fix.patch
-security-convert-lsm-into-a-static-interface-fix-2.patch
-security-convert-lsm-into-a-static-interface-fix-unionfs.patch
-security-convert-lsm-into-a-static-interface-vs-fix-null-pointer-dereference-in-__vm_enough_memory.patch
-file-capabilities-clear-caps-cleanup-fix.patch
-capabilityh-remove-include-of-currenth.patch
-pm-rework-struct-platform_suspend_ops-fixup-checkpatch-fixes.patch
-serial-turn-serial-console-suspend-a-boot-rather-than-compile-time-option-update.patch
-pm-qos-infrastructure-and-interface-fix.patch
-pm-qos-infrastructure-and-interface-vs-git-acpi.patch
-pm-qos-infrastructure-and-interface-vs-git-acpi-2.patch
-uml-clocksource-support-fix.patch
-uml-tickless-support-fix.patch
-uml-fix-stub-address-calculations-checkpatch-fixes.patch
-uml-arch-um-drivers-formatting-checkpatch-fixes.patch
-softlockup-add-a-proc-tuning-parameter-fix.patch
-force-erroneous-inclusions-of-compiler-h-files-to-be-errors-fix.patch
-driver-for-the-atmel-on-chip-ssc-on-at32ap-and-at91-fix.patch
-add-kernel-notifierc-fix.patch
-add-kernel-notifierc-fix-2-fix-3.patch
-do_sys_poll-simplify-playing-with-on-stack-data-fix.patch
-pcmcia-compactflash-driver-for-pa-semi-electra-boards.patch
-add-in-sunos-41x-compatible-mode-for-ufs-fix.patch
-core_pattern-fix-up-a-few-miscellaneous-bugs-fix.patch
-printk-add-interfaces-for-external-access-to-the-log-buffer-fix.patch
-deprecate-aout-elf-interpreters-fix.patch
-ext2-ext3-ext4-add-block-bitmap-validation-fix.patch
-pie-executable-randomization-fix-2.patch
-binfmt_flat-warning-fixes.patch
-console-events-and-accessibility-fix.patch
-send-quota-messages-via-netlink-fix-fix.patch
-i2o-fix-defined-but-not-used-build-warnings-fix.patch
-procfs-detect-duplicate-names-fix.patch
-procfs-detect-duplicate-names-fix-fix-2.patch
-reiserfs-workaround-for-dead-loop-in-finish_unfinished-fix.patch
-stop-using-dma_xxbit_mask.patch
-stop-using-dma_xxbit_mask-fix.patch
-tty-expose-new-methods-needed-for-drivers-to-get-termios-fix.patch
-kernel-printkc-concerns-about-the-console-handover.patch
-userc-ifdef-mq_bytes-fix.patch
-f_dupfd_cloexec-implementation-fix-2.patch
-ext3-lighten-up-resize-transaction-requirements-checkpatch-fixes.patch
-drivers-char-ip2-fix-used-uninitd-bug-checkpatch-fixes.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-2.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-3.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-4.patch
-writeback-fix-comment-use-helper-function.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-5.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-6.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-7.patch
-writeback-fix-time-ordering-of-the-per-superblock-inode-lists-8.patch
-writeback-remove-pages_skipped-accounting-in-__block_write_full_page-fix.patch
-revert-faster-ext2_clear_inode.patch
-ext2-reservations-fix-for-percpu_counter-changes.patch
-ecryptfs-printk-warning-fixes.patch
-rtc-cmos-probe-cleanup-checkpatch-fixes.patch
-tdfxfb-mtrr-support-fix.patch
-fbdev-fb_create_modedb-non-static-int-first-=-1-fix.patch
-intel-fb-support-for-interlaced-video-modes.patch
-export-font_vga_8x16.patch
-drivers-video-pmag-ba-fbc-improve-diagnostics-fix.patch
-fbcon-logo-disable-logo-at-boot-fix.patch
-fbdev-copyarea-function-taught-to-fully-support-swapped-pixel-order-in-byte-checkpatch-fixes.patch
-md-software-raid-autodetect-dev-list-not-array.patch
-do-cpu_dead-migrating-under-read_locktasklist-instead-of-write_lock_irqtasklist-fix.patch
-intel-iommu-pci-generic-helper-function.patch
-intel-iommu-iova-allocation-and-management-routines.patch
-intel-iommu-intel-iommu-driver.patch
-intel-iommu-iommu-floppy-workaround.patch
-jbd-config_jbd_debug-cannot-create-proc-entry-fix.patch
-peterz-vs-ext4-mballoc-core.patch
-64-bit-i_version-afs-fixes.patch
-pnp-use-dev_info-dev_err-etc-in-core-fix.patch
-pnp-add-debug-message-for-adding-new-device-fix-fix.patch
-r-o-bind-mounts-elevate-write-count-during-entire-ncp_ioctl-fix.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-vs-revoke.patch
-revoke-wire-up-i386-system-calls.patch
-revoke-vs-git-block.patch
-task-containersv11-basic-task-container-framework-fix.patch
-task-containersv11-shared-container-subsystem-group-arrays-include-fix.patch
-add-containerstats-v3-fix.patch
-pid-namespaces-dynamic-kmem-cache-allocator-for-pid-namespaces-fix.patch
-pid-namespaces-define-is_global_init-and-is_container_init-fix.patch
-pid-namespaces-define-is_global_init-and-is_container_init-versus-x86_64-mm-i386-show-unhandled-signals-v3.patch
-lockdep-fix-mismatched-lockdep_depth-curr_chain_hash-checkpatch-fixes.patch
-fs-superc-use-list_for_each_entry-instead-of-list_for_each-fix.patch
-pid-namespaces-helpers-to-find-the-task-by-its-numerical-ids-fix.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-use-find_task_by_pid_ns-in-places-that-operate-with-virtual-fix.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-use-find_task_by_pid_ns-in-places-that-operate-with-virtual-fix-2.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-use-find_task_by_pid_ns-in-places-that-operate-with-virtual-fix-3.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-fix.patch
-cpuset-sched_load_balance-flag-fix.patch
-cpusets-decrustify-cpuset-mask-update-code-checkpatch-fixes.patch
-memory-controller-memory-accounting-v7-fix.patch
-memory-controller-add-per-container-lru-and-reclaim-v7-fix.patch
-memory-controller-oom-handling-v7-vs-oom-killer-stuff.patch
-memory-controller-add-switch-to-control-what-type-of-pages-to-limit-v7-fix-2.patch
-memcontrol-move-oom-task-exclusion-to-tasklist-fix.patch
-remove-bits_to_type-macro-fix.patch
-use-helpers-to-obtain-task-pid-in-printks-drm-fix.patch
-hotplug-cpu-migrate-a-task-within-its-cpuset-fix.patch
-cpu-hotplug-avoid-hotadd-when-proper-possible_map-isnt-specified-checkpatch-fixes.patch
-powerpc-lock-bitops-fix.patch
-ipc-integrate-ipc_checkid-into-ipc_lock-fix.patch
-ipc-integrate-ipc_checkid-into-ipc_lock-fix-2.patch
-use-extended-crashkernel-command-line-on-i386.patch
-ftd_sio-clean-ups-and-updates-for-new-termios-work-checkpatch-fixes.patch
-hook-up-group-scheduler-with-control-groups-fix.patch
-linux-kernel-markers-checkpatch-fixes.patch
-linux-kernel-markers-samples-checkpatch-fixes.patch
-uninline-forkc-exitc-checkpatch-fixes.patch
-fuse-fix-race-between-getattr-and-write-checkpatch-fixes.patch
-fuse-add-file-handle-to-getattr-operation-checkpatch-fixes.patch
-sparse-pointer-use-of-zero-as-null-checkpatch-fixes.patch
-reiser4.patch
-git-block-vs-reiser4.patch
-git-nfsd-broke-reiser4.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-vs-reiser4.patch
-page-owner-tracking-leak-detector.patch
-profile-likely-unlikely-macros-fix.patch
-w1-build-fix.patch
-
