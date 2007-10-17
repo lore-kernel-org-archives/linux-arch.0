@@ -1,329 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:34272 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:42735 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755573AbXJQGk5 (ORCPT
+	by vger.kernel.org with ESMTP id S1750805AbXJQGyO (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Oct 2007 02:40:57 -0400
-Message-Id: <200710170627.l9H6RDb9006864@imap1.linux-foundation.org>
-Subject: [patch 133/327] remove strict ansi check from __u64 in asm/types.h
+	Wed, 17 Oct 2007 02:54:14 -0400
+Message-Id: <200710170626.l9H6QsVc006752@imap1.linux-foundation.org>
+Subject: [patch 107/327] Add linux/elfcore-compat.h
 From: akpm@linux-foundation.org
-Date: Tue, 16 Oct 2007 23:27:13 -0700
+Date: Tue, 16 Oct 2007 23:26:54 -0700
 Sender: linux-arch-owner@vger.kernel.org
 To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, olh@suse.de, linux-arch@vger.kernel.org
+Cc: akpm@linux-foundation.org, roland@redhat.com, ak@suse.de, benh@kernel.crashing.org, linux-arch@vger.kernel.org, paulus@samba.org, tony.luck@intel.com
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Olaf Hering <olh@suse.de>
+From: Roland McGrath <roland@redhat.com>
 
-Remove the __STRICT_ANSI__ check from the __u64/__s64 declaration on
-32bit targets.
+This adds the linux/elfcore-compat.h header file, which is the CONFIG_COMPAT
+analog of the linux/elfcore.h header.  Each arch that needs to fake out
+fs/binfmt_elf.c for its compat code can use this header to replace the
+hand-copied definitions of the compat variants of struct elf_prstatus et al. 
+Only the pr_reg field varies by arch, so asm/{compat,elf}.h must define
+compat_elf_gregset_t before linux/elfcore-compat.h can be used.
 
-GCC can be made to warn about usage of long long types with ISO C90
-(-ansi), but only with -pedantic.  You can write this in a way that even
-then it doesn't cause warnings, namely by:
+It's a clean-up that every arch with compat core dumping code can benefit
+from.  I only touched the ones I have handy to test at home.  Doing the same
+for each other arch should be straightforward, and I'm happy to offer tips.
 
-#ifdef __GNUC__
-__extension__ typedef __signed__ long long __s64;
-__extension__ typedef unsigned long long __u64;
-#endif
-
-The __extension__ keyword in front of this switches off any pedantic
-warnings for this expression.
-
-Signed-off-by: Olaf Hering <olh@suse.de>
+Signed-off-by: Roland McGrath <roland@redhat.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Andi Kleen <ak@suse.de>
+Cc: "Luck, Tony" <tony.luck@intel.com>
 Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/asm-arm/types.h      |    6 +++---
- include/asm-avr32/types.h    |    6 +++---
- include/asm-blackfin/types.h |    6 +++---
- include/asm-cris/types.h     |    6 +++---
- include/asm-frv/types.h      |    6 +++---
- include/asm-h8300/types.h    |    6 +++---
- include/asm-m32r/types.h     |    6 +++---
- include/asm-m68k/types.h     |    6 +++---
- include/asm-mips/types.h     |    6 +++---
- include/asm-parisc/types.h   |    6 +++---
- include/asm-powerpc/types.h  |    6 +++---
- include/asm-s390/types.h     |    6 +++---
- include/asm-sh/types.h       |    6 +++---
- include/asm-sh64/types.h     |    6 +++---
- include/asm-v850/types.h     |    6 +++---
- include/asm-x86/types_32.h   |    6 +++---
- include/asm-xtensa/types.h   |    6 +++---
- 17 files changed, 51 insertions(+), 51 deletions(-)
+ include/linux/elfcore-compat.h |   55 +++++++++++++++++++++++++++++++
+ 1 file changed, 55 insertions(+)
 
-diff -puN include/asm-arm/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-arm/types.h
---- a/include/asm-arm/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-arm/types.h
-@@ -19,9 +19,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif /* __ASSEMBLY__ */
-diff -puN include/asm-avr32/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-avr32/types.h
---- a/include/asm-avr32/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-avr32/types.h
-@@ -25,9 +25,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif /* __ASSEMBLY__ */
-diff -puN include/asm-blackfin/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-blackfin/types.h
---- a/include/asm-blackfin/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-blackfin/types.h
-@@ -27,9 +27,9 @@ typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
- /* HK0617   -- Changes to unsigned long temporarily */
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif				/* __ASSEMBLY__ */
-diff -puN include/asm-cris/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-cris/types.h
---- a/include/asm-cris/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-cris/types.h
-@@ -19,9 +19,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif /* __ASSEMBLY__ */
-diff -puN include/asm-frv/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-frv/types.h
---- a/include/asm-frv/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-frv/types.h
-@@ -30,9 +30,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif /* __ASSEMBLY__ */
-diff -puN include/asm-h8300/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-h8300/types.h
---- a/include/asm-h8300/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-h8300/types.h
-@@ -27,9 +27,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- /*
-diff -puN include/asm-m32r/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-m32r/types.h
---- a/include/asm-m32r/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-m32r/types.h
-@@ -19,9 +19,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- #endif /* __ASSEMBLY__ */
- 
-diff -puN include/asm-m68k/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-m68k/types.h
---- a/include/asm-m68k/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-m68k/types.h
-@@ -27,9 +27,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif /* __ASSEMBLY__ */
-diff -puN include/asm-mips/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-mips/types.h
---- a/include/asm-mips/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-mips/types.h
-@@ -34,9 +34,9 @@ typedef unsigned long __u64;
- 
- #else
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif
-diff -puN include/asm-parisc/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-parisc/types.h
---- a/include/asm-parisc/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-parisc/types.h
-@@ -19,9 +19,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif /* __ASSEMBLY__ */
-diff -puN include/asm-powerpc/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-powerpc/types.h
---- a/include/asm-powerpc/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-powerpc/types.h
-@@ -40,9 +40,9 @@ typedef unsigned int __u32;
- typedef __signed__ long __s64;
- typedef unsigned long __u64;
- #else
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- #endif /* __powerpc64__ */
- 
-diff -puN include/asm-s390/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-s390/types.h
---- a/include/asm-s390/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-s390/types.h
-@@ -28,9 +28,9 @@ typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
- #ifndef __s390x__
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- #else /* __s390x__ */
- typedef __signed__ long __s64;
-diff -puN include/asm-sh/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-sh/types.h
---- a/include/asm-sh/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-sh/types.h
-@@ -19,9 +19,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif /* __ASSEMBLY__ */
-diff -puN include/asm-sh64/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-sh64/types.h
---- a/include/asm-sh64/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-sh64/types.h
-@@ -30,9 +30,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif /* __ASSEMBLY__ */
-diff -puN include/asm-v850/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-v850/types.h
---- a/include/asm-v850/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-v850/types.h
-@@ -27,9 +27,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif /* !__ASSEMBLY__ */
-diff -puN include/asm-x86/types_32.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-x86/types_32.h
---- a/include/asm-x86/types_32.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-x86/types_32.h
-@@ -19,9 +19,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- #endif /* __ASSEMBLY__ */
-diff -puN include/asm-xtensa/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh include/asm-xtensa/types.h
---- a/include/asm-xtensa/types.h~remove-strict-ansi-check-from-__u64-in-asm-typesh
-+++ a/include/asm-xtensa/types.h
-@@ -38,9 +38,9 @@ typedef unsigned short __u16;
- typedef __signed__ int __s32;
- typedef unsigned int __u32;
- 
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
-+#if defined(__GNUC__)
-+__extension__ typedef __signed__ long long __s64;
-+__extension__ typedef unsigned long long __u64;
- #endif
- 
- /*
+diff -puN /dev/null include/linux/elfcore-compat.h
+--- /dev/null
++++ a/include/linux/elfcore-compat.h
+@@ -0,0 +1,55 @@
++#ifndef _LINUX_ELFCORE_COMPAT_H
++#define _LINUX_ELFCORE_COMPAT_H
++
++#include <linux/elf.h>
++#include <linux/elfcore.h>
++#include <linux/compat.h>
++
++/*
++ * Make sure these layouts match the linux/elfcore.h native definitions.
++ */
++
++struct compat_elf_siginfo
++{
++	compat_int_t			si_signo;
++	compat_int_t			si_code;
++	compat_int_t			si_errno;
++};
++
++struct compat_elf_prstatus
++{
++	struct compat_elf_siginfo	pr_info;
++	short				pr_cursig;
++	compat_ulong_t			pr_sigpend;
++	compat_ulong_t			pr_sighold;
++	compat_pid_t			pr_pid;
++	compat_pid_t			pr_ppid;
++	compat_pid_t			pr_pgrp;
++	compat_pid_t			pr_sid;
++	struct compat_timeval		pr_utime;
++	struct compat_timeval		pr_stime;
++	struct compat_timeval		pr_cutime;
++	struct compat_timeval		pr_cstime;
++	compat_elf_gregset_t		pr_reg;
++#ifdef CONFIG_BINFMT_ELF_FDPIC
++	compat_ulong_t			pr_exec_fdpic_loadmap;
++	compat_ulong_t			pr_interp_fdpic_loadmap;
++#endif
++	compat_int_t			pr_fpvalid;
++};
++
++struct compat_elf_prpsinfo
++{
++	char				pr_state;
++	char				pr_sname;
++	char				pr_zomb;
++	char				pr_nice;
++	compat_ulong_t			pr_flag;
++	compat_uid_t			pr_uid;
++	compat_gid_t			pr_gid;
++	compat_pid_t			pr_pid, pr_ppid, pr_pgrp, pr_sid;
++	char				pr_fname[16];
++	char				pr_psargs[ELF_PRARGSZ];
++};
++
++#endif /* _LINUX_ELFCORE_COMPAT_H */
 _
