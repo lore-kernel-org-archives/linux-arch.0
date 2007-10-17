@@ -1,210 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:38792 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:52211 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S965872AbXJPWbY (ORCPT
+	by vger.kernel.org with ESMTP id S1757175AbXJQGTP (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Oct 2007 18:31:24 -0400
-Message-Id: <200710162230.l9GMUIBL021084@imap1.linux-foundation.org>
-Subject: - f_dupfd_cloexec-implementation-fix-2.patch removed from -mm tree
+	Wed, 17 Oct 2007 02:19:15 -0400
+Message-Id: <200710170618.l9H6I9iS005376@imap1.linux-foundation.org>
+Subject: [patch 003/327] powerpc: add Altivec/VMX state to coredumps
 From: akpm@linux-foundation.org
-Date: Tue, 16 Oct 2007 15:30:18 -0700
+Date: Tue, 16 Oct 2007 23:18:09 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org, drepper@redhat.com, hch@lst.de, kyle@mcmartin.ca, linux-arch@vger.kernel.org, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, mm-commits@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, markn@au1.ibm.com, ak@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulus@samba.org, tglx@linutronix.de
 List-ID: <linux-arch.vger.kernel.org>
 
+From: Mark Nelson <markn@au1.ibm.com>
 
-The patch titled
-     f_dupfd_cloexec-implementation-fix-2
-has been removed from the -mm tree.  Its filename was
-     f_dupfd_cloexec-implementation-fix-2.patch
+Update dump_task_altivec() (which has so far never been put to use) so that
+it dumps the Altivec/VMX registers (VR[0] - VR[31], VSCR and VRSAVE) in the
+same format as the ptrace get_vrregs(), and add the appropriate glue
+typedef and #defines to make it work.
 
-This patch was dropped because it was folded into f_dupfd_cloexec-implementation.patch
+A new note type of NT_PPC_VMX was chosen to be 0x100 (arbitrarily) because
+it allows the low range values to be used for more generic purposes and
+0x100 seems an adequate starting point for PowerPC extensions.
 
-------------------------------------------------------
-Subject: f_dupfd_cloexec-implementation-fix-2
-From: Andrew Morton <akpm@linux-foundation.org>
-
-On Thu, 4 Oct 2007 13:53:31 +1000 Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-
-> On Wed, 03 Oct 2007 13:39:39 -0700 akpm@linux-foundation.org wrote:
-> >
-> > 
-> > diff -puN include/asm-generic/fcntl.h~f_dupfd_cloexec-implementation include/asm-generic/fcntl.h
-> > --- a/include/asm-generic/fcntl.h~f_dupfd_cloexec-implementation
-> > +++ a/include/asm-generic/fcntl.h
-> > @@ -73,6 +73,9 @@
-> >  #define F_SETSIG	10	/* for sockets. */
-> >  #define F_GETSIG	11	/* for sockets. */
-> >  #endif
-> > +#ifndef F_DUPFD_CLOEXEC
-> > +#define F_DUPFD_CLOEXEC	12
-> > +#endif
-> 
-> Why not put
-> 
-> #define F_DUPFD_CLOEXEC		(F_LINUX_SPECIFIC_BASE + 6)
-> 
-> in include/linux/fcntl.h?  That way it will be the same for all
-> architectures and won't clash with any of them.
-> 
-> F_LINUX_SPECIFIC_BASE is probably badly named.  It was meant to be a
-> value that was greater than any of the F_ constants for all architestures
-> so that we could define new F_ constants Linux wide.
-> 
-
+Signed-off-by: Mark Nelson <markn@au1.ibm.com>
+Signed-off-by: Paul Mackerras <paulus@samba.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Andi Kleen <ak@suse.de>
 Cc: <linux-arch@vger.kernel.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Christoph Hellwig <hch@lst.de>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Ulrich Drepper <drepper@redhat.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/asm-generic/fcntl.h |    3 ---
- include/linux/fcntl.h       |   15 ++++++++++-----
- 2 files changed, 10 insertions(+), 8 deletions(-)
+ arch/powerpc/kernel/process.c |   28 +++++++++++++++++++++++++---
+ include/asm-powerpc/elf.h     |    8 ++++++++
+ include/linux/elf.h           |    1 +
+ 3 files changed, 34 insertions(+), 3 deletions(-)
 
-diff -puN include/asm-generic/fcntl.h~f_dupfd_cloexec-implementation-fix-2 include/asm-generic/fcntl.h
---- a/include/asm-generic/fcntl.h~f_dupfd_cloexec-implementation-fix-2
-+++ a/include/asm-generic/fcntl.h
-@@ -73,9 +73,6 @@
- #define F_SETSIG	10	/* for sockets. */
- #define F_GETSIG	11	/* for sockets. */
- #endif
--#ifndef F_DUPFD_CLOEXEC
--#define F_DUPFD_CLOEXEC	12
--#endif
+diff -puN arch/powerpc/kernel/process.c~powerpc-add-altivec-vmx-state-to-coredumps arch/powerpc/kernel/process.c
+--- a/arch/powerpc/kernel/process.c~powerpc-add-altivec-vmx-state-to-coredumps
++++ a/arch/powerpc/kernel/process.c
+@@ -149,10 +149,32 @@ void flush_altivec_to_thread(struct task
+ 	}
+ }
  
- /* for F_[GET|SET]FL */
- #define FD_CLOEXEC	1	/* actually anything with low bit set goes */
-diff -puN include/linux/fcntl.h~f_dupfd_cloexec-implementation-fix-2 include/linux/fcntl.h
---- a/include/linux/fcntl.h~f_dupfd_cloexec-implementation-fix-2
-+++ a/include/linux/fcntl.h
-@@ -3,12 +3,17 @@
- 
- #include <asm/fcntl.h>
- 
--/* Cancel a blocking posix lock; internal use only until we expose an
-- * asynchronous lock api to userspace: */
--#define F_CANCELLK	(F_LINUX_SPECIFIC_BASE+5)
-+#define F_SETLEASE	(F_LINUX_SPECIFIC_BASE + 0)
-+#define F_GETLEASE	(F_LINUX_SPECIFIC_BASE + 1)
- 
--#define F_SETLEASE	(F_LINUX_SPECIFIC_BASE+0)
--#define F_GETLEASE	(F_LINUX_SPECIFIC_BASE+1)
-+/*
-+ * Cancel a blocking posix lock; internal use only until we expose an
-+ * asynchronous lock api to userspace:
-+ */
-+#define F_CANCELLK	(F_LINUX_SPECIFIC_BASE + 5)
+-int dump_task_altivec(struct pt_regs *regs, elf_vrregset_t *vrregs)
++int dump_task_altivec(struct task_struct *tsk, elf_vrregset_t *vrregs)
+ {
+-	flush_altivec_to_thread(current);
+-	memcpy(vrregs, &current->thread.vr[0], sizeof(*vrregs));
++	/* ELF_NVRREG includes the VSCR and VRSAVE which we need to save
++	 * separately, see below */
++	const int nregs = ELF_NVRREG - 2;
++	elf_vrreg_t *reg;
++	u32 *dest;
 +
-+/* Create a file descriptor with FD_CLOEXEC set. */
-+#define F_DUPFD_CLOEXEC	(F_LINUX_SPECIFIC_BASE + 6)
++	if (tsk == current)
++		flush_altivec_to_thread(tsk);
++
++	reg = (elf_vrreg_t *)vrregs;
++
++	/* copy the 32 vr registers */
++	memcpy(reg, &tsk->thread.vr[0], nregs * sizeof(*reg));
++	reg += nregs;
++
++	/* copy the vscr */
++	memcpy(reg, &tsk->thread.vscr, sizeof(*reg));
++	reg++;
++
++	/* vrsave is stored in the high 32bit slot of the final 128bits */
++	memset(reg, 0, sizeof(*reg));
++	dest = (u32 *)reg;
++	*dest = tsk->thread.vrsave;
++
+ 	return 1;
+ }
+ #endif /* CONFIG_ALTIVEC */
+diff -puN include/asm-powerpc/elf.h~powerpc-add-altivec-vmx-state-to-coredumps include/asm-powerpc/elf.h
+--- a/include/asm-powerpc/elf.h~powerpc-add-altivec-vmx-state-to-coredumps
++++ a/include/asm-powerpc/elf.h
+@@ -212,6 +212,14 @@ static inline int dump_task_regs(struct 
+ extern int dump_task_fpu(struct task_struct *, elf_fpregset_t *); 
+ #define ELF_CORE_COPY_FPREGS(tsk, elf_fpregs) dump_task_fpu(tsk, elf_fpregs)
  
- /*
-  * Request nofications on a directory.
++typedef elf_vrregset_t elf_fpxregset_t;
++
++#ifdef CONFIG_ALTIVEC
++extern int dump_task_altivec(struct task_struct *, elf_vrregset_t *vrregs);
++#define ELF_CORE_COPY_XFPREGS(tsk, regs) dump_task_altivec(tsk, regs)
++#define ELF_CORE_XFPREG_TYPE NT_PPC_VMX
++#endif
++
+ #endif /* __KERNEL__ */
+ 
+ /* ELF_HWCAP yields a mask that user programs can use to figure out what
+diff -puN include/linux/elf.h~powerpc-add-altivec-vmx-state-to-coredumps include/linux/elf.h
+--- a/include/linux/elf.h~powerpc-add-altivec-vmx-state-to-coredumps
++++ a/include/linux/elf.h
+@@ -355,6 +355,7 @@ typedef struct elf64_shdr {
+ #define NT_TASKSTRUCT	4
+ #define NT_AUXV		6
+ #define NT_PRXFPREG     0x46e62b7f      /* copied from gdb5.1/include/elf/common.h */
++#define NT_PPC_VMX	0x100		/* PowerPC Altivec/VMX registers */
+ 
+ 
+ /* Note header in a PT_NOTE section */
 _
-
-Patches currently in -mm which might be from akpm@linux-foundation.org are
-
-origin.patch
-mm-bdi-init-hooks.patch
-mm-per-device-dirty-threshold.patch
-mm-dirty-balancing-for-tasks.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters.patch
-oom-change-all_unreclaimable-zone-member-to-flags.patch
-oom-do-not-take-callback_mutex.patch
-writeback-dont-propagate-aop_writepage_activate.patch
-softlockup-add-a-proc-tuning-parameter.patch
-force-erroneous-inclusions-of-compiler-h-files-to-be-errors.patch
-driver-for-the-atmel-on-chip-ssc-on-at32ap-and-at91.patch
-do_sys_poll-simplify-playing-with-on-stack-data.patch
-pcmcia-compactflash-driver-for-pa-semi-electra-boards.patch
-add-in-sunos-41x-compatible-mode-for-ufs.patch
-core_pattern-fix-up-a-few-miscellaneous-bugs.patch
-printk-add-interfaces-for-external-access-to-the-log-buffer.patch
-deprecate-aout-elf-interpreters.patch
-ext2-ext3-ext4-add-block-bitmap-validation.patch
-pie-executable-randomization.patch
-binfmt_flat-warning-fixes.patch
-i2o-fix-defined-but-not-used-build-warnings.patch
-reiserfs-workaround-for-dead-loop-in-finish_unfinished.patch
-tty-expose-new-methods-needed-for-drivers-to-get-termios-right.patch
-userc-ifdef-mq_bytes.patch
-f_dupfd_cloexec-implementation.patch
-f_dupfd_cloexec-implementation-fix-2.patch
-ext3-lighten-up-resize-transaction-requirements-checkpatch-fixes.patch
-drivers-char-ip2-fix-used-uninitd-bug-checkpatch-fixes.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-2.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-3.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-4.patch
-writeback-fix-comment-use-helper-function.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-5.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-6.patch
-writeback-fix-time-ordering-of-the-per-superblock-dirty-inode-lists-7.patch
-writeback-fix-time-ordering-of-the-per-superblock-inode-lists-8.patch
-writeback-remove-pages_skipped-accounting-in-__block_write_full_page-fix.patch
-revert-faster-ext2_clear_inode.patch
-ext2-reservations-fix-for-percpu_counter-changes.patch
-md-software-raid-autodetect-dev-list-not-array.patch
-do-cpu_dead-migrating-under-read_locktasklist-instead-of-write_lock_irqtasklist-fix.patch
-intel-iommu-pci-generic-helper-function.patch
-intel-iommu-iova-allocation-and-management-routines.patch
-intel-iommu-intel-iommu-driver.patch
-intel-iommu-iommu-floppy-workaround.patch
-jbd-config_jbd_debug-cannot-create-proc-entry-fix.patch
-peterz-vs-ext4-mballoc-core.patch
-64-bit-i_version-afs-fixes.patch
-pnp-use-dev_info-dev_err-etc-in-core-fix.patch
-pnp-add-debug-message-for-adding-new-device-fix-fix.patch
-r-o-bind-mounts-elevate-write-count-during-entire-ncp_ioctl-fix.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-vs-revoke.patch
-revoke-wire-up-i386-system-calls.patch
-revoke-vs-git-block.patch
-task-containersv11-basic-task-container-framework-fix.patch
-task-containersv11-shared-container-subsystem-group-arrays-include-fix.patch
-add-containerstats-v3-fix.patch
-pid-namespaces-dynamic-kmem-cache-allocator-for-pid-namespaces-fix.patch
-pid-namespaces-define-is_global_init-and-is_container_init-fix.patch
-pid-namespaces-define-is_global_init-and-is_container_init-versus-x86_64-mm-i386-show-unhandled-signals-v3.patch
-lockdep-fix-mismatched-lockdep_depth-curr_chain_hash-checkpatch-fixes.patch
-fs-superc-use-list_for_each_entry-instead-of-list_for_each-fix.patch
-pid-namespaces-helpers-to-find-the-task-by-its-numerical-ids-fix.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-use-find_task_by_pid_ns-in-places-that-operate-with-virtual-fix.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-use-find_task_by_pid_ns-in-places-that-operate-with-virtual-fix-2.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-use-find_task_by_pid_ns-in-places-that-operate-with-virtual-fix-3.patch
-pid-namespaces-changes-to-show-virtual-ids-to-user-fix.patch
-cpuset-sched_load_balance-flag-fix.patch
-cpusets-decrustify-cpuset-mask-update-code-checkpatch-fixes.patch
-memory-controller-memory-accounting-v7-fix.patch
-memory-controller-add-per-container-lru-and-reclaim-v7-fix.patch
-memory-controller-oom-handling-v7-vs-oom-killer-stuff.patch
-memory-controller-add-switch-to-control-what-type-of-pages-to-limit-v7-fix-2.patch
-memcontrol-move-oom-task-exclusion-to-tasklist-fix.patch
-remove-bits_to_type-macro-fix.patch
-use-helpers-to-obtain-task-pid-in-printks-drm-fix.patch
-hotplug-cpu-migrate-a-task-within-its-cpuset-fix.patch
-cpu-hotplug-avoid-hotadd-when-proper-possible_map-isnt-specified-checkpatch-fixes.patch
-powerpc-lock-bitops-fix.patch
-ipc-integrate-ipc_checkid-into-ipc_lock-fix.patch
-ipc-integrate-ipc_checkid-into-ipc_lock-fix-2.patch
-use-extended-crashkernel-command-line-on-i386.patch
-ftd_sio-clean-ups-and-updates-for-new-termios-work-checkpatch-fixes.patch
-hook-up-group-scheduler-with-control-groups-fix.patch
-linux-kernel-markers-checkpatch-fixes.patch
-linux-kernel-markers-samples-checkpatch-fixes.patch
-uninline-forkc-exitc-checkpatch-fixes.patch
-fuse-fix-race-between-getattr-and-write-checkpatch-fixes.patch
-fuse-add-file-handle-to-getattr-operation-checkpatch-fixes.patch
-sparse-pointer-use-of-zero-as-null-checkpatch-fixes.patch
-reiser4.patch
-git-block-vs-reiser4.patch
-git-nfsd-broke-reiser4.patch
-slab-api-remove-useless-ctor-parameter-and-reorder-parameters-vs-reiser4.patch
-page-owner-tracking-leak-detector.patch
-profile-likely-unlikely-macros-fix.patch
-getblk-handle-2tb-devices.patch
-w1-build-fix.patch
-
