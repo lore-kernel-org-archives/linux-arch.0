@@ -1,172 +1,561 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:49950 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:50221 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756117AbXJRHpQ (ORCPT
+	by vger.kernel.org with ESMTP id S1761575AbXJRHrk (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 Oct 2007 03:45:16 -0400
-Message-Id: <200710180701.l9I71oQX031209@imap1.linux-foundation.org>
-Subject: - f_dupfd_cloexec-implementation.patch removed from -mm tree
+	Thu, 18 Oct 2007 03:47:40 -0400
+Message-Id: <200710180700.l9I708DW031077@imap1.linux-foundation.org>
+Subject: - remove-dma_cache_wbackinvwback_inv-functions.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Thu, 18 Oct 2007 00:01:50 -0700
+Date: Thu, 18 Oct 2007 00:00:08 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: drepper@redhat.com, hch@lst.de, kyle@mcmartin.ca, linux-arch@vger.kernel.org, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, mm-commits@vger.kernel.org
+To: ralf@linux-mips.org, davem@davemloft.net, hskinnemoen@atmel.com, kyle@parisc-linux.org, lethal@linux-sh.org, linux-arch@vger.kernel.org, paulus@samba.org, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
 The patch titled
-     F_DUPFD_CLOEXEC implementation
+     Remove dma_cache_(wback|inv|wback_inv) functions
 has been removed from the -mm tree.  Its filename was
-     f_dupfd_cloexec-implementation.patch
+     remove-dma_cache_wbackinvwback_inv-functions.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 ------------------------------------------------------
-Subject: F_DUPFD_CLOEXEC implementation
-From: Ulrich Drepper <drepper@redhat.com>
+Subject: Remove dma_cache_(wback|inv|wback_inv) functions
+From: Ralf Baechle <ralf@linux-mips.org>
 
-One more small change to extend the availability of creation of file
-descriptors with FD_CLOEXEC set.  Adding a new command to fcntl() requires
-no new system call and the overall impact on code size if minimal.
+dma_cache_(wback|inv|wback_inv) were the earliest attempt on a generalized
+cache managment API for I/O purposes.  Originally it was basically the raw
+MIPS low level cache API exported to the entire world.  The API has
+suffered from a lack of documentation, was not very widely used unlike it's
+more modern brothers and can easily be replaced by dma_cache_sync.  So
+remove it rsp.  turn the surviving bits back into an arch private API, as
+discussed on linux-arch.
 
-If this patch gets accepted we will also add this change to the next
-revision of the POSIX spec.
-
-To test the patch, use the following little program.  Adjust the value of
-F_DUPFD_CLOEXEC appropriately.
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#ifndef F_DUPFD_CLOEXEC
-# define F_DUPFD_CLOEXEC 12
-#endif
-
-int
-main (int argc, char *argv[])
-{
-  if  (argc > 1)
-    {
-      if (fcntl (3, F_GETFD) == 0)
-	{
-	  puts ("descriptor not closed");
-	  exit (1);
-	}
-      if (errno != EBADF)
-	{
-	  puts ("error not EBADF");
-	  exit (1);
-	}
-
-      exit (0);
-    }
-  int fd = fcntl (STDOUT_FILENO, F_DUPFD_CLOEXEC, 0);
-  if (fd == -1 && errno == EINVAL)
-    {
-      puts ("F_DUPFD_CLOEXEC not supported");
-      return 0;
-    }
-  if (fd != 3)
-    {
-      puts ("program called with descriptors other than 0,1,2");
-      return 1;
-    }
-
-  execl ("/proc/self/exe", "/proc/self/exe", "1", NULL);
-  puts ("execl failed");
-  return 1;
-}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Signed-off-by: Ulrich Drepper <drepper@redhat.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+Acked-by: Paul Mundt <lethal@linux-sh.org>
+Acked-by: Paul Mackerras <paulus@samba.org>
+Acked-by: David S. Miller <davem@davemloft.net>
+Acked-by: Kyle McMartin <kyle@parisc-linux.org>
+Acked-by: Haavard Skinnemoen <hskinnemoen@atmel.com>
 Cc: <linux-arch@vger.kernel.org>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/fcntl.c            |   12 ++++++++----
- include/linux/fcntl.h |   15 ++++++++++-----
- 2 files changed, 18 insertions(+), 9 deletions(-)
+ arch/avr32/mm/dma-coherent.c        |    6 +--
+ arch/mips/mm/cache.c                |    2 -
+ arch/sh/drivers/pci/dma-dreamcast.c |    2 -
+ arch/sh/mm/consistent.c             |    8 ++--
+ arch/sh64/mm/consistent.c           |    3 +
+ include/asm-alpha/io.h              |    6 ---
+ include/asm-avr32/io.h              |    7 ---
+ include/asm-blackfin/io.h           |    4 --
+ include/asm-h8300/io.h              |    6 ---
+ include/asm-ia64/io.h               |    4 --
+ include/asm-m68k/io.h               |    6 ---
+ include/asm-m68knommu/io.h          |    6 ---
+ include/asm-mips/io.h               |    2 +
+ include/asm-parisc/io.h             |    5 --
+ include/asm-powerpc/io.h            |   17 ---------
+ include/asm-ppc/io.h                |   17 ---------
+ include/asm-sh/floppy.h             |    2 -
+ include/asm-sh/io.h                 |   25 -------------
+ include/asm-sh64/dma-mapping.h      |    6 ++-
+ include/asm-sh64/io.h               |   48 --------------------------
+ include/asm-sparc/io.h              |    7 ---
+ include/asm-sparc64/io.h            |    6 ---
+ include/asm-x86/io_32.h             |   11 -----
+ include/asm-x86/io_64.h             |    6 ---
+ 24 files changed, 19 insertions(+), 193 deletions(-)
 
-diff -puN fs/fcntl.c~f_dupfd_cloexec-implementation fs/fcntl.c
---- a/fs/fcntl.c~f_dupfd_cloexec-implementation
-+++ a/fs/fcntl.c
-@@ -110,7 +110,7 @@ out:
- 	return error;
- }
+diff -puN arch/avr32/mm/dma-coherent.c~remove-dma_cache_wbackinvwback_inv-functions arch/avr32/mm/dma-coherent.c
+--- a/arch/avr32/mm/dma-coherent.c~remove-dma_cache_wbackinvwback_inv-functions
++++ a/arch/avr32/mm/dma-coherent.c
+@@ -21,13 +21,13 @@ void dma_cache_sync(struct device *dev, 
  
--static int dupfd(struct file *file, unsigned int start)
-+static int dupfd(struct file *file, unsigned int start, int cloexec)
- {
- 	struct files_struct * files = current->files;
- 	struct fdtable *fdt;
-@@ -122,7 +122,10 @@ static int dupfd(struct file *file, unsi
- 		/* locate_fd() may have expanded fdtable, load the ptr */
- 		fdt = files_fdtable(files);
- 		FD_SET(fd, fdt->open_fds);
--		FD_CLR(fd, fdt->close_on_exec);
-+		if (cloexec)
-+			FD_SET(fd, fdt->close_on_exec);
-+		else
-+			FD_CLR(fd, fdt->close_on_exec);
- 		spin_unlock(&files->file_lock);
- 		fd_install(fd, file);
- 	} else {
-@@ -195,7 +198,7 @@ asmlinkage long sys_dup(unsigned int fil
- 	struct file * file = fget(fildes);
- 
- 	if (file)
--		ret = dupfd(file, 0);
-+		ret = dupfd(file, 0, 0);
- 	return ret;
- }
- 
-@@ -319,8 +322,9 @@ static long do_fcntl(int fd, unsigned in
- 
- 	switch (cmd) {
- 	case F_DUPFD:
-+	case F_DUPFD_CLOEXEC:
- 		get_file(filp);
--		err = dupfd(filp, arg);
-+		err = dupfd(filp, arg, cmd == F_DUPFD_CLOEXEC);
+ 	switch (direction) {
+ 	case DMA_FROM_DEVICE:		/* invalidate only */
+-		dma_cache_inv(vaddr, size);
++		invalidate_dcache_region(vaddr, size);
  		break;
- 	case F_GETFD:
- 		err = get_close_on_exec(fd) ? FD_CLOEXEC : 0;
-diff -puN include/linux/fcntl.h~f_dupfd_cloexec-implementation include/linux/fcntl.h
---- a/include/linux/fcntl.h~f_dupfd_cloexec-implementation
-+++ a/include/linux/fcntl.h
-@@ -3,12 +3,17 @@
+ 	case DMA_TO_DEVICE:		/* writeback only */
+-		dma_cache_wback(vaddr, size);
++		clean_dcache_region(vaddr, size);
+ 		break;
+ 	case DMA_BIDIRECTIONAL:		/* writeback and invalidate */
+-		dma_cache_wback_inv(vaddr, size);
++		flush_dcache_region(vaddr, size);
+ 		break;
+ 	default:
+ 		BUG();
+diff -puN arch/mips/mm/cache.c~remove-dma_cache_wbackinvwback_inv-functions arch/mips/mm/cache.c
+--- a/arch/mips/mm/cache.c~remove-dma_cache_wbackinvwback_inv-functions
++++ a/arch/mips/mm/cache.c
+@@ -47,8 +47,6 @@ void (*_dma_cache_wback)(unsigned long s
+ void (*_dma_cache_inv)(unsigned long start, unsigned long size);
  
- #include <asm/fcntl.h>
+ EXPORT_SYMBOL(_dma_cache_wback_inv);
+-EXPORT_SYMBOL(_dma_cache_wback);
+-EXPORT_SYMBOL(_dma_cache_inv);
  
--/* Cancel a blocking posix lock; internal use only until we expose an
-- * asynchronous lock api to userspace: */
--#define F_CANCELLK	(F_LINUX_SPECIFIC_BASE+5)
-+#define F_SETLEASE	(F_LINUX_SPECIFIC_BASE + 0)
-+#define F_GETLEASE	(F_LINUX_SPECIFIC_BASE + 1)
+ #endif /* CONFIG_DMA_NONCOHERENT */
  
--#define F_SETLEASE	(F_LINUX_SPECIFIC_BASE+0)
--#define F_GETLEASE	(F_LINUX_SPECIFIC_BASE+1)
-+/*
-+ * Cancel a blocking posix lock; internal use only until we expose an
-+ * asynchronous lock api to userspace:
-+ */
-+#define F_CANCELLK	(F_LINUX_SPECIFIC_BASE + 5)
-+
-+/* Create a file descriptor with FD_CLOEXEC set. */
-+#define F_DUPFD_CLOEXEC	(F_LINUX_SPECIFIC_BASE + 6)
+diff -puN arch/sh/drivers/pci/dma-dreamcast.c~remove-dma_cache_wbackinvwback_inv-functions arch/sh/drivers/pci/dma-dreamcast.c
+--- a/arch/sh/drivers/pci/dma-dreamcast.c~remove-dma_cache_wbackinvwback_inv-functions
++++ a/arch/sh/drivers/pci/dma-dreamcast.c
+@@ -51,7 +51,7 @@ void *dreamcast_consistent_alloc(struct 
+ 	buf = P2SEGADDR(buf);
+ 
+ 	/* Flush the dcache before we hand off the buffer */
+-	dma_cache_wback_inv((void *)buf, size);
++	__flush_purge_region((void *)buf, size);
+ 
+ 	return (void *)buf;
+ }
+diff -puN arch/sh/mm/consistent.c~remove-dma_cache_wbackinvwback_inv-functions arch/sh/mm/consistent.c
+--- a/arch/sh/mm/consistent.c~remove-dma_cache_wbackinvwback_inv-functions
++++ a/arch/sh/mm/consistent.c
+@@ -34,7 +34,7 @@ void *consistent_alloc(gfp_t gfp, size_t
+ 	/*
+ 	 * We must flush the cache before we pass it on to the device
+ 	 */
+-	dma_cache_wback_inv(ret, size);
++	__flush_purge_region(ret, size);
+ 
+ 	page = virt_to_page(ret);
+ 	free = page + (size >> PAGE_SHIFT);
+@@ -68,13 +68,13 @@ void consistent_sync(void *vaddr, size_t
+ 
+ 	switch (direction) {
+ 	case DMA_FROM_DEVICE:		/* invalidate only */
+-		dma_cache_inv(p1addr, size);
++		__flush_invalidate_region(p1addr, size);
+ 		break;
+ 	case DMA_TO_DEVICE:		/* writeback only */
+-		dma_cache_wback(p1addr, size);
++		__flush_wback_region(p1addr, size);
+ 		break;
+ 	case DMA_BIDIRECTIONAL:		/* writeback and invalidate */
+-		dma_cache_wback_inv(p1addr, size);
++		__flush_purge_region(p1addr, size);
+ 		break;
+ 	default:
+ 		BUG();
+diff -puN arch/sh64/mm/consistent.c~remove-dma_cache_wbackinvwback_inv-functions arch/sh64/mm/consistent.c
+--- a/arch/sh64/mm/consistent.c~remove-dma_cache_wbackinvwback_inv-functions
++++ a/arch/sh64/mm/consistent.c
+@@ -11,6 +11,7 @@
+ #include <linux/mm.h>
+ #include <linux/string.h>
+ #include <linux/pci.h>
++#include <linux/dma-mapping.h>
+ #include <linux/module.h>
+ #include <asm/io.h>
+ 
+@@ -32,7 +33,7 @@ void *consistent_alloc(struct pci_dev *h
+ 	if (vp != NULL) {
+ 		memset(vp, 0, size);
+ 		*dma_handle = virt_to_phys(ret);
+-		dma_cache_wback_inv((unsigned long)ret, size);
++		dma_cache_sync(NULL, ret, size, DMA_BIDIRECTIONAL);
+ 	}
+ 
+ 	return vp;
+diff -puN include/asm-alpha/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-alpha/io.h
+--- a/include/asm-alpha/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-alpha/io.h
+@@ -551,12 +551,6 @@ extern void outsl (unsigned long port, c
+ #endif
+ #define RTC_ALWAYS_BCD	0
+ 
+-/* Nothing to do */
+-
+-#define dma_cache_inv(_start,_size)		do { } while (0)
+-#define dma_cache_wback(_start,_size)		do { } while (0)
+-#define dma_cache_wback_inv(_start,_size)	do { } while (0)
+-
+ /*
+  * Some mucking forons use if[n]def writeq to check if platform has it.
+  * It's a bloody bad idea and we probably want ARCH_HAS_WRITEQ for them
+diff -puN include/asm-avr32/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-avr32/io.h
+--- a/include/asm-avr32/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-avr32/io.h
+@@ -298,13 +298,6 @@ extern void __iounmap(void __iomem *addr
+ #define ioport_map(port, nr)	ioremap(port, nr)
+ #define ioport_unmap(port)	iounmap(port)
+ 
+-#define dma_cache_wback_inv(_start, _size)	\
+-	flush_dcache_region(_start, _size)
+-#define dma_cache_inv(_start, _size)		\
+-	invalidate_dcache_region(_start, _size)
+-#define dma_cache_wback(_start, _size)		\
+-	clean_dcache_region(_start, _size)
+-
+ /*
+  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+  * access
+diff -puN include/asm-blackfin/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-blackfin/io.h
+--- a/include/asm-blackfin/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-blackfin/io.h
+@@ -183,10 +183,6 @@ extern void blkfin_inv_cache_all(void);
+ #define	ioport_map(port, nr)		((void __iomem*)(port))
+ #define	ioport_unmap(addr)
+ 
+-#define dma_cache_inv(_start,_size) do { blkfin_inv_cache_all();} while (0)
+-#define dma_cache_wback(_start,_size) do { } while (0)
+-#define dma_cache_wback_inv(_start,_size) do { blkfin_inv_cache_all();} while (0)
+-
+ /* Pages to physical address... */
+ #define page_to_phys(page)      ((page - mem_map) << PAGE_SHIFT)
+ #define page_to_bus(page)       ((page - mem_map) << PAGE_SHIFT)
+diff -puN include/asm-h8300/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-h8300/io.h
+--- a/include/asm-h8300/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-h8300/io.h
+@@ -264,12 +264,6 @@ static inline void *ioremap_fullcache(un
+ 
+ extern void iounmap(void *addr);
+ 
+-/* Nothing to do */
+-
+-#define dma_cache_inv(_start,_size)		do { } while (0)
+-#define dma_cache_wback(_start,_size)		do { } while (0)
+-#define dma_cache_wback_inv(_start,_size)	do { } while (0)
+-
+ /* H8/300 internal I/O functions */
+ static __inline__ unsigned char ctrl_inb(unsigned long addr)
+ {
+diff -puN include/asm-ia64/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-ia64/io.h
+--- a/include/asm-ia64/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-ia64/io.h
+@@ -435,10 +435,6 @@ extern void memcpy_fromio(void *dst, con
+ extern void memcpy_toio(volatile void __iomem *dst, const void *src, long n);
+ extern void memset_io(volatile void __iomem *s, int c, long n);
+ 
+-#define dma_cache_inv(_start,_size)             do { } while (0)
+-#define dma_cache_wback(_start,_size)           do { } while (0)
+-#define dma_cache_wback_inv(_start,_size)       do { } while (0)
+-
+ # endif /* __KERNEL__ */
  
  /*
-  * Request nofications on a directory.
+diff -puN include/asm-m68k/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-m68k/io.h
+--- a/include/asm-m68k/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-m68k/io.h
+@@ -384,12 +384,6 @@ static inline void __iomem *ioremap_full
+ 	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+ }
+ 
+-
+-/* m68k caches aren't DMA coherent */
+-extern void dma_cache_wback_inv(unsigned long start, unsigned long size);
+-extern void dma_cache_wback(unsigned long start, unsigned long size);
+-extern void dma_cache_inv(unsigned long start, unsigned long size);
+-
+ static inline void memset_io(volatile void __iomem *addr, unsigned char val, int count)
+ {
+ 	__builtin_memset((void __force *) addr, val, count);
+diff -puN include/asm-m68knommu/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-m68knommu/io.h
+--- a/include/asm-m68knommu/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-m68knommu/io.h
+@@ -165,12 +165,6 @@ static inline void *ioremap_fullcache(un
+ 
+ extern void iounmap(void *addr);
+ 
+-/* Nothing to do */
+-
+-#define dma_cache_inv(_start,_size)		do { } while (0)
+-#define dma_cache_wback(_start,_size)		do { } while (0)
+-#define dma_cache_wback_inv(_start,_size)	do { } while (0)
+-
+ /* Pages to physical address... */
+ #define page_to_phys(page)      ((page - mem_map) << PAGE_SHIFT)
+ #define page_to_bus(page)       ((page - mem_map) << PAGE_SHIFT)
+diff -puN include/asm-mips/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-mips/io.h
+--- a/include/asm-mips/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-mips/io.h
+@@ -554,6 +554,8 @@ static inline void memcpy_toio(volatile 
+  *    caches.  Dirty lines of the caches may be written back or simply
+  *    be discarded.  This operation is necessary before dma operations
+  *    to the memory.
++ *
++ * This API used to be exported; it now is for arch code internal use only.
+  */
+ #ifdef CONFIG_DMA_NONCOHERENT
+ 
+diff -puN include/asm-parisc/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-parisc/io.h
+--- a/include/asm-parisc/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-parisc/io.h
+@@ -270,11 +270,6 @@ extern void outsl (unsigned long port, c
+ /* IO Port space is :      BBiiii   where BB is HBA number. */
+ #define IO_SPACE_LIMIT 0x00ffffff
+ 
+-
+-#define dma_cache_inv(_start,_size)		do { flush_kernel_dcache_range(_start,_size); } while (0)
+-#define dma_cache_wback(_start,_size)		do { flush_kernel_dcache_range(_start,_size); } while (0)
+-#define dma_cache_wback_inv(_start,_size)	do { flush_kernel_dcache_range(_start,_size); } while (0)
+-
+ /* PA machines have an MM I/O space from 0xf0000000-0xffffffff in 32
+  * bit mode and from 0xfffffffff0000000-0xfffffffffffffff in 64 bit
+  * mode (essentially just sign extending.  This macro takes in a 32
+diff -puN include/asm-powerpc/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-powerpc/io.h
+--- a/include/asm-powerpc/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-powerpc/io.h
+@@ -498,23 +498,6 @@ static inline void name at					\
+ #define writeq	writeq
+ #endif
+ 
+-#ifdef CONFIG_NOT_COHERENT_CACHE
+-
+-#define dma_cache_inv(_start,_size) \
+-	invalidate_dcache_range(_start, (_start + _size))
+-#define dma_cache_wback(_start,_size) \
+-	clean_dcache_range(_start, (_start + _size))
+-#define dma_cache_wback_inv(_start,_size) \
+-	flush_dcache_range(_start, (_start + _size))
+-
+-#else /* CONFIG_NOT_COHERENT_CACHE */
+-
+-#define dma_cache_inv(_start,_size)		do { } while (0)
+-#define dma_cache_wback(_start,_size)		do { } while (0)
+-#define dma_cache_wback_inv(_start,_size)	do { } while (0)
+-
+-#endif /* !CONFIG_NOT_COHERENT_CACHE */
+-
+ /*
+  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+  * access
+diff -puN include/asm-ppc/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-ppc/io.h
+--- a/include/asm-ppc/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-ppc/io.h
+@@ -478,23 +478,6 @@ extern void pci_iounmap(struct pci_dev *
+ #include <asm/mpc8260_pci9.h>
+ #endif
+ 
+-#ifdef CONFIG_NOT_COHERENT_CACHE
+-
+-#define dma_cache_inv(_start,_size) \
+-	invalidate_dcache_range(_start, (_start + _size))
+-#define dma_cache_wback(_start,_size) \
+-	clean_dcache_range(_start, (_start + _size))
+-#define dma_cache_wback_inv(_start,_size) \
+-	flush_dcache_range(_start, (_start + _size))
+-
+-#else
+-
+-#define dma_cache_inv(_start,_size)		do { } while (0)
+-#define dma_cache_wback(_start,_size)		do { } while (0)
+-#define dma_cache_wback_inv(_start,_size)	do { } while (0)
+-
+-#endif
+-
+ /*
+  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+  * access
+diff -puN include/asm-sh/floppy.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-sh/floppy.h
+--- a/include/asm-sh/floppy.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-sh/floppy.h
+@@ -213,7 +213,7 @@ static int hard_dma_setup(char *addr, un
+ 	}
+ #endif
+ 
+-	dma_cache_wback_inv(addr, size);
++	__flush_purge_region(addr, size);
+ 
+ 	/* actual, physical DMA */
+ 	doing_pdma = 0;
+diff -puN include/asm-sh/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-sh/io.h
+--- a/include/asm-sh/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-sh/io.h
+@@ -327,31 +327,6 @@ __ioremap_mode(unsigned long offset, uns
+ 	__iounmap((addr))
+ 
+ /*
+- * The caches on some architectures aren't dma-coherent and have need to
+- * handle this in software.  There are three types of operations that
+- * can be applied to dma buffers.
+- *
+- *  - dma_cache_wback_inv(start, size) makes caches and RAM coherent by
+- *    writing the content of the caches back to memory, if necessary.
+- *    The function also invalidates the affected part of the caches as
+- *    necessary before DMA transfers from outside to memory.
+- *  - dma_cache_inv(start, size) invalidates the affected parts of the
+- *    caches.  Dirty lines of the caches may be written back or simply
+- *    be discarded.  This operation is necessary before dma operations
+- *    to the memory.
+- *  - dma_cache_wback(start, size) writes back any dirty lines but does
+- *    not invalidate the cache.  This can be used before DMA reads from
+- *    memory,
+- */
+-
+-#define dma_cache_wback_inv(_start,_size) \
+-    __flush_purge_region(_start,_size)
+-#define dma_cache_inv(_start,_size) \
+-    __flush_invalidate_region(_start,_size)
+-#define dma_cache_wback(_start,_size) \
+-    __flush_wback_region(_start,_size)
+-
+-/*
+  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+  * access
+  */
+diff -puN include/asm-sh64/dma-mapping.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-sh64/dma-mapping.h
+--- a/include/asm-sh64/dma-mapping.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-sh64/dma-mapping.h
+@@ -42,7 +42,11 @@ static inline void dma_free_coherent(str
+ static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 				  enum dma_data_direction dir)
+ {
+-	dma_cache_wback_inv((unsigned long)vaddr, size);
++	unsigned long s = (unsigned long) vaddr & L1_CACHE_ALIGN_MASK;
++	unsigned long e = (vaddr + size) & L1_CACHE_ALIGN_MASK;
++
++	for (; s <= e; s += L1_CACHE_BYTES)
++		asm volatile ("ocbp	%0, 0" : : "r" (s));
+ }
+ 
+ static inline dma_addr_t dma_map_single(struct device *dev,
+diff -puN include/asm-sh64/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-sh64/io.h
+--- a/include/asm-sh64/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-sh64/io.h
+@@ -182,54 +182,6 @@ unsigned long onchip_remap(unsigned long
+ extern void onchip_unmap(unsigned long vaddr);
+ 
+ /*
+- * The caches on some architectures aren't dma-coherent and have need to
+- * handle this in software.  There are three types of operations that
+- * can be applied to dma buffers.
+- *
+- *  - dma_cache_wback_inv(start, size) makes caches and RAM coherent by
+- *    writing the content of the caches back to memory, if necessary.
+- *    The function also invalidates the affected part of the caches as
+- *    necessary before DMA transfers from outside to memory.
+- *  - dma_cache_inv(start, size) invalidates the affected parts of the
+- *    caches.  Dirty lines of the caches may be written back or simply
+- *    be discarded.  This operation is necessary before dma operations
+- *    to the memory.
+- *  - dma_cache_wback(start, size) writes back any dirty lines but does
+- *    not invalidate the cache.  This can be used before DMA reads from
+- *    memory,
+- */
+-
+-static __inline__ void dma_cache_wback_inv (unsigned long start, unsigned long size)
+-{
+-	unsigned long s = start & L1_CACHE_ALIGN_MASK;
+-	unsigned long e = (start + size) & L1_CACHE_ALIGN_MASK;
+-
+-	for (; s <= e; s += L1_CACHE_BYTES)
+-		asm volatile ("ocbp	%0, 0" : : "r" (s));
+-}
+-
+-static __inline__ void dma_cache_inv (unsigned long start, unsigned long size)
+-{
+-	// Note that caller has to be careful with overzealous
+-	// invalidation should there be partial cache lines at the extremities
+-	// of the specified range
+-	unsigned long s = start & L1_CACHE_ALIGN_MASK;
+-	unsigned long e = (start + size) & L1_CACHE_ALIGN_MASK;
+-
+-	for (; s <= e; s += L1_CACHE_BYTES)
+-		asm volatile ("ocbi	%0, 0" : : "r" (s));
+-}
+-
+-static __inline__ void dma_cache_wback (unsigned long start, unsigned long size)
+-{
+-	unsigned long s = start & L1_CACHE_ALIGN_MASK;
+-	unsigned long e = (start + size) & L1_CACHE_ALIGN_MASK;
+-
+-	for (; s <= e; s += L1_CACHE_BYTES)
+-		asm volatile ("ocbwb	%0, 0" : : "r" (s));
+-}
+-
+-/*
+  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+  * access
+  */
+diff -puN include/asm-sparc/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-sparc/io.h
+--- a/include/asm-sparc/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-sparc/io.h
+@@ -310,13 +310,6 @@ extern void sbus_iounmap(volatile void _
+ #define RTC_PORT(x)   (rtc_port + (x))
+ #define RTC_ALWAYS_BCD  0
+ 
+-/* Nothing to do */
+-/* P3: Only IDE DMA may need these. XXX Verify that it still does... */
+-
+-#define dma_cache_inv(_start,_size)		do { } while (0)
+-#define dma_cache_wback(_start,_size)		do { } while (0)
+-#define dma_cache_wback_inv(_start,_size)	do { } while (0)
+-
+ #endif
+ 
+ #define __ARCH_HAS_NO_PAGE_ZERO_MAPPED		1
+diff -puN include/asm-sparc64/io.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-sparc64/io.h
+--- a/include/asm-sparc64/io.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-sparc64/io.h
+@@ -474,12 +474,6 @@ extern void pci_iounmap(struct pci_dev *
+ #define sbus_iounmap(__addr, __size)	\
+ 	release_region((unsigned long)(__addr), (__size))
+ 
+-/* Nothing to do */
+-
+-#define dma_cache_inv(_start,_size)		do { } while (0)
+-#define dma_cache_wback(_start,_size)		do { } while (0)
+-#define dma_cache_wback_inv(_start,_size)	do { } while (0)
+-
+ /*
+  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+  * access
+diff -puN include/asm-x86/io_32.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-x86/io_32.h
+--- a/include/asm-x86/io_32.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-x86/io_32.h
+@@ -237,18 +237,9 @@ static inline void flush_write_buffers(v
+ 	__asm__ __volatile__ ("lock; addl $0,0(%%esp)": : :"memory");
+ }
+ 
+-#define dma_cache_inv(_start,_size)		flush_write_buffers()
+-#define dma_cache_wback(_start,_size)		flush_write_buffers()
+-#define dma_cache_wback_inv(_start,_size)	flush_write_buffers()
+-
+ #else
+ 
+-/* Nothing to do */
+-
+-#define dma_cache_inv(_start,_size)		do { } while (0)
+-#define dma_cache_wback(_start,_size)		do { } while (0)
+-#define dma_cache_wback_inv(_start,_size)	do { } while (0)
+-#define flush_write_buffers()
++#define flush_write_buffers() do { } while (0)
+ 
+ #endif
+ 
+diff -puN include/asm-x86/io_64.h~remove-dma_cache_wbackinvwback_inv-functions include/asm-x86/io_64.h
+--- a/include/asm-x86/io_64.h~remove-dma_cache_wbackinvwback_inv-functions
++++ a/include/asm-x86/io_64.h
+@@ -249,12 +249,6 @@ void memset_io(volatile void __iomem *a,
+  */
+ #define __ISA_IO_base ((char __iomem *)(PAGE_OFFSET))
+ 
+-/* Nothing to do */
+-
+-#define dma_cache_inv(_start,_size)		do { } while (0)
+-#define dma_cache_wback(_start,_size)		do { } while (0)
+-#define dma_cache_wback_inv(_start,_size)	do { } while (0)
+-
+ #define flush_write_buffers() 
+ 
+ extern int iommu_bio_merge;
 _
 
-Patches currently in -mm which might be from drepper@redhat.com are
+Patches currently in -mm which might be from ralf@linux-mips.org are
 
 origin.patch
+netport_conc-fix-build-errors-and-warnings.patch
+au1100fb-fix-modpost-warnings.patch
+logoc-get-rid-of-mips_machgroup.patch
+drivers-pmc-msp71xx-gpio-char-driver.patch
+define-global-bit-macro.patch
+bitops-introduce-lock-ops.patch
+mips-fix-bitops.patch
+mips-lock-bitops.patch
+replace-__attribute_pure__-with-__pure.patch
 
