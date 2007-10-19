@@ -1,299 +1,579 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lixom.net ([66.141.50.11]:57967 "EHLO mail.lixom.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965698AbXJSCFL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 Oct 2007 22:05:11 -0400
-Date: Thu, 18 Oct 2007 21:03:05 -0500
-From: Olof Johansson <olof@lixom.net>
-Subject: [PATCH v2] [1/2] bug.h: Remove HAVE_ARCH_BUG.* / HAVE_ARCH_WARN.*
-Message-ID: <20071019020305.GA28359@lixom.net>
-References: <20071011171211.GB10877@lixom.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20071011171211.GB10877@lixom.net>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:46491 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752761AbXJSGYD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Oct 2007 02:24:03 -0400
+Message-Id: <200710190623.l9J6NsNJ019141@imap1.linux-foundation.org>
+Subject: [patch 006/144] remove unused flush_tlb_pgtables
+From: akpm@linux-foundation.org
+Date: Thu, 18 Oct 2007 23:23:54 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: akpm@linux-foundation.org, paulus@ozlabs.org, lethal@linux-sh.org, kyle@parisc-linux.org, grundler@parisc-linux.org, linux-arch@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, benh@kernel.crashing.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-No need to have the HAVE_ARCH_BUG.* / HAVE_ARCH_WARN.* defines, when
-the generic implementation can just use #ifndef on the macros themselves.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Also, introduce __WARN() in the generic case, so the generic WARN_ON()
-can use arch-specific code for when the condition is true.
+Nobody uses flush_tlb_pgtables anymore, this patch removes all remaining
+traces of it from all archs.
 
-Built on powerpc, i386, sh and sparc64.
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
+ Documentation/cachetlb.txt       |   27 ++-------------------------
+ include/asm-alpha/tlbflush.h     |   11 -----------
+ include/asm-arm/tlbflush.h       |    5 -----
+ include/asm-avr32/tlbflush.h     |    7 -------
+ include/asm-blackfin/tlbflush.h  |    6 ------
+ include/asm-cris/tlbflush.h      |    7 -------
+ include/asm-frv/tlbflush.h       |    2 --
+ include/asm-h8300/tlbflush.h     |    6 ------
+ include/asm-ia64/tlbflush.h      |   13 -------------
+ include/asm-m32r/tlbflush.h      |    3 ---
+ include/asm-m68k/tlbflush.h      |   10 ----------
+ include/asm-m68knommu/tlbflush.h |    6 ------
+ include/asm-mips/tlbflush.h      |    7 -------
+ include/asm-parisc/tlbflush.h    |    4 ----
+ include/asm-powerpc/tlbflush.h   |   11 -----------
+ include/asm-s390/tlbflush.h      |    7 -------
+ include/asm-sh/tlbflush.h        |    6 ------
+ include/asm-sh64/tlbflush.h      |    4 ----
+ include/asm-sparc/tlbflush.h     |    6 ------
+ include/asm-sparc64/tlbflush.h   |    7 -------
+ include/asm-um/tlbflush.h        |    6 ------
+ include/asm-v850/tlbflush.h      |    6 ------
+ include/asm-x86/tlbflush_32.h    |    7 -------
+ include/asm-x86/tlbflush_64.h    |    9 ---------
+ include/asm-xtensa/tlbflush.h    |   11 -----------
+ mm/memory.c                      |    3 ---
+ 26 files changed, 2 insertions(+), 195 deletions(-)
 
-Signed-off-by: Olof Johansson <olof@lixom.net>
-
-Index: k.org/include/asm-generic/bug.h
-===================================================================
---- k.org.orig/include/asm-generic/bug.h
-+++ k.org/include/asm-generic/bug.h
-@@ -20,39 +20,44 @@ struct bug_entry {
- #define BUGFLAG_WARNING	(1<<0)
- #endif	/* CONFIG_GENERIC_BUG */
+diff -puN Documentation/cachetlb.txt~remove-unused-flush_tlb_pgtables Documentation/cachetlb.txt
+--- a/Documentation/cachetlb.txt~remove-unused-flush_tlb_pgtables
++++ a/Documentation/cachetlb.txt
+@@ -87,30 +87,7 @@ changes occur:
  
--#ifndef HAVE_ARCH_BUG
-+#ifndef BUG
- #define BUG() do { \
- 	printk("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __FUNCTION__); \
- 	panic("BUG!"); \
- } while (0)
+ 	This is used primarily during fault processing.
+ 
+-5) void flush_tlb_pgtables(struct mm_struct *mm,
+-			   unsigned long start, unsigned long end)
+-
+-   The software page tables for address space 'mm' for virtual
+-   addresses in the range 'start' to 'end-1' are being torn down.
+-
+-   Some platforms cache the lowest level of the software page tables
+-   in a linear virtually mapped array, to make TLB miss processing
+-   more efficient.  On such platforms, since the TLB is caching the
+-   software page table structure, it needs to be flushed when parts
+-   of the software page table tree are unlinked/freed.
+-
+-   Sparc64 is one example of a platform which does this.
+-
+-   Usually, when munmap()'ing an area of user virtual address
+-   space, the kernel leaves the page table parts around and just
+-   marks the individual pte's as invalid.  However, if very large
+-   portions of the address space are unmapped, the kernel frees up
+-   those portions of the software page tables to prevent potential
+-   excessive kernel memory usage caused by erratic mmap/mmunmap
+-   sequences.  It is at these times that flush_tlb_pgtables will
+-   be invoked.
+-
+-6) void update_mmu_cache(struct vm_area_struct *vma,
++5) void update_mmu_cache(struct vm_area_struct *vma,
+ 			 unsigned long address, pte_t pte)
+ 
+ 	At the end of every page fault, this routine is invoked to
+@@ -123,7 +100,7 @@ changes occur:
+ 	translations for software managed TLB configurations.
+ 	The sparc64 port currently does this.
+ 
+-7) void tlb_migrate_finish(struct mm_struct *mm)
++6) void tlb_migrate_finish(struct mm_struct *mm)
+ 
+ 	This interface is called at the end of an explicit
+ 	process migration. This interface provides a hook
+diff -puN include/asm-alpha/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-alpha/tlbflush.h
+--- a/include/asm-alpha/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-alpha/tlbflush.h
+@@ -92,17 +92,6 @@ flush_tlb_other(struct mm_struct *mm)
+ 	if (*mmc) *mmc = 0;
+ }
+ 
+-/* Flush a specified range of user mapping page tables from TLB.
+-   Although Alpha uses VPTE caches, this can be a nop, as Alpha does
+-   not have finegrained tlb flushing, so it will flush VPTE stuff
+-   during next flush_tlb_range.  */
+-
+-static inline void
+-flush_tlb_pgtables(struct mm_struct *mm, unsigned long start,
+-		   unsigned long end)
+-{
+-}
+-
+ #ifndef CONFIG_SMP
+ /* Flush everything (kernel mapping may also have changed
+    due to vmalloc/vfree).  */
+diff -puN include/asm-arm/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-arm/tlbflush.h
+--- a/include/asm-arm/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-arm/tlbflush.h
+@@ -463,11 +463,6 @@ extern void flush_tlb_kernel_range(unsig
+  */
+ extern void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr, pte_t pte);
+ 
+-/*
+- * ARM processors do not cache TLB tables in RAM.
+- */
+-#define flush_tlb_pgtables(mm,start,end)	do { } while (0)
+-
  #endif
  
--#ifndef HAVE_ARCH_BUG_ON
-+#ifndef BUG_ON
- #define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while(0)
- #endif
+ #endif /* CONFIG_MMU */
+diff -puN include/asm-avr32/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-avr32/tlbflush.h
+--- a/include/asm-avr32/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-avr32/tlbflush.h
+@@ -19,7 +19,6 @@
+  *  - flush_tlb_page(vma, vmaddr) flushes one page
+  *  - flush_tlb_range(vma, start, end) flushes a range of pages
+  *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
+- *  - flush_tlb_pgtables(mm, start, end) flushes a range of page tables
+  */
+ extern void flush_tlb(void);
+ extern void flush_tlb_all(void);
+@@ -29,12 +28,6 @@ extern void flush_tlb_range(struct vm_ar
+ extern void flush_tlb_page(struct vm_area_struct *vma, unsigned long page);
+ extern void __flush_tlb_page(unsigned long asid, unsigned long page);
  
--#ifndef HAVE_ARCH_WARN_ON
-+#ifndef __WARN
-+#define __WARN() do {							\
-+	printk("WARNING: at %s:%d %s()\n", __FILE__,			\
-+		__LINE__, __FUNCTION__);				\
-+	dump_stack();							\
-+} while (0)
-+#endif
-+
-+#ifndef WARN_ON
- #define WARN_ON(condition) ({						\
- 	int __ret_warn_on = !!(condition);				\
--	if (unlikely(__ret_warn_on)) {					\
--		printk("WARNING: at %s:%d %s()\n", __FILE__,		\
--			__LINE__, __FUNCTION__);			\
--		dump_stack();						\
--	}								\
-+	if (unlikely(__ret_warn_on))					\
-+		__WARN();						\
- 	unlikely(__ret_warn_on);					\
- })
- #endif
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-	/* Nothing to do */
+-}
+-
+ extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
  
- #else /* !CONFIG_BUG */
--#ifndef HAVE_ARCH_BUG
-+#ifndef BUG
- #define BUG()
- #endif
+ #endif /* __ASM_AVR32_TLBFLUSH_H */
+diff -puN include/asm-blackfin/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-blackfin/tlbflush.h
+--- a/include/asm-blackfin/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-blackfin/tlbflush.h
+@@ -53,10 +53,4 @@ static inline void flush_tlb_kernel_page
+ 	BUG();
+ }
  
--#ifndef HAVE_ARCH_BUG_ON
-+#ifndef BUG_ON
- #define BUG_ON(condition) do { if (condition) ; } while(0)
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-	BUG();
+-}
+-
  #endif
+diff -puN include/asm-cris/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-cris/tlbflush.h
+--- a/include/asm-cris/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-cris/tlbflush.h
+@@ -38,13 +38,6 @@ static inline void flush_tlb_range(struc
+ 	flush_tlb_mm(vma->vm_mm);
+ }
  
--#ifndef HAVE_ARCH_WARN_ON
-+#ifndef WARN_ON
- #define WARN_ON(condition) ({						\
- 	int __ret_warn_on = !!(condition);				\
- 	unlikely(__ret_warn_on);					\
-Index: k.org/include/asm-parisc/bug.h
-===================================================================
---- k.org.orig/include/asm-parisc/bug.h
-+++ k.org/include/asm-parisc/bug.h
-@@ -7,8 +7,6 @@
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-                                      unsigned long start, unsigned long end)
+-{
+-        /* CRIS does not keep any page table caches in TLB */
+-}
+-
+-
+ static inline void flush_tlb(void)
+ {
+ 	flush_tlb_mm(current->mm);
+diff -puN include/asm-frv/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-frv/tlbflush.h
+--- a/include/asm-frv/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-frv/tlbflush.h
+@@ -57,7 +57,6 @@ do {								\
+ #define __flush_tlb_global()			flush_tlb_all()
+ #define flush_tlb()				flush_tlb_all()
+ #define flush_tlb_kernel_range(start, end)	flush_tlb_all()
+-#define flush_tlb_pgtables(mm,start,end)	do { } while(0)
+ 
+ #else
+ 
+@@ -66,7 +65,6 @@ do {								\
+ #define flush_tlb_mm(mm)			BUG()
+ #define flush_tlb_page(vma,addr)		BUG()
+ #define flush_tlb_range(mm,start,end)		BUG()
+-#define flush_tlb_pgtables(mm,start,end)	BUG()
+ #define flush_tlb_kernel_range(start, end)	BUG()
+ 
+ #endif
+diff -puN include/asm-h8300/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-h8300/tlbflush.h
+--- a/include/asm-h8300/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-h8300/tlbflush.h
+@@ -52,10 +52,4 @@ static inline void flush_tlb_kernel_page
+ 	BUG();
+ }
+ 
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-	BUG();
+-}
+-
+ #endif /* _H8300_TLBFLUSH_H */
+diff -puN include/asm-ia64/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-ia64/tlbflush.h
+--- a/include/asm-ia64/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-ia64/tlbflush.h
+@@ -84,19 +84,6 @@ flush_tlb_page (struct vm_area_struct *v
+ }
+ 
+ /*
+- * Flush the TLB entries mapping the virtually mapped linear page
+- * table corresponding to address range [START-END).
+- */
+-static inline void
+-flush_tlb_pgtables (struct mm_struct *mm, unsigned long start, unsigned long end)
+-{
+-	/*
+-	 * Deprecated.  The virtual page table is now flushed via the normal gather/flush
+-	 * interface (see tlb.h).
+-	 */
+-}
+-
+-/*
+  * Flush the local TLB. Invoked from another cpu using an IPI.
+  */
+ #ifdef CONFIG_SMP
+diff -puN include/asm-m32r/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-m32r/tlbflush.h
+--- a/include/asm-m32r/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-m32r/tlbflush.h
+@@ -12,7 +12,6 @@
+  *  - flush_tlb_page(vma, vmaddr) flushes one page
+  *  - flush_tlb_range(vma, start, end) flushes a range of pages
+  *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
+- *  - flush_tlb_pgtables(mm, start, end) flushes a range of page tables
   */
  
- #ifdef CONFIG_BUG
--#define HAVE_ARCH_BUG
--#define HAVE_ARCH_WARN_ON
+ extern void local_flush_tlb_all(void);
+@@ -93,8 +92,6 @@ static __inline__ void __flush_tlb_all(v
+ 	);
+ }
  
- /* the break instruction is used as BUG() marker.  */
- #define	PARISC_BUG_BREAK_ASM	"break 0x1f, 0x1fff"
-Index: k.org/include/asm-powerpc/bug.h
-===================================================================
---- k.org.orig/include/asm-powerpc/bug.h
-+++ k.org/include/asm-powerpc/bug.h
-@@ -109,9 +109,6 @@
- 	unlikely(__ret_warn_on);				\
- })
- 
--#define HAVE_ARCH_BUG
--#define HAVE_ARCH_BUG_ON
--#define HAVE_ARCH_WARN_ON
- #endif /* __ASSEMBLY __ */
- #endif /* CONFIG_BUG */
- 
-Index: k.org/include/asm-sh/bug.h
-===================================================================
---- k.org.orig/include/asm-sh/bug.h
-+++ k.org/include/asm-sh/bug.h
-@@ -4,8 +4,6 @@
- #define TRAPA_BUG_OPCODE	0xc33e	/* trapa #0x3e */
- 
- #ifdef CONFIG_BUG
--#define HAVE_ARCH_BUG
--#define HAVE_ARCH_WARN_ON
- 
- /**
-  * _EMIT_BUG_ENTRY
-Index: k.org/include/asm-alpha/bug.h
-===================================================================
---- k.org.orig/include/asm-alpha/bug.h
-+++ k.org/include/asm-alpha/bug.h
-@@ -10,7 +10,6 @@
-   __asm__ __volatile__("call_pal %0  # bugchk\n\t"".long %1\n\t.8byte %2" \
- 		       : : "i" (PAL_bugchk), "i"(__LINE__), "i"(__FILE__))
- 
--#define HAVE_ARCH_BUG
- #endif
- 
- #include <asm-generic/bug.h>
-Index: k.org/include/asm-arm/bug.h
-===================================================================
---- k.org.orig/include/asm-arm/bug.h
-+++ k.org/include/asm-arm/bug.h
-@@ -16,7 +16,6 @@ extern void __bug(const char *file, int 
- 
- #endif
- 
--#define HAVE_ARCH_BUG
- #endif
- 
- #include <asm-generic/bug.h>
-Index: k.org/include/asm-avr32/bug.h
-===================================================================
---- k.org.orig/include/asm-avr32/bug.h
-+++ k.org/include/asm-avr32/bug.h
-@@ -63,9 +63,6 @@
- 		unlikely(__ret_warn_on);				\
- 	})
- 
--#define HAVE_ARCH_BUG
--#define HAVE_ARCH_WARN_ON
+-#define flush_tlb_pgtables(mm, start, end)	do { } while (0)
 -
- #endif /* CONFIG_BUG */
+ extern void update_mmu_cache(struct vm_area_struct *, unsigned long, pte_t);
  
- #include <asm-generic/bug.h>
-Index: k.org/include/asm-frv/bug.h
-===================================================================
---- k.org.orig/include/asm-frv/bug.h
-+++ k.org/include/asm-frv/bug.h
-@@ -32,7 +32,6 @@ do {						\
- 	asm volatile("nop");			\
- } while(0)
+ #endif	/* _ASM_M32R_TLBFLUSH_H */
+diff -puN include/asm-m68k/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-m68k/tlbflush.h
+--- a/include/asm-m68k/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-m68k/tlbflush.h
+@@ -92,11 +92,6 @@ static inline void flush_tlb_kernel_rang
+ 	flush_tlb_all();
+ }
  
--#define HAVE_ARCH_BUG
- #define BUG()					\
- do {						\
- 	_debug_bug_printk();			\
-Index: k.org/include/asm-ia64/bug.h
-===================================================================
---- k.org.orig/include/asm-ia64/bug.h
-+++ k.org/include/asm-ia64/bug.h
-@@ -6,7 +6,6 @@
- #define BUG() do { printk("kernel BUG at %s:%d!\n", __FILE__, __LINE__); ia64_abort(); } while (0)
- 
- /* should this BUG be made generic? */
--#define HAVE_ARCH_BUG
- #endif
- 
- #include <asm-generic/bug.h>
-Index: k.org/include/asm-m68k/bug.h
-===================================================================
---- k.org.orig/include/asm-m68k/bug.h
-+++ k.org/include/asm-m68k/bug.h
-@@ -21,7 +21,6 @@
- } while (0)
- #endif
- 
--#define HAVE_ARCH_BUG
- #endif
- 
- #include <asm-generic/bug.h>
-Index: k.org/include/asm-mips/bug.h
-===================================================================
---- k.org.orig/include/asm-mips/bug.h
-+++ k.org/include/asm-mips/bug.h
-@@ -12,8 +12,6 @@ do {									\
- 	__asm__ __volatile__("break %0" : : "i" (BRK_BUG));		\
- } while (0)
- 
--#define HAVE_ARCH_BUG
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-}
 -
- #if (_MIPS_ISA > _MIPS_ISA_MIPS1)
+ #else
  
- #define BUG_ON(condition)						\
-@@ -22,8 +20,6 @@ do {									\
- 			     : : "r" (condition), "i" (BRK_BUG));	\
- } while (0)
  
--#define HAVE_ARCH_BUG_ON
+@@ -219,11 +214,6 @@ static inline void flush_tlb_kernel_page
+ 	sun3_put_segmap (addr & ~(SUN3_PMEG_SIZE - 1), SUN3_INVALID_PMEG);
+ }
+ 
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-}
 -
- #endif /* _MIPS_ISA > _MIPS_ISA_MIPS1 */
- 
  #endif
-Index: k.org/include/asm-s390/bug.h
-===================================================================
---- k.org.orig/include/asm-s390/bug.h
-+++ k.org/include/asm-s390/bug.h
-@@ -61,8 +61,6 @@
- 	unlikely(__ret_warn_on);			\
- })
  
--#define HAVE_ARCH_BUG
--#define HAVE_ARCH_WARN_ON
- #endif /* CONFIG_BUG */
+ #endif /* _M68K_TLBFLUSH_H */
+diff -puN include/asm-m68knommu/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-m68knommu/tlbflush.h
+--- a/include/asm-m68knommu/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-m68knommu/tlbflush.h
+@@ -52,10 +52,4 @@ static inline void flush_tlb_kernel_page
+ 	BUG();
+ }
  
- #include <asm-generic/bug.h>
-Index: k.org/include/asm-sh64/bug.h
-===================================================================
---- k.org.orig/include/asm-sh64/bug.h
-+++ k.org/include/asm-sh64/bug.h
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-	BUG();
+-}
+-
+ #endif /* _M68KNOMMU_TLBFLUSH_H */
+diff -puN include/asm-mips/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-mips/tlbflush.h
+--- a/include/asm-mips/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-mips/tlbflush.h
 @@ -11,7 +11,6 @@
- 	*(volatile int *)0 = 0; \
- } while (0)
+  *  - flush_tlb_page(vma, vmaddr) flushes one page
+  *  - flush_tlb_range(vma, start, end) flushes a range of pages
+  *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
+- *  - flush_tlb_pgtables(mm, start, end) flushes a range of page tables
+  */
+ extern void local_flush_tlb_all(void);
+ extern void local_flush_tlb_mm(struct mm_struct *mm);
+@@ -45,10 +44,4 @@ extern void flush_tlb_one(unsigned long 
  
--#define HAVE_ARCH_BUG
+ #endif /* CONFIG_SMP */
+ 
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-	unsigned long start, unsigned long end)
+-{
+-	/* Nothing to do on MIPS.  */
+-}
+-
+ #endif /* __ASM_TLBFLUSH_H */
+diff -puN include/asm-parisc/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-parisc/tlbflush.h
+--- a/include/asm-parisc/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-parisc/tlbflush.h
+@@ -57,10 +57,6 @@ static inline void flush_tlb_mm(struct m
+ #endif
+ }
+ 
+-extern __inline__ void flush_tlb_pgtables(struct mm_struct *mm, unsigned long start, unsigned long end)
+-{
+-}
+- 
+ static inline void flush_tlb_page(struct vm_area_struct *vma,
+ 	unsigned long addr)
+ {
+diff -puN include/asm-powerpc/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-powerpc/tlbflush.h
+--- a/include/asm-powerpc/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-powerpc/tlbflush.h
+@@ -8,7 +8,6 @@
+  *  - flush_tlb_page_nohash(vma, vmaddr) flushes one page if SW loaded TLB
+  *  - flush_tlb_range(vma, start, end) flushes a range of pages
+  *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
+- *  - flush_tlb_pgtables(mm, start, end) flushes a range of page tables
+  *
+  *  This program is free software; you can redistribute it and/or
+  *  modify it under the terms of the GNU General Public License
+@@ -174,15 +173,5 @@ extern void __flush_hash_table_range(str
+  */
+ extern void update_mmu_cache(struct vm_area_struct *, unsigned long, pte_t);
+ 
+-/*
+- * This is called in munmap when we have freed up some page-table
+- * pages.  We don't need to do anything here, there's nothing special
+- * about our page-table pages.  -- paulus
+- */
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-}
+-
+ #endif /*__KERNEL__ */
+ #endif /* _ASM_POWERPC_TLBFLUSH_H */
+diff -puN include/asm-s390/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-s390/tlbflush.h
+--- a/include/asm-s390/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-s390/tlbflush.h
+@@ -14,7 +14,6 @@
+  *  - flush_tlb_page(vma, vmaddr) flushes one page
+  *  - flush_tlb_range(vma, start, end) flushes a range of pages
+  *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
+- *  - flush_tlb_pgtables(mm, start, end) flushes a range of page tables
+  */
+ 
+ /*
+@@ -152,10 +151,4 @@ static inline void flush_tlb_range(struc
+ 
  #endif
  
- #include <asm-generic/bug.h>
-Index: k.org/include/asm-sparc/bug.h
-===================================================================
---- k.org.orig/include/asm-sparc/bug.h
-+++ k.org/include/asm-sparc/bug.h
-@@ -26,7 +26,6 @@ extern void do_BUG(const char *file, int
- #define BUG()		__bug_trap()
- #endif
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-                                      unsigned long start, unsigned long end)
+-{
+-        /* S/390 does not keep any page table caches in TLB */
+-}
+-
+ #endif /* _S390_TLBFLUSH_H */
+diff -puN include/asm-sh/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-sh/tlbflush.h
+--- a/include/asm-sh/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-sh/tlbflush.h
+@@ -9,7 +9,6 @@
+  *  - flush_tlb_page(vma, vmaddr) flushes one page
+  *  - flush_tlb_range(vma, start, end) flushes a range of pages
+  *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
+- *  - flush_tlb_pgtables(mm, start, end) flushes a range of page tables
+  */
+ extern void local_flush_tlb_all(void);
+ extern void local_flush_tlb_mm(struct mm_struct *mm);
+@@ -47,9 +46,4 @@ extern void flush_tlb_one(unsigned long 
  
--#define HAVE_ARCH_BUG
- #endif
+ #endif /* CONFIG_SMP */
  
- #include <asm-generic/bug.h>
-Index: k.org/include/asm-sparc64/bug.h
-===================================================================
---- k.org.orig/include/asm-sparc64/bug.h
-+++ k.org/include/asm-sparc64/bug.h
-@@ -14,7 +14,6 @@ extern void do_BUG(const char *file, int
- #define BUG()		__builtin_trap()
- #endif
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-	/* Nothing to do */
+-}
+ #endif /* __ASM_SH_TLBFLUSH_H */
+diff -puN include/asm-sh64/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-sh64/tlbflush.h
+--- a/include/asm-sh64/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-sh64/tlbflush.h
+@@ -20,10 +20,6 @@ extern void flush_tlb_mm(struct mm_struc
+ extern void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
+ 			    unsigned long end);
+ extern void flush_tlb_page(struct vm_area_struct *vma, unsigned long page);
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-}
  
--#define HAVE_ARCH_BUG
- #endif
+ extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
  
- #include <asm-generic/bug.h>
-Index: k.org/include/asm-v850/bug.h
-===================================================================
---- k.org.orig/include/asm-v850/bug.h
-+++ k.org/include/asm-v850/bug.h
+diff -puN include/asm-sparc/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-sparc/tlbflush.h
+--- a/include/asm-sparc/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-sparc/tlbflush.h
+@@ -13,7 +13,6 @@
+  *  - flush_tlb_page(vma, vmaddr) flushes one page
+  *  - flush_tlb_range(vma, start, end) flushes a range of pages
+  *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
+- *  - flush_tlb_pgtables(mm, start, end) flushes a range of page tables
+  */
+ 
+ #ifdef CONFIG_SMP
+@@ -42,11 +41,6 @@ BTFIXUPDEF_CALL(void, flush_tlb_mm, stru
+ BTFIXUPDEF_CALL(void, flush_tlb_range, struct vm_area_struct *, unsigned long, unsigned long)
+ BTFIXUPDEF_CALL(void, flush_tlb_page, struct vm_area_struct *, unsigned long)
+ 
+-// Thanks to Anton Blanchard, our pagetables became uncached in 2.4. Wee!
+-// extern void flush_tlb_pgtables(struct mm_struct *mm,
+-//     unsigned long start, unsigned long end);
+-#define flush_tlb_pgtables(mm, start, end)	do{ }while(0)
+-
+ #define flush_tlb_all() BTFIXUP_CALL(flush_tlb_all)()
+ #define flush_tlb_mm(mm) BTFIXUP_CALL(flush_tlb_mm)(mm)
+ #define flush_tlb_range(vma,start,end) BTFIXUP_CALL(flush_tlb_range)(vma,start,end)
+diff -puN include/asm-sparc64/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-sparc64/tlbflush.h
+--- a/include/asm-sparc64/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-sparc64/tlbflush.h
+@@ -41,11 +41,4 @@ do {	flush_tsb_kernel_range(start,end); 
+ 
+ #endif /* ! CONFIG_SMP */
+ 
+-static inline void flush_tlb_pgtables(struct mm_struct *mm, unsigned long start, unsigned long end)
+-{
+-	/* We don't use virtual page tables for TLB miss processing
+-	 * any more.  Nowadays we use the TSB.
+-	 */
+-}
+-
+ #endif /* _SPARC64_TLBFLUSH_H */
+diff -puN include/asm-um/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-um/tlbflush.h
+--- a/include/asm-um/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-um/tlbflush.h
 @@ -17,7 +17,6 @@
- #ifdef CONFIG_BUG
- extern void __bug (void) __attribute__ ((noreturn));
- #define BUG()		__bug()
--#define HAVE_ARCH_BUG
+  *  - flush_tlb_page(vma, vmaddr) flushes one page
+  *  - flush_tlb_kernel_vm() flushes the kernel vm area
+  *  - flush_tlb_range(vma, start, end) flushes a range of pages
+- *  - flush_tlb_pgtables(mm, start, end) flushes a range of page tables
+  */
+ 
+ extern void flush_tlb_all(void);
+@@ -29,9 +28,4 @@ extern void flush_tlb_kernel_vm(void);
+ extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
+ extern void __flush_tlb_one(unsigned long addr);
+ 
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-}
+-
  #endif
+diff -puN include/asm-v850/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-v850/tlbflush.h
+--- a/include/asm-v850/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-v850/tlbflush.h
+@@ -61,10 +61,4 @@ static inline void flush_tlb_kernel_page
+ 	BUG ();
+ }
  
- #include <asm-generic/bug.h>
-Index: k.org/include/asm-x86/bug.h
-===================================================================
---- k.org.orig/include/asm-x86/bug.h
-+++ k.org/include/asm-x86/bug.h
-@@ -2,7 +2,6 @@
- #define _ASM_X86_BUG_H
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-	BUG ();
+-}
+-
+ #endif /* __V850_TLBFLUSH_H__ */
+diff -puN include/asm-x86/tlbflush_32.h~remove-unused-flush_tlb_pgtables include/asm-x86/tlbflush_32.h
+--- a/include/asm-x86/tlbflush_32.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-x86/tlbflush_32.h
+@@ -78,7 +78,6 @@
+  *  - flush_tlb_page(vma, vmaddr) flushes one page
+  *  - flush_tlb_range(vma, start, end) flushes a range of pages
+  *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
+- *  - flush_tlb_pgtables(mm, start, end) flushes a range of page tables
+  *  - flush_tlb_others(cpumask, mm, va) flushes a TLBs on other cpus
+  *
+  * ..but the i386 has somewhat limited tlb flushing capabilities,
+@@ -166,10 +165,4 @@ static inline void flush_tlb_kernel_rang
+ 	flush_tlb_all();
+ }
  
- #ifdef CONFIG_BUG
--#define HAVE_ARCH_BUG
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-	/* i386 does not keep any page table caches in TLB */
+-}
+-
+ #endif /* _I386_TLBFLUSH_H */
+diff -puN include/asm-x86/tlbflush_64.h~remove-unused-flush_tlb_pgtables include/asm-x86/tlbflush_64.h
+--- a/include/asm-x86/tlbflush_64.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-x86/tlbflush_64.h
+@@ -31,7 +31,6 @@ static inline void __flush_tlb_all(void)
+  *  - flush_tlb_page(vma, vmaddr) flushes one page
+  *  - flush_tlb_range(vma, start, end) flushes a range of pages
+  *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
+- *  - flush_tlb_pgtables(mm, start, end) flushes a range of page tables
+  *
+  * x86-64 can only flush individual pages or full VMs. For a range flush
+  * we always do the full VM. Might be worth trying if for a small
+@@ -98,12 +97,4 @@ static inline void flush_tlb_kernel_rang
+ 	flush_tlb_all();
+ }
  
- #ifdef CONFIG_DEBUG_BUGVERBOSE
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-				      unsigned long start, unsigned long end)
+-{
+-	/* x86_64 does not keep any page table caches in a software TLB.
+-	   The CPUs do in their hardware TLBs, but they are handled
+-	   by the normal TLB flushing algorithms. */
+-}
+-
+ #endif /* _X8664_TLBFLUSH_H */
+diff -puN include/asm-xtensa/tlbflush.h~remove-unused-flush_tlb_pgtables include/asm-xtensa/tlbflush.h
+--- a/include/asm-xtensa/tlbflush.h~remove-unused-flush_tlb_pgtables
++++ a/include/asm-xtensa/tlbflush.h
+@@ -41,17 +41,6 @@ extern void flush_tlb_range(struct vm_ar
  
+ #define flush_tlb_kernel_range(start,end) flush_tlb_all()
+ 
+-
+-/* This is calld in munmap when we have freed up some page-table pages.
+- * We don't need to do anything here, there's nothing special about our
+- * page-table pages.
+- */
+-
+-static inline void flush_tlb_pgtables(struct mm_struct *mm,
+-                                      unsigned long start, unsigned long end)
+-{
+-}
+-
+ /* TLB operations. */
+ 
+ static inline unsigned long itlb_probe(unsigned long addr)
+diff -puN mm/memory.c~remove-unused-flush_tlb_pgtables mm/memory.c
+--- a/mm/memory.c~remove-unused-flush_tlb_pgtables
++++ a/mm/memory.c
+@@ -259,9 +259,6 @@ void free_pgd_range(struct mmu_gather **
+ 			continue;
+ 		free_pud_range(*tlb, pgd, addr, next, floor, ceiling);
+ 	} while (pgd++, addr = next, addr != end);
+-
+-	if (!(*tlb)->fullmm)
+-		flush_tlb_pgtables((*tlb)->mm, start, end);
+ }
+ 
+ void free_pgtables(struct mmu_gather **tlb, struct vm_area_struct *vma,
+_
