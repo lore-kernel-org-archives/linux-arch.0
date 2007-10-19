@@ -1,176 +1,299 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:54039 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756987AbXJRVeH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 Oct 2007 17:34:07 -0400
-Message-Id: <200710182133.l9ILXVZJ032198@imap1.linux-foundation.org>
-Subject: + kexec-use-bootmem_exclusive-on-x86.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Thu, 18 Oct 2007 14:33:31 -0700
+Received: from lixom.net ([66.141.50.11]:57967 "EHLO mail.lixom.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S965698AbXJSCFL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 18 Oct 2007 22:05:11 -0400
+Date: Thu, 18 Oct 2007 21:03:05 -0500
+From: Olof Johansson <olof@lixom.net>
+Subject: [PATCH v2] [1/2] bug.h: Remove HAVE_ARCH_BUG.* / HAVE_ARCH_WARN.*
+Message-ID: <20071019020305.GA28359@lixom.net>
+References: <20071011171211.GB10877@lixom.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20071011171211.GB10877@lixom.net>
 Sender: linux-arch-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: bwalle@suse.de, ebiederm@xmission.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, vgoyal@in.ibm.com
+To: linux-kernel@vger.kernel.org
+Cc: akpm@linux-foundation.org, paulus@ozlabs.org, lethal@linux-sh.org, kyle@parisc-linux.org, grundler@parisc-linux.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+No need to have the HAVE_ARCH_BUG.* / HAVE_ARCH_WARN.* defines, when
+the generic implementation can just use #ifndef on the macros themselves.
 
-The patch titled
-     kexec: use BOOTMEM_EXCLUSIVE on x86
-has been added to the -mm tree.  Its filename is
-     kexec-use-bootmem_exclusive-on-x86.patch
+Also, introduce __WARN() in the generic case, so the generic WARN_ON()
+can use arch-specific code for when the condition is true.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+Built on powerpc, i386, sh and sparc64.
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
 
-------------------------------------------------------
-Subject: kexec: use BOOTMEM_EXCLUSIVE on x86
-From: Bernhard Walle <bwalle@suse.de>
+Signed-off-by: Olof Johansson <olof@lixom.net>
 
-This patch uses the BOOTMEM_EXCLUSIVE, introduced in the previous patch, to
-avoid conflicts while reserving the memory for the kdump carpture kernel
-(crashkernel=).
-
-The modification has been tested on i386.
-
-Signed-off-by: Bernhard Walle <bwalle@suse.de>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Vivek Goyal <vgoyal@in.ibm.com>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@elte.hu>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/x86/kernel/setup_32.c |   33 ++++++++++++++++++++-------------
- arch/x86/kernel/setup_64.c |   35 +++++++++++++++++++++--------------
- 2 files changed, 41 insertions(+), 27 deletions(-)
-
-diff -puN arch/x86/kernel/setup_32.c~kexec-use-bootmem_exclusive-on-x86 arch/x86/kernel/setup_32.c
---- a/arch/x86/kernel/setup_32.c~kexec-use-bootmem_exclusive-on-x86
-+++ a/arch/x86/kernel/setup_32.c
-@@ -401,22 +401,29 @@ static void __init reserve_crashkernel(v
+Index: k.org/include/asm-generic/bug.h
+===================================================================
+--- k.org.orig/include/asm-generic/bug.h
++++ k.org/include/asm-generic/bug.h
+@@ -20,39 +20,44 @@ struct bug_entry {
+ #define BUGFLAG_WARNING	(1<<0)
+ #endif	/* CONFIG_GENERIC_BUG */
  
- 	total_mem = get_total_mem();
+-#ifndef HAVE_ARCH_BUG
++#ifndef BUG
+ #define BUG() do { \
+ 	printk("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __FUNCTION__); \
+ 	panic("BUG!"); \
+ } while (0)
+ #endif
  
--	ret = parse_crashkernel(boot_command_line, total_mem,
--			&crash_size, &crash_base);
-+	ret = parse_crashkernel(boot_command_line, total_mem, &crash_size,
-+				&crash_base);
- 	if (ret == 0 && crash_size > 0) {
--		if (crash_base > 0) {
--			printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
--					"for crashkernel (System RAM: %ldMB)\n",
--					(unsigned long)(crash_size >> 20),
--					(unsigned long)(crash_base >> 20),
--					(unsigned long)(total_mem >> 20));
--			crashk_res.start = crash_base;
--			crashk_res.end   = crash_base + crash_size - 1;
--			reserve_bootmem(crash_base, crash_size,
--					BOOTMEM_DEFAULT);
--		} else
-+		if (crash_base <= 0) {
- 			printk(KERN_INFO "crashkernel reservation failed - "
- 					"you have to specify a base address\n");
-+			return;
-+		}
-+
-+		if (reserve_bootmem(crash_base, crash_size,
-+					BOOTMEM_EXCLUSIVE) < 0) {
-+			printk(KERN_INFO "crashkernel reservation failed - "
-+					"memory is in use\n");
-+			return;
-+		}
-+
-+		printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
-+				"for crashkernel (System RAM: %ldMB)\n",
-+				(unsigned long)(crash_size >> 20),
-+				(unsigned long)(crash_base >> 20),
-+				(unsigned long)(total_mem >> 20));
-+		crashk_res.start = crash_base;
-+		crashk_res.end = crash_base + crash_size - 1;
- 	}
- }
- #else
-diff -puN arch/x86/kernel/setup_64.c~kexec-use-bootmem_exclusive-on-x86 arch/x86/kernel/setup_64.c
---- a/arch/x86/kernel/setup_64.c~kexec-use-bootmem_exclusive-on-x86
-+++ a/arch/x86/kernel/setup_64.c
-@@ -201,28 +201,35 @@ static inline void copy_edd(void)
- #ifdef CONFIG_KEXEC
- static void __init reserve_crashkernel(void)
- {
--	unsigned long long free_mem;
-+	unsigned long long total_mem;
- 	unsigned long long crash_size, crash_base;
- 	int ret;
+-#ifndef HAVE_ARCH_BUG_ON
++#ifndef BUG_ON
+ #define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while(0)
+ #endif
  
--	free_mem = ((unsigned long long)max_low_pfn - min_low_pfn) << PAGE_SHIFT;
-+	total_mem = ((unsigned long long)max_low_pfn - min_low_pfn) << PAGE_SHIFT;
+-#ifndef HAVE_ARCH_WARN_ON
++#ifndef __WARN
++#define __WARN() do {							\
++	printk("WARNING: at %s:%d %s()\n", __FILE__,			\
++		__LINE__, __FUNCTION__);				\
++	dump_stack();							\
++} while (0)
++#endif
++
++#ifndef WARN_ON
+ #define WARN_ON(condition) ({						\
+ 	int __ret_warn_on = !!(condition);				\
+-	if (unlikely(__ret_warn_on)) {					\
+-		printk("WARNING: at %s:%d %s()\n", __FILE__,		\
+-			__LINE__, __FUNCTION__);			\
+-		dump_stack();						\
+-	}								\
++	if (unlikely(__ret_warn_on))					\
++		__WARN();						\
+ 	unlikely(__ret_warn_on);					\
+ })
+ #endif
  
--	ret = parse_crashkernel(boot_command_line, free_mem,
-+	ret = parse_crashkernel(boot_command_line, total_mem,
- 			&crash_size, &crash_base);
- 	if (ret == 0 && crash_size) {
--		if (crash_base > 0) {
--			printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
--					"for crashkernel (System RAM: %ldMB)\n",
--					(unsigned long)(crash_size >> 20),
--					(unsigned long)(crash_base >> 20),
--					(unsigned long)(free_mem >> 20));
--			crashk_res.start = crash_base;
--			crashk_res.end   = crash_base + crash_size - 1;
--			reserve_bootmem(crash_base, crash_size,
--					BOOTMEM_DEFAULT);
--		} else
-+		if (crash_base <= 0) {
- 			printk(KERN_INFO "crashkernel reservation failed - "
- 					"you have to specify a base address\n");
-+			return;
-+		}
-+
-+		if (reserve_bootmem(crash_base, crash_size,
-+					BOOTMEM_EXCLUSIVE) < 0) {
-+			printk(KERN_INFO "crashkernel reservation failed - "
-+					"memory is in use\n");
-+			return;
-+		}
-+
-+		printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
-+				"for crashkernel (System RAM: %ldMB)\n",
-+				(unsigned long)(crash_size >> 20),
-+				(unsigned long)(crash_base >> 20),
-+				(unsigned long)(total_mem >> 20));
-+		crashk_res.start = crash_base;
-+		crashk_res.end   = crash_base + crash_size - 1;
- 	}
- }
- #else
-_
-
-Patches currently in -mm which might be from bwalle@suse.de are
-
-origin.patch
-extended-crashkernel-command-line.patch
-extended-crashkernel-command-line-update.patch
-extended-crashkernel-command-line-comment-fix.patch
-extended-crashkernel-command-line-improve-error-handling-in-parse_crashkernel_mem.patch
-use-extended-crashkernel-command-line-on-i386.patch
-use-extended-crashkernel-command-line-on-i386-update.patch
-use-extended-crashkernel-command-line-on-x86_64.patch
-use-extended-crashkernel-command-line-on-x86_64-update.patch
-use-extended-crashkernel-command-line-on-ia64.patch
-use-extended-crashkernel-command-line-on-ia64-fix.patch
-use-extended-crashkernel-command-line-on-ia64-update.patch
-use-extended-crashkernel-command-line-on-ppc64.patch
-use-extended-crashkernel-command-line-on-ppc64-update.patch
-use-extended-crashkernel-command-line-on-sh.patch
-use-extended-crashkernel-command-line-on-sh-update.patch
-add-documentation-for-extended-crashkernel-syntax.patch
-add-documentation-for-extended-crashkernel-syntax-add-extended-crashkernel-syntax-to-kernel-parameterstxt.patch
-kexec-add-bss-to-resource-tree.patch
-kexec-add-bss-to-resource-tree-checkpatch-fixes.patch
-kexec-introduce-bootmem_exclusive.patch
-kexec-introduce-bootmem_exclusive-checkpatch-fixes.patch
-kexec-use-bootmem_exclusive-on-x86.patch
-
+ #else /* !CONFIG_BUG */
+-#ifndef HAVE_ARCH_BUG
++#ifndef BUG
+ #define BUG()
+ #endif
+ 
+-#ifndef HAVE_ARCH_BUG_ON
++#ifndef BUG_ON
+ #define BUG_ON(condition) do { if (condition) ; } while(0)
+ #endif
+ 
+-#ifndef HAVE_ARCH_WARN_ON
++#ifndef WARN_ON
+ #define WARN_ON(condition) ({						\
+ 	int __ret_warn_on = !!(condition);				\
+ 	unlikely(__ret_warn_on);					\
+Index: k.org/include/asm-parisc/bug.h
+===================================================================
+--- k.org.orig/include/asm-parisc/bug.h
++++ k.org/include/asm-parisc/bug.h
+@@ -7,8 +7,6 @@
+  */
+ 
+ #ifdef CONFIG_BUG
+-#define HAVE_ARCH_BUG
+-#define HAVE_ARCH_WARN_ON
+ 
+ /* the break instruction is used as BUG() marker.  */
+ #define	PARISC_BUG_BREAK_ASM	"break 0x1f, 0x1fff"
+Index: k.org/include/asm-powerpc/bug.h
+===================================================================
+--- k.org.orig/include/asm-powerpc/bug.h
++++ k.org/include/asm-powerpc/bug.h
+@@ -109,9 +109,6 @@
+ 	unlikely(__ret_warn_on);				\
+ })
+ 
+-#define HAVE_ARCH_BUG
+-#define HAVE_ARCH_BUG_ON
+-#define HAVE_ARCH_WARN_ON
+ #endif /* __ASSEMBLY __ */
+ #endif /* CONFIG_BUG */
+ 
+Index: k.org/include/asm-sh/bug.h
+===================================================================
+--- k.org.orig/include/asm-sh/bug.h
++++ k.org/include/asm-sh/bug.h
+@@ -4,8 +4,6 @@
+ #define TRAPA_BUG_OPCODE	0xc33e	/* trapa #0x3e */
+ 
+ #ifdef CONFIG_BUG
+-#define HAVE_ARCH_BUG
+-#define HAVE_ARCH_WARN_ON
+ 
+ /**
+  * _EMIT_BUG_ENTRY
+Index: k.org/include/asm-alpha/bug.h
+===================================================================
+--- k.org.orig/include/asm-alpha/bug.h
++++ k.org/include/asm-alpha/bug.h
+@@ -10,7 +10,6 @@
+   __asm__ __volatile__("call_pal %0  # bugchk\n\t"".long %1\n\t.8byte %2" \
+ 		       : : "i" (PAL_bugchk), "i"(__LINE__), "i"(__FILE__))
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+Index: k.org/include/asm-arm/bug.h
+===================================================================
+--- k.org.orig/include/asm-arm/bug.h
++++ k.org/include/asm-arm/bug.h
+@@ -16,7 +16,6 @@ extern void __bug(const char *file, int 
+ 
+ #endif
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+Index: k.org/include/asm-avr32/bug.h
+===================================================================
+--- k.org.orig/include/asm-avr32/bug.h
++++ k.org/include/asm-avr32/bug.h
+@@ -63,9 +63,6 @@
+ 		unlikely(__ret_warn_on);				\
+ 	})
+ 
+-#define HAVE_ARCH_BUG
+-#define HAVE_ARCH_WARN_ON
+-
+ #endif /* CONFIG_BUG */
+ 
+ #include <asm-generic/bug.h>
+Index: k.org/include/asm-frv/bug.h
+===================================================================
+--- k.org.orig/include/asm-frv/bug.h
++++ k.org/include/asm-frv/bug.h
+@@ -32,7 +32,6 @@ do {						\
+ 	asm volatile("nop");			\
+ } while(0)
+ 
+-#define HAVE_ARCH_BUG
+ #define BUG()					\
+ do {						\
+ 	_debug_bug_printk();			\
+Index: k.org/include/asm-ia64/bug.h
+===================================================================
+--- k.org.orig/include/asm-ia64/bug.h
++++ k.org/include/asm-ia64/bug.h
+@@ -6,7 +6,6 @@
+ #define BUG() do { printk("kernel BUG at %s:%d!\n", __FILE__, __LINE__); ia64_abort(); } while (0)
+ 
+ /* should this BUG be made generic? */
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+Index: k.org/include/asm-m68k/bug.h
+===================================================================
+--- k.org.orig/include/asm-m68k/bug.h
++++ k.org/include/asm-m68k/bug.h
+@@ -21,7 +21,6 @@
+ } while (0)
+ #endif
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+Index: k.org/include/asm-mips/bug.h
+===================================================================
+--- k.org.orig/include/asm-mips/bug.h
++++ k.org/include/asm-mips/bug.h
+@@ -12,8 +12,6 @@ do {									\
+ 	__asm__ __volatile__("break %0" : : "i" (BRK_BUG));		\
+ } while (0)
+ 
+-#define HAVE_ARCH_BUG
+-
+ #if (_MIPS_ISA > _MIPS_ISA_MIPS1)
+ 
+ #define BUG_ON(condition)						\
+@@ -22,8 +20,6 @@ do {									\
+ 			     : : "r" (condition), "i" (BRK_BUG));	\
+ } while (0)
+ 
+-#define HAVE_ARCH_BUG_ON
+-
+ #endif /* _MIPS_ISA > _MIPS_ISA_MIPS1 */
+ 
+ #endif
+Index: k.org/include/asm-s390/bug.h
+===================================================================
+--- k.org.orig/include/asm-s390/bug.h
++++ k.org/include/asm-s390/bug.h
+@@ -61,8 +61,6 @@
+ 	unlikely(__ret_warn_on);			\
+ })
+ 
+-#define HAVE_ARCH_BUG
+-#define HAVE_ARCH_WARN_ON
+ #endif /* CONFIG_BUG */
+ 
+ #include <asm-generic/bug.h>
+Index: k.org/include/asm-sh64/bug.h
+===================================================================
+--- k.org.orig/include/asm-sh64/bug.h
++++ k.org/include/asm-sh64/bug.h
+@@ -11,7 +11,6 @@
+ 	*(volatile int *)0 = 0; \
+ } while (0)
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+Index: k.org/include/asm-sparc/bug.h
+===================================================================
+--- k.org.orig/include/asm-sparc/bug.h
++++ k.org/include/asm-sparc/bug.h
+@@ -26,7 +26,6 @@ extern void do_BUG(const char *file, int
+ #define BUG()		__bug_trap()
+ #endif
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+Index: k.org/include/asm-sparc64/bug.h
+===================================================================
+--- k.org.orig/include/asm-sparc64/bug.h
++++ k.org/include/asm-sparc64/bug.h
+@@ -14,7 +14,6 @@ extern void do_BUG(const char *file, int
+ #define BUG()		__builtin_trap()
+ #endif
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+Index: k.org/include/asm-v850/bug.h
+===================================================================
+--- k.org.orig/include/asm-v850/bug.h
++++ k.org/include/asm-v850/bug.h
+@@ -17,7 +17,6 @@
+ #ifdef CONFIG_BUG
+ extern void __bug (void) __attribute__ ((noreturn));
+ #define BUG()		__bug()
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+Index: k.org/include/asm-x86/bug.h
+===================================================================
+--- k.org.orig/include/asm-x86/bug.h
++++ k.org/include/asm-x86/bug.h
+@@ -2,7 +2,6 @@
+ #define _ASM_X86_BUG_H
+ 
+ #ifdef CONFIG_BUG
+-#define HAVE_ARCH_BUG
+ 
+ #ifdef CONFIG_DEBUG_BUGVERBOSE
+ 
