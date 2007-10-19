@@ -1,900 +1,381 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:42067 "EHLO mx1.suse.de"
+Received: from pasmtpa.tele.dk ([80.160.77.114]:59728 "EHLO pasmtpA.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750800AbXJSPHs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 19 Oct 2007 11:07:48 -0400
-Date: Fri, 19 Oct 2007 17:07:45 +0200
-From: Bernhard Walle <bwalle@suse.de>
-Subject: [PATCH] Add additional argument to bootmem reservation
-Message-ID: <20071019150745.GA17035@suse.de>
-MIME-Version: 1.0
+	id S1761005AbXJSUmm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Oct 2007 16:42:42 -0400
+Date: Fri, 19 Oct 2007 22:44:15 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [GI:wqT PULL] kbuild updates - second round
+Message-ID: <20071019204415.GA623@uranus.ravnborg.org>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-This patch adds the additional bootmem reservation argument to all other
-architectures which didn't compile after
-kexec-introduce-bootmem_exclusive.patch has been merged [1].
+Following are the accumulated kbuild updates.
+A mixture of new stuff and fixes.
 
-It also adds a flags argument to reserve_bootmem_node().
+The cc-cross-prefix is new and developed on request from Geert Uytterhoeven.
+With cc-cross-prefix it is now much easier to have a few default
+cross compile prefixes and defaulting to none - if none of them were present.
+ARCH maintainers are expected to pick up this feature soon.
 
-I tested compilation on i386, x86_64 and ia64 with different memory
-configurations. I hope that all other architectures work again, if not, drop me
-a note with the compiler error and I'll create a patch that fixes it.
+The other noteworthy change is the move of the mailing list for kbuild/kconfig.
+Subscribe to the new list like this:
+Send a mail to majordomo@vger.kernel.org
+Subject: whatever
+subscribe linux-kbuild
+
+Then you will receive a confirmation mail and when you have answered
+that mail you are subscribed to the new unmoderated list.
+
+Please pull from:
+	git://git.kernel.org/pub/scm/linux/kernel/git/sam/kbuild.git
+
+Full diff below - because it is so little. See individual patches in the git tree.
+
+	Sam
 
 
+ Documentation/kbuild/kconfig-language.txt |   14 ++++++++-
+ Documentation/kbuild/makefiles.txt        |   22 ++++++++++++++
+ MAINTAINERS                               |    3 +-
+ Makefile                                  |   45 +++++++++++++----------------
+ scripts/Kbuild.include                    |   11 +++++++
+ scripts/basic/docproc.c                   |   11 ++++++-
+ scripts/kconfig/Makefile                  |    2 +-
+ scripts/mod/modpost.c                     |    3 ++
+ scripts/package/builddeb                  |    2 +
+ 9 files changed, 83 insertions(+), 30 deletions(-)
 
-[1] Andrew, I thought it was clear from my patch description that the patch
-    was not ready to be merged -- however, that patch is the fix that was
-    missing, so no need to drop it now.
+Randy Dunlap (1):
+      kconfig: update kconfig-language text
 
-Signed-off-by: Bernhard Walle <bwalle@suse.de>
+Rob Landley (2):
+      kbuild: stop docproc segfaulting when SRCTREE isn't set.
+      kconfig: comment typo in scripts/kconfig/Makefile.
 
----
- arch/alpha/kernel/core_irongate.c |    3 ++-
- arch/alpha/kernel/setup.c         |    5 +++--
- arch/alpha/mm/numa.c              |    5 +++--
- arch/arm/mm/init.c                |    4 ++--
- arch/arm/mm/mmu.c                 |   17 +++++++++++------
- arch/arm/mm/nommu.c               |    9 ++++++---
- arch/arm/plat-omap/fb.c           |    2 +-
- arch/avr32/kernel/setup.c         |    6 ++++--
- arch/blackfin/kernel/setup.c      |    2 +-
- arch/cris/kernel/setup.c          |    2 +-
- arch/frv/kernel/setup.c           |   16 ++++++++++------
- arch/h8300/kernel/setup.c         |    2 +-
- arch/ia64/mm/contig.c             |    2 +-
- arch/ia64/mm/discontig.c          |    4 ++--
- arch/m32r/kernel/setup.c          |   11 +++++++----
- arch/m32r/mm/discontig.c          |    5 +++--
- arch/m68k/atari/stram.c           |    2 +-
- arch/m68k/kernel/setup.c          |    3 ++-
- arch/m68knommu/kernel/setup.c     |    2 +-
- arch/mips/kernel/setup.c          |    4 ++--
- arch/mips/sgi-ip27/ip27-memory.c  |    3 ++-
- arch/parisc/mm/init.c             |   14 +++++++++-----
- arch/powerpc/mm/mem.c             |    3 ++-
- arch/powerpc/mm/numa.c            |    2 +-
- arch/s390/kernel/setup.c          |   11 +++++++----
- arch/sh/kernel/setup.c            |   10 ++++++----
- arch/sh/mm/numa.c                 |    4 ++--
- arch/sh64/kernel/setup.c          |    7 +++++--
- arch/sparc/mm/init.c              |    6 +++---
- arch/sparc64/mm/init.c            |    8 ++++----
- arch/v850/kernel/anna.c           |    3 ++-
- arch/v850/kernel/as85ep1.c        |    3 ++-
- arch/v850/kernel/rte_ma1_cb.c     |    6 ++++--
- arch/v850/kernel/setup.c          |   12 ++++++++----
- arch/x86/mm/discontig_32.c        |    3 ++-
- arch/x86/mm/init_64.c             |    6 +++---
- arch/x86/mm/numa_64.c             |    6 ++++--
- arch/x86/mm/srat_64.c             |    3 ++-
- include/asm-x86/mmzone_32.h       |    4 ++--
- include/linux/bootmem.h           |    3 ++-
- mm/bootmem.c                      |    4 ++--
- 41 files changed, 138 insertions(+), 89 deletions(-)
+Sam Ravnborg (4):
+      kbuild: mailing list has moved
+      kbuild: disable depmod in cross-compile kernel build
+      kbuild: introduce cc-cross-prefix
+      kbuild: fix first module build
 
---- a/arch/alpha/kernel/core_irongate.c
-+++ b/arch/alpha/kernel/core_irongate.c
-@@ -241,7 +241,8 @@ albacore_init_arch(void)
- 				       size / 1024);
- 		}
- #endif
--		reserve_bootmem_node(NODE_DATA(0), pci_mem, memtop - pci_mem);
-+		reserve_bootmem_node(NODE_DATA(0), pci_mem, memtop -
-+				pci_mem, BOOTMEM_DEFAULT);
- 		printk("irongate_init_arch: temporarily reserving "
- 			"region %08lx-%08lx for PCI\n", pci_mem, memtop - 1);
- 	}
---- a/arch/alpha/kernel/setup.c
-+++ b/arch/alpha/kernel/setup.c
-@@ -429,7 +429,8 @@ setup_memory(void *kernel_end)
- 	}
- 
- 	/* Reserve the bootmap memory.  */
--	reserve_bootmem(PFN_PHYS(bootmap_start), bootmap_size);
-+	reserve_bootmem(PFN_PHYS(bootmap_start), bootmap_size,
-+			BOOTMEM_DEFAULT);
- 	printk("reserving pages %ld:%ld\n", bootmap_start, bootmap_start+PFN_UP(bootmap_size));
- 
- #ifdef CONFIG_BLK_DEV_INITRD
-@@ -447,7 +448,7 @@ setup_memory(void *kernel_end)
- 				       phys_to_virt(PFN_PHYS(max_low_pfn)));
- 		} else {
- 			reserve_bootmem(virt_to_phys((void *)initrd_start),
--					INITRD_SIZE);
-+					INITRD_SIZE, BOOTMEM_DEFAULT);
- 		}
- 	}
- #endif /* CONFIG_BLK_DEV_INITRD */
---- a/arch/alpha/mm/numa.c
-+++ b/arch/alpha/mm/numa.c
-@@ -242,7 +242,8 @@ setup_memory_node(int nid, void *kernel_
- 	}
- 
- 	/* Reserve the bootmap memory.  */
--	reserve_bootmem_node(NODE_DATA(nid), PFN_PHYS(bootmap_start), bootmap_size);
-+	reserve_bootmem_node(NODE_DATA(nid), PFN_PHYS(bootmap_start),
-+			bootmap_size, BOOTMEM_DEFAULT);
- 	printk(" reserving pages %ld:%ld\n", bootmap_start, bootmap_start+PFN_UP(bootmap_size));
- 
- 	node_set_online(nid);
-@@ -281,7 +282,7 @@ setup_memory(void *kernel_end)
- 			nid = kvaddr_to_nid(initrd_start);
- 			reserve_bootmem_node(NODE_DATA(nid),
- 					     virt_to_phys((void *)initrd_start),
--					     INITRD_SIZE);
-+					     INITRD_SIZE, BOOTMEM_DEFAULT);
- 		}
- 	}
- #endif /* CONFIG_BLK_DEV_INITRD */
---- a/arch/arm/mm/init.c
-+++ b/arch/arm/mm/init.c
-@@ -239,7 +239,7 @@ bootmem_init_node(int node, int initrd_n
- 	 * Reserve the bootmem bitmap for this node.
- 	 */
- 	reserve_bootmem_node(pgdat, boot_pfn << PAGE_SHIFT,
--			     boot_pages << PAGE_SHIFT);
-+			     boot_pages << PAGE_SHIFT, BOOTMEM_DEFAULT);
- 
- #ifdef CONFIG_BLK_DEV_INITRD
- 	/*
-@@ -247,7 +247,7 @@ bootmem_init_node(int node, int initrd_n
- 	 */
- 	if (node == initrd_node) {
- 		reserve_bootmem_node(pgdat, phys_initrd_start,
--				     phys_initrd_size);
-+				     phys_initrd_size, BOOTMEM_DEFAULT);
- 		initrd_start = __phys_to_virt(phys_initrd_start);
- 		initrd_end = initrd_start + phys_initrd_size;
- 	}
---- a/arch/arm/mm/mmu.c
-+++ b/arch/arm/mm/mmu.c
-@@ -605,9 +605,11 @@ void __init reserve_node_zero(pg_data_t 
- 	 * Note that this can only be in node 0.
- 	 */
- #ifdef CONFIG_XIP_KERNEL
--	reserve_bootmem_node(pgdat, __pa(&__data_start), &_end - &__data_start);
-+	reserve_bootmem_node(pgdat, __pa(&__data_start), &_end - &__data_start,
-+			BOOTMEM_DEFAULT);
- #else
--	reserve_bootmem_node(pgdat, __pa(&_stext), &_end - &_stext);
-+	reserve_bootmem_node(pgdat, __pa(&_stext), &_end - &_stext,
-+			BOOTMEM_DEFAULT);
- #endif
- 
- 	/*
-@@ -615,7 +617,7 @@ void __init reserve_node_zero(pg_data_t 
- 	 * and can only be in node 0.
- 	 */
- 	reserve_bootmem_node(pgdat, __pa(swapper_pg_dir),
--			     PTRS_PER_PGD * sizeof(pgd_t));
-+			     PTRS_PER_PGD * sizeof(pgd_t), BOOTMEM_DEFAULT);
- 
- 	/*
- 	 * Hmm... This should go elsewhere, but we really really need to
-@@ -638,8 +640,10 @@ void __init reserve_node_zero(pg_data_t 
- 	/* H1940 and RX3715 need to reserve this for suspend */
- 
- 	if (machine_is_h1940() || machine_is_rx3715()) {
--		reserve_bootmem_node(pgdat, 0x30003000, 0x1000);
--		reserve_bootmem_node(pgdat, 0x30081000, 0x1000);
-+		reserve_bootmem_node(pgdat, 0x30003000, 0x1000,
-+				BOOTMEM_DEFAULT);
-+		reserve_bootmem_node(pgdat, 0x30081000, 0x1000,
-+				BOOTMEM_DEFAULT);
- 	}
- 
- #ifdef CONFIG_SA1111
-@@ -650,7 +654,8 @@ void __init reserve_node_zero(pg_data_t 
- 	res_size = __pa(swapper_pg_dir) - PHYS_OFFSET;
- #endif
- 	if (res_size)
--		reserve_bootmem_node(pgdat, PHYS_OFFSET, res_size);
-+		reserve_bootmem_node(pgdat, PHYS_OFFSET, res_size,
-+				BOOTMEM_DEFAULT);
- }
- 
- /*
---- a/arch/arm/mm/nommu.c
-+++ b/arch/arm/mm/nommu.c
-@@ -27,9 +27,11 @@ void __init reserve_node_zero(pg_data_t 
- 	 * Note that this can only be in node 0.
- 	 */
- #ifdef CONFIG_XIP_KERNEL
--	reserve_bootmem_node(pgdat, __pa(&__data_start), &_end - &__data_start);
-+	reserve_bootmem_node(pgdat, __pa(&__data_start), &_end - &__data_start,
-+			BOOTMEM_DEFAULT);
- #else
--	reserve_bootmem_node(pgdat, __pa(&_stext), &_end - &_stext);
-+	reserve_bootmem_node(pgdat, __pa(&_stext), &_end - &_stext,
-+			BOOTMEM_DEFAULT);
- #endif
- 
- 	/*
-@@ -37,7 +39,8 @@ void __init reserve_node_zero(pg_data_t 
- 	 * some architectures which the DRAM is the exception vector to trap,
- 	 * alloc_page breaks with error, although it is not NULL, but "0."
- 	 */
--	reserve_bootmem_node(pgdat, CONFIG_VECTORS_BASE, PAGE_SIZE);
-+	reserve_bootmem_node(pgdat, CONFIG_VECTORS_BASE, PAGE_SIZE,
-+			BOOTMEM_DEFAULT);
- }
- 
- /*
---- a/arch/arm/plat-omap/fb.c
-+++ b/arch/arm/plat-omap/fb.c
-@@ -207,7 +207,7 @@ void omapfb_reserve_sdram(void)
- 			return;
- 		}
- 		if (rg.paddr)
--			reserve_bootmem(rg.paddr, rg.size);
-+			reserve_bootmem(rg.paddr, rg.size, BOOTMEM_DEFAULT);
- 		reserved += rg.size;
- 		omapfb_config.mem_desc.region[i] = rg;
- 		configured_regions++;
---- a/arch/avr32/kernel/setup.c
-+++ b/arch/avr32/kernel/setup.c
-@@ -489,7 +489,8 @@ static void __init setup_bootmem(void)
- 		/* Reserve space for the bootmem bitmap... */
- 		reserve_bootmem_node(NODE_DATA(node),
- 				     PFN_PHYS(bootmap_pfn),
--				     bootmap_size);
-+				     bootmap_size,
-+				     BOOTMEM_DEFAULT);
- 
- 		/* ...and any other reserved regions. */
- 		for (res = reserved; res; res = res->sibling) {
-@@ -505,7 +506,8 @@ static void __init setup_bootmem(void)
- 			    && res->end < PFN_PHYS(max_pfn))
- 				reserve_bootmem_node(
- 					NODE_DATA(node), res->start,
--					res->end - res->start + 1);
-+					res->end - res->start + 1,
-+					BOOTMEM_DEFAULT);
- 		}
- 
- 		node_set_online(node);
---- a/arch/blackfin/kernel/setup.c
-+++ b/arch/blackfin/kernel/setup.c
-@@ -387,7 +387,7 @@ void __init setup_arch(char **cmdline_p)
- 	 */
- 	free_bootmem(memory_start, memory_end - memory_start);
- 
--	reserve_bootmem(memory_start, bootmap_size);
-+	reserve_bootmem(memory_start, bootmap_size, BOOTMEM_DEFAULT);
- 	/*
- 	 * get kmalloc into gear
- 	 */
---- a/arch/cris/kernel/setup.c
-+++ b/arch/cris/kernel/setup.c
-@@ -137,7 +137,7 @@ setup_arch(char **cmdline_p)
- 	 * Arguments are start, size
-          */
- 
--        reserve_bootmem(PFN_PHYS(start_pfn), bootmap_size);
-+	reserve_bootmem(PFN_PHYS(start_pfn), bootmap_size, BOOTMEM_DEFAULT);
- 
- 	/* paging_init() sets up the MMU and marks all pages as reserved */
- 
---- a/arch/frv/kernel/setup.c
-+++ b/arch/frv/kernel/setup.c
-@@ -925,13 +925,15 @@ static void __init setup_linux_memory(vo
- #endif
- 
- 	/* take back the memory occupied by the kernel image and the bootmem alloc map */
--	reserve_bootmem(kstart, kend - kstart + bootmap_size);
-+	reserve_bootmem(kstart, kend - kstart + bootmap_size,
-+			BOOTMEM_DEFAULT);
- 
- 	/* reserve the memory occupied by the initial ramdisk */
- #ifdef CONFIG_BLK_DEV_INITRD
- 	if (LOADER_TYPE && INITRD_START) {
- 		if (INITRD_START + INITRD_SIZE <= (low_top_pfn << PAGE_SHIFT)) {
--			reserve_bootmem(INITRD_START, INITRD_SIZE);
-+			reserve_bootmem(INITRD_START, INITRD_SIZE,
-+					BOOTMEM_DEFAULT);
- 			initrd_start = INITRD_START + PAGE_OFFSET;
- 			initrd_end = initrd_start + INITRD_SIZE;
- 		}
-@@ -986,9 +988,10 @@ static void __init setup_uclinux_memory(
- 
- 	/* now take back the bits the core kernel is occupying */
- #ifndef CONFIG_PROTECT_KERNEL
--	reserve_bootmem(kend, bootmap_size);
-+	reserve_bootmem(kend, bootmap_size, BOOTMEM_DEFAULT);
- 	reserve_bootmem((unsigned long) &__kernel_image_start,
--			kend - (unsigned long) &__kernel_image_start);
-+			kend - (unsigned long) &__kernel_image_start,
-+			BOOTMEM_DEFAULT);
- 
- #else
- 	dampr = __get_DAMPR(0);
-@@ -996,14 +999,15 @@ static void __init setup_uclinux_memory(
- 	dampr = (dampr >> 4) + 17;
- 	dampr = 1 << dampr;
- 
--	reserve_bootmem(__get_DAMPR(0) & xAMPRx_PPFN, dampr);
-+	reserve_bootmem(__get_DAMPR(0) & xAMPRx_PPFN, dampr, BOOTMEM_DEFAULT);
- #endif
- 
- 	/* reserve some memory to do uncached DMA through if requested */
- #ifdef CONFIG_RESERVE_DMA_COHERENT
- 	if (dma_coherent_mem_start)
- 		reserve_bootmem(dma_coherent_mem_start,
--				dma_coherent_mem_end - dma_coherent_mem_start);
-+				dma_coherent_mem_end - dma_coherent_mem_start,
-+				BOOTMEM_DEFAULT);
- #endif
- 
- } /* end setup_uclinux_memory() */
---- a/arch/h8300/kernel/setup.c
-+++ b/arch/h8300/kernel/setup.c
-@@ -173,7 +173,7 @@ void __init setup_arch(char **cmdline_p)
- 	 * the bootmem bitmap so we then reserve it after freeing it :-)
- 	 */
- 	free_bootmem(memory_start, memory_end - memory_start);
--	reserve_bootmem(memory_start, bootmap_size);
-+	reserve_bootmem(memory_start, bootmap_size, BOOTMEM_DEFAULT);
- 	/*
- 	 * get kmalloc into gear
- 	 */
---- a/arch/ia64/mm/contig.c
-+++ b/arch/ia64/mm/contig.c
-@@ -178,7 +178,7 @@ find_memory (void)
- 
- 	/* Free all available memory, then mark bootmem-map as being in use. */
- 	efi_memmap_walk(filter_rsvd_memory, free_bootmem);
--	reserve_bootmem(bootmap_start, bootmap_size);
-+	reserve_bootmem(bootmap_start, bootmap_size, BOOTMEM_DEFAULT);
- 
- 	find_initrd();
- 
---- a/arch/ia64/mm/discontig.c
-+++ b/arch/ia64/mm/discontig.c
-@@ -299,12 +299,12 @@ static void __init reserve_pernode_space
- 		pages = bdp->node_low_pfn - (bdp->node_boot_start>>PAGE_SHIFT);
- 		size = bootmem_bootmap_pages(pages) << PAGE_SHIFT;
- 		base = __pa(bdp->node_bootmem_map);
--		reserve_bootmem_node(pdp, base, size);
-+		reserve_bootmem_node(pdp, base, size, BOOTMEM_DEFAULT);
- 
- 		/* Now the per-node space */
- 		size = mem_data[node].pernode_size;
- 		base = __pa(mem_data[node].pernode_addr);
--		reserve_bootmem_node(pdp, base, size);
-+		reserve_bootmem_node(pdp, base, size, BOOTMEM_DEFAULT);
- 	}
- }
- 
---- a/arch/m32r/kernel/setup.c
-+++ b/arch/m32r/kernel/setup.c
-@@ -177,25 +177,28 @@ static unsigned long __init setup_memory
- 	 */
- 	reserve_bootmem(CONFIG_MEMORY_START + PAGE_SIZE,
- 		(PFN_PHYS(start_pfn) + bootmap_size + PAGE_SIZE - 1)
--		- CONFIG_MEMORY_START);
-+		- CONFIG_MEMORY_START,
-+		BOOTMEM_DEFAULT);
- 
- 	/*
- 	 * reserve physical page 0 - it's a special BIOS page on many boxes,
- 	 * enabling clean reboots, SMP operation, laptop functions.
- 	 */
--	reserve_bootmem(CONFIG_MEMORY_START, PAGE_SIZE);
-+	reserve_bootmem(CONFIG_MEMORY_START, PAGE_SIZE, BOOTMEM_DEFAULT);
- 
- 	/*
- 	 * reserve memory hole
- 	 */
- #ifdef CONFIG_MEMHOLE
--	reserve_bootmem(CONFIG_MEMHOLE_START, CONFIG_MEMHOLE_SIZE);
-+	reserve_bootmem(CONFIG_MEMHOLE_START, CONFIG_MEMHOLE_SIZE,
-+			BOOTMEM_DEFAULT);
- #endif
- 
- #ifdef CONFIG_BLK_DEV_INITRD
- 	if (LOADER_TYPE && INITRD_START) {
- 		if (INITRD_START + INITRD_SIZE <= (max_low_pfn << PAGE_SHIFT)) {
--			reserve_bootmem(INITRD_START, INITRD_SIZE);
-+			reserve_bootmem(INITRD_START, INITRD_SIZE,
-+					BOOTMEM_DEFAULT);
- 			initrd_start = INITRD_START + PAGE_OFFSET;
- 			initrd_end = initrd_start + INITRD_SIZE;
- 			printk("initrd:start[%08lx],size[%08lx]\n",
---- a/arch/m32r/mm/discontig.c
-+++ b/arch/m32r/mm/discontig.c
-@@ -91,7 +91,8 @@ unsigned long __init setup_memory(void)
- 			PFN_PHYS(mp->pages));
- 
- 		reserve_bootmem_node(NODE_DATA(nid), PFN_PHYS(mp->start_pfn),
--			PFN_PHYS(mp->free_pfn - mp->start_pfn) + bootmap_size);
-+			PFN_PHYS(mp->free_pfn - mp->start_pfn) + bootmap_size,
-+			BOOTMEM_DEFAULT);
- 
- 		if (max_low_pfn < max_pfn)
- 			max_low_pfn = max_pfn;
-@@ -104,7 +105,7 @@ unsigned long __init setup_memory(void)
- 	if (LOADER_TYPE && INITRD_START) {
- 		if (INITRD_START + INITRD_SIZE <= PFN_PHYS(max_low_pfn)) {
- 			reserve_bootmem_node(NODE_DATA(0), INITRD_START,
--				INITRD_SIZE);
-+				INITRD_SIZE, BOOTMEM_DEFAULT);
- 			initrd_start = INITRD_START + PAGE_OFFSET;
- 			initrd_end = initrd_start + INITRD_SIZE;
- 			printk("initrd:start[%08lx],size[%08lx]\n",
---- a/arch/m68k/atari/stram.c
-+++ b/arch/m68k/atari/stram.c
-@@ -153,7 +153,7 @@ void __init atari_stram_reserve_pages(vo
- 	/* always reserve first page of ST-RAM, the first 2 kB are
- 	 * supervisor-only! */
- 	if (!kernel_in_stram)
--		reserve_bootmem (0, PAGE_SIZE);
-+		reserve_bootmem(0, PAGE_SIZE, BOOTMEM_DEFAULT);
- 
- }
- 
---- a/arch/m68k/kernel/setup.c
-+++ b/arch/m68k/kernel/setup.c
-@@ -323,7 +323,8 @@ void __init setup_arch(char **cmdline_p)
- #ifdef CONFIG_BLK_DEV_INITRD
- 	if (m68k_ramdisk.size) {
- 		reserve_bootmem_node(__virt_to_node(phys_to_virt(m68k_ramdisk.addr)),
--				     m68k_ramdisk.addr, m68k_ramdisk.size);
-+				     m68k_ramdisk.addr, m68k_ramdisk.size,
-+				     BOOTMEM_DEFAULT);
- 		initrd_start = (unsigned long)phys_to_virt(m68k_ramdisk.addr);
- 		initrd_end = initrd_start + m68k_ramdisk.size;
- 		printk("initrd: %08lx - %08lx\n", initrd_start, initrd_end);
---- a/arch/m68knommu/kernel/setup.c
-+++ b/arch/m68knommu/kernel/setup.c
-@@ -223,7 +223,7 @@ void setup_arch(char **cmdline_p)
- 	 * the bootmem bitmap so we then reserve it after freeing it :-)
- 	 */
- 	free_bootmem(memory_start, memory_end - memory_start);
--	reserve_bootmem(memory_start, bootmap_size);
-+	reserve_bootmem(memory_start, bootmap_size, BOOTMEM_DEFAULT);
- 
- 	/*
- 	 * Get kmalloc into gear.
---- a/arch/mips/kernel/setup.c
-+++ b/arch/mips/kernel/setup.c
-@@ -230,7 +230,7 @@ static void __init finalize_initrd(void)
- 		goto disable;
- 	}
- 
--	reserve_bootmem(__pa(initrd_start), size);
-+	reserve_bootmem(__pa(initrd_start), size, BOOTMEM_DEFAULT);
- 	initrd_below_start_ok = 1;
- 
- 	printk(KERN_INFO "Initial ramdisk at: 0x%lx (%lu bytes)\n",
-@@ -383,7 +383,7 @@ static void __init bootmem_init(void)
- 	/*
- 	 * Reserve the bootmap memory.
- 	 */
--	reserve_bootmem(PFN_PHYS(mapstart), bootmap_size);
-+	reserve_bootmem(PFN_PHYS(mapstart), bootmap_size, BOOTMEM_DEFAULT);
- 
- 	/*
- 	 * Reserve initrd memory if needed.
---- a/arch/mips/sgi-ip27/ip27-memory.c
-+++ b/arch/mips/sgi-ip27/ip27-memory.c
-@@ -465,7 +465,8 @@ static void __init node_mem_init(cnodeid
- 	free_bootmem_node(NODE_DATA(node), slot_firstpfn << PAGE_SHIFT,
- 			(slot_lastpfn - slot_firstpfn) << PAGE_SHIFT);
- 	reserve_bootmem_node(NODE_DATA(node), slot_firstpfn << PAGE_SHIFT,
--		((slot_freepfn - slot_firstpfn) << PAGE_SHIFT) + bootmap_size);
-+		((slot_freepfn - slot_firstpfn) << PAGE_SHIFT) + bootmap_size,
-+		BOOTMEM_DEFAULT);
- }
- 
- /*
---- a/arch/parisc/mm/init.c
-+++ b/arch/parisc/mm/init.c
-@@ -315,11 +315,13 @@ static void __init setup_bootmem(void)
- #define PDC_CONSOLE_IO_IODC_SIZE 32768
- 
- 	reserve_bootmem_node(NODE_DATA(0), 0UL,
--			(unsigned long)(PAGE0->mem_free + PDC_CONSOLE_IO_IODC_SIZE));
-+			(unsigned long)(PAGE0->mem_free +
-+				PDC_CONSOLE_IO_IODC_SIZE), BOOTMEM_DEFAULT);
- 	reserve_bootmem_node(NODE_DATA(0), __pa((unsigned long)_text),
--			(unsigned long)(_end - _text));
-+			(unsigned long)(_end - _text), BOOTMEM_DEFAULT);
- 	reserve_bootmem_node(NODE_DATA(0), (bootmap_start_pfn << PAGE_SHIFT),
--			((bootmap_pfn - bootmap_start_pfn) << PAGE_SHIFT));
-+			((bootmap_pfn - bootmap_start_pfn) << PAGE_SHIFT),
-+			BOOTMEM_DEFAULT);
- 
- #ifndef CONFIG_DISCONTIGMEM
- 
-@@ -328,7 +330,8 @@ static void __init setup_bootmem(void)
- 	for (i = 0; i < npmem_holes; i++) {
- 		reserve_bootmem_node(NODE_DATA(0),
- 				(pmem_holes[i].start_pfn << PAGE_SHIFT),
--				(pmem_holes[i].pages << PAGE_SHIFT));
-+				(pmem_holes[i].pages << PAGE_SHIFT),
-+				BOOTMEM_DEFAULT);
- 	}
- #endif
- 
-@@ -346,7 +349,8 @@ static void __init setup_bootmem(void)
- 			initrd_below_start_ok = 1;
- 			printk(KERN_INFO "initrd: reserving %08lx-%08lx (mem_max %08lx)\n", __pa(initrd_start), __pa(initrd_start) + initrd_reserve, mem_max);
- 
--			reserve_bootmem_node(NODE_DATA(0),__pa(initrd_start), initrd_reserve);
-+			reserve_bootmem_node(NODE_DATA(0), __pa(initrd_start),
-+					initrd_reserve, BOOTMEM_DEFAULT);
- 		}
- 	}
- #endif
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -220,7 +220,8 @@ void __init do_init_bootmem(void)
- 	/* reserve the sections we're already using */
- 	for (i = 0; i < lmb.reserved.cnt; i++)
- 		reserve_bootmem(lmb.reserved.region[i].base,
--				lmb_size_bytes(&lmb.reserved, i));
-+				lmb_size_bytes(&lmb.reserved, i),
-+				BOOTMEM_DEFAULT);
- 
- 	/* XXX need to clip this if using highmem? */
- 	sparse_memory_present_with_active_regions(0);
---- a/arch/powerpc/mm/numa.c
-+++ b/arch/powerpc/mm/numa.c
-@@ -675,7 +675,7 @@ void __init do_init_bootmem(void)
- 				dbg("reserve_bootmem %lx %lx\n", physbase,
- 				    size);
- 				reserve_bootmem_node(NODE_DATA(nid), physbase,
--						     size);
-+						     size, BOOTMEM_DEFAULT);
- 			}
- 		}
- 
---- a/arch/s390/kernel/setup.c
-+++ b/arch/s390/kernel/setup.c
-@@ -725,21 +725,24 @@ setup_memory(void)
- 	/*
- 	 * Reserve memory used for lowcore/command line/kernel image.
- 	 */
--	reserve_bootmem(0, (unsigned long)_ehead);
-+	reserve_bootmem(0, (unsigned long)_ehead, BOOTMEM_DEFAULT);
- 	reserve_bootmem((unsigned long)_stext,
--			PFN_PHYS(start_pfn) - (unsigned long)_stext);
-+			PFN_PHYS(start_pfn) - (unsigned long)_stext,
-+			BOOTMEM_DEFAULT);
- 	/*
- 	 * Reserve the bootmem bitmap itself as well. We do this in two
- 	 * steps (first step was init_bootmem()) because this catches
- 	 * the (very unlikely) case of us accidentally initializing the
- 	 * bootmem allocator with an invalid RAM area.
- 	 */
--	reserve_bootmem(start_pfn << PAGE_SHIFT, bootmap_size);
-+	reserve_bootmem(start_pfn << PAGE_SHIFT, bootmap_size,
-+			BOOTMEM_DEFAULT);
- 
- #ifdef CONFIG_BLK_DEV_INITRD
- 	if (INITRD_START && INITRD_SIZE) {
- 		if (INITRD_START + INITRD_SIZE <= memory_end) {
--			reserve_bootmem(INITRD_START, INITRD_SIZE);
-+			reserve_bootmem(INITRD_START, INITRD_SIZE,
-+					BOOTMEM_DEFAULT);
- 			initrd_start = INITRD_START;
- 			initrd_end = initrd_start + INITRD_SIZE;
- 		} else {
---- a/arch/sh/kernel/setup.c
-+++ b/arch/sh/kernel/setup.c
-@@ -148,7 +148,8 @@ static void __init reserve_crashkernel(v
- 					(unsigned long)(free_mem >> 20));
- 			crashk_res.start = crash_base;
- 			crashk_res.end   = crash_base + crash_size - 1;
--			reserve_bootmem(crash_base, crash_size);
-+			reserve_bootmem(crash_base, crash_size,
-+					BOOTMEM_DEFAULT);
- 		} else
- 			printk(KERN_INFO "crashkernel reservation failed - "
- 					"you have to specify a base address\n");
-@@ -184,13 +185,14 @@ void __init setup_bootmem_allocator(unsi
- 	 * an invalid RAM area.
- 	 */
- 	reserve_bootmem(__MEMORY_START+PAGE_SIZE,
--		(PFN_PHYS(free_pfn)+bootmap_size+PAGE_SIZE-1)-__MEMORY_START);
-+		(PFN_PHYS(free_pfn)+bootmap_size+PAGE_SIZE-1)-__MEMORY_START,
-+		BOOTMEM_DEFAULT);
- 
- 	/*
- 	 * reserve physical page 0 - it's a special BIOS page on many boxes,
- 	 * enabling clean reboots, SMP operation, laptop functions.
- 	 */
--	reserve_bootmem(__MEMORY_START, PAGE_SIZE);
-+	reserve_bootmem(__MEMORY_START, PAGE_SIZE, BOOTMEM_DEFAULT);
- 
- 	sparse_memory_present_with_active_regions(0);
- 
-@@ -207,7 +209,7 @@ void __init setup_bootmem_allocator(unsi
- 	if (LOADER_TYPE && INITRD_START) {
- 		if (INITRD_START + INITRD_SIZE <= (max_low_pfn << PAGE_SHIFT)) {
- 			reserve_bootmem(INITRD_START + __MEMORY_START,
--					INITRD_SIZE);
-+					INITRD_SIZE, BOOTMEM_DEFAULT);
- 			initrd_start = INITRD_START + PAGE_OFFSET +
- 					__MEMORY_START;
- 			initrd_end = initrd_start + INITRD_SIZE;
---- a/arch/sh/mm/numa.c
-+++ b/arch/sh/mm/numa.c
-@@ -80,9 +80,9 @@ void __init setup_bootmem_node(int nid, 
- 
- 	/* Reserve the pgdat and bootmap space with the bootmem allocator */
- 	reserve_bootmem_node(NODE_DATA(nid), start_pfn << PAGE_SHIFT,
--			     sizeof(struct pglist_data));
-+			     sizeof(struct pglist_data), BOOTMEM_DEFAULT);
- 	reserve_bootmem_node(NODE_DATA(nid), free_pfn << PAGE_SHIFT,
--			     bootmap_pages << PAGE_SHIFT);
-+			     bootmap_pages << PAGE_SHIFT, BOOTMEM_DEFAULT);
- 
- 	/* It's up */
- 	node_set_online(nid);
---- a/arch/sh64/kernel/setup.c
-+++ b/arch/sh64/kernel/setup.c
-@@ -227,7 +227,8 @@ void __init setup_arch(char **cmdline_p)
- 	 * Reserve all kernel sections + bootmem bitmap + a guard page.
- 	 */
- 	reserve_bootmem_node(NODE_DATA(0), PFN_PHYS(first_pfn),
--		        (PFN_PHYS(start_pfn) + bootmap_size + PAGE_SIZE) - PFN_PHYS(first_pfn));
-+			(PFN_PHYS(start_pfn) + bootmap_size + PAGE_SIZE)
-+			- PFN_PHYS(first_pfn), BOOTMEM_DEFAULT);
- 
- 	/*
- 	 * Reserve platform dependent sections
-@@ -237,7 +238,9 @@ void __init setup_arch(char **cmdline_p)
- #ifdef CONFIG_BLK_DEV_INITRD
- 	if (LOADER_TYPE && INITRD_START) {
- 		if (INITRD_START + INITRD_SIZE <= (PFN_PHYS(last_pfn))) {
--		        reserve_bootmem_node(NODE_DATA(0), INITRD_START + __MEMORY_START, INITRD_SIZE);
-+			reserve_bootmem_node(NODE_DATA(0), INITRD_START +
-+					__MEMORY_START, INITRD_SIZE,
-+					BOOTMEM_DEFAULT);
- 
- 			initrd_start = (long) INITRD_START + PAGE_OFFSET + __MEMORY_START;
- 			initrd_end = initrd_start + INITRD_SIZE;
---- a/arch/sparc/mm/init.c
-+++ b/arch/sparc/mm/init.c
-@@ -259,7 +259,7 @@ unsigned long __init bootmem_init(unsign
- 	if (initrd_start) {
- 		/* Reserve the initrd image area. */
- 		size = initrd_end - initrd_start;
--		reserve_bootmem(initrd_start, size);
-+		reserve_bootmem(initrd_start, size, BOOTMEM_DEFAULT);
- 		*pages_avail -= PAGE_ALIGN(size) >> PAGE_SHIFT;
- 
- 		initrd_start = (initrd_start - phys_base) + PAGE_OFFSET;
-@@ -268,7 +268,7 @@ unsigned long __init bootmem_init(unsign
- #endif
- 	/* Reserve the kernel text/data/bss. */
- 	size = (start_pfn << PAGE_SHIFT) - phys_base;
--	reserve_bootmem(phys_base, size);
-+	reserve_bootmem(phys_base, size, BOOTMEM_DEFAULT);
- 	*pages_avail -= PAGE_ALIGN(size) >> PAGE_SHIFT;
- 
- 	/* Reserve the bootmem map.   We do not account for it
-@@ -276,7 +276,7 @@ unsigned long __init bootmem_init(unsign
- 	 * in free_all_bootmem.
- 	 */
- 	size = bootmap_size;
--	reserve_bootmem((bootmap_pfn << PAGE_SHIFT), size);
-+	reserve_bootmem((bootmap_pfn << PAGE_SHIFT), size, BOOTMEM_DEFAULT);
- 	*pages_avail -= PAGE_ALIGN(size) >> PAGE_SHIFT;
- 
- 	return max_pfn;
---- a/arch/sparc64/mm/init.c
-+++ b/arch/sparc64/mm/init.c
-@@ -997,7 +997,7 @@ static unsigned long __init bootmem_init
- 		prom_printf("reserve_bootmem(initrd): base[%llx] size[%lx]\n",
- 			initrd_start, initrd_end);
- #endif
--		reserve_bootmem(initrd_start, size);
-+		reserve_bootmem(initrd_start, size, BOOTMEM_DEFAULT);
- 
- 		initrd_start += PAGE_OFFSET;
- 		initrd_end += PAGE_OFFSET;
-@@ -1007,7 +1007,7 @@ static unsigned long __init bootmem_init
- #ifdef CONFIG_DEBUG_BOOTMEM
- 	prom_printf("reserve_bootmem(kernel): base[%lx] size[%lx]\n", kern_base, kern_size);
- #endif
--	reserve_bootmem(kern_base, kern_size);
-+	reserve_bootmem(kern_base, kern_size, BOOTMEM_DEFAULT);
- 	*pages_avail -= PAGE_ALIGN(kern_size) >> PAGE_SHIFT;
- 
- 	/* Add back in the initmem pages. */
-@@ -1024,7 +1024,7 @@ static unsigned long __init bootmem_init
- 	prom_printf("reserve_bootmem(bootmap): base[%lx] size[%lx]\n",
- 		    (bootmap_pfn << PAGE_SHIFT), size);
- #endif
--	reserve_bootmem((bootmap_pfn << PAGE_SHIFT), size);
-+	reserve_bootmem((bootmap_pfn << PAGE_SHIFT), size, BOOTMEM_DEFAULT);
- 
- 	for (i = 0; i < pavail_ents; i++) {
- 		unsigned long start_pfn, end_pfn;
-@@ -1475,7 +1475,7 @@ static void __init taint_real_pages(void
- 					goto do_next_page;
- 				}
- 			}
--			reserve_bootmem(old_start, PAGE_SIZE);
-+			reserve_bootmem(old_start, PAGE_SIZE, BOOTMEM_DEFAULT);
- 
- 		do_next_page:
- 			old_start += PAGE_SIZE;
---- a/arch/v850/kernel/anna.c
-+++ b/arch/v850/kernel/anna.c
-@@ -85,7 +85,8 @@ void __init mach_reserve_bootmem ()
- 	/* The space between SRAM and SDRAM is filled with duplicate
- 	   images of SRAM.  Prevent the kernel from using them.  */
- 	reserve_bootmem (SRAM_ADDR + SRAM_SIZE,
--			 SDRAM_ADDR - (SRAM_ADDR + SRAM_SIZE));
-+			 SDRAM_ADDR - (SRAM_ADDR + SRAM_SIZE),
-+			 BOOTMEM_DEFAULT);
- }
- 
- void mach_gettimeofday (struct timespec *tv)
---- a/arch/v850/kernel/as85ep1.c
-+++ b/arch/v850/kernel/as85ep1.c
-@@ -116,7 +116,8 @@ void __init mach_reserve_bootmem ()
- 	if (SDRAM_ADDR < RAM_END && SDRAM_ADDR > RAM_START)
- 		/* We can't use the space between SRAM and SDRAM, so
- 		   prevent the kernel from trying.  */
--		reserve_bootmem (SRAM_END, SDRAM_ADDR - SRAM_END);
-+		reserve_bootmem(SRAM_END, SDRAM_ADDR - SRAM_END,
-+				BOOTMEM_DEFAULT);
- }
- 
- void mach_gettimeofday (struct timespec *tv)
---- a/arch/v850/kernel/rte_ma1_cb.c
-+++ b/arch/v850/kernel/rte_ma1_cb.c
-@@ -46,13 +46,15 @@ void __init mach_reserve_bootmem ()
+Trent Piepho (1):
+      kbuild: modpost problem when symbols move from one module to another
+
+Yinghai Lu (1):
+      kbuild: cscope - filter out .tmp_* in find_sources
+
+bugme-daemon@bugzilla.kernel.org (1):
+      kbuild: make deb-pkg - add 'Provides:' line
+
+diff --git a/Documentation/kbuild/kconfig-language.txt b/Documentation/kbuild/kconfig-language.txt
+index fe8b0c4..616043a 100644
+--- a/Documentation/kbuild/kconfig-language.txt
++++ b/Documentation/kbuild/kconfig-language.txt
+@@ -77,7 +77,12 @@ applicable everywhere (see syntax).
+   Optionally, dependencies only for this default value can be added with
+   "if".
+ 
+-- dependencies: "depends on"/"requires" <expr>
++- type definition + default value:
++	"def_bool"/"def_tristate" <expr> ["if" <expr>]
++  This is a shorthand notation for a type definition plus a value.
++  Optionally dependencies for this default value can be added with "if".
++
++- dependencies: "depends on" <expr>
+   This defines a dependency for this menu entry. If multiple
+   dependencies are defined, they are connected with '&&'. Dependencies
+   are applied to all other options within this menu entry (which also
+@@ -289,3 +294,10 @@ source:
+ 	"source" <prompt>
+ 
+ This reads the specified configuration file. This file is always parsed.
++
++mainmenu:
++
++	"mainmenu" <prompt>
++
++This sets the config program's title bar if the config program chooses
++to use it.
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index f099b81..6166e2d 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -518,6 +518,28 @@ more details, with real examples.
+ 	In this example for a specific GCC version the build will error out explaining
+ 	to the user why it stops.
+ 
++    cc-cross-prefix
++	cc-cross-prefix is used to check if there exist a $(CC) in path with
++	one of the listed prefixes. The first prefix where there exist a
++	prefix$(CC) in the PATH is returned - and if no prefix$(CC) is found
++	then nothing is returned.
++	Additional prefixes are separated by a single space in the
++	call of cc-cross-prefix.
++	This functionality is usefull for architecture Makefile that try
++	to set CROSS_COMPILE to well know values but may have several
++	values to select between.
++	It is recommended only to try to set CROSS_COMPILE is it is a cross
++	build (host arch is different from target arch). And is CROSS_COMPILE
++	is already set then leave it with the old value.
++
++	Example:
++		#arch/m68k/Makefile
++		ifneq ($(SUBARCH),$(ARCH))
++		        ifeq ($(CROSS_COMPILE),)
++		               CROSS_COMPILE := $(call cc-cross-prefix, m68k-linux-gnu-)
++			endif
++		endif
++
+ === 4 Host Program support
+ 
+ Kbuild supports building executables on the host for use during the
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 10deabe..f978c60 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -2178,7 +2178,7 @@ S:	Maintained
+ KCONFIG
+ P:	Roman Zippel
+ M:	zippel@linux-m68k.org
+-L:	kbuild-devel@lists.sourceforge.net
++L:	linux-kbuild@vger.kernel.org
+ S:	Maintained
+ 
+ KDUMP
+@@ -2207,6 +2207,7 @@ KERNEL BUILD (kbuild: Makefile, scripts/Makefile.*)
+ P:	Sam Ravnborg
+ M:	sam@ravnborg.org
+ T:	git kernel.org:/pub/scm/linux/kernel/git/sam/kbuild.git
++L:	linux-kbuild@vger.kernel.org
+ S:	Maintained
+ 
+ KERNEL JANITORS
+diff --git a/Makefile b/Makefile
+index feca34c..6d7527c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -884,10 +884,7 @@ prepare2: prepare3 outputmakefile
+ 
+ prepare1: prepare2 include/linux/version.h include/linux/utsrelease.h \
+                    include/asm include/config/auto.conf
+-ifneq ($(KBUILD_MODULES),)
+-	$(Q)mkdir -p $(MODVERDIR)
+-	$(Q)rm -f $(MODVERDIR)/*
+-endif
++	$(cmd_crmodverdir)
+ 
+ archprepare: prepare1 scripts_basic
+ 
+@@ -1030,19 +1027,12 @@ _modinst_:
+ 	fi
+ 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modinst
+ 
+-# If System.map exists, run depmod.  This deliberately does not have a
+-# dependency on System.map since that would run the dependency tree on
+-# vmlinux.  This depmod is only for convenience to give the initial
++# This depmod is only for convenience to give the initial
+ # boot a modules.dep even before / is mounted read-write.  However the
+ # boot script depmod is the master version.
+-ifeq "$(strip $(INSTALL_MOD_PATH))" ""
+-depmod_opts	:=
+-else
+-depmod_opts	:= -b $(INSTALL_MOD_PATH) -r
+-endif
+ PHONY += _modinst_post
+ _modinst_post: _modinst_
+-	if [ -r System.map -a -x $(DEPMOD) ]; then $(DEPMOD) -ae -F System.map $(depmod_opts) $(KERNELRELEASE); fi
++	$(call cmd,depmod)
+ 
+ else # CONFIG_MODULES
+ 
+@@ -1230,8 +1220,7 @@ else # KBUILD_EXTMOD
+ KBUILD_MODULES := 1
+ PHONY += crmodverdir
+ crmodverdir:
+-	$(Q)mkdir -p $(MODVERDIR)
+-	$(Q)rm -f $(MODVERDIR)/*
++	$(cmd_crmodverdir)
+ 
+ PHONY += $(objtree)/Module.symvers
+ $(objtree)/Module.symvers:
+@@ -1259,15 +1248,6 @@ _emodinst_:
+ 	$(Q)mkdir -p $(MODLIB)/$(install-dir)
+ 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modinst
+ 
+-# Run depmod only is we have System.map and depmod is executable
+-quiet_cmd_depmod = DEPMOD  $(KERNELRELEASE)
+-      cmd_depmod = if [ -r System.map -a -x $(DEPMOD) ]; then \
+-                      $(DEPMOD) -ae -F System.map             \
+-                      $(if $(strip $(INSTALL_MOD_PATH)),      \
+-		      -b $(INSTALL_MOD_PATH) -r)              \
+-		      $(KERNELRELEASE);                       \
+-                   fi
+-
+ PHONY += _emodinst_post
+ _emodinst_post: _emodinst_
+ 	$(call cmd,depmod)
+@@ -1351,7 +1331,7 @@ define find-sources
+ 	  find $(__srctree)include/asm-generic $(RCS_FIND_IGNORE) \
+ 	       -name $1 -print; \
+ 	  find $(__srctree) $(RCS_FIND_IGNORE) \
+-	       \( -name include -o -name arch \) -prune -o \
++	       \( -name include -o -name arch -o -name '.tmp_*' \) -prune -o \
+ 	       -name $1 -print; \
+ 	  )
+ endef
+@@ -1500,9 +1480,11 @@ endif
+ 
+ # Modules
+ / %/: prepare scripts FORCE
++	$(cmd_crmodverdir)
+ 	$(Q)$(MAKE) KBUILD_MODULES=$(if $(CONFIG_MODULES),1) \
+ 	$(build)=$(build-dir)
+ %.ko: prepare scripts FORCE
++	$(cmd_crmodverdir)
+ 	$(Q)$(MAKE) KBUILD_MODULES=$(if $(CONFIG_MODULES),1)   \
+ 	$(build)=$(build-dir) $(@:.ko=.o)
+ 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
+@@ -1516,6 +1498,19 @@ quiet_cmd_rmdirs = $(if $(wildcard $(rm-dirs)),CLEAN   $(wildcard $(rm-dirs)))
+ quiet_cmd_rmfiles = $(if $(wildcard $(rm-files)),CLEAN   $(wildcard $(rm-files)))
+       cmd_rmfiles = rm -f $(rm-files)
+ 
++# Run depmod only is we have System.map and depmod is executable
++# and we build for the host arch
++quiet_cmd_depmod = DEPMOD  $(KERNELRELEASE)
++      cmd_depmod = \
++	if [ -r System.map -a -x $(DEPMOD) -a "$(SUBARCH)" == "$(ARCH)" ]; then \
++		$(DEPMOD) -ae -F System.map                                     \
++		$(if $(strip $(INSTALL_MOD_PATH)), -b $(INSTALL_MOD_PATH) -r)   \
++		$(KERNELRELEASE);                                               \
++	fi
++
++# Create temporary dir for module support files
++cmd_crmodverdir = $(Q)mkdir -p $(MODVERDIR); rm -f $(MODVERDIR)/*
++
+ 
+ a_flags = -Wp,-MD,$(depfile) $(KBUILD_AFLAGS) $(AFLAGS_KERNEL) \
+ 	  $(NOSTDINC_FLAGS) $(KBUILD_CPPFLAGS) \
+diff --git a/scripts/Kbuild.include b/scripts/Kbuild.include
+index de7bb28..b96ea8d 100644
+--- a/scripts/Kbuild.include
++++ b/scripts/Kbuild.include
+@@ -56,6 +56,17 @@ endef
+ # gcc support functions
+ # See documentation in Documentation/kbuild/makefiles.txt
+ 
++# cc-cross-prefix
++# Usage: CROSS_COMPILE := $(call cc-cross-prefix, m68k-linux-gnu- m68k-linux-)
++# Return first prefix where a prefix$(CC) is found in PATH.
++# If no $(CC) found in PATH with listed prefixes return nothing
++cc-cross-prefix =  \
++	$(word 1, $(foreach c,$(1),                                   \
++		$(shell set -e;                                       \
++		if (which $(strip $(c))$(CC)) > /dev/null 2>&1 ; then \
++			echo $(c);                                    \
++		fi)))
++
+ # output directory for tests below
+ TMPOUT := $(if $(KBUILD_EXTMOD),$(firstword $(KBUILD_EXTMOD))/)
+ 
+diff --git a/scripts/basic/docproc.c b/scripts/basic/docproc.c
+index e5c6ac7..0e4bd54 100644
+--- a/scripts/basic/docproc.c
++++ b/scripts/basic/docproc.c
+@@ -66,12 +66,15 @@ FILELINE * entity_system;
+ #define FUNCTION      "-function"
+ #define NOFUNCTION    "-nofunction"
+ 
++char *srctree;
++
+ void usage (void)
  {
- #ifdef CONFIG_RTE_CB_MULTI
- 	/* Prevent the kernel from touching the monitor's scratch RAM.  */
--	reserve_bootmem (MON_SCRATCH_ADDR, MON_SCRATCH_SIZE);
-+	reserve_bootmem(MON_SCRATCH_ADDR, MON_SCRATCH_SIZE,
-+			BOOTMEM_DEFAULT);
- #endif
- 
- 	/* The space between SRAM and SDRAM is filled with duplicate
- 	   images of SRAM.  Prevent the kernel from using them.  */
- 	reserve_bootmem (SRAM_ADDR + SRAM_SIZE,
--			 SDRAM_ADDR - (SRAM_ADDR + SRAM_SIZE));
-+			 SDRAM_ADDR - (SRAM_ADDR + SRAM_SIZE),
-+			 BOOTMEM_DEFAULT);
+ 	fprintf(stderr, "Usage: docproc {doc|depend} file\n");
+ 	fprintf(stderr, "Input is read from file.tmpl. Output is sent to stdout\n");
+ 	fprintf(stderr, "doc: frontend when generating kernel documentation\n");
+ 	fprintf(stderr, "depend: generate list of files referenced within file\n");
++	fprintf(stderr, "Environment variable SRCTREE: absolute path to kernel source tree.\n");
  }
  
- void mach_gettimeofday (struct timespec *tv)
---- a/arch/v850/kernel/setup.c
-+++ b/arch/v850/kernel/setup.c
-@@ -241,15 +241,18 @@ init_bootmem_alloc (unsigned long ram_st
- 	if (kram_end > kram_start)
- 		/* Reserve the RAM part of the kernel's address space, so it
- 		   doesn't get allocated.  */
--		reserve_bootmem (kram_start, kram_end - kram_start);
-+		reserve_bootmem(kram_start, kram_end - kram_start,
-+				BOOTMEM_DEFAULT);
- 	
- 	if (intv_in_ram && !intv_in_kram)
- 		/* Reserve the interrupt vector space.  */
--		reserve_bootmem (intv_start, intv_end - intv_start);
-+		reserve_bootmem(intv_start, intv_end - intv_start,
-+				BOOTMEM_DEFAULT);
- 
- 	if (bootmap >= ram_start && bootmap < ram_end)
- 		/* Reserve the bootmap space.  */
--		reserve_bootmem (bootmap, bootmap_len);
-+		reserve_bootmem(bootmap, bootmap_len,
-+				BOOTMEM_DEFAULT);
- 
- 	/* Reserve the memory used by the root filesystem image if it's
- 	   in RAM.  */
-@@ -257,7 +260,8 @@ init_bootmem_alloc (unsigned long ram_st
- 	    && (unsigned long)&_root_fs_image_start >= ram_start
- 	    && (unsigned long)&_root_fs_image_start < ram_end)
- 		reserve_bootmem ((unsigned long)&_root_fs_image_start,
--				 &_root_fs_image_end - &_root_fs_image_start);
-+				 &_root_fs_image_end - &_root_fs_image_start,
-+				 BOOTMEM_DEFAULT);
- 
- 	/* Let the platform-dependent code reserve some too.  */
- 	if (mrb)
---- a/arch/x86/mm/discontig_32.c
-+++ b/arch/x86/mm/discontig_32.c
-@@ -345,7 +345,8 @@ unsigned long __init setup_memory(void)
- 
- void __init numa_kva_reserve(void)
- {
--	reserve_bootmem(PFN_PHYS(kva_start_pfn),PFN_PHYS(kva_pages));
-+	reserve_bootmem(PFN_PHYS(kva_start_pfn), PFN_PHYS(kva_pages),
-+			BOOTMEM_DEFAULT);
- }
- 
- void __init zone_sizes_init(void)
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -650,9 +650,9 @@ void __init reserve_bootmem_generic(unsi
- 
- 	/* Should check here against the e820 map to avoid double free */
- #ifdef CONFIG_NUMA
--  	reserve_bootmem_node(NODE_DATA(nid), phys, len);
--#else       		
--	reserve_bootmem(phys, len);    
-+	reserve_bootmem_node(NODE_DATA(nid), phys, len, BOOTMEM_DEFAULT);
-+#else
-+	reserve_bootmem(phys, len, BOOTMEM_DEFAULT);
- #endif
- 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
- 		dma_reserve += len / PAGE_SIZE;
---- a/arch/x86/mm/numa_64.c
-+++ b/arch/x86/mm/numa_64.c
-@@ -219,8 +219,10 @@ void __init setup_node_bootmem(int nodei
- 
- 	free_bootmem_with_active_regions(nodeid, end);
- 
--	reserve_bootmem_node(NODE_DATA(nodeid), nodedata_phys, pgdat_size); 
--	reserve_bootmem_node(NODE_DATA(nodeid), bootmap_start, bootmap_pages<<PAGE_SHIFT);
-+	reserve_bootmem_node(NODE_DATA(nodeid), nodedata_phys, pgdat_size,
-+			BOOTMEM_DEFAULT);
-+	reserve_bootmem_node(NODE_DATA(nodeid), bootmap_start,
-+			bootmap_pages<<PAGE_SHIFT, BOOTMEM_DEFAULT);
- #ifdef CONFIG_ACPI_NUMA
- 	srat_reserve_add_area(nodeid);
- #endif
---- a/arch/x86/mm/srat_64.c
-+++ b/arch/x86/mm/srat_64.c
-@@ -535,7 +535,8 @@ void __init srat_reserve_add_area(int no
- 		printk(KERN_INFO "SRAT: This will cost you %Lu MB of "
- 				"pre-allocated memory.\n", (unsigned long long)total_mb);
- 		reserve_bootmem_node(NODE_DATA(nodeid), nodes_add[nodeid].start,
--			       nodes_add[nodeid].end - nodes_add[nodeid].start);
-+			       nodes_add[nodeid].end - nodes_add[nodeid].start,
-+			       BOOTMEM_DEFAULT);
- 	}
- }
- 
---- a/include/asm-x86/mmzone_32.h
-+++ b/include/asm-x86/mmzone_32.h
-@@ -110,8 +110,8 @@ static inline int pfn_valid(int pfn)
  /*
-  * Following are macros that are specific to this numa platform.
-  */
--#define reserve_bootmem(addr, size) \
--	reserve_bootmem_node(NODE_DATA(0), (addr), (size))
-+#define reserve_bootmem(addr, size, flags) \
-+	reserve_bootmem_node(NODE_DATA(0), (addr), (size), (flags))
- #define alloc_bootmem(x) \
- 	__alloc_bootmem_node(NODE_DATA(0), (x), SMP_CACHE_BYTES, __pa(MAX_DMA_ADDRESS))
- #define alloc_bootmem_low(x) \
---- a/include/linux/bootmem.h
-+++ b/include/linux/bootmem.h
-@@ -97,7 +97,8 @@ extern unsigned long init_bootmem_node(p
- 				       unsigned long endpfn);
- extern void reserve_bootmem_node(pg_data_t *pgdat,
- 				 unsigned long physaddr,
--				 unsigned long size);
-+				 unsigned long size,
-+				 int flags);
- extern void free_bootmem_node(pg_data_t *pgdat,
- 			      unsigned long addr,
- 			      unsigned long size);
---- a/mm/bootmem.c
-+++ b/mm/bootmem.c
-@@ -388,9 +388,9 @@ unsigned long __init init_bootmem_node(p
- }
- 
- void __init reserve_bootmem_node(pg_data_t *pgdat, unsigned long physaddr,
--				 unsigned long size)
-+				 unsigned long size, int flags)
+@@ -90,7 +93,7 @@ void exec_kernel_doc(char **svec)
+ 			exit(1);
+ 		case  0:
+ 			memset(real_filename, 0, sizeof(real_filename));
+-			strncat(real_filename, getenv("SRCTREE"), PATH_MAX);
++			strncat(real_filename, srctree, PATH_MAX);
+ 			strncat(real_filename, KERNELDOCPATH KERNELDOC,
+ 					PATH_MAX - strlen(real_filename));
+ 			execvp(real_filename, svec);
+@@ -171,7 +174,7 @@ void find_export_symbols(char * filename)
+ 	if (filename_exist(filename) == NULL) {
+ 		char real_filename[PATH_MAX + 1];
+ 		memset(real_filename, 0, sizeof(real_filename));
+-		strncat(real_filename, getenv("SRCTREE"), PATH_MAX);
++		strncat(real_filename, srctree, PATH_MAX);
+ 		strncat(real_filename, filename,
+ 				PATH_MAX - strlen(real_filename));
+ 		sym = add_new_file(filename);
+@@ -338,6 +341,10 @@ void parse_file(FILE *infile)
+ int main(int argc, char *argv[])
  {
--	reserve_bootmem_core(pgdat->bdata, physaddr, size, BOOTMEM_DEFAULT);
-+	reserve_bootmem_core(pgdat->bdata, physaddr, size, flags);
- }
+ 	FILE * infile;
++
++	srctree = getenv("SRCTREE");
++	if (!srctree)
++		srctree = getcwd(NULL, 0);
+ 	if (argc != 3) {
+ 		usage();
+ 		exit(1);
+diff --git a/scripts/kconfig/Makefile b/scripts/kconfig/Makefile
+index bb08069..83c5e76 100644
+--- a/scripts/kconfig/Makefile
++++ b/scripts/kconfig/Makefile
+@@ -84,7 +84,7 @@ help:
+ # lxdialog stuff
+ check-lxdialog  := $(srctree)/$(src)/lxdialog/check-lxdialog.sh
  
- void __init free_bootmem_node(pg_data_t *pgdat, unsigned long physaddr,
+-# Use reursively expanded variables so we do not call gcc unless
++# Use recursively expanded variables so we do not call gcc unless
+ # we really need to do so. (Do not call gcc as part of make mrproper)
+ HOST_EXTRACFLAGS = $(shell $(CONFIG_SHELL) $(check-lxdialog) -ccflags)
+ HOST_LOADLIBES   = $(shell $(CONFIG_SHELL) $(check-lxdialog) -ldflags $(HOSTCC))
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 2ef9a19..93ac52a 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -268,6 +268,9 @@ static struct symbol *sym_add_exported(const char *name, struct module *mod,
+ 			     "was in %s%s\n", mod->name, name,
+ 			     s->module->name,
+ 			     is_vmlinux(s->module->name) ?"":".ko");
++		} else {
++			/* In case Modules.symvers was out of date */
++			s->module = mod;
+ 		}
+ 	}
+ 	s->preloaded = 0;
+diff --git a/scripts/package/builddeb b/scripts/package/builddeb
+index 6edb29f..0f657b5 100644
+--- a/scripts/package/builddeb
++++ b/scripts/package/builddeb
+@@ -83,6 +83,7 @@ Maintainer: $name
+ Standards-Version: 3.6.1
+ 
+ Package: $packagename
++Provides: kernel-image-$version, linux-image-$version
+ Architecture: any
+ Description: User Mode Linux kernel, version $version
+  User-mode Linux is a port of the Linux kernel to its own system call
+@@ -104,6 +105,7 @@ Maintainer: $name
+ Standards-Version: 3.6.1
+ 
+ Package: $packagename
++Provides: kernel-image-$version, linux-image-$version
+ Architecture: any
+ Description: Linux kernel, version $version
+  This package contains the Linux kernel, modules and corresponding other
