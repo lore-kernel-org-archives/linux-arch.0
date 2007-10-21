@@ -1,38 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:50567 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:44687 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751141AbXJUXPt (ORCPT
+	by vger.kernel.org with ESMTP id S1751691AbXJUXwY (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 21 Oct 2007 19:15:49 -0400
-Message-Id: <200710212315.l9LNF7nT031930@imap1.linux-foundation.org>
-Subject: - kexec-introduce-bootmem_exclusive.patch removed from -mm tree
+	Sun, 21 Oct 2007 19:52:24 -0400
+Message-Id: <200710212342.l9LNg1jv000395@imap1.linux-foundation.org>
+Subject: [patch 23/41] kexec: add BSS to resource tree
 From: akpm@linux-foundation.org
-Date: Sun, 21 Oct 2007 16:08:38 -0700
+Date: Sun, 21 Oct 2007 16:42:01 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: bwalle@suse.de, ebiederm@xmission.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, vgoyal@in.ibm.com, mm-commits@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, bwalle@suse.de, ebiederm@xmission.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, vgoyal@in.ibm.com
 List-ID: <linux-arch.vger.kernel.org>
 
-
-The patch titled
-     kexec: introduce BOOTMEM_EXCLUSIVE
-has been removed from the -mm tree.  Its filename was
-     kexec-introduce-bootmem_exclusive.patch
-
-This patch was dropped because it had testing failures
-
-------------------------------------------------------
-Subject: kexec: introduce BOOTMEM_EXCLUSIVE
 From: Bernhard Walle <bwalle@suse.de>
 
-This flag changes the reserve_bootmem() function to accept a new flag
-BOOTMEM_EXCLUSIVE.  If that flag is set, the function returns with -EBUSY if
-the memory already has been reserved in the past.  This is to avoid conflicts.
+Add the BSS to the resource tree just as kernel text and kernel data are in
+the resource tree.  The main reason behind this is to avoid crashkernel
+reservation in that area.
 
-Because it's necessary to unreserve the bootmem if a collision is discovered
-in the middle of the area, a rwlock is introduced: only one BOOTMEM_EXCLUSIVE
-caller is possible, but multiple BOOTMEM_DEFAULT callers.  But if a
-BOOTMEM_EXCLUSIVE caller is in reserve_bootmem_core(), no BOOTMEM_DEFAULT
-callers are allowd.
+While it's not strictly necessary to have the BSS in the resource tree (the
+actual collision detection is done in the reserve_bootmem() function before),
+the usage of the BSS resource should be presented to the user in /proc/iomem
+just as Kernel data and Kernel code.
+
+Note: The patch currently is only implemented for x86 and ia64 (because
+efi_initialize_iomem_resources() has the same signature on i386 and ia64).
 
 [akpm@linux-foundation.org: coding-style fixes]
 Signed-off-by: Bernhard Walle <bwalle@suse.de>
@@ -44,218 +37,230 @@ Cc: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/x86/kernel/mpparse_32.c |    6 ++++--
- arch/x86/kernel/setup_32.c   |   17 ++++++++++-------
- arch/x86/kernel/setup_64.c   |    5 +++--
- include/linux/bootmem.h      |   14 +++++++++++++-
- mm/bootmem.c                 |   25 ++++++++++++++++++++-----
- 5 files changed, 50 insertions(+), 17 deletions(-)
+ arch/ia64/kernel/efi.c     |    4 +++-
+ arch/ia64/kernel/setup.c   |   14 +++++++++++---
+ arch/x86/kernel/e820_32.c  |   18 +++++++++++++++---
+ arch/x86/kernel/e820_64.c  |    3 ++-
+ arch/x86/kernel/efi_32.c   |    4 +++-
+ arch/x86/kernel/setup_32.c |    4 ++++
+ arch/x86/kernel/setup_64.c |    9 +++++++++
+ include/linux/efi.h        |    2 +-
+ 8 files changed, 48 insertions(+), 10 deletions(-)
 
-diff -puN arch/x86/kernel/mpparse_32.c~kexec-introduce-bootmem_exclusive arch/x86/kernel/mpparse_32.c
---- a/arch/x86/kernel/mpparse_32.c~kexec-introduce-bootmem_exclusive
-+++ a/arch/x86/kernel/mpparse_32.c
-@@ -736,7 +736,8 @@ static int __init smp_scan_config (unsig
- 			smp_found_config = 1;
- 			printk(KERN_INFO "found SMP MP-table at %08lx\n",
- 						virt_to_phys(mpf));
--			reserve_bootmem(virt_to_phys(mpf), PAGE_SIZE);
-+			reserve_bootmem(virt_to_phys(mpf), PAGE_SIZE,
-+					BOOTMEM_DEFAULT);
- 			if (mpf->mpf_physptr) {
- 				/*
- 				 * We cannot access to MPC table to compute
-@@ -751,7 +752,8 @@ static int __init smp_scan_config (unsig
- 				unsigned long end = max_low_pfn * PAGE_SIZE;
- 				if (mpf->mpf_physptr + size > end)
- 					size = end - mpf->mpf_physptr;
--				reserve_bootmem(mpf->mpf_physptr, size);
-+				reserve_bootmem(mpf->mpf_physptr, size,
-+						BOOTMEM_DEFAULT);
- 			}
+diff -puN arch/ia64/kernel/efi.c~kexec-add-bss-to-resource-tree arch/ia64/kernel/efi.c
+--- a/arch/ia64/kernel/efi.c~kexec-add-bss-to-resource-tree
++++ a/arch/ia64/kernel/efi.c
+@@ -1090,7 +1090,8 @@ efi_memmap_init(unsigned long *s, unsign
  
- 			mpf_found = mpf;
-diff -puN arch/x86/kernel/setup_32.c~kexec-introduce-bootmem_exclusive arch/x86/kernel/setup_32.c
---- a/arch/x86/kernel/setup_32.c~kexec-introduce-bootmem_exclusive
-+++ a/arch/x86/kernel/setup_32.c
-@@ -318,7 +318,7 @@ static void __init reserve_ebda_region(v
- 	unsigned int addr;
- 	addr = get_bios_ebda();
- 	if (addr)
--		reserve_bootmem(addr, PAGE_SIZE);	
-+		reserve_bootmem(addr, PAGE_SIZE, BOOTMEM_DEFAULT);
- }
- 
- #ifndef CONFIG_NEED_MULTIPLE_NODES
-@@ -412,7 +412,8 @@ static void __init reserve_crashkernel(v
- 					(unsigned long)(total_mem >> 20));
- 			crashk_res.start = crash_base;
- 			crashk_res.end   = crash_base + crash_size - 1;
--			reserve_bootmem(crash_base, crash_size);
-+			reserve_bootmem(crash_base, crash_size,
-+					BOOTMEM_DEFAULT);
- 		} else
- 			printk(KERN_INFO "crashkernel reservation failed - "
- 					"you have to specify a base address\n");
-@@ -440,13 +441,14 @@ void __init setup_bootmem_allocator(void
- 	 * bootmem allocator with an invalid RAM area.
- 	 */
- 	reserve_bootmem(__pa_symbol(_text), (PFN_PHYS(min_low_pfn) +
--			 bootmap_size + PAGE_SIZE-1) - __pa_symbol(_text));
-+			 bootmap_size + PAGE_SIZE-1) - __pa_symbol(_text),
-+			 BOOTMEM_DEFAULT);
- 
- 	/*
- 	 * reserve physical page 0 - it's a special BIOS page on many boxes,
- 	 * enabling clean reboots, SMP operation, laptop functions.
- 	 */
--	reserve_bootmem(0, PAGE_SIZE);
-+	reserve_bootmem(0, PAGE_SIZE, BOOTMEM_DEFAULT);
- 
- 	/* reserve EBDA region, it's a 4K region */
- 	reserve_ebda_region();
-@@ -456,7 +458,7 @@ void __init setup_bootmem_allocator(void
-        unless you have no PS/2 mouse plugged in. */
- 	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
- 	    boot_cpu_data.x86 == 6)
--	     reserve_bootmem(0xa0000 - 4096, 4096);
-+	     reserve_bootmem(0xa0000 - 4096, 4096, BOOTMEM_DEFAULT);
- 
- #ifdef CONFIG_SMP
- 	/*
-@@ -464,7 +466,7 @@ void __init setup_bootmem_allocator(void
- 	 * FIXME: Don't need the extra page at 4K, but need to fix
- 	 * trampoline before removing it. (see the GDT stuff)
- 	 */
--	reserve_bootmem(PAGE_SIZE, PAGE_SIZE);
-+	reserve_bootmem(PAGE_SIZE, PAGE_SIZE, BOOTMEM_DEFAULT);
- #endif
- #ifdef CONFIG_ACPI_SLEEP
- 	/*
-@@ -487,7 +489,8 @@ void __init setup_bootmem_allocator(void
- 		unsigned long end_of_lowmem = max_low_pfn << PAGE_SHIFT;
- 
- 		if (ramdisk_end <= end_of_lowmem) {
--			reserve_bootmem(ramdisk_image, ramdisk_size);
-+			reserve_bootmem(ramdisk_image, ramdisk_size,
-+					BOOTMEM_DEFAULT);
- 			initrd_start = ramdisk_image + PAGE_OFFSET;
- 			initrd_end = initrd_start+ramdisk_size;
- 		} else {
-diff -puN arch/x86/kernel/setup_64.c~kexec-introduce-bootmem_exclusive arch/x86/kernel/setup_64.c
---- a/arch/x86/kernel/setup_64.c~kexec-introduce-bootmem_exclusive
-+++ a/arch/x86/kernel/setup_64.c
-@@ -170,7 +170,7 @@ contig_initmem_init(unsigned long start_
- 	bootmap_size = init_bootmem(bootmap >> PAGE_SHIFT, end_pfn);
- 	e820_register_active_regions(0, start_pfn, end_pfn);
- 	free_bootmem_with_active_regions(0, end_pfn);
--	reserve_bootmem(bootmap, bootmap_size);
-+	reserve_bootmem(bootmap, bootmap_size, BOOTMEM_DEFAULT);
- } 
- #endif
- 
-@@ -218,7 +218,8 @@ static void __init reserve_crashkernel(v
- 					(unsigned long)(free_mem >> 20));
- 			crashk_res.start = crash_base;
- 			crashk_res.end   = crash_base + crash_size - 1;
--			reserve_bootmem(crash_base, crash_size);
-+			reserve_bootmem(crash_base, crash_size,
-+					BOOTMEM_DEFAULT);
- 		} else
- 			printk(KERN_INFO "crashkernel reservation failed - "
- 					"you have to specify a base address\n");
-diff -puN include/linux/bootmem.h~kexec-introduce-bootmem_exclusive include/linux/bootmem.h
---- a/include/linux/bootmem.h~kexec-introduce-bootmem_exclusive
-+++ a/include/linux/bootmem.h
-@@ -61,8 +61,20 @@ extern void *__alloc_bootmem_core(struct
- 				  unsigned long limit);
- extern void *alloc_bootmem_high_node(pg_data_t *pgdat, unsigned long size);
- 
-+/*
-+ * flags for reserve_bootmem (also if CONFIG_HAVE_ARCH_BOOTMEM_NODE,
-+ * the architecture-specific code should honor this)
-+ */
-+#define BOOTMEM_DEFAULT		0
-+#define BOOTMEM_EXCLUSIVE	(1<<0)
+ void
+ efi_initialize_iomem_resources(struct resource *code_resource,
+-			       struct resource *data_resource)
++			       struct resource *data_resource,
++			       struct resource *bss_resource)
+ {
+ 	struct resource *res;
+ 	void *efi_map_start, *efi_map_end, *p;
+@@ -1171,6 +1172,7 @@ efi_initialize_iomem_resources(struct re
+ 			 */
+ 			insert_resource(res, code_resource);
+ 			insert_resource(res, data_resource);
++			insert_resource(res, bss_resource);
+ #ifdef CONFIG_KEXEC
+                         insert_resource(res, &efi_memmap_res);
+                         insert_resource(res, &boot_param_res);
+diff -puN arch/ia64/kernel/setup.c~kexec-add-bss-to-resource-tree arch/ia64/kernel/setup.c
+--- a/arch/ia64/kernel/setup.c~kexec-add-bss-to-resource-tree
++++ a/arch/ia64/kernel/setup.c
+@@ -90,7 +90,12 @@ static struct resource code_resource = {
+ 	.name	= "Kernel code",
+ 	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
+ };
+-extern char _text[], _end[], _etext[];
 +
- #ifndef CONFIG_HAVE_ARCH_BOOTMEM_NODE
--extern void reserve_bootmem(unsigned long addr, unsigned long size);
-+/*
-+ * If flags is 0, then the return value is always 0 (success). If
-+ * flags contains BOOTMEM_EXCLUSIVE, then -EBUSY is returned if the
-+ * memory already was reserved.
-+ */
-+extern int reserve_bootmem(unsigned long addr, unsigned long size, int flags);
- #define alloc_bootmem(x) \
- 	__alloc_bootmem(x, SMP_CACHE_BYTES, __pa(MAX_DMA_ADDRESS))
- #define alloc_bootmem_low(x) \
-diff -puN mm/bootmem.c~kexec-introduce-bootmem_exclusive mm/bootmem.c
---- a/mm/bootmem.c~kexec-introduce-bootmem_exclusive
-+++ a/mm/bootmem.c
-@@ -111,11 +111,12 @@ static unsigned long __init init_bootmem
-  * might be used for boot-time allocations - or it might get added
-  * to the free page pool later on.
++static struct resource bss_resource = {
++	.name	= "Kernel bss",
++	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++};
++extern char _text[], _end[], _etext[], _edata[], _bss[];
+ 
+ unsigned long ia64_max_cacheline_size;
+ 
+@@ -200,8 +205,11 @@ static int __init register_memory(void)
+ 	code_resource.start = ia64_tpa(_text);
+ 	code_resource.end   = ia64_tpa(_etext) - 1;
+ 	data_resource.start = ia64_tpa(_etext);
+-	data_resource.end   = ia64_tpa(_end) - 1;
+-	efi_initialize_iomem_resources(&code_resource, &data_resource);
++	data_resource.end   = ia64_tpa(_edata) - 1;
++	bss_resource.start  = ia64_tpa(_bss);
++	bss_resource.end    = ia64_tpa(_end) - 1;
++	efi_initialize_iomem_resources(&code_resource, &data_resource,
++			&bss_resource);
+ 
+ 	return 0;
+ }
+diff -puN arch/x86/kernel/e820_32.c~kexec-add-bss-to-resource-tree arch/x86/kernel/e820_32.c
+--- a/arch/x86/kernel/e820_32.c~kexec-add-bss-to-resource-tree
++++ a/arch/x86/kernel/e820_32.c
+@@ -51,6 +51,13 @@ struct resource code_resource = {
+ 	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
+ };
+ 
++struct resource bss_resource = {
++	.name	= "Kernel bss",
++	.start	= 0,
++	.end	= 0,
++	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++};
++
+ static struct resource system_rom_resource = {
+ 	.name	= "System ROM",
+ 	.start	= 0xf0000,
+@@ -254,7 +261,9 @@ static void __init probe_roms(void)
+  * and also for regions reported as reserved by the e820.
   */
--static void __init reserve_bootmem_core(bootmem_data_t *bdata, unsigned long addr,
--					unsigned long size)
-+static int __init reserve_bootmem_core(bootmem_data_t *bdata,
-+			unsigned long addr, unsigned long size, int flags)
+ static void __init
+-legacy_init_iomem_resources(struct resource *code_resource, struct resource *data_resource)
++legacy_init_iomem_resources(struct resource *code_resource,
++			    struct resource *data_resource,
++			    struct resource *bss_resource)
  {
- 	unsigned long sidx, eidx;
- 	unsigned long i;
-+	int ret;
+ 	int i;
  
- 	/*
- 	 * round up, partially reserved pages are considered
-@@ -133,7 +134,20 @@ static void __init reserve_bootmem_core(
- #ifdef CONFIG_DEBUG_BOOTMEM
- 			printk("hm, page %08lx reserved twice.\n", i*PAGE_SIZE);
+@@ -287,6 +296,7 @@ legacy_init_iomem_resources(struct resou
+ 			 */
+ 			request_resource(res, code_resource);
+ 			request_resource(res, data_resource);
++			request_resource(res, bss_resource);
+ #ifdef CONFIG_KEXEC
+ 			if (crashk_res.start != crashk_res.end)
+ 				request_resource(res, &crashk_res);
+@@ -307,9 +317,11 @@ static int __init request_standard_resou
+ 
+ 	printk("Setting up standard PCI resources\n");
+ 	if (efi_enabled)
+-		efi_initialize_iomem_resources(&code_resource, &data_resource);
++		efi_initialize_iomem_resources(&code_resource,
++				&data_resource, &bss_resource);
+ 	else
+-		legacy_init_iomem_resources(&code_resource, &data_resource);
++		legacy_init_iomem_resources(&code_resource,
++				&data_resource, &bss_resource);
+ 
+ 	/* EFI systems may still have VGA */
+ 	request_resource(&iomem_resource, &video_ram_resource);
+diff -puN arch/x86/kernel/e820_64.c~kexec-add-bss-to-resource-tree arch/x86/kernel/e820_64.c
+--- a/arch/x86/kernel/e820_64.c~kexec-add-bss-to-resource-tree
++++ a/arch/x86/kernel/e820_64.c
+@@ -47,7 +47,7 @@ unsigned long end_pfn_map; 
+  */
+ static unsigned long __initdata end_user_pfn = MAXMEM>>PAGE_SHIFT;
+ 
+-extern struct resource code_resource, data_resource;
++extern struct resource code_resource, data_resource, bss_resource;
+ 
+ /* Check for some hardcoded bad areas that early boot is not allowed to touch */ 
+ static inline int bad_addr(unsigned long *addrp, unsigned long size)
+@@ -225,6 +225,7 @@ void __init e820_reserve_resources(void)
+ 			 */
+ 			request_resource(res, &code_resource);
+ 			request_resource(res, &data_resource);
++			request_resource(res, &bss_resource);
+ #ifdef CONFIG_KEXEC
+ 			if (crashk_res.start != crashk_res.end)
+ 				request_resource(res, &crashk_res);
+diff -puN arch/x86/kernel/efi_32.c~kexec-add-bss-to-resource-tree arch/x86/kernel/efi_32.c
+--- a/arch/x86/kernel/efi_32.c~kexec-add-bss-to-resource-tree
++++ a/arch/x86/kernel/efi_32.c
+@@ -603,7 +603,8 @@ void __init efi_enter_virtual_mode(void)
+ 
+ void __init
+ efi_initialize_iomem_resources(struct resource *code_resource,
+-			       struct resource *data_resource)
++			       struct resource *data_resource,
++			       struct resource *bss_resource)
+ {
+ 	struct resource *res;
+ 	efi_memory_desc_t *md;
+@@ -675,6 +676,7 @@ efi_initialize_iomem_resources(struct re
+ 		if (md->type == EFI_CONVENTIONAL_MEMORY) {
+ 			request_resource(res, code_resource);
+ 			request_resource(res, data_resource);
++			request_resource(res, bss_resource);
+ #ifdef CONFIG_KEXEC
+ 			request_resource(res, &crashk_res);
  #endif
-+			if (flags & BOOTMEM_EXCLUSIVE) {
-+				ret = -EBUSY;
-+				goto err;
-+			}
- 		}
-+
-+	return 0;
-+
-+err:
-+	/* unreserve memory we accidentally reserved */
-+	for (i--; i >= sidx; i--)
-+		clear_bit(i, bdata->node_bootmem_map);
-+
-+	return ret;
- }
+diff -puN arch/x86/kernel/setup_32.c~kexec-add-bss-to-resource-tree arch/x86/kernel/setup_32.c
+--- a/arch/x86/kernel/setup_32.c~kexec-add-bss-to-resource-tree
++++ a/arch/x86/kernel/setup_32.c
+@@ -60,6 +60,7 @@
+ #include <asm/vmi.h>
+ #include <setup_arch.h>
+ #include <bios_ebda.h>
++#include <asm/cacheflush.h>
  
- static void __init free_bootmem_core(bootmem_data_t *bdata, unsigned long addr,
-@@ -376,7 +390,7 @@ unsigned long __init init_bootmem_node(p
- void __init reserve_bootmem_node(pg_data_t *pgdat, unsigned long physaddr,
- 				 unsigned long size)
- {
--	reserve_bootmem_core(pgdat->bdata, physaddr, size);
-+	reserve_bootmem_core(pgdat->bdata, physaddr, size, BOOTMEM_DEFAULT);
- }
+ /* This value is set up by the early boot code to point to the value
+    immediately after the boot time page tables.  It contains a *physical*
+@@ -73,6 +74,7 @@ int disable_pse __devinitdata = 0;
+  */
+ extern struct resource code_resource;
+ extern struct resource data_resource;
++extern struct resource bss_resource;
  
- void __init free_bootmem_node(pg_data_t *pgdat, unsigned long physaddr,
-@@ -398,9 +412,10 @@ unsigned long __init init_bootmem(unsign
- }
+ /* cpu data as detected by the assembly code in head.S */
+ struct cpuinfo_x86 new_cpu_data __cpuinitdata = { 0, 0, 0, 0, -1, 1, 0, 0, -1 };
+@@ -600,6 +602,8 @@ void __init setup_arch(char **cmdline_p)
+ 	code_resource.end = virt_to_phys(_etext)-1;
+ 	data_resource.start = virt_to_phys(_etext);
+ 	data_resource.end = virt_to_phys(_edata)-1;
++	bss_resource.start = virt_to_phys(&__bss_start);
++	bss_resource.end = virt_to_phys(&__bss_stop)-1;
  
- #ifndef CONFIG_HAVE_ARCH_BOOTMEM_NODE
--void __init reserve_bootmem(unsigned long addr, unsigned long size)
-+int __init reserve_bootmem(unsigned long addr, unsigned long size,
-+			    int flags)
- {
--	reserve_bootmem_core(NODE_DATA(0)->bdata, addr, size);
-+	return reserve_bootmem_core(NODE_DATA(0)->bdata, addr, size, flags);
- }
- #endif /* !CONFIG_HAVE_ARCH_BOOTMEM_NODE */
+ 	parse_early_param();
  
+diff -puN arch/x86/kernel/setup_64.c~kexec-add-bss-to-resource-tree arch/x86/kernel/setup_64.c
+--- a/arch/x86/kernel/setup_64.c~kexec-add-bss-to-resource-tree
++++ a/arch/x86/kernel/setup_64.c
+@@ -58,6 +58,7 @@
+ #include <asm/numa.h>
+ #include <asm/sections.h>
+ #include <asm/dmi.h>
++#include <asm/cacheflush.h>
+ 
+ /*
+  * Machine setup..
+@@ -133,6 +134,12 @@ struct resource code_resource = {
+ 	.end = 0,
+ 	.flags = IORESOURCE_RAM,
+ };
++struct resource bss_resource = {
++	.name = "Kernel bss",
++	.start = 0,
++	.end = 0,
++	.flags = IORESOURCE_RAM,
++};
+ 
+ #ifdef CONFIG_PROC_VMCORE
+ /* elfcorehdr= specifies the location of elf core header
+@@ -276,6 +283,8 @@ void __init setup_arch(char **cmdline_p)
+ 	code_resource.end = virt_to_phys(&_etext)-1;
+ 	data_resource.start = virt_to_phys(&_etext);
+ 	data_resource.end = virt_to_phys(&_edata)-1;
++	bss_resource.start = virt_to_phys(&__bss_start);
++	bss_resource.end = virt_to_phys(&__bss_stop)-1;
+ 
+ 	early_identify_cpu(&boot_cpu_data);
+ 
+diff -puN include/linux/efi.h~kexec-add-bss-to-resource-tree include/linux/efi.h
+--- a/include/linux/efi.h~kexec-add-bss-to-resource-tree
++++ a/include/linux/efi.h
+@@ -298,7 +298,7 @@ extern int efi_mem_attribute_range (unsi
+ 				    u64 attr);
+ extern int __init efi_uart_console_only (void);
+ extern void efi_initialize_iomem_resources(struct resource *code_resource,
+-					struct resource *data_resource);
++		struct resource *data_resource, struct resource *bss_resource);
+ extern unsigned long efi_get_time(void);
+ extern int efi_set_rtc_mmss(unsigned long nowtime);
+ extern int is_available_memory(efi_memory_desc_t * md);
 _
-
-Patches currently in -mm which might be from bwalle@suse.de are
-
-origin.patch
-kexec-add-bss-to-resource-tree.patch
-kexec-introduce-bootmem_exclusive.patch
-kexec-introduce-bootmem_exclusive-fix.patch
-kexec-use-bootmem_exclusive-on-x86.patch
-
