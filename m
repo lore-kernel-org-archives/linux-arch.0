@@ -1,107 +1,152 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dike.telenet-ops.be ([195.130.132.36]:38483 "EHLO
-	dike.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751538AbXJUT32 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Oct 2007 15:29:28 -0400
-Date: Sun, 21 Oct 2007 20:29:29 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] m68k: Use cc-cross-prefix (was: Re: [GI:wqT PULL] kbuild
- updates - second round)
-In-Reply-To: <20071021182245.GA5840@uranus.ravnborg.org>
-Message-ID: <Pine.LNX.4.64.0710212028560.6155@anakin>
-References: <20071019204415.GA623@uranus.ravnborg.org>
- <Pine.LNX.4.64.0710211956280.6155@anakin> <20071021182245.GA5840@uranus.ravnborg.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:46174 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751104AbXJUXPq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 21 Oct 2007 19:15:46 -0400
+Message-Id: <200710212315.l9LNFCJp031936@imap1.linux-foundation.org>
+Subject: - kexec-use-bootmem_exclusive-on-x86.patch removed from -mm tree
+From: akpm@linux-foundation.org
+Date: Sun, 21 Oct 2007 16:08:43 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Rob Landley <rob@landley.net>
+To: bwalle@suse.de, ebiederm@xmission.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, vgoyal@in.ibm.com, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 21 Oct 2007, Sam Ravnborg wrote:
-> On Sun, Oct 21, 2007 at 07:57:39PM +0200, Geert Uytterhoeven wrote:
-> > On Fri, 19 Oct 2007, Sam Ravnborg wrote:
-> > > The cc-cross-prefix is new and developed on request from Geert Uytterhoeven.
-> > > With cc-cross-prefix it is now much easier to have a few default
-> > > cross compile prefixes and defaulting to none - if none of them were present.
-> > > ARCH maintainers are expected to pick up this feature soon.
-> > 
-> > Thanks, seems to work fine!
-> > 
-> > m68k: Use cc-cross-prefix
-> > 
-> > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> > ---
-> >  arch/m68k/Makefile |    8 +++-----
-> >  1 file changed, 3 insertions(+), 5 deletions(-)
-> > 
-> > --- a/arch/m68k/Makefile
-> > +++ b/arch/m68k/Makefile
-> > @@ -13,16 +13,14 @@
-> >  # Copyright (C) 1994 by Hamish Macdonald
-> >  #
-> >  
-> > -# test for cross compiling
-> > -COMPILE_ARCH = $(shell uname -m)
-> > -
-> >  # override top level makefile
-> >  AS += -m68020
-> >  LDFLAGS := -m m68kelf
-> >  LDFLAGS_MODULE += -T $(srctree)/arch/m68k/kernel/module.lds
-> >  ifneq ($(COMPILE_ARCH),$(ARCH))
-> > -	# prefix for cross-compiling binaries
-> > -	CROSS_COMPILE = m68k-linux-gnu-
-> > +	ifeq ($(CROSS_COMPILE),)
-> > +	       CROSS_COMPILE := $(call cc-cross-prefix, m68k-linux-gnu- m68k-linux-)
-> > +	endif
-> >  endif
-> Patch seems bogus.
-> You kill the assignment to COMPILE_ARCH yet you
-> refer to it in the line:
-> ifneq ($(COMPILE_ARCH),...
-> 
-> Did you mean to use $(SUBARCH) here?
 
-Oops, indeed. Sorry, here's a new one...
+The patch titled
+     kexec: use BOOTMEM_EXCLUSIVE on x86
+has been removed from the -mm tree.  Its filename was
+     kexec-use-bootmem_exclusive-on-x86.patch
 
-m68k: Use cc-cross-prefix
+This patch was dropped because it had testing failures
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+------------------------------------------------------
+Subject: kexec: use BOOTMEM_EXCLUSIVE on x86
+From: Bernhard Walle <bwalle@suse.de>
+
+This patch uses the BOOTMEM_EXCLUSIVE, introduced in the previous patch, to
+avoid conflicts while reserving the memory for the kdump carpture kernel
+(crashkernel=).
+
+The modification has been tested on i386.
+
+Signed-off-by: Bernhard Walle <bwalle@suse.de>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Vivek Goyal <vgoyal@in.ibm.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@elte.hu>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
- arch/m68k/Makefile |   10 ++++------
- 1 file changed, 4 insertions(+), 6 deletions(-)
 
---- a/arch/m68k/Makefile
-+++ b/arch/m68k/Makefile
-@@ -13,16 +13,14 @@
- # Copyright (C) 1994 by Hamish Macdonald
- #
+ arch/x86/kernel/setup_32.c |   33 ++++++++++++++++++++-------------
+ arch/x86/kernel/setup_64.c |   35 +++++++++++++++++++++--------------
+ 2 files changed, 41 insertions(+), 27 deletions(-)
+
+diff -puN arch/x86/kernel/setup_32.c~kexec-use-bootmem_exclusive-on-x86 arch/x86/kernel/setup_32.c
+--- a/arch/x86/kernel/setup_32.c~kexec-use-bootmem_exclusive-on-x86
++++ a/arch/x86/kernel/setup_32.c
+@@ -401,22 +401,29 @@ static void __init reserve_crashkernel(v
  
--# test for cross compiling
--COMPILE_ARCH = $(shell uname -m)
--
- # override top level makefile
- AS += -m68020
- LDFLAGS := -m m68kelf
- LDFLAGS_MODULE += -T $(srctree)/arch/m68k/kernel/module.lds
--ifneq ($(COMPILE_ARCH),$(ARCH))
--	# prefix for cross-compiling binaries
--	CROSS_COMPILE = m68k-linux-gnu-
-+ifneq ($(SUB_ARCH),$(ARCH))
-+	ifeq ($(CROSS_COMPILE),)
-+	       CROSS_COMPILE := $(call cc-cross-prefix, m68k-linux-gnu- m68k-linux-)
-+	endif
- endif
+ 	total_mem = get_total_mem();
  
- ifdef CONFIG_SUN3
+-	ret = parse_crashkernel(boot_command_line, total_mem,
+-			&crash_size, &crash_base);
++	ret = parse_crashkernel(boot_command_line, total_mem, &crash_size,
++				&crash_base);
+ 	if (ret == 0 && crash_size > 0) {
+-		if (crash_base > 0) {
+-			printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
+-					"for crashkernel (System RAM: %ldMB)\n",
+-					(unsigned long)(crash_size >> 20),
+-					(unsigned long)(crash_base >> 20),
+-					(unsigned long)(total_mem >> 20));
+-			crashk_res.start = crash_base;
+-			crashk_res.end   = crash_base + crash_size - 1;
+-			reserve_bootmem(crash_base, crash_size,
+-					BOOTMEM_DEFAULT);
+-		} else
++		if (crash_base <= 0) {
+ 			printk(KERN_INFO "crashkernel reservation failed - "
+ 					"you have to specify a base address\n");
++			return;
++		}
++
++		if (reserve_bootmem(crash_base, crash_size,
++					BOOTMEM_EXCLUSIVE) < 0) {
++			printk(KERN_INFO "crashkernel reservation failed - "
++					"memory is in use\n");
++			return;
++		}
++
++		printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
++				"for crashkernel (System RAM: %ldMB)\n",
++				(unsigned long)(crash_size >> 20),
++				(unsigned long)(crash_base >> 20),
++				(unsigned long)(total_mem >> 20));
++		crashk_res.start = crash_base;
++		crashk_res.end = crash_base + crash_size - 1;
+ 	}
+ }
+ #else
+diff -puN arch/x86/kernel/setup_64.c~kexec-use-bootmem_exclusive-on-x86 arch/x86/kernel/setup_64.c
+--- a/arch/x86/kernel/setup_64.c~kexec-use-bootmem_exclusive-on-x86
++++ a/arch/x86/kernel/setup_64.c
+@@ -201,28 +201,35 @@ static inline void copy_edd(void)
+ #ifdef CONFIG_KEXEC
+ static void __init reserve_crashkernel(void)
+ {
+-	unsigned long long free_mem;
++	unsigned long long total_mem;
+ 	unsigned long long crash_size, crash_base;
+ 	int ret;
+ 
+-	free_mem = ((unsigned long long)max_low_pfn - min_low_pfn) << PAGE_SHIFT;
++	total_mem = ((unsigned long long)max_low_pfn - min_low_pfn) << PAGE_SHIFT;
+ 
+-	ret = parse_crashkernel(boot_command_line, free_mem,
++	ret = parse_crashkernel(boot_command_line, total_mem,
+ 			&crash_size, &crash_base);
+ 	if (ret == 0 && crash_size) {
+-		if (crash_base > 0) {
+-			printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
+-					"for crashkernel (System RAM: %ldMB)\n",
+-					(unsigned long)(crash_size >> 20),
+-					(unsigned long)(crash_base >> 20),
+-					(unsigned long)(free_mem >> 20));
+-			crashk_res.start = crash_base;
+-			crashk_res.end   = crash_base + crash_size - 1;
+-			reserve_bootmem(crash_base, crash_size,
+-					BOOTMEM_DEFAULT);
+-		} else
++		if (crash_base <= 0) {
+ 			printk(KERN_INFO "crashkernel reservation failed - "
+ 					"you have to specify a base address\n");
++			return;
++		}
++
++		if (reserve_bootmem(crash_base, crash_size,
++					BOOTMEM_EXCLUSIVE) < 0) {
++			printk(KERN_INFO "crashkernel reservation failed - "
++					"memory is in use\n");
++			return;
++		}
++
++		printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
++				"for crashkernel (System RAM: %ldMB)\n",
++				(unsigned long)(crash_size >> 20),
++				(unsigned long)(crash_base >> 20),
++				(unsigned long)(total_mem >> 20));
++		crashk_res.start = crash_base;
++		crashk_res.end   = crash_base + crash_size - 1;
+ 	}
+ }
+ #else
+_
 
-Gr{oetje,eeting}s,
+Patches currently in -mm which might be from bwalle@suse.de are
 
-						Geert
+origin.patch
+kexec-add-bss-to-resource-tree.patch
+kexec-use-bootmem_exclusive-on-x86.patch
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
