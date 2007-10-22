@@ -1,40 +1,320 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:57169 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751391AbXJVVq7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Oct 2007 17:46:59 -0400
-Date: Mon, 22 Oct 2007 23:46:19 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 1/2] irq_flags_t: intro and core annotations
-In-Reply-To: <200710222334.45667.arnd@arndb.de>
-Message-ID: <alpine.LFD.0.9999.0710222344580.3167@localhost.localdomain>
-References: <20071020235546.GB1825@martell.zuzino.mipt.ru> <alpine.LFD.0.999.0710221254550.30120@woody.linux-foundation.org> <20071022130223.f7d75c31.akpm@linux-foundation.org> <200710222334.45667.arnd@arndb.de>
-MIME-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="8323328-1024360001-1193089581=:3167"
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:33918 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751599AbXJVW7h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Oct 2007 18:59:37 -0400
+Message-Id: <200710222259.l9MMxXqi020271@imap1.linux-foundation.org>
+Subject: + bugh-remove-have_arch_bug--have_arch_warn.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Mon, 22 Oct 2007 15:59:33 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, matthew@wil.cx, ralf@linux-mips.org, adobriyan@gmail.com, viro@ftp.linux.org.uk, viro@zeniv.linux.org.uk, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>
+To: mm-commits@vger.kernel.org
+Cc: olof@lixom.net, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
 
---8323328-1024360001-1193089581=:3167
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
+The patch titled
+     bug.h: Remove HAVE_ARCH_BUG.* / HAVE_ARCH_WARN.*
+has been added to the -mm tree.  Its filename is
+     bugh-remove-have_arch_bug--have_arch_warn.patch
 
-On Mon, 22 Oct 2007, Arnd Bergmann wrote:
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
-> On Monday 22 October 2007, Andrew Morton wrote:
-> > It's almost always a bug to do spin_lock_irq() when local interrupts are
-> > disabled.  However iirc when we've tried to add runtime debugging to catch
-> > that, it triggered false-positives which made the idea unworkable.  I forget
-> > where.
-> 
-> I tried this as well a few years ago, and I think I hit a few places in
-> the early initialization, but nothing unfixable.
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
 
-Hmm, lockdep checks this already. If it does not catch it, we need to fix it.
+------------------------------------------------------
+Subject: bug.h: Remove HAVE_ARCH_BUG.* / HAVE_ARCH_WARN.*
+From: Olof Johansson <olof@lixom.net>
 
-     tglx
---8323328-1024360001-1193089581=:3167--
+No need to have the HAVE_ARCH_BUG.* / HAVE_ARCH_WARN.* defines, when
+the generic implementation can just use #ifndef on the macros themselves.
+
+Also, introduce __WARN() in the generic case, so the generic WARN_ON()
+can use arch-specific code for when the condition is true.
+
+Signed-off-by: Olof Johansson <olof@lixom.net>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/asm-alpha/bug.h   |    1 -
+ include/asm-arm/bug.h     |    1 -
+ include/asm-avr32/bug.h   |    3 ---
+ include/asm-frv/bug.h     |    1 -
+ include/asm-generic/bug.h |   27 ++++++++++++++++-----------
+ include/asm-ia64/bug.h    |    1 -
+ include/asm-m68k/bug.h    |    1 -
+ include/asm-mips/bug.h    |    4 ----
+ include/asm-parisc/bug.h  |    2 --
+ include/asm-powerpc/bug.h |    3 ---
+ include/asm-s390/bug.h    |    2 --
+ include/asm-sh/bug.h      |    2 --
+ include/asm-sh64/bug.h    |    1 -
+ include/asm-sparc/bug.h   |    1 -
+ include/asm-sparc64/bug.h |    1 -
+ include/asm-v850/bug.h    |    1 -
+ include/asm-x86/bug.h     |    1 -
+ 17 files changed, 16 insertions(+), 37 deletions(-)
+
+diff -puN include/asm-alpha/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-alpha/bug.h
+--- a/include/asm-alpha/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-alpha/bug.h
+@@ -10,7 +10,6 @@
+   __asm__ __volatile__("call_pal %0  # bugchk\n\t"".long %1\n\t.8byte %2" \
+ 		       : : "i" (PAL_bugchk), "i"(__LINE__), "i"(__FILE__))
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+diff -puN include/asm-arm/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-arm/bug.h
+--- a/include/asm-arm/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-arm/bug.h
+@@ -16,7 +16,6 @@ extern void __bug(const char *file, int 
+ 
+ #endif
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+diff -puN include/asm-avr32/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-avr32/bug.h
+--- a/include/asm-avr32/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-avr32/bug.h
+@@ -63,9 +63,6 @@
+ 		unlikely(__ret_warn_on);				\
+ 	})
+ 
+-#define HAVE_ARCH_BUG
+-#define HAVE_ARCH_WARN_ON
+-
+ #endif /* CONFIG_BUG */
+ 
+ #include <asm-generic/bug.h>
+diff -puN include/asm-frv/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-frv/bug.h
+--- a/include/asm-frv/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-frv/bug.h
+@@ -32,7 +32,6 @@ do {						\
+ 	asm volatile("nop");			\
+ } while(0)
+ 
+-#define HAVE_ARCH_BUG
+ #define BUG()					\
+ do {						\
+ 	_debug_bug_printk();			\
+diff -puN include/asm-generic/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-generic/bug.h
+--- a/include/asm-generic/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-generic/bug.h
+@@ -20,39 +20,44 @@ struct bug_entry {
+ #define BUGFLAG_WARNING	(1<<0)
+ #endif	/* CONFIG_GENERIC_BUG */
+ 
+-#ifndef HAVE_ARCH_BUG
++#ifndef BUG
+ #define BUG() do { \
+ 	printk("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __FUNCTION__); \
+ 	panic("BUG!"); \
+ } while (0)
+ #endif
+ 
+-#ifndef HAVE_ARCH_BUG_ON
++#ifndef BUG_ON
+ #define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while(0)
+ #endif
+ 
+-#ifndef HAVE_ARCH_WARN_ON
++#ifndef __WARN
++#define __WARN() do {							\
++	printk("WARNING: at %s:%d %s()\n", __FILE__,			\
++		__LINE__, __FUNCTION__);				\
++	dump_stack();							\
++} while (0)
++#endif
++
++#ifndef WARN_ON
+ #define WARN_ON(condition) ({						\
+ 	int __ret_warn_on = !!(condition);				\
+-	if (unlikely(__ret_warn_on)) {					\
+-		printk("WARNING: at %s:%d %s()\n", __FILE__,		\
+-			__LINE__, __FUNCTION__);			\
+-		dump_stack();						\
+-	}								\
++	if (unlikely(__ret_warn_on))					\
++		__WARN();						\
+ 	unlikely(__ret_warn_on);					\
+ })
+ #endif
+ 
+ #else /* !CONFIG_BUG */
+-#ifndef HAVE_ARCH_BUG
++#ifndef BUG
+ #define BUG()
+ #endif
+ 
+-#ifndef HAVE_ARCH_BUG_ON
++#ifndef BUG_ON
+ #define BUG_ON(condition) do { if (condition) ; } while(0)
+ #endif
+ 
+-#ifndef HAVE_ARCH_WARN_ON
++#ifndef WARN_ON
+ #define WARN_ON(condition) ({						\
+ 	int __ret_warn_on = !!(condition);				\
+ 	unlikely(__ret_warn_on);					\
+diff -puN include/asm-ia64/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-ia64/bug.h
+--- a/include/asm-ia64/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-ia64/bug.h
+@@ -6,7 +6,6 @@
+ #define BUG() do { printk("kernel BUG at %s:%d!\n", __FILE__, __LINE__); ia64_abort(); } while (0)
+ 
+ /* should this BUG be made generic? */
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+diff -puN include/asm-m68k/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-m68k/bug.h
+--- a/include/asm-m68k/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-m68k/bug.h
+@@ -21,7 +21,6 @@
+ } while (0)
+ #endif
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+diff -puN include/asm-mips/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-mips/bug.h
+--- a/include/asm-mips/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-mips/bug.h
+@@ -12,8 +12,6 @@ do {									\
+ 	__asm__ __volatile__("break %0" : : "i" (BRK_BUG));		\
+ } while (0)
+ 
+-#define HAVE_ARCH_BUG
+-
+ #if (_MIPS_ISA > _MIPS_ISA_MIPS1)
+ 
+ #define BUG_ON(condition)						\
+@@ -22,8 +20,6 @@ do {									\
+ 			     : : "r" (condition), "i" (BRK_BUG));	\
+ } while (0)
+ 
+-#define HAVE_ARCH_BUG_ON
+-
+ #endif /* _MIPS_ISA > _MIPS_ISA_MIPS1 */
+ 
+ #endif
+diff -puN include/asm-parisc/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-parisc/bug.h
+--- a/include/asm-parisc/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-parisc/bug.h
+@@ -7,8 +7,6 @@
+  */
+ 
+ #ifdef CONFIG_BUG
+-#define HAVE_ARCH_BUG
+-#define HAVE_ARCH_WARN_ON
+ 
+ /* the break instruction is used as BUG() marker.  */
+ #define	PARISC_BUG_BREAK_ASM	"break 0x1f, 0x1fff"
+diff -puN include/asm-powerpc/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-powerpc/bug.h
+--- a/include/asm-powerpc/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-powerpc/bug.h
+@@ -109,9 +109,6 @@
+ 	unlikely(__ret_warn_on);				\
+ })
+ 
+-#define HAVE_ARCH_BUG
+-#define HAVE_ARCH_BUG_ON
+-#define HAVE_ARCH_WARN_ON
+ #endif /* __ASSEMBLY __ */
+ #endif /* CONFIG_BUG */
+ 
+diff -puN include/asm-s390/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-s390/bug.h
+--- a/include/asm-s390/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-s390/bug.h
+@@ -61,8 +61,6 @@
+ 	unlikely(__ret_warn_on);			\
+ })
+ 
+-#define HAVE_ARCH_BUG
+-#define HAVE_ARCH_WARN_ON
+ #endif /* CONFIG_BUG */
+ 
+ #include <asm-generic/bug.h>
+diff -puN include/asm-sh/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-sh/bug.h
+--- a/include/asm-sh/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-sh/bug.h
+@@ -4,8 +4,6 @@
+ #define TRAPA_BUG_OPCODE	0xc33e	/* trapa #0x3e */
+ 
+ #ifdef CONFIG_BUG
+-#define HAVE_ARCH_BUG
+-#define HAVE_ARCH_WARN_ON
+ 
+ /**
+  * _EMIT_BUG_ENTRY
+diff -puN include/asm-sh64/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-sh64/bug.h
+--- a/include/asm-sh64/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-sh64/bug.h
+@@ -11,7 +11,6 @@
+ 	*(volatile int *)0 = 0; \
+ } while (0)
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+diff -puN include/asm-sparc/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-sparc/bug.h
+--- a/include/asm-sparc/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-sparc/bug.h
+@@ -26,7 +26,6 @@ extern void do_BUG(const char *file, int
+ #define BUG()		__bug_trap()
+ #endif
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+diff -puN include/asm-sparc64/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-sparc64/bug.h
+--- a/include/asm-sparc64/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-sparc64/bug.h
+@@ -14,7 +14,6 @@ extern void do_BUG(const char *file, int
+ #define BUG()		__builtin_trap()
+ #endif
+ 
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+diff -puN include/asm-v850/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-v850/bug.h
+--- a/include/asm-v850/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-v850/bug.h
+@@ -17,7 +17,6 @@
+ #ifdef CONFIG_BUG
+ extern void __bug (void) __attribute__ ((noreturn));
+ #define BUG()		__bug()
+-#define HAVE_ARCH_BUG
+ #endif
+ 
+ #include <asm-generic/bug.h>
+diff -puN include/asm-x86/bug.h~bugh-remove-have_arch_bug--have_arch_warn include/asm-x86/bug.h
+--- a/include/asm-x86/bug.h~bugh-remove-have_arch_bug--have_arch_warn
++++ a/include/asm-x86/bug.h
+@@ -2,7 +2,6 @@
+ #define _ASM_X86_BUG_H
+ 
+ #ifdef CONFIG_BUG
+-#define HAVE_ARCH_BUG
+ 
+ #ifdef CONFIG_DEBUG_BUGVERBOSE
+ 
+_
+
+Patches currently in -mm which might be from olof@lixom.net are
+
+origin.patch
+bugh-remove-have_arch_bug--have_arch_warn.patch
+powerpc-switch-to-generic-warn_on-bug_on.patch
+
