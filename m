@@ -1,34 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:52767 "EHLO
-	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751677AbXJVPak (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Oct 2007 11:30:40 -0400
-Received: from localhost.localdomain ([127.0.0.1]:19620 "EHLO
-	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
-	id S20024816AbXJVPai (ORCPT <rfc822;linux-arch@vger.kernel.org>
-	+ 1 other); Mon, 22 Oct 2007 16:30:38 +0100
-Date: Mon, 22 Oct 2007 16:29:12 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH 1/2] irq_flags_t: intro and core annotations
-Message-ID: <20071022152912.GA841@linux-mips.org>
-References: <20071020235546.GB1825@martell.zuzino.mipt.ru> <20071021005418.GU8181@ftp.linux.org.uk> <20071021093042.GA2144@martell.zuzino.mipt.ru>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20071021093042.GA2144@martell.zuzino.mipt.ru>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:51987 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752304AbXJVSME (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Oct 2007 14:12:04 -0400
+Date: Mon, 22 Oct 2007 11:11:35 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: - kexec-introduce-bootmem_exclusive.patch removed from -mm tree
+Message-Id: <20071022111135.0f7527ea.akpm@linux-foundation.org>
+In-Reply-To: <20071022130222.GB16201@suse.de>
+References: <200710212315.l9LNF7nT031930@imap1.linux-foundation.org>
+	<20071022130222.GB16201@suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Al Viro <viro@ftp.linux.org.uk>, torvalds@osdl.org, akpm@osdl.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Bernhard Walle <bwalle@suse.de>
+Cc: ebiederm@xmission.com, mingo@elte.hu, tglx@linutronix.de, vgoyal@in.ibm.com, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Oct 21, 2007 at 01:30:42PM +0400, Alexey Dobriyan wrote:
+On Mon, 22 Oct 2007 15:02:22 +0200 Bernhard Walle <bwalle@suse.de> wrote:
 
-> 			irq_flags_t
-> 	
-> New type for use with spin_lock_irqsave() and friends.
+> * Andrew Morton <akpm@linux-foundation.org> [2007-10-22 01:08]:
+> > 
+> > The patch titled
+> >      kexec: introduce BOOTMEM_EXCLUSIVE
+> > has been removed from the -mm tree.  Its filename was
+> >      kexec-introduce-bootmem_exclusive.patch
+> > 
+> > This patch was dropped because it had testing failures
+> 
+> Is it possible for me to find out which "testing failures" the patch
+> had?
+> 
 
-Talking about it, why did we ever require this to be a long anyway?  I could
-get away with a single bit for MIPS; the rest of this variable is pure
-bloat.  An abstract datatype could help finally fix this.
-
-  Ralf
+I didn't realise that it actually breaks the build on all non-x86.  I
+cannot carry a patch like that.
