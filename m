@@ -1,90 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asia.telenet-ops.be ([195.130.137.74]:50239 "EHLO
-	asia.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752629AbXJVSg7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Oct 2007 14:36:59 -0400
-Date: Mon, 22 Oct 2007 20:36:49 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] m68k: Use cc-cross-prefix (was: Re: [GI:wqT PULL] kbuild
- updates - second round)
-In-Reply-To: <jetzoj1phj.fsf@sykes.suse.de>
-Message-ID: <Pine.LNX.4.64.0710221315400.30734@anakin>
-References: <20071019204415.GA623@uranus.ravnborg.org>
- <Pine.LNX.4.64.0710211956280.6155@anakin> <20071021182245.GA5840@uranus.ravnborg.org>
- <Pine.LNX.4.64.0710212028560.6155@anakin> <jetzoj1phj.fsf@sykes.suse.de>
-MIME-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="-1463808512-59085110-1193078191=:7105"
-Content-ID: <Pine.LNX.4.64.0710222036380.7105@anakin>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:35166 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755270AbXJVS1P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Oct 2007 14:27:15 -0400
+Date: Mon, 22 Oct 2007 11:21:10 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 1/2] irq_flags_t: intro and core annotations
+Message-Id: <20071022112110.105b8e11.akpm@linux-foundation.org>
+In-Reply-To: <20071022152912.GA841@linux-mips.org>
+References: <20071020235546.GB1825@martell.zuzino.mipt.ru>
+	<20071021005418.GU8181@ftp.linux.org.uk>
+	<20071021093042.GA2144@martell.zuzino.mipt.ru>
+	<20071022152912.GA841@linux-mips.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Andreas Schwab <schwab@suse.de>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Rob Landley <rob@landley.net>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Alexey Dobriyan <adobriyan@gmail.com>, Al Viro <viro@ftp.linux.org.uk>, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+On Mon, 22 Oct 2007 16:29:12 +0100 Ralf Baechle <ralf@linux-mips.org> wrote:
 
----1463808512-59085110-1193078191=:7105
-Content-Type: TEXT/PLAIN; CHARSET=UTF-8
-Content-Transfer-Encoding: 8BIT
-Content-ID: <Pine.LNX.4.64.0710222036381.7105@anakin>
-
-On Mon, 22 Oct 2007, Andreas Schwab wrote:
-> Geert Uytterhoeven <geert@linux-m68k.org> writes:
-> >> Did you mean to use $(SUBARCH) here?
->                          ^^^^^^^
+> On Sun, Oct 21, 2007 at 01:30:42PM +0400, Alexey Dobriyan wrote:
 > 
-> > Oops, indeed. Sorry, here's a new one...
+> > 			irq_flags_t
+> > 	
+> > New type for use with spin_lock_irqsave() and friends.
+> 
+> Talking about it, why did we ever require this to be a long anyway?  I could
+> get away with a single bit for MIPS; the rest of this variable is pure
+> bloat.  An abstract datatype could help finally fix this.
+> 
 
-> > +ifneq ($(SUB_ARCH),$(ARCH))
->             ^^^^^^^^
-> You did test it, didn't you?
+Yes, it's always been ugly that we use unsigned long for this rather than
+abstracting it properly.
 
-Bummer, I only tested a cross-compile build, as I don't have access to a
-native m68k machine at this moment. Third time, good time? I also added
-m68k-unknown-linux-gnu- to please Kolbjørn Barmen and the other Gentoo
-people.
----
-
-m68k: Use cc-cross-prefix
-
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
----
- arch/m68k/Makefile |   11 +++++------
- 1 file changed, 5 insertions(+), 6 deletions(-)
-
---- a/arch/m68k/Makefile
-+++ b/arch/m68k/Makefile
-@@ -13,16 +13,15 @@
- # Copyright (C) 1994 by Hamish Macdonald
- #
- 
--# test for cross compiling
--COMPILE_ARCH = $(shell uname -m)
--
- # override top level makefile
- AS += -m68020
- LDFLAGS := -m m68kelf
- LDFLAGS_MODULE += -T $(srctree)/arch/m68k/kernel/module.lds
--ifneq ($(COMPILE_ARCH),$(ARCH))
--	# prefix for cross-compiling binaries
--	CROSS_COMPILE = m68k-linux-gnu-
-+ifneq ($(SUBARCH),$(ARCH))
-+	ifeq ($(CROSS_COMPILE),)
-+		CROSS_COMPILE := $(call cc-cross-prefix, \
-+			m68k-linux-gnu- m68k-linux- m68k-unknown-linux-gnu-)
-+	endif
- endif
- 
- ifdef CONFIG_SUN3
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
----1463808512-59085110-1193078191=:7105--
+However I'd prefer that we have some really good reason for introducing
+irq_flags_t now.  Simply so that I don't needlessly spend the next two
+years wrestling with literally thousands of convert-to-irq_flags_t patches
+and having to type "please use irq_flags_t here" in hundreds of patch
+reviews. (snivel, wimper)
