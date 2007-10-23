@@ -1,68 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from emailhub.stusta.mhn.de ([141.84.69.5]:42760 "EHLO
-	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752913AbXJWRLd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Oct 2007 13:11:33 -0400
-Date: Tue, 23 Oct 2007 19:12:02 +0200
-From: Adrian Bunk <bunk@kernel.org>
+Received: from pasmtpb.tele.dk ([80.160.77.98]:60203 "EHLO pasmtpB.tele.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753799AbXJWRX5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Oct 2007 13:23:57 -0400
+Date: Tue, 23 Oct 2007 19:25:30 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: [PATCH] Discardable strings for init and exit sections
-Message-ID: <20071023171201.GW30533@stusta.de>
-References: <Pine.LNX.4.64N.0710121711120.21684@blysk.ds.pg.gda.pl> <20071012171938.GB6476@stusta.de> <20071012175209.GA1110@linux-mips.org> <20071012181544.GC6476@stusta.de> <Pine.LNX.4.64N.0710231753250.8693@blysk.ds.pg.gda.pl>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Message-ID: <20071023172530.GA26345@uranus.ravnborg.org>
+References: <Pine.LNX.4.64N.0710121711120.21684@blysk.ds.pg.gda.pl> <20071012171938.GB6476@stusta.de> <20071012175209.GA1110@linux-mips.org> <20071012181544.GC6476@stusta.de> <Pine.LNX.4.64N.0710231753250.8693@blysk.ds.pg.gda.pl> <20071023171201.GW30533@stusta.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64N.0710231753250.8693@blysk.ds.pg.gda.pl>
+In-Reply-To: <20071023171201.GW30533@stusta.de>
 Sender: linux-arch-owner@vger.kernel.org
-To: "Maciej W. Rozycki" <macro@linux-mips.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>, Franck Bui-Huu <vagabon.xyz@gmail.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org
+To: Adrian Bunk <bunk@kernel.org>
+Cc: "Maciej W. Rozycki" <macro@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, Franck Bui-Huu <vagabon.xyz@gmail.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, Oct 23, 2007 at 05:57:38PM +0100, Maciej W. Rozycki wrote:
-> On Fri, 12 Oct 2007, Adrian Bunk wrote:
 > 
-> > - Most of the string annotations are (naturally) dev{init,exit}
-> >   annotations, and bugs there are therefore in configurations that have
-> >   only extremely low testing coverage during -rc.
-> > - I'm counting 22 annotations in the driver Maciej converted as an
-> >   example. When estimating the number of possible annotations based
-> >   on the number of C files in the kernel I'm getting a six digit
-> >   number.
-> > 
-> > No matter how hard it would be to teach gcc about it, when thinking of 
-> > the amount of __*init*/__*exit* bugs we already have I simply can't 
-> > imagine the string annotations as a maintainable solution.
-> 
->  Well, it is up to the maintainer of code in question to get it right if 
-> interested.  Otherwise having no annotation and leaving the relevant 
-> strings resident in the memory throughout the lifespan of the system is a 
-> valid and perfectly working option.
+> As long as the modpost warnings are just warnings they will often be 
+> missed at compile time.
 
-If we want to go this route users may want to have this for all code 
-they are using. This is not a per-maintainer question, that's a global 
-thing: If janitors start annotating all source files in the kernel the 
-resulting patches can't be accepted or rejected only based on the 
-personal preferences of the maintainers.
+The plans for the modpost warnings are more or less:
+- Let all __init, __cpuinit, __meminit etc use dedicated sections
+no matter the actual configuration.
+Use ifdeffery in the .lds files to place stuff in the correct final
+section.
+Teach modpost about the illegal dependencies.
 
->  If you worry about the reverse case, where an annotation should be 
-> removed because the containing function is no longer __*init*/__*exit*, 
-> then I think `modpost' does a reasonably good job finding such places.
+When we then are back to almost warning free with allmodconfig for
+the most important platfroms (read: or in reality the ones I have a
+tool-chain for and which care to make allmodconfig buildable in mainline)
+then modpost will generate errors instead of warnings to force people
+to fix all the NEW errors they introuduce.
 
-As long as the modpost warnings are just warnings they will often be 
-missed at compile time.
+A variable will convert the errors to warnings for use in certain situations.
 
-And most of the annotations (also in the driver you converted as an 
-example) will be dev{init,exit} annotations, and bugs there are in 
-configurations virtually noone tests during -rc
+But I am not familiar enough with ELF format to extend the current checking
+as suggested by people a few times. Maybe someone else can assist here.
 
->   Maciej
+Comments?
 
-cu
-Adrian
-
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
-
+	Sam
