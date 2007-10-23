@@ -1,59 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.188]:62756 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751028AbXJWB3X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Oct 2007 21:29:23 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: USB HCD: avoid duplicate local_irq_disable()
-Date: Tue, 23 Oct 2007 03:28:31 +0200
-References: <20071020235546.GB1825@martell.zuzino.mipt.ru> <alpine.LFD.0.9999.0710222344580.3167@localhost.localdomain> <200710230306.51606.arnd@arndb.de>
-In-Reply-To: <200710230306.51606.arnd@arndb.de>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200710230328.33915.arnd@arndb.de>
+Received: from rhun.apana.org.au ([64.62.148.172]:3126 "EHLO
+	arnor.apana.org.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752173AbXJWDft (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Oct 2007 23:35:49 -0400
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH 1/2] irq_flags_t: intro and core annotations
+In-Reply-To: <471D0C54.7060207@garzik.org>
+Message-Id: <E1IkAWI-0006vX-00@gondolin.me.apana.org.au>
+Date: Tue, 23 Oct 2007 11:33:30 +0800
 Sender: linux-arch-owner@vger.kernel.org
-To: gregkh@suse.de
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, matthew@wil.cx, ralf@linux-mips.org, adobriyan@gmail.com, viro@ftp.linux.org.uk, viro@zeniv.linux.org.uk, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-usb-devel@lists.sourceforge.net
+To: Jeff Garzik <jeff@garzik.org>
+Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, matthew@wil.cx, arnd@arndb.de, ralf@linux-mips.org, adobriyan@gmail.com, viro@ftp.linux.org.uk, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-usb_hcd_flush_endpoint() has a retry loop that starts with a spin_lock_irq(),
-but only gives up the spinlock, not the irq_disable before jumping to the
-rescan label.
+Jeff Garzik <jeff@garzik.org> wrote:
+> 
+> Let me add to the chorus of voices:  I continually see two cases where 
+> real bugs crop up:
+> 
+> 1) hacker uses spin_lock_irq() in incorrect context (where it is not 
+> safe to do a blind enable/disable)
+> 
+> 2) hacker uses spin_lock_irq() correctly, but the surrounding code 
+> changes, thus invalidating prior assumptions.
+> 
+> I would even go so far as to support the drastic measure of deleting 
+> spin_lock_irq().
+> 
+> spin_lock_irqsave() generates fewer bugs, is more future-proof, and by 
+> virtue of 'flags' permits architectures a bit more flexibility.
 
-Split the spin_lock_irq into the retryable part and the local_irq_disable()
-that is only done once as a micro-optimization and slight cleanup.
+Could we add a debug option that warned if spin_lock_irq is
+executed with IRQs turned off already?
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-
----
-
-On Tuesday 23 October 2007, I wrote:
-> I tried the trivial annotation below and (with lockdep enabled) got a few
-> warnings at boot time, but only one that I could still find in the log
-> buffer:
-
-One more such example that was not found by lockdep. I guess this counts
-as a false positive, as it is clearly harmless, but working around
-it is a small optimization for the case where local_irq_disable()
-is a hypervisor call.
-
-Should we try to fix this class of (non-)problem in other places?
-Will this patch cause a different warning with lockdep since now we
-are pairing spin_lock() with spin_unlock_irq()?
-
---- a/drivers/usb/core/hcd.c
-+++ b/drivers/usb/core/hcd.c
-@@ -1312,8 +1312,9 @@ void usb_hcd_flush_endpoint(struct usb_device *udev,
- 	hcd = bus_to_hcd(udev->bus);
- 
- 	/* No more submits can occur */
-+	local_irq_disable();
- rescan:
--	spin_lock_irq(&hcd_urb_list_lock);
-+	spin_lock(&hcd_urb_list_lock);
- 	list_for_each_entry (urb, &ep->urb_list, urb_list) {
- 		int	is_in;
- 
+Cheers,
+-- 
+Visit Openswan at http://www.openswan.org/
+Email: Herbert Xu ~{PmV>HI~} <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
