@@ -1,56 +1,280 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netrider.rowland.org ([192.131.102.5]:4542 "HELO
-	netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1750815AbXJWEIT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Oct 2007 00:08:19 -0400
-Date: Tue, 23 Oct 2007 00:01:37 -0400 (EDT)
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [linux-usb-devel] USB HCD: avoid duplicate local_irq_disable()
-In-Reply-To: <200710230328.33915.arnd@arndb.de>
-Message-ID: <Pine.LNX.4.44L0.0710222359290.13902-100000@netrider.rowland.org>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:32857 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751932AbXJWHCo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Oct 2007 03:02:44 -0400
+Message-Id: <200710230647.l9N6lFY7004272@imap1.linux-foundation.org>
+Subject: - kexec-add-bss-to-resource-tree.patch removed from -mm tree
+From: akpm@linux-foundation.org
+Date: Mon, 22 Oct 2007 23:47:15 -0700
 Sender: linux-arch-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: gregkh@suse.de, linux-arch@vger.kernel.org, linux-usb-devel@lists.sourceforge.net, matthew@wil.cx, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, ralf@linux-mips.org, Thomas Gleixner <tglx@linutronix.de>, viro@zeniv.linux.org.uk, viro@ftp.linux.org.uk, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com
+To: bwalle@suse.de, ebiederm@xmission.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, vgoyal@in.ibm.com, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Tue, 23 Oct 2007, Arnd Bergmann wrote:
 
-> usb_hcd_flush_endpoint() has a retry loop that starts with a spin_lock_irq(),
-> but only gives up the spinlock, not the irq_disable before jumping to the
-> rescan label.
-> 
-> Split the spin_lock_irq into the retryable part and the local_irq_disable()
-> that is only done once as a micro-optimization and slight cleanup.
+The patch titled
+     kexec: add BSS to resource tree
+has been removed from the -mm tree.  Its filename was
+     kexec-add-bss-to-resource-tree.patch
 
-I agree with your sentiment, but it would be better to solve this 
-problem without using local_irq_disable().  The patch below does this.
+This patch was dropped because it was merged into mainline or a subsystem tree
 
+------------------------------------------------------
+Subject: kexec: add BSS to resource tree
+From: Bernhard Walle <bwalle@suse.de>
+
+Add the BSS to the resource tree just as kernel text and kernel data are in
+the resource tree.  The main reason behind this is to avoid crashkernel
+reservation in that area.
+
+While it's not strictly necessary to have the BSS in the resource tree (the
+actual collision detection is done in the reserve_bootmem() function before),
+the usage of the BSS resource should be presented to the user in /proc/iomem
+just as Kernel data and Kernel code.
+
+Note: The patch currently is only implemented for x86 and ia64 (because
+efi_initialize_iomem_resources() has the same signature on i386 and ia64).
+
+[akpm@linux-foundation.org: coding-style fixes]
+Signed-off-by: Bernhard Walle <bwalle@suse.de>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Vivek Goyal <vgoyal@in.ibm.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@elte.hu>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
-Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+ arch/ia64/kernel/efi.c     |    4 +++-
+ arch/ia64/kernel/setup.c   |   14 +++++++++++---
+ arch/x86/kernel/e820_32.c  |   18 +++++++++++++++---
+ arch/x86/kernel/e820_64.c  |    3 ++-
+ arch/x86/kernel/efi_32.c   |    4 +++-
+ arch/x86/kernel/setup_32.c |    4 ++++
+ arch/x86/kernel/setup_64.c |    9 +++++++++
+ include/linux/efi.h        |    2 +-
+ 8 files changed, 48 insertions(+), 10 deletions(-)
 
-Index: usb-2.6/drivers/usb/core/hcd.c
-===================================================================
---- usb-2.6.orig/drivers/usb/core/hcd.c
-+++ usb-2.6/drivers/usb/core/hcd.c
-@@ -1312,8 +1312,8 @@ void usb_hcd_flush_endpoint(struct usb_d
- 	hcd = bus_to_hcd(udev->bus);
+diff -puN arch/ia64/kernel/efi.c~kexec-add-bss-to-resource-tree arch/ia64/kernel/efi.c
+--- a/arch/ia64/kernel/efi.c~kexec-add-bss-to-resource-tree
++++ a/arch/ia64/kernel/efi.c
+@@ -1090,7 +1090,8 @@ efi_memmap_init(unsigned long *s, unsign
  
- 	/* No more submits can occur */
--rescan:
- 	spin_lock_irq(&hcd_urb_list_lock);
-+rescan:
- 	list_for_each_entry (urb, &ep->urb_list, urb_list) {
- 		int	is_in;
+ void
+ efi_initialize_iomem_resources(struct resource *code_resource,
+-			       struct resource *data_resource)
++			       struct resource *data_resource,
++			       struct resource *bss_resource)
+ {
+ 	struct resource *res;
+ 	void *efi_map_start, *efi_map_end, *p;
+@@ -1171,6 +1172,7 @@ efi_initialize_iomem_resources(struct re
+ 			 */
+ 			insert_resource(res, code_resource);
+ 			insert_resource(res, data_resource);
++			insert_resource(res, bss_resource);
+ #ifdef CONFIG_KEXEC
+                         insert_resource(res, &efi_memmap_res);
+                         insert_resource(res, &boot_param_res);
+diff -puN arch/ia64/kernel/setup.c~kexec-add-bss-to-resource-tree arch/ia64/kernel/setup.c
+--- a/arch/ia64/kernel/setup.c~kexec-add-bss-to-resource-tree
++++ a/arch/ia64/kernel/setup.c
+@@ -90,7 +90,12 @@ static struct resource code_resource = {
+ 	.name	= "Kernel code",
+ 	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
+ };
+-extern char _text[], _end[], _etext[];
++
++static struct resource bss_resource = {
++	.name	= "Kernel bss",
++	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++};
++extern char _text[], _end[], _etext[], _edata[], _bss[];
  
-@@ -1346,6 +1346,7 @@ rescan:
- 		usb_put_urb (urb);
+ unsigned long ia64_max_cacheline_size;
  
- 		/* list contents may have changed */
-+		spin_lock(&hcd_urb_list_lock);
- 		goto rescan;
- 	}
- 	spin_unlock_irq(&hcd_urb_list_lock);
+@@ -200,8 +205,11 @@ static int __init register_memory(void)
+ 	code_resource.start = ia64_tpa(_text);
+ 	code_resource.end   = ia64_tpa(_etext) - 1;
+ 	data_resource.start = ia64_tpa(_etext);
+-	data_resource.end   = ia64_tpa(_end) - 1;
+-	efi_initialize_iomem_resources(&code_resource, &data_resource);
++	data_resource.end   = ia64_tpa(_edata) - 1;
++	bss_resource.start  = ia64_tpa(_bss);
++	bss_resource.end    = ia64_tpa(_end) - 1;
++	efi_initialize_iomem_resources(&code_resource, &data_resource,
++			&bss_resource);
+ 
+ 	return 0;
+ }
+diff -puN arch/x86/kernel/e820_32.c~kexec-add-bss-to-resource-tree arch/x86/kernel/e820_32.c
+--- a/arch/x86/kernel/e820_32.c~kexec-add-bss-to-resource-tree
++++ a/arch/x86/kernel/e820_32.c
+@@ -51,6 +51,13 @@ struct resource code_resource = {
+ 	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
+ };
+ 
++struct resource bss_resource = {
++	.name	= "Kernel bss",
++	.start	= 0,
++	.end	= 0,
++	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++};
++
+ static struct resource system_rom_resource = {
+ 	.name	= "System ROM",
+ 	.start	= 0xf0000,
+@@ -254,7 +261,9 @@ static void __init probe_roms(void)
+  * and also for regions reported as reserved by the e820.
+  */
+ static void __init
+-legacy_init_iomem_resources(struct resource *code_resource, struct resource *data_resource)
++legacy_init_iomem_resources(struct resource *code_resource,
++			    struct resource *data_resource,
++			    struct resource *bss_resource)
+ {
+ 	int i;
+ 
+@@ -287,6 +296,7 @@ legacy_init_iomem_resources(struct resou
+ 			 */
+ 			request_resource(res, code_resource);
+ 			request_resource(res, data_resource);
++			request_resource(res, bss_resource);
+ #ifdef CONFIG_KEXEC
+ 			if (crashk_res.start != crashk_res.end)
+ 				request_resource(res, &crashk_res);
+@@ -307,9 +317,11 @@ static int __init request_standard_resou
+ 
+ 	printk("Setting up standard PCI resources\n");
+ 	if (efi_enabled)
+-		efi_initialize_iomem_resources(&code_resource, &data_resource);
++		efi_initialize_iomem_resources(&code_resource,
++				&data_resource, &bss_resource);
+ 	else
+-		legacy_init_iomem_resources(&code_resource, &data_resource);
++		legacy_init_iomem_resources(&code_resource,
++				&data_resource, &bss_resource);
+ 
+ 	/* EFI systems may still have VGA */
+ 	request_resource(&iomem_resource, &video_ram_resource);
+diff -puN arch/x86/kernel/e820_64.c~kexec-add-bss-to-resource-tree arch/x86/kernel/e820_64.c
+--- a/arch/x86/kernel/e820_64.c~kexec-add-bss-to-resource-tree
++++ a/arch/x86/kernel/e820_64.c
+@@ -47,7 +47,7 @@ unsigned long end_pfn_map; 
+  */
+ static unsigned long __initdata end_user_pfn = MAXMEM>>PAGE_SHIFT;
+ 
+-extern struct resource code_resource, data_resource;
++extern struct resource code_resource, data_resource, bss_resource;
+ 
+ /* Check for some hardcoded bad areas that early boot is not allowed to touch */ 
+ static inline int bad_addr(unsigned long *addrp, unsigned long size)
+@@ -225,6 +225,7 @@ void __init e820_reserve_resources(void)
+ 			 */
+ 			request_resource(res, &code_resource);
+ 			request_resource(res, &data_resource);
++			request_resource(res, &bss_resource);
+ #ifdef CONFIG_KEXEC
+ 			if (crashk_res.start != crashk_res.end)
+ 				request_resource(res, &crashk_res);
+diff -puN arch/x86/kernel/efi_32.c~kexec-add-bss-to-resource-tree arch/x86/kernel/efi_32.c
+--- a/arch/x86/kernel/efi_32.c~kexec-add-bss-to-resource-tree
++++ a/arch/x86/kernel/efi_32.c
+@@ -603,7 +603,8 @@ void __init efi_enter_virtual_mode(void)
+ 
+ void __init
+ efi_initialize_iomem_resources(struct resource *code_resource,
+-			       struct resource *data_resource)
++			       struct resource *data_resource,
++			       struct resource *bss_resource)
+ {
+ 	struct resource *res;
+ 	efi_memory_desc_t *md;
+@@ -675,6 +676,7 @@ efi_initialize_iomem_resources(struct re
+ 		if (md->type == EFI_CONVENTIONAL_MEMORY) {
+ 			request_resource(res, code_resource);
+ 			request_resource(res, data_resource);
++			request_resource(res, bss_resource);
+ #ifdef CONFIG_KEXEC
+ 			request_resource(res, &crashk_res);
+ #endif
+diff -puN arch/x86/kernel/setup_32.c~kexec-add-bss-to-resource-tree arch/x86/kernel/setup_32.c
+--- a/arch/x86/kernel/setup_32.c~kexec-add-bss-to-resource-tree
++++ a/arch/x86/kernel/setup_32.c
+@@ -60,6 +60,7 @@
+ #include <asm/vmi.h>
+ #include <setup_arch.h>
+ #include <bios_ebda.h>
++#include <asm/cacheflush.h>
+ 
+ /* This value is set up by the early boot code to point to the value
+    immediately after the boot time page tables.  It contains a *physical*
+@@ -73,6 +74,7 @@ int disable_pse __devinitdata = 0;
+  */
+ extern struct resource code_resource;
+ extern struct resource data_resource;
++extern struct resource bss_resource;
+ 
+ /* cpu data as detected by the assembly code in head.S */
+ struct cpuinfo_x86 new_cpu_data __cpuinitdata = { 0, 0, 0, 0, -1, 1, 0, 0, -1 };
+@@ -600,6 +602,8 @@ void __init setup_arch(char **cmdline_p)
+ 	code_resource.end = virt_to_phys(_etext)-1;
+ 	data_resource.start = virt_to_phys(_etext);
+ 	data_resource.end = virt_to_phys(_edata)-1;
++	bss_resource.start = virt_to_phys(&__bss_start);
++	bss_resource.end = virt_to_phys(&__bss_stop)-1;
+ 
+ 	parse_early_param();
+ 
+diff -puN arch/x86/kernel/setup_64.c~kexec-add-bss-to-resource-tree arch/x86/kernel/setup_64.c
+--- a/arch/x86/kernel/setup_64.c~kexec-add-bss-to-resource-tree
++++ a/arch/x86/kernel/setup_64.c
+@@ -58,6 +58,7 @@
+ #include <asm/numa.h>
+ #include <asm/sections.h>
+ #include <asm/dmi.h>
++#include <asm/cacheflush.h>
+ 
+ /*
+  * Machine setup..
+@@ -133,6 +134,12 @@ struct resource code_resource = {
+ 	.end = 0,
+ 	.flags = IORESOURCE_RAM,
+ };
++struct resource bss_resource = {
++	.name = "Kernel bss",
++	.start = 0,
++	.end = 0,
++	.flags = IORESOURCE_RAM,
++};
+ 
+ #ifdef CONFIG_PROC_VMCORE
+ /* elfcorehdr= specifies the location of elf core header
+@@ -276,6 +283,8 @@ void __init setup_arch(char **cmdline_p)
+ 	code_resource.end = virt_to_phys(&_etext)-1;
+ 	data_resource.start = virt_to_phys(&_etext);
+ 	data_resource.end = virt_to_phys(&_edata)-1;
++	bss_resource.start = virt_to_phys(&__bss_start);
++	bss_resource.end = virt_to_phys(&__bss_stop)-1;
+ 
+ 	early_identify_cpu(&boot_cpu_data);
+ 
+diff -puN include/linux/efi.h~kexec-add-bss-to-resource-tree include/linux/efi.h
+--- a/include/linux/efi.h~kexec-add-bss-to-resource-tree
++++ a/include/linux/efi.h
+@@ -298,7 +298,7 @@ extern int efi_mem_attribute_range (unsi
+ 				    u64 attr);
+ extern int __init efi_uart_console_only (void);
+ extern void efi_initialize_iomem_resources(struct resource *code_resource,
+-					struct resource *data_resource);
++		struct resource *data_resource, struct resource *bss_resource);
+ extern unsigned long efi_get_time(void);
+ extern int efi_set_rtc_mmss(unsigned long nowtime);
+ extern int is_available_memory(efi_memory_desc_t * md);
+_
+
+Patches currently in -mm which might be from bwalle@suse.de are
+
+origin.patch
 
