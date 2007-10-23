@@ -1,41 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rhun.apana.org.au ([64.62.148.172]:3126 "EHLO
-	arnor.apana.org.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752173AbXJWDft (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Oct 2007 23:35:49 -0400
-From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: Re: [PATCH 1/2] irq_flags_t: intro and core annotations
-In-Reply-To: <471D0C54.7060207@garzik.org>
-Message-Id: <E1IkAWI-0006vX-00@gondolin.me.apana.org.au>
-Date: Tue, 23 Oct 2007 11:33:30 +0800
+Received: from netrider.rowland.org ([192.131.102.5]:4542 "HELO
+	netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1750815AbXJWEIT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Oct 2007 00:08:19 -0400
+Date: Tue, 23 Oct 2007 00:01:37 -0400 (EDT)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [linux-usb-devel] USB HCD: avoid duplicate local_irq_disable()
+In-Reply-To: <200710230328.33915.arnd@arndb.de>
+Message-ID: <Pine.LNX.4.44L0.0710222359290.13902-100000@netrider.rowland.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Jeff Garzik <jeff@garzik.org>
-Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, matthew@wil.cx, arnd@arndb.de, ralf@linux-mips.org, adobriyan@gmail.com, viro@ftp.linux.org.uk, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: gregkh@suse.de, linux-arch@vger.kernel.org, linux-usb-devel@lists.sourceforge.net, matthew@wil.cx, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, ralf@linux-mips.org, Thomas Gleixner <tglx@linutronix.de>, viro@zeniv.linux.org.uk, viro@ftp.linux.org.uk, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Jeff Garzik <jeff@garzik.org> wrote:
-> 
-> Let me add to the chorus of voices:  I continually see two cases where 
-> real bugs crop up:
-> 
-> 1) hacker uses spin_lock_irq() in incorrect context (where it is not 
-> safe to do a blind enable/disable)
-> 
-> 2) hacker uses spin_lock_irq() correctly, but the surrounding code 
-> changes, thus invalidating prior assumptions.
-> 
-> I would even go so far as to support the drastic measure of deleting 
-> spin_lock_irq().
-> 
-> spin_lock_irqsave() generates fewer bugs, is more future-proof, and by 
-> virtue of 'flags' permits architectures a bit more flexibility.
+On Tue, 23 Oct 2007, Arnd Bergmann wrote:
 
-Could we add a debug option that warned if spin_lock_irq is
-executed with IRQs turned off already?
+> usb_hcd_flush_endpoint() has a retry loop that starts with a spin_lock_irq(),
+> but only gives up the spinlock, not the irq_disable before jumping to the
+> rescan label.
+> 
+> Split the spin_lock_irq into the retryable part and the local_irq_disable()
+> that is only done once as a micro-optimization and slight cleanup.
 
-Cheers,
--- 
-Visit Openswan at http://www.openswan.org/
-Email: Herbert Xu ~{PmV>HI~} <herbert@gondor.apana.org.au>
-Home Page: http://gondor.apana.org.au/~herbert/
-PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+I agree with your sentiment, but it would be better to solve this 
+problem without using local_irq_disable().  The patch below does this.
+
+---
+
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+
+Index: usb-2.6/drivers/usb/core/hcd.c
+===================================================================
+--- usb-2.6.orig/drivers/usb/core/hcd.c
++++ usb-2.6/drivers/usb/core/hcd.c
+@@ -1312,8 +1312,8 @@ void usb_hcd_flush_endpoint(struct usb_d
+ 	hcd = bus_to_hcd(udev->bus);
+ 
+ 	/* No more submits can occur */
+-rescan:
+ 	spin_lock_irq(&hcd_urb_list_lock);
++rescan:
+ 	list_for_each_entry (urb, &ep->urb_list, urb_list) {
+ 		int	is_in;
+ 
+@@ -1346,6 +1346,7 @@ rescan:
+ 		usb_put_urb (urb);
+ 
+ 		/* list contents may have changed */
++		spin_lock(&hcd_urb_list_lock);
+ 		goto rescan;
+ 	}
+ 	spin_unlock_irq(&hcd_urb_list_lock);
+
