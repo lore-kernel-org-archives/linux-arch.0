@@ -1,52 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:48287 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750749AbXJZL2c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Oct 2007 07:28:32 -0400
-Subject: Re: [patch 3/6] arch_update_pgd call
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Reply-To: benh@kernel.crashing.org
-In-Reply-To: <1193386970.31831.20.camel@localhost>
-References: <20071025181520.880272069@de.ibm.com>
-	 <20071025181901.591007141@de.ibm.com>  <1193345285.7018.21.camel@pasglop>
-	 <1193384437.31831.3.camel@localhost>  <1193385543.13638.0.camel@pasglop>
-	 <1193386970.31831.20.camel@localhost>
-Content-Type: text/plain
-Date: Fri, 26 Oct 2007 21:28:15 +1000
-Message-Id: <1193398095.13638.9.camel@pasglop>
+Received: from [198.99.130.12] ([198.99.130.12]:52892 "EHLO
+	saraswathi.solana.com" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
+	with ESMTP id S1753057AbXJZUEP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2007 16:04:15 -0400
+Date: Fri, 26 Oct 2007 15:25:48 -0400
+From: Jeff Dike <jdike@addtoit.com>
+Subject: [RFC PATCH 0/2] Fix linux/swap.h build wart
+Message-ID: <20071026192548.GA9174@c2.user-mode-linux.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: schwidefsky@de.ibm.com
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, borntraeger@de.ibm.com
+To: LKML <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+For some time, there has been a problem of linux/swap.h using
+page_cache_release and release_pages without declaring them by
+including linux/pagemap.h.  pagemap.h isn't included because that
+breaks the sparc build.
 
-On Fri, 2007-10-26 at 10:22 +0200, Martin Schwidefsky wrote:
-> On Fri, 2007-10-26 at 17:59 +1000, Benjamin Herrenschmidt wrote:
-> > > > I'm not at all fan of the hook there and it's name...
-> > > > 
-> > > > Any reason why you can't do that in your arch gua ?
-> > > > 
-> > > > If not, then why can't you call it something nicer, like
-> > > > arch_rebalance_pgtables() ?
-> > > 
-> > > The name can be changed in no time. I've tried to use one of the
-> > > existing arch calls like arch_mmap_check or arch_get_unmapped_area but
-> > > it didn't work out. I really need the final address to make the call to
-> > > extend the page tables. 
-> > 
-> > You arch get_unmapped_area() has it...
-> 
-> Hmm, I got worried about the file->f_op->get_unmapped_area indirection.
-> At least the get_unmapped_area_mem function in drivers/char/mem.c does
-> not call the standard get_unmapped_area function again like ipc/shm.c
-> does. As I see it is not guaranteed that the architecture version of
-> arch_get_unmapped_area gets control. Want to play safe there.
+The full details are in the next post, but the short story is that
+sparc's pgtable.h includes linux/swap.h, creating a mm.h -> mm.h
+recursion.  The current tree breaks that recursion by removing the
+swap.h -> pagemap.h inclusion.  This breaks builds on a regular basis
+(references also in the next post).
 
-Hrm... last I looked, the only "other" gua was hugetlb which is arch
-too, but I may have missed something.
+These patches propose to break the recursion instead by removing the
+linux/pagemap.h -> linux/highmem.h inclusion.  I'd like to know
+whether there are any fundamental reasons that this include should be
+preserved.
 
-Ben.
+The reason for choosing this include is that pagemap.h doesn't use
+anything exported by highmem.h.  The downside is that a bunch of
+things now need to include highmem.h.  These are mostly filesystems,
+plus a good amount of arch code and a few drivers.  I would argue that
+if you use something from a header, you should include it, regardless
+of whether you already get the header indirectly, so this isn't too
+much of a downside as far as I'm concerned.
 
+The one thing I'm uncertain about is whether pagemap.h and highmem.h
+have some basic relationship that implies that you can assume you get
+highmem when you include pagemap.
 
+The two patches that follow do the following:
+	remove highmem.h from pagemap.h and add includes of highmem.h
+to a number of files that now need them
+	include pagemap.h in swap.h
+
+These are for comment only, not for mainline, so there's no S-o-b
+right yet.
+
+At this point, I haven't confirmed that the following files, which use
+stuff from highmem.h but don't include it, still build:
+
+	./arch/x86/kernel/crash_dump_64.c
+	./arch/frv/mm/fault.c
+	./arch/frv/mm/kmap.c
+	./arch/h8300/mm/kmap.c
+	./arch/ia64/kernel/crash_dump.c
+	./arch/m68k/mm/kmap.c
+	./arch/m68knommu/mm/kmap.c
+	./arch/powerpc/kernel/crash_dump.c
+	./arch/sh/kernel/crash_dump.c
+	./arch/xtensa/mm/pgtable.c
+	./drivers/block/ps3disk.c
+	./drivers/infiniband/hw/ipath/ipath_verbs.h
+	./drivers/mmc/host/at91_mci.c
+	./drivers/mmc/host/mmci.h
+	./drivers/mmc/host/mmc_spi.c
+	./drivers/s390/block/xpram.c
+	./drivers/s390/char/tape_34xx.c
+	./drivers/kvm/paging_tmpl.h
+	./fs/hfsplus/hfsplus_fs.h
+	./include/asm-arm/cacheflush.h
+	./include/asm-frv/pgtable.h
+	./include/asm-x86/kexec_32.h
+	./include/asm-x86/kexec_64.h
+	./include/asm-x86/pgtable_32.h
+	./include/asm-m68k/motorola_pgalloc.h
+	./include/asm-m68k/sun3_pgalloc.h
+	./include/asm-m68k/sun3_pgtable.h
+	./include/asm-mips/cacheflush.h
+	./include/asm-mips/page.h
+	./include/asm-parisc/cacheflush.h
+	./include/asm-powerpc/pgtable-ppc32.h
+	./include/asm-ppc/pgtable.h
+	./include/asm-s390/kexec.h
+	./include/asm-sh/kexec.h
+	./mm/migrate.c
+
+				Jeff
+
+-- 
+Work email - jdike at linux dot intel dot com
