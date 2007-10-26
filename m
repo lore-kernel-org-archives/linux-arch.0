@@ -1,45 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [198.99.130.12] ([198.99.130.12]:52892 "EHLO
-	saraswathi.solana.com" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
-	with ESMTP id S1753043AbXJZUEN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2007 16:04:13 -0400
-Date: Fri, 26 Oct 2007 15:25:49 -0400
-From: Jeff Dike <jdike@addtoit.com>
-Subject: [RFC PATCH 2/2] Add pagemap.h include to swap.h
-Message-ID: <20071026192549.GA9219@c2.user-mode-linux.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Received: from mga02.intel.com ([134.134.136.20]:56365 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753325AbXJZUkn convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2007 16:40:43 -0400
+Content-class: urn:content-classes:message
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: RE: [RFC PATCH 0/2] Fix linux/swap.h build wart
+Date: Fri, 26 Oct 2007 13:38:12 -0700
+Message-ID: <617E1C2C70743745A92448908E030B2A02C9D4B6@scsmsx411.amr.corp.intel.com>
+In-Reply-To: <20071026192548.GA9174@c2.user-mode-linux.org>
+References: <20071026192548.GA9174@c2.user-mode-linux.org>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: LKML <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Jeff Dike <jdike@addtoit.com>, LKML <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Include linux/pagemap.h in linux/swap.h and remove the comment saying
-that it's not possible.
+> These patches propose to break the recursion instead by removing the
+> linux/pagemap.h -> linux/highmem.h inclusion.  I'd like to know
+> whether there are any fundamental reasons that this include should be
+> preserved.
 
----
- include/linux/swap.h |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+Not fundamental reasons, but these patches break the ia64 build for most
+configs with:
 
-Index: linux-2.6.17/include/linux/swap.h
-===================================================================
---- linux-2.6.17.orig/include/linux/swap.h	2007-10-24 10:05:09.000000000 -0400
-+++ linux-2.6.17/include/linux/swap.h	2007-10-25 22:59:29.000000000 -0400
-@@ -6,6 +6,7 @@
- #include <linux/mmzone.h>
- #include <linux/list.h>
- #include <linux/sched.h>
-+#include <linux/pagemap.h>
- 
- #include <asm/atomic.h>
- #include <asm/page.h>
-@@ -282,8 +283,7 @@ static inline void disable_swap_token(vo
- 
- #define si_swapinfo(val) \
- 	do { (val)->freeswap = (val)->totalswap = 0; } while (0)
--/* only sparc can not include linux/pagemap.h in this file
-- * so leave page_cache_release and release_pages undeclared... */
-+
- #define free_page_and_swap_cache(page) \
- 	page_cache_release(page)
- #define free_pages_and_swap_cache(pages, nr) \
+In file included from kernel/futex.c:59:
+include/asm/futex.h: In function `futex_atomic_op_inuser':
+include/asm/futex.h:62: error: implicit declaration of function `pagefault_disable'
+include/asm/futex.h:86: error: implicit declaration of function `pagefault_enable'
+make[1]: *** [kernel/futex.o] Error 1
+
+Adding an include of <linux/uaccess.h> to kernel/futex.c is sufficient (but
+not necessarily right) to unbreak this.
+
+A few configs also fail with:
+mm/migrate.c: In function `migrate_page_copy':
+mm/migrate.c:359: error: implicit declaration of function `copy_highpage'
+make[1]: *** [mm/migrate.o] Error 1
+
+Making mm/migrate.c include <linux/highmem.h> fixes this one.
+
+-Tony
