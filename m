@@ -1,17 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate6.de.ibm.com ([195.212.29.155]:47638 "EHLO
-	mtagate6.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751001AbXJZIGf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2007 04:06:35 -0400
+Received: from mtagate7.de.ibm.com ([195.212.29.156]:62512 "EHLO
+	mtagate7.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752181AbXJZIIX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2007 04:08:23 -0400
 Subject: Re: [patch 2/6] CONFIG_HIGHPTE vs. sub-page page tables.
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <1193345221.7018.18.camel@pasglop>
+In-Reply-To: <1193385617.13638.3.camel@pasglop>
 References: <20071025181520.880272069@de.ibm.com>
 	 <20071025181901.212545095@de.ibm.com>  <1193345221.7018.18.camel@pasglop>
+	 <1193384578.31831.6.camel@localhost>  <1193385617.13638.3.camel@pasglop>
 Content-Type: text/plain
-Date: Fri, 26 Oct 2007 10:06:31 +0200
-Message-Id: <1193385991.31831.11.camel@localhost>
+Date: Fri, 26 Oct 2007 10:08:20 +0200
+Message-Id: <1193386100.31831.13.camel@localhost>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,57 +20,25 @@ To: benh@kernel.crashing.org
 Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, borntraeger@de.ibm.com
 List-ID: <linux-arch.vger.kernel.org>
 
-> @@ -107,20 +107,21 @@ __init_refok pte_t *pte_alloc_one_kernel
->  	return pte;
->  }
->  
-> -struct page *pte_alloc_one(struct mm_struct *mm, unsigned long address)
-> +pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
->  {
->  	struct page *ptepage;
->  
->  #ifdef CONFIG_HIGHPTE
-> -	gfp_t flags = GFP_KERNEL | __GFP_HIGHMEM | __GFP_REPEAT;
-> +	gfp_t flags = GFP_KERNEL | __GFP_HIGHMEM | __GFP_REPEAT | __GFP_ZERO;
->  #else
-> -	gfp_t flags = GFP_KERNEL | __GFP_REPEAT;
-> +	gfp_t flags = GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO;
->  #endif
->  
->  	ptepage = alloc_pages(flags, 0);
-> -	if (ptepage)
-> -		clear_highpage(ptepage);
-> -	return ptepage;
-> +	if (!ptepage)
-> +		return NULL;
-> +	pgtable_page_ctor(ptepage);
-> +	return page_address(ptepage);
->  }
->  
-> void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+On Fri, 2007-10-26 at 18:00 +1000, Benjamin Herrenschmidt wrote:
+> > > Interesting. That means I don't need to have a PTE page to be a struct
+> > > page anymore ? I can have good use for that on powerpc as well... 
+> > 
+> > That would be good news. I'm curious, can you elaborate on what the use
+> > case is?
+> 
+> When using 64K pages, we use 32K of PTEs and 32K of "extension". The
+> extension thing is used when using HW 4K pages, to keep track of the
+> subpages. On setups where that isn't needed, we can save memory by
+> allocating half pages...
 
-Hmpf, where is my brown paper bag? The pte_alloc_one function for 32 bit
-powerpc should better return a struct page pointer .. fix below.
+Ahh, that is exactly the same reason as for s390. Page tables with a
+size that is sub-page.
 
 -- 
 blue skies,
   Martin.
 
 "Reality continues to ruin my life." - Calvin.
-
----
-
-diff -urpN linux-2.6/arch/powerpc/mm/pgtable_32.c linux-2.6-patched/arch/powerpc/mm/pgtable_32.c
---- linux-2.6/arch/powerpc/mm/pgtable_32.c	2007-10-26 09:38:30.000000000 +0200
-+++ linux-2.6-patched/arch/powerpc/mm/pgtable_32.c	2007-10-26 10:01:10.000000000 +0200
-@@ -121,7 +121,7 @@ pgtable_t pte_alloc_one(struct mm_struct
- 	if (!ptepage)
- 		return NULL;
- 	pgtable_page_ctor(ptepage);
--	return page_address(ptepage);
-+	return ptepage;
- }
- 
- void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
 
 
