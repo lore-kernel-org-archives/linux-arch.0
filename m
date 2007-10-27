@@ -1,44 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netrider.rowland.org ([192.131.102.5]:3085 "HELO
-	netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1751141AbXJ0TOm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Oct 2007 15:14:42 -0400
-Date: Sat, 27 Oct 2007 15:14:40 -0400 (EDT)
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [linux-usb-devel] USB HCD: avoid duplicate local_irq_disable()
-In-Reply-To: <20071025183352.GB2176@kroah.com>
-Message-ID: <Pine.LNX.4.44L0.0710271513210.30287-100000@netrider.rowland.org>
+Received: from scrub.xs4all.nl ([194.109.195.176]:4507 "EHLO scrub.xs4all.nl"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753377AbXJ0TVA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 27 Oct 2007 15:21:00 -0400
+Date: Sat, 27 Oct 2007 21:20:43 +0200 (CEST)
+From: Roman Zippel <zippel@linux-m68k.org>
+Subject: Re: [PATCH 1/2] irq_flags_t: intro and core annotations
+In-Reply-To: <20071020235546.GB1825@martell.zuzino.mipt.ru>
+Message-ID: <Pine.LNX.4.64.0710272114590.1818@scrub.home>
+References: <20071020235546.GB1825@martell.zuzino.mipt.ru>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Greg KH <greg@kroah.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, gregkh@suse.de, linux-arch@vger.kernel.org, linux-usb-devel@lists.sourceforge.net, matthew@wil.cx, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, LKML <linux-kernel@vger.kernel.org>, ralf@linux-mips.org, Thomas Gleixner <tglx@linutronix.de>, viro@zeniv.linux.org.uk, viro@ftp.linux.org.uk, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com
+To: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: torvalds@osdl.org, akpm@osdl.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 25 Oct 2007, Greg KH wrote:
+Hi,
 
-> On Tue, Oct 23, 2007 at 12:01:37AM -0400, Alan Stern wrote:
-> > On Tue, 23 Oct 2007, Arnd Bergmann wrote:
-> > 
-> > > usb_hcd_flush_endpoint() has a retry loop that starts with a spin_lock_irq(),
-> > > but only gives up the spinlock, not the irq_disable before jumping to the
-> > > rescan label.
-> > > 
-> > > Split the spin_lock_irq into the retryable part and the local_irq_disable()
-> > > that is only done once as a micro-optimization and slight cleanup.
-> > 
-> > I agree with your sentiment, but it would be better to solve this 
-> > problem without using local_irq_disable().  The patch below does this.
-> > 
-> > ---
-> > 
-> > Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+On Sun, 21 Oct 2007, Alexey Dobriyan wrote:
+
+> So far remedies were:
+> a) grep(1) -- obviously fragile. I tried at some point grepping for
+>    spin_lock_irqsave(), found quite a few, but it became booooring quickly.
+> b) BUILD_BUG_ON(sizeof(flags) != sizeof(unsigned long)) -- was tried,
+>    brutally broke some arches, survived one commit before revert :^)
+>    Doesn't work on i386 where sizeof(unsigned int) == sizeof(unsigned long).
 > 
-> Alan, is this something you want added to the tree and in before 2.6.24
-> is out?
+> So it would be nice to have something more robust.
 
-Yes.  It's a small thing, but we're better off keeping IRQ
-enable/disable calls properly balanced.
+If it's just about the type checking, something like below should pretty 
+much do the same.
 
-Alan Stern
+> * irq_flags_t allows arch maintainers to eventually switch to something
+>   smaller than "unsigned long" if they want to.
 
+Considering how painful this conversion could be, the question is whether 
+this is really needed. Comments so far suggest some archs don't need all 
+of it, but does someone need more?
+
+bye, Roman
+
+---
+ include/linux/irqflags.h |   11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+Index: linux-2.6/include/linux/irqflags.h
+===================================================================
+--- linux-2.6.orig/include/linux/irqflags.h
++++ linux-2.6/include/linux/irqflags.h
+@@ -41,6 +41,10 @@
+ # define INIT_TRACE_IRQFLAGS
+ #endif
+ 
++static __always_inline void __irq_flags_check(unsigned long *flags)
++{
++}
++
+ #ifdef CONFIG_TRACE_IRQFLAGS_SUPPORT
+ 
+ #include <asm/irqflags.h>
+@@ -50,10 +54,11 @@
+ #define local_irq_disable() \
+ 	do { raw_local_irq_disable(); trace_hardirqs_off(); } while (0)
+ #define local_irq_save(flags) \
+-	do { raw_local_irq_save(flags); trace_hardirqs_off(); } while (0)
++	do { __irq_flags_check(&flags); raw_local_irq_save(flags); trace_hardirqs_off(); } while (0)
+ 
+ #define local_irq_restore(flags)				\
+ 	do {							\
++		__irq_flags_check(&flags);			\
+ 		if (raw_irqs_disabled_flags(flags)) {		\
+ 			raw_local_irq_restore(flags);		\
+ 			trace_hardirqs_off();			\
+@@ -69,8 +74,8 @@
+  */
+ # define raw_local_irq_disable()	local_irq_disable()
+ # define raw_local_irq_enable()		local_irq_enable()
+-# define raw_local_irq_save(flags)	local_irq_save(flags)
+-# define raw_local_irq_restore(flags)	local_irq_restore(flags)
++# define raw_local_irq_save(flags)	({ __irq_flags_check(&flags); local_irq_save(flags); })
++# define raw_local_irq_restore(flags)	({ __irq_flags_check(&flags); local_irq_restore(flags); })
+ #endif /* CONFIG_TRACE_IRQFLAGS_SUPPORT */
+ 
+ #ifdef CONFIG_TRACE_IRQFLAGS_SUPPORT
