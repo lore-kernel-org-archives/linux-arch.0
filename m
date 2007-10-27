@@ -1,39 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from scrub.xs4all.nl ([194.109.195.176]:3013 "EHLO scrub.xs4all.nl"
+Received: from DSL022.labridge.com ([206.117.136.22]:1745 "EHLO perches.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750732AbXJ0VWl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 27 Oct 2007 17:22:41 -0400
-Date: Sat, 27 Oct 2007 23:22:31 +0200 (CEST)
-From: Roman Zippel <zippel@linux-m68k.org>
-Subject: Re: [PATCH 1/2] irq_flags_t: intro and core annotations
-In-Reply-To: <20071027201429.GE9816@martell.zuzino.mipt.ru>
-Message-ID: <Pine.LNX.4.64.0710272319550.1817@scrub.home>
-References: <20071020235546.GB1825@martell.zuzino.mipt.ru>
- <Pine.LNX.4.64.0710272114590.1818@scrub.home> <20071027201429.GE9816@martell.zuzino.mipt.ru>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+	id S1751075AbXJ0Wk3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 27 Oct 2007 18:40:29 -0400
+Subject: Re: [PATCH] proc_fs.h redux
+From: Joe Perches <joe@perches.com>
+In-Reply-To: <20071027194758.GD9816@martell.zuzino.mipt.ru>
+References: <20071027194758.GD9816@martell.zuzino.mipt.ru>
+Content-Type: text/plain
+Date: Sat, 27 Oct 2007 15:40:04 -0700
+Message-Id: <1193524804.26695.103.camel@localhost>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: torvalds@osdl.org, akpm@osdl.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: akpm@osdl.org, torvalds@osdl.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hi,
+On Sat, 2007-10-27 at 23:47 +0400, Alexey Dobriyan wrote:
+> Remove proc_fs.h from headers that doesn't really need it.
 
-On Sun, 28 Oct 2007, Alexey Dobriyan wrote:
+> --- a/arch/powerpc/kernel/process.c
+> +++ b/arch/powerpc/kernel/process.c
+> @@ -17,6 +17,7 @@
+>  #include <linux/errno.h>
+>  #include <linux/sched.h>
+>  #include <linux/kernel.h>
+> +#include <linux/fs.h>
 
-> > If it's just about the type checking, something like below should pretty 
-> > much do the same.
-> 
-> It won't catch, the following if both variables are unsigned long:
-> 
-> 	spin_lock_irqsave(&lock, flags);
-> 		[stuff]
-> 	spin_unlock_irqrestore(&lock, foo->flags);
-> 
-> It won't catch "static unsigned long flags;". With sparse, we can
-> eventually mark type as "on-stack only".
+Your code doesn't match your patch description.
 
-It should be on the stack, but we have cases where a pointer to it is used 
-(e.g. lock_timer_base). How do you want to deal with this?
+You've got new includes of:
 
-bye, Roman
+<linux/fs.h>
+<linux/proc_fs.h>
+<linux/err.h>
+<linux/kref.h>
+
+and forward declarations of
+
+struct proc_dir_entry;
+struct file_operations;
+
+As a general rule, I think it better to use includes
+than use naked forward declarations.
+
+
