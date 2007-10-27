@@ -1,37 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:39161 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757975AbXJ0VHW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Oct 2007 17:07:22 -0400
+Received: from scrub.xs4all.nl ([194.109.195.176]:3013 "EHLO scrub.xs4all.nl"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750732AbXJ0VWl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 27 Oct 2007 17:22:41 -0400
+Date: Sat, 27 Oct 2007 23:22:31 +0200 (CEST)
+From: Roman Zippel <zippel@linux-m68k.org>
 Subject: Re: [PATCH 1/2] irq_flags_t: intro and core annotations
-From: Peter Zijlstra <peterz@infradead.org>
 In-Reply-To: <20071027201429.GE9816@martell.zuzino.mipt.ru>
+Message-ID: <Pine.LNX.4.64.0710272319550.1817@scrub.home>
 References: <20071020235546.GB1825@martell.zuzino.mipt.ru>
-	 <Pine.LNX.4.64.0710272114590.1818@scrub.home>
-	 <20071027201429.GE9816@martell.zuzino.mipt.ru>
-Content-Type: text/plain
-Date: Sat, 27 Oct 2007 23:07:13 +0200
-Message-Id: <1193519234.27652.21.camel@twins>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+ <Pine.LNX.4.64.0710272114590.1818@scrub.home> <20071027201429.GE9816@martell.zuzino.mipt.ru>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Roman Zippel <zippel@linux-m68k.org>, torvalds@osdl.org, akpm@osdl.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: torvalds@osdl.org, akpm@osdl.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, 2007-10-28 at 00:14 +0400, Alexey Dobriyan wrote:
-> On Sat, Oct 27, 2007 at 09:20:43PM +0200, Roman Zippel wrote:
-> > On Sun, 21 Oct 2007, Alexey Dobriyan wrote:
-> > 
-> > > So far remedies were:
-> > > a) grep(1) -- obviously fragile. I tried at some point grepping for
-> > >    spin_lock_irqsave(), found quite a few, but it became booooring quickly.
-> > > b) BUILD_BUG_ON(sizeof(flags) != sizeof(unsigned long)) -- was tried,
-> > >    brutally broke some arches, survived one commit before revert :^)
-> > >    Doesn't work on i386 where sizeof(unsigned int) == sizeof(unsigned long).
-> > > 
-> > > So it would be nice to have something more robust.
-> > 
+Hi,
+
+On Sun, 28 Oct 2007, Alexey Dobriyan wrote:
+
 > > If it's just about the type checking, something like below should pretty 
 > > much do the same.
 > 
@@ -44,12 +33,7 @@ On Sun, 2007-10-28 at 00:14 +0400, Alexey Dobriyan wrote:
 > It won't catch "static unsigned long flags;". With sparse, we can
 > eventually mark type as "on-stack only".
 
-> > +static __always_inline void __irq_flags_check(unsigned long *flags)
-> > +{
-+	BUILD_BUG_ON(!__builtin_stack_addr(flags));
-> > +}
-> > +
+It should be on the stack, but we have cases where a pointer to it is used 
+(e.g. lock_timer_base). How do you want to deal with this?
 
-obviously gcc doesn't (yet) support that __builtin function, but you
-could make it work for sparse and define a dummy for gcc.
-
+bye, Roman
