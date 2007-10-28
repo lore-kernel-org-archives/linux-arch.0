@@ -1,40 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:44253 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752408AbXJ1Kjz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Oct 2007 06:39:55 -0400
-Date: Sun, 28 Oct 2007 10:34:15 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+Received: from sovereign.computergmbh.de ([85.214.69.204]:45948 "EHLO
+	sovereign.computergmbh.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751001AbXJ1Knv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Oct 2007 06:43:51 -0400
+Date: Sun, 28 Oct 2007 11:43:50 +0100 (CET)
+From: Jan Engelhardt <jengelh@computergmbh.de>
 Subject: Re: [PATCH] proc_fs.h redux
-Message-ID: <20071028103415.GA12554@flint.arm.linux.org.uk>
-References: <20071027194758.GD9816@martell.zuzino.mipt.ru> <1193524804.26695.103.camel@localhost>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1193524804.26695.103.camel@localhost>
+In-Reply-To: <20071028103415.GA12554@flint.arm.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0710281143250.30465@fbirervta.pbzchgretzou.qr>
+References: <20071027194758.GD9816@martell.zuzino.mipt.ru>
+ <1193524804.26695.103.camel@localhost> <20071028103415.GA12554@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: Joe Perches <joe@perches.com>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>, akpm@osdl.org, torvalds@osdl.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: Joe Perches <joe@perches.com>, Alexey Dobriyan <adobriyan@gmail.com>, akpm@osdl.org, torvalds@osdl.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, Oct 27, 2007 at 03:40:04PM -0700, Joe Perches wrote:
-> and forward declarations of
-> 
-> struct proc_dir_entry;
-> struct file_operations;
-> 
-> As a general rule, I think it better to use includes
-> than use naked forward declarations.
 
-If you go down that route, you end up with _lots_ of circular
-dependencies - header file X needs Y needs Z which needs X.  We've
-been there, several times.  It very quickly becomes quite
-unmaintainable - you end up with hard to predict behaviour from
-include files.
+On Oct 28 2007 10:34, Russell King wrote:
+>On Sat, Oct 27, 2007 at 03:40:04PM -0700, Joe Perches wrote:
+>> and forward declarations of
+>> 
+>> struct proc_dir_entry;
+>> struct file_operations;
+>> 
+>> As a general rule, I think it better to use includes
+>> than use naked forward declarations.
+>
+>If you go down that route, you end up with _lots_ of circular
+>dependencies - header file X needs Y needs Z which needs X.  We've
+>been there, several times.  It very quickly becomes quite
+>unmaintainable - you end up with hard to predict behaviour from
+>include files.
+>
+>The only realistic solution is to use forward declarations.
 
-The only realistic solution is to use forward declarations.
+Especially because it reduces the amount of I/O that needs to be done.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
