@@ -1,48 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from DSL022.labridge.com ([206.117.136.22]:1745 "EHLO perches.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751075AbXJ0Wk3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 27 Oct 2007 18:40:29 -0400
-Subject: Re: [PATCH] proc_fs.h redux
-From: Joe Perches <joe@perches.com>
-In-Reply-To: <20071027194758.GD9816@martell.zuzino.mipt.ru>
-References: <20071027194758.GD9816@martell.zuzino.mipt.ru>
-Content-Type: text/plain
-Date: Sat, 27 Oct 2007 15:40:04 -0700
-Message-Id: <1193524804.26695.103.camel@localhost>
-Mime-Version: 1.0
+Received: from terminus.zytor.com ([198.137.202.10]:53244 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751759AbXJ1Ay5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Oct 2007 20:54:57 -0400
+Message-ID: <4723DDDD.8050900@zytor.com>
+Date: Sat, 27 Oct 2007 17:54:53 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
+MIME-Version: 1.0
+Subject: struct user . u_ar0
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: akpm@osdl.org, torvalds@osdl.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sat, 2007-10-27 at 23:47 +0400, Alexey Dobriyan wrote:
-> Remove proc_fs.h from headers that doesn't really need it.
+I recently noticed that all architectures appear to have an entry n 
+struct user called u_ar0:
 
-> --- a/arch/powerpc/kernel/process.c
-> +++ b/arch/powerpc/kernel/process.c
-> @@ -17,6 +17,7 @@
->  #include <linux/errno.h>
->  #include <linux/sched.h>
->  #include <linux/kernel.h>
-> +#include <linux/fs.h>
+   struct user_pt_regs * u_ar0;  /* Used by gdb to help find the values 
+for */
+                                 /* the registers. */
 
-Your code doesn't match your patch description.
+In all cases, u_ar0 is a pointer type, although the type of pointer 
+varies with the architecture.
 
-You've got new includes of:
+However, under no conditions does this field ever contain a pointer 
+value!  It is set by the a.out code and its derivatives as an offset, 
+not a pointer value (there are a total of four references in the kernel, 
+in arch/{m68k,blackfin}/kernel/process.c, arch/x86/ia32/ia32_aout.c and 
+fs/binfmt_aout.c -- they are all functionally identical and write-only):
 
-<linux/fs.h>
-<linux/proc_fs.h>
-<linux/err.h>
-<linux/kref.h>
+dump.u_ar0 = (void *)(((unsigned long)(&dump.regs)) - ((unsigned 
+long)(&dump)));
 
-and forward declarations of
+Any reason to *NOT* change this field to "unsigned long"?  <asm/user.h>, 
+where struct user is defined, is not exported to userspace in any 
+architecture as far as I can tell, although <linux/user.h>, which just 
+contains #include <asm/user.h>, *is* exported (clearly a bug.)
 
-struct proc_dir_entry;
-struct file_operations;
-
-As a general rule, I think it better to use includes
-than use naked forward declarations.
+	-hpa
 
 
