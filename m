@@ -1,32 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:49405 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750772AbXJ1S1d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Oct 2007 14:27:33 -0400
-Message-ID: <4724D48B.6000207@zytor.com>
-Date: Sun, 28 Oct 2007 11:27:23 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from stout.engsoc.carleton.ca ([134.117.69.22]:52899 "EHLO
+	stout.engsoc.carleton.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751958AbXJ1USW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Oct 2007 16:18:22 -0400
+Date: Sun, 28 Oct 2007 16:15:49 -0400
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: [PATCH] Only show RESOURCES_64BIT on relevant architectures
+Message-ID: <20071028201549.GA23138@fattire.cabal.ca>
 MIME-Version: 1.0
-Subject: Re: struct user . u_ar0
-References: <4723DDDD.8050900@zytor.com> <8bd0f97a0710280104k4784c7afo11b9d803e963ed13@mail.gmail.com>
-In-Reply-To: <8bd0f97a0710280104k4784c7afo11b9d803e963ed13@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Mike Frysinger wrote:
-> 
-> Blackfin doesnt support a.out, so it may be easier to just change it
-> to "reserved2" (assuming this structure is part of our ABI), or delete
-> it (assuming the structure is internal to the kernel only).
-> -mike
+To quote lolcats: CONFIG_RESOURCES_64BIT DO NOT WANT!
 
-Blackfin explicitly sets in in arch/blackfin/kernel/process.c, so you 
-might want to consider what it is used for.  As far as a.out is 
-concerned, it appears to be part of the core dump format.
+I *think* I have the logic of this right... Anyway, I was annoyed by
+having to do the bloody ugly casts to unsigned long long in
+arch-specific code. As near as I can tell, we only want this selectable
+in the case of PAE on x86, and some random PPC and MIPS embedded boards.
 
-	-hpa
+For everyone else, it should be whatever the value of 64BIT is.
 
+And I can be happy and continue using unsigned long and going about my
+merry business.
+
+Signed-off-by: Kyle McMartin <kyle@mcmartin.ca>
+---
+diff --git a/mm/Kconfig b/mm/Kconfig
+index c070ec0..c25a838 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -172,6 +172,7 @@ config MIGRATION
+ 
+ config RESOURCES_64BIT
+ 	bool "64 bit Memory and IO resources (EXPERIMENTAL)" if (!64BIT && EXPERIMENTAL)
++	depends on (MIPS || PPC32 || X86_PAE) || 64BIT
+ 	default 64BIT
+ 	help
+ 	  This option allows memory and IO resources to be 64 bit.
