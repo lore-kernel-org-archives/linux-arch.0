@@ -1,39 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:55544
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752475AbXJ2BJr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 28 Oct 2007 21:09:47 -0400
-Date: Sun, 28 Oct 2007 18:09:49 -0700 (PDT)
-Message-Id: <20071028.180949.233462591.davem@davemloft.net>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:55877 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752231AbXJ2IK2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2007 04:10:28 -0400
+Date: Mon, 29 Oct 2007 08:10:10 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH] Only show RESOURCES_64BIT on relevant architectures
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20071028201549.GA23138@fattire.cabal.ca>
+Message-ID: <20071029081010.GA32160@flint.arm.linux.org.uk>
 References: <20071028201549.GA23138@fattire.cabal.ca>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20071028201549.GA23138@fattire.cabal.ca>
 Sender: linux-arch-owner@vger.kernel.org
-To: kyle@mcmartin.ca
+To: Kyle McMartin <kyle@mcmartin.ca>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Kyle McMartin <kyle@mcmartin.ca>
-Date: Sun, 28 Oct 2007 16:15:49 -0400
-
+On Sun, Oct 28, 2007 at 04:15:49PM -0400, Kyle McMartin wrote:
 > To quote lolcats: CONFIG_RESOURCES_64BIT DO NOT WANT!
 > 
 > I *think* I have the logic of this right... Anyway, I was annoyed by
 > having to do the bloody ugly casts to unsigned long long in
 > arch-specific code. As near as I can tell, we only want this selectable
 > in the case of PAE on x86, and some random PPC and MIPS embedded boards.
-> 
-> For everyone else, it should be whatever the value of 64BIT is.
-> 
-> And I can be happy and continue using unsigned long and going about my
-> merry business.
-> 
-> Signed-off-by: Kyle McMartin <kyle@mcmartin.ca>
 
-32-bit sparc has 36-bit physical addresses and thus needs
-64-bit resources too
+May I suggest trying:
+
+$ grep RESOURCES_64BIT=y arch/*/configs/* arch/*/defconfig
+
+to locate those architectures which use this?
+
+FYI, that grep says ARM, ia64, mips, parisc, powerpc, PPC, s390, sparc64,
+and x86 use this feature.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
