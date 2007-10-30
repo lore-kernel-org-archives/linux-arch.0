@@ -1,75 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:59959 "EHLO smtp.polymtl.ca"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755073AbXJ3TrJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Oct 2007 15:47:09 -0400
-Message-Id: <20071030192108.727092833@polymtl.ca>
-References: <20071030191557.947156623@polymtl.ca>
-Date: Tue, 30 Oct 2007 15:16:19 -0400
+Received: from toq6.bellnexxia.net ([209.226.175.62]:61625 "EHLO
+	toq6-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758592AbXJ3TyZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Oct 2007 15:54:25 -0400
+Date: Tue, 30 Oct 2007 15:12:26 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 22/28] Add cmpxchg_local to s390
-Content-Disposition: inline; filename=add-cmpxchg-local-to-s390.patch
+Subject: Re: [patch 08/10] SLUB: Optional fast path using cmpxchg_local
+Message-ID: <20071030191226.GA10977@Krystal>
+References: <20071028033156.022983073@sgi.com> <20071028033300.240703208@sgi.com> <20071030114933.904a4cf8.akpm@linux-foundation.org> <Pine.LNX.4.64.0710301155240.12746@schroedinger.engr.sgi.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0710301155240.12746@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, matthew@wil.cx, linux-arch@vger.kernel.org, penberg@cs.helsinki.fi, linux-mm@kvack.org, Christoph Lameter <clameter@sgi.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, schwidefsky@de.ibm.com, linux390@de.ibm.com
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, matthew@wil.cx, linux-kernel@vger.kernel.org, linux-mm@kvack.org, penberg@cs.helsinki.fi, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Use the standard __cmpxchg for every type that can be updated atomically.
-Use the new generic cmpxchg_local (disables interrupt) for other types.
+* Christoph Lameter (clameter@sgi.com) wrote:
+> On Tue, 30 Oct 2007, Andrew Morton wrote:
+> 
+> > Let's cc linux-arch: presumably other architectures can implement cpu-local
+> > cmpxchg and would see some benefit from doing so.
+> 
+> Matheiu had a whole series of cmpxchg_local patches. Ccing him too. I 
+> think he has some numbers for other architectures.
+>  
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: clameter@sgi.com
-CC: schwidefsky@de.ibm.com
-CC: linux390@de.ibm.com
----
- include/asm-s390/system.h |   34 ++++++++++++++++++++++++++++++++++
- 1 file changed, 34 insertions(+)
+Well, I tested it on x86 and AMD64 only. For slub:
 
-Index: linux-2.6-lttng/include/asm-s390/system.h
-===================================================================
---- linux-2.6-lttng.orig/include/asm-s390/system.h	2007-08-27 11:46:43.000000000 -0400
-+++ linux-2.6-lttng/include/asm-s390/system.h	2007-08-27 11:48:38.000000000 -0400
-@@ -355,6 +355,40 @@ __cmpxchg(volatile void *ptr, unsigned l
- 
- #include <linux/irqflags.h>
- 
-+#include <asm-generic/cmpxchg-local.h>
-+
-+static inline unsigned long __cmpxchg_local(volatile void *ptr,
-+				      unsigned long old,
-+				      unsigned long new, int size)
-+{
-+	switch (size) {
-+	case 1:
-+	case 2:
-+	case 4:
-+#ifdef __s390x__
-+	case 8:
-+#endif
-+		return __cmpxchg(ptr, old, new, size);
-+	default:
-+		return __cmpxchg_local_generic(ptr, old, new, size);
-+	}
-+
-+	return old;
-+}
-+
-+/*
-+ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-+ * them available.
-+ */
-+#define cmpxchg_local(ptr,o,n)						\
-+     (__typeof__(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(o),	\
-+			   	 (unsigned long)(n), sizeof(*(ptr)))
-+#ifdef __s390x__
-+#define cmpxchg64_local(ptr,o,n) cmpxchg_local((ptr),(o),(n))
-+#else
-+#define cmpxchg64_local(ptr,o,n) __cmpxchg64_local_generic((ptr), (o), (n))
-+#endif
-+
- /*
-  * Use to set psw mask except for the first byte which
-  * won't be changed by this function.
+Using cmpxchg_local shows a performance improvements of the fast path
+goes from a 66% speedup on a Pentium 4 to a 14% speedup on AMD64.
+
+It really depends on how fast cmpxchg_local is vs disabling interrupts.
+
+
+> > The semantics are "atomic wrt interrutps on this cpu, not atomic wrt other
+> > cpus", yes?
+> 
+> Right.
+> 
+> > Do you have a feel for how useful it would be for arch maintainers to implement
+> > this?  IOW, is it worth their time?
+> 
+> That depends on the efficiency of a cmpxchg_local vs. the interrupt 
+> enable/ disable sequence on a particular arch. On x86 this yields about 
+> 50% so it doubles the speed of the fastpath. On other architectures the 
+> cmpxchg is so slow that it is not worth it (ia64 f.e.)
+
+As Christoph pointed out, we even saw a small slowdown on ia64 because
+there is no concept of atomicity wrt only one CPU. Emulating this with
+irq disable has been tried, but just the supplementary memory barriers
+hurts performance a bit. We tried to come up with clever macros that
+switch between irq disable and cmpxchg_local depending on the
+architecture, but all the results were awkward.
+
+I guess it's time for me to repost my patchset. I use interrupt disable
+to emulate the cmpxchg_local on architectures that lacks atomic ops.
+
+# cmpxchg_local and cmpxchg64_local standardization
+add-cmpxchg-local-to-generic-for-up.patch
+i386-cmpxchg64-80386-80486-fallback.patch
+add-cmpxchg64-to-alpha.patch
+add-cmpxchg64-to-mips.patch
+add-cmpxchg64-to-powerpc.patch
+add-cmpxchg64-to-x86_64.patch
+#
+add-cmpxchg-local-to-arm.patch
+add-cmpxchg-local-to-avr32.patch
+add-cmpxchg-local-to-blackfin.patch
+add-cmpxchg-local-to-cris.patch
+add-cmpxchg-local-to-frv.patch
+add-cmpxchg-local-to-h8300.patch
+add-cmpxchg-local-to-ia64.patch
+add-cmpxchg-local-to-m32r.patch
+fix-m32r-__xchg.patch
+fix-m32r-include-sched-h-in-smpboot.patch
+local_t_m32r_optimized.patch
+add-cmpxchg-local-to-m68k.patch
+add-cmpxchg-local-to-m68knommu.patch
+add-cmpxchg-local-to-parisc.patch
+add-cmpxchg-local-to-ppc.patch
+add-cmpxchg-local-to-s390.patch
+add-cmpxchg-local-to-sh.patch
+add-cmpxchg-local-to-sh64.patch
+add-cmpxchg-local-to-sparc.patch
+add-cmpxchg-local-to-sparc64.patch
+add-cmpxchg-local-to-v850.patch
+add-cmpxchg-local-to-xtensa.patch
+#
+slub-use-cmpxchg-local.patch
+
+Mathieu
 
 -- 
 Mathieu Desnoyers
