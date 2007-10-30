@@ -1,55 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:51140 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:59244 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754154AbXJ3ToM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Oct 2007 15:44:12 -0400
-Message-Id: <20071030192109.356783587@polymtl.ca>
+	id S1754344AbXJ3ToX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Oct 2007 15:44:23 -0400
+Message-Id: <20071030192106.745173888@polymtl.ca>
 References: <20071030191557.947156623@polymtl.ca>
-Date: Tue, 30 Oct 2007 15:16:21 -0400
+Date: Tue, 30 Oct 2007 15:16:13 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 24/28] Add cmpxchg_local to sh64
-Content-Disposition: inline; filename=add-cmpxchg-local-to-sh64.patch
+Subject: [patch 16/28] m32r: build fix of arch/m32r/kernel/smpboot.c
+Content-Disposition: inline; filename=fix-m32r-include-sched-h-in-smpboot.patch
 Sender: linux-arch-owner@vger.kernel.org
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, matthew@wil.cx, linux-arch@vger.kernel.org, penberg@cs.helsinki.fi, linux-mm@kvack.org, Christoph Lameter <clameter@sgi.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, lethal@linux-sh.org
+Cc: Hirokazu Takata <takata@linux-m32r.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Use the new generic cmpxchg_local (disables interrupt). Also use the generic
-cmpxchg as fallback if SMP is not set.
+This patch is for Mathieu Desnoyers's include/asm-m32r/local.h.
+Applying the new include/asm-m32r/local.h, inclusion of linux/sched.h
+is needed to fix a build error of arch/m32r/kernel/smpboot.c.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: clameter@sgi.com
-CC: lethal@linux-sh.org
+<--  snip  -->
+  ...
+  CC      arch/m32r/kernel/smpboot.o
+/project/m32r-linux/kernel/work/linux-2.6_dev.git/arch/m32r/kernel/smpboot.c: In function 'do_boot_cpu':
+/project/m32r-linux/kernel/work/linux-2.6_dev.git/arch/m32r/kernel/smpboot.c:279: error: implicit declaration of function 'fork_idle'
+/project/m32r-linux/kernel/work/linux-2.6_dev.git/arch/m32r/kernel/smpboot.c:279: warning: assignment makes pointer from integer without a cast
+/project/m32r-linux/kernel/work/linux-2.6_dev.git/arch/m32r/kernel/smpboot.c:283: error: dereferencing pointer to incomplete type
+/project/m32r-linux/kernel/work/linux-2.6_dev.git/arch/m32r/kernel/smpboot.c:289: error: dereferencing pointer to incomplete type
+/project/m32r-linux/kernel/work/linux-2.6_dev.git/arch/m32r/kernel/smpboot.c:290: error: implicit declaration of function 'task_thread_info'
+/project/m32r-linux/kernel/work/linux-2.6_dev.git/arch/m32r/kernel/smpboot.c:290: error: invalid type argument of '->'
+/project/m32r-linux/kernel/work/linux-2.6_dev.git/arch/m32r/kernel/smpboot.c: In function 'start_secondary':
+/project/m32r-linux/kernel/work/linux-2.6_dev.git/arch/m32r/kernel/smpboot.c:429: error: implicit declaration of function 'cpu_init'
+make[2]: *** [arch/m32r/kernel/smpboot.o] Error 1
+<--  snip  -->
+
+Signed-off-by: Hirokazu Takata <takata@linux-m32r.org>
 ---
- include/asm-sh64/system.h |   15 +++++++++++++++
- 1 file changed, 15 insertions(+)
+ arch/m32r/kernel/smpboot.c |    1 +
+ 1 file changed, 1 insertion(+)
 
-Index: linux-2.6-lttng/include/asm-sh64/system.h
+Index: linux-2.6-lttng/arch/m32r/kernel/smpboot.c
 ===================================================================
---- linux-2.6-lttng.orig/include/asm-sh64/system.h	2007-07-23 11:01:16.000000000 -0400
-+++ linux-2.6-lttng/include/asm-sh64/system.h	2007-07-23 11:01:20.000000000 -0400
-@@ -164,6 +164,21 @@ static __inline__ unsigned long __xchg(u
- 	return x;
- }
- 
-+#include <asm-generic/cmpxchg-local.h>
-+
-+/*
-+ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-+ * them available.
-+ */
-+#define cmpxchg_local(ptr,o,n)					  	    \
-+     (__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o), \
-+			   	 (unsigned long)(n), sizeof(*(ptr)))
-+#define cmpxchg64_local(ptr,o,n) __cmpxchg64_local_generic((ptr), (o), (n))
-+
-+#ifndef CONFIG_SMP
-+#include <asm-generic/cmpxchg.h>
-+#endif
-+
- /* XXX
-  * disable hlt during certain critical i/o operations
-  */
+--- linux-2.6-lttng.orig/arch/m32r/kernel/smpboot.c	2007-08-21 09:57:48.000000000 -0400
++++ linux-2.6-lttng/arch/m32r/kernel/smpboot.c	2007-08-21 09:58:12.000000000 -0400
+@@ -43,6 +43,7 @@
+ #include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
++#include <linux/sched.h>
+ #include <linux/err.h>
+ #include <linux/irq.h>
+ #include <linux/bootmem.h>
 
 -- 
 Mathieu Desnoyers
