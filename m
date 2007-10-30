@@ -1,91 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:59244 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:51140 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754651AbXJ3To1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Oct 2007 15:44:27 -0400
-Message-Id: <20071030192104.252451521@polymtl.ca>
+	id S1753534AbXJ3ToN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Oct 2007 15:44:13 -0400
+Message-Id: <20071030192103.621296212@polymtl.ca>
 References: <20071030191557.947156623@polymtl.ca>
-Date: Tue, 30 Oct 2007 15:16:06 -0400
+Date: Tue, 30 Oct 2007 15:16:04 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 09/28] Add cmpxchg_local to blackfin, replace __cmpxchg by generic cmpxchg
-Content-Disposition: inline; filename=add-cmpxchg-local-to-blackfin.patch
+Subject: [patch 07/28] Add cmpxchg_local to arm
+Content-Disposition: inline; filename=add-cmpxchg-local-to-arm.patch
 Sender: linux-arch-owner@vger.kernel.org
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, matthew@wil.cx, linux-arch@vger.kernel.org, penberg@cs.helsinki.fi, linux-mm@kvack.org, Christoph Lameter <clameter@sgi.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, michael.frysinger@analog.com
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, rmk@arm.linux.org.uk
 List-ID: <linux-arch.vger.kernel.org>
 
 Use the new generic cmpxchg_local (disables interrupt). Also use the generic
-cmpxchg as fallback if SMP is not set since nobody seems to know why __cmpxchg
-has been implemented in assembly in the first place thather than in plain C.
+cmpxchg as fallback if SMP is not set.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 CC: clameter@sgi.com
-CC: michael.frysinger@analog.com
+CC: rmk@arm.linux.org.uk
 ---
- include/asm-blackfin/system.h |   59 ++++++++----------------------------------
- 1 file changed, 12 insertions(+), 47 deletions(-)
+ include/asm-arm/system.h |   15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
 
-Index: linux-2.6-lttng/include/asm-blackfin/system.h
+Index: linux-2.6-lttng/include/asm-arm/system.h
 ===================================================================
---- linux-2.6-lttng.orig/include/asm-blackfin/system.h	2007-08-07 14:31:52.000000000 -0400
-+++ linux-2.6-lttng/include/asm-blackfin/system.h	2007-08-07 14:47:31.000000000 -0400
-@@ -176,55 +176,20 @@ static inline unsigned long __xchg(unsig
- 	return tmp;
- }
+--- linux-2.6-lttng.orig/include/asm-arm/system.h	2007-09-18 10:05:04.000000000 -0400
++++ linux-2.6-lttng/include/asm-arm/system.h	2007-09-18 13:39:25.000000000 -0400
+@@ -350,6 +350,21 @@ static inline unsigned long __xchg(unsig
+ extern void disable_hlt(void);
+ extern void enable_hlt(void);
  
 +#include <asm-generic/cmpxchg-local.h>
 +
- /*
-- * Atomic compare and exchange.  Compare OLD with MEM, if identical,
-- * store NEW in MEM.  Return the initial value in MEM.  Success is
-- * indicated by comparing RETURN with OLD.
++/*
 + * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
 + * them available.
-  */
--static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
--				      unsigned long new, int size)
--{
--	unsigned long tmp = 0;
--	unsigned long flags = 0;
--
--	local_irq_save(flags);
--
--	switch (size) {
--	case 1:
--		__asm__ __volatile__
--			("%0 = b%3 (z);\n\t"
--			 "CC = %1 == %0;\n\t"
--			 "IF !CC JUMP 1f;\n\t"
--			 "b%3 = %2;\n\t"
--			 "1:\n\t"
--			 : "=&d" (tmp) : "d" (old), "d" (new), "m" (*__xg(ptr)) : "memory");
--		break;
--	case 2:
--		__asm__ __volatile__
--			("%0 = w%3 (z);\n\t"
--			 "CC = %1 == %0;\n\t"
--			 "IF !CC JUMP 1f;\n\t"
--			 "w%3 = %2;\n\t"
--			 "1:\n\t"
--			 : "=&d" (tmp) : "d" (old), "d" (new), "m" (*__xg(ptr)) : "memory");
--		break;
--	case 4:
--		__asm__ __volatile__
--			("%0 = %3;\n\t"
--			 "CC = %1 == %0;\n\t"
--			 "IF !CC JUMP 1f;\n\t"
--			 "%3 = %2;\n\t"
--			 "1:\n\t"
--			 : "=&d" (tmp) : "d" (old), "d" (new), "m" (*__xg(ptr)) : "memory");
--		break;
--	}
--	local_irq_restore(flags);
--	return tmp;
--}
--
--#define cmpxchg(ptr,o,n)\
--        ((__typeof__(*(ptr)))__cmpxchg((ptr),(unsigned long)(o),\
--                                        (unsigned long)(n),sizeof(*(ptr))))
++ */
 +#define cmpxchg_local(ptr,o,n)					  	    \
 +     (__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o), \
 +			   	 (unsigned long)(n), sizeof(*(ptr)))
@@ -94,9 +46,10 @@ Index: linux-2.6-lttng/include/asm-blackfin/system.h
 +#ifndef CONFIG_SMP
 +#include <asm-generic/cmpxchg.h>
 +#endif
++
+ #endif /* __ASSEMBLY__ */
  
- #define prepare_to_switch()     do { } while(0)
- 
+ #define arch_align_stack(x) (x)
 
 -- 
 Mathieu Desnoyers
