@@ -1,67 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:51140 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:59244 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753534AbXJ3ToT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Oct 2007 15:44:19 -0400
-Message-Id: <20071030192103.932633073@polymtl.ca>
+	id S1754174AbXJ3ToY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Oct 2007 15:44:24 -0400
+Message-Id: <20071030192109.036627614@polymtl.ca>
 References: <20071030191557.947156623@polymtl.ca>
-Date: Tue, 30 Oct 2007 15:16:05 -0400
+Date: Tue, 30 Oct 2007 15:16:20 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 08/28] Add cmpxchg_local to avr32
-Content-Disposition: inline; filename=add-cmpxchg-local-to-avr32.patch
+Subject: [patch 23/28] Add cmpxchg_local to sh, use generic cmpxchg() instead of cmpxchg_u32
+Content-Disposition: inline; filename=add-cmpxchg-local-to-sh.patch
 Sender: linux-arch-owner@vger.kernel.org
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, matthew@wil.cx, linux-arch@vger.kernel.org, penberg@cs.helsinki.fi, linux-mm@kvack.org, Christoph Lameter <clameter@sgi.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Haavard Skinnemoen <hskinnemoen@atmel.com>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, lethal@linux-sh.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Use the new generic cmpxchg_local (disables interrupt) for 8, 16 and 64 bits
-cmpxchg_local. Use the __cmpxchg_u32 primitive for 32 bits cmpxchg_local.
+Use the new generic cmpxchg_local (disables interrupt). Also use the generic
+cmpxchg as fallback if SMP is not set.
 
-Note that cmpxchg only uses the __cmpxchg_u32 or __cmpxchg_u64 and will cause
-a linker error if called with 8 or 16 bits argument.
+Since cmpxchg_u32 is _exactly_ the cmpxchg_local generic implementation, remove
+it and use the generic version instead.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Acked-by: Haavard Skinnemoen <hskinnemoen@atmel.com>
 CC: clameter@sgi.com
-CC: hskinnemoen@atmel.com
+CC: lethal@linux-sh.org
 ---
- include/asm-avr32/system.h |   23 +++++++++++++++++++++++
- 1 file changed, 23 insertions(+)
+ include/asm-sh/system.h |   48 ++++++++++++------------------------------------
+ 1 file changed, 12 insertions(+), 36 deletions(-)
 
-Index: linux-2.6-lttng/include/asm-avr32/system.h
+Index: linux-2.6-lttng/include/asm-sh/system.h
 ===================================================================
---- linux-2.6-lttng.orig/include/asm-avr32/system.h	2007-07-20 19:10:57.000000000 -0400
-+++ linux-2.6-lttng/include/asm-avr32/system.h	2007-07-20 19:32:36.000000000 -0400
-@@ -140,6 +140,29 @@ static inline unsigned long __cmpxchg(vo
- 				   (unsigned long)(new),	\
- 				   sizeof(*(ptr))))
+--- linux-2.6-lttng.orig/include/asm-sh/system.h	2007-08-07 14:31:51.000000000 -0400
++++ linux-2.6-lttng/include/asm-sh/system.h	2007-08-07 15:08:10.000000000 -0400
+@@ -201,44 +201,20 @@ extern void __xchg_called_with_bad_point
+ #define xchg(ptr,x)	\
+ 	((__typeof__(*(ptr)))__xchg((ptr),(unsigned long)(x), sizeof(*(ptr))))
  
+-static inline unsigned long __cmpxchg_u32(volatile int * m, unsigned long old,
+-	unsigned long new)
+-{
+-	__u32 retval;
+-	unsigned long flags;
+-
+-	local_irq_save(flags);
+-	retval = *m;
+-	if (retval == old)
+-		*m = new;
+-	local_irq_restore(flags);       /* implies memory barrier  */
+-	return retval;
+-}
+-
+-/* This function doesn't exist, so you'll get a linker error
+- * if something tries to do an invalid cmpxchg(). */
+-extern void __cmpxchg_called_with_bad_pointer(void);
+-
+-#define __HAVE_ARCH_CMPXCHG 1
 +#include <asm-generic/cmpxchg-local.h>
-+
-+static inline unsigned long __cmpxchg_local(volatile void *ptr,
-+				      unsigned long old,
-+				      unsigned long new, int size)
-+{
-+	switch (size) {
-+	case 4:
-+		return __cmpxchg_u32(ptr, old, new);
-+	default:
-+		return __cmpxchg_local_generic(ptr, old, new, size);
-+	}
-+
-+	return old;
-+}
-+
-+#define cmpxchg_local(ptr, old, new)					\
-+	((typeof(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(old),	\
-+				   (unsigned long)(new),		\
-+				   sizeof(*(ptr))))
-+
+ 
+-static inline unsigned long __cmpxchg(volatile void * ptr, unsigned long old,
+-		unsigned long new, int size)
+-{
+-	switch (size) {
+-	case 4:
+-		return __cmpxchg_u32(ptr, old, new);
+-	}
+-	__cmpxchg_called_with_bad_pointer();
+-	return old;
+-}
++/*
++ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
++ * them available.
++ */
++#define cmpxchg_local(ptr,o,n)					  	    \
++     (__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o), \
++			   	 (unsigned long)(n), sizeof(*(ptr)))
 +#define cmpxchg64_local(ptr,o,n) __cmpxchg64_local_generic((ptr), (o), (n))
-+
- struct pt_regs;
- void NORET_TYPE die(const char *str, struct pt_regs *regs, long err);
- void _exception(long signr, struct pt_regs *regs, int code,
+ 
+-#define cmpxchg(ptr,o,n)						 \
+-  ({									 \
+-     __typeof__(*(ptr)) _o_ = (o);					 \
+-     __typeof__(*(ptr)) _n_ = (n);					 \
+-     (__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_,		 \
+-				    (unsigned long)_n_, sizeof(*(ptr))); \
+-  })
++#ifndef CONFIG_SMP
++#include <asm-generic/cmpxchg.h>
++#endif
+ 
+ extern void die(const char *str, struct pt_regs *regs, long err) __attribute__ ((noreturn));
+ 
 
 -- 
 Mathieu Desnoyers
