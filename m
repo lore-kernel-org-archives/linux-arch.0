@@ -1,33 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ftp.linux-mips.org ([194.74.144.162]:55548 "EHLO
-	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751011AbXJ3CsH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2007 22:48:07 -0400
-Date: Tue, 30 Oct 2007 02:48:01 +0000
-From: Ralf Baechle <ralf@linux-mips.org>
+Received: from gate.crashing.org ([63.228.1.57]:50306 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751905AbXJ3DCN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Oct 2007 23:02:13 -0400
+In-Reply-To: <20071030024801.GA19417@linux-mips.org>
+References: <20071028201549.GA23138@fattire.cabal.ca> <20071030024801.GA19417@linux-mips.org>
+Mime-Version: 1.0 (Apple Message framework v752.2)
+Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
+Message-Id: <AFC1DED8-E331-420C-940E-9CF849630F0B@kernel.crashing.org>
+Content-Transfer-Encoding: 7bit
+From: Kumar Gala <galak@kernel.crashing.org>
 Subject: Re: [PATCH] Only show RESOURCES_64BIT on relevant architectures
-Message-ID: <20071030024801.GA19417@linux-mips.org>
-References: <20071028201549.GA23138@fattire.cabal.ca>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20071028201549.GA23138@fattire.cabal.ca>
+Date: Mon, 29 Oct 2007 22:03:16 -0500
 Sender: linux-arch-owner@vger.kernel.org
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Sun, Oct 28, 2007 at 04:15:49PM -0400, Kyle McMartin wrote:
 
-> +++ b/mm/Kconfig
-> @@ -172,6 +172,7 @@ config MIGRATION
->  
->  config RESOURCES_64BIT
->  	bool "64 bit Memory and IO resources (EXPERIMENTAL)" if (!64BIT && EXPERIMENTAL)
-> +	depends on (MIPS || PPC32 || X86_PAE) || 64BIT
+On Oct 29, 2007, at 9:48 PM, Ralf Baechle wrote:
 
-On MIPS it would be a per platform thing.  I'd prefer if RESOURCES_64BIT
-was enabled through reverse dependencies and never visible as a user
-option.
+> On Sun, Oct 28, 2007 at 04:15:49PM -0400, Kyle McMartin wrote:
+>
+>> +++ b/mm/Kconfig
+>> @@ -172,6 +172,7 @@ config MIGRATION
+>>
+>>  config RESOURCES_64BIT
+>>  	bool "64 bit Memory and IO resources (EXPERIMENTAL)" if (!64BIT  
+>> && EXPERIMENTAL)
+>> +	depends on (MIPS || PPC32 || X86_PAE) || 64BIT
+>
+> On MIPS it would be a per platform thing.  I'd prefer if  
+> RESOURCES_64BIT
+> was enabled through reverse dependencies and never visible as a user
+> option.
 
-  Ralf
+The same is true on PPC32.  Its a per platform thing.   However, I'm  
+not sure if we could hide it from the user.  There are cases on the  
+same HW platform that you want to run with just 32-bit phys (for  
+performance).
+
+- k
