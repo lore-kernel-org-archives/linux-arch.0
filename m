@@ -1,43 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from smtp.polymtl.ca ([132.207.4.11]:51140 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753002AbXJ3ToF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Oct 2007 15:44:05 -0400
-Message-Id: <20071030192103.292022353@polymtl.ca>
+	id S1753693AbXJ3ToG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Oct 2007 15:44:06 -0400
+Message-Id: <20071030192102.677087409@polymtl.ca>
 References: <20071030191557.947156623@polymtl.ca>
-Date: Tue, 30 Oct 2007 15:16:03 -0400
+Date: Tue, 30 Oct 2007 15:16:01 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 06/28] Add cmpxchg64 and cmpxchg64_local to x86_64
-Content-Disposition: inline; filename=add-cmpxchg64-to-x86_64.patch
+Subject: [patch 04/28] Add cmpxchg64 and cmpxchg64_local to mips
+Content-Disposition: inline; filename=add-cmpxchg64-to-mips.patch
 Sender: linux-arch-owner@vger.kernel.org
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, matthew@wil.cx, linux-arch@vger.kernel.org, penberg@cs.helsinki.fi, linux-mm@kvack.org, Christoph Lameter <clameter@sgi.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Andi Kleen <ak@muc.de>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, ralf@linux-mips.org
 List-ID: <linux-arch.vger.kernel.org>
 
 Make sure that at least cmpxchg64_local is available on all architectures to use
 for unsigned long long values.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: Andi Kleen <ak@muc.de>
+CC: ralf@linux-mips.org
+CC linux-mips@linux-mips.org
 ---
- include/asm-x86_64/cmpxchg.h |    2 ++
- 1 file changed, 2 insertions(+)
+ include/asm-mips/cmpxchg.h |    9 +++++++++
+ 1 file changed, 9 insertions(+)
 
-Index: linux-2.6-lttng/include/asm-x86_64/cmpxchg.h
+Index: linux-2.6-lttng/include/asm-mips/cmpxchg.h
 ===================================================================
---- linux-2.6-lttng.orig/include/asm-x86_64/cmpxchg.h	2007-08-27 11:16:46.000000000 -0400
-+++ linux-2.6-lttng/include/asm-x86_64/cmpxchg.h	2007-08-27 11:17:21.000000000 -0400
-@@ -127,8 +127,10 @@ static inline unsigned long __cmpxchg_lo
- #define cmpxchg(ptr,o,n)\
- 	((__typeof__(*(ptr)))__cmpxchg((ptr),(unsigned long)(o),\
- 					(unsigned long)(n),sizeof(*(ptr))))
-+#define cmpxchg64	cmpxchg
- #define cmpxchg_local(ptr,o,n)\
- 	((__typeof__(*(ptr)))__cmpxchg_local((ptr),(unsigned long)(o),\
- 					(unsigned long)(n),sizeof(*(ptr))))
-+#define cmpxchg64_local	cmpxchg_local
+--- linux-2.6-lttng.orig/include/asm-mips/cmpxchg.h	2007-10-12 12:05:06.000000000 -0400
++++ linux-2.6-lttng/include/asm-mips/cmpxchg.h	2007-10-12 12:08:56.000000000 -0400
+@@ -104,4 +104,13 @@ extern void __cmpxchg_called_with_bad_po
+ #define cmpxchg(ptr, old, new)		__cmpxchg(ptr, old, new, smp_llsc_mb())
+ #define cmpxchg_local(ptr, old, new)	__cmpxchg(ptr, old, new, )
  
- #endif
++#define cmpxchg64	cmpxchg
++
++#ifdef CONFIG_64BIT
++#define cmpxchg64_local	cmpxchg_local
++#else
++#include <asm-generic/cmpxchg-local.h>
++#define cmpxchg64_local(ptr,o,n)	__cmpxchg64_local_generic((ptr),(o),(n))
++#endif
++
+ #endif /* __ASM_CMPXCHG_H */
 
 -- 
 Mathieu Desnoyers
