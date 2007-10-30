@@ -1,56 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:51140 "EHLO smtp.polymtl.ca"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753984AbXJ3Tnx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Oct 2007 15:43:53 -0400
-Message-Id: <20071030192105.244901260@polymtl.ca>
-References: <20071030191557.947156623@polymtl.ca>
-Date: Tue, 30 Oct 2007 15:16:09 -0400
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 12/28] Add cmpxchg_local to h8300
-Content-Disposition: inline; filename=add-cmpxchg-local-to-h8300.patch
+Received: from hancock.steeleye.com ([71.30.118.248]:60178 "EHLO
+	hancock.sc.steeleye.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1757695AbXJ3U0e (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Oct 2007 16:26:34 -0400
+Subject: Re: [PATCH 2/2] Remove dma_coherent_mem interface
+From: James Bottomley <James.Bottomley@steeleye.com>
+In-Reply-To: <1193773405-15799-2-git-send-email-matthew@wil.cx>
+References: <1193773405-15799-1-git-send-email-matthew@wil.cx>
+	 <1193773405-15799-2-git-send-email-matthew@wil.cx>
+Content-Type: text/plain
+Date: Tue, 30 Oct 2007 15:26:31 -0500
+Message-Id: <1193775991.3321.108.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, matthew@wil.cx, linux-arch@vger.kernel.org, penberg@cs.helsinki.fi, linux-mm@kvack.org, Christoph Lameter <clameter@sgi.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, linux-scsi@vger.kernel.org, jejb@steeleye.com, Matthew Wilcox <willy@linux.intel.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-Use the new generic cmpxchg_local (disables interrupt). Also use the generic
-cmpxchg as fallback if SMP is not set.
+On Tue, 2007-10-30 at 15:43 -0400, Matthew Wilcox wrote:
+> This interface only had one user (and two implementations).
+> It complicates other work, so remove it.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: clameter@sgi.com
----
- include/asm-h8300/system.h |   15 +++++++++++++++
- 1 file changed, 15 insertions(+)
+Its design was basically to facilitate the use of bus remote memory.
+There's a long thread somewhere discussing this with the ARM people.
+They had some type of SoC implementation that needed to allocate local
+memory for device descriptors.  The Q720 is pretty much the same way, so
+I used it to build the implementation when I created it for the ARM
+people.  This is the original thread:
 
-Index: linux-2.6-lttng/include/asm-h8300/system.h
-===================================================================
---- linux-2.6-lttng.orig/include/asm-h8300/system.h	2007-07-20 18:36:09.000000000 -0400
-+++ linux-2.6-lttng/include/asm-h8300/system.h	2007-07-20 19:27:23.000000000 -0400
-@@ -139,6 +139,21 @@ static inline unsigned long __xchg(unsig
-         asm("jmp @@0");			\
- })
- 
-+#include <asm-generic/cmpxchg-local.h>
-+
-+/*
-+ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-+ * them available.
-+ */
-+#define cmpxchg_local(ptr,o,n)					  	    \
-+     (__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o), \
-+			   	 (unsigned long)(n), sizeof(*(ptr)))
-+#define cmpxchg64_local(ptr,o,n) __cmpxchg64_local_generic((ptr), (o), (n))
-+
-+#ifndef CONFIG_SMP
-+#include <asm-generic/cmpxchg.h>
-+#endif
-+
- #define arch_align_stack(x) (x)
- 
- #endif /* _H8300_SYSTEM_H */
+http://marc.info/?t=108757862100001
 
--- 
-Mathieu Desnoyers
-Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+They said they were implementing this system, so I've no idea what
+happened.  However, what are the problems the API is causing?  it seems
+useful, so there should be a preference in its favour of existence
+unless it's causing a problem.
+
+James
+
+
