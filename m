@@ -1,49 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:59959 "EHLO smtp.polymtl.ca"
+Received: from smtp.polymtl.ca ([132.207.4.11]:51140 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756786AbXJ3Tqg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Oct 2007 15:46:36 -0400
-Message-Id: <20071030192102.364981487@polymtl.ca>
+	id S1753984AbXJ3Tnx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Oct 2007 15:43:53 -0400
+Message-Id: <20071030192105.244901260@polymtl.ca>
 References: <20071030191557.947156623@polymtl.ca>
-Date: Tue, 30 Oct 2007 15:16:00 -0400
+Date: Tue, 30 Oct 2007 15:16:09 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 03/28] Add cmpxchg64 and cmpxchg64_local to alpha
-Content-Disposition: inline; filename=add-cmpxchg64-to-alpha.patch
+Subject: [patch 12/28] Add cmpxchg_local to h8300
+Content-Disposition: inline; filename=add-cmpxchg-local-to-h8300.patch
 Sender: linux-arch-owner@vger.kernel.org
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, matthew@wil.cx, linux-arch@vger.kernel.org, penberg@cs.helsinki.fi, linux-mm@kvack.org, Christoph Lameter <clameter@sgi.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, rth@twiddle.net, ink@jurassic.park.msu.ru
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 List-ID: <linux-arch.vger.kernel.org>
 
-Make sure that at least cmpxchg64_local is available on all architectures to use
-for unsigned long long values.
+Use the new generic cmpxchg_local (disables interrupt). Also use the generic
+cmpxchg as fallback if SMP is not set.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-CC: rth@twiddle.net
-CC: ink@jurassic.park.msu.ru
+CC: clameter@sgi.com
 ---
- include/asm-alpha/system.h |    2 ++
- 1 file changed, 2 insertions(+)
+ include/asm-h8300/system.h |   15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
 
-Index: linux-2.6-lttng/include/asm-alpha/system.h
+Index: linux-2.6-lttng/include/asm-h8300/system.h
 ===================================================================
---- linux-2.6-lttng.orig/include/asm-alpha/system.h	2007-08-27 11:23:08.000000000 -0400
-+++ linux-2.6-lttng/include/asm-alpha/system.h	2007-08-27 11:23:46.000000000 -0400
-@@ -687,6 +687,7 @@ __cmpxchg(volatile void *ptr, unsigned l
-      (__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_,		 \
- 				    (unsigned long)_n_, sizeof(*(ptr))); \
-   })
-+#define cmpxchg64	cmpxchg
+--- linux-2.6-lttng.orig/include/asm-h8300/system.h	2007-07-20 18:36:09.000000000 -0400
++++ linux-2.6-lttng/include/asm-h8300/system.h	2007-07-20 19:27:23.000000000 -0400
+@@ -139,6 +139,21 @@ static inline unsigned long __xchg(unsig
+         asm("jmp @@0");			\
+ })
  
- static inline unsigned long
- __cmpxchg_u8_local(volatile char *m, long old, long new)
-@@ -809,6 +810,7 @@ __cmpxchg_local(volatile void *ptr, unsi
-      (__typeof__(*(ptr))) __cmpxchg_local((ptr), (unsigned long)_o_,	 \
- 				    (unsigned long)_n_, sizeof(*(ptr))); \
-   })
-+#define cmpxchg64_local	cmpxchg_local
++#include <asm-generic/cmpxchg-local.h>
++
++/*
++ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
++ * them available.
++ */
++#define cmpxchg_local(ptr,o,n)					  	    \
++     (__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o), \
++			   	 (unsigned long)(n), sizeof(*(ptr)))
++#define cmpxchg64_local(ptr,o,n) __cmpxchg64_local_generic((ptr), (o), (n))
++
++#ifndef CONFIG_SMP
++#include <asm-generic/cmpxchg.h>
++#endif
++
+ #define arch_align_stack(x) (x)
  
- #endif /* __ASSEMBLY__ */
- 
+ #endif /* _H8300_SYSTEM_H */
 
 -- 
 Mathieu Desnoyers
