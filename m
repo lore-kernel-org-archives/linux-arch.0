@@ -1,62 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from smtp.polymtl.ca ([132.207.4.11]:59959 "EHLO smtp.polymtl.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756848AbXJ3Tqh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Oct 2007 15:46:37 -0400
-Message-Id: <20071030192105.557027608@polymtl.ca>
+	id S1756642AbXJ3Tqe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Oct 2007 15:46:34 -0400
+Message-Id: <20071030192102.985443792@polymtl.ca>
 References: <20071030191557.947156623@polymtl.ca>
-Date: Tue, 30 Oct 2007 15:16:10 -0400
+Date: Tue, 30 Oct 2007 15:16:02 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 13/28] Add cmpxchg_local, cmpxchg64 and cmpxchg64_local to ia64
-Content-Disposition: inline; filename=add-cmpxchg-local-to-ia64.patch
+Subject: [patch 05/28] Add cmpxchg64 and cmpxchg64_local to powerpc
+Content-Disposition: inline; filename=add-cmpxchg64-to-powerpc.patch
 Sender: linux-arch-owner@vger.kernel.org
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, matthew@wil.cx, linux-arch@vger.kernel.org, penberg@cs.helsinki.fi, linux-mm@kvack.org, Christoph Lameter <clameter@sgi.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, tony.luck@intel.com, Keith Owens <kaos@ocs.com.au>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Add the primitives cmpxchg_local, cmpxchg64 and cmpxchg64_local to ia64. They
-use cmpxchg_acq as underlying macro, just like the already existing ia64
-cmpxchg().
-
-Changelog:
-
-ia64 cmpxchg_local coding style fix
-Quoting Keith Owens:
-
-As a matter of coding style, I prefer
-
-#define cmpxchg_local   cmpxchg
-#define cmpxchg64_local cmpxchg64
-
-Which makes it absolutely clear that they are the same code.  With your
-patch, humans have to do a string compare of two defines to see if they
-are the same.
-
-Note cmpxchg is *not* a performance win vs interrupt disable / enable on IA64.
+Make sure that at least cmpxchg64_local is available on all architectures to use
+for unsigned long long values.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Acked-by: Christoph Lameter <clameter@sgi.com>
-CC: tony.luck@intel.com
-CC: Keith Owens <kaos@ocs.com.au>
+Acked-by: Paul Mackerras <paulus@samba.org>
+CC: linuxppc-dev@ozlabs.org
 ---
- include/asm-ia64/intrinsics.h |    4 ++++
- 1 file changed, 4 insertions(+)
+ include/asm-powerpc/system.h |    6 ++++++
+ 1 file changed, 6 insertions(+)
 
-Index: linux-2.6-lttng/include/asm-ia64/intrinsics.h
+Index: linux-2.6-lttng/include/asm-powerpc/system.h
 ===================================================================
---- linux-2.6-lttng.orig/include/asm-ia64/intrinsics.h	2007-08-12 09:33:57.000000000 -0400
-+++ linux-2.6-lttng/include/asm-ia64/intrinsics.h	2007-08-12 15:09:49.000000000 -0400
-@@ -158,6 +158,10 @@ extern long ia64_cmpxchg_called_with_bad
- 
- /* for compatibility with other platforms: */
- #define cmpxchg(ptr,o,n)	cmpxchg_acq(ptr,o,n)
-+#define cmpxchg64(ptr,o,n)	cmpxchg_acq(ptr,o,n)
+--- linux-2.6-lttng.orig/include/asm-powerpc/system.h	2007-09-24 10:50:11.000000000 -0400
++++ linux-2.6-lttng/include/asm-powerpc/system.h	2007-09-24 11:01:04.000000000 -0400
+@@ -488,6 +488,12 @@ __cmpxchg_local(volatile void *ptr, unsi
+  */
+ #define NET_IP_ALIGN	0
+ #define NET_SKB_PAD	L1_CACHE_BYTES
 +
-+#define cmpxchg_local		cmpxchg
-+#define cmpxchg64_local		cmpxchg64
++#define cmpxchg64	cmpxchg
++#define cmpxchg64_local	cmpxchg_local
++#else
++#include <asm-generic/cmpxchg-local.h>
++#define cmpxchg64_local(ptr,o,n) __cmpxchg64_local_generic((ptr), (o), (n))
+ #endif
  
- #ifdef CONFIG_IA64_DEBUG_CMPXCHG
- # define CMPXCHG_BUGCHECK_DECL	int _cmpxchg_bugcheck_count = 128;
+ #define arch_align_stack(x) (x)
 
 -- 
 Mathieu Desnoyers
