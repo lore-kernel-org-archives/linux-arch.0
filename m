@@ -1,355 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:35963 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755077AbXJaVWp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Oct 2007 17:22:45 -0400
-Message-Id: <200710312120.l9VLKxdg029121@imap1.linux-foundation.org>
-Subject: + sanitize-the-type-of-struct-useru_ar0.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Wed, 31 Oct 2007 14:20:59 -0700
+Received: from palinux.external.hp.com ([192.25.206.14]:58314 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754085AbXJaVet (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 31 Oct 2007 17:34:49 -0400
+Date: Wed, 31 Oct 2007 15:34:47 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: DMA API Re: Remove dma_coherent_mem interface
+Message-ID: <20071031213447.GF15111@parisc-linux.org>
+References: <1193864605.25899.253.camel@wirenth>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1193864605.25899.253.camel@wirenth>
 Sender: linux-arch-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: hpa@zytor.com, bryan.wu@analog.com, heiko.carstens@de.ibm.com, hskinnemoen@atmel.com, ink@jurassic.park.msu.ru, kernel@wantstofly.org, lethal@linux-sh.org, linux-arch@vger.kernel.org, mingo@redhat.com, paulus@samba.org, ralf@linux-mips.org, rmk@arm.linux.org.uk, rth@twiddle.net, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, ysato@users.sourceforge.jp, zippel@linux-m68k.org
+To: ian <spyro@f2s.com>
+Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, linux-scsi@vger.kernel.org, jejb@steeleye.com, kernel-discuss@handhelds.org
 List-ID: <linux-arch.vger.kernel.org>
 
+On Wed, Oct 31, 2007 at 09:03:24PM +0000, ian wrote:
+> There was a recent patch to remove the coherent memory interface from
+> the DMA API.
+> 
+> I'd like to ask that this not happen - there are several users of this
+> code in the handhelds.org tree, which we hope will merge into mainline.
+> this code is _essential_ to allow support of these devices.
+> 
+> Removing this from mainline will only increase the hh.org delta which we
+> are working hard to reduce, and there is no other realistic way to
+> support these devices.
 
-The patch titled
-     Sanitize the type of struct user.u_ar0
-has been added to the -mm tree.  Its filename is
-     sanitize-the-type-of-struct-useru_ar0.patch
+It's been three years since this API was introduced, and the only
+*merged* user is the one that James wrote.  Now it's in the way of some
+performance improvements I want to make.  I can't possibly go round every
+little platform tree looking for users -- you need to get your drivers
+into mainline.  Yes, it's not necessarily a quick process, but equally,
+you've had three years.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+Now, what driver is it that's going to consume this coherent memory?
+Does it use the dma_pool interface, or does it use dma_alloc_coherent
+directly?  If the latter, I can retain the dma_declare_coherent_memory
+interface.  If the former, then we have to come to a decision between
+supporting some drivers that are so unimportant that they haven't been
+merged in three years and making a performance win for drivers that are
+used every day.
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
+Admittedly, I haven't finished the work to make dma_pool use slub, thus
+I don't know what the performance win will turn out to be.  It may not
+be significant, so it would be an easy decision to keep the interface.
+But if the decision is going to be to keep the interface despite the
+lack of users and no matter what the performance win, then I don't need
+to finish this work.
 
-------------------------------------------------------
-Subject: Sanitize the type of struct user.u_ar0
-From: "H. Peter Anvin" <hpa@zytor.com>
-
-struct user.u_ar0 is defined to contain a pointer offset on all
-architectures in which it is defined (all architectures which define an
-a.out format except SPARC.) However, it has a pointer type in the headers,
-which is pointless -- <asm/user.h> is not exported to userspace, and it
-just makes the code messy.
-
-Redefine the field as "unsigned long" (which is the same size as a pointer
-on all Linux architectures) and change the setting code to user offsetof()
-instead of hand-coded arithmetic.
-
-Cc: Linux Arch Mailing List <linux-arch@vger.kernel.org>
-Cc: Bryan Wu <bryan.wu@analog.com>
-Cc: Roman Zippel <zippel@linux-m68k.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Russell King <rmk@arm.linux.org.uk>
-Cc: Lennert Buytenhek <kernel@wantstofly.org>
-Cc: Håvard Skinnemoen <hskinnemoen@atmel.com>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/blackfin/kernel/process.c |    2 +-
- arch/m68k/kernel/process.c     |    2 +-
- arch/x86/ia32/ia32_aout.c      |    2 +-
- fs/binfmt_aout.c               |    2 +-
- include/asm-alpha/user.h       |    2 +-
- include/asm-arm/user.h         |    2 +-
- include/asm-avr32/user.h       |    2 +-
- include/asm-blackfin/user.h    |    2 +-
- include/asm-cris/user.h        |    2 +-
- include/asm-h8300/user.h       |    3 +--
- include/asm-ia64/user.h        |    2 +-
- include/asm-m32r/user.h        |    2 +-
- include/asm-m68k/user.h        |    3 +--
- include/asm-mips/user.h        |    2 +-
- include/asm-powerpc/user.h     |    2 +-
- include/asm-s390/user.h        |    3 +--
- include/asm-sh/user.h          |    2 +-
- include/asm-sh64/user.h        |    2 +-
- include/asm-v850/user.h        |    2 +-
- include/asm-x86/user_32.h      |    2 +-
- include/asm-x86/user_64.h      |    2 +-
- 21 files changed, 21 insertions(+), 24 deletions(-)
-
-diff -puN arch/blackfin/kernel/process.c~sanitize-the-type-of-struct-useru_ar0 arch/blackfin/kernel/process.c
---- a/arch/blackfin/kernel/process.c~sanitize-the-type-of-struct-useru_ar0
-+++ a/arch/blackfin/kernel/process.c
-@@ -257,7 +257,7 @@ void dump_thread(struct pt_regs *regs, s
- 		    ((unsigned long)(TASK_SIZE -
- 				     dump->start_stack)) >> PAGE_SHIFT;
- 
--	dump->u_ar0 = (struct user_regs_struct *)((int)&dump->regs - (int)dump);
-+	dump->u_ar0 = offsetof(struct user, regs);
- 
- 	dump->regs.r0 = regs->r0;
- 	dump->regs.r1 = regs->r1;
-diff -puN arch/m68k/kernel/process.c~sanitize-the-type-of-struct-useru_ar0 arch/m68k/kernel/process.c
---- a/arch/m68k/kernel/process.c~sanitize-the-type-of-struct-useru_ar0
-+++ a/arch/m68k/kernel/process.c
-@@ -335,7 +335,7 @@ void dump_thread(struct pt_regs * regs, 
- 	if (dump->start_stack < TASK_SIZE)
- 		dump->u_ssize = ((unsigned long) (TASK_SIZE - dump->start_stack)) >> PAGE_SHIFT;
- 
--	dump->u_ar0 = (struct user_regs_struct *)((int)&dump->regs - (int)dump);
-+	dump->u_ar0 = offsetof(struct user, regs);
- 	sw = ((struct switch_stack *)regs) - 1;
- 	dump->regs.d1 = regs->d1;
- 	dump->regs.d2 = regs->d2;
-diff -puN arch/x86/ia32/ia32_aout.c~sanitize-the-type-of-struct-useru_ar0 arch/x86/ia32/ia32_aout.c
---- a/arch/x86/ia32/ia32_aout.c~sanitize-the-type-of-struct-useru_ar0
-+++ a/arch/x86/ia32/ia32_aout.c
-@@ -162,7 +162,7 @@ static int aout_core_dump(long signr, st
- 	has_dumped = 1;
- 	current->flags |= PF_DUMPCORE;
-        	strncpy(dump.u_comm, current->comm, sizeof(current->comm));
--	dump.u_ar0 = (u32)(((unsigned long)(&dump.regs)) - ((unsigned long)(&dump)));
-+	dump.u_ar0 = offsetof(struct user32, regs);
- 	dump.signal = signr;
- 	dump_thread32(regs, &dump);
- 
-diff -puN fs/binfmt_aout.c~sanitize-the-type-of-struct-useru_ar0 fs/binfmt_aout.c
---- a/fs/binfmt_aout.c~sanitize-the-type-of-struct-useru_ar0
-+++ a/fs/binfmt_aout.c
-@@ -115,7 +115,7 @@ static int aout_core_dump(long signr, st
- 	current->flags |= PF_DUMPCORE;
-        	strncpy(dump.u_comm, current->comm, sizeof(dump.u_comm));
- #ifndef __sparc__
--	dump.u_ar0 = (void *)(((unsigned long)(&dump.regs)) - ((unsigned long)(&dump)));
-+	dump.u_ar0 = offsetof(struct user, regs);
- #endif
- 	dump.signal = signr;
- 	dump_thread(regs, &dump);
-diff -puN include/asm-alpha/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-alpha/user.h
---- a/include/asm-alpha/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-alpha/user.h
-@@ -39,7 +39,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-arm/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-arm/user.h
---- a/include/asm-arm/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-arm/user.h
-@@ -67,7 +67,7 @@ struct user{
- 				   esp register.  */
-   long int signal;     		/* Signal that caused the core dump. */
-   int reserved;			/* No longer used */
--  struct pt_regs * u_ar0;	/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   unsigned long magic;		/* To uniquely identify a core file */
-   char u_comm[32];		/* User command that was responsible */
-diff -puN include/asm-avr32/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-avr32/user.h
---- a/include/asm-avr32/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-avr32/user.h
-@@ -51,7 +51,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-blackfin/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-blackfin/user.h
---- a/include/asm-blackfin/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-blackfin/user.h
-@@ -75,7 +75,7 @@ struct user {
- 					   esp register.  */
- 	long int signal;	/* Signal that caused the core dump. */
- 	int reserved;		/* No longer used */
--	struct user_regs_struct *u_ar0;
-+	unsigned long u_ar0;
- 	/* Used by gdb to help find the values for */
- 	/* the registers. */
- 	unsigned long magic;	/* To uniquely identify a core file */
-diff -puN include/asm-cris/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-cris/user.h
---- a/include/asm-cris/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-cris/user.h
-@@ -38,7 +38,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-h8300/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-h8300/user.h
---- a/include/asm-h8300/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-h8300/user.h
-@@ -62,8 +62,7 @@ struct user{
- 				   esp register.  */
-   long int signal;     		/* Signal that caused the core dump. */
-   int reserved;			/* No longer used */
--  struct user_regs_struct *u_ar0;
--				/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   unsigned long magic;		/* To uniquely identify a core file */
-   char u_comm[32];		/* User command that was responsible */
-diff -puN include/asm-ia64/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-ia64/user.h
---- a/include/asm-ia64/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-ia64/user.h
-@@ -44,7 +44,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-m32r/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-m32r/user.h
---- a/include/asm-m32r/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-m32r/user.h
-@@ -38,7 +38,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-m68k/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-m68k/user.h
---- a/include/asm-m68k/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-m68k/user.h
-@@ -72,8 +72,7 @@ struct user{
- 				   esp register.  */
-   long int signal;		/* Signal that caused the core dump. */
-   int reserved;			/* No longer used */
--  struct user_regs_struct *u_ar0;
--				/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   struct user_m68kfp_struct* u_fpstate;	/* Math Co-processor pointer. */
-   unsigned long magic;		/* To uniquely identify a core file */
-diff -puN include/asm-mips/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-mips/user.h
---- a/include/asm-mips/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-mips/user.h
-@@ -44,7 +44,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-powerpc/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-powerpc/user.h
---- a/include/asm-powerpc/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-powerpc/user.h
-@@ -38,7 +38,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-s390/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-s390/user.h
---- a/include/asm-s390/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-s390/user.h
-@@ -63,8 +63,7 @@ struct user {
- 				   the top of the stack is always found in the
- 				   esp register.  */
-   long int signal;     		/* Signal that caused the core dump. */
--  struct user_regs_struct *u_ar0;
--				/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   unsigned long magic;		/* To uniquely identify a core file */
-   char u_comm[32];		/* User command that was responsible */
-diff -puN include/asm-sh/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-sh/user.h
---- a/include/asm-sh/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-sh/user.h
-@@ -45,7 +45,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	struct user_fpu_struct* u_fpstate;	/* Math Co-processor pointer */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
-diff -puN include/asm-sh64/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-sh64/user.h
---- a/include/asm-sh64/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-sh64/user.h
-@@ -55,7 +55,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	struct user_fpu_struct* u_fpstate;	/* Math Co-processor pointer */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
-diff -puN include/asm-v850/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-v850/user.h
---- a/include/asm-v850/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-v850/user.h
-@@ -38,7 +38,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-x86/user_32.h~sanitize-the-type-of-struct-useru_ar0 include/asm-x86/user_32.h
---- a/include/asm-x86/user_32.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-x86/user_32.h
-@@ -106,7 +106,7 @@ struct user{
- 				   esp register.  */
-   long int signal;     		/* Signal that caused the core dump. */
-   int reserved;			/* No longer used */
--  struct user_pt_regs * u_ar0;	/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   struct user_i387_struct* u_fpstate;	/* Math Co-processor pointer. */
-   unsigned long magic;		/* To uniquely identify a core file */
-diff -puN include/asm-x86/user_64.h~sanitize-the-type-of-struct-useru_ar0 include/asm-x86/user_64.h
---- a/include/asm-x86/user_64.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-x86/user_64.h
-@@ -97,7 +97,7 @@ struct user{
-   long int signal;     		/* Signal that caused the core dump. */
-   int reserved;			/* No longer used */
-   int pad1;
--  struct user_pt_regs * u_ar0;	/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   struct user_i387_struct* u_fpstate;	/* Math Co-processor pointer. */
-   unsigned long magic;		/* To uniquely identify a core file */
-_
-
-Patches currently in -mm which might be from hpa@zytor.com are
-
-origin.patch
-git-kvm.patch
-i386-fix-reboot-with-no-keyboard-attached.patch
-x86_64-efi-boot-support-efi-frame-buffer.patch
-x86_64-efi-boot-support-efi-boot-document.patch
-coding-style-cleanups-for-drivers-md-mktablesc.patch
-unexport-asm-pageh.patch
-unexport-asm-userh-and-linux-userh.patch
-sanitize-the-type-of-struct-useru_ar0.patch
-
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
