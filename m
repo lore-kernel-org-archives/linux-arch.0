@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:54078 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:35963 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760617AbXJaVQA (ORCPT
+	by vger.kernel.org with ESMTP id S1755077AbXJaVWp (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Oct 2007 17:16:00 -0400
-Message-Id: <200710312115.l9VLFGmw028426@imap1.linux-foundation.org>
-Subject: + add-cmpxchg_local-to-asm-generic-for-per-cpu-atomic-operations.patch added to -mm tree
+	Wed, 31 Oct 2007 17:22:45 -0400
+Message-Id: <200710312120.l9VLKxdg029121@imap1.linux-foundation.org>
+Subject: + sanitize-the-type-of-struct-useru_ar0.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Wed, 31 Oct 2007 14:14:55 -0700
+Date: Wed, 31 Oct 2007 14:20:59 -0700
 Sender: linux-arch-owner@vger.kernel.org
 To: mm-commits@vger.kernel.org
-Cc: mathieu.desnoyers@polymtl.ca, clameter@sgi.com, linux-arch@vger.kernel.org
+Cc: hpa@zytor.com, bryan.wu@analog.com, heiko.carstens@de.ibm.com, hskinnemoen@atmel.com, ink@jurassic.park.msu.ru, kernel@wantstofly.org, lethal@linux-sh.org, linux-arch@vger.kernel.org, mingo@redhat.com, paulus@samba.org, ralf@linux-mips.org, rmk@arm.linux.org.uk, rth@twiddle.net, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, ysato@users.sourceforge.jp, zippel@linux-m68k.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
 The patch titled
-     Add cmpxchg_local to asm-generic for per cpu atomic operations
+     Sanitize the type of struct user.u_ar0
 has been added to the -mm tree.  Its filename is
-     add-cmpxchg_local-to-asm-generic-for-per-cpu-atomic-operations.patch
+     sanitize-the-type-of-struct-useru_ar0.patch
 
 *** Remember to use Documentation/SubmitChecklist when testing your code ***
 
@@ -25,383 +25,331 @@ See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
 out what to do about this
 
 ------------------------------------------------------
-Subject: Add cmpxchg_local to asm-generic for per cpu atomic operations
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Subject: Sanitize the type of struct user.u_ar0
+From: "H. Peter Anvin" <hpa@zytor.com>
 
-Emulates the cmpxchg_local by disabling interrupts around variable modification.
-This is not reentrant wrt NMIs and MCEs. It is only protected against normal
-interrupts, but this is enough for architectures without such interrupt sources
-or if used in a context where the data is not shared with such handlers.
+struct user.u_ar0 is defined to contain a pointer offset on all
+architectures in which it is defined (all architectures which define an
+a.out format except SPARC.) However, it has a pointer type in the headers,
+which is pointless -- <asm/user.h> is not exported to userspace, and it
+just makes the code messy.
 
-It can be used as a fallback for architectures lacking a real cmpxchg
-instruction.
+Redefine the field as "unsigned long" (which is the same size as a pointer
+on all Linux architectures) and change the setting code to user offsetof()
+instead of hand-coded arithmetic.
 
-For architectures that have a real cmpxchg but does not have NMIs or MCE,
-testing which of the generic vs architecture specific cmpxchg is the fastest
-should be done.
-
-asm-generic/cmpxchg.h defines a cmpxchg that uses cmpxchg_local. It is meant to
-be used as a cmpxchg fallback for architectures that do not support SMP.
-
-* Patch series comments
-
-Using cmpxchg_local shows a performance improvements of the fast path goes from
-a 66% speedup on a Pentium 4 to a 14% speedup on AMD64.
-
-In detail:
-
-Tested-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Measurements on a Pentium4, 3GHz, Hyperthread.
-SLUB Performance testing
-========================
-1. Kmalloc: Repeatedly allocate then free test
-
-* slub HEAD, test 1
-kmalloc(8) = 201 cycles         kfree = 351 cycles
-kmalloc(16) = 198 cycles        kfree = 359 cycles
-kmalloc(32) = 200 cycles        kfree = 381 cycles
-kmalloc(64) = 224 cycles        kfree = 394 cycles
-kmalloc(128) = 285 cycles       kfree = 424 cycles
-kmalloc(256) = 411 cycles       kfree = 546 cycles
-kmalloc(512) = 480 cycles       kfree = 619 cycles
-kmalloc(1024) = 623 cycles      kfree = 750 cycles
-kmalloc(2048) = 686 cycles      kfree = 811 cycles
-kmalloc(4096) = 482 cycles      kfree = 538 cycles
-kmalloc(8192) = 680 cycles      kfree = 734 cycles
-kmalloc(16384) = 713 cycles     kfree = 843 cycles
-
-* Slub HEAD, test 2
-kmalloc(8) = 190 cycles         kfree = 351 cycles
-kmalloc(16) = 195 cycles        kfree = 360 cycles
-kmalloc(32) = 201 cycles        kfree = 370 cycles
-kmalloc(64) = 245 cycles        kfree = 389 cycles
-kmalloc(128) = 283 cycles       kfree = 413 cycles
-kmalloc(256) = 409 cycles       kfree = 547 cycles
-kmalloc(512) = 476 cycles       kfree = 616 cycles
-kmalloc(1024) = 628 cycles      kfree = 753 cycles
-kmalloc(2048) = 684 cycles      kfree = 811 cycles
-kmalloc(4096) = 480 cycles      kfree = 539 cycles
-kmalloc(8192) = 661 cycles      kfree = 746 cycles
-kmalloc(16384) = 741 cycles     kfree = 856 cycles
-
-* cmpxchg_local Slub test
-kmalloc(8) = 83 cycles          kfree = 363 cycles
-kmalloc(16) = 85 cycles         kfree = 372 cycles
-kmalloc(32) = 92 cycles         kfree = 377 cycles
-kmalloc(64) = 115 cycles        kfree = 397 cycles
-kmalloc(128) = 179 cycles       kfree = 438 cycles
-kmalloc(256) = 314 cycles       kfree = 564 cycles
-kmalloc(512) = 398 cycles       kfree = 615 cycles
-kmalloc(1024) = 573 cycles      kfree = 745 cycles
-kmalloc(2048) = 629 cycles      kfree = 816 cycles
-kmalloc(4096) = 473 cycles      kfree = 548 cycles
-kmalloc(8192) = 659 cycles      kfree = 745 cycles
-kmalloc(16384) = 724 cycles     kfree = 843 cycles
-
-2. Kmalloc: alloc/free test
-
-* slub HEAD, test 1
-kmalloc(8)/kfree = 322 cycles
-kmalloc(16)/kfree = 318 cycles
-kmalloc(32)/kfree = 318 cycles
-kmalloc(64)/kfree = 325 cycles
-kmalloc(128)/kfree = 318 cycles
-kmalloc(256)/kfree = 328 cycles
-kmalloc(512)/kfree = 328 cycles
-kmalloc(1024)/kfree = 328 cycles
-kmalloc(2048)/kfree = 328 cycles
-kmalloc(4096)/kfree = 678 cycles
-kmalloc(8192)/kfree = 1013 cycles
-kmalloc(16384)/kfree = 1157 cycles
-
-* Slub HEAD, test 2
-kmalloc(8)/kfree = 323 cycles
-kmalloc(16)/kfree = 318 cycles
-kmalloc(32)/kfree = 318 cycles
-kmalloc(64)/kfree = 318 cycles
-kmalloc(128)/kfree = 318 cycles
-kmalloc(256)/kfree = 328 cycles
-kmalloc(512)/kfree = 328 cycles
-kmalloc(1024)/kfree = 328 cycles
-kmalloc(2048)/kfree = 328 cycles
-kmalloc(4096)/kfree = 648 cycles
-kmalloc(8192)/kfree = 1009 cycles
-kmalloc(16384)/kfree = 1105 cycles
-
-* cmpxchg_local Slub test
-kmalloc(8)/kfree = 112 cycles
-kmalloc(16)/kfree = 103 cycles
-kmalloc(32)/kfree = 103 cycles
-kmalloc(64)/kfree = 103 cycles
-kmalloc(128)/kfree = 112 cycles
-kmalloc(256)/kfree = 111 cycles
-kmalloc(512)/kfree = 111 cycles
-kmalloc(1024)/kfree = 111 cycles
-kmalloc(2048)/kfree = 121 cycles
-kmalloc(4096)/kfree = 650 cycles
-kmalloc(8192)/kfree = 1042 cycles
-kmalloc(16384)/kfree = 1149 cycles
-
-Tested-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Measurements on a AMD64 2.0 GHz dual-core
-
-In this test, we seem to remove 10 cycles from the kmalloc fast path.
-On small allocations, it gives a 14% performance increase. kfree fast
-path also seems to have a 10 cycles improvement.
-
-1. Kmalloc: Repeatedly allocate then free test
-
-* cmpxchg_local slub
-kmalloc(8) = 63 cycles      kfree = 126 cycles
-kmalloc(16) = 66 cycles     kfree = 129 cycles
-kmalloc(32) = 76 cycles     kfree = 138 cycles
-kmalloc(64) = 100 cycles    kfree = 288 cycles
-kmalloc(128) = 128 cycles   kfree = 309 cycles
-kmalloc(256) = 170 cycles   kfree = 315 cycles
-kmalloc(512) = 221 cycles   kfree = 357 cycles
-kmalloc(1024) = 324 cycles  kfree = 393 cycles
-kmalloc(2048) = 354 cycles  kfree = 440 cycles
-kmalloc(4096) = 394 cycles  kfree = 330 cycles
-kmalloc(8192) = 523 cycles  kfree = 481 cycles
-kmalloc(16384) = 643 cycles kfree = 649 cycles
-
-* Base
-kmalloc(8) = 74 cycles      kfree = 113 cycles
-kmalloc(16) = 76 cycles     kfree = 116 cycles
-kmalloc(32) = 85 cycles     kfree = 133 cycles
-kmalloc(64) = 111 cycles    kfree = 279 cycles
-kmalloc(128) = 138 cycles   kfree = 294 cycles
-kmalloc(256) = 181 cycles   kfree = 304 cycles
-kmalloc(512) = 237 cycles   kfree = 327 cycles
-kmalloc(1024) = 340 cycles  kfree = 379 cycles
-kmalloc(2048) = 378 cycles  kfree = 433 cycles
-kmalloc(4096) = 399 cycles  kfree = 329 cycles
-kmalloc(8192) = 528 cycles  kfree = 624 cycles
-kmalloc(16384) = 651 cycles kfree = 737 cycles
-
-2. Kmalloc: alloc/free test
-
-* cmpxchg_local slub
-kmalloc(8)/kfree = 96 cycles
-kmalloc(16)/kfree = 97 cycles
-kmalloc(32)/kfree = 97 cycles
-kmalloc(64)/kfree = 97 cycles
-kmalloc(128)/kfree = 97 cycles
-kmalloc(256)/kfree = 105 cycles
-kmalloc(512)/kfree = 108 cycles
-kmalloc(1024)/kfree = 105 cycles
-kmalloc(2048)/kfree = 107 cycles
-kmalloc(4096)/kfree = 390 cycles
-kmalloc(8192)/kfree = 626 cycles
-kmalloc(16384)/kfree = 662 cycles
-
-* Base
-kmalloc(8)/kfree = 116 cycles
-kmalloc(16)/kfree = 116 cycles
-kmalloc(32)/kfree = 116 cycles
-kmalloc(64)/kfree = 116 cycles
-kmalloc(128)/kfree = 116 cycles
-kmalloc(256)/kfree = 126 cycles
-kmalloc(512)/kfree = 126 cycles
-kmalloc(1024)/kfree = 126 cycles
-kmalloc(2048)/kfree = 126 cycles
-kmalloc(4096)/kfree = 384 cycles
-kmalloc(8192)/kfree = 749 cycles
-kmalloc(16384)/kfree = 786 cycles
-
-Tested-by: Christoph Lameter <clameter@sgi.com>
-I can confirm Mathieus' measurement now:
-
-Athlon64:
-
-regular NUMA/discontig
-
-1. Kmalloc: Repeatedly allocate then free test
-10000 times kmalloc(8) -> 79 cycles kfree -> 92 cycles
-10000 times kmalloc(16) -> 79 cycles kfree -> 93 cycles
-10000 times kmalloc(32) -> 88 cycles kfree -> 95 cycles
-10000 times kmalloc(64) -> 124 cycles kfree -> 132 cycles
-10000 times kmalloc(128) -> 157 cycles kfree -> 247 cycles
-10000 times kmalloc(256) -> 200 cycles kfree -> 257 cycles
-10000 times kmalloc(512) -> 250 cycles kfree -> 277 cycles
-10000 times kmalloc(1024) -> 337 cycles kfree -> 314 cycles
-10000 times kmalloc(2048) -> 365 cycles kfree -> 330 cycles
-10000 times kmalloc(4096) -> 352 cycles kfree -> 240 cycles
-10000 times kmalloc(8192) -> 456 cycles kfree -> 340 cycles
-10000 times kmalloc(16384) -> 646 cycles kfree -> 471 cycles
-2. Kmalloc: alloc/free test
-10000 times kmalloc(8)/kfree -> 124 cycles
-10000 times kmalloc(16)/kfree -> 124 cycles
-10000 times kmalloc(32)/kfree -> 124 cycles
-10000 times kmalloc(64)/kfree -> 124 cycles
-10000 times kmalloc(128)/kfree -> 124 cycles
-10000 times kmalloc(256)/kfree -> 132 cycles
-10000 times kmalloc(512)/kfree -> 132 cycles
-10000 times kmalloc(1024)/kfree -> 132 cycles
-10000 times kmalloc(2048)/kfree -> 132 cycles
-10000 times kmalloc(4096)/kfree -> 319 cycles
-10000 times kmalloc(8192)/kfree -> 486 cycles
-10000 times kmalloc(16384)/kfree -> 539 cycles
-
-cmpxchg_local NUMA/discontig
-
-1. Kmalloc: Repeatedly allocate then free test
-10000 times kmalloc(8) -> 55 cycles kfree -> 90 cycles
-10000 times kmalloc(16) -> 55 cycles kfree -> 92 cycles
-10000 times kmalloc(32) -> 70 cycles kfree -> 91 cycles
-10000 times kmalloc(64) -> 100 cycles kfree -> 141 cycles
-10000 times kmalloc(128) -> 128 cycles kfree -> 233 cycles
-10000 times kmalloc(256) -> 172 cycles kfree -> 251 cycles
-10000 times kmalloc(512) -> 225 cycles kfree -> 275 cycles
-10000 times kmalloc(1024) -> 325 cycles kfree -> 311 cycles
-10000 times kmalloc(2048) -> 346 cycles kfree -> 330 cycles
-10000 times kmalloc(4096) -> 351 cycles kfree -> 238 cycles
-10000 times kmalloc(8192) -> 450 cycles kfree -> 342 cycles
-10000 times kmalloc(16384) -> 630 cycles kfree -> 546 cycles
-2. Kmalloc: alloc/free test
-10000 times kmalloc(8)/kfree -> 81 cycles
-10000 times kmalloc(16)/kfree -> 81 cycles
-10000 times kmalloc(32)/kfree -> 81 cycles
-10000 times kmalloc(64)/kfree -> 81 cycles
-10000 times kmalloc(128)/kfree -> 81 cycles
-10000 times kmalloc(256)/kfree -> 91 cycles
-10000 times kmalloc(512)/kfree -> 90 cycles
-10000 times kmalloc(1024)/kfree -> 91 cycles
-10000 times kmalloc(2048)/kfree -> 90 cycles
-10000 times kmalloc(4096)/kfree -> 318 cycles
-10000 times kmalloc(8192)/kfree -> 483 cycles
-10000 times kmalloc(16384)/kfree -> 536 cycles
-
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Christoph Lameter <clameter@sgi.com>
+Cc: Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Cc: Bryan Wu <bryan.wu@analog.com>
+Cc: Roman Zippel <zippel@linux-m68k.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Russell King <rmk@arm.linux.org.uk>
+Cc: Lennert Buytenhek <kernel@wantstofly.org>
+Cc: Håvard Skinnemoen <hskinnemoen@atmel.com>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Signed-off-by: H. Peter Anvin <hpa@zytor.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/asm-generic/cmpxchg-local.h |   60 ++++++++++++++++++++++++++
- include/asm-generic/cmpxchg.h       |   22 +++++++++
- 2 files changed, 82 insertions(+)
+ arch/blackfin/kernel/process.c |    2 +-
+ arch/m68k/kernel/process.c     |    2 +-
+ arch/x86/ia32/ia32_aout.c      |    2 +-
+ fs/binfmt_aout.c               |    2 +-
+ include/asm-alpha/user.h       |    2 +-
+ include/asm-arm/user.h         |    2 +-
+ include/asm-avr32/user.h       |    2 +-
+ include/asm-blackfin/user.h    |    2 +-
+ include/asm-cris/user.h        |    2 +-
+ include/asm-h8300/user.h       |    3 +--
+ include/asm-ia64/user.h        |    2 +-
+ include/asm-m32r/user.h        |    2 +-
+ include/asm-m68k/user.h        |    3 +--
+ include/asm-mips/user.h        |    2 +-
+ include/asm-powerpc/user.h     |    2 +-
+ include/asm-s390/user.h        |    3 +--
+ include/asm-sh/user.h          |    2 +-
+ include/asm-sh64/user.h        |    2 +-
+ include/asm-v850/user.h        |    2 +-
+ include/asm-x86/user_32.h      |    2 +-
+ include/asm-x86/user_64.h      |    2 +-
+ 21 files changed, 21 insertions(+), 24 deletions(-)
 
-diff -puN /dev/null include/asm-generic/cmpxchg-local.h
---- /dev/null
-+++ a/include/asm-generic/cmpxchg-local.h
-@@ -0,0 +1,60 @@
-+#ifndef __ASM_GENERIC_CMPXCHG_LOCAL_H
-+#define __ASM_GENERIC_CMPXCHG_LOCAL_H
-+
-+#include <linux/types.h>
-+
-+extern unsigned long wrong_size_cmpxchg(volatile void *ptr);
-+
-+/*
-+ * Generic version of __cmpxchg_local (disables interrupts). Takes an unsigned
-+ * long parameter, supporting various types of architectures.
-+ */
-+static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
-+				    unsigned long old,
-+				    unsigned long new, int size)
-+{
-+	unsigned long flags, prev;
-+
-+	/*
-+	 * Sanity checking, compile-time.
-+	 */
-+	if (size == 8 && sizeof(unsigned long) != 8)
-+		wrong_size_cmpxchg(ptr);
-+
-+	local_irq_save(flags);
-+	switch (size) {
-+	case 1: if ((prev = *(u8*)ptr) == old)
-+			*(u8*)ptr = (u8)new;
-+		break;
-+	case 2: if ((prev = *(u16*)ptr) == old)
-+			*(u16*)ptr = (u16)new;
-+		break;
-+	case 4: if ((prev = *(u32*)ptr) == old)
-+			*(u32*)ptr = (u32)new;
-+		break;
-+	case 8: if ((prev = *(u64*)ptr) == old)
-+			*(u64*)ptr = (u64)new;
-+		break;
-+	default:
-+		wrong_size_cmpxchg(ptr);
-+	}
-+	local_irq_restore(flags);
-+	return prev;
-+}
-+
-+/*
-+ * Generic version of __cmpxchg64_local. Takes an u64 parameter.
-+ */
-+static inline u64 __cmpxchg64_local_generic(volatile void *ptr, u64 old, u64 new)
-+{
-+	u64 prev;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	if ((prev = *(u64*)ptr) == old)
-+		*(u64*)ptr = new;
-+	local_irq_restore(flags);
-+	return prev;
-+}
-+
-+#endif
-diff -puN /dev/null include/asm-generic/cmpxchg.h
---- /dev/null
-+++ a/include/asm-generic/cmpxchg.h
-@@ -0,0 +1,22 @@
-+#ifndef __ASM_GENERIC_CMPXCHG_H
-+#define __ASM_GENERIC_CMPXCHG_H
-+
-+/*
-+ * Generic cmpxchg
-+ *
-+ * Uses the local cmpxchg. Does not support SMP.
-+ */
-+#ifdef CONFIG_SMP
-+#error "Cannot use generic cmpxchg on SMP"
-+#endif
-+
-+/*
-+ * Atomic compare and exchange.
-+ *
-+ * Do not define __HAVE_ARCH_CMPXCHG because we want to use it to check whether
-+ * a cmpxchg primitive faster than repeated local irq save/restore exists.
-+ */
-+#define cmpxchg(ptr,o,n)	cmpxchg_local((ptr), (o), (n))
-+#define cmpxchg64(ptr,o,n)	cmpxchg64_local((ptr), (o), (n))
-+
-+#endif
+diff -puN arch/blackfin/kernel/process.c~sanitize-the-type-of-struct-useru_ar0 arch/blackfin/kernel/process.c
+--- a/arch/blackfin/kernel/process.c~sanitize-the-type-of-struct-useru_ar0
++++ a/arch/blackfin/kernel/process.c
+@@ -257,7 +257,7 @@ void dump_thread(struct pt_regs *regs, s
+ 		    ((unsigned long)(TASK_SIZE -
+ 				     dump->start_stack)) >> PAGE_SHIFT;
+ 
+-	dump->u_ar0 = (struct user_regs_struct *)((int)&dump->regs - (int)dump);
++	dump->u_ar0 = offsetof(struct user, regs);
+ 
+ 	dump->regs.r0 = regs->r0;
+ 	dump->regs.r1 = regs->r1;
+diff -puN arch/m68k/kernel/process.c~sanitize-the-type-of-struct-useru_ar0 arch/m68k/kernel/process.c
+--- a/arch/m68k/kernel/process.c~sanitize-the-type-of-struct-useru_ar0
++++ a/arch/m68k/kernel/process.c
+@@ -335,7 +335,7 @@ void dump_thread(struct pt_regs * regs, 
+ 	if (dump->start_stack < TASK_SIZE)
+ 		dump->u_ssize = ((unsigned long) (TASK_SIZE - dump->start_stack)) >> PAGE_SHIFT;
+ 
+-	dump->u_ar0 = (struct user_regs_struct *)((int)&dump->regs - (int)dump);
++	dump->u_ar0 = offsetof(struct user, regs);
+ 	sw = ((struct switch_stack *)regs) - 1;
+ 	dump->regs.d1 = regs->d1;
+ 	dump->regs.d2 = regs->d2;
+diff -puN arch/x86/ia32/ia32_aout.c~sanitize-the-type-of-struct-useru_ar0 arch/x86/ia32/ia32_aout.c
+--- a/arch/x86/ia32/ia32_aout.c~sanitize-the-type-of-struct-useru_ar0
++++ a/arch/x86/ia32/ia32_aout.c
+@@ -162,7 +162,7 @@ static int aout_core_dump(long signr, st
+ 	has_dumped = 1;
+ 	current->flags |= PF_DUMPCORE;
+        	strncpy(dump.u_comm, current->comm, sizeof(current->comm));
+-	dump.u_ar0 = (u32)(((unsigned long)(&dump.regs)) - ((unsigned long)(&dump)));
++	dump.u_ar0 = offsetof(struct user32, regs);
+ 	dump.signal = signr;
+ 	dump_thread32(regs, &dump);
+ 
+diff -puN fs/binfmt_aout.c~sanitize-the-type-of-struct-useru_ar0 fs/binfmt_aout.c
+--- a/fs/binfmt_aout.c~sanitize-the-type-of-struct-useru_ar0
++++ a/fs/binfmt_aout.c
+@@ -115,7 +115,7 @@ static int aout_core_dump(long signr, st
+ 	current->flags |= PF_DUMPCORE;
+        	strncpy(dump.u_comm, current->comm, sizeof(dump.u_comm));
+ #ifndef __sparc__
+-	dump.u_ar0 = (void *)(((unsigned long)(&dump.regs)) - ((unsigned long)(&dump)));
++	dump.u_ar0 = offsetof(struct user, regs);
+ #endif
+ 	dump.signal = signr;
+ 	dump_thread(regs, &dump);
+diff -puN include/asm-alpha/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-alpha/user.h
+--- a/include/asm-alpha/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-alpha/user.h
+@@ -39,7 +39,7 @@ struct user {
+ 	unsigned long	start_data;		/* data starting address */
+ 	unsigned long	start_stack;		/* stack starting address */
+ 	long int	signal;			/* signal causing core dump */
+-	struct regs *	u_ar0;			/* help gdb find registers */
++	unsigned long	u_ar0;			/* help gdb find registers */
+ 	unsigned long	magic;			/* identifies a core file */
+ 	char		u_comm[32];		/* user command name */
+ };
+diff -puN include/asm-arm/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-arm/user.h
+--- a/include/asm-arm/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-arm/user.h
+@@ -67,7 +67,7 @@ struct user{
+ 				   esp register.  */
+   long int signal;     		/* Signal that caused the core dump. */
+   int reserved;			/* No longer used */
+-  struct pt_regs * u_ar0;	/* Used by gdb to help find the values for */
++  unsigned long u_ar0;		/* Used by gdb to help find the values for */
+ 				/* the registers. */
+   unsigned long magic;		/* To uniquely identify a core file */
+   char u_comm[32];		/* User command that was responsible */
+diff -puN include/asm-avr32/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-avr32/user.h
+--- a/include/asm-avr32/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-avr32/user.h
+@@ -51,7 +51,7 @@ struct user {
+ 	unsigned long	start_data;		/* data starting address */
+ 	unsigned long	start_stack;		/* stack starting address */
+ 	long int	signal;			/* signal causing core dump */
+-	struct regs *	u_ar0;			/* help gdb find registers */
++	unsigned long	u_ar0;			/* help gdb find registers */
+ 	unsigned long	magic;			/* identifies a core file */
+ 	char		u_comm[32];		/* user command name */
+ };
+diff -puN include/asm-blackfin/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-blackfin/user.h
+--- a/include/asm-blackfin/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-blackfin/user.h
+@@ -75,7 +75,7 @@ struct user {
+ 					   esp register.  */
+ 	long int signal;	/* Signal that caused the core dump. */
+ 	int reserved;		/* No longer used */
+-	struct user_regs_struct *u_ar0;
++	unsigned long u_ar0;
+ 	/* Used by gdb to help find the values for */
+ 	/* the registers. */
+ 	unsigned long magic;	/* To uniquely identify a core file */
+diff -puN include/asm-cris/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-cris/user.h
+--- a/include/asm-cris/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-cris/user.h
+@@ -38,7 +38,7 @@ struct user {
+ 	unsigned long	start_data;		/* data starting address */
+ 	unsigned long	start_stack;		/* stack starting address */
+ 	long int	signal;			/* signal causing core dump */
+-	struct regs *	u_ar0;			/* help gdb find registers */
++	unsigned long	u_ar0;			/* help gdb find registers */
+ 	unsigned long	magic;			/* identifies a core file */
+ 	char		u_comm[32];		/* user command name */
+ };
+diff -puN include/asm-h8300/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-h8300/user.h
+--- a/include/asm-h8300/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-h8300/user.h
+@@ -62,8 +62,7 @@ struct user{
+ 				   esp register.  */
+   long int signal;     		/* Signal that caused the core dump. */
+   int reserved;			/* No longer used */
+-  struct user_regs_struct *u_ar0;
+-				/* Used by gdb to help find the values for */
++  unsigned long u_ar0;		/* Used by gdb to help find the values for */
+ 				/* the registers. */
+   unsigned long magic;		/* To uniquely identify a core file */
+   char u_comm[32];		/* User command that was responsible */
+diff -puN include/asm-ia64/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-ia64/user.h
+--- a/include/asm-ia64/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-ia64/user.h
+@@ -44,7 +44,7 @@ struct user {
+ 	unsigned long	start_data;		/* data starting address */
+ 	unsigned long	start_stack;		/* stack starting address */
+ 	long int	signal;			/* signal causing core dump */
+-	struct regs *	u_ar0;			/* help gdb find registers */
++	unsigned long	u_ar0;			/* help gdb find registers */
+ 	unsigned long	magic;			/* identifies a core file */
+ 	char		u_comm[32];		/* user command name */
+ };
+diff -puN include/asm-m32r/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-m32r/user.h
+--- a/include/asm-m32r/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-m32r/user.h
+@@ -38,7 +38,7 @@ struct user {
+ 	unsigned long	start_data;		/* data starting address */
+ 	unsigned long	start_stack;		/* stack starting address */
+ 	long int	signal;			/* signal causing core dump */
+-	struct regs *	u_ar0;			/* help gdb find registers */
++	unsigned long	u_ar0;			/* help gdb find registers */
+ 	unsigned long	magic;			/* identifies a core file */
+ 	char		u_comm[32];		/* user command name */
+ };
+diff -puN include/asm-m68k/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-m68k/user.h
+--- a/include/asm-m68k/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-m68k/user.h
+@@ -72,8 +72,7 @@ struct user{
+ 				   esp register.  */
+   long int signal;		/* Signal that caused the core dump. */
+   int reserved;			/* No longer used */
+-  struct user_regs_struct *u_ar0;
+-				/* Used by gdb to help find the values for */
++  unsigned long u_ar0;		/* Used by gdb to help find the values for */
+ 				/* the registers. */
+   struct user_m68kfp_struct* u_fpstate;	/* Math Co-processor pointer. */
+   unsigned long magic;		/* To uniquely identify a core file */
+diff -puN include/asm-mips/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-mips/user.h
+--- a/include/asm-mips/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-mips/user.h
+@@ -44,7 +44,7 @@ struct user {
+ 	unsigned long	start_data;		/* data starting address */
+ 	unsigned long	start_stack;		/* stack starting address */
+ 	long int	signal;			/* signal causing core dump */
+-	struct regs *	u_ar0;			/* help gdb find registers */
++	unsigned long	u_ar0;			/* help gdb find registers */
+ 	unsigned long	magic;			/* identifies a core file */
+ 	char		u_comm[32];		/* user command name */
+ };
+diff -puN include/asm-powerpc/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-powerpc/user.h
+--- a/include/asm-powerpc/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-powerpc/user.h
+@@ -38,7 +38,7 @@ struct user {
+ 	unsigned long	start_data;		/* data starting address */
+ 	unsigned long	start_stack;		/* stack starting address */
+ 	long int	signal;			/* signal causing core dump */
+-	struct regs *	u_ar0;			/* help gdb find registers */
++	unsigned long	u_ar0;			/* help gdb find registers */
+ 	unsigned long	magic;			/* identifies a core file */
+ 	char		u_comm[32];		/* user command name */
+ };
+diff -puN include/asm-s390/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-s390/user.h
+--- a/include/asm-s390/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-s390/user.h
+@@ -63,8 +63,7 @@ struct user {
+ 				   the top of the stack is always found in the
+ 				   esp register.  */
+   long int signal;     		/* Signal that caused the core dump. */
+-  struct user_regs_struct *u_ar0;
+-				/* Used by gdb to help find the values for */
++  unsigned long u_ar0;		/* Used by gdb to help find the values for */
+ 				/* the registers. */
+   unsigned long magic;		/* To uniquely identify a core file */
+   char u_comm[32];		/* User command that was responsible */
+diff -puN include/asm-sh/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-sh/user.h
+--- a/include/asm-sh/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-sh/user.h
+@@ -45,7 +45,7 @@ struct user {
+ 	unsigned long	start_data;		/* data starting address */
+ 	unsigned long	start_stack;		/* stack starting address */
+ 	long int	signal;			/* signal causing core dump */
+-	struct regs *	u_ar0;			/* help gdb find registers */
++	unsigned long	u_ar0;			/* help gdb find registers */
+ 	struct user_fpu_struct* u_fpstate;	/* Math Co-processor pointer */
+ 	unsigned long	magic;			/* identifies a core file */
+ 	char		u_comm[32];		/* user command name */
+diff -puN include/asm-sh64/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-sh64/user.h
+--- a/include/asm-sh64/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-sh64/user.h
+@@ -55,7 +55,7 @@ struct user {
+ 	unsigned long	start_data;		/* data starting address */
+ 	unsigned long	start_stack;		/* stack starting address */
+ 	long int	signal;			/* signal causing core dump */
+-	struct regs *	u_ar0;			/* help gdb find registers */
++	unsigned long	u_ar0;			/* help gdb find registers */
+ 	struct user_fpu_struct* u_fpstate;	/* Math Co-processor pointer */
+ 	unsigned long	magic;			/* identifies a core file */
+ 	char		u_comm[32];		/* user command name */
+diff -puN include/asm-v850/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-v850/user.h
+--- a/include/asm-v850/user.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-v850/user.h
+@@ -38,7 +38,7 @@ struct user {
+ 	unsigned long	start_data;		/* data starting address */
+ 	unsigned long	start_stack;		/* stack starting address */
+ 	long int	signal;			/* signal causing core dump */
+-	struct regs *	u_ar0;			/* help gdb find registers */
++	unsigned long	u_ar0;			/* help gdb find registers */
+ 	unsigned long	magic;			/* identifies a core file */
+ 	char		u_comm[32];		/* user command name */
+ };
+diff -puN include/asm-x86/user_32.h~sanitize-the-type-of-struct-useru_ar0 include/asm-x86/user_32.h
+--- a/include/asm-x86/user_32.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-x86/user_32.h
+@@ -106,7 +106,7 @@ struct user{
+ 				   esp register.  */
+   long int signal;     		/* Signal that caused the core dump. */
+   int reserved;			/* No longer used */
+-  struct user_pt_regs * u_ar0;	/* Used by gdb to help find the values for */
++  unsigned long u_ar0;		/* Used by gdb to help find the values for */
+ 				/* the registers. */
+   struct user_i387_struct* u_fpstate;	/* Math Co-processor pointer. */
+   unsigned long magic;		/* To uniquely identify a core file */
+diff -puN include/asm-x86/user_64.h~sanitize-the-type-of-struct-useru_ar0 include/asm-x86/user_64.h
+--- a/include/asm-x86/user_64.h~sanitize-the-type-of-struct-useru_ar0
++++ a/include/asm-x86/user_64.h
+@@ -97,7 +97,7 @@ struct user{
+   long int signal;     		/* Signal that caused the core dump. */
+   int reserved;			/* No longer used */
+   int pad1;
+-  struct user_pt_regs * u_ar0;	/* Used by gdb to help find the values for */
++  unsigned long u_ar0;		/* Used by gdb to help find the values for */
+ 				/* the registers. */
+   struct user_i387_struct* u_fpstate;	/* Math Co-processor pointer. */
+   unsigned long magic;		/* To uniquely identify a core file */
 _
 
-Patches currently in -mm which might be from mathieu.desnoyers@polymtl.ca are
+Patches currently in -mm which might be from hpa@zytor.com are
 
-add-cmpxchg_local-to-asm-generic-for-per-cpu-atomic-operations.patch
-fall-back-on-interrupt-disable-in-cmpxchg8b-on-80386-and-80486.patch
-add-cmpxchg64-and-cmpxchg64_local-to-alpha.patch
-add-cmpxchg64-and-cmpxchg64_local-to-mips.patch
-add-cmpxchg64-and-cmpxchg64_local-to-powerpc.patch
-add-cmpxchg64-and-cmpxchg64_local-to-x86_64.patch
-add-cmpxchg_local-to-arm.patch
-add-cmpxchg_local-to-avr32.patch
-add-cmpxchg_local-to-blackfin-replace-__cmpxchg-by-generic-cmpxchg.patch
-add-cmpxchg_local-to-cris.patch
-add-cmpxchg_local-to-frv.patch
-add-cmpxchg_local-to-h8300.patch
-add-cmpxchg_local-cmpxchg64-and-cmpxchg64_local-to-ia64.patch
-new-cmpxchg_local-optimized-for-up-case-for-m32r.patch
-fix-m32r-__xchg.patch
-m32r-build-fix-of-arch-m32r-kernel-smpbootc.patch
-local_t-m32r-use-architecture-specific-cmpxchg_local.patch
-add-cmpxchg_local-to-m86k.patch
-add-cmpxchg_local-to-m68knommu.patch
-add-cmpxchg_local-to-parisc.patch
-add-cmpxchg_local-to-ppc.patch
-add-cmpxchg_local-to-s390.patch
-add-cmpxchg_local-to-sh-use-generic-cmpxchg-instead-of-cmpxchg_u32.patch
-add-cmpxchg_local-to-sh64.patch
-add-cmpxchg_local-to-sparc-move-__cmpxchg-to-systemh.patch
-add-cmpxchg_local-to-sparc64.patch
-add-cmpxchg_local-to-v850.patch
-add-cmpxchg_local-to-xtensa.patch
+origin.patch
+git-kvm.patch
+i386-fix-reboot-with-no-keyboard-attached.patch
+x86_64-efi-boot-support-efi-frame-buffer.patch
+x86_64-efi-boot-support-efi-boot-document.patch
+coding-style-cleanups-for-drivers-md-mktablesc.patch
+unexport-asm-pageh.patch
+unexport-asm-userh-and-linux-userh.patch
+sanitize-the-type-of-struct-useru_ar0.patch
 
