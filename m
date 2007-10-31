@@ -1,77 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tomts5-srv.bellnexxia.net ([209.226.175.25]:61850 "EHLO
-	tomts5-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752420AbXJaB5z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Oct 2007 21:57:55 -0400
-Date: Tue, 30 Oct 2007 21:52:51 -0400
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [PATCH] local_t Documentation update 2
-Message-ID: <20071031015250.GA884@Krystal>
-References: <20071028033156.022983073@sgi.com> <20071028033300.240703208@sgi.com> <20071030114933.904a4cf8.akpm@linux-foundation.org> <Pine.LNX.4.64.0710301155240.12746@schroedinger.engr.sgi.com>
-Mime-Version: 1.0
+Received: from pip10.gyao.ne.jp ([61.122.117.248]:20244 "EHLO mx.gate01.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751549AbXJaGJV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Oct 2007 02:09:21 -0400
+Date: Wed, 31 Oct 2007 14:49:23 +0900
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH 2/2] Remove dma_coherent_mem interface
+Message-ID: <20071031054923.GA21176@linux-sh.org>
+References: <1193773405-15799-1-git-send-email-matthew@wil.cx> <1193773405-15799-2-git-send-email-matthew@wil.cx> <1193775991.3321.108.camel@localhost.localdomain> <20071030203514.GC15111@parisc-linux.org>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0710301155240.12746@schroedinger.engr.sgi.com>
+In-Reply-To: <20071030203514.GC15111@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: matthew@wil.cx, linux-kernel@vger.kernel.org, linux-mm@kvack.org, penberg@cs.helsinki.fi, linux-arch@vger.kernel.org, Christoph Lameter <clameter@sgi.com>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: James Bottomley <James.Bottomley@steeleye.com>, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, linux-scsi@vger.kernel.org, jejb@steeleye.com, Matthew Wilcox <willy@linux.intel.com>
 List-ID: <linux-arch.vger.kernel.org>
 
-local_t Documentation update 2
+On Tue, Oct 30, 2007 at 02:35:14PM -0600, Matthew Wilcox wrote:
+> On Tue, Oct 30, 2007 at 03:26:31PM -0500, James Bottomley wrote:
+> > Its design was basically to facilitate the use of bus remote memory.
+> > There's a long thread somewhere discussing this with the ARM people.
+> > They had some type of SoC implementation that needed to allocate local
+> > memory for device descriptors.  The Q720 is pretty much the same way, so
+> > I used it to build the implementation when I created it for the ARM
+> > people.  This is the original thread:
+> > 
+> > http://marc.info/?t=108757862100001
+> > 
+> > They said they were implementing this system, so I've no idea what
+> > happened.
+> 
+> It's been over three years, and it hasn't happened.
+> 
+> > However, what are the problems the API is causing?  it seems
+> > useful, so there should be a preference in its favour of existence
+> > unless it's causing a problem.
+> 
+> What I'm currently looking at is the dmapool allocator.  It's not
+> exactly fast (a spinlock for each allocation ... no concept of cpu
+> affinity, etc), and some drivers (eg qla2xxx) use it in the performance
+> path.
+> 
+> One of the suggestions in the existing dmapool driver is to share the
+> guts of slab.  Well, slab is probably going away, so I took a look
+> at slub.  Slub really, *really* needs the struct page associated
+> with the page of memory allocated, so I'm currently working my way
+> through the architectures trying to turn dma_alloc_coherent into
+> dma_alloc_coherent_pages.
+> 
+> The dma_coherent_mem API is one of the things which gets in the way of
+> doing this.  So I deleted it, then sent the patch out for comments early.
+> 
+We have some out-of-tree users for this on SH as well, particularly the
+SM501 MFD USB driver which needs to do 8051-local allocations. We have an
+in-tree hack for this now, I never bothered pushing the
+dma_declare_coherent_memory() bits due to the fact the driver hadn't been
+merged yet, but I had planned on merging both for 2.6.25.
 
-(this patch seems to have fallen off the grid, but is still providing
-useful information. It applies to 2.6.23-mm1.)
-
-Grant Grundler was asking for more detail about correct usage of local atomic
-operations and suggested adding the resulting summary to local_ops.txt.
-
-"Please add a bit more detail. If DaveM is correct (he normally is), then
-there must be limits on how the local_t can be used in the kernel process
-and interrupt contexts. I'd like those rules spelled out very clearly
-since it's easy to get wrong and tracking down such a bug is quite painful."
-
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Signed-off-by: Grant Grundler <grundler@parisc-linux.org>
----
- Documentation/local_ops.txt |   23 +++++++++++++++++++++++
- 1 file changed, 23 insertions(+)
-
-Index: linux-2.6-lttng/Documentation/local_ops.txt
-===================================================================
---- linux-2.6-lttng.orig/Documentation/local_ops.txt	2007-09-04 11:53:23.000000000 -0400
-+++ linux-2.6-lttng/Documentation/local_ops.txt	2007-09-04 12:19:31.000000000 -0400
-@@ -68,6 +68,29 @@ typedef struct { atomic_long_t a; } loca
-   variable can be read when reading some _other_ cpu's variables.
- 
- 
-+* Rules to follow when using local atomic operations
-+
-+- Variables touched by local ops must be per cpu variables.
-+- _Only_ the CPU owner of these variables must write to them.
-+- This CPU can use local ops from any context (process, irq, softirq, nmi, ...)
-+  to update its local_t variables.
-+- Preemption (or interrupts) must be disabled when using local ops in
-+  process context to   make sure the process won't be migrated to a
-+  different CPU between getting the per-cpu variable and doing the
-+  actual local op.
-+- When using local ops in interrupt context, no special care must be
-+  taken on a mainline kernel, since they will run on the local CPU with
-+  preemption already disabled. I suggest, however, to explicitly
-+  disable preemption anyway to make sure it will still work correctly on
-+  -rt kernels.
-+- Reading the local cpu variable will provide the current copy of the
-+  variable.
-+- Reads of these variables can be done from any CPU, because updates to
-+  "long", aligned, variables are always atomic. Since no memory
-+  synchronization is done by the writer CPU, an outdated copy of the
-+  variable can be read when reading some _other_ cpu's variables.
-+
-+
- * How to use local atomic operations
- 
- #include <linux/percpu.h>
--- 
-Mathieu Desnoyers
-Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+We can continue using the in-tree hack if there aren't going to be any
+other users of this API and it's causing problems elsewhere, but I do
+expect that we will continue to see devices with a need for this sort of
+API. I would imagine that the ARM case is similar, even if it's been a
+low priority item.
