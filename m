@@ -1,27 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.45.13]:61202 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753170AbXJaWk6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 31 Oct 2007 18:40:58 -0400
-Subject: - add-cmpxchg_local-to-asm-generic-for-per-cpu-atomic-operations.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Wed, 31 Oct 2007 15:40:43 -0700
-Message-Id: <20071031224044.36391432BF5@localhost>
-Sender: linux-arch-owner@vger.kernel.org
-To: mathieu.desnoyers@polymtl.ca, clameter@sgi.com, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-
-
-The patch titled
-     Add cmpxchg_local to asm-generic for per cpu atomic operations
-has been removed from the -mm tree.  Its filename was
-     add-cmpxchg_local-to-asm-generic-for-per-cpu-atomic-operations.patch
-
-This patch was dropped because an updated version will be merged
-
-------------------------------------------------------
-Subject: Add cmpxchg_local to asm-generic for per cpu atomic operations
+Received: from smtp.polymtl.ca ([132.207.4.11]:51341 "EHLO smtp.polymtl.ca"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755234AbXJaWmU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Oct 2007 18:42:20 -0400
+Message-Id: <20071031224210.594324820@polymtl.ca>
+References: <20071031223710.099558229@polymtl.ca>
+Date: Wed, 31 Oct 2007 18:37:11 -0400
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Subject: [patch 01/28] Add cmpxchg_local to asm-generic for per cpu atomic operations
+Content-Disposition: inline; filename=add-cmpxchg-local-to-generic-for-up.patch
+Sender: linux-arch-owner@vger.kernel.org
+To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, linux-arch@vger.kernel.org, clameter@sgi.com
+List-ID: <linux-arch.vger.kernel.org>
 
 Emulates the cmpxchg_local by disabling interrupts around variable modification.
 This is not reentrant wrt NMIs and MCEs. It is only protected against normal
@@ -137,6 +128,7 @@ kmalloc(4096)/kfree = 650 cycles
 kmalloc(8192)/kfree = 1042 cycles
 kmalloc(16384)/kfree = 1149 cycles
 
+
 Tested-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 Measurements on a AMD64 2.0 GHz dual-core
 
@@ -204,6 +196,7 @@ kmalloc(4096)/kfree = 384 cycles
 kmalloc(8192)/kfree = 749 cycles
 kmalloc(16384)/kfree = 786 cycles
 
+
 Tested-by: Christoph Lameter <clameter@sgi.com>
 I can confirm Mathieus' measurement now:
 
@@ -267,83 +260,21 @@ cmpxchg_local NUMA/discontig
 10000 times kmalloc(8192)/kfree -> 483 cycles
 10000 times kmalloc(16384)/kfree -> 536 cycles
 
+Changelog:
+- Ran though checkpatch.
+
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Christoph Lameter <clameter@sgi.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+CC: linux-arch@vger.kernel.org
+CC: clameter@sgi.com
 ---
+ include/asm-generic/cmpxchg-local.h |   65 ++++++++++++++++++++++++++++++++++++
+ include/asm-generic/cmpxchg.h       |   22 ++++++++++++
+ 2 files changed, 87 insertions(+)
 
- include/asm-generic/cmpxchg-local.h |   60 ++++++++++++++++++++++++++
- include/asm-generic/cmpxchg.h       |   22 +++++++++
- 2 files changed, 82 insertions(+)
-
-diff -puN /dev/null include/asm-generic/cmpxchg-local.h
---- /dev/null
-+++ a/include/asm-generic/cmpxchg-local.h
-@@ -0,0 +1,60 @@
-+#ifndef __ASM_GENERIC_CMPXCHG_LOCAL_H
-+#define __ASM_GENERIC_CMPXCHG_LOCAL_H
-+
-+#include <linux/types.h>
-+
-+extern unsigned long wrong_size_cmpxchg(volatile void *ptr);
-+
-+/*
-+ * Generic version of __cmpxchg_local (disables interrupts). Takes an unsigned
-+ * long parameter, supporting various types of architectures.
-+ */
-+static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
-+				    unsigned long old,
-+				    unsigned long new, int size)
-+{
-+	unsigned long flags, prev;
-+
-+	/*
-+	 * Sanity checking, compile-time.
-+	 */
-+	if (size == 8 && sizeof(unsigned long) != 8)
-+		wrong_size_cmpxchg(ptr);
-+
-+	local_irq_save(flags);
-+	switch (size) {
-+	case 1: if ((prev = *(u8*)ptr) == old)
-+			*(u8*)ptr = (u8)new;
-+		break;
-+	case 2: if ((prev = *(u16*)ptr) == old)
-+			*(u16*)ptr = (u16)new;
-+		break;
-+	case 4: if ((prev = *(u32*)ptr) == old)
-+			*(u32*)ptr = (u32)new;
-+		break;
-+	case 8: if ((prev = *(u64*)ptr) == old)
-+			*(u64*)ptr = (u64)new;
-+		break;
-+	default:
-+		wrong_size_cmpxchg(ptr);
-+	}
-+	local_irq_restore(flags);
-+	return prev;
-+}
-+
-+/*
-+ * Generic version of __cmpxchg64_local. Takes an u64 parameter.
-+ */
-+static inline u64 __cmpxchg64_local_generic(volatile void *ptr, u64 old, u64 new)
-+{
-+	u64 prev;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	if ((prev = *(u64*)ptr) == old)
-+		*(u64*)ptr = new;
-+	local_irq_restore(flags);
-+	return prev;
-+}
-+
-+#endif
-diff -puN /dev/null include/asm-generic/cmpxchg.h
---- /dev/null
-+++ a/include/asm-generic/cmpxchg.h
+Index: linux-2.6-lttng/include/asm-generic/cmpxchg.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-2.6-lttng/include/asm-generic/cmpxchg.h	2007-10-31 17:36:52.000000000 -0400
 @@ -0,0 +1,22 @@
 +#ifndef __ASM_GENERIC_CMPXCHG_H
 +#define __ASM_GENERIC_CMPXCHG_H
@@ -363,42 +294,82 @@ diff -puN /dev/null include/asm-generic/cmpxchg.h
 + * Do not define __HAVE_ARCH_CMPXCHG because we want to use it to check whether
 + * a cmpxchg primitive faster than repeated local irq save/restore exists.
 + */
-+#define cmpxchg(ptr,o,n)	cmpxchg_local((ptr), (o), (n))
-+#define cmpxchg64(ptr,o,n)	cmpxchg64_local((ptr), (o), (n))
++#define cmpxchg(ptr, o, n)	cmpxchg_local((ptr), (o), (n))
++#define cmpxchg64(ptr, o, n)	cmpxchg64_local((ptr), (o), (n))
 +
 +#endif
-_
+Index: linux-2.6-lttng/include/asm-generic/cmpxchg-local.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-2.6-lttng/include/asm-generic/cmpxchg-local.h	2007-10-31 17:41:31.000000000 -0400
+@@ -0,0 +1,65 @@
++#ifndef __ASM_GENERIC_CMPXCHG_LOCAL_H
++#define __ASM_GENERIC_CMPXCHG_LOCAL_H
++
++#include <linux/types.h>
++
++extern unsigned long wrong_size_cmpxchg(volatile void *ptr);
++
++/*
++ * Generic version of __cmpxchg_local (disables interrupts). Takes an unsigned
++ * long parameter, supporting various types of architectures.
++ */
++static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
++		unsigned long old, unsigned long new, int size)
++{
++	unsigned long flags, prev;
++
++	/*
++	 * Sanity checking, compile-time.
++	 */
++	if (size == 8 && sizeof(unsigned long) != 8)
++		wrong_size_cmpxchg(ptr);
++
++	local_irq_save(flags);
++	switch (size) {
++	case 1: prev = *(u8 *)ptr;
++		if (prev == old)
++			*(u8 *)ptr = (u8)new;
++		break;
++	case 2: prev = *(u16 *)ptr;
++		if (prev == old)
++			*(u16 *)ptr = (u16)new;
++		break;
++	case 4: prev = *(u32 *)ptr;
++		if (prev == old)
++			*(u32 *)ptr = (u32)new;
++		break;
++	case 8: prev = *(u64 *)ptr;
++		if (prev == old)
++			*(u64 *)ptr = (u64)new;
++		break;
++	default:
++		wrong_size_cmpxchg(ptr);
++	}
++	local_irq_restore(flags);
++	return prev;
++}
++
++/*
++ * Generic version of __cmpxchg64_local. Takes an u64 parameter.
++ */
++static inline u64 __cmpxchg64_local_generic(volatile void *ptr,
++		u64 old, u64 new)
++{
++	u64 prev;
++	unsigned long flags;
++
++	local_irq_save(flags);
++	prev = *(u64 *)ptr;
++	if (prev == old)
++		*(u64 *)ptr = new;
++	local_irq_restore(flags);
++	return prev;
++}
++
++#endif
 
-Patches currently in -mm which might be from mathieu.desnoyers@polymtl.ca are
-
-local_t-documentation-update-2.patch
-markers-fix-warnings.patch
-add-cmpxchg_local-to-asm-generic-for-per-cpu-atomic-operations.patch
-fall-back-on-interrupt-disable-in-cmpxchg8b-on-80386-and-80486.patch
-add-cmpxchg64-and-cmpxchg64_local-to-alpha.patch
-add-cmpxchg64-and-cmpxchg64_local-to-mips.patch
-add-cmpxchg64-and-cmpxchg64_local-to-powerpc.patch
-add-cmpxchg64-and-cmpxchg64_local-to-x86_64.patch
-add-cmpxchg_local-to-arm.patch
-add-cmpxchg_local-to-avr32.patch
-add-cmpxchg_local-to-blackfin-replace-__cmpxchg-by-generic-cmpxchg.patch
-add-cmpxchg_local-to-cris.patch
-add-cmpxchg_local-to-frv.patch
-add-cmpxchg_local-to-h8300.patch
-add-cmpxchg_local-cmpxchg64-and-cmpxchg64_local-to-ia64.patch
-new-cmpxchg_local-optimized-for-up-case-for-m32r.patch
-fix-m32r-__xchg.patch
-m32r-build-fix-of-arch-m32r-kernel-smpbootc.patch
-local_t-m32r-use-architecture-specific-cmpxchg_local.patch
-add-cmpxchg_local-to-m86k.patch
-add-cmpxchg_local-to-m68knommu.patch
-add-cmpxchg_local-to-parisc.patch
-add-cmpxchg_local-to-ppc.patch
-add-cmpxchg_local-to-s390.patch
-add-cmpxchg_local-to-sh-use-generic-cmpxchg-instead-of-cmpxchg_u32.patch
-add-cmpxchg_local-to-sh64.patch
-add-cmpxchg_local-to-sparc-move-__cmpxchg-to-systemh.patch
-add-cmpxchg_local-to-sparc64.patch
-add-cmpxchg_local-to-v850.patch
-add-cmpxchg_local-to-xtensa.patch
-
+-- 
+Mathieu Desnoyers
+Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
+OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
