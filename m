@@ -1,184 +1,204 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40560 "EHLO
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40574 "EHLO
 	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754358AbXKAADL (ORCPT
+	with ESMTP id S1754528AbXKAADL (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 31 Oct 2007 20:03:11 -0400
-Message-Id: <20071101000310.439787988@sgi.com>
+Message-Id: <20071101000310.899240568@sgi.com>
 References: <20071101000211.970501947@sgi.com>
-Date: Wed, 31 Oct 2007 17:02:15 -0700
+Date: Wed, 31 Oct 2007 17:02:17 -0700
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 4/7] Percpu: Add support for this_cpu_offset() to be able to create this_cpu_ptr()
-Content-Disposition: inline; filename=this_cpu
+Subject: [patch 6/7] SLUB: No need to cache kmem_cache data in kmem_cache_cpu anymore
+Content-Disposition: inline; filename=slub_reduce
 Sender: linux-arch-owner@vger.kernel.org
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Pekka Enberg <penberg@cs.helsinki.fi>
 List-ID: <linux-arch.vger.kernel.org>
 
-Support for this_cpu_ptr() is important for those arches that allow a faster
-way to get to the per cpu area of the local processor.
+Remove the fields in kmem_cache_cpu that were used to cache data from
+kmem_cache when they were in different cachelines. The cacheline that holds
+the per cpu array pointer now also holds these values. We can cut down the
+kmem_cache_cpu size to almost half.
+
+The get_freepointer() and set_freepointer() functions that used to be only
+intended for the slow path now are also useful for the hot path since access
+to the field does not require an additional cacheline anymore. This results
+in consistent use of setting the freepointer for objects throughout SLUB.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 
 ---
- include/asm-generic/percpu.h |    4 ++++
- include/asm-ia64/percpu.h    |    3 +++
- include/asm-powerpc/percpu.h |    3 +++
- include/asm-s390/percpu.h    |    4 ++++
- include/asm-sparc64/percpu.h |    2 ++
- include/asm-x86/percpu_32.h  |    2 ++
- include/asm-x86/percpu_64.h  |    4 ++++
- include/linux/percpu.h       |    7 +++++++
- 8 files changed, 29 insertions(+)
+ include/linux/slub_def.h |    3 --
+ mm/slub.c                |   50 +++++++++++++++--------------------------------
+ 2 files changed, 16 insertions(+), 37 deletions(-)
 
-Index: linux-2.6/include/linux/percpu.h
+Index: linux-2.6/include/linux/slub_def.h
 ===================================================================
---- linux-2.6.orig/include/linux/percpu.h	2007-10-31 16:41:00.907621059 -0700
-+++ linux-2.6/include/linux/percpu.h	2007-10-31 16:42:45.748121446 -0700
-@@ -51,6 +51,13 @@
-     	(__typeof__(ptr))(p + q);			\
- })
+--- linux-2.6.orig/include/linux/slub_def.h	2007-10-31 12:57:00.131421982 -0700
++++ linux-2.6/include/linux/slub_def.h	2007-10-31 12:57:43.446922264 -0700
+@@ -15,9 +15,6 @@ struct kmem_cache_cpu {
+ 	void **freelist;
+ 	struct page *page;
+ 	int node;
+-	unsigned int offset;
+-	unsigned int objsize;
+-	unsigned int objects;
+ };
  
-+#define this_cpu_ptr(ptr)           			\
-+({							\
-+	void *p = ptr;					\
-+    	(__typeof__(ptr))(p + this_cpu_offset());	\
-+})
-+
-+
- extern void *__alloc_percpu(size_t size);
- extern void percpu_free(void *__pdata);
- 
-Index: linux-2.6/include/asm-generic/percpu.h
+ struct kmem_cache_node {
+Index: linux-2.6/mm/slub.c
 ===================================================================
---- linux-2.6.orig/include/asm-generic/percpu.h	2007-10-31 16:36:43.452121172 -0700
-+++ linux-2.6/include/asm-generic/percpu.h	2007-10-31 16:42:45.748121446 -0700
-@@ -26,6 +26,8 @@ extern unsigned long __per_cpu_offset[NR
- #define __get_cpu_var(var) per_cpu(var, smp_processor_id())
- #define __raw_get_cpu_var(var) per_cpu(var, raw_smp_processor_id())
+--- linux-2.6.orig/mm/slub.c	2007-10-31 12:57:00.131421982 -0700
++++ linux-2.6/mm/slub.c	2007-10-31 12:57:43.458921888 -0700
+@@ -282,13 +282,6 @@ static inline int check_valid_pointer(st
+ 	return 1;
+ }
  
-+#define this_cpu_offset() __per_cpu_offset(raw_smp_processor_id())
-+
- /* A macro to avoid #include hell... */
- #define percpu_modcopy(pcpudst, src, size)			\
- do {								\
-@@ -53,4 +55,6 @@ do {								\
- #define EXPORT_PER_CPU_SYMBOL(var) EXPORT_SYMBOL(per_cpu__##var)
- #define EXPORT_PER_CPU_SYMBOL_GPL(var) EXPORT_SYMBOL_GPL(per_cpu__##var)
+-/*
+- * Slow version of get and set free pointer.
+- *
+- * This version requires touching the cache lines of kmem_cache which
+- * we avoid to do in the fast alloc free paths. There we obtain the offset
+- * from the page struct.
+- */
+ static inline void *get_freepointer(struct kmem_cache *s, void *object)
+ {
+ 	return *(void **)(object + s->offset);
+@@ -1446,10 +1439,10 @@ static void deactivate_slab(struct kmem_
  
-+#define this_cpu_offset() 0
-+
- #endif /* _ASM_GENERIC_PERCPU_H_ */
-Index: linux-2.6/include/asm-ia64/percpu.h
-===================================================================
---- linux-2.6.orig/include/asm-ia64/percpu.h	2007-10-31 16:36:43.460121335 -0700
-+++ linux-2.6/include/asm-ia64/percpu.h	2007-10-31 16:42:45.748121446 -0700
-@@ -51,6 +51,8 @@ extern unsigned long __per_cpu_offset[NR
- /* Equal to __per_cpu_offset[smp_processor_id()], but faster to access: */
- DECLARE_PER_CPU(unsigned long, local_per_cpu_offset);
+ 		/* Retrieve object from cpu_freelist */
+ 		object = c->freelist;
+-		c->freelist = c->freelist[c->offset];
++		c->freelist = get_freepointer(s, c->freelist);
  
-+#define this_cpu_offset() __ia64_per_cpu_var(local_per_cpu_offset)
-+
- #define per_cpu(var, cpu)  (*RELOC_HIDE(&per_cpu__##var, __per_cpu_offset[cpu]))
- #define __get_cpu_var(var) (*RELOC_HIDE(&per_cpu__##var, __ia64_per_cpu_var(local_per_cpu_offset)))
- #define __raw_get_cpu_var(var) (*RELOC_HIDE(&per_cpu__##var, __ia64_per_cpu_var(local_per_cpu_offset)))
-@@ -65,6 +67,7 @@ extern void *per_cpu_init(void);
- #define __get_cpu_var(var)			per_cpu__##var
- #define __raw_get_cpu_var(var)			per_cpu__##var
- #define per_cpu_init()				(__phys_per_cpu_start)
-+#define this_cpu_offset()			0
+ 		/* And put onto the regular freelist */
+-		object[c->offset] = page->freelist;
++		set_freepointer(s, object, page->freelist);
+ 		page->freelist = object;
+ 		page->inuse--;
+ 	}
+@@ -1606,8 +1599,8 @@ load_freelist:
+ 		goto debug;
  
- #endif	/* SMP */
+ 	object = c->page->freelist;
+-	c->freelist = object[c->offset];
+-	c->page->inuse = c->objects;
++	c->freelist = get_freepointer(s, object);
++	c->page->inuse = s->objects;
+ 	c->page->freelist = c->page->end;
+ 	c->node = page_to_nid(c->page);
+ unlock_out:
+@@ -1635,7 +1628,7 @@ debug:
+ 		goto another_slab;
  
-Index: linux-2.6/include/asm-powerpc/percpu.h
-===================================================================
---- linux-2.6.orig/include/asm-powerpc/percpu.h	2007-10-31 16:36:43.464121161 -0700
-+++ linux-2.6/include/asm-powerpc/percpu.h	2007-10-31 16:42:45.748121446 -0700
-@@ -16,6 +16,8 @@
- #define __my_cpu_offset() get_paca()->data_offset
- #define per_cpu_offset(x) (__per_cpu_offset(x))
+ 	c->page->inuse++;
+-	c->page->freelist = object[c->offset];
++	c->page->freelist = get_freepointer(s, object);
+ 	c->node = -1;
+ 	goto unlock_out;
+ }
+@@ -1668,8 +1661,8 @@ static void __always_inline *slab_alloc(
+ 			}
+ 			break;
+ 		}
+-	} while (cmpxchg_local(&c->freelist, object, object[c->offset])
+-								!= object);
++	} while (cmpxchg_local(&c->freelist, object,
++			get_freepointer(s, object)) != object);
+ 	put_cpu();
+ #else
+ 	unsigned long flags;
+@@ -1685,13 +1678,13 @@ static void __always_inline *slab_alloc(
+ 		}
+ 	} else {
+ 		object = c->freelist;
+-		c->freelist = object[c->offset];
++		c->freelist = get_freepointer(s, object);
+ 	}
+ 	local_irq_restore(flags);
+ #endif
  
-+#define this_cpu_offset() __my_cpu_offset()
-+
- /* Separate out the type, so (int[3], foo) works. */
- #define DEFINE_PER_CPU(type, name) \
-     __attribute__((__section__(".data.percpu"))) __typeof__(type) per_cpu__##name
-@@ -51,6 +53,7 @@ extern void setup_per_cpu_areas(void);
- #define per_cpu(var, cpu)			(*((void)(cpu), &per_cpu__##var))
- #define __get_cpu_var(var)			per_cpu__##var
- #define __raw_get_cpu_var(var)			per_cpu__##var
-+#define this_cpu_offset()			0
+ 	if (unlikely((gfpflags & __GFP_ZERO)))
+-		memset(object, 0, c->objsize);
++		memset(object, 0, s->objsize);
+ out:
+ 	return object;
+ }
+@@ -1719,7 +1712,7 @@ EXPORT_SYMBOL(kmem_cache_alloc_node);
+  * handling required then we can return immediately.
+  */
+ static void __slab_free(struct kmem_cache *s, struct page *page,
+-				void *x, void *addr, unsigned int offset)
++				void *x, void *addr)
+ {
+ 	void *prior;
+ 	void **object = (void *)x;
+@@ -1735,7 +1728,8 @@ static void __slab_free(struct kmem_cach
+ 	if (unlikely(state & SLABDEBUG))
+ 		goto debug;
+ checks_ok:
+-	prior = object[offset] = page->freelist;
++	prior = page->freelist;
++	set_freepointer(s, object, prior);
+ 	page->freelist = object;
+ 	page->inuse--;
  
- #endif	/* SMP */
+@@ -1817,10 +1811,10 @@ static void __always_inline slab_free(st
+ 		 * since the freelist pointers are unique per slab.
+ 		 */
+ 		if (unlikely(page != c->page || c->node < 0)) {
+-			__slab_free(s, page, x, addr, c->offset);
++			__slab_free(s, page, x, addr);
+ 			break;
+ 		}
+-		object[c->offset] = freelist;
++		set_freepointer(s, object, freelist);
+ 	} while (cmpxchg_local(&c->freelist, freelist, object) != freelist);
+ 	put_cpu();
+ #else
+@@ -1830,10 +1824,10 @@ static void __always_inline slab_free(st
+ 	debug_check_no_locks_freed(object, s->objsize);
+ 	c = get_cpu_slab(s, smp_processor_id());
+ 	if (likely(page == c->page && c->node >= 0)) {
+-		object[c->offset] = c->freelist;
++		set_freepointer(s, object, c->freelist);
+ 		c->freelist = object;
+ 	} else
+-		__slab_free(s, page, x, addr, c->offset);
++		__slab_free(s, page, x, addr);
  
-Index: linux-2.6/include/asm-s390/percpu.h
-===================================================================
---- linux-2.6.orig/include/asm-s390/percpu.h	2007-10-31 16:36:43.472121072 -0700
-+++ linux-2.6/include/asm-s390/percpu.h	2007-10-31 16:42:45.779370925 -0700
-@@ -51,6 +51,8 @@ extern unsigned long __per_cpu_offset[NR
- #define per_cpu(var,cpu) __reloc_hide(var,__per_cpu_offset[cpu])
- #define per_cpu_offset(x) (__per_cpu_offset[x])
+ 	local_irq_restore(flags);
+ #endif
+@@ -2015,9 +2009,6 @@ static void init_kmem_cache_cpu(struct k
+ 	c->page = NULL;
+ 	c->freelist = (void *)PAGE_MAPPING_ANON;
+ 	c->node = 0;
+-	c->offset = s->offset / sizeof(void *);
+-	c->objsize = s->objsize;
+-	c->objects = s->objects;
+ }
  
-+#define this_cpu_offset() S390_lowcore.percpu_offset
-+
- /* A macro to avoid #include hell... */
- #define percpu_modcopy(pcpudst, src, size)			\
- do {								\
-@@ -71,6 +73,8 @@ do {								\
- #define __raw_get_cpu_var(var) __reloc_hide(var,0)
- #define per_cpu(var,cpu) __reloc_hide(var,0)
- 
-+#define this_cpu_offset() 0
-+
- #endif /* SMP */
- 
- #define DECLARE_PER_CPU(type, name) extern __typeof__(type) per_cpu__##name
-Index: linux-2.6/include/asm-sparc64/percpu.h
-===================================================================
---- linux-2.6.orig/include/asm-sparc64/percpu.h	2007-10-31 16:36:43.480121400 -0700
-+++ linux-2.6/include/asm-sparc64/percpu.h	2007-10-31 16:42:45.779370925 -0700
-@@ -5,6 +5,8 @@
- 
- register unsigned long __local_per_cpu_offset asm("g5");
- 
-+#define this_cpu_offset() __local_per_cpu_offset
-+
- #ifdef CONFIG_SMP
- 
- #define setup_per_cpu_areas()			do { } while (0)
-Index: linux-2.6/include/asm-x86/percpu_32.h
-===================================================================
---- linux-2.6.orig/include/asm-x86/percpu_32.h	2007-10-31 16:36:43.484121314 -0700
-+++ linux-2.6/include/asm-x86/percpu_32.h	2007-10-31 16:42:45.779370925 -0700
-@@ -72,6 +72,8 @@ DECLARE_PER_CPU(unsigned long, this_cpu_
- 	RELOC_HIDE(&per_cpu__##var, x86_read_percpu(this_cpu_off));	\
- }))
- 
-+#define this_cpu_offset() x86_read_percpu(this_cpu_off)
-+
- #define __get_cpu_var(var) __raw_get_cpu_var(var)
- 
- /* A macro to avoid #include hell... */
-Index: linux-2.6/include/asm-x86/percpu_64.h
-===================================================================
---- linux-2.6.orig/include/asm-x86/percpu_64.h	2007-10-31 16:36:43.492121152 -0700
-+++ linux-2.6/include/asm-x86/percpu_64.h	2007-10-31 16:42:45.779370925 -0700
-@@ -14,6 +14,8 @@
- #define __per_cpu_offset(cpu) (cpu_pda(cpu)->data_offset)
- #define __my_cpu_offset() read_pda(data_offset)
- 
-+#define this_cpu_offset() read_pda(data_offset)
-+
- #define per_cpu_offset(x) (__per_cpu_offset(x))
- 
- /* Separate out the type, so (int[3], foo) works. */
-@@ -58,6 +60,8 @@ extern void setup_per_cpu_areas(void);
- #define __get_cpu_var(var)			per_cpu__##var
- #define __raw_get_cpu_var(var)			per_cpu__##var
- 
-+#define this_cpu_offset() 0
-+
- #endif	/* SMP */
- 
- #define DECLARE_PER_CPU(type, name) extern __typeof__(type) per_cpu__##name
+ static void init_kmem_cache_node(struct kmem_cache_node *n)
+@@ -3027,21 +3018,12 @@ struct kmem_cache *kmem_cache_create(con
+ 	down_write(&slub_lock);
+ 	s = find_mergeable(size, align, flags, name, ctor);
+ 	if (s) {
+-		int cpu;
+-
+ 		s->refcount++;
+ 		/*
+ 		 * Adjust the object sizes so that we clear
+ 		 * the complete object on kzalloc.
+ 		 */
+ 		s->objsize = max(s->objsize, (int)size);
+-
+-		/*
+-		 * And then we need to update the object size in the
+-		 * per cpu structures
+-		 */
+-		for_each_online_cpu(cpu)
+-			get_cpu_slab(s, cpu)->objsize = s->objsize;
+ 		s->inuse = max_t(int, s->inuse, ALIGN(size, sizeof(void *)));
+ 		up_write(&slub_lock);
+ 		if (sysfs_slab_alias(s, name))
 
 -- 
