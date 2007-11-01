@@ -1,45 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:32919
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1753312AbXKAHBU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 03:01:20 -0400
-Date: Thu, 01 Nov 2007 00:01:18 -0700 (PDT)
-Message-Id: <20071101.000118.208338243.davem@davemloft.net>
+Received: from gw1.cosmosbay.com ([86.65.150.130]:39535 "EHLO
+	gw1.cosmosbay.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753075AbXKAHSU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 03:18:20 -0400
+Message-ID: <47297DA6.5070904@cosmosbay.com>
+Date: Thu, 01 Nov 2007 08:17:58 +0100
+From: Eric Dumazet <dada1@cosmosbay.com>
+MIME-Version: 1.0
 Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu
  access overhead
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <Pine.LNX.4.64.0710312115520.26072@schroedinger.engr.sgi.com>
-References: <Pine.LNX.4.64.0710311810390.25643@schroedinger.engr.sgi.com>
-	<20071031.181335.207429553.davem@davemloft.net>
-	<Pine.LNX.4.64.0710312115520.26072@schroedinger.engr.sgi.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+References: <20071101000211.970501947@sgi.com>
+In-Reply-To: <20071101000211.970501947@sgi.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
-To: clameter@sgi.com
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
+To: Christoph Lameter <clameter@sgi.com>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Pekka Enberg <penberg@cs.helsinki.fi>
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Christoph Lameter <clameter@sgi.com>
-Date: Wed, 31 Oct 2007 21:16:59 -0700 (PDT)
+Christoph Lameter a écrit :
+> This patch increases the speed of the SLUB fastpath by
+> improving the per cpu allocator and makes it usable for SLUB.
+> 
+> Currently allocpercpu manages arrays of pointer to per cpu objects.
+> This means that is has to allocate the arrays and then populate them
+> as needed with objects. Although these objects are called per cpu
+> objects they cannot be handled in the same way as per cpu objects
+> by adding the per cpu offset of the respective cpu.
+> 
+> The patch here changes that. We create a small memory pool in the
+> percpu area and allocate from there if alloc per cpu is called.
+> As a result we do not need the per cpu pointer arrays for each
+> object. This reduces memory usage and also the cache foot print
+> of allocpercpu users. Also the per cpu objects for a single processor
+> are tightly packed next to each other decreasing cache footprint
+> even further and making it possible to access multiple objects
+> in the same cacheline.
+> 
+> SLUB has the same mechanism implemented. After fixing up the
+> alloccpu stuff we throw the SLUB method out and use the new
+> allocpercpu handling. Then we optimize allocpercpu addressing
+> by adding a new function
+> 
+> 	this_cpu_ptr()
+> 
+> that allows the determination of the per cpu pointer for the
+> current processor in an more efficient way on many platforms.
+> 
+> This increases the speed of SLUB (and likely other kernel subsystems
+> that benefit from the allocpercpu enhancements):
+> 
+> 
+>        SLAB    SLUB    SLUB+   SLUB-o	SLUB-a
+>    8    96      86      45      44      38	3 *
+>   16    84      92      49      48      43	2 *
+>   32    84      106     61      59      53	+++
+>   64    102     129     82      88      75	++
+>  128    147     226     188     181     176	-
+>  256    200     248     207     285     204	=
+>  512    300     301     260     209     250	+
+> 1024    416     440     398     264     391	++
+> 2048    720     542     530     390     511	+++
+> 4096    1254    342     342     336     376	3 *
+> 
+> alloc/free test
+>       SLAB    SLUB    SLUB+   SLUB-o	SLUB-a
+>       137-146 151     68-72   68-74	56-58	3 *
+> 
+> Note: The per cpu optimization are only half way there because of the screwed
+> up way that x86_64 handles its cpu area that causes addditional cycles to be
+> spend by retrieving a pointer from memory and adding it to the address.
+> The i386 code is much less cycle intensive being able to get to per cpu
+> data using a segment prefix and if we can get that to work on x86_64
+> then we may be able to get the cycle count for the fastpath down to 20-30
+> cycles.
+> 
 
-> Index: linux-2.6/mm/allocpercpu.c
-> ===================================================================
-> --- linux-2.6.orig/mm/allocpercpu.c	2007-10-31 20:53:16.565486654 -0700
-> +++ linux-2.6/mm/allocpercpu.c	2007-10-31 21:00:27.553486484 -0700
- ...
-> @@ -37,7 +42,7 @@ enum unit_type { FREE, END, USED };
->  
->  static u8 cpu_alloc_map[UNITS_PER_CPU] = { 1, };
->  static DEFINE_SPINLOCK(cpu_alloc_map_lock);
-> -static DEFINE_PER_CPU(int, cpu_area)[UNITS_PER_CPU];
-> +static DEFINE_PER_CPU(unsigned long long, cpu_area)[UNITS_PER_CPU];
->  
->  #define CPU_DATA_OFFSET ((unsigned long)&per_cpu__cpu_area)
->  
+Really sounds good Christoph, not only for SLUB, so I guess the 32k limit is 
+not enough because many things will use per_cpu if only per_cpu was reasonably 
+fast (ie not so many dereferences)
 
-This hunk helped the sparc64 looping OOPS I was getting, but cpus hang
-in some other fashion soon afterwards.
+I think this question already came in the past and Linus already answered it, 
+but I again ask it. What about VM games with modern cpus (64 bits arches)
 
-I'll try to debug this some more later, I've dumped enough time into
-this already :-)
+Say we reserve on x86_64 a really huge (2^32 bytes) area, and change VM layout 
+so that each cpu maps its own per_cpu area on this area, so that the local 
+per_cpu data sits in the same virtual address on each cpu. Then we dont need a 
+segment prefix nor adding a 'per_cpu offset'. No need to write special asm 
+functions to read/write/increment a per_cpu data and gcc could use normal 
+rules for optimizations.
+
+We only would need adding "per_cpu offset" to get data for a given cpu.
+
