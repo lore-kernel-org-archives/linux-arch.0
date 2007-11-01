@@ -1,33 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:56043 "EHLO
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:36768 "EHLO
 	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756159AbXKANBP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 09:01:15 -0400
-Date: Thu, 1 Nov 2007 06:01:14 -0700 (PDT)
+	with ESMTP id S1760693AbXKANDp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 09:03:45 -0400
+Date: Thu, 1 Nov 2007 06:03:44 -0700 (PDT)
 From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu
  access overhead
-In-Reply-To: <20071101.005727.218970168.davem@davemloft.net>
-Message-ID: <Pine.LNX.4.64.0711010559300.27666@schroedinger.engr.sgi.com>
-References: <20071101000211.970501947@sgi.com> <47297DA6.5070904@cosmosbay.com>
- <20071101.005727.218970168.davem@davemloft.net>
+In-Reply-To: <20071101.021451.217578606.davem@davemloft.net>
+Message-ID: <Pine.LNX.4.64.0711010601430.27666@schroedinger.engr.sgi.com>
+References: <20071031.181335.207429553.davem@davemloft.net>
+ <Pine.LNX.4.64.0710312115520.26072@schroedinger.engr.sgi.com>
+ <20071101.000118.208338243.davem@davemloft.net> <20071101.021451.217578606.davem@davemloft.net>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 To: David Miller <davem@davemloft.net>
-Cc: dada1@cosmosbay.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
 List-ID: <linux-arch.vger.kernel.org>
 
 On Thu, 1 Nov 2007, David Miller wrote:
 
-> IA64 seems to use it universally for every __get_cpu_var()
-> access, so maybe it works out somehow :-)))
+> > This hunk helped the sparc64 looping OOPS I was getting, but cpus hang
+> > in some other fashion soon afterwards.
+> 
+> And if I bump PER_CPU_ALLOC_SIZE up to 128K it seems to mostly work.
 
-IA64 does not do that. It addds the local cpu offset
+Good....
 
-#define __get_cpu_var(var) (*RELOC_HIDE(&per_cpu__##var, 
-__ia64_per_cpu_var(local_per_cpu_offset)))
-#define __raw_get_cpu_var(var) (*RELOC_HIDE(&per_cpu__##var, 
-__ia64_per_cpu_var(local_per_cpu_offset)))
+> You'll definitely need to make this work dynamically somehow.
 
+Obviously. Any ideas how?
+
+I can probably calculate the size based on the number of online nodes when 
+the per cpu areas are setup. But the setup is done before we even parse 
+command line arguments. That would still mean a fixed size after bootup.
+
+In order to make it truly dynamic we would have to virtually map the area. 
+vmap? But that reduces performance.
 
