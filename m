@@ -1,30 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:41530
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1751404AbXKAV3g (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 17:29:36 -0400
-Date: Thu, 01 Nov 2007 14:29:36 -0700 (PDT)
-Message-Id: <20071101.142936.114015234.davem@davemloft.net>
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:50711 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752771AbXKAWLn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 18:11:43 -0400
+Date: Thu, 1 Nov 2007 15:11:41 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu
  access overhead
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <Pine.LNX.4.64.0711010601430.27666@schroedinger.engr.sgi.com>
-References: <20071101.000118.208338243.davem@davemloft.net>
-	<20071101.021451.217578606.davem@davemloft.net>
-	<Pine.LNX.4.64.0711010601430.27666@schroedinger.engr.sgi.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20071101.142809.179954273.davem@davemloft.net>
+Message-ID: <Pine.LNX.4.64.0711011511240.22508@schroedinger.engr.sgi.com>
+References: <20071101000211.970501947@sgi.com> <47297DA6.5070904@cosmosbay.com>
+ <Pine.LNX.4.64.0711010555390.27666@schroedinger.engr.sgi.com>
+ <20071101.142809.179954273.davem@davemloft.net>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: clameter@sgi.com
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
+To: David Miller <davem@davemloft.net>
+Cc: dada1@cosmosbay.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Christoph Lameter <clameter@sgi.com>
-Date: Thu, 1 Nov 2007 06:03:44 -0700 (PDT)
+On Thu, 1 Nov 2007, David Miller wrote:
 
-> In order to make it truly dynamic we would have to virtually map the
-> area.  vmap? But that reduces performance.
+> The remaining issue with accessing per-cpu areas at multiple virtual
+> addresses is D-cache aliasing.
 
-But it would still be faster than the double-indirection we do now,
-right?
+But that is not an issue for physicallly mapped caches.
+
