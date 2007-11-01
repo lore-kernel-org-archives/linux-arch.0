@@ -1,31 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pip15.gyao.ne.jp ([61.122.117.253]:19291 "EHLO mx.gate01.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1756306AbXKAKH5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Nov 2007 06:07:57 -0400
-Date: Thu, 1 Nov 2007 19:07:17 +0900
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: DMA API Re: Remove dma_coherent_mem interface
-Message-ID: <20071101100717.GA26906@linux-sh.org>
-References: <1193864605.25899.253.camel@wirenth> <20071031213447.GF15111@parisc-linux.org> <1193910526.25899.278.camel@wirenth>
+Received: from netops-testserver-4-out.sgi.com ([192.48.171.29]:47613 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753263AbXKAM5O (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 08:57:14 -0400
+Date: Thu, 1 Nov 2007 05:57:12 -0700 (PDT)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu
+ access overhead
+In-Reply-To: <47297DA6.5070904@cosmosbay.com>
+Message-ID: <Pine.LNX.4.64.0711010555390.27666@schroedinger.engr.sgi.com>
+References: <20071101000211.970501947@sgi.com> <47297DA6.5070904@cosmosbay.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1193910526.25899.278.camel@wirenth>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: ian <spyro@f2s.com>
-Cc: Matthew Wilcox <matthew@wil.cx>, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, linux-scsi@vger.kernel.org, jejb@steeleye.com, kernel-discuss@handhelds.org
+To: Eric Dumazet <dada1@cosmosbay.com>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Pekka Enberg <penberg@cs.helsinki.fi>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Nov 01, 2007 at 09:48:46AM +0000, ian wrote:
-> On Wed, 2007-10-31 at 15:34 -0600, Matthew Wilcox wrote:
-> >   It may not be significant, so it would be an easy decision to keep
-> >   the interface.  But if the decision is going to be to keep the
-> >   interface despite the lack of users and no matter what the
-> >   performance win, then I don't need to finish this work.
+On Thu, 1 Nov 2007, Eric Dumazet wrote:
+
+> I think this question already came in the past and Linus already answered it,
+> but I again ask it. What about VM games with modern cpus (64 bits arches)
 > 
-> I dont mind what the interface is as long as we can support devices that
-> can only DMA from their own local RAM as described above...
+> Say we reserve on x86_64 a really huge (2^32 bytes) area, and change VM layout
+> so that each cpu maps its own per_cpu area on this area, so that the local
+> per_cpu data sits in the same virtual address on each cpu. Then we dont need a
+> segment prefix nor adding a 'per_cpu offset'. No need to write special asm
+> functions to read/write/increment a per_cpu data and gcc could use normal
+> rules for optimizations.
 > 
-Indeed. The SH case for OHCI on MFDs is the same. So that's at least 2
-users.
+> We only would need adding "per_cpu offset" to get data for a given cpu.
+
+That is basically what IA64 is doing but it not usable because you would 
+have addresses that mean different things on different cpus. List head
+for example require back pointers. If you put a listhead into such a per 
+cpu area then you may corrupt another cpus per cpu area.
+ 
