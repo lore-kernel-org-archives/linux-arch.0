@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:53433
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:49316
 	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752947AbXKAF1w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 01:27:52 -0400
-Date: Wed, 31 Oct 2007 22:27:51 -0700 (PDT)
-Message-Id: <20071031.222751.25467933.davem@davemloft.net>
+	by vger.kernel.org with ESMTP id S1752993AbXKAFih (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 01:38:37 -0400
+Date: Wed, 31 Oct 2007 22:38:36 -0700 (PDT)
+Message-Id: <20071031.223836.162573733.davem@davemloft.net>
 Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu
  access overhead
 From: David Miller <davem@davemloft.net>
-In-Reply-To: <Pine.LNX.4.64.0710311820340.25687@schroedinger.engr.sgi.com>
+In-Reply-To: <Pine.LNX.4.64.0710312115520.26072@schroedinger.engr.sgi.com>
 References: <Pine.LNX.4.64.0710311810390.25643@schroedinger.engr.sgi.com>
 	<20071031.181335.207429553.davem@davemloft.net>
-	<Pine.LNX.4.64.0710311820340.25687@schroedinger.engr.sgi.com>
+	<Pine.LNX.4.64.0710312115520.26072@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
@@ -21,28 +21,27 @@ Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.ker
 List-ID: <linux-arch.vger.kernel.org>
 
 From: Christoph Lameter <clameter@sgi.com>
-Date: Wed, 31 Oct 2007 18:21:02 -0700 (PDT)
+Date: Wed, 31 Oct 2007 21:16:59 -0700 (PDT)
 
-> On Wed, 31 Oct 2007, David Miller wrote:
-> 
-> > From: Christoph Lameter <clameter@sgi.com>
-> > Date: Wed, 31 Oct 2007 18:12:11 -0700 (PDT)
-> > 
-> > > On Wed, 31 Oct 2007, David Miller wrote:
-> > > 
-> > > > All I can do now is bisect and then try to figure out what about the
-> > > > guilty change might cause the problem.
-> > > 
-> > > Reverting the 7th patch should avoid using the sparc register that caches 
-> > > the per cpu area offset? (I though so, does it?)
-> > 
-> > Yes, that's right, %g5 holds the local cpu's per-cpu offset.
-> 
-> And if I add the address of a percpu variable then I get to the variable 
-> for this cpu right?
+>  /*
+>   * Maximum allowed per cpu data per cpu
+>   */
+> +#ifdef CONFIG_NUMA
+> +#define PER_CPU_ALLOC_SIZE (32768 + MAX_NUMNODES * 512)
+> +#else
+>  #define PER_CPU_ALLOC_SIZE 32768
+> +#endif
+> +
 
-Right.
+Christoph, as Rusty found out years ago when he first wrote this code,
+you cannot put hard limits on the alloc_percpu() allocations.
 
-I bisected the crash down to:
+They can be done by anyone, any module, and since there was no limit
+before you cannot reasonably add one now.
 
-	[PATCH] newallocpercpu
+As just one of many examples, several networking devices use
+alloc_percpu() for each instance they bring up.  This alone can
+request arbitrary amounts of per-cpu data.
+
+Therefore, you'll need to do your optimization without imposing any
+size limits.
