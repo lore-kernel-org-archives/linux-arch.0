@@ -1,50 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:41979
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:32968
 	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1753729AbXKAH53 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 03:57:29 -0400
-Date: Thu, 01 Nov 2007 00:57:27 -0700 (PDT)
-Message-Id: <20071101.005727.218970168.davem@davemloft.net>
+	by vger.kernel.org with ESMTP id S1753376AbXKAJOw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 05:14:52 -0400
+Date: Thu, 01 Nov 2007 02:14:51 -0700 (PDT)
+Message-Id: <20071101.021451.217578606.davem@davemloft.net>
 Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu
  access overhead
 From: David Miller <davem@davemloft.net>
-In-Reply-To: <47297DA6.5070904@cosmosbay.com>
-References: <20071101000211.970501947@sgi.com>
-	<47297DA6.5070904@cosmosbay.com>
+In-Reply-To: <20071101.000118.208338243.davem@davemloft.net>
+References: <20071031.181335.207429553.davem@davemloft.net>
+	<Pine.LNX.4.64.0710312115520.26072@schroedinger.engr.sgi.com>
+	<20071101.000118.208338243.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: dada1@cosmosbay.com
-Cc: clameter@sgi.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
+To: clameter@sgi.com
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Eric Dumazet <dada1@cosmosbay.com>
-Date: Thu, 01 Nov 2007 08:17:58 +0100
+From: David Miller <davem@davemloft.net>
+Date: Thu, 01 Nov 2007 00:01:18 -0700 (PDT)
 
-> Say we reserve on x86_64 a really huge (2^32 bytes) area, and change
-> VM layout so that each cpu maps its own per_cpu area on this area,
-> so that the local per_cpu data sits in the same virtual address on
-> each cpu.
+> From: Christoph Lameter <clameter@sgi.com>
+> Date: Wed, 31 Oct 2007 21:16:59 -0700 (PDT)
+> 
+> > Index: linux-2.6/mm/allocpercpu.c
+> > ===================================================================
+> > --- linux-2.6.orig/mm/allocpercpu.c	2007-10-31 20:53:16.565486654 -0700
+> > +++ linux-2.6/mm/allocpercpu.c	2007-10-31 21:00:27.553486484 -0700
+>  ...
+> > @@ -37,7 +42,7 @@ enum unit_type { FREE, END, USED };
+> >  
+> >  static u8 cpu_alloc_map[UNITS_PER_CPU] = { 1, };
+> >  static DEFINE_SPINLOCK(cpu_alloc_map_lock);
+> > -static DEFINE_PER_CPU(int, cpu_area)[UNITS_PER_CPU];
+> > +static DEFINE_PER_CPU(unsigned long long, cpu_area)[UNITS_PER_CPU];
+> >  
+> >  #define CPU_DATA_OFFSET ((unsigned long)&per_cpu__cpu_area)
+> >  
+> 
+> This hunk helped the sparc64 looping OOPS I was getting, but cpus hang
+> in some other fashion soon afterwards.
 
-This is a mechanism used partially on IA64 already.
+And if I bump PER_CPU_ALLOC_SIZE up to 128K it seems to mostly work.
 
-I think you have to be very careful, and you can only use this per-cpu
-fixed virtual address area in extremely limited cases.
-
-The reason is, I think the address matters, consider list heads, for
-example.
-
-So you couldn't do:
-
-	list_add(&obj->list, &per_cpu_ptr(list_head));
-
-and use that per-cpu fixed virtual address.
-
-IA64 seems to use it universally for every __get_cpu_var()
-access, so maybe it works out somehow :-)))
-
-I guess if list modifications by remote cpus are disallowed, it would
-work (list traversal works because using the fixed virtual address as
-the list head sentinal is OK), but that is an extremely fragile
-assumption to base the entire mechanism upon.
+You'll definitely need to make this work dynamically somehow.
