@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:49316
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:32919
 	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752993AbXKAFih (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 01:38:37 -0400
-Date: Wed, 31 Oct 2007 22:38:36 -0700 (PDT)
-Message-Id: <20071031.223836.162573733.davem@davemloft.net>
+	by vger.kernel.org with ESMTP id S1753312AbXKAHBU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 03:01:20 -0400
+Date: Thu, 01 Nov 2007 00:01:18 -0700 (PDT)
+Message-Id: <20071101.000118.208338243.davem@davemloft.net>
 Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu
  access overhead
 From: David Miller <davem@davemloft.net>
@@ -23,25 +23,23 @@ List-ID: <linux-arch.vger.kernel.org>
 From: Christoph Lameter <clameter@sgi.com>
 Date: Wed, 31 Oct 2007 21:16:59 -0700 (PDT)
 
->  /*
->   * Maximum allowed per cpu data per cpu
->   */
-> +#ifdef CONFIG_NUMA
-> +#define PER_CPU_ALLOC_SIZE (32768 + MAX_NUMNODES * 512)
-> +#else
->  #define PER_CPU_ALLOC_SIZE 32768
-> +#endif
-> +
+> Index: linux-2.6/mm/allocpercpu.c
+> ===================================================================
+> --- linux-2.6.orig/mm/allocpercpu.c	2007-10-31 20:53:16.565486654 -0700
+> +++ linux-2.6/mm/allocpercpu.c	2007-10-31 21:00:27.553486484 -0700
+ ...
+> @@ -37,7 +42,7 @@ enum unit_type { FREE, END, USED };
+>  
+>  static u8 cpu_alloc_map[UNITS_PER_CPU] = { 1, };
+>  static DEFINE_SPINLOCK(cpu_alloc_map_lock);
+> -static DEFINE_PER_CPU(int, cpu_area)[UNITS_PER_CPU];
+> +static DEFINE_PER_CPU(unsigned long long, cpu_area)[UNITS_PER_CPU];
+>  
+>  #define CPU_DATA_OFFSET ((unsigned long)&per_cpu__cpu_area)
+>  
 
-Christoph, as Rusty found out years ago when he first wrote this code,
-you cannot put hard limits on the alloc_percpu() allocations.
+This hunk helped the sparc64 looping OOPS I was getting, but cpus hang
+in some other fashion soon afterwards.
 
-They can be done by anyone, any module, and since there was no limit
-before you cannot reasonably add one now.
-
-As just one of many examples, several networking devices use
-alloc_percpu() for each instance they bring up.  This alone can
-request arbitrary amounts of per-cpu data.
-
-Therefore, you'll need to do your optimization without imposing any
-size limits.
+I'll try to debug this some more later, I've dumped enough time into
+this already :-)
