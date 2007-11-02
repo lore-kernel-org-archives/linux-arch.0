@@ -1,34 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:46869
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1750953AbXKBCvE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2007 22:51:04 -0400
-Date: Thu, 01 Nov 2007 19:51:01 -0700 (PDT)
-Message-Id: <20071101.195101.42788898.davem@davemloft.net>
+Received: from pentafluge.infradead.org ([213.146.154.40]:58412 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751540AbXKBK2z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2007 06:28:55 -0400
 Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu
- access overhead
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <Pine.LNX.4.64.0711011759400.24589@schroedinger.engr.sgi.com>
-References: <Pine.LNX.4.64.0711011545370.23379@schroedinger.engr.sgi.com>
-	<20071101.155805.65012933.davem@davemloft.net>
-	<Pine.LNX.4.64.0711011759400.24589@schroedinger.engr.sgi.com>
+	access overhead
+From: Peter Zijlstra <peterz@infradead.org>
+In-Reply-To: <20071101.155805.65012933.davem@davemloft.net>
+References: <Pine.LNX.4.64.0711011511450.22508@schroedinger.engr.sgi.com>
+	 <20071101.153824.91808126.davem@davemloft.net>
+	 <Pine.LNX.4.64.0711011545370.23379@schroedinger.engr.sgi.com>
+	 <20071101.155805.65012933.davem@davemloft.net>
+Content-Type: text/plain
+Date: Fri, 02 Nov 2007 11:28:46 +0100
+Message-Id: <1193999326.27652.348.camel@twins>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: clameter@sgi.com
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
+To: David Miller <davem@davemloft.net>
+Cc: clameter@sgi.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Christoph Lameter <clameter@sgi.com>
-Date: Thu, 1 Nov 2007 18:06:17 -0700 (PDT)
+On Thu, 2007-11-01 at 15:58 -0700, David Miller wrote:
 
-> A reasonable implementation for 64 bit is likely going to depend on 
-> reserving some virtual memory space for the per cpu mappings so that they 
-> can be dynamically grown up to what the reserved virtual space allows.
-> 
-> F.e. If we reserve 256G of virtual space and support a maximum of 16k cpus 
-> then there is a limit on the per cpu space available of 16MB.
+> Since you're the one who wants to change the semantics and guarentees
+> of this interface, perhaps it might help if you did some greps around
+> the tree to see how alloc_percpu() is actually used.  That's what
+> I did when I started running into trouble with your patches.
 
-Now that I understand your implementation better, yes this
-sounds just fine.
+This fancy new BDI stuff also lives off percpu_counter/alloc_percpu().
+
+That means that for example each NFS mount also consumes a number of
+words - not quite sure from the top of my head how many, might be in the
+order of 24 bytes or something.
+
+I once before started looking at this, because the current
+alloc_percpu() can have some false sharing - not that I have machines
+that are overly bothered by that. I like the idea of a strict percpu
+region, however do be aware of the users.
+
+
