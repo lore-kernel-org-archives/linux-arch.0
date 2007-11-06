@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:47145 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:46293 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753265AbXKFW7Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Nov 2007 17:59:24 -0500
+	id S1751019AbXKFX51 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Nov 2007 18:57:27 -0500
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH] MN10300: Suppress AOUT library support in ELF binfmt if
+Subject: [PATCH] Suppress A.OUT library support in ELF binfmt if
 	!CONFIG_BINFMT_AOUT
-Date: Tue, 06 Nov 2007 22:59:14 +0000
-Message-ID: <20071106225914.30035.82604.stgit@warthog.procyon.org.uk>
+Date: Tue, 06 Nov 2007 23:57:14 +0000
+Message-ID: <20071106235714.30282.23423.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -16,10 +16,11 @@ To: akpm@linux-foundation.org, linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com
 List-ID: <linux-arch.vger.kernel.org>
 
-Suppress AOUT library support in ELF binfmt if CONFIG_BINFMT_AOUT is not set.
+Suppress A.OUT library support in ELF binfmt if CONFIG_BINFMT_AOUT is not set.
 
-The MN10300 architecture does not support the AOUT binfmt, so the ELF binfmt
-should not be permitted to go looking for AOUT libraries to load.
+Not all architectures support the A.OUT binfmt, so the ELF binfmt should not
+be permitted to go looking for A.OUT libraries to load in such a case.  Not
+only that, but under such conditions A.OUT core dumps are not produced either.
 
 To make this work, this patch also does the following:
 
