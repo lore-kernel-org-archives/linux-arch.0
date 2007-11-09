@@ -1,14 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:45410 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753676AbXKIMJS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2007 07:09:18 -0500
-Date: Fri, 9 Nov 2007 12:02:55 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [RFC] dependencies for platform drivers (was Re: ax88796: add superh to kconfig dependencies)
-Message-ID: <20071109120255.GB8101@flint.arm.linux.org.uk>
+Received: from 87-194-8-8.bethere.co.uk ([87.194.8.8]:65512 "EHLO
+	kira.home.fluff.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1754083AbXKIMuC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2007 07:50:02 -0500
+Date: Fri, 9 Nov 2007 12:08:44 +0000
+From: Ben Dooks <ben@fluff.org>
+Subject: Re: [RFC] dependencies for platform drivers (was Re: ax88796: add
+	superh to kconfig dependencies)
+Message-ID: <20071109120844.GB31353@fluff.org.uk>
 References: <20071108073105.3996.70418.sendpatchset@clockwork.opensource.se> <20071108081854.GN8181@ftp.linux.org.uk> <20071109092652.GA13350@linux-mips.org> <20071109094023.GA7022@linux-sh.org>
-Mime-Version: 1.0
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 In-Reply-To: <20071109094023.GA7022@linux-sh.org>
@@ -28,20 +29,15 @@ On Fri, Nov 09, 2007 at 06:40:23PM +0900, Paul Mundt wrote:
 > theoretically are. Tidying up the driver for iomap is probably a better
 > option.
 
-writesb() predates iowriteX_rep() interfaces by quite a number of years,
-though if you're using writesb(), converting over to iowriteX_rep() is
-really a no-brainer.
+If anyone else isn't interested in doing this, and there are
+no objections to having it done, then I would be willing to
+look at moving to the iowrite interfaces.
 
-writesb() is effectively what mmio_outsb() is, and exists to do what
-outsb() does but for peripherals mapped using ioremap on ARM rather
-than trying to emulate them via the legacy x86 IO interfaces.
-
-Note that it would've been far better that whoever invented mmio_outsb()
-looked around and noticed that some of us already have an implementation
-called writesb()... but time has proven that folk seem to be blinkered
-to anything not x86.
+The only other way would be to add an 8/16bit configuration
+to drop the use of writesb, as I belive most people connect
+these devices in 16bit mode.
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Ben (ben@fluff.org, http://www.fluff.org/)
+
+  'a smiley only costs 4 bytes'
