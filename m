@@ -1,75 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 87-194-8-8.bethere.co.uk ([87.194.8.8]:65513 "EHLO
-	kira.home.fluff.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1758360AbXKIMuE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2007 07:50:04 -0500
-Date: Fri, 9 Nov 2007 12:06:48 +0000
-From: Ben Dooks <ben@fluff.org>
-Subject: Re: [RFC] dependencies for platform drivers (was Re: ax88796: add
-	superh to kconfig dependencies)
-Message-ID: <20071109120648.GA31353@fluff.org.uk>
-References: <20071108073105.3996.70418.sendpatchset@clockwork.opensource.se> <20071108081854.GN8181@ftp.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20071108081854.GN8181@ftp.linux.org.uk>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:35241 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751442AbXKIUW6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2007 15:22:58 -0500
+Date: Fri, 9 Nov 2007 12:22:08 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: Fix for sparc64 cpu hangs.
+Message-Id: <20071109122208.5b6794ea.akpm@linux-foundation.org>
+In-Reply-To: <20071106.211356.60087540.davem@davemloft.net>
+References: <20071106.203433.144763156.davem@davemloft.net>
+	<20071106.211356.60087540.davem@davemloft.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: Magnus Damm <magnus.damm@gmail.com>, netdev@vger.kernel.org, lethal@linux-sh.org, ben-linux@fluff.org, akpm@linux-foundation.org, jeff@garzik.org, linux-arch@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, bernd@bzed.de, joy@entuzijast.net, fabbione@ubuntu.com, arnd@arndb.de, stable@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Nov 08, 2007 at 08:18:54AM +0000, Al Viro wrote:
-> On Thu, Nov 08, 2007 at 04:31:05PM +0900, Magnus Damm wrote:
-> >  config AX88796
-> >  	tristate "ASIX AX88796 NE2000 clone support"
-> > -	depends on ARM || MIPS
-> > +	depends on ARM || MIPS || SUPERH
+On Tue, 06 Nov 2007 21:13:56 -0800 (PST)
+David Miller <davem@davemloft.net> wrote:
+
+> From: David Miller <davem@davemloft.net>
+> Date: Tue, 06 Nov 2007 20:34:33 -0800 (PST)
 > 
-> You know, that really sucks more and more.  How about doing the following:
-> 	a) making it depend on PLAT_HAS_AX88796
-> 	b) adding selects for all subarchitectures that have the corresponding
-> platform device
-> and setting that as a uniform policy for platform drivers?  For things like
-> SM501 we would do
-> config MFD_SM501
-> 	depends on PCI || PLAT_HAS_SM501
-> etc.
+> > [FUTEX]: Fix address computation in compat code.
+> 
+> Sorry, I just noticed there is a second handle_futex_death()
+> call in compat_exit_robust_list() which has the same
+> address computation bug.
+> 
+> Here is an updated patch:
+> 
+> [FUTEX]: Fix address computation in compat code.
+> 
+> compat_exit_robust_list() computes a pointer to the
+> futex entry in userspace as follows:
+> 
+> 	(void __user *)entry + futex_offset
+> 
+> 'entry' is a 'struct robust_list __user *', and
+> 'futex_offset' is a 'compat_long_t' (typically a 's32').
+> 
+> Things explode if the 32-bit sign bit is set in futex_offset.
+> 
+> Type promotion sign extends futex_offset to a 64-bit value before
+> adding it to 'entry'.
+> 
+> This triggered a problem on sparc64 running 32-bit applications which
+> would lock up a cpu looping forever in the fault handling for the
+> userspace load in handle_futex_death().
+> 
+> Compat userspace runs with address masking (wherein the cpu zeros out
+> the top 32-bits of every effective address given to a memory operation
+> instruction) so the sparc64 fault handler accounts for this by
+> zero'ing out the top 32-bits of the fault address too.
+> 
+> Since the kernel properly uses the compat_uptr interfaces, kernel side
+> accesses to compat userspace work too since they will only use
+> addresses with the top 32-bit clear.
+> 
+> Because of this compat futex layer bug we get into the following loop
+> when executing the get_user() load near the top of handle_futex_death():
+> 
+> 1) load from address '0xfffffffff7f16bd8', FAULT
+> 2) fault handler clears upper 32-bits, processes fault
+>    for address '0xf7f16bd8' which succeeds
+> 3) goto #1
+> 
+> I want to thank Bernd Zeimetz, Josip Rodin, and Fabio Massimo Di Nitto
+> for their tireless efforts helping me track down this bug.
+> 
 
-The PLAT_HAS_xxx method is nice, and I would like it applied to other places
-in the kernel (see libata arugment below), and would have acked
-this patch if it hadn't already been applied by Jeff.
+I tagged this as needed-in-2.6.23.x.  Please let me know if that is not
+appropriate.
 
-The only reservation is that this doesn't show up the posibilty
-of having the driver in the menuconfig, but anyone adding new
-board support (should) be bright enough to look through the
-Kconfig scripts before deciding they need to write an entirely
-new driver.
-
-I would note you may want to do PLAT_HAS_NET_AX88796 as there is
-entirely a posibility of confusing this with the simple parallel
-port driver which a board may not have support for.
-
-> Seriously, folks, we are getting shitloads of platform drivers with no
-> dependencies whatsoever, needed on a handful of targets and occasionally
-> failing to build on unrelated architectures.  Moreover, having a list
-> of architectures in dependencies for each of those suckers is a PITA
-> from the conflict POV.  Not to mention platform drivers that fall into
-> the mainline kernel with not a single platform device for them, etc.
-
-There is a general problem with chicken-vs-egg here, how do you submit
-support for a machine's platform device without the platform device
-being there (and vice-versa) with seperate maintainers for network
-and machine support?
-
-One of my colleagues has passed along comments you made about a pair
-of the simtec drivers (simtec-i2c and simtec-ide) which have been
-added, but have no current users as patches have been stalled either
-in submission process, or awaiting for an resolution. In the case
-of simtec-ide, I would like to replace it with platform-ata, but
-the libata maintainers seem wholy un-interested in
-PLAT_HAS_PLATFORM_ATA or similar.
-
--- 
-Ben (ben@fluff.org, http://www.fluff.org/)
-
-  'a smiley only costs 4 bytes'
