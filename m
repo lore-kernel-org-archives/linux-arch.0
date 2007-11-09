@@ -1,32 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:44072
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1751130AbXKIWOv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2007 17:14:51 -0500
-Date: Fri, 09 Nov 2007 14:14:50 -0800 (PST)
-Message-Id: <20071109.141450.180080926.davem@davemloft.net>
-Subject: Re: Fix for sparc64 cpu hangs.
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20071109122208.5b6794ea.akpm@linux-foundation.org>
-References: <20071106.203433.144763156.davem@davemloft.net>
-	<20071106.211356.60087540.davem@davemloft.net>
-	<20071109122208.5b6794ea.akpm@linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:50934 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752125AbXKIWhr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2007 17:37:47 -0500
+Message-Id: <200711092237.lA9MbURv002728@imap1.linux-foundation.org>
+Subject: + cleanup-asm-elfpageuserh-ifdef-__kernel__-is-no-longer-needed-fix.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Fri, 09 Nov 2007 14:37:30 -0800
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, bernd@bzed.de, joy@entuzijast.net, fabbione@ubuntu.com, arnd@arndb.de, stable@kernel.org
+To: mm-commits@vger.kernel.org
+Cc: k.shutemov@gmail.com, dwmw2@infradead.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Fri, 9 Nov 2007 12:22:08 -0800
 
-> I tagged this as needed-in-2.6.23.x.  Please let me know if that is not
-> appropriate.
+The patch titled
+     Cleanup asm/{elf,page,user}.h: #ifdef __KERNEL__ is no longer needed (fix)
+has been added to the -mm tree.  Its filename is
+     cleanup-asm-elfpageuserh-ifdef-__kernel__-is-no-longer-needed-fix.patch
 
-It is.  I have it queued up for -stable already.
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
-I'm just waiting for it Linus to get back from wherever he has been
-the past few days so he can suck it in and it's upstream before I
-submit it to -stable.
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
+
+------------------------------------------------------
+Subject: Cleanup asm/{elf,page,user}.h: #ifdef __KERNEL__ is no longer needed (fix)
+From: "Kirill A. Shutemov" <k.shutemov@gmail.com>
+
+asm/elf.h, asm/page.h and asm/user.h don't export to userspace now, so
+we can drop #ifdef __KERNEL__ for them.
+
+Signed-off-by: Kirill A. Shutemov <k.shutemov@gmail.com>
+CcDavid Woodhouse <dwmw2@infradead.org>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/asm-powerpc/elf.h |    9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff -puN include/asm-powerpc/elf.h~cleanup-asm-elfpageuserh-ifdef-__kernel__-is-no-longer-needed-fix include/asm-powerpc/elf.h
+--- a/include/asm-powerpc/elf.h~cleanup-asm-elfpageuserh-ifdef-__kernel__-is-no-longer-needed-fix
++++ a/include/asm-powerpc/elf.h
+@@ -1,9 +1,11 @@
+ #ifndef _ASM_POWERPC_ELF_H
+ #define _ASM_POWERPC_ELF_H
+ 
++#ifdef __KERNEL__
+ #include <linux/sched.h>	/* for task_struct */
+ #include <asm/page.h>
+ #include <asm/string.h>
++#endif
+ 
+ #include <asm/types.h>
+ #include <asm/ptrace.h>
+@@ -158,6 +160,7 @@ typedef elf_vrreg_t elf_vrregset_t[ELF_N
+ typedef elf_vrreg_t elf_vrregset_t32[ELF_NVRREG32];
+ #endif
+ 
++#ifdef __KERNEL__
+ /*
+  * This is used to ensure we don't load something for the wrong architecture.
+  */
+@@ -219,6 +222,8 @@ extern int dump_task_altivec(struct task
+ #define ELF_CORE_XFPREG_TYPE NT_PPC_VMX
+ #endif
+ 
++#endif /* __KERNEL__ */
++
+ /* ELF_HWCAP yields a mask that user programs can use to figure out what
+    instruction set this cpu supports.  This could be done in userspace,
+    but it's not easy, and we've already done it here.  */
+@@ -236,6 +241,8 @@ extern int dump_task_altivec(struct task
+ } while (0)
+ #endif /* __powerpc64__ */
+ 
++#ifdef __KERNEL__
++
+ #ifdef __powerpc64__
+ # define SET_PERSONALITY(ex, ibcs2)				\
+ do {								\
+@@ -263,6 +270,8 @@ do {								\
+ # define SET_PERSONALITY(ex, ibcs2) set_personality((ibcs2)?PER_SVR4:PER_LINUX)
+ #endif /* __powerpc64__ */
+ 
++#endif /* __KERNEL__ */
++
+ extern int dcache_bsize;
+ extern int icache_bsize;
+ extern int ucache_bsize;
+_
+
+Patches currently in -mm which might be from k.shutemov@gmail.com are
+
+unexport-asm-userh-and-linux-userh.patch
+cleanup-asm-elfpageuserh-ifdef-__kernel__-is-no-longer-needed.patch
+cleanup-asm-elfpageuserh-ifdef-__kernel__-is-no-longer-needed-fix.patch
+
