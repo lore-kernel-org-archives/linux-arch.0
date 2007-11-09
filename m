@@ -1,25 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:47782 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753879AbXKHJDv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2007 04:03:51 -0500
-Date: Thu, 8 Nov 2007 01:02:47 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
+Received: from ftp.linux-mips.org ([194.74.144.162]:38659 "EHLO
+	ftp.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751368AbXKIJ1m (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2007 04:27:42 -0500
+Received: from localhost.localdomain ([127.0.0.1]:40425 "EHLO
+	dl5rb.ham-radio-op.net") by ftp.linux-mips.org with ESMTP
+	id S20021796AbXKIJ1k (ORCPT <rfc822;linux-arch@vger.kernel.org>
+	+ 1 other); Fri, 9 Nov 2007 09:27:40 +0000
+Date: Fri, 9 Nov 2007 09:26:52 +0000
+From: Ralf Baechle <ralf@linux-mips.org>
 Subject: Re: [RFC] dependencies for platform drivers (was Re: ax88796: add
- superh to kconfig dependencies)
-Message-Id: <20071108010247.3144394c.akpm@linux-foundation.org>
+	superh to kconfig dependencies)
+Message-ID: <20071109092652.GA13350@linux-mips.org>
+References: <20071108073105.3996.70418.sendpatchset@clockwork.opensource.se> <20071108081854.GN8181@ftp.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 In-Reply-To: <20071108081854.GN8181@ftp.linux.org.uk>
-References: <20071108073105.3996.70418.sendpatchset@clockwork.opensource.se>
-	<20071108081854.GN8181@ftp.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 To: Al Viro <viro@ftp.linux.org.uk>
-Cc: magnus.damm@gmail.com, netdev@vger.kernel.org, lethal@linux-sh.org, ben-linux@fluff.org, jeff@garzik.org, linux-arch@vger.kernel.org
+Cc: Magnus Damm <magnus.damm@gmail.com>, netdev@vger.kernel.org, lethal@linux-sh.org, ben-linux@fluff.org, akpm@linux-foundation.org, jeff@garzik.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-> On Thu, 8 Nov 2007 08:18:54 +0000 Al Viro <viro@ftp.linux.org.uk> wrote:
+On Thu, Nov 08, 2007 at 08:18:54AM +0000, Al Viro wrote:
+
 > On Thu, Nov 08, 2007 at 04:31:05PM +0900, Magnus Damm wrote:
 > >  config AX88796
 > >  	tristate "ASIX AX88796 NE2000 clone support"
@@ -30,19 +34,12 @@ List-ID: <linux-arch.vger.kernel.org>
 > 	a) making it depend on PLAT_HAS_AX88796
 > 	b) adding selects for all subarchitectures that have the corresponding
 > platform device
-> and setting that as a uniform policy for platform drivers?
-
-Yup, but we should be religious about the naming conventions.  ARCH_HAS_
-and PLAT_HAS_ followed by the exact name of the thus-enabled config option.
-
->  For things like
+> and setting that as a uniform policy for platform drivers?  For things like
 > SM501 we would do
 > config MFD_SM501
 > 	depends on PCI || PLAT_HAS_SM501
 > etc.
-
-See, bug.  That should be PLAT_HAS_MFD_SM501
-
+> 
 > Seriously, folks, we are getting shitloads of platform drivers with no
 > dependencies whatsoever, needed on a handful of targets and occasionally
 > failing to build on unrelated architectures.  Moreover, having a list
@@ -52,4 +49,34 @@ See, bug.  That should be PLAT_HAS_MFD_SM501
 > 
 > Comments?
 
-grep PPC drivers/*/Kconfig and weep.
+commit def47c5095d53814512bb0c62ec02dfdec769db1
+Author: Jeff Garzik <jeff@garzik.org>
+Date:   Tue Jul 10 14:06:48 2007 -0400
+
+    [netdrvr] Fix dependencies for ax88796 ne2k clone driver
+    
+    It needs writesb(), not available on all platforms.
+    
+    Signed-off-by: Jeff Garzik <jeff@garzik.org>
+
+diff --git a/drivers/net/Kconfig b/drivers/net/Kconfig
+index a3bef22..a64c2fb 100644
+--- a/drivers/net/Kconfig
++++ b/drivers/net/Kconfig
+@@ -199,6 +199,7 @@ source "drivers/net/arm/Kconfig"
+ 
+ config AX88796
+        tristate "ASIX AX88796 NE2000 clone support"
++       depends on ARM || MIPS
+        select CRC32
+        select MII
+        help
+
+
+If writesb() is not an official API then maybe the answer should have been
+to either add that API to other architectures or fix the driver.
+
+I guess this incident means I need to go through all Kconfig* files to
+see what bogus architecture dependencies on MIPS or !MIPS exist ...
+
+  Ralf
