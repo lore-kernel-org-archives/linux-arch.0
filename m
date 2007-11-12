@@ -1,61 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate7.de.ibm.com ([195.212.29.156]:25489 "EHLO
-	mtagate7.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752929AbXKLOkP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2007 09:40:15 -0500
-Message-Id: <20071112144010.052155135@de.ibm.com>
-References: <20071112143009.425807965@de.ibm.com>
-Date: Mon, 12 Nov 2007 15:30:12 +0100
-From: schwidefsky@de.ibm.com
-Subject: [patch 3/3] arch_rebalance_pgtables call
-Content-Disposition: inline; filename=003-mm-update-pgd.diff
+Received: from relay1.corp.sgi.com ([192.48.171.29]:43628 "EHLO relay.sgi.com"
+	rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751250AbXKLTOH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Nov 2007 14:14:07 -0500
+Date: Mon, 12 Nov 2007 11:14:06 -0800 (PST)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu
+ access overhead
+In-Reply-To: <E1IrWuB-0005nS-00@gondolin.me.apana.org.au>
+Message-ID: <Pine.LNX.4.64.0711121112410.26682@schroedinger.engr.sgi.com>
+References: <E1IrWuB-0005nS-00@gondolin.me.apana.org.au>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: David Miller <davem@davemloft.net>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
 List-ID: <linux-arch.vger.kernel.org>
 
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+On Mon, 12 Nov 2007, Herbert Xu wrote:
 
-In order to change the layout of the page tables after an mmap has
-crossed the adress space limit of the current page table layout a
-architecture hook in get_unmapped_area is needed. The arguments
-are the address of the new mapping and the length of it.
+> David Miller <davem@davemloft.net> wrote:
+> > 
+> > Each IP compression tunnel instance does an alloc_percpu().
+> 
+> Actually all IPComp tunnels share one set of objects which are
+> allocated per-cpu.  So only the first tunnel would do that.
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
----
-
- mm/mmap.c |    6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
-
-Index: linux-2.6/mm/mmap.c
-===================================================================
---- linux-2.6.orig/mm/mmap.c
-+++ linux-2.6/mm/mmap.c
-@@ -36,6 +36,10 @@
- #define arch_mmap_check(addr, len, flags)	(0)
- #endif
- 
-+#ifndef arch_rebalance_pgtables
-+#define arch_rebalance_pgtables(addr, len)		(addr)
-+#endif
-+
- static void unmap_region(struct mm_struct *mm,
- 		struct vm_area_struct *vma, struct vm_area_struct *prev,
- 		unsigned long start, unsigned long end);
-@@ -1436,7 +1440,7 @@ get_unmapped_area(struct file *file, uns
- 	if (addr & ~PAGE_MASK)
- 		return -EINVAL;
- 
--	return addr;
-+	return arch_rebalance_pgtables(addr, len);
- }
- 
- EXPORT_SYMBOL(get_unmapped_area);
-
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+Ahh so the need to be able to expand per cpu memory storage on demand 
+is not as critical as we thought.
 
