@@ -1,107 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from emailhub.stusta.mhn.de ([141.84.69.5]:51886 "EHLO
-	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751285AbXKLGO6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2007 01:14:58 -0500
-Date: Mon, 12 Nov 2007 07:14:34 +0100
-From: Adrian Bunk <bunk@kernel.org>
-Subject: the kernel, gcc and libgcc
-Message-ID: <20071112061434.GB9771@stusta.de>
-References: <20071111064829.GG21669@stusta.de> <20071111073422.GA25323@linux-sh.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20071111073422.GA25323@linux-sh.org>
+Received: from rhun.apana.org.au ([64.62.148.172]:4313 "EHLO
+	arnor.apana.org.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753131AbXKLKxu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2007 05:53:50 -0500
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu access overhead
+In-Reply-To: <20071101.155805.65012933.davem@davemloft.net>
+Message-Id: <E1IrWuB-0005nS-00@gondolin.me.apana.org.au>
+Date: Mon, 12 Nov 2007 18:52:35 +0800
 Sender: linux-arch-owner@vger.kernel.org
-To: Paul Mundt <lethal@linux-sh.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: clameter@sgi.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
 List-ID: <linux-arch.vger.kernel.org>
 
-[ linux-arch added to the Cc,
-  a copy of my original email is at the bottom ]
+David Miller <davem@davemloft.net> wrote:
+> 
+> Each IP compression tunnel instance does an alloc_percpu().
 
-On Sun, Nov 11, 2007 at 04:34:22PM +0900, Paul Mundt wrote:
-> On Sun, Nov 11, 2007 at 07:48:29AM +0100, Adrian Bunk wrote:
-> > But the kernel does (at least on some architectures) not link with 
-> > libgcc or ship other code providing the required libgcc functions.
-> > 
-> > Richard Guenther suggested in gcc bug #32044 to use -fno-tree-scev-cprop 
-> > (new option in gcc 4.3) as a workaround and I confirmed that it fixes 
-> > the compilation.
-> > 
-> And some architectures do link it in, so the call to libgcc code doesn't
-> necessarily matter. Perhaps the architectures that don't link in libgcc
-> can turn this flag on conditionally, it shouldn't be forced on the
-> architectures that do link it in.
+Actually all IPComp tunnels share one set of objects which are
+allocated per-cpu.  So only the first tunnel would do that.
 
-We seem to have 3 different kinds of architectures:
-- does not provide libgcc at all
-- provides part of libgcc itself
-- links with libgcc
+In fact that was precisely the reason why per-cpu is used in
+IPComp as otherwise we can just allocate normal memory.
 
-And we also _might_ get away without requiring -fno-tree-scev-cprop on 
-some of the 64bit architectures that do not provide or link with libgcc.
-
-This all is horrible fragile, with the root of the problem being a 
-disagreement between what gcc expects an environment to provide and what 
-the kernel provides.
-
-After all, the real question is not whether we are able to limit the 
-workaround of disabling a minor optimization to fewer architectures,
-but to get this fixed properly.
-
-Ideally, we solve the latter making my patch not required on any 
-architecture.
-
-cu
-Adrian
-
-
-
-<--  snip  -->
-
-
-The gcc from svn that will become gcc 4.3 generates libgcc calls in 
-cases like the following (on 32bit architectures):
-
-<--  snip  -->
-
-static inline void timespec_add_ns(struct timespec *a, u64 ns)
-{
-...
-        while(ns >= NSEC_PER_SEC) {
-                ns -= NSEC_PER_SEC;
-                a->tv_sec++;
-        }
-...
-
-<--  snip  -->
-
-It can make sense to emit assembler code doing division for such C code -
-that doesn't seem to be something that would generally be wrong.
-
-But the kernel does (at least on some architectures) not link with 
-libgcc or ship other code providing the required libgcc functions.
-
-Richard Guenther suggested in gcc bug #32044 to use -fno-tree-scev-cprop 
-(new option in gcc 4.3) as a workaround and I confirmed that it fixes 
-the compilation.
-
-Signed-off-by: Adrian Bunk <bunk@kernel.org>
-
----
-f2357fcb8addd855f1be6ac9fdf4ef3c3ab8256d 
-diff --git a/Makefile b/Makefile
-index e28dde8..9d8a831 100644
---- a/Makefile
-+++ b/Makefile
-@@ -527,6 +527,9 @@ KBUILD_CFLAGS += $(call cc-option,-Wdeclaration-after-statement,)
- # disable pointer signed / unsigned warnings in gcc 4.0
- KBUILD_CFLAGS += $(call cc-option,-Wno-pointer-sign,)
- 
-+# workaround to avoid gcc 4.3 emitting libgcc calls (see gcc bug #32044)
-+KBUILD_CFLAGS += $(call cc-option,-fno-tree-scev-cprop,)
-+
- # Add user supplied CPPFLAGS, AFLAGS and CFLAGS as the last assignments
- # But warn user when we do so
- warn-assign = \
-
+Cheers,
+-- 
+Visit Openswan at http://www.openswan.org/
+Email: Herbert Xu ~{PmV>HI~} <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
