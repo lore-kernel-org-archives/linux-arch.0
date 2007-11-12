@@ -1,34 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw1.cosmosbay.com ([86.65.150.130]:53676 "EHLO
-	gw1.cosmosbay.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751484AbXKLUSq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2007 15:18:46 -0500
-Message-ID: <4738B509.9000305@cosmosbay.com>
-Date: Mon, 12 Nov 2007 21:18:17 +0100
-From: Eric Dumazet <dada1@cosmosbay.com>
-MIME-Version: 1.0
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:55972
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1751636AbXKLV3A (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Nov 2007 16:29:00 -0500
+Date: Mon, 12 Nov 2007 13:28:59 -0800 (PST)
+Message-Id: <20071112.132859.82406611.davem@davemloft.net>
 Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu
  access overhead
-References: <E1IrWuB-0005nS-00@gondolin.me.apana.org.au> <Pine.LNX.4.64.0711121112410.26682@schroedinger.engr.sgi.com> <4738AE04.1030506@cosmosbay.com> <Pine.LNX.4.64.0711121154270.27051@schroedinger.engr.sgi.com>
-In-Reply-To: <Pine.LNX.4.64.0711121154270.27051@schroedinger.engr.sgi.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 8bit
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <E1IrWuB-0005nS-00@gondolin.me.apana.org.au>
+References: <20071101.155805.65012933.davem@davemloft.net>
+	<E1IrWuB-0005nS-00@gondolin.me.apana.org.au>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, David Miller <davem@davemloft.net>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
+To: herbert@gondor.apana.org.au
+Cc: clameter@sgi.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
 List-ID: <linux-arch.vger.kernel.org>
 
-Christoph Lameter a écrit :
-> On Mon, 12 Nov 2007, Eric Dumazet wrote:
->> For example, I do think using a per cpu memory storage on net_device refcnt &
->> last_rx could give us some speedups.
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Date: Mon, 12 Nov 2007 18:52:35 +0800
+
+> David Miller <davem@davemloft.net> wrote:
+> > 
+> > Each IP compression tunnel instance does an alloc_percpu().
 > 
-> Note that there was a new patchset posted (titled cpu alloc v1) that 
-> provides on demand extension of the cpu areas.
+> Actually all IPComp tunnels share one set of objects which are
+> allocated per-cpu.  So only the first tunnel would do that.
 > 
-> See http://marc.info/?l=linux-kernel&m=119438261304093&w=2
+> In fact that was precisely the reason why per-cpu is used in
+> IPComp as otherwise we can just allocate normal memory.
 
-Thank you Christoph. I was traveling last week so I missed that.
-
-This new patchset looks very interesting, you did a fantastic job !
-
+Hmmm... indeed.  Thanks for clearing this up.
