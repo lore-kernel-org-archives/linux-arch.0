@@ -1,31 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rhun.apana.org.au ([64.62.148.172]:4313 "EHLO
-	arnor.apana.org.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753131AbXKLKxu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2007 05:53:50 -0500
-From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: Re: [patch 0/7] [RFC] SLUB: Improve allocpercpu to reduce per cpu access overhead
-In-Reply-To: <20071101.155805.65012933.davem@davemloft.net>
-Message-Id: <E1IrWuB-0005nS-00@gondolin.me.apana.org.au>
-Date: Mon, 12 Nov 2007 18:52:35 +0800
+Received: from mtagate5.de.ibm.com ([195.212.29.154]:54610 "EHLO
+	mtagate5.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752976AbXKLOkQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2007 09:40:16 -0500
+Message-Id: <20071112143009.425807965@de.ibm.com>
+Date: Mon, 12 Nov 2007 15:30:09 +0100
+From: schwidefsky@de.ibm.com
+Subject: [patch 0/3] page table changes
 Sender: linux-arch-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: clameter@sgi.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, penberg@cs.helsinki.fi
+To: akpm@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-David Miller <davem@davemloft.net> wrote:
-> 
-> Each IP compression tunnel instance does an alloc_percpu().
+Hi Andrew,
+more than 2 weeks have passed since I posted my six page table patches
+to linux-kernel/linux-arch. Nobody complained so far (keeping fingers
+crossed..) and Ben has a use for the first two patches on powerpc as
+well. Next logical step would be to add the patches that affect common
+code to the -mm tree, no?
+The three patches in this patchset do apply against your snapshot
+broken-out-2007-11-06-02-32.tar.gz. Please add.
 
-Actually all IPComp tunnels share one set of objects which are
-allocated per-cpu.  So only the first tunnel would do that.
-
-In fact that was precisely the reason why per-cpu is used in
-IPComp as otherwise we can just allocate normal memory.
-
-Cheers,
 -- 
-Visit Openswan at http://www.openswan.org/
-Email: Herbert Xu ~{PmV>HI~} <herbert@gondor.apana.org.au>
-Home Page: http://gondor.apana.org.au/~herbert/
-PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
+
