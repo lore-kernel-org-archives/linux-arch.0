@@ -1,94 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate7.uk.ibm.com ([195.212.29.140]:31339 "EHLO
-	mtagate7.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753803AbXKMRRy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2007 12:17:54 -0500
-Received: from d06nrmr1407.portsmouth.uk.ibm.com (d06nrmr1407.portsmouth.uk.ibm.com [9.149.38.185])
-	by mtagate7.uk.ibm.com (8.13.8/8.13.8) with ESMTP id lADHHoPt158998
-	for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2007 17:17:50 GMT
-Received: from d06av03.portsmouth.uk.ibm.com (d06av03.portsmouth.uk.ibm.com [9.149.37.213])
-	by d06nrmr1407.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v8.6) with ESMTP id lADHHoxe2756748
-	for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2007 17:17:50 GMT
-Received: from d06av03.portsmouth.uk.ibm.com (loopback [127.0.0.1])
-	by d06av03.portsmouth.uk.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id lADHHYKm013250
-	for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2007 17:17:34 GMT
-Received: from localhost (dyn-9-152-198-41.boeblingen.de.ibm.com [9.152.198.41])
-	by d06av03.portsmouth.uk.ibm.com (8.12.11.20060308/8.12.11) with ESMTP id lADHHYAn012756
-	for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2007 17:17:34 GMT
-Date: Tue, 13 Nov 2007 18:17:20 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Preemption and BKL
-Message-ID: <20071113171720.GA5229@osiris.boeblingen.de.ibm.com>
+Received: from smtp107.mail.mud.yahoo.com ([209.191.85.217]:33509 "HELO
+	smtp107.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1757912AbXKNAgB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Nov 2007 19:36:01 -0500
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+Subject: Re: [patch 3/3] arch_rebalance_pgtables call
+Date: Tue, 13 Nov 2007 23:33:37 +1100
+References: <20071112143009.425807965@de.ibm.com> <20071112144010.052155135@de.ibm.com>
+In-Reply-To: <20071112144010.052155135@de.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
+Message-Id: <200711132333.38086.nickpiggin@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
+To: schwidefsky@de.ibm.com
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-This might be broken on several other architectures as well therefore
-posting here:
+On Tuesday 13 November 2007 01:30, schwidefsky@de.ibm.com wrote:
+> From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+>
+> In order to change the layout of the page tables after an mmap has
+> crossed the adress space limit of the current page table layout a
+> architecture hook in get_unmapped_area is needed. The arguments
+> are the address of the new mapping and the length of it.
 
-We had a bug on s390 when preemption is enabled and preemption of the BKL
-is enabled as well. If returning from an interrupt to kernel context we
-check for TIF_NEED_RESCHED and if that is true we just call schedule().
+Can you comment what this is supposed to be fore somewhere?
 
-However this is broken. Instead of schedule we must call
-preempt_schedule_irq() otherwise the BKL will be unlocked and somebody else
-might grab it.
-This bug explains some strange list corruptions we've seen in fs/locks.c
-where all the locking is done with the BKL. And probably a bunch of other
-unexplainable bugs.
 
-Patch below is more or less what is needed on s390.
-
----
- arch/s390/kernel/entry.S   |    8 +++-----
- arch/s390/kernel/entry64.S |    7 +------
- 2 files changed, 4 insertions(+), 11 deletions(-)
-
-Index: linux-2.6/arch/s390/kernel/entry64.S
-===================================================================
---- linux-2.6.orig/arch/s390/kernel/entry64.S
-+++ linux-2.6/arch/s390/kernel/entry64.S
-@@ -583,12 +583,7 @@ io_preempt:
- io_resume_loop:
- 	tm	__TI_flags+7(%r9),_TIF_NEED_RESCHED
- 	jno	io_leave
--	larl	%r1,.Lc_pactive
--	mvc	__TI_precount(4,%r9),0(%r1)
--	stosm	__SF_EMPTY(%r15),0x03	# reenable interrupts
--	brasl	%r14,schedule		# call schedule
--	stnsm	__SF_EMPTY(%r15),0xfc	# disable I/O and ext. interrupts
--	xc	__TI_precount(4,%r9),__TI_precount(%r9)
-+	brasl	%r14,preempt_schedule_irq	# call schedule
- 	j	io_resume_loop
- #endif
- 
-Index: linux-2.6/arch/s390/kernel/entry.S
-===================================================================
---- linux-2.6.orig/arch/s390/kernel/entry.S
-+++ linux-2.6/arch/s390/kernel/entry.S
-@@ -597,12 +597,8 @@ io_preempt:
- io_resume_loop:
- 	tm	__TI_flags+3(%r9),_TIF_NEED_RESCHED
- 	bno	BASED(io_leave)
--	mvc	__TI_precount(4,%r9),BASED(.Lc_pactive)
--	stosm	__SF_EMPTY(%r15),0x03  # reenable interrupts
--	l	%r1,BASED(.Lschedule)
-+	l	%r1,BASED(.Lpreempt_schedule_irq)
- 	basr	%r14,%r1	       # call schedule
--	stnsm	__SF_EMPTY(%r15),0xfc  # disable I/O and ext. interrupts
--	xc	__TI_precount(4,%r9),__TI_precount(%r9)
- 	b	BASED(io_resume_loop)
- #endif
- 
-@@ -1043,6 +1039,8 @@ cleanup_io_leave_insn:
- .Lexecve_tail:	.long	execve_tail
- .Ljump_table:	.long	pgm_check_table
- .Lschedule:	.long	schedule
-+.Lpreempt_schedule_irq:
-+		.long	preempt_schedule_irq
- .Ltrace:	.long	syscall_trace
- .Lschedtail:	.long	schedule_tail
- .Lsysc_table:	.long	sys_call_table
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> ---
+>
+>  mm/mmap.c |    6 +++++-
+>  1 file changed, 5 insertions(+), 1 deletion(-)
+>
+> Index: linux-2.6/mm/mmap.c
+> ===================================================================
+> --- linux-2.6.orig/mm/mmap.c
+> +++ linux-2.6/mm/mmap.c
+> @@ -36,6 +36,10 @@
+>  #define arch_mmap_check(addr, len, flags)	(0)
+>  #endif
+>
+> +#ifndef arch_rebalance_pgtables
+> +#define arch_rebalance_pgtables(addr, len)		(addr)
+> +#endif
+> +
+>  static void unmap_region(struct mm_struct *mm,
+>  		struct vm_area_struct *vma, struct vm_area_struct *prev,
+>  		unsigned long start, unsigned long end);
+> @@ -1436,7 +1440,7 @@ get_unmapped_area(struct file *file, uns
+>  	if (addr & ~PAGE_MASK)
+>  		return -EINVAL;
+>
+> -	return addr;
+> +	return arch_rebalance_pgtables(addr, len);
+>  }
+>
+>  EXPORT_SYMBOL(get_unmapped_area);
