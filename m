@@ -1,34 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:60610 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:33410 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754156AbXKNP7o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Nov 2007 10:59:44 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20071114152345.GB20973@wotan.suse.de>
-References: <20071114152345.GB20973@wotan.suse.de> <17161.1195048613@redhat.com>
-Subject: Re: Should PAGE_CACHE_SIZE be discarded?
-Date: Wed, 14 Nov 2007 15:59:39 +0000
-Message-ID: <22558.1195055979@redhat.com>
+	id S1753258AbXKNUQv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Nov 2007 15:16:51 -0500
+Message-Id: <20071114201528.514434000@chello.nl>
+References: <20071114200136.009242000@chello.nl>
+Date: Wed, 14 Nov 2007 21:01:39 +0100
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 3/3] nfs: use ->mmap_prepare() to avoid an AB-BA deadlock
+Content-Disposition: inline; filename=mmap_prepare_nfs.patch
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: dhowells@redhat.com, torvalds@osdl.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Trond Myklebust <trond.myklebust@fys.uio.no>, Nick Piggin <npiggin@suse.de>, Hugh Dickins <hugh@veritas.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 List-ID: <linux-arch.vger.kernel.org>
 
-Nick Piggin <npiggin@suse.de> wrote:
+Normal locking order is:
 
-> Christoph Lameter has patches exactly to make PAGE_CACHE_SIZE larger than
-> PAGE_SIZE, and they seem to work without much effort. I happen to hate the
-> patches ;) but that doesn't change the fact that PAGE_CACHE_SIZE is
-> relatively useful and it is not at all an ill-defined concept.
+  i_mutex
+    mmap_sem
 
-Where, please? mm kernels?
+However NFS's ->mmap hook, which is called under mmap_sem, can take i_mutex.
+Avoid this potential deadlock by doing the work that requires i_mutex from
+the new ->mmap_prepare().
 
-> Basically, anything that goes in the page cache is in units of
-> PAGE_CACHE_SIZE, and nothing else. For filesystems it should be pretty
-> easy...
+[ Is this sufficient, or does it introduce a race? ]
 
-That depends on what the coverage of struct page is.  I don't actually know
-whether this is PAGE_SIZE or PAGE_CACHE_SIZE; I assumed it to be the former,
-but from what you've said, I'm not actually sure.
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ fs/nfs/file.c |   25 +++++++++++++++++--------
+ 1 file changed, 17 insertions(+), 8 deletions(-)
 
-David
+Index: linux-2.6/fs/nfs/file.c
+===================================================================
+--- linux-2.6.orig/fs/nfs/file.c
++++ linux-2.6/fs/nfs/file.c
+@@ -41,6 +41,9 @@
+ static int nfs_file_open(struct inode *, struct file *);
+ static int nfs_file_release(struct inode *, struct file *);
+ static loff_t nfs_file_llseek(struct file *file, loff_t offset, int origin);
++static int
++nfs_file_mmap_prepare(struct file * file, unsigned long len,
++		unsigned long prot, unsigned long flags, unsigned long pgoff);
+ static int  nfs_file_mmap(struct file *, struct vm_area_struct *);
+ static ssize_t nfs_file_splice_read(struct file *filp, loff_t *ppos,
+ 					struct pipe_inode_info *pipe,
+@@ -64,6 +67,7 @@ const struct file_operations nfs_file_op
+ 	.write		= do_sync_write,
+ 	.aio_read	= nfs_file_read,
+ 	.aio_write	= nfs_file_write,
++	.mmap_prepare	= nfs_file_mmap_prepare,
+ 	.mmap		= nfs_file_mmap,
+ 	.open		= nfs_file_open,
+ 	.flush		= nfs_file_flush,
+@@ -270,7 +274,8 @@ nfs_file_splice_read(struct file *filp, 
+ }
+ 
+ static int
+-nfs_file_mmap(struct file * file, struct vm_area_struct * vma)
++nfs_file_mmap_prepare(struct file * file, unsigned long len,
++		unsigned long prot, unsigned long flags, unsigned long pgoff)
+ {
+ 	struct dentry *dentry = file->f_path.dentry;
+ 	struct inode *inode = dentry->d_inode;
+@@ -279,13 +284,17 @@ nfs_file_mmap(struct file * file, struct
+ 	dfprintk(VFS, "nfs: mmap(%s/%s)\n",
+ 		dentry->d_parent->d_name.name, dentry->d_name.name);
+ 
+-	status = nfs_revalidate_mapping(inode, file->f_mapping);
+-	if (!status) {
+-		vma->vm_ops = &nfs_file_vm_ops;
+-		vma->vm_flags |= VM_CAN_NONLINEAR;
+-		file_accessed(file);
+-	}
+-	return status;
++	return nfs_revalidate_mapping(inode, file->f_mapping);
++}
++
++static int
++nfs_file_mmap(struct file *file, struct vm_area_struct *vma)
++{
++	vma->vm_ops = &nfs_file_vm_ops;
++	vma->vm_flags |= VM_CAN_NONLINEAR;
++	file_accessed(file);
++
++	return 0;
+ }
+ 
+ /*
+
+--
+
