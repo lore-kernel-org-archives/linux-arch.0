@@ -1,47 +1,230 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59031 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752529AbXKNKGw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Nov 2007 05:06:52 -0500
-Subject: Re: [patch 3/3] arch_rebalance_pgtables call
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Reply-To: benh@kernel.crashing.org
-In-Reply-To: <1195032394.9446.6.camel@localhost>
-References: <20071112143009.425807965@de.ibm.com>
-	 <20071112144010.052155135@de.ibm.com>
-	 <200711132333.38086.nickpiggin@yahoo.com.au>
-	 <1195032394.9446.6.camel@localhost>
-Content-Type: text/plain
-Date: Wed, 14 Nov 2007 21:06:36 +1100
-Message-Id: <1195034796.28865.36.camel@pasglop>
-Mime-Version: 1.0
+Received: from E23SMTP06.au.ibm.com ([202.81.18.175]:38611 "EHLO
+	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750718AbXKNKIw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2007 05:08:52 -0500
+Received: from sd0109e.au.ibm.com (d23rh905.au.ibm.com [202.81.18.225])
+	by e23smtp06.au.ibm.com (8.13.1/8.13.1) with ESMTP id lAEA8hxU008200
+	for <linux-arch@vger.kernel.org>; Wed, 14 Nov 2007 21:08:43 +1100
+Received: from d23av04.au.ibm.com (d23av04.au.ibm.com [9.190.235.139])
+	by sd0109e.au.ibm.com (8.13.8/8.13.8/NCO v8.6) with ESMTP id lAEAB6ca263022
+	for <linux-arch@vger.kernel.org>; Wed, 14 Nov 2007 21:11:06 +1100
+Received: from d23av04.au.ibm.com (loopback [127.0.0.1])
+	by d23av04.au.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id lAEA7Eqq011866
+	for <linux-arch@vger.kernel.org>; Wed, 14 Nov 2007 21:07:14 +1100
+Message-ID: <473AC8C5.60201@linux.vnet.ibm.com>
+Date: Wed, 14 Nov 2007 15:37:01 +0530
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Subject: [PATCH] Introduce ext4_find_next_bit
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
-To: schwidefsky@de.ibm.com
-Cc: Nick Piggin <nickpiggin@yahoo.com.au>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+I would like feedback on the arm, m68k and s390. I haven't compile tested
+this on these archs 
 
-On Wed, 2007-11-14 at 10:26 +0100, Martin Schwidefsky wrote:
-> That patch allows processes to have different number of page table
-> levels, 31 bit processes have 2 levels (2GB), normal 64 bit processes
-> have 3 levels (4TB) and really big 64 bit processes can have 4 levels
-> (8PB). The downgrade of a page table to use less levels than the
-> parent
-> process is done in arch_pick_mmap_layout. The upgrade is done by using
-> the arch_rebalance_pgtables call. I've considered using the
-> arch_get_unmapped_area but got scared by the indirection in
-> get_unmapped_area:
-> 
->         get_area = current->mm->get_unmapped_area;
->         if (file && file->f_op && file->f_op->get_unmapped_area)
->                 get_area = file->f_op->get_unmapped_area;
->         addr = get_area(file, addr, len, pgoff, flags);
-
-Don't be, it's really only hugetlb and other arch specific stuff that
-hook in here on platforms with an MMU (It's also used by /dev/mem etc...
-for mmu-less platforms but you don't care).
-
-Ben.
+-aneesh
 
 
+
+Introduce ext4_find_next_bit
+
+From: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+
+This gets used by the ext4 multi block allocator patches.
+
+Also add generic_find_next_le_bit
+
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+Cc: <linux-ext4@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/asm-arm/bitops.h                     |    2 +
+ include/asm-generic/bitops/ext2-non-atomic.h |    2 +
+ include/asm-generic/bitops/le.h              |    4 ++
+ include/asm-m68k/bitops.h                    |    2 +
+ include/asm-m68knommu/bitops.h               |    2 +
+ include/asm-powerpc/bitops.h                 |    4 ++
+ include/asm-s390/bitops.h                    |    2 +
+ include/linux/ext4_fs.h                      |    1 +
+ lib/find_next_bit.c                          |   44 ++++++++++++++++++++++++++
+ 9 files changed, 63 insertions(+), 0 deletions(-)
+
+
+diff --git a/include/asm-arm/bitops.h b/include/asm-arm/bitops.h
+index 47a6b08..5c60bfc 100644
+--- a/include/asm-arm/bitops.h
++++ b/include/asm-arm/bitops.h
+@@ -310,6 +310,8 @@ static inline int constant_fls(int x)
+ 		_find_first_zero_bit_le(p,sz)
+ #define ext2_find_next_zero_bit(p,sz,off)	\
+ 		_find_next_zero_bit_le(p,sz,off)
++#define ext2_find_next_bit(p, sz, off) \
++		_find_next_bit_le(p, sz, off)
+ 
+ /*
+  * Minix is defined to use little-endian byte ordering.
+diff --git a/include/asm-generic/bitops/ext2-non-atomic.h b/include/asm-generic/bitops/ext2-non-atomic.h
+index 1697404..63cf822 100644
+--- a/include/asm-generic/bitops/ext2-non-atomic.h
++++ b/include/asm-generic/bitops/ext2-non-atomic.h
+@@ -14,5 +14,7 @@
+ 	generic_find_first_zero_le_bit((unsigned long *)(addr), (size))
+ #define ext2_find_next_zero_bit(addr, size, off) \
+ 	generic_find_next_zero_le_bit((unsigned long *)(addr), (size), (off))
++#define ext2_find_next_bit(addr, size, off) \
++	generic_find_next_le_bit((unsigned long *)(addr), (size), (off))
+ 
+ #endif /* _ASM_GENERIC_BITOPS_EXT2_NON_ATOMIC_H_ */
+diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
+index b9c7e5d..80e3bf1 100644
+--- a/include/asm-generic/bitops/le.h
++++ b/include/asm-generic/bitops/le.h
+@@ -20,6 +20,8 @@
+ #define generic___test_and_clear_le_bit(nr, addr) __test_and_clear_bit(nr, addr)
+ 
+ #define generic_find_next_zero_le_bit(addr, size, offset) find_next_zero_bit(addr, size, offset)
++#define generic_find_next_le_bit(addr, size, offset) \
++			find_next_bit(addr, size, offset)
+ 
+ #elif defined(__BIG_ENDIAN)
+ 
+@@ -42,6 +44,8 @@
+ 
+ extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
+ 		unsigned long size, unsigned long offset);
++extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
++		unsigned long size, unsigned long offset);
+ 
+ #else
+ #error "Please fix <asm/byteorder.h>"
+diff --git a/include/asm-m68k/bitops.h b/include/asm-m68k/bitops.h
+index 2976b5d..83d1f28 100644
+--- a/include/asm-m68k/bitops.h
++++ b/include/asm-m68k/bitops.h
+@@ -410,6 +410,8 @@ static inline int ext2_find_next_zero_bit(const void *vaddr, unsigned size,
+ 	res = ext2_find_first_zero_bit (p, size - 32 * (p - addr));
+ 	return (p - addr) * 32 + res;
+ }
++#define ext2_find_next_bit(addr, size, off) \
++	generic_find_next_le_bit((unsigned long *)(addr), (size), (off))
+ 
+ #endif /* __KERNEL__ */
+ 
+diff --git a/include/asm-m68knommu/bitops.h b/include/asm-m68knommu/bitops.h
+index f8dfb7b..f43afe1 100644
+--- a/include/asm-m68knommu/bitops.h
++++ b/include/asm-m68knommu/bitops.h
+@@ -294,6 +294,8 @@ found_middle:
+ 	return result + ffz(__swab32(tmp));
+ }
+ 
++#define ext2_find_next_bit(addr, size, off) \
++	generic_find_next_le_bit((unsigned long *)(addr), (size), (off))
+ #include <asm-generic/bitops/minix.h>
+ 
+ #endif /* __KERNEL__ */
+diff --git a/include/asm-powerpc/bitops.h b/include/asm-powerpc/bitops.h
+index 733b4af..220d9a7 100644
+--- a/include/asm-powerpc/bitops.h
++++ b/include/asm-powerpc/bitops.h
+@@ -359,6 +359,8 @@ static __inline__ int test_le_bit(unsigned long nr,
+ unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
+ 				    unsigned long size, unsigned long offset);
+ 
++unsigned long generic_find_next_le_bit(const unsigned long *addr,
++				    unsigned long size, unsigned long offset);
+ /* Bitmap functions for the ext2 filesystem */
+ 
+ #define ext2_set_bit(nr,addr) \
+@@ -378,6 +380,8 @@ unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
+ #define ext2_find_next_zero_bit(addr, size, off) \
+ 	generic_find_next_zero_le_bit((unsigned long*)addr, size, off)
+ 
++#define ext2_find_next_bit(addr, size, off) \
++	generic_find_next_le_bit((unsigned long *)addr, size, off)
+ /* Bitmap functions for the minix filesystem.  */
+ 
+ #define minix_test_and_set_bit(nr,addr) \
+diff --git a/include/asm-s390/bitops.h b/include/asm-s390/bitops.h
+index 34d9a63..dba6fec 100644
+--- a/include/asm-s390/bitops.h
++++ b/include/asm-s390/bitops.h
+@@ -772,6 +772,8 @@ static inline int sched_find_first_bit(unsigned long *b)
+ 	test_and_clear_bit((nr)^(__BITOPS_WORDSIZE - 8), (unsigned long *)addr)
+ #define ext2_test_bit(nr, addr)      \
+ 	test_bit((nr)^(__BITOPS_WORDSIZE - 8), (unsigned long *)addr)
++#define ext2_find_next_bit(addr, size, off) \
++	generic_find_next_le_bit((unsigned long *)(addr), (size), (off))
+ 
+ #ifndef __s390x__
+ 
+diff --git a/include/linux/ext4_fs.h b/include/linux/ext4_fs.h
+index e8b323e..daa5b26 100644
+--- a/include/linux/ext4_fs.h
++++ b/include/linux/ext4_fs.h
+@@ -493,6 +493,7 @@ do {									       \
+ #define ext4_test_bit			ext2_test_bit
+ #define ext4_find_first_zero_bit	ext2_find_first_zero_bit
+ #define ext4_find_next_zero_bit		ext2_find_next_zero_bit
++#define ext4_find_next_bit		ext2_find_next_bit
+ 
+ /*
+  * Maximal mount counts between two filesystem checks
+diff --git a/lib/find_next_bit.c b/lib/find_next_bit.c
+index bda0d71..0306c04 100644
+--- a/lib/find_next_bit.c
++++ b/lib/find_next_bit.c
+@@ -178,4 +178,48 @@ found_middle_swap:
+ 
+ EXPORT_SYMBOL(generic_find_next_zero_le_bit);
+ 
++unsigned long generic_find_next_le_bit(const unsigned long *addr, unsigned
++		long size, unsigned long offset)
++{
++	const unsigned long *p = addr + BITOP_WORD(offset);
++	unsigned long result = offset & ~(BITS_PER_LONG - 1);
++	unsigned long tmp;
++
++	if (offset >= size)
++		return size;
++	size -= result;
++	offset &= (BITS_PER_LONG - 1UL);
++	if (offset) {
++		tmp = ext2_swabp(p++);
++		tmp &= (~0UL << offset);
++		if (size < BITS_PER_LONG)
++			goto found_first;
++		if (tmp)
++			goto found_middle;
++		size -= BITS_PER_LONG;
++		result += BITS_PER_LONG;
++	}
++
++	while (size & ~(BITS_PER_LONG - 1)) {
++		tmp = *(p++);
++		if (tmp)
++			goto found_middle_swap;
++		result += BITS_PER_LONG;
++		size -= BITS_PER_LONG;
++	}
++	if (!size)
++		return result;
++	tmp = ext2_swabp(p);
++found_first:
++	tmp &= (~0UL >> (BITS_PER_LONG - size));
++	if (tmp == 0UL)		/* Are any bits set? */
++		return result + size; /* Nope. */
++found_middle:
++	return result + __ffs(tmp);
++
++found_middle_swap:
++	return result + __ffs(ext2_swab(tmp));
++}
++EXPORT_SYMBOL(generic_find_next_le_bit);
++
+ #endif /* __BIG_ENDIAN */
