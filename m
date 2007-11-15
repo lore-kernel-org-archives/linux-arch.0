@@ -1,41 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pat.uio.no ([129.240.10.15]:46458 "EHLO pat.uio.no"
+Received: from pasmtpb.tele.dk ([80.160.77.98]:53652 "EHLO pasmtpB.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752058AbXKNWxo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Nov 2007 17:53:44 -0500
-Subject: Re: [PATCH 3/3] nfs: use ->mmap_prepare() to avoid an AB-BA
-	deadlock
-From: Trond Myklebust <trond.myklebust@fys.uio.no>
-In-Reply-To: <20071114222448.GE31048@wotan.suse.de>
-References: <20071114200136.009242000@chello.nl>
-	 <20071114201528.514434000@chello.nl> <20071114212246.GA31048@wotan.suse.de>
-	 <1195075905.22457.3.camel@lappy>
-	 <1195076485.7584.66.camel@heimdal.trondhjem.org>
-	 <1195077034.22457.6.camel@lappy>
-	 <1195078730.7584.86.camel@heimdal.trondhjem.org>
-	 <20071114222448.GE31048@wotan.suse.de>
-Content-Type: text/plain
-Date: Wed, 14 Nov 2007 17:53:48 -0500
-Message-Id: <1195080828.7584.96.camel@heimdal.trondhjem.org>
+	id S1757007AbXKOJBN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Nov 2007 04:01:13 -0500
+Date: Thu, 15 Nov 2007 10:02:15 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: HAVE or ARCH_HAS or ARCH_SUPPORTS and use of select
+Message-ID: <20071115090215.GA20612@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
-To: Nick Piggin <npiggin@suse.de>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hugh@veritas.com>
+To: linux arch <linux-arch@vger.kernel.org>, Mathieu Desnoyers <compudj@krystal.dyndns.org>
+Cc: Randy Dunlap <rdunlap@xenotime.net>
 List-ID: <linux-arch.vger.kernel.org>
 
+I just asked Mathieu to use ARCH_HAS_<config-symbol>
+when an architecture should say that it uses the
+generic KPROBSE functionality.
 
-On Wed, 2007-11-14 at 23:24 +0100, Nick Piggin wrote:
+ARCH_HAS was selected from a pure "what is most popular today"
+grep of the kernel source.
 
-> mmap()s can be different from read in that the syscall may have little
-> relation to when the data gets used. But I guess it's still a best
-> effort thing. Fair enough.
+It is used roughly like this:
 
-Agreed that mmap() is special and very problematic on NFS. However I
-can't see how we can improve on the existing models short of some
-significant protocol modifications, and so far, nobody has presented the
-IETF with a good case for why they need this level of cache consistency.
+*Generic Kconfig file:*
+config KPROBES
+	depends on ARCH_HAS_KPROBES
+	bool "bla bla"
 
-Cheers
-   Trond
+# let arch that support KPROBES select the below symbol.
+# Note: no dependencies allowed on ARCH_HAS_ symbols!
+config ARCH_HAS_KPROBES
+	def_bool n
 
+*Arch specific Kconfig file:*
+config X86
+	select ARCH_HAS_KPROBES
+
+
+But I felt a bit uneasy with the wording "ARCH_HAS" because
+in reality it is "ARCH_USES" or "ARCH_SUPPORTS" because
+in this case X86 uses the generic KPROBES functionality
+or maybe it just supports it.
+On the config level do we really want to ditingush between "HAS",
+"SUPPORTS", "USE" and whatever the next person come up with?
+
+automake and friends uses HAVE_ and I dunno about other tools.
+
+Could we come up with a naming that fits the current usages we
+could standardize on this.
+When we have it defined I will update kconfig-language.txt
+and try to chase people that fail to use the naming scheme.
+(Or I will ask Randy to do it so it is readable for humans..)
+
+For x86 for instance there is potential for some cleaning and likewise
+in other archs.
+
+	Sam
