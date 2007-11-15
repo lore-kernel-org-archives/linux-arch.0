@@ -1,64 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lazybastard.de ([212.112.238.170]:52057 "EHLO
-	longford.lazybastard.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753039AbXKORpP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2007 12:45:15 -0500
-Date: Thu, 15 Nov 2007 18:09:30 +0100
-From: =?utf-8?B?SsO2cm4=?= Engel <joern@logfs.org>
-Subject: Re: Should PAGE_CACHE_SIZE be discarded?
-Message-ID: <20071115170930.GD10165@lazybastard.org>
-References: <17161.1195048613@redhat.com>
+Received: from pasmtpb.tele.dk ([80.160.77.98]:57612 "EHLO pasmtpB.tele.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751718AbXKOSNX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Nov 2007 13:13:23 -0500
+Date: Thu, 15 Nov 2007 19:14:51 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: HAVE or ARCH_HAS or ARCH_SUPPORTS and use of select
+Message-ID: <20071115181451.GA23914@uranus.ravnborg.org>
+References: <20071115090215.GA20612@uranus.ravnborg.org> <20071115122151.GA10359@Krystal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <17161.1195048613@redhat.com>
+In-Reply-To: <20071115122151.GA10359@Krystal>
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, npiggin@suse.de
+To: Mathieu Desnoyers <compudj@krystal.dyndns.org>
+Cc: linux arch <linux-arch@vger.kernel.org>, Randy Dunlap <rdunlap@xenotime.net>
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 14 November 2007 13:56:53 +0000, David Howells wrote:
+On Thu, Nov 15, 2007 at 07:21:51AM -0500, Mathieu Desnoyers wrote:
 > 
-> Are we ever going to have PAGE_CACHE_SIZE != PAGE_SIZE?  If not, why not
-> discard PAGE_CACHE_SIZE as it's then redundant.
+> FWIW, I've used "NEED_*" in my LTTng patchset to specify when an
+> architecture needs support from an architecture independent module. (it
+> could be an alternative to USE_*).
 
-I did some digging.  The code was merged between 28.4.1999 and
-11.5.1999, as it first appears in 2.2.8 and 2.3.0:
+The situations we need to cover are:
 
-/*
- * The page cache can done in larger chunks than
- * one page, because it allows for more efficient
- * throughput (it can then be mapped into user
- * space in smaller chunks for same flexibility).
- *
- * Or rather, it _will_ be done in larger chunks.
- */
-#define PAGE_CACHE_SHIFT        PAGE_SHIFT
-#define PAGE_CACHE_SIZE         PAGE_SIZE
-#define PAGE_CACHE_MASK         PAGE_MASK
+1) An architecture uses or support a generic implementation
+   Examples: KPROBES, GENERIC_TIME
 
-#define page_cache_alloc()      __get_free_page(GFP_USER)
-#define page_cache_free(x)      free_page(x)
-#define page_cache_release(x)   __free_page(x)
+2) An architecture uses a specific functionality
+   Examples: MMU
 
-Looks like PAGE_CACHE_SIZE>PAGE_SIZE was planned before 2.3 opened, but
-never went very far.  So judging by the last eight years of history,
-PAGE_CACHE_SIZE is dead.
+3) Architecture provide a specific functionality
+   Examples: ARCH_HAS_ILOG2_U32, ARCH_HAS_ILOG2_U64
 
-Completely discarding it might be a bad idea, as it serves as code
-annotation.  Christoph Lameters "Large Blocksize Support" patches seem
-to globally replace PAGE_CACHE_SIZE with a different macro.  Having
-PAGE_CACHE_SIZE makes such an effort easier.  Dropping existing
-annotation seems useless, when maintaining them is zero effort.
+4) A driver is supported by a subset of the architectures
+   Example: config EDAC
+                   depends on X86 || PPC
 
-Large code audits for the PAGE_SIZE/PAGE_CACHE_SIZE distinction seem
-completely useless, though.  For as long as the macro existed, it never
-ever mattered.  My take is to keep it and let it bitrot until someone
-actually cares.
 
-Jörn
+I'm very tempted to go with the suggestion of Russell and
+say that the naming is the very generic:
+HAVE_<config-symbol>
 
--- 
-Joern's library part 6:
-http://www.gzip.org/zlib/feldspar.html
+We know it from the auto-tools (albeit that could be a reason to avoid it)
+And we can hardly put wrong interpretations in the HAVE_ thing.
+
+	Sam
