@@ -1,34 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:55545 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757320AbXKOK1I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2007 05:27:08 -0500
-Date: Thu, 15 Nov 2007 10:26:38 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: HAVE or ARCH_HAS or ARCH_SUPPORTS and use of select
-Message-ID: <20071115102638.GB748@flint.arm.linux.org.uk>
-References: <20071115090215.GA20612@uranus.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20071115090215.GA20612@uranus.ravnborg.org>
+Received: from mx1.redhat.com ([66.187.233.31]:33114 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759614AbXKOMFi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Nov 2007 07:05:38 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20071114213543.GC31048@wotan.suse.de>
+References: <20071114213543.GC31048@wotan.suse.de> <20071114152345.GB20973@wotan.suse.de> <17161.1195048613@redhat.com> <22558.1195055979@redhat.com>
+Subject: Re: Should PAGE_CACHE_SIZE be discarded?
+Date: Thu, 15 Nov 2007 12:05:03 +0000
+Message-ID: <311.1195128303@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux arch <linux-arch@vger.kernel.org>, Mathieu Desnoyers <compudj@krystal.dyndns.org>, Randy Dunlap <rdunlap@xenotime.net>
+To: Nick Piggin <npiggin@suse.de>
+Cc: dhowells@redhat.com, torvalds@osdl.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Nov 15, 2007 at 10:02:15AM +0100, Sam Ravnborg wrote:
-> automake and friends uses HAVE_ and I dunno about other tools.
+Nick Piggin <npiggin@suse.de> wrote:
 
-For the sake of conciseness, HAVE_ is the obvious winner.  Though
-I'm not sure that we particularly go for conciseness:
+> It can be pretty well any power of 2 from PAGE_SIZE upwards, with
+> compound pages. None of the filesystems should really care at all.
+> It's not even a new concept, hugetlbfs uses HPAGE_SIZE...
 
-config ARCH_MAY_HAVE_PC_FDC
+Ummm... The filesystem has to care.  If the VFS/VM says 'fill this page' you
+do need to know how big the page is or whether it's even actually several
+pages.
 
-I've no particular preference for any particular prefix above
-conciseness.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+David
