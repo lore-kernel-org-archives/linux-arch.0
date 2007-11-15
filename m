@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:52757 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:56406 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756092AbXKOXxA (ORCPT
+	by vger.kernel.org with ESMTP id S1756092AbXKOXxW (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Nov 2007 18:53:00 -0500
-Message-Id: <200711152352.lAFNqkQp022343@imap1.linux-foundation.org>
-Subject: + aout-mark-arches-that-support-aout-format.patch added to -mm tree
+	Thu, 15 Nov 2007 18:53:22 -0500
+Message-Id: <200711152353.lAFNr050022349@imap1.linux-foundation.org>
+Subject: + aout-remove-unnecessary-inclusions-of-asm-linux-aouth.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Thu, 15 Nov 2007 15:52:46 -0800
+Date: Thu, 15 Nov 2007 15:53:00 -0800
 Sender: linux-arch-owner@vger.kernel.org
 To: mm-commits@vger.kernel.org
 Cc: dhowells@redhat.com, linux-arch@vger.kernel.org
@@ -15,9 +15,9 @@ List-ID: <linux-arch.vger.kernel.org>
 
 
 The patch titled
-     AOUT: Mark arches that support A.OUT format
+     AOUT: Remove unnecessary inclusions of {asm, linux}/a.out.h
 has been added to the -mm tree.  Its filename is
-     aout-mark-arches-that-support-aout-format.patch
+     aout-remove-unnecessary-inclusions-of-asm-linux-aouth.patch
 
 *** Remember to use Documentation/SubmitChecklist when testing your code ***
 
@@ -25,356 +25,343 @@ See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
 out what to do about this
 
 ------------------------------------------------------
-Subject: AOUT: Mark arches that support A.OUT format
+Subject: AOUT: Remove unnecessary inclusions of {asm, linux}/a.out.h
 From: David Howells <dhowells@redhat.com>
 
-Mark arches that support A.OUT format by including the following in their
-master Kconfig files:
-
-	config ARCH_SUPPORTS_AOUT
-		def_bool y
-
-This should also be set if the arch provides compatibility A.OUT support for
-an older arch, for instance x86_64 for i386 or sparc64 for sparc.
-
-I've guessed at which arches don't, based on comments in the code, however I'm
-sure that some of the ones I've marked as 'yes' actually should be 'no'.
+Remove now unnecessary inclusions of {asm,linux}/a.out.h.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/alpha/Kconfig     |    3 +++
- arch/arm/Kconfig       |    3 +++
- arch/avr32/Kconfig     |    3 +++
- arch/blackfin/Kconfig  |    3 +++
- arch/cris/Kconfig      |    3 +++
- arch/frv/Kconfig       |    3 +++
- arch/h8300/Kconfig     |    3 +++
- arch/ia64/Kconfig      |    3 +++
- arch/m32r/Kconfig      |    3 +++
- arch/m68k/Kconfig      |    3 +++
- arch/m68knommu/Kconfig |    3 +++
- arch/mips/Kconfig      |    3 +++
- arch/parisc/Kconfig    |    3 +++
- arch/powerpc/Kconfig   |    3 +++
- arch/ppc/Kconfig       |    3 +++
- arch/s390/Kconfig      |    3 +++
- arch/sh/Kconfig        |    3 +++
- arch/sh64/Kconfig      |    3 +++
- arch/sparc/Kconfig     |    3 +++
- arch/sparc64/Kconfig   |    3 +++
- arch/um/Kconfig.i386   |    2 ++
- arch/um/Kconfig.x86_64 |    2 ++
- arch/v850/Kconfig      |    3 +++
- arch/xtensa/Kconfig    |    3 +++
- 24 files changed, 70 insertions(+)
+ arch/alpha/kernel/osf_sys.c         |    1 -
+ arch/alpha/kernel/process.c         |    1 -
+ arch/alpha/kernel/setup.c           |    1 -
+ arch/arm/kernel/process.c           |    1 -
+ arch/blackfin/kernel/process.c      |    1 -
+ arch/m68k/kernel/process.c          |    1 -
+ arch/m68k/kernel/traps.c            |    1 -
+ arch/sparc/kernel/process.c         |    1 -
+ arch/sparc/kernel/setup.c           |    1 -
+ arch/sparc/kernel/sparc_ksyms.c     |    1 -
+ arch/sparc/mm/loadmmu.c             |    1 -
+ arch/sparc/mm/srmmu.c               |    1 -
+ arch/sparc64/kernel/binfmt_elf32.c  |    2 --
+ arch/sparc64/kernel/process.c       |    1 -
+ arch/sparc64/kernel/setup.c         |    1 -
+ arch/sparc64/kernel/sparc64_ksyms.c |    1 -
+ arch/sparc64/kernel/sys_sparc.c     |    1 -
+ arch/sparc64/kernel/sys_sparc32.c   |    1 -
+ arch/um/kernel/ksyms.c              |    1 -
+ arch/x86/kernel/process_32.c        |    1 -
+ arch/x86/kernel/process_64.c        |    1 -
+ arch/x86/kernel/setup_64.c          |    1 -
+ fs/exec.c                           |    1 -
+ fs/proc/kcore.c                     |    1 -
+ include/asm-sparc/uaccess.h         |    1 -
+ include/asm-sparc64/processor.h     |    1 -
+ include/asm-sparc64/uaccess.h       |    1 -
+ 27 files changed, 28 deletions(-)
 
-diff -puN arch/alpha/Kconfig~aout-mark-arches-that-support-aout-format arch/alpha/Kconfig
---- a/arch/alpha/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/alpha/Kconfig
-@@ -66,6 +66,9 @@ config AUTO_IRQ_AFFINITY
- 	depends on SMP
- 	default y
+diff -puN arch/alpha/kernel/osf_sys.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/alpha/kernel/osf_sys.c
+--- a/arch/alpha/kernel/osf_sys.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/alpha/kernel/osf_sys.c
+@@ -22,7 +22,6 @@
+ #include <linux/ptrace.h>
+ #include <linux/slab.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/utsname.h>
+ #include <linux/time.h>
+ #include <linux/timex.h>
+diff -puN arch/alpha/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/alpha/kernel/process.c
+--- a/arch/alpha/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/alpha/kernel/process.c
+@@ -19,7 +19,6 @@
+ #include <linux/ptrace.h>
+ #include <linux/slab.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/utsname.h>
+ #include <linux/time.h>
+ #include <linux/major.h>
+diff -puN arch/alpha/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/alpha/kernel/setup.c
+--- a/arch/alpha/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/alpha/kernel/setup.c
+@@ -18,7 +18,6 @@
+ #include <linux/ptrace.h>
+ #include <linux/slab.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/screen_info.h>
+ #include <linux/delay.h>
+ #include <linux/mc146818rtc.h>
+diff -puN arch/arm/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/arm/kernel/process.c
+--- a/arch/arm/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/arm/kernel/process.c
+@@ -18,7 +18,6 @@
+ #include <linux/unistd.h>
+ #include <linux/slab.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/delay.h>
+ #include <linux/reboot.h>
+ #include <linux/interrupt.h>
+diff -puN arch/blackfin/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/blackfin/kernel/process.c
+--- a/arch/blackfin/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/blackfin/kernel/process.c
+@@ -31,7 +31,6 @@
+ #include <linux/smp_lock.h>
+ #include <linux/unistd.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/uaccess.h>
+ #include <linux/fs.h>
+ #include <linux/err.h>
+diff -puN arch/m68k/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/m68k/kernel/process.c
+--- a/arch/m68k/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/m68k/kernel/process.c
+@@ -23,7 +23,6 @@
+ #include <linux/ptrace.h>
+ #include <linux/slab.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/reboot.h>
+ #include <linux/init_task.h>
+ #include <linux/mqueue.h>
+diff -puN arch/m68k/kernel/traps.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/m68k/kernel/traps.c
+--- a/arch/m68k/kernel/traps.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/m68k/kernel/traps.c
+@@ -23,7 +23,6 @@
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
+ #include <linux/module.h>
+-#include <linux/a.out.h>
+ #include <linux/user.h>
+ #include <linux/string.h>
+ #include <linux/linkage.h>
+diff -puN arch/sparc/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc/kernel/process.c
+--- a/arch/sparc/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc/kernel/process.c
+@@ -20,7 +20,6 @@
+ #include <linux/ptrace.h>
+ #include <linux/slab.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/smp.h>
+ #include <linux/reboot.h>
+ #include <linux/delay.h>
+diff -puN arch/sparc/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc/kernel/setup.c
+--- a/arch/sparc/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc/kernel/setup.c
+@@ -16,7 +16,6 @@
+ #include <linux/initrd.h>
+ #include <asm/smp.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/screen_info.h>
+ #include <linux/delay.h>
+ #include <linux/fs.h>
+diff -puN arch/sparc/kernel/sparc_ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc/kernel/sparc_ksyms.c
+--- a/arch/sparc/kernel/sparc_ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc/kernel/sparc_ksyms.c
+@@ -51,7 +51,6 @@
+ #ifdef CONFIG_PCI
+ #include <asm/ebus.h>
+ #endif
+-#include <asm/a.out.h>
+ #include <asm/io-unit.h>
+ #include <asm/bug.h>
  
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- source "init/Kconfig"
+diff -puN arch/sparc/mm/loadmmu.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc/mm/loadmmu.c
+--- a/arch/sparc/mm/loadmmu.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc/mm/loadmmu.c
+@@ -14,7 +14,6 @@
+ #include <asm/system.h>
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+-#include <asm/a.out.h>
+ #include <asm/mmu_context.h>
+ #include <asm/oplib.h>
  
+diff -puN arch/sparc/mm/srmmu.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc/mm/srmmu.c
+--- a/arch/sparc/mm/srmmu.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc/mm/srmmu.c
+@@ -34,7 +34,6 @@
+ #include <asm/sbus.h>
+ #include <asm/asi.h>
+ #include <asm/msi.h>
+-#include <asm/a.out.h>
+ #include <asm/mmu_context.h>
+ #include <asm/io-unit.h>
+ #include <asm/cacheflush.h>
+diff -puN arch/sparc64/kernel/binfmt_elf32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/binfmt_elf32.c
+--- a/arch/sparc64/kernel/binfmt_elf32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc64/kernel/binfmt_elf32.c
+@@ -151,8 +151,6 @@ MODULE_AUTHOR("Eric Youngdale, David S. 
+ #undef MODULE_DESCRIPTION
+ #undef MODULE_AUTHOR
  
-diff -puN arch/arm/Kconfig~aout-mark-arches-that-support-aout-format arch/arm/Kconfig
---- a/arch/arm/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/arm/Kconfig
-@@ -114,6 +114,9 @@ config GENERIC_CALIBRATE_DELAY
- 	bool
- 	default y
+-#include <asm/a.out.h>
+-
+ #undef TASK_SIZE
+ #define TASK_SIZE STACK_TOP32
  
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- config ARCH_MAY_HAVE_PC_FDC
- 	bool
+diff -puN arch/sparc64/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/process.c
+--- a/arch/sparc64/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc64/kernel/process.c
+@@ -24,7 +24,6 @@
+ #include <linux/ptrace.h>
+ #include <linux/slab.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/reboot.h>
+ #include <linux/delay.h>
+ #include <linux/compat.h>
+diff -puN arch/sparc64/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/setup.c
+--- a/arch/sparc64/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc64/kernel/setup.c
+@@ -15,7 +15,6 @@
+ #include <linux/slab.h>
+ #include <asm/smp.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/screen_info.h>
+ #include <linux/delay.h>
+ #include <linux/fs.h>
+diff -puN arch/sparc64/kernel/sparc64_ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/sparc64_ksyms.c
+--- a/arch/sparc64/kernel/sparc64_ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc64/kernel/sparc64_ksyms.c
+@@ -53,7 +53,6 @@
+ #include <asm/ebus.h>
+ #include <asm/isa.h>
+ #endif
+-#include <asm/a.out.h>
+ #include <asm/ns87303.h>
+ #include <asm/timer.h>
+ #include <asm/cpudata.h>
+diff -puN arch/sparc64/kernel/sys_sparc.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/sys_sparc.c
+--- a/arch/sparc64/kernel/sys_sparc.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc64/kernel/sys_sparc.c
+@@ -28,7 +28,6 @@
+ #include <asm/uaccess.h>
+ #include <asm/utrap.h>
+ #include <asm/perfctr.h>
+-#include <asm/a.out.h>
+ #include <asm/unistd.h>
  
-diff -puN arch/avr32/Kconfig~aout-mark-arches-that-support-aout-format arch/avr32/Kconfig
---- a/arch/avr32/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/avr32/Kconfig
-@@ -67,6 +67,9 @@ config GENERIC_BUG
- 	default y
- 	depends on BUG
+ /* #define DEBUG_UNIMP_SYSCALL */
+diff -puN arch/sparc64/kernel/sys_sparc32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/sys_sparc32.c
+--- a/arch/sparc64/kernel/sys_sparc32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/sparc64/kernel/sys_sparc32.c
+@@ -57,7 +57,6 @@
+ #include <asm/fpumacro.h>
+ #include <asm/semaphore.h>
+ #include <asm/mmu_context.h>
+-#include <asm/a.out.h>
+ #include <asm/compat_signal.h>
  
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- source "init/Kconfig"
+ asmlinkage long sys32_chown16(const char __user * filename, u16 user, u16 group)
+diff -puN arch/um/kernel/ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/um/kernel/ksyms.c
+--- a/arch/um/kernel/ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/um/kernel/ksyms.c
+@@ -5,7 +5,6 @@
  
- menu "System Type and features"
-diff -puN arch/blackfin/Kconfig~aout-mark-arches-that-support-aout-format arch/blackfin/Kconfig
---- a/arch/blackfin/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/blackfin/Kconfig
-@@ -69,6 +69,9 @@ config GENERIC_CALIBRATE_DELAY
- 	bool
- 	default y
+ #include "linux/module.h"
+ #include "linux/syscalls.h"
+-#include "asm/a.out.h"
+ #include "asm/tlbflush.h"
+ #include "asm/uaccess.h"
+ #include "as-layout.h"
+diff -puN arch/x86/kernel/process_32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/x86/kernel/process_32.c
+--- a/arch/x86/kernel/process_32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/x86/kernel/process_32.c
+@@ -23,7 +23,6 @@
+ #include <linux/slab.h>
+ #include <linux/vmalloc.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/interrupt.h>
+ #include <linux/utsname.h>
+ #include <linux/delay.h>
+diff -puN arch/x86/kernel/process_64.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/x86/kernel/process_64.c
+--- a/arch/x86/kernel/process_64.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/x86/kernel/process_64.c
+@@ -27,7 +27,6 @@
+ #include <linux/slab.h>
+ #include <linux/user.h>
+ #include <linux/module.h>
+-#include <linux/a.out.h>
+ #include <linux/interrupt.h>
+ #include <linux/delay.h>
+ #include <linux/ptrace.h>
+diff -puN arch/x86/kernel/setup_64.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/x86/kernel/setup_64.c
+--- a/arch/x86/kernel/setup_64.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/arch/x86/kernel/setup_64.c
+@@ -15,7 +15,6 @@
+ #include <linux/ptrace.h>
+ #include <linux/slab.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/screen_info.h>
+ #include <linux/ioport.h>
+ #include <linux/delay.h>
+diff -puN fs/exec.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth fs/exec.c
+--- a/fs/exec.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/fs/exec.c
+@@ -25,7 +25,6 @@
+ #include <linux/slab.h>
+ #include <linux/file.h>
+ #include <linux/mman.h>
+-#include <linux/a.out.h>
+ #include <linux/stat.h>
+ #include <linux/fcntl.h>
+ #include <linux/smp_lock.h>
+diff -puN fs/proc/kcore.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth fs/proc/kcore.c
+--- a/fs/proc/kcore.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/fs/proc/kcore.c
+@@ -12,7 +12,6 @@
+ #include <linux/mm.h>
+ #include <linux/proc_fs.h>
+ #include <linux/user.h>
+-#include <linux/a.out.h>
+ #include <linux/capability.h>
+ #include <linux/elf.h>
+ #include <linux/elfcore.h>
+diff -puN include/asm-sparc/uaccess.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth include/asm-sparc/uaccess.h
+--- a/include/asm-sparc/uaccess.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/include/asm-sparc/uaccess.h
+@@ -13,7 +13,6 @@
+ #include <linux/string.h>
+ #include <linux/errno.h>
+ #include <asm/vac-ops.h>
+-#include <asm/a.out.h>
+ #endif
  
-+config ARCH_SUPPORTS_AOUT
-+	def_bool n
-+
- config IRQCHIP_DEMUX_GPIO
- 	bool
- 	depends on (BF52x || BF53x || BF561 || BF54x)
-diff -puN arch/cris/Kconfig~aout-mark-arches-that-support-aout-format arch/cris/Kconfig
---- a/arch/cris/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/cris/Kconfig
-@@ -51,6 +51,9 @@ config IRQ_PER_CPU
- config NO_IOPORT
- 	def_bool y
+ #ifndef __ASSEMBLY__
+diff -puN include/asm-sparc64/processor.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth include/asm-sparc64/processor.h
+--- a/include/asm-sparc64/processor.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/include/asm-sparc64/processor.h
+@@ -14,7 +14,6 @@
+ #define current_text_addr() ({ void *pc; __asm__("rd %%pc, %0" : "=r" (pc)); pc; })
  
-+config ARCH_SUPPORTS_AOUT
-+	def_bool n
-+
- config CRIS
- 	bool
- 	default y
-diff -puN arch/frv/Kconfig~aout-mark-arches-that-support-aout-format arch/frv/Kconfig
---- a/arch/frv/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/frv/Kconfig
-@@ -57,6 +57,9 @@ config ARCH_HAS_ILOG2_U64
- 	bool
- 	default y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool n
-+
- mainmenu "Fujitsu FR-V Kernel Configuration"
- 
- source "init/Kconfig"
-diff -puN arch/h8300/Kconfig~aout-mark-arches-that-support-aout-format arch/h8300/Kconfig
---- a/arch/h8300/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/h8300/Kconfig
-@@ -65,6 +65,9 @@ config TIME_LOW_RES
- 	bool
- 	default y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- config NO_IOPORT
- 	def_bool y
- 
-diff -puN arch/ia64/Kconfig~aout-mark-arches-that-support-aout-format arch/ia64/Kconfig
---- a/arch/ia64/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/ia64/Kconfig
-@@ -99,6 +99,9 @@ config AUDIT_ARCH
- 	bool
- 	default y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool n
-+
- choice
- 	prompt "System type"
- 	default IA64_GENERIC
-diff -puN arch/m32r/Kconfig~aout-mark-arches-that-support-aout-format arch/m32r/Kconfig
---- a/arch/m32r/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/m32r/Kconfig
-@@ -34,6 +34,9 @@ config NO_IOPORT
- config NO_DMA
- 	def_bool y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- source "init/Kconfig"
- 
- 
-diff -puN arch/m68k/Kconfig~aout-mark-arches-that-support-aout-format arch/m68k/Kconfig
---- a/arch/m68k/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/m68k/Kconfig
-@@ -52,6 +52,9 @@ config NO_IOPORT
- config NO_DMA
- 	def_bool SUN3
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- mainmenu "Linux/68k Kernel Configuration"
- 
- source "init/Kconfig"
-diff -puN arch/m68knommu/Kconfig~aout-mark-arches-that-support-aout-format arch/m68knommu/Kconfig
---- a/arch/m68knommu/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/m68knommu/Kconfig
-@@ -60,6 +60,9 @@ config TIME_LOW_RES
- config NO_IOPORT
- 	def_bool y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- source "init/Kconfig"
- 
- menu "Processor type and features"
-diff -puN arch/mips/Kconfig~aout-mark-arches-that-support-aout-format arch/mips/Kconfig
---- a/arch/mips/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/mips/Kconfig
-@@ -722,6 +722,9 @@ config GENERIC_HARDIRQS_NO__DO_IRQ
- 	bool
- 	default n
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- #
- # Select some configuration options automatically based on user selections.
- #
-diff -puN arch/parisc/Kconfig~aout-mark-arches-that-support-aout-format arch/parisc/Kconfig
---- a/arch/parisc/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/parisc/Kconfig
-@@ -69,6 +69,9 @@ config IRQ_PER_CPU
- 	bool
- 	default y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- # unless you want to implement ACPI on PA-RISC ... ;-)
- config PM
- 	bool
-diff -puN arch/powerpc/Kconfig~aout-mark-arches-that-support-aout-format arch/powerpc/Kconfig
---- a/arch/powerpc/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/powerpc/Kconfig
-@@ -76,6 +76,9 @@ config GENERIC_FIND_NEXT_BIT
- config ARCH_NO_VIRT_TO_BUS
- 	def_bool PPC64
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- config PPC
- 	bool
- 	default y
-diff -puN arch/ppc/Kconfig~aout-mark-arches-that-support-aout-format arch/ppc/Kconfig
---- a/arch/ppc/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/ppc/Kconfig
-@@ -39,6 +39,9 @@ config GENERIC_CALIBRATE_DELAY
- 	bool
- 	default y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool n
-+
- config PPC
- 	bool
- 	default y
-diff -puN arch/s390/Kconfig~aout-mark-arches-that-support-aout-format arch/s390/Kconfig
---- a/arch/s390/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/s390/Kconfig
-@@ -47,6 +47,9 @@ config NO_IOMEM
- config NO_DMA
- 	def_bool y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool n
-+
- mainmenu "Linux Kernel Configuration"
- 
- config S390
-diff -puN arch/sh/Kconfig~aout-mark-arches-that-support-aout-format arch/sh/Kconfig
---- a/arch/sh/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/sh/Kconfig
-@@ -93,6 +93,9 @@ config ARCH_HAS_ILOG2_U64
- config ARCH_NO_VIRT_TO_BUS
- 	def_bool y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- source "init/Kconfig"
- 
- menu "System type"
-diff -puN arch/sh64/Kconfig~aout-mark-arches-that-support-aout-format arch/sh64/Kconfig
---- a/arch/sh64/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/sh64/Kconfig
-@@ -58,6 +58,9 @@ config ARCH_HAS_ILOG2_U64
- config ARCH_NO_VIRT_TO_BUS
- 	def_bool y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- source init/Kconfig
- 
- menu "System type"
-diff -puN arch/sparc/Kconfig~aout-mark-arches-that-support-aout-format arch/sparc/Kconfig
---- a/arch/sparc/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/sparc/Kconfig
-@@ -27,6 +27,9 @@ config ARCH_NO_VIRT_TO_BUS
- config OF
- 	def_bool y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- source "init/Kconfig"
- 
- menu "General machine setup"
-diff -puN arch/sparc64/Kconfig~aout-mark-arches-that-support-aout-format arch/sparc64/Kconfig
---- a/arch/sparc64/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/sparc64/Kconfig
-@@ -76,6 +76,9 @@ config GENERIC_HARDIRQS_NO__DO_IRQ
- 	bool
- 	def_bool y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- choice
- 	prompt "Kernel page size"
- 	default SPARC64_PAGE_SIZE_8KB
-diff -puN arch/um/Kconfig.i386~aout-mark-arches-that-support-aout-format arch/um/Kconfig.i386
---- a/arch/um/Kconfig.i386~aout-mark-arches-that-support-aout-format
-+++ a/arch/um/Kconfig.i386
-@@ -77,3 +77,5 @@ config GENERIC_HWEIGHT
- 	bool
- 	default y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-diff -puN arch/um/Kconfig.x86_64~aout-mark-arches-that-support-aout-format arch/um/Kconfig.x86_64
---- a/arch/um/Kconfig.x86_64~aout-mark-arches-that-support-aout-format
-+++ a/arch/um/Kconfig.x86_64
-@@ -39,3 +39,5 @@ config GENERIC_HWEIGHT
- 	bool
- 	default y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-diff -puN arch/v850/Kconfig~aout-mark-arches-that-support-aout-format arch/v850/Kconfig
---- a/arch/v850/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/v850/Kconfig
-@@ -53,6 +53,9 @@ config ARCH_HAS_ILOG2_U64
- 	bool
- 	default n
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool y
-+
- # Turn off some random 386 crap that can affect device config
- config ISA
- 	bool
-diff -puN arch/xtensa/Kconfig~aout-mark-arches-that-support-aout-format arch/xtensa/Kconfig
---- a/arch/xtensa/Kconfig~aout-mark-arches-that-support-aout-format
-+++ a/arch/xtensa/Kconfig
-@@ -49,6 +49,9 @@ config ARCH_HAS_ILOG2_U64
- config NO_IOPORT
- 	def_bool y
- 
-+config ARCH_SUPPORTS_AOUT
-+	def_bool n
-+
- source "init/Kconfig"
- 
- menu "Processor type and features"
+ #include <asm/asi.h>
+-#include <asm/a.out.h>
+ #include <asm/pstate.h>
+ #include <asm/ptrace.h>
+ #include <asm/page.h>
+diff -puN include/asm-sparc64/uaccess.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth include/asm-sparc64/uaccess.h
+--- a/include/asm-sparc64/uaccess.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
++++ a/include/asm-sparc64/uaccess.h
+@@ -10,7 +10,6 @@
+ #include <linux/compiler.h>
+ #include <linux/sched.h>
+ #include <linux/string.h>
+-#include <asm/a.out.h>
+ #include <asm/asi.h>
+ #include <asm/system.h>
+ #include <asm/spitfire.h>
 _
 
 Patches currently in -mm which might be from dhowells@redhat.com are
