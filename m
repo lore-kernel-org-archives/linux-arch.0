@@ -1,478 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:51790 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1760625AbXKPXLE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Nov 2007 18:11:04 -0500
-Message-Id: <20071116231103.187459326@sgi.com>
+Received: from relay1.sgi.com ([192.48.171.29]:39559 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1761310AbXKPXLE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Nov 2007 18:11:04 -0500
+Message-Id: <20071116231103.808561432@sgi.com>
 References: <20071116230920.278761667@sgi.com>
-Date: Fri, 16 Nov 2007 15:09:25 -0800
+Date: Fri, 16 Nov 2007 15:09:27 -0800
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 05/30] cpu_alloc: Implement dynamically extendable cpu areas
-Content-Disposition: inline; filename=cpu_alloc_virtual
+Subject: [patch 07/30] cpu alloc: IA64 support
+Content-Disposition: inline; filename=cpu_alloc_ia64_support
 Sender: linux-arch-owner@vger.kernel.org
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Virtually map the cpu areas. This allows bigger maximum sizes and to only
-populate the virtual mappings on demand.
+Typical use of per cpu memory for a small system of 8G 8p 4node is less than
+64k per cpu memory. This is increasing rapidly for larger systems where we can
+get up to 512k or 1M of memory used for cpu storage.
 
-In order to use the virtual mapping capability the arch must setup some
-configuration variables in arch/xxx/Kconfig:
+The maximum size allowed of the cpu area is 128MB of memory.
 
-CONFIG_CPU_AREA_VIRTUAL to y
-
-CONFIG_CPU_AREA_ORDER
-	to the largest allowed size that the per cpu area can grow to.
-
-CONFIG_CPU_AREA_ALLOC_ORDER
-	to the allocation size when the cpu area needs to grow. Use 0
-	here to guarantee order 0 allocations.
-
-The address to use must be defined in CPU_AREA_BASE. This is typically done
-in include/asm-xxx/pgtable.h. 
-
-The maximum space used by the cpu are is
-
-	NR_CPUS * (PAGE_SIZE << CONFIG_CPU_AREA_ORDER)
-
-An arch may provide its own population function for the virtual mappings
-(in order to exploit huge page mappings and other frills of the MMU of an
-architecture). The default populate function uses single page mappings.
-
-
-int cpu_area_populate(void *start, unsigned long size, gfp_t flags, int node)
-
-The list of cpu_area_xx functions exported in include/linux/mm.h may be used
-as helpers to generate the mapping that the arch needs.
-
-In the simplest form the arch code calls:
-
-	cpu_area_populate_basepages(start, size, flags, node);
-
-The arch code must call
-
-	cpu_area_alloc_block(unsigned long size, gfp_t flags, int node)
-
-for all its memory needs during the construction of the custom page table.
+The cpu area is placed in region 5 with the kernel, vmemmap and vmalloc areas.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
-
 ---
- include/linux/mm.h |   13 ++
- mm/Kconfig         |   10 +
- mm/cpu_alloc.c     |  287 +++++++++++++++++++++++++++++++++++++++++++++++++++--
- 3 files changed, 299 insertions(+), 11 deletions(-)
+ arch/ia64/Kconfig          |   13 +++++++++++++
+ include/asm-ia64/pgtable.h |   32 ++++++++++++++++++++++++++------
+ 2 files changed, 39 insertions(+), 6 deletions(-)
 
-Index: linux-2.6/mm/cpu_alloc.c
+Index: linux-2.6/arch/ia64/Kconfig
 ===================================================================
---- linux-2.6.orig/mm/cpu_alloc.c	2007-11-16 14:54:29.890430938 -0800
-+++ linux-2.6/mm/cpu_alloc.c	2007-11-16 14:54:37.106404761 -0800
-@@ -17,6 +17,12 @@
- #include <linux/module.h>
- #include <linux/percpu.h>
- #include <linux/bitmap.h>
-+#include <linux/vmalloc.h>
-+#include <linux/bootmem.h>
-+#include <linux/sched.h>	/* i386 definition of init_mm */
-+#include <linux/highmem.h>	/* i386 dependency on highmem config */
-+#include <asm/pgtable.h>
-+#include <asm/pgalloc.h>
+--- linux-2.6.orig/arch/ia64/Kconfig	2007-11-15 21:24:46.991154957 -0800
++++ linux-2.6/arch/ia64/Kconfig	2007-11-16 14:43:17.277214329 -0800
+@@ -99,6 +99,19 @@ config AUDIT_ARCH
+ 	bool
+ 	default y
  
- /*
-  * Basic allocation unit. A bit map is created to track the use of each
-@@ -24,7 +30,7 @@
++config CPU_AREA_VIRTUAL
++	bool
++	default y
++
++# Maximum of 128 MB cpu_alloc space per cpu
++config CPU_AREA_ORDER
++	int
++	default "13"
++
++config CPU_AREA_ALLOC_ORDER
++	int
++	default "0"
++
+ choice
+ 	prompt "System type"
+ 	default IA64_GENERIC
+Index: linux-2.6/include/asm-ia64/pgtable.h
+===================================================================
+--- linux-2.6.orig/include/asm-ia64/pgtable.h	2007-11-15 21:24:47.003154534 -0800
++++ linux-2.6/include/asm-ia64/pgtable.h	2007-11-16 14:42:57.629964336 -0800
+@@ -224,21 +224,41 @@ ia64_phys_addr_valid (unsigned long addr
   */
  
- #define UNIT_SIZE sizeof(int)
--#define UNITS (ALLOC_SIZE / UNIT_SIZE)
-+#define UNITS_PER_BLOCK (ALLOC_SIZE / UNIT_SIZE)
  
- /*
-  * How many units are needed for an object of a given size
-@@ -40,6 +46,249 @@ static int size_to_units(unsigned long s
- static DEFINE_SPINLOCK(cpu_alloc_map_lock);
- static unsigned long units_reserved;	/* Units reserved by boot allocations */
- 
-+#ifdef CONFIG_CPU_AREA_VIRTUAL
-+
 +/*
-+ * Virtualized cpu area. The cpu area can be extended if more space is needed.
-+ */
-+
-+#define cpu_area ((u8 *)(CPU_AREA_BASE))
-+#define ALLOC_SIZE (1UL << (CONFIG_CPU_AREA_ALLOC_ORDER + PAGE_SHIFT))
-+#define BOOT_ALLOC (1 << __GFP_BITS_SHIFT)
-+
-+
-+/*
-+ * The maximum number of blocks is the maximum size of the
-+ * cpu area for one processor divided by the size of an allocation
-+ * block.
-+ */
-+#define MAX_BLOCKS (1UL << (CONFIG_CPU_AREA_ORDER - \
-+				CONFIG_CPU_AREA_ALLOC_ORDER))
-+
-+
-+static unsigned long *cpu_alloc_map = NULL;
-+static int cpu_alloc_map_order = -1;	/* Size of the bitmap in page order */
-+static unsigned long active_blocks;	/* Number of block allocated on each cpu */
-+static unsigned long units_total;	/* Total units that are managed */
-+/*
-+ * Allocate a block of memory to be used to provide cpu area memory
-+ * or to extend the bitmap for the cpu map.
-+ */
-+void *cpu_area_alloc_block(unsigned long size, gfp_t flags, int node)
-+{
-+	if (!(flags & BOOT_ALLOC)) {
-+		struct page *page = alloc_pages_node(node,
-+			flags, get_order(size));
-+
-+		if (page)
-+			return page_address(page);
-+		return NULL;
-+	} else
-+		return __alloc_bootmem_node(NODE_DATA(node), size, size,
-+				__pa(MAX_DMA_ADDRESS));
-+}
-+
-+pte_t *cpu_area_pte_populate(pmd_t *pmd, unsigned long addr,
-+						gfp_t flags, int node)
-+{
-+	pte_t *pte = pte_offset_kernel(pmd, addr);
-+	if (pte_none(*pte)) {
-+		pte_t entry;
-+		void *p = cpu_area_alloc_block(PAGE_SIZE, flags, node);
-+		if (!p)
-+			return 0;
-+		entry = pfn_pte(__pa(p) >> PAGE_SHIFT, PAGE_KERNEL);
-+		set_pte_at(&init_mm, addr, pte, entry);
-+	}
-+	return pte;
-+}
-+
-+pmd_t *cpu_area_pmd_populate(pud_t *pud, unsigned long addr,
-+						gfp_t flags, int node)
-+{
-+	pmd_t *pmd = pmd_offset(pud, addr);
-+	if (pmd_none(*pmd)) {
-+		void *p = cpu_area_alloc_block(PAGE_SIZE, flags, node);
-+		if (!p)
-+			return 0;
-+		pmd_populate_kernel(&init_mm, pmd, p);
-+	}
-+	return pmd;
-+}
-+
-+pud_t *cpu_area_pud_populate(pgd_t *pgd, unsigned long addr,
-+						gfp_t flags, int node)
-+{
-+	pud_t *pud = pud_offset(pgd, addr);
-+	if (pud_none(*pud)) {
-+		void *p = cpu_area_alloc_block(PAGE_SIZE, flags, node);
-+		if (!p)
-+			return 0;
-+		pud_populate(&init_mm, pud, p);
-+	}
-+	return pud;
-+}
-+
-+pgd_t *cpu_area_pgd_populate(unsigned long addr, gfp_t flags, int node)
-+{
-+	pgd_t *pgd = pgd_offset_k(addr);
-+	if (pgd_none(*pgd)) {
-+		void *p = cpu_area_alloc_block(PAGE_SIZE, flags, node);
-+		if (!p)
-+			return 0;
-+		pgd_populate(&init_mm, pgd, p);
-+	}
-+	return pgd;
-+}
-+
-+int cpu_area_populate_basepages(void *start, unsigned long size,
-+						gfp_t flags, int node)
-+{
-+	unsigned long addr = (unsigned long)start;
-+	unsigned long end = addr + size;
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+	pte_t *pte;
-+
-+	for (; addr < end; addr += PAGE_SIZE) {
-+		pgd = cpu_area_pgd_populate(addr, flags, node);
-+		if (!pgd)
-+			return -ENOMEM;
-+		pud = cpu_area_pud_populate(pgd, addr, flags, node);
-+		if (!pud)
-+			return -ENOMEM;
-+		pmd = cpu_area_pmd_populate(pud, addr, flags, node);
-+		if (!pmd)
-+			return -ENOMEM;
-+		pte = cpu_area_pte_populate(pmd, addr, flags, node);
-+		if (!pte)
-+			return -ENOMEM;
-+	}
-+
-+	return 0;
-+}
-+
-+/*
-+ * If no other population function is defined then this function will stand
-+ * in and provide the capability to map PAGE_SIZE pages into the cpu area.
-+ */
-+int __attribute__((weak)) cpu_area_populate(void *start, unsigned long size,
-+					gfp_t flags, int node)
-+{
-+	return cpu_area_populate_basepages(start, size, flags, node);
-+}
-+
-+/*
-+ * Extend the areas on all processors. This function may be called repeatedly
-+ * until we have enough space to accomodate a newly allocated object.
++ * Layout of RGN_GATE
 + *
-+ * Must hold the cpu_alloc_map_lock on entry. Will drop the lock and then
-+ * regain it.
++ * 47 bits wide (16kb pages)
++ *
++ * 0xa000000000000000-0xa00000200000000	8G	Kernel data area
++ * 0xa000002000000000-0xa00040000000000	64T	vmalloc
++ * 0xa000400000000000-0xa00060000000000 32T	vmemmmap
++ * 0xa000600000000000-0xa00080000000000	32T	cpu area
++ *
++ * 55 bits wide (64kb pages)
++ *
++ * 0xa000000000000000-0xa00000200000000	8G	Kernel data area
++ * 0xa000002000000000-0xa04000000000000	16P	vmalloc
++ * 0xa040000000000000-0xa06000000000000 8P	vmemmmap
++ * 0xa060000000000000-0xa08000000000000	8P	cpu area
 + */
-+static int expand_cpu_area(gfp_t flags)
-+{
-+	unsigned long blocks = active_blocks;
-+	unsigned long bits;
-+	int cpu;
-+	int err = -ENOMEM;
-+	int map_order;
-+	unsigned long *new_map = NULL;
-+	void *start;
 +
-+	if (active_blocks == MAX_BLOCKS)
-+		goto out;
+ #define VMALLOC_START		(RGN_BASE(RGN_GATE) + 0x200000000UL)
++#define VMALLOC_END_INIT	(RGN_BASE(RGN_GATE) + (1UL << (4*PAGE_SHIFT - 10)))
 +
-+	spin_unlock(&cpu_alloc_map_lock);
-+	if (flags & __GFP_WAIT)
-+		local_irq_enable();
-+
-+	/*
-+	 * Determine the size of the bit map needed
-+	 */
-+	bits = (blocks + 1) * UNITS_PER_BLOCK - units_reserved;
-+
-+	map_order = get_order(DIV_ROUND_UP(bits, 8));
-+	BUG_ON(map_order >= MAX_ORDER);
-+	start = cpu_area + \
-+		(blocks << (PAGE_SHIFT + CONFIG_CPU_AREA_ALLOC_ORDER));
-+
-+	for_each_possible_cpu(cpu) {
-+		err = cpu_area_populate(CPU_PTR(start, cpu), ALLOC_SIZE,
-+			flags, cpu_to_node(cpu));
-+
-+		if (err) {
-+			spin_lock(&cpu_alloc_map_lock);
-+			goto out;
-+		}
-+	}
-+
-+	if (map_order > cpu_alloc_map_order) {
-+		new_map = cpu_area_alloc_block(PAGE_SIZE << map_order,
-+						flags | __GFP_ZERO, 0);
-+		if (!new_map)
-+			goto out;
-+	}
-+
-+	if (flags & __GFP_WAIT)
-+		local_irq_disable();
-+	spin_lock(&cpu_alloc_map_lock);
-+
-+	/*
-+	 * We dropped the lock. Another processor may have already extended
-+	 * the cpu area size as needed.
-+	 */
-+	if (blocks != active_blocks) {
-+		if (new_map)
-+			free_pages((unsigned long)new_map,
-+						map_order);
-+		err = 0;
-+		goto out;
-+	}
-+
-+	if (new_map) {
-+		/*
-+		 * Need to extend the bitmap
-+		 */
-+		if (cpu_alloc_map)
-+			memcpy(new_map, cpu_alloc_map,
-+				PAGE_SIZE << cpu_alloc_map_order);
-+		cpu_alloc_map = new_map;
-+		cpu_alloc_map_order = map_order;
-+	}
-+
-+	active_blocks++;
-+	units_total += UNITS_PER_BLOCK;
-+	err = 0;
-+out:
-+	return err;
-+}
-+
-+void * __init boot_cpu_alloc(unsigned long size)
-+{
-+	unsigned long flags;
-+	unsigned long x = units_reserved;
-+	unsigned long units = size_to_units(size);
-+
-+	/*
-+	 * Locking is really not necessary during boot
-+	 * but expand_cpu_area() unlocks and relocks.
-+	 * If we do not perform locking here then
-+	 *
-+	 * 1. The cpu_alloc_map_lock is locked when
-+	 *    we exit boot causing a hang on the next cpu_alloc().
-+	 * 2. lockdep will get upset if we do not consistently
-+	 *    handle things.
-+	 */
-+	spin_lock_irqsave(&cpu_alloc_map_lock, flags);
-+	while (units_reserved + units > units_total)
-+		expand_cpu_area(BOOT_ALLOC);
-+	units_reserved += units;
-+	spin_unlock_irqrestore(&cpu_alloc_map_lock, flags);
-+	return cpu_area + x * UNIT_SIZE;
-+}
-+#else
-+
- /*
-  * Static configuration. The cpu areas are of a fixed size and
-  * cannot be extended. Such configurations are mainly useful on
-@@ -51,16 +300,24 @@ static unsigned long units_reserved;	/* 
- #define ALLOC_SIZE (1UL << (CONFIG_CPU_AREA_ORDER + PAGE_SHIFT))
- 
- static u8 cpu_area[NR_CPUS * ALLOC_SIZE];
--static DECLARE_BITMAP(cpu_alloc_map, UNITS);
-+static DECLARE_BITMAP(cpu_alloc_map, UNITS_PER_BLOCK);
-+#define cpu_alloc_map_order CONFIG_CPU_AREA_ORDER
-+#define units_total UNITS_PER_BLOCK
-+
-+static inline int expand_cpu_area(gfp_t flags)
-+{
-+	return -ENOSYS;
-+}
- 
- void * __init boot_cpu_alloc(unsigned long size)
- {
- 	unsigned long x = units_reserved;
- 
- 	units_reserved += size_to_units(size);
--	BUG_ON(units_reserved > UNITS);
-+	BUG_ON(units_reserved > units_total);
- 	return cpu_area + x * UNIT_SIZE;
- }
+ #ifdef CONFIG_VIRTUAL_MEM_MAP
+-# define VMALLOC_END_INIT	(RGN_BASE(RGN_GATE) + (1UL << (4*PAGE_SHIFT - 9)))
+ # define VMALLOC_END		vmalloc_end
+   extern unsigned long vmalloc_end;
+ #else
++# define VMALLOC_END VMALLOC_END_INIT
 +#endif
- 
- static int first_free;		/* First known free unit */
- 
-@@ -98,20 +355,30 @@ void *cpu_alloc(unsigned long size, gfp_
- 	int units = size_to_units(size);
- 	void *ptr;
- 	int first;
-+	unsigned long map_size;
- 	unsigned long flags;
- 
- 	BUG_ON(gfpflags & ~(GFP_RECLAIM_MASK | __GFP_ZERO));
- 
- 	spin_lock_irqsave(&cpu_alloc_map_lock, flags);
- 
-+restart:
-+	if (cpu_alloc_map_order >= 0)
-+		map_size = PAGE_SIZE << cpu_alloc_map_order;
-+	else
-+		map_size = 0;
 +
- 	first = 1;
- 	start = first_free;
+ #if defined(CONFIG_SPARSEMEM) && defined(CONFIG_SPARSEMEM_VMEMMAP)
+ /* SPARSEMEM_VMEMMAP uses half of vmalloc... */
+-# define VMALLOC_END		(RGN_BASE(RGN_GATE) + (1UL << (4*PAGE_SHIFT - 10)))
+-# define vmemmap		((struct page *)VMALLOC_END)
+-#else
+-# define VMALLOC_END		(RGN_BASE(RGN_GATE) + (1UL << (4*PAGE_SHIFT - 9)))
+-#endif
++# define vmemmap		((struct page *)VMALLOC_END_INIT)
+ #endif
  
- 	for ( ; ; ) {
- 
--		start = find_next_zero_bit(cpu_alloc_map, ALLOC_SIZE, start);
--		if (start >= UNITS - units_reserved)
-+		start = find_next_zero_bit(cpu_alloc_map, map_size, start);
-+		if (start >= units_total - units_reserved) {
-+			if (!expand_cpu_area(gfpflags))
-+				goto restart;
- 			goto out_of_memory;
-+		}
- 
- 		if (first)
- 			first_free = start;
-@@ -121,7 +388,7 @@ void *cpu_alloc(unsigned long size, gfp_
- 		 * the starting unit.
- 		 */
- 		if ((start + units_reserved) % (align / UNIT_SIZE) == 0 &&
--			find_next_bit(cpu_alloc_map, ALLOC_SIZE, start + 1)
-+			find_next_bit(cpu_alloc_map, map_size, start + 1)
- 							>= start + units)
- 				break;
- 		start++;
-@@ -131,8 +398,10 @@ void *cpu_alloc(unsigned long size, gfp_
- 	if (first)
- 		first_free = start + units;
- 
--	if (start + units > UNITS - units_reserved)
--		goto out_of_memory;
-+	while (start + units > units_total - units_reserved) {
-+		if (expand_cpu_area(gfpflags))
-+			goto out_of_memory;
-+	}
- 
- 	set_map(start, units);
- 	__count_vm_events(CPU_BYTES, units * UNIT_SIZE);
-@@ -170,7 +439,7 @@ void cpu_free(void *start, unsigned long
- 	BUG_ON(p < (cpu_area + units_reserved * UNIT_SIZE));
- 	index = (p - cpu_area) / UNIT_SIZE - units_reserved;
- 	BUG_ON(!test_bit(index, cpu_alloc_map) ||
--			index >= UNITS - units_reserved);
-+			index >= units_total - units_reserved);
- 
- 	spin_lock_irqsave(&cpu_alloc_map_lock, flags);
- 
-Index: linux-2.6/include/linux/mm.h
-===================================================================
---- linux-2.6.orig/include/linux/mm.h	2007-11-16 14:54:33.186431271 -0800
-+++ linux-2.6/include/linux/mm.h	2007-11-16 14:54:37.106404761 -0800
-@@ -1137,5 +1137,18 @@ int vmemmap_populate_basepages(struct pa
- 						unsigned long pages, int node);
- int vmemmap_populate(struct page *start_page, unsigned long pages, int node);
- 
-+pgd_t *cpu_area_pgd_populate(unsigned long addr, gfp_t flags, int node);
-+pud_t *cpu_area_pud_populate(pgd_t *pgd, unsigned long addr,
-+						gfp_t flags, int node);
-+pmd_t *cpu_area_pmd_populate(pud_t *pud, unsigned long addr,
-+						gfp_t flags, int node);
-+pte_t *cpu_area_pte_populate(pmd_t *pmd, unsigned long addr,
-+						gfp_t flags, int node);
-+void *cpu_area_alloc_block(unsigned long size, gfp_t flags, int node);
-+int cpu_area_populate_basepages(void *start, unsigned long size,
-+						gfp_t flags, int node);
-+int cpu_area_populate(void *start, unsigned long size,
-+						gfp_t flags, int node);
++#define CPU_AREA_BASE		(RGN_BASE(RGN_GATE) + (3UL << (4*PAGE_SHIFT - 11)))
 +
- #endif /* __KERNEL__ */
- #endif /* _LINUX_MM_H */
-Index: linux-2.6/mm/Kconfig
-===================================================================
---- linux-2.6.orig/mm/Kconfig	2007-11-16 14:54:29.890430938 -0800
-+++ linux-2.6/mm/Kconfig	2007-11-16 14:55:07.364981597 -0800
-@@ -197,7 +197,13 @@ config VIRT_TO_BUS
- 
- config CPU_AREA_ORDER
- 	int "Maximum size (order) of CPU area"
--	default "3"
-+	default "10" if CPU_AREA_VIRTUAL
-+	default "3" if !CPU_AREA_VIRTUAL
- 	help
- 	  Sets the maximum amount of memory that can be allocated via cpu_alloc
--	  The size is set in page order, so 0 = PAGE_SIZE, 1 = PAGE_SIZE << 1 etc.
-+	  The size is set in page order. The size set (times the maximum
-+	  number of processors) determines the amount of virtual memory that
-+	  is set aside for the per cpu areas for virtualized cpu areas or the
-+	  amount of memory allocated in the bss segment for non virtualized
-+	  cpu areas.
-+
+ /* fs/proc/kcore.c */
+ #define	kc_vaddr_to_offset(v) ((v) - RGN_BASE(RGN_GATE))
+ #define	kc_offset_to_vaddr(o) ((o) + RGN_BASE(RGN_GATE))
 
 -- 
