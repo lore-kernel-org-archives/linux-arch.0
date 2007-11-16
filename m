@@ -1,219 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:49162 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1759923AbXKPCJL (ORCPT
+Received: from tomts36.bellnexxia.net ([209.226.175.93]:61556 "EHLO
+	tomts36-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755982AbXKPCOM (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Nov 2007 21:09:11 -0500
-Message-Id: <200711160209.lAG291sJ027187@imap1.linux-foundation.org>
-Subject: - add-arch_supports_kprobes.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Thu, 15 Nov 2007 18:09:01 -0800
+	Thu, 15 Nov 2007 21:14:12 -0500
+Received: from toip5.srvr.bell.ca ([209.226.175.88])
+          by tomts36-srv.bellnexxia.net
+          (InterMail vM.5.01.06.13 201-253-122-130-113-20050324) with ESMTP
+          id <20071116021410.CZYS7990.tomts36-srv.bellnexxia.net@toip5.srvr.bell.ca>
+          for <linux-arch@vger.kernel.org>; Thu, 15 Nov 2007 21:14:10 -0500
+Date: Thu, 15 Nov 2007 21:14:09 -0500
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Subject: Re: + create-arch-kconfig.patch added to -mm tree
+Message-ID: <20071116021409.GB16953@Krystal>
+References: <200711152227.lAFMR5Ck019098@imap1.linux-foundation.org> <20071116015730.GA16953@Krystal> <20071115180722.8ae4b285.akpm@linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+In-Reply-To: <20071115180722.8ae4b285.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
-To: mathieu.desnoyers@polymtl.ca, linux-arch@vger.kernel.org, sam@ravnborg.org, torvalds@linux-foundation.org, mm-commits@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, sam@ravnborg.org
 List-ID: <linux-arch.vger.kernel.org>
 
+* Andrew Morton (akpm@linux-foundation.org) wrote:
+> On Thu, 15 Nov 2007 20:57:30 -0500 Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca> wrote:
+> 
+> > I have an updated patchset for these 4 instrumentation menu patches,
+> > following Sam Ravnborg's comments (using ARCH_HAS_* instead of
+> > ARCH_SUPPORTS_*). I was planning to send them with my next patch round.
+> > 
+> > create-arch-kconfig.patch
+> > add-arch_supports_oprofile.patch
+> > add-arch_supports_kprobes.patch
+> > move-kconfiginstrumentation-to-arch-kconfig-and-init-kconfig.patch
+> 
+> So I've fixed all the rejects, fixed it all up for the arch/x86/Kconfig
+> churn, merged another patchset which depends on this one and now I'm told
+> that they need to be updated?
+> 
+> Sigh.  Normally I know not to look at a Mathieu patch until it hits version 37,
+> but I wanted to merge
+> kprobes-indicate-kretprobe-support-in-arch-arch-kconfig.patch and
+> kprobes-build-kretprobe-samples-only-if-arch-supports-kretprobes.patch
+> which depend on these patches.
+> 
+> It seems that they will now break.  afacit I'll need to do
+> s/CONFIG_ARCH_SUPPORTS_KRETPROBES/CONFIG_ARCH_HAD_KRETPROBES/ on those
+> patches.
+> 
+> Please send updated versions of these four asap?
 
-The patch titled
-     Add ARCH_SUPPORTS_KPROBES
-has been removed from the -mm tree.  Its filename was
-     add-arch_supports_kprobes.patch
 
-This patch was dropped because an updated version will be merged
+Just been sent.
 
-------------------------------------------------------
-Subject: Add ARCH_SUPPORTS_KPROBES
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+I sent you an email telling to hold patch integration yesterday:
 
-Linus:
+Subject: Wait for next round of post before merge to -mm
 
-On the per-architecture side, I do think it would be better to *not* have
-internal architecture knowledge in a generic file, and as such a line like
+I thought it was clear, but apparently it wasn't, sorry about that.
 
-        depends on X86_32 || IA64 || PPC || S390 || SPARC64 || X86_64 || AVR32
+And the change involves using a select now instead of a simple depend.
 
-really shouldn't exist in a file like kernel/Kconfig.instrumentation.
+Mathieu
 
-It would be much better to do
 
-        depends on ARCH_SUPPORTS_KPROBES
-
-in that generic file, and then architectures that do support it would just
-have a
-
-        bool ARCH_SUPPORTS_KPROBES
-                default y
-
-in *their* architecture files. That would seem to be much more logical,
-and is readable both for arch maintainers *and* for people who have no
-clue - and don't care - about which architecture is supposed to support
-which interface...
-
-Changelog:
-
-Actually, I know I gave this as the magic incantation, but now that I see
-it, I realize that I should have told you to just use
-
-        config ARCH_SUPPORTS_KPROBES
-                def_bool y
-
-instead, which is a bit denser.
-
-We seem to use both kinds of syntax for these things, but this is really
-what "def_bool" is there for...
-
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/avr32/Kconfig             |    3 +++
- arch/ia64/Kconfig              |    3 +++
- arch/powerpc/Kconfig           |    3 +++
- arch/ppc/Kconfig               |    3 +++
- arch/s390/Kconfig              |    3 +++
- arch/sparc64/Kconfig           |    3 +++
- arch/x86/Kconfig               |    3 +++
- kernel/Kconfig.instrumentation |    2 +-
- 8 files changed, 22 insertions(+), 1 deletion(-)
-
-diff -puN arch/avr32/Kconfig~add-arch_supports_kprobes arch/avr32/Kconfig
---- a/arch/avr32/Kconfig~add-arch_supports_kprobes
-+++ a/arch/avr32/Kconfig
-@@ -70,6 +70,9 @@ config GENERIC_BUG
- config ARCH_SUPPORTS_AOUT
- 	def_bool y
- 
-+config ARCH_SUPPORTS_KPROBES
-+	def_bool y
-+
- source "init/Kconfig"
- 
- menu "System Type and features"
-diff -puN arch/ia64/Kconfig~add-arch_supports_kprobes arch/ia64/Kconfig
---- a/arch/ia64/Kconfig~add-arch_supports_kprobes
-+++ a/arch/ia64/Kconfig
-@@ -105,6 +105,9 @@ config ARCH_SUPPORTS_AOUT
- config ARCH_SUPPORTS_OPROFILE
- 	def_bool y
- 
-+config ARCH_SUPPORTS_KPROBES
-+	def_bool y
-+
- choice
- 	prompt "System type"
- 	default IA64_GENERIC
-diff -puN arch/powerpc/Kconfig~add-arch_supports_kprobes arch/powerpc/Kconfig
---- a/arch/powerpc/Kconfig~add-arch_supports_kprobes
-+++ a/arch/powerpc/Kconfig
-@@ -169,6 +169,9 @@ config PPC_OF_PLATFORM_PCI
- config ARCH_SUPPORTS_OPROFILE
- 	def_bool y
- 
-+config ARCH_SUPPORTS_KPROBES
-+	def_bool y
-+
- source "init/Kconfig"
- 
- source "arch/powerpc/platforms/Kconfig"
-diff -puN arch/ppc/Kconfig~add-arch_supports_kprobes arch/ppc/Kconfig
---- a/arch/ppc/Kconfig~add-arch_supports_kprobes
-+++ a/arch/ppc/Kconfig
-@@ -75,6 +75,9 @@ config GENERIC_BUG
- config ARCH_SUPPORTS_OPROFILE
- 	def_bool y
- 
-+config ARCH_SUPPORTS_KPROBES
-+	def_bool y
-+
- source "init/Kconfig"
- 
- menu "Processor"
-diff -puN arch/s390/Kconfig~add-arch_supports_kprobes arch/s390/Kconfig
---- a/arch/s390/Kconfig~add-arch_supports_kprobes
-+++ a/arch/s390/Kconfig
-@@ -58,6 +58,9 @@ config S390
- config ARCH_SUPPORTS_OPROFILE
- 	def_bool y
- 
-+config ARCH_SUPPORTS_KPROBES
-+	def_bool y
-+
- source "init/Kconfig"
- 
- menu "Base setup"
-diff -puN arch/sparc64/Kconfig~add-arch_supports_kprobes arch/sparc64/Kconfig
---- a/arch/sparc64/Kconfig~add-arch_supports_kprobes
-+++ a/arch/sparc64/Kconfig
-@@ -82,6 +82,9 @@ config ARCH_SUPPORTS_AOUT
- config ARCH_SUPPORTS_OPROFILE
- 	def_bool y
- 
-+config ARCH_SUPPORTS_KPROBES
-+	def_bool y
-+
- choice
- 	prompt "Kernel page size"
- 	default SPARC64_PAGE_SIZE_8KB
-diff -puN arch/x86/Kconfig~add-arch_supports_kprobes arch/x86/Kconfig
---- a/arch/x86/Kconfig~add-arch_supports_kprobes
-+++ a/arch/x86/Kconfig
-@@ -175,6 +175,9 @@ config KTIME_SCALAR
- config ARCH_SUPPORTS_OPROFILE
- 	def_bool y
- 
-+config ARCH_SUPPORTS_KPROBES
-+	def_bool y
-+
- source "init/Kconfig"
- 
- menu "Processor type and features"
-diff -puN kernel/Kconfig.instrumentation~add-arch_supports_kprobes kernel/Kconfig.instrumentation
---- a/kernel/Kconfig.instrumentation~add-arch_supports_kprobes
-+++ a/kernel/Kconfig.instrumentation
-@@ -32,7 +32,7 @@ config OPROFILE
- config KPROBES
- 	bool "Kprobes"
- 	depends on KALLSYMS && MODULES
--	depends on X86_32 || IA64 || PPC || S390 || SPARC64 || X86_64 || AVR32
-+	depends on ARCH_SUPPORTS_KPROBES
- 	help
- 	  Kprobes allows you to trap at almost any kernel address and
- 	  execute a callback function.  register_kprobe() establishes
-_
-
-Patches currently in -mm which might be from mathieu.desnoyers@polymtl.ca are
-
-origin.patch
-add-cmpxchg_local-to-asm-generic-for-per-cpu-atomic-operations.patch
-fall-back-on-interrupt-disable-in-cmpxchg8b-on-80386-and-80486.patch
-add-cmpxchg64-and-cmpxchg64_local-to-alpha.patch
-add-cmpxchg64-and-cmpxchg64_local-to-mips.patch
-add-cmpxchg64-and-cmpxchg64_local-to-powerpc.patch
-add-cmpxchg64-and-cmpxchg64_local-to-x86_64.patch
-add-cmpxchg_local-to-arm.patch
-add-cmpxchg_local-to-avr32.patch
-add-cmpxchg_local-to-blackfin-replace-__cmpxchg-by-generic-cmpxchg.patch
-add-cmpxchg_local-to-cris.patch
-add-cmpxchg_local-to-frv.patch
-add-cmpxchg_local-to-h8300.patch
-add-cmpxchg_local-cmpxchg64-and-cmpxchg64_local-to-ia64.patch
-new-cmpxchg_local-optimized-for-up-case-for-m32r.patch
-fix-m32r-__xchg.patch
-m32r-build-fix-of-arch-m32r-kernel-smpbootc.patch
-local_t-m32r-use-architecture-specific-cmpxchg_local.patch
-add-cmpxchg_local-to-m86k.patch
-add-cmpxchg_local-to-m68knommu.patch
-add-cmpxchg_local-to-parisc.patch
-add-cmpxchg_local-to-ppc.patch
-add-cmpxchg_local-to-s390.patch
-add-cmpxchg_local-to-sh-use-generic-cmpxchg-instead-of-cmpxchg_u32.patch
-add-cmpxchg_local-to-sh64.patch
-add-cmpxchg_local-to-sparc-move-__cmpxchg-to-systemh.patch
-add-cmpxchg_local-to-sparc64.patch
-add-cmpxchg_local-to-v850.patch
-add-cmpxchg_local-to-xtensa.patch
-add-arch_supports_kprobes.patch
-move-kconfiginstrumentation-to-arch-kconfig-and-init-kconfig.patch
-
+-- 
+Mathieu Desnoyers
+Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
+OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
