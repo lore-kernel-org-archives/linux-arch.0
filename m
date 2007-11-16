@@ -1,204 +1,195 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.sgi.com ([192.48.171.29]:39542 "EHLO relay.sgi.com"
+Received: from relay1.sgi.com ([192.48.171.29]:39554 "EHLO relay.sgi.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1760115AbXKPXLD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 16 Nov 2007 18:11:03 -0500
-Message-Id: <20071116231102.487589938@sgi.com>
+	id S1761234AbXKPXLE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Nov 2007 18:11:04 -0500
+Message-Id: <20071116231103.528413375@sgi.com>
 References: <20071116230920.278761667@sgi.com>
-Date: Fri, 16 Nov 2007 15:09:23 -0800
+Date: Fri, 16 Nov 2007 15:09:26 -0800
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 03/30] cpu alloc: Remove SLUB fields
-Content-Disposition: inline; filename=cpu_alloc_remove_slub_fields
+Subject: [patch 06/30] cpu alloc: x86 support
+Content-Disposition: inline; filename=cpu_alloc_x86_support
 Sender: linux-arch-owner@vger.kernel.org
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>
 List-ID: <linux-arch.vger.kernel.org>
 
-Remove the fields in kmem_cache_cpu that were used to cache data from
-kmem_cache when they were in different cachelines. The cacheline that holds
-the per cpu array pointer now also holds these values. We can cut down the
-kmem_cache_cpu size to almost half.
+64 bit:
 
-The get_freepointer() and set_freepointer() functions that used to be only
-intended for the slow path now are also useful for the hot path since access
-to the field does not require an additional cacheline anymore. This results
-in consistent use of setting the freepointer for objects throughout SLUB.
+Set up a cpu area that allows the use of up 16MB for each processor.
+
+Cpu memory use can grow a bit. F.e. if we assume that a pageset
+occupies 64 bytes of memory and we have 3 zones in each of 1024 nodes
+then we need 3 * 1k * 16k = 50 million pagesets or 3096 pagesets per
+processor. This results in a total of 3.2 GB of page structs.
+Each cpu needs around 200k of cpu storage for the page allocator alone.
+So its a worth it to use a 2M huge mapping here.
+
+For the UP and SMP case map the area using 4k ptes. Typical use of per cpu
+data is around 16k for UP and SMP configurations. It goes up to 45k when the
+per cpu area is managed by cpu_alloc (see special x86_64 patchset).
+Allocating in 2M segments would be overkill.
+
+For NUMA map the area using 2M PMDs. A large NUMA system may use
+lots of cpu data for the page allocator data alone. We typically
+have large amounts of memory around on those size. Using a 2M page size
+reduces TLB pressure for that case.
+
+Some numbers for envisioned maximum configurations of NUMA systems:
+
+4k cpu configurations with 1k nodes:
+
+	4096 * 16MB = 64TB of virtual space.
+
+Maximum theoretical configuration 16384 processors 1k nodes:
+
+	16384 * 16MB = 256TB of virtual space.
+
+Both fit within the established limits established.
+
+32 bit:
+
+Setup a 256 kB area for the cpu areas below the FIXADDR area.
+
+The use of the cpu alloc area is pretty minimal on i386. An 8p system
+with no extras uses only ~8kb. So 256kb should be plenty. A configuration
+that supports up to 8 processors takes up 2MB of the scarce
+virtual address space
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- include/linux/slub_def.h |    3 --
- mm/slub.c                |   50 +++++++++++++++--------------------------------
- 2 files changed, 17 insertions(+), 36 deletions(-)
+ arch/x86/Kconfig             |   15 +++++++++++++++
+ arch/x86/mm/init_32.c        |    3 +++
+ arch/x86/mm/init_64.c        |   38 ++++++++++++++++++++++++++++++++++++++
+ include/asm-x86/pgtable_32.h |    7 +++++--
+ include/asm-x86/pgtable_64.h |    1 +
+ 5 files changed, 62 insertions(+), 2 deletions(-)
 
-Index: linux-2.6/include/linux/slub_def.h
+Index: linux-2.6/arch/x86/mm/init_64.c
 ===================================================================
---- linux-2.6.orig/include/linux/slub_def.h	2007-11-15 21:25:07.622904866 -0800
-+++ linux-2.6/include/linux/slub_def.h	2007-11-15 21:25:10.335154196 -0800
-@@ -15,9 +15,6 @@ struct kmem_cache_cpu {
- 	void **freelist;
- 	struct page *page;
- 	int node;
--	unsigned int offset;
--	unsigned int objsize;
--	unsigned int objects;
- };
- 
- struct kmem_cache_node {
-Index: linux-2.6/mm/slub.c
-===================================================================
---- linux-2.6.orig/mm/slub.c	2007-11-15 21:25:07.622904866 -0800
-+++ linux-2.6/mm/slub.c	2007-11-15 21:25:10.339154532 -0800
-@@ -273,13 +273,6 @@ static inline int check_valid_pointer(st
- 	return 1;
+--- linux-2.6.orig/arch/x86/mm/init_64.c	2007-11-15 21:24:47.059904335 -0800
++++ linux-2.6/arch/x86/mm/init_64.c	2007-11-15 21:25:18.578584246 -0800
+@@ -781,3 +781,41 @@ int __meminit vmemmap_populate(struct pa
+ 	return 0;
  }
- 
--/*
-- * Slow version of get and set free pointer.
-- *
-- * This version requires touching the cache lines of kmem_cache which
-- * we avoid to do in the fast alloc free paths. There we obtain the offset
-- * from the page struct.
-- */
- static inline void *get_freepointer(struct kmem_cache *s, void *object)
- {
- 	return *(void **)(object + s->offset);
-@@ -1438,10 +1431,10 @@ static void deactivate_slab(struct kmem_
- 
- 		/* Retrieve object from cpu_freelist */
- 		object = c->freelist;
--		c->freelist = c->freelist[c->offset];
-+		c->freelist = get_freepointer(s, c->freelist);
- 
- 		/* And put onto the regular freelist */
--		object[c->offset] = page->freelist;
-+		set_freepointer(s, object, page->freelist);
- 		page->freelist = object;
- 		page->inuse--;
- 	}
-@@ -1573,8 +1566,8 @@ load_freelist:
- 		goto debug;
- 
- 	object = c->page->freelist;
--	c->freelist = object[c->offset];
--	c->page->inuse = c->objects;
-+	c->freelist = get_freepointer(s, object);
-+	c->page->inuse = s->objects;
- 	c->page->freelist = c->page->end;
- 	c->node = page_to_nid(c->page);
- unlock_out:
-@@ -1602,7 +1595,7 @@ debug:
- 		goto another_slab;
- 
- 	c->page->inuse++;
--	c->page->freelist = object[c->offset];
-+	c->page->freelist = get_freepointer(s, object);
- 	c->node = -1;
- 	goto unlock_out;
- }
-@@ -1636,8 +1629,8 @@ static void __always_inline *slab_alloc(
- 			}
- 			break;
- 		}
--	} while (cmpxchg_local(&c->freelist, object, object[c->offset])
--								!= object);
-+	} while (cmpxchg_local(&c->freelist, object,
-+			get_freepointer(s, object)) != object);
- 	preempt_enable();
- #else
- 	unsigned long flags;
-@@ -1653,13 +1646,13 @@ static void __always_inline *slab_alloc(
- 		}
- 	} else {
- 		object = c->freelist;
--		c->freelist = object[c->offset];
-+		c->freelist = get_freepointer(s, object);
- 	}
- 	local_irq_restore(flags);
  #endif
- 
- 	if (unlikely((gfpflags & __GFP_ZERO)))
--		memset(object, 0, c->objsize);
-+		memset(object, 0, s->objsize);
- out:
- 	return object;
- }
-@@ -1687,7 +1680,7 @@ EXPORT_SYMBOL(kmem_cache_alloc_node);
-  * handling required then we can return immediately.
-  */
- static void __slab_free(struct kmem_cache *s, struct page *page,
--				void *x, void *addr, unsigned int offset)
-+				void *x, void *addr)
- {
- 	void *prior;
- 	void **object = (void *)x;
-@@ -1703,7 +1696,8 @@ static void __slab_free(struct kmem_cach
- 	if (unlikely(state & SLABDEBUG))
- 		goto debug;
- checks_ok:
--	prior = object[offset] = page->freelist;
-+	prior = page->freelist;
-+	set_freepointer(s, object, prior);
- 	page->freelist = object;
- 	page->inuse--;
- 
-@@ -1786,10 +1780,10 @@ static void __always_inline slab_free(st
- 		 * since the freelist pointers are unique per slab.
- 		 */
- 		if (unlikely(page != c->page || c->node < 0)) {
--			__slab_free(s, page, x, addr, c->offset);
-+			__slab_free(s, page, x, addr);
- 			break;
- 		}
--		object[c->offset] = freelist;
-+		set_freepointer(s, object, freelist);
- 	} while (cmpxchg_local(&c->freelist, freelist, object) != freelist);
- 	preempt_enable();
- #else
-@@ -1799,10 +1793,10 @@ static void __always_inline slab_free(st
- 	debug_check_no_locks_freed(object, s->objsize);
- 	c = THIS_CPU(s->cpu_slab);
- 	if (likely(page == c->page && c->node >= 0)) {
--		object[c->offset] = c->freelist;
-+		set_freepointer(s, object, c->freelist);
- 		c->freelist = object;
- 	} else
--		__slab_free(s, page, x, addr, c->offset);
-+		__slab_free(s, page, x, addr);
- 
- 	local_irq_restore(flags);
- #endif
-@@ -1984,9 +1978,6 @@ static void init_kmem_cache_cpu(struct k
- 	c->page = NULL;
- 	c->freelist = (void *)PAGE_MAPPING_ANON;
- 	c->node = 0;
--	c->offset = s->offset / sizeof(void *);
--	c->objsize = s->objsize;
--	c->objects = s->objects;
- }
- 
- static void init_kmem_cache_node(struct kmem_cache_node *n)
-@@ -2978,21 +2969,14 @@ struct kmem_cache *kmem_cache_create(con
- 	down_write(&slub_lock);
- 	s = find_mergeable(size, align, flags, name, ctor);
- 	if (s) {
--		int cpu;
--
- 		s->refcount++;
 +
- 		/*
- 		 * Adjust the object sizes so that we clear
- 		 * the complete object on kzalloc.
- 		 */
- 		s->objsize = max(s->objsize, (int)size);
++#ifdef CONFIG_NUMA
++int __meminit cpu_area_populate(void *start, unsigned long size,
++						gfp_t flags, int node)
++{
++	unsigned long addr = (unsigned long)start;
++	unsigned long end = addr + size;
++	unsigned long next;
++	pgd_t *pgd;
++	pud_t *pud;
++	pmd_t *pmd;
++
++	for (; addr < end; addr = next) {
++		next = pmd_addr_end(addr, end);
++
++		pgd = cpu_area_pgd_populate(addr, flags, node);
++		if (!pgd)
++			return -ENOMEM;
++		pud = cpu_area_pud_populate(pgd, addr, flags, node);
++		if (!pud)
++			return -ENOMEM;
++
++		pmd = pmd_offset(pud, addr);
++		if (pmd_none(*pmd)) {
++			pte_t entry;
++			void *p = cpu_area_alloc_block(PMD_SIZE, flags, node);
++			if (!p)
++				return -ENOMEM;
++
++			entry = pfn_pte(__pa(p) >> PAGE_SHIFT, PAGE_KERNEL);
++			mk_pte_huge(entry);
++			set_pmd(pmd, __pmd(pte_val(entry)));
++		}
++	}
++
++	return 0;
++}
++#endif
+Index: linux-2.6/include/asm-x86/pgtable_64.h
+===================================================================
+--- linux-2.6.orig/include/asm-x86/pgtable_64.h	2007-11-15 21:24:47.079904686 -0800
++++ linux-2.6/include/asm-x86/pgtable_64.h	2007-11-15 21:25:18.578584246 -0800
+@@ -138,6 +138,7 @@ static inline pte_t ptep_get_and_clear_f
+ #define VMALLOC_START    _AC(0xffffc20000000000, UL)
+ #define VMALLOC_END      _AC(0xffffe1ffffffffff, UL)
+ #define VMEMMAP_START	 _AC(0xffffe20000000000, UL)
++#define CPU_AREA_BASE	 _AC(0xfffff20000000000, UL)
+ #define MODULES_VADDR    _AC(0xffffffff88000000, UL)
+ #define MODULES_END      _AC(0xfffffffffff00000, UL)
+ #define MODULES_LEN   (MODULES_END - MODULES_VADDR)
+Index: linux-2.6/arch/x86/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/x86/Kconfig	2007-11-15 21:24:47.075904383 -0800
++++ linux-2.6/arch/x86/Kconfig	2007-11-15 21:25:18.578584246 -0800
+@@ -163,6 +163,21 @@ config X86_TRAMPOLINE
  
--		/*
--		 * And then we need to update the object size in the
--		 * per cpu structures
--		 */
--		for_each_online_cpu(cpu)
--			CPU_PTR(s->cpu_slab, cpu)->objsize = s->objsize;
- 		s->inuse = max_t(int, s->inuse, ALIGN(size, sizeof(void *)));
- 		up_write(&slub_lock);
- 		if (sysfs_slab_alias(s, name))
+ config KTIME_SCALAR
+ 	def_bool X86_32
++
++config CPU_AREA_VIRTUAL
++	bool
++	default y
++
++config CPU_AREA_ORDER
++	int
++	default "16" if X86_64
++	default "6" if X86_32
++
++config CPU_AREA_ALLOC_ORDER
++	int
++	default "9" if NUMA && X86_64
++	default "0" if !NUMA || X86_32
++
+ source "init/Kconfig"
+ 
+ menu "Processor type and features"
+Index: linux-2.6/arch/x86/mm/init_32.c
+===================================================================
+--- linux-2.6.orig/arch/x86/mm/init_32.c	2007-11-15 21:24:47.067904108 -0800
++++ linux-2.6/arch/x86/mm/init_32.c	2007-11-15 21:25:18.578584246 -0800
+@@ -674,6 +674,7 @@ void __init mem_init(void)
+ #if 1 /* double-sanity-check paranoia */
+ 	printk("virtual kernel memory layout:\n"
+ 	       "    fixmap  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
++	       "    cpu area: 0x%08lx - 0x%08lx   (%4ld kb)\n"
+ #ifdef CONFIG_HIGHMEM
+ 	       "    pkmap   : 0x%08lx - 0x%08lx   (%4ld kB)\n"
+ #endif
+@@ -684,6 +685,8 @@ void __init mem_init(void)
+ 	       "      .text : 0x%08lx - 0x%08lx   (%4ld kB)\n",
+ 	       FIXADDR_START, FIXADDR_TOP,
+ 	       (FIXADDR_TOP - FIXADDR_START) >> 10,
++	       CPU_AREA_BASE, FIXADDR_START,
++	       (FIXADDR_START - CPU_AREA_BASE) >> 10,
+ 
+ #ifdef CONFIG_HIGHMEM
+ 	       PKMAP_BASE, PKMAP_BASE+LAST_PKMAP*PAGE_SIZE,
+Index: linux-2.6/include/asm-x86/pgtable_32.h
+===================================================================
+--- linux-2.6.orig/include/asm-x86/pgtable_32.h	2007-11-15 21:24:47.087904440 -0800
++++ linux-2.6/include/asm-x86/pgtable_32.h	2007-11-15 21:25:18.578584246 -0800
+@@ -79,11 +79,14 @@ void paging_init(void);
+ #define VMALLOC_START	(((unsigned long) high_memory + \
+ 			2*VMALLOC_OFFSET-1) & ~(VMALLOC_OFFSET-1))
+ #ifdef CONFIG_HIGHMEM
+-# define VMALLOC_END	(PKMAP_BASE-2*PAGE_SIZE)
++# define CPU_AREA_BASE	(PKMAP_BASE - NR_CPUS * \
++				(1 << (CONFIG_CPU_AREA_ORDER + PAGE_SHIFT)))
+ #else
+-# define VMALLOC_END	(FIXADDR_START-2*PAGE_SIZE)
++# define CPU_AREA_BASE	(FIXADDR_START - NR_CPUS * \
++				(1 << (CONFIG_CPU_AREA_ORDER + PAGE_SHIFT)))
+ #endif
+ 
++#define VMALLOC_END	(CPU_AREA_BASE - 2 * PAGE_SIZE)
+ /*
+  * _PAGE_PSE set in the page directory entry just means that
+  * the page directory entry points directly to a 4MB-aligned block of
 
 -- 
