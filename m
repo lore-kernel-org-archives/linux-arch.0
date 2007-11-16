@@ -1,117 +1,263 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:51822 "EHLO
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:51831 "EHLO
 	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1762685AbXKPXLJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Nov 2007 18:11:09 -0500
-Message-Id: <20071116231109.031973549@sgi.com>
+	with ESMTP id S1762865AbXKPXLK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Nov 2007 18:11:10 -0500
+Message-Id: <20071116231109.686961095@sgi.com>
 References: <20071116230920.278761667@sgi.com>
-Date: Fri, 16 Nov 2007 15:09:48 -0800
+Date: Fri, 16 Nov 2007 15:09:50 -0800
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 28/30] cpu alloc: Use for infiniband
-Content-Disposition: inline; filename=0038-cpu-alloc-Use-for-infiniband.patch
+Subject: [patch 30/30] cpu alloc: Remove the allocpercpu functionality
+Content-Disposition: inline; filename=0040-cpu-alloc-Remove-the-allocpercpu-functionality.patch
 Sender: linux-arch-owner@vger.kernel.org
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>
 List-ID: <linux-arch.vger.kernel.org>
 
+There is no user of allocpercpu left after all the earlier patches were
+applied. Remove the code that realizes allocpercpu.
+
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- drivers/infiniband/hw/ehca/ehca_irq.c |   22 +++++++++++-----------
- 1 file changed, 11 insertions(+), 11 deletions(-)
+ include/linux/percpu.h |   80 ------------------------------
+ mm/Makefile            |    1 
+ mm/allocpercpu.c       |  127 -------------------------------------------------
+ 3 files changed, 208 deletions(-)
+ delete mode 100644 mm/allocpercpu.c
 
-Index: linux-2.6/drivers/infiniband/hw/ehca/ehca_irq.c
+Index: linux-2.6/include/linux/percpu.h
 ===================================================================
---- linux-2.6.orig/drivers/infiniband/hw/ehca/ehca_irq.c	2007-11-15 21:17:23.663404239 -0800
-+++ linux-2.6/drivers/infiniband/hw/ehca/ehca_irq.c	2007-11-15 21:25:39.310404188 -0800
-@@ -646,7 +646,7 @@ static void queue_comp_task(struct ehca_
- 	cpu_id = find_next_online_cpu(pool);
- 	BUG_ON(!cpu_online(cpu_id));
+--- linux-2.6.orig/include/linux/percpu.h	2007-11-15 21:24:50.730654207 -0800
++++ linux-2.6/include/linux/percpu.h	2007-11-15 21:25:40.302313443 -0800
+@@ -31,86 +31,6 @@
+ 	&__get_cpu_var(var); }))
+ #define put_cpu_var(var) preempt_enable()
  
--	cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu_id);
-+	cct = CPU_PTR(pool->cpu_comp_tasks, cpu_id);
- 	BUG_ON(!cct);
+-#ifdef CONFIG_SMP
+-
+-struct percpu_data {
+-	void *ptrs[NR_CPUS];
+-};
+-
+-#define __percpu_disguise(pdata) (struct percpu_data *)~(unsigned long)(pdata)
+-/* 
+- * Use this to get to a cpu's version of the per-cpu object dynamically
+- * allocated. Non-atomic access to the current CPU's version should
+- * probably be combined with get_cpu()/put_cpu().
+- */ 
+-#define percpu_ptr(ptr, cpu)                              \
+-({                                                        \
+-        struct percpu_data *__p = __percpu_disguise(ptr); \
+-        (__typeof__(ptr))__p->ptrs[(cpu)];	          \
+-})
+-
+-extern void *percpu_populate(void *__pdata, size_t size, gfp_t gfp, int cpu);
+-extern void percpu_depopulate(void *__pdata, int cpu);
+-extern int __percpu_populate_mask(void *__pdata, size_t size, gfp_t gfp,
+-				  cpumask_t *mask);
+-extern void __percpu_depopulate_mask(void *__pdata, cpumask_t *mask);
+-extern void *__percpu_alloc_mask(size_t size, gfp_t gfp, cpumask_t *mask);
+-extern void percpu_free(void *__pdata);
+-
+-#else /* CONFIG_SMP */
+-
+-#define percpu_ptr(ptr, cpu) ({ (void)(cpu); (ptr); })
+-
+-static inline void percpu_depopulate(void *__pdata, int cpu)
+-{
+-}
+-
+-static inline void __percpu_depopulate_mask(void *__pdata, cpumask_t *mask)
+-{
+-}
+-
+-static inline void *percpu_populate(void *__pdata, size_t size, gfp_t gfp,
+-				    int cpu)
+-{
+-	return percpu_ptr(__pdata, cpu);
+-}
+-
+-static inline int __percpu_populate_mask(void *__pdata, size_t size, gfp_t gfp,
+-					 cpumask_t *mask)
+-{
+-	return 0;
+-}
+-
+-static __always_inline void *__percpu_alloc_mask(size_t size, gfp_t gfp, cpumask_t *mask)
+-{
+-	return kzalloc(size, gfp);
+-}
+-
+-static inline void percpu_free(void *__pdata)
+-{
+-	kfree(__pdata);
+-}
+-
+-#endif /* CONFIG_SMP */
+-
+-#define percpu_populate_mask(__pdata, size, gfp, mask) \
+-	__percpu_populate_mask((__pdata), (size), (gfp), &(mask))
+-#define percpu_depopulate_mask(__pdata, mask) \
+-	__percpu_depopulate_mask((__pdata), &(mask))
+-#define percpu_alloc_mask(size, gfp, mask) \
+-	__percpu_alloc_mask((size), (gfp), &(mask))
+-
+-#define percpu_alloc(size, gfp) percpu_alloc_mask((size), (gfp), cpu_online_map)
+-
+-/* (legacy) interface for use without CPU hotplug handling */
+-
+-#define __alloc_percpu(size)	percpu_alloc_mask((size), GFP_KERNEL, \
+-						  cpu_possible_map)
+-#define alloc_percpu(type)	(type *)__alloc_percpu(sizeof(type))
+-#define free_percpu(ptr)	percpu_free((ptr))
+-#define per_cpu_ptr(ptr, cpu)	percpu_ptr((ptr), (cpu))
+-
+-
+ /*
+  * cpu allocator definitions
+  *
+Index: linux-2.6/mm/Makefile
+===================================================================
+--- linux-2.6.orig/mm/Makefile	2007-11-15 21:24:50.726654353 -0800
++++ linux-2.6/mm/Makefile	2007-11-15 21:25:40.302313443 -0800
+@@ -28,6 +28,5 @@ obj-$(CONFIG_SLUB) += slub.o
+ obj-$(CONFIG_MEMORY_HOTPLUG) += memory_hotplug.o
+ obj-$(CONFIG_FS_XIP) += filemap_xip.o
+ obj-$(CONFIG_MIGRATION) += migrate.o
+-obj-$(CONFIG_SMP) += allocpercpu.o
+ obj-$(CONFIG_QUICKLIST) += quicklist.o
  
- 	spin_lock_irqsave(&cct->task_lock, flags);
-@@ -654,7 +654,7 @@ static void queue_comp_task(struct ehca_
- 	spin_unlock_irqrestore(&cct->task_lock, flags);
- 	if (cq_jobs > 0) {
- 		cpu_id = find_next_online_cpu(pool);
--		cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu_id);
-+		cct = CPU_PTR(pool->cpu_comp_tasks, cpu_id);
- 		BUG_ON(!cct);
- 	}
- 
-@@ -727,7 +727,7 @@ static struct task_struct *create_comp_t
- {
- 	struct ehca_cpu_comp_task *cct;
- 
--	cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
-+	cct = CPU_PTR(pool->cpu_comp_tasks, cpu);
- 	spin_lock_init(&cct->task_lock);
- 	INIT_LIST_HEAD(&cct->cq_list);
- 	init_waitqueue_head(&cct->wait_queue);
-@@ -743,7 +743,7 @@ static void destroy_comp_task(struct ehc
- 	struct task_struct *task;
- 	unsigned long flags_cct;
- 
--	cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
-+	cct = CPU_PTR(pool->cpu_comp_tasks, cpu);
- 
- 	spin_lock_irqsave(&cct->task_lock, flags_cct);
- 
-@@ -759,7 +759,7 @@ static void destroy_comp_task(struct ehc
- 
- static void __cpuinit take_over_work(struct ehca_comp_pool *pool, int cpu)
- {
--	struct ehca_cpu_comp_task *cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
-+	struct ehca_cpu_comp_task *cct = CPU_PTR(pool->cpu_comp_tasks, cpu);
- 	LIST_HEAD(list);
- 	struct ehca_cq *cq;
- 	unsigned long flags_cct;
-@@ -772,8 +772,7 @@ static void __cpuinit take_over_work(str
- 		cq = list_entry(cct->cq_list.next, struct ehca_cq, entry);
- 
- 		list_del(&cq->entry);
--		__queue_comp_task(cq, per_cpu_ptr(pool->cpu_comp_tasks,
--						  smp_processor_id()));
-+		__queue_comp_task(cq, THIS_CPU(pool->cpu_comp_tasks));
- 	}
- 
- 	spin_unlock_irqrestore(&cct->task_lock, flags_cct);
-@@ -799,14 +798,14 @@ static int __cpuinit comp_pool_callback(
- 	case CPU_UP_CANCELED:
- 	case CPU_UP_CANCELED_FROZEN:
- 		ehca_gen_dbg("CPU: %x (CPU_CANCELED)", cpu);
--		cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
-+		cct = CPU_PTR(pool->cpu_comp_tasks, cpu);
- 		kthread_bind(cct->task, any_online_cpu(cpu_online_map));
- 		destroy_comp_task(pool, cpu);
- 		break;
- 	case CPU_ONLINE:
- 	case CPU_ONLINE_FROZEN:
- 		ehca_gen_dbg("CPU: %x (CPU_ONLINE)", cpu);
--		cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
-+		cct = CPU_PTR(pool->cpu_comp_tasks, cpu);
- 		kthread_bind(cct->task, cpu);
- 		wake_up_process(cct->task);
- 		break;
-@@ -849,7 +848,8 @@ int ehca_create_comp_pool(void)
- 	spin_lock_init(&pool->last_cpu_lock);
- 	pool->last_cpu = any_online_cpu(cpu_online_map);
- 
--	pool->cpu_comp_tasks = alloc_percpu(struct ehca_cpu_comp_task);
-+	pool->cpu_comp_tasks = CPU_ALLOC(struct ehca_cpu_comp_task,
-+						GFP_KERNEL | __GFP_ZERO);
- 	if (pool->cpu_comp_tasks == NULL) {
- 		kfree(pool);
- 		return -EINVAL;
-@@ -883,6 +883,6 @@ void ehca_destroy_comp_pool(void)
- 		if (cpu_online(i))
- 			destroy_comp_task(pool, i);
- 	}
--	free_percpu(pool->cpu_comp_tasks);
-+	CPU_FREE(pool->cpu_comp_tasks);
- 	kfree(pool);
- }
+Index: linux-2.6/mm/allocpercpu.c
+===================================================================
+--- linux-2.6.orig/mm/allocpercpu.c	2007-11-15 21:17:23.570404405 -0800
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+@@ -1,127 +0,0 @@
+-/*
+- * linux/mm/allocpercpu.c
+- *
+- * Separated from slab.c August 11, 2006 Christoph Lameter <clameter@sgi.com>
+- */
+-#include <linux/mm.h>
+-#include <linux/module.h>
+-
+-/**
+- * percpu_depopulate - depopulate per-cpu data for given cpu
+- * @__pdata: per-cpu data to depopulate
+- * @cpu: depopulate per-cpu data for this cpu
+- *
+- * Depopulating per-cpu data for a cpu going offline would be a typical
+- * use case. You need to register a cpu hotplug handler for that purpose.
+- */
+-void percpu_depopulate(void *__pdata, int cpu)
+-{
+-	struct percpu_data *pdata = __percpu_disguise(__pdata);
+-
+-	kfree(pdata->ptrs[cpu]);
+-	pdata->ptrs[cpu] = NULL;
+-}
+-EXPORT_SYMBOL_GPL(percpu_depopulate);
+-
+-/**
+- * percpu_depopulate_mask - depopulate per-cpu data for some cpu's
+- * @__pdata: per-cpu data to depopulate
+- * @mask: depopulate per-cpu data for cpu's selected through mask bits
+- */
+-void __percpu_depopulate_mask(void *__pdata, cpumask_t *mask)
+-{
+-	int cpu;
+-	for_each_cpu_mask(cpu, *mask)
+-		percpu_depopulate(__pdata, cpu);
+-}
+-EXPORT_SYMBOL_GPL(__percpu_depopulate_mask);
+-
+-/**
+- * percpu_populate - populate per-cpu data for given cpu
+- * @__pdata: per-cpu data to populate further
+- * @size: size of per-cpu object
+- * @gfp: may sleep or not etc.
+- * @cpu: populate per-data for this cpu
+- *
+- * Populating per-cpu data for a cpu coming online would be a typical
+- * use case. You need to register a cpu hotplug handler for that purpose.
+- * Per-cpu object is populated with zeroed buffer.
+- */
+-void *percpu_populate(void *__pdata, size_t size, gfp_t gfp, int cpu)
+-{
+-	struct percpu_data *pdata = __percpu_disguise(__pdata);
+-	int node = cpu_to_node(cpu);
+-
+-	BUG_ON(pdata->ptrs[cpu]);
+-	if (node_online(node))
+-		pdata->ptrs[cpu] = kmalloc_node(size, gfp|__GFP_ZERO, node);
+-	else
+-		pdata->ptrs[cpu] = kzalloc(size, gfp);
+-	return pdata->ptrs[cpu];
+-}
+-EXPORT_SYMBOL_GPL(percpu_populate);
+-
+-/**
+- * percpu_populate_mask - populate per-cpu data for more cpu's
+- * @__pdata: per-cpu data to populate further
+- * @size: size of per-cpu object
+- * @gfp: may sleep or not etc.
+- * @mask: populate per-cpu data for cpu's selected through mask bits
+- *
+- * Per-cpu objects are populated with zeroed buffers.
+- */
+-int __percpu_populate_mask(void *__pdata, size_t size, gfp_t gfp,
+-			   cpumask_t *mask)
+-{
+-	cpumask_t populated = CPU_MASK_NONE;
+-	int cpu;
+-
+-	for_each_cpu_mask(cpu, *mask)
+-		if (unlikely(!percpu_populate(__pdata, size, gfp, cpu))) {
+-			__percpu_depopulate_mask(__pdata, &populated);
+-			return -ENOMEM;
+-		} else
+-			cpu_set(cpu, populated);
+-	return 0;
+-}
+-EXPORT_SYMBOL_GPL(__percpu_populate_mask);
+-
+-/**
+- * percpu_alloc_mask - initial setup of per-cpu data
+- * @size: size of per-cpu object
+- * @gfp: may sleep or not etc.
+- * @mask: populate per-data for cpu's selected through mask bits
+- *
+- * Populating per-cpu data for all online cpu's would be a typical use case,
+- * which is simplified by the percpu_alloc() wrapper.
+- * Per-cpu objects are populated with zeroed buffers.
+- */
+-void *__percpu_alloc_mask(size_t size, gfp_t gfp, cpumask_t *mask)
+-{
+-	void *pdata = kzalloc(sizeof(struct percpu_data), gfp);
+-	void *__pdata = __percpu_disguise(pdata);
+-
+-	if (unlikely(!pdata))
+-		return NULL;
+-	if (likely(!__percpu_populate_mask(__pdata, size, gfp, mask)))
+-		return __pdata;
+-	kfree(pdata);
+-	return NULL;
+-}
+-EXPORT_SYMBOL_GPL(__percpu_alloc_mask);
+-
+-/**
+- * percpu_free - final cleanup of per-cpu data
+- * @__pdata: object to clean up
+- *
+- * We simply clean up any per-cpu object left. No need for the client to
+- * track and specify through a bis mask which per-cpu objects are to free.
+- */
+-void percpu_free(void *__pdata)
+-{
+-	if (unlikely(!__pdata))
+-		return;
+-	__percpu_depopulate_mask(__pdata, &cpu_possible_map);
+-	kfree(__percpu_disguise(__pdata));
+-}
+-EXPORT_SYMBOL_GPL(percpu_free);
 
 -- 
