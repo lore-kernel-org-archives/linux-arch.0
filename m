@@ -1,46 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:59113 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:49162 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758658AbXKPCJA (ORCPT
+	by vger.kernel.org with ESMTP id S1759923AbXKPCJL (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Nov 2007 21:09:00 -0500
-Message-Id: <200711160208.lAG28uVh027178@imap1.linux-foundation.org>
-Subject: - create-arch-kconfig.patch removed from -mm tree
+	Thu, 15 Nov 2007 21:09:11 -0500
+Message-Id: <200711160209.lAG291sJ027187@imap1.linux-foundation.org>
+Subject: - add-arch_supports_kprobes.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Thu, 15 Nov 2007 18:08:55 -0800
+Date: Thu, 15 Nov 2007 18:09:01 -0800
 Sender: linux-arch-owner@vger.kernel.org
 To: mathieu.desnoyers@polymtl.ca, linux-arch@vger.kernel.org, sam@ravnborg.org, torvalds@linux-foundation.org, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
 The patch titled
-     Create arch/Kconfig
+     Add ARCH_SUPPORTS_KPROBES
 has been removed from the -mm tree.  Its filename was
-     create-arch-kconfig.patch
+     add-arch_supports_kprobes.patch
 
 This patch was dropped because an updated version will be merged
 
 ------------------------------------------------------
-Subject: Create arch/Kconfig
+Subject: Add ARCH_SUPPORTS_KPROBES
 From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 
-Puts the content of arch/Kconfig in the "General setup" menu.
-
 Linus:
-
-> Should it come with a re-duplication of it's content into each
-> architecture, which was the case previously ? The oprofile and kprobes
-> menu entries were litteraly cut and pasted from one architecture to
-> another. Should we put its content in init/Kconfig then ?
-
-I don't think it's a good idea to go back to making it per-architecture,
-although that extensive "depends on <list-of-archiectures-here>" might
-indicate that there certainly is room for cleanup there.
-
-And I don't think it's wrong keeping it in kernel/Kconfig.xyz per se, I
-just think it's wrong to (a) lump the code together when it really doesn't
-necessarily need to and (b) show it to users as some kind of choice that
-is tied together (whether it then has common code or not).
 
 On the per-architecture side, I do think it would be better to *not* have
 internal architecture knowledge in a generic file, and as such a line like
@@ -64,16 +48,18 @@ and is readable both for arch maintainers *and* for people who have no
 clue - and don't care - about which architecture is supposed to support
 which interface...
 
+Changelog:
 
-Sam Ravnborg:
+Actually, I know I gave this as the magic incantation, but now that I see
+it, I realize that I should have told you to just use
 
-Stuff it into a new file: arch/Kconfig
-We can then extend this file to include all the 'trailing'
-Kconfig things that are anyway equal for all ARCHs.
+        config ARCH_SUPPORTS_KPROBES
+                def_bool y
 
-But it should be kept clean - so if we introduce such a file
-then we should use ARCH_HAS_whatever in the arch specific Kconfig
-files to enable stuff that is not shared.
+instead, which is a bit denser.
+
+We seem to use both kinds of syntax for these things, but this is really
+what "def_bool" is there for...
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>
@@ -82,29 +68,119 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/Kconfig |    3 +++
- init/Kconfig |    2 ++
- 2 files changed, 5 insertions(+)
+ arch/avr32/Kconfig             |    3 +++
+ arch/ia64/Kconfig              |    3 +++
+ arch/powerpc/Kconfig           |    3 +++
+ arch/ppc/Kconfig               |    3 +++
+ arch/s390/Kconfig              |    3 +++
+ arch/sparc64/Kconfig           |    3 +++
+ arch/x86/Kconfig               |    3 +++
+ kernel/Kconfig.instrumentation |    2 +-
+ 8 files changed, 22 insertions(+), 1 deletion(-)
 
-diff -puN /dev/null arch/Kconfig
---- /dev/null
-+++ a/arch/Kconfig
-@@ -0,0 +1,3 @@
-+#
-+# General architecture dependent options
-+#
-diff -puN init/Kconfig~create-arch-kconfig init/Kconfig
---- a/init/Kconfig~create-arch-kconfig
-+++ a/init/Kconfig
-@@ -673,6 +673,8 @@ config PROC_PAGE_MONITOR
- 	  /proc/kpagecount, and /proc/kpageflags. Disabling these
-           interfaces will reduce the size of the kernel by approximately 4kb.
+diff -puN arch/avr32/Kconfig~add-arch_supports_kprobes arch/avr32/Kconfig
+--- a/arch/avr32/Kconfig~add-arch_supports_kprobes
++++ a/arch/avr32/Kconfig
+@@ -70,6 +70,9 @@ config GENERIC_BUG
+ config ARCH_SUPPORTS_AOUT
+ 	def_bool y
  
-+source "arch/Kconfig"
++config ARCH_SUPPORTS_KPROBES
++	def_bool y
 +
- endmenu		# General setup
+ source "init/Kconfig"
  
- config RT_MUTEXES
+ menu "System Type and features"
+diff -puN arch/ia64/Kconfig~add-arch_supports_kprobes arch/ia64/Kconfig
+--- a/arch/ia64/Kconfig~add-arch_supports_kprobes
++++ a/arch/ia64/Kconfig
+@@ -105,6 +105,9 @@ config ARCH_SUPPORTS_AOUT
+ config ARCH_SUPPORTS_OPROFILE
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_KPROBES
++	def_bool y
++
+ choice
+ 	prompt "System type"
+ 	default IA64_GENERIC
+diff -puN arch/powerpc/Kconfig~add-arch_supports_kprobes arch/powerpc/Kconfig
+--- a/arch/powerpc/Kconfig~add-arch_supports_kprobes
++++ a/arch/powerpc/Kconfig
+@@ -169,6 +169,9 @@ config PPC_OF_PLATFORM_PCI
+ config ARCH_SUPPORTS_OPROFILE
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_KPROBES
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ source "arch/powerpc/platforms/Kconfig"
+diff -puN arch/ppc/Kconfig~add-arch_supports_kprobes arch/ppc/Kconfig
+--- a/arch/ppc/Kconfig~add-arch_supports_kprobes
++++ a/arch/ppc/Kconfig
+@@ -75,6 +75,9 @@ config GENERIC_BUG
+ config ARCH_SUPPORTS_OPROFILE
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_KPROBES
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ menu "Processor"
+diff -puN arch/s390/Kconfig~add-arch_supports_kprobes arch/s390/Kconfig
+--- a/arch/s390/Kconfig~add-arch_supports_kprobes
++++ a/arch/s390/Kconfig
+@@ -58,6 +58,9 @@ config S390
+ config ARCH_SUPPORTS_OPROFILE
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_KPROBES
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ menu "Base setup"
+diff -puN arch/sparc64/Kconfig~add-arch_supports_kprobes arch/sparc64/Kconfig
+--- a/arch/sparc64/Kconfig~add-arch_supports_kprobes
++++ a/arch/sparc64/Kconfig
+@@ -82,6 +82,9 @@ config ARCH_SUPPORTS_AOUT
+ config ARCH_SUPPORTS_OPROFILE
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_KPROBES
++	def_bool y
++
+ choice
+ 	prompt "Kernel page size"
+ 	default SPARC64_PAGE_SIZE_8KB
+diff -puN arch/x86/Kconfig~add-arch_supports_kprobes arch/x86/Kconfig
+--- a/arch/x86/Kconfig~add-arch_supports_kprobes
++++ a/arch/x86/Kconfig
+@@ -175,6 +175,9 @@ config KTIME_SCALAR
+ config ARCH_SUPPORTS_OPROFILE
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_KPROBES
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ menu "Processor type and features"
+diff -puN kernel/Kconfig.instrumentation~add-arch_supports_kprobes kernel/Kconfig.instrumentation
+--- a/kernel/Kconfig.instrumentation~add-arch_supports_kprobes
++++ a/kernel/Kconfig.instrumentation
+@@ -32,7 +32,7 @@ config OPROFILE
+ config KPROBES
+ 	bool "Kprobes"
+ 	depends on KALLSYMS && MODULES
+-	depends on X86_32 || IA64 || PPC || S390 || SPARC64 || X86_64 || AVR32
++	depends on ARCH_SUPPORTS_KPROBES
+ 	help
+ 	  Kprobes allows you to trap at almost any kernel address and
+ 	  execute a callback function.  register_kprobe() establishes
 _
 
 Patches currently in -mm which might be from mathieu.desnoyers@polymtl.ca are
@@ -138,8 +214,6 @@ add-cmpxchg_local-to-sparc-move-__cmpxchg-to-systemh.patch
 add-cmpxchg_local-to-sparc64.patch
 add-cmpxchg_local-to-v850.patch
 add-cmpxchg_local-to-xtensa.patch
-create-arch-kconfig.patch
-add-arch_supports_oprofile.patch
 add-arch_supports_kprobes.patch
 move-kconfiginstrumentation-to-arch-kconfig-and-init-kconfig.patch
 
