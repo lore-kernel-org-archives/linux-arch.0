@@ -1,38 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nat-132.atmel.no ([80.232.32.132]:54429 "EHLO relay.atmel.no"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1756469AbXKPL2A convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Nov 2007 06:28:00 -0500
-Date: Fri, 16 Nov 2007 12:27:17 +0100
-From: Haavard Skinnemoen <hskinnemoen@atmel.com>
-Subject: Re: + aout-mark-arches-that-support-aout-format.patch added to -mm
- tree
-Message-ID: <20071116122717.062314f5@siona>
-In-Reply-To: <200711152352.lAFNqkQp022343@imap1.linux-foundation.org>
-References: <200711152352.lAFNqkQp022343@imap1.linux-foundation.org>
+Received: from tomts16.bellnexxia.net ([209.226.175.4]:59191 "EHLO
+	tomts16-srv.bellnexxia.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1760266AbXKPNxx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Nov 2007 08:53:53 -0500
+Date: Fri, 16 Nov 2007 08:53:49 -0500
+From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Subject: Re: + create-arch-kconfig.patch added to -mm tree
+Message-ID: <20071116135349.GA14532@Krystal>
+References: <200711152227.lAFMR5Ck019098@imap1.linux-foundation.org> <20071116082053.GA21084@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+In-Reply-To: <20071116082053.GA21084@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: mm-commits@vger.kernel.org, dhowells@redhat.com, linux-arch@vger.kernel.org
+To: akpm@linux-foundation.org, mm-commits@vger.kernel.org, linux-arch@vger.kernel.org, sam@ravnborg.org, torvalds@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 15 Nov 2007 15:52:46 -0800
-akpm@linux-foundation.org wrote:
+* Russell King (rmk@arm.linux.org.uk) wrote:
+> On Thu, Nov 15, 2007 at 02:27:05PM -0800, akpm@linux-foundation.org wrote:
+> > It would be much better to do
+> > 
+> >         depends on ARCH_SUPPORTS_KPROBES
+> > 
+> > in that generic file, and then architectures that do support it would just
+> > have a
+> > 
+> >         bool ARCH_SUPPORTS_KPROBES
+> >                 default y
+> 
+> I thought we were discussing the prefix to use, and settling on HAVE_xxx
+> rather than ARCH_SUPPORTS_xxx.
+> 
 
-> diff -puN
-> arch/avr32/Kconfig~aout-mark-arches-that-support-aout-format
-> arch/avr32/Kconfig ---
-> a/arch/avr32/Kconfig~aout-mark-arches-that-support-aout-format +++
-> a/arch/avr32/Kconfig @@ -67,6 +67,9 @@ config GENERIC_BUG default y
->  	depends on BUG
->  
-> +config ARCH_SUPPORTS_AOUT
-> +	def_bool y
-> +
+The latest version I sent uses HAVE_xxx
 
-Might as well define this one as "n" too. AVR32 will never support
-a.out.
+see :
 
-Håvard
+http://www.gossamer-threads.com/lists/linux/kernel/844040?do=post_view_threaded
+(and other messages in that thread)
+
+Mathieu
+
+
+> -- 
+> Russell King
+>  Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+>  maintainer of:
+
+-- 
+Mathieu Desnoyers
+Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
+OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
