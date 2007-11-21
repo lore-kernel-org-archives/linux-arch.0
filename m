@@ -1,427 +1,139 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:53159 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1761684AbXKTUwD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 20 Nov 2007 15:52:03 -0500
-Message-Id: <200711202051.lAKKpOjP022821@imap1.linux-foundation.org>
-Subject: - aout-remove-unnecessary-inclusions-of-asm-linux-aouth.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Tue, 20 Nov 2007 12:51:24 -0800
+Received: from mail.suse.de ([195.135.220.2]:52540 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752654AbXKUAay (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Nov 2007 19:30:54 -0500
+Date: Wed, 21 Nov 2007 01:30:53 +0100
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [rfc] io memory barriers, and getting rid of mmiowb
+Message-ID: <20071121003053.GA11881@wotan.suse.de>
+References: <20071120160220.GA22196@wotan.suse.de> <4680.1195577182@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <4680.1195577182@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
-To: dhowells@redhat.com, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 List-ID: <linux-arch.vger.kernel.org>
 
+Hi David, thanks for the feedback. Maybe this whole idea is still going to
+be rejected, but most of your suggestions are good anyway ;)
 
-The patch titled
-     AOUT: Remove unnecessary inclusions of {asm, linux}/a.out.h
-has been removed from the -mm tree.  Its filename was
-     aout-remove-unnecessary-inclusions-of-asm-linux-aouth.patch
+Note that I think I've made one major mistake in the patch, too: that writel
+is already supposed to be ordered WRT other I/O, so the io_wmb is not needed
+in the drivers. However, we still have a writel_relaxed, so io_wmb is still
+needed there.
 
-This patch was dropped because an updated version will be merged
 
-------------------------------------------------------
-Subject: AOUT: Remove unnecessary inclusions of {asm, linux}/a.out.h
-From: David Howells <dhowells@redhat.com>
+On Tue, Nov 20, 2007 at 04:46:22PM +0000, David Howells wrote:
+> 
+> Hi Nick,
+> 
+> Some comments on the documentation changes in your patch:
+> 
+> >  The Linux kernel has eight basic CPU memory barriers:
+> 
+> That should be 'eleven' at least with these changes.
+> 
+> Can I recommend that unless io_lock() and io_unlock() actually take locks, you
+> postfix their names with _mb or _barrier.  If they are actual locking
+> primitives, then they don't belong in this table.
 
-Remove now unnecessary inclusions of {asm,linux}/a.out.h.
+Yeah ... the name isn't ideal. _mb is a nice one, but I don't want to use it
+unless it is guaranteed to be a full barrier (rather than lock/unlock
+barriers). barrier similarly has an existing meaning.
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+Anyway, I agree with you, and it won't be just io_lock / io_unlock ;)
 
- arch/alpha/kernel/osf_sys.c         |    1 -
- arch/alpha/kernel/process.c         |    1 -
- arch/alpha/kernel/setup.c           |    1 -
- arch/arm/kernel/process.c           |    1 -
- arch/blackfin/kernel/process.c      |    1 -
- arch/m68k/kernel/process.c          |    1 -
- arch/m68k/kernel/traps.c            |    1 -
- arch/sparc/kernel/process.c         |    1 -
- arch/sparc/kernel/setup.c           |    1 -
- arch/sparc/kernel/sparc_ksyms.c     |    1 -
- arch/sparc/mm/loadmmu.c             |    1 -
- arch/sparc/mm/srmmu.c               |    1 -
- arch/sparc64/kernel/binfmt_elf32.c  |    2 --
- arch/sparc64/kernel/process.c       |    1 -
- arch/sparc64/kernel/setup.c         |    1 -
- arch/sparc64/kernel/sparc64_ksyms.c |    1 -
- arch/sparc64/kernel/sys_sparc.c     |    1 -
- arch/sparc64/kernel/sys_sparc32.c   |    1 -
- arch/um/kernel/ksyms.c              |    1 -
- arch/x86/kernel/process_32.c        |    1 -
- arch/x86/kernel/process_64.c        |    1 -
- arch/x86/kernel/setup_64.c          |    1 -
- fs/exec.c                           |    1 -
- fs/proc/kcore.c                     |    1 -
- include/asm-sparc/uaccess.h         |    1 -
- include/asm-sparc64/processor.h     |    1 -
- include/asm-sparc64/uaccess.h       |    1 -
- 27 files changed, 28 deletions(-)
+ 
+> 	TYPE		FULL		CACHEABLE		I/O
+> 					(SMP CONDITIONAL)
+> 	===============	===============	=======================	===============
+> 	GENERAL		mb()		smp_mb()		io_mb()
+> 	WRITE	    	wmb()		smp_wmb()		io_wmb()
+> 	READ	    	rmb()		smp_rmb()		io_rmb()
+> 	DATA DEPEPENDENCY
+> 			read_barrier_depends()
+> 					smp_read_barrier_depends()
+> 
+> Does having 'CACHEABLE' imply that 'FULL' ones are or that they aren't?
 
-diff -puN arch/alpha/kernel/osf_sys.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/alpha/kernel/osf_sys.c
---- a/arch/alpha/kernel/osf_sys.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/alpha/kernel/osf_sys.c
-@@ -22,7 +22,6 @@
- #include <linux/ptrace.h>
- #include <linux/slab.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/utsname.h>
- #include <linux/time.h>
- #include <linux/timex.h>
-diff -puN arch/alpha/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/alpha/kernel/process.c
---- a/arch/alpha/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/alpha/kernel/process.c
-@@ -19,7 +19,6 @@
- #include <linux/ptrace.h>
- #include <linux/slab.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/utsname.h>
- #include <linux/time.h>
- #include <linux/major.h>
-diff -puN arch/alpha/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/alpha/kernel/setup.c
---- a/arch/alpha/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/alpha/kernel/setup.c
-@@ -18,7 +18,6 @@
- #include <linux/ptrace.h>
- #include <linux/slab.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/screen_info.h>
- #include <linux/delay.h>
- #include <linux/mc146818rtc.h>
-diff -puN arch/arm/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/arm/kernel/process.c
---- a/arch/arm/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/arm/kernel/process.c
-@@ -18,7 +18,6 @@
- #include <linux/unistd.h>
- #include <linux/slab.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/delay.h>
- #include <linux/reboot.h>
- #include <linux/interrupt.h>
-diff -puN arch/blackfin/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/blackfin/kernel/process.c
---- a/arch/blackfin/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/blackfin/kernel/process.c
-@@ -31,7 +31,6 @@
- #include <linux/smp_lock.h>
- #include <linux/unistd.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/uaccess.h>
- #include <linux/fs.h>
- #include <linux/err.h>
-diff -puN arch/m68k/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/m68k/kernel/process.c
---- a/arch/m68k/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/m68k/kernel/process.c
-@@ -23,7 +23,6 @@
- #include <linux/ptrace.h>
- #include <linux/slab.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/reboot.h>
- #include <linux/init_task.h>
- #include <linux/mqueue.h>
-diff -puN arch/m68k/kernel/traps.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/m68k/kernel/traps.c
---- a/arch/m68k/kernel/traps.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/m68k/kernel/traps.c
-@@ -23,7 +23,6 @@
- #include <linux/kernel.h>
- #include <linux/mm.h>
- #include <linux/module.h>
--#include <linux/a.out.h>
- #include <linux/user.h>
- #include <linux/string.h>
- #include <linux/linkage.h>
-diff -puN arch/sparc/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc/kernel/process.c
---- a/arch/sparc/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc/kernel/process.c
-@@ -20,7 +20,6 @@
- #include <linux/ptrace.h>
- #include <linux/slab.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/smp.h>
- #include <linux/reboot.h>
- #include <linux/delay.h>
-diff -puN arch/sparc/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc/kernel/setup.c
---- a/arch/sparc/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc/kernel/setup.c
-@@ -16,7 +16,6 @@
- #include <linux/initrd.h>
- #include <asm/smp.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/screen_info.h>
- #include <linux/delay.h>
- #include <linux/fs.h>
-diff -puN arch/sparc/kernel/sparc_ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc/kernel/sparc_ksyms.c
---- a/arch/sparc/kernel/sparc_ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc/kernel/sparc_ksyms.c
-@@ -51,7 +51,6 @@
- #ifdef CONFIG_PCI
- #include <asm/ebus.h>
- #endif
--#include <asm/a.out.h>
- #include <asm/io-unit.h>
- #include <asm/bug.h>
- 
-diff -puN arch/sparc/mm/loadmmu.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc/mm/loadmmu.c
---- a/arch/sparc/mm/loadmmu.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc/mm/loadmmu.c
-@@ -14,7 +14,6 @@
- #include <asm/system.h>
- #include <asm/page.h>
- #include <asm/pgtable.h>
--#include <asm/a.out.h>
- #include <asm/mmu_context.h>
- #include <asm/oplib.h>
- 
-diff -puN arch/sparc/mm/srmmu.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc/mm/srmmu.c
---- a/arch/sparc/mm/srmmu.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc/mm/srmmu.c
-@@ -34,7 +34,6 @@
- #include <asm/sbus.h>
- #include <asm/asi.h>
- #include <asm/msi.h>
--#include <asm/a.out.h>
- #include <asm/mmu_context.h>
- #include <asm/io-unit.h>
- #include <asm/cacheflush.h>
-diff -puN arch/sparc64/kernel/binfmt_elf32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/binfmt_elf32.c
---- a/arch/sparc64/kernel/binfmt_elf32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc64/kernel/binfmt_elf32.c
-@@ -151,8 +151,6 @@ MODULE_AUTHOR("Eric Youngdale, David S. 
- #undef MODULE_DESCRIPTION
- #undef MODULE_AUTHOR
- 
--#include <asm/a.out.h>
--
- #undef TASK_SIZE
- #define TASK_SIZE STACK_TOP32
- 
-diff -puN arch/sparc64/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/process.c
---- a/arch/sparc64/kernel/process.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc64/kernel/process.c
-@@ -24,7 +24,6 @@
- #include <linux/ptrace.h>
- #include <linux/slab.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/reboot.h>
- #include <linux/delay.h>
- #include <linux/compat.h>
-diff -puN arch/sparc64/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/setup.c
---- a/arch/sparc64/kernel/setup.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc64/kernel/setup.c
-@@ -15,7 +15,6 @@
- #include <linux/slab.h>
- #include <asm/smp.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/screen_info.h>
- #include <linux/delay.h>
- #include <linux/fs.h>
-diff -puN arch/sparc64/kernel/sparc64_ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/sparc64_ksyms.c
---- a/arch/sparc64/kernel/sparc64_ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc64/kernel/sparc64_ksyms.c
-@@ -53,7 +53,6 @@
- #include <asm/ebus.h>
- #include <asm/isa.h>
- #endif
--#include <asm/a.out.h>
- #include <asm/ns87303.h>
- #include <asm/timer.h>
- #include <asm/cpudata.h>
-diff -puN arch/sparc64/kernel/sys_sparc.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/sys_sparc.c
---- a/arch/sparc64/kernel/sys_sparc.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc64/kernel/sys_sparc.c
-@@ -28,7 +28,6 @@
- #include <asm/uaccess.h>
- #include <asm/utrap.h>
- #include <asm/perfctr.h>
--#include <asm/a.out.h>
- #include <asm/unistd.h>
- 
- /* #define DEBUG_UNIMP_SYSCALL */
-diff -puN arch/sparc64/kernel/sys_sparc32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/sparc64/kernel/sys_sparc32.c
---- a/arch/sparc64/kernel/sys_sparc32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/sparc64/kernel/sys_sparc32.c
-@@ -57,7 +57,6 @@
- #include <asm/fpumacro.h>
- #include <asm/semaphore.h>
- #include <asm/mmu_context.h>
--#include <asm/a.out.h>
- #include <asm/compat_signal.h>
- 
- asmlinkage long sys32_chown16(const char __user * filename, u16 user, u16 group)
-diff -puN arch/um/kernel/ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/um/kernel/ksyms.c
---- a/arch/um/kernel/ksyms.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/um/kernel/ksyms.c
-@@ -5,7 +5,6 @@
- 
- #include "linux/module.h"
- #include "linux/syscalls.h"
--#include "asm/a.out.h"
- #include "asm/tlbflush.h"
- #include "asm/uaccess.h"
- #include "as-layout.h"
-diff -puN arch/x86/kernel/process_32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/x86/kernel/process_32.c
---- a/arch/x86/kernel/process_32.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/x86/kernel/process_32.c
-@@ -23,7 +23,6 @@
- #include <linux/slab.h>
- #include <linux/vmalloc.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/interrupt.h>
- #include <linux/utsname.h>
- #include <linux/delay.h>
-diff -puN arch/x86/kernel/process_64.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/x86/kernel/process_64.c
---- a/arch/x86/kernel/process_64.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/x86/kernel/process_64.c
-@@ -27,7 +27,6 @@
- #include <linux/slab.h>
- #include <linux/user.h>
- #include <linux/module.h>
--#include <linux/a.out.h>
- #include <linux/interrupt.h>
- #include <linux/delay.h>
- #include <linux/ptrace.h>
-diff -puN arch/x86/kernel/setup_64.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth arch/x86/kernel/setup_64.c
---- a/arch/x86/kernel/setup_64.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/arch/x86/kernel/setup_64.c
-@@ -15,7 +15,6 @@
- #include <linux/ptrace.h>
- #include <linux/slab.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/screen_info.h>
- #include <linux/ioport.h>
- #include <linux/delay.h>
-diff -puN fs/exec.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth fs/exec.c
---- a/fs/exec.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/fs/exec.c
-@@ -25,7 +25,6 @@
- #include <linux/slab.h>
- #include <linux/file.h>
- #include <linux/mman.h>
--#include <linux/a.out.h>
- #include <linux/stat.h>
- #include <linux/fcntl.h>
- #include <linux/smp_lock.h>
-diff -puN fs/proc/kcore.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth fs/proc/kcore.c
---- a/fs/proc/kcore.c~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/fs/proc/kcore.c
-@@ -12,7 +12,6 @@
- #include <linux/mm.h>
- #include <linux/proc_fs.h>
- #include <linux/user.h>
--#include <linux/a.out.h>
- #include <linux/capability.h>
- #include <linux/elf.h>
- #include <linux/elfcore.h>
-diff -puN include/asm-sparc/uaccess.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth include/asm-sparc/uaccess.h
---- a/include/asm-sparc/uaccess.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/include/asm-sparc/uaccess.h
-@@ -13,7 +13,6 @@
- #include <linux/string.h>
- #include <linux/errno.h>
- #include <asm/vac-ops.h>
--#include <asm/a.out.h>
- #endif
- 
- #ifndef __ASSEMBLY__
-diff -puN include/asm-sparc64/processor.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth include/asm-sparc64/processor.h
---- a/include/asm-sparc64/processor.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/include/asm-sparc64/processor.h
-@@ -14,7 +14,6 @@
- #define current_text_addr() ({ void *pc; __asm__("rd %%pc, %0" : "=r" (pc)); pc; })
- 
- #include <asm/asi.h>
--#include <asm/a.out.h>
- #include <asm/pstate.h>
- #include <asm/ptrace.h>
- #include <asm/page.h>
-diff -puN include/asm-sparc64/uaccess.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth include/asm-sparc64/uaccess.h
---- a/include/asm-sparc64/uaccess.h~aout-remove-unnecessary-inclusions-of-asm-linux-aouth
-+++ a/include/asm-sparc64/uaccess.h
-@@ -10,7 +10,6 @@
- #include <linux/compiler.h>
- #include <linux/sched.h>
- #include <linux/string.h>
--#include <asm/a.out.h>
- #include <asm/asi.h>
- #include <asm/system.h>
- #include <asm/spitfire.h>
-_
+Are or aren't what?
 
-Patches currently in -mm which might be from dhowells@redhat.com are
+The problem with just calling them mandatory or SMP conditional is that it
+doesn't suggest the important *what* is being ordered.
 
-git-mtd.patch
-frv-fix-the-extern-declaration-of-kallsyms_num_syms.patch
-frv-arrange-things-such-that-bra-can-reach-from-the-trap.patch
-frv-permit-the-memory-to-be-located-elsewhere-in-nommu-mode.patch
-frv-move-dma-macros-to-scatterlisth-for-consistency.patch
-frv-remove-dead-config-symbol-from-frv-code.patch
-aout-remove-unnecessary-inclusions-of-asm-linux-aouth.patch
-usb-net2280-cant-have-a-function-called-show_registers.patch
-mn10300-allocate-serial-port-uart-ids-for-on-chip-serial-ports.patch
-mn10300-add-the-mn10300-am33-architecture-to-the-kernel.patch
-mn10300-add-the-mn10300-am33-architecture-to-the-kernel-fix.patch
-64-bit-i_version-afs-fixes.patch
-add-an-err_cast-function-to-complement-err_ptr-and-co.patch
-convert-err_ptrptr_errp-instances-to-err_castp.patch
-iget-introduce-a-function-to-register-iget-failure.patch
-iget-use-iget_failed-in-afs.patch
-iget-use-iget_failed-in-gfs2.patch
-iget-stop-affs-from-using-iget-and-read_inode-try.patch
-iget-stop-affs-from-using-iget-and-read_inode-try-checkpatch-fixes.patch
-iget-stop-autofs-from-using-iget-and-read_inode.patch
-iget-stop-befs-from-using-iget-and-read_inode-try.patch
-iget-stop-bfs-from-using-iget-and-read_inode-try.patch
-iget-stop-cifs-from-using-iget-and-read_inode-try.patch
-iget-stop-efs-from-using-iget-and-read_inode-try.patch
-iget-stop-efs-from-using-iget-and-read_inode-try-checkpatch-fixes.patch
-iget-stop-ext2-from-using-iget-and-read_inode-try.patch
-iget-stop-ext2-from-using-iget-and-read_inode-try-checkpatch-fixes.patch
-iget-stop-ext3-from-using-iget-and-read_inode-try.patch
-iget-stop-ext3-from-using-iget-and-read_inode-try-checkpatch-fixes.patch
-iget-stop-ext4-from-using-iget-and-read_inode-try.patch
-iget-stop-fat-from-using-iget-and-read_inode-try.patch
-iget-stop-freevxfs-from-using-iget-and-read_inode.patch
-iget-stop-freevxfs-from-using-iget-and-read_inode-fix.patch
-iget-stop-freevxfs-from-using-iget-and-read_inode-checkpatch-fixes.patch
-iget-stop-fuse-from-using-iget-and-read_inode-try.patch
-iget-stop-hfsplus-from-using-iget-and-read_inode.patch
-iget-stop-isofs-from-using-read_inode.patch
-iget-stop-jffs2-from-using-iget-and-read_inode.patch
-iget-stop-jfs-from-using-iget-and-read_inode-try.patch
-iget-stop-the-minix-filesystem-from-using-iget-and.patch
-iget-stop-the-minix-filesystem-from-using-iget-and-checkpatch-fixes.patch
-iget-stop-procfs-from-using-iget-and-read_inode.patch
-iget-stop-procfs-from-using-iget-and-read_inode-checkpatch-fixes.patch
-iget-stop-qnx4-from-using-iget-and-read_inode-try.patch
-iget-stop-qnx4-from-using-iget-and-read_inode-try-checkpatch-fixes.patch
-iget-stop-romfs-from-using-iget-and-read_inode.patch
-iget-stop-romfs-from-using-iget-and-read_inode-checkpatch-fixes.patch
-iget-stop-the-sysv-filesystem-from-using-iget-and.patch
-iget-stop-the-sysv-filesystem-from-using-iget-and-checkpatch-fixes.patch
-iget-stop-ufs-from-using-iget-and-read_inode-try.patch
-iget-stop-ufs-from-using-iget-and-read_inode-try-checkpatch-fixes.patch
-iget-stop-openpromfs-from-using-iget-and.patch
-iget-stop-hostfs-from-using-iget-and-read_inode.patch
-iget-stop-hostfs-from-using-iget-and-read_inode-checkpatch-fixes.patch
-iget-stop-hppfs-from-using-iget-and-read_inode.patch
-iget-remove-iget-and-the-read_inode-super-op-as.patch
-iget-stop-unionfs-from-using-iget-and-read_inode.patch
-unexport-asm-pageh.patch
-add-cmpxchg_local-to-frv.patch
-use-path_put-in-a-few-places-instead-of-mntdput.patch
-tty-let-architectures-override-the-user-kernel-macros.patch
-mutex-subsystem-synchro-test-module.patch
+ 
+> I think I would alter this:
+> 
+> +CACHEABLE memory barriers control order of access to regular (cacheable) RAM
+> +by the CPU.  They are reduced to compiler barriers on uniprocessor compiled
+> +systems because cacheable memory is operated upon by CPUs, and a a CPU is
+> +self-consistent.
+> 
+> To say something like:
+> 
+>  SMP conditional memory barriers control the order of access to regular,
+>  cacheable RAM by the CPU.  They are reduced to compiler barriers on
+>  uniprocessor compiled systems because it is assumed that a CPU will appear to
+>  be self-consistent, and will order overlapping accesses correctly with
+>  respect to itself when writing to ordinary RAM.
+
+Pretty verbose, isn't it ;) Not only does a CPU appear self consistent, it is.
+And not only will overlapping accesses be ordered correctly, so will completely
+out of order ones.
+
+ 
+> > +[!] Note that CACHEABLE or FULL memory barriers must be used to control the
+> > +ordering of references to shared memory on SMP systems, though the use of
+> > +locking instead is sufficient.
+> 
+> So a spin_lock() or a down() will do the trick?
+
+I hope so. I didn't write this (just changed slightly).
+
+ 
+> > Do not get smart.
+> 
+> I'd very much recommend against saying that.
+
+Really? What if you grep drivers/*, do you still recommend against? ;(
+
+ 
+> > -Under certain circumstances (especially involving NUMA), I/O accesses within
+> > -two spinlocked sections on two different CPUs may be seen as interleaved by the
+> > -PCI bridge, because the PCI bridge does not necessarily participate in the
+> > -cache-coherence protocol, and is therefore incapable of issuing the required
+> > -read memory barriers.
+> 
+> Is this not true?  If it is true, why remove it?  Just stick in a blank line
+> and add the next paragraph.
+
+It's not because it doesn't participate in the cache coherence protocol. It
+is because cacheable access isn't ordered with IO access, so it can leak
+out of the lock.
+
+The PCI bridge does not perform speculative, or out of order reads, so a read
+memory barrier would not do anything for it.
+
+As far as I know, the platforms that do this reordering (eg. Altix and pseries)
+the PCI bridge does not reorder access, but it gets reordered before going
+over the interconnect.
+
+I just figure it is vague, unneccesary, hardware specific. Can take it out.
+
+
+> > +this will ensure that the two IO stores issued on CPU 1 appear at the PCI
+> > +bridge before either of the IO stores issued on CPU 2.
+> 
+> Hmmm...  How about 'stores to I/O' rather than 'I/O stores'?
+> 
+> > +XXX: get rid of this, and just prefer io_lock()/io_unlock() ?
+> 
+> What do you mean?
+
+I mean that although the readl can obviate the need for mmiowb on PCI,
+will it be a problem just to encourage the use of the IO locks instead.
+Just for simplicity and clarity.
 
