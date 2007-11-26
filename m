@@ -1,125 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:39858 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751304AbXKVIXa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Nov 2007 03:23:30 -0500
-Date: Thu, 22 Nov 2007 09:23:29 +0100
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [rfc] io memory barriers, and getting rid of mmiowb
-Message-ID: <20071122082329.GB31932@wotan.suse.de>
-References: <20071121003053.GA11881@wotan.suse.de> <20071120160220.GA22196@wotan.suse.de> <4680.1195577182@redhat.com> <21121.1195609989@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <21121.1195609989@redhat.com>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:50050 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753015AbXKZThX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 Nov 2007 14:37:23 -0500
+Message-Id: <200711261936.lAQJaLIe019302@imap1.linux-foundation.org>
+Subject: - revoke-wire-up-i386-system-calls.patch removed from -mm tree
+From: akpm@linux-foundation.org
+Date: Mon, 26 Nov 2007 11:36:21 -0800
 Sender: linux-arch-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: penberg@cs.helsinki.fi, ak@suse.de, alan@redhat.com, hch@lst.de, linux-arch@vger.kernel.org, mtk-manpages@gmx.net, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Nov 21, 2007 at 01:53:09AM +0000, David Howells wrote:
-> Nick Piggin <npiggin@suse.de> wrote:
-> 
-> > Yeah ... the name isn't ideal. _mb is a nice one, but I don't want to use it
-> > unless it is guaranteed to be a full barrier (rather than lock/unlock
-> > barriers). barrier similarly has an existing meaning.
-> 
-> How about _iobarrier?
-> 
-> Or how about calling them begin_io_section() and end_io_section()?
 
-Well it's lock semantics. If we decide to use any name without lock/unlock
-in it, it will have acquire/release. begin_io_lock/end_io_lock, maybe...
+The patch titled
+     revoke: wire up i386 system calls
+has been removed from the -mm tree.  Its filename was
+     revoke-wire-up-i386-system-calls.patch
 
+This patch was dropped because an updated version will be merged
 
-> Also, I object to 'CACHEABLE' because memory barriers may still be required
-> even if there aren't any caches.
+------------------------------------------------------
+Subject: revoke: wire up i386 system calls
+From: Pekka Enberg <penberg@cs.helsinki.fi>
 
-OK. RAM?
+Make revokeat and frevoke system calls available to user-space on i386.
 
+[akpm@linux-foundation.org: fix 32-bit userspace]
+Acked-by: Alan Cox <alan@redhat.com>
+Signed-off-by: Pekka Enberg <penberg@cs.helsinki.fi>
+Cc: Christoph Hellwig <hch@lst.de>
+Cc: Michael Kerrisk <mtk-manpages@gmx.net>
+Cc: Andi Kleen <ak@suse.de>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ arch/x86/ia32/ia32entry.S          |    2 ++
+ arch/x86/kernel/syscall_table_32.S |    2 ++
+ include/asm-x86/unistd_32.h        |    4 +++-
+ 3 files changed, 7 insertions(+), 1 deletion(-)
+
+diff -puN arch/x86/ia32/ia32entry.S~revoke-wire-up-i386-system-calls arch/x86/ia32/ia32entry.S
+--- a/arch/x86/ia32/ia32entry.S~revoke-wire-up-i386-system-calls
++++ a/arch/x86/ia32/ia32entry.S
+@@ -726,4 +726,6 @@ ia32_sys_call_table:
+ 	.quad compat_sys_timerfd
+ 	.quad sys_eventfd
+ 	.quad sys32_fallocate
++	.quad sys_revokeat		/* 325 */
++	.quad sys_frevoke
+ ia32_syscall_end:
+diff -puN arch/x86/kernel/syscall_table_32.S~revoke-wire-up-i386-system-calls arch/x86/kernel/syscall_table_32.S
+--- a/arch/x86/kernel/syscall_table_32.S~revoke-wire-up-i386-system-calls
++++ a/arch/x86/kernel/syscall_table_32.S
+@@ -324,3 +324,5 @@ ENTRY(sys_call_table)
+ 	.long sys_timerfd
+ 	.long sys_eventfd
+ 	.long sys_fallocate
++	.long sys_revokeat		/* 325 */
++	.long sys_frevoke
+diff -puN include/asm-x86/unistd_32.h~revoke-wire-up-i386-system-calls include/asm-x86/unistd_32.h
+--- a/include/asm-x86/unistd_32.h~revoke-wire-up-i386-system-calls
++++ a/include/asm-x86/unistd_32.h
+@@ -330,10 +330,12 @@
+ #define __NR_timerfd		322
+ #define __NR_eventfd		323
+ #define __NR_fallocate		324
++#define __NR_revokeat		325
++#define __NR_frevoke		326
  
-> > The problem with just calling them mandatory or SMP conditional is that it
-> > doesn't suggest the important *what* is being ordered.
-> 
-> Well, it is called 'memory-barriers.txt':-)
-> 
-> But I know what you mean, you've expanded the whole scope of the document in a
-> way.
-
-Yeah, I mean the type of memory being ordered.
-
+ #ifdef __KERNEL__
  
-> > > > +[!] Note that CACHEABLE or FULL memory barriers must be used to control the
-> > > > +ordering of references to shared memory on SMP systems, though the use of
-> > > > +locking instead is sufficient.
-> > > 
-> > > So a spin_lock() or a down() will do the trick?
-> > 
-> > I hope so. I didn't write this (just changed slightly).
-> 
-> I think this paragraph implies that use of a spin lock render I/O barriers
-> redundant for that particular situation.  However your io_lock() implies
-> otherwise.
-
-Oh, perhaps. Yes, locks won't work for IO. By shared memory, I was thinking
-about regular shared ram, but it could be talking about shared access to IO
-memory too. So it needs clarification.
-
-
-> > > > Do not get smart.
-> > > 
-> > > I'd very much recommend against saying that.
-> > 
-> > Really? What if you grep drivers/*, do you still recommend against? ;(
-> 
-> Bad practice elsewhere doesn't condone it here.  In fact, you're even more
-> constrained in formal documentation.
-
-OK, just to please you  ;)
+-#define NR_syscalls 325
++#define NR_syscalls 327
  
+ #define __ARCH_WANT_IPC_PARSE_VERSION
+ #define __ARCH_WANT_OLD_READDIR
+_
 
-> > > > +XXX: get rid of this, and just prefer io_lock()/io_unlock() ?
-> > > 
-> > > What do you mean?
-> > 
-> > I mean that although the readl can obviate the need for mmiowb on PCI,
-> > will it be a problem just to encourage the use of the IO locks instead.
-> > Just for simplicity and clarity.
-> 
-> So if I have a hardware device with a register that I want to make three reads
-> of, and I expect each read to have side effects, I can just do:
-> 
-> 	io_lock()
-> 	readl()
-> 	readl()
-> 	readl()
-> 	io_unlock()
+Patches currently in -mm which might be from penberg@cs.helsinki.fi are
 
-Well, presumably they will somehow be excluding other CPUs from accessing,
-in which case I guess they would take a lock. And we would encourage them to
-do the io_lock / io_unlock just after/before taking and releasing the lock.
-
-
-> One thing I'm not entirely clear on.  Do you expect two I/O accesses from one
-> CPU remain ordered wrt to each other?  Or is the following required:
-> 
-> 	io_lock()
-> 	readl()
-> 	io_rmb()
-> 	readl()
-> 	io_rmb()
-> 	readl()
-> 	io_unlock()
-> 
-> when talking to a device?
-
-Good question. I'm not an expert on that.
-
-sn2 implements readl_relaxed() differently to readl. powerpc implements their
-readls with sync and isync, so presumably they can go out of order too. I do
-think all architectures should make read*/write* as completely ordered WRT
-one another (if not ordered with RAM), and then we should consistenly
-implement _relaxed postfixes if performance matters.
-
-
+git-unionfs.patch
+slub-consolidate-add_partial-and-add_partial_tail-to-one-function.patch
+slub-fix-coding-style-violations.patch
+slub-fix-coding-style-violations-checkpatch-fixes.patch
+slub-noinline-some-functions-to-avoid-them-being-folded-into-alloc-free.patch
+slub-move-kmem_cache_node-determination-into-add_full-and-add_partial.patch
+slub-avoid-checking-for-a-valid-object-before-zeroing-on-the-fast-path.patch
+slub-__slab_alloc-exit-path-consolidation.patch
+slub-provide-unique-end-marker-for-each-slab.patch
+slub-provide-unique-end-marker-for-each-slab-fix.patch
+slub-avoid-referencing-kmem_cache-structure-in-__slab_alloc.patch
+slub-optional-fast-path-using-cmpxchg_local.patch
+slub-do-our-own-locking-via-slab_lock-and-slab_unlock.patch
+slub-do-our-own-locking-via-slab_lock-and-slab_unlock-checkpatch-fixes.patch
+slub-restructure-slab-alloc.patch
+revoke-wire-up-i386-system-calls.patch
+revoke-vs-git-block.patch
+slab-leaks3-default-y.patch
 
