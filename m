@@ -1,102 +1,176 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:50050 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753015AbXKZThX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Nov 2007 14:37:23 -0500
-Message-Id: <200711261936.lAQJaLIe019302@imap1.linux-foundation.org>
-Subject: - revoke-wire-up-i386-system-calls.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Mon, 26 Nov 2007 11:36:21 -0800
+Received: from www.linux-m32r.org ([211.14.7.36]:41266 "EHLO hikaru.fsij.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750790AbXLHHay (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 8 Dec 2007 02:30:54 -0500
+Received: from gniibe by hikaru.fsij.org with local (Exim 4.63)
+	(envelope-from <gniibe@hikaru.fsij.org>)
+	id 1J0tqr-00067s-Lx
+	for linux-arch@vger.kernel.org; Sat, 08 Dec 2007 16:11:53 +0900
+From: NIIBE Yutaka <gniibe@fsij.org>
+Subject: mprotect(2) and I-cache/I-TLB
+Message-Id: <E1J0tqr-00067s-Lx@hikaru.fsij.org>
+Date: Sat, 08 Dec 2007 16:11:53 +0900
 Sender: linux-arch-owner@vger.kernel.org
-To: penberg@cs.helsinki.fi, ak@suse.de, alan@redhat.com, hch@lst.de, linux-arch@vger.kernel.org, mtk-manpages@gmx.net, mm-commits@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
+Investigating cache-alias issue, I have found a small bug for CPU
+with I/D separate virtually indexed cache.
 
-The patch titled
-     revoke: wire up i386 system calls
-has been removed from the -mm tree.  Its filename was
-     revoke-wire-up-i386-system-calls.patch
+When mprotect(2) is called, cache and TLB should be flushed.
+Specifically, when PROT_EXEC flag is dropped, I-cache and I-TLB should
+be flushed.  Or else, when the virtual address space is reused, old
+image will be shown to user space incorrectly.
 
-This patch was dropped because an updated version will be merged
+Attached is a test case to see this bug. It executes forever if kernel
+doesn't have this bug or your CPU has no problem.
+We see "*** BUG: Executed old page ***", when it has this bug.
 
-------------------------------------------------------
-Subject: revoke: wire up i386 system calls
-From: Pekka Enberg <penberg@cs.helsinki.fi>
+My machine is KUROBOX/PRO, which uses arm926 variant (VIVT cache, I/D
+separate). I have confirmed that there is this bug for that machine.
 
-Make revokeat and frevoke system calls available to user-space on i386.
+I have checked kernel snapshot (2.6.24-rc5-git5), this bug is still
+there.
 
-[akpm@linux-foundation.org: fix 32-bit userspace]
-Acked-by: Alan Cox <alan@redhat.com>
-Signed-off-by: Pekka Enberg <penberg@cs.helsinki.fi>
-Cc: Christoph Hellwig <hch@lst.de>
-Cc: Michael Kerrisk <mtk-manpages@gmx.net>
-Cc: Andi Kleen <ak@suse.de>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+I would like to ask architecture maintainers to try this small program
+if CPU has virtual cache and I/D separate.
 
- arch/x86/ia32/ia32entry.S          |    2 ++
- arch/x86/kernel/syscall_table_32.S |    2 ++
- include/asm-x86/unistd_32.h        |    4 +++-
- 3 files changed, 7 insertions(+), 1 deletion(-)
+-- 
+/*
+ * Test program to see protection change bug
+ *
+ * Confirmed: linux-2.6.12_lsp.1.10.3 for ARM926EJ (VIVT write back, Harvard)
+ *
+ * 2007-12-07
+ *
+ * NIIBE Yutaka <gniibe@fsij.org>
+ */
 
-diff -puN arch/x86/ia32/ia32entry.S~revoke-wire-up-i386-system-calls arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~revoke-wire-up-i386-system-calls
-+++ a/arch/x86/ia32/ia32entry.S
-@@ -726,4 +726,6 @@ ia32_sys_call_table:
- 	.quad compat_sys_timerfd
- 	.quad sys_eventfd
- 	.quad sys32_fallocate
-+	.quad sys_revokeat		/* 325 */
-+	.quad sys_frevoke
- ia32_syscall_end:
-diff -puN arch/x86/kernel/syscall_table_32.S~revoke-wire-up-i386-system-calls arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~revoke-wire-up-i386-system-calls
-+++ a/arch/x86/kernel/syscall_table_32.S
-@@ -324,3 +324,5 @@ ENTRY(sys_call_table)
- 	.long sys_timerfd
- 	.long sys_eventfd
- 	.long sys_fallocate
-+	.long sys_revokeat		/* 325 */
-+	.long sys_frevoke
-diff -puN include/asm-x86/unistd_32.h~revoke-wire-up-i386-system-calls include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~revoke-wire-up-i386-system-calls
-+++ a/include/asm-x86/unistd_32.h
-@@ -330,10 +330,12 @@
- #define __NR_timerfd		322
- #define __NR_eventfd		323
- #define __NR_fallocate		324
-+#define __NR_revokeat		325
-+#define __NR_frevoke		326
- 
- #ifdef __KERNEL__
- 
--#define NR_syscalls 325
-+#define NR_syscalls 327
- 
- #define __ARCH_WANT_IPC_PARSE_VERSION
- #define __ARCH_WANT_OLD_READDIR
-_
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/syscall.h>
 
-Patches currently in -mm which might be from penberg@cs.helsinki.fi are
+#if defined(MREMAP_FIXED)
+#else
+#define MREMAP_FIXED 2
+#endif
 
-git-unionfs.patch
-slub-consolidate-add_partial-and-add_partial_tail-to-one-function.patch
-slub-fix-coding-style-violations.patch
-slub-fix-coding-style-violations-checkpatch-fixes.patch
-slub-noinline-some-functions-to-avoid-them-being-folded-into-alloc-free.patch
-slub-move-kmem_cache_node-determination-into-add_full-and-add_partial.patch
-slub-avoid-checking-for-a-valid-object-before-zeroing-on-the-fast-path.patch
-slub-__slab_alloc-exit-path-consolidation.patch
-slub-provide-unique-end-marker-for-each-slab.patch
-slub-provide-unique-end-marker-for-each-slab-fix.patch
-slub-avoid-referencing-kmem_cache-structure-in-__slab_alloc.patch
-slub-optional-fast-path-using-cmpxchg_local.patch
-slub-do-our-own-locking-via-slab_lock-and-slab_unlock.patch
-slub-do-our-own-locking-via-slab_lock-and-slab_unlock-checkpatch-fixes.patch
-slub-restructure-slab-alloc.patch
-revoke-wire-up-i386-system-calls.patch
-revoke-vs-git-block.patch
-slab-leaks3-default-y.patch
+#define PAGE_SIZE  0x1000
 
+__asm__(".section .func,\"ax\",%progbits");
+__asm__(".balign 32768");
+static int __attribute__((section(".func")))
+func0(void)
+{
+  return 0;
+}
+
+__asm__(".balign 4096");
+static int __attribute__((section(".func")))
+func1(void)
+{
+  return 1;
+}
+__asm__(".previous");
+
+static void *
+allocate_page(void)
+{
+  void *addr;
+
+  addr = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_EXEC,
+	      MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+  if (addr == (void *) -1)
+    {
+      perror("allocate_page");
+      exit(1);
+    }
+
+  return addr;
+}
+
+static void *
+mremap_page(void *oldaddr, void *newaddr)
+{
+  void *addr;
+
+  addr = (void *)syscall(SYS_mremap, oldaddr, PAGE_SIZE, PAGE_SIZE,
+			 MREMAP_MAYMOVE|MREMAP_FIXED, newaddr);
+  if (addr != newaddr)
+    {
+      perror("mremap_page");
+      exit(1);
+    }
+
+  return addr;
+}
+
+int
+main(int argc, char *argv[])
+{
+  int ret;
+  int (*f0)(void);
+  int (*f1)(void);
+  int (*new_f0)(void);
+  int i;
+
+  f0 = mremap_page(func0, allocate_page());
+  f1 = mremap_page(func1, allocate_page());
+
+ loop:
+#if 0
+  printf("%08x %08x %08x\n", (unsigned long)f0, (unsigned long)f1, (unsigned long)main);
+#endif
+
+  f0();
+  /* f0 has been called.  It's now on the I-cache, and I-TLB is valid */
+
+  /* Change the protection */
+  /*
+   * The bug is here.  Corresponding
+   * I-cache and I-TLB entry should be flushed when we drop PROT_EXEC
+   */
+  if (mprotect(f0, PAGE_SIZE, PROT_NONE) < 0)
+    {
+      perror("mprotect");
+      exit(1);
+    }
+
+  new_f0 = mremap_page(f0, allocate_page());
+
+  /* move f1 to the place where f0 were there */
+  f1 = mremap_page(f1, f0);
+
+  /*
+   * We call f1, but we will see bugus f0 image there,
+   * because of the kernel bug
+   */
+  ret = f1();
+  if (ret == 0)		/* It's f0! */
+    {
+      /* With bogus I-TLB it comes here */
+      puts("*** BUG: Executed old page ***"); 
+      sleep(1);
+    }
+
+  f0 = new_f0;
+  if (mprotect(f0, PAGE_SIZE, PROT_READ|PROT_EXEC) < 0)
+    {
+      perror("mprotect");
+      exit(1);
+    }
+
+  if (ret == 0)			/* We hit the bug!  */
+    {
+      printf("%d %d\n", f0(), f1()); /* Try again */
+      /* We will see that calling f1 returns 1 correctly, after sleep */ 
+      exit (0);
+    }
+
+  /* Loop until we see the bug */
+  goto loop;
+}
