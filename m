@@ -1,64 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gateway.drzeus.cx ([85.8.24.16]:58431 "EHLO smtp.drzeus.cx"
+Received: from ogre.sisk.pl ([217.79.144.158]:46978 "EHLO ogre.sisk.pl"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751175AbXLIRKn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 9 Dec 2007 12:10:43 -0500
-Date: Sun, 9 Dec 2007 18:10:40 +0100
-From: Pierre Ossman <drzeus@drzeus.cx>
-Subject: Re: Correct types for mod_devicetable.h (was: Re: m68k build
- failure)
-Message-ID: <20071209181040.52a50cef@poseidon.drzeus.cx>
-In-Reply-To: <20071208215811.GD20441@stusta.de>
-References: <20071127220723.e2e3d0b4.akpm@linux-foundation.org>
-	<20071201215602.7a4710d9@poseidon.drzeus.cx>
-	<Pine.LNX.4.64.0712021219430.29349@anakin>
-	<200712032102.20353.rusty@rustcorp.com.au>
-	<20071208215811.GD20441@stusta.de>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature"; micalg=PGP-SHA1; boundary="=_hera.drzeus.cx-21561-1197220241-0001-2"
+	id S1751899AbXLJQRg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 Dec 2007 11:17:36 -0500
+From: "Rafael J. Wysocki" <rjw@sisk.pl>
+Subject: Re: [PATCH][RFC] freezer : add the TIF_FREEZE flag to all archs
+Date: Mon, 10 Dec 2007 17:36:29 +0100
+References: <47594F8C.7070900@fr.ibm.com>
+In-Reply-To: <47594F8C.7070900@fr.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200712101736.29676.rjw@sisk.pl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Bunk <bunk@kernel.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Geert Uytterhoeven <geert@linux-m68k.org>, Al Viro <viro@ftp.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Marcel Holtmann <marcel@holtmann.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jon Masters <jonathan@jonmasters.org>
+To: Cedric Le Goater <clg@fr.ibm.com>
+Cc: linux-pm@lists.linux-foundation.org, linux-arch@vger.kernel.org, Linux Containers <containers@lists.osdl.org>
 
-This is a MIME-formatted message.  If you see this text it means that your
-E-mail software does not support MIME-formatted messages.
+On Friday, 7 of December 2007, Cedric Le Goater wrote:
+> From: Cedric Le Goater <clg@fr.ibm.com>
 
---=_hera.drzeus.cx-21561-1197220241-0001-2
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+Sorry for the delay, I somehow managed to overlook your message.
 
-On Sat, 8 Dec 2007 22:58:11 +0100
-Adrian Bunk <bunk@kernel.org> wrote:
+> This patch is the first step in making the refrigerator() available 
+> to all architectures, even for those without power management. 
+>
+> The purpose of such a change is to be able to use the refrigerator() 
+> in a new control group subsystem which will implement a control group
+> freezer.
 
-> On Mon, Dec 03, 2007 at 09:02:19PM +1100, Rusty Russell wrote:
-> > So, just insert two bits of padding in sdio_device_id and insert a comm=
-ent=20
-> > saying "/* Explicit padding: works even if we're cross-compiling */".
->=20
-> We had one such problem in 2.6.23 and now we had a similar one in 2.6.24.
->=20
-> Getting the alignment issues automatically right would really be an=20
-> improvement...
->=20
+Hm, sounds interesting, but ...
+ 
+> If you think this is safe and not utterly stupid, I'll send the rest
+> of the patchset exporting the refrigerator to all arches.
 
-Agreed. I won't veto a quick and dirty fix, but I would prefer if this coul=
-d be solved properly.
+... you will need to provide some details, I think.
 
-Rgds
-Pierre
+I also think that it's safe to define TIF_FREEZE for all architectures, but
+the usefulness of it will very much depend on the purpose. :-)
 
---=_hera.drzeus.cx-21561-1197220241-0001-2
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment; filename=signature.asc
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.7 (GNU/Linux)
-
-iD8DBQFHXCGQ7b8eESbyJLgRAm3rAJ0eg0n5VDf624d9hWtM1TiZcQG2AQCghDOX
-oRWyYfns9RdUXS41uHukhEA=
-=d4CM
------END PGP SIGNATURE-----
-
---=_hera.drzeus.cx-21561-1197220241-0001-2--
+Greetings,
+Rafael
