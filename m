@@ -1,51 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailhub.sw.ru ([195.214.233.200]:16754 "EHLO relay.sw.ru"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752927AbXLJQgr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Dec 2007 11:36:47 -0500
-Message-ID: <475D6C6D.5010903@sw.ru>
-Date: Mon, 10 Dec 2007 19:42:21 +0300
-From: Kirill Korotaev <dev@sw.ru>
+Received: from emailhub.stusta.mhn.de ([141.84.69.5]:57758 "EHLO
+	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752183AbXLJSLO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Dec 2007 13:11:14 -0500
+Date: Mon, 10 Dec 2007 19:11:12 +0100
+From: Adrian Bunk <bunk@kernel.org>
+Subject: Re: Correct types for mod_devicetable.h (was: Re: m68k build
+	failure)
+Message-ID: <20071210181112.GM20441@stusta.de>
+References: <20071127220723.e2e3d0b4.akpm@linux-foundation.org> <20071128094856.056c0a3f@poseidon.drzeus.cx> <20071128010056.85703a34.akpm@linux-foundation.org> <20071128092856.GV8181@ftp.linux.org.uk> <20071128132916.125e72ec@poseidon.drzeus.cx> <Pine.LNX.4.64.0711281332350.29243@anakin> <20071201215602.7a4710d9@poseidon.drzeus.cx> <Pine.LNX.4.64.0712021219430.29349@anakin> <20071209180818.55bf1443@poseidon.drzeus.cx>
 MIME-Version: 1.0
-Subject: Re: [PATCH][RFC] freezer : add the TIF_FREEZE flag to all archs
-References: <47594F8C.7070900@fr.ibm.com> <200712101736.29676.rjw@sisk.pl>
-In-Reply-To: <200712101736.29676.rjw@sisk.pl>
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20071209180818.55bf1443@poseidon.drzeus.cx>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Rafael J. Wysocki" <rjw@sisk.pl>
-Cc: Cedric Le Goater <clg@fr.ibm.com>, linux-arch@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, linux-pm@lists.linux-foundation.org
+To: Pierre Ossman <drzeus@drzeus.cx>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Al Viro <viro@ftp.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Marcel Holtmann <marcel@holtmann.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org
 
->>From: Cedric Le Goater <clg@fr.ibm.com>
+On Sun, Dec 09, 2007 at 06:08:18PM +0100, Pierre Ossman wrote:
+> On Sun, 2 Dec 2007 12:22:31 +0100 (CET)
+> Geert Uytterhoeven <geert@linux-m68k.org> wrote:
 > 
+> > 
+> > I gave it a try:
+> >   - Remove existing alignment attributes from some device_id types
+> >   - Introduce kernel_* types with proper size and alignment for
+> >     cross-compilation (sample <asm/kerneltypes.h> for m68k included)
+> >   - Introduce BITS_PER_KERNEL_LONG, to make it clearer it applies to the target
+> > 
+> > Apart from a cross-compile session for m68k, it's untested.
+> > 
 > 
-> Sorry for the delay, I somehow managed to overlook your message.
-> 
-> 
->>This patch is the first step in making the refrigerator() available 
->>to all architectures, even for those without power management. 
->>
->>The purpose of such a change is to be able to use the refrigerator() 
->>in a new control group subsystem which will implement a control group
->>freezer.
-> 
-> 
-> Hm, sounds interesting, but ...
->  
-> 
->>If you think this is safe and not utterly stupid, I'll send the rest
->>of the patchset exporting the refrigerator to all arches.
-> 
-> 
-> ... you will need to provide some details, I think.
-> 
-> I also think that it's safe to define TIF_FREEZE for all architectures, but
-> the usefulness of it will very much depend on the purpose. :-)
+> This still requires a bit of maintenance to set up a kerneltypes.h for every arch.
 
-refrigerator() can be used (and is actually used in OpenVZ containers) to freeze
-container processes for checkpointing (live migration).
-So this can be used regardless system suspend and on all archs.
+Better doing this work once than fixing similar issues again and again.
 
-Thanks,
-Kirill
+> It also means we have to be very careful that gcc's internal alignment settings matched the ones in our header.
+
+There's nothing "gcc internal" about struct alignment - remember that 
+any change in struct alignment would change our userspace ABI.
+
+> Rgds
+> Pierre
+
+cu
+Adrian
+
+-- 
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
+
