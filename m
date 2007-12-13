@@ -1,62 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:60001 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751248AbXLLBep (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Dec 2007 20:34:45 -0500
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: Correct types for mod_devicetable.h (was: Re: m68k build failure)
-Date: Wed, 12 Dec 2007 12:34:34 +1100
-References: <20071127220723.e2e3d0b4.akpm@linux-foundation.org> <200712032102.20353.rusty@rustcorp.com.au> <20071208215811.GD20441@stusta.de>
-In-Reply-To: <20071208215811.GD20441@stusta.de>
+Received: from emailhub.stusta.mhn.de ([141.84.69.5]:39534 "EHLO
+	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1755252AbXLMWUm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Dec 2007 17:20:42 -0500
+Date: Thu, 13 Dec 2007 23:20:44 +0100
+From: Adrian Bunk <bunk@kernel.org>
+Subject: RFC: remove __read_mostly
+Message-ID: <20071213222044.GH21616@stusta.de>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-Message-Id: <200712121234.35471.rusty@rustcorp.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Bunk <bunk@kernel.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Pierre Ossman <drzeus@drzeus.cx>, Al Viro <viro@ftp.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Marcel Holtmann <marcel@holtmann.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jon Masters <jonathan@jonmasters.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
 
-On Sunday 09 December 2007 08:58:11 Adrian Bunk wrote:
-> On Mon, Dec 03, 2007 at 09:02:19PM +1100, Rusty Russell wrote:
-> > On Sunday 02 December 2007 22:22:31 Geert Uytterhoeven wrote:
-> > > On Sat, 1 Dec 2007, Pierre Ossman wrote:
-> > > > Yeah, that could work. Have a header with stuff like this:
-> > > >
-> > > > typedef u16 __attribute__((aligned(2))) aligned_u16;
-> > > > typedef u32 __attribute__((aligned(4))) aligned_u32;
-> > >
-> > > I gave it a try:
-> >
-> > This seems to turn a molehill into a mountain.
-> >
-> > We can change that mod_devicetable.h at any time; it's not supposed to be
-> > a userspace API (the kernel build system doesn't count).
->
-> module-init-tools is userspace and not shipped as part of the kernel
-> build system...
+I tried the following patch with a full x86 .config [1]:
 
-But module-init-tools is *not* supposed to read this; that code is a 2.4 
-backwards compatibility layer which should be removed (and certainly not 
-enhanced to cover new types in mod_devicetable.h!).
+--- a/include/asm-x86/cache.h
++++ b/include/asm-x86/cache.h
+-#define __read_mostly __attribute__((__section__(".data.read_mostly")))
++/* #define __read_mostly __attribute__((__section__(".data.read_mostly"))) */
 
-I repeat: this is *only* for the internal modpost code.  
+The result [2,3] was:
 
-> > So, just insert two bits of padding in sdio_device_id and insert a
-> > comment saying "/* Explicit padding: works even if we're cross-compiling
-> > */".
->
-> We had one such problem in 2.6.23 and now we had a similar one in 2.6.24.
->
-> Getting the alignment issues automatically right would really be an
-> improvement...
+-rwxrwxr-x 1 bunk bunk 46607243 2007-12-13 19:50 vmlinux.old
+-rwxrwxr-x 1 bunk bunk 46598691 2007-12-13 21:55 vmlinux
 
-Not if it makes the code (even) more obscure.  Put an attribute((packed)) on 
-every structure and add an explanation at the top of the file if it makes you 
-feel safer (new additions to the file are likely to copy existing ones), and 
-that's sufficient.
+It's not a surprise that the kernel can become bigger when __read_mostly 
+gets used, especially in cases where __read_mostly prevents gcc 
+optimizations.
 
-Hope that clarifies,
-Rusty.
+My question is:
+Is there anywhere in the kernel a case where __read_mostly brings a 
+measurable improvement or can it be removed?
+
+cu
+Adrian
+
+[1] mostly allyesconfig with CONFIG_MODULES=n
+[2] vmlinux.old is the unpatched kernel
+[3] gcc 4.2 was used
+
+-- 
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
+
