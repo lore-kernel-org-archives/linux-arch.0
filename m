@@ -1,51 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from emailhub.stusta.mhn.de ([141.84.69.5]:39534 "EHLO
-	mailhub.stusta.mhn.de" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1755252AbXLMWUm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Dec 2007 17:20:42 -0500
-Date: Thu, 13 Dec 2007 23:20:44 +0100
-From: Adrian Bunk <bunk@kernel.org>
-Subject: RFC: remove __read_mostly
-Message-ID: <20071213222044.GH21616@stusta.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:50638
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S932421AbXLMWcs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 13 Dec 2007 17:32:48 -0500
+Date: Thu, 13 Dec 2007 14:32:46 -0800 (PST)
+Message-Id: <20071213.143246.175833292.davem@davemloft.net>
+Subject: Re: RFC: remove __read_mostly
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20071213222044.GH21616@stusta.de>
+References: <20071213222044.GH21616@stusta.de>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
+To: bunk@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-I tried the following patch with a full x86 .config [1]:
+From: Adrian Bunk <bunk@kernel.org>
+Date: Thu, 13 Dec 2007 23:20:44 +0100
 
---- a/include/asm-x86/cache.h
-+++ b/include/asm-x86/cache.h
--#define __read_mostly __attribute__((__section__(".data.read_mostly")))
-+/* #define __read_mostly __attribute__((__section__(".data.read_mostly"))) */
+> My question is:
+> Is there anywhere in the kernel a case where __read_mostly brings a 
+> measurable improvement or can it be removed?
 
-The result [2,3] was:
+Yes, on SMP when read-mostly objects share cache lines
+with other objects which are frequently written to.
 
--rwxrwxr-x 1 bunk bunk 46607243 2007-12-13 19:50 vmlinux.old
--rwxrwxr-x 1 bunk bunk 46598691 2007-12-13 21:55 vmlinux
-
-It's not a surprise that the kernel can become bigger when __read_mostly 
-gets used, especially in cases where __read_mostly prevents gcc 
-optimizations.
-
-My question is:
-Is there anywhere in the kernel a case where __read_mostly brings a 
-measurable improvement or can it be removed?
-
-cu
-Adrian
-
-[1] mostly allyesconfig with CONFIG_MODULES=n
-[2] vmlinux.old is the unpatched kernel
-[3] gcc 4.2 was used
-
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
-
+That is the whole reason we created __read_mostly
