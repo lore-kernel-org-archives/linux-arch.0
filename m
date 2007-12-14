@@ -1,36 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from there.is.no.cabal.ca ([134.117.69.58]:54203 "EHLO
-	fattire.cabal.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759999AbXLMXye (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Dec 2007 18:54:34 -0500
-Date: Thu, 13 Dec 2007 18:54:32 -0500
-From: Kyle McMartin <kyle@mcmartin.ca>
+Received: from mx1.suse.de ([195.135.220.2]:35049 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932513AbXLNAdr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 13 Dec 2007 19:33:47 -0500
 Subject: Re: RFC: remove __read_mostly
-Message-ID: <20071213235432.GA26669@fattire.cabal.ca>
+From: Andi Kleen <andi@firstfloor.org>
 References: <20071213222044.GH21616@stusta.de>
+	<20071213235432.GA26669@fattire.cabal.ca>
+Date: Fri, 14 Dec 2007 01:33:45 +0100
+In-Reply-To: <20071213235432.GA26669@fattire.cabal.ca> (Kyle McMartin's message of "Thu\, 13 Dec 2007 18\:54\:32 -0500")
+Message-ID: <p73tzmmf72u.fsf@bingen.suse.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20071213222044.GH21616@stusta.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Bunk <bunk@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Adrian Bunk <bunk@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, Dec 13, 2007 at 11:20:44PM +0100, Adrian Bunk wrote:
-> Is there anywhere in the kernel a case where __read_mostly brings a 
-> measurable improvement or can it be removed?
-> 
+Kyle McMartin <kyle@mcmartin.ca> writes:
 
-Yes, definitely[1]... the problem is, and this is also true of other
-annotations[2], that people go absolutely nuts adding these annotations
-without doing any profiling to see whether they actually improve things.
+> I'd bet, in the __read_mostly case at least, that there's no
+> improvement in almost all cases.
 
-I'd bet, in the __read_mostly case at least, that there's no
-improvement in almost all cases.
+I bet you're wrong. Cache line behaviour is critical, much more
+than pipeline behaviour (which unlikely affects). That is because
+if you eat a cache miss it gets really expensive, which e.g.
+a mispredicted jump is relatively cheap in comparison. We're talking
+one or more orders of magnitude.
 
-cheers, Kyle
+I admit I'm to blame for both (submitted unlikely and asked for
+__read_mostly) and I now consider unlikely a mistake now by hindsight,
+but still think __read_mostly was a good idea.
 
-1. It's hugely relevant on big-SMP machines.
-2. I mean __read_mostly, likely, unlikely, etc., not the useful sparse
-annotations.
+There is one potential problem in that if __read_mostly is used too
+aggressively then the non __read_mostly variables will be all "write
+mostly" with nothing inbetween and that could lead to more false
+sharing, but so far this doesn't seem to be a big problem (and that
+one could be solved too)
+
+-Andi
