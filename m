@@ -1,44 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from scrub.xs4all.nl ([194.109.195.176]:2999 "EHLO scrub.xs4all.nl"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755963AbXLQEO0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 16 Dec 2007 23:14:26 -0500
-From: Roman Zippel <zippel@linux-m68k.org>
-Subject: Re: [PATCH] initrd: Fix virtual/physical mix-up in overwrite test
-Date: Mon, 17 Dec 2007 05:14:18 +0100
-References: <Pine.LNX.4.64.0712161148340.5869@anakin>
-In-Reply-To: <Pine.LNX.4.64.0712161148340.5869@anakin>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:55031 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1761288AbXLQKeG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 17 Dec 2007 05:34:06 -0500
+Date: Mon, 17 Dec 2007 02:33:39 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: RFC: remove __read_mostly
+Message-Id: <20071217023339.ce3da56c.akpm@linux-foundation.org>
+In-Reply-To: <p73tzmmf72u.fsf@bingen.suse.de>
+References: <20071213222044.GH21616@stusta.de>
+	<20071213235432.GA26669@fattire.cabal.ca>
+	<p73tzmmf72u.fsf@bingen.suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200712170514.20465.zippel@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, Adrian Bunk <bunk@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi,
+On Fri, 14 Dec 2007 01:33:45 +0100 Andi Kleen <andi@firstfloor.org> wrote:
 
-On Sunday 16 December 2007, Geert Uytterhoeven wrote:
+> Kyle McMartin <kyle@mcmartin.ca> writes:
+> 
+> > I'd bet, in the __read_mostly case at least, that there's no
+> > improvement in almost all cases.
+> 
+> I bet you're wrong. Cache line behaviour is critical, much more
+> than pipeline behaviour (which unlikely affects). That is because
+> if you eat a cache miss it gets really expensive, which e.g.
+> a mispredicted jump is relatively cheap in comparison. We're talking
+> one or more orders of magnitude.
 
-> --- a/init/main.c
-> +++ b/init/main.c
-> @@ -598,9 +598,9 @@ asmlinkage void __init start_kernel(void
->
->  #ifdef CONFIG_BLK_DEV_INITRD
->  	if (initrd_start && !initrd_below_start_ok &&
-> -			initrd_start < min_low_pfn << PAGE_SHIFT) {
-> +			virt_to_pfn(initrd_start) < min_low_pfn) {
->  		printk(KERN_CRIT "initrd overwritten (0x%08lx < 0x%08lx) - "
-> -		    "disabling it.\n",initrd_start,min_low_pfn << PAGE_SHIFT);
-> +		    "disabling it.\n", virt_to_pfn(initrd_start), min_low_pfn);
->  		initrd_start = 0;
->  	}
->  #endif
+So...  once we've moved all read-mostly variables into __read_mostly, what
+is left behind in bss?
 
-BTW this is some really old code, so another option might be to remove this 
-check completely as the same check is already done via bootmem.
-
-bye, Roman
+All the write-often variables.  All optimally packed together to nicely
+maximise cacheline sharing.
