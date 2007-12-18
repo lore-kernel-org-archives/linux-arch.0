@@ -1,32 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sovereign.computergmbh.de ([85.214.69.204]:50074 "EHLO
-	sovereign.computergmbh.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752479AbXLRMco (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Dec 2007 07:32:44 -0500
-Date: Tue, 18 Dec 2007 13:32:42 +0100 (CET)
-From: Jan Engelhardt <jengelh@computergmbh.de>
-Subject: Re: [PATCH] Avoid overflows in kernel/time.c (version 3)
-In-Reply-To: <47670759.4040208@zytor.com>
-Message-ID: <Pine.LNX.4.64.0712181331240.32270@fbirervta.pbzchgretzou.qr>
-References: <200712172228.lBHMSW3i019555@tazenda.hos.anvin.org>
- <Pine.LNX.4.64.0712180028430.32270@fbirervta.pbzchgretzou.qr>
- <47670759.4040208@zytor.com>
+Received: from hoefnix.telenet-ops.be ([195.130.132.54]:35249 "EHLO
+	hoefnix.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751007AbXLRURO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Dec 2007 15:17:14 -0500
+Received: from monty.telenet-ops.be (monty.telenet-ops.be [195.130.132.56])
+	by hoefnix.telenet-ops.be (Postfix) with ESMTP id 55514A34B6
+	for <linux-arch@vger.kernel.org>; Tue, 18 Dec 2007 20:52:47 +0100 (CET)
+Date: Tue, 18 Dec 2007 20:52:07 +0100 (CET)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] initrd: Fix virtual/physical mix-up in overwrite test
+In-Reply-To: <20071218030131.8b272833.akpm@linux-foundation.org>
+Message-ID: <Pine.LNX.4.64.0712182051050.24841@anakin>
+References: <Pine.LNX.4.64.0712161148340.5869@anakin>
+ <20071218030131.8b272833.akpm@linux-foundation.org>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Sam Ravnborg <sam@ravnborg.org>, Paul Mundt <lethal@linux-sh.org>, Richard Henderson <rth@twiddle.net>, Michael Starvik <starvik@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, "William L. Irwin" <sparclinux@vger.kernel.org>, Chris Zankel <chris@zankel.net>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
 
+On Tue, 18 Dec 2007, Andrew Morton wrote:
+> On Sun, 16 Dec 2007 11:51:00 +0100 (CET) Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> > On recent kernels, I get the following error when using an initrd:
+> > 
+> > | initrd overwritten (0x00b78000 < 0x07668000) - disabling it.
+> > 
+> > My Amiga 4000 has 12 MiB of RAM at physical address 0x07400000 (virtual
+> > 0x00000000).
+> > The initrd is located at the end of RAM: 0x00b78000 - 0x00c00000 (virtual).
+> > The overwrite test compares the (virtual) initrd location to the (physical)
+> > first available memory location, which fails.
+> > 
+> > This patch converts initrd_start to a page frame number, so it can be safely
+> > compared with min_low_pfn.
+> > 
+> > Before the introduction of discontiguous memory support on m68k
+> > (12d810c1b8c2b913d48e629e2b5c01d105029839), min_low_pfn was just left
+> > untouched by the m68k-specific code (zero, I guess), and everything worked
+> > fine.
+> 
+> breaks x86.
+> 
+> init/main.c: In function 'start_kernel':
+> init/main.c:601: error: implicit declaration of function 'virt_to_pfn'
+> init/main.c:603: warning: format '%08lx' expects type 'long unsigned int', but argument 2 has type 'int'
 
-On Dec 17 2007 15:33, H. Peter Anvin wrote:
->> Could this live in scripts/ too? (And use CodingStyle?)
->
-> Why should it live in scripts/ rather than where it is used?  scripts/ is used
-> either for global scripts or scripts which are used manually. Other scripts are
-> not centralized there.
->
-> CodingStyle is applicable to C code, not to scripts as far as I can tell.
->
-Checkpatch adheres to it. And indent, which is applicable to almost all
-languages, is a strong point in CodingStyle.
+Interestingly, virt_to_pfn() exists on a few architectures only :-(
+
+So what's the correct portable construct to use instead?
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
