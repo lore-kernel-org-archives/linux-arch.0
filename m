@@ -1,92 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:42758 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:38373 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760113AbXLTLzQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 20 Dec 2007 06:55:16 -0500
+	id S1760201AbXLTMAP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Dec 2007 07:00:15 -0500
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 From: Roland McGrath <roland@redhat.com>
 In-Reply-To: Roland McGrath's message of  Thursday, 20 December 2007 03:52:00 -0800 <20071220115200.C767E26F98A@magilla.localdomain>
 References: <20071220115200.C767E26F98A@magilla.localdomain>
-Subject: [PATCH -mm 06/43] user_regset user-copy helpers
-Message-Id: <20071220115512.07C0226F98B@magilla.localdomain>
-Date: Thu, 20 Dec 2007 03:55:12 -0800 (PST)
+Subject: [PATCH -mm 24/43] powerpc compat_sys_ptrace
+Message-Id: <20071220115855.D937126F98D@magilla.localdomain>
+Date: Thu, 20 Dec 2007 03:58:55 -0800 (PST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>
 
-This defines two new inlines in linux/regset.h, for use in arch_ptrace
-implementations and the like.  These provide simplified wrappers for using
-the user_regset interfaces to copy thread regset data into the caller's
-user-space memory.  The inlines are trivial, but make the common uses in
-places such as ptrace implementation much more concise, easier to read, and
-less prone to code-copying errors.
+This replaces powerpc's compat_sys_ptrace with a compat_arch_ptrace and
+enables the new generic definition of compat_sys_ptrace instead.
 
 Signed-off-by: Roland McGrath <roland@redhat.com>
-Signed-off-by: Ingo Molnar <mingo@elte.hu>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/regset.h |   46 ++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 46 insertions(+), 0 deletions(-)
+ arch/powerpc/kernel/ptrace32.c |   33 +++++----------------------------
+ include/asm-powerpc/ptrace.h   |    2 ++
+ 2 files changed, 7 insertions(+), 28 deletions(-)
 
-diff --git a/include/linux/regset.h b/include/linux/regset.h
-index 761c931..8abee65 100644
---- a/include/linux/regset.h
-+++ b/include/linux/regset.h
-@@ -318,5 +318,51 @@ static inline int user_regset_copyin_ignore(unsigned int *pos,
- 	return 0;
+diff --git a/arch/powerpc/kernel/ptrace32.c b/arch/powerpc/kernel/ptrace32.c
+index 6612304..0f6eea0 100644
+--- a/arch/powerpc/kernel/ptrace32.c
++++ b/arch/powerpc/kernel/ptrace32.c
+@@ -85,33 +85,13 @@ static long compat_ptrace_old(struct task_struct *child, long request,
+ 	return ret;
  }
  
-+/**
-+ * copy_regset_to_user - fetch a thread's user_regset data into user memory
-+ * @target:	thread to be examined
-+ * @view:	&struct user_regset_view describing user thread machine state
-+ * @setno:	index in @view->regsets
-+ * @offset:	offset into the regset data, in bytes
-+ * @size:	amount of data to copy, in bytes
-+ * @data:	user-mode pointer to copy into
-+ */
-+static inline int copy_regset_to_user(struct task_struct *target,
-+				      const struct user_regset_view *view,
-+				      unsigned int setno,
-+				      unsigned int offset, unsigned int size,
-+				      void __user *data)
-+{
-+	const struct user_regset *regset = &view->regsets[setno];
-+
-+	if (!access_ok(VERIFY_WRITE, data, size))
-+		return -EIO;
-+
-+	return regset->get(target, regset, offset, size, NULL, data);
-+}
-+
-+/**
-+ * copy_regset_from_user - store into thread's user_regset data from user memory
-+ * @target:	thread to be examined
-+ * @view:	&struct user_regset_view describing user thread machine state
-+ * @setno:	index in @view->regsets
-+ * @offset:	offset into the regset data, in bytes
-+ * @size:	amount of data to copy, in bytes
-+ * @data:	user-mode pointer to copy from
-+ */
-+static inline int copy_regset_from_user(struct task_struct *target,
-+					const struct user_regset_view *view,
-+					unsigned int setno,
-+					unsigned int offset, unsigned int size,
-+					const void __user *data)
-+{
-+	const struct user_regset *regset = &view->regsets[setno];
-+
-+	if (!access_ok(VERIFY_READ, data, size))
-+		return -EIO;
-+
-+	return regset->set(target, regset, offset, size, NULL, data);
-+}
-+
+-long compat_sys_ptrace(int request, int pid, unsigned long addr,
+-		       unsigned long data)
++long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++			compat_ulong_t caddr, compat_ulong_t cdata)
+ {
+-	struct task_struct *child;
++	unsigned long addr = caddr;
++	unsigned long data = cdata;
+ 	int ret;
  
- #endif	/* <linux/regset.h> */
+-	lock_kernel();
+-	if (request == PTRACE_TRACEME) {
+-		ret = ptrace_traceme();
+-		goto out;
+-	}
+-
+-	child = ptrace_get_task_struct(pid);
+-	if (IS_ERR(child)) {
+-		ret = PTR_ERR(child);
+-		goto out;
+-	}
+-
+-	if (request == PTRACE_ATTACH) {
+-		ret = ptrace_attach(child);
+-		goto out_tsk;
+-	}
+-
+-	ret = ptrace_check_attach(child, request == PTRACE_KILL);
+-	if (ret < 0)
+-		goto out_tsk;
+-
+ 	switch (request) {
+ 	/*
+ 	 * Read 4 bytes of the other process' storage
+@@ -375,9 +355,6 @@ long compat_sys_ptrace(int request, int pid, unsigned long addr,
+ 		ret = compat_ptrace_request(child, request, addr, data);
+ 		break;
+ 	}
+-out_tsk:
+-	put_task_struct(child);
+-out:
+-	unlock_kernel();
++
+ 	return ret;
+ }
+diff --git a/include/asm-powerpc/ptrace.h b/include/asm-powerpc/ptrace.h
+index 3063363..a8cb00c 100644
+--- a/include/asm-powerpc/ptrace.h
++++ b/include/asm-powerpc/ptrace.h
+@@ -55,6 +55,8 @@ struct pt_regs {
+ 
+ #ifdef __powerpc64__
+ 
++#define __ARCH_WANT_COMPAT_SYS_PTRACE
++
+ #define STACK_FRAME_OVERHEAD	112	/* size of minimum stack frame */
+ 
+ /* Size of dummy stack frame allocated when calling signal handler. */
 -- 
 1.5.3.6
 
