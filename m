@@ -1,108 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:42812 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:38350 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760350AbXLTL4Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 20 Dec 2007 06:56:25 -0500
+	id S1758529AbXLTMAJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Dec 2007 07:00:09 -0500
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 From: Roland McGrath <roland@redhat.com>
 In-Reply-To: Roland McGrath's message of  Thursday, 20 December 2007 03:52:00 -0800 <20071220115200.C767E26F98A@magilla.localdomain>
 References: <20071220115200.C767E26F98A@magilla.localdomain>
-Subject: [PATCH -mm 09/43] compat_sys_ptrace
-Message-Id: <20071220115551.73EE026F98B@magilla.localdomain>
-Date: Thu, 20 Dec 2007 03:55:51 -0800 (PST)
+Subject: [PATCH -mm 13/43] powerpc ptrace special regs
+Message-Id: <20071220115751.78CE726F98A@magilla.localdomain>
+Date: Thu, 20 Dec 2007 03:57:51 -0800 (PST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>
 
-This adds a generic definition of compat_sys_ptrace that calls
-compat_arch_ptrace, parallel to sys_ptrace/arch_ptrace.  Some
-machines needing this already define a function by that name.
-The new generic function is defined only on machines that
-put #define __ARCH_WANT_COMPAT_SYS_PTRACE into asm/ptrace.h.
+This isolates the ptrace code for the special-case registers msr and trap
+from the ptrace-layout dispatch code.  This should inline away completely.
+It cleanly separates the low-level machine magic that has to be done for
+deep reasons, from the superficial details of the ptrace interface.
 
 Signed-off-by: Roland McGrath <roland@redhat.com>
-Signed-off-by: Ingo Molnar <mingo@elte.hu>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/compat.h |    7 +++++++
- kernel/ptrace.c        |   46 ++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 53 insertions(+), 0 deletions(-)
+ arch/powerpc/kernel/ptrace.c |   45 ++++++++++++++++++++++++++++--------------
+ 1 files changed, 30 insertions(+), 15 deletions(-)
 
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index e70a2a1..aa3a55e 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -275,5 +275,12 @@ extern int compat_ptrace_request(struct task_struct *child,
- 				 compat_long_t request,
- 				 compat_ulong_t addr, compat_ulong_t data);
+diff --git a/arch/powerpc/kernel/ptrace.c b/arch/powerpc/kernel/ptrace.c
+index 8c25b00..4edc118 100644
+--- a/arch/powerpc/kernel/ptrace.c
++++ b/arch/powerpc/kernel/ptrace.c
+@@ -60,20 +60,38 @@
+ #define PT_MAX_PUT_REG	PT_CCR
+ #endif
  
-+#ifdef __ARCH_WANT_COMPAT_SYS_PTRACE
-+extern long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-+			       compat_ulong_t addr, compat_ulong_t data);
-+asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
-+				  compat_long_t addr, compat_long_t data);
-+#endif	/* __ARCH_WANT_COMPAT_SYS_PTRACE */
-+
- #endif /* CONFIG_COMPAT */
- #endif /* _LINUX_COMPAT_H */
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index bc1a764..319ab4a 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -642,4 +642,50 @@ int compat_ptrace_request(struct task_struct *child, compat_long_t request,
- 
- 	return ret;
- }
-+
-+#ifdef __ARCH_WANT_COMPAT_SYS_PTRACE
-+asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
-+				  compat_long_t addr, compat_long_t data)
++static unsigned long get_user_msr(struct task_struct *task)
 +{
-+	struct task_struct *child;
-+	long ret;
-+
-+	/*
-+	 * This lock_kernel fixes a subtle race with suid exec
-+	 */
-+	lock_kernel();
-+	if (request == PTRACE_TRACEME) {
-+		ret = ptrace_traceme();
-+		goto out;
-+	}
-+
-+	child = ptrace_get_task_struct(pid);
-+	if (IS_ERR(child)) {
-+		ret = PTR_ERR(child);
-+		goto out;
-+	}
-+
-+	if (request == PTRACE_ATTACH) {
-+		ret = ptrace_attach(child);
-+		/*
-+		 * Some architectures need to do book-keeping after
-+		 * a ptrace attach.
-+		 */
-+		if (!ret)
-+			arch_ptrace_attach(child);
-+		goto out_put_task_struct;
-+	}
-+
-+	ret = ptrace_check_attach(child, request == PTRACE_KILL);
-+	if (!ret)
-+		ret = compat_arch_ptrace(child, request, addr, data);
-+
-+ out_put_task_struct:
-+	put_task_struct(child);
-+ out:
-+	unlock_kernel();
-+	return ret;
++	return task->thread.regs->msr | task->thread.fpexc_mode;
 +}
-+#endif /* __ARCH_WANT_COMPAT_SYS_PTRACE */
 +
- #endif	/* CONFIG_COMPAT */
++static int set_user_msr(struct task_struct *task, unsigned long msr)
++{
++	task->thread.regs->msr &= ~MSR_DEBUGCHANGE;
++	task->thread.regs->msr |= msr & MSR_DEBUGCHANGE;
++	return 0;
++}
++
++/*
++ * We prevent mucking around with the reserved area of trap
++ * which are used internally by the kernel.
++ */
++static int set_user_trap(struct task_struct *task, unsigned long trap)
++{
++	task->thread.regs->trap = trap & 0xfff0;
++	return 0;
++}
++
+ /*
+  * Get contents of register REGNO in task TASK.
+  */
+ unsigned long ptrace_get_reg(struct task_struct *task, int regno)
+ {
+-	unsigned long tmp = 0;
+-
+ 	if (task->thread.regs == NULL)
+ 		return -EIO;
+ 
+-	if (regno == PT_MSR) {
+-		tmp = ((unsigned long *)task->thread.regs)[PT_MSR];
+-		return tmp | task->thread.fpexc_mode;
+-	}
++	if (regno == PT_MSR)
++		return get_user_msr(task);
+ 
+ 	if (regno < (sizeof(struct pt_regs) / sizeof(unsigned long)))
+ 		return ((unsigned long *)task->thread.regs)[regno];
+@@ -89,15 +107,12 @@ int ptrace_put_reg(struct task_struct *task, int regno, unsigned long data)
+ 	if (task->thread.regs == NULL)
+ 		return -EIO;
+ 
+-	if (regno <= PT_MAX_PUT_REG || regno == PT_TRAP) {
+-		if (regno == PT_MSR)
+-			data = (data & MSR_DEBUGCHANGE)
+-				| (task->thread.regs->msr & ~MSR_DEBUGCHANGE);
+-		/* We prevent mucking around with the reserved area of trap
+-		 * which are used internally by the kernel
+-		 */
+-		if (regno == PT_TRAP)
+-			data &= 0xfff0;
++	if (regno == PT_MSR)
++		return set_user_msr(task, data);
++	if (regno == PT_TRAP)
++		return set_user_trap(task, data);
++
++	if (regno <= PT_MAX_PUT_REG) {
+ 		((unsigned long *)task->thread.regs)[regno] = data;
+ 		return 0;
+ 	}
 -- 
 1.5.3.6
 
