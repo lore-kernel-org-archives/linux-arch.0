@@ -1,147 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:38404 "EHLO mx1.redhat.com"
+Received: from mx2.redhat.com ([66.187.237.31]:41848 "EHLO mx2.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760775AbXLTMAX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 20 Dec 2007 07:00:23 -0500
+	id S1761105AbXLTMAs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Dec 2007 07:00:48 -0500
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 From: Roland McGrath <roland@redhat.com>
 In-Reply-To: Roland McGrath's message of  Thursday, 20 December 2007 03:52:00 -0800 <20071220115200.C767E26F98A@magilla.localdomain>
 References: <20071220115200.C767E26F98A@magilla.localdomain>
-Subject: [PATCH -mm 12/43] powerpc user_regset spe
-Message-Id: <20071220115748.484E626F98A@magilla.localdomain>
-Date: Thu, 20 Dec 2007 03:57:48 -0800 (PST)
+Subject: [PATCH -mm 15/43] powerpc user_regset_view
+Message-Id: <20071220115800.C538426F98D@magilla.localdomain>
+Date: Thu, 20 Dec 2007 03:58:00 -0800 (PST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>
 
-This implements user_regset-style accessors for the powerpc SPE data,
-and rewrites the existing ptrace code in terms of those calls.
+This provides the task_user_regset_view entry point and support for all the
+native-mode (64 on CONFIG_PPC64, 32 on CONFIG_PPC32) thread register state.
+This will enable generic machine-independent code to access user-mode
+threads' registers for debugging and dumping.
 
 Signed-off-by: Roland McGrath <roland@redhat.com>
 ---
- arch/powerpc/kernel/ptrace.c |   90 ++++++++++++++++++++++++++---------------
- 1 files changed, 57 insertions(+), 33 deletions(-)
+ arch/powerpc/kernel/Makefile |    2 +
+ arch/powerpc/kernel/ptrace.c |   52 ++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 54 insertions(+), 0 deletions(-)
 
+diff --git a/arch/powerpc/kernel/Makefile b/arch/powerpc/kernel/Makefile
+index ca51f0c..615ed96 100644
+--- a/arch/powerpc/kernel/Makefile
++++ b/arch/powerpc/kernel/Makefile
+@@ -2,6 +2,8 @@
+ # Makefile for the linux kernel.
+ #
+ 
++CFLAGS_ptrace.o		+= -DUTS_MACHINE='"$(UTS_MACHINE)"'
++
+ ifeq ($(CONFIG_PPC64),y)
+ EXTRA_CFLAGS	+= -mno-minimal-toc
+ endif
 diff --git a/arch/powerpc/kernel/ptrace.c b/arch/powerpc/kernel/ptrace.c
-index 7cdf35a..8c25b00 100644
+index e493fc0..b32ac5f 100644
 --- a/arch/powerpc/kernel/ptrace.c
 +++ b/arch/powerpc/kernel/ptrace.c
-@@ -272,55 +272,79 @@ static int set_vrregs(struct task_struct *task, unsigned long __user *data)
-  * }
-  */
- 
--/*
-- * Get contents of SPE register state in task TASK.
-- */
--static int get_evrregs(unsigned long *data, struct task_struct *task)
-+static int evr_active(struct task_struct *target,
-+		      const struct user_regset *regset)
- {
--	int i;
-+	flush_spe_to_thread(target);
-+	return target->thread.used_spe ? regset->n : 0;
-+}
- 
--	if (!access_ok(VERIFY_WRITE, data, 35 * sizeof(unsigned long)))
--		return -EFAULT;
-+static int evr_get(struct task_struct *target, const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user *ubuf)
-+{
-+	int ret;
- 
--	/* copy SPEFSCR */
--	if (__put_user(task->thread.spefscr, &data[34]))
--		return -EFAULT;
-+	flush_spe_to_thread(target);
- 
--	/* copy SPE registers EVR[0] .. EVR[31] */
--	for (i = 0; i < 32; i++, data++)
--		if (__put_user(task->thread.evr[i], data))
--			return -EFAULT;
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  &target->thread.evr,
-+				  0, sizeof(target->thread.evr));
- 
--	/* copy ACC */
--	if (__put_user64(task->thread.acc, (unsigned long long *)data))
--		return -EFAULT;
-+	BUILD_BUG_ON(offsetof(struct thread_struct, acc) + sizeof(u64) !=
-+		     offsetof(struct thread_struct, spefscr));
- 
--	return 0;
-+	if (!ret)
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+					  &target->thread.acc,
-+					  sizeof(target->thread.evr), -1);
-+
-+	return ret;
-+}
-+
-+static int evr_set(struct task_struct *target, const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user *ubuf)
-+{
-+	int ret;
-+
-+	flush_spe_to_thread(target);
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &target->thread.evr,
-+				 0, sizeof(target->thread.evr));
-+
-+	BUILD_BUG_ON(offsetof(struct thread_struct, acc) + sizeof(u64) !=
-+		     offsetof(struct thread_struct, spefscr));
-+
-+	if (!ret)
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+					 &target->thread.acc,
-+					 sizeof(target->thread.evr), -1);
-+
-+	return ret;
- }
- 
- /*
-- * Write contents of SPE register state into task TASK.
-+ * Get contents of SPE register state in task TASK.
-  */
--static int set_evrregs(struct task_struct *task, unsigned long *data)
-+static int get_evrregs(unsigned long __user *data, struct task_struct *task)
- {
--	int i;
--
--	if (!access_ok(VERIFY_READ, data, 35 * sizeof(unsigned long)))
-+	if (!access_ok(VERIFY_WRITE, data, 35 * sizeof(u32)))
- 		return -EFAULT;
- 
--	/* copy SPEFSCR */
--	if (__get_user(task->thread.spefscr, &data[34]))
--		return -EFAULT;
-+	return evr_get(task, NULL, 0, 35 * sizeof(u32), NULL, data);
-+}
- 
--	/* copy SPE registers EVR[0] .. EVR[31] */
--	for (i = 0; i < 32; i++, data++)
--		if (__get_user(task->thread.evr[i], data))
--			return -EFAULT;
--	/* copy ACC */
--	if (__get_user64(task->thread.acc, (unsigned long long*)data))
-+/*
-+ * Write contents of SPE register state into task TASK.
-+ */
-+static int set_evrregs(struct task_struct *task, unsigned long *data)
-+{
-+	if (!access_ok(VERIFY_READ, data, 35 * sizeof(u32)))
- 		return -EFAULT;
- 
--	return 0;
-+	return evr_set(task, NULL, 0, 35 * sizeof(u32), NULL, data);
- }
+@@ -455,6 +455,58 @@ static int set_evrregs(struct task_struct *task, unsigned long *data)
  #endif /* CONFIG_SPE */
  
+ 
++/*
++ * These are our native regset flavors.
++ */
++enum powerpc_regset {
++	REGSET_GPR,
++	REGSET_FPR,
++#ifdef CONFIG_ALTIVEC
++	REGSET_VMX,
++#endif
++#ifdef CONFIG_SPE
++	REGSET_SPE,
++#endif
++};
++
++static const struct user_regset native_regsets[] = {
++	[REGSET_GPR] = {
++		.core_note_type = NT_PRSTATUS, .n = ELF_NGREG,
++		.size = sizeof(long), .align = sizeof(long),
++		.get = gpr_get, .set = gpr_set
++	},
++	[REGSET_FPR] = {
++		.core_note_type = NT_PRFPREG, .n = ELF_NFPREG,
++		.size = sizeof(double), .align = sizeof(double),
++		.get = fpr_get, .set = fpr_set
++	},
++#ifdef CONFIG_ALTIVEC
++	[REGSET_VMX] = {
++		.core_note_type = NT_PPC_VMX, .n = 34,
++		.size = sizeof(vector128), .align = sizeof(vector128),
++		.active = vr_active, .get = vr_get, .set = vr_set
++	},
++#endif
++#ifdef CONFIG_SPE
++	[REGSET_SPE] = {
++		.n = 35,
++		.size = sizeof(u32), .align = sizeof(u32),
++		.active = evr_active, .get = evr_get, .set = evr_set
++	},
++#endif
++};
++
++static const struct user_regset_view user_ppc_native_view = {
++	.name = UTS_MACHINE, .e_machine = ELF_ARCH, .ei_osabi = ELF_OSABI,
++	.regsets = native_regsets, .n = ARRAY_SIZE(native_regsets)
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_ppc_native_view;
++}
++
++
+ void user_enable_single_step(struct task_struct *task)
+ {
+ 	struct pt_regs *regs = task->thread.regs;
 -- 
 1.5.3.6
 
