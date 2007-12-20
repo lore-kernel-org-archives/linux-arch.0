@@ -1,103 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:38368 "EHLO mx1.redhat.com"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:36779 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760133AbXLTMAO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 20 Dec 2007 07:00:14 -0500
+	id S1755379AbXLTNCY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Dec 2007 08:02:24 -0500
+Date: Thu, 20 Dec 2007 14:00:42 +0100
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH -mm 00/43] user_regset framework -- arch maintainers
+	take note!
+Message-ID: <20071220130042.GA28770@elte.hu>
+References: <20071220115200.C767E26F98A@magilla.localdomain>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-From: Roland McGrath <roland@redhat.com>
-In-Reply-To: Roland McGrath's message of  Thursday, 20 December 2007 03:52:00 -0800 <20071220115200.C767E26F98A@magilla.localdomain>
-References: <20071220115200.C767E26F98A@magilla.localdomain>
-Subject: [PATCH -mm 23/43] powerpc compat_ptrace_request
-Message-Id: <20071220115849.4CD4626F98B@magilla.localdomain>
-Date: Thu, 20 Dec 2007 03:58:49 -0800 (PST)
+Content-Disposition: inline
+In-Reply-To: <20071220115200.C767E26F98A@magilla.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>
+To: Roland McGrath <roland@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-This removes some duplicated code by calling the new generic
-compat_ptrace_request from powerpc's compat_sys_ptrace.
 
-Signed-off-by: Roland McGrath <roland@redhat.com>
----
- arch/powerpc/kernel/ptrace32.c |   34 ++--------------------------------
- 1 files changed, 2 insertions(+), 32 deletions(-)
+* Roland McGrath <roland@redhat.com> wrote:
 
-diff --git a/arch/powerpc/kernel/ptrace32.c b/arch/powerpc/kernel/ptrace32.c
-index fea6206..6612304 100644
---- a/arch/powerpc/kernel/ptrace32.c
-+++ b/arch/powerpc/kernel/ptrace32.c
-@@ -27,6 +27,7 @@
- #include <linux/user.h>
- #include <linux/security.h>
- #include <linux/signal.h>
-+#include <linux/compat.h>
- 
- #include <asm/uaccess.h>
- #include <asm/page.h>
-@@ -112,20 +113,6 @@ long compat_sys_ptrace(int request, int pid, unsigned long addr,
- 		goto out_tsk;
- 
- 	switch (request) {
--	/* when I and D space are separate, these will need to be fixed. */
--	case PTRACE_PEEKTEXT: /* read word at location addr. */ 
--	case PTRACE_PEEKDATA: {
--		unsigned int tmp;
--		int copied;
--
--		copied = access_process_vm(child, addr, &tmp, sizeof(tmp), 0);
--		ret = -EIO;
--		if (copied != sizeof(tmp))
--			break;
--		ret = put_user(tmp, (u32 __user *)data);
--		break;
--	}
--
- 	/*
- 	 * Read 4 bytes of the other process' storage
- 	 *  data is a pointer specifying where the user wants the
-@@ -225,19 +212,6 @@ long compat_sys_ptrace(int request, int pid, unsigned long addr,
- 		break;
- 	}
- 
--	/* If I and D space are separate, this will have to be fixed. */
--	case PTRACE_POKETEXT: /* write the word at location addr. */
--	case PTRACE_POKEDATA: {
--		unsigned int tmp;
--		tmp = data;
--		ret = 0;
--		if (access_process_vm(child, addr, &tmp, sizeof(tmp), 1)
--				== sizeof(tmp))
--			break;
--		ret = -EIO;
--		break;
--	}
--
- 	/*
- 	 * Write 4 bytes into the other process' storage
- 	 *  data is the 4 bytes that the user wants written
-@@ -337,10 +311,6 @@ long compat_sys_ptrace(int request, int pid, unsigned long addr,
- 		break;
- 	}
- 
--	case PTRACE_GETEVENTMSG:
--		ret = put_user(child->ptrace_message, (unsigned int __user *) data);
--		break;
--
- 	case PTRACE_GETREGS: { /* Get all pt_regs from the child. */
- 		int ui;
- 	  	if (!access_ok(VERIFY_WRITE, (void __user *)data,
-@@ -402,7 +372,7 @@ long compat_sys_ptrace(int request, int pid, unsigned long addr,
- 		break;
- 
- 	default:
--		ret = ptrace_request(child, request, addr, data);
-+		ret = compat_ptrace_request(child, request, addr, data);
- 		break;
- 	}
- out_tsk:
--- 
-1.5.3.6
+> This is a large series of patches, but there are only a couple that 
+> you need to read in detail to know how to get started on cleaning up 
+> your arch code (1, 4, 6).
+> 
+> user_regset is a new kernel-internal interface into the arch code for 
+> accessing the user-space view of machine-specific state (registers et 
+> al--everything machine-specific that is visible via ptrace and the 
+> like, or should be).  The idea is that arch code will have just one 
+> place it has to support fetching and changing the user-visible machine 
+> state of a user thread.  This same interface can be used for writing 
+> core dumps, to underlie the implementation of PTRACE_GETREGS, 
+> PTRACE_SETREGS, and the like, and by any new set of debugging 
+> facilities that might come along.
+[...]
+> Patches 26 through 43 affect only arch/x86 code.  I have not CC'd 
+> these ones to linux-arch.  They include a bunch of cleanup that is 
+> specific to the idiosyncracies of the x86 code and isn't interesting 
+> as an example for what another arch would do.
 
+thanks Roland - this is a really impressive set of cleanups 
+generalizations!
+
+Testing feedback: i've put the x86 and core bits into x86.git and your 
+regset series has so far successfully passed a couple of hundred 
+iterations of random-qa on 32-bit and 64-bit x86 as well. (with a few 
+ptrace tests added to the mix as well) So it's all green as far as 
+arch/x86 and core goes :-)
+
+	Ingo
