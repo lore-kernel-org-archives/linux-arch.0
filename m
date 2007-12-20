@@ -1,153 +1,176 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:38379 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:38393 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760224AbXLTMAR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 20 Dec 2007 07:00:17 -0500
+	id S1760345AbXLTMAU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Dec 2007 07:00:20 -0500
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 From: Roland McGrath <roland@redhat.com>
 In-Reply-To: Roland McGrath's message of  Thursday, 20 December 2007 03:52:00 -0800 <20071220115200.C767E26F98A@magilla.localdomain>
 References: <20071220115200.C767E26F98A@magilla.localdomain>
-Subject: [PATCH -mm 25/43] powerpc ptrace32 user_regset
-Message-Id: <20071220115904.89A7F26F98D@magilla.localdomain>
-Date: Thu, 20 Dec 2007 03:59:04 -0800 (PST)
+Subject: [PATCH -mm 11/43] powerpc user_regset altivec
+Message-Id: <20071220115739.4978126F98A@magilla.localdomain>
+Date: Thu, 20 Dec 2007 03:57:39 -0800 (PST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>
 
-This cleans up the 32-bit ptrace syscall support to use user_regset calls
-to get at the register data for PTRACE_*REGS* calls.
+This implements user_regset-style accessors for the powerpc Altivec data,
+and rewrites the existing ptrace code in terms of those calls.
 
 Signed-off-by: Roland McGrath <roland@redhat.com>
 ---
- arch/powerpc/kernel/ptrace32.c |   96 ++++++++++-----------------------------
- 1 files changed, 25 insertions(+), 71 deletions(-)
+ arch/powerpc/kernel/ptrace.c |  112 +++++++++++++++++++++++++++++-------------
+ 1 files changed, 78 insertions(+), 34 deletions(-)
 
-diff --git a/arch/powerpc/kernel/ptrace32.c b/arch/powerpc/kernel/ptrace32.c
-index 0f6eea0..4c1de6a 100644
---- a/arch/powerpc/kernel/ptrace32.c
-+++ b/arch/powerpc/kernel/ptrace32.c
-@@ -24,6 +24,7 @@
- #include <linux/smp_lock.h>
+diff --git a/arch/powerpc/kernel/ptrace.c b/arch/powerpc/kernel/ptrace.c
+index f1ce646..7cdf35a 100644
+--- a/arch/powerpc/kernel/ptrace.c
++++ b/arch/powerpc/kernel/ptrace.c
+@@ -22,6 +22,7 @@
  #include <linux/errno.h>
  #include <linux/ptrace.h>
-+#include <linux/regset.h>
+ #include <linux/regset.h>
++#include <linux/elf.h>
  #include <linux/user.h>
  #include <linux/security.h>
  #include <linux/signal.h>
-@@ -46,43 +47,21 @@
- static long compat_ptrace_old(struct task_struct *child, long request,
- 			      long addr, long data)
- {
--	int ret = -EPERM;
--
--	switch(request) {
--	case PPC_PTRACE_GETREGS: { /* Get GPRs 0 - 31. */
--		int i;
--		unsigned long *reg = &((unsigned long *)child->thread.regs)[0];
--		unsigned int __user *tmp = (unsigned int __user *)addr;
--
--		CHECK_FULL_REGS(child->thread.regs);
--		for (i = 0; i < 32; i++) {
--			ret = put_user(*reg, tmp);
--			if (ret)
--				break;
--			reg++;
--			tmp++;
--		}
--		break;
--	}
--
--	case PPC_PTRACE_SETREGS: { /* Set GPRs 0 - 31. */
--		int i;
--		unsigned long *reg = &((unsigned long *)child->thread.regs)[0];
--		unsigned int __user *tmp = (unsigned int __user *)addr;
--
--		CHECK_FULL_REGS(child->thread.regs);
--		for (i = 0; i < 32; i++) {
--			ret = get_user(*reg, tmp);
--			if (ret)
--				break;
--			reg++;
--			tmp++;
--		}
--		break;
-+	switch (request) {
-+	case PPC_PTRACE_GETREGS:	/* Get GPRs 0 - 31. */
-+		return copy_regset_to_user(child,
-+					   task_user_regset_view(current), 0,
-+					   0, 32 * sizeof(compat_long_t),
-+					   compat_ptr(data));
-+
-+	case PPC_PTRACE_SETREGS:	/* Set GPRs 0 - 31. */
-+		return copy_regset_from_user(child,
-+					     task_user_regset_view(current), 0,
-+					     0, 32 * sizeof(compat_long_t),
-+					     compat_ptr(data));
- 	}
+@@ -163,30 +164,87 @@ static int set_fpregs(void __user *data, struct task_struct *task,
+  * (combined (32- and 64-bit) gdb.
+  */
  
--	}
--	return ret;
-+	return -EPERM;
++static int vr_active(struct task_struct *target,
++		     const struct user_regset *regset)
++{
++	flush_altivec_to_thread(target);
++	return target->thread.used_vr ? regset->n : 0;
++}
++
++static int vr_get(struct task_struct *target, const struct user_regset *regset,
++		  unsigned int pos, unsigned int count,
++		  void *kbuf, void __user *ubuf)
++{
++	int ret;
++
++	flush_altivec_to_thread(target);
++
++	BUILD_BUG_ON(offsetof(struct thread_struct, vscr) !=
++		     offsetof(struct thread_struct, vr[32]));
++
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &target->thread.vr, 0,
++				  33 * sizeof(vector128));
++	if (!ret) {
++		/*
++		 * Copy out only the low-order word of vrsave.
++		 */
++		union {
++			elf_vrreg_t reg;
++			u32 word;
++		} vrsave;
++		memset(&vrsave, 0, sizeof(vrsave));
++		vrsave.word = target->thread.vrsave;
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, &vrsave,
++					  33 * sizeof(vector128), -1);
++	}
++
++	return ret;
++}
++
++static int vr_set(struct task_struct *target, const struct user_regset *regset,
++		  unsigned int pos, unsigned int count,
++		  const void *kbuf, const void __user *ubuf)
++{
++	int ret;
++
++	flush_altivec_to_thread(target);
++
++	BUILD_BUG_ON(offsetof(struct thread_struct, vscr) !=
++		     offsetof(struct thread_struct, vr[32]));
++
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &target->thread.vr, 0, 33 * sizeof(vector128));
++	if (!ret && count > 0) {
++		/*
++		 * We use only the first word of vrsave.
++		 */
++		union {
++			elf_vrreg_t reg;
++			u32 word;
++		} vrsave;
++		memset(&vrsave, 0, sizeof(vrsave));
++		vrsave.word = target->thread.vrsave;
++		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &vrsave,
++					 33 * sizeof(vector128), -1);
++		if (!ret)
++			target->thread.vrsave = vrsave.word;
++	}
++
++	return ret;
++}
++
+ /*
+  * Get contents of AltiVec register state in task TASK
+  */
+ static int get_vrregs(unsigned long __user *data, struct task_struct *task)
+ {
+-	unsigned long regsize;
+-
+-	/* copy AltiVec registers VR[0] .. VR[31] */
+-	regsize = 32 * sizeof(vector128);
+-	if (copy_to_user(data, task->thread.vr, regsize))
+-		return -EFAULT;
+-	data += (regsize / sizeof(unsigned long));
+-
+-	/* copy VSCR */
+-	regsize = 1 * sizeof(vector128);
+-	if (copy_to_user(data, &task->thread.vscr, regsize))
++	if (!access_ok(VERIFY_WRITE, data,
++		       33 * sizeof(vector128) + sizeof(u32)))
+ 		return -EFAULT;
+-	data += (regsize / sizeof(unsigned long));
+ 
+-	/* copy VRSAVE */
+-	if (put_user(task->thread.vrsave, (u32 __user *)data))
+-		return -EFAULT;
+-
+-	return 0;
++	return vr_get(task, NULL, 0, 33 * sizeof(vector128) + sizeof(u32),
++		      NULL, data);
  }
  
- long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-@@ -291,42 +270,17 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
- 		break;
- 	}
- 
--	case PTRACE_GETREGS: { /* Get all pt_regs from the child. */
--		int ui;
--	  	if (!access_ok(VERIFY_WRITE, (void __user *)data,
--			       PT_REGS_COUNT * sizeof(int))) {
--			ret = -EIO;
--			break;
--		}
--		CHECK_FULL_REGS(child->thread.regs);
--		ret = 0;
--		for (ui = 0; ui < PT_REGS_COUNT; ui ++) {
--			ret |= __put_user(ptrace_get_reg(child, ui),
--					  (unsigned int __user *) data);
--			data += sizeof(int);
--		}
--		break;
--	}
+ /*
+@@ -194,25 +252,11 @@ static int get_vrregs(unsigned long __user *data, struct task_struct *task)
+  */
+ static int set_vrregs(struct task_struct *task, unsigned long __user *data)
+ {
+-	unsigned long regsize;
 -
--	case PTRACE_SETREGS: { /* Set all gp regs in the child. */
--		unsigned long tmp;
--		int ui;
--	  	if (!access_ok(VERIFY_READ, (void __user *)data,
--			       PT_REGS_COUNT * sizeof(int))) {
--			ret = -EIO;
--			break;
--		}
--		CHECK_FULL_REGS(child->thread.regs);
--		ret = 0;
--		for (ui = 0; ui < PT_REGS_COUNT; ui ++) {
--			ret = __get_user(tmp, (unsigned int __user *) data);
--			if (ret)
--				break;
--			ptrace_put_reg(child, ui, tmp);
--			data += sizeof(int);
--		}
--		break;
--	}
-+	case PTRACE_GETREGS:	/* Get all pt_regs from the child. */
-+		return copy_regset_to_user(
-+			child, task_user_regset_view(current), 0,
-+			0, PT_REGS_COUNT * sizeof(compat_long_t),
-+			compat_ptr(data));
-+
-+	case PTRACE_SETREGS:	/* Set all gp regs in the child. */
-+		return copy_regset_from_user(
-+			child, task_user_regset_view(current), 0,
-+			0, PT_REGS_COUNT * sizeof(compat_long_t),
-+			compat_ptr(data));
+-	/* copy AltiVec registers VR[0] .. VR[31] */
+-	regsize = 32 * sizeof(vector128);
+-	if (copy_from_user(task->thread.vr, data, regsize))
+-		return -EFAULT;
+-	data += (regsize / sizeof(unsigned long));
+-
+-	/* copy VSCR */
+-	regsize = 1 * sizeof(vector128);
+-	if (copy_from_user(&task->thread.vscr, data, regsize))
+-		return -EFAULT;
+-	data += (regsize / sizeof(unsigned long));
+-
+-	/* copy VRSAVE */
+-	if (get_user(task->thread.vrsave, (u32 __user *)data))
++	if (!access_ok(VERIFY_READ, data, 33 * sizeof(vector128) + sizeof(u32)))
+ 		return -EFAULT;
  
- 	case PTRACE_GETFPREGS:
- 	case PTRACE_SETFPREGS:
+-	return 0;
++	return vr_set(task, NULL, 0, 33 * sizeof(vector128) + sizeof(u32),
++		      NULL, data);
+ }
+ #endif /* CONFIG_ALTIVEC */
+ 
 -- 
 1.5.3.6
 
