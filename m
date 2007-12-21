@@ -1,46 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from there.is.no.cabal.ca ([134.117.69.58]:55906 "EHLO
-	fattire.cabal.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752352AbXLURvI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Dec 2007 12:51:08 -0500
-Date: Fri, 21 Dec 2007 12:51:06 -0500
-From: Kyle McMartin <kyle@mcmartin.ca>
+Received: from moutng.kundenserver.de ([212.227.126.188]:63523 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752627AbXLUTgk convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Dec 2007 14:36:40 -0500
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH -mm 18/43] powerpc compat_binfmt_elf
-Message-ID: <20071221175106.GB17656@fattire.cabal.ca>
-References: <20071220115200.C767E26F98A@magilla.localdomain> <20071220115816.504CC26F98E@magilla.localdomain> <20071221071229.GC4345@infradead.org> <20071221085609.4D53B26F98A@magilla.localdomain>
+Date: Fri, 21 Dec 2007 20:36:27 +0100
+References: <20071220115200.C767E26F98A@magilla.localdomain> <20071221085609.4D53B26F98A@magilla.localdomain> <20071221175106.GB17656@fattire.cabal.ca>
+In-Reply-To: <20071221175106.GB17656@fattire.cabal.ca>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
 Content-Disposition: inline
-In-Reply-To: <20071221085609.4D53B26F98A@magilla.localdomain>
+Message-Id: <200712212036.29098.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>
+To: linuxppc-dev@ozlabs.org
+Cc: Kyle McMartin <kyle@mcmartin.ca>, Roland McGrath <roland@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Paul Mackerras <paulus@samba.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Fri, Dec 21, 2007 at 12:56:09AM -0800, Roland McGrath wrote:
-> > On Thu, Dec 20, 2007 at 03:58:16AM -0800, Roland McGrath wrote:
-> > > +obj-$(CONFIG_PPC64)		+= ../../../fs/compat_binfmt_elf.o
-> > 
-> > Building files from another directory is nasty.  Please add a
-> > CONFIG_BINFMT_COMPAT_ELF so we can simply build it in fs/
+On Friday 21 December 2007, Kyle McMartin wrote:
+> Just taking a stab that hch means,
 > 
-> If that's better, please post the precise Kconfig magic you have in mind to
-> have it set when it should be.
+> config BINFMT_COMPAT_ELF
+>         def_bool n
+>         depends on 64BIT
 > 
 
-Just taking a stab that hch means,
+I'd call it COMPAT_BINFMT_ELF, for consistency with the file name.
+Also, the definition and the depends are redundant if you expect the
+option to be autoselected. You can do either of
 
-config BINFMT_COMPAT_ELF
-	def_bool n
-	depends on 64BIT
-
-and then in arch/powerpc/Kconfig
-
-config COMPAT
+config COMPAT_BINFMT_ELF
 	bool
-	default y if PPC64
-	select BINFMT_COMPAT_ELF
 
-or somesuch.
+or 
 
-Regards, Kyle
+config COMPAT_BINFMT_ELF
+	def_bool y
+	depends on COMPAT
+
+The second option makes sense at the point where all architectures with
+compat code are using the same compat_binfmt_elf code.
+
+	Arnd <><
