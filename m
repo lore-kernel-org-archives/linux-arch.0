@@ -1,139 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:45838 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751245AbXLWGys (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 23 Dec 2007 01:54:48 -0500
-Date: Sun, 23 Dec 2007 07:54:46 +0100
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch] mm: fix PageUptodate memory ordering bug
-Message-ID: <20071223065446.GB29288@wotan.suse.de>
-References: <20071218012632.GA23110@wotan.suse.de> <20071222005737.2675c33b.akpm@linux-foundation.org> <Pine.LNX.4.64.0712221152370.7460@blonde.wat.veritas.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0712221152370.7460@blonde.wat.veritas.com>
+Received: from yergi.telenet-ops.be ([195.130.132.36]:46479 "EHLO
+	yergi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752156AbXLWKoU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Dec 2007 05:44:20 -0500
+Date: Sun, 23 Dec 2007 11:43:35 +0100 (CET)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] initrd: Fix virtual/physical mix-up in overwrite test
+In-Reply-To: <20071218123119.54262974.akpm@linux-foundation.org>
+Message-ID: <Pine.LNX.4.64.0712231142190.24252@anakin>
+References: <Pine.LNX.4.64.0712161148340.5869@anakin>
+ <20071218030131.8b272833.akpm@linux-foundation.org> <Pine.LNX.4.64.0712182051050.24841@anakin>
+ <20071218123119.54262974.akpm@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hugh@veritas.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org, rmk@arm.linux.org.uk, James.Bottomley@HansenPartnership.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
 
-On Sat, Dec 22, 2007 at 12:14:42PM +0000, Hugh Dickins wrote:
-> On Sat, 22 Dec 2007, Andrew Morton wrote:
-> > On Tue, 18 Dec 2007 02:26:32 +0100 Nick Piggin <npiggin@suse.de> wrote:
+On Tue, 18 Dec 2007, Andrew Morton wrote:
+> On Tue, 18 Dec 2007 20:52:07 +0100 (CET) Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> > On Tue, 18 Dec 2007, Andrew Morton wrote:
+> > > On Sun, 16 Dec 2007 11:51:00 +0100 (CET) Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> > > > On recent kernels, I get the following error when using an initrd:
+> > > > 
+> > > > | initrd overwritten (0x00b78000 < 0x07668000) - disabling it.
+> > > > 
+> > > > My Amiga 4000 has 12 MiB of RAM at physical address 0x07400000 (virtual
+> > > > 0x00000000).
+> > > > The initrd is located at the end of RAM: 0x00b78000 - 0x00c00000 (virtual).
+> > > > The overwrite test compares the (virtual) initrd location to the (physical)
+> > > > first available memory location, which fails.
+> > > > 
+> > > > This patch converts initrd_start to a page frame number, so it can be safely
+> > > > compared with min_low_pfn.
+> > > > 
+> > > > Before the introduction of discontiguous memory support on m68k
+> > > > (12d810c1b8c2b913d48e629e2b5c01d105029839), min_low_pfn was just left
+> > > > untouched by the m68k-specific code (zero, I guess), and everything worked
+> > > > fine.
+> > > 
+> > > breaks x86.
+> > > 
+> > > init/main.c: In function 'start_kernel':
+> > > init/main.c:601: error: implicit declaration of function 'virt_to_pfn'
+> > > init/main.c:603: warning: format '%08lx' expects type 'long unsigned int', but argument 2 has type 'int'
 > > 
-> > > After running SetPageUptodate, preceeding stores to the page contents to
-> > > actually bring it uptodate may not be ordered with the store to set the page
-> > > uptodate.
-> > > 
-> > > Therefore, another CPU which checks PageUptodate is true, then reads the
-> > > page contents can get stale data.
-> > > 
-> > > Fix this by having an smp_wmb before SetPageUptodate, and smp_rmb after
-> > > PageUptodate.
-> > > 
-> > > Many places that test PageUptodate, do so with the page locked, and this
-> > > would be enough to ensure memory ordering in those places if SetPageUptodate
-> > > were only called while the page is locked. Unfortunately that is not always
-> > > the case for some filesystems, but it could be an idea for the future.
-> > > 
-> > > One thing I like about it is that it brings the handling of anonymous page
-> > > uptodateness in line with that of file backed page management, by marking anon
-> > > pages as uptodate when they _are_ uptodate, rather than when our implementation
-> > > requires that they be marked as such.
+> > Interestingly, virt_to_pfn() exists on a few architectures only :-(
+> > 
+> > So what's the correct portable construct to use instead?
+> > 
 > 
-> Nick, you're welcome to make that a separate, less controversial patch,
-> to send in ahead.  Though I think the last time this came around, I hit
-> one of your BUGs in testing shmem.c swapout or swapin or swapoff:
-> something missing there that I've lost the record of - please do
-> try testing that, maybe it's already fixed this time around.
+> I guess page_to_pfn(virt_to_page(addr))?
 
-I've given it some hours in your patented swapping kbuild-on-ext2-on-loop-on-tmpfs
-stress testing (including swapoff). Haven't seen a problem as yet (except the tmpfs
-swapin deadlock, which I've been patching out).
+New version below. Tested on Amiga. Compile-tested on ia32 (i386_defconfig) and
+pp64 (ps3_defconfig).
 
-But if you see anything, please let me know...
+Subject: initrd: Fix virtual/physical mix-up in overwrite test
 
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 
-> > >  #ifdef CONFIG_S390
-> > > +	page_clear_dirty(page);
-> > > +#endif
-> > > +}
-> 
-> That's an odd little extract, since page_clear_dirty only does anything
-> on s390.
+On recent kernels, I get the following error when using an initrd:
 
-Ah yeah, we could just get rid of the ifdef. Although I don't mind it too much,
-as it kind of helps the reader match the other ifdef there...
+| initrd overwritten (0x00b78000 < 0x07668000) - disabling it.
 
+My Amiga 4000 has 12 MiB of RAM at physical address 0x07400000 (virtual
+0x00000000).
+The initrd is located at the end of RAM: 0x00b78000 - 0x00c00000 (virtual).
+The overwrite test compares the (virtual) initrd location to the (physical)
+first available memory location, which fails.
+
+This patch converts initrd_start to a page frame number, so it can be safely
+compared with min_low_pfn.
+
+Before the introduction of discontiguous memory support on m68k
+(12d810c1b8c2b913d48e629e2b5c01d105029839), min_low_pfn was just left
+untouched by the m68k-specific code (zero, I guess), and everything worked
+fine.
+
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+---
+On several platforms, initrd_below_start_ok is set to 1:
+
+| arch/mips/kernel/setup.c:       initrd_below_start_ok = 1;
+| arch/parisc/mm/init.c:                  initrd_below_start_ok = 1;
+| arch/powerpc/kernel/prom.c:                     initrd_below_start_ok = 1;
+| arch/ppc/platforms/hdpu.c:                      initrd_below_start_ok = 1;
+| arch/xtensa/kernel/setup.c:             initrd_below_start_ok = 1;
+
+Some of these may be workarounds for this bug. Please check.
+
+ init/main.c |    5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+--- a/init/main.c
++++ b/init/main.c
+@@ -598,9 +598,10 @@ asmlinkage void __init start_kernel(void
  
-> > For an overall 0.5% increase in the i386 size of several core mm files.  If
-> > you don't blow us up on the spot, you'll slowly bleed us to death.
-> > 
-> > Can it be improved?
-> 
-> I do wish it could be.
-> 
-> I never find the time to give it the thought it needs; and any criticism
-> I make is probably unjust, probably patiently answered by Nick on a
-> previous round.
-> 
-> I'm never convinced that SetPageUptodate is the right place for
-> this: what's wrong with doing it in those page copying functions?
-> Or flush_dcache_page?
+ #ifdef CONFIG_BLK_DEV_INITRD
+ 	if (initrd_start && !initrd_below_start_ok &&
+-			initrd_start < min_low_pfn << PAGE_SHIFT) {
++	    page_to_pfn(virt_to_page(initrd_start)) < min_low_pfn) {
+ 		printk(KERN_CRIT "initrd overwritten (0x%08lx < 0x%08lx) - "
+-		    "disabling it.\n",initrd_start,min_low_pfn << PAGE_SHIFT);
++		    "disabling it.\n",
++		    page_to_pfn(virt_to_page(initrd_start)), min_low_pfn);
+ 		initrd_start = 0;
+ 	}
+ #endif
 
-There are various places we _could_ do it, but I think PG_uptodate macros
-are logically the best, without being too intrusive.
+Gr{oetje,eeting}s,
 
-Let me explain. Normally I think the convention would be to open-code the
-barriers in the callees (ie. between memset(); SetPageUptodate();, and
-if (PageUptodate()) { read from page }).
+						Geert
 
-However I think that would require going through quite a bit of code (including
-filesystems) to audit. So I think having them in these macros is pretty
-reasonable, and amounts to less thinking required by others.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-Why don't I like doing it in page copying functions? Just because there are more
-and more varied uses. I can't think of any reasons to rather do it in the page
-copying functions, and some reasons against.
-
-flush_dcache_page? Well this bug really is a problem ordering stores to the
-page with store to page flags against loads from the same; nothing to do with
-cache aliasing. So putting the smp_wmb in flush_dcache_page leaves you without
-a natural complement to put the smp_rmb. Although it could be done, I think it
-makes it more tangled than having the ordering done in the macros.  We also
-only need to order the *initial* stores which bring the page uptodate, rather
-than for each store, in the case of flush_dcache_page.
-
-
->  Don't we need different kinds of barrier
-> according to how the data got into the page (by DMA or not)?
-
-I had thought of that (my previous patch had an XXX: help...) for this
-very issue. Without actually knowing what the underlying architecture does,
-I "concluded" that it should be done somewhere down at the block layer. I
-think it would be silly for the block layer to signal completion if the
-results are still incoherent with the CPU cache... but if the experts have
-a different opinion, then this needs to be solved with another call anyway
-(not in the page uptodate macros and it's not exactly a memory ordering issue).
-eg. direct IO reads would have the same DMA cache synchronisation before it
-completes to userspace, and this is completely independent of PG_uptodate...
-
-> Doesn't that enter territory discussed down the years between
-> James Bottomley and Russell King?  Worth CC'ing them the original?
-
-... but since you bring this up again, I think that would be worthwhile. In
-the interest of maintaining this thread I'll just link the original:
-
-http://marc.info/?l=linux-mm&m=119794127303483&w=2
-
-The question is this:
-
-Must read from net/disk/etc into page P.
-Device DMAs into P, signals completion
-
-CPU0: handles completion, store to ram to mark P uptodate
-
-CPU0/1: load from ram sees P uptodate, load from P must only see uptodate data
-
-Are we guaranteed to get uptodate data from above the block layer, or do we
-need to do anything special?
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
