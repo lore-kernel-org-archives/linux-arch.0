@@ -1,39 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from scrub.xs4all.nl ([194.109.195.176]:2418 "EHLO scrub.xs4all.nl"
+Received: from smtp4.pp.htv.fi ([213.243.153.38]:37098 "EHLO smtp4.pp.htv.fi"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753684AbXLXCvF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 23 Dec 2007 21:51:05 -0500
-From: Roman Zippel <zippel@linux-m68k.org>
-Subject: Re: [PATCH] Avoid overflows in kernel/time.c (version 5)
-Date: Mon, 24 Dec 2007 01:14:12 +0100
-References: <200712180541.lBI5fnqB028037@tazenda.hos.anvin.org>
-In-Reply-To: <200712180541.lBI5fnqB028037@tazenda.hos.anvin.org>
+	id S1754855AbYAANsp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 Jan 2008 08:48:45 -0500
+Date: Tue, 1 Jan 2008 15:48:31 +0200
+From: Adrian Bunk <bunk@kernel.org>
+Subject: [RFC: 2.6 patch] make BINFMT_FLAT a bool
+Message-ID: <20080101134831.GM2360@does.not.exist>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-Message-Id: <200712240114.13431.zippel@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Sam Ravnborg <sam@ravnborg.org>, Paul Mundt <lethal@linux-sh.org>, Richard Henderson <rth@twiddle.net>, Michael Starvik <starvik@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "William L. Irwin" <sparclinux@vger.kernel.org>, Chris Zankel <chris@zankel.net>, Jan Engelhardt <jengelh@computergmbh.de>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
 
-Hi,
+I have not yet seen anyone saying he has a reasonable use case for using 
+BINFMT_FLAT modular on his embedded device.
 
-On Monday 17 December 2007, H. Peter Anvin wrote:
+Considering that fs/binfmt_flat.c even lacks a MODULE_LICENSE() I really 
+doubt there is any, and this patch therefore makes BINFMT_FLAT a bool.
 
->  kernel/timeconst.pl           |  340
+Signed-off-by: Adrian Bunk <bunk@kernel.org>
 
-I agree with Jan that it would be better to put this into scripts.
-In the long term we could also detect some of the simple special cases, so we 
-can finally inline some of these functions again, this would mean the 
-generated file would go into include/linux/ and the script should be in 
-scripts/.
+---
 
-> +	my ($b,$n,$d) = @_;
+ fs/Kconfig.binfmt |    2 +-
+ fs/binfmt_flat.c  |    6 ------
+ 2 files changed, 1 insertion(+), 7 deletions(-)
 
-I noticed this already in the old script, using something else than single 
-letter variables would increase readability considerably.
+5437fb7517380d1b93dde3c09dbd3a2efaf276c3 
+diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
+index d4fc609..c16a16c 100644
+--- a/fs/Kconfig.binfmt
++++ b/fs/Kconfig.binfmt
+@@ -37,7 +37,7 @@ config BINFMT_ELF_FDPIC
+ 	  It is also possible to run FDPIC ELF binaries on MMU linux also.
+ 
+ config BINFMT_FLAT
+-	tristate "Kernel support for flat binaries"
++	bool "Kernel support for flat binaries"
+ 	depends on !MMU
+ 	help
+ 	  Support uClinux FLAT format binaries.
+diff --git a/fs/binfmt_flat.c b/fs/binfmt_flat.c
+index 33764fd..274d723 100644
+--- a/fs/binfmt_flat.c
++++ b/fs/binfmt_flat.c
+@@ -933,14 +933,8 @@ static int __init init_flat_binfmt(void)
+ 	return register_binfmt(&flat_format);
+ }
+ 
+-static void __exit exit_flat_binfmt(void)
+-{
+-	unregister_binfmt(&flat_format);
+-}
+-
+ /****************************************************************************/
+ 
+ core_initcall(init_flat_binfmt);
+-module_exit(exit_flat_binfmt);
+ 
+ /****************************************************************************/
 
-bye, Roman
