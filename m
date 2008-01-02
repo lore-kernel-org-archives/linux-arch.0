@@ -1,38 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:34166 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751572AbYABUoj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2008 15:44:39 -0500
-Date: Wed, 2 Jan 2008 20:44:35 +0000
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [patch 2/3] CONFIG_HIGHPTE vs. sub-page page tables.
-Message-ID: <20080102204435.GB15460@infradead.org>
-References: <20071112143009.425807965@de.ibm.com> <20071112144009.831296895@de.ibm.com>
+Received: from mx1.redhat.com ([66.187.233.31]:53179 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752875AbYABVJF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 2 Jan 2008 16:09:05 -0500
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20071112144009.831296895@de.ibm.com>
+Content-Transfer-Encoding: 7bit
+From: Roland McGrath <roland@redhat.com>
+Subject: [PATCH -mm] compat_binfmt_elf Kconfig
+In-Reply-To: Sam Ravnborg's message of  Wednesday, 2 January 2008 20:10:30 +0100 <20080102191030.GA11217@uranus.ravnborg.org>
+References: <20071223183920.GA13976@elte.hu>
+	<20071223211603.3FFB126F8E7@magilla.localdomain>
+	<20071230163614.GB1384@elte.hu>
+	<20080102044157.A5CC526F99F@magilla.localdomain>
+	<20080102111431.GD14731@elte.hu>
+	<20080102191030.GA11217@uranus.ravnborg.org>
+Message-Id: <20080102210831.9F80426F9A0@magilla.localdomain>
+Date: Wed,  2 Jan 2008 13:08:31 -0800 (PST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: schwidefsky@de.ibm.com
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org
 
-On Mon, Nov 12, 2007 at 03:30:11PM +0100, schwidefsky@de.ibm.com wrote:
-> From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> Solution: The only solution I found to this dilemma is a new typedef:
-> a pgtable_t. For s390 pgtable_t will be a (pte *) - to be introduced
-> with a later patch. For everybody else it will be a (struct page *).
-> The additional problem with the initialization of the ptl lock and the
-> NR_PAGETABLE accounting is solved with a constructor pgtable_page_ctor
-> and a destructor pgtable_page_dtor. The page table allocation and free
-> functions need to call these two whenever a page table page is allocated
-> or freed. pmd_populate will get a pgtable_t instead of a struct page
-> pointer. To get the pgtable_t back from a pmd entry that has been
-> installed with pmd_populate a new function pmd_pgtable is added. It
-> replaces the pmd_page call in free_pte_range and apply_to_pte_range.
+This patch should go in immediately after:
 
-Can we please just nuke CONFIG_HIGHPTE?  There's only been a small
-amount of 32bit machines with so much memory that they'd need it
-and they can happily stay on the currently supported enterprise
-distro releases instead of dragging this cruft around forever.
+	commit 5e45efc63e33ee2bae9ff4d500b53d3bf86d2b48
+	Author: Roland McGrath <roland@redhat.com>
 
+	    compat_binfmt_elf
+
+Thanks,
+Roland
+
+---
+[PATCH] compat_binfmt_elf Kconfig
+
+This adds Kconfig and Makefile bits to build fs/compat_binfmt_elf.c,
+just added.  Each arch that wants to use this file needs to add a
+"select COMPAT_BINFMT_ELF" line in its Kconfig bits that enable COMPAT.
+
+Signed-off-by: Roland McGrath <roland@redhat.com>
+---
+ fs/Kconfig.binfmt |    4 ++++
+ fs/Makefile       |    1 +
+ 2 files changed, 5 insertions(+), 0 deletions(-)
+
+diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
+index d4fc609..0000000 100644  
+--- a/fs/Kconfig.binfmt
++++ b/fs/Kconfig.binfmt
+@@ -23,6 +23,10 @@ config BINFMT_ELF
+ 	  ld.so (check the file <file:Documentation/Changes> for location and
+ 	  latest version).
+ 
++config COMPAT_BINFMT_ELF
++	bool
++	depends on COMPAT && MMU
++
+ config BINFMT_ELF_FDPIC
+ 	bool "Kernel support for FDPIC ELF binaries"
+ 	default y
+diff --git a/fs/Makefile b/fs/Makefile
+index 500cf15..0000000 100644  
+--- a/fs/Makefile
++++ b/fs/Makefile
+@@ -39,6 +39,7 @@ obj-$(CONFIG_BINFMT_MISC)	+= binfmt_misc
+ obj-y				+= binfmt_script.o
+ 
+ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
++obj-$(CONFIG_COMPAT_BINFMT_ELF)	+= compat_binfmt_elf.o
+ obj-$(CONFIG_BINFMT_ELF_FDPIC)	+= binfmt_elf_fdpic.o
+ obj-$(CONFIG_BINFMT_SOM)	+= binfmt_som.o
+ obj-$(CONFIG_BINFMT_FLAT)	+= binfmt_flat.o
