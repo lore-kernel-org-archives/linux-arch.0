@@ -1,32 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:56593 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751331AbYACNMc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 3 Jan 2008 08:12:32 -0500
-From: Andi Kleen <ak@suse.de>
-Subject: Re: [patch 2/3] CONFIG_HIGHPTE vs. sub-page page tables.
-Date: Thu, 3 Jan 2008 14:12:26 +0100
-References: <20071112143009.425807965@de.ibm.com> <20071112144009.831296895@de.ibm.com> <20080102204435.GB15460@infradead.org>
-In-Reply-To: <20080102204435.GB15460@infradead.org>
+Received: from gw-colo-pa.panasas.com ([66.238.117.130]:15434 "EHLO
+	cassoulet.panasas.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751006AbYACOCF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2008 09:02:05 -0500
+Message-ID: <477CEAAB.4030200@panasas.com>
+Date: Thu, 03 Jan 2008 16:01:15 +0200
+From: Boaz Harrosh <bharrosh@panasas.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Subject: Re: [patch 2/3] CONFIG_HIGHPTE vs. sub-page page tables.
+References: <20071112143009.425807965@de.ibm.com> <20071112144009.831296895@de.ibm.com> <20080102204435.GB15460@infradead.org> <200801031412.26806.ak@suse.de>
+In-Reply-To: <200801031412.26806.ak@suse.de>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-Id: <200801031412.26806.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: schwidefsky@de.ibm.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Andi Kleen <ak@suse.de>
+Cc: Christoph Hellwig <hch@infradead.org>, schwidefsky@de.ibm.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
+On Thu, Jan 03 2008 at 15:12 +0200, Andi Kleen <ak@suse.de> wrote:
+>> Can we please just nuke CONFIG_HIGHPTE?  There's only been a small
+>> amount of 32bit machines 
+> 
+> It's unfortunately a larger amount :/ And for unknown reasons a lot of
+> people still install 32bit kernels on new perfectly capable 64bit systems
+> even if they have a lot of memory.
+> 
+Yes I've seen that too many times. When I comment about it, people say:
+"What this 'core 2' supports AMD64 ??!!"
 
-> Can we please just nuke CONFIG_HIGHPTE?  There's only been a small
-> amount of 32bit machines 
+I think this is the distros fault.
+1. Most call it AMD64 and not, i don't know what it should be called.
 
-It's unfortunately a larger amount :/ And for unknown reasons a lot of
-people still install 32bit kernels on new perfectly capable 64bit systems
-even if they have a lot of memory.
+2. They put the first and default installation as i386 and not the x64,
+   the later is only farther down or on a different link.
 
-I don't think removing CONFIG_HIGHPTE will be an option any time soon.
+3. My Fedora x86_64 installation has a full blown 32bit installation inside.
+   In fact, every time I yum install this or that, I get installed by default
+   both the 64bit and 32bit libraries. I don't even know how to turn the 32bit
+   off. This means that Distros can supply one x86 installation for both
+   flavors and decide at setup time what to install. By this, follow the Kernel
+   in observing that it is the same-ARCH same-INSTALL.
 
--Andi
+4. Some binary modules like Flash, media-codecs acrobat-reader etc... think
+   (That snow ball effect here) that 32bit is much more common and only provide
+   that. So people think that for best compatibility they should stick with 
+   32bit. But this is not true. They all work perfectly here in 64bit land.
+   Distros should both confirm on that publicly. And also make extensive tests 
+   for 32bit compatibility on 64bit machines, even for these binary only bad
+   guys.
+
+5. Distros should jump on the 64bit bang-wagon, to stand it-self apart from
+   Window 32bit-ness. It has bin proven more than once that a Huge Linux 64bit 
+   machine, with lots of CPUs and memory, can be the best Windows 32bit performer 
+   in existence. Both under KVM/VMWARE or Wine. 64bit Vista can never get close,
+   not to speak of the "none-existent" 64bit XP.
+
+Just my $0.02
+Boaz
+
+> I don't think removing CONFIG_HIGHPTE will be an option any time soon.
+> 
+> -Andi
+> --
+
