@@ -1,33 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:33822 "EHLO pasmtpB.tele.dk"
+Received: from cantor2.suse.de ([195.135.220.15]:56593 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751586AbYACHXd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 3 Jan 2008 02:23:33 -0500
-Date: Thu, 3 Jan 2008 08:23:34 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH -mm] compat_binfmt_elf Kconfig
-Message-ID: <20080103072334.GA16176@uranus.ravnborg.org>
-References: <20071223183920.GA13976@elte.hu> <20071223211603.3FFB126F8E7@magilla.localdomain> <20071230163614.GB1384@elte.hu> <20080102044157.A5CC526F99F@magilla.localdomain> <20080102111431.GD14731@elte.hu> <20080102191030.GA11217@uranus.ravnborg.org> <20080102210831.9F80426F9A0@magilla.localdomain> <20080102215311.GA12558@uranus.ravnborg.org> <20080102221228.C9D8D26F9A0@magilla.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+	id S1751331AbYACNMc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 3 Jan 2008 08:12:32 -0500
+From: Andi Kleen <ak@suse.de>
+Subject: Re: [patch 2/3] CONFIG_HIGHPTE vs. sub-page page tables.
+Date: Thu, 3 Jan 2008 14:12:26 +0100
+References: <20071112143009.425807965@de.ibm.com> <20071112144009.831296895@de.ibm.com> <20080102204435.GB15460@infradead.org>
+In-Reply-To: <20080102204435.GB15460@infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20080102221228.C9D8D26F9A0@magilla.localdomain>
+Message-Id: <200801031412.26806.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
-Cc: Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: schwidefsky@de.ibm.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On Wed, Jan 02, 2008 at 02:12:28PM -0800, Roland McGrath wrote:
-> I have no opinions about the config symbol names.  Among the existing
-> precedents for internal/descriptionless symbols I find more not using the
-> HAVE_ prefix than those using it.
-The convention is newly established - so no suprise.
 
-> The patch versions I've sent now work
-> fine, fix the parallel build problem people were seeing, and AFAICT follow
-> the style of what's already in common use.  At this point, I think it would
-> be easiest just to keep them and have you send symbol-renaming patches
-> for any and all symbols of this sort that concern you as separate cleanups.
-Would love to - but the pile of other kbuild stuff only gets bigger..
+> Can we please just nuke CONFIG_HIGHPTE?  There's only been a small
+> amount of 32bit machines 
 
-	Sam
+It's unfortunately a larger amount :/ And for unknown reasons a lot of
+people still install 32bit kernels on new perfectly capable 64bit systems
+even if they have a lot of memory.
+
+I don't think removing CONFIG_HIGHPTE will be an option any time soon.
+
+-Andi
