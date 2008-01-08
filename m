@@ -1,52 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:54178 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753301AbYAHDw0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 7 Jan 2008 22:52:26 -0500
-Date: Tue, 8 Jan 2008 04:52:20 +0100
-From: Nick Piggin <npiggin@suse.de>
+Received: from cam-admin0.cambridge.arm.com ([193.131.176.58]:43794 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751006AbYAHK2n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2008 05:28:43 -0500
 Subject: Re: [rfc][patch] mm: use a pte bit to flag normal pages
-Message-ID: <20080108035220.GC5264@wotan.suse.de>
-References: <20071221104701.GE28484@wotan.suse.de> <OFEC52C590.33A28896-ONC12573B8.0069F07E-C12573B8.006B1A41@de.ibm.com> <20080107044355.GA11222@wotan.suse.de> <20080107103028.GA9325@flint.arm.linux.org.uk> <6934efce0801071049u546005e7t7da4311cc0611ccd@mail.gmail.com> <20080107194543.GA2788@flint.arm.linux.org.uk> <20080108023746.GC21068@bingen.suse.de> <20080108024907.GB5264@wotan.suse.de> <20080108033103.GH2998@bingen.suse.de>
+From: Catalin Marinas <catalin.marinas@arm.com>
+In-Reply-To: <20080107194543.GA2788@flint.arm.linux.org.uk>
+References: <20071221104701.GE28484@wotan.suse.de>
+	 <OFEC52C590.33A28896-ONC12573B8.0069F07E-C12573B8.006B1A41@de.ibm.com>
+	 <20080107044355.GA11222@wotan.suse.de>
+	 <20080107103028.GA9325@flint.arm.linux.org.uk>
+	 <6934efce0801071049u546005e7t7da4311cc0611ccd@mail.gmail.com>
+	 <20080107194543.GA2788@flint.arm.linux.org.uk>
+Content-Type: text/plain
+Date: Tue, 08 Jan 2008 10:11:15 +0000
+Message-Id: <1199787075.17809.10.camel@pc1117.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080108033103.GH2998@bingen.suse.de>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <ak@suse.de>
-Cc: Jared Hulbert <jaredeh@gmail.com>, Martin Schwidefsky <martin.schwidefsky@de.ibm.com>, carsteno@linux.vnet.ibm.com, Heiko Carstens <h.carstens@de.ibm.com>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: Jared Hulbert <jaredeh@gmail.com>, Nick Piggin <npiggin@suse.de>, Martin Schwidefsky <martin.schwidefsky@de.ibm.com>, carsteno@linux.vnet.ibm.com, Heiko Carstens <h.carstens@de.ibm.com>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org
 
-On Tue, Jan 08, 2008 at 04:31:03AM +0100, Andi Kleen wrote:
-> On Tue, Jan 08, 2008 at 03:49:07AM +0100, Nick Piggin wrote:
-> > On Tue, Jan 08, 2008 at 03:37:46AM +0100, Andi Kleen wrote:
-> > > > - strongly ordered
-> > > > - bufferable only *
-> > > > - device, sharable *
-> > > > - device, unsharable
-> > > > - memory, bufferable and cacheable, write through, no write allocate
-> > > > - memory, bufferable and cacheable, write back, no write allocate
-> > > > - memory, bufferable and cacheable, write back, write allocate
-> > > > - implementation defined combinations (eg, selecting "minicache")
-> > > > - and a set of 16 states to allow the policy of inner and outer levels
-> > > >   of cache to be defined (two bits per level).
-> > > 
-> > > Do you need all of those in user space? Perhaps you could give
-> > > the bits different meanings depending on user or kernel space.
-> > > I think Nick et.al. just need the bits for user space; they won't
-> > > care about kernel mappings.
-> > 
-> > Yes correct -- they are only for userspace mappings. Though that includes mmaps
-> > of /dev/mem and device drivers etc. 
+On Mon, 2008-01-07 at 19:45 +0000, Russell King wrote:
+> In old ARM CPUs, there were two bits that defined the characteristics of
+> the mapping - the C and B bits (C = cacheable, B = bufferable)
 > 
-> /dev/mem can be always special cased by checking the VMA flags, can't it?
+> Some ARMv5 (particularly Xscale-based) and all ARMv6 CPUs extend this to
+> five bits and introduce "memory types" - 3 bits of TEX, and C and B.
+> 
+> Between these bits, it defines:
+> 
+> - strongly ordered
+> - bufferable only *
+> - device, sharable *
+> - device, unsharable
+> - memory, bufferable and cacheable, write through, no write allocate
+> - memory, bufferable and cacheable, write back, no write allocate
+> - memory, bufferable and cacheable, write back, write allocate
+> - implementation defined combinations (eg, selecting "minicache")
+> - and a set of 16 states to allow the policy of inner and outer levels
+>   of cache to be defined (two bits per level).
 
-That's basically what we do today with COW support for VM_PFNMAP. Once you have
-that, I don't think there is a huge reason to _also_ use the pte bit for other
-mappings (because you need to have the VM_PFNMAP support there anyway).
+Can we not restrict these to a maximum of 8 base types at run-time? If
+yes, we can only use 3 bits for encoding and also benefit from the
+automatic remapping in later ARM CPUs. For those not familiar with ARM,
+8 combinations of the TEX, C, B and S (shared) bits can be specified in
+separate registers and the pte would only use 3 bits to refer to those.
+Even older cores would benefit from this as I think it is faster to read
+the encoding from an array in set_pte than doing all the bit comparisons
+to calculate the hardware pte in the current implementation.
 
-For lockless get_user_pages, I don't take mmap_sem, look up any vmas, or even
-take any page table locks, so it doesn't help there either. (though in the case
-of lockless gup, architectues that cannot support it can simply revert to the
-regular gup).
+-- 
+Catalin
 
