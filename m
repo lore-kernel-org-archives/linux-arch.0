@@ -1,66 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:44001 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752855AbYAMDlc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 12 Jan 2008 22:41:32 -0500
-Date: Sat, 12 Jan 2008 19:41:16 -0800 (PST)
-From: Linus Torvalds <torvalds@linux-foundation.org>
+Received: from ns2.suse.de ([195.135.220.15]:42743 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752042AbYAMEjZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 12 Jan 2008 23:39:25 -0500
+Date: Sun, 13 Jan 2008 05:39:22 +0100
+From: Nick Piggin <npiggin@suse.de>
 Subject: Re: [rfc][patch 2/2] mm: introduce optional pte_special pte bit
-In-Reply-To: <20080113031013.GD22285@wotan.suse.de>
-Message-ID: <alpine.LFD.1.00.0801121925330.2806@woody.linux-foundation.org>
-References: <20080113030810.GB22285@wotan.suse.de> <20080113031013.GD22285@wotan.suse.de>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Message-ID: <20080113043922.GA22345@wotan.suse.de>
+References: <20080113030810.GB22285@wotan.suse.de> <20080113031013.GD22285@wotan.suse.de> <alpine.LFD.1.00.0801121925330.2806@woody.linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.1.00.0801121925330.2806@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Hugh Dickins <hugh@veritas.com>, Jared Hulbert <jaredeh@gmail.com>, Carsten Otte <cotte@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org
 
-
-
-On Sun, 13 Jan 2008, Nick Piggin wrote:
+On Sat, Jan 12, 2008 at 07:41:16PM -0800, Linus Torvalds wrote:
 > 
-> mm: introduce pte_special pte bit
+> 
+> On Sun, 13 Jan 2008, Nick Piggin wrote:
+> > 
+> > mm: introduce pte_special pte bit
+> 
+> What's the point of this?
 
-What's the point of this?
+Well, it's written in the changelog. I'm not asking for it to be merged
+or anything just now because obviously it isn't in a patchset with anything
+that needs it, just want some comments on the idea.
 
->  23 files changed, 147 insertions(+), 37 deletions(-)
+Myself, I would like such a bit to implement lockless get_user_pages on
+x86. The x390 guys want to implement pfn mapped xip with the same bit in
+their pagetables.
 
-That's lots of new (ugly) code, and two totally different paths, that 
-aren't even cleanly abstracted, so now there's two separate things that 
-are just arbitrarily selected by an #ifdef.
 
-You seem to claim that this is a performance issue, with vm_normal_page() 
-eating up to 5% of time on some loads, but it would appear that the main 
-thing you did that will speed up vm_normal_page() is the fact that you 
-replaced the current
+> >  23 files changed, 147 insertions(+), 37 deletions(-)
+> 
+> That's lots of new (ugly) code, and two totally different paths, that 
+> aren't even cleanly abstracted, so now there's two separate things that 
+> are just arbitrarily selected by an #ifdef.
 
-        if (unlikely(!pfn_valid(pfn))) {
-                print_bad_pte(vma, pte, addr);
-                return NULL;
-        }
+How should it be cleanly abstracted?
 
-with a
+ 
+> You seem to claim that this is a performance issue, with vm_normal_page() 
 
-	VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
+Hmm, the performance observation was an aside. I'd love to be able to
+fix up the existing vm_normal_page as well. Sorry if that wasn't clear.
 
-which is basically compiled away in the normal case.
 
-From what I can tell, your vm_normal_page() is no less expensive than the 
-current one is: the cost is always going to be that multiply by the size 
-of the "struct page" implicit in
+> eating up to 5% of time on some loads, but it would appear that the main 
+> thing you did that will speed up vm_normal_page() is the fact that you 
+> replaced the current
+> 
+>         if (unlikely(!pfn_valid(pfn))) {
+>                 print_bad_pte(vma, pte, addr);
+>                 return NULL;
+>         }
 
-	pte_page(pte)
+FWIW I have wanted to put this under DEBUG_VM too, but there were
+objections.
 
-(which in the current one is just written out as
+> Does the code generation really change that radically that this makes any 
+> real difference?
 
-	pfn = pte_pfn(pte)
-	pfn_page(pfn)
-
-rather than hidden in a macro).
-
-Does the code generation really change that radically that this makes any 
-real difference?
-
-		Linus
+It's mainly for semantics. Basically: if we have architectures with such
+a bit in their ptes anyway for other reasons, I'm hoping we can use it in
+vm_normal_page too, because it's just a nicer. (and it is fundamentally
+faster for MIXEDMAP mappings, but that's probably not a big issue at this
+point)
