@@ -1,99 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate3.de.ibm.com ([195.212.29.152]:56453 "EHLO
-	mtagate3.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751542AbYAPJwe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jan 2008 04:52:34 -0500
-Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate3.de.ibm.com (8.13.8/8.13.8) with ESMTP id m0G9qXJr174650
-	for <linux-arch@vger.kernel.org>; Wed, 16 Jan 2008 09:52:33 GMT
-Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
-	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v8.7) with ESMTP id m0G9qWiv2838544
-	for <linux-arch@vger.kernel.org>; Wed, 16 Jan 2008 10:52:32 +0100
-Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
-	by d12av02.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id m0G9qVtd031115
-	for <linux-arch@vger.kernel.org>; Wed, 16 Jan 2008 10:52:32 +0100
+Received: from cam-admin0.cambridge.arm.com ([193.131.176.58]:51787 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751904AbYAPKxq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 Jan 2008 05:53:46 -0500
 Subject: Re: [rfc][patch 2/2] mm: introduce optional pte_special pte bit
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <20080116054831.GD14049@wotan.suse.de>
-References: <alpine.LFD.1.00.0801151944120.2806@woody.linux-foundation.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+In-Reply-To: <20080116051759.GA14049@wotan.suse.de>
+References: <20080113031013.GD22285@wotan.suse.de>
+	 <alpine.LFD.1.00.0801121925330.2806@woody.linux-foundation.org>
+	 <20080113043922.GA22345@wotan.suse.de>
+	 <alpine.LFD.1.00.0801122042220.2806@woody.linux-foundation.org>
+	 <20080113050605.GA1340@wotan.suse.de>
+	 <alpine.LFD.1.00.0801130846000.2806@woody.linux-foundation.org>
+	 <20080116033800.GA8890@wotan.suse.de>
+	 <alpine.LFD.1.00.0801151944120.2806@woody.linux-foundation.org>
 	 <20080116043728.GA7684@wotan.suse.de>
 	 <alpine.LFD.1.00.0801152040310.2806@woody.linux-foundation.org>
-	 <20080115.205152.153390863.davem@davemloft.net>
-	 <alpine.LFD.1.00.0801152119000.2806@woody.linux-foundation.org>
-	 <20080116054831.GD14049@wotan.suse.de>
+	 <20080116051759.GA14049@wotan.suse.de>
 Content-Type: text/plain
-Date: Wed, 16 Jan 2008 10:52:41 +0100
-Message-Id: <1200477161.29080.18.camel@localhost>
+Date: Wed, 16 Jan 2008 10:52:29 +0000
+Message-Id: <1200480750.19045.33.camel@pc1117.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nick Piggin <npiggin@suse.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, hugh@veritas.com, jaredeh@gmail.com, cotte@de.ibm.com, heiko.carstens@de.ibm.com, linux-arch@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Hugh Dickins <hugh@veritas.com>, Jared Hulbert <jaredeh@gmail.com>, Carsten Otte <cotte@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, rmk@arm.linux.org.uk
 
-On Wed, 2008-01-16 at 06:48 +0100, Nick Piggin wrote:
-> On Tue, Jan 15, 2008 at 09:23:57PM -0800, Linus Torvalds wrote:
-> > On Tue, 15 Jan 2008, David Miller wrote:
-> > >
-> > > From: Linus Torvalds <torvalds@linux-foundation.org>
-> > > Date: Tue, 15 Jan 2008 20:48:42 -0800 (PST)
-> > > 
-> > > > Can you give a pointer to some browsable archive?
-> > > 
-> > > http://marc.info/?l=linux-arch
+On Wed, 2008-01-16 at 06:17 +0100, Nick Piggin wrote:
+> On Tue, Jan 15, 2008 at 08:48:42PM -0800, Linus Torvalds wrote:
+> > On Wed, 16 Jan 2008, Nick Piggin wrote:
+> > > Right, that's what I had hoped as well. But when I say pte_special
+> > > *usable* by all architectures, I mean it is usable by all that can
+> > > spare a bit in the pte. Apparently ARM can't because some some bug
+> > > in an Xscale CPU or something (the thread is on linux-arch).
 > > 
-> > .. and the discussion itself that actually explains why ARM has problems 
-> > and why S390 suddenly _does_ have a bit for this after all?
-> > 
-> > (Not that I consider marc to be really "browsable" in the first place.. )
-> > 
-> > 		Linus
+> > Hmm. Can you give a pointer to some browsable archive? I guess I should 
+> > subscribe, but there's too much email, too little time. linux-arch is one 
+> > of the lists that I probably should look at.
 > 
+> http://marc.info/?t=119968107900003&r=2&w=2
 > 
-> I sent you an exact link to the thread on marc in an earlier message...
-> not many others archive linux-arch or linux-mm unfortunately.
-> 
-> But no I didn't see a discussion of why s390 does have a bit, beyond the
-> s390 devs just asserting there is one, and providing a patch ;) I never
-> saw any of the discussions concluding that s390 does *not* have a bit
-> spare. Do you recall if they were public?
+> I've also cc'ed Russell and Catalin, who were involved in that one.
 
-Hmm, it all depends on the type of the pte. The hardware specs tell us
-that the last 8 bits of a pte is software defined. There is the hardware
-invalid bit 2**9 and the hardware read-only bit 2**10. Two of the
-software defined bits and the two hardware bits are used for the page
-type. The current code distinguishes 8 different types (the comments
-says six but that is wrong :-/):
+In summary, on the ARM side, on architectures ARMv5 and earlier we had
+more bits available. Starting with ARMv6, because the memory ordering
+model was changed, 3 bits were used for the TEX encoding (Type
+EXtension), in addition to the original C and B bits (cacheable and
+bufferable, which on ARMv6 and later may have a different meaning, based
+on the TEX bits).
 
-#define _PAGE_TYPE_EMPTY        0x400
-#define _PAGE_TYPE_NONE         0x401
-#define _PAGE_TYPE_SWAP         0x403
-#define _PAGE_TYPE_FILE         0x601   /* bit 0x002 is used for offset !! */
-#define _PAGE_TYPE_RO           0x200
-#define _PAGE_TYPE_RW           0x000
-#define _PAGE_TYPE_EX_RO        0x202
-#define _PAGE_TYPE_EX_RW        0x002
+However, ARMv6 comes with a new configuration mode, "TEX remapping",
+which, if enabled, allows 8 combinations of the TEX, C and B bits to be
+encoded in separate registers and only use 3 bits in the PTE (TEX[0], C,
+B) rather than 5 (i.e. one more bit compared to ARMv5). Since this mode
+isn't backwards compatible, the decision was to not use it and add the
+TEX bits to the PTE.
 
-The types where we have no free bits are _PAGE_TYPE_SWAP and
-_PAGE_TYPE_FILE. That should be true for all architectures, since any
-free bit could be used to increase the allowable size of the swap device
-and the file-page offset. For 64 bit we could even make room for another
-bit in the swap and file ptes since it won't hurt much to lower the swap
-size / file-page offset. For 31 bit the bits are in short supply. In ESA
-mode another 3 bits of the pte are reserved, they have to be zero or bad
-things will happen (specification exceptions). So with the two hardware
-and the two software bits a total of 7 bits of 32 bits are lost. As the
-comment for _PAGE_TYPE_FILE indicates I was able to squeeze one more bit
-out of a pte for file ptes. Which makes 25 free bits for a swap pte and
-26 free bits for a file pte, or 32 4GB swap devices and 64GB max file
-size for remap_file_pages. Again this is ONLY for 31 bit and ONLY for
-the swap and file ptes. For pte_present() ptes we have 6 free bits.
+Because of a bug on Xscale3, Russell might use another (the last one)
+bit in the PTE but I don't know the details.
+
+There are some solutions (with drawbacks as well):
+
+1. Use the new TEX remapping on ARMv6 (does Xscale3 support it?) and
+emulate it on pre-ARMv6 CPUs. On older CPUs, this might add a few cycles
+to the set_pte function. While on setting up the page tables these might
+be lost in the noise, Russell mentioned the clearing up of the page
+tables. Maybe the pte_clear function could use a fast-track
+implementation which simply zeros the pte rather than checking the bits.
+
+2. As above but reserve the TEX[0] bit on ARMv5 for compatibility with
+ARMv6 and no emulation is needed. In this case, C and B bits have a
+totally different meaning on ARMv5 and ARMv6 (as currently on the former
+and, on the latter, they are just used as an index in a pre-defined
+table stored in configuration registers). I don't think this would be a
+problem since we build the PTE bits for various memory types at boot
+time based on the CPU architecture.
+
+3. Use TEX remapping on ARMv6 and keep the current implementation for
+ARMv5. This would mean 2 separate pte_* implementations, probably
+optimal for the corresponding architectures but you cannot build a
+kernel supporting both at the same time (though I think even the current
+implementation needs some tweaking). If this is needed, we could use
+option 1 above but I think the code would be really complicated.
+
+If Xscale3 supports TEX remapping (it's an ARMv6, so it should but I'm
+not sure), I think that option 2 above could be feasible to free 2 more
+bits in the PTE (leaving us with 3 spare bits). I'm happy to give this
+approach a try but it's Russell that has the final word since the patch
+would be pretty intrusive (and would need to be discussed on
+linux-arm-kernel list first as I'm not sure what wider implications it
+might have).
 
 -- 
-blue skies,
-  Martin.
-
-"Reality continues to ruin my life." - Calvin.
-
+Catalin
 
