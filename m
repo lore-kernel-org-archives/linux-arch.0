@@ -1,50 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:58656 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751625AbYAPST7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jan 2008 13:19:59 -0500
-Date: Wed, 16 Jan 2008 18:18:49 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [rfc][patch 2/2] mm: introduce optional pte_special pte bit
-Message-ID: <20080116181849.GA23371@flint.arm.linux.org.uk>
-References: <20080113043922.GA22345@wotan.suse.de> <alpine.LFD.1.00.0801122042220.2806@woody.linux-foundation.org> <20080113050605.GA1340@wotan.suse.de> <alpine.LFD.1.00.0801130846000.2806@woody.linux-foundation.org> <20080116033800.GA8890@wotan.suse.de> <alpine.LFD.1.00.0801151944120.2806@woody.linux-foundation.org> <20080116043728.GA7684@wotan.suse.de> <alpine.LFD.1.00.0801152040310.2806@woody.linux-foundation.org> <20080116051759.GA14049@wotan.suse.de> <1200480750.19045.33.camel@pc1117.cambridge.arm.com>
-Mime-Version: 1.0
+Received: from lixom.net ([66.141.50.11]:55725 "EHLO mail.lixom.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750943AbYAQBJ1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 Jan 2008 20:09:27 -0500
+Date: Wed, 16 Jan 2008 19:09:15 -0600
+From: Olof Johansson <olof@lixom.net>
+Subject: [patch 2/3] [POWERPC] switch to generic WARN_ON / BUG_ON
+Message-ID: <20080117010915.GB24766@lixom.net>
+References: <20080117010130.GA24663@lixom.net>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1200480750.19045.33.camel@pc1117.cambridge.arm.com>
+In-Reply-To: <20080117010130.GA24663@lixom.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Nick Piggin <npiggin@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Hugh Dickins <hugh@veritas.com>, Jared Hulbert <jaredeh@gmail.com>, Carsten Otte <cotte@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, paulus@samba.org
 
-On Wed, Jan 16, 2008 at 10:52:29AM +0000, Catalin Marinas wrote:
-> If Xscale3 supports TEX remapping (it's an ARMv6, so it should but I'm
-> not sure)
+Not using the ppc-specific WARN_ON/BUG_ON constructs actually saves about
+4K text on a ppc64_defconfig.  The main reason seems to be that prepping
+the arguments to the conditional trap instructions is more work than just
+doing a compare and branch.
 
-For the elimination of doubt, Xscale 3 is ARMv5 with cherry picked ARMv6
-features - eg, it's VIVT, no ASID.  I don't believe it has any remapping
-ability... but as I've said - when I get around to resolving this shared
-mmap issue I'll know more about the way forward.
+Signed-off-by: Olof Johansson <olof@lixom.net>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Paul Mackerras <paulus@samba.org>
+---
 
-At the moment, the hold up is this EABI crap - the filesystem I have for
-the Xscale 3 platform is EABI only so I can't run any of my existing test
-programs, and I don't have a toolchain capable of generating executables
-for EABI userspace - and I don't think I can sensibly put the OABI
-libraries on the platform either.
+ include/asm-powerpc/bug.h |   37 -------------------------------------
+ 1 file changed, 37 deletions(-)
 
-So my first problem to resolve is how to run my test programs which show
-up the issue on this hardware.
+Index: linux-2.6.24-rc6/include/asm-powerpc/bug.h
+===================================================================
+--- linux-2.6.24-rc6.orig/include/asm-powerpc/bug.h
++++ linux-2.6.24-rc6/include/asm-powerpc/bug.h
+@@ -54,12 +54,6 @@
+ 	".previous\n"
+ #endif
+ 
+-/*
+- * BUG_ON() and WARN_ON() do their best to cooperate with compile-time
+- * optimisations. However depending on the complexity of the condition
+- * some compiler versions may not produce optimal results.
+- */
+-
+ #define BUG() do {						\
+ 	__asm__ __volatile__(					\
+ 		"1:	twi 31,0,0\n"				\
+@@ -69,20 +63,6 @@
+ 	for(;;) ;						\
+ } while (0)
+ 
+-#define BUG_ON(x) do {						\
+-	if (__builtin_constant_p(x)) {				\
+-		if (x)						\
+-			BUG();					\
+-	} else {						\
+-		__asm__ __volatile__(				\
+-		"1:	"PPC_TLNEI"	%4,0\n"			\
+-		_EMIT_BUG_ENTRY					\
+-		: : "i" (__FILE__), "i" (__LINE__), "i" (0),	\
+-		  "i" (sizeof(struct bug_entry)),		\
+-		  "r" ((__force long)(x)));			\
+-	}							\
+-} while (0)
+-
+ #define __WARN() do {						\
+ 	__asm__ __volatile__(					\
+ 		"1:	twi 31,0,0\n"				\
+@@ -92,23 +72,6 @@
+ 		  "i" (sizeof(struct bug_entry)));		\
+ } while (0)
+ 
+-#define WARN_ON(x) ({						\
+-	int __ret_warn_on = !!(x);				\
+-	if (__builtin_constant_p(__ret_warn_on)) {		\
+-		if (__ret_warn_on)				\
+-			__WARN();				\
+-	} else {						\
+-		__asm__ __volatile__(				\
+-		"1:	"PPC_TLNEI"	%4,0\n"			\
+-		_EMIT_BUG_ENTRY					\
+-		: : "i" (__FILE__), "i" (__LINE__),		\
+-		  "i" (BUGFLAG_WARNING),			\
+-		  "i" (sizeof(struct bug_entry)),		\
+-		  "r" (__ret_warn_on));				\
+-	}							\
+-	unlikely(__ret_warn_on);				\
+-})
+-
+ #endif /* __ASSEMBLY __ */
+ #endif /* CONFIG_BUG */
+ 
 
-The second problem which is proving difficult is to find out why one of
-the patches which enabled proper use of the set_pte_ext() function on
-Xscale 3 CPUs resulted in Lennert's IOP board falling over - I've not
-heard anything further from Lennert on that issue yet, despite prodding.
-So, I might just throw it into the next merge window _anyway_ and then
-we'll get more people testing it and hopefully get to the bottom of the
-window.  The other alternative is to just let the patch sit around for
-ever and nothing will happen - which clearly isn't productive.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
