@@ -1,93 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:59178 "EHLO mx2.suse.de"
+Received: from pasmtpa.tele.dk ([80.160.77.114]:59784 "EHLO pasmtpA.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751150AbYASFH5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 19 Jan 2008 00:07:57 -0500
-Date: Sat, 19 Jan 2008 06:07:55 +0100
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch 2/6] mm: introduce pte_special pte bit
-Message-ID: <20080119050755.GA19722@wotan.suse.de>
-References: <20080118045649.334391000@suse.de> <20080118045755.516986000@suse.de> <alpine.LFD.1.00.0801180816120.2957@woody.linux-foundation.org> <20080118224622.GA11563@wotan.suse.de> <alpine.LFD.1.00.0801181448280.2957@woody.linux-foundation.org>
+	id S1755319AbYATUFT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 20 Jan 2008 15:05:19 -0500
+Date: Sun, 20 Jan 2008 21:05:27 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: kbuild: improved Section mismatch detection
+Message-ID: <20080120200527.GA23852@uranus.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.00.0801181448280.2957@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hugh@veritas.com>, Jared Hulbert <jaredeh@gmail.com>, Carsten Otte <cotte@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>
 
-On Fri, Jan 18, 2008 at 03:03:03PM -0800, Linus Torvalds wrote:
-> 
-> 
-> On Fri, 18 Jan 2008, Nick Piggin wrote:
-> > 
-> > I thought in your last mail on the subject, that you had conceded the
-> > vma-based scheme should stay, so I might have misunderstood that to mean
-> > you would, reluctantly, go with the scheme. I guess I need to try a bit
-> > harder ;)
-> 
-> Yes, I did concede that apparently we cannot just mandate "let's just use 
-> a bit in the pte".
-> 
-> So I do agree that we seem to be forced to have two different 
-> implementations: one for architectures where we can make use of a marker 
-> on the PTE itself (or perhaps some *other* way to distinguish things 
-> automatically), and one for the ones where we need to just be able 
-> to distinguish purely based on our own data structures.
+I have spent the last week (the time I can afford to
+Linux stuff anyway) to improve the Section mismatch 
+warnings detected by modpost.
 
-Yep, thanks for the clarification.
+The problem until now has been that the Section
+mismatch warnings were dependent on the actual
+configuration of HOTPLUG, HOTPLUG_CPU and MEMORY_HOTPLUG.
+In the default configuration with HOTPLUG enbaled most
+of the remaining Section mismatch warnings were not
+seen and thus many of us thought that everything was great.
+
+Adrian reminded us that KCFLAGS=-fno-inline told
+another story with more than 100 Section mismatch
+warnings on 64 bit x86 with an allyesconfig build.
+
+As this was not acceptable I set out to make it
+less configuration dependent. To do so I quikly
+relaised that modpost had to be prepared before this
+was a feasible thing to implment.
+
+This serie of patches is:
+
+1)      kbuild: fix so modpost can now check any .o file
+2)      kbuild: try harder to find symbol names in modpost
+3)      kbuild: code refactoring in modpost
+4)      kbuild: introduce blacklisting in modpost
+5)      kbuild: check section names consistently in modpost
+6)      all archs: consolidate init and exit sections in vmlinux.lds.h
+7)      compiler.h: introduce __section()
+8)      Use separate sections for __dev/__cpu/__mem code/data
+
+Patch 6) makse a set of trivial changes in all arch vmlinux.lds.S files
+and the reason why I copid linux-arch on this mail.
+
+Patch 4) is a major change in modpost where we no longer try to
+find all the good guys but instead look for the bad combinations.
+This should result in a lot less false warnings and for example got
+rid of an irritating warning on sparc64.
+
+Patch 2) is important - previously modpost failed to find the
+correct symbol based on address lookup because it wanted an exact
+match. Allowing up to 20 bytes offset we now locate almost all
+symbols and the warnings are much easier to fix.
+
+Randy and Adrian among others have done a great job fixing
+many Section mismatch warnngs over the last month.
+But frankly much more people should do this and I can see people
+ignoring the warnings.
+
+Therefore the plan is to turn the warnings into hard build errors
+at -rc1 time.
+This should force people to actually fix the warnings they introduce.
+
+But to do so we need the warnings we have today gettign fixed and
+the new improved modpost should help you here.
+To further help the plans are to:
+- add a config option to enable -fno-inline (or a similar option)
+- make the warnings from modpost more descriptive but longer 
+- maybe to spend a few hours to fix some of the obvious candidates
+  Less than half an hour for each warning for the trivial cases
+- Maybe start using __INIT and friends in assembler code
+  xen had two bugs in this area recently for example.
+
+It has been questions if it is worth the effort to fix these warnings.
+Randy just fixed three oops candidates - do anyone need more facts?
+
+And the cpu code looks rather fragile in the dead/removed CPU cases.
+I see several references that will oops and is easy to fix.
+
+	Sam
 
 
-> I just then didn't like the lack of abstraction.
-> 
-> > How about taking a different approach. How about also having a pte_normal()
-> > function.
-> 
-> Well, one reason I'd prefer not to, is that I can well imagine an 
-> architecture that doesn't actually put the "normal" bit in the PTE itself, 
-> but in a separate data structure.
-> 
-> In particular, let's say that you decide that
-> 
->  - the architecture really doesn't have any space in the hw page tables
->  - but for various reasons you *really* don't want to use the tricky 
->    "page->offset" logic etc
->  - ..and you realize that PFNMAP and FIXMAP are actually very rare
-> 
-> so..
-> 
->  - you just associate each PFNMAP/FIXMAP vma with a simple bitmap that 
->    contains the "special" bit.
-> 
-> It's actually not that hard to do. If you have an architecture-specific 
-> interface like
-> 
-> 	struct page *vm_normal_page(struct vm_area_struct *vma, unsigned long addr, pte_t pte);
-> 
-> then it wouldn't be too hard at all to create a hash lookup on the VMA (or 
-> perhaps on a "vma, 256-page-aligned(addr)" tuple) to look up a bitmap, and 
-> then use the address to see if it was marked special or not.
-> 
-> But yes, then you'd also need to have that extended
-> 
-> 	set_special_pte_at(vma, addr, pfn, prot);
-> 
-> interface to set that bit in that bitmap.
-> 
-> See? 
-> 
-> Is it better than what we already have for the generic case? Possibly not. 
-> But I like abstractions that aren't tied to *one* particular 
-> implementation.
-
-Well that's all true, but I would be a bit worried about architectures
-inventing their own ways of doin gthings. I mean, _every_ implementation
-needs to be understood by core mm/ developers; and conversely, none of
-the architecture maintainers need to care a single bit about any of the
-implementations if they provide some basic low level things to us.
-
-So I'd argue that if someone really needed to invent another scheme, then
-that should also be somehow folded into mm/ code if possible rather than
-let the arch do it...
 
