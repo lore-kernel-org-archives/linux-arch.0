@@ -1,452 +1,381 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:39031 "EHLO pasmtpB.tele.dk"
+Received: from pasmtpb.tele.dk ([80.160.77.98]:39116 "EHLO pasmtpB.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755808AbYATUJJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 20 Jan 2008 15:09:09 -0500
+	id S1755992AbYATUJL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 20 Jan 2008 15:09:11 -0500
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH] kbuild: introduce blacklisting in modpost
-Date: Sun, 20 Jan 2008 21:08:59 +0100
-Message-Id: <1200859743-24037-4-git-send-email-sam@ravnborg.org>
-In-Reply-To: <1200859743-24037-3-git-send-email-sam@ravnborg.org>
+Subject: [PATCH] Use separate sections for __dev/__cpu/__mem code/data
+Date: Sun, 20 Jan 2008 21:09:03 +0100
+Message-Id: <1200859743-24037-8-git-send-email-sam@ravnborg.org>
+In-Reply-To: <1200859743-24037-7-git-send-email-sam@ravnborg.org>
 References: <20080120200527.GA23852@uranus.ravnborg.org>
  <1200859743-24037-1-git-send-email-sam@ravnborg.org>
  <1200859743-24037-2-git-send-email-sam@ravnborg.org>
  <1200859743-24037-3-git-send-email-sam@ravnborg.org>
+ <1200859743-24037-4-git-send-email-sam@ravnborg.org>
+ <1200859743-24037-5-git-send-email-sam@ravnborg.org>
+ <1200859743-24037-6-git-send-email-sam@ravnborg.org>
+ <1200859743-24037-7-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Sam Ravnborg <sam@ravnborg.org>, Randy Dunlap <randy.dunlap@oracle.com>, Adrian Bunk <bunk@kernel.org>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Greg KH <greg@kroah.com>, Randy Dunlap <randy.dunlap@oracle.com>, Adrian Bunk <bunk@kernel.org>
 
-Change the logic in modpost so we identify all the
-bad combinations of sections that refer to other
-sections.
-Compared to the previous approach we are much less
-dependent on knowledge of what additional sections
-the tool chain uses and thus we can keep the false
-positives low.
+Introducing separate sections for __dev* (HOTPLUG),
+__cpu* (HOTPLUG_CPU) and __mem* (MEMORY_HOTPLUG)
+allows us to do a much more reliable Section mismatch
+check in modpost. We are no longer dependent on the actual
+configuration of for example HOTPLUG.
 
-The implmentation is changed to use a table based
-lookup and we now check all combinations in first
-pass so we no longer need separate passes for init
-and exit sections.
-
-Tested that the same warnings are generated for
-an allyesconfig build without CONFIG_HOTPLUG.
+This has the effect that all users see much more
+Section mismatch warnings than before because they
+were almost all hidden when HOTPLUG was enabled.
+The advantage of this is that when building a piece
+of code then it is much more likely that the Section
+mismatch errors are spotted and the warnings will be
+felt less random of nature.
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+Cc: Greg KH <greg@kroah.com>
 Cc: Randy Dunlap <randy.dunlap@oracle.com>
 Cc: Adrian Bunk <bunk@kernel.org>
 ---
- scripts/mod/modpost.c |  305 +++++++++++++++++++++----------------------------
- 1 files changed, 128 insertions(+), 177 deletions(-)
+ include/asm-generic/vmlinux.lds.h |   88 ++++++++++++++++++++++++++++++++++---
+ include/linux/init.h              |   77 ++++++++++++++++----------------
+ scripts/mod/modpost.c             |   54 ++++++++++++++++------
+ 3 files changed, 159 insertions(+), 60 deletions(-)
 
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index ded7ca2..e0a56fb 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -9,10 +9,46 @@
+ /* Align . to a 8 byte boundary equals to maximum function alignment. */
+ #define ALIGN_FUNCTION()  . = ALIGN(8)
+ 
++/* The actual configuration determine if the init/exit sections
++ * are handled as text/data or they can be discarded (which
++ * often happens at runtime)
++ */
++#ifdef CONFIG_HOTPLUG
++#define DEV_KEEP(sec)    *(.dev##sec)
++#define DEV_DISCARD(sec)
++#else
++#define DEV_KEEP(sec)
++#define DEV_DISCARD(sec) *(.dev##sec)
++#endif
++
++#ifdef CONFIG_HOTPLUG_CPU
++#define CPU_KEEP(sec)    *(.cpu##sec)
++#define CPU_DISCARD(sec)
++#else
++#define CPU_KEEP(sec)
++#define CPU_DISCARD(sec) *(.cpu##sec)
++#endif
++
++#if defined(CONFIG_MEMORY_HOTPLUG) || defined(CONFIG_ACPI_HOTPLUG_MEMORY) \
++	|| defined(CONFIG_ACPI_HOTPLUG_MEMORY_MODULE)
++#define MEM_KEEP(sec)    *(.mem##sec)
++#define MEM_DISCARD(sec)
++#else
++#define MEM_KEEP(sec)
++#define MEM_DISCARD(sec) *(.mem##sec)
++#endif
++
++
+ /* .data section */
+ #define DATA_DATA							\
+ 	*(.data)							\
+ 	*(.data.init.refok)						\
++	DEV_KEEP(init.data)						\
++	DEV_KEEP(exit.data)						\
++	CPU_KEEP(init.data)						\
++	CPU_KEEP(exit.data)						\
++	MEM_KEEP(init.data)						\
++	MEM_KEEP(exit.data)						\
+ 	. = ALIGN(8);							\
+ 	VMLINUX_SYMBOL(__start___markers) = .;				\
+ 	*(__markers)							\
+@@ -132,6 +168,16 @@
+ 		*(__ksymtab_strings)					\
+ 	}								\
+ 									\
++	/* __*init sections */						\
++	__init_rodata : AT(ADDR(__init_rodata) - LOAD_OFFSET) {		\
++		DEV_KEEP(init.rodata)					\
++		DEV_KEEP(exit.rodata)					\
++		CPU_KEEP(init.rodata)					\
++		CPU_KEEP(exit.rodata)					\
++		MEM_KEEP(init.rodata)					\
++		MEM_KEEP(exit.rodata)					\
++	}								\
++									\
+ 	/* Built-in module parameters. */				\
+ 	__param : AT(ADDR(__param) - LOAD_OFFSET) {			\
+ 		VMLINUX_SYMBOL(__start___param) = .;			\
+@@ -139,7 +185,6 @@
+ 		VMLINUX_SYMBOL(__stop___param) = .;			\
+ 		VMLINUX_SYMBOL(__end_rodata) = .;			\
+ 	}								\
+-									\
+ 	. = ALIGN((align));
+ 
+ /* RODATA provided for backward compatibility.
+@@ -159,7 +204,14 @@
+ 		ALIGN_FUNCTION();					\
+ 		*(.text)						\
+ 		*(.text.init.refok)					\
+-		*(.exit.text.refok)
++		*(.exit.text.refok)					\
++	DEV_KEEP(init.text)						\
++	DEV_KEEP(exit.text)						\
++	CPU_KEEP(init.text)						\
++	CPU_KEEP(exit.text)						\
++	MEM_KEEP(init.text)						\
++	MEM_KEEP(exit.text)
++
+ 
+ /* sched.text is aling to function alignment to secure we have same
+  * address even at second ld pass when generating System.map */
+@@ -184,11 +236,35 @@
+ 		VMLINUX_SYMBOL(__kprobes_text_end) = .;
+ 
+ /* init and exit section handling */
+-#define INIT_TEXT *(init.text)
+-#define INIT_DATA *(init.data)
+-#define EXIT_TEXT *(exit.text)
+-#define EXIT_DATA *(exit.data)
++#define INIT_DATA							\
++	*(.init.data)							\
++	DEV_DISCARD(init.data)						\
++	DEV_DISCARD(init.rodata)					\
++	CPU_DISCARD(init.data)						\
++	CPU_DISCARD(init.rodata)					\
++	MEM_DISCARD(init.data)						\
++	MEM_DISCARD(init.rodata)
++
++#define INIT_TEXT							\
++	*(.init.text)							\
++	DEV_DISCARD(init.text)						\
++	CPU_DISCARD(init.text)						\
++	MEM_DISCARD(init.text)
++
++#define EXIT_DATA							\
++	*(.exit.data)							\
++	DEV_DISCARD(exit.data)						\
++	DEV_DISCARD(exit.rodata)					\
++	CPU_DISCARD(exit.data)						\
++	CPU_DISCARD(exit.rodata)					\
++	MEM_DISCARD(exit.data)						\
++	MEM_DISCARD(exit.rodata)
+ 
++#define EXIT_TEXT							\
++	*(.exit.text)							\
++	DEV_DISCARD(exit.text)						\
++	CPU_DISCARD(exit.text)						\
++	MEM_DISCARD(exit.text)
+ 
+ 		/* DWARF debug sections.
+ 		Symbols in the DWARF debugging sections are relative to
+diff --git a/include/linux/init.h b/include/linux/init.h
+index 9980768..dcb66c7 100644
+--- a/include/linux/init.h
++++ b/include/linux/init.h
+@@ -60,18 +60,54 @@
+ #define __exit_refok     noinline __section(.exit.text.refok)
+ 
+ #ifdef MODULE
+-#define __exit		__section(.exit.text) __cold
++#define __exitused
+ #else
+-#define __exit		__attribute_used__ __section(.exit.text) __cold
++#define __exitused  __used
+ #endif
+ 
++#define __exit          __section(.exit.text) __exitused __cold
++
++/* Used for HOTPLUG */
++#define __devinit        __section(.devinit.text) __cold
++#define __devinitdata    __section(.devinit.data)
++#define __devinitconst   __section(.devinit.rodata)
++#define __devexit        __section(.devexit.text) __exitused __cold
++#define __devexitdata    __section(.devexit.data)
++#define __devexitconst   __section(.devexit.rodata)
++
++/* Used for HOTPLUG_CPU */
++#define __cpuinit        __section(.cpuinit.text) __cold
++#define __cpuinitdata    __section(.cpuinit.data)
++#define __cpuinitconst   __section(.cpuinit.rodata)
++#define __cpuexit        __section(.cpuexit.text) __exitused __cold
++#define __cpuexitdata    __section(.cpuexit.data)
++#define __cpuexitconst   __section(.cpuexit.rodata)
++
++/* Used for MEMORY_HOTPLUG */
++#define __meminit        __section(.meminit.text) __cold
++#define __meminitdata    __section(.meminit.data)
++#define __meminitconst   __section(.meminit.rodata)
++#define __memexit        __section(.memexit.text) __exitused __cold
++#define __memexitdata    __section(.memexit.data)
++#define __memexitconst   __section(.memexit.rodata)
++
+ /* For assembly routines */
+ #define __INIT		.section	".init.text","ax"
+ #define __INIT_REFOK	.section	".text.init.refok","ax"
+ #define __FINIT		.previous
++
+ #define __INITDATA	.section	".init.data","aw"
+ #define __INITDATA_REFOK .section	".data.init.refok","aw"
+ 
++#define __DEVINIT        .section	".devinit.text", "ax"
++#define __DEVINITDATA    .section	".devinit.data", "aw"
++
++#define __CPUINIT        .section	".cpuinit.text", "ax"
++#define __CPUINITDATA    .section	".cpuinit.data", "aw"
++
++#define __MEMINIT        .section	".meminit.text", "ax"
++#define __MEMINITDATA    .section	".meminit.data", "aw"
++
+ #ifndef __ASSEMBLY__
+ /*
+  * Used for initialization calls..
+@@ -254,43 +290,6 @@ void __init parse_early_param(void);
+ #define __initdata_or_module __initdata
+ #endif /*CONFIG_MODULES*/
+ 
+-#ifdef CONFIG_HOTPLUG
+-#define __devinit
+-#define __devinitdata
+-#define __devexit
+-#define __devexitdata
+-#else
+-#define __devinit __init
+-#define __devinitdata __initdata
+-#define __devexit __exit
+-#define __devexitdata __exitdata
+-#endif
+-
+-#ifdef CONFIG_HOTPLUG_CPU
+-#define __cpuinit
+-#define __cpuinitdata
+-#define __cpuexit
+-#define __cpuexitdata
+-#else
+-#define __cpuinit	__init
+-#define __cpuinitdata __initdata
+-#define __cpuexit __exit
+-#define __cpuexitdata	__exitdata
+-#endif
+-
+-#if defined(CONFIG_MEMORY_HOTPLUG) || defined(CONFIG_ACPI_HOTPLUG_MEMORY) \
+-	|| defined(CONFIG_ACPI_HOTPLUG_MEMORY_MODULE)
+-#define __meminit
+-#define __meminitdata
+-#define __memexit
+-#define __memexitdata
+-#else
+-#define __meminit	__init
+-#define __meminitdata __initdata
+-#define __memexit __exit
+-#define __memexitdata	__exitdata
+-#endif
+-
+ /* Functions marked as __devexit may be discarded at kernel link time, depending
+    on config options.  Newer versions of binutils detect references from
+    retained sections to discarded sections and flag an error.  Pointers to
 diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index e463013..6c206b9 100644
+index 986513d..730b321 100644
 --- a/scripts/mod/modpost.c
 +++ b/scripts/mod/modpost.c
-@@ -605,6 +605,61 @@ static int strrcmp(const char *s, const char *sub)
- 	return memcmp(s + slen - sublen, sub, sublen);
- }
+@@ -670,27 +670,41 @@ int match(const char *sym, const char * const pat[])
+ static const char *section_white_list[] =
+ 	{ ".debug*", ".stab*", ".note*", ".got*", ".toc*", NULL };
  
-+/* if sym is empty or point to a string
-+ * like ".[0-9]+" then return 1.
-+ * This is the optional prefix added by ld to some sections
-+ */
-+static int number_prefix(const char *sym)
-+{
-+	if (*sym++ == '\0')
-+		return 1;
-+	if (*sym != '.')
-+		return 0;
-+	do {
-+		char c = *sym++;
-+		if (c < '0' || c > '9')
-+			return 0;
-+	} while (*sym);
-+	return 1;
-+}
-+
-+/* The pattern is an array of simple patterns.
-+ * "foo" will match an exact string equal to "foo"
-+ * "foo*" will match a string that begins with "foo"
-+ * "foo$" will match a string equal to "foo" or "foo.1"
-+ *   where the '1' can be any number including several digits.
-+ *   The $ syntax is for sections where ld append a dot number
-+ *   to make section name unique.
-+ */
-+int match(const char *sym, const char * const pat[])
-+{
-+	const char *p;
-+	while (*pat) {
-+		p = *pat++;
-+		const char *endp = p + strlen(p) - 1;
-+
-+		/* "foo*" */
-+		if (*endp == '*') {
-+			if (strncmp(sym, p, strlen(p) - 1) == 0)
-+				return 1;
-+		}
-+		/* "foo$" */
-+		else if (*endp == '$') {
-+			if (strncmp(sym, p, strlen(p) - 1) == 0) {
-+				if (number_prefix(sym + strlen(p) - 1))
-+					return 1;
-+			}
-+		}
-+		/* no wildcards */
-+		else {
-+			if (strcmp(p, sym) == 0)
-+				return 1;
-+		}
-+	}
-+	/* no match */
-+	return 0;
-+}
-+
- /*
-  * Functions used only during module init is marked __init and is stored in
-  * a .init.text section. Likewise data is marked __initdata and stored in
-@@ -653,6 +708,68 @@ static int data_section(const char *name)
- 		return 0;
- }
+-#define INIT_DATA_SECTIONS ".init.data$"
+-#define EXIT_DATA_SECTIONS ".exit.data$"
++#define ALL_INIT_DATA_SECTIONS \
++	".init.data$", ".devinit.data$", ".cpuinit.data$", ".meminit.data$"
++#define ALL_EXIT_DATA_SECTIONS \
++	".exit.data$", ".devexit.data$", ".cpuexit.data$", ".memexit.data$"
  
-+/* sections that we do not want to do full section mismatch check on */
-+static const char *section_white_list[] =
-+	{ ".debug*", ".stab*", ".note*", ".got*", ".toc*", NULL };
+-#define INIT_TEXT_SECTIONS ".init.text$"
+-#define EXIT_TEXT_SECTIONS ".exit.text$"
++#define ALL_INIT_TEXT_SECTIONS \
++	".init.text$", ".devinit.text$", ".cpuinit.text$", ".meminit.text$"
++#define ALL_EXIT_TEXT_SECTIONS \
++	".exit.text$", ".devexit.text$", ".cpuexit.text$", ".memexit.text$"
+ 
+-#define INIT_SECTIONS INIT_DATA_SECTIONS, INIT_TEXT_SECTIONS
+-#define EXIT_SECTIONS EXIT_DATA_SECTIONS, EXIT_TEXT_SECTIONS
++#define ALL_INIT_SECTIONS ALL_INIT_DATA_SECTIONS, ALL_INIT_TEXT_SECTIONS
++#define ALL_EXIT_SECTIONS ALL_EXIT_DATA_SECTIONS, ALL_EXIT_TEXT_SECTIONS
+ 
+ #define DATA_SECTIONS ".data$", ".data.rel$"
+ #define TEXT_SECTIONS ".text$"
+ 
++#define INIT_SECTIONS      ".init.data$", ".init.text$"
++#define DEV_INIT_SECTIONS  ".devinit.data$", ".devinit.text$"
++#define CPU_INIT_SECTIONS  ".cpuinit.data$", ".cpuinit.text$"
++#define MEM_INIT_SECTIONS  ".meminit.data$", ".meminit.text$"
 +
-+#define INIT_DATA_SECTIONS ".init.data$"
-+#define EXIT_DATA_SECTIONS ".exit.data$"
++#define EXIT_SECTIONS      ".exit.data$", ".exit.text$"
++#define DEV_EXIT_SECTIONS  ".devexit.data$", ".devexit.text$"
++#define CPU_EXIT_SECTIONS  ".cpuexit.data$", ".cpuexit.text$"
++#define MEM_EXIT_SECTIONS  ".memexit.data$", ".memexit.text$"
 +
-+#define INIT_TEXT_SECTIONS ".init.text$"
-+#define EXIT_TEXT_SECTIONS ".exit.text$"
-+
-+#define INIT_SECTIONS INIT_DATA_SECTIONS, INIT_TEXT_SECTIONS
-+#define EXIT_SECTIONS EXIT_DATA_SECTIONS, EXIT_TEXT_SECTIONS
-+
-+#define DATA_SECTIONS ".data$"
-+#define TEXT_SECTIONS ".text$"
-+
-+struct sectioncheck {
-+	const char *fromsec[20];
-+	const char *tosec[20];
-+};
-+
-+const struct sectioncheck sectioncheck[] = {
-+/* Do not reference init/exit code/data from
-+ * normal code and data
-+ */
-+{
-+	.fromsec = { TEXT_SECTIONS, DATA_SECTIONS, NULL },
-+	.tosec   = { INIT_SECTIONS, EXIT_SECTIONS, NULL }
+ /* init data sections */
+-static const char *init_data_sections[] = { INIT_DATA_SECTIONS, NULL };
++static const char *init_data_sections[] = { ALL_INIT_DATA_SECTIONS, NULL };
+ 
+ /* all init sections */
+-static const char *init_sections[] = { INIT_SECTIONS, NULL };
++static const char *init_sections[] = { ALL_INIT_SECTIONS, NULL };
+ 
+ /* All init and exit sections (code + data) */
+ static const char *init_exit_sections[] =
+-	{INIT_SECTIONS, EXIT_SECTIONS, NULL };
++	{ALL_INIT_SECTIONS, ALL_EXIT_SECTIONS, NULL };
+ 
+ /* data section */
+ static const char *data_sections[] = { DATA_SECTIONS, NULL };
+@@ -734,22 +748,32 @@ const struct sectioncheck sectioncheck[] = {
+  */
+ {
+ 	.fromsec = { TEXT_SECTIONS, DATA_SECTIONS, NULL },
+-	.tosec   = { INIT_SECTIONS, EXIT_SECTIONS, NULL }
++	.tosec   = { ALL_INIT_SECTIONS, ALL_EXIT_SECTIONS, NULL }
 +},
-+/* Do not use exit code/data from init code */
++/* Do not reference init code/data from devinit/cpuinit/meminit code/data */
 +{
-+	.fromsec = { INIT_SECTIONS, NULL },
-+	.tosec   = { EXIT_SECTIONS, NULL },
-+},
-+/* Do not use init code/data from exit code */
-+{
-+	.fromsec = { EXIT_SECTIONS, NULL },
++	.fromsec = { DEV_INIT_SECTIONS, CPU_INIT_SECTIONS, MEM_INIT_SECTIONS, NULL },
 +	.tosec   = { INIT_SECTIONS, NULL }
 +},
-+/* Do not export init/exit functions or data */
++/* Do not reference exit code/data from devexit/cpuexit/memexit code/data */
 +{
-+	.fromsec = { "__ksymtab*", NULL },
-+	.tosec   = { INIT_SECTIONS, EXIT_SECTIONS, NULL }
-+}
-+};
-+
-+static int section_mismatch(const char *fromsec, const char *tosec)
-+{
-+	int i;
-+	int elems = sizeof(sectioncheck) / sizeof(struct sectioncheck);
-+	const struct sectioncheck *check = &sectioncheck[0];
-+
-+	for (i = 0; i < elems; i++) {
-+		if (match(fromsec, check->fromsec) &&
-+		    match(tosec, check->tosec))
-+			return 1;
-+		check++;
-+	}
-+	return 0;
-+}
-+
-+
- /**
-  * Whitelist to allow certain references to pass with no warning.
-  *
-@@ -695,18 +812,11 @@ static int data_section(const char *name)
-  *   This pattern is identified by
-  *   refsymname = __init_begin, _sinittext, _einittext
-  *
-- * Pattern 5:
-- *   Xtensa uses literal sections for constants that are accessed PC-relative.
-- *   Literal sections may safely reference their text sections.
-- *   (Note that the name for the literal section omits any trailing '.text')
-- *   tosec = <section>[.text]
-- *   fromsec = <section>.literal
-  **/
- static int secref_whitelist(const char *modname, const char *tosec,
- 			    const char *fromsec, const char *atsym,
- 			    const char *refsymname)
++	.fromsec = { DEV_EXIT_SECTIONS, CPU_EXIT_SECTIONS, MEM_EXIT_SECTIONS, NULL },
++	.tosec   = { EXIT_SECTIONS, NULL }
+ },
+ /* Do not use exit code/data from init code */
  {
--	int len;
- 	const char **s;
- 	const char *pat2sym[] = {
- 		"driver",
-@@ -757,15 +867,6 @@ static int secref_whitelist(const char *modname, const char *tosec,
- 		if (strcmp(refsymname, *s) == 0)
- 			return 1;
- 
--	/* Check for pattern 5 */
--	if (strrcmp(tosec, ".text") == 0)
--		len = strlen(tosec) - strlen(".text");
--	else
--		len = strlen(tosec);
--	if ((strncmp(tosec, fromsec, len) == 0) && (strlen(fromsec) > len) &&
--	    (strcmp(fromsec + len, ".literal") == 0))
--		return 1;
--
- 	return 0;
- }
- 
-@@ -1011,8 +1112,7 @@ static int addend_mips_rel(struct elf_info *elf, Elf_Shdr *sechdr, Elf_Rela *r)
- }
- 
- static void section_rela(const char *modname, struct elf_info *elf,
--                         Elf_Shdr *sechdr, int section(const char *),
--                         int section_ref_ok(const char *))
-+                         Elf_Shdr *sechdr)
+-	.fromsec = { INIT_SECTIONS, NULL },
+-	.tosec   = { EXIT_SECTIONS, NULL },
++	.fromsec = { ALL_INIT_SECTIONS, NULL },
++	.tosec   = { ALL_EXIT_SECTIONS, NULL },
+ },
+ /* Do not use init code/data from exit code */
  {
- 	Elf_Sym  *sym;
- 	Elf_Rela *rela;
-@@ -1031,7 +1131,7 @@ static void section_rela(const char *modname, struct elf_info *elf,
- 	fromsec = secstrings + sechdr->sh_name;
- 	fromsec += strlen(".rela");
- 	/* if from section (name) is know good then skip it */
--	if (section_ref_ok(fromsec))
-+	if (match(fromsec, section_white_list))
- 		return;
- 
- 	for (rela = start; rela < stop; rela++) {
-@@ -1059,14 +1159,13 @@ static void section_rela(const char *modname, struct elf_info *elf,
- 
- 		tosec = secstrings +
- 			elf->sechdrs[sym->st_shndx].sh_name;
--		if (section(tosec))
-+		if (section_mismatch(fromsec, tosec))
- 			warn_sec_mismatch(modname, fromsec, elf, sym, r);
- 	}
- }
- 
- static void section_rel(const char *modname, struct elf_info *elf,
--                        Elf_Shdr *sechdr, int section(const char *),
--                        int section_ref_ok(const char *))
-+                        Elf_Shdr *sechdr)
+-	.fromsec = { EXIT_SECTIONS, NULL },
+-	.tosec   = { INIT_SECTIONS, NULL }
++	.fromsec = { ALL_EXIT_SECTIONS, NULL },
++	.tosec   = { ALL_INIT_SECTIONS, NULL }
+ },
+ /* Do not export init/exit functions or data */
  {
- 	Elf_Sym *sym;
- 	Elf_Rel *rel;
-@@ -1085,7 +1184,7 @@ static void section_rel(const char *modname, struct elf_info *elf,
- 	fromsec = secstrings + sechdr->sh_name;
- 	fromsec += strlen(".rel");
- 	/* if from section (name) is know good then skip it */
--	if (section_ref_ok(fromsec))
-+	if (match(fromsec, section_white_list))
- 		return;
- 
- 	for (rel = start; rel < stop; rel++) {
-@@ -1127,7 +1226,7 @@ static void section_rel(const char *modname, struct elf_info *elf,
- 
- 		tosec = secstrings +
- 			elf->sechdrs[sym->st_shndx].sh_name;
--		if (section(tosec))
-+		if (section_mismatch(fromsec, tosec))
- 			warn_sec_mismatch(modname, fromsec, elf, sym, r);
- 	}
+ 	.fromsec = { "__ksymtab*", NULL },
+-	.tosec   = { INIT_SECTIONS, EXIT_SECTIONS, NULL }
++	.tosec   = { ALL_INIT_SECTIONS, ALL_EXIT_SECTIONS, NULL }
  }
-@@ -1145,9 +1244,7 @@ static void section_rel(const char *modname, struct elf_info *elf,
-  * be discarded and warns about it.
-  **/
- static void check_sec_ref(struct module *mod, const char *modname,
--			  struct elf_info *elf,
--			  int section(const char *),
--			  int section_ref_ok(const char *))
-+                          struct elf_info *elf)
- {
- 	int i;
- 	Elf_Ehdr *hdr = elf->hdr;
-@@ -1157,156 +1254,12 @@ static void check_sec_ref(struct module *mod, const char *modname,
- 	for (i = 0; i < hdr->e_shnum; i++) {
- 		/* We want to process only relocation sections and not .init */
- 		if (sechdrs[i].sh_type == SHT_RELA)
--			section_rela(modname, elf, &elf->sechdrs[i],
--			             section, section_ref_ok);
-+			section_rela(modname, elf, &elf->sechdrs[i]);
- 		else if (sechdrs[i].sh_type == SHT_REL)
--			section_rel(modname, elf, &elf->sechdrs[i],
--			            section, section_ref_ok);
-+			section_rel(modname, elf, &elf->sechdrs[i]);
- 	}
- }
+ };
  
--/*
-- * Identify sections from which references to either a
-- * .init or a .exit section is OK.
-- *
-- * [OPD] Keith Ownes <kaos@sgi.com> commented:
-- * For our future {in}sanity, add a comment that this is the ppc .opd
-- * section, not the ia64 .opd section.
-- * ia64 .opd should not point to discarded sections.
-- * [.rodata] like for .init.text we ignore .rodata references -same reason
-- */
--static int initexit_section_ref_ok(const char *name)
--{
--	const char **s;
--	/* Absolute section names */
--	const char *namelist1[] = {
--		"__bug_table",	/* used by powerpc for BUG() */
--		"__ex_table",
--		".altinstructions",
--		".cranges",	/* used by sh64 */
--		".fixup",
--		".machvec",	/* ia64 + powerpc uses these */
--		".machine.desc",
--		".opd",		/* See comment [OPD] */
--		"__dbe_table",
--		".parainstructions",
--		".pdr",
--		".plt",		/* seen on ARCH=um build on x86_64. Harmless */
--		".smp_locks",
--		".stab",
--		".m68k_fixup",
--		".xt.prop",	/* xtensa informational section */
--		".xt.lit",	/* xtensa informational section */
--		NULL
--	};
--	/* Start of section names */
--	const char *namelist2[] = {
--		".debug",
--		".eh_frame",
--		".note",	/* ignore ELF notes - may contain anything */
--		".got",		/* powerpc - global offset table */
--		".toc",		/* powerpc - table of contents */
--		NULL
--	};
--	/* part of section name */
--	const char *namelist3 [] = {
--		".unwind",  /* Sample: IA_64.unwind.exit.text */
--		NULL
--	};
--
--	for (s = namelist1; *s; s++)
--		if (strcmp(*s, name) == 0)
--			return 1;
--	for (s = namelist2; *s; s++)
--		if (strncmp(*s, name, strlen(*s)) == 0)
--			return 1;
--	for (s = namelist3; *s; s++)
--		if (strstr(name, *s) != NULL)
--			return 1;
--	return 0;
--}
--
--
--/*
-- * Identify sections from which references to a .init section is OK.
-- *
-- * Unfortunately references to read only data that referenced .init
-- * sections had to be excluded. Almost all of these are false
-- * positives, they are created by gcc. The downside of excluding rodata
-- * is that there really are some user references from rodata to
-- * init code, e.g. drivers/video/vgacon.c:
-- *
-- * const struct consw vga_con = {
-- *        con_startup:            vgacon_startup,
-- *
-- * where vgacon_startup is __init.  If you want to wade through the false
-- * positives, take out the check for rodata.
-- */
--static int init_section_ref_ok(const char *name)
--{
--	const char **s;
--	/* Absolute section names */
--	const char *namelist1[] = {
--		"__dbe_table",		/* MIPS generate these */
--		"__ftr_fixup",		/* powerpc cpu feature fixup */
--		"__fw_ftr_fixup",	/* powerpc firmware feature fixup */
--		"__param",
--		".data.rel.ro",		/* used by parisc64 */
--		".init",
--		".text.lock",
--		NULL
--	};
--	/* Start of section names */
--	const char *namelist2[] = {
--		".init.",
--		".pci_fixup",
--		".rodata",
--		NULL
--	};
--
--	if (initexit_section_ref_ok(name))
--		return 1;
--
--	for (s = namelist1; *s; s++)
--		if (strcmp(*s, name) == 0)
--			return 1;
--	for (s = namelist2; *s; s++)
--		if (strncmp(*s, name, strlen(*s)) == 0)
--			return 1;
--
--	/* If section name ends with ".init" we allow references
--	 * as is the case with .initcallN.init, .early_param.init,
--	 * .taglist.init etc
--	 */
--	if (strrcmp(name, ".init") == 0)
--		return 1;
--	return 0;
--}
--
--/*
-- * Identify sections from which references to a .exit section is OK.
-- */
--static int exit_section_ref_ok(const char *name)
--{
--	const char **s;
--	/* Absolute section names */
--	const char *namelist1[] = {
--		".exit.data",
--		".exit.text",
--		".exitcall.exit",
--		".rodata",
--		NULL
--	};
--
--	if (initexit_section_ref_ok(name))
--		return 1;
--
--	for (s = namelist1; *s; s++)
--		if (strcmp(*s, name) == 0)
--			return 1;
--	return 0;
--}
--
- static void read_symbols(char *modname)
- {
- 	const char *symname;
-@@ -1347,10 +1300,8 @@ static void read_symbols(char *modname)
- 		handle_moddevtable(mod, &info, sym, symname);
- 	}
- 	if (!is_vmlinux(modname) ||
--	     (is_vmlinux(modname) && vmlinux_section_warnings)) {
--		check_sec_ref(mod, modname, &info, init_section, init_section_ref_ok);
--		check_sec_ref(mod, modname, &info, exit_section, exit_section_ref_ok);
--	}
-+	     (is_vmlinux(modname) && vmlinux_section_warnings))
-+		check_sec_ref(mod, modname, &info);
- 
- 	version = get_modinfo(info.modinfo, info.modinfo_len, "version");
- 	if (version)
 -- 
 1.5.4.rc3.14.g44397
 
