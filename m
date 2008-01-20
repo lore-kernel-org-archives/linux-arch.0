@@ -1,338 +1,232 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:39034 "EHLO pasmtpB.tele.dk"
+Received: from pasmtpb.tele.dk ([80.160.77.98]:39065 "EHLO pasmtpB.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755811AbYATUJJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 20 Jan 2008 15:09:09 -0500
+	id S1755844AbYATUJK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 20 Jan 2008 15:09:10 -0500
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH] kbuild: code refactoring in modpost
-Date: Sun, 20 Jan 2008 21:08:58 +0100
-Message-Id: <1200859743-24037-3-git-send-email-sam@ravnborg.org>
-In-Reply-To: <1200859743-24037-2-git-send-email-sam@ravnborg.org>
+Subject: [PATCH] kbuild: check section names consistently in modpost
+Date: Sun, 20 Jan 2008 21:09:00 +0100
+Message-Id: <1200859743-24037-5-git-send-email-sam@ravnborg.org>
+In-Reply-To: <1200859743-24037-4-git-send-email-sam@ravnborg.org>
 References: <20080120200527.GA23852@uranus.ravnborg.org>
  <1200859743-24037-1-git-send-email-sam@ravnborg.org>
  <1200859743-24037-2-git-send-email-sam@ravnborg.org>
+ <1200859743-24037-3-git-send-email-sam@ravnborg.org>
+ <1200859743-24037-4-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Sam Ravnborg <sam@ravnborg.org>
 
-Split a too long function up in smaller bits to make
-prgram logic easier to follow.
-A few related changes done due to parameter
-changes.
-
-No functional changes.
+Now that match() is introduced use it consistently so
+we can share the section name definitions.
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
 ---
- scripts/mod/modpost.c |  242 ++++++++++++++++++++++++++++---------------------
- 1 files changed, 137 insertions(+), 105 deletions(-)
+ scripts/mod/modpost.c |  146 ++++++++++++++++++++-----------------------------
+ 1 files changed, 60 insertions(+), 86 deletions(-)
 
 diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 902ee55..e463013 100644
+index 6c206b9..986513d 100644
 --- a/scripts/mod/modpost.c
 +++ b/scripts/mod/modpost.c
-@@ -937,19 +937,19 @@ static void warn_sec_mismatch(const char *modname, const char *fromsec,
- }
+@@ -625,6 +625,7 @@ static int number_prefix(const char *sym)
  
- static unsigned int *reloc_location(struct elf_info *elf,
--					   int rsection, Elf_Rela *r)
-+				    Elf_Shdr *sechdr, Elf_Rela *r)
- {
- 	Elf_Shdr *sechdrs = elf->sechdrs;
--	int section = sechdrs[rsection].sh_info;
-+	int section = sechdr->sh_info;
+ /* The pattern is an array of simple patterns.
+  * "foo" will match an exact string equal to "foo"
++ * "*foo" will match a string that ends with "foo"
+  * "foo*" will match a string that begins with "foo"
+  * "foo$" will match a string equal to "foo" or "foo.1"
+  *   where the '1' can be any number including several digits.
+@@ -638,8 +639,13 @@ int match(const char *sym, const char * const pat[])
+ 		p = *pat++;
+ 		const char *endp = p + strlen(p) - 1;
  
- 	return (void *)elf->hdr + sechdrs[section].sh_offset +
- 		(r->r_offset - sechdrs[section].sh_addr);
- }
- 
--static int addend_386_rel(struct elf_info *elf, int rsection, Elf_Rela *r)
-+static int addend_386_rel(struct elf_info *elf, Elf_Shdr *sechdr, Elf_Rela *r)
- {
- 	unsigned int r_typ = ELF_R_TYPE(r->r_info);
--	unsigned int *location = reloc_location(elf, rsection, r);
-+	unsigned int *location = reloc_location(elf, sechdr, r);
- 
- 	switch (r_typ) {
- 	case R_386_32:
-@@ -965,7 +965,7 @@ static int addend_386_rel(struct elf_info *elf, int rsection, Elf_Rela *r)
++		/* "*foo" */
++		if (*p == '*') {
++			if (strrcmp(sym, p + 1) == 0)
++				return 1;
++		}
+ 		/* "foo*" */
+-		if (*endp == '*') {
++		else if (*endp == '*') {
+ 			if (strncmp(sym, p, strlen(p) - 1) == 0)
+ 				return 1;
+ 		}
+@@ -660,54 +666,6 @@ int match(const char *sym, const char * const pat[])
  	return 0;
  }
  
--static int addend_arm_rel(struct elf_info *elf, int rsection, Elf_Rela *r)
-+static int addend_arm_rel(struct elf_info *elf, Elf_Shdr *sechdr, Elf_Rela *r)
- {
- 	unsigned int r_typ = ELF_R_TYPE(r->r_info);
+-/*
+- * Functions used only during module init is marked __init and is stored in
+- * a .init.text section. Likewise data is marked __initdata and stored in
+- * a .init.data section.
+- * If this section is one of these sections return 1
+- * See include/linux/init.h for the details
+- */
+-static int init_section(const char *name)
+-{
+-	if (strcmp(name, ".init") == 0)
+-		return 1;
+-	if (strncmp(name, ".init.", strlen(".init.")) == 0)
+-		return 1;
+-	return 0;
+-}
+-
+-/*
+- * Functions used only during module exit is marked __exit and is stored in
+- * a .exit.text section. Likewise data is marked __exitdata and stored in
+- * a .exit.data section.
+- * If this section is one of these sections return 1
+- * See include/linux/init.h for the details
+- **/
+-static int exit_section(const char *name)
+-{
+-	if (strcmp(name, ".exit.text") == 0)
+-		return 1;
+-	if (strcmp(name, ".exit.data") == 0)
+-		return 1;
+-	return 0;
+-
+-}
+-
+-/*
+- * Data sections are named like this:
+- * .data | .data.rel | .data.rel.*
+- * Return 1 if the specified section is a data section
+- */
+-static int data_section(const char *name)
+-{
+-	if ((strcmp(name, ".data") == 0) ||
+-	    (strcmp(name, ".data.rel") == 0) ||
+-	    (strncmp(name, ".data.rel.", strlen(".data.rel.")) == 0))
+-		return 1;
+-	else
+-		return 0;
+-}
+-
+ /* sections that we do not want to do full section mismatch check on */
+ static const char *section_white_list[] =
+ 	{ ".debug*", ".stab*", ".note*", ".got*", ".toc*", NULL };
+@@ -721,9 +679,50 @@ static const char *section_white_list[] =
+ #define INIT_SECTIONS INIT_DATA_SECTIONS, INIT_TEXT_SECTIONS
+ #define EXIT_SECTIONS EXIT_DATA_SECTIONS, EXIT_TEXT_SECTIONS
  
-@@ -978,8 +978,8 @@ static int addend_arm_rel(struct elf_info *elf, int rsection, Elf_Rela *r)
- 	case R_ARM_PC24:
- 		/* From ARM ABI: ((S + A) | T) - P */
- 		r->r_addend = (int)(long)(elf->hdr +
--		              elf->sechdrs[rsection].sh_offset +
--		              (r->r_offset - elf->sechdrs[rsection].sh_addr));
-+		              sechdr->sh_offset +
-+		              (r->r_offset - sechdr->sh_addr));
- 		break;
- 	default:
+-#define DATA_SECTIONS ".data$"
++#define DATA_SECTIONS ".data$", ".data.rel$"
+ #define TEXT_SECTIONS ".text$"
+ 
++/* init data sections */
++static const char *init_data_sections[] = { INIT_DATA_SECTIONS, NULL };
++
++/* all init sections */
++static const char *init_sections[] = { INIT_SECTIONS, NULL };
++
++/* All init and exit sections (code + data) */
++static const char *init_exit_sections[] =
++	{INIT_SECTIONS, EXIT_SECTIONS, NULL };
++
++/* data section */
++static const char *data_sections[] = { DATA_SECTIONS, NULL };
++
++/* sections that may refer to an init/exit section with no warning */
++static const char *initref_sections[] =
++{
++	".text.init.refok*",
++	".exit.text.refok*",
++	".data.init.refok*",
++	NULL
++};
++
++
++/* symbols in .data that may refer to init/exit sections */
++static const char *symbol_white_list[] =
++{
++	"*driver",
++	"*_template", /* scsi uses *_template a lot */
++	"*_timer",    /* arm uses ops structures named _timer a lot */
++	"*_sht",      /* scsi also used *_sht to some extent */
++	"*_ops",
++	"*_probe",
++	"*_probe_one",
++	"*_console",
++	NULL
++};
++
++static const char *head_sections[] = { ".head.text*", NULL };
++static const char *linker_symbols[] =
++	{ "__init_begin", "_sinittext", "_einittext", NULL };
++
+ struct sectioncheck {
+ 	const char *fromsec[20];
+ 	const char *tosec[20];
+@@ -817,55 +816,30 @@ static int secref_whitelist(const char *modname, const char *tosec,
+ 			    const char *fromsec, const char *atsym,
+ 			    const char *refsymname)
+ {
+-	const char **s;
+-	const char *pat2sym[] = {
+-		"driver",
+-		"_template", /* scsi uses *_template a lot */
+-		"_timer",    /* arm uses ops structures named _timer a lot */
+-		"_sht",      /* scsi also used *_sht to some extent */
+-		"_ops",
+-		"_probe",
+-		"_probe_one",
+-		"_console",
+-		NULL
+-	};
+-
+-	const char *pat3refsym[] = {
+-		"__init_begin",
+-		"_sinittext",
+-		"_einittext",
+-		NULL
+-	};
+-
+ 	/* Check for pattern 0 */
+-	if ((strncmp(fromsec, ".text.init.refok", strlen(".text.init.refok")) == 0) ||
+-	    (strncmp(fromsec, ".exit.text.refok", strlen(".exit.text.refok")) == 0) ||
+-	    (strncmp(fromsec, ".data.init.refok", strlen(".data.init.refok")) == 0))
++	if (match(fromsec, initref_sections))
  		return 1;
-@@ -987,10 +987,10 @@ static int addend_arm_rel(struct elf_info *elf, int rsection, Elf_Rela *r)
+ 
+ 	/* Check for pattern 1 */
+-	if ((strcmp(tosec, ".init.data") == 0) &&
+-	    (strncmp(fromsec, ".data", strlen(".data")) == 0) &&
++	if (match(tosec, init_data_sections) &&
++	    match(fromsec, data_sections) &&
+ 	    (strncmp(atsym, "__param", strlen("__param")) == 0))
+ 		return 1;
+ 
+ 	/* Check for pattern 2 */
+-	if ((init_section(tosec) || exit_section(tosec))
+-	    && data_section(fromsec))
+-		for (s = pat2sym; *s; s++)
+-			if (strrcmp(atsym, *s) == 0)
+-				return 1;
++	if (match(tosec, init_exit_sections) &&
++	    match(fromsec, data_sections) &&
++	    match(atsym, symbol_white_list))
++		return 1;
+ 
+ 	/* Check for pattern 3 */
+-	if ((strcmp(fromsec, ".text.head") == 0) &&
+-	    ((strcmp(tosec, ".init.data") == 0) ||
+-	    (strcmp(tosec, ".init.text") == 0)))
++	if (match(fromsec, head_sections) &&
++	    match(tosec, init_sections))
+ 	return 1;
+ 
+ 	/* Check for pattern 4 */
+-	for (s = pat3refsym; *s; s++)
+-		if (strcmp(refsymname, *s) == 0)
+-			return 1;
++	if (match(refsymname, linker_symbols))
++		return 1;
+ 
  	return 0;
  }
- 
--static int addend_mips_rel(struct elf_info *elf, int rsection, Elf_Rela *r)
-+static int addend_mips_rel(struct elf_info *elf, Elf_Shdr *sechdr, Elf_Rela *r)
- {
- 	unsigned int r_typ = ELF_R_TYPE(r->r_info);
--	unsigned int *location = reloc_location(elf, rsection, r);
-+	unsigned int *location = reloc_location(elf, sechdr, r);
- 	unsigned int inst;
- 
- 	if (r_typ == R_MIPS_HI16)
-@@ -1010,6 +1010,128 @@ static int addend_mips_rel(struct elf_info *elf, int rsection, Elf_Rela *r)
- 	return 0;
- }
- 
-+static void section_rela(const char *modname, struct elf_info *elf,
-+                         Elf_Shdr *sechdr, int section(const char *),
-+                         int section_ref_ok(const char *))
-+{
-+	Elf_Sym  *sym;
-+	Elf_Rela *rela;
-+	Elf_Rela r;
-+	unsigned int r_sym;
-+	const char *fromsec;
-+	const char * tosec;
-+
-+	Elf_Ehdr *hdr = elf->hdr;
-+	Elf_Rela *start = (void *)hdr + sechdr->sh_offset;
-+	Elf_Rela *stop  = (void *)start + sechdr->sh_size;
-+
-+	const char *secstrings = (void *)hdr +
-+				 elf->sechdrs[hdr->e_shstrndx].sh_offset;
-+
-+	fromsec = secstrings + sechdr->sh_name;
-+	fromsec += strlen(".rela");
-+	/* if from section (name) is know good then skip it */
-+	if (section_ref_ok(fromsec))
-+		return;
-+
-+	for (rela = start; rela < stop; rela++) {
-+		r.r_offset = TO_NATIVE(rela->r_offset);
-+#if KERNEL_ELFCLASS == ELFCLASS64
-+		if (hdr->e_machine == EM_MIPS) {
-+			unsigned int r_typ;
-+			r_sym = ELF64_MIPS_R_SYM(rela->r_info);
-+			r_sym = TO_NATIVE(r_sym);
-+			r_typ = ELF64_MIPS_R_TYPE(rela->r_info);
-+			r.r_info = ELF64_R_INFO(r_sym, r_typ);
-+		} else {
-+			r.r_info = TO_NATIVE(rela->r_info);
-+			r_sym = ELF_R_SYM(r.r_info);
-+		}
-+#else
-+		r.r_info = TO_NATIVE(rela->r_info);
-+		r_sym = ELF_R_SYM(r.r_info);
-+#endif
-+		r.r_addend = TO_NATIVE(rela->r_addend);
-+		sym = elf->symtab_start + r_sym;
-+		/* Skip special sections */
-+		if (sym->st_shndx >= SHN_LORESERVE)
-+			continue;
-+
-+		tosec = secstrings +
-+			elf->sechdrs[sym->st_shndx].sh_name;
-+		if (section(tosec))
-+			warn_sec_mismatch(modname, fromsec, elf, sym, r);
-+	}
-+}
-+
-+static void section_rel(const char *modname, struct elf_info *elf,
-+                        Elf_Shdr *sechdr, int section(const char *),
-+                        int section_ref_ok(const char *))
-+{
-+	Elf_Sym *sym;
-+	Elf_Rel *rel;
-+	Elf_Rela r;
-+	unsigned int r_sym;
-+	const char *fromsec;
-+	const char * tosec;
-+
-+	Elf_Ehdr *hdr = elf->hdr;
-+	Elf_Rel *start = (void *)hdr + sechdr->sh_offset;
-+	Elf_Rel *stop  = (void *)start + sechdr->sh_size;
-+
-+	const char *secstrings = (void *)hdr +
-+				 elf->sechdrs[hdr->e_shstrndx].sh_offset;
-+
-+	fromsec = secstrings + sechdr->sh_name;
-+	fromsec += strlen(".rel");
-+	/* if from section (name) is know good then skip it */
-+	if (section_ref_ok(fromsec))
-+		return;
-+
-+	for (rel = start; rel < stop; rel++) {
-+		r.r_offset = TO_NATIVE(rel->r_offset);
-+#if KERNEL_ELFCLASS == ELFCLASS64
-+		if (hdr->e_machine == EM_MIPS) {
-+			unsigned int r_typ;
-+			r_sym = ELF64_MIPS_R_SYM(rel->r_info);
-+			r_sym = TO_NATIVE(r_sym);
-+			r_typ = ELF64_MIPS_R_TYPE(rel->r_info);
-+			r.r_info = ELF64_R_INFO(r_sym, r_typ);
-+		} else {
-+			r.r_info = TO_NATIVE(rel->r_info);
-+			r_sym = ELF_R_SYM(r.r_info);
-+		}
-+#else
-+		r.r_info = TO_NATIVE(rel->r_info);
-+		r_sym = ELF_R_SYM(r.r_info);
-+#endif
-+		r.r_addend = 0;
-+		switch (hdr->e_machine) {
-+		case EM_386:
-+			if (addend_386_rel(elf, sechdr, &r))
-+				continue;
-+			break;
-+		case EM_ARM:
-+			if (addend_arm_rel(elf, sechdr, &r))
-+				continue;
-+			break;
-+		case EM_MIPS:
-+			if (addend_mips_rel(elf, sechdr, &r))
-+				continue;
-+			break;
-+		}
-+		sym = elf->symtab_start + r_sym;
-+		/* Skip special sections */
-+		if (sym->st_shndx >= SHN_LORESERVE)
-+			continue;
-+
-+		tosec = secstrings +
-+			elf->sechdrs[sym->st_shndx].sh_name;
-+		if (section(tosec))
-+			warn_sec_mismatch(modname, fromsec, elf, sym, r);
-+	}
-+}
-+
- /**
-  * A module includes a number of sections that are discarded
-  * either when loaded or when used as built-in.
-@@ -1028,108 +1150,18 @@ static void check_sec_ref(struct module *mod, const char *modname,
- 			  int section_ref_ok(const char *))
- {
- 	int i;
--	Elf_Sym  *sym;
- 	Elf_Ehdr *hdr = elf->hdr;
- 	Elf_Shdr *sechdrs = elf->sechdrs;
--	const char *secstrings = (void *)hdr +
--				 sechdrs[hdr->e_shstrndx].sh_offset;
- 
- 	/* Walk through all sections */
- 	for (i = 0; i < hdr->e_shnum; i++) {
--		const char *name = secstrings + sechdrs[i].sh_name;
--		const char *secname;
--		Elf_Rela r;
--		unsigned int r_sym;
- 		/* We want to process only relocation sections and not .init */
--		if (sechdrs[i].sh_type == SHT_RELA) {
--			Elf_Rela *rela;
--			Elf_Rela *start = (void *)hdr + sechdrs[i].sh_offset;
--			Elf_Rela *stop  = (void *)start + sechdrs[i].sh_size;
--			name += strlen(".rela");
--			if (section_ref_ok(name))
--				continue;
--
--			for (rela = start; rela < stop; rela++) {
--				r.r_offset = TO_NATIVE(rela->r_offset);
--#if KERNEL_ELFCLASS == ELFCLASS64
--				if (hdr->e_machine == EM_MIPS) {
--					unsigned int r_typ;
--					r_sym = ELF64_MIPS_R_SYM(rela->r_info);
--					r_sym = TO_NATIVE(r_sym);
--					r_typ = ELF64_MIPS_R_TYPE(rela->r_info);
--					r.r_info = ELF64_R_INFO(r_sym, r_typ);
--				} else {
--					r.r_info = TO_NATIVE(rela->r_info);
--					r_sym = ELF_R_SYM(r.r_info);
--				}
--#else
--				r.r_info = TO_NATIVE(rela->r_info);
--				r_sym = ELF_R_SYM(r.r_info);
--#endif
--				r.r_addend = TO_NATIVE(rela->r_addend);
--				sym = elf->symtab_start + r_sym;
--				/* Skip special sections */
--				if (sym->st_shndx >= SHN_LORESERVE)
--					continue;
--
--				secname = secstrings +
--					sechdrs[sym->st_shndx].sh_name;
--				if (section(secname))
--					warn_sec_mismatch(modname, name,
--							  elf, sym, r);
--			}
--		} else if (sechdrs[i].sh_type == SHT_REL) {
--			Elf_Rel *rel;
--			Elf_Rel *start = (void *)hdr + sechdrs[i].sh_offset;
--			Elf_Rel *stop  = (void *)start + sechdrs[i].sh_size;
--			name += strlen(".rel");
--			if (section_ref_ok(name))
--				continue;
--
--			for (rel = start; rel < stop; rel++) {
--				r.r_offset = TO_NATIVE(rel->r_offset);
--#if KERNEL_ELFCLASS == ELFCLASS64
--				if (hdr->e_machine == EM_MIPS) {
--					unsigned int r_typ;
--					r_sym = ELF64_MIPS_R_SYM(rel->r_info);
--					r_sym = TO_NATIVE(r_sym);
--					r_typ = ELF64_MIPS_R_TYPE(rel->r_info);
--					r.r_info = ELF64_R_INFO(r_sym, r_typ);
--				} else {
--					r.r_info = TO_NATIVE(rel->r_info);
--					r_sym = ELF_R_SYM(r.r_info);
--				}
--#else
--				r.r_info = TO_NATIVE(rel->r_info);
--				r_sym = ELF_R_SYM(r.r_info);
--#endif
--				r.r_addend = 0;
--				switch (hdr->e_machine) {
--				case EM_386:
--					if (addend_386_rel(elf, i, &r))
--						continue;
--					break;
--				case EM_ARM:
--					if (addend_arm_rel(elf, i, &r))
--						continue;
--					break;
--				case EM_MIPS:
--					if (addend_mips_rel(elf, i, &r))
--						continue;
--					break;
--				}
--				sym = elf->symtab_start + r_sym;
--				/* Skip special sections */
--				if (sym->st_shndx >= SHN_LORESERVE)
--					continue;
--
--				secname = secstrings +
--					sechdrs[sym->st_shndx].sh_name;
--				if (section(secname))
--					warn_sec_mismatch(modname, name,
--							  elf, sym, r);
--			}
--		}
-+		if (sechdrs[i].sh_type == SHT_RELA)
-+			section_rela(modname, elf, &elf->sechdrs[i],
-+			             section, section_ref_ok);
-+		else if (sechdrs[i].sh_type == SHT_REL)
-+			section_rel(modname, elf, &elf->sechdrs[i],
-+			            section, section_ref_ok);
- 	}
- }
- 
 -- 
 1.5.4.rc3.14.g44397
 
