@@ -1,41 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp5.pp.htv.fi ([213.243.153.39]:40506 "EHLO smtp5.pp.htv.fi"
+Received: from pasmtpb.tele.dk ([80.160.77.98]:47642 "EHLO pasmtpB.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755906AbYATW3O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 20 Jan 2008 17:29:14 -0500
-Date: Mon, 21 Jan 2008 00:27:54 +0200
-From: Adrian Bunk <bunk@kernel.org>
+	id S1753236AbYAUCvH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 20 Jan 2008 21:51:07 -0500
+Date: Mon, 21 Jan 2008 03:51:11 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: kbuild: improved Section mismatch detection
-Message-ID: <20080120222754.GK8669@does.not.exist>
-References: <20080120200527.GA23852@uranus.ravnborg.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Message-ID: <20080121025111.GA26076@uranus.ravnborg.org>
+References: <20080120200527.GA23852@uranus.ravnborg.org> <20080120222754.GK8669@does.not.exist>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080120200527.GA23852@uranus.ravnborg.org>
+In-Reply-To: <20080120222754.GK8669@does.not.exist>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
+To: Adrian Bunk <bunk@kernel.org>
 Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>
 
-On Sun, Jan 20, 2008 at 09:05:27PM +0100, Sam Ravnborg wrote:
->...
-> Adrian reminded us that KCFLAGS=-fno-inline told
-> another story with more than 100 Section mismatch
-> warnings on 64 bit x86 with an allyesconfig build.
->...
+On Mon, Jan 21, 2008 at 12:27:54AM +0200, Adrian Bunk wrote:
+> On Sun, Jan 20, 2008 at 09:05:27PM +0100, Sam Ravnborg wrote:
+> >...
+> > Adrian reminded us that KCFLAGS=-fno-inline told
+> > another story with more than 100 Section mismatch
+> > warnings on 64 bit x86 with an allyesconfig build.
+> >...
+> 
+> Not -fno-inline but -fno-inline-functions-called-once
+> (completely different option).
 
-Not -fno-inline but -fno-inline-functions-called-once
-(completely different option).
+Yep - looked that up after sending the mail.
+A quick test shows no diference in # of generated Section mismatch
+warnings for the two - which is good.
 
-> 	Sam
-
-cu
-Adrian
-
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
-
+	Sam
