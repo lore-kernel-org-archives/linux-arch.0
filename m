@@ -1,448 +1,444 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:51727 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751601AbYA0F03 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Jan 2008 00:26:29 -0500
-Message-Id: <200801270518.m0R5IXMw031208@imap1.linux-foundation.org>
-Subject: + procfs-constify-function-pointer-tables.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Sat, 26 Jan 2008 21:18:36 -0800
+Received: from viefep18-int.chello.at ([213.46.255.22]:59141 "EHLO
+	viefep11-int.chello.at" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1755617AbYA1Kkp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2008 05:40:45 -0500
+Message-Id: <20080128104055.935144000@chello.nl>
+References: <20080128103953.326762000@chello.nl>
+Date: Mon, 28 Jan 2008 11:39:54 +0100
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [RFC][PATCH 1/2] Fix many ARM timer handlers
+Content-Disposition: inline; filename=arm-xtime.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mm-commits@vger.kernel.org
-Cc: jengelh@computergmbh.de, bryan.wu@analog.com, dhowells@redhat.com, geert@linux-m68k.org, jesper.nilsson@axis.com, linux-arch@vger.kernel.org, vapier@gentoo.org
+To: rth@twiddle.net, rmk@arm.linux.org.uk, bryan.wu@analog.com, dhowells@redhat.com, gerg@uclinux.org, lethal@linux-sh.org, wli@holomorphy.com, davem@davemloft.net
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, torvalds@linux-foundation.org, a.p.zijlstra@chello.nl
 
+From: Russell King <rmk@arm.linux.org.uk>
 
-The patch titled
-     procfs: constify function pointer tables
-has been added to the -mm tree.  Its filename is
-     procfs-constify-function-pointer-tables.patch
+Mostly untested patch: move the xtime write mode seqlock into
+timer_tick(), so it only surrounds the call to do_timer().
 
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
+This avoids a deadlock in update_process_times() ...
+hrtimer_get_softirq_time() which tries to get a read mode seqlock
+on xtime.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
-
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: procfs: constify function pointer tables
-From: Jan Engelhardt <jengelh@computergmbh.de>
-
-Signed-off-by: Jan Engelhardt <jengelh@computergmbh.de>
-cked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Acked-by: Mike Frysinger <vapier@gentoo.org>
-Acked-By: David Howells <dhowells@redhat.com>
-Acked-by: Bryan Wu <bryan.wu@analog.com>
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
 ---
+ arch/arm/kernel/time.c                   |    2 ++
+ arch/arm/mach-aaec2000/core.c            |    4 ----
+ arch/arm/mach-clps711x/time.c            |    2 --
+ arch/arm/mach-clps7500/core.c            |    4 ----
+ arch/arm/mach-ebsa110/core.c             |    4 ----
+ arch/arm/mach-ep93xx/core.c              |    4 ----
+ arch/arm/mach-footbridge/dc21285-timer.c |    4 ----
+ arch/arm/mach-footbridge/isa-timer.c     |    2 --
+ arch/arm/mach-h720x/cpu-h7201.c          |    4 ----
+ arch/arm/mach-h720x/cpu-h7202.c          |    2 --
+ arch/arm/mach-integrator/core.c          |    4 ----
+ arch/arm/mach-ixp2000/core.c             |    4 ----
+ arch/arm/mach-ks8695/time.c              |    3 ---
+ arch/arm/mach-lh7a40x/time.c             |    4 ----
+ arch/arm/mach-mx3/time.c                 |    4 ----
+ arch/arm/mach-netx/time.c                |    4 ----
+ arch/arm/mach-omap2/timer-gp.c           |    4 ----
+ arch/arm/mach-pnx4008/time.c             |    4 ----
+ arch/arm/mach-realview/core.c            |    4 ----
+ arch/arm/mach-sa1100/time.c              |    4 ----
+ arch/arm/mach-shark/core.c               |    2 --
+ 21 files changed, 2 insertions(+), 71 deletions(-)
 
- arch/alpha/kernel/setup.c     |    2 +-
- arch/blackfin/kernel/setup.c  |    2 +-
- arch/cris/kernel/setup.c      |    2 +-
- arch/frv/kernel/setup.c       |    2 +-
- arch/h8300/kernel/setup.c     |    2 +-
- arch/m32r/kernel/setup.c      |    2 +-
- arch/m68k/kernel/setup.c      |    2 +-
- arch/m68knommu/kernel/setup.c |    2 +-
- arch/parisc/kernel/setup.c    |    2 +-
- arch/ppc/kernel/setup.c       |    2 +-
- arch/v850/kernel/procfs.c     |    2 +-
- arch/xtensa/kernel/setup.c    |    2 +-
- fs/proc/base.c                |    4 ++--
- fs/proc/nommu.c               |    2 +-
- fs/proc/proc_misc.c           |   22 +++++++++++-----------
- fs/proc/proc_sysctl.c         |    4 ++--
- fs/proc/proc_tty.c            |    2 +-
- fs/proc/task_mmu.c            |    8 ++++----
- fs/proc/task_nommu.c          |    2 +-
- 19 files changed, 34 insertions(+), 34 deletions(-)
-
-diff -puN arch/alpha/kernel/setup.c~procfs-constify-function-pointer-tables arch/alpha/kernel/setup.c
---- a/arch/alpha/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/alpha/kernel/setup.c
-@@ -1471,7 +1471,7 @@ c_stop(struct seq_file *f, void *v)
+Index: linux-2.6/arch/arm/kernel/time.c
+===================================================================
+--- linux-2.6.orig/arch/arm/kernel/time.c
++++ linux-2.6/arch/arm/kernel/time.c
+@@ -325,7 +325,9 @@ void timer_tick(void)
+ 	profile_tick(CPU_PROFILING);
+ 	do_leds();
+ 	do_set_rtc();
++	write_seqlock(&xtime_lock);
+ 	do_timer(1);
++	write_sequnlock(&xtime_lock);
+ #ifndef CONFIG_SMP
+ 	update_process_times(user_mode(get_irq_regs()));
+ #endif
+Index: linux-2.6/arch/arm/mach-aaec2000/core.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-aaec2000/core.c
++++ linux-2.6/arch/arm/mach-aaec2000/core.c
+@@ -130,13 +130,9 @@ static irqreturn_t
+ aaec2000_timer_interrupt(int irq, void *dev_id)
  {
+ 	/* TODO: Check timer accuracy */
+-	write_seqlock(&xtime_lock);
+-
+ 	timer_tick();
+ 	TIMER1_CLEAR = 1;
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start	= c_start,
- 	.next	= c_next,
- 	.stop	= c_stop,
-diff -puN arch/blackfin/kernel/setup.c~procfs-constify-function-pointer-tables arch/blackfin/kernel/setup.c
---- a/arch/blackfin/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/blackfin/kernel/setup.c
-@@ -691,7 +691,7 @@ static void c_stop(struct seq_file *m, v
+Index: linux-2.6/arch/arm/mach-clps711x/time.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-clps711x/time.c
++++ linux-2.6/arch/arm/mach-clps711x/time.c
+@@ -50,9 +50,7 @@ static unsigned long clps711x_gettimeoff
+ static irqreturn_t
+ p720t_timer_interrupt(int irq, void *dev_id)
  {
+-	write_seqlock(&xtime_lock);
+ 	timer_tick();
+-	write_sequnlock(&xtime_lock);
+ 	return IRQ_HANDLED;
  }
  
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start = c_start,
- 	.next = c_next,
- 	.stop = c_stop,
-diff -puN arch/cris/kernel/setup.c~procfs-constify-function-pointer-tables arch/cris/kernel/setup.c
---- a/arch/cris/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/cris/kernel/setup.c
-@@ -180,7 +180,7 @@ static void c_stop(struct seq_file *m, v
- 
- extern int show_cpuinfo(struct seq_file *m, void *v);
- 
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start = c_start,
- 	.next  = c_next,
- 	.stop  = c_stop,
-diff -puN arch/frv/kernel/setup.c~procfs-constify-function-pointer-tables arch/frv/kernel/setup.c
---- a/arch/frv/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/frv/kernel/setup.c
-@@ -1113,7 +1113,7 @@ static void c_stop(struct seq_file *m, v
+Index: linux-2.6/arch/arm/mach-clps7500/core.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-clps7500/core.c
++++ linux-2.6/arch/arm/mach-clps7500/core.c
+@@ -298,8 +298,6 @@ extern unsigned long ioc_timer_gettimeof
+ static irqreturn_t
+ clps7500_timer_interrupt(int irq, void *dev_id)
  {
+-	write_seqlock(&xtime_lock);
+-
+ 	timer_tick();
+ 
+ 	/* Why not using do_leds interface?? */
+@@ -313,8 +311,6 @@ clps7500_timer_interrupt(int irq, void *
+ 		}
+ 	}
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start	= c_start,
- 	.next	= c_next,
- 	.stop	= c_stop,
-diff -puN arch/h8300/kernel/setup.c~procfs-constify-function-pointer-tables arch/h8300/kernel/setup.c
---- a/arch/h8300/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/h8300/kernel/setup.c
-@@ -236,7 +236,7 @@ static void c_stop(struct seq_file *m, v
+Index: linux-2.6/arch/arm/mach-ebsa110/core.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-ebsa110/core.c
++++ linux-2.6/arch/arm/mach-ebsa110/core.c
+@@ -178,8 +178,6 @@ ebsa110_timer_interrupt(int irq, void *d
  {
+ 	u32 count;
+ 
+-	write_seqlock(&xtime_lock);
+-
+ 	/* latch and read timer 1 */
+ 	__raw_writeb(0x40, PIT_CTRL);
+ 	count = __raw_readb(PIT_T1);
+@@ -192,8 +190,6 @@ ebsa110_timer_interrupt(int irq, void *d
+ 
+ 	timer_tick();
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start	= c_start,
- 	.next	= c_next,
- 	.stop	= c_stop,
-diff -puN arch/m32r/kernel/setup.c~procfs-constify-function-pointer-tables arch/m32r/kernel/setup.c
---- a/arch/m32r/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/m32r/kernel/setup.c
-@@ -369,7 +369,7 @@ static void c_stop(struct seq_file *m, v
+Index: linux-2.6/arch/arm/mach-ep93xx/core.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-ep93xx/core.c
++++ linux-2.6/arch/arm/mach-ep93xx/core.c
+@@ -99,8 +99,6 @@ static unsigned int last_jiffy_time;
+ 
+ static int ep93xx_timer_interrupt(int irq, void *dev_id)
  {
+-	write_seqlock(&xtime_lock);
+-
+ 	__raw_writel(1, EP93XX_TIMER1_CLEAR);
+ 	while ((signed long)
+ 		(__raw_readl(EP93XX_TIMER4_VALUE_LOW) - last_jiffy_time)
+@@ -109,8 +107,6 @@ static int ep93xx_timer_interrupt(int ir
+ 		timer_tick();
+ 	}
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start = c_start,
- 	.next = c_next,
- 	.stop = c_stop,
-diff -puN arch/m68k/kernel/setup.c~procfs-constify-function-pointer-tables arch/m68k/kernel/setup.c
---- a/arch/m68k/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/m68k/kernel/setup.c
-@@ -450,7 +450,7 @@ static void *c_next(struct seq_file *m, 
- static void c_stop(struct seq_file *m, void *v)
+Index: linux-2.6/arch/arm/mach-footbridge/dc21285-timer.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-footbridge/dc21285-timer.c
++++ linux-2.6/arch/arm/mach-footbridge/dc21285-timer.c
+@@ -30,14 +30,10 @@ static unsigned long timer1_gettimeoffse
+ static irqreturn_t
+ timer1_interrupt(int irq, void *dev_id)
  {
- }
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start	= c_start,
- 	.next	= c_next,
- 	.stop	= c_stop,
-diff -puN arch/m68knommu/kernel/setup.c~procfs-constify-function-pointer-tables arch/m68knommu/kernel/setup.c
---- a/arch/m68knommu/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/m68knommu/kernel/setup.c
-@@ -260,7 +260,7 @@ static void c_stop(struct seq_file *m, v
- {
+-	write_seqlock(&xtime_lock);
+-
+ 	*CSR_TIMER1_CLR = 0;
+ 
+ 	timer_tick();
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start	= c_start,
- 	.next	= c_next,
- 	.stop	= c_stop,
-diff -puN arch/parisc/kernel/setup.c~procfs-constify-function-pointer-tables arch/parisc/kernel/setup.c
---- a/arch/parisc/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/parisc/kernel/setup.c
-@@ -190,7 +190,7 @@ c_stop (struct seq_file *m, void *v)
+Index: linux-2.6/arch/arm/mach-footbridge/isa-timer.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-footbridge/isa-timer.c
++++ linux-2.6/arch/arm/mach-footbridge/isa-timer.c
+@@ -64,9 +64,7 @@ static unsigned long isa_gettimeoffset(v
+ static irqreturn_t
+ isa_timer_interrupt(int irq, void *dev_id)
  {
+-	write_seqlock(&xtime_lock);
+ 	timer_tick();
+-	write_sequnlock(&xtime_lock);
+ 	return IRQ_HANDLED;
  }
  
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start	= c_start,
- 	.next	= c_next,
- 	.stop	= c_stop,
-diff -puN arch/ppc/kernel/setup.c~procfs-constify-function-pointer-tables arch/ppc/kernel/setup.c
---- a/arch/ppc/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/ppc/kernel/setup.c
-@@ -276,7 +276,7 @@ static void c_stop(struct seq_file *m, v
+Index: linux-2.6/arch/arm/mach-h720x/cpu-h7201.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-h720x/cpu-h7201.c
++++ linux-2.6/arch/arm/mach-h720x/cpu-h7201.c
+@@ -29,13 +29,9 @@
+ static irqreturn_t
+ h7201_timer_interrupt(int irq, void *dev_id)
  {
+-	write_seqlock(&xtime_lock);
+-
+ 	CPU_REG (TIMER_VIRT, TIMER_TOPSTAT);
+ 	timer_tick();
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start =c_start,
- 	.next =	c_next,
- 	.stop =	c_stop,
-diff -puN arch/v850/kernel/procfs.c~procfs-constify-function-pointer-tables arch/v850/kernel/procfs.c
---- a/arch/v850/kernel/procfs.c~procfs-constify-function-pointer-tables
-+++ a/arch/v850/kernel/procfs.c
-@@ -59,7 +59,7 @@ static void cpuinfo_stop (struct seq_fil
+Index: linux-2.6/arch/arm/mach-h720x/cpu-h7202.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-h720x/cpu-h7202.c
++++ linux-2.6/arch/arm/mach-h720x/cpu-h7202.c
+@@ -113,9 +113,7 @@ h7202_timerx_demux_handler(unsigned int 
+ 	mask = CPU_REG (TIMER_VIRT, TIMER_TOPSTAT);
+ 
+ 	if ( mask & TSTAT_T0INT ) {
+-		write_seqlock(&xtime_lock);
+ 		timer_tick();
+-		write_sequnlock(&xtime_lock);
+ 		if( mask == TSTAT_T0INT )
+ 			return;
+ 	}
+Index: linux-2.6/arch/arm/mach-integrator/core.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-integrator/core.c
++++ linux-2.6/arch/arm/mach-integrator/core.c
+@@ -250,8 +250,6 @@ unsigned long integrator_gettimeoffset(v
+ static irqreturn_t
+ integrator_timer_interrupt(int irq, void *dev_id)
  {
+-	write_seqlock(&xtime_lock);
+-
+ 	/*
+ 	 * clear the interrupt
+ 	 */
+@@ -259,8 +257,6 @@ integrator_timer_interrupt(int irq, void
+ 
+ 	timer_tick();
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--struct seq_operations cpuinfo_op = {
-+const struct seq_operations cpuinfo_op = {
- 	.start	= cpuinfo_start,
- 	.next	= cpuinfo_next,
- 	.stop	= cpuinfo_stop,
-diff -puN arch/xtensa/kernel/setup.c~procfs-constify-function-pointer-tables arch/xtensa/kernel/setup.c
---- a/arch/xtensa/kernel/setup.c~procfs-constify-function-pointer-tables
-+++ a/arch/xtensa/kernel/setup.c
-@@ -464,7 +464,7 @@ c_stop(struct seq_file *f, void *v)
+Index: linux-2.6/arch/arm/mach-ixp2000/core.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-ixp2000/core.c
++++ linux-2.6/arch/arm/mach-ixp2000/core.c
+@@ -206,8 +206,6 @@ unsigned long ixp2000_gettimeoffset (voi
+ 
+ static int ixp2000_timer_interrupt(int irq, void *dev_id)
  {
+-	write_seqlock(&xtime_lock);
+-
+ 	/* clear timer 1 */
+ 	ixp2000_reg_wrb(IXP2000_T1_CLR, 1);
+ 
+@@ -217,8 +215,6 @@ static int ixp2000_timer_interrupt(int i
+ 		next_jiffy_time -= ticks_per_jiffy;
+ 	}
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--struct seq_operations cpuinfo_op =
-+const struct seq_operations cpuinfo_op =
+Index: linux-2.6/arch/arm/mach-ks8695/time.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-ks8695/time.c
++++ linux-2.6/arch/arm/mach-ks8695/time.c
+@@ -70,10 +70,7 @@ static unsigned long ks8695_gettimeoffse
+  */
+ static irqreturn_t ks8695_timer_interrupt(int irq, void *dev_id)
  {
- 	start:  c_start,
- 	next:   c_next,
-diff -puN fs/proc/base.c~procfs-constify-function-pointer-tables fs/proc/base.c
---- a/fs/proc/base.c~procfs-constify-function-pointer-tables
-+++ a/fs/proc/base.c
-@@ -492,7 +492,7 @@ static const struct inode_operations pro
- 	.setattr	= proc_setattr,
- };
- 
--extern struct seq_operations mounts_op;
-+extern const struct seq_operations mounts_op;
- struct proc_mounts {
- 	struct seq_file m;
- 	int event;
-@@ -571,7 +571,7 @@ static const struct file_operations proc
- 	.poll		= mounts_poll,
- };
- 
--extern struct seq_operations mountstats_op;
-+extern const struct seq_operations mountstats_op;
- static int mountstats_open(struct inode *inode, struct file *file)
- {
- 	int ret = seq_open(file, &mountstats_op);
-diff -puN fs/proc/nommu.c~procfs-constify-function-pointer-tables fs/proc/nommu.c
---- a/fs/proc/nommu.c~procfs-constify-function-pointer-tables
-+++ a/fs/proc/nommu.c
-@@ -116,7 +116,7 @@ static void *nommu_vma_list_next(struct 
- 	return rb_next((struct rb_node *) v);
+-	write_seqlock(&xtime_lock);
+ 	timer_tick();
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--static struct seq_operations proc_nommu_vma_list_seqop = {
-+static const struct seq_operations proc_nommu_vma_list_seqop = {
- 	.start	= nommu_vma_list_start,
- 	.next	= nommu_vma_list_next,
- 	.stop	= nommu_vma_list_stop,
-diff -puN fs/proc/proc_misc.c~procfs-constify-function-pointer-tables fs/proc/proc_misc.c
---- a/fs/proc/proc_misc.c~procfs-constify-function-pointer-tables
-+++ a/fs/proc/proc_misc.c
-@@ -222,7 +222,7 @@ static int meminfo_read_proc(char *page,
- #undef K
+Index: linux-2.6/arch/arm/mach-lh7a40x/time.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-lh7a40x/time.c
++++ linux-2.6/arch/arm/mach-lh7a40x/time.c
+@@ -41,13 +41,9 @@
+ static irqreturn_t
+ lh7a40x_timer_interrupt(int irq, void *dev_id)
+ {
+-	write_seqlock(&xtime_lock);
+-
+ 	TIMER_EOI = 0;
+ 	timer_tick();
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--extern struct seq_operations fragmentation_op;
-+extern const struct seq_operations fragmentation_op;
- static int fragmentation_open(struct inode *inode, struct file *file)
+Index: linux-2.6/arch/arm/mach-mx3/time.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-mx3/time.c
++++ linux-2.6/arch/arm/mach-mx3/time.c
+@@ -45,8 +45,6 @@ static irqreturn_t mxc_timer_interrupt(i
  {
- 	(void)inode;
-@@ -236,7 +236,7 @@ static const struct file_operations frag
- 	.release	= seq_release,
- };
+ 	unsigned int next_match;
  
--extern struct seq_operations pagetypeinfo_op;
-+extern const struct seq_operations pagetypeinfo_op;
- static int pagetypeinfo_open(struct inode *inode, struct file *file)
- {
- 	return seq_open(file, &pagetypeinfo_op);
-@@ -249,7 +249,7 @@ static const struct file_operations page
- 	.release	= seq_release,
- };
+-	write_seqlock(&xtime_lock);
+-
+ 	if (__raw_readl(MXC_GPT_GPTSR) & GPTSR_OF1) {
+ 		do {
+ 			timer_tick();
+@@ -57,8 +55,6 @@ static irqreturn_t mxc_timer_interrupt(i
+ 				       __raw_readl(MXC_GPT_GPTCNT)) <= 0);
+ 	}
  
--extern struct seq_operations zoneinfo_op;
-+extern const struct seq_operations zoneinfo_op;
- static int zoneinfo_open(struct inode *inode, struct file *file)
- {
- 	return seq_open(file, &zoneinfo_op);
-@@ -274,7 +274,7 @@ static int version_read_proc(char *page,
- 	return proc_calc_metrics(page, start, off, count, eof, len);
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--extern struct seq_operations cpuinfo_op;
-+extern const struct seq_operations cpuinfo_op;
- static int cpuinfo_open(struct inode *inode, struct file *file)
+Index: linux-2.6/arch/arm/mach-netx/time.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-netx/time.c
++++ linux-2.6/arch/arm/mach-netx/time.c
+@@ -33,12 +33,8 @@
+ static irqreturn_t
+ netx_timer_interrupt(int irq, void *dev_id)
  {
- 	return seq_open(file, &cpuinfo_op);
-@@ -327,7 +327,7 @@ static void devinfo_stop(struct seq_file
- 	/* Nothing to do */
+-	write_seqlock(&xtime_lock);
+-
+ 	timer_tick();
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	/* acknowledge interrupt */
+ 	writel(COUNTER_BIT(0), NETX_GPIO_IRQ);
+ 
+Index: linux-2.6/arch/arm/mach-omap2/timer-gp.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-omap2/timer-gp.c
++++ linux-2.6/arch/arm/mach-omap2/timer-gp.c
+@@ -40,13 +40,9 @@ static inline void omap2_gp_timer_start(
+ 
+ static irqreturn_t omap2_gp_timer_interrupt(int irq, void *dev_id)
+ {
+-	write_seqlock(&xtime_lock);
+-
+ 	omap_dm_timer_write_status(gptimer, OMAP_TIMER_INT_OVERFLOW);
+ 	timer_tick();
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
  }
  
--static struct seq_operations devinfo_ops = {
-+static const struct seq_operations devinfo_ops = {
- 	.start = devinfo_start,
- 	.next  = devinfo_next,
- 	.stop  = devinfo_stop,
-@@ -346,7 +346,7 @@ static const struct file_operations proc
- 	.release	= seq_release,
- };
- 
--extern struct seq_operations vmstat_op;
-+extern const struct seq_operations vmstat_op;
- static int vmstat_open(struct inode *inode, struct file *file)
+Index: linux-2.6/arch/arm/mach-pnx4008/time.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-pnx4008/time.c
++++ linux-2.6/arch/arm/mach-pnx4008/time.c
+@@ -51,8 +51,6 @@ static irqreturn_t pnx4008_timer_interru
  {
- 	return seq_open(file, &vmstat_op);
-@@ -377,7 +377,7 @@ static int stram_read_proc(char *page, c
+ 	if (__raw_readl(HSTIM_INT) & MATCH0_INT) {
+ 
+-		write_seqlock(&xtime_lock);
+-
+ 		do {
+ 			timer_tick();
+ 
+@@ -73,8 +71,6 @@ static irqreturn_t pnx4008_timer_interru
+ 		} while ((signed)
+ 			 (__raw_readl(HSTIM_MATCH0) -
+ 			  __raw_readl(HSTIM_COUNTER)) < 0);
+-
+-		write_sequnlock(&xtime_lock);
+ 	}
+ 
+ 	return IRQ_HANDLED;
+Index: linux-2.6/arch/arm/mach-realview/core.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-realview/core.c
++++ linux-2.6/arch/arm/mach-realview/core.c
+@@ -530,8 +530,6 @@ static unsigned long realview_gettimeoff
+  */
+ static irqreturn_t realview_timer_interrupt(int irq, void *dev_id)
+ {
+-	write_seqlock(&xtime_lock);
+-
+ 	// ...clear the interrupt
+ 	writel(1, TIMER0_VA_BASE + TIMER_INTCLR);
+ 
+@@ -542,8 +540,6 @@ static irqreturn_t realview_timer_interr
+ 	update_process_times(user_mode(get_irq_regs()));
  #endif
  
- #ifdef CONFIG_BLOCK
--extern struct seq_operations partitions_op;
-+extern const struct seq_operations partitions_op;
- static int partitions_open(struct inode *inode, struct file *file)
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
+ }
+ 
+Index: linux-2.6/arch/arm/mach-sa1100/time.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-sa1100/time.c
++++ linux-2.6/arch/arm/mach-sa1100/time.c
+@@ -62,8 +62,6 @@ sa1100_timer_interrupt(int irq, void *de
  {
- 	return seq_open(file, &partitions_op);
-@@ -389,7 +389,7 @@ static const struct file_operations proc
- 	.release	= seq_release,
- };
+ 	unsigned int next_match;
  
--extern struct seq_operations diskstats_op;
-+extern const struct seq_operations diskstats_op;
- static int diskstats_open(struct inode *inode, struct file *file)
+-	write_seqlock(&xtime_lock);
+-
+ #ifdef CONFIG_NO_IDLE_HZ
+ 	if (match_posponed) {
+ 		match_posponed = 0;
+@@ -85,8 +83,6 @@ sa1100_timer_interrupt(int irq, void *de
+ 		next_match = (OSMR0 += LATCH);
+ 	} while ((signed long)(next_match - OSCR) <= 0);
+ 
+-	write_sequnlock(&xtime_lock);
+-
+ 	return IRQ_HANDLED;
+ }
+ 
+Index: linux-2.6/arch/arm/mach-shark/core.c
+===================================================================
+--- linux-2.6.orig/arch/arm/mach-shark/core.c
++++ linux-2.6/arch/arm/mach-shark/core.c
+@@ -82,9 +82,7 @@ static void __init shark_map_io(void)
+ static irqreturn_t
+ shark_timer_interrupt(int irq, void *dev_id)
  {
- 	return seq_open(file, &diskstats_op);
-@@ -403,7 +403,7 @@ static const struct file_operations proc
- #endif
- 
- #ifdef CONFIG_MODULES
--extern struct seq_operations modules_op;
-+extern const struct seq_operations modules_op;
- static int modules_open(struct inode *inode, struct file *file)
- {
- 	return seq_open(file, &modules_op);
-@@ -430,7 +430,7 @@ static const struct file_operations proc
- };
- 
- #ifdef CONFIG_DEBUG_SLAB_LEAK
--extern struct seq_operations slabstats_op;
-+extern const struct seq_operations slabstats_op;
- static int slabstats_open(struct inode *inode, struct file *file)
- {
- 	unsigned long *n = kzalloc(PAGE_SIZE, GFP_KERNEL);
-@@ -604,7 +604,7 @@ static void int_seq_stop(struct seq_file
+-	write_seqlock(&xtime_lock);
+ 	timer_tick();
+-	write_sequnlock(&xtime_lock);
+ 	return IRQ_HANDLED;
  }
  
- 
--static struct seq_operations int_seq_ops = {
-+static const struct seq_operations int_seq_ops = {
- 	.start = int_seq_start,
- 	.next  = int_seq_next,
- 	.stop  = int_seq_stop,
-diff -puN fs/proc/proc_sysctl.c~procfs-constify-function-pointer-tables fs/proc/proc_sysctl.c
---- a/fs/proc/proc_sysctl.c~procfs-constify-function-pointer-tables
-+++ a/fs/proc/proc_sysctl.c
-@@ -9,7 +9,7 @@
- 
- static struct dentry_operations proc_sys_dentry_operations;
- static const struct file_operations proc_sys_file_operations;
--static struct inode_operations proc_sys_inode_operations;
-+static const struct inode_operations proc_sys_inode_operations;
- 
- static void proc_sys_refresh_inode(struct inode *inode, struct ctl_table *table)
- {
-@@ -446,7 +446,7 @@ static const struct file_operations proc
- 	.readdir	= proc_sys_readdir,
- };
- 
--static struct inode_operations proc_sys_inode_operations = {
-+static const struct inode_operations proc_sys_inode_operations = {
- 	.lookup		= proc_sys_lookup,
- 	.permission	= proc_sys_permission,
- 	.setattr	= proc_sys_setattr,
-diff -puN fs/proc/proc_tty.c~procfs-constify-function-pointer-tables fs/proc/proc_tty.c
---- a/fs/proc/proc_tty.c~procfs-constify-function-pointer-tables
-+++ a/fs/proc/proc_tty.c
-@@ -117,7 +117,7 @@ static void t_stop(struct seq_file *m, v
- 	mutex_unlock(&tty_mutex);
- }
- 
--static struct seq_operations tty_drivers_op = {
-+static const struct seq_operations tty_drivers_op = {
- 	.start	= t_start,
- 	.next	= t_next,
- 	.stop	= t_stop,
-diff -puN fs/proc/task_mmu.c~procfs-constify-function-pointer-tables fs/proc/task_mmu.c
---- a/fs/proc/task_mmu.c~procfs-constify-function-pointer-tables
-+++ a/fs/proc/task_mmu.c
-@@ -182,7 +182,7 @@ static void m_stop(struct seq_file *m, v
- }
- 
- static int do_maps_open(struct inode *inode, struct file *file,
--			struct seq_operations *ops)
-+			const struct seq_operations *ops)
- {
- 	struct proc_maps_private *priv;
- 	int ret = -ENOMEM;
-@@ -265,7 +265,7 @@ static int show_map(struct seq_file *m, 
- 	return 0;
- }
- 
--static struct seq_operations proc_pid_maps_op = {
-+static const struct seq_operations proc_pid_maps_op = {
- 	.start	= m_start,
- 	.next	= m_next,
- 	.stop	= m_stop,
-@@ -400,7 +400,7 @@ static int show_smap(struct seq_file *m,
- 	return ret;
- }
- 
--static struct seq_operations proc_pid_smaps_op = {
-+static const struct seq_operations proc_pid_smaps_op = {
- 	.start	= m_start,
- 	.next	= m_next,
- 	.stop	= m_stop,
-@@ -700,7 +700,7 @@ static int show_numa_map_checked(struct 
- 	return show_numa_map(m, v);
- }
- 
--static struct seq_operations proc_pid_numa_maps_op = {
-+static const struct seq_operations proc_pid_numa_maps_op = {
-         .start  = m_start,
-         .next   = m_next,
-         .stop   = m_stop,
-diff -puN fs/proc/task_nommu.c~procfs-constify-function-pointer-tables fs/proc/task_nommu.c
---- a/fs/proc/task_nommu.c~procfs-constify-function-pointer-tables
-+++ a/fs/proc/task_nommu.c
-@@ -165,7 +165,7 @@ static void *m_next(struct seq_file *m, 
- 	return vml ? vml->next : NULL;
- }
- 
--static struct seq_operations proc_pid_maps_ops = {
-+static const struct seq_operations proc_pid_maps_ops = {
- 	.start	= m_start,
- 	.next	= m_next,
- 	.stop	= m_stop,
-_
 
-Patches currently in -mm which might be from jengelh@computergmbh.de are
-
-git-kbuild.patch
-git-net.patch
-git-unionfs.patch
-git-x86.patch
-fs-fat-refine-chmod-checks.patch
-documentation-about-unaligned-memory-access.patch
-char-mxser-reorder-mxser_cardinfo-fields.patch
-char-mxser-simplify-mxser_get_serial_info.patch
-reiserfs-constify-function-pointer-tables.patch
-procfs-constify-function-pointer-tables.patch
-oss-constify-function-pointer-tables.patch
+--
 
