@@ -1,46 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:36411 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756034AbYA1Nml (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2008 08:42:41 -0500
-Date: Mon, 28 Jan 2008 13:40:56 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [RFC][PATCH 2/2] xtime_lock vs update_process_times
-Message-ID: <20080128134056.GA2792@flint.arm.linux.org.uk>
-References: <20080128103953.326762000@chello.nl> <20080128104056.184943000@chello.nl> <20080128122030.GA14058@flint.arm.linux.org.uk>
-Mime-Version: 1.0
+Received: from palinux.external.hp.com ([192.25.206.14]:38994 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1764045AbYA1XTT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2008 18:19:19 -0500
+Date: Mon, 28 Jan 2008 16:19:18 -0700
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: down_killable implementations for every architecture
+Message-ID: <20080128231918.GB31101@parisc-linux.org>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080128122030.GA14058@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>, rth@twiddle.net, bryan.wu@analog.com, dhowells@redhat.com, gerg@uclinux.org, lethal@linux-sh.org, wli@holomorphy.com, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, torvalds@linux-foundation.org
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
 
-On Mon, Jan 28, 2008 at 12:20:30PM +0000, Russell King wrote:
-> On Mon, Jan 28, 2008 at 11:39:55AM +0100, Peter Zijlstra wrote:
-> > move update_process_times() out from under xtime_lock.
-> > 
-> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> 
-> Peter,
-> 
-> Mind if I merge:
-> 
-> >  arch/arm/common/time-acorn.c          |    2 --
-> >  arch/arm/mach-at91/at91sam926x_time.c |    3 ---
-> >  arch/arm/plat-iop/time.c              |    4 ----
-> >  arch/arm/plat-s3c24xx/time.c          |    2 --
-> 
-> with my patch and submit it as part of the ARM merge (which I'm hoping
-> to send in about an hours time.)
 
-Don't bother - I'm sending my patch _now_ - I've run out of time to 
-merge the above into this ARM tree pull (since I want to get Linus to
-pull it before yet more breakage happens to it - I've had to drop a
-number of branches with new conflicts as of last night to even get this
-far...)
+As part of the TASK_KILLABLE changes, we're going to need
+down_killable().  Unfortunately, semaphores are implemented for every
+architecture, which we should probably fix at some point.
+
+On the plane ride down here, I did the necessary changes for each
+architecture:
+
+http://parisc-linux.org/~willy/down-killable/
+
+I may have made mistakes.  Things to check:
+
+ - The *_killable* functions should be exported for use by modules.
+ - The down_killable implementation needs to check fatal_signal_pending,
+   not signal_pending.
+ - The task state needs to be set to TASK_KILLABLE, not
+   TASK_INTERRUPTIBLE
+
+It should only take a couple of minutes to verify your architecture.
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
