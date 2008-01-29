@@ -1,42 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:38994 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1764045AbYA1XTT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2008 18:19:19 -0500
-Date: Mon, 28 Jan 2008 16:19:18 -0700
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: down_killable implementations for every architecture
-Message-ID: <20080128231918.GB31101@parisc-linux.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Received: from idcmail-mo1so.shaw.ca ([24.71.223.10]:26213 "EHLO
+	pd3mo3so.prod.shaw.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751538AbYA2AGs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2008 19:06:48 -0500
+Date: Mon, 28 Jan 2008 18:08:44 -0600
+From: Robert Hancock <hancockr@shaw.ca>
+Subject: DMA mapping on SCSI device?
+Message-id: <479E6E8C.2090501@shaw.ca>
+MIME-version: 1.0
+Content-type: text/plain; charset=UTF-8; format=flowed
+Content-transfer-encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
+To: linux-arch@vger.kernel.org, ide <linux-ide@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-scsi@vger.kernel.org
 
+We've got a bit of a problem with the sata_nv driver that I'm trying to 
+figure out a decent solution to (hence all the lists CCed). This is the 
+situation:
 
-As part of the TASK_KILLABLE changes, we're going to need
-down_killable().  Unfortunately, semaphores are implemented for every
-architecture, which we should probably fix at some point.
+The nForce4 ADMA hardware has 2 modes: legacy mode, where it acts like a 
+normal ATA controller with 32-bit DMA limits, and ADMA mode where it can 
+access all of 64-bit memory. Each PCI device has 2 SATA ports, and the 
+legacy/ADMA mode can be controlled independently on both of them.
 
-On the plane ride down here, I did the necessary changes for each
-architecture:
+The trick is that if an ATAPI device is connected, we (as far as I'm 
+aware) can't use ADMA mode, so we have to switch that port into legacy 
+mode. This means it's only capable of 32-bit DMA. However the other port 
+on the controller may be connected to a hard drive and therefore still 
+capable of 64-bit DMA. (To make things more complicated, devices can be 
+hotplugged and so this can change dynamically.) Since the device that 
+libata is doing DMA mapping against is attached to the PCI device and 
+not the port, it creates a problem here. If we change the mask on one it 
+affects the other one as well.
 
-http://parisc-linux.org/~willy/down-killable/
+The original solution used by the driver was to leave the DMA mask at 
+64-bit and use blk_queue_bounce_limit to try to force the block layer 
+not to send any requests with DMA addresses over 4GB into the driver. 
+However it seems on x86_64 this doesn't work, since it pushes high 
+addresses through anyway and expects the IOMMU to take care of it (which 
+it doesn't because of the 64-bit mask).
 
-I may have made mistakes.  Things to check:
+The last solution I tried was to set the DMA mask on both ports to 
+32-bit on slave_configure when an ATAPI device is connected. However, 
+this runs into complications as well. This is run on initialization and 
+when trying to set the other port into 32-bit DMA, it may not be 
+initialized yet. Plus, it forces the port with a hard drive on it into 
+32-bit DMA needlessly.
 
- - The *_killable* functions should be exported for use by modules.
- - The down_killable implementation needs to check fatal_signal_pending,
-   not signal_pending.
- - The task state needs to be set to TASK_KILLABLE, not
-   TASK_INTERRUPTIBLE
-
-It should only take a couple of minutes to verify your architecture.
-
--- 
-Intel are signing my paycheques ... these opinions are still mine
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+The ideal solution would be to do mapping against a different struct 
+device for each port, so that we could maintain the proper DMA mask for 
+each of them at all times. However I'm not sure if that's possible. The 
+thought of using the SCSI struct device for DMA mapping was brought up 
+at one point.. any thoughts on that?
