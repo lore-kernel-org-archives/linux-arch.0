@@ -1,33 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:34922 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753043AbYA2DhN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2008 22:37:13 -0500
-Date: Mon, 28 Jan 2008 20:37:12 -0700
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: DMA mapping on SCSI device?
-Message-ID: <20080129033712.GG20198@parisc-linux.org>
-References: <479E6E8C.2090501@shaw.ca>
+Received: from ns1.suse.de ([195.135.220.2]:39952 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753772AbYA2EZT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Jan 2008 23:25:19 -0500
+From: Andi Kleen <ak@suse.de>
+Subject: Re: down_killable implementations for every architecture
+Date: Tue, 29 Jan 2008 05:23:52 +0100
+References: <20080128231918.GB31101@parisc-linux.org>
+In-Reply-To: <20080128231918.GB31101@parisc-linux.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <479E6E8C.2090501@shaw.ca>
+Message-Id: <200801290523.52993.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Hancock <hancockr@shaw.ca>
-Cc: linux-arch@vger.kernel.org, ide <linux-ide@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-scsi@vger.kernel.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Mon, Jan 28, 2008 at 06:08:44PM -0600, Robert Hancock wrote:
-> The 
-> thought of using the SCSI struct device for DMA mapping was brought up 
-> at one point.. any thoughts on that?
+On Tuesday 29 January 2008 00:19, Matthew Wilcox wrote:
+> As part of the TASK_KILLABLE changes, we're going to need
+> down_killable().  Unfortunately, semaphores are implemented for every
+> architecture, which we should probably fix at some point.
 
-I believe this will work on some architectures and not others.
-Anything that uses include/asm-generic/dma-mapping.h will break, for
-example.  It would be nice for those architectures to get fixed ...
+It would be best to just change it now before doing further changes. Right now
+we have the bizarre situation that semaphores are more optimized
+with fast path inline assembly code than the far more critical spinlocks.
+But that clearly doesn't make much sense. So the best approach would
+be likely to just pick some generic C implementation from some architecture
+and use it everywhere.
 
--- 
-Intel are signing my paycheques ... these opinions are still mine
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+-Andi
