@@ -1,62 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from web31807.mail.mud.yahoo.com ([68.142.207.70]:42577 "HELO
-	web31807.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1753725AbYA2WXQ (ORCPT
+Received: from web31812.mail.mud.yahoo.com ([68.142.207.75]:38262 "HELO
+	web31812.mail.mud.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1752333AbYA2WQd (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Jan 2008 17:23:16 -0500
-Date: Tue, 29 Jan 2008 14:23:15 -0800 (PST)
+	Tue, 29 Jan 2008 17:16:33 -0500
+Date: Tue, 29 Jan 2008 14:09:52 -0800 (PST)
 From: Luben Tuikov <ltuikov@yahoo.com>
 Reply-To: ltuikov@yahoo.com
 Subject: Re: DMA mapping on SCSI device?
-In-Reply-To: <200801290528.00934.ak@suse.de>
+In-Reply-To: <479E6E8C.2090501@shaw.ca>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Message-ID: <593242.13701.qm@web31807.mail.mud.yahoo.com>
+Message-ID: <896139.88121.qm@web31812.mail.mud.yahoo.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Hancock <hancockr@shaw.ca>, Andi Kleen <ak@suse.de>
-Cc: linux-arch@vger.kernel.org, ide <linux-ide@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-scsi@vger.kernel.org
+To: linux-arch@vger.kernel.org, ide <linux-ide@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-scsi@vger.kernel.org, Robert Hancock <hancockr@shaw.ca>
 
---- On Mon, 1/28/08, Andi Kleen <ak@suse.de> wrote:
-> > The ideal solution would be to do mapping against a
-> different struct
-> > device for each port, so that we could maintain the
-> proper DMA mask for
-> > each of them at all times. However I'm not sure if
-> that's possible.
-> 
-> I cannot imagine why it should be that difficult. The PCI
-> subsystem
-> could over a pci_clone_device() or similar function.   For
-> all complicated
-> purposes (sysfs etc)  the original device could be used, so
-> it would
-> be hopefully not that difficult.
-> 
-> The alternative would be to add a new family of PCI mapping
-> functions that take an explicit mask. Disadvantage would be
-> changing 
-> all architectures, but on the other hand the interface
-> could be phase
-> in one by one (and nF4 primarily only works on x86 anyways)
-> 
-> I suspect the later would be a little cleaner, although
-> they don't
-> make much difference.
+--- On Mon, 1/28/08, Robert Hancock <hancockr@shaw.ca> wrote:
+> The trick is that if an ATAPI device is connected, we (as
+> far as I'm 
+> aware) can't use ADMA mode, so we have to switch that
+> port into legacy 
+> mode.
 
-Yes, I guess, that's certainly doable.
+Can you double check this with the HW architect of the
+HW DMA engine of the ASIC?
 
-The current PCI abstraction is clean: HW DMA engine(s) implementation
-is a property of the PCI function.
+> This means it's only capable of 32-bit DMA.
+> However the other port 
+> on the controller may be connected to a hard drive and
+> therefore still 
+> capable of 64-bit DMA.
 
-Marrying different behaviour of the HW DMA engine of the ASIC
-depending on the SCSI end device at the PCI device abstraction doesn't
-sound good. (An extreme design is a single DMA engine servicing
-the ASIC.)
+If this is indeed the case as you've presented it here,
+it sounds like a HW shortcoming.  I cannot see how the device
+type (or protocol) dictate how the DMA engine operates.
+They live in two different domains.
 
-Although, the effect that Rob wants could be cleanly implemented
-at a higher level, pci_map_sg() and such, or fixing 
-blk_queue_bounce_limit() in x86_64 to that effect.
+> The ideal solution would be to do mapping against a
+> different struct 
+> device for each port, so that we could maintain the proper
+> DMA mask for 
+> each of them at all times. However I'm not sure if
+> that's possible. The 
+> thought of using the SCSI struct device for DMA mapping was
+> brought up 
+> at one point.. any thoughts on that?
+
+The reason for this is that the object that a struct scsi_dev
+represents has nothing to do with HW DMA engines.
+
+It looks like your current solution is correct and
+x86_64's blk_queue_bounce_limit needs work.
 
     Luben
 
