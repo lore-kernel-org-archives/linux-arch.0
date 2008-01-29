@@ -1,54 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from idcmail-mo1so.shaw.ca ([24.71.223.10]:26213 "EHLO
-	pd3mo3so.prod.shaw.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751538AbYA2AGs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2008 19:06:48 -0500
-Date: Mon, 28 Jan 2008 18:08:44 -0600
-From: Robert Hancock <hancockr@shaw.ca>
-Subject: DMA mapping on SCSI device?
-Message-id: <479E6E8C.2090501@shaw.ca>
-MIME-version: 1.0
-Content-type: text/plain; charset=UTF-8; format=flowed
-Content-transfer-encoding: 7bit
+Received: from smtp-out.google.com ([216.239.45.13]:17406 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754981AbYA2DVq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2008 22:21:46 -0500
+Received: from zps36.corp.google.com (zps36.corp.google.com [172.25.146.36])
+	by smtp-out.google.com with ESMTP id m0T3LeUx011347
+	for <linux-arch@vger.kernel.org>; Mon, 28 Jan 2008 19:21:40 -0800
+Received: from rv-out-0910.google.com (rvfc24.prod.google.com [10.140.180.24])
+	by zps36.corp.google.com with ESMTP id m0T3Lcr5017584
+	for <linux-arch@vger.kernel.org>; Mon, 28 Jan 2008 19:21:40 -0800
+Received: by rv-out-0910.google.com with SMTP id c24so1690616rvf.42
+        for <linux-arch@vger.kernel.org>; Mon, 28 Jan 2008 19:21:40 -0800 (PST)
+Message-ID: <da824cf30801281921n603458c4wc8caf34791401514@mail.gmail.com>
+Date: Tue, 29 Jan 2008 14:21:39 +1100
+From: "Grant Grundler" <grundler@google.com>
+Subject: Re: DMA mapping on SCSI device?
+In-Reply-To: <479E6E8C.2090501@shaw.ca>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+References: <479E6E8C.2090501@shaw.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, ide <linux-ide@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-scsi@vger.kernel.org
+To: Robert Hancock <hancockr@shaw.ca>
+Cc: linux-arch@vger.kernel.org, ide <linux-ide@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-scsi@vger.kernel.org
 
-We've got a bit of a problem with the sata_nv driver that I'm trying to 
-figure out a decent solution to (hence all the lists CCed). This is the 
-situation:
+On Jan 29, 2008 11:08 AM, Robert Hancock <hancockr@shaw.ca> wrote:
+...
+> The last solution I tried was to set the DMA mask on both ports to
+> 32-bit on slave_configure when an ATAPI device is connected. However,
+> this runs into complications as well. This is run on initialization and
+> when trying to set the other port into 32-bit DMA, it may not be
+> initialized yet. Plus, it forces the port with a hard drive on it into
+> 32-bit DMA needlessly.
 
-The nForce4 ADMA hardware has 2 modes: legacy mode, where it acts like a 
-normal ATA controller with 32-bit DMA limits, and ADMA mode where it can 
-access all of 64-bit memory. Each PCI device has 2 SATA ports, and the 
-legacy/ADMA mode can be controlled independently on both of them.
+Have you measured the impact of setting the PCI dma mask to 32-bit?
 
-The trick is that if an ATAPI device is connected, we (as far as I'm 
-aware) can't use ADMA mode, so we have to switch that port into legacy 
-mode. This means it's only capable of 32-bit DMA. However the other port 
-on the controller may be connected to a hard drive and therefore still 
-capable of 64-bit DMA. (To make things more complicated, devices can be 
-hotplugged and so this can change dynamically.) Since the device that 
-libata is doing DMA mapping against is attached to the PCI device and 
-not the port, it creates a problem here. If we change the mask on one it 
-affects the other one as well.
+Last time Alex Williamson (HP) measured this on IA64, we deliberately
+forced pci_map_sg() to use the IOMMU even for devices that were 64-bit
+capable. We got 3-5% better throughput since the device had fewer
+entries to retrieve and the devices (at the time) weren't that good at
+processing SG lists.
 
-The original solution used by the driver was to leave the DMA mask at 
-64-bit and use blk_queue_bounce_limit to try to force the block layer 
-not to send any requests with DMA addresses over 4GB into the driver. 
-However it seems on x86_64 this doesn't work, since it pushes high 
-addresses through anyway and expects the IOMMU to take care of it (which 
-it doesn't because of the 64-bit mask).
+>
+> The ideal solution would be to do mapping against a different struct
+> device for each port, so that we could maintain the proper DMA mask for
+> each of them at all times. However I'm not sure if that's possible. The
+> thought of using the SCSI struct device for DMA mapping was brought up
+> at one point.. any thoughts on that?
 
-The last solution I tried was to set the DMA mask on both ports to 
-32-bit on slave_configure when an ATAPI device is connected. However, 
-this runs into complications as well. This is run on initialization and 
-when trying to set the other port into 32-bit DMA, it may not be 
-initialized yet. Plus, it forces the port with a hard drive on it into 
-32-bit DMA needlessly.
+I'm pretty sure that's not possible (using two PCI dev structs). I'm
+skeptical it's worth converting DMA services to use SCSI devs since
+that's an extremely invasive change for a marginal benefit.
 
-The ideal solution would be to do mapping against a different struct 
-device for each port, so that we could maintain the proper DMA mask for 
-each of them at all times. However I'm not sure if that's possible. The 
-thought of using the SCSI struct device for DMA mapping was brought up 
-at one point.. any thoughts on that?
+hth,
+grant
+
+> -
+> To unsubscribe from this list: send the line "unsubscribe linux-scsi" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
