@@ -1,36 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:54603
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1764487AbYAaDIG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Jan 2008 22:08:06 -0500
-Date: Wed, 30 Jan 2008 19:08:26 -0800 (PST)
-Message-Id: <20080130.190826.78596338.davem@davemloft.net>
-Subject: Re: [resend][PATCH] Introducing socket mark socket option
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <47985DD4.3000706@trash.net>
-References: <47974D07.5040202@trash.net>
-	<1201167495912-git-send-email-panther@balabit.hu>
-	<47985DD4.3000706@trash.net>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from palinux.external.hp.com ([192.25.206.14]:55060 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750704AbYAaFBd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Jan 2008 00:01:33 -0500
+Date: Wed, 30 Jan 2008 22:01:32 -0700
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: DMA mapping on SCSI device?
+Message-ID: <20080131050132.GA3836@parisc-linux.org>
+References: <479E6E8C.2090501@shaw.ca> <896139.88121.qm@web31812.mail.mud.yahoo.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <896139.88121.qm@web31812.mail.mud.yahoo.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kaber@trash.net
-Cc: panther@balabit.hu, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
+To: Luben Tuikov <ltuikov@yahoo.com>
+Cc: linux-arch@vger.kernel.org, ide <linux-ide@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-scsi@vger.kernel.org, Robert Hancock <hancockr@shaw.ca>
 
-From: Patrick McHardy <kaber@trash.net>
-Date: Thu, 24 Jan 2008 10:43:48 +0100
-
-> Laszlo Attila Toth wrote:
-> > A userspace program may wish to set the mark for each packets its send
-> > without using the netfilter MARK target. Changing the mark can be used
-> > for mark based routing without netfilter or for packet filtering.
-> > 
-> > It requires CAP_NET_ADMIN capability.
+On Tue, Jan 29, 2008 at 02:09:52PM -0800, Luben Tuikov wrote:
+> > The ideal solution would be to do mapping against a
+> > different struct 
+> > device for each port, so that we could maintain the proper
+> > DMA mask for 
+> > each of them at all times. However I'm not sure if
+> > that's possible. The 
+> > thought of using the SCSI struct device for DMA mapping was
+> > brought up 
+> > at one point.. any thoughts on that?
 > 
-> 
-> Looks good to me.
+> The reason for this is that the object that a struct scsi_dev
+> represents has nothing to do with HW DMA engines.
 
-Applied, thanks.
+It really would work, once the few remaining architectures move away
+from asserting that the 'struct device' passed in is a pci device.
+It seems like the best way forward to me.
+
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
