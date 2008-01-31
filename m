@@ -1,39 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:48565 "EHLO mail.goop.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752974AbYAaRja (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 31 Jan 2008 12:39:30 -0500
-Message-ID: <47A207C3.5050008@goop.org>
-Date: Thu, 31 Jan 2008 09:39:15 -0800
-From: Jeremy Fitzhardinge <jeremy@goop.org>
+Received: from smtp120.sbc.mail.sp1.yahoo.com ([69.147.64.93]:42060 "HELO
+	smtp120.sbc.mail.sp1.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1753996AbYAaRp3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Jan 2008 12:45:29 -0500
+Date: Thu, 31 Jan 2008 09:45:26 -0800
+From: Chris Wedgwood <cw@f00f.org>
+Subject: Re: [PATCH] kill hotplug init/exit section annotations
+Message-ID: <20080131174526.GA2488@puku.stupidest.org>
+References: <1201726817.3292.84.camel@localhost.localdomain> <20080130212011.GA26621@uranus.ravnborg.org> <1201729295.3292.94.camel@localhost.localdomain> <20080130223219.GT29368@does.not.exist> <20080131074436.GA31966@uranus.ravnborg.org> <1201795051.3131.13.camel@localhost.localdomain> <20080131081120.27505dc0@laptopd505.fenrus.org> <20080131162141.GC19700@cs181133002.pp.htv.fi> <20080131090749.72781689@laptopd505.fenrus.org> <20080131171436.GG19700@cs181133002.pp.htv.fi>
 MIME-Version: 1.0
-Subject: Re: asm-generic/tlb.h and check_pgt_cache()
-References: <20080131125425.7e91b54d@dhcp-252-066.norway.atmel.com> <20080131130328.GA29209@cs181133002.pp.htv.fi> <47A1F7C5.3020108@goop.org> <20080131165308.GF19700@cs181133002.pp.htv.fi>
-In-Reply-To: <20080131165308.GF19700@cs181133002.pp.htv.fi>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20080131171436.GG19700@cs181133002.pp.htv.fi>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Adrian Bunk <bunk@kernel.org>
-Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, David Brownell <david-b@pacbell.net>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>
+Cc: Arjan van de Ven <arjan@infradead.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sam Ravnborg <sam@ravnborg.org>, davem@davemloft.net, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>
 
-Adrian Bunk wrote:
-> <--  snip  -->
->
-> ...
->   CC      mm/nommu.o
-> In file included from include2/asm/tlb.h:14,
->                  from 
-> /home/bunk/linux/kernel-2.6/git/linux-2.6/mm/nommu.c:33:
-> /home/bunk/linux/kernel-2.6/git/linux-2.6/include/asm-generic/tlb.h: In function 'tlb_finish_mmu':
-> /home/bunk/linux/kernel-2.6/git/linux-2.6/include/asm-generic/tlb.h:91: error: implicit declaration of function 'check_pgt_cache'
-> make[2]: *** [mm/nommu.o] Error 1
->
-> <--  snip  -->
->
->   
+On Thu, Jan 31, 2008 at 07:14:36PM +0200, Adrian Bunk wrote:
 
-Right, OK.  Well, I think Ingo reverted my header manipulations, so it 
-should all be back to normal.
+> > cpuhotplug is required for suspend/resume.
+>
+> Not on UP computers.
 
-    J
+those are less and less common now, most modern laptops are dual core
