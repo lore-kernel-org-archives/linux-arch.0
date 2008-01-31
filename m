@@ -1,66 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp5.pp.htv.fi ([213.243.153.39]:53424 "EHLO smtp5.pp.htv.fi"
+Received: from gw.goop.org ([64.81.55.164]:48565 "EHLO mail.goop.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753732AbYAaROA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 31 Jan 2008 12:14:00 -0500
-Date: Thu, 31 Jan 2008 19:14:36 +0200
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: [PATCH] kill hotplug init/exit section annotations
-Message-ID: <20080131171436.GG19700@cs181133002.pp.htv.fi>
-References: <20080130200336.GN29368@does.not.exist> <1201726817.3292.84.camel@localhost.localdomain> <20080130212011.GA26621@uranus.ravnborg.org> <1201729295.3292.94.camel@localhost.localdomain> <20080130223219.GT29368@does.not.exist> <20080131074436.GA31966@uranus.ravnborg.org> <1201795051.3131.13.camel@localhost.localdomain> <20080131081120.27505dc0@laptopd505.fenrus.org> <20080131162141.GC19700@cs181133002.pp.htv.fi> <20080131090749.72781689@laptopd505.fenrus.org>
+	id S1752974AbYAaRja (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Jan 2008 12:39:30 -0500
+Message-ID: <47A207C3.5050008@goop.org>
+Date: Thu, 31 Jan 2008 09:39:15 -0800
+From: Jeremy Fitzhardinge <jeremy@goop.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20080131090749.72781689@laptopd505.fenrus.org>
+Subject: Re: asm-generic/tlb.h and check_pgt_cache()
+References: <20080131125425.7e91b54d@dhcp-252-066.norway.atmel.com> <20080131130328.GA29209@cs181133002.pp.htv.fi> <47A1F7C5.3020108@goop.org> <20080131165308.GF19700@cs181133002.pp.htv.fi>
+In-Reply-To: <20080131165308.GF19700@cs181133002.pp.htv.fi>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arjan van de Ven <arjan@infradead.org>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Sam Ravnborg <sam@ravnborg.org>, davem@davemloft.net, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>
+To: Adrian Bunk <bunk@kernel.org>
+Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, David Brownell <david-b@pacbell.net>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>
 
-On Thu, Jan 31, 2008 at 09:07:49AM -0800, Arjan van de Ven wrote:
-> On Thu, 31 Jan 2008 18:21:42 +0200
-> Adrian Bunk <bunk@kernel.org> wrote:
-> 
-> > On Thu, Jan 31, 2008 at 08:11:20AM -0800, Arjan van de Ven wrote:
-> > > On Thu, 31 Jan 2008 09:57:31 -0600
-> > > James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
-> > > 
-> > > > No-one seems to see much value in these, and they cause about 90%
-> > > > of our problems with __init/__exit markers, so simply eliminate
-> > > > them. Rather than run over the whole tree removing them, this
-> > > > patch #defines them to be nops.
-> > > > 
-> > > > Signed-off-by: James Bottomley
-> > > > <James.Bottomley@HansenPartnership.com>
-> > > > 
-> > > > ---
-> > > > 
-> > > > I'll probably be going after __exit after this one, but it makes
-> > > > sense to split them up, since the hotplug annotation removal looks
-> > > > uncontroversial, whereas __exit and discard section removal might
-> > > > produce more robust debate.  I also think doing the hotplug
-> > > > removal gives us 90% of the benefits and removes 90% of the
-> > > > section mismatch problems.
-> > > 
-> > > 
-> > > Since hotplug is so fundamental nowadays the value no longer
-> > > outweighs the pain/cost to me, so 
-> > 
-> > Granted for normal hotplug.
-> > 
-> > But my computer has neither CPU hotplug 
-> 
-> cpuhotplug is required for suspend/resume.
+Adrian Bunk wrote:
+> <--  snip  -->
+>
+> ...
+>   CC      mm/nommu.o
+> In file included from include2/asm/tlb.h:14,
+>                  from 
+> /home/bunk/linux/kernel-2.6/git/linux-2.6/mm/nommu.c:33:
+> /home/bunk/linux/kernel-2.6/git/linux-2.6/include/asm-generic/tlb.h: In function 'tlb_finish_mmu':
+> /home/bunk/linux/kernel-2.6/git/linux-2.6/include/asm-generic/tlb.h:91: error: implicit declaration of function 'check_pgt_cache'
+> make[2]: *** [mm/nommu.o] Error 1
+>
+> <--  snip  -->
+>
+>   
 
-Not on UP computers.
+Right, OK.  Well, I think Ingo reverted my header manipulations, so it 
+should all be back to normal.
 
-cu
-Adrian
-
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
-
+    J
