@@ -1,119 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:40132 "EHLO
+Received: from accolon.hansenpartnership.com ([76.243.235.52]:40784 "EHLO
 	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754609AbYBAOxb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2008 09:53:31 -0500
+	by vger.kernel.org with ESMTP id S1753494AbYBAPBD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2008 10:01:03 -0500
 Subject: Re: Are Section mismatches out of control?
 From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <20080201104718.GA11717@uranus.ravnborg.org>
+In-Reply-To: <20080201030329.9b760777.akpm@linux-foundation.org>
 References: <20080201104718.GA11717@uranus.ravnborg.org>
+	 <20080201030329.9b760777.akpm@linux-foundation.org>
 Content-Type: text/plain
-Date: Fri, 01 Feb 2008 08:53:25 -0600
-Message-Id: <1201877605.3134.4.camel@localhost.localdomain>
+Date: Fri, 01 Feb 2008 09:00:59 -0600
+Message-Id: <1201878059.3134.13.camel@localhost.localdomain>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Sam Ravnborg <sam@ravnborg.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>
 
-On Fri, 2008-02-01 at 11:47 +0100, Sam Ravnborg wrote:
-> James said in a related posting that the Section mismatch
-> warnings were getting out of control.
+On Fri, 2008-02-01 at 03:03 -0800, Andrew Morton wrote:
+> On Fri, 1 Feb 2008 11:47:18 +0100 Sam Ravnborg <sam@ravnborg.org> wrote:
+> 
+> > James said in a related posting that the Section mismatch
+> > warnings were getting out of control.
+> 
+> eh.  They're easy - the build system tells you about them!
+> 
+> > The list is here:
+> 
+> Question is: why do people keep adding new ones when they are so easy to
+> detect and fix?
+> 
+> Asnwer: because neither they nor their patch integrators are doing adequate
+> compilation testing.
 
-What I actually said was that the churn in the source base caused by
-these sectional mismatches was getting out of hand.
+That's because certain configurations, where this shows up, like !
+CONFIG_HOTPLUG or !CONFIG_HOTPLUG_CPU simply aren't anything other than
+extremely weird configs for most modern HW and distributions.
 
-What I questioned was the value of inspecting all the drivers and trying
-to fix them all (and the effort involved) vs my proposed solution of
-simply making 90% of them go away.
+I'm not saying we can't fix the problem with tools or that we can't
+invest huge amounts of time patching and fixing this.  I am saying we
+should be questioning the value of the investment in doing so.
 
-> So I decided to take a closer look at current
-> status. Latest mainline with Adrian + mine fixes applied.
-> 
-> Target was x86 - an allyesconfig build.
-> I looked at the reported Section mismatch warnings per
-> directory so see where it was looking bad.
-> 
-> The list is here:
-> 
-> 
-> Directory         Warnings
-> ================= ========
-> block/             0
-> fs/                0
-> init/              0
-> lib/               0
-> net/               2
-> sound/             3
-> crypto/            0
-> ipc/               0
-> kernel/            0
-> mm/                0
-> usr/               0
-> security/          0
-> drivers/net/      11
-> drivers/ata/       2
-> drivers/base/      0
-> drivers/block/     0
-> drivers/cdrom/     0
-> drivers/crypto/    0
-> drivers/hid/       0
-> drivers/input/     0
-> drivers/lguest/    0
-> drivers/leds/      0
-> drivers/media/     0
-> drivers/pci/       0
-> drivers/pcmcia/    9
-> drivers/power/     0
-> drivers/ps3/       0
-> drivers/rtc/       1
-> drivers/scsi/      3
-> drivers/isdn/     34
-> drivers/serial/   10
-> drivers/spi/       0
-> drivers/usb/       0
-> drivers/video/    14
-> drivers/telephony/ 0
-> drivers/watchdog/  0
-> drivers/w1/        0
-> drivers/dca        0
-> drivers/edac/      0
-> drivers/acpi/      2
-> drivers/char/      3
-> drivers/cpufreq    3
-> drivers/hwmon/     1
-> drivers/infiniband/ 0
-> drivers/md         0
-> drivers/message/   0
-> drivers/misc/      0
-> drivers/mmc/       0
-> drivers/mtd/       0
-> drivers/parport/   0
-> drivers/pnp/       0
-> 
-> As expected the majority is in drivers/
-> And as is obvious from the above the warnings are
-> concentrated on a few places:
-> drivers/isdn/ has the top score.
-> Then we have video/, net/ serial/ and pcmia.
-> 
-> With thos four directories clean we are down with
-> 78 less warnings.
-> 
-> The total figure for this build is 106 warnings.
-> In my book things are not out of control.
-> So stop complaining and lets see some fixes.
-> 
-> I will look at drivers/isdn as next step.
+I also claim that getting rid of the __dev.* sectional attributes (for
+which I've already submitted a small patch) fixes 90% of the problems
+(since they're mainly caused by driver writers not understanding what
+all of these things mean).  The remaining ones are clearer and
+additionally, show up on every build (whether HOTPLUG or not).
 
-But on your own estimate, that's around 50 patches to fix all of this,
-isn't it?  Which all have to be inspected, tested and integrated.  Is
-that really a worthwhile exercise for saving 5k of memory (also from
-your own estimate).  Particularly as the people who care about extreme
-memory configurations aren't going "goody sections saved us 5k", they're
-going "&^*&^ me the kernel increased in size by 150k on my system from
-2.6.15 to 2.6.24". 
+Before we start to pillory driver writers for not caring about configs
+they rightly don't give a toss about, could we at least get someone
+(anyone!) in the community that cares about extreme low memory
+configurations to give us reasons why there's value to all this effort
+(rather than spending it on say reducing cache footprints or eliminating
+space in structures)?  All the people I've asked so far (mainly in arm,
+admittedly) have said they have bigger things to worry about.
 
 James
 
