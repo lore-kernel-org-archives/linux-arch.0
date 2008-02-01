@@ -1,37 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:39970 "EHLO pasmtpB.tele.dk"
+Received: from pasmtpb.tele.dk ([80.160.77.98]:50833 "EHLO pasmtpB.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755497AbYBAWb6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 1 Feb 2008 17:31:58 -0500
-Date: Fri, 1 Feb 2008 23:32:01 +0100
+	id S1761279AbYBAWi1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Feb 2008 17:38:27 -0500
+Date: Fri, 1 Feb 2008 23:38:29 +0100
 From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: Are Section mismatches out of control?
-Message-ID: <20080201223201.GA17828@uranus.ravnborg.org>
-References: <20080201104718.GA11717@uranus.ravnborg.org> <20080201030329.9b760777.akpm@linux-foundation.org> <1201864894.23523.117.camel@brick> <Pine.LNX.4.64.0802011325080.18111@anakin> <20080201134041.GC13349@uranus.ravnborg.org> <Pine.LNX.4.64.0802012221400.28712@anakin>
+Message-ID: <20080201223829.GB17828@uranus.ravnborg.org>
+References: <20080201104718.GA11717@uranus.ravnborg.org> <20080201030329.9b760777.akpm@linux-foundation.org> <47A34C47.9040306@garzik.org> <20080201201713.GA15905@uranus.ravnborg.org> <47A37FE5.2060200@garzik.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0802012221400.28712@anakin>
+In-Reply-To: <47A37FE5.2060200@garzik.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Harvey Harrison <harvey.harrison@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>
+To: Jeff Garzik <jeff@garzik.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Fri, Feb 01, 2008 at 10:22:13PM +0100, Geert Uytterhoeven wrote:
-> On Fri, 1 Feb 2008, Sam Ravnborg wrote:
-> > On Fri, Feb 01, 2008 at 02:30:44PM +0100, Geert Uytterhoeven wrote:
-> > > BTW, on m68k I get ca. 160 of them. Most seem to originate in
-> > > drivers/isdn/. Doesn't look unsurmountable compared to the number of
-> > > other compile warnings fixed during the last few years ;-)
-> > 
-> > Can you try the patchset I will post in a minute.
-> > Would be nice to know if you see additional warnings as I got
-> > isdn clean here with x86 - 64 bit - allyesconfig.
+On Fri, Feb 01, 2008 at 03:24:05PM -0500, Jeff Garzik wrote:
+> Sam Ravnborg wrote:
+> >One can ignore or one can fix...
+> >I decided to spend some of my friday on fixing section mismatch
+> >warnings as I've got a bit irritated over people spending time
+> >complaining but failing to provide patches.
 > 
-> Sure. Where can I find that patchset? I didn't see it on lkml so far,
-> except for the [0/5] email.
+> >	Sam - who expected more people to actually fix this stuff :-(
+> 
+> Well, with due respect, it's a bit presumptuous to add a bunch of 
+> warnings to the kernel build (due to more strict checking), and then get 
+> annoyed when people aren't jumping up and fixing this stuff immediately.
 
-I posted a cumulative patch-set which you can find here:
-http://lkml.org/lkml/2008/2/1/242
+I did some testing and the new code does not emit warnings which were
+not emitted before. But previously you had to use less typical
+configurations to see them like HOTPLUG_CPU=y, HOTPLUG=n, gcc 3.3
+
+> 
+> There were no build complaints in 2.6.24 for my stuff (libata and 
+> drivers/net) during my test builds, nor were there any for my 2.6.25-git 
+> merge window pushes, nor were there any complaints when I last checked 
+> Andrew's -mm tree.
+> 
+> So from our perspective, you dumped a lot of work in our laps from out 
+> of the blue, getting irritated at us along the way.
+> 
+> Maybe we can resolve this in a more kinder, gentler, coordinated 
+> fashion?  :)
+It is the misinformation being spread that irritates me.
+Thousand of hours, no real bugs found etc.
+
+Anyway - that is all forgot tomorrow when we get the warning level down
+to zero.
+> 
+> What could be done to prevent this sort of situation in the future? 
+> Maybe add these checks to -mm, and then not push your strict checking 
+> upstream until the build noise is reduced?
+
+The good thing about getting it upstream is the additional attention.
+If we do not get it down to acceptable levels I have no problems
+turning off the section mismatch in minline but keep it enabled
+in -mm.
 
 	Sam
