@@ -1,124 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:44959 "EHLO pasmtpA.tele.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757580AbYAaTlO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 31 Jan 2008 14:41:14 -0500
-Date: Thu, 31 Jan 2008 20:41:13 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH] kill hotplug init/exit section annotations
-Message-ID: <20080131194113.GA3925@uranus.ravnborg.org>
-References: <20080130223219.GT29368@does.not.exist> <20080131074436.GA31966@uranus.ravnborg.org> <1201795051.3131.13.camel@localhost.localdomain> <20080131081120.27505dc0@laptopd505.fenrus.org> <20080131162141.GC19700@cs181133002.pp.htv.fi> <20080131090749.72781689@laptopd505.fenrus.org> <20080131171436.GG19700@cs181133002.pp.htv.fi> <20080131094801.63a048f0@laptopd505.fenrus.org> <20080131183425.GA2893@uranus.ravnborg.org> <20080131104811.4c2d558f@laptopd505.fenrus.org>
-Mime-Version: 1.0
+Received: from pip23.gyao.ne.jp ([125.63.38.249]:54134 "EHLO mx.gate01.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1762677AbYBAAKg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Jan 2008 19:10:36 -0500
+Date: Fri, 1 Feb 2008 09:09:17 +0900
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: asm-generic/tlb.h and check_pgt_cache()
+Message-ID: <20080201000917.GD16399@linux-sh.org>
+References: <20080131125425.7e91b54d@dhcp-252-066.norway.atmel.com> <20080131130328.GA29209@cs181133002.pp.htv.fi> <47A1F7C5.3020108@goop.org>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080131104811.4c2d558f@laptopd505.fenrus.org>
+In-Reply-To: <47A1F7C5.3020108@goop.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arjan van de Ven <arjan@infradead.org>
-Cc: Adrian Bunk <bunk@kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, davem@davemloft.net, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>
+To: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: Adrian Bunk <bunk@kernel.org>, Haavard Skinnemoen <hskinnemoen@atmel.com>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, David Brownell <david-b@pacbell.net>, Jeff Dike <jdike@addtoit.com>
 
-On Thu, Jan 31, 2008 at 10:48:11AM -0800, Arjan van de Ven wrote:
-> On Thu, 31 Jan 2008 19:34:25 +0100
-> Sam Ravnborg <sam@ravnborg.org> wrote:
+On Thu, Jan 31, 2008 at 08:31:01AM -0800, Jeremy Fitzhardinge wrote:
+> Anyway, sorry about the breakage.  There's a cyclic dependency between 
+> asm-generic/tlb.h and asm/pgalloc.h, since __*_free_tlb (often) uses 
+> tlb_remove_page().
 > 
-> > On Thu, Jan 31, 2008 at 09:48:01AM -0800, Arjan van de Ven wrote:
-> > > On Thu, 31 Jan 2008 19:14:36 +0200
-> > > Adrian Bunk <bunk@kernel.org> wrote:
-> > > > > cpuhotplug is required for suspend/resume.
-> > > > 
-> > > > Not on UP computers.
-> > > > 
-> > > 
-> > > great! someone who still has one of those and uses a kernel without
-> > > it. Can you look at your system.map and see how many kilobytes
-> > > you've gained? Eg how many kilobytes are in these sections exactly?
-> > I have one. A Atmel AT91 board equipped with an 9263.
-> > So lets take a look at the defconfig build for the evaluation board.
-> > 
-> > 
-> > o-arm/vmlinux.o:     file format elf32-littlearm
-> > 
-> >   0 .text         001cdefc  00000000  00000000  00000400  2**10
-> >   2 .init.text    000165e8  00000000  00000000  001ce6c0  2**5
-> >  26 .init.data    000032ec  00000000  00000000  002578cc  2**2
-> > 
-> > ---
-> > 
-> >   4 .devinit.text 00001558  00000000  00000000  001e5270  2**2
-> >   9 .exit.text    00000bc8  00000000  00000000  001e8d2c  2**2
-> >  10 .cpuinit.text 00000924  00000000  00000000  001e98f4  2**2
-> >  11 .meminit.text 000004cc  00000000  00000000  001ea218  2**2
-> >  12 .devexit.text 00000160  00000000  00000000  001ea6e4  2**2
-> >  38 .cpuinit.data 00000040  00000000  00000000  0025afc0  2**2
-> >  39 .meminit.data 0000000c  00000000  00000000  0025b000  2**2
-> > 
-> > 
-> > __devinit alone gives a net win of 5464 bytes.
-> > That is only ~3% of total .text size but this is non-swapable
-> > memory where everything is worth it.
+> From the look of it:
+> avr32 - no-op check_pgt_list
+> sh - uses quicklist_*, and defines QUICK_* (unique among architectures)
+> blackfin - how does this break? asm-blackfin/pgalloc.h is more or less no-op
+> m32r - no-op check_pgt_list
+> um - no-op check_pgt_list
 > 
-> now how much of this is lost again because you have to round the stuff to pagesize?
+> I'm guessing in blackfin's case, the breakage is some indirect 
+> dependency on asm-blackfin/pgalloc.h via asm/tlb.h->asm-generic/tlb.h 
+> rather than a specific check_pgt_list() problem.  Adrian, is that 
+> right?  That should be fixable by putting #include <asm/pgalloc.h> in 
+> the appropriate places.
+> 
+> um also has a fairly simply pgalloc.h with no dependency on 
+> asm-generic/tlb.h, so I assume the breakage there is also the result of 
+> an indirect pgalloc.h dependency.
+> 
+> For avr32 and m32r there should be no problem in moving the no-op 
+> check_pgt_list() definition to somewhere else, like asm-*/pgtable.h.
+> 
+> The only tricky case seems to be sh.  That needs a bit more thought.
+> 
+Yes, sh has the __pte_free_tlb() wrapping to tlb_remove_page(), but there
+is nothing directly in asm/pgalloc.h that depends on __pte_free_tlb(), so
+maybe the easiest solution is to just have asm/pgalloc.h included by
+asm/tlb.h for the check_pgt_cache() def and move __pte_free_tlb() in to
+asm/tlb.h directly. One could argue that the __x_free_tlb() routines make
+more sense in asm/tlb.h just in terms of namespace anyways.
 
-Lets take a look in the ARM vmlinux.lds.S file:
-       .text.head : {
-                _stext = .;
-                _sinittext = .;
-                *(.text.head)
-        }
+It's a bit ugly, but if sh is the odd one out here I can live with it.
+This seems to work out ok at least..
 
-        .init : {                       /* Init code and data           */
-                        INIT_TEXT
-                _einittext = .;
-                __proc_info_begin = .;
-                        *(.proc.info.init)
-                __proc_info_end = .;
-                __arch_info_begin = .;
-                        *(.arch.info.init)
-                __arch_info_end = .;
-                __tagtable_begin = .;
-                        *(.taglist.init)
-                __tagtable_end = .;
-                . = ALIGN(16);
-                __setup_start = .;
-                        *(.init.setup)
-                __setup_end = .;
-                __early_begin = .;
-                        *(.early_param.init)
-                __early_end = .;
-                __initcall_start = .;
-                        INITCALLS
-                __initcall_end = .;
-                __con_initcall_start = .;
-                        *(.con_initcall.init)
-                __con_initcall_end = .;
-                __security_initcall_start = .;
-                        *(.security_initcall.init)
-                __security_initcall_end = .;
-#ifdef CONFIG_BLK_DEV_INITRD
-                . = ALIGN(32);
-                __initramfs_start = .;
-                        usr/built-in.o(.init.ramfs)
-                __initramfs_end = .;
-#endif
-                . = ALIGN(4096);
-                __per_cpu_start = .;
-                        *(.data.percpu)
-                        *(.data.percpu.shared_aligned)
-                __per_cpu_end = .;
-#ifndef CONFIG_XIP_KERNEL
-                __init_begin = _stext;
-                INIT_DATA
-                . = ALIGN(4096);
-                __init_end = .;
+---
 
-Everything between _stext and __init_end are freed.
-And we have two PAGESIZE alignmnets here - one for the percpu stuff
-and the other to align the full area that can be freed.
-So there is no special alignment for the __devinit stuff.
+ include/asm-sh/pgalloc.h |    4 ----
+ include/asm-sh/tlb.h     |    7 ++++++-
+ 2 files changed, 6 insertions(+), 5 deletions(-)
 
-And there is no percpu data on ARM so that area is empty.
-So it is one or two pages extra that are freed up.
-
-	Sam
-
+diff --git a/include/asm-sh/pgalloc.h b/include/asm-sh/pgalloc.h
+index 18b613c..f3b2e56 100644
+--- a/include/asm-sh/pgalloc.h
++++ b/include/asm-sh/pgalloc.h
+@@ -64,15 +64,11 @@ static inline void pte_free(struct page *pte)
+ 	quicklist_free_page(QUICK_PT, NULL, pte);
+ }
  
+-#define __pte_free_tlb(tlb,pte) tlb_remove_page((tlb),(pte))
+-
+ /*
+  * allocating and freeing a pmd is trivial: the 1-entry pmd is
+  * inside the pgd, so has no extra memory associated with it.
+  */
+-
+ #define pmd_free(x)			do { } while (0)
+-#define __pmd_free_tlb(tlb,x)		do { } while (0)
+ 
+ static inline void check_pgt_cache(void)
+ {
+diff --git a/include/asm-sh/tlb.h b/include/asm-sh/tlb.h
+index 56ad1fb..6f3eda5 100644
+--- a/include/asm-sh/tlb.h
++++ b/include/asm-sh/tlb.h
+@@ -1,6 +1,8 @@
+ #ifndef __ASM_SH_TLB_H
+ #define __ASM_SH_TLB_H
+ 
++#include <asm/pgalloc.h>
++
+ #ifdef CONFIG_SUPERH64
+ # include "tlb_64.h"
+ #endif
+@@ -18,9 +20,12 @@
+ /*
+  * Flush whole TLBs for MM
+  */
+-#define tlb_flush(tlb)				flush_tlb_mm((tlb)->mm)
++#define tlb_flush(tlb)			flush_tlb_mm((tlb)->mm)
+ 
+ #include <asm-generic/tlb.h>
+ 
++#define __pte_free_tlb(tlb,pte)		tlb_remove_page((tlb),(pte))
++#define __pmd_free_tlb(tlb,x)		do { } while (0)
++
+ #endif /* __ASSEMBLY__ */
+ #endif /* __ASM_SH_TLB_H */
