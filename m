@@ -1,37 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:44108 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1762845AbYBALE4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2008 06:04:56 -0500
-Date: Fri, 1 Feb 2008 03:03:29 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
+Received: from cantor2.suse.de ([195.135.220.15]:38879 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755373AbYBALK5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Feb 2008 06:10:57 -0500
+From: Andi Kleen <ak@suse.de>
 Subject: Re: Are Section mismatches out of control?
-Message-Id: <20080201030329.9b760777.akpm@linux-foundation.org>
-In-Reply-To: <20080201104718.GA11717@uranus.ravnborg.org>
+Date: Fri, 1 Feb 2008 12:10:52 +0100
 References: <20080201104718.GA11717@uranus.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <20080201104718.GA11717@uranus.ravnborg.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-Id: <200802011210.52655.ak@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sam Ravnborg <sam@ravnborg.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@hansenpartnership.com>, Andrew Morton <akpm@linux-foundation.org>
 
-On Fri, 1 Feb 2008 11:47:18 +0100 Sam Ravnborg <sam@ravnborg.org> wrote:
-
+On Friday 01 February 2008 11:47:18 Sam Ravnborg wrote:
 > James said in a related posting that the Section mismatch
 > warnings were getting out of control.
 
-eh.  They're easy - the build system tells you about them!
+My question is: where are crashes? If the sections were
+really in such bad shape and since we poison (and sometimes
+even unmap) init after boot we should in theory see a lot 
+of oops reports from this if there were really accesses to
+them after boot.
 
-> The list is here:
+Where are they?
 
-Question is: why do people keep adding new ones when they are so easy to
-detect and fix?
 
-Asnwer: because neither they nor their patch integrators are doing adequate
-compilation testing.
+> The total figure for this build is 106 warnings.
 
-> I will look at drivers/isdn as next step.
+The interesting question is how many true bugs are in these warnings.
 
-Thanks.
+-Andi
