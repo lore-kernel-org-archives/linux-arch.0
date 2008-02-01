@@ -1,55 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpb.tele.dk ([80.160.77.98]:48106 "EHLO pasmtpB.tele.dk"
+Received: from srv5.dvmed.net ([207.36.208.214]:54236 "EHLO mail.dvmed.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755716AbYBAURK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 1 Feb 2008 15:17:10 -0500
-Date: Fri, 1 Feb 2008 21:17:13 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
+	id S1753834AbYBAUYI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Feb 2008 15:24:08 -0500
+Message-ID: <47A37FE5.2060200@garzik.org>
+Date: Fri, 01 Feb 2008 15:24:05 -0500
+From: Jeff Garzik <jeff@garzik.org>
+MIME-Version: 1.0
 Subject: Re: Are Section mismatches out of control?
-Message-ID: <20080201201713.GA15905@uranus.ravnborg.org>
-References: <20080201104718.GA11717@uranus.ravnborg.org> <20080201030329.9b760777.akpm@linux-foundation.org> <47A34C47.9040306@garzik.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <47A34C47.9040306@garzik.org>
+References: <20080201104718.GA11717@uranus.ravnborg.org> <20080201030329.9b760777.akpm@linux-foundation.org> <47A34C47.9040306@garzik.org> <20080201201713.GA15905@uranus.ravnborg.org>
+In-Reply-To: <20080201201713.GA15905@uranus.ravnborg.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeff Garzik <jeff@garzik.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-> Another way to look at it...  All of a sudden, different from 2.6.24, 
-> kernel 2.6.25-git build spews so many warnings that I need to disable 
-> section mismatch checking completely, because there is so much noise 
-> that __normal build messages scroll off the screen__.
+Sam Ravnborg wrote:
+> One can ignore or one can fix...
+> I decided to spend some of my friday on fixing section mismatch
+> warnings as I've got a bit irritated over people spending time
+> complaining but failing to provide patches.
 
-One can ignore or one can fix...
-I decided to spend some of my friday on fixing section mismatch
-warnings as I've got a bit irritated over people spending time
-complaining but failing to provide patches.
+> 	Sam - who expected more people to actually fix this stuff :-(
 
-My work approach was to seelct a directory and fix all warnings
-there before moving on. So I did not as such pick the easy ones
-or anything like that.
+Well, with due respect, it's a bit presumptuous to add a bunch of 
+warnings to the kernel build (due to more strict checking), and then get 
+annoyed when people aren't jumping up and fixing this stuff immediately.
 
-Despite this I managed with a one day effort to bring down
-the number of warnings in my build from 106 to 50 warnings.
-And yesterday the figure was 136.
+There were no build complaints in 2.6.24 for my stuff (libata and 
+drivers/net) during my test builds, nor were there any for my 2.6.25-git 
+merge window pushes, nor were there any complaints when I last checked 
+Andrew's -mm tree.
 
-So when complaining about the number of warnings I can only say
-that we would all benefit if they are fixed.
-Just ignoring them will not sort it out.
+So from our perspective, you dumped a lot of work in our laps from out 
+of the blue, getting irritated at us along the way.
 
-I did not pull your latest patches so my numbers are outdated
-for net/drivers/ which alone count for 11 out of 50 warnings
-in my tree.
+Maybe we can resolve this in a more kinder, gentler, coordinated 
+fashion?  :)
 
-I am also eagerly awaiting Andrew to push as he has a few
-patches pending all over but the section mismatch warnings
-are the least of his worries these days.
+What could be done to prevent this sort of situation in the future? 
+Maybe add these checks to -mm, and then not push your strict checking 
+upstream until the build noise is reduced?
 
-I hope to get down to less than 20 warnings in my allyesconfig
-build before the merge window closes.
-And with just a bit of assistance from others this
-is doable.
+	Jeff
 
-	Sam - who expected more people to actually fix this stuff :-(
+
