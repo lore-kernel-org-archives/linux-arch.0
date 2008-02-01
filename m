@@ -1,47 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pasmtpa.tele.dk ([80.160.77.114]:36229 "EHLO pasmtpA.tele.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758560AbYBAWkf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 1 Feb 2008 17:40:35 -0500
-Date: Fri, 1 Feb 2008 23:40:38 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: Are Section mismatches out of control?
-Message-ID: <20080201224038.GC17828@uranus.ravnborg.org>
-References: <20080201104718.GA11717@uranus.ravnborg.org> <20080201030329.9b760777.akpm@linux-foundation.org> <1201864894.23523.117.camel@brick> <Pine.LNX.4.64.0802012245250.18790@fbirervta.pbzchgretzou.qr>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:39347 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751684AbYBAXQC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2008 18:16:02 -0500
+Date: Fri, 1 Feb 2008 15:15:41 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch 2/3] CONFIG_HIGHPTE vs. sub-page page tables.
+Message-Id: <20080201151541.8e3e0359.akpm@linux-foundation.org>
+In-Reply-To: <20071112144009.831296895@de.ibm.com>
+References: <20071112143009.425807965@de.ibm.com>
+	<20071112144009.831296895@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0802012245250.18790@fbirervta.pbzchgretzou.qr>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Engelhardt <jengelh@computergmbh.de>
-Cc: Harvey Harrison <harvey.harrison@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>
+To: schwidefsky@de.ibm.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, Ingo Molnar <mingo@elte.hu>
 
-On Fri, Feb 01, 2008 at 10:47:25PM +0100, Jan Engelhardt wrote:
-> 
-> On Feb 1 2008 03:21, Harvey Harrison wrote:
-> >> 
-> >> Question is: why do people keep adding new ones when they are so easy to
-> >> detect and fix?
-> >> 
-> >> Asnwer: because neither they nor their patch integrators are doing adequate
-> >> compilation testing.
-> >
-> >[...]
-> >Unless they break the build, or if there currently are 0 and they make
-> >it non-zero, people seem not to care....sad.  Probably the same for
-> >sparse/checkpatch, "there's plenty already, I can't be bothered to look"
-> 
-> checkpatch does not parse C, it uses heuristical regexes.
-> 
-> That makes it very different from sparse or the section mismatch
-> finder which do not output false positives.
+On Mon, 12 Nov 2007 15:30:11 +0100
+schwidefsky@de.ibm.com wrote:
 
-Unfortunately I most correct you. Section mismatch checks seldoms finds
-what I would call 'real' bugs that causes oops - but it happen.
-It is mostly fasle positives that needs workaround, but also a great
-deal of missing annotation resulting in additional memory saved.
-And then occasionally a bad reference in some error handling that
-seldom trigger but when it does it would oops.
+> From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> 
+> Background: I've implemented 1K/2K page tables for s390. These sub-page
+> page tables are required to properly support the s390 virtualization
+> instruction with KVM. The SIE instruction requires that the page tables
+> have 256 page table entries (pte) followed by 256 page status table
+> entries (pgste). The pgstes are only required if the process is using
+> the SIE instruction. The pgstes are updated by the hardware and by the
+> hypervisor for a number of reasons, one of them is dirty and reference
+> bit tracking. To avoid wasting memory the standard pte table allocation
+> should return 1K/2K (31/64 bit) and 2K/4K if the process is using SIE.
+> 
+> Problem: Page size on s390 is 4K, page table size is 1K or 2K. That
+> means the s390 version for pte_alloc_one cannot return a pointer to
+> a struct page. Trouble is that with the CONFIG_HIGHPTE feature on x86
+> pte_alloc_one cannot return a pointer to a pte either, since that would
+> require more than 32 bit for the return value of pte_alloc_one (and the
+> pte * would not be accessible since its not kmapped).
+> 
+> Solution: The only solution I found to this dilemma is a new typedef:
+> a pgtable_t. For s390 pgtable_t will be a (pte *) - to be introduced
+> with a later patch. For everybody else it will be a (struct page *).
+> The additional problem with the initialization of the ptl lock and the
+> NR_PAGETABLE accounting is solved with a constructor pgtable_page_ctor
+> and a destructor pgtable_page_dtor. The page table allocation and free
+> functions need to call these two whenever a page table page is allocated
+> or freed. pmd_populate will get a pgtable_t instead of a struct page
+> pointer. To get the pgtable_t back from a pmd entry that has been
+> installed with pmd_populate a new function pmd_pgtable is added. It
+> replaces the pmd_page call in free_pte_range and apply_to_pte_range.
 
-	Sam
+Sorry, I'm going to drop this.  And I guess the whole series.
+
+On my 7000th fix-it-for-git-x86-changes I ended up with this:
+
+static inline struct page *pmd_pgtable(pmd_t *pmd)
+{
+	return pmd_page(pmd);
+}
+
+expanding to this:
+
+static inline __attribute__((always_inline)) struct page *pmd_pgtable(pmd_t *pmd)
+{
+	return ((mem_map + ((((native_pgd_val(((pmd).pud).pgd))) >> 12) - (0UL))));
+}
+
+and producing this:
+
+In file included from include/asm/pgalloc.h:2,
+                 from include/asm/mmu_context_32.h:6,
+                 from include/asm/mmu_context.h:2,
+                 from arch/x86/kernel/ldt.c:20:
+include/asm/pgalloc_32.h: In function 'pmd_pgtable':
+include/asm/pgalloc_32.h:37: error: request for member 'pud' in something not a structure or union
+
+it was a revolting experience picking through the mess we've made, trying
+to work out when we're using ptes/pmds/puds/pgds versus when we're using
+*pointers* to those things.  The obsessional use type-free macros, the
+liberal avoidance of comments and the general spaghettiness of it all makes
+this far harder than it should be.
+
+The reason why I chose to drop the patch rather than keep poking away at it
+was:
+
+> +#define pmd_pgtable(pmd) pmd_page(pmd)
+> +#define pmd_pgtable(pmd) pmd_page(pmd)
+> +#define __pte_free_tlb(tlb,pte)				\
+> +do {							\
+> +	pgtable_page_dtor(pte);				\
+> +	tlb_remove_page((tlb), pte);			\
+> +} while (0)
+> +#define __pte_free_tlb(tlb,pte)				\
+> +do {							\
+> +	pgtable_page_dtor(pte);				\
+> +	tlb_remove_page((tlb),(pte));			\
+> +} while (0)
+> +#define pmd_pgtable(pmd) pmd_page(pmd)
+> +#define pmd_pgtable(pmd) pmd_page(pmd)
+> +#define __pte_free_tlb(tlb,pte)				\
+> +do {							\
+> +	pgtable_page_dtor(pte);				\
+> +	tlb_remove_page((tlb), pte);			\
+> +} while (0)
+>
+> etcetera
+
+This is just making a bad situation worse.  Please only use macros as a
+last resort.  Please prefer to code in typesafe, self-documenting C.  
+
