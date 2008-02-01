@@ -1,61 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:40784 "EHLO
-	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753494AbYBAPBD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2008 10:01:03 -0500
+Received: from srv5.dvmed.net ([207.36.208.214]:53273 "EHLO mail.dvmed.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755164AbYBAQny (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Feb 2008 11:43:54 -0500
+Message-ID: <47A34C47.9040306@garzik.org>
+Date: Fri, 01 Feb 2008 11:43:51 -0500
+From: Jeff Garzik <jeff@garzik.org>
+MIME-Version: 1.0
 Subject: Re: Are Section mismatches out of control?
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
+References: <20080201104718.GA11717@uranus.ravnborg.org> <20080201030329.9b760777.akpm@linux-foundation.org>
 In-Reply-To: <20080201030329.9b760777.akpm@linux-foundation.org>
-References: <20080201104718.GA11717@uranus.ravnborg.org>
-	 <20080201030329.9b760777.akpm@linux-foundation.org>
-Content-Type: text/plain
-Date: Fri, 01 Feb 2008 09:00:59 -0600
-Message-Id: <1201878059.3134.13.camel@localhost.localdomain>
-Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>
+Cc: Sam Ravnborg <sam@ravnborg.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>
 
-On Fri, 2008-02-01 at 03:03 -0800, Andrew Morton wrote:
+Andrew Morton wrote:
 > On Fri, 1 Feb 2008 11:47:18 +0100 Sam Ravnborg <sam@ravnborg.org> wrote:
 > 
-> > James said in a related posting that the Section mismatch
-> > warnings were getting out of control.
+>> James said in a related posting that the Section mismatch
+>> warnings were getting out of control.
 > 
 > eh.  They're easy - the build system tells you about them!
 > 
-> > The list is here:
+>> The list is here:
 > 
 > Question is: why do people keep adding new ones when they are so easy to
 > detect and fix?
 > 
 > Asnwer: because neither they nor their patch integrators are doing adequate
 > compilation testing.
+> 
+>> I will look at drivers/isdn as next step.
+> 
+> Thanks.
 
-That's because certain configurations, where this shows up, like !
-CONFIG_HOTPLUG or !CONFIG_HOTPLUG_CPU simply aren't anything other than
-extremely weird configs for most modern HW and distributions.
+Another way to look at it...  All of a sudden, different from 2.6.24, 
+kernel 2.6.25-git build spews so many warnings that I need to disable 
+section mismatch checking completely, because there is so much noise 
+that __normal build messages scroll off the screen__.
 
-I'm not saying we can't fix the problem with tools or that we can't
-invest huge amounts of time patching and fixing this.  I am saying we
-should be questioning the value of the investment in doing so.
+	Jeff
 
-I also claim that getting rid of the __dev.* sectional attributes (for
-which I've already submitted a small patch) fixes 90% of the problems
-(since they're mainly caused by driver writers not understanding what
-all of these things mean).  The remaining ones are clearer and
-additionally, show up on every build (whether HOTPLUG or not).
 
-Before we start to pillory driver writers for not caring about configs
-they rightly don't give a toss about, could we at least get someone
-(anyone!) in the community that cares about extreme low memory
-configurations to give us reasons why there's value to all this effort
-(rather than spending it on say reducing cache footprints or eliminating
-space in structures)?  All the people I've asked so far (mainly in arm,
-admittedly) have said they have bigger things to worry about.
-
-James
 
 
