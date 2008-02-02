@@ -1,41 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sovereign.computergmbh.de ([85.214.69.204]:45784 "EHLO
-	sovereign.computergmbh.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761722AbYBBABT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Feb 2008 19:01:19 -0500
-Date: Sat, 2 Feb 2008 01:01:17 +0100 (CET)
-From: Jan Engelhardt <jengelh@computergmbh.de>
+Received: from mx2.suse.de ([195.135.220.15]:42731 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752399AbYBBEMN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Feb 2008 23:12:13 -0500
+Date: Sat, 2 Feb 2008 05:12:11 +0100
+From: Andi Kleen <ak@suse.de>
 Subject: Re: Are Section mismatches out of control?
-In-Reply-To: <20080201224038.GC17828@uranus.ravnborg.org>
-Message-ID: <Pine.LNX.4.64.0802020100120.18790@fbirervta.pbzchgretzou.qr>
-References: <20080201104718.GA11717@uranus.ravnborg.org>
- <20080201030329.9b760777.akpm@linux-foundation.org> <1201864894.23523.117.camel@brick>
- <Pine.LNX.4.64.0802012245250.18790@fbirervta.pbzchgretzou.qr>
- <20080201224038.GC17828@uranus.ravnborg.org>
+Message-ID: <20080202041211.GA27735@bingen.suse.de>
+References: <20080201104718.GA11717@uranus.ravnborg.org> <200802011210.52655.ak@suse.de> <Pine.LNX.4.64.0802012250251.18790@fbirervta.pbzchgretzou.qr>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0802012250251.18790@fbirervta.pbzchgretzou.qr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Harvey Harrison <harvey.harrison@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>
+To: Jan Engelhardt <jengelh@computergmbh.de>
+Cc: Andi Kleen <ak@suse.de>, Sam Ravnborg <sam@ravnborg.org>, LKML <linux-kernel@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, James Bottomley <James.Bottomley@hansenpartnership.com>, Andrew Morton <akpm@linux-foundation.org>
 
+On Fri, Feb 01, 2008 at 10:51:14PM +0100, Jan Engelhardt wrote:
+> 
+> On Feb 1 2008 12:10, Andi Kleen wrote:
+> >On Friday 01 February 2008 11:47:18 Sam Ravnborg wrote:
+> >> James said in a related posting that the Section mismatch
+> >> warnings were getting out of control.
+> >
+> >My question is: where are crashes? If the sections were
+> >really in such bad shape and since we poison (and sometimes
+> >even unmap) init after boot we should in theory see a lot 
+> >of oops reports from this if there were really accesses to
+> >them after boot.
+> >
+> >Where are they?
+> 
+> Perhaps still in RAM? Explicitly zero the area after unmapping,
+> maybe something happens.
 
-On Feb 1 2008 23:40, Sam Ravnborg wrote:
->> 
->> checkpatch does not parse C, it uses heuristical regexes.
->> 
->> That makes it very different from sparse or the section mismatch
->> finder which do not output false positives.
->
->Unfortunately I most correct you. Section mismatch checks seldoms finds
->what I would call 'real' bugs that causes oops - but it happen.
->It is mostly fasle positives that needs workaround, but also a great
->deal of missing annotation resulting in additional memory saved.
->And then occasionally a bad reference in some error handling that
->seldom trigger but when it does it would oops.
+This is already doing (but not with zero). With DEBUG_RODATA it is 
+even unmapped. 
 
-What I meant with false positives:=
-modpost warning about something that is not true.
+-Andi
 
-I have not yet seen such happening where code is obviously correct
-by the eyeball, but modpost gets it wrong.
