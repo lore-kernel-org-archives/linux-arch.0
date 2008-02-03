@@ -1,71 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:33902 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751603AbYBCGrG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 3 Feb 2008 01:47:06 -0500
-Date: Sun, 3 Feb 2008 07:46:45 +0100
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch 2/3] CONFIG_HIGHPTE vs. sub-page page tables.
-Message-ID: <20080203064645.GA27929@elte.hu>
-References: <20071112143009.425807965@de.ibm.com> <20071112144009.831296895@de.ibm.com> <20080201151541.8e3e0359.akpm@linux-foundation.org> <1202017020.7208.2.camel@pasglop> <20080202215315.3ac6907d.akpm@linux-foundation.org>
+Received: from mtagate4.uk.ibm.com ([195.212.29.137]:53812 "EHLO
+	mtagate4.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1763278AbYBCLwj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Feb 2008 06:52:39 -0500
+Date: Sun, 3 Feb 2008 12:52:34 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH 1/2] kprobes: Introduce kprobe_handle_fault()
+Message-ID: <20080203115234.GC18211@osiris.ibm.com>
+References: <1202007623.1844.44.camel@brick>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080202215315.3ac6907d.akpm@linux-foundation.org>
+In-Reply-To: <1202007623.1844.44.camel@brick>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: benh@kernel.crashing.org, schwidefsky@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-
-* Andrew Morton <akpm@linux-foundation.org> wrote:
-
-> > It's a sane patch and a helps going further, and a total pain to 
-> > re-do later on. Besides, I may have some use for it on powerpc at 
-> > some point too...
+On Sat, Feb 02, 2008 at 07:00:23PM -0800, Harvey Harrison wrote:
+> Use a central kprobe_handle_fault() inline in kprobes.h to remove
+> all of the arch-dependant, practically identical implementations in
+> avr32, ia64, powerpc, s390, sparc64, and x86.
 > 
-> OK, I'll try to reestablish it.
+> avr32 was the only arch without the preempt_disable/enable pair
+> in its notify_page_fault implementation.
 > 
-> Look: I can't fix *everyone's* stuff.  This was a consequence of 
-> ongoing unbounded churn in the x86 tree. [...]
+> This uncovered a possible bug in the s390 version as that purely
+> copied the x86 version unconditionally passing 14 as the trapnr
+> rather than the error_code parameter.  s390 is changed to pass
+> error_code in this patch.
+> 
+> Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
 
-i've reviewed this patchset and the right model appears to me to do this 
-change upstream right now, atomically. It is supposed to be a pure 
-functional NOP, and any deviation from that is easy to spot.
+for the s390 bits:
 
-  Acked-by: Ingo Molnar <mingo@elte.hu>
-
-I dont think it's particular wise to maintain a change like this across 
-all the arch churn, for months. This patch is a pure cleanup, it could 
-have been merged two months ago. The author should get agreement that 
-it's fine to do it, and if the timing happens to be unfortunate for 
-immediate merging (we are within say 1 month window before stable 
-release) then delay it and redo the cleanup right when it's about to be 
-merged.
-
-The worst thing to do is to prolong this for months - it is only 
-unnecessary work for no particular good reason. It complicates -mm 
-merging, keeps an API fork around for no good reason, etc., etc.
-
-there's tons of past examples of much larger transformations than this 
-done right: for example the recent irq_regs changes. (and that one wasnt 
-even a pure NOP like this change.)
-
-In general, we can pick up the x86 bits of any tree-wide change into 
-x86.git no problem, and then maintain it against all the nuances of 
-x86.git churn. (That requires them to be shaped in a way so that they 
-can be applied to one architecture at a time - which is obviously a good 
-thing anyway - but not always possible, such as in this case where a 
-common API is extended.)
-
-If anyone is feeling _any_ serious effects of x86.git churn then please 
-talk to us maintainers and we can work out some technical solution. The 
-only thing we cannot do is to stop 100 active contributors and the flow 
-of 1000 patches until someone finds the time to get tree-wide changes 
-upstream.
-
-Roland was able to shape his utrace-enabler regset patches upstream this 
-way, and it is two or three orders of magnitude more complex of a code 
-transformation than the one we are talking about here.
-
-	Ingo
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
