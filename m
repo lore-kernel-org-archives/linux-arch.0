@@ -1,471 +1,390 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.polymtl.ca ([132.207.4.11]:55077 "EHLO smtp.polymtl.ca"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1763360AbYBBUrJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Feb 2008 15:47:09 -0500
-Message-Id: <20080202201201.134048008@polymtl.ca>
-References: <20080202201031.860344390@polymtl.ca>
-Date: Sat, 02 Feb 2008 15:10:36 -0500
-From: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Subject: [patch 5/5] Move Kconfig.instrumentation to arch/Kconfig and init/Kconfig
-Content-Disposition: inline; filename=move-kconfiginstrumentation-to-arch-kconfig-and-init-kconfig.patch
+Received: from rv-out-0910.google.com ([209.85.198.190]:5472 "EHLO
+	rv-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758384AbYBCDAP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2008 22:00:15 -0500
+Received: by rv-out-0910.google.com with SMTP id k20so1143250rvb.1
+        for <linux-arch@vger.kernel.org>; Sat, 02 Feb 2008 19:00:15 -0800 (PST)
+Subject: [PATCH 1/2] kprobes: Introduce kprobe_handle_fault()
+From: Harvey Harrison <harvey.harrison@gmail.com>
+Content-Type: text/plain
+Date: Sat, 02 Feb 2008 19:00:23 -0800
+Message-Id: <1202007623.1844.44.camel@brick>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Linus Torvalds <torvalds@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-Move the instrumentation Kconfig to
+Use a central kprobe_handle_fault() inline in kprobes.h to remove
+all of the arch-dependant, practically identical implementations in
+avr32, ia64, powerpc, s390, sparc64, and x86.
 
-arch/Kconfig for architecture dependent options
-  - oprofile
-  - kprobes
+avr32 was the only arch without the preempt_disable/enable pair
+in its notify_page_fault implementation.
 
-and
+This uncovered a possible bug in the s390 version as that purely
+copied the x86 version unconditionally passing 14 as the trapnr
+rather than the error_code parameter.  s390 is changed to pass
+error_code in this patch.
 
-init/Kconfig for architecture independent options
-  - profiling
-  - markers
-
-Remove the "Instrumentation Support" menu. Everything moves to "General setup".
-Delete the kernel/Kconfig.instrumentation file.
-
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-CC: Sam Ravnborg <sam@ravnborg.org>
-Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
 ---
- arch/Kconfig                   |   28 ++++++++++++++++++++
- arch/alpha/Kconfig             |    2 -
- arch/arm/Kconfig               |    2 -
- arch/blackfin/Kconfig          |    2 -
- arch/cris/Kconfig              |    2 -
- arch/frv/Kconfig               |    2 -
- arch/h8300/Kconfig             |    2 -
- arch/ia64/Kconfig              |    2 -
- arch/m32r/Kconfig              |    2 -
- arch/m68k/Kconfig              |    2 -
- arch/m68knommu/Kconfig         |    2 -
- arch/mips/Kconfig              |    2 -
- arch/parisc/Kconfig            |    2 -
- arch/powerpc/Kconfig           |    2 -
- arch/ppc/Kconfig               |    2 -
- arch/s390/Kconfig              |    2 -
- arch/sh/Kconfig                |    2 -
- arch/sparc/Kconfig             |    2 -
- arch/sparc64/Kconfig           |    2 -
- arch/um/Kconfig                |    2 -
- arch/v850/Kconfig              |    2 -
- arch/x86/Kconfig               |    2 -
- arch/xtensa/Kconfig            |    2 -
- init/Kconfig                   |   12 ++++++++
- kernel/Kconfig.instrumentation |   55 -----------------------------------------
- 25 files changed, 40 insertions(+), 99 deletions(-)
+Andrew, 1/2 is low risk, 2/2 has been tested on x86-32 and 64,
+but the !preemptible invariant seems correct.
 
-Index: linux-2.6-lttng/arch/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/Kconfig	2008-02-02 14:37:03.000000000 -0500
-+++ linux-2.6-lttng/arch/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -1,3 +1,31 @@
- #
- # General architecture dependent options
- #
-+
-+config OPROFILE
-+	tristate "OProfile system profiling (EXPERIMENTAL)"
-+	depends on PROFILING
-+	depends on HAVE_OPROFILE
-+	help
-+	  OProfile is a profiling system capable of profiling the
-+	  whole system, include the kernel, kernel modules, libraries,
-+	  and applications.
-+
-+	  If unsure, say N.
-+
-+config HAVE_OPROFILE
-+	def_bool n
-+
-+config KPROBES
-+	bool "Kprobes"
-+	depends on KALLSYMS && MODULES
-+	depends on HAVE_KPROBES
-+	help
-+	  Kprobes allows you to trap at almost any kernel address and
-+	  execute a callback function.  register_kprobe() establishes
-+	  a probepoint and specifies the callback.  Kprobes is useful
-+	  for kernel debugging, non-intrusive instrumentation and testing.
-+	  If in doubt, say "N".
-+
-+config HAVE_KPROBES
-+	def_bool n
-Index: linux-2.6-lttng/init/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/init/Kconfig	2008-02-02 14:37:03.000000000 -0500
-+++ linux-2.6-lttng/init/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -665,6 +665,18 @@ config SLOB
- 
- endchoice
- 
-+config PROFILING
-+	bool "Profiling support (EXPERIMENTAL)"
-+	help
-+	  Say Y here to enable the extended profiling support mechanisms used
-+	  by profilers such as OProfile.
-+
-+config MARKERS
-+	bool "Activate markers"
-+	help
-+	  Place an empty function call at each marker site. Can be
-+	  dynamically changed for a probe function.
-+
- source "arch/Kconfig"
- 
- endmenu		# General setup
-Index: linux-2.6-lttng/arch/alpha/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/alpha/Kconfig	2008-02-02 14:37:04.000000000 -0500
-+++ linux-2.6-lttng/arch/alpha/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -650,8 +650,6 @@ source "drivers/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/alpha/Kconfig.debug"
- 
- # DUMMY_CONSOLE may be defined in drivers/video/console/Kconfig
-Index: linux-2.6-lttng/arch/arm/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/arm/Kconfig	2008-02-02 14:37:07.000000000 -0500
-+++ linux-2.6-lttng/arch/arm/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -1147,8 +1147,6 @@ endmenu
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/arm/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/blackfin/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/blackfin/Kconfig	2008-02-02 14:37:04.000000000 -0500
-+++ linux-2.6-lttng/arch/blackfin/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -974,8 +974,6 @@ source "drivers/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/blackfin/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/cris/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/cris/Kconfig	2008-02-02 14:36:21.000000000 -0500
-+++ linux-2.6-lttng/arch/cris/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -213,8 +213,6 @@ source "drivers/pci/Kconfig"
- 
- source "drivers/usb/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/cris/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/frv/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/frv/Kconfig	2008-02-02 14:36:21.000000000 -0500
-+++ linux-2.6-lttng/arch/frv/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -375,8 +375,6 @@ source "drivers/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/frv/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/h8300/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/h8300/Kconfig	2008-02-02 14:36:21.000000000 -0500
-+++ linux-2.6-lttng/arch/h8300/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -223,8 +223,6 @@ endmenu
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/h8300/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/ia64/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/ia64/Kconfig	2008-02-02 14:37:07.000000000 -0500
-+++ linux-2.6-lttng/arch/ia64/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -602,8 +602,6 @@ config IRQ_PER_CPU
- 
- source "arch/ia64/hp/sim/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/ia64/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/m32r/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/m32r/Kconfig	2008-02-02 14:37:04.000000000 -0500
-+++ linux-2.6-lttng/arch/m32r/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -427,8 +427,6 @@ source "drivers/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/m32r/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/m68k/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/m68k/Kconfig	2008-02-02 14:36:21.000000000 -0500
-+++ linux-2.6-lttng/arch/m68k/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -678,8 +678,6 @@ endmenu
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/m68k/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/m68knommu/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/m68knommu/Kconfig	2008-02-02 14:36:21.000000000 -0500
-+++ linux-2.6-lttng/arch/m68knommu/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -711,8 +711,6 @@ source "drivers/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/m68knommu/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/mips/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/mips/Kconfig	2008-02-02 14:37:04.000000000 -0500
-+++ linux-2.6-lttng/arch/mips/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -2096,8 +2096,6 @@ source "drivers/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/mips/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/parisc/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/parisc/Kconfig	2008-02-02 14:37:04.000000000 -0500
-+++ linux-2.6-lttng/arch/parisc/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -273,8 +273,6 @@ source "drivers/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/parisc/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/powerpc/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/powerpc/Kconfig	2008-02-02 14:37:07.000000000 -0500
-+++ linux-2.6-lttng/arch/powerpc/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -715,8 +715,6 @@ source "arch/powerpc/sysdev/qe_lib/Kconf
- 
- source "lib/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/powerpc/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/ppc/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/ppc/Kconfig	2008-02-02 14:37:07.000000000 -0500
-+++ linux-2.6-lttng/arch/ppc/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -1258,8 +1258,6 @@ endmenu
- 
- source "lib/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/ppc/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/s390/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/s390/Kconfig	2008-02-02 14:37:07.000000000 -0500
-+++ linux-2.6-lttng/arch/s390/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -528,8 +528,6 @@ source "drivers/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/s390/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/sh/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/sh/Kconfig	2008-02-02 14:37:04.000000000 -0500
-+++ linux-2.6-lttng/arch/sh/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -897,8 +897,6 @@ source "drivers/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/sh/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/sparc/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/sparc/Kconfig	2008-02-02 14:37:04.000000000 -0500
-+++ linux-2.6-lttng/arch/sparc/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -321,8 +321,6 @@ endmenu
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/sparc/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/sparc64/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/sparc64/Kconfig	2008-02-02 14:37:07.000000000 -0500
-+++ linux-2.6-lttng/arch/sparc64/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -467,8 +467,6 @@ source "drivers/sbus/char/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/sparc64/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/um/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/um/Kconfig	2008-02-02 14:36:21.000000000 -0500
-+++ linux-2.6-lttng/arch/um/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -289,6 +289,4 @@ config INPUT
- 	bool
- 	default n
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/um/Kconfig.debug"
-Index: linux-2.6-lttng/arch/v850/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/v850/Kconfig	2008-02-02 14:36:21.000000000 -0500
-+++ linux-2.6-lttng/arch/v850/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -331,8 +331,6 @@ source "sound/Kconfig"
- 
- source "drivers/usb/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/v850/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/xtensa/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/xtensa/Kconfig	2008-02-02 14:36:21.000000000 -0500
-+++ linux-2.6-lttng/arch/xtensa/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -246,8 +246,6 @@ config EMBEDDED_RAMDISK_IMAGE
- 	  provide one yourself.
- endmenu
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/xtensa/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/arch/x86/Kconfig
-===================================================================
---- linux-2.6-lttng.orig/arch/x86/Kconfig	2008-02-02 14:37:07.000000000 -0500
-+++ linux-2.6-lttng/arch/x86/Kconfig	2008-02-02 14:37:08.000000000 -0500
-@@ -1595,8 +1595,6 @@ source "drivers/firmware/Kconfig"
- 
- source "fs/Kconfig"
- 
--source "kernel/Kconfig.instrumentation"
--
- source "arch/x86/Kconfig.debug"
- 
- source "security/Kconfig"
-Index: linux-2.6-lttng/kernel/Kconfig.instrumentation
-===================================================================
---- linux-2.6-lttng.orig/kernel/Kconfig.instrumentation	2008-02-02 14:37:07.000000000 -0500
-+++ /dev/null	1970-01-01 00:00:00.000000000 +0000
-@@ -1,55 +0,0 @@
--menuconfig INSTRUMENTATION
--	bool "Instrumentation Support"
--	default y
--	---help---
--	  Say Y here to get to see options related to performance measurement,
--	  system-wide debugging, and testing. This option alone does not add any
--	  kernel code.
--
--	  If you say N, all options in this submenu will be skipped and
--	  disabled. If you're trying to debug the kernel itself, go see the
--	  Kernel Hacking menu.
--
--if INSTRUMENTATION
--
--config PROFILING
--	bool "Profiling support (EXPERIMENTAL)"
--	help
--	  Say Y here to enable the extended profiling support mechanisms used
--	  by profilers such as OProfile.
--
--config OPROFILE
--	tristate "OProfile system profiling (EXPERIMENTAL)"
--	depends on PROFILING && !UML
--	depends on HAVE_OPROFILE
--	help
--	  OProfile is a profiling system capable of profiling the
--	  whole system, include the kernel, kernel modules, libraries,
--	  and applications.
--
--	  If unsure, say N.
--
--config HAVE_OPROFILE
--	def_bool n
--
--config KPROBES
--	bool "Kprobes"
--	depends on KALLSYMS && MODULES && !UML
--	depends on HAVE_KPROBES
--	help
--	  Kprobes allows you to trap at almost any kernel address and
--	  execute a callback function.  register_kprobe() establishes
--	  a probepoint and specifies the callback.  Kprobes is useful
--	  for kernel debugging, non-intrusive instrumentation and testing.
--	  If in doubt, say "N".
--
--config HAVE_KPROBES
--	def_bool n
--
--config MARKERS
--	bool "Activate markers"
--	help
--	  Place an empty function call at each marker site. Can be
--	  dynamically changed for a probe function.
--
--endif # INSTRUMENTATION
+ arch/arm/mm/fault.c     |   25 +------------------------
+ arch/avr32/mm/fault.c   |   21 +--------------------
+ arch/ia64/mm/fault.c    |   24 +-----------------------
+ arch/powerpc/mm/fault.c |   25 +------------------------
+ arch/s390/mm/fault.c    |   25 +------------------------
+ arch/sparc64/mm/fault.c |   23 +----------------------
+ arch/x86/mm/fault.c     |   26 ++------------------------
+ include/linux/kprobes.h |   20 ++++++++++++++++++++
+ 8 files changed, 28 insertions(+), 161 deletions(-)
 
+diff --git a/arch/arm/mm/fault.c b/arch/arm/mm/fault.c
+index 28ad7ab..5def64f 100644
+--- a/arch/arm/mm/fault.c
++++ b/arch/arm/mm/fault.c
+@@ -21,29 +21,6 @@
+ 
+ #include "fault.h"
+ 
+-
+-#ifdef CONFIG_KPROBES
+-static inline int notify_page_fault(struct pt_regs *regs, unsigned int fsr)
+-{
+-	int ret = 0;
+-
+-	if (!user_mode(regs)) {
+-		/* kprobe_running() needs smp_processor_id() */
+-		preempt_disable();
+-		if (kprobe_running() && kprobe_fault_handler(regs, fsr))
+-			ret = 1;
+-		preempt_enable();
+-	}
+-
+-	return ret;
+-}
+-#else
+-static inline int notify_page_fault(struct pt_regs *regs, unsigned int fsr)
+-{
+-	return 0;
+-}
+-#endif
+-
+ /*
+  * This is useful to dump out the page tables associated with
+  * 'addr' in mm 'mm'.
+@@ -246,7 +223,7 @@ do_page_fault(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
+ 	struct mm_struct *mm;
+ 	int fault, sig, code;
+ 
+-	if (notify_page_fault(regs, fsr))
++	if (handle_kprobe_fault(regs, fsr))
+ 		return 0;
+ 
+ 	tsk = current;
+diff --git a/arch/avr32/mm/fault.c b/arch/avr32/mm/fault.c
+index 6560cb1..e41953e 100644
+--- a/arch/avr32/mm/fault.c
++++ b/arch/avr32/mm/fault.c
+@@ -20,25 +20,6 @@
+ #include <asm/tlb.h>
+ #include <asm/uaccess.h>
+ 
+-#ifdef CONFIG_KPROBES
+-static inline int notify_page_fault(struct pt_regs *regs, int trap)
+-{
+-	int ret = 0;
+-
+-	if (!user_mode(regs)) {
+-		if (kprobe_running() && kprobe_fault_handler(regs, trap))
+-			ret = 1;
+-	}
+-
+-	return ret;
+-}
+-#else
+-static inline int notify_page_fault(struct pt_regs *regs, int trap)
+-{
+-	return 0;
+-}
+-#endif
+-
+ int exception_trace = 1;
+ 
+ /*
+@@ -66,7 +47,7 @@ asmlinkage void do_page_fault(unsigned long ecr, struct pt_regs *regs)
+ 	int code;
+ 	int fault;
+ 
+-	if (notify_page_fault(regs, ecr))
++	if (kprobe_handle_fault(regs, ecr))
+ 		return;
+ 
+ 	address = sysreg_read(TLBEAR);
+diff --git a/arch/ia64/mm/fault.c b/arch/ia64/mm/fault.c
+index 7571076..bfc83e8 100644
+--- a/arch/ia64/mm/fault.c
++++ b/arch/ia64/mm/fault.c
+@@ -18,28 +18,6 @@
+ 
+ extern void die (char *, struct pt_regs *, long);
+ 
+-#ifdef CONFIG_KPROBES
+-static inline int notify_page_fault(struct pt_regs *regs, int trap)
+-{
+-	int ret = 0;
+-
+-	if (!user_mode(regs)) {
+-		/* kprobe_running() needs smp_processor_id() */
+-		preempt_disable();
+-		if (kprobe_running() && kprobes_fault_handler(regs, trap))
+-			ret = 1;
+-		preempt_enable();
+-	}
+-
+-	return ret;
+-}
+-#else
+-static inline int notify_page_fault(struct pt_regs *regs, int trap)
+-{
+-	return 0;
+-}
+-#endif
+-
+ /*
+  * Return TRUE if ADDRESS points at a page in the kernel's mapped segment
+  * (inside region 5, on ia64) and that page is present.
+@@ -106,7 +84,7 @@ ia64_do_page_fault (unsigned long address, unsigned long isr, struct pt_regs *re
+ 	/*
+ 	 * This is to handle the kprobes on user space access instructions
+ 	 */
+-	if (notify_page_fault(regs, TRAP_BRKPT))
++	if (kprobe_handle_fault(regs, TRAP_BRKPT))
+ 		return;
+ 
+ 	down_read(&mm->mmap_sem);
+diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+index 7b25107..3246953 100644
+--- a/arch/powerpc/mm/fault.c
++++ b/arch/powerpc/mm/fault.c
+@@ -39,29 +39,6 @@
+ #include <asm/tlbflush.h>
+ #include <asm/siginfo.h>
+ 
+-
+-#ifdef CONFIG_KPROBES
+-static inline int notify_page_fault(struct pt_regs *regs)
+-{
+-	int ret = 0;
+-
+-	/* kprobe_running() needs smp_processor_id() */
+-	if (!user_mode(regs)) {
+-		preempt_disable();
+-		if (kprobe_running() && kprobe_fault_handler(regs, 11))
+-			ret = 1;
+-		preempt_enable();
+-	}
+-
+-	return ret;
+-}
+-#else
+-static inline int notify_page_fault(struct pt_regs *regs)
+-{
+-	return 0;
+-}
+-#endif
+-
+ /*
+  * Check whether the instruction at regs->nip is a store using
+  * an update addressing form which will update r1.
+@@ -164,7 +141,7 @@ int __kprobes do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	is_write = error_code & ESR_DST;
+ #endif /* CONFIG_4xx || CONFIG_BOOKE */
+ 
+-	if (notify_page_fault(regs))
++	if (kprobe_handle_fault(regs, 11))
+ 		return 0;
+ 
+ 	if (unlikely(debugger_fault_handler(regs)))
+diff --git a/arch/s390/mm/fault.c b/arch/s390/mm/fault.c
+index 2456b52..5a47295 100644
+--- a/arch/s390/mm/fault.c
++++ b/arch/s390/mm/fault.c
+@@ -51,29 +51,6 @@ extern int sysctl_userprocess_debug;
+ 
+ extern void die(const char *,struct pt_regs *,long);
+ 
+-#ifdef CONFIG_KPROBES
+-static inline int notify_page_fault(struct pt_regs *regs, long err)
+-{
+-	int ret = 0;
+-
+-	/* kprobe_running() needs smp_processor_id() */
+-	if (!user_mode(regs)) {
+-		preempt_disable();
+-		if (kprobe_running() && kprobe_fault_handler(regs, 14))
+-			ret = 1;
+-		preempt_enable();
+-	}
+-
+-	return ret;
+-}
+-#else
+-static inline int notify_page_fault(struct pt_regs *regs, long err)
+-{
+-	return 0;
+-}
+-#endif
+-
+-
+ /*
+  * Unlock any spinlocks which will prevent us from getting the
+  * message out.
+@@ -309,7 +286,7 @@ do_exception(struct pt_regs *regs, unsigned long error_code, int write)
+ 	int si_code;
+ 	int fault;
+ 
+-	if (notify_page_fault(regs, error_code))
++	if (kprobe_handle_fault(regs, error_code))
+ 		return;
+ 
+ 	tsk = current;
+diff --git a/arch/sparc64/mm/fault.c b/arch/sparc64/mm/fault.c
+index e2027f2..8467dd6 100644
+--- a/arch/sparc64/mm/fault.c
++++ b/arch/sparc64/mm/fault.c
+@@ -31,27 +31,6 @@
+ #include <asm/sections.h>
+ #include <asm/mmu_context.h>
+ 
+-#ifdef CONFIG_KPROBES
+-static inline int notify_page_fault(struct pt_regs *regs)
+-{
+-	int ret = 0;
+-
+-	/* kprobe_running() needs smp_processor_id() */
+-	if (!user_mode(regs)) {
+-		preempt_disable();
+-		if (kprobe_running() && kprobe_fault_handler(regs, 0))
+-			ret = 1;
+-		preempt_enable();
+-	}
+-	return ret;
+-}
+-#else
+-static inline int notify_page_fault(struct pt_regs *regs)
+-{
+-	return 0;
+-}
+-#endif
+-
+ /*
+  * To debug kernel to catch accesses to certain virtual/physical addresses.
+  * Mode = 0 selects physical watchpoints, mode = 1 selects virtual watchpoints.
+@@ -280,7 +259,7 @@ asmlinkage void __kprobes do_sparc64_fault(struct pt_regs *regs)
+ 
+ 	fault_code = get_thread_fault_code();
+ 
+-	if (notify_page_fault(regs))
++	if (kprobe_handle_fault(regs, 0))
+ 		return;
+ 
+ 	si_code = SEGV_MAPERR;
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 3fff490..f0adbb0 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -49,29 +49,6 @@
+ #define PF_RSVD		(1<<3)
+ #define PF_INSTR	(1<<4)
+ 
+-static inline int notify_page_fault(struct pt_regs *regs)
+-{
+-#ifdef CONFIG_KPROBES
+-	int ret = 0;
+-
+-	/* kprobe_running() needs smp_processor_id() */
+-#ifdef CONFIG_X86_32
+-	if (!user_mode_vm(regs)) {
+-#else
+-	if (!user_mode(regs)) {
+-#endif
+-		preempt_disable();
+-		if (kprobe_running() && kprobe_fault_handler(regs, 14))
+-			ret = 1;
+-		preempt_enable();
+-	}
+-
+-	return ret;
+-#else
+-	return 0;
+-#endif
+-}
+-
+ /*
+  * X86_32
+  * Sometimes AMD Athlon/Opteron CPUs report invalid exceptions on prefetch.
+@@ -589,7 +566,8 @@ void __kprobes do_page_fault(struct pt_regs *regs, unsigned long error_code)
+ 
+ 	si_code = SEGV_MAPERR;
+ 
+-	if (notify_page_fault(regs))
++	/* Must not try to handle kprobes in v8086 mode */
++	if (!v8086_mode(regs) && kprobe_handle_fault(regs, 14))
+ 		return;
+ 
+ 	/*
+diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
+index 6168c0a..e5ecb1e 100644
+--- a/include/linux/kprobes.h
++++ b/include/linux/kprobes.h
+@@ -36,6 +36,7 @@
+ #include <linux/spinlock.h>
+ #include <linux/rcupdate.h>
+ #include <linux/mutex.h>
++#include <linux/hardirq.h>
+ 
+ #ifdef CONFIG_KPROBES
+ #include <asm/kprobes.h>
+@@ -212,6 +213,21 @@ static inline struct kprobe *kprobe_running(void)
+ 	return (__get_cpu_var(current_kprobe));
+ }
+ 
++static inline int kprobe_handle_fault(struct pt_regs *regs, int trapnr)
++{
++	int ret = 0;
++
++	/* kprobe_running() needs smp_processor_id() */
++	if (!user_mode(regs)) {
++		preempt_disable();
++		if (kprobe_running() && kprobe_fault_handler(regs, trapnr))
++			ret = 1;
++		preempt_enable();
++	}
++
++	return ret;
++}
++
+ static inline void reset_current_kprobe(void)
+ {
+ 	__get_cpu_var(current_kprobe) = NULL;
+@@ -247,6 +263,10 @@ static inline struct kprobe *kprobe_running(void)
+ {
+ 	return NULL;
+ }
++static inline int kprobe_handle_fault(struct pt_regs *regs, int trapnr)
++{
++	return 0;
++}
+ static inline int register_kprobe(struct kprobe *p)
+ {
+ 	return -ENOSYS;
 -- 
-Mathieu Desnoyers
-Computer Engineering Ph.D. Student, Ecole Polytechnique de Montreal
-OpenPGP key fingerprint: 8CD5 52C3 8E3C 4140 715F  BA06 3F25 A8FE 3BAE 9A68
+1.5.4.rc4.1142.gf5a97
+
+
