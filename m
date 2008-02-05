@@ -1,98 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:46643 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:36362 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751386AbYBEG1W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Feb 2008 01:27:22 -0500
-Message-Id: <200802050627.m156R9G9006417@imap1.linux-foundation.org>
-Subject: [patch 012/265] timerfd: wire the new timerfd API to the x86 family
+	by vger.kernel.org with ESMTP id S1751136AbYBEGmJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Feb 2008 01:42:09 -0500
+Message-Id: <200802050628.m156SvCC006865@imap1.linux-foundation.org>
+Subject: [patch 115/265] arch_rebalance_pgtables call
 From: akpm@linux-foundation.org
-Date: Mon, 04 Feb 2008 22:27:28 -0800
+Date: Mon, 04 Feb 2008 22:29:16 -0800
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, davidel@xmailserver.org, linux-arch@vger.kernel.org, mtk-manpages@gmx.net, tglx@linutronix.de
+Cc: akpm@linux-foundation.org, schwidefsky@de.ibm.com, benh@kernel.crashing.org, linux-arch@vger.kernel.org
 
-From: Davide Libenzi <davidel@xmailserver.org>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-Wires up the new timerfd API to the x86 family.
+In order to change the layout of the page tables after an mmap has crossed the
+adress space limit of the current page table layout a architecture hook in
+get_unmapped_area is needed.  The arguments are the address of the new mapping
+and the length of it.
 
-Signed-off-by: Davide Libenzi <davidel@xmailserver.org>
-Cc: Michael Kerrisk <mtk-manpages@gmx.net>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/x86/ia32/ia32entry.S          |    4 +++-
- arch/x86/kernel/syscall_table_32.S |    4 +++-
- include/asm-x86/unistd_32.h        |    4 +++-
- include/asm-x86/unistd_64.h        |    9 +++++++--
- 4 files changed, 16 insertions(+), 5 deletions(-)
+ mm/mmap.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff -puN arch/x86/ia32/ia32entry.S~timerfd-v3-wire-the-new-timerfd-api-to-the-x86-family arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~timerfd-v3-wire-the-new-timerfd-api-to-the-x86-family
-+++ a/arch/x86/ia32/ia32entry.S
-@@ -722,7 +722,9 @@ ia32_sys_call_table:
- 	.quad sys_epoll_pwait
- 	.quad compat_sys_utimensat	/* 320 */
- 	.quad compat_sys_signalfd
--	.quad compat_sys_timerfd
-+	.quad sys_timerfd_create
- 	.quad sys_eventfd
- 	.quad sys32_fallocate
-+	.quad compat_sys_timerfd_settime	/* 325 */
-+	.quad compat_sys_timerfd_gettime
- ia32_syscall_end:
-diff -puN arch/x86/kernel/syscall_table_32.S~timerfd-v3-wire-the-new-timerfd-api-to-the-x86-family arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~timerfd-v3-wire-the-new-timerfd-api-to-the-x86-family
-+++ a/arch/x86/kernel/syscall_table_32.S
-@@ -321,6 +321,8 @@ ENTRY(sys_call_table)
- 	.long sys_epoll_pwait
- 	.long sys_utimensat		/* 320 */
- 	.long sys_signalfd
--	.long sys_timerfd
-+	.long sys_timerfd_create
- 	.long sys_eventfd
- 	.long sys_fallocate
-+	.long sys_timerfd_settime	/* 325 */
-+	.long sys_timerfd_gettime
-diff -puN include/asm-x86/unistd_32.h~timerfd-v3-wire-the-new-timerfd-api-to-the-x86-family include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~timerfd-v3-wire-the-new-timerfd-api-to-the-x86-family
-+++ a/include/asm-x86/unistd_32.h
-@@ -327,9 +327,11 @@
- #define __NR_epoll_pwait	319
- #define __NR_utimensat		320
- #define __NR_signalfd		321
--#define __NR_timerfd		322
-+#define __NR_timerfd_create	322
- #define __NR_eventfd		323
- #define __NR_fallocate		324
-+#define __NR_timerfd_settime	325
-+#define __NR_timerfd_gettime	326
+diff -puN mm/mmap.c~arch_rebalance_pgtables-call mm/mmap.c
+--- a/mm/mmap.c~arch_rebalance_pgtables-call
++++ a/mm/mmap.c
+@@ -36,6 +36,10 @@
+ #define arch_mmap_check(addr, len, flags)	(0)
+ #endif
  
- #ifdef __KERNEL__
- 
-diff -puN include/asm-x86/unistd_64.h~timerfd-v3-wire-the-new-timerfd-api-to-the-x86-family include/asm-x86/unistd_64.h
---- a/include/asm-x86/unistd_64.h~timerfd-v3-wire-the-new-timerfd-api-to-the-x86-family
-+++ a/include/asm-x86/unistd_64.h
-@@ -629,12 +629,17 @@ __SYSCALL(__NR_utimensat, sys_utimensat)
- __SYSCALL(__NR_epoll_pwait, sys_epoll_pwait)
- #define __NR_signalfd				282
- __SYSCALL(__NR_signalfd, sys_signalfd)
--#define __NR_timerfd				283
--__SYSCALL(__NR_timerfd, sys_timerfd)
-+#define __NR_timerfd_create			283
-+__SYSCALL(__NR_timerfd_create, sys_timerfd_create)
- #define __NR_eventfd				284
- __SYSCALL(__NR_eventfd, sys_eventfd)
- #define __NR_fallocate				285
- __SYSCALL(__NR_fallocate, sys_fallocate)
-+#define __NR_timerfd_settime			286
-+__SYSCALL(__NR_timerfd_settime, sys_timerfd_settime)
-+#define __NR_timerfd_gettime			287
-+__SYSCALL(__NR_timerfd_gettime, sys_timerfd_gettime)
++#ifndef arch_rebalance_pgtables
++#define arch_rebalance_pgtables(addr, len)		(addr)
++#endif
 +
+ static void unmap_region(struct mm_struct *mm,
+ 		struct vm_area_struct *vma, struct vm_area_struct *prev,
+ 		unsigned long start, unsigned long end);
+@@ -1424,7 +1428,7 @@ get_unmapped_area(struct file *file, uns
+ 	if (addr & ~PAGE_MASK)
+ 		return -EINVAL;
  
- #ifndef __NO_STUBS
- #define __ARCH_WANT_OLD_READDIR
+-	return addr;
++	return arch_rebalance_pgtables(addr, len);
+ }
+ 
+ EXPORT_SYMBOL(get_unmapped_area);
 _
