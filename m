@@ -1,48 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pip9.gyao.ne.jp ([61.122.117.247]:35791 "EHLO mx.gate01.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754695AbYBEK2A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Feb 2008 05:28:00 -0500
-Date: Tue, 5 Feb 2008 19:26:44 +0900
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH] Fix timerfd breakage on avr32
-Message-ID: <20080205102644.GA5038@linux-sh.org>
-References: <200802050627.m156R9G9006417@imap1.linux-foundation.org> <20080205105454.2c0f8133@dhcp-252-066.norway.atmel.com> <20080205110347.62cf2925@dhcp-252-066.norway.atmel.com> <20080205021347.4785ca44.akpm@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080205021347.4785ca44.akpm@linux-foundation.org>
+Received: from mtagate1.de.ibm.com ([195.212.29.150]:55015 "EHLO
+	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750708AbYBEOjv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Feb 2008 09:39:51 -0500
+Subject: Re: [patch 2/3] CONFIG_HIGHPTE vs. sub-page page tables.
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Reply-To: schwidefsky@de.ibm.com
+In-Reply-To: <20080204025133.511ac3e2.akpm@linux-foundation.org>
+References: <20071112143009.425807965@de.ibm.com>
+	 <20071112144009.831296895@de.ibm.com>
+	 <20080201151541.8e3e0359.akpm@linux-foundation.org>
+	 <1202017020.7208.2.camel@pasglop>
+	 <20080202215315.3ac6907d.akpm@linux-foundation.org>
+	 <1202121409.31801.7.camel@localhost>
+	 <20080204025133.511ac3e2.akpm@linux-foundation.org>
+Content-Type: text/plain
+Date: Tue, 05 Feb 2008 15:39:47 +0100
+Message-Id: <1202222388.25021.20.camel@localhost>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Haavard Skinnemoen <hskinnemoen@atmel.com>, torvalds@linux-foundation.org, davidel@xmailserver.org, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, mtk-manpages@gmx.net, tglx@linutronix.de, Hirokazu Takata <takata@linux-m32r.org>
+Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>
 
-On Tue, Feb 05, 2008 at 02:13:47AM -0800, Andrew Morton wrote:
-> On Tue, 5 Feb 2008 11:03:47 +0100 Haavard Skinnemoen <hskinnemoen@atmel.com> wrote:
-> 
-> > On Tue, 5 Feb 2008 10:54:54 +0100
-> > Haavard Skinnemoen <hskinnemoen@atmel.com> wrote:
+On Mon, 2008-02-04 at 02:51 -0800, Andrew Morton wrote:
+> > > Look: I can't fix *everyone's* stuff.  This was a consequence of ongoing
+> > > unbounded churn in the x86 tree.  If we can find a way of preventing those
+> > > guys (and everyone else) from trashing everyone else's stuff then we'd have
+> > > much smoother sailing.
 > > 
-> > > The next time you go and remove a system call, could you _please_ post
-> > > a HUGE warning to linux-arch? Or just do a quick grep and fix it up.
-> > 
-> > Btw, a quick grep through 2.6.24-mm1 shows
-> > 
-> > arch/frv/kernel/entry.S:	.long sys_timerfd
-> > arch/m32r/kernel/syscall_table.S:	.long sys_timerfd
-> > arch/sh/kernel/syscalls_32.S:	.long sys_timerfd
-> > arch/sh/kernel/syscalls_64.S:	.long sys_timerfd		/* 350 */
-> > 
-> > so frv, m32r and sh are probably broken too.
-> > 
+> > Understood. That is where I jump in and regenerate my patches on the
+> > latest available level. That the patches did hold up for some months in
+> > -mm now without really breaking anything is an indication that we can
+> > push them upstream now, isn't ? That would make the patch problem go
+> > away and I could queue my s390 specific page table rework. Our KVM
+> > people keep asking about it.
 > 
-> argh. After fixing so many architectures I asked for a grepped
-> fix :(
-> 
-> 
-> This?
-> 
-At least if this patch goes in first then bisect won't needlessly break,
-though the previous patch has already gone to Linus, so maybe it's too
-late already. Once this patch and the previous one are in, then the new
-interface can be wired up -- preferably in that order.
+> yes, against 2.6.24-mm1 would be good, thanks.  I really don't know what
+> went wrong in i386 but I ended up getting all grumpy at the macro mess
+> we've made in all the pagetable handling.  Please do take a look at
+> improving that.
+
+I'm trying to replace the __pte_free_tlb macros my patch touches for the
+different architectures. Not much luck yet, there is a reason why
+__pte_free_tlb is a macro in the first place: welcome to #include hell.
+I'm starting to get grumpy as well..
+
+Just an example for x86-64:
+* asm-x86/tlb.h includes asm-generic/tlb.h
+* asm-generic/tlb.h includes asm-x86/pgalloc.h
+* asm-x86/pgalloc.h includes asm-x86/pgalloc_64.h
+* asm-x86/pgalloc_64.h includes asm-x86/tlb.h
+* since asm-x86/tlb.h started this #include chain it expands to nothing
+* asm-x86/pgalloc_64.h calls tlb_remove_page which is defined in
+  asm-x86/tlb.h but the compiler hasn't seen the definition yet
+* you loose..
+
+I got x86-64 compiled by removing the #include <asm/pgalloc.h> from
+asm-generic/tlb.h. But who knows what will break if the include is
+missing .. I'll cross compile some of the other architectures next.
+
+-- 
+blue skies,
+  Martin.
+
+"Reality continues to ruin my life." - Calvin.
+
+
