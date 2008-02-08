@@ -1,313 +1,242 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:50678 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:38231 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755044AbYBHIfD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2008 03:35:03 -0500
-Message-Id: <200802080808.m1888EsI014629@imap1.linux-foundation.org>
-Subject: - sanitize-the-type-of-struct-useru_ar0.patch removed from -mm tree
+	by vger.kernel.org with ESMTP id S1757519AbYBHMaO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2008 07:30:14 -0500
+Message-Id: <200802081219.m18CJ8Sg023982@imap1.linux-foundation.org>
+Subject: [patch 084/233] aout: mark arches that support A.OUT format
 From: akpm@linux-foundation.org
-Date: Fri, 08 Feb 2008 00:08:33 -0800
+Date: Fri, 08 Feb 2008 04:19:27 -0800
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: hpa@zytor.com, bryan.wu@analog.com, heiko.carstens@de.ibm.com, hskinnemoen@atmel.com, ink@jurassic.park.msu.ru, kernel@wantstofly.org, lethal@linux-sh.org, linux-arch@vger.kernel.org, mingo@redhat.com, paulus@samba.org, ralf@linux-mips.org, rmk@arm.linux.org.uk, rth@twiddle.net, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, ysato@users.sourceforge.jp, zippel@linux-m68k.org, mm-commits@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, dhowells@redhat.com, linux-arch@vger.kernel.org
 
+From: David Howells <dhowells@redhat.com>
 
-The patch titled
-     Sanitize the type of struct user.u_ar0
-has been removed from the -mm tree.  Its filename was
-     sanitize-the-type-of-struct-useru_ar0.patch
+Mark arches that support A.OUT format by including the following in their
+master Kconfig files:
 
-This patch was dropped because it was merged into mainline or a subsystem tree
+	config ARCH_SUPPORTS_AOUT
+		def_bool y
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+This should also be set if the arch provides compatibility A.OUT support for
+an older arch, for instance x86_64 for i386 or sparc64 for sparc.
 
-------------------------------------------------------
-Subject: Sanitize the type of struct user.u_ar0
-From: "H. Peter Anvin" <hpa@zytor.com>
+I've guessed at which arches don't, based on comments in the code, however I'm
+sure that some of the ones I've marked as 'yes' actually should be 'no'.
 
-struct user.u_ar0 is defined to contain a pointer offset on all
-architectures in which it is defined (all architectures which define an
-a.out format except SPARC.) However, it has a pointer type in the headers,
-which is pointless -- <asm/user.h> is not exported to userspace, and it
-just makes the code messy.
-
-Redefine the field as "unsigned long" (which is the same size as a pointer
-on all Linux architectures) and change the setting code to user offsetof()
-instead of hand-coded arithmetic.
-
-Cc: Linux Arch Mailing List <linux-arch@vger.kernel.org>
-Cc: Bryan Wu <bryan.wu@analog.com>
-Cc: Roman Zippel <zippel@linux-m68k.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Russell King <rmk@arm.linux.org.uk>
-Cc: Lennert Buytenhek <kernel@wantstofly.org>
-Cc: Håvard Skinnemoen <hskinnemoen@atmel.com>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+Signed-off-by: David Howells <dhowells@redhat.com>
+Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/x86/ia32/ia32_aout.c   |    3 +--
- fs/binfmt_aout.c            |    2 +-
- include/asm-alpha/user.h    |    2 +-
- include/asm-arm/user.h      |    2 +-
- include/asm-avr32/user.h    |    2 +-
- include/asm-blackfin/user.h |    2 +-
- include/asm-cris/user.h     |    2 +-
- include/asm-h8300/user.h    |    3 +--
- include/asm-ia64/user.h     |    2 +-
- include/asm-m32r/user.h     |    2 +-
- include/asm-m68k/user.h     |    3 +--
- include/asm-mips/user.h     |    2 +-
- include/asm-powerpc/user.h  |    2 +-
- include/asm-s390/user.h     |    3 +--
- include/asm-sh/user.h       |    2 +-
- include/asm-v850/user.h     |    2 +-
- include/asm-x86/user_32.h   |    2 +-
- include/asm-x86/user_64.h   |    2 +-
- 18 files changed, 18 insertions(+), 22 deletions(-)
+ arch/alpha/Kconfig     |    3 +++
+ arch/arm/Kconfig       |    3 +++
+ arch/h8300/Kconfig     |    3 +++
+ arch/m32r/Kconfig      |    3 +++
+ arch/m68k/Kconfig      |    3 +++
+ arch/m68knommu/Kconfig |    3 +++
+ arch/parisc/Kconfig    |    3 +++
+ arch/sh/Kconfig        |    3 +++
+ arch/sparc/Kconfig     |    3 +++
+ arch/sparc64/Kconfig   |    5 ++++-
+ arch/um/Kconfig.i386   |    2 ++
+ arch/um/Kconfig.x86_64 |    2 ++
+ arch/v850/Kconfig      |    3 +++
+ arch/x86/Kconfig       |    5 ++++-
+ 14 files changed, 42 insertions(+), 2 deletions(-)
 
-diff -puN arch/x86/ia32/ia32_aout.c~sanitize-the-type-of-struct-useru_ar0 arch/x86/ia32/ia32_aout.c
---- a/arch/x86/ia32/ia32_aout.c~sanitize-the-type-of-struct-useru_ar0
-+++ a/arch/x86/ia32/ia32_aout.c
-@@ -172,8 +172,7 @@ static int aout_core_dump(long signr, st
- 	has_dumped = 1;
- 	current->flags |= PF_DUMPCORE;
- 	strncpy(dump.u_comm, current->comm, sizeof(current->comm));
--	dump.u_ar0 = (u32)(((unsigned long)(&dump.regs)) -
--			   ((unsigned long)(&dump)));
-+	dump.u_ar0 = offsetof(struct user32, regs);
- 	dump.signal = signr;
- 	dump_thread32(regs, &dump);
+diff -puN arch/alpha/Kconfig~aout-mark-arches-that-support-aout-format arch/alpha/Kconfig
+--- a/arch/alpha/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/alpha/Kconfig
+@@ -67,6 +67,9 @@ config AUTO_IRQ_AFFINITY
+ 	depends on SMP
+ 	default y
  
-diff -puN fs/binfmt_aout.c~sanitize-the-type-of-struct-useru_ar0 fs/binfmt_aout.c
---- a/fs/binfmt_aout.c~sanitize-the-type-of-struct-useru_ar0
-+++ a/fs/binfmt_aout.c
-@@ -115,7 +115,7 @@ static int aout_core_dump(long signr, st
- 	current->flags |= PF_DUMPCORE;
-        	strncpy(dump.u_comm, current->comm, sizeof(dump.u_comm));
- #ifndef __sparc__
--	dump.u_ar0 = (void *)(((unsigned long)(&dump.regs)) - ((unsigned long)(&dump)));
-+	dump.u_ar0 = offsetof(struct user, regs);
- #endif
- 	dump.signal = signr;
- 	dump_thread(regs, &dump);
-diff -puN include/asm-alpha/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-alpha/user.h
---- a/include/asm-alpha/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-alpha/user.h
-@@ -39,7 +39,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-arm/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-arm/user.h
---- a/include/asm-arm/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-arm/user.h
-@@ -67,7 +67,7 @@ struct user{
- 				   esp register.  */
-   long int signal;     		/* Signal that caused the core dump. */
-   int reserved;			/* No longer used */
--  struct pt_regs * u_ar0;	/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   unsigned long magic;		/* To uniquely identify a core file */
-   char u_comm[32];		/* User command that was responsible */
-diff -puN include/asm-avr32/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-avr32/user.h
---- a/include/asm-avr32/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-avr32/user.h
-@@ -51,7 +51,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-blackfin/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-blackfin/user.h
---- a/include/asm-blackfin/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-blackfin/user.h
-@@ -75,7 +75,7 @@ struct user {
- 					   esp register.  */
- 	long int signal;	/* Signal that caused the core dump. */
- 	int reserved;		/* No longer used */
--	struct user_regs_struct *u_ar0;
-+	unsigned long u_ar0;
- 	/* Used by gdb to help find the values for */
- 	/* the registers. */
- 	unsigned long magic;	/* To uniquely identify a core file */
-diff -puN include/asm-cris/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-cris/user.h
---- a/include/asm-cris/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-cris/user.h
-@@ -38,7 +38,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-h8300/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-h8300/user.h
---- a/include/asm-h8300/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-h8300/user.h
-@@ -62,8 +62,7 @@ struct user{
- 				   esp register.  */
-   long int signal;     		/* Signal that caused the core dump. */
-   int reserved;			/* No longer used */
--  struct user_regs_struct *u_ar0;
--				/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   unsigned long magic;		/* To uniquely identify a core file */
-   char u_comm[32];		/* User command that was responsible */
-diff -puN include/asm-ia64/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-ia64/user.h
---- a/include/asm-ia64/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-ia64/user.h
-@@ -44,7 +44,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-m32r/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-m32r/user.h
---- a/include/asm-m32r/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-m32r/user.h
-@@ -38,7 +38,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-m68k/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-m68k/user.h
---- a/include/asm-m68k/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-m68k/user.h
-@@ -72,8 +72,7 @@ struct user{
- 				   esp register.  */
-   long int signal;		/* Signal that caused the core dump. */
-   int reserved;			/* No longer used */
--  struct user_regs_struct *u_ar0;
--				/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   struct user_m68kfp_struct* u_fpstate;	/* Math Co-processor pointer. */
-   unsigned long magic;		/* To uniquely identify a core file */
-diff -puN include/asm-mips/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-mips/user.h
---- a/include/asm-mips/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-mips/user.h
-@@ -44,7 +44,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-powerpc/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-powerpc/user.h
---- a/include/asm-powerpc/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-powerpc/user.h
-@@ -38,7 +38,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-s390/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-s390/user.h
---- a/include/asm-s390/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-s390/user.h
-@@ -63,8 +63,7 @@ struct user {
- 				   the top of the stack is always found in the
- 				   esp register.  */
-   long int signal;     		/* Signal that caused the core dump. */
--  struct user_regs_struct *u_ar0;
--				/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   unsigned long magic;		/* To uniquely identify a core file */
-   char u_comm[32];		/* User command that was responsible */
-diff -puN include/asm-sh/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-sh/user.h
---- a/include/asm-sh/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-sh/user.h
-@@ -52,7 +52,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	struct user_fpu_struct* u_fpstate;	/* Math Co-processor pointer */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
-diff -puN include/asm-v850/user.h~sanitize-the-type-of-struct-useru_ar0 include/asm-v850/user.h
---- a/include/asm-v850/user.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-v850/user.h
-@@ -38,7 +38,7 @@ struct user {
- 	unsigned long	start_data;		/* data starting address */
- 	unsigned long	start_stack;		/* stack starting address */
- 	long int	signal;			/* signal causing core dump */
--	struct regs *	u_ar0;			/* help gdb find registers */
-+	unsigned long	u_ar0;			/* help gdb find registers */
- 	unsigned long	magic;			/* identifies a core file */
- 	char		u_comm[32];		/* user command name */
- };
-diff -puN include/asm-x86/user_32.h~sanitize-the-type-of-struct-useru_ar0 include/asm-x86/user_32.h
---- a/include/asm-x86/user_32.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-x86/user_32.h
-@@ -116,7 +116,7 @@ struct user{
- 				   esp register.  */
-   long int signal;     		/* Signal that caused the core dump. */
-   int reserved;			/* No longer used */
--  struct user_pt_regs * u_ar0;	/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   struct user_i387_struct* u_fpstate;	/* Math Co-processor pointer. */
-   unsigned long magic;		/* To uniquely identify a core file */
-diff -puN include/asm-x86/user_64.h~sanitize-the-type-of-struct-useru_ar0 include/asm-x86/user_64.h
---- a/include/asm-x86/user_64.h~sanitize-the-type-of-struct-useru_ar0
-+++ a/include/asm-x86/user_64.h
-@@ -118,7 +118,7 @@ struct user{
-   long int signal;		/* Signal that caused the core dump. */
-   int reserved;			/* No longer used */
-   int pad1;
--  struct user_pt_regs * u_ar0;	/* Used by gdb to help find the values for */
-+  unsigned long u_ar0;		/* Used by gdb to help find the values for */
- 				/* the registers. */
-   struct user_i387_struct* u_fpstate;	/* Math Co-processor pointer. */
-   unsigned long magic;		/* To uniquely identify a core file */
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ 
+diff -puN arch/arm/Kconfig~aout-mark-arches-that-support-aout-format arch/arm/Kconfig
+--- a/arch/arm/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/arm/Kconfig
+@@ -126,6 +126,9 @@ config GENERIC_CALIBRATE_DELAY
+ 	bool
+ 	default y
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ config ARCH_MAY_HAVE_PC_FDC
+ 	bool
+ 
+diff -puN arch/h8300/Kconfig~aout-mark-arches-that-support-aout-format arch/h8300/Kconfig
+--- a/arch/h8300/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/h8300/Kconfig
+@@ -65,6 +65,9 @@ config TIME_LOW_RES
+ 	bool
+ 	default y
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ config NO_IOPORT
+ 	def_bool y
+ 
+diff -puN arch/m32r/Kconfig~aout-mark-arches-that-support-aout-format arch/m32r/Kconfig
+--- a/arch/m32r/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/m32r/Kconfig
+@@ -35,6 +35,9 @@ config NO_IOPORT
+ config NO_DMA
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ 
+diff -puN arch/m68k/Kconfig~aout-mark-arches-that-support-aout-format arch/m68k/Kconfig
+--- a/arch/m68k/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/m68k/Kconfig
+@@ -52,6 +52,9 @@ config NO_IOPORT
+ config NO_DMA
+ 	def_bool SUN3
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ mainmenu "Linux/68k Kernel Configuration"
+ 
+ source "init/Kconfig"
+diff -puN arch/m68knommu/Kconfig~aout-mark-arches-that-support-aout-format arch/m68knommu/Kconfig
+--- a/arch/m68knommu/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/m68knommu/Kconfig
+@@ -64,6 +64,9 @@ config TIME_LOW_RES
+ config NO_IOPORT
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ menu "Processor type and features"
+diff -puN arch/parisc/Kconfig~aout-mark-arches-that-support-aout-format arch/parisc/Kconfig
+--- a/arch/parisc/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/parisc/Kconfig
+@@ -75,6 +75,9 @@ config IRQ_PER_CPU
+ 	bool
+ 	default y
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ # unless you want to implement ACPI on PA-RISC ... ;-)
+ config PM
+ 	bool
+diff -puN arch/sh/Kconfig~aout-mark-arches-that-support-aout-format arch/sh/Kconfig
+--- a/arch/sh/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/sh/Kconfig
+@@ -89,6 +89,9 @@ config ARCH_HAS_ILOG2_U64
+ config ARCH_NO_VIRT_TO_BUS
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ menu "System type"
+diff -puN arch/sparc/Kconfig~aout-mark-arches-that-support-aout-format arch/sparc/Kconfig
+--- a/arch/sparc/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/sparc/Kconfig
+@@ -27,6 +27,9 @@ config ARCH_NO_VIRT_TO_BUS
+ config OF
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ menu "General machine setup"
+diff -puN arch/sparc64/Kconfig~aout-mark-arches-that-support-aout-format arch/sparc64/Kconfig
+--- a/arch/sparc64/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/sparc64/Kconfig
+@@ -81,6 +81,9 @@ config GENERIC_HARDIRQS_NO__DO_IRQ
+ 	bool
+ 	def_bool y
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ choice
+ 	prompt "Kernel page size"
+ 	default SPARC64_PAGE_SIZE_8KB
+@@ -390,7 +393,7 @@ config BINFMT_ELF32
+ 
+ config BINFMT_AOUT32
+ 	bool "Kernel support for 32-bit (ie. SunOS) a.out binaries"
+-	depends on SPARC32_COMPAT
++	depends on SPARC32_COMPAT && ARCH_SUPPORTS_AOUT
+ 	help
+ 	  This allows you to run 32-bit a.out format binaries on your Ultra.
+ 	  If you want to run SunOS binaries (see SunOS binary emulation below)
+diff -puN arch/um/Kconfig.i386~aout-mark-arches-that-support-aout-format arch/um/Kconfig.i386
+--- a/arch/um/Kconfig.i386~aout-mark-arches-that-support-aout-format
++++ a/arch/um/Kconfig.i386
+@@ -84,3 +84,5 @@ config GENERIC_HWEIGHT
+ 	bool
+ 	default y
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
+diff -puN arch/um/Kconfig.x86_64~aout-mark-arches-that-support-aout-format arch/um/Kconfig.x86_64
+--- a/arch/um/Kconfig.x86_64~aout-mark-arches-that-support-aout-format
++++ a/arch/um/Kconfig.x86_64
+@@ -39,3 +39,5 @@ config GENERIC_HWEIGHT
+ 	bool
+ 	default y
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
+diff -puN arch/v850/Kconfig~aout-mark-arches-that-support-aout-format arch/v850/Kconfig
+--- a/arch/v850/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/v850/Kconfig
+@@ -53,6 +53,9 @@ config ARCH_HAS_ILOG2_U64
+ 	bool
+ 	default n
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ # Turn off some random 386 crap that can affect device config
+ config ISA
+ 	bool
+diff -puN arch/x86/Kconfig~aout-mark-arches-that-support-aout-format arch/x86/Kconfig
+--- a/arch/x86/Kconfig~aout-mark-arches-that-support-aout-format
++++ a/arch/x86/Kconfig
+@@ -136,6 +136,9 @@ config AUDIT_ARCH
+ 	bool
+ 	default X86_64
+ 
++config ARCH_SUPPORTS_AOUT
++	def_bool y
++
+ # Use the generic interrupt handling code in kernel/irq/:
+ config GENERIC_HARDIRQS
+ 	bool
+@@ -1577,7 +1580,7 @@ config IA32_EMULATION
+ 
+ config IA32_AOUT
+        tristate "IA32 a.out support"
+-       depends on IA32_EMULATION
++       depends on IA32_EMULATION && ARCH_SUPPORTS_AOUT
+        help
+          Support old a.out binaries in the 32bit emulation.
+ 
 _
-
-Patches currently in -mm which might be from hpa@zytor.com are
-
-origin.patch
-git-kvm.patch
-git-x86.patch
-x86_64-check-msr-to-get-mmconfig-for-amd-family-10h-opteron-v3.patch
-x86_64-set-cfg_size-for-amd-family-10h-in-case-mmconfig-is-used.patch
-avoid-overflows-in-kernel-timec.patch
-mount-options-fix-autofs.patch
-mount-options-fix-devpts.patch
-
