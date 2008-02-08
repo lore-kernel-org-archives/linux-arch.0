@@ -1,450 +1,432 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:32875 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:59188 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1762346AbYBHVEA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2008 16:04:00 -0500
-Message-Id: <200802082016.m18KGGqR010698@imap1.linux-foundation.org>
-Subject: - asm-posix_typesh-scrub-__glibc__.patch removed from -mm tree
+	by vger.kernel.org with ESMTP id S1757324AbYBHVEF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2008 16:04:05 -0500
+Message-Id: <200802082018.m18KIeoQ010948@imap1.linux-foundation.org>
+Subject: - procfs-constify-function-pointer-tables.patch removed from -mm tree
 From: akpm@linux-foundation.org
-Date: Fri, 08 Feb 2008 12:16:35 -0800
+Date: Fri, 08 Feb 2008 12:18:59 -0800
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: vapier@gentoo.org, drepper@redhat.com, linux-arch@vger.kernel.org, mingo@elte.hu, roland@redhat.com, mm-commits@vger.kernel.org
+To: jengelh@computergmbh.de, bryan.wu@analog.com, dhowells@redhat.com, geert@linux-m68k.org, jesper.nilsson@axis.com, linux-arch@vger.kernel.org, vapier@gentoo.org, mm-commits@vger.kernel.org
 
 
 The patch titled
-     asm-*/posix_types.h: scrub __GLIBC__
+     procfs: constify function pointer tables
 has been removed from the -mm tree.  Its filename was
-     asm-posix_typesh-scrub-__glibc__.patch
+     procfs-constify-function-pointer-tables.patch
 
 This patch was dropped because it was merged into mainline or a subsystem tree
 
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: asm-*/posix_types.h: scrub __GLIBC__
-From: Mike Frysinger <vapier@gentoo.org>
+Subject: procfs: constify function pointer tables
+From: Jan Engelhardt <jengelh@computergmbh.de>
 
-Some arches (like alpha and ia64) already have a clean posix_types.h header.
-This brings all the others in line by removing all references to __GLIBC__
-(and some undocumented __USE_ALL).
-
-Signed-off-by: Mike Frysinger <vapier@gentoo.org>
-Acked-by: Ingo Molnar <mingo@elte.hu>
-Cc: Ulrich Drepper <drepper@redhat.com>
-Cc: Roland McGrath <roland@redhat.com>
+Signed-off-by: Jan Engelhardt <jengelh@computergmbh.de>
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Acked-by: Mike Frysinger <vapier@gentoo.org>
+Acked-By: David Howells <dhowells@redhat.com>
+Acked-by: Bryan Wu <bryan.wu@analog.com>
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/asm-arm/posix_types.h      |    6 +-----
- include/asm-avr32/posix_types.h    |    4 ----
- include/asm-blackfin/posix_types.h |    8 ++------
- include/asm-cris/posix_types.h     |    4 ----
- include/asm-frv/posix_types.h      |    8 ++------
- include/asm-h8300/posix_types.h    |    8 ++------
- include/asm-m32r/posix_types.h     |    8 ++------
- include/asm-m68k/posix_types.h     |    8 ++------
- include/asm-mips/posix_types.h     |    4 ++--
- include/asm-parisc/posix_types.h   |    8 ++------
- include/asm-powerpc/posix_types.h  |    5 ++---
- include/asm-sparc/posix_types.h    |    8 ++------
- include/asm-sparc64/posix_types.h  |    8 ++------
- include/asm-v850/posix_types.h     |    8 ++------
- include/asm-x86/posix_types_32.h   |    8 ++------
- include/asm-xtensa/posix_types.h   |    5 ++---
- 16 files changed, 27 insertions(+), 81 deletions(-)
+ arch/alpha/kernel/setup.c     |    2 +-
+ arch/blackfin/kernel/setup.c  |    2 +-
+ arch/cris/kernel/setup.c      |    2 +-
+ arch/frv/kernel/setup.c       |    2 +-
+ arch/h8300/kernel/setup.c     |    2 +-
+ arch/m32r/kernel/setup.c      |    2 +-
+ arch/m68k/kernel/setup.c      |    2 +-
+ arch/m68knommu/kernel/setup.c |    2 +-
+ arch/parisc/kernel/setup.c    |    2 +-
+ arch/ppc/kernel/setup.c       |    2 +-
+ arch/v850/kernel/procfs.c     |    2 +-
+ arch/xtensa/kernel/setup.c    |    2 +-
+ fs/proc/base.c                |    4 ++--
+ fs/proc/nommu.c               |    2 +-
+ fs/proc/proc_misc.c           |   22 +++++++++++-----------
+ fs/proc/proc_sysctl.c         |    4 ++--
+ fs/proc/proc_tty.c            |    2 +-
+ fs/proc/task_mmu.c            |    8 ++++----
+ fs/proc/task_nommu.c          |    2 +-
+ 19 files changed, 34 insertions(+), 34 deletions(-)
 
-diff -puN include/asm-arm/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-arm/posix_types.h
---- a/include/asm-arm/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-arm/posix_types.h
-@@ -51,14 +51,10 @@ typedef long long		__kernel_loff_t;
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int	__val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef	__FD_SET
- #define __FD_SET(fd, fdsetp) \
-diff -puN include/asm-avr32/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-avr32/posix_types.h
---- a/include/asm-avr32/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-avr32/posix_types.h
-@@ -46,11 +46,7 @@ typedef long long       __kernel_loff_t;
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
-     int     val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--    int     __val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
- #if defined(__KERNEL__)
-diff -puN include/asm-blackfin/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-blackfin/posix_types.h
---- a/include/asm-blackfin/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-blackfin/posix_types.h
-@@ -39,14 +39,10 @@ typedef long long __kernel_loff_t;
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int val[2];
--#else				/* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int __val[2];
--#endif				/* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef	__FD_SET
- #define	__FD_SET(d, set)	((set)->fds_bits[__FDELT(d)] |= __FDMASK(d))
-@@ -60,6 +56,6 @@ typedef struct {
- #undef	__FD_ZERO
- #define __FD_ZERO(fdsetp) (memset (fdsetp, 0, sizeof(*(fd_set *)fdsetp)))
- 
--#endif				/* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif				/* defined(__KERNEL__) */
- 
- #endif
-diff -puN include/asm-cris/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-cris/posix_types.h
---- a/include/asm-cris/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-cris/posix_types.h
-@@ -44,11 +44,7 @@ typedef long long	__kernel_loff_t;
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int	__val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
- #ifdef __KERNEL__
-diff -puN include/asm-frv/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-frv/posix_types.h
---- a/include/asm-frv/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-frv/posix_types.h
-@@ -39,14 +39,10 @@ typedef long long	__kernel_loff_t;
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int	__val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef	__FD_SET
- #define	__FD_SET(d, set)	((set)->fds_bits[__FDELT(d)] |= __FDMASK(d))
-@@ -60,7 +56,7 @@ typedef struct {
- #undef	__FD_ZERO
- #define __FD_ZERO(fdsetp) (memset (fdsetp, 0, sizeof(*(fd_set *)fdsetp)))
- 
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- 
- #endif
- 
-diff -puN include/asm-h8300/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-h8300/posix_types.h
---- a/include/asm-h8300/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-h8300/posix_types.h
-@@ -38,14 +38,10 @@ typedef long long	__kernel_loff_t;
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int	__val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef	__FD_SET
- #define	__FD_SET(d, set)	((set)->fds_bits[__FDELT(d)] |= __FDMASK(d))
-@@ -59,6 +55,6 @@ typedef struct {
- #undef	__FD_ZERO
- #define __FD_ZERO(fdsetp) (memset (fdsetp, 0, sizeof(*(fd_set *)fdsetp)))
- 
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- 
- #endif
-diff -puN include/asm-m32r/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-m32r/posix_types.h
---- a/include/asm-m32r/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-m32r/posix_types.h
-@@ -39,14 +39,10 @@ typedef long long	__kernel_loff_t;
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int	__val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef	__FD_SET
- static __inline__ void __FD_SET(unsigned long __fd, __kernel_fd_set *__fdsetp)
-@@ -117,6 +113,6 @@ static __inline__ void __FD_ZERO(__kerne
- 	}
+diff -puN arch/alpha/kernel/setup.c~procfs-constify-function-pointer-tables arch/alpha/kernel/setup.c
+--- a/arch/alpha/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/alpha/kernel/setup.c
+@@ -1471,7 +1471,7 @@ c_stop(struct seq_file *f, void *v)
+ {
  }
  
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- 
- #endif  /* _ASM_M32R_POSIX_TYPES_H */
-diff -puN include/asm-m68k/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-m68k/posix_types.h
---- a/include/asm-m68k/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-m68k/posix_types.h
-@@ -39,14 +39,10 @@ typedef long long	__kernel_loff_t;
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int	__val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef	__FD_SET
- #define	__FD_SET(d, set)	((set)->fds_bits[__FDELT(d)] |= __FDMASK(d))
-@@ -60,6 +56,6 @@ typedef struct {
- #undef	__FD_ZERO
- #define __FD_ZERO(fdsetp) (memset (fdsetp, 0, sizeof(*(fd_set *)fdsetp)))
- 
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- 
- #endif
-diff -puN include/asm-mips/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-mips/posix_types.h
---- a/include/asm-mips/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-mips/posix_types.h
-@@ -69,7 +69,7 @@ typedef struct {
- #endif
- } __kernel_fsid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef __FD_SET
- static __inline__ void __FD_SET(unsigned long __fd, __kernel_fd_set *__fdsetp)
-@@ -139,6 +139,6 @@ static __inline__ void __FD_ZERO(__kerne
- 	}
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start	= c_start,
+ 	.next	= c_next,
+ 	.stop	= c_stop,
+diff -puN arch/blackfin/kernel/setup.c~procfs-constify-function-pointer-tables arch/blackfin/kernel/setup.c
+--- a/arch/blackfin/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/blackfin/kernel/setup.c
+@@ -700,7 +700,7 @@ static void c_stop(struct seq_file *m, v
+ {
  }
  
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start = c_start,
+ 	.next = c_next,
+ 	.stop = c_stop,
+diff -puN arch/cris/kernel/setup.c~procfs-constify-function-pointer-tables arch/cris/kernel/setup.c
+--- a/arch/cris/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/cris/kernel/setup.c
+@@ -180,7 +180,7 @@ static void c_stop(struct seq_file *m, v
  
- #endif /* _ASM_POSIX_TYPES_H */
-diff -puN include/asm-parisc/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-parisc/posix_types.h
---- a/include/asm-parisc/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-parisc/posix_types.h
-@@ -47,18 +47,14 @@ typedef unsigned long long	__kernel_ino6
- typedef unsigned int		__kernel_old_dev_t;
+ extern int show_cpuinfo(struct seq_file *m, void *v);
  
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int	__val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
- /* compatibility stuff */
- typedef __kernel_uid_t __kernel_old_uid_t;
- typedef __kernel_gid_t __kernel_old_gid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef __FD_SET
- static __inline__ void __FD_SET(unsigned long __fd, __kernel_fd_set *__fdsetp)
-@@ -128,6 +124,6 @@ static __inline__ void __FD_ZERO(__kerne
- 	}
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start = c_start,
+ 	.next  = c_next,
+ 	.stop  = c_stop,
+diff -puN arch/frv/kernel/setup.c~procfs-constify-function-pointer-tables arch/frv/kernel/setup.c
+--- a/arch/frv/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/frv/kernel/setup.c
+@@ -1113,7 +1113,7 @@ static void c_stop(struct seq_file *m, v
+ {
  }
  
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- 
- #endif
-diff -puN include/asm-powerpc/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-powerpc/posix_types.h
---- a/include/asm-powerpc/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-powerpc/posix_types.h
-@@ -64,8 +64,7 @@ typedef struct {
- 
- #else /* __GNUC__ */
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) \
--    || (__GLIBC__ == 2 && __GLIBC_MINOR__ == 0)
-+#if defined(__KERNEL__)
- /* With GNU C, use inline functions instead so args are evaluated only once: */
- 
- #undef __FD_SET
-@@ -124,6 +123,6 @@ static __inline__ void __FD_ZERO(__kerne
- 	}
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start	= c_start,
+ 	.next	= c_next,
+ 	.stop	= c_stop,
+diff -puN arch/h8300/kernel/setup.c~procfs-constify-function-pointer-tables arch/h8300/kernel/setup.c
+--- a/arch/h8300/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/h8300/kernel/setup.c
+@@ -236,7 +236,7 @@ static void c_stop(struct seq_file *m, v
+ {
  }
  
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- #endif /* __GNUC__ */
- #endif /* _ASM_POWERPC_POSIX_TYPES_H */
-diff -puN include/asm-sparc/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-sparc/posix_types.h
---- a/include/asm-sparc/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-sparc/posix_types.h
-@@ -39,14 +39,10 @@ typedef long long	__kernel_loff_t;
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int     __val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef __FD_SET
- static inline void __FD_SET(unsigned long fd, __kernel_fd_set *fdsetp)
-@@ -117,6 +113,6 @@ static inline void __FD_ZERO(__kernel_fd
- 	}
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start	= c_start,
+ 	.next	= c_next,
+ 	.stop	= c_stop,
+diff -puN arch/m32r/kernel/setup.c~procfs-constify-function-pointer-tables arch/m32r/kernel/setup.c
+--- a/arch/m32r/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/m32r/kernel/setup.c
+@@ -369,7 +369,7 @@ static void c_stop(struct seq_file *m, v
+ {
  }
  
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- 
- #endif /* !(__ARCH_SPARC_POSIX_TYPES_H) */
-diff -puN include/asm-sparc64/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-sparc64/posix_types.h
---- a/include/asm-sparc64/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-sparc64/posix_types.h
-@@ -43,14 +43,10 @@ typedef long long              __kernel_
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int     __val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef __FD_SET
- static inline void __FD_SET(unsigned long fd, __kernel_fd_set *fdsetp)
-@@ -121,6 +117,6 @@ static inline void __FD_ZERO(__kernel_fd
- 	}
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start = c_start,
+ 	.next = c_next,
+ 	.stop = c_stop,
+diff -puN arch/m68k/kernel/setup.c~procfs-constify-function-pointer-tables arch/m68k/kernel/setup.c
+--- a/arch/m68k/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/m68k/kernel/setup.c
+@@ -450,7 +450,7 @@ static void *c_next(struct seq_file *m, 
+ static void c_stop(struct seq_file *m, void *v)
+ {
+ }
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start	= c_start,
+ 	.next	= c_next,
+ 	.stop	= c_stop,
+diff -puN arch/m68knommu/kernel/setup.c~procfs-constify-function-pointer-tables arch/m68knommu/kernel/setup.c
+--- a/arch/m68knommu/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/m68knommu/kernel/setup.c
+@@ -260,7 +260,7 @@ static void c_stop(struct seq_file *m, v
+ {
  }
  
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- 
- #endif /* !(__ARCH_SPARC64_POSIX_TYPES_H) */
-diff -puN include/asm-v850/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-v850/posix_types.h
---- a/include/asm-v850/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-v850/posix_types.h
-@@ -44,15 +44,11 @@ typedef __kernel_uid_t __kernel_old_uid_
- typedef unsigned int	__kernel_old_dev_t;
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int	__val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- /* We used to include <asm/bitops.h> here, which seems the right thing, but
-    it caused nasty include-file definition order problems.  Removing the
-@@ -71,6 +67,6 @@ typedef struct {
- #define __FD_ZERO(fd_set) \
-   memset (fd_set, 0, sizeof (*(fd_set *)fd_set))
- 
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- 
- #endif /* __V850_POSIX_TYPES_H__ */
-diff -puN include/asm-x86/posix_types_32.h~asm-posix_typesh-scrub-__glibc__ include/asm-x86/posix_types_32.h
---- a/include/asm-x86/posix_types_32.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-x86/posix_types_32.h
-@@ -39,14 +39,10 @@ typedef long long	__kernel_loff_t;
- #endif
- 
- typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
- 	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int	__val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
- } __kernel_fsid_t;
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
-+#if defined(__KERNEL__)
- 
- #undef	__FD_SET
- #define __FD_SET(fd,fdsetp) \
-@@ -77,6 +73,6 @@ do { \
- 			"2" ((__kernel_fd_set *) (fdsetp)) : "memory"); \
- } while (0)
- 
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- 
- #endif
-diff -puN include/asm-xtensa/posix_types.h~asm-posix_typesh-scrub-__glibc__ include/asm-xtensa/posix_types.h
---- a/include/asm-xtensa/posix_types.h~asm-posix_typesh-scrub-__glibc__
-+++ a/include/asm-xtensa/posix_types.h
-@@ -64,8 +64,7 @@ typedef struct {
- 
- #else /* __GNUC__ */
- 
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) \
--    || (__GLIBC__ == 2 && __GLIBC_MINOR__ == 0)
-+#if defined(__KERNEL__)
- /* With GNU C, use inline functions instead so args are evaluated only once: */
- 
- #undef __FD_SET
-@@ -118,6 +117,6 @@ static __inline__ void __FD_ZERO(__kerne
- 	}
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start	= c_start,
+ 	.next	= c_next,
+ 	.stop	= c_stop,
+diff -puN arch/parisc/kernel/setup.c~procfs-constify-function-pointer-tables arch/parisc/kernel/setup.c
+--- a/arch/parisc/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/parisc/kernel/setup.c
+@@ -190,7 +190,7 @@ c_stop (struct seq_file *m, void *v)
+ {
  }
  
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
-+#endif /* defined(__KERNEL__) */
- #endif /* __GNUC__ */
- #endif /* _XTENSA_POSIX_TYPES_H */
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start	= c_start,
+ 	.next	= c_next,
+ 	.stop	= c_stop,
+diff -puN arch/ppc/kernel/setup.c~procfs-constify-function-pointer-tables arch/ppc/kernel/setup.c
+--- a/arch/ppc/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/ppc/kernel/setup.c
+@@ -275,7 +275,7 @@ static void c_stop(struct seq_file *m, v
+ {
+ }
+ 
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start =c_start,
+ 	.next =	c_next,
+ 	.stop =	c_stop,
+diff -puN arch/v850/kernel/procfs.c~procfs-constify-function-pointer-tables arch/v850/kernel/procfs.c
+--- a/arch/v850/kernel/procfs.c~procfs-constify-function-pointer-tables
++++ a/arch/v850/kernel/procfs.c
+@@ -59,7 +59,7 @@ static void cpuinfo_stop (struct seq_fil
+ {
+ }
+ 
+-struct seq_operations cpuinfo_op = {
++const struct seq_operations cpuinfo_op = {
+ 	.start	= cpuinfo_start,
+ 	.next	= cpuinfo_next,
+ 	.stop	= cpuinfo_stop,
+diff -puN arch/xtensa/kernel/setup.c~procfs-constify-function-pointer-tables arch/xtensa/kernel/setup.c
+--- a/arch/xtensa/kernel/setup.c~procfs-constify-function-pointer-tables
++++ a/arch/xtensa/kernel/setup.c
+@@ -469,7 +469,7 @@ c_stop(struct seq_file *f, void *v)
+ {
+ }
+ 
+-struct seq_operations cpuinfo_op =
++const struct seq_operations cpuinfo_op =
+ {
+ 	start:  c_start,
+ 	next:   c_next,
+diff -puN fs/proc/base.c~procfs-constify-function-pointer-tables fs/proc/base.c
+--- a/fs/proc/base.c~procfs-constify-function-pointer-tables
++++ a/fs/proc/base.c
+@@ -506,7 +506,7 @@ static const struct inode_operations pro
+ 	.setattr	= proc_setattr,
+ };
+ 
+-extern struct seq_operations mounts_op;
++extern const struct seq_operations mounts_op;
+ struct proc_mounts {
+ 	struct seq_file m;
+ 	int event;
+@@ -585,7 +585,7 @@ static const struct file_operations proc
+ 	.poll		= mounts_poll,
+ };
+ 
+-extern struct seq_operations mountstats_op;
++extern const struct seq_operations mountstats_op;
+ static int mountstats_open(struct inode *inode, struct file *file)
+ {
+ 	int ret = seq_open(file, &mountstats_op);
+diff -puN fs/proc/nommu.c~procfs-constify-function-pointer-tables fs/proc/nommu.c
+--- a/fs/proc/nommu.c~procfs-constify-function-pointer-tables
++++ a/fs/proc/nommu.c
+@@ -116,7 +116,7 @@ static void *nommu_vma_list_next(struct 
+ 	return rb_next((struct rb_node *) v);
+ }
+ 
+-static struct seq_operations proc_nommu_vma_list_seqop = {
++static const struct seq_operations proc_nommu_vma_list_seqop = {
+ 	.start	= nommu_vma_list_start,
+ 	.next	= nommu_vma_list_next,
+ 	.stop	= nommu_vma_list_stop,
+diff -puN fs/proc/proc_misc.c~procfs-constify-function-pointer-tables fs/proc/proc_misc.c
+--- a/fs/proc/proc_misc.c~procfs-constify-function-pointer-tables
++++ a/fs/proc/proc_misc.c
+@@ -222,7 +222,7 @@ static int meminfo_read_proc(char *page,
+ #undef K
+ }
+ 
+-extern struct seq_operations fragmentation_op;
++extern const struct seq_operations fragmentation_op;
+ static int fragmentation_open(struct inode *inode, struct file *file)
+ {
+ 	(void)inode;
+@@ -236,7 +236,7 @@ static const struct file_operations frag
+ 	.release	= seq_release,
+ };
+ 
+-extern struct seq_operations pagetypeinfo_op;
++extern const struct seq_operations pagetypeinfo_op;
+ static int pagetypeinfo_open(struct inode *inode, struct file *file)
+ {
+ 	return seq_open(file, &pagetypeinfo_op);
+@@ -249,7 +249,7 @@ static const struct file_operations page
+ 	.release	= seq_release,
+ };
+ 
+-extern struct seq_operations zoneinfo_op;
++extern const struct seq_operations zoneinfo_op;
+ static int zoneinfo_open(struct inode *inode, struct file *file)
+ {
+ 	return seq_open(file, &zoneinfo_op);
+@@ -274,7 +274,7 @@ static int version_read_proc(char *page,
+ 	return proc_calc_metrics(page, start, off, count, eof, len);
+ }
+ 
+-extern struct seq_operations cpuinfo_op;
++extern const struct seq_operations cpuinfo_op;
+ static int cpuinfo_open(struct inode *inode, struct file *file)
+ {
+ 	return seq_open(file, &cpuinfo_op);
+@@ -327,7 +327,7 @@ static void devinfo_stop(struct seq_file
+ 	/* Nothing to do */
+ }
+ 
+-static struct seq_operations devinfo_ops = {
++static const struct seq_operations devinfo_ops = {
+ 	.start = devinfo_start,
+ 	.next  = devinfo_next,
+ 	.stop  = devinfo_stop,
+@@ -346,7 +346,7 @@ static const struct file_operations proc
+ 	.release	= seq_release,
+ };
+ 
+-extern struct seq_operations vmstat_op;
++extern const struct seq_operations vmstat_op;
+ static int vmstat_open(struct inode *inode, struct file *file)
+ {
+ 	return seq_open(file, &vmstat_op);
+@@ -377,7 +377,7 @@ static int stram_read_proc(char *page, c
+ #endif
+ 
+ #ifdef CONFIG_BLOCK
+-extern struct seq_operations partitions_op;
++extern const struct seq_operations partitions_op;
+ static int partitions_open(struct inode *inode, struct file *file)
+ {
+ 	return seq_open(file, &partitions_op);
+@@ -389,7 +389,7 @@ static const struct file_operations proc
+ 	.release	= seq_release,
+ };
+ 
+-extern struct seq_operations diskstats_op;
++extern const struct seq_operations diskstats_op;
+ static int diskstats_open(struct inode *inode, struct file *file)
+ {
+ 	return seq_open(file, &diskstats_op);
+@@ -403,7 +403,7 @@ static const struct file_operations proc
+ #endif
+ 
+ #ifdef CONFIG_MODULES
+-extern struct seq_operations modules_op;
++extern const struct seq_operations modules_op;
+ static int modules_open(struct inode *inode, struct file *file)
+ {
+ 	return seq_open(file, &modules_op);
+@@ -430,7 +430,7 @@ static const struct file_operations proc
+ };
+ 
+ #ifdef CONFIG_DEBUG_SLAB_LEAK
+-extern struct seq_operations slabstats_op;
++extern const struct seq_operations slabstats_op;
+ static int slabstats_open(struct inode *inode, struct file *file)
+ {
+ 	unsigned long *n = kzalloc(PAGE_SIZE, GFP_KERNEL);
+@@ -604,7 +604,7 @@ static void int_seq_stop(struct seq_file
+ }
+ 
+ 
+-static struct seq_operations int_seq_ops = {
++static const struct seq_operations int_seq_ops = {
+ 	.start = int_seq_start,
+ 	.next  = int_seq_next,
+ 	.stop  = int_seq_stop,
+diff -puN fs/proc/proc_sysctl.c~procfs-constify-function-pointer-tables fs/proc/proc_sysctl.c
+--- a/fs/proc/proc_sysctl.c~procfs-constify-function-pointer-tables
++++ a/fs/proc/proc_sysctl.c
+@@ -9,7 +9,7 @@
+ 
+ static struct dentry_operations proc_sys_dentry_operations;
+ static const struct file_operations proc_sys_file_operations;
+-static struct inode_operations proc_sys_inode_operations;
++static const struct inode_operations proc_sys_inode_operations;
+ 
+ static void proc_sys_refresh_inode(struct inode *inode, struct ctl_table *table)
+ {
+@@ -446,7 +446,7 @@ static const struct file_operations proc
+ 	.readdir	= proc_sys_readdir,
+ };
+ 
+-static struct inode_operations proc_sys_inode_operations = {
++static const struct inode_operations proc_sys_inode_operations = {
+ 	.lookup		= proc_sys_lookup,
+ 	.permission	= proc_sys_permission,
+ 	.setattr	= proc_sys_setattr,
+diff -puN fs/proc/proc_tty.c~procfs-constify-function-pointer-tables fs/proc/proc_tty.c
+--- a/fs/proc/proc_tty.c~procfs-constify-function-pointer-tables
++++ a/fs/proc/proc_tty.c
+@@ -117,7 +117,7 @@ static void t_stop(struct seq_file *m, v
+ 	mutex_unlock(&tty_mutex);
+ }
+ 
+-static struct seq_operations tty_drivers_op = {
++static const struct seq_operations tty_drivers_op = {
+ 	.start	= t_start,
+ 	.next	= t_next,
+ 	.stop	= t_stop,
+diff -puN fs/proc/task_mmu.c~procfs-constify-function-pointer-tables fs/proc/task_mmu.c
+--- a/fs/proc/task_mmu.c~procfs-constify-function-pointer-tables
++++ a/fs/proc/task_mmu.c
+@@ -216,7 +216,7 @@ static void m_stop(struct seq_file *m, v
+ }
+ 
+ static int do_maps_open(struct inode *inode, struct file *file,
+-			struct seq_operations *ops)
++			const struct seq_operations *ops)
+ {
+ 	struct proc_maps_private *priv;
+ 	int ret = -ENOMEM;
+@@ -299,7 +299,7 @@ static int show_map(struct seq_file *m, 
+ 	return 0;
+ }
+ 
+-static struct seq_operations proc_pid_maps_op = {
++static const struct seq_operations proc_pid_maps_op = {
+ 	.start	= m_start,
+ 	.next	= m_next,
+ 	.stop	= m_stop,
+@@ -434,7 +434,7 @@ static int show_smap(struct seq_file *m,
+ 	return ret;
+ }
+ 
+-static struct seq_operations proc_pid_smaps_op = {
++static const struct seq_operations proc_pid_smaps_op = {
+ 	.start	= m_start,
+ 	.next	= m_next,
+ 	.stop	= m_stop,
+@@ -734,7 +734,7 @@ static int show_numa_map_checked(struct 
+ 	return show_numa_map(m, v);
+ }
+ 
+-static struct seq_operations proc_pid_numa_maps_op = {
++static const struct seq_operations proc_pid_numa_maps_op = {
+         .start  = m_start,
+         .next   = m_next,
+         .stop   = m_stop,
+diff -puN fs/proc/task_nommu.c~procfs-constify-function-pointer-tables fs/proc/task_nommu.c
+--- a/fs/proc/task_nommu.c~procfs-constify-function-pointer-tables
++++ a/fs/proc/task_nommu.c
+@@ -198,7 +198,7 @@ static void *m_next(struct seq_file *m, 
+ 	return vml ? vml->next : NULL;
+ }
+ 
+-static struct seq_operations proc_pid_maps_ops = {
++static const struct seq_operations proc_pid_maps_ops = {
+ 	.start	= m_start,
+ 	.next	= m_next,
+ 	.stop	= m_stop,
 _
 
-Patches currently in -mm which might be from vapier@gentoo.org are
+Patches currently in -mm which might be from jengelh@computergmbh.de are
 
 origin.patch
+git-dvb.patch
+git-kvm.patch
+git-ocfs2.patch
+git-unionfs.patch
+git-watchdog.patch
 
