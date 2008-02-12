@@ -1,62 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from srv5.dvmed.net ([207.36.208.214]:48660 "EHLO mail.dvmed.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1762006AbYBLSbx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 13:31:53 -0500
-Message-ID: <47B1E616.8040603@garzik.org>
-Date: Tue, 12 Feb 2008 13:31:50 -0500
-From: Jeff Garzik <jeff@garzik.org>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:40414 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754550AbYBLSiD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 13:38:03 -0500
+Date: Tue, 12 Feb 2008 10:36:25 -0800 (PST)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
+In-Reply-To: <47B1DD17.2030204@panasas.com>
+Message-ID: <alpine.LFD.1.00.0802121031520.2920@woody.linux-foundation.org>
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>  <20080212044314.GA4888@kroah.com>  <20080211211751.3e265754@laptopd505.fenrus.org>  <20080211.221126.230471463.davem@davemloft.net>  <47B1CB08.4020101@garzik.org>
+ <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <1202838082.3137.54.camel@localhost.localdomain> <47B1DD17.2030204@panasas.com>
 MIME-Version: 1.0
-Subject: Re: multiple drivers, single device (was Re: Announce: Linux-next
- (Or Andrew's dream  :-)))
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <47B1C829.8020800@garzik.org> <20080212164232.GA326@kroah.com> <47B1DDD3.2000402@garzik.org> <20080212181037.GA2445@kroah.com>
-In-Reply-To: <20080212181037.GA2445@kroah.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <greg@kroah.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
-
-Greg KH wrote:
-> Except that the individual drivers are a lot of the time written by
-> different people, live in different portions of the tree, and are
-> combined into different combinations depending on the chipset.
-
-Yes -- the worst case is that people have to work together, and it 
-tweaks people who like to organize source files nicely into directories :)
-
-
-> For i2c devices, I see the scx200_acb, i2c-elektor, i2c-sis5595, and
-> i2c-sis630 drivers needing this.  The last one happens to share the pci
-> device with a video driver, that doesn't always need to be / want to be
-> loaded by users just so they can read the temperature of their
-> processors.
-
-Sure.  Reasonable request, and doable within today's APIs.
-
-
-> Oh, the EDAC code also needs this, and I know that no one wants to merge
-> that stuff into their individual drivers :)
-
-So people have to work together...  darn :)  most drivers these days are 
-organized nicely into nicely modular units anyway, making it easy to 
-write a "shell" driver that simply registers each sub-driver, and helps 
-arbitrate/provide resources to sub-units.
-
-Consider, for example, a PCI driver that loads, and then fills in 
-platform_data to provide a specific set of resources to a platform 
-driver (a common idiom).  You would need to create parented struct 
-devices (parent: pci_dev's device), but everything else should work within
-
-I could even forsee a future where most drivers are written in a generic 
-platform-driver style, and PCI|sbus|embedded-bus|blah are simply 
-bus-specific shells that fill in platform data.
-
-All of this should be nicely possible within the existing usage of 
-struct device, platform drivers, generic DMA API, iomap, etc.
-
-	Jeff
+To: Benny Halevy <bhalevy@panasas.com>
+Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
 
 
+On Tue, 12 Feb 2008, Benny Halevy wrote:
+> 
+> IMHO, this base tree should typically be based off of linus' tree
+> and kept rebased on top of it.  This way you get the mainline fixes
+> through the integration base tree.
+
+Hell no!
+
+No rebasing! If people rebase, then it's useless as a base.
+
+That base tree needs to be something people can *depend* on. It contains 
+the API changes, and not anything else. Otherwise I will never ever pull 
+the resulting mess, and you all end up with tons of extra work.
+
+Just say *no* to rebasing.
+
+Rebasing is fine for maintaining *your* own patch-set, ie  it is an 
+alternative to using quilt. But it is absolutely not acceptable for 
+*anythign* else. 
+
+In particular, people who rebase other peoples trees should just be shot 
+(*). It's simply not acceptable behaviour. It screws up the sign-off 
+procedure, it screws up the people whose code was merged, and it's just 
+WRONG.
+
+			Linus
+
+(*) The exception being if there is something seriously wrong with the 
+tree. I think I've had trees which I just refused to pull, and while most 
+of the time I just say "I refuse to pull", early on in git development I 
+actually ended up fixing some of those trees up because my refusal was due 
+to people mis-using git in the first place. So I have actually effectively 
+rebased a maintainer tree at least once. But I still think it is seriously 
+screwed up.
