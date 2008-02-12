@@ -1,66 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:37183 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755183AbYBLUOJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 15:14:09 -0500
-Date: Tue, 12 Feb 2008 20:03:54 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+Received: from twin.jikos.cz ([213.151.79.26]:35774 "EHLO twin.jikos.cz"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752806AbYBLUUU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 15:20:20 -0500
+Date: Tue, 12 Feb 2008 21:18:31 +0100 (CET)
+From: Jiri Kosina <jkosina@suse.cz>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-Message-ID: <20080212200354.GB16885@flint.arm.linux.org.uk>
-References: <20080211203146.3d28d1a0@laptopd505.fenrus.org> <20080212044314.GA4888@kroah.com> <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
+In-Reply-To: <1202840682.3137.83.camel@localhost.localdomain>
+Message-ID: <Pine.LNX.4.64.0802122116400.7699@twin.jikos.cz>
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>
+ <20080212044314.GA4888@kroah.com>  <20080211211751.3e265754@laptopd505.fenrus.org>
+  <20080211.221126.230471463.davem@davemloft.net>  <47B1CB08.4020101@garzik.org>
+  <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
+ <1202838082.3137.54.camel@localhost.localdomain>
+ <alpine.LFD.1.00.0802120945290.2920@woody.linux-foundation.org>
+ <1202840682.3137.83.camel@localhost.localdomain>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Tue, Feb 12, 2008 at 09:09:34AM -0800, Linus Torvalds wrote:
-> I also don't think rebasing helps the particular problem under discussion 
-> (ie conflicts due to having to sort out dependencies between different 
-> trees), and in some ways hurts it.
+On Tue, 12 Feb 2008, James Bottomley wrote:
 
-How do you suggest that we fix the problems we had with the initial
-merge with the ARM tree.
+> >  Rebases *do*not*work* (and fundamentally cannot work) in a 
+> > distributed environment.
+> Hm ... I think net is a counter example to this.  Rebases certainly work
+> for them.  The issue, I thought, was around the policy of rebasing and
+> how often.
 
-We were in the situation where, had I asked you to pull my tree, you'd
-have had a fair number of conflicts to resolve - I tested this by trying
-to merge your tree into my 'devel' head.
-
-The result wasn't pleasant - even I didn't know how to fix up a lot of
-those conflicts, so the only way I could move forward was to reconstruct
-the 'devel' head (which is just merges of other branches) omitting the
-problem branches.
-
-This then posed something of a problem - of which I saw three solutions:
-
-1. ask the original authors of changes in those problem branches to come
-   up with patches or fixes in their git trees (in the rare case that
-   they have git trees) to bring the branch into line with the conflicting
-   changes in mainline.  The resulting branch with that change applied
-   probably won't build, which means bisect pain for people who happen
-   to bisect to that point.
-
-2. botch the merge, publish the tree, and then hit heads together to try
-   and get the problem resolved - again resulting in a commit point (the
-   merge) which is nonsense and unbuildable.
-
-3. rebase the branch on top of the conflicting change, throw out the
-   patches which prove to be a problem and ask the original author of
-   those patches to fix them up for the conflicting change.  The result
-   is a completely bisectable tree.
-
-(3) is the solution which I chose, and it worked _extremely_ well.
-
-(3) is effectively what akpm does with his tree - when a patch conflicts
-with other changes, he throws the changes out and bangs peoples heads
-together to get a new set of patches generated which work together.  In
-that respect, it's no different, and it's been proven there to work well.
-So I see git as being no different.
+Hmm ... as far as I can see, Jeff and John (i.e. net tree downstreams) are 
+pretty loudly unhappy with Dave rebasing too often, right?
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Jiri Kosina
+
