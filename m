@@ -1,43 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:37558 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759351AbYBLRxW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 12:53:22 -0500
-Date: Tue, 12 Feb 2008 09:51:09 -0800
-From: Greg KH <greg@kroah.com>
-Subject: Re: multiple drivers, single device
-Message-ID: <20080212175109.GA2114@kroah.com>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <47B1C829.8020800@garzik.org> <20080212164232.GA326@kroah.com> <adak5lavzpf.fsf@cisco.com>
+Received: from bzq-219-195-70.pop.bezeqint.net ([62.219.195.70]:53289 "EHLO
+	bh-buildlin1.bhalevy.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760262AbYBLR5L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 12:57:11 -0500
+Message-ID: <47B1DD17.2030204@panasas.com>
+Date: Tue, 12 Feb 2008 19:53:27 +0200
+From: Benny Halevy <bhalevy@panasas.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <adak5lavzpf.fsf@cisco.com>
+Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>	 <20080212044314.GA4888@kroah.com>	 <20080211211751.3e265754@laptopd505.fenrus.org>	 <20080211.221126.230471463.davem@davemloft.net>	 <47B1CB08.4020101@garzik.org>	 <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <1202838082.3137.54.camel@localhost.localdomain>
+In-Reply-To: <1202838082.3137.54.camel@localhost.localdomain>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland Dreier <rdreier@cisco.com>
-Cc: Jeff Garzik <jeff@garzik.org>, Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-On Tue, Feb 12, 2008 at 09:42:20AM -0800, Roland Dreier wrote:
->  > The work I'm doing here is for stupid PCI firmware engineers, who have
->  > created devices that are different things, all bound up under the same
->  > PCI device.  I'm thinking of watchdog timers and random number
->  > generator and i2c controller on the same PCI device, or even the more
->  > basic, frame buffer and DRM access to the same PCI video device.
->  > 
->  > The OLPC is a good example of hardware that needs this kind of
->  > functionality.
+On Feb. 12, 2008, 19:41 +0200, James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
+> On Tue, 2008-02-12 at 09:09 -0800, Linus Torvalds wrote:
+>>  (a) create a base tree with _just_ that fundamental infrastructure change,
+>>      and make sure that base branch is so obviously good that there is no 
+>>      question about merging it.
 > 
-> Sounds interesting.  I've been meaning to work on this too for quite a
-> while, but I'm glad to see you beat me to it.
+> The problem is how do we use a?  Usually we need to track your -rc tree
+> as our fixes go in ... some of which affect our development trees.
 > 
-> An example of an in-tree use case for this would be the mlx4 drivers--
-> you can look at drivers/net/mlx4/intf.c to see the simple stupid
-> solution I came up with to allow an IB and a NIC (not yet upstream)
-> driver to share the same PCI device.  A good test for your stuff would
-> be if it simplifies the code from the ad hoc solution I came up with.
+> If we stick with (a) as the base, we don't get to pull in the fixes in
+> your tree.  If we use your tree we have to pull in (a) creating n
+> different merge points for the n different upstream trees..
 
-Great, I'll look into that as I need a test case for this kind of stuff.
+IMHO, this base tree should typically be based off of linus' tree
+and kept rebased on top of it.  This way you get the mainline fixes
+through the integration base tree.
 
-thanks,
+Benny
 
-greg k-h
