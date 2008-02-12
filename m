@@ -1,78 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:32987 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:58356 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760708AbYBLS1Z (ORCPT
+	by vger.kernel.org with ESMTP id S1763457AbYBLSaS (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 13:27:25 -0500
-Date: Tue, 12 Feb 2008 10:26:53 -0800 (PST)
+	Tue, 12 Feb 2008 13:30:18 -0500
+Date: Tue, 12 Feb 2008 10:30:04 -0800 (PST)
 From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-In-Reply-To: <20080212174824.GA1919@kroah.com>
-Message-ID: <alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org>
-References: <20080211203146.3d28d1a0@laptopd505.fenrus.org> <20080212044314.GA4888@kroah.com> <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
- <20080212174824.GA1919@kroah.com>
+Subject: Re: multiple drivers, single device (was Re: Announce: Linux-next
+ (Or Andrew's dream  :-)))
+In-Reply-To: <47B1DDD3.2000402@garzik.org>
+Message-ID: <alpine.LFD.1.00.0802121027190.2920@woody.linux-foundation.org>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <47B1C829.8020800@garzik.org> <20080212164232.GA326@kroah.com> <47B1DDD3.2000402@garzik.org>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <greg@kroah.com>
-Cc: Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Jeff Garzik <jeff@garzik.org>
+Cc: Greg KH <greg@kroah.com>, Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
 
 
-On Tue, 12 Feb 2008, Greg KH wrote:
+On Tue, 12 Feb 2008, Jeff Garzik wrote:
+
+> Greg KH wrote:
+> > The work I'm doing here is for stupid PCI firmware engineers, who have
+> > created devices that are different things, all bound up under the same
+> > PCI device.  I'm thinking of watchdog timers and random number
+> > generator and i2c controller on the same PCI device, or even the more
+> > basic, frame buffer and DRM access to the same PCI video device.
 > 
-> I may be a bit defensive here, but I hope that all of the recent
-> kobject/kset/driver core changes have been done with the thought of
-> "what are we doing wrong".
+> Yes, that has a known solution:  have your driver register i2c, rng, watchdog,
+> etc. functions.
+> 
+> Works just fine inside today's infrastructure, no changes needed.
 
-.. but are we expecting it to be finished?
+Indeed. If you have a multi-function device that shows up as a single PCI 
+function, just make it have its own "private bus", and make it show up as 
+a "devices within a device".
 
-That's the point.
+Create the fake PCI subdevices that have no "real" counterpart, except as 
+parts of the stupid device that couldn't be bothered to be seen as 
+multiple _real_ functions.
 
-This whole "Linux-next" discussion so far has almost been predicated on 
-the whole assumption that this is an on-going concern. And it really 
-should NOT be.
-
-If it's an on-going concern, we need to tackle *that* issue, not the issue 
-that cross-subsystem merges are hard. They simply seem to happen too much.
-
-In other words, I'm not AT ALL interested in the merges we've already 
-done. That's over and done with, and we'll never ever do those merges 
-again. Who cares? I don't.
-
-I'm purely and _only_ interested in the merges of the future. You don't 
-need to be defensive about the things that led up to this discussion, I'm 
-more hoping that we can aim at fixing the problem at the source, rather 
-than trying to work around it.
-
-We simply shouldn't have all that many conflicts. We've had *way* too many 
-of them lately, and I think it's because people have felt it wasn't too
-painful. 
-
-Put another way: back when we worked with just patches, we avoided renames 
-like hell, and we also tried to simply even re-architect the whole tree so 
-that you didn't have so many patch conflicts. One main reason as far as I 
-was concerned for things like per-directory Kconfig files and the whole 
-initcall() stuff was the fact that the old single Kconfig file and the old 
-crazy init/main.c file were total *nightmares* when it came to conflict 
-resolution.
-
-So we split things up more, and we didn't do renames (or were very careful 
-about it). We avoided the things that caused pain.
-
-I think we need to remember that: yes, we'll always have to have ways to 
-fix the pain that does happen, but even more importantly, we should strive 
-for models where it doesn't happen in the first place!
-
-And simply avoiding cross-subsystem API changes unless there is a major 
-*MAJOR* reason for them is the obvious thing to do. Simply face the fact 
-that even in open source there are major reasons to stay with an old 
-interface even if it's not optimal.
-
-We absolutely MUST NOT have the mindset that "cross-subsystem conflicts 
-happen all the time". 
-
-That was my point.
+That not only solves the infrastructure issues, it's actually The Truth 
+with capital letters. It is, after all, how the device actually works 
+internally.
 
 			Linus
