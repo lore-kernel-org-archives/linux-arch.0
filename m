@@ -1,28 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bzq-219-195-70.pop.bezeqint.net ([62.219.195.70]:46155 "EHLO
-	bh-buildlin1.bhalevy.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754529AbYBLQue (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 11:50:34 -0500
-Message-ID: <47B1CD75.6070505@panasas.com>
-Date: Tue, 12 Feb 2008 18:46:45 +0200
-From: Benny Halevy <bhalevy@panasas.com>
-MIME-Version: 1.0
+Received: from accolon.hansenpartnership.com ([76.243.235.52]:58937 "EHLO
+	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754036AbYBLRDx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 12:03:53 -0500
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>	<20080212044314.GA4888@kroah.com>	<20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 In-Reply-To: <47B1CB08.4020101@garzik.org>
-Content-Type: text/plain; charset=ISO-8859-1
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>
+	 <20080212044314.GA4888@kroah.com>
+	 <20080211211751.3e265754@laptopd505.fenrus.org>
+	 <20080211.221126.230471463.davem@davemloft.net>
+	 <47B1CB08.4020101@garzik.org>
+Content-Type: text/plain
+Date: Tue, 12 Feb 2008 11:03:39 -0600
+Message-Id: <1202835819.3137.44.camel@localhost.localdomain>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jeff Garzik <jeff@garzik.org>
 Cc: David Miller <davem@davemloft.net>, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
 
-On Feb. 12, 2008, 18:36 +0200, Jeff Garzik <jeff@garzik.org> wrote:
+On Tue, 2008-02-12 at 11:36 -0500, Jeff Garzik wrote:
 > David Miller wrote:
->> This is why, with the networking, we've just tossed all of the network
->> driver stuff in there too.  I can rebase freely, remove changesets,
->> rework them, etc. and this causes a very low amount of pain for Jeff
->> Garzik and John Linville.
+> > This is why, with the networking, we've just tossed all of the network
+> > driver stuff in there too.  I can rebase freely, remove changesets,
+> > rework them, etc. and this causes a very low amount of pain for Jeff
+> > Garzik and John Linville.
 > 
 > 
 > s/very low/not low/
@@ -37,25 +42,38 @@ On Feb. 12, 2008, 18:36 +0200, Jeff Garzik <jeff@garzik.org> wrote:
 > Rebasing makes the history all nice and pretty, but by totalling 
 > flattening the history, trashing all the commit ids (and rewriting 
 > associated metadata), you create obvious downstream problems.
-
-FWIW, when I rebase branches in my tree that others depend on
-I keep tags on the old heads for reference.  Once the work-in-progress
-is done (e.g. tree pulled upstream) the reference tags can be cleaned
-up and the tree can be pruned.
-
-Benny
-
 > 
 > Rebasing is  low impact only if you don't have git downstream people. 
 > Otherwise, you're just treating it as a useful quilt clone, really.
-> 
-> 	Jeff
-> 
-> 
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+
+I used to be in this camp too: seeing rebasing as the ultimate evil.
+However, what I found was that as I tried to preserve my merge tree's
+history, I was picking up merge points with non trivial fixups.  You can
+argue that this is how git is supposed to operate, but the problem is
+that these merge points become immovable objects in the tree history ...
+I can't rebase the tree at all any more and I can't simply remove a
+commit (which gets messy for commits duplicated by other trees)  They
+also effectively separate the fix up from the patch causing it.   Plus,
+it became difficult for people to go to gitweb to see the tree history,
+because everything before the merge point got buried.
+
+I finally concluded that I needed to rebase my trees to resolve
+conflicts rather than merging them.  The advantages are I know the exact
+patch with the problem and I can keep the history annotated with what
+had to be done to get it to apply.  Plus with git (and this is a huge
+advantage over quilt) knowing the base of the patch, I can still use the
+merge algorithms to help me do the fixup.
+
+I'm not saying rebase constantly ... I'm still mindful of the disruption
+it causes, so I only do it if I pick up an actual conflict.  However, I
+do think it does becomes necessary at times.
+
+The problem rebasing causes is that git is pretty horrible at rebasing a
+tree which is based on your now rebased tree (try saying that after a
+few martinis).  Git really needs to acquire better rebasing tools for
+this one case, but if that were solved, I think a lot of the objections
+to rebasing could be answered.
+
+James
+
 
