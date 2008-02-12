@@ -1,33 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sovereign.computergmbh.de ([85.214.69.204]:59070 "EHLO
-	sovereign.computergmbh.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751637AbYBLWe4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 17:34:56 -0500
-Date: Tue, 12 Feb 2008 23:34:54 +0100 (CET)
-From: Jan Engelhardt <jengelh@computergmbh.de>
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-In-Reply-To: <20080212042133.GA4625@kroah.com>
-Message-ID: <Pine.LNX.4.64.0802122328540.12296@fbirervta.pbzchgretzou.qr>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
- <20080212042133.GA4625@kroah.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Received: from zeniv.linux.org.uk ([195.92.253.2]:39637 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752133AbYBLWlf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 17:41:35 -0500
+Date: Tue, 12 Feb 2008 22:41:03 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
+Message-ID: <20080212224103.GK27894@ZenIV.linux.org.uk>
+References: <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <1202838082.3137.54.camel@localhost.localdomain> <alpine.LFD.1.00.0802120945290.2920@woody.linux-foundation.org> <1202840682.3137.83.camel@localhost.localdomain> <alpine.LFD.1.00.0802121037340.2920@woody.linux-foundation.org> <alpine.LFD.1.00.0802121051341.2920@woody.linux-foundation.org> <20080212194100.GH27894@ZenIV.linux.org.uk> <20080212215152.1470fe7f@core> <20080212141726.1e214729.akpm@linux-foundation.org> <20080212222044.214ad821@core>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20080212222044.214ad821@core>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <greg@kroah.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org, James.Bottomley@HansenPartnership.com, jeff@garzik.org, davem@davemloft.net, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
 
+On Tue, Feb 12, 2008 at 10:20:44PM +0000, Alan Cox wrote:
+> > I think the best way to get the serial drivers maintained would be to cat
+> > them all onto the end of synclink.c and hope that Paul thinks he did it.
+> 
+> Well I've already broken the buffering so he'd fix it ;)
+> 
+> We have a pile of old ISA drivers that are going to break soon with the
+> locking changes and a pile of USB drivers that when I looked at the
+> locking were so terminally broken I couldn't be bothered to fix them.
+> 
+> So it'll be fun, lots of && BROKENs to add
 
-On Feb 11 2008 20:21, Greg KH wrote:
->> 
->> I hope to recreate this tree every day automatically.  In order to do
->> this, any tree that has a conflict will be dropped from that days tree.
->
->Oh oh oh, I get merged first!  me me me!
-
-No, you can't have a tree like that. [森林 Not yours. 森林]
-
-
-Let's maximize the profit, by keeping the largest number of trees which 
-do not cause a conflict amongst each other.
+Hrm...  How badly is pl2303 broken?  I actually use that sucker, so if
+it needs help - count me in.
