@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:54114 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751600AbYBLWCN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 17:02:13 -0500
-Date: Tue, 12 Feb 2008 21:51:52 +0000
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:59346 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751442AbYBLWSa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 17:18:30 -0500
+Date: Tue, 12 Feb 2008 14:17:26 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-Message-ID: <20080212215152.1470fe7f@core>
-In-Reply-To: <20080212194100.GH27894@ZenIV.linux.org.uk>
+Message-Id: <20080212141726.1e214729.akpm@linux-foundation.org>
+In-Reply-To: <20080212215152.1470fe7f@core>
 References: <20080212044314.GA4888@kroah.com>
 	<20080211211751.3e265754@laptopd505.fenrus.org>
 	<20080211.221126.230471463.davem@davemloft.net>
@@ -19,21 +20,27 @@ References: <20080212044314.GA4888@kroah.com>
 	<alpine.LFD.1.00.0802121037340.2920@woody.linux-foundation.org>
 	<alpine.LFD.1.00.0802121051341.2920@woody.linux-foundation.org>
 	<20080212194100.GH27894@ZenIV.linux.org.uk>
+	<20080212215152.1470fe7f@core>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, James.Bottomley@HansenPartnership.com, jeff@garzik.org, davem@davemloft.net, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
 
-> We could simply decide that API changes affecting more than one subsystem
-> Must Be Serialized(tm).  Explicitly.  As in "any such change is posted
+On Tue, 12 Feb 2008 21:51:52 +0000
+Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
 
-Welcome to dreamland. The only way I can get serial changes done is to
-wait months and eventually simply persuade Andrew to ignore the
-"maintainers" who are basically not responding.
+> > We could simply decide that API changes affecting more than one subsystem
+> > Must Be Serialized(tm).  Explicitly.  As in "any such change is posted
+> 
+> Welcome to dreamland. The only way I can get serial changes done is to
+> wait months and eventually simply persuade Andrew to ignore the
+> "maintainers" who are basically not responding.
 
-Maybe it works for vfs and mm internals but out here in driverspace
-forget it - and if I simply break drivers people get cross instead of
-fixing them nowdays.
+"maintainers"?
+
+I think the best way to get the serial drivers maintained would be to cat
+them all onto the end of synclink.c and hope that Paul thinks he did it.
+
