@@ -1,66 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:56083 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754224AbYBLTV2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 14:21:28 -0500
-Date: Tue, 12 Feb 2008 11:19:14 -0800
-From: Greg KH <greg@kroah.com>
-Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-Message-ID: <20080212191914.GB20883@kroah.com>
-References: <20080212044314.GA4888@kroah.com> <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <1202838082.3137.54.camel@localhost.localdomain> <alpine.LFD.1.00.0802120945290.2920@woody.linux-foundation.org> <1202840682.3137.83.camel@localhost.localdomain> <alpine.LFD.1.00.0802121037340.2920@woody.linux-foundation.org> <alpine.LFD.1.00.0802121051341.2920@woody.linux-foundation.org>
+Received: from bzq-219-195-70.pop.bezeqint.net ([62.219.195.70]:55644 "EHLO
+	bh-buildlin1.bhalevy.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753829AbYBLT2d (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 14:28:33 -0500
+Message-ID: <47B1F294.8000404@panasas.com>
+Date: Tue, 12 Feb 2008 21:25:08 +0200
+From: Benny Halevy <bhalevy@panasas.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.00.0802121051341.2920@woody.linux-foundation.org>
+Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>  <20080212044314.GA4888@kroah.com>  <20080211211751.3e265754@laptopd505.fenrus.org>  <20080211.221126.230471463.davem@davemloft.net>  <47B1CB08.4020101@garzik.org>  <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <1202838082.3137.54.camel@localhost.localdomain> <47B1DD17.2030204@panasas.com> <alpine.LFD.1.00.0802121031520.2920@woody.linux-foundation.org>
+In-Reply-To: <alpine.LFD.1.00.0802121031520.2920@woody.linux-foundation.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-On Tue, Feb 12, 2008 at 10:59:00AM -0800, Linus Torvalds wrote:
+On Feb. 12, 2008, 20:36 +0200, Linus Torvalds <torvalds@linux-foundation.org> wrote:
 > 
+> On Tue, 12 Feb 2008, Benny Halevy wrote:
+>> IMHO, this base tree should typically be based off of linus' tree
+>> and kept rebased on top of it.  This way you get the mainline fixes
+>> through the integration base tree.
 > 
-> On Tue, 12 Feb 2008, Linus Torvalds wrote:
-> > 
-> > In other words, I'm perfectly happy to be an a*hole and tell people that I 
-> > simply won't merge things that cause undue API churn at all, and that were 
-> > not thought out sufficiently.
+> Hell no!
 > 
-> .. btw: I'd need to know this in advance. I usually don't see the problem 
-> until it's too late.
-> 
-> And this is very much an area where "Linux-next" can help: if some 
-> subsystem causes problems in Linux-next for other maintainers, I really 
-> think it shouldn't just be a matter of "drop the git tree that didn't 
-> merge cleanly", but it should literally be a question of "maybe we should 
-> drop the _earlier_ git tree that caused the later one not to merge 
-> cleanly".
+> No rebasing! If people rebase, then it's useless as a base.
 
-We usually get this warning today in -mm.
+Linus, what you're saying is pretty extreme.
 
-> In other words, maybe things like core block layer changes or device model 
-> changes should be *last* in the merge-list (or if first, also be first to 
-> be dropped if they cause merge errors downstream!).
-> 
-> That way, infrastructure changes that screw up others can only happen if 
-> the maintainer actively works with the others to make sure it works even 
-> before it would ever merge into Linux-next successfully.
-> 
-> That may sound odd, but it actually matches what I personally believe in: 
-> we have more driver code and other "outlying" things than we have core 
-> things, and most of our problems come from that - so we should prioritize 
-> *those* things, not the "fundmantal core changes".
-> 
-> So how about making that the default situation: drivers and other outliers 
-> merge first. If fundamental API changes happen, they merge last, and if 
-> their maintainers can't make it in time in the merge window, they just get 
-> dropped.
-> 
-> That sure as hell would put the pain on API changes solidly where it 
-> belongs.
+Our experience with pnfs development taught us that rebase was actually the only
+method that worked on the long run because it allows us to maintain a *clean* series of
+patchsets over an extended period of time (order of two years).
 
-Sure, I have no objection to that at all.
+In the past, when we merged your tree into ours rather than using git-remote update and
+rebase we ended up with a cluttered mess that buried all the resolved merge conflicts
+in merge commits and maintaining it became an increasingly harder nightmare.
 
-thanks,
+Nowadays, I rebase the linux-pnfs git tree almost on a daily basis, keeping tags
+on historical refs (to be cleaned up when a branch stabilizes) and the other
+contributors simply use git-remote update to refresh their tracking branches and
+rebase their stuff onto the new heads.  It took the team a couple weeks to get used
+to this methodology but it really works great for us now.
 
-greg k-h
+It seems to me that merging works well one (your :) way when patches are merged
+upstream and become immutable at this point, while on the other way, keeping
+a patchset fresh and comprehensible is feasible only with rebase when there
+are occasional conflicts with stuff coming down from upstream.  The domino-
+effect caused by rebase is manageable and not worse than merge if people
+just keep track of the original bases of their development branch before
+updating their tracking branches.
+
+Maybe the missing link is a tool to help do rebasing more easily.
+I wrote my own tool for that: git-rebase-tree (available on
+git://git.bhalevy.com/git-tools.git) and using it makes the mechanics
+of rebasing our patchsets almost trivial.  I really encourage folks
+to try it out and give me feedback about it.
+
+Benny
+
+> 
+> That base tree needs to be something people can *depend* on. It contains 
+> the API changes, and not anything else. Otherwise I will never ever pull 
+> the resulting mess, and you all end up with tons of extra work.
+> 
+> Just say *no* to rebasing.
+> 
+> Rebasing is fine for maintaining *your* own patch-set, ie  it is an 
+> alternative to using quilt. But it is absolutely not acceptable for 
+> *anythign* else. 
+
+So what's the solution for maintaining a series of patchsets that depend
+on one another?
+
+> 
+> In particular, people who rebase other peoples trees should just be shot 
+> (*). It's simply not acceptable behaviour. It screws up the sign-off 
+> procedure, it screws up the people whose code was merged, and it's just 
+> WRONG.
+> 
+> 			Linus
+> 
+> (*) The exception being if there is something seriously wrong with the 
+> tree. I think I've had trees which I just refused to pull, and while most 
+> of the time I just say "I refuse to pull", early on in git development I 
+> actually ended up fixing some of those trees up because my refusal was due 
+> to people mis-using git in the first place. So I have actually effectively 
+> rebased a maintainer tree at least once. But I still think it is seriously 
+> screwed up.
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+
