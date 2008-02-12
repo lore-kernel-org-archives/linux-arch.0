@@ -1,80 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:50538 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755421AbYBLUc4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 15:32:56 -0500
-Date: Tue, 12 Feb 2008 12:31:43 -0800 (PST)
-From: Linus Torvalds <torvalds@linux-foundation.org>
+Received: from pentafluge.infradead.org ([213.146.154.40]:43346 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755421AbYBLUxQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 15:53:16 -0500
+Date: Tue, 12 Feb 2008 12:48:13 -0800
+From: Greg KH <greg@kroah.com>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-In-Reply-To: <20080212200354.GB16885@flint.arm.linux.org.uk>
-Message-ID: <alpine.LFD.1.00.0802121218350.2920@woody.linux-foundation.org>
-References: <20080211203146.3d28d1a0@laptopd505.fenrus.org> <20080212044314.GA4888@kroah.com> <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
- <20080212200354.GB16885@flint.arm.linux.org.uk>
+Message-ID: <20080212204813.GA21650@kroah.com>
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org> <20080212044314.GA4888@kroah.com> <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <20080212174824.GA1919@kroah.com> <alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org> <20080212191552.GA20883@kroah.com> <alpine.LFD.1.00.0802121133210.2920@woody.linux-foundation.org>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.1.00.0802121133210.2920@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-
-
-On Tue, 12 Feb 2008, Russell King wrote:
+On Tue, Feb 12, 2008 at 11:55:45AM -0800, Linus Torvalds wrote:
 > 
-> 3. rebase the branch on top of the conflicting change, throw out the
->    patches which prove to be a problem and ask the original author of
->    those patches to fix them up for the conflicting change.  The result
->    is a completely bisectable tree.
 > 
-> (3) is the solution which I chose, and it worked _extremely_ well.
+> On Tue, 12 Feb 2008, Greg KH wrote:
+> > 
+> > > That's the point.
+> > 
+> > Not it isn't.  To quote you a number of years ago:
+> > 	"Linux is evolution, not intelligent design"
+> 
+> Umm. Have you read a lot of books on evolution?
+> 
+> It doesn't sound like you have.
+> 
+> The fact is, evolution often does odd (and "suboptimal") things exactly 
+> because it does incremental changes that DO NOT BREAK at any point.
 
-Don't get me wrong at all. Rebasing is fine for stuff you have committed 
-yourself (which I assume was the case here).
+Hm, I think we are in violent agreement here :)
 
-Rebasing is also a fine conflict resolution strategy when you try to 
-basically turn a "big and complex one-time merge conflict" into "multiple 
-much smaller ones by doing them one commit at a time".
+> The examples are legion. The mammalian eye has the retina "backwards", 
+> with the blind spot appearing because the fundmanetal infrastructure (the 
+> optical nerves) actually being in *front* of the light sensor and needing 
+> a hole in the retina to get the information (and blood flow) to go to the 
+> brain!
+> 
+> In other words, exactly *because* evolution requires "bisectability" (any 
+> non-viable point in between is a dead end by definition) and does things 
+> incrementally, it doesn't do big flips. It fixes the problems on an 
+> incremental scale both when it comes to the details and when it comes to 
+> both "details" (actual protein-coding genes that code directly for some 
+> expression) and "infrastructure" (homeobox and non-coding genes).
+> 
+> So quite frankly, you're the "intelligent designer" here. You're the one 
+> who seems to claim that we need those leaps of faith and wild jumps.
 
-But what rebasing is _not_ is a fine "default strategy", especially if 
-other people are depending on you.
+No, I might have mistyped previously, but I really do not believe in
+this at all.
 
-> (3) is effectively what akpm does with his tree - when a patch conflicts
-> with other changes, he throws the changes out and bangs peoples heads
-> together to get a new set of patches generated which work together.
+> > > And simply avoiding cross-subsystem API changes unless there is a major 
+> > > *MAJOR* reason for them is the obvious thing to do. Simply face the fact 
+> > > that even in open source there are major reasons to stay with an old 
+> > > interface even if it's not optimal.
+> > 
+> > I strongly disagree here.  We lived with that kset/ktype crap for years,
+> > and I finally broke down and cleaned it up, simplifying things, removing
+> > code, making the kernel smaller, leaner, and easier for others to change
+> > and use in the future.  With your statement, such a change should have
+> > never taken place as it what we had at the time was "not optimal", but
+> > good enough to live with.
+> 
+> You didn't listen at all.
+> 
+> I said that the threshold should be high, not that it should be 
+> impossible. I also said that we should strive for making it unnecessary to 
+> have the painful total synchronization points.
 
-Right. And it's one of the fundamental differences between git and a patch 
-queue.
+I agree with this.  But I was reacting to your "there are major reasons
+to stay with an old interface..." portion above, while I feel we should
+always work to fixe those interfaces as best as possible.
 
-Patch queues are very flexible, but they simply don't scale. They don't 
-scale in history (ie you cannot sanely keep track of multiple queues as 
-they grow in the long run - you need a way to regularly "freeze" things 
-into a release tar-ball or something like that). But they also don't scale 
-with number of users - even just read-only ones.
+> > But they do happen about once or twice a kernel release, just by virtue
+> > of the way things need to happen.
+> 
+> And I violently disagree.
+> 
+> It should not be "once of twice a kernel release".
+> 
+> It should be "once or twice a year" that you hit a flag-day issue. The 
+> rest of the time you should be able to do it without breakage. It's 
+> doable. You just HAVEN'T EVEN TRIED, and seem to be actively against even 
+> doing so.
 
-The latter example is something we see in -mm right now. When people 
-report problems against -mm, it's usually an all-or-nothing thing 
-(so-and-so mm release doesn't work), but even when people sometimes bisect 
-to a specific point in mm, it's not "stable" in the sense that that point 
-may not make any sense in a subsequent -mm queue version.
+No, not at all.
 
-And all of these issues are not about "-mm" per se, but are about patch 
-queues in general. And "rebase" turns a git repository effectively to a 
-patch queue too, with all the same downsides.
+I have tried, and successfully done this many times in the past.  The
+kobject change was one example: add a new function, migrate all users of
+a direct pointer over to that function, after that work is all done and
+in, change the structure and do the needed work afterward.  All is
+bisectable completly, with no big "flag day" needed.
 
-And I don't think patch queues are evil: I use git rebase all the time 
-myself (not for the kernel, but for git, where I'm not the top-level 
-thing). But I'd not rebase commits from other peoples trees: I rebase 
-commits that I applied as patches (ie the *author* may be somebody else, 
-but the committer is me!) or that I committed myself, and that I haven't 
-pushed out.
+Same goes for a lot of USB changes.  Hell, we've been slowly moving
+toward changing the USB urb callback for _years_ yet, not quite getting
+there, but the groundwork is done, making it much simpler and easy for
+it to happen.  Eventually things will flip over and the eventual patch
+for all callback functions will be trivial and easily reviewed and
+merged.
 
-Note that difference between "committer" and "author". There's nothing 
-wrong with rebasing commits that are _authored_ by other people. But there 
-absolutely is something wrong rebasing commits that are _commmitted_ by 
-somebody else, unless you two are best buddies and know and trust each 
-other and are ok with each other messing up the commits (and use some 
-external method of serialization, so that you don't step on each others 
-toes).
+In short, I agree that flag days are bad and should be avoided at all
+costs, and that slow incremental, bisectable changes are how we evolve
+properly.  And that we need to always be able to do this kind of work,
+and never be stuck with the "can't change an old, internal api" model.
 
-			Linus
+To bring it around to the original topic, -next should help us in
+finding these issues out, exactly like -mm is.
+
+If we want to make a new rule of "only merging api or cross-subsystem
+changes after everything else", that's wonderful with me, I have no
+objection to it at all.
+
+thanks,
+
+greg k-h
