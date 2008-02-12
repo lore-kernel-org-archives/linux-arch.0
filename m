@@ -1,101 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:59058 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752913AbYBLFHP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 00:07:15 -0500
-Date: Tue, 12 Feb 2008 16:07:04 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+Received: from pentafluge.infradead.org ([213.146.154.40]:34666 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752378AbYBLFSF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 00:18:05 -0500
+Date: Mon, 11 Feb 2008 21:17:51 -0800
+From: Arjan van de Ven <arjan@infradead.org>
 Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-Message-Id: <20080212160704.77354af9.sfr@canb.auug.org.au>
-In-Reply-To: <20080212042133.GA4625@kroah.com>
+Message-ID: <20080211211751.3e265754@laptopd505.fenrus.org>
+In-Reply-To: <20080212044314.GA4888@kroah.com>
 References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
 	<20080212042133.GA4625@kroah.com>
+	<20080211203146.3d28d1a0@laptopd505.fenrus.org>
+	<20080212044314.GA4888@kroah.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Tue__12_Feb_2008_16_07_04_+1100_OBufez3.w283ghO7"
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greg KH <greg@kroah.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
 
---Signature=_Tue__12_Feb_2008_16_07_04_+1100_OBufez3.w283ghO7
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Mon, 11 Feb 2008 20:43:14 -0800
+Greg KH <greg@kroah.com> wrote:
 
-On Mon, 11 Feb 2008 20:21:33 -0800 Greg KH <greg@kroah.com> wrote:
->
-> Note that a lot of these are already in the MAINTAINERS file.
->=20
-> But for the record, here's mine, in the order they need to be pulled
-> from.
->   Driver core:
-> 	kernel.org/pub/linux/kernel/people/gregkh/gregkh-2.6/gregkh-01-driver/
->   PCI:
-> 	kernel.org/pub/linux/kernel/people/gregkh/gregkh-2.6/gregkh-02-pci/
->   USB:
-> 	kernel.org/pub/linux/kernel/people/gregkh/gregkh-2.6/gregkh-03-usb/
->=20
-> These are all quilt trees, with the series file in the directory for the
-> order of the patches, and a README saying what kernel version they have
-> been rebased against.
+> On Mon, Feb 11, 2008 at 08:31:46PM -0800, Arjan van de Ven wrote:
+> > On Mon, 11 Feb 2008 20:21:33 -0800
+> > Greg KH <greg@kroah.com> wrote:
+> > 
+> > 
+> > > > The maintainer will be notified.  I hope to provide some clue
+> > > > as to what the conflict is with, but probably not initially.
+> > > > 
+> > > > I will attempt to build the tree between each merge (and a
+> > > > failed build will again cause the offending tree to be dropped).
+> > > 
+> > > This is going to get really interesting, especially when (not if)
+> > > we do more global api changes.  Look at the last round of kobject
+> > > changes. That touched a lot of different places, and other trees
+> > > ended up not building because of it, because I changed apis and
+> > > they had added new code based on the old apis.
+> > > 
+> > > I think the only way to fix this is not going to just "drop the
+> > > tree" like you are suggesting, but to let both people know (the
+> > > person who caused the change, and the person who's tree broke
+> > > after the merge), and then either add a "fixup patch" for the
+> > > build like Andrew has been doing, or disabling something from the
+> > > build section.
+> > > 
+> > 
+> > in my experience, the only chance you have is doing API changes as
+> > first in the set of changes, and then hoping (making) all other
+> > trees use the new APIs. Any other order just turns into an
+> > impossible mismash.
+> 
+> I agree, and that's what I do.
+> 
+> The problem is, the API change is still in my tree.  So, if for
+> example, the IB tree goes and adds some new functionality before my
+> API changes have landed, they need to use the "old" API in order for
+> them to be able to test and build things on their own.  Then, when
+> the -next tree merges everything together, the IB tree breaks the
+> build, not my driver tree.
+> 
+> It's those "who goes first" type things that end up being the cause
+> of a lot of Andrew's headaches I think :)
+> 
 
-Thank you.  Over time we might think about some sort of standard for
-these.
-
-> Oh oh oh, I get merged first!  me me me!
-
-What's it worth to you?  :-)
-
-> This is going to get really interesting, especially when (not if) we do
-> more global api changes.  Look at the last round of kobject changes.
-> That touched a lot of different places, and other trees ended up not
-> building because of it, because I changed apis and they had added new
-> code based on the old apis.
-
-This is one of the things that linux-next will hopefully let us discover
-more easily/faster.
-
-> I think the only way to fix this is not going to just "drop the tree"
-> like you are suggesting, but to let both people know (the person who
-> caused the change, and the person who's tree broke after the merge), and
-> then either add a "fixup patch" for the build like Andrew has been
-> doing, or disabling something from the build section.
-
-Right. Except that "drop the tree" will probably only mean for a day or
-so i.e. it will be taken out of the current round but will reappear
-automatically when the conflict/dependency is sorted out.
-
-> As I know I'm going to be changing more driver core apis[1] this week,
-> I'm sure we will get a very good set of examples of this for you to see
-> in action :)
-
-Excellent!
-
-However, I am hoping that these global api changes may be introduced in a
-more orderly fashion (some of which is happening already) by creating new
-api's and then switching to them (and them maybe changing the names back
-if necessary).  And, yes, I realise that this is sometimes not possible
-(or at least not worth the extra effort).
-
-> Good luck,
-
-Thanks, I will probably need it :-(
-
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-
---Signature=_Tue__12_Feb_2008_16_07_04_+1100_OBufez3.w283ghO7
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
-
-iD8DBQFHsSl9TgG2atn1QN8RAgy5AJ9PsdRUcJ5xUenwHarbowB56ALM7ACgl2eD
-qW2aHOkH8VkNsVHXFr93Bm4=
-=7IOM
------END PGP SIGNATURE-----
-
---Signature=_Tue__12_Feb_2008_16_07_04_+1100_OBufez3.w283ghO7--
+this is why you need specific trees for just the API change, and these
+need to EXPLICITLY go first before EVERYTHING ELSE. Yes this needs a bit of coordination,
+but it's the only way.
