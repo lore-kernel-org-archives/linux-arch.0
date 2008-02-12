@@ -1,68 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:57652 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754731AbYBLPAK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 10:00:10 -0500
-Date: Tue, 12 Feb 2008 06:57:39 -0800
-From: Greg KH <greg@kroah.com>
+Received: from accolon.hansenpartnership.com ([76.243.235.52]:38090 "EHLO
+	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755652AbYBLPHk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 10:07:40 -0500
 Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-Message-ID: <20080212145739.GB19059@kroah.com>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <20080211203146.3d28d1a0@laptopd505.fenrus.org> <1202791555.20739.6.camel@heimdal.trondhjem.org> <20080212051136.GA12802@mit.edu> <20080211221535.bc0dc9cf.akpm@linux-foundation.org> <20080212225716.cf695fe4.sfr@canb.auug.org.au>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080212225716.cf695fe4.sfr@canb.auug.org.au>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <20080212055312.GA5631@kroah.com>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+	 <20080212042133.GA4625@kroah.com>
+	 <20080211203146.3d28d1a0@laptopd505.fenrus.org>
+	 <20080212044314.GA4888@kroah.com>
+	 <20080211211751.3e265754@laptopd505.fenrus.org>
+	 <20080212055312.GA5631@kroah.com>
+Content-Type: text/plain
+Date: Tue, 12 Feb 2008 09:07:27 -0600
+Message-Id: <1202828848.3137.4.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Linus <torvalds@linux-foundation.org>
+To: Greg KH <greg@kroah.com>
+Cc: Arjan van de Ven <arjan@infradead.org>, Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
 
-On Tue, Feb 12, 2008 at 10:57:16PM +1100, Stephen Rothwell wrote:
-> On Mon, 11 Feb 2008 22:15:35 -0800 Andrew Morton <akpm@linux-foundation.org> wrote:
-> >
-> > Another thing we could do when these things happen is all gang up on Linus
-> > and ask him to merge the API change into mainline.  Because often the
-> > change can be done in two stages: 1) change the interface then 2) add the code
-> > in the callee which _uses_ that changed interface.  Part 1 is an obviously-safe
-> > do-nothing change and fixes the merge problems.  Part 2 is at a single site
-> > and can be merged in 2.6.x+1.
+On Mon, 2008-02-11 at 21:53 -0800, Greg KH wrote:
+> > this is why you need specific trees for just the API change, and these
+> > need to EXPLICITLY go first before EVERYTHING ELSE. Yes this needs a
+> > bit of coordination, but it's the only way.
 > 
-> I have an alternative (with help from Paul Mackerras).
+> Even then, it will not work.
 > 
-> We have a branch in linux-next that is stable and only progresses forward
-> i.e. is never rebased.  Global API changes/introductions that are of type
-> 1 above go into this branch (after appropriate etc).  Fixes to them go in
-> as well.  People can base development on this branch.
+> Again, Roland isn't going to want to always pull in my driver tree just
+> to build his tree.  He wants to, and needs to do his own development
+> effort.
 > 
-> But ... they can only really do that *if* we can guarantee that part of
-> linux-next will be in Linus' tree very early in the next merge window.
-> So here is the had part ...
+> But when we merge them together, there would be problems.
 > 
-> We need to ask Linus to promise that he will pull the stable branch from
-> linux-next first in the merge window.  For that to happen, I would expect
-> that Linus would also review and sign off (or ack) these commits to the
-> linux-next tree.
+> So, you can't just "drop" the IB tree.
+> You can't just "drip" my tree.
 > 
-> The rest of linux-next would always be based on the stable part plus
-> Linus' current tree.
-> 
-> Will this fly?
+> Where do you "fix this up" at?  I can send a patch for the IB tree, but
+> Roland can't put it in his tree, and I can't put it in my tree, it needs
+> to go _after_ both of our trees.
 
-I doubt it.  See David's previous post about constantly rebasing his
-tree over the lifetime of development during a -rc series.  I do the
-same thing, dropping things in the middle, re-arranging stuff, handling
-merge issues that came into Linus's tree, etc.
+Actually, we had exactly this issue with the SCSI bidirectional patches:
+They depended on the sg_table patches in block.  The solution I adopted
+was two merge trees:  One to go in immediately with no dependencies
+(scsi-misc-2.6) and the other based on the pieces of block (so it would
+compile and apply) to go in mid way through the merge round after block
+(scsi-bidi-2.6).  What I did was keep rebasing the bidi tree until I
+could see there was nothing other than a plane base before merging it.
 
-I wouldn't want to change our current development flow to force such a
-thing on Linus, or us right now.
+Of course, this only worked because Jens has a git tree ... it would
+have been a lot harder (but not impossible) if I'd had entangled patches
+from a quilt tree.
 
-My main point in all of this was just that you are going to have to help
-with some of these merges by hand, adding patches to get things to
-build, and not just blindly dropping trees when things go wrong, as you
-originally stated.  After that, we can continue doing what we have been
-doing in the merges with Linus, as that is working very well (see our
-rate of change metrics for proof of that.)
+So I've already proven that the split tree solution is viable, if not
+pretty.  The bidi tree had to be rebased an awful lot as the block trees
+changed and rebased.  Unfortunately, git isn't very good at this, I
+eventually had to keep a base and a top reference and just try to cherry
+pick this series into the new constructed block tree.  But it can be
+done...
 
-thanks,
+> That's what -mm has been able to handle so far, and that needs to also
+> work with -next.
 
-greg k-h
+Actually, we never successfully got block and bidi via -mm.
+
+James
+
+
