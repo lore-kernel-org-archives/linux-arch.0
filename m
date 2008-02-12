@@ -1,58 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:60671 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753435AbYBLFzb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 00:55:31 -0500
-Date: Mon, 11 Feb 2008 21:56:48 -0800
-From: Greg KH <greg@kroah.com>
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-Message-ID: <20080212055648.GB5631@kroah.com>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <20080212160704.77354af9.sfr@canb.auug.org.au>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080212160704.77354af9.sfr@canb.auug.org.au>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:48856
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1753551AbYBLGBv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 01:01:51 -0500
+Date: Mon, 11 Feb 2008 22:02:22 -0800 (PST)
+Message-Id: <20080211.220222.118805417.davem@davemloft.net>
+Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20080212051136.GA12802@mit.edu>
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>
+	<1202791555.20739.6.camel@heimdal.trondhjem.org>
+	<20080212051136.GA12802@mit.edu>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
+To: tytso@mit.edu
+Cc: trond.myklebust@fys.uio.no, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
 
-On Tue, Feb 12, 2008 at 04:07:04PM +1100, Stephen Rothwell wrote:
-> On Mon, 11 Feb 2008 20:21:33 -0800 Greg KH <greg@kroah.com> wrote:
-> > I think the only way to fix this is not going to just "drop the tree"
-> > like you are suggesting, but to let both people know (the person who
-> > caused the change, and the person who's tree broke after the merge), and
-> > then either add a "fixup patch" for the build like Andrew has been
-> > doing, or disabling something from the build section.
-> 
-> Right. Except that "drop the tree" will probably only mean for a day or
-> so i.e. it will be taken out of the current round but will reappear
-> automatically when the conflict/dependency is sorted out.
+From: Theodore Tso <tytso@mit.edu>
+Date: Tue, 12 Feb 2008 00:11:36 -0500
 
-See my response to Arjan for how this is going to be very difficult to
-do, unless you are willing to have patches in -next that are not in any
-other tree.
+> __deprecate the old one,
 
-> > As I know I'm going to be changing more driver core apis[1] this week,
-> > I'm sure we will get a very good set of examples of this for you to see
-> > in action :)
-> 
-> Excellent!
-> 
-> However, I am hoping that these global api changes may be introduced in a
-> more orderly fashion (some of which is happening already) by creating new
-> api's and then switching to them (and them maybe changing the names back
-> if necessary).  And, yes, I realise that this is sometimes not possible
-> (or at least not worth the extra effort).
+Deprecate is garbage, shit hangs around in the tree forever
+and people just turn off the warnings.
 
-It's possible to do in a series of patches, yes, but again, development
-happens in parallel, with no one stopping for anyone else, and that's
-fine, we work it out when we send stuff to Linus at merge time.
-
-So with that parallel development effort, there are problems like this,
-I just want you to be aware of it and plan properly for it, as it is
-going to happen...
-
-thanks,
-
-greg k-h
+Clean sweeps work much better, albeit with some merge pain,
+we'll cope.
