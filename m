@@ -1,32 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:48856
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:57393
 	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1753551AbYBLGBv (ORCPT
+	by vger.kernel.org with ESMTP id S1752128AbYBLGGz (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 01:01:51 -0500
-Date: Mon, 11 Feb 2008 22:02:22 -0800 (PST)
-Message-Id: <20080211.220222.118805417.davem@davemloft.net>
+	Tue, 12 Feb 2008 01:06:55 -0500
+Date: Mon, 11 Feb 2008 22:07:26 -0800 (PST)
+Message-Id: <20080211.220726.157328337.davem@davemloft.net>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
 From: David Miller <davem@davemloft.net>
-In-Reply-To: <20080212051136.GA12802@mit.edu>
-References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>
-	<1202791555.20739.6.camel@heimdal.trondhjem.org>
-	<20080212051136.GA12802@mit.edu>
+In-Reply-To: <20080212055312.GA5631@kroah.com>
+References: <20080212044314.GA4888@kroah.com>
+	<20080211211751.3e265754@laptopd505.fenrus.org>
+	<20080212055312.GA5631@kroah.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tytso@mit.edu
-Cc: trond.myklebust@fys.uio.no, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
+To: greg@kroah.com
+Cc: arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
 
-From: Theodore Tso <tytso@mit.edu>
-Date: Tue, 12 Feb 2008 00:11:36 -0500
+From: Greg KH <greg@kroah.com>
+Date: Mon, 11 Feb 2008 21:53:12 -0800
 
-> __deprecate the old one,
+> Where do you "fix this up" at?  I can send a patch for the IB tree, but
+> Roland can't put it in his tree, and I can't put it in my tree, it needs
+> to go _after_ both of our trees.
 
-Deprecate is garbage, shit hangs around in the tree forever
-and people just turn off the warnings.
+Totally agreed.
 
-Clean sweeps work much better, albeit with some merge pain,
-we'll cope.
+The fact is there are interdependencies, especially in driver
+land and you have to either:
+
+1) Make the driver folks work on top of Greg's tree.
+
+2) Constantly rebase the -next tree to deal with the
+   conflicts.
+
+There are some other issues related to this which haven't
+be touched upon greatly yet.
+
+I rebase my tree all the time, at least once or twice per
+week.  Why?
+
+Firstly, to remove crap.  When you have "great idea A" then "oh shit A
+won't work, revert that" there is zero sense in keeping both
+changesets around.
+
+Secondly, I want to fix up the rejects caused by conflicts with
+upstream bug fixes and the like (and there are tons when the tree gets
+to 1500 or so patches like the networking did).  I don't want git to
+merge the thing by hand, I want to see what the conflict is and make
+sure the "obvious" resolution is OK and the most efficient way I know
+how to do that is to suck my tree apart as patches, then suck them
+back into a fresh tree.
+
+It therefore might make sense to the linux-next tree to do something
+similar, constantly rebasing so that all the conflicts and reverted
+shit changes can be sorted out without having an incredibly ugly
+GIT history.
