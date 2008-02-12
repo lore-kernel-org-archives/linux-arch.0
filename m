@@ -1,83 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:39075 "EHLO
-	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753740AbYBLQAK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 11:00:10 -0500
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <47B1BC2A.6040506@panasas.com>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
-	 <20080212042133.GA4625@kroah.com>
-	 <20080211203146.3d28d1a0@laptopd505.fenrus.org>
-	 <20080212044314.GA4888@kroah.com>
-	 <20080211211751.3e265754@laptopd505.fenrus.org>
-	 <20080212055312.GA5631@kroah.com>
-	 <1202828848.3137.4.camel@localhost.localdomain>
-	 <47B1BC2A.6040506@panasas.com>
-Content-Type: text/plain
-Date: Tue, 12 Feb 2008 10:00:03 -0600
-Message-Id: <1202832003.3137.13.camel@localhost.localdomain>
-Mime-Version: 1.0
+Received: from srv5.dvmed.net ([207.36.208.214]:56039 "EHLO mail.dvmed.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754843AbYBLQYS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 11:24:18 -0500
+Message-ID: <47B1C829.8020800@garzik.org>
+Date: Tue, 12 Feb 2008 11:24:09 -0500
+From: Jeff Garzik <jeff@garzik.org>
+MIME-Version: 1.0
+Subject: multiple drivers, single device (was Re: Announce: Linux-next (Or
+ Andrew's dream  :-)))
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com>
+In-Reply-To: <20080212042133.GA4625@kroah.com>
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benny Halevy <bhalevy@panasas.com>
-Cc: Greg KH <greg@kroah.com>, Arjan van de Ven <arjan@infradead.org>, Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
+To: Greg KH <greg@kroah.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
 
-On Tue, 2008-02-12 at 17:32 +0200, Benny Halevy wrote:
-> On Feb. 12, 2008, 17:07 +0200, James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
-> > On Mon, 2008-02-11 at 21:53 -0800, Greg KH wrote:
-> >>> this is why you need specific trees for just the API change, and these
-> >>> need to EXPLICITLY go first before EVERYTHING ELSE. Yes this needs a
-> >>> bit of coordination, but it's the only way.
-> >> Even then, it will not work.
-> >>
-> >> Again, Roland isn't going to want to always pull in my driver tree just
-> >> to build his tree.  He wants to, and needs to do his own development
-> >> effort.
-> >>
-> >> But when we merge them together, there would be problems.
-> >>
-> >> So, you can't just "drop" the IB tree.
-> >> You can't just "drip" my tree.
-> >>
-> >> Where do you "fix this up" at?  I can send a patch for the IB tree, but
-> >> Roland can't put it in his tree, and I can't put it in my tree, it needs
-> >> to go _after_ both of our trees.
-> > 
-> > Actually, we had exactly this issue with the SCSI bidirectional patches:
-> > They depended on the sg_table patches in block.  The solution I adopted
-> > was two merge trees:  One to go in immediately with no dependencies
-> > (scsi-misc-2.6) and the other based on the pieces of block (so it would
-> > compile and apply) to go in mid way through the merge round after block
-> > (scsi-bidi-2.6).  What I did was keep rebasing the bidi tree until I
-> > could see there was nothing other than a plane base before merging it.
-> 
-> My take on this, in retrospect, is that the code should probably have been
-> developed in one branch off of one of the trees, or maybe even better in a
-> third tree.
+Greg KH wrote:
+> [1] Hopefully the "multiple drivers for a single device" feature people
+> have been asking for for years will be landing soon, of course the
+> number of odd places in the kernel that made the assumption that we
+> could only have one driver per device is causing lots of fun...
 
-For your development, possibly, but not for my merge ... there were a
-lot of other patches besides yours in the bidi tree (it was, in fact,
-misnamed, but I thought at the time I created it it would only contain
-the bidi patches).
 
-> The point is that the structure of git trees followed the organizational
-> structure rather than the problem at hand and if contributions coming
-> from different trees depend on each other, staging branches should be created
-> in the integration tree for working out the conflicts and when ready,
-> the integrated branches should be pushed towards the tree's trunk.
+Color me a bit skeptical...  we've always had this capability really: 
+for multi-function devices, just register as many subsystems as you 
+need.  If your device is a network _and_ SCSI device, you can do that 
+with today's APIs.
 
-Actually, I think you'll find the problem is that we can't build an
-integration tree that's both stable and long lived, and hence you can't
-base anything off it that requires a long lived base.
+I just went through a long thread (e1000/e1000e) explaining how much 
+pain multiple drivers for the same PCI ID cause on the distro side of 
+things...  its a mess.  In each case you must write special case code to 
+resolve the ambiguity.  You never know which is the best driver to 
+choose, or proper module load order -- which may vary depending on 
+machine, not just static information captured from a kernel Makefile.
 
-So, the way I worked for your patches was to use the -mc tree to
-identify my conflicts, and only include the actual conflicting branches
-as a basis for the scsi-bidi tree beofre fixing up the patches.  I then
-actually used the -mc tree as a canary to tell me when to rebase.
-
-James
+	Jeff
 
 
