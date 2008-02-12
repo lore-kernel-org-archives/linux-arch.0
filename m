@@ -1,42 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from srv5.dvmed.net ([207.36.208.214]:56039 "EHLO mail.dvmed.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754843AbYBLQYS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 11:24:18 -0500
-Message-ID: <47B1C829.8020800@garzik.org>
-Date: Tue, 12 Feb 2008 11:24:09 -0500
-From: Jeff Garzik <jeff@garzik.org>
+Received: from pentafluge.infradead.org ([213.146.154.40]:42346 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1764121AbYBLQos (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 11:44:48 -0500
+Date: Tue, 12 Feb 2008 08:42:32 -0800
+From: Greg KH <greg@kroah.com>
+Subject: Re: multiple drivers, single device (was Re: Announce: Linux-next
+	(Or Andrew's dream  :-)))
+Message-ID: <20080212164232.GA326@kroah.com>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <47B1C829.8020800@garzik.org>
 MIME-Version: 1.0
-Subject: multiple drivers, single device (was Re: Announce: Linux-next (Or
- Andrew's dream  :-)))
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com>
-In-Reply-To: <20080212042133.GA4625@kroah.com>
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <47B1C829.8020800@garzik.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <greg@kroah.com>
+To: Jeff Garzik <jeff@garzik.org>
 Cc: Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
 
-Greg KH wrote:
-> [1] Hopefully the "multiple drivers for a single device" feature people
-> have been asking for for years will be landing soon, of course the
-> number of odd places in the kernel that made the assumption that we
-> could only have one driver per device is causing lots of fun...
+On Tue, Feb 12, 2008 at 11:24:09AM -0500, Jeff Garzik wrote:
+> Greg KH wrote:
+>> [1] Hopefully the "multiple drivers for a single device" feature people
+>> have been asking for for years will be landing soon, of course the
+>> number of odd places in the kernel that made the assumption that we
+>> could only have one driver per device is causing lots of fun...
+>
+>
+> Color me a bit skeptical...  we've always had this capability really: for 
+> multi-function devices, just register as many subsystems as you need.  If 
+> your device is a network _and_ SCSI device, you can do that with today's 
+> APIs.
 
+Yes, but that's not the type of devices this is for.
 
-Color me a bit skeptical...  we've always had this capability really: 
-for multi-function devices, just register as many subsystems as you 
-need.  If your device is a network _and_ SCSI device, you can do that 
-with today's APIs.
+> I just went through a long thread (e1000/e1000e) explaining how much pain 
+> multiple drivers for the same PCI ID cause on the distro side of things...  
+> its a mess.  In each case you must write special case code to resolve the 
+> ambiguity.  You never know which is the best driver to choose, or proper 
+> module load order -- which may vary depending on machine, not just static 
+> information captured from a kernel Makefile.
 
-I just went through a long thread (e1000/e1000e) explaining how much 
-pain multiple drivers for the same PCI ID cause on the distro side of 
-things...  its a mess.  In each case you must write special case code to 
-resolve the ambiguity.  You never know which is the best driver to 
-choose, or proper module load order -- which may vary depending on 
-machine, not just static information captured from a kernel Makefile.
+Oh, I agree, multiple drivers for the same functionality is not a nice
+thing from a distro standpoint.
 
-	Jeff
+The work I'm doing here is for stupid PCI firmware engineers, who have
+created devices that are different things, all bound up under the same
+PCI device.  I'm thinking of watchdog timers and random number
+generator and i2c controller on the same PCI device, or even the more
+basic, frame buffer and DRM access to the same PCI video device.
 
+The OLPC is a good example of hardware that needs this kind of
+functionality.
 
+In order to take advantage of the "multiple drivers per device" all
+drivers need to guarantee to play nice with others, as they need to be
+aware that other drivers will be sharing the hardware.
+
+I'll write up more details later this week, if I get this stuff to work
+properly :)
+
+thanks,
+
+greg k-h
