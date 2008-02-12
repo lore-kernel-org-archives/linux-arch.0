@@ -1,61 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:57393
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752128AbYBLGGz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 01:06:55 -0500
-Date: Mon, 11 Feb 2008 22:07:26 -0800 (PST)
-Message-Id: <20080211.220726.157328337.davem@davemloft.net>
-Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20080212055312.GA5631@kroah.com>
-References: <20080212044314.GA4888@kroah.com>
-	<20080211211751.3e265754@laptopd505.fenrus.org>
-	<20080212055312.GA5631@kroah.com>
+Received: from chilli.pcug.org.au ([203.10.76.44]:55445 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754074AbYBLGKv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 01:10:51 -0500
+Date: Tue, 12 Feb 2008 17:10:41 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+Message-Id: <20080212171041.cdd477a2.sfr@canb.auug.org.au>
+In-Reply-To: <20080212055648.GB5631@kroah.com>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+	<20080212042133.GA4625@kroah.com>
+	<20080212160704.77354af9.sfr@canb.auug.org.au>
+	<20080212055648.GB5631@kroah.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Tue__12_Feb_2008_17_10_41_+1100_9Cf/IGc5cv6s9t=a"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: greg@kroah.com
-Cc: arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
+To: Greg KH <greg@kroah.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
 
-From: Greg KH <greg@kroah.com>
-Date: Mon, 11 Feb 2008 21:53:12 -0800
+--Signature=_Tue__12_Feb_2008_17_10_41_+1100_9Cf/IGc5cv6s9t=a
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> Where do you "fix this up" at?  I can send a patch for the IB tree, but
-> Roland can't put it in his tree, and I can't put it in my tree, it needs
-> to go _after_ both of our trees.
+On Mon, 11 Feb 2008 21:56:48 -0800 Greg KH <greg@kroah.com> wrote:
+>
+> It's possible to do in a series of patches, yes, but again, development
+> happens in parallel, with no one stopping for anyone else, and that's
+> fine, we work it out when we send stuff to Linus at merge time.
+>=20
+> So with that parallel development effort, there are problems like this,
+> I just want you to be aware of it and plan properly for it, as it is
+> going to happen...
 
-Totally agreed.
+Understood.
 
-The fact is there are interdependencies, especially in driver
-land and you have to either:
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
-1) Make the driver folks work on top of Greg's tree.
+--Signature=_Tue__12_Feb_2008_17_10_41_+1100_9Cf/IGc5cv6s9t=a
+Content-Type: application/pgp-signature
 
-2) Constantly rebase the -next tree to deal with the
-   conflicts.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
 
-There are some other issues related to this which haven't
-be touched upon greatly yet.
+iD8DBQFHsThlTgG2atn1QN8RAqVCAJ0Vhz0tP8Ofu5cNnIbG21p5AwwnRQCcDcKH
+xCnL++W4PLWH2MYHPwF/m70=
+=RLng
+-----END PGP SIGNATURE-----
 
-I rebase my tree all the time, at least once or twice per
-week.  Why?
-
-Firstly, to remove crap.  When you have "great idea A" then "oh shit A
-won't work, revert that" there is zero sense in keeping both
-changesets around.
-
-Secondly, I want to fix up the rejects caused by conflicts with
-upstream bug fixes and the like (and there are tons when the tree gets
-to 1500 or so patches like the networking did).  I don't want git to
-merge the thing by hand, I want to see what the conflict is and make
-sure the "obvious" resolution is OK and the most efficient way I know
-how to do that is to suck my tree apart as patches, then suck them
-back into a fresh tree.
-
-It therefore might make sense to the linux-next tree to do something
-similar, constantly rebasing so that all the conflicts and reverted
-shit changes can be sorted out without having an incredibly ugly
-GIT history.
+--Signature=_Tue__12_Feb_2008_17_10_41_+1100_9Cf/IGc5cv6s9t=a--
