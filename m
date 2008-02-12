@@ -1,59 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:43009 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752338AbYBLVgw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 16:36:52 -0500
-Date: Tue, 12 Feb 2008 13:36:20 -0800 (PST)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-In-Reply-To: <20080212212005.GA22309@kroah.com>
-Message-ID: <alpine.LFD.1.00.0802121328270.2920@woody.linux-foundation.org>
-References: <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <20080212174824.GA1919@kroah.com>
- <alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org> <20080212191552.GA20883@kroah.com> <20080212194651.GI27894@ZenIV.linux.org.uk> <20080212205051.GB21650@kroah.com> <20080212210808.GJ27894@ZenIV.linux.org.uk>
- <20080212212005.GA22309@kroah.com>
+Received: from pentafluge.infradead.org ([213.146.154.40]:36429 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751126AbYBLVlg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 16:41:36 -0500
+Date: Tue, 12 Feb 2008 13:38:50 -0800
+From: Greg KH <greg@kroah.com>
+Subject: Re: multiple drivers, single device (was Re: Announce: Linux-next
+	(Or Andrew's dream  :-)))
+Message-ID: <20080212213850.GA22600@kroah.com>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <47B1C829.8020800@garzik.org> <20080212164232.GA326@kroah.com> <47B1DDD3.2000402@garzik.org> <alpine.LFD.1.00.0802121027190.2920@woody.linux-foundation.org>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.1.00.0802121027190.2920@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <greg@kroah.com>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Jeff Garzik <jeff@garzik.org>, Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-
-
-On Tue, 12 Feb 2008, Greg KH wrote:
+On Tue, Feb 12, 2008 at 10:30:04AM -0800, Linus Torvalds wrote:
 > 
-> Yes, I agree, there are lots of examples of this, but the overall
-> majority are reviewed by 2 people at least (or sure as hell should be,
-> maybe we need to bring into existance the "reviewed-by" marking to
-> ensure this.)
+> 
+> On Tue, 12 Feb 2008, Jeff Garzik wrote:
+> 
+> > Greg KH wrote:
+> > > The work I'm doing here is for stupid PCI firmware engineers, who have
+> > > created devices that are different things, all bound up under the same
+> > > PCI device.  I'm thinking of watchdog timers and random number
+> > > generator and i2c controller on the same PCI device, or even the more
+> > > basic, frame buffer and DRM access to the same PCI video device.
+> > 
+> > Yes, that has a known solution:  have your driver register i2c, rng, watchdog,
+> > etc. functions.
+> > 
+> > Works just fine inside today's infrastructure, no changes needed.
+> 
+> Indeed. If you have a multi-function device that shows up as a single PCI 
+> function, just make it have its own "private bus", and make it show up as 
+> a "devices within a device".
 
-Well, I don't really "review" any patches that come through Andrew. What I 
-do is:
+That's how I first tried to do this (old pci-piggy patches in -mm were a
+result of this...).
 
- - global search-and-replace Andrew's "acked-by:" with one that is both 
-   him and me (that way I make sure that I _only_ sign off on patches that 
-   he has signed off on!)
+But, we have the issue of the foolish-in-retrospect sysdev devices.
+They are an example of "multiple drivers per device" type thing.  To
+clean them up properly, they need to move to the general 'struct device'
+and if that is going to already support the one-to-many model, well,
+then any PCI implementation of such an internal bus can also use the
+same code.
 
- - look through all the commit *messages* (but not patches). This 
-   sometimes involves also editing up grammar etc - some of those messages 
-   just make me wince - but it also tends to include things like adding 
-   commit one-liner information if only a git commit ID is mentioned etc.
+This is a lot of handwaving right now, let me go work on some code and
+see how it turns out.
 
- - and only for areas that I feel competent in, I look at the patches too.
+Don't worry, I'll expect a lot of review cycles :)
 
-So, to take an example, when Andrew passes on uml patches that only touch 
-arch/um and include/asm-um, my sign-off does not mean *any* kind of review 
-at all. It's purely a sign that it's passed the sign-off requirements 
-properly.
+thanks,
 
-When it comes to VM issues or other things, things are different, and I 
-actually review the patch (and occasionally send it back with "nope, I'm 
-not applying this"). But for stuff that comes through Andrew, that's 
-probably less than a quarter of the patches. And I don't mark the ones 
-I've reviewed specially in any way.
-
-And I suspect I'm not at all alone in this. People simply have maintainers 
-they trust (and _need_ to trust in order to not become a bottleneck).
-
-			Linus
+greg k-h
