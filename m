@@ -1,64 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:42346 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1764121AbYBLQos (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 11:44:48 -0500
-Date: Tue, 12 Feb 2008 08:42:32 -0800
-From: Greg KH <greg@kroah.com>
-Subject: Re: multiple drivers, single device (was Re: Announce: Linux-next
-	(Or Andrew's dream  :-)))
-Message-ID: <20080212164232.GA326@kroah.com>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <47B1C829.8020800@garzik.org>
+Received: from srv5.dvmed.net ([207.36.208.214]:50066 "EHLO mail.dvmed.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758117AbYBLQgb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 11:36:31 -0500
+Message-ID: <47B1CB08.4020101@garzik.org>
+Date: Tue, 12 Feb 2008 11:36:24 -0500
+From: Jeff Garzik <jeff@garzik.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <47B1C829.8020800@garzik.org>
+Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>	<20080212044314.GA4888@kroah.com>	<20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net>
+In-Reply-To: <20080211.221126.230471463.davem@davemloft.net>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeff Garzik <jeff@garzik.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
+To: David Miller <davem@davemloft.net>
+Cc: arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
 
-On Tue, Feb 12, 2008 at 11:24:09AM -0500, Jeff Garzik wrote:
-> Greg KH wrote:
->> [1] Hopefully the "multiple drivers for a single device" feature people
->> have been asking for for years will be landing soon, of course the
->> number of odd places in the kernel that made the assumption that we
->> could only have one driver per device is causing lots of fun...
->
->
-> Color me a bit skeptical...  we've always had this capability really: for 
-> multi-function devices, just register as many subsystems as you need.  If 
-> your device is a network _and_ SCSI device, you can do that with today's 
-> APIs.
+David Miller wrote:
+> This is why, with the networking, we've just tossed all of the network
+> driver stuff in there too.  I can rebase freely, remove changesets,
+> rework them, etc. and this causes a very low amount of pain for Jeff
+> Garzik and John Linville.
 
-Yes, but that's not the type of devices this is for.
 
-> I just went through a long thread (e1000/e1000e) explaining how much pain 
-> multiple drivers for the same PCI ID cause on the distro side of things...  
-> its a mess.  In each case you must write special case code to resolve the 
-> ambiguity.  You never know which is the best driver to choose, or proper 
-> module load order -- which may vary depending on machine, not just static 
-> information captured from a kernel Makefile.
+s/very low/not low/
 
-Oh, I agree, multiple drivers for the same functionality is not a nice
-thing from a distro standpoint.
+Rebasing is always a pain, and John and I both agreed the other day that 
+you do it too often.
 
-The work I'm doing here is for stupid PCI firmware engineers, who have
-created devices that are different things, all bound up under the same
-PCI device.  I'm thinking of watchdog timers and random number
-generator and i2c controller on the same PCI device, or even the more
-basic, frame buffer and DRM access to the same PCI video device.
+I've complained about this before, too...  but figured this was just 
+another thing I was getting ignored on, and so life moved on.  But don't 
+try to sell rebasing as "low pain".
 
-The OLPC is a good example of hardware that needs this kind of
-functionality.
+Rebasing makes the history all nice and pretty, but by totalling 
+flattening the history, trashing all the commit ids (and rewriting 
+associated metadata), you create obvious downstream problems.
 
-In order to take advantage of the "multiple drivers per device" all
-drivers need to guarantee to play nice with others, as they need to be
-aware that other drivers will be sharing the hardware.
+Rebasing is  low impact only if you don't have git downstream people. 
+Otherwise, you're just treating it as a useful quilt clone, really.
 
-I'll write up more details later this week, if I get this stuff to work
-properly :)
+	Jeff
 
-thanks,
 
-greg k-h
+
