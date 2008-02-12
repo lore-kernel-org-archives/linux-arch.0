@@ -1,33 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:39637 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752133AbYBLWlf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 17:41:35 -0500
-Date: Tue, 12 Feb 2008 22:41:03 +0000
-From: Al Viro <viro@ZenIV.linux.org.uk>
+Received: from BISCAYNE-ONE-STATION.MIT.EDU ([18.7.7.80]:44974 "EHLO
+	biscayne-one-station.mit.edu" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752128AbYBLWpx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 17:45:53 -0500
+Date: Tue, 12 Feb 2008 17:44:33 -0500
+From: Theodore Tso <tytso@MIT.EDU>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-Message-ID: <20080212224103.GK27894@ZenIV.linux.org.uk>
-References: <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <1202838082.3137.54.camel@localhost.localdomain> <alpine.LFD.1.00.0802120945290.2920@woody.linux-foundation.org> <1202840682.3137.83.camel@localhost.localdomain> <alpine.LFD.1.00.0802121037340.2920@woody.linux-foundation.org> <alpine.LFD.1.00.0802121051341.2920@woody.linux-foundation.org> <20080212194100.GH27894@ZenIV.linux.org.uk> <20080212215152.1470fe7f@core> <20080212141726.1e214729.akpm@linux-foundation.org> <20080212222044.214ad821@core>
-Mime-Version: 1.0
+Message-ID: <20080212224433.GA9063@mit.edu>
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org> <1202791555.20739.6.camel@heimdal.trondhjem.org> <20080212051136.GA12802@mit.edu> <20080211.220222.118805417.davem@davemloft.net> <20080211230617.04806002@laptopd505.fenrus.org>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080212222044.214ad821@core>
+In-Reply-To: <20080211230617.04806002@laptopd505.fenrus.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, torvalds@linux-foundation.org, James.Bottomley@HansenPartnership.com, jeff@garzik.org, davem@davemloft.net, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: David Miller <davem@davemloft.net>, trond.myklebust@fys.uio.no, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
 
-On Tue, Feb 12, 2008 at 10:20:44PM +0000, Alan Cox wrote:
-> > I think the best way to get the serial drivers maintained would be to cat
-> > them all onto the end of synclink.c and hope that Paul thinks he did it.
+On Mon, Feb 11, 2008 at 11:06:17PM -0800, Arjan van de Ven wrote:
+> There is maybe a middle ground in this -next idea; as very first
+> part of the series, the new api gets added, current users converted
+> and api marked __deprecated.
 > 
-> Well I've already broken the buffering so he'd fix it ;)
+> Then there's a second part to the patch, which is a separate tree,
+> which gets added at the very end, which removed the old api.
 > 
-> We have a pile of old ISA drivers that are going to break soon with the
-> locking changes and a pile of USB drivers that when I looked at the
-> locking were so terminally broken I couldn't be bothered to fix them.
+> Both will go in at the same merge window, and the next-meister needs
+> to track that no new users show up... but the final tree allows this
+> to be done somewhat more gentle.
 > 
-> So it'll be fun, lots of && BROKENs to add
+> Doesn't work for API changes that just change the API rather than
+> extending it, and doesn't solve the dependency issues. So I still
+> think a cleansweep works best in general, but I suspect Andrew just
+> disagrees with that.
 
-Hrm...  How badly is pl2303 broken?  I actually use that sucker, so if
-it needs help - count me in.
+Yes, that's exactly what I was suggesting.  The __deprecate only lasts
+for the merge window, and we remove the old API at the end of the
+merge window.  So it's only there for a very short time, and it's only
+there to make the cleen sweep a little less painful --- not one where
+"shit hangs around in the tree forever".
+
+					- Ted
+
+
