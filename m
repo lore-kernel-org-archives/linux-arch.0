@@ -1,43 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:43347 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756131AbYBLUxR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 15:53:17 -0500
-Date: Tue, 12 Feb 2008 12:50:51 -0800
-From: Greg KH <greg@kroah.com>
+Received: from accolon.hansenpartnership.com ([76.243.235.52]:33710 "EHLO
+	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1760092AbYBLVAt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 16:00:49 -0500
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-Message-ID: <20080212205051.GB21650@kroah.com>
-References: <20080211203146.3d28d1a0@laptopd505.fenrus.org> <20080212044314.GA4888@kroah.com> <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <20080212174824.GA1919@kroah.com> <alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org> <20080212191552.GA20883@kroah.com> <20080212194651.GI27894@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080212194651.GI27894@ZenIV.linux.org.uk>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <Pine.LNX.4.64.0802122116400.7699@twin.jikos.cz>
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>
+	 <20080212044314.GA4888@kroah.com>
+	 <20080211211751.3e265754@laptopd505.fenrus.org>
+	 <20080211.221126.230471463.davem@davemloft.net>
+	 <47B1CB08.4020101@garzik.org>
+	 <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
+	 <1202838082.3137.54.camel@localhost.localdomain>
+	 <alpine.LFD.1.00.0802120945290.2920@woody.linux-foundation.org>
+	 <1202840682.3137.83.camel@localhost.localdomain>
+	 <Pine.LNX.4.64.0802122116400.7699@twin.jikos.cz>
+Content-Type: text/plain
+Date: Tue, 12 Feb 2008 15:00:43 -0600
+Message-Id: <1202850043.3137.126.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Jiri Kosina <jkosina@suse.cz>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Tue, Feb 12, 2008 at 07:46:51PM +0000, Al Viro wrote:
-> On Tue, Feb 12, 2008 at 11:15:53AM -0800, Greg KH wrote:
+On Tue, 2008-02-12 at 21:18 +0100, Jiri Kosina wrote:
+> On Tue, 12 Feb 2008, James Bottomley wrote:
 > 
-> > Remember, we are currently clocking along at the steady rate of:
-> > 	4000 lines added every day
-> > 	1900 lines removed every day
-> > 	1300 lines modified every day
+> > >  Rebases *do*not*work* (and fundamentally cannot work) in a 
+> > > distributed environment.
+> > Hm ... I think net is a counter example to this.  Rebases certainly work
+> > for them.  The issue, I thought, was around the policy of rebasing and
+> > how often.
 > 
-> 	???? lines reviewed every day.
+> Hmm ... as far as I can see, Jeff and John (i.e. net tree downstreams) are 
+> pretty loudly unhappy with Dave rebasing too often, right?
 
-I can run the numbers, but almost every one of those changes has at
-least 2 signed-off-by: on them, so they should all be being reviewed
-properly.
+That's true ... but irrelevant to the argument of whether rebasing does
+or doesn't work.  I don't think anyone's arguing that rebasing doesn't
+cause real problems to downstream users ... when I was based on block
+for the scsi post merge tree, I was just such a user ...
 
-> AFAICS, we are in situation when review bandwidth is where the bottleneck
-> is.  Not the merge one...
+James
 
-Are there still large numbers of posted patches, not reviewed or picked
-up by anyone laying around somewhere?  I thought Andrew-the-patch-vacuum
-had been doing a great job of keeping that from happening lately.
 
-thanks,
-
-greg k-h
