@@ -1,41 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:56600 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752589AbYBMAiN (ORCPT
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:41946
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1752106AbYBMAlR (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 19:38:13 -0500
-Date: Tue, 12 Feb 2008 16:37:42 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
+	Tue, 12 Feb 2008 19:41:17 -0500
+Date: Tue, 12 Feb 2008 16:41:49 -0800 (PST)
+Message-Id: <20080212.164149.209357519.davem@davemloft.net>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-Message-Id: <20080212163742.c9e778e6.akpm@linux-foundation.org>
-In-Reply-To: <20080212.155853.193190548.davem@davemloft.net>
-References: <20080211211751.3e265754@laptopd505.fenrus.org>
-	<20080211.221126.230471463.davem@davemloft.net>
-	<47B1CB08.4020101@garzik.org>
-	<20080212.155853.193190548.davem@davemloft.net>
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20080212191552.GA20883@kroah.com>
+References: <20080212174824.GA1919@kroah.com>
+	<alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org>
+	<20080212191552.GA20883@kroah.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: jeff@garzik.org, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
+To: greg@kroah.com
+Cc: torvalds@linux-foundation.org, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-On Tue, 12 Feb 2008 15:58:53 -0800 (PST)
-David Miller <davem@davemloft.net> wrote:
+From: Greg KH <greg@kroah.com>
+Date: Tue, 12 Feb 2008 11:15:53 -0800
 
-> But right now I have to redo the include/linux/rcupdate.h that's in
-> there because it has a bug.
+> On Tue, Feb 12, 2008 at 10:26:53AM -0800, Linus Torvalds wrote:
+> > We absolutely MUST NOT have the mindset that "cross-subsystem conflicts 
+> > happen all the time". 
+> 
+> They usually don't, by virtue of our current development model and how
+> we have the kernel structured.
 
-Well there's a case in point.  rcupdate.h is not a part of networking, and
-it is random tree-wandering like this which causes me problems and which
-will cause Stephen problems.
+BTW, there are some things we can do to with the kernel structure
+to help a lot of really idiotic cases.  Here are some odd-the-cuff
+suggestions:
 
-Now, I don't know which tree "owns" rcupdate.h but it ain't networking. 
-Probably git-sched.
+1) Make feature-removal-schedule a directory with files in it.
+   Everyone touches that file, creating merge issues.
 
-Nothing in networking depends upon that change (which has a typo in the
-comment, btw) hence it can and should have gone through
-whichever-tree-owns-that-file.
+2) Let's move away from some/dir/{Kconfig,Makefile} schemes and
+   instead have each "thing" have it's own Kconfig.foo or
+   Makefile.foo that gets automatically sucked into the main
+   directory Makefile or Kconfig using file globs or similar.
 
-For Stephen's sake: please.
+   Even better, encode the building of things into the *.[ch]
+   files themselves, and have the Kconfig/Makefile machinery
+   automatically extract this information when you build.
+
+Little things like this would go a long way to eliminating merge
+hassles.
+
+For example, with #2, when a driver is added it would only
+every add files never edit existing files.  Merge conflicts
+are impossible unless two new drivers try to use the same
+file names. :-)
+
