@@ -1,40 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42725 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757248AbYBMMZv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2008 07:25:51 -0500
-Date: Wed, 13 Feb 2008 12:19:41 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+Received: from smtp6.pp.htv.fi ([213.243.153.40]:38996 "EHLO smtp6.pp.htv.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759210AbYBMRY0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Feb 2008 12:24:26 -0500
+Date: Wed, 13 Feb 2008 19:24:11 +0200
+From: Adrian Bunk <bunk@kernel.org>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-Message-ID: <20080213121941.GC21694@flint.arm.linux.org.uk>
-References: <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <1202838082.3137.54.camel@localhost.localdomain> <alpine.LFD.1.00.0802120945290.2920@woody.linux-foundation.org> <1202840682.3137.83.camel@localhost.localdomain> <alpine.LFD.1.00.0802121037340.2920@woody.linux-foundation.org> <alpine.LFD.1.00.0802121051341.2920@woody.linux-foundation.org> <20080212191914.GB20883@kroah.com> <20080213100503.GA21694@flint.arm.linux.org.uk> <47B2DD40.70106@garzik.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Message-ID: <20080213172411.GA14269@cs181133002.pp.htv.fi>
+References: <20080212044314.GA4888@kroah.com> <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <20080212174824.GA1919@kroah.com> <alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org> <20080212191552.GA20883@kroah.com> <20080212194651.GI27894@ZenIV.linux.org.uk> <20080212205051.GB21650@kroah.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <47B2DD40.70106@garzik.org>
+In-Reply-To: <20080212205051.GB21650@kroah.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeff Garzik <jeff@garzik.org>
-Cc: Greg KH <greg@kroah.com>, Linus Torvalds <torvalds@linux-foundation.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Greg KH <greg@kroah.com>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-On Wed, Feb 13, 2008 at 07:06:24AM -0500, Jeff Garzik wrote:
-> Russell King wrote:
-> >We know that the -mm tree is pretty much useless in terms of code
-> >coverage for ARM, and it's getting increasingly unlikely that anything
-> >short of a build of all ARM defconfigs will pick up on merge issues -
-> >which is a lot of CPU cycles, and I'm not going to insist its something
-> >that should be done.
+On Tue, Feb 12, 2008 at 12:50:51PM -0800, Greg KH wrote:
+> On Tue, Feb 12, 2008 at 07:46:51PM +0000, Al Viro wrote:
+>...
+> > AFAICS, we are in situation when review bandwidth is where the bottleneck
+> > is.  Not the merge one...
 > 
-> 
-> If you need help in that area (build-testing ARM), surely we can find 
-> some fast machines that can do builds for you.  Any interest?
+> Are there still large numbers of posted patches, not reviewed or picked
+> up by anyone laying around somewhere?  I thought Andrew-the-patch-vacuum
+> had been doing a great job of keeping that from happening lately.
 
-It would probably make some sense - it would help to get hold of the
-infrastructure that armlinux.simtec.co.uk uses to run their test builds
-of Linus' tree and apply it (on a separate machine) to -mm (or
-indeed whatever other) kernels.
+I wrote in one of the many bug reports I sent for compile errors 
+introduced in Linus' tree during this merge window:
+
+An architecture specific patch that breaks the one architecture it 
+touches at the first file being compiled is even for kernel standards 
+unusually bad...
+
+> thanks,
+> 
+> greg k-h
+
+cu
+Adrian
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
+
