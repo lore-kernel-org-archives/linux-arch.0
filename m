@@ -1,57 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:59636 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753286AbYBMAyR (ORCPT
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:56919
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1752386AbYBMBPc (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 19:54:17 -0500
-Date: Tue, 12 Feb 2008 16:53:50 -0800 (PST)
-From: Linus Torvalds <torvalds@linux-foundation.org>
+	Tue, 12 Feb 2008 20:15:32 -0500
+Date: Tue, 12 Feb 2008 17:16:03 -0800 (PST)
+Message-Id: <20080212.171603.14132226.davem@davemloft.net>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-In-Reply-To: <20080212.163623.132476636.davem@davemloft.net>
-Message-ID: <alpine.LFD.1.00.0802121650350.2920@woody.linux-foundation.org>
-References: <1202840682.3137.83.camel@localhost.localdomain> <alpine.LFD.1.00.0802121037340.2920@woody.linux-foundation.org> <alpine.LFD.1.00.0802121051341.2920@woody.linux-foundation.org> <20080212.163623.132476636.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20080212163742.c9e778e6.akpm@linux-foundation.org>
+References: <47B1CB08.4020101@garzik.org>
+	<20080212.155853.193190548.davem@davemloft.net>
+	<20080212163742.c9e778e6.akpm@linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: James.Bottomley@HansenPartnership.com, jeff@garzik.org, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: akpm@linux-foundation.org
+Cc: jeff@garzik.org, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 12 Feb 2008 16:37:42 -0800
 
-
-On Tue, 12 Feb 2008, David Miller wrote:
-
-> From: Linus Torvalds <torvalds@linux-foundation.org>
-> Date: Tue, 12 Feb 2008 10:59:00 -0800 (PST)
+> Well there's a case in point.  rcupdate.h is not a part of networking, and
+> it is random tree-wandering like this which causes me problems and which
+> will cause Stephen problems.
 > 
-> > That sure as hell would put the pain on API changes solidly where it
-> > belongs.
+> Now, I don't know which tree "owns" rcupdate.h but it ain't networking. 
+> Probably git-sched.
 > 
-> If a person does a driver API change and does all the work to sweep
-> the entire tree updating all the drivers, doesn't it penalize that
-> person a bit much to stick a new driver in front of that work?
+> Nothing in networking depends upon that change (which has a typo in the
+> comment, btw) hence it can and should have gone through
+> whichever-tree-owns-that-file.
+> 
+> For Stephen's sake: please.
 
-If that API change doesn't conflict with the work that hundreds of other 
-people do, it's obviously not a problem whichever way it goes.
+At least thie time I did make sure that change got posted to
+linux-kernel and got properly reviewed by the de-facto maintainer
+(Paul McKenney). :-)
 
-And if the API change *does* cause conflicts, then yes, the onus of fixing 
-those conflicts (again) goes to the person who changed the API. Everybody 
-else did everything right.
+I'll toss it.
 
-> People write code on top of infrastructure, both new and old, not the
-> other way around.  At least to me, that seems how the merging ought to
-> work too.
+But how do I do that using GIT without rebasing and without
+having this ugly changeset and revert in there?
 
-You think that infrastructure is more important than outlying code. But 
-you do that only because you write the infrastructure, not because you 
-have any logical reason to think so.
+That's the thing I want answered, and although Al claims it does,
+git cherry-pick does not seem to do what I want either.
 
-The fact is, that "outlying code" is where we have all the bulk of the 
-code, and it's also where we have all those developers who aren't on the 
-"inside track". So we should help the outliers, not the core code. 
-
-And very fundamentally, API changes are to be discouraged. If we make them 
-harder to do and make people think twice (and occasionally say "not worth 
-it"), that sounds like a damn good thing to me.
-
-			Linus
