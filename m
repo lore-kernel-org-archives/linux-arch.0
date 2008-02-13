@@ -1,76 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:41644
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:41657
 	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752867AbYBMA07 (ORCPT
+	by vger.kernel.org with ESMTP id S1752867AbYBMAag (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 19:26:59 -0500
-Date: Tue, 12 Feb 2008 16:27:30 -0800 (PST)
-Message-Id: <20080212.162730.126662377.davem@davemloft.net>
+	Tue, 12 Feb 2008 19:30:36 -0500
+Date: Tue, 12 Feb 2008 16:31:07 -0800 (PST)
+Message-Id: <20080212.163107.89231473.davem@davemloft.net>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
 From: David Miller <davem@davemloft.net>
-In-Reply-To: <1202840682.3137.83.camel@localhost.localdomain>
-References: <1202838082.3137.54.camel@localhost.localdomain>
-	<alpine.LFD.1.00.0802120945290.2920@woody.linux-foundation.org>
-	<1202840682.3137.83.camel@localhost.localdomain>
+In-Reply-To: <alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org>
+References: <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
+	<20080212174824.GA1919@kroah.com>
+	<alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James.Bottomley@HansenPartnership.com
-Cc: torvalds@linux-foundation.org, jeff@garzik.org, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: torvalds@linux-foundation.org
+Cc: greg@kroah.com, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Tue, 12 Feb 2008 12:24:42 -0600
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 12 Feb 2008 10:26:53 -0800 (PST)
 
-> Hm ... I think net is a counter example to this.  Rebases certainly work
-> for them.  The issue, I thought, was around the policy of rebasing and
-> how often.
-> 
-> I see the question as being one of who creates the history.  When
-> something goes into your tree, that's an obvious history point and we
-> can't rewrite it.  However, when something goes into my trees, I don't
-> think it's as obviously a history point that has to be preserved, so I
-> can rebase obviously, rebasing causes disruption, so I don't do it
-> unless it's necessitated by an actual conflict.
+> We absolutely MUST NOT have the mindset that "cross-subsystem conflicts 
+> happen all the time". 
 
-And I realize that regrettably I end up rebasing a lot.
+Perhaps not, but self-conflicts are the bigger issue for the
+networking.
 
-Let's say that today I merge a TCP bug fix into Linus's 2.6.24-rcX
-tree.  When I have the net-2.6.25 tree going I know that this is going
-to create merge conflicts with the 80 or so odd TCP patches I have in
-there.
+If I (or Jeff or John) push a bug fix to you outside of the merge
+window, that blows the entire development tree because at 1500+
+changesets I can guarentee you there will be a merge conflict
+somewhere.
 
-Nobody can pull net-2.6.25 into Linus upstream without having to sift
-through the merging of that stuff.  It never merges cleanly using
-the automated mechanisms, because since the changes are split up
-nicely there are long changeset dependency chains.
+Near the end of 2.6.24 every bug fix I merged to you created a
+conflict with my net-2.6.25 tree.  Every time I rebased there
+were on the order of 10 to 20 patches with merge conflicts to
+resolve.
 
-So I rebase, and do the merging work by hand.
-
-Next, let's say Jeff merges some net driver bug fixes into upstream,
-resulting in potential conflicts with the several hundred or so driver
-changes that are in the net-2.6.25 tree too.
-
-In fact near the end of 2.6.24 development, there was a new merge
-conflict created on a daily basis with the net-2.6.25 tree.  You
-simply cannot avoid this when you're managing 1500+ changes.
-
-I even had to rebase the net-2.6.25 tree once or twice in Australia as
-the merge window was openning up because I could push something
-cleanly to Linus.  There were conflicts created by stuff that got in
-before the net-2.6.25 tree, mostly in files like the feature removal
-schedule, Kconfig files, and whatnot.
-
-At times I even felt the urge to avoid merging a bug fix upstream
-because of all the merge conflicts it would create, but I of course
-can't and won't do that. 8)
-
-It actually turns out that things simplify once a tree gets into the
--stable folks hands.  I pick out bug fixes as they go upstream, and
-toss it to them once Linus sucks it in and I have an upstream
-changeset ID to give them.  I don't have to worry about -stable
-changesets causing development merge grief later on.
-
-And I've also yet to be shown how to completely remove a changeset
-from a GIT tree without rebasing :-)
