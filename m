@@ -1,57 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:42782 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751847AbYBMBlr (ORCPT
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:50396
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1752437AbYBMBpp (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 20:41:47 -0500
-Date: Tue, 12 Feb 2008 17:41:19 -0800 (PST)
-From: Linus Torvalds <torvalds@linux-foundation.org>
+	Tue, 12 Feb 2008 20:45:45 -0500
+Date: Tue, 12 Feb 2008 17:46:17 -0800 (PST)
+Message-Id: <20080212.174617.154760933.davem@davemloft.net>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-In-Reply-To: <20080212.172051.58554658.davem@davemloft.net>
-Message-ID: <alpine.LFD.1.00.0802121733000.2920@woody.linux-foundation.org>
-References: <47B1CB08.4020101@garzik.org> <20080212.155853.193190548.davem@davemloft.net> <alpine.LFD.1.00.0802121610220.2920@woody.linux-foundation.org> <20080212.172051.58554658.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <alpine.LFD.1.00.0802121733000.2920@woody.linux-foundation.org>
+References: <alpine.LFD.1.00.0802121610220.2920@woody.linux-foundation.org>
+	<20080212.172051.58554658.davem@davemloft.net>
+	<alpine.LFD.1.00.0802121733000.2920@woody.linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
+To: torvalds@linux-foundation.org
 Cc: jeff@garzik.org, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 12 Feb 2008 17:41:19 -0800 (PST)
 
+> Trust me, you don't know how good you have it.
 
-On Tue, 12 Feb 2008, David Miller wrote:
-> 
-> But as soon as I've applied any patches to my tree I've "pushed out".
-> So this scheme doesn't work for me.  The first thing I do when I have
-> changes to apply is clone a tree locally and on master.kernel.org,
-> then I apply that first patch locally and push it out to master.
+I know, preserving history is valuable.
 
-I actually suggest you literally delay your push-out.
-
-I don't generally delay things by a lot, but I tend to try to at least do 
-a compile in between pushing out - and even if I've pulled something in 
-between the thing that broke, I'll just "git reset --hard" to a working 
-state if something broke, and just re-pull instead of even trying to 
-rebase or anything like that.
-
-(IOW, I often find it much easier to just start over and re-do than 
-actually doing a rebase).
-
-I don't do it all the time, by any means, but there's really no huge 
-reason to push out all the time. And that's doubly true for subsystem 
-maintainers. Quite often, the right thing to do is to only push out when 
-you are ready to do the "please pull" message.
-
-> What would be really cool is if you could do the rebase thing, push
-> that to a remote tree you were already pushing into and others could
-> pull from that and all the right things happen.
-
-It would also be really cool if Claudia Schiffer had decided that hiding 
-under my desk is a good idea. 
-
-IOW, you really haven't though that through. That is how TLA and darcs 
-worked, and it's a total disaster.
-
-Trust me, you don't know how good you have it.
-
-			Linus
+I'll take up the various suggestions and try working
+a little differently this time around.  We'll see
+how well it works.
