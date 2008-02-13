@@ -1,68 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out2.tiscali.nl ([195.241.79.177]:46853 "EHLO
-	smtp-out2.tiscali.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755725AbYBMRaA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2008 12:30:00 -0500
-Message-ID: <47B32510.20200@tiscali.nl>
-Date: Wed, 13 Feb 2008 18:12:48 +0100
-From: Roel Kluin <12o3l@tiscali.nl>
-MIME-Version: 1.0
+Received: from smtp4.pp.htv.fi ([213.243.153.38]:35385 "EHLO smtp4.pp.htv.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755550AbYBMRyI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Feb 2008 12:54:08 -0500
+Date: Wed, 13 Feb 2008 19:53:49 +0200
+From: Adrian Bunk <bunk@kernel.org>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-References: <20080211203146.3d28d1a0@laptopd505.fenrus.org> <20080212044314.GA4888@kroah.com> <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <20080212174824.GA1919@kroah.com> <alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org> <20080212191552.GA20883@kroah.com> <alpine.LFD.1.00.0802121133210.2920@woody.linux-foundation.org>
-In-Reply-To: <alpine.LFD.1.00.0802121133210.2920@woody.linux-foundation.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Message-ID: <20080213175349.GB14269@cs181133002.pp.htv.fi>
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org> <20080212044314.GA4888@kroah.com> <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Greg KH <greg@kroah.com>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+Cc: Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-Linus Torvalds wrote:
+On Tue, Feb 12, 2008 at 09:09:34AM -0800, Linus Torvalds wrote:
+>...
+> The other is that once somebody says "ok, I *really* need to cause this 
+> breakage, because there's a major bug or we need it for fundamental reason 
+> XYZ", then that person should
 > 
-> On Tue, 12 Feb 2008, Greg KH wrote:
->>> That's the point.
->> Not it isn't.  To quote you a number of years ago:
->> 	"Linux is evolution, not intelligent design"
+>  (a) create a base tree with _just_ that fundamental infrastructure change,
+>      and make sure that base branch is so obviously good that there is no 
+>      question about merging it.
 > 
-> Umm. Have you read a lot of books on evolution?
+>  (b) tell other people about the reason for the infrastructure change, and 
+>      simply allow others to merge it. You don't have to wait for *me* to 
+>      open the merge window, you need to make sure that the people that get 
+>      impacted most can continue development!
 > 
-> It doesn't sound like you have.
+> This is where "rebases really are bad" comes in. When the above sequence 
+> happens, the fundamental infrastructure change obviously does need to be 
+> solid and not shifting under from other people who end up merging it. I do 
+> not want to see five different copies of the fundamental change either 
+> because the original source fixed it up and rebased it, or because the 
+> people who merged it rebased _their_ trees and rebased the fundamental 
+> change in the process.
 > 
-> The fact is, evolution often does odd (and "suboptimal") things exactly 
-> because it does incremental changes that DO NOT BREAK at any point.
+> Can that (b) be my tree? Sure. That's been the common case, and I'll 
+> happily continue it, of course, so I'm not arguing for that to go away. 
+> Merging is my job, I'll do it. But when the merge window is a problem, my 
+> merge window should *not* hold up people from using the distributed nature 
+> of git for their advantage.
+> 
+> But yes, obviously when doing cross-merges, you'd better be really 
+> *really* sure that the base is solid and will get merged. But let's face 
+> it, all the really core maintainers should damn well know that by now: 
+> you've all worked with me for years, so you should be able to trivially be 
+> able to tell whether you *might* need to worry about something, and when 
+> it's a slam dunk.
+> 
+> And it's the "it's a slam dunk" cases that I think are (a) the common ones 
+> and (b) the ones where you can just do cross-merges to satisfy each others 
+> needs.
+> 
+> Hmm? Does that sound palatable to people?
 
-This is not entirely true if the pressure for changes are removed. For 
-instance in mammals the bones in the ear are what used to be gills in fish.
-When fish became amphibians the gills weren't needed as much and evolution
-took a side path.
+I'm sure I understand only less than half of what you said.
 
-> The examples are legion. The mammalian eye has the retina "backwards", 
-> with the blind spot appearing because the fundmanetal infrastructure (the 
-> optical nerves) actually being in *front* of the light sensor and needing 
-> a hole in the retina to get the information (and blood flow) to go to the 
-> brain!
-> 
-> In other words, exactly *because* evolution requires "bisectability" (any 
-> non-viable point in between is a dead end by definition) and does things 
-> incrementally, it doesn't do big flips. It fixes the problems on an 
-> incremental scale both when it comes to the details and when it comes to 
-> both "details" (actual protein-coding genes that code directly for some 
-> expression) and "infrastructure" (homeobox and non-coding genes).
+My current understanding is that all the aspects of your proposal that  
+are interesting for me can be summarized as follows:
+- your tree stops compiling at the beginning of the merge window when 
+  you merge the first subsystem tree
+- your tree might compile again at the end of the merge window when you
+  merge the last subsystem tree 
+- git-bisect -> /dev/null
 
-In nature there is a lot of duplication: several copies of genes can exist
-and different copies may have a distinct evolution. There is also a lot of
-'junk' DNA that doesn't code for anything (although it may have regulating
-functions). In there some copies of genes may remain that are inactivated,
-as well as parts of virusses, slowly obtaining random mutations because
-there is no pressure on the evolution of them. Some may eventually become
-active again and have different functions.
+What do I miss?
 
-The duplication also often ensures there is fallback when random mutations
-are acquired and a protein is knocked out. Besides the two chromosomes
-several proteins also can have overlapping functions. The result is more
-like a balance. 
- 
-Evolution in nature and changes in code are different because in code junk
-and bugs are constantly removed. In biology junk is allowed and may provide
-a pool for future development. Linux development is intended and not
-survival.
+> 			Linus
+
+cu
+Adrian
+
+-- 
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
+
