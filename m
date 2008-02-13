@@ -1,42 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:44353 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934300AbYBMR7g (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2008 12:59:36 -0500
-Date: Wed, 13 Feb 2008 09:55:52 -0800
-From: Greg KH <greg@kroah.com>
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:36089 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751055AbYBMSKe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Feb 2008 13:10:34 -0500
+Date: Wed, 13 Feb 2008 10:09:51 -0800 (PST)
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-Message-ID: <20080213175552.GA18984@kroah.com>
-References: <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <20080212.155853.193190548.davem@davemloft.net> <20080213002948.GA8899@kroah.com> <alpine.LFD.1.00.0802121645320.2920@woody.linux-foundation.org> <20080213061653.GA10784@kroah.com> <20080213103641.GD12785@mit.edu>
+In-Reply-To: <47B32510.20200@tiscali.nl>
+Message-ID: <alpine.LFD.1.00.0802131002250.2920@woody.linux-foundation.org>
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org> <20080212044314.GA4888@kroah.com> <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
+ <20080212174824.GA1919@kroah.com> <alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org> <20080212191552.GA20883@kroah.com> <alpine.LFD.1.00.0802121133210.2920@woody.linux-foundation.org> <47B32510.20200@tiscali.nl>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080213103641.GD12785@mit.edu>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Theodore Tso <tytso@mit.edu>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Roel Kluin <12o3l@tiscali.nl>
+Cc: Greg KH <greg@kroah.com>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-On Wed, Feb 13, 2008 at 05:36:41AM -0500, Theodore Tso wrote:
-> On Tue, Feb 12, 2008 at 10:16:53PM -0800, Greg KH wrote:
-> > I was amazed at how slow stgit was when I tried it out.  I use
-> > git-quiltimport a lot and I don't think it's any slower than just using
-> > quilt on its own.  So I think that the speed issue should be the same.
+
+
+On Wed, 13 Feb 2008, Roel Kluin wrote:
 > 
-> I like using "guilt" because I can easily reapply the patchset using
-> "guilt push -a", which is just slightly fewer characters to type than
-> "git-quiltimport".  This also means that I don't need to switch back
-> and forth between "git mode" and "quilt mode" when I'm editing the
-> patches (either directly by editing the patch files, in which case
-> afterwards I do a "guilt pop -a; guilt push -a", or by using "guilt
-> pop", "guilt push", and "guilt refresh").
+> In nature there is a lot of duplication: several copies of genes can exist
+> and different copies may have a distinct evolution.
 
-I had problems getting guilt to preserve metadata properly last time I
-tried it, and it forced me to work with the same location and format
-that the original developers used, which wasn't as flexable as quilt
-could handle from what I recall.
+This is true of very complex animals, but much less so when looking at 
+things like bacteria (and arguably, any current sw project is closer to 
+bacteria in complexity than anything mammalian).
 
-But I'll try it again, it might have gotten better...
+In bacteria (and viruses), duplication of DNA/RNA is a big cost of living 
+in general, and as a result there is *much* less junk DNA. So in an 
+evolutionary sense, it's much closer to what the kernel should have (with 
+occasional duplication of code and interfaces to allow new functionality, 
+but rather aggressive pruning of the excess baggage).
 
-thanks,
+In other words, all of these choices are a matter of "balance". In some 
+areas, excess code is not a sufficient downside, and we keep even broken 
+source code around with no actual function, "just because" (or rather, 
+because the cost of carrying it around is so small that nobody cares). 
 
-greg k-h
+That's true in the kernel as in biology: check out not just deprecated 
+code, but the drivers and other odds-and-ends that are explicitly marked 
+as non-coding DNA (we just happen to call them BROKEN in our Kconfig).
+
+			Linus
