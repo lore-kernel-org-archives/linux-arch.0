@@ -1,49 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from agminet01.oracle.com ([141.146.126.228]:14836 "EHLO
-	agminet01.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754075AbYBMBV1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 20:21:27 -0500
-Date: Tue, 12 Feb 2008 17:20:08 -0800
-From: Randy Dunlap <randy.dunlap@oracle.com>
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-Message-Id: <20080212172008.d365b839.randy.dunlap@oracle.com>
-In-Reply-To: <20080212120208.f7168a91.sfr@canb.auug.org.au>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:36879
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1754265AbYBMBW3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Feb 2008 20:22:29 -0500
+Date: Tue, 12 Feb 2008 17:23:01 -0800 (PST)
+Message-Id: <20080212.172301.241607222.davem@davemloft.net>
+Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20080212164726.8eecab43.akpm@linux-foundation.org>
+References: <20080212191552.GA20883@kroah.com>
+	<20080212.164149.209357519.davem@davemloft.net>
+	<20080212164726.8eecab43.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
+To: akpm@linux-foundation.org
+Cc: greg@kroah.com, torvalds@linux-foundation.org, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 12 Feb 2008 12:02:08 +1100 Stephen Rothwell wrote:
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 12 Feb 2008 16:47:26 -0800
 
-> Hi all,
-> 
-> Andrew was looking for someone to run a linux-next tree that just
-> contained the subsystem git and quilt trees for 2.6.x+1 and I (in a
-> moment of madness) volunteered.  So, this is to announce the creating of
-> such a tree (it doesn't exist yet) which will require some (hopefully)
-> small amount of work on the part of subsystem maintainers.
-> 
-> Those interested in discussion about this are encouraged to join the
-> linux-next@vger.kernel.org mailing list.
-> 
-> The first things I need from the subsystem maintainers (you know who you
-> are) are a contact address (a list address is fine) and at least one git
-> branch or quilt series that contains all the things you want to see go
-> into 2.6.26.  I am happy for there to be multiple branches/series (in
-> fact there probably will need to be in some cases where there are
-> dependencies on others work).
+> My usual way of fixing these things when they pop up is to just move
+> the offending addition to some random position other than
+> end-of-list.  I must have done this hundreds of times and as yet I
+> don't think anyone has noticed ;)
 
-Hi Stephen,
+That sounds like a real useful usage of your time.
 
-Please merge the quilt series/patchset from
-  http://oss.oracle.com/~rdunlap/kernel-doc-patches/current/
-
-I expect this to be fairly small and localized (very few conflicts).
-
-Thanks,
----
-~Randy
+I think my proposal saves everyone, including you, this time and the
+effort necessary to implement it would only need to be expended once
+instead of this ever present time and learning sink you seem to be
+advocating.
