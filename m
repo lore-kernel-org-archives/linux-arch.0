@@ -1,37 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:58433 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754829AbYBMKSP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2008 05:18:15 -0500
-Date: Wed, 13 Feb 2008 10:07:01 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
+Received: from BISCAYNE-ONE-STATION.MIT.EDU ([18.7.7.80]:55671 "EHLO
+	biscayne-one-station.mit.edu" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751258AbYBMKhw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Feb 2008 05:37:52 -0500
+Date: Wed, 13 Feb 2008 05:36:41 -0500
+From: Theodore Tso <tytso@MIT.EDU>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-Message-ID: <20080213100700.GB21694@flint.arm.linux.org.uk>
-References: <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <1202838082.3137.54.camel@localhost.localdomain> <alpine.LFD.1.00.0802120945290.2920@woody.linux-foundation.org> <1202840682.3137.83.camel@localhost.localdomain> <alpine.LFD.1.00.0802121037340.2920@woody.linux-foundation.org> <alpine.LFD.1.00.0802121051341.2920@woody.linux-foundation.org> <20080212194100.GH27894@ZenIV.linux.org.uk> <20080212215152.1470fe7f@core>
-Mime-Version: 1.0
+Message-ID: <20080213103641.GD12785@mit.edu>
+References: <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <20080212.155853.193190548.davem@davemloft.net> <20080213002948.GA8899@kroah.com> <alpine.LFD.1.00.0802121645320.2920@woody.linux-foundation.org> <20080213061653.GA10784@kroah.com>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080212215152.1470fe7f@core>
+In-Reply-To: <20080213061653.GA10784@kroah.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Greg KH <greg@kroah.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-On Tue, Feb 12, 2008 at 09:51:52PM +0000, Alan Cox wrote:
-> > We could simply decide that API changes affecting more than one subsystem
-> > Must Be Serialized(tm).  Explicitly.  As in "any such change is posted
-> 
-> Welcome to dreamland. The only way I can get serial changes done is to
-> wait months and eventually simply persuade Andrew to ignore the
-> "maintainers" who are basically not responding.
+On Tue, Feb 12, 2008 at 10:16:53PM -0800, Greg KH wrote:
+> I was amazed at how slow stgit was when I tried it out.  I use
+> git-quiltimport a lot and I don't think it's any slower than just using
+> quilt on its own.  So I think that the speed issue should be the same.
 
-... because we didn't realise that the pre-requisits for those patches
-had already gone in.  If that had been the case, I'd have applied the
-ARM changes for the new tty ioctls immediately.
+I like using "guilt" because I can easily reapply the patchset using
+"guilt push -a", which is just slightly fewer characters to type than
+"git-quiltimport".  This also means that I don't need to switch back
+and forth between "git mode" and "quilt mode" when I'm editing the
+patches (either directly by editing the patch files, in which case
+afterwards I do a "guilt pop -a; guilt push -a", or by using "guilt
+pop", "guilt push", and "guilt refresh").
 
-It was a communication problem, not a process problem.
+"guilt push -a" is a little bit slower than "quilt push -a", but not
+enough to be seriously annoying.  And besides, "guilt pop -a" is
+slightly faster than "quilt pop -a".
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Using guilt is also nice because there is a bit of additional backup
+for previous work via the git reflogs, although to be honest I've
+rarely needed to use it.
+
+						- Ted
