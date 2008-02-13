@@ -1,61 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([193.131.176.58]:36875 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755509AbYBMK7Z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Feb 2008 05:59:25 -0500
+Received: from srv5.dvmed.net ([207.36.208.214]:36117 "EHLO mail.dvmed.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755305AbYBMMGg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Feb 2008 07:06:36 -0500
+Message-ID: <47B2DD40.70106@garzik.org>
+Date: Wed, 13 Feb 2008 07:06:24 -0500
+From: Jeff Garzik <jeff@garzik.org>
+MIME-Version: 1.0
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-From: Catalin Marinas <catalin.marinas@arm.com>
-In-Reply-To: <20080213021650.GA12785@mit.edu>
-References: <20080211211751.3e265754@laptopd505.fenrus.org>
-	 <20080211.221126.230471463.davem@davemloft.net>
-	 <47B1CB08.4020101@garzik.org>
-	 <20080212.155853.193190548.davem@davemloft.net>
-	 <20080213002948.GA8899@kroah.com>
-	 <alpine.LFD.1.00.0802121645320.2920@woody.linux-foundation.org>
-	 <20080213021650.GA12785@mit.edu>
-Content-Type: text/plain
-Date: Wed, 13 Feb 2008 10:58:35 +0000
-Message-Id: <1202900315.21202.20.camel@pc1117.cambridge.arm.com>
-Mime-Version: 1.0
+References: <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <1202838082.3137.54.camel@localhost.localdomain> <alpine.LFD.1.00.0802120945290.2920@woody.linux-foundation.org> <1202840682.3137.83.camel@localhost.localdomain> <alpine.LFD.1.00.0802121037340.2920@woody.linux-foundation.org> <alpine.LFD.1.00.0802121051341.2920@woody.linux-foundation.org> <20080212191914.GB20883@kroah.com> <20080213100503.GA21694@flint.arm.linux.org.uk>
+In-Reply-To: <20080213100503.GA21694@flint.arm.linux.org.uk>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Theodore Tso <tytso@MIT.EDU>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Greg KH <greg@kroah.com>, David Miller <davem@davemloft.net>, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Greg KH <greg@kroah.com>, Linus Torvalds <torvalds@linux-foundation.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-On Tue, 2008-02-12 at 21:16 -0500, Theodore Tso wrote:
-> I've never been very happy with stgit because of past experiences
-> which has scarred me when it got get confused and lost my entire patch
-> series (this was before git reflogs, so recovery was.... interesting).
+Russell King wrote:
+> We know that the -mm tree is pretty much useless in terms of code
+> coverage for ARM, and it's getting increasingly unlikely that anything
+> short of a build of all ARM defconfigs will pick up on merge issues -
+> which is a lot of CPU cycles, and I'm not going to insist its something
+> that should be done.
 
-It got much better now :-). We are even working on transactions support
-and, if something fails, it restores the state of the stack.
 
-> There's always been something deeply comforting about having the ASCII
-> patch series since it's easy to back it up and know you're in no
-> danger of losing everything in case of a bug.  
+If you need help in that area (build-testing ARM), surely we can find 
+some fast machines that can do builds for you.  Any interest?
 
-There is "stg export" which could be made to export a patch
-automatically at every change.
+	Jeff
 
-> The other advantage of storing the patch stack as a an ASCII quilt
-> series is we have a history of changes of the patches, which we don't
-> necessarily have if you just use stgit to rewrite the patch.  
 
-As I said in a different e-mail, we got patch history tracking in StGIT.
-You can even annotate specific changes.
-
-For editing, there is "stg edit [--diff]" which allows both description
-and patch changes.
-
-However, the StGIT approach is not fully suited for multiple developers
-sharing the same set of patches, especially if they are allowed to
-modify the same patches. For this kind of workflow, you can export the
-series and add the patches to a separate shared repository. StGIT has a
-"sync" command to synchronise changes to patches in different series
-(either stored as quilt series or in a different branch).
-
--- 
-Catalin
 
