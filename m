@@ -1,49 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from harold.telenet-ops.be ([195.130.133.65]:40553 "EHLO
-	harold.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756577AbYBMH2M (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2008 02:28:12 -0500
-Date: Wed, 13 Feb 2008 08:28:07 +0100 (CET)
+Received: from edna.telenet-ops.be ([195.130.132.58]:45262 "EHLO
+	edna.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751725AbYBMHi7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2008 02:38:59 -0500
+Date: Wed, 13 Feb 2008 08:38:56 +0100 (CET)
 From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-In-Reply-To: <20080213061653.GA10784@kroah.com>
-Message-ID: <Pine.LNX.4.64.0802130824500.8857@anakin>
-References: <20080211211751.3e265754@laptopd505.fenrus.org>
- <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org>
- <20080212.155853.193190548.davem@davemloft.net> <20080213002948.GA8899@kroah.com>
- <alpine.LFD.1.00.0802121645320.2920@woody.linux-foundation.org>
- <20080213061653.GA10784@kroah.com>
+In-Reply-To: <20080212164726.8eecab43.akpm@linux-foundation.org>
+Message-ID: <Pine.LNX.4.64.0802130838200.8857@anakin>
+References: <20080212174824.GA1919@kroah.com>
+ <alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org>
+ <20080212191552.GA20883@kroah.com> <20080212.164149.209357519.davem@davemloft.net>
+ <20080212164726.8eecab43.akpm@linux-foundation.org>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <greg@kroah.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, greg@kroah.com, torvalds@linux-foundation.org, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 12 Feb 2008, Greg KH wrote:
-> On Tue, Feb 12, 2008 at 04:49:46PM -0800, Linus Torvalds wrote:
-> > On Tue, 12 Feb 2008, Greg KH wrote:
-> > > Perhaps you need to switch to using quilt.  This is the main reason why
-> > > I use it.
-> > 
-> > Btw, on that note: if some quilt user can send an "annotated history file" 
-> > of their quilt usage, it's something that git really can do, and I'll see 
-> > if I can merge (or rather, coax Junio to merge) the relevant part of stgit 
-> > to make it possible to just basically get "quilt behaviour" for the parts 
-> > of a git tree that you haven't pushed out yet.
+On Tue, 12 Feb 2008, Andrew Morton wrote:
+> On Tue, 12 Feb 2008 16:41:49 -0800 (PST)
+> David Miller <davem@davemloft.net> wrote:
 > 
-> Ted's description matches mine (keep quilt tree in git, edit changelog
-> entries, rebase on newer kernel versions, etc.)  I can go into details
-> if needed.
+> >  Here are some odd-the-cuff
+> > suggestions:
+> > 
+> > 1) Make feature-removal-schedule a directory with files in it.
+> >    Everyone touches that file, creating merge issues.
+> > 
+> > 2) Let's move away from some/dir/{Kconfig,Makefile} schemes and
+> >    instead have each "thing" have it's own Kconfig.foo or
+> >    Makefile.foo that gets automatically sucked into the main
+> >    directory Makefile or Kconfig using file globs or similar.
+> > 
+> >    Even better, encode the building of things into the *.[ch]
+> >    files themselves, and have the Kconfig/Makefile machinery
+> >    automatically extract this information when you build.
+> 
+> 3) teach people that you don't always have to add new includes right
+>    at the end of the list
+> 
+> 4) teach people that you don't have to add Makefile rules right at the
+>    end of the list
 
-Ack. Same for PS3 and m68k (except I don't have the m68k patches in git (yet)).
-
-Two issues with using quilt:
-  1. Sometimes a patch still applies after it was integrated upstream,
-  2. Sometimes it's a lot of work to fixup the patches after an upstream
-     change. I wrote a script to do a tree-way-merge in case of a
-     conflict, but I haven't really tested it yet (not suitable big
-     conflict has happened since ;-)
+If the list is already sorted, I insert it at the right position.
+If not, well...
 
 Gr{oetje,eeting}s,
 
