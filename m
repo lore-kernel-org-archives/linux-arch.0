@@ -1,68 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from orion2.pixelized.ch ([195.190.190.13]:53855 "EHLO
-	mail.pixelized.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752299AbYBMKP0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2008 05:15:26 -0500
-Message-ID: <47B2C1F4.5010403@cateee.net>
-Date: Wed, 13 Feb 2008 11:09:56 +0100
-From: "Giacomo A. Catenazzi" <cate@cateee.net>
-MIME-Version: 1.0
-Subject: Re: distributed module configuration
-References: <20080212191552.GA20883@kroah.com> <20080212.164149.209357519.davem@davemloft.net> <20080213084541.GA8091@uranus.ravnborg.org> <20080213.005433.23276743.davem@davemloft.net> <20080213090451.GA8319@uranus.ravnborg.org>
-In-Reply-To: <20080213090451.GA8319@uranus.ravnborg.org>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:58433 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754829AbYBMKSP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2008 05:18:15 -0500
+Date: Wed, 13 Feb 2008 10:07:01 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
+Message-ID: <20080213100700.GB21694@flint.arm.linux.org.uk>
+References: <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org> <1202838082.3137.54.camel@localhost.localdomain> <alpine.LFD.1.00.0802120945290.2920@woody.linux-foundation.org> <1202840682.3137.83.camel@localhost.localdomain> <alpine.LFD.1.00.0802121037340.2920@woody.linux-foundation.org> <alpine.LFD.1.00.0802121051341.2920@woody.linux-foundation.org> <20080212194100.GH27894@ZenIV.linux.org.uk> <20080212215152.1470fe7f@core>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20080212215152.1470fe7f@core>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: David Miller <davem@davemloft.net>, greg@kroah.com, torvalds@linux-foundation.org, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kbuild@vger.kernel.org
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-Sam Ravnborg wrote:
-> On Wed, Feb 13, 2008 at 12:54:33AM -0800, David Miller wrote:
->> From: Sam Ravnborg <sam@ravnborg.org>
->> Date: Wed, 13 Feb 2008 09:45:41 +0100
->>
->>> So we could do:
->>>
->>> config foo
->>> 	tristate "do you want foo?"
->>> 	depends on USB && BAR
->>> 	module
->>> 	  obj-$(CONFIG_FOO) += foo.o
->>> 	  foo-y := file1.o file2.o
->>> 	help
->>> 	  foo will allow you to explode your PC
->>  ...
->>> Does this fit what you had in mind?
->> Yes it does.
->>
->> Now I'll ask if you think embedding this information in one of the C
->> files for a module would be even nicer?
-> I have no good idea for the syntax and I and not sure what is gained
-> by reducing a driver with one file.
-> Agreed - simple drivers would then be a single file - and thats a good argument.
+On Tue, Feb 12, 2008 at 09:51:52PM +0000, Alan Cox wrote:
+> > We could simply decide that API changes affecting more than one subsystem
+> > Must Be Serialized(tm).  Explicitly.  As in "any such change is posted
+> 
+> Welcome to dreamland. The only way I can get serial changes done is to
+> wait months and eventually simply persuade Andrew to ignore the
+> "maintainers" who are basically not responding.
 
-I like the Sam proposal, but maybe we can simplify the rules on
-"module" segment: some informations are often redundant, dependencies
-are sometime calculated by config part and sometime by Makefile
-(and sometime in the Makefile there are some wrong hacks).
-I would really like a good section like:
+... because we didn't realise that the pre-requisits for those patches
+had already gone in.  If that had been the case, I'd have applied the
+ARM changes for the new tty ioctls immediately.
 
-module
-    foo : file1.o file2.o
+It was a communication problem, not a process problem.
 
-and let the complex rules in the normal Makefile
-(which is also good because the complex rules are often not
-specific to a single driver).
-
-But I don't like merging all info in a single file:
-- not so clean in case of multiple source-file driver
-- it would be more complex the "copy and paste"
-   from other drivers: most developers are not
-   comfortable with Kconfig and Makefile, so easy to grep
-   others Kconfig/Makefile could help developers not do
-   do strange/wrong hacks.
-
-ciao
-	cate
-
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
