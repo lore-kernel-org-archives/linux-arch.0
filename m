@@ -1,50 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:56919
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752386AbYBMBPc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2008 20:15:32 -0500
-Date: Tue, 12 Feb 2008 17:16:03 -0800 (PST)
-Message-Id: <20080212.171603.14132226.davem@davemloft.net>
-Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20080212163742.c9e778e6.akpm@linux-foundation.org>
-References: <47B1CB08.4020101@garzik.org>
-	<20080212.155853.193190548.davem@davemloft.net>
-	<20080212163742.c9e778e6.akpm@linux-foundation.org>
+Received: from agminet01.oracle.com ([141.146.126.228]:14836 "EHLO
+	agminet01.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754075AbYBMBV1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2008 20:21:27 -0500
+Date: Tue, 12 Feb 2008 17:20:08 -0800
+From: Randy Dunlap <randy.dunlap@oracle.com>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+Message-Id: <20080212172008.d365b839.randy.dunlap@oracle.com>
+In-Reply-To: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: jeff@garzik.org, arjan@infradead.org, greg@kroah.com, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
 
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 12 Feb 2008 16:37:42 -0800
+On Tue, 12 Feb 2008 12:02:08 +1100 Stephen Rothwell wrote:
 
-> Well there's a case in point.  rcupdate.h is not a part of networking, and
-> it is random tree-wandering like this which causes me problems and which
-> will cause Stephen problems.
+> Hi all,
 > 
-> Now, I don't know which tree "owns" rcupdate.h but it ain't networking. 
-> Probably git-sched.
+> Andrew was looking for someone to run a linux-next tree that just
+> contained the subsystem git and quilt trees for 2.6.x+1 and I (in a
+> moment of madness) volunteered.  So, this is to announce the creating of
+> such a tree (it doesn't exist yet) which will require some (hopefully)
+> small amount of work on the part of subsystem maintainers.
 > 
-> Nothing in networking depends upon that change (which has a typo in the
-> comment, btw) hence it can and should have gone through
-> whichever-tree-owns-that-file.
+> Those interested in discussion about this are encouraged to join the
+> linux-next@vger.kernel.org mailing list.
 > 
-> For Stephen's sake: please.
+> The first things I need from the subsystem maintainers (you know who you
+> are) are a contact address (a list address is fine) and at least one git
+> branch or quilt series that contains all the things you want to see go
+> into 2.6.26.  I am happy for there to be multiple branches/series (in
+> fact there probably will need to be in some cases where there are
+> dependencies on others work).
 
-At least thie time I did make sure that change got posted to
-linux-kernel and got properly reviewed by the de-facto maintainer
-(Paul McKenney). :-)
+Hi Stephen,
 
-I'll toss it.
+Please merge the quilt series/patchset from
+  http://oss.oracle.com/~rdunlap/kernel-doc-patches/current/
 
-But how do I do that using GIT without rebasing and without
-having this ugly changeset and revert in there?
+I expect this to be fairly small and localized (very few conflicts).
 
-That's the thing I want answered, and although Al claims it does,
-git cherry-pick does not seem to do what I want either.
-
+Thanks,
+---
+~Randy
