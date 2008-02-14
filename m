@@ -1,70 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.uludag.org.tr ([193.140.100.220]:49928 "EHLO uludag.org.tr"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753437AbYBNPjO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Feb 2008 10:39:14 -0500
-From: =?utf-8?q?S=2E=C3=87a=C4=9Flar=20Onur?= <caglar@pardus.org.tr>
-Subject: [PATCH 12/14] fs/binfmt_aout.c: Use time_* macros
-Date: Thu, 14 Feb 2008 17:36:50 +0200
-Message-Id: <1203003412-11594-13-git-send-email-caglar@pardus.org.tr>
-In-Reply-To: y
-References: y
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:60810 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753368AbYBNSDE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Feb 2008 13:03:04 -0500
+Date: Thu, 14 Feb 2008 10:01:14 -0800 (PST)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+In-Reply-To: <20080214232229.f7bdc6ac.sfr@canb.auug.org.au>
+Message-ID: <alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <20080211203146.3d28d1a0@laptopd505.fenrus.org> <1202791555.20739.6.camel@heimdal.trondhjem.org> <20080212051136.GA12802@mit.edu> <20080211221535.bc0dc9cf.akpm@linux-foundation.org>
+ <20080212225716.cf695fe4.sfr@canb.auug.org.au> <20080214081405.GA20791@flint.arm.linux.org.uk> <20080214232229.f7bdc6ac.sfr@canb.auug.org.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, =?utf-8?q?S=2E=C3=87a=C4=9Flar=20Onur?= <caglar@pardus.org.tr>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
 
-The functions time_before, time_before_eq, time_after, and time_after_eq are more robust for comparing jiffies against other values.
 
-So following patch implements usage of the time_after() macro, defined at linux/jiffies.h, which deals with wrapping correctly
 
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: S.Çağlar Onur <caglar@pardus.org.tr>
----
- fs/binfmt_aout.c |    7 ++++---
- 1 files changed, 4 insertions(+), 3 deletions(-)
+On Thu, 14 Feb 2008, Stephen Rothwell wrote:
+> 
+> Originally, I assumed the stable branch would be for our "usual" API
+> changes, but it appears we are not having any more of those. :-)
 
-diff --git a/fs/binfmt_aout.c b/fs/binfmt_aout.c
-index a1bb224..72757fe 100644
---- a/fs/binfmt_aout.c
-+++ b/fs/binfmt_aout.c
-@@ -6,6 +6,7 @@
- 
- #include <linux/module.h>
- 
-+#include <linux/jiffies.h>
- #include <linux/time.h>
- #include <linux/kernel.h>
- #include <linux/mm.h>
-@@ -374,14 +375,14 @@ static int load_aout_binary(struct linux_binprm * bprm, struct pt_regs * regs)
- 	} else {
- 		static unsigned long error_time, error_time2;
- 		if ((ex.a_text & 0xfff || ex.a_data & 0xfff) &&
--		    (N_MAGIC(ex) != NMAGIC) && (jiffies-error_time2) > 5*HZ)
-+		    (N_MAGIC(ex) != NMAGIC) && time_after(jiffies, error_time2 + 5 * HZ))
- 		{
- 			printk(KERN_NOTICE "executable not page aligned\n");
- 			error_time2 = jiffies;
- 		}
- 
- 		if ((fd_offset & ~PAGE_MASK) != 0 &&
--		    (jiffies-error_time) > 5*HZ)
-+		    time_after(jiffies, error_time + 5 * HZ))
- 		{
- 			printk(KERN_WARNING 
- 			       "fd_offset is not page aligned. Please convert program: %s\n",
-@@ -498,7 +499,7 @@ static int load_aout_library(struct file *file)
- 		static unsigned long error_time;
- 		loff_t pos = N_TXTOFF(ex);
- 
--		if ((jiffies-error_time) > 5*HZ)
-+		if (time_after(jiffies ,error_time + 5 * HZ))
- 		{
- 			printk(KERN_WARNING 
- 			       "N_TXTOFF is not page aligned. Please convert library: %s\n",
--- 
-1.5.3.7
+It's not that we should _never_ have them, it's that they shouldn't be 
+"business as usual".
 
+I'm happy with them being a "a couple of times a year". I'm not happy with 
+them being "once or twice for every release cycle". That's the big deal 
+for me.
+
+If we have a big flag-day that affects a lot of drivers (or architectures) 
+once or twice a year, I think everybody involved will be happy to stand up 
+and say "ok, that fixes problem X, and the new thing really is better, so 
+let's do it, it's worth it".
+
+But if it's something that happens essentially every single release, that 
+is somethign else altogether. Then it's not a "ok, let's bite the bullet 
+and make the kernel better" thing any more, but instead it devolves into 
+"f*ck, the merge window is open again, now I have to fix up all the crap 
+people pushed on me".
+
+See? That's a *huge* difference, even if it is "only" a mental one (and 
+clearly it isn't - there's the actual real work of the "I have to fix 
+things up" part too).
+
+So to recap: I have absolutely nothing against fixing up bad internal 
+API's and breaking things. But 99% of the time that should be something we 
+can do incrementally (ie introduce the new API, and simply accept the 
+fact that removing the old API will take a few months). And the case when 
+that _really_ doesn't work should be rare enough that it doesn't wear 
+people down.
+
+Because if you listen to the tone of people in this discussion, much of it 
+is about people being _tired_ of having to fix things up. It's not exactly 
+been a "wow, the end result sure was nice!" kind of discussion, is it?
+
+And this is where "process" really matters. Making sure people don't get 
+too frustrated about the constant grind.
+
+>							  However,
+> I see an argument for attempting to stabilise possible conflicting
+> changes get Linus' review/ack and add them to the stable branch.
+>
+> Linus suggested that such changes should go into an independent tree that
+> everyone could pull into their trees with the full confidence that that
+> tree would be merged into Linus' tree when the merge window opens.  I am
+> suggesting that that tree be the stable branch of linux-next.
+
+I absolutely have no problem with having a "this is the infrastrcture 
+changes that will go into the next release". In fact, I can even 
+*maintain* such a branch. 
+
+I've not wanted to open up a second branch for "this is for next release", 
+because quite frankly, one of the other problems we have is that people 
+already spend way too much time on the next release compared to just 
+looking at regressions in the current one. But especially if we're talking 
+about _purely_ API changes etc infrastructure, I could certainly do a 
+"next" branch. 
+
+			Linus
