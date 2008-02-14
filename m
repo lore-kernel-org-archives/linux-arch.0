@@ -1,84 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:60810 "EHLO
-	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753368AbYBNSDE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Feb 2008 13:03:04 -0500
-Date: Thu, 14 Feb 2008 10:01:14 -0800 (PST)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-In-Reply-To: <20080214232229.f7bdc6ac.sfr@canb.auug.org.au>
-Message-ID: <alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <20080211203146.3d28d1a0@laptopd505.fenrus.org> <1202791555.20739.6.camel@heimdal.trondhjem.org> <20080212051136.GA12802@mit.edu> <20080211221535.bc0dc9cf.akpm@linux-foundation.org>
- <20080212225716.cf695fe4.sfr@canb.auug.org.au> <20080214081405.GA20791@flint.arm.linux.org.uk> <20080214232229.f7bdc6ac.sfr@canb.auug.org.au>
+Received: from scrub.xs4all.nl ([194.109.195.176]:33162 "EHLO scrub.xs4all.nl"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752832AbYBNSDB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Feb 2008 13:03:01 -0500
+Date: Thu, 14 Feb 2008 19:03:03 +0100 (CET)
+From: Roman Zippel <zippel@linux-m68k.org>
+Subject: Re: [PATCH] Use menuconfig for CONFIG_CPU_FREQ
+In-Reply-To: <20080214150802.GA16789@flint.arm.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0802141814530.1822@scrub.home>
+References: <200802132330.23817.alessandro.guido@gmail.com>
+ <20080213225058.GA20358@flint.arm.linux.org.uk> <200802140000.52936.alessandro.guido@gmail.com>
+ <20080213231512.GB20358@flint.arm.linux.org.uk> <Pine.LNX.4.64.0802140246440.1822@scrub.home>
+ <20080214075115.GB17110@flint.arm.linux.org.uk> <Pine.LNX.4.64.0802141351220.1822@scrub.home>
+ <20080214150802.GA16789@flint.arm.linux.org.uk>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: Alessandro Guido <alessandro.guido@gmail.com>, davej@codemonkey.org.uk, cpufreq@lists.linux.org.uk, linux-arch@vger.kernel.org
 
+Hi,
 
+On Thu, 14 Feb 2008, Russell King wrote:
 
-On Thu, 14 Feb 2008, Stephen Rothwell wrote:
+> > > Yes, I read that and didn't get the answer to the question above.  It's
+> > > unclear how:
+> > > 
+> > > config CPU_FREQ_INTEGRATOR
+> > >         tristate "CPUfreq driver for ARM Integrator CPUs"
+> > >         depends on ARCH_INTEGRATOR && CPU_FREQ
+> > > 
+> > > being under CPU_FREQ rather than ARCH_INTEGRATOR
+> > 
+> > The doc says it looks at "the previous entry" and ARCH_INTEGRATOR isn't 
+> > exactly the previous entry.
 > 
-> Originally, I assumed the stable branch would be for our "usual" API
-> changes, but it appears we are not having any more of those. :-)
+> Neither is CPU_FREQ "the previous entry".  The documentation is unclear.
+> [..]
+> Well, I still don't have the necessary understanding to work out how
+> CPU_FREQ is preferred over ARCH_INTEGRATOR, even with your statements
+> that "it is the case".  So I'm not in a position to improve the
+> documentation except by adding a sentence to suggest people ask you
+> about it.
 
-It's not that we should _never_ have them, it's that they shouldn't be 
-"business as usual".
+The best thing right now in such cases is to use menuconfig/xconfig and 
+actually look at it. xconfig can even show the hidden entries, so it's 
+also easier to answer why some entry isn't becoming a child entry.
+I can provide a technical explanation of what's happening, but it's likely 
+to be even more confusing, I really have no good idea on how to translate 
+what is quite easily visible in xconfig to actual written documentation.
 
-I'm happy with them being a "a couple of times a year". I'm not happy with 
-them being "once or twice for every release cycle". That's the big deal 
-for me.
-
-If we have a big flag-day that affects a lot of drivers (or architectures) 
-once or twice a year, I think everybody involved will be happy to stand up 
-and say "ok, that fixes problem X, and the new thing really is better, so 
-let's do it, it's worth it".
-
-But if it's something that happens essentially every single release, that 
-is somethign else altogether. Then it's not a "ok, let's bite the bullet 
-and make the kernel better" thing any more, but instead it devolves into 
-"f*ck, the merge window is open again, now I have to fix up all the crap 
-people pushed on me".
-
-See? That's a *huge* difference, even if it is "only" a mental one (and 
-clearly it isn't - there's the actual real work of the "I have to fix 
-things up" part too).
-
-So to recap: I have absolutely nothing against fixing up bad internal 
-API's and breaking things. But 99% of the time that should be something we 
-can do incrementally (ie introduce the new API, and simply accept the 
-fact that removing the old API will take a few months). And the case when 
-that _really_ doesn't work should be rare enough that it doesn't wear 
-people down.
-
-Because if you listen to the tone of people in this discussion, much of it 
-is about people being _tired_ of having to fix things up. It's not exactly 
-been a "wow, the end result sure was nice!" kind of discussion, is it?
-
-And this is where "process" really matters. Making sure people don't get 
-too frustrated about the constant grind.
-
->							  However,
-> I see an argument for attempting to stabilise possible conflicting
-> changes get Linus' review/ack and add them to the stable branch.
->
-> Linus suggested that such changes should go into an independent tree that
-> everyone could pull into their trees with the full confidence that that
-> tree would be merged into Linus' tree when the merge window opens.  I am
-> suggesting that that tree be the stable branch of linux-next.
-
-I absolutely have no problem with having a "this is the infrastrcture 
-changes that will go into the next release". In fact, I can even 
-*maintain* such a branch. 
-
-I've not wanted to open up a second branch for "this is for next release", 
-because quite frankly, one of the other problems we have is that people 
-already spend way too much time on the next release compared to just 
-looking at regressions in the current one. But especially if we're talking 
-about _purely_ API changes etc infrastructure, I could certainly do a 
-"next" branch. 
-
-			Linus
+bye, Roman
