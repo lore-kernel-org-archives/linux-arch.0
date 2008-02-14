@@ -1,54 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from scrub.xs4all.nl ([194.109.195.176]:33162 "EHLO scrub.xs4all.nl"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752832AbYBNSDB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Feb 2008 13:03:01 -0500
-Date: Thu, 14 Feb 2008 19:03:03 +0100 (CET)
-From: Roman Zippel <zippel@linux-m68k.org>
-Subject: Re: [PATCH] Use menuconfig for CONFIG_CPU_FREQ
-In-Reply-To: <20080214150802.GA16789@flint.arm.linux.org.uk>
-Message-ID: <Pine.LNX.4.64.0802141814530.1822@scrub.home>
-References: <200802132330.23817.alessandro.guido@gmail.com>
- <20080213225058.GA20358@flint.arm.linux.org.uk> <200802140000.52936.alessandro.guido@gmail.com>
- <20080213231512.GB20358@flint.arm.linux.org.uk> <Pine.LNX.4.64.0802140246440.1822@scrub.home>
- <20080214075115.GB17110@flint.arm.linux.org.uk> <Pine.LNX.4.64.0802141351220.1822@scrub.home>
- <20080214150802.GA16789@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from vms046pub.verizon.net ([206.46.252.46]:47626 "EHLO
+	vms046pub.verizon.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755177AbYBNSmJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2008 13:42:09 -0500
+Date: Thu, 14 Feb 2008 13:32:02 -0500
+From: Gene Heskett <gene.heskett@gmail.com>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+In-reply-to: <alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org>
+Message-id: <200802141332.03315.gene.heskett@gmail.com>
+MIME-version: 1.0
+Content-type: text/plain; charset=iso-8859-1
+Content-transfer-encoding: 7bit
+Content-disposition: inline
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+ <20080214232229.f7bdc6ac.sfr@canb.auug.org.au>
+ <alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: Alessandro Guido <alessandro.guido@gmail.com>, davej@codemonkey.org.uk, cpufreq@lists.linux.org.uk, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi,
+On Thursday 14 February 2008, Linus Torvalds wrote:
+[...]
+>And this is where "process" really matters. Making sure people don't get
+>too frustrated about the constant grind.
 
-On Thu, 14 Feb 2008, Russell King wrote:
+One of the problems caused by this 'grind' is being locked out of using 3rd 
+party closed drivers until the vendor decides its stable enough to make the 
+effort to update their binary blobs to match the newer functions.
 
-> > > Yes, I read that and didn't get the answer to the question above.  It's
-> > > unclear how:
-> > > 
-> > > config CPU_FREQ_INTEGRATOR
-> > >         tristate "CPUfreq driver for ARM Integrator CPUs"
-> > >         depends on ARCH_INTEGRATOR && CPU_FREQ
-> > > 
-> > > being under CPU_FREQ rather than ARCH_INTEGRATOR
-> > 
-> > The doc says it looks at "the previous entry" and ARCH_INTEGRATOR isn't 
-> > exactly the previous entry.
-> 
-> Neither is CPU_FREQ "the previous entry".  The documentation is unclear.
-> [..]
-> Well, I still don't have the necessary understanding to work out how
-> CPU_FREQ is preferred over ARCH_INTEGRATOR, even with your statements
-> that "it is the case".  So I'm not in a position to improve the
-> documentation except by adding a sentence to suggest people ask you
-> about it.
+Nvidia vs 2.6.25-rc1 being a case in point, and they (nvidia) are appearing to 
+indicate its not a problem until some distro actually ships a kernel with the 
+changes that broke it.  That could be months or even a year plus.
 
-The best thing right now in such cases is to use menuconfig/xconfig and 
-actually look at it. xconfig can even show the hidden entries, so it's 
-also easier to answer why some entry isn't becoming a child entry.
-I can provide a technical explanation of what's happening, but it's likely 
-to be even more confusing, I really have no good idea on how to translate 
-what is quite easily visible in xconfig to actual written documentation.
+So you've lost one 'canary in the coal mine' tester at least until that 
+happens as I don't have a spare box I can setup to run the nv driver, which 
+itself seems to be suffering from bit rot recently and cannot run this screen 
+at its native 1680x1050 resolution, reverting to something that resembles 
+what I used to get from a timex 1000 in 1978 but with a few colors.  I just 
+recently had to install the nvidia driver on my milling machines kubuntu 6.06 
+box cuz an xorg update put it back to 640x400 if the nv driver was used.  
+This is the real world, where politics aside, it just has to work... :-(
 
-bye, Roman
+But I'll still be lurking and building to test anyway even if I don't boot it 
+for more than 10 minutes. :)
+
+-- 
+Cheers, Gene
+"There are four boxes to be used in defense of liberty:
+ soap, ballot, jury, and ammo. Please use in that order."
+-Ed Howdershelt (Author)
+I'm not a lawyer. I don't even play one on TV.
+
+	- Linus Torvalds on the gcc mailing list
