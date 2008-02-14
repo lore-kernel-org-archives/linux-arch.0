@@ -1,70 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:34987 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752601AbYBMXU3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2008 18:20:29 -0500
-Date: Wed, 13 Feb 2008 23:15:12 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCH] Use menuconfig for CONFIG_CPU_FREQ
-Message-ID: <20080213231512.GB20358@flint.arm.linux.org.uk>
-References: <200802132330.23817.alessandro.guido@gmail.com> <20080213225058.GA20358@flint.arm.linux.org.uk> <200802140000.52936.alessandro.guido@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from scrub.xs4all.nl ([194.109.195.176]:52469 "EHLO scrub.xs4all.nl"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1761575AbYBNA5s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Feb 2008 19:57:48 -0500
+From: Roman Zippel <zippel@linux-m68k.org>
+Subject: Re: distributed module configuration [Was: Announce: Linux-next (Or Andrew's dream :-))]
+Date: Thu, 14 Feb 2008 01:56:13 +0100
+References: <20080212174824.GA1919@kroah.com> <20080212.164149.209357519.davem@davemloft.net> <20080213084541.GA8091@uranus.ravnborg.org>
+In-Reply-To: <20080213084541.GA8091@uranus.ravnborg.org>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <200802140000.52936.alessandro.guido@gmail.com>
+Message-Id: <200802140156.15325.zippel@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alessandro Guido <alessandro.guido@gmail.com>, Roman Zippel <zippel@linux-m68k.org>
-Cc: davej@codemonkey.org.uk, cpufreq@lists.linux.org.uk, linux-arch@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: David Miller <davem@davemloft.net>, greg@kroah.com, torvalds@linux-foundation.org, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kbuild <linux-kbuild@vger.kernel.org>
 
-On Thu, Feb 14, 2008 at 12:00:52AM +0100, Alessandro Guido wrote:
-> > Doesn't this cause these CPUFREQ options to appear outside of the CPUFREQ
-> > menu?
-> > 
-> 
-> No because they all depend on CPU_FREQ and as far as I understand Kconfig
-> automagically puts them under the same menu.
+Hi,
 
-Hmm, that's not documented behaviour.  If we're starting to rely on that
-maybe it should be documented as being the expected behaviour?
+On Wednesday 13. February 2008, Sam Ravnborg wrote:
 
-(here's the cut down patch for Roman's reference)
+> config foo
+> 	tristate "do you want foo?"
+> 	depends on USB && BAR
+> 	module
+> 	  obj-$(CONFIG_FOO) += foo.o
+> 	  foo-y := file1.o file2.o
+> 	help
+> 	  foo will allow you to explode your PC
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 9619c43..2e21703 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -948,8 +948,6 @@ endmenu
- 
- if (ARCH_SA1100 || ARCH_INTEGRATOR || ARCH_OMAP || ARCH_IMX || ARCH_PXA)
- 
--menu "CPU Frequency scaling"
--
- source "drivers/cpufreq/Kconfig"
- 
- config CPU_FREQ_SA1100
-@@ -988,8 +986,6 @@ config CPU_FREQ_PXA
- 	default y
- 	select CPU_FREQ_DEFAULT_GOV_USERSPACE
- 
--endmenu
--
- endif
- 
- menu "Floating point emulation"
-diff --git a/drivers/cpufreq/Kconfig b/drivers/cpufreq/Kconfig
-index c159ae6..ef80bd0 100644
---- a/drivers/cpufreq/Kconfig
-+++ b/drivers/cpufreq/Kconfig
-@@ -1,4 +1,4 @@
--config CPU_FREQ
-+menuconfig CPU_FREQ
- 	bool "CPU Frequency scaling"
- 	help
- 	  CPU Frequency scaling allows you to change the clock speed of 
+I'm more thinking about something like this:
 
+module foo [FOO]
+	tristate "do you want foo?"
+	depends on USB && BAR
+	source file1.c
+	source file2.c if BAZ
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Avoiding direct Makefile fragments would give us far more flexibility in the 
+final Makefile output.
+
+> And we could introduce support for
+>
+> source "drivers/net/Kconfig.*"
+>
+> But then we would have to make the kconfig step mandatory
+> for each build as we would otherwise not know if there
+> were added any Kconfig files.
+
+That's a real problem and it would be a step back of what we have right now, 
+so I'm not exactly comfortable with it.
+
+bye, Roman
