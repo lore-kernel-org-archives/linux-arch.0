@@ -1,57 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:45114 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751808AbYBNPN1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2008 10:13:27 -0500
-Date: Thu, 14 Feb 2008 15:08:03 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCH] Use menuconfig for CONFIG_CPU_FREQ
-Message-ID: <20080214150802.GA16789@flint.arm.linux.org.uk>
-References: <200802132330.23817.alessandro.guido@gmail.com> <20080213225058.GA20358@flint.arm.linux.org.uk> <200802140000.52936.alessandro.guido@gmail.com> <20080213231512.GB20358@flint.arm.linux.org.uk> <Pine.LNX.4.64.0802140246440.1822@scrub.home> <20080214075115.GB17110@flint.arm.linux.org.uk> <Pine.LNX.4.64.0802141351220.1822@scrub.home>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0802141351220.1822@scrub.home>
+Received: from ns2.uludag.org.tr ([193.140.100.220]:49928 "EHLO uludag.org.tr"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753437AbYBNPjO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Feb 2008 10:39:14 -0500
+From: =?utf-8?q?S=2E=C3=87a=C4=9Flar=20Onur?= <caglar@pardus.org.tr>
+Subject: [PATCH 12/14] fs/binfmt_aout.c: Use time_* macros
+Date: Thu, 14 Feb 2008 17:36:50 +0200
+Message-Id: <1203003412-11594-13-git-send-email-caglar@pardus.org.tr>
+In-Reply-To: y
+References: y
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roman Zippel <zippel@linux-m68k.org>
-Cc: Alessandro Guido <alessandro.guido@gmail.com>, davej@codemonkey.org.uk, cpufreq@lists.linux.org.uk, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, =?utf-8?q?S=2E=C3=87a=C4=9Flar=20Onur?= <caglar@pardus.org.tr>
 
-On Thu, Feb 14, 2008 at 03:00:12PM +0100, Roman Zippel wrote:
-> Hi,
-> 
-> On Thu, 14 Feb 2008, Russell King wrote:
-> 
-> > Yes, I read that and didn't get the answer to the question above.  It's
-> > unclear how:
-> > 
-> > config CPU_FREQ_INTEGRATOR
-> >         tristate "CPUfreq driver for ARM Integrator CPUs"
-> >         depends on ARCH_INTEGRATOR && CPU_FREQ
-> > 
-> > being under CPU_FREQ rather than ARCH_INTEGRATOR
-> 
-> The doc says it looks at "the previous entry" and ARCH_INTEGRATOR isn't 
-> exactly the previous entry.
+The functions time_before, time_before_eq, time_after, and time_after_eq are more robust for comparing jiffies against other values.
 
-Neither is CPU_FREQ "the previous entry".  The documentation is unclear.
+So following patch implements usage of the time_after() macro, defined at linux/jiffies.h, which deals with wrapping correctly
 
-> For me it was kind of obvious that kconfig wouldn't arbitrarily reorder 
-> the menu entries.
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: S.Çağlar Onur <caglar@pardus.org.tr>
+---
+ fs/binfmt_aout.c |    7 ++++---
+ 1 files changed, 4 insertions(+), 3 deletions(-)
 
-It's always obvious for the person who wrote the code.  It isn't for those
-who haven't.
-
-> Only the indentation of an entry is changed not the 
-> whole order. Any contributions to clarify this are more than welcome.
-
-Well, I still don't have the necessary understanding to work out how
-CPU_FREQ is preferred over ARCH_INTEGRATOR, even with your statements
-that "it is the case".  So I'm not in a position to improve the
-documentation except by adding a sentence to suggest people ask you
-about it.
-
+diff --git a/fs/binfmt_aout.c b/fs/binfmt_aout.c
+index a1bb224..72757fe 100644
+--- a/fs/binfmt_aout.c
++++ b/fs/binfmt_aout.c
+@@ -6,6 +6,7 @@
+ 
+ #include <linux/module.h>
+ 
++#include <linux/jiffies.h>
+ #include <linux/time.h>
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
+@@ -374,14 +375,14 @@ static int load_aout_binary(struct linux_binprm * bprm, struct pt_regs * regs)
+ 	} else {
+ 		static unsigned long error_time, error_time2;
+ 		if ((ex.a_text & 0xfff || ex.a_data & 0xfff) &&
+-		    (N_MAGIC(ex) != NMAGIC) && (jiffies-error_time2) > 5*HZ)
++		    (N_MAGIC(ex) != NMAGIC) && time_after(jiffies, error_time2 + 5 * HZ))
+ 		{
+ 			printk(KERN_NOTICE "executable not page aligned\n");
+ 			error_time2 = jiffies;
+ 		}
+ 
+ 		if ((fd_offset & ~PAGE_MASK) != 0 &&
+-		    (jiffies-error_time) > 5*HZ)
++		    time_after(jiffies, error_time + 5 * HZ))
+ 		{
+ 			printk(KERN_WARNING 
+ 			       "fd_offset is not page aligned. Please convert program: %s\n",
+@@ -498,7 +499,7 @@ static int load_aout_library(struct file *file)
+ 		static unsigned long error_time;
+ 		loff_t pos = N_TXTOFF(ex);
+ 
+-		if ((jiffies-error_time) > 5*HZ)
++		if (time_after(jiffies ,error_time + 5 * HZ))
+ 		{
+ 			printk(KERN_WARNING 
+ 			       "N_TXTOFF is not page aligned. Please convert library: %s\n",
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+1.5.3.7
+
