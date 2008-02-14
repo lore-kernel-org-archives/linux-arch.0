@@ -1,47 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:44846 "EHLO
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:56729 "EHLO
 	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933170AbYBNH4q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2008 02:56:46 -0500
-Date: Thu, 14 Feb 2008 07:51:15 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCH] Use menuconfig for CONFIG_CPU_FREQ
-Message-ID: <20080214075115.GB17110@flint.arm.linux.org.uk>
-References: <200802132330.23817.alessandro.guido@gmail.com> <20080213225058.GA20358@flint.arm.linux.org.uk> <200802140000.52936.alessandro.guido@gmail.com> <20080213231512.GB20358@flint.arm.linux.org.uk> <Pine.LNX.4.64.0802140246440.1822@scrub.home>
+	with ESMTP id S1761815AbYBNIUk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2008 03:20:40 -0500
+Date: Thu, 14 Feb 2008 08:14:05 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+Message-ID: <20080214081405.GA20791@flint.arm.linux.org.uk>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <20080211203146.3d28d1a0@laptopd505.fenrus.org> <1202791555.20739.6.camel@heimdal.trondhjem.org> <20080212051136.GA12802@mit.edu> <20080211221535.bc0dc9cf.akpm@linux-foundation.org> <20080212225716.cf695fe4.sfr@canb.auug.org.au>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0802140246440.1822@scrub.home>
+In-Reply-To: <20080212225716.cf695fe4.sfr@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roman Zippel <zippel@linux-m68k.org>
-Cc: Alessandro Guido <alessandro.guido@gmail.com>, davej@codemonkey.org.uk, cpufreq@lists.linux.org.uk, linux-arch@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Linus <torvalds@linux-foundation.org>
 
-On Thu, Feb 14, 2008 at 02:47:56AM +0100, Roman Zippel wrote:
-> Hi,
-> 
-> On Wed, 13 Feb 2008, Russell King wrote:
-> 
-> > > No because they all depend on CPU_FREQ and as far as I understand Kconfig
-> > > automagically puts them under the same menu.
-> > 
-> > Hmm, that's not documented behaviour.  If we're starting to rely on that
-> > maybe it should be documented as being the expected behaviour?
-> 
-> It is. :)
+On Tue, Feb 12, 2008 at 10:57:16PM +1100, Stephen Rothwell wrote:
+> We need to ask Linus to promise that he will pull the stable branch from
+> linux-next first in the merge window.  For that to happen, I would expect
+> that Linus would also review and sign off (or ack) these commits to the
+> linux-next tree.
 
-I disagree.
+Changing the commits in git in anyway changes their ID, which has the
+same effects as a rebase.
 
-> Look for "Menu structure" in kconfig-language.txt.
+With this idea, Linus only has two choices:
 
-Yes, I read that and didn't get the answer to the question above.  It's
-unclear how:
+1. pull the entire set of linux-next changes whether he likes them or not,
+   because he's going to get them either from the linux-next tree or someone
+   elses tree which is based upon that.
 
-config CPU_FREQ_INTEGRATOR
-        tristate "CPUfreq driver for ARM Integrator CPUs"
-        depends on ARCH_INTEGRATOR && CPU_FREQ
+2. don't pull the changes, nor anyone elses tree if he hates the changes
+   in linux-next.
 
-being under CPU_FREQ rather than ARCH_INTEGRATOR
+So really, Linus needs to ack the changes _before_ they go into linux-next.
 
 -- 
 Russell King
