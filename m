@@ -1,59 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vms040pub.verizon.net ([206.46.252.40]:49196 "EHLO
-	vms040pub.verizon.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932410AbYBNUnG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2008 15:43:06 -0500
-Date: Thu, 14 Feb 2008 15:39:25 -0500
-From: Gene Heskett <gene.heskett@gmail.com>
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-In-reply-to: <20080214203229.GC16545@kroah.com>
-Message-id: <200802141539.26314.gene.heskett@gmail.com>
-MIME-version: 1.0
-Content-type: text/plain; charset=iso-8859-1
-Content-transfer-encoding: 7bit
-Content-disposition: inline
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
- <200802141332.03315.gene.heskett@gmail.com> <20080214203229.GC16545@kroah.com>
+Received: from pasmtpa.tele.dk ([80.160.77.114]:42364 "EHLO pasmtpA.tele.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754259AbYBNWi0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Feb 2008 17:38:26 -0500
+Date: Thu, 14 Feb 2008 23:38:32 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: distributed module configuration [Was: Announce: Linux-next (Or Andrew's dream :-))]
+Message-ID: <20080214223832.GA23149@uranus.ravnborg.org>
+References: <20080212174824.GA1919@kroah.com> <20080212.164149.209357519.davem@davemloft.net> <20080213084541.GA8091@uranus.ravnborg.org> <200802140156.15325.zippel@linux-m68k.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <200802140156.15325.zippel@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <greg@kroah.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
+To: Roman Zippel <zippel@linux-m68k.org>
+Cc: David Miller <davem@davemloft.net>, greg@kroah.com, torvalds@linux-foundation.org, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kbuild <linux-kbuild@vger.kernel.org>
 
-On Thursday 14 February 2008, Greg KH wrote:
->On Thu, Feb 14, 2008 at 01:32:02PM -0500, Gene Heskett wrote:
->> On Thursday 14 February 2008, Linus Torvalds wrote:
->> [...]
->>
->> >And this is where "process" really matters. Making sure people don't get
->> >too frustrated about the constant grind.
->>
->> One of the problems caused by this 'grind' is being locked out of using
->> 3rd party closed drivers until the vendor decides its stable enough to
->> make the effort to update their binary blobs to match the newer functions.
->>
->> Nvidia vs 2.6.25-rc1 being a case in point, and they (nvidia) are
->> appearing to indicate its not a problem until some distro actually ships a
->> kernel with the changes that broke it.  That could be months or even a
->> year plus.
->
->How about "weeks".  Both Fedora and openSUSE's next release is going to
->be based on 2.6.25, and the first round of -rc1 kernels should be
->showing up in their trees in a few days.  So for this instance, I think
->you will be fine :)
->
->thanks,
+On Thu, Feb 14, 2008 at 01:56:13AM +0100, Roman Zippel wrote:
+> Hi,
+> 
+> On Wednesday 13. February 2008, Sam Ravnborg wrote:
+> 
+> > config foo
+> > 	tristate "do you want foo?"
+> > 	depends on USB && BAR
+> > 	module
+> > 	  obj-$(CONFIG_FOO) += foo.o
+> > 	  foo-y := file1.o file2.o
+> > 	help
+> > 	  foo will allow you to explode your PC
+> 
+> I'm more thinking about something like this:
+> 
+> module foo [FOO]
+> 	tristate "do you want foo?"
+> 	depends on USB && BAR
+> 	source file1.c
+> 	source file2.c if BAZ
+> 
+> Avoiding direct Makefile fragments would give us far more flexibility in the 
+> final Makefile output.
 
-That is good news, thanks Greg.
+Much better and now I see it I recall you posted something
+along these lines before.
+Is this something that you plan to look into implementing?
 
->
->greg k-h
+I can do the kbuild bits but I need you to do the kconfig
+stuff (which is by far the biggest effort too).
 
+It would be much appreciated to get this.
 
-
--- 
-Cheers, Gene
-"There are four boxes to be used in defense of liberty:
- soap, ballot, jury, and ammo. Please use in that order."
--Ed Howdershelt (Author)
-There's small choice in rotten apples.
-		-- William Shakespeare, "The Taming of the Shrew"
+	Sam
