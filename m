@@ -1,160 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from saraswathi.solana.com ([198.99.130.12]:43190 "EHLO
-	saraswathi.solana.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964850AbYBNBOn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2008 20:14:43 -0500
-Date: Wed, 13 Feb 2008 20:05:08 -0500
-From: Jeff Dike <jdike@addtoit.com>
-Subject: [PATCH] asm-*/futex.h should include linux/uaccess.h
-Message-ID: <20080214010508.GA17107@c2.user-mode-linux.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Received: from scrub.xs4all.nl ([194.109.195.176]:37794 "EHLO scrub.xs4all.nl"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750706AbYBNBsK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Feb 2008 20:48:10 -0500
+Date: Thu, 14 Feb 2008 02:47:56 +0100 (CET)
+From: Roman Zippel <zippel@linux-m68k.org>
+Subject: Re: [PATCH] Use menuconfig for CONFIG_CPU_FREQ
+In-Reply-To: <20080213231512.GB20358@flint.arm.linux.org.uk>
+Message-ID: <Pine.LNX.4.64.0802140246440.1822@scrub.home>
+References: <200802132330.23817.alessandro.guido@gmail.com>
+ <20080213225058.GA20358@flint.arm.linux.org.uk> <200802140000.52936.alessandro.guido@gmail.com>
+ <20080213231512.GB20358@flint.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@osdl.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: Alessandro Guido <alessandro.guido@gmail.com>, davej@codemonkey.org.uk, cpufreq@lists.linux.org.uk, linux-arch@vger.kernel.org
 
-[ non-urgent - 2.6.26 material ]
+Hi,
 
-Lots of asm-*/futex.h call pagefault_enable and pagefault_disable,
-which are declared in linux/uaccess.h, without including
-linux/uaccess.h.
+On Wed, 13 Feb 2008, Russell King wrote:
 
-They all include asm/uaccess.h, so this patch replaces asm/uaccess.h
-with linux/uaccess.h.
+> > No because they all depend on CPU_FREQ and as far as I understand Kconfig
+> > automagically puts them under the same menu.
+> 
+> Hmm, that's not documented behaviour.  If we're starting to rely on that
+> maybe it should be documented as being the expected behaviour?
 
-Compile-tested on sparc64, x86, ia64, mips, and powerpc.
+It is. :)
+Look for "Menu structure" in kconfig-language.txt.
 
-Signed-off-by: Jeff Dike <jdike@linux.intel.com>
----
- include/asm-generic/futex.h |    2 +-
- include/asm-ia64/futex.h    |    2 +-
- include/asm-mips/futex.h    |    2 +-
- include/asm-parisc/futex.h  |    2 +-
- include/asm-powerpc/futex.h |    2 +-
- include/asm-sh/futex.h      |    2 +-
- include/asm-sparc64/futex.h |    2 +-
- include/asm-x86/futex.h     |    2 +-
- 8 files changed, 8 insertions(+), 8 deletions(-)
-
-Index: linux-2.6.22/include/asm-generic/futex.h
-===================================================================
---- linux-2.6.22.orig/include/asm-generic/futex.h	2008-02-12 12:47:49.000000000 -0500
-+++ linux-2.6.22/include/asm-generic/futex.h	2008-02-12 12:47:52.000000000 -0500
-@@ -4,8 +4,8 @@
- #ifdef __KERNEL__
- 
- #include <linux/futex.h>
-+#include <linux/uaccess.h>
- #include <asm/errno.h>
--#include <asm/uaccess.h>
- 
- static inline int
- futex_atomic_op_inuser (int encoded_op, int __user *uaddr)
-Index: linux-2.6.22/include/asm-ia64/futex.h
-===================================================================
---- linux-2.6.22.orig/include/asm-ia64/futex.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.22/include/asm-ia64/futex.h	2008-02-12 12:49:31.000000000 -0500
-@@ -2,9 +2,9 @@
- #define _ASM_FUTEX_H
- 
- #include <linux/futex.h>
-+#include <linux/uaccess.h>
- #include <asm/errno.h>
- #include <asm/system.h>
--#include <asm/uaccess.h>
- 
- #define __futex_atomic_op1(insn, ret, oldval, uaddr, oparg) \
- do {									\
-Index: linux-2.6.22/include/asm-mips/futex.h
-===================================================================
---- linux-2.6.22.orig/include/asm-mips/futex.h	2007-12-05 10:29:35.000000000 -0500
-+++ linux-2.6.22/include/asm-mips/futex.h	2008-02-12 12:49:49.000000000 -0500
-@@ -11,9 +11,9 @@
- #ifdef __KERNEL__
- 
- #include <linux/futex.h>
-+#include <linux/uaccess.h>
- #include <asm/barrier.h>
- #include <asm/errno.h>
--#include <asm/uaccess.h>
- #include <asm/war.h>
- 
- #define __futex_atomic_op(insn, ret, oldval, uaddr, oparg)		\
-Index: linux-2.6.22/include/asm-parisc/futex.h
-===================================================================
---- linux-2.6.22.orig/include/asm-parisc/futex.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.22/include/asm-parisc/futex.h	2008-02-12 12:50:03.000000000 -0500
-@@ -4,8 +4,8 @@
- #ifdef __KERNEL__
- 
- #include <linux/futex.h>
-+#include <linux/uaccess.h>
- #include <asm/errno.h>
--#include <asm/uaccess.h>
- 
- static inline int
- futex_atomic_op_inuser (int encoded_op, int __user *uaddr)
-Index: linux-2.6.22/include/asm-powerpc/futex.h
-===================================================================
---- linux-2.6.22.orig/include/asm-powerpc/futex.h	2007-07-08 19:32:17.000000000 -0400
-+++ linux-2.6.22/include/asm-powerpc/futex.h	2008-02-12 12:50:22.000000000 -0500
-@@ -4,9 +4,9 @@
- #ifdef __KERNEL__
- 
- #include <linux/futex.h>
-+#include <linux/uaccess.h>
- #include <asm/errno.h>
- #include <asm/synch.h>
--#include <asm/uaccess.h>
- #include <asm/asm-compat.h>
- 
- #define __futex_atomic_op(insn, ret, oldval, uaddr, oparg) \
-Index: linux-2.6.22/include/asm-sh/futex.h
-===================================================================
---- linux-2.6.22.orig/include/asm-sh/futex.h	2007-10-12 12:07:06.000000000 -0400
-+++ linux-2.6.22/include/asm-sh/futex.h	2008-02-12 12:51:17.000000000 -0500
-@@ -4,8 +4,8 @@
- #ifdef __KERNEL__
- 
- #include <linux/futex.h>
-+#include <linux/uaccess.h>
- #include <asm/errno.h>
--#include <asm/uaccess.h>
- 
- /* XXX: UP variants, fix for SH-4A and SMP.. */
- #include <asm/futex-irq.h>
-Index: linux-2.6.22/include/asm-sparc64/futex.h
-===================================================================
---- linux-2.6.22.orig/include/asm-sparc64/futex.h	2007-11-14 10:33:41.000000000 -0500
-+++ linux-2.6.22/include/asm-sparc64/futex.h	2008-02-12 12:51:35.000000000 -0500
-@@ -2,9 +2,9 @@
- #define _SPARC64_FUTEX_H
- 
- #include <linux/futex.h>
-+#include <linux/uaccess.h>
- #include <asm/errno.h>
- #include <asm/system.h>
--#include <asm/uaccess.h>
- 
- #define __futex_cas_op(insn, ret, oldval, uaddr, oparg)	\
- 	__asm__ __volatile__(				\
-Index: linux-2.6.22/include/asm-x86/futex.h
-===================================================================
---- linux-2.6.22.orig/include/asm-x86/futex.h	2008-02-05 12:25:21.000000000 -0500
-+++ linux-2.6.22/include/asm-x86/futex.h	2008-02-12 12:51:51.000000000 -0500
-@@ -4,12 +4,12 @@
- #ifdef __KERNEL__
- 
- #include <linux/futex.h>
-+#include <linux/uaccess.h>
- 
- #include <asm/asm.h>
- #include <asm/errno.h>
- #include <asm/processor.h>
- #include <asm/system.h>
--#include <asm/uaccess.h>
- 
- #define __futex_atomic_op1(insn, ret, oldval, uaddr, oparg)	\
-   __asm__ __volatile(						\
+bye, Roman
