@@ -1,90 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from monty.telenet-ops.be ([195.130.132.56]:60861 "EHLO
-	monty.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1765221AbYBNTqK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2008 14:46:10 -0500
-Date: Thu, 14 Feb 2008 20:46:05 +0100 (CET)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 12/14] fs/binfmt_aout.c: Use time_* macros
-In-Reply-To: <1203003412-11594-13-git-send-email-caglar@pardus.org.tr>
-Message-ID: <Pine.LNX.4.64.0802142044470.12316@anakin>
-References: y <1203003412-11594-13-git-send-email-caglar@pardus.org.tr>
+Received: from pentafluge.infradead.org ([213.146.154.40]:32806 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754516AbYBNUfD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2008 15:35:03 -0500
+Date: Thu, 14 Feb 2008 12:32:29 -0800
+From: Greg KH <greg@kroah.com>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+Message-ID: <20080214203229.GC16545@kroah.com>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080214232229.f7bdc6ac.sfr@canb.auug.org.au> <alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org> <200802141332.03315.gene.heskett@gmail.com>
 MIME-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="-1463808512-737208374-1203018365=:12316"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <200802141332.03315.gene.heskett@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?utf-8?q?S=2E=C3=87a=C4=9Flar=20Onur?= <caglar@pardus.org.tr>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Gene Heskett <gene.heskett@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
-
----1463808512-737208374-1203018365=:12316
-Content-Type: TEXT/PLAIN; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
-
-On Thu, 14 Feb 2008, S.Ã~GaÄ~_lar Onur wrote:
-> The functions time_before, time_before_eq, time_after, and time_after_eq are more robust for comparing jiffies against other values.
+On Thu, Feb 14, 2008 at 01:32:02PM -0500, Gene Heskett wrote:
+> On Thursday 14 February 2008, Linus Torvalds wrote:
+> [...]
+> >And this is where "process" really matters. Making sure people don't get
+> >too frustrated about the constant grind.
 > 
-> So following patch implements usage of the time_after() macro, defined at linux/jiffies.h, which deals with wrapping correctly
+> One of the problems caused by this 'grind' is being locked out of using 3rd 
+> party closed drivers until the vendor decides its stable enough to make the 
+> effort to update their binary blobs to match the newer functions.
 > 
-> Cc: linux-arch@vger.kernel.org
-> Signed-off-by: S.Ã‡aÄŸlar Onur <caglar@pardus.org.tr>
-> ---
->  fs/binfmt_aout.c |    7 ++++---
->  1 files changed, 4 insertions(+), 3 deletions(-)
-> 
-> diff --git a/fs/binfmt_aout.c b/fs/binfmt_aout.c
-> index a1bb224..72757fe 100644
-> --- a/fs/binfmt_aout.c
-> +++ b/fs/binfmt_aout.c
-> @@ -6,6 +6,7 @@
->  
->  #include <linux/module.h>
->  
-> +#include <linux/jiffies.h>
->  #include <linux/time.h>
->  #include <linux/kernel.h>
->  #include <linux/mm.h>
-> @@ -374,14 +375,14 @@ static int load_aout_binary(struct linux_binprm * bprm, struct pt_regs * regs)
->  	} else {
->  		static unsigned long error_time, error_time2;
->  		if ((ex.a_text & 0xfff || ex.a_data & 0xfff) &&
-> -		    (N_MAGIC(ex) != NMAGIC) && (jiffies-error_time2) > 5*HZ)
-> +		    (N_MAGIC(ex) != NMAGIC) && time_after(jiffies, error_time2 + 5 * HZ))
->  		{
->  			printk(KERN_NOTICE "executable not page aligned\n");
->  			error_time2 = jiffies;
->  		}
->
->  
->  		if ((fd_offset & ~PAGE_MASK) != 0 &&
-> -		    (jiffies-error_time) > 5*HZ)
-> +		    time_after(jiffies, error_time + 5 * HZ))
->  		{
->  			printk(KERN_WARNING 
->  			       "fd_offset is not page aligned. Please convert program: %s\n",
-> @@ -498,7 +499,7 @@ static int load_aout_library(struct file *file)
->  		static unsigned long error_time;
->  		loff_t pos = N_TXTOFF(ex);
->  
-> -		if ((jiffies-error_time) > 5*HZ)
-> +		if (time_after(jiffies ,error_time + 5 * HZ))
->  		{
->  			printk(KERN_WARNING 
->  			       "N_TXTOFF is not page aligned. Please convert library: %s\n",
+> Nvidia vs 2.6.25-rc1 being a case in point, and they (nvidia) are appearing to 
+> indicate its not a problem until some distro actually ships a kernel with the 
+> changes that broke it.  That could be months or even a year plus.
 
-To me these constructs look like good candidates for replacement by
-printk_ratelimit()?
+How about "weeks".  Both Fedora and openSUSE's next release is going to
+be based on 2.6.25, and the first round of -rc1 kernels should be
+showing up in their trees in a few days.  So for this instance, I think
+you will be fine :)
 
-Gr{oetje,eeting}s,
+thanks,
 
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
----1463808512-737208374-1203018365=:12316--
+greg k-h
