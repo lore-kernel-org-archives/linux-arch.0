@@ -1,90 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.uludag.org.tr ([193.140.100.220]:48254 "EHLO uludag.org.tr"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755227AbYBOBVy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Feb 2008 20:21:54 -0500
-From: "=?utf-8?q?S=2E=C3=87a=C4=9Flar?= Onur" <caglar@pardus.org.tr>
-Reply-To: caglar@pardus.org.tr
-Subject: Re: [PATCH 12/14] fs/binfmt_aout.c: Use time_* macros
-Date: Fri, 15 Feb 2008 03:19:21 +0200
-References: <1203003412-11594-13-git-send-email-caglar@pardus.org.tr> <Pine.LNX.4.64.0802142044470.12316@anakin>
-In-Reply-To: <Pine.LNX.4.64.0802142044470.12316@anakin>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 8bit
-Content-Disposition: inline
-Message-Id: <200802150319.23446.caglar@pardus.org.tr>
+Received: from turing-police.cc.vt.edu ([128.173.14.107]:36988 "EHLO
+	turing-police.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757466AbYBOGaU (ORCPT
+	<RFC822;linux-arch@vger.kernel.org>); Fri, 15 Feb 2008 01:30:20 -0500
+Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
+In-reply-to: Your message of "Thu, 14 Feb 2008 13:32:02 EST."
+             <200802141332.03315.gene.heskett@gmail.com>
+From: Valdis.Kletnieks@vt.edu
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080214232229.f7bdc6ac.sfr@canb.auug.org.au> <alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org>
+            <200802141332.03315.gene.heskett@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Date: Fri, 15 Feb 2008 01:29:14 -0500
+Message-ID: <4367.1203056954@turing-police.cc.vt.edu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Gene Heskett <gene.heskett@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
 
-14 Şub 2008 Per tarihinde, Geert Uytterhoeven şunları yazmıştı: 
-> To me these constructs look like good candidates for replacement by
-> printk_ratelimit()?
-> 
-> Gr{oetje,eeting}s,
+On Thu, 14 Feb 2008 13:32:02 EST, Gene Heskett said:
 
-What about something like following?
+> Nvidia vs 2.6.25-rc1 being a case in point, and they (nvidia) are appearing to 
+> indicate its not a problem until some distro actually ships a kernel with the
+> changes that broke it.  That could be months or even a year plus.
 
+Actually following the NVidia forums indicates otherwise:
 
-Use printk_ratelimit() instead of jiffies based arithmetic, suggested by Geert Uytterhoeven
+http://www.nvnews.net/vbulletin/showthread.php?t=107144
 
-Signed-off-by: S.Çağlar Onur <caglar@pardus.org.tr>
+I expect Zander will be posting a patch rather soonish, for some value of
+soonish.  And if you're running a -rc or -mm kernel, patching the 169.09
+drivers should be well within your abilities....
 
- fs/binfmt_aout.c |   12 +++---------
- 1 files changed, 3 insertions(+), 9 deletions(-)
-
-diff --git a/fs/binfmt_aout.c b/fs/binfmt_aout.c
-index a1bb224..ba4cddb 100644
---- a/fs/binfmt_aout.c
-+++ b/fs/binfmt_aout.c
-@@ -372,21 +372,17 @@ static int load_aout_binary(struct linux_binprm * bprm, struct pt_regs * regs)
- 			 
- 		flush_icache_range(text_addr, text_addr+ex.a_text+ex.a_data);
- 	} else {
--		static unsigned long error_time, error_time2;
- 		if ((ex.a_text & 0xfff || ex.a_data & 0xfff) &&
--		    (N_MAGIC(ex) != NMAGIC) && (jiffies-error_time2) > 5*HZ)
-+		    (N_MAGIC(ex) != NMAGIC) && printk_ratelimit())
- 		{
- 			printk(KERN_NOTICE "executable not page aligned\n");
--			error_time2 = jiffies;
- 		}
- 
--		if ((fd_offset & ~PAGE_MASK) != 0 &&
--		    (jiffies-error_time) > 5*HZ)
-+		if ((fd_offset & ~PAGE_MASK) != 0 && printk_ratelimit())
- 		{
- 			printk(KERN_WARNING 
- 			       "fd_offset is not page aligned. Please convert program: %s\n",
- 			       bprm->file->f_path.dentry->d_name.name);
--			error_time = jiffies;
- 		}
- 
- 		if (!bprm->file->f_op->mmap||((fd_offset & ~PAGE_MASK) != 0)) {
-@@ -495,15 +491,13 @@ static int load_aout_library(struct file *file)
- 	start_addr =  ex.a_entry & 0xfffff000;
- 
- 	if ((N_TXTOFF(ex) & ~PAGE_MASK) != 0) {
--		static unsigned long error_time;
- 		loff_t pos = N_TXTOFF(ex);
- 
--		if ((jiffies-error_time) > 5*HZ)
-+		if (printk_ratelimit())
- 		{
- 			printk(KERN_WARNING 
- 			       "N_TXTOFF is not page aligned. Please convert library: %s\n",
- 			       file->f_path.dentry->d_name.name);
--			error_time = jiffies;
- 		}
- 		down_write(&current->mm->mmap_sem);
- 		do_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
-
-Cheers
--- 
-S.Çağlar Onur <caglar@pardus.org.tr>
-http://cekirdek.pardus.org.tr/~caglar/
-
-Linux is like living in a teepee. No Windows, no Gates and an Apache in house!
