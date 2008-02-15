@@ -1,68 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:56800 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756197AbYBOBMo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Feb 2008 20:12:44 -0500
-Date: Fri, 15 Feb 2008 02:11:45 +0100
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-Message-ID: <20080215011145.GA5934@elte.hu>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080212042133.GA4625@kroah.com> <20080211203146.3d28d1a0@laptopd505.fenrus.org> <1202791555.20739.6.camel@heimdal.trondhjem.org> <20080212051136.GA12802@mit.edu> <20080211221535.bc0dc9cf.akpm@linux-foundation.org> <20080212225716.cf695fe4.sfr@canb.auug.org.au> <20080214081405.GA20791@flint.arm.linux.org.uk> <20080214232229.f7bdc6ac.sfr@canb.auug.org.au> <alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org>
+Received: from ns2.uludag.org.tr ([193.140.100.220]:48254 "EHLO uludag.org.tr"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1755227AbYBOBVy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Feb 2008 20:21:54 -0500
+From: "=?utf-8?q?S=2E=C3=87a=C4=9Flar?= Onur" <caglar@pardus.org.tr>
+Reply-To: caglar@pardus.org.tr
+Subject: Re: [PATCH 12/14] fs/binfmt_aout.c: Use time_* macros
+Date: Fri, 15 Feb 2008 03:19:21 +0200
+References: <1203003412-11594-13-git-send-email-caglar@pardus.org.tr> <Pine.LNX.4.64.0802142044470.12316@anakin>
+In-Reply-To: <Pine.LNX.4.64.0802142044470.12316@anakin>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 8bit
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org>
+Message-Id: <200802150319.23446.caglar@pardus.org.tr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
-
-> On Thu, 14 Feb 2008, Stephen Rothwell wrote:
-> > 
-> > Originally, I assumed the stable branch would be for our "usual" API 
-> > changes, but it appears we are not having any more of those. :-)
+14 Şub 2008 Per tarihinde, Geert Uytterhoeven şunları yazmıştı: 
+> To me these constructs look like good candidates for replacement by
+> printk_ratelimit()?
 > 
-> It's not that we should _never_ have them, it's that they shouldn't be 
-> "business as usual".
-> 
-> I'm happy with them being a "a couple of times a year". I'm not happy 
-> with them being "once or twice for every release cycle". That's the 
-> big deal for me.
+> Gr{oetje,eeting}s,
 
-very much agreed. I've yet to see a _single_ wide-scale API change that 
-broke stuff left and right where that breakage was technically 
-justified. I have not seen a single one.
+What about something like following?
 
-All those cases were just plain old botched attempts. Either someone can 
-do a large-scale API change like the irq_regs() cleanups with near-zero 
-breakages, or someone cannot. In the latter case, gradual introduction 
-and trickling it through subsystem trees is a _must_.
 
-and if it's _hard_ to do a particular large-scale change, then i think 
-the right answer is to _not do it_ in a large-scale way, but do it 
-gradually.
+Use printk_ratelimit() instead of jiffies based arithmetic, suggested by Geert Uytterhoeven
 
-I claim that there's just not a single valid case of doing wide-scale 
-changes atomically and departing from the current to-be-stabilized 
-kernel tree materially. _Every_ large-scale API change can be done in a 
-staged way, with each subsystem adopting to the change at their own 
-pace, it just has to be planned well and tested well enough and has to 
-be executed persistently. And the moment we trickle things through 
-subsystem trees, there's no integration pain, as subsystem trees are 
-largely disjunct anyway.
+Signed-off-by: S.Çağlar Onur <caglar@pardus.org.tr>
 
-i also fear that having an API-changes-only tree will dillute our 
-testing effort of the current to-be-stabilized upstream tree, as it 
-materially disrupts the flow of patches. Most maintainers should 
-concentrate on stabilizing current -git with only one serial queue of 
-fixes and enhancements ontop of that tree. I dont see how having a 
-second queue would help - it clearly splits attention.
+ fs/binfmt_aout.c |   12 +++---------
+ 1 files changed, 3 insertions(+), 9 deletions(-)
 
-widescale API changes should be discouraged, and forcing them through 
-the harder, "gradual, per subsystem" route is _exactly_ such a strong 
-force that discourages people from doing them.
+diff --git a/fs/binfmt_aout.c b/fs/binfmt_aout.c
+index a1bb224..ba4cddb 100644
+--- a/fs/binfmt_aout.c
++++ b/fs/binfmt_aout.c
+@@ -372,21 +372,17 @@ static int load_aout_binary(struct linux_binprm * bprm, struct pt_regs * regs)
+ 			 
+ 		flush_icache_range(text_addr, text_addr+ex.a_text+ex.a_data);
+ 	} else {
+-		static unsigned long error_time, error_time2;
+ 		if ((ex.a_text & 0xfff || ex.a_data & 0xfff) &&
+-		    (N_MAGIC(ex) != NMAGIC) && (jiffies-error_time2) > 5*HZ)
++		    (N_MAGIC(ex) != NMAGIC) && printk_ratelimit())
+ 		{
+ 			printk(KERN_NOTICE "executable not page aligned\n");
+-			error_time2 = jiffies;
+ 		}
+ 
+-		if ((fd_offset & ~PAGE_MASK) != 0 &&
+-		    (jiffies-error_time) > 5*HZ)
++		if ((fd_offset & ~PAGE_MASK) != 0 && printk_ratelimit())
+ 		{
+ 			printk(KERN_WARNING 
+ 			       "fd_offset is not page aligned. Please convert program: %s\n",
+ 			       bprm->file->f_path.dentry->d_name.name);
+-			error_time = jiffies;
+ 		}
+ 
+ 		if (!bprm->file->f_op->mmap||((fd_offset & ~PAGE_MASK) != 0)) {
+@@ -495,15 +491,13 @@ static int load_aout_library(struct file *file)
+ 	start_addr =  ex.a_entry & 0xfffff000;
+ 
+ 	if ((N_TXTOFF(ex) & ~PAGE_MASK) != 0) {
+-		static unsigned long error_time;
+ 		loff_t pos = N_TXTOFF(ex);
+ 
+-		if ((jiffies-error_time) > 5*HZ)
++		if (printk_ratelimit())
+ 		{
+ 			printk(KERN_WARNING 
+ 			       "N_TXTOFF is not page aligned. Please convert library: %s\n",
+ 			       file->f_path.dentry->d_name.name);
+-			error_time = jiffies;
+ 		}
+ 		down_write(&current->mm->mmap_sem);
+ 		do_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
 
-	Ingo
+Cheers
+-- 
+S.Çağlar Onur <caglar@pardus.org.tr>
+http://cekirdek.pardus.org.tr/~caglar/
+
+Linux is like living in a teepee. No Windows, no Gates and an Apache in house!
