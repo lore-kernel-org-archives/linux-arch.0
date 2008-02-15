@@ -1,67 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from turing-police.cc.vt.edu ([128.173.14.107]:37724 "EHLO
-	turing-police.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755775AbYBOOxW (ORCPT
-	<RFC822;linux-arch@vger.kernel.org>); Fri, 15 Feb 2008 09:53:22 -0500
+Received: from smtp-out0.tiscali.nl ([195.241.79.175]:56866 "EHLO
+	smtp-out0.tiscali.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756144AbYBOXGY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Feb 2008 18:06:24 -0500
+Message-ID: <47B61AD7.80902@tiscali.nl>
+Date: Sat, 16 Feb 2008 00:05:59 +0100
+From: Roel Kluin <12o3l@tiscali.nl>
+MIME-Version: 1.0
 Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-In-Reply-To: Your message of "Fri, 15 Feb 2008 04:26:45 EST."
-             <200802150426.46351.gene.heskett@gmail.com>
-From: Valdis.Kletnieks@vt.edu
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <200802141332.03315.gene.heskett@gmail.com> <4367.1203056954@turing-police.cc.vt.edu>
-            <200802150426.46351.gene.heskett@gmail.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1203087132_2934P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
+References: <20080211203146.3d28d1a0@laptopd505.fenrus.org>	<20080212044314.GA4888@kroah.com>	<20080211211751.3e265754@laptopd505.fenrus.org>	<20080211.221126.230471463.davem@davemloft.net>	<47B1CB08.4020101@garzik.org>	<alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>	<20080212174824.GA1919@kroah.com>	<alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org>	<20080212191552.GA20883@kroah.com>	<alpine.LFD.1.00.0802121133210.2920@woody.linux-foundation.org>	<47B32510.20200@tiscali.nl> <20080213180833.50019be7@core>
+In-Reply-To: <20080213180833.50019be7@core>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Date: Fri, 15 Feb 2008 09:52:12 -0500
-Message-ID: <12457.1203087132@turing-police.cc.vt.edu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gene Heskett <gene.heskett@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Greg KH <greg@kroah.com>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
---==_Exmh_1203087132_2934P
-Content-Type: text/plain; charset=us-ascii
-
-On Fri, 15 Feb 2008 04:26:45 EST, Gene Heskett said:
-> On Friday 15 February 2008, Valdis.Kletnieks@vt.edu wrote:
-> >On Thu, 14 Feb 2008 13:32:02 EST, Gene Heskett said:
-> >> Nvidia vs 2.6.25-rc1 being a case in point, and they (nvidia) are
-> >> appearing to indicate its not a problem until some distro actually ships a
-> >> kernel with the changes that broke it.  That could be months or even a
-> >> year plus.
-> >
-> >Actually following the NVidia forums indicates otherwise:
-> >
-> >http://www.nvnews.net/vbulletin/showthread.php?t=107144
-> >
-> >I expect Zander will be posting a patch rather soonish, for some value of
-> >soonish.  And if you're running a -rc or -mm kernel, patching the 169.09
-> >drivers should be well within your abilities....
+Alan Cox wrote:
+>> Evolution in nature and changes in code are different because in code junk
+>> and bugs are constantly removed. In biology junk is allowed and may provide
+>> a pool for future development. Linux development is intended and not
+>> survival.
 > 
-> Not so for the binaries, existing patches do make it compile but it still 
-> upchucks someplace in the binary, or was this time yesterday.
+> I would be interested to see any evidence (rather than intuition) to
+> support that, given that both appear to be the same kind of structure and
+> that structure is nowadays fairly well understood.
 
-Umm.. if you actually *read* the mentioned thread, you'll see that "existing
-patches" are known to be incomplete, complete with the "upchucks in the binary"
-(mentioned at entry number 9 of the thread), and that Zander already knows
-about it (entry #11), and has apparently one remaining issue left to resolve
-(entries #32 and #36).
+What do you mean with structure, the evolution? that both are a language?
 
-And entry #36 is what the NVidia engineer doing the work was thinking about
-20 hours ago.  Interpret it as you will...
-
-
---==_Exmh_1203087132_2934P
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.8 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
-
-iD8DBQFHtacccC3lWbTT17ARAoR3AKD8wYjftIHG/CBMaviLfafZATVMwgCgsS9i
-SQJh5SNXQzo8FRMfUWFS9d8=
-=2g2/
------END PGP SIGNATURE-----
-
---==_Exmh_1203087132_2934P--
