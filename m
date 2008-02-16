@@ -1,55 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:45851 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751911AbYBPIJN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 16 Feb 2008 03:09:13 -0500
-Date: Sat, 16 Feb 2008 08:08:41 +0000
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-Message-ID: <20080216080841.GA19396@flint.arm.linux.org.uk>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080216000943.GD31474@flint.arm.linux.org.uk> <20080215162121.317c7c1c.akpm@linux-foundation.org> <20080216004249.GA3263@martell.zuzino.mipt.ru>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080216004249.GA3263@martell.zuzino.mipt.ru>
+Received: from www.tglx.de ([62.245.132.106]:56460 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752857AbYBPLR2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 16 Feb 2008 06:17:28 -0500
+Date: Sat, 16 Feb 2008 12:16:07 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
+In-Reply-To: <Pine.LNX.4.64.0802130824500.8857@anakin>
+Message-ID: <alpine.LFD.1.00.0802161155270.7583@apollo.tec.linutronix.de>
+References: <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <20080212.155853.193190548.davem@davemloft.net> <20080213002948.GA8899@kroah.com> <alpine.LFD.1.00.0802121645320.2920@woody.linux-foundation.org>
+ <20080213061653.GA10784@kroah.com> <Pine.LNX.4.64.0802130824500.8857@anakin>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Greg KH <greg@kroah.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-On Sat, Feb 16, 2008 at 03:42:49AM +0300, Alexey Dobriyan wrote:
-> On Fri, Feb 15, 2008 at 04:21:21PM -0800, Andrew Morton wrote:
-> > On Sat, 16 Feb 2008 00:09:43 +0000
-> > Russell King <rmk+lkml@arm.linux.org.uk> wrote:
-> > 
-> > > For reference, even _I_ don't build test the entire set of ARM defconfigs -
-> > > at about 7 minutes a build, 75 defconfigs, that's about 9 hours...  I
-> > > just build those which are important to myself, hope that the others are
-> > > fine, and rely on kautobuild finding any breakage.
+On Wed, 13 Feb 2008, Geert Uytterhoeven wrote:
+> On Tue, 12 Feb 2008, Greg KH wrote:
+> > On Tue, Feb 12, 2008 at 04:49:46PM -0800, Linus Torvalds wrote:
+> > > On Tue, 12 Feb 2008, Greg KH wrote:
+> > > > Perhaps you need to switch to using quilt.  This is the main reason why
+> > > > I use it.
 > > > 
+> > > Btw, on that note: if some quilt user can send an "annotated history file" 
+> > > of their quilt usage, it's something that git really can do, and I'll see 
+> > > if I can merge (or rather, coax Junio to merge) the relevant part of stgit 
+> > > to make it possible to just basically get "quilt behaviour" for the parts 
+> > > of a git tree that you haven't pushed out yet.
 > > 
-> > you need a better box ;)
-> > 
-> > cerfcube_defconfig:				35 seconds
-> > carmeva_defconfig:				23 seconds
-> > spitz_defconfig (one of the biggest):		45 seconds
-> > 
-> > so would a stupid `for i in arch/arm/configs/*' script be sufficient
-> > coverage?
+> > Ted's description matches mine (keep quilt tree in git, edit changelog
+> > entries, rebase on newer kernel versions, etc.)  I can go into details
+> > if needed.
 > 
-> I do this wildcard together with 
+> Ack. Same for PS3 and m68k (except I don't have the m68k patches in git (yet)).
 > 
-> 	yes '' | make ARCH=arm ... oldconfig
-> 	make
-> 
-> Sans toolchain issues, it's pretty good -- Russell larts you when some
-> defconfig becomes broken anyway. :^)
+> Two issues with using quilt:
+>   1. Sometimes a patch still applies after it was integrated upstream,
 
-Only when I check the kautobuild website - which I've not been doing
-regularly since about end of November, and it only covers Linus'
-kernels.
+Add QUILT_PATCH_OPTS="--fuzz=0" to your ~/.quiltrc file.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+The default is fuzz=2 IIRC which tries to be too clever. I set fuzz
+to 0 after I got burned by an unnoticed "quilt patched it somewhere
+else" bug, which took me half a day to figure out.
+
+Thanks,
+
+	tglx
