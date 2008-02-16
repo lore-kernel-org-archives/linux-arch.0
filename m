@@ -1,50 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:56460 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752857AbYBPLR2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 16 Feb 2008 06:17:28 -0500
-Date: Sat, 16 Feb 2008 12:16:07 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-In-Reply-To: <Pine.LNX.4.64.0802130824500.8857@anakin>
-Message-ID: <alpine.LFD.1.00.0802161155270.7583@apollo.tec.linutronix.de>
-References: <20080211211751.3e265754@laptopd505.fenrus.org> <20080211.221126.230471463.davem@davemloft.net> <47B1CB08.4020101@garzik.org> <20080212.155853.193190548.davem@davemloft.net> <20080213002948.GA8899@kroah.com> <alpine.LFD.1.00.0802121645320.2920@woody.linux-foundation.org>
- <20080213061653.GA10784@kroah.com> <Pine.LNX.4.64.0802130824500.8857@anakin>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from accolon.hansenpartnership.com ([76.243.235.52]:42186 "EHLO
+	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753486AbYBPPOh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 16 Feb 2008 10:14:37 -0500
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <20080215120222.b3263e4a.sfr@canb.auug.org.au>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+	 <adalk5np1h5.fsf@cisco.com>  <20080215120222.b3263e4a.sfr@canb.auug.org.au>
+Content-Type: text/plain
+Date: Sat, 16 Feb 2008 09:14:32 -0600
+Message-Id: <1203174872.3182.16.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Greg KH <greg@kroah.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Roland Dreier <rdreier@cisco.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
 
-On Wed, 13 Feb 2008, Geert Uytterhoeven wrote:
-> On Tue, 12 Feb 2008, Greg KH wrote:
-> > On Tue, Feb 12, 2008 at 04:49:46PM -0800, Linus Torvalds wrote:
-> > > On Tue, 12 Feb 2008, Greg KH wrote:
-> > > > Perhaps you need to switch to using quilt.  This is the main reason why
-> > > > I use it.
-> > > 
-> > > Btw, on that note: if some quilt user can send an "annotated history file" 
-> > > of their quilt usage, it's something that git really can do, and I'll see 
-> > > if I can merge (or rather, coax Junio to merge) the relevant part of stgit 
-> > > to make it possible to just basically get "quilt behaviour" for the parts 
-> > > of a git tree that you haven't pushed out yet.
+On Fri, 2008-02-15 at 12:02 +1100, Stephen Rothwell wrote:
+> Hi Roland,
+> 
+> On Thu, 14 Feb 2008 15:22:46 -0800 Roland Dreier <rdreier@cisco.com> wrote:
+> >
+> > For InfiniBand/RDMA, the tree is:
 > > 
-> > Ted's description matches mine (keep quilt tree in git, edit changelog
-> > entries, rebase on newer kernel versions, etc.)  I can go into details
-> > if needed.
+> >     master.kernel.org:/pub/scm/linux/kernel/git/roland/infiniband.git for-next
+> > 
+> > or via git protocol:
+> > 
+> >     git://git.kernel.org/pub/scm/linux/kernel/git/roland/infiniband.git for-next
+> > 
+> > contact addresses (me plus a mailing list):
+> > 
+> >     rolandd@cisco.com
+> >     general@lists.openfabrics.org
 > 
-> Ack. Same for PS3 and m68k (except I don't have the m68k patches in git (yet)).
-> 
-> Two issues with using quilt:
->   1. Sometimes a patch still applies after it was integrated upstream,
+> Added, thanks.
 
-Add QUILT_PATCH_OPTS="--fuzz=0" to your ~/.quiltrc file.
+Do you have the tree and build logs available anywhere?  I'd like to
+turn off the merge tree builds when this is able to replace it.
 
-The default is fuzz=2 IIRC which tries to be too clever. I set fuzz
-to 0 after I got burned by an unnoticed "quilt patched it somewhere
-else" bug, which took me half a day to figure out.
+James
 
-Thanks,
 
-	tglx
