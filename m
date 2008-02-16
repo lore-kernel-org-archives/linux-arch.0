@@ -1,78 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.linux-foundation.org ([207.189.120.14]:42876 "EHLO
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:37941 "EHLO
 	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758174AbYBPAMm (ORCPT
+	by vger.kernel.org with ESMTP id S1757808AbYBPAVa (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Feb 2008 19:12:42 -0500
-Date: Fri, 15 Feb 2008 16:12:08 -0800
+	Fri, 15 Feb 2008 19:21:30 -0500
+Date: Fri, 15 Feb 2008 16:21:21 -0800
 From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: Announce: Linux-next (Or Andrew's dream :-))
-Message-Id: <20080215161208.3b1e015a.akpm@linux-foundation.org>
-In-Reply-To: <20080215154724.132ad4f3.randy.dunlap@oracle.com>
-References: <20080212044314.GA4888@kroah.com>
-	<20080211211751.3e265754@laptopd505.fenrus.org>
-	<20080211.221126.230471463.davem@davemloft.net>
-	<47B1CB08.4020101@garzik.org>
-	<alpine.LFD.1.00.0802120847500.2920@woody.linux-foundation.org>
-	<20080212174824.GA1919@kroah.com>
-	<alpine.LFD.1.00.0802121011280.2920@woody.linux-foundation.org>
-	<20080212191552.GA20883@kroah.com>
-	<alpine.LFD.1.00.0802121133210.2920@woody.linux-foundation.org>
-	<20080212204813.GA21650@kroah.com>
-	<20080215232308.GC31474@flint.arm.linux.org.uk>
-	<20080215153732.a93caec7.akpm@linux-foundation.org>
-	<20080215154724.132ad4f3.randy.dunlap@oracle.com>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+Message-Id: <20080215162121.317c7c1c.akpm@linux-foundation.org>
+In-Reply-To: <20080216000943.GD31474@flint.arm.linux.org.uk>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+	<20080216000943.GD31474@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <randy.dunlap@oracle.com>
-Cc: rmk+lkml@arm.linux.org.uk, greg@kroah.com, torvalds@linux-foundation.org, jeff@garzik.org, davem@davemloft.net, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 
-On Fri, 15 Feb 2008 15:47:24 -0800
-Randy Dunlap <randy.dunlap@oracle.com> wrote:
+On Sat, 16 Feb 2008 00:09:43 +0000
+Russell King <rmk+lkml@arm.linux.org.uk> wrote:
 
-> On Fri, 15 Feb 2008 15:37:32 -0800 Andrew Morton wrote:
+> For reference, even _I_ don't build test the entire set of ARM defconfigs -
+> at about 7 minutes a build, 75 defconfigs, that's about 9 hours...  I
+> just build those which are important to myself, hope that the others are
+> fine, and rely on kautobuild finding any breakage.
 > 
-> > On Fri, 15 Feb 2008 23:23:08 +0000
-> > Russell King <rmk+lkml@arm.linux.org.uk> wrote:
-> > 
-> > > On Tue, Feb 12, 2008 at 12:48:13PM -0800, Greg KH wrote:
-> > > > I have tried, and successfully done this many times in the past.  The
-> > > > kobject change was one example: add a new function, migrate all users of
-> > > > a direct pointer over to that function, after that work is all done and
-> > > > in, change the structure and do the needed work afterward.  All is
-> > > > bisectable completly, with no big "flag day" needed.
-> > > 
-> > > Incorrect - because this all happened far too quickly.  This is one of
-> > > the reasons that I ended up having to redo various parts of the ARM tree
-> > > because stuff broke - set_kset_name() completely vanished introducing
-> > > compile errors, and iirc some merge issues as well.
-> > > 
-> > > I had patches introducing new system objects which use that, and
-> > > modifications extremely close to other uses in the PXA code.
-> > > 
-> > > The end result (through rebuilding the affected parts of my git tree, and
-> > > asking people for replacement patches) was something that is bisectable -
-> > > but had I tried to merge stuff as is, it would've been an utter mess, and
-> > > _was_ unbuildable.
-> > > 
-> > 
-> > I wonder why I didn't see any of this - I build arm allmodconfig at least
-> > once a week, usually more frequently.
-> > 
-> > So either the offending patches weren't in my pile or arm allmodconfig is
-> > worse than I thought :(
-> > 
-> > It really is in arch maintainers' best interest to keep their allmodconfig
-> > in good shape, for this reason.  arm's _isn't_ in good shape: the compile
-> > fails for several long-standing reasons (eg: no hope of building DRM) and I
-> > don't think the coverage is very broad either.
-> 
-> I think that Russell has said that allmodconfig isn't very realistic
-> for ARM, with its 70+ config files.
 
-You'd need to pick one board support and enable everything else you
-possibly can.
+you need a better box ;)
 
+cerfcube_defconfig:				35 seconds
+carmeva_defconfig:				23 seconds
+spitz_defconfig (one of the biggest):		45 seconds
+
+so would a stupid `for i in arch/arm/configs/*' script be sufficient
+coverage?
