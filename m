@@ -1,47 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rv-out-0910.google.com ([209.85.198.188]:50789 "EHLO
-	rv-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754384AbYBPAnE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Feb 2008 19:43:04 -0500
-Received: by rv-out-0910.google.com with SMTP id k20so633946rvb.1
-        for <linux-arch@vger.kernel.org>; Fri, 15 Feb 2008 16:43:02 -0800 (PST)
-Date: Sat, 16 Feb 2008 03:42:49 +0300
+Received: from smtp2.linux-foundation.org ([207.189.120.14]:50674 "EHLO
+	smtp2.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752625AbYBPAp5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Feb 2008 19:45:57 -0500
+Date: Fri, 15 Feb 2008 16:45:43 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-Message-ID: <20080216004249.GA3263@martell.zuzino.mipt.ru>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080216000943.GD31474@flint.arm.linux.org.uk> <20080215162121.317c7c1c.akpm@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080215162121.317c7c1c.akpm@linux-foundation.org>
-From: Alexey Dobriyan <adobriyan@gmail.com>
+Message-Id: <20080215164543.e8a808ba.akpm@linux-foundation.org>
+In-Reply-To: <20080216003136.GG31474@flint.arm.linux.org.uk>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+	<20080216000943.GD31474@flint.arm.linux.org.uk>
+	<20080215162121.317c7c1c.akpm@linux-foundation.org>
+	<20080216003136.GG31474@flint.arm.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 
-On Fri, Feb 15, 2008 at 04:21:21PM -0800, Andrew Morton wrote:
-> On Sat, 16 Feb 2008 00:09:43 +0000
-> Russell King <rmk+lkml@arm.linux.org.uk> wrote:
-> 
-> > For reference, even _I_ don't build test the entire set of ARM defconfigs -
-> > at about 7 minutes a build, 75 defconfigs, that's about 9 hours...  I
-> > just build those which are important to myself, hope that the others are
-> > fine, and rely on kautobuild finding any breakage.
-> > 
-> 
-> you need a better box ;)
-> 
-> cerfcube_defconfig:				35 seconds
-> carmeva_defconfig:				23 seconds
-> spitz_defconfig (one of the biggest):		45 seconds
-> 
-> so would a stupid `for i in arch/arm/configs/*' script be sufficient
-> coverage?
+On Sat, 16 Feb 2008 00:31:36 +0000
+Russell King <rmk+lkml@arm.linux.org.uk> wrote:
 
-I do this wildcard together with 
+> > so would a stupid `for i in arch/arm/configs/*' script be sufficient
+> > coverage?
+>
+> It will certainly improve the situation significantly, and pick up
+> on some non-ARM problems like (badge4_defconfig, since 2.6.24-git2):
 
-	yes '' | make ARCH=arm ... oldconfig
-	make
+OK, I'll toss something together.
 
-Sans toolchain issues, it's pretty good -- Russell larts you when some
-defconfig becomes broken anyway. :^)
+>  the latter seems to be because the PCMCIA changes were lost
+> on the linux-pcmcia list and the trizeps folk have probably given up.
+
+I appear to be pcmcia maintainer lately so if someone wants to dust them
+off and send them over we can see what we can do?
