@@ -1,29 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pip23.gyao.ne.jp ([125.63.38.249]:45982 "EHLO mx.gate01.com"
+Received: from gprs189-60.eurotel.cz ([160.218.189.60]:4938 "EHLO spitz.ucw.cz"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1757661AbYBUQc2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Feb 2008 11:32:28 -0500
-Date: Fri, 22 Feb 2008 01:32:02 +0900
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: DMA API Re: Remove dma_coherent_mem interface
-Message-ID: <20080221163202.GA13873@linux-sh.org>
-References: <1193864605.25899.253.camel@wirenth> <20080220171409.GB27736@parisc-linux.org>
-MIME-Version: 1.0
+	id S1755046AbYBVMWl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 22 Feb 2008 07:22:41 -0500
+Date: Sun, 17 Feb 2008 15:51:56 +0000
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: distributed module configuration
+Message-ID: <20080217155155.GA3940@ucw.cz>
+References: <20080212191552.GA20883@kroah.com> <20080212.164149.209357519.davem@davemloft.net> <20080213084541.GA8091@uranus.ravnborg.org> <20080213.005433.23276743.davem@davemloft.net>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080220171409.GB27736@parisc-linux.org>
+In-Reply-To: <20080213.005433.23276743.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: ian <spyro@f2s.com>, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, linux-scsi@vger.kernel.org, jejb@steeleye.com, kernel-discuss@handhelds.org
+To: David Miller <davem@davemloft.net>
+Cc: sam@ravnborg.org, greg@kroah.com, torvalds@linux-foundation.org, jeff@garzik.org, arjan@infradead.org, sfr@canb.auug.org.au, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kbuild@vger.kernel.org
 
-On Wed, Feb 20, 2008 at 10:14:09AM -0700, Matthew Wilcox wrote:
-> On Wed, Oct 31, 2007 at 09:03:24PM +0000, ian wrote:
-> > I'd like to ask that this not happen - there are several users of this
-> > code in the handhelds.org tree, which we hope will merge into mainline.
-> > this code is _essential_ to allow support of these devices.
+Hi!
+
+> > Does this fit what you had in mind?
 > 
-> So ... it's been 4 months.  Any new users merged?
+> Yes it does.
 > 
-The sm501 ohci is the case I had mentioned previously, that's in-tree
-now.
+> Now I'll ask if you think embedding this information in one of the C
+> files for a module would be even nicer?
+
+I kind of like to be able to grep over just Kconfig files, to find out
+what is going on...
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
