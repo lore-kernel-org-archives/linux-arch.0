@@ -1,60 +1,217 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:35133 "EHLO
-	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755474AbYBQO1v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 17 Feb 2008 09:27:51 -0500
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <20080217162559.d0b01760.sfr@canb.auug.org.au>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
-	 <adalk5np1h5.fsf@cisco.com> <20080215120222.b3263e4a.sfr@canb.auug.org.au>
-	 <1203174872.3182.16.camel@localhost.localdomain>
-	 <20080217162559.d0b01760.sfr@canb.auug.org.au>
-Content-Type: text/plain
-Date: Sun, 17 Feb 2008 08:27:45 -0600
-Message-Id: <1203258465.3082.13.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from ozlabs.org ([203.10.76.45]:45353 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751093AbYBRFQs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Feb 2008 00:16:48 -0500
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Mon, 18 Feb 2008 16:16:24 +1100
+Subject: [PATCH] iomap: Fix 64 bits resources on 32 bits
+Message-Id: <20080218051645.C38FDDDE35@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Roland Dreier <rdreier@cisco.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
+To: Linux-Arch <linux-arch@vger.kernel.org>
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Sun, 2008-02-17 at 16:25 +1100, Stephen Rothwell wrote:
-> Hi James,
-> 
-> On Sat, 16 Feb 2008 09:14:32 -0600 James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
-> >
-> > Do you have the tree and build logs available anywhere?  I'd like to
-> > turn off the merge tree builds when this is able to replace it.
-> 
-> The tree is at
-> git://git.kernel.org/pub/scm/linux/kernel/git/sfr/linux-next.git - or did
-> you mean the logs of creating the tree.
+Almost all implementations of pci_iomap() in the kernel, including
+the generic lib/iomap.c one, copies the content of a struct resource
+into unsigned long's which will break on 32 bits platforms with 64
+bits resources.
 
-Yes, the logs of creating the tree.
+This fixes all definitions of pci_iomap() to use resource_size_t. I
+also "fixed" the 64bits arch for consistency.
 
->   I currently ceate the tree
-> fairly manually (as I slowly script what can be) and so have no logs of
-> that process.
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
 
-Um, well, I've already pointed to tools that currently do this bit
-automatically.  Do you have a list of input trees anywhere?
+ arch/alpha/kernel/pci.c               |    4 ++--
+ arch/arm/mm/iomap.c                   |    4 ++--
+ arch/frv/mb93090-mb00/pci-iomap.c     |    4 ++--
+ arch/mips/lib/iomap-pci.c             |    4 ++--
+ arch/mn10300/unit-asb2305/pci-iomap.c |    4 ++--
+ arch/parisc/lib/iomap.c               |    4 ++--
+ arch/ppc/kernel/pci.c                 |    4 ++--
+ arch/sh/drivers/pci/pci.c             |    4 ++--
+ arch/sparc/lib/iomap.c                |    4 ++--
+ arch/sparc64/lib/iomap.c              |    4 ++--
+ arch/v850/kernel/rte_mb_a_pci.c       |    4 ++--
+ lib/iomap.c                           |    4 ++--
+ 12 files changed, 24 insertions(+), 24 deletions(-)
 
-> The build logs that I have some control over are at
-> http://kisskb.ellerman.id.au/kisskb/branch/9/.  I am hoping to expand on
-> the arch/config combinations over time (I have to convince my tame cross
-> compiler builder :-)).  I also hope that others will build this tree for
-> themselves and publish the results.
-
-Oh, OK ... by build I mean combine the trees and quilts into the actual
-tree.  Compiling is nice, but it's the tree construction logs I want to
-see to make sure there aren't any impending merge problems.  Most people
-verify on a fairly constant basis that their own trees actually build.
-The only problems we have are edge configurations (like arm and sparc,
-which have SCSI drivers that don't build except on those architectures).
-
-James
-
-
+--- linux-work.orig/lib/iomap.c	2008-02-18 15:22:46.000000000 +1100
++++ linux-work/lib/iomap.c	2008-02-18 16:08:36.000000000 +1100
+@@ -256,8 +256,8 @@ EXPORT_SYMBOL(ioport_unmap);
+  * */
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+Index: linux-work/arch/alpha/kernel/pci.c
+===================================================================
+--- linux-work.orig/arch/alpha/kernel/pci.c	2008-02-18 16:06:23.000000000 +1100
++++ linux-work/arch/alpha/kernel/pci.c	2008-02-18 16:08:01.000000000 +1100
+@@ -547,8 +547,8 @@ sys_pciconfig_iobase(long which, unsigne
+ 
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+Index: linux-work/arch/arm/mm/iomap.c
+===================================================================
+--- linux-work.orig/arch/arm/mm/iomap.c	2008-02-18 16:01:57.000000000 +1100
++++ linux-work/arch/arm/mm/iomap.c	2008-02-18 16:08:19.000000000 +1100
+@@ -26,8 +26,8 @@ EXPORT_SYMBOL(ioport_unmap);
+ #ifdef CONFIG_PCI
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len   = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len   = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+Index: linux-work/arch/frv/mb93090-mb00/pci-iomap.c
+===================================================================
+--- linux-work.orig/arch/frv/mb93090-mb00/pci-iomap.c	2008-02-18 16:05:58.000000000 +1100
++++ linux-work/arch/frv/mb93090-mb00/pci-iomap.c	2008-02-18 16:08:10.000000000 +1100
+@@ -13,8 +13,8 @@
+ 
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+Index: linux-work/arch/mips/lib/iomap-pci.c
+===================================================================
+--- linux-work.orig/arch/mips/lib/iomap-pci.c	2008-02-18 16:03:55.000000000 +1100
++++ linux-work/arch/mips/lib/iomap-pci.c	2008-02-18 16:11:54.000000000 +1100
+@@ -45,8 +45,8 @@ static void __iomem *ioport_map_pci(stru
+  */
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+Index: linux-work/arch/parisc/lib/iomap.c
+===================================================================
+--- linux-work.orig/arch/parisc/lib/iomap.c	2008-02-18 16:06:48.000000000 +1100
++++ linux-work/arch/parisc/lib/iomap.c	2008-02-18 16:07:54.000000000 +1100
+@@ -438,8 +438,8 @@ void ioport_unmap(void __iomem *addr)
+ /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+Index: linux-work/arch/sh/drivers/pci/pci.c
+===================================================================
+--- linux-work.orig/arch/sh/drivers/pci/pci.c	2008-02-18 16:03:02.000000000 +1100
++++ linux-work/arch/sh/drivers/pci/pci.c	2008-02-18 16:12:18.000000000 +1100
+@@ -191,8 +191,8 @@ void __init pcibios_update_irq(struct pc
+ 
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (unlikely(!len || !start))
+Index: linux-work/arch/mn10300/unit-asb2305/pci-iomap.c
+===================================================================
+--- linux-work.orig/arch/mn10300/unit-asb2305/pci-iomap.c	2008-02-18 16:11:14.000000000 +1100
++++ linux-work/arch/mn10300/unit-asb2305/pci-iomap.c	2008-02-18 16:11:22.000000000 +1100
+@@ -16,8 +16,8 @@
+  */
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+Index: linux-work/arch/ppc/kernel/pci.c
+===================================================================
+--- linux-work.orig/arch/ppc/kernel/pci.c	2008-02-18 16:08:54.000000000 +1100
++++ linux-work/arch/ppc/kernel/pci.c	2008-02-18 16:09:41.000000000 +1100
+@@ -1176,8 +1176,8 @@ void __init pci_init_resource(struct res
+ 
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len)
+Index: linux-work/arch/sparc/lib/iomap.c
+===================================================================
+--- linux-work.orig/arch/sparc/lib/iomap.c	2008-02-18 16:10:02.000000000 +1100
++++ linux-work/arch/sparc/lib/iomap.c	2008-02-18 16:10:09.000000000 +1100
+@@ -21,8 +21,8 @@ EXPORT_SYMBOL(ioport_unmap);
+ /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+Index: linux-work/arch/sparc64/lib/iomap.c
+===================================================================
+--- linux-work.orig/arch/sparc64/lib/iomap.c	2008-02-18 16:10:19.000000000 +1100
++++ linux-work/arch/sparc64/lib/iomap.c	2008-02-18 16:10:26.000000000 +1100
+@@ -21,8 +21,8 @@ EXPORT_SYMBOL(ioport_unmap);
+ /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+Index: linux-work/arch/v850/kernel/rte_mb_a_pci.c
+===================================================================
+--- linux-work.orig/arch/v850/kernel/rte_mb_a_pci.c	2008-02-18 16:10:37.000000000 +1100
++++ linux-work/arch/v850/kernel/rte_mb_a_pci.c	2008-02-18 16:10:47.000000000 +1100
+@@ -790,8 +790,8 @@ pci_free_consistent (struct pci_dev *pde
+ 
+ void __iomem *pci_iomap (struct pci_dev *dev, int bar, unsigned long max)
+ {
+-	unsigned long start = pci_resource_start (dev, bar);
+-	unsigned long len = pci_resource_len (dev, bar);
++	resource_size_t start = pci_resource_start (dev, bar);
++	resource_size_t len = pci_resource_len (dev, bar);
+ 
+ 	if (!start || len == 0)
+ 		return 0;
