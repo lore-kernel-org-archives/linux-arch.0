@@ -1,18 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59843 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:59846 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752846AbYBSG3Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1753295AbYBSG3Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 19 Feb 2008 01:29:24 -0500
-Subject: Re: [patch 1/4] PCI: split pcibios_enable_resources() out of
-	pcibios_enable_device()
+Subject: Re: [patch 2/4] ppc: make pcibios_enable_device() use
+	pcibios_enable_resources()
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Reply-To: benh@kernel.crashing.org
-In-Reply-To: <20080219044307.157131373@ldl.fc.hp.com>
+In-Reply-To: <20080219044307.479128872@ldl.fc.hp.com>
 References: <20080219043952.845136014@ldl.fc.hp.com>
-	 <20080219044307.157131373@ldl.fc.hp.com>
+	 <20080219044307.479128872@ldl.fc.hp.com>
 Content-Type: text/plain
-Date: Tue, 19 Feb 2008 17:27:14 +1100
-Message-Id: <1203402434.6740.90.camel@pasglop>
+Date: Tue, 19 Feb 2008 17:26:54 +1100
+Message-Id: <1203402414.6740.88.camel@pasglop>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,219 +22,65 @@ Cc: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org, Russell King
 
 
 On Mon, 2008-02-18 at 21:39 -0700, Bjorn Helgaas wrote:
-> plain text document attachment (make-pcibios_enable_resources)
-> On x86, pcibios_enable_device() is factored into
-> pcibios_enable_resources() and pcibios_enable_irq().  On several other
-> architectures, the functional equivalent of pcibios_enable_resources()
-> is expanded directly inside pcibios_enable_device().
+> plain text document attachment (ppc-pcibios_enable_resources)
+> pcibios_enable_device() has an almost verbatim copy of
+> pcibios_enable_resources(), (the only difference is that
+> pcibios_enable_resources() turns on PCI_COMMAND_MEMORY if
+> there's a ROM resource).
 > 
-> This splits these pcibios_enable_device() implementations to make them
-> more similar to the x86 implementation.
+> The duplication might be intentional, but I don't see any callers
+> of pcibios_enable_resources() on ppc, so I think it's more
+> likely a historical accident.
 > 
-> There should be no functional change from this patch.
+> This patch removes the duplication, making pcibios_enable_device()
+> simply call pcibios_enable_resources() as x86 does.
 > 
 > Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Ack. arch/ppc is being phased out soon anyway.
+
+Ben.
 
 > 
-> ---
->  arch/alpha/kernel/pci.c          |    8 +++++++-
->  arch/arm/kernel/bios32.c         |    9 +++++++--
->  arch/parisc/kernel/pci.c         |    6 +++++-
->  arch/powerpc/kernel/pci-common.c |   14 +++++++++-----
->  arch/sh/drivers/pci/pci.c        |    7 ++++++-
->  arch/sparc64/kernel/pci.c        |    7 ++++++-
->  arch/v850/kernel/rte_mb_a_pci.c  |    7 ++++++-
->  7 files changed, 46 insertions(+), 12 deletions(-)
-> 
-> Index: work6/arch/alpha/kernel/pci.c
+> Index: work6/arch/ppc/kernel/pci.c
 > ===================================================================
-> --- work6.orig/arch/alpha/kernel/pci.c	2008-02-18 10:43:50.000000000 -0700
-> +++ work6/arch/alpha/kernel/pci.c	2008-02-18 10:45:14.000000000 -0700
-> @@ -370,7 +370,7 @@
->  #endif
+> --- work6.orig/arch/ppc/kernel/pci.c	2008-02-18 10:43:50.000000000 -0700
+> +++ work6/arch/ppc/kernel/pci.c	2008-02-18 11:31:23.000000000 -0700
+> @@ -785,33 +785,11 @@
 >  
->  int
-> -pcibios_enable_device(struct pci_dev *dev, int mask)
-> +pcibios_enable_resources(struct pci_dev *dev, int mask)
+>  int pcibios_enable_device(struct pci_dev *dev, int mask)
 >  {
->  	u16 cmd, oldcmd;
->  	int i;
-> @@ -396,6 +396,12 @@
->  	return 0;
->  }
->  
-> +int
-> +pcibios_enable_device(struct pci_dev *dev, int mask)
-> +{
-> +	return pcibios_enable_resources(dev, mask);
-> +}
-> +
->  /*
->   *  If we set up a device for bus mastering, we need to check the latency
->   *  timer as certain firmware forgets to set it properly, as seen
-> Index: work6/arch/arm/kernel/bios32.c
-> ===================================================================
-> --- work6.orig/arch/arm/kernel/bios32.c	2008-02-18 10:43:50.000000000 -0700
-> +++ work6/arch/arm/kernel/bios32.c	2008-02-18 10:45:14.000000000 -0700
-> @@ -655,10 +655,10 @@
->  }
->  
->  /**
-> - * pcibios_enable_device - Enable I/O and memory.
-> + * pcibios_enable_resources - Enable I/O and memory.
->   * @dev: PCI device to be enabled
->   */
-> -int pcibios_enable_device(struct pci_dev *dev, int mask)
-> +int pcibios_enable_resources(struct pci_dev *dev, int mask)
->  {
->  	u16 cmd, old_cmd;
->  	int idx;
-> @@ -697,6 +697,11 @@
->  	return 0;
->  }
->  
-> +int pcibios_enable_device(struct pci_dev *dev, int mask)
-> +{
-> +	return pcibios_enable_resources(dev, mask);
-> +}
-> +
->  int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
->  			enum pci_mmap_state mmap_state, int write_combine)
->  {
-> Index: work6/arch/parisc/kernel/pci.c
-> ===================================================================
-> --- work6.orig/arch/parisc/kernel/pci.c	2008-02-18 10:43:50.000000000 -0700
-> +++ work6/arch/parisc/kernel/pci.c	2008-02-18 10:45:14.000000000 -0700
-> @@ -285,7 +285,7 @@
->   * Drivers that do not need parity (eg graphics and possibly networking)
->   * can clear these bits if they want.
->   */
-> -int pcibios_enable_device(struct pci_dev *dev, int mask)
-> +int pcibios_enable_resources(struct pci_dev *dev, int mask)
->  {
->  	u16 cmd;
->  	int idx;
-> @@ -317,6 +317,10 @@
->  	return 0;
->  }
->  
-> +int pcibios_enable_device(struct pci_dev *dev, int mask)
-> +{
-> +	return pcibios_enable_resources(dev, mask);
-> +}
->  
->  /* PA-RISC specific */
->  void pcibios_register_hba(struct pci_hba_data *hba)
-> Index: work6/arch/powerpc/kernel/pci-common.c
-> ===================================================================
-> --- work6.orig/arch/powerpc/kernel/pci-common.c	2008-02-18 10:43:50.000000000 -0700
-> +++ work6/arch/powerpc/kernel/pci-common.c	2008-02-18 10:45:14.000000000 -0700
-> @@ -1153,16 +1153,12 @@
->  EXPORT_SYMBOL_GPL(pcibios_claim_one_bus);
->  #endif /* CONFIG_HOTPLUG */
->  
-> -int pcibios_enable_device(struct pci_dev *dev, int mask)
-> +int pcibios_enable_resources(struct pci_dev *dev, int mask)
->  {
->  	u16 cmd, old_cmd;
->  	int idx;
->  	struct resource *r;
->  
-> -	if (ppc_md.pcibios_enable_device_hook)
-> -		if (ppc_md.pcibios_enable_device_hook(dev))
-> -			return -EINVAL;
+> -	u16 cmd, old_cmd;
+> -	int idx;
+> -	struct resource *r;
 > -
->  	pci_read_config_word(dev, PCI_COMMAND, &cmd);
->  	old_cmd = cmd;
->  	for (idx = 0; idx < PCI_NUM_RESOURCES; idx++) {
-> @@ -1193,3 +1189,11 @@
->  	return 0;
->  }
->  
-> +int pcibios_enable_device(struct pci_dev *dev, int mask)
-> +{
-> +	if (ppc_md.pcibios_enable_device_hook)
-> +		if (ppc_md.pcibios_enable_device_hook(dev))
-> +			return -EINVAL;
+>  	if (ppc_md.pcibios_enable_device_hook)
+>  		if (ppc_md.pcibios_enable_device_hook(dev, 0))
+>  			return -EINVAL;
+> -		
+> -	pci_read_config_word(dev, PCI_COMMAND, &cmd);
+> -	old_cmd = cmd;
+> -	for (idx=0; idx<6; idx++) {
+> -		r = &dev->resource[idx];
+> -		if (r->flags & IORESOURCE_UNSET) {
+> -			printk(KERN_ERR "PCI: Device %s not available because of resource collisions\n", pci_name(dev));
+> -			return -EINVAL;
+> -		}
+> -		if (r->flags & IORESOURCE_IO)
+> -			cmd |= PCI_COMMAND_IO;
+> -		if (r->flags & IORESOURCE_MEM)
+> -			cmd |= PCI_COMMAND_MEMORY;
+> -	}
+> -	if (cmd != old_cmd) {
+> -		printk("PCI: Enabling device %s (%04x -> %04x)\n",
+> -		       pci_name(dev), old_cmd, cmd);
+> -		pci_write_config_word(dev, PCI_COMMAND, cmd);
+> -	}
+> -	return 0;
 > +
 > +	return pcibios_enable_resources(dev, mask);
-> +}
-> Index: work6/arch/sh/drivers/pci/pci.c
-> ===================================================================
-> --- work6.orig/arch/sh/drivers/pci/pci.c	2008-02-18 10:43:50.000000000 -0700
-> +++ work6/arch/sh/drivers/pci/pci.c	2008-02-18 10:45:14.000000000 -0700
-> @@ -131,7 +131,7 @@
->  	}
 >  }
 >  
-> -int pcibios_enable_device(struct pci_dev *dev, int mask)
-> +int pcibios_enable_resources(struct pci_dev *dev, int mask)
->  {
->  	u16 cmd, old_cmd;
->  	int idx;
-> @@ -163,6 +163,11 @@
->  	return 0;
->  }
->  
-> +int pcibios_enable_device(struct pci_dev *dev, int mask)
-> +{
-> +	return pcibios_enable_resources(dev, mask);
-> +}
-> +
->  /*
->   *  If we set up a device for bus mastering, we need to check and set
->   *  the latency timer as it may not be properly set.
-> Index: work6/arch/sparc64/kernel/pci.c
-> ===================================================================
-> --- work6.orig/arch/sparc64/kernel/pci.c	2008-02-18 10:43:50.000000000 -0700
-> +++ work6/arch/sparc64/kernel/pci.c	2008-02-18 10:45:14.000000000 -0700
-> @@ -946,7 +946,7 @@
->  {
->  }
->  
-> -int pcibios_enable_device(struct pci_dev *dev, int mask)
-> +int pcibios_enable_resources(struct pci_dev *dev, int mask)
->  {
->  	u16 cmd, oldcmd;
->  	int i;
-> @@ -976,6 +976,11 @@
->  	return 0;
->  }
->  
-> +int pcibios_enable_device(struct pci_dev *dev, int mask)
-> +{
-> +	return pcibios_enable_resources(dev, mask);
-> +}
-> +
->  void pcibios_resource_to_bus(struct pci_dev *pdev, struct pci_bus_region *region,
->  			     struct resource *res)
->  {
-> Index: work6/arch/v850/kernel/rte_mb_a_pci.c
-> ===================================================================
-> --- work6.orig/arch/v850/kernel/rte_mb_a_pci.c	2008-02-18 10:43:50.000000000 -0700
-> +++ work6/arch/v850/kernel/rte_mb_a_pci.c	2008-02-18 10:45:14.000000000 -0700
-> @@ -217,7 +217,7 @@
->  }
->  
->  
-> -int __nomods_init pcibios_enable_device (struct pci_dev *dev, int mask)
-> +int __nomods_init pcibios_enable_resources (struct pci_dev *dev, int mask)
->  {
->  	u16 cmd, old_cmd;
->  	int idx;
-> @@ -245,6 +245,11 @@
->  	return 0;
->  }
->  
-> +int __nomods_init pcibios_enable_device (struct pci_dev *dev, int mask)
-> +{
-> +	return pcibios_enable_resources(dev, mask);
-> +}
-> +
->  
->  /* Resource allocation.  */
->  static void __devinit pcibios_assign_resources (void)
+>  struct pci_controller*
 > 
 
