@@ -1,47 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from colo.lackof.org ([198.49.126.79]:58019 "EHLO colo.lackof.org"
+Received: from chilli.pcug.org.au ([203.10.76.44]:55930 "EHLO smtps.tip.net.au"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752436AbYBTGZN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Feb 2008 01:25:13 -0500
-Date: Tue, 19 Feb 2008 23:24:55 -0700
-From: Grant Grundler <grundler@parisc-linux.org>
-Subject: Re: [patch 0/4] RFC: PCI: consolidate several
-	pcibios_enable_resources() implementations
-Message-ID: <20080220062455.GB6315@colo.lackof.org>
-References: <20080219043952.845136014@ldl.fc.hp.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080219043952.845136014@ldl.fc.hp.com>
+	id S1751938AbYBTG6K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Feb 2008 01:58:10 -0500
+Date: Wed, 20 Feb 2008 17:57:56 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: linux-next: Tree for Feb 20
+Message-Id: <20080220175756.ab1ada1d.sfr@canb.auug.org.au>
+In-Reply-To: <20080220055055.GC31832@kroah.com>
+References: <20080220163457.79b9189f.sfr@canb.auug.org.au>
+	<20080220055055.GC31832@kroah.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Wed__20_Feb_2008_17_57_56_+1100_Obz/34IqPXl9OJVY"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Cc: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>
+To: Greg KH <greg@kroah.com>
+Cc: linux-next@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Mon, Feb 18, 2008 at 09:39:52PM -0700, Bjorn Helgaas wrote:
-> There are many implementations of pcibios_enable_resources() that differ
-> in minor ways that look more like bugs than architectural differences.
-> This patch series consolidates most of them to use the x86 version.
-> 
-> This series is for discussion only at this point.  I'm interested in
-> feedback about whether any of the differences are "real" and need to
-> be preserved.
-> 
-> ARM and PA-RISC, in particular, have interesting differences:
->     - ARM always enables bridge devices, which no other arch does
->     - PA-RISC always turns on SERR and PARITY, which no other arch does
-> 
-> Should other arches do the same thing, or are these somehow related to
-> ARM and PA-RISC architecture?
+--Signature=_Wed__20_Feb_2008_17_57_56_+1100_Obz/34IqPXl9OJVY
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-My impression was most x86 BIOS's did NOT turn on SERR/PERR when I added
-that code to parisc-linux port (2000 or 2001 so) . HPUX was turning on
-SERR/PERR and so I was comfortable the HW was stable and it not crash
-under normal use unless something was really broken.
+Hi Greg,
 
-There is certainly nothing architectural specific about SERR/PERR.
-I felt (at the time) this is more of a case of "if it's not reported to the
-user, we won't get blamed for it not working well."
+On Tue, 19 Feb 2008 21:50:55 -0800 Greg KH <greg@kroah.com> wrote:
+>
+> What's the best way to constantly follow this tree?  I had cloned it a
+> while ago, but now if I 'git pull' it wants to merge things, which isn't
+> right.
+>=20
+> I'm guessing that this is constantly being rebased?  Against what,
+> Linus's tree?  So we should be able to clone Linus's tree, and then pull
+> in -next?
 
-hth,
-grant
+That would work.  Chris has the right idea, though.  Just set up
+linux-next as a remote on any existing clone of Linus' tree and the
+"fetch" will forcibly update the linux-next/master branch (remember to
+not have that branch checked out when you fetch).
+
+If you keep a continuing git tree for this, you will have the history of
+all the next trees because I tag each one.
+
+> Or am I totally missing something here?
+
+I said in the original announcement that the "master" branch would be
+rebasing every day (well, I actually said that I would recreate the tree
+every day).
+
+Each day, I start with the latest version of Linus' tree (my "stable"
+branch) and then merge all the subsystem trees on that.
+
+> I like seeing these, to know that things are at least still working.  I
+> imagine you could script them, or just send them to the linux-next list
+> if there are no problems, but lkml should probably be notified of any
+> issues, right?
+
+Sounds like a plan.  So new "normal" announcements will happen on the
+linux-next mailing list and "abnormal" ones to LKML as well (at least).
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Wed__20_Feb_2008_17_57_56_+1100_Obz/34IqPXl9OJVY
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
+
+iD8DBQFHu894TgG2atn1QN8RApNqAJwPTyJXgm4ytu25ZenpdICIZglLRQCeKrQJ
+QHai54XgLD2F3faxC3h1xK0=
+=5XUE
+-----END PGP SIGNATURE-----
+
+--Signature=_Wed__20_Feb_2008_17_57_56_+1100_Obz/34IqPXl9OJVY--
