@@ -1,38 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:46516 "EHLO
-	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750896AbYBTO7X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Feb 2008 09:59:23 -0500
+Received: from cantor.suse.de ([195.135.220.2]:54059 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1764851AbYBTPZC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Feb 2008 10:25:02 -0500
+Message-ID: <47BC4649.6060304@suse.de>
+Date: Wed, 20 Feb 2008 16:24:57 +0100
+From: Frank Seidel <fseidel@suse.de>
+MIME-Version: 1.0
 Subject: Re: linux-next: Tree for Feb 20
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <20080220163457.79b9189f.sfr@canb.auug.org.au>
-References: <20080220163457.79b9189f.sfr@canb.auug.org.au>
-Content-Type: text/plain
-Date: Wed, 20 Feb 2008 08:59:20 -0600
-Message-Id: <1203519560.3109.6.camel@localhost.localdomain>
-Mime-Version: 1.0
+References: <20080220163457.79b9189f.sfr@canb.auug.org.au> <1203519560.3109.6.camel@localhost.localdomain>
+In-Reply-To: <1203519560.3109.6.camel@localhost.localdomain>
+Content-Type: text/plain; charset=ISO-8859-15
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-next@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Wed, 2008-02-20 at 16:34 +1100, Stephen Rothwell wrote:
-> Hi all,
+James Bottomley wrote:
+> On Wed, 2008-02-20 at 16:34 +1100, Stephen Rothwell wrote:
+>> There were no merge conflicts and only one build failure!
 > 
-> I have created today's linux-next tree at
-> git://git.kernel.org/pub/scm/linux/kernel/git/sfr/linux-next.git.
-> 
-> You can see which trees have been included by looking in the Next/Trees
-> file in the source.  There are also quilt-import.log and merge.log files
-> in the Next directory.  Between each merge, the tree was built with
-> allmodconfig for both powerpc and x86_64.
-> 
-> There were no merge conflicts and only one build failure!
+> Is the merge log available anywhere yet?
 
-Is the merge log available anywhere yet?
+Yes, there is the Next/merge.log file in linux-next.
+http://git.kernel.org/?p=linux/kernel/git/sfr/linux-next.git;a=blob;f=Next/merge.log;hb=HEAD
 
-James
+This is also now documented on the pages i setup on
+http://linux.f-seidel.de/linux-next/
+while this
+http://linux.f-seidel.de/linux-next/pmwiki/pmwiki.php?n=Linux-next.ShortSummary
+holds most of it in a short form.
 
-
+Thanks,
+Frank
