@@ -1,41 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:50442 "EHLO gate.crashing.org"
+Received: from chilli.pcug.org.au ([203.10.76.44]:58623 "EHLO smtps.tip.net.au"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752062AbYBSUXU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Feb 2008 15:23:20 -0500
-Subject: Re: [patch 4/4] RFC: PCI: consolidate several
-	pcibios_enable_resources() implementations
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Reply-To: benh@kernel.crashing.org
-In-Reply-To: <200802190911.56901.bjorn.helgaas@hp.com>
-References: <20080219043952.845136014@ldl.fc.hp.com>
-	 <20080219044307.878416912@ldl.fc.hp.com> <1203402667.6740.94.camel@pasglop>
-	 <200802190911.56901.bjorn.helgaas@hp.com>
-Content-Type: text/plain
-Date: Wed, 20 Feb 2008 07:21:43 +1100
-Message-Id: <1203452503.18618.8.camel@pasglop>
+	id S1752476AbYBTFfM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Feb 2008 00:35:12 -0500
+Date: Wed, 20 Feb 2008 16:34:57 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: linux-next: Tree for Feb 20
+Message-Id: <20080220163457.79b9189f.sfr@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Wed__20_Feb_2008_16_34_57_+1100_VEoZJ0+b=I_O/pXe"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Cc: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>
+To: linux-next@vger.kernel.org
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
+--Signature=_Wed__20_Feb_2008_16_34_57_+1100_VEoZJ0+b=I_O/pXe
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> > That is, whatever the arch code decides to use to decide whether
-> > resources are assigned by firmware or by the first pass assignment code
-> > or not and collide or not, once that phase is finished (which is the
-> > case when calling pcibios_enable_device(), having the resource in the
-> > resource-tree or not is, I believe, the proper way to test whether it's
-> > a useable resource.
-> 
-> So should x86 adopt that collision check?  I don't hear anything about
-> actual architecture differences that are behind this implementation
-> difference.
+Hi all,
 
-Well, on powerpc we do allow under some circumstances a 0 start value
-in BARs, which is why I wanted to use a different check.
+I have created today's linux-next tree at
+git://git.kernel.org/pub/scm/linux/kernel/git/sfr/linux-next.git.
 
-Ben.
+You can see which trees have been included by looking in the Next/Trees
+file in the source.  There are also quilt-import.log and merge.log files
+in the Next directory.  Between each merge, the tree was built with
+allmodconfig for both powerpc and x86_64.
 
+There were no merge conflicts and only one build failure!
 
+We are up to 27 trees, more are welcome (even if they are currently
+empty).  I would encourage architecture maintainers, in particular, to
+set up a git branch or quilt tree now to avoid the rush after RC2 :-)
+
+I will stop making these announcements now unless there is some change to
+the tree or things people should know.  There should be a new tree every
+(Australian Capital Territory) working day.
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Wed__20_Feb_2008_16_34_57_+1100_VEoZJ0+b=I_O/pXe
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
+
+iD8DBQFHu7wOTgG2atn1QN8RAhjOAKCT+XgFeWki51GMgv5+lWRWsDSjogCggztX
+yr7ieVg/fE16VBus4j7x5BM=
+=kAW1
+-----END PGP SIGNATURE-----
+
+--Signature=_Wed__20_Feb_2008_16_34_57_+1100_VEoZJ0+b=I_O/pXe--
