@@ -1,58 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mk-outboundfilter-3.mail.uk.tiscali.com ([212.74.114.23]:30605
-	"EHLO mk-outboundfilter-3.mail.uk.tiscali.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S933436AbYBTV1B (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Feb 2008 16:27:01 -0500
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:58092 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752169AbYBTW4f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Feb 2008 17:56:35 -0500
+Date: Wed, 20 Feb 2008 22:55:27 +0000
+From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: DMA API Re: Remove dma_coherent_mem interface
-From: ian <spyro@f2s.com>
-In-Reply-To: <47BC7B34.7020308@suse.de>
-References: <1193864605.25899.253.camel@wirenth>
-	 <20080220171409.GB27736@parisc-linux.org>  <200802201849.48312.ak@suse.de>
-	 <1203533015.3181.2.camel@wirenth>  <47BC7B34.7020308@suse.de>
-Content-Type: text/plain
-Date: Wed, 20 Feb 2008 21:26:55 +0000
-Message-Id: <1203542815.3181.6.camel@wirenth>
+Message-ID: <20080220225527.GA26887@flint.arm.linux.org.uk>
+References: <1193864605.25899.253.camel@wirenth> <20080220171409.GB27736@parisc-linux.org> <200802201849.48312.ak@suse.de> <1203533015.3181.2.camel@wirenth> <47BC7B34.7020308@suse.de> <1203542815.3181.6.camel@wirenth>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1203542815.3181.6.camel@wirenth>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <ak@suse.de>
-Cc: Matthew Wilcox <matthew@wil.cx>, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, linux-scsi@vger.kernel.org, jejb@steeleye.com, kernel-discuss@handhelds.org, Dmitry <dbaryshkov@gmail.com>
+To: ian <spyro@f2s.com>
+Cc: Andi Kleen <ak@suse.de>, Matthew Wilcox <matthew@wil.cx>, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, linux-scsi@vger.kernel.org, jejb@steeleye.com, kernel-discuss@handhelds.org, Dmitry <dbaryshkov@gmail.com>
 
-
-On Wed, 2008-02-20 at 20:10 +0100, Andi Kleen wrote:
-> ian wrote:
-> > On Wed, 2008-02-20 at 18:49 +0100, Andi Kleen wrote:
-> >>> So ... it's been 4 months.  Any new users merged?
-> >> At least dmam_declare_coherent_memory is completely unused as of
-> >> 2.6.25-rc* I plan to remove these.
-> > 
-> > Please do not.
+On Wed, Feb 20, 2008 at 09:26:55PM +0000, ian wrote:
 > 
-> Do you use dma_declare_* or dmam_declare_*. The first is used
-> currently. Only the second is unused.
-
-Ah, sorry, I missed the extra 'm' as I scanned the mail.
-
-We are using the former.
-
-> > Dmitry and I are still working on getting the users of this into the
-> > kernel.
+> On Wed, 2008-02-20 at 20:10 +0100, Andi Kleen wrote:
+> > Is there a time frame on when will this happen? Will you be ready
+> > for the .26 merge window?
 > 
-> Is there a time frame on when will this happen? Will you be ready
-> for the .26 merge window?
+> I think the big sticking point now is getting the generic clock
+> interface merged - Dmitry is working hard on that.
 
-I think the big sticking point now is getting the generic clock
-interface merged - Dmitry is working hard on that.
+And that requires a review from my side, which I've not been able to do
+yet...
 
-The rest of the code is pretty clean now.
+It seems there's a number of dependencies that the code depends on,
+and trying to push to remove an interface which is used on to-be-merged
+code which is being _actively_ worked on to bring it to merge standard
+is just stupid - that's a recipe for forcing folk into a corner where
+they'll never have everything merged that they need for their particular
+set of code.
 
-> Well if it takes longer the best strategy might be to remove
-> unused stuff now and you just readd what you need when you
-> really need it in tree.
+The alternative is that the code which uses it could be merged as is,
+albiet without the dependents, so effectively it couldn't be built.
+But then it'll satisfy Andi's grep that there are users in the tree.
 
-I think that would not be the best path now.
-
-btw, kernel-discuss@handhelds.org appears to be a dead list these days.
-
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
