@@ -1,36 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:54059 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1764851AbYBTPZC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Feb 2008 10:25:02 -0500
-Message-ID: <47BC4649.6060304@suse.de>
-Date: Wed, 20 Feb 2008 16:24:57 +0100
-From: Frank Seidel <fseidel@suse.de>
+Received: from hp3.statik.tu-cottbus.de ([141.43.120.68]:45587 "EHLO
+	hp3.statik.tu-cottbus.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933416AbYBTPix (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Feb 2008 10:38:53 -0500
+Message-ID: <47BC498C.6000400@s5r6.in-berlin.de>
+Date: Wed, 20 Feb 2008 16:38:52 +0100
+From: Stefan Richter <stefanr@s5r6.in-berlin.de>
 MIME-Version: 1.0
-Subject: Re: linux-next: Tree for Feb 20
-References: <20080220163457.79b9189f.sfr@canb.auug.org.au> <1203519560.3109.6.camel@localhost.localdomain>
-In-Reply-To: <1203519560.3109.6.camel@localhost.localdomain>
-Content-Type: text/plain; charset=ISO-8859-15
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>	<20080212042133.GA4625@kroah.com>	<20080211203146.3d28d1a0@laptopd505.fenrus.org>	<1202791555.20739.6.camel@heimdal.trondhjem.org>	<20080212051136.GA12802@mit.edu>	<20080211221535.bc0dc9cf.akpm@linux-foundation.org>	<20080212225716.cf695fe4.sfr@canb.auug.org.au>	<20080214081405.GA20791@flint.arm.linux.org.uk>	<20080214232229.f7bdc6ac.sfr@canb.auug.org.au>	<alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org> <20080221015511.1b54d4d3.sfr@canb.auug.org.au>
+In-Reply-To: <20080221015511.1b54d4d3.sfr@canb.auug.org.au>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Theodore Tso <tytso@mit.edu>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
 
-James Bottomley wrote:
-> On Wed, 2008-02-20 at 16:34 +1100, Stephen Rothwell wrote:
->> There were no merge conflicts and only one build failure!
+Stephen Rothwell wrote:
+> On Thu, 14 Feb 2008 10:01:14 -0800 (PST) Linus Torvalds <torvalds@linux-foundation.org> wrote:
+>>
+>> I absolutely have no problem with having a "this is the infrastrcture 
+>> changes that will go into the next release". In fact, I can even 
+>> *maintain* such a branch. 
+>> 
+>> I've not wanted to open up a second branch for "this is for next release", 
+>> because quite frankly, one of the other problems we have is that people 
+>> already spend way too much time on the next release compared to just 
+>> looking at regressions in the current one. But especially if we're talking 
+>> about _purely_ API changes etc infrastructure, I could certainly do a 
+>> "next" branch. 
 > 
-> Is the merge log available anywhere yet?
+> So, will you open such a branch?  If so, what would be the mechanics of
+> having patches applied to it?  I assume people would have to suggest such
+> changes explicitly and have them reviewed (hopefully more thoroughly than
+> usual) in that light.  I guess one place these "infrastructure" changes
+> may be noticed would be when subsystem maintainers stray outside their
+> subsystem in what they submit to the linux-next tree (or break it).
 
-Yes, there is the Next/merge.log file in linux-next.
-http://git.kernel.org/?p=linux/kernel/git/sfr/linux-next.git;a=blob;f=Next/merge.log;hb=HEAD
+Two things may largely eliminate the need for parallel branches.
 
-This is also now documented on the pages i setup on
-http://linux.f-seidel.de/linux-next/
-while this
-http://linux.f-seidel.de/linux-next/pmwiki/pmwiki.php?n=Linux-next.ShortSummary
-holds most of it in a short form.
+1. Do infrastructure changes and whole tree wide refactoring etc. in a
+compatible manner with a brief but nonzero transition period.
 
-Thanks,
-Frank
+2. Insert a second merge window right after the usual merge window for
+changes which cannot be well done with a transition period.
+
+(I probably missed a number of points why these two things are not
+always feasible, because I am just a downstream person.)
+-- 
+Stefan Richter
+-=====-==--- --=- =-=--
+http://arcgraph.de/sr/
