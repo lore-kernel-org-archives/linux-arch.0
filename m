@@ -1,60 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:58623 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752476AbYBTFfM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Feb 2008 00:35:12 -0500
-Date: Wed, 20 Feb 2008 16:34:57 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: linux-next: Tree for Feb 20
-Message-Id: <20080220163457.79b9189f.sfr@canb.auug.org.au>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Wed__20_Feb_2008_16_34_57_+1100_VEoZJ0+b=I_O/pXe"
+Received: from pentafluge.infradead.org ([213.146.154.40]:49115 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755938AbYBTFxQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Feb 2008 00:53:16 -0500
+Date: Tue, 19 Feb 2008 21:50:55 -0800
+From: Greg KH <greg@kroah.com>
+Subject: Re: linux-next: Tree for Feb 20
+Message-ID: <20080220055055.GC31832@kroah.com>
+References: <20080220163457.79b9189f.sfr@canb.auug.org.au>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20080220163457.79b9189f.sfr@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-next@vger.kernel.org
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: linux-next@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
---Signature=_Wed__20_Feb_2008_16_34_57_+1100_VEoZJ0+b=I_O/pXe
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Wed, Feb 20, 2008 at 04:34:57PM +1100, Stephen Rothwell wrote:
+> Hi all,
+> 
+> I have created today's linux-next tree at
+> git://git.kernel.org/pub/scm/linux/kernel/git/sfr/linux-next.git.
+> 
+> You can see which trees have been included by looking in the Next/Trees
+> file in the source.  There are also quilt-import.log and merge.log files
+> in the Next directory.  Between each merge, the tree was built with
+> allmodconfig for both powerpc and x86_64.
 
-Hi all,
+What's the best way to constantly follow this tree?  I had cloned it a
+while ago, but now if I 'git pull' it wants to merge things, which isn't
+right.
 
-I have created today's linux-next tree at
-git://git.kernel.org/pub/scm/linux/kernel/git/sfr/linux-next.git.
+I'm guessing that this is constantly being rebased?  Against what,
+Linus's tree?  So we should be able to clone Linus's tree, and then pull
+in -next?
 
-You can see which trees have been included by looking in the Next/Trees
-file in the source.  There are also quilt-import.log and merge.log files
-in the Next directory.  Between each merge, the tree was built with
-allmodconfig for both powerpc and x86_64.
+Or am I totally missing something here?
 
-There were no merge conflicts and only one build failure!
+> There were no merge conflicts and only one build failure!
+> 
+> We are up to 27 trees, more are welcome (even if they are currently
+> empty).  I would encourage architecture maintainers, in particular, to
+> set up a git branch or quilt tree now to avoid the rush after RC2 :-)
+> 
+> I will stop making these announcements now unless there is some change to
+> the tree or things people should know.  There should be a new tree every
+> (Australian Capital Territory) working day.
 
-We are up to 27 trees, more are welcome (even if they are currently
-empty).  I would encourage architecture maintainers, in particular, to
-set up a git branch or quilt tree now to avoid the rush after RC2 :-)
+I like seeing these, to know that things are at least still working.  I
+imagine you could script them, or just send them to the linux-next list
+if there are no problems, but lkml should probably be notified of any
+issues, right?
 
-I will stop making these announcements now unless there is some change to
-the tree or things people should know.  There should be a new tree every
-(Australian Capital Territory) working day.
+thanks,
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
-
---Signature=_Wed__20_Feb_2008_16_34_57_+1100_VEoZJ0+b=I_O/pXe
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
-
-iD8DBQFHu7wOTgG2atn1QN8RAhjOAKCT+XgFeWki51GMgv5+lWRWsDSjogCggztX
-yr7ieVg/fE16VBus4j7x5BM=
-=kAW1
------END PGP SIGNATURE-----
-
---Signature=_Wed__20_Feb_2008_16_34_57_+1100_VEoZJ0+b=I_O/pXe--
+greg k-h
