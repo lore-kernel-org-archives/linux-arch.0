@@ -1,53 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp6.pp.htv.fi ([213.243.153.40]:49200 "EHLO smtp6.pp.htv.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760622AbYBTRN4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Feb 2008 12:13:56 -0500
-Date: Wed, 20 Feb 2008 19:13:16 +0200
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-Message-ID: <20080220171316.GA4749@cs181133002.pp.htv.fi>
-References: <1202791555.20739.6.camel@heimdal.trondhjem.org> <20080212051136.GA12802@mit.edu> <20080211221535.bc0dc9cf.akpm@linux-foundation.org> <20080212225716.cf695fe4.sfr@canb.auug.org.au> <20080214081405.GA20791@flint.arm.linux.org.uk> <20080214232229.f7bdc6ac.sfr@canb.auug.org.au> <alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org> <20080221015511.1b54d4d3.sfr@canb.auug.org.au> <47BC498C.6000400@s5r6.in-berlin.de> <20080220154235.GD30305@mit.edu>
+Received: from palinux.external.hp.com ([192.25.206.14]:44229 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934239AbYBTROL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Feb 2008 12:14:11 -0500
+Date: Wed, 20 Feb 2008 10:14:09 -0700
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: DMA API Re: Remove dma_coherent_mem interface
+Message-ID: <20080220171409.GB27736@parisc-linux.org>
+References: <1193864605.25899.253.camel@wirenth>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080220154235.GD30305@mit.edu>
+In-Reply-To: <1193864605.25899.253.camel@wirenth>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Theodore Tso <tytso@mit.edu>, Stefan Richter <stefanr@s5r6.in-berlin.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Linus Torvalds <torvalds@linux-foundation.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
+To: ian <spyro@f2s.com>
+Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, linux-scsi@vger.kernel.org, jejb@steeleye.com, kernel-discuss@handhelds.org
 
-On Wed, Feb 20, 2008 at 10:42:35AM -0500, Theodore Tso wrote:
-> On Wed, Feb 20, 2008 at 04:38:52PM +0100, Stefan Richter wrote:
-> > Two things may largely eliminate the need for parallel branches.
-> > 
-> > 1. Do infrastructure changes and whole tree wide refactoring etc. in a
-> > compatible manner with a brief but nonzero transition period.
-> > 
-> > 2. Insert a second merge window right after the usual merge window for
-> > changes which cannot be well done with a transition period.
-> 
-> A third option would be if people add new functions (with no users) in
-> -rc2 or -rc3 timeframes as long as it is part of a fully reviewed
-> patch with users that will use those new features in various kernel
-> development trees.
->...
+On Wed, Oct 31, 2007 at 09:03:24PM +0000, ian wrote:
+> I'd like to ask that this not happen - there are several users of this
+> code in the handhelds.org tree, which we hope will merge into mainline.
+> this code is _essential_ to allow support of these devices.
 
-I don't like suggestions based on unrealistic assumptions like
-"a fully reviewed patch".
-
-E.g. userspace ABI's are much more stable and everyone is aware that 
-they must be gotten right with the first try since they are then cast in 
-stone - but we all remember the recent timerfd fiasco.
-
-> 						- Ted
-
-cu
-Adrian
+So ... it's been 4 months.  Any new users merged?
 
 -- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
-
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
