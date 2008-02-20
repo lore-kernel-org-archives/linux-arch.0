@@ -1,80 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:55930 "EHLO smtps.tip.net.au"
+Received: from srv5.dvmed.net ([207.36.208.214]:49356 "EHLO mail.dvmed.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751938AbYBTG6K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Feb 2008 01:58:10 -0500
-Date: Wed, 20 Feb 2008 17:57:56 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+	id S1751161AbYBTHqv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Feb 2008 02:46:51 -0500
+Message-ID: <47BBDAE5.4090000@garzik.org>
+Date: Wed, 20 Feb 2008 02:46:45 -0500
+From: Jeff Garzik <jeff@garzik.org>
+MIME-Version: 1.0
 Subject: Re: linux-next: Tree for Feb 20
-Message-Id: <20080220175756.ab1ada1d.sfr@canb.auug.org.au>
+References: <20080220163457.79b9189f.sfr@canb.auug.org.au> <20080220055055.GC31832@kroah.com>
 In-Reply-To: <20080220055055.GC31832@kroah.com>
-References: <20080220163457.79b9189f.sfr@canb.auug.org.au>
-	<20080220055055.GC31832@kroah.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Wed__20_Feb_2008_17_57_56_+1100_Obz/34IqPXl9OJVY"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greg KH <greg@kroah.com>
-Cc: linux-next@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
---Signature=_Wed__20_Feb_2008_17_57_56_+1100_Obz/34IqPXl9OJVY
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-Hi Greg,
-
-On Tue, 19 Feb 2008 21:50:55 -0800 Greg KH <greg@kroah.com> wrote:
->
+Greg KH wrote:
+> On Wed, Feb 20, 2008 at 04:34:57PM +1100, Stephen Rothwell wrote:
+>> Hi all,
+>>
+>> I have created today's linux-next tree at
+>> git://git.kernel.org/pub/scm/linux/kernel/git/sfr/linux-next.git.
+>>
+>> You can see which trees have been included by looking in the Next/Trees
+>> file in the source.  There are also quilt-import.log and merge.log files
+>> in the Next directory.  Between each merge, the tree was built with
+>> allmodconfig for both powerpc and x86_64.
+> 
 > What's the best way to constantly follow this tree?  I had cloned it a
 > while ago, but now if I 'git pull' it wants to merge things, which isn't
 > right.
->=20
+> 
 > I'm guessing that this is constantly being rebased?  Against what,
 > Linus's tree?  So we should be able to clone Linus's tree, and then pull
 > in -next?
-
-That would work.  Chris has the right idea, though.  Just set up
-linux-next as a remote on any existing clone of Linus' tree and the
-"fetch" will forcibly update the linux-next/master branch (remember to
-not have that branch checked out when you fetch).
-
-If you keep a continuing git tree for this, you will have the history of
-all the next trees because I tag each one.
-
+> 
 > Or am I totally missing something here?
 
-I said in the original announcement that the "master" branch would be
-rebasing every day (well, I actually said that I would recreate the tree
-every day).
+You can use 'git fetch -f' to override your local tree with the remote 
+contents.
 
-Each day, I start with the latest version of Linus' tree (my "stable"
-branch) and then merge all the subsystem trees on that.
+I'm pretty sure there's a better way to do it, but I don't know it...
 
-> I like seeing these, to know that things are at least still working.  I
-> imagine you could script them, or just send them to the linux-next list
-> if there are no problems, but lkml should probably be notified of any
-> issues, right?
+	Jeff
 
-Sounds like a plan.  So new "normal" announcements will happen on the
-linux-next mailing list and "abnormal" ones to LKML as well (at least).
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
 
---Signature=_Wed__20_Feb_2008_17_57_56_+1100_Obz/34IqPXl9OJVY
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
-
-iD8DBQFHu894TgG2atn1QN8RApNqAJwPTyJXgm4ytu25ZenpdICIZglLRQCeKrQJ
-QHai54XgLD2F3faxC3h1xK0=
-=5XUE
------END PGP SIGNATURE-----
-
---Signature=_Wed__20_Feb_2008_17_57_56_+1100_Obz/34IqPXl9OJVY--
