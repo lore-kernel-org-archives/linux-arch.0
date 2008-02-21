@@ -1,55 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:49135 "EHLO
-	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753861AbYBTXGJ (ORCPT
+Received: from BISCAYNE-ONE-STATION.MIT.EDU ([18.7.7.80]:36983 "EHLO
+	biscayne-one-station.mit.edu" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756664AbYBUNYo (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Feb 2008 18:06:09 -0500
-Subject: Re: DMA API Re: Remove dma_coherent_mem interface
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <20080220225527.GA26887@flint.arm.linux.org.uk>
-References: <1193864605.25899.253.camel@wirenth>
-	 <20080220171409.GB27736@parisc-linux.org> <200802201849.48312.ak@suse.de>
-	 <1203533015.3181.2.camel@wirenth> <47BC7B34.7020308@suse.de>
-	 <1203542815.3181.6.camel@wirenth>
-	 <20080220225527.GA26887@flint.arm.linux.org.uk>
-Content-Type: text/plain
-Date: Wed, 20 Feb 2008 17:05:59 -0600
-Message-Id: <1203548760.3109.53.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	Thu, 21 Feb 2008 08:24:44 -0500
+Date: Thu, 21 Feb 2008 08:22:52 -0500
+From: Theodore Tso <tytso@MIT.EDU>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+Message-ID: <20080221132252.GC14614@mit.edu>
+References: <20080212051136.GA12802@mit.edu> <20080211221535.bc0dc9cf.akpm@linux-foundation.org> <20080212225716.cf695fe4.sfr@canb.auug.org.au> <20080214081405.GA20791@flint.arm.linux.org.uk> <20080214232229.f7bdc6ac.sfr@canb.auug.org.au> <alpine.LFD.1.00.0802140949460.6110@woody.linux-foundation.org> <20080221015511.1b54d4d3.sfr@canb.auug.org.au> <47BC498C.6000400@s5r6.in-berlin.de> <20080220154235.GD30305@mit.edu> <20080220171316.GA4749@cs181133002.pp.htv.fi>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20080220171316.GA4749@cs181133002.pp.htv.fi>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: ian <spyro@f2s.com>, Andi Kleen <ak@suse.de>, Matthew Wilcox <matthew@wil.cx>, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, linux-scsi@vger.kernel.org, jejb@steeleye.com, kernel-discuss@handhelds.org, Dmitry <dbaryshkov@gmail.com>
+To: Adrian Bunk <bunk@kernel.org>
+Cc: Stefan Richter <stefanr@s5r6.in-berlin.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Linus Torvalds <torvalds@linux-foundation.org>, Russell King <rmk+lkml@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Trond Myklebust <trond.myklebust@fys.uio.no>, Arjan van de Ven <arjan@infradead.org>, Greg KH <greg@kroah.com>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, 2008-02-20 at 22:55 +0000, Russell King wrote:
-> On Wed, Feb 20, 2008 at 09:26:55PM +0000, ian wrote:
-> > 
-> > On Wed, 2008-02-20 at 20:10 +0100, Andi Kleen wrote:
-> > > Is there a time frame on when will this happen? Will you be ready
-> > > for the .26 merge window?
-> > 
-> > I think the big sticking point now is getting the generic clock
-> > interface merged - Dmitry is working hard on that.
+On Wed, Feb 20, 2008 at 07:13:16PM +0200, Adrian Bunk wrote:
+> > A third option would be if people add new functions (with no users) in
+> > -rc2 or -rc3 timeframes as long as it is part of a fully reviewed
+> > patch with users that will use those new features in various kernel
+> > development trees.
+> >...
 > 
-> And that requires a review from my side, which I've not been able to do
-> yet...
+> I don't like suggestions based on unrealistic assumptions like
+> "a fully reviewed patch".
 > 
-> It seems there's a number of dependencies that the code depends on,
-> and trying to push to remove an interface which is used on to-be-merged
-> code which is being _actively_ worked on to bring it to merge standard
-> is just stupid - that's a recipe for forcing folk into a corner where
-> they'll never have everything merged that they need for their particular
-> set of code.
-> 
-> The alternative is that the code which uses it could be merged as is,
-> albiet without the dependents, so effectively it couldn't be built.
-> But then it'll satisfy Andi's grep that there are users in the tree.
+> E.g. userspace ABI's are much more stable and everyone is aware that 
+> they must be gotten right with the first try since they are then cast in 
+> stone - but we all remember the recent timerfd fiasco.
 
-Don't worry.  The interface fills a need (allocation of on chip or
-behind bridge memory) and we have two in tree users: NCR_Q720 and
-ochi-sm501, so it's not going anywhere.
+I'm talking about kernel interfaces, not userspace API's.  And we can
+change them if they are wrong, since they *are* kernel interfaces; but
+if they correct, they ease the cross-tree merge pain.
 
-James
-
-
+   		      	       		  	 - Ted
