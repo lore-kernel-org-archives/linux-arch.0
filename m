@@ -1,250 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([207.189.120.13]:51168 "EHLO
+Received: from smtp1.linux-foundation.org ([207.189.120.13]:52477 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753270AbYBWHyJ (ORCPT
+	by vger.kernel.org with ESMTP id S1761884AbYBWS7L (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 23 Feb 2008 02:54:09 -0500
-Message-Id: <200802230734.m1N7YVfu018295@imap1.linux-foundation.org>
-Subject: + iomap-fix-64-bits-resources-on-32-bits.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Fri, 22 Feb 2008 23:33:42 -0800
+	Sat, 23 Feb 2008 13:59:11 -0500
+Date: Sat, 23 Feb 2008 10:57:31 -0800 (PST)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: + kthread-add-a-missing-memory-barrier-to-kthread_stop.patch
+ added to -mm tree
+In-Reply-To: <20080223182258.GA19946@tv-sign.ru>
+Message-ID: <alpine.LFD.1.00.0802231044240.21332@woody.linux-foundation.org>
+References: <200802230733.m1N7XnMu018253@imap1.linux-foundation.org> <20080223162705.GA7686@tv-sign.ru> <alpine.LFD.1.00.0802230937530.21332@woody.linux-foundation.org> <20080223182258.GA19946@tv-sign.ru>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mm-commits@vger.kernel.org
-Cc: benh@kernel.crashing.org, linux-arch@vger.kernel.org
+To: Oleg Nesterov <oleg@tv-sign.ru>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dmitry.adamushko@gmail.com, a.p.zijlstra@chello.nl, apw@shadowen.org, Ingo Molnar <mingo@elte.hu>, nickpiggin@yahoo.com.au, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
 
-The patch titled
-     iomap: fix 64 bits resources on 32 bits
-has been added to the -mm tree.  Its filename is
-     iomap-fix-64-bits-resources-on-32-bits.patch
 
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
+On Sat, 23 Feb 2008, Oleg Nesterov wrote:
+> 
+> Yes, but still I suspect wmb() is not enough. Note that try_to_wake_up()
+> first checks (reads) the task->state,
+> 
+> 	if (!(old_state & state))
+> 		goto out;
+> 
+> without the full mb() it is (in theory) possible that try_to_wake_up()
+> first reads TASK_RUNNING and only then sets CONDITION. IOW, STORE and
+> LOAD could be re-ordered.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+No. The spinlock can have preceding stores (and loads, for that matter) 
+percolate *into* the locked region, but a spinlock can *not* have loads 
+(and stores) escape *out* of the region withou being totally broken. 
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
+So the spinlock that predeces that load of "old_state" absolutely *must* 
+be a memory barrier as far as that load is concerned.
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+Spinlocks are just "one-way" permeable. They stop both reads and writes, 
+but they stop them from escaping up to earlier code (and the spin-unlock 
+in turn stops reads and writes within the critical section from escaping 
+down past the unlock).
 
-------------------------------------------------------
-Subject: iomap: fix 64 bits resources on 32 bits
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+But they definitely must stop that direction, and no loads or stores that 
+are inside the critical section can possibly be allowed to be done outside 
+of it, or the spinlock would be pointless.
 
-Almost all implementations of pci_iomap() in the kernel, including the generic
-lib/iomap.c one, copies the content of a struct resource into unsigned long's
-which will break on 32 bits platforms with 64 bits resources.
+[ Yeah, yeah, I guess that in theory you could serialize spinlocks only 
+  against each other, and their serialization would be in a totally 
+  different "domain" from normal reads and writes, and then the spinlock 
+  wouldn't act as a barrier at all except for stuff that is literally 
+  inside another spinlock, but I don't think anybody really does that ]
 
-This fixes all definitions of pci_iomap() to use resource_size_t.  I also
-"fixed" the 64bits arch for consistency.
+So I think a simple smp_wmb() should be ok.
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+That said, I do not *mind* the notion of "smp_mb_before/after_spinlock()", 
+and just have architectures do whatever they want (with x86 just being a 
+no-op). I don't think it's wrong in any way, and may be the really 
+generic solution for some theoretical case where locking is done not by 
+using the normal cache coherency, but over a separate lock network. But I 
+would suggest against adding new abstractions unless there are real cases 
+of it mattering.
 
- arch/alpha/kernel/pci.c               |    4 ++--
- arch/arm/mm/iomap.c                   |    4 ++--
- arch/frv/mb93090-mb00/pci-iomap.c     |    4 ++--
- arch/mips/lib/iomap-pci.c             |    4 ++--
- arch/mn10300/unit-asb2305/pci-iomap.c |    4 ++--
- arch/parisc/lib/iomap.c               |    4 ++--
- arch/ppc/kernel/pci.c                 |    4 ++--
- arch/sh/drivers/pci/pci.c             |    4 ++--
- arch/sparc/lib/iomap.c                |    4 ++--
- arch/sparc64/lib/iomap.c              |    4 ++--
- arch/v850/kernel/rte_mb_a_pci.c       |    4 ++--
- lib/iomap.c                           |    4 ++--
- 12 files changed, 24 insertions(+), 24 deletions(-)
+(The biggest reason to do it in practice is probably architectures that 
+have a really slow smp_wmb() and that also have a spinlock that is already 
+serializing enough, but if this is only for one single use - in 
+try_to_wake_up() - even that doesn't really seem to be a very strong 
+argument).
 
-diff -puN arch/alpha/kernel/pci.c~iomap-fix-64-bits-resources-on-32-bits arch/alpha/kernel/pci.c
---- a/arch/alpha/kernel/pci.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/alpha/kernel/pci.c
-@@ -547,8 +547,8 @@ sys_pciconfig_iobase(long which, unsigne
- 
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (!len || !start)
-diff -puN arch/arm/mm/iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/arm/mm/iomap.c
---- a/arch/arm/mm/iomap.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/arm/mm/iomap.c
-@@ -26,8 +26,8 @@ EXPORT_SYMBOL(ioport_unmap);
- #ifdef CONFIG_PCI
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len   = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len   = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (!len || !start)
-diff -puN arch/frv/mb93090-mb00/pci-iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/frv/mb93090-mb00/pci-iomap.c
---- a/arch/frv/mb93090-mb00/pci-iomap.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/frv/mb93090-mb00/pci-iomap.c
-@@ -13,8 +13,8 @@
- 
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (!len || !start)
-diff -puN arch/mips/lib/iomap-pci.c~iomap-fix-64-bits-resources-on-32-bits arch/mips/lib/iomap-pci.c
---- a/arch/mips/lib/iomap-pci.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/mips/lib/iomap-pci.c
-@@ -45,8 +45,8 @@ static void __iomem *ioport_map_pci(stru
-  */
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (!len || !start)
-diff -puN arch/mn10300/unit-asb2305/pci-iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/mn10300/unit-asb2305/pci-iomap.c
---- a/arch/mn10300/unit-asb2305/pci-iomap.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/mn10300/unit-asb2305/pci-iomap.c
-@@ -16,8 +16,8 @@
-  */
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (!len || !start)
-diff -puN arch/parisc/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/parisc/lib/iomap.c
---- a/arch/parisc/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/parisc/lib/iomap.c
-@@ -438,8 +438,8 @@ void ioport_unmap(void __iomem *addr)
- /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (!len || !start)
-diff -puN arch/ppc/kernel/pci.c~iomap-fix-64-bits-resources-on-32-bits arch/ppc/kernel/pci.c
---- a/arch/ppc/kernel/pci.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/ppc/kernel/pci.c
-@@ -1176,8 +1176,8 @@ void __init pci_init_resource(struct res
- 
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (!len)
-diff -puN arch/sh/drivers/pci/pci.c~iomap-fix-64-bits-resources-on-32-bits arch/sh/drivers/pci/pci.c
---- a/arch/sh/drivers/pci/pci.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/sh/drivers/pci/pci.c
-@@ -191,8 +191,8 @@ void __init pcibios_update_irq(struct pc
- 
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (unlikely(!len || !start))
-diff -puN arch/sparc/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/sparc/lib/iomap.c
---- a/arch/sparc/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/sparc/lib/iomap.c
-@@ -21,8 +21,8 @@ EXPORT_SYMBOL(ioport_unmap);
- /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (!len || !start)
-diff -puN arch/sparc64/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/sparc64/lib/iomap.c
---- a/arch/sparc64/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/sparc64/lib/iomap.c
-@@ -21,8 +21,8 @@ EXPORT_SYMBOL(ioport_unmap);
- /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (!len || !start)
-diff -puN arch/v850/kernel/rte_mb_a_pci.c~iomap-fix-64-bits-resources-on-32-bits arch/v850/kernel/rte_mb_a_pci.c
---- a/arch/v850/kernel/rte_mb_a_pci.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/arch/v850/kernel/rte_mb_a_pci.c
-@@ -790,8 +790,8 @@ pci_free_consistent (struct pci_dev *pde
- 
- void __iomem *pci_iomap (struct pci_dev *dev, int bar, unsigned long max)
- {
--	unsigned long start = pci_resource_start (dev, bar);
--	unsigned long len = pci_resource_len (dev, bar);
-+	resource_size_t start = pci_resource_start (dev, bar);
-+	resource_size_t len = pci_resource_len (dev, bar);
- 
- 	if (!start || len == 0)
- 		return 0;
-diff -puN lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits lib/iomap.c
---- a/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits
-+++ a/lib/iomap.c
-@@ -256,8 +256,8 @@ EXPORT_SYMBOL(ioport_unmap);
-  * */
- void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- {
--	unsigned long start = pci_resource_start(dev, bar);
--	unsigned long len = pci_resource_len(dev, bar);
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
- 	if (!len || !start)
-_
+> A bit offtopic, but let's take another example, __queue_work()->insert_work().
+> With some trivial modification we can move set_wq_data() outside of cwq->lock.
+> But according to linux's memory model we still need wmb(), which is a bit
+> annoying. Perhaps we can also add smp_wmb_before_spinlock(). Not sure this
+> is not too ugly though.
 
-Patches currently in -mm which might be from benh@kernel.crashing.org are
+Is that really so performance-critical? We still need the spinlock for the 
+actual list manipulation, so why would we care?
 
-drivers-pcmcia-i82092c-fix-up-after-pci_bus_region-changes.patch
-git-md-accel.patch
-cleanup-gregkh-pci-pci-fix-bus-resource-assignment-on-32-bits-with-64b-resources.patch
-drivers-block-viodasdc-use-field_sizeof.patch
-percpu-fix-debug_preempt-per_cpu-checking.patch
-iomap-fix-64-bits-resources-on-32-bits.patch
-kprobes-introduce-kprobe_handle_fault.patch
-kprobes-remove-preempt_enable-disable-from-kprobe_handle_fault.patch
-fb-add-support-for-foreign-endianness.patch
-fb-add-support-for-foreign-endianness-add-support-for-choice-foreign-endianness.patch
-fb-add-support-for-foreign-endianness-force-it-on.patch
-powerpc-offb-add-support-for-foreign-endianness.patch
-asm-futexh-should-include-linux-uaccessh.patch
+And the smp_wmb() really should be free. It's literally free on x86, but 
+doing a write barrier is generally a cheap operation on any sane 
+architecture (ie generally cheaper than a read barrier or a full barrier: 
+it should mostly be a matter of inserting a magic entry in the write 
+buffers).
 
+		Linus
