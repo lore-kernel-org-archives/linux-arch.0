@@ -1,96 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from x346.tv-sign.ru ([89.108.83.215]:33484 "EHLO mail.screens.ru"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758054AbYBWUGD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 23 Feb 2008 15:06:03 -0500
-Date: Sat, 23 Feb 2008 22:36:20 +0300
-From: Oleg Nesterov <oleg@tv-sign.ru>
-Subject: Re: + kthread-add-a-missing-memory-barrier-to-kthread_stop.patch added to -mm tree
-Message-ID: <20080223193620.GA89@tv-sign.ru>
-References: <200802230733.m1N7XnMu018253@imap1.linux-foundation.org> <20080223162705.GA7686@tv-sign.ru> <alpine.LFD.1.00.0802230937530.21332@woody.linux-foundation.org> <20080223182258.GA19946@tv-sign.ru> <alpine.LFD.1.00.0802231044240.21332@woody.linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.00.0802231044240.21332@woody.linux-foundation.org>
+Received: from smtp1.linux-foundation.org ([207.189.120.13]:37830 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757202AbYBWUJg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 23 Feb 2008 15:09:36 -0500
+Date: Sat, 23 Feb 2008 12:08:18 -0800 (PST)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: + kthread-add-a-missing-memory-barrier-to-kthread_stop.patch
+ added to -mm tree
+In-Reply-To: <b647ffbd0802231151w481fdcb5hc2a3972e7fd03f69@mail.gmail.com>
+Message-ID: <alpine.LFD.1.00.0802231202380.21332@woody.linux-foundation.org>
+References: <200802230733.m1N7XnMu018253@imap1.linux-foundation.org>  <20080223162705.GA7686@tv-sign.ru>  <alpine.LFD.1.00.0802230937530.21332@woody.linux-foundation.org>  <20080223182258.GA19946@tv-sign.ru>  <alpine.LFD.1.00.0802231044240.21332@woody.linux-foundation.org>
+ <b647ffbd0802231151w481fdcb5hc2a3972e7fd03f69@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dmitry.adamushko@gmail.com, a.p.zijlstra@chello.nl, apw@shadowen.org, Ingo Molnar <mingo@elte.hu>, nickpiggin@yahoo.com.au, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+To: Dmitry Adamushko <dmitry.adamushko@gmail.com>
+Cc: Oleg Nesterov <oleg@tv-sign.ru>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, a.p.zijlstra@chello.nl, apw@shadowen.org, Ingo Molnar <mingo@elte.hu>, nickpiggin@yahoo.com.au, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-On 02/23, Linus Torvalds wrote:
->
-> On Sat, 23 Feb 2008, Oleg Nesterov wrote:
-> > 
-> > Yes, but still I suspect wmb() is not enough. Note that try_to_wake_up()
-> > first checks (reads) the task->state,
-> > 
-> > 	if (!(old_state & state))
-> > 		goto out;
-> > 
-> > without the full mb() it is (in theory) possible that try_to_wake_up()
-> > first reads TASK_RUNNING and only then sets CONDITION. IOW, STORE and
-> > LOAD could be re-ordered.
+
+
+On Sat, 23 Feb 2008, Dmitry Adamushko wrote:
 > 
-> No. The spinlock can have preceding stores (and loads, for that matter) 
-> percolate *into* the locked region, but a spinlock can *not* have loads 
-> (and stores) escape *out* of the region withou being totally broken. 
-> 
-> So the spinlock that predeces that load of "old_state" absolutely *must* 
-> be a memory barrier as far as that load is concerned.
-> 
-> Spinlocks are just "one-way" permeable. They stop both reads and writes, 
-> but they stop them from escaping up to earlier code (and the spin-unlock 
-> in turn stops reads and writes within the critical section from escaping 
-> down past the unlock).
-> 
-> But they definitely must stop that direction, and no loads or stores that 
-> are inside the critical section can possibly be allowed to be done outside 
-> of it, or the spinlock would be pointless.
+> it's not a LOAD that escapes *out* of the region. It's a MODIFY that gets *in*:
 
-Yes sure. But I meant that the STORE (set CONDITION) can leak into the critical
-section, and it could be re-ordered with the LOAD (check ->state) _inside_
-the critical section.
+Not with the smp_wmb(). That's the whole point.
 
-However,
+Ie the patch I'm suggesting is sufficient is appended, and the point is 
+that any write before the critical region will be ordered wrt the critical 
+region because of the write barrier before the spinlock (which itself is a 
+write).
 
-> So I think a simple smp_wmb() should be ok.
+This is also why I mentioned that if you have a really odd architecure 
+that considers spinlocks to be "outside" the normal cache coherency 
+domain, that would be broken, but I cannot think of a single valid case of 
+that, and I consider it insane.
 
-now I think you are probably right. Because (please ack/nack my understanding)
-this smp_wmb() ensures that the preceding STORE can't actually go into
-the locked region.
+(There are supecomputers that have a separate "barrier" network that can 
+be used to do global ordering, but they don't generally do cache coherency 
+and dependable memory ordering at all, which is why they need the separate 
+barrier network in the first place. So that odd case isn't relevant to 
+this discussion, even if it's historically interesting ;^)
 
-> That said, I do not *mind* the notion of "smp_mb_before/after_spinlock()", 
-> and just have architectures do whatever they want (with x86 just being a 
-> no-op). I don't think it's wrong in any way, and may be the really 
-> generic solution for some theoretical case where locking is done not by 
-> using the normal cache coherency, but over a separate lock network. But I 
-> would suggest against adding new abstractions unless there are real cases 
-> of it mattering.
-> 
-> (The biggest reason to do it in practice is probably architectures that 
-> have a really slow smp_wmb() and that also have a spinlock that is already 
-> serializing enough, but if this is only for one single use - in 
-> try_to_wake_up() - even that doesn't really seem to be a very strong 
-> argument).
+But I'd love to hear a good argument why this wouldn't work on some 
+architecture that we actually support (or might want to support in the 
+future).. Memory ordering is interesting (even if the only people who do 
+it right is Intel and AMD).
 
-Great.
+			Linus
 
-> > A bit offtopic, but let's take another example, __queue_work()->insert_work().
-> > With some trivial modification we can move set_wq_data() outside of cwq->lock.
-> > But according to linux's memory model we still need wmb(), which is a bit
-> > annoying. Perhaps we can also add smp_wmb_before_spinlock(). Not sure this
-> > is not too ugly though.
-> 
-> Is that really so performance-critical? We still need the spinlock for the 
-> actual list manipulation, so why would we care?
-> 
-> And the smp_wmb() really should be free. It's literally free on x86, but 
-> doing a write barrier is generally a cheap operation on any sane 
-> architecture (ie generally cheaper than a read barrier or a full barrier: 
-> it should mostly be a matter of inserting a magic entry in the write 
-> buffers).
+---
+ kernel/sched.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-Yes, yes, this was just a "on a related note", thanks!
-
-Oleg.
-
+diff --git a/kernel/sched.c b/kernel/sched.c
+index f28f19e..3bceb3b 100644
+--- a/kernel/sched.c
++++ b/kernel/sched.c
+@@ -1831,6 +1831,7 @@ static int try_to_wake_up(struct task_struct *p, unsigned int state, int sync)
+ 	long old_state;
+ 	struct rq *rq;
+ 
++	smp_wmb();
+ 	rq = task_rq_lock(p, &flags);
+ 	old_state = p->state;
+ 	if (!(old_state & state))
