@@ -1,45 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:37055 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751010AbYBYNj1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Feb 2008 08:39:27 -0500
-Date: Mon, 25 Feb 2008 13:38:46 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: regression: 2f569af (CONFIG_HIGHPTE vs. sub-page page tables.)
-Message-ID: <20080225133846.GA9945@flint.arm.linux.org.uk>
-References: <20080225132648.GA13791@digi.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20080225132648.GA13791@digi.com>
+Received: from mx1.redhat.com ([66.187.233.31]:43249 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751985AbYBYOEU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Feb 2008 09:04:20 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <b647ffbd0802231151w481fdcb5hc2a3972e7fd03f69@mail.gmail.com>
+References: <b647ffbd0802231151w481fdcb5hc2a3972e7fd03f69@mail.gmail.com> <200802230733.m1N7XnMu018253@imap1.linux-foundation.org> <20080223162705.GA7686@tv-sign.ru> <alpine.LFD.1.00.0802230937530.21332@woody.linux-foundation.org> <20080223182258.GA19946@tv-sign.ru> <alpine.LFD.1.00.0802231044240.21332@woody.linux-foundation.org> 
+Subject: Re: + kthread-add-a-missing-memory-barrier-to-kthread_stop.patch added to -mm tree
+Date: Mon, 25 Feb 2008 13:55:50 +0000
+Message-ID: <7789.1203947750@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <Uwe.Kleine-Koenig@digi.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+To: Dmitry Adamushko <dmitry.adamushko@gmail.com>
+Cc: dhowells@redhat.com, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@tv-sign.ru>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, a.p.zijlstra@chello.nl, apw@shadowen.org, Ingo Molnar <mingo@elte.hu>, nickpiggin@yahoo.com.au, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-On Mon, Feb 25, 2008 at 02:26:48PM +0100, Uwe Kleine-König wrote:
-> Hello,
-> 
-> I see the following:
-> 
-> 	/ # for i in 1 2 3; do grep PageTables /proc/meminfo; done
-> 	PageTables:          4 kB
-> 	PageTables:   4294967292 kB
-> 	PageTables:   4294967284 kB
-> 
-> and I bisected it down to 2f569af (CONFIG_HIGHPTE vs. sub-page page
-> tables.)  This still happens in 2.6.25-rc3.
-> 
-> I have not investigated further, so I cannot tell if it's only the
-> output in meminfo that is broken.
-> 
-> This is on ARCH=arm, on a Digi cc9p9360 with ns9xxx_defconfig.
+Dmitry Adamushko <dmitry.adamushko@gmail.com> wrote:
 
-Note that there's been other reports of this on other ARM platforms as
-well.
+> (3)
+> 
+> LOCK
+> 
+> LOAD(a)
+> MODIFY(b)
+> 
+> UNLOCK
+> 
+> and this last one is a problem. No?
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+I assume you meant:
+
+	LOCK
+	LOAD(b)
+	MODIFY(a)
+	UNLOCK
+
+David
