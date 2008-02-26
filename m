@@ -1,81 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:54932 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758325AbYBZDyZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Feb 2008 22:54:25 -0500
-Date: Tue, 26 Feb 2008 14:54:18 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-Message-Id: <20080226145418.59f6f35f.sfr@canb.auug.org.au>
-In-Reply-To: <20080216000943.GD31474@flint.arm.linux.org.uk>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
-	<20080216000943.GD31474@flint.arm.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Tue__26_Feb_2008_14_54_18_+1100_P4.bJaZUzzVusBqf"
+Received: from mail29.messagelabs.com ([216.82.249.147]:62714 "HELO
+	mail29.messagelabs.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1752482AbYBZOjD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Feb 2008 09:39:03 -0500
+Date: Tue, 26 Feb 2008 15:38:58 +0100
+From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <Uwe.Kleine-Koenig@digi.com>
+Subject: Re: regression: 2f569af (CONFIG_HIGHPTE vs. sub-page page tables.)
+Message-ID: <20080226143858.GA11590@digi.com>
+References: <20080225132648.GA13791@digi.com> <1203958582.3247.3.camel@localhost>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1203958582.3247.3.camel@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
 
---Signature=_Tue__26_Feb_2008_14_54_18_+1100_P4.bJaZUzzVusBqf
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Hello Martin,
 
-Hi Russell,
+Martin Schwidefsky wrote:
+> On Mon, 2008-02-25 at 14:26 +0100, Uwe Kleine-König wrote:
+> > I see the following:
+> > 
+> > 	/ # for i in 1 2 3; do grep PageTables /proc/meminfo; done
+> > 	PageTables:          4 kB
+> > 	PageTables:   4294967292 kB
+> > 	PageTables:   4294967284 kB
+> > 
+> > and I bisected it down to 2f569af (CONFIG_HIGHPTE vs. sub-page page
+> > tables.)  This still happens in 2.6.25-rc3.
+> > 
+> > I have not investigated further, so I cannot tell if it's only the
+> > output in meminfo that is broken.
+> > 
+> > This is on ARCH=arm, on a Digi cc9p9360 with ns9xxx_defconfig.
+> 
+> Hmm, not good. The number obviously went negative. There is an imbalance
+> in the number of pgtable_page_ctor vs. pgtable_page_dtor. Could you try
+> this patch and watch for warnings?
+It doesn't trigger.
 
-On Sat, 16 Feb 2008 00:09:43 +0000 Russell King <rmk+lkml@arm.linux.org.uk>=
- wrote:
->
-> On Tue, Feb 12, 2008 at 12:02:08PM +1100, Stephen Rothwell wrote:
-> > I will attempt to build the tree between each merge (and a failed build
-> > will again cause the offending tree to be dropped).  These builds will =
-be
-> > necessarily restricted to probably one architecture/config.  I will bui=
-ld
-> > the entire tree on as many architectures/configs as seem sensible and
-> > the results of that will be available on a web page (to be announced).
->=20
-> This restriction means that the value for the ARM architecture is soo
-> limited it's probably not worth the hastle participating in this project.
->=20
-> We already know that -mm picks up on very few ARM conflicts because
-> Andrew doesn't run through the entire set of configurations; unfortunately
-> ARM is one of those architectures which is very diverse [*], and because
-> of that, ideas like "allyconfig" are just completely irrelevant to it.
->=20
-> As mentioned elsewhere, what we need for ARM is to extend the kautobuild
-> infrastructure (see armlinux.simtec.co.uk) so that we can have more trees
-> at least compile tested regularly - but that requires the folk there to
-> have additional compute power (which isn't going to happen unless folk
-> stamp up some machines _or_ funding).
+And your assumption that there is an imbalance between pgtable_page_ctor
+and pgtable_page_dtor is wrong, too.  I added some debug output to both
+of the two functions and for one grep both are executed seven times.
 
-I now have an arm cross compiler (gcc-4.0.2-glibc-2.3.6
-arm-unknown-linux-gnu).  (See the results page at
-http://kisskb.ellerman.id.au/kisskb/branch/9/ - I must get a better
-name/place :-(.)  Is this sufficient to help you out?  What configs would
-be useful to build (as Andrew said, they don't take very long each).
+Moreover a "grep PageTables /proc/meminfo" resulted in 
 
-I really want as many subsystems as possible in the linux-next tree in an
-attempt to avoid some of the merge/conflict problems we have had in the
-past.  What can we do to help?
+	9x __dec_zone_state with item == NR_PAGETABLE
+	7x __inc_zone_state with item == NR_PAGETABLE
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+All those 16 calles where done via __(inc|dec)_zone_page_state.
 
---Signature=_Tue__26_Feb_2008_14_54_18_+1100_P4.bJaZUzzVusBqf
-Content-Type: application/pgp-signature
+... some time later ...
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
+I got it.  This code is currently in free_pgd_slow():
 
-iD8DBQFHw41uTgG2atn1QN8RArnCAJ9C5NEof7XPsPca6AbTZTLMFtlt3ACeJ3oT
-XxM2GDdIFPvh4I3uE3gLxRI=
-=ee6M
------END PGP SIGNATURE-----
+        pte = pmd_page(*pmd);
+        pmd_clear(pmd);
+        dec_zone_page_state(virt_to_page((unsigned long *)pgd), NR_PAGETABLE);
+        pte_lock_deinit(pte);
+        pte_free(mm, pte);
+        pmd_free(mm, pmd);
 
---Signature=_Tue__26_Feb_2008_14_54_18_+1100_P4.bJaZUzzVusBqf--
+So because (since 2f569af) pte_free does dec_zone_page_state and
+pte_lock_deinit, these two happen twice here.
+
+Removing the calls to dec_zone_page_state() and pte_lock_deinit() in
+free_pgd_slow() fixed it for me.
+
+For a complete fix we might want to change the type of pte?
+
+Best regards
+Uwe
+
+-- 
+Uwe Kleine-König, Software Engineer
+Digi International GmbH Branch Breisach, Küferstrasse 8, 79206 Breisach, Germany
+Tax: 315/5781/0242 / VAT: DE153662976 / Reg. Amtsgericht Dortmund HRB 13962
