@@ -1,70 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate1.de.ibm.com ([195.212.29.150]:15386 "EHLO
-	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754306AbYBYQ4c (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Feb 2008 11:56:32 -0500
-Received: from d12nrmr1607.megacenter.de.ibm.com (d12nrmr1607.megacenter.de.ibm.com [9.149.167.49])
-	by mtagate1.de.ibm.com (8.13.8/8.13.8) with ESMTP id m1PGuWPI144476
-	for <linux-arch@vger.kernel.org>; Mon, 25 Feb 2008 16:56:32 GMT
-Received: from d12av02.megacenter.de.ibm.com (d12av02.megacenter.de.ibm.com [9.149.165.228])
-	by d12nrmr1607.megacenter.de.ibm.com (8.13.8/8.13.8/NCO v8.7) with ESMTP id m1PGuVI31335426
-	for <linux-arch@vger.kernel.org>; Mon, 25 Feb 2008 17:56:31 +0100
-Received: from d12av02.megacenter.de.ibm.com (loopback [127.0.0.1])
-	by d12av02.megacenter.de.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id m1PGuU0Y007411
-	for <linux-arch@vger.kernel.org>; Mon, 25 Feb 2008 16:56:31 GMT
-Subject: Re: regression: 2f569af (CONFIG_HIGHPTE vs. sub-page page tables.)
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Reply-To: schwidefsky@de.ibm.com
-In-Reply-To: <20080225132648.GA13791@digi.com>
-References: <20080225132648.GA13791@digi.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Date: Mon, 25 Feb 2008 17:56:22 +0100
-Message-Id: <1203958582.3247.3.camel@localhost>
+Received: from chilli.pcug.org.au ([203.10.76.44]:54932 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758325AbYBZDyZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Feb 2008 22:54:25 -0500
+Date: Tue, 26 Feb 2008 14:54:18 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+Message-Id: <20080226145418.59f6f35f.sfr@canb.auug.org.au>
+In-Reply-To: <20080216000943.GD31474@flint.arm.linux.org.uk>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+	<20080216000943.GD31474@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Tue__26_Feb_2008_14_54_18_+1100_P4.bJaZUzzVusBqf"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Uwe =?ISO-8859-1?Q?Kleine-K=F6nig?= <Uwe.Kleine-Koenig@digi.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
 
-On Mon, 2008-02-25 at 14:26 +0100, Uwe Kleine-König wrote:
-> I see the following:
-> 
-> 	/ # for i in 1 2 3; do grep PageTables /proc/meminfo; done
-> 	PageTables:          4 kB
-> 	PageTables:   4294967292 kB
-> 	PageTables:   4294967284 kB
-> 
-> and I bisected it down to 2f569af (CONFIG_HIGHPTE vs. sub-page page
-> tables.)  This still happens in 2.6.25-rc3.
-> 
-> I have not investigated further, so I cannot tell if it's only the
-> output in meminfo that is broken.
-> 
-> This is on ARCH=arm, on a Digi cc9p9360 with ns9xxx_defconfig.
+--Signature=_Tue__26_Feb_2008_14_54_18_+1100_P4.bJaZUzzVusBqf
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Hmm, not good. The number obviously went negative. There is an imbalance
-in the number of pgtable_page_ctor vs. pgtable_page_dtor. Could you try
-this patch and watch for warnings?
+Hi Russell,
 
--- 
-blue skies,
-  Martin.
+On Sat, 16 Feb 2008 00:09:43 +0000 Russell King <rmk+lkml@arm.linux.org.uk>=
+ wrote:
+>
+> On Tue, Feb 12, 2008 at 12:02:08PM +1100, Stephen Rothwell wrote:
+> > I will attempt to build the tree between each merge (and a failed build
+> > will again cause the offending tree to be dropped).  These builds will =
+be
+> > necessarily restricted to probably one architecture/config.  I will bui=
+ld
+> > the entire tree on as many architectures/configs as seem sensible and
+> > the results of that will be available on a web page (to be announced).
+>=20
+> This restriction means that the value for the ARM architecture is soo
+> limited it's probably not worth the hastle participating in this project.
+>=20
+> We already know that -mm picks up on very few ARM conflicts because
+> Andrew doesn't run through the entire set of configurations; unfortunately
+> ARM is one of those architectures which is very diverse [*], and because
+> of that, ideas like "allyconfig" are just completely irrelevant to it.
+>=20
+> As mentioned elsewhere, what we need for ARM is to extend the kautobuild
+> infrastructure (see armlinux.simtec.co.uk) so that we can have more trees
+> at least compile tested regularly - but that requires the folk there to
+> have additional compute power (which isn't going to happen unless folk
+> stamp up some machines _or_ funding).
 
-"Reality continues to ruin my life." - Calvin.
+I now have an arm cross compiler (gcc-4.0.2-glibc-2.3.6
+arm-unknown-linux-gnu).  (See the results page at
+http://kisskb.ellerman.id.au/kisskb/branch/9/ - I must get a better
+name/place :-(.)  Is this sufficient to help you out?  What configs would
+be useful to build (as Andrew said, they don't take very long each).
 
----
-diff --git a/include/asm-arm/pgalloc.h b/include/asm-arm/pgalloc.h
-index 163b030..eeb973a 100644
---- a/include/asm-arm/pgalloc.h
-+++ b/include/asm-arm/pgalloc.h
-@@ -94,6 +94,7 @@ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
- 
- static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
- {
-+	WARN_ON(!pte);
- 	pgtable_page_dtor(pte);
- 	__free_page(pte);
- }
+I really want as many subsystems as possible in the linux-next tree in an
+attempt to avoid some of the merge/conflict problems we have had in the
+past.  What can we do to help?
 
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
 
+--Signature=_Tue__26_Feb_2008_14_54_18_+1100_P4.bJaZUzzVusBqf
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
+
+iD8DBQFHw41uTgG2atn1QN8RArnCAJ9C5NEof7XPsPca6AbTZTLMFtlt3ACeJ3oT
+XxM2GDdIFPvh4I3uE3gLxRI=
+=ee6M
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__26_Feb_2008_14_54_18_+1100_P4.bJaZUzzVusBqf--
