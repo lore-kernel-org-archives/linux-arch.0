@@ -1,36 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:41976 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753518AbYB0PCT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Feb 2008 10:02:19 -0500
-Date: Wed, 27 Feb 2008 16:02:10 +0100
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [rfc][patch] x86-64 new smp_call_function design
-Message-ID: <20080227150210.GA21610@elte.hu>
-References: <20080227124217.GA1340@wotan.suse.de> <20080227132713.GA13681@elte.hu> <20080227135041.GC1340@wotan.suse.de>
+Received: from relay1.sgi.com ([192.48.171.29]:44646 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1756086AbYB0TK1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Feb 2008 14:10:27 -0500
+Date: Wed, 27 Feb 2008 11:10:26 -0800 (PST)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: let __dec_zone_page_state use __dec_zone_state
+In-Reply-To: <20080225154503.GA16223@digi.com>
+Message-ID: <Pine.LNX.4.64.0802271108500.32462@schroedinger.engr.sgi.com>
+References: <20080225132648.GA13791@digi.com> <20080225133846.GA9945@flint.arm.linux.org.uk>
+ <20080225153208.GA15734@digi.com> <20080225154503.GA16223@digi.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080227135041.GC1340@wotan.suse.de>
+Content-Type: MULTIPART/MIXED; BOUNDARY="-1700579579-1048241017-1204139426=:32462"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Andi Kleen <ak@suse.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <Uwe.Kleine-Koenig@digi.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
 
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-* Nick Piggin <npiggin@suse.de> wrote:
+---1700579579-1048241017-1204139426=:32462
+Content-Type: TEXT/PLAIN; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 
-> > the two structures are quite similar in size and role - why not have 
-> > a type field and handle them largely together? I think we should try 
-> > to preserve a single queue and a single vector - that would remove a 
-> > number of ugly special-cases from the patch.
-> 
-> A single queue will kill one of the big fundamental scalability 
-> improvements of the call_single. That's the problem.
+On Mon, 25 Feb 2008, Uwe Kleine-K=F6nig wrote:
 
-hm, indeed. Then how about the other way around: couldnt the normal 
-all-cpus SMP function call be implemented transparently via using 
-smp_call_single() calls? The vector duplication is really ugly and feels 
-wrong.
+> This removes code duplication and makes __dec_zone_page_state look like
+> __inc_zone_page_state.
 
-	Ingo
+Acked-by: Christoph Lameter <clameter@sgi.com>
+---1700579579-1048241017-1204139426=:32462--
