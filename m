@@ -1,51 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.suse.de ([195.135.220.2]:37945 "EHLO mx1.suse.de"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:45198 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754461AbYB0NHR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Feb 2008 08:07:17 -0500
-Date: Wed, 27 Feb 2008 14:07:16 +0100
-From: Nick Piggin <npiggin@suse.de>
+	id S1751295AbYB0N1Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Feb 2008 08:27:25 -0500
+Date: Wed, 27 Feb 2008 14:27:13 +0100
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [rfc][patch] x86-64 new smp_call_function design
-Message-ID: <20080227130716.GB1340@wotan.suse.de>
-References: <20080227124217.GA1340@wotan.suse.de> <47C55FD2.8030809@suse.de>
-Mime-Version: 1.0
+Message-ID: <20080227132713.GA13681@elte.hu>
+References: <20080227124217.GA1340@wotan.suse.de>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <47C55FD2.8030809@suse.de>
+In-Reply-To: <20080227124217.GA1340@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <ak@suse.de>
-Cc: Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Nick Piggin <npiggin@suse.de>
+Cc: Andi Kleen <ak@suse.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Wed, Feb 27, 2008 at 02:04:18PM +0100, Andi Kleen wrote:
-> 
-> > On a 2 socket, 8 core system, I see anywhere up to nearly 16x better
-> > performance on a stress test. The common cases of call-all, and wait
-> > are improved the least, however I think that if call-single and nowait
-> > are turned into a high performance API, then new usages will pop up
-> > (eg. I started this because I wanted to do "call single, nowait" calls
-> > for migrating block IO completions back to submitting CPU; however I
-> > am also interested in improving the "call all, wait" case for example
-> > to improve vmalloc tlb flushing).
-> 
-> TLB flushing at least on x86-64 should be already well optimized on its
-> own. I would be surprised if you could do much better.
 
-*vmalloc* TLB flushing. 
+* Nick Piggin <npiggin@suse.de> wrote:
 
-void flush_tlb_all(void)
-{
-        on_each_cpu(do_flush_tlb_all, NULL, 1, 1);
-}
+> This isn't finished yet, however I'd just like to ask for comments.
 
-Of course we could use a new vector for it and speed it up a lot more,
-but after my vmalloc improvements I think that would be a waste of a
-vector at this point.
+looks really interesting!
 
- 
-> > As far as I understand, calling a subset of online CPUs that is not all or
-> > one, is used quite infrequently, so this might be OK.
-> 
-> With cpusets and isolation etc. it is the normal case.
+only one fundamental observation:
 
-Oh really? Coming from what callers?
+> +struct call_data {
+> +	spinlock_t lock;
+> +	struct list_head list;
+>  	void (*func) (void *info);
+>  	void *info;
+> +	unsigned int flags;
+> +	unsigned int refs;
+> +	cpumask_t cpumask;
+> +	struct rcu_head rcu_head;
+>  };
+
+> +struct call_single_data {
+> +	struct list_head list;
+> +	void (*func) (void *info);
+> +	void *info;
+> +	unsigned int flags;
+> +};
+
+the two structures are quite similar in size and role - why not have a 
+type field and handle them largely together? I think we should try to 
+preserve a single queue and a single vector - that would remove a number 
+of ugly special-cases from the patch.
+
+	Ingo
