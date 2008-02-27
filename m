@@ -1,52 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:45198 "EHLO mx3.mail.elte.hu"
+Received: from ns2.suse.de ([195.135.220.15]:43595 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751295AbYB0N1Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Feb 2008 08:27:25 -0500
-Date: Wed, 27 Feb 2008 14:27:13 +0100
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [rfc][patch] x86-64 new smp_call_function design
-Message-ID: <20080227132713.GA13681@elte.hu>
-References: <20080227124217.GA1340@wotan.suse.de>
+	id S1752143AbYB0NbH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Feb 2008 08:31:07 -0500
+Message-ID: <47C5668C.6040906@suse.de>
+Date: Wed, 27 Feb 2008 14:33:00 +0100
+From: Andi Kleen <ak@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080227124217.GA1340@wotan.suse.de>
+Subject: Re: [rfc][patch] x86-64 new smp_call_function design
+References: <20080227124217.GA1340@wotan.suse.de> <47C55FD2.8030809@suse.de> <20080227130716.GB1340@wotan.suse.de>
+In-Reply-To: <20080227130716.GB1340@wotan.suse.de>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nick Piggin <npiggin@suse.de>
-Cc: Andi Kleen <ak@suse.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Cc: Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
 
-* Nick Piggin <npiggin@suse.de> wrote:
+> *vmalloc* TLB flushing. 
+> 
+> void flush_tlb_all(void)
+> {
+>         on_each_cpu(do_flush_tlb_all, NULL, 1, 1);
+> }
+> 
+> Of course we could use a new vector for it and speed it up a lot more,
+> but after my vmalloc improvements I think that would be a waste of a
+> vector at this point.
 
-> This isn't finished yet, however I'd just like to ask for comments.
+Ah I see sorry. If you want to just speed up vmalloc flushing I think
+the easier way would be to just extend the normal TLB flusher for
+vmalloc. So alone for this it probably wouldn't be worth it.
 
-looks really interesting!
+But I think it'll be useful for a couple of other things.
 
-only one fundamental observation:
+>>> As far as I understand, calling a subset of online CPUs that is not all or
+>>> one, is used quite infrequently, so this might be OK.
+>> With cpusets and isolation etc. it is the normal case.
+> 
+> Oh really? Coming from what callers?
 
-> +struct call_data {
-> +	spinlock_t lock;
-> +	struct list_head list;
->  	void (*func) (void *info);
->  	void *info;
-> +	unsigned int flags;
-> +	unsigned int refs;
-> +	cpumask_t cpumask;
-> +	struct rcu_head rcu_head;
->  };
+The isolation work is not merged yet, but it will essentially need
+to turn a lot of the _call_function()s into _call_function_mask()
 
-> +struct call_single_data {
-> +	struct list_head list;
-> +	void (*func) (void *info);
-> +	void *info;
-> +	unsigned int flags;
-> +};
+-Andi
 
-the two structures are quite similar in size and role - why not have a 
-type field and handle them largely together? I think we should try to 
-preserve a single queue and a single vector - that would remove a number 
-of ugly special-cases from the patch.
 
-	Ingo
