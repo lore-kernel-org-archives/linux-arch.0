@@ -1,78 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0029.austin.hp.com ([15.216.28.36]:33964 "EHLO
-	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757043AbYB1AJP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Feb 2008 19:09:15 -0500
-Message-Id: <20080228001053.013269726@ldl.fc.hp.com>
+Received: from g1t0028.austin.hp.com ([15.216.28.35]:4194 "EHLO
+	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757243AbYB1AJQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Feb 2008 19:09:16 -0500
+Message-Id: <20080228001052.812275985@ldl.fc.hp.com>
 References: <20080228000437.880811124@ldl.fc.hp.com>
-Date: Wed, 27 Feb 2008 17:04:41 -0700
+Date: Wed, 27 Feb 2008 17:04:40 -0700
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [patch 4/6] ARM: move bridge enable out of pcibios_enable_resources()
-Content-Disposition: inline; filename=arm-pcibios_enable_resources
+Subject: [patch 3/6] xtensa: make pcibios_enable_device() use pcibios_enable_resources()
+Content-Disposition: inline; filename=xtensa-pcibios_enable_resources
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
 Cc: Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>
 
-Move bridge enable from pcibios_enable_resources() to
-platform_pci_enable_device() so the former matches other
-architectures and can be shared.
+pcibios_enable_device() has an almost verbatim copy of
+pcibios_enable_resources(), (the only difference is that
+pcibios_enable_resources() turns on PCI_COMMAND_MEMORY if
+there's a ROM resource).
+
+The duplication might be intentional, but I don't see any callers
+of pcibios_enable_resources() on xtensa, so I think it's more
+likely a historical accident copied from ppc.
+
+This patch removes the duplication, making pcibios_enable_device()
+simply call pcibios_enable_resources() as x86 does.
 
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 
-Index: work6/arch/arm/kernel/bios32.c
+Index: work6/arch/xtensa/kernel/pci.c
 ===================================================================
---- work6.orig/arch/arm/kernel/bios32.c	2008-02-27 11:25:29.000000000 -0700
-+++ work6/arch/arm/kernel/bios32.c	2008-02-27 11:55:59.000000000 -0700
-@@ -683,15 +683,32 @@
- 			cmd |= PCI_COMMAND_MEMORY;
- 	}
- 
-+	if (cmd != old_cmd) {
-+		printk("PCI: enabling device %s (%04x -> %04x)\n",
-+		       pci_name(dev), old_cmd, cmd);
-+		pci_write_config_word(dev, PCI_COMMAND, cmd);
-+	}
-+	return 0;
-+}
-+
-+static int platform_pci_enable_device(struct pci_dev *dev)
-+{
-+	u16 cmd, old_cmd;
-+
-+	pci_read_config_word(dev, PCI_COMMAND, &cmd);
-+	old_cmd = cmd;
-+
- 	/*
--	 * Bridges (eg, cardbus bridges) need to be fully enabled
-+	 * Bridges (eg, cardbus bridges) need to be fully enabled.
-+	 * Most architectures do this in pci_enable_bridges(), not
-+	 * in the pci_enable_device() path.
- 	 */
- 	if ((dev->class >> 16) == PCI_BASE_CLASS_BRIDGE)
- 		cmd |= PCI_COMMAND_IO | PCI_COMMAND_MEMORY;
- 
- 	if (cmd != old_cmd) {
--		printk("PCI: enabling device %s (%04x -> %04x)\n",
--		       pci_name(dev), old_cmd, cmd);
-+		dev_info(&dev->dev, "enabling bridge device (%04x -> %04x)\n",
-+		       old_cmd, cmd);
- 		pci_write_config_word(dev, PCI_COMMAND, cmd);
- 	}
- 	return 0;
-@@ -699,7 +716,12 @@
+--- work6.orig/arch/xtensa/kernel/pci.c	2008-02-18 10:43:50.000000000 -0700
++++ work6/arch/xtensa/kernel/pci.c	2008-02-18 11:32:12.000000000 -0700
+@@ -238,31 +238,7 @@
  
  int pcibios_enable_device(struct pci_dev *dev, int mask)
  {
--	return pcibios_enable_resources(dev, mask);
-+	int err;
-+
-+	if ((err = pcibios_enable_resources(dev, mask)) < 0)
-+		return err;
-+
-+	return platform_pci_enable_device(dev);
+-	u16 cmd, old_cmd;
+-	int idx;
+-	struct resource *r;
+-
+-	pci_read_config_word(dev, PCI_COMMAND, &cmd);
+-	old_cmd = cmd;
+-	for (idx=0; idx<6; idx++) {
+-		r = &dev->resource[idx];
+-		if (!r->start && r->end) {
+-			printk(KERN_ERR "PCI: Device %s not available because "
+-			       "of resource collisions\n", pci_name(dev));
+-			return -EINVAL;
+-		}
+-		if (r->flags & IORESOURCE_IO)
+-			cmd |= PCI_COMMAND_IO;
+-		if (r->flags & IORESOURCE_MEM)
+-			cmd |= PCI_COMMAND_MEMORY;
+-	}
+-	if (cmd != old_cmd) {
+-		printk("PCI: Enabling device %s (%04x -> %04x)\n",
+-		       pci_name(dev), old_cmd, cmd);
+-		pci_write_config_word(dev, PCI_COMMAND, cmd);
+-	}
+-
+-	return 0;
++	return pcibios_enable_resources(dev, mask);
  }
  
- int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
+ #ifdef CONFIG_PROC_FS
 
 -- 
