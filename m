@@ -1,46 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:42154 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753658AbYB2Tch (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Feb 2008 14:32:37 -0500
-Date: Fri, 29 Feb 2008 11:32:35 -0800 (PST)
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: let __dec_zone_page_state use __dec_zone_state
-In-Reply-To: <20080229074527.GA32230@digi.com>
-Message-ID: <Pine.LNX.4.64.0802291132170.11084@schroedinger.engr.sgi.com>
-References: <20080225132648.GA13791@digi.com> <20080225133846.GA9945@flint.arm.linux.org.uk>
- <20080225153208.GA15734@digi.com> <20080225154503.GA16223@digi.com>
- <Pine.LNX.4.64.0802271108500.32462@schroedinger.engr.sgi.com>
- <20080229074527.GA32230@digi.com>
-MIME-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="-1700579579-2002042812-1204313555=:11084"
+Received: from chilli.pcug.org.au ([203.10.76.44]:35240 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757490AbYB2XqA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Feb 2008 18:46:00 -0500
+Date: Sat, 1 Mar 2008 10:45:54 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+Message-Id: <20080301104554.c3fedf97.sfr@canb.auug.org.au>
+In-Reply-To: <20080229130426.GB22335@cs181133002.pp.htv.fi>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+	<20080216000943.GD31474@flint.arm.linux.org.uk>
+	<20080226145418.59f6f35f.sfr@canb.auug.org.au>
+	<20080229234551.d8023f5c.sfr@canb.auug.org.au>
+	<20080229130426.GB22335@cs181133002.pp.htv.fi>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Sat__1_Mar_2008_10_45_54_+1100_irr1Bhawx+nkl8dz"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <Uwe.Kleine-Koenig@digi.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+To: Adrian Bunk <bunk@kernel.org>
+Cc: Russell King <rmk+lkml@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+--Signature=_Sat__1_Mar_2008_10_45_54_+1100_irr1Bhawx+nkl8dz
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
----1700579579-2002042812-1204313555=:11084
-Content-Type: TEXT/PLAIN; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Hi Adrian,
 
-On Fri, 29 Feb 2008, Uwe Kleine-K=F6nig wrote:
-
-> Hello Christoph,
+On Fri, 29 Feb 2008 15:04:26 +0200 Adrian Bunk <bunk@kernel.org> wrote:
+>
+> 2 errors are expected (long-standing breakages).
 >=20
-> Christoph Lameter wrote:
-> > On Mon, 25 Feb 2008, Uwe Kleine-K=F6nig wrote:
-> >=20
-> > > This removes code duplication and makes __dec_zone_page_state look li=
-ke
-> > > __inc_zone_page_state.
-> >=20
-> > Acked-by: Christoph Lameter <clameter@sgi.com>
-> Unless Linus or Andrew take that patch I think the best path for that
-> patch into mainline is going over your tree.
+> 14 failures are due to your ancient gcc 4.0.2 not supporting -mabi=3Daapc=
+s-linux:
+> /scratch/sfr/next/scripts/mod/empty.c:1: error: invalid ABI option: -mabi=
+=3Daapcs-linux
+>=20
+> Another one is an internal error in your ancient compiler:
+> /scratch/sfr/next/arch/arm/common/it8152.c:148: internal compiler error: =
+in trunc_int_for_mode, at explow.c:53
+>=20
+> Can you build a cross compiler using gcc 4.2.3 from ftp.gnu.org instead?
+> That one serves me perfectly for my cross-compile tests.
 
-I only do slab stuff via my tree. This has to go through Andrew.
+OK, thanks for the feedback it is very helpful.  I will look at building
+a newer compiler on Monday.
 
----1700579579-2002042812-1204313555=:11084--
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Sat__1_Mar_2008_10_45_54_+1100_irr1Bhawx+nkl8dz
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
+
+iD8DBQFHyJk4TgG2atn1QN8RAoNnAJ9lN4R8ioRMCuqfO68LR5xc7G7/KwCfd2uX
+JDBUIT13uT6LVS1MnAEM5/Y=
+=YHT/
+-----END PGP SIGNATURE-----
+
+--Signature=_Sat__1_Mar_2008_10_45_54_+1100_irr1Bhawx+nkl8dz--
