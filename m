@@ -1,57 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([207.189.120.13]:35925 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750946AbYB2CLT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Feb 2008 21:11:19 -0500
-Date: Thu, 28 Feb 2008 18:10:54 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:40775 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751359AbYB2Fag (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Feb 2008 00:30:36 -0500
+Date: Thu, 28 Feb 2008 22:30:14 -0700
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: [PATCH 11/12] Generic semaphore implementation
-Message-Id: <20080228181054.dddcf559.akpm@linux-foundation.org>
-In-Reply-To: <20080229130019.3ede8053.sfr@canb.auug.org.au>
-References: <1204180441-8540-3-git-send-email-matthew@wil.cx>
-	<1204180441-8540-4-git-send-email-matthew@wil.cx>
-	<1204180441-8540-5-git-send-email-matthew@wil.cx>
-	<1204180441-8540-6-git-send-email-matthew@wil.cx>
-	<1204180441-8540-7-git-send-email-matthew@wil.cx>
-	<1204180441-8540-8-git-send-email-matthew@wil.cx>
-	<1204180441-8540-9-git-send-email-matthew@wil.cx>
-	<1204180441-8540-10-git-send-email-matthew@wil.cx>
-	<1204180441-8540-11-git-send-email-matthew@wil.cx>
-	<20080228071822.GA13571@elte.hu>
-	<20080229003954.GA525@parisc-linux.org>
-	<20080229130019.3ede8053.sfr@canb.auug.org.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Message-ID: <20080229053014.GA19198@parisc-linux.org>
+References: <1204180441-8540-5-git-send-email-matthew@wil.cx> <1204180441-8540-6-git-send-email-matthew@wil.cx> <1204180441-8540-7-git-send-email-matthew@wil.cx> <1204180441-8540-8-git-send-email-matthew@wil.cx> <1204180441-8540-9-git-send-email-matthew@wil.cx> <1204180441-8540-10-git-send-email-matthew@wil.cx> <1204180441-8540-11-git-send-email-matthew@wil.cx> <20080228071822.GA13571@elte.hu> <20080229003954.GA525@parisc-linux.org> <20080228174349.1da254bd.akpm@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20080228174349.1da254bd.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Matthew Wilcox <matthew@wil.cx>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, Matthew Wilcox <willy@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-next@vger.kernel.org, Linus <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, Matthew Wilcox <willy@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
 
-On Fri, 29 Feb 2008 13:00:19 +1100 Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+On Thu, Feb 28, 2008 at 05:43:49PM -0800, Andrew Morton wrote:
+> err, we'd better tell the arch maintainers than we just deleted all their
+> sempahore code.
+     ^^  I'm so glad it's not just me who makes that typo.  I actually
+grepped for it before sending the patches out.
 
-> On Thu, 28 Feb 2008 17:39:54 -0700 Matthew Wilcox <matthew@wil.cx> wrote:
-> >
-> > Stephen, I've put the semaphore patches into a git tree; can you add it
-> > to linux-next?
-> > 
-> > http://git.kernel.org/?p=linux/kernel/git/willy/misc.git;a=shortlog;h=semaphore
+I did already send it to linux-arch back in January or so.  But a
+reminder won't hurt.
+
+> yummy summary:
 > 
-> I have put this in for toady's build (but using the git URL).  This tree
-> is in the "too many conflicts and its out until fixed" category ...
+>  254 files changed, 386 insertions(+), 7827 deletions(-)
 
-A shame.
+Yeah, that's quite attractive ;-)
 
-Most of the conflicts will be due to all the
+> Yes, let's get this into linux-next if poss please.  If mainline later
+> breaks for some architecture, well, we did our best..
 
--#include <asm/semaphore.h>
-+#include <linux/semaphore.h>
+It _should_ only be build breakage.  I guess we'll see.
 
-but they're all optional anyway, because include/asm-*/semaphore.h is
-
-#include <linux/semaphore.h>
-
-so either a) you just ignore all those conflicts or b) we ask Willy to
-remove all that stuff and we can trickle it in via subsystems later.
-
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
