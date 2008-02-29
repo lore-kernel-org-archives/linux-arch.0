@@ -1,73 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp6.pp.htv.fi ([213.243.153.40]:43274 "EHLO smtp6.pp.htv.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754585AbYB2NFq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Feb 2008 08:05:46 -0500
-Date: Fri, 29 Feb 2008 15:04:26 +0200
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
-Message-ID: <20080229130426.GB22335@cs181133002.pp.htv.fi>
-References: <20080212120208.f7168a91.sfr@canb.auug.org.au> <20080216000943.GD31474@flint.arm.linux.org.uk> <20080226145418.59f6f35f.sfr@canb.auug.org.au> <20080229234551.d8023f5c.sfr@canb.auug.org.au>
+Received: from wa-out-1112.google.com ([209.85.146.181]:45203 "EHLO
+	wa-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751141AbYB2Qap (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Feb 2008 11:30:45 -0500
+Received: by wa-out-1112.google.com with SMTP id v27so4794109wah.23
+        for <linux-arch@vger.kernel.org>; Fri, 29 Feb 2008 08:30:44 -0800 (PST)
+Message-ID: <590657100802290830y1e4786adi1411e8a4e4b277f4@mail.gmail.com>
+Date: Fri, 29 Feb 2008 08:30:43 -0800
+From: "Harvey Harrison" <harvey.harrison@gmail.com>
+Subject: Re: [PATCH 1/2] kprobes: Introduce kprobe_handle_fault()
+In-Reply-To: <20080229031656.1abac83a.akpm@linux-foundation.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-In-Reply-To: <20080229234551.d8023f5c.sfr@canb.auug.org.au>
+References: <1202007623.1844.44.camel@brick>
+	 <20080229031656.1abac83a.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Russell King <rmk+lkml@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-On Fri, Feb 29, 2008 at 11:45:51PM +1100, Stephen Rothwell wrote:
-> Hi Russell,
-> 
-> On Tue, 26 Feb 2008 14:54:18 +1100 Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-> >
-> > On Sat, 16 Feb 2008 00:09:43 +0000 Russell King <rmk+lkml@arm.linux.org.uk> wrote:
-> > >
-> > > As mentioned elsewhere, what we need for ARM is to extend the kautobuild
-> > > infrastructure (see armlinux.simtec.co.uk) so that we can have more trees
-> > > at least compile tested regularly - but that requires the folk there to
-> > > have additional compute power (which isn't going to happen unless folk
-> > > stamp up some machines _or_ funding).
-> > 
-> > I now have an arm cross compiler (gcc-4.0.2-glibc-2.3.6
-> > arm-unknown-linux-gnu).  (See the results page at
-> > http://kisskb.ellerman.id.au/kisskb/branch/9/ - I must get a better
-> > name/place :-(.)  Is this sufficient to help you out?  What configs would
-> > be useful to build (as Andrew said, they don't take very long each).
-> > 
-> > I really want as many subsystems as possible in the linux-next tree in an
-> > attempt to avoid some of the merge/conflict problems we have had in the
-> > past.  What can we do to help?
-> 
-> OK, I tried this out:  I built all 75 arm defconfigs with the cross
-> compiler above (the resulting log file is at
-> http://ozlabs.org/~sfr/armall.log.bz2). 17 failed (I don't know why - I
-> didn't even really look).
+On Fri, Feb 29, 2008 at 3:16 AM, Andrew Morton
+<akpm@linux-foundation.org> wrote:
+> On Sat, 02 Feb 2008 19:00:23 -0800 Harvey Harrison <harvey.harrison@gmail.com> wrote:
+>
+>  > Use a central kprobe_handle_fault() inline in kprobes.h to remove
+>  > all of the arch-dependant, practically identical implementations in
+>  > avr32, ia64, powerpc, s390, sparc64, and x86.
+>  >
+>  > avr32 was the only arch without the preempt_disable/enable pair
+>  > in its notify_page_fault implementation.
+>  >
+>  > This uncovered a possible bug in the s390 version as that purely
+>  > copied the x86 version unconditionally passing 14 as the trapnr
+>  > rather than the error_code parameter.  s390 is changed to pass
+>  > error_code in this patch.
+>  >
+>  > Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+>  > ---
+>  > Andrew, 1/2 is low risk, 2/2 has been tested on x86-32 and 64,
+>  > but the !preemptible invariant seems correct.
+>  >
+>  >  arch/arm/mm/fault.c     |   25 +------------------------
+>  >  arch/avr32/mm/fault.c   |   21 +--------------------
+>  >  arch/ia64/mm/fault.c    |   24 +-----------------------
+>  >  arch/powerpc/mm/fault.c |   25 +------------------------
+>  >  arch/s390/mm/fault.c    |   25 +------------------------
+>  >  arch/sparc64/mm/fault.c |   23 +----------------------
+>  >  arch/x86/mm/fault.c     |   26 ++------------------------
+>  >  include/linux/kprobes.h |   20 ++++++++++++++++++++
+>  >  8 files changed, 28 insertions(+), 161 deletions(-)
+>
+>  Breaks the ia64 build:
+>
+>  include/linux/kprobes.h: In function `kprobe_handle_fault':
+>  include/linux/kprobes.h:234: error: implicit declaration of function `kprobe_fault_handler'
+>
+>  and ia64 doesn't implement kprobe_fault_handler() so there's no easy fix
+>  here.
 
-2 errors are expected (long-standing breakages).
+Yes there is, ia64 apparently called theirs kprobes_handle_fault, sorry I didn't
+notice the extra 's'.  Want a new patch, or will you change the three
+occurances?
 
-14 failures are due to your ancient gcc 4.0.2 not supporting -mabi=aapcs-linux:
-/scratch/sfr/next/scripts/mod/empty.c:1: error: invalid ABI option: -mabi=aapcs-linux
-
-Another one is an internal error in your ancient compiler:
-/scratch/sfr/next/arch/arm/common/it8152.c:148: internal compiler error: in trunc_int_for_mode, at explow.c:53
-
-Can you build a cross compiler using gcc 4.2.3 from ftp.gnu.org instead?
-That one serves me perfectly for my cross-compile tests.
-
->...
-> Cheers,
-> Stephen Rothwell                    sfr@canb.auug.org.au
->...
-
-cu
-Adrian
-
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
-
+Harvey
