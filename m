@@ -1,52 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:35884 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753652AbYB2TVu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Feb 2008 14:21:50 -0500
-Date: Fri, 29 Feb 2008 20:21:23 +0100
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH 11/12] Generic semaphore implementation
-Message-ID: <20080229192123.GB19476@elte.hu>
-References: <1204180441-8540-5-git-send-email-matthew@wil.cx> <1204180441-8540-6-git-send-email-matthew@wil.cx> <1204180441-8540-7-git-send-email-matthew@wil.cx> <1204180441-8540-8-git-send-email-matthew@wil.cx> <1204180441-8540-9-git-send-email-matthew@wil.cx> <1204180441-8540-10-git-send-email-matthew@wil.cx> <1204180441-8540-11-git-send-email-matthew@wil.cx> <20080228071822.GA13571@elte.hu> <20080229003954.GA525@parisc-linux.org> <20080228174349.1da254bd.akpm@linux-foundation.org>
+Received: from relay2.sgi.com ([192.48.171.30]:42154 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753658AbYB2Tch (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Feb 2008 14:32:37 -0500
+Date: Fri, 29 Feb 2008 11:32:35 -0800 (PST)
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: let __dec_zone_page_state use __dec_zone_state
+In-Reply-To: <20080229074527.GA32230@digi.com>
+Message-ID: <Pine.LNX.4.64.0802291132170.11084@schroedinger.engr.sgi.com>
+References: <20080225132648.GA13791@digi.com> <20080225133846.GA9945@flint.arm.linux.org.uk>
+ <20080225153208.GA15734@digi.com> <20080225154503.GA16223@digi.com>
+ <Pine.LNX.4.64.0802271108500.32462@schroedinger.engr.sgi.com>
+ <20080229074527.GA32230@digi.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080228174349.1da254bd.akpm@linux-foundation.org>
+Content-Type: MULTIPART/MIXED; BOUNDARY="-1700579579-2002042812-1204313555=:11084"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, Matthew Wilcox <willy@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
+To: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <Uwe.Kleine-Koenig@digi.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
 
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-* Andrew Morton <akpm@linux-foundation.org> wrote:
+---1700579579-2002042812-1204313555=:11084
+Content-Type: TEXT/PLAIN; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 
-> yummy summary:
-> 
->  254 files changed, 386 insertions(+), 7827 deletions(-)
-> 
-> The only major conflict is with avr32 which seems to have just done a 
-> major revamp of that architecture's semaphore implementation.  Oh 
-> well.
-> 
-> There are a couple of small #include rejects here and there, nothing 
-> at all major.
-> 
-> Yes, let's get this into linux-next if poss please.  If mainline later 
-> breaks for some architecture, well, we did our best..
+On Fri, 29 Feb 2008, Uwe Kleine-K=F6nig wrote:
 
-a better approach would be to send the core bits to Linus right now - as 
-long as it's Kconfig isolated and inactive code - hence it is eligible 
-as a cleanup.
+> Hello Christoph,
+>=20
+> Christoph Lameter wrote:
+> > On Mon, 25 Feb 2008, Uwe Kleine-K=F6nig wrote:
+> >=20
+> > > This removes code duplication and makes __dec_zone_page_state look li=
+ke
+> > > __inc_zone_page_state.
+> >=20
+> > Acked-by: Christoph Lameter <clameter@sgi.com>
+> Unless Linus or Andrew take that patch I think the best path for that
+> patch into mainline is going over your tree.
 
-That means arch maintainers could start applying the patches at their 
-own pace, starting right now, in their own work-flow and test-flow. 
-(obviously, the first such patches would hit mainline starting in the 
-next merge window)
+I only do slab stuff via my tree. This has to go through Andrew.
 
-And all the linux-next integration trouble down the line is avoided, and 
-each architecture can do a concentrated effort of: 'get rid of semaphore 
-code'.
-
-Please!
-
-	Ingo
+---1700579579-2002042812-1204313555=:11084--
