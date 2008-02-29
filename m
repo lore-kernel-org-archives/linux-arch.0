@@ -1,58 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([207.189.120.13]:56689 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753367AbYB2LRZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Feb 2008 06:17:25 -0500
-Date: Fri, 29 Feb 2008 03:16:56 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 1/2] kprobes: Introduce kprobe_handle_fault()
-Message-Id: <20080229031656.1abac83a.akpm@linux-foundation.org>
-In-Reply-To: <1202007623.1844.44.camel@brick>
-References: <1202007623.1844.44.camel@brick>
+Received: from chilli.pcug.org.au ([203.10.76.44]:46167 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756133AbYB2Mp6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Feb 2008 07:45:58 -0500
+Date: Fri, 29 Feb 2008 23:45:51 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: Announce: Linux-next (Or Andrew's dream  :-))
+Message-Id: <20080229234551.d8023f5c.sfr@canb.auug.org.au>
+In-Reply-To: <20080226145418.59f6f35f.sfr@canb.auug.org.au>
+References: <20080212120208.f7168a91.sfr@canb.auug.org.au>
+	<20080216000943.GD31474@flint.arm.linux.org.uk>
+	<20080226145418.59f6f35f.sfr@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Fri__29_Feb_2008_23_45_51_+1100_o.PBsxuu6TWn4Lhc"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Russell King <rmk+lkml@arm.linux.org.uk>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-next@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
 
-On Sat, 02 Feb 2008 19:00:23 -0800 Harvey Harrison <harvey.harrison@gmail.com> wrote:
+--Signature=_Fri__29_Feb_2008_23_45_51_+1100_o.PBsxuu6TWn4Lhc
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> Use a central kprobe_handle_fault() inline in kprobes.h to remove
-> all of the arch-dependant, practically identical implementations in
-> avr32, ia64, powerpc, s390, sparc64, and x86.
-> 
-> avr32 was the only arch without the preempt_disable/enable pair
-> in its notify_page_fault implementation.
-> 
-> This uncovered a possible bug in the s390 version as that purely
-> copied the x86 version unconditionally passing 14 as the trapnr
-> rather than the error_code parameter.  s390 is changed to pass
-> error_code in this patch.
-> 
-> Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
-> ---
-> Andrew, 1/2 is low risk, 2/2 has been tested on x86-32 and 64,
-> but the !preemptible invariant seems correct.
-> 
->  arch/arm/mm/fault.c     |   25 +------------------------
->  arch/avr32/mm/fault.c   |   21 +--------------------
->  arch/ia64/mm/fault.c    |   24 +-----------------------
->  arch/powerpc/mm/fault.c |   25 +------------------------
->  arch/s390/mm/fault.c    |   25 +------------------------
->  arch/sparc64/mm/fault.c |   23 +----------------------
->  arch/x86/mm/fault.c     |   26 ++------------------------
->  include/linux/kprobes.h |   20 ++++++++++++++++++++
->  8 files changed, 28 insertions(+), 161 deletions(-)
+Hi Russell,
 
-Breaks the ia64 build:
+On Tue, 26 Feb 2008 14:54:18 +1100 Stephen Rothwell <sfr@canb.auug.org.au> =
+wrote:
+>
+> On Sat, 16 Feb 2008 00:09:43 +0000 Russell King <rmk+lkml@arm.linux.org.u=
+k> wrote:
+> >
+> > As mentioned elsewhere, what we need for ARM is to extend the kautobuild
+> > infrastructure (see armlinux.simtec.co.uk) so that we can have more tre=
+es
+> > at least compile tested regularly - but that requires the folk there to
+> > have additional compute power (which isn't going to happen unless folk
+> > stamp up some machines _or_ funding).
+>=20
+> I now have an arm cross compiler (gcc-4.0.2-glibc-2.3.6
+> arm-unknown-linux-gnu).  (See the results page at
+> http://kisskb.ellerman.id.au/kisskb/branch/9/ - I must get a better
+> name/place :-(.)  Is this sufficient to help you out?  What configs would
+> be useful to build (as Andrew said, they don't take very long each).
+>=20
+> I really want as many subsystems as possible in the linux-next tree in an
+> attempt to avoid some of the merge/conflict problems we have had in the
+> past.  What can we do to help?
 
-include/linux/kprobes.h: In function `kprobe_handle_fault':
-include/linux/kprobes.h:234: error: implicit declaration of function `kprobe_fault_handler'                                                                     
+OK, I tried this out:  I built all 75 arm defconfigs with the cross
+compiler above (the resulting log file is at
+http://ozlabs.org/~sfr/armall.log.bz2). 17 failed (I don't know why - I
+didn't even really look).  If this is useful, I can get this added to our
+infrastructure so that every linux-next kernel (and others as well, maybe)
+will be built for all these.
 
-and ia64 doesn't implement kprobe_fault_handler() so there's no easy fix
-here.
+Would that help, Russell?
 
-There's too much inlining in linux/kprobes.h, btw.
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+P.S. From the timestamps in the log file you can see that this would take
+around an hour each time.
+
+--Signature=_Fri__29_Feb_2008_23_45_51_+1100_o.PBsxuu6TWn4Lhc
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.6 (GNU/Linux)
+
+iD8DBQFHx/6FTgG2atn1QN8RAuyGAJ40XK0RD5z7FspuH1nQ3R/OyVKZPwCdFdC4
+CRVi1Je22fRu5t9WwChYzZQ=
+=qmpE
+-----END PGP SIGNATURE-----
+
+--Signature=_Fri__29_Feb_2008_23_45_51_+1100_o.PBsxuu6TWn4Lhc--
