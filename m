@@ -1,34 +1,44 @@
-From: Segher Boessenkool <segher-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
-Subject: Re: [PATCH 1/2] Add C99-style constructor macros for specific-sized integers
-Date: Mon, 3 Mar 2008 21:23:34 +0100
-Message-ID: <6d00362802813d8ed477b58ab218d03c@kernel.crashing.org>
-References: <4a8566f54ff84f498c5c0c0340076c296b1840e6@tazenda.hos.anvin.org> <7e0381d9932a37ad78f0c38b2a3c6a03@kernel.crashing.org> <47CB826A.7000202@zytor.com>
-Mime-Version: 1.0 (Apple Message framework v623)
-Content-Type: text/plain; charset=US-ASCII; format=flowed
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [patch 4/6] ARM: move bridge enable out of
+	pcibios_enable_resources()
+Date: Tue, 04 Mar 2008 07:35:57 +1100
+Message-ID: <1204576557.21545.4.camel@pasglop>
+References: <20080228000437.880811124@ldl.fc.hp.com>
+	<20080228001053.013269726@ldl.fc.hp.com>
+	<200803030959.35625.jbarnes@virtuousgeek.org>
+Reply-To: benh@kernel.crashing.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <47CB826A.7000202-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, David Brownell <dbrownell-Rn4VEauK+AKRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>
-
->> Do these new macros really buy anything over just writing LL in the
->> few places that 64-bit constants are used?
->
-> It gives you macros that matches the s64/u64 et al definitions are, 
-> thus avoiding another class of spurious warnings.
-
-GCC doesn't warn for implicit narrowing that doesn't change value.
-
-The printk() example is a read herring IMHO, since variable arguments
-functions are "very speshul" anyway, and require explicit casts in
-many cases.
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
+In-Reply-To: <200803030959.35625.jbarnes@virtuousgeek.org>
+List-Unsubscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
+List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@ozlabs.org?subject=help>
+List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+To: Jesse Barnes <jbarnes@virtuousgeek.org>
+Cc: linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, Kyle McMartin <kyle@parisc-linux.org>, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>, linux-pci@atrey.karlin.mff.cuni.cz, linux-arm-kernel@lists.arm.linux.org.uk, Russell King <rmk@arm.linux.org.uk>, Bjorn Helgaas <bjorn.helgaas@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
 
-Segher
+On Mon, 2008-03-03 at 09:59 -0800, Jesse Barnes wrote:
+> On Wednesday, February 27, 2008 4:04 pm Bjorn Helgaas wrote:
+> > Move bridge enable from pcibios_enable_resources() to
+> > platform_pci_enable_device() so the former matches other
+> > architectures and can be shared.
+> 
+> I really like the direction of these patches.  Getting PCI resources assigned 
+> & devices setup correctly for new arches has always been a bit more trouble 
+> than it should be...
 
---
-To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+You'll noticed that I recently moved powerpc to something more common to
+x86 in the are of resource allocation. Still -slightly- different but I
+do believe there is room for somebody with some skills to try to turn
+some of that into generic code.
+
+Ben.
