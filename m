@@ -1,33 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp118.sbc.mail.sp1.yahoo.com ([69.147.64.91]:33004 "HELO
-	smtp118.sbc.mail.sp1.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1755317AbYCCEUy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2008 23:20:54 -0500
-From: David Brownell <david-b@pacbell.net>
-Subject: Re: [PATCH 1/2] Add C99-style constructor macros for specific-sized integers
-Date: Sun, 2 Mar 2008 20:14:11 -0800
-References: <4a8566f54ff84f498c5c0c0340076c296b1840e6@tazenda.hos.anvin.org> <7e0381d9932a37ad78f0c38b2a3c6a03@kernel.crashing.org>
-In-Reply-To: <7e0381d9932a37ad78f0c38b2a3c6a03@kernel.crashing.org>
+Received: from terminus.zytor.com ([198.137.202.10]:52277 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751568AbYCCEnb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2008 23:43:31 -0500
+Message-ID: <47CB81EA.8070802@zytor.com>
+Date: Sun, 02 Mar 2008 20:43:22 -0800
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="us-ascii"
+Subject: Re: [PATCH 1/2] Add C99-style constructor macros for specific-sized
+ integers
+References: <4a8566f54ff84f498c5c0c0340076c296b1840e6@tazenda.hos.anvin.org> <20080303023851.GF24386@parisc-linux.org>
+In-Reply-To: <20080303023851.GF24386@parisc-linux.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200803022014.11535.david-b@pacbell.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20080303041411.Y2HGNzgglIVfXB8xItu11841esCkXq3dUC2X40NxfZg@z>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, David Brownell <dbrownell@users.sourceforge.net>
+Message-ID: <20080303044322.V8Ddd7S8AyRnMBKkXHnXy0--Ek97HfagNXeEkIeNQ-g@z>
 
-On Sunday 02 March 2008, Segher Boessenkool wrote:
+Matthew Wilcox wrote:
+> On Sun, Mar 02, 2008 at 04:09:51PM -0800, H. Peter Anvin wrote:
+>> first place.  C99 has macros of the form [U]INT#_C() to construct
+>> numbers of an arbitrary size; this patch creates analogous macros for
+>> the kernel s# and u# types.
+> 
+> Why put this in asm/types.h instead of, say, linux/types.h?
+> 
 
-> Do these new macros really buy anything over just writing LL in the
-> few places that 64-bit constants are used?
+Because that's where the s* and u* types are defined.
 
-The original workaround was to make the offending *SEC_TO_HZ_ADJ32
-constants use "ULL" suffixes.  Certainly making the Perl script emit
-those would be less intrusive.
+Realistically, those probably could/should be folded into a pair of 
+asm-generic files (for 32 and 64 bits), but that is a separate change.
 
-- Dave
+> I appreciate you have:
+> 
+>> +#define S64_C(x) x ## L
+>> +#define U64_C(x) x ## UL
+> 
+> and:
+> 
+>> +#define S64_C(x) x ## LL
+>> +#define U64_C(x) x ## ULL
+> 
+> but can't we use the latter for all arches?
+> 
 
+You really don't want to, as the whole point is that you want it to 
+match what u64/s64 is defined as, in order to avoid spurious warnings.
+
+	-hpa
