@@ -1,31 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:57715 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1761498AbYCCK5p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Mar 2008 05:57:45 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <4a8566f54ff84f498c5c0c0340076c296b1840e6@tazenda.hos.anvin.org>
-References: <4a8566f54ff84f498c5c0c0340076c296b1840e6@tazenda.hos.anvin.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:37156 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751286AbYCCLql (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Mar 2008 06:46:41 -0500
+Date: Mon, 3 Mar 2008 11:43:10 +0000
+From: Russell King <rmk+lkml@arm.linux.org.uk>
 Subject: Re: [PATCH 1/2] Add C99-style constructor macros for specific-sized integers
-Date: Mon, 03 Mar 2008 10:57:32 +0000
-Message-ID: <8260.1204541852@redhat.com>
+Message-ID: <20080303114310.GA28139@flint.arm.linux.org.uk>
+References: <4a8566f54ff84f498c5c0c0340076c296b1840e6@tazenda.hos.anvin.org> <8260.1204541852@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <8260.1204541852@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: dhowells@redhat.com, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, David Brownell <dbrownell@users.sourceforge.net>
-Message-ID: <20080303105732.wEAegrKtKvccRA5e8jJvpJbY6ZtUFpIaEfF8mBzeBlc@z>
+To: David Howells <dhowells@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, David Brownell <dbrownell@users.sourceforge.net>
+Message-ID: <20080303114310.KgP_Cr2ThNRLSAIBjv5S_wnIKGvbdQWVm9dJxEJdW6U@z>
 
-H. Peter Anvin <hpa@zytor.com> wrote:
+On Mon, Mar 03, 2008 at 10:57:32AM +0000, David Howells wrote:
+> H. Peter Anvin <hpa@zytor.com> wrote:
+> 
+> > +#define S8_C(x)	 x
+> > +#define U8_C(x)  x ## U
+> > +#define S16_C(x) x
+> > +#define U16_C(x) x ## U
+> > +#define S32_C(x) x
+> > +#define U32_C(x) x ## U
+> > +#define S64_C(x) x ## LL
+> > +#define U64_C(x) x ## ULL
+> 
+> And #if defined(__ASSEMBLY__), just splat x through as is.
 
-> +#define S8_C(x)	 x
-> +#define U8_C(x)  x ## U
-> +#define S16_C(x) x
-> +#define U16_C(x) x ## U
-> +#define S32_C(x) x
-> +#define U32_C(x) x ## U
-> +#define S64_C(x) x ## LL
-> +#define U64_C(x) x ## ULL
+We already have something like this on ARM - include/asm-arm/memory.h
 
-And #if defined(__ASSEMBLY__), just splat x through as is.
+/*
+ * Allow for constants defined here to be used from assembly code
+ * by prepending the UL suffix only with actual C code compilation.
+ */
+#ifndef __ASSEMBLY__
+#define UL(x) (x##UL)
+#else
+#define UL(x) (x)
+#endif
 
-David
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
