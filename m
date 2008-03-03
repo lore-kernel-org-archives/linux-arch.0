@@ -1,71 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:33151 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754035AbYCCAKF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2008 19:10:05 -0500
-Date: Sun, 2 Mar 2008 16:09:56 -0800
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 2/2] Use U64_C() instead of casts in kernel/time.c
-Message-ID: <b5b828ae3f1d4edff5509ba64a98bdba283a28e0@tazenda.hos.anvin.org>
-In-Reply-To: <4a8566f54ff84f498c5c0c0340076c296b1840e6@tazenda.hos.anvin.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:55563 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755792AbYCCCjN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2008 21:39:13 -0500
+Date: Sun, 2 Mar 2008 19:38:52 -0700
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH 1/2] Add C99-style constructor macros for specific-sized integers
+Message-ID: <20080303023851.GF24386@parisc-linux.org>
 References: <4a8566f54ff84f498c5c0c0340076c296b1840e6@tazenda.hos.anvin.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <4a8566f54ff84f498c5c0c0340076c296b1840e6@tazenda.hos.anvin.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, David Brownell <dbrownell@users.sourceforge.net>
-Message-ID: <20080303000956.EWYdkxtkgQivH5flH2kmH9uq-9vZB7V6EkHHrm9rNww@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, David Brownell <dbrownell@users.sourceforge.net>
+Message-ID: <20080303023852.T3qGSzkC4PYgBZ4a_sbk-WZEyq0nBoDVOb3szHJt2-g@z>
 
-Use the new U64_C() constructor macro instead of using casts for
-constants in kernel/time.c.  This avoids warnings with some gcc
-versions.
+On Sun, Mar 02, 2008 at 04:09:51PM -0800, H. Peter Anvin wrote:
+> first place.  C99 has macros of the form [U]INT#_C() to construct
+> numbers of an arbitrary size; this patch creates analogous macros for
+> the kernel s# and u# types.
 
-This resolves Bugzilla 10153.
+Why put this in asm/types.h instead of, say, linux/types.h?
 
-Signed-off-by: H. Peter Anvin <hpa@zytor.com>
----
- kernel/time.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+I appreciate you have:
 
-diff --git a/kernel/time.c b/kernel/time.c
-index a5ec013..47b24f4 100644
---- a/kernel/time.c
-+++ b/kernel/time.c
-@@ -244,7 +244,7 @@ unsigned int inline jiffies_to_msecs(const unsigned long j)
- 	return (j + (HZ / MSEC_PER_SEC) - 1)/(HZ / MSEC_PER_SEC);
- #else
- # if BITS_PER_LONG == 32
--	return ((u64)HZ_TO_MSEC_MUL32 * j) >> HZ_TO_MSEC_SHR32;
-+	return (U64_C(HZ_TO_MSEC_MUL32) * j) >> HZ_TO_MSEC_SHR32;
- # else
- 	return (j * HZ_TO_MSEC_NUM) / HZ_TO_MSEC_DEN;
- # endif
-@@ -260,7 +260,7 @@ unsigned int inline jiffies_to_usecs(const unsigned long j)
- 	return (j + (HZ / USEC_PER_SEC) - 1)/(HZ / USEC_PER_SEC);
- #else
- # if BITS_PER_LONG == 32
--	return ((u64)HZ_TO_USEC_MUL32 * j) >> HZ_TO_USEC_SHR32;
-+	return (U64_C(HZ_TO_USEC_MUL32) * j) >> HZ_TO_USEC_SHR32;
- # else
- 	return (j * HZ_TO_USEC_NUM) / HZ_TO_USEC_DEN;
- # endif
-@@ -469,7 +469,7 @@ unsigned long msecs_to_jiffies(const unsigned int m)
- 	if (HZ > MSEC_PER_SEC && m > jiffies_to_msecs(MAX_JIFFY_OFFSET))
- 		return MAX_JIFFY_OFFSET;
- 
--	return ((u64)MSEC_TO_HZ_MUL32 * m + MSEC_TO_HZ_ADJ32)
-+	return (U64_C(MSEC_TO_HZ_MUL32) * m + MSEC_TO_HZ_ADJ32)
- 		>> MSEC_TO_HZ_SHR32;
- #endif
- }
-@@ -484,7 +484,7 @@ unsigned long usecs_to_jiffies(const unsigned int u)
- #elif HZ > USEC_PER_SEC && !(HZ % USEC_PER_SEC)
- 	return u * (HZ / USEC_PER_SEC);
- #else
--	return ((u64)USEC_TO_HZ_MUL32 * u + USEC_TO_HZ_ADJ32)
-+	return (U64_C(USEC_TO_HZ_MUL32) * u + USEC_TO_HZ_ADJ32)
- 		>> USEC_TO_HZ_SHR32;
- #endif
- }
+> +#define S64_C(x) x ## L
+> +#define U64_C(x) x ## UL
+
+and:
+
+> +#define S64_C(x) x ## LL
+> +#define U64_C(x) x ## ULL
+
+but can't we use the latter for all arches?
+
 -- 
-1.5.4.1
-
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
