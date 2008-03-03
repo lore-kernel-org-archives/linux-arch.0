@@ -1,46 +1,46 @@
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [patch 5/6] PARISC: move PERR & SERR enables out of pcibios_enable_resources()
-Date: Mon, 3 Mar 2008 10:30:58 -0800
-Message-ID: <200803031030.59305.jbarnes@virtuousgeek.org>
-References: <20080228000437.880811124@ldl.fc.hp.com> <20080228001053.209248743@ldl.fc.hp.com> <20080228173125.GA16270@colo.lackof.org>
+From: Jesse Barnes <jbarnes-Y1mF5jBUw70BENJcbMCuUQ@public.gmane.org>
+Subject: Re: [patch 6/6] PCI: consolidate several pcibios_enable_resources() implementations
+Date: Mon, 3 Mar 2008 10:45:06 -0800
+Message-ID: <200803031045.07054.jbarnes@virtuousgeek.org>
+References: <20080228000437.880811124@ldl.fc.hp.com> <20080228001053.404893334@ldl.fc.hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain;
-  charset="iso-8859-1"
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20080228173125.GA16270@colo.lackof.org>
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20080228001053.404893334-e+Ta4ugHZmL3oGB3hsPCZA@public.gmane.org>
 Content-Disposition: inline
-Sender: linux-parisc-owner@vger.kernel.org
-To: linux-pci@atrey.karlin.mff.cuni.cz
-Cc: Grant Grundler <grundler@parisc-linux.org>, Bjorn Helgaas <bjorn.helgaas@hp.com>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-pci-jyMamyUUXNJG4ohzP4jBZS1Fcj925eT/@public.gmane.org
+Cc: Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, linux-arm-kernel-xIg/pKzrS19vn6HldHNs0ANdhmdF6hFW@public.gmane.org, Kyle McMartin <kyle-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Grant Grundler <grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, Chris Zankel <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>
 
-On Thursday, February 28, 2008 9:31 am Grant Grundler wrote:
-> In general, I'm wondering if the check for device class would be
-> sufficient here to NOT enable PERR/SERR for graphics automatically.
-> While disabling PERR was "the right thing" for older "mostly write"
-> devices of the 1990's and early 2000, it might not be correct for
-> current 3-D graphics devices which use host mem to buffer processed
-> results. I'm thinking of Intel graphics controllers in particular
-> but I don't know any details of how they actually work.
+On Wednesday, February 27, 2008 4:04 pm Bjorn Helgaas wrote:
+> There are many implementations of pcibios_enable_resources() that differ
+> in minor ways that look more like bugs than architectural differences.
+>
+> This patch consolidates most of them to use the version annotated below.
+> This is the original x86 version, except that it uses the resource
+> collision check from powerpc at (5):
 
-Well, in general chipset devices aren't required to support parity checking, 
-AIUI; Intel gfx devices don't bother (PERR enable is hardwired to 0).
+Looks really good to me, definitely a step in the right direction.
 
-> I'm also a bit concerned about this now becuase (IIRC) AGP didn't
-> implement parity though it looked like PCI protocol. PCI-e certainly
-> does but it's possible BIOS/Firmware disable parity generation
-> on the host bridge when connected to a gfx device.
-> We wouldn't want to enable parity checking on a PCI-e gfx device in this
-> case and I hope someone (perhaps at Intel) could double check this.
+> The mips/pmc-sierra implementation of pcibios_enable_resources() is
+> cluttered with a bunch of titan stuff, so I can't immediately consolidate
+> it with the others.  So I made the generic version "weak" so pmc-sierra
+> can override it.
+>
+> Not-Yet-Signed-off-by: Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org>
 
-I'd have to ping our BIOS folks to see if that's the case, but I doubt it.  It 
-would be a bad idea to disable any PCIe error reporting (including legacy 
-error mapping) just because a gfx device was attached.  Apparently the AMD 
-PCIe parts include PERR generation, so disabling upstream reporting at boot 
-time seems like it would be an outright bug; it should be left up to driver & 
-OS software.
+So you'd like to see the MIPS stuff cleaned up a bit more first before actual 
+sign-off?  Or just more testing?
+
+>  18 files changed, 43 insertions(+), 507 deletions(-)
+
+Nice diffstat. :)
 
 Jesse
-
-
+--
+To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
