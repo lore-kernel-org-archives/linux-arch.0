@@ -1,48 +1,33 @@
-From: Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
-Subject: Re: [patch 0/6] RFC: PCI: consolidate pcibios_enable_resources() implementations, v2
-Date: Mon, 3 Mar 2008 19:44:09 +0000
-Message-ID: <20080303194408.GC20251@flint.arm.linux.org.uk>
-References: <20080228000437.880811124@ldl.fc.hp.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Segher Boessenkool <segher-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
+Subject: Re: [PATCH 1/2] Add C99-style constructor macros for specific-sized integers
+Date: Mon, 3 Mar 2008 21:23:34 +0100
+Message-ID: <6d00362802813d8ed477b58ab218d03c@kernel.crashing.org>
+References: <4a8566f54ff84f498c5c0c0340076c296b1840e6@tazenda.hos.anvin.org> <7e0381d9932a37ad78f0c38b2a3c6a03@kernel.crashing.org> <47CB826A.7000202@zytor.com>
+Mime-Version: 1.0 (Apple Message framework v623)
+Content-Type: text/plain; charset=US-ASCII; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20080228000437.880811124-e+Ta4ugHZmL3oGB3hsPCZA@public.gmane.org>
+In-Reply-To: <47CB826A.7000202-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org>
-Cc: linux-pci-jyMamyUUXNJG4ohzP4jBZS1Fcj925eT/@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-xIg/pKzrS19vn6HldHNs0ANdhmdF6hFW@public.gmane.org, Kyle McMartin <kyle-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Grant Grundler <grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, Chris Zankel <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>
+To: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, David Brownell <dbrownell-Rn4VEauK+AKRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>
 
-On Wed, Feb 27, 2008 at 05:04:37PM -0700, Bjorn Helgaas wrote:
-> There are many implementations of pcibios_enable_resources() that differ
-> in minor ways that look more like bugs than architectural differences.
-> This patch series consolidates most of them to use the x86 version.
-> 
-> Changes between v1 and v2:
-> 
->   - Moved ARM bridge enable to new platform_pci_enable_device(),
->     called by pcibios_enable_device()
+>> Do these new macros really buy anything over just writing LL in the
+>> few places that 64-bit constants are used?
+>
+> It gives you macros that matches the s64/u64 et al definitions are, 
+> thus avoiding another class of spurious warnings.
 
-Looks fine.  However, long term I've no idea what to do about this because
-I don't remember the reasoning behind it.  So to change it risks breakage
-of one sort or another.
+GCC doesn't warn for implicit narrowing that doesn't change value.
 
-It might have been something to do with the Mobility Cardbus docking
-station, which adds a pair of P2P bridges onto the PCI chain downstream
-of the Cardbus controller, and then a full PCI bus containing USB, VGA,
-and other peripherals.
+The printk() example is a read herring IMHO, since variable arguments
+functions are "very speshul" anyway, and require explicit casts in
+many cases.
 
-This _once_ used to work with Linux but I suspect as a result of "fixing"
-other issues its now utterly broken.
 
-In any case, that docking station isn't ARM specific in any way; merely
-a toy Alan Cox sent me.  When I gave up my PCMCIA maintainership, I gave
-up trying to keep it supported by Linux.
+Segher
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
 --
 To unsubscribe from this list: send the line "unsubscribe linux-arch" in
 the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
