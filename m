@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0008.atlanta.hp.com ([15.192.0.45]:21805 "EHLO
-	g5t0008.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933006AbYCDS40 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2008 13:56:26 -0500
-Message-Id: <20080304185821.125452383@ldl.fc.hp.com>
+Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:40963 "EHLO
+	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932908AbYCDS4l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2008 13:56:41 -0500
+Message-Id: <20080304185822.945222582@ldl.fc.hp.com>
 References: <20080304185646.864917286@ldl.fc.hp.com>
-Date: Tue, 04 Mar 2008 11:56:53 -0700
+Date: Tue, 04 Mar 2008 11:57:02 -0700
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [patch 07/16] mips: use generic pci_enable_resources()
-Content-Disposition: inline; filename=mips-use-pci_enable_resources
+Subject: [patch 16/16] xtensa: use generic pci_enable_resources()
+Content-Disposition: inline; filename=xtensa-use-pci_enable_resources
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
@@ -17,19 +17,23 @@ Cc: Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk
 Use the generic pci_enable_resources() instead of the arch-specific code.
 
 Unlike this arch-specific code, the generic version:
+    - checks PCI_NUM_RESOURCES (11), not 6, resources
+    - skips resources that have neither IORESOURCE_IO nor IORESOURCE_MEM set
+    - skips ROM resources unless IORESOURCE_ROM_ENABLE is set
     - checks for resource collisions with "!r->parent"
 
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 
-Index: work8/arch/mips/pci/pci.c
+Index: work8/arch/xtensa/kernel/pci.c
 ===================================================================
---- work8.orig/arch/mips/pci/pci.c	2008-03-04 10:04:51.000000000 -0700
-+++ work8/arch/mips/pci/pci.c	2008-03-04 10:05:08.000000000 -0700
-@@ -163,44 +163,6 @@
+--- work8.orig/arch/xtensa/kernel/pci.c	2008-03-04 10:17:29.000000000 -0700
++++ work8/arch/xtensa/kernel/pci.c	2008-03-04 10:18:07.000000000 -0700
+@@ -91,37 +91,6 @@
+ 	}
+ }
  
- subsys_initcall(pcibios_init);
- 
--static int pcibios_enable_resources(struct pci_dev *dev, int mask)
+-int
+-pcibios_enable_resources(struct pci_dev *dev, int mask)
 -{
 -	u16 cmd, old_cmd;
 -	int idx;
@@ -37,21 +41,46 @@ Index: work8/arch/mips/pci/pci.c
 -
 -	pci_read_config_word(dev, PCI_COMMAND, &cmd);
 -	old_cmd = cmd;
--	for (idx=0; idx < PCI_NUM_RESOURCES; idx++) {
--		/* Only set up the requested stuff */
--		if (!(mask & (1<<idx)))
--			continue;
--
+-	for(idx=0; idx<6; idx++) {
 -		r = &dev->resource[idx];
--		if (!(r->flags & (IORESOURCE_IO | IORESOURCE_MEM)))
--			continue;
--		if ((idx == PCI_ROM_RESOURCE) &&
--				(!(r->flags & IORESOURCE_ROM_ENABLE)))
--			continue;
 -		if (!r->start && r->end) {
--			printk(KERN_ERR "PCI: Device %s not available "
--			       "because of resource collisions\n",
--			       pci_name(dev));
+-			printk (KERN_ERR "PCI: Device %s not available because "
+-				"of resource collisions\n", pci_name(dev));
+-			return -EINVAL;
+-		}
+-		if (r->flags & IORESOURCE_IO)
+-			cmd |= PCI_COMMAND_IO;
+-		if (r->flags & IORESOURCE_MEM)
+-			cmd |= PCI_COMMAND_MEMORY;
+-	}
+-	if (dev->resource[PCI_ROM_RESOURCE].start)
+-		cmd |= PCI_COMMAND_MEMORY;
+-	if (cmd != old_cmd) {
+-		printk("PCI: Enabling device %s (%04x -> %04x)\n",
+-			pci_name(dev), old_cmd, cmd);
+-		pci_write_config_word(dev, PCI_COMMAND, cmd);
+-	}
+-	return 0;
+-}
+-
+ struct pci_controller * __init pcibios_alloc_controller(void)
+ {
+ 	struct pci_controller *pci_ctrl;
+@@ -238,31 +207,7 @@
+ 
+ int pcibios_enable_device(struct pci_dev *dev, int mask)
+ {
+-	u16 cmd, old_cmd;
+-	int idx;
+-	struct resource *r;
+-
+-	pci_read_config_word(dev, PCI_COMMAND, &cmd);
+-	old_cmd = cmd;
+-	for (idx=0; idx<6; idx++) {
+-		r = &dev->resource[idx];
+-		if (!r->start && r->end) {
+-			printk(KERN_ERR "PCI: Device %s not available because "
+-			       "of resource collisions\n", pci_name(dev));
 -			return -EINVAL;
 -		}
 -		if (r->flags & IORESOURCE_IO)
@@ -64,20 +93,11 @@ Index: work8/arch/mips/pci/pci.c
 -		       pci_name(dev), old_cmd, cmd);
 -		pci_write_config_word(dev, PCI_COMMAND, cmd);
 -	}
--	return 0;
--}
 -
- /*
-  *  If we set up a device for bus mastering, we need to check the latency
-  *  timer as certain crappy BIOSes forget to set it properly.
-@@ -231,7 +193,7 @@
- {
- 	int err;
+-	return 0;
++	return pci_enable_resources(dev, mask);
+ }
  
--	if ((err = pcibios_enable_resources(dev, mask)) < 0)
-+	if ((err = pci_enable_resources(dev, mask)) < 0)
- 		return err;
- 
- 	return pcibios_plat_dev_init(dev);
+ #ifdef CONFIG_PROC_FS
 
 -- 
