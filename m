@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0007.atlanta.hp.com ([15.192.0.44]:39141 "EHLO
-	g5t0007.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932858AbYCDS43 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2008 13:56:29 -0500
-Message-Id: <20080304185822.152813696@ldl.fc.hp.com>
+Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:40718 "EHLO
+	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932990AbYCDS4W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2008 13:56:22 -0500
+Message-Id: <20080304185820.723623873@ldl.fc.hp.com>
 References: <20080304185646.864917286@ldl.fc.hp.com>
-Date: Tue, 04 Mar 2008 11:56:58 -0700
+Date: Tue, 04 Mar 2008 11:56:51 -0700
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [patch 12/16] sh: use generic pci_enable_resources()
-Content-Disposition: inline; filename=sh-use-pci_enable_resources
+Subject: [patch 05/16] frv: use generic pci_enable_resources()
+Content-Disposition: inline; filename=frv-use-pci_enable_resources
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
@@ -24,14 +24,16 @@ Unlike this arch-specific code, the generic version:
 
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 
-Index: work8/arch/sh/drivers/pci/pci.c
+Index: work8/arch/frv/mb93090-mb00/pci-frv.c
 ===================================================================
---- work8.orig/arch/sh/drivers/pci/pci.c	2008-03-04 10:10:44.000000000 -0700
-+++ work8/arch/sh/drivers/pci/pci.c	2008-03-04 10:11:04.000000000 -0700
-@@ -133,34 +133,7 @@
+--- work8.orig/arch/frv/mb93090-mb00/pci-frv.c	2008-03-04 10:03:11.000000000 -0700
++++ work8/arch/frv/mb93090-mb00/pci-frv.c	2008-03-04 10:03:25.000000000 -0700
+@@ -231,38 +231,6 @@
+ 	pcibios_assign_resources();
+ }
  
- int pcibios_enable_device(struct pci_dev *dev, int mask)
- {
+-int pcibios_enable_resources(struct pci_dev *dev, int mask)
+-{
 -	u16 cmd, old_cmd;
 -	int idx;
 -	struct resource *r;
@@ -39,12 +41,13 @@ Index: work8/arch/sh/drivers/pci/pci.c
 -	pci_read_config_word(dev, PCI_COMMAND, &cmd);
 -	old_cmd = cmd;
 -	for(idx=0; idx<6; idx++) {
--		if (!(mask & (1 << idx)))
+-		/* Only set up the requested stuff */
+-		if (!(mask & (1<<idx)))
 -			continue;
+-
 -		r = &dev->resource[idx];
 -		if (!r->start && r->end) {
--			printk(KERN_ERR "PCI: Device %s not available because "
--			       "of resource collisions\n", pci_name(dev));
+-			printk(KERN_ERR "PCI: Device %s not available because of resource collisions\n", pci_name(dev));
 -			return -EINVAL;
 -		}
 -		if (r->flags & IORESOURCE_IO)
@@ -55,14 +58,39 @@ Index: work8/arch/sh/drivers/pci/pci.c
 -	if (dev->resource[PCI_ROM_RESOURCE].start)
 -		cmd |= PCI_COMMAND_MEMORY;
 -	if (cmd != old_cmd) {
--		printk(KERN_INFO "PCI: Enabling device %s (%04x -> %04x)\n",
--		       pci_name(dev), old_cmd, cmd);
+-		printk("PCI: Enabling device %s (%04x -> %04x)\n", pci_name(dev), old_cmd, cmd);
 -		pci_write_config_word(dev, PCI_COMMAND, cmd);
 -	}
 -	return 0;
-+	return pci_enable_resources(dev, mask);
- }
- 
+-}
+-
  /*
+  *  If we set up a device for bus mastering, we need to check the latency
+  *  timer as certain crappy BIOSes forget to set it properly.
+Index: work8/arch/frv/mb93090-mb00/pci-frv.h
+===================================================================
+--- work8.orig/arch/frv/mb93090-mb00/pci-frv.h	2008-03-04 10:03:29.000000000 -0700
++++ work8/arch/frv/mb93090-mb00/pci-frv.h	2008-03-04 10:03:33.000000000 -0700
+@@ -31,7 +31,6 @@
+ extern unsigned int pcibios_max_latency;
+ 
+ void pcibios_resource_survey(void);
+-int pcibios_enable_resources(struct pci_dev *, int);
+ 
+ /* pci-vdk.c */
+ 
+Index: work8/arch/frv/mb93090-mb00/pci-vdk.c
+===================================================================
+--- work8.orig/arch/frv/mb93090-mb00/pci-vdk.c	2008-03-04 10:03:37.000000000 -0700
++++ work8/arch/frv/mb93090-mb00/pci-vdk.c	2008-03-04 10:03:45.000000000 -0700
+@@ -465,7 +465,7 @@
+ {
+ 	int err;
+ 
+-	if ((err = pcibios_enable_resources(dev, mask)) < 0)
++	if ((err = pci_enable_resources(dev, mask)) < 0)
+ 		return err;
+ 	if (!dev->msi_enabled)
+ 		pcibios_enable_irq(dev);
 
 -- 
