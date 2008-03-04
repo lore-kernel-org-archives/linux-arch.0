@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:40790 "EHLO
-	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932896AbYCDS4f (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2008 13:56:35 -0500
-Message-Id: <20080304185822.741869974@ldl.fc.hp.com>
+Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:40792 "EHLO
+	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933009AbYCDS4U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2008 13:56:20 -0500
+Message-Id: <20080304185820.921816757@ldl.fc.hp.com>
 References: <20080304185646.864917286@ldl.fc.hp.com>
-Date: Tue, 04 Mar 2008 11:57:01 -0700
+Date: Tue, 04 Mar 2008 11:56:52 -0700
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [patch 15/16] x86: use generic pci_enable_resources()
-Content-Disposition: inline; filename=x86-use-pci_enable_resources
+Subject: [patch 06/16] ia64: use generic pci_enable_resources()
+Content-Disposition: inline; filename=ia64-use-pci_enable_resources
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
@@ -17,54 +17,47 @@ Cc: Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk
 Use the generic pci_enable_resources() instead of the arch-specific code.
 
 Unlike this arch-specific code, the generic version:
-    - checks for resource collisions with "!r->parent"
+    - does not check for a NULL dev pointer
+    - skips resources that have neither IORESOURCE_IO nor IORESOURCE_MEM set
 
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 
-Index: work8/arch/x86/pci/common.c
+Index: work8/arch/ia64/pci/pci.c
 ===================================================================
---- work8.orig/arch/x86/pci/common.c	2008-03-04 10:12:42.000000000 -0700
-+++ work8/arch/x86/pci/common.c	2008-03-04 10:12:51.000000000 -0700
-@@ -527,7 +527,7 @@
- {
- 	int err;
+--- work8.orig/arch/ia64/pci/pci.c	2008-03-04 10:04:18.000000000 -0700
++++ work8/arch/ia64/pci/pci.c	2008-03-04 10:04:35.000000000 -0700
+@@ -499,54 +499,12 @@
+ 	/* ??? FIXME -- record old value for shutdown.  */
+ }
  
--	if ((err = pcibios_enable_resources(dev, mask)) < 0)
-+	if ((err = pci_enable_resources(dev, mask)) < 0)
- 		return err;
- 
- 	if (!dev->msi_enabled)
-Index: work8/arch/x86/pci/i386.c
-===================================================================
---- work8.orig/arch/x86/pci/i386.c	2008-03-04 10:12:56.000000000 -0700
-+++ work8/arch/x86/pci/i386.c	2008-03-04 10:13:03.000000000 -0700
-@@ -238,44 +238,6 @@
-  */
- fs_initcall(pcibios_assign_resources);
- 
--int pcibios_enable_resources(struct pci_dev *dev, int mask)
+-static inline int
+-pcibios_enable_resources (struct pci_dev *dev, int mask)
 -{
 -	u16 cmd, old_cmd;
 -	int idx;
 -	struct resource *r;
+-	unsigned long type_mask = IORESOURCE_IO | IORESOURCE_MEM;
+-
+-	if (!dev)
+-		return -EINVAL;
 -
 -	pci_read_config_word(dev, PCI_COMMAND, &cmd);
 -	old_cmd = cmd;
--	for (idx = 0; idx < PCI_NUM_RESOURCES; idx++) {
--		/* Only set up the requested stuff */
+-	for (idx=0; idx<PCI_NUM_RESOURCES; idx++) {
+-		/* Only set up the desired resources.  */
 -		if (!(mask & (1 << idx)))
 -			continue;
 -
 -		r = &dev->resource[idx];
--		if (!(r->flags & (IORESOURCE_IO | IORESOURCE_MEM)))
+-		if (!(r->flags & type_mask))
 -			continue;
 -		if ((idx == PCI_ROM_RESOURCE) &&
 -				(!(r->flags & IORESOURCE_ROM_ENABLE)))
 -			continue;
 -		if (!r->start && r->end) {
--			printk(KERN_ERR "PCI: Device %s not available "
--				"because of resource %d collisions\n",
--				pci_name(dev), idx);
+-			printk(KERN_ERR
+-			       "PCI: Device %s not available because of resource collisions\n",
+-			       pci_name(dev));
 -			return -EINVAL;
 -		}
 -		if (r->flags & IORESOURCE_IO)
@@ -73,27 +66,21 @@ Index: work8/arch/x86/pci/i386.c
 -			cmd |= PCI_COMMAND_MEMORY;
 -	}
 -	if (cmd != old_cmd) {
--		printk("PCI: Enabling device %s (%04x -> %04x)\n",
--			pci_name(dev), old_cmd, cmd);
+-		printk("PCI: Enabling device %s (%04x -> %04x)\n", pci_name(dev), old_cmd, cmd);
 -		pci_write_config_word(dev, PCI_COMMAND, cmd);
 -	}
 -	return 0;
 -}
 -
- /*
-  *  If we set up a device for bus mastering, we need to check the latency
-  *  timer as certain crappy BIOSes forget to set it properly.
-Index: work8/arch/x86/pci/pci.h
-===================================================================
---- work8.orig/arch/x86/pci/pci.h	2008-03-04 10:13:08.000000000 -0700
-+++ work8/arch/x86/pci/pci.h	2008-03-04 10:13:12.000000000 -0700
-@@ -44,7 +44,6 @@
- extern unsigned int pcibios_max_latency;
+ int
+ pcibios_enable_device (struct pci_dev *dev, int mask)
+ {
+ 	int ret;
  
- void pcibios_resource_survey(void);
--int pcibios_enable_resources(struct pci_dev *, int);
- 
- /* pci-pc.c */
+-	ret = pcibios_enable_resources(dev, mask);
++	ret = pci_enable_resources(dev, mask);
+ 	if (ret < 0)
+ 		return ret;
  
 
 -- 
