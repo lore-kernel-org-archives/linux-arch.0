@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:40848 "EHLO
+Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:40868 "EHLO
 	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932858AbYCDS40 (ORCPT
+	with ESMTP id S932896AbYCDS40 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2008 13:56:26 -0500
-Message-Id: <20080304185821.354198782@ldl.fc.hp.com>
+Message-Id: <20080304185821.554040328@ldl.fc.hp.com>
 References: <20080304185646.864917286@ldl.fc.hp.com>
-Date: Tue, 04 Mar 2008 11:56:54 -0700
+Date: Tue, 04 Mar 2008 11:56:55 -0700
 From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: [patch 08/16] mn10300: use generic pci_enable_resources()
-Content-Disposition: inline; filename=mn10300-use-pci_enable_resources
+Subject: [patch 09/16] parisc: use generic pci_enable_resources()
+Content-Disposition: inline; filename=parisc-use-pci_enable_resources
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
@@ -17,87 +17,62 @@ Cc: Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk
 Use the generic pci_enable_resources() instead of the arch-specific code.
 
 Unlike this arch-specific code, the generic version:
-    - checks PCI_NUM_RESOURCES (11), not 6, resources
+    - checks PCI_NUM_RESOURCES (11), not DEVICE_COUNT_RESOURCE (12), resources
     - skips resources that have neither IORESOURCE_IO nor IORESOURCE_MEM set
     - skips ROM resources unless IORESOURCE_ROM_ENABLE is set
     - checks for resource collisions with "!r->parent"
 
 Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 
-Index: work8/arch/mn10300/unit-asb2305/pci-asb2305.c
+Index: work8/arch/parisc/kernel/pci.c
 ===================================================================
---- work8.orig/arch/mn10300/unit-asb2305/pci-asb2305.c	2008-03-04 10:05:27.000000000 -0700
-+++ work8/arch/mn10300/unit-asb2305/pci-asb2305.c	2008-03-04 10:05:36.000000000 -0700
-@@ -218,45 +218,6 @@
- 	pcibios_allocate_resources(1);
- }
- 
--int pcibios_enable_resources(struct pci_dev *dev, int mask)
--{
--	u16 cmd, old_cmd;
+--- work8.orig/arch/parisc/kernel/pci.c	2008-03-04 10:06:11.000000000 -0700
++++ work8/arch/parisc/kernel/pci.c	2008-03-04 10:07:54.000000000 -0700
+@@ -287,23 +287,15 @@
+  */
+ int pcibios_enable_device(struct pci_dev *dev, int mask)
+ {
+-	u16 cmd;
 -	int idx;
--	struct resource *r;
--
++	int err;
++	u16 cmd, old_cmd;
+ 
 -	pci_read_config_word(dev, PCI_COMMAND, &cmd);
--	old_cmd = cmd;
 -
--	for (idx = 0; idx < 6; idx++) {
--		/* Only set up the requested stuff */
--		if (!(mask & (1 << idx)))
+-	for (idx = 0; idx < DEVICE_COUNT_RESOURCE; idx++) {
+-		struct resource *r = &dev->resource[idx];
++	err = pci_enable_resources(dev, mask);
++	if (err < 0)
++		return err;
+ 
+-		/* only setup requested resources */
+-		if (!(mask & (1<<idx)))
 -			continue;
--
--		r = &dev->resource[idx];
--
--		if (!r->start && r->end) {
--			printk(KERN_ERR
--			       "PCI: Device %s not available because of"
--			       " resource collisions\n",
--			       pci_name(dev));
--			return -EINVAL;
--		}
 -
 -		if (r->flags & IORESOURCE_IO)
 -			cmd |= PCI_COMMAND_IO;
 -		if (r->flags & IORESOURCE_MEM)
 -			cmd |= PCI_COMMAND_MEMORY;
 -	}
--
--	if (dev->resource[PCI_ROM_RESOURCE].start)
--		cmd |= PCI_COMMAND_MEMORY;
--
--	if (cmd != old_cmd)
--		pci_write_config_word(dev, PCI_COMMAND, cmd);
--
--	return 0;
--}
--
- /*
-  *  If we set up a device for bus mastering, we need to check the latency
-  *  timer as certain crappy BIOSes forget to set it properly.
-Index: work8/arch/mn10300/unit-asb2305/pci-asb2305.h
-===================================================================
---- work8.orig/arch/mn10300/unit-asb2305/pci-asb2305.h	2008-03-04 10:05:41.000000000 -0700
-+++ work8/arch/mn10300/unit-asb2305/pci-asb2305.h	2008-03-04 10:05:45.000000000 -0700
-@@ -36,7 +36,6 @@
- extern unsigned int pcibios_max_latency;
++	pci_read_config_word(dev, PCI_COMMAND, &cmd);
++	old_cmd = cmd;
  
- extern void pcibios_resource_survey(void);
--extern int pcibios_enable_resources(struct pci_dev *dev, int mask);
+ 	cmd |= (PCI_COMMAND_SERR | PCI_COMMAND_PARITY);
  
- /* pci.c */
+@@ -312,8 +304,12 @@
+ 	if (dev->bus->bridge_ctl & PCI_BRIDGE_CTL_FAST_BACK)
+ 		cmd |= PCI_COMMAND_FAST_BACK;
+ #endif
+-	DBGC("PCIBIOS: Enabling device %s cmd 0x%04x\n", pci_name(dev), cmd);
+-	pci_write_config_word(dev, PCI_COMMAND, cmd);
++
++	if (cmd != old_cmd) {
++		dev_info(&dev->dev, "enabling SERR and PARITY (%04x -> %04x)\n",
++			old_cmd, cmd);
++		pci_write_config_word(dev, PCI_COMMAND, cmd);
++	}
+ 	return 0;
+ }
  
-Index: work8/arch/mn10300/unit-asb2305/pci.c
-===================================================================
---- work8.orig/arch/mn10300/unit-asb2305/pci.c	2008-03-04 10:05:49.000000000 -0700
-+++ work8/arch/mn10300/unit-asb2305/pci.c	2008-03-04 10:05:54.000000000 -0700
-@@ -440,7 +440,7 @@
- {
- 	int err;
- 
--	err = pcibios_enable_resources(dev, mask);
-+	err = pci_enable_resources(dev, mask);
- 	if (err == 0)
- 		pcibios_enable_irq(dev);
- 	return err;
 
 -- 
