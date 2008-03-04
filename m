@@ -1,48 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-mail-105.bluehost.com ([69.89.18.5]:50000 "HELO
-	outbound-mail-105.bluehost.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1755759AbYCCUvQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Mar 2008 15:51:16 -0500
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [patch 4/6] ARM: move bridge enable out of pcibios_enable_resources()
-Date: Mon, 3 Mar 2008 12:43:51 -0800
-References: <20080228000437.880811124@ldl.fc.hp.com> <200803030959.35625.jbarnes@virtuousgeek.org> <1204576557.21545.4.camel@pasglop>
-In-Reply-To: <1204576557.21545.4.camel@pasglop>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200803031243.51613.jbarnes@virtuousgeek.org>
+Received: from g1t0026.austin.hp.com ([15.216.28.33]:19922 "EHLO
+	g1t0026.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932978AbYCDS4L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2008 13:56:11 -0500
+Message-Id: <20080304185646.864917286@ldl.fc.hp.com>
+Date: Tue, 04 Mar 2008 11:56:46 -0700
+From: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Subject: [patch 00/16] PCI: consolidate several pcibios_enable_resources() implementations, v3
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: linux-pci@atrey.karlin.mff.cuni.cz, Bjorn Helgaas <bjorn.helgaas@hp.com>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>
-Message-ID: <20080303204351.WWtUI74SybUghHKf0DIoTaKuLUMgfJ7H-jj76GJbScA@z>
+To: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
+Cc: Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>
 
-On Monday, March 03, 2008 12:35 pm Benjamin Herrenschmidt wrote:
-> On Mon, 2008-03-03 at 09:59 -0800, Jesse Barnes wrote:
-> > On Wednesday, February 27, 2008 4:04 pm Bjorn Helgaas wrote:
-> > > Move bridge enable from pcibios_enable_resources() to
-> > > platform_pci_enable_device() so the former matches other
-> > > architectures and can be shared.
-> >
-> > I really like the direction of these patches.  Getting PCI resources
-> > assigned & devices setup correctly for new arches has always been a bit
-> > more trouble than it should be...
->
-> You'll noticed that I recently moved powerpc to something more common to
-> x86 in the are of resource allocation. Still -slightly- different but I
-> do believe there is room for somebody with some skills to try to turn
-> some of that into generic code.
+This series replaces most of the arch-specific pcibios_enable_resources()
+implementations with a single generic pci_enable_resources().
 
-Yeah, I think that would be a good thing to shoot for.  Even on PCs there are 
-times when we need resource allocation to be done (or re-done) by the kernel 
-for hotplug or just because the platform is pared down enough that it doesn't 
-to it all by itself.
+I think this is ready for -mm, but of course, I'm still interested in
+any other comments.
 
-I might be able to find time to look into that myself in the next few weeks; I 
-think we even have some open PCI bugs that could be solved by better resource 
-allocation.
+Changes between v2 and v3:
+    
+    - Renamed the generic version to pci_enable_resources(), to keep
+      pcibios_* names for arch-specific code (suggested by Kyle, thanks).
 
-Jesse
+    - I reorganized this series into a single PCI patch that adds the new
+      generic version, followed by a bunch of patches that individually
+      convert each arch over to use it.
+
+Bjorn
+
+-- 
