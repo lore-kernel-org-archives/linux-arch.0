@@ -1,35 +1,38 @@
-From: Greg KH <greg@kroah.com>
-Subject: Re: [patch 01/16] PCI: add generic pci_enable_resources()
-Date: Wed, 5 Mar 2008 12:14:26 -0800
-Message-ID: <20080305201426.GD13569@kroah.com>
-References: <20080304185819.885549413@ldl.fc.hp.com> <20080304185646.864917286@ldl.fc.hp.com> <20894.1204728811@redhat.com>
+From: Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>
+Subject: Re: [patch 08/16] mn10300: use generic pci_enable_resources()
+Date: Wed, 5 Mar 2008 12:15:06 -0800
+Message-ID: <20080305201506.GF13569@kroah.com>
+References: <20080304185821.354198782@ldl.fc.hp.com> <20080304185646.864917286@ldl.fc.hp.com> <28205.1204729990@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-parisc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20894.1204728811@redhat.com>
-Sender: linux-parisc-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Bjorn Helgaas <bjorn.helgaas@hp.com>, Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>, linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <28205.1204729990-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Cc: Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org>, Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, linux-arm-kernel-xIg/pKzrS19vn6HldHNs0ANdhmdF6hFW@public.gmane.org, Kyle McMartin <kyle-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Grant Grundler <grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, Chris Zankel <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>, linux-pci-jyMamyUUXNJG4ohzP4jBZS1Fcj925eT/@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-On Wed, Mar 05, 2008 at 02:53:31PM +0000, David Howells wrote:
+On Wed, Mar 05, 2008 at 03:13:10PM +0000, David Howells wrote:
 > 
-> Bjorn Helgaas <bjorn.helgaas@hp.com> wrote:
+> Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org> wrote:
 > 
-> > Each architecture has its own pcibios_enable_resources() implementation.
-> > These differ in many minor ways that have nothing to do with actual
-> > architectural differences.  Follow-on patches will make most arches
-> > use this generic version instead.
+> > Use the generic pci_enable_resources() instead of the arch-specific code.
 > > 
-> > This version is based on powerpc, which seemed most up-to-date.  The only
-> > functional difference from the x86 version is that this uses "!r->parent"
-> > to check for resource collisions instead of "!r->start && r->end".
+> > Unlike this arch-specific code, the generic version:
+> >     - checks PCI_NUM_RESOURCES (11), not 6, resources
+> >     - skips resources that have neither IORESOURCE_IO nor IORESOURCE_MEM set
+> >     - skips ROM resources unless IORESOURCE_ROM_ENABLE is set
+> >     - checks for resource collisions with "!r->parent"
 > > 
-> > Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
+> > Signed-off-by: Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org>
 > 
-> Acked-by: David Howells <dhowells@redhat.com>
+> Acked-by: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 
 added, thanks.
 
 greg k-h
+--
+To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
