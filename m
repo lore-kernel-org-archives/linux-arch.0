@@ -1,43 +1,27 @@
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [patch 4/6] ARM: move bridge enable out of pcibios_enable_resources()
-Date: Mon, 3 Mar 2008 12:43:51 -0800
-Message-ID: <200803031243.51613.jbarnes@virtuousgeek.org>
-References: <20080228000437.880811124@ldl.fc.hp.com> <200803030959.35625.jbarnes@virtuousgeek.org> <1204576557.21545.4.camel@pasglop>
-Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [patch 01/16] PCI: add generic pci_enable_resources()
+Date: Wed, 05 Mar 2008 14:53:31 +0000
+Message-ID: <20894.1204728811@redhat.com>
+References: <20080304185819.885549413@ldl.fc.hp.com> <20080304185646.864917286@ldl.fc.hp.com>
 Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1204576557.21545.4.camel@pasglop>
-Content-Disposition: inline
+In-Reply-To: <20080304185819.885549413@ldl.fc.hp.com>
 Sender: linux-parisc-owner@vger.kernel.org
-To: benh@kernel.crashing.org
-Cc: linux-pci@atrey.karlin.mff.cuni.cz, Bjorn Helgaas <bjorn.helgaas@hp.com>, linux-arch@vger.kernel.org, Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>
+To: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Cc: dhowells@redhat.com, Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>, linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Monday, March 03, 2008 12:35 pm Benjamin Herrenschmidt wrote:
-> On Mon, 2008-03-03 at 09:59 -0800, Jesse Barnes wrote:
-> > On Wednesday, February 27, 2008 4:04 pm Bjorn Helgaas wrote:
-> > > Move bridge enable from pcibios_enable_resources() to
-> > > platform_pci_enable_device() so the former matches other
-> > > architectures and can be shared.
-> >
-> > I really like the direction of these patches.  Getting PCI resources
-> > assigned & devices setup correctly for new arches has always been a bit
-> > more trouble than it should be...
->
-> You'll noticed that I recently moved powerpc to something more common to
-> x86 in the are of resource allocation. Still -slightly- different but I
-> do believe there is room for somebody with some skills to try to turn
-> some of that into generic code.
 
-Yeah, I think that would be a good thing to shoot for.  Even on PCs there are 
-times when we need resource allocation to be done (or re-done) by the kernel 
-for hotplug or just because the platform is pared down enough that it doesn't 
-to it all by itself.
+Bjorn Helgaas <bjorn.helgaas@hp.com> wrote:
 
-I might be able to find time to look into that myself in the next few weeks; I 
-think we even have some open PCI bugs that could be solved by better resource 
-allocation.
+> Each architecture has its own pcibios_enable_resources() implementation.
+> These differ in many minor ways that have nothing to do with actual
+> architectural differences.  Follow-on patches will make most arches
+> use this generic version instead.
+> 
+> This version is based on powerpc, which seemed most up-to-date.  The only
+> functional difference from the x86 version is that this uses "!r->parent"
+> to check for resource collisions instead of "!r->start && r->end".
+> 
+> Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 
-Jesse
+Acked-by: David Howells <dhowells@redhat.com>
