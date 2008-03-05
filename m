@@ -1,37 +1,34 @@
-From: Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>
-Subject: Re: [patch 09/16] parisc: use generic pci_enable_resources()
-Date: Wed, 5 Mar 2008 12:09:43 -0800
-Message-ID: <20080305200943.GB13569@kroah.com>
-References: <20080304185646.864917286@ldl.fc.hp.com> <20080304185821.554040328@ldl.fc.hp.com> <20080305161709.GA3354@phobos.i.cabal.ca>
+From: Greg KH <greg@kroah.com>
+Subject: Re: [patch 05/16] frv: use generic pci_enable_resources()
+Date: Wed, 5 Mar 2008 12:14:46 -0800
+Message-ID: <20080305201446.GE13569@kroah.com>
+References: <20080304185820.723623873@ldl.fc.hp.com> <20080304185646.864917286@ldl.fc.hp.com> <20881.1204728766@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20080305161709.GA3354-EK4dZfYtfFRW/gs8oUvUg/d9D2ou9A/h@public.gmane.org>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kyle McMartin <kyle-pfcGkIkfWfAsA/PxXw9srA@public.gmane.org>
-Cc: Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org>, linux-pci-jyMamyUUXNJG4ohzP4jBZS1Fcj925eT/@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Kyle McMartin <kyle-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Grant Grundler <grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, Chris Zankel <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>
+In-Reply-To: <20881.1204728766@redhat.com>
+Sender: linux-parisc-owner@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Bjorn Helgaas <bjorn.helgaas@hp.com>, Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>, linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 05, 2008 at 11:17:10AM -0500, Kyle McMartin wrote:
-> On Tue, Mar 04, 2008 at 11:56:55AM -0700, Bjorn Helgaas wrote:
+On Wed, Mar 05, 2008 at 02:52:46PM +0000, David Howells wrote:
+> 
+> Bjorn Helgaas <bjorn.helgaas@hp.com> wrote:
+> 
 > > Use the generic pci_enable_resources() instead of the arch-specific code.
 > > 
 > > Unlike this arch-specific code, the generic version:
-> >     - checks PCI_NUM_RESOURCES (11), not DEVICE_COUNT_RESOURCE (12), resources
+> >     - checks PCI_NUM_RESOURCES (11), not 6, resources
 > >     - skips resources that have neither IORESOURCE_IO nor IORESOURCE_MEM set
 > >     - skips ROM resources unless IORESOURCE_ROM_ENABLE is set
 > >     - checks for resource collisions with "!r->parent"
 > > 
-> > Signed-off-by: Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org>
-> > 
+> > Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 > 
-> Acked-by: Kyle McMartin <kyle-pfcGkIkfWfAsA/PxXw9srA@public.gmane.org>
+> Acked-by: David Howells <dhowells@redhat.com>
 
-added, thanks.
+Added, thanks.
 
 greg k-h
---
-To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
