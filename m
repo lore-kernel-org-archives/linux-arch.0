@@ -1,39 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:49110 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752790AbYCEURE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Mar 2008 15:17:04 -0500
-Date: Wed, 5 Mar 2008 12:14:46 -0800
-From: Greg KH <greg@kroah.com>
-Subject: Re: [patch 05/16] frv: use generic pci_enable_resources()
-Message-ID: <20080305201446.GE13569@kroah.com>
-References: <20080304185820.723623873@ldl.fc.hp.com> <20080304185646.864917286@ldl.fc.hp.com> <20881.1204728766@redhat.com>
-MIME-Version: 1.0
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:47131 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753409AbYCFPIQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Mar 2008 10:08:16 -0500
+Date: Thu, 6 Mar 2008 15:06:40 +0000
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [patch 4/6] ARM: move bridge enable out of pcibios_enable_resources()
+Message-ID: <20080306150640.GL3283@flint.arm.linux.org.uk>
+References: <20080228000437.880811124@ldl.fc.hp.com> <20080228001053.013269726@ldl.fc.hp.com>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20881.1204728766@redhat.com>
+In-Reply-To: <20080228001053.013269726@ldl.fc.hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Bjorn Helgaas <bjorn.helgaas@hp.com>, Russell King <rmk@arm.linux.org.uk>, linux-arm-kernel@lists.arm.linux.org.uk, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@ozlabs.org, Chris Zankel <chris@zankel.net>, linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org
-Message-ID: <20080305201446._o32tQKGV5WlhQ_5kNuF8Znu1b3nVyxhUce3G8B1C3Q@z>
+To: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Cc: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Kyle McMartin <kyle@parisc-linux.org>, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>, linux-arm-kernel@lists.arm.linux.org.uk
+Message-ID: <20080306150640.EygLif_SqiEqBkhf4DTgGT-QN5HREv6HyP8w62Otk9E@z>
 
-On Wed, Mar 05, 2008 at 02:52:46PM +0000, David Howells wrote:
+On Wed, Feb 27, 2008 at 05:04:41PM -0700, Bjorn Helgaas wrote:
+> Move bridge enable from pcibios_enable_resources() to
+> platform_pci_enable_device() so the former matches other
+> architectures and can be shared.
 > 
-> Bjorn Helgaas <bjorn.helgaas@hp.com> wrote:
+> Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 > 
-> > Use the generic pci_enable_resources() instead of the arch-specific code.
-> > 
-> > Unlike this arch-specific code, the generic version:
-> >     - checks PCI_NUM_RESOURCES (11), not 6, resources
-> >     - skips resources that have neither IORESOURCE_IO nor IORESOURCE_MEM set
-> >     - skips ROM resources unless IORESOURCE_ROM_ENABLE is set
-> >     - checks for resource collisions with "!r->parent"
-> > 
-> > Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
-> 
-> Acked-by: David Howells <dhowells@redhat.com>
+> Index: work6/arch/arm/kernel/bios32.c
+> ===================================================================
+> --- work6.orig/arch/arm/kernel/bios32.c	2008-02-27 11:25:29.000000000 -0700
+> +++ work6/arch/arm/kernel/bios32.c	2008-02-27 11:55:59.000000000 -0700
+> @@ -683,15 +683,32 @@
+>  			cmd |= PCI_COMMAND_MEMORY;
+>  	}
+>  
+> +	if (cmd != old_cmd) {
+> +		printk("PCI: enabling device %s (%04x -> %04x)\n",
+> +		       pci_name(dev), old_cmd, cmd);
 
-Added, thanks.
+Should be dev_info().
 
-greg k-h
+Apart from that...
+
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
