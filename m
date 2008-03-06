@@ -1,38 +1,55 @@
-From: Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>
-Subject: Re: [patch 08/16] mn10300: use generic pci_enable_resources()
-Date: Wed, 5 Mar 2008 12:15:06 -0800
-Message-ID: <20080305201506.GF13569@kroah.com>
-References: <20080304185821.354198782@ldl.fc.hp.com> <20080304185646.864917286@ldl.fc.hp.com> <28205.1204729990@redhat.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [patch 4/6] ARM: move bridge enable out of
+	pcibios_enable_resources()
+Date: Thu, 6 Mar 2008 15:06:40 +0000
+Message-ID: <20080306150640.GL3283@flint.arm.linux.org.uk>
+References: <20080228000437.880811124@ldl.fc.hp.com>
+	<20080228001053.013269726@ldl.fc.hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.arm.linux.org.uk>
 Content-Disposition: inline
-In-Reply-To: <28205.1204729990-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org>, Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, linux-arm-kernel-xIg/pKzrS19vn6HldHNs0ANdhmdF6hFW@public.gmane.org, Kyle McMartin <kyle-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Grant Grundler <grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, Chris Zankel <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>, linux-pci-jyMamyUUXNJG4ohzP4jBZS1Fcj925eT/@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+In-Reply-To: <20080228001053.013269726@ldl.fc.hp.com>
+List-Unsubscribe: <http://lists.arm.linux.org.uk/mailman/listinfo/linux-arm-kernel>,
+	<mailto:linux-arm-kernel-request@lists.arm.linux.org.uk?subject=unsubscribe>
+List-Archive: <http://lists.arm.linux.org.uk/lurker/list/linux-arm-kernel.html>
+List-Post: <mailto:linux-arm-kernel@lists.arm.linux.org.uk>
+List-Help: <mailto:linux-arm-kernel-request@lists.arm.linux.org.uk?subject=help>
+List-Subscribe: <http://lists.arm.linux.org.uk/mailman/listinfo/linux-arm-kernel>,
+	<mailto:linux-arm-kernel-request@lists.arm.linux.org.uk?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.arm.linux.org.uk
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org+linux-arm-kernel=m.gmane.org@lists.arm.linux.org.uk
+To: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Cc: linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Kyle McMartin <kyle@parisc-linux.org>, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>, linux-pci@atrey.karlin.mff.cuni.cz, linux-arm-kernel@lists.arm.linux.org.uk
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 05, 2008 at 03:13:10PM +0000, David Howells wrote:
+On Wed, Feb 27, 2008 at 05:04:41PM -0700, Bjorn Helgaas wrote:
+> Move bridge enable from pcibios_enable_resources() to
+> platform_pci_enable_device() so the former matches other
+> architectures and can be shared.
 > 
-> Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org> wrote:
+> Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
 > 
-> > Use the generic pci_enable_resources() instead of the arch-specific code.
-> > 
-> > Unlike this arch-specific code, the generic version:
-> >     - checks PCI_NUM_RESOURCES (11), not 6, resources
-> >     - skips resources that have neither IORESOURCE_IO nor IORESOURCE_MEM set
-> >     - skips ROM resources unless IORESOURCE_ROM_ENABLE is set
-> >     - checks for resource collisions with "!r->parent"
-> > 
-> > Signed-off-by: Bjorn Helgaas <bjorn.helgaas-VXdhtT5mjnY@public.gmane.org>
-> 
-> Acked-by: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+> Index: work6/arch/arm/kernel/bios32.c
+> ===================================================================
+> --- work6.orig/arch/arm/kernel/bios32.c	2008-02-27 11:25:29.000000000 -0700
+> +++ work6/arch/arm/kernel/bios32.c	2008-02-27 11:55:59.000000000 -0700
+> @@ -683,15 +683,32 @@
+>  			cmd |= PCI_COMMAND_MEMORY;
+>  	}
+>  
+> +	if (cmd != old_cmd) {
+> +		printk("PCI: enabling device %s (%04x -> %04x)\n",
+> +		       pci_name(dev), old_cmd, cmd);
 
-added, thanks.
+Should be dev_info().
 
-greg k-h
---
-To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Apart from that...
+
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+
+-------------------------------------------------------------------
+List admin: http://lists.arm.linux.org.uk/mailman/listinfo/linux-arm-kernel
+FAQ:        http://www.arm.linux.org.uk/mailinglists/faq.php
+Etiquette:  http://www.arm.linux.org.uk/mailinglists/etiquette.php
