@@ -1,52 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0027.austin.hp.com ([15.216.28.34]:23709 "EHLO
-	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756237AbYCFPkd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Mar 2008 10:40:33 -0500
-From: Bjorn Helgaas <bjorn.helgaas@hp.com>
-Subject: Re: [patch 4/6] ARM: move bridge enable out of pcibios_enable_resources()
-Date: Thu, 6 Mar 2008 08:42:49 -0700
-References: <20080228000437.880811124@ldl.fc.hp.com> <20080228001053.013269726@ldl.fc.hp.com> <20080306150640.GL3283@flint.arm.linux.org.uk>
-In-Reply-To: <20080306150640.GL3283@flint.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from alephnull.demon.nl ([83.160.184.112]:50048 "EHLO
+	xi.wantstofly.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753223AbYCGKr3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Mar 2008 05:47:29 -0500
+Date: Fri, 7 Mar 2008 11:19:13 +0100
+From: Lennert Buytenhek <buytenh@wantstofly.org>
+Subject: [PATCH 0/7][RFC] Move Marvell MBUS window handling into drivers
+Message-ID: <20080307101913.GA11918@xi.wantstofly.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-ID: <200803060842.51127.bjorn.helgaas@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-pci@atrey.karlin.mff.cuni.cz, linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>, Grant Grundler <grundler@parisc-linux.org>, linux-parisc@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Kyle McMartin <kyle@parisc-linux.org>, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>, linux-arm-kernel@lists.arm.linux.org.uk
-Message-ID: <20080306154249.m5eQ1k9Fqe0fHJeltZVqjApDGmv9rawr4XjzNMn8fUU@z>
+To: linux-arch@vger.kernel.org
+Cc: Saeed Bishara <saeed@marvell.com>, Dale Farnsworth <dale@farnsworth.org>, Russell King <linux@arm.linux.org.uk>, Tzachi Perelstein <tzachi@marvell.com>, Nicolas Pitre <nico@cam.org>
+Message-ID: <20080307101913.K-zp1fOV03o8Bs9fOrO9sH5jdZM6c5M7X3sfRO545d4@z>
 
-On Thursday 06 March 2008 08:06:40 am Russell King - ARM Linux wrote:
-> On Wed, Feb 27, 2008 at 05:04:41PM -0700, Bjorn Helgaas wrote:
-> > Move bridge enable from pcibios_enable_resources() to
-> > platform_pci_enable_device() so the former matches other
-> > architectures and can be shared.
-> > 
-> > Signed-off-by: Bjorn Helgaas <bjorn.helgaas@hp.com>
-> > 
-> > Index: work6/arch/arm/kernel/bios32.c
-> > ===================================================================
-> > --- work6.orig/arch/arm/kernel/bios32.c	2008-02-27 11:25:29.000000000 -0700
-> > +++ work6/arch/arm/kernel/bios32.c	2008-02-27 11:55:59.000000000 -0700
-> > @@ -683,15 +683,32 @@
-> >  			cmd |= PCI_COMMAND_MEMORY;
-> >  	}
-> >  
-> > +	if (cmd != old_cmd) {
-> > +		printk("PCI: enabling device %s (%04x -> %04x)\n",
-> > +		       pci_name(dev), old_cmd, cmd);
-> 
-> Should be dev_info().
-> 
-> Apart from that...
-> 
-> Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Hi all,
 
-I fixed that in the v3 patch that Greg KH put in his tree.
+Various Marvell chips (ARM SoCs, MIPS/PPC northbridges,
+standalone PCI/PCIe SATA/etc. controllers) use an on-chip bus
+called MBUS.
 
-Thanks,
-  Bjorn
+An MBUS bus address consists of not only a 32/64-bit address, but
+also of a target/attribute ID, which identify which of the connected
+MBUS peripherals the access is intended for.  I.e., transactions are
+routed explicitly, rather than implicitly based on their address.
+
+Peripherals map DMA addresses (as handed to them via e.g. TX/RX
+descriptors) to MBUS bus addresses via a set of programmable
+per-peripheral address map windows.
+
+In the typical ARM/PPC case, each DMA-capable MBUS peripheral is
+programmed such that its entire DMA address range points to the
+on-chip DRAM controller.  (But if you wanted, you could also map a
+peripheral's entire DMA address range to e.g. the PCI MEM address
+range of some on-chip PCI/PCIe controller.)
+
+For things like PCIe SATA controllers, you don't need to worry
+about setting these address windows, but on most of the ARM/PPC/MIPS
+stuff, the mapping windows don't contain valid values after reset,
+and the programming has to be done by the bootloader or the kernel.
+
+While the MBUS address map registers are an integral part of each
+peripheral's own register set, these MBUS address map windows are
+currently programmed directly by platform code, leading to such
+gems as arch/arm/mach-orion/addr-map.c and
+arch/powerpc/platforms/chrp/pegasos_eth.c.
+
+This patch set is an initial attempt at moving programming of the
+MBUS register windows for the set of MBUS peripherals that we currently
+have in-tree drivers for from platform code into drivers.
+
+With these patches, info about DRAM target/attribute IDs is prepared
+by the platform code as usual, but then passed into platform drivers
+via platform device data, instead of programming that data into the
+peripherals directly.
+
+This avoids duplicating the window programming code across each
+platform that wants to use these peripherals, and avoids exposing
+internal peripheral register set details outside of their drivers.
+
+Comments appreciated.
+
+
+thanks,
+Lennert
