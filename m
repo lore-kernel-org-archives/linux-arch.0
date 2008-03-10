@@ -1,119 +1,522 @@
-From: Lennert Buytenhek <buytenh-OLH4Qvv75CYX/NnBR394Jw@public.gmane.org>
-Subject: [PATCH 4/7] ehci-orion: mbus decode window support
-Date: Fri, 7 Mar 2008 11:22:25 +0100
-Message-ID: <20080307102225.GD11977@xi.wantstofly.org>
-References: <20080307101913.GA11918@xi.wantstofly.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
+Subject: + kvm-provide-kvmh-for-all-architecture-fixes-headers_install.patch added to -mm tree
+Date: Mon, 10 Mar 2008 02:13:19 -0700
+Message-ID: <200803100913.m2A9DJYM009298@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20080307101913.GA11918-mfnYTeDhw6uOVk/H6u/4e9i2O/JbrIOy@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: Saeed Bishara <saeed-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>, Dale Farnsworth <dale-1viX+2+OPRFcxvNqPlePQg@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Tzachi Perelstein <tzachi-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>, Nicolas Pitre <nico-mo2vmkxb4K0@public.gmane.org>
+To: mm-commits-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org, avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org, dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org
 
-Make it possible to pass mbus_dram_target_info to the ehci-orion
-driver via the platform data, and make the ehci-orion driver
-program the window registers based on this data if it is passed in.
 
-Signed-off-by: Lennert Buytenhek <buytenh-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
+The patch titled
+     kvm: provide kvm.h for all architecture: fixes headers_install
+has been added to the -mm tree.  Its filename is
+     kvm-provide-kvmh-for-all-architecture-fixes-headers_install.patch
 
-Index: linux-2.6.25-rc4/drivers/usb/host/ehci-orion.c
-===================================================================
---- linux-2.6.25-rc4.orig/drivers/usb/host/ehci-orion.c
-+++ linux-2.6.25-rc4/drivers/usb/host/ehci-orion.c
-@@ -11,15 +11,19 @@
- #include <linux/kernel.h>
- #include <linux/module.h>
- #include <linux/platform_device.h>
-+#include <linux/mbus.h>
- #include <asm/arch/orion.h>
-+#include <asm/arch/platform.h>
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
+
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: kvm: provide kvm.h for all architecture: fixes headers_install
+From: Christian Borntraeger <borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>
+
+Currently include/linux/kvm.h is not considered by make headers_install,
+because Kbuild cannot handle " unifdef-$(CONFIG_FOO) += foo.h.  This problem
+was introduced by 040922c04cf2c8ac70be2e88a8a9614ecdb41d2e, which makes this
+an 2.6.25 regression.
+
+One way of solving the issue is to enhance Kbuild, but Avi and David conviced
+me, that changing headers_install is not the way to go.  This patch changes
+the definition for linux/kvm.h to unifdef-y.
+
+If unifdef-y is used for linux/kvm.h "make headers_check" will fail on all
+architectures without asm/kvm.h.  Therefore, this patch also provides
+asm/kvm.h on all architectures.
+
+Signed-off-by: Christian Borntraeger <borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>
+Acked-by: Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>
+Cc: Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org
+Cc: David Woodhouse <dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Cc: <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Signed-off-by: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+---
+
+ include/asm-alpha/Kbuild     |    1 +
+ include/asm-alpha/kvm.h      |    6 ++++++
+ include/asm-arm/Kbuild       |    2 ++
+ include/asm-arm/kvm.h        |    6 ++++++
+ include/asm-avr32/Kbuild     |    1 +
+ include/asm-avr32/kvm.h      |    6 ++++++
+ include/asm-blackfin/Kbuild  |    1 +
+ include/asm-blackfin/kvm.h   |    6 ++++++
+ include/asm-cris/Kbuild      |    1 +
+ include/asm-cris/kvm.h       |    6 ++++++
+ include/asm-frv/Kbuild       |    1 +
+ include/asm-frv/kvm.h        |    6 ++++++
+ include/asm-h8300/Kbuild     |    2 ++
+ include/asm-h8300/kvm.h      |    6 ++++++
+ include/asm-ia64/Kbuild      |    1 +
+ include/asm-ia64/kvm.h       |    6 ++++++
+ include/asm-m32r/Kbuild      |    2 ++
+ include/asm-m32r/kvm.h       |    6 ++++++
+ include/asm-m68k/Kbuild      |    1 +
+ include/asm-m68k/kvm.h       |    6 ++++++
+ include/asm-m68knommu/Kbuild |    2 ++
+ include/asm-m68knommu/kvm.h  |    7 +++++++
+ include/asm-mips/Kbuild      |    2 +-
+ include/asm-mips/kvm.h       |    6 ++++++
+ include/asm-mn10300/Kbuild   |    2 ++
+ include/asm-mn10300/kvm.h    |    6 ++++++
+ include/asm-parisc/Kbuild    |    2 ++
+ include/asm-parisc/kvm.h     |    6 ++++++
+ include/asm-powerpc/Kbuild   |    1 +
+ include/asm-powerpc/kvm.h    |    6 ++++++
+ include/asm-s390/Kbuild      |    1 +
+ include/asm-s390/kvm.h       |    6 ++++++
+ include/asm-sh/Kbuild        |    1 +
+ include/asm-sh/kvm.h         |    6 ++++++
+ include/asm-sparc/Kbuild     |    1 +
+ include/asm-sparc/kvm.h      |    6 ++++++
+ include/asm-sparc64/Kbuild   |    1 +
+ include/asm-sparc64/kvm.h    |    6 ++++++
+ include/asm-v850/Kbuild      |    2 ++
+ include/asm-v850/kvm.h       |    6 ++++++
+ include/asm-xtensa/Kbuild    |    2 ++
+ include/asm-xtensa/kvm.h     |    6 ++++++
+ include/linux/Kbuild         |    2 +-
+ 43 files changed, 157 insertions(+), 2 deletions(-)
+
+diff -puN include/asm-alpha/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-alpha/Kbuild
+--- a/include/asm-alpha/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-alpha/Kbuild
+@@ -1,6 +1,7 @@
+ include include/asm-generic/Kbuild.asm
  
- #define rdl(off)	__raw_readl(hcd->regs + (off))
- #define wrl(off, val)	__raw_writel((val), hcd->regs + (off))
+ header-y += gentrap.h
++header-y += kvm.h
+ header-y += regdef.h
+ header-y += pal.h
+ header-y += reg.h
+diff -puN /dev/null include/asm-alpha/kvm.h
+--- /dev/null
++++ a/include/asm-alpha/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_ALPHA_H
++#define __LINUX_KVM_ALPHA_H
++
++/* alpha does not support KVM */
++
++#endif
+diff -puN include/asm-arm/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-arm/Kbuild
+--- a/include/asm-arm/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-arm/Kbuild
+@@ -1,3 +1,5 @@
+ include include/asm-generic/Kbuild.asm
  
--#define USB_CAUSE		0x310
--#define USB_MASK		0x314
- #define USB_CMD			0x140
- #define USB_MODE		0x1a8
-+#define USB_CAUSE		0x310
-+#define USB_MASK		0x314
-+#define USB_WINDOW_CTRL(i)	(0x320 + ((i) << 4))
-+#define USB_WINDOW_BASE(i)	(0x324 + ((i) << 4))
- #define USB_IPG			0x360
- #define USB_PHY_PWR_CTRL	0x400
- #define USB_PHY_TX_CTRL		0x420
-@@ -162,8 +166,30 @@ static const struct hc_driver ehci_orion
- 	.bus_resume = ehci_bus_resume,
- };
++header-y += kvm.h
++
+ unifdef-y += hwcap.h
+diff -puN /dev/null include/asm-arm/kvm.h
+--- /dev/null
++++ a/include/asm-arm/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_ARM_H
++#define __LINUX_KVM_ARM_H
++
++/* arm does not support KVM */
++
++#endif
+diff -puN include/asm-avr32/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-avr32/Kbuild
+--- a/include/asm-avr32/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-avr32/Kbuild
+@@ -1,3 +1,4 @@
+ include include/asm-generic/Kbuild.asm
  
-+static void __init
-+ehci_orion_conf_mbus_windows(struct usb_hcd *hcd,
-+				struct mbus_dram_target_info *dram)
-+{
-+	int i;
+ header-y	+= cachectl.h
++header-y 	+= kvm.h
+diff -puN /dev/null include/asm-avr32/kvm.h
+--- /dev/null
++++ a/include/asm-avr32/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_AVR32_H
++#define __LINUX_KVM_AVR32_H
 +
-+	for (i = 0; i < 4; i++) {
-+		wrl(USB_WINDOW_CTRL(i), 0);
-+		wrl(USB_WINDOW_BASE(i), 0);
-+	}
++/* avr32 does not support KVM */
 +
-+	for (i = 0; i < dram->num_cs; i++) {
-+		struct mbus_dram_window *cs = dram->cs + i;
-+
-+		wrl(USB_WINDOW_CTRL(i), ((cs->size - 1) & 0xffff0000) |
-+					(cs->mbus_attr << 8) |
-+					(dram->mbus_dram_target_id << 4) | 1);
-+		wrl(USB_WINDOW_BASE(i), cs->base);
-+	}
-+}
-+
- static int __init ehci_orion_drv_probe(struct platform_device *pdev)
- {
-+	struct orion_ehci_data *pd = pdev->dev.platform_data;
- 	struct resource *res;
- 	struct usb_hcd *hcd;
- 	struct ehci_hcd *ehci;
-@@ -227,6 +253,12 @@ static int __init ehci_orion_drv_probe(s
- 	ehci->sbrn = 0x20;
++#endif
+diff -puN include/asm-blackfin/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-blackfin/Kbuild
+--- a/include/asm-blackfin/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-blackfin/Kbuild
+@@ -1,3 +1,4 @@
+ include include/asm-generic/Kbuild.asm
  
- 	/*
-+	 * (Re-)program MBUS remapping windows if we are asked to.
-+	 */
-+	if (pd != NULL && pd->dram != NULL)
-+		ehci_orion_conf_mbus_windows(hcd, pd->dram);
+ header-y += fixed_code.h
++header-y += kvm.h
+diff -puN /dev/null include/asm-blackfin/kvm.h
+--- /dev/null
++++ a/include/asm-blackfin/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_BLACKFIN_H
++#define __LINUX_KVM_BLACKFIN_H
 +
-+	/*
- 	 * setup Orion USB controller
- 	 */
- 	orion_usb_setup(hcd);
-Index: linux-2.6.25-rc4/include/asm-arm/arch-orion/platform.h
-===================================================================
---- linux-2.6.25-rc4.orig/include/asm-arm/arch-orion/platform.h
-+++ linux-2.6.25-rc4/include/asm-arm/arch-orion/platform.h
-@@ -12,6 +12,14 @@
- #define __ASM_ARCH_PLATFORM_H__
++/* blackfin does not support KVM */
++
++#endif
+diff -puN include/asm-cris/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-cris/Kbuild
+--- a/include/asm-cris/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-cris/Kbuild
+@@ -4,6 +4,7 @@ header-$(CONFIG_ETRAX_ARCH_V10) += arch-
+ header-$(CONFIG_ETRAX_ARCH_V32) += arch-v32/
  
- /*
-+ * Orion EHCI platform driver data.
-+ */
-+struct orion_ehci_data {
-+	struct mbus_dram_target_info	*dram;
-+};
-+
-+
-+/*
-  * Device bus NAND private data
-  */
- struct orion_nand_data {
-@@ -22,4 +30,5 @@ struct orion_nand_data {
- 	u8 width;	/* buswidth */
- };
+ header-y += ethernet.h
++header-y += kvm.h
+ header-y += rtc.h
+ header-y += sync_serial.h
  
+diff -puN /dev/null include/asm-cris/kvm.h
+--- /dev/null
++++ a/include/asm-cris/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_CRIS_H
++#define __LINUX_KVM_CRIS_H
 +
- #endif
++/* cris does not support KVM */
++
++#endif
+diff -puN include/asm-frv/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-frv/Kbuild
+--- a/include/asm-frv/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-frv/Kbuild
+@@ -1,5 +1,6 @@
+ include include/asm-generic/Kbuild.asm
+ 
++header-y += kvm.h
+ header-y += registers.h
+ 
+ unifdef-y += termios.h
+diff -puN /dev/null include/asm-frv/kvm.h
+--- /dev/null
++++ a/include/asm-frv/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_FRV_H
++#define __LINUX_KVM_FRV_H
++
++/* cris does not support KVM */
++
++#endif
+diff -puN include/asm-h8300/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-h8300/Kbuild
+--- a/include/asm-h8300/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-h8300/Kbuild
+@@ -1 +1,3 @@
+ include include/asm-generic/Kbuild.asm
++
++header-y += kvm.h
+diff -puN /dev/null include/asm-h8300/kvm.h
+--- /dev/null
++++ a/include/asm-h8300/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_H8300_H
++#define __LINUX_KVM_H8300_H
++
++/* h8300 does not support KVM */
++
++#endif
+diff -puN include/asm-ia64/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-ia64/Kbuild
+--- a/include/asm-ia64/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-ia64/Kbuild
+@@ -6,6 +6,7 @@ header-y += fpswa.h
+ header-y += ia64regs.h
+ header-y += intel_intrin.h
+ header-y += intrinsics.h
++header-y += kvm.h
+ header-y += perfmon_default_smpl.h
+ header-y += ptrace_offsets.h
+ header-y += rse.h
+diff -puN /dev/null include/asm-ia64/kvm.h
+--- /dev/null
++++ a/include/asm-ia64/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_IA64_H
++#define __LINUX_KVM_IA64_H
++
++/* ia64 does not support KVM */
++
++#endif
+diff -puN include/asm-m32r/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-m32r/Kbuild
+--- a/include/asm-m32r/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-m32r/Kbuild
+@@ -1 +1,3 @@
+ include include/asm-generic/Kbuild.asm
++
++header-y += kvm.h
+diff -puN /dev/null include/asm-m32r/kvm.h
+--- /dev/null
++++ a/include/asm-m32r/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_M32R_H
++#define __LINUX_KVM_M32R_H
++
++/* m32r does not support KVM */
++
++#endif
+diff -puN include/asm-m68k/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-m68k/Kbuild
+--- a/include/asm-m68k/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-m68k/Kbuild
+@@ -1,2 +1,3 @@
+ include include/asm-generic/Kbuild.asm
+ header-y += cachectl.h
++header-y += kvm.h
+diff -puN /dev/null include/asm-m68k/kvm.h
+--- /dev/null
++++ a/include/asm-m68k/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_M68K_H
++#define __LINUX_KVM_M68K_H
++
++/* m68k does not support KVM */
++
++#endif
+diff -puN include/asm-m68knommu/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-m68knommu/Kbuild
+--- a/include/asm-m68knommu/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-m68knommu/Kbuild
+@@ -1 +1,3 @@
+ include include/asm-generic/Kbuild.asm
++
++header-y += kvm.h
+diff -puN /dev/null include/asm-m68knommu/kvm.h
+--- /dev/null
++++ a/include/asm-m68knommu/kvm.h
+@@ -0,0 +1,7 @@
++#ifndef __LINUX_KVM_M68KNOMMU_H
++#define __LINUX_KVM_M68KNOMMU_H
++
++/* m68knommu does not support KVM */
++
++#endif
++
+diff -puN include/asm-mips/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-mips/Kbuild
+--- a/include/asm-mips/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-mips/Kbuild
+@@ -1,3 +1,3 @@
+ include include/asm-generic/Kbuild.asm
+ 
+-header-y += cachectl.h sgidefs.h sysmips.h
++header-y += cachectl.h sgidefs.h sysmips.h kvm.h
+diff -puN /dev/null include/asm-mips/kvm.h
+--- /dev/null
++++ a/include/asm-mips/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_MIPS_H
++#define __LINUX_KVM_MIPS_H
++
++/* mips does not support KVM */
++
++#endif
+diff -puN include/asm-mn10300/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-mn10300/Kbuild
+--- a/include/asm-mn10300/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-mn10300/Kbuild
+@@ -1 +1,3 @@
+ include include/asm-generic/Kbuild.asm
++
++header-y += kvm.h
+diff -puN /dev/null include/asm-mn10300/kvm.h
+--- /dev/null
++++ a/include/asm-mn10300/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_MN10300_H
++#define __LINUX_KVM_MN10300_H
++
++/* mn10300 does not support KVM */
++
++#endif
+diff -puN include/asm-parisc/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-parisc/Kbuild
+--- a/include/asm-parisc/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-parisc/Kbuild
+@@ -1,3 +1,5 @@
+ include include/asm-generic/Kbuild.asm
+ 
++header-y += kvm.h
++
+ unifdef-y += pdc.h
+diff -puN /dev/null include/asm-parisc/kvm.h
+--- /dev/null
++++ a/include/asm-parisc/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_PARISC_H
++#define __LINUX_KVM_PARISC_H
++
++/* parisc does not support KVM */
++
++#endif
+diff -puN include/asm-powerpc/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-powerpc/Kbuild
+--- a/include/asm-powerpc/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-powerpc/Kbuild
+@@ -8,6 +8,7 @@ header-y += siginfo.h
+ header-y += stat.h
+ header-y += errno.h
+ header-y += ipcbuf.h
++header-y += kvm.h
+ header-y += msgbuf.h
+ header-y += shmbuf.h
+ header-y += socket.h
+diff -puN /dev/null include/asm-powerpc/kvm.h
+--- /dev/null
++++ a/include/asm-powerpc/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_POWERPC_H
++#define __LINUX_KVM_POWERPC_H
++
++/* powerpc does not support KVM */
++
++#endif
+diff -puN include/asm-s390/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-s390/Kbuild
+--- a/include/asm-s390/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-s390/Kbuild
+@@ -1,6 +1,7 @@
+ include include/asm-generic/Kbuild.asm
+ 
+ header-y += dasd.h
++header-y += kvm.h
+ header-y += monwriter.h
+ header-y += qeth.h
+ header-y += tape390.h
+diff -puN /dev/null include/asm-s390/kvm.h
+--- /dev/null
++++ a/include/asm-s390/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_S390_H
++#define __LINUX_KVM_S390_H
++
++/* s390 does not support KVM */
++
++#endif
+diff -puN include/asm-sh/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-sh/Kbuild
+--- a/include/asm-sh/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-sh/Kbuild
+@@ -1,6 +1,7 @@
+ include include/asm-generic/Kbuild.asm
+ 
+ header-y += cpu-features.h
++header-y += kvm.h
+ 
+ unifdef-y += unistd_32.h
+ unifdef-y += unistd_64.h
+diff -puN /dev/null include/asm-sh/kvm.h
+--- /dev/null
++++ a/include/asm-sh/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_SH_H
++#define __LINUX_KVM_SH_H
++
++/* sh does not support KVM */
++
++#endif
+diff -puN include/asm-sparc/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-sparc/Kbuild
+--- a/include/asm-sparc/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-sparc/Kbuild
+@@ -4,6 +4,7 @@ header-y += apc.h
+ header-y += asi.h
+ header-y += bpp.h
+ header-y += jsflash.h
++header-y += kvm.h
+ header-y += openpromio.h
+ header-y += pconf.h
+ header-y += reg.h
+diff -puN /dev/null include/asm-sparc/kvm.h
+--- /dev/null
++++ a/include/asm-sparc/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_SPARC_H
++#define __LINUX_KVM_SPARC_H
++
++/* sparc does not support KVM */
++
++#endif
+diff -puN include/asm-sparc64/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-sparc64/Kbuild
+--- a/include/asm-sparc64/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-sparc64/Kbuild
+@@ -10,6 +10,7 @@ header-y += bbc.h
+ header-y += bpp.h
+ header-y += display7seg.h
+ header-y += envctrl.h
++header-y += kvm.h
+ header-y += openprom.h
+ header-y += openpromio.h
+ header-y += pconf.h
+diff -puN /dev/null include/asm-sparc64/kvm.h
+--- /dev/null
++++ a/include/asm-sparc64/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_SPARC64_H
++#define __LINUX_KVM_SPARC64_H
++
++/* sparc64 does not support KVM */
++
++#endif
+diff -puN include/asm-v850/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-v850/Kbuild
+--- a/include/asm-v850/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-v850/Kbuild
+@@ -1 +1,3 @@
+ include include/asm-generic/Kbuild.asm
++
++header-y += kvm.h
+diff -puN /dev/null include/asm-v850/kvm.h
+--- /dev/null
++++ a/include/asm-v850/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_V850_H
++#define __LINUX_KVM_V850_H
++
++/* v850 does not support KVM */
++
++#endif
+diff -puN include/asm-xtensa/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/asm-xtensa/Kbuild
+--- a/include/asm-xtensa/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/asm-xtensa/Kbuild
+@@ -1 +1,3 @@
+ include include/asm-generic/Kbuild.asm
++
++header-y += kvm.h
+diff -puN /dev/null include/asm-xtensa/kvm.h
+--- /dev/null
++++ a/include/asm-xtensa/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_XTENSA_H
++#define __LINUX_KVM_XTENSA_H
++
++/* xtensa does not support KVM */
++
++#endif
+diff -puN include/linux/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install include/linux/Kbuild
+--- a/include/linux/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-headers_install
++++ a/include/linux/Kbuild
+@@ -257,7 +257,7 @@ unifdef-y += kd.h
+ unifdef-y += kernelcapi.h
+ unifdef-y += kernel.h
+ unifdef-y += keyboard.h
+-unifdef-$(CONFIG_HAVE_KVM) += kvm.h
++unifdef-y += kvm.h
+ unifdef-y += llc.h
+ unifdef-y += loop.h
+ unifdef-y += lp.h
+_
+
+Patches currently in -mm which might be from borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org are
+
+origin.patch
+kvm-provide-kvmh-for-all-architecture-fixes-headers_install.patch
+git-kvm.patch
+
 --
 To unsubscribe from this list: send the line "unsubscribe linux-arch" in
 the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
