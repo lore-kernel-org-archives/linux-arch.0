@@ -1,42 +1,30 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] kvm: provide kvm.h for all architecture: fixes headers_install
-Date: Mon, 10 Mar 2008 12:23:02 +0100
-Message-ID: <200803101223.03712.arnd@arndb.de>
-References: <200803071326.06682.borntraeger@de.ibm.com> <1204933418.2495.14.camel@shinybook.infradead.org> <200803100913.46422.borntraeger@de.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753251AbYCJLYL@vger.kernel.org>
-In-Reply-To: <200803100913.46422.borntraeger@de.ibm.com>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Woodhouse <dwmw2@infradead.org>, Avi Kivity <avi@qumranet.com>, Sam Ravnborg <sam@ravnborg.org>, kvm-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Subject: Re: + kvm-provide-kvmh-for-all-architecture-fixes-headers_install.patch added to -mm tree
+Date: Mon, 10 Mar 2008 12:08:37 +0000
+Message-ID: <10680.1205150917@redhat.com>
+References: <200803100913.m2A9DJYM009298@imap1.linux-foundation.org>
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <200803100913.m2A9DJYM009298-AB4EexQrvXRQetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
+Cc: dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, mm-commits-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org, avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org, dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org
 
-On Monday 10 March 2008, Christian Borntraeger wrote:
-> =A0include/asm-alpha/Kbuild =A0 =A0 | =A0 =A01 +
-> =A0include/asm-alpha/kvm.h =A0 =A0 =A0| =A0 =A06 ++++++
-> =A0include/asm-arm/Kbuild =A0 =A0 =A0 | =A0 =A02 ++
-> =A0include/asm-arm/kvm.h =A0 =A0 =A0 =A0| =A0 =A06 ++++++
-> =A0include/asm-avr32/Kbuild =A0 =A0 | =A0 =A01 +
-> =A0include/asm-avr32/kvm.h =A0 =A0 =A0| =A0 =A06 ++++++
-> =A0include/asm-blackfin/Kbuild =A0| =A0 =A01 +
-> =A0include/asm-blackfin/kvm.h =A0 | =A0 =A06 ++++++
-> =A0include/asm-cris/Kbuild =A0 =A0 =A0| =A0 =A01 +
-> =A0include/asm-cris/kvm.h =A0 =A0 =A0 | =A0 =A06 ++++++
-> =A0include/asm-frv/Kbuild =A0 =A0 =A0 | =A0 =A01 +
-> =A0include/asm-frv/kvm.h =A0 =A0 =A0 =A0| =A0 =A06 ++++++
-> =A0include/asm-h8300/Kbuild =A0 =A0 | =A0 =A02 ++
-> =A0include/asm-h8300/kvm.h =A0 =A0 =A0| =A0 =A06 ++++++
-> =A0include/asm-ia64/Kbuild =A0 =A0 =A0| =A0 =A01 +
-> =A0include/asm-ia64/kvm.h =A0 =A0 =A0 | =A0 =A06 ++++++
-> =A0include/asm-m32r/Kbuild =A0 =A0 =A0| =A0 =A02 ++
-> =A0include/asm-m32r/kvm.h =A0 =A0 =A0 | =A0 =A06 ++++++
-> =A0include/asm-m68k/Kbuild =A0 =A0 =A0| =A0 =A01 +
-> =A0include/asm-m68k/kvm.h =A0 =A0 =A0 | =A0 =A06 ++++++
+akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org wrote:
 
-Instead of adding kvm.h to every single Kbuild file, you can
-just add it once, in include/asm-generic/Kbuild.asm.
+> diff -puN /dev/null include/asm-frv/kvm.h
+> --- /dev/null
+> +++ a/include/asm-frv/kvm.h
+> @@ -0,0 +1,6 @@
+> +#ifndef __LINUX_KVM_FRV_H
+> +#define __LINUX_KVM_FRV_H
+> +
+> +/* cris does not support KVM */
 
-	Arnd <><
+That may be so, but this is an FRV header file, not CRIS.
+
+David
+--
+To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
