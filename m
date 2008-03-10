@@ -1,51 +1,42 @@
-From: Tzachi Perelstein <tzachi-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
-Subject: Re: [PATCH 0/7][RFC] Move Marvell MBUS window handling into drivers
-Date: Mon, 10 Mar 2008 10:31:25 +0200
-Message-ID: <47D4F1DD.3090601@marvell.com>
-References: <20080307101913.GA11918@xi.wantstofly.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] kvm: provide kvm.h for all architecture: fixes headers_install
+Date: Mon, 10 Mar 2008 12:23:02 +0100
+Message-ID: <200803101223.03712.arnd@arndb.de>
+References: <200803071326.06682.borntraeger@de.ibm.com> <1204933418.2495.14.camel@shinybook.infradead.org> <200803100913.46422.borntraeger@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20080307101913.GA11918-mfnYTeDhw6uOVk/H6u/4e9i2O/JbrIOy@public.gmane.org>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Lennert Buytenhek <buytenh-OLH4Qvv75CYX/NnBR394Jw@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Saeed Bishara <saeed-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>, Dale Farnsworth <dale-1viX+2+OPRFcxvNqPlePQg@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Nicolas Pitre <nico-mo2vmkxb4K0@public.gmane.org>
+Content-Type: text/plain; charset=iso-8859-15
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753251AbYCJLYL@vger.kernel.org>
+In-Reply-To: <200803100913.46422.borntraeger@de.ibm.com>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, David Woodhouse <dwmw2@infradead.org>, Avi Kivity <avi@qumranet.com>, Sam Ravnborg <sam@ravnborg.org>, kvm-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Lennert Buytenhek wrote:
-> 
-> This patch set is an initial attempt at moving programming of the
-> MBUS register windows for the set of MBUS peripherals that we currently
-> have in-tree drivers for from platform code into drivers.
-> 
-> With these patches, info about DRAM target/attribute IDs is prepared
-> by the platform code as usual, but then passed into platform drivers
-> via platform device data, instead of programming that data into the
-> peripherals directly.
-> 
-> This avoids duplicating the window programming code across each
-> platform that wants to use these peripherals, and avoids exposing
-> internal peripheral register set details outside of their drivers.
-> 
-> Comments appreciated.
-> 
+On Monday 10 March 2008, Christian Borntraeger wrote:
+> =A0include/asm-alpha/Kbuild =A0 =A0 | =A0 =A01 +
+> =A0include/asm-alpha/kvm.h =A0 =A0 =A0| =A0 =A06 ++++++
+> =A0include/asm-arm/Kbuild =A0 =A0 =A0 | =A0 =A02 ++
+> =A0include/asm-arm/kvm.h =A0 =A0 =A0 =A0| =A0 =A06 ++++++
+> =A0include/asm-avr32/Kbuild =A0 =A0 | =A0 =A01 +
+> =A0include/asm-avr32/kvm.h =A0 =A0 =A0| =A0 =A06 ++++++
+> =A0include/asm-blackfin/Kbuild =A0| =A0 =A01 +
+> =A0include/asm-blackfin/kvm.h =A0 | =A0 =A06 ++++++
+> =A0include/asm-cris/Kbuild =A0 =A0 =A0| =A0 =A01 +
+> =A0include/asm-cris/kvm.h =A0 =A0 =A0 | =A0 =A06 ++++++
+> =A0include/asm-frv/Kbuild =A0 =A0 =A0 | =A0 =A01 +
+> =A0include/asm-frv/kvm.h =A0 =A0 =A0 =A0| =A0 =A06 ++++++
+> =A0include/asm-h8300/Kbuild =A0 =A0 | =A0 =A02 ++
+> =A0include/asm-h8300/kvm.h =A0 =A0 =A0| =A0 =A06 ++++++
+> =A0include/asm-ia64/Kbuild =A0 =A0 =A0| =A0 =A01 +
+> =A0include/asm-ia64/kvm.h =A0 =A0 =A0 | =A0 =A06 ++++++
+> =A0include/asm-m32r/Kbuild =A0 =A0 =A0| =A0 =A02 ++
+> =A0include/asm-m32r/kvm.h =A0 =A0 =A0 | =A0 =A06 ++++++
+> =A0include/asm-m68k/Kbuild =A0 =A0 =A0| =A0 =A01 +
+> =A0include/asm-m68k/kvm.h =A0 =A0 =A0 | =A0 =A06 ++++++
 
-At the beginning I had some hard time to agree with this concept 
-of leaving the mbus windows to be handled at drivers level instead 
-of the arch level, mainly because the mbus bits looks somehow 
-different on every orion/discovery chips. My feeling was that this 
-approach will either fail on some chips or will be very cumbersome.
+Instead of adding kvm.h to every single Kbuild file, you can
+just add it once, in include/asm-generic/Kbuild.asm.
 
-Well, I was wrong. Reviewing the patches against orion/discovery 
-specs shows that this patchset indeed handles all these bits 
-differences correctly, and in a very simple and elegant manner. 
-So I like it a lot ;) 
-
-For the whole set --
-Reviewed-by: Tzachi Perelstein <tzachi-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+	Arnd <><
