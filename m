@@ -1,747 +1,276 @@
-From: npiggin-l3A5Bk7waGM@public.gmane.org
-Subject: [patch 2/6] mm: introduce pte_special pte bit
-Date: Fri, 18 Jan 2008 15:56:51 +1100
-Message-ID: <20080118045755.516986000@suse.de>
-References: <20080118045649.334391000@suse.de>
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline; filename=mm-normal-pte-bit.patch
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Hugh Dickins <hugh-DTz5qymZ9yRBDgjK7y7TUQ@public.gmane.org>, Jared Hulbert <jaredeh-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Carsten Otte <cotte-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, Martin Schwidefsky <schwidefsky-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org
+From: Alexander van Heukelum <heukelum@mailshack.com>
+Subject: [RFC] non-x86: Optimize find_next_(zero_)bit for small constant-size bitmaps
+Date: Tue, 11 Mar 2008 16:22:39 +0100
+Message-ID: <20080311152239.GA15335@mailshack.com>
+References: <20080309200103.GA895@mailshack.com> <20080309201152.GB28454@elte.hu> <1205094704.6430.1241420859@webmail.messagingengine.com> <20080309205132.GA9021@elte.hu> <20080310231724.GA8370@mailshack.com> <20080311095631.GT25110@elte.hu> <20080311151719.GA15313@mailshack.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1758125AbYCKPXr@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20080311151719.GA15313@mailshack.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch <linux-arch@vger.kernel.org>
+Cc: Alexander van Heukelum <heukelum@fastmail.fm>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <andi@firstfloor.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, LKML <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-s390 for one, cannot implement VM_MIXEDMAP with pfn_valid, due to their
-memory model (which is more dynamic than most). Instead, they had proposed
-to implement it with an additional path through vm_normal_page(), using a
-bit in the pte to determine whether or not the page should be refcounted:
+non-x86: Optimize small bitmap searches for the other archs.
 
-vm_normal_page()
-{
-	...
-        if (unlikely(vma->vm_flags & (VM_PFNMAP|VM_MIXEDMAP))) {
-                if (vma->vm_flags & VM_MIXEDMAP) {
-#ifdef s390
-			if (!mixedmap_refcount_pte(pte))
-				return NULL;
-#else
-                        if (!pfn_valid(pfn))
-                                return NULL;
-#endif
-                        goto out;
-                }
-	...
-}
+Concerns archs that have their own implementation of find_next_bit
+and find_next_zero_bit.
 
-This is fine, however if we are allowed to use a bit in the pte to
-determine refcountedness, we can use that to _completely_ replace all the
-vma based schemes. So instead of adding more cases to the already complex
-vma-based scheme, we can have a clearly seperate and simple pte-based scheme
-(and get slightly better code generation in the process):
+For archs that define CONFIG_GENERIC_FIND_NEXT_BIT, a patch is
+submitted to be included in Ingo's x86-testing tree. It moves
+an optimization for searching small, constant-sized bitmaps
+from x86_64-specific to generic code. It works by creating
+a new __always_inline-marked function in linux/bitops.h, and
+renaming find_next_(zero_)bit to __find_next_(zero_)bit in
+the generic code. The new code is currently guarded by
+CONFIG_GENERIC_FIND_NEXT_BIT, so other archs are expected to
+work as before.
 
-vm_normal_page()
-{
-#ifdef s390
-	if (!mixedmap_refcount_pte(pte))
-		return NULL;
-	return pte_page(pte);
-#else
-	...
-#endif
-}
+To enable the optimization globally, all other archs need to
+implement __find_next_bit and __find_next_zero_bit either
+by exporting these symbols, or by implementing them as inline
+functions in their asm/bitops.h.
 
-And finally, we may rather make this concept usable by any architecture
-rather than making it s390 only, so implement a new type of pte state
-for this. Unfortunately the old vma based code must stay, because some
-architectures may not be able to spare pte bits. This makes vm_normal_page
-a little bit more ugly than we would like, but the 2 cases are clearly
-seperate.
+It would also be nice if every implementation would have the
+same declaration:
 
-So introduce a pte_special pte state, and use it in mm/memory.c. It is
-currently a noop for all architectures, so this doesn't actually result
-in any compiled code changes to mm/memory.o.
+	unsigned long __find_next_(zero_)bit(unsigned long *,
+			unsigned long, unsigned long);
 
-Signed-off-by: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
-Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Hugh Dickins <hugh-DTz5qymZ9yRBDgjK7y7TUQ@public.gmane.org>
-Cc: Jared Hulbert <jaredeh-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Carsten Otte <cotte-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>
-Cc: Martin Schwidefsky <schwidefsky-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>
-Cc: Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org
----
- include/asm-alpha/pgtable.h         |    2 
- include/asm-avr32/pgtable.h         |    8 ++
- include/asm-cris/pgtable.h          |    2 
- include/asm-frv/pgtable.h           |    2 
- include/asm-ia64/pgtable.h          |    3 +
- include/asm-m32r/pgtable.h          |   10 +++
- include/asm-m68k/motorola_pgtable.h |    2 
- include/asm-m68k/sun3_pgtable.h     |    2 
- include/asm-mips/pgtable.h          |    2 
- include/asm-parisc/pgtable.h        |    2 
- include/asm-powerpc/pgtable-ppc32.h |    3 +
- include/asm-powerpc/pgtable-ppc64.h |    3 +
- include/asm-ppc/pgtable.h           |    3 +
- include/asm-s390/pgtable.h          |   10 +++
- include/asm-sh64/pgtable.h          |    2 
- include/asm-sparc/pgtable.h         |    7 ++
- include/asm-sparc64/pgtable.h       |   10 +++
- include/asm-um/pgtable.h            |   10 +++
- include/asm-x86/pgtable_32.h        |    2 
- include/asm-x86/pgtable_64.h        |    2 
- include/asm-xtensa/pgtable.h        |    4 +
- include/linux/mm.h                  |    3 -
- mm/memory.c                         |   98 +++++++++++++++++++-----------------
- 23 files changed, 147 insertions(+), 45 deletions(-)
+I added a totally untested patch for reference.
 
-Index: linux-2.6/include/asm-um/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-um/pgtable.h
-+++ linux-2.6/include/asm-um/pgtable.h
-@@ -220,6 +220,11 @@ static inline int pte_newprot(pte_t pte)
- 	return(pte_present(pte) && (pte_get_bits(pte, _PAGE_NEWPROT)));
- }
- 
-+static inline int pte_special(pte_t pte)
-+{
-+	return 0;
-+}
-+
- /*
-  * =================================
-  * Flags setting section.
-@@ -288,6 +293,11 @@ static inline pte_t pte_mknewpage(pte_t 
- 	return(pte);
- }
- 
-+static inline pte_t pte_mkspecial(pte_t pte)
-+{
-+	return(pte);
-+}
-+
- static inline void set_pte(pte_t *pteptr, pte_t pteval)
- {
- 	pte_copy(*pteptr, pteval);
-Index: linux-2.6/include/asm-x86/pgtable_32.h
-===================================================================
---- linux-2.6.orig/include/asm-x86/pgtable_32.h
-+++ linux-2.6/include/asm-x86/pgtable_32.h
-@@ -219,6 +219,7 @@ static inline int pte_dirty(pte_t pte)		
- static inline int pte_young(pte_t pte)		{ return (pte).pte_low & _PAGE_ACCESSED; }
- static inline int pte_write(pte_t pte)		{ return (pte).pte_low & _PAGE_RW; }
- static inline int pte_huge(pte_t pte)		{ return (pte).pte_low & _PAGE_PSE; }
-+static inline int pte_special(pte_t pte)	{ return 0; }
+Did I mis an arch?
+Does the assembly still match the (changed) prototype?
+Can we get concensus on doing the optimization in generic code?
+
+Greetings,
+	Alexander
+
+ arch/arm/lib/findbit.S          |    6 ++++--
+ arch/avr32/kernel/avr32_ksyms.c |    4 ++--
+ arch/avr32/lib/findbit.S        |    4 ++--
+ include/asm-arm/bitops.h        |   20 ++++++++++++--------
+ include/asm-m68k/bitops.h       |    8 ++++----
+ include/asm-powerpc/bitops.h    |    4 ----
+ include/asm-s390/bitops.h       |   12 ++++++------
+ include/linux/bitops.h          |    2 --
+ 8 files changed, 30 insertions(+), 30 deletions(-)
+
+diff --git a/arch/arm/lib/findbit.S b/arch/arm/lib/findbit.S
+index a5ca024..5c92967 100644
+--- a/arch/arm/lib/findbit.S
++++ b/arch/arm/lib/findbit.S
+@@ -36,7 +36,8 @@ ENTRY(_find_first_zero_bit_le)
  
  /*
-  * The following only works if pte_present() is not true.
-@@ -232,6 +233,7 @@ static inline pte_t pte_mkdirty(pte_t pt
- static inline pte_t pte_mkyoung(pte_t pte)	{ (pte).pte_low |= _PAGE_ACCESSED; return pte; }
- static inline pte_t pte_mkwrite(pte_t pte)	{ (pte).pte_low |= _PAGE_RW; return pte; }
- static inline pte_t pte_mkhuge(pte_t pte)	{ (pte).pte_low |= _PAGE_PSE; return pte; }
-+static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
- 
- #ifdef CONFIG_X86_PAE
- # include <asm/pgtable-3level.h>
-Index: linux-2.6/include/asm-x86/pgtable_64.h
-===================================================================
---- linux-2.6.orig/include/asm-x86/pgtable_64.h
-+++ linux-2.6/include/asm-x86/pgtable_64.h
-@@ -272,6 +272,7 @@ static inline int pte_young(pte_t pte)		
- static inline int pte_write(pte_t pte)		{ return pte_val(pte) & _PAGE_RW; }
- static inline int pte_file(pte_t pte)		{ return pte_val(pte) & _PAGE_FILE; }
- static inline int pte_huge(pte_t pte)		{ return pte_val(pte) & _PAGE_PSE; }
-+static inline int pte_special(pte_t pte)	{ return 0; }
- 
- static inline pte_t pte_mkclean(pte_t pte)	{ set_pte(&pte, __pte(pte_val(pte) & ~_PAGE_DIRTY)); return pte; }
- static inline pte_t pte_mkold(pte_t pte)	{ set_pte(&pte, __pte(pte_val(pte) & ~_PAGE_ACCESSED)); return pte; }
-@@ -282,6 +283,7 @@ static inline pte_t pte_mkyoung(pte_t pt
- static inline pte_t pte_mkwrite(pte_t pte)	{ set_pte(&pte, __pte(pte_val(pte) | _PAGE_RW)); return pte; }
- static inline pte_t pte_mkhuge(pte_t pte)	{ set_pte(&pte, __pte(pte_val(pte) | _PAGE_PSE)); return pte; }
- static inline pte_t pte_clrhuge(pte_t pte)	{ set_pte(&pte, __pte(pte_val(pte) & ~_PAGE_PSE)); return pte; }
-+static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
- 
- struct vm_area_struct;
- 
-Index: linux-2.6/include/linux/mm.h
-===================================================================
---- linux-2.6.orig/include/linux/mm.h
-+++ linux-2.6/include/linux/mm.h
-@@ -699,7 +699,8 @@ struct zap_details {
- 	unsigned long truncate_count;		/* Compare vm_truncate_count */
- };
- 
--struct page *vm_normal_page(struct vm_area_struct *, unsigned long, pte_t);
-+struct page *vm_normal_page(struct vm_area_struct *vma, unsigned long addr, pte_t pte);
-+
- unsigned long zap_page_range(struct vm_area_struct *vma, unsigned long address,
- 		unsigned long size, struct zap_details *);
- unsigned long unmap_vmas(struct mmu_gather **tlb,
-Index: linux-2.6/mm/memory.c
-===================================================================
---- linux-2.6.orig/mm/memory.c
-+++ linux-2.6/mm/memory.c
-@@ -361,34 +361,38 @@ static inline int is_cow_mapping(unsigne
- }
- 
- /*
-- * This function gets the "struct page" associated with a pte or returns
-- * NULL if no "struct page" is associated with the pte.
-+ * vm_normal_page -- This function gets the "struct page" associated with a pte.
-  *
-- * A raw VM_PFNMAP mapping (ie. one that is not COWed) may not have any "struct
-- * page" backing, and even if they do, they are not refcounted. COWed pages of
-- * a VM_PFNMAP do always have a struct page, and they are normally refcounted
-- * (they are _normal_ pages).
-- *
-- * So a raw PFNMAP mapping will have each page table entry just pointing
-- * to a page frame number, and as far as the VM layer is concerned, those do
-- * not have pages associated with them - even if the PFN might point to memory
-- * that otherwise is perfectly fine and has a "struct page".
-+ * "Special" mappings do not wish to be associated with a "struct page" (either
-+ * it doesn't exist, or it exists but they don't want to touch it). In this
-+ * case, NULL is returned here. "Normal" mappings do have a struct page.
-+ *
-+ * There are 2 broad cases. Firstly, an architecture may define a pte_special()
-+ * pte bit, in which case this function is trivial. Secondly, an architecture
-+ * may not have a spare pte bit, which requires a more complicated scheme,
-+ * described below.
-+ *
-+ * A raw VM_PFNMAP mapping (ie. one that is not COWed) is always considered a
-+ * special mapping (even if there are underlying and valid "struct pages").
-+ * COWed pages of a VM_PFNMAP are always normal.
-  *
-  * The way we recognize COWed pages within VM_PFNMAP mappings is through the
-  * rules set up by "remap_pfn_range()": the vma will have the VM_PFNMAP bit
-- * set, and the vm_pgoff will point to the first PFN mapped: thus every
-- * page that is a raw mapping will always honor the rule
-+ * set, and the vm_pgoff will point to the first PFN mapped: thus every special
-+ * mapping will always honor the rule
-  *
-  *	pfn_of_page == vma->vm_pgoff + ((addr - vma->vm_start) >> PAGE_SHIFT)
-  *
-- * A call to vm_normal_page() will return NULL for such a page.
-+ * And for normal mappings this is false.
-  *
-- * If the page doesn't follow the "remap_pfn_range()" rule in a VM_PFNMAP
-- * then the page has been COW'ed.  A COW'ed page _does_ have a "struct page"
-- * associated with it even if it is in a VM_PFNMAP range.  Calling
-- * vm_normal_page() on such a page will therefore return the "struct page".
-+ * This restricts such mappings to be a linear translation from virtual address
-+ * to pfn. To get around this restriction, we allow arbitrary mappings so long
-+ * as the vma is not a COW mapping; in that case, we know that all ptes are
-+ * special (because none can have been COWed).
-  *
-  *
-+ * In order to support COW of arbitrary special mappings, we have VM_MIXEDMAP.
-+ *
-  * VM_MIXEDMAP mappings can likewise contain memory with or without "struct
-  * page" backing, however the difference is that _all_ pages with a struct
-  * page (that is, those where pfn_valid is true) are refcounted and considered
-@@ -397,16 +401,28 @@ static inline int is_cow_mapping(unsigne
-  * advantage is that we don't have to follow the strict linearity rule of
-  * PFNMAP mappings in order to support COWable mappings.
-  *
-- * A call to vm_normal_page() with a VM_MIXEDMAP mapping will return the
-- * associated "struct page" or NULL for memory not backed by a "struct page".
-- *
-- *
-- * All other mappings should have a valid struct page, which will be
-- * returned by a call to vm_normal_page().
+  * Purpose  : Find next 'zero' bit
+- * Prototype: int find_next_zero_bit(void *addr, unsigned int maxbit, int offset)
++ * Prototype: unsigned long find_next_zero_bit(unsigned long *addr,
++ *			unsigned long maxbit, unsigned long offset);
   */
-+#ifdef __HAVE_ARCH_PTE_SPECIAL
-+# define HAVE_PTE_SPECIAL 1
-+#else
-+# define HAVE_PTE_SPECIAL 0
-+#endif
- struct page *vm_normal_page(struct vm_area_struct *vma, unsigned long addr, pte_t pte)
- {
--	unsigned long pfn = pte_pfn(pte);
-+	unsigned long pfn;
-+
-+	if (HAVE_PTE_SPECIAL) {
-+		if (likely(!pte_special(pte))) {
-+			VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
-+			return pte_page(pte);
-+		}
-+		VM_BUG_ON(!(vma->vm_flags & (VM_PFNMAP | VM_MIXEDMAP)));
-+		return NULL;
-+	}
-+
-+	/* !HAVE_PTE_SPECIAL case follows: */
-+
-+	pfn = pte_pfn(pte);
+ ENTRY(_find_next_zero_bit_le)
+ 		teq	r1, #0
+@@ -70,7 +71,8 @@ ENTRY(_find_first_bit_le)
  
- 	if (unlikely(vma->vm_flags & (VM_PFNMAP|VM_MIXEDMAP))) {
- 		if (vma->vm_flags & VM_MIXEDMAP) {
-@@ -414,7 +430,8 @@ struct page *vm_normal_page(struct vm_ar
- 				return NULL;
- 			goto out;
- 		} else {
--			unsigned long off = (addr-vma->vm_start) >> PAGE_SHIFT;
-+			unsigned long off;
-+			off = (addr - vma->vm_start) >> PAGE_SHIFT;
- 			if (pfn == vma->vm_pgoff + off)
- 				return NULL;
- 			if (!is_cow_mapping(vma->vm_flags))
-@@ -422,25 +439,12 @@ struct page *vm_normal_page(struct vm_ar
- 		}
- 	}
+ /*
+  * Purpose  : Find next 'one' bit
+- * Prototype: int find_next_zero_bit(void *addr, unsigned int maxbit, int offset)
++ * Prototype: unsigned long find_next_zero_bit(unsigned long *addr,
++ *			unsigned long maxbit, unsigned long offset);
+  */
+ ENTRY(_find_next_bit_le)
+ 		teq	r1, #0
+diff --git a/arch/avr32/kernel/avr32_ksyms.c b/arch/avr32/kernel/avr32_ksyms.c
+index 80f55f8..c228ed1 100644
+--- a/arch/avr32/kernel/avr32_ksyms.c
++++ b/arch/avr32/kernel/avr32_ksyms.c
+@@ -51,9 +51,9 @@ EXPORT_SYMBOL(__const_udelay);
  
--#ifdef CONFIG_DEBUG_VM
--	/*
--	 * Add some anal sanity checks for now. Eventually,
--	 * we should just do "return pfn_to_page(pfn)", but
--	 * in the meantime we check that we get a valid pfn,
--	 * and that the resulting page looks ok.
--	 */
--	if (unlikely(!pfn_valid(pfn))) {
--		print_bad_pte(vma, pte, addr);
--		return NULL;
--	}
--#endif
-+	VM_BUG_ON(!pfn_valid(pfn));
+ /* Bit operations (lib/findbit.S) */
+ EXPORT_SYMBOL(find_first_zero_bit);
+-EXPORT_SYMBOL(find_next_zero_bit);
++EXPORT_SYMBOL(__find_next_zero_bit);
+ EXPORT_SYMBOL(find_first_bit);
+-EXPORT_SYMBOL(find_next_bit);
++EXPORT_SYMBOL(__find_next_bit);
+ EXPORT_SYMBOL(generic_find_next_zero_le_bit);
  
- 	/*
--	 * NOTE! We still have PageReserved() pages in the page 
--	 * tables. 
-+	 * NOTE! We still have PageReserved() pages in the page tables.
- 	 *
--	 * The PAGE_ZERO() pages and various VDSO mappings can
--	 * cause them to exist.
-+	 * eg. VDSO mappings can cause them to exist.
+ /* I/O primitives (lib/io-*.S) */
+diff --git a/arch/avr32/lib/findbit.S b/arch/avr32/lib/findbit.S
+index c6b91de..729deab 100644
+--- a/arch/avr32/lib/findbit.S
++++ b/arch/avr32/lib/findbit.S
+@@ -29,7 +29,7 @@ ENTRY(find_first_zero_bit)
+ 	 *				    unsigned long size,
+ 	 *				    unsigned long offset)
  	 */
- out:
- 	return pfn_to_page(pfn);
-@@ -1244,6 +1248,12 @@ int vm_insert_pfn(struct vm_area_struct 
- 	pte_t *pte, entry;
- 	spinlock_t *ptl;
+-ENTRY(find_next_zero_bit)
++ENTRY(__find_next_zero_bit)
+ 	lsr	r8, r10, 5
+ 	sub	r9, r11, r10
+ 	retle	r11
+@@ -93,7 +93,7 @@ ENTRY(find_first_bit)
+ 	 *			       unsigned long size,
+ 	 *			       unsigned long offset)
+ 	 */
+-ENTRY(find_next_bit)
++ENTRY(__find_next_bit)
+ 	lsr	r8, r10, 5
+ 	sub	r9, r11, r10
+ 	retle	r11
+diff --git a/include/asm-arm/bitops.h b/include/asm-arm/bitops.h
+index 5c60bfc..08b3163 100644
+--- a/include/asm-arm/bitops.h
++++ b/include/asm-arm/bitops.h
+@@ -158,9 +158,11 @@ extern int _test_and_set_bit_le(int nr, volatile unsigned long * p);
+ extern int _test_and_clear_bit_le(int nr, volatile unsigned long * p);
+ extern int _test_and_change_bit_le(int nr, volatile unsigned long * p);
+ extern int _find_first_zero_bit_le(const void * p, unsigned size);
+-extern int _find_next_zero_bit_le(const void * p, int size, int offset);
++extern unsigned long _find_next_zero_bit_le(const unsigned long * p,
++		unsigned long size, unsigned long offset);
+ extern int _find_first_bit_le(const unsigned long *p, unsigned size);
+-extern int _find_next_bit_le(const unsigned long *p, int size, int offset);
++extern unsigned long _find_next_bit_le(const unsigned long *p,
++		unsigned long size, unsigned long offset);
  
-+	/*
-+	 * Technically, architectures with pte_special can avoid all these
-+	 * restrictions (same for remap_pfn_range).  However we would like
-+	 * consistency in testing and feature parity among all, so we should
-+	 * try to keep these invariants in place for everybody.
-+	 */
- 	BUG_ON(!(vma->vm_flags & (VM_PFNMAP|VM_MIXEDMAP)));
- 	BUG_ON((vma->vm_flags & (VM_PFNMAP|VM_MIXEDMAP)) ==
- 						(VM_PFNMAP|VM_MIXEDMAP));
-@@ -1259,7 +1269,7 @@ int vm_insert_pfn(struct vm_area_struct 
- 		goto out_unlock;
+ /*
+  * Big endian assembly bitops.  nr = 0 -> byte 3 bit 0.
+@@ -172,9 +174,11 @@ extern int _test_and_set_bit_be(int nr, volatile unsigned long * p);
+ extern int _test_and_clear_bit_be(int nr, volatile unsigned long * p);
+ extern int _test_and_change_bit_be(int nr, volatile unsigned long * p);
+ extern int _find_first_zero_bit_be(const void * p, unsigned size);
+-extern int _find_next_zero_bit_be(const void * p, int size, int offset);
++extern unsigned long _find_next_zero_bit_be(const unsigned long * p,
++		unsigned long size, unsigned long offset);
+ extern int _find_first_bit_be(const unsigned long *p, unsigned size);
+-extern int _find_next_bit_be(const unsigned long *p, int size, int offset);
++extern unsigned long _find_next_bit_be(const unsigned long *p,
++		unsigned long size, unsigned long offset);
  
- 	/* Ok, finally just insert the thing.. */
--	entry = pfn_pte(pfn, vma->vm_page_prot);
-+	entry = pte_mkspecial(pfn_pte(pfn, vma->vm_page_prot));
- 	set_pte_at(mm, addr, pte, entry);
- 	update_mmu_cache(vma, addr, entry);
+ #ifndef CONFIG_SMP
+ /*
+@@ -208,9 +212,9 @@ extern int _find_next_bit_be(const unsigned long *p, int size, int offset);
+ #define test_and_clear_bit(nr,p)	ATOMIC_BITOP_LE(test_and_clear_bit,nr,p)
+ #define test_and_change_bit(nr,p)	ATOMIC_BITOP_LE(test_and_change_bit,nr,p)
+ #define find_first_zero_bit(p,sz)	_find_first_zero_bit_le(p,sz)
+-#define find_next_zero_bit(p,sz,off)	_find_next_zero_bit_le(p,sz,off)
++#define __find_next_zero_bit(p,sz,off)	_find_next_zero_bit_le(p,sz,off)
+ #define find_first_bit(p,sz)		_find_first_bit_le(p,sz)
+-#define find_next_bit(p,sz,off)		_find_next_bit_le(p,sz,off)
++#define __find_next_bit(p,sz,off)	_find_next_bit_le(p,sz,off)
  
-@@ -1290,7 +1300,7 @@ static int remap_pte_range(struct mm_str
- 	arch_enter_lazy_mmu_mode();
- 	do {
- 		BUG_ON(!pte_none(*pte));
--		set_pte_at(mm, addr, pte, pfn_pte(pfn, prot));
-+		set_pte_at(mm, addr, pte, pte_mkspecial(pfn_pte(pfn, prot)));
- 		pfn++;
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
- 	arch_leave_lazy_mmu_mode();
-Index: linux-2.6/include/asm-alpha/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-alpha/pgtable.h
-+++ linux-2.6/include/asm-alpha/pgtable.h
-@@ -268,6 +268,7 @@ extern inline int pte_write(pte_t pte)		
- extern inline int pte_dirty(pte_t pte)		{ return pte_val(pte) & _PAGE_DIRTY; }
- extern inline int pte_young(pte_t pte)		{ return pte_val(pte) & _PAGE_ACCESSED; }
- extern inline int pte_file(pte_t pte)		{ return pte_val(pte) & _PAGE_FILE; }
-+extern inline int pte_special(pte_t pte)	{ return 0; }
+ #define WORD_BITOFF_TO_LE(x)		((x))
  
- extern inline pte_t pte_wrprotect(pte_t pte)	{ pte_val(pte) |= _PAGE_FOW; return pte; }
- extern inline pte_t pte_mkclean(pte_t pte)	{ pte_val(pte) &= ~(__DIRTY_BITS); return pte; }
-@@ -275,6 +276,7 @@ extern inline pte_t pte_mkold(pte_t pte)
- extern inline pte_t pte_mkwrite(pte_t pte)	{ pte_val(pte) &= ~_PAGE_FOW; return pte; }
- extern inline pte_t pte_mkdirty(pte_t pte)	{ pte_val(pte) |= __DIRTY_BITS; return pte; }
- extern inline pte_t pte_mkyoung(pte_t pte)	{ pte_val(pte) |= __ACCESS_BITS; return pte; }
-+extern inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
+@@ -226,9 +230,9 @@ extern int _find_next_bit_be(const unsigned long *p, int size, int offset);
+ #define test_and_clear_bit(nr,p)	ATOMIC_BITOP_BE(test_and_clear_bit,nr,p)
+ #define test_and_change_bit(nr,p)	ATOMIC_BITOP_BE(test_and_change_bit,nr,p)
+ #define find_first_zero_bit(p,sz)	_find_first_zero_bit_be(p,sz)
+-#define find_next_zero_bit(p,sz,off)	_find_next_zero_bit_be(p,sz,off)
++#define __find_next_zero_bit(p,sz,off)	_find_next_zero_bit_be(p,sz,off)
+ #define find_first_bit(p,sz)		_find_first_bit_be(p,sz)
+-#define find_next_bit(p,sz,off)		_find_next_bit_be(p,sz,off)
++#define __find_next_bit(p,sz,off)	_find_next_bit_be(p,sz,off)
  
- #define PAGE_DIR_OFFSET(tsk,address) pgd_offset((tsk),(address))
+ #define WORD_BITOFF_TO_LE(x)		((x) ^ 0x18)
  
-Index: linux-2.6/include/asm-avr32/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-avr32/pgtable.h
-+++ linux-2.6/include/asm-avr32/pgtable.h
-@@ -211,6 +211,10 @@ static inline int pte_young(pte_t pte)
+diff --git a/include/asm-m68k/bitops.h b/include/asm-m68k/bitops.h
+index 83d1f28..c320c7a 100644
+--- a/include/asm-m68k/bitops.h
++++ b/include/asm-m68k/bitops.h
+@@ -199,8 +199,8 @@ out:
+ 	return ((long)p - (long)vaddr - 4) * 8 + res;
+ }
+ 
+-static inline int find_next_zero_bit(const unsigned long *vaddr, int size,
+-				     int offset)
++static inline unsigned long __find_next_zero_bit(const unsigned long *vaddr,
++		unsigned long size, unsigned long offset)
  {
- 	return pte_val(pte) & _PAGE_ACCESSED;
+ 	const unsigned long *p = vaddr + (offset >> 5);
+ 	int bit = offset & 31UL, res;
+@@ -246,8 +246,8 @@ out:
+ 	return ((long)p - (long)vaddr - 4) * 8 + res;
  }
-+static inline int pte_special(pte_t pte)
-+{
-+	return 0;
-+}
  
- /*
-  * The following only work if pte_present() is not true.
-@@ -251,6 +255,10 @@ static inline pte_t pte_mkyoung(pte_t pt
- 	set_pte(&pte, __pte(pte_val(pte) | _PAGE_ACCESSED));
- 	return pte;
- }
-+static inline pte_t pte_mkspecial(pte_t pte)
-+{
-+	return pte;
-+}
- 
- #define pmd_none(x)	(!pmd_val(x))
- #define pmd_present(x)	(pmd_val(x) & _PAGE_PRESENT)
-Index: linux-2.6/include/asm-cris/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-cris/pgtable.h
-+++ linux-2.6/include/asm-cris/pgtable.h
-@@ -115,6 +115,7 @@ static inline int pte_write(pte_t pte)  
- static inline int pte_dirty(pte_t pte)          { return pte_val(pte) & _PAGE_MODIFIED; }
- static inline int pte_young(pte_t pte)          { return pte_val(pte) & _PAGE_ACCESSED; }
- static inline int pte_file(pte_t pte)           { return pte_val(pte) & _PAGE_FILE; }
-+static inline int pte_special(pte_t pte)	{ return 0; }
- 
- static inline pte_t pte_wrprotect(pte_t pte)
+-static inline int find_next_bit(const unsigned long *vaddr, int size,
+-				int offset)
++static inline unsigned long __find_next_bit(const unsigned long *vaddr,
++		unsigned long size, unsigned long offset)
  {
-@@ -162,6 +163,7 @@ static inline pte_t pte_mkyoung(pte_t pt
-         }
-         return pte;
- }
-+static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
+ 	const unsigned long *p = vaddr + (offset >> 5);
+ 	int bit = offset & 31UL, res;
+diff --git a/include/asm-powerpc/bitops.h b/include/asm-powerpc/bitops.h
+index 220d9a7..8ae6667 100644
+--- a/include/asm-powerpc/bitops.h
++++ b/include/asm-powerpc/bitops.h
+@@ -317,8 +317,6 @@ static __inline__ int fls(unsigned int x)
+ #include <asm-generic/bitops/hweight.h>
  
- /*
-  * Conversion functions: convert a page and protection to a page entry,
-Index: linux-2.6/include/asm-frv/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-frv/pgtable.h
-+++ linux-2.6/include/asm-frv/pgtable.h
-@@ -380,6 +380,7 @@ static inline pmd_t *pmd_offset(pud_t *d
- static inline int pte_dirty(pte_t pte)		{ return (pte).pte & _PAGE_DIRTY; }
- static inline int pte_young(pte_t pte)		{ return (pte).pte & _PAGE_ACCESSED; }
- static inline int pte_write(pte_t pte)		{ return !((pte).pte & _PAGE_WP); }
-+static inline int pte_special(pte_t pte)	{ return 0; }
- 
- static inline pte_t pte_mkclean(pte_t pte)	{ (pte).pte &= ~_PAGE_DIRTY; return pte; }
- static inline pte_t pte_mkold(pte_t pte)	{ (pte).pte &= ~_PAGE_ACCESSED; return pte; }
-@@ -387,6 +388,7 @@ static inline pte_t pte_wrprotect(pte_t 
- static inline pte_t pte_mkdirty(pte_t pte)	{ (pte).pte |= _PAGE_DIRTY; return pte; }
- static inline pte_t pte_mkyoung(pte_t pte)	{ (pte).pte |= _PAGE_ACCESSED; return pte; }
- static inline pte_t pte_mkwrite(pte_t pte)	{ (pte).pte &= ~_PAGE_WP; return pte; }
-+static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
- 
- static inline int ptep_test_and_clear_young(struct vm_area_struct *vma, unsigned long addr, pte_t *ptep)
- {
-Index: linux-2.6/include/asm-ia64/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-ia64/pgtable.h
-+++ linux-2.6/include/asm-ia64/pgtable.h
-@@ -302,6 +302,8 @@ ia64_phys_addr_valid (unsigned long addr
- #define pte_dirty(pte)		((pte_val(pte) & _PAGE_D) != 0)
- #define pte_young(pte)		((pte_val(pte) & _PAGE_A) != 0)
- #define pte_file(pte)		((pte_val(pte) & _PAGE_FILE) != 0)
-+#define pte_special(pte)	0
-+
- /*
-  * Note: we convert AR_RWX to AR_RX and AR_RW to AR_R by clearing the 2nd bit in the
-  * access rights:
-@@ -313,6 +315,7 @@ ia64_phys_addr_valid (unsigned long addr
- #define pte_mkclean(pte)	(__pte(pte_val(pte) & ~_PAGE_D))
- #define pte_mkdirty(pte)	(__pte(pte_val(pte) | _PAGE_D))
- #define pte_mkhuge(pte)		(__pte(pte_val(pte)))
-+#define pte_mkspecial(pte)	(pte)
- 
- /*
-  * Because ia64's Icache and Dcache is not coherent (on a cpu), we need to
-Index: linux-2.6/include/asm-m32r/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-m32r/pgtable.h
-+++ linux-2.6/include/asm-m32r/pgtable.h
-@@ -214,6 +214,11 @@ static inline int pte_file(pte_t pte)
- 	return pte_val(pte) & _PAGE_FILE;
- }
- 
-+static inline int pte_special(pte_t pte)
-+{
-+	return 0;
-+}
-+
- static inline pte_t pte_mkclean(pte_t pte)
- {
- 	pte_val(pte) &= ~_PAGE_DIRTY;
-@@ -250,6 +255,11 @@ static inline pte_t pte_mkwrite(pte_t pt
- 	return pte;
- }
- 
-+static inline pte_t pte_mkspecial(pte_t pte)
-+{
-+	return pte;
-+}
-+
- static inline  int ptep_test_and_clear_young(struct vm_area_struct *vma, unsigned long addr, pte_t *ptep)
- {
- 	return test_and_clear_bit(_PAGE_BIT_ACCESSED, ptep);
-Index: linux-2.6/include/asm-m68k/motorola_pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-m68k/motorola_pgtable.h
-+++ linux-2.6/include/asm-m68k/motorola_pgtable.h
-@@ -168,6 +168,7 @@ static inline int pte_write(pte_t pte)		
- static inline int pte_dirty(pte_t pte)		{ return pte_val(pte) & _PAGE_DIRTY; }
- static inline int pte_young(pte_t pte)		{ return pte_val(pte) & _PAGE_ACCESSED; }
- static inline int pte_file(pte_t pte)		{ return pte_val(pte) & _PAGE_FILE; }
-+static inline int pte_special(pte_t pte)	{ return 0; }
- 
- static inline pte_t pte_wrprotect(pte_t pte)	{ pte_val(pte) |= _PAGE_RONLY; return pte; }
- static inline pte_t pte_mkclean(pte_t pte)	{ pte_val(pte) &= ~_PAGE_DIRTY; return pte; }
-@@ -185,6 +186,7 @@ static inline pte_t pte_mkcache(pte_t pt
- 	pte_val(pte) = (pte_val(pte) & _CACHEMASK040) | m68k_supervisor_cachemode;
- 	return pte;
- }
-+static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
- 
- #define PAGE_DIR_OFFSET(tsk,address) pgd_offset((tsk),(address))
- 
-Index: linux-2.6/include/asm-m68k/sun3_pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-m68k/sun3_pgtable.h
-+++ linux-2.6/include/asm-m68k/sun3_pgtable.h
-@@ -169,6 +169,7 @@ static inline int pte_write(pte_t pte)		
- static inline int pte_dirty(pte_t pte)		{ return pte_val(pte) & SUN3_PAGE_MODIFIED; }
- static inline int pte_young(pte_t pte)		{ return pte_val(pte) & SUN3_PAGE_ACCESSED; }
- static inline int pte_file(pte_t pte)		{ return pte_val(pte) & SUN3_PAGE_ACCESSED; }
-+static inline int pte_special(pte_t pte)	{ return 0; }
- 
- static inline pte_t pte_wrprotect(pte_t pte)	{ pte_val(pte) &= ~SUN3_PAGE_WRITEABLE; return pte; }
- static inline pte_t pte_mkclean(pte_t pte)	{ pte_val(pte) &= ~SUN3_PAGE_MODIFIED; return pte; }
-@@ -181,6 +182,7 @@ static inline pte_t pte_mknocache(pte_t 
- //static inline pte_t pte_mkcache(pte_t pte)	{ pte_val(pte) &= SUN3_PAGE_NOCACHE; return pte; }
- // until then, use:
- static inline pte_t pte_mkcache(pte_t pte)	{ return pte; }
-+static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
- 
- extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
- extern pgd_t kernel_pg_dir[PTRS_PER_PGD];
-Index: linux-2.6/include/asm-mips/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-mips/pgtable.h
-+++ linux-2.6/include/asm-mips/pgtable.h
-@@ -285,6 +285,8 @@ static inline pte_t pte_mkyoung(pte_t pt
- 	return pte;
- }
- #endif
-+static inline int pte_special(pte_t pte)	{ return 0; }
-+static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
- 
- /*
-  * Macro to make mark a page protection value as "uncacheable".  Note
-Index: linux-2.6/include/asm-parisc/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-parisc/pgtable.h
-+++ linux-2.6/include/asm-parisc/pgtable.h
-@@ -331,6 +331,7 @@ static inline int pte_dirty(pte_t pte)		
- static inline int pte_young(pte_t pte)		{ return pte_val(pte) & _PAGE_ACCESSED; }
- static inline int pte_write(pte_t pte)		{ return pte_val(pte) & _PAGE_WRITE; }
- static inline int pte_file(pte_t pte)		{ return pte_val(pte) & _PAGE_FILE; }
-+static inline int pte_special(pte_t pte)	{ return 0; }
- 
- static inline pte_t pte_mkclean(pte_t pte)	{ pte_val(pte) &= ~_PAGE_DIRTY; return pte; }
- static inline pte_t pte_mkold(pte_t pte)	{ pte_val(pte) &= ~_PAGE_ACCESSED; return pte; }
-@@ -338,6 +339,7 @@ static inline pte_t pte_wrprotect(pte_t 
- static inline pte_t pte_mkdirty(pte_t pte)	{ pte_val(pte) |= _PAGE_DIRTY; return pte; }
- static inline pte_t pte_mkyoung(pte_t pte)	{ pte_val(pte) |= _PAGE_ACCESSED; return pte; }
- static inline pte_t pte_mkwrite(pte_t pte)	{ pte_val(pte) |= _PAGE_WRITE; return pte; }
-+static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
- 
- /*
-  * Conversion functions: convert a page and protection to a page entry,
-Index: linux-2.6/include/asm-powerpc/pgtable-ppc32.h
-===================================================================
---- linux-2.6.orig/include/asm-powerpc/pgtable-ppc32.h
-+++ linux-2.6/include/asm-powerpc/pgtable-ppc32.h
-@@ -514,6 +514,7 @@ static inline int pte_write(pte_t pte)		
- static inline int pte_dirty(pte_t pte)		{ return pte_val(pte) & _PAGE_DIRTY; }
- static inline int pte_young(pte_t pte)		{ return pte_val(pte) & _PAGE_ACCESSED; }
- static inline int pte_file(pte_t pte)		{ return pte_val(pte) & _PAGE_FILE; }
-+static inline int pte_special(pte_t pte)	{ return 0; }
- 
- static inline void pte_uncache(pte_t pte)       { pte_val(pte) |= _PAGE_NO_CACHE; }
- static inline void pte_cache(pte_t pte)         { pte_val(pte) &= ~_PAGE_NO_CACHE; }
-@@ -531,6 +532,8 @@ static inline pte_t pte_mkdirty(pte_t pt
- 	pte_val(pte) |= _PAGE_DIRTY; return pte; }
- static inline pte_t pte_mkyoung(pte_t pte) {
- 	pte_val(pte) |= _PAGE_ACCESSED; return pte; }
-+static inline pte_t pte_mkspecial(pte_t pte) {
-+	return pte; }
- 
- static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- {
-Index: linux-2.6/include/asm-powerpc/pgtable-ppc64.h
-===================================================================
---- linux-2.6.orig/include/asm-powerpc/pgtable-ppc64.h
-+++ linux-2.6/include/asm-powerpc/pgtable-ppc64.h
-@@ -239,6 +239,7 @@ static inline int pte_write(pte_t pte) {
- static inline int pte_dirty(pte_t pte) { return pte_val(pte) & _PAGE_DIRTY;}
- static inline int pte_young(pte_t pte) { return pte_val(pte) & _PAGE_ACCESSED;}
- static inline int pte_file(pte_t pte) { return pte_val(pte) & _PAGE_FILE;}
-+static inline int pte_special(pte_t pte) { return 0; }
- 
- static inline void pte_uncache(pte_t pte) { pte_val(pte) |= _PAGE_NO_CACHE; }
- static inline void pte_cache(pte_t pte)   { pte_val(pte) &= ~_PAGE_NO_CACHE; }
-@@ -257,6 +258,8 @@ static inline pte_t pte_mkyoung(pte_t pt
- 	pte_val(pte) |= _PAGE_ACCESSED; return pte; }
- static inline pte_t pte_mkhuge(pte_t pte) {
- 	return pte; }
-+static inline pte_t pte_mkspecial(pte_t pte) {
-+	return pte; }
- 
- /* Atomic PTE updates */
- static inline unsigned long pte_update(struct mm_struct *mm,
-Index: linux-2.6/include/asm-ppc/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-ppc/pgtable.h
-+++ linux-2.6/include/asm-ppc/pgtable.h
-@@ -537,6 +537,7 @@ static inline int pte_write(pte_t pte)		
- static inline int pte_dirty(pte_t pte)		{ return pte_val(pte) & _PAGE_DIRTY; }
- static inline int pte_young(pte_t pte)		{ return pte_val(pte) & _PAGE_ACCESSED; }
- static inline int pte_file(pte_t pte)		{ return pte_val(pte) & _PAGE_FILE; }
-+static inline int pte_special(pte_t pte)	{ return 0; }
- 
- static inline void pte_uncache(pte_t pte)       { pte_val(pte) |= _PAGE_NO_CACHE; }
- static inline void pte_cache(pte_t pte)         { pte_val(pte) &= ~_PAGE_NO_CACHE; }
-@@ -554,6 +555,8 @@ static inline pte_t pte_mkdirty(pte_t pt
- 	pte_val(pte) |= _PAGE_DIRTY; return pte; }
- static inline pte_t pte_mkyoung(pte_t pte) {
- 	pte_val(pte) |= _PAGE_ACCESSED; return pte; }
-+static inline pte_t pte_mkspecial(pte_t pte) {
-+	return pte; }
- 
- static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- {
-Index: linux-2.6/include/asm-s390/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-s390/pgtable.h
-+++ linux-2.6/include/asm-s390/pgtable.h
-@@ -504,6 +504,11 @@ static inline int pte_file(pte_t pte)
- 	return (pte_val(pte) & mask) == _PAGE_TYPE_FILE;
- }
- 
-+static inline int pte_special(pte_t pte)
-+{
-+	return 0;
-+}
-+
- #define __HAVE_ARCH_PTE_SAME
- #define pte_same(a,b)  (pte_val(a) == pte_val(b))
- 
-@@ -654,6 +659,11 @@ static inline pte_t pte_mkyoung(pte_t pt
- 	return pte;
- }
- 
-+static inline pte_t pte_mkspecial(pte_t pte)
-+{
-+	return pte;
-+}
-+
- #define __HAVE_ARCH_PTEP_TEST_AND_CLEAR_YOUNG
- static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,
- 					    unsigned long addr, pte_t *ptep)
-Index: linux-2.6/include/asm-sh64/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-sh64/pgtable.h
-+++ linux-2.6/include/asm-sh64/pgtable.h
-@@ -419,6 +419,7 @@ static inline int pte_dirty(pte_t pte){ 
- static inline int pte_young(pte_t pte){ return pte_val(pte) & _PAGE_ACCESSED; }
- static inline int pte_file(pte_t pte) { return pte_val(pte) & _PAGE_FILE; }
- static inline int pte_write(pte_t pte){ return pte_val(pte) & _PAGE_WRITE; }
-+static inline int pte_special(pte_t pte)	{ return 0; }
- 
- static inline pte_t pte_wrprotect(pte_t pte)	{ set_pte(&pte, __pte(pte_val(pte) & ~_PAGE_WRITE)); return pte; }
- static inline pte_t pte_mkclean(pte_t pte)	{ set_pte(&pte, __pte(pte_val(pte) & ~_PAGE_DIRTY)); return pte; }
-@@ -427,6 +428,7 @@ static inline pte_t pte_mkwrite(pte_t pt
- static inline pte_t pte_mkdirty(pte_t pte)	{ set_pte(&pte, __pte(pte_val(pte) | _PAGE_DIRTY)); return pte; }
- static inline pte_t pte_mkyoung(pte_t pte)	{ set_pte(&pte, __pte(pte_val(pte) | _PAGE_ACCESSED)); return pte; }
- static inline pte_t pte_mkhuge(pte_t pte)	{ set_pte(&pte, __pte(pte_val(pte) | _PAGE_SZHUGE)); return pte; }
-+static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
- 
- 
- /*
-Index: linux-2.6/include/asm-sparc/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-sparc/pgtable.h
-+++ linux-2.6/include/asm-sparc/pgtable.h
-@@ -219,6 +219,11 @@ static inline int pte_file(pte_t pte)
- 	return pte_val(pte) & BTFIXUP_HALF(pte_filei);
- }
- 
-+static inline int pte_special(pte_t pte)
-+{
-+	return 0;
-+}
-+
- /*
+ #define find_first_zero_bit(addr, size) find_next_zero_bit((addr), (size), 0)
+-unsigned long find_next_zero_bit(const unsigned long *addr,
+-				 unsigned long size, unsigned long offset);
+ /**
+  * find_first_bit - find the first set bit in a memory region
+  * @addr: The address to start the search at
+@@ -328,8 +326,6 @@ unsigned long find_next_zero_bit(const unsigned long *addr,
+  * containing a bit.
   */
- BTFIXUPDEF_HALF(pte_wrprotecti)
-@@ -251,6 +256,8 @@ BTFIXUPDEF_CALL_CONST(pte_t, pte_mkyoung
- #define pte_mkdirty(pte) BTFIXUP_CALL(pte_mkdirty)(pte)
- #define pte_mkyoung(pte) BTFIXUP_CALL(pte_mkyoung)(pte)
+ #define find_first_bit(addr, size) find_next_bit((addr), (size), 0)
+-unsigned long find_next_bit(const unsigned long *addr,
+-			    unsigned long size, unsigned long offset);
  
-+#define pte_mkspecial(pte_t pte)    (pte)
-+
- #define pfn_pte(pfn, prot)		mk_pte(pfn_to_page(pfn), prot)
+ /* Little-endian versions */
  
- BTFIXUPDEF_CALL(unsigned long,	 pte_pfn, pte_t)
-Index: linux-2.6/include/asm-sparc64/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-sparc64/pgtable.h
-+++ linux-2.6/include/asm-sparc64/pgtable.h
-@@ -506,6 +506,11 @@ static inline pte_t pte_mkyoung(pte_t pt
- 	return __pte(pte_val(pte) | mask);
- }
- 
-+static inline pte_t pte_mkspecial(pte_t pte)
-+{
-+	return pte;
-+}
-+
- static inline unsigned long pte_young(pte_t pte)
+diff --git a/include/asm-s390/bitops.h b/include/asm-s390/bitops.h
+index 965394e..13a5c33 100644
+--- a/include/asm-s390/bitops.h
++++ b/include/asm-s390/bitops.h
+@@ -691,9 +691,9 @@ static inline unsigned long find_first_bit(const unsigned long * addr,
+  * @offset: The bitnumber to start searching at
+  * @size: The maximum size to search
+  */
+-static inline int find_next_zero_bit (const unsigned long * addr,
+-				      unsigned long size,
+-				      unsigned long offset)
++static inline unsigned long __find_next_zero_bit(const unsigned long * addr,
++						 unsigned long size,
++						 unsigned long offset)
  {
- 	unsigned long mask;
-@@ -608,6 +613,11 @@ static inline unsigned long pte_present(
- 	return val;
+         const unsigned long *p;
+ 	unsigned long bit, set;
+@@ -727,9 +727,9 @@ static inline int find_next_zero_bit (const unsigned long * addr,
+  * @offset: The bitnumber to start searching at
+  * @size: The maximum size to search
+  */
+-static inline int find_next_bit (const unsigned long * addr,
+-				 unsigned long size,
+-				 unsigned long offset)
++static inline unsigned long __find_next_bit(const unsigned long * addr,
++					    unsigned long size,
++					    unsigned long offset)
+ {
+         const unsigned long *p;
+ 	unsigned long bit, set;
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index 15360f9..68be268 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -73,7 +73,6 @@ static inline unsigned fls_long(unsigned long l)
  }
  
-+static inline int pte_special(pte_t pte)
-+{
-+	return 0;
-+}
-+
- #define pmd_set(pmdp, ptep)	\
- 	(pmd_val(*(pmdp)) = (__pa((unsigned long) (ptep)) >> 11UL))
- #define pud_set(pudp, pmdp)	\
-Index: linux-2.6/include/asm-xtensa/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-xtensa/pgtable.h
-+++ linux-2.6/include/asm-xtensa/pgtable.h
-@@ -212,6 +212,8 @@ static inline int pte_write(pte_t pte) {
- static inline int pte_dirty(pte_t pte) { return pte_val(pte) & _PAGE_DIRTY; }
- static inline int pte_young(pte_t pte) { return pte_val(pte) & _PAGE_ACCESSED; }
- static inline int pte_file(pte_t pte)  { return pte_val(pte) & _PAGE_FILE; }
-+static inline int pte_special(pte_t pte) { return 0; }
-+
- static inline pte_t pte_wrprotect(pte_t pte)	
- 	{ pte_val(pte) &= ~(_PAGE_WRITABLE | _PAGE_HW_WRITE); return pte; }
- static inline pte_t pte_mkclean(pte_t pte)
-@@ -224,6 +226,8 @@ static inline pte_t pte_mkyoung(pte_t pt
- 	{ pte_val(pte) |= _PAGE_ACCESSED; return pte; }
- static inline pte_t pte_mkwrite(pte_t pte)
- 	{ pte_val(pte) |= _PAGE_WRITABLE; return pte; }
-+static inline pte_t pte_mkspecial(pte_t pte)
-+	{ return pte; }
+ #ifdef __KERNEL__
+-#ifdef CONFIG_GENERIC_FIND_NEXT_BIT
+ extern unsigned long __find_next_bit(const unsigned long *addr,
+ 		unsigned long size, unsigned long offset);
  
- /*
-  * Conversion functions: convert a page and protection to a page entry,
-
--- 
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+@@ -147,6 +146,5 @@ find_next_zero_bit(const unsigned long *addr, unsigned long size,
+ 	/* size is not constant or too big */
+ 	return __find_next_zero_bit(addr, size, offset);
+ }
+-#endif /* CONFIG_GENERIC_FIND_NEXT_BIT */
+ #endif /* __KERNEL__ */
+ #endif
