@@ -1,7 +1,7 @@
 From: Alexander van Heukelum <heukelum-hWlb6USbxJRiLUuM0BA3LQ@public.gmane.org>
-Subject: [2/3] Implement __fls on all 64-bit archs
-Date: Sat, 15 Mar 2008 18:31:49 +0100
-Message-ID: <20080315173149.GB21659@mailshack.com>
+Subject: [3/3] Use __fls for fls64 on 64-bit archs
+Date: Sat, 15 Mar 2008 18:32:36 +0100
+Message-ID: <20080315173236.GC21659@mailshack.com>
 References: <20080315172913.GA21648@mailshack.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -13,158 +13,87 @@ List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Cc: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, Andi Kleen <andi-Vw/NltI1exuRpAAqCnN02g@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, heukelum-97jfqw80gc6171pxa8y+qA@public.gmane.org
 
-Implement __fls on all 64-bit archs:
-
-alpha has an implementation of fls64.
-	Added __fls(x) = fls64(x) - 1.
-
-ia64 has fls, but not __fls.
-	Added __fls based on code of fls.
-
-mips and powerpc have __ilog2, which is the same as __fls.
-	Added __fls = __ilog2.
-
-parisc, s390, sh and sparc64:
-	Include generic __fls.
-
-x86_64 already has __fls.
+Use __fls for fls64 on 64-bit archs. The implementation for
+64-bit archs is moved from x86_64 to asm-generic.
 
 Signed-off-by: Alexander van Heukelum <heukelum-97jfqw80gc6171pxa8y+qA@public.gmane.org>
 ---
- include/asm-alpha/bitops.h   |    5 +++++
- include/asm-ia64/bitops.h    |   16 ++++++++++++++++
- include/asm-mips/bitops.h    |    5 +++++
- include/asm-parisc/bitops.h  |    1 +
- include/asm-powerpc/bitops.h |    5 +++++
- include/asm-s390/bitops.h    |    1 +
- include/asm-sh/bitops.h      |    1 +
- include/asm-sparc64/bitops.h |    1 +
- 8 files changed, 35 insertions(+), 0 deletions(-)
+ include/asm-generic/bitops/fls64.h |   22 ++++++++++++++++++++++
+ include/asm-x86/bitops_64.h        |   15 ++-------------
+ 2 files changed, 24 insertions(+), 13 deletions(-)
 
-diff --git a/include/asm-alpha/bitops.h b/include/asm-alpha/bitops.h
-index 9e19a70..15f3ae2 100644
---- a/include/asm-alpha/bitops.h
-+++ b/include/asm-alpha/bitops.h
-@@ -388,6 +388,11 @@ static inline int fls64(unsigned long x)
- }
- #endif
+diff --git a/include/asm-generic/bitops/fls64.h b/include/asm-generic/bitops/fls64.h
+index 1b6b17c..86d403f 100644
+--- a/include/asm-generic/bitops/fls64.h
++++ b/include/asm-generic/bitops/fls64.h
+@@ -3,6 +3,18 @@
  
-+static inline unsigned long __fls(unsigned long x)
-+{
-+	return fls64(x) - 1;
-+}
-+
- static inline int fls(int x)
- {
- 	return fls64((unsigned int) x);
-diff --git a/include/asm-ia64/bitops.h b/include/asm-ia64/bitops.h
-index 953d3df..e2ca800 100644
---- a/include/asm-ia64/bitops.h
-+++ b/include/asm-ia64/bitops.h
-@@ -407,6 +407,22 @@ fls (int t)
- 	return ia64_popcnt(x);
- }
+ #include <asm/types.h>
  
-+/*
-+ * Find the last (most significant) bit set.  Undefined for x==0.
-+ * Bits are numbered from 0..63 (e.g., __fls(9) == 3).
++/**
++ * fls64 - find last set bit in a 64-bit word
++ * @x: the word to search
++ *
++ * This is defined in a similar way as the libc and compiler builtin
++ * ffsll, but returns the position of the most significant set bit.
++ *
++ * fls64(value) returns 0 if value is 0 or the position of the last
++ * set bit if value is nonzero. The last (most significant) bit is
++ * at position 64.
 + */
-+static inline unsigned long
-+__fls (unsigned long x)
++#if BITS_PER_LONG == 32
+ static inline int fls64(__u64 x)
+ {
+ 	__u32 h = x >> 32;
+@@ -10,5 +22,15 @@ static inline int fls64(__u64 x)
+ 		return fls(h) + 32;
+ 	return fls(x);
+ }
++#elif BITS_PER_LONG == 64
++static inline int fls64(__u64 x)
 +{
-+	x |= x >> 1;
-+	x |= x >> 2;
-+	x |= x >> 4;
-+	x |= x >> 8;
-+	x |= x >> 16;
-+	x |= x >> 32;
-+	return ia64_popcnt(x) - 1;
++	if (x == 0)
++		return 0;
++	return __fls(x) + 1;
 +}
-+
- #include <asm-generic/bitops/fls64.h>
++#else
++#error BITS_PER_LONG not 32 or 64
++#endif
  
- /*
-diff --git a/include/asm-mips/bitops.h b/include/asm-mips/bitops.h
-index ec75ce4..c2bd126 100644
---- a/include/asm-mips/bitops.h
-+++ b/include/asm-mips/bitops.h
-@@ -591,6 +591,11 @@ static inline int __ilog2(unsigned long x)
- 	return 63 - lz;
+ #endif /* _ASM_GENERIC_BITOPS_FLS64_H_ */
+diff --git a/include/asm-x86/bitops_64.h b/include/asm-x86/bitops_64.h
+index aaf1519..1f1f796 100644
+--- a/include/asm-x86/bitops_64.h
++++ b/include/asm-x86/bitops_64.h
+@@ -112,19 +112,6 @@ static inline int ffs(int x)
  }
  
-+static inline unsigned long __fls(unsigned long x)
-+{
-+	return __ilog2(x);
-+}
-+
- #if defined(CONFIG_CPU_MIPS32) || defined(CONFIG_CPU_MIPS64)
- 
- /*
-diff --git a/include/asm-parisc/bitops.h b/include/asm-parisc/bitops.h
-index f8eebcb..7a6ea10 100644
---- a/include/asm-parisc/bitops.h
-+++ b/include/asm-parisc/bitops.h
-@@ -210,6 +210,7 @@ static __inline__ int fls(int x)
- 	return ret;
- }
- 
-+#include <asm-generic/bitops/__fls.h>
- #include <asm-generic/bitops/fls64.h>
- #include <asm-generic/bitops/hweight.h>
- #include <asm-generic/bitops/lock.h>
-diff --git a/include/asm-powerpc/bitops.h b/include/asm-powerpc/bitops.h
-index 220d9a7..2fc0c45 100644
---- a/include/asm-powerpc/bitops.h
-+++ b/include/asm-powerpc/bitops.h
-@@ -312,6 +312,11 @@ static __inline__ int fls(unsigned int x)
- 	asm ("cntlzw %0,%1" : "=r" (lz) : "r" (x));
- 	return 32 - lz;
- }
-+
-+static __inline__ unsigned long __fls(unsigned long x)
-+{
-+	return __ilog2(x);
-+}
- #include <asm-generic/bitops/fls64.h>
- 
- #include <asm-generic/bitops/hweight.h>
-diff --git a/include/asm-s390/bitops.h b/include/asm-s390/bitops.h
-index 965394e..b4eb24a 100644
---- a/include/asm-s390/bitops.h
-+++ b/include/asm-s390/bitops.h
-@@ -769,6 +769,7 @@ static inline int sched_find_first_bit(unsigned long *b)
- }
- 
- #include <asm-generic/bitops/fls.h>
-+#include <asm-generic/bitops/__fls.h>
- #include <asm-generic/bitops/fls64.h>
- 
- #include <asm-generic/bitops/hweight.h>
-diff --git a/include/asm-sh/bitops.h b/include/asm-sh/bitops.h
-index b6ba5a6..d7d382f 100644
---- a/include/asm-sh/bitops.h
-+++ b/include/asm-sh/bitops.h
-@@ -95,6 +95,7 @@ static inline unsigned long ffz(unsigned long word)
- #include <asm-generic/bitops/ext2-atomic.h>
- #include <asm-generic/bitops/minix.h>
- #include <asm-generic/bitops/fls.h>
-+#include <asm-generic/bitops/__fls.h>
- #include <asm-generic/bitops/fls64.h>
+ /**
+- * fls64 - find last bit set in 64 bit word
+- * @x: the word to search
+- *
+- * This is defined the same way as fls.
+- */
+-static inline int fls64(__u64 x)
+-{
+-	if (x == 0)
+-		return 0;
+-	return __fls(x) + 1;
+-}
+-
+-/**
+  * fls - find last bit set
+  * @x: the word to search
+  *
+@@ -146,6 +133,8 @@ static inline int fls(int x)
  
  #endif /* __KERNEL__ */
-diff --git a/include/asm-sparc64/bitops.h b/include/asm-sparc64/bitops.h
-index 982ce89..11f9d81 100644
---- a/include/asm-sparc64/bitops.h
-+++ b/include/asm-sparc64/bitops.h
-@@ -34,6 +34,7 @@ extern void change_bit(unsigned long nr, volatile unsigned long *addr);
- #include <asm-generic/bitops/ffz.h>
- #include <asm-generic/bitops/__ffs.h>
- #include <asm-generic/bitops/fls.h>
-+#include <asm-generic/bitops/__fls.h>
- #include <asm-generic/bitops/fls64.h>
  
++#include <asm-generic/bitops/fls64.h>
++
  #ifdef __KERNEL__
-
+ 
+ #include <asm-generic/bitops/ext2-non-atomic.h>
 --
 To unsubscribe from this list: send the line "unsubscribe linux-arch" in
 the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
