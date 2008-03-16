@@ -1,24 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:40197 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751535AbYCPL7S (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Mar 2008 07:59:18 -0400
-Date: Sun, 16 Mar 2008 11:59:03 +0000
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH 0/7][RFC] Move Marvell MBUS window handling into drivers
-Message-ID: <20080316115903.GA23115@flint.arm.linux.org.uk>
-References: <20080307101913.GA11918@xi.wantstofly.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080307101913.GA11918@xi.wantstofly.org>
+Received: from bzq-179-150-194.static.bezeqint.net ([212.179.150.194]:50042
+	"EHLO il.qumranet.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751861AbYCPOdk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Mar 2008 10:33:40 -0400
+Message-ID: <47DD2FC1.8040106@qumranet.com>
+Date: Sun, 16 Mar 2008 16:33:37 +0200
+From: Avi Kivity <avi@qumranet.com>
+MIME-Version: 1.0
+Subject: Re: [rfc][patch] x86-64 new smp_call_function design
+References: <20080227124217.GA1340@wotan.suse.de> <47C55FD2.8030809@suse.de> <20080227130716.GB1340@wotan.suse.de> <47C5668C.6040906@suse.de>
+In-Reply-To: <47C5668C.6040906@suse.de>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lennert Buytenhek <buytenh@wantstofly.org>
-Cc: linux-arch@vger.kernel.org, Saeed Bishara <saeed@marvell.com>, Dale Farnsworth <dale@farnsworth.org>, Tzachi Perelstein <tzachi@marvell.com>, Nicolas Pitre <nico@cam.org>
-Message-ID: <20080316115903.sVxmuTUCMGrKX3BWkU1ip8tRs2BWKxKDxtzxiskHgqA@z>
+To: Andi Kleen <ak@suse.de>
+Cc: Nick Piggin <npiggin@suse.de>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20080316143337.wtlPPDSyFQsHoNZTWF5Z0ittsYqh9EWLi5mSgEcdnog@z>
 
-On Fri, Mar 07, 2008 at 11:19:13AM +0100, Lennert Buytenhek wrote:
-> Comments appreciated.
+Andi Kleen wrote:
+>
+>>>> As far as I understand, calling a subset of online CPUs that is not all or
+>>>> one, is used quite infrequently, so this might be OK.
+>>>>         
+>>> With cpusets and isolation etc. it is the normal case.
+>>>       
+>> Oh really? Coming from what callers?
+>>     
+>
+> The isolation work is not merged yet, but it will essentially need
+> to turn a lot of the _call_function()s into _call_function_mask()
+>   
 
-I have no issues with this approach.  Looks fine to me.
+kvm is also a heavy user of smp_call_function_mask(); if you run 
+multiple smp guests you'll see plenty of disjoint smp_call_function_mask()s.
+
+-- 
+error compiling committee.c: too many arguments to function
+
