@@ -1,40 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:55927 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:55982 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965916AbYCSVTq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Mar 2008 17:19:46 -0400
+	id S1765597AbYCSVVF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Mar 2008 17:21:05 -0400
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 From: Roland McGrath <roland@redhat.com>
-Subject: [PATCH 4/8] powerpc ptrace: forced_successful_syscall_return()
+Subject: [PATCH 6/8] ptrace: arch_ptrace -ENOSYS return
 In-Reply-To: Roland McGrath's message of  Wednesday, 19 March 2008 14:17:14 -0700 <20080319211714.8B14226F995@magilla.localdomain>
 References: <20080319211714.8B14226F995@magilla.localdomain>
-Message-ID: <20080319211936.28E8B26F9A7@magilla.localdomain>
-Date: Wed, 19 Mar 2008 14:19:36 -0700 (PDT)
+Message-ID: <20080319212024.EA03126F995@magilla.localdomain>
+Date: Wed, 19 Mar 2008 14:20:24 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, sparclinux@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, Richard Henderson <rth@twiddle.net>, tony.luck@intel.com, linux-ia64@vger.kernel.org
-Message-ID: <20080319211936.jML8JFjftppUR_CMqY-KoJzmTqRHV9Yid4U0zzpuBNU@z>
+Message-ID: <20080319212024.kFHPMBP6RxHX7L3mQ0alaHJdLjt3vlA8Yz0yQcMl1Ps@z>
 
-Define the forced_successful_syscall_return() macro to
-pair with our force_successful_syscall_return() definition.
+The arch_ptrace and compat_arch_ptrace functions can now return
+-ENOSYS for requests they do not actually implement in arch
+code.  Returning -ENOSYS replaces the calls to ptrace_request
+and compat_ptrace_request.  This leaves more latitude for the
+machine-independent ptrace implementation code to change without
+requiring any more updates in the arch code.
+
+This change has no effect on the old arch code that still calls
+ptrace_request or compat_ptrace_request.
 
 Signed-off-by: Roland McGrath <roland@redhat.com>
 ---
- include/asm-powerpc/ptrace.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ kernel/ptrace.c |   42 ++++++++++++++++++++++++++----------------
+ 1 files changed, 26 insertions(+), 16 deletions(-)
 
-diff --git a/include/asm-powerpc/ptrace.h b/include/asm-powerpc/ptrace.h
-index 891d689..07dd6fe 100644
---- a/include/asm-powerpc/ptrace.h
-+++ b/include/asm-powerpc/ptrace.h
-@@ -93,6 +93,7 @@ extern unsigned long profile_pc(struct pt_regs *regs);
- 	do { \
- 		set_thread_flag(TIF_NOERROR); \
- 	} while(0)
-+#define forced_successful_syscall_return()   (test_thread_flag(TIF_NOERROR))
+diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+index 67e392e..60b2b57 100644
+--- a/kernel/ptrace.c
++++ b/kernel/ptrace.c
+@@ -574,18 +574,21 @@ asmlinkage long sys_ptrace(long request, long pid, long addr, long data)
+ 		 */
+ 		if (!ret)
+ 			arch_ptrace_attach(child);
+-		goto out_put_task_struct;
++	} else {
++		ret = ptrace_check_attach(child, request == PTRACE_KILL);
++		/*
++		 * Let the arch handler inspect it first.  It returns
++		 * -ENOSYS if this is not an arch-specific request.
++		 */
++		if (!ret) {
++			ret = arch_ptrace(child, request, addr, data);
++			if (ret == -ENOSYS &&
++			    !forced_successful_syscall_return())
++				ret = ptrace_request(child, request,
++						     addr, data);
++		}
+ 	}
  
- struct task_struct;
- extern unsigned long ptrace_get_reg(struct task_struct *task, int regno);
+-	ret = ptrace_check_attach(child, request == PTRACE_KILL);
+-	if (ret < 0)
+-		goto out_put_task_struct;
+-
+-	ret = arch_ptrace(child, request, addr, data);
+-	if (ret < 0)
+-		goto out_put_task_struct;
+-
+- out_put_task_struct:
+ 	put_task_struct(child);
+  out:
+ 	unlock_kernel();
+@@ -697,14 +700,21 @@ asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
+ 		 */
+ 		if (!ret)
+ 			arch_ptrace_attach(child);
+-		goto out_put_task_struct;
++	} else {
++		ret = ptrace_check_attach(child, request == PTRACE_KILL);
++		/*
++		 * Let the arch handler inspect it first.  It returns
++		 * -ENOSYS if this is not an arch-specific request.
++		 */
++		if (!ret) {
++			ret = compat_arch_ptrace(child, request, addr, data);
++			if (ret == -ENOSYS &&
++			    !forced_successful_syscall_return())
++				ret = compat_ptrace_request(child, request,
++							    addr, data);
++		}
+ 	}
+ 
+-	ret = ptrace_check_attach(child, request == PTRACE_KILL);
+-	if (!ret)
+-		ret = compat_arch_ptrace(child, request, addr, data);
+-
+- out_put_task_struct:
+ 	put_task_struct(child);
+  out:
+ 	unlock_kernel();
