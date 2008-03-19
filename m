@@ -1,37 +1,47 @@
-From: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Policy for interrupts detected whilst disable_irq() in force
-Date: Wed, 19 Mar 2008 12:11:03 +0000
-Message-ID: <29183.1205928663@redhat.com>
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org
+From: Roland McGrath <roland@redhat.com>
+Subject: [PATCH 1/8] ptrace: forced_successful_syscall_return() macro
+Date: Wed, 19 Mar 2008 14:17:14 -0700 (PDT)
+Message-ID: <20080319211714.8B14226F995@magilla.localdomain>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
+List-Unsubscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
+List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@ozlabs.org?subject=help>
+List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, tony.luck@intel.com, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Richard Henderson <rth@twiddle.net>
+List-Id: linux-arch.vger.kernel.org
 
+This adds the forced_successful_syscall_return() macro, a mate to
+force_successful_syscall_return() to test rather than set the condition.
 
-What's the policy for interrupts that are detected by the interrupt controller
-on a channel that has disable_irq() in force?  Should the device driver expect
-the interrupts to be lost?  Or can it expect that they'll be remembered and
-that the CPU will process them when the IRQ channel is enabled?
+Signed-off-by: Roland McGrath <roland@redhat.com>
+---
+ include/linux/ptrace.h |    5 +++++
+ 1 files changed, 5 insertions(+), 0 deletions(-)
 
-Furthermore, what about an interrupt that is already pending when
-disable_irq() is called?  Is it okay for that to be discarded?  Or must that
-be processed upon enable_irq()?
-
-MEI queried me about mn10300_cpupic_disable() in the MN10300 arch.  It clears
-the channel enable bit and also clears the request and detect bits, thus losing
-any pending interrupt.  Possibly I should introduce a separate shutdown()
-method that discards any pending interrupt and modify disable() to merely clear
-the enablement flag.
-
-I would guess, however, that some hardware may not remember interrupts that
-come in on disabled channels, in which case the driver cannot assume that
-interrupts won't be lost.
-
-Any thoughts?
-
-David
---
-To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
+index ebe0c17..9272e63 100644
+--- a/include/linux/ptrace.h
++++ b/include/linux/ptrace.h
+@@ -124,8 +124,13 @@ int generic_ptrace_pokedata(struct task_struct *tsk, long addr, long data);
+  * is a no-op and the spurious error condition needs to be filtered out by some
+  * other means (e.g., in user-level, by passing an extra argument to the
+  * syscall handler, or something along those lines).
++ *
++ * On architectures that define force_successful_syscall_return(),
++ * forced_successful_syscall_return() should also be defined.
++ * It returns nonzero if force_successful_syscall_return() was just used.
+  */
+ #define force_successful_syscall_return() do { } while (0)
++#define forced_successful_syscall_return() 0
+ #endif
+ 
+ /*
