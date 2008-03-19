@@ -1,7 +1,7 @@
 From: Roland McGrath <roland@redhat.com>
-Subject: [PATCH 2/8] alpha ptrace: forced_successful_syscall_return()
-Date: Wed, 19 Mar 2008 14:18:41 -0700 (PDT)
-Message-ID: <20080319211841.253E126F995@magilla.localdomain>
+Subject: [PATCH 4/8] powerpc ptrace: forced_successful_syscall_return()
+Date: Wed, 19 Mar 2008 14:19:36 -0700 (PDT)
+Message-ID: <20080319211936.28E8B26F9A7@magilla.localdomain>
 References: <20080319211714.8B14226F995@magilla.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -28,17 +28,18 @@ pair with our force_successful_syscall_return() definition.
 
 Signed-off-by: Roland McGrath <roland@redhat.com>
 ---
- include/asm-alpha/ptrace.h |    1 +
+ include/asm-powerpc/ptrace.h |    1 +
  1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/include/asm-alpha/ptrace.h b/include/asm-alpha/ptrace.h
-index 32c7a5c..1cc330b 100644
---- a/include/asm-alpha/ptrace.h
-+++ b/include/asm-alpha/ptrace.h
-@@ -77,6 +77,7 @@ extern void show_regs(struct pt_regs *);
-   ((struct pt_regs *) (task_stack_page(task) + 2*PAGE_SIZE) - 1)
+diff --git a/include/asm-powerpc/ptrace.h b/include/asm-powerpc/ptrace.h
+index 891d689..07dd6fe 100644
+--- a/include/asm-powerpc/ptrace.h
++++ b/include/asm-powerpc/ptrace.h
+@@ -93,6 +93,7 @@ extern unsigned long profile_pc(struct pt_regs *regs);
+ 	do { \
+ 		set_thread_flag(TIF_NOERROR); \
+ 	} while(0)
++#define forced_successful_syscall_return()   (test_thread_flag(TIF_NOERROR))
  
- #define force_successful_syscall_return() (task_pt_regs(current)->r0 = 0)
-+#define forced_successful_syscall_return() (task_pt_regs(current)->r0 == 0)
- 
- #endif
+ struct task_struct;
+ extern unsigned long ptrace_get_reg(struct task_struct *task, int regno);
