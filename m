@@ -1,31 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:36657
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S932466AbYCSVaY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Mar 2008 17:30:24 -0400
-Date: Wed, 19 Mar 2008 14:30:37 -0700 (PDT)
-Message-ID: <20080319.143037.180042261.davem@davemloft.net>
-Subject: Re: [PATCH 5/8] sparc64 ptrace: forced_successful_syscall_return()
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20080319212001.2DB8526F995@magilla.localdomain>
-References: <20080319211714.8B14226F995@magilla.localdomain>
-	<20080319212001.2DB8526F995@magilla.localdomain>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Received: from mx1.redhat.com ([66.187.233.31]:56030 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1765820AbYCSVWS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Mar 2008 17:22:18 -0400
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
+From: Roland McGrath <roland@redhat.com>
+Subject: [PATCH 8/8] powerpc ptrace: arch_ptrace -ENOSYS return
+In-Reply-To: Roland McGrath's message of  Wednesday, 19 March 2008 14:17:14 -0700 <20080319211714.8B14226F995@magilla.localdomain>
+References: <20080319211714.8B14226F995@magilla.localdomain>
+Message-ID: <20080319212110.082F126F995@magilla.localdomain>
+Date: Wed, 19 Mar 2008 14:21:10 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: roland@redhat.com
-Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, sparclinux@vger.kernel.org, paulus@samba.org, linuxppc-dev@ozlabs.org, rth@twiddle.net, tony.luck@intel.com, linux-ia64@vger.kernel.org
-Message-ID: <20080319213037.E9xr7JU4-0nnZmu2js2tN49IGKTY5MCDpNlsOE5JLNE@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, sparclinux@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, Richard Henderson <rth@twiddle.net>, tony.luck@intel.com, linux-ia64@vger.kernel.org
+Message-ID: <20080319212110.Fra1Rzg2t6pSFrmjyIe5KPiFGWYTVW5BrPdtAF4_a1U@z>
 
-From: Roland McGrath <roland@redhat.com>
-Date: Wed, 19 Mar 2008 14:20:01 -0700 (PDT)
+Return -ENOSYS from arch_ptrace and compat_arch_ptrace
+rather than calling ptrace_request or compat_ptrace_request.
 
-> Define the forced_successful_syscall_return() macro to
-> pair with our force_successful_syscall_return() definition.
-> 
-> Signed-off-by: Roland McGrath <roland@redhat.com>
+Signed-off-by: Roland McGrath <roland@redhat.com>
+---
+ arch/powerpc/kernel/ptrace.c   |    2 +-
+ arch/powerpc/kernel/ptrace32.c |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-Acked-by: David S. Miller <davem@davemloft.net>
+diff --git a/arch/powerpc/kernel/ptrace.c b/arch/powerpc/kernel/ptrace.c
+index 2a9fe97..47b701e 100644
+--- a/arch/powerpc/kernel/ptrace.c
++++ b/arch/powerpc/kernel/ptrace.c
+@@ -843,7 +843,7 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
+ 		break;
+ 
+ 	default:
+-		ret = ptrace_request(child, request, addr, data);
++		ret = -ENOSYS;
+ 		break;
+ 	}
+ 	return ret;
+diff --git a/arch/powerpc/kernel/ptrace32.c b/arch/powerpc/kernel/ptrace32.c
+index 4c1de6a..7383d15 100644
+--- a/arch/powerpc/kernel/ptrace32.c
++++ b/arch/powerpc/kernel/ptrace32.c
+@@ -306,7 +306,7 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+ 		break;
+ 
+ 	default:
+-		ret = compat_ptrace_request(child, request, addr, data);
++		ret = -ENOSYS;
+ 		break;
+ 	}
+ 
