@@ -1,87 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.uludag.org.tr ([193.140.100.220]:42604 "EHLO uludag.org.tr"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755175AbYCQJhd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 Mar 2008 05:37:33 -0400
-From: =?utf-8?q?S=2E=C3=87a=C4=9Flar=20Onur?= <caglar@pardus.org.tr>
-Subject: [PATCH] fs/binfmt_aout.c: Use printk_ratelimit()
-Date: Mon, 17 Mar 2008 11:36:32 +0200
-Message-ID: <1205746593-24820-10-git-send-email-caglar@pardus.org.tr>
-In-Reply-To: <1205746593-24820-9-git-send-email-caglar@pardus.org.tr>
-References: <>
- <1205746593-24820-1-git-send-email-caglar@pardus.org.tr>
- <1205746593-24820-2-git-send-email-caglar@pardus.org.tr>
- <1205746593-24820-3-git-send-email-caglar@pardus.org.tr>
- <1205746593-24820-4-git-send-email-caglar@pardus.org.tr>
- <1205746593-24820-5-git-send-email-caglar@pardus.org.tr>
- <1205746593-24820-6-git-send-email-caglar@pardus.org.tr>
- <1205746593-24820-7-git-send-email-caglar@pardus.org.tr>
- <1205746593-24820-8-git-send-email-caglar@pardus.org.tr>
- <1205746593-24820-9-git-send-email-caglar@pardus.org.tr>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Received: from mx1.redhat.com ([66.187.233.31]:55291 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759449AbYCSTtX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Mar 2008 15:49:23 -0400
+Received: from int-mx1.corp.redhat.com (int-mx1.corp.redhat.com [172.16.52.254])
+	by mx1.redhat.com (8.13.8/8.13.8) with ESMTP id m2JCB5Kx005193
+	for <linux-arch@vger.kernel.org>; Wed, 19 Mar 2008 08:11:05 -0400
+Received: from pobox.devel.redhat.com (pobox.devel.redhat.com [10.11.255.8])
+	by int-mx1.corp.redhat.com (8.13.1/8.13.1) with ESMTP id m2JCB4Yj024906
+	for <linux-arch@vger.kernel.org>; Wed, 19 Mar 2008 08:11:04 -0400
+From: David Howells <dhowells@redhat.com>
+Subject: Policy for interrupts detected whilst disable_irq() in force
+Date: Wed, 19 Mar 2008 12:11:03 +0000
+Message-ID: <29183.1205928663@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20080317093632.qQbrquByoB-sTYNxGw_lUGYbqBhm_Hvf4r91tVeEKQk@z>
+To: linux-arch@vger.kernel.org
+Cc: dhowells@redhat.com
+Message-ID: <20080319121103.vPGyfd5ZxC1lDDLeNl3msDFWfE0duwMVmWjXFJhuxlM@z>
 
-Use printk_ratelimit() instead of jiffies based arithmetic, suggested by Geert Uytterhoeven
 
-Cc: linux-arch@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Signed-off-by: S.Çağlar Onur <caglar@pardus.org.tr>
----
- fs/binfmt_aout.c |   12 +++---------
- 1 files changed, 3 insertions(+), 9 deletions(-)
+What's the policy for interrupts that are detected by the interrupt controller
+on a channel that has disable_irq() in force?  Should the device driver expect
+the interrupts to be lost?  Or can it expect that they'll be remembered and
+that the CPU will process them when the IRQ channel is enabled?
 
-diff --git a/fs/binfmt_aout.c b/fs/binfmt_aout.c
-index a1bb224..ba4cddb 100644
---- a/fs/binfmt_aout.c
-+++ b/fs/binfmt_aout.c
-@@ -372,21 +372,17 @@ static int load_aout_binary(struct linux_binprm * bprm, struct pt_regs * regs)
- 			 
- 		flush_icache_range(text_addr, text_addr+ex.a_text+ex.a_data);
- 	} else {
--		static unsigned long error_time, error_time2;
- 		if ((ex.a_text & 0xfff || ex.a_data & 0xfff) &&
--		    (N_MAGIC(ex) != NMAGIC) && (jiffies-error_time2) > 5*HZ)
-+		    (N_MAGIC(ex) != NMAGIC) && printk_ratelimit())
- 		{
- 			printk(KERN_NOTICE "executable not page aligned\n");
--			error_time2 = jiffies;
- 		}
- 
--		if ((fd_offset & ~PAGE_MASK) != 0 &&
--		    (jiffies-error_time) > 5*HZ)
-+		if ((fd_offset & ~PAGE_MASK) != 0 && printk_ratelimit())
- 		{
- 			printk(KERN_WARNING 
- 			       "fd_offset is not page aligned. Please convert program: %s\n",
- 			       bprm->file->f_path.dentry->d_name.name);
--			error_time = jiffies;
- 		}
- 
- 		if (!bprm->file->f_op->mmap||((fd_offset & ~PAGE_MASK) != 0)) {
-@@ -495,15 +491,13 @@ static int load_aout_library(struct file *file)
- 	start_addr =  ex.a_entry & 0xfffff000;
- 
- 	if ((N_TXTOFF(ex) & ~PAGE_MASK) != 0) {
--		static unsigned long error_time;
- 		loff_t pos = N_TXTOFF(ex);
- 
--		if ((jiffies-error_time) > 5*HZ)
-+		if (printk_ratelimit())
- 		{
- 			printk(KERN_WARNING 
- 			       "N_TXTOFF is not page aligned. Please convert library: %s\n",
- 			       file->f_path.dentry->d_name.name);
--			error_time = jiffies;
- 		}
- 		down_write(&current->mm->mmap_sem);
- 		do_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
--- 
-1.5.4.3
+Furthermore, what about an interrupt that is already pending when
+disable_irq() is called?  Is it okay for that to be discarded?  Or must that
+be processed upon enable_irq()?
 
+MEI queried me about mn10300_cpupic_disable() in the MN10300 arch.  It clears
+the channel enable bit and also clears the request and detect bits, thus losing
+any pending interrupt.  Possibly I should introduce a separate shutdown()
+method that discards any pending interrupt and modify disable() to merely clear
+the enablement flag.
+
+I would guess, however, that some hardware may not remember interrupts that
+come in on disabled channels, in which case the driver cannot assume that
+interrupts won't be lost.
+
+Any thoughts?
+
+David
