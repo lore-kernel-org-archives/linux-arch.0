@@ -1,7 +1,7 @@
 From: Roland McGrath <roland@redhat.com>
-Subject: [PATCH 4/8] powerpc ptrace: forced_successful_syscall_return()
-Date: Wed, 19 Mar 2008 14:19:36 -0700 (PDT)
-Message-ID: <20080319211936.28E8B26F9A7@magilla.localdomain>
+Subject: [PATCH 3/8] ia64 ptrace: forced_successful_syscall_return()
+Date: Wed, 19 Mar 2008 14:19:14 -0700 (PDT)
+Message-ID: <20080319211914.AFE0E26F995@magilla.localdomain>
 References: <20080319211714.8B14226F995@magilla.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -28,18 +28,18 @@ pair with our force_successful_syscall_return() definition.
 
 Signed-off-by: Roland McGrath <roland@redhat.com>
 ---
- include/asm-powerpc/ptrace.h |    1 +
+ include/asm-ia64/ptrace.h |    1 +
  1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/include/asm-powerpc/ptrace.h b/include/asm-powerpc/ptrace.h
-index 891d689..07dd6fe 100644
---- a/include/asm-powerpc/ptrace.h
-+++ b/include/asm-powerpc/ptrace.h
-@@ -93,6 +93,7 @@ extern unsigned long profile_pc(struct pt_regs *regs);
- 	do { \
- 		set_thread_flag(TIF_NOERROR); \
- 	} while(0)
-+#define forced_successful_syscall_return()   (test_thread_flag(TIF_NOERROR))
+diff --git a/include/asm-ia64/ptrace.h b/include/asm-ia64/ptrace.h
+index 4b2a8d4..5e82915 100644
+--- a/include/asm-ia64/ptrace.h
++++ b/include/asm-ia64/ptrace.h
+@@ -276,6 +276,7 @@ struct switch_stack {
+    * On ia64, we can clear the user's pt_regs->r8 to force a successful syscall.
+    */
+ # define force_successful_syscall_return()	(task_pt_regs(current)->r8 = 0)
++# define forced_successful_syscall_return()	(task_pt_regs(current)->r8 == 0)
  
- struct task_struct;
- extern unsigned long ptrace_get_reg(struct task_struct *task, int regno);
+   struct task_struct;			/* forward decl */
+   struct unw_frame_info;		/* forward decl */
