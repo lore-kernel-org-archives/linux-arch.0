@@ -1,99 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:55982 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([66.187.233.31]:56010 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1765597AbYCSVVF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Mar 2008 17:21:05 -0400
+	id S966025AbYCSVV1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Mar 2008 17:21:27 -0400
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 From: Roland McGrath <roland@redhat.com>
-Subject: [PATCH 6/8] ptrace: arch_ptrace -ENOSYS return
+Subject: [PATCH 7/8] x86 ptrace: arch_ptrace -ENOSYS return
 In-Reply-To: Roland McGrath's message of  Wednesday, 19 March 2008 14:17:14 -0700 <20080319211714.8B14226F995@magilla.localdomain>
 References: <20080319211714.8B14226F995@magilla.localdomain>
-Message-ID: <20080319212024.EA03126F995@magilla.localdomain>
-Date: Wed, 19 Mar 2008 14:20:24 -0700 (PDT)
+Message-ID: <20080319212050.32AA126F995@magilla.localdomain>
+Date: Wed, 19 Mar 2008 14:20:50 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, sparclinux@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, Richard Henderson <rth@twiddle.net>, tony.luck@intel.com, linux-ia64@vger.kernel.org
-Message-ID: <20080319212024.kFHPMBP6RxHX7L3mQ0alaHJdLjt3vlA8Yz0yQcMl1Ps@z>
+Message-ID: <20080319212050.qUVPA0yEHbjO8RWLV6OR2z7mEiwhxt7-CqKF-0p6mq0@z>
 
-The arch_ptrace and compat_arch_ptrace functions can now return
--ENOSYS for requests they do not actually implement in arch
-code.  Returning -ENOSYS replaces the calls to ptrace_request
-and compat_ptrace_request.  This leaves more latitude for the
-machine-independent ptrace implementation code to change without
-requiring any more updates in the arch code.
-
-This change has no effect on the old arch code that still calls
-ptrace_request or compat_ptrace_request.
+Return -ENOSYS from arch_ptrace and compat_arch_ptrace
+rather than calling ptrace_request or compat_ptrace_request.
 
 Signed-off-by: Roland McGrath <roland@redhat.com>
 ---
- kernel/ptrace.c |   42 ++++++++++++++++++++++++++----------------
- 1 files changed, 26 insertions(+), 16 deletions(-)
+ arch/x86/kernel/ptrace.c |    5 +++--
+ 1 files changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 67e392e..60b2b57 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -574,18 +574,21 @@ asmlinkage long sys_ptrace(long request, long pid, long addr, long data)
- 		 */
- 		if (!ret)
- 			arch_ptrace_attach(child);
--		goto out_put_task_struct;
-+	} else {
-+		ret = ptrace_check_attach(child, request == PTRACE_KILL);
-+		/*
-+		 * Let the arch handler inspect it first.  It returns
-+		 * -ENOSYS if this is not an arch-specific request.
-+		 */
-+		if (!ret) {
-+			ret = arch_ptrace(child, request, addr, data);
-+			if (ret == -ENOSYS &&
-+			    !forced_successful_syscall_return())
-+				ret = ptrace_request(child, request,
-+						     addr, data);
-+		}
+diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+index 777d8f9..4d5561c 100644
+--- a/arch/x86/kernel/ptrace.c
++++ b/arch/x86/kernel/ptrace.c
+@@ -1010,7 +1010,7 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
+ #endif
+ 
+ 	default:
+-		ret = ptrace_request(child, request, addr, data);
++		ret = -ENOSYS;
+ 		break;
  	}
  
--	ret = ptrace_check_attach(child, request == PTRACE_KILL);
--	if (ret < 0)
--		goto out_put_task_struct;
--
--	ret = arch_ptrace(child, request, addr, data);
--	if (ret < 0)
--		goto out_put_task_struct;
--
-- out_put_task_struct:
- 	put_task_struct(child);
-  out:
- 	unlock_kernel();
-@@ -697,14 +700,21 @@ asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
- 		 */
- 		if (!ret)
- 			arch_ptrace_attach(child);
--		goto out_put_task_struct;
-+	} else {
-+		ret = ptrace_check_attach(child, request == PTRACE_KILL);
-+		/*
-+		 * Let the arch handler inspect it first.  It returns
-+		 * -ENOSYS if this is not an arch-specific request.
-+		 */
-+		if (!ret) {
-+			ret = compat_arch_ptrace(child, request, addr, data);
-+			if (ret == -ENOSYS &&
-+			    !forced_successful_syscall_return())
-+				ret = compat_ptrace_request(child, request,
-+							    addr, data);
-+		}
+@@ -1266,7 +1266,8 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+ 		return arch_ptrace(child, request, addr, data);
+ 
+ 	default:
+-		return compat_ptrace_request(child, request, addr, data);
++		ret = -ENOSYS;
++		break;
  	}
  
--	ret = ptrace_check_attach(child, request == PTRACE_KILL);
--	if (!ret)
--		ret = compat_arch_ptrace(child, request, addr, data);
--
-- out_put_task_struct:
- 	put_task_struct(child);
-  out:
- 	unlock_kernel();
+ 	return ret;
