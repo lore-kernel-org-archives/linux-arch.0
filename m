@@ -1,94 +1,29 @@
-From: Roland McGrath <roland@redhat.com>
-Subject: [PATCH 6/8] ptrace: arch_ptrace -ENOSYS return
-Date: Wed, 19 Mar 2008 14:20:24 -0700 (PDT)
-Message-ID: <20080319212024.EA03126F995@magilla.localdomain>
+From: David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
+Subject: Re: [PATCH 5/8] sparc64 ptrace: forced_successful_syscall_return()
+Date: Wed, 19 Mar 2008 14:30:37 -0700 (PDT)
+Message-ID: <20080319.143037.180042261.davem@davemloft.net>
 References: <20080319211714.8B14226F995@magilla.localdomain>
+	<20080319212001.2DB8526F995@magilla.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: Roland McGrath's message of  Wednesday, 19 March 2008 14:17:14 -0700 <20080319211714.8B14226F995@magilla.localdomain>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, sparclinux@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, Richard Henderson <rth@twiddle.net>, tony.luck@intel.com, linux-ia64@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20080319212001.2DB8526F995-nL1rrgvulkcB9AHHLWeGtNQXobZC6xk2@public.gmane.org>
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: roland-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org
+Cc: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mingo-X9Un+BFzKDI@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org, tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-The arch_ptrace and compat_arch_ptrace functions can now return
--ENOSYS for requests they do not actually implement in arch
-code.  Returning -ENOSYS replaces the calls to ptrace_request
-and compat_ptrace_request.  This leaves more latitude for the
-machine-independent ptrace implementation code to change without
-requiring any more updates in the arch code.
+From: Roland McGrath <roland-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Date: Wed, 19 Mar 2008 14:20:01 -0700 (PDT)
 
-This change has no effect on the old arch code that still calls
-ptrace_request or compat_ptrace_request.
+> Define the forced_successful_syscall_return() macro to
+> pair with our force_successful_syscall_return() definition.
+> 
+> Signed-off-by: Roland McGrath <roland-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 
-Signed-off-by: Roland McGrath <roland@redhat.com>
----
- kernel/ptrace.c |   42 ++++++++++++++++++++++++++----------------
- 1 files changed, 26 insertions(+), 16 deletions(-)
-
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 67e392e..60b2b57 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -574,18 +574,21 @@ asmlinkage long sys_ptrace(long request, long pid, long addr, long data)
- 		 */
- 		if (!ret)
- 			arch_ptrace_attach(child);
--		goto out_put_task_struct;
-+	} else {
-+		ret = ptrace_check_attach(child, request == PTRACE_KILL);
-+		/*
-+		 * Let the arch handler inspect it first.  It returns
-+		 * -ENOSYS if this is not an arch-specific request.
-+		 */
-+		if (!ret) {
-+			ret = arch_ptrace(child, request, addr, data);
-+			if (ret == -ENOSYS &&
-+			    !forced_successful_syscall_return())
-+				ret = ptrace_request(child, request,
-+						     addr, data);
-+		}
- 	}
- 
--	ret = ptrace_check_attach(child, request == PTRACE_KILL);
--	if (ret < 0)
--		goto out_put_task_struct;
--
--	ret = arch_ptrace(child, request, addr, data);
--	if (ret < 0)
--		goto out_put_task_struct;
--
-- out_put_task_struct:
- 	put_task_struct(child);
-  out:
- 	unlock_kernel();
-@@ -697,14 +700,21 @@ asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
- 		 */
- 		if (!ret)
- 			arch_ptrace_attach(child);
--		goto out_put_task_struct;
-+	} else {
-+		ret = ptrace_check_attach(child, request == PTRACE_KILL);
-+		/*
-+		 * Let the arch handler inspect it first.  It returns
-+		 * -ENOSYS if this is not an arch-specific request.
-+		 */
-+		if (!ret) {
-+			ret = compat_arch_ptrace(child, request, addr, data);
-+			if (ret == -ENOSYS &&
-+			    !forced_successful_syscall_return())
-+				ret = compat_ptrace_request(child, request,
-+							    addr, data);
-+		}
- 	}
- 
--	ret = ptrace_check_attach(child, request == PTRACE_KILL);
--	if (!ret)
--		ret = compat_arch_ptrace(child, request, addr, data);
--
-- out_put_task_struct:
- 	put_task_struct(child);
-  out:
- 	unlock_kernel();
+Acked-by: David S. Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
+--
+To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
