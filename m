@@ -1,46 +1,46 @@
 From: Roland McGrath <roland@redhat.com>
-Subject: [PATCH 5/8] sparc64 ptrace: forced_successful_syscall_return()
-Date: Wed, 19 Mar 2008 14:20:01 -0700 (PDT)
-Message-ID: <20080319212001.2DB8526F995@magilla.localdomain>
+Subject: [PATCH 7/8] x86 ptrace: arch_ptrace -ENOSYS return
+Date: Wed, 19 Mar 2008 14:20:50 -0700 (PDT)
+Message-ID: <20080319212050.32AA126F995@magilla.localdomain>
 References: <20080319211714.8B14226F995@magilla.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
-In-Reply-To: Roland McGrath's message of  Wednesday,
-	19 March 2008 14:17:14 -0700
-	<20080319211714.8B14226F995@magilla.localdomain>
-List-Unsubscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
-List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@ozlabs.org?subject=help>
-List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
-Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: Roland McGrath's message of  Wednesday, 19 March 2008 14:17:14 -0700 <20080319211714.8B14226F995@magilla.localdomain>
+Sender: sparclinux-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, tony.luck@intel.com, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Richard Henderson <rth@twiddle.net>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, sparclinux@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, Richard Henderson <rth@twiddle.net>, tony.luck@intel.com, linux-ia64@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Define the forced_successful_syscall_return() macro to
-pair with our force_successful_syscall_return() definition.
+Return -ENOSYS from arch_ptrace and compat_arch_ptrace
+rather than calling ptrace_request or compat_ptrace_request.
 
 Signed-off-by: Roland McGrath <roland@redhat.com>
 ---
- include/asm-sparc64/ptrace.h |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+ arch/x86/kernel/ptrace.c |    5 +++--
+ 1 files changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/include/asm-sparc64/ptrace.h b/include/asm-sparc64/ptrace.h
-index 6da1978..3f8826e 100644
---- a/include/asm-sparc64/ptrace.h
-+++ b/include/asm-sparc64/ptrace.h
-@@ -100,6 +100,8 @@ struct sparc_trapf {
- #define force_successful_syscall_return()	    \
- do {	current_thread_info()->syscall_noerror = 1; \
- } while (0)
-+#define forced_successful_syscall_return()	\
-+	(current_thread_info()->syscall_noerror != 0)
- #define user_mode(regs) (!((regs)->tstate & TSTATE_PRIV))
- #define instruction_pointer(regs) ((regs)->tpc)
- #define regs_return_value(regs) ((regs)->u_regs[UREG_I0])
+diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+index 777d8f9..4d5561c 100644
+--- a/arch/x86/kernel/ptrace.c
++++ b/arch/x86/kernel/ptrace.c
+@@ -1010,7 +1010,7 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
+ #endif
+ 
+ 	default:
+-		ret = ptrace_request(child, request, addr, data);
++		ret = -ENOSYS;
+ 		break;
+ 	}
+ 
+@@ -1266,7 +1266,8 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+ 		return arch_ptrace(child, request, addr, data);
+ 
+ 	default:
+-		return compat_ptrace_request(child, request, addr, data);
++		ret = -ENOSYS;
++		break;
+ 	}
+ 
+ 	return ret;
