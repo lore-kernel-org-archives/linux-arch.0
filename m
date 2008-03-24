@@ -1,22 +1,26 @@
-From: Miss Linda Hill <info-+S7jgvd8HUM@public.gmane.org>
-Subject: ATM (882)
-Date: Sat, 22 Mar 2008 13:17:16 +1200
-Message-ID: <2670c0499411744503932e00314d6ea5__15076.9609412693$1206149189$gmane$org@ihug.co.nz>
-Reply-To: misslindahillkay-/E1597aS9LTXPF5Rlphj1Q@public.gmane.org
+From: Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
+Subject: Re: [PATCH 4/8] powerpc ptrace: forced_successful_syscall_return()
+Date: Mon, 24 Mar 2008 18:55:41 +1100
+Message-ID: <18407.24189.707297.767237@cargo.ozlabs.ibm.com>
+References: <20080319211714.8B14226F995@magilla.localdomain>
+	<20080319211936.28E8B26F9A7@magilla.localdomain>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20080319211936.28E8B26F9A7-nL1rrgvulkcB9AHHLWeGtNQXobZC6xk2@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: info-+S7jgvd8HUM@public.gmane.org
+To: Roland McGrath <roland-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, Richard Henderson <rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org>, tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
+Roland McGrath writes:
 
--- 
-This is to officially inform you that (ATM Card Number(ATM-882)has
-been accredited in your favour ATM Card Number;5438 4001 2345
-6789.Contact:(misslindahillkay1-Qt13gs6zZMY@public.gmane.org)Regards.Miss Linda Hill.
+> Define the forced_successful_syscall_return() macro to
+> pair with our force_successful_syscall_return() definition.
+> 
+> Signed-off-by: Roland McGrath <roland-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 
---
-To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Looks OK to me, but what's it useful for?
+
+Paul.
