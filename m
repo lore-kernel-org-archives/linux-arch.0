@@ -1,31 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:56355 "EHLO ozlabs.org"
+Received: from mga02.intel.com ([134.134.136.20]:56533 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752321AbYCXHzu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 24 Mar 2008 03:55:50 -0400
+	id S1751601AbYCYUyQ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Mar 2008 16:54:16 -0400
+Content-class: urn:content-classes:message
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <18407.24189.707297.767237@cargo.ozlabs.ibm.com>
-Date: Mon, 24 Mar 2008 18:55:41 +1100
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [PATCH 4/8] powerpc ptrace: forced_successful_syscall_return()
-In-Reply-To: <20080319211936.28E8B26F9A7@magilla.localdomain>
-References: <20080319211714.8B14226F995@magilla.localdomain>
-	<20080319211936.28E8B26F9A7@magilla.localdomain>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Subject: What if a TLB flush needed to sleep?
+Date: Tue, 25 Mar 2008 13:49:54 -0700
+Message-ID: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com>
+From: "Luck, Tony" <tony.luck@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, sparclinux@vger.kernel.org, linuxppc-dev@ozlabs.org, Richard Henderson <rth@twiddle.net>, tony.luck@intel.com, linux-ia64@vger.kernel.org
-Message-ID: <20080324075541.oGMAcWIei7KLVqTmx5WusNWRVbehw3WuKoMw03MJuYQ@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20080325204954.xuYQtXOac6BFiPrnOy1-p9M_ajD3BT64hIe1i-6jpnA@z>
 
-Roland McGrath writes:
+ia64 processors have a "ptc.g" instruction that will purge
+a TLB entry across all processors in a system.  On current
+cpus there is a limitation that only one ptc.g instruction may
+be in flight at a time, so we serialize execution with code
+like this:
 
-> Define the forced_successful_syscall_return() macro to
-> pair with our force_successful_syscall_return() definition.
-> 
-> Signed-off-by: Roland McGrath <roland@redhat.com>
+	spin_lock(&ptcg_lock);
+	... execute ptc.g
+	spin_unlock(&ptcg_lock);
 
-Looks OK to me, but what's it useful for?
+The architecture allows for more than one purge at a time.
+So (without making any declarations about features of
+unreleased processors) it seemed like time to update the
+code to grab the maximum count from PAL, use that to
+initialize a semaphore, and change the code to:
 
-Paul.
+	down(&ptcg_sem);
+	... execute ptc.g
+	up(&ptcg_sem);
+
+This code lasted about a week before someone ran hackbench
+with parameters chosen to cause some swap activity (memory
+footprint ~8.5GB on an 8GB system).  The machine promptly
+deadlocked because VM code called the tlbflush code while
+holding an anon_vma_lock, the semaphore happened to sleep
+because some other processor was also trying to do a purge,
+and the test was on a system where the limit was still just
+one ptc.g at a time, and the process got swapped.
+
+Now for the questions:
+
+1) Is holding a spin lock a problem for any other arch when
+doing a TLB flush (I'm particularly thinking of those that
+need to use IPI shootdown for the purge)?
+
+2) Is it feasible to rearrange the MM code so that we don't
+hold any locks while doing a TLB flush?  Or should I implement
+some sort of spin_only_semaphore?
+
+-Tony
