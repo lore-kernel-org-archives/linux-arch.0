@@ -1,26 +1,54 @@
-From: Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
-Subject: Re: [PATCH 4/8] powerpc ptrace: forced_successful_syscall_return()
-Date: Mon, 24 Mar 2008 18:55:41 +1100
-Message-ID: <18407.24189.707297.767237@cargo.ozlabs.ibm.com>
-References: <20080319211714.8B14226F995@magilla.localdomain>
-	<20080319211936.28E8B26F9A7@magilla.localdomain>
+From: "Luck, Tony" <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Subject: What if a TLB flush needed to sleep?
+Date: Tue, 25 Mar 2008 13:49:54 -0700
+Message-ID: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20080319211936.28E8B26F9A7-nL1rrgvulkcB9AHHLWeGtNQXobZC6xk2@public.gmane.org>
+Content-class: urn:content-classes:message
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, Richard Henderson <rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org>, tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-Roland McGrath writes:
+ia64 processors have a "ptc.g" instruction that will purge
+a TLB entry across all processors in a system.  On current
+cpus there is a limitation that only one ptc.g instruction may
+be in flight at a time, so we serialize execution with code
+like this:
 
-> Define the forced_successful_syscall_return() macro to
-> pair with our force_successful_syscall_return() definition.
-> 
-> Signed-off-by: Roland McGrath <roland-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+	spin_lock(&ptcg_lock);
+	... execute ptc.g
+	spin_unlock(&ptcg_lock);
 
-Looks OK to me, but what's it useful for?
+The architecture allows for more than one purge at a time.
+So (without making any declarations about features of
+unreleased processors) it seemed like time to update the
+code to grab the maximum count from PAL, use that to
+initialize a semaphore, and change the code to:
 
-Paul.
+	down(&ptcg_sem);
+	... execute ptc.g
+	up(&ptcg_sem);
+
+This code lasted about a week before someone ran hackbench
+with parameters chosen to cause some swap activity (memory
+footprint ~8.5GB on an 8GB system).  The machine promptly
+deadlocked because VM code called the tlbflush code while
+holding an anon_vma_lock, the semaphore happened to sleep
+because some other processor was also trying to do a purge,
+and the test was on a system where the limit was still just
+one ptc.g at a time, and the process got swapped.
+
+Now for the questions:
+
+1) Is holding a spin lock a problem for any other arch when
+doing a TLB flush (I'm particularly thinking of those that
+need to use IPI shootdown for the purge)?
+
+2) Is it feasible to rearrange the MM code so that we don't
+hold any locks while doing a TLB flush?  Or should I implement
+some sort of spin_only_semaphore?
+
+-Tony
