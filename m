@@ -1,33 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:54954 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754729AbYCZT1T (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Mar 2008 15:27:19 -0400
-Date: Wed, 26 Mar 2008 12:25:21 -0700 (PDT)
-From: Christoph Lameter <clameter@sgi.com>
+Received: from www.tglx.de ([62.245.132.106]:44069 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756061AbYCZU3g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Mar 2008 16:29:36 -0400
+Date: Wed, 26 Mar 2008 21:29:13 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: What if a TLB flush needed to sleep?
-In-Reply-To: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com>
-Message-ID: <Pine.LNX.4.64.0803261222090.31000@schroedinger.engr.sgi.com>
-References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com>
+In-Reply-To: <Pine.LNX.4.64.0803261222090.31000@schroedinger.engr.sgi.com>
+Message-ID: <alpine.LFD.1.00.0803262121440.3781@apollo.tec.linutronix.de>
+References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com> <Pine.LNX.4.64.0803261222090.31000@schroedinger.engr.sgi.com>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20080326192521.cZmHlGaf7QQ0b7qBOTfSAivY9RP8BJkEoPJ6jx3EZvI@z>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: "Luck, Tony" <tony.luck@intel.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20080326202913.NYdkNf00p8yAoKp_qmPXrBQ0dxIHhUYG4x6kTZQEGJE@z>
 
-On Tue, 25 Mar 2008, Luck, Tony wrote:
+On Wed, 26 Mar 2008, Christoph Lameter wrote:
 
-> 2) Is it feasible to rearrange the MM code so that we don't
-> hold any locks while doing a TLB flush?  Or should I implement
-> some sort of spin_only_semaphore?
+> On Tue, 25 Mar 2008, Luck, Tony wrote:
+> 
+> > 2) Is it feasible to rearrange the MM code so that we don't
+> > hold any locks while doing a TLB flush?  Or should I implement
+> > some sort of spin_only_semaphore?
+> 
+> The EMM notifier V2 patchset contains two patches that 
+> convert the immap_lock and the anon_vma lock to semaphores.
 
-The EMM notifier V2 patchset contains two patches that 
-convert the immap_lock and the anon_vma lock to semaphores. After that
-much of the TLB flushing is (tlb_finish_mmu, tlb_gather etc) is running 
-without holding any spinlocks. There would need to be additional measures 
-for flushing inherent in macros (like ptep_clear_flush). Currently the 
-pte functions are called under pte lock.
+Please use a mutex, not a semaphore. semaphores should only be used
+when you need a counting sempahore.
 
+Thanks,
 
+	tglx
