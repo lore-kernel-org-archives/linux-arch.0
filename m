@@ -1,31 +1,134 @@
-From: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Subject: Re: What if a TLB flush needed to sleep?
-Date: Thu, 27 Mar 2008 14:20:52 +0100
-Message-ID: <1206624052.8514.570.camel@twins>
-References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com>
-	 <Pine.LNX.4.64.0803261222090.31000@schroedinger.engr.sgi.com>
-	 <alpine.LFD.1.00.0803262121440.3781@apollo.tec.linutronix.de>
-	 <Pine.LNX.4.64.0803261817110.1115@schroedinger.engr.sgi.com>
+From: Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>
+Subject: down_spin() implementation
+Date: Thu, 27 Mar 2008 08:15:08 -0600
+Message-ID: <20080327141508.GL16721@parisc-linux.org>
+References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com> <20080326123239.GG16721@parisc-linux.org> <1FE6DD409037234FAB833C420AA843ECE9EB1C@orsmsx424.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <Pine.LNX.4.64.0803261817110.1115-RYO/mD75kfhx2SFC9UQUAuF7EQX82lMiAL8bYrjMMd8@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <1FE6DD409037234FAB833C420AA843ECE9EB1C-7XlYjKTK0pM64kNsxIetb7fspsVTdybXVpNB7YpNyf8@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <clameter-sJ/iWh9BUns@public.gmane.org>
-Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "Luck, Tony" <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "Luck, Tony" <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-On Wed, 2008-03-26 at 18:19 -0700, Christoph Lameter wrote:
-> On Wed, 26 Mar 2008, Thomas Gleixner wrote:
-> 
-> > Please use a mutex, not a semaphore. semaphores should only be used
-> > when you need a counting sempahore.
-> 
-> Seems that mutexes are mainly useful for 2 processor systems since they 
-> do not allow concurrent read sections. We want multiple processors able 
-> to reclaim pages within the same vma or file concurrently. This means 
-> processors need to be able to concurrently walk potentially long lists of 
-> vmas.
+On Wed, Mar 26, 2008 at 01:29:58PM -0700, Luck, Tony wrote:
+> This looks a lot cleaner than my ia64 specific code that
+> used cmpxchg() for the down() operation and fetchadd for
+> the up() ... using a brand new semaphore_spin data type.
 
-confusion between semaphores and rwsems
+I did brifly consider creating a spinaphore data type, but it's
+significantly less code to create down_spin().
+
+> It appears to work ... I tried to do some timing comparisons
+> of this generic version against my arch specific one, but the
+> hackbench test case has a run to run variation of a factor of
+> three (from 1min9sec to 3min44sec) so it is hopeless to try
+> and see some small percentage difference.
+
+Thanks for testing and putting this together in patch form.  I've fixed it
+up to address Jens' astute comment and added it to my semaphore patchset.
+
+http://git.kernel.org/?p=linux/kernel/git/willy/misc.git;a=shortlog;h=semaphore-20080327
+
+Stephen, I've updated the 'semaphore' tag to point ot the same place as
+semaphore-20080327, so please change your linux-next tree from pulling
+semaphore-20080314 to just pulling plain 'semaphore'.  I'll use this
+method of tagging from now on.
+
+Here's the edited patch.
+
+commit 517df6fedc88af3f871cf827a62ef1a1a2073645
+Author: Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>
+Date:   Thu Mar 27 09:49:26 2008 -0400
+
+    Add down_spin()
+    
+    ia64 would like to use a semaphore in flush_tlb_all() as it can have
+    multiple tokens.  Unfortunately, it's currently nested inside a spinlock,
+    so they can't sleep.  down_spin() is the cheapest solution to implement.
+    
+    Signed-off-by: Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+    Signed-off-by: Matthew Wilcox <willy-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
+
+diff --git a/include/linux/semaphore.h b/include/linux/semaphore.h
+index a7125da..13b5f32 100644
+--- a/include/linux/semaphore.h
++++ b/include/linux/semaphore.h
+@@ -78,6 +78,14 @@ extern int __must_check down_trylock(struct semaphore *sem);
+ extern int __must_check down_timeout(struct semaphore *sem, long jiffies);
+ 
+ /*
++ * As down(), except this function will spin waiting for the semaphore
++ * instead of sleeping.  It is safe to use while holding a spinlock or
++ * with interrupts disabled.  It should not be called from interrupt
++ * context as this may lead to deadlocks.
++ */
++extern void down_spin(struct semaphore *sem);
++
++/*
+  * Release the semaphore.  Unlike mutexes, up() may be called from any
+  * context and even by tasks which have never called down().
+  */
+diff --git a/kernel/semaphore.c b/kernel/semaphore.c
+index bef977b..a242d87 100644
+--- a/kernel/semaphore.c
++++ b/kernel/semaphore.c
+@@ -26,6 +26,7 @@ static noinline void __down(struct semaphore *sem);
+ static noinline int __down_interruptible(struct semaphore *sem);
+ static noinline int __down_killable(struct semaphore *sem);
+ static noinline int __down_timeout(struct semaphore *sem, long jiffies);
++static noinline void __down_spin(struct semaphore *sem, unsigned long flags);
+ static noinline void __up(struct semaphore *sem);
+ 
+ void down(struct semaphore *sem)
+@@ -117,6 +118,20 @@ int down_timeout(struct semaphore *sem, long jiffies)
+ }
+ EXPORT_SYMBOL(down_timeout);
+ 
++void down_spin(struct semaphore *sem)
++{
++       unsigned long flags;
++
++       spin_lock_irqsave(&sem->lock, flags);
++       if (likely(sem->count > 0)) {
++               sem->count--;
++               spin_unlock_irqrestore(&sem->lock, flags);
++       } else {
++               __down_spin(sem, flags);
++       }
++}
++EXPORT_SYMBOL(down_spin);
++
+ void up(struct semaphore *sem)
+ {
+        unsigned long flags;
+@@ -197,6 +212,20 @@ static noinline int __sched __down_timeout(struct semaphore
+        return __down_common(sem, TASK_UNINTERRUPTIBLE, jiffies);
+ }
+ 
++static noinline void __sched __down_spin(struct semaphore *sem,
++                                                       unsigned long flags)
++{
++       struct semaphore_waiter waiter;
++
++       list_add_tail(&waiter.list, &sem->wait_list);
++       waiter.task = current;
++       waiter.up = 0;
++
++       spin_unlock_irqrestore(&sem->lock, flags);
++       while (!waiter.up)
++               cpu_relax();
++}
++
+ static noinline void __sched __up(struct semaphore *sem)
+ {
+        struct semaphore_waiter *waiter = list_first_entry(&sem->wait_list,
+
+
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
