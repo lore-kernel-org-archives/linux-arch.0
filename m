@@ -1,38 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:34403 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752015AbYC0XOf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 Mar 2008 19:14:35 -0400
-Date: Thu, 27 Mar 2008 16:14:14 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] ptrace: arch_ptrace cleanup
-In-Reply-To: <20080327230623.969FF26FA1C@magilla.localdomain>
-Message-ID: <alpine.LFD.1.00.0803271612360.14670@woody.linux-foundation.org>
-References: <20080327230623.969FF26FA1C@magilla.localdomain>
+Received: from mx1.redhat.com ([66.187.233.31]:41703 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755905AbYC1Cd1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 27 Mar 2008 22:33:27 -0400
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+From: Roland McGrath <roland@redhat.com>
+Subject: Re: [PATCH] ptrace: arch_ptrace cleanup
+In-Reply-To: Linus Torvalds's message of  Thursday, 27 March 2008 16:14:14 -0700 <alpine.LFD.1.00.0803271612360.14670@woody.linux-foundation.org>
+References: <20080327230623.969FF26FA1C@magilla.localdomain>
+	<alpine.LFD.1.00.0803271612360.14670@woody.linux-foundation.org>
+Message-ID: <20080328023155.71B6626FA1C@magilla.localdomain>
+Date: Thu, 27 Mar 2008 19:31:55 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20080327231414.FpCMUJEdvQkqwtlCRSCDyL94QceSelf-y5L61eb90xU@z>
+Message-ID: <20080328023155.N8UqJVPA1TlnppMP6evr22dv7kAdwG_tAJn7gXQP1yg@z>
+
+> I wanted to know if there was some actual technical point to it, and never 
+> got a reply to that. 
+
+I thought I did answer that.  But I will again.  Yes, it's preemptive.
+You won't gain anything right now.  That doesn't make it "churn for
+churn's sake".  (For Pete's sake, you think I do this for fun?)
+
+One of these days I will post substantial core ptrace changes.  I don't
+know what these are yet, but I know it's likely they will need to change
+what's passed between sys_ptrace and ptrace_request/ptrace_resume.  We
+can expect that there will be churn in that code while we hash out how
+it should be.  Doing this arch patch first means that none of that later
+churn will involve changing arch_ptrace back and forth while the
+non-arch code gets settled.
+
+If this goes in early after 2.6.25, there will be ample opportunity to
+hack on and hash out core changes with lots of flux and not worry about
+arch conflicts.  Different people's versions can fall in and out of -mm
+without juggling arch fixups in each variant, etc.  It's really for the
+benefit of those of us who are exchanging lots of patches in this area
+before they are ready for you to merge.
+
+In short, it is cleaner if the arch calls only deal with the cases they
+know how to handle, including knowing what the control flow or state
+shared between pieces of non-arch code might be.  If you don't buy it,
+fine.  Take it or don't.  The first time I have new code to submit that
+is cleanest if it can break every ptrace_request caller, I'll make the
+first patch in that series (maybe identical to this one) take arch_ptrace
+out of the call graph for non-arch cases with the comment "so we never
+have to break every arch_ptrace for arch-irrelevant changes *again*".
 
 
-
-On Thu, 27 Mar 2008, Roland McGrath wrote:
->
-> This intends to remove the last bit of entanglement with core ptrace
-> implementation details in arch code's arch_ptrace and arch_compat_ptrace.
-
-So I think this has a nicer calling convention, but you never answered the 
-question about what the *point* of this all is.
-
-This is _still_ uglier than what we already have, which is to just have 
-the code call "[compat_]ptrace_request()" for any cases they don't 
-recognize.
-
-I wanted to know if there was some actual technical point to it, and never 
-got a reply to that. 
-
-			Linus
+Thanks,
+Roland
