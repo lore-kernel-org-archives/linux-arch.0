@@ -1,32 +1,48 @@
-From: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Subject: Re: What if a TLB flush needed to sleep?
-Date: Fri, 28 Mar 2008 10:59:31 +0100
-Message-ID: <1206698371.8514.608.camel@twins>
-References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com>
-	 <Pine.LNX.4.64.0803261222090.31000@schroedinger.engr.sgi.com>
-	 <alpine.LFD.1.00.0803262121440.3781@apollo.tec.linutronix.de>
-	 <Pine.LNX.4.64.0803261817110.1115@schroedinger.engr.sgi.com>
-	 <1206624052.8514.570.camel@twins>
-	 <Pine.LNX.4.64.0803271143540.7531@schroedinger.engr.sgi.com>
+From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [patch 2/2]: introduce fast_gup
+Date: Fri, 28 Mar 2008 11:01:16 +0100
+Message-ID: <20080328100116.GH12346@kernel.dk>
+References: <20080328025455.GA8083@wotan.suse.de> <20080328030023.GC8083@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <Pine.LNX.4.64.0803271143540.7531-RYO/mD75kfhx2SFC9UQUAuF7EQX82lMiAL8bYrjMMd8@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20080328030023.GC8083-B4tOwbsTzaBolqkO4TVVkw@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <clameter-sJ/iWh9BUns@public.gmane.org>
-Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "Luck, Tony" <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, shaggy-V7BBcbaFuwjMbYB6QlFGEg@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
 
-On Thu, 2008-03-27 at 11:44 -0700, Christoph Lameter wrote:
-> On Thu, 27 Mar 2008, Peter Zijlstra wrote:
+On Fri, Mar 28 2008, Nick Piggin wrote:
 > 
-> > confusion between semaphores and rwsems
-> 
-> rwsem is not a semaphore despite its name? What do you want to call it 
-> then?
+> Introduce a new "fast_gup" (for want of a better name right now) which
+> is basically a get_user_pages with a less general API (but still tends to
+> be suited to the common case):
 
-Its not a real counting semaphore, a sleeping rw lock might be a better
-name as opposed to the contradition rw-mutex :-)
+I did some quick tests here with two kernels - baseline was current -git
+with the io cpu affinity stuff, nick is that same base but with your
+fast_gup() applied. The test run was meant to show the best possible
+scenario, 1 thread per disk (11 in total) with 4kb block size. Each
+thread used async O_DIRECT reads, queue depth was 64.
 
-But lets just call it a rwsem; we all know what that is.
+For each kernel, a=0 means that completions were done normally and
+a=1 means that completions were moved to the submitter. Total
+runtime for each iteration is ~20 seconds, each test was run 3 times and
+the scores averaged (very little deviation was seen between runs).
+
+Kernel             bw         usr(sec)       sys(sec)           bw/sys
+----------------------------------------------------------------------
+baseline,a=0    306MiB/s     3.490          14.308              21.39
+baseline,a=1    309MiB/s     3.717          13.718              22.53
+nick,a=0        310MiB/s     3.669          13.804              22.46
+nick,a=1        311MiB/s     3.686          13.279              23.42
+
+That last number is just bandwidth/systime. So baseline vs your patch
+gets about 5% better bw/sys utilization. fast_gup() + io affinity is
+about 9.5% better bw/sys.
+
+The system is just a puny 2-way x86-64, two sockets with HT enabled. So
+I'd say the results look quite good!
+
+-- 
+Jens Axboe
