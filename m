@@ -1,38 +1,40 @@
-From: Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>
+From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
 Subject: Re: down_spin() implementation
-Date: Fri, 28 Mar 2008 07:17:50 -0600
-Message-ID: <20080328131750.GT16721@parisc-linux.org>
-References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com> <20080326123239.GG16721@parisc-linux.org> <1FE6DD409037234FAB833C420AA843ECE9EB1C@orsmsx424.amr.corp.intel.com> <20080327141508.GL16721@parisc-linux.org> <20080328125104.GK12346@kernel.dk>
+Date: Fri, 28 Mar 2008 14:24:10 +0100
+Message-ID: <20080328132410.GM12346@kernel.dk>
+References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com> <20080326123239.GG16721@parisc-linux.org> <1FE6DD409037234FAB833C420AA843ECE9EB1C@orsmsx424.amr.corp.intel.com> <20080327141508.GL16721@parisc-linux.org> <20080328125104.GK12346@kernel.dk> <20080328131750.GT16721@parisc-linux.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20080328125104.GK12346-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>
+In-Reply-To: <20080328131750.GT16721-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+To: Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>
 Cc: "Luck, Tony" <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-On Fri, Mar 28, 2008 at 01:51:04PM +0100, Jens Axboe wrote:
-> It used to be illegal to pass flags as parameters. IIRC, sparc did some
-> trickery with it. That may still be the case, I haven't checked in a
-> long time.
+On Fri, Mar 28 2008, Matthew Wilcox wrote:
+> On Fri, Mar 28, 2008 at 01:51:04PM +0100, Jens Axboe wrote:
+> > It used to be illegal to pass flags as parameters. IIRC, sparc did some
+> > trickery with it. That may still be the case, I haven't checked in a
+> > long time.
+> 
+> That problem was removed before 2.6 started, iirc.  At least the chapter
+> on 'The Fucked Up Sparc' [1] was removed before 2.6.12-rc2 (the
+> beginning of git history and I can't be bothered to pinpoint it more
+> precisely).
 
-That problem was removed before 2.6 started, iirc.  At least the chapter
-on 'The Fucked Up Sparc' [1] was removed before 2.6.12-rc2 (the
-beginning of git history and I can't be bothered to pinpoint it more
-precisely).
+OK
 
-> Why not just fold __down_spin() into down_spin() and get rid of that
-> nasty anyway?
+> > Why not just fold __down_spin() into down_spin() and get rid of that
+> > nasty anyway?
+> 
+> Could have done.  It's moot now that Nick's pointed out how unsafe it
+> is to mix down_spin() with plain down().
+> 
+> [1] http://www.kernel.org/pub/linux/kernel/people/rusty/kernel-locking/x467.html
 
-Could have done.  It's moot now that Nick's pointed out how unsafe it
-is to mix down_spin() with plain down().
-
-[1] http://www.kernel.org/pub/linux/kernel/people/rusty/kernel-locking/x467.html
+Yeah saw that after replying, so no problem then :)
 
 -- 
-Intel are signing my paycheques ... these opinions are still mine
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+Jens Axboe
