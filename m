@@ -1,48 +1,80 @@
-From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [patch 2/2]: introduce fast_gup
-Date: Fri, 28 Mar 2008 11:01:16 +0100
-Message-ID: <20080328100116.GH12346@kernel.dk>
-References: <20080328025455.GA8083@wotan.suse.de> <20080328030023.GC8083@wotan.suse.de>
+From: Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>
+Subject: Re: down_spin() implementation
+Date: Fri, 28 Mar 2008 06:45:17 -0600
+Message-ID: <20080328124517.GQ16721@parisc-linux.org>
+References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com> <1FE6DD409037234FAB833C420AA843ECE9EB1C@orsmsx424.amr.corp.intel.com> <20080327141508.GL16721@parisc-linux.org> <200803281101.25037.nickpiggin@yahoo.com.au>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20080328030023.GC8083-B4tOwbsTzaBolqkO4TVVkw@public.gmane.org>
+In-Reply-To: <200803281101.25037.nickpiggin-/E1597aS9LT0CCvOHzKKcA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, shaggy-V7BBcbaFuwjMbYB6QlFGEg@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
+To: Nick Piggin <nickpiggin-/E1597aS9LT0CCvOHzKKcA@public.gmane.org>
+Cc: "Luck, Tony" <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-On Fri, Mar 28 2008, Nick Piggin wrote:
+On Fri, Mar 28, 2008 at 11:01:24AM +1100, Nick Piggin wrote:
+> Uhm, how do you use this exactly? All other holders of this
+> semaphore must have preempt disabled and not sleep, right? (and
+> so you need a new down() that disables preempt too)
+
+Ah, I see what you're saying.  The deadlock would be (on a single CPU
+machine), task A holding the semaphore, being preempted, task B taking
+a spinlock (thus non-preemptable), then calling down_spin() which will
+never succeed.
+
+That hadn't occurred to me -- I'm not used to thinking about preemption.
+I considered interrupt context and saw how that would deadlock, so just
+put a note in the documentation that it wasn't usable from interrupts.
+
+So it makes little sense to add this to semaphores.  Better to introduce
+a spinaphore, as you say.
+
+> struct {
+>   atomic_t cur;
+>   int max;
+> } ss_t;
 > 
-> Introduce a new "fast_gup" (for want of a better name right now) which
-> is basically a get_user_pages with a less general API (but still tends to
-> be suited to the common case):
+> void spin_init(ss_t *ss, int max)
+> {
+> 	&ss->cur = ATOMIC_INIT(0);
+> 	&ss->max = max;
+> }
+> 
+> void spin_take(ss_t *ss)
+> {
+>   preempt_disable();
+>   while (unlikely(!atomic_add_unless(&ss->cur, 1, &ss->max))) {
+>     while (atomic_read(&ss->cur) == ss->max)
+>       cpu_relax();
+>   }
+> }
 
-I did some quick tests here with two kernels - baseline was current -git
-with the io cpu affinity stuff, nick is that same base but with your
-fast_gup() applied. The test run was meant to show the best possible
-scenario, 1 thread per disk (11 in total) with 4kb block size. Each
-thread used async O_DIRECT reads, queue depth was 64.
+I think we can do better here with:
 
-For each kernel, a=0 means that completions were done normally and
-a=1 means that completions were moved to the submitter. Total
-runtime for each iteration is ~20 seconds, each test was run 3 times and
-the scores averaged (very little deviation was seen between runs).
+	atomic_set(max);
 
-Kernel             bw         usr(sec)       sys(sec)           bw/sys
-----------------------------------------------------------------------
-baseline,a=0    306MiB/s     3.490          14.308              21.39
-baseline,a=1    309MiB/s     3.717          13.718              22.53
-nick,a=0        310MiB/s     3.669          13.804              22.46
-nick,a=1        311MiB/s     3.686          13.279              23.42
+and
 
-That last number is just bandwidth/systime. So baseline vs your patch
-gets about 5% better bw/sys utilization. fast_gup() + io affinity is
-about 9.5% better bw/sys.
+	while (unlikely(!atomic_add_unless(&ss->cur, -1, 0)))
+		while (atomic_read(&ss->cur) == 0)
+			cpu_relax();
 
-The system is just a puny 2-way x86-64, two sockets with HT enabled. So
-I'd say the results look quite good!
+It still spins on the spinaphore itself rather than on a local cacheline,
+so there's room for improvement.  But it's not clear whether it'd be
+worth it.
+
+> About the same number as down_spin(). And it is much harder to
+> misuse. So LOC isn't such a great argument for this kind of thing.
+
+LOC wasn't really my argument -- I didn't want to introduce a new data
+structure unnecessarily.  But the pitfalls (that I hadn't seen) of
+mixing down_spin() into semaphores are just too awful.
+
+I'll pop this patch off the stack of semaphore patches.  Thanks.
 
 -- 
-Jens Axboe
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
