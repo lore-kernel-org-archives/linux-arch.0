@@ -1,37 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([143.182.124.21]:14877 "EHLO mga03.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755114AbYC1VST convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Mar 2008 17:18:19 -0400
-Content-class: urn:content-classes:message
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:50362 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756570AbYC1Vl3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 28 Mar 2008 17:41:29 -0400
+Date: Fri, 28 Mar 2008 14:40:46 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [patch 06/24] kvm: provide kvm.h for all architecture: fixes
+ headers_install
+In-Reply-To: <200803282115.m2SLFscm010265@imap1.linux-foundation.org>
+Message-ID: <alpine.LFD.1.00.0803281435090.14670@woody.linux-foundation.org>
+References: <200803282115.m2SLFscm010265@imap1.linux-foundation.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Subject: RE: down_spin() implementation
-Date: Fri, 28 Mar 2008 14:16:55 -0700
-Message-ID: <1FE6DD409037234FAB833C420AA843ECF237C0@orsmsx424.amr.corp.intel.com>
-In-reply-to: <20080328124517.GQ16721@parisc-linux.org>
-References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com> <1FE6DD409037234FAB833C420AA843ECE9EB1C@orsmsx424.amr.corp.intel.com> <20080327141508.GL16721@parisc-linux.org> <200803281101.25037.nickpiggin@yahoo.com.au> <20080328124517.GQ16721@parisc-linux.org>
-From: "Luck, Tony" <tony.luck@intel.com>
+Content-Type: TEXT/PLAIN; charset=X-UNKNOWN
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>, Nick Piggin <nickpiggin@yahoo.com.au>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20080328211655.LokatlyhiqbR0S_TmSGiFvD5Z0UKJNoteqae1Nadlak@z>
+To: akpm@linux-foundation.org
+Cc: borntraeger@de.ibm.com, avi@qumranet.com, dwmw2@infradead.org, linux-arch@vger.kernel.org, sam@ravnborg.org
+Message-ID: <20080328214046.ihb2_ay_l527kW2kFnB6sJJvyT-IarEfJoZcyIv8kkY@z>
 
-> So it makes little sense to add this to semaphores.  Better to introduce
-> a spinaphore, as you say.
 
-> struct {
->   atomic_t cur;
->   int max;
-> } ss_t;
 
-Could this API sneak into the bottom of one or the other of
-linux/include/{spinlock,semaphore}.h ... or should it get its own
-spinaphore.h file?
+On Fri, 28 Mar 2008, akpm@linux-foundation.org wrote:
+> 
+> Currently include/linux/kvm.h is not considered by make headers_install,
+> because Kbuild cannot handle " unifdef-$(CONFIG_FOO) += foo.h.  This problem
+> was introduced by 040922c04cf2c8ac70be2e88a8a9614ecdb41d2e, which makes this
+> an 2.6.25 regression.
 
-Or should I follow Alan's earlier advice and keep this as an ia64
-only thing (since I'll be the only user).
+That makes no sense. Commit 040922c04cf2c8ac70be2e88a8a9614ecdb41d2e is 
+"include falloc.h in header-y", and seems to have nothing to do with 
+kvm.h.
 
--Tony
+I absolutely detest how people put git commit SHA1's without any other 
+information anyway, but this is a classic example of why you shouldn't do 
+that: if somebody had actually bothered to look at what the SHA1 was, that 
+person would probably have realized that the SHA1 was wrong.
+
+So please - add the one-liner to all SHA1 ones, so that non-git people see 
+what it is all about, and so that people who just read the commit log can 
+make sense of it. And in trying to make sense of it, it can become obvious 
+that it doesn't actually make any sense!
+
+Of if the addition of falloc.h really _does_ matter, can somebody explain 
+it to me?
+
+		Linus
