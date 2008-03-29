@@ -1,45 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:39551 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753911AbYC2Axs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 28 Mar 2008 20:53:48 -0400
-Date: Fri, 28 Mar 2008 17:53:16 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 2/4] set_restore_sigmask TIF_SIGPENDING
-In-Reply-To: <20080329001341.7F93826FA1D@magilla.localdomain>
-Message-ID: <alpine.LFD.1.00.0803281746480.14670@woody.linux-foundation.org>
-References: <20080329001230.D013726FA1D@magilla.localdomain> <20080329001341.7F93826FA1D@magilla.localdomain>
+Received: from n9.bullet.re3.yahoo.com ([68.142.237.94]:21147 "HELO
+	n9.bullet.re3.yahoo.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1751571AbYC2Bd3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Mar 2008 21:33:29 -0400
+From: Nick Piggin <nickpiggin@yahoo.com.au>
+Subject: Re: down_spin() implementation
+Date: Sat, 29 Mar 2008 12:04:36 +1100
+References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com> <200803281101.25037.nickpiggin@yahoo.com.au> <20080328124517.GQ16721@parisc-linux.org>
+In-Reply-To: <20080328124517.GQ16721@parisc-linux.org>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-ID: <200803291204.36855.nickpiggin@yahoo.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390@vger.kernel.org, tony.luck@intel.com, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20080329005316.FapSdRlfxiEOILe9X-ybCNqewwR7MyPsFvuLZSZZHJU@z>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: "Luck, Tony" <tony.luck@intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20080329010436.ero4TdNCVBky7cFNISJGBBkab-wt0b6WKBIghXI_9Q4@z>
 
+On Friday 28 March 2008 23:45, Matthew Wilcox wrote:
 
-
-On Fri, 28 Mar 2008, Roland McGrath wrote:
+> I think we can do better here with:
 >
-> Set TIF_SIGPENDING in set_restore_sigmask.  This lets arch code take
-> TIF_RESTORE_SIGMASK out of the set of bits that will be noticed on
-> return to user mode.  On some machines those bits are scarce, and we
-> can free this unneeded one up for other uses.
+> 	atomic_set(max);
+>
+> and
+>
+> 	while (unlikely(!atomic_add_unless(&ss->cur, -1, 0)))
+> 		while (atomic_read(&ss->cur) == 0)
+> 			cpu_relax();
 
-Hmm. That probably means that TIF_RESTORE_SIGMASK shouldn't be a "TIF" 
-flag at all, but a "TS" ("thread status") flag.
+Yeah of course! That's much better ;)
 
-The TS flags are faster, because they are thread-synchronous and do not 
-need atomic accesses (ie they are purely thread-local in setting, testing 
-and clearing).
+I'd say Tony could just open code it for now, which would get him
+up and running quickly... although if anybody gets keen to add it
+as a generic API then I wouldn't object.
 
-Of course, it may well not be worth it. Unlike the TIF flags, the TS flags 
-have been architecture-specific and I don't think all architectures even 
-do them (x86 uses them for FP state bits and stuff like that).
-
-I guess TIF_RESTORE_SIGMASK is never *so* performance-critical that we'd 
-care about the difference between a single cycle (approx) for a non-atomic 
-"or" into memory and an atomic bitop (~50 cycles or so). 
-
-			Linus
