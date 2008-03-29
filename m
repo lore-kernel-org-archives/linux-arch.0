@@ -1,39 +1,34 @@
-From: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Subject: Re: [PATCH 2/4] set_restore_sigmask TIF_SIGPENDING
-Date: Fri, 28 Mar 2008 17:53:16 -0700 (PDT)
-Message-ID: <alpine.LFD.1.00.0803281746480.14670@woody.linux-foundation.org>
-References: <20080329001230.D013726FA1D@magilla.localdomain> <20080329001341.7F93826FA1D@magilla.localdomain>
+From: Nick Piggin <nickpiggin-/E1597aS9LT0CCvOHzKKcA@public.gmane.org>
+Subject: Re: down_spin() implementation
+Date: Sat, 29 Mar 2008 12:04:36 +1100
+Message-ID: <200803291204.36855.nickpiggin@yahoo.com.au>
+References: <1FE6DD409037234FAB833C420AA843ECE9DF60@orsmsx424.amr.corp.intel.com> <200803281101.25037.nickpiggin@yahoo.com.au> <20080328124517.GQ16721@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20080329001341.7F93826FA1D-nL1rrgvulkcB9AHHLWeGtNQXobZC6xk2@public.gmane.org>
+In-Reply-To: <20080328124517.GQ16721-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
+Content-Disposition: inline
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Martin Schwidefsky <schwidefsky-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>
+Cc: "Luck, Tony" <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
+On Friday 28 March 2008 23:45, Matthew Wilcox wrote:
 
-
-On Fri, 28 Mar 2008, Roland McGrath wrote:
+> I think we can do better here with:
 >
-> Set TIF_SIGPENDING in set_restore_sigmask.  This lets arch code take
-> TIF_RESTORE_SIGMASK out of the set of bits that will be noticed on
-> return to user mode.  On some machines those bits are scarce, and we
-> can free this unneeded one up for other uses.
+> 	atomic_set(max);
+>
+> and
+>
+> 	while (unlikely(!atomic_add_unless(&ss->cur, -1, 0)))
+> 		while (atomic_read(&ss->cur) == 0)
+> 			cpu_relax();
 
-Hmm. That probably means that TIF_RESTORE_SIGMASK shouldn't be a "TIF" 
-flag at all, but a "TS" ("thread status") flag.
+Yeah of course! That's much better ;)
 
-The TS flags are faster, because they are thread-synchronous and do not 
-need atomic accesses (ie they are purely thread-local in setting, testing 
-and clearing).
-
-Of course, it may well not be worth it. Unlike the TIF flags, the TS flags 
-have been architecture-specific and I don't think all architectures even 
-do them (x86 uses them for FP state bits and stuff like that).
-
-I guess TIF_RESTORE_SIGMASK is never *so* performance-critical that we'd 
-care about the difference between a single cycle (approx) for a non-atomic 
-"or" into memory and an atomic bitop (~50 cycles or so). 
-
-			Linus
+I'd say Tony could just open code it for now, which would get him
+up and running quickly... although if anybody gets keen to add it
+as a generic API then I wouldn't object.
