@@ -1,28 +1,33 @@
-From: Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
-Subject: Re: [PATCH 2/4] set_restore_sigmask TIF_SIGPENDING
-Date: Sun, 30 Mar 2008 21:53:07 +1100
-Message-ID: <18415.28947.208842.304790@cargo.ozlabs.ibm.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 3/4] s390 renumber TIF_RESTORE_SIGMASK
+Date: Mon, 31 Mar 2008 09:53:26 +0200
+Message-ID: <1206950006.26149.0.camel@localhost>
 References: <20080329001230.D013726FA1D@magilla.localdomain>
-	<20080329001341.7F93826FA1D@magilla.localdomain>
-	<alpine.LFD.1.00.0803281746480.14670@woody.linux-foundation.org>
+	 <20080329001418.D5F3526FA1D@magilla.localdomain>
+Reply-To: schwidefsky@de.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <alpine.LFD.1.00.0803281746480.14670-5CScLwifNT1QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Roland McGrath <roland-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Martin Schwidefsky <schwidefsky-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <20080329001418.D5F3526FA1D@magilla.localdomain>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Roland McGrath <roland@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-s390@vger.kernel.org, tony.luck@intel.com, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Linus Torvalds writes:
+On Fri, 2008-03-28 at 17:14 -0700, Roland McGrath wrote:
+> TIF_RESTORE_SIGMASK no longer needs to be in the _TIF_WORK_* masks.
+> Those low bits are scarce, and are all used up now.
+> Renumber TIF_RESTORE_SIGMASK to free one up.
+> 
+> Signed-off-by: Roland McGrath <roland@redhat.com>
 
-> Of course, it may well not be worth it. Unlike the TIF flags, the TS flags 
-> have been architecture-specific and I don't think all architectures even 
-> do them (x86 uses them for FP state bits and stuff like that).
+Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-Powerpc has a "local_flags" field.  I don't mind changing it if we are
-going to have a consistent name across architectures, but "status" (as
-x86 uses) seems a bit nondescript to me.
+-- 
+blue skies,
+  Martin.
 
-Paul.
+"Reality continues to ruin my life." - Calvin.
+
+
