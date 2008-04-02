@@ -1,64 +1,329 @@
-From: "Kevin D. Kissell" <kevink@mips.com>
-Subject: Re: max_pfn: Uninitialized, or Deprecated?
-Date: Wed, 02 Apr 2008 09:57:31 +0200
-Message-ID: <47F33C6B.9050704@mips.com>
-References: <47F1F349.7010503@mips.com> <Pine.LNX.4.64.0804020910290.14383@anakin>
+From: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
+Subject: [patch 01/13] kvm: provide kvm.h for all architecture: fixes headers_install
+Date: Wed, 02 Apr 2008 13:04:40 -0700
+Message-ID: <200804022004.m32K4epY031910@imap1.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <Pine.LNX.4.64.0804020910290.14383@anakin>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux/MIPS Development <linux-mips@linux-mips.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
+Cc: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org, avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org, dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org
 
-The patch you point to will maybe solve some initrd problems,
-but I think it's treating a symptom rather than the cause.  There
-is other code, both generic and MIPS-specific (the APRP stuff),
-that assumes that max_pfn is meaningful.  Either we have to hunt
-down and kill those instances (not really hard, but requiring several
-maintainers working in concert) or we see to it that MIPS provides
-a usable value.  A value of 0 causes the system to treat the beginning
-of kseg0 as "out of band" memory, which may work some of the time
-for MIPSxxR2 processors, where the cacheable execption vector
-base is set up to be beyond the kernel image, but for older processors
-where the vectors are at the beginning of kseg0...
+=46rom: Christian Borntraeger <borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>
 
-          Regards,
+Currently include/linux/kvm.h is not considered by make headers_install=
+,
+because Kbuild cannot handle " unifdef-$(CONFIG_FOO) +=3D foo.h.  This =
+problem
+was introduced by=20
 
-          Kevin K.
+commit fb56dbb31c4738a3918db81fd24da732ce3b4ae6
+Author: Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>
+Date:   Sun Dec 2 10:50:06 2007 +0200
 
-Geert Uytterhoeven wrote:
-> On Tue, 1 Apr 2008, Kevin D. Kissell wrote:
->   
->> Once upon a time, the global max_pfn value was set up as part of
->> bootmem_init(), but this seems to have been dropped in favor of
->> establishing max_low_pfn, I suppose to be clear that it's the max
->> non-highmem PFN.  However, the global max_pfn gets used in
->> the MIPS APRP support code,  and also in places like
->> block/blk-settings.c.  Is the use of max_pfn supposed to be
->> deprecated, such that we consider blk-settings.c to be broken
->> and change arch/mips/kernel/vpe.c to use max_low_pfn, or
->> ought we assign  max_pfn = max_low_pfn in bootmem_init()?
->>     
->
-> I noticed this too when investigating why initrds no longer worked on
-> m68k (Fix in http://lkml.org/lkml/2007/12/23/36, still not in mainline).
->
-> Apparently a value of max_pfn = 0 is OK, as several architectures
-> (including MIPS and m68k) don't touch it?
->
-> Gr{oetje,eeting}s,
->
-> 						Geert
->
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
->
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
-> 							    -- Linus Torvalds
->
->   
+    KVM: Export include/linux/kvm.h only if $ARCH actually supports KVM
+   =20
+    Currently, make headers_check barfs due to <asm/kvm.h>, which <linu=
+x/kvm.h>
+    includes, not existing.  Rather than add a zillion <asm/kvm.h>s, ex=
+port kvm.
+    only if the arch actually supports it.
+   =20
+    Signed-off-by: Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>
+
+which makes this an 2.6.25 regression.
+
+One way of solving the issue is to enhance Kbuild, but Avi and David co=
+nviced
+me, that changing headers_install is not the way to go.  This patch cha=
+nges
+the definition for linux/kvm.h to unifdef-y.
+
+If =A0unifdef-y is used for linux/kvm.h "make headers_check" will fail =
+on all
+architectures without asm/kvm.h.  Therefore, this patch also provides
+asm/kvm.h on all architectures.
+
+Signed-off-by: Christian Borntraeger <borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>
+Acked-by: Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>
+Cc: Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org
+Cc: David Woodhouse <dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Cc: <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Signed-off-by: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+---
+
+ include/asm-alpha/kvm.h        |    6 ++++++
+ include/asm-arm/kvm.h          |    6 ++++++
+ include/asm-avr32/kvm.h        |    6 ++++++
+ include/asm-blackfin/kvm.h     |    6 ++++++
+ include/asm-cris/kvm.h         |    6 ++++++
+ include/asm-frv/kvm.h          |    6 ++++++
+ include/asm-generic/Kbuild.asm |    2 ++
+ include/asm-h8300/kvm.h        |    6 ++++++
+ include/asm-ia64/kvm.h         |    6 ++++++
+ include/asm-m32r/kvm.h         |    6 ++++++
+ include/asm-m68k/kvm.h         |    6 ++++++
+ include/asm-m68knommu/kvm.h    |    6 ++++++
+ include/asm-mips/kvm.h         |    6 ++++++
+ include/asm-mn10300/kvm.h      |    6 ++++++
+ include/asm-parisc/kvm.h       |    6 ++++++
+ include/asm-powerpc/kvm.h      |    6 ++++++
+ include/asm-s390/kvm.h         |    6 ++++++
+ include/asm-sh/kvm.h           |    6 ++++++
+ include/asm-sparc/kvm.h        |    6 ++++++
+ include/asm-sparc64/kvm.h      |    6 ++++++
+ include/asm-um/kvm.h           |    6 ++++++
+ include/asm-v850/kvm.h         |    6 ++++++
+ include/asm-xtensa/kvm.h       |    6 ++++++
+ include/linux/Kbuild           |    2 +-
+ 24 files changed, 135 insertions(+), 1 deletion(-)
+
+diff -puN /dev/null include/asm-alpha/kvm.h
+--- /dev/null
++++ a/include/asm-alpha/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_ALPHA_H
++#define __LINUX_KVM_ALPHA_H
++
++/* alpha does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-arm/kvm.h
+--- /dev/null
++++ a/include/asm-arm/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_ARM_H
++#define __LINUX_KVM_ARM_H
++
++/* arm does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-avr32/kvm.h
+--- /dev/null
++++ a/include/asm-avr32/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_AVR32_H
++#define __LINUX_KVM_AVR32_H
++
++/* avr32 does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-blackfin/kvm.h
+--- /dev/null
++++ a/include/asm-blackfin/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_BLACKFIN_H
++#define __LINUX_KVM_BLACKFIN_H
++
++/* blackfin does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-cris/kvm.h
+--- /dev/null
++++ a/include/asm-cris/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_CRIS_H
++#define __LINUX_KVM_CRIS_H
++
++/* cris does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-frv/kvm.h
+--- /dev/null
++++ a/include/asm-frv/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_FRV_H
++#define __LINUX_KVM_FRV_H
++
++/* frv does not support KVM */
++
++#endif
+diff -puN include/asm-generic/Kbuild.asm~kvm-provide-kvmh-for-all-archi=
+tecture-fixes-headers_install include/asm-generic/Kbuild.asm
+--- a/include/asm-generic/Kbuild.asm~kvm-provide-kvmh-for-all-architect=
+ure-fixes-headers_install
++++ a/include/asm-generic/Kbuild.asm
+@@ -1,3 +1,5 @@
++header-y  +=3D kvm.h
++
+ ifeq ($(wildcard include/asm-$(SRCARCH)/a.out.h),include/asm-$(SRCARCH=
+)/a.out.h)
+ unifdef-y +=3D a.out.h
+ endif
+diff -puN /dev/null include/asm-h8300/kvm.h
+--- /dev/null
++++ a/include/asm-h8300/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_H8300_H
++#define __LINUX_KVM_H8300_H
++
++/* h8300 does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-ia64/kvm.h
+--- /dev/null
++++ a/include/asm-ia64/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_IA64_H
++#define __LINUX_KVM_IA64_H
++
++/* ia64 does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-m32r/kvm.h
+--- /dev/null
++++ a/include/asm-m32r/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_M32R_H
++#define __LINUX_KVM_M32R_H
++
++/* m32r does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-m68k/kvm.h
+--- /dev/null
++++ a/include/asm-m68k/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_M68K_H
++#define __LINUX_KVM_M68K_H
++
++/* m68k does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-m68knommu/kvm.h
+--- /dev/null
++++ a/include/asm-m68knommu/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_M68KNOMMU_H
++#define __LINUX_KVM_M68KNOMMU_H
++
++/* m68knommu does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-mips/kvm.h
+--- /dev/null
++++ a/include/asm-mips/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_MIPS_H
++#define __LINUX_KVM_MIPS_H
++
++/* mips does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-mn10300/kvm.h
+--- /dev/null
++++ a/include/asm-mn10300/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_MN10300_H
++#define __LINUX_KVM_MN10300_H
++
++/* mn10300 does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-parisc/kvm.h
+--- /dev/null
++++ a/include/asm-parisc/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_PARISC_H
++#define __LINUX_KVM_PARISC_H
++
++/* parisc does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-powerpc/kvm.h
+--- /dev/null
++++ a/include/asm-powerpc/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_POWERPC_H
++#define __LINUX_KVM_POWERPC_H
++
++/* powerpc does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-s390/kvm.h
+--- /dev/null
++++ a/include/asm-s390/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_S390_H
++#define __LINUX_KVM_S390_H
++
++/* s390 does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-sh/kvm.h
+--- /dev/null
++++ a/include/asm-sh/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_SH_H
++#define __LINUX_KVM_SH_H
++
++/* sh does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-sparc/kvm.h
+--- /dev/null
++++ a/include/asm-sparc/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_SPARC_H
++#define __LINUX_KVM_SPARC_H
++
++/* sparc does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-sparc64/kvm.h
+--- /dev/null
++++ a/include/asm-sparc64/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_SPARC64_H
++#define __LINUX_KVM_SPARC64_H
++
++/* sparc64 does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-um/kvm.h
+--- /dev/null
++++ a/include/asm-um/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_UM_H
++#define __LINUX_KVM_UM_H
++
++/* um does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-v850/kvm.h
+--- /dev/null
++++ a/include/asm-v850/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_V850_H
++#define __LINUX_KVM_V850_H
++
++/* v850 does not support KVM */
++
++#endif
+diff -puN /dev/null include/asm-xtensa/kvm.h
+--- /dev/null
++++ a/include/asm-xtensa/kvm.h
+@@ -0,0 +1,6 @@
++#ifndef __LINUX_KVM_XTENSA_H
++#define __LINUX_KVM_XTENSA_H
++
++/* xtensa does not support KVM */
++
++#endif
+diff -puN include/linux/Kbuild~kvm-provide-kvmh-for-all-architecture-fi=
+xes-headers_install include/linux/Kbuild
+--- a/include/linux/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-=
+headers_install
++++ a/include/linux/Kbuild
+@@ -253,7 +253,7 @@ unifdef-y +=3D kd.h
+ unifdef-y +=3D kernelcapi.h
+ unifdef-y +=3D kernel.h
+ unifdef-y +=3D keyboard.h
+-unifdef-$(CONFIG_HAVE_KVM) +=3D kvm.h
++unifdef-y +=3D kvm.h
+ unifdef-y +=3D llc.h
+ unifdef-y +=3D loop.h
+ unifdef-y +=3D lp.h
+_
