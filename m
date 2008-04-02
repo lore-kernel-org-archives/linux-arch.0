@@ -1,29 +1,41 @@
-From: Roland McGrath <roland@redhat.com>
-Subject: Re: [PATCH 2/2] x86 TS_RESTORE_SIGMASK
-Date: Mon, 31 Mar 2008 12:30:09 -0700 (PDT)
-Message-ID: <20080331193009.8524826F8E9@magilla.localdomain>
-References: <20080329001230.D013726FA1D@magilla.localdomain>
-	<20080329001341.7F93826FA1D@magilla.localdomain>
-	<alpine.LFD.1.00.0803281746480.14670@woody.linux-foundation.org>
-	<20080329022408.0DD4726FA1D@magilla.localdomain>
-	<20080329031413.EA38926FA1D@magilla.localdomain>
-	<20080329031451.D2E1226FA1D@magilla.localdomain>
-	<20080331130106.GA15198@elte.hu>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: max_pfn: Uninitialized, or Deprecated?
+Date: Wed, 2 Apr 2008 09:16:52 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0804020910290.14383@anakin>
+References: <47F1F349.7010503@mips.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: Ingo Molnar's message of  Monday, 31 March 2008 15:01:06 +0200 <20080331130106.GA15198@elte.hu>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390@vger.kernel.org, tony.luck@intel.com, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760591AbYDBHRI@vger.kernel.org>
+In-Reply-To: <47F1F349.7010503@mips.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Kevin D. Kissell" <kevink@mips.com>
+Cc: Linux/MIPS Development <linux-mips@linux-mips.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-> the x86 bits look nice - but i guess this all wants to go into 2.6.26 
-> via -mm (or linux-next), due to its cross-arch nature?
+On Tue, 1 Apr 2008, Kevin D. Kissell wrote:
+> Once upon a time, the global max_pfn value was set up as part of
+> bootmem_init(), but this seems to have been dropped in favor of
+> establishing max_low_pfn, I suppose to be clear that it's the max
+> non-highmem PFN.  However, the global max_pfn gets used in
+> the MIPS APRP support code,  and also in places like
+> block/blk-settings.c.  Is the use of max_pfn supposed to be
+> deprecated, such that we consider blk-settings.c to be broken
+> and change arch/mips/kernel/vpe.c to use max_low_pfn, or
+> ought we assign  max_pfn = max_low_pfn in bootmem_init()?
 
-Yes, I would not suggest this change for 2.6.25 at this late date.
+I noticed this too when investigating why initrds no longer worked on
+m68k (Fix in http://lkml.org/lkml/2007/12/23/36, still not in mainline).
 
+Apparently a value of max_pfn = 0 is OK, as several architectures
+(including MIPS and m68k) don't touch it?
 
-Thanks,
-Roland
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
