@@ -1,348 +1,45 @@
-From: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
-Subject: - kvm-provide-kvmh-for-all-architecture-fixes-headers_install.patch removed from -mm tree
-Date: Fri, 04 Apr 2008 11:59:41 -0700
-Message-ID: <200804041859.m34IxfSN004121@imap1.linux-foundation.org>
+From: Mr Drazell Benben <drazell05-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: &#26391;&#22577;
+Date: Sat, 05 Apr 2008 05:10:50 +0300
+Message-ID: <E1Jhxrm-0000Dq-O0@server1.smaris.net>
+Reply-To: mrben07-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org, avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org, dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org, mm-commits-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+
+ &#31169;&#12399;&#22806;&#22269;&#20154;&#12398;&#12362;&#25903;&#25173;&#12356;&#37096;&#38272;drazell&#12505;&#12531;&#12505;&#12531;&#20250;&#38263;&#12399;&#12289;&#31169;&#12364;&#32681;&#21209;&#20184;&#12369;
+&#12395;&#12388;&#12356;&#12390;&#12399;&#12289;&#26368;&#36817;&#12398;&#38283;&#30330;&#12434;&#12362;&#30693;&#12425;&#12379;&#12377;&#12427;&#12392;&#12375;&#12390;&#12289;&#12362;&#23458;&#27096;&#12398;&#12362;&#25903;&#25173;&#12356;&#12399;&#12289;&#12371;&#12398;mornning 
+&#24403;&#31038;&#12398;&#21462;&#32224;&#24441;&#20250;&#12399;&#12289;&#20107;&#20214;&#12398;&#24460;&#12395;&#35328;&#21450;&#12375;&#12390;&#12362;&#12426;&#12289;&#31169;&#12383;&#12385;&#12399;&#12354;&#12394;&#12383;&#12395;&#25903;&#25173;&#12358;&#12371;&#12392;&#12395;&#21512;&#24847;
+&#12381;&#12371;&#12391;&#31169;&#12399;&#12371;&#12428;&#20197;&#19978;&#12398;&#36933;&#24310;&#12394;&#12367;&#24517;&#35201;&#12394;&#22580;&#21512;&#12395;&#20219;&#24847;&#12398;&#12497;&#12540;&#12488;&#12490;&#12540;&#12363;&#12425;&#27714;&#12417;&#12427;
+&#12522;&#12463;&#12456;&#12473;&#12488;&#12375;&#12390;&#12356;&#12383;&#21487;&#33021;&#24615;&#12364;&#12354;&#12427;&#20154;&#12398;&#12383;&#12417;&#12398;&#24773;&#22577;&#12420;&#26009;&#37329;&#12398;&#12362;&#25903;&#25173;&#12356;&#12434;&#12362;&#39000;&#12356;&#12377;&#12427;
+&#22580;&#25152;&#12434;&#21462;&#12427;&#21069;&#12395;&#36578;&#36865;&#12391;&#12365;&#12414;&#12377;&#12290; 
+
+&#12354;&#12394;&#12383;&#12434;&#25505;&#29992;&#12375;&#12383;&#12356;&#12392;&#24605;&#12356;&#12414;&#12377;&#36879;&#26126;&#24615;&#12392;&#35488;&#24847;&#12434;&#25345;&#12387;&#12390;&#12356;&#12427;&#12383;&#12417;&#12289;&#12371;&#12398;&#28857;&#12395;&#38306;&#12375;&#12390;
+&#25945;&#21766;&#25903;&#25588;&#12392;&#12399;&#12289;&#12362;&#23458;&#27096;&#12398;&#12362;&#25903;&#25173;&#12356;&#12398;&#12415;&#20445;&#31649;&#12375;&#12390;&#12362;&#12367;&#12424;&#12358;&#12395;&#12375;&#12390;&#12356;&#12427;&#12398;&#12391;&#12289;&#31169;&#12399;&#20445;&#30041;
+&#38291;&#36949;&#12356;&#12434;&#36991;&#12369;&#12427;&#12383;&#12417;&#12395;&#12289;&#27425;&#12398;&#30906;&#35469;&#12414;&#12383;&#12399;&#36578;&#36865;&#38291;&#36949;&#12387;&#12390;&#12356;&#12427;&#12290;&#22522;&#37329;&#12398;&#21512;&#35336;&#12399;&#12289; 
+&#31859;&#22269;&#19977;&#20116;&#12295; &#12295; &#12295; &#12295; &#12295;&#12489;&#12523;&#65288; 3&#28857;5000000&#31859;&#22269;&#12489;&#12523;&#65289;&#12434;&#35201;&#35531;&#12373;&#12428;&#12383;&#24773;&#22577;
+&#38291;&#36949;&#12356;&#12364;&#12394;&#12356;&#12363;&#12434;&#30906;&#35469;&#12375;&#12390;&#12289;&#12456;&#12521;&#12540;&#12364;&#30330;&#29983;&#12377;&#12427;&#12371;&#12392;&#12399;&#12289;&#21069;&#12395;&#12399;&#12289;&#36578;&#36865;&#12375;&#12394;&#12369;&#12428;&#12400;&#12394;&#12425;&#12394;&#12356;
+&#35352;&#36617;&#26041;&#27861;&#12399;&#20197;&#19979;&#12398;&#12392;&#12362;&#12426;&#65306; 
+
+&#12362;&#23458;&#27096;&#12398;&#27663;&#21517;&#65306; _____ 
+
+&#12362;&#23458;&#27096;&#12398;&#23436;&#20840;&#12394;&#20303;&#25152;&#65306; _____ 
+
+&#23621;&#20303;&#22320;&#12398;&#37117;&#24066;&#21517;&#65306; ___ 
+
+&#29983;&#24180;&#26376;&#26085;&#65288;&#26085;/&#26376;/&#24180;&#65289; &#65306; ____ 
+
+&#30452;&#36890;&#38651;&#35441;&#30058;&#21495;&#65306; _____ 
+
+&#25658;&#24111;&#38651;&#35441;&#30058;&#21495;&#65306; _____ 
+
+&#12501;&#12449;&#12483;&#12463;&#12473;&#30058;&#21495;&#65306; ______ 
 
 
-The patch titled
-     kvm: provide kvm.h for all architecture: fixes headers_install
-has been removed from the -mm tree.  Its filename was
-     kvm-provide-kvmh-for-all-architecture-fixes-headers_install.patch
+&#12395;&#12388;&#12356;&#12390;&#12391;&#12377;&#12290; 
 
-This patch was dropped because it was merged into mainline or a subsyst=
-em tree
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mm=
-otm/
-
-------------------------------------------------------
-Subject: kvm: provide kvm.h for all architecture: fixes headers_install
-=46rom: Christian Borntraeger <borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>
-
-Currently include/linux/kvm.h is not considered by make headers_install=
-,
-because Kbuild cannot handle " unifdef-$(CONFIG_FOO) +=3D foo.h.  This =
-problem
-was introduced by=20
-
-commit fb56dbb31c4738a3918db81fd24da732ce3b4ae6
-Author: Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>
-Date:   Sun Dec 2 10:50:06 2007 +0200
-
-    KVM: Export include/linux/kvm.h only if $ARCH actually supports KVM
-   =20
-    Currently, make headers_check barfs due to <asm/kvm.h>, which <linu=
-x/kvm.h>
-    includes, not existing.  Rather than add a zillion <asm/kvm.h>s, ex=
-port kvm.
-    only if the arch actually supports it.
-   =20
-    Signed-off-by: Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>
-
-which makes this an 2.6.25 regression.
-
-One way of solving the issue is to enhance Kbuild, but Avi and David co=
-nviced
-me, that changing headers_install is not the way to go.  This patch cha=
-nges
-the definition for linux/kvm.h to unifdef-y.
-
-If =A0unifdef-y is used for linux/kvm.h "make headers_check" will fail =
-on all
-architectures without asm/kvm.h.  Therefore, this patch also provides
-asm/kvm.h on all architectures.
-
-Signed-off-by: Christian Borntraeger <borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>
-Acked-by: Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>
-Cc: Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org
-Cc: David Woodhouse <dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Cc: <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Signed-off-by: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
----
-
- include/asm-alpha/kvm.h        |    6 ++++++
- include/asm-arm/kvm.h          |    6 ++++++
- include/asm-avr32/kvm.h        |    6 ++++++
- include/asm-blackfin/kvm.h     |    6 ++++++
- include/asm-cris/kvm.h         |    6 ++++++
- include/asm-frv/kvm.h          |    6 ++++++
- include/asm-generic/Kbuild.asm |    2 ++
- include/asm-h8300/kvm.h        |    6 ++++++
- include/asm-ia64/kvm.h         |    6 ++++++
- include/asm-m32r/kvm.h         |    6 ++++++
- include/asm-m68k/kvm.h         |    6 ++++++
- include/asm-m68knommu/kvm.h    |    6 ++++++
- include/asm-mips/kvm.h         |    6 ++++++
- include/asm-mn10300/kvm.h      |    6 ++++++
- include/asm-parisc/kvm.h       |    6 ++++++
- include/asm-powerpc/kvm.h      |    6 ++++++
- include/asm-s390/kvm.h         |    6 ++++++
- include/asm-sh/kvm.h           |    6 ++++++
- include/asm-sparc/kvm.h        |    6 ++++++
- include/asm-sparc64/kvm.h      |    6 ++++++
- include/asm-um/kvm.h           |    6 ++++++
- include/asm-v850/kvm.h         |    6 ++++++
- include/asm-xtensa/kvm.h       |    6 ++++++
- include/linux/Kbuild           |    2 +-
- 24 files changed, 135 insertions(+), 1 deletion(-)
-
-diff -puN /dev/null include/asm-alpha/kvm.h
---- /dev/null
-+++ a/include/asm-alpha/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_ALPHA_H
-+#define __LINUX_KVM_ALPHA_H
-+
-+/* alpha does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-arm/kvm.h
---- /dev/null
-+++ a/include/asm-arm/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_ARM_H
-+#define __LINUX_KVM_ARM_H
-+
-+/* arm does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-avr32/kvm.h
---- /dev/null
-+++ a/include/asm-avr32/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_AVR32_H
-+#define __LINUX_KVM_AVR32_H
-+
-+/* avr32 does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-blackfin/kvm.h
---- /dev/null
-+++ a/include/asm-blackfin/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_BLACKFIN_H
-+#define __LINUX_KVM_BLACKFIN_H
-+
-+/* blackfin does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-cris/kvm.h
---- /dev/null
-+++ a/include/asm-cris/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_CRIS_H
-+#define __LINUX_KVM_CRIS_H
-+
-+/* cris does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-frv/kvm.h
---- /dev/null
-+++ a/include/asm-frv/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_FRV_H
-+#define __LINUX_KVM_FRV_H
-+
-+/* frv does not support KVM */
-+
-+#endif
-diff -puN include/asm-generic/Kbuild.asm~kvm-provide-kvmh-for-all-archi=
-tecture-fixes-headers_install include/asm-generic/Kbuild.asm
---- a/include/asm-generic/Kbuild.asm~kvm-provide-kvmh-for-all-architect=
-ure-fixes-headers_install
-+++ a/include/asm-generic/Kbuild.asm
-@@ -1,3 +1,5 @@
-+header-y  +=3D kvm.h
-+
- ifeq ($(wildcard include/asm-$(SRCARCH)/a.out.h),include/asm-$(SRCARCH=
-)/a.out.h)
- unifdef-y +=3D a.out.h
- endif
-diff -puN /dev/null include/asm-h8300/kvm.h
---- /dev/null
-+++ a/include/asm-h8300/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_H8300_H
-+#define __LINUX_KVM_H8300_H
-+
-+/* h8300 does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-ia64/kvm.h
---- /dev/null
-+++ a/include/asm-ia64/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_IA64_H
-+#define __LINUX_KVM_IA64_H
-+
-+/* ia64 does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-m32r/kvm.h
---- /dev/null
-+++ a/include/asm-m32r/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_M32R_H
-+#define __LINUX_KVM_M32R_H
-+
-+/* m32r does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-m68k/kvm.h
---- /dev/null
-+++ a/include/asm-m68k/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_M68K_H
-+#define __LINUX_KVM_M68K_H
-+
-+/* m68k does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-m68knommu/kvm.h
---- /dev/null
-+++ a/include/asm-m68knommu/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_M68KNOMMU_H
-+#define __LINUX_KVM_M68KNOMMU_H
-+
-+/* m68knommu does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-mips/kvm.h
---- /dev/null
-+++ a/include/asm-mips/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_MIPS_H
-+#define __LINUX_KVM_MIPS_H
-+
-+/* mips does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-mn10300/kvm.h
---- /dev/null
-+++ a/include/asm-mn10300/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_MN10300_H
-+#define __LINUX_KVM_MN10300_H
-+
-+/* mn10300 does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-parisc/kvm.h
---- /dev/null
-+++ a/include/asm-parisc/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_PARISC_H
-+#define __LINUX_KVM_PARISC_H
-+
-+/* parisc does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-powerpc/kvm.h
---- /dev/null
-+++ a/include/asm-powerpc/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_POWERPC_H
-+#define __LINUX_KVM_POWERPC_H
-+
-+/* powerpc does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-s390/kvm.h
---- /dev/null
-+++ a/include/asm-s390/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_S390_H
-+#define __LINUX_KVM_S390_H
-+
-+/* s390 does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-sh/kvm.h
---- /dev/null
-+++ a/include/asm-sh/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_SH_H
-+#define __LINUX_KVM_SH_H
-+
-+/* sh does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-sparc/kvm.h
---- /dev/null
-+++ a/include/asm-sparc/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_SPARC_H
-+#define __LINUX_KVM_SPARC_H
-+
-+/* sparc does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-sparc64/kvm.h
---- /dev/null
-+++ a/include/asm-sparc64/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_SPARC64_H
-+#define __LINUX_KVM_SPARC64_H
-+
-+/* sparc64 does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-um/kvm.h
---- /dev/null
-+++ a/include/asm-um/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_UM_H
-+#define __LINUX_KVM_UM_H
-+
-+/* um does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-v850/kvm.h
---- /dev/null
-+++ a/include/asm-v850/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_V850_H
-+#define __LINUX_KVM_V850_H
-+
-+/* v850 does not support KVM */
-+
-+#endif
-diff -puN /dev/null include/asm-xtensa/kvm.h
---- /dev/null
-+++ a/include/asm-xtensa/kvm.h
-@@ -0,0 +1,6 @@
-+#ifndef __LINUX_KVM_XTENSA_H
-+#define __LINUX_KVM_XTENSA_H
-+
-+/* xtensa does not support KVM */
-+
-+#endif
-diff -puN include/linux/Kbuild~kvm-provide-kvmh-for-all-architecture-fi=
-xes-headers_install include/linux/Kbuild
---- a/include/linux/Kbuild~kvm-provide-kvmh-for-all-architecture-fixes-=
-headers_install
-+++ a/include/linux/Kbuild
-@@ -253,7 +253,7 @@ unifdef-y +=3D kd.h
- unifdef-y +=3D kernelcapi.h
- unifdef-y +=3D kernel.h
- unifdef-y +=3D keyboard.h
--unifdef-$(CONFIG_HAVE_KVM) +=3D kvm.h
-+unifdef-y +=3D kvm.h
- unifdef-y +=3D llc.h
- unifdef-y +=3D loop.h
- unifdef-y +=3D lp.h
-_
-
-Patches currently in -mm which might be from borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org are
-
-origin.patch
-git-kvm.patch
-git-s390.patch
+&#12511;&#12473;&#12479;&#12540;&#12505;&#12531;&#12505;&#12531;drazell 
