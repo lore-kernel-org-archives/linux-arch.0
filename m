@@ -1,119 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out4.smtp.messagingengine.com ([66.111.4.28]:58989 "EHLO
-	out4.smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752067AbYDFTKv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Apr 2008 15:10:51 -0400
-Message-ID: <1207509050.21093.1246359933@webmail.messagingengine.com>
-From: "Alexander van Heukelum" <heukelum@fastmail.fm>
+Received: from x346.tv-sign.ru ([89.108.83.215]:58023 "EHLO mail.screens.ru"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751756AbYDHMaM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Apr 2008 08:30:12 -0400
+Date: Tue, 8 Apr 2008 15:35:19 +0400
+From: Oleg Nesterov <oleg@tv-sign.ru>
+Subject: Re: [PATCH 2/4] set_restore_sigmask TIF_SIGPENDING
+Message-ID: <20080408113519.GA227@tv-sign.ru>
+References: <20080329001230.D013726FA1D@magilla.localdomain> <20080329001341.7F93826FA1D@magilla.localdomain> <alpine.LFD.1.00.0803281746480.14670@woody.linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain; charset="ISO-8859-1"
-MIME-Version: 1.0
-References: <20080315172913.GA21648@mailshack.com> <47F511BF.8090506@panasas.com>
-   <20080404142214.GA8322@mailshack.com> <47F8E64C.9030104@panasas.com>
-Subject: Re: [0/3] Improve generic fls64 for 64-bit machines
-In-Reply-To: <47F8E64C.9030104@panasas.com>
-Date: Sun, 06 Apr 2008 21:10:50 +0200
+In-Reply-To: <alpine.LFD.1.00.0803281746480.14670@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benny Halevy <bhalevy@panasas.com>, Alexander van Heukelum <heukelum@mailshack.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Andi Kleen <andi@firstfloor.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20080406191050.Nj7YGikl81Xs78pzjY29tlcUSAeCVd9cHh0v28ZCgxY@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Roland McGrath <roland@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390@vger.kernel.org, tony.luck@intel.com, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20080408113519.sNz9z38jcsuTxc5pwmEoky3gsEyqsQ4fGq_WmmEjf80@z>
 
-On Sun, 06 Apr 2008 18:03:40 +0300, "Benny Halevy" <bhalevy@panasas.com>
-said:
-> On Apr. 04, 2008, 17:22 +0300, Alexander van Heukelum
-> <heukelum@mailshack.com> wrote:
-> > On Thu, Apr 03, 2008 at 08:19:59PM +0300, Benny Halevy wrote:
-> >> On Mar. 15, 2008, 19:29 +0200, Alexander van Heukelum <heukelum@mailshack.com> wrote:
-> >>> This series of patches:
-> >>>
-> >>> [1/3] adds __fls.h to asm-generic
-> >>> [2/3] modifies asm-*/bitops.h for 64-bit archs to implement __fls
-> >>> [3/3] modifies asm-generic/fls64.h to make use of __fls
-> >> I strongly support this.
-> >>
-> >> I wish we'd also have a consistent naming convention for all
-> >> the bitops functions so it will be clearer what data type the
-> >> function is working on and is the result 0 or 1 based.
-> >>
-> >> It seems like what we currently have is:
-> >>
-> >> name	type	first bit#
-> >> ----	----	----------
-> >> ffs	int	1
-> >> fls	int	1
-> >> __ffs	ulong	0
-> >> __fls	ulong	0	# in your proposal
-> >> ffz	ulong	0
-> >> fls64	__u64	1
-> >>
-> >> so it seems like
-> >> - ffz is misnamed and is rather confusing.
-> >>   Apprently is should be renamed to __ffz.
-> >>
-> >> - (new) ffz(x) can be defined to ffs(~(x))
-> >>
-> >> - It'd be nice to have ffs64, and maybe ffz64.
-> >>
-> >> Benny
-> > 
-> > I think every programmer who thinks in terms of bits realises
-> > that ffz(x) == __ffs(~x) and ffz(~x) == __ffs(x) etc... so I
-> > would rather get rid of ffz entirely by converting all uses
-> > to __ffs. Patch (against current linus) below. After that all
-> > implementations of ffz could be removed.
+Roland, Linus, I'm sorry for being offtopic, but there is something
+I can't understand from the very beginning, when TIF_RESTORE_SIGMASK
+was introduced.
+
+On 03/28, Linus Torvalds wrote:
 > 
-> Yeah, very few architectures have an optimized version of ffz
-> that will perform noticeably better than __ffs(~x).
-> (e.g. h8300, sh)
-
-Yeah, and these implementations seem to be based on a loop over
-all bits in the word. I don't think adding one extra not-operation
-to convert ffz to __ffs will hurt much ;).
-
-> > ffs64 would be a good addition to complete the set of functions,
-> > but that would be the same as glibc's (and gcc-builtin) ffsll.
-> > 
-> > Looking into that... the relevant gcc builtins are __builtin_ffs
-> > (find first set bit), __builtin_clz (count leading zeroes),
-> > __builtin_ctz (count trailing zeroes), __builtin_popcount, maybe
-> > __builtin_parity and their -l and -ll variants. Maybe the kernel
-> > should be changed to use those names instead of the current
-> > ones? ffs would stay as it is. __ffs would become ctz, __fls
-> > would become something like 31-clz, and hweight would become
-> > popcount.
+> On Fri, 28 Mar 2008, Roland McGrath wrote:
+> >
+> > Set TIF_SIGPENDING in set_restore_sigmask.  This lets arch code take
+> > TIF_RESTORE_SIGMASK out of the set of bits that will be noticed on
+> > return to user mode.  On some machines those bits are scarce, and we
+> > can free this unneeded one up for other uses.
 > 
-> Interesting idea.  ctz much better than __ffs with regards to the
-> return value's first bit number, but unless you expose clz
-> and convert the code how do you get rid of the __fls vs. fls
-> confusion?
+> Hmm. That probably means that TIF_RESTORE_SIGMASK shouldn't be a "TIF" 
+> flag at all,
 
-Exposing clz/ctz on all architectures will be the harder part. Changing
-all current uses of ffs/fls (and __fls) will take some time. Mostly
-because converting code using fls to use clz instead needs to be
-done a bit carefully, because fls(0) has defined behaviour, while
-clz(0) is undefined.
+Yes!
 
-> (BTW for __fls, I'd use BITS_PER_LONG - 1, not 31 :)
+> but a "TS" ("thread status") flag.
 
-:)
+Why do we need any flag? It looks a bit ugly. Isn't it better to introduce
+the new magic ERESTART_XXX which means ERESTARTNOHAND + restore-sigmask ?
 
-> I think that adopting libc's convention might make more sense,
-> i.e., define ffs, ffsl, ffsll, and fls, flsl, flsll, and have *all*
-> be 1-based.
+We only need this flag as an implicit parameter to the arch dependent do_signal()
+which we can't call directly, and thus it must imply TIF_SIGPENDING, and it
+is not valid after do_signal() (should be cleared). This all looks like
+ERESTART_ magic, why should we add something else ?
 
-I agree that it makes sense for fls. For clz (and ctz) I would choose
-clz(unsigned long), clz32(u32), and clz64(u64).
+See also http://marc.info/?l=linux-kernel&m=113734458516136
 
-Greetings,
-    Alexander
+Of course, probably it is too late to change the implementation even if
+I am right, the question is: what I am missed?
 
-> Benny
--- 
-  Alexander van Heukelum
-  heukelum@fastmail.fm
-
--- 
-http://www.fastmail.fm - Choose from over 50 domains or use your own
+Oleg.
 
