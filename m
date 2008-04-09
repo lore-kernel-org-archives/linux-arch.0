@@ -1,50 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:36502 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754123AbYDISlE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Apr 2008 14:41:04 -0400
-Subject: Re: [PATCH 2/4] set_restore_sigmask TIF_SIGPENDING
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <20080409162206.GA764@tv-sign.ru>
-References: <20080329001230.D013726FA1D@magilla.localdomain>
-	 <20080329001341.7F93826FA1D@magilla.localdomain>
-	 <alpine.LFD.1.00.0803281746480.14670@woody.linux-foundation.org>
-	 <20080408113519.GA227@tv-sign.ru>
-	 <1207739787.27048.57.camel@shinybook.infradead.org>
-	 <20080409113939.GA99@tv-sign.ru>
-	 <1207757653.27048.77.camel@shinybook.infradead.org>
-	 <20080409162206.GA764@tv-sign.ru>
+Received: from el-out-1112.google.com ([209.85.162.179]:37005 "EHLO
+	el-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753266AbYDITqD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Apr 2008 15:46:03 -0400
+Received: by el-out-1112.google.com with SMTP id v27so1951820ele.17
+        for <linux-arch@vger.kernel.org>; Wed, 09 Apr 2008 12:46:02 -0700 (PDT)
+Subject: [PATCH] unaligned access, fix some includes
+From: Harvey Harrison <harvey.harrison@gmail.com>
+In-Reply-To: <1207765322.16220.8.camel@brick>
+References: <1207765322.16220.8.camel@brick>
 Content-Type: text/plain
-Date: Wed, 09 Apr 2008 19:40:33 +0100
-Message-ID: <1207766433.27048.86.camel@shinybook.infradead.org>
+Date: Wed, 09 Apr 2008 12:46:20 -0700
+Message-ID: <1207770380.16220.19.camel@brick>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@tv-sign.ru>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Roland McGrath <roland@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390@vger.kernel.org, tony.luck@intel.com, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20080409184033.p4aLhMOsgXlzvW1zgrp5nyDxT1aTeThWziURdVsgRWs@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20080409194620.HbYBPILaWY2xpSAwyZcQRz_trP6lL_SoleNvreQc4bk@z>
 
-On Wed, 2008-04-09 at 20:22 +0400, Oleg Nesterov wrote:
-> On 04/09, David Woodhouse wrote:
-> >
-> > One of the supposed advantages of TIF_RESTORE_SIGMASK in the first
-> > place, iirc, was that it allowed us to return a result code other than
-> > -EINTR as _well_ as restoring the signal mask.
-> 
-> Agreed, good point. ERESTART_ is not that flexible.
-> 
-> Somehow I assumed we will never need something "special" here, this is
-> not very clever.
+Missed a few includes when moving some files around, this makes it
+actually compile.
 
-Well, it's not clear that we _will_ need it to be so special. You could
-perhaps argue that it's overengineering. It's just that at the time I
-did it, I _thought_ I'd need it for ppoll().
+Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+---
+Applies on top of the unaligned access revamp, missed when moving files
+around.
 
-It's only in later optimisations that I realised we only ever really
-needed to use TIF_RESTORE_SIGMASK in the case where ppoll() or pselect()
-was interrupted.
+ include/linux/unaligned/generic_be.h        |    2 +-
+ include/linux/unaligned/generic_le.h        |    2 +-
+ include/linux/unaligned/no_builtin_memcpy.h |    1 +
+ 3 files changed, 3 insertions(+), 2 deletions(-)
 
+diff --git a/include/linux/unaligned/generic_be.h b/include/linux/unaligned/generic_be.h
+index ce42487..dd7e323 100644
+--- a/include/linux/unaligned/generic_be.h
++++ b/include/linux/unaligned/generic_be.h
+@@ -1,7 +1,7 @@
+ #ifndef _LINUX_UNALIGNED_GENERIC_BE_H_
+ #define _LINUX_UNALIGNED_GENERIC_BE_H_
+ 
+-#include <linux/unaligned/generic.h>
++#include <linux/unaligned/cpu_endian.h>
+ #include <linux/unaligned/little_endian.h>
+ 
+ #define get_unaligned	__get_unaligned_cpu
+diff --git a/include/linux/unaligned/generic_le.h b/include/linux/unaligned/generic_le.h
+index b57c818..7b7de52 100644
+--- a/include/linux/unaligned/generic_le.h
++++ b/include/linux/unaligned/generic_le.h
+@@ -1,7 +1,7 @@
+ #ifndef _LINUX_UNALIGNED_GENERIC_LE_H_
+ #define _LINUX_UNALIGNED_GENERIC_LE_H_
+ 
+-#include <linux/unaligned/generic.h>
++#include <linux/unaligned/cpu_endian.h>
+ #include <linux/unaligned/big_endian.h>
+ 
+ #define get_unaligned	__get_unaligned_cpu
+diff --git a/include/linux/unaligned/no_builtin_memcpy.h b/include/linux/unaligned/no_builtin_memcpy.h
+index 17a6e21..c117e78 100644
+--- a/include/linux/unaligned/no_builtin_memcpy.h
++++ b/include/linux/unaligned/no_builtin_memcpy.h
+@@ -1,6 +1,7 @@
+ #ifndef _LINUX_UNALIGNED_NO_BUILTIN_MEMCPY_H_
+ #define _LINUX_UNALIGNED_NO_BUILTIN_MEMCPY_H_
+ 
++#include <linux/kernel.h>
+ #include <asm/byteorder.h>
+ #include <asm/string.h>
+ 
 -- 
-dwmw2
+1.5.5.144.g3e42
+
+
 
