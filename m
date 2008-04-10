@@ -1,34 +1,25 @@
-From: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 1/8] kernel: add common infrastructure for unaligned access
-Date: Thu, 10 Apr 2008 22:43:21 +0100
-Message-ID: <11527.1207863801@redhat.com>
-References: <1207856646.22001.25.camel@brick>
+From: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
+Subject: Re: [PATCH 1/2] Add thread_info_cache_init() to all archs
+Date: Fri, 11 Apr 2008 07:46:18 +1000
+Message-ID: <1207863978.6958.15.camel@pasglop>
+References: <20080410032354.90CB1DDF0F@ozlabs.org>
+Reply-To: benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1207856646.22001.25.camel@brick>
+In-Reply-To: <20080410032354.90CB1DDF0F-mnsaURCQ41sdnm+yROfE0A@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org, takata-TMSiXQfHlQjsTix1lMzHGQ@public.gmane.org, linux-m32r-rQhvJZKUsGBRYuoOT4C5/9i2O/JbrIOy@public.gmane.org, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
 
-Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
 
-> +static inline u16 __get_unaligned_le16(const u8 *p)
-> +{
-> +	return (u16)(p[0] | p[1] << 8);
-> +}
+> +#ifndef thread_info_cache_init
+> +#define thread_info_cache_init	do { } while(0)
+> +#endif
+> +
 
-You shouldn't need these casts.  return is going to cast it anyway.
+Blah ! Missing a pair of () here. Ooops. I'll send a fixed patch.
 
-Actually, you probably _ought_ to have casts, but it should look like this:
-
-	return (u16)p[0] | (u16)p[1] << 8;
-
-You are shifting an 8-bit value left by 8 bits, so the compiler may be at
-liberty to instruct the RHS to end up zero.
-
-I presume the compiler is guaranteed not to merge the two memory accesses?  It
-can't seem to make it do so, though I seem to remember there were cases where
-it did, though I can't reproduce them.  I assume that's why you're passing in
-a u8 pointer and not a u16/u32/u64 pointer.
-
-David
+Ben.
