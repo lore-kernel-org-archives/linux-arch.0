@@ -1,8 +1,7 @@
 From: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 7/8] kernel: remove asm-generic implementation of
-	unaligned.h
-Date: Thu, 10 Apr 2008 12:44:10 -0700
-Message-ID: <1207856650.22001.31.camel@brick>
+Subject: [PATCH 6/8] frv: add new unaligned API support
+Date: Thu, 10 Apr 2008 12:44:09 -0700
+Message-ID: <1207856649.22001.30.camel@brick>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
@@ -10,144 +9,395 @@ Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Cc: linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 
-All arches now moved to new implementations.
+Naive movement of inline asm from existing unaligned API to include
+the new unaligned helpers.
 
 Signed-off-by: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
 ---
- include/asm-generic/unaligned.h |  124 ---------------------------------------
- 1 files changed, 0 insertions(+), 124 deletions(-)
+ include/asm-frv/unaligned.h |  360 +++++++++++++++++++++++++------------------
+ 1 files changed, 212 insertions(+), 148 deletions(-)
 
-diff --git a/include/asm-generic/unaligned.h b/include/asm-generic/unaligned.h
-deleted file mode 100644
-index 2fe1b2e..0000000
---- a/include/asm-generic/unaligned.h
-+++ /dev/null
-@@ -1,124 +0,0 @@
--#ifndef _ASM_GENERIC_UNALIGNED_H_
--#define _ASM_GENERIC_UNALIGNED_H_
--
--/*
-- * For the benefit of those who are trying to port Linux to another
-- * architecture, here are some C-language equivalents. 
-- *
-- * This is based almost entirely upon Richard Henderson's
-- * asm-alpha/unaligned.h implementation.  Some comments were
-- * taken from David Mosberger's asm-ia64/unaligned.h header.
-- */
--
--#include <linux/types.h>
--
--/* 
-- * The main single-value unaligned transfer routines.
-- */
--#define get_unaligned(ptr) \
--	__get_unaligned((ptr), sizeof(*(ptr)))
--#define put_unaligned(x,ptr) \
--	((void)sizeof(*(ptr)=(x)),\
--	__put_unaligned((__force __u64)(x), (ptr), sizeof(*(ptr))))
--
--/*
-- * This function doesn't actually exist.  The idea is that when
-- * someone uses the macros below with an unsupported size (datatype),
-- * the linker will alert us to the problem via an unresolved reference
-- * error.
-- */
--extern void bad_unaligned_access_length(void) __attribute__((noreturn));
--
--struct __una_u64 { __u64 x __attribute__((packed)); };
--struct __una_u32 { __u32 x __attribute__((packed)); };
--struct __una_u16 { __u16 x __attribute__((packed)); };
--
--/*
-- * Elemental unaligned loads 
-- */
--
--static inline __u64 __uldq(const __u64 *addr)
--{
--	const struct __una_u64 *ptr = (const struct __una_u64 *) addr;
--	return ptr->x;
--}
--
--static inline __u32 __uldl(const __u32 *addr)
--{
--	const struct __una_u32 *ptr = (const struct __una_u32 *) addr;
--	return ptr->x;
--}
--
--static inline __u16 __uldw(const __u16 *addr)
--{
--	const struct __una_u16 *ptr = (const struct __una_u16 *) addr;
--	return ptr->x;
--}
--
--/*
-- * Elemental unaligned stores 
-- */
--
--static inline void __ustq(__u64 val, __u64 *addr)
--{
--	struct __una_u64 *ptr = (struct __una_u64 *) addr;
--	ptr->x = val;
--}
--
--static inline void __ustl(__u32 val, __u32 *addr)
--{
--	struct __una_u32 *ptr = (struct __una_u32 *) addr;
--	ptr->x = val;
--}
--
--static inline void __ustw(__u16 val, __u16 *addr)
--{
--	struct __una_u16 *ptr = (struct __una_u16 *) addr;
--	ptr->x = val;
--}
--
--#define __get_unaligned(ptr, size) ({		\
--	const void *__gu_p = ptr;		\
--	__u64 __val;				\
--	switch (size) {				\
--	case 1:					\
--		__val = *(const __u8 *)__gu_p;	\
--		break;				\
--	case 2:					\
--		__val = __uldw(__gu_p);		\
--		break;				\
--	case 4:					\
--		__val = __uldl(__gu_p);		\
--		break;				\
--	case 8:					\
--		__val = __uldq(__gu_p);		\
--		break;				\
--	default:				\
--		bad_unaligned_access_length();	\
--	};					\
--	(__force __typeof__(*(ptr)))__val;	\
+diff --git a/include/asm-frv/unaligned.h b/include/asm-frv/unaligned.h
+index dc8e9c9..06224d9 100644
+--- a/include/asm-frv/unaligned.h
++++ b/include/asm-frv/unaligned.h
+@@ -9,9 +9,175 @@
+  * 2 of the License, or (at your option) any later version.
+  */
+ 
+-#ifndef _ASM_UNALIGNED_H
+-#define _ASM_UNALIGNED_H
++#ifndef _ASM_FRV_UNALIGNED_H
++#define _ASM_FRV_UNALIGNED_H
+ 
++#include <linux/unaligned/little_endian.h>
++
++static inline u16 get_unaligned_le16(const __le16 *p)
++{
++	return __get_unaligned_le16((const u8 *)p);
++}
++
++static inline u32 get_unaligned_le32(const __le32 *p)
++{
++	return __get_unaligned_le32((const u8 *)p);
++}
++
++static inline u64 get_unaligned_le64(const __le64 *p)
++{
++	return __get_unaligned_le64((const u8 *)p);
++}
++
++static inline u16 get_unaligned_be16(const __be16 *p)
++{
++	u8 a;
++	u16 x;
++	const char *__p = (const char *)p;
++
++	asm("	ldub%I2		%M2,%0		\n"
++	    "	ldub%I3.p	%M3,%1		\n"
++	    "	slli		%0,#8,%0	\n"
++	    "	or		%0,%1,%0	\n"
++	    : "=&r"(x), "=&r"(a)
++	    : "m"(__p[0]),  "m"(__p[1])
++	    );
++
++	return x;
++}
++
++static inline u32 get_unaligned_be32(const __be32 *p)
++{
++	u8 a;
++	u32 x;
++	const char *__p = (const char *)p;
++
++	asm("	ldub%I2		%M2,%0		\n"
++	    "	ldub%I3.p	%M3,%1		\n"
++	    "	slli		%0,#8,%0	\n"
++	    "	or		%0,%1,%0	\n"
++	    "	ldub%I4.p	%M4,%1		\n"
++	    "	slli		%0,#8,%0	\n"
++	    "	or		%0,%1,%0	\n"
++	    "	ldub%I5.p	%M5,%1		\n"
++	    "	slli		%0,#8,%0	\n"
++	    "	or		%0,%1,%0	\n"
++	    : "=&r"(x), "=&r"(a)
++	    : "m"(__p[0]),  "m"(__p[1]), "m"(__p[2]), "m"(__p[3])
++	    );
++
++	return x;
++}
++
++static inline u64 get_unaligned_be64(const __be64 *p)
++{
++	u8 a;
++	u32 x;
++	const char *__p = (const char *)p;
++	union { u64 x; u32 y[2]; } z;
++
++	asm("	ldub%I3		%M3,%0		\n"
++	    "	ldub%I4.p	%M4,%2		\n"
++	    "	slli		%0,#8,%0	\n"
++	    "	or		%0,%2,%0	\n"
++	    "	ldub%I5.p	%M5,%2		\n"
++	    "	slli		%0,#8,%0	\n"
++	    "	or		%0,%2,%0	\n"
++	    "	ldub%I6.p	%M6,%2		\n"
++	    "	slli		%0,#8,%0	\n"
++	    "	or		%0,%2,%0	\n"
++	    "	ldub%I7		%M7,%1		\n"
++	    "	ldub%I8.p	%M8,%2		\n"
++	    "	slli		%1,#8,%1	\n"
++	    "	or		%1,%2,%1	\n"
++	    "	ldub%I9.p	%M9,%2		\n"
++	    "	slli		%1,#8,%1	\n"
++	    "	or		%1,%2,%1	\n"
++	    "	ldub%I10.p	%M10,%2		\n"
++	    "	slli		%1,#8,%1	\n"
++	    "	or		%1,%2,%1	\n"
++	    : "=&r"(z.y[0]), "=&r"(z.y[1]), "=&r"(a)
++	    : "m"(__p[0]), "m"(__p[1]), "m"(__p[2]), "m"(__p[3]),
++	      "m"(__p[4]), "m"(__p[5]), "m"(__p[6]), "m"(__p[7])
++	    );
++	x = z.x;
++
++	return x;
++}
++
++static inline void put_unaligned_le16(u16 val, void *p)
++{
++	__put_unaligned_le16(val, p);
++}
++
++static inline void put_unaligned_le32(u32 val, void *p)
++{
++	__put_unaligned_le32(val, p);
++}
++
++static inline void put_unaligned_le64(u64 val, void *p)
++{
++	__put_unaligned_le64(val, p);
++}
++
++static inline void put_unaligned_be16(u16 val, void *p)
++{
++	char *__p = p;
++	int x;
++
++	asm("	stb%I1.p	%0,%M1		\n"
++	    "	srli		%0,#8,%0	\n"
++	    "	stb%I2		%0,%M2		\n"
++	    : "=r"(x), "=m"(__p[1]),  "=m"(__p[0])
++	    : "0"(val)
++	    );
++}
++
++static inline void put_unaligned_be32(u32 val, void *p)
++{
++	char *__p = p;
++	int x;
++
++	asm("	stb%I1.p	%0,%M1		\n"
++	    "	srli		%0,#8,%0	\n"
++	    "	stb%I2.p	%0,%M2		\n"
++	    "	srli		%0,#8,%0	\n"
++	    "	stb%I3.p	%0,%M3		\n"
++	    "	srli		%0,#8,%0	\n"
++	    "	stb%I4		%0,%M4		\n"
++	    : "=r"(x), "=m"(__p[3]),  "=m"(__p[2]), "=m"(__p[1]), "=m"(__p[0])
++	    : "0"(val)
++	    );
++}
++
++static inline void put_unaligned_be64(u64 val, void *p)
++{
++	char *__p = p;
++	u32 __high, __low;
++
++	__high = val >> 32;
++	__low = val & 0xffffffff;
++	asm("	stb%I2.p	%0,%M2		\n"
++	    "	srli		%0,#8,%0	\n"
++	    "	stb%I3.p	%0,%M3		\n"
++	    "	srli		%0,#8,%0	\n"
++	    "	stb%I4.p	%0,%M4		\n"
++	    "	srli		%0,#8,%0	\n"
++	    "	stb%I5.p	%0,%M5		\n"
++	    "	srli		%0,#8,%0	\n"
++	    "	stb%I6.p	%1,%M6		\n"
++	    "	srli		%1,#8,%1	\n"
++	    "	stb%I7.p	%1,%M7		\n"
++	    "	srli		%1,#8,%1	\n"
++	    "	stb%I8.p	%1,%M8		\n"
++	    "	srli		%1,#8,%1	\n"
++	    "	stb%I9		%1,%M9		\n"
++	    : "=&r"(__low), "=&r"(__high), "=m"(__p[7]), "=m"(__p[6]),
++	      "=m"(__p[5]), "=m"(__p[4]), "=m"(__p[3]), "=m"(__p[2]),
++	      "=m"(__p[1]), "=m"(__p[0])
++	    : "0"(__low), "1"(__high)
++	    );
++}
+ 
+ /*
+  * Unaligned accesses on uClinux can't be performed in a fault handler - the
+@@ -49,153 +215,51 @@ extern int handle_misalignment(unsigned long esr0, unsigned long ear0, unsigned
+ 
+ #else
+ 
+-#define get_unaligned(ptr)							\
+-({										\
+-	typeof(*(ptr)) x;							\
+-	const char *__p = (const char *) (ptr);					\
+-										\
+-	switch (sizeof(x)) {							\
+-	case 1:									\
+-		x = *(ptr);							\
+-		break;								\
+-	case 2:									\
+-	{									\
+-		uint8_t a;							\
+-		asm("	ldub%I2		%M2,%0		\n"			\
+-		    "	ldub%I3.p	%M3,%1		\n"			\
+-		    "	slli		%0,#8,%0	\n"			\
+-		    "	or		%0,%1,%0	\n"			\
+-		    : "=&r"(x), "=&r"(a)					\
+-		    : "m"(__p[0]),  "m"(__p[1])					\
+-		    );								\
+-		break;								\
+-	}									\
+-										\
+-	case 4:									\
+-	{									\
+-		uint8_t a;							\
+-		asm("	ldub%I2		%M2,%0		\n"			\
+-		    "	ldub%I3.p	%M3,%1		\n"			\
+-		    "	slli		%0,#8,%0	\n"			\
+-		    "	or		%0,%1,%0	\n"			\
+-		    "	ldub%I4.p	%M4,%1		\n"			\
+-		    "	slli		%0,#8,%0	\n"			\
+-		    "	or		%0,%1,%0	\n"			\
+-		    "	ldub%I5.p	%M5,%1		\n"			\
+-		    "	slli		%0,#8,%0	\n"			\
+-		    "	or		%0,%1,%0	\n"			\
+-		    : "=&r"(x), "=&r"(a)					\
+-		    : "m"(__p[0]),  "m"(__p[1]), "m"(__p[2]), "m"(__p[3])	\
+-		    );								\
+-		break;								\
+-	}									\
+-										\
+-	case 8:									\
+-	{									\
+-		union { uint64_t x; u32 y[2]; } z;				\
+-		uint8_t a;							\
+-		asm("	ldub%I3		%M3,%0		\n"			\
+-		    "	ldub%I4.p	%M4,%2		\n"			\
+-		    "	slli		%0,#8,%0	\n"			\
+-		    "	or		%0,%2,%0	\n"			\
+-		    "	ldub%I5.p	%M5,%2		\n"			\
+-		    "	slli		%0,#8,%0	\n"			\
+-		    "	or		%0,%2,%0	\n"			\
+-		    "	ldub%I6.p	%M6,%2		\n"			\
+-		    "	slli		%0,#8,%0	\n"			\
+-		    "	or		%0,%2,%0	\n"			\
+-		    "	ldub%I7		%M7,%1		\n"			\
+-		    "	ldub%I8.p	%M8,%2		\n"			\
+-		    "	slli		%1,#8,%1	\n"			\
+-		    "	or		%1,%2,%1	\n"			\
+-		    "	ldub%I9.p	%M9,%2		\n"			\
+-		    "	slli		%1,#8,%1	\n"			\
+-		    "	or		%1,%2,%1	\n"			\
+-		    "	ldub%I10.p	%M10,%2		\n"			\
+-		    "	slli		%1,#8,%1	\n"			\
+-		    "	or		%1,%2,%1	\n"			\
+-		    : "=&r"(z.y[0]), "=&r"(z.y[1]), "=&r"(a)			\
+-		    : "m"(__p[0]), "m"(__p[1]), "m"(__p[2]), "m"(__p[3]),	\
+-		      "m"(__p[4]), "m"(__p[5]), "m"(__p[6]), "m"(__p[7])	\
+-		    );								\
+-		x = z.x;							\
+-		break;								\
+-	}									\
+-										\
+-	default:								\
+-		x = 0;								\
+-		BUG();								\
+-		break;								\
+-	}									\
+-										\
+-	x;									\
 -})
--
--#define __put_unaligned(val, ptr, size)		\
--({						\
--	void *__gu_p = ptr;			\
--	switch (size) {				\
--	case 1:					\
--		*(__u8 *)__gu_p = (__force __u8)val;		\
--	        break;				\
--	case 2:					\
--		__ustw((__force __u16)val, __gu_p);		\
--		break;				\
--	case 4:					\
--		__ustl((__force __u32)val, __gu_p);		\
--		break;				\
--	case 8:					\
--		__ustq(val, __gu_p);		\
--		break;				\
--	default:				\
--	    	bad_unaligned_access_length();	\
--	};					\
--	(void)0;				\
--})
--
--#endif /* _ASM_GENERIC_UNALIGNED_H */
++#define get_unaligned(ptr) ({				\
++	typeof(*(ptr)) x;				\
++							\
++	switch (sizeof(x)) {				\
++	case 1:						\
++		x = *(ptr);				\
++		break;					\
++	case 2:						\
++		x = get_unaligned_be16((ptr));		\
++		break;					\
++	case 4:						\
++		x = get_unaligned_be32((ptr));		\
++		break;					\
++	case 8:						\
++		x = get_unaligned_be64((ptr));		\
++		break;					\
++	default:					\
++		BUILD_BUG_ON(1);			\
++		break;					\
++	}						\
++	x; })
+ 
+-#define put_unaligned(val, ptr)								\
+-do {											\
+-	char *__p = (char *) (ptr);							\
+-	int x;										\
+-											\
+-	switch (sizeof(*ptr)) {								\
+-	case 2:										\
+-	{										\
+-		asm("	stb%I1.p	%0,%M1		\n"				\
+-		    "	srli		%0,#8,%0	\n"				\
+-		    "	stb%I2		%0,%M2		\n"				\
+-		    : "=r"(x), "=m"(__p[1]),  "=m"(__p[0])				\
+-		    : "0"(val)								\
+-		    );									\
+-		break;									\
+-	}										\
+-											\
+-	case 4:										\
+-	{										\
+-		asm("	stb%I1.p	%0,%M1		\n"				\
+-		    "	srli		%0,#8,%0	\n"				\
+-		    "	stb%I2.p	%0,%M2		\n"				\
+-		    "	srli		%0,#8,%0	\n"				\
+-		    "	stb%I3.p	%0,%M3		\n"				\
+-		    "	srli		%0,#8,%0	\n"				\
+-		    "	stb%I4		%0,%M4		\n"				\
+-		    : "=r"(x), "=m"(__p[3]),  "=m"(__p[2]), "=m"(__p[1]), "=m"(__p[0])	\
+-		    : "0"(val)								\
+-		    );									\
+-		break;									\
+-	}										\
+-											\
+-	case 8:										\
+-	{										\
+-		uint32_t __high, __low;							\
+-		__high = (uint64_t)val >> 32;						\
+-		__low = val & 0xffffffff;						\
+-		asm("	stb%I2.p	%0,%M2		\n"				\
+-		    "	srli		%0,#8,%0	\n"				\
+-		    "	stb%I3.p	%0,%M3		\n"				\
+-		    "	srli		%0,#8,%0	\n"				\
+-		    "	stb%I4.p	%0,%M4		\n"				\
+-		    "	srli		%0,#8,%0	\n"				\
+-		    "	stb%I5.p	%0,%M5		\n"				\
+-		    "	srli		%0,#8,%0	\n"				\
+-		    "	stb%I6.p	%1,%M6		\n"				\
+-		    "	srli		%1,#8,%1	\n"				\
+-		    "	stb%I7.p	%1,%M7		\n"				\
+-		    "	srli		%1,#8,%1	\n"				\
+-		    "	stb%I8.p	%1,%M8		\n"				\
+-		    "	srli		%1,#8,%1	\n"				\
+-		    "	stb%I9		%1,%M9		\n"				\
+-		    : "=&r"(__low), "=&r"(__high), "=m"(__p[7]), "=m"(__p[6]), 		\
+-		      "=m"(__p[5]), "=m"(__p[4]), "=m"(__p[3]), "=m"(__p[2]), 		\
+-		      "=m"(__p[1]), "=m"(__p[0])					\
+-		    : "0"(__low), "1"(__high)						\
+-		    );									\
+-		break;									\
+-	}										\
+-											\
+-        default:									\
+-		*(ptr) = (val);								\
+-		break;									\
+-	}										\
+-} while(0)
++#define put_unaligned(val, ptr) ({			\
++							\
++	char *__p = (char *) (ptr);			\
++	int x;						\
++							\
++	switch (sizeof(*ptr)) {				\
++	case 1:						\
++		*(ptr) = (val);				\
++		break;					\
++	case 2:						\
++		put_unaligned_be16((val), (ptr));	\
++		break;					\
++	case 4:						\
++		put_unaligned_be32((val), (ptr));	\
++		break;					\
++	case 8:						\
++		put_unaligned_be64((val), (ptr));	\
++		break;					\
++	default:					\
++		BUILD_BUG_ON(1);			\
++		break;					\
++	}						\
++	(void)0; })
+ 
+ #endif
+ 
 -- 
 1.5.5.144.g3e42
