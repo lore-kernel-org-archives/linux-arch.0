@@ -1,39 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:34684 "EHLO mx1.redhat.com"
+Received: from gate.crashing.org ([63.228.1.57]:42677 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758874AbYDJVnn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Apr 2008 17:43:43 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1207856646.22001.25.camel@brick>
-References: <1207856646.22001.25.camel@brick>
-Subject: Re: [PATCH 1/8] kernel: add common infrastructure for unaligned access
-Date: Thu, 10 Apr 2008 22:43:21 +0100
-Message-ID: <11527.1207863801@redhat.com>
+	id S1757627AbYDJVrH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Apr 2008 17:47:07 -0400
+Subject: Re: [PATCH 1/2] Add thread_info_cache_init() to all archs
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Reply-To: benh@kernel.crashing.org
+In-Reply-To: <20080410032354.90CB1DDF0F@ozlabs.org>
+References: <20080410032354.90CB1DDF0F@ozlabs.org>
+Content-Type: text/plain
+Date: Fri, 11 Apr 2008 07:46:18 +1000
+Message-ID: <1207863978.6958.15.camel@pasglop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20080410214321.nsdfXa3dW1SHgaAEdo7WOnkbsOZZaKzv71Y1-uLIj7Y@z>
+To: linux-kernel@vger.kernel.org
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, linuxppc-dev@ozlabs.org, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, Paul Mackerras <paulus@samba.org>
+Message-ID: <20080410214618.mH1hnxcHXAJOVRO_HCtenrZtIjUxyMVW_2A3fPjRJd8@z>
 
-Harvey Harrison <harvey.harrison@gmail.com> wrote:
 
-> +static inline u16 __get_unaligned_le16(const u8 *p)
-> +{
-> +	return (u16)(p[0] | p[1] << 8);
-> +}
+> +#ifndef thread_info_cache_init
+> +#define thread_info_cache_init	do { } while(0)
+> +#endif
+> +
 
-You shouldn't need these casts.  return is going to cast it anyway.
+Blah ! Missing a pair of () here. Ooops. I'll send a fixed patch.
 
-Actually, you probably _ought_ to have casts, but it should look like this:
+Ben.
 
-	return (u16)p[0] | (u16)p[1] << 8;
 
-You are shifting an 8-bit value left by 8 bits, so the compiler may be at
-liberty to instruct the RHS to end up zero.
-
-I presume the compiler is guaranteed not to merge the two memory accesses?  It
-can't seem to make it do so, though I seem to remember there were cases where
-it did, though I can't reproduce them.  I assume that's why you're passing in
-a u8 pointer and not a u16/u32/u64 pointer.
-
-David
