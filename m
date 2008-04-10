@@ -1,39 +1,34 @@
-From: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH 4/8] kernel: move arches that use the generic_le/be
-	helpers
-Date: Thu, 10 Apr 2008 13:43:02 -0700
-Message-ID: <1207860182.22001.40.camel@brick>
-References: <1207856648.22001.28.camel@brick>
-	 <20080410203708.GA28014@linux-mips.org>
-Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH 1/8] kernel: add common infrastructure for unaligned access
+Date: Thu, 10 Apr 2008 22:43:21 +0100
+Message-ID: <11527.1207863801@redhat.com>
+References: <1207856646.22001.25.camel@brick>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20080410203708.GA28014-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
+In-Reply-To: <1207856646.22001.25.camel@brick>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
-Cc: linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+To: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 
-On Thu, 2008-04-10 at 21:37 +0100, Ralf Baechle wrote:
-> On Thu, Apr 10, 2008 at 12:44:08PM -0700, Harvey Harrison wrote:
-> 
-> Btw, you may want to look at the current MIPS implementation of
-> get_unaligned and put_unaligned.  It's pure C and at least on MIPS it
-> produces somewhat shorter code and the source is definately much
-> shorter since it exploits the compiler's cleverness.
-> 
->   Ralf
+Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
 
-Yeah, the only reason I did not is that many arches intentionally bug
-during the linking process when the argument size is not 1,2,4,8 whereas
-some do not...it would be nice to get a decision on what is the right
-answer.
+> +static inline u16 __get_unaligned_le16(const u8 *p)
+> +{
+> +	return (u16)(p[0] | p[1] << 8);
+> +}
 
-Also, I saw the mips version, what would you think of moving to the
-no_builtin_memcpy version from my patchset...or just look at
-h3800, xtensa, or m32r arch implementations currently in tree.
+You shouldn't need these casts.  return is going to cast it anyway.
 
-Cheers,
+Actually, you probably _ought_ to have casts, but it should look like this:
 
-Harvey
+	return (u16)p[0] | (u16)p[1] << 8;
+
+You are shifting an 8-bit value left by 8 bits, so the compiler may be at
+liberty to instruct the RHS to end up zero.
+
+I presume the compiler is guaranteed not to merge the two memory accesses?  It
+can't seem to make it do so, though I seem to remember there were cases where
+it did, though I can't reproduce them.  I assume that's why you're passing in
+a u8 pointer and not a u16/u32/u64 pointer.
+
+David
