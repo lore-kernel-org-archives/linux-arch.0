@@ -1,47 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rn-out-0910.google.com ([64.233.170.190]:46608 "EHLO
-	rn-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753404AbYDJUnD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2008 16:43:03 -0400
-Received: by rn-out-0910.google.com with SMTP id v46so259996rnb.15
-        for <linux-arch@vger.kernel.org>; Thu, 10 Apr 2008 13:43:02 -0700 (PDT)
-Subject: Re: [PATCH 4/8] kernel: move arches that use the generic_le/be
-	helpers
-From: Harvey Harrison <harvey.harrison@gmail.com>
-In-Reply-To: <20080410203708.GA28014@linux-mips.org>
-References: <1207856648.22001.28.camel@brick>
-	 <20080410203708.GA28014@linux-mips.org>
-Content-Type: text/plain
-Date: Thu, 10 Apr 2008 13:43:02 -0700
-Message-ID: <1207860182.22001.40.camel@brick>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:34684 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758874AbYDJVnn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Apr 2008 17:43:43 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1207856646.22001.25.camel@brick>
+References: <1207856646.22001.25.camel@brick>
+Subject: Re: [PATCH 1/8] kernel: add common infrastructure for unaligned access
+Date: Thu, 10 Apr 2008 22:43:21 +0100
+Message-ID: <11527.1207863801@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20080410204302.q72lW7EVaLEuQEp08qYaNHP98Jw8TCk9mVINrriiY24@z>
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20080410214321.nsdfXa3dW1SHgaAEdo7WOnkbsOZZaKzv71Y1-uLIj7Y@z>
 
-On Thu, 2008-04-10 at 21:37 +0100, Ralf Baechle wrote:
-> On Thu, Apr 10, 2008 at 12:44:08PM -0700, Harvey Harrison wrote:
-> 
-> Btw, you may want to look at the current MIPS implementation of
-> get_unaligned and put_unaligned.  It's pure C and at least on MIPS it
-> produces somewhat shorter code and the source is definately much
-> shorter since it exploits the compiler's cleverness.
-> 
->   Ralf
+Harvey Harrison <harvey.harrison@gmail.com> wrote:
 
-Yeah, the only reason I did not is that many arches intentionally bug
-during the linking process when the argument size is not 1,2,4,8 whereas
-some do not...it would be nice to get a decision on what is the right
-answer.
+> +static inline u16 __get_unaligned_le16(const u8 *p)
+> +{
+> +	return (u16)(p[0] | p[1] << 8);
+> +}
 
-Also, I saw the mips version, what would you think of moving to the
-no_builtin_memcpy version from my patchset...or just look at
-h3800, xtensa, or m32r arch implementations currently in tree.
+You shouldn't need these casts.  return is going to cast it anyway.
 
-Cheers,
+Actually, you probably _ought_ to have casts, but it should look like this:
 
-Harvey
+	return (u16)p[0] | (u16)p[1] << 8;
 
+You are shifting an 8-bit value left by 8 bits, so the compiler may be at
+liberty to instruct the RHS to end up zero.
+
+I presume the compiler is guaranteed not to merge the two memory accesses?  It
+can't seem to make it do so, though I seem to remember there were cases where
+it did, though I can't reproduce them.  I assume that's why you're passing in
+a u8 pointer and not a u16/u32/u64 pointer.
+
+David
