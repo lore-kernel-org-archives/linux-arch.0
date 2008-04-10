@@ -1,58 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wr-out-0506.google.com ([64.233.184.231]:41144 "EHLO
-	wr-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753477AbYDJWiK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2008 18:38:10 -0400
-Received: by wr-out-0506.google.com with SMTP id c48so232187wra.1
-        for <linux-arch@vger.kernel.org>; Thu, 10 Apr 2008 15:38:03 -0700 (PDT)
-Subject: Re: [PATCH 1/8] kernel: add common infrastructure for unaligned
-	access
-From: Harvey Harrison <harvey.harrison@gmail.com>
-In-Reply-To: <11989.1207866793@redhat.com>
-References: <1207866046.22001.53.camel@brick>
-	 <1207865183.22001.49.camel@brick> <1207864537.22001.47.camel@brick>
-	 <1207856646.22001.25.camel@brick> <11527.1207863801@redhat.com>
-	 <11814.1207864864@redhat.com> <11907.1207865758@redhat.com>
-	 <11989.1207866793@redhat.com>
-Content-Type: text/plain
-Date: Thu, 10 Apr 2008 15:37:59 -0700
-Message-ID: <1207867079.22001.60.camel@brick>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from ozlabs.org ([203.10.76.45]:47365 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755116AbYDJXjq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Apr 2008 19:39:46 -0400
+From: Benjamin Herrenschmidt <benh@ozlabs.org>
+Date: Fri, 11 Apr 2008 09:36:39 +1000
+Subject: [PATCH 1/2] Add thread_info_cache_init() to all archs
+Message-ID: <20080410233738.15C0EDE2C9@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20080410223759.GMGnxlQaOL23I7qx3wEPzqclm_6J2x-i8BbMuLqXrRU@z>
+To: linux-kernel@vger.kernel.org
+Cc: Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20080410233639.7UbHs6vAQbsFGbfH0FMJkdvX4c6WLYPfadDqZTYms14@z>
 
-On Thu, 2008-04-10 at 23:33 +0100, David Howells wrote:
-> Harvey Harrison <harvey.harrison@gmail.com> wrote:
-> 
-> > Well, for the u16 case, won't the compiler warn about truncating the
-> > return if I return an int when the function returns u16?
-> 
-> It doesn't for me for:
-> 
-> 	u16 test(const u8 *p)
-> 	{
-> 		return (u16) (p[0] | p[1] << 8);
-> 	}
-> 
-> > In the u64 case, I need the cast to ensure it expands to u64 rather than
-> > int from the shift.  Agreed in the u32 case, but then it looks different
-> > than the u16/u64 case (cargo-cult I know, but nice for consistency).
-> 
-> Agreed, the u64 cast is necessary, but I was talking about casts generally of:
-> 
-> 	<TYPE> function(...)
-> 	{
-> 		return (<TYPE>) (...);
-> 	}
-> 
+Some architecture need to maintain a kmem cache for thread info
+structures. (next patch adds that to powerpc to fix an alignment
+problem).
 
-OK, I'll see what other comments come in and keep it in mind for the
-next iteration.  I'll also move frv over to the generic C code in that
-submission as we discussed.
+There is no good arch callback to use to initialize that cache
+that I can find, so this adds a new one and adds an empty macro
+for when it's not implemented.
 
-Harvey
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
 
+So we have the choice here between:
+
+ - the ifdef on the func name that I did, consistent with what
+I did before for iomap, which iirc Linus liked
+
+ - add some more ARCH_HAS_* or HAVE_* (yuck)
+
+ - add an empty definition to all archs .h (pain in the neck but I
+can do it, though it will be an annoying patch to keep around)
+
+ - do a weak function (will slightly bloat everybody for no good reason)
+
+So unless there is strong complaints, I'd like to stick to my
+current approach.
+
+(This one fixes a stupid typo, missing () in the macro def.)
+
+ include/linux/sched.h |    4 ++++
+ init/main.c           |    1 +
+ 2 files changed, 5 insertions(+)
+
+--- linux-work.orig/init/main.c	2008-04-10 13:11:06.000000000 +1000
++++ linux-work/init/main.c	2008-04-10 13:11:19.000000000 +1000
+@@ -623,6 +623,7 @@ asmlinkage void __init start_kernel(void
+ 	if (efi_enabled)
+ 		efi_enter_virtual_mode();
+ #endif
++	thread_info_cache_init();
+ 	fork_init(num_physpages);
+ 	proc_caches_init();
+ 	buffer_init();
+Index: linux-work/include/linux/sched.h
+===================================================================
+--- linux-work.orig/include/linux/sched.h	2008-04-10 13:11:44.000000000 +1000
++++ linux-work/include/linux/sched.h	2008-04-11 09:35:58.000000000 +1000
+@@ -1893,6 +1893,10 @@ static inline unsigned long *end_of_stac
+ 
+ #endif
+ 
++#ifndef thread_info_cache_init
++#define thread_info_cache_init()	do { } while(0)
++#endif
++
+ /* set thread flags in other task's structures
+  * - see asm/thread_info.h for TIF_xxxx flags available
+  */
