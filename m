@@ -1,102 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wa-out-1112.google.com ([209.85.146.183]:58144 "EHLO
-	wa-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753007AbYDJToN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2008 15:44:13 -0400
-Received: by wa-out-1112.google.com with SMTP id m16so100402waf.23
-        for <linux-arch@vger.kernel.org>; Thu, 10 Apr 2008 12:44:12 -0700 (PDT)
-Subject: [PATCH 3/8] kernel: move arches that use the no-builtin-memcpy
-	implementation
-From: Harvey Harrison <harvey.harrison@gmail.com>
-Content-Type: text/plain
-Date: Thu, 10 Apr 2008 12:44:07 -0700
-Message-ID: <1207856647.22001.27.camel@brick>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42021 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754544AbYDJUjk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2008 16:39:40 -0400
+Date: Thu, 10 Apr 2008 21:32:50 +0100
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 1/2] HAVE_SET_RESTORE_SIGMASK
+Message-ID: <20080410203250.GA21589@flint.arm.linux.org.uk>
+References: <20080329001230.D013726FA1D@magilla.localdomain> <20080329001341.7F93826FA1D@magilla.localdomain> <alpine.LFD.1.00.0803281746480.14670@woody.linux-foundation.org> <20080329022408.0DD4726FA1D@magilla.localdomain> <20080329031146.6FF7126FA1D@magilla.localdomain> <1207741532.27048.64.camel@shinybook.infradead.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1207741532.27048.64.camel@shinybook.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Chris Zankel <chris@zankel.net>
-Message-ID: <20080410194407.3MBLqiStcYlbBVZXxH2fZLs8MDxNECuB-ksNLqEVDDs@z>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: Roland McGrath <roland@redhat.com>, "Linus Torvalds <torvalds@linux-foundation.org>Andrew Morton" <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390@vger.kernel.org, tony.luck@intel.com, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, miles@gnu.org, geert@linux-m68k.org, zippel@linux-m68k.org
+Message-ID: <20080410203250.F3tRwjs0-8qflFRi-3KI3rLHPEHHLP0ft7miQIxMbDE@z>
 
-h8300, m32r, xtensa use this implementation.
+On Wed, Apr 09, 2008 at 12:45:32PM +0100, David Woodhouse wrote:
+> On Fri, 2008-03-28 at 20:11 -0700, Roland McGrath wrote:
+> > Change all the #ifdef TIF_RESTORE_SIGMASK conditionals in non-arch
+> > code to #ifdef HAVE_SET_RESTORE_SIGMASK.
+> 
+> That ifdef was only supposed to be a temporary thing until all
+> architectures had implemented TIF_RESTORE_SIGMASK anyway.
+> 
+> It looks like only ARM, v850 and m68k which are still missing it; if
+> those three architectures can catch up, then hopefully it can die off
+> completely quite soon.
 
-Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
----
- include/asm-h8300/unaligned.h  |   11 +----------
- include/asm-m32r/unaligned.h   |   15 +--------------
- include/asm-xtensa/unaligned.h |   12 +-----------
- 3 files changed, 3 insertions(+), 35 deletions(-)
+Well, we don't have the pselect/ppoll/epoll_wait syscalls and there's
+been no demand for them, so I don't particularly see the point of
+going to the trouble of adding support for something no one's
+interested in using.
 
-diff --git a/include/asm-h8300/unaligned.h b/include/asm-h8300/unaligned.h
-index ffb67f4..e8ff49d 100644
---- a/include/asm-h8300/unaligned.h
-+++ b/include/asm-h8300/unaligned.h
-@@ -1,15 +1,6 @@
- #ifndef __H8300_UNALIGNED_H
- #define __H8300_UNALIGNED_H
- 
--
--/* Use memmove here, so gcc does not insert a __builtin_memcpy. */
--
--#define get_unaligned(ptr) \
--  ({ __typeof__(*(ptr)) __tmp; memmove(&__tmp, (ptr), sizeof(*(ptr))); __tmp; })
--
--#define put_unaligned(val, ptr)				\
--  ({ __typeof__(*(ptr)) __tmp = (val);			\
--     memmove((ptr), &__tmp, sizeof(*(ptr)));		\
--     (void)0; })
-+#include <linux/unaligned/no_builtin_memcpy.h>
- 
- #endif
-diff --git a/include/asm-m32r/unaligned.h b/include/asm-m32r/unaligned.h
-index fccc180..5a4c931 100644
---- a/include/asm-m32r/unaligned.h
-+++ b/include/asm-m32r/unaligned.h
-@@ -1,19 +1,6 @@
- #ifndef _ASM_M32R_UNALIGNED_H
- #define _ASM_M32R_UNALIGNED_H
- 
--/*
-- * For the benefit of those who are trying to port Linux to another
-- * architecture, here are some C-language equivalents.
-- */
--
--#include <asm/string.h>
--
--#define get_unaligned(ptr) \
--  ({ __typeof__(*(ptr)) __tmp; memmove(&__tmp, (ptr), sizeof(*(ptr))); __tmp; })
--
--#define put_unaligned(val, ptr)				\
--  ({ __typeof__(*(ptr)) __tmp = (val);			\
--     memmove((ptr), &__tmp, sizeof(*(ptr)));		\
--     (void)0; })
-+#include <linux/unaligned/no_builtin_memcpy.h>
- 
- #endif /* _ASM_M32R_UNALIGNED_H */
-diff --git a/include/asm-xtensa/unaligned.h b/include/asm-xtensa/unaligned.h
-index 2822089..45eb203 100644
---- a/include/asm-xtensa/unaligned.h
-+++ b/include/asm-xtensa/unaligned.h
-@@ -13,16 +13,6 @@
- #ifndef _XTENSA_UNALIGNED_H
- #define _XTENSA_UNALIGNED_H
- 
--#include <linux/string.h>
--
--/* Use memmove here, so gcc does not insert a __builtin_memcpy. */
--
--#define get_unaligned(ptr) \
--  ({ __typeof__(*(ptr)) __tmp; memmove(&__tmp, (ptr), sizeof(*(ptr))); __tmp; })
--
--#define put_unaligned(val, ptr)				\
--  ({ __typeof__(*(ptr)) __tmp = (val);			\
--     memmove((ptr), &__tmp, sizeof(*(ptr)));		\
--     (void)0; })
-+#include <linux/unaligned/no_builtin_memcpy.h>
- 
- #endif	/* _XTENSA_UNALIGNED_H */
+I was going to suggest defining TIF_RESTORE_SIGMASK to zero to eliminate
+some of the code (and the ifdefs), but unfortunately its a bit position
+not a bitmask so that won't work.
+
 -- 
-1.5.5.144.g3e42
-
-
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
