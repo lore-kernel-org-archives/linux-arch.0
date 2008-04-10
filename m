@@ -1,334 +1,161 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from yw-out-2324.google.com ([74.125.46.30]:18902 "EHLO
+Received: from yw-out-2324.google.com ([74.125.46.31]:19084 "EHLO
 	yw-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753415AbYDJTop (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2008 15:44:45 -0400
-Received: by yw-out-2324.google.com with SMTP id 5so54715ywb.1
-        for <linux-arch@vger.kernel.org>; Thu, 10 Apr 2008 12:44:21 -0700 (PDT)
-Subject: [PATCH 5/8] kernel: move arches the use the generic byteshifting
-	implemetation
+	with ESMTP id S1753377AbYDJTot (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2008 15:44:49 -0400
+Received: by yw-out-2324.google.com with SMTP id 5so54725ywb.1
+        for <linux-arch@vger.kernel.org>; Thu, 10 Apr 2008 12:44:24 -0700 (PDT)
+Subject: [PATCH 7/8] kernel: remove asm-generic implementation of
+	unaligned.h
 From: Harvey Harrison <harvey.harrison@gmail.com>
 Content-Type: text/plain
-Date: Thu, 10 Apr 2008 12:44:08 -0700
-Message-ID: <1207856648.22001.29.camel@brick>
+Date: Thu, 10 Apr 2008 12:44:10 -0700
+Message-ID: <1207856650.22001.31.camel@brick>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Russell King <rmk@arm.linux.org.uk>
-Message-ID: <20080410194408.Mh8UO4QoyHL0edY0A0e4SgEaAB2b1KPsJd9kjBB4Pro@z>
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20080410194410.Yx6RgRmRHWDKFx6RrmrQPXK3sxVnOMpu-Q1Cx9vlGR8@z>
 
-arm chooses endianness based on compiler settings.
-
-v850 is le, but does not use the generic c-struct implementation and
-uses the byteshifting for both be and le.
+All arches now moved to new implementations.
 
 Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
 ---
- include/asm-arm/unaligned.h  |  166 +-----------------------------------------
- include/asm-v850/unaligned.h |  111 +---------------------------
- 2 files changed, 4 insertions(+), 273 deletions(-)
+ include/asm-generic/unaligned.h |  124 ---------------------------------------
+ 1 files changed, 0 insertions(+), 124 deletions(-)
 
-diff --git a/include/asm-arm/unaligned.h b/include/asm-arm/unaligned.h
-index 5db03cf..d5cf478 100644
---- a/include/asm-arm/unaligned.h
-+++ b/include/asm-arm/unaligned.h
-@@ -1,171 +1,7 @@
- #ifndef __ASM_ARM_UNALIGNED_H
- #define __ASM_ARM_UNALIGNED_H
- 
--#include <asm/types.h>
--
--extern int __bug_unaligned_x(const void *ptr);
+diff --git a/include/asm-generic/unaligned.h b/include/asm-generic/unaligned.h
+deleted file mode 100644
+index 2fe1b2e..0000000
+--- a/include/asm-generic/unaligned.h
++++ /dev/null
+@@ -1,124 +0,0 @@
+-#ifndef _ASM_GENERIC_UNALIGNED_H_
+-#define _ASM_GENERIC_UNALIGNED_H_
 -
 -/*
-- * What is the most efficient way of loading/storing an unaligned value?
+- * For the benefit of those who are trying to port Linux to another
+- * architecture, here are some C-language equivalents. 
 - *
-- * That is the subject of this file.  Efficiency here is defined as
-- * minimum code size with minimum register usage for the common cases.
-- * It is currently not believed that long longs are common, so we
-- * trade efficiency for the chars, shorts and longs against the long
-- * longs.
-- *
-- * Current stats with gcc 2.7.2.2 for these functions:
-- *
-- *	ptrsize	get:	code	regs	put:	code	regs
-- *	1		1	1		1	2
-- *	2		3	2		3	2
-- *	4		7	3		7	3
-- *	8		20	6		16	6
-- *
-- * gcc 2.95.1 seems to code differently:
-- *
-- *	ptrsize	get:	code	regs	put:	code	regs
-- *	1		1	1		1	2
-- *	2		3	2		3	2
-- *	4		7	4		7	4
-- *	8		19	8		15	6
-- *
-- * which may or may not be more efficient (depending upon whether
-- * you can afford the extra registers).  Hopefully the gcc 2.95
-- * is inteligent enough to decide if it is better to use the
-- * extra register, but evidence so far seems to suggest otherwise.
-- *
-- * Unfortunately, gcc is not able to optimise the high word
-- * out of long long >> 32, or the low word from long long << 32
+- * This is based almost entirely upon Richard Henderson's
+- * asm-alpha/unaligned.h implementation.  Some comments were
+- * taken from David Mosberger's asm-ia64/unaligned.h header.
 - */
 -
--#define __get_unaligned_2_le(__p)					\
--	(unsigned int)(__p[0] | __p[1] << 8)
+-#include <linux/types.h>
 -
--#define __get_unaligned_2_be(__p)					\
--	(unsigned int)(__p[0] << 8 | __p[1])
+-/* 
+- * The main single-value unaligned transfer routines.
+- */
+-#define get_unaligned(ptr) \
+-	__get_unaligned((ptr), sizeof(*(ptr)))
+-#define put_unaligned(x,ptr) \
+-	((void)sizeof(*(ptr)=(x)),\
+-	__put_unaligned((__force __u64)(x), (ptr), sizeof(*(ptr))))
 -
--#define __get_unaligned_4_le(__p)					\
--	(unsigned int)(__p[0] | __p[1] << 8 | __p[2] << 16 | __p[3] << 24)
+-/*
+- * This function doesn't actually exist.  The idea is that when
+- * someone uses the macros below with an unsupported size (datatype),
+- * the linker will alert us to the problem via an unresolved reference
+- * error.
+- */
+-extern void bad_unaligned_access_length(void) __attribute__((noreturn));
 -
--#define __get_unaligned_4_be(__p)					\
--	(unsigned int)(__p[0] << 24 | __p[1] << 16 | __p[2] << 8 | __p[3])
+-struct __una_u64 { __u64 x __attribute__((packed)); };
+-struct __una_u32 { __u32 x __attribute__((packed)); };
+-struct __una_u16 { __u16 x __attribute__((packed)); };
 -
--#define __get_unaligned_8_le(__p)					\
--	((unsigned long long)__get_unaligned_4_le((__p+4)) << 32 |	\
--		__get_unaligned_4_le(__p))
+-/*
+- * Elemental unaligned loads 
+- */
 -
--#define __get_unaligned_8_be(__p)					\
--	((unsigned long long)__get_unaligned_4_be(__p) << 32 |		\
--		__get_unaligned_4_be((__p+4)))
--
--#define __get_unaligned_le(ptr)						\
--	((__force typeof(*(ptr)))({					\
--		const __u8 *__p = (const __u8 *)(ptr);			\
--		__builtin_choose_expr(sizeof(*(ptr)) == 1, *__p,	\
--		  __builtin_choose_expr(sizeof(*(ptr)) == 2, __get_unaligned_2_le(__p),	\
--		  __builtin_choose_expr(sizeof(*(ptr)) == 4, __get_unaligned_4_le(__p),	\
--		  __builtin_choose_expr(sizeof(*(ptr)) == 8, __get_unaligned_8_le(__p),	\
--		    (void)__bug_unaligned_x(__p)))));			\
--	}))
--
--#define __get_unaligned_be(ptr)						\
--	((__force typeof(*(ptr)))({					\
--		const __u8 *__p = (const __u8 *)(ptr);			\
--		__builtin_choose_expr(sizeof(*(ptr)) == 1, *__p,	\
--		  __builtin_choose_expr(sizeof(*(ptr)) == 2, __get_unaligned_2_be(__p),	\
--		  __builtin_choose_expr(sizeof(*(ptr)) == 4, __get_unaligned_4_be(__p),	\
--		  __builtin_choose_expr(sizeof(*(ptr)) == 8, __get_unaligned_8_be(__p),	\
--		    (void)__bug_unaligned_x(__p)))));			\
--	}))
--
--
--static inline void __put_unaligned_2_le(__u32 __v, register __u8 *__p)
+-static inline __u64 __uldq(const __u64 *addr)
 -{
--	*__p++ = __v;
--	*__p++ = __v >> 8;
+-	const struct __una_u64 *ptr = (const struct __una_u64 *) addr;
+-	return ptr->x;
 -}
 -
--static inline void __put_unaligned_2_be(__u32 __v, register __u8 *__p)
+-static inline __u32 __uldl(const __u32 *addr)
 -{
--	*__p++ = __v >> 8;
--	*__p++ = __v;
+-	const struct __una_u32 *ptr = (const struct __una_u32 *) addr;
+-	return ptr->x;
 -}
 -
--static inline void __put_unaligned_4_le(__u32 __v, register __u8 *__p)
+-static inline __u16 __uldw(const __u16 *addr)
 -{
--	__put_unaligned_2_le(__v >> 16, __p + 2);
--	__put_unaligned_2_le(__v, __p);
--}
--
--static inline void __put_unaligned_4_be(__u32 __v, register __u8 *__p)
--{
--	__put_unaligned_2_be(__v >> 16, __p);
--	__put_unaligned_2_be(__v, __p + 2);
--}
--
--static inline void __put_unaligned_8_le(const unsigned long long __v, register __u8 *__p)
--{
--	/*
--	 * tradeoff: 8 bytes of stack for all unaligned puts (2
--	 * instructions), or an extra register in the long long
--	 * case - go for the extra register.
--	 */
--	__put_unaligned_4_le(__v >> 32, __p+4);
--	__put_unaligned_4_le(__v, __p);
--}
--
--static inline void __put_unaligned_8_be(const unsigned long long __v, register __u8 *__p)
--{
--	/*
--	 * tradeoff: 8 bytes of stack for all unaligned puts (2
--	 * instructions), or an extra register in the long long
--	 * case - go for the extra register.
--	 */
--	__put_unaligned_4_be(__v >> 32, __p);
--	__put_unaligned_4_be(__v, __p+4);
+-	const struct __una_u16 *ptr = (const struct __una_u16 *) addr;
+-	return ptr->x;
 -}
 -
 -/*
-- * Try to store an unaligned value as efficiently as possible.
-- */
--#define __put_unaligned_le(val,ptr)					\
--	({							\
--		(void)sizeof(*(ptr) = (val));			\
--		switch (sizeof(*(ptr))) {			\
--		case 1:						\
--			*(ptr) = (val);				\
--			break;					\
--		case 2: __put_unaligned_2_le((__force u16)(val),(__u8 *)(ptr));	\
--			break;					\
--		case 4:	__put_unaligned_4_le((__force u32)(val),(__u8 *)(ptr));	\
--			break;					\
--		case 8:	__put_unaligned_8_le((__force u64)(val),(__u8 *)(ptr)); \
--			break;					\
--		default: __bug_unaligned_x(ptr);		\
--			break;					\
--		}						\
--		(void) 0;					\
--	})
--
--#define __put_unaligned_be(val,ptr)					\
--	({							\
--		(void)sizeof(*(ptr) = (val));			\
--		switch (sizeof(*(ptr))) {			\
--		case 1:						\
--			*(ptr) = (val);				\
--			break;					\
--		case 2: __put_unaligned_2_be((__force u16)(val),(__u8 *)(ptr));	\
--			break;					\
--		case 4:	__put_unaligned_4_be((__force u32)(val),(__u8 *)(ptr));	\
--			break;					\
--		case 8:	__put_unaligned_8_be((__force u64)(val),(__u8 *)(ptr)); \
--			break;					\
--		default: __bug_unaligned_x(ptr);		\
--			break;					\
--		}						\
--		(void) 0;					\
--	})
-+#include <linux/unaligned/generic.h>
- 
- /*
-  * Select endianness
-diff --git a/include/asm-v850/unaligned.h b/include/asm-v850/unaligned.h
-index e30b186..09fc37c 100644
---- a/include/asm-v850/unaligned.h
-+++ b/include/asm-v850/unaligned.h
-@@ -17,114 +17,9 @@
- #ifndef __V850_UNALIGNED_H__
- #define __V850_UNALIGNED_H__
- 
--#include <asm/types.h>
--
--extern int __bug_unaligned_x(void *ptr);
--
--/*
-- * What is the most efficient way of loading/storing an unaligned value?
-- *
-- * That is the subject of this file.  Efficiency here is defined as
-- * minimum code size with minimum register usage for the common cases.
-- * It is currently not believed that long longs are common, so we
-- * trade efficiency for the chars, shorts and longs against the long
-- * longs.
-- *
-- * Current stats with gcc 2.7.2.2 for these functions:
-- *
-- *	ptrsize	get:	code	regs	put:	code	regs
-- *	1		1	1		1	2
-- *	2		3	2		3	2
-- *	4		7	3		7	3
-- *	8		20	6		16	6
-- *
-- * gcc 2.95.1 seems to code differently:
-- *
-- *	ptrsize	get:	code	regs	put:	code	regs
-- *	1		1	1		1	2
-- *	2		3	2		3	2
-- *	4		7	4		7	4
-- *	8		19	8		15	6
-- *
-- * which may or may not be more efficient (depending upon whether
-- * you can afford the extra registers).  Hopefully the gcc 2.95
-- * is inteligent enough to decide if it is better to use the
-- * extra register, but evidence so far seems to suggest otherwise.
-- *
-- * Unfortunately, gcc is not able to optimise the high word
-- * out of long long >> 32, or the low word from long long << 32
+- * Elemental unaligned stores 
 - */
 -
--#define __get_unaligned_2(__p)					\
--	(__p[0] | __p[1] << 8)
--
--#define __get_unaligned_4(__p)					\
--	(__p[0] | __p[1] << 8 | __p[2] << 16 | __p[3] << 24)
--
--#define get_unaligned(ptr)					\
--	({							\
--		__typeof__(*(ptr)) __v;				\
--		__u8 *__p = (__u8 *)(ptr);			\
--		switch (sizeof(*(ptr))) {			\
--		case 1:	__v = *(ptr);			break;	\
--		case 2: __v = __get_unaligned_2(__p);	break;	\
--		case 4: __v = __get_unaligned_4(__p);	break;	\
--		case 8: {					\
--				unsigned int __v1, __v2;	\
--				__v2 = __get_unaligned_4((__p+4)); \
--				__v1 = __get_unaligned_4(__p);	\
--				__v = ((unsigned long long)__v2 << 32 | __v1);	\
--			}					\
--			break;					\
--		default: __v = __bug_unaligned_x(__p);	break;	\
--		}						\
--		__v;						\
--	})
--
--
--static inline void __put_unaligned_2(__u32 __v, register __u8 *__p)
+-static inline void __ustq(__u64 val, __u64 *addr)
 -{
--	*__p++ = __v;
--	*__p++ = __v >> 8;
+-	struct __una_u64 *ptr = (struct __una_u64 *) addr;
+-	ptr->x = val;
 -}
 -
--static inline void __put_unaligned_4(__u32 __v, register __u8 *__p)
+-static inline void __ustl(__u32 val, __u32 *addr)
 -{
--	__put_unaligned_2(__v >> 16, __p + 2);
--	__put_unaligned_2(__v, __p);
+-	struct __una_u32 *ptr = (struct __una_u32 *) addr;
+-	ptr->x = val;
 -}
 -
--static inline void __put_unaligned_8(const unsigned long long __v, register __u8 *__p)
+-static inline void __ustw(__u16 val, __u16 *addr)
 -{
--	/*
--	 * tradeoff: 8 bytes of stack for all unaligned puts (2
--	 * instructions), or an extra register in the long long
--	 * case - go for the extra register.
--	 */
--	__put_unaligned_4(__v >> 32, __p+4);
--	__put_unaligned_4(__v, __p);
+-	struct __una_u16 *ptr = (struct __una_u16 *) addr;
+-	ptr->x = val;
 -}
 -
--/*
-- * Try to store an unaligned value as efficiently as possible.
-- */
--#define put_unaligned(val,ptr)					\
--	({							\
--		switch (sizeof(*(ptr))) {			\
--		case 1:						\
--			*(ptr) = (val);				\
--			break;					\
--		case 2: __put_unaligned_2((val),(__u8 *)(ptr));	\
--			break;					\
--		case 4:	__put_unaligned_4((val),(__u8 *)(ptr));	\
--			break;					\
--		case 8:	__put_unaligned_8((val),(__u8 *)(ptr)); \
--			break;					\
--		default: __bug_unaligned_x(ptr);		\
--			break;					\
--		}						\
--		(void) 0;					\
--	})
-+#include <linux/unaligned/generic.h>
- 
-+#define get_unaligned	__get_unaligned_le
-+#define put_unaligned	__put_unaligned_le
- 
- #endif /* __V850_UNALIGNED_H__ */
+-#define __get_unaligned(ptr, size) ({		\
+-	const void *__gu_p = ptr;		\
+-	__u64 __val;				\
+-	switch (size) {				\
+-	case 1:					\
+-		__val = *(const __u8 *)__gu_p;	\
+-		break;				\
+-	case 2:					\
+-		__val = __uldw(__gu_p);		\
+-		break;				\
+-	case 4:					\
+-		__val = __uldl(__gu_p);		\
+-		break;				\
+-	case 8:					\
+-		__val = __uldq(__gu_p);		\
+-		break;				\
+-	default:				\
+-		bad_unaligned_access_length();	\
+-	};					\
+-	(__force __typeof__(*(ptr)))__val;	\
+-})
+-
+-#define __put_unaligned(val, ptr, size)		\
+-({						\
+-	void *__gu_p = ptr;			\
+-	switch (size) {				\
+-	case 1:					\
+-		*(__u8 *)__gu_p = (__force __u8)val;		\
+-	        break;				\
+-	case 2:					\
+-		__ustw((__force __u16)val, __gu_p);		\
+-		break;				\
+-	case 4:					\
+-		__ustl((__force __u32)val, __gu_p);		\
+-		break;				\
+-	case 8:					\
+-		__ustq(val, __gu_p);		\
+-		break;				\
+-	default:				\
+-	    	bad_unaligned_access_length();	\
+-	};					\
+-	(void)0;				\
+-})
+-
+-#endif /* _ASM_GENERIC_UNALIGNED_H */
 -- 
 1.5.5.144.g3e42
 
