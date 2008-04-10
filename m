@@ -1,45 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42021 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754544AbYDJUjk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2008 16:39:40 -0400
-Date: Thu, 10 Apr 2008 21:32:50 +0100
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [PATCH 1/2] HAVE_SET_RESTORE_SIGMASK
-Message-ID: <20080410203250.GA21589@flint.arm.linux.org.uk>
-References: <20080329001230.D013726FA1D@magilla.localdomain> <20080329001341.7F93826FA1D@magilla.localdomain> <alpine.LFD.1.00.0803281746480.14670@woody.linux-foundation.org> <20080329022408.0DD4726FA1D@magilla.localdomain> <20080329031146.6FF7126FA1D@magilla.localdomain> <1207741532.27048.64.camel@shinybook.infradead.org>
+Received: from rn-out-0910.google.com ([64.233.170.190]:46608 "EHLO
+	rn-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753404AbYDJUnD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2008 16:43:03 -0400
+Received: by rn-out-0910.google.com with SMTP id v46so259996rnb.15
+        for <linux-arch@vger.kernel.org>; Thu, 10 Apr 2008 13:43:02 -0700 (PDT)
+Subject: Re: [PATCH 4/8] kernel: move arches that use the generic_le/be
+	helpers
+From: Harvey Harrison <harvey.harrison@gmail.com>
+In-Reply-To: <20080410203708.GA28014@linux-mips.org>
+References: <1207856648.22001.28.camel@brick>
+	 <20080410203708.GA28014@linux-mips.org>
+Content-Type: text/plain
+Date: Thu, 10 Apr 2008 13:43:02 -0700
+Message-ID: <1207860182.22001.40.camel@brick>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1207741532.27048.64.camel@shinybook.infradead.org>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Roland McGrath <roland@redhat.com>, "Linus Torvalds <torvalds@linux-foundation.org>Andrew Morton" <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390@vger.kernel.org, tony.luck@intel.com, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, miles@gnu.org, geert@linux-m68k.org, zippel@linux-m68k.org
-Message-ID: <20080410203250.F3tRwjs0-8qflFRi-3KI3rLHPEHHLP0ft7miQIxMbDE@z>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20080410204302.q72lW7EVaLEuQEp08qYaNHP98Jw8TCk9mVINrriiY24@z>
 
-On Wed, Apr 09, 2008 at 12:45:32PM +0100, David Woodhouse wrote:
-> On Fri, 2008-03-28 at 20:11 -0700, Roland McGrath wrote:
-> > Change all the #ifdef TIF_RESTORE_SIGMASK conditionals in non-arch
-> > code to #ifdef HAVE_SET_RESTORE_SIGMASK.
+On Thu, 2008-04-10 at 21:37 +0100, Ralf Baechle wrote:
+> On Thu, Apr 10, 2008 at 12:44:08PM -0700, Harvey Harrison wrote:
 > 
-> That ifdef was only supposed to be a temporary thing until all
-> architectures had implemented TIF_RESTORE_SIGMASK anyway.
+> Btw, you may want to look at the current MIPS implementation of
+> get_unaligned and put_unaligned.  It's pure C and at least on MIPS it
+> produces somewhat shorter code and the source is definately much
+> shorter since it exploits the compiler's cleverness.
 > 
-> It looks like only ARM, v850 and m68k which are still missing it; if
-> those three architectures can catch up, then hopefully it can die off
-> completely quite soon.
+>   Ralf
 
-Well, we don't have the pselect/ppoll/epoll_wait syscalls and there's
-been no demand for them, so I don't particularly see the point of
-going to the trouble of adding support for something no one's
-interested in using.
+Yeah, the only reason I did not is that many arches intentionally bug
+during the linking process when the argument size is not 1,2,4,8 whereas
+some do not...it would be nice to get a decision on what is the right
+answer.
 
-I was going to suggest defining TIF_RESTORE_SIGMASK to zero to eliminate
-some of the code (and the ifdefs), but unfortunately its a bit position
-not a bitmask so that won't work.
+Also, I saw the mips version, what would you think of moving to the
+no_builtin_memcpy version from my patchset...or just look at
+h3800, xtensa, or m32r arch implementations currently in tree.
 
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Cheers,
+
+Harvey
+
