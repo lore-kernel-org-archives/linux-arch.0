@@ -1,50 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wa-out-1112.google.com ([209.85.146.177]:41896 "EHLO
+Received: from wa-out-1112.google.com ([209.85.146.177]:18907 "EHLO
 	wa-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752962AbYDKAGe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2008 20:06:34 -0400
-Received: by wa-out-1112.google.com with SMTP id m16so178040waf.23
-        for <linux-arch@vger.kernel.org>; Thu, 10 Apr 2008 17:06:33 -0700 (PDT)
-Subject: Re: [PATCHv2 1/8] kernel: add common infrastructure for unaligned
-	access
+	with ESMTP id S1757427AbYDKDi6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2008 23:38:58 -0400
+Received: by wa-out-1112.google.com with SMTP id m16so238022waf.23
+        for <linux-arch@vger.kernel.org>; Thu, 10 Apr 2008 20:38:58 -0700 (PDT)
+Subject: [PATCH 1/2] kernel: add common infrastructure for unaligned access
 From: Harvey Harrison <harvey.harrison@gmail.com>
-In-Reply-To: <1207856646.22001.25.camel@brick>
-References: <1207856646.22001.25.camel@brick>
 Content-Type: text/plain
-Date: Thu, 10 Apr 2008 17:06:34 -0700
-Message-ID: <1207872394.22001.69.camel@brick>
+Date: Thu, 10 Apr 2008 20:38:57 -0700
+Message-ID: <1207885137.22001.86.camel@brick>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20080411000634.RJTM-l-DwxhAtj6VjyZerUQPC2PLffFdUByw5U_9Bvo@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Howells <dhowells@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20080411033857.gBn2SaJaom6FeKu-irFIzgOgmI3rcy8xUU_P5fnOYQU@z>
 
-Small update changing the exposed API of get_unaligned_* take
-a void * to avoid casts in every single caller.  We are already
-specifying what we want to get explicitly in the function name:
-get_unaligned_le16...le32...le64..etc.
+Create a linux/unaligned folder similar in spirit to the linux/byteorder
+folder to hold generic implementations collected from various arches.
 
-This will make 8/8 look even cleaner as a bunch of casts are not
-needed.
+Currently there are five implementations:
+1) cpu_endian.h: C-struct based, from asm-generic/unaligned.h
+2) little_endian.h: Open coded byte-swapping, heavily based on asm-arm
+3) big_endian.h: Open coded byte-swapping, heavily based on asm-arm
+4) no_builtin_memcpy.h: taken from multiple implementations in tree
+5) access_ok.h: taken from x86 and others, unaligned access is ok.
 
-Harvey
+All of the new implementations checks for sizes not equal to 1,2,4,8
+and will BUG at compile time.
+
+API additions:
+
+get_unaligned_{le16|le32|le64|be16|be32|be64}(p) which is meant to replace
+code of the form:
+le16_to_cpu(get_unaligned((__le16 *)p));
+
+put_unaligned_{le16|le32|le64|be16|be32|be64}(val, pointer) which is meant to
+replace code of the form:
+put_unaligned(cpu_to_le16(val), (__le16 *)p);
+
+Headers to create these based on the selected implementation and defining the
+appropriate get_unaligned() and put_unaligned() macros are:
+
+generic_le.h: Use the C-struct for get/put_unaligned and the le helpers, use the
+opencoded be byteswapping implementation for big-endian.
+
+generic_be.h: Use the C-struct for get/put_unaligned and the be helpers, use the
+opencoded le byteswapping implementation for little-endian.
+
+generic.h: Use opencoded byteswapping for all helpers, leaves it to the arch to
+define get/put_unaligned.
+
+Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+---
+Removed some superfluous casts noticed by David Howells.  Made all arches check
+the only size 1,2,4,8 types are passed to get/put_unaligned.
+ include/linux/unaligned/access_ok.h         |   98 +++++++++++++++++++++++++
+ include/linux/unaligned/big_endian.h        |   86 ++++++++++++++++++++++
+ include/linux/unaligned/cpu_endian.h        |   92 ++++++++++++++++++++++++
+ include/linux/unaligned/generic.h           |   67 +++++++++++++++++
+ include/linux/unaligned/generic_be.h        |   70 ++++++++++++++++++
+ include/linux/unaligned/generic_le.h        |   70 ++++++++++++++++++
+ include/linux/unaligned/little_endian.h     |   86 ++++++++++++++++++++++
+ include/linux/unaligned/no_builtin_memcpy.h |  102 +++++++++++++++++++++++++++
+ 8 files changed, 671 insertions(+), 0 deletions(-)
 
 diff --git a/include/linux/unaligned/access_ok.h b/include/linux/unaligned/access_ok.h
 new file mode 100644
-index 0000000..3668b45
+index 0000000..69f4520
 --- /dev/null
 +++ b/include/linux/unaligned/access_ok.h
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,98 @@
 +#ifndef _LINUX_UNALIGNED_ACCESS_OK_H_
 +#define _LINUX_UNALIGNED_ACCESS_OK_H_
 +
 +#include <linux/kernel.h>
 +#include <asm/byteorder.h>
 +
-+#define get_unaligned(ptr) (*(ptr))
-+#define put_unaligned(val, ptr) ((void)( *(ptr) = (val) ))
++extern void __build_bug_unaligned_length(void);
++
++#define get_unaligned(ptr) ({			\
++	typeof(*(ptr)) __tmp;			\
++	switch (sizeof(__tmp)) {		\
++	case 1:					\
++	case 2:					\
++	case 4:					\
++	case 8:					\
++		__tmp = *(ptr);			\
++		break;				\
++	default:				\
++		__build_bug_unaligned_length();	\
++		break;				\
++	}					\
++	__tmp; })
++
++#define put_unaligned(val, ptr) ({		\
++	switch (sizeof(*(ptr))) {		\
++	case 1:					\
++	case 2:					\
++	case 4:					\
++	case 8:					\
++		*(ptr) = (val);			\
++		break;				\
++	default:				\
++		__build_bug_unaligned_length();	\
++		break;				\
++	}					\
++	(void)0; })
 +
 +static inline u16 get_unaligned_le16(const void *p)
 +{
@@ -109,14 +173,16 @@ index 0000000..3668b45
 +#endif /* _LINUX_UNALIGNED_ACCESS_OK_H_ */
 diff --git a/include/linux/unaligned/big_endian.h b/include/linux/unaligned/big_endian.h
 new file mode 100644
-index 0000000..f3cd105
+index 0000000..23d1532
 --- /dev/null
 +++ b/include/linux/unaligned/big_endian.h
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,86 @@
 +#ifndef _LINUX_UNALIGNED_BIG_ENDIAN_H_
 +#define _LINUX_UNALIGNED_BIG_ENDIAN_H_
 +
 +#include <linux/kernel.h>
++
++extern void __build_bug_unaligned_length(void);
 +
 +static inline u16 __get_unaligned_be16(const u8 *p)
 +{
@@ -151,7 +217,7 @@ index 0000000..f3cd105
 +		__val = __get_unaligned_be64(__gu_p);	\
 +		break;					\
 +	default:					\
-+		BUILD_BUG_ON(1);			\
++		__build_bug_unaligned_length();		\
 +		break;					\
 +	};						\
 +	__val; })
@@ -191,7 +257,7 @@ index 0000000..f3cd105
 +		__put_unaligned_be64((__force u64)(val), __gu_p);	\
 +		break;							\
 +	default:							\
-+		BUILD_BUG_ON(1);					\
++		__build_bug_unaligned_length();				\
 +		break;							\
 +	}								\
 +	(void)0; })
@@ -199,14 +265,16 @@ index 0000000..f3cd105
 +#endif /* _LINUX_UNALIGNED_BIG_ENDIAN_H_ */
 diff --git a/include/linux/unaligned/cpu_endian.h b/include/linux/unaligned/cpu_endian.h
 new file mode 100644
-index 0000000..8189286
+index 0000000..91861c4
 --- /dev/null
 +++ b/include/linux/unaligned/cpu_endian.h
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,92 @@
 +#ifndef _LINUX_UNALIGNED_CPU_ENDIAN_H_
 +#define _LINUX_UNALIGNED_CPU_ENDIAN_H_
 +
 +#include <linux/kernel.h>
++
++extern void __build_bug_unaligned_length(void);
 +
 +struct __una_u16 { u16 x __attribute__((packed)); };
 +struct __una_u32 { u32 x __attribute__((packed)); };
@@ -247,7 +315,7 @@ index 0000000..8189286
 +		__val = __get_unaligned_cpu64(__gu_p);	\
 +		break;					\
 +	default:					\
-+		BUILD_BUG_ON(1);			\
++		__build_bug_unaligned_length();		\
 +		break;					\
 +	};						\
 +	__val; })
@@ -287,7 +355,7 @@ index 0000000..8189286
 +		__put_unaligned_cpu64((__force u64)(val), __gu_p);	\
 +		break;							\
 +	default:							\
-+		BUILD_BUG_ON(1);					\
++		__build_bug_unaligned_length();				\
 +		break;							\
 +	}								\
 +	(void)0; })
@@ -520,14 +588,16 @@ index 0000000..8a6f6ae
 +#endif /* _LINUX_UNALIGNED_GENERIC_LE_H_ */
 diff --git a/include/linux/unaligned/little_endian.h b/include/linux/unaligned/little_endian.h
 new file mode 100644
-index 0000000..860af6b
+index 0000000..2a92f92
 --- /dev/null
 +++ b/include/linux/unaligned/little_endian.h
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,86 @@
 +#ifndef _LINUX_UNALIGNED_LITTLE_ENDIAN_H_
 +#define _LINUX_UNALIGNED_LITTLE_ENDIAN_H_
 +
 +#include <linux/kernel.h>
++
++extern void __build_bug_unaligned_length(void);
 +
 +static inline u16 __get_unaligned_le16(const u8 *p)
 +{
@@ -562,7 +632,7 @@ index 0000000..860af6b
 +		__val = __get_unaligned_le64(__gu_p);	\
 +		break;					\
 +	default:					\
-+		BUILD_BUG_ON(1);			\
++		__build_bug_unaligned_length();		\
 +		break;					\
 +	};						\
 +	__val; })
@@ -602,7 +672,7 @@ index 0000000..860af6b
 +		__put_unaligned_le64((__force u64)(val), __gu_p);	\
 +		break;							\
 +	default:							\
-+		BUILD_BUG_ON(1);					\
++		__build_bug_unaligned_length();				\
 +		break;							\
 +	}								\
 +	(void)0; })
@@ -610,10 +680,10 @@ index 0000000..860af6b
 +#endif /* _LINUX_UNALIGNED_LITTLE_ENDIAN_H_ */
 diff --git a/include/linux/unaligned/no_builtin_memcpy.h b/include/linux/unaligned/no_builtin_memcpy.h
 new file mode 100644
-index 0000000..9b9e803
+index 0000000..9db015b
 --- /dev/null
 +++ b/include/linux/unaligned/no_builtin_memcpy.h
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,102 @@
 +#ifndef _LINUX_UNALIGNED_NO_BUILTIN_MEMCPY_H_
 +#define _LINUX_UNALIGNED_NO_BUILTIN_MEMCPY_H_
 +
@@ -621,16 +691,38 @@ index 0000000..9b9e803
 +#include <linux/string.h>
 +#include <asm/byteorder.h>
 +
++extern void __build_bug_unaligned_length(void);
++
 +/* Use memmove here, so gcc does not insert a __builtin_memcpy. */
 +
 +#define get_unaligned(ptr) ({				\
-+	__typeof__(*(ptr)) __tmp;			\
-+	memmove(&__tmp, (ptr), sizeof(*(ptr)));		\
++	typeof(*(ptr)) __tmp;				\
++	switch (sizeof(*(ptr))) {			\
++	case 1:						\
++	case 2:						\
++	case 4:						\
++	case 8:						\
++		memmove(&__tmp, (ptr), sizeof(*(ptr)));	\
++		break;					\
++	default:					\
++		__build_bug_unaligned_length();		\
++		break;					\
++	}						\
 +	__tmp; })
 +
 +#define put_unaligned(val, ptr) ({			\
-+	__typeof__(*(ptr)) __tmp = (val);		\
-+	memmove((ptr), &__tmp, sizeof(*(ptr)));		\
++	typeof(*(ptr)) __tmp = (val);			\
++	switch (sizeof(*(ptr))) {			\
++	case 1:						\
++	case 2:						\
++	case 4:						\
++	case 8:						\
++		memmove((ptr), &__tmp, sizeof(*(ptr)));	\
++		break;					\
++	default:					\
++		__build_bug_unaligned_length();		\
++		break;					\
++	}						\
 +	(void)0; })
 +
 +static inline u16 get_unaligned_le16(const void *p)
@@ -694,5 +786,7 @@ index 0000000..9b9e803
 +}
 +
 +#endif
+-- 
+1.5.5.144.g3e42
 
 
