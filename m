@@ -1,51 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:58134 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751767AbYDKNlY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Apr 2008 09:41:24 -0400
-Subject: Re: [PATCH 1/2] HAVE_SET_RESTORE_SIGMASK
-From: David Woodhouse <dwmw2@infradead.org>
-In-Reply-To: <20080410203250.GA21589@flint.arm.linux.org.uk>
-References: <20080329001230.D013726FA1D@magilla.localdomain>
-	 <20080329001341.7F93826FA1D@magilla.localdomain>
-	 <alpine.LFD.1.00.0803281746480.14670@woody.linux-foundation.org>
-	 <20080329022408.0DD4726FA1D@magilla.localdomain>
-	 <20080329031146.6FF7126FA1D@magilla.localdomain>
-	 <1207741532.27048.64.camel@shinybook.infradead.org>
-	 <20080410203250.GA21589@flint.arm.linux.org.uk>
+Received: from wa-out-1112.google.com ([209.85.146.183]:20636 "EHLO
+	wa-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760581AbYDKPTX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Apr 2008 11:19:23 -0400
+Received: by wa-out-1112.google.com with SMTP id m16so438950waf.23
+        for <linux-arch@vger.kernel.org>; Fri, 11 Apr 2008 08:19:23 -0700 (PDT)
+Subject: Re: [PATCH 2/2] kernel: Move arches to use common unaligned access
+From: Harvey Harrison <harvey.harrison@gmail.com>
+In-Reply-To: <15208.1207908688@redhat.com>
+References: <1207885132.22001.85.camel@brick>  <15208.1207908688@redhat.com>
 Content-Type: text/plain
-Date: Fri, 11 Apr 2008 14:40:34 +0100
-Message-ID: <1207921234.22291.4.camel@pmac.infradead.org>
+Date: Fri, 11 Apr 2008 08:19:26 -0700
+Message-ID: <1207927166.22001.91.camel@brick>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk+lkml@arm.linux.org.uk>
-Cc: Roland McGrath <roland@redhat.com>, "Linus Torvalds <torvalds@linux-foundation.org>Andrew Morton" <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390@vger.kernel.org, tony.luck@intel.com, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, miles@gnu.org, geert@linux-m68k.org, zippel@linux-m68k.org
-Message-ID: <20080411134034.O5DpN2j1j8XCUZZ1ap09p9_IhqqPB9sUqItE8TjbJtc@z>
+To: David Howells <dhowells@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20080411151926.EAZ2EX4hjUGFu_qDCqPpyQr-NpUGAjinYSDxwsI2qWE@z>
 
-On Thu, 2008-04-10 at 21:32 +0100, Russell King wrote: 
-> On Wed, Apr 09, 2008 at 12:45:32PM +0100, David Woodhouse wrote:
-> > On Fri, 2008-03-28 at 20:11 -0700, Roland McGrath wrote:
-> > > Change all the #ifdef TIF_RESTORE_SIGMASK conditionals in non-arch
-> > > code to #ifdef HAVE_SET_RESTORE_SIGMASK.
-> > 
-> > That ifdef was only supposed to be a temporary thing until all
-> > architectures had implemented TIF_RESTORE_SIGMASK anyway.
-> > 
-> > It looks like only ARM, v850 and m68k which are still missing it; if
-> > those three architectures can catch up, then hopefully it can die off
-> > completely quite soon.
+On Fri, 2008-04-11 at 11:11 +0100, David Howells wrote:
+> Harvey Harrison <harvey.harrison@gmail.com> wrote:
 > 
-> Well, we don't have the pselect/ppoll/epoll_wait syscalls and there's
-> been no demand for them, so I don't particularly see the point of
-> going to the trouble of adding support for something no one's
-> interested in using.
+> > -#ifndef _ASM_UNALIGNED_H
+> > -#define _ASM_UNALIGNED_H
+> > -
+> > +#ifndef _ASM_FRV_UNALIGNED_H_
+> > +#define _ASM_FRV_UNALIGNED_H_
+> 
+> Why?
 
-You're not likely to see demand for it from users. I believe glibc will
-emulate it as best it can (which is not very well), and things will
-appear to work.... most of the time.
+Consistency with every other arch..no other reason.
 
--- 
-dwmw2
+> 
+> > - * impractical.  So, now we fall back to using memcpy.
+> > + * impractical.  So, now we fall back to using memmov.
+> 
+> That's memmove, not memmov.  Any why memmove, not memcpy?  Is __tmp likely to
+> overlap with *ptr?
+> 
+> Also, for FRV, I think calling memmove/memcpy for MMU kernels may be the wrong
+> thing to do...  I'm sort of leaning towards doing the same thing as NOMMU
+> kernels and just using your inline ones.
+
+OK, just let me know what you decide.  I'm stil open to bringing back
+the frv asm versions if the do end up being faster.
+
+> 
+> The advantage of the inline ones is that they are quicker and probably involve
+> fewer instructions executed; whereas using memcpy/memmove may end up with
+> smaller, but slower code.  Hmmm...  Maybe key on CONFIG_CC_OPTIMIZE_FOR_SIZE?
+> 
+
+I suppose an out-of-line version could be easily added to accomplish
+this.  It would be identical to the byteshifting implementation-wise.
+
+Let me know if you'd like me to spin such a patch.
+
+Harvey
 
