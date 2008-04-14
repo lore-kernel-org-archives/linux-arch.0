@@ -1,145 +1,70 @@
-From: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 03/10] input: Use get_unaligned_* helpers
-Date: Mon, 14 Apr 2008 09:37:54 -0700
-Message-ID: <1208191074.5721.25.camel@brick>
+From: Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
+Subject: Re: [PATCHv3 2/2] kernel: Move arches to use common unaligned access
+Date: Mon, 14 Apr 2008 17:34:48 +0100
+Message-ID: <20080414163448.GA8473@flint.arm.linux.org.uk>
+References: <1207950449.22001.106.camel@brick> <4392.1208169129@redhat.com> <20080414111119.GA6228@flint.arm.linux.org.uk> <1208190432.5721.1.camel@brick>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <1208190432.5721.1.camel@brick>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+To: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 
-Signed-off-by: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
----
- drivers/input/tablet/aiptek.c |   16 ++++++++--------
- drivers/input/tablet/gtco.c   |   14 +++++++-------
- drivers/input/tablet/kbtab.c  |    4 ++--
- 3 files changed, 17 insertions(+), 17 deletions(-)
+On Mon, Apr 14, 2008 at 09:27:12AM -0700, Harvey Harrison wrote:
+> On Mon, 2008-04-14 at 12:11 +0100, Russell King wrote:
+> > On Mon, Apr 14, 2008 at 11:32:09AM +0100, David Howells wrote:
+> > > Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
+> > > 
+> > > > -#ifndef _ASM_UNALIGNED_H
+> > > > -#define _ASM_UNALIGNED_H
+> > > > +#ifndef _ASM_FRV_UNALIGNED_H_
+> > > > +#define _ASM_FRV_UNALIGNED_H_
+> > > 
+> > > Please don't.  Why do you need to change these to make your patch work?
+> > 
+> > Indeed - ditto for the ARM changes.  The patch is changing them to a
+> > different style to the others in the respective asm/ directories -
+> > which is also different from the linux/ directory.
+> > 
+> > IMHO, if Harvey wishes to clean those up, then that should be a separate
+> > patch and should be part of a set converting all includes to use the
+> > same style.
+> > 
+> 
+> OK, I'll revise without these changes.  I am curious what the preferred
+> 'linux' style is (if there is one).
 
-diff --git a/drivers/input/tablet/aiptek.c b/drivers/input/tablet/aiptek.c
-index 94683f5..6266db8 100644
---- a/drivers/input/tablet/aiptek.c
-+++ b/drivers/input/tablet/aiptek.c
-@@ -527,9 +527,9 @@ static void aiptek_irq(struct urb *urb)
- 			    (aiptek->curSetting.pointerMode)) {
- 				aiptek->diagnostic = AIPTEK_DIAGNOSTIC_TOOL_DISALLOWED;
- 		} else {
--			x = le16_to_cpu(get_unaligned((__le16 *) (data + 1)));
--			y = le16_to_cpu(get_unaligned((__le16 *) (data + 3)));
--			z = le16_to_cpu(get_unaligned((__le16 *) (data + 6)));
-+			x = get_unaligned_le16(data + 1);
-+			y = get_unaligned_le16(data + 3);
-+			z = get_unaligned_le16(data + 6);
- 
- 			dv = (data[5] & 0x01) != 0 ? 1 : 0;
- 			p = (data[5] & 0x02) != 0 ? 1 : 0;
-@@ -612,8 +612,8 @@ static void aiptek_irq(struct urb *urb)
- 			(aiptek->curSetting.pointerMode)) {
- 			aiptek->diagnostic = AIPTEK_DIAGNOSTIC_TOOL_DISALLOWED;
- 		} else {
--			x = le16_to_cpu(get_unaligned((__le16 *) (data + 1)));
--			y = le16_to_cpu(get_unaligned((__le16 *) (data + 3)));
-+			x = get_unaligned_le16(data + 1);
-+			y = get_unaligned_le16(data + 3);
- 
- 			jitterable = data[5] & 0x1c;
- 
-@@ -678,7 +678,7 @@ static void aiptek_irq(struct urb *urb)
- 		pck = (data[1] & aiptek->curSetting.stylusButtonUpper) != 0 ? 1 : 0;
- 
- 		macro = dv && p && tip && !(data[3] & 1) ? (data[3] >> 1) : -1;
--		z = le16_to_cpu(get_unaligned((__le16 *) (data + 4)));
-+		z = get_unaligned_le16(data + 4);
- 
- 		if (dv) {
- 		        /* If the selected tool changed, reset the old
-@@ -756,7 +756,7 @@ static void aiptek_irq(struct urb *urb)
- 	 * hat switches (which just so happen to be the macroKeys.)
- 	 */
- 	else if (data[0] == 6) {
--		macro = le16_to_cpu(get_unaligned((__le16 *) (data + 1)));
-+		macro = get_unaligned_le16(data + 1);
- 		if (macro > 0) {
- 			input_report_key(inputdev, macroKeyEvents[macro - 1],
- 					 0);
-@@ -950,7 +950,7 @@ aiptek_query(struct aiptek *aiptek, unsigned char command, unsigned char data)
- 		    buf[0], buf[1], buf[2]);
- 		ret = -EIO;
- 	} else {
--		ret = le16_to_cpu(get_unaligned((__le16 *) (buf + 1)));
-+		ret = get_unaligned_le16(buf + 1);
- 	}
- 	kfree(buf);
- 	return ret;
-diff --git a/drivers/input/tablet/gtco.c b/drivers/input/tablet/gtco.c
-index d2c6da2..91ba891 100644
---- a/drivers/input/tablet/gtco.c
-+++ b/drivers/input/tablet/gtco.c
-@@ -245,11 +245,11 @@ static void parse_hid_report_descriptor(struct gtco *device, char * report,
- 			data = report[i];
- 			break;
- 		case 2:
--			data16 = le16_to_cpu(get_unaligned((__le16 *)&report[i]));
-+			data16 = get_unaligned_le16(&report[i]);
- 			break;
- 		case 3:
- 			size = 4;
--			data32 = le32_to_cpu(get_unaligned((__le32 *)&report[i]));
-+			data32 = get_unaligned_le32(&report[i]);
- 			break;
- 		}
- 
-@@ -695,10 +695,10 @@ static void gtco_urb_callback(struct urb *urbinfo)
- 			/*  Fall thru */
- 		case 1:
- 			/* All reports have X and Y coords in the same place */
--			val = le16_to_cpu(get_unaligned((__le16 *)&device->buffer[1]));
-+			val = get_unaligned_le16(&device->buffer[1]);
- 			input_report_abs(inputdev, ABS_X, val);
- 
--			val = le16_to_cpu(get_unaligned((__le16 *)&device->buffer[3]));
-+			val = get_unaligned_le16(&device->buffer[3]);
- 			input_report_abs(inputdev, ABS_Y, val);
- 
- 			/* Ditto for proximity bit */
-@@ -762,7 +762,7 @@ static void gtco_urb_callback(struct urb *urbinfo)
- 				le_buffer[1]  = (u8)(device->buffer[4] >> 1);
- 				le_buffer[1] |= (u8)((device->buffer[5] & 0x1) << 7);
- 
--				val = le16_to_cpu(get_unaligned((__le16 *)le_buffer));
-+				val = get_unaligned_le16(le_buffer);
- 				input_report_abs(inputdev, ABS_Y, val);
- 
- 				/*
-@@ -772,10 +772,10 @@ static void gtco_urb_callback(struct urb *urbinfo)
- 				buttonbyte = device->buffer[5] >> 1;
- 			} else {
- 
--				val = le16_to_cpu(get_unaligned((__le16 *)&device->buffer[1]));
-+				val = get_unaligned_le16(&device->buffer[1]);
- 				input_report_abs(inputdev, ABS_X, val);
- 
--				val = le16_to_cpu(get_unaligned((__le16 *)&device->buffer[3]));
-+				val = get_unaligned_le16(&device->buffer[3]);
- 				input_report_abs(inputdev, ABS_Y, val);
- 
- 				buttonbyte = device->buffer[5];
-diff --git a/drivers/input/tablet/kbtab.c b/drivers/input/tablet/kbtab.c
-index 1182fc1..f23f5a9 100644
---- a/drivers/input/tablet/kbtab.c
-+++ b/drivers/input/tablet/kbtab.c
-@@ -63,8 +63,8 @@ static void kbtab_irq(struct urb *urb)
- 		goto exit;
- 	}
- 
--	kbtab->x = le16_to_cpu(get_unaligned((__le16 *) &data[1]));
--	kbtab->y = le16_to_cpu(get_unaligned((__le16 *) &data[3]));
-+	kbtab->x = get_unaligned_le16(&data[1]);
-+	kbtab->y = get_unaligned_le16(&data[3]);
- 
- 	kbtab->pressure = (data[5]);
- 
+The one that's already established by the majority is one answer. 8)
+
+$ grep '^#ifndef LINUX_.*_H$' include/linux/*.h | wc -l
+33
+$ grep '^#ifndef _LINUX_.*_H$' include/linux/*.h | wc -l
+388
+$ grep '^#ifndef __LINUX_.*_H$' include/linux/*.h | wc -l
+110
+$ grep '^#ifndef LINUX_.*_H_$' include/linux/*.h | wc -l
+1
+$ grep '^#ifndef LINUX_.*_H__$' include/linux/*.h | wc -l
+0
+$ grep '^#ifndef _LINUX_.*_H_$' include/linux/*.h | wc -l
+20
+$ grep '^#ifndef __LINUX_.*_H__$' include/linux/*.h | wc -l
+20
+
+So it seems _LINUX_FOO_H for linux/foo.h wins.
+
+But... honestly, I wouldn't bother with such a cleanup - at the end of
+the day, it's personal choice and people are always going to do something
+slightly different.  So it's probably best all round to just accept what's
+already in the files you're modifying.
+
+Let's not add to the expanding beaurocracy by demanding a format for these
+macro names.
+
 -- 
-1.5.5.144.g3e42
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
