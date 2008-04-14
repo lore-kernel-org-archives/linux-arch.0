@@ -1,87 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:59230 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753617AbYDNCO1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 13 Apr 2008 22:14:27 -0400
-Date: Sun, 13 Apr 2008 19:13:38 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 1/2] Add thread_info_cache_init() to all archs
-Message-ID: <20080413191338.9776ebd0.akpm@linux-foundation.org>
-In-Reply-To: <1208133506.6958.82.camel@pasglop>
-References: <20080410032354.90CB1DDF0F@ozlabs.org>
-	<20080413171953.bde5e9ac.akpm@linux-foundation.org>
-	<1208133506.6958.82.camel@pasglop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:42984 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751423AbYDNKcj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 14 Apr 2008 06:32:39 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1207950449.22001.106.camel@brick>
+References: <1207950449.22001.106.camel@brick>
+Subject: Re: [PATCHv3 2/2] kernel: Move arches to use common unaligned access
+Date: Mon, 14 Apr 2008 11:32:09 +0100
+Message-ID: <4392.1208169129@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@ozlabs.org>
-Cc: linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20080414021338.fW81fR-wTdkXia8AG-e-IicMLMuzdFdiNX9F-vybYwQ@z>
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: dhowells@redhat.com, Russell King <rmk@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20080414103209.SiHyg3Mx3qU9Pm1WsACDZV5wyF3mU5aP_Quf8b6NGf0@z>
 
-On Mon, 14 Apr 2008 10:38:26 +1000 Benjamin Herrenschmidt <benh@ozlabs.org> wrote:
+Harvey Harrison <harvey.harrison@gmail.com> wrote:
 
-> > > +#ifndef thread_info_cache_init
-> > > +#define thread_info_cache_init	do { } while(0)
-> > > +#endif
-> > 
-> > This trick does cause a bit of a problem: it is undefined which arch header
-> > file is to provide the alternative definition of thread_info_cache_init.
-> 
-> I this case it's well defined: thread_info.h. Maybe I should add a
-> comment ?
-> 
-> > So we can (and have) ended up in the situation where the override appears
-> > in different files on different architectures and various screwups ensue.
-> 
-> Yup.
-> 
-> > So I'd suggest that we have a bigfatcomment telling implementors which file
-> > the override should be implemented in.  And make sure that this arch file is
-> > directly included from within sched.h.
-> 
-> Will do.
-> 
-> > I have a suspicion that we can still get in a mess if .c files include the
-> > per-arch file and don't include sched.h, but I forget where this happened
-> > and why it broke stuff.
-> 
-> In this case, there's only one call site and will only every be one, so
-> that shouldn't be a problem. I don't see init/main.c not including
-> sched.h
+> -#ifndef _ASM_UNALIGNED_H
+> -#define _ASM_UNALIGNED_H
+> +#ifndef _ASM_FRV_UNALIGNED_H_
+> +#define _ASM_FRV_UNALIGNED_H_
 
-As long as init.c directly includes sched.h, and as long as sched.h
-directly includes thread_info.h and as long as all architectures which
-provide the override put it in their thread_info.h, and as long as the same
-applies to all future .c users, we're good.  That's a lot of "as long as"'s ;)
+Please don't.  Why do you need to change these to make your patch work?
 
-> > Sigh.  A nice, coded-in-C implementation within each and every architecture
-> > remains the best implementation, and all the little tricks-to-save-typing
-> > have failure modes.
-> 
-> Well, I started doing it in all arch, and people around here told me
-> that was not a good idea , that it would be trouble if the prototype
-> ever had to change (adding an arg, etc... though very unlikely to happen
-> in that case, granted).
+> -extern int handle_misalignment(unsigned long esr0, unsigned long ear0, unsigned long epcr0);
 
-Bah.  Use of grep and basic typing skills: not so hard.
+Don't lose this please, not unless you're going to erase the
+handle_misalignment() function and remove the refs to it.
 
-> > otoh, if only one .c file will ever call this function then I think that
-> > all problems are solved by
-> > 
-> > a) moving the above ifdeffery into the .c file
-> > b) adding a comment explaining which arch file must provide the override
-> > c) directly including that file from within the .c file.
-> 
-> I can definitely do that. I have no problem either way. I can add to all
-> archs too, it's just that whatever way I choose, some people won't be
-> happy with it :-)
-> 
-> Anyway, I'll move the ifdeferry to init/main.c then.
-
-Thanks ;)
-
-I'm still wounded by my recent encounter with set_softirq_pending()
-and or_softirq_pending().
+David
