@@ -1,18 +1,37 @@
-From: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: [PATCHv4 1/2] kernel: add common infrastructure for unaligned
-	access
-Date: Mon, 14 Apr 2008 10:50:06 -0700
-Message-ID: <1208195406.5721.47.camel@brick>
-Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+From: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
+Subject: + kernel-add-common-infrastructure-for-unaligned-access.patch added to -mm tree
+Date: Mon, 14 Apr 2008 15:14:29 -0700
+Message-ID: <200804142214.m3EMET5L029431@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
+To: mm-commits-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-Create a linux/unaligned folder similar in spirit to the linux/byteorder
+
+The patch titled
+     kernel: add common infrastructure for unaligned access
+has been added to the -mm tree.  Its filename is
+     kernel-add-common-infrastructure-for-unaligned-access.patch
+
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
+
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: kernel: add common infrastructure for unaligned access
+From: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+
+Create a linux/unaligned directory similar in spirit to the linux/byteorder
 folder to hold generic implementations collected from various arches.
 
 Currently there are five implementations:
@@ -53,26 +72,25 @@ After including as needed from the above, include unaligned/generic.h and
 define your arch's get/put_unaligned as (for LE):
 
 Signed-off-by: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Signed-off-by: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
 ---
-Update to consistent #ifndef tests in each header file.
 
- include/linux/unaligned/access_ok.h     |   67 +++++++++++++++++++++++++++++
- include/linux/unaligned/be_byteshift.h  |   70 +++++++++++++++++++++++++++++++
- include/linux/unaligned/be_memmove.h    |   36 ++++++++++++++++
- include/linux/unaligned/be_struct.h     |   36 ++++++++++++++++
- include/linux/unaligned/generic.h       |   68 ++++++++++++++++++++++++++++++
- include/linux/unaligned/le_byteshift.h  |   70 +++++++++++++++++++++++++++++++
- include/linux/unaligned/le_memmove.h    |   36 ++++++++++++++++
- include/linux/unaligned/le_struct.h     |   36 ++++++++++++++++
- include/linux/unaligned/memmove.h       |   45 ++++++++++++++++++++
- include/linux/unaligned/packed_struct.h |   46 ++++++++++++++++++++
- 10 files changed, 510 insertions(+), 0 deletions(-)
+ include/linux/unaligned/access_ok.h     |   67 +++++++++++++++++++++
+ include/linux/unaligned/be_byteshift.h  |   70 ++++++++++++++++++++++
+ include/linux/unaligned/be_memmove.h    |   36 +++++++++++
+ include/linux/unaligned/be_struct.h     |   36 +++++++++++
+ include/linux/unaligned/generic.h       |   68 +++++++++++++++++++++
+ include/linux/unaligned/le_byteshift.h  |   70 ++++++++++++++++++++++
+ include/linux/unaligned/le_memmove.h    |   36 +++++++++++
+ include/linux/unaligned/le_struct.h     |   36 +++++++++++
+ include/linux/unaligned/memmove.h       |   45 ++++++++++++++
+ include/linux/unaligned/packed_struct.h |   46 ++++++++++++++
+ 10 files changed, 510 insertions(+)
 
-diff --git a/include/linux/unaligned/access_ok.h b/include/linux/unaligned/access_ok.h
-new file mode 100644
-index 0000000..99c1b4d
+diff -puN /dev/null include/linux/unaligned/access_ok.h
 --- /dev/null
-+++ b/include/linux/unaligned/access_ok.h
++++ a/include/linux/unaligned/access_ok.h
 @@ -0,0 +1,67 @@
 +#ifndef _LINUX_UNALIGNED_ACCESS_OK_H
 +#define _LINUX_UNALIGNED_ACCESS_OK_H
@@ -141,11 +159,9 @@ index 0000000..99c1b4d
 +}
 +
 +#endif /* _LINUX_UNALIGNED_ACCESS_OK_H */
-diff --git a/include/linux/unaligned/be_byteshift.h b/include/linux/unaligned/be_byteshift.h
-new file mode 100644
-index 0000000..46dd12c
+diff -puN /dev/null include/linux/unaligned/be_byteshift.h
 --- /dev/null
-+++ b/include/linux/unaligned/be_byteshift.h
++++ a/include/linux/unaligned/be_byteshift.h
 @@ -0,0 +1,70 @@
 +#ifndef _LINUX_UNALIGNED_BE_BYTESHIFT_H
 +#define _LINUX_UNALIGNED_BE_BYTESHIFT_H
@@ -217,11 +233,9 @@ index 0000000..46dd12c
 +}
 +
 +#endif /* _LINUX_UNALIGNED_BE_BYTESHIFT_H */
-diff --git a/include/linux/unaligned/be_memmove.h b/include/linux/unaligned/be_memmove.h
-new file mode 100644
-index 0000000..c2a76c5
+diff -puN /dev/null include/linux/unaligned/be_memmove.h
 --- /dev/null
-+++ b/include/linux/unaligned/be_memmove.h
++++ a/include/linux/unaligned/be_memmove.h
 @@ -0,0 +1,36 @@
 +#ifndef _LINUX_UNALIGNED_BE_MEMMOVE_H
 +#define _LINUX_UNALIGNED_BE_MEMMOVE_H
@@ -259,11 +273,9 @@ index 0000000..c2a76c5
 +}
 +
 +#endif /* _LINUX_UNALIGNED_LE_MEMMOVE_H */
-diff --git a/include/linux/unaligned/be_struct.h b/include/linux/unaligned/be_struct.h
-new file mode 100644
-index 0000000..1324158
+diff -puN /dev/null include/linux/unaligned/be_struct.h
 --- /dev/null
-+++ b/include/linux/unaligned/be_struct.h
++++ a/include/linux/unaligned/be_struct.h
 @@ -0,0 +1,36 @@
 +#ifndef _LINUX_UNALIGNED_BE_STRUCT_H
 +#define _LINUX_UNALIGNED_BE_STRUCT_H
@@ -301,11 +313,9 @@ index 0000000..1324158
 +}
 +
 +#endif /* _LINUX_UNALIGNED_BE_STRUCT_H */
-diff --git a/include/linux/unaligned/generic.h b/include/linux/unaligned/generic.h
-new file mode 100644
-index 0000000..02d97ff
+diff -puN /dev/null include/linux/unaligned/generic.h
 --- /dev/null
-+++ b/include/linux/unaligned/generic.h
++++ a/include/linux/unaligned/generic.h
 @@ -0,0 +1,68 @@
 +#ifndef _LINUX_UNALIGNED_GENERIC_H
 +#define _LINUX_UNALIGNED_GENERIC_H
@@ -375,11 +385,9 @@ index 0000000..02d97ff
 +	(void)0; })
 +
 +#endif /* _LINUX_UNALIGNED_GENERIC_H */
-diff --git a/include/linux/unaligned/le_byteshift.h b/include/linux/unaligned/le_byteshift.h
-new file mode 100644
-index 0000000..59777e9
+diff -puN /dev/null include/linux/unaligned/le_byteshift.h
 --- /dev/null
-+++ b/include/linux/unaligned/le_byteshift.h
++++ a/include/linux/unaligned/le_byteshift.h
 @@ -0,0 +1,70 @@
 +#ifndef _LINUX_UNALIGNED_LE_BYTESHIFT_H
 +#define _LINUX_UNALIGNED_LE_BYTESHIFT_H
@@ -451,11 +459,9 @@ index 0000000..59777e9
 +}
 +
 +#endif /* _LINUX_UNALIGNED_LE_BYTESHIFT_H */
-diff --git a/include/linux/unaligned/le_memmove.h b/include/linux/unaligned/le_memmove.h
-new file mode 100644
-index 0000000..269849b
+diff -puN /dev/null include/linux/unaligned/le_memmove.h
 --- /dev/null
-+++ b/include/linux/unaligned/le_memmove.h
++++ a/include/linux/unaligned/le_memmove.h
 @@ -0,0 +1,36 @@
 +#ifndef _LINUX_UNALIGNED_LE_MEMMOVE_H
 +#define _LINUX_UNALIGNED_LE_MEMMOVE_H
@@ -493,11 +499,9 @@ index 0000000..269849b
 +}
 +
 +#endif /* _LINUX_UNALIGNED_LE_MEMMOVE_H */
-diff --git a/include/linux/unaligned/le_struct.h b/include/linux/unaligned/le_struct.h
-new file mode 100644
-index 0000000..088c457
+diff -puN /dev/null include/linux/unaligned/le_struct.h
 --- /dev/null
-+++ b/include/linux/unaligned/le_struct.h
++++ a/include/linux/unaligned/le_struct.h
 @@ -0,0 +1,36 @@
 +#ifndef _LINUX_UNALIGNED_LE_STRUCT_H
 +#define _LINUX_UNALIGNED_LE_STRUCT_H
@@ -535,11 +539,9 @@ index 0000000..088c457
 +}
 +
 +#endif /* _LINUX_UNALIGNED_LE_STRUCT_H */
-diff --git a/include/linux/unaligned/memmove.h b/include/linux/unaligned/memmove.h
-new file mode 100644
-index 0000000..eeb5a77
+diff -puN /dev/null include/linux/unaligned/memmove.h
 --- /dev/null
-+++ b/include/linux/unaligned/memmove.h
++++ a/include/linux/unaligned/memmove.h
 @@ -0,0 +1,45 @@
 +#ifndef _LINUX_UNALIGNED_MEMMOVE_H
 +#define _LINUX_UNALIGNED_MEMMOVE_H
@@ -586,11 +588,9 @@ index 0000000..eeb5a77
 +}
 +
 +#endif /* _LINUX_UNALIGNED_MEMMOVE_H */
-diff --git a/include/linux/unaligned/packed_struct.h b/include/linux/unaligned/packed_struct.h
-new file mode 100644
-index 0000000..2498bb9
+diff -puN /dev/null include/linux/unaligned/packed_struct.h
 --- /dev/null
-+++ b/include/linux/unaligned/packed_struct.h
++++ a/include/linux/unaligned/packed_struct.h
 @@ -0,0 +1,46 @@
 +#ifndef _LINUX_UNALIGNED_PACKED_STRUCT_H
 +#define _LINUX_UNALIGNED_PACKED_STRUCT_H
@@ -638,5 +638,121 @@ index 0000000..2498bb9
 +}
 +
 +#endif /* _LINUX_UNALIGNED_PACKED_STRUCT_H */
--- 
-1.5.5.144.g3e42
+_
+
+Patches currently in -mm which might be from harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org are
+
+git-x86.patch
+git-alsa-tiwai.patch
+agp-fix-shadowed-variable-warning-in-amd-k7-agpc.patch
+cifs-remove-global_extern-macro.patch
+git-powerpc.patch
+power-replace-remaining-__function__-occurrences.patch
+git-dvb.patch
+v4l-common-replace-remaining-__function__-occurences.patch
+v4l-dvb-replace-remaining-__function__-occurences.patch
+v4l-video-replace-remaining-__function__-occurences.patch
+git-dlm.patch
+git-ieee1394.patch
+git-infiniband.patch
+input-replace-remaining-__function__-occurrences.patch
+git-jfs.patch
+git-libata-all.patch
+git-mips.patch
+jffs2-include-function-prototype-for-jffs2_ioctl.patch
+jffs2-fix-sparse-warning-in-nodemgmtc.patch
+jffs2-fix-sparse-warning-in-writec.patch
+jffs2-fix-sparse-warnings-in-gcc.patch
+mtd-replace-remaining-__function__-occurrences.patch
+git-net.patch
+blackfin-replace-remaining-__function__-occurences.patch
+git-nfsd.patch
+nfs-replace-remaining-__function__-occurrences.patch
+parisc-replace-remaining-__function__-occurences.patch
+drivers-parisc-replace-remaining-__function__-occurrences.patch
+pcmcia-replace-remaining-__function__-occurrences.patch
+git-selinux.patch
+git-s390.patch
+git-scsi-misc.patch
+scsi-replace-remaining-__function__-occurrences.patch
+fusion-replace-remaining-__function__-occurrences.patch
+scsi-replace-__inline-with-inline.patch
+block-replace-remaining-__function__-occurrences.patch
+git-watchdog.patch
+mac80211-tkipcc-michaelc-use-kernel-bit-rotation-helpers.patch
+mac80211-tkipc-remove-opencoded-swab16-in-tkip_s.patch
+mac80211-tkipc-eliminate-the-hi16-lo16-functions.patch
+mac80211-tkipc-remove-mk16-hi8-lo8-helpers.patch
+mac80211-michaelc-replace-macro-with-function.patch
+mac80211-michaelc-use-unaligned-byteorder-helpers.patch
+mac80211-michaelc-fold-initial-xor-into-block-helper.patch
+xtensa-replace-remaining-__function__-occurences.patch
+remove-sparse-warning-for-mmzoneh.patch
+remove-sparse-warning-for-mmzoneh-checkpatch-fixes.patch
+smack-fix-integer-as-null-pointer-warning-in-smack_lsmc.patch
+alpha-remove-remaining-__function__-occurences.patch
+alpha-replace-__inline-with-inline.patch
+m68k-replace-remaining-__function__-occurences.patch
+uml-replace-remaining-__function__-occurences.patch
+adfs-work-around-bogus-sparse-warning.patch
+coda-add-static-to-functions-in-dirc.patch
+befs-fix-sparse-warning-in-linuxvfsc.patch
+autofs4-fix-sparse-warning-in-rootc.patch
+firmware-replace-remaining-__function__-occurrences.patch
+drivers-misc-replace-remaining-__function__-occurrences.patch
+ncpfs-add-prototypes-to-ncp_fsh.patch
+ncpfs-fix-sparse-warnings-in-ioctlc.patch
+ncpfs-fix-sparse-warning-in-ncpsign_kernelc.patch
+char-make-functions-static-in-synclinkmpc.patch
+spi-replace-remaining-__function__-occurrences.patch
+capi-fix-sparse-warnings-using-integer-as-null-pointer.patch
+avm-fix-sparse-warning-using-integer-as-null-pointer.patch
+eicon-fix-sparse-integer-as-null-pointer-warnings.patch
+isdn-replace-remaining-__function__-occurrences.patch
+xen-make-blkif_getgeo-static.patch
+ecryptfs-replace-remaining-__function__-occurrences.patch
+rtc-replace-remaining-__function__-occurrences.patch
+fbcon-replace-mono_col-macro-with-static-inline.patch
+fbcon-replace-mono_col-macro-with-static-inline-fix.patch
+video-replace-remaining-__function__-occurrences.patch
+md-fix-integer-as-null-pointer-warnings-in-mdc.patch
+md-replace-remaining-__function__-occurrences.patch
+ext2-replace-remaining-__function__-occurrences.patch
+ext3-replace-remaining-__function__-occurrences.patch
+jbd-replace-remaining-__function__-occurrences.patch
+ufs-replace-remaining-__function__-occurrences.patch
+ufs-replace-__inline-with-inline.patch
+udf-fix-sparse-warning-in-nameic.patch
+reiserfs-fix-sparse-warning-in-journalc.patch
+reiserfs-fix-more-sparse-warnings-in-do_balanc.patch
+reiserfs-replace-remaining-__function__-occurrences.patch
+cgroup-fix-sparse-warning-of-shadow-symbol-in-cgroupc.patch
+ext4-replace-remaining-__function__-occurrences.patch
+jdb2-replace-remaining-__function__-occurrences.patch
+char-fix-sparse-shadowed-variable-warnings-in-espc.patch
+char-espc-fix-possible-double-unlock.patch
+char-rocketc-fix-sparse-variable-shadowing-and-int-as-null-pointer.patch
+cycladesc-fix-sparse-shadowed-variable-warnings.patch
+epcac-static-functions-and-integer-as-null-pointer-fixes.patch
+epcac-static-functions-and-integer-as-null-pointer-fixes-checkpatch-fixes.patch
+add-macros-similar-to-min-max-min_t-max_t.patch
+add-macros-similar-to-min-max-min_t-max_t-doc.patch
+ide-eliminate-fit-macro.patch
+ata-remove-fit-macro.patch
+b43-replace-limit_value-macro-with-clamp_val.patch
+b43legacy-replace-limit_value-macro-with-clamp_val.patch
+fuse-use-clamp-rather-than-nested-min-max.patch
+ide-tape-use-clamp_t-rather-than-nested-min_t-max_t.patch
+input-ff-memlessc-use-clamp_val-macro.patch
+dccp-ccid2c-ccid3c-use-clamp-clamp_t.patch
+drivers-replace-remaining-__function__-occurrences.patch
+kernel-add-common-infrastructure-for-unaligned-access.patch
+kernel-move-arches-to-use-common-unaligned-access.patch
+mm-remove-remaining-__function__-occurances.patch
+block-remove-remaining-__function__-occurances.patch
+kernel-replace-remaining-__function__-occurances.patch
+lib-replace-remaining-__function__-occurances.patch
+afs-replace-remaining-__function__-occurrences.patch
+fs-replace-remaining-__function__-occurrences.patch
+drivers-char-replace-remaining-__function__-occurrences.patch
+serial-replace-remaining-__function__-occurrences.patch
