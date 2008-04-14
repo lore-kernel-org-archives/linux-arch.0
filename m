@@ -1,139 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from el-out-1112.google.com ([209.85.162.177]:39274 "EHLO
-	el-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1763187AbYDNQj2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Apr 2008 12:39:28 -0400
-Received: by el-out-1112.google.com with SMTP id n30so59834elf.21
-        for <linux-arch@vger.kernel.org>; Mon, 14 Apr 2008 09:39:24 -0700 (PDT)
-Subject: [PATCH 10/10] video: Use get/put_unaligned_* helpers
+Received: from wa-out-1112.google.com ([209.85.146.176]:28605 "EHLO
+	wa-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754571AbYDNQiF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Apr 2008 12:38:05 -0400
+Received: by wa-out-1112.google.com with SMTP id m16so2496151waf.23
+        for <linux-arch@vger.kernel.org>; Mon, 14 Apr 2008 09:38:03 -0700 (PDT)
+Subject: [PATCH 01/10] char: Use get_unaligned_* helpers
 From: Harvey Harrison <harvey.harrison@gmail.com>
 Content-Type: text/plain
-Date: Mon, 14 Apr 2008 09:37:57 -0700
-Message-ID: <1208191077.5721.33.camel@brick>
+Date: Mon, 14 Apr 2008 09:37:53 -0700
+Message-ID: <1208191074.5721.23.camel@brick>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20080414163757.SSbtZ-9Y-avZEwi3Z4xaL4BHO3ROaArsIS4zYllWzmw@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20080414163753.cToOusg7hihck-r36CKM0HNQJtuY4_R6kwvDtrI6VYU@z>
+
+Remove unnecessary temp variable from_buf in snsc_event.c
 
 Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
 ---
- drivers/video/matrox/matroxfb_misc.c |   28 ++++++++++++++--------------
- drivers/video/metronomefb.c          |    9 +++------
- 2 files changed, 17 insertions(+), 20 deletions(-)
+All ten patches depend on the introduction of the new unaligned access
+helpers I sent out last week.  This is a demonstration of the users of
+the api.
 
-diff --git a/drivers/video/matrox/matroxfb_misc.c b/drivers/video/matrox/matroxfb_misc.c
-index ab7fb50..cfb5205 100644
---- a/drivers/video/matrox/matroxfb_misc.c
-+++ b/drivers/video/matrox/matroxfb_misc.c
-@@ -522,8 +522,6 @@ static void parse_bios(unsigned char __iomem* vbios, struct matrox_bios* bd) {
+ drivers/char/rocket_int.h |    2 +-
+ drivers/char/snsc_event.c |   10 +++-------
+ 2 files changed, 4 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/char/rocket_int.h b/drivers/char/rocket_int.h
+index b01d381..143cc43 100644
+--- a/drivers/char/rocket_int.h
++++ b/drivers/char/rocket_int.h
+@@ -55,7 +55,7 @@ static inline void sOutW(unsigned short port, unsigned short value)
+ 
+ static inline void out32(unsigned short port, Byte_t *p)
+ {
+-	u32 value = le32_to_cpu(get_unaligned((__le32 *)p));
++	u32 value = get_unaligned_le32(p);
+ #ifdef ROCKET_DEBUG_IO
+ 	printk(KERN_DEBUG "out32(%x, %lx)...\n", port, value);
  #endif
- }
+diff --git a/drivers/char/snsc_event.c b/drivers/char/snsc_event.c
+index 1b75b0b..31a7765 100644
+--- a/drivers/char/snsc_event.c
++++ b/drivers/char/snsc_event.c
+@@ -63,16 +63,13 @@ static int
+ scdrv_parse_event(char *event, int *src, int *code, int *esp_code, char *desc)
+ {
+ 	char *desc_end;
+-	__be32 from_buf;
  
--#define get_u16(x) (le16_to_cpu(get_unaligned((__u16*)(x))))
--#define get_u32(x) (le32_to_cpu(get_unaligned((__u32*)(x))))
- static int parse_pins1(WPMINFO const struct matrox_bios* bd) {
- 	unsigned int maxdac;
+ 	/* record event source address */
+-	from_buf = get_unaligned((__be32 *)event);
+-	*src = be32_to_cpup(&from_buf);
++	*src = get_unaligned_be32(event);
+ 	event += 4; 			/* move on to event code */
  
-@@ -532,11 +530,12 @@ static int parse_pins1(WPMINFO const struct matrox_bios* bd) {
- 		case 1:		maxdac = 220000; break;
- 		default:	maxdac = 240000; break;
+ 	/* record the system controller's event code */
+-	from_buf = get_unaligned((__be32 *)event);
+-	*code = be32_to_cpup(&from_buf);
++	*code = get_unaligned_be32(event);
+ 	event += 4;			/* move on to event arguments */
+ 
+ 	/* how many arguments are in the packet? */
+@@ -86,8 +83,7 @@ scdrv_parse_event(char *event, int *src, int *code, int *esp_code, char *desc)
+ 		/* not an integer argument, so give up */
+ 		return -1;
  	}
--	if (get_u16(bd->pins + 24)) {
--		maxdac = get_u16(bd->pins + 24) * 10;
-+	if (get_unaligned_le16(bd->pins + 24)) {
-+		maxdac = get_unaligned_le16(bd->pins + 24) * 10;
- 	}
- 	MINFO->limits.pixel.vcomax = maxdac;
--	MINFO->values.pll.system = get_u16(bd->pins + 28) ? get_u16(bd->pins + 28) * 10 : 50000;
-+	MINFO->values.pll.system = get_unaligned_le16(bd->pins + 28) ?
-+		get_unaligned_le16(bd->pins + 28) * 10 : 50000;
- 	/* ignore 4MB, 8MB, module clocks */
- 	MINFO->features.pll.ref_freq = 14318;
- 	MINFO->values.reg.mctlwtst	= 0x00030101;
-@@ -575,7 +574,8 @@ static void default_pins2(WPMINFO2) {
- static int parse_pins3(WPMINFO const struct matrox_bios* bd) {
- 	MINFO->limits.pixel.vcomax	=
- 	MINFO->limits.system.vcomax	= (bd->pins[36] == 0xFF) ? 230000			: ((bd->pins[36] + 100) * 1000);
--	MINFO->values.reg.mctlwtst	= get_u32(bd->pins + 48) == 0xFFFFFFFF ? 0x01250A21	: get_u32(bd->pins + 48);
-+	MINFO->values.reg.mctlwtst	= get_unaligned_le32(bd->pins + 48) == 0xFFFFFFFF ?
-+		0x01250A21 : get_unaligned_le32(bd->pins + 48);
- 	/* memory config */
- 	MINFO->values.reg.memrdbk	= ((bd->pins[57] << 21) & 0x1E000000) |
- 					  ((bd->pins[57] << 22) & 0x00C00000) |
-@@ -601,7 +601,7 @@ static void default_pins3(WPMINFO2) {
- static int parse_pins4(WPMINFO const struct matrox_bios* bd) {
- 	MINFO->limits.pixel.vcomax	= (bd->pins[ 39] == 0xFF) ? 230000			: bd->pins[ 39] * 4000;
- 	MINFO->limits.system.vcomax	= (bd->pins[ 38] == 0xFF) ? MINFO->limits.pixel.vcomax	: bd->pins[ 38] * 4000;
--	MINFO->values.reg.mctlwtst	= get_u32(bd->pins + 71);
-+	MINFO->values.reg.mctlwtst	= get_unaligned_le32(bd->pins + 71);
- 	MINFO->values.reg.memrdbk	= ((bd->pins[87] << 21) & 0x1E000000) |
- 					  ((bd->pins[87] << 22) & 0x00C00000) |
- 					  ((bd->pins[86] <<  1) & 0x000001E0) |
-@@ -609,7 +609,7 @@ static int parse_pins4(WPMINFO const struct matrox_bios* bd) {
- 	MINFO->values.reg.opt		= ((bd->pins[53] << 15) & 0x00400000) |
- 					  ((bd->pins[53] << 22) & 0x10000000) |
- 					  ((bd->pins[53] <<  7) & 0x00001C00);
--	MINFO->values.reg.opt3		= get_u32(bd->pins + 67);
-+	MINFO->values.reg.opt3		= get_unaligned_le32(bd->pins + 67);
- 	MINFO->values.pll.system	= (bd->pins[ 65] == 0xFF) ? 200000 			: bd->pins[ 65] * 4000;
- 	MINFO->features.pll.ref_freq	= (bd->pins[ 92] & 0x01) ? 14318 : 27000;
- 	return 0;
-@@ -640,12 +640,12 @@ static int parse_pins5(WPMINFO const struct matrox_bios* bd) {
- 	MINFO->limits.video.vcomin	= (bd->pins[122] == 0xFF) ? MINFO->limits.system.vcomin	: bd->pins[122] * mult;
- 	MINFO->values.pll.system	=
- 	MINFO->values.pll.video		= (bd->pins[ 92] == 0xFF) ? 284000			: bd->pins[ 92] * 4000;
--	MINFO->values.reg.opt		= get_u32(bd->pins+ 48);
--	MINFO->values.reg.opt2		= get_u32(bd->pins+ 52);
--	MINFO->values.reg.opt3		= get_u32(bd->pins+ 94);
--	MINFO->values.reg.mctlwtst	= get_u32(bd->pins+ 98);
--	MINFO->values.reg.memmisc	= get_u32(bd->pins+102);
--	MINFO->values.reg.memrdbk	= get_u32(bd->pins+106);
-+	MINFO->values.reg.opt		= get_unaligned_le32(bd->pins + 48);
-+	MINFO->values.reg.opt2		= get_unaligned_le32(bd->pins + 52);
-+	MINFO->values.reg.opt3		= get_unaligned_le32(bd->pins + 94);
-+	MINFO->values.reg.mctlwtst	= get_unaligned_le32(bd->pins + 98);
-+	MINFO->values.reg.memmisc	= get_unaligned_le32(bd->pins + 102);
-+	MINFO->values.reg.memrdbk	= get_unaligned_le32(bd->pins + 106);
- 	MINFO->features.pll.ref_freq	= (bd->pins[110] & 0x01) ? 14318 : 27000;
- 	MINFO->values.memory.ddr	= (bd->pins[114] & 0x60) == 0x20;
- 	MINFO->values.memory.dll	= (bd->pins[115] & 0x02) != 0;
-diff --git a/drivers/video/metronomefb.c b/drivers/video/metronomefb.c
-index e9a89fd..7e7e977 100644
---- a/drivers/video/metronomefb.c
-+++ b/drivers/video/metronomefb.c
-@@ -236,8 +236,7 @@ static int load_waveform(u8 *mem, size_t size, u8 *metromem, int m, int t,
- 	}
+-	from_buf = get_unaligned((__be32 *)event);
+-	*esp_code = be32_to_cpup(&from_buf);
++	*esp_code = get_unaligned_be32(event);
+ 	event += 4;
  
- 	/* check waveform mode table address checksum */
--	wmta = le32_to_cpu(get_unaligned((__le32 *) wfm_hdr->wmta));
--	wmta &= 0x00FFFFFF;
-+	wmta = get_unaligned_le32(wfm_hdr->wmta) & 0x00FFFFFF;
- 	cksum_idx = wmta + m*4 + 3;
- 	if (cksum_idx > size)
- 		return -EINVAL;
-@@ -249,8 +248,7 @@ static int load_waveform(u8 *mem, size_t size, u8 *metromem, int m, int t,
- 	}
- 
- 	/* check waveform temperature table address checksum */
--	tta = le32_to_cpu(get_unaligned((int *) (mem + wmta + m*4)));
--	tta &= 0x00FFFFFF;
-+	tta = get_unaligned_le32(mem + wmta + m * 4) & 0x00FFFFFF;
- 	cksum_idx = tta + trn*4 + 3;
- 	if (cksum_idx > size)
- 		return -EINVAL;
-@@ -263,8 +261,7 @@ static int load_waveform(u8 *mem, size_t size, u8 *metromem, int m, int t,
- 
- 	/* here we do the real work of putting the waveform into the
- 	metromem buffer. this does runlength decoding of the waveform */
--	wfm_idx = le32_to_cpu(get_unaligned((__le32 *) (mem + tta + trn*4)));
--	wfm_idx &= 0x00FFFFFF;
-+	wfm_idx = get_unaligned_le32(mem + tta + trn * 4) & 0x00FFFFFF;
- 	owfm_idx = wfm_idx;
- 	if (wfm_idx > size)
- 		return -EINVAL;
+ 	/* parse out the event description */
 -- 
 1.5.5.144.g3e42
+
 
