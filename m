@@ -1,75 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:36551 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753745AbYDNQfg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Apr 2008 12:35:36 -0400
-Date: Mon, 14 Apr 2008 17:34:48 +0100
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCHv3 2/2] kernel: Move arches to use common unaligned access
-Message-ID: <20080414163448.GA8473@flint.arm.linux.org.uk>
-References: <1207950449.22001.106.camel@brick> <4392.1208169129@redhat.com> <20080414111119.GA6228@flint.arm.linux.org.uk> <1208190432.5721.1.camel@brick>
+Received: from el-out-1112.google.com ([209.85.162.179]:37673 "EHLO
+	el-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759088AbYDNQiK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Apr 2008 12:38:10 -0400
+Received: by el-out-1112.google.com with SMTP id n30so59361elf.21
+        for <linux-arch@vger.kernel.org>; Mon, 14 Apr 2008 09:38:08 -0700 (PDT)
+Subject: [PATCH 02/10] hid-core:  Use get_unaligned_* helpers
+From: Harvey Harrison <harvey.harrison@gmail.com>
+Content-Type: text/plain
+Date: Mon, 14 Apr 2008 09:37:54 -0700
+Message-ID: <1208191074.5721.24.camel@brick>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1208190432.5721.1.camel@brick>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Howells <dhowells@redhat.com>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20080414163448.Cgr3jKURV2m-08sGdN6_KXb0607MH7sfQRlD0oMc32o@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20080414163754.d7Eng12sHvxS4-Y1fshWRds5JZR9ULeB6O_y1HjMfWM@z>
 
-On Mon, Apr 14, 2008 at 09:27:12AM -0700, Harvey Harrison wrote:
-> On Mon, 2008-04-14 at 12:11 +0100, Russell King wrote:
-> > On Mon, Apr 14, 2008 at 11:32:09AM +0100, David Howells wrote:
-> > > Harvey Harrison <harvey.harrison@gmail.com> wrote:
-> > > 
-> > > > -#ifndef _ASM_UNALIGNED_H
-> > > > -#define _ASM_UNALIGNED_H
-> > > > +#ifndef _ASM_FRV_UNALIGNED_H_
-> > > > +#define _ASM_FRV_UNALIGNED_H_
-> > > 
-> > > Please don't.  Why do you need to change these to make your patch work?
-> > 
-> > Indeed - ditto for the ARM changes.  The patch is changing them to a
-> > different style to the others in the respective asm/ directories -
-> > which is also different from the linux/ directory.
-> > 
-> > IMHO, if Harvey wishes to clean those up, then that should be a separate
-> > patch and should be part of a set converting all includes to use the
-> > same style.
-> > 
-> 
-> OK, I'll revise without these changes.  I am curious what the preferred
-> 'linux' style is (if there is one).
+Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+---
+ drivers/hid/hid-core.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-The one that's already established by the majority is one answer. 8)
-
-$ grep '^#ifndef LINUX_.*_H$' include/linux/*.h | wc -l
-33
-$ grep '^#ifndef _LINUX_.*_H$' include/linux/*.h | wc -l
-388
-$ grep '^#ifndef __LINUX_.*_H$' include/linux/*.h | wc -l
-110
-$ grep '^#ifndef LINUX_.*_H_$' include/linux/*.h | wc -l
-1
-$ grep '^#ifndef LINUX_.*_H__$' include/linux/*.h | wc -l
-0
-$ grep '^#ifndef _LINUX_.*_H_$' include/linux/*.h | wc -l
-20
-$ grep '^#ifndef __LINUX_.*_H__$' include/linux/*.h | wc -l
-20
-
-So it seems _LINUX_FOO_H for linux/foo.h wins.
-
-But... honestly, I wouldn't bother with such a cleanup - at the end of
-the day, it's personal choice and people are always going to do something
-slightly different.  So it's probably best all round to just accept what's
-already in the files you're modifying.
-
-Let's not add to the expanding beaurocracy by demanding a format for these
-macro names.
-
+diff --git a/drivers/hid/hid-core.c b/drivers/hid/hid-core.c
+index f0b00ec..d76fec3 100644
+--- a/drivers/hid/hid-core.c
++++ b/drivers/hid/hid-core.c
+@@ -606,7 +606,7 @@ static u8 *fetch_item(__u8 *start, __u8 *end, struct hid_item *item)
+ 		case 2:
+ 			if ((end - start) < 2)
+ 				return NULL;
+-			item->data.u16 = le16_to_cpu(get_unaligned((__le16*)start));
++			item->data.u16 = get_unaligned_le16(start);
+ 			start = (__u8 *)((__le16 *)start + 1);
+ 			return start;
+ 
+@@ -614,7 +614,7 @@ static u8 *fetch_item(__u8 *start, __u8 *end, struct hid_item *item)
+ 			item->size++;
+ 			if ((end - start) < 4)
+ 				return NULL;
+-			item->data.u32 = le32_to_cpu(get_unaligned((__le32*)start));
++			item->data.u32 = get_unaligned_le32(start);
+ 			start = (__u8 *)((__le32 *)start + 1);
+ 			return start;
+ 	}
+@@ -765,7 +765,7 @@ static __inline__ __u32 extract(__u8 *report, unsigned offset, unsigned n)
+ 
+ 	report += offset >> 3;  /* adjust byte index */
+ 	offset &= 7;            /* now only need bit offset into one byte */
+-	x = le64_to_cpu(get_unaligned((__le64 *) report));
++	x = get_unaligned_le64(report);
+ 	x = (x >> offset) & ((1ULL << n) - 1);  /* extract bit field */
+ 	return (u32) x;
+ }
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+1.5.5.144.g3e42
+
+
