@@ -1,82 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wa-out-1112.google.com ([209.85.146.176]:28605 "EHLO
-	wa-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754571AbYDNQiF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Apr 2008 12:38:05 -0400
-Received: by wa-out-1112.google.com with SMTP id m16so2496151waf.23
-        for <linux-arch@vger.kernel.org>; Mon, 14 Apr 2008 09:38:03 -0700 (PDT)
-Subject: [PATCH 01/10] char: Use get_unaligned_* helpers
+Received: from el-out-1112.google.com ([209.85.162.183]:55716 "EHLO
+	el-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754988AbYDNQwI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Apr 2008 12:52:08 -0400
+Received: by el-out-1112.google.com with SMTP id n30so64465elf.21
+        for <linux-arch@vger.kernel.org>; Mon, 14 Apr 2008 09:52:06 -0700 (PDT)
+Subject: Re: [PATCHv3 2/2] kernel: Move arches to use common unaligned
+	access
 From: Harvey Harrison <harvey.harrison@gmail.com>
+In-Reply-To: <20080414163448.GA8473@flint.arm.linux.org.uk>
+References: <1207950449.22001.106.camel@brick> <4392.1208169129@redhat.com>
+	 <20080414111119.GA6228@flint.arm.linux.org.uk>
+	 <1208190432.5721.1.camel@brick>
+	 <20080414163448.GA8473@flint.arm.linux.org.uk>
 Content-Type: text/plain
-Date: Mon, 14 Apr 2008 09:37:53 -0700
-Message-ID: <1208191074.5721.23.camel@brick>
+Date: Mon, 14 Apr 2008 09:52:06 -0700
+Message-ID: <1208191926.5721.37.camel@brick>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20080414163753.cToOusg7hihck-r36CKM0HNQJtuY4_R6kwvDtrI6VYU@z>
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Howells <dhowells@redhat.com>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20080414165206.YVEXGpIeFzgveKx8KdOHSPKe7sZ6atntXWxWlnnUL9A@z>
 
-Remove unnecessary temp variable from_buf in snsc_event.c
+On Mon, 2008-04-14 at 17:34 +0100, Russell King wrote:
+> On Mon, Apr 14, 2008 at 09:27:12AM -0700, Harvey Harrison wrote:
+> > On Mon, 2008-04-14 at 12:11 +0100, Russell King wrote:
+> > > On Mon, Apr 14, 2008 at 11:32:09AM +0100, David Howells wrote:
+> > > > Harvey Harrison <harvey.harrison@gmail.com> wrote:
+> > > > 
+> > > > > -#ifndef _ASM_UNALIGNED_H
+> > > > > -#define _ASM_UNALIGNED_H
+> > > > > +#ifndef _ASM_FRV_UNALIGNED_H_
+> > > > > +#define _ASM_FRV_UNALIGNED_H_
+> > > > 
+> > > > Please don't.  Why do you need to change these to make your patch work?
+> > > 
+> > > Indeed - ditto for the ARM changes.  The patch is changing them to a
+> > > different style to the others in the respective asm/ directories -
+> > > which is also different from the linux/ directory.
+> > > 
+> > > IMHO, if Harvey wishes to clean those up, then that should be a separate
+> > > patch and should be part of a set converting all includes to use the
+> > > same style.
+> > > 
+> > 
+> > OK, I'll revise without these changes.  I am curious what the preferred
+> > 'linux' style is (if there is one).
+> 
+> The one that's already established by the majority is one answer. 8)
+> 
+> $ grep '^#ifndef LINUX_.*_H$' include/linux/*.h | wc -l
+> 33
+> $ grep '^#ifndef _LINUX_.*_H$' include/linux/*.h | wc -l
+> 388
+> $ grep '^#ifndef __LINUX_.*_H$' include/linux/*.h | wc -l
+> 110
+> $ grep '^#ifndef LINUX_.*_H_$' include/linux/*.h | wc -l
+> 1
+> $ grep '^#ifndef LINUX_.*_H__$' include/linux/*.h | wc -l
+> 0
+> $ grep '^#ifndef _LINUX_.*_H_$' include/linux/*.h | wc -l
+> 20
+> $ grep '^#ifndef __LINUX_.*_H__$' include/linux/*.h | wc -l
+> 20
+> 
+> So it seems _LINUX_FOO_H for linux/foo.h wins.
+> 
+> But... honestly, I wouldn't bother with such a cleanup - at the end of
+> the day, it's personal choice and people are always going to do something
+> slightly different.  So it's probably best all round to just accept what's
+> already in the files you're modifying.
+> 
+> Let's not add to the expanding beaurocracy by demanding a format for these
+> macro names.
+> 
 
-Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
----
-All ten patches depend on the introduction of the new unaligned access
-helpers I sent out last week.  This is a demonstration of the users of
-the api.
+Well, I'm not interested in a comprehensive cleanup here, but as I am
+changing every arch's asm/unaligned.h, may as well at least do those
+ones.  Would you accept my patch with ARM's changed to
+_ASM_ARM_UNALIGNED_H?
 
- drivers/char/rocket_int.h |    2 +-
- drivers/char/snsc_event.c |   10 +++-------
- 2 files changed, 4 insertions(+), 8 deletions(-)
-
-diff --git a/drivers/char/rocket_int.h b/drivers/char/rocket_int.h
-index b01d381..143cc43 100644
---- a/drivers/char/rocket_int.h
-+++ b/drivers/char/rocket_int.h
-@@ -55,7 +55,7 @@ static inline void sOutW(unsigned short port, unsigned short value)
- 
- static inline void out32(unsigned short port, Byte_t *p)
- {
--	u32 value = le32_to_cpu(get_unaligned((__le32 *)p));
-+	u32 value = get_unaligned_le32(p);
- #ifdef ROCKET_DEBUG_IO
- 	printk(KERN_DEBUG "out32(%x, %lx)...\n", port, value);
- #endif
-diff --git a/drivers/char/snsc_event.c b/drivers/char/snsc_event.c
-index 1b75b0b..31a7765 100644
---- a/drivers/char/snsc_event.c
-+++ b/drivers/char/snsc_event.c
-@@ -63,16 +63,13 @@ static int
- scdrv_parse_event(char *event, int *src, int *code, int *esp_code, char *desc)
- {
- 	char *desc_end;
--	__be32 from_buf;
- 
- 	/* record event source address */
--	from_buf = get_unaligned((__be32 *)event);
--	*src = be32_to_cpup(&from_buf);
-+	*src = get_unaligned_be32(event);
- 	event += 4; 			/* move on to event code */
- 
- 	/* record the system controller's event code */
--	from_buf = get_unaligned((__be32 *)event);
--	*code = be32_to_cpup(&from_buf);
-+	*code = get_unaligned_be32(event);
- 	event += 4;			/* move on to event arguments */
- 
- 	/* how many arguments are in the packet? */
-@@ -86,8 +83,7 @@ scdrv_parse_event(char *event, int *src, int *code, int *esp_code, char *desc)
- 		/* not an integer argument, so give up */
- 		return -1;
- 	}
--	from_buf = get_unaligned((__be32 *)event);
--	*esp_code = be32_to_cpup(&from_buf);
-+	*esp_code = get_unaligned_be32(event);
- 	event += 4;
- 
- 	/* parse out the event description */
--- 
-1.5.5.144.g3e42
-
+Harvey
 
