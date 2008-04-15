@@ -1,49 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rv-out-0708.google.com ([209.85.198.246]:39237 "EHLO
-	rv-out-0506.google.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756769AbYDOPRC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Apr 2008 11:17:02 -0400
-Received: by rv-out-0506.google.com with SMTP id k29so898937rvb.1
-        for <linux-arch@vger.kernel.org>; Tue, 15 Apr 2008 08:17:02 -0700 (PDT)
-Subject: Re: [PATCHv4 2/2] kernel: Move arches to use common unaligned
-	access
-From: Harvey Harrison <harvey.harrison@gmail.com>
-In-Reply-To: <17632.1208253714@redhat.com>
-References: <1208195405.5721.45.camel@brick>  <17632.1208253714@redhat.com>
+Received: from bombadil.infradead.org ([18.85.46.34]:47609 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750982AbYDOQMM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Apr 2008 12:12:12 -0400
+Subject: Re: + kernel-add-common-infrastructure-for-unaligned-access.patch
+	added to -mm tree
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <1208272073.11920.74.camel@brick>
+References: <200804142214.m3EMET5L029431@imap1.linux-foundation.org>
+	 <1208261668.9212.18.camel@pmac.infradead.org>
+	 <1208272073.11920.74.camel@brick>
 Content-Type: text/plain
-Date: Tue, 15 Apr 2008 08:17:05 -0700
-Message-ID: <1208272625.11920.78.camel@brick>
+Date: Tue, 15 Apr 2008 17:12:07 +0100
+Message-ID: <1208275927.9212.58.camel@pmac.infradead.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Russell King <rmk@arm.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20080415151705.3xoz_6ZJNGxlizJLImWJTbWwt3nk2odOBfq552j4OAM@z>
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: akpm@linux-foundation.org, mm-commits@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20080415161207.l_tFdqsPijIzH6OAbWnpq8gTk3MfK5Tuas8j5Mai64w@z>
 
-On Tue, 2008-04-15 at 11:01 +0100, David Howells wrote:
-> Harvey Harrison <harvey.harrison@gmail.com> wrote:
-> 
-> >  arch/frv/kernel/traps.c           |    7 +-
-> >  arch/frv/mm/unaligned.c           |  217 -------------------------------------
-> 
-> And arch/frv/mm/Makefile?  It still refers to unaligned.c.
-> 
+On Tue, 2008-04-15 at 08:07 -0700, Harvey Harrison wrote:
+> The reason I kept the byte-shifting versions around was that for
+> arches that need special handling of unaligned access,
 
-Missed that, thanks a lot.
+Are there any? GCC should emit appropriate code for the packed-structure
+version on all architectures, shouldn't it?
 
-> > -#ifndef _ASM_UNALIGNED_H
-> > -#define _ASM_UNALIGNED_H
-> > +#ifndef _ASM_FRV_UNALIGNED_H
-> > +#define _ASM_FRV_UNALIGNED_H
-> 
-> Please don't!
+> they could do the byteshifting manually and get the unaligned access
+> 'for free' as it were. 
 
-Andrew, do you need an incremental patch for this, or can you take care
-of it on your end?
+GCC really ought to be able to sort that out for itself. Let the dog see
+the rabbit.
 
-Cheers,
+>  The packed struct implementation works fine for the same endianness,
+> but I tried to make this as little of a change for each arch as a
+> consolidation step...which is why I kept the
+> memmove variant.  We can discuss moving arches over to other
+> implementations after the fact.
 
-Harvey
+TBH I'd rather just provide the generic implementations (using packed
+structs) then convert the arches to them one at a time.
 
+-- 
+dwmw2
 
