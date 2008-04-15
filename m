@@ -1,57 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:54769 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755225AbYDOKCI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Apr 2008 06:02:08 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1208195405.5721.45.camel@brick>
-References: <1208195405.5721.45.camel@brick>
-Subject: Re: [PATCHv4 2/2] kernel: Move arches to use common unaligned access
-Date: Tue, 15 Apr 2008 11:01:54 +0100
-Message-ID: <17632.1208253714@redhat.com>
+Received: from bombadil.infradead.org ([18.85.46.34]:58150 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751924AbYDOMOb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Apr 2008 08:14:31 -0400
+Subject: Re: + kernel-add-common-infrastructure-for-unaligned-access.patch
+	added to -mm tree
+From: David Woodhouse <dwmw2@infradead.org>
+In-Reply-To: <200804142214.m3EMET5L029431@imap1.linux-foundation.org>
+References: <200804142214.m3EMET5L029431@imap1.linux-foundation.org>
+Content-Type: text/plain
+Date: Tue, 15 Apr 2008 13:14:28 +0100
+Message-ID: <1208261668.9212.18.camel@pmac.infradead.org>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: dhowells@redhat.com, Russell King <rmk@arm.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20080415100154.-2R2Sc5L-V1Dr7gVzF5-vAuzZ3VSagucG2iBgXFfGJg@z>
+To: akpm@linux-foundation.org
+Cc: mm-commits@vger.kernel.org, harvey.harrison@gmail.com, linux-arch@vger.kernel.org
+Message-ID: <20080415121428.29DcUDrKwlTL-eiWl-qesNxj9dOvHwHTmcRi-5V90dQ@z>
 
-Harvey Harrison <harvey.harrison@gmail.com> wrote:
+On Mon, 2008-04-14 at 15:14 -0700, akpm@linux-foundation.org wrote:
+> 
+> Currently there are five implementations:
+> 1) packed_struct.h: C-struct based, from asm-generic/unaligned.h
+> 2) le_byteshift.h: Open coded byte-swapping, heavily based on asm-arm
+> 3) be_byteshift.h: Open coded byte-swapping, heavily based on asm-arm
+> 4) memmove.h: taken from multiple implementations in tree
+> 5) access_ok.h: taken from x86 and others, unaligned access is ok.
+> 
+> All of the new implementations checks for sizes not equal to 1,2,4,8
+> and will fail to link.
 
->  arch/frv/kernel/traps.c           |    7 +-
->  arch/frv/mm/unaligned.c           |  217 -------------------------------------
+This seems like overkill to me. Can't we just use the packed struct
+version? GCC should then to the right thing for all architectures.
 
-And arch/frv/mm/Makefile?  It still refers to unaligned.c.
+> API additions:
+> 
+> get_unaligned_{le16|le32|le64|be16|be32|be64}(p) which is meant to replace
+> code of the form:
+> le16_to_cpu(get_unaligned((__le16 *)p));
+> 
+> put_unaligned_{le16|le32|le64|be16|be32|be64}(val, pointer) which is meant to
+> replace code of the form:
+> put_unaligned(cpu_to_le16(val), (__le16 *)p);
 
-> -#ifndef _ASM_UNALIGNED_H
-> -#define _ASM_UNALIGNED_H
-> +#ifndef _ASM_FRV_UNALIGNED_H
-> +#define _ASM_FRV_UNALIGNED_H
+And couldn't these be macros rather than relying on a boatload of
+infrastructure?
 
-Please don't!
+-- 
+dwmw2
 
-David
----
-[PATCH] FRV: Don't refer to arch/frv/mm/unaligned.c once it has been deleted
-
-From: David Howells <dhowells@redhat.com>
-
-arch/frv/mm/unaligned.c should not be mentioned in the local Makefile once the
-former has been deleted.
-
-Signed-off-by: David Howells <dhowells@redhat.com>
----
-
- arch/frv/mm/Makefile |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
-
-
-diff --git a/arch/frv/mm/Makefile b/arch/frv/mm/Makefile
-index fb8b1d8..1bca5ab 100644
---- a/arch/frv/mm/Makefile
-+++ b/arch/frv/mm/Makefile
-@@ -6,4 +6,4 @@ obj-y := init.o kmap.o
- 
- obj-$(CONFIG_MMU) += \
- 	pgalloc.o highmem.o fault.o extable.o cache-page.o tlb-flush.o tlb-miss.o \
--	mmu-context.o dma-alloc.o unaligned.o elf-fdpic.o
-+	mmu-context.o dma-alloc.o elf-fdpic.o
