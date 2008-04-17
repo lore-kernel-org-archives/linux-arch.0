@@ -1,62 +1,99 @@
-From: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: + kernel-add-common-infrastructure-for-unaligned-access.patch
-	added to -mm tree
-Date: Tue, 15 Apr 2008 10:24:32 -0700
-Message-ID: <1208280272.11920.87.camel@brick>
-References: <200804142214.m3EMET5L029431@imap1.linux-foundation.org>
-	 <1208261668.9212.18.camel@pmac.infradead.org>
-	 <1208272073.11920.74.camel@brick>
-	 <1208275927.9212.58.camel@pmac.infradead.org>
+From: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Subject: Re: [patch 2/2]: introduce fast_gup
+Date: Thu, 17 Apr 2008 17:03:25 +0200
+Message-ID: <1208444605.7115.2.camel@twins>
+References: <20080328025455.GA8083@wotan.suse.de>
+	 <20080328030023.GC8083@wotan.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1208275927.9212.58.camel-ZP4jZrcIevRpWr+L1FloEB2eb7JE58TQ@public.gmane.org>
+In-Reply-To: <20080328030023.GC8083-B4tOwbsTzaBolqkO4TVVkw@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Woodhouse <dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Cc: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, mm-commits-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, shaggy-V7BBcbaFuwjMbYB6QlFGEg@public.gmane.org, axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Clark Williams <williams-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
 
-On Tue, 2008-04-15 at 17:12 +0100, David Woodhouse wrote:
-> On Tue, 2008-04-15 at 08:07 -0700, Harvey Harrison wrote:
-> > The reason I kept the byte-shifting versions around was that for
-> > arches that need special handling of unaligned access,
-> 
-> Are there any? GCC should emit appropriate code for the packed-structure
-> version on all architectures, shouldn't it?
-> 
-> > they could do the byteshifting manually and get the unaligned access
-> > 'for free' as it were. 
-> 
-> GCC really ought to be able to sort that out for itself. Let the dog see
-> the rabbit.
+On Fri, 2008-03-28 at 04:00 +0100, Nick Piggin wrote:
 
-Sorry, I didn't explain that very well, let me try again.  There is also
-some new API along with this patch, for a reason:
+> +++ linux-2.6/arch/x86/mm/gup.c
+> @@ -0,0 +1,198 @@
+> +/*
+> + * Lockless fast_gup for x86
+> + *
+> + * Copyright (C) 2007 Nick Piggin
+> + * Copyright (C) 2007 Novell Inc.
+> + */
+> +#include <linux/sched.h>
+> +#include <linux/mm.h>
+> +#include <linux/vmstat.h>
+> +#include <asm/pgtable.h>
+> +
+> +/*
+> + * The performance critical leaf functions are made noinline otherwise gcc
+> + * inlines everything into a single function which results in too much
+> + * register pressure.
+> + */
+> +static noinline int gup_pte_range(pmd_t pmd, unsigned long addr,
+> +		unsigned long end, int write, struct page **pages, int *nr)
+> +{
+> +	unsigned long mask, result;
+> +	pte_t *ptep;
+> +
+> +	result = _PAGE_PRESENT|_PAGE_USER;
+> +	if (write)
+> +		result |= _PAGE_RW;
+> +	mask = result | _PAGE_SPECIAL;
+> +
+> +	ptep = pte_offset_map(&pmd, addr);
+> +	do {
+> +		/*
+> +		 * XXX: careful. On 3-level 32-bit, the pte is 64 bits, and
+> +		 * we need to make sure we load the low word first, then the
+> +		 * high. This means _PAGE_PRESENT should be clear if the high
+> +		 * word was not valid. Currently, the C compiler can issue
+> +		 * the loads in any order, and I don't know of a wrapper
+> +		 * function that will do this properly, so it is broken on
+> +		 * 32-bit 3-level for the moment.
+> +		 */
+> +		pte_t pte = *ptep;
+> +		struct page *page;
+> +
+> +		if ((pte_val(pte) & mask) != result)
+> +			return 0;
+> +		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
+> +		page = pte_page(pte);
+> +		get_page(page);
+> +		pages[*nr] = page;
+> +		(*nr)++;
+> +
+> +	} while (ptep++, addr += PAGE_SIZE, addr != end);
+> +	pte_unmap(ptep - 1);
+> +
+> +	return 1;
+> +}
 
-This type of pattern, repeat for various byteorder/widths:
-le32_to_cpu(get_unaligned((__le32 *)p))
+Would this be sufficient to address that comment's conern?
 
-For which the following has been added:
-get_unaligned_le32(p)
-
-Which allows BE arches that require special alignment handling to do
-the endianness swapping as they do the unaligned accesses.  Similarly
-for LE arches and the get_unaligned_be*
-
-I realy think gcc will have a hard time seeing that it can fold the
-accesses in this way.  If you grep for get/put_unaligned you'll
-see the majority of the current users actually are wrapping it in
-some kind of byteorder access as well...which prompted me to add
-this api.
-
-But _if_ gcc is smart enough to fold that together on arches with
-special alignment requirements, I'm happy to move to a wrapper
-approach.
-
-HPA made the suggestion to look into this method, maybe he can 
-explain it better than I.
-
-Anyways, I hope I made myself a little clearer this time.
-
-Harvey
+Index: linux-2.6/arch/x86/mm/gup.c
+===================================================================
+--- linux-2.6.orig/arch/x86/mm/gup.c
++++ linux-2.6/arch/x86/mm/gup.c
+@@ -36,8 +36,16 @@ static noinline int gup_pte_range(pmd_t 
+ 		 * function that will do this properly, so it is broken on
+ 		 * 32-bit 3-level for the moment.
+ 		 */
+-		pte_t pte = *ptep;
+ 		struct page *page;
++		pte_t pte;
++
++#ifdef CONFIG_X86_PAE
++		pte.pte_low = ptep->pte_low;
++		barrier();
++		pte.pte_high = ptep->pte_high;
++#else
++		pte = *ptep;
++#endif
+ 
+ 		if ((pte_val(pte) & mask) != result)
+ 			return 0;
