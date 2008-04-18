@@ -1,43 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:57739 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752868AbYDRHHY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2008 03:07:24 -0400
-Date: Fri, 18 Apr 2008 00:07:17 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 3/3] Use __weak macro for smp_setup_processor_id
-Message-ID: <20080418000717.5a9c9758.akpm@linux-foundation.org>
-In-Reply-To: <20080418065728.31AF4DE255@ozlabs.org>
-References: <20080418065728.31AF4DE255@ozlabs.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from 206-248-169-182.dsl.ncf.ca ([206.248.169.182]:31465 "EHLO
+	phobos.cabal.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751138AbYDRHs5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2008 03:48:57 -0400
+Date: Fri, 18 Apr 2008 03:48:56 -0400
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: [PATCH 1/2] kallsyms: restructure print_fn_descriptor_symbol
+Message-ID: <20080418074856.GC16276@phobos.i.cabal.ca>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20080418070717.SLMJ7qR76T7uDZi4Sict1xHuSPnrojWGxnZBei8GdyY@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, rusty@rustcorp.com.au, akpm@linux-foundation.org
+Message-ID: <20080418074856.ohroaj_vUkywY_G7kOm7gXoZWppRsVlipAlzObV2E-o@z>
 
-On Fri, 18 Apr 2008 16:56:18 +1000 Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+Factor out the function descriptor access from the print_symbol
+call.
 
-> Use the __weak macro instead of the longer __attribute__ ((weak)) form
-> 
-> Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> --
-> 
->  init/main.c |    2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> --- linux-work.orig/init/main.c	2008-04-18 16:44:32.000000000 +1000
-> +++ linux-work/init/main.c	2008-04-18 16:44:37.000000000 +1000
-> @@ -500,7 +500,7 @@ static void __init boot_cpu_init(void)
->  	cpu_set(cpu, cpu_possible_map);
->  }
->  
-> -void __init __attribute__((weak)) smp_setup_processor_id(void)
-> +void __init __weak smp_setup_processor_id(void)
->  {
->  }
+Signed-off-by: Kyle McMartin <kyle@mcmartin.ca>
+---
+ include/linux/kallsyms.h |   16 ++++++++++------
+ 1 files changed, 10 insertions(+), 6 deletions(-)
 
-ack on all three. Please fold #3 into #1 and add both to git-powerpc.
+diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
+index 82de2fb..6734a3f 100644
+--- a/include/linux/kallsyms.h
++++ b/include/linux/kallsyms.h
+@@ -83,17 +83,21 @@ __attribute__((format(printf,1,2)));
+ static inline void __check_printsym_format(const char *fmt, ...)
+ {
+ }
++
+ /* ia64 and ppc64 use function descriptors, which contain the real address */
+ #if defined(CONFIG_IA64) || defined(CONFIG_PPC64)
+-#define print_fn_descriptor_symbol(fmt, addr)		\
+-do {						\
+-	unsigned long *__faddr = (unsigned long*) addr;		\
+-	print_symbol(fmt, __faddr[0]);		\
+-} while (0)
++#define get_func_addr(x)	({				\
++					unsigned long *addr =	\
++						(unsigned long *)x;	\
++					addr[0];		\
++				})
+ #else
+-#define print_fn_descriptor_symbol(fmt, addr) print_symbol(fmt, addr)
++#define get_func_addr(x)	x
+ #endif
+ 
++#define print_fn_descriptor_symbol(fmt, addr)	\
++		print_symbol(fmt, get_func_addr(addr))
++
+ static inline void print_symbol(const char *fmt, unsigned long addr)
+ {
+ 	__check_printsym_format(fmt, "");
+-- 
+1.5.4.5
+
