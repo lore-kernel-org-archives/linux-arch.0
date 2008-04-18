@@ -1,47 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from yorgi.telenet-ops.be ([195.130.133.69]:33404 "EHLO
-	yorgi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752477AbYDRGcf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2008 02:32:35 -0400
-Received: from harold.telenet-ops.be (harold.telenet-ops.be [195.130.133.65])
-	by yorgi.telenet-ops.be (Postfix) with ESMTP id 2E188682130
-	for <linux-arch@vger.kernel.org>; Fri, 18 Apr 2008 08:32:10 +0200 (CEST)
-Date: Fri, 18 Apr 2008 08:31:45 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [patch 2/2]: introduce fast_gup
-In-Reply-To: <1208453014.7115.39.camel@twins>
-Message-ID: <Pine.LNX.4.64.0804180831000.9489@anakin>
-References: <20080328025455.GA8083@wotan.suse.de> <20080328030023.GC8083@wotan.suse.de>
- <1208444605.7115.2.camel@twins> <alpine.LFD.1.00.0804170814090.2879@woody.linux-foundation.org>
- <1208448768.7115.30.camel@twins> <alpine.LFD.1.00.0804170916470.2879@woody.linux-foundation.org>
- <1208450119.7115.36.camel@twins> <alpine.LFD.1.00.0804170940270.2879@woody.linux-foundation.org>
- <1208453014.7115.39.camel@twins>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from ozlabs.org ([203.10.76.45]:40725 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752864AbYDRGoZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Apr 2008 02:44:25 -0400
+Subject: Re: [PATCH 1/2] Add thread_info_cache_init() to all archs
+From: Benjamin Herrenschmidt <benh@ozlabs.org>
+In-Reply-To: <20080417211905.8ff769fa.akpm@linux-foundation.org>
+References: <20080410032354.90CB1DDF0F@ozlabs.org>
+	 <20080413171953.bde5e9ac.akpm@linux-foundation.org>
+	 <1208133506.6958.82.camel@pasglop>
+	 <20080413191338.9776ebd0.akpm@linux-foundation.org>
+	 <1208491086.6958.381.camel@pasglop>
+	 <20080417211905.8ff769fa.akpm@linux-foundation.org>
+Content-Type: text/plain
+Date: Fri, 18 Apr 2008 16:44:21 +1000
+Message-ID: <1208501061.6958.394.camel@pasglop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, axboe@kernel.dk, linux-mm@kvack.org, linux-arch@vger.kernel.org, Clark Williams <williams@redhat.com>, Ingo Molnar <mingo@elte.hu>, Jeremy Fitzhardinge <jeremy@goop.org>
-Message-ID: <20080418063145.P8yR1EojRLmtQ18sEixf7nsxGe5Vn8OPVu3EDB71d90@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20080418064421.h2ahzLsrlqHWc2bQIE_6r0m312Z0QbS63ruonOQFLwE@z>
 
-On Thu, 17 Apr 2008, Peter Zijlstra wrote:
-> +retry:
-> +	pte.pte_low = ptep->pte_low;
-> +	smp_rmb();
-> +	pte.pte_high = ptep->pte_high;
-> +	smp_rmb();
-> +	if (unlikely(pte.pte_low != ptep->pte_low))
-> +		goto retry;
 
-What about using `do { ... } while (...)' instead?
+> > so what
+> > about the patch below ?
+> 
+> I like it, but the compiler won't ;)
+> 
+> > If you're ok, I'll re-send with appropriate sob
+> > & adapted powerpc part.
+> 
+> Sure.
+> 
+> > +void __init __attribute__((weak) thread_info_cache_init(void)
+> 
+> s/weak)/weak))/
 
-Gr{oetje,eeting}s,
+Yeah, missing quilt ref :-)
 
-						Geert
+I'll send the proper patches in a minute.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Cheers,
+Ben.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+
