@@ -1,99 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:44932 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750999AbYDREi4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2008 00:38:56 -0400
-Subject: Re: [PATCH 1/2] Add thread_info_cache_init() to all archs
-From: Michael Ellerman <michael@ellerman.id.au>
-Reply-To: michael@ellerman.id.au
-In-Reply-To: <20080417211905.8ff769fa.akpm@linux-foundation.org>
-References: <20080410032354.90CB1DDF0F@ozlabs.org>
-	 <20080413171953.bde5e9ac.akpm@linux-foundation.org>
-	 <1208133506.6958.82.camel@pasglop>
-	 <20080413191338.9776ebd0.akpm@linux-foundation.org>
-	 <1208491086.6958.381.camel@pasglop>
-	 <20080417211905.8ff769fa.akpm@linux-foundation.org>
-Content-Type: multipart/signed; micalg=pgp-sha1; protocol="application/pgp-signature"; boundary="=-FDPfa9rGsj0DdIbVrzKH"
-Date: Fri, 18 Apr 2008 14:38:55 +1000
-Message-ID: <1208493535.9319.3.camel@concordia.ozlabs.ibm.com>
-Mime-Version: 1.0
+Received: from yorgi.telenet-ops.be ([195.130.133.69]:33404 "EHLO
+	yorgi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752477AbYDRGcf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2008 02:32:35 -0400
+Received: from harold.telenet-ops.be (harold.telenet-ops.be [195.130.133.65])
+	by yorgi.telenet-ops.be (Postfix) with ESMTP id 2E188682130
+	for <linux-arch@vger.kernel.org>; Fri, 18 Apr 2008 08:32:10 +0200 (CEST)
+Date: Fri, 18 Apr 2008 08:31:45 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [patch 2/2]: introduce fast_gup
+In-Reply-To: <1208453014.7115.39.camel@twins>
+Message-ID: <Pine.LNX.4.64.0804180831000.9489@anakin>
+References: <20080328025455.GA8083@wotan.suse.de> <20080328030023.GC8083@wotan.suse.de>
+ <1208444605.7115.2.camel@twins> <alpine.LFD.1.00.0804170814090.2879@woody.linux-foundation.org>
+ <1208448768.7115.30.camel@twins> <alpine.LFD.1.00.0804170916470.2879@woody.linux-foundation.org>
+ <1208450119.7115.36.camel@twins> <alpine.LFD.1.00.0804170940270.2879@woody.linux-foundation.org>
+ <1208453014.7115.39.camel@twins>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@ozlabs.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-m32r@ml.linux-m32r.org, takata@linux-m32r.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20080418043855.rM4VjzXZ4jMo-lSFWjCK33U1n9a4q2_PpesBBtvtAjA@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, axboe@kernel.dk, linux-mm@kvack.org, linux-arch@vger.kernel.org, Clark Williams <williams@redhat.com>, Ingo Molnar <mingo@elte.hu>, Jeremy Fitzhardinge <jeremy@goop.org>
+Message-ID: <20080418063145.P8yR1EojRLmtQ18sEixf7nsxGe5Vn8OPVu3EDB71d90@z>
 
+On Thu, 17 Apr 2008, Peter Zijlstra wrote:
+> +retry:
+> +	pte.pte_low = ptep->pte_low;
+> +	smp_rmb();
+> +	pte.pte_high = ptep->pte_high;
+> +	smp_rmb();
+> +	if (unlikely(pte.pte_low != ptep->pte_low))
+> +		goto retry;
 
---=-FDPfa9rGsj0DdIbVrzKH
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
+What about using `do { ... } while (...)' instead?
 
-On Thu, 2008-04-17 at 21:19 -0700, Andrew Morton wrote:
-> On Fri, 18 Apr 2008 13:58:06 +1000 Benjamin Herrenschmidt <benh@ozlabs.or=
-g> wrote:
->=20
-> >=20
-> > > > > otoh, if only one .c file will ever call this function then I thi=
-nk that
-> > > > > all problems are solved by
-> > > > >=20
-> > > > > a) moving the above ifdeffery into the .c file
-> > > > > b) adding a comment explaining which arch file must provide the o=
-verride
-> > > > > c) directly including that file from within the .c file.
-> > > >=20
-> > > > I can definitely do that. I have no problem either way. I can add t=
-o all
-> > > > archs too, it's just that whatever way I choose, some people won't =
-be
-> > > > happy with it :-)
-> > > >=20
-> > > > Anyway, I'll move the ifdeferry to init/main.c then.
-> > >=20
-> > > Thanks ;)
-> > >=20
-> > > I'm still wounded by my recent encounter with set_softirq_pending()
-> > > and or_softirq_pending().
-> >=20
-> > Well, looking there, I saw we already used weak symbols for that
->=20
-> Yes, `weak' is a nice solution.  It does add a few bytes of text which we
-> could avoid with compile-time trickery, but only a very few.
->=20
-> Plus this is __init anyway, although I don't know how well the combinatio=
-n
-> of `weak' and __init works.
->=20
-> > +void __init __attribute__((weak) thread_info_cache_init(void)
->=20
-> s/weak)/weak))/
+Gr{oetje,eeting}s,
 
-There's also a #define of this called "__weak" if you like, less typing
-and less ugly.
+						Geert
 
-cheers
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
---=20
-Michael Ellerman
-OzLabs, IBM Australia Development Lab
-
-wwweb: http://michael.ellerman.id.au
-phone: +61 2 6212 1183 (tie line 70 21183)
-
-We do not inherit the earth from our ancestors,
-we borrow it from our children. - S.M.A.R.T Person
-
---=-FDPfa9rGsj0DdIbVrzKH
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Description: This is a digitally signed message part
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
-
-iD8DBQBICCXfdSjSd0sB4dIRAhE1AJ9ZHfHcu3unHY6kSWfP0t+aNTPkKQCeI0zj
-966HGDJEisppeO7PrUitiG8=
-=RoAh
------END PGP SIGNATURE-----
-
---=-FDPfa9rGsj0DdIbVrzKH--
-
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
