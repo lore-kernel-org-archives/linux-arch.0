@@ -1,37 +1,45 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 2/3] [POWERPC] Fix kernel stack allocation alignment
-Date: Fri, 18 Apr 2008 18:18:18 +1000
-Message-ID: <1208506698.6958.400.camel@pasglop>
-References: <20080418065727.5FE1CDE247@ozlabs.org>
-	<20080418000618.0c46c78f.akpm@linux-foundation.org>
-Reply-To: benh@kernel.crashing.org
+From: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Subject: Re: [patch 2/2]: introduce fast_gup
+Date: Fri, 18 Apr 2008 07:40:14 -0700 (PDT)
+Message-ID: <alpine.LFD.1.00.0804180734530.2879@woody.linux-foundation.org>
+References: <20080328025455.GA8083@wotan.suse.de> <20080328030023.GC8083@wotan.suse.de> <1208444605.7115.2.camel@twins> <alpine.LFD.1.00.0804170814090.2879@woody.linux-foundation.org> <1208448768.7115.30.camel@twins> <alpine.LFD.1.00.0804170916470.2879@woody.linux-foundation.org>
+ <1208450119.7115.36.camel@twins> <alpine.LFD.1.00.0804170940270.2879@woody.linux-foundation.org> <1208453014.7115.39.camel@twins> <Pine.LNX.4.64.0804180831000.9489@anakin>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
-In-Reply-To: <20080418000618.0c46c78f.akpm@linux-foundation.org>
-List-Unsubscribe: <https://ozlabs.org/mailman/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
-List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@ozlabs.org?subject=help>
-List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
-Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <Pine.LNX.4.64.0804180831000.9489@anakin>
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Cc: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, shaggy-V7BBcbaFuwjMbYB6QlFGEg@public.gmane.org, axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Clark Williams <williams-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, Jeremy Fitzhardinge <jeremy-TSDbQ3PG+2Y@public.gmane.org>
 
 
-> so...  the "0" defeats all of SLAB_DEBUG_FREE, SLAB_RED_ZONE, SLAB_POISON
-> and SLAB_STORE_USER, if the comment in slab.h is to be believed.
+
+On Fri, 18 Apr 2008, Geert Uytterhoeven wrote:
+> On Thu, 17 Apr 2008, Peter Zijlstra wrote:
+> > +retry:
+> > +	pte.pte_low = ptep->pte_low;
+> > +	smp_rmb();
+> > +	pte.pte_high = ptep->pte_high;
+> > +	smp_rmb();
+> > +	if (unlikely(pte.pte_low != ptep->pte_low))
+> > +		goto retry;
 > 
-> Was that overkill?
+> What about using `do { ... } while (...)' instead?
 
-Well, I copied over from something else, looks like there's a -lot- of 0
-users here... 
+Partly because it's not a loop. It's an error and retry event, and it 
+generally happens zero times (and sometimes once). I don't think it should 
+even _look_ like a loop.
 
-Shouldn't there be some kind of SLAB_DEFAULT that contain those things ?
+So personally, I just tend to think that it's just more readable when it's 
+written as being obviously not a regular loop. I'm not in the "gotos are 
+harmful" camp.
 
-Ben.
+And partly because I tend to distrust loops for these thigns is that 
+historically gcc sometimes did stupid things for loops (it assumed that 
+loops were hot and tried to align them etc, and the same didn't happen for 
+branch targets). Of course, these days I suspect gcc can't even tell the 
+difference any more (it probably turns it into the same internal 
+representation), but old habits die hard.
+
+			Linus
