@@ -1,64 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:38766 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.10.76.45]:38774 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755416AbYDRG52 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2008 02:57:28 -0400
+	id S1758267AbYDRG5a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Apr 2008 02:57:30 -0400
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Fri, 18 Apr 2008 16:56:15 +1000
-Subject: [PATCH 1/3] Add thread_info_cache_init() weak hook
-Message-ID: <20080418065726.C466EDE246@ozlabs.org>
+Date: Fri, 18 Apr 2008 16:56:18 +1000
+Subject: [PATCH 3/3] Use __weak macro for smp_setup_processor_id
+Message-ID: <20080418065728.31AF4DE255@ozlabs.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Paul Mackerras <paulus@samba.org>
 Cc: linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20080418065615.9g4T9yXVZdEyjdhLtmyN1-EGjZgVJreL2Alq6tio-MU@z>
+Message-ID: <20080418065618.ecF_0JYn_XvbDA_7oPckvkUEvRreFGn_a3Et-k1-9GU@z>
 
-Some architecture need to maintain a kmem cache for thread info
-structures. (next patch adds that to powerpc to fix an alignment
-problem).
-
-There is no good arch callback to use to initialize that cache
-that I can find, so this adds a new one in the form of a weak
-function whose default is empty.
+Use the __weak macro instead of the longer __attribute__ ((weak)) form
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
----
+--
 
- include/linux/sched.h |    2 ++
- init/main.c           |    5 +++++
- 2 files changed, 7 insertions(+)
+ init/main.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
---- linux-work.orig/init/main.c	2008-03-26 10:39:25.000000000 +1100
-+++ linux-work/init/main.c	2008-04-18 16:43:53.000000000 +1000
-@@ -504,6 +504,10 @@ void __init __attribute__((weak)) smp_se
+--- linux-work.orig/init/main.c	2008-04-18 16:44:32.000000000 +1000
++++ linux-work/init/main.c	2008-04-18 16:44:37.000000000 +1000
+@@ -500,7 +500,7 @@ static void __init boot_cpu_init(void)
+ 	cpu_set(cpu, cpu_possible_map);
+ }
+ 
+-void __init __attribute__((weak)) smp_setup_processor_id(void)
++void __init __weak smp_setup_processor_id(void)
  {
  }
  
-+void __init __weak thread_info_cache_init(void)
-+{
-+}
-+
- asmlinkage void __init start_kernel(void)
- {
- 	char * command_line;
-@@ -623,6 +627,7 @@ asmlinkage void __init start_kernel(void
- 	if (efi_enabled)
- 		efi_enter_virtual_mode();
- #endif
-+	thread_info_cache_init();
- 	fork_init(num_physpages);
- 	proc_caches_init();
- 	buffer_init();
-Index: linux-work/include/linux/sched.h
-===================================================================
---- linux-work.orig/include/linux/sched.h	2008-04-02 09:47:56.000000000 +1100
-+++ linux-work/include/linux/sched.h	2008-04-18 13:11:10.000000000 +1000
-@@ -1893,6 +1893,8 @@ static inline unsigned long *end_of_stac
- 
- #endif
- 
-+extern void thread_info_cache_init(void);
-+
- /* set thread flags in other task's structures
-  * - see asm/thread_info.h for TIF_xxxx flags available
-  */
