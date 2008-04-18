@@ -1,87 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:53688 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751151AbYDRD6K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Apr 2008 23:58:10 -0400
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:54265 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750918AbYDRETV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Apr 2008 00:19:21 -0400
+Date: Thu, 17 Apr 2008 21:19:05 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: [PATCH 1/2] Add thread_info_cache_init() to all archs
-From: Benjamin Herrenschmidt <benh@ozlabs.org>
-In-Reply-To: <20080413191338.9776ebd0.akpm@linux-foundation.org>
+Message-ID: <20080417211905.8ff769fa.akpm@linux-foundation.org>
+In-Reply-To: <1208491086.6958.381.camel@pasglop>
 References: <20080410032354.90CB1DDF0F@ozlabs.org>
-	 <20080413171953.bde5e9ac.akpm@linux-foundation.org>
-	 <1208133506.6958.82.camel@pasglop>
-	 <20080413191338.9776ebd0.akpm@linux-foundation.org>
-Content-Type: text/plain
-Date: Fri, 18 Apr 2008 13:58:06 +1000
-Message-ID: <1208491086.6958.381.camel@pasglop>
+	<20080413171953.bde5e9ac.akpm@linux-foundation.org>
+	<1208133506.6958.82.camel@pasglop>
+	<20080413191338.9776ebd0.akpm@linux-foundation.org>
+	<1208491086.6958.381.camel@pasglop>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
+To: Benjamin Herrenschmidt <benh@ozlabs.org>
 Cc: linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@ozlabs.org, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20080418035806.hqglkLDjK7Ty7tDebsFVK7rPcES-OjlQ5KGAqICuk8c@z>
+Message-ID: <20080418041905.YwVkt8UHxgOu4WvhDuuvN0wYSNNqxkBs1frbrhVvA-U@z>
 
+On Fri, 18 Apr 2008 13:58:06 +1000 Benjamin Herrenschmidt <benh@ozlabs.org> wrote:
 
-> > > otoh, if only one .c file will ever call this function then I think that
-> > > all problems are solved by
+> 
+> > > > otoh, if only one .c file will ever call this function then I think that
+> > > > all problems are solved by
+> > > > 
+> > > > a) moving the above ifdeffery into the .c file
+> > > > b) adding a comment explaining which arch file must provide the override
+> > > > c) directly including that file from within the .c file.
 > > > 
-> > > a) moving the above ifdeffery into the .c file
-> > > b) adding a comment explaining which arch file must provide the override
-> > > c) directly including that file from within the .c file.
+> > > I can definitely do that. I have no problem either way. I can add to all
+> > > archs too, it's just that whatever way I choose, some people won't be
+> > > happy with it :-)
+> > > 
+> > > Anyway, I'll move the ifdeferry to init/main.c then.
 > > 
-> > I can definitely do that. I have no problem either way. I can add to all
-> > archs too, it's just that whatever way I choose, some people won't be
-> > happy with it :-)
+> > Thanks ;)
 > > 
-> > Anyway, I'll move the ifdeferry to init/main.c then.
+> > I'm still wounded by my recent encounter with set_softirq_pending()
+> > and or_softirq_pending().
 > 
-> Thanks ;)
-> 
-> I'm still wounded by my recent encounter with set_softirq_pending()
-> and or_softirq_pending().
+> Well, looking there, I saw we already used weak symbols for that
 
-Well, looking there, I saw we already used weak symbols for that so what
-about the patch below ? If you're ok, I'll re-send with appropriate sob
-& adapted powerpc part.
+Yes, `weak' is a nice solution.  It does add a few bytes of text which we
+could avoid with compile-time trickery, but only a very few.
 
-Cheers,
-Ben.
-
-Index: linux-work/init/main.c
-===================================================================
---- linux-work.orig/init/main.c	2008-03-26 10:39:25.000000000 +1100
-+++ linux-work/init/main.c	2008-04-18 13:10:35.000000000 +1000
-@@ -504,6 +504,10 @@ void __init __attribute__((weak)) smp_se
- {
- }
- 
-+void __init __attribute__((weak) thread_info_cache_init(void)
-+{
-+}
-+
- asmlinkage void __init start_kernel(void)
- {
- 	char * command_line;
-@@ -623,6 +627,7 @@ asmlinkage void __init start_kernel(void
- 	if (efi_enabled)
- 		efi_enter_virtual_mode();
- #endif
-+	thread_info_cache_init();
- 	fork_init(num_physpages);
- 	proc_caches_init();
- 	buffer_init();
-Index: linux-work/include/linux/sched.h
-===================================================================
---- linux-work.orig/include/linux/sched.h	2008-04-02 09:47:56.000000000 +1100
-+++ linux-work/include/linux/sched.h	2008-04-18 13:11:10.000000000 +1000
-@@ -1893,6 +1893,8 @@ static inline unsigned long *end_of_stac
- 
- #endif
- 
-+extern void thread_info_cache_init(void);
-+
- /* set thread flags in other task's structures
-  * - see asm/thread_info.h for TIF_xxxx flags available
-  */
+Plus this is __init anyway, although I don't know how well the combination
+of `weak' and __init works.
 
 
+> so what
+> about the patch below ?
+
+I like it, but the compiler won't ;)
+
+> If you're ok, I'll re-send with appropriate sob
+> & adapted powerpc part.
+
+Sure.
+
+> +void __init __attribute__((weak) thread_info_cache_init(void)
+
+s/weak)/weak))/
