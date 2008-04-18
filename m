@@ -1,94 +1,57 @@
-From: Jeremy Fitzhardinge <jeremy-TSDbQ3PG+2Y@public.gmane.org>
-Subject: Re: [patch 2/2]: introduce fast_gup
-Date: Fri, 18 Apr 2008 19:58:58 +1000
-Message-ID: <480870E2.20507@goop.org>
-References: <20080328025455.GA8083@wotan.suse.de>	 <20080328030023.GC8083@wotan.suse.de> <1208444605.7115.2.camel@twins>	 <alpine.LFD.1.00.0804170814090.2879@woody.linux-foundation.org> <1208448768.7115.30.camel@twins>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 3/3] Use __weak macro for smp_setup_processor_id
+Date: Fri, 18 Apr 2008 18:19:07 +1000
+Message-ID: <1208506747.6958.402.camel@pasglop>
+References: <20080418065728.31AF4DE255@ozlabs.org>
+	<20080418000717.5a9c9758.akpm@linux-foundation.org>
+Reply-To: benh@kernel.crashing.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1208448768.7115.30.camel@twins>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, shaggy-V7BBcbaFuwjMbYB6QlFGEg@public.gmane.org, axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Clark Williams <williams-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
+In-Reply-To: <20080418000717.5a9c9758.akpm@linux-foundation.org>
+List-Unsubscribe: <https://ozlabs.org/mailman/options/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
+List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@ozlabs.org?subject=help>
+List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Peter Zijlstra wrote:
-> On Thu, 2008-04-17 at 08:25 -0700, Linus Torvalds wrote:
->   
->> On Thu, 17 Apr 2008, Peter Zijlstra wrote:
->>     
->>> Would this be sufficient to address that comment's conern?
->>>       
->> It would be nicer to just add a "native_get_pte()" to x86, to match the 
->> already-existing "native_set_pte()".
->>     
->
-> See, I _knew_ I was missing something obvious :-/
->
->   
->> And that "barrier()" should b "smp_rmb()". They may be the same code 
->> sequence, but from a conceptual angle, "smp_rmb()" makes a whole lot more 
->> sense.
->>
->> Finally, I don't think that comment is correct in the first place. It's 
->> not that simple. The thing is, even *with* the memory barrier in place, we 
->> may have:
->>
->> 	CPU#1			CPU#2
->> 	=====			=====
->>
->> 	fast_gup:
->> 	 - read low word
->>
->> 				native_set_pte_present:
->> 				 - set low word to 0
->> 				 - set high word to new value
->>
->> 	 - read high word
->>
->> 				- set low word to new value
->>
->> and so you read a low word that is associated with a *different* high 
->> word! Notice?
->>
->> So trivial memory ordering is _not_ enough.
->>
->> So I think the code literally needs to be something like this
->>
->> 	#ifdef CONFIG_X86_PAE
->>
->> 	static inline pte_t native_get_pte(pte_t *ptep)
->> 	{
->> 		pte_t pte;
->>
->> 	retry:
->> 		pte.pte_low = ptep->pte_low;
->> 		smp_rmb();
->> 		pte.pte_high = ptep->pte_high;
->> 		smp_rmb();
->> 		if (unlikely(pte.pte_low != ptep->pte_low)
->> 			goto retry;
->> 		return pte;
->> 	}
->>
->> 	#else
->>
->> 	#define native_get_pte(ptep) (*(ptep))
->>
->> 	#endif
->>
->> but I have admittedly not really thought it fully through.
->>     
->
-> Looks sane here; Clark can you give this a spin?
->
-> Jeremy, did I get the paravirt stuff right?
->   
 
-You shouldn't need to do anything special for paravirt.  set_pte is 
-necessary because it may have side-effects (like a hypervisor call), but 
-get_pte should be side-effect free.  There's no other need for it; any 
-special processing on the pte value itself is done in pte_val().
+On Fri, 2008-04-18 at 00:07 -0700, Andrew Morton wrote:
+> On Fri, 18 Apr 2008 16:56:18 +1000 Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+> 
+> > Use the __weak macro instead of the longer __attribute__ ((weak)) form
+> > 
+> > Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> > --
+> > 
+> >  init/main.c |    2 +-
+> >  1 file changed, 1 insertion(+), 1 deletion(-)
+> > 
+> > --- linux-work.orig/init/main.c	2008-04-18 16:44:32.000000000 +1000
+> > +++ linux-work/init/main.c	2008-04-18 16:44:37.000000000 +1000
+> > @@ -500,7 +500,7 @@ static void __init boot_cpu_init(void)
+> >  	cpu_set(cpu, cpu_possible_map);
+> >  }
+> >  
+> > -void __init __attribute__((weak)) smp_setup_processor_id(void)
+> > +void __init __weak smp_setup_processor_id(void)
+> >  {
+> >  }
+> 
+> ack on all three. Please fold #3 into #1 and add both to git-powerpc.
 
-    J
+Damn ! I took 5mn to actually split it out in order to not do two
+different things in one patch :-)
+
+Will do.
+
+Cheers,
+Ben.
