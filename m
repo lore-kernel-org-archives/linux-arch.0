@@ -1,51 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:44015 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753288AbYDROmH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2008 10:42:07 -0400
-Date: Fri, 18 Apr 2008 07:40:14 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [patch 2/2]: introduce fast_gup
-In-Reply-To: <Pine.LNX.4.64.0804180831000.9489@anakin>
-Message-ID: <alpine.LFD.1.00.0804180734530.2879@woody.linux-foundation.org>
-References: <20080328025455.GA8083@wotan.suse.de> <20080328030023.GC8083@wotan.suse.de> <1208444605.7115.2.camel@twins> <alpine.LFD.1.00.0804170814090.2879@woody.linux-foundation.org> <1208448768.7115.30.camel@twins> <alpine.LFD.1.00.0804170916470.2879@woody.linux-foundation.org>
- <1208450119.7115.36.camel@twins> <alpine.LFD.1.00.0804170940270.2879@woody.linux-foundation.org> <1208453014.7115.39.camel@twins> <Pine.LNX.4.64.0804180831000.9489@anakin>
+Received: from bzq-179-150-194.static.bezeqint.net ([212.179.150.194]:10382
+	"EHLO il.qumranet.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755660AbYDUMAG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Apr 2008 08:00:06 -0400
+Message-ID: <480C81C4.8030200@qumranet.com>
+Date: Mon, 21 Apr 2008 15:00:04 +0300
+From: Avi Kivity <avi@qumranet.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: [patch 2/2]: introduce fast_gup
+References: <20080328025455.GA8083@wotan.suse.de>  <20080328030023.GC8083@wotan.suse.de> <1208444605.7115.2.camel@twins> <alpine.LFD.1.00.0804170814090.2879@woody.linux-foundation.org>
+In-Reply-To: <alpine.LFD.1.00.0804170814090.2879@woody.linux-foundation.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, axboe@kernel.dk, linux-mm@kvack.org, linux-arch@vger.kernel.org, Clark Williams <williams@redhat.com>, Ingo Molnar <mingo@elte.hu>, Jeremy Fitzhardinge <jeremy@goop.org>
-Message-ID: <20080418144014.B1WO8cA_agrk0o9ICyc_WQYf87v2uiLsSNjSzgfk9_E@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Nick Piggin <npiggin@suse.de>, Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, axboe@kernel.dk, linux-mm@kvack.org, linux-arch@vger.kernel.org, Clark Williams <williams@redhat.com>, Ingo Molnar <mingo@elte.hu>
+Message-ID: <20080421120004.wCKrDu-GkBVG6KhNZYjbPPpK0jn-qBDKeYsRm3tnMsI@z>
 
+Linus Torvalds wrote:
+> Finally, I don't think that comment is correct in the first place. It's 
+> not that simple. The thing is, even *with* the memory barrier in place, we 
+> may have:
+>
+> 	CPU#1			CPU#2
+> 	=====			=====
+>
+> 	fast_gup:
+> 	 - read low word
+>
+> 				native_set_pte_present:
+> 				 - set low word to 0
+> 				 - set high word to new value
+>
+> 	 - read high word
+>
+> 				- set low word to new value
+>
+> and so you read a low word that is associated with a *different* high 
+> word! Notice?
+>
+> So trivial memory ordering is _not_ enough.
+>
+> So I think the code literally needs to be something like this
+>
+> 	#ifdef CONFIG_X86_PAE
+>
+> 	static inline pte_t native_get_pte(pte_t *ptep)
+> 	{
+> 		pte_t pte;
+>
+> 	retry:
+> 		pte.pte_low = ptep->pte_low;
+> 		smp_rmb();
+> 		pte.pte_high = ptep->pte_high;
+> 		smp_rmb();
+> 		if (unlikely(pte.pte_low != ptep->pte_low)
+> 			goto retry;
+> 		return pte;
+> 	}
+>
+>   
 
+I think this is still broken.  Suppose that after reading pte_high 
+native_set_pte() is called again on another cpu, changing pte_low back 
+to the original value (but with a different pte_high).  You now have 
+pte_low from second native_set_pte() but pte_high from the first 
+native_set_pte().
 
-On Fri, 18 Apr 2008, Geert Uytterhoeven wrote:
-> On Thu, 17 Apr 2008, Peter Zijlstra wrote:
-> > +retry:
-> > +	pte.pte_low = ptep->pte_low;
-> > +	smp_rmb();
-> > +	pte.pte_high = ptep->pte_high;
-> > +	smp_rmb();
-> > +	if (unlikely(pte.pte_low != ptep->pte_low))
-> > +		goto retry;
-> 
-> What about using `do { ... } while (...)' instead?
+You could use cmpxchg8b to atomically load the pte, but at the expense 
+of taking the cacheline for exclusive access.
 
-Partly because it's not a loop. It's an error and retry event, and it 
-generally happens zero times (and sometimes once). I don't think it should 
-even _look_ like a loop.
+-- 
+error compiling committee.c: too many arguments to function
 
-So personally, I just tend to think that it's just more readable when it's 
-written as being obviously not a regular loop. I'm not in the "gotos are 
-harmful" camp.
-
-And partly because I tend to distrust loops for these thigns is that 
-historically gcc sometimes did stupid things for loops (it assumed that 
-loops were hot and tried to align them etc, and the same didn't happen for 
-branch targets). Of course, these days I suspect gcc can't even tell the 
-difference any more (it probably turns it into the same internal 
-representation), but old habits die hard.
-
-			Linus
