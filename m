@@ -1,40 +1,68 @@
-From: Jacek Luczak <difrost.kernel-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function
-  calls
-Date: Tue, 22 Apr 2008 11:04:52 +0200
-Message-ID: <480DAA34.7010709@gmail.com>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-3-git-send-email-jens.axboe@oracle.com> <20080422084738.GB2388@elte.hu> <480DA670.4060707@gmail.com> <20080422085629.GV12774@kernel.dk>
+From: Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+Date: Tue, 22 Apr 2008 12:16:13 +0300
+Message-ID: <480DACDD.7040108@qumranet.com>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20080422085629.GV12774-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>
+In-Reply-To: <1208851058-8500-2-git-send-email-jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Cc: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Peter Zijlstra <a.p.zijlstra-/NLkJaSkS4VmR6Xm/wNWPw@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
 
-Jens Axboe pisze:
-> On Tue, Apr 22 2008, Jacek Luczak wrote:
->> Ingo Molnar pisze:
->>> * Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org> wrote:
->>>
->>>> This converts x86 and x86-64 to use the new helpers for 
->>>> smp_call_function() and friends, and adds support for 
->>>> smp_call_function_single().
->>> nice stuff. The x86 and generic bits:
->>>
->>>  Acked-by: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
->>>
->>> this has been brewing for months, what is the testing/confidence status 
->> A'propos testing: Jens did you placed all patches (latest versions)
->> somewhere on net, so I can grab it and test?
-> 
-> It's in git as well, generic-ipi branch. So you can pull it into current
-> linus by doing:
-> 
-> $ git pull git://git.kernel.dk/linux-2.6-block.git generic-ipi
+Jens Axboe wrote:
+> This adds kernel/smp.c which contains helpers for IPI function calls. In
+> addition to supporting the existing smp_call_function() in a more efficient
+> manner, it also adds a more scalable variant called smp_call_function_single()
+> for calling a given function on a single CPU only.
+>
+> The core of this is based on the x86-64 patch from Nick Piggin, lots of
+> changes since then. "Alan D. Brunelle" <Alan.Brunelle-VXdhtT5mjnY@public.gmane.org> has
+> contributed lots of fixes and suggestions as well.
+>
+> +int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
+> +			     int retry, int wait)
+> +{
+> +	unsigned long flags;
+> +	/* prevent preemption and reschedule on another processor */
+> +	int me = get_cpu();
+> +	int ret = 0;
+> +
+> +	/* Can deadlock when called with interrupts disabled */
+> +	WARN_ON(wait && irqs_disabled());
+> +
+> +	if (cpu == me) {
+> +		local_irq_save(flags);
+> +		func(info);
+> +		local_irq_restore(flags);
+> +	} else {
+> +		struct call_single_data d;
+> +		struct call_single_data *data;
+> +
+> +		if (!wait) {
+> +			data = kmalloc(sizeof(*data), GFP_ATOMIC);
+> +			if (unlikely(!data)) {
+> +				ret = -ENOMEM;
+> +				goto out;
+> +			}
+> +			data->flags = CSD_FLAG_ALLOC;
+> +		} else {
+> +			data = &d;
+> +			data->flags = CSD_FLAG_WAIT;
+> +		}
+> +
+>   
 
-OK, thanks. I've got number of unused x86 boxes, so I will give it a spin.
+Instead of introducing a rare error case, how about falling back to the 
+wait case if the allocation fails?
 
-Jacek
+Of course, if the called function relies on the calling cpu doing 
+something else, then this fails, but I don't think anybody would do 
+that?  On the other hand, there is at least one use of 
+smp_call_function_single() with !wait, which doesn't check the error return.
+
+-- 
+error compiling committee.c: too many arguments to function
