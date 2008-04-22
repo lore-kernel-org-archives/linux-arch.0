@@ -1,37 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:26469 "EHLO kernel.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754802AbYDVO1o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 10:27:44 -0400
-Date: Tue, 22 Apr 2008 16:27:38 +0200
-From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 9/11] parisc: convert to generic helpers for IPI  function calls
-Message-ID: <20080422142738.GH12774@kernel.dk>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-10-git-send-email-jens.axboe@oracle.com> <20080422140914.GD19802@phobos.i.cabal.ca>
+Received: from bzq-179-150-194.static.bezeqint.net ([212.179.150.194]:32222
+	"EHLO il.qumranet.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755469AbYDVOi2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2008 10:38:28 -0400
+Message-ID: <480DF861.6000705@qumranet.com>
+Date: Tue, 22 Apr 2008 17:38:25 +0300
+From: Avi Kivity <avi@qumranet.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080422140914.GD19802@phobos.i.cabal.ca>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <480DACDD.7040108@qumranet.com> <20080422092230.GW12774@kernel.dk> <20080422111403.GX12774@kernel.dk> <1208869254.7115.258.camel@twins> <20080422142543.GG12774@kernel.dk>
+In-Reply-To: <20080422142543.GG12774@kernel.dk>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>
-Message-ID: <20080422142738.Gv6Zq4ybWyy1a4mEria6pHdRLEyDOp3XkwOMQadQl1w@z>
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
+Message-ID: <20080422143825.Yt1LIzl6fgAchhm6Mj88Z7nZPAQXF3-fI_vX64H4GSU@z>
 
-On Tue, Apr 22 2008, Kyle McMartin wrote:
-> On Tue, Apr 22, 2008 at 09:57:35AM +0200, Jens Axboe wrote:
-> > This converts mips to use the new helpers for smp_call_function() and
-> > friends, and adds support for smp_call_function_single(). Not tested,
-> > not even compiled.
-> > 
-> 
-> At first glance, this looks alright. +1 from me.
+Jens Axboe wrote:
+>> Introducing this fallback will make any usage from irq disabled context
+>> deadlock prone.
+>>
+>> I rather like the current interface.
+>>     
+>
+> Hmm good point, I'll back that bit out again.
+>   
 
-Is that an official parisc ack? :-)
+But then you need to fix all callers to handle errors.
 
-And I'll make sure the patch comment matches... I wish that Andrews xb
-compiler collection had all the supported archs covered.
+Perhaps we need a new flag for failable async IPIs (or better, API).  
+I'm pretty sure no one uses s_c_f_s() from irq disabled context on x86, 
+since it will WARN_ON(irqs_disabled()).
 
 -- 
-Jens Axboe
+error compiling committee.c: too many arguments to function
 
