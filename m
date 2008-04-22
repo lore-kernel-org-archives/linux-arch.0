@@ -1,32 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:54047 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1763683AbYDVRab (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 13:30:31 -0400
-Date: Tue, 22 Apr 2008 10:29:38 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-In-Reply-To: <20080422171324.GP12774@kernel.dk>
-Message-ID: <alpine.LFD.1.10.0804221027210.2779@woody.linux-foundation.org>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804220735350.2779@woody.linux-foundation.org> <20080422145105.GJ12774@kernel.dk>
- <alpine.LFD.1.10.0804220759020.2779@woody.linux-foundation.org> <20080422164947.GN12774@kernel.dk> <20080422170405.GO12774@kernel.dk> <20080422171324.GP12774@kernel.dk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from pasmtpb.tele.dk ([80.160.77.98]:45547 "EHLO pasmtpB.tele.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754218AbYDVSHA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 14:07:00 -0400
+Date: Tue, 22 Apr 2008 20:07:32 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] move BUG_TABLE into RODATA
+Message-ID: <20080422180732.GA27222@uranus.ravnborg.org>
+References: <480E1BEE.76E4.0078.0@novell.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <480E1BEE.76E4.0078.0@novell.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de
-Message-ID: <20080422172938.TmTklkrrw4Zsv-AOvzQk4DAaAHG3nwqbQ-92HNF3h-4@z>
+To: Jan Beulich <jbeulich@novell.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20080422180732.gRS4921eAxN1JO5F4-7WfROJNkVgQhNFTTUGr9NMHpk@z>
+
+Hi Jan.
+
+> --- linux-2.6.25/arch/x86/kernel/vmlinux_64.lds.S	2008-04-17 04:49:44.000000000 +0200
+> +++ 2.6.25-bug-table-rodata/arch/x86/kernel/vmlinux_64.lds.S	2008-03-04 11:14:13.000000000 +0100
+> @@ -19,7 +19,7 @@ PHDRS {
+>  	data PT_LOAD FLAGS(7);	/* RWE */
+>  	user PT_LOAD FLAGS(7);	/* RWE */
+>  	data.init PT_LOAD FLAGS(7);	/* RWE */
+> -	note PT_NOTE FLAGS(4);	/* R__ */
+> +	note PT_NOTE FLAGS(0);	/* ___ */
+>  }
+
+Is this intentional in this patch?
 
 
+>  SECTIONS
+>  {
+> @@ -40,16 +40,14 @@ SECTIONS
+>  	_etext = .;		/* End of text section */
+>    } :text = 0x9090
+>  
+> +  NOTES :text :note
+> +
+>    . = ALIGN(16);		/* Exception table */
+>    __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
+>    	__start___ex_table = .;
+>  	 *(__ex_table)
+>    	__stop___ex_table = .;
+> -  }
+> -
+> -  NOTES :text :note
+> -
+> -  BUG_TABLE :text
+> +  } :text = 0x9090
 
-On Tue, 22 Apr 2008, Jens Axboe wrote:
-> 
-> But wait, falling back to wait cannot always be safe if we are called
-> with interrupts disabled. I don't see any way around using the global
-> fallback for that case.
+And I do not see the 0x9090 justified.
+Is this something to do with the fact that 0x90 equals NOP on x86?
 
-Hmm. Good point. It does look like you need three cases.
+Rest looks good.
 
-		Linus
+	Sam
