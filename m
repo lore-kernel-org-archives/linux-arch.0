@@ -1,83 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:3734 "EHLO kernel.dk"
+Received: from ozlabs.org ([203.10.76.45]:50333 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753333AbYDVLPp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 07:15:45 -0400
-Date: Tue, 22 Apr 2008 13:15:40 +0200
-From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function calls
-Message-ID: <20080422111539.GY12774@kernel.dk>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-3-git-send-email-jens.axboe@oracle.com> <20080422083810.GA23540@uranus.ravnborg.org> <20080422084315.GT12774@kernel.dk>
+	id S1752285AbYDVMFT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 08:05:19 -0400
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080422084315.GT12774@kernel.dk>
+Content-Transfer-Encoding: 7bit
+Message-ID: <18445.54284.194023.553595@cargo.ozlabs.ibm.com>
+Date: Tue, 22 Apr 2008 22:03:24 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH 3/11] powerpc: convert to generic helpers for IPI function calls
+In-Reply-To: <1208851058-8500-4-git-send-email-jens.axboe@oracle.com>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com>
+	<1208851058-8500-4-git-send-email-jens.axboe@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20080422111540.tMz4toz9NGba7PoJXMvzamvFVkQmCgsT_NVcB2Zckyo@z>
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, anton@samba.org
+Message-ID: <20080422120324.R1eU8D8_PfO_XNaSMaJGo6W_HaZEL46JSBI9SAytdxU@z>
 
-On Tue, Apr 22 2008, Jens Axboe wrote:
-> On Tue, Apr 22 2008, Sam Ravnborg wrote:
-> > On Tue, Apr 22, 2008 at 09:57:28AM +0200, Jens Axboe wrote:
-> > > This converts x86 and x86-64 to use the new helpers for
-> > > smp_call_function() and friends, and adds support for
-> > > smp_call_function_single().
-> > > 
-> > > diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> > > index 87a693c..aab97e3 100644
-> > > --- a/arch/x86/Kconfig
-> > > +++ b/arch/x86/Kconfig
-> > > @@ -156,6 +156,11 @@ config GENERIC_PENDING_IRQ
-> > >  	depends on GENERIC_HARDIRQS && SMP
-> > >  	default y
-> > >  
-> > > +config GENERIC_SMP_HELPERS
-> > > +	bool
-> > > +	depends on SMP
-> > > +	default y
-> > > +
-> > 
-> > Hi Jens.
-> > 
-> > [Not x86 specific - it was the first patch
-> > touching a Kconfig file]
-> > 
-> > Could we define a single config variable
-> > in for example kernel/Kconfig(*)
-> > like this:
-> > 
-> > config HAVE_GENERIC_SMP_HELPERS
-> > 	def_bool n
-> > 
-> > And then the archs that uses the generic SMP helpers just
-> > do a simple:
-> > 
-> >  config X86
-> > +	select HAVE_GENERIC_SMP_HELPERS
-> > 
-> > 
-> > This is the recommended method today and is documented
-> > in Documentation/kbuild/kconfig-language.txt if
-> > you need a bit more intro.
-> > 
-> > (*) I know we do not have kernel/Kconfig today.
-> >     But maybe this is a good time to add it and
-> >     source it from arch/Kconfig
-> 
-> Ah yes, that looks like a better approach. I'll adapt the patches to
-> this method instead of selecting smp.o, thanks.
+Jens Axboe writes:
 
-I added
+> This converts ppc to use the new helpers for smp_call_function() and
+> friends, and adds support for smp_call_function_single().
 
-config USE_GENERIC_SMP_HELPERS
-        def_bool n
+Looks OK, and runs on a dual G5 powermac here.  I'll try on some
+bigger IBM boxes tomorrow, or maybe Anton can do that.
 
-in arch/Kconfig and added a 'select USE_GENERIC_SMP_HELPERS' in the arch
-private Kconfig files instead. It also reduces the line count further,
-thanks for the suggestion! It's cleaner this way.
+I notice that you have changed the semantics slightly in that
+previously, the powerpc implementation would wait for the other cpus
+to have taken the interrupt, and print a message if they didn't all
+take the interrupt (this was different from the function of the `wait'
+parameter, which said whether to wait for all cpus to finish executing
+the specified function).
 
--- 
-Jens Axboe
+Now the generic smp_call_function_mask doesn't wait for the other cpus
+to take the interrupt.  I don't think that's likely to be a problem,
+but I do think that's worth mentioning in the patch description.
 
+It's probably also worth mentioning that smp_send_stop no longer has
+the behaviour of doing its stuff even if someone is holding the lock,
+but that is OK (presumably) because now the lock (call_function_lock
+in the new code) is held for much shorter periods and there doesn't
+appear to be much danger of other cpus getting stuck or panicking
+while holding that lock.
+
+You can put Acked-by: Paul Mackerras <paulus@samba.org> on the ppc
+patch, but please extend the description a bit as outlined above.
+
+Thanks for doing this, BTW.
+
+Regards,
+Paul.
