@@ -1,39 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 206-248-169-182.dsl.ncf.ca ([206.248.169.182]:48202 "EHLO
-	phobos.cabal.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751652AbYDVPVX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2008 11:21:23 -0400
-Date: Tue, 22 Apr 2008 11:21:22 -0400
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [RFC] Introduce __ARCH_WANT_SYS_SYSFS
-Message-ID: <20080422152122.GF19802@phobos.i.cabal.ca>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
+Received: from cam-admin0.cambridge.arm.com ([193.131.176.58]:45036 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S933744AbYDVPWt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 11:22:49 -0400
+Subject: Re: [PATCH 6/11] arm: convert to generic helpers for IPI function
+	calls
+From: Catalin Marinas <catalin.marinas@arm.com>
+In-Reply-To: <1208851058-8500-7-git-send-email-jens.axboe@oracle.com>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com>
+	 <1208851058-8500-7-git-send-email-jens.axboe@oracle.com>
+Content-Type: text/plain
+Date: Tue, 22 Apr 2008 16:00:47 +0100
+Message-ID: <1208876447.31997.30.camel@pc1117.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Newton <will.newton@gmail.com>
-Cc: Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20080422152122.H86E6U6lFE1H94eoGCsEWdNH94aTIkLAlTjylEeTkZw@z>
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Russell King <rmk@arm.linux.org.uk>
+Message-ID: <20080422150047.nvDbSH0YknUThHaqSsqcn8q1aWTbyubnLZ2R2XIZCIg@z>
 
-On Tue, Apr 22, 2008 at 01:13:39PM +0100, Will Newton wrote:
-> Hi,
-> 
-> This patch introduces a __ARCH_WANT_SYS_SYSFS #define for
-> architectures that support the sysfs(2) system call. At the moment
-> that's everybody but blackfin, but future architectures may want to
-> save the (admittedly small) code size that it adds to the kernel as
-> well.
-> 
+On Tue, 2008-04-22 at 09:57 +0200, Jens Axboe wrote:
+> This converts arm to use the new helpers for smp_call_function() and
+> friends, and adds support for smp_call_function_single(). Not tested
+> at all, not even compiled.
 
-This should (imnsho, at least),
-	1 - Add a cond_syscall for sys_sysfs to sys_ni.c
-	2 - Use a CONFIG_EMBEDDED dependent option that defaults on,
-	    possibly depend on BLACKFIN if you really want to.
+With the minor fixes below, it compiles and seems to run OK on RealView
+EB + ARM11MPCore (4 CPUs):
 
-Adding this junk to every arch header is, in my opinion, completely
-unacceptable just because blackfin wants to be different.
+diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
+index 9c85329..6344466 100644
+--- a/arch/arm/kernel/smp.c
++++ b/arch/arm/kernel/smp.c
+@@ -484,7 +484,7 @@ asmlinkage void __exception do_IPI(struct pt_regs *regs)
+ 				generic_smp_call_function_interrupt();
+ 				break;
+ 
+-			case IPI_CALL_FUNC:
++			case IPI_CALL_FUNC_SINGLE:
+ 				generic_smp_call_function_single_interrupt();
+ 				break;
+ 
+@@ -536,14 +536,13 @@ int setup_profiling_timer(unsigned int multiplier)
+ }
+ 
+ static int
+-on_each_cpu_mask(void (*func)(void *), void *info, int retry, int wait,
+-		 cpumask_t mask)
++on_each_cpu_mask(void (*func)(void *), void *info, int wait, cpumask_t mask)
+ {
+ 	int ret = 0;
+ 
+ 	preempt_disable();
+ 
+-	ret = smp_call_function_mask(mask, func, info, retry, wait);
++	ret = smp_call_function_mask(mask, func, info, wait);
+ 	if (cpu_isset(smp_processor_id(), mask))
+ 		func(info);
+ 
+@@ -612,7 +611,7 @@ void flush_tlb_mm(struct mm_struct *mm)
+ {
+ 	cpumask_t mask = mm->cpu_vm_mask;
+ 
+-	on_each_cpu_mask(ipi_flush_tlb_mm, mm, 1, 1, mask);
++	on_each_cpu_mask(ipi_flush_tlb_mm, mm, 1, mask);
+ }
+ 
+ void flush_tlb_page(struct vm_area_struct *vma, unsigned long uaddr)
+@@ -623,7 +622,7 @@ void flush_tlb_page(struct vm_area_struct *vma, unsigned long uaddr)
+ 	ta.ta_vma = vma;
+ 	ta.ta_start = uaddr;
+ 
+-	on_each_cpu_mask(ipi_flush_tlb_page, &ta, 1, 1, mask);
++	on_each_cpu_mask(ipi_flush_tlb_page, &ta, 1, mask);
+ }
+ 
+ void flush_tlb_kernel_page(unsigned long kaddr)
+@@ -645,7 +644,7 @@ void flush_tlb_range(struct vm_area_struct *vma,
+ 	ta.ta_start = start;
+ 	ta.ta_end = end;
+ 
+-	on_each_cpu_mask(ipi_flush_tlb_range, &ta, 1, 1, mask);
++	on_each_cpu_mask(ipi_flush_tlb_range, &ta, 1, mask);
+ }
+ 
+ void flush_tlb_kernel_range(unsigned long start, unsigned long end)
 
---Kyle
+
+-- 
+Catalin
+
