@@ -1,93 +1,178 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([193.131.176.58]:45036 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S933744AbYDVPWt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 11:22:49 -0400
-Subject: Re: [PATCH 6/11] arm: convert to generic helpers for IPI function
-	calls
-From: Catalin Marinas <catalin.marinas@arm.com>
-In-Reply-To: <1208851058-8500-7-git-send-email-jens.axboe@oracle.com>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com>
-	 <1208851058-8500-7-git-send-email-jens.axboe@oracle.com>
-Content-Type: text/plain
-Date: Tue, 22 Apr 2008 16:00:47 +0100
-Message-ID: <1208876447.31997.30.camel@pc1117.cambridge.arm.com>
+Received: from vpn.id2.novell.com ([195.33.99.129]:16298 "EHLO
+	vpn.id2.novell.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759124AbYDVPaK convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2008 11:30:10 -0400
+Message-ID: <480E1BEE.76E4.0078.0@novell.com>
+Date: Tue, 22 Apr 2008 16:10:06 +0100
+From: "Jan Beulich" <jbeulich@novell.com>
+Subject: [PATCH] move BUG_TABLE into RODATA
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Russell King <rmk@arm.linux.org.uk>
-Message-ID: <20080422150047.nvDbSH0YknUThHaqSsqcn8q1aWTbyubnLZ2R2XIZCIg@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20080422151006.-V8YnRmKG-M8lFEUyEnguwkaYI1RmmFaJvynFXRTV3s@z>
 
-On Tue, 2008-04-22 at 09:57 +0200, Jens Axboe wrote:
-> This converts arm to use the new helpers for smp_call_function() and
-> friends, and adds support for smp_call_function_single(). Not tested
-> at all, not even compiled.
+Signed-off-by: Jan Beulich <jbeulich@novell.com>
 
-With the minor fixes below, it compiles and seems to run OK on RealView
-EB + ARM11MPCore (4 CPUs):
+---
+ arch/avr32/kernel/vmlinux.lds.S   |    2 --
+ arch/parisc/kernel/vmlinux.lds.S  |    1 -
+ arch/powerpc/kernel/vmlinux.lds.S |    2 --
+ arch/s390/kernel/vmlinux.lds.S    |    1 -
+ arch/sh/kernel/vmlinux_32.lds.S   |    1 -
+ arch/sh/kernel/vmlinux_64.lds.S   |    1 -
+ arch/x86/kernel/vmlinux_32.lds.S  |    8 +++-----
+ arch/x86/kernel/vmlinux_64.lds.S  |   10 ++++------
+ include/asm-generic/vmlinux.lds.h |    6 ++++++
+ 9 files changed, 13 insertions(+), 19 deletions(-)
 
-diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index 9c85329..6344466 100644
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -484,7 +484,7 @@ asmlinkage void __exception do_IPI(struct pt_regs *regs)
- 				generic_smp_call_function_interrupt();
- 				break;
+--- linux-2.6.25/arch/avr32/kernel/vmlinux.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/avr32/kernel/vmlinux.lds.S	2008-03-04 11:14:13.000000000 +0100
+@@ -93,8 +93,6 @@ SECTIONS
+ 		__stop___ex_table = .;
+ 	}
  
--			case IPI_CALL_FUNC:
-+			case IPI_CALL_FUNC_SINGLE:
- 				generic_smp_call_function_single_interrupt();
- 				break;
+-	BUG_TABLE
+-
+ 	RODATA
  
-@@ -536,14 +536,13 @@ int setup_profiling_timer(unsigned int multiplier)
+ 	. = ALIGN(THREAD_SIZE);
+--- linux-2.6.25/arch/parisc/kernel/vmlinux.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/parisc/kernel/vmlinux.lds.S	2008-03-04 11:14:13.000000000 +0100
+@@ -66,7 +66,6 @@ SECTIONS
+ 	_etext = .;
+ 
+ 	RODATA
+-	BUG_TABLE
+ 
+ 	/* writeable */
+ 	/* Make sure this is page aligned so
+--- linux-2.6.25/arch/powerpc/kernel/vmlinux.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/powerpc/kernel/vmlinux.lds.S	2008-03-04 11:14:13.000000000 +0100
+@@ -66,8 +66,6 @@ SECTIONS
+ 
+ 	NOTES
+ 
+-	BUG_TABLE
+-
+ /*
+  * Init sections discarded at runtime
+  */
+--- linux-2.6.25/arch/s390/kernel/vmlinux.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/s390/kernel/vmlinux.lds.S	2008-03-04 11:14:50.000000000 +0100
+@@ -40,7 +40,6 @@ SECTIONS
+ 	_etext = .;		/* End of text section */
+ 
+ 	NOTES :text :note
+-	BUG_TABLE :text
+ 
+ 	RODATA
+ 
+--- linux-2.6.25/arch/sh/kernel/vmlinux_32.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/sh/kernel/vmlinux_32.lds.S	2008-03-04 11:15:48.000000000 +0100
+@@ -44,7 +44,6 @@ SECTIONS
+ 
+ 	_etext = .;			/* End of text section */
+ 
+-	BUG_TABLE
+ 	NOTES
+ 	RO_DATA(PAGE_SIZE)
+ 
+--- linux-2.6.25/arch/sh/kernel/vmlinux_64.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/sh/kernel/vmlinux_64.lds.S	2008-03-04 11:15:53.000000000 +0100
+@@ -65,7 +65,6 @@ SECTIONS
+ 
+ 	_etext = .;			/* End of text section */
+ 
+-	BUG_TABLE
+ 	NOTES 
+ 	RO_DATA(PAGE_SIZE)
+ 
+--- linux-2.6.25/arch/x86/kernel/vmlinux_32.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/x86/kernel/vmlinux_32.lds.S	2008-03-04 11:14:13.000000000 +0100
+@@ -49,16 +49,14 @@ SECTIONS
+   	_etext = .;			/* End of text section */
+   } :text = 0x9090
+ 
++  NOTES :text :note
++
+   . = ALIGN(16);		/* Exception table */
+   __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
+   	__start___ex_table = .;
+ 	 *(__ex_table)
+   	__stop___ex_table = .;
+-  }
+-
+-  NOTES :text :note
+-
+-  BUG_TABLE :text
++  } :text = 0x9090
+ 
+   . = ALIGN(4);
+   .tracedata : AT(ADDR(.tracedata) - LOAD_OFFSET) {
+--- linux-2.6.25/arch/x86/kernel/vmlinux_64.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/x86/kernel/vmlinux_64.lds.S	2008-03-04 11:14:13.000000000 +0100
+@@ -19,7 +19,7 @@ PHDRS {
+ 	data PT_LOAD FLAGS(7);	/* RWE */
+ 	user PT_LOAD FLAGS(7);	/* RWE */
+ 	data.init PT_LOAD FLAGS(7);	/* RWE */
+-	note PT_NOTE FLAGS(4);	/* R__ */
++	note PT_NOTE FLAGS(0);	/* ___ */
  }
- 
- static int
--on_each_cpu_mask(void (*func)(void *), void *info, int retry, int wait,
--		 cpumask_t mask)
-+on_each_cpu_mask(void (*func)(void *), void *info, int wait, cpumask_t mask)
+ SECTIONS
  {
- 	int ret = 0;
+@@ -40,16 +40,14 @@ SECTIONS
+ 	_etext = .;		/* End of text section */
+   } :text = 0x9090
  
- 	preempt_disable();
++  NOTES :text :note
++
+   . = ALIGN(16);		/* Exception table */
+   __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
+   	__start___ex_table = .;
+ 	 *(__ex_table)
+   	__stop___ex_table = .;
+-  }
+-
+-  NOTES :text :note
+-
+-  BUG_TABLE :text
++  } :text = 0x9090
  
--	ret = smp_call_function_mask(mask, func, info, retry, wait);
-+	ret = smp_call_function_mask(mask, func, info, wait);
- 	if (cpu_isset(smp_processor_id(), mask))
- 		func(info);
+   RODATA
  
-@@ -612,7 +611,7 @@ void flush_tlb_mm(struct mm_struct *mm)
- {
- 	cpumask_t mask = mm->cpu_vm_mask;
+--- linux-2.6.25/include/asm-generic/vmlinux.lds.h	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/include/asm-generic/vmlinux.lds.h	2008-03-04 11:14:13.000000000 +0100
+@@ -67,6 +67,8 @@
+ 		*(.rodata1)						\
+ 	}								\
+ 									\
++	BUG_TABLE							\
++									\
+ 	/* PCI quirks */						\
+ 	.pci_fixup        : AT(ADDR(.pci_fixup) - LOAD_OFFSET) {	\
+ 		VMLINUX_SYMBOL(__start_pci_fixups_early) = .;		\
+@@ -310,6 +312,7 @@
+ 		.stab.indexstr 0 : { *(.stab.indexstr) }		\
+ 		.comment 0 : { *(.comment) }
  
--	on_each_cpu_mask(ipi_flush_tlb_mm, mm, 1, 1, mask);
-+	on_each_cpu_mask(ipi_flush_tlb_mm, mm, 1, mask);
- }
++#ifdef CONFIG_GENERIC_BUG
+ #define BUG_TABLE							\
+ 	. = ALIGN(8);							\
+ 	__bug_table : AT(ADDR(__bug_table) - LOAD_OFFSET) {		\
+@@ -317,6 +320,9 @@
+ 		*(__bug_table)						\
+ 		__stop___bug_table = .;					\
+ 	}
++#else
++#define BUG_TABLE
++#endif
  
- void flush_tlb_page(struct vm_area_struct *vma, unsigned long uaddr)
-@@ -623,7 +622,7 @@ void flush_tlb_page(struct vm_area_struct *vma, unsigned long uaddr)
- 	ta.ta_vma = vma;
- 	ta.ta_start = uaddr;
- 
--	on_each_cpu_mask(ipi_flush_tlb_page, &ta, 1, 1, mask);
-+	on_each_cpu_mask(ipi_flush_tlb_page, &ta, 1, mask);
- }
- 
- void flush_tlb_kernel_page(unsigned long kaddr)
-@@ -645,7 +644,7 @@ void flush_tlb_range(struct vm_area_struct *vma,
- 	ta.ta_start = start;
- 	ta.ta_end = end;
- 
--	on_each_cpu_mask(ipi_flush_tlb_range, &ta, 1, 1, mask);
-+	on_each_cpu_mask(ipi_flush_tlb_range, &ta, 1, mask);
- }
- 
- void flush_tlb_kernel_range(unsigned long start, unsigned long end)
+ #define NOTES								\
+ 	.notes : AT(ADDR(.notes) - LOAD_OFFSET) {			\
 
-
--- 
-Catalin
 
