@@ -1,243 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:27609 "EHLO kernel.dk"
+Received: from brick.kernel.dk ([87.55.233.238]:27572 "EHLO kernel.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756539AbYDVSt5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 14:49:57 -0400
+	id S1754650AbYDVSty (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 14:49:54 -0400
 From: Jens Axboe <jens.axboe@oracle.com>
-Subject: [PATCH 7/11] m32r: convert to generic helpers for IPI function calls
-Date: Tue, 22 Apr 2008 20:50:23 +0200
-Message-ID: <1208890227-24808-8-git-send-email-jens.axboe@oracle.com>
-In-Reply-To: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
+Subject: [PATCH 0/11] Generic smp_call_function() #2
+Date: Tue, 22 Apr 2008 20:50:16 +0200
+Message-ID: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
-Cc: peterz@infradead.org, sam@ravnborg.org, Jens Axboe <jens.axboe@oracle.com>, Hirokazu Takata <takata@linux-m32r.org>
-Message-ID: <20080422185023.NXRYt0Txdapk9X28BOjS23jSGH7tLaI5bCjXKsPULGA@z>
+Cc: peterz@infradead.org, sam@ravnborg.org
+Message-ID: <20080422185016.IGEoq70XH9-gl4YijcfloO6uAyTJbYj8ves4T_Y-mnk@z>
 
-This converts m32r to use the new helpers for smp_call_function() and
-friends, and adds support for smp_call_function_single(). Not tested,
-not even compiled.
+Hi,
 
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
----
- arch/m32r/Kconfig        |    1 +
- arch/m32r/kernel/smp.c   |  128 +++++-----------------------------------------
- arch/m32r/kernel/traps.c |    3 +-
- include/asm-m32r/smp.h   |    1 +
- 4 files changed, 17 insertions(+), 116 deletions(-)
+OK, so here's version #2 of the patchset. Changes since the last
+posting:
 
-diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
-index de153de..a5f864c 100644
---- a/arch/m32r/Kconfig
-+++ b/arch/m32r/Kconfig
-@@ -296,6 +296,7 @@ config PREEMPT
- 
- config SMP
- 	bool "Symmetric multi-processing support"
-+	select USE_GENERIC_SMP_HELPERS
- 	---help---
- 	  This enables support for systems with more than one CPU. If you have
- 	  a system with only one CPU, like most personal computers, say N. If
-diff --git a/arch/m32r/kernel/smp.c b/arch/m32r/kernel/smp.c
-index c837bc1..74eb7bc 100644
---- a/arch/m32r/kernel/smp.c
-+++ b/arch/m32r/kernel/smp.c
-@@ -35,22 +35,6 @@
- /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
- 
- /*
-- * Structure and data for smp_call_function(). This is designed to minimise
-- * static memory requirements. It also looks cleaner.
-- */
--static DEFINE_SPINLOCK(call_lock);
--
--struct call_data_struct {
--	void (*func) (void *info);
--	void *info;
--	atomic_t started;
--	atomic_t finished;
--	int wait;
--} __attribute__ ((__aligned__(SMP_CACHE_BYTES)));
--
--static struct call_data_struct *call_data;
--
--/*
-  * For flush_cache_all()
-  */
- static DEFINE_SPINLOCK(flushcache_lock);
-@@ -96,9 +80,6 @@ void smp_invalidate_interrupt(void);
- void smp_send_stop(void);
- static void stop_this_cpu(void *);
- 
--int smp_call_function(void (*) (void *), void *, int, int);
--void smp_call_function_interrupt(void);
--
- void smp_send_timer(void);
- void smp_ipi_timer_interrupt(struct pt_regs *);
- void smp_local_timer_interrupt(void);
-@@ -565,86 +546,14 @@ static void stop_this_cpu(void *dummy)
- 	for ( ; ; );
- }
- 
--/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
--/* Call function Routines                                                    */
--/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
--
--/*==========================================================================*
-- * Name:         smp_call_function
-- *
-- * Description:  This routine sends a 'CALL_FUNCTION_IPI' to all other CPUs
-- *               in the system.
-- *
-- * Born on Date: 2002.02.05
-- *
-- * Arguments:    *func - The function to run. This must be fast and
-- *                       non-blocking.
-- *               *info - An arbitrary pointer to pass to the function.
-- *               nonatomic - currently unused.
-- *               wait - If true, wait (atomically) until function has
-- *                      completed on other CPUs.
-- *
-- * Returns:      0 on success, else a negative status code. Does not return
-- *               until remote CPUs are nearly ready to execute <<func>> or
-- *               are or have executed.
-- *
-- * Cautions:     You must not call this function with disabled interrupts or
-- *               from a hardware interrupt handler, you may call it from a
-- *               bottom half handler.
-- *
-- * Modification log:
-- * Date       Who Description
-- * ---------- --- --------------------------------------------------------
-- *
-- *==========================================================================*/
--int smp_call_function(void (*func) (void *info), void *info, int nonatomic,
--	int wait)
-+void arch_send_call_function_ipi(cpumask_t mask)
- {
--	struct call_data_struct data;
--	int cpus;
--
--#ifdef DEBUG_SMP
--	unsigned long flags;
--	__save_flags(flags);
--	if (!(flags & 0x0040))	/* Interrupt Disable NONONO */
--		BUG();
--#endif /* DEBUG_SMP */
--
--	/* Holding any lock stops cpus from going down. */
--	spin_lock(&call_lock);
--	cpus = num_online_cpus() - 1;
--
--	if (!cpus) {
--		spin_unlock(&call_lock);
--		return 0;
--	}
--
--	/* Can deadlock when called with interrupts disabled */
--	WARN_ON(irqs_disabled());
--
--	data.func = func;
--	data.info = info;
--	atomic_set(&data.started, 0);
--	data.wait = wait;
--	if (wait)
--		atomic_set(&data.finished, 0);
--
--	call_data = &data;
--	mb();
--
--	/* Send a message to all other CPUs and wait for them to respond */
--	send_IPI_allbutself(CALL_FUNCTION_IPI, 0);
--
--	/* Wait for response */
--	while (atomic_read(&data.started) != cpus)
--		barrier();
--
--	if (wait)
--		while (atomic_read(&data.finished) != cpus)
--			barrier();
--	spin_unlock(&call_lock);
-+	send_IPI_mask(mask, CALL_FUNCTION_IPI, 0);
-+}
- 
--	return 0;
-+void arch_send_call_function_single_ipi(int cpu)
-+{
-+	send_IPI_mask(cpumask_of_cpu(cpu), CALL_FUNC_SINGLE_IPI, 0);
- }
- 
- /*==========================================================================*
-@@ -666,27 +575,16 @@ int smp_call_function(void (*func) (void *info), void *info, int nonatomic,
-  *==========================================================================*/
- void smp_call_function_interrupt(void)
- {
--	void (*func) (void *info) = call_data->func;
--	void *info = call_data->info;
--	int wait = call_data->wait;
--
--	/*
--	 * Notify initiating CPU that I've grabbed the data and am
--	 * about to execute the function
--	 */
--	mb();
--	atomic_inc(&call_data->started);
--	/*
--	 * At this point the info structure may be out of scope unless wait==1
--	 */
- 	irq_enter();
--	(*func)(info);
-+	generic_smp_call_function_interrupt();
- 	irq_exit();
-+}
- 
--	if (wait) {
--		mb();
--		atomic_inc(&call_data->finished);
--	}
-+void smp_call_function_single_interrupt(void)
-+{
-+	irq_enter();
-+	generic_smp_call_function_single_interrupt();
-+	irq_exit();
- }
- 
- /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-diff --git a/arch/m32r/kernel/traps.c b/arch/m32r/kernel/traps.c
-index 89ba4a0..46159a4 100644
---- a/arch/m32r/kernel/traps.c
-+++ b/arch/m32r/kernel/traps.c
-@@ -40,6 +40,7 @@ extern void smp_invalidate_interrupt(void);
- extern void smp_call_function_interrupt(void);
- extern void smp_ipi_timer_interrupt(void);
- extern void smp_flush_cache_all_interrupt(void);
-+extern void smp_call_function_single_interrupt(void);
- 
- /*
-  * for Boot AP function
-@@ -103,7 +104,7 @@ void	set_eit_vector_entries(void)
- 	eit_vector[186] = (unsigned long)smp_call_function_interrupt;
- 	eit_vector[187] = (unsigned long)smp_ipi_timer_interrupt;
- 	eit_vector[188] = (unsigned long)smp_flush_cache_all_interrupt;
--	eit_vector[189] = 0;
-+	eit_vector[189] = (unsigned long)smp_call_function_single_interrupt;
- 	eit_vector[190] = 0;
- 	eit_vector[191] = 0;
- #endif
-diff --git a/include/asm-m32r/smp.h b/include/asm-m32r/smp.h
-index 078e1a5..6a7f3af 100644
---- a/include/asm-m32r/smp.h
-+++ b/include/asm-m32r/smp.h
-@@ -104,6 +104,7 @@ extern unsigned long send_IPI_mask_phys(cpumask_t, int, int);
- #define LOCAL_TIMER_IPI		(M32R_IRQ_IPI3-M32R_IRQ_IPI0)
- #define INVALIDATE_CACHE_IPI	(M32R_IRQ_IPI4-M32R_IRQ_IPI0)
- #define CPU_BOOT_IPI		(M32R_IRQ_IPI5-M32R_IRQ_IPI0)
-+#define CALL_FUNC_SINGLE_IPI	(M32R_IRQ_IPI6-M32R_IRQ_IPI0)
- 
- #define IPI_SHIFT	(0)
- #define NR_IPIS		(8)
+- Better Kconfig setup, thanks Sam.
+- Fix data leak, thanks Linus.
+- Misplaced sparc64 bit in the s390 patch, thanks Martin.
+- Arm should work, thanks Catalin.
+
 -- 
-1.5.5.1.57.g5909c
+Jens Axboe
+
 
