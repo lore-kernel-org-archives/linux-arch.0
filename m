@@ -1,30 +1,62 @@
-From: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
-Subject: Re: [patch 2/2]: introduce fast_gup
-Date: Tue, 22 Apr 2008 10:07:47 +0200
-Message-ID: <20080422080747.GA18587@elte.hu>
-References: <20080328025455.GA8083@wotan.suse.de> <20080328030023.GC8083@wotan.suse.de> <1208444605.7115.2.camel@twins> <alpine.LFD.1.00.0804170814090.2879@woody.linux-foundation.org> <480C81C4.8030200@qumranet.com> <1208781013.7115.173.camel@twins> <480C9619.2050201@qumranet.com> <1208788547.7115.204.camel@twins> <20080422032319.GB21993@wotan.suse.de>
+From: Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>
+Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function calls
+Date: Tue, 22 Apr 2008 10:38:10 +0200
+Message-ID: <20080422083810.GA23540@uranus.ravnborg.org>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-3-git-send-email-jens.axboe@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20080422032319.GB21993-B4tOwbsTzaBolqkO4TVVkw@public.gmane.org>
+In-Reply-To: <1208851058-8500-3-git-send-email-jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
-Cc: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, shaggy-V7BBcbaFuwjMbYB6QlFGEg@public.gmane.org, axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Clark Williams <williams-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+
+On Tue, Apr 22, 2008 at 09:57:28AM +0200, Jens Axboe wrote:
+> This converts x86 and x86-64 to use the new helpers for
+> smp_call_function() and friends, and adds support for
+> smp_call_function_single().
+> 
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index 87a693c..aab97e3 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -156,6 +156,11 @@ config GENERIC_PENDING_IRQ
+>  	depends on GENERIC_HARDIRQS && SMP
+>  	default y
+>  
+> +config GENERIC_SMP_HELPERS
+> +	bool
+> +	depends on SMP
+> +	default y
+> +
+
+Hi Jens.
+
+[Not x86 specific - it was the first patch
+touching a Kconfig file]
+
+Could we define a single config variable
+in for example kernel/Kconfig(*)
+like this:
+
+config HAVE_GENERIC_SMP_HELPERS
+	def_bool n
+
+And then the archs that uses the generic SMP helpers just
+do a simple:
+
+ config X86
++	select HAVE_GENERIC_SMP_HELPERS
 
 
-* Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org> wrote:
+This is the recommended method today and is documented
+in Documentation/kbuild/kconfig-language.txt if
+you need a bit more intro.
 
-> Linus's loop I will use for PAE. I'd love to know whether the hardware 
-> walker actually does an atomic 64-bit load or not, though.
+(*) I know we do not have kernel/Kconfig today.
+    But maybe this is a good time to add it and
+    source it from arch/Kconfig
 
-all x86 natural accesses (done by instructions) are MESI atomic as long 
-as they lie on a natural word boundary. (which they do in the PTE case)
-
-while the hardware walker is not an instruction, it would be highly 
-unusal (and i'd claim, inherently broken) for the hardware walker to 
-fetch a 64-bit pte value via two 32-bit accesses from two different 
-versions of the same cacheline.
-
-	Ingo
+	Sam
