@@ -1,37 +1,33 @@
-From: Kyle McMartin <kyle-pfcGkIkfWfAsA/PxXw9srA@public.gmane.org>
-Subject: Re: [PATCH 9/11] parisc: convert to generic helpers for IPI
-	function calls
-Date: Tue, 22 Apr 2008 10:30:16 -0400
-Message-ID: <20080422143016.GE19802@phobos.i.cabal.ca>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-10-git-send-email-jens.axboe@oracle.com> <20080422140914.GD19802@phobos.i.cabal.ca> <20080422142738.GH12774@kernel.dk>
+From: Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+Date: Tue, 22 Apr 2008 17:38:25 +0300
+Message-ID: <480DF861.6000705@qumranet.com>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <480DACDD.7040108@qumranet.com> <20080422092230.GW12774@kernel.dk> <20080422111403.GX12774@kernel.dk> <1208869254.7115.258.camel@twins> <20080422142543.GG12774@kernel.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20080422142738.GH12774-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>
+In-Reply-To: <20080422142543.GG12774-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Cc: Kyle McMartin <kyle-pfcGkIkfWfAsA/PxXw9srA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Kyle McMartin <kyle-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Grant Grundler <grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
+Cc: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
 
-On Tue, Apr 22, 2008 at 04:27:38PM +0200, Jens Axboe wrote:
-> On Tue, Apr 22 2008, Kyle McMartin wrote:
-> > On Tue, Apr 22, 2008 at 09:57:35AM +0200, Jens Axboe wrote:
-> > > This converts mips to use the new helpers for smp_call_function() and
-> > > friends, and adds support for smp_call_function_single(). Not tested,
-> > > not even compiled.
-> > > 
-> > 
-> > At first glance, this looks alright. +1 from me.
-> 
-> Is that an official parisc ack? :-)
-> 
-> And I'll make sure the patch comment matches... I wish that Andrews xb
-> compiler collection had all the supported archs covered.
-> 
+Jens Axboe wrote:
+>> Introducing this fallback will make any usage from irq disabled context
+>> deadlock prone.
+>>
+>> I rather like the current interface.
+>>     
+>
+> Hmm good point, I'll back that bit out again.
+>   
 
-I'm not sure if these are still good, but:
-http://kyle.mcmartin.ca/hppa-hp-linux-gcc-3.4.tar
-http://kyle.mcmartin.ca/hppa64-hp-linux-gcc-3.4.tar
+But then you need to fix all callers to handle errors.
 
-cheers, Kyle
+Perhaps we need a new flag for failable async IPIs (or better, API).  
+I'm pretty sure no one uses s_c_f_s() from irq disabled context on x86, 
+since it will WARN_ON(irqs_disabled()).
+
+-- 
+error compiling committee.c: too many arguments to function
