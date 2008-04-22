@@ -1,268 +1,42 @@
 From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Subject: [PATCH 6/11] arm: convert to generic helpers for IPI function calls
-Date: Tue, 22 Apr 2008 20:50:22 +0200
-Message-ID: <1208890227-24808-7-git-send-email-jens.axboe@oracle.com>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
+Subject: Re: [PATCH 3/11] powerpc: convert to generic helpers for IPI function calls
+Date: Tue, 22 Apr 2008 20:51:12 +0200
+Message-ID: <20080422185111.GS12774@kernel.dk>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-4-git-send-email-jens.axboe@oracle.com> <18445.54284.194023.553595@cargo.ozlabs.ibm.com> <20080422121315.GE12774@kernel.dk> <18445.56653.957832.720681@cargo.ozlabs.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1208890227-24808-1-git-send-email-jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <18445.56653.957832.720681-UYQwCShxghk5kJ7NmlRacFaTQe2KTcn/@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
-Cc: peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org, Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
+To: Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, anton-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org
 
-This converts arm to use the new helpers for smp_call_function() and
-friends, and adds support for smp_call_function_single().
+On Tue, Apr 22 2008, Paul Mackerras wrote:
+> Jens Axboe writes:
+> 
+> > I touched on both of these points in the initial mail, but perhaps you
+> > missed it as I didn't CC everyone for the 0/11 part. I'll add the full
+> > explanation to the 1/11 patch as well.
+> 
+> OK, that would be fine.  I didn't read right to the end of the 0/11
+> mail in detail, I admit. :)
 
-Fixups and testing done by Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
+I don't blame you :-)
 
-Cc: Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
-Signed-off-by: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
----
- arch/arm/Kconfig      |    1 +
- arch/arm/kernel/smp.c |  157 +++++--------------------------------------------
- 2 files changed, 16 insertions(+), 142 deletions(-)
+> Now that I have, I don't see anything about smp_send_stop trying to
+> get the interrupt sent off in a panic situation when some other cpu
+> might be stuck holding the lock (unless that's the "ipi_lock is a
+> little muddy" part, but that only talks about cpu onlining).  That bit
+> looks to be powerpc-specific, added in commit e057d985 in December
+> 2007, so perhaps a mention that that has gone away now in the
+> description for 3/11 would be good.
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index d8d2532..fed48c4 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -663,6 +663,7 @@ source "kernel/time/Kconfig"
- config SMP
- 	bool "Symmetric Multi-Processing (EXPERIMENTAL)"
- 	depends on EXPERIMENTAL && (REALVIEW_EB_ARM11MP || MACH_REALVIEW_PB11MP)
-+	select USE_GENERIC_SMP_HELPERS
- 	help
- 	  This enables support for systems with more than one CPU. If you have
- 	  a system with only one CPU, like most personal computers, say N. If
-diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index eefae1d..6344466 100644
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -68,20 +68,10 @@ enum ipi_msg_type {
- 	IPI_TIMER,
- 	IPI_RESCHEDULE,
- 	IPI_CALL_FUNC,
-+	IPI_CALL_FUNC_SINGLE,
- 	IPI_CPU_STOP,
- };
- 
--struct smp_call_struct {
--	void (*func)(void *info);
--	void *info;
--	int wait;
--	cpumask_t pending;
--	cpumask_t unfinished;
--};
--
--static struct smp_call_struct * volatile smp_call_function_data;
--static DEFINE_SPINLOCK(smp_call_function_lock);
--
- int __cpuinit __cpu_up(unsigned int cpu)
- {
- 	struct cpuinfo_arm *ci = &per_cpu(cpu_data, cpu);
-@@ -366,114 +356,15 @@ static void send_ipi_message(cpumask_t callmap, enum ipi_msg_type msg)
- 	local_irq_restore(flags);
- }
- 
--/*
-- * You must not call this function with disabled interrupts, from a
-- * hardware interrupt handler, nor from a bottom half handler.
-- */
--static int smp_call_function_on_cpu(void (*func)(void *info), void *info,
--				    int retry, int wait, cpumask_t callmap)
--{
--	struct smp_call_struct data;
--	unsigned long timeout;
--	int ret = 0;
--
--	data.func = func;
--	data.info = info;
--	data.wait = wait;
--
--	cpu_clear(smp_processor_id(), callmap);
--	if (cpus_empty(callmap))
--		goto out;
--
--	data.pending = callmap;
--	if (wait)
--		data.unfinished = callmap;
--
--	/*
--	 * try to get the mutex on smp_call_function_data
--	 */
--	spin_lock(&smp_call_function_lock);
--	smp_call_function_data = &data;
--
--	send_ipi_message(callmap, IPI_CALL_FUNC);
--
--	timeout = jiffies + HZ;
--	while (!cpus_empty(data.pending) && time_before(jiffies, timeout))
--		barrier();
--
--	/*
--	 * did we time out?
--	 */
--	if (!cpus_empty(data.pending)) {
--		/*
--		 * this may be causing our panic - report it
--		 */
--		printk(KERN_CRIT
--		       "CPU%u: smp_call_function timeout for %p(%p)\n"
--		       "      callmap %lx pending %lx, %swait\n",
--		       smp_processor_id(), func, info, *cpus_addr(callmap),
--		       *cpus_addr(data.pending), wait ? "" : "no ");
--
--		/*
--		 * TRACE
--		 */
--		timeout = jiffies + (5 * HZ);
--		while (!cpus_empty(data.pending) && time_before(jiffies, timeout))
--			barrier();
--
--		if (cpus_empty(data.pending))
--			printk(KERN_CRIT "     RESOLVED\n");
--		else
--			printk(KERN_CRIT "     STILL STUCK\n");
--	}
--
--	/*
--	 * whatever happened, we're done with the data, so release it
--	 */
--	smp_call_function_data = NULL;
--	spin_unlock(&smp_call_function_lock);
--
--	if (!cpus_empty(data.pending)) {
--		ret = -ETIMEDOUT;
--		goto out;
--	}
--
--	if (wait)
--		while (!cpus_empty(data.unfinished))
--			barrier();
-- out:
--
--	return 0;
--}
--
--int smp_call_function(void (*func)(void *info), void *info, int retry,
--                      int wait)
-+void arch_send_call_function_ipi(cpumask_t mask)
- {
--	return smp_call_function_on_cpu(func, info, retry, wait,
--					cpu_online_map);
-+	send_ipi_message(mask, IPI_CALL_FUNC);
- }
--EXPORT_SYMBOL_GPL(smp_call_function);
- 
--int smp_call_function_single(int cpu, void (*func)(void *info), void *info,
--			     int retry, int wait)
-+void arch_send_call_function_single_ipi(int cpu)
- {
--	/* prevent preemption and reschedule on another processor */
--	int current_cpu = get_cpu();
--	int ret = 0;
--
--	if (cpu == current_cpu) {
--		local_irq_disable();
--		func(info);
--		local_irq_enable();
--	} else
--		ret = smp_call_function_on_cpu(func, info, retry, wait,
--					       cpumask_of_cpu(cpu));
--
--	put_cpu();
--
--	return ret;
-+	send_ipi_message(cpumask_of_cpu(cpu), IPI_CALL_FUNC_SINGLE);
- }
--EXPORT_SYMBOL_GPL(smp_call_function_single);
- 
- void show_ipi_list(struct seq_file *p)
- {
-@@ -521,27 +412,6 @@ asmlinkage void __exception do_local_timer(struct pt_regs *regs)
- }
- #endif
- 
--/*
-- * ipi_call_function - handle IPI from smp_call_function()
-- *
-- * Note that we copy data out of the cross-call structure and then
-- * let the caller know that we're here and have done with their data
-- */
--static void ipi_call_function(unsigned int cpu)
--{
--	struct smp_call_struct *data = smp_call_function_data;
--	void (*func)(void *info) = data->func;
--	void *info = data->info;
--	int wait = data->wait;
--
--	cpu_clear(cpu, data->pending);
--
--	func(info);
--
--	if (wait)
--		cpu_clear(cpu, data->unfinished);
--}
--
- static DEFINE_SPINLOCK(stop_lock);
- 
- /*
-@@ -611,7 +481,11 @@ asmlinkage void __exception do_IPI(struct pt_regs *regs)
- 				break;
- 
- 			case IPI_CALL_FUNC:
--				ipi_call_function(cpu);
-+				generic_smp_call_function_interrupt();
-+				break;
-+
-+			case IPI_CALL_FUNC_SINGLE:
-+				generic_smp_call_function_single_interrupt();
- 				break;
- 
- 			case IPI_CPU_STOP:
-@@ -662,14 +536,13 @@ int setup_profiling_timer(unsigned int multiplier)
- }
- 
- static int
--on_each_cpu_mask(void (*func)(void *), void *info, int retry, int wait,
--		 cpumask_t mask)
-+on_each_cpu_mask(void (*func)(void *), void *info, int wait, cpumask_t mask)
- {
- 	int ret = 0;
- 
- 	preempt_disable();
- 
--	ret = smp_call_function_on_cpu(func, info, retry, wait, mask);
-+	ret = smp_call_function_mask(mask, func, info, wait);
- 	if (cpu_isset(smp_processor_id(), mask))
- 		func(info);
- 
-@@ -738,7 +611,7 @@ void flush_tlb_mm(struct mm_struct *mm)
- {
- 	cpumask_t mask = mm->cpu_vm_mask;
- 
--	on_each_cpu_mask(ipi_flush_tlb_mm, mm, 1, 1, mask);
-+	on_each_cpu_mask(ipi_flush_tlb_mm, mm, 1, mask);
- }
- 
- void flush_tlb_page(struct vm_area_struct *vma, unsigned long uaddr)
-@@ -749,7 +622,7 @@ void flush_tlb_page(struct vm_area_struct *vma, unsigned long uaddr)
- 	ta.ta_vma = vma;
- 	ta.ta_start = uaddr;
- 
--	on_each_cpu_mask(ipi_flush_tlb_page, &ta, 1, 1, mask);
-+	on_each_cpu_mask(ipi_flush_tlb_page, &ta, 1, mask);
- }
- 
- void flush_tlb_kernel_page(unsigned long kaddr)
-@@ -771,7 +644,7 @@ void flush_tlb_range(struct vm_area_struct *vma,
- 	ta.ta_start = start;
- 	ta.ta_end = end;
- 
--	on_each_cpu_mask(ipi_flush_tlb_range, &ta, 1, 1, mask);
-+	on_each_cpu_mask(ipi_flush_tlb_range, &ta, 1, mask);
- }
- 
- void flush_tlb_kernel_range(unsigned long start, unsigned long end)
+Oh that, yes I'll add a description. I didn't really think there was
+much need for it anymore, but it should at least be documented. The
+ipi_lock stuff was really more about stopping IPIs completely, not the
+smp_send_stop() panic() you described.
+
 -- 
-1.5.5.1.57.g5909c
+Jens Axboe
