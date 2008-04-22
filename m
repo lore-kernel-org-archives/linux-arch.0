@@ -1,48 +1,171 @@
-From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-Date: Tue, 22 Apr 2008 17:07:56 +0200
-Message-ID: <20080422150756.GM12774@kernel.dk>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804220735350.2779@woody.linux-foundation.org> <alpine.LFD.1.10.0804220749450.2779@woody.linux-foundation.org>
+From: "Jan Beulich" <jbeulich@novell.com>
+Subject: [PATCH] move BUG_TABLE into RODATA
+Date: Tue, 22 Apr 2008 16:10:06 +0100
+Message-ID: <480E1BEE.76E4.0078.0@novell.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1764137AbYDVPKS@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.10.0804220749450.2779-5CScLwifNT1QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 22 2008, Linus Torvalds wrote:
-> 
-> 
-> On Tue, 22 Apr 2008, Linus Torvalds wrote:
-> > 
-> > You forgot to free the "data" here? The waiter must also free the object, 
-> > since now the callee does not.
-> 
-> Ahh. For the single case, the caller will have it on the stack.
+Signed-off-by: Jan Beulich <jbeulich@novell.com>
 
-Yes, if wait is set, it's on the stack.
+---
+ arch/avr32/kernel/vmlinux.lds.S   |    2 --
+ arch/parisc/kernel/vmlinux.lds.S  |    1 -
+ arch/powerpc/kernel/vmlinux.lds.S |    2 --
+ arch/s390/kernel/vmlinux.lds.S    |    1 -
+ arch/sh/kernel/vmlinux_32.lds.S   |    1 -
+ arch/sh/kernel/vmlinux_64.lds.S   |    1 -
+ arch/x86/kernel/vmlinux_32.lds.S  |    8 +++-----
+ arch/x86/kernel/vmlinux_64.lds.S  |   10 ++++------
+ include/asm-generic/vmlinux.lds.h |    6 ++++++
+ 9 files changed, 13 insertions(+), 19 deletions(-)
 
-> But the smp_call_function_mask() case seems to leak these things.
-
-Hmm yes, double checking it and it would seem to leak for wait &&
-kmalloc'ed data. I think I originally had the wait case as always on
-stack, which would explain this leak.
-
-> How about just always doing the "wait" case on the stack? Also, I'd 
-> suggest you get rid of the static allocation, and just turn it into a wait 
-> case, so that you don't need *three* different allocation cases, just two.
-
-Alright, I'll make 'wait' always alloc on the stack and I'll make
-allocation failure turn into 'wait' as well. That'll leave just
-kmalloc() and stack allocation, killing the static data fallback.
-
-> Or am I missing something?
-
-No, I think that should work ok. I'll post a new series with the changes
-so we can see if we agree.
-
--- 
-Jens Axboe
+--- linux-2.6.25/arch/avr32/kernel/vmlinux.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/avr32/kernel/vmlinux.lds.S	2008-03-04 11:14:13.000000000 +0100
+@@ -93,8 +93,6 @@ SECTIONS
+ 		__stop___ex_table = .;
+ 	}
+ 
+-	BUG_TABLE
+-
+ 	RODATA
+ 
+ 	. = ALIGN(THREAD_SIZE);
+--- linux-2.6.25/arch/parisc/kernel/vmlinux.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/parisc/kernel/vmlinux.lds.S	2008-03-04 11:14:13.000000000 +0100
+@@ -66,7 +66,6 @@ SECTIONS
+ 	_etext = .;
+ 
+ 	RODATA
+-	BUG_TABLE
+ 
+ 	/* writeable */
+ 	/* Make sure this is page aligned so
+--- linux-2.6.25/arch/powerpc/kernel/vmlinux.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/powerpc/kernel/vmlinux.lds.S	2008-03-04 11:14:13.000000000 +0100
+@@ -66,8 +66,6 @@ SECTIONS
+ 
+ 	NOTES
+ 
+-	BUG_TABLE
+-
+ /*
+  * Init sections discarded at runtime
+  */
+--- linux-2.6.25/arch/s390/kernel/vmlinux.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/s390/kernel/vmlinux.lds.S	2008-03-04 11:14:50.000000000 +0100
+@@ -40,7 +40,6 @@ SECTIONS
+ 	_etext = .;		/* End of text section */
+ 
+ 	NOTES :text :note
+-	BUG_TABLE :text
+ 
+ 	RODATA
+ 
+--- linux-2.6.25/arch/sh/kernel/vmlinux_32.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/sh/kernel/vmlinux_32.lds.S	2008-03-04 11:15:48.000000000 +0100
+@@ -44,7 +44,6 @@ SECTIONS
+ 
+ 	_etext = .;			/* End of text section */
+ 
+-	BUG_TABLE
+ 	NOTES
+ 	RO_DATA(PAGE_SIZE)
+ 
+--- linux-2.6.25/arch/sh/kernel/vmlinux_64.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/sh/kernel/vmlinux_64.lds.S	2008-03-04 11:15:53.000000000 +0100
+@@ -65,7 +65,6 @@ SECTIONS
+ 
+ 	_etext = .;			/* End of text section */
+ 
+-	BUG_TABLE
+ 	NOTES 
+ 	RO_DATA(PAGE_SIZE)
+ 
+--- linux-2.6.25/arch/x86/kernel/vmlinux_32.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/x86/kernel/vmlinux_32.lds.S	2008-03-04 11:14:13.000000000 +0100
+@@ -49,16 +49,14 @@ SECTIONS
+   	_etext = .;			/* End of text section */
+   } :text = 0x9090
+ 
++  NOTES :text :note
++
+   . = ALIGN(16);		/* Exception table */
+   __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
+   	__start___ex_table = .;
+ 	 *(__ex_table)
+   	__stop___ex_table = .;
+-  }
+-
+-  NOTES :text :note
+-
+-  BUG_TABLE :text
++  } :text = 0x9090
+ 
+   . = ALIGN(4);
+   .tracedata : AT(ADDR(.tracedata) - LOAD_OFFSET) {
+--- linux-2.6.25/arch/x86/kernel/vmlinux_64.lds.S	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/arch/x86/kernel/vmlinux_64.lds.S	2008-03-04 11:14:13.000000000 +0100
+@@ -19,7 +19,7 @@ PHDRS {
+ 	data PT_LOAD FLAGS(7);	/* RWE */
+ 	user PT_LOAD FLAGS(7);	/* RWE */
+ 	data.init PT_LOAD FLAGS(7);	/* RWE */
+-	note PT_NOTE FLAGS(4);	/* R__ */
++	note PT_NOTE FLAGS(0);	/* ___ */
+ }
+ SECTIONS
+ {
+@@ -40,16 +40,14 @@ SECTIONS
+ 	_etext = .;		/* End of text section */
+   } :text = 0x9090
+ 
++  NOTES :text :note
++
+   . = ALIGN(16);		/* Exception table */
+   __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
+   	__start___ex_table = .;
+ 	 *(__ex_table)
+   	__stop___ex_table = .;
+-  }
+-
+-  NOTES :text :note
+-
+-  BUG_TABLE :text
++  } :text = 0x9090
+ 
+   RODATA
+ 
+--- linux-2.6.25/include/asm-generic/vmlinux.lds.h	2008-04-17 04:49:44.000000000 +0200
++++ 2.6.25-bug-table-rodata/include/asm-generic/vmlinux.lds.h	2008-03-04 11:14:13.000000000 +0100
+@@ -67,6 +67,8 @@
+ 		*(.rodata1)						\
+ 	}								\
+ 									\
++	BUG_TABLE							\
++									\
+ 	/* PCI quirks */						\
+ 	.pci_fixup        : AT(ADDR(.pci_fixup) - LOAD_OFFSET) {	\
+ 		VMLINUX_SYMBOL(__start_pci_fixups_early) = .;		\
+@@ -310,6 +312,7 @@
+ 		.stab.indexstr 0 : { *(.stab.indexstr) }		\
+ 		.comment 0 : { *(.comment) }
+ 
++#ifdef CONFIG_GENERIC_BUG
+ #define BUG_TABLE							\
+ 	. = ALIGN(8);							\
+ 	__bug_table : AT(ADDR(__bug_table) - LOAD_OFFSET) {		\
+@@ -317,6 +320,9 @@
+ 		*(__bug_table)						\
+ 		__stop___bug_table = .;					\
+ 	}
++#else
++#define BUG_TABLE
++#endif
+ 
+ #define NOTES								\
+ 	.notes : AT(ADDR(.notes) - LOAD_OFFSET) {			\
