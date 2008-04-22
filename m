@@ -1,47 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:27889 "EHLO kernel.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754522AbYDVOxg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 10:53:36 -0400
-Date: Tue, 22 Apr 2008 16:53:29 +0200
-From: Jens Axboe <jens.axboe@oracle.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:58293 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751462AbYDVPAA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 11:00:00 -0400
+Date: Tue, 22 Apr 2008 07:58:47 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-Message-ID: <20080422145329.GK12774@kernel.dk>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <480DACDD.7040108@qumranet.com> <20080422092230.GW12774@kernel.dk> <20080422111403.GX12774@kernel.dk> <1208869254.7115.258.camel@twins> <20080422142543.GG12774@kernel.dk> <480DF861.6000705@qumranet.com>
+In-Reply-To: <alpine.LFD.1.10.0804220735350.2779@woody.linux-foundation.org>
+Message-ID: <alpine.LFD.1.10.0804220749450.2779@woody.linux-foundation.org>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804220735350.2779@woody.linux-foundation.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <480DF861.6000705@qumranet.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Avi Kivity <avi@qumranet.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
-Message-ID: <20080422145329.k-hsP6BHP6JABjLrQGdaZGkzMwzNP3b7CSamy9QEP5Y@z>
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de
+Message-ID: <20080422145847.oBJGoInWR6JhP1Rd17RuP97-vIY-WS-o1bBxMQ0c7s0@z>
 
-On Tue, Apr 22 2008, Avi Kivity wrote:
-> Jens Axboe wrote:
-> >>Introducing this fallback will make any usage from irq disabled context
-> >>deadlock prone.
-> >>
-> >>I rather like the current interface.
-> >>    
-> >
-> >Hmm good point, I'll back that bit out again.
-> >  
+
+
+On Tue, 22 Apr 2008, Linus Torvalds wrote:
 > 
-> But then you need to fix all callers to handle errors.
+> You forgot to free the "data" here? The waiter must also free the object, 
+> since now the callee does not.
 
-They should already, there were various error conditions before
-depending on the arch. I'm aware that some do not, so I'd consider that
-a general cleanup (that must also be done, agree).
+Ahh. For the single case, the caller will have it on the stack.
 
-> Perhaps we need a new flag for failable async IPIs (or better, API).  
-> I'm pretty sure no one uses s_c_f_s() from irq disabled context on x86, 
-> since it will WARN_ON(irqs_disabled()).
+But the smp_call_function_mask() case seems to leak these things.
 
-That'd work. I tried to keep things really simple here, I have other
-ideas for cleanups and improvements once this batch goes in.
+How about just always doing the "wait" case on the stack? Also, I'd 
+suggest you get rid of the static allocation, and just turn it into a wait 
+case, so that you don't need *three* different allocation cases, just two.
 
--- 
-Jens Axboe
+Or am I missing something?
 
+		Linus
