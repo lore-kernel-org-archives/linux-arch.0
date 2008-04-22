@@ -1,30 +1,25 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC] Introduce __ARCH_WANT_SYS_SYSFS
-Date: Tue, 22 Apr 2008 15:15:26 +0200
-Message-ID: <200804221515.28075.arnd@arndb.de>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
+From: Kyle McMartin <kyle-pfcGkIkfWfAsA/PxXw9srA@public.gmane.org>
+Subject: Re: [PATCH 9/11] parisc: convert to generic helpers for IPI
+	function calls
+Date: Tue, 22 Apr 2008 10:09:14 -0400
+Message-ID: <20080422140914.GD19802@phobos.i.cabal.ca>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-10-git-send-email-jens.axboe@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1761573AbYDVNQT@vger.kernel.org>
-In-Reply-To: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Newton <will.newton@gmail.com>
-Cc: Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, monstr@seznam.cz, git@xilinx.com, microblaze-uclinux@itee.uq.edu.au
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1208851058-8500-10-git-send-email-jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Kyle McMartin <kyle-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Grant Grundler <grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
 
-On Tuesday 22 April 2008, Will Newton wrote:
-> This patch introduces a __ARCH_WANT_SYS_SYSFS #define for
-> architectures that support the sysfs(2) system call. At the moment
-> that's everybody but blackfin, but future architectures may want to
-> save the (admittedly small) code size that it adds to the kernel as
-> well.
+On Tue, Apr 22, 2008 at 09:57:35AM +0200, Jens Axboe wrote:
+> This converts mips to use the new helpers for smp_call_function() and
+> friends, and adds support for smp_call_function_single(). Not tested,
+> not even compiled.
+> 
 
-Yes, good thing to have. Since we'll be getting a new architecture
-(microblaze) soon, I think we should extend this mechanism (even though
-it's ugly) to all syscalls that we don't want to have in new architectures
-and make sure that microblaze doesn't have to set any of them.
+At first glance, this looks alright. +1 from me.
 
-	Arnd <><
+cheers, Kyle
