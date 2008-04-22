@@ -1,29 +1,393 @@
-From: Avi Kivity <avi-atKUWr5tajBWk0Htik3J/w@public.gmane.org>
-Subject: Re: [patch 2/2]: introduce fast_gup
-Date: Tue, 22 Apr 2008 10:19:08 +0300
-Message-ID: <480D916C.4030100@qumranet.com>
-References: <20080328025455.GA8083@wotan.suse.de> <20080328030023.GC8083@wotan.suse.de> <1208444605.7115.2.camel@twins> <alpine.LFD.1.00.0804170814090.2879@woody.linux-foundation.org> <480C81C4.8030200@qumranet.com> <1208781013.7115.173.camel@twins> <480C9619.2050201@qumranet.com> <1208788547.7115.204.camel@twins> <20080422032319.GB21993@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Subject: [PATCH 3/11] powerpc: convert to generic helpers for IPI function calls
+Date: Tue, 22 Apr 2008 09:57:29 +0200
+Message-ID: <1208851058-8500-4-git-send-email-jens.axboe@oracle.com>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20080422032319.GB21993-B4tOwbsTzaBolqkO4TVVkw@public.gmane.org>
+In-Reply-To: <1208851058-8500-1-git-send-email-jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
-Cc: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, shaggy-V7BBcbaFuwjMbYB6QlFGEg@public.gmane.org, axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Clark Williams <williams-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
 
-Nick Piggin wrote:
-> That's horrible ;)
->
-> Anyway guys you are missing the other side of the equation -- that whenever
-> _PAGE_PRESENT is cleared, all CPUs where current->mm might be == mm have to
-> have a tlb flush. And we're holding off tlb flushes in fast_gup, that's the
-> whole reason why it all works.
->
->   
+This converts ppc to use the new helpers for smp_call_function() and
+friends, and adds support for smp_call_function_single().
 
-Ah, clever.  Thanks.
+Cc: Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
+Signed-off-by: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+---
+ arch/powerpc/Kconfig                    |    5 +
+ arch/powerpc/kernel/smp.c               |  220 ++-----------------------------
+ arch/powerpc/platforms/cell/interrupt.c |    1 +
+ arch/powerpc/platforms/ps3/smp.c        |    7 +-
+ arch/powerpc/platforms/pseries/xics.c   |    6 +-
+ arch/powerpc/sysdev/mpic.c              |    2 +-
+ include/asm-powerpc/smp.h               |    5 +-
+ 7 files changed, 27 insertions(+), 219 deletions(-)
 
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 4bb2e93..ad394d4 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -42,6 +42,11 @@ config GENERIC_HARDIRQS
+ 	bool
+ 	default y
+ 
++config GENERIC_SMP_HELPERS
++	bool
++	depends on SMP
++	default y
++
+ config HAVE_SETUP_PER_CPU_AREA
+ 	def_bool PPC64
+ 
+diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
+index be35ffa..facd49d 100644
+--- a/arch/powerpc/kernel/smp.c
++++ b/arch/powerpc/kernel/smp.c
+@@ -72,12 +72,8 @@ struct smp_ops_t *smp_ops;
+ 
+ static volatile unsigned int cpu_callin_map[NR_CPUS];
+ 
+-void smp_call_function_interrupt(void);
+-
+ int smt_enabled_at_boot = 1;
+ 
+-static int ipi_fail_ok;
+-
+ static void (*crash_ipi_function_ptr)(struct pt_regs *) = NULL;
+ 
+ #ifdef CONFIG_PPC64
+@@ -99,12 +95,15 @@ void smp_message_recv(int msg)
+ {
+ 	switch(msg) {
+ 	case PPC_MSG_CALL_FUNCTION:
+-		smp_call_function_interrupt();
++		generic_smp_call_function_interrupt();
+ 		break;
+ 	case PPC_MSG_RESCHEDULE:
+ 		/* XXX Do we have to do this? */
+ 		set_need_resched();
+ 		break;
++	case PPC_MSG_CALL_FUNC_SINGLE:
++		generic_smp_call_function_single_interrupt();
++		break;
+ 	case PPC_MSG_DEBUGGER_BREAK:
+ 		if (crash_ipi_function_ptr) {
+ 			crash_ipi_function_ptr(get_irq_regs());
+@@ -154,215 +153,22 @@ static void stop_this_cpu(void *dummy)
+ 		;
+ }
+ 
+-/*
+- * Structure and data for smp_call_function(). This is designed to minimise
+- * static memory requirements. It also looks cleaner.
+- * Stolen from the i386 version.
+- */
+-static  __cacheline_aligned_in_smp DEFINE_SPINLOCK(call_lock);
+-
+-static struct call_data_struct {
+-	void (*func) (void *info);
+-	void *info;
+-	atomic_t started;
+-	atomic_t finished;
+-	int wait;
+-} *call_data;
+-
+-/* delay of at least 8 seconds */
+-#define SMP_CALL_TIMEOUT	8
+-
+-/*
+- * These functions send a 'generic call function' IPI to other online
+- * CPUS in the system.
+- *
+- * [SUMMARY] Run a function on other CPUs.
+- * <func> The function to run. This must be fast and non-blocking.
+- * <info> An arbitrary pointer to pass to the function.
+- * <nonatomic> currently unused.
+- * <wait> If true, wait (atomically) until function has completed on other CPUs.
+- * [RETURNS] 0 on success, else a negative status code. Does not return until
+- * remote CPUs are nearly ready to execute <<func>> or are or have executed.
+- * <map> is a cpu map of the cpus to send IPI to.
+- *
+- * You must not call this function with disabled interrupts or from a
+- * hardware interrupt handler or from a bottom half handler.
+- */
+-static int __smp_call_function_map(void (*func) (void *info), void *info,
+-				   int nonatomic, int wait, cpumask_t map)
+-{
+-	struct call_data_struct data;
+-	int ret = -1, num_cpus;
+-	int cpu;
+-	u64 timeout;
+-
+-	if (unlikely(smp_ops == NULL))
+-		return ret;
+-
+-	data.func = func;
+-	data.info = info;
+-	atomic_set(&data.started, 0);
+-	data.wait = wait;
+-	if (wait)
+-		atomic_set(&data.finished, 0);
+-
+-	/* remove 'self' from the map */
+-	if (cpu_isset(smp_processor_id(), map))
+-		cpu_clear(smp_processor_id(), map);
+-
+-	/* sanity check the map, remove any non-online processors. */
+-	cpus_and(map, map, cpu_online_map);
+-
+-	num_cpus = cpus_weight(map);
+-	if (!num_cpus)
+-		goto done;
+-
+-	call_data = &data;
+-	smp_wmb();
+-	/* Send a message to all CPUs in the map */
+-	for_each_cpu_mask(cpu, map)
+-		smp_ops->message_pass(cpu, PPC_MSG_CALL_FUNCTION);
+-
+-	timeout = get_tb() + (u64) SMP_CALL_TIMEOUT * tb_ticks_per_sec;
+-
+-	/* Wait for indication that they have received the message */
+-	while (atomic_read(&data.started) != num_cpus) {
+-		HMT_low();
+-		if (get_tb() >= timeout) {
+-			printk("smp_call_function on cpu %d: other cpus not "
+-				"responding (%d)\n", smp_processor_id(),
+-				atomic_read(&data.started));
+-			if (!ipi_fail_ok)
+-				debugger(NULL);
+-			goto out;
+-		}
+-	}
+-
+-	/* optionally wait for the CPUs to complete */
+-	if (wait) {
+-		while (atomic_read(&data.finished) != num_cpus) {
+-			HMT_low();
+-			if (get_tb() >= timeout) {
+-				printk("smp_call_function on cpu %d: other "
+-					"cpus not finishing (%d/%d)\n",
+-					smp_processor_id(),
+-					atomic_read(&data.finished),
+-					atomic_read(&data.started));
+-				debugger(NULL);
+-				goto out;
+-			}
+-		}
+-	}
+-
+- done:
+-	ret = 0;
+-
+- out:
+-	call_data = NULL;
+-	HMT_medium();
+-	return ret;
+-}
+-
+-static int __smp_call_function(void (*func)(void *info), void *info,
+-			       int nonatomic, int wait)
++void arch_send_call_function_single_ipi(int cpu)
+ {
+-	int ret;
+-	spin_lock(&call_lock);
+-	ret =__smp_call_function_map(func, info, nonatomic, wait,
+-				       cpu_online_map);
+-	spin_unlock(&call_lock);
+-	return ret;
+-}
+-
+-int smp_call_function(void (*func) (void *info), void *info, int nonatomic,
+-			int wait)
+-{
+-	/* Can deadlock when called with interrupts disabled */
+-	WARN_ON(irqs_disabled());
+-
+-	return __smp_call_function(func, info, nonatomic, wait);
++	smp_ops->message_pass(cpu, PPC_MSG_CALL_FUNC_SINGLE);
+ }
+-EXPORT_SYMBOL(smp_call_function);
+ 
+-int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
+-			     int nonatomic, int wait)
++void arch_send_call_function_ipi(cpumask_t mask)
+ {
+-	cpumask_t map = CPU_MASK_NONE;
+-	int ret = 0;
+-
+-	/* Can deadlock when called with interrupts disabled */
+-	WARN_ON(irqs_disabled());
+-
+-	if (!cpu_online(cpu))
+-		return -EINVAL;
++	unsigned int cpu;
+ 
+-	cpu_set(cpu, map);
+-	if (cpu != get_cpu()) {
+-		spin_lock(&call_lock);
+-		ret = __smp_call_function_map(func, info, nonatomic, wait, map);
+-		spin_unlock(&call_lock);
+-	} else {
+-		local_irq_disable();
+-		func(info);
+-		local_irq_enable();
+-	}
+-	put_cpu();
+-	return ret;
++	for_each_cpu_mask(cpu, mask)
++		smp_ops->message_pass(cpu, PPC_MSG_CALL_FUNCTION);
+ }
+-EXPORT_SYMBOL(smp_call_function_single);
+ 
+ void smp_send_stop(void)
+ {
+-	int nolock;
+-
+-	/* It's OK to fail sending the IPI, since the alternative is to
+-	 * be stuck forever waiting on the other CPU to take the interrupt.
+-	 *
+-	 * It's better to at least continue and go through reboot, since this
+-	 * function is usually called at panic or reboot time in the first
+-	 * place.
+-	 */
+-	ipi_fail_ok = 1;
+-
+-	/* Don't deadlock in case we got called through panic */
+-	nolock = !spin_trylock(&call_lock);
+-	__smp_call_function_map(stop_this_cpu, NULL, 1, 0, cpu_online_map);
+-	if (!nolock)
+-		spin_unlock(&call_lock);
+-}
+-
+-void smp_call_function_interrupt(void)
+-{
+-	void (*func) (void *info);
+-	void *info;
+-	int wait;
+-
+-	/* call_data will be NULL if the sender timed out while
+-	 * waiting on us to receive the call.
+-	 */
+-	if (!call_data)
+-		return;
+-
+-	func = call_data->func;
+-	info = call_data->info;
+-	wait = call_data->wait;
+-
+-	if (!wait)
+-		smp_mb__before_atomic_inc();
+-
+-	/*
+-	 * Notify initiating CPU that I've grabbed the data and am
+-	 * about to execute the function
+-	 */
+-	atomic_inc(&call_data->started);
+-	/*
+-	 * At this point the info structure may be out of scope unless wait==1
+-	 */
+-	(*func)(info);
+-	if (wait) {
+-		smp_mb__before_atomic_inc();
+-		atomic_inc(&call_data->finished);
+-	}
++	smp_call_function(stop_this_cpu, NULL, 0, 0);
+ }
+ 
+ extern struct gettimeofday_struct do_gtod;
+@@ -594,9 +400,9 @@ int __devinit start_secondary(void *unused)
+ 
+ 	secondary_cpu_time_init();
+ 
+-	spin_lock(&call_lock);
++	spin_lock(&call_function_lock);
+ 	cpu_set(cpu, cpu_online_map);
+-	spin_unlock(&call_lock);
++	spin_unlock(&call_function_lock);
+ 
+ 	local_irq_enable();
+ 
+diff --git a/arch/powerpc/platforms/cell/interrupt.c b/arch/powerpc/platforms/cell/interrupt.c
+index 04f74f9..bc91ec5 100644
+--- a/arch/powerpc/platforms/cell/interrupt.c
++++ b/arch/powerpc/platforms/cell/interrupt.c
+@@ -217,6 +217,7 @@ void iic_request_IPIs(void)
+ {
+ 	iic_request_ipi(PPC_MSG_CALL_FUNCTION, "IPI-call");
+ 	iic_request_ipi(PPC_MSG_RESCHEDULE, "IPI-resched");
++	iic_request_ipi(PPC_MSG_CALL_FUNC_SINGLE, "IPI-call-single");
+ #ifdef CONFIG_DEBUGGER
+ 	iic_request_ipi(PPC_MSG_DEBUGGER_BREAK, "IPI-debug");
+ #endif /* CONFIG_DEBUGGER */
+diff --git a/arch/powerpc/platforms/ps3/smp.c b/arch/powerpc/platforms/ps3/smp.c
+index f0b12f2..a0927a3 100644
+--- a/arch/powerpc/platforms/ps3/smp.c
++++ b/arch/powerpc/platforms/ps3/smp.c
+@@ -105,9 +105,10 @@ static void __init ps3_smp_setup_cpu(int cpu)
+ 	 * to index needs to be setup.
+ 	 */
+ 
+-	BUILD_BUG_ON(PPC_MSG_CALL_FUNCTION  != 0);
+-	BUILD_BUG_ON(PPC_MSG_RESCHEDULE     != 1);
+-	BUILD_BUG_ON(PPC_MSG_DEBUGGER_BREAK != 3);
++	BUILD_BUG_ON(PPC_MSG_CALL_FUNCTION    != 0);
++	BUILD_BUG_ON(PPC_MSG_RESCHEDULE       != 1);
++	BUILD_BUG_ON(PPC_MSG_CALL_FUNC_SINGLE != 2);
++	BUILD_BUG_ON(PPC_MSG_DEBUGGER_BREAK   != 3);
+ 
+ 	for (i = 0; i < MSG_COUNT; i++) {
+ 		result = ps3_event_receive_port_setup(cpu, &virqs[i]);
+diff --git a/arch/powerpc/platforms/pseries/xics.c b/arch/powerpc/platforms/pseries/xics.c
+index 43df53c..b343245 100644
+--- a/arch/powerpc/platforms/pseries/xics.c
++++ b/arch/powerpc/platforms/pseries/xics.c
+@@ -384,13 +384,11 @@ static irqreturn_t xics_ipi_dispatch(int cpu)
+ 			mb();
+ 			smp_message_recv(PPC_MSG_RESCHEDULE);
+ 		}
+-#if 0
+-		if (test_and_clear_bit(PPC_MSG_MIGRATE_TASK,
++		if (test_and_clear_bit(PPC_MSG_CALL_FUNC_SINGLE,
+ 				       &xics_ipi_message[cpu].value)) {
+ 			mb();
+-			smp_message_recv(PPC_MSG_MIGRATE_TASK);
++			smp_message_recv(PPC_MSG_CALL_FUNC_SINGLE);
+ 		}
+-#endif
+ #if defined(CONFIG_DEBUGGER) || defined(CONFIG_KEXEC)
+ 		if (test_and_clear_bit(PPC_MSG_DEBUGGER_BREAK,
+ 				       &xics_ipi_message[cpu].value)) {
+diff --git a/arch/powerpc/sysdev/mpic.c b/arch/powerpc/sysdev/mpic.c
+index 8619f2a..bdc7b13 100644
+--- a/arch/powerpc/sysdev/mpic.c
++++ b/arch/powerpc/sysdev/mpic.c
+@@ -1508,7 +1508,7 @@ void mpic_request_ipis(void)
+ 	static char *ipi_names[] = {
+ 		"IPI0 (call function)",
+ 		"IPI1 (reschedule)",
+-		"IPI2 (unused)",
++		"IPI2 (call function single)",
+ 		"IPI3 (debugger break)",
+ 	};
+ 	BUG_ON(mpic == NULL);
+diff --git a/include/asm-powerpc/smp.h b/include/asm-powerpc/smp.h
+index 505f35b..78382f6 100644
+--- a/include/asm-powerpc/smp.h
++++ b/include/asm-powerpc/smp.h
+@@ -67,10 +67,7 @@ DECLARE_PER_CPU(cpumask_t, cpu_sibling_map);
+  * in /proc/interrupts will be wrong!!! --Troy */
+ #define PPC_MSG_CALL_FUNCTION   0
+ #define PPC_MSG_RESCHEDULE      1
+-/* This is unused now */
+-#if 0
+-#define PPC_MSG_MIGRATE_TASK    2
+-#endif
++#define PPC_MSG_CALL_FUNC_SINGLE	2
+ #define PPC_MSG_DEBUGGER_BREAK  3
+ 
+ void smp_init_iSeries(void);
 -- 
-error compiling committee.c: too many arguments to function
+1.5.5.49.gf43e2
