@@ -1,57 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.suse.de ([195.135.220.2]:49574 "EHLO mx1.suse.de"
+Received: from brick.kernel.dk ([87.55.233.238]:3675 "EHLO kernel.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756670AbYDVJqb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 05:46:31 -0400
-Date: Tue, 22 Apr 2008 11:46:29 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch 2/2]: introduce fast_gup
-Message-ID: <20080422094629.GC23770@wotan.suse.de>
-References: <20080328025455.GA8083@wotan.suse.de> <20080328030023.GC8083@wotan.suse.de> <1208857356.7115.218.camel@twins>
-Mime-Version: 1.0
+	id S1756355AbYDVLOI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 07:14:08 -0400
+Date: Tue, 22 Apr 2008 13:14:03 +0200
+From: Jens Axboe <jens.axboe@oracle.com>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+Message-ID: <20080422111403.GX12774@kernel.dk>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <480DACDD.7040108@qumranet.com> <20080422092230.GW12774@kernel.dk>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1208857356.7115.218.camel@twins>
+In-Reply-To: <20080422092230.GW12774@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, axboe@kernel.dk, linux-mm@kvack.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
-Message-ID: <20080422094629.hGZxorBO3j6d-84Z_AAZw8_SZQvGoMfomZz25kBYMjU@z>
+To: Avi Kivity <avi@qumranet.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
+Message-ID: <20080422111403.9r18eJop3OLd3m-HbBcWJ1EtA_k7l_nuYuWE9Ts5pwU@z>
 
-On Tue, Apr 22, 2008 at 11:42:36AM +0200, Peter Zijlstra wrote:
-> On Fri, 2008-03-28 at 04:00 +0100, Nick Piggin wrote:
+On Tue, Apr 22 2008, Jens Axboe wrote:
+> On Tue, Apr 22 2008, Avi Kivity wrote:
+> > Jens Axboe wrote:
+> > >This adds kernel/smp.c which contains helpers for IPI function calls. In
+> > >addition to supporting the existing smp_call_function() in a more efficient
+> > >manner, it also adds a more scalable variant called 
+> > >smp_call_function_single()
+> > >for calling a given function on a single CPU only.
+> > >
+> > >The core of this is based on the x86-64 patch from Nick Piggin, lots of
+> > >changes since then. "Alan D. Brunelle" <Alan.Brunelle@hp.com> has
+> > >contributed lots of fixes and suggestions as well.
+> > >
+> > >+int smp_call_function_single(int cpu, void (*func) (void *info), void 
+> > >*info,
+> > >+			     int retry, int wait)
+> > >+{
+> > >+	unsigned long flags;
+> > >+	/* prevent preemption and reschedule on another processor */
+> > >+	int me = get_cpu();
+> > >+	int ret = 0;
+> > >+
+> > >+	/* Can deadlock when called with interrupts disabled */
+> > >+	WARN_ON(wait && irqs_disabled());
+> > >+
+> > >+	if (cpu == me) {
+> > >+		local_irq_save(flags);
+> > >+		func(info);
+> > >+		local_irq_restore(flags);
+> > >+	} else {
+> > >+		struct call_single_data d;
+> > >+		struct call_single_data *data;
+> > >+
+> > >+		if (!wait) {
+> > >+			data = kmalloc(sizeof(*data), GFP_ATOMIC);
+> > >+			if (unlikely(!data)) {
+> > >+				ret = -ENOMEM;
+> > >+				goto out;
+> > >+			}
+> > >+			data->flags = CSD_FLAG_ALLOC;
+> > >+		} else {
+> > >+			data = &d;
+> > >+			data->flags = CSD_FLAG_WAIT;
+> > >+		}
+> > >+
+> > >  
+> > 
+> > Instead of introducing a rare error case, how about falling back to the 
+> > wait case if the allocation fails?
+> > 
+> > Of course, if the called function relies on the calling cpu doing 
+> > something else, then this fails, but I don't think anybody would do 
+> > that?  On the other hand, there is at least one use of 
+> > smp_call_function_single() with !wait, which doesn't check the error return.
 > 
-> > +static noinline int gup_pte_range(pmd_t pmd, unsigned long addr,
-> > +		unsigned long end, int write, struct page **pages, int *nr)
-> > +{
-> > +	unsigned long mask, result;
-> > +	pte_t *ptep;
-> > +
-> > +	result = _PAGE_PRESENT|_PAGE_USER;
-> > +	if (write)
-> > +		result |= _PAGE_RW;
-> > +	mask = result | _PAGE_SPECIAL;
-> > +
-> > +	ptep = pte_offset_map(&pmd, addr);
-> > +	do {
-> > +		/*
-> > +		 * XXX: careful. On 3-level 32-bit, the pte is 64 bits, and
-> > +		 * we need to make sure we load the low word first, then the
-> > +		 * high. This means _PAGE_PRESENT should be clear if the high
-> > +		 * word was not valid. Currently, the C compiler can issue
-> > +		 * the loads in any order, and I don't know of a wrapper
-> > +		 * function that will do this properly, so it is broken on
-> > +		 * 32-bit 3-level for the moment.
-> > +		 */
-> > +		pte_t pte = *ptep;
-> > +		struct page *page;
-> > +
-> > +		if ((pte_val(pte) & mask) != result)
-> > +			return 0;
-> 
-> This return path fails to unmap the pmd.
+> Sure, either failling back to waiting, or add a static call_single_data
+> like it exists for smp_call_function(). In reality it'll never happen,
+> so the fallback static structure appeals the most to me.
 
-Ah good catch. As you can see I haven't done any highmem testing ;)
-Which I will do so before sending upstream.
+We don't need any extra statically allocated data, we can just reuse the
+'csd' element of the existing call_data_fallback. So that is what I did.
+Once all archs are converted, we can now change
+smp_call_function_single() to a void return, as it always succeeds now.
 
+-- 
+Jens Axboe
 
