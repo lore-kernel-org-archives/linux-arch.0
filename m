@@ -1,42 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 206-248-169-182.dsl.ncf.ca ([206.248.169.182]:39087 "EHLO
-	phobos.cabal.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965388AbYDVOaS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2008 10:30:18 -0400
-Date: Tue, 22 Apr 2008 10:30:16 -0400
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH 9/11] parisc: convert to generic helpers for IPI
-	function calls
-Message-ID: <20080422143016.GE19802@phobos.i.cabal.ca>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-10-git-send-email-jens.axboe@oracle.com> <20080422140914.GD19802@phobos.i.cabal.ca> <20080422142738.GH12774@kernel.dk>
+Received: from brick.kernel.dk ([87.55.233.238]:26469 "EHLO kernel.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754802AbYDVO1o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 10:27:44 -0400
+Date: Tue, 22 Apr 2008 16:27:38 +0200
+From: Jens Axboe <jens.axboe@oracle.com>
+Subject: Re: [PATCH 9/11] parisc: convert to generic helpers for IPI  function calls
+Message-ID: <20080422142738.GH12774@kernel.dk>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-10-git-send-email-jens.axboe@oracle.com> <20080422140914.GD19802@phobos.i.cabal.ca>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080422142738.GH12774@kernel.dk>
+In-Reply-To: <20080422140914.GD19802@phobos.i.cabal.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>
-Message-ID: <20080422143016.jHHZIzSQRmpid1eLcP-bZXfZC-Xcl8UOINEivLEspbo@z>
+To: Kyle McMartin <kyle@mcmartin.ca>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>
+Message-ID: <20080422142738.Gv6Zq4ybWyy1a4mEria6pHdRLEyDOp3XkwOMQadQl1w@z>
 
-On Tue, Apr 22, 2008 at 04:27:38PM +0200, Jens Axboe wrote:
-> On Tue, Apr 22 2008, Kyle McMartin wrote:
-> > On Tue, Apr 22, 2008 at 09:57:35AM +0200, Jens Axboe wrote:
-> > > This converts mips to use the new helpers for smp_call_function() and
-> > > friends, and adds support for smp_call_function_single(). Not tested,
-> > > not even compiled.
-> > > 
+On Tue, Apr 22 2008, Kyle McMartin wrote:
+> On Tue, Apr 22, 2008 at 09:57:35AM +0200, Jens Axboe wrote:
+> > This converts mips to use the new helpers for smp_call_function() and
+> > friends, and adds support for smp_call_function_single(). Not tested,
+> > not even compiled.
 > > 
-> > At first glance, this looks alright. +1 from me.
 > 
-> Is that an official parisc ack? :-)
-> 
-> And I'll make sure the patch comment matches... I wish that Andrews xb
-> compiler collection had all the supported archs covered.
-> 
+> At first glance, this looks alright. +1 from me.
 
-I'm not sure if these are still good, but:
-http://kyle.mcmartin.ca/hppa-hp-linux-gcc-3.4.tar
-http://kyle.mcmartin.ca/hppa64-hp-linux-gcc-3.4.tar
+Is that an official parisc ack? :-)
 
-cheers, Kyle
+And I'll make sure the patch comment matches... I wish that Andrews xb
+compiler collection had all the supported archs covered.
+
+-- 
+Jens Axboe
+
