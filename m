@@ -1,34 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:32829 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754366AbYDVSkD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 14:40:03 -0400
-Date: Tue, 22 Apr 2008 11:39:45 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-In-Reply-To: <20080422182337.GQ12774@kernel.dk>
-Message-ID: <alpine.LFD.1.10.0804221139240.2779@woody.linux-foundation.org>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804220735350.2779@woody.linux-foundation.org> <20080422145105.GJ12774@kernel.dk>
- <alpine.LFD.1.10.0804220759020.2779@woody.linux-foundation.org> <20080422164947.GN12774@kernel.dk> <20080422170405.GO12774@kernel.dk> <20080422171324.GP12774@kernel.dk> <alpine.LFD.1.10.0804221027210.2779@woody.linux-foundation.org>
- <20080422182337.GQ12774@kernel.dk>
+Received: from brick.kernel.dk ([87.55.233.238]:11815 "EHLO kernel.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1763655AbYDVSnS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 14:43:18 -0400
+Date: Tue, 22 Apr 2008 20:43:10 +0200
+From: Jens Axboe <jens.axboe@oracle.com>
+Subject: Re: [PATCH 6/11] arm: convert to generic helpers for IPI function  calls
+Message-ID: <20080422184310.GR12774@kernel.dk>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-7-git-send-email-jens.axboe@oracle.com> <1208876447.31997.30.camel@pc1117.cambridge.arm.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1208876447.31997.30.camel@pc1117.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de
-Message-ID: <20080422183945.ml0TNDSgo5tMMwy9sMmoyBfgpCXX6zFjnU1_gS6eDA8@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Russell King <rmk@arm.linux.org.uk>
+Message-ID: <20080422184310.h58Eoad04obY7tXqaWvIZPVoVuImdIw4nFd5_e9tMrs@z>
 
-
-
-On Tue, 22 Apr 2008, Jens Axboe wrote:
+On Tue, Apr 22 2008, Catalin Marinas wrote:
+> On Tue, 2008-04-22 at 09:57 +0200, Jens Axboe wrote:
+> > This converts arm to use the new helpers for smp_call_function() and
+> > friends, and adds support for smp_call_function_single(). Not tested
+> > at all, not even compiled.
 > 
-> OK, so how about this then? All three cases for both
-> smp_call_function_single() and smp_call_function_mask(). Data is always
-> freed in the ipi interrupt handler, since the 'wait' case is always
-> allocated on the stack.
+> With the minor fixes below, it compiles and seems to run OK on RealView
+> EB + ARM11MPCore (4 CPUs):
 
-I'm not seeing any obvious bugs any more.
+Pretty silly errors, missing the cross compiler... Thanks a lot for
+checking and testing, I've added your changes!
 
-		Linus
+-- 
+Jens Axboe
+
