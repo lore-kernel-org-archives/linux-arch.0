@@ -1,69 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:35605 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754166AbYDVTEa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 15:04:30 -0400
-Date: Tue, 22 Apr 2008 12:03:04 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
+Received: from mx2.mail.elte.hu ([157.181.151.9]:53446 "EHLO mx2.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1761712AbYDVTM5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 15:12:57 -0400
+Date: Tue, 22 Apr 2008 21:12:13 +0200
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function
- calls
-In-Reply-To: <1208890227-24808-3-git-send-email-jens.axboe@oracle.com>
-Message-ID: <alpine.LFD.1.10.0804221157220.2779@woody.linux-foundation.org>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-3-git-send-email-jens.axboe@oracle.com>
+	calls
+Message-ID: <20080422191213.GA6370@elte.hu>
+References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-3-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804221157220.2779@woody.linux-foundation.org>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.1.10.0804221157220.2779@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, npiggin@suse.de, peterz@infradead.org, sam@ravnborg.org, Ingo Molnar <mingo@elte.hu>
-Message-ID: <20080422190304.mLDD_nE8vx0ZGGeiA_h9DrIDCu_p_jUWJ7ixb70n4vk@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, npiggin@suse.de, peterz@infradead.org, sam@ravnborg.org
+Message-ID: <20080422191213.mBYnmOkSkSmedAQC6D8KKV5qOS2mmQgSTK7unJfjZ1I@z>
 
 
-[ Ingo added to cc, since this is x86-specific ]
+* Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-On Tue, 22 Apr 2008, Jens Axboe wrote:
-> +++ b/arch/x86/kernel/apic_32.c
-> @@ -1357,6 +1357,10 @@ void __init smp_intr_init(void)
->  
->  	/* IPI for generic function call */
->  	set_intr_gate(CALL_FUNCTION_VECTOR, call_function_interrupt);
-> +
-> +	/* IPI for single call function */
-> +	set_intr_gate(CALL_FUNCTION_SINGLE_VECTOR,
-> +				call_function_single_interrupt);
+> 
+> [ Ingo added to cc, since this is x86-specific ]
+> 
+> On Tue, 22 Apr 2008, Jens Axboe wrote:
+> > +++ b/arch/x86/kernel/apic_32.c
+> > @@ -1357,6 +1357,10 @@ void __init smp_intr_init(void)
+> >  
+> >  	/* IPI for generic function call */
+> >  	set_intr_gate(CALL_FUNCTION_VECTOR, call_function_interrupt);
+> > +
+> > +	/* IPI for single call function */
+> > +	set_intr_gate(CALL_FUNCTION_SINGLE_VECTOR,
+> > +				call_function_single_interrupt);
+> 
+> Ok, one more comment..
+> 
+> Why bother with separate vectors for this?
 
-Ok, one more comment..
+this was my first question a month ago when Jens/Nick first submitted it
+:)
 
-Why bother with separate vectors for this?
+> Or is it just a performance optimization? [...]
 
-Why not just make the single vector do
+yes and i gave in - Nick and Jens wants to do some crazy stuff and they 
+had the numbers. Here's the previous discussion:
 
-	void smp_call_function_interrupt(void)
-	{
-		ack_APIC_irq();
-		irq_enter();
-		generic_smp_call_function_single_interrupt();
-		generic_smp_call_function_interrupt();
-	#ifdef CONFIG_X86_32
-		__get_cpu_var(irq_stat).irq_call_count++;
-	#else
-		add_pda(irq_call_count, 1);
-	#endif
-		irq_exit();
-	}
+  http://lkml.org/lkml/2008/2/27/125
 
-since they are both doing the exact same thing anyway?
-
-Do we really require us to be able to handle the "single" case _while_ a 
-"multiple" case is busy? Aren't we running all of these things with 
-interrupts disabled anyway, so that it cannot happen?
-
-Or is it just a performance optimization?  Do we expect to really have so 
-many of the multiple interrupts that it's expensive to walk the list just 
-because we also had a single interrupt to another CPU? That sounds a bit 
-unlikely, but if true, very interesting..
-
-Inquiring minds want to know..
-
-			Linus
+	Ingo
