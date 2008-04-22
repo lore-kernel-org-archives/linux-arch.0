@@ -1,38 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:58293 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:35541 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751462AbYDVPAA (ORCPT
+	by vger.kernel.org with ESMTP id S1764861AbYDVPCK (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 11:00:00 -0400
-Date: Tue, 22 Apr 2008 07:58:47 -0700 (PDT)
+	Tue, 22 Apr 2008 11:02:10 -0400
+Date: Tue, 22 Apr 2008 08:01:22 -0700 (PDT)
 From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-In-Reply-To: <alpine.LFD.1.10.0804220735350.2779@woody.linux-foundation.org>
-Message-ID: <alpine.LFD.1.10.0804220749450.2779@woody.linux-foundation.org>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804220735350.2779@woody.linux-foundation.org>
+In-Reply-To: <20080422145105.GJ12774@kernel.dk>
+Message-ID: <alpine.LFD.1.10.0804220759020.2779@woody.linux-foundation.org>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804220735350.2779@woody.linux-foundation.org> <20080422145105.GJ12774@kernel.dk>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jens Axboe <jens.axboe@oracle.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de
-Message-ID: <20080422145847.oBJGoInWR6JhP1Rd17RuP97-vIY-WS-o1bBxMQ0c7s0@z>
+Message-ID: <20080422150122.gp242ALJGvKu6qQDHorD438K74sYejuoSj8v_5qTz4w@z>
 
 
 
-On Tue, 22 Apr 2008, Linus Torvalds wrote:
+On Tue, 22 Apr 2008, Jens Axboe wrote:
+> > 
+> > You forgot to free the "data" here? The waiter must also free the object, 
+> > since now the callee does not.
 > 
-> You forgot to free the "data" here? The waiter must also free the object, 
-> since now the callee does not.
+> The ipi interrupt handler does that, see kfree() in
+> generic_smp_call_function_single_interrupt() or call_func_data_free() in
+> generic_smp_call_function_interrupt().
 
-Ahh. For the single case, the caller will have it on the stack.
+Hell no, it does *not*.
 
-But the smp_call_function_mask() case seems to leak these things.
+Doing that for the waiting case would be a *huge* bug, since the waiter 
+needs to wait until the flag is clear - and if the waitee free's the 
+allocation, that will never happen.
 
-How about just always doing the "wait" case on the stack? Also, I'd 
-suggest you get rid of the static allocation, and just turn it into a wait 
-case, so that you don't need *three* different allocation cases, just two.
+So the rule *must* be:
+ - waiter frees
+ - ipi interrupt frees non-waiting ones.
+because anything else cannot work.
 
-Or am I missing something?
+And you must have known that, because the code you pointed me to does 
+*not* free the data at all. It just clears the FLAG_WAIT flag:
+
+	+               if (data->csd.flags & CSD_FLAG_WAIT) {
+	+                       smp_wmb();
+	+                       data->csd.flags &= ~CSD_FLAG_WAIT;
+	+               } else
+	+                       call_func_data_free(data);
+
+So please think about this some more. 
 
 		Linus
