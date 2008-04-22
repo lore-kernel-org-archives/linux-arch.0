@@ -1,54 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:13123 "EHLO kernel.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755273AbYDVPIC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 11:08:02 -0400
-Date: Tue, 22 Apr 2008 17:07:56 +0200
-From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-Message-ID: <20080422150756.GM12774@kernel.dk>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804220735350.2779@woody.linux-foundation.org> <alpine.LFD.1.10.0804220749450.2779@woody.linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.10.0804220749450.2779@woody.linux-foundation.org>
+Received: from agminet01.oracle.com ([141.146.126.228]:32490 "EHLO
+	agminet01.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1765188AbYDVPNH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2008 11:13:07 -0400
+Date: Tue, 22 Apr 2008 08:12:11 -0700
+From: Randy Dunlap <randy.dunlap@oracle.com>
+Subject: Re: [RFC] Introduce __ARCH_WANT_SYS_SYSFS
+Message-ID: <20080422081211.e85989ec.randy.dunlap@oracle.com>
+In-Reply-To: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de
-Message-ID: <20080422150756.eBBVBaec3la87NVitZKlG6Z4lnq-DgJOu0IXdncnUnw@z>
+To: Will Newton <will.newton@gmail.com>
+Cc: Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20080422151211.1hIkmvTxaLeXuNWeRg7jeD5kN5hWQ4jFoXXxop4EevU@z>
 
-On Tue, Apr 22 2008, Linus Torvalds wrote:
+On Tue, 22 Apr 2008 13:13:39 +0100 Will Newton wrote:
+
+> Hi,
 > 
+> This patch introduces a __ARCH_WANT_SYS_SYSFS #define for
+> architectures that support the sysfs(2) system call. At the moment
+> that's everybody but blackfin, but future architectures may want to
+> save the (admittedly small) code size that it adds to the kernel as
+> well.
 > 
-> On Tue, 22 Apr 2008, Linus Torvalds wrote:
-> > 
-> > You forgot to free the "data" here? The waiter must also free the object, 
-> > since now the callee does not.
+> (patch attached as well as inline because gmail seems to mangle my whitespace)
 > 
-> Ahh. For the single case, the caller will have it on the stack.
+> ---
+> >From d0746366e8ccb5fbaa6c9945540cecbe0c421222 Mon Sep 17 00:00:00 2001
+> From: Will Newton <will.newton@imgtec.com>
+> Date: Tue, 22 Apr 2008 12:57:03 +0100
+> Subject: [PATCH] Introduce __ARCH_WANT_SYS_SYSFS.
+> 
+> Signed-off-by: Will Newton <will.newton@imgtec.com>
+> 
+> All arches that want the sysfs(2) system call should define this symbol.
+> Arches such as blackfin that do not implement the system call don't compile
+> the code and save some small amount of space.
 
-Yes, if wait is set, it's on the stack.
+Is there any reason that this couldn't (and shouldn't) be done
+in the Kconfig space and done as documented in
+Documentation/kbuild/kconfig-language.txt ?
 
-> But the smp_call_function_mask() case seems to leak these things.
+<quote:>
+Adding common features and make the usage configurable
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+It is a common idiom to implement a feature/functionality that are
+relevant for some architectures but not all.
+The recommended way to do so is to use a config variable named HAVE_*
+that is defined in a common Kconfig file and selected by the relevant
+architectures.
+An example is the generic IOMAP functionality.
 
-Hmm yes, double checking it and it would seem to leak for wait &&
-kmalloc'ed data. I think I originally had the wait case as always on
-stack, which would explain this leak.
+We would in lib/Kconfig see:
 
-> How about just always doing the "wait" case on the stack? Also, I'd 
-> suggest you get rid of the static allocation, and just turn it into a wait 
-> case, so that you don't need *three* different allocation cases, just two.
+# Generic IOMAP is used to ...
+config HAVE_GENERIC_IOMAP
 
-Alright, I'll make 'wait' always alloc on the stack and I'll make
-allocation failure turn into 'wait' as well. That'll leave just
-kmalloc() and stack allocation, killing the static data fallback.
+config GENERIC_IOMAP
+	depends on HAVE_GENERIC_IOMAP && FOO
 
-> Or am I missing something?
+And in lib/Makefile we would see:
+obj-$(CONFIG_GENERIC_IOMAP) += iomap.o
 
-No, I think that should work ok. I'll post a new series with the changes
-so we can see if we agree.
+For each architecture using the generic IOMAP functionality we would see:
 
--- 
-Jens Axboe
+config X86
+	select ...
+	select HAVE_GENERIC_IOMAP
+	select ...
 
+
+
+---
+~Randy
