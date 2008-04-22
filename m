@@ -1,46 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:52860 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754392AbYDVIs4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2008 04:48:56 -0400
-Subject: Re: [PATCH 0/11] Generic smp_call_function() and friends
-From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com>
-Content-Type: text/plain
-Date: Tue, 22 Apr 2008 10:48:53 +0200
-Message-ID: <1208854133.7115.214.camel@twins>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from brick.kernel.dk ([87.55.233.238]:19795 "EHLO kernel.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754392AbYDVIwh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 04:52:37 -0400
+Date: Tue, 22 Apr 2008 10:52:33 +0200
+From: Jens Axboe <jens.axboe@oracle.com>
+Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function  calls
+Message-ID: <20080422085233.GU12774@kernel.dk>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-3-git-send-email-jens.axboe@oracle.com> <20080422084738.GB2388@elte.hu>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20080422084738.GB2388@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
-Message-ID: <20080422084853.YiIezNh9CIy299JzNFYjIo_5ynbeSKhY6fdo96TphUg@z>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Message-ID: <20080422085233.tVcF1pPXDGTg7HlkMIHdSO8CM-rywkwMly7umDZuT5A@z>
 
-On Tue, 2008-04-22 at 09:57 +0200, Jens Axboe wrote:
-> Hi,
+On Tue, Apr 22 2008, Ingo Molnar wrote:
 > 
-> While working on the more scalable and faster
-> smp_call_function_single(), the amount of arch duplicated code in there
-> botherered me. So I started adding a generic kernel/smp.c helper that
-> the archs could use instead.
+> * Jens Axboe <jens.axboe@oracle.com> wrote:
 > 
-> Arch code exports two helper functions:
+> > This converts x86 and x86-64 to use the new helpers for 
+> > smp_call_function() and friends, and adds support for 
+> > smp_call_function_single().
 > 
-> arch_send_call_function_single_ipi(cpu)
-> 	Send call function single ipi to given cpu
-> arch_send_call_function_ipi(cpumask)
-> 	Send call function ipi to cpus in cpumask
+> nice stuff. The x86 and generic bits:
 > 
-> and then use the generic ipi interrupt helpers to execute the code. I
-> converted most of the archs capable of SMP, I think only sparc and
-> sparc64 are still missing. Archs set CONFIG_GENERIC_SMP_HELPERS if they
-> wish to use the generic helpers for this.
-> 
-> The end result is that we have unified code for handling ipi for
-> function calls. Even with adding special handling for the single cpu
-> function call, the diffstat is pretty nice (see below.
+>  Acked-by: Ingo Molnar <mingo@elte.hu>
 
-Real nice work Jens!
+Thanks, adding...
+
+> this has been brewing for months, what is the testing/confidence status 
+> of it? Could we still merge it into v2.6.26? (i think we should)
+
+I'm not aware of any problems. I'd be very grateful if you could give it
+a spin on some of your test boxes, just to raise the confidence interval
+a bit :-)
+
+-- 
+Jens Axboe
 
