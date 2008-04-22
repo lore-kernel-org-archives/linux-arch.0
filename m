@@ -1,36 +1,33 @@
 From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Subject: [PATCH 8/11] mips: convert to generic helpers for IPI function calls
-Date: Tue, 22 Apr 2008 09:57:34 +0200
-Message-ID: <1208851058-8500-9-git-send-email-jens.axboe@oracle.com>
+Subject: [PATCH 7/11] m32r: convert to generic helpers for IPI function calls
+Date: Tue, 22 Apr 2008 09:57:33 +0200
+Message-ID: <1208851058-8500-8-git-send-email-jens.axboe@oracle.com>
 References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 In-Reply-To: <1208851058-8500-1-git-send-email-jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
+Cc: npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Hirokazu Takata <takata-TMSiXQfHlQjsTix1lMzHGQ@public.gmane.org>
 
-This converts mips to use the new helpers for smp_call_function() and
+This converts m32r to use the new helpers for smp_call_function() and
 friends, and adds support for smp_call_function_single(). Not tested,
-but it compiles.
+not even compiled.
 
-Cc: Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
+Cc: Hirokazu Takata <takata-TMSiXQfHlQjsTix1lMzHGQ@public.gmane.org>
 Signed-off-by: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
 ---
- arch/mips/Kconfig              |    5 ++
- arch/mips/kernel/smp-mt.c      |   27 ++++++++-
- arch/mips/kernel/smp.c         |  133 +++-------------------------------------
- arch/mips/kernel/smtc.c        |    7 ++
- arch/mips/sibyte/bcm1480/smp.c |    3 +
- arch/mips/sibyte/sb1250/smp.c  |    2 +
- include/asm-mips/smp.h         |   12 +---
- 7 files changed, 53 insertions(+), 136 deletions(-)
+ arch/m32r/Kconfig        |    5 ++
+ arch/m32r/kernel/smp.c   |  128 +++++-----------------------------------------
+ arch/m32r/kernel/traps.c |    3 +-
+ include/asm-m32r/smp.h   |    1 +
+ 4 files changed, 21 insertions(+), 116 deletions(-)
 
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index 8724ed3..6fdf0f1 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -1669,6 +1669,11 @@ config GENERIC_IRQ_PROBE
+diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
+index de153de..14d56f9 100644
+--- a/arch/m32r/Kconfig
++++ b/arch/m32r/Kconfig
+@@ -30,6 +30,11 @@ config GENERIC_IRQ_PROBE
  	bool
  	default y
  
@@ -39,143 +36,104 @@ index 8724ed3..6fdf0f1 100644
 +	depends on SMP
 +	default y
 +
- config IRQ_PER_CPU
- 	bool
+ config NO_IOPORT
+ 	def_bool y
  
-diff --git a/arch/mips/kernel/smp-mt.c b/arch/mips/kernel/smp-mt.c
-index 89e6f6a..31049fc 100644
---- a/arch/mips/kernel/smp-mt.c
-+++ b/arch/mips/kernel/smp-mt.c
-@@ -38,8 +38,9 @@
+diff --git a/arch/m32r/kernel/smp.c b/arch/m32r/kernel/smp.c
+index c837bc1..74eb7bc 100644
+--- a/arch/m32r/kernel/smp.c
++++ b/arch/m32r/kernel/smp.c
+@@ -35,22 +35,6 @@
+ /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
  
- #define MIPS_CPU_IPI_RESCHED_IRQ 0
- #define MIPS_CPU_IPI_CALL_IRQ 1
-+#define MIPS_CPU_IPI_CALL_SINGLE_IRQ 2
- 
--static int cpu_ipi_resched_irq, cpu_ipi_call_irq;
-+static int cpu_ipi_resched_irq, cpu_ipi_call_irq, cpu_ipi_call_single_irq;
- 
- #if 0
- static void dump_mtregisters(int vpe, int tc)
-@@ -115,6 +116,11 @@ static void ipi_call_dispatch(void)
- 	do_IRQ(MIPS_CPU_IRQ_BASE + MIPS_CPU_IPI_CALL_IRQ);
- }
- 
-+static void ipi_call_single_dispatch(void)
-+{
-+	do_IRQ(MIPS_CPU_IRQ_BASE + MIPS_CPU_IPI_CALL_SINGLE_IRQ);
-+}
-+
- static irqreturn_t ipi_resched_interrupt(int irq, void *dev_id)
- {
- 	return IRQ_HANDLED;
-@@ -127,6 +133,13 @@ static irqreturn_t ipi_call_interrupt(int irq, void *dev_id)
- 	return IRQ_HANDLED;
- }
- 
-+static irqreturn_t ipi_call_single_interrupt(int irq, void *dev_id)
-+{
-+	smp_call_function_single_interrupt();
-+
-+	return IRQ_HANDLED;
-+}
-+
- static struct irqaction irq_resched = {
- 	.handler	= ipi_resched_interrupt,
- 	.flags		= IRQF_DISABLED|IRQF_PERCPU,
-@@ -139,6 +152,12 @@ static struct irqaction irq_call = {
- 	.name		= "IPI_call"
- };
- 
-+static struct irqaction irq_call_single = {
-+	.handler	= ipi_call_single_interrupt,
-+	.flags		= IRQF_DISABLED|IRQF_PERCPU,
-+	.name		= "IPI_call_single"
-+};
-+
- static void __init smp_copy_vpe_config(void)
- {
- 	write_vpe_c0_status(
-@@ -376,16 +395,22 @@ static void __init vsmp_prepare_cpus(unsigned int max_cpus)
- 	if (cpu_has_vint) {
- 		set_vi_handler(MIPS_CPU_IPI_RESCHED_IRQ, ipi_resched_dispatch);
- 		set_vi_handler(MIPS_CPU_IPI_CALL_IRQ, ipi_call_dispatch);
-+		set_vi_handler(MIPS_CPU_IPI_CALL_SINGLE_IRQ,
-+					ipi_call_single_dispatch);
- 	}
- 
- 	cpu_ipi_resched_irq = MIPS_CPU_IRQ_BASE + MIPS_CPU_IPI_RESCHED_IRQ;
- 	cpu_ipi_call_irq = MIPS_CPU_IRQ_BASE + MIPS_CPU_IPI_CALL_IRQ;
-+	cpu_ipi_call_single_irq = MIPS_CPU_IRQ_BASE +
-+						MIPS_CPU_IPI_CALL_SINGLE_IRQ;
- 
- 	setup_irq(cpu_ipi_resched_irq, &irq_resched);
- 	setup_irq(cpu_ipi_call_irq, &irq_call);
-+	setup_irq(cpu_ipi_call_single_irq, &irq_call_single);
- 
- 	set_irq_handler(cpu_ipi_resched_irq, handle_percpu_irq);
- 	set_irq_handler(cpu_ipi_call_irq, handle_percpu_irq);
-+	set_irq_handler(cpu_ipi_call_single_irq, handle_percpu_irq);
- }
- 
- struct plat_smp_ops vsmp_smp_ops = {
-diff --git a/arch/mips/kernel/smp.c b/arch/mips/kernel/smp.c
-index 9d41dab..931c0d9 100644
---- a/arch/mips/kernel/smp.c
-+++ b/arch/mips/kernel/smp.c
-@@ -128,145 +128,28 @@ asmlinkage __cpuinit void start_secondary(void)
- 	cpu_idle();
- }
- 
--DEFINE_SPINLOCK(smp_call_lock);
+ /*
+- * Structure and data for smp_call_function(). This is designed to minimise
+- * static memory requirements. It also looks cleaner.
+- */
+-static DEFINE_SPINLOCK(call_lock);
 -
--struct call_data_struct *call_data;
+-struct call_data_struct {
+-	void (*func) (void *info);
+-	void *info;
+-	atomic_t started;
+-	atomic_t finished;
+-	int wait;
+-} __attribute__ ((__aligned__(SMP_CACHE_BYTES)));
+-
+-static struct call_data_struct *call_data;
 -
 -/*
-- * Run a function on all other CPUs.
+  * For flush_cache_all()
+  */
+ static DEFINE_SPINLOCK(flushcache_lock);
+@@ -96,9 +80,6 @@ void smp_invalidate_interrupt(void);
+ void smp_send_stop(void);
+ static void stop_this_cpu(void *);
+ 
+-int smp_call_function(void (*) (void *), void *, int, int);
+-void smp_call_function_interrupt(void);
+-
+ void smp_send_timer(void);
+ void smp_ipi_timer_interrupt(struct pt_regs *);
+ void smp_local_timer_interrupt(void);
+@@ -565,86 +546,14 @@ static void stop_this_cpu(void *dummy)
+ 	for ( ; ; );
+ }
+ 
+-/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+-/* Call function Routines                                                    */
+-/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+-
+-/*==========================================================================*
+- * Name:         smp_call_function
 - *
-- *  <mask>	cpuset_t of all processors to run the function on.
-- *  <func>      The function to run. This must be fast and non-blocking.
-- *  <info>      An arbitrary pointer to pass to the function.
-- *  <retry>     If true, keep retrying until ready.
-- *  <wait>      If true, wait until function has completed on other CPUs.
-- *  [RETURNS]   0 on success, else a negative status code.
+- * Description:  This routine sends a 'CALL_FUNCTION_IPI' to all other CPUs
+- *               in the system.
 - *
-- * Does not return until remote CPUs are nearly ready to execute <func>
-- * or are or have executed.
+- * Born on Date: 2002.02.05
 - *
-- * You must not call this function with disabled interrupts or from a
-- * hardware interrupt handler or from a bottom half handler:
+- * Arguments:    *func - The function to run. This must be fast and
+- *                       non-blocking.
+- *               *info - An arbitrary pointer to pass to the function.
+- *               nonatomic - currently unused.
+- *               wait - If true, wait (atomically) until function has
+- *                      completed on other CPUs.
 - *
-- * CPU A                               CPU B
-- * Disable interrupts
-- *                                     smp_call_function()
-- *                                     Take call_lock
-- *                                     Send IPIs
-- *                                     Wait for all cpus to acknowledge IPI
-- *                                     CPU A has not responded, spin waiting
-- *                                     for cpu A to respond, holding call_lock
-- * smp_call_function()
-- * Spin waiting for call_lock
-- * Deadlock                            Deadlock
-- */
--int smp_call_function_mask(cpumask_t mask, void (*func) (void *info),
--	void *info, int retry, int wait)
+- * Returns:      0 on success, else a negative status code. Does not return
+- *               until remote CPUs are nearly ready to execute <<func>> or
+- *               are or have executed.
+- *
+- * Cautions:     You must not call this function with disabled interrupts or
+- *               from a hardware interrupt handler, you may call it from a
+- *               bottom half handler.
+- *
+- * Modification log:
+- * Date       Who Description
+- * ---------- --- --------------------------------------------------------
+- *
+- *==========================================================================*/
+-int smp_call_function(void (*func) (void *info), void *info, int nonatomic,
+-	int wait)
 +void arch_send_call_function_ipi(cpumask_t mask)
  {
 -	struct call_data_struct data;
--	int cpu = smp_processor_id();
 -	int cpus;
 -
--	/*
--	 * Can die spectacularly if this CPU isn't yet marked online
--	 */
--	BUG_ON(!cpu_online(cpu));
+-#ifdef DEBUG_SMP
+-	unsigned long flags;
+-	__save_flags(flags);
+-	if (!(flags & 0x0040))	/* Interrupt Disable NONONO */
+-		BUG();
+-#endif /* DEBUG_SMP */
 -
--	cpu_clear(cpu, mask);
--	cpus = cpus_weight(mask);
--	if (!cpus)
+-	/* Holding any lock stops cpus from going down. */
+-	spin_lock(&call_lock);
+-	cpus = num_online_cpus() - 1;
+-
+-	if (!cpus) {
+-		spin_unlock(&call_lock);
 -		return 0;
+-	}
 -
 -	/* Can deadlock when called with interrupts disabled */
 -	WARN_ON(irqs_disabled());
@@ -187,35 +145,32 @@ index 9d41dab..931c0d9 100644
 -	if (wait)
 -		atomic_set(&data.finished, 0);
 -
--	spin_lock(&smp_call_lock);
 -	call_data = &data;
--	smp_mb();
+-	mb();
 -
 -	/* Send a message to all other CPUs and wait for them to respond */
- 	mp_ops->send_ipi_mask(mask, SMP_CALL_FUNCTION);
+-	send_IPI_allbutself(CALL_FUNCTION_IPI, 0);
 -
 -	/* Wait for response */
--	/* FIXME: lock-up detection, backtrace on lock-up */
 -	while (atomic_read(&data.started) != cpus)
 -		barrier();
 -
 -	if (wait)
 -		while (atomic_read(&data.finished) != cpus)
 -			barrier();
--	call_data = NULL;
--	spin_unlock(&smp_call_lock);
--
+-	spin_unlock(&call_lock);
++	send_IPI_mask(mask, CALL_FUNCTION_IPI, 0);
++}
+ 
 -	return 0;
- }
- 
--int smp_call_function(void (*func) (void *info), void *info, int retry,
--	int wait)
 +void arch_send_call_function_single_ipi(int cpu)
- {
--	return smp_call_function_mask(cpu_online_map, func, info, retry, wait);
-+	mp_ops->send_ipi_mask(cpumask_of_cpu(cpu), SMP_CALL_FUNCTION_SINGLE);
++{
++	send_IPI_mask(cpumask_of_cpu(cpu), CALL_FUNC_SINGLE_IPI, 0);
  }
  
+ /*==========================================================================*
+@@ -666,27 +575,16 @@ int smp_call_function(void (*func) (void *info), void *info, int nonatomic,
+  *==========================================================================*/
  void smp_call_function_interrupt(void)
  {
 -	void (*func) (void *info) = call_data->func;
@@ -224,144 +179,63 @@ index 9d41dab..931c0d9 100644
 -
 -	/*
 -	 * Notify initiating CPU that I've grabbed the data and am
--	 * about to execute the function.
+-	 * about to execute the function
 -	 */
--	smp_mb();
+-	mb();
 -	atomic_inc(&call_data->started);
--
 -	/*
--	 * At this point the info structure may be out of scope unless wait==1.
+-	 * At this point the info structure may be out of scope unless wait==1
 -	 */
  	irq_enter();
 -	(*func)(info);
 +	generic_smp_call_function_interrupt();
  	irq_exit();
--
++}
+ 
 -	if (wait) {
--		smp_mb();
+-		mb();
 -		atomic_inc(&call_data->finished);
 -	}
- }
- 
--int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
--			     int retry, int wait)
 +void smp_call_function_single_interrupt(void)
- {
--	int ret, me;
--
--	/*
--	 * Can die spectacularly if this CPU isn't yet marked online
--	 */
--	if (!cpu_online(cpu))
--		return 0;
--
--	me = get_cpu();
--	BUG_ON(!cpu_online(me));
--
--	if (cpu == me) {
--		local_irq_disable();
--		func(info);
--		local_irq_enable();
--		put_cpu();
--		return 0;
--	}
--
--	ret = smp_call_function_mask(cpumask_of_cpu(cpu), func, info, retry,
--				     wait);
--
--	put_cpu();
--	return 0;
++{
 +	irq_enter();
 +	generic_smp_call_function_single_interrupt();
 +	irq_exit();
  }
  
- static void stop_this_cpu(void *dummy)
-diff --git a/arch/mips/kernel/smtc.c b/arch/mips/kernel/smtc.c
-index b42e71c..434605f 100644
---- a/arch/mips/kernel/smtc.c
-+++ b/arch/mips/kernel/smtc.c
-@@ -884,6 +884,10 @@ static void ipi_resched_interrupt(void)
- 	/* Return from interrupt should be enough to cause scheduler check */
- }
- 
-+static void ipi_call_single_interrupt(void)
-+{
-+	smp_call_function_single_interrupt();
-+}
- 
- static void ipi_call_interrupt(void)
- {
-@@ -924,6 +928,9 @@ void ipi_decode(struct smtc_ipi *pipi)
- 		case SMP_CALL_FUNCTION:
- 			ipi_call_interrupt();
- 			break;
-+		case SMP_CALL_FUNCTION_SINGLE:
-+			ipi_call_single_interrupt();
-+			break;
- 		default:
- 			printk("Impossible SMTC IPI Argument 0x%x\n",
- 				(int)arg_copy);
-diff --git a/arch/mips/sibyte/bcm1480/smp.c b/arch/mips/sibyte/bcm1480/smp.c
-index bd9eeb4..76d36ff 100644
---- a/arch/mips/sibyte/bcm1480/smp.c
-+++ b/arch/mips/sibyte/bcm1480/smp.c
-@@ -29,6 +29,7 @@
- #include <asm/sibyte/bcm1480_int.h>
- 
+ /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+diff --git a/arch/m32r/kernel/traps.c b/arch/m32r/kernel/traps.c
+index 89ba4a0..46159a4 100644
+--- a/arch/m32r/kernel/traps.c
++++ b/arch/m32r/kernel/traps.c
+@@ -40,6 +40,7 @@ extern void smp_invalidate_interrupt(void);
  extern void smp_call_function_interrupt(void);
+ extern void smp_ipi_timer_interrupt(void);
+ extern void smp_flush_cache_all_interrupt(void);
 +extern void smp_call_function_single_interrupt(void);
  
  /*
-  * These are routines for dealing with the bcm1480 smp capabilities
-@@ -194,4 +195,6 @@ void bcm1480_mailbox_interrupt(void)
+  * for Boot AP function
+@@ -103,7 +104,7 @@ void	set_eit_vector_entries(void)
+ 	eit_vector[186] = (unsigned long)smp_call_function_interrupt;
+ 	eit_vector[187] = (unsigned long)smp_ipi_timer_interrupt;
+ 	eit_vector[188] = (unsigned long)smp_flush_cache_all_interrupt;
+-	eit_vector[189] = 0;
++	eit_vector[189] = (unsigned long)smp_call_function_single_interrupt;
+ 	eit_vector[190] = 0;
+ 	eit_vector[191] = 0;
+ #endif
+diff --git a/include/asm-m32r/smp.h b/include/asm-m32r/smp.h
+index 078e1a5..6a7f3af 100644
+--- a/include/asm-m32r/smp.h
++++ b/include/asm-m32r/smp.h
+@@ -104,6 +104,7 @@ extern unsigned long send_IPI_mask_phys(cpumask_t, int, int);
+ #define LOCAL_TIMER_IPI		(M32R_IRQ_IPI3-M32R_IRQ_IPI0)
+ #define INVALIDATE_CACHE_IPI	(M32R_IRQ_IPI4-M32R_IRQ_IPI0)
+ #define CPU_BOOT_IPI		(M32R_IRQ_IPI5-M32R_IRQ_IPI0)
++#define CALL_FUNC_SINGLE_IPI	(M32R_IRQ_IPI6-M32R_IRQ_IPI0)
  
- 	if (action & SMP_CALL_FUNCTION)
- 		smp_call_function_interrupt();
-+	else if (action & SMP_CALL_FUNCTION_SINGLE)
-+		smp_call_function_single_interrupt();
- }
-diff --git a/arch/mips/sibyte/sb1250/smp.c b/arch/mips/sibyte/sb1250/smp.c
-index 0734b93..8742127 100644
---- a/arch/mips/sibyte/sb1250/smp.c
-+++ b/arch/mips/sibyte/sb1250/smp.c
-@@ -182,4 +182,6 @@ void sb1250_mailbox_interrupt(void)
- 
- 	if (action & SMP_CALL_FUNCTION)
- 		smp_call_function_interrupt();
-+	else if (action & SMP_CALL_FUNCTION_SINGLE)
-+		smp_call_function_single_interrupt();
- }
-diff --git a/include/asm-mips/smp.h b/include/asm-mips/smp.h
-index 84fef1a..d35c0ad 100644
---- a/include/asm-mips/smp.h
-+++ b/include/asm-mips/smp.h
-@@ -35,18 +35,9 @@ extern int __cpu_logical_map[NR_CPUS];
- 
- #define NO_PROC_ID	(-1)
- 
--struct call_data_struct {
--	void		(*func)(void *);
--	void		*info;
--	atomic_t	started;
--	atomic_t	finished;
--	int		wait;
--};
--
--extern struct call_data_struct *call_data;
--
- #define SMP_RESCHEDULE_YOURSELF	0x1	/* XXX braindead */
- #define SMP_CALL_FUNCTION	0x2
-+#define SMP_CALL_FUNCTION_SINGLE	0x4
- 
- extern cpumask_t phys_cpu_present_map;
- #define cpu_possible_map	phys_cpu_present_map
-@@ -66,5 +57,6 @@ static inline void smp_send_reschedule(int cpu)
- }
- 
- extern asmlinkage void smp_call_function_interrupt(void);
-+extern asmlinkage void smp_call_function_single_interrupt(void);
- 
- #endif /* __ASM_SMP_H */
+ #define IPI_SHIFT	(0)
+ #define NR_IPIS		(8)
 -- 
 1.5.5.49.gf43e2
