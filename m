@@ -1,48 +1,256 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:27654 "EHLO kernel.dk"
+Received: from brick.kernel.dk ([87.55.233.238]:27611 "EHLO kernel.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1764160AbYDVSvU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 14:51:20 -0400
-Date: Tue, 22 Apr 2008 20:51:12 +0200
+	id S1757350AbYDVSt6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 14:49:58 -0400
 From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 3/11] powerpc: convert to generic helpers for IPI function calls
-Message-ID: <20080422185111.GS12774@kernel.dk>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-4-git-send-email-jens.axboe@oracle.com> <18445.54284.194023.553595@cargo.ozlabs.ibm.com> <20080422121315.GE12774@kernel.dk> <18445.56653.957832.720681@cargo.ozlabs.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <18445.56653.957832.720681@cargo.ozlabs.ibm.com>
+Subject: [PATCH 11/11] s390: convert to generic helpers for IPI function calls
+Date: Tue, 22 Apr 2008 20:50:27 +0200
+Message-ID: <1208890227-24808-12-git-send-email-jens.axboe@oracle.com>
+In-Reply-To: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
+References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, anton@samba.org
-Message-ID: <20080422185112.3uG6qzbArFdJQ3LJSHnxZaE6thNM-aZfKc0X_AnVC74@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
+Cc: peterz@infradead.org, sam@ravnborg.org, Jens Axboe <jens.axboe@oracle.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20080422185027.B0otdKQCuybBI2Q4Ky1sIeJQA7oHs98QDPoBKKNrhfE@z>
 
-On Tue, Apr 22 2008, Paul Mackerras wrote:
-> Jens Axboe writes:
-> 
-> > I touched on both of these points in the initial mail, but perhaps you
-> > missed it as I didn't CC everyone for the 0/11 part. I'll add the full
-> > explanation to the 1/11 patch as well.
-> 
-> OK, that would be fine.  I didn't read right to the end of the 0/11
-> mail in detail, I admit. :)
+This converts s390 to use the new helpers for smp_call_function() and
+friends, and adds support for smp_call_function_single(). Not tested,
+but it compiles.
 
-I don't blame you :-)
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
+---
+ arch/s390/Kconfig       |    1 +
+ arch/s390/kernel/smp.c  |  160 +++--------------------------------------------
+ include/asm-s390/sigp.h |    1 +
+ include/asm-s390/smp.h  |    2 -
+ 4 files changed, 10 insertions(+), 154 deletions(-)
 
-> Now that I have, I don't see anything about smp_send_stop trying to
-> get the interrupt sent off in a panic situation when some other cpu
-> might be stuck holding the lock (unless that's the "ipi_lock is a
-> little muddy" part, but that only talks about cpu onlining).  That bit
-> looks to be powerpc-specific, added in commit e057d985 in December
-> 2007, so perhaps a mention that that has gone away now in the
-> description for 3/11 would be good.
-
-Oh that, yes I'll add a description. I didn't really think there was
-much need for it anymore, but it should at least be documented. The
-ipi_lock stuff was really more about stopping IPIs completely, not the
-smp_send_stop() panic() you described.
-
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index f6a68e1..b8f5fda 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -90,6 +90,7 @@ config 32BIT
+ 
+ config SMP
+ 	bool "Symmetric multi-processing support"
++	select USE_GENERIC_SMP_HELPERS
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, like most personal computers, say N. If
+diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
+index 0dfa988..2ee3484 100644
+--- a/arch/s390/kernel/smp.c
++++ b/arch/s390/kernel/smp.c
+@@ -77,164 +77,18 @@ static DEFINE_PER_CPU(struct cpu, cpu_devices);
+ 
+ static void smp_ext_bitcall(int, ec_bit_sig);
+ 
+-/*
+- * Structure and data for __smp_call_function_map(). This is designed to
+- * minimise static memory requirements. It also looks cleaner.
+- */
+-static DEFINE_SPINLOCK(call_lock);
+-
+-struct call_data_struct {
+-	void (*func) (void *info);
+-	void *info;
+-	cpumask_t started;
+-	cpumask_t finished;
+-	int wait;
+-};
+-
+-static struct call_data_struct *call_data;
+-
+-/*
+- * 'Call function' interrupt callback
+- */
+-static void do_call_function(void)
++void arch_send_call_function_ipi(cpumask_t mask)
+ {
+-	void (*func) (void *info) = call_data->func;
+-	void *info = call_data->info;
+-	int wait = call_data->wait;
+-
+-	cpu_set(smp_processor_id(), call_data->started);
+-	(*func)(info);
+-	if (wait)
+-		cpu_set(smp_processor_id(), call_data->finished);;
+-}
+-
+-static void __smp_call_function_map(void (*func) (void *info), void *info,
+-				    int nonatomic, int wait, cpumask_t map)
+-{
+-	struct call_data_struct data;
+-	int cpu, local = 0;
+-
+-	/*
+-	 * Can deadlock when interrupts are disabled or if in wrong context.
+-	 */
+-	WARN_ON(irqs_disabled() || in_irq());
+-
+-	/*
+-	 * Check for local function call. We have to have the same call order
+-	 * as in on_each_cpu() because of machine_restart_smp().
+-	 */
+-	if (cpu_isset(smp_processor_id(), map)) {
+-		local = 1;
+-		cpu_clear(smp_processor_id(), map);
+-	}
+-
+-	cpus_and(map, map, cpu_online_map);
+-	if (cpus_empty(map))
+-		goto out;
+-
+-	data.func = func;
+-	data.info = info;
+-	data.started = CPU_MASK_NONE;
+-	data.wait = wait;
+-	if (wait)
+-		data.finished = CPU_MASK_NONE;
+-
+-	spin_lock(&call_lock);
+-	call_data = &data;
++	int cpu;
+ 
+-	for_each_cpu_mask(cpu, map)
++	for_each_cpu_mask(cpu, mask)
+ 		smp_ext_bitcall(cpu, ec_call_function);
+-
+-	/* Wait for response */
+-	while (!cpus_equal(map, data.started))
+-		cpu_relax();
+-	if (wait)
+-		while (!cpus_equal(map, data.finished))
+-			cpu_relax();
+-	spin_unlock(&call_lock);
+-out:
+-	if (local) {
+-		local_irq_disable();
+-		func(info);
+-		local_irq_enable();
+-	}
+ }
+ 
+-/*
+- * smp_call_function:
+- * @func: the function to run; this must be fast and non-blocking
+- * @info: an arbitrary pointer to pass to the function
+- * @nonatomic: unused
+- * @wait: if true, wait (atomically) until function has completed on other CPUs
+- *
+- * Run a function on all other CPUs.
+- *
+- * You must not call this function with disabled interrupts, from a
+- * hardware interrupt handler or from a bottom half.
+- */
+-int smp_call_function(void (*func) (void *info), void *info, int nonatomic,
+-		      int wait)
++void arch_send_call_function_single_ipi(int cpu)
+ {
+-	cpumask_t map;
+-
+-	preempt_disable();
+-	map = cpu_online_map;
+-	cpu_clear(smp_processor_id(), map);
+-	__smp_call_function_map(func, info, nonatomic, wait, map);
+-	preempt_enable();
+-	return 0;
+-}
+-EXPORT_SYMBOL(smp_call_function);
+-
+-/*
+- * smp_call_function_single:
+- * @cpu: the CPU where func should run
+- * @func: the function to run; this must be fast and non-blocking
+- * @info: an arbitrary pointer to pass to the function
+- * @nonatomic: unused
+- * @wait: if true, wait (atomically) until function has completed on other CPUs
+- *
+- * Run a function on one processor.
+- *
+- * You must not call this function with disabled interrupts, from a
+- * hardware interrupt handler or from a bottom half.
+- */
+-int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
+-			     int nonatomic, int wait)
+-{
+-	preempt_disable();
+-	__smp_call_function_map(func, info, nonatomic, wait,
+-				cpumask_of_cpu(cpu));
+-	preempt_enable();
+-	return 0;
+-}
+-EXPORT_SYMBOL(smp_call_function_single);
+-
+-/**
+- * smp_call_function_mask(): Run a function on a set of other CPUs.
+- * @mask: The set of cpus to run on.  Must not include the current cpu.
+- * @func: The function to run. This must be fast and non-blocking.
+- * @info: An arbitrary pointer to pass to the function.
+- * @wait: If true, wait (atomically) until function has completed on other CPUs.
+- *
+- * Returns 0 on success, else a negative status code.
+- *
+- * If @wait is true, then returns once @func has returned; otherwise
+- * it returns just before the target cpu calls @func.
+- *
+- * You must not call this function with disabled interrupts or from a
+- * hardware interrupt handler or from a bottom half handler.
+- */
+-int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
+-			   int wait)
+-{
+-	preempt_disable();
+-	cpu_clear(smp_processor_id(), mask);
+-	__smp_call_function_map(func, info, 0, wait, mask);
+-	preempt_enable();
+-	return 0;
++	smp_ext_bitcall(cpu, ec_call_function_single);
+ }
+-EXPORT_SYMBOL(smp_call_function_mask);
+ 
+ void smp_send_stop(void)
+ {
+@@ -277,7 +131,9 @@ static void do_ext_call_interrupt(__u16 code)
+ 	bits = xchg(&S390_lowcore.ext_call_fast, 0);
+ 
+ 	if (test_bit(ec_call_function, &bits))
+-		do_call_function();
++		generic_smp_call_function_interrupt();
++	else if (test_bit(ec_call_function_single, &bits))
++		generic_smp_call_function_single_interrupt();
+ }
+ 
+ /*
+diff --git a/include/asm-s390/sigp.h b/include/asm-s390/sigp.h
+index e16d56f..ec403d4 100644
+--- a/include/asm-s390/sigp.h
++++ b/include/asm-s390/sigp.h
+@@ -61,6 +61,7 @@ typedef enum
+ {
+ 	ec_schedule=0,
+ 	ec_call_function,
++	ec_call_function_single,
+ 	ec_bit_last
+ } ec_bit_sig;
+ 
+diff --git a/include/asm-s390/smp.h b/include/asm-s390/smp.h
+index 6f3821a..ae0d0b5 100644
+--- a/include/asm-s390/smp.h
++++ b/include/asm-s390/smp.h
+@@ -93,8 +93,6 @@ extern int __cpu_up (unsigned int cpu);
+ extern struct mutex smp_cpu_state_mutex;
+ extern int smp_cpu_polarization[];
+ 
+-extern int smp_call_function_mask(cpumask_t mask, void (*func)(void *),
+-	void *info, int wait);
+ #endif
+ 
+ #ifndef CONFIG_SMP
 -- 
-Jens Axboe
+1.5.5.1.57.g5909c
 
