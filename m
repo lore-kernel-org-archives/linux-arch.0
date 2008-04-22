@@ -1,218 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:27598 "EHLO kernel.dk"
+Received: from brick.kernel.dk ([87.55.233.238]:27654 "EHLO kernel.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755730AbYDVSt5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 14:49:57 -0400
+	id S1764160AbYDVSvU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 14:51:20 -0400
+Date: Tue, 22 Apr 2008 20:51:12 +0200
 From: Jens Axboe <jens.axboe@oracle.com>
-Subject: [PATCH 9/11] parisc: convert to generic helpers for IPI function calls
-Date: Tue, 22 Apr 2008 20:50:25 +0200
-Message-ID: <1208890227-24808-10-git-send-email-jens.axboe@oracle.com>
-In-Reply-To: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
+Subject: Re: [PATCH 3/11] powerpc: convert to generic helpers for IPI function calls
+Message-ID: <20080422185111.GS12774@kernel.dk>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-4-git-send-email-jens.axboe@oracle.com> <18445.54284.194023.553595@cargo.ozlabs.ibm.com> <20080422121315.GE12774@kernel.dk> <18445.56653.957832.720681@cargo.ozlabs.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <18445.56653.957832.720681@cargo.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
-Cc: peterz@infradead.org, sam@ravnborg.org, Jens Axboe <jens.axboe@oracle.com>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>
-Message-ID: <20080422185025.hi7bx0a9iFeP6NK75UtSx1mNEJMFdESx83gY5tzDNEI@z>
+To: Paul Mackerras <paulus@samba.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, anton@samba.org
+Message-ID: <20080422185112.3uG6qzbArFdJQ3LJSHnxZaE6thNM-aZfKc0X_AnVC74@z>
 
-This converts parisc to use the new helpers for smp_call_function() and
-friends, and adds support for smp_call_function_single(). Not tested,
-not even compiled.
+On Tue, Apr 22 2008, Paul Mackerras wrote:
+> Jens Axboe writes:
+> 
+> > I touched on both of these points in the initial mail, but perhaps you
+> > missed it as I didn't CC everyone for the 0/11 part. I'll add the full
+> > explanation to the 1/11 patch as well.
+> 
+> OK, that would be fine.  I didn't read right to the end of the 0/11
+> mail in detail, I admit. :)
 
-Cc: Kyle McMartin <kyle@parisc-linux.org>
-Cc: Matthew Wilcox <matthew@wil.cx>
-Cc: Grant Grundler <grundler@parisc-linux.org>
-Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
----
- arch/parisc/Kconfig      |    1 +
- arch/parisc/kernel/smp.c |  134 +++++++--------------------------------------
- 2 files changed, 22 insertions(+), 113 deletions(-)
+I don't blame you :-)
 
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index bc7a19d..a7d4fd3 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -199,6 +199,7 @@ endchoice
- 
- config SMP
- 	bool "Symmetric multi-processing support"
-+	select USE_GENERIC_SMP_HELPERS
- 	---help---
- 	  This enables support for systems with more than one CPU. If you have
- 	  a system with only one CPU, like most personal computers, say N. If
-diff --git a/arch/parisc/kernel/smp.c b/arch/parisc/kernel/smp.c
-index 85fc775..126105c 100644
---- a/arch/parisc/kernel/smp.c
-+++ b/arch/parisc/kernel/smp.c
-@@ -84,19 +84,11 @@ EXPORT_SYMBOL(cpu_possible_map);
- 
- DEFINE_PER_CPU(spinlock_t, ipi_lock) = SPIN_LOCK_UNLOCKED;
- 
--struct smp_call_struct {
--	void (*func) (void *info);
--	void *info;
--	long wait;
--	atomic_t unstarted_count;
--	atomic_t unfinished_count;
--};
--static volatile struct smp_call_struct *smp_call_function_data;
--
- enum ipi_message_type {
- 	IPI_NOP=0,
- 	IPI_RESCHEDULE=1,
- 	IPI_CALL_FUNC,
-+	IPI_CALL_FUNC_SINGLE,
- 	IPI_CPU_START,
- 	IPI_CPU_STOP,
- 	IPI_CPU_TEST
-@@ -187,33 +179,12 @@ ipi_interrupt(int irq, void *dev_id)
- 
- 			case IPI_CALL_FUNC:
- 				smp_debug(100, KERN_DEBUG "CPU%d IPI_CALL_FUNC\n", this_cpu);
--				{
--					volatile struct smp_call_struct *data;
--					void (*func)(void *info);
--					void *info;
--					int wait;
--
--					data = smp_call_function_data;
--					func = data->func;
--					info = data->info;
--					wait = data->wait;
--
--					mb();
--					atomic_dec ((atomic_t *)&data->unstarted_count);
--
--					/* At this point, *data can't
--					 * be relied upon.
--					 */
--
--					(*func)(info);
--
--					/* Notify the sending CPU that the
--					 * task is done.
--					 */
--					mb();
--					if (wait)
--						atomic_dec ((atomic_t *)&data->unfinished_count);
--				}
-+				generic_smp_call_function_interrupt();
-+				break;
-+
-+			case IPI_CALL_FUNC_SINGLE:
-+				smp_debug(100, KERN_DEBUG "CPU%d IPI_CALL_FUNC_SINGLE\n", this_cpu);
-+				generic_smp_call_function_single_interrupt();
- 				break;
- 
- 			case IPI_CPU_START:
-@@ -256,6 +227,14 @@ ipi_send(int cpu, enum ipi_message_type op)
- 	spin_unlock_irqrestore(lock, flags);
- }
- 
-+static void
-+send_IPI_mask(cpumask_t mask, enum ipi_message_type op)
-+{
-+	int cpu;
-+
-+	for_each_cpu_mask(cpu, mask)
-+		ipi_send(cpu, op);
-+}
- 
- static inline void
- send_IPI_single(int dest_cpu, enum ipi_message_type op)
-@@ -295,86 +274,15 @@ smp_send_all_nop(void)
- 	send_IPI_allbutself(IPI_NOP);
- }
- 
--
--/**
-- * Run a function on all other CPUs.
-- *  <func>	The function to run. This must be fast and non-blocking.
-- *  <info>	An arbitrary pointer to pass to the function.
-- *  <retry>	If true, keep retrying until ready.
-- *  <wait>	If true, wait until function has completed on other CPUs.
-- *  [RETURNS]   0 on success, else a negative status code.
-- *
-- * Does not return until remote CPUs are nearly ready to execute <func>
-- * or have executed.
-- */
--
--int
--smp_call_function (void (*func) (void *info), void *info, int retry, int wait)
-+void arch_send_call_function_ipi(cpumask_t mask)
- {
--	struct smp_call_struct data;
--	unsigned long timeout;
--	static DEFINE_SPINLOCK(lock);
--	int retries = 0;
--
--	if (num_online_cpus() < 2)
--		return 0;
--
--	/* Can deadlock when called with interrupts disabled */
--	WARN_ON(irqs_disabled());
--
--	/* can also deadlock if IPIs are disabled */
--	WARN_ON((get_eiem() & (1UL<<(CPU_IRQ_MAX - IPI_IRQ))) == 0);
--
--	
--	data.func = func;
--	data.info = info;
--	data.wait = wait;
--	atomic_set(&data.unstarted_count, num_online_cpus() - 1);
--	atomic_set(&data.unfinished_count, num_online_cpus() - 1);
--
--	if (retry) {
--		spin_lock (&lock);
--		while (smp_call_function_data != 0)
--			barrier();
--	}
--	else {
--		spin_lock (&lock);
--		if (smp_call_function_data) {
--			spin_unlock (&lock);
--			return -EBUSY;
--		}
--	}
--
--	smp_call_function_data = &data;
--	spin_unlock (&lock);
--	
--	/*  Send a message to all other CPUs and wait for them to respond  */
--	send_IPI_allbutself(IPI_CALL_FUNC);
--
-- retry:
--	/*  Wait for response  */
--	timeout = jiffies + HZ;
--	while ( (atomic_read (&data.unstarted_count) > 0) &&
--		time_before (jiffies, timeout) )
--		barrier ();
--
--	if (atomic_read (&data.unstarted_count) > 0) {
--		printk(KERN_CRIT "SMP CALL FUNCTION TIMED OUT! (cpu=%d), try %d\n",
--		      smp_processor_id(), ++retries);
--		goto retry;
--	}
--	/* We either got one or timed out. Release the lock */
--
--	mb();
--	smp_call_function_data = NULL;
--
--	while (wait && atomic_read (&data.unfinished_count) > 0)
--			barrier ();
--
--	return 0;
-+	send_IPI_mask(mask, IPI_CALL_FUNC);
- }
- 
--EXPORT_SYMBOL(smp_call_function);
-+void arch_send_call_function_single_ipi(int cpu)
-+{
-+	send_IPI_single(cpu, IPI_CALL_FUNC_SINGLE);
-+}
- 
- /*
-  * Flush all other CPU's tlb and then mine.  Do this with on_each_cpu()
+> Now that I have, I don't see anything about smp_send_stop trying to
+> get the interrupt sent off in a panic situation when some other cpu
+> might be stuck holding the lock (unless that's the "ipi_lock is a
+> little muddy" part, but that only talks about cpu onlining).  That bit
+> looks to be powerpc-specific, added in commit e057d985 in December
+> 2007, so perhaps a mention that that has gone away now in the
+> description for 3/11 would be good.
+
+Oh that, yes I'll add a description. I didn't really think there was
+much need for it anymore, but it should at least be documented. The
+ipi_lock stuff was really more about stopping IPIs completely, not the
+smp_send_stop() panic() you described.
+
 -- 
-1.5.5.1.57.g5909c
+Jens Axboe
 
