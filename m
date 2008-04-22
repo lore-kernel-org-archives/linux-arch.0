@@ -1,133 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:37248 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753267AbYDVURI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2008 16:17:08 -0400
+Received: from rtr.ca ([76.10.145.34]:2073 "EHLO mail.rtr.ca"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757592AbYDVXMl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 19:12:41 -0400
+Message-ID: <480E70ED.3030701@rtr.ca>
+Date: Tue, 22 Apr 2008 19:12:45 -0400
+From: Mark Lord <lkml@rtr.ca>
+MIME-Version: 1.0
 Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <1208890227-24808-2-git-send-email-jens.axboe@oracle.com>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
-	 <1208890227-24808-2-git-send-email-jens.axboe@oracle.com>
-Content-Type: text/plain
-Date: Tue, 22 Apr 2008 22:17:03 +0200
-Message-ID: <1208895423.7115.290.camel@twins>
-Mime-Version: 1.0
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com>
+In-Reply-To: <1208851058-8500-2-git-send-email-jens.axboe@oracle.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, sam@ravnborg.org
-Message-ID: <20080422201703.CYbNqsEJV14LOS13UWaaGGrI4YXHRLyfmt3SoXGM4OQ@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
+Message-ID: <20080422231245.Ekyh1UCWnxOdGzGaJnO20T0pMy3cYFOtqgQzTejhEIw@z>
 
-On Tue, 2008-04-22 at 20:50 +0200, Jens Axboe wrote:
+Jens,
 
-> +int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
-> +			     int retry, int wait)
-> +{
-> +	unsigned long flags;
-> +	/* prevent preemption and reschedule on another processor */
-> +	int me = get_cpu();
-> +
-> +	/* Can deadlock when called with interrupts disabled */
-> +	WARN_ON(wait && irqs_disabled());
+While you're in there, :)
 
-With this fallback to wait the above condition isn't sufficient.
+Could you perhaps fix this bug (below) if it still exists?
 
-> +	if (cpu == me) {
-> +		local_irq_save(flags);
-> +		func(info);
-> +		local_irq_restore(flags);
-> +	} else {
-> +		struct call_single_data *data;
-> +
-> +		if (wait) {
-> +			struct call_single_data d;
-> +
-> +			data = &d;
-> +			data->flags = CSD_FLAG_WAIT;
-> +		} else {
-> +			data = kmalloc(sizeof(*data), GFP_ATOMIC);
-> +			if (data)
-> +				data->flags = CSD_FLAG_ALLOC;
-> +			else {
-> +				while (test_and_set_bit_lock(0,
-> +							&cfd_fallback_used))
-> +					cpu_relax();
-> +
-> +				data = &cfd_fallback.csd;
-> +				data->flags = CSD_FLAG_FALLBACK;
-> +			}
-> +		}
-> +
-> +		data->func = func;
-> +		data->info = info;
-> +		generic_exec_single(cpu, data);
-> +	}
-> +
-> +	put_cpu();
-> +	return 0;
-> +}
-> +EXPORT_SYMBOL(smp_call_function_single);
-
-
-> +int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
-> +			   int wait)
-> +{
-> +	struct call_function_data *data;
-> +	cpumask_t allbutself;
-> +	unsigned long flags;
-> +	int num_cpus;
-> +
-> +	/* Can deadlock when called with interrupts disabled */
-> +	WARN_ON(wait && irqs_disabled());
-
-idem
-
-> +	allbutself = cpu_online_map;
-> +	cpu_clear(smp_processor_id(), allbutself);
-> +	cpus_and(mask, mask, allbutself);
-> +	num_cpus = cpus_weight(mask);
-> +
-> +	if (!num_cpus)
-> +		return 0;
-> +
-> +	if (wait) {
-> +		struct call_function_data d;
-> +
-> +		data = &d;
-> +		data->csd.flags = CSD_FLAG_WAIT;
-> +	} else {
-> +		data = kmalloc(sizeof(*data), GFP_ATOMIC);
-> +		if (data)
-> +			data->csd.flags = CSD_FLAG_ALLOC;
-> +		else {
-> +			while (test_and_set_bit_lock(0, &cfd_fallback_used))
-> +				cpu_relax();
-> +
-> +			data = &cfd_fallback;
-> +			data->csd.flags = CSD_FLAG_FALLBACK;
-> +		}
-> +	}
-> +
-> +	spin_lock_init(&data->lock);
-> +	data->csd.func = func;
-> +	data->csd.info = info;
-> +	data->refs = num_cpus;
-> +	data->cpumask = mask;
-> +
-> +	spin_lock_irqsave(&call_function_lock, flags);
-> +	list_add_tail_rcu(&data->csd.list, &call_function_queue);
-> +	spin_unlock_irqrestore(&call_function_lock, flags);
-> +
-> +	/* Send a message to all CPUs in the map */
-> +	arch_send_call_function_ipi(mask);
-> +
-> +	/* optionally wait for the CPUs to complete */
-> +	if (wait)
-> +		csd_flag_wait(&data->csd);
-> +
-> +	return 0;
-> +}
-
-
-
+> Date:	Thu, 15 Nov 2007 12:07:48 -0500
+> From: Mark Lord <lkml@rtr.ca>
+> To: Greg KH <gregkh@suse.de>
+> Cc: Yasunori Goto <y-goto@jp.fujitsu.com>,
+> 	Andrew Morton <akpm@linux-foundation.org>,
+> 	Alexey Dobriyan <adobriyan@sw.ru>, linux-kernel@vger.kernel.org
+> Subject: Re: EIP is at device_shutdown+0x32/0x60
+> Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+> Content-Transfer-Encoding: 7bit
+> Sender: linux-kernel-owner@vger.kernel.org
+> 
+> ... < snip > ...
+> 
+> Greg, I don't know if this is relevant or not,
+> but x86 has bugs in the halt/reboot code for SMP.
+> 
+> Specifically, in native_smp_send_stop() the code now uses
+> spin_trylock() to "lock" the shared call buffers,
+> but then ignores the result.
+> 
+> This means that multiple CPUs can/will clobber each other
+> in that code.
+> 
+> The second bug, is that this code does not wait for the
+> target CPUs to actually stop before it continues.
+> 
+> This was the real cause of the failure-to-poweroff problems
+> I was having with 2.6.23, which we fixed by using CPU hotplug
+> to disable_nonboot_cpus() before the above code ever got run.
+> 
+> Maybe it's related, maybe not.
