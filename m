@@ -1,86 +1,25 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 6/11] arm: convert to generic helpers for IPI function
-	calls
-Date: Tue, 22 Apr 2008 16:00:47 +0100
-Message-ID: <1208876447.31997.30.camel@pc1117.cambridge.arm.com>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com>
-	 <1208851058-8500-7-git-send-email-jens.axboe@oracle.com>
+From: Kyle McMartin <kyle-pfcGkIkfWfAsA/PxXw9srA@public.gmane.org>
+Subject: Re: [RFC] Introduce __ARCH_WANT_SYS_SYSFS
+Date: Tue, 22 Apr 2008 11:24:26 -0400
+Message-ID: <20080422152426.GG19802@phobos.i.cabal.ca>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <20080422081211.e85989ec.randy.dunlap@oracle.com> <87a5b0800804220816y72a7f4f9gec2111df08a1a57f@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760302AbYDVPXO@vger.kernel.org>
-In-Reply-To: <1208851058-8500-7-git-send-email-jens.axboe@oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Russell King <rmk@arm.linux.org.uk>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <87a5b0800804220816y72a7f4f9gec2111df08a1a57f-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Newton <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: Randy Dunlap <randy.dunlap-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-On Tue, 2008-04-22 at 09:57 +0200, Jens Axboe wrote:
-> This converts arm to use the new helpers for smp_call_function() and
-> friends, and adds support for smp_call_function_single(). Not tested
-> at all, not even compiled.
+On Tue, Apr 22, 2008 at 04:16:17PM +0100, Will Newton wrote:
+> It can be done with Kconfig. Whether it should be or not depends on
+> your point of view, hence RFC. Currently __ARCH_WANT macros is the way
+> syscalls are enabled and disabled across architectures. If there's
+> consensus that it should be done via Kconfig that could certainly be
+> implmented, but that's a different patch.
+>
 
-With the minor fixes below, it compiles and seems to run OK on RealView
-EB + ARM11MPCore (4 CPUs):
-
-diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index 9c85329..6344466 100644
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -484,7 +484,7 @@ asmlinkage void __exception do_IPI(struct pt_regs *regs)
- 				generic_smp_call_function_interrupt();
- 				break;
- 
--			case IPI_CALL_FUNC:
-+			case IPI_CALL_FUNC_SINGLE:
- 				generic_smp_call_function_single_interrupt();
- 				break;
- 
-@@ -536,14 +536,13 @@ int setup_profiling_timer(unsigned int multiplier)
- }
- 
- static int
--on_each_cpu_mask(void (*func)(void *), void *info, int retry, int wait,
--		 cpumask_t mask)
-+on_each_cpu_mask(void (*func)(void *), void *info, int wait, cpumask_t mask)
- {
- 	int ret = 0;
- 
- 	preempt_disable();
- 
--	ret = smp_call_function_mask(mask, func, info, retry, wait);
-+	ret = smp_call_function_mask(mask, func, info, wait);
- 	if (cpu_isset(smp_processor_id(), mask))
- 		func(info);
- 
-@@ -612,7 +611,7 @@ void flush_tlb_mm(struct mm_struct *mm)
- {
- 	cpumask_t mask = mm->cpu_vm_mask;
- 
--	on_each_cpu_mask(ipi_flush_tlb_mm, mm, 1, 1, mask);
-+	on_each_cpu_mask(ipi_flush_tlb_mm, mm, 1, mask);
- }
- 
- void flush_tlb_page(struct vm_area_struct *vma, unsigned long uaddr)
-@@ -623,7 +622,7 @@ void flush_tlb_page(struct vm_area_struct *vma, unsigned long uaddr)
- 	ta.ta_vma = vma;
- 	ta.ta_start = uaddr;
- 
--	on_each_cpu_mask(ipi_flush_tlb_page, &ta, 1, 1, mask);
-+	on_each_cpu_mask(ipi_flush_tlb_page, &ta, 1, mask);
- }
- 
- void flush_tlb_kernel_page(unsigned long kaddr)
-@@ -645,7 +644,7 @@ void flush_tlb_range(struct vm_area_struct *vma,
- 	ta.ta_start = start;
- 	ta.ta_end = end;
- 
--	on_each_cpu_mask(ipi_flush_tlb_range, &ta, 1, 1, mask);
-+	on_each_cpu_mask(ipi_flush_tlb_range, &ta, 1, mask);
- }
- 
- void flush_tlb_kernel_range(unsigned long start, unsigned long end)
-
-
--- 
-Catalin
+It's currently done in unistd.h for hysterical raisins. All new
+conditional syscalls have been done in Kconfig.
