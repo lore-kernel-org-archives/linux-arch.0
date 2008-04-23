@@ -1,47 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:57543 "EHLO mx2.suse.de"
+Received: from brick.kernel.dk ([87.55.233.238]:15872 "EHLO kernel.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758590AbYDWBgS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 21:36:18 -0400
-Date: Wed, 23 Apr 2008 03:36:17 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function calls
-Message-ID: <20080423013617.GB23192@wotan.suse.de>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-3-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804221157220.2779@woody.linux-foundation.org> <20080422191213.GA6370@elte.hu> <alpine.LFD.1.10.0804221218410.2779@woody.linux-foundation.org> <20080422192601.GB12588@elte.hu> <alpine.LFD.1.10.0804221244350.2779@woody.linux-foundation.org> <20080423011153.GB17572@wotan.suse.de> <alpine.LFD.1.10.0804221817050.2779@woody.linux-foundation.org>
-Mime-Version: 1.0
+	id S1751557AbYDWGH3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Apr 2008 02:07:29 -0400
+Date: Wed, 23 Apr 2008 08:07:26 +0200
+From: Jens Axboe <jens.axboe@oracle.com>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+Message-ID: <20080423060725.GT12774@kernel.dk>
+References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-2-git-send-email-jens.axboe@oracle.com> <1208895423.7115.290.camel@twins>
+MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.10.0804221817050.2779@woody.linux-foundation.org>
+In-Reply-To: <1208895423.7115.290.camel@twins>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, peterz@infradead.org, sam@ravnborg.org
-Message-ID: <20080423013617.qXwbLLXfI1R8eQRzIUIEaaWjP7pQLZVeoyQWATAuK7Y@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, sam@ravnborg.org
+Message-ID: <20080423060726.4sQv_fbQfs_cRIs-hM3IBN4Tfsn4gIskYXy1kC_2Yws@z>
 
-On Tue, Apr 22, 2008 at 06:22:17PM -0700, Linus Torvalds wrote:
+On Tue, Apr 22 2008, Peter Zijlstra wrote:
+> On Tue, 2008-04-22 at 20:50 +0200, Jens Axboe wrote:
 > 
+> > +int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
+> > +			     int retry, int wait)
+> > +{
+> > +	unsigned long flags;
+> > +	/* prevent preemption and reschedule on another processor */
+> > +	int me = get_cpu();
+> > +
+> > +	/* Can deadlock when called with interrupts disabled */
+> > +	WARN_ON(wait && irqs_disabled());
 > 
-> On Wed, 23 Apr 2008, Nick Piggin wrote:
-> > 
-> > The "too expensive to check the shared queue" is one aspect of it. The
-> > shared queue need not have events *for us* (at least, unless Jens has
-> > changed the implementation a bit) but it can still have events that we
-> > would need to check through.
-> > 
-> > I don't think deadlock is a problem (any more than with multiple vectors).
-> 
-> I'm happy with it either way, but as pointed out by Ralf, for the MIPS 
-> version of the patch there aren't even other vectors available.
- 
-Yep.
+> With this fallback to wait the above condition isn't sufficient.
 
-> So sharing the vector is going to be a requirement on other architectures, 
-> maybe we should look at whether we can make it generic and peform well 
-> regardless?
+What deadlock are you concerned with here? Would making cfd_fallback
+per-cpu make you feel better?
 
-I don't think it will perform terribly _poorly_ by sharing the vector.
-If you have a look at how serialised the old code is...
+-- 
+Jens Axboe
 
-If there is a noticable slowdown anywhere, we could I suppose create a
-2nd variant for small numbers of CPUs, or shared vector case, but I'd
-say the existing code should be fine I think.
