@@ -1,57 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:7880 "EHLO kernel.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750843AbYDWLyh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Apr 2008 07:54:37 -0400
-Date: Wed, 23 Apr 2008 13:54:31 +0200
-From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 11/11] s390: convert to generic helpers for IPI  function calls
-Message-ID: <20080423115430.GK12774@kernel.dk>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-12-git-send-email-jens.axboe@oracle.com> <20080423075831.GB15850@osiris.boeblingen.de.ibm.com> <20080423081147.GC12774@kernel.dk> <20080423112124.GJ12774@kernel.dk> <20080423114744.GA29422@osiris.boeblingen.de.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Received: from mtagate1.de.ibm.com ([195.212.29.150]:33170 "EHLO
+	mtagate1.de.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751157AbYDWMfJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2008 08:35:09 -0400
+Subject: Re: [PATCH 11/11] s390: convert to generic helpers for IPI
+	function calls
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Reply-To: schwidefsky@de.ibm.com
 In-Reply-To: <20080423114744.GA29422@osiris.boeblingen.de.ibm.com>
+References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
+	 <1208890227-24808-12-git-send-email-jens.axboe@oracle.com>
+	 <20080423075831.GB15850@osiris.boeblingen.de.ibm.com>
+	 <20080423081147.GC12774@kernel.dk> <20080423112124.GJ12774@kernel.dk>
+	 <20080423114744.GA29422@osiris.boeblingen.de.ibm.com>
+Content-Type: text/plain
+Date: Wed, 23 Apr 2008 14:42:53 +0200
+Message-ID: <1208954573.5090.10.camel@localhost>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20080423115431.ecQxFqRN0mjKGOgOO6ryCI95KT8z8I8gmazy72ZHyWs@z>
+Cc: Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org, rusty@rustcorp.com.au
+Message-ID: <20080423124253.iB-usQDaWWmge9OrIjcE8j9DolCddFtfhK2zkEt33E4@z>
 
-On Wed, Apr 23 2008, Heiko Carstens wrote:
-> > > > Your generic patch changes semantics of smp_call_function(). At least the
-> > > > s390 version of smp_call_function() mask used to not return unless all IPIs
-> > > > where received on the target cpus.
-> > > > Your patch changes that. It will already return as soon as all IPIs have
-> > > > been sent. Unfortunately Martin's etr code in arch/s390/kernel/time.c
-> > > 
-> > > Yep, this is what I mentioned in the intro mail.
-> > > 
-> > > > relies on exactly the old semantics.
-> > > 
-> > > OK, I could not see anything which relied on that and I did think that
-> > > it was a somewhat odd interface. By the time that smp_call_function()
-> > > stops waiting for startups, we could easily be in the condition that the
-> > > N-1 CPUs executed the function part a long time ago. I just didn't see
-> > > much usefulness in that, you may as well just set wait == 1 in that
-> > > case.
-> > > 
-> > > > Since this seems to be an s390 only issue, could you just drop the s390
-> > > > conversion patch? We'll have to think about how to change the err code
-> > > > and convert later I guess.
-> > > 
-> > > I'll drop the s390 bits. I can easily add something like
-> > > smp_call_function_foo() that has this behaviour.
-> > 
-> > I added an smp_call_function_sync() for this purpose and kept the s390
-> > conversion, I would very much appreciate if you could look it over. I
-> > wont post the full patchset again today, but you can inspect it here:
-> > 
-> > http://git.kernel.dk/?p=linux-2.6-block.git;a=shortlog;h=refs/heads/generic-ipi
-> > 
-> > The interesting bits are patch #1 for the generic bits and patch #11 for
-> > the s390 part. Thanks!
-> 
+On Wed, 2008-04-23 at 13:47 +0200, Heiko Carstens wrote:
 > I don't think that works: the old code also relied on the fact that there
 > could be only one cpu sending an smp_call_* IPI (serialized by call_lock).
 > The current etr code exploits that to serialize all cpus:
@@ -67,10 +40,23 @@ On Wed, Apr 23 2008, Heiko Carstens wrote:
 > After all I think the etr code should be converted to use stop_machine_run
 > instead. However that doesn't allow for master/slave cpus.
 
-You are right. I'll drop the code again, it would be nice to get rid of
-this interface, I guess s390 can do that when they convert to the
-generic helpers.
+Changing the etr code to stop_machine_run() will require a common code
+change. We can use the fn() parameter of stop_machine_run() for the cpu
+that does the clock synchronization but all the other cpus are not just
+disabled. They need to do something before going back to normal
+operation,  namely waiting for the clock to get back into sync and then
+reprogram the clock comparator before we can allow interrupts again.
+
+Looking at the stop_machine() code it doesn't seem to be to hard to get
+this implemented. stop_machine_run() would get a second function
+argument that replaces the call to cpu_relax() in stopmachine().
+The default if the additional function argument is NULL would be
+cpu_relax(). For the etr sync code it would be etr_sync_cpu_start().
 
 -- 
-Jens Axboe
+blue skies,
+  Martin.
+
+"Reality continues to ruin my life." - Calvin.
+
 
