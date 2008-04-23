@@ -1,42 +1,41 @@
-From: Mark Lord <lkml@rtr.ca>
-Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-Date: Wed, 23 Apr 2008 10:46:49 -0400
-Message-ID: <480F4BD9.8090003@rtr.ca>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <480E70ED.3030701@rtr.ca> <20080423072432.GX12774@kernel.dk> <480F3CBC.60305@rtr.ca> <20080423135110.GO12774@kernel.dk>
+From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Subject: Re: [RFC] Introduce __ARCH_WANT_SYS_SYSFS
+Date: Wed, 23 Apr 2008 16:59:24 +0200
+Message-ID: <200804231659.24463.arnd@arndb.de>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <20080422153849.GH19802@phobos.i.cabal.ca> <87a5b0800804230736k340e7fe9mffbd72b5b8164015@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: text/plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1755712AbYDWOrD@vger.kernel.org>
-In-Reply-To: <20080423135110.GO12774@kernel.dk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <87a5b0800804230736k340e7fe9mffbd72b5b8164015-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Content-Disposition: inline
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Newton <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: Kyle McMartin <kyle-pfcGkIkfWfAsA/PxXw9srA@public.gmane.org>, Randy Dunlap <randy.dunlap-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-Jens Axboe wrote:
-> On Wed, Apr 23 2008, Mark Lord wrote:
->..
->> The second bug, is that for the halt case at least,
->> nobody waits for the other CPU to actually halt
->> before continuing.. so we sometimes enter the shutdown
->> code while other CPUs are still active.
->>
->> This causes some machines to hang at shutdown,
->> unless CPU_HOTPLUG is configured and takes them offline
->> before we get here.
+On Wednesday 23 April 2008, Will Newton wrote:
+> I implemented the approach you suggested - Kconfig symbol and
+> cond_syscall definition. I think I actually like the previous approach
+> better:
 > 
-> I'm guessing there's a reason it doesn't pass '1' as the last argument,
-> because that would fix that issue?
-..
+> 1. The arch Kconfig files are quite non-uniform compared to unistd.h
+> so the definitions wind up at different places in the file which is a
+> bit messy.
+> 2. Changes to Kconfig may cause churn in defconfigs perhaps?
+> 3. There is more churn in arch Kconfig than unistd.h so getting a
+> cross arch patch applied is likely to be more difficult.
+> 4. The patch is about 4 times as many lines.
+> 
+> What do you think?
 
-Undoubtedly -- perhaps the called CPU halts, and therefore cannot reply.  :)
+I still feel that the original patch was more helpful and consistent
+with how we do it for the existing obsolete syscalls.
 
-But some kind of pre-halt ack, perhaps plus a short delay by the caller
-after receipt of the ack, would probably suffice to kill that bug.
+Note that there is a much simpler solution if you just use an
+"#ifdef __NR_sys_sysfs" around the definition of the syscall, but
+that has another disadvantage in that it is harder to spot when
+new architectures get it wrong.
 
-But I really haven't studied this code enough to know,
-other than that it historically has been a sticky area
-to poke around in.
-
-Cheers
- 
+	Arnd <><
