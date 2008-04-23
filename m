@@ -1,66 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oss.sgi.com ([192.48.170.157]:47202 "EHLO oss.sgi.com"
+Received: from ns1.suse.de ([195.135.220.2]:40404 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752916AbYDVXsz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2008 19:48:55 -0400
-Date: Wed, 23 Apr 2008 00:18:27 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH 8/11] mips: convert to generic helpers for IPI function
-	calls
-Message-ID: <20080422231827.GD27728@linux-mips.org>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-9-git-send-email-jens.axboe@oracle.com>
-MIME-Version: 1.0
+	id S1757473AbYDWBL4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2008 21:11:56 -0400
+Date: Wed, 23 Apr 2008 03:11:54 +0200
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function calls
+Message-ID: <20080423011153.GB17572@wotan.suse.de>
+References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-3-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804221157220.2779@woody.linux-foundation.org> <20080422191213.GA6370@elte.hu> <alpine.LFD.1.10.0804221218410.2779@woody.linux-foundation.org> <20080422192601.GB12588@elte.hu> <alpine.LFD.1.10.0804221244350.2779@woody.linux-foundation.org>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1208890227-24808-9-git-send-email-jens.axboe@oracle.com>
+In-Reply-To: <alpine.LFD.1.10.0804221244350.2779@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org
-Message-ID: <20080422231827._mhwJ4wNRh7Zx0bFgjO_nq6hyAlPYkRlmuELUnaJ3Rk@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, peterz@infradead.org, sam@ravnborg.org
+Message-ID: <20080423011154.M9LSqIBzCFDjyyH0ltwKy7rc2PWweIQaCpj1N2YQhpI@z>
 
-On Tue, Apr 22, 2008 at 08:50:24PM +0200, Jens Axboe wrote:
-
-> This converts mips to use the new helpers for smp_call_function() and
-> friends, and adds support for smp_call_function_single(). Not tested,
-> but it compiles.
+On Tue, Apr 22, 2008 at 12:50:30PM -0700, Linus Torvalds wrote:
 > 
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
-> ---
->  arch/mips/Kconfig              |    1 +
->  arch/mips/kernel/smp-mt.c      |   27 ++++++++-
->  arch/mips/kernel/smp.c         |  133 +++-------------------------------------
->  arch/mips/kernel/smtc.c        |    7 ++
->  arch/mips/sibyte/bcm1480/smp.c |    3 +
->  arch/mips/sibyte/sb1250/smp.c  |    2 +
->  include/asm-mips/smp.h         |   12 +---
->  7 files changed, 49 insertions(+), 136 deletions(-)
 > 
-> diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-> index 8724ed3..5092a9e 100644
-> --- a/arch/mips/Kconfig
-> +++ b/arch/mips/Kconfig
-> @@ -1742,6 +1742,7 @@ config SMP
->  	bool "Multi-Processing support"
->  	depends on SYS_SUPPORTS_SMP
->  	select IRQ_PER_CPU
-> +	select USE_GENERIC_SMP_HELPERS
->  	help
->  	  This enables support for systems with more than one CPU. If you have
->  	  a system with only one CPU, like most personal computers, say N. If
-> diff --git a/arch/mips/kernel/smp-mt.c b/arch/mips/kernel/smp-mt.c
-> index 89e6f6a..31049fc 100644
-> --- a/arch/mips/kernel/smp-mt.c
-> +++ b/arch/mips/kernel/smp-mt.c
-> @@ -38,8 +38,9 @@
->  
->  #define MIPS_CPU_IPI_RESCHED_IRQ 0
->  #define MIPS_CPU_IPI_CALL_IRQ 1
-> +#define MIPS_CPU_IPI_CALL_SINGLE_IRQ 2
+> On Tue, 22 Apr 2008, Ingo Molnar wrote:
+> > 
+> > ok. In which case the reschedule vector could be consolidated into that 
+> > as well (it's just a special single-CPU call). Then there would be no 
+> > new vector allocations needed at all, just the renaming of 
+> > RESCHEDULE_VECTOR to something more generic.
+> 
+> Yes.
+> 
+> Btw, don't get me wrong - I'm not against multiple vectors per se. I just 
+> wonder if there is any real reason for the code duplication. 
+> 
+> And there certainly *can* be tons of valid reasons for it. For example, 
+> some of the LAPIC can only have something like two pending interrupts per 
+> vector, and after that IPI's would get lost.
+> 
+> However, since the queuing is actually done with the data structures, I 
+> don't think it matters for the IPI's - they don't need any hardware 
+> queuing at all, afaik, since even if two IPI's would be merged into one 
+> (due to lack of hw queueing) the IPI handling code still has its list of 
+> events, so it doesn't matter.
+> 
+> And performance can be a valid reason ("too expensive to check the shared 
+> queue if we only have per-cpu events"), although I$ issues can cause that 
+> argument to go both ways.
+> 
+> I was also wondering whether there are deadlock issues (ie one type of IPI 
+> has to complete even if a lock is held for the other type). 
+> 
+> So I don't dislike the patch per se, I just wanted to understand _why_ the 
+> IPI's wanted separate vectors.
 
-The smp-mt.c has no chance of working.  There are only two hardware
-interrupts available so just using one more won't quite work.  But I like
-the basic idea of this patch series.
+The "too expensive to check the shared queue" is one aspect of it. The
+shared queue need not have events *for us* (at least, unless Jens has
+changed the implementation a bit) but it can still have events that we
+would need to check through.
 
-  Ralf
+I don't think deadlock is a problem (any more than with multiple vectors).
+
+
