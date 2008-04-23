@@ -1,29 +1,56 @@
-From: Rusty Russell <rusty-8n+1lVoiYb80n/F98K4Iww@public.gmane.org>
-Subject: Re: [PATCH 11/11] s390: convert to generic helpers for IPI function calls
-Date: Thu, 24 Apr 2008 01:56:27 +1000
-Message-ID: <200804240156.27894.rusty@rustcorp.com.au>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <20080423114744.GA29422@osiris.boeblingen.de.ibm.com> <1208954573.5090.10.camel@localhost>
+From: "Mike Frysinger" <vapier.adi@gmail.com>
+Subject: Re: [RFC] Introduce __ARCH_WANT_SYS_SYSFS
+Date: Wed, 23 Apr 2008 12:05:02 -0400
+Message-ID: <8bd0f97a0804230905x19fd96aevc8f225d241e59369@mail.gmail.com>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
+	 <20080422081211.e85989ec.randy.dunlap@oracle.com>
+	 <87a5b0800804220816y72a7f4f9gec2111df08a1a57f@mail.gmail.com>
+	 <20080422152426.GG19802@phobos.i.cabal.ca>
+	 <87a5b0800804220834q4d6daec1x4146d211115ab5c@mail.gmail.com>
+	 <20080422153849.GH19802@phobos.i.cabal.ca>
+	 <87a5b0800804230736k340e7fe9mffbd72b5b8164015@mail.gmail.com>
+	 <20080423154038.GL19802@phobos.i.cabal.ca>
+	 <87a5b0800804230850y4d577ff2taf1689f4af26b274@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1208954573.5090.10.camel@localhost>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1757357AbYDWQFY@vger.kernel.org>
+In-Reply-To: <87a5b0800804230850y4d577ff2taf1689f4af26b274@mail.gmail.com>
 Content-Disposition: inline
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: schwidefsky-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org
-Cc: Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Newton <will.newton@gmail.com>
+Cc: Kyle McMartin <kyle@mcmartin.ca>, Randy Dunlap <randy.dunlap@oracle.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 23 April 2008 22:42:53 Martin Schwidefsky wrote:
-> Looking at the stop_machine() code it doesn't seem to be to hard to get
-> this implemented. stop_machine_run() would get a second function
-> argument that replaces the call to cpu_relax() in stopmachine().
-> The default if the additional function argument is NULL would be
-> cpu_relax(). For the etr sync code it would be etr_sync_cpu_start().
+On Wed, Apr 23, 2008 at 11:50 AM, Will Newton <will.newton@gmail.com> wrote:
+> On Wed, Apr 23, 2008 at 4:40 PM, Kyle McMartin <kyle@mcmartin.ca> wrote:
+>  > On Wed, Apr 23, 2008 at 03:36:23PM +0100, Will Newton wrote:
+>  >  > +config ARCH_HAS_SYS_SYSFS
+>  >  > +     bool
+>  >  > +     default y
+>  >  > +
+>  >  >  source "init/Kconfig"
+>  >  >
+>  >
+>  >  Sorry, I meant something more like
+>  >
+>  >
+>  >  config ARCH_HAS_SYS_SYSFS
+>  >         def_bool !BLACKFIN
+>  >         help
+>  >           Obsolete sys_sysfs syscall
+>  >
+>  >  in init/Kconfig
+>  >
+>  >  But, it's your patch, you can do it however you like. :)
+>
+>  That's definitely shorter - but it feels a bit more like #ifdef
+>  CONFIG_BLACKFIN which is explicitly what I don't want to do, because
+>  I'm not actually interested in blackfin. ;-)
 
-Sure.  I've got changes for stop_machine planned, so please send a patch and 
-I'll merge it in.
-
-Cheers,
-Rusty.
+i'd have to agree that updating asm/unistd.h fits better with existing
+paradigm.  if we want to talk about converting *all cases* to Kconfig,
+we can do it in a separate thread.  splitting the design between two
+different files is simply confusing to everyone involved as they spend
+their time going "well which way am *i* supposed to do it".
+-mike
