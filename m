@@ -1,66 +1,65 @@
-From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function calls
-Date: Wed, 23 Apr 2008 09:08:21 +0200
-Message-ID: <20080423070819.GU12774@kernel.dk>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-3-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804221157220.2779@woody.linux-foundation.org> <20080422191213.GA6370@elte.hu> <alpine.LFD.1.10.0804221218410.2779@woody.linux-foundation.org> <20080422192601.GB12588@elte.hu> <alpine.LFD.1.10.0804221244350.2779@woody.linux-foundation.org> <20080423011153.GB17572@wotan.suse.de>
+From: Jens Axboe <jens.axboe@oracle.com>
+Subject: Re: [PATCH 8/11] mips: convert to generic helpers for IPI function  calls
+Date: Wed, 23 Apr 2008 09:18:40 +0200
+Message-ID: <20080423071840.GW12774@kernel.dk>
+References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-9-git-send-email-jens.axboe@oracle.com> <20080422231827.GD27728@linux-mips.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1753372AbYDWHS5@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20080423011153.GB17572-B4tOwbsTzaBolqkO4TVVkw@public.gmane.org>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
-Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org
+In-Reply-To: <20080422231827.GD27728@linux-mips.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 23 2008, Nick Piggin wrote:
-> On Tue, Apr 22, 2008 at 12:50:30PM -0700, Linus Torvalds wrote:
-> > 
-> > 
-> > On Tue, 22 Apr 2008, Ingo Molnar wrote:
-> > > 
-> > > ok. In which case the reschedule vector could be consolidated into that 
-> > > as well (it's just a special single-CPU call). Then there would be no 
-> > > new vector allocations needed at all, just the renaming of 
-> > > RESCHEDULE_VECTOR to something more generic.
-> > 
-> > Yes.
-> > 
-> > Btw, don't get me wrong - I'm not against multiple vectors per se. I just 
-> > wonder if there is any real reason for the code duplication. 
-> > 
-> > And there certainly *can* be tons of valid reasons for it. For example, 
-> > some of the LAPIC can only have something like two pending interrupts per 
-> > vector, and after that IPI's would get lost.
-> > 
-> > However, since the queuing is actually done with the data structures, I 
-> > don't think it matters for the IPI's - they don't need any hardware 
-> > queuing at all, afaik, since even if two IPI's would be merged into one 
-> > (due to lack of hw queueing) the IPI handling code still has its list of 
-> > events, so it doesn't matter.
-> > 
-> > And performance can be a valid reason ("too expensive to check the shared 
-> > queue if we only have per-cpu events"), although I$ issues can cause that 
-> > argument to go both ways.
-> > 
-> > I was also wondering whether there are deadlock issues (ie one type of IPI 
-> > has to complete even if a lock is held for the other type). 
-> > 
-> > So I don't dislike the patch per se, I just wanted to understand _why_ the 
-> > IPI's wanted separate vectors.
+On Wed, Apr 23 2008, Ralf Baechle wrote:
+> On Tue, Apr 22, 2008 at 08:50:24PM +0200, Jens Axboe wrote:
 > 
-> The "too expensive to check the shared queue" is one aspect of it. The
-> shared queue need not have events *for us* (at least, unless Jens has
-> changed the implementation a bit) but it can still have events that we
-> would need to check through.
+> > This converts mips to use the new helpers for smp_call_function() and
+> > friends, and adds support for smp_call_function_single(). Not tested,
+> > but it compiles.
+> > 
+> > Cc: Ralf Baechle <ralf@linux-mips.org>
+> > Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
+> > ---
+> >  arch/mips/Kconfig              |    1 +
+> >  arch/mips/kernel/smp-mt.c      |   27 ++++++++-
+> >  arch/mips/kernel/smp.c         |  133 +++-------------------------------------
+> >  arch/mips/kernel/smtc.c        |    7 ++
+> >  arch/mips/sibyte/bcm1480/smp.c |    3 +
+> >  arch/mips/sibyte/sb1250/smp.c  |    2 +
+> >  include/asm-mips/smp.h         |   12 +---
+> >  7 files changed, 49 insertions(+), 136 deletions(-)
+> > 
+> > diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+> > index 8724ed3..5092a9e 100644
+> > --- a/arch/mips/Kconfig
+> > +++ b/arch/mips/Kconfig
+> > @@ -1742,6 +1742,7 @@ config SMP
+> >  	bool "Multi-Processing support"
+> >  	depends on SYS_SUPPORTS_SMP
+> >  	select IRQ_PER_CPU
+> > +	select USE_GENERIC_SMP_HELPERS
+> >  	help
+> >  	  This enables support for systems with more than one CPU. If you have
+> >  	  a system with only one CPU, like most personal computers, say N. If
+> > diff --git a/arch/mips/kernel/smp-mt.c b/arch/mips/kernel/smp-mt.c
+> > index 89e6f6a..31049fc 100644
+> > --- a/arch/mips/kernel/smp-mt.c
+> > +++ b/arch/mips/kernel/smp-mt.c
+> > @@ -38,8 +38,9 @@
+> >  
+> >  #define MIPS_CPU_IPI_RESCHED_IRQ 0
+> >  #define MIPS_CPU_IPI_CALL_IRQ 1
+> > +#define MIPS_CPU_IPI_CALL_SINGLE_IRQ 2
+> 
+> The smp-mt.c has no chance of working.  There are only two hardware
+> interrupts available so just using one more won't quite work.  But I like
+> the basic idea of this patch series.
 
-That is still the case, the loop works the same way still.
-
-To answer Linus' question on why it was done the way it was - the
-thought of sharing the IPI just didn't occur to me. For performance
-reasons I'd like to keep the current setup, but it's certainly a viable
-alternative for archs with limited number of IPIs available (like the
-mips case that Ralf has disclosed).
+I'll switch mips over to sharing the IPI for both ipi function calls
+then, thanks Ralf!
 
 -- 
 Jens Axboe
