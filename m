@@ -1,73 +1,66 @@
-From: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-Date: Wed, 23 Apr 2008 08:32:00 +0200
-Message-ID: <1208932320.7115.319.camel@twins>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
-	 <1208890227-24808-2-git-send-email-jens.axboe@oracle.com>
-	 <1208895423.7115.290.camel@twins>  <20080423060725.GT12774@kernel.dk>
+From: "Jan Beulich" <jbeulich-Et1tbQHTxzrQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH] move BUG_TABLE into RODATA
+Date: Wed, 23 Apr 2008 07:36:06 +0100
+Message-ID: <480EF4F6.76E4.0078.0@novell.com>
+References: <480E1BEE.76E4.0078.0@novell.com>
+ <20080422180732.GA27222@uranus.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20080423060725.GT12774-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>
+In-Reply-To: <20080422180732.GA27222-QabhHTsIXMSnlFQ6Q1D1Y0B+6BGkLq7r@public.gmane.org>
+Content-Disposition: inline
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org
+To: Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-On Wed, 2008-04-23 at 08:07 +0200, Jens Axboe wrote:
-> On Tue, Apr 22 2008, Peter Zijlstra wrote:
-> > On Tue, 2008-04-22 at 20:50 +0200, Jens Axboe wrote:
-> > 
-> > > +int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
-> > > +			     int retry, int wait)
-> > > +{
-> > > +	unsigned long flags;
-> > > +	/* prevent preemption and reschedule on another processor */
-> > > +	int me = get_cpu();
-> > > +
-> > > +	/* Can deadlock when called with interrupts disabled */
-> > > +	WARN_ON(wait && irqs_disabled());
-> > 
-> > With this fallback to wait the above condition isn't sufficient.
-> 
-> What deadlock are you concerned with here? Would making cfd_fallback
-> per-cpu make you feel better?
+>>> Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org> 22.04.08 20:07 >>>
+>Hi Jan.
+>
+>> --- linux-2.6.25/arch/x86/kernel/vmlinux_64.lds.S	2008-04-17 04:49:44.000000000 +0200
+>> +++ 2.6.25-bug-table-rodata/arch/x86/kernel/vmlinux_64.lds.S	2008-03-04 11:14:13.000000000 +0100
+>> @@ -19,7 +19,7 @@ PHDRS {
+>>  	data PT_LOAD FLAGS(7);	/* RWE */
+>>  	user PT_LOAD FLAGS(7);	/* RWE */
+>>  	data.init PT_LOAD FLAGS(7);	/* RWE */
+>> -	note PT_NOTE FLAGS(4);	/* R__ */
+>> +	note PT_NOTE FLAGS(0);	/* ___ */
+>>  }
+>
+>Is this intentional in this patch?
 
-  CPU0					  CPU1
+Yes. While it may be possible to do this separately, it seemed safer to
+me to keep it together since I only tested it this way.
 
-local_irq_disable()			local_irq_disable()
+>>  SECTIONS
+>>  {
+>> @@ -40,16 +40,14 @@ SECTIONS
+>>  	_etext = .;		/* End of text section */
+>>    } :text = 0x9090
+>>  
+>> +  NOTES :text :note
+>> +
+>>    . = ALIGN(16);		/* Exception table */
+>>    __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
+>>    	__start___ex_table = .;
+>>  	 *(__ex_table)
+>>    	__stop___ex_table = .;
+>> -  }
+>> -
+>> -  NOTES :text :note
+>> -
+>> -  BUG_TABLE :text
+>> +  } :text = 0x9090
+>
+>And I do not see the 0x9090 justified.
+>Is this something to do with the fact that 0x90 equals NOP on x86?
 
-					smp_call_function_single(0,..,0)
-					  test_and_set_bit_lock()
-					  send IPI
-smp_call_function_single(1,..,0)
-  while(test_and_set_bit_lock())
-    cpu_relax();
+Yes, for consistency I think this ought to be repeated here - while
+not strictly necessary (__ex_table is data, hence padding with
+zeroes rather than NOPs would be fine), it seems more safe to have
+it here so that we don't catch occasional linker bugs. Ultimately I
+would think __ex_table should go into RODATA, too, which would
+eliminate the question.
 
-
-This will spin forever, because it needs to handle the IPI in order to
-free the cfd_fallback thingy, but can't for its waiting for it.
-
-That particular deadlock can indeed be solved by making cfd_fallback
-per-cpu.
-
-But if you were to use multiple smp_call_function*() calls under a
-single IRQ disabled, then that would not be sufficient. Now I can't
-directly come up with a good reason to need to do that, but still.
-
-You'd need somethine like:
-
-local_irq_disable()
-
-smp_call_function_single(n, func_a,..,0)
-smp_call_function_single(m, func_b,..,0)
-
-local_irq_enable()
-
-And invite 3 cpus to the party while under memory pressure and you get
-deadlock potential.
-
-[ if it were both the same function, you'd want to use
-  smp_call_function() and provide a mask; if it were the same cpu you'd
-  want to call a function doing both ]
+Jan
