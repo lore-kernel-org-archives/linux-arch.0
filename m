@@ -1,86 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:20906 "EHLO kernel.dk"
+Received: from rtr.ca ([76.10.145.34]:4708 "EHLO mail.rtr.ca"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752731AbYDWMyv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Apr 2008 08:54:51 -0400
-Date: Wed, 23 Apr 2008 14:54:46 +0200
-From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function  calls
-Message-ID: <20080423125445.GN12774@kernel.dk>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-3-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804221157220.2779@woody.linux-foundation.org>
+	id S1751110AbYDWNmW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Apr 2008 09:42:22 -0400
+Message-ID: <480F3CBC.60305@rtr.ca>
+Date: Wed, 23 Apr 2008 09:42:20 -0400
+From: Mark Lord <lkml@rtr.ca>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.10.0804221157220.2779@woody.linux-foundation.org>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <480E70ED.3030701@rtr.ca> <20080423072432.GX12774@kernel.dk>
+In-Reply-To: <20080423072432.GX12774@kernel.dk>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, npiggin@suse.de, peterz@infradead.org, sam@ravnborg.org, Ingo Molnar <mingo@elte.hu>
-Message-ID: <20080423125446.9AoUehpV8sCJfPJ2KAIhjVDGQ4-6iHq1c3v_zQ6EzKU@z>
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
+Message-ID: <20080423134220.e2iVB75aWEvF4my9F_slk806Nl9dt6K9iELYaJCKhaM@z>
 
-On Tue, Apr 22 2008, Linus Torvalds wrote:
-> 
-> [ Ingo added to cc, since this is x86-specific ]
-> 
-> On Tue, 22 Apr 2008, Jens Axboe wrote:
-> > +++ b/arch/x86/kernel/apic_32.c
-> > @@ -1357,6 +1357,10 @@ void __init smp_intr_init(void)
-> >  
-> >  	/* IPI for generic function call */
-> >  	set_intr_gate(CALL_FUNCTION_VECTOR, call_function_interrupt);
-> > +
-> > +	/* IPI for single call function */
-> > +	set_intr_gate(CALL_FUNCTION_SINGLE_VECTOR,
-> > +				call_function_single_interrupt);
-> 
-> Ok, one more comment..
-> 
-> Why bother with separate vectors for this?
-> 
-> Why not just make the single vector do
-> 
-> 	void smp_call_function_interrupt(void)
-> 	{
-> 		ack_APIC_irq();
-> 		irq_enter();
-> 		generic_smp_call_function_single_interrupt();
-> 		generic_smp_call_function_interrupt();
-> 	#ifdef CONFIG_X86_32
-> 		__get_cpu_var(irq_stat).irq_call_count++;
-> 	#else
-> 		add_pda(irq_call_count, 1);
-> 	#endif
-> 		irq_exit();
-> 	}
-> 
-> since they are both doing the exact same thing anyway?
-> 
-> Do we really require us to be able to handle the "single" case _while_ a 
-> "multiple" case is busy? Aren't we running all of these things with 
-> interrupts disabled anyway, so that it cannot happen?
-> 
-> Or is it just a performance optimization?  Do we expect to really have so 
-> many of the multiple interrupts that it's expensive to walk the list just 
-> because we also had a single interrupt to another CPU? That sounds a bit 
-> unlikely, but if true, very interesting..
-> 
-> Inquiring minds want to know..
+>>> Date:	Thu, 15 Nov 2007 12:07:48 -0500
+>>> From: Mark Lord <lkml@rtr.ca>
+>>> To: Greg KH <gregkh@suse.de>
+>>> Cc: Yasunori Goto <y-goto@jp.fujitsu.com>,
+>>> 	Andrew Morton <akpm@linux-foundation.org>,
+>>> 	Alexey Dobriyan <adobriyan@sw.ru>, linux-kernel@vger.kernel.org
+>>> Subject: Re: EIP is at device_shutdown+0x32/0x60
+>>> Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+>>> Content-Transfer-Encoding: 7bit
+>>> Sender: linux-kernel-owner@vger.kernel.org
+>>>
+>>> ... < snip > ...
+>>>
+>>> Greg, I don't know if this is relevant or not,
+>>> but x86 has bugs in the halt/reboot code for SMP.
+>>>
+>>> Specifically, in native_smp_send_stop() the code now uses
+>>> spin_trylock() to "lock" the shared call buffers,
+>>> but then ignores the result.
+>>>
+>>> This means that multiple CPUs can/will clobber each other
+>>> in that code.
+>>>
+>>> The second bug, is that this code does not wait for the
+>>> target CPUs to actually stop before it continues.
+>>>
+>>> This was the real cause of the failure-to-poweroff problems
+>>> I was having with 2.6.23, which we fixed by using CPU hotplug
+>>> to disable_nonboot_cpus() before the above code ever got run.
 
-Regarding that last comment... The reason why I'm doing this work is
-because I want to use smp_call_function_single() to redirect IO
-completions. So there WILL be lots of
-smp_call_function_single_interrupt() interrupts, they will be a lot more
-prevalent than smp_call_function() interrupts. I don't have any numbers
-on this since I haven't tried collapsing them all, but I'd be surprised
-if it wasn't noticable.
+Jens Axboe wrote:
+> On Tue, Apr 22 2008, Mark Lord wrote:
+>> Jens,
+>>
+>> While you're in there, :)
+>>
+>> Could you perhaps fix this bug (above) if it still exists?
+> 
+> I don't understand the bug - what are the shared call buffers you are
+> talking of?
+> 
+> With the changes, there's not even an spin_trylock() in there anymore.
+> But I don't see the original bug either, so...
+..
 
-That said, some archs do use a single IPI for multiple actions and just
-keep a bitmask of what to do in that IPI. So it would still be possible
-to use a single hardware IPI to do various things, without resorting to
-calling into the interrupt handler for each of them. The _single()
-interrupt handler is a cheap check though, an smp memory barrier and a
-list_empty() check is enough (like it currently does).
+arch/x86/kernel/smp.c:
 
--- 
-Jens Axboe
+static void native_smp_send_stop(void)
+{
+        int nolock;
+        unsigned long flags;
 
+        if (reboot_force)
+                return;
+
+        /* Don't deadlock on the call lock in panic */
+        nolock = !spin_trylock(&call_lock);       <<<<<<<<<< buggy
+        local_irq_save(flags);
+        __smp_call_function(stop_this_cpu, NULL, 0, 0);
+        if (!nolock)
+                spin_unlock(&call_lock);
+        disable_local_APIC();
+        local_irq_restore(flags);
+}
+
+The spinlock is trying to protect access to the global variable
+"call_data" (higher up in the same file), which is used
+in __smp_call_function() and friends.
+
+But since the spinlock is ignored in this case,
+the global "call_data will get clobbered if it was already in-use.
+
+The second bug, is that for the halt case at least,
+nobody waits for the other CPU to actually halt
+before continuing.. so we sometimes enter the shutdown
+code while other CPUs are still active.
+
+This causes some machines to hang at shutdown,
+unless CPU_HOTPLUG is configured and takes them offline
+before we get here.
+
+Cheers
