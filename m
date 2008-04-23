@@ -1,70 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:4200 "EHLO kernel.dk"
+Received: from brick.kernel.dk ([87.55.233.238]:8924 "EHLO kernel.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750927AbYDWHSo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Apr 2008 03:18:44 -0400
-Date: Wed, 23 Apr 2008 09:18:40 +0200
+	id S1751022AbYDWHYh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Apr 2008 03:24:37 -0400
+Date: Wed, 23 Apr 2008 09:24:32 +0200
 From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 8/11] mips: convert to generic helpers for IPI function  calls
-Message-ID: <20080423071840.GW12774@kernel.dk>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-9-git-send-email-jens.axboe@oracle.com> <20080422231827.GD27728@linux-mips.org>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+Message-ID: <20080423072432.GX12774@kernel.dk>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <480E70ED.3030701@rtr.ca>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080422231827.GD27728@linux-mips.org>
+In-Reply-To: <480E70ED.3030701@rtr.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org
-Message-ID: <20080423071840.MZWrIhcONi57U5dYx6kbBcZ62PmvT3BXsj_dzj1Yh1k@z>
+To: Mark Lord <lkml@rtr.ca>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
+Message-ID: <20080423072432.d6marKpPKZAnpalnVwhEyYTjDikQLMG8m0Ot7IOUpnM@z>
 
-On Wed, Apr 23 2008, Ralf Baechle wrote:
-> On Tue, Apr 22, 2008 at 08:50:24PM +0200, Jens Axboe wrote:
+On Tue, Apr 22 2008, Mark Lord wrote:
+> Jens,
 > 
-> > This converts mips to use the new helpers for smp_call_function() and
-> > friends, and adds support for smp_call_function_single(). Not tested,
-> > but it compiles.
-> > 
-> > Cc: Ralf Baechle <ralf@linux-mips.org>
-> > Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
-> > ---
-> >  arch/mips/Kconfig              |    1 +
-> >  arch/mips/kernel/smp-mt.c      |   27 ++++++++-
-> >  arch/mips/kernel/smp.c         |  133 +++-------------------------------------
-> >  arch/mips/kernel/smtc.c        |    7 ++
-> >  arch/mips/sibyte/bcm1480/smp.c |    3 +
-> >  arch/mips/sibyte/sb1250/smp.c  |    2 +
-> >  include/asm-mips/smp.h         |   12 +---
-> >  7 files changed, 49 insertions(+), 136 deletions(-)
-> > 
-> > diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-> > index 8724ed3..5092a9e 100644
-> > --- a/arch/mips/Kconfig
-> > +++ b/arch/mips/Kconfig
-> > @@ -1742,6 +1742,7 @@ config SMP
-> >  	bool "Multi-Processing support"
-> >  	depends on SYS_SUPPORTS_SMP
-> >  	select IRQ_PER_CPU
-> > +	select USE_GENERIC_SMP_HELPERS
-> >  	help
-> >  	  This enables support for systems with more than one CPU. If you have
-> >  	  a system with only one CPU, like most personal computers, say N. If
-> > diff --git a/arch/mips/kernel/smp-mt.c b/arch/mips/kernel/smp-mt.c
-> > index 89e6f6a..31049fc 100644
-> > --- a/arch/mips/kernel/smp-mt.c
-> > +++ b/arch/mips/kernel/smp-mt.c
-> > @@ -38,8 +38,9 @@
-> >  
-> >  #define MIPS_CPU_IPI_RESCHED_IRQ 0
-> >  #define MIPS_CPU_IPI_CALL_IRQ 1
-> > +#define MIPS_CPU_IPI_CALL_SINGLE_IRQ 2
+> While you're in there, :)
 > 
-> The smp-mt.c has no chance of working.  There are only two hardware
-> interrupts available so just using one more won't quite work.  But I like
-> the basic idea of this patch series.
+> Could you perhaps fix this bug (below) if it still exists?
 
-I'll switch mips over to sharing the IPI for both ipi function calls
-then, thanks Ralf!
+I don't understand the bug - what are the shared call buffers you are
+talking of?
+
+With the changes, there's not even an spin_trylock() in there anymore.
+But I don't see the original bug either, so...
+
+
+> 
+> >Date:	Thu, 15 Nov 2007 12:07:48 -0500
+> >From: Mark Lord <lkml@rtr.ca>
+> >To: Greg KH <gregkh@suse.de>
+> >Cc: Yasunori Goto <y-goto@jp.fujitsu.com>,
+> >	Andrew Morton <akpm@linux-foundation.org>,
+> >	Alexey Dobriyan <adobriyan@sw.ru>, linux-kernel@vger.kernel.org
+> >Subject: Re: EIP is at device_shutdown+0x32/0x60
+> >Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+> >Content-Transfer-Encoding: 7bit
+> >Sender: linux-kernel-owner@vger.kernel.org
+> >
+> >... < snip > ...
+> >
+> >Greg, I don't know if this is relevant or not,
+> >but x86 has bugs in the halt/reboot code for SMP.
+> >
+> >Specifically, in native_smp_send_stop() the code now uses
+> >spin_trylock() to "lock" the shared call buffers,
+> >but then ignores the result.
+> >
+> >This means that multiple CPUs can/will clobber each other
+> >in that code.
+> >
+> >The second bug, is that this code does not wait for the
+> >target CPUs to actually stop before it continues.
+> >
+> >This was the real cause of the failure-to-poweroff problems
+> >I was having with 2.6.23, which we fixed by using CPU hotplug
+> >to disable_nonboot_cpus() before the above code ever got run.
+> >
+> >Maybe it's related, maybe not.
 
 -- 
 Jens Axboe
