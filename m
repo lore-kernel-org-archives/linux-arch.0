@@ -1,72 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vpn.id2.novell.com ([195.33.99.129]:42125 "EHLO
-	vpn.id2.novell.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751370AbYDWGfz convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2008 02:35:55 -0400
-Message-ID: <480EF4F6.76E4.0078.0@novell.com>
-Date: Wed, 23 Apr 2008 07:36:06 +0100
-From: "Jan Beulich" <jbeulich@novell.com>
-Subject: Re: [PATCH] move BUG_TABLE into RODATA
-References: <480E1BEE.76E4.0078.0@novell.com>
- <20080422180732.GA27222@uranus.ravnborg.org>
-In-Reply-To: <20080422180732.GA27222@uranus.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
+Received: from brick.kernel.dk ([87.55.233.238]:14250 "EHLO kernel.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750776AbYDWHIZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Apr 2008 03:08:25 -0400
+Date: Wed, 23 Apr 2008 09:08:21 +0200
+From: Jens Axboe <jens.axboe@oracle.com>
+Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function calls
+Message-ID: <20080423070819.GU12774@kernel.dk>
+References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-3-git-send-email-jens.axboe@oracle.com> <alpine.LFD.1.10.0804221157220.2779@woody.linux-foundation.org> <20080422191213.GA6370@elte.hu> <alpine.LFD.1.10.0804221218410.2779@woody.linux-foundation.org> <20080422192601.GB12588@elte.hu> <alpine.LFD.1.10.0804221244350.2779@woody.linux-foundation.org> <20080423011153.GB17572@wotan.suse.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <20080423011153.GB17572@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20080423063606.EsJ2RsNcXlXCzHdUOGp-2E4HeipqD7yb_tmWyIvxWbs@z>
+To: Nick Piggin <npiggin@suse.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, peterz@infradead.org, sam@ravnborg.org
+Message-ID: <20080423070821.OD6uhIMRwLWR9WYdL7Z3JarCyJZ4DyxOTQVMPAfdyMs@z>
 
->>> Sam Ravnborg <sam@ravnborg.org> 22.04.08 20:07 >>>
->Hi Jan.
->
->> --- linux-2.6.25/arch/x86/kernel/vmlinux_64.lds.S	2008-04-17 04:49:44.000000000 +0200
->> +++ 2.6.25-bug-table-rodata/arch/x86/kernel/vmlinux_64.lds.S	2008-03-04 11:14:13.000000000 +0100
->> @@ -19,7 +19,7 @@ PHDRS {
->>  	data PT_LOAD FLAGS(7);	/* RWE */
->>  	user PT_LOAD FLAGS(7);	/* RWE */
->>  	data.init PT_LOAD FLAGS(7);	/* RWE */
->> -	note PT_NOTE FLAGS(4);	/* R__ */
->> +	note PT_NOTE FLAGS(0);	/* ___ */
->>  }
->
->Is this intentional in this patch?
+On Wed, Apr 23 2008, Nick Piggin wrote:
+> On Tue, Apr 22, 2008 at 12:50:30PM -0700, Linus Torvalds wrote:
+> > 
+> > 
+> > On Tue, 22 Apr 2008, Ingo Molnar wrote:
+> > > 
+> > > ok. In which case the reschedule vector could be consolidated into that 
+> > > as well (it's just a special single-CPU call). Then there would be no 
+> > > new vector allocations needed at all, just the renaming of 
+> > > RESCHEDULE_VECTOR to something more generic.
+> > 
+> > Yes.
+> > 
+> > Btw, don't get me wrong - I'm not against multiple vectors per se. I just 
+> > wonder if there is any real reason for the code duplication. 
+> > 
+> > And there certainly *can* be tons of valid reasons for it. For example, 
+> > some of the LAPIC can only have something like two pending interrupts per 
+> > vector, and after that IPI's would get lost.
+> > 
+> > However, since the queuing is actually done with the data structures, I 
+> > don't think it matters for the IPI's - they don't need any hardware 
+> > queuing at all, afaik, since even if two IPI's would be merged into one 
+> > (due to lack of hw queueing) the IPI handling code still has its list of 
+> > events, so it doesn't matter.
+> > 
+> > And performance can be a valid reason ("too expensive to check the shared 
+> > queue if we only have per-cpu events"), although I$ issues can cause that 
+> > argument to go both ways.
+> > 
+> > I was also wondering whether there are deadlock issues (ie one type of IPI 
+> > has to complete even if a lock is held for the other type). 
+> > 
+> > So I don't dislike the patch per se, I just wanted to understand _why_ the 
+> > IPI's wanted separate vectors.
+> 
+> The "too expensive to check the shared queue" is one aspect of it. The
+> shared queue need not have events *for us* (at least, unless Jens has
+> changed the implementation a bit) but it can still have events that we
+> would need to check through.
 
-Yes. While it may be possible to do this separately, it seemed safer to
-me to keep it together since I only tested it this way.
+That is still the case, the loop works the same way still.
 
->>  SECTIONS
->>  {
->> @@ -40,16 +40,14 @@ SECTIONS
->>  	_etext = .;		/* End of text section */
->>    } :text = 0x9090
->>  
->> +  NOTES :text :note
->> +
->>    . = ALIGN(16);		/* Exception table */
->>    __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
->>    	__start___ex_table = .;
->>  	 *(__ex_table)
->>    	__stop___ex_table = .;
->> -  }
->> -
->> -  NOTES :text :note
->> -
->> -  BUG_TABLE :text
->> +  } :text = 0x9090
->
->And I do not see the 0x9090 justified.
->Is this something to do with the fact that 0x90 equals NOP on x86?
+To answer Linus' question on why it was done the way it was - the
+thought of sharing the IPI just didn't occur to me. For performance
+reasons I'd like to keep the current setup, but it's certainly a viable
+alternative for archs with limited number of IPIs available (like the
+mips case that Ralf has disclosed).
 
-Yes, for consistency I think this ought to be repeated here - while
-not strictly necessary (__ex_table is data, hence padding with
-zeroes rather than NOPs would be fine), it seems more safe to have
-it here so that we don't catch occasional linker bugs. Ultimately I
-would think __ex_table should go into RODATA, too, which would
-eliminate the question.
-
-Jan
+-- 
+Jens Axboe
 
