@@ -1,54 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from py-out-1112.google.com ([64.233.166.183]:55917 "EHLO
-	py-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751991AbYDWPuh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2008 11:50:37 -0400
-Received: by py-out-1112.google.com with SMTP id u52so4282503pyb.10
-        for <linux-arch@vger.kernel.org>; Wed, 23 Apr 2008 08:50:36 -0700 (PDT)
-Message-ID: <87a5b0800804230850y4d577ff2taf1689f4af26b274@mail.gmail.com>
-Date: Wed, 23 Apr 2008 16:50:36 +0100
-From: "Will Newton" <will.newton@gmail.com>
-Subject: Re: [RFC] Introduce __ARCH_WANT_SYS_SYSFS
-In-Reply-To: <20080423154038.GL19802@phobos.i.cabal.ca>
+Received: from ozlabs.org ([203.10.76.45]:60900 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752262AbYDWP6p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Apr 2008 11:58:45 -0400
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH 11/11] s390: convert to generic helpers for IPI function calls
+Date: Thu, 24 Apr 2008 01:56:27 +1000
+References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <20080423114744.GA29422@osiris.boeblingen.de.ibm.com> <1208954573.5090.10.camel@localhost>
+In-Reply-To: <1208954573.5090.10.camel@localhost>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain;
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Content-Disposition: inline
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
-	 <20080422081211.e85989ec.randy.dunlap@oracle.com>
-	 <87a5b0800804220816y72a7f4f9gec2111df08a1a57f@mail.gmail.com>
-	 <20080422152426.GG19802@phobos.i.cabal.ca>
-	 <87a5b0800804220834q4d6daec1x4146d211115ab5c@mail.gmail.com>
-	 <20080422153849.GH19802@phobos.i.cabal.ca>
-	 <87a5b0800804230736k340e7fe9mffbd72b5b8164015@mail.gmail.com>
-	 <20080423154038.GL19802@phobos.i.cabal.ca>
+Message-ID: <200804240156.27894.rusty@rustcorp.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Randy Dunlap <randy.dunlap@oracle.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20080423155036.uchIDuHmDdsSg7Om62q5cuPAxipC9lzhDpXW1Zeb7nA@z>
+To: schwidefsky@de.ibm.com
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org
+Message-ID: <20080423155627.IqPZpuB-ND-asddvZxsO-ZOy1wiZlUhJpm_hHN-SluQ@z>
 
-On Wed, Apr 23, 2008 at 4:40 PM, Kyle McMartin <kyle@mcmartin.ca> wrote:
-> On Wed, Apr 23, 2008 at 03:36:23PM +0100, Will Newton wrote:
->  > +config ARCH_HAS_SYS_SYSFS
->  > +     bool
->  > +     default y
->  > +
->  >  source "init/Kconfig"
->  >
->
->  Sorry, I meant something more like
->
->
->  config ARCH_HAS_SYS_SYSFS
->         def_bool !BLACKFIN
->         help
->           Obsolete sys_sysfs syscall
->
->  in init/Kconfig
->
->  But, it's your patch, you can do it however you like. :)
+On Wednesday 23 April 2008 22:42:53 Martin Schwidefsky wrote:
+> Looking at the stop_machine() code it doesn't seem to be to hard to get
+> this implemented. stop_machine_run() would get a second function
+> argument that replaces the call to cpu_relax() in stopmachine().
+> The default if the additional function argument is NULL would be
+> cpu_relax(). For the etr sync code it would be etr_sync_cpu_start().
 
-That's definitely shorter - but it feels a bit more like #ifdef
-CONFIG_BLACKFIN which is explicitly what I don't want to do, because
-I'm not actually interested in blackfin. ;-)
+Sure.  I've got changes for stop_machine planned, so please send a patch and 
+I'll merge it in.
+
+Cheers,
+Rusty.
