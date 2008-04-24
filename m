@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 18/24] sparc: types: use <asm-generic/int-*.h> for the sparc architecture
-Date: Thu, 24 Apr 2008 16:05:43 -0700
-Message-ID: <1209078352-7593-37-git-send-email-hpa@zytor.com>
+Subject: [PATCH 15/24] powerpc: types: use <asm-generic/int-*.h> for the powerpc architecture
+Date: Thu, 24 Apr 2008 16:05:36 -0700
+Message-ID: <1209078352-7593-30-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -31,53 +31,49 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-27-git-send-email-hpa@zytor.com>
  <1209078352-7593-28-git-send-email-hpa@zytor.com>
  <1209078352-7593-29-git-send-email-hpa@zytor.com>
- <1209078352-7593-30-git-send-email-hpa@zytor.com>
- <1209078352-7593-31-git-send-email-hpa@zytor.com>
- <1209078352-7593-32-git-send-email-hpa@zytor.com>
- <1209078352-7593-33-git-send-email-hpa@zytor.com>
- <1209078352-7593-34-git-send-email-hpa@zytor.com>
- <1209078352-7593-35-git-send-email-hpa@zytor.com>
- <1209078352-7593-36-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-36-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-29-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Anton Blanchard <anton-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
 
-This modifies <asm-sparc/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-powerpc/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
+Cc: Anton Blanchard <anton-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
 ---
- include/asm-sparc/types.h |   30 +-----------------------------
- 1 files changed, 1 insertions(+), 29 deletions(-)
+ include/asm-powerpc/types.h |   48 +++++-------------------------------------
+ 1 files changed, 6 insertions(+), 42 deletions(-)
 
-diff --git a/include/asm-sparc/types.h b/include/asm-sparc/types.h
-index 42fc6ed..1b08ef8 100644
---- a/include/asm-sparc/types.h
-+++ b/include/asm-sparc/types.h
-@@ -3,34 +3,18 @@
- #define _SPARC_TYPES_H
+diff --git a/include/asm-powerpc/types.h b/include/asm-powerpc/types.h
+index c243a6a..d3374bc 100644
+--- a/include/asm-powerpc/types.h
++++ b/include/asm-powerpc/types.h
+@@ -1,6 +1,12 @@
+ #ifndef _ASM_POWERPC_TYPES_H
+ #define _ASM_POWERPC_TYPES_H
  
- /*
-- * _xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-- * header files exported to user space.
-- */
--
--/*
-  * This file is never included by application software unless
-  * explicitly requested (e.g., via linux/types.h) in which case the
-  * application is Linux specific so (user-) name space pollution is
-  * not a major issue.  However, for interoperability, libraries still
-  * need to be careful to avoid a name clashes.
-  */
-+#include <asm-generic/int-ll64.h>
- 
++#ifdef __powerpc64__
++# include <asm-generic/int-l64.h>
++#else
++# include <asm-generic/int-ll64.h>
++#endif
++
  #ifndef __ASSEMBLY__
  
+ /*
+@@ -22,30 +28,6 @@ typedef unsigned int umode_t;
  typedef unsigned short umode_t;
+ #endif
  
+-/*
+- * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
+- * header files exported to user space
+- */
+-
 -typedef __signed__ char __s8;
 -typedef unsigned char __u8;
 -
@@ -87,30 +83,43 @@ index 42fc6ed..1b08ef8 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
+-#ifdef __powerpc64__
+-typedef __signed__ long __s64;
+-typedef unsigned long __u64;
+-#else
+-#if defined(__GNUC__)
+-__extension__ typedef __signed__ long long __s64;
+-__extension__ typedef unsigned long long __u64;
+-#endif
+-#endif /* __powerpc64__ */
 -
- #endif /* __ASSEMBLY__ */
- 
- #ifdef __KERNEL__
-@@ -39,18 +23,6 @@ typedef unsigned long long __u64;
+ typedef struct {
+ 	__u32 u[4];
+ } __attribute__((aligned(16))) __vector128;
+@@ -64,24 +46,6 @@ typedef struct {
  
  #ifndef __ASSEMBLY__
  
--typedef __signed__ char s8;
+-
+-typedef signed char s8;
 -typedef unsigned char u8;
 -
--typedef __signed__ short s16;
+-typedef signed short s16;
 -typedef unsigned short u16;
 -
--typedef __signed__ int s32;
+-typedef signed int s32;
 -typedef unsigned int u32;
 -
--typedef __signed__ long long s64;
+-#ifdef __powerpc64__
+-typedef signed long s64;
+-typedef unsigned long u64;
+-#else
+-typedef signed long long s64;
 -typedef unsigned long long u64;
+-#endif
 -
- typedef u32 dma_addr_t;
- typedef u32 dma64_addr_t;
+ typedef __vector128 vector128;
  
+ /* Physical address used by some IO functions */
 -- 
 1.5.4.1
