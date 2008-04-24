@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36640 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:42895 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751169AbYDXXGl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:41 -0400
+	with ESMTP id S1756198AbYDXXIe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:08:34 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 22/24] xtensa: types: use <asm-generic/int-*.h> for the xtensa architecture
-Date: Thu, 24 Apr 2008 16:05:49 -0700
-Message-ID: <1209078352-7593-43-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-42-git-send-email-hpa@zytor.com>
+Subject: [PATCH 14/24] parisc: types: use <asm-generic/int-*.h> for the parisc architecture
+Date: Thu, 24 Apr 2008 16:05:34 -0700
+Message-ID: <1209078352-7593-28-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-27-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -35,52 +35,38 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-25-git-send-email-hpa@zytor.com>
  <1209078352-7593-26-git-send-email-hpa@zytor.com>
  <1209078352-7593-27-git-send-email-hpa@zytor.com>
- <1209078352-7593-28-git-send-email-hpa@zytor.com>
- <1209078352-7593-29-git-send-email-hpa@zytor.com>
- <1209078352-7593-30-git-send-email-hpa@zytor.com>
- <1209078352-7593-31-git-send-email-hpa@zytor.com>
- <1209078352-7593-32-git-send-email-hpa@zytor.com>
- <1209078352-7593-33-git-send-email-hpa@zytor.com>
- <1209078352-7593-34-git-send-email-hpa@zytor.com>
- <1209078352-7593-35-git-send-email-hpa@zytor.com>
- <1209078352-7593-36-git-send-email-hpa@zytor.com>
- <1209078352-7593-37-git-send-email-hpa@zytor.com>
- <1209078352-7593-38-git-send-email-hpa@zytor.com>
- <1209078352-7593-39-git-send-email-hpa@zytor.com>
- <1209078352-7593-40-git-send-email-hpa@zytor.com>
- <1209078352-7593-41-git-send-email-hpa@zytor.com>
- <1209078352-7593-42-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>
-Message-ID: <20080424230549.g2W1Vt5luVEdS_sPYsXdk_nTtPvmJBxCmZaviUqh1vs@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>
+Message-ID: <20080424230534.grQISwm84ltwWL2yCR0f6iJCCZXhVEU5S0iLJq9OkU8@z>
 
-This modifies <asm-xtensa/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-parisc/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: Chris Zankel <chris@zankel.net>
+Cc: Kyle McMartin <kyle@parisc-linux.org>
+Cc: Matthew Wilcox <matthew@wil.cx>
+Cc: Grant Grundler <grundler@parisc-linux.org>
 ---
- include/asm-xtensa/types.h |   33 +--------------------------------
- 1 files changed, 1 insertions(+), 32 deletions(-)
+ include/asm-parisc/types.h |   33 ++-------------------------------
+ 1 files changed, 2 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-xtensa/types.h b/include/asm-xtensa/types.h
-index b27d841..c89569a 100644
---- a/include/asm-xtensa/types.h
-+++ b/include/asm-xtensa/types.h
-@@ -11,6 +11,7 @@
- #ifndef _XTENSA_TYPES_H
- #define _XTENSA_TYPES_H
+diff --git a/include/asm-parisc/types.h b/include/asm-parisc/types.h
+index 56c8480..7f5a39b 100644
+--- a/include/asm-parisc/types.h
++++ b/include/asm-parisc/types.h
+@@ -1,29 +1,12 @@
+ #ifndef _PARISC_TYPES_H
+ #define _PARISC_TYPES_H
  
 +#include <asm-generic/int-ll64.h>
++
+ #ifndef __ASSEMBLY__
  
- #ifdef __ASSEMBLY__
- # define __XTENSA_UL(x)		(x)
-@@ -25,42 +26,10 @@
  typedef unsigned short umode_t;
  
- /*
+-/*
 - * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
 - * header files exported to user space
 - */
@@ -99,27 +85,28 @@ index b27d841..c89569a 100644
 -__extension__ typedef unsigned long long __u64;
 -#endif
 -
--/*
-  * These aren't exported outside the kernel to avoid name space clashes
-  */
- #ifdef __KERNEL__
+ #endif /* __ASSEMBLY__ */
  
--typedef __signed__ char s8;
+ /*
+@@ -41,18 +24,6 @@ __extension__ typedef unsigned long long __u64;
+ 
+ #ifndef __ASSEMBLY__
+ 
+-typedef signed char s8;
 -typedef unsigned char u8;
 -
--typedef __signed__ short s16;
+-typedef signed short s16;
 -typedef unsigned short u16;
 -
--typedef __signed__ int s32;
+-typedef signed int s32;
 -typedef unsigned int u32;
 -
--typedef __signed__ long long s64;
+-typedef signed long long s64;
 -typedef unsigned long long u64;
 -
--
- #define BITS_PER_LONG 32
- 
  /* Dma addresses are 32-bits wide.  */
+ 
+ typedef u32 dma_addr_t;
 -- 
 1.5.4.1
 
