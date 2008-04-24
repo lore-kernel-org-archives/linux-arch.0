@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 11/24] m68k: types: use <asm-generic/int-*.h> for the m68k architecture
-Date: Thu, 24 Apr 2008 16:05:29 -0700
-Message-ID: <1209078352-7593-23-git-send-email-hpa@zytor.com>
+Subject: [PATCH 22/24] xtensa: types: use <asm-generic/int-*.h> for the xtensa architecture
+Date: Thu, 24 Apr 2008 16:05:49 -0700
+Message-ID: <1209078352-7593-43-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -24,36 +24,58 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-20-git-send-email-hpa@zytor.com>
  <1209078352-7593-21-git-send-email-hpa@zytor.com>
  <1209078352-7593-22-git-send-email-hpa@zytor.com>
+ <1209078352-7593-23-git-send-email-hpa@zytor.com>
+ <1209078352-7593-24-git-send-email-hpa@zytor.com>
+ <1209078352-7593-25-git-send-email-hpa@zytor.com>
+ <1209078352-7593-26-git-send-email-hpa@zytor.com>
+ <1209078352-7593-27-git-send-email-hpa@zytor.com>
+ <1209078352-7593-28-git-send-email-hpa@zytor.com>
+ <1209078352-7593-29-git-send-email-hpa@zytor.com>
+ <1209078352-7593-30-git-send-email-hpa@zytor.com>
+ <1209078352-7593-31-git-send-email-hpa@zytor.com>
+ <1209078352-7593-32-git-send-email-hpa@zytor.com>
+ <1209078352-7593-33-git-send-email-hpa@zytor.com>
+ <1209078352-7593-34-git-send-email-hpa@zytor.com>
+ <1209078352-7593-35-git-send-email-hpa@zytor.com>
+ <1209078352-7593-36-git-send-email-hpa@zytor.com>
+ <1209078352-7593-37-git-send-email-hpa@zytor.com>
+ <1209078352-7593-38-git-send-email-hpa@zytor.com>
+ <1209078352-7593-39-git-send-email-hpa@zytor.com>
+ <1209078352-7593-40-git-send-email-hpa@zytor.com>
+ <1209078352-7593-41-git-send-email-hpa@zytor.com>
+ <1209078352-7593-42-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-22-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-42-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Chris Zankel <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>
 
-This modifies <asm-m68k/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-xtensa/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Chris Zankel <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>
 ---
- include/asm-m68k/types.h |   32 +-------------------------------
- 1 files changed, 1 insertions(+), 31 deletions(-)
+ include/asm-xtensa/types.h |   33 +--------------------------------
+ 1 files changed, 1 insertions(+), 32 deletions(-)
 
-diff --git a/include/asm-m68k/types.h b/include/asm-m68k/types.h
-index c35c09d..6441cb5 100644
---- a/include/asm-m68k/types.h
-+++ b/include/asm-m68k/types.h
-@@ -8,30 +8,12 @@
-  * not a major issue.  However, for interoperability, libraries still
-  * need to be careful to avoid a name clashes.
-  */
+diff --git a/include/asm-xtensa/types.h b/include/asm-xtensa/types.h
+index b27d841..c89569a 100644
+--- a/include/asm-xtensa/types.h
++++ b/include/asm-xtensa/types.h
+@@ -11,6 +11,7 @@
+ #ifndef _XTENSA_TYPES_H
+ #define _XTENSA_TYPES_H
+ 
 +#include <asm-generic/int-ll64.h>
  
- #ifndef __ASSEMBLY__
- 
+ #ifdef __ASSEMBLY__
+ # define __XTENSA_UL(x)		(x)
+@@ -25,42 +26,10 @@
  typedef unsigned short umode_t;
  
--/*
+ /*
 - * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
 - * header files exported to user space
 - */
@@ -72,27 +94,26 @@ index c35c09d..6441cb5 100644
 -__extension__ typedef unsigned long long __u64;
 -#endif
 -
- #endif /* __ASSEMBLY__ */
+-/*
+  * These aren't exported outside the kernel to avoid name space clashes
+  */
+ #ifdef __KERNEL__
  
- /*
-@@ -43,18 +25,6 @@ __extension__ typedef unsigned long long __u64;
- 
- #ifndef __ASSEMBLY__
- 
--typedef signed char s8;
+-typedef __signed__ char s8;
 -typedef unsigned char u8;
 -
--typedef signed short s16;
+-typedef __signed__ short s16;
 -typedef unsigned short u16;
 -
--typedef signed int s32;
+-typedef __signed__ int s32;
 -typedef unsigned int u32;
 -
--typedef signed long long s64;
+-typedef __signed__ long long s64;
 -typedef unsigned long long u64;
 -
- /* DMA addresses are always 32-bits wide */
+-
+ #define BITS_PER_LONG 32
  
- typedef u32 dma_addr_t;
+ /* Dma addresses are 32-bits wide.  */
 -- 
 1.5.4.1
