@@ -1,35 +1,41 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 03/24] arm: types: use <asm-generic/int-*.h> for the arm architecture
-Date: Thu, 24 Apr 2008 16:05:13 -0700
-Message-ID: <1209078352-7593-7-git-send-email-hpa@zytor.com>
+Subject: [PATCH 06/24] cris: types: use <asm-generic/int-*.h> for the cris architecture
+Date: Thu, 24 Apr 2008 16:05:19 -0700
+Message-ID: <1209078352-7593-13-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
  <1209078352-7593-4-git-send-email-hpa@zytor.com>
  <1209078352-7593-5-git-send-email-hpa@zytor.com>
  <1209078352-7593-6-git-send-email-hpa@zytor.com>
+ <1209078352-7593-7-git-send-email-hpa@zytor.com>
+ <1209078352-7593-8-git-send-email-hpa@zytor.com>
+ <1209078352-7593-9-git-send-email-hpa@zytor.com>
+ <1209078352-7593-10-git-send-email-hpa@zytor.com>
+ <1209078352-7593-11-git-send-email-hpa@zytor.com>
+ <1209078352-7593-12-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-6-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-12-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
 Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 
-This modifies <asm-arm/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-cris/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 ---
- include/asm-arm/types.h |   33 ++-------------------------------
+ include/asm-cris/types.h |   33 ++-------------------------------
  1 files changed, 2 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-arm/types.h b/include/asm-arm/types.h
-index 3141451..345df01 100644
---- a/include/asm-arm/types.h
-+++ b/include/asm-arm/types.h
+diff --git a/include/asm-cris/types.h b/include/asm-cris/types.h
+index 5a21c42..5790262 100644
+--- a/include/asm-cris/types.h
++++ b/include/asm-cris/types.h
 @@ -1,29 +1,12 @@
- #ifndef __ASM_ARM_TYPES_H
- #define __ASM_ARM_TYPES_H
+ #ifndef _ETRAX_TYPES_H
+ #define _ETRAX_TYPES_H
  
 +#include <asm-generic/int-ll64.h>
 +
@@ -75,8 +81,8 @@ index 3141451..345df01 100644
 -typedef signed long long s64;
 -typedef unsigned long long u64;
 -
- /* Dma addresses are 32-bits wide.  */
- 
+ /* Dma addresses are 32-bits wide, just like our other addresses.  */
+  
  typedef u32 dma_addr_t;
 -- 
 1.5.4.1
