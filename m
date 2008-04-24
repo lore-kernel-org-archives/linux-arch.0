@@ -1,89 +1,165 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36658 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36655 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754889AbYDXXGo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:44 -0400
+	with ESMTP id S1754948AbYDXXGn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:43 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 02/24] alpha: types: use <asm-generic/int-*.h> for the alpha architecture
-Date: Thu, 24 Apr 2008 16:05:11 -0700
-Message-ID: <1209078352-7593-5-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-4-git-send-email-hpa@zytor.com>
+Subject: [PATCH 01/24] types: create <asm-generic/int-*.h>
+Date: Thu, 24 Apr 2008 16:05:09 -0700
+Message-ID: <1209078352-7593-3-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-2-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
- <1209078352-7593-3-git-send-email-hpa@zytor.com>
- <1209078352-7593-4-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20080424230511.FqwzvBkjdaPlhoqTLDEJUMGRqbb5Ki39n5QkiOjvjug@z>
+Message-ID: <20080424230509.0wD50Y1ZIiD9L3EjxKh7ikYbb558y89yIBLdZD1Cm2s@z>
 
-This modifies <asm-alpha/types.h> to use the <asm-generic/int-*.h>
-generic include files.
+This creates two generic files with common integer definitions; one
+where 64 bits is "long" (most 64-bit architectures) and one where 64
+bits is "long long" (all 32-bit architectures and x86-64.)
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
 ---
- include/asm-alpha/types.h |   36 +-----------------------------------
- 1 files changed, 1 insertions(+), 35 deletions(-)
+ include/asm-generic/Kbuild     |    2 +
+ include/asm-generic/int-l64.h  |   51 ++++++++++++++++++++++++++++++++++++
+ include/asm-generic/int-ll64.h |   56 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 109 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/int-l64.h
+ create mode 100644 include/asm-generic/int-ll64.h
 
-diff --git a/include/asm-alpha/types.h b/include/asm-alpha/types.h
-index f571613..a9e34ca 100644
---- a/include/asm-alpha/types.h
-+++ b/include/asm-alpha/types.h
-@@ -8,28 +8,12 @@
-  * not a major issue.  However, for interoperability, libraries still
-  * need to be careful to avoid a name clashes.
-  */
-+#include <asm-generic/int-l64.h>
+diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
+index c18110e..4c9932a 100644
+--- a/include/asm-generic/Kbuild
++++ b/include/asm-generic/Kbuild
+@@ -7,5 +7,7 @@ header-y += poll.h
+ header-y += signal.h
+ header-y += statfs.h
  
- #ifndef __ASSEMBLY__
- 
- typedef unsigned int umode_t;
- 
--/*
-- * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-- * header files exported to user space
-- */
--
--typedef __signed__ char __s8;
--typedef unsigned char __u8;
--
--typedef __signed__ short __s16;
--typedef unsigned short __u16;
--
--typedef __signed__ int __s32;
--typedef unsigned int __u32;
--
--typedef __signed__ long __s64;
--typedef unsigned long __u64;
--
- #endif /* __ASSEMBLY__ */
- 
- /*
-@@ -39,23 +23,5 @@ typedef unsigned long __u64;
- 
- #define BITS_PER_LONG 64
- 
--#ifndef __ASSEMBLY__
--
--typedef signed char s8;
--typedef unsigned char u8;
--
--typedef signed short s16;
--typedef unsigned short u16;
--
--typedef signed int s32;
--typedef unsigned int u32;
--
--typedef signed long s64;
--typedef unsigned long u64;
--
--typedef u64 dma_addr_t;
--typedef u64 dma64_addr_t;
--
--#endif /* __ASSEMBLY__ */
- #endif /* __KERNEL__ */
- #endif /* _ALPHA_TYPES_H */
++unifdef-y += int-l64.h
++unifdef-y += int-ll64.h
+ unifdef-y += resource.h
+ unifdef-y += siginfo.h
+diff --git a/include/asm-generic/int-l64.h b/include/asm-generic/int-l64.h
+new file mode 100644
+index 0000000..629b5a4
+--- /dev/null
++++ b/include/asm-generic/int-l64.h
+@@ -0,0 +1,51 @@
++/*
++ * asm-generic/int-l64.h
++ *
++ * Integer declarations for architectures which use "long"
++ * for 64-bit types.
++ */
++
++#ifndef _ASM_GENERIC_INT_L64_H
++#define _ASM_GENERIC_INT_L64_H
++
++#ifndef __ASSEMBLY__
++/*
++ * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
++ * header files exported to user space
++ */
++
++typedef __signed__ char __s8;
++typedef unsigned char __u8;
++
++typedef __signed__ short __s16;
++typedef unsigned short __u16;
++
++typedef __signed__ int __s32;
++typedef unsigned int __u32;
++
++typedef __signed__ long __s64;
++typedef unsigned long __u64;
++
++#endif /* __ASSEMBLY__ */
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++typedef signed char s8;
++typedef unsigned char u8;
++
++typedef signed short s16;
++typedef unsigned short u16;
++
++typedef signed int s32;
++typedef unsigned int u32;
++
++typedef signed long s64;
++typedef unsigned long u64;
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif /* _ASM_GENERIC_INT_L64_H */
+diff --git a/include/asm-generic/int-ll64.h b/include/asm-generic/int-ll64.h
+new file mode 100644
+index 0000000..1e5ffec
+--- /dev/null
++++ b/include/asm-generic/int-ll64.h
+@@ -0,0 +1,56 @@
++/*
++ * asm-generic/int-ll64.h
++ *
++ * Integer declarations for architectures which use "long long"
++ * for 64-bit types.
++ */
++
++#ifndef _ASM_GENERIC_INT_LL64_H
++#define _ASM_GENERIC_INT_LL64_H
++
++#ifndef __ASSEMBLY__
++/*
++ * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
++ * header files exported to user space
++ */
++
++typedef __signed__ char __s8;
++typedef unsigned char __u8;
++
++typedef __signed__ short __s16;
++typedef unsigned short __u16;
++
++typedef __signed__ int __s32;
++typedef unsigned int __u32;
++
++#ifdef __GNUC__
++__extension__ typedef __signed__ long long __s64;
++__extension__ typedef unsigned long long __u64;
++#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
++typedef __signed__ long long __s64;
++typedef unsigned long long __u64;
++#endif
++
++#endif /* __ASSEMBLY__ */
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++typedef signed char s8;
++typedef unsigned char u8;
++
++typedef signed short s16;
++typedef unsigned short u16;
++
++typedef signed int s32;
++typedef unsigned int u32;
++
++typedef signed long long s64;
++typedef unsigned long long u64;
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif /* _ASM_GENERIC_INT_LL64_H */
 -- 
 1.5.4.1
 
