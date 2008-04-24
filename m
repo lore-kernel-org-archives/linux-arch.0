@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36662 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36689 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754985AbYDXXGp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:45 -0400
+	with ESMTP id S1753299AbYDXXHK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:07:10 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 18/24] sparc: types: use <asm-generic/int-*.h> for the sparc architecture
-Date: Thu, 24 Apr 2008 16:05:42 -0700
-Message-ID: <1209078352-7593-36-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-35-git-send-email-hpa@zytor.com>
+Subject: [PATCH 10/24] m32r: types: use <asm-generic/int-*.h> for the m32r architecture
+Date: Thu, 24 Apr 2008 16:05:26 -0700
+Message-ID: <1209078352-7593-20-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-19-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -27,62 +27,40 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-17-git-send-email-hpa@zytor.com>
  <1209078352-7593-18-git-send-email-hpa@zytor.com>
  <1209078352-7593-19-git-send-email-hpa@zytor.com>
- <1209078352-7593-20-git-send-email-hpa@zytor.com>
- <1209078352-7593-21-git-send-email-hpa@zytor.com>
- <1209078352-7593-22-git-send-email-hpa@zytor.com>
- <1209078352-7593-23-git-send-email-hpa@zytor.com>
- <1209078352-7593-24-git-send-email-hpa@zytor.com>
- <1209078352-7593-25-git-send-email-hpa@zytor.com>
- <1209078352-7593-26-git-send-email-hpa@zytor.com>
- <1209078352-7593-27-git-send-email-hpa@zytor.com>
- <1209078352-7593-28-git-send-email-hpa@zytor.com>
- <1209078352-7593-29-git-send-email-hpa@zytor.com>
- <1209078352-7593-30-git-send-email-hpa@zytor.com>
- <1209078352-7593-31-git-send-email-hpa@zytor.com>
- <1209078352-7593-32-git-send-email-hpa@zytor.com>
- <1209078352-7593-33-git-send-email-hpa@zytor.com>
- <1209078352-7593-34-git-send-email-hpa@zytor.com>
- <1209078352-7593-35-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, "William L. Irwin" <wli@holomorphy.com>
-Message-ID: <20080424230542.OSltIVKGdCteKDUzxJ4OifIK0lYTWC9AaQ74Bfzr-qg@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Hirokazu Takata <takata@linux-m32r.org>
+Message-ID: <20080424230526.eZKNkIZWKTpkSwsPWpQPfELA4cLZ-d4jvP2eFd3QSGM@z>
 
-This modifies <asm-sparc/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-m32r/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: William L. Irwin <wli@holomorphy.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
 ---
- include/asm-sparc/types.h |   30 +-----------------------------
- 1 files changed, 1 insertions(+), 29 deletions(-)
+ include/asm-m32r/types.h |   32 ++------------------------------
+ 1 files changed, 2 insertions(+), 30 deletions(-)
 
-diff --git a/include/asm-sparc/types.h b/include/asm-sparc/types.h
-index 42fc6ed..1b08ef8 100644
---- a/include/asm-sparc/types.h
-+++ b/include/asm-sparc/types.h
-@@ -3,34 +3,18 @@
- #define _SPARC_TYPES_H
+diff --git a/include/asm-m32r/types.h b/include/asm-m32r/types.h
+index b64c166..bc9f7ff 100644
+--- a/include/asm-m32r/types.h
++++ b/include/asm-m32r/types.h
+@@ -1,28 +1,12 @@
+ #ifndef _ASM_M32R_TYPES_H
+ #define _ASM_M32R_TYPES_H
  
- /*
-- * _xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-- * header files exported to user space.
-- */
--
--/*
-  * This file is never included by application software unless
-  * explicitly requested (e.g., via linux/types.h) in which case the
-  * application is Linux specific so (user-) name space pollution is
-  * not a major issue.  However, for interoperability, libraries still
-  * need to be careful to avoid a name clashes.
-  */
 +#include <asm-generic/int-ll64.h>
- 
++
  #ifndef __ASSEMBLY__
  
  typedef unsigned short umode_t;
  
+-/*
+- * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
+- * header files exported to user space
+- */
+-
 -typedef __signed__ char __s8;
 -typedef unsigned char __u8;
 -
@@ -92,31 +70,32 @@ index 42fc6ed..1b08ef8 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
--
+-#if defined(__GNUC__)
+-__extension__ typedef __signed__ long long __s64;
+-__extension__ typedef unsigned long long __u64;
+-#endif
  #endif /* __ASSEMBLY__ */
  
- #ifdef __KERNEL__
-@@ -39,18 +23,6 @@ typedef unsigned long long __u64;
+ /*
+@@ -34,18 +18,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
--typedef __signed__ char s8;
+-typedef signed char s8;
 -typedef unsigned char u8;
 -
--typedef __signed__ short s16;
+-typedef signed short s16;
 -typedef unsigned short u16;
 -
--typedef __signed__ int s32;
+-typedef signed int s32;
 -typedef unsigned int u32;
 -
--typedef __signed__ long long s64;
+-typedef signed long long s64;
 -typedef unsigned long long u64;
 -
- typedef u32 dma_addr_t;
- typedef u32 dma64_addr_t;
+ /* DMA addresses are 32-bits wide.  */
  
+ typedef u32 dma_addr_t;
 -- 
 1.5.4.1
 
