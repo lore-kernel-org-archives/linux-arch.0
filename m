@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36694 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36660 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755020AbYDXXHO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:07:14 -0400
+	with ESMTP id S1754955AbYDXXGo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:44 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 15/24] powerpc: types: use <asm-generic/int-*.h> for the powerpc architecture
-Date: Thu, 24 Apr 2008 16:05:37 -0700
-Message-ID: <1209078352-7593-31-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-30-git-send-email-hpa@zytor.com>
+Subject: [PATCH 13/24] mn10300: types: use <asm-generic/int-*.h> for the mn10300 architecture
+Date: Thu, 24 Apr 2008 16:05:32 -0700
+Message-ID: <1209078352-7593-26-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-25-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -33,45 +33,35 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-23-git-send-email-hpa@zytor.com>
  <1209078352-7593-24-git-send-email-hpa@zytor.com>
  <1209078352-7593-25-git-send-email-hpa@zytor.com>
- <1209078352-7593-26-git-send-email-hpa@zytor.com>
- <1209078352-7593-27-git-send-email-hpa@zytor.com>
- <1209078352-7593-28-git-send-email-hpa@zytor.com>
- <1209078352-7593-29-git-send-email-hpa@zytor.com>
- <1209078352-7593-30-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20080424230537.xsYgN5gE3CMt2eAOSR3wiyVdAVOmZhRPZ9cG5BLdQT4@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+Message-ID: <20080424230532.3T8FCr6AdFp0kuz9RuQNOHOXMkwKEVybdn9iwCXvehA@z>
 
-This modifies <asm-powerpc/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-mn10300/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
 ---
- include/asm-powerpc/types.h |   48 +++++-------------------------------------
- 1 files changed, 6 insertions(+), 42 deletions(-)
+ include/asm-mn10300/types.h |   33 ++-------------------------------
+ 1 files changed, 2 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-powerpc/types.h b/include/asm-powerpc/types.h
-index c243a6a..d3374bc 100644
---- a/include/asm-powerpc/types.h
-+++ b/include/asm-powerpc/types.h
-@@ -1,6 +1,12 @@
- #ifndef _ASM_POWERPC_TYPES_H
- #define _ASM_POWERPC_TYPES_H
+diff --git a/include/asm-mn10300/types.h b/include/asm-mn10300/types.h
+index d40ea76..7b9f010 100644
+--- a/include/asm-mn10300/types.h
++++ b/include/asm-mn10300/types.h
+@@ -11,29 +11,12 @@
+ #ifndef _ASM_TYPES_H
+ #define _ASM_TYPES_H
  
-+#ifdef __powerpc64__
-+# include <asm-generic/int-l64.h>
-+#else
-+# include <asm-generic/int-ll64.h>
-+#endif
++#include <asm-generic/int-ll64.h>
 +
  #ifndef __ASSEMBLY__
  
- /*
-@@ -22,30 +28,6 @@ typedef unsigned int umode_t;
  typedef unsigned short umode_t;
- #endif
  
 -/*
 - * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
@@ -87,24 +77,18 @@ index c243a6a..d3374bc 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#ifdef __powerpc64__
--typedef __signed__ long __s64;
--typedef unsigned long __u64;
--#else
--#if defined(__GNUC__)
--__extension__ typedef __signed__ long long __s64;
--__extension__ typedef unsigned long long __u64;
+-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+-typedef __signed__ long long __s64;
+-typedef unsigned long long __u64;
 -#endif
--#endif /* __powerpc64__ */
 -
- typedef struct {
- 	__u32 u[4];
- } __attribute__((aligned(16))) __vector128;
-@@ -64,24 +46,6 @@ typedef struct {
+ #endif /* __ASSEMBLY__ */
+ 
+ /*
+@@ -45,18 +28,6 @@ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
--
 -typedef signed char s8;
 -typedef unsigned char u8;
 -
@@ -114,17 +98,12 @@ index c243a6a..d3374bc 100644
 -typedef signed int s32;
 -typedef unsigned int u32;
 -
--#ifdef __powerpc64__
--typedef signed long s64;
--typedef unsigned long u64;
--#else
 -typedef signed long long s64;
 -typedef unsigned long long u64;
--#endif
 -
- typedef __vector128 vector128;
+ /* Dma addresses are 32-bits wide.  */
+ typedef u32 dma_addr_t;
  
- /* Physical address used by some IO functions */
 -- 
 1.5.4.1
 
