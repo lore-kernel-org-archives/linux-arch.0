@@ -1,62 +1,111 @@
-From: Adrian Bunk <bunk-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: [RFC] Introduce __ARCH_WANT_SYS_SYSFS
-Date: Thu, 24 Apr 2008 17:51:59 +0300
-Message-ID: <20080424145159.GC2559@cs181133002.pp.htv.fi>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <20080422081211.e85989ec.randy.dunlap@oracle.com>
+From: Michal Simek <monstr@seznam.cz>
+Subject: Re: microblaze syscall list
+Date: Thu, 24 Apr 2008 20:42:44 +0200
+Message-ID: <4810D4A4.7050900@seznam.cz>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <200804221515.28075.arnd@arndb.de> <480FA729.3000406@seznam.cz> <200804241311.09881.arnd@arndb.de>
+Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20080422081211.e85989ec.randy.dunlap-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <randy.dunlap-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Cc: Will Newton <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1763777AbYDXSlr@vger.kernel.org>
+In-Reply-To: <200804241311.09881.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, microblaze-uclinux@itee.uq.edu.au
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 22, 2008 at 08:12:11AM -0700, Randy Dunlap wrote:
-> On Tue, 22 Apr 2008 13:13:39 +0100 Will Newton wrote:
+Hi Arnd,
+
+>> I would like to fix syscalls in Microblaze repo. Can you give me a hint how to
+>> do it?
 > 
-> > Hi,
-> > 
-> > This patch introduces a __ARCH_WANT_SYS_SYSFS #define for
-> > architectures that support the sysfs(2) system call. At the moment
-> > that's everybody but blackfin, but future architectures may want to
-> > save the (admittedly small) code size that it adds to the kernel as
-> > well.
-> > 
-> > (patch attached as well as inline because gmail seems to mangle my whitespace)
-> > 
-> > ---
-> > >From d0746366e8ccb5fbaa6c9945540cecbe0c421222 Mon Sep 17 00:00:00 2001
-> > From: Will Newton <will.newton-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-> > Date: Tue, 22 Apr 2008 12:57:03 +0100
-> > Subject: [PATCH] Introduce __ARCH_WANT_SYS_SYSFS.
-> > 
-> > Signed-off-by: Will Newton <will.newton-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-> > 
-> > All arches that want the sysfs(2) system call should define this symbol.
-> > Arches such as blackfin that do not implement the system call don't compile
-> > the code and save some small amount of space.
+> I think we need to do it on a case-by-case basis, best here on the
+> linux-arch mailing list. I'm sure there are some controversial ones,
+> but most should be pretty clear.
+>  
+>> I look at Blackfin arch and I compared files with microblaze. There are some
+>> differences but not so much.
+>> Can you tell me how to test it which syscall is necessary for platform.
+>> I have never found any documentation about.
 > 
-> Is there any reason that this couldn't (and shouldn't) be done
-> in the Kconfig space and done as documented in
-> Documentation/kbuild/kconfig-language.txt ?
->...
+> Hopefully we can get to this kind of documentation by the end of this
+> discussion. scripts/checksyscalls.sh is some part of the documentation,
+> and we can refine that.
+:-)
 
-Moving it to Kconfig makes sense for stuff where the placement is 
-arbitrary.
+> Maybe we can even have an asm-generic/unistd.h that defines all the
+> still relevant syscalls, plus a per-architecture range that you can
+> use for microblaze-specific calls in your own unistd.h.
 
-But in this case having everything in one file is better than splitting 
-the information between the header and Kconfig.
+That will be really useful. Good idea.
 
-> ~Randy
+>> In my syscall_table.S (on some arch in entry.S) is one big jump table with
+>> reference to syscalls. In unistd.h is definition.
+>>
+>> Is there any convention which syscalls are use for all archs and which are
+>> architecture specific?
+> 
+> Not really. There are very few syscalls that are needed only on certain
+> architectures. The more common case is that a syscall has been replaced
+> by a more complex interface, and a new architecture only needs one of the
+> two, while older architectures still need both.
+> 
+> Let me just comment on your syscall table as it is today:
+> 
+>> ENTRY(sys_call_table)
+>> 	.long sys_restart_syscall	/* 0 - old "setup()" system call,
+>> 					 * used for restarting */
+> 
+> The comment is irrelevant and misleading -- microblaze never had sys_setup.
 
-cu
-Adrian
+I removed this comment.
 
--- 
+>> 	.long sys_exit
+>> 	.long sys_ni_syscall		/* was fork */
+> 
+> it might be useful to renumber your calls once all the irrelevant ones
+> have been removed, so you can get rid of all the sys_ni_syscalls here.
 
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
+I'll delete all sys_ni_syscall from syscall_table.S and I'll remove it from
+unistd.h too. I hope I'll keep the same call numbers.
+
+>> 	.long sys_read
+>> 	.long sys_write
+>> 	.long sys_open			/* 5 */
+> 
+> Since we have all the new sys_*at calls like openat, we don't really
+> need the old versions any more. The kernel implementation of sys_open
+> basically calls openat. You could do the same in libc instead.
+> Don't know if that's worth it though, opinions?
+
+I looked at it and there are the different arguments for open and openat
+syscalls. Implementation is almost the same. I keep it now.
+
+>> 	.long sys_close
+>> 	.long sys_waitpid
+> 
+> waitpid and wait4 can be replaced with waitid
+
+Can I keep number of syscall(unistd.h) and only add reference to waitid in
+syscall_table? or just remove?
+
+>> 	.long sys_creat
+>> 	.long sys_link
+>> 	.long sys_unlink		/* 10 */
+>> 	.long sys_execve_wrapper
+> 
+> having an execve_wrapper instead of execve looks like a strange convention,
+> though I guess you had a good reason for it, could you explain?
+>
+> This one looks architecture specific, so you may want to rename it
+> microblaze_execve_wrapper instead of sys_execve_wrapper.
+
+I looked at it and the same of style is used in arm
+(arch/arm/kernel/entry-common.S) and some others arch. This wrapper only set one
+parameter to correct pointer to stack.
+
+I'll comment the rest later. I need time to look at it.
+
+Thanks for your big help. I really appreciate this.
+
+Michal
