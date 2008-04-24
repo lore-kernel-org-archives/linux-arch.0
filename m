@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 12/24] mips: types: use <asm-generic/int-*.h> for the mips architecture
-Date: Thu, 24 Apr 2008 16:05:31 -0700
-Message-ID: <1209078352-7593-25-git-send-email-hpa@zytor.com>
+Subject: [PATCH 05/24] blackfin: types: use <asm-generic/int-*.h> for the blackfin architecture
+Date: Thu, 24 Apr 2008 16:05:17 -0700
+Message-ID: <1209078352-7593-11-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -12,48 +12,30 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-8-git-send-email-hpa@zytor.com>
  <1209078352-7593-9-git-send-email-hpa@zytor.com>
  <1209078352-7593-10-git-send-email-hpa@zytor.com>
- <1209078352-7593-11-git-send-email-hpa@zytor.com>
- <1209078352-7593-12-git-send-email-hpa@zytor.com>
- <1209078352-7593-13-git-send-email-hpa@zytor.com>
- <1209078352-7593-14-git-send-email-hpa@zytor.com>
- <1209078352-7593-15-git-send-email-hpa@zytor.com>
- <1209078352-7593-16-git-send-email-hpa@zytor.com>
- <1209078352-7593-17-git-send-email-hpa@zytor.com>
- <1209078352-7593-18-git-send-email-hpa@zytor.com>
- <1209078352-7593-19-git-send-email-hpa@zytor.com>
- <1209078352-7593-20-git-send-email-hpa@zytor.com>
- <1209078352-7593-21-git-send-email-hpa@zytor.com>
- <1209078352-7593-22-git-send-email-hpa@zytor.com>
- <1209078352-7593-23-git-send-email-hpa@zytor.com>
- <1209078352-7593-24-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-24-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-10-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
 Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 
-This modifies <asm-mips/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-blackfin/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 ---
- include/asm-mips/types.h |   56 +++++-----------------------------------------
- 1 files changed, 6 insertions(+), 50 deletions(-)
+ include/asm-blackfin/types.h |   34 ++--------------------------------
+ 1 files changed, 2 insertions(+), 32 deletions(-)
 
-diff --git a/include/asm-mips/types.h b/include/asm-mips/types.h
-index 2dd147f..7a2ee4f 100644
---- a/include/asm-mips/types.h
-+++ b/include/asm-mips/types.h
-@@ -9,36 +9,16 @@
- #ifndef _ASM_TYPES_H
- #define _ASM_TYPES_H
- 
-+#if _MIPS_SZLONG == 64
-+# include <asm-generic/int-l64.h>
-+#else
-+# include <asm-generic/int-ll64.h>
-+#endif
+diff --git a/include/asm-blackfin/types.h b/include/asm-blackfin/types.h
+index 9785a6d..8441cbc 100644
+--- a/include/asm-blackfin/types.h
++++ b/include/asm-blackfin/types.h
+@@ -8,30 +8,12 @@
+  * not a major issue.  However, for interoperability, libraries still
+  * need to be careful to avoid a name clashes.
+  */
++#include <asm-generic/int-ll64.h>
 +
  #ifndef __ASSEMBLY__
  
@@ -73,51 +55,33 @@ index 2dd147f..7a2ee4f 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#if (_MIPS_SZLONG == 64)
--
--typedef __signed__ long __s64;
--typedef unsigned long __u64;
--
--#else
--
+-/* HK0617   -- Changes to unsigned long temporarily */
 -#if defined(__GNUC__)
 -__extension__ typedef __signed__ long long __s64;
 -__extension__ typedef unsigned long long __u64;
 -#endif
 -
- #endif
- 
- #endif /* __ASSEMBLY__ */
-@@ -52,30 +32,6 @@ __extension__ typedef unsigned long long __u64;
+ #endif				/* __ASSEMBLY__ */
+ /*
+  * These aren't exported outside the kernel to avoid name space clashes
+@@ -42,18 +24,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
--
--typedef __signed char s8;
+-typedef signed char s8;
 -typedef unsigned char u8;
 -
--typedef __signed short s16;
+-typedef signed short s16;
 -typedef unsigned short u16;
 -
--typedef __signed int s32;
+-typedef signed int s32;
 -typedef unsigned int u32;
 -
--#if (_MIPS_SZLONG == 64)
--
--typedef __signed__ long s64;
--typedef unsigned long u64;
--
--#else
--
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long s64;
+-typedef signed long long s64;
 -typedef unsigned long long u64;
--#endif
 -
--#endif
--
- #if (defined(CONFIG_HIGHMEM) && defined(CONFIG_64BIT_PHYS_ADDR)) \
-     || defined(CONFIG_64BIT)
- typedef u64 dma_addr_t;
+ /* Dma addresses are 32-bits wide.  */
+ 
+ typedef u32 dma_addr_t;
 -- 
 1.5.4.1
