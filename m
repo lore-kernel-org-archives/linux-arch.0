@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 15/24] powerpc: types: use <asm-generic/int-*.h> for the powerpc architecture
-Date: Thu, 24 Apr 2008 16:05:37 -0700
-Message-ID: <1209078352-7593-31-git-send-email-hpa@zytor.com>
+Subject: [PATCH 09/24] ia64: types: use <asm-generic/int-*.h> for the ia64 architecture
+Date: Thu, 24 Apr 2008 16:05:25 -0700
+Message-ID: <1209078352-7593-19-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -20,55 +20,38 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-16-git-send-email-hpa@zytor.com>
  <1209078352-7593-17-git-send-email-hpa@zytor.com>
  <1209078352-7593-18-git-send-email-hpa@zytor.com>
- <1209078352-7593-19-git-send-email-hpa@zytor.com>
- <1209078352-7593-20-git-send-email-hpa@zytor.com>
- <1209078352-7593-21-git-send-email-hpa@zytor.com>
- <1209078352-7593-22-git-send-email-hpa@zytor.com>
- <1209078352-7593-23-git-send-email-hpa@zytor.com>
- <1209078352-7593-24-git-send-email-hpa@zytor.com>
- <1209078352-7593-25-git-send-email-hpa@zytor.com>
- <1209078352-7593-26-git-send-email-hpa@zytor.com>
- <1209078352-7593-27-git-send-email-hpa@zytor.com>
- <1209078352-7593-28-git-send-email-hpa@zytor.com>
- <1209078352-7593-29-git-send-email-hpa@zytor.com>
- <1209078352-7593-30-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-30-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-18-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
 Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 
-This modifies <asm-powerpc/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-ia64/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 ---
- include/asm-powerpc/types.h |   48 +++++-------------------------------------
- 1 files changed, 6 insertions(+), 42 deletions(-)
+ include/asm-ia64/types.h |   31 ++-----------------------------
+ 1 files changed, 2 insertions(+), 29 deletions(-)
 
-diff --git a/include/asm-powerpc/types.h b/include/asm-powerpc/types.h
-index c243a6a..d3374bc 100644
---- a/include/asm-powerpc/types.h
-+++ b/include/asm-powerpc/types.h
-@@ -1,6 +1,12 @@
- #ifndef _ASM_POWERPC_TYPES_H
- #define _ASM_POWERPC_TYPES_H
+diff --git a/include/asm-ia64/types.h b/include/asm-ia64/types.h
+index 902850d..e36b371 100644
+--- a/include/asm-ia64/types.h
++++ b/include/asm-ia64/types.h
+@@ -13,6 +13,8 @@
+  *	David Mosberger-Tang <davidm-sDzT885Ts8HQT0dZR+AlfA@public.gmane.org>, Hewlett-Packard Co
+  */
  
-+#ifdef __powerpc64__
-+# include <asm-generic/int-l64.h>
-+#else
-+# include <asm-generic/int-ll64.h>
-+#endif
++#include <asm-generic/int-l64.h>
 +
- #ifndef __ASSEMBLY__
+ #ifdef __ASSEMBLY__
+ # define __IA64_UL(x)		(x)
+ # define __IA64_UL_CONST(x)	x
+@@ -28,39 +30,10 @@
+ typedef unsigned int umode_t;
  
  /*
-@@ -22,30 +28,6 @@ typedef unsigned int umode_t;
- typedef unsigned short umode_t;
- #endif
- 
--/*
 - * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
 - * header files exported to user space
 - */
@@ -82,43 +65,28 @@ index c243a6a..d3374bc 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#ifdef __powerpc64__
 -typedef __signed__ long __s64;
 -typedef unsigned long __u64;
--#else
--#if defined(__GNUC__)
--__extension__ typedef __signed__ long long __s64;
--__extension__ typedef unsigned long long __u64;
--#endif
--#endif /* __powerpc64__ */
 -
- typedef struct {
- 	__u32 u[4];
- } __attribute__((aligned(16))) __vector128;
-@@ -64,24 +46,6 @@ typedef struct {
+-/*
+  * These aren't exported outside the kernel to avoid name space clashes
+  */
+ # ifdef __KERNEL__
  
- #ifndef __ASSEMBLY__
+-typedef __s8 s8;
+-typedef __u8 u8;
+-
+-typedef __s16 s16;
+-typedef __u16 u16;
+-
+-typedef __s32 s32;
+-typedef __u32 u32;
+-
+-typedef __s64 s64;
+-typedef __u64 u64;
+-
+ #define BITS_PER_LONG 64
  
--
--typedef signed char s8;
--typedef unsigned char u8;
--
--typedef signed short s16;
--typedef unsigned short u16;
--
--typedef signed int s32;
--typedef unsigned int u32;
--
--#ifdef __powerpc64__
--typedef signed long s64;
--typedef unsigned long u64;
--#else
--typedef signed long long s64;
--typedef unsigned long long u64;
--#endif
--
- typedef __vector128 vector128;
- 
- /* Physical address used by some IO functions */
+ /* DMA addresses are 64-bits wide, in general.  */
 -- 
 1.5.4.1
