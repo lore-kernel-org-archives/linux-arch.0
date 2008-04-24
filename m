@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 21/24] x86: types: use <asm-generic/int-*.h> for the x86 architecture
-Date: Thu, 24 Apr 2008 16:05:47 -0700
-Message-ID: <1209078352-7593-41-git-send-email-hpa@zytor.com>
+Subject: [PATCH 18/24] sparc: types: use <asm-generic/int-*.h> for the sparc architecture
+Date: Thu, 24 Apr 2008 16:05:43 -0700
+Message-ID: <1209078352-7593-37-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -38,47 +38,46 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-34-git-send-email-hpa@zytor.com>
  <1209078352-7593-35-git-send-email-hpa@zytor.com>
  <1209078352-7593-36-git-send-email-hpa@zytor.com>
- <1209078352-7593-37-git-send-email-hpa@zytor.com>
- <1209078352-7593-38-git-send-email-hpa@zytor.com>
- <1209078352-7593-39-git-send-email-hpa@zytor.com>
- <1209078352-7593-40-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-40-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-36-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 
-This modifies <asm-x86/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-sparc/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Cc: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Cc: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
-Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
 ---
- include/asm-x86/types.h |   38 ++------------------------------------
- 1 files changed, 2 insertions(+), 36 deletions(-)
+ include/asm-sparc/types.h |   30 +-----------------------------
+ 1 files changed, 1 insertions(+), 29 deletions(-)
 
-diff --git a/include/asm-x86/types.h b/include/asm-x86/types.h
-index 63733f3..1ac80cd 100644
---- a/include/asm-x86/types.h
-+++ b/include/asm-x86/types.h
-@@ -1,34 +1,12 @@
- #ifndef _ASM_X86_TYPES_H
- #define _ASM_X86_TYPES_H
+diff --git a/include/asm-sparc/types.h b/include/asm-sparc/types.h
+index 42fc6ed..1b08ef8 100644
+--- a/include/asm-sparc/types.h
++++ b/include/asm-sparc/types.h
+@@ -3,34 +3,18 @@
+ #define _SPARC_TYPES_H
  
+ /*
+- * _xx is ok: it doesn't pollute the POSIX namespace. Use these in the
+- * header files exported to user space.
+- */
+-
+-/*
+  * This file is never included by application software unless
+  * explicitly requested (e.g., via linux/types.h) in which case the
+  * application is Linux specific so (user-) name space pollution is
+  * not a major issue.  However, for interoperability, libraries still
+  * need to be careful to avoid a name clashes.
+  */
 +#include <asm-generic/int-ll64.h>
-+
+ 
  #ifndef __ASSEMBLY__
  
  typedef unsigned short umode_t;
  
--/*
-- * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-- * header files exported to user space
-- */
--
 -typedef __signed__ char __s8;
 -typedef unsigned char __u8;
 -
@@ -88,37 +87,30 @@ index 63733f3..1ac80cd 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#ifdef __i386__
--# ifdef __GNUC__
--__extension__ typedef __signed__ long long __s64;
--__extension__ typedef unsigned long long __u64;
--# endif
--#else
 -typedef __signed__ long long __s64;
 -typedef unsigned long long __u64;
--#endif
 -
  #endif /* __ASSEMBLY__ */
  
- /*
-@@ -44,18 +22,6 @@ typedef unsigned long long __u64;
+ #ifdef __KERNEL__
+@@ -39,18 +23,6 @@ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
--typedef signed char s8;
+-typedef __signed__ char s8;
 -typedef unsigned char u8;
 -
--typedef signed short s16;
+-typedef __signed__ short s16;
 -typedef unsigned short u16;
 -
--typedef signed int s32;
+-typedef __signed__ int s32;
 -typedef unsigned int u32;
 -
--typedef signed long long s64;
+-typedef __signed__ long long s64;
 -typedef unsigned long long u64;
 -
- typedef u64 dma64_addr_t;
- #if defined(CONFIG_X86_64) || defined(CONFIG_HIGHMEM64G)
- /* DMA addresses come in 32-bit and 64-bit flavours. */
+ typedef u32 dma_addr_t;
+ typedef u32 dma64_addr_t;
+ 
 -- 
 1.5.4.1
