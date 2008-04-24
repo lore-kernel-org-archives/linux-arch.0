@@ -1,93 +1,89 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: Re: microblaze syscall list
-Date: Thu, 24 Apr 2008 23:21:06 +0200
-Message-ID: <200804242321.07968.arnd@arndb.de>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <200804241311.09881.arnd@arndb.de> <4810D4A4.7050900@seznam.cz>
+From: "Rafael J. Wysocki" <rjw-KKrjLPT3xs0@public.gmane.org>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+Date: Thu, 24 Apr 2008 23:30:00 +0200
+Message-ID: <200804242330.01519.rjw@sisk.pl>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <20080424105908.GW12774@kernel.dk> <481080A0.9050804@rtr.ca>
 Mime-Version: 1.0
 Content-Type: text/plain;
-  charset="iso-8859-15"
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <4810D4A4.7050900-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org>
+In-Reply-To: <481080A0.9050804-gsilrlXbHYg@public.gmane.org>
 Content-Disposition: inline
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org
-Cc: Will Newton <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, git-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org, microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org
+To: Mark Lord <lkml-gsilrlXbHYg@public.gmane.org>
+Cc: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, pavel-+ZI9xUNit7I@public.gmane.org
 
-On Thursday 24 April 2008, Michal Simek wrote:
-
-> >> 	.long sys_exit
-> >> 	.long sys_ni_syscall		/* was fork */
+On Thursday, 24 of April 2008, Mark Lord wrote:
+> Jens Axboe wrote:
+> > On Wed, Apr 23 2008, Mark Lord wrote:
+> >> Jens Axboe wrote:
+> >>> On Wed, Apr 23 2008, Mark Lord wrote:
+> >>> ..
+> >>>> The second bug, is that for the halt case at least,
+> >>>> nobody waits for the other CPU to actually halt
+> >>>> before continuing.. so we sometimes enter the shutdown
+> >>>> code while other CPUs are still active.
+> >>>>
+> >>>> This causes some machines to hang at shutdown,
+> >>>> unless CPU_HOTPLUG is configured and takes them offline
+> >>>> before we get here.
+> >>> I'm guessing there's a reason it doesn't pass '1' as the last argument,
+> >>> because that would fix that issue?
+> >> ..
+> >>
+> >> Undoubtedly -- perhaps the called CPU halts, and therefore cannot reply.  :)
 > > 
-> > it might be useful to renumber your calls once all the irrelevant ones
-> > have been removed, so you can get rid of all the sys_ni_syscalls here.
-> 
-> I'll delete all sys_ni_syscall from syscall_table.S and I'll remove it from
-> unistd.h too. I hope I'll keep the same call numbers.
-
-there is not much point in keeping the syscall numbers, as you'll have
-to do incompatible changes to your libc in order to do all the changes
-I'm asking for.
- 
-> >> 	.long sys_read
-> >> 	.long sys_write
-> >> 	.long sys_open			/* 5 */
+> > Uhm yes, I guess stop_this_cpu() does exactly what the name implies :-)
 > > 
-> > Since we have all the new sys_*at calls like openat, we don't really
-> > need the old versions any more. The kernel implementation of sys_open
-> > basically calls openat. You could do the same in libc instead.
-> > Don't know if that's worth it though, opinions?
-> 
-> I looked at it and there are the different arguments for open and openat
-> syscalls. Implementation is almost the same. I keep it now.
-
-There is no "for now". If you keep them for submission, you'll have to
-keep them forever. You'll have to wrap them in your libc to adapt the
-arguments.
-
-> >> 	.long sys_close
-> >> 	.long sys_waitpid
+> >> But some kind of pre-halt ack, perhaps plus a short delay by the caller
+> >> after receipt of the ack, would probably suffice to kill that bug.
+> >>
+> >> But I really haven't studied this code enough to know,
+> >> other than that it historically has been a sticky area
+> >> to poke around in.
 > > 
-> > waitpid and wait4 can be replaced with waitid
-> 
-> Can I keep number of syscall(unistd.h) and only add reference to waitid in
-> syscall_table? or just remove?
-
-if you keep the syscall number in unistd.h, you may confuse user space
-that relies on it when the actual call is not there. It's most important
-to keep the two in sync.
-
-It may turn out to be better to leave them in, but then you still need
-both the number and the sys_call_table entry.
-
-The wait/waitpid/wait4/waitid case is much less interesting than
-the uid16/uid32 and off_t/loff_t cases, where you don't ever want
-anyone to call the old functions.
-
-the openat/*at family of calls probably falls into the same category
-as waitid: there are user space programs that call either one, and
-it doesn't matter much which one (kernel or libc) does the conversion.
-
-> >> 	.long sys_creat
-> >> 	.long sys_link
-> >> 	.long sys_unlink		/* 10 */
-> >> 	.long sys_execve_wrapper
+> > Something like this will close the window to right up until the point
+> > where the other CPUs have 'almost' called halt().
 > > 
-> > having an execve_wrapper instead of execve looks like a strange convention,
-> > though I guess you had a good reason for it, could you explain?
-> >
-> > This one looks architecture specific, so you may want to rename it
-> > microblaze_execve_wrapper instead of sys_execve_wrapper.
+> > diff --git a/arch/x86/kernel/smp.c b/arch/x86/kernel/smp.c
+> > index 5398385..94ec9bf 100644
+> > --- a/arch/x86/kernel/smp.c
+> > +++ b/arch/x86/kernel/smp.c
+> > @@ -155,8 +155,9 @@ static void stop_this_cpu(void *dummy)
+> >  	/*
+> >  	 * Remove this CPU:
+> >  	 */
+> > -	cpu_clear(smp_processor_id(), cpu_online_map);
+> >  	disable_local_APIC();
+> > +	cpu_clear(smp_processor_id(), cpu_online_map);
+> > +	smp_wmb();
+> >  	if (hlt_works(smp_processor_id()))
+> >  		for (;;) halt();
+> >  	for (;;);
+> > @@ -175,6 +176,12 @@ static void native_smp_send_stop(void)
+> >  
+> >  	local_irq_save(flags);
+> >  	smp_call_function(stop_this_cpu, NULL, 0, 0);
+> > +
+> > +	while (cpus_weight(cpu_online_map) > 1) {
+> > +		cpu_relax();
+> > +		smp_rmb();
+> > +	}
+> > +
+> >  	disable_local_APIC();
+> >  	local_irq_restore(flags);
+> >  }
+> ..
 > 
-> I looked at it and the same of style is used in arm
-> (arch/arm/kernel/entry-common.S) and some others arch. This wrapper only set one
-> parameter to correct pointer to stack.
+> Yup, that looks like it oughta work consistently.
+> Now we just need to hear from some of the folks who
+> have danced around this code in the past.
+> 
+> (added Pavel & Rafael to Cc:).
 
-right, but other architectures don't seem to need it.
+Well, it looks sane to me, but I'm not really an expert here.
 
-> I'll comment the rest later. I need time to look at it.
-
-I guess you should also wait for other comments on my list.
-
-	Arnd <><
+Thanks,
+Rafael
