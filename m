@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36691 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36698 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755467AbYDXXHN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:07:13 -0400
+	with ESMTP id S1752631AbYDXXHQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:07:16 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 13/24] mn10300: types: use <asm-generic/int-*.h> for the mn10300 architecture
-Date: Thu, 24 Apr 2008 16:05:33 -0700
-Message-ID: <1209078352-7593-27-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-26-git-send-email-hpa@zytor.com>
+Subject: [PATCH 12/24] mips: types: use <asm-generic/int-*.h> for the mips architecture
+Date: Thu, 24 Apr 2008 16:05:30 -0700
+Message-ID: <1209078352-7593-24-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-23-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -31,32 +31,34 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-21-git-send-email-hpa@zytor.com>
  <1209078352-7593-22-git-send-email-hpa@zytor.com>
  <1209078352-7593-23-git-send-email-hpa@zytor.com>
- <1209078352-7593-24-git-send-email-hpa@zytor.com>
- <1209078352-7593-25-git-send-email-hpa@zytor.com>
- <1209078352-7593-26-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20080424230533.PRshsBmLE6HHZ6KZwtC6oPEv44doDwd9M4VG_yxDy-w@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20080424230530.xcgcpBKemTk8sGm3A1tw62UuLYVZgUAi_1IOyF0lsmk@z>
 
-This modifies <asm-mn10300/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-mips/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
 ---
- include/asm-mn10300/types.h |   33 ++-------------------------------
- 1 files changed, 2 insertions(+), 31 deletions(-)
+ include/asm-mips/types.h |   56 +++++-----------------------------------------
+ 1 files changed, 6 insertions(+), 50 deletions(-)
 
-diff --git a/include/asm-mn10300/types.h b/include/asm-mn10300/types.h
-index d40ea76..7b9f010 100644
---- a/include/asm-mn10300/types.h
-+++ b/include/asm-mn10300/types.h
-@@ -11,29 +11,12 @@
+diff --git a/include/asm-mips/types.h b/include/asm-mips/types.h
+index 2dd147f..7a2ee4f 100644
+--- a/include/asm-mips/types.h
++++ b/include/asm-mips/types.h
+@@ -9,36 +9,16 @@
  #ifndef _ASM_TYPES_H
  #define _ASM_TYPES_H
  
-+#include <asm-generic/int-ll64.h>
++#if _MIPS_SZLONG == 64
++# include <asm-generic/int-l64.h>
++#else
++# include <asm-generic/int-ll64.h>
++#endif
 +
  #ifndef __ASSEMBLY__
  
@@ -76,33 +78,52 @@ index d40ea76..7b9f010 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
+-#if (_MIPS_SZLONG == 64)
+-
+-typedef __signed__ long __s64;
+-typedef unsigned long __u64;
+-
+-#else
+-
+-#if defined(__GNUC__)
+-__extension__ typedef __signed__ long long __s64;
+-__extension__ typedef unsigned long long __u64;
 -#endif
 -
- #endif /* __ASSEMBLY__ */
+ #endif
  
- /*
-@@ -45,18 +28,6 @@ typedef unsigned long long __u64;
+ #endif /* __ASSEMBLY__ */
+@@ -52,30 +32,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
--typedef signed char s8;
+-
+-typedef __signed char s8;
 -typedef unsigned char u8;
 -
--typedef signed short s16;
+-typedef __signed short s16;
 -typedef unsigned short u16;
 -
--typedef signed int s32;
+-typedef __signed int s32;
 -typedef unsigned int u32;
 -
--typedef signed long long s64;
--typedef unsigned long long u64;
+-#if (_MIPS_SZLONG == 64)
 -
- /* Dma addresses are 32-bits wide.  */
- typedef u32 dma_addr_t;
- 
+-typedef __signed__ long s64;
+-typedef unsigned long u64;
+-
+-#else
+-
+-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+-typedef __signed__ long long s64;
+-typedef unsigned long long u64;
+-#endif
+-
+-#endif
+-
+ #if (defined(CONFIG_HIGHMEM) && defined(CONFIG_64BIT_PHYS_ADDR)) \
+     || defined(CONFIG_64BIT)
+ typedef u64 dma_addr_t;
 -- 
 1.5.4.1
 
