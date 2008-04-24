@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36622 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36663 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754786AbYDXXGh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:37 -0400
+	with ESMTP id S1754994AbYDXXGp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:45 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: [PATCH 05/24] blackfin: types: use <asm-generic/int-*.h> for the blackfin architecture
-Date: Thu, 24 Apr 2008 16:05:16 -0700
-Message-ID: <1209078352-7593-10-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-9-git-send-email-hpa@zytor.com>
+Date: Thu, 24 Apr 2008 16:05:17 -0700
+Message-ID: <1209078352-7593-11-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-10-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -17,17 +17,17 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-7-git-send-email-hpa@zytor.com>
  <1209078352-7593-8-git-send-email-hpa@zytor.com>
  <1209078352-7593-9-git-send-email-hpa@zytor.com>
+ <1209078352-7593-10-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Bryan Wu <cooloney@kernel.org>
-Message-ID: <20080424230516.iIebPYEZoOnCyhDnOiIM7hHGpdK784K2aZTl2nBbuT8@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20080424230517.mZ8HgSaQu89uJEdPm_NDUgnk86W6vZV-PAFyZ7h5brg@z>
 
 This modifies <asm-blackfin/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: Bryan Wu <cooloney@kernel.org>
 ---
  include/asm-blackfin/types.h |   34 ++--------------------------------
  1 files changed, 2 insertions(+), 32 deletions(-)
