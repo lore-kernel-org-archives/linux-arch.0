@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 13/24] mn10300: types: use <asm-generic/int-*.h> for the mn10300 architecture
-Date: Thu, 24 Apr 2008 16:05:33 -0700
-Message-ID: <1209078352-7593-27-git-send-email-hpa@zytor.com>
+Subject: [PATCH 21/24] x86: types: use <asm-generic/int-*.h> for the x86 architecture
+Date: Thu, 24 Apr 2008 16:05:47 -0700
+Message-ID: <1209078352-7593-41-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -28,28 +28,45 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-24-git-send-email-hpa@zytor.com>
  <1209078352-7593-25-git-send-email-hpa@zytor.com>
  <1209078352-7593-26-git-send-email-hpa@zytor.com>
+ <1209078352-7593-27-git-send-email-hpa@zytor.com>
+ <1209078352-7593-28-git-send-email-hpa@zytor.com>
+ <1209078352-7593-29-git-send-email-hpa@zytor.com>
+ <1209078352-7593-30-git-send-email-hpa@zytor.com>
+ <1209078352-7593-31-git-send-email-hpa@zytor.com>
+ <1209078352-7593-32-git-send-email-hpa@zytor.com>
+ <1209078352-7593-33-git-send-email-hpa@zytor.com>
+ <1209078352-7593-34-git-send-email-hpa@zytor.com>
+ <1209078352-7593-35-git-send-email-hpa@zytor.com>
+ <1209078352-7593-36-git-send-email-hpa@zytor.com>
+ <1209078352-7593-37-git-send-email-hpa@zytor.com>
+ <1209078352-7593-38-git-send-email-hpa@zytor.com>
+ <1209078352-7593-39-git-send-email-hpa@zytor.com>
+ <1209078352-7593-40-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-26-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-40-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
 
-This modifies <asm-mn10300/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-x86/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
+Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
 ---
- include/asm-mn10300/types.h |   33 ++-------------------------------
- 1 files changed, 2 insertions(+), 31 deletions(-)
+ include/asm-x86/types.h |   38 ++------------------------------------
+ 1 files changed, 2 insertions(+), 36 deletions(-)
 
-diff --git a/include/asm-mn10300/types.h b/include/asm-mn10300/types.h
-index d40ea76..7b9f010 100644
---- a/include/asm-mn10300/types.h
-+++ b/include/asm-mn10300/types.h
-@@ -11,29 +11,12 @@
- #ifndef _ASM_TYPES_H
- #define _ASM_TYPES_H
+diff --git a/include/asm-x86/types.h b/include/asm-x86/types.h
+index 63733f3..1ac80cd 100644
+--- a/include/asm-x86/types.h
++++ b/include/asm-x86/types.h
+@@ -1,34 +1,12 @@
+ #ifndef _ASM_X86_TYPES_H
+ #define _ASM_X86_TYPES_H
  
 +#include <asm-generic/int-ll64.h>
 +
@@ -71,7 +88,12 @@ index d40ea76..7b9f010 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+-#ifdef __i386__
+-# ifdef __GNUC__
+-__extension__ typedef __signed__ long long __s64;
+-__extension__ typedef unsigned long long __u64;
+-# endif
+-#else
 -typedef __signed__ long long __s64;
 -typedef unsigned long long __u64;
 -#endif
@@ -79,7 +101,7 @@ index d40ea76..7b9f010 100644
  #endif /* __ASSEMBLY__ */
  
  /*
-@@ -45,18 +28,6 @@ typedef unsigned long long __u64;
+@@ -44,18 +22,6 @@ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
@@ -95,8 +117,8 @@ index d40ea76..7b9f010 100644
 -typedef signed long long s64;
 -typedef unsigned long long u64;
 -
- /* Dma addresses are 32-bits wide.  */
- typedef u32 dma_addr_t;
- 
+ typedef u64 dma64_addr_t;
+ #if defined(CONFIG_X86_64) || defined(CONFIG_HIGHMEM64G)
+ /* DMA addresses come in 32-bit and 64-bit flavours. */
 -- 
 1.5.4.1
