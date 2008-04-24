@@ -1,47 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36607 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36572 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754777AbYDXXGe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:34 -0400
+	with ESMTP id S1752678AbYDXXGW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:22 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 02/24] alpha: types: use <asm-generic/int-*.h> for the alpha architecture
-Date: Thu, 24 Apr 2008 16:05:10 -0700
-Message-ID: <1209078352-7593-4-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-3-git-send-email-hpa@zytor.com>
+Subject: [PATCH 08/24] h8300: types: use <asm-generic/int-*.h> for the h8300 architecture
+Date: Thu, 24 Apr 2008 16:05:23 -0700
+Message-ID: <1209078352-7593-17-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-16-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
+ <1209078352-7593-4-git-send-email-hpa@zytor.com>
+ <1209078352-7593-5-git-send-email-hpa@zytor.com>
+ <1209078352-7593-6-git-send-email-hpa@zytor.com>
+ <1209078352-7593-7-git-send-email-hpa@zytor.com>
+ <1209078352-7593-8-git-send-email-hpa@zytor.com>
+ <1209078352-7593-9-git-send-email-hpa@zytor.com>
+ <1209078352-7593-10-git-send-email-hpa@zytor.com>
+ <1209078352-7593-11-git-send-email-hpa@zytor.com>
+ <1209078352-7593-12-git-send-email-hpa@zytor.com>
+ <1209078352-7593-13-git-send-email-hpa@zytor.com>
+ <1209078352-7593-14-git-send-email-hpa@zytor.com>
+ <1209078352-7593-15-git-send-email-hpa@zytor.com>
+ <1209078352-7593-16-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Message-ID: <20080424230510.rb7fXm_HYWOEXOMQxtZaEYO2_9RqZVbh1Z3hTmBHkac@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20080424230523.ZDx60tcfNEDD6JTFoz7LxU1vQaJpvbmMNHdZx8xv7yY@z>
 
-This modifies <asm-alpha/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-h8300/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
 ---
- include/asm-alpha/types.h |   36 +-----------------------------------
- 1 files changed, 1 insertions(+), 35 deletions(-)
+ include/asm-h8300/types.h |   33 ++-------------------------------
+ 1 files changed, 2 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-alpha/types.h b/include/asm-alpha/types.h
-index f571613..a9e34ca 100644
---- a/include/asm-alpha/types.h
-+++ b/include/asm-alpha/types.h
-@@ -8,28 +8,12 @@
-  * not a major issue.  However, for interoperability, libraries still
-  * need to be careful to avoid a name clashes.
-  */
-+#include <asm-generic/int-l64.h>
+diff --git a/include/asm-h8300/types.h b/include/asm-h8300/types.h
+index 56566e2..1287519 100644
+--- a/include/asm-h8300/types.h
++++ b/include/asm-h8300/types.h
+@@ -1,6 +1,8 @@
+ #ifndef _H8300_TYPES_H
+ #define _H8300_TYPES_H
  
- #ifndef __ASSEMBLY__
++#include <asm-generic/int-ll64.h>
++
+ #if !defined(__ASSEMBLY__)
  
- typedef unsigned int umode_t;
+ /*
+@@ -14,41 +16,10 @@
+ typedef unsigned short umode_t;
  
--/*
+ /*
 - * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
 - * header files exported to user space
 - */
@@ -55,18 +68,16 @@ index f571613..a9e34ca 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--typedef __signed__ long __s64;
--typedef unsigned long __u64;
+-#if defined(__GNUC__)
+-__extension__ typedef __signed__ long long __s64;
+-__extension__ typedef unsigned long long __u64;
+-#endif
 -
- #endif /* __ASSEMBLY__ */
+-/*
+  * These aren't exported outside the kernel to avoid name space clashes
+  */
+ #ifdef __KERNEL__
  
- /*
-@@ -39,23 +23,5 @@ typedef unsigned long __u64;
- 
- #define BITS_PER_LONG 64
- 
--#ifndef __ASSEMBLY__
--
 -typedef signed char s8;
 -typedef unsigned char u8;
 -
@@ -76,15 +87,12 @@ index f571613..a9e34ca 100644
 -typedef signed int s32;
 -typedef unsigned int u32;
 -
--typedef signed long s64;
--typedef unsigned long u64;
+-typedef signed long long s64;
+-typedef unsigned long long u64;
 -
--typedef u64 dma_addr_t;
--typedef u64 dma64_addr_t;
--
--#endif /* __ASSEMBLY__ */
- #endif /* __KERNEL__ */
- #endif /* _ALPHA_TYPES_H */
+ #define BITS_PER_LONG 32
+ 
+ /* Dma addresses are 32-bits wide.  */
 -- 
 1.5.4.1
 
