@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 12/24] mips: types: use <asm-generic/int-*.h> for the mips architecture
-Date: Thu, 24 Apr 2008 16:05:30 -0700
-Message-ID: <1209078352-7593-24-git-send-email-hpa@zytor.com>
+Subject: [PATCH 20/24] v850: types: use <asm-generic/int-*.h> for the v850 architecture
+Date: Thu, 24 Apr 2008 16:05:46 -0700
+Message-ID: <1209078352-7593-40-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -25,37 +25,46 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-21-git-send-email-hpa@zytor.com>
  <1209078352-7593-22-git-send-email-hpa@zytor.com>
  <1209078352-7593-23-git-send-email-hpa@zytor.com>
+ <1209078352-7593-24-git-send-email-hpa@zytor.com>
+ <1209078352-7593-25-git-send-email-hpa@zytor.com>
+ <1209078352-7593-26-git-send-email-hpa@zytor.com>
+ <1209078352-7593-27-git-send-email-hpa@zytor.com>
+ <1209078352-7593-28-git-send-email-hpa@zytor.com>
+ <1209078352-7593-29-git-send-email-hpa@zytor.com>
+ <1209078352-7593-30-git-send-email-hpa@zytor.com>
+ <1209078352-7593-31-git-send-email-hpa@zytor.com>
+ <1209078352-7593-32-git-send-email-hpa@zytor.com>
+ <1209078352-7593-33-git-send-email-hpa@zytor.com>
+ <1209078352-7593-34-git-send-email-hpa@zytor.com>
+ <1209078352-7593-35-git-send-email-hpa@zytor.com>
+ <1209078352-7593-36-git-send-email-hpa@zytor.com>
+ <1209078352-7593-37-git-send-email-hpa@zytor.com>
+ <1209078352-7593-38-git-send-email-hpa@zytor.com>
+ <1209078352-7593-39-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-23-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-39-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
+Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 
-This modifies <asm-mips/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-v850/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Cc: Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
 ---
- include/asm-mips/types.h |   56 +++++-----------------------------------------
- 1 files changed, 6 insertions(+), 50 deletions(-)
+ include/asm-v850/types.h |   32 +-------------------------------
+ 1 files changed, 1 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-mips/types.h b/include/asm-mips/types.h
-index 2dd147f..7a2ee4f 100644
---- a/include/asm-mips/types.h
-+++ b/include/asm-mips/types.h
-@@ -9,36 +9,16 @@
- #ifndef _ASM_TYPES_H
- #define _ASM_TYPES_H
- 
-+#if _MIPS_SZLONG == 64
-+# include <asm-generic/int-l64.h>
-+#else
-+# include <asm-generic/int-ll64.h>
-+#endif
-+
- #ifndef __ASSEMBLY__
+diff --git a/include/asm-v850/types.h b/include/asm-v850/types.h
+index 284bda8..89f735e 100644
+--- a/include/asm-v850/types.h
++++ b/include/asm-v850/types.h
+@@ -10,28 +10,10 @@
+  * not a major issue.  However, for interoperability, libraries still
+  * need to be careful to avoid a name clashes.
+  */
++#include <asm-generic/int-ll64.h>
  
  typedef unsigned short umode_t;
  
@@ -73,51 +82,32 @@ index 2dd147f..7a2ee4f 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#if (_MIPS_SZLONG == 64)
--
--typedef __signed__ long __s64;
--typedef unsigned long __u64;
--
--#else
--
 -#if defined(__GNUC__)
 -__extension__ typedef __signed__ long long __s64;
 -__extension__ typedef unsigned long long __u64;
 -#endif
 -
- #endif
+ #endif /* !__ASSEMBLY__ */
  
- #endif /* __ASSEMBLY__ */
-@@ -52,30 +32,6 @@ __extension__ typedef unsigned long long __u64;
+ /*
+@@ -43,18 +25,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
--
--typedef __signed char s8;
+-typedef signed char s8;
 -typedef unsigned char u8;
 -
--typedef __signed short s16;
+-typedef signed short s16;
 -typedef unsigned short u16;
 -
--typedef __signed int s32;
+-typedef signed int s32;
 -typedef unsigned int u32;
 -
--#if (_MIPS_SZLONG == 64)
--
--typedef __signed__ long s64;
--typedef unsigned long u64;
--
--#else
--
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long s64;
+-typedef signed long long s64;
 -typedef unsigned long long u64;
--#endif
 -
--#endif
--
- #if (defined(CONFIG_HIGHMEM) && defined(CONFIG_64BIT_PHYS_ADDR)) \
-     || defined(CONFIG_64BIT)
- typedef u64 dma_addr_t;
+ /* Dma addresses are 32-bits wide.  */
+ 
+ typedef u32 dma_addr_t;
 -- 
 1.5.4.1
