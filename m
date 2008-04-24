@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 05/24] blackfin: types: use <asm-generic/int-*.h> for the blackfin architecture
-Date: Thu, 24 Apr 2008 16:05:17 -0700
-Message-ID: <1209078352-7593-11-git-send-email-hpa@zytor.com>
+Subject: [PATCH 17/24] sh: types: use <asm-generic/int-*.h> for the sh architecture
+Date: Thu, 24 Apr 2008 16:05:40 -0700
+Message-ID: <1209078352-7593-34-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -12,29 +12,53 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-8-git-send-email-hpa@zytor.com>
  <1209078352-7593-9-git-send-email-hpa@zytor.com>
  <1209078352-7593-10-git-send-email-hpa@zytor.com>
+ <1209078352-7593-11-git-send-email-hpa@zytor.com>
+ <1209078352-7593-12-git-send-email-hpa@zytor.com>
+ <1209078352-7593-13-git-send-email-hpa@zytor.com>
+ <1209078352-7593-14-git-send-email-hpa@zytor.com>
+ <1209078352-7593-15-git-send-email-hpa@zytor.com>
+ <1209078352-7593-16-git-send-email-hpa@zytor.com>
+ <1209078352-7593-17-git-send-email-hpa@zytor.com>
+ <1209078352-7593-18-git-send-email-hpa@zytor.com>
+ <1209078352-7593-19-git-send-email-hpa@zytor.com>
+ <1209078352-7593-20-git-send-email-hpa@zytor.com>
+ <1209078352-7593-21-git-send-email-hpa@zytor.com>
+ <1209078352-7593-22-git-send-email-hpa@zytor.com>
+ <1209078352-7593-23-git-send-email-hpa@zytor.com>
+ <1209078352-7593-24-git-send-email-hpa@zytor.com>
+ <1209078352-7593-25-git-send-email-hpa@zytor.com>
+ <1209078352-7593-26-git-send-email-hpa@zytor.com>
+ <1209078352-7593-27-git-send-email-hpa@zytor.com>
+ <1209078352-7593-28-git-send-email-hpa@zytor.com>
+ <1209078352-7593-29-git-send-email-hpa@zytor.com>
+ <1209078352-7593-30-git-send-email-hpa@zytor.com>
+ <1209078352-7593-31-git-send-email-hpa@zytor.com>
+ <1209078352-7593-32-git-send-email-hpa@zytor.com>
+ <1209078352-7593-33-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-10-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-33-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Paul Mundt <lethal-M7jkjyW5wf5g9hUCZPvPmw@public.gmane.org>
 
-This modifies <asm-blackfin/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-sh/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Paul Mundt <lethal-M7jkjyW5wf5g9hUCZPvPmw@public.gmane.org>
 ---
- include/asm-blackfin/types.h |   34 ++--------------------------------
+ include/asm-sh/types.h |   34 ++--------------------------------
  1 files changed, 2 insertions(+), 32 deletions(-)
 
-diff --git a/include/asm-blackfin/types.h b/include/asm-blackfin/types.h
-index 9785a6d..8441cbc 100644
---- a/include/asm-blackfin/types.h
-+++ b/include/asm-blackfin/types.h
-@@ -8,30 +8,12 @@
-  * not a major issue.  However, for interoperability, libraries still
-  * need to be careful to avoid a name clashes.
-  */
+diff --git a/include/asm-sh/types.h b/include/asm-sh/types.h
+index a6e1d41..beea4e6 100644
+--- a/include/asm-sh/types.h
++++ b/include/asm-sh/types.h
+@@ -1,29 +1,12 @@
+ #ifndef __ASM_SH_TYPES_H
+ #define __ASM_SH_TYPES_H
+ 
 +#include <asm-generic/int-ll64.h>
 +
  #ifndef __ASSEMBLY__
@@ -55,29 +79,29 @@ index 9785a6d..8441cbc 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--/* HK0617   -- Changes to unsigned long temporarily */
 -#if defined(__GNUC__)
 -__extension__ typedef __signed__ long long __s64;
 -__extension__ typedef unsigned long long __u64;
 -#endif
 -
- #endif				/* __ASSEMBLY__ */
+ #endif /* __ASSEMBLY__ */
+ 
  /*
-  * These aren't exported outside the kernel to avoid name space clashes
-@@ -42,18 +24,6 @@ __extension__ typedef unsigned long long __u64;
+@@ -35,19 +18,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
--typedef signed char s8;
+-
+-typedef __signed__ char s8;
 -typedef unsigned char u8;
 -
--typedef signed short s16;
+-typedef __signed__ short s16;
 -typedef unsigned short u16;
 -
--typedef signed int s32;
+-typedef __signed__ int s32;
 -typedef unsigned int u32;
 -
--typedef signed long long s64;
+-typedef __signed__ long long s64;
 -typedef unsigned long long u64;
 -
  /* Dma addresses are 32-bits wide.  */
