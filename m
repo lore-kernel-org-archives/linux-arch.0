@@ -1,42 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36659 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:42944 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754852AbYDXXGo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:44 -0400
+	with ESMTP id S1756400AbYDXXK0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:10:26 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 04/24] avr32: types: use <asm-generic/int-*.h> for the avr32 architecture
-Date: Thu, 24 Apr 2008 16:05:15 -0700
-Message-ID: <1209078352-7593-9-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-8-git-send-email-hpa@zytor.com>
+Subject: [PATCH 03/24] arm: types: use <asm-generic/int-*.h> for the arm architecture
+Date: Thu, 24 Apr 2008 16:05:12 -0700
+Message-ID: <1209078352-7593-6-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-5-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
  <1209078352-7593-4-git-send-email-hpa@zytor.com>
  <1209078352-7593-5-git-send-email-hpa@zytor.com>
- <1209078352-7593-6-git-send-email-hpa@zytor.com>
- <1209078352-7593-7-git-send-email-hpa@zytor.com>
- <1209078352-7593-8-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20080424230515.cM1WmSBhT42YTQAXYPIbowIGyfo9FXdBUu5PbtjNaX0@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, Lennert Buytenhek <kernel@wantstofly.org>, Ben Dooks <ben-linux@fluff.org>
+Message-ID: <20080424230512.KkxQ-7EhGgeS-2o4Y_xnMMmu7UL92Oy3-qK8rBUelVM@z>
 
-This modifies <asm-avr32/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-arm/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+Cc: Russell King <rmk@arm.linux.org.uk>
+Cc: Lennert Buytenhek <kernel@wantstofly.org>
+Cc: Ben Dooks <ben-linux@fluff.org>
 ---
- include/asm-avr32/types.h |   32 ++------------------------------
- 1 files changed, 2 insertions(+), 30 deletions(-)
+ include/asm-arm/types.h |   33 ++-------------------------------
+ 1 files changed, 2 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-avr32/types.h b/include/asm-avr32/types.h
-index 8999a38..9cefda6 100644
---- a/include/asm-avr32/types.h
-+++ b/include/asm-avr32/types.h
-@@ -8,28 +8,12 @@
- #ifndef __ASM_AVR32_TYPES_H
- #define __ASM_AVR32_TYPES_H
+diff --git a/include/asm-arm/types.h b/include/asm-arm/types.h
+index 3141451..345df01 100644
+--- a/include/asm-arm/types.h
++++ b/include/asm-arm/types.h
+@@ -1,29 +1,12 @@
+ #ifndef __ASM_ARM_TYPES_H
+ #define __ASM_ARM_TYPES_H
  
 +#include <asm-generic/int-ll64.h>
 +
@@ -48,6 +48,7 @@ index 8999a38..9cefda6 100644
 - * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
 - * header files exported to user space
 - */
+-
 -typedef __signed__ char __s8;
 -typedef unsigned char __u8;
 -
@@ -65,7 +66,7 @@ index 8999a38..9cefda6 100644
  #endif /* __ASSEMBLY__ */
  
  /*
-@@ -41,18 +25,6 @@ __extension__ typedef unsigned long long __u64;
+@@ -35,18 +18,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
