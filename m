@@ -1,7 +1,7 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 06/24] cris: types: use <asm-generic/int-*.h> for the cris architecture
-Date: Thu, 24 Apr 2008 16:05:18 -0700
-Message-ID: <1209078352-7593-12-git-send-email-hpa@zytor.com>
+From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Subject: [PATCH 09/24] ia64: types: use <asm-generic/int-*.h> for the ia64 architecture
+Date: Thu, 24 Apr 2008 16:05:24 -0700
+Message-ID: <1209078352-7593-18-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -13,38 +13,45 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-9-git-send-email-hpa@zytor.com>
  <1209078352-7593-10-git-send-email-hpa@zytor.com>
  <1209078352-7593-11-git-send-email-hpa@zytor.com>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754731AbYDXXGc@vger.kernel.org>
-In-Reply-To: <1209078352-7593-11-git-send-email-hpa@zytor.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>
-List-Id: linux-arch.vger.kernel.org
+ <1209078352-7593-12-git-send-email-hpa@zytor.com>
+ <1209078352-7593-13-git-send-email-hpa@zytor.com>
+ <1209078352-7593-14-git-send-email-hpa@zytor.com>
+ <1209078352-7593-15-git-send-email-hpa@zytor.com>
+ <1209078352-7593-16-git-send-email-hpa@zytor.com>
+ <1209078352-7593-17-git-send-email-hpa@zytor.com>
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1209078352-7593-17-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
 
-This modifies <asm-cris/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-ia64/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
-Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
 ---
- include/asm-cris/types.h |   33 ++-------------------------------
- 1 files changed, 2 insertions(+), 31 deletions(-)
+ include/asm-ia64/types.h |   31 ++-----------------------------
+ 1 files changed, 2 insertions(+), 29 deletions(-)
 
-diff --git a/include/asm-cris/types.h b/include/asm-cris/types.h
-index 5a21c42..5790262 100644
---- a/include/asm-cris/types.h
-+++ b/include/asm-cris/types.h
-@@ -1,29 +1,12 @@
- #ifndef _ETRAX_TYPES_H
- #define _ETRAX_TYPES_H
+diff --git a/include/asm-ia64/types.h b/include/asm-ia64/types.h
+index 902850d..e36b371 100644
+--- a/include/asm-ia64/types.h
++++ b/include/asm-ia64/types.h
+@@ -13,6 +13,8 @@
+  *	David Mosberger-Tang <davidm-sDzT885Ts8HQT0dZR+AlfA@public.gmane.org>, Hewlett-Packard Co
+  */
  
-+#include <asm-generic/int-ll64.h>
++#include <asm-generic/int-l64.h>
 +
- #ifndef __ASSEMBLY__
+ #ifdef __ASSEMBLY__
+ # define __IA64_UL(x)		(x)
+ # define __IA64_UL_CONST(x)	x
+@@ -28,39 +30,10 @@
+ typedef unsigned int umode_t;
  
- typedef unsigned short umode_t;
- 
--/*
+ /*
 - * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
 - * header files exported to user space
 - */
@@ -58,32 +65,28 @@ index 5a21c42..5790262 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#if defined(__GNUC__)
--__extension__ typedef __signed__ long long __s64;
--__extension__ typedef unsigned long long __u64;
--#endif
+-typedef __signed__ long __s64;
+-typedef unsigned long __u64;
 -
- #endif /* __ASSEMBLY__ */
+-/*
+  * These aren't exported outside the kernel to avoid name space clashes
+  */
+ # ifdef __KERNEL__
  
- /*
-@@ -35,18 +18,6 @@ __extension__ typedef unsigned long long __u64;
+-typedef __s8 s8;
+-typedef __u8 u8;
+-
+-typedef __s16 s16;
+-typedef __u16 u16;
+-
+-typedef __s32 s32;
+-typedef __u32 u32;
+-
+-typedef __s64 s64;
+-typedef __u64 u64;
+-
+ #define BITS_PER_LONG 64
  
- #ifndef __ASSEMBLY__
- 
--typedef signed char s8;
--typedef unsigned char u8;
--
--typedef signed short s16;
--typedef unsigned short u16;
--
--typedef signed int s32;
--typedef unsigned int u32;
--
--typedef signed long long s64;
--typedef unsigned long long u64;
--
- /* Dma addresses are 32-bits wide, just like our other addresses.  */
-  
- typedef u32 dma_addr_t;
+ /* DMA addresses are 64-bits wide, in general.  */
 -- 
 1.5.4.1
