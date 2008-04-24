@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36671 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36675 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755161AbYDXXGq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:46 -0400
+	with ESMTP id S1755231AbYDXXGs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:48 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 22/24] xtensa: types: use <asm-generic/int-*.h> for the xtensa architecture
-Date: Thu, 24 Apr 2008 16:05:50 -0700
-Message-ID: <1209078352-7593-44-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-43-git-send-email-hpa@zytor.com>
+Subject: [PATCH 21/24] x86: types: use <asm-generic/int-*.h> for the x86 architecture
+Date: Thu, 24 Apr 2008 16:05:48 -0700
+Message-ID: <1209078352-7593-42-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-41-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -49,38 +49,35 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-39-git-send-email-hpa@zytor.com>
  <1209078352-7593-40-git-send-email-hpa@zytor.com>
  <1209078352-7593-41-git-send-email-hpa@zytor.com>
- <1209078352-7593-42-git-send-email-hpa@zytor.com>
- <1209078352-7593-43-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20080424230550.Id017ixXaaWYlfOQa--qdpu-NfCpCtTNSCnNdbhl_8o@z>
+Message-ID: <20080424230548.Kl184ADD5vX5fzFWwpoYlGPM9pjgxBZyvqWBsqJEoys@z>
 
-This modifies <asm-xtensa/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-x86/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
 ---
- include/asm-xtensa/types.h |   33 +--------------------------------
- 1 files changed, 1 insertions(+), 32 deletions(-)
+ include/asm-x86/types.h |   38 ++------------------------------------
+ 1 files changed, 2 insertions(+), 36 deletions(-)
 
-diff --git a/include/asm-xtensa/types.h b/include/asm-xtensa/types.h
-index b27d841..c89569a 100644
---- a/include/asm-xtensa/types.h
-+++ b/include/asm-xtensa/types.h
-@@ -11,6 +11,7 @@
- #ifndef _XTENSA_TYPES_H
- #define _XTENSA_TYPES_H
+diff --git a/include/asm-x86/types.h b/include/asm-x86/types.h
+index 63733f3..1ac80cd 100644
+--- a/include/asm-x86/types.h
++++ b/include/asm-x86/types.h
+@@ -1,34 +1,12 @@
+ #ifndef _ASM_X86_TYPES_H
+ #define _ASM_X86_TYPES_H
  
 +#include <asm-generic/int-ll64.h>
++
+ #ifndef __ASSEMBLY__
  
- #ifdef __ASSEMBLY__
- # define __XTENSA_UL(x)		(x)
-@@ -25,42 +26,10 @@
  typedef unsigned short umode_t;
  
- /*
+-/*
 - * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
 - * header files exported to user space
 - */
@@ -94,32 +91,38 @@ index b27d841..c89569a 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#if defined(__GNUC__)
+-#ifdef __i386__
+-# ifdef __GNUC__
 -__extension__ typedef __signed__ long long __s64;
 -__extension__ typedef unsigned long long __u64;
+-# endif
+-#else
+-typedef __signed__ long long __s64;
+-typedef unsigned long long __u64;
 -#endif
 -
--/*
-  * These aren't exported outside the kernel to avoid name space clashes
-  */
- #ifdef __KERNEL__
+ #endif /* __ASSEMBLY__ */
  
--typedef __signed__ char s8;
+ /*
+@@ -44,18 +22,6 @@ typedef unsigned long long __u64;
+ 
+ #ifndef __ASSEMBLY__
+ 
+-typedef signed char s8;
 -typedef unsigned char u8;
 -
--typedef __signed__ short s16;
+-typedef signed short s16;
 -typedef unsigned short u16;
 -
--typedef __signed__ int s32;
+-typedef signed int s32;
 -typedef unsigned int u32;
 -
--typedef __signed__ long long s64;
+-typedef signed long long s64;
 -typedef unsigned long long u64;
 -
--
- #define BITS_PER_LONG 32
- 
- /* Dma addresses are 32-bits wide.  */
+ typedef u64 dma64_addr_t;
+ #if defined(CONFIG_X86_64) || defined(CONFIG_HIGHMEM64G)
+ /* DMA addresses come in 32-bit and 64-bit flavours. */
 -- 
 1.5.4.1
 
