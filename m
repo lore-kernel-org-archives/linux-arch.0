@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 04/24] avr32: types: use <asm-generic/int-*.h> for the avr32 architecture
-Date: Thu, 24 Apr 2008 16:05:15 -0700
-Message-ID: <1209078352-7593-9-git-send-email-hpa@zytor.com>
+Subject: [PATCH 14/24] parisc: types: use <asm-generic/int-*.h> for the parisc architecture
+Date: Thu, 24 Apr 2008 16:05:34 -0700
+Message-ID: <1209078352-7593-28-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -10,28 +10,50 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-6-git-send-email-hpa@zytor.com>
  <1209078352-7593-7-git-send-email-hpa@zytor.com>
  <1209078352-7593-8-git-send-email-hpa@zytor.com>
+ <1209078352-7593-9-git-send-email-hpa@zytor.com>
+ <1209078352-7593-10-git-send-email-hpa@zytor.com>
+ <1209078352-7593-11-git-send-email-hpa@zytor.com>
+ <1209078352-7593-12-git-send-email-hpa@zytor.com>
+ <1209078352-7593-13-git-send-email-hpa@zytor.com>
+ <1209078352-7593-14-git-send-email-hpa@zytor.com>
+ <1209078352-7593-15-git-send-email-hpa@zytor.com>
+ <1209078352-7593-16-git-send-email-hpa@zytor.com>
+ <1209078352-7593-17-git-send-email-hpa@zytor.com>
+ <1209078352-7593-18-git-send-email-hpa@zytor.com>
+ <1209078352-7593-19-git-send-email-hpa@zytor.com>
+ <1209078352-7593-20-git-send-email-hpa@zytor.com>
+ <1209078352-7593-21-git-send-email-hpa@zytor.com>
+ <1209078352-7593-22-git-send-email-hpa@zytor.com>
+ <1209078352-7593-23-git-send-email-hpa@zytor.com>
+ <1209078352-7593-24-git-send-email-hpa@zytor.com>
+ <1209078352-7593-25-git-send-email-hpa@zytor.com>
+ <1209078352-7593-26-git-send-email-hpa@zytor.com>
+ <1209078352-7593-27-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-8-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-27-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Kyle McMartin <kyle-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Grant Grundler <grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
 
-This modifies <asm-avr32/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-parisc/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Kyle McMartin <kyle-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
+Cc: Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>
+Cc: Grant Grundler <grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
 ---
- include/asm-avr32/types.h |   32 ++------------------------------
- 1 files changed, 2 insertions(+), 30 deletions(-)
+ include/asm-parisc/types.h |   33 ++-------------------------------
+ 1 files changed, 2 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-avr32/types.h b/include/asm-avr32/types.h
-index 8999a38..9cefda6 100644
---- a/include/asm-avr32/types.h
-+++ b/include/asm-avr32/types.h
-@@ -8,28 +8,12 @@
- #ifndef __ASM_AVR32_TYPES_H
- #define __ASM_AVR32_TYPES_H
+diff --git a/include/asm-parisc/types.h b/include/asm-parisc/types.h
+index 56c8480..7f5a39b 100644
+--- a/include/asm-parisc/types.h
++++ b/include/asm-parisc/types.h
+@@ -1,29 +1,12 @@
+ #ifndef _PARISC_TYPES_H
+ #define _PARISC_TYPES_H
  
 +#include <asm-generic/int-ll64.h>
 +
@@ -43,6 +65,7 @@ index 8999a38..9cefda6 100644
 - * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
 - * header files exported to user space
 - */
+-
 -typedef __signed__ char __s8;
 -typedef unsigned char __u8;
 -
@@ -60,7 +83,7 @@ index 8999a38..9cefda6 100644
  #endif /* __ASSEMBLY__ */
  
  /*
-@@ -41,18 +25,6 @@ __extension__ typedef unsigned long long __u64;
+@@ -41,18 +24,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
