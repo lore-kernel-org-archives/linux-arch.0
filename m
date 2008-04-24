@@ -1,36 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:40896 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753509AbYDXWCe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 18:02:34 -0400
-Date: Thu, 24 Apr 2008 23:01:57 +0100
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-Message-ID: <20080424220157.GA26179@flint.arm.linux.org.uk>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-2-git-send-email-jens.axboe@oracle.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1208890227-24808-2-git-send-email-jens.axboe@oracle.com>
+Received: from terminus.zytor.com ([198.137.202.10]:36558 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750868AbYDXXGR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:17 -0400
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: [PATCH 06/24] cris: types: use <asm-generic/int-*.h> for the cris architecture
+Date: Thu, 24 Apr 2008 16:05:18 -0700
+Message-ID: <1209078352-7593-12-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-11-git-send-email-hpa@zytor.com>
+References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
+ <1209078352-7593-2-git-send-email-hpa@zytor.com>
+ <1209078352-7593-3-git-send-email-hpa@zytor.com>
+ <1209078352-7593-4-git-send-email-hpa@zytor.com>
+ <1209078352-7593-5-git-send-email-hpa@zytor.com>
+ <1209078352-7593-6-git-send-email-hpa@zytor.com>
+ <1209078352-7593-7-git-send-email-hpa@zytor.com>
+ <1209078352-7593-8-git-send-email-hpa@zytor.com>
+ <1209078352-7593-9-git-send-email-hpa@zytor.com>
+ <1209078352-7593-10-git-send-email-hpa@zytor.com>
+ <1209078352-7593-11-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org
-Message-ID: <20080424220157.ZDssx5s9pkKDOZQagdtHk7IkzgIh2KLRpeRcsXiNnzM@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>
+Message-ID: <20080424230518.7NkM9Q9reCbDHy_fXE7tEjVccMAHWutL_-LJ5GBfw9o@z>
 
-On Tue, Apr 22, 2008 at 08:50:17PM +0200, Jens Axboe wrote:
-> +		data->csd.func(data->csd.info);
-> +
-> +		spin_lock(&data->lock);
-> +		cpu_clear(cpu, data->cpumask);
-> +		WARN_ON(data->refs == 0);
-> +		data->refs--;
-> +		refs = data->refs;
+This modifies <asm-cris/types.h> to use the <asm-generic/int-*.h>
+generic include files.
 
-Probably a silly question, but what does data->refs do that
-cpus_empty(data->cpumask) wouldn't do?  (as indeed ARM presently does.)
+Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+---
+ include/asm-cris/types.h |   33 ++-------------------------------
+ 1 files changed, 2 insertions(+), 31 deletions(-)
 
+diff --git a/include/asm-cris/types.h b/include/asm-cris/types.h
+index 5a21c42..5790262 100644
+--- a/include/asm-cris/types.h
++++ b/include/asm-cris/types.h
+@@ -1,29 +1,12 @@
+ #ifndef _ETRAX_TYPES_H
+ #define _ETRAX_TYPES_H
+ 
++#include <asm-generic/int-ll64.h>
++
+ #ifndef __ASSEMBLY__
+ 
+ typedef unsigned short umode_t;
+ 
+-/*
+- * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
+- * header files exported to user space
+- */
+-
+-typedef __signed__ char __s8;
+-typedef unsigned char __u8;
+-
+-typedef __signed__ short __s16;
+-typedef unsigned short __u16;
+-
+-typedef __signed__ int __s32;
+-typedef unsigned int __u32;
+-
+-#if defined(__GNUC__)
+-__extension__ typedef __signed__ long long __s64;
+-__extension__ typedef unsigned long long __u64;
+-#endif
+-
+ #endif /* __ASSEMBLY__ */
+ 
+ /*
+@@ -35,18 +18,6 @@ __extension__ typedef unsigned long long __u64;
+ 
+ #ifndef __ASSEMBLY__
+ 
+-typedef signed char s8;
+-typedef unsigned char u8;
+-
+-typedef signed short s16;
+-typedef unsigned short u16;
+-
+-typedef signed int s32;
+-typedef unsigned int u32;
+-
+-typedef signed long long s64;
+-typedef unsigned long long u64;
+-
+ /* Dma addresses are 32-bits wide, just like our other addresses.  */
+  
+ typedef u32 dma_addr_t;
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+1.5.4.1
+
