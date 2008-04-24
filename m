@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36577 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36596 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752782AbYDXXGX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:23 -0400
+	with ESMTP id S1753524AbYDXXG2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:28 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 07/24] frv: types: use <asm-generic/int-*.h> for the frv architecture
-Date: Thu, 24 Apr 2008 16:05:21 -0700
-Message-ID: <1209078352-7593-15-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-14-git-send-email-hpa@zytor.com>
+Subject: [PATCH 10/24] m32r: types: use <asm-generic/int-*.h> for the m32r architecture
+Date: Thu, 24 Apr 2008 16:05:27 -0700
+Message-ID: <1209078352-7593-21-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-20-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -22,27 +22,33 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-12-git-send-email-hpa@zytor.com>
  <1209078352-7593-13-git-send-email-hpa@zytor.com>
  <1209078352-7593-14-git-send-email-hpa@zytor.com>
+ <1209078352-7593-15-git-send-email-hpa@zytor.com>
+ <1209078352-7593-16-git-send-email-hpa@zytor.com>
+ <1209078352-7593-17-git-send-email-hpa@zytor.com>
+ <1209078352-7593-18-git-send-email-hpa@zytor.com>
+ <1209078352-7593-19-git-send-email-hpa@zytor.com>
+ <1209078352-7593-20-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20080424230521.AnOUb2v9Nh7YyfNuGVknRjasx58AwDNtuic-VFfc6IY@z>
+Message-ID: <20080424230527.aK6s1Qnzwx6ZnKO1rbHmdSDA4Y0D7nZtHtXpoKQSJa4@z>
 
-This modifies <asm-frv/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-m32r/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
 ---
- include/asm-frv/types.h |   34 ++--------------------------------
- 1 files changed, 2 insertions(+), 32 deletions(-)
+ include/asm-m32r/types.h |   32 ++------------------------------
+ 1 files changed, 2 insertions(+), 30 deletions(-)
 
-diff --git a/include/asm-frv/types.h b/include/asm-frv/types.h
-index 767e5ed..613bf1e 100644
---- a/include/asm-frv/types.h
-+++ b/include/asm-frv/types.h
-@@ -12,29 +12,12 @@
- #ifndef _ASM_TYPES_H
- #define _ASM_TYPES_H
+diff --git a/include/asm-m32r/types.h b/include/asm-m32r/types.h
+index b64c166..bc9f7ff 100644
+--- a/include/asm-m32r/types.h
++++ b/include/asm-m32r/types.h
+@@ -1,28 +1,12 @@
+ #ifndef _ASM_M32R_TYPES_H
+ #define _ASM_M32R_TYPES_H
  
 +#include <asm-generic/int-ll64.h>
 +
@@ -68,15 +74,13 @@ index 767e5ed..613bf1e 100644
 -__extension__ typedef __signed__ long long __s64;
 -__extension__ typedef unsigned long long __u64;
 -#endif
--
  #endif /* __ASSEMBLY__ */
  
  /*
-@@ -46,19 +29,6 @@ __extension__ typedef unsigned long long __u64;
+@@ -34,18 +18,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
--
 -typedef signed char s8;
 -typedef unsigned char u8;
 -
@@ -89,7 +93,7 @@ index 767e5ed..613bf1e 100644
 -typedef signed long long s64;
 -typedef unsigned long long u64;
 -
- /* Dma addresses are 32-bits wide.  */
+ /* DMA addresses are 32-bits wide.  */
  
  typedef u32 dma_addr_t;
 -- 
