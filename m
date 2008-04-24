@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36689 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36693 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753299AbYDXXHK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:07:10 -0400
+	with ESMTP id S1754800AbYDXXHO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:07:14 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 10/24] m32r: types: use <asm-generic/int-*.h> for the m32r architecture
-Date: Thu, 24 Apr 2008 16:05:26 -0700
-Message-ID: <1209078352-7593-20-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-19-git-send-email-hpa@zytor.com>
+Subject: [PATCH 14/24] parisc: types: use <asm-generic/int-*.h> for the parisc architecture
+Date: Thu, 24 Apr 2008 16:05:35 -0700
+Message-ID: <1209078352-7593-29-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-28-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -27,28 +27,36 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-17-git-send-email-hpa@zytor.com>
  <1209078352-7593-18-git-send-email-hpa@zytor.com>
  <1209078352-7593-19-git-send-email-hpa@zytor.com>
+ <1209078352-7593-20-git-send-email-hpa@zytor.com>
+ <1209078352-7593-21-git-send-email-hpa@zytor.com>
+ <1209078352-7593-22-git-send-email-hpa@zytor.com>
+ <1209078352-7593-23-git-send-email-hpa@zytor.com>
+ <1209078352-7593-24-git-send-email-hpa@zytor.com>
+ <1209078352-7593-25-git-send-email-hpa@zytor.com>
+ <1209078352-7593-26-git-send-email-hpa@zytor.com>
+ <1209078352-7593-27-git-send-email-hpa@zytor.com>
+ <1209078352-7593-28-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Hirokazu Takata <takata@linux-m32r.org>
-Message-ID: <20080424230526.eZKNkIZWKTpkSwsPWpQPfELA4cLZ-d4jvP2eFd3QSGM@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20080424230535.avIxh_YvynZUD_JffG4zG3YVov27RXOrxh-36IdPDsc@z>
 
-This modifies <asm-m32r/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-parisc/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
 ---
- include/asm-m32r/types.h |   32 ++------------------------------
- 1 files changed, 2 insertions(+), 30 deletions(-)
+ include/asm-parisc/types.h |   33 ++-------------------------------
+ 1 files changed, 2 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-m32r/types.h b/include/asm-m32r/types.h
-index b64c166..bc9f7ff 100644
---- a/include/asm-m32r/types.h
-+++ b/include/asm-m32r/types.h
-@@ -1,28 +1,12 @@
- #ifndef _ASM_M32R_TYPES_H
- #define _ASM_M32R_TYPES_H
+diff --git a/include/asm-parisc/types.h b/include/asm-parisc/types.h
+index 56c8480..7f5a39b 100644
+--- a/include/asm-parisc/types.h
++++ b/include/asm-parisc/types.h
+@@ -1,29 +1,12 @@
+ #ifndef _PARISC_TYPES_H
+ #define _PARISC_TYPES_H
  
 +#include <asm-generic/int-ll64.h>
 +
@@ -74,10 +82,11 @@ index b64c166..bc9f7ff 100644
 -__extension__ typedef __signed__ long long __s64;
 -__extension__ typedef unsigned long long __u64;
 -#endif
+-
  #endif /* __ASSEMBLY__ */
  
  /*
-@@ -34,18 +18,6 @@ __extension__ typedef unsigned long long __u64;
+@@ -41,18 +24,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
@@ -93,7 +102,7 @@ index b64c166..bc9f7ff 100644
 -typedef signed long long s64;
 -typedef unsigned long long u64;
 -
- /* DMA addresses are 32-bits wide.  */
+ /* Dma addresses are 32-bits wide.  */
  
  typedef u32 dma_addr_t;
 -- 
