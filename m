@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 14/24] parisc: types: use <asm-generic/int-*.h> for the parisc architecture
-Date: Thu, 24 Apr 2008 16:05:35 -0700
-Message-ID: <1209078352-7593-29-git-send-email-hpa@zytor.com>
+Subject: [PATCH 13/24] mn10300: types: use <asm-generic/int-*.h> for the mn10300 architecture
+Date: Thu, 24 Apr 2008 16:05:32 -0700
+Message-ID: <1209078352-7593-26-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -27,31 +27,30 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-23-git-send-email-hpa@zytor.com>
  <1209078352-7593-24-git-send-email-hpa@zytor.com>
  <1209078352-7593-25-git-send-email-hpa@zytor.com>
- <1209078352-7593-26-git-send-email-hpa@zytor.com>
- <1209078352-7593-27-git-send-email-hpa@zytor.com>
- <1209078352-7593-28-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-28-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-25-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Koichi Yasutake <yasutake.koichi-NAum8xwdG0+S7A1Ibl2khg@public.gmane.org>
 
-This modifies <asm-parisc/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-mn10300/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Cc: Koichi Yasutake <yasutake.koichi-NAum8xwdG0+S7A1Ibl2khg@public.gmane.org>
 ---
- include/asm-parisc/types.h |   33 ++-------------------------------
+ include/asm-mn10300/types.h |   33 ++-------------------------------
  1 files changed, 2 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-parisc/types.h b/include/asm-parisc/types.h
-index 56c8480..7f5a39b 100644
---- a/include/asm-parisc/types.h
-+++ b/include/asm-parisc/types.h
-@@ -1,29 +1,12 @@
- #ifndef _PARISC_TYPES_H
- #define _PARISC_TYPES_H
+diff --git a/include/asm-mn10300/types.h b/include/asm-mn10300/types.h
+index d40ea76..7b9f010 100644
+--- a/include/asm-mn10300/types.h
++++ b/include/asm-mn10300/types.h
+@@ -11,29 +11,12 @@
+ #ifndef _ASM_TYPES_H
+ #define _ASM_TYPES_H
  
 +#include <asm-generic/int-ll64.h>
 +
@@ -73,15 +72,15 @@ index 56c8480..7f5a39b 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#if defined(__GNUC__)
--__extension__ typedef __signed__ long long __s64;
--__extension__ typedef unsigned long long __u64;
+-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+-typedef __signed__ long long __s64;
+-typedef unsigned long long __u64;
 -#endif
 -
  #endif /* __ASSEMBLY__ */
  
  /*
-@@ -41,18 +24,6 @@ __extension__ typedef unsigned long long __u64;
+@@ -45,18 +28,6 @@ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
@@ -98,7 +97,7 @@ index 56c8480..7f5a39b 100644
 -typedef unsigned long long u64;
 -
  /* Dma addresses are 32-bits wide.  */
- 
  typedef u32 dma_addr_t;
+ 
 -- 
 1.5.4.1
