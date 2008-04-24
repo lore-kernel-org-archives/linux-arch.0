@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 23/24] types: add C99-style constructors to <asm-generic/int-*.h>
-Date: Thu, 24 Apr 2008 16:05:51 -0700
-Message-ID: <1209078352-7593-45-git-send-email-hpa@zytor.com>
+Subject: [PATCH 12/24] mips: types: use <asm-generic/int-*.h> for the mips architecture
+Date: Thu, 24 Apr 2008 16:05:30 -0700
+Message-ID: <1209078352-7593-24-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -25,112 +25,99 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-21-git-send-email-hpa@zytor.com>
  <1209078352-7593-22-git-send-email-hpa@zytor.com>
  <1209078352-7593-23-git-send-email-hpa@zytor.com>
- <1209078352-7593-24-git-send-email-hpa@zytor.com>
- <1209078352-7593-25-git-send-email-hpa@zytor.com>
- <1209078352-7593-26-git-send-email-hpa@zytor.com>
- <1209078352-7593-27-git-send-email-hpa@zytor.com>
- <1209078352-7593-28-git-send-email-hpa@zytor.com>
- <1209078352-7593-29-git-send-email-hpa@zytor.com>
- <1209078352-7593-30-git-send-email-hpa@zytor.com>
- <1209078352-7593-31-git-send-email-hpa@zytor.com>
- <1209078352-7593-32-git-send-email-hpa@zytor.com>
- <1209078352-7593-33-git-send-email-hpa@zytor.com>
- <1209078352-7593-34-git-send-email-hpa@zytor.com>
- <1209078352-7593-35-git-send-email-hpa@zytor.com>
- <1209078352-7593-36-git-send-email-hpa@zytor.com>
- <1209078352-7593-37-git-send-email-hpa@zytor.com>
- <1209078352-7593-38-git-send-email-hpa@zytor.com>
- <1209078352-7593-39-git-send-email-hpa@zytor.com>
- <1209078352-7593-40-git-send-email-hpa@zytor.com>
- <1209078352-7593-41-git-send-email-hpa@zytor.com>
- <1209078352-7593-42-git-send-email-hpa@zytor.com>
- <1209078352-7593-43-git-send-email-hpa@zytor.com>
- <1209078352-7593-44-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-44-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-23-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
 
-Add C99-style constructor macros for fixed types to
-<asm-generic/int-*.h>.  Since Linux uses names like "u64" instead of
-"uint64_t", the constructor macros are called U64_C() instead of
-UINT64_C() and so forth.
-
-These macros allow specific sizes to be specified as
-U64_C(0x123456789abcdef), without gcc issuing warnings as it will if
-one writes (u64)0x123456789abcdef.
-
-When used from assembly, these macros pass their argument unchanged.
+This modifies <asm-mips/types.h> to use the <asm-generic/int-*.h>
+generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
 ---
- include/asm-generic/int-l64.h  |   20 ++++++++++++++++++++
- include/asm-generic/int-ll64.h |   20 ++++++++++++++++++++
- 2 files changed, 40 insertions(+), 0 deletions(-)
+ include/asm-mips/types.h |   56 +++++-----------------------------------------
+ 1 files changed, 6 insertions(+), 50 deletions(-)
 
-diff --git a/include/asm-generic/int-l64.h b/include/asm-generic/int-l64.h
-index 629b5a4..2af9b75 100644
---- a/include/asm-generic/int-l64.h
-+++ b/include/asm-generic/int-l64.h
-@@ -44,6 +44,26 @@ typedef unsigned int u32;
- typedef signed long s64;
- typedef unsigned long u64;
+diff --git a/include/asm-mips/types.h b/include/asm-mips/types.h
+index 2dd147f..7a2ee4f 100644
+--- a/include/asm-mips/types.h
++++ b/include/asm-mips/types.h
+@@ -9,36 +9,16 @@
+ #ifndef _ASM_TYPES_H
+ #define _ASM_TYPES_H
  
-+#define S8_C(x)  x
-+#define U8_C(x)  x ## U
-+#define S16_C(x) x
-+#define U16_C(x) x ## U
-+#define S32_C(x) x
-+#define U32_C(x) x ## U
-+#define S64_C(x) x ## L
-+#define U64_C(x) x ## UL
++#if _MIPS_SZLONG == 64
++# include <asm-generic/int-l64.h>
++#else
++# include <asm-generic/int-ll64.h>
++#endif
 +
-+#else /* __ASSEMBLY__ */
-+
-+#define S8_C(x)  x
-+#define U8_C(x)  x
-+#define S16_C(x) x
-+#define U16_C(x) x
-+#define S32_C(x) x
-+#define U32_C(x) x
-+#define S64_C(x) x
-+#define U64_C(x) x
-+
+ #ifndef __ASSEMBLY__
+ 
+ typedef unsigned short umode_t;
+ 
+-/*
+- * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
+- * header files exported to user space
+- */
+-
+-typedef __signed__ char __s8;
+-typedef unsigned char __u8;
+-
+-typedef __signed__ short __s16;
+-typedef unsigned short __u16;
+-
+-typedef __signed__ int __s32;
+-typedef unsigned int __u32;
+-
+-#if (_MIPS_SZLONG == 64)
+-
+-typedef __signed__ long __s64;
+-typedef unsigned long __u64;
+-
+-#else
+-
+-#if defined(__GNUC__)
+-__extension__ typedef __signed__ long long __s64;
+-__extension__ typedef unsigned long long __u64;
+-#endif
+-
+ #endif
+ 
  #endif /* __ASSEMBLY__ */
+@@ -52,30 +32,6 @@ __extension__ typedef unsigned long long __u64;
  
- #endif /* __KERNEL__ */
-diff --git a/include/asm-generic/int-ll64.h b/include/asm-generic/int-ll64.h
-index 1e5ffec..2609489 100644
---- a/include/asm-generic/int-ll64.h
-+++ b/include/asm-generic/int-ll64.h
-@@ -49,6 +49,26 @@ typedef unsigned int u32;
- typedef signed long long s64;
- typedef unsigned long long u64;
+ #ifndef __ASSEMBLY__
  
-+#define S8_C(x)  x
-+#define U8_C(x)  x ## U
-+#define S16_C(x) x
-+#define U16_C(x) x ## U
-+#define S32_C(x) x
-+#define U32_C(x) x ## U
-+#define S64_C(x) x ## LL
-+#define U64_C(x) x ## ULL
-+
-+#else /* __ASSEMBLY__ */
-+
-+#define S8_C(x)  x
-+#define U8_C(x)  x
-+#define S16_C(x) x
-+#define U16_C(x) x
-+#define S32_C(x) x
-+#define U32_C(x) x
-+#define S64_C(x) x
-+#define U64_C(x) x
-+
- #endif /* __ASSEMBLY__ */
- 
- #endif /* __KERNEL__ */
+-
+-typedef __signed char s8;
+-typedef unsigned char u8;
+-
+-typedef __signed short s16;
+-typedef unsigned short u16;
+-
+-typedef __signed int s32;
+-typedef unsigned int u32;
+-
+-#if (_MIPS_SZLONG == 64)
+-
+-typedef __signed__ long s64;
+-typedef unsigned long u64;
+-
+-#else
+-
+-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+-typedef __signed__ long long s64;
+-typedef unsigned long long u64;
+-#endif
+-
+-#endif
+-
+ #if (defined(CONFIG_HIGHMEM) && defined(CONFIG_64BIT_PHYS_ADDR)) \
+     || defined(CONFIG_64BIT)
+ typedef u64 dma_addr_t;
 -- 
 1.5.4.1
