@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 09/24] ia64: types: use <asm-generic/int-*.h> for the ia64 architecture
-Date: Thu, 24 Apr 2008 16:05:25 -0700
-Message-ID: <1209078352-7593-19-git-send-email-hpa@zytor.com>
+Subject: [PATCH 11/24] m68k: types: use <asm-generic/int-*.h> for the m68k architecture
+Date: Thu, 24 Apr 2008 16:05:29 -0700
+Message-ID: <1209078352-7593-23-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -20,38 +20,40 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-16-git-send-email-hpa@zytor.com>
  <1209078352-7593-17-git-send-email-hpa@zytor.com>
  <1209078352-7593-18-git-send-email-hpa@zytor.com>
+ <1209078352-7593-19-git-send-email-hpa@zytor.com>
+ <1209078352-7593-20-git-send-email-hpa@zytor.com>
+ <1209078352-7593-21-git-send-email-hpa@zytor.com>
+ <1209078352-7593-22-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-18-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <1209078352-7593-22-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
 Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 
-This modifies <asm-ia64/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-m68k/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 ---
- include/asm-ia64/types.h |   31 ++-----------------------------
- 1 files changed, 2 insertions(+), 29 deletions(-)
+ include/asm-m68k/types.h |   32 +-------------------------------
+ 1 files changed, 1 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-ia64/types.h b/include/asm-ia64/types.h
-index 902850d..e36b371 100644
---- a/include/asm-ia64/types.h
-+++ b/include/asm-ia64/types.h
-@@ -13,6 +13,8 @@
-  *	David Mosberger-Tang <davidm-sDzT885Ts8HQT0dZR+AlfA@public.gmane.org>, Hewlett-Packard Co
+diff --git a/include/asm-m68k/types.h b/include/asm-m68k/types.h
+index c35c09d..6441cb5 100644
+--- a/include/asm-m68k/types.h
++++ b/include/asm-m68k/types.h
+@@ -8,30 +8,12 @@
+  * not a major issue.  However, for interoperability, libraries still
+  * need to be careful to avoid a name clashes.
   */
++#include <asm-generic/int-ll64.h>
  
-+#include <asm-generic/int-l64.h>
-+
- #ifdef __ASSEMBLY__
- # define __IA64_UL(x)		(x)
- # define __IA64_UL_CONST(x)	x
-@@ -28,39 +30,10 @@
- typedef unsigned int umode_t;
+ #ifndef __ASSEMBLY__
  
- /*
+ typedef unsigned short umode_t;
+ 
+-/*
 - * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
 - * header files exported to user space
 - */
@@ -65,28 +67,32 @@ index 902850d..e36b371 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--typedef __signed__ long __s64;
--typedef unsigned long __u64;
+-#if defined(__GNUC__)
+-__extension__ typedef __signed__ long long __s64;
+-__extension__ typedef unsigned long long __u64;
+-#endif
 -
--/*
-  * These aren't exported outside the kernel to avoid name space clashes
-  */
- # ifdef __KERNEL__
+ #endif /* __ASSEMBLY__ */
  
--typedef __s8 s8;
--typedef __u8 u8;
--
--typedef __s16 s16;
--typedef __u16 u16;
--
--typedef __s32 s32;
--typedef __u32 u32;
--
--typedef __s64 s64;
--typedef __u64 u64;
--
- #define BITS_PER_LONG 64
+ /*
+@@ -43,18 +25,6 @@ __extension__ typedef unsigned long long __u64;
  
- /* DMA addresses are 64-bits wide, in general.  */
+ #ifndef __ASSEMBLY__
+ 
+-typedef signed char s8;
+-typedef unsigned char u8;
+-
+-typedef signed short s16;
+-typedef unsigned short u16;
+-
+-typedef signed int s32;
+-typedef unsigned int u32;
+-
+-typedef signed long long s64;
+-typedef unsigned long long u64;
+-
+ /* DMA addresses are always 32-bits wide */
+ 
+ typedef u32 dma_addr_t;
 -- 
 1.5.4.1
