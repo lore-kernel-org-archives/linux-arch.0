@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36688 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36662 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753075AbYDXXHI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:07:08 -0400
+	with ESMTP id S1754985AbYDXXGp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:45 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 15/24] powerpc: types: use <asm-generic/int-*.h> for the powerpc architecture
-Date: Thu, 24 Apr 2008 16:05:36 -0700
-Message-ID: <1209078352-7593-30-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-29-git-send-email-hpa@zytor.com>
+Subject: [PATCH 18/24] sparc: types: use <asm-generic/int-*.h> for the sparc architecture
+Date: Thu, 24 Apr 2008 16:05:42 -0700
+Message-ID: <1209078352-7593-36-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-35-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -37,48 +37,52 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-27-git-send-email-hpa@zytor.com>
  <1209078352-7593-28-git-send-email-hpa@zytor.com>
  <1209078352-7593-29-git-send-email-hpa@zytor.com>
+ <1209078352-7593-30-git-send-email-hpa@zytor.com>
+ <1209078352-7593-31-git-send-email-hpa@zytor.com>
+ <1209078352-7593-32-git-send-email-hpa@zytor.com>
+ <1209078352-7593-33-git-send-email-hpa@zytor.com>
+ <1209078352-7593-34-git-send-email-hpa@zytor.com>
+ <1209078352-7593-35-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paul Mackerras <paulus@samba.org>, Anton Blanchard <anton@samba.org>
-Message-ID: <20080424230536.zJnR40APDH3Aycf9Cjk3Ogf0s97WObT3hRrbTr8fRV0@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, "William L. Irwin" <wli@holomorphy.com>
+Message-ID: <20080424230542.OSltIVKGdCteKDUzxJ4OifIK0lYTWC9AaQ74Bfzr-qg@z>
 
-This modifies <asm-powerpc/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-sparc/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Anton Blanchard <anton@samba.org>
+Cc: William L. Irwin <wli@holomorphy.com>
 ---
- include/asm-powerpc/types.h |   48 +++++-------------------------------------
- 1 files changed, 6 insertions(+), 42 deletions(-)
+ include/asm-sparc/types.h |   30 +-----------------------------
+ 1 files changed, 1 insertions(+), 29 deletions(-)
 
-diff --git a/include/asm-powerpc/types.h b/include/asm-powerpc/types.h
-index c243a6a..d3374bc 100644
---- a/include/asm-powerpc/types.h
-+++ b/include/asm-powerpc/types.h
-@@ -1,6 +1,12 @@
- #ifndef _ASM_POWERPC_TYPES_H
- #define _ASM_POWERPC_TYPES_H
- 
-+#ifdef __powerpc64__
-+# include <asm-generic/int-l64.h>
-+#else
-+# include <asm-generic/int-ll64.h>
-+#endif
-+
- #ifndef __ASSEMBLY__
+diff --git a/include/asm-sparc/types.h b/include/asm-sparc/types.h
+index 42fc6ed..1b08ef8 100644
+--- a/include/asm-sparc/types.h
++++ b/include/asm-sparc/types.h
+@@ -3,34 +3,18 @@
+ #define _SPARC_TYPES_H
  
  /*
-@@ -22,30 +28,6 @@ typedef unsigned int umode_t;
- typedef unsigned short umode_t;
- #endif
- 
--/*
-- * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-- * header files exported to user space
+- * _xx is ok: it doesn't pollute the POSIX namespace. Use these in the
+- * header files exported to user space.
 - */
 -
+-/*
+  * This file is never included by application software unless
+  * explicitly requested (e.g., via linux/types.h) in which case the
+  * application is Linux specific so (user-) name space pollution is
+  * not a major issue.  However, for interoperability, libraries still
+  * need to be careful to avoid a name clashes.
+  */
++#include <asm-generic/int-ll64.h>
+ 
+ #ifndef __ASSEMBLY__
+ 
+ typedef unsigned short umode_t;
+ 
 -typedef __signed__ char __s8;
 -typedef unsigned char __u8;
 -
@@ -88,44 +92,31 @@ index c243a6a..d3374bc 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#ifdef __powerpc64__
--typedef __signed__ long __s64;
--typedef unsigned long __u64;
--#else
--#if defined(__GNUC__)
--__extension__ typedef __signed__ long long __s64;
--__extension__ typedef unsigned long long __u64;
--#endif
--#endif /* __powerpc64__ */
+-typedef __signed__ long long __s64;
+-typedef unsigned long long __u64;
 -
- typedef struct {
- 	__u32 u[4];
- } __attribute__((aligned(16))) __vector128;
-@@ -64,24 +46,6 @@ typedef struct {
+ #endif /* __ASSEMBLY__ */
+ 
+ #ifdef __KERNEL__
+@@ -39,18 +23,6 @@ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
--
--typedef signed char s8;
+-typedef __signed__ char s8;
 -typedef unsigned char u8;
 -
--typedef signed short s16;
+-typedef __signed__ short s16;
 -typedef unsigned short u16;
 -
--typedef signed int s32;
+-typedef __signed__ int s32;
 -typedef unsigned int u32;
 -
--#ifdef __powerpc64__
--typedef signed long s64;
--typedef unsigned long u64;
--#else
--typedef signed long long s64;
+-typedef __signed__ long long s64;
 -typedef unsigned long long u64;
--#endif
 -
- typedef __vector128 vector128;
+ typedef u32 dma_addr_t;
+ typedef u32 dma64_addr_t;
  
- /* Physical address used by some IO functions */
 -- 
 1.5.4.1
 
