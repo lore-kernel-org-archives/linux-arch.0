@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36572 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36616 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752678AbYDXXGW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:22 -0400
+	with ESMTP id S1754781AbYDXXGh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:37 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 08/24] h8300: types: use <asm-generic/int-*.h> for the h8300 architecture
-Date: Thu, 24 Apr 2008 16:05:23 -0700
-Message-ID: <1209078352-7593-17-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-16-git-send-email-hpa@zytor.com>
+Subject: [PATCH 19/24] sparc64: types: use <asm-generic/int-*.h> for the sparc64 architecture
+Date: Thu, 24 Apr 2008 16:05:44 -0700
+Message-ID: <1209078352-7593-38-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-37-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -24,39 +24,59 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-14-git-send-email-hpa@zytor.com>
  <1209078352-7593-15-git-send-email-hpa@zytor.com>
  <1209078352-7593-16-git-send-email-hpa@zytor.com>
+ <1209078352-7593-17-git-send-email-hpa@zytor.com>
+ <1209078352-7593-18-git-send-email-hpa@zytor.com>
+ <1209078352-7593-19-git-send-email-hpa@zytor.com>
+ <1209078352-7593-20-git-send-email-hpa@zytor.com>
+ <1209078352-7593-21-git-send-email-hpa@zytor.com>
+ <1209078352-7593-22-git-send-email-hpa@zytor.com>
+ <1209078352-7593-23-git-send-email-hpa@zytor.com>
+ <1209078352-7593-24-git-send-email-hpa@zytor.com>
+ <1209078352-7593-25-git-send-email-hpa@zytor.com>
+ <1209078352-7593-26-git-send-email-hpa@zytor.com>
+ <1209078352-7593-27-git-send-email-hpa@zytor.com>
+ <1209078352-7593-28-git-send-email-hpa@zytor.com>
+ <1209078352-7593-29-git-send-email-hpa@zytor.com>
+ <1209078352-7593-30-git-send-email-hpa@zytor.com>
+ <1209078352-7593-31-git-send-email-hpa@zytor.com>
+ <1209078352-7593-32-git-send-email-hpa@zytor.com>
+ <1209078352-7593-33-git-send-email-hpa@zytor.com>
+ <1209078352-7593-34-git-send-email-hpa@zytor.com>
+ <1209078352-7593-35-git-send-email-hpa@zytor.com>
+ <1209078352-7593-36-git-send-email-hpa@zytor.com>
+ <1209078352-7593-37-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20080424230523.ZDx60tcfNEDD6JTFoz7LxU1vQaJpvbmMNHdZx8xv7yY@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20080424230544.xI-KtlnW2aevWUWaQiYPc6UrD4gi_koHws-C9G-t4P0@z>
 
-This modifies <asm-h8300/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-sparc64/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+Cc: David S. Miller <davem@davemloft.net>
 ---
- include/asm-h8300/types.h |   33 ++-------------------------------
- 1 files changed, 2 insertions(+), 31 deletions(-)
+ include/asm-sparc64/types.h |   30 +-----------------------------
+ 1 files changed, 1 insertions(+), 29 deletions(-)
 
-diff --git a/include/asm-h8300/types.h b/include/asm-h8300/types.h
-index 56566e2..1287519 100644
---- a/include/asm-h8300/types.h
-+++ b/include/asm-h8300/types.h
-@@ -1,6 +1,8 @@
- #ifndef _H8300_TYPES_H
- #define _H8300_TYPES_H
+diff --git a/include/asm-sparc64/types.h b/include/asm-sparc64/types.h
+index d0ee7f1..5dbe04f 100644
+--- a/include/asm-sparc64/types.h
++++ b/include/asm-sparc64/types.h
+@@ -9,28 +9,12 @@
+  * not a major issue.  However, for interoperability, libraries still
+  * need to be careful to avoid a name clashes.
+  */
++#include <asm-generic/int-l64.h>
  
-+#include <asm-generic/int-ll64.h>
-+
- #if !defined(__ASSEMBLY__)
+ #ifndef __ASSEMBLY__
  
- /*
-@@ -14,41 +16,10 @@
  typedef unsigned short umode_t;
  
- /*
-- * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-- * header files exported to user space
+-/*
+- * _xx is ok: it doesn't pollute the POSIX namespace. Use these in the
+- * header files exported to user space.
 - */
 -
 -typedef __signed__ char __s8;
@@ -68,31 +88,31 @@ index 56566e2..1287519 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#if defined(__GNUC__)
--__extension__ typedef __signed__ long long __s64;
--__extension__ typedef unsigned long long __u64;
--#endif
+-typedef __signed__ long __s64;
+-typedef unsigned long __u64;
 -
--/*
-  * These aren't exported outside the kernel to avoid name space clashes
-  */
- #ifdef __KERNEL__
+ #endif /* __ASSEMBLY__ */
  
--typedef signed char s8;
+ #ifdef __KERNEL__
+@@ -39,18 +23,6 @@ typedef unsigned long __u64;
+ 
+ #ifndef __ASSEMBLY__
+ 
+-typedef __signed__ char s8;
 -typedef unsigned char u8;
 -
--typedef signed short s16;
+-typedef __signed__ short s16;
 -typedef unsigned short u16;
 -
--typedef signed int s32;
+-typedef __signed__ int s32;
 -typedef unsigned int u32;
 -
--typedef signed long long s64;
--typedef unsigned long long u64;
+-typedef __signed__ long s64;
+-typedef unsigned long u64;
 -
- #define BITS_PER_LONG 32
+ /* Dma addresses come in generic and 64-bit flavours.  */
  
- /* Dma addresses are 32-bits wide.  */
+ typedef u32 dma_addr_t;
 -- 
 1.5.4.1
 
