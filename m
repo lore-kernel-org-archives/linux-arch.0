@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36660 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36697 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754955AbYDXXGo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:44 -0400
+	with ESMTP id S1755486AbYDXXHP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:07:15 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 13/24] mn10300: types: use <asm-generic/int-*.h> for the mn10300 architecture
-Date: Thu, 24 Apr 2008 16:05:32 -0700
-Message-ID: <1209078352-7593-26-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-25-git-send-email-hpa@zytor.com>
+Subject: [PATCH 11/24] m68k: types: use <asm-generic/int-*.h> for the m68k architecture
+Date: Thu, 24 Apr 2008 16:05:29 -0700
+Message-ID: <1209078352-7593-23-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-22-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -30,35 +30,30 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-20-git-send-email-hpa@zytor.com>
  <1209078352-7593-21-git-send-email-hpa@zytor.com>
  <1209078352-7593-22-git-send-email-hpa@zytor.com>
- <1209078352-7593-23-git-send-email-hpa@zytor.com>
- <1209078352-7593-24-git-send-email-hpa@zytor.com>
- <1209078352-7593-25-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
-Message-ID: <20080424230532.3T8FCr6AdFp0kuz9RuQNOHOXMkwKEVybdn9iwCXvehA@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20080424230529.b6RBUhrqqWZ5OhneOFEHq7T3s2SOI4ZVCjW0yzyvS2o@z>
 
-This modifies <asm-mn10300/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-m68k/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
 ---
- include/asm-mn10300/types.h |   33 ++-------------------------------
- 1 files changed, 2 insertions(+), 31 deletions(-)
+ include/asm-m68k/types.h |   32 +-------------------------------
+ 1 files changed, 1 insertions(+), 31 deletions(-)
 
-diff --git a/include/asm-mn10300/types.h b/include/asm-mn10300/types.h
-index d40ea76..7b9f010 100644
---- a/include/asm-mn10300/types.h
-+++ b/include/asm-mn10300/types.h
-@@ -11,29 +11,12 @@
- #ifndef _ASM_TYPES_H
- #define _ASM_TYPES_H
- 
+diff --git a/include/asm-m68k/types.h b/include/asm-m68k/types.h
+index c35c09d..6441cb5 100644
+--- a/include/asm-m68k/types.h
++++ b/include/asm-m68k/types.h
+@@ -8,30 +8,12 @@
+  * not a major issue.  However, for interoperability, libraries still
+  * need to be careful to avoid a name clashes.
+  */
 +#include <asm-generic/int-ll64.h>
-+
+ 
  #ifndef __ASSEMBLY__
  
  typedef unsigned short umode_t;
@@ -77,15 +72,15 @@ index d40ea76..7b9f010 100644
 -typedef __signed__ int __s32;
 -typedef unsigned int __u32;
 -
--#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
--typedef __signed__ long long __s64;
--typedef unsigned long long __u64;
+-#if defined(__GNUC__)
+-__extension__ typedef __signed__ long long __s64;
+-__extension__ typedef unsigned long long __u64;
 -#endif
 -
  #endif /* __ASSEMBLY__ */
  
  /*
-@@ -45,18 +28,6 @@ typedef unsigned long long __u64;
+@@ -43,18 +25,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
@@ -101,9 +96,9 @@ index d40ea76..7b9f010 100644
 -typedef signed long long s64;
 -typedef unsigned long long u64;
 -
- /* Dma addresses are 32-bits wide.  */
- typedef u32 dma_addr_t;
+ /* DMA addresses are always 32-bits wide */
  
+ typedef u32 dma_addr_t;
 -- 
 1.5.4.1
 
