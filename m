@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36558 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:36577 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750868AbYDXXGR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:17 -0400
+	with ESMTP id S1752782AbYDXXGX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 19:06:23 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 06/24] cris: types: use <asm-generic/int-*.h> for the cris architecture
-Date: Thu, 24 Apr 2008 16:05:18 -0700
-Message-ID: <1209078352-7593-12-git-send-email-hpa@zytor.com>
-In-Reply-To: <1209078352-7593-11-git-send-email-hpa@zytor.com>
+Subject: [PATCH 07/24] frv: types: use <asm-generic/int-*.h> for the frv architecture
+Date: Thu, 24 Apr 2008 16:05:21 -0700
+Message-ID: <1209078352-7593-15-git-send-email-hpa@zytor.com>
+In-Reply-To: <1209078352-7593-14-git-send-email-hpa@zytor.com>
 References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-2-git-send-email-hpa@zytor.com>
  <1209078352-7593-3-git-send-email-hpa@zytor.com>
@@ -19,29 +19,30 @@ References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
  <1209078352-7593-9-git-send-email-hpa@zytor.com>
  <1209078352-7593-10-git-send-email-hpa@zytor.com>
  <1209078352-7593-11-git-send-email-hpa@zytor.com>
+ <1209078352-7593-12-git-send-email-hpa@zytor.com>
+ <1209078352-7593-13-git-send-email-hpa@zytor.com>
+ <1209078352-7593-14-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>
-Message-ID: <20080424230518.7NkM9Q9reCbDHy_fXE7tEjVccMAHWutL_-LJ5GBfw9o@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20080424230521.AnOUb2v9Nh7YyfNuGVknRjasx58AwDNtuic-VFfc6IY@z>
 
-This modifies <asm-cris/types.h> to use the <asm-generic/int-*.h>
+This modifies <asm-frv/types.h> to use the <asm-generic/int-*.h>
 generic include files.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
 ---
- include/asm-cris/types.h |   33 ++-------------------------------
- 1 files changed, 2 insertions(+), 31 deletions(-)
+ include/asm-frv/types.h |   34 ++--------------------------------
+ 1 files changed, 2 insertions(+), 32 deletions(-)
 
-diff --git a/include/asm-cris/types.h b/include/asm-cris/types.h
-index 5a21c42..5790262 100644
---- a/include/asm-cris/types.h
-+++ b/include/asm-cris/types.h
-@@ -1,29 +1,12 @@
- #ifndef _ETRAX_TYPES_H
- #define _ETRAX_TYPES_H
+diff --git a/include/asm-frv/types.h b/include/asm-frv/types.h
+index 767e5ed..613bf1e 100644
+--- a/include/asm-frv/types.h
++++ b/include/asm-frv/types.h
+@@ -12,29 +12,12 @@
+ #ifndef _ASM_TYPES_H
+ #define _ASM_TYPES_H
  
 +#include <asm-generic/int-ll64.h>
 +
@@ -71,10 +72,11 @@ index 5a21c42..5790262 100644
  #endif /* __ASSEMBLY__ */
  
  /*
-@@ -35,18 +18,6 @@ __extension__ typedef unsigned long long __u64;
+@@ -46,19 +29,6 @@ __extension__ typedef unsigned long long __u64;
  
  #ifndef __ASSEMBLY__
  
+-
 -typedef signed char s8;
 -typedef unsigned char u8;
 -
@@ -87,8 +89,8 @@ index 5a21c42..5790262 100644
 -typedef signed long long s64;
 -typedef unsigned long long u64;
 -
- /* Dma addresses are 32-bits wide, just like our other addresses.  */
-  
+ /* Dma addresses are 32-bits wide.  */
+ 
  typedef u32 dma_addr_t;
 -- 
 1.5.4.1
