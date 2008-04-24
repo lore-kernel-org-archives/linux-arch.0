@@ -1,74 +1,77 @@
-From: "Will Newton" <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [RFC] Introduce __ARCH_WANT_SYS_SYSFS
-Date: Thu, 24 Apr 2008 10:18:34 +0100
-Message-ID: <87a5b0800804240218l3e907acah438dded122cdec33@mail.gmail.com>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
-	 <87a5b0800804220816y72a7f4f9gec2111df08a1a57f@mail.gmail.com>
-	 <20080422152426.GG19802@phobos.i.cabal.ca>
-	 <87a5b0800804220834q4d6daec1x4146d211115ab5c@mail.gmail.com>
-	 <20080422153849.GH19802@phobos.i.cabal.ca>
-	 <87a5b0800804230736k340e7fe9mffbd72b5b8164015@mail.gmail.com>
-	 <20080423154038.GL19802@phobos.i.cabal.ca>
-	 <87a5b0800804230850y4d577ff2taf1689f4af26b274@mail.gmail.com>
-	 <8bd0f97a0804230905x19fd96aevc8f225d241e59369@mail.gmail.com>
-	 <8bd0f97a0804231059w76592878s3f6bf4a488b3ddea@mail.gmail.com>
+From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+Date: Thu, 24 Apr 2008 12:59:08 +0200
+Message-ID: <20080424105908.GW12774@kernel.dk>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <480E70ED.3030701@rtr.ca> <20080423072432.GX12774@kernel.dk> <480F3CBC.60305@rtr.ca> <20080423135110.GO12774@kernel.dk> <480F4BD9.8090003@rtr.ca>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <8bd0f97a0804231059w76592878s3f6bf4a488b3ddea-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
 Content-Disposition: inline
+In-Reply-To: <480F4BD9.8090003-gsilrlXbHYg@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier.adi-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Kyle McMartin <kyle-pfcGkIkfWfAsA/PxXw9srA@public.gmane.org>, Randy Dunlap <randy.dunlap-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Mark Lord <lkml-gsilrlXbHYg@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
 
-On Wed, Apr 23, 2008 at 6:59 PM, Mike Frysinger <vapier.adi-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
->
-> On Wed, Apr 23, 2008 at 12:05 PM, Mike Frysinger <vapier.adi-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
->  > On Wed, Apr 23, 2008 at 11:50 AM, Will Newton <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
->  >  > On Wed, Apr 23, 2008 at 4:40 PM, Kyle McMartin <kyle-pfcGkIkfWfAsA/PxXw9srA@public.gmane.org> wrote:
->  >  >  > On Wed, Apr 23, 2008 at 03:36:23PM +0100, Will Newton wrote:
->  >  >  >  > +config ARCH_HAS_SYS_SYSFS
->  >  >  >  > +     bool
->  >  >  >  > +     default y
->  >  >  >  > +
->  >  >  >  >  source "init/Kconfig"
->  >  >  >  >
->  >  >  >
->  >  >  >  Sorry, I meant something more like
->  >  >  >
->  >  >  >
->  >  >  >  config ARCH_HAS_SYS_SYSFS
->  >  >  >         def_bool !BLACKFIN
->  >  >  >         help
->  >  >  >           Obsolete sys_sysfs syscall
->  >  >  >
->  >  >  >  in init/Kconfig
->  >  >  >
->  >  >  >  But, it's your patch, you can do it however you like. :)
->  >  >
->  >  >  That's definitely shorter - but it feels a bit more like #ifdef
->  >  >  CONFIG_BLACKFIN which is explicitly what I don't want to do, because
->  >  >  I'm not actually interested in blackfin. ;-)
->  >
->  >  i'd have to agree that updating asm/unistd.h fits better with existing
->  >  paradigm.  if we want to talk about converting *all cases* to Kconfig,
->  >  we can do it in a separate thread.  splitting the design between two
->  >  different files is simply confusing to everyone involved as they spend
->  >  their time going "well which way am *i* supposed to do it".
->
->  thinking about this some more ... we actually have three choices here,
->  not just two.  checksyscalls.sh introduced a new form in asm/unistd.h:
->  #define __IGNORE_sysfs
->  perhaps we should be unifying the __ARCH_WANT_XXX and the __IGNORE_XXX
+On Wed, Apr 23 2008, Mark Lord wrote:
+> Jens Axboe wrote:
+> >On Wed, Apr 23 2008, Mark Lord wrote:
+> >..
+> >>The second bug, is that for the halt case at least,
+> >>nobody waits for the other CPU to actually halt
+> >>before continuing.. so we sometimes enter the shutdown
+> >>code while other CPUs are still active.
+> >>
+> >>This causes some machines to hang at shutdown,
+> >>unless CPU_HOTPLUG is configured and takes them offline
+> >>before we get here.
+> >
+> >I'm guessing there's a reason it doesn't pass '1' as the last argument,
+> >because that would fix that issue?
+> ..
+> 
+> Undoubtedly -- perhaps the called CPU halts, and therefore cannot reply.  :)
 
-I'm not sure this would be possible. IGNORE is saying "please don't
-warn me about the fact that I don't define define this syscall".
-ARCH_WANT is saying "give me the generic implementation of this
-syscall". You should never define IGNORE and ARCH_WANT for the same
-syscall, but you may want to have neither - you have defined the
-syscall but you don't want the generic version.
+Uhm yes, I guess stop_this_cpu() does exactly what the name implies :-)
 
->  -mike
->
+> But some kind of pre-halt ack, perhaps plus a short delay by the caller
+> after receipt of the ack, would probably suffice to kill that bug.
+> 
+> But I really haven't studied this code enough to know,
+> other than that it historically has been a sticky area
+> to poke around in.
+
+Something like this will close the window to right up until the point
+where the other CPUs have 'almost' called halt().
+
+diff --git a/arch/x86/kernel/smp.c b/arch/x86/kernel/smp.c
+index 5398385..94ec9bf 100644
+--- a/arch/x86/kernel/smp.c
++++ b/arch/x86/kernel/smp.c
+@@ -155,8 +155,9 @@ static void stop_this_cpu(void *dummy)
+ 	/*
+ 	 * Remove this CPU:
+ 	 */
+-	cpu_clear(smp_processor_id(), cpu_online_map);
+ 	disable_local_APIC();
++	cpu_clear(smp_processor_id(), cpu_online_map);
++	smp_wmb();
+ 	if (hlt_works(smp_processor_id()))
+ 		for (;;) halt();
+ 	for (;;);
+@@ -175,6 +176,12 @@ static void native_smp_send_stop(void)
+ 
+ 	local_irq_save(flags);
+ 	smp_call_function(stop_this_cpu, NULL, 0, 0);
++
++	while (cpus_weight(cpu_online_map) > 1) {
++		cpu_relax();
++		smp_rmb();
++	}
++
+ 	disable_local_APIC();
+ 	local_irq_restore(flags);
+ }
+
+-- 
+Jens Axboe
