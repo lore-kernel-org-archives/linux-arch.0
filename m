@@ -1,31 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:55100 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751387AbYDYEoX convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2008 00:44:23 -0400
-Content-class: urn:content-classes:message
+Received: from yorgi.telenet-ops.be ([195.130.133.69]:46767 "EHLO
+	yorgi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753571AbYDYHSJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2008 03:18:09 -0400
+Received: from monty.telenet-ops.be (monty.telenet-ops.be [195.130.132.56])
+	by yorgi.telenet-ops.be (Postfix) with ESMTP id 7AF3B6819E4
+	for <linux-arch@vger.kernel.org>; Fri, 25 Apr 2008 09:18:07 +0200 (CEST)
+Date: Fri, 25 Apr 2008 09:17:32 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 00/24] Unify integer type definitions, and add fixed type
+ constructor macros
+In-Reply-To: <1209078352-7593-1-git-send-email-hpa@zytor.com>
+Message-ID: <Pine.LNX.4.64.0804250915030.21224@anakin>
+References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Subject: RE: [PATCH 24/24] Use U64_C() instead of casts in kernel/time.c
-Date: Thu, 24 Apr 2008 21:44:17 -0700
-Message-ID: <1FE6DD409037234FAB833C420AA843EC012FA04B@orsmsx424.amr.corp.intel.com>
-In-Reply-To: <200804250410.m3P4A67w019427@tazenda.hos.anvin.org>
-References: <1209078352-7593-1-git-send-email-hpa@zytor.com><1209078352-7593-2-git-send-email-hpa@zytor.com><1209078352-7593-3-git-send-email-hpa@zytor.com><1209078352-7593-4-git-send-email-hpa@zytor.com><1209078352-7593-5-git-send-email-hpa@zytor.com><1209078352-7593-6-git-send-email-hpa@zytor.com><1209078352-7593-7-git-send-email-hpa@zytor.com><1209078352-7593-8-git-send-email-hpa@zytor.com><1209078352-7593-9-git-send-email-hpa@zytor.com><1209078352-7593-10-git-send-email-hpa@zytor.com><1209078352-7593-11-git-send-email-hpa@zytor.com><1209078352-7593-12-git-send-email-hpa@zytor.com><1209078352-7593-13-git-send-email-hpa@zytor.com><1209078352-7593-14-git-send-email-hpa@zytor.com><1209078352-7593-15-git-send-email-hpa@zytor.com><1209078352-7593-16-git-send-email-hpa@zytor.com><1209078352-7593-17-git-send-email-hpa@zytor.com><1209078352-7593-18-git-send-email-hpa@zytor.com><1FE6DD409037234FAB833C420AA843EC012F9FDA@orsmsx424.amr.corp.intel.com> <200804250410.m3P4A67w019427@taze
- nda.hos.
-	anvin.org>
-From: "Luck, Tony" <tony.luck@intel.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
-Message-ID: <20080425044417.XTWKzItWxRYzLzKZSYomm7KzDGRE4B-LNXkytMs_x6g@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Message-ID: <20080425071732.caojzH8Got9Qobb3sS0cRy3DoBGIOEFmsDZhNIpbZqE@z>
 
-> Note that since pasting has priority over macro resolution, the header
-> file generation is modified to have suffixed versions of all the
-> generated values.
+On Thu, 24 Apr 2008, H. Peter Anvin wrote:
+> This patchset unifies the integer definitions across all the
+> <asm-*/types.h> files, replacing them with two asm-generic files, one
+> for the LL64 model (all 32-bit architectures plus x86-64) and one for
+> the L64 model (all other 64-bit architectures.)
 
-Much better.  Builds and boots on ia64 now.  I only ran some trivial
-tests, but it still seems to be counting time correctly.
+Just a minor nitpick, what about calling them LP32 and LP64, like
+everybody else does?
+I.e. asm-generic/types-lp{32,64}.h?
 
-Acked-by: Tony Luck <tony.luck@intel.com>
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
