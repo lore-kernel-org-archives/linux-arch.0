@@ -1,27 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from alephnull.demon.nl ([83.160.184.112]:55966 "EHLO
-	xi.wantstofly.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755593AbYDYAPd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2008 20:15:33 -0400
-Date: Fri, 25 Apr 2008 02:15:31 +0200
-From: Lennert Buytenhek <buytenh@wantstofly.org>
-Subject: Re: [PATCH 01/24] types: create <asm-generic/int-*.h>
-Message-ID: <20080425001531.GC29618@xi.wantstofly.org>
-References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:60197
+	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1753008AbYDYAoL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 24 Apr 2008 20:44:11 -0400
+Date: Thu, 24 Apr 2008 17:44:10 -0700 (PDT)
+Message-ID: <20080424.174410.90684218.davem@davemloft.net>
+Subject: Re: [PATCH 19/24] sparc64: types: use <asm-generic/int-*.h> for
+ the sparc64 architecture
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <1209078352-7593-38-git-send-email-hpa@zytor.com>
+References: <1209078352-7593-36-git-send-email-hpa@zytor.com>
+	<1209078352-7593-37-git-send-email-hpa@zytor.com>
+	<1209078352-7593-38-git-send-email-hpa@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1209078352-7593-2-git-send-email-hpa@zytor.com>
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, Ben Dooks <ben-linux@fluff.org>, Russell King <rmk@arm.linux.org.uk>
-Message-ID: <20080425001531.EsDchE_j4oNIrw1lJRjzwPC7QW6HpNRKLAwSp3GElaY@z>
+To: hpa@zytor.com
+Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20080425004410.r8VeN1zheXN_DkQfB_aSzjIgPWNWxWmUcHBhHXqQieA@z>
 
-On Thu, Apr 24, 2008 at 04:05:08PM -0700, H. Peter Anvin wrote:
+From: "H. Peter Anvin" <hpa@zytor.com>
+Date: Thu, 24 Apr 2008 16:05:44 -0700
 
-> This creates two generic files with common integer definitions; one
-> where 64 bits is "long" (most 64-bit architectures) and one where 64
-> bits is "long long" (all 32-bit architectures and x86-64.)
+> This modifies <asm-sparc64/types.h> to use the <asm-generic/int-*.h>
+> generic include files.
+> 
+> Signed-off-by: H. Peter Anvin <hpa@zytor.com>
 
-Acked-by: Lennert Buytenhek <kernel@wantstofly.org>
+Acked-by: David S. Miller <davem@davemloft.net>
