@@ -1,60 +1,41 @@
-From: Pavel Machek <pavel-+ZI9xUNit7I@public.gmane.org>
-Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-Date: Fri, 25 Apr 2008 13:08:22 +0200
-Message-ID: <20080425110822.GH14903@elf.ucw.cz>
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <480E70ED.3030701@rtr.ca> <20080423072432.GX12774@kernel.dk> <480F3CBC.60305@rtr.ca> <20080423135110.GO12774@kernel.dk> <480F4BD9.8090003@rtr.ca> <20080424105908.GW12774@kernel.dk> <481080A0.9050804@rtr.ca>
+From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Subject: Re: [microblaze-uclinux] Re: microblaze syscall list
+Date: Fri, 25 Apr 2008 13:32:28 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0804251331230.29595@anakin>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
+ <200804221515.28075.arnd@arndb.de> <480FA729.3000406@seznam.cz>
+ <200804241311.09881.arnd@arndb.de> <4810D4A4.7050900@seznam.cz>
+ <4811A623.80104@itee.uq.edu.au> <20080425100614.GB14990@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <481080A0.9050804-gsilrlXbHYg@public.gmane.org>
+In-Reply-To: <20080425100614.GB14990-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Lord <lkml-gsilrlXbHYg@public.gmane.org>
-Cc: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, "Rafael J. Wysocki" <rjw-KKrjLPT3xs0@public.gmane.org>
+To: Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>
+Cc: John Williams <jwilliams-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org>, microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Will Newton <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, git-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org
 
-Hi!
+On Fri, 25 Apr 2008, Matthew Wilcox wrote:
+> On Fri, Apr 25, 2008 at 07:36:35PM +1000, John Williams wrote:
+> > Please remember that MicroBlaze has been around as an arch for > 4 
+> > years, just not in the kernel.org tree.  These older style syscall 
+> > interfaces are all part of the uClibc and glibc ports for MicroBlaze.
+> 
+> So is it fair to say that you now understand this was the Wrong Way To
+> Do Things, and if anyone asks, you'd recommend getting an arch merged
+> into kernel.org sooner rather than later?
 
->> Something like this will close the window to right up until the point
->> where the other CPUs have 'almost' called halt().
->>
->> diff --git a/arch/x86/kernel/smp.c b/arch/x86/kernel/smp.c
->> index 5398385..94ec9bf 100644
->> --- a/arch/x86/kernel/smp.c
->> +++ b/arch/x86/kernel/smp.c
->> @@ -155,8 +155,9 @@ static void stop_this_cpu(void *dummy)
->>  	/*
->>  	 * Remove this CPU:
->>  	 */
->> -	cpu_clear(smp_processor_id(), cpu_online_map);
->>  	disable_local_APIC();
->> +	cpu_clear(smp_processor_id(), cpu_online_map);
->> +	smp_wmb();
->>  	if (hlt_works(smp_processor_id()))
->>  		for (;;) halt();
->>  	for (;;);
->> @@ -175,6 +176,12 @@ static void native_smp_send_stop(void)
->>   	local_irq_save(flags);
->>  	smp_call_function(stop_this_cpu, NULL, 0, 0);
->> +
->> +	while (cpus_weight(cpu_online_map) > 1) {
->> +		cpu_relax();
->> +		smp_rmb();
->> +	}
->> +
->>  	disable_local_APIC();
->>  	local_irq_restore(flags);
->>  }
-> ..
->
-> Yup, that looks like it oughta work consistently.
-> Now we just need to hear from some of the folks who
-> have danced around this code in the past.
->
-> (added Pavel & Rafael to Cc:).
+It's also an indicator we should have an asm-generic/unistd.h ASAP (as
+Arnd suggested), to make sure future archs don't make the same mistake
+over and over again.
 
-I can't  see anything wrong with this one, but I'm not smp expert...
-									Pavel
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
