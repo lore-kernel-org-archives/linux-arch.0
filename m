@@ -1,42 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:39461 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1765218AbYDYTLV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2008 15:11:21 -0400
-Message-ID: <48122CB0.7020003@zytor.com>
-Date: Fri, 25 Apr 2008 12:10:40 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:60705 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S933384AbYDYTDi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 Apr 2008 15:03:38 -0400
+Date: Fri, 25 Apr 2008 12:03:12 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH 01/24] types: create <asm-generic/int-*.h>
-References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com> <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr> <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org> <20080425185251.GL14990@parisc-linux.org>
 In-Reply-To: <20080425185251.GL14990@parisc-linux.org>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Message-ID: <alpine.LFD.1.10.0804251158410.2779@woody.linux-foundation.org>
+References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com> <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr> <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org>
+ <20080425185251.GL14990@parisc-linux.org>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Matthew Wilcox <matthew@wil.cx>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jan Engelhardt <jengelh@computergmbh.de>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
-Message-ID: <20080425191040.5E2jrLfEA7seYCBkSw8hbpprRrepNXgVTmf2R7BQrNg@z>
+Cc: Jan Engelhardt <jengelh@computergmbh.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Message-ID: <20080425190312.6e2SGXz5iUxW2csBucYTrFAj6T4Vd_YRePB6aEt2Ibs@z>
 
-Matthew Wilcox wrote:
+
+
+On Fri, 25 Apr 2008, Matthew Wilcox wrote:
 > 
 > So ... given all this, why do we define s64 to be 'long' on some
-> architectures and 'long long' on others?  It seems to actively _hinder_
-> passing it to printf(), so there must be some other good reason that
-> I'm missing to not make it 'long long' everywhere.
-> 
+> architectures and 'long long' on others?
 
-Well, compatibility with userspace is probably one aspect of that. 
-x86-64 is the odd man out there, it defines __s64 as "long long" even 
-for userspace, even though int64_t from <stdint.h> is "long".  This, 
-IMO, is the Wrong Thing, but it's a separate set of changes.
+Historical reasons, mainly. Once we start using one type for things like 
+loff_t, it ends up getting encoded in user header files, and we're then 
+basically forced to continue to use that particular type. Some of them end 
+literally being embedded in the compiler itself (ie __builtin_size_t etc 
+end up being known by compiler built-ins).
 
-The right thing to do is probably to always use "long long" in the 
-kernel, while defining __s64 et al as "long" on 64-bit platforms when 
-not under __KERNEL__.
+But yes, we could probably try to standardize the internal kernel s64/u64 
+types that don't end up spreading anywhere else. 
 
-Again, this is a separate set of changes from this patchset, which is 
-just a code transformation.
+Of course, part of the worry is probably that people thought that maybe 
+"long long" would some day be 128-bit on a 64-bit architecture.
 
-	-hpa
-
+			Linus
