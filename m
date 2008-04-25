@@ -1,29 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sovereign.computergmbh.de ([85.214.69.204]:46912 "EHLO
-	sovereign.computergmbh.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757939AbYDYS1y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2008 14:27:54 -0400
-Date: Fri, 25 Apr 2008 20:27:53 +0200 (CEST)
-From: Jan Engelhardt <jengelh@computergmbh.de>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:34738 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751353AbYDYShA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 Apr 2008 14:37:00 -0400
+Date: Fri, 25 Apr 2008 11:36:26 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH 01/24] types: create <asm-generic/int-*.h>
-In-Reply-To: <1209078352-7593-3-git-send-email-hpa@zytor.com>
-Message-ID: <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr>
-References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com>
+In-Reply-To: <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr>
+Message-ID: <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org>
+References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com> <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
-Message-ID: <20080425182753.lEH-_lfi-_3TDXf_GxuUn0dAu9GYFm-vP1-GJ2bz8hQ@z>
+To: Jan Engelhardt <jengelh@computergmbh.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Message-ID: <20080425183626.fMqX0Io18o-07bCLd09ihH1-kxZB2Sy23cPLrwZuDgw@z>
 
 
-On Friday 2008-04-25 01:05, H. Peter Anvin wrote:
 
->This creates two generic files with common integer definitions; one
->where 64 bits is "long" (most 64-bit architectures) and one where 64
->bits is "long long" (all 32-bit architectures and x86-64.)
+On Fri, 25 Apr 2008, Jan Engelhardt wrote:
+> 
+> long long is 64 bits on both 32 and 64, is not it?
+> If so, the split between 32 and 64 should not be necessary.
 
-long long is 64 bits on both 32 and 64, is not it?
-If so, the split between 32 and 64 should not be necessary.
+They may be the same size, but there are still pure C-level _type_ 
+differences that the compiler will warn about.
+
+This is the same issue as a 32-bit type on x86-32: is it an "int" or a 
+"long"? From a pure size perspective it shouldn't matter, but if you pass 
+a pointer to it, or use it in a "printf()", it matters a whole lot, 
+because the compiler will complain if you use the wrong version.
+
+So on some 32-bit architectures, "size_t" is "unsigned int", on others it 
+is "unsigned long", and you have to get it right in order to avoid 
+complaints. 
+
+The exact same thing is true about "long" vs "long long" on 64-bit 
+architectures. They may have the same size, but they don't have the same 
+type.
+
+		Linus
+
 
