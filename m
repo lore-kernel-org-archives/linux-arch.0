@@ -1,84 +1,26 @@
-From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH 03/24] arm: types: use <asm-generic/int-*.h> for the arm architecture
-Date: Thu, 24 Apr 2008 16:05:12 -0700
-Message-ID: <1209078352-7593-6-git-send-email-hpa@zytor.com>
-References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
- <1209078352-7593-2-git-send-email-hpa@zytor.com>
- <1209078352-7593-3-git-send-email-hpa@zytor.com>
- <1209078352-7593-4-git-send-email-hpa@zytor.com>
- <1209078352-7593-5-git-send-email-hpa@zytor.com>
+From: Lennert Buytenhek <buytenh-OLH4Qvv75CYX/NnBR394Jw@public.gmane.org>
+Subject: Re: [PATCH 03/24] arm: types: use <asm-generic/int-*.h> for the arm architecture
+Date: Fri, 25 Apr 2008 02:14:48 +0200
+Message-ID: <20080425001448.GB29618@xi.wantstofly.org>
+References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com> <1209078352-7593-4-git-send-email-hpa@zytor.com> <1209078352-7593-5-git-send-email-hpa@zytor.com> <1209078352-7593-6-git-send-email-hpa@zytor.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209078352-7593-5-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <1209078352-7593-6-git-send-email-hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Lennert Buytenhek <kernel-OLH4Qvv75CYX/NnBR394Jw@public.gmane.org>, Ben Dooks <ben-linux-elnMNo+KYs3YtjvyW6yDsg@public.gmane.org>
+To: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux Arch Mailing List <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Ben Dooks <ben-linux-elnMNo+KYs3YtjvyW6yDsg@public.gmane.org>
 
-This modifies <asm-arm/types.h> to use the <asm-generic/int-*.h>
-generic include files.
+On Thu, Apr 24, 2008 at 04:05:12PM -0700, H. Peter Anvin wrote:
 
-Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Cc: Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
-Cc: Lennert Buytenhek <kernel-OLH4Qvv75CYX/NnBR394Jw@public.gmane.org>
-Cc: Ben Dooks <ben-linux-elnMNo+KYs3YtjvyW6yDsg@public.gmane.org>
----
- include/asm-arm/types.h |   33 ++-------------------------------
- 1 files changed, 2 insertions(+), 31 deletions(-)
+> This modifies <asm-arm/types.h> to use the <asm-generic/int-*.h>
+> generic include files.
+> 
+> Signed-off-by: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+> Cc: Russell King <rmk-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
+> Cc: Lennert Buytenhek <kernel-OLH4Qvv75CYX/NnBR394Jw@public.gmane.org>
+> Cc: Ben Dooks <ben-linux-elnMNo+KYs3YtjvyW6yDsg@public.gmane.org>
 
-diff --git a/include/asm-arm/types.h b/include/asm-arm/types.h
-index 3141451..345df01 100644
---- a/include/asm-arm/types.h
-+++ b/include/asm-arm/types.h
-@@ -1,29 +1,12 @@
- #ifndef __ASM_ARM_TYPES_H
- #define __ASM_ARM_TYPES_H
- 
-+#include <asm-generic/int-ll64.h>
-+
- #ifndef __ASSEMBLY__
- 
- typedef unsigned short umode_t;
- 
--/*
-- * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
-- * header files exported to user space
-- */
--
--typedef __signed__ char __s8;
--typedef unsigned char __u8;
--
--typedef __signed__ short __s16;
--typedef unsigned short __u16;
--
--typedef __signed__ int __s32;
--typedef unsigned int __u32;
--
--#if defined(__GNUC__)
--__extension__ typedef __signed__ long long __s64;
--__extension__ typedef unsigned long long __u64;
--#endif
--
- #endif /* __ASSEMBLY__ */
- 
- /*
-@@ -35,18 +18,6 @@ __extension__ typedef unsigned long long __u64;
- 
- #ifndef __ASSEMBLY__
- 
--typedef signed char s8;
--typedef unsigned char u8;
--
--typedef signed short s16;
--typedef unsigned short u16;
--
--typedef signed int s32;
--typedef unsigned int u32;
--
--typedef signed long long s64;
--typedef unsigned long long u64;
--
- /* Dma addresses are 32-bits wide.  */
- 
- typedef u32 dma_addr_t;
--- 
-1.5.4.1
+Acked-by: Lennert Buytenhek <kernel-OLH4Qvv75CYX/NnBR394Jw@public.gmane.org>
