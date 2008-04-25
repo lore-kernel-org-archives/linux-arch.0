@@ -1,41 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:60705 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S933384AbYDYTDi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Apr 2008 15:03:38 -0400
-Date: Fri, 25 Apr 2008 12:03:12 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:34488 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753319AbYDYT27 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2008 15:28:59 -0400
+Date: Fri, 25 Apr 2008 13:28:58 -0600
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: [PATCH 01/24] types: create <asm-generic/int-*.h>
-In-Reply-To: <20080425185251.GL14990@parisc-linux.org>
-Message-ID: <alpine.LFD.1.10.0804251158410.2779@woody.linux-foundation.org>
-References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com> <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr> <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org>
- <20080425185251.GL14990@parisc-linux.org>
+Message-ID: <20080425192858.GM14990@parisc-linux.org>
+References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com> <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr> <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org> <20080425185251.GL14990@parisc-linux.org> <48122CB0.7020003@zytor.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <48122CB0.7020003@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Jan Engelhardt <jengelh@computergmbh.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
-Message-ID: <20080425190312.6e2SGXz5iUxW2csBucYTrFAj6T4Vd_YRePB6aEt2Ibs@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jan Engelhardt <jengelh@computergmbh.de>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Message-ID: <20080425192858.T8BgWMvzAT6xkW5eWaOPW0_NHgHccBqWpym69K75G5w@z>
 
-
-
-On Fri, 25 Apr 2008, Matthew Wilcox wrote:
+On Fri, Apr 25, 2008 at 12:10:40PM -0700, H. Peter Anvin wrote:
+> Well, compatibility with userspace is probably one aspect of that. 
+> x86-64 is the odd man out there, it defines __s64 as "long long" even 
+> for userspace, even though int64_t from <stdint.h> is "long".  This, 
+> IMO, is the Wrong Thing, but it's a separate set of changes.
 > 
-> So ... given all this, why do we define s64 to be 'long' on some
-> architectures and 'long long' on others?
+> The right thing to do is probably to always use "long long" in the 
+> kernel, while defining __s64 et al as "long" on 64-bit platforms when 
+> not under __KERNEL__.
+> 
+> Again, this is a separate set of changes from this patchset, which is 
+> just a code transformation.
 
-Historical reasons, mainly. Once we start using one type for things like 
-loff_t, it ends up getting encoded in user header files, and we're then 
-basically forced to continue to use that particular type. Some of them end 
-literally being embedded in the compiler itself (ie __builtin_size_t etc 
-end up being known by compiler built-ins).
+Understood, and agreed.  It just seemed like an opportune time to
+mention the problem of printing a u64.
 
-But yes, we could probably try to standardize the internal kernel s64/u64 
-types that don't end up spreading anywhere else. 
-
-Of course, part of the worry is probably that people thought that maybe 
-"long long" would some day be 128-bit on a 64-bit architecture.
-
-			Linus
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
