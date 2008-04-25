@@ -1,38 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:50010 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753333AbYDYTsV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2008 15:48:21 -0400
-Message-ID: <4812357C.5010904@zytor.com>
-Date: Fri, 25 Apr 2008 12:48:12 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
+Received: from wa-out-1112.google.com ([209.85.146.183]:35503 "EHLO
+	wa-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756543AbYDYTtP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2008 15:49:15 -0400
+Received: by wa-out-1112.google.com with SMTP id m16so6175626waf.23
+        for <linux-arch@vger.kernel.org>; Fri, 25 Apr 2008 12:49:14 -0700 (PDT)
 Subject: Re: [PATCH 01/24] types: create <asm-generic/int-*.h>
-References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com> <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr> <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org> <20080425185251.GL14990@parisc-linux.org> <48122CB0.7020003@zytor.com> <20080425192858.GM14990@parisc-linux.org> <48123325.30003@zytor.com> <alpine.LFD.1.10.0804251243590.2779@woody.linux-foundation.org>
+From: Harvey Harrison <harvey.harrison@gmail.com>
 In-Reply-To: <alpine.LFD.1.10.0804251243590.2779@woody.linux-foundation.org>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+References: <1209078352-7593-1-git-send-email-hpa@zytor.com>
+	 <1209078352-7593-2-git-send-email-hpa@zytor.com>
+	 <1209078352-7593-3-git-send-email-hpa@zytor.com>
+	 <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr>
+	 <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org>
+	 <20080425185251.GL14990@parisc-linux.org> <48122CB0.7020003@zytor.com>
+	 <20080425192858.GM14990@parisc-linux.org> <48123325.30003@zytor.com>
+	 <alpine.LFD.1.10.0804251243590.2779@woody.linux-foundation.org>
+Content-Type: text/plain
+Date: Fri, 25 Apr 2008 12:49:16 -0700
+Message-ID: <1209152956.14173.2.camel@brick>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, Jan Engelhardt <jengelh@computergmbh.de>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
-Message-ID: <20080425194812.mlfQukINHoTub_5VrYxPsMOpuqntOvep5knKdegjbyM@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@ZenIV.linux.org.uk>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Matthew Wilcox <matthew@wil.cx>, Jan Engelhardt <jengelh@computergmbh.de>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Message-ID: <20080425194916.r1hbF3Tb_dmL3uhZbhp5EfH99-Pdem8Z0hnyRjIEX7Q@z>
 
-Linus Torvalds wrote:
+On Fri, 2008-04-25 at 12:45 -0700, Linus Torvalds wrote:
 > 
 > On Fri, 25 Apr 2008, H. Peter Anvin wrote:
->> I have to admit to liking the Windows extension %I64u for this kind of stuff.
->> Unfortunately gcc/glibc decided to use I for internationalized digits instead
->> :(
+> > 
+> > I have to admit to liking the Windows extension %I64u for this kind of stuff.
+> > Unfortunately gcc/glibc decided to use I for internationalized digits instead
+> > :(
 > 
 > The sad part is that this is purely a gcc thing. We could easily do the 
 > right thing in the kernel vsnprintf stuff, but then we'd have to drop the 
 > nice format warnings from gcc ;(
-> 
 
-Yes, that's the fundamental problem.
+This looks like something sparse could be made to check though, should
+we lose the gcc checking.
 
-There isn't even a flag for gcc to set this behaviour, with the result 
-that any code compiled with MinGW (gcc for Win32) spews warnings like crazy.
+In fact, didn't Al Viro mention adding just this kind of checking to
+sparse recently?
 
-	-hpa
+Harvey
+
