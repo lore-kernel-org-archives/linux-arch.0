@@ -1,51 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:57591 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933056AbYDYSww (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2008 14:52:52 -0400
-Date: Fri, 25 Apr 2008 12:52:51 -0600
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [PATCH 01/24] types: create <asm-generic/int-*.h>
-Message-ID: <20080425185251.GL14990@parisc-linux.org>
-References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com> <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr> <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org>
+Received: from terminus.zytor.com ([198.137.202.10]:39461 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1765218AbYDYTLV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2008 15:11:21 -0400
+Message-ID: <48122CB0.7020003@zytor.com>
+Date: Fri, 25 Apr 2008 12:10:40 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org>
+Subject: Re: [PATCH 01/24] types: create <asm-generic/int-*.h>
+References: <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com> <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr> <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org> <20080425185251.GL14990@parisc-linux.org>
+In-Reply-To: <20080425185251.GL14990@parisc-linux.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Jan Engelhardt <jengelh@computergmbh.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
-Message-ID: <20080425185251.vWt0qPEmzitUYP9JseFd1IHixAMBthYSOvbkqF2d5bE@z>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jan Engelhardt <jengelh@computergmbh.de>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Message-ID: <20080425191040.5E2jrLfEA7seYCBkSw8hbpprRrepNXgVTmf2R7BQrNg@z>
 
-On Fri, Apr 25, 2008 at 11:36:26AM -0700, Linus Torvalds wrote:
-> On Fri, 25 Apr 2008, Jan Engelhardt wrote:
-> > long long is 64 bits on both 32 and 64, is not it?
-> > If so, the split between 32 and 64 should not be necessary.
+Matthew Wilcox wrote:
 > 
-> They may be the same size, but there are still pure C-level _type_ 
-> differences that the compiler will warn about.
+> So ... given all this, why do we define s64 to be 'long' on some
+> architectures and 'long long' on others?  It seems to actively _hinder_
+> passing it to printf(), so there must be some other good reason that
+> I'm missing to not make it 'long long' everywhere.
 > 
-> This is the same issue as a 32-bit type on x86-32: is it an "int" or a 
-> "long"? From a pure size perspective it shouldn't matter, but if you pass 
-> a pointer to it, or use it in a "printf()", it matters a whole lot, 
-> because the compiler will complain if you use the wrong version.
-> 
-> So on some 32-bit architectures, "size_t" is "unsigned int", on others it 
-> is "unsigned long", and you have to get it right in order to avoid 
-> complaints. 
-> 
-> The exact same thing is true about "long" vs "long long" on 64-bit 
-> architectures. They may have the same size, but they don't have the same 
-> type.
 
-So ... given all this, why do we define s64 to be 'long' on some
-architectures and 'long long' on others?  It seems to actively _hinder_
-passing it to printf(), so there must be some other good reason that
-I'm missing to not make it 'long long' everywhere.
+Well, compatibility with userspace is probably one aspect of that. 
+x86-64 is the odd man out there, it defines __s64 as "long long" even 
+for userspace, even though int64_t from <stdint.h> is "long".  This, 
+IMO, is the Wrong Thing, but it's a separate set of changes.
 
--- 
-Intel are signing my paycheques ... these opinions are still mine
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+The right thing to do is probably to always use "long long" in the 
+kernel, while defining __s64 et al as "long" on 64-bit platforms when 
+not under __KERNEL__.
+
+Again, this is a separate set of changes from this patchset, which is 
+just a code transformation.
+
+	-hpa
+
