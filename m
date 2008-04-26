@@ -1,53 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:58575 "EHLO mail.goop.org"
+Received: from gw.goop.org ([64.81.55.164]:35915 "EHLO mail.goop.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751833AbYDZGot (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 Apr 2008 02:44:49 -0400
-Message-ID: <4812CF5B.4080902@goop.org>
-Date: Fri, 25 Apr 2008 23:44:43 -0700
+	id S1753287AbYDZJAB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Apr 2008 05:00:01 -0400
+Message-ID: <4812EF0B.4060109@goop.org>
+Date: Sat, 26 Apr 2008 01:59:55 -0700
 From: Jeremy Fitzhardinge <jeremy@goop.org>
 MIME-Version: 1.0
 Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function
  calls
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-3-git-send-email-jens.axboe@oracle.com>
-In-Reply-To: <1208890227-24808-3-git-send-email-jens.axboe@oracle.com>
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-3-git-send-email-jens.axboe@oracle.com> <20080422084738.GB2388@elte.hu>
+In-Reply-To: <20080422084738.GB2388@elte.hu>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org
-Message-ID: <20080426064443.TCLGaIXeFOhvg4kiVZweW49BNxbvoJoHoN_tWblIFjY@z>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Message-ID: <20080426085955.171y9GFZRuOer3oHpEWjzTlvDNvM9ioVt2Ujrdq6hHg@z>
 
-Jens Axboe wrote:
-> --- a/arch/x86/kernel/smp.c
-> +++ b/arch/x86/kernel/smp.c
+Ingo Molnar wrote:
+> * Jens Axboe <jens.axboe@oracle.com> wrote:
+>
 >   
-[...]
-> +void arch_send_call_function_single_ipi(int cpu)
->  {
+>> This converts x86 and x86-64 to use the new helpers for 
+>> smp_call_function() and friends, and adds support for 
+>> smp_call_function_single().
+>>     
+>
+> nice stuff. The x86 and generic bits:
+>
+>  Acked-by: Ingo Molnar <mingo@elte.hu>
+>
+> this has been brewing for months, what is the testing/confidence status 
+> of it? Could we still merge it into v2.6.26? (i think we should)
 >   
-[...]
-> +void arch_send_call_function_ipi(cpumask_t mask)
->  {
->   
-[...]
-> --- a/arch/x86/xen/smp.c
-> +++ b/arch/x86/xen/smp.c
-> +void arch_send_call_function_ipi(cpumask_t mask)
-> +{
->   
-[...]
-> +void arch_send_call_function_single_ipi(int cpu)
-> +{
-> +	xen_send_IPI_mask(cpumask_of_cpu(cpu), XEN_CALL_FUNCTION_SINGLE_VECTOR);
->  
 
-Xen vs native is a runtime choice, so you can't just statically define 
-arch_send_call_function(_single)_ipi for each.  You need to define the 
-arch_* functions once, make them call via smp_ops, and call into the 
-respective native and Xen versions of the ipi functions.
-
-Aside from that it looks good, with a very appealing code size reduction.
+I commented on an earlier version of this patch, but it looks like it 
+will break Xen.  If you enable CONFIG_XEN, it will try to define both 
+native and Xen versions of arch_send_call_function[_single]_ipi().  It 
+needs to vector them via smp_ops.
 
     J
