@@ -1,44 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:35915 "EHLO mail.goop.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753287AbYDZJAB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 Apr 2008 05:00:01 -0400
-Message-ID: <4812EF0B.4060109@goop.org>
-Date: Sat, 26 Apr 2008 01:59:55 -0700
-From: Jeremy Fitzhardinge <jeremy@goop.org>
-MIME-Version: 1.0
-Subject: Re: [PATCH 2/11] x86: convert to generic helpers for IPI function
- calls
-References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-3-git-send-email-jens.axboe@oracle.com> <20080422084738.GB2388@elte.hu>
-In-Reply-To: <20080422084738.GB2388@elte.hu>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Received: from accolon.hansenpartnership.com ([76.243.235.52]:57723 "EHLO
+	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751886AbYDZOOF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Apr 2008 10:14:05 -0400
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <20080425231100.b93a1601.akpm@linux-foundation.org>
+References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
+	 <1208890227-24808-2-git-send-email-jens.axboe@oracle.com>
+	 <20080425231100.b93a1601.akpm@linux-foundation.org>
+Content-Type: text/plain
+Date: Sat, 26 Apr 2008 09:13:56 -0500
+Message-ID: <1209219236.3113.6.camel@localhost.localdomain>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Message-ID: <20080426085955.171y9GFZRuOer3oHpEWjzTlvDNvM9ioVt2Ujrdq6hHg@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org, "Paul E. McKenney" <paulmck@us.ibm.com>
+Message-ID: <20080426141356.aLt3fLa14dym0jYUOkSj4hzzYY-ihfhQ-zryBMrH6_c@z>
 
-Ingo Molnar wrote:
-> * Jens Axboe <jens.axboe@oracle.com> wrote:
->
->   
->> This converts x86 and x86-64 to use the new helpers for 
->> smp_call_function() and friends, and adds support for 
->> smp_call_function_single().
->>     
->
-> nice stuff. The x86 and generic bits:
->
->  Acked-by: Ingo Molnar <mingo@elte.hu>
->
-> this has been brewing for months, what is the testing/confidence status 
-> of it? Could we still merge it into v2.6.26? (i think we should)
->   
+On Fri, 2008-04-25 at 23:11 -0700, Andrew Morton wrote:
+> Also, init_call_single_data() is __cpuinit but isn't declared that way. 
+> There have been rare occasions (FRV was one) where this matters - iirc the
+> compiler was emitting a short-relative-addressing-form instruction which
+> which wasn't able to branch far enough once things were linked.  We hae
+> this problem in eight zillion other places, of course.  And it's a pita to
+> go adding __cpunit etc to the declaration because the compiler usually
+> won't tell us when it gets out of sync with reality.  So we could leave he
+> code as-is and wait for stuff to break :(
 
-I commented on an earlier version of this patch, but it looks like it 
-will break Xen.  If you enable CONFIG_XEN, it will try to define both 
-native and Xen versions of arch_send_call_function[_single]_ipi().  It 
-needs to vector them via smp_ops.
+Erm, that's a bug in the frv toolchain, isn't it?  The linker should
+*never* rely on C code annotation for jump lengths ... mainly because
+you can screw it all up again in the linker script, so the sectional
+annotations should only be in the function body (think
+-ffunction-sections)
 
-    J
+We have exactly this problem on parisc: our standard relocation jumps
+are only 17 bits (on ILP32). The linker actually lays down special
+sandwich sections between individual functions (places where we jump to
+as a 17 bit relative and then do another absolute jump via a pointer).
+The sandwich sections should be added at final link time every place the
+linker sees the relative jump is out of range.
+
+James
+
+
