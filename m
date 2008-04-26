@@ -1,49 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:57723 "EHLO
-	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751886AbYDZOOF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 Apr 2008 10:14:05 -0400
+Received: from gprs189-60.eurotel.cz ([160.218.189.60]:3482 "EHLO spitz.ucw.cz"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1759685AbYDZTcd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Apr 2008 15:32:33 -0400
+Date: Sat, 26 Apr 2008 10:04:15 +0200
+From: Pavel Machek <pavel@ucw.cz>
 Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <20080425231100.b93a1601.akpm@linux-foundation.org>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com>
-	 <1208890227-24808-2-git-send-email-jens.axboe@oracle.com>
-	 <20080425231100.b93a1601.akpm@linux-foundation.org>
-Content-Type: text/plain
-Date: Sat, 26 Apr 2008 09:13:56 -0500
-Message-ID: <1209219236.3113.6.camel@localhost.localdomain>
+Message-ID: <20080426080415.GB3891@ucw.cz>
+References: <1208851058-8500-1-git-send-email-jens.axboe@oracle.com> <1208851058-8500-2-git-send-email-jens.axboe@oracle.com> <480E70ED.3030701@rtr.ca> <20080423072432.GX12774@kernel.dk> <480F3CBC.60305@rtr.ca> <20080423135110.GO12774@kernel.dk> <480F4BD9.8090003@rtr.ca> <20080424105908.GW12774@kernel.dk>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20080424105908.GW12774@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org, "Paul E. McKenney" <paulmck@us.ibm.com>
-Message-ID: <20080426141356.aLt3fLa14dym0jYUOkSj4hzzYY-ihfhQ-zryBMrH6_c@z>
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: Mark Lord <lkml@rtr.ca>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org
+Message-ID: <20080426080415.HnCuueDIXkLP64es7Mbk3V5GItxu45KsRCS6qc0bcBg@z>
 
-On Fri, 2008-04-25 at 23:11 -0700, Andrew Morton wrote:
-> Also, init_call_single_data() is __cpuinit but isn't declared that way. 
-> There have been rare occasions (FRV was one) where this matters - iirc the
-> compiler was emitting a short-relative-addressing-form instruction which
-> which wasn't able to branch far enough once things were linked.  We hae
-> this problem in eight zillion other places, of course.  And it's a pita to
-> go adding __cpunit etc to the declaration because the compiler usually
-> won't tell us when it gets out of sync with reality.  So we could leave he
-> code as-is and wait for stuff to break :(
+Hi!
 
-Erm, that's a bug in the frv toolchain, isn't it?  The linker should
-*never* rely on C code annotation for jump lengths ... mainly because
-you can screw it all up again in the linker script, so the sectional
-annotations should only be in the function body (think
--ffunction-sections)
+> > >>The second bug, is that for the halt case at least,
+> > >>nobody waits for the other CPU to actually halt
+> > >>before continuing.. so we sometimes enter the shutdown
+> > >>code while other CPUs are still active.
+> > >>
+> > >>This causes some machines to hang at shutdown,
+> > >>unless CPU_HOTPLUG is configured and takes them offline
+> > >>before we get here.
+> > >
+> > >I'm guessing there's a reason it doesn't pass '1' as the last argument,
+> > >because that would fix that issue?
+> > 
+> > Undoubtedly -- perhaps the called CPU halts, and therefore cannot reply.  :)
+> 
+> Uhm yes, I guess stop_this_cpu() does exactly what the name implies :-)
+> 
+> > But some kind of pre-halt ack, perhaps plus a short delay by the caller
+> > after receipt of the ack, would probably suffice to kill that bug.
+> > 
+> > But I really haven't studied this code enough to know,
+> > other than that it historically has been a sticky area
+> > to poke around in.
+> 
+> Something like this will close the window to right up until the point
+> where the other CPUs have 'almost' called halt().
 
-We have exactly this problem on parisc: our standard relocation jumps
-are only 17 bits (on ILP32). The linker actually lays down special
-sandwich sections between individual functions (places where we jump to
-as a 17 bit relative and then do another absolute jump via a pointer).
-The sandwich sections should be added at final link time every place the
-linker sees the relative jump is out of range.
+Now I took a look at context... why not simply use same trick swsusp
+uses, and do a hot unplug of all cpus at the end of shutdown?
 
-James
+> 
+> diff --git a/arch/x86/kernel/smp.c b/arch/x86/kernel/smp.c
+> index 5398385..94ec9bf 100644
+> --- a/arch/x86/kernel/smp.c
+> +++ b/arch/x86/kernel/smp.c
+> @@ -155,8 +155,9 @@ static void stop_this_cpu(void *dummy)
+>  	/*
+>  	 * Remove this CPU:
+>  	 */
+> -	cpu_clear(smp_processor_id(), cpu_online_map);
+>  	disable_local_APIC();
+> +	cpu_clear(smp_processor_id(), cpu_online_map);
+> +	smp_wmb();
+>  	if (hlt_works(smp_processor_id()))
+>  		for (;;) halt();
+>  	for (;;);
+> @@ -175,6 +176,12 @@ static void native_smp_send_stop(void)
+>  
+>  	local_irq_save(flags);
+>  	smp_call_function(stop_this_cpu, NULL, 0, 0);
+> +
+> +	while (cpus_weight(cpu_online_map) > 1) {
+> +		cpu_relax();
+> +		smp_rmb();
+> +	}
+> +
+>  	disable_local_APIC();
+>  	local_irq_restore(flags);
+>  }
 
 
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
