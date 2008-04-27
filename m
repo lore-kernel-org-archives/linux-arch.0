@@ -1,34 +1,46 @@
-From: Alan Cox <alan-qBU/x9rampVanCEyBjwyrvXRex20P6io@public.gmane.org>
-Subject: Re: microblaze syscall list
-Date: Sun, 27 Apr 2008 17:50:49 +0100
-Message-ID: <20080427175049.765766c8@core>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
-	<200804221515.28075.arnd@arndb.de>
-	<480FA729.3000406@seznam.cz>
-	<200804241311.09881.arnd@arndb.de>
-	<4810D4A4.7050900@seznam.cz>
-	<4811A623.80104@itee.uq.edu.au>
-	<20080425100614.GB14990@parisc-linux.org>
-	<4813DF3E.6080800@itee.uq.edu.au>
-	<4814A153.3040600@seznam.cz>
+From: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Subject: Re: [PATCH] prepare kconfig inline optimization for all
+ architectures
+Date: Sun, 27 Apr 2008 10:06:41 -0700 (PDT)
+Message-ID: <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org>
+References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <4814A153.3040600-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org>
+In-Reply-To: <20080427113158.GY2252-Aar9JVdAhcRoA3hw4S0G5QR5/fbUUdgG@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org
-Cc: microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Will Newton <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, git-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org, John Williams <john.williams-g5w7nrANp4BDPfheJLI6IQ@public.gmane.org>, Stephen Neuendorffer <stephen.neuendorffer-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org>, John Linn <John.Linn-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org>
+To: Adrian Bunk <bunk-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>, linux arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
 
-> There is two opinions:
-> * One is take syscall table with old syscalls for backward compatibility.
-> As John W wrote. Microblaze has history around 4 years and 2.6 kernel almost 2
-> years.
 
-I would keep the old syscall table. Otherwise you end up with two
-differing microblaze setups and people will get binaries, libraries and
-compilers muddled up for years to come which will be nothing but pain for
-eveyone.
 
-Alan
+On Sun, 27 Apr 2008, Adrian Bunk wrote:
+> 
+> My opinion on this is still:
+> "OPTIMIZE" means "work around bugs in the kernel".
+
+No.
+
+It means that
+
+ - gcc used to (long ago) always honor "inline", and we had kernel code 
+   that depended on that in various ways (ie required that there was no 
+   return etc).
+
+   We've been mostly replacing the ones we know about with 
+   "__always_inline", but there may be some that remain. We'll find out, I 
+   guess.
+
+ - gcc was a total and utter piece of horrible crap in the inlining 
+   department, doign insane things and changing their documentation to 
+   match the new behaviour (and some people then claimed that it was 
+   always documented that way).
+
+   It would not inline big functions even when they statically collapsed 
+   to nothing, etc.
+
+As a result, we really couldn't afford to let gcc make any inlining 
+decisions, because the compiler was simply *broken*.
+
+			Linus
