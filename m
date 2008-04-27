@@ -1,33 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:43544 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755824AbYD0SAL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Apr 2008 14:00:11 -0400
-Date: Sun, 27 Apr 2008 14:00:07 -0400
-From: Christoph Hellwig <hch@infradead.org>
+Received: from smtp4.pp.htv.fi ([213.243.153.38]:38297 "EHLO smtp4.pp.htv.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757754AbYD0SAP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Apr 2008 14:00:15 -0400
+Date: Sun, 27 Apr 2008 20:59:47 +0300
+From: Adrian Bunk <bunk@kernel.org>
 Subject: Re: [PATCH] prepare kconfig inline optimization for all
 	architectures
-Message-ID: <20080427180007.GB28483@infradead.org>
-References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org> <20080427172235.GA2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271029130.2896@woody.linux-foundation.org> <20080427174714.GB2252@cs181133002.pp.htv.fi>
+Message-ID: <20080427175947.GC2252@cs181133002.pp.htv.fi>
+References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org> <20080427172235.GA2252@cs181133002.pp.htv.fi> <20080427174055.GS14990@parisc-linux.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20080427174714.GB2252@cs181133002.pp.htv.fi>
+In-Reply-To: <20080427174055.GS14990@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Bunk <bunk@kernel.org>
+To: Matthew Wilcox <matthew@wil.cx>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>
-Message-ID: <20080427180007.9N1gC_ANNEbSbFZ1qtFRnHDRP97J3jmnaflb486fn1Y@z>
+Message-ID: <20080427175947.AkOSt4YIcJqR87PmUzSeWy26nx2UpnfLbfPFE8cCBIY@z>
 
-On Sun, Apr 27, 2008 at 08:47:14PM +0300, Adrian Bunk wrote:
-> What I want instead:
-> - we continue to force the compiler to always inline with "inline"
-> - we remove the inline's in .c files and make too big functions in 
->   headers out-of-line
+On Sun, Apr 27, 2008 at 11:40:56AM -0600, Matthew Wilcox wrote:
+> On Sun, Apr 27, 2008 at 08:22:35PM +0300, Adrian Bunk wrote:
+> > I'm looking at it from a different angle, all code in the kernel should 
+> > follow the following rules [1]:
+> > - no functions in .c files should be marked inline
+> > - all functions in headers should be static inline
+> > - all functions in headers should either be very small or collapse
+> >   to become very small after inlining
+> > 
+> > I can simply not see any usecase for a non-forced inline in the kernel,
+> > and fixing the kernel should give a superset of the space savings of 
+> > this "inline optimization".
+> 
+> Here's a good counterexample: kernel/mutex.c.
+> 
+> __mutex_lock_common wants to be inlined into __mutex_lock_*_slowpath.
 
-It doesn't matter whether we use inline or always_inline to force
-inlining of a function, that's just syntactical sugar.  What is rather
-annoying is that with the config option we'd have something marked
-inline without actually meaning it's inline.  And what's even worse
-is that this is depending on a user-visible config option which is
-entirely stupid.
+If we really want to force gcc to emit 6 copies of this not so small 
+function then Ingo's commit in Linus' tree has already broken it on x86.
+
+> and *_slowpath *shouldn't* be inlined into mutex_lock_*.
+
+"noinline" is nothing anyone wants to change.
+
+cu
+Adrian
+
+-- 
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
+
