@@ -1,39 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpipe-village-512-1.bc.nu ([81.2.110.250]:51910 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752530AbYD0RAZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Apr 2008 13:00:25 -0400
-Date: Sun, 27 Apr 2008 17:50:49 +0100
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: microblaze syscall list
-Message-ID: <20080427175049.765766c8@core>
-In-Reply-To: <4814A153.3040600@seznam.cz>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com>
-	<200804221515.28075.arnd@arndb.de>
-	<480FA729.3000406@seznam.cz>
-	<200804241311.09881.arnd@arndb.de>
-	<4810D4A4.7050900@seznam.cz>
-	<4811A623.80104@itee.uq.edu.au>
-	<20080425100614.GB14990@parisc-linux.org>
-	<4813DF3E.6080800@itee.uq.edu.au>
-	<4814A153.3040600@seznam.cz>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:51917 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753825AbYD0RHU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Apr 2008 13:07:20 -0400
+Date: Sun, 27 Apr 2008 10:06:41 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] prepare kconfig inline optimization for all
+ architectures
+In-Reply-To: <20080427113158.GY2252@cs181133002.pp.htv.fi>
+Message-ID: <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org>
+References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: microblaze-uclinux@itee.uq.edu.au, Matthew Wilcox <matthew@wil.cx>, Arnd Bergmann <arnd@arndb.de>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, John Williams <john.williams@petalogix.com>, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>
-Message-ID: <20080427165049.10N8gVpVy_AzvvhwgsMxi3KUJk8PQL6jrgtyAPlRr1k@z>
+To: Adrian Bunk <bunk@kernel.org>
+Cc: Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>
+Message-ID: <20080427170641.Xg0iBCFDvj0EGgK1pw6D4sP1plvbGR_KeNFPLNKzXTw@z>
 
-> There is two opinions:
-> * One is take syscall table with old syscalls for backward compatibility.
-> As John W wrote. Microblaze has history around 4 years and 2.6 kernel almost 2
-> years.
 
-I would keep the old syscall table. Otherwise you end up with two
-differing microblaze setups and people will get binaries, libraries and
-compilers muddled up for years to come which will be nothing but pain for
-eveyone.
 
-Alan
+On Sun, 27 Apr 2008, Adrian Bunk wrote:
+> 
+> My opinion on this is still:
+> "OPTIMIZE" means "work around bugs in the kernel".
+
+No.
+
+It means that
+
+ - gcc used to (long ago) always honor "inline", and we had kernel code 
+   that depended on that in various ways (ie required that there was no 
+   return etc).
+
+   We've been mostly replacing the ones we know about with 
+   "__always_inline", but there may be some that remain. We'll find out, I 
+   guess.
+
+ - gcc was a total and utter piece of horrible crap in the inlining 
+   department, doign insane things and changing their documentation to 
+   match the new behaviour (and some people then claimed that it was 
+   always documented that way).
+
+   It would not inline big functions even when they statically collapsed 
+   to nothing, etc.
+
+As a result, we really couldn't afford to let gcc make any inlining 
+decisions, because the compiler was simply *broken*.
+
+			Linus
+
