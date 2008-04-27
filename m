@@ -1,101 +1,62 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: microblaze syscall list
-Date: Sun, 27 Apr 2008 22:15:31 +0200
-Message-ID: <200804272215.32862.arnd@arndb.de>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <4813DF3E.6080800@itee.uq.edu.au> <4814A153.3040600@seznam.cz>
+From: Mike Galbraith <efault-Mmb7MZpHnFY@public.gmane.org>
+Subject: Re: [PATCH] prepare kconfig inline optimization for all
+	architectures
+Date: Sun, 27 Apr 2008 22:51:54 +0200
+Message-ID: <1209329514.4868.57.camel@marge.simson.net>
+References: <20080427105100.GA14795@uranus.ravnborg.org>
+	 <20080427113158.GY2252@cs181133002.pp.htv.fi>
+	 <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org>
+	 <20080427172235.GA2252@cs181133002.pp.htv.fi>
+	 <alpine.LFD.1.10.0804271029130.2896@woody.linux-foundation.org>
+	 <20080427174714.GB2252@cs181133002.pp.htv.fi>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1763448AbYD0UQE@vger.kernel.org>
-In-Reply-To: <4814A153.3040600@seznam.cz>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: monstr@seznam.cz
-Cc: microblaze-uclinux@itee.uq.edu.au, Matthew Wilcox <matthew@wil.cx>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, John Williams <john.williams@petalogix.com>, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20080427174714.GB2252-Aar9JVdAhcRoA3hw4S0G5QR5/fbUUdgG@public.gmane.org>
+Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Adrian Bunk <bunk-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>, linux arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
 
-On Sunday 27 April 2008, Michal Simek wrote:
-> Arnd commented current syscall table and send me long email about(Tha=
-nks again).
-> On the base on this email I did converted table for future use - for =
-porting old
-> application to new version. Below is my table with syscalls and there=
- is a short
-> description. (or http://www.monstr.eu/wiki/doku.php?id=3Dkernel:sysca=
-ll)
->=20
-> I counted how big impact will be syscall change to programs which are=
- in John W
-> distribution
-> all programs
-> mknod - 174
-> rmdir - 488
-> mkdir - 1128
-> symlink - 404
-> rename - 1536
-> access - 1664
-> chmod - =A01122
-> open - 22583 (crazy)
-> ipc - 26
->=20
-> Only busybox
-> open - 667
-> chmod 44
-> access 52
-> rename 32
-> symlink 8
-> mkdir 19
-> rmdir 9
-> mknod 16
->=20
-> I thing you understand that we can't change all application per night=
-=2E This is
-> not possible. But we have to start with change this.
 
-Note that the only thing you should need to change is the libc implemen=
-tation
-(any version of it: glibc, uclibc, klibc, ...), but not any application=
- source
-code, as the applications just call the functions that are defined in t=
-he libc.
-If you have binaries that are statically linked with their libc, you'd =
-have
-to recompile or at least relink them. If you redefine data structures o=
-r
-types that are used in application code, like struct stat or off_t, you
-also need to recompile all user code.
+On Sun, 2008-04-27 at 20:47 +0300, Adrian Bunk wrote:
+> On Sun, Apr 27, 2008 at 10:32:28AM -0700, Linus Torvalds wrote:
+> > 
+> > 
+> > On Sun, 27 Apr 2008, Adrian Bunk wrote:
+> > > 
+> > > I'm looking at it from a different angle, all code in the kernel should 
+> > > follow the following rules [1]:
+> > > - no functions in .c files should be marked inline
+> > > - all functions in headers should be static inline
+> > > - all functions in headers should either be very small or collapse
+> > >   to become very small after inlining
+> > > 
+> > > I can simply not see any usecase for a non-forced inline in the kernel,
+> > > and fixing the kernel should give a superset of the space savings of 
+> > > this "inline optimization".
+> > 
+> > Your whole argument is premised on the assumption that the compiler does 
+> > the right thing.
+> >...
+> 
+> No, you seem to be misunderstanding what I am saying.
+> 
+> Status Quo as of 2.6.25:
+> - we force the compiler to always inline with "inline"
 
-Of course, as Alan and others have mentioned, even without changing any
-application source code, the amount of work for that is significantly m=
-ore=20
-than just changing the kernel.
+What is wrong with that?  I believe the term is 'directive'.
 
-I think you have three options here:
+> - we have inline's in .c files and too big functions in headers, and
+>   both of them are wrong
 
-1. Keep the old syscall interface and just add new syscalls for the stu=
-ff
-that you are currently missing. Don't change userspace at all, but live
-with somewhat bloated kernels and libc forever and maintain a larger
-code base in the kernel.
+Yes, correct the source.
 
-2. Change the syscall interface in the kernel in the way we have discus=
-sed,
-and adapt the libc code along with it. Break all backwards compatibilit=
-y
-and start out with a new leaner ABI. Old applications can still use
-your old out-of-tree kernels, or forks of that.
+> "inline optimization":
+> - we leave the compiler the choice whether or not to inline with "inline"
 
-3. Merge only the ABI as in 2. into the mainline kernel, but use new
-syscall numbers for that. Maintain an out-of-tree patch that adds the
-old ABI for backwards compatibility so you can run old and new code
-on one kernel if you build with that patch, but eventually phase
-out the old ABI.
+How did it come to pass that we invented such a thing as an optional
+directive?
 
-I won't try to force you to go either route, it's your own decision,
-but you should understand the tradeoffs. I don't think there is any
-value in trying to deprecate just part of the ABI and break some
-binaries but not others, this will only cause hard to find bugs. Make
-sure that if you decide to break backwards compatibility, you break it
-in an obvious way and get the most benefit out of it.
-
-	Arnd <><
+	-Mike
