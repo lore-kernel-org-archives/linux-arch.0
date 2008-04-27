@@ -1,53 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:51917 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753825AbYD0RHU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Apr 2008 13:07:20 -0400
-Date: Sun, 27 Apr 2008 10:06:41 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
+Received: from smtp4.pp.htv.fi ([213.243.153.38]:36075 "EHLO smtp4.pp.htv.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756088AbYD0RXF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Apr 2008 13:23:05 -0400
+Date: Sun, 27 Apr 2008 20:22:35 +0300
+From: Adrian Bunk <bunk@kernel.org>
 Subject: Re: [PATCH] prepare kconfig inline optimization for all
- architectures
-In-Reply-To: <20080427113158.GY2252@cs181133002.pp.htv.fi>
-Message-ID: <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org>
-References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi>
+	architectures
+Message-ID: <20080427172235.GA2252@cs181133002.pp.htv.fi>
+References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Bunk <bunk@kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>
-Message-ID: <20080427170641.Xg0iBCFDvj0EGgK1pw6D4sP1plvbGR_KeNFPLNKzXTw@z>
+Message-ID: <20080427172235.CS9OCRxBbOr-9Y1vIOKCBNNz-8lwSyqauAfra2_P1dU@z>
 
-
-
-On Sun, 27 Apr 2008, Adrian Bunk wrote:
+On Sun, Apr 27, 2008 at 10:06:41AM -0700, Linus Torvalds wrote:
 > 
-> My opinion on this is still:
-> "OPTIMIZE" means "work around bugs in the kernel".
+> 
+> On Sun, 27 Apr 2008, Adrian Bunk wrote:
+> > 
+> > My opinion on this is still:
+> > "OPTIMIZE" means "work around bugs in the kernel".
+> 
+> No.
+> 
+> It means that
+> 
+>  - gcc used to (long ago) always honor "inline", and we had kernel code 
+>    that depended on that in various ways (ie required that there was no 
+>    return etc).
+> 
+>    We've been mostly replacing the ones we know about with 
+>    "__always_inline", but there may be some that remain. We'll find out, I 
+>    guess.
+> 
+>  - gcc was a total and utter piece of horrible crap in the inlining 
+>    department, doign insane things and changing their documentation to 
+>    match the new behaviour (and some people then claimed that it was 
+>    always documented that way).
+> 
+>    It would not inline big functions even when they statically collapsed 
+>    to nothing, etc.
+> 
+> As a result, we really couldn't afford to let gcc make any inlining 
+> decisions, because the compiler was simply *broken*.
 
-No.
+I'm looking at it from a different angle, all code in the kernel should 
+follow the following rules [1]:
+- no functions in .c files should be marked inline
+- all functions in headers should be static inline
+- all functions in headers should either be very small or collapse
+  to become very small after inlining
 
-It means that
+I can simply not see any usecase for a non-forced inline in the kernel,
+and fixing the kernel should give a superset of the space savings of 
+this "inline optimization".
 
- - gcc used to (long ago) always honor "inline", and we had kernel code 
-   that depended on that in various ways (ie required that there was no 
-   return etc).
+> 			Linus
 
-   We've been mostly replacing the ones we know about with 
-   "__always_inline", but there may be some that remain. We'll find out, I 
-   guess.
+cu
+Adrian
 
- - gcc was a total and utter piece of horrible crap in the inlining 
-   department, doign insane things and changing their documentation to 
-   match the new behaviour (and some people then claimed that it was 
-   always documented that way).
+[1] there might be rare exceptions
 
-   It would not inline big functions even when they statically collapsed 
-   to nothing, etc.
+-- 
 
-As a result, we really couldn't afford to let gcc make any inlining 
-decisions, because the compiler was simply *broken*.
-
-			Linus
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
 
