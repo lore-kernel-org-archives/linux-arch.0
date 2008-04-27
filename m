@@ -1,55 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp4.pp.htv.fi ([213.243.153.38]:38297 "EHLO smtp4.pp.htv.fi"
+Received: from pasmtpb.tele.dk ([80.160.77.98]:49457 "EHLO pasmtpB.tele.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757754AbYD0SAP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Apr 2008 14:00:15 -0400
-Date: Sun, 27 Apr 2008 20:59:47 +0300
-From: Adrian Bunk <bunk@kernel.org>
-Subject: Re: [PATCH] prepare kconfig inline optimization for all
-	architectures
-Message-ID: <20080427175947.GC2252@cs181133002.pp.htv.fi>
-References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org> <20080427172235.GA2252@cs181133002.pp.htv.fi> <20080427174055.GS14990@parisc-linux.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+	id S1756651AbYD0SJZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Apr 2008 14:09:25 -0400
+Date: Sun, 27 Apr 2008 20:09:57 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] prepare kconfig inline optimization for all architectures
+Message-ID: <20080427180957.GA25964@uranus.ravnborg.org>
+References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org> <20080427172235.GA2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271029130.2896@woody.linux-foundation.org> <20080427174714.GB2252@cs181133002.pp.htv.fi> <20080427180007.GB28483@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20080427174055.GS14990@parisc-linux.org>
+In-Reply-To: <20080427180007.GB28483@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>
-Message-ID: <20080427175947.AkOSt4YIcJqR87PmUzSeWy26nx2UpnfLbfPFE8cCBIY@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Adrian Bunk <bunk@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>
+Message-ID: <20080427180957.aA1CFvcY9QpvFykLsed6V5bJR5jbC1ljd2do7_OywLM@z>
 
-On Sun, Apr 27, 2008 at 11:40:56AM -0600, Matthew Wilcox wrote:
-> On Sun, Apr 27, 2008 at 08:22:35PM +0300, Adrian Bunk wrote:
-> > I'm looking at it from a different angle, all code in the kernel should 
-> > follow the following rules [1]:
-> > - no functions in .c files should be marked inline
-> > - all functions in headers should be static inline
-> > - all functions in headers should either be very small or collapse
-> >   to become very small after inlining
-> > 
-> > I can simply not see any usecase for a non-forced inline in the kernel,
-> > and fixing the kernel should give a superset of the space savings of 
-> > this "inline optimization".
+On Sun, Apr 27, 2008 at 02:00:07PM -0400, Christoph Hellwig wrote:
+> On Sun, Apr 27, 2008 at 08:47:14PM +0300, Adrian Bunk wrote:
+> > What I want instead:
+> > - we continue to force the compiler to always inline with "inline"
+> > - we remove the inline's in .c files and make too big functions in 
+> >   headers out-of-line
 > 
-> Here's a good counterexample: kernel/mutex.c.
-> 
-> __mutex_lock_common wants to be inlined into __mutex_lock_*_slowpath.
+> It doesn't matter whether we use inline or always_inline to force
+> inlining of a function, that's just syntactical sugar.
 
-If we really want to force gcc to emit 6 copies of this not so small 
-function then Ingo's commit in Linus' tree has already broken it on x86.
+inline => the developer hints the compiler that it may
+          be a good idea to inline this function
 
-> and *_slowpath *shouldn't* be inlined into mutex_lock_*.
+always_inline => the developer tell gcc that for some obscure reasons
+                 MUST always inline uses of this function
 
-"noinline" is nothing anyone wants to change.
+> What is rather
+> annoying is that with the config option we'd have something marked
+> inline without actually meaning it's inline.
+With the config option we pass the inline hint to gcc (if enabled).
+So with the config option we have the possibility to pass a _hint_ to
+gcc about inlining.
 
-cu
-Adrian
+Before the config option there were no difference between
+static int alwyas_inline foo() {}
+and
+static int inline foo() {}
 
--- 
+With the config option we now have a situation where they actually
+differ as they should do (assuming gcc > 4.x).
 
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
+> And what's even worse
+> is that this is depending on a user-visible config option which is
+> entirely stupid.
+So you say that it is safe to assume all places where we really need
+always_inline are annotedted such - and we do not need a simple
+config option that the user can uncheck.
+Fine by me - I prefer the simpler solution.
 
+	Sam
