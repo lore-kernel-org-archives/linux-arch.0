@@ -1,28 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:37117 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756602AbYD0Rdg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Apr 2008 13:33:36 -0400
-Date: Sun, 27 Apr 2008 10:32:28 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] prepare kconfig inline optimization for all
- architectures
-In-Reply-To: <20080427172235.GA2252@cs181133002.pp.htv.fi>
-Message-ID: <alpine.LFD.1.10.0804271029130.2896@woody.linux-foundation.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:56532 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757892AbYD0Rk5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Apr 2008 13:40:57 -0400
+Date: Sun, 27 Apr 2008 11:40:56 -0600
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH] prepare kconfig inline optimization for all architectures
+Message-ID: <20080427174055.GS14990@parisc-linux.org>
 References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org> <20080427172235.GA2252@cs181133002.pp.htv.fi>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20080427172235.GA2252@cs181133002.pp.htv.fi>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Adrian Bunk <bunk@kernel.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>
-Message-ID: <20080427173228.qAnojMChrDPivdj3-zNE7dYz_mW46slPpY0aDASeZrI@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>
+Message-ID: <20080427174056.AOwZjjZHg1T_FuGBvHOfGwkfooXz1yIfN5iSlXfYoQE@z>
 
-
-
-On Sun, 27 Apr 2008, Adrian Bunk wrote:
-> 
+On Sun, Apr 27, 2008 at 08:22:35PM +0300, Adrian Bunk wrote:
 > I'm looking at it from a different angle, all code in the kernel should 
 > follow the following rules [1]:
 > - no functions in .c files should be marked inline
@@ -34,24 +30,13 @@ On Sun, 27 Apr 2008, Adrian Bunk wrote:
 > and fixing the kernel should give a superset of the space savings of 
 > this "inline optimization".
 
-Your whole argument is premised on the assumption that the compiler does 
-the right thing.
+Here's a good counterexample: kernel/mutex.c.
 
-That's a *known*to*be*bogus* assumption.
+__mutex_lock_common wants to be inlined into __mutex_lock_*_slowpath.
+and *_slowpath *shouldn't* be inlined into mutex_lock_*.
 
-Modern versions of gcc may do the right thing. Note the two very important 
-code-words: "modern" and "may".
-
-I'm just telling you that
-
- - older versions of gcc (and by "older" I do not mean "really ancient" or 
-   "deprecated", but stuff that is still in use) are known to be total and 
-   utter crap when it comes to inlining
-
- - even absent that, there are historical reasons stemming from even more 
-   ancient versions of gcc that are no longer in use.
-
-In other words, my arguments have nothing to do with "I wish". They are 
-plain facts. Why argue with them?
-
-			Linus
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
