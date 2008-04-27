@@ -1,40 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:55537 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1759061AbYD0Sbi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Apr 2008 14:31:38 -0400
-Date: Sun, 27 Apr 2008 11:30:57 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
+Received: from bombadil.infradead.org ([18.85.46.34]:39041 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757767AbYD0SdE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Apr 2008 14:33:04 -0400
+Date: Sun, 27 Apr 2008 14:32:52 -0400
+From: Christoph Hellwig <hch@infradead.org>
 Subject: Re: [PATCH] prepare kconfig inline optimization for all
- architectures
-In-Reply-To: <20080427182544.GA23828@infradead.org>
-Message-ID: <alpine.LFD.1.10.0804271128480.2896@woody.linux-foundation.org>
-References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org> <20080427172235.GA2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271029130.2896@woody.linux-foundation.org>
- <20080427174714.GB2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271053300.2896@woody.linux-foundation.org> <20080427182544.GA23828@infradead.org>
+	architectures
+Message-ID: <20080427183252.GB23828@infradead.org>
+References: <20080427105100.GA14795@uranus.ravnborg.org> <20080427113158.GY2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org> <20080427172235.GA2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271029130.2896@woody.linux-foundation.org> <20080427174714.GB2252@cs181133002.pp.htv.fi> <20080427180007.GB28483@infradead.org> <20080427180957.GA25964@uranus.ravnborg.org> <20080427181411.GA31667@infradead.org> <alpine.LFD.1.10.0804271118500.2896@woody.linux-foundation.org>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.1.10.0804271118500.2896@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Adrian Bunk <bunk@kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>
-Message-ID: <20080427183057.nmz-IKAztMd0B09D08OrXKs46Z9HsfeEhMvm5yb6TUA@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Christoph Hellwig <hch@infradead.org>, Sam Ravnborg <sam@ravnborg.org>, Adrian Bunk <bunk@kernel.org>, linux arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>
+Message-ID: <20080427183252.CrV6kwtLQG1ORQW01BIkI6rgmab8oxLjqYouvI-MkQI@z>
 
-
-
-On Sun, 27 Apr 2008, Christoph Hellwig wrote:
+On Sun, Apr 27, 2008 at 11:24:28AM -0700, Linus Torvalds wrote:
+> The thing is, the "inline" vs "always_inline" thing _could_ make sense, 
+> but sadly doesn't much.
 > 
-> Actually looking at older code in the tree he's most likely wrong :)
-> Probably as bad as the compiler.  But the nice part about the code is
-> that we can fix it easily.
+> Part of it is that gcc imnsho inlines too aggressively anyway in the 
+> absense of "inline", so there's no way "inline" can mean "you might 
+> inline" this, because gcc will do that anyway even without it. As a 
+> result, in _practice_ "inline" and "always_inline" end up being very close 
+> to each other - perhaps more so than they should.
 
-Good point.
+Yes, absolutely.   In recent gcc versions it's in fact so bad that xfs
+had to add a hack to mark every function not explicitly marker inline
+noinline because otherwise gcc would inline gazillions of big functions
+which combines with it's horrible liveness analysis led to enormous
+stack useage.  (I think the liveness part is getting better these days
+to be fair)
 
-It *would* be really interesting to have some way to check our assumptions 
-(both ways - warn about over-large inlines and small-and-hot non-inlines). 
+> It will take time before we've sorted out all the fall-out, because I bet 
+> there is still code out there that _should_ use __always_inline, but 
+> doesn't.
 
-I considered making sparse give some size estimate for inlines and warn 
-about ones that generate a lot of code, but I was never able to do it 
-sanely.
-
-			Linus
+Given that __always_inline only shows up in non-x86 arch code in
+homeopathic quantity it's a fair bet that there's a lot of breakage
+waiting there.  Which was one of the initial complains about the way
+it's done..
