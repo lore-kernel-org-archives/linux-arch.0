@@ -1,36 +1,147 @@
-From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
-Date: Sun, 27 Apr 2008 12:36:37 +0200
-Message-ID: <20080427103637.GV12774@kernel.dk>
-References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-2-git-send-email-jens.axboe@oracle.com> <20080425231100.b93a1601.akpm@linux-foundation.org> <20080427005816.GB21687@linux.vnet.ibm.com>
+From: Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>
+Subject: [PATCH] prepare kconfig inline optimization for all architectures
+Date: Sun, 27 Apr 2008 12:51:00 +0200
+Message-ID: <20080427105100.GA14795@uranus.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20080427005816.GB21687-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org
+To: linux arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
 
-On Sat, Apr 26 2008, Paul E. McKenney wrote:
-> On Fri, Apr 25, 2008 at 11:11:00PM -0700, Andrew Morton wrote:
-> > > On Tue, 22 Apr 2008 20:50:17 +0200 Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org> wrote:
-> > > This adds kernel/smp.c which contains helpers for IPI function calls. In
-> > > addition to supporting the existing smp_call_function() in a more efficient
-> > > manner, it also adds a more scalable variant called smp_call_function_single()
-> > > for calling a given function on a single CPU only.
-> 
-> Where is the new smp_call_function() defined?  I see only the declaration.
-> 
-> Probably just blind...
+Fix the OPTIMIZE inline functionality such that it can be used
+by all architectures.
+To use it the arch maintainers shall add a
+"select HAVE_OPTIMIZE_INLINING" in their arch specific
+Kconfig file.
 
-kernel/smp.c? Basically just a wrapper around smp_call_function_mask().
+This patch enables OPTIMIZE_INLINING for x86, sparc and sparc64.
+If all archs by into the approach the requirment for the select
+can be dropped.
 
-> See comments interspersed below.
+The indirection with ARCH__SUPPORTS_OPTIMIZED_INLINING was
+killed as this is not needed when using select to
+decide what archs supports this.
 
-Thanks a lot! I'll go over these tomorrow, the fallback graceperiod
-definitely looks valid.
+Signed-off-by: Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>
+Cc: David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
+Cc: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
+---
+Largely untested.
+This patch was made as a consequence of the CONFIG_OPTIMIZE_INLINING
+thread on lkml.
 
--- 
-Jens Axboe
+	Sam
+
+
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 49590f8..f08509e 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -68,6 +68,7 @@ config SPARC
+ 	default y
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
++	select HAVE_OPTIMIZE_INLINING
+ 
+ # Identify this as a Sparc32 build
+ config SPARC32
+diff --git a/arch/sparc64/Kconfig b/arch/sparc64/Kconfig
+index 8acc5cc..01ecd33 100644
+--- a/arch/sparc64/Kconfig
++++ b/arch/sparc64/Kconfig
+@@ -9,6 +9,7 @@ config SPARC
+ 	bool
+ 	default y
+ 	select HAVE_OPROFILE
++	select HAVE_OPTIMIZE_INLINING
+ 	select HAVE_KPROBES
+ 	select HAVE_KRETPROBES
+ 
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 2fadf79..d5e22ef 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -20,6 +20,7 @@ config X86
+ 	def_bool y
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
++	select HAVE_OPTIMIZE_INLINING
+ 	select HAVE_KPROBES
+ 	select HAVE_KRETPROBES
+ 	select HAVE_KVM if ((X86_32 && !X86_VOYAGER && !X86_VISWS && !X86_NUMAQ) || X86_64)
+@@ -142,9 +143,6 @@ config AUDIT_ARCH
+ config ARCH_SUPPORTS_AOUT
+ 	def_bool y
+ 
+-config ARCH_SUPPORTS_OPTIMIZED_INLINING
+-	def_bool y
+-
+ # Use the generic interrupt handling code in kernel/irq/:
+ config GENERIC_HARDIRQS
+ 	bool
+diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
+index 5b1979a..23956ea 100644
+--- a/arch/x86/Kconfig.debug
++++ b/arch/x86/Kconfig.debug
+@@ -258,15 +258,3 @@ config CPA_DEBUG
+ 
+ endmenu
+ 
+-config OPTIMIZE_INLINING
+-	bool "Allow gcc to uninline functions marked 'inline'"
+-	default y
+-	help
+-	  This option determines if the kernel forces gcc to inline the functions
+-	  developers have marked 'inline'. Doing so takes away freedom from gcc to
+-	  do what it thinks is best, which is desirable for the gcc 3.x series of
+-	  compilers. The gcc 4.x series have a rewritten inlining algorithm and
+-	  disabling this option will generate a smaller kernel there. Hopefully
+-	  this algorithm is so good that allowing gcc4 to make the decision can
+-	  become the default in the future, until then this option is there to
+-	  test gcc for this.
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index b2fd754..79b7a34 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -31,8 +31,7 @@
+ /*
+  * Force always-inline if the user requests it so via the .config:
+  */
+-#if !defined(CONFIG_ARCH_SUPPORTS_OPTIMIZED_INLINING) || \
+-    !defined(CONFIG_OPTIMIZE_INLINING) && (__GNUC__ >= 4)
++#if !(defined(CONFIG_OPTIMIZE_INLINING) && (__GNUC__ >= 4))
+ # define inline		inline		__attribute__((always_inline))
+ # define __inline__	__inline__	__attribute__((always_inline))
+ # define __inline	__inline	__attribute__((always_inline))
+diff --git a/init/Kconfig b/init/Kconfig
+index ba3a389..5d8ef89 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -508,6 +508,25 @@ config CC_OPTIMIZE_FOR_SIZE
+ 
+ 	  If unsure, say N.
+ 
++# archs shall "select HAVE_OPTIMIZE_INLINING" to be offered the
++# possibility to enable OPTIMIZE_INLINING
++config HAVE_OPTIMIZE_INLINING
++	def_bool n
++
++config OPTIMIZE_INLINING
++	bool "Enable gcc 4.0 inline algorithm for functions marked 'inline'"
++	depends on HAVE_OPTIMIZE_INLINING
++	help
++	  This option determines if the kernel forces gcc to inline the
++	  functions developers have marked 'inline'. Doing so takes away
++	  freedom from gcc to do what it thinks is best, which is desirable
++	  for the gcc 3.x series of compilers.
++	  The gcc 4.x series have a rewritten inlining algorithm and
++	  enabling this option will generate a smaller kernel there.
++	  Hopefully this algorithm is so good that allowing gcc4 to
++	  make the decision can become the default in the future,
++	  until then this option is there to test gcc for this.
++
+ config SYSCTL
+ 	bool
+ 
