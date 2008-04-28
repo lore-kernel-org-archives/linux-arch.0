@@ -1,72 +1,83 @@
-From: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
-Subject: Re: [PATCH] prepare kconfig inline optimization for all
-	architectures
-Date: Mon, 28 Apr 2008 01:41:10 +0200
-Message-ID: <20080427234110.GA14679@elte.hu>
-References: <alpine.LFD.1.10.0804271002360.2896@woody.linux-foundation.org> <20080427172235.GA2252@cs181133002.pp.htv.fi> <alpine.LFD.1.10.0804271029130.2896@woody.linux-foundation.org> <20080427174714.GB2252@cs181133002.pp.htv.fi> <20080427180007.GB28483@infradead.org> <20080427180957.GA25964@uranus.ravnborg.org> <20080427181411.GA31667@infradead.org> <alpine.LFD.1.10.0804271118500.2896@woody.linux-foundation.org> <20080427162606.3dd82c0c@laptopd505.fenrus.org> <alpine.LFD.1.10.0804271634490.3119@woody.linux-foundation.org>
+From: John Williams <jwilliams-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org>
+Subject: Re: microblaze syscall list
+Date: Mon, 28 Apr 2008 10:15:34 +1000
+Message-ID: <48151726.9000204@itee.uq.edu.au>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <4813DF3E.6080800@itee.uq.edu.au> <4814A153.3040600@seznam.cz> <200804272215.32862.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.10.0804271634490.3119-5CScLwifNT1QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <200804272215.32862.arnd-r2nGTMty4D4@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Arjan van de Ven <arjan-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>, Adrian Bunk <bunk-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org, microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Will Newton <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, git-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org, John Williams <john.williams-g5w7nrANp4BDPfheJLI6IQ@public.gmane.org>, Stephen Neuendorffer <stephen.neuendorffer-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org>, John Linn <John.Linn-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org>
 
 
-* Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org> wrote:
+Arnd Bergmann wrote:
+> On Sunday 27 April 2008, Michal Simek wrote:
 
-> On Sun, 27 Apr 2008, Arjan van de Ven wrote:
-> > 
-> > (actually, other than some obscure commandline options, the only 
-> > sane way to avoid gcc doing this too agressive is using -Os)
+>> I thing you understand that we can't change all application per night. This is
+>> not possible. But we have to start with change this.
 > 
-> Well, CC_OPTIMIZE_FOR_SIZE has been defaulting to 'y' for a *loong* 
-> time, but it's hidden behind a EXPERIMENTAL (unless you were on some 
-> embedded architectures), so many people won't see it.
+> Note that the only thing you should need to change is the libc implementation
+> (any version of it: glibc, uclibc, klibc, ...), but not any application source
+> code, as the applications just call the functions that are defined in the libc.
+> If you have binaries that are statically linked with their libc, you'd have
+> to recompile or at least relink them. If you redefine data structures or
+> types that are used in application code, like struct stat or off_t, you
+> also need to recompile all user code.
+
+Until very recently with the MMU support added to the CPU (and upcoming 
+MMU support patches for MicroBlaze), all apps were statically linked 
+anyway. So, this is not too much of an issue I don't think.
+
+Because the CPU is so configurable re: instruction set and features, it 
+is common to rebuild your entire userland and libs + kernel in one go. 
+If you add support for HW integer mul or div, barrel shift etc, you need 
+to rebuild not just the kernel but apps and libs as well.  Or rather, 
+rebuild apps, and relink against a different multilib'd libc.
+
+So, the issue seems not so much that there's a bunch of legacy binaries 
+out there that will break, but rather that there will be a dead-zone 
+period in which the kernel is exporting an ABI that is simply not 
+available in the C libs and existing toolchains.  We should be doing all 
+we can to encourage individual developers and distro maintainers (like 
+PetaLogix) to base from the kernel.org tree.
+
+> I think you have three options here:
 > 
-> Perhaps it is time to remove the EXPERIMENTAL? I think the gcc 
-> warnings were mostly bogus - it's not as if there haven't been 
-> compiler bugs without -Os too..
+> 1. Keep the old syscall interface and just add new syscalls for the stuff
+> that you are currently missing. Don't change userspace at all, but live
+> with somewhat bloated kernels and libc forever and maintain a larger
+> code base in the kernel.
+> 
+> 2. Change the syscall interface in the kernel in the way we have discussed,
+> and adapt the libc code along with it. Break all backwards compatibility
+> and start out with a new leaner ABI. Old applications can still use
+> your old out-of-tree kernels, or forks of that.
+> 
+> 3. Merge only the ABI as in 2. into the mainline kernel, but use new
+> syscall numbers for that. Maintain an out-of-tree patch that adds the
+> old ABI for backwards compatibility so you can run old and new code
+> on one kernel if you build with that patch, but eventually phase
+> out the old ABI.
 
-i was wondering about that when doing the OPTIMIZE_INLINING change - 
-lets do something like the patch below?
+Maybe I misunderstand, but is there an option 1(a) where we keep the 
+old, add the new, and suffer the bloat for a short period until the 
+toolchains and C libs catch up and we remove out the old interfaces?
 
-	Ingo
+Are the old and new syscalls necessarily overloaded onto the same 
+numbers?  We'd obviously like to be as "standard" as reasonably possible 
+regarding syscall numbers
 
--------------->
-Subject: make CC_OPTIMIZE_FOR_SIZE non-experimental
-From: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
-Date: Mon Apr 28 01:39:43 CEST 2008
+> I won't try to force you to go either route, it's your own decision,
+> but you should understand the tradeoffs. I don't think there is any
+> value in trying to deprecate just part of the ABI and break some
+> binaries but not others, this will only cause hard to find bugs. Make
+> sure that if you decide to break backwards compatibility, you break it
+> in an obvious way and get the most benefit out of it.
 
-this option has been the default on a wide range of distributions
-for a long time - time to make it non-experimental.
+No argument there.
 
-Signed-off-by: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
----
- init/Kconfig |    6 +-----
- 1 file changed, 1 insertion(+), 5 deletions(-)
-
-Index: linux-x86.q/init/Kconfig
-===================================================================
---- linux-x86.q.orig/init/Kconfig
-+++ linux-x86.q/init/Kconfig
-@@ -496,16 +496,12 @@ source "usr/Kconfig"
- endif
- 
- config CC_OPTIMIZE_FOR_SIZE
--	bool "Optimize for size (Look out for broken compilers!)"
-+	bool "Optimize for size"
- 	default y
--	depends on ARM || H8300 || SUPERH || EXPERIMENTAL
- 	help
- 	  Enabling this option will pass "-Os" instead of "-O2" to gcc
- 	  resulting in a smaller kernel.
- 
--	  WARNING: some versions of gcc may generate incorrect code with this
--	  option.  If problems are observed, a gcc upgrade may be needed.
--
- 	  If unsure, say N.
- 
- config SYSCTL
+John
