@@ -1,83 +1,155 @@
-From: John Williams <jwilliams-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org>
-Subject: Re: microblaze syscall list
-Date: Mon, 28 Apr 2008 10:15:34 +1000
-Message-ID: <48151726.9000204@itee.uq.edu.au>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <4813DF3E.6080800@itee.uq.edu.au> <4814A153.3040600@seznam.cz> <200804272215.32862.arnd@arndb.de>
+From: "Stephen Neuendorffer" <stephen.neuendorffer-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org>
+Subject: RE: Re: microblaze syscall list
+Date: Sun, 27 Apr 2008 20:58:21 -0700
+Message-ID: <20080428035856.DA04310C806F@mail39-sin.bigfish.com>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <200804221515.28075.arnd@arndb.de> <480FA729.3000406@seznam.cz> <200804241311.09881.arnd@arndb.de> <4810D4A4.7050900@seznam.cz> <4811A623.80104@itee.uq.edu.au> <20080425100614.GB14990@parisc-linux.org> <4813DF3E.6080800@itee.uq.edu.au>
+Reply-To: microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <200804272215.32862.arnd-r2nGTMty4D4@public.gmane.org>
-Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org, microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>, Will Newton <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, git-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org, John Williams <john.williams-g5w7nrANp4BDPfheJLI6IQ@public.gmane.org>, Stephen Neuendorffer <stephen.neuendorffer-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org>, John Linn <John.Linn-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org>
+Content-Type: multipart/alternative;
+	boundary="----_=_NextPart_001_01C8A8E4.2C91AC0A"
+Return-path: <owner-microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org>
+Content-class: urn:content-classes:message
+Sender: owner-microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org
+To: John Williams <jwilliams-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org>, Matthew Wilcox <matthew-Ztpu424NOJ8@public.gmane.org>
+Cc: microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Will Newton <will.newton-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, git <git-gjFFaj9aHVfQT0dZR+AlfA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
+
+This is a multi-part message in MIME format.
+
+------_=_NextPart_001_01C8A8E4.2C91AC0A
+Content-Type: text/plain;
+	charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
 
 
-Arnd Bergmann wrote:
-> On Sunday 27 April 2008, Michal Simek wrote:
+Mainline or bust! :)
 
->> I thing you understand that we can't change all application per night. This is
->> not possible. But we have to start with change this.
-> 
-> Note that the only thing you should need to change is the libc implementation
-> (any version of it: glibc, uclibc, klibc, ...), but not any application source
-> code, as the applications just call the functions that are defined in the libc.
-> If you have binaries that are statically linked with their libc, you'd have
-> to recompile or at least relink them. If you redefine data structures or
-> types that are used in application code, like struct stat or off_t, you
-> also need to recompile all user code.
+-----Original Message-----
+From: John Williams [mailto:jwilliams-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org]
+Sent: Sat 4/26/2008 7:04 PM
+To: Matthew Wilcox
+Cc: microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org; Arnd Bergmann; Will Newton; Linux =
+Kernel list; linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org; git
+Subject: Re: [microblaze-uclinux] Re: microblaze syscall list
+=20
+Matthew Wilcox wrote:
+> On Fri, Apr 25, 2008 at 07:36:35PM +1000, John Williams wrote:
+>> Please remember that MicroBlaze has been around as an arch for > 4=20
+>> years, just not in the kernel.org tree.  These older style syscall=20
+>> interfaces are all part of the uClibc and glibc ports for MicroBlaze.
+>=20
+> So is it fair to say that you now understand this was the Wrong Way To
+> Do Things, and if anyone asks, you'd recommend getting an arch merged
+> into kernel.org sooner rather than later?
+>=20
 
-Until very recently with the MMU support added to the CPU (and upcoming 
-MMU support patches for MicroBlaze), all apps were statically linked 
-anyway. So, this is not too much of an issue I don't think.
+Without question!  If some abject humility will smooth the path for=20
+MicroBlaze, I'm happy to show it.
 
-Because the CPU is so configurable re: instruction set and features, it 
-is common to rebuild your entire userland and libs + kernel in one go. 
-If you add support for HW integer mul or div, barrel shift etc, you need 
-to rebuild not just the kernel but apps and libs as well.  Or rather, 
-rebuild apps, and relink against a different multilib'd libc.
+By way of history, as a no-MMU arch starting on the 2.4 kernel series,=20
+there was no home for us in kernel.org originally, however we were=20
+always in the uClinux "mainline" at uclinux.org from the first release I =
 
-So, the issue seems not so much that there's a bunch of legacy binaries 
-out there that will break, but rather that there will be a dead-zone 
-period in which the kernel is exporting an ABI that is simply not 
-available in the C libs and existing toolchains.  We should be doing all 
-we can to encourage individual developers and distro maintainers (like 
-PetaLogix) to base from the kernel.org tree.
+did back in 2002.
 
-> I think you have three options here:
-> 
-> 1. Keep the old syscall interface and just add new syscalls for the stuff
-> that you are currently missing. Don't change userspace at all, but live
-> with somewhat bloated kernels and libc forever and maintain a larger
-> code base in the kernel.
-> 
-> 2. Change the syscall interface in the kernel in the way we have discussed,
-> and adapt the libc code along with it. Break all backwards compatibility
-> and start out with a new leaner ABI. Old applications can still use
-> your old out-of-tree kernels, or forks of that.
-> 
-> 3. Merge only the ABI as in 2. into the mainline kernel, but use new
-> syscall numbers for that. Maintain an out-of-tree patch that adds the
-> old ABI for backwards compatibility so you can run old and new code
-> on one kernel if you build with that patch, but eventually phase
-> out the old ABI.
+We jumped in at 2.6.20 basing from some vendor patches that were never=20
+going to fly in kernel.org.  Since then we have been improving and=20
+cleaning them up to where they might actually stand a chance.
 
-Maybe I misunderstand, but is there an option 1(a) where we keep the 
-old, add the new, and suffer the bloat for a short period until the 
-toolchains and C libs catch up and we remove out the old interfaces?
+I am lobbying Xilinx (the effective "silicon vendor") as hard as I can=20
+to support both the push to and maintenance within kernel.org.  They had =
 
-Are the old and new syscalls necessarily overloaded onto the same 
-numbers?  We'd obviously like to be as "standard" as reasonably possible 
-regarding syscall numbers
+someone at ELC in Mountain View week before last, which is a good sign I =
 
-> I won't try to force you to go either route, it's your own decision,
-> but you should understand the tradeoffs. I don't think there is any
-> value in trying to deprecate just part of the ABI and break some
-> binaries but not others, this will only cause hard to find bugs. Make
-> sure that if you decide to break backwards compatibility, you break it
-> in an obvious way and get the most benefit out of it.
+think.
 
-No argument there.
+Cheers,
 
 John
+
+
+
+
+------_=_NextPart_001_01C8A8E4.2C91AC0A
+Content-Type: text/html;
+	charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+<HEAD>
+<META HTTP-EQUIV=3D"Content-Type" CONTENT=3D"text/html; =
+charset=3Diso-8859-1">
+<META NAME=3D"Generator" CONTENT=3D"MS Exchange Server version =
+6.5.7652.24">
+<TITLE>RE: [microblaze-uclinux] Re: microblaze syscall list</TITLE>
+</HEAD>
+<BODY>
+<!-- Converted from text/plain format -->
+<BR>
+
+<P><FONT SIZE=3D2>Mainline or bust! :)<BR>
+<BR>
+-----Original Message-----<BR>
+From: John Williams [<A =
+HREF=3D"mailto:jwilliams-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org">mailto:jwilliams-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org<=
+/A>]<BR>
+Sent: Sat 4/26/2008 7:04 PM<BR>
+To: Matthew Wilcox<BR>
+Cc: microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org; Arnd Bergmann; Will Newton; Linux =
+Kernel list; linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org; git<BR>
+Subject: Re: [microblaze-uclinux] Re: microblaze syscall list<BR>
+<BR>
+Matthew Wilcox wrote:<BR>
+&gt; On Fri, Apr 25, 2008 at 07:36:35PM +1000, John Williams wrote:<BR>
+&gt;&gt; Please remember that MicroBlaze has been around as an arch for =
+&gt; 4<BR>
+&gt;&gt; years, just not in the kernel.org tree.&nbsp; These older style =
+syscall<BR>
+&gt;&gt; interfaces are all part of the uClibc and glibc ports for =
+MicroBlaze.<BR>
+&gt;<BR>
+&gt; So is it fair to say that you now understand this was the Wrong Way =
+To<BR>
+&gt; Do Things, and if anyone asks, you'd recommend getting an arch =
+merged<BR>
+&gt; into kernel.org sooner rather than later?<BR>
+&gt;<BR>
+<BR>
+Without question!&nbsp; If some abject humility will smooth the path =
+for<BR>
+MicroBlaze, I'm happy to show it.<BR>
+<BR>
+By way of history, as a no-MMU arch starting on the 2.4 kernel =
+series,<BR>
+there was no home for us in kernel.org originally, however we were<BR>
+always in the uClinux &quot;mainline&quot; at uclinux.org from the first =
+release I<BR>
+did back in 2002.<BR>
+<BR>
+We jumped in at 2.6.20 basing from some vendor patches that were =
+never<BR>
+going to fly in kernel.org.&nbsp; Since then we have been improving =
+and<BR>
+cleaning them up to where they might actually stand a chance.<BR>
+<BR>
+I am lobbying Xilinx (the effective &quot;silicon vendor&quot;) as hard =
+as I can<BR>
+to support both the push to and maintenance within kernel.org.&nbsp; =
+They had<BR>
+someone at ELC in Mountain View week before last, which is a good sign =
+I<BR>
+think.<BR>
+<BR>
+Cheers,<BR>
+<BR>
+John<BR>
+<BR>
+<BR>
+<BR>
+</FONT>
+</P>
+
+</BODY>
+</HTML>
+------_=_NextPart_001_01C8A8E4.2C91AC0A--
