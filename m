@@ -1,87 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.183]:54360 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1765378AbYD1Mbh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Apr 2008 08:31:37 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: microblaze syscall list
-Date: Mon, 28 Apr 2008 14:31:25 +0200
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <200804272215.32862.arnd@arndb.de> <48151726.9000204@itee.uq.edu.au>
-In-Reply-To: <48151726.9000204@itee.uq.edu.au>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200804281431.26570.arnd@arndb.de>
+Received: from mx1.redhat.com ([66.187.233.31]:49999 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933359AbYD1Nzp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Apr 2008 09:55:45 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <alpine.LNX.1.10.0804252143170.20150@fbirervta.pbzchgretzou.qr>
+References: <alpine.LNX.1.10.0804252143170.20150@fbirervta.pbzchgretzou.qr> <1209078352-7593-1-git-send-email-hpa@zytor.com> <1209078352-7593-2-git-send-email-hpa@zytor.com> <1209078352-7593-3-git-send-email-hpa@zytor.com> <alpine.LNX.1.10.0804252026040.20150@fbirervta.pbzchgretzou.qr> <alpine.LFD.1.10.0804251133100.2779@woody.linux-foundation.org> <20080425185251.GL14990@parisc-linux.org> <48122CB0.7020003@zytor.com> <20080425192858.GM14990@parisc-linux.org> <48123325.30003@zytor.com> 
+Subject: Re: [PATCH 01/24] types: create <asm-generic/int-*.h>
+Date: Mon, 28 Apr 2008 14:55:37 +0100
+Message-ID: <4489.1209390937@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Williams <jwilliams@itee.uq.edu.au>
-Cc: monstr@seznam.cz, microblaze-uclinux@itee.uq.edu.au, Matthew Wilcox <matthew@wil.cx>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, John Williams <john.williams@petalogix.com>, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>
-Message-ID: <20080428123125.LJuRp9CDDzok7l0f3NxLZOceno5bKoWTcAch5_MYWsY@z>
+To: Jan Engelhardt <jengelh@computergmbh.de>
+Cc: dhowells@redhat.com, "H. Peter Anvin" <hpa@zytor.com>, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Message-ID: <20080428135537.V70HmppuBXuLjHOzzmTLRTbs0TkTEseDCmBhQkqNXxg@z>
 
-On Monday 28 April 2008, John Williams wrote:
-> 
-> Until very recently with the MMU support added to the CPU (and upcoming 
-> MMU support patches for MicroBlaze), all apps were statically linked 
-> anyway. So, this is not too much of an issue I don't think.
-> 
-> Because the CPU is so configurable re: instruction set and features, it 
-> is common to rebuild your entire userland and libs + kernel in one go. 
-> If you add support for HW integer mul or div, barrel shift etc, you need 
-> to rebuild not just the kernel but apps and libs as well.  Or rather, 
-> rebuild apps, and relink against a different multilib'd libc.
+Jan Engelhardt <jengelh@computergmbh.de> wrote:
 
-If this is the common case, that is a good argument for breaking the ABI
-completely now. You will just require a new libc build with a new kernel.
+> In the kernel's *printk, we are free to do what we want :)
 
-> So, the issue seems not so much that there's a bunch of legacy binaries 
-> out there that will break, but rather that there will be a dead-zone 
-> period in which the kernel is exporting an ABI that is simply not 
-> available in the C libs and existing toolchains.  We should be doing all 
-> we can to encourage individual developers and distro maintainers (like 
-> PetaLogix) to base from the kernel.org tree.
+Subject to -Wformat in gcc, of course...
 
-As far as I can tell, these distrbutions typically come with both
-kernel and libc source code together. It would be logical to just
-require updating both here as well.
-
-> Maybe I misunderstand, but is there an option 1(a) where we keep the 
-> old, add the new, and suffer the bloat for a short period until the 
-> toolchains and C libs catch up and we remove out the old interfaces?
->
-> Are the old and new syscalls necessarily overloaded onto the same 
-> numbers?  We'd obviously like to be as "standard" as reasonably possible 
-> regarding syscall numbers
-
-It's more than just the syscall numbers that should ideally change.
-The other changes I would recommend include moving to large file
-types (64 bit off_t), 32 bit UIDs, cleaned up sysV-IPC types, and a
-few others. All these break the user code in the same way that changing
-the instruction set does, which is the reason that we can't change
-any of the existing architectures that started out in the old days.
-
-The syscall numbers are entirely arbitrary, that's why I suggested
-in my approach 3. that you introduce a new set of syscall numbers for
-the new ABI, and keep compatibility with the old calls in their existing
-numbers as an out-of-tree patch.
-
-If you assume that the user recompiles the libc and the kernel together,
-you can obviously change syscall numbers and data types in any way you
-please, but still I'd suggest you don't change them after the kernel
-gets merged upstream.
-
-How about this strategy then:
-* Change all the data types and syscall numbers in the -for-2.6.27
-branch to only include the minimal set, and a modern ABI
-* Add the old interfaces as an out-of-tree patch that adds source
-level compatibility with the old libc, but does not modify any
-of the new interfaces, so that a patched kernel can run all binaries
-built for the upstream version.
-* phase out the old source interface gradually, as all users update
-their libc source code.
-
-This way, early adopters suffer the pain of incompatibility twice, but
-get the clean kernel port quickly.
-
-	Arnd <><
+David
