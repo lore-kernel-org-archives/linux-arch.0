@@ -1,90 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from uki.us.mooball.net ([66.98.178.13]:34647 "EHLO
-	uki.us.mooball.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752255AbYD1AQE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Apr 2008 20:16:04 -0400
-Message-ID: <48151726.9000204@itee.uq.edu.au>
-Date: Mon, 28 Apr 2008 10:15:34 +1000
-From: John Williams <jwilliams@itee.uq.edu.au>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:53075 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750820AbYD1HiX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Apr 2008 03:38:23 -0400
+Message-ID: <48157EE9.1040907@sgi.com>
+Date: Mon, 28 Apr 2008 09:38:17 +0200
+From: Jes Sorensen <jes@sgi.com>
 MIME-Version: 1.0
-Subject: Re: microblaze syscall list
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <4813DF3E.6080800@itee.uq.edu.au> <4814A153.3040600@seznam.cz> <200804272215.32862.arnd@arndb.de>
-In-Reply-To: <200804272215.32862.arnd@arndb.de>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+References: <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-2-git-send-email-jens.axboe@oracle.com> <20080424220157.GA26179@flint.arm.linux.org.uk> <20080425071823.GF12774@kernel.dk> <4812CB99.1070600@goop.org>
+In-Reply-To: <4812CB99.1070600@goop.org>
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: monstr@seznam.cz, microblaze-uclinux@itee.uq.edu.au, Matthew Wilcox <matthew@wil.cx>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, John Williams <john.williams@petalogix.com>, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>
-Message-ID: <20080428001534.lM7m064VUVZoyhnt7ewzvqa4SHEaVRChVkDE8aPidko@z>
+To: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org
+Message-ID: <20080428073817.9-2HYKab5Lspnau-u1EacO1NfLcgy078gdvIZfVqE4o@z>
 
-
-Arnd Bergmann wrote:
-> On Sunday 27 April 2008, Michal Simek wrote:
-
->> I thing you understand that we can't change all application per night. This is
->> not possible. But we have to start with change this.
+Jeremy Fitzhardinge wrote:
+> Jens Axboe wrote:
+>> On Thu, Apr 24 2008, Russell King wrote:
+>>> On Tue, Apr 22, 2008 at 08:50:17PM +0200, Jens Axboe wrote:
+>>>> +        data->csd.func(data->csd.info);
+>>>> +
+>>>> +        spin_lock(&data->lock);
+>>>> +        cpu_clear(cpu, data->cpumask);
+>>>> +        WARN_ON(data->refs == 0);
+>>>> +        data->refs--;
+>>>> +        refs = data->refs;
+>>>>       
+>>> Probably a silly question, but what does data->refs do that
+>>> cpus_empty(data->cpumask) wouldn't do?  (as indeed ARM presently does.)
+>>
+>> I guess it can be marginally slower for NR_CPUS > BITS_PER_LONG,
+>> otherwise there's absolutely no reason to have a seperate ref counter.
 > 
-> Note that the only thing you should need to change is the libc implementation
-> (any version of it: glibc, uclibc, klibc, ...), but not any application source
-> code, as the applications just call the functions that are defined in the libc.
-> If you have binaries that are statically linked with their libc, you'd have
-> to recompile or at least relink them. If you redefine data structures or
-> types that are used in application code, like struct stat or off_t, you
-> also need to recompile all user code.
+> Jes was concerned about scanning bitmasks on a 4096 CPU Altix.  I'm not 
+> sure its all that important, but a refcount check would definitely be 
+> quicker.
 
-Until very recently with the MMU support added to the CPU (and upcoming 
-MMU support patches for MicroBlaze), all apps were statically linked 
-anyway. So, this is not too much of an issue I don't think.
+I just felt it was silly to do a bigger test if it wasn't necessary.
+Even on a 4096 CPU box it's probably barely noticeable, but if it adds
+cost then I'd be in favor of keeping the slightly faster version. Maybe
+it would be worth doing a branched version, one for
+NR_CPUS <= BITS_PER_LONG and one for the other case?
 
-Because the CPU is so configurable re: instruction set and features, it 
-is common to rebuild your entire userland and libs + kernel in one go. 
-If you add support for HW integer mul or div, barrel shift etc, you need 
-to rebuild not just the kernel but apps and libs as well.  Or rather, 
-rebuild apps, and relink against a different multilib'd libc.
-
-So, the issue seems not so much that there's a bunch of legacy binaries 
-out there that will break, but rather that there will be a dead-zone 
-period in which the kernel is exporting an ABI that is simply not 
-available in the C libs and existing toolchains.  We should be doing all 
-we can to encourage individual developers and distro maintainers (like 
-PetaLogix) to base from the kernel.org tree.
-
-> I think you have three options here:
-> 
-> 1. Keep the old syscall interface and just add new syscalls for the stuff
-> that you are currently missing. Don't change userspace at all, but live
-> with somewhat bloated kernels and libc forever and maintain a larger
-> code base in the kernel.
-> 
-> 2. Change the syscall interface in the kernel in the way we have discussed,
-> and adapt the libc code along with it. Break all backwards compatibility
-> and start out with a new leaner ABI. Old applications can still use
-> your old out-of-tree kernels, or forks of that.
-> 
-> 3. Merge only the ABI as in 2. into the mainline kernel, but use new
-> syscall numbers for that. Maintain an out-of-tree patch that adds the
-> old ABI for backwards compatibility so you can run old and new code
-> on one kernel if you build with that patch, but eventually phase
-> out the old ABI.
-
-Maybe I misunderstand, but is there an option 1(a) where we keep the 
-old, add the new, and suffer the bloat for a short period until the 
-toolchains and C libs catch up and we remove out the old interfaces?
-
-Are the old and new syscalls necessarily overloaded onto the same 
-numbers?  We'd obviously like to be as "standard" as reasonably possible 
-regarding syscall numbers
-
-> I won't try to force you to go either route, it's your own decision,
-> but you should understand the tradeoffs. I don't think there is any
-> value in trying to deprecate just part of the ABI and break some
-> binaries but not others, this will only cause hard to find bugs. Make
-> sure that if you decide to break backwards compatibility, you break it
-> in an obvious way and get the most benefit out of it.
-
-No argument there.
-
-John
-
+Cheers,
+Jes
 
