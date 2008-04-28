@@ -1,70 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:46048 "EHLO
-	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S934233AbYD1Ovm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Apr 2008 10:51:42 -0400
-Received: from localhost (localhost [127.0.0.1])
-	by accolon.hansenpartnership.com (Postfix) with ESMTP id 825D18443
-	for <linux-arch@vger.kernel.org>; Mon, 28 Apr 2008 09:51:41 -0500 (CDT)
-Received: from accolon.hansenpartnership.com ([127.0.0.1])
-	by localhost (redscar.int.hansenpartnership.com [127.0.0.1]) (amavisd-new, port 10024)
-	with ESMTP id eusXoek+XMvs for <linux-arch@vger.kernel.org>;
-	Mon, 28 Apr 2008 09:51:40 -0500 (CDT)
-Received: from [153.66.150.222] (mulgrave-w.int.hansenpartnership.com [153.66.150.222])
-	by accolon.hansenpartnership.com (Postfix) with ESMTP id CBC3D8441
-	for <linux-arch@vger.kernel.org>; Mon, 28 Apr 2008 09:51:39 -0500 (CDT)
-Subject: [RFC PATCH] make dma_declare_coherent_memory API use cacheable
-	memory
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Content-Type: text/plain
-Date: Mon, 28 Apr 2008 10:51:38 -0400
-Message-ID: <1209394298.3367.28.camel@localhost.localdomain>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([66.187.233.31]:59637 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933554AbYD1OtH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Apr 2008 10:49:07 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1209219236.3113.6.camel@localhost.localdomain>
+References: <1209219236.3113.6.camel@localhost.localdomain> <1208890227-24808-1-git-send-email-jens.axboe@oracle.com> <1208890227-24808-2-git-send-email-jens.axboe@oracle.com> <20080425231100.b93a1601.akpm@linux-foundation.org>
+Subject: Re: [PATCH 1/11] Add generic helpers for arch IPI function calls
+Date: Mon, 28 Apr 2008 15:25:27 +0100
+Message-ID: <18470.1209392727@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Message-ID: <20080428145138.yfViMKEto7R2upVqqpbhsb1vjpuKbKIqm7VpuaG_Bbo@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, Jens Axboe <jens.axboe@oracle.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, npiggin@suse.de, torvalds@linux-foundation.org, peterz@infradead.org, sam@ravnborg.org, "Paul E. McKenney" <paulmck@us.ibm.com>
+Message-ID: <20080428142527.rn3FGfB1fEz3D7J9IMe9Qi8r1Ho6PurO0lBDj4c2ODY@z>
 
-This one is up for discussion because a recent change in x86:
+James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
 
-commit 6371b495991debfd1417b17c2bc4f7d7bae05739
-Author: Ingo Molnar <mingo@elte.hu>
-Date:   Wed Jan 30 13:33:40 2008 +0100
+> Erm, that's a bug in the frv toolchain, isn't it?  The linker should
+> *never* rely on C code annotation for jump lengths ... mainly because
+> you can screw it all up again in the linker script, so the sectional
+> annotations should only be in the function body (think
+> -ffunction-sections)
 
-    x86: change ioremap() to default to uncached
+The problem with FRV has to do with global variables, not functions.
 
-Changed the way the memory the x86 implementation obtains via ioremap is
-cached.
+With FRV, we attempt to pack as many small variables into the "small data
+section" (.sdata) as we can, and then retain a pointer to it in a register.
+Thus for small variables, we can use a single instruction, such as:
 
-Fortunately, since dma_declare_coherent_memory() is architecturally
-implemented, the caching doesn't have to be the same on all
-architectures.  However, its worth thinking about what the architectures
-want.  For the x86 use, which is actually on a MCA bus, I want the
-caching because the memory is slow to access.  It has been pointed out
-to me that any similar memory behind a PCI bridge would have to be
-uncached by default, so perhaps the issue is moot on newer systems.
+	LDI	@(GR16,%gprel(my_variable)),GRx
 
-An alternative might be to extend the API to get the user to hint
-whether they want cached memory or not.
+to access it.  However, this limits the offset of my_variable to be +/-2048
+from GR16 because all the instructions are the same size, and that's the size
+of the offset field therein.
 
-James
+Alternatively, we can use:
 
----
+	SETHI.P	%hi(my_variable),GRy
+	SETLO	%lo(my_variable),GRy
+	LD	@(GRy,GR0),GRx
 
-diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
-index 388b113..df83ffd 100644
---- a/arch/x86/kernel/pci-dma.c
-+++ b/arch/x86/kernel/pci-dma.c
-@@ -214,7 +214,7 @@ int dma_declare_coherent_memory(struct device *dev, dma_addr_t bus_addr,
- 
- 	/* FIXME: this routine just ignores DMA_MEMORY_INCLUDES_CHILDREN */
- 
--	mem_base = ioremap(bus_addr, size);
-+	mem_base = ioremap_cache(bus_addr, size);
- 	if (!mem_base)
- 		goto out;
- 
+which obviously takes two more instructions, although they can be executed
+simultaneously, and 8 more bytes of RAM/icache.
+
+However, the compiler will assume that it should access _all_ global variables
+using GPREL-addressing unless it is told otherwise.  This means that if a
+global variable should not be GPREL-addressed, its *declaration* should be
+annotated, as this affects how it is addressed.  Furthermore, if the variable
+is *defined* in C, that definition should be annotated the same as the
+declaration, otherwise it'll eat storage from .sdata rather than the
+appropriate section.
 
 
+Global functions are another matter.  The FRV's PC+offset call and branch
+instructions have 24-bit displacements, which is fine for leaping about within
+the kernel core with a single instruction.
+
+In modules, we instead (a) suppress GPREL addressing entirely because we can't
+put module variables in .sdata, and (b) make all interfunction jumps that the
+assembler can't resolve into:
+
+	SETHI.P	%hi(that_function),GRy
+	SETLO	%lo(that_function),GRy
+	JMPL	@(GRy,GR0)
+
+because a 24-bit offset can only span 16MB, which isn't far enough.
+
+
+We could use a GOT, but I believe that would add an extra memory access to any
+memory access or jump - which I'd prefer to avoid.
+
+David
