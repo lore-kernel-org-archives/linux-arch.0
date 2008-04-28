@@ -1,84 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.210]:41510 "EHLO verein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S934470AbYD1Ons (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Apr 2008 10:43:48 -0400
-Date: Mon, 28 Apr 2008 16:43:32 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH] Add fast little-endian switch system call
-Message-ID: <20080428144332.GA17109@lst.de>
-References: <18453.18943.906693.409245@cargo.ozlabs.ibm.com>
+Received: from accolon.hansenpartnership.com ([76.243.235.52]:46048 "EHLO
+	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S934233AbYD1Ovm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Apr 2008 10:51:42 -0400
+Received: from localhost (localhost [127.0.0.1])
+	by accolon.hansenpartnership.com (Postfix) with ESMTP id 825D18443
+	for <linux-arch@vger.kernel.org>; Mon, 28 Apr 2008 09:51:41 -0500 (CDT)
+Received: from accolon.hansenpartnership.com ([127.0.0.1])
+	by localhost (redscar.int.hansenpartnership.com [127.0.0.1]) (amavisd-new, port 10024)
+	with ESMTP id eusXoek+XMvs for <linux-arch@vger.kernel.org>;
+	Mon, 28 Apr 2008 09:51:40 -0500 (CDT)
+Received: from [153.66.150.222] (mulgrave-w.int.hansenpartnership.com [153.66.150.222])
+	by accolon.hansenpartnership.com (Postfix) with ESMTP id CBC3D8441
+	for <linux-arch@vger.kernel.org>; Mon, 28 Apr 2008 09:51:39 -0500 (CDT)
+Subject: [RFC PATCH] make dma_declare_coherent_memory API use cacheable
+	memory
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Content-Type: text/plain
+Date: Mon, 28 Apr 2008 10:51:38 -0400
+Message-ID: <1209394298.3367.28.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <18453.18943.906693.409245@cargo.ozlabs.ibm.com>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@ozlabs.org, mtk.manpages@gmail.com, linux-arch@vger.kernel.org
-Message-ID: <20080428144332.bq9agq-LJ4594PA-1ufxW4PUFfG6mhQY3hVcIxBN6yQ@z>
+To: linux-arch@vger.kernel.org
+Message-ID: <20080428145138.yfViMKEto7R2upVqqpbhsb1vjpuKbKIqm7VpuaG_Bbo@z>
 
-Please see Michael Kerrisk on userspace ABI updates.  A nice little
-manpage for this gimmick would be helpful, and maybe help other
-platforms that want one aswell to implement the same API.
+This one is up for discussion because a recent change in x86:
 
-On Mon, Apr 28, 2008 at 01:52:31PM +1000, Paul Mackerras wrote:
-> This adds a system call on 64-bit platforms for switching between
-> little-endian and big-endian modes that is much faster than doing a
-> prctl call.  This system call is handled as a special case right at
-> the start of the system call entry code, and because it is a special
-> case, it uses a system call number which is out of the range of
-> normal system calls, namely 0x1ebe.
-> 
-> Measurements with lmbench on a 4.2GHz POWER6 showed no measurable
-> change in the speed of normal system calls with this patch.
-> 
-> Switching endianness with this new system call takes around 60ns on a
-> 4.2GHz POWER6, compared with around 300ns to switch endian mode with a
-> prctl.  This can provide a significant performance advantage for
-> emulators for little-endian architectures that want to switch between
-> big-endian and little-endian mode frequently, e.g. because they are
-> generating instructions sequences on the fly and they want to run
-> those sequences in little-endian mode.
-> 
-> Signed-off-by: Paul Mackerras <paulus@samba.org>
-> ---
-> 
-> diff --git a/arch/powerpc/kernel/head_64.S b/arch/powerpc/kernel/head_64.S
-> index 215973a..2eb49a7 100644
-> --- a/arch/powerpc/kernel/head_64.S
-> +++ b/arch/powerpc/kernel/head_64.S
-> @@ -239,6 +239,10 @@ instruction_access_slb_pSeries:
->  	.globl	system_call_pSeries
->  system_call_pSeries:
->  	HMT_MEDIUM
-> +BEGIN_FTR_SECTION
-> +	cmpdi	r0,0x1ebe
-> +	beq-	1f
-> +END_FTR_SECTION_IFSET(CPU_FTR_REAL_LE)
+commit 6371b495991debfd1417b17c2bc4f7d7bae05739
+Author: Ingo Molnar <mingo@elte.hu>
+Date:   Wed Jan 30 13:33:40 2008 +0100
 
-Am I missing something here or does this add a branch for every normal
-syscall?
+    x86: change ioremap() to default to uncached
 
->  	mr	r9,r13
->  	mfmsr	r10
->  	mfspr	r13,SPRN_SPRG3
-> @@ -253,6 +257,13 @@ system_call_pSeries:
->  	rfid
->  	b	.	/* prevent speculative execution */
->  
-> +/* Fast LE/BE switch system call */
-> +1:	mfspr	r12,SPRN_SRR1
-> +	xori	r12,r12,MSR_LE
-> +	mtspr	SPRN_SRR1,r12
-> +	rfid		/* return to userspace */
-> +	b	.
-> +
->  	STD_EXCEPTION_PSERIES(0xd00, single_step)
->  	STD_EXCEPTION_PSERIES(0xe00, trap_0e)
->  
-> _______________________________________________
-> Linuxppc-dev mailing list
-> Linuxppc-dev@ozlabs.org
-> https://ozlabs.org/mailman/listinfo/linuxppc-dev
----end quoted text---
+Changed the way the memory the x86 implementation obtains via ioremap is
+cached.
+
+Fortunately, since dma_declare_coherent_memory() is architecturally
+implemented, the caching doesn't have to be the same on all
+architectures.  However, its worth thinking about what the architectures
+want.  For the x86 use, which is actually on a MCA bus, I want the
+caching because the memory is slow to access.  It has been pointed out
+to me that any similar memory behind a PCI bridge would have to be
+uncached by default, so perhaps the issue is moot on newer systems.
+
+An alternative might be to extend the API to get the user to hint
+whether they want cached memory or not.
+
+James
+
+---
+
+diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
+index 388b113..df83ffd 100644
+--- a/arch/x86/kernel/pci-dma.c
++++ b/arch/x86/kernel/pci-dma.c
+@@ -214,7 +214,7 @@ int dma_declare_coherent_memory(struct device *dev, dma_addr_t bus_addr,
+ 
+ 	/* FIXME: this routine just ignores DMA_MEMORY_INCLUDES_CHILDREN */
+ 
+-	mem_base = ioremap(bus_addr, size);
++	mem_base = ioremap_cache(bus_addr, size);
+ 	if (!mem_base)
+ 		goto out;
+ 
+
+
