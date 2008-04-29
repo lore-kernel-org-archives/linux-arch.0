@@ -1,202 +1,615 @@
-From: Hugh Dickins <hugh-DTz5qymZ9yRBDgjK7y7TUQ@public.gmane.org>
-Subject: Re: [rfc] data race in page table setup/walking?
-Date: Tue, 29 Apr 2008 13:36:41 +0100 (BST)
-Message-ID: <Pine.LNX.4.64.0804291333540.22025@blonde.site>
-References: <20080429050054.GC21795@wotan.suse.de>
+From: "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
+Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
+Date: Tue, 29 Apr 2008 06:59:36 -0700
+Message-ID: <20080429135936.GC12390@linux.vnet.ibm.com>
+References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com> <1209453990-7735-2-git-send-email-jens.axboe@oracle.com>
+Reply-To: paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20080429050054.GC21795-B4tOwbsTzaBolqkO4TVVkw@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <1209453990-7735-2-git-send-email-jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
-Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Memory Management List <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
+To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, jeremy-TSDbQ3PG+2Y@public.gmane.org, mingo-X9Un+BFzKDI@public.gmane.org
 
-On Tue, 29 Apr 2008, Nick Piggin wrote:
-> I *think* there is a possible data race in the page table walking code. After
-> the split ptlock patches, it actually seems to have been introduced to the core
-> code, but even before that I think it would have impacted some architectures.
+On Tue, Apr 29, 2008 at 09:26:21AM +0200, Jens Axboe wrote:
+> This adds kernel/smp.c which contains helpers for IPI function calls. In
+> addition to supporting the existing smp_call_function() in a more efficient
+> manner, it also adds a more scalable variant called smp_call_function_single()
+> for calling a given function on a single CPU only.
 > 
-> The race is as follows:
-> The pte page is allocated, zeroed, and its struct page gets its spinlock
-> initialized. The mm-wide ptl is then taken, and then the pte page is inserted
-> into the pagetables.
+> The core of this is based on the x86-64 patch from Nick Piggin, lots of
+> changes since then. "Alan D. Brunelle" <Alan.Brunelle-VXdhtT5mjnY@public.gmane.org> has
+> contributed lots of fixes and suggestions as well.
+
+Looks much better, but there still appears to be a potential deadlock
+with a CPU spinning waiting (indirectly) for a grace period to complete.
+Such spinning can prevent the grace period from ever completing.
+
+See "!!!".
+
+							Thanx, Paul
+
+> Acked-by: Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>
+> Signed-off-by: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+> ---
+>  arch/Kconfig        |    3 +
+>  include/linux/smp.h |   31 ++++-
+>  init/main.c         |    1 +
+>  kernel/Makefile     |    1 +
+>  kernel/smp.c        |  415 +++++++++++++++++++++++++++++++++++++++++++++++++++
+>  5 files changed, 449 insertions(+), 2 deletions(-)
+>  create mode 100644 kernel/smp.c
 > 
-> At this point, the spinlock is not guaranteed to have ordered the previous
-> stores to initialize the pte page with the subsequent store to put it in the
-> page tables. So another Linux page table walker might be walking down (without
-> any locks, because we have split-leaf-ptls), and find that new pte we've
-> inserted. It might try to take the spinlock before the store from the other
-> CPU initializes it. And subsequently it might read a pte_t out before stores
-> from the other CPU have cleared the memory.
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index 694c9af..a5a0184 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -36,3 +36,6 @@ config HAVE_KPROBES
 > 
-> There seem to be similar races in higher levels of the page tables, but they
-> obviously don't involve the spinlock, but one could see uninitialized memory.
-
-It's sad, but I have to believe you're right.  I'm slightly more barrier-
-aware now than I was back when doing split ptlock (largely thanks to your
-persistence); and looking back at it, I cannot now imagine how it could
-be correct to remove a lock from that walkdown without adding barriers.
-
-Ugh.  It's just so irritating to introduce these blockages against
-such a remote possibility (but there again, that's what so much of
-kernel code has to be about).  Is there any other way of handling it?
-
-> 
-> Arch code and hardware pagetable walkers that walk the pagetables without
-> locks could see similar uninitialized memory problems (regardless of whether
-> we have split ptes or not).
-
-The hardware walkers, hmm.  Well, I guess each arch has its own rules
-to protect against those, and all you can do is provide a macro for
-each to fill in.   You assume smp_read_barrier_depends versus smp_wmb
-below: sure of those, or is it worth providing particular new stubs?
-
-> 
-> Fortunately, on x86 (except stupid OOSTORE), nothing needs to be done, because
-> stores are in order, and so are loads. Even on OOSTORE we wouldn't have to take
-> the smp_wmb hit, if only we have a smp_wmb_before/after_spin_lock function.
-> 
-> This isn't a complete patch yet, but a demonstration of the problem, and an
-> RFC really as to the form of the solution. I prefer to put the barriers in
-> core code, because that's where the higher level logic happens, but the page
-> table accessors are per-arch, and open-coding them everywhere I don't think
-> is an option.
-
-If there's no better way (I think not), this looks about right to me;
-though I leave all the hard thought to you ;)
-
-While I'm in the confessional, something else you probably need to
-worry about there: handle_pte_fault's "entry = *pte" without holding
-the lock; several cases are self-righting, but there's pte_unmap_same
-for a couple of cases where we need to make sure of the right decision
-- presently it's only worrying about the PAE case, when it might have
-got the top of one pte with the bottom of another, but now you need
-some barrier thinking?  Oh, perhaps this is already safely covered
-by your pte_offset_map.
-
-The pte_offset_kernel one (aside from the trivial of needing a ret):
-I'm not convinced that needs to be changed at all.  I still believe,
-as I believed at split ptlock time, that the kernel walkdowns need
-no locking (or barriers) of their own: that it's a separate kernel
-bug if a kernel subsystem is making speculative accesses to addresses
-it cannot be sure have been allocated.  Counter-examples?
-
-Ah, but perhaps naughty userspace (depending on architecture) could
-make those speculative accesses into kernel address space, and have
-a chance of striking lucky with the hardware walker, without proper
-barriers at the kernel end?
-
-> 
-> So anyway... comments, please? Am I dreaming the whole thing up? I suspect
-> that if I'm not, then powerpc at least might have been impacted by the race,
-> but as far as I know of, they haven't seen stability problems around there...
-> Might just be terribly rare, though. I'd like to try to make a test program
-> to reproduce the problem if I can get access to a box...
-
-Please do, if you're feeling ingenious: it's tiresome adding overhead
-without being able to show it's really achieved something.
-
-> 
-> Thanks,
-> Nick
-> 
-> Index: linux-2.6/include/asm-x86/pgtable_32.h
-> ===================================================================
-> --- linux-2.6.orig/include/asm-x86/pgtable_32.h
-> +++ linux-2.6/include/asm-x86/pgtable_32.h
-> @@ -179,7 +179,10 @@ static inline int pud_large(pud_t pud) {
->  #define pte_index(address)					\
->  	(((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
->  #define pte_offset_kernel(dir, address)				\
-> -	((pte_t *)pmd_page_vaddr(*(dir)) +  pte_index((address)))
-> +{(								\
-> +	(pte_t *)pmd_page_vaddr(*(dir)) +  pte_index((address));\
-> +	smp_read_barrier_depends();				\
-> +})
->  
->  #define pmd_page(pmd) (pfn_to_page(pmd_val((pmd)) >> PAGE_SHIFT))
->  
-> @@ -188,16 +191,32 @@ static inline int pud_large(pud_t pud) {
->  
->  #if defined(CONFIG_HIGHPTE)
->  #define pte_offset_map(dir, address)					\
-> -	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
-> -	 pte_index((address)))
-> +{(									\
-> +	pte_t *ret = (pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) + \
-> +		 pte_index((address));					\
-> +	smp_read_barrier_depends();					\
-> +	ret;								\
-> +)}
+>  config HAVE_KRETPROBES
+>  	def_bool n
 > +
->  #define pte_offset_map_nested(dir, address)				\
-> -	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) +		\
-> -	 pte_index((address)))
-> +{(									\
-> +	pte_t *ret = (pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) + \
-> +		 pte_index((address));					\
-> +	smp_read_barrier_depends();					\
-> +	ret;								\
-> +)}
+> +config USE_GENERIC_SMP_HELPERS
+> +	def_bool n
+> diff --git a/include/linux/smp.h b/include/linux/smp.h
+> index 55232cc..b22b4fc 100644
+> --- a/include/linux/smp.h
+> +++ b/include/linux/smp.h
+> @@ -7,9 +7,19 @@
+>   */
+> 
+>  #include <linux/errno.h>
+> +#include <linux/list.h>
+> +#include <linux/spinlock.h>
+> +#include <linux/cpumask.h>
+> 
+>  extern void cpu_idle(void);
+> 
+> +struct call_single_data {
+> +	struct list_head list;
+> +	void (*func) (void *info);
+> +	void *info;
+> +	unsigned int flags;
+> +};
 > +
->  #define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
->  #define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
->  #else
->  #define pte_offset_map(dir, address)					\
-> -	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
-> +{(									\
-> +	pte_t *ret = (pte_t *)page_address(pmd_page(*(dir))) +		\
-> +		pte_index((address));					\
-> +	smp_read_barrier_depends();					\
-> +	ret;								\
-> +)}
+>  #ifdef CONFIG_SMP
+> 
+>  #include <linux/preempt.h>
+> @@ -53,9 +63,27 @@ extern void smp_cpus_done(unsigned int max_cpus);
+>   * Call a function on all other processors
+>   */
+>  int smp_call_function(void(*func)(void *info), void *info, int retry, int wait);
+> -
+> +int smp_call_function_mask(cpumask_t mask, void(*func)(void *info), void *info,
+> +				int wait);
+>  int smp_call_function_single(int cpuid, void (*func) (void *info), void *info,
+>  				int retry, int wait);
+> +void __smp_call_function_single(int cpuid, struct call_single_data *data);
 > +
->  #define pte_offset_map_nested(dir, address) pte_offset_map((dir), (address))
->  #define pte_unmap(pte) do { } while (0)
->  #define pte_unmap_nested(pte) do { } while (0)
-> Index: linux-2.6/mm/memory.c
-> ===================================================================
-> --- linux-2.6.orig/mm/memory.c
-> +++ linux-2.6/mm/memory.c
-> @@ -311,6 +311,13 @@ int __pte_alloc(struct mm_struct *mm, pm
->  	if (!new)
->  		return -ENOMEM;
->  
+> +/*
+> + * Generic and arch helpers
+> + */
+> +#ifdef CONFIG_USE_GENERIC_SMP_HELPERS
+> +void generic_smp_call_function_single_interrupt(void);
+> +void generic_smp_call_function_interrupt(void);
+> +void init_call_single_data(void);
+> +void arch_send_call_function_single_ipi(int cpu);
+> +void arch_send_call_function_ipi(cpumask_t mask);
+> +extern spinlock_t call_function_lock;
+> +#else
+> +static inline void init_call_single_data(void)
+> +{
+> +}
+> +#endif
+> 
+>  /*
+>   * Call a function on all processors
+> @@ -112,7 +140,6 @@ static inline void smp_send_reschedule(int cpu) { }
+>  })
+>  #define smp_call_function_mask(mask, func, info, wait) \
+>  			(up_smp_call_function(func, info))
+> -
+>  #endif /* !SMP */
+> 
+>  /*
+> diff --git a/init/main.c b/init/main.c
+> index 1687b01..81b652e 100644
+> --- a/init/main.c
+> +++ b/init/main.c
+> @@ -778,6 +778,7 @@ static void __init do_pre_smp_initcalls(void)
+>  {
+>  	extern int spawn_ksoftirqd(void);
+> 
+> +	init_call_single_data();
+>  	migration_init();
+>  	spawn_ksoftirqd();
+>  	if (!nosoftlockup)
+> diff --git a/kernel/Makefile b/kernel/Makefile
+> index 6c5f081..7e275d4 100644
+> --- a/kernel/Makefile
+> +++ b/kernel/Makefile
+> @@ -28,6 +28,7 @@ obj-$(CONFIG_DEBUG_RT_MUTEXES) += rtmutex-debug.o
+>  obj-$(CONFIG_RT_MUTEX_TESTER) += rtmutex-tester.o
+>  obj-$(CONFIG_GENERIC_ISA_DMA) += dma.o
+>  obj-$(CONFIG_SMP) += cpu.o spinlock.o
+> +obj-$(CONFIG_USE_GENERIC_SMP_HELPERS) += smp.o
+>  obj-$(CONFIG_DEBUG_SPINLOCK) += spinlock.o
+>  obj-$(CONFIG_PROVE_LOCKING) += spinlock.o
+>  obj-$(CONFIG_UID16) += uid16.o
+> diff --git a/kernel/smp.c b/kernel/smp.c
+> new file mode 100644
+> index 0000000..36d3eca
+> --- /dev/null
+> +++ b/kernel/smp.c
+> @@ -0,0 +1,415 @@
+> +/*
+> + * Generic helpers for smp ipi calls
+> + *
+> + * (C) Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org> 2008
+> + *
+> + */
+> +#include <linux/init.h>
+> +#include <linux/module.h>
+> +#include <linux/percpu.h>
+> +#include <linux/rcupdate.h>
+> +#include <linux/smp.h>
+> +
+> +static DEFINE_PER_CPU(struct call_single_queue, call_single_queue);
+> +static LIST_HEAD(call_function_queue);
+> +__cacheline_aligned_in_smp DEFINE_SPINLOCK(call_function_lock);
+> +
+> +enum {
+> +	CSD_FLAG_WAIT		= 0x01,
+> +	CSD_FLAG_ALLOC		= 0x02,
+> +	CSD_FLAG_FALLBACK	= 0x04,
+> +};
+> +
+> +struct call_function_data {
+> +	struct call_single_data csd;
+> +	spinlock_t lock;
+> +	unsigned int refs;
+> +	cpumask_t cpumask;
+> +	struct rcu_head rcu_head;
+> +};
+> +
+> +struct call_single_queue {
+> +	struct list_head list;
+> +	spinlock_t lock;
+> +};
+> +
+> +static DEFINE_PER_CPU(struct call_function_data, cfd_fallback);
+> +static DEFINE_PER_CPU(unsigned long, cfd_fallback_used);
+> +
+> +void __cpuinit init_call_single_data(void)
+> +{
+> +	int i;
+> +
+> +	for_each_possible_cpu(i) {
+> +		struct call_single_queue *q = &per_cpu(call_single_queue, i);
+> +
+> +		spin_lock_init(&q->lock);
+> +		INIT_LIST_HEAD(&q->list);
+> +	}
+> +}
+> +
+> +static void csd_flag_wait(struct call_single_data *data)
+> +{
+> +	/* Wait for response */
+> +	do {
+> +		/*
+> +		 * We need to see the flags store in the IPI handler
+> +		 */
+> +		smp_mb();
+> +		if (!(data->flags & CSD_FLAG_WAIT))
+> +			break;
+> +		cpu_relax();
+> +	} while (1);
+> +}
+> +
+> +/*
+> + * Insert a previously allocated call_single_data element for execution
+> + * on the given CPU. data must already have ->func, ->info, and ->flags set.
+> + */
+> +static void generic_exec_single(int cpu, struct call_single_data *data)
+> +{
+> +	struct call_single_queue *dst = &per_cpu(call_single_queue, cpu);
+> +	int wait = data->flags & CSD_FLAG_WAIT, ipi;
+> +	unsigned long flags;
+> +
+> +	spin_lock_irqsave(&dst->lock, flags);
+> +	ipi = list_empty(&dst->list);
+> +	list_add_tail(&data->list, &dst->list);
+> +	spin_unlock_irqrestore(&dst->lock, flags);
+> +
+> +	if (ipi)
+> +		arch_send_call_function_single_ipi(cpu);
+> +
+> +	if (wait)
+> +		csd_flag_wait(data);
+> +}
+> +
+> +/*
+> + * We need to have a global per-cpu fallback of call_function_data, so
+> + * we can safely proceed with smp_call_function() if dynamic allocation
+> + * fails and we cannot fall back to on-stack allocation (if wait == 0).
+> + */
+> +static noinline void acquire_cpu_fallback(int cpu)
+> +{
+> +	while (test_and_set_bit_lock(0, &per_cpu(cfd_fallback_used, cpu)))
+> +		cpu_relax();
+
+!!! What if this CPU recently did a smp_call_function_mask() in no-wait mode,
+and this CPU's fallback element is still waiting for a grace period
+to elapse?  Wouldn't we end up with a deadlock, with this CPU spinning
+preventing the grace period from completing, thus preventing the element
+from ever being freed?
+
+> +}
+> +
+> +static noinline void free_cpu_fallback(struct call_single_data *csd)
+> +{
+> +	struct call_function_data *data;
+> +	int cpu;
+> +
+> +	data = container_of(csd, struct call_function_data, csd);
+> +
 > +	/*
-> +	 * Ensure all pte setup (eg. pte page lock and page clearing) are
-> +	 * visible before the pte is made visible to other CPUs by being
-> +	 * put into page tables.
+> +	 * We could drop this loop by embedding a cpu variable in
+> +	 * csd, but this should happen so extremely rarely (if ever)
+> +	 * that this seems like a better idea
 > +	 */
-> +	smp_wmb(); /* Could be smp_wmb__xxx(before|after)_spin_lock */
+> +	for_each_possible_cpu(cpu) {
+> +		if (&per_cpu(cfd_fallback, cpu) != data)
+> +			continue;
 > +
->  	spin_lock(&mm->page_table_lock);
->  	if (!pmd_present(*pmd)) {	/* Has another populated it ? */
->  		mm->nr_ptes++;
-> @@ -329,6 +336,8 @@ int __pte_alloc_kernel(pmd_t *pmd, unsig
->  	if (!new)
->  		return -ENOMEM;
->  
-> +	smp_wmb(); /* See comment in __pte_alloc */
+> +		clear_bit_unlock(0, &per_cpu(cfd_fallback_used, cpu));
+> +		break;
+> +	}
+> +}
 > +
->  	spin_lock(&init_mm.page_table_lock);
->  	if (!pmd_present(*pmd)) {	/* Has another populated it ? */
->  		pmd_populate_kernel(&init_mm, pmd, new);
-> @@ -2546,6 +2555,8 @@ int __pud_alloc(struct mm_struct *mm, pg
->  	if (!new)
->  		return -ENOMEM;
->  
-> +	smp_wmb(); /* See comment in __pte_alloc */
+> +static void rcu_free_call_data(struct rcu_head *head)
+> +{
+> +	struct call_function_data *data;
 > +
->  	spin_lock(&mm->page_table_lock);
->  	if (pgd_present(*pgd))		/* Another has populated it */
->  		pud_free(mm, new);
-> @@ -2567,6 +2578,8 @@ int __pmd_alloc(struct mm_struct *mm, pu
->  	if (!new)
->  		return -ENOMEM;
->  
-> +	smp_wmb(); /* See comment in __pte_alloc */
+> +	data = container_of(head, struct call_function_data, rcu_head);
 > +
->  	spin_lock(&mm->page_table_lock);
->  #ifndef __ARCH_HAS_4LEVEL_HACK
->  	if (pud_present(*pud))		/* Another has populated it */
+> +	if (data->csd.flags & CSD_FLAG_ALLOC)
+> +		kfree(data);
+> +	else
+> +		free_cpu_fallback(&data->csd);
+> +}
+
+Good, now there is no need to worry about readers seeing a recycling
+event on the fallback element.  I just need to go check to see what
+readers do if there is no memory available and the fallback element
+is in use...
+
+> +
+> +/*
+> + * Invoked by arch to handle an IPI for call function. Must be called with
+> + * interrupts disabled.
+> + */
+> +void generic_smp_call_function_interrupt(void)
+> +{
+> +	struct call_function_data *data;
+> +	int cpu = get_cpu();
+> +
+> +	/*
+> +	 * It's ok to use list_for_each_rcu() here even though we may delete
+> +	 * 'pos', since list_del_rcu() doesn't clear ->next
+> +	 */
+> +	rcu_read_lock();
+> +	list_for_each_entry_rcu(data, &call_function_queue, csd.list) {
+
+Much improved over the earlier list_for_each_entry()!!!
+
+> +		int refs;
+> +
+> +		if (!cpu_isset(cpu, data->cpumask))
+> +			continue;
+> +
+> +		data->csd.func(data->csd.info);
+> +
+> +		spin_lock(&data->lock);
+> +		cpu_clear(cpu, data->cpumask);
+> +		WARN_ON(data->refs == 0);
+> +		data->refs--;
+> +		refs = data->refs;
+> +		spin_unlock(&data->lock);
+> +
+> +		if (refs)
+> +			continue;
+> +
+> +		spin_lock(&call_function_lock);
+> +		list_del_rcu(&data->csd.list);
+> +		spin_unlock(&call_function_lock);
+> +
+> +		if (data->csd.flags & CSD_FLAG_WAIT) {
+> +			/*
+> +			 * serialize stores to data with the flag clear
+> +			 * and wakeup
+> +			 */
+> +			smp_wmb();
+> +			data->csd.flags &= ~CSD_FLAG_WAIT;
+> +		} else
+> +			call_rcu(&data->rcu_head, rcu_free_call_data);
+> +	}
+> +	rcu_read_unlock();
+> +
+> +	put_cpu();
+> +}
+> +
+> +/*
+> + * Invoked by arch to handle an IPI for call function single. Must be called
+> + * from the arch with interrupts disabled.
+> + */
+> +void generic_smp_call_function_single_interrupt(void)
+> +{
+> +	struct call_single_queue *q = &__get_cpu_var(call_single_queue);
+> +	LIST_HEAD(list);
+> +
+> +	/*
+> +	 * Need to see other stores to list head for checking whether
+> +	 * list is empty without holding q->lock
+> +	 */
+> +	smp_mb();
+> +	while (!list_empty(&q->list)) {
+> +		unsigned int data_flags;
+> +
+> +		spin_lock(&q->lock);
+> +		list_replace_init(&q->list, &list);
+> +		spin_unlock(&q->lock);
+> +
+> +		while (!list_empty(&list)) {
+> +			struct call_single_data *data;
+> +
+> +			data = list_entry(list.next, struct call_single_data,
+> +						list);
+> +			list_del(&data->list);
+> +
+> +			/*
+> +			 * 'data' can be invalid after this call if
+> +			 * flags == 0 (when called through
+> +			 * generic_exec_single(), so save them away before
+> +			 * making the call.
+> +			 */
+> +			data_flags = data->flags;
+> +
+> +			data->func(data->info);
+> +
+> +			if (data_flags & CSD_FLAG_WAIT) {
+> +				smp_wmb();
+> +				data->flags &= ~CSD_FLAG_WAIT;
+> +			} else if (data_flags & CSD_FLAG_ALLOC)
+> +				kfree(data);
+> +			else if (data_flags & CSD_FLAG_FALLBACK)
+> +				free_cpu_fallback(data);
+
+Here is is OK not to wait for a grace period -- this CPU owns the element,
+so no one ease should be accessing it.
+
+> +		}
+> +		/*
+> +		 * See comment on outer loop
+> +		 */
+> +		smp_mb();
+> +	}
+> +}
+> +
+> +/*
+> + * smp_call_function_single - Run a function on a specific CPU
+> + * @func: The function to run. This must be fast and non-blocking.
+> + * @info: An arbitrary pointer to pass to the function.
+> + * @retry: Unused
+> + * @wait: If true, wait until function has completed on other CPUs.
+> + *
+> + * Returns 0 on success, else a negative status code.
+> + */
+> +int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
+> +			     int retry, int wait)
+> +{
+> +	unsigned long flags;
+> +	/* prevent preemption and reschedule on another processor */
+> +	int me = get_cpu();
+> +
+> +	/* Can deadlock when called with interrupts disabled */
+> +	WARN_ON(wait && irqs_disabled());
+> +
+> +	if (cpu == me) {
+> +		local_irq_save(flags);
+> +		func(info);
+> +		local_irq_restore(flags);
+> +	} else {
+> +		struct call_single_data *data;
+> +
+> +		if (wait) {
+> +			struct call_single_data d;
+> +
+> +			data = &d;
+> +			data->flags = CSD_FLAG_WAIT;
+> +		} else {
+> +			data = kmalloc(sizeof(*data), GFP_ATOMIC);
+> +			if (data)
+> +				data->flags = CSD_FLAG_ALLOC;
+> +			else {
+> +				acquire_cpu_fallback(me);
+
+Ah -- per-CPU fallback element, and we are presumably not permitted
+to block during the course of the call.  But then someone might be
+using it after we exit this function!!!   More on this elsewhere...
+
+Hmmm...  What about the no-wait case?
+
+Ah, not a problem, because we always use the "d" element that is allocated
+on our stack.  But aren't we then passing a reference to an on-stack
+variable out of scope?  Don't we need to allocate "d" at the top level
+of the function?  Isn't gcc within its rights to get rid of this local
+(perhaps re-using it for a compiler temporary or some such) as soon as
+its scope ends?
+
+> +
+> +				data = &per_cpu(cfd_fallback, me).csd;
+> +				data->flags = CSD_FLAG_FALLBACK;
+> +			}
+> +		}
+> +
+> +		data->func = func;
+> +		data->info = info;
+> +		generic_exec_single(cpu, data);
+
+If we are using the on-stack variable, generic_exec_single() is
+guaranteed to wait until all other CPUs are done with it.
+
+> +	}
+> +
+> +	put_cpu();
+> +	return 0;
+> +}
+> +EXPORT_SYMBOL(smp_call_function_single);
+> +
+> +/**
+> + * __smp_call_function_single(): Run a function on another CPU
+> + * @cpu: The CPU to run on.
+> + * @data: Pre-allocated and setup data structure
+> + *
+> + * Like smp_call_function_single(), but allow caller to pass in a pre-allocated
+> + * data structure. Useful for embedding @data inside other structures, for
+> + * instance.
+> + *
+> + */
+> +void __smp_call_function_single(int cpu, struct call_single_data *data)
+> +{
+> +	/* Can deadlock when called with interrupts disabled */
+> +	WARN_ON((data->flags & CSD_FLAG_WAIT) && irqs_disabled());
+> +
+> +	generic_exec_single(cpu, data);
+> +}
+> +
+> +/**
+> + * smp_call_function_mask(): Run a function on a set of other CPUs.
+> + * @mask: The set of cpus to run on.
+> + * @func: The function to run. This must be fast and non-blocking.
+> + * @info: An arbitrary pointer to pass to the function.
+> + * @wait: If true, wait (atomically) until function has completed on other CPUs.
+> + *
+> + * Returns 0 on success, else a negative status code.
+> + *
+> + * If @wait is true, then returns once @func has returned.
+> + *
+> + * You must not call this function with disabled interrupts or from a
+> + * hardware interrupt handler or from a bottom half handler.
+> + */
+> +int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
+> +			   int wait)
+> +{
+> +	struct call_function_data *data;
+> +	cpumask_t allbutself;
+> +	unsigned long flags;
+> +	int cpu, num_cpus;
+> +
+> +	/* Can deadlock when called with interrupts disabled */
+> +	WARN_ON(wait && irqs_disabled());
+> +
+> +	cpu = smp_processor_id();
+> +	allbutself = cpu_online_map;
+> +	cpu_clear(cpu, allbutself);
+> +	cpus_and(mask, mask, allbutself);
+> +	num_cpus = cpus_weight(mask);
+> +
+> +	/*
+> +	 * If zero CPUs, return. If just a single CPU, turn this request
+> +	 * into a targetted single call instead since it's faster.
+> +	 */
+> +	if (!num_cpus)
+> +		return 0;
+> +	else if (num_cpus == 1) {
+> +		cpu = first_cpu(mask);
+> +		return smp_call_function_single(cpu, func, info, 0, wait);
+> +	}
+> +
+> +	if (wait) {
+> +		struct call_function_data d;
+> +
+> +		data = &d;
+> +		data->csd.flags = CSD_FLAG_WAIT;
+
+!!! We are passing "d" out of its scope -- need to move the declaration
+to the top level.
+
+> +	} else {
+> +		data = kmalloc(sizeof(*data), GFP_ATOMIC);
+> +		if (data)
+> +			data->csd.flags = CSD_FLAG_ALLOC;
+> +		else {
+> +			acquire_cpu_fallback(cpu);
+> +
+> +			data = &per_cpu(cfd_fallback, cpu);
+> +			data->csd.flags = CSD_FLAG_FALLBACK;
+> +		}
+> +	}
+> +
+> +	spin_lock_init(&data->lock);
+> +	data->csd.func = func;
+> +	data->csd.info = info;
+> +	data->refs = num_cpus;
+> +
+> +	/*
+> +	 * need to see above stores before the cpumask is valid for the CPU
+> +	 */
+> +	smp_wmb();
+> +	data->cpumask = mask;
+> +
+> +	spin_lock_irqsave(&call_function_lock, flags);
+> +	list_add_tail_rcu(&data->csd.list, &call_function_queue);
+> +	spin_unlock_irqrestore(&call_function_lock, flags);
+> +
+> +	/* Send a message to all CPUs in the map */
+> +	arch_send_call_function_ipi(mask);
+> +
+> +	/* optionally wait for the CPUs to complete */
+> +	if (wait)
+> +		csd_flag_wait(&data->csd);
+
+And there are no references to "d" past here.  Preemption appears to be
+disabled by all callers.  So good.
+
+Still might have the fallback element waiting for a grace period
+past this point, which would interfere with a subsequent call to this
+function!!!
+
+> +
+> +	return 0;
+> +}
+> +EXPORT_SYMBOL(smp_call_function_mask);
+> +
+> +/**
+> + * smp_call_function(): Run a function on all other CPUs.
+> + * @func: The function to run. This must be fast and non-blocking.
+> + * @info: An arbitrary pointer to pass to the function.
+> + * @natomic: Unused
+> + * @wait: If true, wait (atomically) until function has completed on other CPUs.
+> + *
+> + * Returns 0 on success, else a negative status code.
+> + *
+> + * If @wait is true, then returns once @func has returned; otherwise
+> + * it returns just before the target cpu calls @func.
+> + *
+> + * You must not call this function with disabled interrupts or from a
+> + * hardware interrupt handler or from a bottom half handler.
+> + */
+> +int smp_call_function(void (*func)(void *), void *info, int natomic, int wait)
+> +{
+> +	int ret;
+> +
+> +	preempt_disable();
+> +	ret = smp_call_function_mask(cpu_online_map, func, info, wait);
+> +	preempt_enable();
+> +	return ret;
+> +}
+> +EXPORT_SYMBOL(smp_call_function);
+> -- 
+> 1.5.5.1.57.g5909c
+> 
