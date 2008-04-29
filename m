@@ -1,557 +1,347 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:17212 "EHLO kernel.dk"
+Received: from brick.kernel.dk ([87.55.233.238]:17203 "EHLO kernel.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754377AbYD2HZp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Apr 2008 03:25:45 -0400
+	id S1750901AbYD2HZn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Apr 2008 03:25:43 -0400
 From: Jens Axboe <jens.axboe@oracle.com>
-Subject: [PATCH 1/10] Add generic helpers for arch IPI function calls
-Date: Tue, 29 Apr 2008 09:26:21 +0200
-Message-ID: <1209453990-7735-2-git-send-email-jens.axboe@oracle.com>
+Subject: [PATCH 4/10] ia64: convert to generic helpers for IPI function calls
+Date: Tue, 29 Apr 2008 09:26:24 +0200
+Message-ID: <1209453990-7735-5-git-send-email-jens.axboe@oracle.com>
 In-Reply-To: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com>
 References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com, Jens Axboe <jens.axboe@oracle.com>
-Message-ID: <20080429072621.PJNf88BXiRlCGa6yePiqyHLU7qWk6QtBARs557T_Q14@z>
+Cc: peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com, Jens Axboe <jens.axboe@oracle.com>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20080429072624.8zPFYKC1fO02jUM1io-829Nc4iTMyR83VuHGRYg-qcA@z>
 
-This adds kernel/smp.c which contains helpers for IPI function calls. In
-addition to supporting the existing smp_call_function() in a more efficient
-manner, it also adds a more scalable variant called smp_call_function_single()
-for calling a given function on a single CPU only.
+This converts ia64 to use the new helpers for smp_call_function() and
+friends, and adds support for smp_call_function_single().
 
-The core of this is based on the x86-64 patch from Nick Piggin, lots of
-changes since then. "Alan D. Brunelle" <Alan.Brunelle@hp.com> has
-contributed lots of fixes and suggestions as well.
-
-Acked-by: Ingo Molnar <mingo@elte.hu>
+Cc: Tony Luck <tony.luck@intel.com>
 Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
 ---
- arch/Kconfig        |    3 +
- include/linux/smp.h |   31 ++++-
- init/main.c         |    1 +
- kernel/Makefile     |    1 +
- kernel/smp.c        |  415 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 449 insertions(+), 2 deletions(-)
- create mode 100644 kernel/smp.c
+ arch/ia64/Kconfig      |    1 +
+ arch/ia64/kernel/smp.c |  239 +++---------------------------------------------
+ include/asm-ia64/smp.h |    3 -
+ 3 files changed, 16 insertions(+), 227 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 694c9af..a5a0184 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -36,3 +36,6 @@ config HAVE_KPROBES
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 3aa6c82..9e1e115 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -286,6 +286,7 @@ config VIRT_CPU_ACCOUNTING
  
- config HAVE_KRETPROBES
- 	def_bool n
-+
-+config USE_GENERIC_SMP_HELPERS
-+	def_bool n
-diff --git a/include/linux/smp.h b/include/linux/smp.h
-index 55232cc..b22b4fc 100644
---- a/include/linux/smp.h
-+++ b/include/linux/smp.h
-@@ -7,9 +7,19 @@
-  */
+ config SMP
+ 	bool "Symmetric multi-processing support"
++	select USE_GENERIC_SMP_HELPERS
+ 	help
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, say N.  If you have a system with more
+diff --git a/arch/ia64/kernel/smp.c b/arch/ia64/kernel/smp.c
+index 9a9d4c4..c5dcd03 100644
+--- a/arch/ia64/kernel/smp.c
++++ b/arch/ia64/kernel/smp.c
+@@ -60,25 +60,9 @@ static struct local_tlb_flush_counts {
  
- #include <linux/errno.h>
-+#include <linux/list.h>
-+#include <linux/spinlock.h>
-+#include <linux/cpumask.h>
+ static DEFINE_PER_CPU(unsigned int, shadow_flush_counts[NR_CPUS]) ____cacheline_aligned;
  
- extern void cpu_idle(void);
- 
-+struct call_single_data {
-+	struct list_head list;
-+	void (*func) (void *info);
-+	void *info;
-+	unsigned int flags;
-+};
-+
- #ifdef CONFIG_SMP
- 
- #include <linux/preempt.h>
-@@ -53,9 +63,27 @@ extern void smp_cpus_done(unsigned int max_cpus);
-  * Call a function on all other processors
-  */
- int smp_call_function(void(*func)(void *info), void *info, int retry, int wait);
 -
-+int smp_call_function_mask(cpumask_t mask, void(*func)(void *info), void *info,
-+				int wait);
- int smp_call_function_single(int cpuid, void (*func) (void *info), void *info,
- 				int retry, int wait);
-+void __smp_call_function_single(int cpuid, struct call_single_data *data);
-+
-+/*
-+ * Generic and arch helpers
-+ */
-+#ifdef CONFIG_USE_GENERIC_SMP_HELPERS
-+void generic_smp_call_function_single_interrupt(void);
-+void generic_smp_call_function_interrupt(void);
-+void init_call_single_data(void);
-+void arch_send_call_function_single_ipi(int cpu);
-+void arch_send_call_function_ipi(cpumask_t mask);
-+extern spinlock_t call_function_lock;
-+#else
-+static inline void init_call_single_data(void)
-+{
-+}
-+#endif
- 
- /*
-  * Call a function on all processors
-@@ -112,7 +140,6 @@ static inline void smp_send_reschedule(int cpu) { }
- })
- #define smp_call_function_mask(mask, func, info, wait) \
- 			(up_smp_call_function(func, info))
+-/*
+- * Structure and data for smp_call_function(). This is designed to minimise static memory
+- * requirements. It also looks cleaner.
+- */
+-static  __cacheline_aligned DEFINE_SPINLOCK(call_lock);
 -
- #endif /* !SMP */
+-struct call_data_struct {
+-	void (*func) (void *info);
+-	void *info;
+-	long wait;
+-	atomic_t started;
+-	atomic_t finished;
+-};
+-
+-static volatile struct call_data_struct *call_data;
+-
+ #define IPI_CALL_FUNC		0
+ #define IPI_CPU_STOP		1
++#define IPI_CALL_FUNC_SINGLE	2
+ #define IPI_KDUMP_CPU_STOP	3
  
- /*
-diff --git a/init/main.c b/init/main.c
-index 1687b01..81b652e 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -778,6 +778,7 @@ static void __init do_pre_smp_initcalls(void)
+ /* This needs to be cacheline aligned because it is written to by *other* CPUs.  */
+@@ -89,13 +73,13 @@ extern void cpu_halt (void);
+ void
+ lock_ipi_calllock(void)
  {
- 	extern int spawn_ksoftirqd(void);
+-	spin_lock_irq(&call_lock);
++	spin_lock_irq(&call_function_lock);
+ }
  
-+	init_call_single_data();
- 	migration_init();
- 	spawn_ksoftirqd();
- 	if (!nosoftlockup)
-diff --git a/kernel/Makefile b/kernel/Makefile
-index 6c5f081..7e275d4 100644
---- a/kernel/Makefile
-+++ b/kernel/Makefile
-@@ -28,6 +28,7 @@ obj-$(CONFIG_DEBUG_RT_MUTEXES) += rtmutex-debug.o
- obj-$(CONFIG_RT_MUTEX_TESTER) += rtmutex-tester.o
- obj-$(CONFIG_GENERIC_ISA_DMA) += dma.o
- obj-$(CONFIG_SMP) += cpu.o spinlock.o
-+obj-$(CONFIG_USE_GENERIC_SMP_HELPERS) += smp.o
- obj-$(CONFIG_DEBUG_SPINLOCK) += spinlock.o
- obj-$(CONFIG_PROVE_LOCKING) += spinlock.o
- obj-$(CONFIG_UID16) += uid16.o
-diff --git a/kernel/smp.c b/kernel/smp.c
-new file mode 100644
-index 0000000..36d3eca
---- /dev/null
-+++ b/kernel/smp.c
-@@ -0,0 +1,415 @@
-+/*
-+ * Generic helpers for smp ipi calls
-+ *
-+ * (C) Jens Axboe <jens.axboe@oracle.com> 2008
-+ *
-+ */
-+#include <linux/init.h>
-+#include <linux/module.h>
-+#include <linux/percpu.h>
-+#include <linux/rcupdate.h>
-+#include <linux/smp.h>
+ void
+ unlock_ipi_calllock(void)
+ {
+-	spin_unlock_irq(&call_lock);
++	spin_unlock_irq(&call_function_lock);
+ }
+ 
+ static void
+@@ -139,32 +123,12 @@ handle_IPI (int irq, void *dev_id)
+ 
+ 			switch (which) {
+ 			      case IPI_CALL_FUNC:
+-			      {
+-				      struct call_data_struct *data;
+-				      void (*func)(void *info);
+-				      void *info;
+-				      int wait;
+-
+-				      /* release the 'pointer lock' */
+-				      data = (struct call_data_struct *) call_data;
+-				      func = data->func;
+-				      info = data->info;
+-				      wait = data->wait;
+-
+-				      mb();
+-				      atomic_inc(&data->started);
+-				      /*
+-				       * At this point the structure may be gone unless
+-				       * wait is true.
+-				       */
+-				      (*func)(info);
+-
+-				      /* Notify the sending CPU that the task is done.  */
+-				      mb();
+-				      if (wait)
+-					      atomic_inc(&data->finished);
+-			      }
+-			      break;
++				generic_smp_call_function_interrupt();
++				break;
 +
-+static DEFINE_PER_CPU(struct call_single_queue, call_single_queue);
-+static LIST_HEAD(call_function_queue);
-+__cacheline_aligned_in_smp DEFINE_SPINLOCK(call_function_lock);
++			      case IPI_CALL_FUNC_SINGLE:
++				generic_smp_call_function_single_interrupt();
++				break;
+ 
+ 			      case IPI_CPU_STOP:
+ 				stop_this_cpu();
+@@ -185,6 +149,8 @@ handle_IPI (int irq, void *dev_id)
+ 	return IRQ_HANDLED;
+ }
+ 
 +
-+enum {
-+	CSD_FLAG_WAIT		= 0x01,
-+	CSD_FLAG_ALLOC		= 0x02,
-+	CSD_FLAG_FALLBACK	= 0x04,
-+};
 +
-+struct call_function_data {
-+	struct call_single_data csd;
-+	spinlock_t lock;
-+	unsigned int refs;
-+	cpumask_t cpumask;
-+	struct rcu_head rcu_head;
-+};
-+
-+struct call_single_queue {
-+	struct list_head list;
-+	spinlock_t lock;
-+};
-+
-+static DEFINE_PER_CPU(struct call_function_data, cfd_fallback);
-+static DEFINE_PER_CPU(unsigned long, cfd_fallback_used);
-+
-+void __cpuinit init_call_single_data(void)
-+{
-+	int i;
-+
-+	for_each_possible_cpu(i) {
-+		struct call_single_queue *q = &per_cpu(call_single_queue, i);
-+
-+		spin_lock_init(&q->lock);
-+		INIT_LIST_HEAD(&q->list);
-+	}
-+}
-+
-+static void csd_flag_wait(struct call_single_data *data)
-+{
-+	/* Wait for response */
-+	do {
-+		/*
-+		 * We need to see the flags store in the IPI handler
-+		 */
-+		smp_mb();
-+		if (!(data->flags & CSD_FLAG_WAIT))
-+			break;
-+		cpu_relax();
-+	} while (1);
-+}
-+
-+/*
-+ * Insert a previously allocated call_single_data element for execution
-+ * on the given CPU. data must already have ->func, ->info, and ->flags set.
-+ */
-+static void generic_exec_single(int cpu, struct call_single_data *data)
-+{
-+	struct call_single_queue *dst = &per_cpu(call_single_queue, cpu);
-+	int wait = data->flags & CSD_FLAG_WAIT, ipi;
-+	unsigned long flags;
-+
-+	spin_lock_irqsave(&dst->lock, flags);
-+	ipi = list_empty(&dst->list);
-+	list_add_tail(&data->list, &dst->list);
-+	spin_unlock_irqrestore(&dst->lock, flags);
-+
-+	if (ipi)
-+		arch_send_call_function_single_ipi(cpu);
-+
-+	if (wait)
-+		csd_flag_wait(data);
-+}
-+
-+/*
-+ * We need to have a global per-cpu fallback of call_function_data, so
-+ * we can safely proceed with smp_call_function() if dynamic allocation
-+ * fails and we cannot fall back to on-stack allocation (if wait == 0).
-+ */
-+static noinline void acquire_cpu_fallback(int cpu)
-+{
-+	while (test_and_set_bit_lock(0, &per_cpu(cfd_fallback_used, cpu)))
-+		cpu_relax();
-+}
-+
-+static noinline void free_cpu_fallback(struct call_single_data *csd)
-+{
-+	struct call_function_data *data;
-+	int cpu;
-+
-+	data = container_of(csd, struct call_function_data, csd);
-+
-+	/*
-+	 * We could drop this loop by embedding a cpu variable in
-+	 * csd, but this should happen so extremely rarely (if ever)
-+	 * that this seems like a better idea
-+	 */
-+	for_each_possible_cpu(cpu) {
-+		if (&per_cpu(cfd_fallback, cpu) != data)
-+			continue;
-+
-+		clear_bit_unlock(0, &per_cpu(cfd_fallback_used, cpu));
-+		break;
-+	}
-+}
-+
-+static void rcu_free_call_data(struct rcu_head *head)
-+{
-+	struct call_function_data *data;
-+
-+	data = container_of(head, struct call_function_data, rcu_head);
-+
-+	if (data->csd.flags & CSD_FLAG_ALLOC)
-+		kfree(data);
-+	else
-+		free_cpu_fallback(&data->csd);
-+}
-+
-+/*
-+ * Invoked by arch to handle an IPI for call function. Must be called with
-+ * interrupts disabled.
-+ */
-+void generic_smp_call_function_interrupt(void)
-+{
-+	struct call_function_data *data;
-+	int cpu = get_cpu();
-+
-+	/*
-+	 * It's ok to use list_for_each_rcu() here even though we may delete
-+	 * 'pos', since list_del_rcu() doesn't clear ->next
-+	 */
-+	rcu_read_lock();
-+	list_for_each_entry_rcu(data, &call_function_queue, csd.list) {
-+		int refs;
-+
-+		if (!cpu_isset(cpu, data->cpumask))
-+			continue;
-+
-+		data->csd.func(data->csd.info);
-+
-+		spin_lock(&data->lock);
-+		cpu_clear(cpu, data->cpumask);
-+		WARN_ON(data->refs == 0);
-+		data->refs--;
-+		refs = data->refs;
-+		spin_unlock(&data->lock);
-+
-+		if (refs)
-+			continue;
-+
-+		spin_lock(&call_function_lock);
-+		list_del_rcu(&data->csd.list);
-+		spin_unlock(&call_function_lock);
-+
-+		if (data->csd.flags & CSD_FLAG_WAIT) {
-+			/*
-+			 * serialize stores to data with the flag clear
-+			 * and wakeup
-+			 */
-+			smp_wmb();
-+			data->csd.flags &= ~CSD_FLAG_WAIT;
-+		} else
-+			call_rcu(&data->rcu_head, rcu_free_call_data);
-+	}
-+	rcu_read_unlock();
-+
-+	put_cpu();
-+}
-+
-+/*
-+ * Invoked by arch to handle an IPI for call function single. Must be called
-+ * from the arch with interrupts disabled.
-+ */
-+void generic_smp_call_function_single_interrupt(void)
-+{
-+	struct call_single_queue *q = &__get_cpu_var(call_single_queue);
-+	LIST_HEAD(list);
-+
-+	/*
-+	 * Need to see other stores to list head for checking whether
-+	 * list is empty without holding q->lock
-+	 */
-+	smp_mb();
-+	while (!list_empty(&q->list)) {
-+		unsigned int data_flags;
-+
-+		spin_lock(&q->lock);
-+		list_replace_init(&q->list, &list);
-+		spin_unlock(&q->lock);
-+
-+		while (!list_empty(&list)) {
-+			struct call_single_data *data;
-+
-+			data = list_entry(list.next, struct call_single_data,
-+						list);
-+			list_del(&data->list);
-+
-+			/*
-+			 * 'data' can be invalid after this call if
-+			 * flags == 0 (when called through
-+			 * generic_exec_single(), so save them away before
-+			 * making the call.
-+			 */
-+			data_flags = data->flags;
-+
-+			data->func(data->info);
-+
-+			if (data_flags & CSD_FLAG_WAIT) {
-+				smp_wmb();
-+				data->flags &= ~CSD_FLAG_WAIT;
-+			} else if (data_flags & CSD_FLAG_ALLOC)
-+				kfree(data);
-+			else if (data_flags & CSD_FLAG_FALLBACK)
-+				free_cpu_fallback(data);
-+		}
-+		/*
-+		 * See comment on outer loop
-+		 */
-+		smp_mb();
-+	}
-+}
-+
-+/*
-+ * smp_call_function_single - Run a function on a specific CPU
-+ * @func: The function to run. This must be fast and non-blocking.
-+ * @info: An arbitrary pointer to pass to the function.
-+ * @retry: Unused
-+ * @wait: If true, wait until function has completed on other CPUs.
-+ *
-+ * Returns 0 on success, else a negative status code.
-+ */
-+int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
-+			     int retry, int wait)
-+{
-+	unsigned long flags;
-+	/* prevent preemption and reschedule on another processor */
-+	int me = get_cpu();
-+
-+	/* Can deadlock when called with interrupts disabled */
-+	WARN_ON(wait && irqs_disabled());
-+
-+	if (cpu == me) {
-+		local_irq_save(flags);
-+		func(info);
-+		local_irq_restore(flags);
-+	} else {
-+		struct call_single_data *data;
-+
-+		if (wait) {
-+			struct call_single_data d;
-+
-+			data = &d;
-+			data->flags = CSD_FLAG_WAIT;
-+		} else {
-+			data = kmalloc(sizeof(*data), GFP_ATOMIC);
-+			if (data)
-+				data->flags = CSD_FLAG_ALLOC;
-+			else {
-+				acquire_cpu_fallback(me);
-+
-+				data = &per_cpu(cfd_fallback, me).csd;
-+				data->flags = CSD_FLAG_FALLBACK;
-+			}
-+		}
-+
-+		data->func = func;
-+		data->info = info;
-+		generic_exec_single(cpu, data);
-+	}
-+
-+	put_cpu();
-+	return 0;
-+}
-+EXPORT_SYMBOL(smp_call_function_single);
-+
-+/**
-+ * __smp_call_function_single(): Run a function on another CPU
-+ * @cpu: The CPU to run on.
-+ * @data: Pre-allocated and setup data structure
-+ *
-+ * Like smp_call_function_single(), but allow caller to pass in a pre-allocated
-+ * data structure. Useful for embedding @data inside other structures, for
-+ * instance.
-+ *
-+ */
-+void __smp_call_function_single(int cpu, struct call_single_data *data)
-+{
-+	/* Can deadlock when called with interrupts disabled */
-+	WARN_ON((data->flags & CSD_FLAG_WAIT) && irqs_disabled());
-+
-+	generic_exec_single(cpu, data);
-+}
-+
-+/**
-+ * smp_call_function_mask(): Run a function on a set of other CPUs.
-+ * @mask: The set of cpus to run on.
-+ * @func: The function to run. This must be fast and non-blocking.
-+ * @info: An arbitrary pointer to pass to the function.
-+ * @wait: If true, wait (atomically) until function has completed on other CPUs.
-+ *
-+ * Returns 0 on success, else a negative status code.
-+ *
-+ * If @wait is true, then returns once @func has returned.
-+ *
-+ * You must not call this function with disabled interrupts or from a
-+ * hardware interrupt handler or from a bottom half handler.
-+ */
-+int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
-+			   int wait)
-+{
-+	struct call_function_data *data;
-+	cpumask_t allbutself;
-+	unsigned long flags;
-+	int cpu, num_cpus;
-+
-+	/* Can deadlock when called with interrupts disabled */
-+	WARN_ON(wait && irqs_disabled());
-+
-+	cpu = smp_processor_id();
-+	allbutself = cpu_online_map;
-+	cpu_clear(cpu, allbutself);
-+	cpus_and(mask, mask, allbutself);
-+	num_cpus = cpus_weight(mask);
-+
-+	/*
-+	 * If zero CPUs, return. If just a single CPU, turn this request
-+	 * into a targetted single call instead since it's faster.
-+	 */
-+	if (!num_cpus)
-+		return 0;
-+	else if (num_cpus == 1) {
-+		cpu = first_cpu(mask);
-+		return smp_call_function_single(cpu, func, info, 0, wait);
-+	}
-+
-+	if (wait) {
-+		struct call_function_data d;
-+
-+		data = &d;
-+		data->csd.flags = CSD_FLAG_WAIT;
-+	} else {
-+		data = kmalloc(sizeof(*data), GFP_ATOMIC);
-+		if (data)
-+			data->csd.flags = CSD_FLAG_ALLOC;
-+		else {
-+			acquire_cpu_fallback(cpu);
-+
-+			data = &per_cpu(cfd_fallback, cpu);
-+			data->csd.flags = CSD_FLAG_FALLBACK;
-+		}
-+	}
-+
-+	spin_lock_init(&data->lock);
-+	data->csd.func = func;
-+	data->csd.info = info;
-+	data->refs = num_cpus;
-+
-+	/*
-+	 * need to see above stores before the cpumask is valid for the CPU
-+	 */
-+	smp_wmb();
-+	data->cpumask = mask;
-+
-+	spin_lock_irqsave(&call_function_lock, flags);
-+	list_add_tail_rcu(&data->csd.list, &call_function_queue);
-+	spin_unlock_irqrestore(&call_function_lock, flags);
-+
-+	/* Send a message to all CPUs in the map */
-+	arch_send_call_function_ipi(mask);
-+
-+	/* optionally wait for the CPUs to complete */
-+	if (wait)
-+		csd_flag_wait(&data->csd);
-+
-+	return 0;
-+}
-+EXPORT_SYMBOL(smp_call_function_mask);
-+
-+/**
-+ * smp_call_function(): Run a function on all other CPUs.
-+ * @func: The function to run. This must be fast and non-blocking.
-+ * @info: An arbitrary pointer to pass to the function.
-+ * @natomic: Unused
-+ * @wait: If true, wait (atomically) until function has completed on other CPUs.
-+ *
-+ * Returns 0 on success, else a negative status code.
-+ *
-+ * If @wait is true, then returns once @func has returned; otherwise
-+ * it returns just before the target cpu calls @func.
-+ *
-+ * You must not call this function with disabled interrupts or from a
-+ * hardware interrupt handler or from a bottom half handler.
-+ */
-+int smp_call_function(void (*func)(void *), void *info, int natomic, int wait)
-+{
-+	int ret;
-+
-+	preempt_disable();
-+	ret = smp_call_function_mask(cpu_online_map, func, info, wait);
-+	preempt_enable();
-+	return ret;
-+}
-+EXPORT_SYMBOL(smp_call_function);
+ /*
+  * Called with preemption disabled.
+  */
+@@ -358,190 +324,15 @@ smp_flush_tlb_mm (struct mm_struct *mm)
+ 	on_each_cpu((void (*)(void *))local_finish_flush_tlb_mm, mm, 1, 1);
+ }
+ 
+-/*
+- * Run a function on a specific CPU
+- *  <func>	The function to run. This must be fast and non-blocking.
+- *  <info>	An arbitrary pointer to pass to the function.
+- *  <nonatomic>	Currently unused.
+- *  <wait>	If true, wait until function has completed on other CPUs.
+- *  [RETURNS]   0 on success, else a negative status code.
+- *
+- * Does not return until the remote CPU is nearly ready to execute <func>
+- * or is or has executed.
+- */
+-
+-int
+-smp_call_function_single (int cpuid, void (*func) (void *info), void *info, int nonatomic,
+-			  int wait)
+-{
+-	struct call_data_struct data;
+-	int cpus = 1;
+-	int me = get_cpu(); /* prevent preemption and reschedule on another processor */
+-
+-	if (cpuid == me) {
+-		local_irq_disable();
+-		func(info);
+-		local_irq_enable();
+-		put_cpu();
+-		return 0;
+-	}
+-
+-	data.func = func;
+-	data.info = info;
+-	atomic_set(&data.started, 0);
+-	data.wait = wait;
+-	if (wait)
+-		atomic_set(&data.finished, 0);
+-
+-	spin_lock_bh(&call_lock);
+-
+-	call_data = &data;
+-	mb();	/* ensure store to call_data precedes setting of IPI_CALL_FUNC */
+-  	send_IPI_single(cpuid, IPI_CALL_FUNC);
+-
+-	/* Wait for response */
+-	while (atomic_read(&data.started) != cpus)
+-		cpu_relax();
+-
+-	if (wait)
+-		while (atomic_read(&data.finished) != cpus)
+-			cpu_relax();
+-	call_data = NULL;
+-
+-	spin_unlock_bh(&call_lock);
+-	put_cpu();
+-	return 0;
+-}
+-EXPORT_SYMBOL(smp_call_function_single);
+-
+-/**
+- * smp_call_function_mask(): Run a function on a set of other CPUs.
+- * <mask>	The set of cpus to run on.  Must not include the current cpu.
+- * <func> 	The function to run. This must be fast and non-blocking.
+- * <info>	An arbitrary pointer to pass to the function.
+- * <wait>	If true, wait (atomically) until function
+- *		has completed on other CPUs.
+- *
+- * Returns 0 on success, else a negative status code.
+- *
+- * If @wait is true, then returns once @func has returned; otherwise
+- * it returns just before the target cpu calls @func.
+- *
+- * You must not call this function with disabled interrupts or from a
+- * hardware interrupt handler or from a bottom half handler.
+- */
+-int smp_call_function_mask(cpumask_t mask,
+-			   void (*func)(void *), void *info,
+-			   int wait)
++void arch_send_call_function_single_ipi(int cpu)
+ {
+-	struct call_data_struct data;
+-	cpumask_t allbutself;
+-	int cpus;
+-
+-	spin_lock(&call_lock);
+-	allbutself = cpu_online_map;
+-	cpu_clear(smp_processor_id(), allbutself);
+-
+-	cpus_and(mask, mask, allbutself);
+-	cpus = cpus_weight(mask);
+-	if (!cpus) {
+-		spin_unlock(&call_lock);
+-		return 0;
+-	}
+-
+-	/* Can deadlock when called with interrupts disabled */
+-	WARN_ON(irqs_disabled());
+-
+-	data.func = func;
+-	data.info = info;
+-	atomic_set(&data.started, 0);
+-	data.wait = wait;
+-	if (wait)
+-		atomic_set(&data.finished, 0);
+-
+-	call_data = &data;
+-	mb(); /* ensure store to call_data precedes setting of IPI_CALL_FUNC*/
+-
+-	/* Send a message to other CPUs */
+-	if (cpus_equal(mask, allbutself))
+-		send_IPI_allbutself(IPI_CALL_FUNC);
+-	else
+-		send_IPI_mask(mask, IPI_CALL_FUNC);
+-
+-	/* Wait for response */
+-	while (atomic_read(&data.started) != cpus)
+-		cpu_relax();
+-
+-	if (wait)
+-		while (atomic_read(&data.finished) != cpus)
+-			cpu_relax();
+-	call_data = NULL;
+-
+-	spin_unlock(&call_lock);
+-	return 0;
+-
++	send_IPI_single(cpu, IPI_CALL_FUNC_SINGLE);
+ }
+-EXPORT_SYMBOL(smp_call_function_mask);
+ 
+-/*
+- * this function sends a 'generic call function' IPI to all other CPUs
+- * in the system.
+- */
+-
+-/*
+- *  [SUMMARY]	Run a function on all other CPUs.
+- *  <func>	The function to run. This must be fast and non-blocking.
+- *  <info>	An arbitrary pointer to pass to the function.
+- *  <nonatomic>	currently unused.
+- *  <wait>	If true, wait (atomically) until function has completed on other CPUs.
+- *  [RETURNS]   0 on success, else a negative status code.
+- *
+- * Does not return until remote CPUs are nearly ready to execute <func> or are or have
+- * executed.
+- *
+- * You must not call this function with disabled interrupts or from a
+- * hardware interrupt handler or from a bottom half handler.
+- */
+-int
+-smp_call_function (void (*func) (void *info), void *info, int nonatomic, int wait)
++void arch_send_call_function_ipi(cpumask_t mask)
+ {
+-	struct call_data_struct data;
+-	int cpus;
+-
+-	spin_lock(&call_lock);
+-	cpus = num_online_cpus() - 1;
+-	if (!cpus) {
+-		spin_unlock(&call_lock);
+-		return 0;
+-	}
+-
+-	/* Can deadlock when called with interrupts disabled */
+-	WARN_ON(irqs_disabled());
+-
+-	data.func = func;
+-	data.info = info;
+-	atomic_set(&data.started, 0);
+-	data.wait = wait;
+-	if (wait)
+-		atomic_set(&data.finished, 0);
+-
+-	call_data = &data;
+-	mb();	/* ensure store to call_data precedes setting of IPI_CALL_FUNC */
+-	send_IPI_allbutself(IPI_CALL_FUNC);
+-
+-	/* Wait for response */
+-	while (atomic_read(&data.started) != cpus)
+-		cpu_relax();
+-
+-	if (wait)
+-		while (atomic_read(&data.finished) != cpus)
+-			cpu_relax();
+-	call_data = NULL;
+-
+-	spin_unlock(&call_lock);
+-	return 0;
++	send_IPI_mask(mask, IPI_CALL_FUNC);
+ }
+-EXPORT_SYMBOL(smp_call_function);
+ 
+ /*
+  * this function calls the 'stop' function on all other CPUs in the system.
+diff --git a/include/asm-ia64/smp.h b/include/asm-ia64/smp.h
+index ec5f355..4fa733d 100644
+--- a/include/asm-ia64/smp.h
++++ b/include/asm-ia64/smp.h
+@@ -38,9 +38,6 @@ ia64_get_lid (void)
+ 	return lid.f.id << 8 | lid.f.eid;
+ }
+ 
+-extern int smp_call_function_mask(cpumask_t mask, void (*func)(void *),
+-				  void *info, int wait);
+-
+ #define hard_smp_processor_id()		ia64_get_lid()
+ 
+ #ifdef CONFIG_SMP
 -- 
 1.5.5.1.57.g5909c
 
