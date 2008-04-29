@@ -1,45 +1,28 @@
 From: David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
-Subject: Re: [patch 275/311] kernel: Move arches to use common unaligned
- access
-Date: Tue, 29 Apr 2008 01:19:50 -0700 (PDT)
-Message-ID: <20080429.011950.50578885.davem@davemloft.net>
-References: <200804290803.m3T83UB3009859@imap1.linux-foundation.org>
+Subject: Re: [rfc] data race in page table setup/walking?
+Date: Tue, 29 Apr 2008 03:56:07 -0700 (PDT)
+Message-ID: <20080429.035607.224699531.davem@davemloft.net>
+References: <20080429050054.GC21795@wotan.suse.de>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <200804290803.m3T83UB3009859-AB4EexQrvXRQetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20080429050054.GC21795-B4tOwbsTzaBolqkO4TVVkw@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
-Cc: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: npiggin-l3A5Bk7waGM@public.gmane.org
+Cc: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, hugh-DTz5qymZ9yRBDgjK7y7TUQ@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org
 
-From: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
-Date: Tue, 29 Apr 2008 01:03:30 -0700
+From: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
+Date: Tue, 29 Apr 2008 07:00:54 +0200
 
-> From: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-> 
-> Unaligned access is ok for the following arches:
-> cris, m68k, mn10300, powerpc, s390, x86
-> 
-> Arches that use the memmove implementation for native endian, and
-> the byteshifting for the opposite endianness.
-> h8300, m32r, xtensa
-> 
-> Packed struct for native endian, byteshifting for other endian:
-> alpha, blackfin, ia64, parisc, sparc, sparc64, mips, sh
-> 
-> m86knommu is generic_be for Coldfire, otherwise unaligned access is ok.
-> 
-> frv, arm chooses endianness based on compiler settings, uses the byteshifting
-> versions.  Remove the unaligned trap handler from frv as it is now unused.
-> 
-> v850 is le, uses the byteshifting versions for both be and le.
-> 
-> Remove the now unused asm-generic implementation.
-> 
-> Signed-off-by: Harvey Harrison <harvey.harrison-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-> Cc: <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-> Signed-off-by: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+> So anyway... comments, please? Am I dreaming the whole thing up? I suspect
+> that if I'm not, then powerpc at least might have been impacted by the race,
+> but as far as I know of, they haven't seen stability problems around there...
+> Might just be terribly rare, though. I'd like to try to make a test program
+> to reproduce the problem if I can get access to a box...
 
-Acked-by: David S. Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
+This definitely does look like a real problem, albeit pretty hard to
+trigger I would say. :-)
+
+Thanks for looking into this.
