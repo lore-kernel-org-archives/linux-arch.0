@@ -1,53 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:49859 "EHLO mail.goop.org"
+Received: from ozlabs.org ([203.10.76.45]:48333 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755920AbYD2UgD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Apr 2008 16:36:03 -0400
-Message-ID: <481786A5.7010604@goop.org>
-Date: Tue, 29 Apr 2008 13:35:49 -0700
-From: Jeremy Fitzhardinge <jeremy@goop.org>
+	id S1750837AbYD2VQs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Apr 2008 17:16:48 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH 2/10] x86: convert to generic helpers for IPI function
- calls
-References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com> <1209453990-7735-3-git-send-email-jens.axboe@oracle.com>
-In-Reply-To: <1209453990-7735-3-git-send-email-jens.axboe@oracle.com>
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
+Message-ID: <18455.36914.506429.279177@cargo.ozlabs.ibm.com>
+Date: Wed, 30 Apr 2008 07:16:34 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH] Add fast little-endian switch system call
+In-Reply-To: <20080429184047.47CB7247B4@gemini.denx.de>
+References: <18454.35824.527711.355488@cargo.ozlabs.ibm.com>
+	<20080429184047.47CB7247B4@gemini.denx.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
-Message-ID: <20080429203549.XIJAcUnSDStymoBIhHKg3W0JpRgg2uyRwQI1MS7UNWo@z>
+To: Wolfgang Denk <wd@denx.de>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, mtk.manpages@gmail.com
+Message-ID: <20080429211634.yXYoYhf119a7Rzsm-5bCkC7yUDwRZMg7osbSvMScvH4@z>
 
-Jens Axboe wrote:
-> -int xen_smp_call_function_mask(cpumask_t mask, void (*func)(void *),
-> -			       void *info, int wait)
->   
-[...]
-> -	/* Send a message to other CPUs and wait for them to respond */
-> -	xen_send_IPI_mask(mask, XEN_CALL_FUNCTION_VECTOR);
-> -
-> -	/* Make sure other vcpus get a chance to run if they need to. */
-> -	yield = false;
-> -	for_each_cpu_mask(cpu, mask)
-> -		if (xen_vcpu_stolen(cpu))
-> -			yield = true;
-> -
-> -	if (yield)
-> -		HYPERVISOR_sched_op(SCHEDOP_yield, 0);
->   
+Wolfgang Denk writes:
 
-I added this to deal with the case where you're sending an IPI to 
-another VCPU which isn't currently running on a real cpu.  In this case 
-you could end up spinning while the other VCPU is waiting for a real CPU 
-to run on.  (Basically the same problem that spinlocks have in a virtual 
-environment.)
+> This probably depends a bit on  the  performance  of  the  system  in
+> question. Did you measure it - for example - on a 50 MHz MPC850 ?
 
-However, this is at best a partial solution to the problem, and I never 
-benchmarked if it really makes a difference.  Since any other virtual 
-environment would have the same problem, its best if we can solve it 
-generically.  (Of course a synchronous single-target cross-cpu call is a 
-simple cross-cpu rpc, which could be implemented very efficiently in the 
-host/hypervisor by simply doing a vcpu context switch...)
+The patch only affects arch/powerpc/kernel/entry_64.S.  So no, I
+didn't measure it on a 50MHz MPC850, or indeed any 32-bit system. :)
 
-    J
+Paul.
