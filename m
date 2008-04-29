@@ -1,41 +1,341 @@
-From: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
-Subject: Re: [rfc] data race in page table setup/walking?
-Date: Tue, 29 Apr 2008 07:41:35 +0200
-Message-ID: <20080429054135.GD21795@wotan.suse.de>
-References: <20080429050054.GC21795@wotan.suse.de> <1209445724.18023.136.camel@pasglop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Subject: [PATCH 4/10] ia64: convert to generic helpers for IPI function calls
+Date: Tue, 29 Apr 2008 09:26:24 +0200
+Message-ID: <1209453990-7735-5-git-send-email-jens.axboe@oracle.com>
+References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com>
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <1209445724.18023.136.camel@pasglop>
+In-Reply-To: <1209453990-7735-1-git-send-email-jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
-Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Hugh Dickins <hugh-DTz5qymZ9yRBDgjK7y7TUQ@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Memory Management List <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, jeremy-TSDbQ3PG+2Y@public.gmane.org, mingo-X9Un+BFzKDI@public.gmane.org, paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org, Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
 
-On Tue, Apr 29, 2008 at 03:08:44PM +1000, Benjamin Herrenschmidt wrote:
-> 
-> On Tue, 2008-04-29 at 07:00 +0200, Nick Piggin wrote:
-> > 
-> > At this point, the spinlock is not guaranteed to have ordered the previous
-> > stores to initialize the pte page with the subsequent store to put it in the
-> > page tables. So another Linux page table walker might be walking down (without
-> > any locks, because we have split-leaf-ptls), and find that new pte we've
-> > inserted. It might try to take the spinlock before the store from the other
-> > CPU initializes it. And subsequently it might read a pte_t out before stores
-> > from the other CPU have cleared the memory.
-> 
-> Funny, we used to have a similar race where the zeros for clearing a
-> newly allocated anonymous pages end up reaching the coherency domain
-> after the new PTE in set_pte, causing memory corruption on threaded
-> apps. I think back then we fixed that with an explicit smp_wmb() before
-> a set_pte().
+This converts ia64 to use the new helpers for smp_call_function() and
+friends, and adds support for smp_call_function_single().
 
-Yep, I remember that one. We had the same problem with inserting pages
-into the pagecache radix-tree, so I recently changed the fix to encompass
-both problems: the barriers are now in SetPageUptodate and (Test)PageUptodate.
+Cc: Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Signed-off-by: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+---
+ arch/ia64/Kconfig      |    1 +
+ arch/ia64/kernel/smp.c |  239 +++---------------------------------------------
+ include/asm-ia64/smp.h |    3 -
+ 3 files changed, 16 insertions(+), 227 deletions(-)
 
-
-> Maybe we need that also when setting the higher levels.
-
-That is my reading of the situation, yes.
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 3aa6c82..9e1e115 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -286,6 +286,7 @@ config VIRT_CPU_ACCOUNTING
+ 
+ config SMP
+ 	bool "Symmetric multi-processing support"
++	select USE_GENERIC_SMP_HELPERS
+ 	help
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, say N.  If you have a system with more
+diff --git a/arch/ia64/kernel/smp.c b/arch/ia64/kernel/smp.c
+index 9a9d4c4..c5dcd03 100644
+--- a/arch/ia64/kernel/smp.c
++++ b/arch/ia64/kernel/smp.c
+@@ -60,25 +60,9 @@ static struct local_tlb_flush_counts {
+ 
+ static DEFINE_PER_CPU(unsigned int, shadow_flush_counts[NR_CPUS]) ____cacheline_aligned;
+ 
+-
+-/*
+- * Structure and data for smp_call_function(). This is designed to minimise static memory
+- * requirements. It also looks cleaner.
+- */
+-static  __cacheline_aligned DEFINE_SPINLOCK(call_lock);
+-
+-struct call_data_struct {
+-	void (*func) (void *info);
+-	void *info;
+-	long wait;
+-	atomic_t started;
+-	atomic_t finished;
+-};
+-
+-static volatile struct call_data_struct *call_data;
+-
+ #define IPI_CALL_FUNC		0
+ #define IPI_CPU_STOP		1
++#define IPI_CALL_FUNC_SINGLE	2
+ #define IPI_KDUMP_CPU_STOP	3
+ 
+ /* This needs to be cacheline aligned because it is written to by *other* CPUs.  */
+@@ -89,13 +73,13 @@ extern void cpu_halt (void);
+ void
+ lock_ipi_calllock(void)
+ {
+-	spin_lock_irq(&call_lock);
++	spin_lock_irq(&call_function_lock);
+ }
+ 
+ void
+ unlock_ipi_calllock(void)
+ {
+-	spin_unlock_irq(&call_lock);
++	spin_unlock_irq(&call_function_lock);
+ }
+ 
+ static void
+@@ -139,32 +123,12 @@ handle_IPI (int irq, void *dev_id)
+ 
+ 			switch (which) {
+ 			      case IPI_CALL_FUNC:
+-			      {
+-				      struct call_data_struct *data;
+-				      void (*func)(void *info);
+-				      void *info;
+-				      int wait;
+-
+-				      /* release the 'pointer lock' */
+-				      data = (struct call_data_struct *) call_data;
+-				      func = data->func;
+-				      info = data->info;
+-				      wait = data->wait;
+-
+-				      mb();
+-				      atomic_inc(&data->started);
+-				      /*
+-				       * At this point the structure may be gone unless
+-				       * wait is true.
+-				       */
+-				      (*func)(info);
+-
+-				      /* Notify the sending CPU that the task is done.  */
+-				      mb();
+-				      if (wait)
+-					      atomic_inc(&data->finished);
+-			      }
+-			      break;
++				generic_smp_call_function_interrupt();
++				break;
++
++			      case IPI_CALL_FUNC_SINGLE:
++				generic_smp_call_function_single_interrupt();
++				break;
+ 
+ 			      case IPI_CPU_STOP:
+ 				stop_this_cpu();
+@@ -185,6 +149,8 @@ handle_IPI (int irq, void *dev_id)
+ 	return IRQ_HANDLED;
+ }
+ 
++
++
+ /*
+  * Called with preemption disabled.
+  */
+@@ -358,190 +324,15 @@ smp_flush_tlb_mm (struct mm_struct *mm)
+ 	on_each_cpu((void (*)(void *))local_finish_flush_tlb_mm, mm, 1, 1);
+ }
+ 
+-/*
+- * Run a function on a specific CPU
+- *  <func>	The function to run. This must be fast and non-blocking.
+- *  <info>	An arbitrary pointer to pass to the function.
+- *  <nonatomic>	Currently unused.
+- *  <wait>	If true, wait until function has completed on other CPUs.
+- *  [RETURNS]   0 on success, else a negative status code.
+- *
+- * Does not return until the remote CPU is nearly ready to execute <func>
+- * or is or has executed.
+- */
+-
+-int
+-smp_call_function_single (int cpuid, void (*func) (void *info), void *info, int nonatomic,
+-			  int wait)
+-{
+-	struct call_data_struct data;
+-	int cpus = 1;
+-	int me = get_cpu(); /* prevent preemption and reschedule on another processor */
+-
+-	if (cpuid == me) {
+-		local_irq_disable();
+-		func(info);
+-		local_irq_enable();
+-		put_cpu();
+-		return 0;
+-	}
+-
+-	data.func = func;
+-	data.info = info;
+-	atomic_set(&data.started, 0);
+-	data.wait = wait;
+-	if (wait)
+-		atomic_set(&data.finished, 0);
+-
+-	spin_lock_bh(&call_lock);
+-
+-	call_data = &data;
+-	mb();	/* ensure store to call_data precedes setting of IPI_CALL_FUNC */
+-  	send_IPI_single(cpuid, IPI_CALL_FUNC);
+-
+-	/* Wait for response */
+-	while (atomic_read(&data.started) != cpus)
+-		cpu_relax();
+-
+-	if (wait)
+-		while (atomic_read(&data.finished) != cpus)
+-			cpu_relax();
+-	call_data = NULL;
+-
+-	spin_unlock_bh(&call_lock);
+-	put_cpu();
+-	return 0;
+-}
+-EXPORT_SYMBOL(smp_call_function_single);
+-
+-/**
+- * smp_call_function_mask(): Run a function on a set of other CPUs.
+- * <mask>	The set of cpus to run on.  Must not include the current cpu.
+- * <func> 	The function to run. This must be fast and non-blocking.
+- * <info>	An arbitrary pointer to pass to the function.
+- * <wait>	If true, wait (atomically) until function
+- *		has completed on other CPUs.
+- *
+- * Returns 0 on success, else a negative status code.
+- *
+- * If @wait is true, then returns once @func has returned; otherwise
+- * it returns just before the target cpu calls @func.
+- *
+- * You must not call this function with disabled interrupts or from a
+- * hardware interrupt handler or from a bottom half handler.
+- */
+-int smp_call_function_mask(cpumask_t mask,
+-			   void (*func)(void *), void *info,
+-			   int wait)
++void arch_send_call_function_single_ipi(int cpu)
+ {
+-	struct call_data_struct data;
+-	cpumask_t allbutself;
+-	int cpus;
+-
+-	spin_lock(&call_lock);
+-	allbutself = cpu_online_map;
+-	cpu_clear(smp_processor_id(), allbutself);
+-
+-	cpus_and(mask, mask, allbutself);
+-	cpus = cpus_weight(mask);
+-	if (!cpus) {
+-		spin_unlock(&call_lock);
+-		return 0;
+-	}
+-
+-	/* Can deadlock when called with interrupts disabled */
+-	WARN_ON(irqs_disabled());
+-
+-	data.func = func;
+-	data.info = info;
+-	atomic_set(&data.started, 0);
+-	data.wait = wait;
+-	if (wait)
+-		atomic_set(&data.finished, 0);
+-
+-	call_data = &data;
+-	mb(); /* ensure store to call_data precedes setting of IPI_CALL_FUNC*/
+-
+-	/* Send a message to other CPUs */
+-	if (cpus_equal(mask, allbutself))
+-		send_IPI_allbutself(IPI_CALL_FUNC);
+-	else
+-		send_IPI_mask(mask, IPI_CALL_FUNC);
+-
+-	/* Wait for response */
+-	while (atomic_read(&data.started) != cpus)
+-		cpu_relax();
+-
+-	if (wait)
+-		while (atomic_read(&data.finished) != cpus)
+-			cpu_relax();
+-	call_data = NULL;
+-
+-	spin_unlock(&call_lock);
+-	return 0;
+-
++	send_IPI_single(cpu, IPI_CALL_FUNC_SINGLE);
+ }
+-EXPORT_SYMBOL(smp_call_function_mask);
+ 
+-/*
+- * this function sends a 'generic call function' IPI to all other CPUs
+- * in the system.
+- */
+-
+-/*
+- *  [SUMMARY]	Run a function on all other CPUs.
+- *  <func>	The function to run. This must be fast and non-blocking.
+- *  <info>	An arbitrary pointer to pass to the function.
+- *  <nonatomic>	currently unused.
+- *  <wait>	If true, wait (atomically) until function has completed on other CPUs.
+- *  [RETURNS]   0 on success, else a negative status code.
+- *
+- * Does not return until remote CPUs are nearly ready to execute <func> or are or have
+- * executed.
+- *
+- * You must not call this function with disabled interrupts or from a
+- * hardware interrupt handler or from a bottom half handler.
+- */
+-int
+-smp_call_function (void (*func) (void *info), void *info, int nonatomic, int wait)
++void arch_send_call_function_ipi(cpumask_t mask)
+ {
+-	struct call_data_struct data;
+-	int cpus;
+-
+-	spin_lock(&call_lock);
+-	cpus = num_online_cpus() - 1;
+-	if (!cpus) {
+-		spin_unlock(&call_lock);
+-		return 0;
+-	}
+-
+-	/* Can deadlock when called with interrupts disabled */
+-	WARN_ON(irqs_disabled());
+-
+-	data.func = func;
+-	data.info = info;
+-	atomic_set(&data.started, 0);
+-	data.wait = wait;
+-	if (wait)
+-		atomic_set(&data.finished, 0);
+-
+-	call_data = &data;
+-	mb();	/* ensure store to call_data precedes setting of IPI_CALL_FUNC */
+-	send_IPI_allbutself(IPI_CALL_FUNC);
+-
+-	/* Wait for response */
+-	while (atomic_read(&data.started) != cpus)
+-		cpu_relax();
+-
+-	if (wait)
+-		while (atomic_read(&data.finished) != cpus)
+-			cpu_relax();
+-	call_data = NULL;
+-
+-	spin_unlock(&call_lock);
+-	return 0;
++	send_IPI_mask(mask, IPI_CALL_FUNC);
+ }
+-EXPORT_SYMBOL(smp_call_function);
+ 
+ /*
+  * this function calls the 'stop' function on all other CPUs in the system.
+diff --git a/include/asm-ia64/smp.h b/include/asm-ia64/smp.h
+index ec5f355..4fa733d 100644
+--- a/include/asm-ia64/smp.h
++++ b/include/asm-ia64/smp.h
+@@ -38,9 +38,6 @@ ia64_get_lid (void)
+ 	return lid.f.id << 8 | lid.f.eid;
+ }
+ 
+-extern int smp_call_function_mask(cpumask_t mask, void (*func)(void *),
+-				  void *info, int wait);
+-
+ #define hard_smp_processor_id()		ia64_get_lid()
+ 
+ #ifdef CONFIG_SMP
+-- 
+1.5.5.1.57.g5909c
