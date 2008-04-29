@@ -1,347 +1,211 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:17203 "EHLO kernel.dk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750901AbYD2HZn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Apr 2008 03:25:43 -0400
-From: Jens Axboe <jens.axboe@oracle.com>
-Subject: [PATCH 4/10] ia64: convert to generic helpers for IPI function calls
-Date: Tue, 29 Apr 2008 09:26:24 +0200
-Message-ID: <1209453990-7735-5-git-send-email-jens.axboe@oracle.com>
-In-Reply-To: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com>
-References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:35303 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753419AbYD2H7P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Apr 2008 03:59:15 -0400
+Message-ID: <200804290759.m3T7xBpN008747@imap1.linux-foundation.org>
+Subject: [patch 041/311] iomap: fix 64 bits resources on 32 bits
+From: akpm@linux-foundation.org
+Date: Tue, 29 Apr 2008 00:59:11 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com, Jens Axboe <jens.axboe@oracle.com>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20080429072624.8zPFYKC1fO02jUM1io-829Nc4iTMyR83VuHGRYg-qcA@z>
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, benh@kernel.crashing.org, linux-arch@vger.kernel.org
+Message-ID: <20080429075911.TGQpz8I6fENgMkoKbiSHIjUKSRbnwcZWG80Svk6bFig@z>
 
-This converts ia64 to use the new helpers for smp_call_function() and
-friends, and adds support for smp_call_function_single().
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Cc: Tony Luck <tony.luck@intel.com>
-Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
+Almost all implementations of pci_iomap() in the kernel, including the generic
+lib/iomap.c one, copies the content of a struct resource into unsigned long's
+which will break on 32 bits platforms with 64 bits resources.
+
+This fixes all definitions of pci_iomap() to use resource_size_t.  I also
+"fixed" the 64bits arch for consistency.
+
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
- arch/ia64/Kconfig      |    1 +
- arch/ia64/kernel/smp.c |  239 +++---------------------------------------------
- include/asm-ia64/smp.h |    3 -
- 3 files changed, 16 insertions(+), 227 deletions(-)
 
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 3aa6c82..9e1e115 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -286,6 +286,7 @@ config VIRT_CPU_ACCOUNTING
+ arch/alpha/kernel/pci.c               |    4 ++--
+ arch/arm/mm/iomap.c                   |    4 ++--
+ arch/frv/mb93090-mb00/pci-iomap.c     |    4 ++--
+ arch/mips/lib/iomap-pci.c             |    4 ++--
+ arch/mn10300/unit-asb2305/pci-iomap.c |    4 ++--
+ arch/parisc/lib/iomap.c               |    4 ++--
+ arch/ppc/kernel/pci.c                 |    4 ++--
+ arch/sh/drivers/pci/pci.c             |    4 ++--
+ arch/sparc/lib/iomap.c                |    4 ++--
+ arch/sparc64/lib/iomap.c              |    4 ++--
+ arch/v850/kernel/rte_mb_a_pci.c       |    4 ++--
+ lib/iomap.c                           |    2 +-
+ 12 files changed, 23 insertions(+), 23 deletions(-)
+
+diff -puN arch/alpha/kernel/pci.c~iomap-fix-64-bits-resources-on-32-bits arch/alpha/kernel/pci.c
+--- a/arch/alpha/kernel/pci.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/alpha/kernel/pci.c
+@@ -514,8 +514,8 @@ sys_pciconfig_iobase(long which, unsigne
  
- config SMP
- 	bool "Symmetric multi-processing support"
-+	select USE_GENERIC_SMP_HELPERS
- 	help
- 	  This enables support for systems with more than one CPU. If you have
- 	  a system with only one CPU, say N.  If you have a system with more
-diff --git a/arch/ia64/kernel/smp.c b/arch/ia64/kernel/smp.c
-index 9a9d4c4..c5dcd03 100644
---- a/arch/ia64/kernel/smp.c
-+++ b/arch/ia64/kernel/smp.c
-@@ -60,25 +60,9 @@ static struct local_tlb_flush_counts {
- 
- static DEFINE_PER_CPU(unsigned int, shadow_flush_counts[NR_CPUS]) ____cacheline_aligned;
- 
--
--/*
-- * Structure and data for smp_call_function(). This is designed to minimise static memory
-- * requirements. It also looks cleaner.
-- */
--static  __cacheline_aligned DEFINE_SPINLOCK(call_lock);
--
--struct call_data_struct {
--	void (*func) (void *info);
--	void *info;
--	long wait;
--	atomic_t started;
--	atomic_t finished;
--};
--
--static volatile struct call_data_struct *call_data;
--
- #define IPI_CALL_FUNC		0
- #define IPI_CPU_STOP		1
-+#define IPI_CALL_FUNC_SINGLE	2
- #define IPI_KDUMP_CPU_STOP	3
- 
- /* This needs to be cacheline aligned because it is written to by *other* CPUs.  */
-@@ -89,13 +73,13 @@ extern void cpu_halt (void);
- void
- lock_ipi_calllock(void)
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
  {
--	spin_lock_irq(&call_lock);
-+	spin_lock_irq(&call_function_lock);
- }
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
  
- void
- unlock_ipi_calllock(void)
+ 	if (!len || !start)
+diff -puN arch/arm/mm/iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/arm/mm/iomap.c
+--- a/arch/arm/mm/iomap.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/arm/mm/iomap.c
+@@ -26,8 +26,8 @@ EXPORT_SYMBOL(ioport_unmap);
+ #ifdef CONFIG_PCI
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
  {
--	spin_unlock_irq(&call_lock);
-+	spin_unlock_irq(&call_function_lock);
- }
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len   = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len   = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
  
- static void
-@@ -139,32 +123,12 @@ handle_IPI (int irq, void *dev_id)
+ 	if (!len || !start)
+diff -puN arch/frv/mb93090-mb00/pci-iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/frv/mb93090-mb00/pci-iomap.c
+--- a/arch/frv/mb93090-mb00/pci-iomap.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/frv/mb93090-mb00/pci-iomap.c
+@@ -13,8 +13,8 @@
  
- 			switch (which) {
- 			      case IPI_CALL_FUNC:
--			      {
--				      struct call_data_struct *data;
--				      void (*func)(void *info);
--				      void *info;
--				      int wait;
--
--				      /* release the 'pointer lock' */
--				      data = (struct call_data_struct *) call_data;
--				      func = data->func;
--				      info = data->info;
--				      wait = data->wait;
--
--				      mb();
--				      atomic_inc(&data->started);
--				      /*
--				       * At this point the structure may be gone unless
--				       * wait is true.
--				       */
--				      (*func)(info);
--
--				      /* Notify the sending CPU that the task is done.  */
--				      mb();
--				      if (wait)
--					      atomic_inc(&data->finished);
--			      }
--			      break;
-+				generic_smp_call_function_interrupt();
-+				break;
-+
-+			      case IPI_CALL_FUNC_SINGLE:
-+				generic_smp_call_function_single_interrupt();
-+				break;
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
  
- 			      case IPI_CPU_STOP:
- 				stop_this_cpu();
-@@ -185,6 +149,8 @@ handle_IPI (int irq, void *dev_id)
- 	return IRQ_HANDLED;
- }
- 
-+
-+
- /*
-  * Called with preemption disabled.
+ 	if (!len || !start)
+diff -puN arch/mips/lib/iomap-pci.c~iomap-fix-64-bits-resources-on-32-bits arch/mips/lib/iomap-pci.c
+--- a/arch/mips/lib/iomap-pci.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/mips/lib/iomap-pci.c
+@@ -45,8 +45,8 @@ static void __iomem *ioport_map_pci(stru
   */
-@@ -358,190 +324,15 @@ smp_flush_tlb_mm (struct mm_struct *mm)
- 	on_each_cpu((void (*)(void *))local_finish_flush_tlb_mm, mm, 1, 1);
- }
- 
--/*
-- * Run a function on a specific CPU
-- *  <func>	The function to run. This must be fast and non-blocking.
-- *  <info>	An arbitrary pointer to pass to the function.
-- *  <nonatomic>	Currently unused.
-- *  <wait>	If true, wait until function has completed on other CPUs.
-- *  [RETURNS]   0 on success, else a negative status code.
-- *
-- * Does not return until the remote CPU is nearly ready to execute <func>
-- * or is or has executed.
-- */
--
--int
--smp_call_function_single (int cpuid, void (*func) (void *info), void *info, int nonatomic,
--			  int wait)
--{
--	struct call_data_struct data;
--	int cpus = 1;
--	int me = get_cpu(); /* prevent preemption and reschedule on another processor */
--
--	if (cpuid == me) {
--		local_irq_disable();
--		func(info);
--		local_irq_enable();
--		put_cpu();
--		return 0;
--	}
--
--	data.func = func;
--	data.info = info;
--	atomic_set(&data.started, 0);
--	data.wait = wait;
--	if (wait)
--		atomic_set(&data.finished, 0);
--
--	spin_lock_bh(&call_lock);
--
--	call_data = &data;
--	mb();	/* ensure store to call_data precedes setting of IPI_CALL_FUNC */
--  	send_IPI_single(cpuid, IPI_CALL_FUNC);
--
--	/* Wait for response */
--	while (atomic_read(&data.started) != cpus)
--		cpu_relax();
--
--	if (wait)
--		while (atomic_read(&data.finished) != cpus)
--			cpu_relax();
--	call_data = NULL;
--
--	spin_unlock_bh(&call_lock);
--	put_cpu();
--	return 0;
--}
--EXPORT_SYMBOL(smp_call_function_single);
--
--/**
-- * smp_call_function_mask(): Run a function on a set of other CPUs.
-- * <mask>	The set of cpus to run on.  Must not include the current cpu.
-- * <func> 	The function to run. This must be fast and non-blocking.
-- * <info>	An arbitrary pointer to pass to the function.
-- * <wait>	If true, wait (atomically) until function
-- *		has completed on other CPUs.
-- *
-- * Returns 0 on success, else a negative status code.
-- *
-- * If @wait is true, then returns once @func has returned; otherwise
-- * it returns just before the target cpu calls @func.
-- *
-- * You must not call this function with disabled interrupts or from a
-- * hardware interrupt handler or from a bottom half handler.
-- */
--int smp_call_function_mask(cpumask_t mask,
--			   void (*func)(void *), void *info,
--			   int wait)
-+void arch_send_call_function_single_ipi(int cpu)
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
  {
--	struct call_data_struct data;
--	cpumask_t allbutself;
--	int cpus;
--
--	spin_lock(&call_lock);
--	allbutself = cpu_online_map;
--	cpu_clear(smp_processor_id(), allbutself);
--
--	cpus_and(mask, mask, allbutself);
--	cpus = cpus_weight(mask);
--	if (!cpus) {
--		spin_unlock(&call_lock);
--		return 0;
--	}
--
--	/* Can deadlock when called with interrupts disabled */
--	WARN_ON(irqs_disabled());
--
--	data.func = func;
--	data.info = info;
--	atomic_set(&data.started, 0);
--	data.wait = wait;
--	if (wait)
--		atomic_set(&data.finished, 0);
--
--	call_data = &data;
--	mb(); /* ensure store to call_data precedes setting of IPI_CALL_FUNC*/
--
--	/* Send a message to other CPUs */
--	if (cpus_equal(mask, allbutself))
--		send_IPI_allbutself(IPI_CALL_FUNC);
--	else
--		send_IPI_mask(mask, IPI_CALL_FUNC);
--
--	/* Wait for response */
--	while (atomic_read(&data.started) != cpus)
--		cpu_relax();
--
--	if (wait)
--		while (atomic_read(&data.finished) != cpus)
--			cpu_relax();
--	call_data = NULL;
--
--	spin_unlock(&call_lock);
--	return 0;
--
-+	send_IPI_single(cpu, IPI_CALL_FUNC_SINGLE);
- }
--EXPORT_SYMBOL(smp_call_function_mask);
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
  
--/*
-- * this function sends a 'generic call function' IPI to all other CPUs
-- * in the system.
-- */
--
--/*
-- *  [SUMMARY]	Run a function on all other CPUs.
-- *  <func>	The function to run. This must be fast and non-blocking.
-- *  <info>	An arbitrary pointer to pass to the function.
-- *  <nonatomic>	currently unused.
-- *  <wait>	If true, wait (atomically) until function has completed on other CPUs.
-- *  [RETURNS]   0 on success, else a negative status code.
-- *
-- * Does not return until remote CPUs are nearly ready to execute <func> or are or have
-- * executed.
-- *
-- * You must not call this function with disabled interrupts or from a
-- * hardware interrupt handler or from a bottom half handler.
-- */
--int
--smp_call_function (void (*func) (void *info), void *info, int nonatomic, int wait)
-+void arch_send_call_function_ipi(cpumask_t mask)
+ 	if (!len || !start)
+diff -puN arch/mn10300/unit-asb2305/pci-iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/mn10300/unit-asb2305/pci-iomap.c
+--- a/arch/mn10300/unit-asb2305/pci-iomap.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/mn10300/unit-asb2305/pci-iomap.c
+@@ -16,8 +16,8 @@
+  */
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
  {
--	struct call_data_struct data;
--	int cpus;
--
--	spin_lock(&call_lock);
--	cpus = num_online_cpus() - 1;
--	if (!cpus) {
--		spin_unlock(&call_lock);
--		return 0;
--	}
--
--	/* Can deadlock when called with interrupts disabled */
--	WARN_ON(irqs_disabled());
--
--	data.func = func;
--	data.info = info;
--	atomic_set(&data.started, 0);
--	data.wait = wait;
--	if (wait)
--		atomic_set(&data.finished, 0);
--
--	call_data = &data;
--	mb();	/* ensure store to call_data precedes setting of IPI_CALL_FUNC */
--	send_IPI_allbutself(IPI_CALL_FUNC);
--
--	/* Wait for response */
--	while (atomic_read(&data.started) != cpus)
--		cpu_relax();
--
--	if (wait)
--		while (atomic_read(&data.finished) != cpus)
--			cpu_relax();
--	call_data = NULL;
--
--	spin_unlock(&call_lock);
--	return 0;
-+	send_IPI_mask(mask, IPI_CALL_FUNC);
- }
--EXPORT_SYMBOL(smp_call_function);
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
  
- /*
-  * this function calls the 'stop' function on all other CPUs in the system.
-diff --git a/include/asm-ia64/smp.h b/include/asm-ia64/smp.h
-index ec5f355..4fa733d 100644
---- a/include/asm-ia64/smp.h
-+++ b/include/asm-ia64/smp.h
-@@ -38,9 +38,6 @@ ia64_get_lid (void)
- 	return lid.f.id << 8 | lid.f.eid;
- }
+ 	if (!len || !start)
+diff -puN arch/parisc/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/parisc/lib/iomap.c
+--- a/arch/parisc/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/parisc/lib/iomap.c
+@@ -438,8 +438,8 @@ void ioport_unmap(void __iomem *addr)
+ /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
  
--extern int smp_call_function_mask(cpumask_t mask, void (*func)(void *),
--				  void *info, int wait);
--
- #define hard_smp_processor_id()		ia64_get_lid()
+ 	if (!len || !start)
+diff -puN arch/ppc/kernel/pci.c~iomap-fix-64-bits-resources-on-32-bits arch/ppc/kernel/pci.c
+--- a/arch/ppc/kernel/pci.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/ppc/kernel/pci.c
+@@ -1121,8 +1121,8 @@ void __init pci_init_resource(struct res
  
- #ifdef CONFIG_SMP
--- 
-1.5.5.1.57.g5909c
-
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len)
+diff -puN arch/sh/drivers/pci/pci.c~iomap-fix-64-bits-resources-on-32-bits arch/sh/drivers/pci/pci.c
+--- a/arch/sh/drivers/pci/pci.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/sh/drivers/pci/pci.c
+@@ -191,8 +191,8 @@ void __init pcibios_update_irq(struct pc
+ 
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (unlikely(!len || !start))
+diff -puN arch/sparc/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/sparc/lib/iomap.c
+--- a/arch/sparc/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/sparc/lib/iomap.c
+@@ -21,8 +21,8 @@ EXPORT_SYMBOL(ioport_unmap);
+ /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+diff -puN arch/sparc64/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits arch/sparc64/lib/iomap.c
+--- a/arch/sparc64/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/sparc64/lib/iomap.c
+@@ -21,8 +21,8 @@ EXPORT_SYMBOL(ioport_unmap);
+ /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+-	unsigned long start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t start = pci_resource_start(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+diff -puN arch/v850/kernel/rte_mb_a_pci.c~iomap-fix-64-bits-resources-on-32-bits arch/v850/kernel/rte_mb_a_pci.c
+--- a/arch/v850/kernel/rte_mb_a_pci.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/arch/v850/kernel/rte_mb_a_pci.c
+@@ -790,8 +790,8 @@ pci_free_consistent (struct pci_dev *pde
+ 
+ void __iomem *pci_iomap (struct pci_dev *dev, int bar, unsigned long max)
+ {
+-	unsigned long start = pci_resource_start (dev, bar);
+-	unsigned long len = pci_resource_len (dev, bar);
++	resource_size_t start = pci_resource_start (dev, bar);
++	resource_size_t len = pci_resource_len (dev, bar);
+ 
+ 	if (!start || len == 0)
+ 		return 0;
+diff -puN lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits lib/iomap.c
+--- a/lib/iomap.c~iomap-fix-64-bits-resources-on-32-bits
++++ a/lib/iomap.c
+@@ -257,7 +257,7 @@ EXPORT_SYMBOL(ioport_unmap);
+ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ {
+ 	resource_size_t start = pci_resource_start(dev, bar);
+-	unsigned long len = pci_resource_len(dev, bar);
++	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+ 	if (!len || !start)
+_
