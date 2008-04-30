@@ -1,39 +1,45 @@
-From: Jeremy Fitzhardinge <jeremy-TSDbQ3PG+2Y@public.gmane.org>
-Subject: Re: [PATCH 2/10] x86: convert to generic helpers for IPI function
- calls
-Date: Wed, 30 Apr 2008 07:51:50 -0700
-Message-ID: <48188786.7020609@goop.org>
-References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com> <1209453990-7735-3-git-send-email-jens.axboe@oracle.com> <481786A5.7010604@goop.org> <20080430113542.GZ12774@kernel.dk> <20080430122001.GS11126@linux.vnet.ibm.com> <20080430123136.GB12774@kernel.dk>
+From: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Subject: Re: [rfc] data race in page table setup/walking?
+Date: Wed, 30 Apr 2008 08:53:44 -0700 (PDT)
+Message-ID: <alpine.LFD.1.10.0804300848390.2997@woody.linux-foundation.org>
+References: <20080429050054.GC21795@wotan.suse.de> <Pine.LNX.4.64.0804291333540.22025@blonde.site> <20080430060340.GE27652@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20080430123136.GB12774-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>
+In-Reply-To: <20080430060340.GE27652-B4tOwbsTzaBolqkO4TVVkw@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Cc: "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mingo-X9Un+BFzKDI@public.gmane.org
+To: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
+Cc: Hugh Dickins <hugh-DTz5qymZ9yRBDgjK7y7TUQ@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Memory Management List <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
 
-Jens Axboe wrote:
-> Xen could just stuff that bit into its arch_send_call_function_ipi(),
-> something like the below should be fine. My question to Jeremy was more
-> of the order of whether it should be kept or not, I guess it's safer to
-> just keep it and retain the existing behaviour (and let Jeremy/others
-> evaluate it at will later on). Note that I got rid of the yield bool and
-> break when we called the hypervisor.
->   
 
-Yes, it's a nice cleanup.
 
-> Jeremy, shall I add this?
->   
+On Wed, 30 Apr 2008, Nick Piggin wrote:
+> 
+> Actually, aside, all those smp_wmb() things in pgtable-3level.h can
+> probably go away if we cared: because we could be sneaky and leverage
+> the assumption that top and bottom will always be in the same cacheline
+> and thus should be shielded from memory consistency problems :)
 
-Hold off for now.  Given that its effects are unmeasured, I'm not even 
-sure its the right thing to do.  For example, it will yield if you're 
-sending an IPI to a vcpu which wants to run but can't, but does nothing 
-for an idle vcpu.  And always yielding may be a performance problem if 
-the IPI doesn't involve any cpu contention.
+Umm.
 
-It's easy to add back if it turns out to be useful.
+Why would we care, since smp_wmb() is a no-op? (Yea, it's a compiler 
+barrier, big deal, it's not going to cost us anything).
 
-    J
+Also, write barriers are not about cacheline access order, they tend to be 
+more about the write *buffer*, ie before the write even hits the cache 
+line. And a write coudl easily pass another write in the write buffer if 
+there is (for example) a dependency on the address.
+
+So even if they are in the same cacheline, if the first write needs an 
+offset addition, and the second one does not, it could easily be that the 
+second one hits the write buffer first (together with some alias 
+detection that re-does the things if they alias).
+
+Of course, on x86, the write ordering is strictly defined, and even if the 
+CPU reorders writes they are guaranteed to never show up re-ordered, so 
+this is not an issue. But I wanted to point out that memory ordering is 
+*not* just about cachelines, and being in the same cacheline is no 
+guarantee of anything, even if it can have *some* effects.
+
+		Linus
