@@ -1,45 +1,57 @@
-From: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Subject: Re: [rfc] data race in page table setup/walking?
-Date: Wed, 30 Apr 2008 08:53:44 -0700 (PDT)
-Message-ID: <alpine.LFD.1.10.0804300848390.2997@woody.linux-foundation.org>
-References: <20080429050054.GC21795@wotan.suse.de> <Pine.LNX.4.64.0804291333540.22025@blonde.site> <20080430060340.GE27652@wotan.suse.de>
+From: Jeremy Fitzhardinge <jeremy-TSDbQ3PG+2Y@public.gmane.org>
+Subject: Re: [PATCH 2/10] x86: convert to generic helpers for IPI function
+ calls
+Date: Wed, 30 Apr 2008 14:39:10 -0700
+Message-ID: <4818E6FE.50607@goop.org>
+References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com> <1209453990-7735-3-git-send-email-jens.axboe@oracle.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-15; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20080430060340.GE27652-B4tOwbsTzaBolqkO4TVVkw@public.gmane.org>
+In-Reply-To: <1209453990-7735-3-git-send-email-jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
-Cc: Hugh Dickins <hugh-DTz5qymZ9yRBDgjK7y7TUQ@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Memory Management List <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
+To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mingo-X9Un+BFzKDI@public.gmane.org, paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org
 
+Jens Axboe wrote:
+> This converts x86, x86-64, and xen to use the new helpers for
+> smp_call_function() and friends, and adds support for
+> smp_call_function_single().
+>   
+Seems to work fine with this:
 
+Subject: xen: build fix for generic IPI stuff
 
-On Wed, 30 Apr 2008, Nick Piggin wrote:
-> 
-> Actually, aside, all those smp_wmb() things in pgtable-3level.h can
-> probably go away if we cared: because we could be sneaky and leverage
-> the assumption that top and bottom will always be in the same cacheline
-> and thus should be shielded from memory consistency problems :)
+Not even one CONFIG_XEN test build?
 
-Umm.
+Signed-off-by: Jeremy Fitzhardinge <jeremy.fitzhardinge-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>
+---
+ arch/x86/xen/smp.c           |    3 +--
+ include/asm-x86/xen/events.h |    1 +
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-Why would we care, since smp_wmb() is a no-op? (Yea, it's a compiler 
-barrier, big deal, it's not going to cost us anything).
-
-Also, write barriers are not about cacheline access order, they tend to be 
-more about the write *buffer*, ie before the write even hits the cache 
-line. And a write coudl easily pass another write in the write buffer if 
-there is (for example) a dependency on the address.
-
-So even if they are in the same cacheline, if the first write needs an 
-offset addition, and the second one does not, it could easily be that the 
-second one hits the write buffer first (together with some alias 
-detection that re-does the things if they alias).
-
-Of course, on x86, the write ordering is strictly defined, and even if the 
-CPU reorders writes they are guaranteed to never show up re-ordered, so 
-this is not an issue. But I wanted to point out that memory ordering is 
-*not* just about cachelines, and being in the same cacheline is no 
-guarantee of anything, even if it can have *some* effects.
-
-		Linus
+===================================================================
+--- a/arch/x86/xen/smp.c
++++ b/arch/x86/xen/smp.c
+@@ -43,8 +43,7 @@
+ static DEFINE_PER_CPU(int, debug_irq) = -1;
+ 
+ static irqreturn_t xen_call_function_interrupt(int irq, void *dev_id);
+-
+-static struct call_data_struct *call_data;
++static irqreturn_t xen_call_function_single_interrupt(int irq, void *dev_id);
+ 
+ /*
+  * Reschedule call back. Nothing to do,
+===================================================================
+--- a/include/asm-x86/xen/events.h
++++ b/include/asm-x86/xen/events.h
+@@ -4,6 +4,7 @@
+ enum ipi_vector {
+ 	XEN_RESCHEDULE_VECTOR,
+ 	XEN_CALL_FUNCTION_VECTOR,
++	XEN_CALL_FUNCTION_SINGLE_VECTOR,
+ 
+ 	XEN_NR_IPIS,
+ };
