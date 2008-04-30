@@ -1,51 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:37877 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756374AbYD3Py1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Apr 2008 11:54:27 -0400
-Date: Wed, 30 Apr 2008 08:53:44 -0700 (PDT)
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [rfc] data race in page table setup/walking?
-In-Reply-To: <20080430060340.GE27652@wotan.suse.de>
-Message-ID: <alpine.LFD.1.10.0804300848390.2997@woody.linux-foundation.org>
-References: <20080429050054.GC21795@wotan.suse.de> <Pine.LNX.4.64.0804291333540.22025@blonde.site> <20080430060340.GE27652@wotan.suse.de>
+Received: from gw.goop.org ([64.81.55.164]:38515 "EHLO mail.goop.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753263AbYD3VjZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Apr 2008 17:39:25 -0400
+Message-ID: <4818E6FE.50607@goop.org>
+Date: Wed, 30 Apr 2008 14:39:10 -0700
+From: Jeremy Fitzhardinge <jeremy@goop.org>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: [PATCH 2/10] x86: convert to generic helpers for IPI function
+ calls
+References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com> <1209453990-7735-3-git-send-email-jens.axboe@oracle.com>
+In-Reply-To: <1209453990-7735-3-git-send-email-jens.axboe@oracle.com>
+Content-Type: text/plain; charset=ISO-8859-15; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20080430155344.MHyXuR0ABARV4ftfheejcpSxZain6MuYgMOSVpVDNIA@z>
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
+Message-ID: <20080430213910.pIEyz_ZyBRrOf2KYfYY2-017jChAzSJgYkoFCpO1vJs@z>
+
+Jens Axboe wrote:
+> This converts x86, x86-64, and xen to use the new helpers for
+> smp_call_function() and friends, and adds support for
+> smp_call_function_single().
+>   
+Seems to work fine with this:
+
+Subject: xen: build fix for generic IPI stuff
+
+Not even one CONFIG_XEN test build?
+
+Signed-off-by: Jeremy Fitzhardinge <jeremy.fitzhardinge@citrix.com>
+---
+ arch/x86/xen/smp.c           |    3 +--
+ include/asm-x86/xen/events.h |    1 +
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+===================================================================
+--- a/arch/x86/xen/smp.c
++++ b/arch/x86/xen/smp.c
+@@ -43,8 +43,7 @@
+ static DEFINE_PER_CPU(int, debug_irq) = -1;
+ 
+ static irqreturn_t xen_call_function_interrupt(int irq, void *dev_id);
+-
+-static struct call_data_struct *call_data;
++static irqreturn_t xen_call_function_single_interrupt(int irq, void *dev_id);
+ 
+ /*
+  * Reschedule call back. Nothing to do,
+===================================================================
+--- a/include/asm-x86/xen/events.h
++++ b/include/asm-x86/xen/events.h
+@@ -4,6 +4,7 @@
+ enum ipi_vector {
+ 	XEN_RESCHEDULE_VECTOR,
+ 	XEN_CALL_FUNCTION_VECTOR,
++	XEN_CALL_FUNCTION_SINGLE_VECTOR,
+ 
+ 	XEN_NR_IPIS,
+ };
 
 
-
-On Wed, 30 Apr 2008, Nick Piggin wrote:
-> 
-> Actually, aside, all those smp_wmb() things in pgtable-3level.h can
-> probably go away if we cared: because we could be sneaky and leverage
-> the assumption that top and bottom will always be in the same cacheline
-> and thus should be shielded from memory consistency problems :)
-
-Umm.
-
-Why would we care, since smp_wmb() is a no-op? (Yea, it's a compiler 
-barrier, big deal, it's not going to cost us anything).
-
-Also, write barriers are not about cacheline access order, they tend to be 
-more about the write *buffer*, ie before the write even hits the cache 
-line. And a write coudl easily pass another write in the write buffer if 
-there is (for example) a dependency on the address.
-
-So even if they are in the same cacheline, if the first write needs an 
-offset addition, and the second one does not, it could easily be that the 
-second one hits the write buffer first (together with some alias 
-detection that re-does the things if they alias).
-
-Of course, on x86, the write ordering is strictly defined, and even if the 
-CPU reorders writes they are guaranteed to never show up re-ordered, so 
-this is not an issue. But I wanted to point out that memory ordering is 
-*not* just about cachelines, and being in the same cacheline is no 
-guarantee of anything, even if it can have *some* effects.
-
-		Linus
