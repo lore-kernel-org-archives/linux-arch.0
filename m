@@ -1,74 +1,58 @@
-From: Jeremy Fitzhardinge <jeremy-TSDbQ3PG+2Y@public.gmane.org>
-Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
-Date: Wed, 30 Apr 2008 15:56:47 -0700
-Message-ID: <4818F92F.5030505@goop.org>
-References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com> <1209453990-7735-2-git-send-email-jens.axboe@oracle.com>
+From: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
+Subject: Re: [rfc] data race in page table setup/walking?
+Date: Thu, 1 May 2008 02:29:55 +0200
+Message-ID: <20080501002955.GA11312@wotan.suse.de>
+References: <20080429050054.GC21795@wotan.suse.de> <Pine.LNX.4.64.0804291333540.22025@blonde.site> <20080430060340.GE27652@wotan.suse.de> <alpine.LFD.1.10.0804300848390.2997@woody.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1209453990-7735-2-git-send-email-jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.1.10.0804300848390.2997-5CScLwifNT1QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mingo-X9Un+BFzKDI@public.gmane.org, paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org
+To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Cc: Hugh Dickins <hugh-DTz5qymZ9yRBDgjK7y7TUQ@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Memory Management List <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
 
-Jens Axboe wrote:
-> +/*
-> + * smp_call_function_single - Run a function on a specific CPU
-> + * @func: The function to run. This must be fast and non-blocking.
-> + * @info: An arbitrary pointer to pass to the function.
-> + * @retry: Unused
->   
+On Wed, Apr 30, 2008 at 08:53:44AM -0700, Linus Torvalds wrote:
+> 
+> 
+> On Wed, 30 Apr 2008, Nick Piggin wrote:
+> > 
+> > Actually, aside, all those smp_wmb() things in pgtable-3level.h can
+> > probably go away if we cared: because we could be sneaky and leverage
+> > the assumption that top and bottom will always be in the same cacheline
+> > and thus should be shielded from memory consistency problems :)
+> 
+> Umm.
+> 
+> Why would we care, since smp_wmb() is a no-op? (Yea, it's a compiler 
+> barrier, big deal, it's not going to cost us anything).
 
-I wonder if it isn't finally time to drop this parameter?  Now that 
-there aren't a zillion arch implementations of this to fix, we only need 
-to fix a dozen or so callers.
+Oh there needs to be a compiler barrier there. I was just saying...
+I don't actually think we care (whether or not I'm right).
+ 
 
-> + * @wait: If true, wait until function has completed on other CPUs.
-> + *
-> + * Returns 0 on success, else a negative status code.
-> + */
-> [...]
-> +/**
-> + * smp_call_function_mask(): Run a function on a set of other CPUs.
-> + * @mask: The set of cpus to run on.
-> + * @func: The function to run. This must be fast and non-blocking.
-> + * @info: An arbitrary pointer to pass to the function.
-> + * @wait: If true, wait (atomically) until function has completed on other CPUs.
-> + *
-> + * Returns 0 on success, else a negative status code.
-> + *
-> + * If @wait is true, then returns once @func has returned.
-> + *
-> + * You must not call this function with disabled interrupts or from a
-> + * hardware interrupt handler or from a bottom half handler.
->   
+> Also, write barriers are not about cacheline access order, they tend to be 
+> more about the write *buffer*, ie before the write even hits the cache 
+> line. And a write coudl easily pass another write in the write buffer if 
+> there is (for example) a dependency on the address.
+> 
+> So even if they are in the same cacheline, if the first write needs an 
+> offset addition, and the second one does not, it could easily be that the 
+> second one hits the write buffer first (together with some alias 
+> detection that re-does the things if they alias).
+> 
+> Of course, on x86, the write ordering is strictly defined, and even if the 
+> CPU reorders writes they are guaranteed to never show up re-ordered, so 
+> this is not an issue. But I wanted to point out that memory ordering is 
+> *not* just about cachelines, and being in the same cacheline is no 
+> guarantee of anything, even if it can have *some* effects.
 
-Mention preemption needs to be disabled?  Or allow preemption and take 
-appropriate precautions internally?  It's not obvious to me that all the 
-callers are calling with preemption disabled.
+Well it is a guarantee about cache coherency presumably, but I guess
+you're taking that for granted.
 
-> + */
-> +int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
-> +			   int wait)
-> +{
-> +	struct call_function_data *data;
-> +	cpumask_t allbutself;
-> +	unsigned long flags;
-> +	int cpu, num_cpus;
-> +
-> +	/* Can deadlock when called with interrupts disabled */
-> +	WARN_ON(wait && irqs_disabled());
->   
-WARN_ON(preemptible())?
-preempt_disable()?
-
-> +
-> +	cpu = smp_processor_id();
-> +	allbutself = cpu_online_map;
-> +	cpu_clear(cpu, allbutself);
-> +	cpus_and(mask, mask, allbutself);
-> +	num_cpus = cpus_weight(mask);
->   
-    J
+But I'm surprised that two writes to the same cacheline (different
+words) can be reordered. Of course write buffers are technically outside
+the coherency domain, but I would have thought any implementation will
+actually treat writes to the same line as aliasing. Is there a counter
+example?
