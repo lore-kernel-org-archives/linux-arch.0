@@ -1,47 +1,106 @@
-From: Nick Piggin <npiggin-l3A5Bk7waGM@public.gmane.org>
-Subject: Re: [rfc] data race in page table setup/walking?
-Date: Thu, 1 May 2008 02:35:42 +0200
-Message-ID: <20080501003542.GB11312@wotan.suse.de>
-References: <20080429050054.GC21795@wotan.suse.de> <Pine.LNX.4.64.0804291333540.22025@blonde.site> <20080430060340.GE27652@wotan.suse.de> <Pine.LNX.4.64.0804301140490.4651@blonde.site>
+From: "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
+Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
+Date: Wed, 30 Apr 2008 19:44:45 -0700
+Message-ID: <20080501024445.GB25335@linux.vnet.ibm.com>
+References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com> <1209453990-7735-2-git-send-email-jens.axboe@oracle.com> <20080429135936.GC12390@linux.vnet.ibm.com> <20080430112934.GA23203@linux.vnet.ibm.com> <20080430113456.GY12774@kernel.dk> <20080430121712.GR11126@linux.vnet.ibm.com> <20080430123717.GC12774@kernel.dk>
+Reply-To: paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.0804301140490.4651-popGQ1T0qN76K7/ahGyk6A@public.gmane.org>
+In-Reply-To: <20080430123717.GC12774-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>
 Sender: linux-arch-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hugh-DTz5qymZ9yRBDgjK7y7TUQ@public.gmane.org>
-Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Memory Management List <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
+To: Jens Axboe <jens.axboe-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, npiggin-l3A5Bk7waGM@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, jeremy-TSDbQ3PG+2Y@public.gmane.org, mingo-X9Un+BFzKDI@public.gmane.org
 
-On Wed, Apr 30, 2008 at 12:14:51PM +0100, Hugh Dickins wrote:
-> On Wed, 30 Apr 2008, Nick Piggin wrote:
+On Wed, Apr 30, 2008 at 02:37:17PM +0200, Jens Axboe wrote:
+> On Wed, Apr 30 2008, Paul E. McKenney wrote:
+> > On Wed, Apr 30, 2008 at 01:34:57PM +0200, Jens Axboe wrote:
+> > > On Wed, Apr 30 2008, Paul E. McKenney wrote:
+> > > > On Tue, Apr 29, 2008 at 06:59:36AM -0700, Paul E. McKenney wrote:
+> > > > > On Tue, Apr 29, 2008 at 09:26:21AM +0200, Jens Axboe wrote:
+> > > > > > This adds kernel/smp.c which contains helpers for IPI function calls. In
+> > > > > > addition to supporting the existing smp_call_function() in a more efficient
+> > > > > > manner, it also adds a more scalable variant called smp_call_function_single()
+> > > > > > for calling a given function on a single CPU only.
+> > > > > > 
+> > > > > > The core of this is based on the x86-64 patch from Nick Piggin, lots of
+> > > > > > changes since then. "Alan D. Brunelle" <Alan.Brunelle-VXdhtT5mjnY@public.gmane.org> has
+> > > > > > contributed lots of fixes and suggestions as well.
+> > > > > 
+> > > > > Looks much better, but there still appears to be a potential deadlock
+> > > > > with a CPU spinning waiting (indirectly) for a grace period to complete.
+> > > > > Such spinning can prevent the grace period from ever completing.
+> > > > > 
+> > > > > See "!!!".
+> > > > 
+> > > > One additional question...  Why not handle memory allocation failure
+> > > > by pretending that the caller to smp_call_function() had specified
+> > > > "wait"?  The callee is in irq context, so cannot block, right?
+> > > 
+> > > (BTW a lot of thanks for your comments, I've read and understood most of
+> > > it, I'll reply in due time - perhaps not until next week, I'll be gone
+> > > from this afternoon and until monday).
+> > > 
+> > > We cannot always fallback to wait, unfortunately. If irqs are disabled,
+> > > you could deadlock between two CPUs each waiting for each others IPI
+> > > ack.
 > > 
-> > Actually, aside, all those smp_wmb() things in pgtable-3level.h can
-> > probably go away if we cared: because we could be sneaky and leverage
-> > the assumption that top and bottom will always be in the same cacheline
-> > and thus should be shielded from memory consistency problems :)
+> > Good point!!!
+> > 
+> > > So the good question is how to handle the problem. The easiest would be
+> > > to return ENOMEM and get rid of the fallback, but the fallback deadlocks
+> > > are so far mostly in the theoretical realm since it PROBABLY would not
+> > > occur in practice. But still no good enough, so I'm still toying with
+> > > ideas on how to make it 100% bullet proof.
+> > 
+> > Here are some (probably totally broken) ideas:
+> > 
+> > 1.	Global lock so that only one smp_call_function() in the
+> > 	system proceeds.  Additional calls would be spinning with
+> > 	irqs -enabled- on the lock, avoiding deadlock.  Kind of
+> > 	defeats the purpose of your list, though...
 > 
-> I've sometimes wondered along those lines.  But it would need
-> interrupts disabled, wouldn't it?  And could SMM mess it up?
-> And what about another CPU taking the cacheline to modify it
-> in between our two accesses?
+> That is what we used to do, that will obviously work. But defeats most
+> of the purpose, unfortunately :-)
 
-Nothing more than could not already happen with the smp_wmb in there,
-AFAIKS.
+;-)
 
- 
-> I don't think we do care in that x86 PAE case, but as a general
-> principal, if it can be safely assumed on all architectures (or
-> more messily, just on some) under certain conditions, then shouldn't
-> we be looking to use that technique (relying on a consistent view of
-> separate variables clustered into the same cacheline) in critical
-> places, rather than regarding it as sneaky?
+> > 2.	Maintain a global mask of current targets of smp_call_function()
+> > 	CPUs.  A given CPU may proceed if it is not a current target
+> > 	and if none of its target CPUs are already in the mask.
+> > 	This mask would be manipulated under a global lock.
+> > 
+> > 3.	As in #2 above, but use per-CPU counters.  This allows the
+> > 	current CPU to proceed if it is not a target, but also allows
+> > 	concurrent smp_call_function()s to proceed even if their
+> > 	lists of target CPUs overlap.
+> > 
+> > 4.	#2 or #3, but where CPUs can proceed freely if their allocation
+> > 	succeeded.
+> > 
+> > 5.	If a given CPU is waiting for other CPUs to respond, it polls
+> > 	its own list (with irqs disabled), thus breaking the deadlock.
+> > 	This means that you cannot call smp_call_function() while holding
+> > 	a lock that might be acquired by the called function, but that
+> > 	is not a new prohibition -- the only safe way to hold such a
+> > 	lock is with irqs disabled, and you are not allowed to call
+> > 	the smp_call_function() with irqs disabled in the first place
+> > 	(right?).
+> > 
+> > #5 might actually work...
 > 
-> But I suspect this is a chimaera, that there's actually no
-> safe use to be made of it.  I'd be glad to be shown wrong.
+> Yeah, #5 sounds quite promising. I'll see if I can work up a patch for
+> that, or if you feel so inclined, I'll definitely take patches :-)
+> 
+> The branch is 'generic-ipi' on git://git.kernel.dk/linux-2.6-block.git
+> The link is pretty slow, so it's best pull'ed off of Linus base. Or just
+> grab the patches from the gitweb interface:
+> 
+> http://git.kernel.dk/?p=linux-2.6-block.git;a=shortlog;h=refs/heads/generic-ipi
 
-Well Linus put a dampener on it... but if it actually did work, then
-yeah I guess there are some places it could be used. I suspect that
-on some implementations, being in the same cacheline would actually
-fully order all transactions of a CPU, so if it did make a big
-difference anywhere, we could have smp_*mb_cacheline() or something ;)
+OK, will give it a shot.  Low bandwidth at the moment, but getting there.
+If worst comes to worst, I will annotate one of your patches.
+
+							Thanx, Paul
