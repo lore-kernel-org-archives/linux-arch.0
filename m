@@ -1,79 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:42908 "EHLO mail.goop.org"
+Received: from cantor2.suse.de ([195.135.220.15]:48993 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753936AbYD3W5D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Apr 2008 18:57:03 -0400
-Message-ID: <4818F92F.5030505@goop.org>
-Date: Wed, 30 Apr 2008 15:56:47 -0700
-From: Jeremy Fitzhardinge <jeremy@goop.org>
-MIME-Version: 1.0
-Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
-References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com> <1209453990-7735-2-git-send-email-jens.axboe@oracle.com>
-In-Reply-To: <1209453990-7735-2-git-send-email-jens.axboe@oracle.com>
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
-Content-Transfer-Encoding: 7bit
+	id S1756410AbYEAAaA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Apr 2008 20:30:00 -0400
+Date: Thu, 1 May 2008 02:29:55 +0200
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [rfc] data race in page table setup/walking?
+Message-ID: <20080501002955.GA11312@wotan.suse.de>
+References: <20080429050054.GC21795@wotan.suse.de> <Pine.LNX.4.64.0804291333540.22025@blonde.site> <20080430060340.GE27652@wotan.suse.de> <alpine.LFD.1.10.0804300848390.2997@woody.linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.1.10.0804300848390.2997@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
-Message-ID: <20080430225647.v1A9wr7_rj4-PS6A55eBJXWwMq_BXbtTTcqUWKkUe2w@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20080501002955.s6OwsbOqmV6VHQFoeA9C5-Np1AM2S1D707PNdmVNjFE@z>
 
-Jens Axboe wrote:
-> +/*
-> + * smp_call_function_single - Run a function on a specific CPU
-> + * @func: The function to run. This must be fast and non-blocking.
-> + * @info: An arbitrary pointer to pass to the function.
-> + * @retry: Unused
->   
+On Wed, Apr 30, 2008 at 08:53:44AM -0700, Linus Torvalds wrote:
+> 
+> 
+> On Wed, 30 Apr 2008, Nick Piggin wrote:
+> > 
+> > Actually, aside, all those smp_wmb() things in pgtable-3level.h can
+> > probably go away if we cared: because we could be sneaky and leverage
+> > the assumption that top and bottom will always be in the same cacheline
+> > and thus should be shielded from memory consistency problems :)
+> 
+> Umm.
+> 
+> Why would we care, since smp_wmb() is a no-op? (Yea, it's a compiler 
+> barrier, big deal, it's not going to cost us anything).
 
-I wonder if it isn't finally time to drop this parameter?  Now that 
-there aren't a zillion arch implementations of this to fix, we only need 
-to fix a dozen or so callers.
+Oh there needs to be a compiler barrier there. I was just saying...
+I don't actually think we care (whether or not I'm right).
+ 
 
-> + * @wait: If true, wait until function has completed on other CPUs.
-> + *
-> + * Returns 0 on success, else a negative status code.
-> + */
-> [...]
-> +/**
-> + * smp_call_function_mask(): Run a function on a set of other CPUs.
-> + * @mask: The set of cpus to run on.
-> + * @func: The function to run. This must be fast and non-blocking.
-> + * @info: An arbitrary pointer to pass to the function.
-> + * @wait: If true, wait (atomically) until function has completed on other CPUs.
-> + *
-> + * Returns 0 on success, else a negative status code.
-> + *
-> + * If @wait is true, then returns once @func has returned.
-> + *
-> + * You must not call this function with disabled interrupts or from a
-> + * hardware interrupt handler or from a bottom half handler.
->   
+> Also, write barriers are not about cacheline access order, they tend to be 
+> more about the write *buffer*, ie before the write even hits the cache 
+> line. And a write coudl easily pass another write in the write buffer if 
+> there is (for example) a dependency on the address.
+> 
+> So even if they are in the same cacheline, if the first write needs an 
+> offset addition, and the second one does not, it could easily be that the 
+> second one hits the write buffer first (together with some alias 
+> detection that re-does the things if they alias).
+> 
+> Of course, on x86, the write ordering is strictly defined, and even if the 
+> CPU reorders writes they are guaranteed to never show up re-ordered, so 
+> this is not an issue. But I wanted to point out that memory ordering is 
+> *not* just about cachelines, and being in the same cacheline is no 
+> guarantee of anything, even if it can have *some* effects.
 
-Mention preemption needs to be disabled?  Or allow preemption and take 
-appropriate precautions internally?  It's not obvious to me that all the 
-callers are calling with preemption disabled.
+Well it is a guarantee about cache coherency presumably, but I guess
+you're taking that for granted.
 
-> + */
-> +int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
-> +			   int wait)
-> +{
-> +	struct call_function_data *data;
-> +	cpumask_t allbutself;
-> +	unsigned long flags;
-> +	int cpu, num_cpus;
-> +
-> +	/* Can deadlock when called with interrupts disabled */
-> +	WARN_ON(wait && irqs_disabled());
->   
-WARN_ON(preemptible())?
-preempt_disable()?
+But I'm surprised that two writes to the same cacheline (different
+words) can be reordered. Of course write buffers are technically outside
+the coherency domain, but I would have thought any implementation will
+actually treat writes to the same line as aliasing. Is there a counter
+example?
 
-> +
-> +	cpu = smp_processor_id();
-> +	allbutself = cpu_online_map;
-> +	cpu_clear(cpu, allbutself);
-> +	cpus_and(mask, mask, allbutself);
-> +	num_cpus = cpus_weight(mask);
->   
-    J
