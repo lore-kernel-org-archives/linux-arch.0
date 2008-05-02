@@ -1,62 +1,45 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
-Date: Fri, 02 May 2008 14:59:29 +0200
-Message-ID: <1209733169.13978.157.camel@twins>
-References: <1209453990-7735-1-git-send-email-jens.axboe@oracle.com>
-	 <1209453990-7735-2-git-send-email-jens.axboe@oracle.com>
-	 <20080429135936.GC12390@linux.vnet.ibm.com>
-	 <20080430112934.GA23203@linux.vnet.ibm.com>
-	 <20080430113456.GY12774@kernel.dk>
-	 <20080430121712.GR11126@linux.vnet.ibm.com>
-	 <20080430123717.GC12774@kernel.dk>
-	 <20080502020241.GA26088@linux.vnet.ibm.com>
-	 <20080502021233.GC11844@wotan.suse.de>
-	 <20080502122955.GB15522@linux.vnet.ibm.com>
-	 <20080502124205.GA23680@linux.vnet.ibm.com>
+Date: Fri, 2 May 2008 06:09:22 -0700
+Message-ID: <20080502130922.GC15522@linux.vnet.ibm.com>
+References: <20080502122955.GB15522@linux.vnet.ibm.com> <27854.1209732644@ocs10w>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S935036AbYEBNAi@vger.kernel.org>
-In-Reply-To: <20080502124205.GA23680@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: paulmck@linux.vnet.ibm.com
-Cc: Nick Piggin <npiggin@suse.de>, Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e36.co.us.ibm.com ([32.97.110.154]:32981 "EHLO
+	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753493AbYEBNJ0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 May 2008 09:09:26 -0400
+Content-Disposition: inline
+In-Reply-To: <27854.1209732644@ocs10w>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Keith Owens <kaos@ocs.com.au>
+Cc: Nick Piggin <npiggin@suse.de>, Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, peterz@infradead.org, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu
 
-On Fri, 2008-05-02 at 05:42 -0700, Paul E. McKenney wrote:
-
-> And here is one scenario that makes me doubt that my imagination is
-> faulty:
+On Fri, May 02, 2008 at 10:50:44PM +1000, Keith Owens wrote:
+> "Paul E. McKenney" (on Fri, 2 May 2008 05:29:55 -0700) wrote:
+> >OK -- for some reason, I was thinking that it was illegal to
+> >invoke smp_call_function() with irqs disabled...
+> >
+> >Ah, I see it -- smp_call_function_mask() says:
+> >
+> > * You must not call this function with disabled interrupts or from a
+> > * hardware interrupt handler or from a bottom half handler.
+> >
+> >So we have no problem with smp_call_function, then.
+> >
+> >OK, so smp_call_function() -can- be invoked with irqs disabled?
+> >Hmmm...  I will give this some thought.
 > 
-> 1.	CPU 0 disables irqs.
-> 
-> 2.	CPU 1 disables irqs.
-> 
-> 3.	CPU 0 invokes smp_call_function().  But CPU 1 will never respond
-> 	because its irqs are disabled.
-> 
-> 4.	CPU 1 invokes smp_call_function().  But CPU 0 will never respond
-> 	because its irqs are disabled.
-> 
-> Looks like inherent deadlock to me, requiring that smp_call_function()
-> be invoked with irqs enabled.
-> 
-> So, what am I missing here?
+> Doing any smp_call_function with interrupts disabled is a potential
+> deadlock.  See http://lkml.org/lkml/2004/5/2/116.
 
-The wish to do it anyway ;-)
+OK, cool, thank you for the confirmation!
 
-I can imagine some situations where I'd like to try anyway and fall back
-to a slower path when failing.
+Therefore, when you call smp_call_function(), you may get calls from
+other CPUs showing up, and therefore my polling approach does not
+introduce any new strands of spaghetti.  ;-)
 
-With the initial design we would simply allocate data, stick it on the
-queue and call the ipi (when needed).
-
-This is perfectly deadlock free when wait=0 and it just returns -ENOMEM
-on allocation failure.
-
-It it doesn't return -ENOMEM I know its been queued and will be
-processed at some point, if it does fail, I can deal with it in another
-way.
-
-I know I'd like to do that and I suspect Nick has a few use cases up his
-sleeve as well.
+						Thanx, Paul
