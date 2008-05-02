@@ -1,60 +1,52 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH] Change long to unsigned long in ptrace functions to fix
- sparse warnings
-Date: Thu, 1 May 2008 16:52:17 -0700
-Message-ID: <20080501165217.a571d902.akpm@linux-foundation.org>
-References: <18458.19939.138289.173048@cargo.ozlabs.ibm.com>
-	<20080501.161608.150609265.davem@davemloft.net>
-	<20080501231942.2B5C426FA07@magilla.localdomain>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [rfc] data race in page table setup/walking?
+Date: Fri, 2 May 2008 03:20:07 +0200
+Message-ID: <20080502012006.GD30768@wotan.suse.de>
+References: <20080429050054.GC21795@wotan.suse.de> <Pine.LNX.4.64.0804291333540.22025@blonde.site> <20080430060340.GE27652@wotan.suse.de> <alpine.LFD.1.10.0804300848390.2997@woody.linux-foundation.org> <20080501002955.GA11312@wotan.suse.de> <alpine.LFD.1.10.0804302020050.5994@woody.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:56664 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754076AbYEAXxg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 May 2008 19:53:36 -0400
-In-Reply-To: <20080501231942.2B5C426FA07@magilla.localdomain>
+Received: from mx1.suse.de ([195.135.220.2]:49403 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756304AbYEBBUI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 1 May 2008 21:20:08 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.1.10.0804302020050.5994@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <roland@redhat.com>
-Cc: davem@davemloft.net, paulus@samba.org, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On Thu,  1 May 2008 16:19:41 -0700 (PDT)
-Roland McGrath <roland@redhat.com> wrote:
-
-> I don't know of any problems off hand, but I would testify that there
-> aren't any niggling bits there.  Paranoia would suggest comparing object
-> code before/after on each arch, since it should not change.
+On Wed, Apr 30, 2008 at 08:24:48PM -0700, Linus Torvalds wrote:
 > 
+> On Thu, 1 May 2008, Nick Piggin wrote:
 
-oh gee, it's a ton of code to review, isn't it?  And it's _hard_ review :(
+> > But I'm surprised that two writes to the same cacheline (different
+> > words) can be reordered. Of course write buffers are technically outside
+> > the coherency domain, but I would have thought any implementation will
+> > actually treat writes to the same line as aliasing. Is there a counter
+> > example?
+> 
+> I don't know if anybody does it, but no, normally I would *not* expect any 
+> alias logic to have anything to do with cachelines. Aliasing within a 
+> cacheline is so common (spills to the stack, if nothing else) that if the 
+> CPU has some write buffer alias logic, I'd expect it to be byte or perhaps 
+> word-granular.
+> 
+> So I think that at least in theory it is quite possible that a later write 
+> hits the same cacheline first, just because the write data or address got 
+> resolved first and the architecture allows out-of-order memory accesses. 
 
-(reviews a bit)
+I guess it is possible. But at least in the case of write address, you'd
+have to wait for later stores anyway in order to do the alias detection,
+which might be the most common case.
 
-h8300's arch_ptrace() does
+For other dependencies yes, although I would have thought that you'd be
+better off to wait for the earlier write and so they can be combined into
+a single cache transaction. The easy part of stores is queueing them,
+the hard part is moving them out to cache.
 
-	if ((addr & 3) || addr < 0 || addr >= sizeof(struct user)) {
-
-ok, the third comparison saved us.  Lucky...
-
-In fact most architectures seem to have copy-n-pasted that test.  I guess
-that going from signed to unsigned is safer than vice-versa.
-
-
-
-Now what about frv?
-
-	case PTRACE_PEEKUSR: {
-		tmp = 0;
-		ret = -EIO;
-		if ((addr & 3) || addr < 0)
-			break;
-
-we broke that.  Maybe it doesn't matter, don't know.
-
-
-
-So yeah, it's _probably_ OK, but I'm not sure that it would be smart to
-merge it and hope.  Nor would it be a good use of time to check all that
-code just to fix a sparse warning.
+Anyway I'm speculating at this point. You do raise a valid issue, so
+obviously we can't make any such assumptions without verifying it on a
+per-arch basis ;) I'm just interested to know whether this happens on
+any CPU we run on.
