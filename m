@@ -1,47 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from extu-mxob-2.symantec.com ([216.10.194.135]:35615 "EHLO
-	extu-mxob-2.symantec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755902AbYEAMpA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 May 2008 08:45:00 -0400
-Received: from [172.20.22.227]([172.20.22.227]) (1878 bytes) by megami.veritas.com
-	via sendmail with P:esmtp/R:smart_host/T:smtp
-	(sender: <hugh@veritas.com>)
-	id <m1JrY9U-0000Z7C@megami.veritas.com>
-	for <linux-arch@vger.kernel.org>; Thu, 1 May 2008 05:44:44 -0700 (PDT)
-	(Smail-3.2.0.101 1997-Dec-17 #15 built 2001-Aug-30)
-Date: Thu, 1 May 2008 13:45:03 +0100 (BST)
-From: Hugh Dickins <hugh@veritas.com>
-Subject: Re: [rfc] data race in page table setup/walking?
-In-Reply-To: <20080501003542.GB11312@wotan.suse.de>
-Message-ID: <Pine.LNX.4.64.0805011342210.24147@blonde.site>
-References: <20080429050054.GC21795@wotan.suse.de> <Pine.LNX.4.64.0804291333540.22025@blonde.site>
- <20080430060340.GE27652@wotan.suse.de> <Pine.LNX.4.64.0804301140490.4651@blonde.site>
- <20080501003542.GB11312@wotan.suse.de>
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:54189 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1757493AbYEBIqs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 May 2008 04:46:48 -0400
+Message-ID: <481ACE51.80202@seznam.cz>
+Date: Fri, 02 May 2008 10:18:25 +0200
+From: Michal Simek <monstr@seznam.cz>
+Reply-To: monstr@seznam.cz
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: microblaze syscall list
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <48151726.9000204@itee.uq.edu.au> <200804281431.26570.arnd@arndb.de> <200805012117.12991.arnd@arndb.de> <481AA8CC.10405@petalogix.com>
+In-Reply-To: <481AA8CC.10405@petalogix.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20080501124503.r48S1_HxjCmPlZzUpSghmojY5Rxyns7rLERjbsLA54Q@z>
+To: John Williams <john.williams@petalogix.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Matthew Wilcox <matthew@wil.cx>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>
+Message-ID: <20080502081825.x6uP7fldR4vsw5ezER6UkfbFmFoh8ZlD7YcsrwxmAWY@z>
 
-On Thu, 1 May 2008, Nick Piggin wrote:
-> On Wed, Apr 30, 2008 at 12:14:51PM +0100, Hugh Dickins wrote:
-> > On Wed, 30 Apr 2008, Nick Piggin wrote:
-> > > 
-> > > Actually, aside, all those smp_wmb() things in pgtable-3level.h can
-> > > probably go away if we cared: because we could be sneaky and leverage
-> > > the assumption that top and bottom will always be in the same cacheline
-> > > and thus should be shielded from memory consistency problems :)
-> > 
-> > I've sometimes wondered along those lines.  But it would need
-> > interrupts disabled, wouldn't it?  And could SMM mess it up?
-> > And what about another CPU taking the cacheline to modify it
-> > in between our two accesses?
+Hi All,
+
+>>> How about this strategy then:
+>>> * Change all the data types and syscall numbers in the -for-2.6.27
+>>> branch to only include the minimal set, and a modern ABI
+>>> * Add the old interfaces as an out-of-tree patch that adds source
+>>> level compatibility with the old libc, but does not modify any
+>>> of the new interfaces, so that a patched kernel can run all binaries
+>>> built for the upstream version.
+>>> * phase out the old source interface gradually, as all users update
+>>> their libc source code.
+>>
+>>
+>> Any news on this from the microblaze people? Have you made up your mind
+>> on what route you want to go?
 > 
-> Nothing more than could not already happen with the smp_wmb in there,
-> AFAIKS.
+> I think we're still digesting it.  I need to sync up with Michal and the
+> Xilinx people.  The libc and kernel API changes have to happen in
+> tandem, otherwise Michal can't properly test the kernel he's pushing.
+> 
+> I am the defacto MicroBlaze uClibc and toolchain "builder" but somewhat
+> reluctantly - am trying to convince Xilnx to hand that over to someone
+> who is expert at it.
+> 
+> Michal, John L, any thoughts?
+> 
+> John
 
-Yes, one does wonder just what I was wondering ;)
+I am convinced we need to change syscall table. I don't want to maintain old
+syscalls. It will be easier to test smaller amount of syscalls. I would like to
+talk about with you (John W) via Skype. (Can you send me private email where you
+have time?) I talked with Steve about this week. After that I will publish our
+proposed way.
 
-Hugh
+Michal
+
+
+
+
