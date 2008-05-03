@@ -1,118 +1,25 @@
-From: monstr@seznam.cz
-Subject: [PATCH 1/2] OF: Fix coding style violation in of_device.c and of_platform.c
-Date: Sat,  3 May 2008 16:22:11 +0200
-Message-ID: <765c6c8053679c45eb370255a110f7bc680a8f25.1209824033.git.monstr@monstr.eu>
-References: <monstr@seznam.cz>
- <1209824532-7939-1-git-send-email-monstr@seznam.cz>
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1762656AbYECPV4@vger.kernel.org>
-In-Reply-To: <1209824532-7939-1-git-send-email-monstr@seznam.cz>
-Sender: linux-kernel-owner@vger.kernel.org
-To: paulus@samba.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>
-List-Id: linux-arch.vger.kernel.org
+From: =?us-ascii?Q?Michal=20Simek?= <Monstr@seznam.cz>
+Subject: =?us-ascii?Q?OF=20files?=
+Date: Sat, 03 May 2008 17:30:41 +0200 (CEST)
+Message-ID: <5257.8247-18740-1017760922-1209828638@seznam.cz>
+Mime-Version: 1.0
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mxl.seznam.cz ([77.75.72.44]:39642 "EHLO mxl.seznam.cz"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757306AbYECPbW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 3 May 2008 11:31:22 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: =?us-ascii?Q?Arnd=20Bergmann?= <arnd@arndb.de>, =?us-ascii?Q?John=20Williams?= <john.williams@petalogix.com>, =?us-ascii?Q?Matthew=20Wilcox?= <matthew@wil.cx>, =?us-ascii?Q?Will=20New
 
-From: Michal Simek <monstr@monstr.eu>
+Hi Paulus and others,
 
+I tested OF files changes. I sent you some patches about.
 
-Signed-off-by: Michal Simek <monstr@monstr.eu>
----
- arch/powerpc/kernel/of_device.c   |   25 ++++++++++++++-----------
- arch/powerpc/kernel/of_platform.c |    5 ++++-
- 2 files changed, 18 insertions(+), 12 deletions(-)
+I look at headers files too. Is it possible to move prom.h, of_device.h and of_platform.h to asm-generic or linux folder? 
 
-diff --git a/arch/powerpc/kernel/of_device.c b/arch/powerpc/kernel/of_device.c
-index 5748ddb..db9ed02 100644
---- a/arch/powerpc/kernel/of_device.c
-+++ b/arch/powerpc/kernel/of_device.c
-@@ -8,7 +8,10 @@
- #include <linux/of_device.h>
- 
- #include <asm/errno.h>
-+
-+#ifdef CONFIG_PPC_PSERIES
- #include <asm/dcr.h>
-+#endif
- 
- static void of_device_make_bus_id(struct of_device *dev)
- {
-@@ -106,7 +109,7 @@ ssize_t of_device_get_modalias(struct of_device *ofdev,
- 		return csize;
- 
- 	/* Find true end (we tolerate multiple \0 at the end */
--	for (i=(cplen-1); i>=0 && !compat[i]; i--)
-+	for (i = (cplen-1); i >= 0 && !compat[i]; i--)
- 		cplen--;
- 	if (!cplen)
- 		return csize;
-@@ -116,26 +119,27 @@ ssize_t of_device_get_modalias(struct of_device *ofdev,
- 	tsize = csize + cplen;
- 	repend = tsize;
- 
--	if (csize>=len)		/* @ the limit, all is already filled */
-+	if (csize >= len)	/* @ the limit, all is already filled */
- 		return tsize;
- 
--	if (tsize>=len) {		/* limit compat list */
--		cplen = len-csize-1;
-+	if (tsize >= len) {	/* limit compat list */
-+		cplen = len - csize - 1;
- 		repend = len;
- 	}
- 
- 	/* Copy and do char replacement */
- 	memcpy(&str[csize+1], compat, cplen);
--	for (i=csize; i<repend; i++) {
-+	for (i = csize; i < repend; i++) {
- 		char c = str[i];
--		if (c=='\0')
-+		if (c == '\0')
- 			str[i] = 'C';
--		else if (c==' ')
-+		else if (c == ' ')
- 			str[i] = '_';
- 	}
- 
- 	return tsize;
- }
-+EXPORT_SYMBOL(of_device_get_modalias);
- 
- int of_device_uevent(struct device *dev, struct kobj_uevent_env *env)
- {
-@@ -154,9 +158,9 @@ int of_device_uevent(struct device *dev, struct kobj_uevent_env *env)
- 	if (add_uevent_var(env, "OF_TYPE=%s", ofdev->node->type))
- 		return -ENOMEM;
- 
--        /* Since the compatible field can contain pretty much anything
--         * it's not really legal to split it out with commas. We split it
--         * up using a number of environment variables instead. */
-+	/* Since the compatible field can contain pretty much anything
-+	 * it's not really legal to split it out with commas. We split it
-+	 * up using a number of environment variables instead. */
- 
- 	compat = of_get_property(ofdev->node, "compatible", &cplen);
- 	while (compat && *compat && cplen > 0) {
-@@ -184,4 +188,3 @@ int of_device_uevent(struct device *dev, struct kobj_uevent_env *env)
- 	return 0;
- }
- EXPORT_SYMBOL(of_device_uevent);
--EXPORT_SYMBOL(of_device_get_modalias);
-diff --git a/arch/powerpc/kernel/of_platform.c b/arch/powerpc/kernel/of_platform.c
-index e79ad8a..cd9336e 100644
---- a/arch/powerpc/kernel/of_platform.c
-+++ b/arch/powerpc/kernel/of_platform.c
-@@ -26,9 +26,12 @@
- #include <asm/errno.h>
- #include <asm/topology.h>
- #include <asm/pci-bridge.h>
--#include <asm/ppc-pci.h>
- #include <asm/atomic.h>
- 
-+#ifdef CONFIG_PPC_PSERIES
-+#include <asm/ppc-pci.h>
-+#endif
-+
- /*
-  * The list of OF IDs below is used for matching bus types in the
-  * system whose devices are to be exposed as of_platform_devices.
--- 
-1.5.4.GIT
+Thanks,
+Michal Simek
