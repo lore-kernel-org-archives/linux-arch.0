@@ -1,41 +1,33 @@
-From: Joe Perches <joe@perches.com>
-Subject: Re: [PATCH 1/2] OF: clean coding style - prom_parse.c
-Date: Sat, 03 May 2008 10:26:22 -0700
-Message-ID: <1209835583.16966.10.camel@localhost>
-References: <monstr@seznam.cz>
-	 <1209827626-8562-1-git-send-email-monstr@seznam.cz>
-	 <c382f7ff87d1502c20423742ad738e50a118cf62.1209827449.git.monstr@monstr.eu>
+From: Dhaval Giani <dhaval@linux.vnet.ibm.com>
+Subject: Re: [RFC][PATCH] sched_clock_cpu()
+Date: Sat, 3 May 2008 23:00:23 +0530
+Message-ID: <20080503173023.GA2394@linux.vnet.ibm.com>
+References: <1209832169.6929.42.camel@lappy> <20080503165511.GA21967@elte.hu>
+Reply-To: Dhaval Giani <dhaval@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 136-022.dsl.labridge.com ([206.117.136.22]:1167 "EHLO
-	mail.perches.com" rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org
-	with ESMTP id S1761868AbYECR1X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 May 2008 13:27:23 -0400
-In-Reply-To: <c382f7ff87d1502c20423742ad738e50a118cf62.1209827449.git.monstr@monstr.eu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: paulus@samba.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1765945AbYECRbd@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20080503165511.GA21967@elte.hu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Thomas Gleixner <tglx@linutronix.de>, David Miller <davem@davemloft.net>, Guillaume Chazarain <guichaz@gmail.com>, Andi Kleen <andi@firstfloor.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mike Galbraith <efault@gmx.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 2008-05-03 at 17:13 +0200, monstr@seznam.cz wrote:
->  /* Debug utility */
->  #ifdef DEBUG
->  static void of_dump_addr(const char *s, const u32 *addr, int na)
->  {
-> -	printk("%s", s);
-> -	while(na--)
-> -		printk(" %08x", *(addr++));
-> -	printk("\n");
-> +	printk(KERN_INFO "%s", s);
-> +	while (na--)
-> +		printk(KERN_INFO " %08x", *(addr++));
-> +	printk(KERN_INFO "\n");
->  }
+On Sat, May 03, 2008 at 06:55:11PM +0200, Ingo Molnar wrote:
+> 
+> * Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> 
+> > it _DOESN'T_ boot ;-/ [...]
+> 
+> FYI, the merged version against sched-devel.git does boot fine here and 
+> the clock does seem to advance as expected.
+> 
 
-You've prefixed KERN_INFO before every address block.
+boots here against linus as well.
 
-How about:
+> 	Ingo
 
-print_hex_dump(KERN_<level>, s, DUMP_PREFIX_NONE, 4, addr, na, false);
+-- 
+regards,
+Dhaval
