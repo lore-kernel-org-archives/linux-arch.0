@@ -1,76 +1,360 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
-Date: Sat, 3 May 2008 07:49:30 +0200
-Message-ID: <20080503054930.GA19664@wotan.suse.de>
-References: <20080429135936.GC12390@linux.vnet.ibm.com> <20080430112934.GA23203@linux.vnet.ibm.com> <20080430113456.GY12774@kernel.dk> <20080430121712.GR11126@linux.vnet.ibm.com> <20080430123717.GC12774@kernel.dk> <20080502020241.GA26088@linux.vnet.ibm.com> <20080502021233.GC11844@wotan.suse.de> <20080502122955.GB15522@linux.vnet.ibm.com> <20080502124205.GA23680@linux.vnet.ibm.com> <1209733169.13978.157.camel@twins>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: microblaze syscall list
+Date: Sat, 3 May 2008 11:16:49 +0200
+Message-ID: <200805031116.50236.arnd@arndb.de>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <481ACE51.80202@seznam.cz> <481BE0E4.7010904@petalogix.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.suse.de ([195.135.220.2]:39138 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753011AbYECFtd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 3 May 2008 01:49:33 -0400
+Received: from moutng.kundenserver.de ([212.227.126.187]:53853 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757355AbYECJRM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 May 2008 05:17:12 -0400
+In-Reply-To: <481BE0E4.7010904@petalogix.com>
 Content-Disposition: inline
-In-Reply-To: <1209733169.13978.157.camel@twins>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: paulmck@linux.vnet.ibm.com, Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu
+To: John Williams <john.williams@petalogix.com>
+Cc: monstr@seznam.cz, Matthew Wilcox <matthew@wil.cx>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>, Ulrich Drepper <drepper@redhat.com>
 
-On Fri, May 02, 2008 at 02:59:29PM +0200, Peter Zijlstra wrote:
-> On Fri, 2008-05-02 at 05:42 -0700, Paul E. McKenney wrote:
+On Saturday 03 May 2008, John Williams wrote:
+
+> As a first pass at assessing the C library impact on a completely 
+> renovated syscall list, I took Michal's proposed new unistd.h and used 
+> it to grep over both the uClibc implementation that (almost) every 
+> existing microblaze user uses (!MMU), plus the glibc (cough cough) 
+> implementation that is our default with the emerging MMU support.
 > 
-> > And here is one scenario that makes me doubt that my imagination is
-> > faulty:
-> > 
-> > 1.	CPU 0 disables irqs.
-> > 
-> > 2.	CPU 1 disables irqs.
-> > 
-> > 3.	CPU 0 invokes smp_call_function().  But CPU 1 will never respond
-> > 	because its irqs are disabled.
-> > 
-> > 4.	CPU 1 invokes smp_call_function().  But CPU 0 will never respond
-> > 	because its irqs are disabled.
-> > 
-> > Looks like inherent deadlock to me, requiring that smp_call_function()
-> > be invoked with irqs enabled.
-> > 
-> > So, what am I missing here?
+> To test the implementation / reference of a syscall number, I grepped 
+> the entire source trees for
 > 
-> The wish to do it anyway ;-)
+>    __NR_xxx
 > 
-> I can imagine some situations where I'd like to try anyway and fall back
-> to a slower path when failing.
+> or
 > 
-> With the initial design we would simply allocate data, stick it on the
-> queue and call the ipi (when needed).
+>    _system[0-9](.*xxxx    (stripped leading __NR_X)
+>
+> to try and find any mention at all of a particular syscall in that C 
+> library implementation.
+
+I think for glibc, you also need to look for INLINE_SYSCALL and
+INTERNAL_SYSCALL, possibly more.
+
+However, note that many of the syscall numbers that are referenced
+by glibc are not _required_ by it, because it already contains
+alternative implementations.
+
+> The results are interesting, and verbose.  In fact, the lists are so 
+> long I'm almost certain I've missed some other obscure way that uClibc 
+> or glibc can access a __NR_ macro.  Please let me know if this is the case.
 > 
-> This is perfectly deadlock free when wait=0 and it just returns -ENOMEM
-> on allocation failure.
+> Certainly there are many implemented in neither, such as as splice and 
+> friends.
+> 
+> Also interesting is e.g. openat() - it is implemented/referenced by 
+> neither!  So, surely it would be premature to phase out open() in favour 
+> of openat() when the latter is not in any viable MicroBlaze C library yet.
 
-Yeah, I'm just talking about the wait=0 case. (btw. I'd rather the core
-API takes some data rather than allocates some itself, eg because you
-might want to have it on the stack).
+openat was added in glibc-2.4 as a syscall, see
+http://sourceware.org/cgi-bin/cvsweb.cgi/libc/sysdeps/unix/sysv/linux/openat.c?rev=1.2.2.7&content-type=text/x-cvsweb-markup&cvsroot=glibc
 
-For the wait=1 case, something very clever such as processing pending
-requests in a polling loop might be cool... however I'd rather not add
-such complexity until someone needs it (you could stick a comment in
-there outlining your algorithm). But I'd just rather not have peole rely
-on it yet.
+What is not yet there is code to implement open() using openat() in the
+absense of __NR_open.
 
- 
-> It it doesn't return -ENOMEM I know its been queued and will be
-> processed at some point, if it does fail, I can deal with it in another
-> way.
+> I guess we need some help to find the other critical ones.
 
-At least with IPIs I think we can guarantee they will be processed on
-the target after we queue them.
+I think your approach is flawed, it doesn't help at all to look at what
+your libc currently does if you already think that you will need to change
+the libc code.
 
- 
-> I know I'd like to do that and I suspect Nick has a few use cases up his
-> sleeve as well.
+A more relevant question is what changes should be done in glibc for this
+in the first place, and I would like to hear Ulis opinion on that.
 
-It would be handy. The "quickly kick something off on another CPU" is
-pretty nice in mm/ when you have per-cpu queues or caches that might
-want to be flushed.
+Uli: The question at hand is what syscalls a new linux architecture
+should implement. To take utimes() as an example, the kernel currently
+has utime(), utimes(), futimesat() and utimensat(), while glibc
+provides utime(), utimes(), futimes(), futimesat(), futimens() and
+utimensat(). In theory, all the glibc interfaces could be provided
+on top of the utimensat() syscall, but should they?
+Currently, glibc has fallback code to implement utime() using utimes(),
+but not any of the others.
+
+The same argument can be made about others, including
+{,f}{mknod,mkdir,symlink,rename,access,chmod,open}{,at}
+select/pselect,poll/ppoll,epoll_wait/epoll_pwait
+vfork/fork/clone
+{,rt_}{sigaction,sigsuspend,sigreturn,sigprocmask,sigpending}
+any of your newly proposed syscalls with flags
+
+If a new architecture should override these, should that be
+done in the architecture specific code, or should the common
+code be modified to handle this implicitly?
+
+On a similar note, do you agree that a new 32 bit architecture should
+define 32 bit uid_t and 64 bit off_t, and consequently leave
+out all the uid16_t and loff_t based syscalls that are then simple
+duplicates?
+
+> If there's a cleaner analysis I can do, please let me know and I'll repeat.
+> 
+> Here goes - uClibc first, then glibc
+> 
+> ** Not implemented/referenced in uClibc 0.9.27 12 January 2005
+> __NR_add_key
+> __NR_clock_getres
+> __NR_clock_gettime
+> __NR_clock_nanosleep
+> __NR_clock_settime
+> __NR_creat
+> __NR_epoll_pwait
+> __NR_eventfd
+> __NR__exit
+> __NR_exit_group
+> __NR_faccessat
+> __NR_fadvise64_64
+> __NR_fallocate
+> __NR_fchmodat
+> __NR_fchownat
+> __NR_fstatat64
+> __NR_fstatfs64
+> __NR_futex
+> __NR_futimesat
+> __NR_getcpu
+> __NR_get_robust_list
+> __NR_gettid
+> __NR_inotify_add_watch
+> __NR_inotify_init
+> __NR_inotify_rm_watch
+> __NR_io_cancel
+> __NR_io_destroy
+> __NR_io_getevents
+> __NR_ioprio_get
+> __NR_ioprio_set
+> __NR_io_setup
+> __NR_io_submit
+> __NR_kexec_load
+> __NR_keyctl
+> __NR_linkat
+> __NR_lookup_dcookie
+> __NR_mkdirat
+> __NR_mknodat
+> __NR_newfstat
+> __NR_newlstat
+> __NR_newstat
+> __NR_newuname
+> __NR_nfsservctl
+> __NR_openat
+> __NR_ppoll
+> __NR_pselect7
+> __NR_readahead
+> __NR_readlinkat
+> __NR_removexattrs
+> __NR_renameat
+> __NR_request_key
+> __NR_restart_syscall
+> __NR_rt_sigqueueinfo
+> __NR_sched_getaffinity
+> __NR_sched_setaffinity
+> __NR_semtimedop
+> __NR_set_robust_list
+> __NR_set_tid_address
+> __NR_sgetmask
+> __NR_signal
+> __NR_signalfd
+> __NR_splice
+> __NR_ssetmask
+> __NR_statfs64
+> __NR_symlinkat
+> __NR_sync_file_range
+> __NR_syscalls
+> __NR_tee
+> __NR_tgkill
+> __NR_timerfd_create
+> __NR_timerfd_gettime
+> __NR_timerfd_settime
+> __NR_tkill
+> __NR_unlinkat
+> __NR_unshare
+> __NR_utimensat
+> __NR_vmsplice
+> __NR_waitid
+
+This list is possibly more useful as a "what's wrong with uClibc" list.
+Most of these syscalls were added recently and should be added in uClibc
+eventually, at least the subset of them that is also provided by glibc.
+
+> ** Not implemented/referenced in glibc
+> __NR_add_key
+> __NR_adjtimex
+> __NR_alarm
+> __NR_capget
+> __NR_capset
+> __NR_chdir
+> __NR_chown
+> __NR_chroot
+> __NR_close
+> __NR_creat
+> __NR_delete_module
+> __NR_dup
+> __NR_dup2
+> __NR_epoll_create
+> __NR_epoll_ctl
+> __NR_epoll_pwait
+> __NR_eventfd
+> __NR_execve
+> __NR_faccessat
+> __NR_fallocate
+> __NR_fchdir
+> __NR_fchmod
+> __NR_fchmodat
+> __NR_fchown
+> __NR_fchownat
+> __NR_fdatasync
+> __NR_fgetxattr
+> __NR_flistxattr
+> __NR_flock
+> __NR_fremovexattr
+> __NR_fsetxattr
+> __NR_fstatat64
+> __NR_fsync
+> __NR_futimesat
+> __NR_getcpu
+> __NR_getegid
+> __NR_geteuid
+> __NR_getgroups
+> __NR_getitimer
+> __NR_getpgid
+> __NR_getpgrp
+> __NR_getppid
+> __NR_getpriority
+> __NR_getrlimit
+> __NR_get_robust_list
+> __NR_getrusage
+> __NR_getsid
+> __NR_gettid
+> __NR_getxattr
+> __NR_init_module
+> __NR_inotify_add_watch
+> __NR_inotify_init
+> __NR_inotify_rm_watch
+> __NR_io_cancel
+> __NR_io_destroy
+> __NR_io_getevents
+> __NR_ioprio_get
+> __NR_ioprio_set
+> __NR_io_setup
+> __NR_io_submit
+> __NR_kexec_load
+> __NR_keyctl
+> __NR_kill
+> __NR_lgetxattr
+> __NR_link
+> __NR_linkat
+> __NR_listxattr
+> __NR_llistxattr
+> __NR_lookup_dcookie
+> __NR_lremovexattr
+> __NR_lseek
+> __NR_lsetxattr
+> __NR_mkdirat
+> __NR_mknodat
+> __NR_mount
+> __NR_msgctl
+> __NR_msgget
+> __NR_msgrcv
+> __NR_msgsnd
+> __NR_munmap
+> __NR_nanosleep
+> __NR_newfstat
+> __NR_newlstat
+> __NR_newstat
+> __NR_newuname
+> __NR_nfsservctl
+> __NR_nice
+> __NR_openat
+> __NR_pause
+> __NR_personality
+> __NR_pivot_root
+> __NR_ppoll
+> __NR_prctl
+> __NR_pselect7
+> __NR_ptrace
+> __NR_quotactl
+> __NR_read
+> __NR_readlinkat
+> __NR_readv
+> __NR_reboot
+> __NR_removexattrs
+> __NR_renameat
+> __NR_request_key
+> __NR_restart_syscall
+> __NR_sched_getparam
+> __NR_sched_get_priority_max
+> __NR_sched_get_priority_min
+> __NR_sched_getscheduler
+> __NR_sched_rr_get_interval
+> __NR_sched_setparam
+> __NR_sched_setscheduler
+> __NR_sched_yield
+> __NR_semctl
+> __NR_semget
+> __NR_semop
+> __NR_sendfile64
+> __NR_setdomainname
+> __NR_setgid
+> __NR_setgroups
+> __NR_sethostname
+> __NR_setitimer
+> __NR_setpgid
+> __NR_setpriority
+> __NR_setregid
+> __NR_setreuid
+> __NR_setrlimit
+> __NR_set_robust_list
+> __NR_setsid
+> __NR_settimeofday
+> __NR_setuid
+> __NR_setxattr
+> __NR_sgetmask
+> __NR_shmat
+> __NR_shmctl
+> __NR_shmdt
+> __NR_shmget
+> __NR_signal
+> __NR_signalfd
+> __NR_splice
+> __NR_ssetmask
+> __NR_stime
+> __NR_swapoff
+> __NR_swapon
+> __NR_symlinkat
+> __NR_sync
+> __NR_sync_file_range
+> __NR_syscalls
+> __NR_sysinfo
+> __NR_syslog
+> __NR_tee
+> __NR_time
+> __NR_timerfd_create
+> __NR_timerfd_gettime
+> __NR_timerfd_settime
+> __NR_times
+> __NR_umask
+> __NR_umount
+> __NR_unlink
+> __NR_unlinkat
+> __NR_unshare
+> __NR_uselib
+> __NR_utimensat
+> __NR_vhangup
+> __NR_vmsplice
+> __NR_write
+> __NR_writev
+
+You are obviously missing the INLINE_SYSCALL and INTERNAL_SYSCALL here.
+I do think that having this list (in a correct form) is useful for the
+discussion, so it would be nice if you could do it again, including those.
+
+	Arnd <><
