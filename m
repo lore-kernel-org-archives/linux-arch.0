@@ -1,42 +1,36 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/1] DEBUGFS: Fixing name for debug fs
-Date: Sat, 3 May 2008 23:07:03 +0200
-Message-ID: <200805032307.04352.arnd@arndb.de>
-References: <monstr@seznam.cz> <1209825314-8048-1-git-send-email-monstr@seznam.cz> <c65b09261996cf3500b6faee201e2dd6c152973e.1209825194.git.monstr@monstr.eu>
+Subject: Re: microblaze syscall list
+Date: Sat, 3 May 2008 23:14:23 +0200
+Message-ID: <200805032314.24669.arnd@arndb.de>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <200805031116.50236.arnd@arndb.de> <481C8B48.5020306@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.179]:57202 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.177]:55399 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752875AbYECVHG convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 May 2008 17:07:06 -0400
-In-Reply-To: <c65b09261996cf3500b6faee201e2dd6c152973e.1209825194.git.monstr@monstr.eu>
+	with ESMTP id S1752997AbYECVOw convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 May 2008 17:14:52 -0400
+In-Reply-To: <481C8B48.5020306@redhat.com>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: paulus@samba.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>
+To: Ulrich Drepper <drepper@redhat.com>
+Cc: John Williams <john.williams@petalogix.com>, monstr@seznam.cz, Matthew Wilcox <matthew@wil.cx>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>
 
-On Saturday 03 May 2008, monstr@seznam.cz wrote:
-> From: Michal Simek <monstr@monstr.eu>
->=20
-> This change is made because powerpc_debugfs_root is arch
-> specific name.
-=2E..
-> =A0
-> =A0static int powerpc_debugfs_init(void)
-> =A0{
-> -=A0=A0=A0=A0=A0=A0=A0powerpc_debugfs_root =3D debugfs_create_dir("po=
-werpc", NULL);
-> +=A0=A0=A0=A0=A0=A0=A0debugfs_root =3D debugfs_create_dir("powerpc", =
-NULL);
-> =A0
+On Saturday 03 May 2008, Ulrich Drepper wrote:
+> Yes, this is how it should be. =C2=A0It's not done because no archite=
+cture
+> glibc officially supports arrived after these and similar syscalls
+> arrived. =C2=A0There is no need to implement the not-*at interface, n=
+o need
+> to implement the creat syscall, etc etc.
 
-You left the name as "powerpc", which sort of defeats the purpose of yo=
-ur
-patch. Files in debugfs are by definition not part of the ABI, so it's
-actually possible to change this as well. How about making this "of"
-instead of "powerpc"?
+Ah, good! So where should the glibc implementation for these calls go?
+In the microblaze (and any future architecture) specific source directo=
+ries,
+to be consolidated when you get more of them, or in the common places l=
+ike
+sysdeps/unix/sysv/linux/*.c, with the appropriate #ifndef?
 
 	Arnd <><
