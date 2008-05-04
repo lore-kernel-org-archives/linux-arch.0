@@ -1,49 +1,118 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: microblaze syscall list
-Date: Sun, 04 May 2008 15:09:55 -0700
-Message-ID: <481E3433.2030408@zytor.com>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <4813DF3E.6080800@itee.uq.edu.au> <4814A153.3040600@seznam.cz> <200805032357.41043.arnd@arndb.de> <481D7DF7.3000909@seznam.cz>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 42/56] microblaze_v2: stats headers
+Date: Mon, 5 May 2008 00:31:38 +0200
+Message-ID: <200805050031.40054.arnd@arndb.de>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu> <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:55811 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751590AbYEDWTh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 18:19:37 -0400
-In-Reply-To: <481D7DF7.3000909@seznam.cz>
+Received: from moutng.kundenserver.de ([212.227.126.174]:53625 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751292AbYEDWcO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 18:32:14 -0400
+In-Reply-To: <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@seznam.cz
-Cc: Arnd Bergmann <arnd@arndb.de>, microblaze-uclinux@itee.uq.edu.au, Matthew Wilcox <matthew@wil.cx>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, John Williams <john.williams@petalogix.com>, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-Michal Simek wrote:
-> /* fs/select.c */
-> 	.long sys_select /* obsolete -> sys_pselect6 */
-> ok	.long sys_pselect7
-> 	.long sys_pselect6 /* obsolete -> sys_pselect7 */
+On Sunday 04 May 2008, monstr@seznam.cz wrote:
+> +struct stat {
+> +	unsigned int	st_dev;
+> +	unsigned long	st_ino;
+> +	unsigned int	st_mode;
+> +	unsigned int	st_nlink;
+> +	unsigned int	st_uid;
+> +	unsigned int	st_gid;
+> +	unsigned int	st_rdev;
+> +	long		st_size;
+> +	unsigned long	st_blksize;
+> +	unsigned long	st_blocks;
+> +	unsigned long	st_atime;
+> +	unsigned long	__unused1;
+> +	unsigned long	st_mtime;
+> +	unsigned long	__unused2;
+> +	unsigned long	st_ctime;
+> +	unsigned long	__unused3;
+> +	unsigned long	__unused4;
+> +	unsigned long	__unused5;
+> +};
+> +
+> +struct stat64 {
+> +	unsigned long long	st_dev;
+> +	unsigned long	__unused1;
+> +
+> +	unsigned long long	st_ino;
+> +
+> +	unsigned int	st_mode;
+> +	unsigned int	st_nlink;
+> +
+> +	unsigned int	st_uid;
+> +	unsigned int	st_gid;
+> +
+> +	unsigned long long	st_rdev;
+> +	unsigned long	__unused3;
+> +
+> +	long long	st_size;
+> +	unsigned long	st_blksize;
+> +
+> +	unsigned long	st_blocks; /* No. of 512-byte blocks allocated */
+> +	unsigned long	__unused4; /* future possible st_blocks high bits */
+> +
+> +	unsigned long	st_atime;
+> +	unsigned long	st_atime_nsec;
+> +
+> +	unsigned long	st_mtime;
+> +	unsigned long	st_mtime_nsec;
+> +
+> +	unsigned long	st_ctime;
+> +	unsigned long	st_ctime_nsec;
+> +
+> +	unsigned long	__unused8;
+> +};
 
-I thought there was some semantic differences between select() and 
-pselect()... perhaps those changes have been removed?
+There should only be a 'struct stat', not stat64, and it would be nice
+to have that in asm-generic/stat.h.
 
-> 
-> /* kernel/sys_ni.c */
-> 	.long sys_ni_syscall /*  :-)  */
-> 
+I think it should be defined as
 
-There is a school of thought that it's useful to reserve a system call 
-number (usually zero) as a system call that is *guaranteed* to have no 
-effect.
+struct stat {
+	unsigned long long	st_dev;
 
-> /* arch - microblaze specific */
-> /* arch/microblaze/kernel/signal.c */
-> 	.long sys_sigreturn /* obsolete -> sys_rt_sigreturn */
-> ok	.long sys_rt_sigreturn_wrapper /*.long sys_rt_sigreturn*/
-> 	.long sys_sigaction /* obsolete -> rt_sigaction */
-> 	.long sys_sigsuspend /* obsolete -> rt_sigsuspend */
+	unsigned long long	st_ino;
 
-Btw, please implement rt_sigreturn sanely; on x86, for example, one has 
-to pop a word off the stack before one can invoke the system call, when 
-used as sa_restorer...
+	unsigned int		st_mode;
+	unsigned int		st_nlink;
 
-	-hpa
+	unsigned int		st_uid;
+	unsigned int		st_gid;
+
+	unsigned long long	st_rdev;
+
+	long long		st_size;
+
+	unsigned int		st_blksize;
+	unsigned int		__unused1;
+
+	unsigned long long	st_blocks; /* No. of 512-byte blocks allocated */
+
+	unsigned int		st_atime;
+	unsigned int		st_atime_nsec;
+
+	unsigned int		st_mtime;
+	unsigned int		st_mtime_nsec;
+
+	unsigned int		st_ctime;
+	unsigned int		st_ctime_nsec;
+
+	unsigned int		__unused2;
+	unsigned int		__unused3;
+};
+
+This way, you don't have any unnecessary padding, and the structure
+is compatible in 32 and 64 bit architectures.
+
+	Arnd <><
