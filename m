@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 34/56] microblaze_v2: io.h IO operations
-Date: Sun,  4 May 2008 13:41:23 +0200
-Message-ID: <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 07/56] microblaze_v2: Signal support
+Date: Sun,  4 May 2008 13:40:56 +0200
+Message-ID: <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -9,39 +9,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
  <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu>
  <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>
- <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu>
- <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu>
- <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu>
- <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
- <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
- <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
- <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
- <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
- <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
- <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
- <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
- <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
- <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
- <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
- <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
- <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
- <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
- <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
- <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
- <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
- <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
- <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
- <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
- <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
- <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:54430 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:56206 "EHLO
 	monstr.eu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752181AbYEEMbh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 08:31:37 -0400
-In-Reply-To: <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
+	id S1758866AbYEEMqd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 08:46:33 -0400
+In-Reply-To: <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -54,225 +27,756 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/io.h |  210 +++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 210 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/io.h
+ arch/microblaze/kernel/signal.c |  534 +++++++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/signal.h |  199 +++++++++++++++
+ 2 files changed, 733 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/signal.c
+ create mode 100644 include/asm-microblaze/signal.h
 
-diff --git a/include/asm-microblaze/io.h b/include/asm-microblaze/io.h
+diff --git a/arch/microblaze/kernel/signal.c b/arch/microblaze/kernel/signal.c
 new file mode 100644
-index 0000000..d2c492f
+index 0000000..dc9f273
 --- /dev/null
-+++ b/include/asm-microblaze/io.h
-@@ -0,0 +1,210 @@
++++ b/arch/microblaze/kernel/signal.c
+@@ -0,0 +1,534 @@
 +/*
-+ * include/asm-microblaze/io.h
++ * arch/microblaze/kernel/signal.c -- Signal handling
++ *
++ * Copyright (C) 2003,2004 John Williams <jwilliams@itee.uq.edu.au>
++ * Copyright (C) 2001 NEC Corporation
++ * Copyright (C) 2001 Miles Bader <miles@gnu.org>
++ * Copyright (C) 1999,2000 Niibe Yutaka & Kaz Kojima
++ * Copyright (C) 1991,1992 Linus Torvalds
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ *
++ * 1997-11-28 Modified for POSIX.1b signals by Richard Henderson
++ *
++ * This file was was derived from the sh version, arch/sh/kernel/signal.c
++ */
++
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/smp.h>
++#include <linux/smp_lock.h>
++#include <linux/kernel.h>
++#include <linux/signal.h>
++#include <linux/errno.h>
++#include <linux/wait.h>
++#include <linux/ptrace.h>
++#include <linux/unistd.h>
++#include <linux/stddef.h>
++#include <linux/personality.h>
++#include <linux/percpu.h>
++#include <asm/entry.h>
++#include <asm/ucontext.h>
++#include <asm/uaccess.h>
++#include <asm/pgtable.h>
++#include <asm/pgalloc.h>
++#include <asm/signal.h>
++
++#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
++
++asmlinkage int do_signal(struct pt_regs *regs, sigset_t *oldset, int in_sycall);
++
++/*
++ * Atomically swap in the new signal mask, and wait for a signal.
++ */
++asmlinkage int
++sys_sigsuspend(old_sigset_t mask, struct pt_regs *regs)
++{
++	sigset_t saveset;
++
++	mask &= _BLOCKABLE;
++	spin_lock_irq(&current->sighand->siglock);
++	saveset = current->blocked;
++	siginitset(&current->blocked, mask);
++	recalc_sigpending();
++	spin_unlock_irq(&current->sighand->siglock);
++
++	regs->r3 = -EINTR;
++	while (1) {
++		current->state = TASK_INTERRUPTIBLE;
++		schedule();
++		if (do_signal(regs, &saveset, 1))
++			return -EINTR;
++	}
++}
++
++asmlinkage int
++sys_rt_sigsuspend(sigset_t *unewset, size_t sigsetsize,
++		struct pt_regs *regs)
++{
++	sigset_t saveset, newset;
++
++	/* XXX: Don't preclude handling different sized sigset_t's. */
++	if (sigsetsize != sizeof(sigset_t))
++		return -EINVAL;
++
++	if (copy_from_user(&newset, unewset, sizeof(newset)))
++		return -EFAULT;
++	sigdelsetmask(&newset, ~_BLOCKABLE);
++	spin_lock_irq(&current->sighand->siglock);
++	saveset = current->blocked;
++	current->blocked = newset;
++	recalc_sigpending();
++	spin_unlock_irq(&current->sighand->siglock);
++
++	regs->r3 = -EINTR;
++	while (1) {
++		current->state = TASK_INTERRUPTIBLE;
++		schedule();
++		if (do_signal(regs, &saveset, 1))
++			return -EINTR;
++	}
++}
++
++asmlinkage int
++sys_sigaction(int sig, const struct old_sigaction *act,
++		struct old_sigaction *oact)
++{
++	struct k_sigaction new_ka, old_ka;
++	int ret;
++
++	if (act) {
++		old_sigset_t mask;
++		if (!access_ok(VERIFY_READ, act, sizeof(*act)) ||
++			__get_user(new_ka.sa.sa_handler, &act->sa_handler) ||
++			__get_user(new_ka.sa.sa_restorer, &act->sa_restorer))
++			return -EFAULT;
++		__get_user(new_ka.sa.sa_flags, &act->sa_flags);
++		__get_user(mask, &act->sa_mask);
++		siginitset(&new_ka.sa.sa_mask, mask);
++	}
++
++	ret = do_sigaction(sig, act ? &new_ka : NULL, oact ? &old_ka : NULL);
++
++	if (!ret && oact) {
++		if (!access_ok(VERIFY_WRITE, oact, sizeof(*oact)) ||
++			__put_user(old_ka.sa.sa_handler, &oact->sa_handler) ||
++			__put_user(old_ka.sa.sa_restorer, &oact->sa_restorer))
++			return -EFAULT;
++		__put_user(old_ka.sa.sa_flags, &oact->sa_flags);
++		__put_user(old_ka.sa.sa_mask.sig[0], &oact->sa_mask);
++	}
++
++	return ret;
++}
++
++asmlinkage int
++sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss,
++		struct pt_regs *regs)
++{
++	return do_sigaltstack(uss, uoss, regs->r1);
++}
++
++/*
++ * Do a signal return; undo the signal stack.
++ */
++
++struct sigframe {
++	struct sigcontext sc;
++	unsigned long extramask[_NSIG_WORDS-1];
++	unsigned long tramp[2];	/* signal trampoline */
++};
++
++struct rt_sigframe {
++	struct siginfo info;
++	struct ucontext uc;
++	unsigned long tramp[2];	/* signal trampoline */
++};
++
++static int
++restore_sigcontext(struct pt_regs *regs, struct sigcontext *sc, int *rval_p)
++{
++	unsigned int err = 0;
++
++#define COPY(x)		err |= __get_user(regs->x, &sc->regs.x)
++	COPY(r0);	COPY(r1);
++	COPY(r2);	COPY(r3);	COPY(r4);	COPY(r5);
++	COPY(r6);	COPY(r7);	COPY(r8);	COPY(r9);
++	COPY(r10);	COPY(r11);	COPY(r12);	COPY(r13);
++	COPY(r14);	COPY(r15);	COPY(r16);	COPY(r17);
++	COPY(r18);	COPY(r19);	COPY(r20);	COPY(r21);
++	COPY(r22);	COPY(r23);	COPY(r24);	COPY(r25);
++	COPY(r26);	COPY(r27);	COPY(r28);	COPY(r29);
++	COPY(r30);	COPY(r31);
++	COPY(pc);	COPY(ear);	COPY(esr);	COPY(fsr);
++#undef COPY
++
++	*rval_p = regs->r3;
++
++	return err;
++}
++
++asmlinkage int sys_sigreturn(struct pt_regs *regs)
++{
++	struct sigframe *frame = (struct sigframe *)regs->r1;
++	sigset_t set;
++	int rval;
++
++	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
++		goto badframe;
++
++	if (__get_user(set.sig[0], &frame->sc.oldmask)
++		|| (_NSIG_WORDS > 1
++		&& __copy_from_user(&set.sig[1], &frame->extramask,
++					sizeof(frame->extramask))))
++		goto badframe;
++
++	sigdelsetmask(&set, ~_BLOCKABLE);
++
++	spin_lock_irq(&current->sighand->siglock);
++	current->blocked = set;
++	recalc_sigpending();
++	spin_unlock_irq(&current->sighand->siglock);
++
++	if (restore_sigcontext(regs, &frame->sc, &rval))
++		goto badframe;
++	return rval;
++
++badframe:
++	force_sig(SIGSEGV, current);
++	return 0;
++}
++
++asmlinkage int sys_rt_sigreturn(struct pt_regs *regs)
++{
++	struct rt_sigframe *frame = (struct rt_sigframe *)regs->r1;
++	sigset_t set;
++	stack_t st;
++	int rval;
++
++	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
++		goto badframe;
++
++	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
++		goto badframe;
++
++	sigdelsetmask(&set, ~_BLOCKABLE);
++	spin_lock_irq(&current->sighand->siglock);
++	current->blocked = set;
++	recalc_sigpending();
++	spin_unlock_irq(&current->sighand->siglock);
++
++	if (restore_sigcontext(regs, &frame->uc.uc_mcontext, &rval))
++		goto badframe;
++
++	if (__copy_from_user((void *)&st, &frame->uc.uc_stack, sizeof(st)))
++		goto badframe;
++	/* It is more difficult to avoid calling this function than to
++	 call it and ignore errors. */
++	do_sigaltstack(&st, NULL, regs->r1);
++
++	return rval;
++
++badframe:
++	force_sig(SIGSEGV, current);
++	return 0;
++}
++
++/*
++ * Set up a signal frame.
++ */
++
++static int
++setup_sigcontext(struct sigcontext *sc, struct pt_regs *regs,
++		unsigned long mask)
++{
++	int err = 0;
++
++#define COPY(x)		err |= __put_user(regs->x, &sc->regs.x)
++	COPY(r0);	COPY(r1);
++	COPY(r2);	COPY(r3);	COPY(r4);	COPY(r5);
++	COPY(r6);	COPY(r7);	COPY(r8);	COPY(r9);
++	COPY(r10);	COPY(r11);	COPY(r12);	COPY(r13);
++	COPY(r14);	COPY(r15);	COPY(r16);	COPY(r17);
++	COPY(r18);	COPY(r19);	COPY(r20);	COPY(r21);
++	COPY(r22);	COPY(r23);	COPY(r24);	COPY(r25);
++	COPY(r26);	COPY(r27);	COPY(r28);	COPY(r29);
++	COPY(r30);	COPY(r31);
++	COPY(pc);	COPY(ear);	COPY(esr);	COPY(fsr);
++#undef COPY
++
++	err |= __put_user(mask, &sc->oldmask);
++
++	return err;
++}
++
++/*
++ * Determine which stack to use..
++ */
++static inline void *
++get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
++{
++	/* Default to using normal stack */
++	unsigned long sp = regs->r1;
++
++	if ((ka->sa.sa_flags & SA_ONSTACK) != 0 && !on_sig_stack(sp))
++		sp = current->sas_ss_sp + current->sas_ss_size;
++
++	return (void *)((sp - frame_size) & -8UL);
++}
++
++static void setup_frame(int sig, struct k_sigaction *ka,
++			sigset_t *set, struct pt_regs *regs)
++{
++	struct sigframe *frame;
++	int err = 0;
++	int signal;
++
++	frame = get_sigframe(ka, regs, sizeof(*frame));
++
++	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
++		goto give_sigsegv;
++
++	signal = current_thread_info()->exec_domain
++		&& current_thread_info()->exec_domain->signal_invmap
++		&& sig < 32
++		? current_thread_info()->exec_domain->signal_invmap[sig]
++		: sig;
++
++	err |= setup_sigcontext(&frame->sc, regs, set->sig[0]);
++
++	if (_NSIG_WORDS > 1) {
++		err |= __copy_to_user(frame->extramask, &set->sig[1],
++					sizeof(frame->extramask));
++	}
++
++	/* Set up to return from userspace. If provided, use a stub
++	 already in userspace. */
++	/* minus 8 is offset to cater for "rtsd r15,8" offset */
++	if (ka->sa.sa_flags & SA_RESTORER) {
++		regs->r15 = ((unsigned long)ka->sa.sa_restorer)-8;
++	} else {
++		/* Note, these encodings are _big endian_! */
++
++		/* addi r12, r0, __NR_sigreturn */
++		err |= __put_user(0x31800000 | __NR_sigreturn ,
++				frame->tramp + 0);
++		/* brki r14, 0x8 */
++		err |= __put_user(0xb9cc0008, frame->tramp + 1);
++
++		/* Return from sighandler will jump to the tramp.
++		 Negative 8 offset because return is rtsd r15, 8 */
++		regs->r15 = ((unsigned long)frame->tramp)-8;
++
++#if 0
++		flush_cache_sigtramp((unsigned long)frame->tramp);
++#endif
++	}
++
++	if (err)
++		goto give_sigsegv;
++
++	/* Set up registers for signal handler */
++	regs->r1 = (unsigned long) frame;
++	/* Signal handler args: */
++	regs->r5 = signal; /* Arg 0: signum */
++	regs->r6 = (unsigned long) &frame->sc; /* arg 1: sigcontext */
++
++	/* Offset of 4 to handle microblaze rtid r14, 0 */
++	regs->pc = (unsigned long)ka->sa.sa_handler;
++
++	set_fs(USER_DS);
++
++#ifdef DEBUG_SIG
++	printk(KERN_INFO "SIG deliver (%s:%d): sp=%p pc=%08lx\n",
++		current->comm, current->pid, frame, regs->pc);
++#endif
++
++	return;
++
++give_sigsegv:
++	if (sig == SIGSEGV)
++		ka->sa.sa_handler = SIG_DFL;
++	force_sig(SIGSEGV, current);
++}
++
++static void setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
++			sigset_t *set, struct pt_regs *regs)
++{
++	struct rt_sigframe *frame;
++	int err = 0;
++	int signal;
++
++	frame = get_sigframe(ka, regs, sizeof(*frame));
++
++	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
++		goto give_sigsegv;
++
++	signal = current_thread_info()->exec_domain
++		&& current_thread_info()->exec_domain->signal_invmap
++		&& sig < 32
++		? current_thread_info()->exec_domain->signal_invmap[sig]
++		: sig;
++
++	err |= copy_siginfo_to_user(&frame->info, info);
++
++	/* Create the ucontext. */
++	err |= __put_user(0, &frame->uc.uc_flags);
++	err |= __put_user(0, &frame->uc.uc_link);
++	err |= __put_user((void *)current->sas_ss_sp,
++			&frame->uc.uc_stack.ss_sp);
++	err |= __put_user(sas_ss_flags(regs->r1),
++			&frame->uc.uc_stack.ss_flags);
++	err |= __put_user(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
++	err |= setup_sigcontext(&frame->uc.uc_mcontext,
++			regs, set->sig[0]);
++	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
++
++	/* Set up to return from userspace. If provided, use a stub
++	 already in userspace. */
++	/* minus 8 is offset to cater for "rtsd r15,8" */
++	if (ka->sa.sa_flags & SA_RESTORER) {
++		regs->r15 = ((unsigned long)ka->sa.sa_restorer)-8;
++	} else {
++		/* addi r12, r0, __NR_sigreturn */
++		err |= __put_user(0x31800000 | __NR_rt_sigreturn ,
++				frame->tramp + 0);
++		/* brki r14, 0x8 */
++		err |= __put_user(0xb9cc0008, frame->tramp + 1);
++
++		/* Return from sighandler will jump to the tramp.
++		 Negative 8 offset because return is rtsd r15, 8 */
++		regs->r15 = ((unsigned long)frame->tramp)-8;
++
++#if 0
++		flush_cache_sigtramp((unsigned long)frame->tramp);
++#endif
++	}
++
++	if (err)
++		goto give_sigsegv;
++
++	/* Set up registers for signal handler */
++	regs->r1 = (unsigned long) frame;
++	/* Signal handler args: */
++	regs->r5 = signal; /* arg 0: signum */
++	regs->r6 = (unsigned long) &frame->info; /* arg 1: siginfo */
++	regs->r7 = (unsigned long) &frame->uc; /* arg2: ucontext */
++	/* Offset to handle microblaze rtid r14, 0 */
++	regs->pc = (unsigned long)ka->sa.sa_handler;
++
++	set_fs(USER_DS);
++
++#ifdef DEBUG_SIG
++	printk(KERN_INFO "SIG deliver (%s:%d): sp=%p pc=%08lx\n",
++		current->comm, current->pid, frame, regs->pc);
++#endif
++
++	return;
++
++give_sigsegv:
++	if (sig == SIGSEGV)
++		ka->sa.sa_handler = SIG_DFL;
++	force_sig(SIGSEGV, current);
++}
++
++/* Handle restarting system calls */
++static inline void
++handle_restart(struct pt_regs *regs, struct k_sigaction *ka, int has_handler)
++{
++	switch (regs->r3) {
++	case -ERESTART_RESTARTBLOCK:
++	case -ERESTARTNOHAND:
++		if (!has_handler)
++			goto do_restart;
++		regs->r3 = -EINTR;
++		break;
++	case -ERESTARTSYS:
++		if (has_handler && !(ka->sa.sa_flags & SA_RESTART)) {
++			regs->r3 = -EINTR;
++			break;
++	}
++	/* fallthrough */
++	case -ERESTARTNOINTR:
++do_restart:
++		/* offset of 4 bytes to re-execute trap (brki) instruction */
++		regs->pc -= 4;
++		break;
++	}
++}
++
++/*
++ * OK, we're invoking a handler
++ */
++
++static void
++handle_signal(unsigned long sig, struct k_sigaction *ka,
++		siginfo_t *info, sigset_t *oldset, struct pt_regs *regs)
++{
++	/* Set up the stack frame */
++	if (ka->sa.sa_flags & SA_SIGINFO)
++		setup_rt_frame(sig, ka, info, oldset, regs);
++	else
++		setup_frame(sig, ka, oldset, regs);
++
++	if (ka->sa.sa_flags & SA_ONESHOT)
++		ka->sa.sa_handler = SIG_DFL;
++
++	if (!(ka->sa.sa_flags & SA_NODEFER)) {
++		spin_lock_irq(&current->sighand->siglock);
++		sigorsets(&current->blocked,
++				&current->blocked, &ka->sa.sa_mask);
++		sigaddset(&current->blocked, sig);
++		recalc_sigpending();
++		spin_unlock_irq(&current->sighand->siglock);
++	}
++}
++
++/*
++ * Note that 'init' is a special process: it doesn't get signals it doesn't
++ * want to handle. Thus you cannot kill init even with a SIGKILL even by
++ * mistake.
++ *
++ * Note that we go through the signals twice: once to check the signals that
++ * the kernel can handle, and then we build all the user-level signal handling
++ * stack-frames in one go after that.
++ */
++int do_signal(struct pt_regs *regs, sigset_t *oldset, int in_syscall)
++{
++	siginfo_t info;
++	int signr;
++	struct k_sigaction ka;
++#ifdef DEBUG_SIG
++	printk(KERN_INFO "do signal: %p %p %d\n", regs, oldset, in_syscall);
++	printk(KERN_INFO "do signal2: %lx %lx %ld [%lx]\n", regs->pc, regs->r1,
++			regs->r12, current_thread_info()->flags);
++#endif
++	/*
++	 * We want the common case to go fast, which
++	 * is why we may in certain cases get here from
++	 * kernel mode. Just return without doing anything
++	 * if so.
++	 */
++	if (!user_mode(regs))
++		return 1;
++
++	if (!oldset)
++		oldset = &current->blocked;
++
++	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
++	if (signr > 0) {
++		/* Whee! Actually deliver the signal. */
++		if (in_syscall)
++			handle_restart(regs, &ka, 1);
++		handle_signal(signr, &ka, &info, oldset, regs);
++		return 1;
++	}
++
++	if (in_syscall)
++		handle_restart(regs, NULL, 0);
++
++	/* Did we come from a system call? */
++	return 0;
++}
+diff --git a/include/asm-microblaze/signal.h b/include/asm-microblaze/signal.h
+new file mode 100644
+index 0000000..9121389
+--- /dev/null
++++ b/include/asm-microblaze/signal.h
+@@ -0,0 +1,199 @@
++/*
++ * include/asm-microblaze/signal.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + *
 + * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_IO_H
-+#define _ASM_MICROBLAZE_IO_H
-+
-+#include <asm/byteorder.h>
-+#include <asm/page.h>
-+
-+static inline unsigned char __raw_readb(const volatile void *addr)
-+{
-+	return *(volatile unsigned char __force *)addr;
-+}
-+static inline unsigned short __raw_readw(const volatile void *addr)
-+{
-+	return *(volatile unsigned short __force *)addr;
-+}
-+static inline unsigned int __raw_readl(const volatile void *addr)
-+{
-+	return *(volatile unsigned int __force *)addr;
-+}
-+static inline unsigned long __raw_readq(const volatile void *addr)
-+{
-+	return *(volatile unsigned long __force *)addr;
-+}
-+static inline void __raw_writeb(unsigned char v, volatile void *addr)
-+{
-+	*(volatile unsigned char __force *)addr = v;
-+}
-+static inline void __raw_writew(unsigned short v, volatile void *addr)
-+{
-+	*(volatile unsigned short __force *)addr = v;
-+}
-+static inline void __raw_writel(unsigned int v, volatile void *addr)
-+{
-+	*(volatile unsigned int __force *)addr = v;
-+}
-+static inline void __raw_writeq(unsigned long v, volatile void *addr)
-+{
-+	*(volatile unsigned long __force *)addr = v;
-+}
-+
-+/*
-+ * read (readb, readw, readl, readq) and write (writeb, writew,
-+ * writel, writeq) accessors are for PCI and thus littel endian.
-+ * Linux 2.4 for Microblaze had this wrong.
-+ */
-+static inline unsigned char readb(const volatile void *addr)
-+{
-+	return *(volatile unsigned char __force *)addr;
-+}
-+static inline unsigned short readw(const volatile void *addr)
-+{
-+	return le16_to_cpu(*(volatile unsigned short __force *)addr);
-+}
-+static inline unsigned int readl(const volatile void *addr)
-+{
-+	return le32_to_cpu(*(volatile unsigned int __force *)addr);
-+}
-+static inline void writeb(unsigned char v, volatile void *addr)
-+{
-+	*(volatile unsigned char __force *)addr = v;
-+}
-+static inline void writew(unsigned short v, volatile void *addr)
-+{
-+	*(volatile unsigned short __force *)addr = cpu_to_le16(v);
-+}
-+static inline void writel(unsigned int v, volatile void __iomem *addr)
-+{
-+	*(volatile unsigned int __force *)addr = cpu_to_le32(v);
-+}
-+
-+/* ioread and iowrite variants. thease are for now same as __raw_
-+ * variants of accessors. we might check for endianess in the feature
-+ */
-+#define ioread8(addr)		__raw_readb((u8 *)(addr))
-+#define ioread16(addr)		__raw_readw((u16 *)(addr))
-+#define ioread32(addr)		__raw_readl((u32 *)(addr))
-+#define iowrite8(v, addr)	__raw_writeb((u8)(v), (u8 *)(addr))
-+#define iowrite16(v, addr)	__raw_writew((u16)(v), (u16 *)(addr))
-+#define iowrite32(v, addr)	__raw_writel((u32)(v), (u32 *)(addr))
-+
-+/* These are the definitions for the x86 IO instructions
-+ * inb/inw/inl/outb/outw/outl, the "string" versions
-+ * insb/insw/insl/outsb/outsw/outsl, and the "pausing" versions
-+ * inb_p/inw_p/...
-+ * The macros don't do byte-swapping.
-+ */
-+#define inb(port)		readb((u8 *)((port)))
-+#define outb(val, port)		writeb((val), (u8 *)((unsigned long)(port)))
-+#define inw(port)		readw((u16 *)((port)))
-+#define outw(val, port)		writew((val), (u16 *)((unsigned long)(port)))
-+#define inl(port)		readl((u32 *)((port)))
-+#define outl(val, port)		writel((val), (u32 *)((unsigned long)(port)))
-+
-+#define inb_p(port)		inb((port))
-+#define outb_p(val, port)	outb((val), (port))
-+#define inw_p(port)		inw((port))
-+#define outw_p(val, port)	outw((val), (port))
-+#define inl_p(port)		inl((port))
-+#define outl_p(val, port)	outl((val), (port))
-+
-+#define memset_io(a, b, c)	memset((void *)(a), (b), (c))
-+#define memcpy_fromio(a, b, c)	memcpy((a), (void *)(b), (c))
-+#define memcpy_toio(a, b, c)	memcpy((void *)(a), (b), (c))
-+
-+/**
-+ *	virt_to_phys	-	map virtual addresses to physical
-+ *	@address: address to remap
 + *
-+ *	The returned physical address is the physical (CPU) mapping for
-+ *	the memory address given. It is only valid to use this function on
-+ *	addresses directly mapped or allocated via kmalloc.
++ * Authors:
++ * Yasushi SHOJI <yashi@atmark-techno.com>
++ * Tetsuya OHKAWA <tetsuya@atmark-techno.com>
++ */
++
++#ifndef _ASM_MICROBLAZE_SIGNAL_H
++#define _ASM_MICROBLAZE_SIGNAL_H
++
++#ifndef __ASSEMBLY__
++#include <linux/types.h>
++#include <linux/linkage.h>
++
++/* Avoid too many header ordering problems. */
++struct siginfo;
++
++#ifdef __KERNEL__
++
++/* Most things should be clean enough to redefine this at will, if care
++ is taken to make libc match. */
++#define _NSIG		64
++#define _NSIG_BPW	32
++#define _NSIG_WORDS	(_NSIG / _NSIG_BPW)
++
++typedef unsigned long old_sigset_t; /* at least 32 bits */
++
++typedef struct {
++	unsigned long sig[_NSIG_WORDS];
++} sigset_t;
++
++#else /* !__KERNEL__ */
++
++/* Here we must cater to libcs that poke about in kernel headers. */
++
++#define NSIG		32
++typedef unsigned long sigset_t;
++
++#endif /* __KERNEL__ */
++
++#endif /* __ASSEMBLY__ */
++
++#define SIGHUP		1
++#define SIGINT		2
++#define SIGQUIT		3
++#define SIGILL		4
++#define SIGTRAP		5
++#define SIGABRT		6
++#define SIGIOT		6
++#define SIGBUS		7
++#define SIGFPE		8
++#define SIGKILL		9
++#define SIGUSR1		10
++#define SIGSEGV		11
++#define SIGUSR2		12
++#define SIGPIPE		13
++#define SIGALRM		14
++#define SIGTERM		15
++#define SIGSTKFLT	16
++#define SIGCHLD		17
++#define SIGCONT		18
++#define SIGSTOP		19
++#define SIGTSTP		20
++#define SIGTTIN		21
++#define SIGTTOU		22
++#define SIGURG		23
++#define SIGXCPU		24
++#define SIGXFSZ		25
++#define SIGVTALRM	26
++#define SIGPROF		27
++#define SIGWINCH	28
++#define SIGIO		29
++#define SIGPOLL		SIGIO
++/*
++#define SIGLOST		29
++*/
++#define SIGPWR		30
++#define SIGSYS		31
++#define	SIGUNUSED	31
++
++/* These should not be considered constants from userland. */
++#define SIGRTMIN	32
++#define SIGRTMAX	_NSIG
++
++/*
++ * SA_FLAGS values:
 + *
-+ *	This function does not give bus mappings for DMA transfers. In
-+ *	almost all conceivable cases a device driver should not be using
-+ *	this function
-+ */
-+static inline unsigned long __iomem virt_to_phys(volatile void *address)
-+{
-+	return __pa((unsigned long)address);
-+}
-+
-+#define virt_to_bus virt_to_phys
-+
-+/**
-+ *	phys_to_virt	-	map physical address to virtual
-+ *	@address: address to remap
++ * SA_ONSTACK indicates that a registered stack_t will be used.
++ * SA_RESTART flag to get restarting signals (which were the default long ago)
++ * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
++ * SA_RESETHAND clears the handler when the signal is delivered.
++ * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
++ * SA_NODEFER prevents the current signal from being masked in the handler.
 + *
-+ *	The returned virtual address is a current CPU mapping for
-+ *	the memory address given. It is only valid to use this function on
-+ *	addresses that have a kernel mapping
-+ *
-+ *	This function does not handle bus mappings for DMA transfers. In
-+ *	almost all conceivable cases a device driver should not be using
-+ *	this function
++ * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
++ * Unix names RESETHAND and NODEFER respectively.
 + */
-+static inline void *phys_to_virt(unsigned long address)
-+{
-+	return (void *)__va(address);
-+}
++#define SA_NOCLDSTOP	0x00000001
++#define SA_NOCLDWAIT	0x00000002
++#define SA_SIGINFO	0x00000004
++#define SA_ONSTACK	0x08000000
++#define SA_RESTART	0x10000000
++#define SA_NODEFER	0x40000000
++#define SA_RESETHAND	0x80000000
 +
-+#define bus_to_virt(a) phys_to_virt(a)
++#define SA_NOMASK	SA_NODEFER
++#define SA_ONESHOT	SA_RESETHAND
 +
-+static inline void *__ioremap(unsigned long address, unsigned long size,
-+			unsigned long flags)
-+{
-+	return (void *)address;
-+}
-+
-+
-+#define IO_SPACE_LIMIT ~(0UL)
-+
-+#define ioremap(physaddr, size)	((void *)(unsigned long)(physaddr))
-+#define iounmap(addr)		((void)0)
-+#define ioremap_nocache(physaddr, size)	ioremap(physaddr, size)
++#define SA_RESTORER	0x04000000
 +
 +/*
-+ * Convert a physical pointer to a virtual kernel pointer for /dev/mem
-+ * access
++ * sigaltstack controls
 + */
-+#define xlate_dev_mem_ptr(p)	__va(p)
++#define SS_ONSTACK	1
++#define SS_DISABLE	2
 +
-+/*
-+ * Convert a virtual cached pointer to an uncached pointer
-+ */
-+#define xlate_dev_kmem_ptr(p)	p
++#define MINSIGSTKSZ	2048
++#define SIGSTKSZ	8192
 +
-+/*
-+ * Big Endian
-+ */
-+#define out_be32(a, v) __raw_writel((v), (a))
-+#define out_be16(a, v) __raw_writew((v), (a))
++#ifndef __ASSEMBLY__
++#include <asm-generic/signal.h>
 +
-+#define in_be32(a) __raw_readl(a)
-+#define in_be16(a) __raw_readw(a)
++#ifdef __KERNEL__
 +
-+/*
-+ * Little endian
-+ */
++struct old_sigaction {
++	__sighandler_t sa_handler;
++	old_sigset_t sa_mask;
++	unsigned long sa_flags;
++	void (*sa_restorer)(void);
++};
 +
-+#define out_le32(a, v) __raw_writel(__cpu_to_le32(v), (a));
-+#define out_le16(a, v) __raw_writew(__cpu_to_le16(v), (a))
++struct sigaction {
++	__sighandler_t sa_handler;
++	unsigned long sa_flags;
++	void (*sa_restorer)(void);
++	sigset_t sa_mask; /* mask last for extensibility */
++};
 +
-+#define in_le32(a) __le32_to_cpu(__raw_readl(a))
-+#define in_le16(a) __le16_to_cpu(__raw_readw(a))
++struct k_sigaction {
++	struct sigaction sa;
++};
 +
-+/* Byte ops */
-+#define out_8(a, v) __raw_writeb((v), (a))
-+#define in_8(a) __raw_readb(a)
++#else /* !__KERNEL__ */
 +
-+/* FIXME */
-+static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
-+{
-+	return (void __iomem *) (port);
-+}
++/* Here we must cater to libcs that poke about in kernel headers. */
 +
-+static inline void ioport_unmap(void __iomem *addr)
-+{
-+	/* Nothing to do */
-+}
++struct sigaction {
++	union {
++	__sighandler_t _sa_handler;
++	void (*_sa_sigaction)(int, struct siginfo *, void *);
++	} _u;
++	sigset_t sa_mask;
++	unsigned long sa_flags;
++	void (*sa_restorer)(void);
++};
 +
-+#endif /* _ASM_MICROBLAZE_IO_H */
++#define sa_handler	_u._sa_handler
++#define sa_sigaction	_u._sa_sigaction
++
++#endif /* __KERNEL__ */
++
++
++typedef struct sigaltstack {
++	void *ss_sp;
++	int ss_flags;
++	size_t ss_size;
++} stack_t;
++
++#ifdef __KERNEL__
++
++#include <asm/sigcontext.h>
++#undef __HAVE_ARCH_SIG_BITOPS
++
++#define ptrace_signal_deliver(regs, cookie) do { } while (0)
++
++#endif /* __KERNEL__ */
++
++asmlinkage int sys_sigsuspend(old_sigset_t mask, struct pt_regs *regs);
++asmlinkage int sys_rt_sigsuspend(sigset_t *unewset, size_t sigsetsize,
++					struct pt_regs *regs);
++asmlinkage int sys_sigaction(int sig, const struct old_sigaction *act,
++					struct old_sigaction *oact);
++asmlinkage int sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss,
++					struct pt_regs *regs);
++asmlinkage int sys_sigreturn(struct pt_regs *regs);
++asmlinkage int sys_rt_sigreturn(struct pt_regs *regs);
++
++
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* _ASM_MICROBLAZE_SIGNAL_H */
 -- 
 1.5.4.GIT
