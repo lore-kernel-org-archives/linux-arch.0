@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 31/56] microblaze_v2: bug headers files
-Date: Sun,  4 May 2008 13:41:20 +0200
-Message-ID: <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 26/56] microblaze_v2: traps support
+Date: Sun,  4 May 2008 13:41:15 +0200
+Message-ID: <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -28,17 +28,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
  <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
  <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
- <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
- <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
- <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:46857 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:56173 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755723AbYEDNy1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 09:54:27 -0400
-In-Reply-To: <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+	id S1753041AbYEDN73 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 09:59:29 -0400
+In-Reply-To: <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -51,20 +46,18 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/bug.h  |   17 +++++++++++++++++
- include/asm-microblaze/bugs.h |   19 +++++++++++++++++++
- 2 files changed, 36 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/bug.h
- create mode 100644 include/asm-microblaze/bugs.h
+ arch/microblaze/kernel/traps.c |   88 ++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 88 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/traps.c
 
-diff --git a/include/asm-microblaze/bug.h b/include/asm-microblaze/bug.h
+diff --git a/arch/microblaze/kernel/traps.c b/arch/microblaze/kernel/traps.c
 new file mode 100644
-index 0000000..a0f58d1
+index 0000000..eb8202b
 --- /dev/null
-+++ b/include/asm-microblaze/bug.h
-@@ -0,0 +1,17 @@
++++ b/arch/microblaze/kernel/traps.c
+@@ -0,0 +1,88 @@
 +/*
-+ * include/asm-microblaze/bug.h
++ * arch/microblaze/kernel/traps.c
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -72,38 +65,84 @@ index 0000000..a0f58d1
 + *
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
-+
-+#ifndef _ASM_MICROBLAZE_BUG_H
-+#define _ASM_MICROBLAZE_BUG_H
 +
 +#include <linux/kernel.h>
-+#include <asm-generic/bug.h>
++#include <linux/kallsyms.h>
++#include <linux/module.h>
++#include <linux/sched.h>
 +
-+#endif /* _ASM_MICROBLAZE_BUG_H */
-diff --git a/include/asm-microblaze/bugs.h b/include/asm-microblaze/bugs.h
-new file mode 100644
-index 0000000..09256e7
---- /dev/null
-+++ b/include/asm-microblaze/bugs.h
-@@ -0,0 +1,19 @@
-+/*
-+ * include/asm-microblaze/bugs.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#include <asm/exceptions.h>
++#include <asm/system.h>
 +
-+#ifndef _ASM_MICROBLAZE_BUGS_H
-+#define _ASM_MICROBLAZE_BUGS_H
-+
-+static inline void check_bugs(void)
++void trap_init(void)
 +{
-+	/* nothing to do */
++	initialize_exception_handlers();
++	__enable_hw_exceptions();
 +}
 +
-+#endif /* _ASM_MICROBLAZE_BUGS_H */
++void __bad_xchg(volatile void *ptr, int size)
++{
++	printk(KERN_INFO "xchg: bad data size: pc 0x%p, ptr 0x%p, size %d\n",
++		__builtin_return_address(0), ptr, size);
++	BUG();
++}
++EXPORT_SYMBOL(__bad_xchg);
++
++static int kstack_depth_to_print = 24;
++
++void show_trace(struct task_struct *task, unsigned long *stack)
++{
++	unsigned long addr;
++
++	if (!stack)
++		stack = (unsigned long *)&stack;
++
++	printk(KERN_INFO "Call Trace: ");
++#ifdef CONFIG_KALLSYMS
++	printk(KERN_INFO "\n");
++#endif
++	while (!kstack_end(stack)) {
++		addr = *stack++;
++		if (__kernel_text_address(addr)) {
++			printk(KERN_INFO "[<%08lx>] ", addr);
++			print_symbol("%s\n", addr);
++		}
++	}
++	printk(KERN_INFO "\n");
++}
++
++void show_stack(struct task_struct *task, unsigned long *sp)
++{
++	unsigned long *stack;
++	int i;
++
++	if (sp == NULL) {
++		if (task)
++			sp = (unsigned long *) ((struct thread_info *)
++						(task->stack))->cpu_context.sp;
++		else
++			sp = (unsigned long *)&sp;
++	}
++
++	stack = sp;
++
++	printk(KERN_INFO "\nStack:\n  ");
++
++	for (i = 0; i < kstack_depth_to_print; i++) {
++		if (kstack_end(sp))
++			break;
++		if (i && ((i % 8) == 0))
++			printk("\n  ");
++		printk("%08lx ", *sp++);
++	}
++	printk("\n");
++	show_trace(task, stack);
++}
++
++void dump_stack(void)
++{
++	show_stack(NULL, NULL);
++}
++EXPORT_SYMBOL(dump_stack);
 -- 
 1.5.4.GIT
