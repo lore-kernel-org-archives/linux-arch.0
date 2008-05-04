@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 30/56] microblaze_v2: includes SHM*, msgbuf
-Date: Sun,  4 May 2008 13:41:19 +0200
-Message-ID: <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 23/56] microblaze_v2: process and init task function
+Date: Sun,  4 May 2008 13:41:12 +0200
+Message-ID: <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -25,19 +25,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
  <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
  <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
- <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
- <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
- <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
- <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
- <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:60291 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:51379 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750847AbYEDPaS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 11:30:18 -0400
-In-Reply-To: <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+	id S1751256AbYEDPhS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 11:37:18 -0400
+In-Reply-To: <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -50,22 +43,20 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/msgbuf.h   |   41 +++++++++++++++++++++++++++++
- include/asm-microblaze/shmbuf.h   |   52 +++++++++++++++++++++++++++++++++++++
- include/asm-microblaze/shmparam.h |   16 +++++++++++
- 3 files changed, 109 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/msgbuf.h
- create mode 100644 include/asm-microblaze/shmbuf.h
- create mode 100644 include/asm-microblaze/shmparam.h
+ arch/microblaze/kernel/init_task.c |   31 +++++++++
+ arch/microblaze/kernel/process.c   |  129 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 160 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/init_task.c
+ create mode 100644 arch/microblaze/kernel/process.c
 
-diff --git a/include/asm-microblaze/msgbuf.h b/include/asm-microblaze/msgbuf.h
+diff --git a/arch/microblaze/kernel/init_task.c b/arch/microblaze/kernel/init_task.c
 new file mode 100644
-index 0000000..e2f93f4
+index 0000000..7c6bce3
 --- /dev/null
-+++ b/include/asm-microblaze/msgbuf.h
-@@ -0,0 +1,41 @@
++++ b/arch/microblaze/kernel/init_task.c
+@@ -0,0 +1,31 @@
 +/*
-+ * include/asm-microblaze/msgbuf.h
++ * arch/microblaze/kernel/init_task.c
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -74,45 +65,35 @@ index 0000000..e2f93f4
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_MSGBUF_H
-+#define _ASM_MICROBLAZE_MSGBUF_H
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/init_task.h>
++#include <linux/fs.h>
++#include <linux/mqueue.h>
 +
-+/*
-+ * The msqid64_ds structure for m68k architecture.
-+ * Note extra padding because this structure is passed back and forth
-+ * between kernel and user space.
-+ *
-+ * Pad space is left for:
-+ * - 64-bit time_t to solve y2038 problem
-+ * - 2 miscellaneous 32-bit values
-+ */
++#include <asm/pgtable.h>
 +
-+struct msqid64_ds {
-+	struct ipc64_perm msg_perm;
-+	__kernel_time_t msg_stime; /* last msgsnd time */
-+	unsigned long __unused1;
-+	__kernel_time_t msg_rtime; /* last msgrcv time */
-+	unsigned long __unused2;
-+	__kernel_time_t msg_ctime; /* last change time */
-+	unsigned long __unused3;
-+	unsigned long msg_cbytes; /* current number of bytes on queue */
-+	unsigned long msg_qnum; /* number of messages in queue */
-+	unsigned long msg_qbytes; /* max number of bytes on queue */
-+	__kernel_pid_t msg_lspid; /* pid of last msgsnd */
-+	__kernel_pid_t msg_lrpid; /* last receive pid */
-+	unsigned long __unused4;
-+	unsigned long __unused5;
-+};
++static struct fs_struct init_fs = INIT_FS;
++static struct files_struct init_files = INIT_FILES;
++static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
++static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
++struct mm_struct init_mm = INIT_MM(init_mm);
++EXPORT_SYMBOL(init_mm);
 +
-+#endif /* _ASM_MICROBLAZE_MSGBUF_H */
-diff --git a/include/asm-microblaze/shmbuf.h b/include/asm-microblaze/shmbuf.h
++union thread_union init_thread_union
++	__attribute__((__section__(".data.init_task"))) =
++{ INIT_THREAD_INFO(init_task) };
++
++struct task_struct init_task = INIT_TASK(init_task);
++EXPORT_SYMBOL(init_task);
+diff --git a/arch/microblaze/kernel/process.c b/arch/microblaze/kernel/process.c
 new file mode 100644
-index 0000000..e3d759f
+index 0000000..679fe19
 --- /dev/null
-+++ b/include/asm-microblaze/shmbuf.h
-@@ -0,0 +1,52 @@
++++ b/arch/microblaze/kernel/process.c
+@@ -0,0 +1,129 @@
 +/*
-+ * include/asm-microblaze/shmbuf.h
++ * arch/microblaze/kernel/process.c
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -121,69 +102,124 @@ index 0000000..e3d759f
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_SHMBUF_H
-+#define _ASM_MICROBLAZE_SHMBUF_H
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/pm.h>
++
++#include <asm/system.h>
++
++/* FIXME */
++void show_regs(struct pt_regs *regs)
++{
++	unsigned long *p;
++	int i;
++	printk(KERN_INFO "pc:\t0x%08lx\tsp:\t0x%08lx\n", regs->pc, regs->r1);
++	printk(KERN_INFO
++		"flags:\t0x%08lx\tear:\t0x%08lx\tesr:\t"
++		"0x%08lx\tfsr:\t0x%08lx\n",
++		regs->msr, regs->ear, regs->esr, regs->fsr);
++	printk(KERN_INFO
++		"r0:\t0x%08lx\tr1:\t0x%08lx\tr2:\t0x%08lx\tr3\t0x%08lx\n",
++		0L, regs->r1, regs->r2, regs->r3);
++	for (i = 4, p = &(regs->r4); i < 32; i += 4, p += 4) {
++		printk(KERN_INFO "r%i:\t0x%08lx\tr%i:\t0x%08lx\tr%i:\t"
++			"0x%08lx\tr%i:\t0x%08lx\n",
++			i, *p, i+1, *(p+1), i+2, *(p+2), i+3, *(p+3));
++	}
++	printk(KERN_INFO "\n");
++}
++
++void (*pm_power_off)(void) = NULL;
++EXPORT_SYMBOL(pm_power_off);
++
++void cpu_idle(void)
++{
++	set_thread_flag(TIF_POLLING_NRFLAG);
++
++	while (1) {
++		while (!need_resched())
++			cpu_relax();
++
++		preempt_enable_no_resched();
++		schedule();
++		preempt_disable();
++	}
++}
++
++void flush_thread(void)
++{
++}
++
++int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
++		unsigned long unused,
++		struct task_struct *p, struct pt_regs *regs)
++{
++	struct pt_regs *childregs = task_pt_regs(p);
++	struct thread_info *ti = task_thread_info(p);
++
++	*childregs = *regs;
++
++	if (user_mode(regs))
++		childregs->r1 = usp;
++	else
++		childregs->r1 = ((unsigned long) ti) + THREAD_SIZE;
++
++	memset(&ti->cpu_context, 0, sizeof(struct cpu_context));
++	ti->cpu_context.sp = (unsigned long)childregs;
++	ti->cpu_context.msr = (unsigned long)childregs->msr;
++	ti->cpu_context.r15 = (unsigned long)ret_from_fork - 8;
++
++	if (clone_flags & CLONE_SETTLS)
++		;/* FIXME: not sure what to do */
++
++	return 0;
++}
 +
 +/*
-+ * The shmid64_ds structure for m68k architecture.
-+ * Note extra padding because this structure is passed back and forth
-+ * between kernel and user space.
-+ *
-+ * Pad space is left for:
-+ * - 64-bit time_t to solve y2038 problem
-+ * - 2 miscellaneous 32-bit values
++ * Return saved PC of a blocked thread.
++ * FIXME this needs to be checked
 + */
++unsigned long thread_saved_pc(struct task_struct *tsk)
++{
++	struct cpu_context *ctx =
++		&(((struct thread_info *)(tsk->stack))->cpu_context);
 +
-+struct shmid64_ds {
-+	struct ipc64_perm	shm_perm; /* operation perms */
-+	size_t			shm_segsz; /* size of segment (bytes) */
-+	__kernel_time_t		shm_atime; /* last attach time */
-+	unsigned long		__unused1;
-+	__kernel_time_t		shm_dtime; /* last detach time */
-+	unsigned long		__unused2;
-+	__kernel_time_t		shm_ctime; /* last change time */
-+	unsigned long		__unused3;
-+	__kernel_pid_t		shm_cpid; /* pid of creator */
-+	__kernel_pid_t		shm_lpid; /* pid of last operator */
-+	unsigned long		shm_nattch; /* no. of current attaches */
-+	unsigned long		__unused4;
-+	unsigned long		__unused5;
-+};
++	/* Check whether the thread is blocked in resume() */
++	if (in_sched_functions(ctx->r15))
++		return ((unsigned long)ctx->r15);
++	else
++		return ctx->r14;
++}
 +
-+struct shminfo64 {
-+	unsigned long	shmmax;
-+	unsigned long	shmmin;
-+	unsigned long	shmmni;
-+	unsigned long	shmseg;
-+	unsigned long	shmall;
-+	unsigned long	__unused1;
-+	unsigned long	__unused2;
-+	unsigned long	__unused3;
-+	unsigned long	__unused4;
-+};
++static void kernel_thread_helper(int (*fn)(void *), void *arg)
++{
++	fn(arg);
++	do_exit(-1);
++}
 +
-+#endif /* _ASM_MICROBLAZE_SHMBUF_H */
-diff --git a/include/asm-microblaze/shmparam.h b/include/asm-microblaze/shmparam.h
-new file mode 100644
-index 0000000..38e9be0
---- /dev/null
-+++ b/include/asm-microblaze/shmparam.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/shmparam.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
++{
++	struct pt_regs regs;
++	int ret;
 +
-+#ifndef _ASM_MICROBLAZE_SHMPARAM_H
-+#define _ASM_MICROBLAZE_SHMPARAM_H
++	memset(&regs, 0, sizeof(regs));
++	/* store them in non-volatile registers */
++	regs.r5 = (unsigned long)fn;
++	regs.r6 = (unsigned long)arg;
++	local_save_flags(regs.msr);
++	regs.pc = (unsigned long)kernel_thread_helper;
++	regs.kernel_mode = 1;
 +
-+#define SHMLBA	PAGE_SIZE /* attach addr a multiple of this */
++	ret = do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0,
++			&regs, 0, NULL, NULL);
 +
-+#endif /* _ASM_MICROBLAZE_SHMPARAM_H */
++	return ret;
++}
++
++unsigned long get_wchan(struct task_struct *p)
++{
++/* TBD (used by procfs) */
++	return 0;
++}
 -- 
 1.5.4.GIT
