@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 22/56] microblaze_v2: asm-offsets
-Date: Sun,  4 May 2008 13:41:11 +0200
-Message-ID: <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 11/56] microblaze_v2: kernel modules support
+Date: Sun,  4 May 2008 13:41:00 +0200
+Message-ID: <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -13,23 +13,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu>
  <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu>
  <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
- <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
- <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
- <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
- <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
- <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
- <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
- <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
- <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
- <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
- <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
- <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:54366 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:52554 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751673AbYEDQL1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 12:11:27 -0400
-In-Reply-To: <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
+	id S1751092AbYEDQRc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 12:17:32 -0400
+In-Reply-To: <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -42,133 +31,270 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/asm-offsets.c |  118 ++++++++++++++++++++++++++++++++++
- 1 files changed, 118 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/asm-offsets.c
+ arch/microblaze/kernel/microblaze_ksyms.c |   49 ++++++++++
+ arch/microblaze/kernel/module.c           |  149 +++++++++++++++++++++++++++++
+ include/asm-microblaze/module.h           |   41 ++++++++
+ 3 files changed, 239 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/microblaze_ksyms.c
+ create mode 100644 arch/microblaze/kernel/module.c
+ create mode 100644 include/asm-microblaze/module.h
 
-diff --git a/arch/microblaze/kernel/asm-offsets.c b/arch/microblaze/kernel/asm-offsets.c
+diff --git a/arch/microblaze/kernel/microblaze_ksyms.c b/arch/microblaze/kernel/microblaze_ksyms.c
 new file mode 100644
-index 0000000..f01aa3b
+index 0000000..3efa1a1
 --- /dev/null
-+++ b/arch/microblaze/kernel/asm-offsets.c
-@@ -0,0 +1,118 @@
++++ b/arch/microblaze/kernel/microblaze_ksyms.c
+@@ -0,0 +1,49 @@
 +/*
-+ * arch/microblaze/kernel/asm-offset.c
++ * arch/microblaze/kernel/microblaze_ksyms.c
++ *
++ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/cryptohash.h>
++#include <linux/delay.h>
++#include <linux/in6.h>
++#include <linux/syscalls.h>
++
++#include <asm/checksum.h>
++#include <asm/io.h>
++#include <asm/page.h>
++#include <asm/system.h>
++#include <asm/uaccess.h>
++
++/*
++ * libgcc functions - functions that are used internally by the
++ * compiler... (prototypes are not correct though, but that
++ * doesn't really matter since they're not versioned).
++ */
++extern void __ashldi3(void);
++EXPORT_SYMBOL(__ashldi3);
++extern void __ashrdi3(void);
++EXPORT_SYMBOL(__ashrdi3);
++extern void __divsi3(void);
++EXPORT_SYMBOL(__divsi3);
++extern void __lshrdi3(void);
++EXPORT_SYMBOL(__lshrdi3);
++extern void __modsi3(void);
++EXPORT_SYMBOL(__modsi3);
++extern void __mulsi3(void);
++EXPORT_SYMBOL(__mulsi3);
++extern void __muldi3(void);
++EXPORT_SYMBOL(__muldi3);
++extern void __ucmpdi2(void);
++EXPORT_SYMBOL(__ucmpdi2);
++extern void __udivsi3(void);
++EXPORT_SYMBOL(__udivsi3);
++extern void __umodsi3(void);
++EXPORT_SYMBOL(__umodsi3);
++/*extern void fpundefinstr(void);
++extern void fp_enter(void);*/
+diff --git a/arch/microblaze/kernel/module.c b/arch/microblaze/kernel/module.c
+new file mode 100644
+index 0000000..efef0ba
+--- /dev/null
++++ b/arch/microblaze/kernel/module.c
+@@ -0,0 +1,149 @@
++/*
++ * linux/arch/microblaze/kernel/module.c
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ */
++#include <linux/module.h>
++#include <linux/moduleloader.h>
++#include <linux/kernel.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++#include <linux/slab.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++
++#include <asm/pgtable.h>
++
++#if 0
++#define DBPRINTK(...) printk(__VA_ARGS__)
++#else
++#define DBPRINTK(...)
++#endif
++
++void *module_alloc(unsigned long size)
++{
++	void *ret;
++	ret = (size == 0) ? NULL : vmalloc(size);
++	DBPRINTK("module_alloc (%08lx@%08lx)\n", size, (unsigned long int)ret);
++	return ret;
++}
++
++void module_free(struct module *module, void *region)
++{
++	DBPRINTK("module_free(%s,%08lx)\n", module->name, region);
++	vfree(region);
++}
++
++int module_frob_arch_sections(Elf_Ehdr *hdr,
++				Elf_Shdr *sechdrs,
++				char *secstrings,
++				struct module *mod)
++{
++	return 0;
++}
++
++int
++apply_relocate(Elf32_Shdr *sechdrs, const char *strtab, unsigned int symindex,
++		unsigned int relsec, struct module *module)
++{
++
++	printk(KERN_ERR "module %s: ADD RELOCATION unsupported\n",
++		module->name);
++	return -ENOEXEC;
++
++}
++
++int
++apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
++	unsigned int symindex, unsigned int relsec, struct module *module)
++{
++
++	unsigned int i;
++	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
++	Elf32_Sym *sym;
++	unsigned long int *location;
++	unsigned long int locoffs;
++	unsigned long int value;
++	unsigned long int old_value;
++
++	DBPRINTK("Applying add relocation section %u to %u\n",
++		relsec, sechdrs[relsec].sh_info);
++
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rela); i++) {
++
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr +
++				rela[i].r_offset;
++		sym = (Elf32_Sym *)sechdrs[symindex].sh_addr +
++			ELF32_R_SYM(rela[i].r_info);
++		value = sym->st_value + rela[i].r_addend;
++
++		switch (ELF32_R_TYPE(rela[i].r_info)) {
++
++		/*
++		 * Be careful! mb-gcc / mb-ld splits the relocs between the
++		 * text and the reloc table. In general this means we must
++		 * read the current contents of (*location), add any offset
++		 * then store the result back in
++		 */
++
++		case R_MICROBLAZE_32:
++			old_value = *location;
++			*location = value + old_value;
++			DBPRINTK("R_MICROBLAZE_32 (%08lx->%08lx)\n",
++				old_value, value);
++			break;
++
++		case R_MICROBLAZE_64:
++			old_value = ((location[0] & 0x0000FFFF) << 16) |
++				((location[1] & 0x0000FFFF));
++			value += old_value;
++			location[0] = (location[0] & 0xFFFF0000) |
++					(value >> 16);
++			location[1] = (location[1] & 0xFFFF0000) |
++					(value & 0xFFFF);
++			DBPRINTK("R_MICROBLAZE_64 (%08lx->%08lx)\n",
++				old_value, value);
++			break;
++
++		case R_MICROBLAZE_64_PCREL:
++			locoffs = (location[0] & 0xFFFF) << 16 |
++				(location[1] & 0xFFFF);
++			value -= (unsigned long int)(location) + 4 +
++				locoffs;
++			location[0] = (location[0] & 0xFFFF0000) |
++					(value >> 16);
++			location[1] = (location[1] & 0xFFFF0000) |
++					(value & 0xFFFF);
++			DBPRINTK("R_MICROBLAZE_64_PCREL (%08lx)\n",
++				value);
++			break;
++
++		case R_MICROBLAZE_NONE:
++			DBPRINTK("R_MICROBLAZE_NONE\n");
++			break;
++
++		default:
++			printk(KERN_ERR "module %s: "
++				"Unknown relocation: %u\n",
++				module->name,
++				ELF32_R_TYPE(rela->r_info));
++			return -ENOEXEC;
++		}
++	}
++	return 0;
++}
++
++int
++module_finalize(const Elf32_Ehdr *hdr, const Elf_Shdr *sechdrs,
++		struct module *module)
++{
++	return 0;
++}
++
++void
++module_arch_cleanup(struct module *mod)
++{
++}
+diff --git a/include/asm-microblaze/module.h b/include/asm-microblaze/module.h
+new file mode 100644
+index 0000000..8ee1bba
+--- /dev/null
++++ b/include/asm-microblaze/module.h
+@@ -0,0 +1,41 @@
++/*
++ * include/asm-microblaze/module.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + *
-+ * Copyright (C) 2007 PetaLogix
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#include <linux/stddef.h>
-+#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/ptrace.h>
-+#include <linux/hardirq.h>
-+#include <linux/thread_info.h>
++#ifndef _ASM_MICROBLAZE_MODULE_H
++#define _ASM_MICROBLAZE_MODULE_H
 +
-+#define DEFINE(sym, val) asm volatile("\n->" #sym " %0 " #val : : "i" (val))
-+#define BLANK() asm volatile("\n->" : :)
++#define EM_XILINX_MICROBLAZE 0xbaab
 +
-+int main(int argc, char *argv[])
-+{
-+	/* struct pt_regs */
-+	DEFINE(PT_SIZE, sizeof(struct pt_regs));
-+	DEFINE(PT_MSR, offsetof(struct pt_regs, msr));
-+	DEFINE(PT_EAR, offsetof(struct pt_regs, ear));
-+	DEFINE(PT_ESR, offsetof(struct pt_regs, esr));
-+	DEFINE(PT_FSR, offsetof(struct pt_regs, fsr));
-+	DEFINE(PT_PC, offsetof(struct pt_regs, pc));
-+	DEFINE(PT_R0, offsetof(struct pt_regs, r0));
-+	DEFINE(PT_R1, offsetof(struct pt_regs, r1));
-+	DEFINE(PT_R2, offsetof(struct pt_regs, r2));
-+	DEFINE(PT_R3, offsetof(struct pt_regs, r3));
-+	DEFINE(PT_R4, offsetof(struct pt_regs, r4));
-+	DEFINE(PT_R5, offsetof(struct pt_regs, r5));
-+	DEFINE(PT_R6, offsetof(struct pt_regs, r6));
-+	DEFINE(PT_R7, offsetof(struct pt_regs, r7));
-+	DEFINE(PT_R8, offsetof(struct pt_regs, r8));
-+	DEFINE(PT_R9, offsetof(struct pt_regs, r9));
-+	DEFINE(PT_R10, offsetof(struct pt_regs, r10));
-+	DEFINE(PT_R11, offsetof(struct pt_regs, r11));
-+	DEFINE(PT_R12, offsetof(struct pt_regs, r12));
-+	DEFINE(PT_R13, offsetof(struct pt_regs, r13));
-+	DEFINE(PT_R14, offsetof(struct pt_regs, r14));
-+	DEFINE(PT_R15, offsetof(struct pt_regs, r15));
-+	DEFINE(PT_R16, offsetof(struct pt_regs, r16));
-+	DEFINE(PT_R17, offsetof(struct pt_regs, r17));
-+	DEFINE(PT_R18, offsetof(struct pt_regs, r18));
-+	DEFINE(PT_R19, offsetof(struct pt_regs, r19));
-+	DEFINE(PT_R20, offsetof(struct pt_regs, r20));
-+	DEFINE(PT_R21, offsetof(struct pt_regs, r21));
-+	DEFINE(PT_R22, offsetof(struct pt_regs, r22));
-+	DEFINE(PT_R23, offsetof(struct pt_regs, r23));
-+	DEFINE(PT_R24, offsetof(struct pt_regs, r24));
-+	DEFINE(PT_R25, offsetof(struct pt_regs, r25));
-+	DEFINE(PT_R26, offsetof(struct pt_regs, r26));
-+	DEFINE(PT_R27, offsetof(struct pt_regs, r27));
-+	DEFINE(PT_R28, offsetof(struct pt_regs, r28));
-+	DEFINE(PT_R29, offsetof(struct pt_regs, r29));
-+	DEFINE(PT_R30, offsetof(struct pt_regs, r30));
-+	DEFINE(PT_R31, offsetof(struct pt_regs, r31));
-+	DEFINE(PT_MODE, offsetof(struct pt_regs, kernel_mode));
-+	BLANK();
++/* Microblaze Relocations */
++#define R_MICROBLAZE_NONE 0
++#define R_MICROBLAZE_32 1
++#define R_MICROBLAZE_32_PCREL 2
++#define R_MICROBLAZE_64_PCREL 3
++#define R_MICROBLAZE_32_PCREL_LO 4
++#define R_MICROBLAZE_64 5
++#define R_MICROBLAZE_32_LO 6
++#define R_MICROBLAZE_SRO32 7
++#define R_MICROBLAZE_SRW32 8
++#define R_MICROBLAZE_64_NONE 9
++#define R_MICROBLAZE_32_SYM_OP_SYM 10
++/* Keep this the last entry. */
++#define R_MICROBLAZE_NUM 11
 +
-+	/* Magic offsets for PTRACE PEEK/POKE etc */
-+	DEFINE(PT_TEXT_ADDR, sizeof(struct pt_regs) + 1);
-+	DEFINE(PT_TEXT_LEN, sizeof(struct pt_regs) + 2);
-+	DEFINE(PT_DATA_ADDR, sizeof(struct pt_regs) + 3);
-+	BLANK();
++struct mod_arch_specific {
++	int foo;
++};
 +
-+	/* struct task_struct */
-+	DEFINE(TS_THREAD_INFO, offsetof(struct task_struct, stack));
++#define Elf_Shdr	Elf32_Shdr
++#define Elf_Sym		Elf32_Sym
++#define Elf_Ehdr	Elf32_Ehdr
 +
-+	/* struct thread_info */
-+	DEFINE(TI_TASK, offsetof(struct thread_info, task));
-+	DEFINE(TI_EXEC_DOMAIN, offsetof(struct thread_info, exec_domain));
-+	DEFINE(TI_FLAGS, offsetof(struct thread_info, flags));
-+	DEFINE(TI_STATUS, offsetof(struct thread_info, status));
-+	DEFINE(TI_CPU, offsetof(struct thread_info, cpu));
-+	DEFINE(TI_PRE_COUNT, offsetof(struct thread_info, preempt_count));
-+	DEFINE(TI_ADDR_LIMIT, offsetof(struct thread_info, addr_limit));
-+	DEFINE(TI_RESTART_BLOCK, offsetof(struct thread_info, restart_block));
-+	DEFINE(TI_CPU_CONTEXT, offsetof(struct thread_info, cpu_context));
-+	BLANK();
++typedef struct { volatile int counter; } module_t;
 +
-+	/* struct cpu_context */
-+	DEFINE(CC_SP, offsetof(struct cpu_context, sp)); /* r1 */
-+	DEFINE(CC_R2, offsetof(struct cpu_context, r2));
-+	/* dedicated registers */
-+	DEFINE(CC_R13, offsetof(struct cpu_context, r13));
-+	DEFINE(CC_R14, offsetof(struct cpu_context, r14));
-+	DEFINE(CC_R15, offsetof(struct cpu_context, r15));
-+	DEFINE(CC_R16, offsetof(struct cpu_context, r16));
-+	DEFINE(CC_R17, offsetof(struct cpu_context, r17));
-+	DEFINE(CC_R18, offsetof(struct cpu_context, r18));
-+	/* non-volatile registers */
-+	DEFINE(CC_R19, offsetof(struct cpu_context, r19));
-+	DEFINE(CC_R20, offsetof(struct cpu_context, r20));
-+	DEFINE(CC_R21, offsetof(struct cpu_context, r21));
-+	DEFINE(CC_R22, offsetof(struct cpu_context, r22));
-+	DEFINE(CC_R23, offsetof(struct cpu_context, r23));
-+	DEFINE(CC_R24, offsetof(struct cpu_context, r24));
-+	DEFINE(CC_R25, offsetof(struct cpu_context, r25));
-+	DEFINE(CC_R26, offsetof(struct cpu_context, r26));
-+	DEFINE(CC_R27, offsetof(struct cpu_context, r27));
-+	DEFINE(CC_R28, offsetof(struct cpu_context, r28));
-+	DEFINE(CC_R29, offsetof(struct cpu_context, r29));
-+	DEFINE(CC_R30, offsetof(struct cpu_context, r30));
-+	/* special purpose registers */
-+	DEFINE(CC_MSR, offsetof(struct cpu_context, msr));
-+	DEFINE(CC_EAR, offsetof(struct cpu_context, ear));
-+	DEFINE(CC_ESR, offsetof(struct cpu_context, esr));
-+	DEFINE(CC_FSR, offsetof(struct cpu_context, fsr));
-+	BLANK();
-+
-+	return 0;
-+}
++#endif /* _ASM_MICROBLAZE_MODULE_H */
 -- 
 1.5.4.GIT
