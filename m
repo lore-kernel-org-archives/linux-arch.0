@@ -1,27 +1,19 @@
 From: monstr@seznam.cz
-Subject: [PATCH 14/56] microblaze_v2: defconfig file
-Date: Sun,  4 May 2008 13:41:03 +0200
-Message-ID: <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 06/56] microblaze_v2: exception handling
+Date: Sun,  4 May 2008 13:40:55 +0200
+Message-ID: <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
  <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu>
  <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
  <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu>
- <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>
- <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu>
- <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu>
- <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu>
- <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
- <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
- <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
- <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:52240 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:47409 "EHLO
 	monstr.eu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754368AbYEEI0f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 04:26:35 -0400
-In-Reply-To: <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
+	id S1752728AbYEEIdj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 04:33:39 -0400
+In-Reply-To: <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -34,619 +26,570 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/defconfig |  604 +++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 604 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/defconfig
+ arch/microblaze/kernel/exceptions.c           |   78 +++++
+ arch/microblaze/kernel/hw_exception_handler.S |  395 +++++++++++++++++++++++++
+ include/asm-microblaze/exceptions.h           |   66 ++++
+ 3 files changed, 539 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/exceptions.c
+ create mode 100644 arch/microblaze/kernel/hw_exception_handler.S
+ create mode 100644 include/asm-microblaze/exceptions.h
 
-diff --git a/arch/microblaze/defconfig b/arch/microblaze/defconfig
+diff --git a/arch/microblaze/kernel/exceptions.c b/arch/microblaze/kernel/exceptions.c
 new file mode 100644
-index 0000000..5092d19
+index 0000000..9b92e56
 --- /dev/null
-+++ b/arch/microblaze/defconfig
-@@ -0,0 +1,604 @@
-+#
-+# Automatically generated make config: don't edit
-+# Linux kernel version: 2.6.25
-+# Wed Apr 23 20:28:29 2008
-+#
-+CONFIG_MICROBLAZE=y
-+# CONFIG_MMU is not set
-+# CONFIG_SWAP is not set
-+CONFIG_RWSEM_GENERIC_SPINLOCK=y
-+# CONFIG_ARCH_HAS_ILOG2_U32 is not set
-+# CONFIG_ARCH_HAS_ILOG2_U64 is not set
-+CONFIG_GENERIC_FIND_NEXT_BIT=y
-+CONFIG_GENERIC_HWEIGHT=y
-+CONFIG_GENERIC_HARDIRQS=y
-+CONFIG_GENERIC_IRQ_PROBE=y
-+CONFIG_GENERIC_CALIBRATE_DELAY=y
-+# CONFIG_PCI is not set
-+CONFIG_UID16=y
-+CONFIG_HZ=100
-+CONFIG_DEFCONFIG_LIST="arch/$ARCH/defconfig"
++++ b/arch/microblaze/kernel/exceptions.c
+@@ -0,0 +1,78 @@
++/*
++ * arch/microblaze/kernel/exceptions.c - HW exception handling
++ *
++ * Copyright (C) 2007 Xilinx, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ *
++ */
 +
-+#
-+# General setup
-+#
-+# CONFIG_EXPERIMENTAL is not set
-+CONFIG_BROKEN_ON_SMP=y
-+CONFIG_INIT_ENV_ARG_LIMIT=32
-+CONFIG_LOCALVERSION=""
-+# CONFIG_LOCALVERSION_AUTO is not set
-+# CONFIG_SYSVIPC is not set
-+# CONFIG_BSD_PROCESS_ACCT is not set
-+# CONFIG_TASKSTATS is not set
-+# CONFIG_AUDIT is not set
-+# CONFIG_IKCONFIG is not set
-+CONFIG_LOG_BUF_SHIFT=14
-+# CONFIG_CGROUPS is not set
-+# CONFIG_GROUP_SCHED is not set
-+CONFIG_SYSFS_DEPRECATED=y
-+CONFIG_SYSFS_DEPRECATED_V2=y
-+# CONFIG_RELAY is not set
-+# CONFIG_NAMESPACES is not set
-+# CONFIG_BLK_DEV_INITRD is not set
-+CONFIG_SYSCTL=y
-+CONFIG_EMBEDDED=y
-+CONFIG_SYSCTL_SYSCALL=y
-+# CONFIG_KALLSYMS is not set
-+# CONFIG_HOTPLUG is not set
-+CONFIG_PRINTK=y
-+# CONFIG_BUG is not set
-+CONFIG_ELF_CORE=y
-+CONFIG_COMPAT_BRK=y
-+# CONFIG_BASE_FULL is not set
-+# CONFIG_FUTEX is not set
-+CONFIG_ANON_INODES=y
-+# CONFIG_EPOLL is not set
-+CONFIG_SIGNALFD=y
-+# CONFIG_TIMERFD is not set
-+CONFIG_EVENTFD=y
-+CONFIG_VM_EVENT_COUNTERS=y
-+CONFIG_SLAB=y
-+# CONFIG_SLUB is not set
-+# CONFIG_SLOB is not set
-+# CONFIG_PROFILING is not set
-+# CONFIG_MARKERS is not set
-+# CONFIG_HAVE_OPROFILE is not set
-+# CONFIG_HAVE_KPROBES is not set
-+# CONFIG_HAVE_KRETPROBES is not set
-+CONFIG_SLABINFO=y
-+CONFIG_TINY_SHMEM=y
-+CONFIG_BASE_SMALL=1
-+CONFIG_MODULES=y
-+CONFIG_MODULE_UNLOAD=y
-+# CONFIG_MODVERSIONS is not set
-+# CONFIG_MODULE_SRCVERSION_ALL is not set
-+# CONFIG_KMOD is not set
-+CONFIG_BLOCK=y
-+# CONFIG_LBD is not set
-+# CONFIG_BLK_DEV_IO_TRACE is not set
-+# CONFIG_LSF is not set
++#include <linux/kernel.h>
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <asm/exceptions.h>
++#include <asm/entry.h>		/* For KM CPU var */
 +
-+#
-+# IO Schedulers
-+#
-+CONFIG_IOSCHED_NOOP=y
-+CONFIG_IOSCHED_AS=y
-+CONFIG_IOSCHED_DEADLINE=y
-+CONFIG_IOSCHED_CFQ=y
-+# CONFIG_DEFAULT_AS is not set
-+# CONFIG_DEFAULT_DEADLINE is not set
-+CONFIG_DEFAULT_CFQ=y
-+# CONFIG_DEFAULT_NOOP is not set
-+CONFIG_DEFAULT_IOSCHED="cfq"
-+CONFIG_CLASSIC_RCU=y
++/* Initialize_exception_handlers() - called from setup.c/trap_init() */
++void initialize_exception_handlers(void)
++{
++}
 +
-+#
-+# Platform options
-+#
-+CONFIG_PLATFORM_GENERIC=y
-+CONFIG_HACK=y
-+CONFIG_OPT_LIB_FUNCTION=y
-+CONFIG_ALLOW_EDIT_AUTO=y
++#define MICROBLAZE_ILL_OPCODE_EXCEPTION	0x02
++#define MICROBLAZE_IOPB_BUS_EXCEPTION	0x03
++#define MICROBLAZE_DOPB_BUS_EXCEPTION	0x04
++#define MICROBLAZE_DIV_ZERO_EXCEPTION	0x05
++#define MICROBLAZE_FPU_EXCEPTION	0x06
 +
-+#
-+# Automatic platform settings from Kconfig.auto
-+#
++static void handle_unexpected_exception(unsigned int esr,
++				unsigned int kernel_mode, unsigned int addr)
++{
++	printk(KERN_WARNING "Unexpected exception %02x in %s mode, PC=%08x\n",
++		esr, kernel_mode ? "kernel" : "user", addr);
++}
 +
-+#
-+# Definitions for MICROBLAZE0
-+#
-+CONFIG_KERNEL_BASE_ADDR=0x20000000
-+CONFIG_XILINX_MICROBLAZE0_FAMILY="spartan3e"
-+CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR=1
-+CONFIG_XILINX_MICROBLAZE0_USE_BARREL=1
-+CONFIG_XILINX_MICROBLAZE0_USE_DIV=1
-+CONFIG_XILINX_MICROBLAZE0_USE_HW_MULT=2
-+CONFIG_XILINX_MICROBLAZE0_USE_FPU=0
-+CONFIG_XILINX_MICROBLAZE0_HW_VER="7.00.b"
++static void handle_exception(const char *message, int signal,
++				unsigned int kernel_mode, unsigned int addr)
++{
++	if (kernel_mode)
++		panic("%s in the kernel mode, PC=%08x\n", message, addr);
++	else
++		force_sig(signal, current);
++}
 +
-+#
-+# Processor type and features
-+#
-+# CONFIG_PREEMPT is not set
-+# CONFIG_XILINX_UNCACHED_SHADOW is not set
-+# CONFIG_LARGE_ALLOCS is not set
++asmlinkage void other_exception_handler(unsigned int esr, unsigned int addr)
++{
++	unsigned int kernel_mode = per_cpu(KM, 0);
 +
-+#
-+# Boot options
-+#
-+CONFIG_CMDLINE="root=/dev/mtdblock0"
-+CONFIG_CMDLINE_FORCE=y
-+CONFIG_OF=y
-+CONFIG_OF_DEVICE=y
-+CONFIG_FLATMEM=y
-+CONFIG_FLAT_NODE_MEM_MAP=y
-+# CONFIG_SPARSEMEM_STATIC is not set
-+# CONFIG_SPARSEMEM_VMEMMAP_ENABLE is not set
-+CONFIG_SPLIT_PTLOCK_CPUS=4
-+# CONFIG_RESOURCES_64BIT is not set
-+CONFIG_ZONE_DMA_FLAG=0
-+CONFIG_VIRT_TO_BUS=y
++	switch (esr) {
 +
-+#
-+# Exectuable file formats
-+#
-+CONFIG_BINFMT_FLAT=y
-+# CONFIG_BINFMT_ZFLAT is not set
-+# CONFIG_BINFMT_SHARED_FLAT is not set
-+# CONFIG_BINFMT_MISC is not set
++	case MICROBLAZE_ILL_OPCODE_EXCEPTION:
++		handle_exception("Illegal instruction", SIGILL,
++						kernel_mode, addr);
++		break;
 +
-+#
-+# Networking
-+#
-+CONFIG_NET=y
++	case MICROBLAZE_IOPB_BUS_EXCEPTION:
++		handle_exception("Instruction bus error", SIGBUS,
++						kernel_mode, addr);
++		break;
 +
-+#
-+# Networking options
-+#
-+CONFIG_PACKET=y
-+# CONFIG_PACKET_MMAP is not set
-+CONFIG_UNIX=y
-+CONFIG_XFRM=y
-+# CONFIG_XFRM_USER is not set
-+# CONFIG_NET_KEY is not set
-+CONFIG_INET=y
-+# CONFIG_IP_MULTICAST is not set
-+# CONFIG_IP_ADVANCED_ROUTER is not set
-+CONFIG_IP_FIB_HASH=y
-+# CONFIG_IP_PNP is not set
-+# CONFIG_NET_IPIP is not set
-+# CONFIG_NET_IPGRE is not set
-+# CONFIG_SYN_COOKIES is not set
-+# CONFIG_INET_AH is not set
-+# CONFIG_INET_ESP is not set
-+# CONFIG_INET_IPCOMP is not set
-+# CONFIG_INET_XFRM_TUNNEL is not set
-+# CONFIG_INET_TUNNEL is not set
-+CONFIG_INET_XFRM_MODE_TRANSPORT=y
-+CONFIG_INET_XFRM_MODE_TUNNEL=y
-+CONFIG_INET_XFRM_MODE_BEET=y
-+# CONFIG_INET_LRO is not set
-+CONFIG_INET_DIAG=y
-+CONFIG_INET_TCP_DIAG=y
-+# CONFIG_TCP_CONG_ADVANCED is not set
-+CONFIG_TCP_CONG_CUBIC=y
-+CONFIG_DEFAULT_TCP_CONG="cubic"
-+# CONFIG_IPV6 is not set
-+# CONFIG_NETWORK_SECMARK is not set
-+# CONFIG_NETFILTER is not set
-+# CONFIG_ATM is not set
-+# CONFIG_BRIDGE is not set
-+# CONFIG_VLAN_8021Q is not set
-+# CONFIG_DECNET is not set
-+# CONFIG_LLC2 is not set
-+# CONFIG_IPX is not set
-+# CONFIG_ATALK is not set
-+# CONFIG_NET_SCHED is not set
++	case MICROBLAZE_DOPB_BUS_EXCEPTION:
++		handle_exception("Data bus error", SIGBUS, kernel_mode, addr);
++		break;
 +
-+#
-+# Network testing
-+#
-+# CONFIG_NET_PKTGEN is not set
-+# CONFIG_HAMRADIO is not set
-+# CONFIG_CAN is not set
-+# CONFIG_IRDA is not set
-+# CONFIG_BT is not set
++	case MICROBLAZE_DIV_ZERO_EXCEPTION:
++		handle_exception("Divide by zero", SIGILL, kernel_mode, addr);
++		break;
 +
-+#
-+# Wireless
-+#
-+# CONFIG_CFG80211 is not set
-+# CONFIG_WIRELESS_EXT is not set
-+# CONFIG_MAC80211 is not set
-+# CONFIG_IEEE80211 is not set
-+# CONFIG_RFKILL is not set
++	case MICROBLAZE_FPU_EXCEPTION:
++		handle_exception("FPU error", SIGFPE, kernel_mode, addr);
++		break;
 +
-+#
-+# Device Drivers
-+#
++	default:
++		handle_unexpected_exception(esr, kernel_mode, addr);
++	}
 +
-+#
-+# Generic Driver Options
-+#
-+CONFIG_STANDALONE=y
-+# CONFIG_PREVENT_FIRMWARE_BUILD is not set
-+# CONFIG_SYS_HYPERVISOR is not set
-+# CONFIG_CONNECTOR is not set
-+CONFIG_MTD=y
-+# CONFIG_MTD_DEBUG is not set
-+CONFIG_MTD_CONCAT=y
-+CONFIG_MTD_PARTITIONS=y
-+# CONFIG_MTD_REDBOOT_PARTS is not set
-+CONFIG_MTD_CMDLINE_PARTS=y
++	return;
++}
+diff --git a/arch/microblaze/kernel/hw_exception_handler.S b/arch/microblaze/kernel/hw_exception_handler.S
+new file mode 100644
+index 0000000..4c3b41b
+--- /dev/null
++++ b/arch/microblaze/kernel/hw_exception_handler.S
+@@ -0,0 +1,395 @@
++/*
++ *
++ * arch/microblaze/kernel/hw_exception_handler.S
++ *
++ * Unaligned exception handling for Microblaze
++ *
++ * cleanup code (C) 2007 Michal Simek <monstr@monstr.eu>
++ * uClinux customisation (C) 2005 John Williams
++ *
++ * Original code
++ * Copyright (C) 2004 Xilinx, Inc. All rights reserved.
++ *
++ * Xilinx, Inc.
++ * XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS" AS A
++ * COURTESY TO YOU. BY PROVIDING THIS DESIGN, CODE, OR INFORMATION AS
++ * ONE POSSIBLE IMPLEMENTATION OF THIS FEATURE, APPLICATION OR
++ * STANDARD, XILINX IS MAKING NO REPRESENTATION THAT THIS IMPLEMENTATION
++ * IS FREE FROM ANY CLAIMS OF INFRINGEMENT, AND YOU ARE RESPONSIBLE
++ * FOR OBTAINING ANY RIGHTS YOU MAY REQUIRE FOR YOUR IMPLEMENTATION.
++ * XILINX EXPRESSLY DISCLAIMS ANY WARRANTY WHATSOEVER WITH RESPECT TO
++ * THE ADEQUACY OF THE IMPLEMENTATION, INCLUDING BUT NOT LIMITED TO
++ * ANY WARRANTIES OR REPRESENTATIONS THAT THIS IMPLEMENTATION IS FREE
++ * FROM CLAIMS OF INFRINGEMENT, IMPLIED WARRANTIES OF MERCHANTABILITY
++ * AND FITNESS FOR A PARTICULAR PURPOSE.
++ *
++ * $Id: hw_exception_handler.S,v 1.1.2.1 2007/03/16 16:09:57 imanuilov Exp $
++ *
++ */
 +
-+#
-+# User Modules And Translation Layers
-+#
-+CONFIG_MTD_CHAR=y
-+CONFIG_MTD_BLKDEVS=y
-+CONFIG_MTD_BLOCK=y
-+# CONFIG_FTL is not set
-+# CONFIG_NFTL is not set
-+# CONFIG_INFTL is not set
-+# CONFIG_RFD_FTL is not set
-+# CONFIG_SSFDC is not set
-+# CONFIG_MTD_OOPS is not set
++/*
++ * Microblaze HW Exception Handler
++ * - Non self-modifying exception handler for the following exception conditions
++ * - Unalignment
++ * - Instruction bus error
++ * - Data bus error
++ * - Illegal instruction opcode
++ * - Divide-by-zero
++ *
++ * Note we disable interrupts during exception handling, otherwise we will
++ * possibly get multiple re-entrancy if interrupt handles themselves cause
++ * exceptions. JW
++ */
 +
-+#
-+# RAM/ROM/Flash chip drivers
-+#
-+CONFIG_MTD_CFI=y
-+# CONFIG_MTD_JEDECPROBE is not set
-+CONFIG_MTD_GEN_PROBE=y
-+# CONFIG_MTD_CFI_ADV_OPTIONS is not set
-+CONFIG_MTD_MAP_BANK_WIDTH_1=y
-+CONFIG_MTD_MAP_BANK_WIDTH_2=y
-+CONFIG_MTD_MAP_BANK_WIDTH_4=y
-+# CONFIG_MTD_MAP_BANK_WIDTH_8 is not set
-+# CONFIG_MTD_MAP_BANK_WIDTH_16 is not set
-+# CONFIG_MTD_MAP_BANK_WIDTH_32 is not set
-+CONFIG_MTD_CFI_I1=y
-+CONFIG_MTD_CFI_I2=y
-+# CONFIG_MTD_CFI_I4 is not set
-+# CONFIG_MTD_CFI_I8 is not set
-+CONFIG_MTD_CFI_INTELEXT=y
-+CONFIG_MTD_CFI_AMDSTD=y
-+# CONFIG_MTD_CFI_STAA is not set
-+CONFIG_MTD_CFI_UTIL=y
-+CONFIG_MTD_RAM=y
-+# CONFIG_MTD_ROM is not set
-+# CONFIG_MTD_ABSENT is not set
++#include <linux/autoconf.h>
++#include <asm/exceptions.h>
++#include <asm/unistd.h>
 +
-+#
-+# Mapping drivers for chip access
-+#
-+# CONFIG_MTD_COMPLEX_MAPPINGS is not set
-+# CONFIG_MTD_PHYSMAP is not set
-+CONFIG_MTD_UCLINUX=y
-+# CONFIG_MTD_PLATRAM is not set
++/* Helpful Macros */
++#define EX_HANDLER_STACK_SIZ	(4*19)
++#define RMSR_OFFSET		0
++#define REG_OFFSET(regnum)	(4*regnum)
++#define NUM_TO_REG(num)		r ## num
 +
-+#
-+# Self-contained MTD device drivers
-+#
-+# CONFIG_MTD_SLRAM is not set
-+# CONFIG_MTD_PHRAM is not set
-+# CONFIG_MTD_MTDRAM is not set
-+# CONFIG_MTD_BLOCK2MTD is not set
++#define R3_TO_STACK(regnum)	swi	r3, r1, REG_OFFSET(regnum)
++#define R3_FROM_STACK(regnum)	lwi	r3, r1, REG_OFFSET(regnum)
 +
-+#
-+# Disk-On-Chip Device Drivers
-+#
-+# CONFIG_MTD_DOC2000 is not set
-+# CONFIG_MTD_DOC2001 is not set
-+# CONFIG_MTD_DOC2001PLUS is not set
-+# CONFIG_MTD_NAND is not set
-+# CONFIG_MTD_ONENAND is not set
++#define PUSH_REG(regnum)	swi NUM_TO_REG(regnum), r1, REG_OFFSET(regnum)
++#define POP_REG(regnum)		lwi NUM_TO_REG(regnum), r1, REG_OFFSET(regnum)
 +
-+#
-+# UBI - Unsorted block images
-+#
-+# CONFIG_MTD_UBI is not set
-+# CONFIG_PARPORT is not set
-+CONFIG_BLK_DEV=y
-+# CONFIG_BLK_DEV_COW_COMMON is not set
-+# CONFIG_BLK_DEV_LOOP is not set
-+CONFIG_BLK_DEV_NBD=y
-+CONFIG_BLK_DEV_RAM=y
-+CONFIG_BLK_DEV_RAM_COUNT=16
-+CONFIG_BLK_DEV_RAM_SIZE=4096
-+# CONFIG_BLK_DEV_XIP is not set
-+# CONFIG_CDROM_PKTCDVD is not set
-+# CONFIG_ATA_OVER_ETH is not set
-+CONFIG_MISC_DEVICES=y
-+# CONFIG_EEPROM_93CX6 is not set
-+# CONFIG_ENCLOSURE_SERVICES is not set
-+# CONFIG_HAVE_IDE is not set
++/* Uses r5 */
++#define PUSH_MSR					\
++	mfs	r5, rmsr;				\
++	swi	r5, r1, RMSR_OFFSET;
 +
-+#
-+# SCSI device support
-+#
-+# CONFIG_RAID_ATTRS is not set
-+# CONFIG_SCSI is not set
-+# CONFIG_SCSI_DMA is not set
-+# CONFIG_SCSI_NETLINK is not set
-+# CONFIG_ATA is not set
-+# CONFIG_MD is not set
-+# CONFIG_NETDEVICES is not set
-+# CONFIG_ISDN is not set
-+# CONFIG_PHONE is not set
++#define PUSH_MSR_AND_ENABLE_EXC				\
++	mfs	r5, rmsr;				\
++	swi	r5, r1, RMSR_OFFSET;			\
++	ori	r5, r5, 0x100; /* Turn ON the EE bit */	\
++	andi	r5, r5, ~2; /* Disable interrupts */	\
++	mts	rmsr, r5;
 +
-+#
-+# Input device support
-+#
-+# CONFIG_INPUT is not set
++/* Uses r5 */
++#define POP_MSR						\
++	lwi	r5, r1, RMSR_OFFSET;			\
++	mts	rmsr, r5;
 +
-+#
-+# Hardware I/O ports
-+#
-+# CONFIG_SERIO is not set
-+# CONFIG_GAMEPORT is not set
++#define LWREG_NOP					\
++	bri	ex_handler_unhandled;			\
++	nop;
 +
-+#
-+# Character devices
-+#
-+# CONFIG_VT is not set
-+# CONFIG_SERIAL_NONSTANDARD is not set
++#define SWREG_NOP					\
++	bri	ex_handler_unhandled;			\
++	nop;
 +
-+#
-+# Serial drivers
-+#
-+# CONFIG_SERIAL_8250 is not set
++/* r3 is the source */
++#define R3_TO_LWREG_V(regnum)				\
++	R3_TO_STACK(regnum);				\
++	bri	ex_handler_done;
 +
-+#
-+# Non-8250 serial port support
-+#
-+CONFIG_SERIAL_UARTLITE=y
-+CONFIG_SERIAL_UARTLITE_CONSOLE=y
-+CONFIG_SERIAL_CORE=y
-+CONFIG_SERIAL_CORE_CONSOLE=y
-+CONFIG_UNIX98_PTYS=y
-+CONFIG_LEGACY_PTYS=y
-+CONFIG_LEGACY_PTY_COUNT=256
-+# CONFIG_IPMI_HANDLER is not set
-+CONFIG_HW_RANDOM=y
-+# CONFIG_RTC is not set
-+# CONFIG_GEN_RTC is not set
-+# CONFIG_R3964 is not set
-+# CONFIG_RAW_DRIVER is not set
-+# CONFIG_I2C is not set
++/* r3 is the source */
++#define R3_TO_LWREG(regnum)				\
++	or	NUM_TO_REG (regnum), r0, r3;		\
++	bri	ex_handler_done;
 +
-+#
-+# SPI support
-+#
-+# CONFIG_SPI is not set
-+# CONFIG_SPI_MASTER is not set
-+# CONFIG_W1 is not set
-+# CONFIG_POWER_SUPPLY is not set
-+# CONFIG_HWMON is not set
-+# CONFIG_THERMAL is not set
-+# CONFIG_WATCHDOG is not set
++/* r3 is the target */
++#define SWREG_TO_R3_V(regnum)				\
++	R3_FROM_STACK (regnum);				\
++	bri	ex_sw_tail;
 +
-+#
-+# Sonics Silicon Backplane
-+#
-+CONFIG_SSB_POSSIBLE=y
-+# CONFIG_SSB is not set
++/* r3 is the target */
++#define SWREG_TO_R3(regnum)				\
++	or	r3, r0, NUM_TO_REG (regnum);		\
++	bri	ex_sw_tail;
 +
-+#
-+# Multifunction device drivers
-+#
-+# CONFIG_MFD_SM501 is not set
-+# CONFIG_HTC_PASIC3 is not set
++.extern other_exception_handler /* Defined in exception.c */
 +
-+#
-+# Multimedia devices
-+#
-+# CONFIG_VIDEO_DEV is not set
-+# CONFIG_DVB_CORE is not set
-+CONFIG_DAB=y
++/*
++ * hw_exception_handler - Handler for unaligned exceptions
++ * Exception handler notes:
++ * - Does not handle exceptions other than unaligned exceptions
++ * - Does not handle exceptions during load into r17, r1, r0.
++ * - Does not handle exceptions during store from r17 (cannot be done)
++ *	and r1 (slows down common case)
++ *
++ * Relevant register structures
++ *
++ * EAR	- |----|----|----|----|----|----|----|----|
++ *	- <  ##   32 bit faulting address     ##  >
++ *
++ * ESR	- |----|----|----|----|----| - | - |-----|-----|
++ *	-			     W   S   REG   EXC
++ *
++ *
++ * STACK FRAME STRUCTURE
++ * ---------------------
++ *
++ *	+-------------+		+ 0
++ *	|     MSR     |
++ *	+-------------+		+ 4
++ *	|     r1      |
++ *	|      .      |
++ *	|      .      |
++ *	|      .      |
++ *	|      .      |
++ *	|     r18     |
++ *	+-------------+		+ 76
++ *	|      .      |
++ *	|      .      |
++ */
 +
-+#
-+# Graphics support
-+#
-+# CONFIG_VGASTATE is not set
-+CONFIG_VIDEO_OUTPUT_CONTROL=y
-+# CONFIG_FB is not set
-+# CONFIG_BACKLIGHT_LCD_SUPPORT is not set
++.global _hw_exception_handler
++.section .text
++.align 4
++.ent _hw_exception_handler
++_hw_exception_handler:
++	addik	r1, r1, -(EX_HANDLER_STACK_SIZ); /* Create stack frame */
++	PUSH_REG(3);
++	PUSH_REG(4);
++	PUSH_REG(5);
++	PUSH_REG(6);
++	mfs	r3, resr;
 +
-+#
-+# Display device support
-+#
-+# CONFIG_DISPLAY_SUPPORT is not set
++	andi	r5, r3, 0x1000;
++	beqi	r5, not_in_delay_slot;
++	mfs	r17, rbtr;
++not_in_delay_slot:
 +
-+#
-+# Sound
-+#
-+# CONFIG_SOUND is not set
-+CONFIG_USB_SUPPORT=y
-+# CONFIG_USB_ARCH_HAS_HCD is not set
-+# CONFIG_USB_ARCH_HAS_OHCI is not set
-+# CONFIG_USB_ARCH_HAS_EHCI is not set
++	PUSH_REG(17);
++	/* Exceptions enabled here. This will allow nested exceptions */
++	PUSH_MSR_AND_ENABLE_EXC;
 +
-+#
-+# NOTE: USB_STORAGE enables SCSI, and 'SCSI disk support'
-+#
-+# CONFIG_USB_GADGET is not set
-+# CONFIG_MMC is not set
-+# CONFIG_MEMSTICK is not set
-+# CONFIG_NEW_LEDS is not set
-+# CONFIG_RTC_CLASS is not set
-+# CONFIG_UIO is not set
++	andi	r5, r3, 0x1F; /* Extract ESR[EXC] */
 +
-+#
-+# File systems
-+#
-+# CONFIG_EXT2_FS is not set
-+# CONFIG_EXT3_FS is not set
-+# CONFIG_REISERFS_FS is not set
-+# CONFIG_JFS_FS is not set
-+# CONFIG_FS_POSIX_ACL is not set
-+# CONFIG_XFS_FS is not set
-+# CONFIG_OCFS2_FS is not set
-+# CONFIG_DNOTIFY is not set
-+# CONFIG_INOTIFY is not set
-+# CONFIG_QUOTA is not set
-+# CONFIG_AUTOFS_FS is not set
-+# CONFIG_AUTOFS4_FS is not set
-+# CONFIG_FUSE_FS is not set
++	xori	r6, r5, 1; /* 00001 = Unaligned Exception */
++	/* Jump to unalignment exception handler */
++	beqi	r6, handle_unaligned_ex;
 +
-+#
-+# CD-ROM/DVD Filesystems
-+#
-+# CONFIG_ISO9660_FS is not set
-+# CONFIG_UDF_FS is not set
++handle_other_ex: /* Handle Other exceptions here */
++	/* Save other volatiles before we make procedure calls below */
++	PUSH_REG(7);
++	PUSH_REG(8);
++	PUSH_REG(9);
++	PUSH_REG(10);
++	PUSH_REG(11);
++	PUSH_REG(12);
++	PUSH_REG(14);
++	PUSH_REG(15);
++	PUSH_REG(18);
 +
-+#
-+# DOS/FAT/NT Filesystems
-+#
-+# CONFIG_MSDOS_FS is not set
-+# CONFIG_VFAT_FS is not set
-+# CONFIG_NTFS_FS is not set
++	andi	r5, r3, 0x1F; /* Load ESR[EC] */
++	addk	r6, r17, r0; /* Load exception address */
++	bralid	r15, other_exception_handler; /* Branch to the handler */
++	nop;
 +
-+#
-+# Pseudo filesystems
-+#
-+CONFIG_PROC_FS=y
-+CONFIG_PROC_SYSCTL=y
-+CONFIG_SYSFS=y
-+# CONFIG_TMPFS is not set
-+# CONFIG_HUGETLB_PAGE is not set
-+# CONFIG_CONFIGFS_FS is not set
++	/*
++	* Trigger execution of the signal handler by enabling
++	* interrupts and calling an invalid syscall.
++	*/
++	mfs	r5, rmsr;
++	ori	r5, r5, 2;
++	mts	rmsr, r5;
++	addi	r12, r0, NR_syscalls;
++	brki	r14, 0x08;
++	mfs	r5, rmsr;
++	andi	r5, r5, ~2;
++	mts	rmsr, r5;
 +
-+#
-+# Miscellaneous filesystems
-+#
-+# CONFIG_HFSPLUS_FS is not set
-+# CONFIG_JFFS2_FS is not set
-+CONFIG_CRAMFS=y
-+# CONFIG_VXFS_FS is not set
-+# CONFIG_MINIX_FS is not set
-+# CONFIG_HPFS_FS is not set
-+# CONFIG_QNX4FS_FS is not set
-+CONFIG_ROMFS_FS=y
-+# CONFIG_SYSV_FS is not set
-+# CONFIG_UFS_FS is not set
-+CONFIG_NETWORK_FILESYSTEMS=y
-+# CONFIG_NFS_FS is not set
-+# CONFIG_NFSD is not set
-+# CONFIG_SMB_FS is not set
-+# CONFIG_CIFS is not set
-+# CONFIG_NCP_FS is not set
-+# CONFIG_CODA_FS is not set
++	POP_REG(7); /* Restore other volatiles */
++	POP_REG(8);
++	POP_REG(9);
++	POP_REG(10);
++	POP_REG(11);
++	POP_REG(12);
++	POP_REG(14);
++	POP_REG(15);
++	POP_REG(18);
 +
-+#
-+# Partition Types
-+#
-+# CONFIG_PARTITION_ADVANCED is not set
-+CONFIG_MSDOS_PARTITION=y
-+# CONFIG_NLS is not set
++	bri	ex_handler_done; /* Complete exception handling */
++handle_unaligned_ex:
++	andi	r6, r3, 0x3E0; /* Mask and extract the register operand */
++	srl	r6, r6; /* r6 >> 5 */
++	srl	r6, r6;
++	srl	r6, r6;
++	srl	r6, r6;
++	srl	r6, r6;
++	/* Store the register operand in a temporary location */
++	sbi	r6, r0, ex_reg_op;
++	mfs	r4, rear;
++	andi	r6, r3, 0x400; /* Extract ESR[S] */
++	bnei	r6, ex_sw;
++ex_lw:
++	andi	r6, r3, 0x800; /* Extract ESR[W] */
++	beqi	r6, ex_lhw;
++	lbui	r5, r4, 0; /* Exception address in r4 */
++	/* Load a word, byte-by-byte from destination address
++		and save it in tmp space */
++	sbi	r5, r0, ex_tmp_data_loc_0;
++	lbui	r5, r4, 1;
++	sbi	r5, r0, ex_tmp_data_loc_1;
++	lbui	r5, r4, 2;
++	sbi	r5, r0, ex_tmp_data_loc_2;
++	lbui	r5, r4, 3;
++	sbi	r5, r0, ex_tmp_data_loc_3;
++	/* Get the destination register value into r3 */
++	lwi	r3, r0, ex_tmp_data_loc_0;
++	bri	ex_lw_tail;
++ex_lhw:
++	lbui	r5, r4, 0; /* Exception address in r4 */
++	/* Load a half-word, byte-by-byte from destination
++		address and save it in tmp space */
++	sbi	r5, r0, ex_tmp_data_loc_0;
++	lbui	r5, r4, 1;
++	sbi	r5, r0, ex_tmp_data_loc_1;
++	/* Get the destination register value into r3 */
++	lhui	r3, r0, ex_tmp_data_loc_0;
++ex_lw_tail:
++	/* Get the destination register number into r5 */
++	lbui	r5, r0, ex_reg_op;
++	/* Form load_word jump table offset (lw_table + (8 * regnum)) */
++	la	r6, r0, lw_table;
++	addk	r5, r5, r5;
++	addk	r5, r5, r5;
++	addk	r5, r5, r5;
++	addk	r5, r5, r6;
++	bra	r5;
++ex_lw_end: /* Exception handling of load word, ends */
++ex_sw:
++	/* Get the destination register number into r5 */
++	lbui	r5, r0, ex_reg_op;
++	/* Form store_word jump table offset (sw_table + (8 * regnum)) */
++	la	r6, r0, sw_table;
++	add	r5, r5, r5;
++	add	r5, r5, r5;
++	add	r5, r5, r5;
++	add	r5, r5, r6;
++	bra	r5;
++ex_sw_tail:
++	mfs	r6, resr;
++	andi	r6, r6, 0x800; /* Extract ESR[W] */
++	beqi	r6, ex_shw;
++	swi	r3, r0, ex_tmp_data_loc_0;
++	/* Store the word, byte-by-byte into destination address */
++	lbui	r3, r0, ex_tmp_data_loc_0;
++	sbi	r3, r4, 0;
++	lbui	r3, r0, ex_tmp_data_loc_1;
++	sbi	r3, r4, 1;
++	lbui	r3, r0, ex_tmp_data_loc_2;
++	sbi	r3, r4, 2;
++	lbui	r3, r0, ex_tmp_data_loc_3;
++	sbi	r3, r4, 3;
++	bri	ex_handler_done;
++ex_shw:
++	/* Store the lower half-word, byte-by-byte into destination address */
++	swi	r3, r0, ex_tmp_data_loc_0;
++	lbui	r3, r0, ex_tmp_data_loc_2;
++	sbi	r3, r4, 0;
++	lbui	r3, r0, ex_tmp_data_loc_3;
++	sbi	r3, r4, 1;
++ex_sw_end: /* Exception handling of store word, ends. */
 +
-+#
-+# Kernel hacking
-+#
-+# CONFIG_PRINTK_TIME is not set
-+CONFIG_ENABLE_WARN_DEPRECATED=y
-+# CONFIG_ENABLE_MUST_CHECK is not set
-+# CONFIG_MAGIC_SYSRQ is not set
-+# CONFIG_UNUSED_SYMBOLS is not set
-+# CONFIG_DEBUG_FS is not set
-+# CONFIG_HEADERS_CHECK is not set
-+# CONFIG_DEBUG_KERNEL is not set
-+# CONFIG_SAMPLES is not set
-+CONFIG_EARLY_PRINTK=y
-+CONFIG_EARLY_PRINTK_UARTLITE_ADDRESS=0x40100000
-+CONFIG_HEART_BEAT=y
-+CONFIG_HEART_BEAT_ADDRESS=0x40600000
++ex_handler_done:
++	POP_MSR;
++	POP_REG(3);
++	POP_REG(4);
++	POP_REG(5);
++	POP_REG(6);
++	POP_REG(17);
++	rted	r17, 0
++	addik	r1, r1, (EX_HANDLER_STACK_SIZ); /* Restore stack frame */
++ex_handler_unhandled:
++	bri 0 /* UNHANDLED. TRAP HERE */
++.end _hw_exception_handler
 +
-+#
-+# Security options
-+#
-+# CONFIG_KEYS is not set
-+# CONFIG_SECURITY is not set
-+CONFIG_CRYPTO=y
++/*
++* hw_exception_handler Jump Table
++* - Contains code snippets for each register that caused the unaligned exception
++* - Hence exception handler is NOT self-modifying
++* - Separate table for load exceptions and store exceptions.
++* - Each table is of size: (8 * 32) = 256 bytes
++*/
 +
-+#
-+# Crypto core or helper
-+#
-+# CONFIG_CRYPTO_MANAGER is not set
-+# CONFIG_CRYPTO_NULL is not set
-+# CONFIG_CRYPTO_CRYPTD is not set
-+# CONFIG_CRYPTO_AUTHENC is not set
-+# CONFIG_CRYPTO_TEST is not set
++.section .text
++.align 4
++lw_table:
++lw_r0:	R3_TO_LWREG	(0);
++lw_r1:	LWREG_NOP;
++lw_r2:	R3_TO_LWREG	(2);
++lw_r3:	R3_TO_LWREG_V	(3);
++lw_r4:	R3_TO_LWREG_V	(4);
++lw_r5:	R3_TO_LWREG_V	(5);
++lw_r6:	R3_TO_LWREG_V	(6);
++lw_r7:	R3_TO_LWREG	(7);
++lw_r8:	R3_TO_LWREG	(8);
++lw_r9:	R3_TO_LWREG	(9);
++lw_r10:	R3_TO_LWREG	(10);
++lw_r11:	R3_TO_LWREG	(11);
++lw_r12:	R3_TO_LWREG	(12);
++lw_r13:	R3_TO_LWREG	(13);
++lw_r14:	R3_TO_LWREG	(14);
++lw_r15:	R3_TO_LWREG	(15);
++lw_r16:	R3_TO_LWREG	(16);
++lw_r17:	LWREG_NOP;
++lw_r18:	R3_TO_LWREG	(18);
++lw_r19:	R3_TO_LWREG	(19);
++lw_r20:	R3_TO_LWREG	(20);
++lw_r21:	R3_TO_LWREG	(21);
++lw_r22:	R3_TO_LWREG	(22);
++lw_r23:	R3_TO_LWREG	(23);
++lw_r24:	R3_TO_LWREG	(24);
++lw_r25:	R3_TO_LWREG	(25);
++lw_r26:	R3_TO_LWREG	(26);
++lw_r27:	R3_TO_LWREG	(27);
++lw_r28:	R3_TO_LWREG	(28);
++lw_r29:	R3_TO_LWREG	(29);
++lw_r30:	R3_TO_LWREG	(30);
++lw_r31:	R3_TO_LWREG	(31);
 +
-+#
-+# Authenticated Encryption with Associated Data
-+#
-+# CONFIG_CRYPTO_CCM is not set
-+# CONFIG_CRYPTO_GCM is not set
-+# CONFIG_CRYPTO_SEQIV is not set
++sw_table:
++sw_r0:	SWREG_TO_R3	(0);
++sw_r1:	SWREG_NOP;
++sw_r2:	SWREG_TO_R3	(2);
++sw_r3:	SWREG_TO_R3_V	(3);
++sw_r4:	SWREG_TO_R3_V	(4);
++sw_r5:	SWREG_TO_R3_V	(5);
++sw_r6:	SWREG_TO_R3_V	(6);
++sw_r7:	SWREG_TO_R3	(7);
++sw_r8:	SWREG_TO_R3	(8);
++sw_r9:	SWREG_TO_R3	(9);
++sw_r10:	SWREG_TO_R3	(10);
++sw_r11:	SWREG_TO_R3	(11);
++sw_r12:	SWREG_TO_R3	(12);
++sw_r13:	SWREG_TO_R3	(13);
++sw_r14:	SWREG_TO_R3	(14);
++sw_r15:	SWREG_TO_R3	(15);
++sw_r16:	SWREG_TO_R3	(16);
++sw_r17:	SWREG_NOP;
++sw_r18:	SWREG_TO_R3	(18);
++sw_r19:	SWREG_TO_R3	(19);
++sw_r20:	SWREG_TO_R3	(20);
++sw_r21:	SWREG_TO_R3	(21);
++sw_r22:	SWREG_TO_R3	(22);
++sw_r23:	SWREG_TO_R3	(23);
++sw_r24:	SWREG_TO_R3	(24);
++sw_r25:	SWREG_TO_R3	(25);
++sw_r26:	SWREG_TO_R3	(26);
++sw_r27:	SWREG_TO_R3	(27);
++sw_r28:	SWREG_TO_R3	(28);
++sw_r29:	SWREG_TO_R3	(29);
++sw_r30:	SWREG_TO_R3	(30);
++sw_r31:	SWREG_TO_R3	(31);
 +
-+#
-+# Block modes
-+#
-+# CONFIG_CRYPTO_CBC is not set
-+# CONFIG_CRYPTO_CTR is not set
-+# CONFIG_CRYPTO_CTS is not set
-+# CONFIG_CRYPTO_ECB is not set
-+# CONFIG_CRYPTO_PCBC is not set
++/* Temporary data structures used in the handler */
++.section .data
++.align 4
++ex_tmp_data_loc_0:
++	.byte 0
++ex_tmp_data_loc_1:
++	.byte 0
++ex_tmp_data_loc_2:
++	.byte 0
++ex_tmp_data_loc_3:
++	.byte 0
++ex_reg_op:
++	.byte 0
 +
-+#
-+# Hash modes
-+#
-+# CONFIG_CRYPTO_HMAC is not set
+diff --git a/include/asm-microblaze/exceptions.h b/include/asm-microblaze/exceptions.h
+new file mode 100644
+index 0000000..02dc186
+--- /dev/null
++++ b/include/asm-microblaze/exceptions.h
+@@ -0,0 +1,66 @@
++/*
++ * include/asm-microblaze/exceptions.h
++ *
++ * Preliminary support for HW exception handing for Microblaze
++ *
++ * Copyright (C) 2005 John Williams <jwilliams@itee.uq.edu.au>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ *
++ */
 +
-+#
-+# Digest
-+#
-+# CONFIG_CRYPTO_CRC32C is not set
-+# CONFIG_CRYPTO_MD4 is not set
-+# CONFIG_CRYPTO_MD5 is not set
-+# CONFIG_CRYPTO_MICHAEL_MIC is not set
-+# CONFIG_CRYPTO_SHA1 is not set
-+# CONFIG_CRYPTO_SHA256 is not set
-+# CONFIG_CRYPTO_SHA512 is not set
-+# CONFIG_CRYPTO_TGR192 is not set
-+# CONFIG_CRYPTO_WP512 is not set
++#ifndef _ASM_MICROBLAZE_EXCEPTIONS_H
++#define _ASM_MICROBLAZE_EXCEPTIONS_H
 +
-+#
-+# Ciphers
-+#
-+# CONFIG_CRYPTO_AES is not set
-+# CONFIG_CRYPTO_ANUBIS is not set
-+# CONFIG_CRYPTO_ARC4 is not set
-+# CONFIG_CRYPTO_BLOWFISH is not set
-+# CONFIG_CRYPTO_CAMELLIA is not set
-+# CONFIG_CRYPTO_CAST5 is not set
-+# CONFIG_CRYPTO_CAST6 is not set
-+# CONFIG_CRYPTO_DES is not set
-+# CONFIG_CRYPTO_FCRYPT is not set
-+# CONFIG_CRYPTO_KHAZAD is not set
-+# CONFIG_CRYPTO_SEED is not set
-+# CONFIG_CRYPTO_SERPENT is not set
-+# CONFIG_CRYPTO_TEA is not set
-+# CONFIG_CRYPTO_TWOFISH is not set
++#include <linux/autoconf.h>
 +
-+#
-+# Compression
-+#
-+# CONFIG_CRYPTO_DEFLATE is not set
-+# CONFIG_CRYPTO_LZO is not set
-+CONFIG_CRYPTO_HW=y
++#ifndef __ASSEMBLY__
 +
-+#
-+# Library routines
-+#
-+# CONFIG_CRC_CCITT is not set
-+# CONFIG_CRC16 is not set
-+# CONFIG_CRC_ITU_T is not set
-+# CONFIG_CRC32 is not set
-+# CONFIG_CRC7 is not set
-+# CONFIG_LIBCRC32C is not set
-+CONFIG_ZLIB_INFLATE=y
-+CONFIG_HAS_IOMEM=y
-+CONFIG_HAS_IOPORT=y
-+CONFIG_HAS_DMA=y
++void initialize_exception_handlers(void);
++asmlinkage void other_exception_handler(unsigned int esr, unsigned int addr);
++
++/* Macros to enable and disable HW exceptions in the MSR */
++/* Define MSR enable bit for HW exceptions */
++#define HWEX_MSR_BIT (1 << 8)
++
++#if CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR
++#define __enable_hw_exceptions()					\
++	__asm__ __volatile__ ("	msrset	r0, %0;				\
++				nop; "					\
++				:					\
++				: "i" (HWEX_MSR_BIT)			\
++				: "memory")
++
++#define __disable_hw_exceptions()					\
++	__asm__ __volatile__ ("	msrclr r0, %0;				\
++				nop; "					\
++				:					\
++				: "i" (HWEX_MSR_BIT)			\
++				: "memory")
++#else /* !CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR */
++#define __enable_hw_exceptions()					\
++	__asm__ __volatile__ ("						\
++				mfs	r12, rmsr;			\
++				ori	r12, r12, %0;			\
++				mts	rmsr, r12;			\
++				nop; "					\
++				:					\
++				: "i" (HWEX_MSR_BIT)			\
++				: "memory", "r12")
++
++#define __disable_hw_exceptions()					\
++	__asm__ __volatile__ ("						\
++				mfs	r12, rmsr;			\
++				andi	r12, r12, ~%0;			\
++				mts	rmsr, r12;			\
++				nop; "					\
++				:					\
++				: "i" (HWEX_MSR_BIT)			\
++				: "memory", "r12")
++#endif /* CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR */
++
++#endif /*__ASSEMBLY__ */
++
++#endif /* _ASM_MICROBLAZE_EXCEPTIONS_H */
 -- 
 1.5.4.GIT
