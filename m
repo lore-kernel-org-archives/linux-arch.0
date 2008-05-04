@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 52/56] microblaze_v2: pci headers
-Date: Sun,  4 May 2008 13:41:41 +0200
-Message-ID: <c709de3e3767d1be8b23ce73255389c525737c36.1209897267.git.monstr@monstr.eu>
+Subject: [PATCH 37/56] microblaze_v2: headers for irq
+Date: Sun,  4 May 2008 13:41:26 +0200
+Message-ID: <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -39,27 +39,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
  <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
  <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
- <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
- <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
- <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
- <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
- <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
- <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
- <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
- <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
- <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
- <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
- <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>
- <643084ee3819dd169cad3c4e3565c5ff20dd3429.1209897267.git.monstr@monstr.eu>
- <231ae415bf52de25c69f727fd13c50d201f8ecd8.1209897267.git.monstr@monstr.eu>
- <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
- <affa82887bee64b05420fdd5f723cca920acad90.1209897267.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:40996 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:50173 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750893AbYEDOme (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 10:42:34 -0400
-In-Reply-To: <affa82887bee64b05420fdd5f723cca920acad90.1209897267.git.monstr@monstr.eu>
+	id S1751025AbYEDOwX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 10:52:23 -0400
+In-Reply-To: <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -72,59 +57,100 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/pci-bridge.h |   17 +++++++++++++++++
- include/asm-microblaze/pci.h        |   19 +++++++++++++++++++
- 2 files changed, 36 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/pci-bridge.h
- create mode 100644 include/asm-microblaze/pci.h
+ include/asm-microblaze/hardirq.h  |   31 +++++++++++++++++++++++++++++++
+ include/asm-microblaze/hw_irq.h   |   19 +++++++++++++++++++
+ include/asm-microblaze/irq_regs.h |   19 +++++++++++++++++++
+ 3 files changed, 69 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/hardirq.h
+ create mode 100644 include/asm-microblaze/hw_irq.h
+ create mode 100644 include/asm-microblaze/irq_regs.h
 
-diff --git a/include/asm-microblaze/pci-bridge.h b/include/asm-microblaze/pci-bridge.h
+diff --git a/include/asm-microblaze/hardirq.h b/include/asm-microblaze/hardirq.h
 new file mode 100644
-index 0000000..3a74fd4
+index 0000000..8a143fa
 --- /dev/null
-+++ b/include/asm-microblaze/pci-bridge.h
-@@ -0,0 +1,17 @@
++++ b/include/asm-microblaze/hardirq.h
+@@ -0,0 +1,31 @@
 +/*
-+ * include/asm-microblaze/pci-bridge.h
++ * include/asm-microblaze/hardirq.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + *
-+ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_PCI_BRIDGE_H
-+#define _ASM_PCI_BRIDGE_H
++#ifndef _ASM_MICROBLAZE_HARDIRQ_H
++#define _ASM_MICROBLAZE_HARDIRQ_H
 +
-+#include <linux/pci.h>
++#include <linux/cache.h>
++#include <linux/irq.h>
++#include <asm/irq.h>
++#include <asm/current.h>
++#include <asm/ptrace.h>
 +
-+#endif /* _ASM_PCI_BRIDGE_H */
-diff --git a/include/asm-microblaze/pci.h b/include/asm-microblaze/pci.h
++/* should be defined in each interrupt controller driver */
++extern unsigned int get_irq(struct pt_regs *regs);
++
++typedef struct {
++	unsigned int __softirq_pending;
++} ____cacheline_aligned irq_cpustat_t;
++
++void ack_bad_irq(unsigned int irq);
++
++#include <linux/irq_cpustat.h> /* Standard mappings for irq_cpustat_t above */
++
++#endif /* _ASM_MICROBLAZE_HARDIRQ_H */
+diff --git a/include/asm-microblaze/hw_irq.h b/include/asm-microblaze/hw_irq.h
 new file mode 100644
-index 0000000..89bec79
+index 0000000..467fa26
 --- /dev/null
-+++ b/include/asm-microblaze/pci.h
++++ b/include/asm-microblaze/hw_irq.h
 @@ -0,0 +1,19 @@
 +/*
-+ * include/asm-microblaze/pci.h
++ * include/asm-microblaze/hw_irq.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + *
-+ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_PCI_H
-+#define _ASM_MICROBLAZE_PCI_H
++#ifndef _ASM_MICROBLAZE_HW_IRQ_H
++#define _ASM_MICROBLAZE_HW_IRQ_H
 +
-+#ifdef __KERNEL__
-+#include <asm/io.h>
-+#endif
++static inline void hw_resend_irq(struct hw_interrupt_type *h, unsigned int i)
++{
++	/* Nothing to do */
++}
 +
-+#endif /* _ASM_MICROBLAZE_PCI_H */
++#endif /* _ASM_MICROBLAZE_HW_IRQ_H */
+diff --git a/include/asm-microblaze/irq_regs.h b/include/asm-microblaze/irq_regs.h
+new file mode 100644
+index 0000000..0876847
+--- /dev/null
++++ b/include/asm-microblaze/irq_regs.h
+@@ -0,0 +1,19 @@
++/*
++ * include/asm-microblaze/irq_regs.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#ifndef _ASM_MICROBLAZE_IRQ_REGS_H
++#define _ASM_MICROBLAZE_IRQ_REGS_H
++
++#include <asm-generic/irq_regs.h>
++
++#endif /* _ASM_MICROBLAZE_IRQ_REGS_H */
++
++
++
 -- 
 1.5.4.GIT
