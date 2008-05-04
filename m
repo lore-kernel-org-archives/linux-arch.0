@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 50/56] microblaze_v2: setup.h string.h thread_info.h
-Date: Sun,  4 May 2008 13:41:39 +0200
-Message-ID: <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
+Subject: [PATCH 47/56] microblaze_v2: device.h param.h topology.h
+Date: Sun,  4 May 2008 13:41:36 +0200
+Message-ID: <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -49,15 +49,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
  <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
  <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
- <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>
- <643084ee3819dd169cad3c4e3565c5ff20dd3429.1209897267.git.monstr@monstr.eu>
- <231ae415bf52de25c69f727fd13c50d201f8ecd8.1209897267.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:34427 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:54637 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751030AbYEDQv0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 12:51:26 -0400
-In-Reply-To: <231ae415bf52de25c69f727fd13c50d201f8ecd8.1209897267.git.monstr@monstr.eu>
+	id S1754755AbYEDRAa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 13:00:30 -0400
+In-Reply-To: <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -70,22 +67,55 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/setup.h       |   42 +++++++++
- include/asm-microblaze/string.h      |   22 +++++
- include/asm-microblaze/thread_info.h |  155 ++++++++++++++++++++++++++++++++++
- 3 files changed, 219 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/setup.h
- create mode 100644 include/asm-microblaze/string.h
- create mode 100644 include/asm-microblaze/thread_info.h
+ include/asm-microblaze/device.h   |   27 ++++++++
+ include/asm-microblaze/param.h    |   36 +++++++++++
+ include/asm-microblaze/topology.h |  119 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 182 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/device.h
+ create mode 100644 include/asm-microblaze/param.h
+ create mode 100644 include/asm-microblaze/topology.h
 
-diff --git a/include/asm-microblaze/setup.h b/include/asm-microblaze/setup.h
+diff --git a/include/asm-microblaze/device.h b/include/asm-microblaze/device.h
 new file mode 100644
-index 0000000..ba4bf7d
+index 0000000..c0e203c
 --- /dev/null
-+++ b/include/asm-microblaze/setup.h
-@@ -0,0 +1,42 @@
++++ b/include/asm-microblaze/device.h
+@@ -0,0 +1,27 @@
 +/*
-+ * include/asm-microblaze/setup.h
++ * Arch specific extensions to struct device
++ *
++ * This file is released under the GPLv2
++ */
++
++#ifndef _ASM_MICROBLAZE_DEVICE_H
++#define _ASM_MICROBLAZE_DEVICE_H
++
++struct dma_mapping_ops;
++struct device_node;
++
++struct dev_archdata {
++	/* Optional pointer to an OF device node */
++	struct device_node	*of_node;
++
++	/* DMA operations on that device */
++	struct dma_mapping_ops	*dma_ops;
++	void			*dma_data;
++
++	/* NUMA node if applicable */
++	int			numa_node;
++};
++
++#endif /* _ASM_MICROBLAZE_DEVICE_H */
++
++
+diff --git a/include/asm-microblaze/param.h b/include/asm-microblaze/param.h
+new file mode 100644
+index 0000000..e6873a9
+--- /dev/null
++++ b/include/asm-microblaze/param.h
+@@ -0,0 +1,36 @@
++/*
++ * include/asm-microblaze/param.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -94,226 +124,156 @@ index 0000000..ba4bf7d
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_SETUP_H
-+#define _ASM_MICROBLAZE_SETUP_H
-+
-+#include <linux/init.h>
-+
-+extern unsigned int boot_cpuid;
-+
-+#define COMMAND_LINE_SIZE	256
-+extern char cmd_line[COMMAND_LINE_SIZE];
-+
-+int __init setup_early_printk(char *opt);
-+void early_printk(const char *fmt, ...);
-+
-+#ifdef CONFIG_HEART_BEAT
-+void heartbeat(void);
-+#endif
-+
-+void system_timer_init(void);
-+unsigned long do_gettimeoffset(void);
-+void time_init(void);
-+unsigned long long sched_clock(void);
-+
-+void __init setup_memory(void);
-+void __init machine_early_init(const char *cmdline, unsigned int ram,
-+			unsigned int fdt);
-+
-+void machine_restart(char *cmd);
-+void machine_shutdown(void);
-+void machine_halt(void);
-+void machine_power_off(void);
-+
-+#endif /* _ASM_MICROBLAZE_SETUP_H */
-diff --git a/include/asm-microblaze/string.h b/include/asm-microblaze/string.h
-new file mode 100644
-index 0000000..bf2051c
---- /dev/null
-+++ b/include/asm-microblaze/string.h
-@@ -0,0 +1,22 @@
-+/*
-+ * include/asm-microblaze/string.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_STRING_H
-+#define _ASM_MICROBLAZE_STRING_H
-+
-+#define __HAVE_ARCH_MEMSET
-+#define __HAVE_ARCH_MEMCPY
-+#define __HAVE_ARCH_MEMMOVE
-+
-+extern void *memset(void *, int, __kernel_size_t);
-+extern void *memcpy(void *, const void *, __kernel_size_t);
-+extern void *memmove(void *, const void *, __kernel_size_t);
-+
-+#endif /* _ASM_MICROBLAZE_STRING_H */
-diff --git a/include/asm-microblaze/thread_info.h b/include/asm-microblaze/thread_info.h
-new file mode 100644
-index 0000000..8a46c14
---- /dev/null
-+++ b/include/asm-microblaze/thread_info.h
-@@ -0,0 +1,155 @@
-+/*
-+ * include/asm-microblaze/thread_info.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_THREAD_INFO_H
-+#define _ASM_MICROBLAZE_THREAD_INFO_H
++#ifndef _ASM_MICROBLAZE_PARAM_H
++#define _ASM_MICROBLAZE_PARAM_H
 +
 +#ifdef __KERNEL__
++# define HZ		100 /* internal timer frequency */
++# define USER_HZ	100 /* for user interfaces in "ticks" */
++# define CLOCKS_PER_SEC (USER_HZ) /* frequnzy at which times() counts */
++#endif
 +
-+/* we have 8k stack */
-+#define THREAD_SHIFT		13
-+#define THREAD_SIZE		(1 << THREAD_SHIFT)
++#ifndef NGROUPS
++#define NGROUPS		32
++#endif
 +
-+#ifndef __ASSEMBLY__
-+# include <asm/processor.h>
-+# include <asm/segment.h>
++#ifndef NOGROUP
++#define NOGROUP		(-1)
++#endif
 +
++#define EXEC_PAGESIZE	4096
++
++#ifndef HZ
++#define HZ 100
++#endif
++
++#define MAXHOSTNAMELEN	64 /* max length of hostname */
++
++#endif /* _ASM_MICROBLAZE_PARAM_H */
+diff --git a/include/asm-microblaze/topology.h b/include/asm-microblaze/topology.h
+new file mode 100644
+index 0000000..07fa28a
+--- /dev/null
++++ b/include/asm-microblaze/topology.h
+@@ -0,0 +1,119 @@
 +/*
-+ * low level task data that entry.S needs immediate access to
-+ * - this struct should fit entirely inside of one cache line
-+ * - this struct shares the supervisor stack pages
-+ * - if the contents of this structure are changed, the assembly constants
-+ *	 must also be changed
-+ */
-+
-+struct cpu_context {
-+	__u32	sp;
-+	__u32	r2;
-+	/* dedicated registers */
-+	__u32	r13;
-+	__u32	r14;
-+	__u32	r15;
-+	__u32	r16;
-+	__u32	r17;
-+	__u32	r18;
-+	/* non-volatile registers */
-+	__u32	r19;
-+	__u32	r20;
-+	__u32	r21;
-+	__u32	r22;
-+	__u32	r23;
-+	__u32	r24;
-+	__u32	r25;
-+	__u32	r26;
-+	__u32	r27;
-+	__u32	r28;
-+	__u32	r29;
-+	__u32	r30;
-+	/* special purpose registers */
-+	__u32	msr;
-+	__u32	ear;
-+	__u32	esr;
-+	__u32	fsr;
-+};
-+
-+struct thread_info {
-+	struct task_struct	*task; /* main task structure */
-+	struct exec_domain	*exec_domain; /* execution domain */
-+	unsigned long		flags; /* low level flags */
-+	unsigned long		status; /* thread-synchronous flags */
-+	__u32			cpu; /* current CPU */
-+	__s32			preempt_count; /* 0 => preemptable,< 0 => BUG*/
-+	mm_segment_t		addr_limit; /* thread address space */
-+	struct restart_block	restart_block;
-+
-+	struct cpu_context	cpu_context;
-+};
-+
-+/*
-+ * macros/functions for gaining access to the thread information structure
++ * include/asm-microblaze/topology.h
 + *
-+ * preempt_count needs to be 1 initially, until the scheduler is functional.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
 + */
-+#define INIT_THREAD_INFO(tsk)			\
-+{						\
-+	.task		= &tsk,			\
-+	.exec_domain	= &default_exec_domain,	\
-+	.flags		= 0,			\
-+	.cpu		= 0,			\
-+	.preempt_count	= 1,			\
-+	.addr_limit	= KERNEL_DS,		\
-+	.restart_block = {			\
-+		.fn = do_no_restart_syscall,	\
-+	},					\
-+}
 +
-+#define init_thread_info	(init_thread_union.thread_info)
-+#define init_stack		(init_thread_union.stack)
++#ifndef _ASM_MICROBLAZE_TOPOLOGY_H
++#define _ASM_MICROBLAZE_TOPOLOGY_H
++#ifdef __KERNEL__
 +
-+/* how to get the thread information struct from C */
-+static inline struct thread_info *current_thread_info(void)
++struct sys_device;
++struct device_node;
++
++#ifdef CONFIG_NUMA
++
++#include <asm/mmzone.h>
++
++static inline int cpu_to_node(int cpu)
 +{
-+	register unsigned long sp asm("r1");
-+
-+	return (struct thread_info *)(sp & ~(THREAD_SIZE-1));
++	return numa_cpu_lookup_table[cpu];
 +}
 +
-+/* thread information allocation */
-+#define alloc_thread_info(tsk) \
-+		((struct thread_info *) __get_free_pages(GFP_KERNEL, 1))
-+#define free_thread_info(ti) free_pages((unsigned long) (ti), 1)
++#define parent_node(node)	(node)
 +
-+#endif /* __ASSEMBLY__ */
++static inline cpumask_t node_to_cpumask(int node)
++{
++	return numa_cpumask_lookup_table[node];
++}
 +
-+#define PREEMPT_ACTIVE		0x10000000
++static inline int node_to_first_cpu(int node)
++{
++	cpumask_t tmp;
++	tmp = node_to_cpumask(node);
++	return first_cpu(tmp);
++}
 +
-+/*
-+ * thread information flags
-+ * - these are process state flags that various assembly files may
-+ *   need to access
-+ * - pending work-to-be-done flags are in LSW
-+ * - other flags in MSW
-+ */
-+#define TIF_SYSCALL_TRACE	0 /* syscall trace active */
-+#define TIF_NOTIFY_RESUME	1 /* resumption notification requested */
-+#define TIF_SIGPENDING		2 /* signal pending */
-+#define TIF_NEED_RESCHED	3 /* rescheduling necessary */
-+/* restore singlestep on return to user mode */
-+#define TIF_SINGLESTEP		4
-+#define TIF_IRET		5 /* return with iret */
-+#define TIF_MEMDIE		6
-+/* true if poll_idle() is polling TIF_NEED_RESCHED */
-+#define TIF_POLLING_NRFLAG	16
++int of_node_to_nid(struct device_node *device);
 +
-+#define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
-+#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
-+#define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
-+#define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
-+#define _TIF_IRET		(1<<TIF_IRET)
-+#define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
++struct pci_bus;
++#ifdef CONFIG_PCI
++extern int pcibus_to_node(struct pci_bus *bus);
++#else
++static inline int pcibus_to_node(struct pci_bus *bus)
++{
++	return -1;
++}
++#endif
 +
-+/* work to do on interrupt/exception return */
-+#define _TIF_WORK_MASK		0x0000FFFE
-+/* work to do on any return to u-space */
-+#define _TIF_ALLWORK_MASK	0x0000FFFF
++#define pcibus_to_cpumask(bus)	(pcibus_to_node(bus) == -1 ? \
++					CPU_MASK_ALL : \
++					node_to_cpumask(pcibus_to_node(bus)) \
++				)
 +
-+/*
-+ * Thread-synchronous status.
-+ *
-+ * This is different from the flags in that nobody else
-+ * ever touches our thread-synchronous status, so we don't
-+ * have to worry about atomic accesses.
-+ */
-+/* FPU was used by this task this quantum (SMP) */
-+#define TS_USEDFPU		0x0001
++/* sched_domains SD_NODE_INIT for PPC64 machines */
++#define SD_NODE_INIT (struct sched_domain) {		\
++	.span			= CPU_MASK_NONE,	\
++	.parent			= NULL,			\
++	.child			= NULL,			\
++	.groups			= NULL,			\
++	.min_interval		= 8,			\
++	.max_interval		= 32,			\
++	.busy_factor		= 32,			\
++	.imbalance_pct		= 125,			\
++	.cache_nice_tries	= 1,			\
++	.busy_idx		= 3,			\
++	.idle_idx		= 1,			\
++	.newidle_idx		= 2,			\
++	.wake_idx		= 1,			\
++	.flags			= SD_LOAD_BALANCE	\
++				| SD_BALANCE_EXEC	\
++				| SD_BALANCE_NEWIDLE	\
++				| SD_WAKE_IDLE		\
++				| SD_SERIALIZE		\
++				| SD_WAKE_BALANCE,	\
++	.last_balance		= jiffies,		\
++	.balance_interval	= 1,			\
++	.nr_balance_failed	= 0,			\
++}
++
++extern void __init dump_numa_cpu_topology(void);
++
++extern int sysfs_add_device_to_node(struct sys_device *dev, int nid);
++extern void sysfs_remove_device_from_node(struct sys_device *dev, int nid);
++
++#else
++
++static inline int of_node_to_nid(struct device_node *device)
++{
++	return 0;
++}
++
++static inline void dump_numa_cpu_topology(void) {}
++
++static inline int sysfs_add_device_to_node(struct sys_device *dev, int nid)
++{
++	return 0;
++}
++
++static inline void sysfs_remove_device_from_node(struct sys_device *dev,
++						int nid)
++{
++}
++
++#include <asm-generic/topology.h>
++
++#endif /* CONFIG_NUMA */
++
++#ifdef CONFIG_SMP
++#include <asm/cputable.h>
++#define smt_capable()		(cpu_has_feature(CPU_FTR_SMT))
++
++#endif
 +
 +#endif /* __KERNEL__ */
-+#endif /* _ASM_MICROBLAZE_THREAD_INFO_H */
++#endif /* _ASM_MICROBLAZE_TOPOLOGY_H */
 -- 
 1.5.4.GIT
