@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 53/56] microblaze_v2: IPC headers
-Date: Sun,  4 May 2008 13:41:42 +0200
-Message-ID: <a484cc541ae55e099035cccf903f208f39fdeb39.1209897267.git.monstr@monstr.eu>
+Subject: [PATCH 24/56] microblaze_v2: time support
+Date: Sun,  4 May 2008 13:41:13 +0200
+Message-ID: <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -26,41 +26,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
  <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
  <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
- <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
- <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
- <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
- <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
- <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
- <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
- <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
- <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
- <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
- <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
- <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
- <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
- <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
- <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
- <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
- <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
- <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
- <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
- <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
- <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
- <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
- <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>
- <643084ee3819dd169cad3c4e3565c5ff20dd3429.1209897267.git.monstr@monstr.eu>
- <231ae415bf52de25c69f727fd13c50d201f8ecd8.1209897267.git.monstr@monstr.eu>
- <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
- <affa82887bee64b05420fdd5f723cca920acad90.1209897267.git.monstr@monstr.eu>
- <c709de3e3767d1be8b23ce73255389c525737c36.1209897267.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:41913 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:41924 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752035AbYEDPLa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 11:11:30 -0400
-In-Reply-To: <c709de3e3767d1be8b23ce73255389c525737c36.1209897267.git.monstr@monstr.eu>
+	id S1751038AbYEDPQ3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 11:16:29 -0400
+In-Reply-To: <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -73,20 +44,22 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/ipc.h    |   18 ++++++++++++++++++
- include/asm-microblaze/ipcbuf.h |   38 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 56 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/ipc.h
- create mode 100644 include/asm-microblaze/ipcbuf.h
+ arch/microblaze/kernel/time.c  |   90 ++++++++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/delay.h |   33 +++++++++++++++
+ include/asm-microblaze/timex.h |   20 +++++++++
+ 3 files changed, 143 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/time.c
+ create mode 100644 include/asm-microblaze/delay.h
+ create mode 100644 include/asm-microblaze/timex.h
 
-diff --git a/include/asm-microblaze/ipc.h b/include/asm-microblaze/ipc.h
+diff --git a/arch/microblaze/kernel/time.c b/arch/microblaze/kernel/time.c
 new file mode 100644
-index 0000000..cd0fe3a
+index 0000000..d5ebdff
 --- /dev/null
-+++ b/include/asm-microblaze/ipc.h
-@@ -0,0 +1,18 @@
++++ b/arch/microblaze/kernel/time.c
+@@ -0,0 +1,90 @@
 +/*
-+ * include/asm-microblaze/ipc.h
++ * arch/microblaze/kernel/time.c
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -95,22 +68,94 @@ index 0000000..cd0fe3a
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_IPC_H
-+#define _ASM_MICROBLAZE_IPC_H
++#include <linux/module.h>
++#include <linux/kernel.h>
++#include <linux/param.h>
++#include <linux/jiffies.h>
++#include <linux/time.h>
++#include <linux/hrtimer.h>
++#include <asm/bug.h>
++#include <asm/setup.h>
 +
-+#include <asm-generic/ipc.h>
++void time_init(void)
++{
++	system_timer_init();
++}
 +
-+#endif /* _ASM_MICROBLAZE_IPC_H */
++int do_settimeofday(struct timespec *tv)
++{
++	if ((unsigned long)tv->tv_nsec >= NSEC_PER_SEC)
++		return -EINVAL;
 +
++	write_seqlock_irq(&xtime_lock);
 +
-diff --git a/include/asm-microblaze/ipcbuf.h b/include/asm-microblaze/ipcbuf.h
-new file mode 100644
-index 0000000..4aadc52
---- /dev/null
-+++ b/include/asm-microblaze/ipcbuf.h
-@@ -0,0 +1,38 @@
++	/* This is revolting. We need to set the xtime.tv_nsec
++	 * correctly. However, the value in this location is
++	 * is value at the last tick.
++	 * Discover what correction gettimeofday
++	 * would have done, and then undo it!
++	 */
++#if 0
++	tv->tv_nsec -= mach_gettimeoffset() * 1000;
++#endif
++
++	while (tv->tv_nsec < 0) {
++		tv->tv_nsec += NSEC_PER_SEC;
++		tv->tv_sec--;
++	}
++
++	xtime.tv_sec = tv->tv_sec;
++	xtime.tv_nsec = tv->tv_nsec;
++
++	time_adjust = 0;
++	time_status |= STA_UNSYNC;
++	time_maxerror = NTP_PHASE_LIMIT;
++	time_esterror = NTP_PHASE_LIMIT;
++
++	write_sequnlock_irq(&xtime_lock);
++	clock_was_set();
++	return 0;
++}
++EXPORT_SYMBOL(do_settimeofday);
++
 +/*
-+ * include/asm-microblaze/ipcbuf.h
++ * This version of gettimeofday has near microsecond resolution.
++ */
++void do_gettimeofday(struct timeval *tv)
++{
++	unsigned long seq;
++	unsigned long usec, sec;
++	/* unsigned long max_ntp_tick = tick_usec - tickadj; */
++
++	do {
++		seq = read_seqbegin(&xtime_lock);
++		usec = do_gettimeoffset();
++		sec = xtime.tv_sec;
++		usec += (xtime.tv_nsec / 1000);
++	} while (read_seqretry(&xtime_lock, seq));
++
++	while (usec >= 1000000) {
++		usec -= 1000000;
++		sec++;
++	}
++
++	tv->tv_sec = sec;
++	tv->tv_usec = usec;
++}
++EXPORT_SYMBOL(do_gettimeofday);
++
++unsigned long long sched_clock(void)
++{
++	return (unsigned long long)jiffies * (1000000000 / HZ);
++}
+diff --git a/include/asm-microblaze/delay.h b/include/asm-microblaze/delay.h
+new file mode 100644
+index 0000000..481359c
+--- /dev/null
++++ b/include/asm-microblaze/delay.h
+@@ -0,0 +1,33 @@
++/*
++ * include/asm-microblaze/delay.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -119,33 +164,54 @@ index 0000000..4aadc52
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_IPCBUF_H
-+#define _ASM_MICROBLAZE_IPCBUF_H
++#ifndef _ASM_MICROBLAZE_DELAY_H
++#define _ASM_MICROBLAZE_DELAY_H
 +
++#include <asm/param.h>
++
++static inline void __delay(unsigned long loops)
++{
++	asm volatile ("# __delay		\n\t"		\
++			"1: addi	%0, %0, -1 \t\n"	\
++			"bneid	%0, 1b		\t\n"		\
++			"nop			\t\n"
++			: "=r" (loops)
++			: "0" (loops));
++}
++
++static inline void udelay(unsigned long usec)
++{
++	unsigned long long tmp = usec;
++	unsigned long loops = (tmp * 4295 * HZ * loops_per_jiffy) >> 32;
++	__delay(loops);
++}
++
++#endif /* _ASM_MICROBLAZE_DELAY_H */
+diff --git a/include/asm-microblaze/timex.h b/include/asm-microblaze/timex.h
+new file mode 100644
+index 0000000..b3e77ef
+--- /dev/null
++++ b/include/asm-microblaze/timex.h
+@@ -0,0 +1,20 @@
 +/*
-+ * The user_ipc_perm structure for m68k architecture.
-+ * Note extra padding because this structure is passed back and forth
-+ * between kernel and user space.
++ * include/asm-microblaze/timex.h
 + *
-+ * Pad space is left for:
-+ * - 32-bit mode_t and seq
-+ * - 2 miscellaneous 32-bit values
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+struct ipc64_perm {
-+	__kernel_key_t		key;
-+	__kernel_uid32_t	uid;
-+	__kernel_gid32_t	gid;
-+	__kernel_uid32_t	cuid;
-+	__kernel_gid32_t	cgid;
-+	__kernel_mode_t		mode;
-+	unsigned short		__pad1;
-+	unsigned short		seq;
-+	unsigned short		__pad2;
-+	unsigned long		__unused1;
-+	unsigned long		__unused2;
-+};
++#ifndef _ASM_MICROBLAZE_TIMEX_H
++#define _ASM_MICROBLAZE_TIMEX_H
 +
-+#endif /* _ASM_MICROBLAZE_IPCBUF_H */
++#define CLOCK_TICK_RATE 1000 /* Timer input freq. */
++
++typedef unsigned long cycles_t;
++
++#define get_cycles()	(0)
++
++#endif /* _ASM_TIMEX_H */
 -- 
 1.5.4.GIT
