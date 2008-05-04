@@ -1,51 +1,43 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 1/2] OF: clean coding style - prom_parse.c
-Date: Sun, 04 May 2008 10:17:34 +0200
-Message-ID: <481D711E.6000003@seznam.cz>
-References: <monstr@seznam.cz>	 <1209827626-8562-1-git-send-email-monstr@seznam.cz>	 <c382f7ff87d1502c20423742ad738e50a118cf62.1209827449.git.monstr@monstr.eu> <1209835583.16966.10.camel@localhost>
+Subject: Re: [PATCH 1/2] OF: Fix coding style violation in of_device.c and
+ of_platform.c
+Date: Sun, 04 May 2008 10:20:35 +0200
+Message-ID: <481D71D3.7060703@seznam.cz>
+References: <monstr@seznam.cz> <1209824532-7939-1-git-send-email-monstr@seznam.cz> <765c6c8053679c45eb370255a110f7bc680a8f25.1209824033.git.monstr@monstr.eu> <200805032304.58709.arnd@arndb.de>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-2
+Content-Type: text/plain; charset=ISO-8859-15
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:51100 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:56421 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752515AbYEDIQg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 04:16:36 -0400
-In-Reply-To: <1209835583.16966.10.camel@localhost>
+	with ESMTP id S1752477AbYEDITS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 04:19:18 -0400
+In-Reply-To: <200805032304.58709.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: monstr@seznam.cz, paulus@samba.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: paulus@samba.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi All,
+Hi Arnd,
 
-I fixed only part of coding style violation. Not all of them.
-
-But you are right KERN_<level> is necessary.
-
-For me is especially important to move these files from arch/powerpc to drivers/of.
+this is question to powerpc guys not to me. I haven't tried to compiled but I
+think dcr.h is important header for powerpc.
+I only fixed problem for Microblaze because we don't have these headers.
 
 M
 
->>  /* Debug utility */
->>  #ifdef DEBUG
->>  static void of_dump_addr(const char *s, const u32 *addr, int na)
->>  {
->> -	printk("%s", s);
->> -	while(na--)
->> -		printk(" %08x", *(addr++));
->> -	printk("\n");
->> +	printk(KERN_INFO "%s", s);
->> +	while (na--)
->> +		printk(KERN_INFO " %08x", *(addr++));
->> +	printk(KERN_INFO "\n");
->>  }
+>>  
+>>  #include <asm/errno.h>
+>> +
+>> +#ifdef CONFIG_PPC_PSERIES
+>>  #include <asm/dcr.h>
+>> +#endif
+>>  
 > 
-> You've prefixed KERN_INFO before every address block.
+> The patch looks basically good, but we normally try to not have an #include
+> inside of #ifdef. If the file builds without this #include, maybe you should
+> better leave it out entirely? Same for the ppc-pci.h in the other file.
 > 
-> How about:
-> 
-> print_hex_dump(KERN_<level>, s, DUMP_PREFIX_NONE, 4, addr, na, false);
-> 
+> 	Arnd <><
 > 
