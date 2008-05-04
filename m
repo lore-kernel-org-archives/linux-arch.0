@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 51/56] microblaze_v2: Kbuild file
-Date: Sun,  4 May 2008 13:41:40 +0200
-Message-ID: <affa82887bee64b05420fdd5f723cca920acad90.1209897267.git.monstr@monstr.eu>
+Subject: [PATCH 44/56] microblaze_v2: sigcontext.h siginfo.h
+Date: Sun,  4 May 2008 13:41:33 +0200
+Message-ID: <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -46,19 +46,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
  <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
  <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
- <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
- <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
- <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
- <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>
- <643084ee3819dd169cad3c4e3565c5ff20dd3429.1209897267.git.monstr@monstr.eu>
- <231ae415bf52de25c69f727fd13c50d201f8ecd8.1209897267.git.monstr@monstr.eu>
- <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:46655 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:43070 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751847AbYEDOMV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 10:12:21 -0400
-In-Reply-To: <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
+	id S1756577AbYEDOQT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 10:16:19 -0400
+In-Reply-To: <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -71,39 +64,61 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/Kbuild |   24 ++++++++++++++++++++++++
- 1 files changed, 24 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/Kbuild
+ include/asm-microblaze/sigcontext.h |   21 +++++++++++++++++++++
+ include/asm-microblaze/siginfo.h    |   17 +++++++++++++++++
+ 2 files changed, 38 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/sigcontext.h
+ create mode 100644 include/asm-microblaze/siginfo.h
 
-diff --git a/include/asm-microblaze/Kbuild b/include/asm-microblaze/Kbuild
+diff --git a/include/asm-microblaze/sigcontext.h b/include/asm-microblaze/sigcontext.h
 new file mode 100644
-index 0000000..783296d
+index 0000000..b35dd88
 --- /dev/null
-+++ b/include/asm-microblaze/Kbuild
-@@ -0,0 +1,24 @@
-+include include/asm-generic/Kbuild.asm
++++ b/include/asm-microblaze/sigcontext.h
+@@ -0,0 +1,21 @@
++/*
++ * include/asm-microblaze/sigcontext.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
 +
-+header-y += auxvec.h
-+header-y += cpuinfo.h
-+header-y += errno.h
-+header-y += fcntl.h
-+header-y += ioctl.h
-+header-y += ioctls.h
-+header-y += ipcbuf.h
-+header-y += linkage.h
-+header-y += mman.h
-+header-y += msgbuf.h
-+header-y += poll.h
-+header-y += resource.h
-+header-y += sembuf.h
-+header-y += shmbuf.h
-+header-y += sigcontext.h
-+header-y += siginfo.h
-+header-y += socket.h
-+header-y += sockios.h
-+header-y += statfs.h
-+header-y += stat.h
-+header-y += termbits.h
-+header-y += ucontext.h
++#ifndef _ASM_MICROBLAZE_SIGCONTEXT_H
++#define _ASM_MICROBLAZE_SIGCONTEXT_H
++
++#include <asm/ptrace.h>
++
++struct sigcontext {
++	struct pt_regs regs;
++	unsigned long oldmask;
++};
++
++#endif /* _ASM_MICROBLAZE_SIGCONTEXT_H */
+diff --git a/include/asm-microblaze/siginfo.h b/include/asm-microblaze/siginfo.h
+new file mode 100644
+index 0000000..ef15636
+--- /dev/null
++++ b/include/asm-microblaze/siginfo.h
+@@ -0,0 +1,17 @@
++/*
++ * include/asm-microblaze/siginfo.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#ifndef _ASM_MICROBLAZE_SIGINFO_H
++#define _ASM_MICROBLAZE_SIGINFO_H
++
++#include <linux/types.h>
++#include <asm-generic/siginfo.h>
++
++#endif /* _ASM_MICROBLAZE_SIGINFO_H */
 -- 
 1.5.4.GIT
