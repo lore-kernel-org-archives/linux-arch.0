@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 38/56] microblaze_v2: atomic.h bitops.h byteorder.h
-Date: Sun,  4 May 2008 13:41:27 +0200
-Message-ID: <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 17/56] microblaze_v2: checksum support
+Date: Sun,  4 May 2008 13:41:06 +0200
+Message-ID: <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -19,33 +19,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
  <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
  <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
- <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
- <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
- <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
- <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
- <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
- <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
- <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
- <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
- <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
- <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
- <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
- <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
- <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
- <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
- <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
- <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
- <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
- <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
- <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:59084 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:52743 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753506AbYEDQWX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 12:22:23 -0400
-In-Reply-To: <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
+	id S1752140AbYEDQhZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 12:37:25 -0400
+In-Reply-To: <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -58,22 +37,192 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/atomic.h    |  108 ++++++++++++++++++++++++++++++++++++
- include/asm-microblaze/bitops.h    |   29 ++++++++++
- include/asm-microblaze/byteorder.h |   23 ++++++++
- 3 files changed, 160 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/atomic.h
- create mode 100644 include/asm-microblaze/bitops.h
- create mode 100644 include/asm-microblaze/byteorder.h
+ arch/microblaze/lib/checksum.c    |  166 +++++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/checksum.h |  101 ++++++++++++++++++++++
+ 2 files changed, 267 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/lib/checksum.c
+ create mode 100644 include/asm-microblaze/checksum.h
 
-diff --git a/include/asm-microblaze/atomic.h b/include/asm-microblaze/atomic.h
+diff --git a/arch/microblaze/lib/checksum.c b/arch/microblaze/lib/checksum.c
 new file mode 100644
-index 0000000..d0afdc5
+index 0000000..1f4646f
 --- /dev/null
-+++ b/include/asm-microblaze/atomic.h
-@@ -0,0 +1,108 @@
++++ b/arch/microblaze/lib/checksum.c
+@@ -0,0 +1,166 @@
 +/*
-+ * include/asm-microblaze/atomic.h
++ * arch/microblaze/lib/checksum.c
++ *
++ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
++ *
++ * INET		An implementation of the TCP/IP protocol suite for the LINUX
++ *		operating system.  INET is implemented using the  BSD Socket
++ *		interface as the means of communication with the user level.
++ *
++ *		IP/TCP/UDP checksumming routines
++ *
++ * Authors:	Jorge Cwik, <jorge@laser.satlink.net>
++ *		Arnt Gulbrandsen, <agulbra@nvg.unit.no>
++ *		Tom May, <ftom@netcom.com>
++ *		Andreas Schwab, <schwab@issan.informatik.uni-dortmund.de>
++ *		Lots of code moved from tcp.c and ip.c; see those files
++ *		for more names.
++ *
++ * 03/02/96	Jes Sorensen, Andreas Schwab, Roman Hodek:
++ *		Fixed some nasty bugs, causing some horrible crashes.
++ *		A: At some points, the sum (%0) was used as
++ *		length-counter instead of the length counter
++ *		(%1). Thanks to Roman Hodek for pointing this out.
++ *		B: GCC seems to mess up if one uses too many
++ *		data-registers to hold input values and one tries to
++ *		specify d0 and d1 as scratch registers. Letting gcc choose these
++ *      registers itself solves the problem.
++ *
++ *		This program is free software; you can redistribute it and/or
++ *		modify it under the terms of the GNU General Public License
++ *		as published by the Free Software Foundation; either version
++ *		2 of the License, or (at your option) any later version.
++ */
++
++/* Revised by Kenneth Albanowski for m68knommu. Basic problem: unaligned access
++ kills, so most of the assembly has to go. */
++
++#include <net/checksum.h>
++#include <asm/checksum.h>
++#include <linux/module.h>
++
++static inline unsigned short from32to16(unsigned long x)
++{
++	/* add up 16-bit and 16-bit for 16+c bit */
++	x = (x & 0xffff) + (x >> 16);
++	/* add up carry.. */
++	x = (x & 0xffff) + (x >> 16);
++	return x;
++}
++
++static unsigned long do_csum(const unsigned char *buff, int len)
++{
++	int odd, count;
++	unsigned long result = 0;
++
++	if (len <= 0)
++		goto out;
++	odd = 1 & (unsigned long) buff;
++	if (odd) {
++		result = *buff;
++		len--;
++		buff++;
++	}
++	count = len >> 1;		/* nr of 16-bit words.. */
++	if (count) {
++		if (2 & (unsigned long) buff) {
++			result += *(unsigned short *) buff;
++			count--;
++			len -= 2;
++			buff += 2;
++		}
++		count >>= 1;		/* nr of 32-bit words.. */
++		if (count) {
++			unsigned long carry = 0;
++			do {
++				unsigned long w = *(unsigned long *) buff;
++				count--;
++				buff += 4;
++				result += carry;
++				result += w;
++				carry = (w > result);
++			} while (count);
++			result += carry;
++			result = (result & 0xffff) + (result >> 16);
++		}
++		if (len & 2) {
++			result += *(unsigned short *) buff;
++			buff += 2;
++		}
++	}
++	if (len & 1)
++		result += (*buff << 8);
++	result = from32to16(result);
++	if (odd)
++		result = ((result >> 8) & 0xff) | ((result & 0xff) << 8);
++out:
++	return result;
++}
++
++/*
++ *	This is a version of ip_compute_csum() optimized for IP headers,
++ *	which always checksum on 4 octet boundaries.
++ */
++unsigned short ip_fast_csum(unsigned char *iph, unsigned int ihl)
++{
++	return ~do_csum(iph, ihl*4);
++}
++
++/*
++ * computes the checksum of a memory block at buff, length len,
++ * and adds in "sum" (32-bit)
++ *
++ * returns a 32-bit number suitable for feeding into itself
++ * or csum_tcpudp_magic
++ *
++ * this function must be called with even lengths, except
++ * for the last fragment, which may be odd
++ *
++ * it's best to have buff aligned on a 32-bit boundary
++ */
++unsigned int csum_partial(const unsigned char *buff, int len, unsigned int sum)
++{
++	unsigned int result = do_csum(buff, len);
++
++	/* add in old sum, and carry.. */
++	result += sum;
++	if (sum > result)
++		result += 1;
++	return result;
++}
++EXPORT_SYMBOL(csum_partial);
++
++/*
++ * this routine is used for miscellaneous IP-like checksums, mainly
++ * in icmp.c
++ */
++unsigned short ip_compute_csum(const unsigned char *buff, int len)
++{
++	return ~do_csum(buff, len);
++}
++EXPORT_SYMBOL(ip_compute_csum);
++
++/*
++ * copy from fs while checksumming, otherwise like csum_partial
++ */
++unsigned int
++csum_partial_copy_from_user(const char __user *src, char *dst, int len,
++						int sum, int *csum_err)
++{
++	if (csum_err)
++		*csum_err = 0;
++	memcpy(dst, src, len);
++	return csum_partial(dst, len, sum);
++}
++EXPORT_SYMBOL(csum_partial_copy_from_user);
++
++/*
++ * copy from ds while checksumming, otherwise like csum_partial
++ */
++unsigned int
++csum_partial_copy(const char *src, char *dst, int len, int sum)
++{
++	memcpy(dst, src, len);
++	return csum_partial(dst, len, sum);
++}
++EXPORT_SYMBOL(csum_partial_copy);
+diff --git a/include/asm-microblaze/checksum.h b/include/asm-microblaze/checksum.h
+new file mode 100644
+index 0000000..fc05cca
+--- /dev/null
++++ b/include/asm-microblaze/checksum.h
+@@ -0,0 +1,101 @@
++/*
++ * include/asm-microblaze/checksum.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -82,167 +231,96 @@ index 0000000..d0afdc5
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_ATOMIC_H
-+#define _ASM_MICROBLAZE_ATOMIC_H
++#ifndef _ASM_MICROBLAZE_CHECKSUM_H
++#define _ASM_MICROBLAZE_CHECKSUM_H
 +
-+#include <linux/compiler.h> /* likely */
-+#include <asm/system.h> /* local_irq_XXX and friends */
-+
-+typedef struct { volatile int counter; } atomic_t;
-+
-+#define ATOMIC_INIT(i)		{ (i) }
-+#define atomic_read(v)		((v)->counter)
-+#define atomic_set(v, i)	(((v)->counter) = (i))
-+
-+#define atomic_inc(v)		(atomic_add_return(1, (v)))
-+#define atomic_dec(v)		(atomic_sub_return(1, (v)))
-+
-+#define atomic_add(i, v)	(atomic_add_return(i, (v)))
-+#define atomic_sub(i, v)	(atomic_sub_return(i, (v)))
-+
-+#define atomic_inc_return(v)	(atomic_add_return(1, (v)))
-+#define atomic_dec_return(v)	(atomic_sub_return(1, (v)))
-+
-+#define atomic_inc_and_test(v)	(atomic_add_return(1, (v)) == 0)
-+#define atomic_dec_and_test(v)	(atomic_sub_return(1, (v)) == 0)
-+
-+#define atomic_inc_not_zero(v)	(atomic_add_unless((v), 1, 0))
-+
-+#define atomic_sub_and_test(i, v) (atomic_sub_return((i), (v)) == 0)
-+
-+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
-+{
-+	int ret;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	ret = v->counter;
-+	if (likely(ret == old))
-+		v->counter = new;
-+	local_irq_restore(flags);
-+
-+	return ret;
-+}
-+
-+static inline int atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	int c, old;
-+
-+	c = atomic_read(v);
-+	while (c != u && (old = atomic_cmpxchg((v), c, c + a)) != c)
-+		c = old;
-+	return c != u;
-+}
-+
-+static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
-+{
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	*addr &= ~mask;
-+	local_irq_restore(flags);
-+}
-+
-+/**
-+ * atomic_add_return - add and return
-+ * @i: integer value to add
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically adds @i to @v and returns @i + @v
-+ */
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+	int val;
-+
-+	local_irq_save(flags);
-+	val = v->counter;
-+	v->counter = val += i;
-+	local_irq_restore(flags);
-+
-+	return val;
-+}
-+
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	return atomic_add_return(-i, v);
-+}
-+
-+#define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
-+#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-+
-+/* Atomic operations are already serializing */
-+#define smp_mb__before_atomic_dec()	barrier()
-+#define smp_mb__after_atomic_dec()	barrier()
-+#define smp_mb__before_atomic_inc()	barrier()
-+#define smp_mb__after_atomic_inc()	barrier()
-+
-+#include <asm-generic/atomic.h>
-+
-+#endif /* _ASM_MICROBLAZE_ATOMIC_H */
-diff --git a/include/asm-microblaze/bitops.h b/include/asm-microblaze/bitops.h
-new file mode 100644
-index 0000000..6665561
---- /dev/null
-+++ b/include/asm-microblaze/bitops.h
-@@ -0,0 +1,29 @@
-+/*
-+ * include/asm-microblaze/bitops.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_BITOPS_H
-+#define _ASM_MICROBLAZE_BITOPS_H
++#include <linux/in6.h>
 +
 +/*
-+ * Copyright 1992, Linus Torvalds.
++ * computes the checksum of a memory block at buff, length len,
++ * and adds in "sum" (32-bit)
++ *
++ * returns a 32-bit number suitable for feeding into itself
++ * or csum_tcpudp_magic
++ *
++ * this function must be called with even lengths, except
++ * for the last fragment, which may be odd
++ *
++ * it's best to have buff aligned on a 32-bit boundary
 + */
-+
-+#include <linux/autoconf.h>
-+#include <asm/byteorder.h> /* swab32 */
-+#include <asm/system.h> /* save_flags */
++unsigned int csum_partial(const unsigned char *buff, int len,
++						unsigned int sum);
 +
 +/*
-+ * clear_bit() doesn't provide any barrier for the compiler.
++ * the same as csum_partial, but copies from src while it
++ * checksums
++ *
++ * here even more important to align src and dst on a 32-bit (or even
++ * better 64-bit) boundary
 + */
-+#define smp_mb__before_clear_bit()	barrier()
-+#define smp_mb__after_clear_bit()	barrier()
-+#include <asm-generic/bitops.h>
++unsigned int csum_partial_copy(const char *src, char *dst, int len, int sum);
 +
-+#endif /* _ASM_MICROBLAZE_BITOPS_H */
-diff --git a/include/asm-microblaze/byteorder.h b/include/asm-microblaze/byteorder.h
-new file mode 100644
-index 0000000..83ce88a
---- /dev/null
-+++ b/include/asm-microblaze/byteorder.h
-@@ -0,0 +1,23 @@
 +/*
-+ * include/asm-microblaze/byteorder.h
++ * the same as csum_partial_copy, but copies from user space.
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
++ * here even more important to align src and dst on a 32-bit (or even
++ * better 64-bit) boundary
 + */
++extern unsigned int csum_partial_copy_from_user(const char *src, char *dst,
++					int len, int sum, int *csum_err);
 +
-+#ifndef _ASM_MICROBLAZE_BYTEORDER_H
-+#define _ASM_MICROBLAZE_BYTEORDER_H
++#define csum_partial_copy_nocheck(src, dst, len, sum)	\
++	csum_partial_copy((src), (dst), (len), (sum))
 +
-+#include <asm/types.h>
++/*
++ *	This is a version of ip_compute_csum() optimized for IP headers,
++ *	which always checksum on 4 octet boundaries.
++ *
++ */
++extern unsigned short ip_fast_csum(unsigned char *iph, unsigned int ihl);
 +
-+#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-+#define __BYTEORDER_HAS_U64__
-+#define __SWAB_64_THRU_32__
-+#endif
++/*
++ *	Fold a partial checksum
++ */
++static inline unsigned int csum_fold(unsigned int sum)
++{
++	sum = (sum & 0xffff) + (sum >> 16);
++	sum = (sum & 0xffff) + (sum >> 16);
++	return ~sum;
++}
 +
-+#include <linux/byteorder/big_endian.h>
++/*
++ * computes the checksum of the TCP/UDP pseudo-header
++ * returns a 16-bit checksum, already complemented
++ */
++static inline unsigned int
++csum_tcpudp_nofold(unsigned long saddr, unsigned long daddr, unsigned short len,
++		unsigned short proto, unsigned int sum)
++{
++	__asm__("add %0, %4, %1\n\t"
++		"addc %0, %4, %2\n\t"
++		"addc %0, %4, %3\n\t"
++		"addc %0, %4, r0\n\t"
++		: "=d" (sum)
++		: "d" (saddr), "d" (daddr), "d" (len + proto),
++		"0"(sum));
 +
-+#endif /* _ASM_MICROBLAZE_BYTEORDER_H */
++	return sum;
++}
++
++static inline unsigned short int
++csum_tcpudp_magic(unsigned long saddr, unsigned long daddr, unsigned short len,
++		unsigned short proto, unsigned int sum)
++{
++	return csum_fold(csum_tcpudp_nofold(saddr, daddr, len, proto, sum));
++}
++
++/*
++ * this routine is used for miscellaneous IP-like checksums, mainly
++ * in icmp.c
++ */
++extern unsigned short ip_compute_csum(const unsigned char *buff, int len);
++
++#endif /* _ASM_MICROBLAZE_CHECKSUM_H */
 -- 
 1.5.4.GIT
