@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 45/56] microblaze_v2: headers simple files - empty or redirect to asm-generic
-Date: Sun,  4 May 2008 13:41:34 +0200
-Message-ID: <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
+Subject: [PATCH 14/56] microblaze_v2: defconfig file
+Date: Sun,  4 May 2008 13:41:03 +0200
+Message-ID: <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -16,43 +16,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
  <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
  <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
- <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
- <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
- <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
- <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
- <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
- <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
- <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
- <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
- <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
- <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
- <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
- <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
- <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
- <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
- <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
- <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
- <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
- <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
- <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
- <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
- <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
- <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
- <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
- <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
- <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
- <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
- <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
- <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
- <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:48963 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:52240 "EHLO
 	monstr.eu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751260AbYEEITm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 04:19:42 -0400
-In-Reply-To: <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
+	id S1754368AbYEEI0f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 04:26:35 -0400
+In-Reply-To: <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -65,330 +34,619 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/auxvec.h            |   14 ++++++++++++++
- include/asm-microblaze/cputime.h           |   16 ++++++++++++++++
- include/asm-microblaze/div64.h             |   16 ++++++++++++++++
- include/asm-microblaze/emergency-restart.h |   16 ++++++++++++++++
- include/asm-microblaze/errno.h             |   16 ++++++++++++++++
- include/asm-microblaze/futex.h             |   16 ++++++++++++++++
- include/asm-microblaze/kdebug.h            |   19 +++++++++++++++++++
- include/asm-microblaze/local.h             |   16 ++++++++++++++++
- include/asm-microblaze/mutex.h             |   16 ++++++++++++++++
- include/asm-microblaze/namei.h             |   24 ++++++++++++++++++++++++
- include/asm-microblaze/percpu.h            |   16 ++++++++++++++++
- include/asm-microblaze/resource.h          |   16 ++++++++++++++++
- include/asm-microblaze/user.h              |   18 ++++++++++++++++++
- 13 files changed, 219 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/auxvec.h
- create mode 100644 include/asm-microblaze/cputime.h
- create mode 100644 include/asm-microblaze/div64.h
- create mode 100644 include/asm-microblaze/emergency-restart.h
- create mode 100644 include/asm-microblaze/errno.h
- create mode 100644 include/asm-microblaze/futex.h
- create mode 100644 include/asm-microblaze/kdebug.h
- create mode 100644 include/asm-microblaze/local.h
- create mode 100644 include/asm-microblaze/mutex.h
- create mode 100644 include/asm-microblaze/namei.h
- create mode 100644 include/asm-microblaze/percpu.h
- create mode 100644 include/asm-microblaze/resource.h
- create mode 100644 include/asm-microblaze/user.h
+ arch/microblaze/defconfig |  604 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 604 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/defconfig
 
-diff --git a/include/asm-microblaze/auxvec.h b/include/asm-microblaze/auxvec.h
+diff --git a/arch/microblaze/defconfig b/arch/microblaze/defconfig
 new file mode 100644
-index 0000000..73c0fb0
+index 0000000..5092d19
 --- /dev/null
-+++ b/include/asm-microblaze/auxvec.h
-@@ -0,0 +1,14 @@
-+/*
-+ * include/asm-microblaze/auxvec.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++++ b/arch/microblaze/defconfig
+@@ -0,0 +1,604 @@
++#
++# Automatically generated make config: don't edit
++# Linux kernel version: 2.6.25
++# Wed Apr 23 20:28:29 2008
++#
++CONFIG_MICROBLAZE=y
++# CONFIG_MMU is not set
++# CONFIG_SWAP is not set
++CONFIG_RWSEM_GENERIC_SPINLOCK=y
++# CONFIG_ARCH_HAS_ILOG2_U32 is not set
++# CONFIG_ARCH_HAS_ILOG2_U64 is not set
++CONFIG_GENERIC_FIND_NEXT_BIT=y
++CONFIG_GENERIC_HWEIGHT=y
++CONFIG_GENERIC_HARDIRQS=y
++CONFIG_GENERIC_IRQ_PROBE=y
++CONFIG_GENERIC_CALIBRATE_DELAY=y
++# CONFIG_PCI is not set
++CONFIG_UID16=y
++CONFIG_HZ=100
++CONFIG_DEFCONFIG_LIST="arch/$ARCH/defconfig"
 +
-+#ifndef _ASM_MICROBLAZE_AUXVEC_H
-+#define _ASM_MICROBLAZE_AUXVEC_H
++#
++# General setup
++#
++# CONFIG_EXPERIMENTAL is not set
++CONFIG_BROKEN_ON_SMP=y
++CONFIG_INIT_ENV_ARG_LIMIT=32
++CONFIG_LOCALVERSION=""
++# CONFIG_LOCALVERSION_AUTO is not set
++# CONFIG_SYSVIPC is not set
++# CONFIG_BSD_PROCESS_ACCT is not set
++# CONFIG_TASKSTATS is not set
++# CONFIG_AUDIT is not set
++# CONFIG_IKCONFIG is not set
++CONFIG_LOG_BUF_SHIFT=14
++# CONFIG_CGROUPS is not set
++# CONFIG_GROUP_SCHED is not set
++CONFIG_SYSFS_DEPRECATED=y
++CONFIG_SYSFS_DEPRECATED_V2=y
++# CONFIG_RELAY is not set
++# CONFIG_NAMESPACES is not set
++# CONFIG_BLK_DEV_INITRD is not set
++CONFIG_SYSCTL=y
++CONFIG_EMBEDDED=y
++CONFIG_SYSCTL_SYSCALL=y
++# CONFIG_KALLSYMS is not set
++# CONFIG_HOTPLUG is not set
++CONFIG_PRINTK=y
++# CONFIG_BUG is not set
++CONFIG_ELF_CORE=y
++CONFIG_COMPAT_BRK=y
++# CONFIG_BASE_FULL is not set
++# CONFIG_FUTEX is not set
++CONFIG_ANON_INODES=y
++# CONFIG_EPOLL is not set
++CONFIG_SIGNALFD=y
++# CONFIG_TIMERFD is not set
++CONFIG_EVENTFD=y
++CONFIG_VM_EVENT_COUNTERS=y
++CONFIG_SLAB=y
++# CONFIG_SLUB is not set
++# CONFIG_SLOB is not set
++# CONFIG_PROFILING is not set
++# CONFIG_MARKERS is not set
++# CONFIG_HAVE_OPROFILE is not set
++# CONFIG_HAVE_KPROBES is not set
++# CONFIG_HAVE_KRETPROBES is not set
++CONFIG_SLABINFO=y
++CONFIG_TINY_SHMEM=y
++CONFIG_BASE_SMALL=1
++CONFIG_MODULES=y
++CONFIG_MODULE_UNLOAD=y
++# CONFIG_MODVERSIONS is not set
++# CONFIG_MODULE_SRCVERSION_ALL is not set
++# CONFIG_KMOD is not set
++CONFIG_BLOCK=y
++# CONFIG_LBD is not set
++# CONFIG_BLK_DEV_IO_TRACE is not set
++# CONFIG_LSF is not set
 +
-+#endif /* _ASM_MICROBLAZE_AUXVEC_H */
-diff --git a/include/asm-microblaze/cputime.h b/include/asm-microblaze/cputime.h
-new file mode 100644
-index 0000000..e0e4d65
---- /dev/null
-+++ b/include/asm-microblaze/cputime.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/cputime.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#
++# IO Schedulers
++#
++CONFIG_IOSCHED_NOOP=y
++CONFIG_IOSCHED_AS=y
++CONFIG_IOSCHED_DEADLINE=y
++CONFIG_IOSCHED_CFQ=y
++# CONFIG_DEFAULT_AS is not set
++# CONFIG_DEFAULT_DEADLINE is not set
++CONFIG_DEFAULT_CFQ=y
++# CONFIG_DEFAULT_NOOP is not set
++CONFIG_DEFAULT_IOSCHED="cfq"
++CONFIG_CLASSIC_RCU=y
 +
-+#ifndef _ASM_MICROBLAZE_CPUTIME_H
-+#define _ASM_MICROBLAZE_CPUTIME_H
++#
++# Platform options
++#
++CONFIG_PLATFORM_GENERIC=y
++CONFIG_HACK=y
++CONFIG_OPT_LIB_FUNCTION=y
++CONFIG_ALLOW_EDIT_AUTO=y
 +
-+#include <asm-generic/cputime.h>
++#
++# Automatic platform settings from Kconfig.auto
++#
 +
-+#endif /* _ASM_MICROBLAZE_CPUTIME_H */
-diff --git a/include/asm-microblaze/div64.h b/include/asm-microblaze/div64.h
-new file mode 100644
-index 0000000..5c8a45c
---- /dev/null
-+++ b/include/asm-microblaze/div64.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/div64.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#
++# Definitions for MICROBLAZE0
++#
++CONFIG_KERNEL_BASE_ADDR=0x20000000
++CONFIG_XILINX_MICROBLAZE0_FAMILY="spartan3e"
++CONFIG_XILINX_MICROBLAZE0_USE_MSR_INSTR=1
++CONFIG_XILINX_MICROBLAZE0_USE_BARREL=1
++CONFIG_XILINX_MICROBLAZE0_USE_DIV=1
++CONFIG_XILINX_MICROBLAZE0_USE_HW_MULT=2
++CONFIG_XILINX_MICROBLAZE0_USE_FPU=0
++CONFIG_XILINX_MICROBLAZE0_HW_VER="7.00.b"
 +
-+#ifndef _ASM_MICROBLAZE_DIV64_H
-+#define _ASM_MICROBLAZE_DIV64_H
++#
++# Processor type and features
++#
++# CONFIG_PREEMPT is not set
++# CONFIG_XILINX_UNCACHED_SHADOW is not set
++# CONFIG_LARGE_ALLOCS is not set
 +
-+#include <asm-generic/div64.h>
++#
++# Boot options
++#
++CONFIG_CMDLINE="root=/dev/mtdblock0"
++CONFIG_CMDLINE_FORCE=y
++CONFIG_OF=y
++CONFIG_OF_DEVICE=y
++CONFIG_FLATMEM=y
++CONFIG_FLAT_NODE_MEM_MAP=y
++# CONFIG_SPARSEMEM_STATIC is not set
++# CONFIG_SPARSEMEM_VMEMMAP_ENABLE is not set
++CONFIG_SPLIT_PTLOCK_CPUS=4
++# CONFIG_RESOURCES_64BIT is not set
++CONFIG_ZONE_DMA_FLAG=0
++CONFIG_VIRT_TO_BUS=y
 +
-+#endif /* _ASM_MICROBLAZE_DIV64_H */
-diff --git a/include/asm-microblaze/emergency-restart.h b/include/asm-microblaze/emergency-restart.h
-new file mode 100644
-index 0000000..831eee4
---- /dev/null
-+++ b/include/asm-microblaze/emergency-restart.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/emergency-restart.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#
++# Exectuable file formats
++#
++CONFIG_BINFMT_FLAT=y
++# CONFIG_BINFMT_ZFLAT is not set
++# CONFIG_BINFMT_SHARED_FLAT is not set
++# CONFIG_BINFMT_MISC is not set
 +
-+#ifndef _ASM_MICROBLAZE_EMERGENCY_RESTART_H
-+#define _ASM_MICROBLAZE_EMERGENCY_RESTART_H
++#
++# Networking
++#
++CONFIG_NET=y
 +
-+#include <asm-generic/emergency-restart.h>
++#
++# Networking options
++#
++CONFIG_PACKET=y
++# CONFIG_PACKET_MMAP is not set
++CONFIG_UNIX=y
++CONFIG_XFRM=y
++# CONFIG_XFRM_USER is not set
++# CONFIG_NET_KEY is not set
++CONFIG_INET=y
++# CONFIG_IP_MULTICAST is not set
++# CONFIG_IP_ADVANCED_ROUTER is not set
++CONFIG_IP_FIB_HASH=y
++# CONFIG_IP_PNP is not set
++# CONFIG_NET_IPIP is not set
++# CONFIG_NET_IPGRE is not set
++# CONFIG_SYN_COOKIES is not set
++# CONFIG_INET_AH is not set
++# CONFIG_INET_ESP is not set
++# CONFIG_INET_IPCOMP is not set
++# CONFIG_INET_XFRM_TUNNEL is not set
++# CONFIG_INET_TUNNEL is not set
++CONFIG_INET_XFRM_MODE_TRANSPORT=y
++CONFIG_INET_XFRM_MODE_TUNNEL=y
++CONFIG_INET_XFRM_MODE_BEET=y
++# CONFIG_INET_LRO is not set
++CONFIG_INET_DIAG=y
++CONFIG_INET_TCP_DIAG=y
++# CONFIG_TCP_CONG_ADVANCED is not set
++CONFIG_TCP_CONG_CUBIC=y
++CONFIG_DEFAULT_TCP_CONG="cubic"
++# CONFIG_IPV6 is not set
++# CONFIG_NETWORK_SECMARK is not set
++# CONFIG_NETFILTER is not set
++# CONFIG_ATM is not set
++# CONFIG_BRIDGE is not set
++# CONFIG_VLAN_8021Q is not set
++# CONFIG_DECNET is not set
++# CONFIG_LLC2 is not set
++# CONFIG_IPX is not set
++# CONFIG_ATALK is not set
++# CONFIG_NET_SCHED is not set
 +
-+#endif /* _ASM_MICROBLAZE_EMERGENCY_RESTART_H */
-diff --git a/include/asm-microblaze/errno.h b/include/asm-microblaze/errno.h
-new file mode 100644
-index 0000000..cc88e20
---- /dev/null
-+++ b/include/asm-microblaze/errno.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/errno.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#
++# Network testing
++#
++# CONFIG_NET_PKTGEN is not set
++# CONFIG_HAMRADIO is not set
++# CONFIG_CAN is not set
++# CONFIG_IRDA is not set
++# CONFIG_BT is not set
 +
-+#ifndef _ASM_MICROBLAZE_ERRNO_H
-+#define _ASM_MICROBLAZE_ERRNO_H
++#
++# Wireless
++#
++# CONFIG_CFG80211 is not set
++# CONFIG_WIRELESS_EXT is not set
++# CONFIG_MAC80211 is not set
++# CONFIG_IEEE80211 is not set
++# CONFIG_RFKILL is not set
 +
-+#include <asm-generic/errno.h>
++#
++# Device Drivers
++#
 +
-+#endif /* _ASM_MICROBLAZE_ERRNO_H */
-diff --git a/include/asm-microblaze/futex.h b/include/asm-microblaze/futex.h
-new file mode 100644
-index 0000000..8aa1f4d
---- /dev/null
-+++ b/include/asm-microblaze/futex.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/futex.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#
++# Generic Driver Options
++#
++CONFIG_STANDALONE=y
++# CONFIG_PREVENT_FIRMWARE_BUILD is not set
++# CONFIG_SYS_HYPERVISOR is not set
++# CONFIG_CONNECTOR is not set
++CONFIG_MTD=y
++# CONFIG_MTD_DEBUG is not set
++CONFIG_MTD_CONCAT=y
++CONFIG_MTD_PARTITIONS=y
++# CONFIG_MTD_REDBOOT_PARTS is not set
++CONFIG_MTD_CMDLINE_PARTS=y
 +
-+#ifndef _ASM_MICROBLAZE_FUTEX_H
-+#define _ASM_MICROBLAZE_FUTEX_H
++#
++# User Modules And Translation Layers
++#
++CONFIG_MTD_CHAR=y
++CONFIG_MTD_BLKDEVS=y
++CONFIG_MTD_BLOCK=y
++# CONFIG_FTL is not set
++# CONFIG_NFTL is not set
++# CONFIG_INFTL is not set
++# CONFIG_RFD_FTL is not set
++# CONFIG_SSFDC is not set
++# CONFIG_MTD_OOPS is not set
 +
-+#include <asm-generic/futex.h>
++#
++# RAM/ROM/Flash chip drivers
++#
++CONFIG_MTD_CFI=y
++# CONFIG_MTD_JEDECPROBE is not set
++CONFIG_MTD_GEN_PROBE=y
++# CONFIG_MTD_CFI_ADV_OPTIONS is not set
++CONFIG_MTD_MAP_BANK_WIDTH_1=y
++CONFIG_MTD_MAP_BANK_WIDTH_2=y
++CONFIG_MTD_MAP_BANK_WIDTH_4=y
++# CONFIG_MTD_MAP_BANK_WIDTH_8 is not set
++# CONFIG_MTD_MAP_BANK_WIDTH_16 is not set
++# CONFIG_MTD_MAP_BANK_WIDTH_32 is not set
++CONFIG_MTD_CFI_I1=y
++CONFIG_MTD_CFI_I2=y
++# CONFIG_MTD_CFI_I4 is not set
++# CONFIG_MTD_CFI_I8 is not set
++CONFIG_MTD_CFI_INTELEXT=y
++CONFIG_MTD_CFI_AMDSTD=y
++# CONFIG_MTD_CFI_STAA is not set
++CONFIG_MTD_CFI_UTIL=y
++CONFIG_MTD_RAM=y
++# CONFIG_MTD_ROM is not set
++# CONFIG_MTD_ABSENT is not set
 +
-+#endif /* _ASM_MICROBLAZE_FUTEX_H */
-diff --git a/include/asm-microblaze/kdebug.h b/include/asm-microblaze/kdebug.h
-new file mode 100644
-index 0000000..ac0cf63
---- /dev/null
-+++ b/include/asm-microblaze/kdebug.h
-@@ -0,0 +1,19 @@
-+/*
-+ * include/asm-microblaze/kdebug.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
-+ */
++#
++# Mapping drivers for chip access
++#
++# CONFIG_MTD_COMPLEX_MAPPINGS is not set
++# CONFIG_MTD_PHYSMAP is not set
++CONFIG_MTD_UCLINUX=y
++# CONFIG_MTD_PLATRAM is not set
 +
-+#ifndef _ASM_MICROBLAZE_KDEBUG_H
-+#define _ASM_MICROBLAZE_KDEBUG_H
++#
++# Self-contained MTD device drivers
++#
++# CONFIG_MTD_SLRAM is not set
++# CONFIG_MTD_PHRAM is not set
++# CONFIG_MTD_MTDRAM is not set
++# CONFIG_MTD_BLOCK2MTD is not set
 +
-+#include <asm-generic/kdebug.h>
++#
++# Disk-On-Chip Device Drivers
++#
++# CONFIG_MTD_DOC2000 is not set
++# CONFIG_MTD_DOC2001 is not set
++# CONFIG_MTD_DOC2001PLUS is not set
++# CONFIG_MTD_NAND is not set
++# CONFIG_MTD_ONENAND is not set
 +
-+#endif /* _ASM_MICROBLAZE_KDEBUG_H */
++#
++# UBI - Unsorted block images
++#
++# CONFIG_MTD_UBI is not set
++# CONFIG_PARPORT is not set
++CONFIG_BLK_DEV=y
++# CONFIG_BLK_DEV_COW_COMMON is not set
++# CONFIG_BLK_DEV_LOOP is not set
++CONFIG_BLK_DEV_NBD=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_COUNT=16
++CONFIG_BLK_DEV_RAM_SIZE=4096
++# CONFIG_BLK_DEV_XIP is not set
++# CONFIG_CDROM_PKTCDVD is not set
++# CONFIG_ATA_OVER_ETH is not set
++CONFIG_MISC_DEVICES=y
++# CONFIG_EEPROM_93CX6 is not set
++# CONFIG_ENCLOSURE_SERVICES is not set
++# CONFIG_HAVE_IDE is not set
 +
++#
++# SCSI device support
++#
++# CONFIG_RAID_ATTRS is not set
++# CONFIG_SCSI is not set
++# CONFIG_SCSI_DMA is not set
++# CONFIG_SCSI_NETLINK is not set
++# CONFIG_ATA is not set
++# CONFIG_MD is not set
++# CONFIG_NETDEVICES is not set
++# CONFIG_ISDN is not set
++# CONFIG_PHONE is not set
 +
++#
++# Input device support
++#
++# CONFIG_INPUT is not set
 +
-diff --git a/include/asm-microblaze/local.h b/include/asm-microblaze/local.h
-new file mode 100644
-index 0000000..9909302
---- /dev/null
-+++ b/include/asm-microblaze/local.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/local.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#
++# Hardware I/O ports
++#
++# CONFIG_SERIO is not set
++# CONFIG_GAMEPORT is not set
 +
-+#ifndef _ASM_MICROBLAZE_LOCAL_H
-+#define _ASM_MICROBLAZE_LOCAL_H
++#
++# Character devices
++#
++# CONFIG_VT is not set
++# CONFIG_SERIAL_NONSTANDARD is not set
 +
-+#include <asm-generic/local.h>
++#
++# Serial drivers
++#
++# CONFIG_SERIAL_8250 is not set
 +
-+#endif /* _ASM_MICROBLAZE_LOCAL_H */
-diff --git a/include/asm-microblaze/mutex.h b/include/asm-microblaze/mutex.h
-new file mode 100644
-index 0000000..21d8731
---- /dev/null
-+++ b/include/asm-microblaze/mutex.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/mutex.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#
++# Non-8250 serial port support
++#
++CONFIG_SERIAL_UARTLITE=y
++CONFIG_SERIAL_UARTLITE_CONSOLE=y
++CONFIG_SERIAL_CORE=y
++CONFIG_SERIAL_CORE_CONSOLE=y
++CONFIG_UNIX98_PTYS=y
++CONFIG_LEGACY_PTYS=y
++CONFIG_LEGACY_PTY_COUNT=256
++# CONFIG_IPMI_HANDLER is not set
++CONFIG_HW_RANDOM=y
++# CONFIG_RTC is not set
++# CONFIG_GEN_RTC is not set
++# CONFIG_R3964 is not set
++# CONFIG_RAW_DRIVER is not set
++# CONFIG_I2C is not set
 +
-+#ifndef _ASM_MICROBLAZE_MUTEX_H
-+#define _ASM_MICROBLAZE_MUTEX_H
++#
++# SPI support
++#
++# CONFIG_SPI is not set
++# CONFIG_SPI_MASTER is not set
++# CONFIG_W1 is not set
++# CONFIG_POWER_SUPPLY is not set
++# CONFIG_HWMON is not set
++# CONFIG_THERMAL is not set
++# CONFIG_WATCHDOG is not set
 +
-+#include <asm-generic/mutex-dec.h>
++#
++# Sonics Silicon Backplane
++#
++CONFIG_SSB_POSSIBLE=y
++# CONFIG_SSB is not set
 +
-+#endif /* _ASM_MICROBLAZE_MUTEX_H */
-diff --git a/include/asm-microblaze/namei.h b/include/asm-microblaze/namei.h
-new file mode 100644
-index 0000000..25cafbd
---- /dev/null
-+++ b/include/asm-microblaze/namei.h
-@@ -0,0 +1,24 @@
-+/*
-+ * include/asm-microblaze/namei.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#
++# Multifunction device drivers
++#
++# CONFIG_MFD_SM501 is not set
++# CONFIG_HTC_PASIC3 is not set
 +
-+#ifndef _ASM_MICROBLAZE_NAMEI_H
-+#define _ASM_MICROBLAZE_NAMEI_H
++#
++# Multimedia devices
++#
++# CONFIG_VIDEO_DEV is not set
++# CONFIG_DVB_CORE is not set
++CONFIG_DAB=y
 +
-+#ifdef __KERNEL__
++#
++# Graphics support
++#
++# CONFIG_VGASTATE is not set
++CONFIG_VIDEO_OUTPUT_CONTROL=y
++# CONFIG_FB is not set
++# CONFIG_BACKLIGHT_LCD_SUPPORT is not set
 +
-+/* This dummy routine maybe changed to something useful
-+ * for /usr/gnemul/ emulation stuff.
-+ * Look at asm-sparc/namei.h for details.
-+ */
-+#define __emul_prefix() NULL
++#
++# Display device support
++#
++# CONFIG_DISPLAY_SUPPORT is not set
 +
-+#endif /* __KERNEL__ */
++#
++# Sound
++#
++# CONFIG_SOUND is not set
++CONFIG_USB_SUPPORT=y
++# CONFIG_USB_ARCH_HAS_HCD is not set
++# CONFIG_USB_ARCH_HAS_OHCI is not set
++# CONFIG_USB_ARCH_HAS_EHCI is not set
 +
-+#endif /* _ASM_MICROBLAZE_NAMEI_H */
-diff --git a/include/asm-microblaze/percpu.h b/include/asm-microblaze/percpu.h
-new file mode 100644
-index 0000000..5c9c24c
---- /dev/null
-+++ b/include/asm-microblaze/percpu.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/percpu.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#
++# NOTE: USB_STORAGE enables SCSI, and 'SCSI disk support'
++#
++# CONFIG_USB_GADGET is not set
++# CONFIG_MMC is not set
++# CONFIG_MEMSTICK is not set
++# CONFIG_NEW_LEDS is not set
++# CONFIG_RTC_CLASS is not set
++# CONFIG_UIO is not set
 +
-+#ifndef _ASM_MICROBLAZE_PERCPU_H
-+#define _ASM_MICROBLAZE_PERCPU_H
++#
++# File systems
++#
++# CONFIG_EXT2_FS is not set
++# CONFIG_EXT3_FS is not set
++# CONFIG_REISERFS_FS is not set
++# CONFIG_JFS_FS is not set
++# CONFIG_FS_POSIX_ACL is not set
++# CONFIG_XFS_FS is not set
++# CONFIG_OCFS2_FS is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY is not set
++# CONFIG_QUOTA is not set
++# CONFIG_AUTOFS_FS is not set
++# CONFIG_AUTOFS4_FS is not set
++# CONFIG_FUSE_FS is not set
 +
-+#include <asm-generic/percpu.h>
++#
++# CD-ROM/DVD Filesystems
++#
++# CONFIG_ISO9660_FS is not set
++# CONFIG_UDF_FS is not set
 +
-+#endif /* _ASM_MICROBLAZE_PERCPU_H */
-diff --git a/include/asm-microblaze/resource.h b/include/asm-microblaze/resource.h
-new file mode 100644
-index 0000000..f8aac61
---- /dev/null
-+++ b/include/asm-microblaze/resource.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/resource.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++#
++# DOS/FAT/NT Filesystems
++#
++# CONFIG_MSDOS_FS is not set
++# CONFIG_VFAT_FS is not set
++# CONFIG_NTFS_FS is not set
 +
-+#ifndef _ASM_MICROBLAZE_RESOURCE_H
-+#define _ASM_MICROBLAZE_RESOURCE_H
++#
++# Pseudo filesystems
++#
++CONFIG_PROC_FS=y
++CONFIG_PROC_SYSCTL=y
++CONFIG_SYSFS=y
++# CONFIG_TMPFS is not set
++# CONFIG_HUGETLB_PAGE is not set
++# CONFIG_CONFIGFS_FS is not set
 +
-+#include <asm-generic/resource.h>
++#
++# Miscellaneous filesystems
++#
++# CONFIG_HFSPLUS_FS is not set
++# CONFIG_JFFS2_FS is not set
++CONFIG_CRAMFS=y
++# CONFIG_VXFS_FS is not set
++# CONFIG_MINIX_FS is not set
++# CONFIG_HPFS_FS is not set
++# CONFIG_QNX4FS_FS is not set
++CONFIG_ROMFS_FS=y
++# CONFIG_SYSV_FS is not set
++# CONFIG_UFS_FS is not set
++CONFIG_NETWORK_FILESYSTEMS=y
++# CONFIG_NFS_FS is not set
++# CONFIG_NFSD is not set
++# CONFIG_SMB_FS is not set
++# CONFIG_CIFS is not set
++# CONFIG_NCP_FS is not set
++# CONFIG_CODA_FS is not set
 +
-+#endif /* _ASM_MICROBLAZE_RESOURCE_H */
-diff --git a/include/asm-microblaze/user.h b/include/asm-microblaze/user.h
-new file mode 100644
-index 0000000..db2e303
---- /dev/null
-+++ b/include/asm-microblaze/user.h
-@@ -0,0 +1,18 @@
-+/*
-+ * include/asm-microblaze/user.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
-+ * Authors:
-+ * Yasushi SHOJI <yashi@atmark-techno.com>
-+ * Tetsuya OHKAWA <tetsuya@atmark-techno.com>
-+ */
++#
++# Partition Types
++#
++# CONFIG_PARTITION_ADVANCED is not set
++CONFIG_MSDOS_PARTITION=y
++# CONFIG_NLS is not set
 +
-+#ifndef _ASM_MICROBLAZE_USER_H
-+#define _ASM_MICROBLAZE_USER_H
++#
++# Kernel hacking
++#
++# CONFIG_PRINTK_TIME is not set
++CONFIG_ENABLE_WARN_DEPRECATED=y
++# CONFIG_ENABLE_MUST_CHECK is not set
++# CONFIG_MAGIC_SYSRQ is not set
++# CONFIG_UNUSED_SYMBOLS is not set
++# CONFIG_DEBUG_FS is not set
++# CONFIG_HEADERS_CHECK is not set
++# CONFIG_DEBUG_KERNEL is not set
++# CONFIG_SAMPLES is not set
++CONFIG_EARLY_PRINTK=y
++CONFIG_EARLY_PRINTK_UARTLITE_ADDRESS=0x40100000
++CONFIG_HEART_BEAT=y
++CONFIG_HEART_BEAT_ADDRESS=0x40600000
 +
-+#endif /* _ASM_MICROBLAZE_USER_H */
++#
++# Security options
++#
++# CONFIG_KEYS is not set
++# CONFIG_SECURITY is not set
++CONFIG_CRYPTO=y
++
++#
++# Crypto core or helper
++#
++# CONFIG_CRYPTO_MANAGER is not set
++# CONFIG_CRYPTO_NULL is not set
++# CONFIG_CRYPTO_CRYPTD is not set
++# CONFIG_CRYPTO_AUTHENC is not set
++# CONFIG_CRYPTO_TEST is not set
++
++#
++# Authenticated Encryption with Associated Data
++#
++# CONFIG_CRYPTO_CCM is not set
++# CONFIG_CRYPTO_GCM is not set
++# CONFIG_CRYPTO_SEQIV is not set
++
++#
++# Block modes
++#
++# CONFIG_CRYPTO_CBC is not set
++# CONFIG_CRYPTO_CTR is not set
++# CONFIG_CRYPTO_CTS is not set
++# CONFIG_CRYPTO_ECB is not set
++# CONFIG_CRYPTO_PCBC is not set
++
++#
++# Hash modes
++#
++# CONFIG_CRYPTO_HMAC is not set
++
++#
++# Digest
++#
++# CONFIG_CRYPTO_CRC32C is not set
++# CONFIG_CRYPTO_MD4 is not set
++# CONFIG_CRYPTO_MD5 is not set
++# CONFIG_CRYPTO_MICHAEL_MIC is not set
++# CONFIG_CRYPTO_SHA1 is not set
++# CONFIG_CRYPTO_SHA256 is not set
++# CONFIG_CRYPTO_SHA512 is not set
++# CONFIG_CRYPTO_TGR192 is not set
++# CONFIG_CRYPTO_WP512 is not set
++
++#
++# Ciphers
++#
++# CONFIG_CRYPTO_AES is not set
++# CONFIG_CRYPTO_ANUBIS is not set
++# CONFIG_CRYPTO_ARC4 is not set
++# CONFIG_CRYPTO_BLOWFISH is not set
++# CONFIG_CRYPTO_CAMELLIA is not set
++# CONFIG_CRYPTO_CAST5 is not set
++# CONFIG_CRYPTO_CAST6 is not set
++# CONFIG_CRYPTO_DES is not set
++# CONFIG_CRYPTO_FCRYPT is not set
++# CONFIG_CRYPTO_KHAZAD is not set
++# CONFIG_CRYPTO_SEED is not set
++# CONFIG_CRYPTO_SERPENT is not set
++# CONFIG_CRYPTO_TEA is not set
++# CONFIG_CRYPTO_TWOFISH is not set
++
++#
++# Compression
++#
++# CONFIG_CRYPTO_DEFLATE is not set
++# CONFIG_CRYPTO_LZO is not set
++CONFIG_CRYPTO_HW=y
++
++#
++# Library routines
++#
++# CONFIG_CRC_CCITT is not set
++# CONFIG_CRC16 is not set
++# CONFIG_CRC_ITU_T is not set
++# CONFIG_CRC32 is not set
++# CONFIG_CRC7 is not set
++# CONFIG_LIBCRC32C is not set
++CONFIG_ZLIB_INFLATE=y
++CONFIG_HAS_IOMEM=y
++CONFIG_HAS_IOPORT=y
++CONFIG_HAS_DMA=y
 -- 
 1.5.4.GIT
