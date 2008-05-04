@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 19/56] microblaze_v2: uaccess files
-Date: Sun,  4 May 2008 13:41:08 +0200
-Message-ID: <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 33/56] microblaze_v2: ioctl support
+Date: Sun,  4 May 2008 13:41:22 +0200
+Message-ID: <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -21,12 +21,26 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
  <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
  <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
+ <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
+ <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
+ <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
+ <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
+ <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
+ <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
+ <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
+ <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
+ <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
+ <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+ <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+ <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+ <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
+ <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:55220 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:59580 "EHLO
 	monstr.eu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752142AbYEEMTk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 08:19:40 -0400
-In-Reply-To: <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
+	id S1751413AbYEEMYe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 08:24:34 -0400
+In-Reply-To: <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -39,69 +53,20 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/lib/uaccess.c    |   43 +++++++++++++
- include/asm-microblaze/uaccess.h |  126 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 169 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/lib/uaccess.c
- create mode 100644 include/asm-microblaze/uaccess.h
+ include/asm-microblaze/ioctl.h  |   84 +++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/ioctls.h |   93 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 177 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/ioctl.h
+ create mode 100644 include/asm-microblaze/ioctls.h
 
-diff --git a/arch/microblaze/lib/uaccess.c b/arch/microblaze/lib/uaccess.c
+diff --git a/include/asm-microblaze/ioctl.h b/include/asm-microblaze/ioctl.h
 new file mode 100644
-index 0000000..9a36778
+index 0000000..7cfaaea
 --- /dev/null
-+++ b/arch/microblaze/lib/uaccess.c
-@@ -0,0 +1,43 @@
++++ b/include/asm-microblaze/ioctl.h
+@@ -0,0 +1,84 @@
 +/*
-+ * arch/microblaze/lib/uaccess.c
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
-+
-+#include <linux/string.h>
-+#include <asm/uaccess.h>
-+
-+#include <asm/bug.h>
-+
-+long strnlen_user(const char __user *s, long n)
-+{
-+	return strlen(s) + 1;
-+}
-+
-+#define __do_strncpy_from_user(dst, src, count, res)			\
-+	do {								\
-+		char *tmp;						\
-+		strncpy(dst, src, count);				\
-+		for (tmp = dst; *tmp && count > 0; tmp++, count--)	\
-+			;						\
-+		res = (tmp - dst);					\
-+	} while (0)
-+
-+long __strncpy_from_user(char *dst, const char __user *src, long count)
-+{
-+	long res;
-+	__do_strncpy_from_user(dst, src, count, res);
-+	return res;
-+}
-+
-+long strncpy_from_user(char *dst, const char *src, long count)
-+{
-+	long res = -EFAULT;
-+	if (access_ok(VERIFY_READ, src, 1))
-+		__do_strncpy_from_user(dst, src, count, res);
-+	return res;
-+}
-diff --git a/include/asm-microblaze/uaccess.h b/include/asm-microblaze/uaccess.h
-new file mode 100644
-index 0000000..e6adda3
---- /dev/null
-+++ b/include/asm-microblaze/uaccess.h
-@@ -0,0 +1,126 @@
-+/*
-+ * include/asm-microblaze/uaccess.h
++ * include/asm-microblaze/ioctl.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -110,121 +75,178 @@ index 0000000..e6adda3
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_UACCESS_H
-+#define _ASM_MICROBLAZE_UACCESS_H
-+
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <asm/segment.h>
-+#include <asm/string.h>
-+
-+#include <linux/sched.h> /* RLIMIT_FSIZE */
-+/* #include <linux/errno.h> */
-+
-+#define VERIFY_READ	0
-+#define VERIFY_WRITE	1
-+
-+extern int ___range_ok(unsigned long addr, unsigned long size);
-+
-+#define __range_ok(addr, size) \
-+		___range_ok((unsigned long)(addr), (unsigned long)(size))
-+
-+#define access_ok(type, addr, size) (__range_ok((addr), (size)) == 0)
-+#define __access_ok(add, size) (__range_ok((addr), (size)) == 0)
-+
-+extern inline int bad_user_access_length(void)
-+{
-+	return 0;
-+}
-+
-+#define __get_user(var, ptr)						\
-+	({								\
-+		int __gu_err = 0;					\
-+		switch (sizeof(*(ptr))) {				\
-+		case 1:						\
-+		case 2:						\
-+		case 4:						\
-+			(var) = *(ptr);				\
-+			break;					\
-+		case 8:						\
-+			memcpy((void *) &(var), (ptr), 8);	\
-+			break;					\
-+		default:					\
-+			(var) = 0;				\
-+			__gu_err = __get_user_bad();		\
-+			break;					\
-+		}							\
-+		__gu_err;						\
-+	})
-+
-+#define __get_user_bad()	(bad_user_access_length(), (-EFAULT))
-+
-+#define __put_user(var, ptr)						\
-+	({								\
-+		int __pu_err = 0;					\
-+		switch (sizeof(*(ptr))) {				\
-+		case 1:						\
-+		case 2:						\
-+		case 4:						\
-+			*(ptr) = (var);				\
-+			break;					\
-+		case 8: {					\
-+			typeof(*(ptr)) __pu_val = var;		\
-+			memcpy(ptr, &__pu_val, sizeof(__pu_val));\
-+			}					\
-+			break;					\
-+		default:					\
-+			__pu_err = __put_user_bad();		\
-+			break;					\
-+		}							\
-+		__pu_err;						\
-+	})
-+
-+#define __put_user_bad()	(bad_user_access_length(), (-EFAULT))
-+
-+#define put_user(x, ptr)	__put_user(x, ptr)
-+#define get_user(x, ptr)	__get_user(x, ptr)
-+
-+#define copy_to_user(to, from, n)		(memcpy(to, from, n), 0)
-+#define copy_from_user(to, from, n)		(memcpy(to, from, n), 0)
-+
-+#define __copy_to_user(to, from, n)		(copy_to_user(to, from, n))
-+#define __copy_from_user(to, from, n)		(copy_from_user(to, from, n))
-+#define __copy_to_user_inatomic(to, from, n)	(__copy_to_user(to, from, n))
-+#define __copy_from_user_inatomic(to, from, n)	(__copy_from_user(to, from, n))
-+
-+#define __clear_user(addr, n)	(memset((void *)addr, 0, n), 0)
++#ifndef _ASM_MICROBLAZE_IOCTL_H
++#define _ASM_MICROBLAZE_IOCTL_H
 +
 +/*
-+ * The exception table consists of pairs of addresses: the first is the
-+ * address of an instruction that is allowed to fault, and the second is
-+ * the address at which the program should continue. No registers are
-+ * modified, so it is entirely up to the continuation code to figure out
-+ * what to do.
-+ *
-+ * All the routines below use bits of fixup code that are out of line
-+ * with the main instruction path. This means when everything is well,
-+ * we don't even have to jump over them. Further, they do not intrude
-+ * on our cache or tlb entries.
++ * this was copied from the alpha as it's a bit cleaner there.
++ * -- Cort
 + */
-+struct exception_table_entry {
-+	unsigned long insn, fixup;
-+};
 +
-+static inline unsigned long clear_user(void *addr, unsigned long size)
-+{
-+	if (access_ok(VERIFY_WRITE, addr, size))
-+		size = __clear_user(addr, size);
-+	return size;
-+}
++#define _IOC_NRBITS	8
++#define _IOC_TYPEBITS	8
++#define _IOC_SIZEBITS	13
++#define _IOC_DIRBITS	3
 +
-+/* Returns 0 if exception not found and fixup otherwise. */
-+extern unsigned long search_exception_table(unsigned long);
++#define _IOC_NRMASK	((1 << _IOC_NRBITS)-1)
++#define _IOC_TYPEMASK	((1 << _IOC_TYPEBITS)-1)
++#define _IOC_SIZEMASK	((1 << _IOC_SIZEBITS)-1)
++#define _IOC_DIRMASK	((1 << _IOC_DIRBITS)-1)
 +
-+extern long strncpy_from_user(char *dst, const char *src, long count);
-+extern long strnlen_user(const char *src, long count);
-+extern long __strncpy_from_user(char *dst, const char *src, long count);
++#define _IOC_NRSHIFT	0
++#define _IOC_TYPESHIFT	(_IOC_NRSHIFT+_IOC_NRBITS)
++#define _IOC_SIZESHIFT	(_IOC_TYPESHIFT+_IOC_TYPEBITS)
++#define _IOC_DIRSHIFT	(_IOC_SIZESHIFT+_IOC_SIZEBITS)
 +
-+#endif /* _ASM_MICROBLAZE_UACCESS_H */
++/*
++ * Direction bits _IOC_NONE could be 0, but OSF/1 gives it a bit.
++ * And this turns out useful to catch old ioctl numbers in header
++ * files for us.
++ */
++#define _IOC_NONE	1U
++#define _IOC_READ	2U
++#define _IOC_WRITE	4U
++
++#define _IOC(dir, type, nr, size) \
++	(((dir) << _IOC_DIRSHIFT) | \
++	((type) << _IOC_TYPESHIFT) | \
++	((nr) << _IOC_NRSHIFT) | \
++	((size) << _IOC_SIZESHIFT))
++
++/* provoke compile error for invalid uses of size argument */
++extern unsigned int __invalid_size_argument_for_IOC;
++#define _IOC_TYPECHECK(t) \
++	((sizeof(t) == sizeof(t[1]) && \
++	sizeof(t) < (1 << _IOC_SIZEBITS)) ? \
++	sizeof(t) : __invalid_size_argument_for_IOC)
++
++/* used to create numbers */
++#define _IO(type, nr)		_IOC(_IOC_NONE, (type), (nr), 0)
++#define _IOR(type, nr, size) \
++			_IOC(_IOC_READ, (type), (nr), (_IOC_TYPECHECK(size)))
++#define _IOW(type, nr, size) \
++			_IOC(_IOC_WRITE, (type), (nr), (_IOC_TYPECHECK(size)))
++#define _IOWR(type, nr, size) \
++		_IOC(_IOC_READ|_IOC_WRITE, (type), (nr), (_IOC_TYPECHECK(size)))
++#define _IOR_BAD(type, nr, size) \
++			_IOC(_IOC_READ, (type), (nr), sizeof(size))
++#define _IOW_BAD(type, nr, size) \
++			_IOC(_IOC_WRITE, (type), (nr), sizeof(size))
++#define _IOWR_BAD(type, nr, size) \
++			_IOC(_IOC_READ|_IOC_WRITE, (type), (nr), sizeof(size))
++
++/* used to decode them.. */
++#define _IOC_DIR(nr)		(((nr) >> _IOC_DIRSHIFT) & _IOC_DIRMASK)
++#define _IOC_TYPE(nr)		(((nr) >> _IOC_TYPESHIFT) & _IOC_TYPEMASK)
++#define _IOC_NR(nr)		(((nr) >> _IOC_NRSHIFT) & _IOC_NRMASK)
++#define _IOC_SIZE(nr)		(((nr) >> _IOC_SIZESHIFT) & _IOC_SIZEMASK)
++
++/* various drivers, such as the pcmcia stuff, need these... */
++#define IOC_IN		(_IOC_WRITE << _IOC_DIRSHIFT)
++#define IOC_OUT		(_IOC_READ << _IOC_DIRSHIFT)
++#define IOC_INOUT	((_IOC_WRITE|_IOC_READ) << _IOC_DIRSHIFT)
++#define IOCSIZE_MASK	(_IOC_SIZEMASK << _IOC_SIZESHIFT)
++#define IOCSIZE_SHIFT	(_IOC_SIZESHIFT)
++
++#endif /* _ASM_MICROBLAZE_IOCTL_H */
+diff --git a/include/asm-microblaze/ioctls.h b/include/asm-microblaze/ioctls.h
+new file mode 100644
+index 0000000..4bc5fd4
+--- /dev/null
++++ b/include/asm-microblaze/ioctls.h
+@@ -0,0 +1,93 @@
++/*
++ * include/asm-microblaze/ioctls.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#ifndef _ASM_MICROBLAZE_IOCTLS_H
++#define _ASM_MICROBLAZE_IOCTLS_H
++
++#include <asm/ioctl.h>
++
++/* 0x54 is just a magic number to make these relatively unique ('T') */
++
++#define TCGETS		0x5401
++#define TCSETS		0x5402
++#define TCSETSW		0x5403
++#define TCSETSF		0x5404
++#define TCGETA		0x5405
++#define TCSETA		0x5406
++#define TCSETAW		0x5407
++#define TCSETAF		0x5408
++#define TCSBRK		0x5409
++#define TCXONC		0x540A
++#define TCFLSH		0x540B
++#define TIOCEXCL	0x540C
++#define TIOCNXCL	0x540D
++#define TIOCSCTTY	0x540E
++#define TIOCGPGRP	0x540F
++#define TIOCSPGRP	0x5410
++#define TIOCOUTQ	0x5411
++#define TIOCSTI		0x5412
++#define TIOCGWINSZ	0x5413
++#define TIOCSWINSZ	0x5414
++#define TIOCMGET	0x5415
++#define TIOCMBIS	0x5416
++#define TIOCMBIC	0x5417
++#define TIOCMSET	0x5418
++#define TIOCGSOFTCAR	0x5419
++#define TIOCSSOFTCAR	0x541A
++#define FIONREAD	0x541B
++#define TIOCINQ		FIONREAD
++#define TIOCLINUX	0x541C
++#define TIOCCONS	0x541D
++#define TIOCGSERIAL	0x541E
++#define TIOCSSERIAL	0x541F
++#define TIOCPKT		0x5420
++#define FIONBIO		0x5421
++#define TIOCNOTTY	0x5422
++#define TIOCSETD	0x5423
++#define TIOCGETD	0x5424
++#define TCSBRKP		0x5425 /* Needed for POSIX tcsendbreak() */
++#define TIOCTTYGSTRUCT	0x5426 /* For debugging only */
++#define TIOCSBRK	0x5427 /* BSD compatibility */
++#define TIOCCBRK	0x5428 /* BSD compatibility */
++#define TIOCGSID	0x5429 /* Return the session ID of FD */
++/* Get Pty Number (of pty-mux device) */
++#define TIOCGPTN	_IOR('T', 0x30, unsigned int)
++#define TIOCSPTLCK	_IOW('T', 0x31, int) /* Lock/unlock Pty */
++
++#define FIONCLEX	0x5450 /* these numbers need to be adjusted. */
++#define FIOCLEX		0x5451
++#define FIOASYNC	0x5452
++#define TIOCSERCONFIG	0x5453
++#define TIOCSERGWILD	0x5454
++#define TIOCSERSWILD	0x5455
++#define TIOCGLCKTRMIOS	0x5456
++#define TIOCSLCKTRMIOS	0x5457
++#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
++#define TIOCSERGETLSR	0x5459 /* Get line status register */
++#define TIOCSERGETMULTI 0x545A /* Get multiport config */
++#define TIOCSERSETMULTI 0x545B /* Set multiport config */
++
++#define TIOCMIWAIT	0x545C /* wait for a change on serial input line(s) */
++#define TIOCGICOUNT	0x545D /* read serial port inline interrupt counts */
++
++#define	FIOQSIZE	0x545E
++
++/* Used for packet mode */
++#define TIOCPKT_DATA		0
++#define TIOCPKT_FLUSHREAD	1
++#define TIOCPKT_FLUSHWRITE	2
++#define TIOCPKT_STOP		4
++#define TIOCPKT_START		8
++#define TIOCPKT_NOSTOP		16
++#define TIOCPKT_DOSTOP		32
++
++#define TIOCSER_TEMT	0x01 /* Transmitter physically empty */
++
++#endif /* _ASM_MICROBLAZE_IOCTLS_H */
 -- 
 1.5.4.GIT
