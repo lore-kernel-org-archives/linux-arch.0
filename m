@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 13/56] microblaze_v2: PVR support, cpuinfo support
-Date: Sun,  4 May 2008 13:41:02 +0200
-Message-ID: <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 35/56] microblaze_v2: headers for executables format FLAT, ELF
+Date: Sun,  4 May 2008 13:41:24 +0200
+Message-ID: <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -15,12 +15,34 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
  <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
  <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
+ <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
+ <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
+ <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
+ <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
+ <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
+ <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
+ <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
+ <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
+ <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
+ <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
+ <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
+ <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
+ <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
+ <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
+ <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
+ <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+ <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+ <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+ <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
+ <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
+ <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
+ <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:41947 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:54110 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750847AbYEDPST (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 11:18:19 -0400
-In-Reply-To: <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
+	id S1756992AbYEDPXV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 11:23:21 -0400
+In-Reply-To: <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -33,221 +55,140 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/cpu/mb.c  |  115 ++++++++++++++++++++++++++++++++++++++
- arch/microblaze/kernel/cpu/pvr.c |   83 +++++++++++++++++++++++++++
- 2 files changed, 198 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/cpu/mb.c
- create mode 100644 arch/microblaze/kernel/cpu/pvr.c
+ include/asm-microblaze/elf.h  |   24 +++++++++++
+ include/asm-microblaze/flat.h |   93 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 117 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/elf.h
+ create mode 100644 include/asm-microblaze/flat.h
 
-diff --git a/arch/microblaze/kernel/cpu/mb.c b/arch/microblaze/kernel/cpu/mb.c
+diff --git a/include/asm-microblaze/elf.h b/include/asm-microblaze/elf.h
 new file mode 100644
-index 0000000..44a911c
+index 0000000..4a14fa0
 --- /dev/null
-+++ b/arch/microblaze/kernel/cpu/mb.c
-@@ -0,0 +1,115 @@
++++ b/include/asm-microblaze/elf.h
+@@ -0,0 +1,24 @@
 +/*
-+ * arch/microblaze/kernel/cpu/mb.c
-+ *
-+ * CPU-version specific code
++ * include/asm-microblaze/elf.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + *
-+ * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
-+ * Copyright (C) 2006 PetaLogix
++ * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#include <linux/init.h>
-+#include <linux/string.h>
-+#include <linux/seq_file.h>
-+#include <linux/cpu.h>
-+#include <linux/initrd.h>
++#ifndef _ASM_MICROBLAZE_ELF_H
++#define _ASM_MICROBLAZE_ELF_H
 +
-+#include <asm/cpuinfo.h>
-+#include <asm/setup.h>
-+#include <asm/sections.h>
-+#include <asm/page.h>
-+#include <asm/io.h>
-+#include <asm/bug.h>
-+#include <asm/param.h>
++#define EM_XILINX_MICROBLAZE 0xbaab
++#define ELF_ARCH	EM_XILINX_MICROBLAZE
 +
-+static int show_cpuinfo(struct seq_file *m, void *v)
-+{
-+	int count = 0;
-+	char *fpga_family = "Unknown";
-+	char *cpu_ver = "Unknown";
-+	int i;
++#define elf_check_arch(x) ((x)->e_machine == EM_XILINX_MICROBLAZE)
 +
-+	/* Denormalised to get the fpga family string */
-+	for (i = 0; family_string_lookup[i].s != NULL; i++) {
-+		if (cpuinfo.fpga_family_code == family_string_lookup[i].k) {
-+			fpga_family = (char *)family_string_lookup[i].s;
-+			break;
-+		}
-+	}
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS	ELFCLASS32
 +
-+	/* Denormalised to get the hw version string */
-+	for (i = 0; cpu_ver_lookup[i].s != NULL; i++) {
-+		if (cpuinfo.ver_code == cpu_ver_lookup[i].k) {
-+			cpu_ver = (char *)cpu_ver_lookup[i].s;
-+			break;
-+		}
-+	}
-+
-+	count = seq_printf(m,
-+			"CPU-Family:	MicroBlaze\n"
-+			"FPGA-Arch:	%s\n"
-+			"CPU-Ver:	%s\n"
-+			"CPU-MHz:	%d.%02d\n"
-+			"BogoMips:	%lu.%02lu\n",
-+			fpga_family,
-+			cpu_ver,
-+			cpuinfo.cpu_clock_freq /
-+			1000000,
-+			cpuinfo.cpu_clock_freq %
-+			1000000,
-+			loops_per_jiffy / (500000 / HZ),
-+			(loops_per_jiffy / (5000 / HZ)) % 100);
-+
-+	count += seq_printf(m,
-+			"HW-Div:\t\t%s\n"
-+			"HW-Shift:\t%s\n",
-+			cpuinfo.use_divider ? "yes" : "no",
-+			cpuinfo.use_barrel ? "yes" : "no");
-+
-+	if (cpuinfo.use_icache)
-+		count += seq_printf(m,
-+				"Icache:\t\t%ukB\n",
-+				cpuinfo.icache_size >> 10);
-+	else
-+		count += seq_printf(m, "Icache:\t\tno\n");
-+
-+	if (cpuinfo.use_dcache)
-+		count += seq_printf(m,
-+				"Dcache:\t\t%ukB\n",
-+				cpuinfo.dcache_size >> 10);
-+	else
-+		count += seq_printf(m, "Dcache:\t\tno\n");
-+
-+	count += seq_printf(m,
-+			"HW-Debug:\t%s\n",
-+			cpuinfo.hw_debug ? "yes" : "no");
-+
-+	return 0;
-+}
-+
-+static void *c_start(struct seq_file *m, loff_t *pos)
-+{
-+	int i = *pos;
-+
-+	return i < NR_CPUS ? (void *) (i + 1) : NULL;
-+}
-+
-+static void *c_next(struct seq_file *m, void *v, loff_t *pos)
-+{
-+	++*pos;
-+	return c_start(m, pos);
-+}
-+
-+static void c_stop(struct seq_file *m, void *v)
-+{
-+}
-+
-+struct seq_operations cpuinfo_op = {
-+	.start = c_start,
-+	.next = c_next,
-+	.stop = c_stop,
-+	.show = show_cpuinfo,
-+};
-diff --git a/arch/microblaze/kernel/cpu/pvr.c b/arch/microblaze/kernel/cpu/pvr.c
++#endif /* _ASM_MICROBLAZE_ELF_H */
+diff --git a/include/asm-microblaze/flat.h b/include/asm-microblaze/flat.h
 new file mode 100644
-index 0000000..19d99a8
+index 0000000..77ef8a2
 --- /dev/null
-+++ b/arch/microblaze/kernel/cpu/pvr.c
-@@ -0,0 +1,83 @@
++++ b/include/asm-microblaze/flat.h
+@@ -0,0 +1,93 @@
 +/*
-+ * arch/microblaze/kernel/cpu/pvr.c
++ * include/asm-microblaze/flat.h
 + *
-+ * Support for MicroBlaze PVR (processor version register)
++ * uClinux flat-format executables
 + *
-+ * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
-+ * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
-+ * Copyright (C) 2007 PetaLogix
++ * Copyright (C) 2005 John Williams <jwilliams@itee.uq.edu.au>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ *
 + */
 +
-+#include <linux/kernel.h>
-+#include <linux/compiler.h>
-+#include <asm/system.h>
-+#include <asm/exceptions.h>
-+#include <asm/pvr.h>
++#ifndef _ASM_MICROBLAZE_FLAT_H
++#define _ASM_MICROBLAZE_FLAT_H
++
++#include <asm/unaligned.h>
++
++#define	flat_stack_align(sp) /* nothing needed */
++#define	flat_argvp_envp_on_stack()	0
++#define	flat_old_ram_flag(flags)	(flags)
++#define	flat_reloc_valid(reloc, size)	((reloc) <= (size))
++#define	flat_set_persistent(relval, p)		0
 +
 +/*
-+ * Until we get an assembler that knows about the pvr registers,
-+ * this horrible cruft will have to do.
-+ * That hardcoded opcode is mfs r3, rpvrNN
++ * Microblaze works a little differently from other arches, because
++ * of the MICROBLAZE_64 reloc type. Here, a 32 bit address is split
++ * over two instructions, an 'imm' instruction which provides the top
++ * 16 bits, then the instruction "proper" which provides the low 16
++ * bits.
 + */
-+
-+#define get_single_pvr(pvrid, val)				\
-+{								\
-+	register unsigned tmp __asm__("r3");			\
-+	tmp = 0x0;	/* Prevent warning about unused */	\
-+	__asm__ __volatile__ (					\
-+			".byte 0x94,0x60,0xa0, " #pvrid "\n\t"	\
-+			: "=r" (tmp):: "memory"); 		\
-+	val = tmp;						\
-+}
 +
 +/*
-+ * Does the CPU support the PVR register?
-+ * return value:
-+ * 0: no PVR
-+ * 1: simple PVR
-+ * 2: full PVR
-+ *
-+ * This must work on all CPU versions, including those before the
-+ * PVR was even an option.
++ * Crack open a symbol reference and extract the address to be
++ * relocated. rp is a potentially unaligned pointer to the
++ * reference
 + */
 +
-+int cpu_has_pvr(void)
++static inline unsigned long
++flat_get_addr_from_rp(unsigned long *rp, unsigned long relval,
++			unsigned long flags, unsigned long *persistent)
 +{
-+	unsigned flags;
-+	unsigned pvr0;
-+	int ret = 0;
++	unsigned long addr;
++	(void)flags;
 +
-+	local_irq_save(flags);
++	/* Is it a split 64/32 reference? */
++	if (relval & 0x80000000) {
++		/* Grab the two halves of the reference */
++		unsigned long val_hi, val_lo;
 +
-+	/* PVR bit in MSR tells us if there is any support */
-+	if (!(flags & PVR_MSR_BIT))
-+		goto out;
++		val_hi = get_unaligned(rp);
++		val_lo = get_unaligned(rp+1);
 +
-+	get_single_pvr(0x00, pvr0);
-+	pr_debug("%s: pvr0 is 0x%08x\n", __func__, pvr0);
++		/* Crack the address out */
++		addr = ((val_hi & 0xffff) << 16) + (val_lo & 0xffff);
++	} else {
++		/* Get the address straight out */
++		addr = get_unaligned(rp);
++	}
 +
-+	if (pvr0 & PVR0_PVR_FULL_MASK)
-+		ret = 2;
-+	else
-+		ret = 1;
-+
-+out:
-+	local_irq_restore(flags);
-+	return ret;
++	return addr;
 +}
 +
-+void get_pvr(struct pvr_s *p)
++/*
++ * Insert an address into the symbol reference at rp. rp is potentially
++ * unaligned.
++ */
++
++static inline void
++flat_put_addr_at_rp(unsigned long *rp, unsigned long addr, unsigned long relval)
 +{
-+	get_single_pvr(0, p->pvr[0]);
-+	get_single_pvr(1, p->pvr[1]);
-+	get_single_pvr(2, p->pvr[2]);
-+	get_single_pvr(3, p->pvr[3]);
-+	get_single_pvr(4, p->pvr[4]);
-+	get_single_pvr(5, p->pvr[5]);
-+	get_single_pvr(6, p->pvr[6]);
-+	get_single_pvr(7, p->pvr[7]);
-+	get_single_pvr(8, p->pvr[8]);
-+	get_single_pvr(9, p->pvr[9]);
-+	get_single_pvr(10, p->pvr[10]);
-+	get_single_pvr(11, p->pvr[11]);
++	/* Is this a split 64/32 reloc? */
++	if (relval & 0x80000000) {
++		/* Get the two "halves" */
++		unsigned long val_hi = get_unaligned(rp);
++		unsigned long val_lo = get_unaligned(rp + 1);
++
++		/* insert the address */
++		val_hi = (val_hi & 0xffff0000) | addr >> 16;
++		val_lo = (val_lo & 0xffff0000) | (addr & 0xffff);
++
++		/* store the two halves back into memory */
++		put_unaligned(val_hi, rp);
++		put_unaligned(val_lo, rp+1);
++	} else {
++		/* Put it straight in, no messing around */
++		put_unaligned(addr, rp);
++	}
 +}
++
++#define	flat_get_relocate_addr(rel)	(rel & 0x7fffffff)
++
++#endif /* _ASM_MICROBLAZE_FLAT_H */
 -- 
 1.5.4.GIT
