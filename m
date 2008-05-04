@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 23/56] microblaze_v2: process and init task function
-Date: Sun,  4 May 2008 13:41:12 +0200
-Message-ID: <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 32/56] microblaze_v2: definitions of types
+Date: Sun,  4 May 2008 13:41:21 +0200
+Message-ID: <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -25,12 +25,21 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
  <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
  <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
+ <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
+ <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
+ <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
+ <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
+ <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
+ <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+ <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+ <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+ <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:51379 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:44216 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751256AbYEDPhS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 11:37:18 -0400
-In-Reply-To: <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
+	id S1751256AbYEDPmV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 11:42:21 -0400
+In-Reply-To: <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -43,20 +52,20 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/init_task.c |   31 +++++++++
- arch/microblaze/kernel/process.c   |  129 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 160 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/init_task.c
- create mode 100644 arch/microblaze/kernel/process.c
+ include/asm-microblaze/posix_types.h |   75 ++++++++++++++++++++++++++++++++++
+ include/asm-microblaze/types.h       |   64 +++++++++++++++++++++++++++++
+ 2 files changed, 139 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/posix_types.h
+ create mode 100644 include/asm-microblaze/types.h
 
-diff --git a/arch/microblaze/kernel/init_task.c b/arch/microblaze/kernel/init_task.c
+diff --git a/include/asm-microblaze/posix_types.h b/include/asm-microblaze/posix_types.h
 new file mode 100644
-index 0000000..7c6bce3
+index 0000000..a4aa46e
 --- /dev/null
-+++ b/arch/microblaze/kernel/init_task.c
-@@ -0,0 +1,31 @@
++++ b/include/asm-microblaze/posix_types.h
+@@ -0,0 +1,75 @@
 +/*
-+ * arch/microblaze/kernel/init_task.c
++ * include/asm-microblaze/posix_types.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -65,161 +74,140 @@ index 0000000..7c6bce3
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#include <linux/module.h>
-+#include <linux/sched.h>
-+#include <linux/init_task.h>
-+#include <linux/fs.h>
-+#include <linux/mqueue.h>
++#ifndef _ASM_MICROBLAZE_POSIX_TYPES_H
++#define _ASM_MICROBLAZE_POSIX_TYPES_H
 +
-+#include <asm/pgtable.h>
-+
-+static struct fs_struct init_fs = INIT_FS;
-+static struct files_struct init_files = INIT_FILES;
-+static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
-+static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
-+struct mm_struct init_mm = INIT_MM(init_mm);
-+EXPORT_SYMBOL(init_mm);
-+
-+union thread_union init_thread_union
-+	__attribute__((__section__(".data.init_task"))) =
-+{ INIT_THREAD_INFO(init_task) };
-+
-+struct task_struct init_task = INIT_TASK(init_task);
-+EXPORT_SYMBOL(init_task);
-diff --git a/arch/microblaze/kernel/process.c b/arch/microblaze/kernel/process.c
-new file mode 100644
-index 0000000..679fe19
---- /dev/null
-+++ b/arch/microblaze/kernel/process.c
-@@ -0,0 +1,129 @@
 +/*
-+ * arch/microblaze/kernel/process.c
++ * This file is generally used by user-level software, so you need to
++ * be a little careful about namespace pollution etc. Also, we cannot
++ * assume GCC is being used.
++ */
++
++typedef unsigned long	__kernel_ino_t;
++typedef unsigned short	__kernel_mode_t;
++typedef unsigned short	__kernel_nlink_t;
++typedef long		__kernel_off_t;
++typedef int		__kernel_pid_t;
++typedef unsigned short	__kernel_ipc_pid_t;
++typedef unsigned short	__kernel_uid_t;
++typedef unsigned short	__kernel_gid_t;
++typedef unsigned int	__kernel_size_t;
++typedef int		__kernel_ssize_t;
++typedef int		__kernel_ptrdiff_t;
++typedef long		__kernel_time_t;
++typedef long		__kernel_suseconds_t;
++typedef long		__kernel_clock_t;
++typedef int		__kernel_timer_t;
++typedef int		__kernel_clockid_t;
++typedef int		__kernel_daddr_t;
++typedef char *		__kernel_caddr_t;
++typedef unsigned short	__kernel_uid16_t;
++typedef unsigned short	__kernel_gid16_t;
++typedef unsigned int	__kernel_uid32_t;
++typedef unsigned int	__kernel_gid32_t;
++
++typedef unsigned short	__kernel_old_uid_t;
++typedef unsigned short	__kernel_old_gid_t;
++typedef unsigned short	__kernel_old_dev_t;
++
++#ifdef __GNUC__
++typedef long long	__kernel_loff_t;
++#endif
++
++typedef struct {
++#if defined(__KERNEL__) || defined(__USE_ALL)
++	int	val[2];
++#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
++	int	__val[2];
++#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
++} __kernel_fsid_t;
++
++#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
++
++#undef	__FD_SET
++#define	__FD_SET(d, set)	((set)->fds_bits[__FDELT(d)] |= __FDMASK(d))
++
++#undef	__FD_CLR
++#define	__FD_CLR(d, set)	((set)->fds_bits[__FDELT(d)] &= ~__FDMASK(d))
++
++#undef	__FD_ISSET
++#define	__FD_ISSET(d, set)	(!!((set)->fds_bits[__FDELT(d)] & __FDMASK(d)))
++
++#undef	__FD_ZERO
++#define __FD_ZERO(fdsetp) (memset (fdsetp, 0, sizeof(*(fd_set *)fdsetp)))
++
++#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
++
++#endif /* _ASM_MICROBLAZE_POSIX_TYPES_H */
+diff --git a/include/asm-microblaze/types.h b/include/asm-microblaze/types.h
+new file mode 100644
+index 0000000..052cc8f
+--- /dev/null
++++ b/include/asm-microblaze/types.h
+@@ -0,0 +1,64 @@
++/*
++ * include/asm-microblaze/types.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
++ * Copyright (C) Atmark Techno, Inc.
 + */
 +
-+#include <linux/module.h>
-+#include <linux/sched.h>
-+#include <linux/pm.h>
++#ifndef _ASM_MICROBLAZE_TYPES_H
++#define _ASM_MICROBLAZE_TYPES_H
 +
-+#include <asm/system.h>
++#ifndef __ASSEMBLY__
 +
-+/* FIXME */
-+void show_regs(struct pt_regs *regs)
-+{
-+	unsigned long *p;
-+	int i;
-+	printk(KERN_INFO "pc:\t0x%08lx\tsp:\t0x%08lx\n", regs->pc, regs->r1);
-+	printk(KERN_INFO
-+		"flags:\t0x%08lx\tear:\t0x%08lx\tesr:\t"
-+		"0x%08lx\tfsr:\t0x%08lx\n",
-+		regs->msr, regs->ear, regs->esr, regs->fsr);
-+	printk(KERN_INFO
-+		"r0:\t0x%08lx\tr1:\t0x%08lx\tr2:\t0x%08lx\tr3\t0x%08lx\n",
-+		0L, regs->r1, regs->r2, regs->r3);
-+	for (i = 4, p = &(regs->r4); i < 32; i += 4, p += 4) {
-+		printk(KERN_INFO "r%i:\t0x%08lx\tr%i:\t0x%08lx\tr%i:\t"
-+			"0x%08lx\tr%i:\t0x%08lx\n",
-+			i, *p, i+1, *(p+1), i+2, *(p+2), i+3, *(p+3));
-+	}
-+	printk(KERN_INFO "\n");
-+}
-+
-+void (*pm_power_off)(void) = NULL;
-+EXPORT_SYMBOL(pm_power_off);
-+
-+void cpu_idle(void)
-+{
-+	set_thread_flag(TIF_POLLING_NRFLAG);
-+
-+	while (1) {
-+		while (!need_resched())
-+			cpu_relax();
-+
-+		preempt_enable_no_resched();
-+		schedule();
-+		preempt_disable();
-+	}
-+}
-+
-+void flush_thread(void)
-+{
-+}
-+
-+int copy_thread(int nr, unsigned long clone_flags, unsigned long usp,
-+		unsigned long unused,
-+		struct task_struct *p, struct pt_regs *regs)
-+{
-+	struct pt_regs *childregs = task_pt_regs(p);
-+	struct thread_info *ti = task_thread_info(p);
-+
-+	*childregs = *regs;
-+
-+	if (user_mode(regs))
-+		childregs->r1 = usp;
-+	else
-+		childregs->r1 = ((unsigned long) ti) + THREAD_SIZE;
-+
-+	memset(&ti->cpu_context, 0, sizeof(struct cpu_context));
-+	ti->cpu_context.sp = (unsigned long)childregs;
-+	ti->cpu_context.msr = (unsigned long)childregs->msr;
-+	ti->cpu_context.r15 = (unsigned long)ret_from_fork - 8;
-+
-+	if (clone_flags & CLONE_SETTLS)
-+		;/* FIXME: not sure what to do */
-+
-+	return 0;
-+}
++typedef unsigned short umode_t;
 +
 +/*
-+ * Return saved PC of a blocked thread.
-+ * FIXME this needs to be checked
++ * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
++ * header files exported to user space
 + */
-+unsigned long thread_saved_pc(struct task_struct *tsk)
-+{
-+	struct cpu_context *ctx =
-+		&(((struct thread_info *)(tsk->stack))->cpu_context);
 +
-+	/* Check whether the thread is blocked in resume() */
-+	if (in_sched_functions(ctx->r15))
-+		return ((unsigned long)ctx->r15);
-+	else
-+		return ctx->r14;
-+}
++typedef __signed__ char __s8;
++typedef unsigned char __u8;
 +
-+static void kernel_thread_helper(int (*fn)(void *), void *arg)
-+{
-+	fn(arg);
-+	do_exit(-1);
-+}
++typedef __signed__ short __s16;
++typedef unsigned short __u16;
 +
-+int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
-+{
-+	struct pt_regs regs;
-+	int ret;
++typedef __signed__ int __s32;
++typedef unsigned int __u32;
 +
-+	memset(&regs, 0, sizeof(regs));
-+	/* store them in non-volatile registers */
-+	regs.r5 = (unsigned long)fn;
-+	regs.r6 = (unsigned long)arg;
-+	local_save_flags(regs.msr);
-+	regs.pc = (unsigned long)kernel_thread_helper;
-+	regs.kernel_mode = 1;
++#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
++typedef __signed__ long long __s64;
++typedef unsigned long long __u64;
++#endif
 +
-+	ret = do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0,
-+			&regs, 0, NULL, NULL);
++/*
++ * These aren't exported outside the kernel to avoid name space clashes
++ */
++#ifdef __KERNEL__
 +
-+	return ret;
-+}
++typedef __signed__ char s8;
++typedef unsigned char u8;
 +
-+unsigned long get_wchan(struct task_struct *p)
-+{
-+/* TBD (used by procfs) */
-+	return 0;
-+}
++typedef __signed__ short s16;
++typedef unsigned short u16;
++
++typedef __signed__ int s32;
++typedef unsigned int u32;
++
++typedef __signed__ long long s64;
++typedef unsigned long long u64;
++
++
++#define BITS_PER_LONG 32
++
++/* Dma addresses are 32-bits wide. */
++
++typedef u32 dma_addr_t;
++
++#endif/* __KERNEL__ */
++#endif
++
++#endif /* _ASM_MICROBLAZE_TYPES_H */
 -- 
 1.5.4.GIT
