@@ -1,43 +1,45 @@
-From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 1/2] OF: Fix coding style violation in of_device.c and
- of_platform.c
-Date: Sun, 04 May 2008 10:20:35 +0200
-Message-ID: <481D71D3.7060703@seznam.cz>
-References: <monstr@seznam.cz> <1209824532-7939-1-git-send-email-monstr@seznam.cz> <765c6c8053679c45eb370255a110f7bc680a8f25.1209824033.git.monstr@monstr.eu> <200805032304.58709.arnd@arndb.de>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH 1/1] DEBUGFS: Fixing name for debug fs
+Date: Sun, 04 May 2008 10:28:32 +0200
+Message-ID: <481D73B0.8020705@monstr.eu>
+References: <monstr@seznam.cz> <1209825314-8048-1-git-send-email-monstr@seznam.cz> <c65b09261996cf3500b6faee201e2dd6c152973e.1209825194.git.monstr@monstr.eu> <200805032307.04352.arnd@arndb.de>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:56421 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:61722 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752477AbYEDITS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 04:19:18 -0400
-In-Reply-To: <200805032304.58709.arnd@arndb.de>
+	with ESMTP id S1753109AbYEDIz1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 04:55:27 -0400
+In-Reply-To: <200805032307.04352.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: paulus@samba.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: monstr@seznam.cz, paulus@samba.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 Hi Arnd,
 
-this is question to powerpc guys not to me. I haven't tried to compiled but I
-think dcr.h is important header for powerpc.
-I only fixed problem for Microblaze because we don't have these headers.
+This is question up to PowerPC guys not to me.
+of_debugfs_root sounds good.
 
 M
 
+
+>> This change is made because powerpc_debugfs_root is arch
+>> specific name.
+> ...
 >>  
->>  #include <asm/errno.h>
->> +
->> +#ifdef CONFIG_PPC_PSERIES
->>  #include <asm/dcr.h>
->> +#endif
+>>  static int powerpc_debugfs_init(void)
+>>  {
+>> -       powerpc_debugfs_root = debugfs_create_dir("powerpc", NULL);
+>> +       debugfs_root = debugfs_create_dir("powerpc", NULL);
 >>  
 > 
-> The patch looks basically good, but we normally try to not have an #include
-> inside of #ifdef. If the file builds without this #include, maybe you should
-> better leave it out entirely? Same for the ppc-pci.h in the other file.
+> You left the name as "powerpc", which sort of defeats the purpose of your
+> patch. Files in debugfs are by definition not part of the ABI, so it's
+> actually possible to change this as well. How about making this "of"
+> instead of "powerpc"?
 > 
 > 	Arnd <><
 > 
