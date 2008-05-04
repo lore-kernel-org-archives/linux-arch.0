@@ -1,48 +1,14 @@
 From: monstr@seznam.cz
-Subject: [PATCH 33/56] microblaze_v2: ioctl support
-Date: Sun,  4 May 2008 13:41:22 +0200
-Message-ID: <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 01/56] microblaze_v2: Kconfig patches
+Date: Sun,  4 May 2008 13:40:50 +0200
+Message-ID: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
- <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
- <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
- <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu>
- <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
- <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu>
- <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>
- <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu>
- <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu>
- <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu>
- <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
- <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
- <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
- <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
- <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
- <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
- <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
- <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
- <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
- <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
- <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
- <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
- <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
- <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
- <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
- <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
- <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
- <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
- <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
- <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
- <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
 Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:59580 "EHLO
 	monstr.eu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751413AbYEEMYe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 08:24:34 -0400
-In-Reply-To: <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
-In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
-References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
+	id S1754436AbYEEMYm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 08:24:42 -0400
+In-Reply-To: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
@@ -53,200 +19,338 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/ioctl.h  |   84 +++++++++++++++++++++++++++++++++++
- include/asm-microblaze/ioctls.h |   93 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 177 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/ioctl.h
- create mode 100644 include/asm-microblaze/ioctls.h
+ arch/microblaze/Kconfig                       |  149 +++++++++++++++++++++++++
+ arch/microblaze/Kconfig.debug                 |   35 ++++++
+ arch/microblaze/platform/Kconfig.platform     |   63 +++++++++++
+ arch/microblaze/platform/generic/Kconfig.auto |   52 +++++++++
+ 4 files changed, 299 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/Kconfig
+ create mode 100644 arch/microblaze/Kconfig.debug
+ create mode 100644 arch/microblaze/platform/Kconfig.platform
+ create mode 100644 arch/microblaze/platform/generic/Kconfig.auto
 
-diff --git a/include/asm-microblaze/ioctl.h b/include/asm-microblaze/ioctl.h
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
 new file mode 100644
-index 0000000..7cfaaea
+index 0000000..49767d1
 --- /dev/null
-+++ b/include/asm-microblaze/ioctl.h
-@@ -0,0 +1,84 @@
-+/*
-+ * include/asm-microblaze/ioctl.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++++ b/arch/microblaze/Kconfig
+@@ -0,0 +1,149 @@
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
 +
-+#ifndef _ASM_MICROBLAZE_IOCTL_H
-+#define _ASM_MICROBLAZE_IOCTL_H
++mainmenu "Linux/Microblaze Kernel Configuration"
 +
-+/*
-+ * this was copied from the alpha as it's a bit cleaner there.
-+ * -- Cort
-+ */
++config MICROBLAZE
++	def_bool y
++	select HAVE_LMB
 +
-+#define _IOC_NRBITS	8
-+#define _IOC_TYPEBITS	8
-+#define _IOC_SIZEBITS	13
-+#define _IOC_DIRBITS	3
++config MMU
++	def_bool n
 +
-+#define _IOC_NRMASK	((1 << _IOC_NRBITS)-1)
-+#define _IOC_TYPEMASK	((1 << _IOC_TYPEBITS)-1)
-+#define _IOC_SIZEMASK	((1 << _IOC_SIZEBITS)-1)
-+#define _IOC_DIRMASK	((1 << _IOC_DIRBITS)-1)
++config SWAP
++	def_bool n
 +
-+#define _IOC_NRSHIFT	0
-+#define _IOC_TYPESHIFT	(_IOC_NRSHIFT+_IOC_NRBITS)
-+#define _IOC_SIZESHIFT	(_IOC_TYPESHIFT+_IOC_TYPEBITS)
-+#define _IOC_DIRSHIFT	(_IOC_SIZESHIFT+_IOC_SIZEBITS)
++config RWSEM_GENERIC_SPINLOCK
++	def_bool y
 +
-+/*
-+ * Direction bits _IOC_NONE could be 0, but OSF/1 gives it a bit.
-+ * And this turns out useful to catch old ioctl numbers in header
-+ * files for us.
-+ */
-+#define _IOC_NONE	1U
-+#define _IOC_READ	2U
-+#define _IOC_WRITE	4U
++config RWSEM_XCHGADD_ALGORITHM
++	bool
 +
-+#define _IOC(dir, type, nr, size) \
-+	(((dir) << _IOC_DIRSHIFT) | \
-+	((type) << _IOC_TYPESHIFT) | \
-+	((nr) << _IOC_NRSHIFT) | \
-+	((size) << _IOC_SIZESHIFT))
++config ARCH_HAS_ILOG2_U32
++	def_bool n
 +
-+/* provoke compile error for invalid uses of size argument */
-+extern unsigned int __invalid_size_argument_for_IOC;
-+#define _IOC_TYPECHECK(t) \
-+	((sizeof(t) == sizeof(t[1]) && \
-+	sizeof(t) < (1 << _IOC_SIZEBITS)) ? \
-+	sizeof(t) : __invalid_size_argument_for_IOC)
++config ARCH_HAS_ILOG2_U64
++	def_bool n
 +
-+/* used to create numbers */
-+#define _IO(type, nr)		_IOC(_IOC_NONE, (type), (nr), 0)
-+#define _IOR(type, nr, size) \
-+			_IOC(_IOC_READ, (type), (nr), (_IOC_TYPECHECK(size)))
-+#define _IOW(type, nr, size) \
-+			_IOC(_IOC_WRITE, (type), (nr), (_IOC_TYPECHECK(size)))
-+#define _IOWR(type, nr, size) \
-+		_IOC(_IOC_READ|_IOC_WRITE, (type), (nr), (_IOC_TYPECHECK(size)))
-+#define _IOR_BAD(type, nr, size) \
-+			_IOC(_IOC_READ, (type), (nr), sizeof(size))
-+#define _IOW_BAD(type, nr, size) \
-+			_IOC(_IOC_WRITE, (type), (nr), sizeof(size))
-+#define _IOWR_BAD(type, nr, size) \
-+			_IOC(_IOC_READ|_IOC_WRITE, (type), (nr), sizeof(size))
++config GENERIC_FIND_NEXT_BIT
++	def_bool y
 +
-+/* used to decode them.. */
-+#define _IOC_DIR(nr)		(((nr) >> _IOC_DIRSHIFT) & _IOC_DIRMASK)
-+#define _IOC_TYPE(nr)		(((nr) >> _IOC_TYPESHIFT) & _IOC_TYPEMASK)
-+#define _IOC_NR(nr)		(((nr) >> _IOC_NRSHIFT) & _IOC_NRMASK)
-+#define _IOC_SIZE(nr)		(((nr) >> _IOC_SIZESHIFT) & _IOC_SIZEMASK)
++config GENERIC_HWEIGHT
++	def_bool y
 +
-+/* various drivers, such as the pcmcia stuff, need these... */
-+#define IOC_IN		(_IOC_WRITE << _IOC_DIRSHIFT)
-+#define IOC_OUT		(_IOC_READ << _IOC_DIRSHIFT)
-+#define IOC_INOUT	((_IOC_WRITE|_IOC_READ) << _IOC_DIRSHIFT)
-+#define IOCSIZE_MASK	(_IOC_SIZEMASK << _IOC_SIZESHIFT)
-+#define IOCSIZE_SHIFT	(_IOC_SIZESHIFT)
++config GENERIC_HARDIRQS
++	def_bool y
 +
-+#endif /* _ASM_MICROBLAZE_IOCTL_H */
-diff --git a/include/asm-microblaze/ioctls.h b/include/asm-microblaze/ioctls.h
++config GENERIC_IRQ_PROBE
++	def_bool y
++
++config GENERIC_CALIBRATE_DELAY
++	def_bool y
++
++config PCI
++	def_bool n
++
++config NO_DMA
++	def_bool y
++
++config UID16
++	def_bool y
++
++config HZ
++	int
++	default 100
++
++config DEFCONFIG_LIST
++	string
++	default "arch/$ARCH/defconfig"
++
++source "init/Kconfig"
++
++source "arch/microblaze/platform/Kconfig.platform"
++
++menu "Processor type and features"
++
++config PREEMPT
++	bool "Preemptible Kernel"
++	help
++	  This option reduces the latency of the kernel when reacting to
++	  real-time or interactive events by allowing a low priority process to
++	  be preempted even if it is in kernel mode executing a system call.
++	  This allows applications to run more reliably even when the system is
++	  under load.
++
++	  Say Y here if you are building a kernel for a desktop, embedded
++	  or real-time system.  Say N if you are unsure.
++
++config PREEMPT_TIMES
++	bool "Collect preemption latency times"
++	depends on PREEMPT
++	help
++	  Allow collection for preemption latency times.
++
++config XILINX_UNCACHED_SHADOW
++	bool "Are you using uncached shadow for RAM ?"
++	depends on MICROBLAZE
++	default y
++	help
++	  This is needed to be able to allocate uncachable memory regions.
++	  The feature requires the design to define the RAM memory controller window
++	  to be twice as large as the actual physical memory.
++
++config LARGE_ALLOCS
++	bool "Allow allocating large blocks (> 1MB) of memory"
++	help
++	  Allow the slab memory allocator to keep chains for very large
++	  memory sizes - up to 32MB. You may need this if your system has
++	  a lot of RAM, and you need to able to allocate very large
++	  contiguous chunks. If unsure, say N.
++
++comment "Boot options"
++
++config CMDLINE
++	string "Default kernel command string"
++	default ""
++	help
++	  On some architectures there is currently no way for the boot loader
++	  to pass arguments to the kernel. For these architectures, you should
++	  supply some command-line options at build time by entering them
++	  here.
++
++config CMDLINE_FORCE
++	bool "Force default kernel command string"
++	help
++	  Set this to have arguments from the default kernel command string
++	  override those passed by the boot loader.
++
++config OF
++	def_bool y
++
++config OF_DEVICE
++	def_bool y
++
++endmenu
++
++config APM_EMULATION
++	bool
++
++source "mm/Kconfig"
++
++menu "Exectuable file formats"
++
++source "fs/Kconfig.binfmt"
++
++endmenu
++
++source "net/Kconfig"
++
++source "drivers/Kconfig"
++
++source "fs/Kconfig"
++
++source "arch/microblaze/Kconfig.debug"
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
+diff --git a/arch/microblaze/Kconfig.debug b/arch/microblaze/Kconfig.debug
 new file mode 100644
-index 0000000..4bc5fd4
+index 0000000..d15f8b0
 --- /dev/null
-+++ b/include/asm-microblaze/ioctls.h
-@@ -0,0 +1,93 @@
-+/*
-+ * include/asm-microblaze/ioctls.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++++ b/arch/microblaze/Kconfig.debug
+@@ -0,0 +1,35 @@
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
 +
-+#ifndef _ASM_MICROBLAZE_IOCTLS_H
-+#define _ASM_MICROBLAZE_IOCTLS_H
++menu "Kernel hacking"
 +
-+#include <asm/ioctl.h>
++source "lib/Kconfig.debug"
 +
-+/* 0x54 is just a magic number to make these relatively unique ('T') */
++config EARLY_PRINTK
++	def_bool y
 +
-+#define TCGETS		0x5401
-+#define TCSETS		0x5402
-+#define TCSETSW		0x5403
-+#define TCSETSF		0x5404
-+#define TCGETA		0x5405
-+#define TCSETA		0x5406
-+#define TCSETAW		0x5407
-+#define TCSETAF		0x5408
-+#define TCSBRK		0x5409
-+#define TCXONC		0x540A
-+#define TCFLSH		0x540B
-+#define TIOCEXCL	0x540C
-+#define TIOCNXCL	0x540D
-+#define TIOCSCTTY	0x540E
-+#define TIOCGPGRP	0x540F
-+#define TIOCSPGRP	0x5410
-+#define TIOCOUTQ	0x5411
-+#define TIOCSTI		0x5412
-+#define TIOCGWINSZ	0x5413
-+#define TIOCSWINSZ	0x5414
-+#define TIOCMGET	0x5415
-+#define TIOCMBIS	0x5416
-+#define TIOCMBIC	0x5417
-+#define TIOCMSET	0x5418
-+#define TIOCGSOFTCAR	0x5419
-+#define TIOCSSOFTCAR	0x541A
-+#define FIONREAD	0x541B
-+#define TIOCINQ		FIONREAD
-+#define TIOCLINUX	0x541C
-+#define TIOCCONS	0x541D
-+#define TIOCGSERIAL	0x541E
-+#define TIOCSSERIAL	0x541F
-+#define TIOCPKT		0x5420
-+#define FIONBIO		0x5421
-+#define TIOCNOTTY	0x5422
-+#define TIOCSETD	0x5423
-+#define TIOCGETD	0x5424
-+#define TCSBRKP		0x5425 /* Needed for POSIX tcsendbreak() */
-+#define TIOCTTYGSTRUCT	0x5426 /* For debugging only */
-+#define TIOCSBRK	0x5427 /* BSD compatibility */
-+#define TIOCCBRK	0x5428 /* BSD compatibility */
-+#define TIOCGSID	0x5429 /* Return the session ID of FD */
-+/* Get Pty Number (of pty-mux device) */
-+#define TIOCGPTN	_IOR('T', 0x30, unsigned int)
-+#define TIOCSPTLCK	_IOW('T', 0x31, int) /* Lock/unlock Pty */
++config EARLY_PRINTK_UARTLITE_ADDRESS
++	hex "Physical address where UART Lite for early printk is mapped"
++	depends on EARLY_PRINTK
++	default "0x40100000"
++	help
++	  Please enter physical address where your uart lite is mapped.
 +
-+#define FIONCLEX	0x5450 /* these numbers need to be adjusted. */
-+#define FIOCLEX		0x5451
-+#define FIOASYNC	0x5452
-+#define TIOCSERCONFIG	0x5453
-+#define TIOCSERGWILD	0x5454
-+#define TIOCSERSWILD	0x5455
-+#define TIOCGLCKTRMIOS	0x5456
-+#define TIOCSLCKTRMIOS	0x5457
-+#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
-+#define TIOCSERGETLSR	0x5459 /* Get line status register */
-+#define TIOCSERGETMULTI 0x545A /* Get multiport config */
-+#define TIOCSERSETMULTI 0x545B /* Set multiport config */
++config HEART_BEAT
++	bool "Heart beat function for kernel"
++	help
++	  This option turns on/off heart beat kernel functionality on selected
++	  GPIO address.
 +
-+#define TIOCMIWAIT	0x545C /* wait for a change on serial input line(s) */
-+#define TIOCGICOUNT	0x545D /* read serial port inline interrupt counts */
++config HEART_BEAT_ADDRESS
++	hex "Physical address for heart beat LED"
++	depends on HEART_BEAT
++	default "0x40600000"
++	help
++	  Please enter physical address GPIO LED.
 +
-+#define	FIOQSIZE	0x545E
++config DEBUG_BOOTMEM
++	depends on DEBUG_KERNEL
++	bool "Debug BOOTMEM initialization"
 +
-+/* Used for packet mode */
-+#define TIOCPKT_DATA		0
-+#define TIOCPKT_FLUSHREAD	1
-+#define TIOCPKT_FLUSHWRITE	2
-+#define TIOCPKT_STOP		4
-+#define TIOCPKT_START		8
-+#define TIOCPKT_NOSTOP		16
-+#define TIOCPKT_DOSTOP		32
++endmenu
+diff --git a/arch/microblaze/platform/Kconfig.platform b/arch/microblaze/platform/Kconfig.platform
+new file mode 100644
+index 0000000..64cbb80
+--- /dev/null
++++ b/arch/microblaze/platform/Kconfig.platform
+@@ -0,0 +1,63 @@
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
++#
++# Platform selection Kconfig menu for MicroBlaze targets
++#
 +
-+#define TIOCSER_TEMT	0x01 /* Transmitter physically empty */
++menu "Platform options"
++choice
++	prompt "Platform"
++	default PLATFORM_MICROBLAZE_AUTO
++	help
++	  Choose which hardware board/platform you are targeting.
 +
-+#endif /* _ASM_MICROBLAZE_IOCTLS_H */
++config PLATFORM_GENERIC
++	bool "Generic"
++	help
++	  Choose this option for the Generic platform.
++
++endchoice
++
++config HACK
++	bool "Increase performance"
++	default y
++
++config OPT_LIB_FUNCTION
++	bool "Optimalized lib function"
++	default y
++	help
++	  Allows turn on optimalized library function (memcpy and memmove).
++	  They are optimized by using unsigned alignment. This will work
++	  fine if both source and destination are aligned on the same
++	  boundary. However, if they are aligned on different boundaries
++	  shifts will be necessary. This might result in bad performance
++	  on MicroBlaze systems without a barrel shifter.
++
++# This is still a bit broken - disabling for now JW 20070504
++config ALLOW_EDIT_AUTO
++	bool "Permit Display/edit of Kconfig.auto platform settings"
++	default n
++	help
++	  Allows the editing of auto-generated platform settings from
++	  the Kconfig.auto file. Obviously this does not change the
++	  underlying hardware, so be very careful if you go editing
++	  these settings.
++
++	  Also, if you enable this, and edit various Kconfig.auto
++	  settings, YOUR CHANGES WILL BE LOST if you then disable it
++	  again. You have been warned!
++
++	  If unsure, say no.
++
++# Ok, the platform is chosen. Source the kconfig.auto to get all of the
++# system settings.
++# If user selected CONFIG_EDIT_AUTO, these will be rendered in gory detail
++# and be able to be edited
++comment "Automatic platform settings from Kconfig.auto"
++	depends on ALLOW_EDIT_AUTO
++
++if PLATFORM_GENERIC=y
++	source "arch/microblaze/platform/generic/Kconfig.auto"
++endif
++
++endmenu
+diff --git a/arch/microblaze/platform/generic/Kconfig.auto b/arch/microblaze/platform/generic/Kconfig.auto
+new file mode 100644
+index 0000000..5dc8c15
+--- /dev/null
++++ b/arch/microblaze/platform/generic/Kconfig.auto
+@@ -0,0 +1,52 @@
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
++#
++# Platform Kconfig menu for Microblaze generic board
++#
++
++comment "Definitions for MICROBLAZE0"
++	depends on ALLOW_EDIT_AUTO
++
++config KERNEL_BASE_ADDR
++	hex "Physical address where Linux Kernel is"
++	default "0x20000000"
++	help
++	  BASE Address for kernel
++
++config XILINX_ERAM_SIZE
++	hex "Memory size of XILINX_RAM"
++	depends on XILINX_UNCACHED_SHADOW
++	default 0x02000000
++
++config XILINX_MICROBLAZE0_FAMILY
++	string "Targetted FPGA family" if ALLOW_EDIT_AUTO
++	default spartan3e
++
++config XILINX_MICROBLAZE0_HW_VER
++	string "Core version number" if ALLOW_EDIT_AUTO
++	default 5.00.c
++
++config XILINX_MICROBLAZE0_USE_MSR_INSTR
++	int "USE_MSR_INSTR" if ALLOW_EDIT_AUTO
++	default 1
++	range 0 1
++
++config XILINX_MICROBLAZE0_USE_BARREL
++	int "USE_BARREL" if ALLOW_EDIT_AUTO
++	default 1
++	range 0 1
++
++config XILINX_MICROBLAZE0_USE_DIV
++	int "USE_DIV" if ALLOW_EDIT_AUTO
++	default 1
++	range 0 1
++
++config XILINX_MICROBLAZE0_USE_HW_MUL
++	int "USE_HW_MUL" if ALLOW_EDIT_AUTO
++	default 1
++	range 0 2
++
++config XILINX_MICROBLAZE0_USE_FPU
++	int "USE_FPU" if ALLOW_EDIT_AUTO
++	default 0
++	range 0 1
 -- 
 1.5.4.GIT
