@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 37/56] microblaze_v2: headers for irq
-Date: Sun,  4 May 2008 13:41:26 +0200
-Message-ID: <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 15/56] microblaze_v2: head.S + linker script
+Date: Sun,  4 May 2008 13:41:04 +0200
+Message-ID: <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -17,34 +17,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
  <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
  <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
- <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
- <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
- <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
- <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
- <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
- <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
- <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
- <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
- <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
- <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
- <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
- <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
- <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
- <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
- <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
- <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
- <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
- <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
- <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
- <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:50173 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:32994 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751025AbYEDOwX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 10:52:23 -0400
-In-Reply-To: <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
+	id S1750713AbYEDPAb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 11:00:31 -0400
+In-Reply-To: <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -57,22 +35,66 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/hardirq.h  |   31 +++++++++++++++++++++++++++++++
- include/asm-microblaze/hw_irq.h   |   19 +++++++++++++++++++
- include/asm-microblaze/irq_regs.h |   19 +++++++++++++++++++
- 3 files changed, 69 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/hardirq.h
- create mode 100644 include/asm-microblaze/hw_irq.h
- create mode 100644 include/asm-microblaze/irq_regs.h
+ arch/microblaze/kernel/head.S        |   40 +++++++++
+ arch/microblaze/kernel/vmlinux.lds.S |  145 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 185 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/head.S
+ create mode 100644 arch/microblaze/kernel/vmlinux.lds.S
 
-diff --git a/include/asm-microblaze/hardirq.h b/include/asm-microblaze/hardirq.h
+diff --git a/arch/microblaze/kernel/head.S b/arch/microblaze/kernel/head.S
 new file mode 100644
-index 0000000..8a143fa
+index 0000000..8ca148b
 --- /dev/null
-+++ b/include/asm-microblaze/hardirq.h
-@@ -0,0 +1,31 @@
++++ b/arch/microblaze/kernel/head.S
+@@ -0,0 +1,40 @@
 +/*
-+ * include/asm-microblaze/hardirq.h
++ * arch/microblaze/kernel/head.S
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#include <linux/linkage.h>
++#include <asm/thread_info.h>
++
++	.text
++ENTRY(_start)
++	mfs	r1, rmsr
++	andi	r1, r1, ~2
++	mts	rmsr, r1
++
++	/* Initialize small data anchors */
++	la	r13, r0, _KERNEL_SDA_BASE_
++	la	r2, r0, _KERNEL_SDA2_BASE_
++
++	/* Initialize stack pointer */
++	la	r1, r0, init_thread_union + THREAD_SIZE - 4
++
++	/* Initialize r31 with current task address */
++	la	r31, r0, init_task
++
++	/* Call platform dependent initialize function.
++	 * Please see $(ARCH)/mach-$(SUBARCH)/setup.c for
++	 * the function. */
++	la	r8, r0, machine_early_init
++	brald	r15, r8
++	nop
++
++	la	r15, r0, machine_halt
++	braid	start_kernel
++	nop
+diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
+new file mode 100644
+index 0000000..8940f1f
+--- /dev/null
++++ b/arch/microblaze/kernel/vmlinux.lds.S
+@@ -0,0 +1,145 @@
++/*
++ * arch/microblaze/kernel/vmlinux.lds.S
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -81,76 +103,140 @@ index 0000000..8a143fa
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_HARDIRQ_H
-+#define _ASM_MICROBLAZE_HARDIRQ_H
++OUTPUT_FORMAT("elf32-microblaze", "elf32-microblaze", "elf32-microblaze")
++OUTPUT_ARCH(microblaze)
++ENTRY(_start)
 +
-+#include <linux/cache.h>
-+#include <linux/irq.h>
-+#include <asm/irq.h>
-+#include <asm/current.h>
-+#include <asm/ptrace.h>
++#include <linux/autoconf.h>
++#include <asm-generic/vmlinux.lds.h>
 +
-+/* should be defined in each interrupt controller driver */
-+extern unsigned int get_irq(struct pt_regs *regs);
++jiffies = jiffies_64 + 4;
 +
-+typedef struct {
-+	unsigned int __softirq_pending;
-+} ____cacheline_aligned irq_cpustat_t;
++SECTIONS {
++	. = CONFIG_KERNEL_BASE_ADDR;
 +
-+void ack_bad_irq(unsigned int irq);
++	.text : {
++		_text = . ;
++		_stext = . ;
++		TEXT_TEXT
++		SCHED_TEXT
++		LOCK_TEXT
++		. = ALIGN (4) ;
++		_etext = . ;
++	}
 +
-+#include <linux/irq_cpustat.h> /* Standard mappings for irq_cpustat_t above */
++	. = ALIGN(16);
++	RODATA
 +
-+#endif /* _ASM_MICROBLAZE_HARDIRQ_H */
-diff --git a/include/asm-microblaze/hw_irq.h b/include/asm-microblaze/hw_irq.h
-new file mode 100644
-index 0000000..467fa26
---- /dev/null
-+++ b/include/asm-microblaze/hw_irq.h
-@@ -0,0 +1,19 @@
-+/*
-+ * include/asm-microblaze/hw_irq.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++	/* sdata2 section can go anywhere, but must be word aligned
++	 and SDA2_BASE must point to the middle of it */
++	.sdata2 : {
++		_ssrw = .;
++		. = ALIGN(0x8);
++		*(.sdata2)
++	. = ALIGN(8);
++	_essrw = .;
++	_ssrw_size = _essrw - _ssrw;
++	_KERNEL_SDA2_BASE_ = _ssrw + (_ssrw_size / 2);
++	}
 +
-+#ifndef _ASM_MICROBLAZE_HW_IRQ_H
-+#define _ASM_MICROBLAZE_HW_IRQ_H
++	_sdata = . ;
++	.data ALIGN (0x4) : {
++		DATA_DATA
++	}
++	. = ALIGN(32);
++	.data.cacheline_aligned : { *(.data.cacheline_aligned) }
++	_edata = . ;
 +
-+static inline void hw_resend_irq(struct hw_interrupt_type *h, unsigned int i)
-+{
-+	/* Nothing to do */
++	/* The initial task */
++	. = ALIGN(8192);
++	.data.init_task : { *(.data.init_task) }
++
++	/* Under the microblaze ABI, .sdata and .sbss must be contiguous */
++	. = ALIGN(8);
++	.sdata : {
++		_ssro = .;
++		*(.sdata)
++	}
++
++	.sbss :	{
++		_ssbss = .;
++		*(.sbss)
++		_esbss = .;
++		_essro = .;
++		_ssro_size = _essro - _ssro ;
++		_KERNEL_SDA_BASE_ = _ssro + (_ssro_size / 2) ;
++	}
++
++	. = ALIGN(16);
++	__start___ex_table = .;
++	__ex_table : { *(__ex_table) }
++	__stop___ex_table = .;
++
++	__init_begin = .;
++
++	. = ALIGN(4096);
++	.init.text : {
++		_sinittext = . ;
++		*(.init.text)
++		*(.exit.text)
++		*(.exit.data)
++		_einittext = .;
++	}
++
++	.init.data : { *(.init.data) }
++
++	. = ALIGN(4);
++	.init.ivt : {
++		__ivt_start = .;
++		*(.init.ivt)
++		__ivt_end = .;
++	}
++
++	.init.setup : {
++		__setup_start = .;
++		*(.init.setup)
++		__setup_end = .;
++	}
++
++	.initcall.init : {
++		__initcall_start = .;
++		INITCALLS
++		__initcall_end = .;
++	}
++
++	.con_initcall.init : {
++		__con_initcall_start = .;
++		*(.con_initcall.init)
++		__con_initcall_end = .;
++	}
++
++	__init_end_before_initramfs = .;
++
++	.init.ramfs ALIGN(4096) : {
++		__initramfs_start = .;
++		*(.init.ramfs)
++		__initramfs_end = .;
++		. = ALIGN(4);
++		LONG(0);
++		. = ALIGN(4096);/* Pad init.ramfs up to page boundary, so
++				that __init_end == __bss_start. This will
++				make image.elf consistent with the image.bin */
++	}
++
++	__init_end = .;
++
++	.bss ALIGN (4096) : {
++		__bss_start = . ;
++			*(.bss*)
++			*(COMMON)
++		. = ALIGN (4) ;
++		__bss_stop = . ;
++		_ebss = . ;
++	}
++	. = ALIGN(4096);
++	_end = .;
 +}
-+
-+#endif /* _ASM_MICROBLAZE_HW_IRQ_H */
-diff --git a/include/asm-microblaze/irq_regs.h b/include/asm-microblaze/irq_regs.h
-new file mode 100644
-index 0000000..0876847
---- /dev/null
-+++ b/include/asm-microblaze/irq_regs.h
-@@ -0,0 +1,19 @@
-+/*
-+ * include/asm-microblaze/irq_regs.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
-+
-+#ifndef _ASM_MICROBLAZE_IRQ_REGS_H
-+#define _ASM_MICROBLAZE_IRQ_REGS_H
-+
-+#include <asm-generic/irq_regs.h>
-+
-+#endif /* _ASM_MICROBLAZE_IRQ_REGS_H */
-+
-+
 +
 -- 
 1.5.4.GIT
