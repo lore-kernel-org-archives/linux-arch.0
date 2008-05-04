@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 55/56] microblaze_v2: sys_microblaze.c
-Date: Sun,  4 May 2008 13:41:44 +0200
-Message-ID: <f9a90de744326afc94452b9acbf16cdc05002f8e.1209897267.git.monstr@monstr.eu>
+Subject: [PATCH 16/56] microblaze_v2: supported function for memory - kernel/lib
+Date: Sun,  4 May 2008 13:41:05 +0200
+Message-ID: <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -18,51 +18,12 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
  <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
  <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
- <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
- <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
- <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
- <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
- <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
- <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
- <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
- <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
- <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
- <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
- <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
- <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
- <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
- <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
- <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
- <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
- <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
- <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
- <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
- <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
- <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
- <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
- <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
- <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
- <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
- <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
- <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
- <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
- <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
- <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>
- <643084ee3819dd169cad3c4e3565c5ff20dd3429.1209897267.git.monstr@monstr.eu>
- <231ae415bf52de25c69f727fd13c50d201f8ecd8.1209897267.git.monstr@monstr.eu>
- <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
- <affa82887bee64b05420fdd5f723cca920acad90.1209897267.git.monstr@monstr.eu>
- <c709de3e3767d1be8b23ce73255389c525737c36.1209897267.git.monstr@monstr.eu>
- <a484cc541ae55e099035cccf903f208f39fdeb39.1209897267.git.monstr@monstr.eu>
- <90266c91f066bbc32d487bc7ee55b2f7e6ce0428.1209897267.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:33583 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:33592 "EHLO
 	monstr.eu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755946AbYEEIN2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 04:13:28 -0400
-In-Reply-To: <90266c91f066bbc32d487bc7ee55b2f7e6ce0428.1209897267.git.monstr@monstr.eu>
+	id S1753962AbYEEIOy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 04:14:54 -0400
+In-Reply-To: <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -75,302 +36,446 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/sys_microblaze.c |  287 +++++++++++++++++++++++++++++++
- 1 files changed, 287 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/sys_microblaze.c
+ arch/microblaze/lib/memcpy.c  |  162 +++++++++++++++++++++++++++++++++++++
+ arch/microblaze/lib/memmove.c |  176 +++++++++++++++++++++++++++++++++++++++++
+ arch/microblaze/lib/memset.c  |   77 ++++++++++++++++++
+ 3 files changed, 415 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/lib/memcpy.c
+ create mode 100644 arch/microblaze/lib/memmove.c
+ create mode 100644 arch/microblaze/lib/memset.c
 
-diff --git a/arch/microblaze/kernel/sys_microblaze.c b/arch/microblaze/kernel/sys_microblaze.c
+diff --git a/arch/microblaze/lib/memcpy.c b/arch/microblaze/lib/memcpy.c
 new file mode 100644
-index 0000000..1cf8efd
+index 0000000..8dc5b90
 --- /dev/null
-+++ b/arch/microblaze/kernel/sys_microblaze.c
-@@ -0,0 +1,287 @@
++++ b/arch/microblaze/lib/memcpy.c
+@@ -0,0 +1,162 @@
 +/*
-+ * arch/microblaze/kernel/sys_microblaze.c
++ * arch/microblaze/lib/memcpy.c
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
 + *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ * Copyright (C) 2007 PetaLogix
++ * Reasonably optimised generic C-code for memcpy on Microblaze
++ * This is generic C code to do efficient, alignment-aware memcpy.
 + *
-+ * Authors:
-+ * John Williams <john.williams@petalogix.com>
-+ * Yasushi SHOJI <yashi@atmark-techno.com>
-+ * Tetsuya OHKAWA <tetsuya@atmark-techno.com>
++ * It is based on demo code originally Copyright 2001 by Intel Corp, taken from
++ * http://www.embedded.com/showArticle.jhtml?articleID=19205567
++ *
++ * Attempts were made, unsuccesfully, to contact the original
++ * author of this code (Michael Morrow, Intel).  Below is the original
++ * copyright notice.
++ *
++ * This software has been developed by Intel Corporation.
++ * Intel specifically disclaims all warranties, express or
++ * implied, and all liability, including consequential and
++ * other indirect damages, for the use of this program, including
++ * liability for infringement of any proprietary rights,
++ * and including the warranties of merchantability and fitness
++ * for a particular purpose. Intel does not assume any
++ * responsibility for and errors which may appear in this program
++ * not any responsibility to update it.
 + */
 +
-+#include <linux/errno.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/smp_lock.h>
-+#include <linux/syscalls.h>
-+#include <linux/sem.h>
-+#include <linux/msg.h>
-+#include <linux/shm.h>
-+#include <linux/stat.h>
-+#include <linux/mman.h>
-+#include <linux/sys.h>
-+#include <linux/ipc.h>
-+#include <linux/utsname.h>
-+#include <linux/file.h>
++#include <linux/types.h>
++#include <linux/stddef.h>
++#include <linux/compiler.h>
 +#include <linux/module.h>
-+#include <linux/err.h>
-+#include <linux/fs.h>
 +
-+#include <asm/uaccess.h>
-+#include <linux/ipc.h>
-+#include <asm/semaphore.h>
-+#include <asm/unistd.h>
++#include <asm/string.h>
++#include <asm/system.h>
 +
++#ifdef __HAVE_ARCH_MEMCPY
++void *memcpy(void *v_dst, const void *v_src, __kernel_size_t c)
++{
++	const char *src = v_src;
++	char *dst = v_dst;
++#ifndef CONFIG_OPT_LIB_FUNCTION
++	/* Simple, byte oriented memcpy. */
++	while (c--)
++		*dst++ = *src++;
++
++	return v_dst;
++#else
++	/* The following code tries to optimize the copy by using unsigned
++	 * alignment. This will work fine if both source and destination are
++	 * aligned on the same boundary. However, if they are aligned on
++	 * different boundaries shifts will be necessary. This might result in
++	 * bad performance on MicroBlaze systems without a barrel shifter.
++	 */
++	const uint32_t *i_src;
++	uint32_t *i_dst;
++
++	if (c >= 4) {
++		unsigned  value, buf_hold;
++
++		/* Align the dstination to a word boundry. */
++		/* This is done in an endian independant manner. */
++		switch ((unsigned long)dst & 3) {
++		case 1:
++			*dst++ = *src++;
++			--c;
++		case 2:
++			*dst++ = *src++;
++			--c;
++		case 3:
++			*dst++ = *src++;
++			--c;
++		}
++
++		i_dst = (void *)dst;
++
++		/* Choose a copy scheme based on the source */
++		/* alignment relative to dstination. */
++		switch ((unsigned long)src & 3) {
++		case 0x0:	/* Both byte offsets are aligned */
++			i_src  = (const void *)src;
++
++			for (; c >= 4; c -= 4)
++				*i_dst++ = *i_src++;
++
++			src  = (const void *)i_src;
++			break;
++		case 0x1:	/* Unaligned - Off by 1 */
++			/* Word align the source */
++			i_src = (const void *) ((unsigned)src & ~3);
++
++			/* Load the holding buffer */
++			buf_hold = *i_src++ << 8;
++
++			for (; c >= 4; c -= 4) {
++				value = *i_src++;
++				*i_dst++ = buf_hold | value >> 24;
++				buf_hold = value << 8;
++			}
++
++			/* Realign the source */
++			src = (const void *)i_src;
++			src -= 3;
++			break;
++		case 0x2:	/* Unaligned - Off by 2 */
++			/* Word align the source */
++			i_src = (const void *) ((unsigned)src & ~3);
++
++			/* Load the holding buffer */
++			buf_hold = *i_src++ << 16;
++
++			for (; c >= 4; c -= 4) {
++				value = *i_src++;
++				*i_dst++ = buf_hold | value >> 16;
++				buf_hold = value << 16;
++			}
++
++			/* Realign the source */
++			src = (const void *)i_src;
++			src -= 2;
++			break;
++		case 0x3:	/* Unaligned - Off by 3 */
++			/* Word align the source */
++			i_src = (const void *) ((unsigned)src & ~3);
++
++			/* Load the holding buffer */
++			buf_hold = *i_src++ << 24;
++
++			for (; c >= 4; c -= 4) {
++				value = *i_src++;
++				*i_dst++ = buf_hold | value >> 8;
++				buf_hold = value << 24;
++			}
++
++			/* Realign the source */
++			src = (const void *)i_src;
++			src -= 1;
++			break;
++		}
++		dst = (void *)i_dst;
++	}
++
++	/* Finish off any remaining bytes */
++	/* simple fast copy, ... unless a cache boundry is crossed */
++	switch (c) {
++	case 3:
++		*dst++ = *src++;
++	case 2:
++		*dst++ = *src++;
++	case 1:
++		*dst++ = *src++;
++	}
++
++	return v_dst;
++#endif
++}
++EXPORT_SYMBOL(memcpy);
++#endif /* __HAVE_ARCH_MEMCPY */
++
++
++void *cacheable_memcpy(void *d, const void *s, __kernel_size_t c)
++{
++	return memcpy(d, s, c);
++}
+diff --git a/arch/microblaze/lib/memmove.c b/arch/microblaze/lib/memmove.c
+new file mode 100644
+index 0000000..99233be
+--- /dev/null
++++ b/arch/microblaze/lib/memmove.c
+@@ -0,0 +1,176 @@
 +/*
-+ * sys_ipc() is the de-multiplexer for the SysV IPC calls..
++ * arch/microblaze/lib/memmove.c
 + *
-+ * This is really horribly ugly.
++ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
++ *
++ * Reasonably optimised generic C-code for memcpy on Microblaze
++ * This is generic C code to do efficient, alignment-aware memmove.
++ *
++ * It is based on demo code originally Copyright 2001 by Intel Corp, taken from
++ * http://www.embedded.com/showArticle.jhtml?articleID=19205567
++ *
++ * Attempts were made, unsuccesfully, to contact the original
++ * author of this code (Michael Morrow, Intel).  Below is the original
++ * copyright notice.
++ *
++ * This software has been developed by Intel Corporation.
++ * Intel specifically disclaims all warranties, express or
++ * implied, and all liability, including consequential and
++ * other indirect damages, for the use of this program, including
++ * liability for infringement of any proprietary rights,
++ * and including the warranties of merchantability and fitness
++ * for a particular purpose. Intel does not assume any
++ * responsibility for and errors which may appear in this program
++ * not any responsibility to update it.
 + */
-+int
-+sys_ipc(uint call, int first, int second, int third, void *ptr, long fifth)
++
++#include <linux/types.h>
++#include <linux/stddef.h>
++#include <linux/compiler.h>
++#include <linux/module.h>
++
++#include <asm/string.h>
++
++#ifdef __HAVE_ARCH_MEMMOVE
++void *memmove(void *v_dst, const void *v_src, __kernel_size_t c)
 +{
-+	int version, ret;
++	const char *src = v_src;
++	char *dst = v_dst;
 +
-+	version = call >> 16; /* hack for backward compatibility */
-+	call &= 0xffff;
++#ifdef CONFIG_OPT_LIB_FUNCTION
++	const uint32_t *i_src;
++	uint32_t *i_dst;
++#endif
 +
-+	ret = -EINVAL;
-+	switch (call) {
-+	case SEMOP:
-+		ret = sys_semop(first, (struct sembuf *)ptr, second);
-+		break;
-+	case SEMGET:
-+		ret = sys_semget(first, second, third);
-+		break;
-+	case SEMCTL:
-+	{
-+		union semun fourth;
++	if (!c)
++		return v_dst;
 +
-+		if (!ptr)
-+			break;
-+		if ((ret = access_ok(VERIFY_READ, ptr,
-+					sizeof(long)) ? 0 : -EFAULT)
-+			|| (ret = get_user(fourth.__pad, (void **)ptr)))
-+			break;
-+		ret = sys_semctl(first, second, third, fourth);
-+		break;
-+	}
-+	case MSGSND:
-+		ret = sys_msgsnd(first, (struct msgbuf *) ptr, second, third);
-+		break;
-+	case MSGRCV:
-+		switch (version) {
-+		case 0: {
-+			struct ipc_kludge tmp;
++	/* Use memcpy when source is higher than dest */
++	if (v_dst <= v_src)
++		return memcpy(v_dst, v_src, c);
 +
-+			if (!ptr)
-+				break;
-+			if ((ret = access_ok(VERIFY_READ, ptr,
-+					sizeof(tmp)) ? 0 : -EFAULT)
-+				|| (ret = copy_from_user(&tmp,
-+						(struct ipc_kludge *) ptr,
-+						sizeof(tmp))))
-+				break;
-+			ret = sys_msgrcv(first, tmp.msgp, second, tmp.msgtyp,
-+					third);
-+			break;
-+			}
-+		default:
-+			ret = sys_msgrcv(first, (struct msgbuf *) ptr,
-+					second, fifth, third);
-+			break;
-+		}
-+		break;
-+	case MSGGET:
-+		ret = sys_msgget((key_t) first, second);
-+		break;
-+	case MSGCTL:
-+		ret = sys_msgctl(first, second, (struct msqid_ds *) ptr);
-+		break;
-+	case SHMAT:
-+		switch (version) {
-+		default: {
-+			ulong raddr;
++#ifndef CONFIG_OPT_LIB_FUNCTION
++	/* copy backwards, from end to beginning */
++	src += c;
++	dst += c;
 +
-+			if ((ret = access_ok(VERIFY_WRITE, (ulong *) third,
-+					sizeof(ulong)) ? 0 : -EFAULT))
-+				break;
-+			ret = do_shmat(first, (char *) ptr, second, &raddr);
-+			if (ret)
-+				break;
-+			ret = put_user(raddr, (ulong *) third);
-+			break;
-+			}
-+		case 1:	/* iBCS2 emulator entry point */
-+			if (!segment_eq(get_fs(), get_ds()))
-+				break;
-+			ret = do_shmat(first, (char *) ptr, second,
-+					(ulong *) third);
-+			break;
-+		}
-+		break;
-+	case SHMDT:
-+		ret = sys_shmdt((char *)ptr);
-+		break;
-+	case SHMGET:
-+		ret = sys_shmget(first, second, third);
-+		break;
-+	case SHMCTL:
-+		ret = sys_shmctl(first, second, (struct shmid_ds *) ptr);
-+		break;
-+	}
++	/* Simple, byte oriented memmove. */
++	while (c--)
++		*--dst = *--src;
 +
-+	return ret;
-+}
-+
-+long execve(const char *filename, char **argv, char **envp)
-+{
-+	struct pt_regs regs;
-+	int ret;
-+
-+	memset(&regs, 0, sizeof(struct pt_regs));
-+	local_save_flags(regs.msr);
-+	ret = do_execve((char *)filename, (char __user * __user *)argv,
-+			(char __user * __user *)envp, &regs);
-+
-+	if (ret < 0)
-+		goto out;
-+
-+	/*
-+	 * Save argc to the register structure for userspace.
++	return v_dst;
++#else
++	/* The following code tries to optimize the copy by using unsigned
++	 * alignment. This will work fine if both source and destination are
++	 * aligned on the same boundary. However, if they are aligned on
++	 * different boundaries shifts will be necessary. This might result in
++	 * bad performance on MicroBlaze systems without a barrel shifter.
 +	 */
-+	regs.r5 = ret; /* FIXME */
++	/* FIXME this part needs more test */
++	/* Do a descending copy - this is a bit trickier! */
++	dst += c;
++	src += c;
 +
-+	/*
-+	 * We were successful. We won't be returning to our caller, but
-+	 * instead to user space by manipulating the kernel stack.
-+	 */
-+	asm volatile ("addk	r5, r0, %0	\n\t"
-+			"addk	r6, r0, %1	\n\t"
-+			/* copy regs to top of stack */
-+			"brlid	r15, memmove	\n\t"
-+			"addik	r7, r0, %2	\n\t"
-+			"brid	ret_to_user	\n\t"
-+			/* reposition stack pointer */
-+			"addk	r1, r0, r3	\n\t"
-+			:
-+			: "r" (task_pt_regs(current)),
-+			"r" (&regs),
-+			"i" (sizeof(regs))
-+			: "r1", "r3", "r5", "r6", "r7", "r15", "memory");
++	if (c >= 4) {
++		unsigned  value, buf_hold;
 +
-+out:
-+	return ret;
-+}
-+EXPORT_SYMBOL(execve);
++		/* Align the destination to a word boundry. */
++		/* This is done in an endian independant manner. */
 +
-+asmlinkage int sys_vfork(struct pt_regs *regs)
-+{
-+	return do_fork(CLONE_VFORK | CLONE_VM | SIGCHLD, regs->r1,
-+						regs, 0, NULL, NULL);
-+}
-+
-+asmlinkage int sys_clone(int flags, unsigned long stack, struct pt_regs *regs)
-+{
-+	if (!stack)
-+		stack = regs->r1;
-+	return do_fork(flags, stack, regs, 0, NULL, NULL);
-+}
-+
-+asmlinkage int sys_execve(char __user *filenamei, char __user * __user *argv,
-+			char __user * __user *envp, struct pt_regs *regs)
-+{
-+	int error;
-+	char *filename;
-+
-+	filename = getname(filenamei);
-+	error = PTR_ERR(filename);
-+	if (IS_ERR(filename))
-+		goto out;
-+	error = do_execve(filename, argv, envp, regs);
-+	putname(filename);
-+out:
-+	return error;
-+}
-+
-+static inline unsigned long
-+do_mmap2(unsigned long addr, size_t len,
-+	unsigned long prot, unsigned long flags,
-+	unsigned long fd, unsigned long pgoff)
-+{
-+	struct file *file = NULL;
-+	int ret = -EBADF;
-+
-+	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
-+	if (!(flags & MAP_ANONYMOUS))
-+		if (!(file = fget(fd))) {
-+			printk(KERN_INFO "no fd in mmap\r\n");
-+			goto out;
++		switch ((unsigned long)dst & 3) {
++		case 3:
++			*--dst = *--src;
++			--c;
++		case 2:
++			*--dst = *--src;
++			--c;
++		case 1:
++			*--dst = *--src;
++			--c;
 +		}
 +
-+	down_write(&current->mm->mmap_sem);
-+	ret = do_mmap_pgoff(file, addr, len, prot, flags, pgoff);
-+	up_write(&current->mm->mmap_sem);
-+	if (file)
-+		fput(file);
-+out:
-+	return ret;
-+}
++		i_dst = (void *)dst;
++		/* Choose a copy scheme based on the source */
++		/* alignment relative to dstination. */
++		switch ((unsigned long)src & 3) {
++		case 0x0:	/* Both byte offsets are aligned */
 +
-+unsigned long sys_mmap2(unsigned long addr, size_t len,
-+			unsigned long prot, unsigned long flags,
-+			unsigned long fd, unsigned long pgoff)
-+{
-+	return do_mmap2(addr, len, prot, flags, fd, pgoff);
-+}
++			i_src  = (const void *)src;
 +
-+unsigned long sys_mmap(unsigned long addr, size_t len,
-+			unsigned long prot, unsigned long flags,
-+			unsigned long fd, off_t offset)
-+{
-+	int err = -EINVAL;
++			for (; c >= 4; c -= 4)
++				*--i_dst = *--i_src;
 +
-+	if (offset & ~PAGE_MASK) {
-+		printk(KERN_INFO "no pagemask in mmap\r\n");
-+		goto out;
++			src  = (const void *)i_src;
++			break;
++		case 0x1:	/* Unaligned - Off by 1 */
++			/* Word align the source */
++			i_src = (const void *) (((unsigned)src + 4) & ~3);
++
++			/* Load the holding buffer */
++			buf_hold = *--i_src >> 24;
++
++			for (; c >= 4; c -= 4) {
++				value = *--i_src;
++				*--i_dst = buf_hold << 8 | value;
++				buf_hold = value >> 24;
++			}
++
++			/* Realign the source */
++			src = (const void *)i_src;
++			src += 1;
++			break;
++		case 0x2:	/* Unaligned - Off by 2 */
++			/* Word align the source */
++			i_src = (const void *) (((unsigned)src + 4) & ~3);
++
++			/* Load the holding buffer */
++			buf_hold = *--i_src >> 16;
++
++			for (; c >= 4; c -= 4) {
++				value = *--i_src;
++				*--i_dst = buf_hold << 16 | value;
++				buf_hold = value >> 16;
++			}
++
++			/* Realign the source */
++			src = (const void *)i_src;
++			src += 2;
++			break;
++		case 0x3:	/* Unaligned - Off by 3 */
++			/* Word align the source */
++			i_src = (const void *) (((unsigned)src + 4) & ~3);
++
++			/* Load the holding buffer */
++			buf_hold = *--i_src >> 8;
++
++			for (; c >= 4; c -= 4) {
++				value = *--i_src;
++				*--i_dst = buf_hold << 24 | value;
++				buf_hold = value >> 8;
++			}
++
++			/* Realign the source */
++			src = (const void *)i_src;
++			src += 3;
++			break;
++		}
++		dst = (void *)i_dst;
 +	}
 +
-+	err = do_mmap2(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
-+out:
-+	return err;
++	/* simple fast copy, ... unless a cache boundry is crossed */
++	/* Finish off any remaining bytes */
++	switch (c) {
++	case 4:
++		*--dst = *--src;
++	case 3:
++		*--dst = *--src;
++	case 2:
++		*--dst = *--src;
++	case 1:
++		*--dst = *--src;
++	}
++	return v_dst;
++#endif
 +}
-+
-+int sys_uname(struct old_utsname *name)
-+{
-+	int err = -EFAULT;
-+
-+	down_read(&uts_sem);
-+	if (name && !copy_to_user(name, utsname(), sizeof(*name)))
-+		err = 0;
-+	up_read(&uts_sem);
-+	return err;
-+}
-+
++EXPORT_SYMBOL(memmove);
++#endif /* __HAVE_ARCH_MEMMOVE */
+diff --git a/arch/microblaze/lib/memset.c b/arch/microblaze/lib/memset.c
+new file mode 100644
+index 0000000..5697d66
+--- /dev/null
++++ b/arch/microblaze/lib/memset.c
+@@ -0,0 +1,77 @@
 +/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
++ * arch/microblaze/lib/memset.c
++ *
++ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
++ *
++ * Reasonably optimised generic C-code for memset on Microblaze
++ * This is generic C code to do efficient, alignment-aware memcpy.
++ *
++ * It is based on demo code originally Copyright 2001 by Intel Corp, taken from
++ * http://www.embedded.com/showArticle.jhtml?articleID=19205567
++ *
++ * Attempts were made, unsuccesfully, to contact the original
++ * author of this code (Michael Morrow, Intel).  Below is the original
++ * copyright notice.
++ *
++ * This software has been developed by Intel Corporation.
++ * Intel specifically disclaims all warranties, express or
++ * implied, and all liability, including consequential and
++ * other indirect damages, for the use of this program, including
++ * liability for infringement of any proprietary rights,
++ * and including the warranties of merchantability and fitness
++ * for a particular purpose. Intel does not assume any
++ * responsibility for and errors which may appear in this program
++ * not any responsibility to update it.
 + */
-+int kernel_execve(const char *filename, char *const argv[], char *const envp[])
++
++#include <linux/types.h>
++#include <linux/stddef.h>
++#include <linux/compiler.h>
++#include <linux/module.h>
++
++#include <asm/string.h>
++
++#ifdef __HAVE_ARCH_MEMSET
++void *memset(void *v_src, int c, __kernel_size_t n)
 +{
-+	register const char *__a __asm__("r5") = filename;
-+	register const void *__b __asm__("r6") = argv;
-+	register const void *__c __asm__("r7") = envp;
-+	register unsigned long __syscall __asm__("r12") = __NR_execve;
-+	register unsigned long __ret __asm__("r3");
-+	__asm__ __volatile__ ("brki r14, 0x8"
-+			: "=r" (__ret), "=r" (__syscall)
-+			: "1" (__syscall), "r" (__a), "r" (__b), "r" (__c)
-+			: "r4", "r8", "r9",
-+			"r10", "r11", "r14", "cc", "memory");
-+	return __ret;
++	char *src = v_src;
++	uint32_t *i_src;
++	uint32_t w32;
++
++	/* Truncate c to 8 bits */
++	w32 = c = (c & 0xFF);
++
++	/* Make a repeating word out of it */
++	w32 |= w32 << 8;
++	w32 |= w32 << 8;
++	w32 |= w32 << 8;
++
++	if (n >= 4) {
++		/* Align the destination to a word boundary */
++		/* This is done in an endian independant manner */
++		switch ((unsigned) src & 3) {
++		case 1: *src++ = c;
++			--n;
++		case 2: *src++ = c;
++			--n;
++		case 3: *src++ = c;
++			--n;
++		}
++
++		i_src  = (void *)src;
++
++		/* Do as many full-word copies as we can */
++		for (; c >= 4; c -= 4)
++			*i_src++ = w32;
++
++		src  = (void *)i_src;
++	}
++
++	/* Finish off the rest as byte sets */
++	while (n--)
++		*src++ = c;
++
++	return v_src;
 +}
++EXPORT_SYMBOL(memset);
++#endif /* __HAVE_ARCH_MEMSET */
 -- 
 1.5.4.GIT
