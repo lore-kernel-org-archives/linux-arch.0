@@ -1,52 +1,15 @@
-From: monstr@seznam.cz.monstr.eu
-Subject: [PATCH 39/56] microblaze_v2: headers pgalloc.h pgtable.h
-Date: Sun,  4 May 2008 13:41:28 +0200
-Message-ID: <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
+From: monstr@seznam.cz
+Subject: [PATCH 02/56] microblaze_v2: Makefiles for Microblaze cpu
+Date: Sun,  4 May 2008 13:40:51 +0200
+Message-ID: <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
- <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
- <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu>
- <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
- <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu>
- <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>
- <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu>
- <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu>
- <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu>
- <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
- <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
- <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
- <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
- <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
- <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
- <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
- <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
- <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
- <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
- <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
- <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
- <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
- <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
- <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
- <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
- <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
- <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
- <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
- <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
- <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
- <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
- <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
- <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
- <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
- <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
- <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:49487 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:39041 "EHLO
 	monstr.eu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752181AbYEENEq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 09:04:46 -0400
-In-Reply-To: <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
+	id S1755976AbYEENNl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 09:13:41 -0400
+In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -59,89 +22,192 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/pgalloc.h |   16 ++++++++++++
- include/asm-microblaze/pgtable.h |   50 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 66 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/pgalloc.h
- create mode 100644 include/asm-microblaze/pgtable.h
+ arch/microblaze/Makefile                  |   63 +++++++++++++++++++++++++++++
+ arch/microblaze/boot/Makefile             |   17 ++++++++
+ arch/microblaze/kernel/Makefile           |   17 ++++++++
+ arch/microblaze/kernel/cpu/Makefile       |    8 ++++
+ arch/microblaze/lib/Makefile              |    5 ++
+ arch/microblaze/mm/Makefile               |    5 ++
+ arch/microblaze/platform/Makefile         |    3 +
+ arch/microblaze/platform/generic/Makefile |    3 +
+ 8 files changed, 121 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/Makefile
+ create mode 100644 arch/microblaze/boot/Makefile
+ create mode 100644 arch/microblaze/kernel/Makefile
+ create mode 100644 arch/microblaze/kernel/cpu/Makefile
+ create mode 100644 arch/microblaze/lib/Makefile
+ create mode 100644 arch/microblaze/mm/Makefile
+ create mode 100644 arch/microblaze/platform/Makefile
+ create mode 100644 arch/microblaze/platform/generic/Makefile
 
-diff --git a/include/asm-microblaze/pgalloc.h b/include/asm-microblaze/pgalloc.h
+diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
 new file mode 100644
-index 0000000..adb41b9
+index 0000000..fb80b49
 --- /dev/null
-+++ b/include/asm-microblaze/pgalloc.h
-@@ -0,0 +1,16 @@
-+/*
-+ * include/asm-microblaze/pgalloc.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++++ b/arch/microblaze/Makefile
+@@ -0,0 +1,63 @@
++UTS_SYSNAME = -DUTS_SYSNAME=\"uClinux\"
 +
-+#ifndef _ASM_MICROBLAZE_PGALLOC_H
-+#define _ASM_MICROBLAZE_PGALLOC_H
++# What CPU vesion are we building for, and crack it open
++# as major.minor.rev
++CPU_VER=$(subst ",,$(CONFIG_XILINX_MICROBLAZE0_HW_VER) )
++CPU_MAJOR=$(shell echo $(CPU_VER) | cut -d '.' -f 1)
++CPU_MINOR=$(shell echo $(CPU_VER) | cut -d '.' -f 2)
++CPU_REV=$(shell echo $(CPU_VER) | cut -d '.' -f 3)
 +
-+#define check_pgt_cache()	do {} while (0)
++export CPU_VER CPU_MAJOR CPU_MINOR CPU_REV
 +
-+#endif /* _ASM_MICROBLAZE_PGALLOC_H */
-diff --git a/include/asm-microblaze/pgtable.h b/include/asm-microblaze/pgtable.h
++# Use cpu-related CONFIG_ vars to set compile options.
++
++# Work out HW multipler support.  This is icky.
++# 1. Spartan2 has no HW multiplers.
++# 2. MicroBlaze v3.x always uses them, except in Spartan 2
++# 3. All other FPGa/CPU ver combos, we can trust the CONFIG_ settings
++ifeq (,$(findstring spartan2,$(CONFIG_XILINX_MICROBLAZE0_FAMILY)))
++  ifeq ($(CPU_MAJOR),3)
++    CPUFLAGS-1 += -mno-xl-soft-mul
++  else
++    # USE_HW_MUL can be 0, 1, or 2, defining a heirarchy of HW Mul support.
++    CPUFLAGS-$(subst 1,,$(CONFIG_XILINX_MICROBLAZE0_USE_HW_MUL)) += -mxl-multiply-high
++    CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_HW_MUL) += -mno-xl-soft-mul
++  endif
++endif
++CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_DIV) += -mno-xl-soft-div
++CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_BARREL) += -mxl-barrel-shift
++CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_PCMP) += -mxl-pattern-compare
++
++CPUFLAGS-1 += $(call cc-option,-mcpu=v$(CPU_VER))
++
++# The various CONFIG_XILINX cpu features options are integers 0/1/2...
++# rather than bools y/n
++CFLAGS += $(CPUFLAGS-1)
++CFLAGS += $(CPUFLAGS-2)
++
++# r31 holds current when in kernel mode
++CFLAGS += -ffixed-r31
++
++LDFLAGS_BLOB := --format binary --oformat elf32-microblaze
++
++LIBGCC := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
++
++head-y		:= arch/microblaze/kernel/head.o
++libs-y		+= arch/microblaze/lib/ $(LIBGCC)
++core-y		+= arch/microblaze/kernel/ arch/microblaze/mm/
++#		   arch/microblaze/platform/
++
++boot := arch/$(ARCH)/boot
++
++all: linux.bin
++
++archclean:
++	$(Q)$(MAKE) $(clean)=$(boot)
++
++linux.bin linux.bin.gz: vmlinux
++	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
++
++define archhelp
++  echo  '* linux.bin    - Create raw binary'
++  echo  '  linux.bin.gz - Create compressed raw binary'
++endef
+diff --git a/arch/microblaze/boot/Makefile b/arch/microblaze/boot/Makefile
 new file mode 100644
-index 0000000..d454df1
+index 0000000..844edf4
 --- /dev/null
-+++ b/include/asm-microblaze/pgtable.h
-@@ -0,0 +1,50 @@
-+/*
-+ * include/asm-microblaze/pgtable.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ */
++++ b/arch/microblaze/boot/Makefile
+@@ -0,0 +1,17 @@
++#
++# arch/microblaze/boot/Makefile
++#
 +
-+#ifndef _ASM_MICROBLAZE_PGTABLE_H
-+#define _ASM_MICROBLAZE_PGTABLE_H
++targets := linux.bin linux.bin.gz
 +
-+#define pgd_present(pgd)	(1) /* pages are always present on NO_MM */
-+#define pgd_none(pgd)		(0)
-+#define pgd_bad(pgd)		(0)
-+#define pgd_clear(pgdp)
-+#define kern_addr_valid(addr)	(1)
-+#define	pmd_offset(a, b)	((void *) 0)
++OBJCOPYFLAGS_linux.bin  := -O binary
 +
-+#define PAGE_NONE		__pgprot(0) /* these mean nothing to NO_MM */
-+#define PAGE_SHARED		__pgprot(0) /* these mean nothing to NO_MM */
-+#define PAGE_COPY		__pgprot(0) /* these mean nothing to NO_MM */
-+#define PAGE_READONLY		__pgprot(0) /* these mean nothing to NO_MM */
-+#define PAGE_KERNEL		__pgprot(0) /* these mean nothing to NO_MM */
++$(obj)/linux.bin: vmlinux FORCE
++	$(call if_changed,objcopy)
++	@echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
 +
-+#define __swp_type(x)		(0)
-+#define __swp_offset(x)		(0)
-+#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
-+#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
-+#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
++$(obj)/linux.bin.gz: $(obj)/linux.bin FORCE
++	$(call if_changed,gzip)
++	@echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
 +
-+#ifndef __ASSEMBLY__
-+static inline int pte_file(pte_t pte) { return 0; }
-+#endif
++clean-kernel += linux.bin linux.bin.gz
+diff --git a/arch/microblaze/kernel/Makefile b/arch/microblaze/kernel/Makefile
+new file mode 100644
+index 0000000..716a0a5
+--- /dev/null
++++ b/arch/microblaze/kernel/Makefile
+@@ -0,0 +1,17 @@
++#
++# Makefile
++#
 +
-+#define ZERO_PAGE(vaddr)	({ BUG(); NULL; })
++extra-y := head.o vmlinux.lds
 +
-+#define swapper_pg_dir ((pgd_t *) NULL)
++obj-y += entry.o exceptions.o \
++	hw_exception_handler.o init_task.o intc.o irq.o \
++	process.o prom.o ptrace.o \
++	setup.o signal.o sys_microblaze.o time.o timer.o traps.o
 +
-+#define pgtable_cache_init()	do {} while (0)
++obj-y += cpu/
 +
-+#define io_remap_pfn_range(vma, vaddr, pfn, size, prot)		\
-+		remap_pfn_range(vma, vaddr, pfn, size, prot)
++obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
++obj-$(CONFIG_HACK)		+= hack.o
++obj-$(CONFIG_HEART_BEAT)	+= heartbeat.o
++obj-$(CONFIG_MODULES)		+= microblaze_ksyms.o module.o
+diff --git a/arch/microblaze/kernel/cpu/Makefile b/arch/microblaze/kernel/cpu/Makefile
+new file mode 100644
+index 0000000..20646e5
+--- /dev/null
++++ b/arch/microblaze/kernel/cpu/Makefile
+@@ -0,0 +1,8 @@
++#
++# Build the appropriate CPU version support
++#
 +
-+#define arch_enter_lazy_cpu_mode()	do {} while (0)
++EXTRA_CFLAGS += -DCPU_MAJOR=$(CPU_MAJOR) -DCPU_MINOR=$(CPU_MINOR) \
++		-DCPU_REV=$(CPU_REV)
 +
-+void paging_init(void);
++obj-y += cache.o cpuinfo.o cpuinfo-pvr-full.o cpuinfo-static.o mb.o pvr.o
+diff --git a/arch/microblaze/lib/Makefile b/arch/microblaze/lib/Makefile
+new file mode 100644
+index 0000000..fa18e83
+--- /dev/null
++++ b/arch/microblaze/lib/Makefile
+@@ -0,0 +1,5 @@
++#
++# Makefile
++#
 +
-+#endif /* _ASM_MICROBLAZE_PGTABLE_H */
++lib-y := checksum.o memcpy.o memmove.o memset.o uaccess.o
+diff --git a/arch/microblaze/mm/Makefile b/arch/microblaze/mm/Makefile
+new file mode 100644
+index 0000000..bf9e447
+--- /dev/null
++++ b/arch/microblaze/mm/Makefile
+@@ -0,0 +1,5 @@
++#
++# Makefile
++#
++
++obj-y := init.o
+diff --git a/arch/microblaze/platform/Makefile b/arch/microblaze/platform/Makefile
+new file mode 100644
+index 0000000..8797e83
+--- /dev/null
++++ b/arch/microblaze/platform/Makefile
+@@ -0,0 +1,3 @@
++#
++# Makefile for arch/microblaze/platform directory
++#
+diff --git a/arch/microblaze/platform/generic/Makefile b/arch/microblaze/platform/generic/Makefile
+new file mode 100644
+index 0000000..9a8b1bd
+--- /dev/null
++++ b/arch/microblaze/platform/generic/Makefile
+@@ -0,0 +1,3 @@
++#
++# Empty Makefile to keep make clean happy
++#
 -- 
 1.5.4.GIT
