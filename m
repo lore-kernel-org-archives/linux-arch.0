@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 12/56] microblaze_v2: lmb support
-Date: Sun,  4 May 2008 13:41:01 +0200
-Message-ID: <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 20/56] microblaze_v2: heartbeat file
+Date: Sun,  4 May 2008 13:41:09 +0200
+Message-ID: <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -14,12 +14,20 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu>
  <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
  <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
+ <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
+ <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
+ <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
+ <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
+ <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
+ <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
+ <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
+ <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:58946 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:58894 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752635AbYEDNiT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 09:38:19 -0400
-In-Reply-To: <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
+	id S1755244AbYEDNtX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 09:49:23 -0400
+In-Reply-To: <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -32,36 +40,52 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/lmb.h |   21 +++++++++++++++++++++
- 1 files changed, 21 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/lmb.h
+ arch/microblaze/kernel/heartbeat.c |   37 ++++++++++++++++++++++++++++++++++++
+ 1 files changed, 37 insertions(+), 0 deletions(-)
+ create mode 100644 arch/microblaze/kernel/heartbeat.c
 
-diff --git a/include/asm-microblaze/lmb.h b/include/asm-microblaze/lmb.h
+diff --git a/arch/microblaze/kernel/heartbeat.c b/arch/microblaze/kernel/heartbeat.c
 new file mode 100644
-index 0000000..40d5f65
+index 0000000..508b463
 --- /dev/null
-+++ b/include/asm-microblaze/lmb.h
-@@ -0,0 +1,21 @@
++++ b/arch/microblaze/kernel/heartbeat.c
+@@ -0,0 +1,37 @@
 +/*
-+ * include/asm-microblaze/lmb.h
++ * arch/microblaze/kernel/heartbeat.c
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + *
-+ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
++ * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_LMB_H
-+#define _ASM_MICROBLAZE_LMB_H
++#include <linux/sched.h>
++#include <asm/page.h>
++#include <asm/io.h>
++#include <asm/setup.h>
 +
-+/*#define LMB_DBG(fmt...) pr_debug(fmt) */
++void heartbeat(void)
++{
++	static unsigned int cnt, period, dist;
 +
-+/* LMB limit is OFF */
-+#define LMB_REAL_LIMIT	0xFFFFFFFF
++	if (cnt == 0 || cnt == dist)
++		iowrite32(1, CONFIG_HEART_BEAT_ADDRESS);
++	else if (cnt == 7 || cnt == dist + 7)
++		iowrite32(0, CONFIG_HEART_BEAT_ADDRESS);
 +
-+#endif /* _ASM_MICROBLAZE_LMB_H */
++	if (++cnt > period) {
++		cnt = 0;
 +
-+
++		/*
++		 * The hyperbolic function below modifies the heartbeat period
++		 * length in dependency of the current (5min) load. It goes
++		 * through the points f(0)=126, f(1)=86, f(5)=51, f(inf)->30.
++		 */
++		period = ((672 << FSHIFT) / (5 * avenrun[0] +
++					(7 << FSHIFT))) + 30;
++		dist = period / 4;
++	}
++}
 -- 
 1.5.4.GIT
