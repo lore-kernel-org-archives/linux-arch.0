@@ -1,61 +1,62 @@
-From: "Grant Likely" <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 01/56] microblaze_v2: Kconfig patches
-Date: Sun, 4 May 2008 15:24:25 -0600
-Message-ID: <fa686aa40805041424x26de27a1g16959e7b9c7ddbf2@mail.gmail.com>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
-	 <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 32/56] microblaze_v2: definitions of types
+Date: Sun, 4 May 2008 23:28:44 +0200
+Message-ID: <200805042328.45508.arnd@arndb.de>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu> <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from an-out-0708.google.com ([209.85.132.248]:41740 "EHLO
-	an-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753128AbYEDVY2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 17:24:28 -0400
-Received: by an-out-0708.google.com with SMTP id d40so486431and.103
-        for <linux-arch@vger.kernel.org>; Sun, 04 May 2008 14:24:27 -0700 (PDT)
-In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
+Received: from moutng.kundenserver.de ([212.227.126.186]:55749 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754345AbYEDV3R (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 17:29:17 -0400
+In-Reply-To: <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@seznam.cz
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, Michal Simek <monstr@monstr.eu>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-On Sun, May 4, 2008 at 5:40 AM,  <monstr@seznam.cz> wrote:
-> From: Michal Simek <monstr@monstr.eu>
->
->
->  Signed-off-by: Michal Simek <monstr@monstr.eu>
+On Sunday 04 May 2008, monstr@seznam.cz wrote:
+> include/asm-microblaze/posix_types.h
 
->  diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
->  new file mode 100644
->  index 0000000..49767d1
->  --- /dev/null
->  +++ b/arch/microblaze/Kconfig
-<snip>
->  +config XILINX_UNCACHED_SHADOW
->  +       bool "Are you using uncached shadow for RAM ?"
->  +       depends on MICROBLAZE
+It would be good to have this as asm-generic/posix_types_32.h.
+Unfortunately, __kernel_size_t and friends need to match the
+compiler and are sometimes defined as 'unsigned int' and
+sometimes as 'unsigned long', otherwise we could even use
+the same header for 32 and 64 bit.
 
-Isn't CONFIG_MICROBLAZE a given?
+> +typedef unsigned short	__kernel_mode_t;
+> +typedef unsigned short	__kernel_nlink_t;
+> +typedef unsigned short	__kernel_ipc_pid_t;
 
+Some architectures define these as 'unsigned int', which
+seems reasonable, though there is no real requirement behind it,
+afaict.
 
->  diff --git a/arch/microblaze/platform/Kconfig.platform b/arch/microblaze/platform/Kconfig.platform
->  new file mode 100644
->  index 0000000..64cbb80
->  --- /dev/null
->  +++ b/arch/microblaze/platform/Kconfig.platform
-<snip>
->  +config HACK
->  +       bool "Increase performance"
->  +       default y
+> +typedef long		__kernel_off_t;
 
-Is this appropriate for mainline?  If so, it should have a better
-description.  :-)
+I suppose this should become 'typedef long long __kernel_off_t;'
+It won't work on pre-C99 compilers, but I don't think we need
+to care about those for a new architecture.
 
-Cheers,
-g.
+> +typedef unsigned short	__kernel_uid_t;
+> +typedef unsigned short	__kernel_gid_t;
 
--- 
-Grant Likely, B.Sc., P.Eng.
-Secret Lab Technologies Ltd.
+this should certainly be unsigned int.
+
+> +typedef unsigned short	__kernel_uid16_t;
+> +typedef unsigned short	__kernel_gid16_t;
+> +typedef unsigned int	__kernel_uid32_t;
+> +typedef unsigned int	__kernel_gid32_t;
+> +
+> +typedef unsigned short	__kernel_old_uid_t;
+> +typedef unsigned short	__kernel_old_gid_t;
+> +typedef unsigned short	__kernel_old_dev_t;
+
+try not defining these at all and see if something breaks.
+If it does, that's probably a bug.
+
+	Arnd <><
