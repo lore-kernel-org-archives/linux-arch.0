@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 29/56] microblaze_v2: page.h, segment.h, unaligned.h
-Date: Sun,  4 May 2008 13:41:18 +0200
-Message-ID: <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 34/56] microblaze_v2: io.h IO operations
+Date: Sun,  4 May 2008 13:41:23 +0200
+Message-ID: <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -31,12 +31,17 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
  <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
  <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+ <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+ <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+ <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
+ <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
+ <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:59580 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:54430 "EHLO
 	monstr.eu" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752749AbYEEMYi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 08:24:38 -0400
-In-Reply-To: <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+	id S1752181AbYEEMbh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 08:31:37 -0400
+In-Reply-To: <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -49,22 +54,18 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- include/asm-microblaze/page.h      |  119 ++++++++++++++++++++++++++++++++++++
- include/asm-microblaze/segment.h   |   42 +++++++++++++
- include/asm-microblaze/unaligned.h |   16 +++++
- 3 files changed, 177 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-microblaze/page.h
- create mode 100644 include/asm-microblaze/segment.h
- create mode 100644 include/asm-microblaze/unaligned.h
+ include/asm-microblaze/io.h |  210 +++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 210 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/io.h
 
-diff --git a/include/asm-microblaze/page.h b/include/asm-microblaze/page.h
+diff --git a/include/asm-microblaze/io.h b/include/asm-microblaze/io.h
 new file mode 100644
-index 0000000..5c7c262
+index 0000000..d2c492f
 --- /dev/null
-+++ b/include/asm-microblaze/page.h
-@@ -0,0 +1,119 @@
++++ b/include/asm-microblaze/io.h
+@@ -0,0 +1,210 @@
 +/*
-+ * include/asm-microblaze/page.h
++ * include/asm-microblaze/io.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -73,184 +74,205 @@ index 0000000..5c7c262
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_PAGE_H
-+#define _ASM_MICROBLAZE_PAGE_H
++#ifndef _ASM_MICROBLAZE_IO_H
++#define _ASM_MICROBLAZE_IO_H
 +
-+#include <linux/autoconf.h>
-+#include <linux/pfn.h>
++#include <asm/byteorder.h>
++#include <asm/page.h>
 +
-+/* PAGE_SHIFT determines the page size */
-+
-+#define PAGE_SHIFT	(12)
-+#define PAGE_SIZE	(1UL << PAGE_SHIFT)
-+#define PAGE_MASK	(~(PAGE_SIZE-1))
-+
-+#ifdef __KERNEL__
-+
-+#include <asm/setup.h>
-+
-+#ifndef __ASSEMBLY__
-+
-+#define get_user_page(vaddr)			__get_free_page(GFP_KERNEL)
-+#define free_user_page(page, addr)		free_page(addr)
-+
-+#define clear_page(pgaddr)			memset((pgaddr), 0, PAGE_SIZE)
-+#define copy_page(to, from)			memcpy((to), (from), PAGE_SIZE)
-+
-+#define clear_user_page(pgaddr, vaddr, page)	memset((pgaddr), 0, PAGE_SIZE)
-+#define copy_user_page(vto, vfrom, vaddr, topg) \
-+			memcpy((vto), (vfrom), PAGE_SIZE)
++static inline unsigned char __raw_readb(const volatile void *addr)
++{
++	return *(volatile unsigned char __force *)addr;
++}
++static inline unsigned short __raw_readw(const volatile void *addr)
++{
++	return *(volatile unsigned short __force *)addr;
++}
++static inline unsigned int __raw_readl(const volatile void *addr)
++{
++	return *(volatile unsigned int __force *)addr;
++}
++static inline unsigned long __raw_readq(const volatile void *addr)
++{
++	return *(volatile unsigned long __force *)addr;
++}
++static inline void __raw_writeb(unsigned char v, volatile void *addr)
++{
++	*(volatile unsigned char __force *)addr = v;
++}
++static inline void __raw_writew(unsigned short v, volatile void *addr)
++{
++	*(volatile unsigned short __force *)addr = v;
++}
++static inline void __raw_writel(unsigned int v, volatile void *addr)
++{
++	*(volatile unsigned int __force *)addr = v;
++}
++static inline void __raw_writeq(unsigned long v, volatile void *addr)
++{
++	*(volatile unsigned long __force *)addr = v;
++}
 +
 +/*
-+ * These are used to make use of C type-checking..
++ * read (readb, readw, readl, readq) and write (writeb, writew,
++ * writel, writeq) accessors are for PCI and thus littel endian.
++ * Linux 2.4 for Microblaze had this wrong.
 + */
-+typedef struct { unsigned long	pte; }		pte_t;
-+typedef struct { unsigned long	ste[64]; }	pmd_t;
-+typedef struct { pmd_t		pue[1]; }	pud_t;
-+typedef struct { pud_t		pge[1]; }	pgd_t;
-+typedef struct { unsigned long	pgprot; }	pgprot_t;
-+typedef struct page *pgtable_t;
++static inline unsigned char readb(const volatile void *addr)
++{
++	return *(volatile unsigned char __force *)addr;
++}
++static inline unsigned short readw(const volatile void *addr)
++{
++	return le16_to_cpu(*(volatile unsigned short __force *)addr);
++}
++static inline unsigned int readl(const volatile void *addr)
++{
++	return le32_to_cpu(*(volatile unsigned int __force *)addr);
++}
++static inline void writeb(unsigned char v, volatile void *addr)
++{
++	*(volatile unsigned char __force *)addr = v;
++}
++static inline void writew(unsigned short v, volatile void *addr)
++{
++	*(volatile unsigned short __force *)addr = cpu_to_le16(v);
++}
++static inline void writel(unsigned int v, volatile void __iomem *addr)
++{
++	*(volatile unsigned int __force *)addr = cpu_to_le32(v);
++}
 +
-+#define pte_val(x)	((x).pte)
-+#define pmd_val(x)	((x).ste[0])
-+#define pud_val(x)	((x).pue[0])
-+#define pgd_val(x)	((x).pge[0])
-+#define pgprot_val(x)	((x).pgprot)
++/* ioread and iowrite variants. thease are for now same as __raw_
++ * variants of accessors. we might check for endianess in the feature
++ */
++#define ioread8(addr)		__raw_readb((u8 *)(addr))
++#define ioread16(addr)		__raw_readw((u16 *)(addr))
++#define ioread32(addr)		__raw_readl((u32 *)(addr))
++#define iowrite8(v, addr)	__raw_writeb((u8)(v), (u8 *)(addr))
++#define iowrite16(v, addr)	__raw_writew((u16)(v), (u16 *)(addr))
++#define iowrite32(v, addr)	__raw_writel((u32)(v), (u32 *)(addr))
 +
-+#define __pte(x)	((pte_t) { (x) })
-+#define __pmd(x)	((pmd_t) { (x) })
-+#define __pgd(x)	((pgd_t) { (x) })
-+#define __pgprot(x)	((pgprot_t) { (x) })
++/* These are the definitions for the x86 IO instructions
++ * inb/inw/inl/outb/outw/outl, the "string" versions
++ * insb/insw/insl/outsb/outsw/outsl, and the "pausing" versions
++ * inb_p/inw_p/...
++ * The macros don't do byte-swapping.
++ */
++#define inb(port)		readb((u8 *)((port)))
++#define outb(val, port)		writeb((val), (u8 *)((unsigned long)(port)))
++#define inw(port)		readw((u16 *)((port)))
++#define outw(val, port)		writew((val), (u16 *)((unsigned long)(port)))
++#define inl(port)		readl((u32 *)((port)))
++#define outl(val, port)		writel((val), (u32 *)((unsigned long)(port)))
 +
-+/* align addr on a size boundary - adjust address up/down if needed */
-+#define _ALIGN_UP(addr, size)	(((addr)+((size)-1))&(~((size)-1)))
-+#define _ALIGN_DOWN(addr, size)	((addr)&(~((size)-1)))
++#define inb_p(port)		inb((port))
++#define outb_p(val, port)	outb((val), (port))
++#define inw_p(port)		inw((port))
++#define outw_p(val, port)	outw((val), (port))
++#define inl_p(port)		inl((port))
++#define outl_p(val, port)	outl((val), (port))
 +
-+/* align addr on a size boundary - adjust address up if needed */
-+#define _ALIGN(addr, size)	_ALIGN_UP(addr, size)
-+
-+/* to align the pointer to the (next) page boundary */
-+#define PAGE_ALIGN(addr)	(((addr) + PAGE_SIZE - 1) & PAGE_MASK)
-+
-+extern unsigned int __page_offset;
-+#define PAGE_OFFSET __page_offset
++#define memset_io(a, b, c)	memset((void *)(a), (b), (c))
++#define memcpy_fromio(a, b, c)	memcpy((a), (void *)(b), (c))
++#define memcpy_toio(a, b, c)	memcpy((void *)(a), (b), (c))
 +
 +/**
-+ * Conversions for virtual address, physical address, pfn, and struct
-+ * page are defined in the following files.
++ *	virt_to_phys	-	map virtual addresses to physical
++ *	@address: address to remap
 + *
-+ * virt -+
-+ *	 | asm-microblaze/page.h
-+ * phys -+
-+ *	 | linux/pfn.h
-+ *  pfn -+
-+ *	 | asm-generic/memory_model.h
-+ * page -+
++ *	The returned physical address is the physical (CPU) mapping for
++ *	the memory address given. It is only valid to use this function on
++ *	addresses directly mapped or allocated via kmalloc.
 + *
++ *	This function does not give bus mappings for DMA transfers. In
++ *	almost all conceivable cases a device driver should not be using
++ *	this function
 + */
++static inline unsigned long __iomem virt_to_phys(volatile void *address)
++{
++	return __pa((unsigned long)address);
++}
 +
-+extern unsigned long max_low_pfn;
-+extern unsigned long min_low_pfn;
-+extern unsigned long max_pfn;
++#define virt_to_bus virt_to_phys
 +
-+#define __pa(vaddr)		((unsigned long) (vaddr))
-+#define __va(paddr)		((void *) (paddr))
-+
-+#define phys_to_pfn(phys)	(PFN_DOWN(phys))
-+#define pfn_to_phys(pfn)	(PFN_PHYS(pfn))
-+
-+#define virt_to_pfn(vaddr)	(phys_to_pfn((__pa(vaddr))))
-+#define pfn_to_virt(pfn)	__va(pfn_to_phys((pfn)))
-+
-+#define virt_to_page(vaddr)	(pfn_to_page(virt_to_pfn(vaddr)))
-+#define page_to_virt(page)	(pfn_to_virt(page_to_pfn(page)))
-+
-+#define page_to_phys(page)	(pfn_to_phys(page_to_pfn(page)))
-+#define page_to_bus(page)	(page_to_phys(page))
-+#define phys_to_page(paddr)	(pfn_to_page(phys_to_pfn(paddr)))
-+
-+#define pfn_valid(pfn)		((pfn) >= min_low_pfn && (pfn) < max_mapnr)
-+#define	virt_addr_valid(vaddr)	(pfn_valid(virt_to_pfn(vaddr)))
-+
-+#define ARCH_PFN_OFFSET		(PAGE_OFFSET >> PAGE_SHIFT)
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __KERNEL__ */
-+
-+#include <asm-generic/memory_model.h>
-+#include <asm-generic/page.h>
-+
-+#endif /* _ASM_MICROBLAZE_PAGE_H */
-diff --git a/include/asm-microblaze/segment.h b/include/asm-microblaze/segment.h
-new file mode 100644
-index 0000000..af0ddf0
---- /dev/null
-+++ b/include/asm-microblaze/segment.h
-@@ -0,0 +1,42 @@
-+/*
-+ * include/asm-microblaze/segment.h
++/**
++ *	phys_to_virt	-	map physical address to virtual
++ *	@address: address to remap
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ *	The returned virtual address is a current CPU mapping for
++ *	the memory address given. It is only valid to use this function on
++ *	addresses that have a kernel mapping
 + *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
-+ *
++ *	This function does not handle bus mappings for DMA transfers. In
++ *	almost all conceivable cases a device driver should not be using
++ *	this function
 + */
++static inline void *phys_to_virt(unsigned long address)
++{
++	return (void *)__va(address);
++}
 +
-+#ifndef _ASM_MICROBLAZE_SEGMENT_H
-+#define _ASM_MICROBLAZE_SEGMENT_H
++#define bus_to_virt(a) phys_to_virt(a)
 +
-+#ifndef __ASSEMBLY__
++static inline void *__ioremap(unsigned long address, unsigned long size,
++			unsigned long flags)
++{
++	return (void *)address;
++}
 +
-+typedef struct {
-+	unsigned long seg;
-+} mm_segment_t;
++
++#define IO_SPACE_LIMIT ~(0UL)
++
++#define ioremap(physaddr, size)	((void *)(unsigned long)(physaddr))
++#define iounmap(addr)		((void)0)
++#define ioremap_nocache(physaddr, size)	ioremap(physaddr, size)
 +
 +/*
-+ * The fs value determines whether argument validity checking should be
-+ * performed or not. If get_fs() == USER_DS, checking is performed, with
-+ * get_fs() == KERNEL_DS, checking is bypassed.
-+ *
-+ * For historical reasons, these macros are grossly misnamed.
-+ *
-+ * For non-MMU arch like Microblaze, KERNEL_DS and USER_DS is equal.
++ * Convert a physical pointer to a virtual kernel pointer for /dev/mem
++ * access
 + */
-+#define KERNEL_DS	((mm_segment_t){0})
-+#define USER_DS		KERNEL_DS
++#define xlate_dev_mem_ptr(p)	__va(p)
 +
-+#define get_ds()	(KERNEL_DS)
-+#define get_fs()	(current_thread_info()->addr_limit)
-+#define set_fs(x) \
-+		do { current_thread_info()->addr_limit = (x); } while (0)
-+
-+#define segment_eq(a, b)		((a).seg == (b).seg)
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* _ASM_MICROBLAZE_SEGMENT_H */
-diff --git a/include/asm-microblaze/unaligned.h b/include/asm-microblaze/unaligned.h
-new file mode 100644
-index 0000000..aff800d
---- /dev/null
-+++ b/include/asm-microblaze/unaligned.h
-@@ -0,0 +1,16 @@
 +/*
-+ * include/asm-microblaze/unaligned.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2006 Atmark Techno, Inc.
++ * Convert a virtual cached pointer to an uncached pointer
++ */
++#define xlate_dev_kmem_ptr(p)	p
++
++/*
++ * Big Endian
++ */
++#define out_be32(a, v) __raw_writel((v), (a))
++#define out_be16(a, v) __raw_writew((v), (a))
++
++#define in_be32(a) __raw_readl(a)
++#define in_be16(a) __raw_readw(a)
++
++/*
++ * Little endian
 + */
 +
-+#ifndef _ASM_MICROBLAZE_UNALIGNED_H
-+#define _ASM_MICROBLAZE_UNALIGNED_H
++#define out_le32(a, v) __raw_writel(__cpu_to_le32(v), (a));
++#define out_le16(a, v) __raw_writew(__cpu_to_le16(v), (a))
 +
-+#include <asm-generic/unaligned.h>
++#define in_le32(a) __le32_to_cpu(__raw_readl(a))
++#define in_le16(a) __le16_to_cpu(__raw_readw(a))
 +
-+#endif /* _ASM_MICROBLAZE_UNALIGNED_H */
++/* Byte ops */
++#define out_8(a, v) __raw_writeb((v), (a))
++#define in_8(a) __raw_readb(a)
++
++/* FIXME */
++static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
++{
++	return (void __iomem *) (port);
++}
++
++static inline void ioport_unmap(void __iomem *addr)
++{
++	/* Nothing to do */
++}
++
++#endif /* _ASM_MICROBLAZE_IO_H */
 -- 
 1.5.4.GIT
