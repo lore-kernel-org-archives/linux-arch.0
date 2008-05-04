@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 25/56] microblaze_v2: ptrace support
-Date: Sun,  4 May 2008 13:41:14 +0200
-Message-ID: <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 50/56] microblaze_v2: setup.h string.h thread_info.h
+Date: Sun,  4 May 2008 13:41:39 +0200
+Message-ID: <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -27,12 +27,37 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
  <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
  <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
+ <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
+ <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
+ <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
+ <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+ <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+ <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+ <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
+ <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
+ <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
+ <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
+ <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
+ <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
+ <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
+ <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
+ <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
+ <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
+ <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
+ <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
+ <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
+ <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
+ <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
+ <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
+ <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>
+ <643084ee3819dd169cad3c4e3565c5ff20dd3429.1209897267.git.monstr@monstr.eu>
+ <231ae415bf52de25c69f727fd13c50d201f8ecd8.1209897267.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:60010 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:34427 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753845AbYEDQo1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 12:44:27 -0400
-In-Reply-To: <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
+	id S1751030AbYEDQv0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 12:51:26 -0400
+In-Reply-To: <231ae415bf52de25c69f727fd13c50d201f8ecd8.1209897267.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -45,232 +70,22 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/ptrace.c |  206 +++++++++++++++++++++++++++++++++++++++
- include/asm-microblaze/ptrace.h |   70 +++++++++++++
- 2 files changed, 276 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/ptrace.c
- create mode 100644 include/asm-microblaze/ptrace.h
+ include/asm-microblaze/setup.h       |   42 +++++++++
+ include/asm-microblaze/string.h      |   22 +++++
+ include/asm-microblaze/thread_info.h |  155 ++++++++++++++++++++++++++++++++++
+ 3 files changed, 219 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/setup.h
+ create mode 100644 include/asm-microblaze/string.h
+ create mode 100644 include/asm-microblaze/thread_info.h
 
-diff --git a/arch/microblaze/kernel/ptrace.c b/arch/microblaze/kernel/ptrace.c
+diff --git a/include/asm-microblaze/setup.h b/include/asm-microblaze/setup.h
 new file mode 100644
-index 0000000..958f076
+index 0000000..ba4bf7d
 --- /dev/null
-+++ b/arch/microblaze/kernel/ptrace.c
-@@ -0,0 +1,206 @@
++++ b/include/asm-microblaze/setup.h
+@@ -0,0 +1,42 @@
 +/*
-+ * arch/microblaze/kernel/ptrace.c -- `ptrace' system call
-+ *
-+ * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
-+ * Copyright (C) 2007 PetaLogix
-+ * Copyright (C) 2004-07 John Williams <john.williams@petalogix.com>
-+ *
-+ * derived from arch/v850/kernel/ptrace.c
-+ *
-+ * Copyright (C) 2002,03 NEC Electronics Corporation
-+ * Copyright (C) 2002,03 Miles Bader <miles@gnu.org>
-+ *
-+ * Derived from arch/mips/kernel/ptrace.c:
-+ *
-+ * Copyright (C) 1992 Ross Biro
-+ * Copyright (C) Linus Torvalds
-+ * Copyright (C) 1994, 95, 96, 97, 98, 2000 Ralf Baechle
-+ * Copyright (C) 1996 David S. Miller
-+ * Kevin D. Kissell, kevink@mips.com and Carsten Langgaard, carstenl@mips.com
-+ * Copyright (C) 1999 MIPS Technologies, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License. See the file COPYING in the main directory of this
-+ * archive for more details.
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/sched.h>
-+#include <linux/smp_lock.h>
-+#include <linux/ptrace.h>
-+#include <linux/signal.h>
-+
-+#include <asm/errno.h>
-+#include <asm/ptrace.h>
-+#include <asm/processor.h>
-+#include <asm/uaccess.h>
-+#include <asm/asm-offsets.h>
-+
-+/* Returns the address where the register at REG_OFFS in P is stashed away. */
-+static microblaze_reg_t *reg_save_addr(unsigned reg_offs,
-+					struct task_struct *t)
-+{
-+	struct pt_regs *regs;
-+
-+	/*
-+	 * Three basic cases:
-+	 *
-+	 * (1)	A register normally saved before calling the scheduler, is
-+	 *	available in the kernel entry pt_regs structure at the top
-+	 *	of the kernel stack. The kernel trap/irq exit path takes
-+	 *	care to save/restore almost all registers for ptrace'd
-+	 *	processes.
-+	 *
-+	 * (2)	A call-clobbered register, where the process P entered the
-+	 *	kernel via [syscall] trap, is not stored anywhere; that's
-+	 *	OK, because such registers are not expected to be preserved
-+	 *	when the trap returns anyway (so we don't actually bother to
-+	 *	test for this case).
-+	 *
-+	 * (3)	A few registers not used at all by the kernel, and so
-+	 *	normally never saved except by context-switches, are in the
-+	 *	context switch state.
-+	 */
-+
-+	/* Register saved during kernel entry (or not available). */
-+	regs = task_pt_regs(t);
-+
-+	return (microblaze_reg_t *)((char *)regs + reg_offs);
-+}
-+
-+long arch_ptrace(struct task_struct *child, long request, long addr, long data)
-+{
-+	int rval;
-+
-+	switch (request) {
-+		unsigned long val, copied;
-+
-+	case PTRACE_PEEKTEXT: /* read word at location addr. */
-+	case PTRACE_PEEKDATA:
-+		pr_debug("PEEKTEXT/PEEKDATA at %08lX\n", addr);
-+		copied = access_process_vm(child, addr, &val, sizeof(val), 0);
-+		rval = -EIO;
-+		if (copied != sizeof(val))
-+			break;
-+		rval = put_user(val, (unsigned long *)data);
-+		goto out;
-+
-+	case PTRACE_POKETEXT: /* write the word at location addr. */
-+	case PTRACE_POKEDATA:
-+		pr_debug("POKETEXT/POKEDATA to %08lX\n", addr);
-+		rval = 0;
-+		if (access_process_vm(child, addr, &data, sizeof(data), 1)
-+			== sizeof(data))
-+			break;
-+		rval = -EIO;
-+		goto out;
-+
-+	/* Read/write the word at location ADDR in the registers. */
-+	case PTRACE_PEEKUSR:
-+	case PTRACE_POKEUSR:
-+		pr_debug("PEEKUSR/POKEUSR : 0x%08lx\n", addr);
-+		rval = 0;
-+		if (addr >= PT_SIZE && request == PTRACE_PEEKUSR) {
-+			/* Special requests that don't actually correspond
-+			 to offsets in struct pt_regs. */
-+			if (addr == PT_TEXT_ADDR) {
-+				val = child->mm->start_code;
-+			} else if (addr == PT_DATA_ADDR) {
-+				val = child->mm->start_data;
-+			} else if (addr == PT_TEXT_LEN) {
-+				val = child->mm->end_code
-+					- child->mm->start_code;
-+			} else {
-+				rval = -EIO;
-+			}
-+		} else if (addr >= 0 && addr < PT_SIZE && (addr & 0x3) == 0) {
-+			microblaze_reg_t *reg_addr = reg_save_addr(addr, child);
-+			if (request == PTRACE_PEEKUSR)
-+				val = *reg_addr;
-+			else
-+				*reg_addr = data;
-+		} else
-+			rval = -EIO;
-+
-+		if (rval == 0 && request == PTRACE_PEEKUSR)
-+			rval = put_user(val, (unsigned long *)data);
-+		goto out;
-+
-+	/* Continue and stop at next (return from) syscall */
-+	case PTRACE_SYSCALL:
-+		pr_debug("PTRACE_SYSCALL\n");
-+	case PTRACE_SINGLESTEP:
-+		pr_debug("PTRACE_SINGLESTEP\n");
-+	/* Restart after a signal. */
-+	case PTRACE_CONT:
-+		pr_debug("PTRACE_CONT\n");
-+		rval = -EIO;
-+		if (!valid_signal(data))
-+			break;
-+
-+		if (request == PTRACE_SYSCALL)
-+			set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-+		else
-+			clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-+
-+		child->exit_code = data;
-+		pr_debug("wakeup_process\n");
-+		wake_up_process(child);
-+		rval = 0;
-+		break;
-+
-+	/*
-+	 * make the child exit. Best I can do is send it a sigkill.
-+	 * perhaps it should be put in the status that it wants to
-+	 * exit.
-+	 */
-+	case PTRACE_KILL:
-+		pr_debug("PTRACE_KILL\n");
-+		rval = 0;
-+		if (child->exit_state == EXIT_ZOMBIE)	/* already dead */
-+			break;
-+		child->exit_code = SIGKILL;
-+		wake_up_process(child);
-+		break;
-+
-+	case PTRACE_DETACH: /* detach a process that was attached. */
-+		pr_debug("PTRACE_DETACH\n");
-+		rval = ptrace_detach(child, data);
-+		break;
-+
-+	default:
-+		rval = -EIO;
-+		goto out;
-+	}
-+ out:
-+	return rval;
-+}
-+
-+#if 0
-+static asmlinkage void syscall_trace(void)
-+{
-+	if (!test_thread_flag(TIF_SYSCALL_TRACE))
-+		return;
-+	if (!(current->ptrace & PT_PTRACED))
-+		return;
-+	/* The 0x80 provides a way for the tracing parent to distinguish
-+	 between a syscall stop and SIGTRAP delivery */
-+	ptrace_notify(SIGTRAP | ((current->ptrace & PT_TRACESYSGOOD)
-+				? 0x80 : 0));
-+	/*
-+	 * this isn't the same as continuing with a signal, but it will do
-+	 * for normal use. strace only continues with a signal if the
-+	 * stopping signal is not SIGTRAP. -brl
-+	 */
-+	if (current->exit_code) {
-+		send_sig(current->exit_code, current, 1);
-+		current->exit_code = 0;
-+	}
-+}
-+#endif
-+
-+void ptrace_disable(struct task_struct *child)
-+{
-+	/* nothing to do */
-+}
-diff --git a/include/asm-microblaze/ptrace.h b/include/asm-microblaze/ptrace.h
-new file mode 100644
-index 0000000..f7ba49c
---- /dev/null
-+++ b/include/asm-microblaze/ptrace.h
-@@ -0,0 +1,70 @@
-+/*
-+ * include/asm-microblaze/ptrace.h
++ * include/asm-microblaze/setup.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -279,65 +94,226 @@ index 0000000..f7ba49c
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#ifndef _ASM_MICROBLAZE_PTRACE_H
-+#define _ASM_MICROBLAZE_PTRACE_H
++#ifndef _ASM_MICROBLAZE_SETUP_H
++#define _ASM_MICROBLAZE_SETUP_H
++
++#include <linux/init.h>
++
++extern unsigned int boot_cpuid;
++
++#define COMMAND_LINE_SIZE	256
++extern char cmd_line[COMMAND_LINE_SIZE];
++
++int __init setup_early_printk(char *opt);
++void early_printk(const char *fmt, ...);
++
++#ifdef CONFIG_HEART_BEAT
++void heartbeat(void);
++#endif
++
++void system_timer_init(void);
++unsigned long do_gettimeoffset(void);
++void time_init(void);
++unsigned long long sched_clock(void);
++
++void __init setup_memory(void);
++void __init machine_early_init(const char *cmdline, unsigned int ram,
++			unsigned int fdt);
++
++void machine_restart(char *cmd);
++void machine_shutdown(void);
++void machine_halt(void);
++void machine_power_off(void);
++
++#endif /* _ASM_MICROBLAZE_SETUP_H */
+diff --git a/include/asm-microblaze/string.h b/include/asm-microblaze/string.h
+new file mode 100644
+index 0000000..bf2051c
+--- /dev/null
++++ b/include/asm-microblaze/string.h
+@@ -0,0 +1,22 @@
++/*
++ * include/asm-microblaze/string.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#ifndef _ASM_MICROBLAZE_STRING_H
++#define _ASM_MICROBLAZE_STRING_H
++
++#define __HAVE_ARCH_MEMSET
++#define __HAVE_ARCH_MEMCPY
++#define __HAVE_ARCH_MEMMOVE
++
++extern void *memset(void *, int, __kernel_size_t);
++extern void *memcpy(void *, const void *, __kernel_size_t);
++extern void *memmove(void *, const void *, __kernel_size_t);
++
++#endif /* _ASM_MICROBLAZE_STRING_H */
+diff --git a/include/asm-microblaze/thread_info.h b/include/asm-microblaze/thread_info.h
+new file mode 100644
+index 0000000..8a46c14
+--- /dev/null
++++ b/include/asm-microblaze/thread_info.h
+@@ -0,0 +1,155 @@
++/*
++ * include/asm-microblaze/thread_info.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#ifndef _ASM_MICROBLAZE_THREAD_INFO_H
++#define _ASM_MICROBLAZE_THREAD_INFO_H
++
++#ifdef __KERNEL__
++
++/* we have 8k stack */
++#define THREAD_SHIFT		13
++#define THREAD_SIZE		(1 << THREAD_SHIFT)
 +
 +#ifndef __ASSEMBLY__
-+#include <asm/types.h>
++# include <asm/processor.h>
++# include <asm/segment.h>
 +
-+typedef unsigned long microblaze_reg_t;
++/*
++ * low level task data that entry.S needs immediate access to
++ * - this struct should fit entirely inside of one cache line
++ * - this struct shares the supervisor stack pages
++ * - if the contents of this structure are changed, the assembly constants
++ *	 must also be changed
++ */
 +
-+struct pt_regs {
-+	microblaze_reg_t r0;
-+	microblaze_reg_t r1;
-+	microblaze_reg_t r2;
-+	microblaze_reg_t r3;
-+	microblaze_reg_t r4;
-+	microblaze_reg_t r5;
-+	microblaze_reg_t r6;
-+	microblaze_reg_t r7;
-+	microblaze_reg_t r8;
-+	microblaze_reg_t r9;
-+	microblaze_reg_t r10;
-+	microblaze_reg_t r11;
-+	microblaze_reg_t r12;
-+	microblaze_reg_t r13;
-+	microblaze_reg_t r14;
-+	microblaze_reg_t r15;
-+	microblaze_reg_t r16;
-+	microblaze_reg_t r17;
-+	microblaze_reg_t r18;
-+	microblaze_reg_t r19;
-+	microblaze_reg_t r20;
-+	microblaze_reg_t r21;
-+	microblaze_reg_t r22;
-+	microblaze_reg_t r23;
-+	microblaze_reg_t r24;
-+	microblaze_reg_t r25;
-+	microblaze_reg_t r26;
-+	microblaze_reg_t r27;
-+	microblaze_reg_t r28;
-+	microblaze_reg_t r29;
-+	microblaze_reg_t r30;
-+	microblaze_reg_t r31;
-+	microblaze_reg_t pc;
-+	microblaze_reg_t msr;
-+	microblaze_reg_t ear;
-+	microblaze_reg_t esr;
-+	microblaze_reg_t fsr;
-+	int kernel_mode;
++struct cpu_context {
++	__u32	sp;
++	__u32	r2;
++	/* dedicated registers */
++	__u32	r13;
++	__u32	r14;
++	__u32	r15;
++	__u32	r16;
++	__u32	r17;
++	__u32	r18;
++	/* non-volatile registers */
++	__u32	r19;
++	__u32	r20;
++	__u32	r21;
++	__u32	r22;
++	__u32	r23;
++	__u32	r24;
++	__u32	r25;
++	__u32	r26;
++	__u32	r27;
++	__u32	r28;
++	__u32	r29;
++	__u32	r30;
++	/* special purpose registers */
++	__u32	msr;
++	__u32	ear;
++	__u32	esr;
++	__u32	fsr;
 +};
 +
-+#define kernel_mode(regs)		((regs)->kernel_mode)
-+#define user_mode(regs)			(!kernel_mode(regs))
++struct thread_info {
++	struct task_struct	*task; /* main task structure */
++	struct exec_domain	*exec_domain; /* execution domain */
++	unsigned long		flags; /* low level flags */
++	unsigned long		status; /* thread-synchronous flags */
++	__u32			cpu; /* current CPU */
++	__s32			preempt_count; /* 0 => preemptable,< 0 => BUG*/
++	mm_segment_t		addr_limit; /* thread address space */
++	struct restart_block	restart_block;
 +
-+#define instruction_pointer(regs)	((regs)->pc)
-+#define profile_pc(regs)		instruction_pointer(regs)
++	struct cpu_context	cpu_context;
++};
 +
-+extern void show_regs(struct pt_regs *);
++/*
++ * macros/functions for gaining access to the thread information structure
++ *
++ * preempt_count needs to be 1 initially, until the scheduler is functional.
++ */
++#define INIT_THREAD_INFO(tsk)			\
++{						\
++	.task		= &tsk,			\
++	.exec_domain	= &default_exec_domain,	\
++	.flags		= 0,			\
++	.cpu		= 0,			\
++	.preempt_count	= 1,			\
++	.addr_limit	= KERNEL_DS,		\
++	.restart_block = {			\
++		.fn = do_no_restart_syscall,	\
++	},					\
++}
++
++#define init_thread_info	(init_thread_union.thread_info)
++#define init_stack		(init_thread_union.stack)
++
++/* how to get the thread information struct from C */
++static inline struct thread_info *current_thread_info(void)
++{
++	register unsigned long sp asm("r1");
++
++	return (struct thread_info *)(sp & ~(THREAD_SIZE-1));
++}
++
++/* thread information allocation */
++#define alloc_thread_info(tsk) \
++		((struct thread_info *) __get_free_pages(GFP_KERNEL, 1))
++#define free_thread_info(ti) free_pages((unsigned long) (ti), 1)
 +
 +#endif /* __ASSEMBLY__ */
 +
-+#endif /* _ASM_MICROBLAZE_PTRACE_H */
++#define PREEMPT_ACTIVE		0x10000000
++
++/*
++ * thread information flags
++ * - these are process state flags that various assembly files may
++ *   need to access
++ * - pending work-to-be-done flags are in LSW
++ * - other flags in MSW
++ */
++#define TIF_SYSCALL_TRACE	0 /* syscall trace active */
++#define TIF_NOTIFY_RESUME	1 /* resumption notification requested */
++#define TIF_SIGPENDING		2 /* signal pending */
++#define TIF_NEED_RESCHED	3 /* rescheduling necessary */
++/* restore singlestep on return to user mode */
++#define TIF_SINGLESTEP		4
++#define TIF_IRET		5 /* return with iret */
++#define TIF_MEMDIE		6
++/* true if poll_idle() is polling TIF_NEED_RESCHED */
++#define TIF_POLLING_NRFLAG	16
++
++#define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
++#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
++#define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
++#define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
++#define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
++#define _TIF_IRET		(1<<TIF_IRET)
++#define _TIF_POLLING_NRFLAG	(1<<TIF_POLLING_NRFLAG)
++
++/* work to do on interrupt/exception return */
++#define _TIF_WORK_MASK		0x0000FFFE
++/* work to do on any return to u-space */
++#define _TIF_ALLWORK_MASK	0x0000FFFF
++
++/*
++ * Thread-synchronous status.
++ *
++ * This is different from the flags in that nobody else
++ * ever touches our thread-synchronous status, so we don't
++ * have to worry about atomic accesses.
++ */
++/* FPU was used by this task this quantum (SMP) */
++#define TS_USEDFPU		0x0001
++
++#endif /* __KERNEL__ */
++#endif /* _ASM_MICROBLAZE_THREAD_INFO_H */
 -- 
 1.5.4.GIT
