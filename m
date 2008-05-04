@@ -1,56 +1,195 @@
-From: Jiri Slaby <jirislaby@gmail.com>
-Subject: Re: [PATCH 1/2] OF: clean coding style - prom_parse.c
-Date: Sun, 04 May 2008 17:51:53 +0200
-Message-ID: <481DDB99.2090209@gmail.com>
-References: <monstr@seznam.cz>	 <1209827626-8562-1-git-send-email-monstr@seznam.cz>	 <c382f7ff87d1502c20423742ad738e50a118cf62.1209827449.git.monstr@monstr.eu> <1209835583.16966.10.camel@localhost> <481D711E.6000003@seznam.cz>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-2; format=flowed
-Content-Transfer-Encoding: 7bit
+From: monstr@seznam.cz
+Subject: [PATCH 41/56] microblaze_v2: clinkage.h linkage.h sections.h kmap_types.h
+Date: Sun,  4 May 2008 13:41:30 +0200
+Message-ID: <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
+ <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
+ <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
+ <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu>
+ <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
+ <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu>
+ <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>
+ <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu>
+ <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu>
+ <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu>
+ <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
+ <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
+ <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
+ <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
+ <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
+ <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
+ <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
+ <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
+ <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
+ <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
+ <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
+ <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
+ <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
+ <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
+ <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
+ <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
+ <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
+ <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
+ <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+ <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+ <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+ <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
+ <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
+ <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
+ <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
+ <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
+ <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
+ <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
+ <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
+ <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
+ <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fk-out-0910.google.com ([209.85.128.189]:43643 "EHLO
-	fk-out-0910.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752229AbYEDPwI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 11:52:08 -0400
-Received: by fk-out-0910.google.com with SMTP id 18so334500fkq.5
-        for <linux-arch@vger.kernel.org>; Sun, 04 May 2008 08:52:06 -0700 (PDT)
-In-Reply-To: <481D711E.6000003@seznam.cz>
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:47210 "EHLO
+	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753030AbYEDPz1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 11:55:27 -0400
+In-Reply-To: <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
+In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
+References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: Joe Perches <joe@perches.com>, paulus@samba.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-On 05/04/2008 10:17 AM, Michal Simek wrote:
-> Hi All,
-> 
-> I fixed only part of coding style violation. Not all of them.
+From: Michal Simek <monstr@monstr.eu>
 
-Actually, you introduced a bug. See:
-http://lkml.org/lkml/2008/5/3/141
 
-You should have used KERN_CONT, or even better sprintf and friends to be atomic 
-in logs.
+Signed-off-by: Michal Simek <monstr@monstr.eu>
+---
+ include/asm-microblaze/clinkage.h   |   29 +++++++++++++++++++++++++++++
+ include/asm-microblaze/kmap_types.h |   31 +++++++++++++++++++++++++++++++
+ include/asm-microblaze/linkage.h    |   17 +++++++++++++++++
+ include/asm-microblaze/sections.h   |   19 +++++++++++++++++++
+ 4 files changed, 96 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/clinkage.h
+ create mode 100644 include/asm-microblaze/kmap_types.h
+ create mode 100644 include/asm-microblaze/linkage.h
+ create mode 100644 include/asm-microblaze/sections.h
 
-> But you are right KERN_<level> is necessary.
-> 
-> For me is especially important to move these files from arch/powerpc to drivers/of.
-> 
-> M
-> 
->>>  /* Debug utility */
->>>  #ifdef DEBUG
->>>  static void of_dump_addr(const char *s, const u32 *addr, int na)
->>>  {
->>> -	printk("%s", s);
->>> -	while(na--)
->>> -		printk(" %08x", *(addr++));
->>> -	printk("\n");
->>> +	printk(KERN_INFO "%s", s);
->>> +	while (na--)
->>> +		printk(KERN_INFO " %08x", *(addr++));
->>> +	printk(KERN_INFO "\n");
->>>  }
->> You've prefixed KERN_INFO before every address block.
->>
->> How about:
->>
->> print_hex_dump(KERN_<level>, s, DUMP_PREFIX_NONE, 4, addr, na, false);
+diff --git a/include/asm-microblaze/clinkage.h b/include/asm-microblaze/clinkage.h
+new file mode 100644
+index 0000000..28dcd1c
+--- /dev/null
++++ b/include/asm-microblaze/clinkage.h
+@@ -0,0 +1,29 @@
++/*
++ * include/asm-microblaze/clinkage.h
++ *
++ * Macros to reflect C symbol-naming conventions
++ *
++ * Copyright (C) 2003 John Williams <jwilliams@itee.uq.edu.au>
++ * Copyright (C) 2001,2002 NEC Corporatione
++ * Copyright (C) 2001,2002 Miles Bader <miles@gnu.org>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ *
++ * Written by Miles Bader <miles@gnu.org>
++ * Microblaze port by John Williams
++ */
++
++#ifndef _ASM_MICROBLAZE_CLINKAGE_H
++#define _ASM_MICROBLAZE_CLINKAGE_H
++
++#define __ASSEMBLY__
++
++#include <linux/linkage.h>
++
++#define C_SYMBOL_NAME(name)	name
++#define C_ENTRY(name)		.globl name; .align 4; name
++#define C_END(name)
++
++#endif /* _ASM_MICROBLAZE_CLINKAGE_H */
+diff --git a/include/asm-microblaze/kmap_types.h b/include/asm-microblaze/kmap_types.h
+new file mode 100644
+index 0000000..5b53f6e
+--- /dev/null
++++ b/include/asm-microblaze/kmap_types.h
+@@ -0,0 +1,31 @@
++/*
++ * include/asm-microblaze/kmap_types.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#ifndef _ASM_MICROBLAZE_KMAP_TYPES_H
++#define _ASM_MICROBLAZE_KMAP_TYPES_H
++
++enum km_type {
++	KM_BOUNCE_READ,
++	KM_SKB_SUNRPC_DATA,
++	KM_SKB_DATA_SOFTIRQ,
++	KM_USER0,
++	KM_USER1,
++	KM_BIO_SRC_IRQ,
++	KM_BIO_DST_IRQ,
++	KM_PTE0,
++	KM_PTE1,
++	KM_IRQ0,
++	KM_IRQ1,
++	KM_SOFTIRQ0,
++	KM_SOFTIRQ1,
++	KM_TYPE_NR,
++};
++
++#endif /* _ASM_MICROBLAZE_KMAP_TYPES_H */
+diff --git a/include/asm-microblaze/linkage.h b/include/asm-microblaze/linkage.h
+new file mode 100644
+index 0000000..7d5197a
+--- /dev/null
++++ b/include/asm-microblaze/linkage.h
+@@ -0,0 +1,17 @@
++/*
++ * include/asm-microblaze/linkage.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#ifndef _ASM_MICROBLAZE_LINKAGE_H
++#define _ASM_MICROBLAZE_LINKAGE_H
++
++#define __ALIGN		.align 4
++#define __ALIGN_STR	".align 4"
++
++#endif /* _ASM_MICROBLAZE_LINKAGE_H */
+diff --git a/include/asm-microblaze/sections.h b/include/asm-microblaze/sections.h
+new file mode 100644
+index 0000000..0ff7c69
+--- /dev/null
++++ b/include/asm-microblaze/sections.h
+@@ -0,0 +1,19 @@
++/*
++ * include/asm-microblaze/sections.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#ifndef _ASM_MICROBLAZE_SECTIONS_H
++#define _ASM_MICROBLAZE_SECTIONS_H
++
++#include <asm-generic/sections.h>
++
++extern char _ssbss[], _esbss[];
++extern unsigned long __ivt_start[], __ivt_end[];
++
++#endif /* _ASM_MICROBLAZE_SECTIONS_H */
+-- 
+1.5.4.GIT
