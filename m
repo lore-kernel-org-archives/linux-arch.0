@@ -1,7 +1,7 @@
 From: monstr@seznam.cz
-Subject: [PATCH 20/56] microblaze_v2: heartbeat file
-Date: Sun,  4 May 2008 13:41:09 +0200
-Message-ID: <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
+Subject: [PATCH 31/56] microblaze_v2: bug headers files
+Date: Sun,  4 May 2008 13:41:20 +0200
+Message-ID: <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
  <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -22,12 +22,23 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
  <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
  <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
  <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
+ <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
+ <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
+ <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
+ <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
+ <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
+ <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
+ <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
+ <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
+ <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+ <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+ <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:58894 "EHLO
+Received: from 178-47-31-89.wifiinternet.cz ([89.31.47.178]:46857 "EHLO
 	seznam.cz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755244AbYEDNtX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 4 May 2008 09:49:23 -0400
-In-Reply-To: <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
+	id S1755723AbYEDNy1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 4 May 2008 09:54:27 -0400
+In-Reply-To: <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
 In-Reply-To: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
@@ -40,18 +51,20 @@ From: Michal Simek <monstr@monstr.eu>
 
 Signed-off-by: Michal Simek <monstr@monstr.eu>
 ---
- arch/microblaze/kernel/heartbeat.c |   37 ++++++++++++++++++++++++++++++++++++
- 1 files changed, 37 insertions(+), 0 deletions(-)
- create mode 100644 arch/microblaze/kernel/heartbeat.c
+ include/asm-microblaze/bug.h  |   17 +++++++++++++++++
+ include/asm-microblaze/bugs.h |   19 +++++++++++++++++++
+ 2 files changed, 36 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-microblaze/bug.h
+ create mode 100644 include/asm-microblaze/bugs.h
 
-diff --git a/arch/microblaze/kernel/heartbeat.c b/arch/microblaze/kernel/heartbeat.c
+diff --git a/include/asm-microblaze/bug.h b/include/asm-microblaze/bug.h
 new file mode 100644
-index 0000000..508b463
+index 0000000..a0f58d1
 --- /dev/null
-+++ b/arch/microblaze/kernel/heartbeat.c
-@@ -0,0 +1,37 @@
++++ b/include/asm-microblaze/bug.h
+@@ -0,0 +1,17 @@
 +/*
-+ * arch/microblaze/kernel/heartbeat.c
++ * include/asm-microblaze/bug.h
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
@@ -60,32 +73,37 @@ index 0000000..508b463
 + * Copyright (C) 2006 Atmark Techno, Inc.
 + */
 +
-+#include <linux/sched.h>
-+#include <asm/page.h>
-+#include <asm/io.h>
-+#include <asm/setup.h>
++#ifndef _ASM_MICROBLAZE_BUG_H
++#define _ASM_MICROBLAZE_BUG_H
 +
-+void heartbeat(void)
++#include <linux/kernel.h>
++#include <asm-generic/bug.h>
++
++#endif /* _ASM_MICROBLAZE_BUG_H */
+diff --git a/include/asm-microblaze/bugs.h b/include/asm-microblaze/bugs.h
+new file mode 100644
+index 0000000..09256e7
+--- /dev/null
++++ b/include/asm-microblaze/bugs.h
+@@ -0,0 +1,19 @@
++/*
++ * include/asm-microblaze/bugs.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ */
++
++#ifndef _ASM_MICROBLAZE_BUGS_H
++#define _ASM_MICROBLAZE_BUGS_H
++
++static inline void check_bugs(void)
 +{
-+	static unsigned int cnt, period, dist;
-+
-+	if (cnt == 0 || cnt == dist)
-+		iowrite32(1, CONFIG_HEART_BEAT_ADDRESS);
-+	else if (cnt == 7 || cnt == dist + 7)
-+		iowrite32(0, CONFIG_HEART_BEAT_ADDRESS);
-+
-+	if (++cnt > period) {
-+		cnt = 0;
-+
-+		/*
-+		 * The hyperbolic function below modifies the heartbeat period
-+		 * length in dependency of the current (5min) load. It goes
-+		 * through the points f(0)=126, f(1)=86, f(5)=51, f(inf)->30.
-+		 */
-+		period = ((672 << FSHIFT) / (5 * avenrun[0] +
-+					(7 << FSHIFT))) + 30;
-+		dist = period / 4;
-+	}
++	/* nothing to do */
 +}
++
++#endif /* _ASM_MICROBLAZE_BUGS_H */
 -- 
 1.5.4.GIT
