@@ -1,85 +1,73 @@
-From: "Stephen Neuendorffer" <stephen.neuendorffer@xilinx.com>
-Subject: RE: [PATCH] Microblaze: implement dma-coherent API and refactorcache flush code.
-Date: Mon, 5 May 2008 16:12:08 -0700
-Message-ID: <20080505231206.922A61C780C0@mail19-wa4.bigfish.com>
-References: <20080505223706.1236C1C8004E@mail131-sin.bigfish.com> <1210028237.5798.121.camel@localhost>
+From: John Williams <john.williams@petalogix.com>
+Subject: RE: [PATCH 10/56] microblaze_v2: Generic dts file for platforms
+Date: Tue, 06 May 2008 09:16:34 +1000
+Message-ID: <1210029394.5798.140.camel@localhost>
+References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
+	 <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
+	 <20080505172535.9710319B8086@mail101-wa4.bigfish.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="US-ASCII"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-wa4.frontbridge.com ([216.32.181.16]:39548 "EHLO
-	outbound5-wa4-R.bigfish.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752240AbYEEXMH convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 19:12:07 -0400
-Content-class: urn:content-classes:message
-In-reply-to: <1210028237.5798.121.camel@localhost>
+Received: from uki.us.mooball.net ([66.98.178.13]:50274 "EHLO
+	uki.us.mooball.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761804AbYEEXR0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 19:17:26 -0400
+In-Reply-To: <20080505172535.9710319B8086@mail101-wa4.bigfish.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Williams <john.williams@petalogix.com>
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>, linux-kernel@vger.kernel.org
+To: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
+Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+
+On Mon, 2008-05-05 at 10:25 -0700, Stephen Neuendorffer wrote:
+> I think it would be nice if dts files were stored in boot/dts, as on
+> powerpc, which would reduce confusion.
+
+I'm not so sure.  By grouping 
+
+ * the DTS
+ * Kconfig.auto (now just storing CPU parameters for CPUFLAGS); and
+ * board-specific setup.c if required, 
+
+we concentrate in one place, in a single subdir of
+arch/microblaze/platform/*, all of the board specific info.  
+
+Maybe our Kbuild should copy the platform .dts file out of the platform
+dir and into microblaze/boot, like we do with the finished kernel?  Then
+it's ready to be picked up by the user or some higher level build tool.
+
+If users or vendors want to maintain multiple DTS files for a single
+board, again they can just collect them in the platform subdir so their
+intended target remains obvious.
+
+John
 
 
-
-> -----Original Message-----
-> From: John Williams [mailto:john.williams@petalogix.com]
-> Sent: Monday, May 05, 2008 3:57 PM
-> To: Stephen Neuendorffer
-> Cc: arnd@arndb.de; linux-arch@vger.kernel.org; John Linn;
-matthew@wil.cx; will.newton@gmail.com;
-> drepper@redhat.com; microblaze-uclinux@itee.uq.edu.au;
-grant.likely@secretlab.ca; Michal Simek;
-> linux-kernel@vger.kernel.org
-> Subject: Re: [PATCH] Microblaze: implement dma-coherent API and
-refactorcache flush code.
 > 
-> Hi Steve,
+> Steve
 > 
-> On Mon, 2008-05-05 at 15:37 -0700, Stephen Neuendorffer wrote:
+> > -----Original Message-----
+> > From: monstr@seznam.cz [mailto:monstr@seznam.cz]
+> > Sent: Sunday, May 04, 2008 4:41 AM
+> > To: linux-kernel@vger.kernel.org
+> > Cc: arnd@arndb.de; linux-arch@vger.kernel.org; Stephen Neuendorffer;
+> John Linn;
+> > john.williams@petalogix.com; matthew@wil.cx; will.newton@gmail.com;
+> drepper@redhat.com; microblaze-
+> > uclinux@itee.uq.edu.au; grant.likely@secretlab.ca; Michal Simek
+> > Subject: [PATCH 10/56] microblaze_v2: Generic dts file for platforms
+> > 
+> > From: Michal Simek <monstr@monstr.eu>
+> > 
+> > 
+> > Signed-off-by: Michal Simek <monstr@monstr.eu>
+> > ---
+> >  arch/microblaze/platform/generic/system.dts |  137
+> +++++++++++++++++++++++++++
+> >  1 files changed, 137 insertions(+), 0 deletions(-)
+> >  create mode 100644 arch/microblaze/platform/generic/system.dts
 > 
-> > In particular, the dcache in the microblaze is write through, so the
-> > existing code is more easily thought of as 'invalidation' than
-> > 'flushing'.  In addition, some of the flush_* methods were old, and
-> > some shouldn't need to be implemented (since currently no mmu is
-> > supported).
-> 
-> I agree - this renaming is a long time coming.
-> 
-> [snip]
-> 
-> Does the DMA API insist upon the dma_cache_sync call to guarantee
-> sensible results?  If so, your implementation looks fine.  If not,
-then
-> the results will clearly be bogus as there's nothing magical about the
-> memory being allocated in dma_alloc.
-
-Yes, in fact this is one of the keys to getting the lltemac driver to
-work right.  see Documentation/DMA-API.txt
-
-> To that end, can it just call kmalloc(), and similarly kfree() for
-> dma_free?
-
-My understanding is that on other architectures (x86, for instance)
-'dma' memory ensures other things, like it's accessible in PCI memory
-space.  On microblaze, there's nothing really special about dma memory,
-but you get the API as a chunk.
- 
-> I'd still like to see the uncached shadow stuff make a return one day,
-> it is an effective way of solving the problem, we'll just need to find
-a
-> cleaner way to implement it.  A linear walk through the cache to
-> invalidate is so slow, it destroys any benefit gained from DMA in the
-> first place.
-
-I think it's definitely a simple way of solving the problem (in fact,
-the version of the code that's currently at git.xilinx.com includes it).
-Would it be better dealt with at the page level, rather than at the
-address level, then one of the architecture-reserved flags could be used
-for it?
-If it really does have value, then I want to make sure it goes in, along
-with bits in EDK that make it straightforward to use.  For me, the
-biggest barrier to using it is understanding exactly what assumptions it
-is making on the hardware, and making those assumptions bulletproof.
-
-Steve
+-- 
+John Williams, PhD, B.Eng, B.IT
+PetaLogix - Linux Solutions for a Reconfigurable World
+w: www.petalogix.com  p: +61-7-30090663  f: +61-7-30090663
