@@ -1,49 +1,62 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 24/56] microblaze_v2: time support
-Date: Mon, 05 May 2008 16:22:40 +0200
-Message-ID: <481F1830.5090309@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	 <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>	 <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>	 <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>	 <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>	 <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>	 <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>	 <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>	 <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>	 <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>	 <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.120989726
- 6.git.monstr@monstr.eu>	 <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu> <1209953949.5798.66.camel@localhost>
+Subject: Re: [PATCH 50/56] microblaze_v2: setup.h string.h thread_info.h
+Date: Mon, 05 May 2008 16:24:17 +0200
+Message-ID: <481F1891.4000400@seznam.cz>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	 <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>	 <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>	 <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>	 <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>	 <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>	 <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>	 <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>	 <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>	 <643084ee3819dd169cad3c4e3565c5ff20dd3429.1209897267.git.monstr@monstr.eu>	 <231ae415bf52de25c69f727fd13c50d201f8ecd8.120989726
+ 7.git.monstr@monstr.eu>	 <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu> <1209955168.5798.85.camel@localhost>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:62783 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:65308 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1759475AbYEEOVf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:21:35 -0400
-In-Reply-To: <1209953949.5798.66.camel@localhost>
+	with ESMTP id S1753571AbYEEOXd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:23:33 -0400
+In-Reply-To: <1209955168.5798.85.camel@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: John Williams <john.williams@petalogix.com>
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-Hi John,
-
-you wrote me you have smarter implementation that xilinx did. Can you find it
-and send me it?
-
-Thanks,
+FIXED to r1.
 M
 
 
->> +static inline void udelay(unsigned long usec)
->> +{
->> +	unsigned long long tmp = usec;
->> +	unsigned long loops = (tmp * 4295 * HZ * loops_per_jiffy) >> 32;
->> +	__delay(loops);
->> +}
-> 
-> Let's hope like hell the CPU has HW multipler and shifter for this
-> one! :)
-> 
->> +++ b/include/asm-microblaze/timex.h
->> @@ -0,0 +1,20 @@
+>> +++ b/include/asm-microblaze/thread_info.h
+>> @@ -0,0 +1,155 @@
+>> +/*
+>> + * include/asm-microblaze/thread_info.h
+>> + *
+>> + * This file is subject to the terms and conditions of the GNU General Public
+>> + * License. See the file "COPYING" in the main directory of this archive
+>> + * for more details.
+>> + *
+>> + * Copyright (C) 2006 Atmark Techno, Inc.
+>> + */
 >> +
->> +#define CLOCK_TICK_RATE 1000 /* Timer input freq. */
+>> +#ifndef _ASM_MICROBLAZE_THREAD_INFO_H
+>> +#define _ASM_MICROBLAZE_THREAD_INFO_H
+>> +
+>> +#ifdef __KERNEL__
+>> +
+>> +/* we have 8k stack */
 > 
-> What's this?  Is it used anywhere?
+> Is it worth trialling a 4K stack on MicroBlaze?
+> 
+> 
+>> +struct cpu_context {
+>> +	__u32	sp;
+> 
+> I'd be happier to see this called r1.  If mb-as doesn't accept "sp" as
+> an alias for "r1", nor should we.
+> 
+> ...
+> 
+>> +	__u32	r30;
+> 
+> Is it worth a comment that r31 is absent because it's used as 'current'
+> pointer, and -ffixed-r31 etc?
 > 
 > 
 > 
