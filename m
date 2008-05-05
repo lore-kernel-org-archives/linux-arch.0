@@ -1,104 +1,138 @@
-From: John Williams <john.williams@petalogix.com>
-Subject: Re: [PATCH 50/56] microblaze_v2: setup.h string.h thread_info.h
-Date: Mon, 05 May 2008 12:39:28 +1000
-Message-ID: <1209955168.5798.85.camel@localhost>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
-	 <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
-	 <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
-	 <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu>
-	 <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
-	 <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu>
-	 <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>
-	 <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu>
-	 <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu>
-	 <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu>
-	 <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
-	 <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>
-	 <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>
-	 <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>
-	 <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>
-	 <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>
-	 <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>
-	 <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>
-	 <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
-	 <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>
-	 <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>
-	 <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>
-	 <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
-	 <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
-	 <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
-	 <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
-	 <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
-	 <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
-	 <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
-	 <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
-	 <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
-	 <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
-	 <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
-	 <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
-	 <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
-	 <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
-	 <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
-	 <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
-	 <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
-	 <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
-	 <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
-	 <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
-	 <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
-	 <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
-	 <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
-	 <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
-	 <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
-	 <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>
-	 <643084ee3819dd169cad3c4e3565c5ff20dd3429.1209897267.git.monstr@monstr.eu>
-	 <231ae415bf52de25c69f727fd13c50d201f8ecd8.1209897267.git.monstr@monstr.eu>
-	 <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
+Date: Mon, 5 May 2008 06:15:33 +0200
+Message-ID: <20080505041533.GA17640@wotan.suse.de>
+References: <20080430113456.GY12774@kernel.dk> <20080430121712.GR11126@linux.vnet.ibm.com> <20080430123717.GC12774@kernel.dk> <20080502020241.GA26088@linux.vnet.ibm.com> <20080502021233.GC11844@wotan.suse.de> <20080502122955.GB15522@linux.vnet.ibm.com> <20080502124205.GA23680@linux.vnet.ibm.com> <1209733169.13978.157.camel@twins> <20080503054930.GA19664@wotan.suse.de> <20080503181148.GA16159@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from uki.us.mooball.net ([66.98.178.13]:49891 "EHLO
-	uki.us.mooball.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754448AbYEECkI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 22:40:08 -0400
-In-Reply-To: <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752613AbYEEEPx@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20080503181148.GA16159@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu
+List-Id: linux-arch.vger.kernel.org
+
+On Sat, May 03, 2008 at 11:11:48AM -0700, Paul E. McKenney wrote:
+> On Sat, May 03, 2008 at 07:49:30AM +0200, Nick Piggin wrote:
+> > > This is perfectly deadlock free when wait=0 and it just returns -ENOMEM
+> > > on allocation failure.
+> > 
+> > Yeah, I'm just talking about the wait=0 case. (btw. I'd rather the core
+> > API takes some data rather than allocates some itself, eg because you
+> > might want to have it on the stack).
+> 
+> But taking data on the stack is safe only in the wait=1 case, right?
+
+Sure, but the API would be general enough to handle it.
+
+ 
+> > For the wait=1 case, something very clever such as processing pending
+> > requests in a polling loop might be cool... however I'd rather not add
+> > such complexity until someone needs it (you could stick a comment in
+> > there outlining your algorithm). But I'd just rather not have peole rely
+> > on it yet.
+> 
+> In that case we may need to go back to the global lock with only one
+> request being processed at a time.  Otherwise, if two wait=1 requests
+> happen at the same time, they deadlock waiting for each other to process
+> their request.  (See Keith Owens: http://lkml.org/lkml/2008/5/2/183).
+> 
+> In other words, if you want to allow parallel calls to
+> smp_call_function(), the simplest way to do it seems to be to do the
+> polling loop.  The other ways I have come up with thus far are uglier
+> and less effective (see http://lkml.org/lkml/2008/4/30/164).
+> 
+> Now, what I -could- do would be to prohibit the wait=1 case from
+> irq-disable state from polling -- that would make sense, as the caller
+> probably had a reason to mask irqs, and might not take kindly to having
+> them faked behind the caller's back.  ;-)
+
+I think we're talking past each other a little bit.
+
+There is no irq-disabled calls as yet, therefore I don't think we should
+add a lot of complex code just to _allow_ for it; at least, not until a
+really compelling user comes up.
+
+The main thing is to parallelise the code. The fact that we can trivially 
+support irq-disabled calls for nowait case (if the caller supplies the
+data or can handle failure) is just a bonus.
 
 
-> +++ b/include/asm-microblaze/thread_info.h
-> @@ -0,0 +1,155 @@
-> +/*
-> + * include/asm-microblaze/thread_info.h
-> + *
-> + * This file is subject to the terms and conditions of the GNU General Public
-> + * License. See the file "COPYING" in the main directory of this archive
-> + * for more details.
-> + *
-> + * Copyright (C) 2006 Atmark Techno, Inc.
-> + */
-> +
-> +#ifndef _ASM_MICROBLAZE_THREAD_INFO_H
-> +#define _ASM_MICROBLAZE_THREAD_INFO_H
-> +
-> +#ifdef __KERNEL__
-> +
-> +/* we have 8k stack */
+> > > It it doesn't return -ENOMEM I know its been queued and will be
+> > > processed at some point, if it does fail, I can deal with it in another
+> > > way.
+> > 
+> > At least with IPIs I think we can guarantee they will be processed on
+> > the target after we queue them.
+> 
+> OK, so let me make sure I understand what is needed.  One example might be
+> some code called from scheduler_tick(), which runs with irqs disabled.
+> Without the ability to call smp_call_function() directly, you have
+> to fire off a work queue or something.  Now, if smp_call_function()
+> can hand you an -ENOMEM or (maybe) an -EBUSY, then you still have to
+> fire off the work queue, but you probably only have to do it rarely,
+> minimizing the performance impact.
+> 
+> Another possibility is when it is -nice- to call smp_call_function(),
+> but can just try again on the next scheduler_tick() -- ignoring dynticks
+> idle for the moment.  In this case, you might still test the error return
+> to set a flag that you will check on the next scheduler_tick() call.
+> 
+> Is this where you guys are coming from?
+> 
+> And you are all OK with smp_call_function() called with irqs enabled
+> never being able to fail, right?  (Speaking of spaghetti code, why
+> foist unnecessary failure checks on the caller...)
 
-Is it worth trialling a 4K stack on MicroBlaze?
+Having the fallback is fine, yes. I'd say it shouldn't often get called.
+
+ 
+> > > I know I'd like to do that and I suspect Nick has a few use cases up his
+> > > sleeve as well.
+> > 
+> > It would be handy. The "quickly kick something off on another CPU" is
+> > pretty nice in mm/ when you have per-cpu queues or caches that might
+> > want to be flushed.
+> 
+> OK, I think I might be seeing what you guys are getting at.  Here is
+> what I believe you guys need:
+> 
+> 1.	No deadlocks, ever, not even theoretical "low probability"
+> 	deadlocks.
+
+Of course ;)
+
+ 
+> 2.	No failure returns when called with irqs enabled.  On the other
+> 	hand, when irqs are disabled, failure is possible.  Though hopefully
+> 	unlikely.
+
+I think I'd like to keep existing smp_call_function that disallows
+irq-disabled calls and can't fail. Introduce a new one for irq-disabled
+case.
+
+But sure, the existing smp_call_function implementation can't fail.
 
 
-> +struct cpu_context {
-> +	__u32	sp;
+> 3.	Parallel execution of multiple smp_call_function() requests
+> 	is required, even when called with irqs disabled.
 
-I'd be happier to see this called r1.  If mb-as doesn't accept "sp" as
-an alias for "r1", nor should we.
+I think so. At least for the call_function_single case.
 
-...
 
-> +	__u32	r30;
+> 4.	The wait=1 case with irqs disabled is prohibited.
+> 
+> 5.	If you call smp_call_function() with irqs disabled, then you
+> 	are guaranteed that no other CPU's smp_call_function() handler
+> 	will be invoked while smp_call_function() is executing.
+> 
+> Anything I am missing?
 
-Is it worth a comment that r31 is absent because it's used as 'current'
-pointer, and -ffixed-r31 etc?
+For the last cases, I actually think your polling loop is pretty cool ;)
+So I don't completely object to it, I just don't think we should add it
+in until something wants it...
+
+Don't let me dictate the requirements though, the only real one I had
+was to make call_function_single scalable and faster, and call_function
+be as optimal as possible.
