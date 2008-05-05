@@ -1,8 +1,7 @@
 From: John Williams <john.williams@petalogix.com>
-Subject: Re: [PATCH 45/56] microblaze_v2: headers simple files - empty or
-	redirect to asm-generic
-Date: Mon, 05 May 2008 12:34:09 +1000
-Message-ID: <1209954849.5798.80.camel@localhost>
+Subject: Re: [PATCH 50/56] microblaze_v2: setup.h string.h thread_info.h
+Date: Mon, 05 May 2008 12:39:28 +1000
+Message-ID: <1209955168.5798.85.camel@localhost>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
 	 <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 	 <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -49,40 +48,57 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
 	 <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
 	 <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
 	 <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
+	 <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
+	 <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>
+	 <643084ee3819dd169cad3c4e3565c5ff20dd3429.1209897267.git.monstr@monstr.eu>
+	 <231ae415bf52de25c69f727fd13c50d201f8ecd8.1209897267.git.monstr@monstr.eu>
+	 <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from uki.us.mooball.net ([66.98.178.13]:49773 "EHLO
+Received: from uki.us.mooball.net ([66.98.178.13]:49891 "EHLO
 	uki.us.mooball.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752749AbYEECex (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 22:34:53 -0400
-In-Reply-To: <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
+	with ESMTP id S1754448AbYEECkI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 22:40:08 -0400
+In-Reply-To: <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@seznam.cz
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
 
->  include/asm-microblaze/auxvec.h            |   14 ++++++++++++++
->  include/asm-microblaze/cputime.h           |   16 ++++++++++++++++
->  include/asm-microblaze/div64.h             |   16 ++++++++++++++++
->  include/asm-microblaze/emergency-restart.h |   16 ++++++++++++++++
->  include/asm-microblaze/errno.h             |   16 ++++++++++++++++
->  include/asm-microblaze/futex.h             |   16 ++++++++++++++++
->  include/asm-microblaze/kdebug.h            |   19 +++++++++++++++++++
->  include/asm-microblaze/local.h             |   16 ++++++++++++++++
->  include/asm-microblaze/mutex.h             |   16 ++++++++++++++++
->  include/asm-microblaze/namei.h             |   24 ++++++++++++++++++++++++
->  include/asm-microblaze/percpu.h            |   16 ++++++++++++++++
->  include/asm-microblaze/resource.h          |   16 ++++++++++++++++
->  include/asm-microblaze/user.h              |   18 ++++++++++++++++++
+> +++ b/include/asm-microblaze/thread_info.h
+> @@ -0,0 +1,155 @@
+> +/*
+> + * include/asm-microblaze/thread_info.h
+> + *
+> + * This file is subject to the terms and conditions of the GNU General Public
+> + * License. See the file "COPYING" in the main directory of this archive
+> + * for more details.
+> + *
+> + * Copyright (C) 2006 Atmark Techno, Inc.
+> + */
+> +
+> +#ifndef _ASM_MICROBLAZE_THREAD_INFO_H
+> +#define _ASM_MICROBLAZE_THREAD_INFO_H
+> +
+> +#ifdef __KERNEL__
+> +
+> +/* we have 8k stack */
 
-These are all just includes of asm-generic/* (hooray!).
+Is it worth trialling a 4K stack on MicroBlaze?
 
-But, is it reasonable to to suggest adding asm-generic at the end of the
-kernel include path, and save all this verbosity?  
 
-Principle of least surprise maybe?
+> +struct cpu_context {
+> +	__u32	sp;
 
-John
+I'd be happier to see this called r1.  If mb-as doesn't accept "sp" as
+an alias for "r1", nor should we.
+
+...
+
+> +	__u32	r30;
+
+Is it worth a comment that r31 is absent because it's used as 'current'
+pointer, and -ffixed-r31 etc?
