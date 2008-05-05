@@ -1,62 +1,47 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: [patch 1/2] read_barrier_depends fixlets
-Date: Mon, 5 May 2008 13:20:21 +0200
-Message-ID: <20080505112021.GC5018@wotan.suse.de>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [RFC][PATCH] sched_clock_cpu()
+Date: Mon, 5 May 2008 13:32:31 +0200
+Message-ID: <20080505113231.GA13915@elte.hu>
+References: <1209832169.6929.42.camel@lappy> <20080503170130.GB21967@elte.hu> <20080503.212607.157994166.davem@davemloft.net> <20080504090024.GA29318@elte.hu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:36990 "EHLO mx2.suse.de"
+Received: from mx3.mail.elte.hu ([157.181.1.138]:60668 "EHLO mx3.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751212AbYEELUY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 07:20:24 -0400
+	id S1755120AbYEELcy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 07:32:54 -0400
 Content-Disposition: inline
+In-Reply-To: <20080504090024.GA29318@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Paul McKenney <paulmck@>
+To: David Miller <davem@davemloft.net>
+Cc: a.p.zijlstra@chello.nl, tglx@linutronix.de, guichaz@gmail.com, andi@firstfloor.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, efault@gmx.de, dhaval@linux.vnet.ibm.com
 
-While considering the impact of read_barrier_depends, it occurred to
-me that it should really be really a noop for the compiler. At least, it is
-better to have every arch the same than to have a few that are slightly
-different. (Does this mean SMP Alpha's read_barrier_depends could drop the
-"memory" clobber too?)
---
-It would be a highly unusual compiler that might try to issue a load of
-data1 before it loads a data2 which is data-dependant on data1.
 
-There is the problem of the compiler trying to reload data1 _after_
-loading data2, and thus having a newer data1 than data2. However if the
-compiler is so inclined, then it could perform such a load at any point
-after the barrier, so the barrier itself will not guarantee correctness.
+* Ingo Molnar <mingo@elte.hu> wrote:
 
-I think we've mostly hoped the compiler would not to do that.
+> 
+> * David Miller <davem@davemloft.net> wrote:
+> 
+> > > that wont work very well when sched_clock() is called from within 
+> > > CONFIG_LOCK_STAT instrumentation. Does the patch below solve the 
+> > > boot problems for you?
+> > 
+> > Also, no platform can set HAVE_STABLE_CLOCK until we instantiate it in 
+> > a Kconfig somewhere.  I've choosen to do it in kernel/Kconfig.hz and 
+> > here are the sparc/sparc64 bits as well, I've booted this up with 
+> > Peter's patch on my 64-cpu niagara2 box and done some basic testing.
+> 
+> applied, thanks David.
+> 
+> right now this topic looks good in review and in testing but it is 
+> stalled on a bug: in overnight testing it triggered an ftrace 
+> self-test hang that i bisected down to that patch. While that doesnt 
+> affect mainline it's something that shows that the new sched_clock() 
+> code is not as widely usable as the old code - have to investigate 
+> that some more.
 
-This brings alpha and frv into line with all other architectures.
+FYI, figured that out today and fixed it, so the topic has green lights 
+again.
 
-Signed-off-by: Nick Piggin <npiggin@suse.de>
-
-Index: linux-2.6/include/asm-alpha/barrier.h
-===================================================================
---- linux-2.6.orig/include/asm-alpha/barrier.h
-+++ linux-2.6/include/asm-alpha/barrier.h
-@@ -24,7 +24,7 @@ __asm__ __volatile__("mb": : :"memory")
- #define smp_mb()	barrier()
- #define smp_rmb()	barrier()
- #define smp_wmb()	barrier()
--#define smp_read_barrier_depends()	barrier()
-+#define smp_read_barrier_depends()	do { } while (0)
- #endif
- 
- #define set_mb(var, value) \
-Index: linux-2.6/include/asm-frv/system.h
-===================================================================
---- linux-2.6.orig/include/asm-frv/system.h
-+++ linux-2.6/include/asm-frv/system.h
-@@ -179,7 +179,7 @@ do {							\
- #define mb()			asm volatile ("membar" : : :"memory")
- #define rmb()			asm volatile ("membar" : : :"memory")
- #define wmb()			asm volatile ("membar" : : :"memory")
--#define read_barrier_depends()	barrier()
-+#define read_barrier_depends()	do { } while (0)
- 
- #ifdef CONFIG_SMP
- #define smp_mb()			mb()
+	Ingo
