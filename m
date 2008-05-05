@@ -1,130 +1,152 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: microblaze syscall list
-Date: Mon, 5 May 2008 16:08:59 +0200
-Message-ID: <200805051609.01628.arnd@arndb.de>
-References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <200805031116.50236.arnd@arndb.de> <481E5E58.8040906@petalogix.com>
+From: Michal Simek <monstr@seznam.cz>
+Subject: Re: [PATCH 01/56] microblaze_v2: Kconfig patches
+Date: Mon, 05 May 2008 16:16:45 +0200
+Message-ID: <481F16CD.1040503@seznam.cz>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	 <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <1209951761.5798.27.camel@localhost>
+Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=ISO-8859-2
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:64717 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753372AbYEEOJG convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:09:06 -0400
-In-Reply-To: <481E5E58.8040906@petalogix.com>
-Content-Disposition: inline
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:61289 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752629AbYEEOPr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:15:47 -0400
+In-Reply-To: <1209951761.5798.27.camel@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: John Williams <john.williams@petalogix.com>
-Cc: monstr@seznam.cz, Matthew Wilcox <matthew@wil.cx>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>, Ulrich Drepper <drepper@redhat.com>
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-On Monday 05 May 2008, John Williams wrote:
-> Arnd Bergmann wrote:
+Hi John
 
-> OK.  Our glibc patches are against 2.3.3.  I realise it's not the most 
-> recent, but it's the best we've got for now.
-
-Right, glibc-2.3 was from 2002, 2.3.3 was released in 2004, which is
-still pretty ancient.
- 
-> > What is not yet there is code to implement open() using openat() in the
-> > absense of __NR_open.
+>> +config EARLY_PRINTK_UARTLITE_ADDRESS
+>> +	hex "Physical address where UART Lite for early printk is mapped"
+>> +	depends on EARLY_PRINTK
+>> +	default "0x40100000"
+>> +	help
+>> +	  Please enter physical address where your uart lite is mapped.
 > 
-> >> I guess we need some help to find the other critical ones.
-> > 
-> > I think your approach is flawed, it doesn't help at all to look at what
-> > your libc currently does if you already think that you will need to change
-> > the libc code.
+> I think this should default to 0x00000000, then in the early_printk code
+> we can test for zero baseaddress and attempt some sensible fallback in
+> that case (even to disable).  
+
+FIXED and use EARLY_PRINTK to default set to no.
+
+>> +
+>> +config HEART_BEAT
+>> +	bool "Heart beat function for kernel"
+>> +	help
+>> +	  This option turns on/off heart beat kernel functionality on selected
+>> +	  GPIO address.
+>> +
+>> +config HEART_BEAT_ADDRESS
+>> +	hex "Physical address for heart beat LED"
+>> +	depends on HEART_BEAT
+>> +	default "0x40600000"
+>> +	help
+>> +	  Please enter physical address GPIO LED.
 > 
-> I can't help but feel we've got our wires crossed here.
+> Again, default address should be zero which is checked in the code (zero
+> can disable).  Prevent accesses to random memory locations in case of
+> poorly configured kernel.
+
+the same
+
+>> +config HACK
+>> +	bool "Increase performance"
+>> +	default y
 > 
-> If, for example, neither C library has code to use openat in the absence 
-> of __NR_open, then surely it is premature to remove __NR_open from any 
-> arch, microblaze included?
-
-For any incompatible change of this sort, you have to do it in the kernel
-and libc in parallel. What we're talking about here is much closer to
-doing a new glibc port based on microblaze linux-2.6.26 and glibc-2.8+
-rather than using the existing glibc-2.3.3 port.
-
-I understand that you care most about uClibc, because that is what
-practically anyone is using, but glibc is setting the standard
-that uClibc is following.
-
-From what I understand from Uli, he won't add an implementation of
-open() based on openat() unless there is any architecture actually
-using it, so there is no point in waiting for glibc here.
-
-> > A more relevant question is what changes should be done in glibc for this
-> > in the first place, and I would like to hear Ulis opinion on that.
+> As suggested by Grant, this sohuld be
 > 
-> This is all very reasonable, but it's not clear why broad changes in 
-> glibc would be part of MicroBlaze's critical path into kernel.org. 
-> There are already N arch's in the kernel using mixture of obsolete and 
-> new API's, I don't see the problem with MicroBlaze making it N+1.
-
-You're probably right that it's not fair to microblaze to demand that
-you do it right when all existing architectures before did the wrong
-thing. For me it's just the pain of reviewing the same bugs being copied
-in every single new Linux port, so my agenda here is to be able to point
-the next guy at microblaze, telling them to copy from you instead of
-from x86 or m68k.
-
-> I'm not interested in a glibc vs uClibc debate. For deeply embedded 
-> systems that MicroBlaze targets, uClibc's smaller footprint makes a lot 
-> of sense.
->
-> The installed base of uClibc vs glibc for MicroBlaze is probably 10000:1 
-> or more in uClibc's favour due to our history being entirely !MMU until 
-> 2008.  I don't expect that to change much once we get the MMU and ld.so 
-> functionality into our uClibc port.
-
-I wasn't trying to argue against uClibc at all, there is nothing wrong
-with you using it. My point was that the (architecture independent)
-uClibc developers should take a look at your list and implement the
-syscalls, so that you can easily port applications using them from glibc.
-
-> egrep -R \ 
-> "(\<$syscall\>|_syscall[0-9].*\<${syscall/#__NR_/}\>|INTERNAL_SYSCALL.*\<${syscall/#__NR_/}\>|INLINE_SYSCALL.*\<${syscall/#__NR_/}\>)"
->   $GLIBC_PATH
+> 1. renamed and described as something sensible
 > 
-> Not implemented/referenced in glibc
-> __NR_add_key
-> __NR_alarm
-> __NR_capget
+> SELF_MODIFYING_CODE_HACK
+> 
+> 2. Made condition on CONFIG_EXPERIMENTAL at very least.
 
-Looking at glibc-2.8, what I found using your method are:
 
-# not in the scope of glibc currently, but may be used elsewhere:
-add_key
-keyctl
-request_key
-get_robust_list
-set_robust_list
-io_cancel
-io_destroy
-io_getevents
-io_setup
-io_submit
-ioprio_get
-ioprio_set
-kexec_load
-lookup_dcookie
+  21 config SELFMOD
+  22         bool "Use self modified code for intc/timer"
+  23         depends on EXPERIMENTAL
+  24         default n
+  25         help
+  26           This choice enables self-modified code for interrupt controller
+  27           and timer.
+  28
+  29 config SELFMOD_INTC
+  30         bool "Use self modified code for intc"
+  31         depends on SELFMOD
+  32         default y
+  33         help
+  34           This choice enables self-modified code for interrupt controller.
+  35
+  36 config SELFMOD_TIMER
+  37         bool "Use self modified code for timer"
+  38         depends on SELFMOD
+  39         default y
+  40         help
+  41           This choice enables self-modified code for timer.
 
-# used under a different name:
-newfstat
-newlstat
-newstat
-newuname
-pselect7
+FIXED.
 
-# used by the kernel itself:
-restart_syscall
+>> +config OPT_LIB_FUNCTION
+> +	bool "Optimalized lib function"
+>> +	default y
+>> +	help
+>> +	  Allows turn on optimalized library function (memcpy and memmove).
+>> +	  They are optimized by using unsigned alignment. This will work
+> 
+> "Unsigned alignment"??
+> 
+> Do you mean word-aligned?
 
-# obsolete, should not be used anywhere:
-sgetmask
-ssetmask
+FIXED
 
-All others from your list are referenced in the glibc source somewhere.
+>> +	  fine if both source and destination are aligned on the same
+>> +	  boundary. However, if they are aligned on different boundaries
+>> +	  shifts will be necessary. This might result in bad performance
+>> +	  on MicroBlaze systems without a barrel shifter.
+>> +
+>> +# This is still a bit broken - disabling for now JW 20070504
+>> +config ALLOW_EDIT_AUTO
+>> +	bool "Permit Display/edit of Kconfig.auto platform settings"
+>> +	default n
+>> +	help
+>> +	  Allows the editing of auto-generated platform settings from
+>> +	  the Kconfig.auto file. Obviously this does not change the
+>> +	  underlying hardware, so be very careful if you go editing
+>> +	  these settings.
+>> +
+>> +	  Also, if you enable this, and edit various Kconfig.auto
+>> +	  settings, YOUR CHANGES WILL BE LOST if you then disable it
+>> +	  again. You have been warned!
+>> +
+>> +	  If unsure, say no.
+>> +
+>> +# Ok, the platform is chosen. Source the kconfig.auto to get all of the
+>> +# system settings.
+> 
+> Should be just "get all of the CPU settings", since we use OF to get the
+> device tree.
 
-	Arnd <><
+I keep this for now. I hope we will talked about later with Xilinx guys what
+happen with platforms.
+
+>> diff --git a/arch/microblaze/platform/generic/Kconfig.auto b/arch/microblaze/platform/generic/Kconfig.auto
+>> new file mode 100644
+>> index 0000000..5dc8c15
+>> --- /dev/null
+>> +++ b/arch/microblaze/platform/generic/Kconfig.auto
+> 
+>> +config XILINX_ERAM_SIZE
+>> +	hex "Memory size of XILINX_RAM"
+>> +	depends on XILINX_UNCACHED_SHADOW
+>> +	default 0x02000000
+> 
+> Why does this depend on UNCACHED_SHADOW?
+
+Because consistent.c needs to know where was the end of memory. This issue
+hasn't never tested. Currently consistent.c is removed.
+
+M
