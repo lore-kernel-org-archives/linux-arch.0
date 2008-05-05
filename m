@@ -1,152 +1,54 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 01/56] microblaze_v2: Kconfig patches
-Date: Mon, 05 May 2008 16:16:45 +0200
-Message-ID: <481F16CD.1040503@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	 <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <1209951761.5798.27.camel@localhost>
+Subject: Re: [PATCH 03/56] microblaze_v2: Cpuinfo handling
+Date: Mon, 05 May 2008 16:19:38 +0200
+Message-ID: <481F177A.4000300@seznam.cz>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	 <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>	 <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>	 <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu> <1209952342.5798.37.camel@localhost>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:61289 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:50240 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752629AbYEEOPr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:15:47 -0400
-In-Reply-To: <1209951761.5798.27.camel@localhost>
+	with ESMTP id S1755951AbYEEOSb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:18:31 -0400
+In-Reply-To: <1209952342.5798.37.camel@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: John Williams <john.williams@petalogix.com>
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-Hi John
 
->> +config EARLY_PRINTK_UARTLITE_ADDRESS
->> +	hex "Physical address where UART Lite for early printk is mapped"
->> +	depends on EARLY_PRINTK
->> +	default "0x40100000"
->> +	help
->> +	  Please enter physical address where your uart lite is mapped.
-> 
-> I think this should default to 0x00000000, then in the early_printk code
-> we can test for zero baseaddress and attempt some sensible fallback in
-> that case (even to disable).  
-
-FIXED and use EARLY_PRINTK to default set to no.
-
->> +
->> +config HEART_BEAT
->> +	bool "Heart beat function for kernel"
->> +	help
->> +	  This option turns on/off heart beat kernel functionality on selected
->> +	  GPIO address.
->> +
->> +config HEART_BEAT_ADDRESS
->> +	hex "Physical address for heart beat LED"
->> +	depends on HEART_BEAT
->> +	default "0x40600000"
->> +	help
->> +	  Please enter physical address GPIO LED.
-> 
-> Again, default address should be zero which is checked in the code (zero
-> can disable).  Prevent accesses to random memory locations in case of
-> poorly configured kernel.
-
-the same
-
->> +config HACK
->> +	bool "Increase performance"
->> +	default y
-> 
-> As suggested by Grant, this sohuld be
-> 
-> 1. renamed and described as something sensible
-> 
-> SELF_MODIFYING_CODE_HACK
-> 
-> 2. Made condition on CONFIG_EXPERIMENTAL at very least.
-
-
-  21 config SELFMOD
-  22         bool "Use self modified code for intc/timer"
-  23         depends on EXPERIMENTAL
-  24         default n
-  25         help
-  26           This choice enables self-modified code for interrupt controller
-  27           and timer.
-  28
-  29 config SELFMOD_INTC
-  30         bool "Use self modified code for intc"
-  31         depends on SELFMOD
-  32         default y
-  33         help
-  34           This choice enables self-modified code for interrupt controller.
-  35
-  36 config SELFMOD_TIMER
-  37         bool "Use self modified code for timer"
-  38         depends on SELFMOD
-  39         default y
-  40         help
-  41           This choice enables self-modified code for timer.
-
-FIXED.
-
->> +config OPT_LIB_FUNCTION
-> +	bool "Optimalized lib function"
->> +	default y
->> +	help
->> +	  Allows turn on optimalized library function (memcpy and memmove).
->> +	  They are optimized by using unsigned alignment. This will work
-> 
-> "Unsigned alignment"??
-> 
-> Do you mean word-aligned?
-
-FIXED
-
->> +	  fine if both source and destination are aligned on the same
->> +	  boundary. However, if they are aligned on different boundaries
->> +	  shifts will be necessary. This might result in bad performance
->> +	  on MicroBlaze systems without a barrel shifter.
->> +
->> +# This is still a bit broken - disabling for now JW 20070504
->> +config ALLOW_EDIT_AUTO
->> +	bool "Permit Display/edit of Kconfig.auto platform settings"
->> +	default n
->> +	help
->> +	  Allows the editing of auto-generated platform settings from
->> +	  the Kconfig.auto file. Obviously this does not change the
->> +	  underlying hardware, so be very careful if you go editing
->> +	  these settings.
->> +
->> +	  Also, if you enable this, and edit various Kconfig.auto
->> +	  settings, YOUR CHANGES WILL BE LOST if you then disable it
->> +	  again. You have been warned!
->> +
->> +	  If unsure, say no.
->> +
->> +# Ok, the platform is chosen. Source the kconfig.auto to get all of the
->> +# system settings.
-> 
-> Should be just "get all of the CPU settings", since we use OF to get the
-> device tree.
-
-I keep this for now. I hope we will talked about later with Xilinx guys what
-happen with platforms.
-
->> diff --git a/arch/microblaze/platform/generic/Kconfig.auto b/arch/microblaze/platform/generic/Kconfig.auto
->> new file mode 100644
->> index 0000000..5dc8c15
 >> --- /dev/null
->> +++ b/arch/microblaze/platform/generic/Kconfig.auto
+>> +++ b/arch/microblaze/kernel/cpu/cpuinfo-static.c
+>> @@ -0,0 +1,117 @@
 > 
->> +config XILINX_ERAM_SIZE
->> +	hex "Memory size of XILINX_RAM"
->> +	depends on XILINX_UNCACHED_SHADOW
->> +	default 0x02000000
+>> +
+>> +	ci->cpu_clock_freq = fcpu(cpu, "timebase-frequency");
 > 
-> Why does this depend on UNCACHED_SHADOW?
+> Should this be added to cpuinfo-pvr.c?
 
-Because consistent.c needs to know where was the end of memory. This issue
-hasn't never tested. Currently consistent.c is removed.
+I moved it. This was in cpuinfo.c because you can't load frequency from PVR regs.
+this value was loaded from DTS and I don't want to setup second parameter to pvr
+function.
 
+>> --- /dev/null
+>> +++ b/include/asm-microblaze/cpuinfo.h
+> ...
+> 
+>> +	/* HW debug support */
+>> +	int hw_debug;
+>> +	int num_pc_brk;
+>> +	int num_rd_brk;
+>> +	int num_wr_brk;
+> 
+>   +       /* CPU and system timebase info */
+>> +	int cpu_clock_freq;
+>> +
+> 
+>> +void set_cpuinfo_pvr_partial(struct cpuinfo *ci);
+> 
+> pvr_partial never got written - it can be deleted.
+
+I removed it and changed values
 M
