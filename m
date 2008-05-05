@@ -1,171 +1,64 @@
 From: "Grant Likely" <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 18/56] microblaze_v2: early_printk support
-Date: Mon, 5 May 2008 08:36:37 -0600
-Message-ID: <fa686aa40805050736m70e084d5n98f5c86262a6edcf@mail.gmail.com>
-References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
-	 <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
+Subject: Re: [PATCH 45/56] microblaze_v2: headers simple files - empty or redirect to asm-generic
+Date: Mon, 5 May 2008 09:10:43 -0600
+Message-ID: <fa686aa40805050810w2a0ff71fv9daff4ba198cf978@mail.gmail.com>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
+	 <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
+	 <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
+	 <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
+	 <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
+	 <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
+	 <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
+	 <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
+	 <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
+	 <1209954849.5798.80.camel@localhost>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from an-out-0708.google.com ([209.85.132.249]:42692 "EHLO
+Received: from an-out-0708.google.com ([209.85.132.250]:21573 "EHLO
 	an-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755931AbYEEOgi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:36:38 -0400
-Received: by an-out-0708.google.com with SMTP id d40so548721and.103
-        for <linux-arch@vger.kernel.org>; Mon, 05 May 2008 07:36:38 -0700 (PDT)
-In-Reply-To: <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>
+	with ESMTP id S1753140AbYEEPKo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 11:10:44 -0400
+Received: by an-out-0708.google.com with SMTP id d40so551613and.103
+        for <linux-arch@vger.kernel.org>; Mon, 05 May 2008 08:10:43 -0700 (PDT)
+In-Reply-To: <1209954849.5798.80.camel@localhost>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, Michal Simek <monstr@monstr.eu>
+To: John Williams <john.williams@petalogix.com>
+Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, Michal Simek <monstr@monstr.eu>
 
-On Sun, May 4, 2008 at 5:41 AM,  <monstr@seznam.cz> wrote:
-> From: Michal Simek <monstr@monstr.eu>
+On Sun, May 4, 2008 at 8:34 PM, John Williams
+<john.williams@petalogix.com> wrote:
 >
+>  >  include/asm-microblaze/auxvec.h            |   14 ++++++++++++++
+>  >  include/asm-microblaze/cputime.h           |   16 ++++++++++++++++
+>  >  include/asm-microblaze/div64.h             |   16 ++++++++++++++++
+>  >  include/asm-microblaze/emergency-restart.h |   16 ++++++++++++++++
+>  >  include/asm-microblaze/errno.h             |   16 ++++++++++++++++
+>  >  include/asm-microblaze/futex.h             |   16 ++++++++++++++++
+>  >  include/asm-microblaze/kdebug.h            |   19 +++++++++++++++++++
+>  >  include/asm-microblaze/local.h             |   16 ++++++++++++++++
+>  >  include/asm-microblaze/mutex.h             |   16 ++++++++++++++++
+>  >  include/asm-microblaze/namei.h             |   24 ++++++++++++++++++++++++
+>  >  include/asm-microblaze/percpu.h            |   16 ++++++++++++++++
+>  >  include/asm-microblaze/resource.h          |   16 ++++++++++++++++
+>  >  include/asm-microblaze/user.h              |   18 ++++++++++++++++++
 >
->  Signed-off-by: Michal Simek <monstr@monstr.eu>
+>  These are all just includes of asm-generic/* (hooray!).
+>
+>  But, is it reasonable to to suggest adding asm-generic at the end of the
+>  kernel include path, and save all this verbosity?
+>
+>  Principle of least surprise maybe?
 
-I'm not opposed to this as is, but longer term will you be getting the
-base address out of the device tree instead of from
-CONFIG_EARLY_PRINTK_UARTLITE_ADDRESS?
+Convention in the other archs is already established to explicitly
+include asm-generic files one by one.  It is probably best to match
+existing convention for commonality sake.
 
 Cheers,
 g.
-
->  ---
->   arch/microblaze/kernel/early_printk.c |  115 +++++++++++++++++++++++++++++++++
->   1 files changed, 115 insertions(+), 0 deletions(-)
->   create mode 100644 arch/microblaze/kernel/early_printk.c
->
->  diff --git a/arch/microblaze/kernel/early_printk.c b/arch/microblaze/kernel/early_printk.c
->  new file mode 100644
->  index 0000000..0f533ff
->  --- /dev/null
->  +++ b/arch/microblaze/kernel/early_printk.c
->  @@ -0,0 +1,115 @@
->  +/*
->  + * arch/microblaze/kernel/early_printk.c
->  + *
->  + * Copyright (C) 2007 Michal Simek <monstr@monstr.eu>
->  + * Copyright (C) 2003-2006 Yasushi SHOJI <yashi@atmark-techno.com>
->  + *
->  + * Early printk support for Microblaze.
->  + *
->  + * Once we got some system without uart light, we need to refactor.
->  + */
->  +
->  +#include <linux/console.h>
->  +#include <linux/kernel.h>
->  +#include <linux/init.h>
->  +#include <linux/string.h>
->  +#include <linux/tty.h>
->  +#include <asm/io.h>
->  +#include <asm/processor.h>
->  +#include <asm/fcntl.h>
->  +#include <asm/setup.h>
->  +
->  +#ifdef CONFIG_EARLY_PRINTK
->  +#define BASE_ADDR ((unsigned char *)CONFIG_EARLY_PRINTK_UARTLITE_ADDRESS)
->  +
->  +#define RX_FIFO        BASE_ADDR
->  +#define TX_FIFO        ((unsigned long *)(BASE_ADDR + 4))
->  +#define STATUS ((unsigned long *)(BASE_ADDR + 8))
->  +#define CONTROL        ((unsigned long *)(BASE_ADDR + 12))
->  +
->  +static void early_printk_putc(char c)
->  +{
->  +       while (ioread32(STATUS) & (1<<3));
->  +       iowrite32((c & 0xff), TX_FIFO);
->  +}
->  +
->  +static void early_printk_write(struct console *unused,
->  +                                       const char *s, unsigned n)
->  +{
->  +       while (*s && n-- > 0) {
->  +               early_printk_putc(*s);
->  +               if (*s == '\n')
->  +                       early_printk_putc('\r');
->  +               s++;
->  +       }
->  +}
->  +
->  +static struct console early_serial_console = {
->  +       .name = "earlyser",
->  +       .write = early_printk_write,
->  +       .flags = CON_PRINTBUFFER,
->  +       .index = -1,
->  +};
->  +
->  +/* Direct interface for emergencies */
->  +static struct console *early_console = &early_serial_console;
->  +static int early_console_initialized;
->  +
->  +void early_printk(const char *fmt, ...)
->  +{
->  +       char buf[512];
->  +       int n;
->  +       va_list ap;
->  +
->  +       if (early_console_initialized) {
->  +               va_start(ap, fmt);
->  +               n = vscnprintf(buf, 512, fmt, ap);
->  +               early_console->write(early_console, buf, n);
->  +               va_end(ap);
->  +       }
->  +}
->  +
->  +static int __initdata keep_early;
->  +
->  +int __init setup_early_printk(char *opt)
->  +{
->  +       char *space;
->  +       char buf[256];
->  +
->  +       if (early_console_initialized)
->  +               return 1;
->  +
->  +       strlcpy(buf, opt, sizeof(buf));
->  +       space = strchr(buf, ' ');
->  +       if (space)
->  +               *space = 0;
->  +
->  +       if (strstr(buf, "keep"))
->  +               keep_early = 1;
->  +
->  +       early_console = &early_serial_console;
->  +       early_console_initialized = 1;
->  +       register_console(early_console);
->  +       return 0;
->  +}
->  +#if 0
->  +static void __init disable_early_printk(void)
->  +{
->  +       if (!early_console_initialized || !early_console)
->  +               return;
->  +       if (!keep_early) {
->  +               printk(KERN_INFO "disabling early console\n");
->  +               unregister_console(early_console);
->  +               early_console_initialized = 0;
->  +       } else
->  +               printk(KERN_INFO "keeping early console\n");
->  +}
->  +#endif
->  +
->  +__setup("earlyprintk=", setup_early_printk);
->  +
->  +#else
->  +void early_printk(const char *fmt, ...)
->  +{
->  +}
->  +#endif
->  --
->  1.5.4.GIT
->
->
-
-
 
 -- 
 Grant Likely, B.Sc., P.Eng.
