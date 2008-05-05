@@ -1,8 +1,7 @@
 From: John Williams <john.williams@petalogix.com>
-Subject: Re: [PATCH 35/56] microblaze_v2: headers for executables format
-	FLAT, ELF
-Date: Mon, 05 May 2008 12:24:33 +1000
-Message-ID: <1209954273.5798.69.camel@localhost>
+Subject: Re: [PATCH 36/56] microblaze_v2: dma support
+Date: Mon, 05 May 2008 12:25:50 +1000
+Message-ID: <1209954350.5798.71.camel@localhost>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
 	 <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 	 <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -39,27 +38,44 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
 	 <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
 	 <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
 	 <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
+	 <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from uki.us.mooball.net ([66.98.178.13]:49506 "EHLO
+Received: from uki.us.mooball.net ([66.98.178.13]:49529 "EHLO
 	uki.us.mooball.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756789AbYEECZ1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 22:25:27 -0400
-In-Reply-To: <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
+	with ESMTP id S1754709AbYEEC0W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 22:26:22 -0400
+In-Reply-To: <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@seznam.cz
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
 
-> +++ b/include/asm-microblaze/elf.h
+> +++ b/include/asm-microblaze/scatterlist.h
+> @@ -0,0 +1,21 @@
+> +/*
+> + * include/asm-microblaze/scatterlist.h
+> + *
+> + * This file is subject to the terms and conditions of the GNU General Public
+> + * License. See the file "COPYING" in the main directory of this archive
+> + * for more details.
+> + *
+> + * Copyright (C) 2006 Atmark Techno, Inc.
+> + */
+> +
+> +#ifndef _ASM_MICROBLAZE_SCATTERLIST_H
+> +#define _ASM_MICROBLAZE_SCATTERLIST_H
+> +
+> +struct scatterlist {
+> +	unsigned long page_link;
+> +	unsigned int	offset;
+> +	dma_addr_t	dma_address;
+> +	unsigned int	length;
+> +};
+> +
+> +#endif /* _ASM_MICROBLAZE_SCATTERLIST_H */
 
-> +#define EM_XILINX_MICROBLAZE 0xbaab
-
-I'm pretty sure this is also #defined somewhere else - asm/modules.h
-maybe?
-
-Also worth checking to see if MicroBlaze has been assigned a real ELF
-machine ID yet - not sure if Xilinx ever applied for one.
+Is this worthy of promotion to asm-generic/scatterlist.h?
