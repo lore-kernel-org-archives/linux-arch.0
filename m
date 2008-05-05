@@ -1,144 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:52043 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750819AbYEEEPk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 00:15:40 -0400
-Date: Mon, 5 May 2008 06:15:33 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
-Message-ID: <20080505041533.GA17640@wotan.suse.de>
-References: <20080430113456.GY12774@kernel.dk> <20080430121712.GR11126@linux.vnet.ibm.com> <20080430123717.GC12774@kernel.dk> <20080502020241.GA26088@linux.vnet.ibm.com> <20080502021233.GC11844@wotan.suse.de> <20080502122955.GB15522@linux.vnet.ibm.com> <20080502124205.GA23680@linux.vnet.ibm.com> <1209733169.13978.157.camel@twins> <20080503054930.GA19664@wotan.suse.de> <20080503181148.GA16159@linux.vnet.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080503181148.GA16159@linux.vnet.ibm.com>
+Received: from yorgi.telenet-ops.be ([195.130.133.69]:36622 "EHLO
+	yorgi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754122AbYEEGqN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 02:46:13 -0400
+Received: from harold.telenet-ops.be (harold.telenet-ops.be [195.130.133.65])
+	by yorgi.telenet-ops.be (Postfix) with ESMTP id 57C2158929E
+	for <linux-arch@vger.kernel.org>; Mon,  5 May 2008 08:46:11 +0200 (CEST)
+Date: Mon, 5 May 2008 08:45:35 +0200 (CEST)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 36/56] microblaze_v2: dma support
+In-Reply-To: <1209954350.5798.71.camel@localhost>
+Message-ID: <Pine.LNX.4.64.0805050844560.2615@anakin>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
+ <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
+ <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
+ <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+ <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+ <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+ <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
+ <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
+ <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
+ <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
+ <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
+ <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
+ <1209954350.5798.71.camel@localhost>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu
-Message-ID: <20080505041533.oqQK-uOXca55_5j9ExuxPXk4FZi9xmf_LRbCLM5m9eM@z>
+To: John Williams <john.williams@petalogix.com>
+Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+Message-ID: <20080505064535.Kczlvj0WO6OgjDxsTE78_hsTOXZtWBF7pRdpPZUj34M@z>
 
-On Sat, May 03, 2008 at 11:11:48AM -0700, Paul E. McKenney wrote:
-> On Sat, May 03, 2008 at 07:49:30AM +0200, Nick Piggin wrote:
-> > > This is perfectly deadlock free when wait=0 and it just returns -ENOMEM
-> > > on allocation failure.
-> > 
-> > Yeah, I'm just talking about the wait=0 case. (btw. I'd rather the core
-> > API takes some data rather than allocates some itself, eg because you
-> > might want to have it on the stack).
+On Mon, 5 May 2008, John Williams wrote:
+> > +++ b/include/asm-microblaze/scatterlist.h
+> > @@ -0,0 +1,21 @@
+> > +/*
+> > + * include/asm-microblaze/scatterlist.h
+> > + *
+> > + * This file is subject to the terms and conditions of the GNU General Public
+> > + * License. See the file "COPYING" in the main directory of this archive
+> > + * for more details.
+> > + *
+> > + * Copyright (C) 2006 Atmark Techno, Inc.
+> > + */
+> > +
+> > +#ifndef _ASM_MICROBLAZE_SCATTERLIST_H
+> > +#define _ASM_MICROBLAZE_SCATTERLIST_H
+> > +
+> > +struct scatterlist {
+> > +	unsigned long page_link;
+> > +	unsigned int	offset;
+> > +	dma_addr_t	dma_address;
+> > +	unsigned int	length;
+> > +};
+> > +
+> > +#endif /* _ASM_MICROBLAZE_SCATTERLIST_H */
 > 
-> But taking data on the stack is safe only in the wait=1 case, right?
+> Is this worthy of promotion to asm-generic/scatterlist.h?
 
-Sure, but the API would be general enough to handle it.
+after moving dma_address one position up in the structure, as dma_addr_t may be
+64-bit?
 
- 
-> > For the wait=1 case, something very clever such as processing pending
-> > requests in a polling loop might be cool... however I'd rather not add
-> > such complexity until someone needs it (you could stick a comment in
-> > there outlining your algorithm). But I'd just rather not have peole rely
-> > on it yet.
-> 
-> In that case we may need to go back to the global lock with only one
-> request being processed at a time.  Otherwise, if two wait=1 requests
-> happen at the same time, they deadlock waiting for each other to process
-> their request.  (See Keith Owens: http://lkml.org/lkml/2008/5/2/183).
-> 
-> In other words, if you want to allow parallel calls to
-> smp_call_function(), the simplest way to do it seems to be to do the
-> polling loop.  The other ways I have come up with thus far are uglier
-> and less effective (see http://lkml.org/lkml/2008/4/30/164).
-> 
-> Now, what I -could- do would be to prohibit the wait=1 case from
-> irq-disable state from polling -- that would make sense, as the caller
-> probably had a reason to mask irqs, and might not take kindly to having
-> them faked behind the caller's back.  ;-)
+Gr{oetje,eeting}s,
 
-I think we're talking past each other a little bit.
+						Geert
 
-There is no irq-disabled calls as yet, therefore I don't think we should
-add a lot of complex code just to _allow_ for it; at least, not until a
-really compelling user comes up.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-The main thing is to parallelise the code. The fact that we can trivially 
-support irq-disabled calls for nowait case (if the caller supplies the
-data or can handle failure) is just a bonus.
-
-
-> > > It it doesn't return -ENOMEM I know its been queued and will be
-> > > processed at some point, if it does fail, I can deal with it in another
-> > > way.
-> > 
-> > At least with IPIs I think we can guarantee they will be processed on
-> > the target after we queue them.
-> 
-> OK, so let me make sure I understand what is needed.  One example might be
-> some code called from scheduler_tick(), which runs with irqs disabled.
-> Without the ability to call smp_call_function() directly, you have
-> to fire off a work queue or something.  Now, if smp_call_function()
-> can hand you an -ENOMEM or (maybe) an -EBUSY, then you still have to
-> fire off the work queue, but you probably only have to do it rarely,
-> minimizing the performance impact.
-> 
-> Another possibility is when it is -nice- to call smp_call_function(),
-> but can just try again on the next scheduler_tick() -- ignoring dynticks
-> idle for the moment.  In this case, you might still test the error return
-> to set a flag that you will check on the next scheduler_tick() call.
-> 
-> Is this where you guys are coming from?
-> 
-> And you are all OK with smp_call_function() called with irqs enabled
-> never being able to fail, right?  (Speaking of spaghetti code, why
-> foist unnecessary failure checks on the caller...)
-
-Having the fallback is fine, yes. I'd say it shouldn't often get called.
-
- 
-> > > I know I'd like to do that and I suspect Nick has a few use cases up his
-> > > sleeve as well.
-> > 
-> > It would be handy. The "quickly kick something off on another CPU" is
-> > pretty nice in mm/ when you have per-cpu queues or caches that might
-> > want to be flushed.
-> 
-> OK, I think I might be seeing what you guys are getting at.  Here is
-> what I believe you guys need:
-> 
-> 1.	No deadlocks, ever, not even theoretical "low probability"
-> 	deadlocks.
-
-Of course ;)
-
- 
-> 2.	No failure returns when called with irqs enabled.  On the other
-> 	hand, when irqs are disabled, failure is possible.  Though hopefully
-> 	unlikely.
-
-I think I'd like to keep existing smp_call_function that disallows
-irq-disabled calls and can't fail. Introduce a new one for irq-disabled
-case.
-
-But sure, the existing smp_call_function implementation can't fail.
-
-
-> 3.	Parallel execution of multiple smp_call_function() requests
-> 	is required, even when called with irqs disabled.
-
-I think so. At least for the call_function_single case.
-
-
-> 4.	The wait=1 case with irqs disabled is prohibited.
-> 
-> 5.	If you call smp_call_function() with irqs disabled, then you
-> 	are guaranteed that no other CPU's smp_call_function() handler
-> 	will be invoked while smp_call_function() is executing.
-> 
-> Anything I am missing?
-
-For the last cases, I actually think your polling loop is pretty cool ;)
-So I don't completely object to it, I just don't think we should add it
-in until something wants it...
-
-Don't let me dictate the requirements though, the only real one I had
-was to make call_function_single scalable and faster, and call_function
-be as optimal as possible.
-
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
