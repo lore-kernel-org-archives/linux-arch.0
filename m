@@ -1,335 +1,1474 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.suse.de ([195.135.220.2]:55101 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750862AbYEEMMm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 08:12:42 -0400
-Date: Mon, 5 May 2008 14:12:40 +0200
-From: Nick Piggin <npiggin@suse.de>
-Subject: [patch 2/2] fix SMP data race in pagetable setup vs walking
-Message-ID: <20080505121240.GD5018@wotan.suse.de>
-References: <20080505112021.GC5018@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20080505112021.GC5018@wotan.suse.de>
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:62540 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1754877AbYEEOFX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:05:23 -0400
+Message-ID: <481F145C.1020809@seznam.cz>
+Date: Mon, 05 May 2008 16:06:20 +0200
+From: Michal Simek <monstr@seznam.cz>
+Reply-To: monstr@seznam.cz
+MIME-Version: 1.0
+Subject: Re: [PATCH 33/56] microblaze_v2: ioctl support
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu> <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu> <200805042334.56020.arnd@arndb.de>
+In-Reply-To: <200805042334.56020.arnd@arndb.de>
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Paul McKenney <paulmck@us.ibm.com>
-Message-ID: <20080505121240.c5y5eja6oajBON6nvz79RKr4up_O5nDbx38NR8h6wNo@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+Message-ID: <20080505140620.tk1vR0gIUOCO2CqqhttiL345v8AIV2t-lU6I5LKqTho@z>
 
-I only converted x86 and powerpc. I think comments in x86 are good because
-that is more or less the reference implementation and is where many VM
-developers would look to understand mm/ code. Commenting all page table
-walking in all other architectures is kind of beyond my skill or patience,
-and maintainers might consider this weird "alpha thingy" is below them ;)
-But they are quite free to add smp_read_barrier_depends to their own code.
+I fixed it. I use asm-generic version too. ioctl.h and ioctls.h too.
 
-Still would like more acks on this before it is applied.
+M
 
---
 
-There is a possible data race in the page table walking code. After the split
-ptlock patches, it actually seems to have been introduced to the core code, but
-even before that I think it would have impacted some architectures (powerpc and
-sparc64, at least, walk the page tables without taking locks eg. see
-find_linux_pte()).
-
-The race is as follows:
-The pte page is allocated, zeroed, and its struct page gets its spinlock
-initialized. The mm-wide ptl is then taken, and then the pte page is inserted
-into the pagetables.
-
-At this point, the spinlock is not guaranteed to have ordered the previous
-stores to initialize the pte page with the subsequent store to put it in the
-page tables. So another Linux page table walker might be walking down (without
-any locks, because we have split-leaf-ptls), and find that new pte we've
-inserted. It might try to take the spinlock before the store from the other
-CPU initializes it. And subsequently it might read a pte_t out before stores
-from the other CPU have cleared the memory.
-
-There seem to be similar races in higher levels of the page tables, but they
-obviously don't involve the spinlock, but one could see uninitialized memory.
-
-Arch code and hardware pagetable walkers that walk the pagetables without
-locks could see similar uninitialized memory problems (regardless of whether
-we have split ptes or not).
-
-Fortunately, on x86 (except OOSTORE), nothing needs to be done, because stores
-are in order, and so are loads.
-
-I prefer to put the barriers in core code, because that's where the higher
-level logic happens, but the page table accessors are per-arch, and open-coding
-them everywhere I don't think is an option.
-
-Signed-off-by: Nick Piggin <npiggin@suse.de>
-
-Index: linux-2.6/include/asm-x86/pgtable_32.h
-===================================================================
---- linux-2.6.orig/include/asm-x86/pgtable_32.h
-+++ linux-2.6/include/asm-x86/pgtable_32.h
-@@ -133,7 +133,12 @@ extern int pmd_bad(pmd_t pmd);
-  * pgd_offset() returns a (pgd_t *)
-  * pgd_index() is used get the offset into the pgd page's array of pgd_t's;
-  */
--#define pgd_offset(mm, address) ((mm)->pgd + pgd_index((address)))
-+#define pgd_offset(mm, address)						\
-+({									\
-+	pgd_t *ret = ((mm)->pgd + pgd_index((address)));		\
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
- 
- /*
-  * a shortcut which implies the use of the kernel's pgd, instead
-@@ -160,8 +165,12 @@ static inline int pud_large(pud_t pud) {
-  */
- #define pte_index(address)					\
- 	(((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
--#define pte_offset_kernel(dir, address)				\
--	((pte_t *)pmd_page_vaddr(*(dir)) +  pte_index((address)))
-+#define pte_offset_kernel(dir, address)					\
-+({									\
-+	pte_t *ret = (pte_t *)pmd_page_vaddr(*(dir)) +  pte_index((address)); \
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
- 
- #define pmd_page(pmd) (pfn_to_page(pmd_val((pmd)) >> PAGE_SHIFT))
- 
-@@ -170,16 +179,32 @@ static inline int pud_large(pud_t pud) {
- 
- #if defined(CONFIG_HIGHPTE)
- #define pte_offset_map(dir, address)					\
--	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) +		\
--	 pte_index((address)))
-+({									\
-+	pte_t *ret = (pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE0) + \
-+		 pte_index((address));					\
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
-+
- #define pte_offset_map_nested(dir, address)				\
--	((pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) +		\
--	 pte_index((address)))
-+({									\
-+	pte_t *ret = (pte_t *)kmap_atomic_pte(pmd_page(*(dir)), KM_PTE1) + \
-+		 pte_index((address));					\
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
-+
- #define pte_unmap(pte) kunmap_atomic((pte), KM_PTE0)
- #define pte_unmap_nested(pte) kunmap_atomic((pte), KM_PTE1)
- #else
- #define pte_offset_map(dir, address)					\
--	((pte_t *)page_address(pmd_page(*(dir))) + pte_index((address)))
-+({									\
-+	pte_t *ret = (pte_t *)page_address(pmd_page(*(dir))) +		\
-+		pte_index((address));					\
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
-+
- #define pte_offset_map_nested(dir, address) pte_offset_map((dir), (address))
- #define pte_unmap(pte) do { } while (0)
- #define pte_unmap_nested(pte) do { } while (0)
-Index: linux-2.6/mm/memory.c
-===================================================================
---- linux-2.6.orig/mm/memory.c
-+++ linux-2.6/mm/memory.c
-@@ -311,6 +311,37 @@ int __pte_alloc(struct mm_struct *mm, pm
- 	if (!new)
- 		return -ENOMEM;
- 
-+	/*
-+	 * Ensure all pte setup (eg. pte page lock and page clearing) are
-+	 * visible before the pte is made visible to other CPUs by being
-+	 * put into page tables.
-+	 *
-+	 * The other side of the story is the pointer chasing in the page
-+	 * table walking code (when walking the page table without locking;
-+	 * ie. most of the time). Fortunately, these data accesses consist
-+	 * of a chain of data-dependent loads, meaning most CPUs (alpha
-+	 * being the notable exception) will already guarantee loads are
-+	 * seen in-order. x86 has a "reference" implementation of
-+	 * smp_read_barrier_depends() barriers in its page table walking
-+	 * code, even though that barrier is a simple noop on that architecture.
-+	 * Alpha obviously also has the required barriers.
-+	 *
-+	 * It is debatable whether or not the smp_read_barrier_depends()
-+	 * barriers are required for kernel page tables; it could be that
-+	 * nowhere in the kernel do we walk those pagetables without taking
-+	 * init_mm's page_table_lock. However, such walks are pretty uncommon,
-+	 * and the only architecture that is even slightly impacted is
-+	 * alpha, so barriers are there to be safe. The smp_wmb()'s also may
-+	 * not be required in the allocation side of kernel page tables,
-+	 * because it is probably a bug for a thread to concurrently be
-+	 * accessing kva that is being set up at the same time -- however it
-+	 * is nice to have the wmb barriers there, because they might prevent
-+	 * us from reading some junk in that case. So we will get a simple
-+	 * page fault in the case of such a bug, rather than a possible
-+	 * undetected wander off into crazy space.
-+	 */
-+	smp_wmb(); /* Could be smp_wmb__xxx(before|after)_spin_lock */
-+
- 	spin_lock(&mm->page_table_lock);
- 	if (!pmd_present(*pmd)) {	/* Has another populated it ? */
- 		mm->nr_ptes++;
-@@ -329,6 +360,8 @@ int __pte_alloc_kernel(pmd_t *pmd, unsig
- 	if (!new)
- 		return -ENOMEM;
- 
-+	smp_wmb(); /* See comment in __pte_alloc */
-+
- 	spin_lock(&init_mm.page_table_lock);
- 	if (!pmd_present(*pmd)) {	/* Has another populated it ? */
- 		pmd_populate_kernel(&init_mm, pmd, new);
-@@ -2616,6 +2649,8 @@ int __pud_alloc(struct mm_struct *mm, pg
- 	if (!new)
- 		return -ENOMEM;
- 
-+	smp_wmb(); /* See comment in __pte_alloc */
-+
- 	spin_lock(&mm->page_table_lock);
- 	if (pgd_present(*pgd))		/* Another has populated it */
- 		pud_free(mm, new);
-@@ -2637,6 +2672,8 @@ int __pmd_alloc(struct mm_struct *mm, pu
- 	if (!new)
- 		return -ENOMEM;
- 
-+	smp_wmb(); /* See comment in __pte_alloc */
-+
- 	spin_lock(&mm->page_table_lock);
- #ifndef __ARCH_HAS_4LEVEL_HACK
- 	if (pud_present(*pud))		/* Another has populated it */
-Index: linux-2.6/include/asm-x86/pgtable-3level.h
-===================================================================
---- linux-2.6.orig/include/asm-x86/pgtable-3level.h
-+++ linux-2.6/include/asm-x86/pgtable-3level.h
-@@ -126,8 +126,13 @@ static inline void pud_clear(pud_t *pudp
- 
- 
- /* Find an entry in the second-level page table.. */
--#define pmd_offset(pud, address) ((pmd_t *)pud_page(*(pud)) +	\
--				  pmd_index(address))
-+#define pmd_offset(pud, address)					\
-+({									\
-+	pmd_t *pmd = ((pmd_t *)pud_page(*(pud)) +			\
-+				  pmd_index(address))			\
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
- 
- #ifdef CONFIG_SMP
- static inline pte_t native_ptep_get_and_clear(pte_t *ptep)
-Index: linux-2.6/include/asm-x86/pgtable_64.h
-===================================================================
---- linux-2.6.orig/include/asm-x86/pgtable_64.h
-+++ linux-2.6/include/asm-x86/pgtable_64.h
-@@ -193,8 +193,20 @@ static inline unsigned long pmd_bad(pmd_
- 	((unsigned long)__va((unsigned long)pgd_val((pgd)) & PTE_MASK))
- #define pgd_page(pgd)		(pfn_to_page(pgd_val((pgd)) >> PAGE_SHIFT))
- #define pgd_index(address) (((address) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
--#define pgd_offset(mm, address)	((mm)->pgd + pgd_index((address)))
--#define pgd_offset_k(address) (init_level4_pgt + pgd_index((address)))
-+#define pgd_offset(mm, address)						\
-+({									\
-+	pgd_t *ret = ((mm)->pgd + pgd_index((address)));		\
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
-+
-+#define pgd_offset_k(address)						\
-+({									\
-+	pgd_t *ret = (init_level4_pgt + pgd_index((address)));		\
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
-+
- #define pgd_present(pgd) (pgd_val(pgd) & _PAGE_PRESENT)
- static inline int pgd_large(pgd_t pgd) { return 0; }
- #define mk_kernel_pgd(address) ((pgd_t){ (address) | _KERNPG_TABLE })
-@@ -206,7 +218,12 @@ static inline int pgd_large(pgd_t pgd) {
- #define pud_page(pud)	(pfn_to_page(pud_val((pud)) >> PAGE_SHIFT))
- #define pud_index(address) (((address) >> PUD_SHIFT) & (PTRS_PER_PUD - 1))
- #define pud_offset(pgd, address)					\
--	((pud_t *)pgd_page_vaddr(*(pgd)) + pud_index((address)))
-+({									\
-+	pud_t *ret = ((pud_t *)pgd_page_vaddr(*(pgd)) + pud_index((address))); \
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
-+
- #define pud_present(pud) (pud_val((pud)) & _PAGE_PRESENT)
- 
- static inline int pud_large(pud_t pte)
-@@ -220,8 +237,14 @@ static inline int pud_large(pud_t pte)
- #define pmd_page(pmd)		(pfn_to_page(pmd_val((pmd)) >> PAGE_SHIFT))
- 
- #define pmd_index(address) (((address) >> PMD_SHIFT) & (PTRS_PER_PMD - 1))
--#define pmd_offset(dir, address) ((pmd_t *)pud_page_vaddr(*(dir)) + \
--				  pmd_index(address))
-+#define pmd_offset(dir, address)					\
-+({									\
-+	pmd_t *ret = ((pmd_t *)pud_page_vaddr(*(dir)) +			\
-+				  pmd_index(address));			\
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
-+
- #define pmd_none(x)	(!pmd_val((x)))
- #define pmd_present(x)	(pmd_val((x)) & _PAGE_PRESENT)
- #define pfn_pmd(nr, prot) (__pmd(((nr) << PAGE_SHIFT) | pgprot_val((prot))))
-@@ -238,8 +261,13 @@ static inline int pud_large(pud_t pte)
- #define mk_pte(page, pgprot)	pfn_pte(page_to_pfn((page)), (pgprot))
- 
- #define pte_index(address) (((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
--#define pte_offset_kernel(dir, address) ((pte_t *) pmd_page_vaddr(*(dir)) + \
--					 pte_index((address)))
-+#define pte_offset_kernel(dir, address)					\
-+({									\
-+	pte_t *ret = ((pte_t *) pmd_page_vaddr(*(dir)) +		\
-+					 pte_index((address)));		\
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
- 
- /* x86-64 always has all page tables mapped. */
- #define pte_offset_map(dir, address) pte_offset_kernel((dir), (address))
-Index: linux-2.6/include/asm-alpha/pgtable.h
-===================================================================
---- linux-2.6.orig/include/asm-alpha/pgtable.h
-+++ linux-2.6/include/asm-alpha/pgtable.h
-@@ -285,19 +285,28 @@ extern inline pte_t pte_mkspecial(pte_t 
- 
- /* to find an entry in a page-table-directory. */
- #define pgd_index(address)	(((address) >> PGDIR_SHIFT) & (PTRS_PER_PGD-1))
--#define pgd_offset(mm, address)	((mm)->pgd+pgd_index(address))
-+#define pgd_offset(mm, address)						\
-+({									\
-+	pgd_t *ret = ((mm)->pgd+pgd_index(address));			\
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */	\
-+	ret;								\
-+})
- 
- /* Find an entry in the second-level page table.. */
- extern inline pmd_t * pmd_offset(pgd_t * dir, unsigned long address)
- {
--	return (pmd_t *) pgd_page_vaddr(*dir) + ((address >> PMD_SHIFT) & (PTRS_PER_PAGE - 1));
-+	pmd_t *ret = (pmd_t *) pgd_page_vaddr(*dir) + ((address >> PMD_SHIFT) & (PTRS_PER_PAGE - 1));
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */
-+	return ret;
- }
- 
- /* Find an entry in the third-level page table.. */
- extern inline pte_t * pte_offset_kernel(pmd_t * dir, unsigned long address)
- {
--	return (pte_t *) pmd_page_vaddr(*dir)
-+	pte_t *ret = (pte_t *) pmd_page_vaddr(*dir)
- 		+ ((address >> PAGE_SHIFT) & (PTRS_PER_PAGE - 1));
-+	smp_read_barrier_depends(); /* see mm/memory.c:__pte_alloc */
-+	return ret;
- }
- 
- #define pte_offset_map(dir,addr)	pte_offset_kernel((dir),(addr))
+>>  include/asm-microblaze/ioctl.h  |   84 +++++++++++++++++++++++++++++++++++
+> 
+> This is a direct copy of asm-generic/ioctl.h, so just include that
+> one instead.
+> 
+>>  include/asm-microblaze/ioctls.h |   93 +++++++++++++++++++++++++++++++++++++++
+> 
+> I've already prototyped an asm-generic version of that, which would be the patch
+> below.
+> 
+> 	Arnd <><
+> 
+> ---
+> 
+> Consolidate include/asm*/ioctls.h
+> 
+> Most architectures have an identical implementation of ioctls.h, so we can
+> just as well move it to asm-generic. While it should have been defined
+> using _IO style macros in the first place, there is enough precendent
+> to give up on that now, and just document what every architecture is
+> doing already.
+> 
+> The major difference between architectures at this time is the definition
+> of FIOQSIZE, which sometimes conflicts with TIOCGHAYESESP, so I use an
+> #ifdef for that.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> 
+> Index: linux-2.6/include/asm-arm/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-arm/ioctls.h
+> +++ linux-2.6/include/asm-arm/ioctls.h
+> @@ -1,84 +1,6 @@
+>  #ifndef __ASM_ARM_IOCTLS_H
+>  #define __ASM_ARM_IOCTLS_H
+>  
+> -#include <asm/ioctl.h>
+> -
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T',0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T',0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T',0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T',0x2D, struct termios2)
+> -#define TIOCGPTN	_IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T',0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+> -#define FIOQSIZE	0x545E
+> -
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT	0x01	/* Transmitter physically empty */
+> +#include <asm-generic/ioctls.h>
+>  
+>  #endif
+> Index: linux-2.6/include/asm-avr32/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-avr32/ioctls.h
+> +++ linux-2.6/include/asm-avr32/ioctls.h
+> @@ -1,83 +1,15 @@
+>  #ifndef __ASM_AVR32_IOCTLS_H
+>  #define __ASM_AVR32_IOCTLS_H
+>  
+> -#include <asm/ioctl.h>
+> -
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402 /* Clashes with SNDCTL_TMR_START sound ioctl */
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+> -/* #define TIOCTTYGSTRUCT 0x5426 - Former debugging-only ioctl */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TIOCGPTN	_IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T',0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+>  #define TIOCGHAYESESP   0x545E  /* Get Hayes ESP configuration */
+>  #define TIOCSHAYESESP   0x545F  /* Set Hayes ESP configuration */
+>  #define FIOQSIZE	0x5460
+>  
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> +#include <asm-generic/ioctls.h>
+>  
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+> +#undef TCGETS2
+> +#undef TCSETS2
+> +#undef TCSETSW2
+> +#undef TCSETSF2
+>  
+> -#endif /* __ASM_AVR32_IOCTLS_H */
+> +#endif
+> Index: linux-2.6/include/asm-blackfin/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-blackfin/ioctls.h
+> +++ linux-2.6/include/asm-blackfin/ioctls.h
+> @@ -1,87 +1,7 @@
+>  #ifndef __ARCH_BFIN_IOCTLS_H__
+>  #define __ARCH_BFIN_IOCTLS_H__
+>  
+> -#include <asm/ioctl.h>
+> +#include <asm-generic/ioctls.h>
+>  
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+>  #define TIOCTTYGSTRUCT	0x5426	/* For debugging only */
+> -#define TIOCSBRK	0x5427	/* BSD compatibility */
+> -#define TIOCCBRK	0x5428	/* BSD compatibility */
+> -#define TIOCGSID	0x5429	/* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T', 0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T', 0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T', 0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T', 0x2D, struct termios2)
+> -/* Get Pty Number (of pty-mux device) */
+> -#define TIOCGPTN	_IOR('T', 0x30, unsigned int)
+> -#define TIOCSPTLCK	_IOW('T', 0x31, int)	/* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450	/* these numbers need to be adjusted. */
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458	/* For debugging only */
+> -#define TIOCSERGETLSR   0x5459	/* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A	/* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B	/* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+> -
+> -#define FIOQSIZE	0x545E
+> -
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+> -
+> -#endif				/* __ARCH_BFIN_IOCTLS_H__ */
+> +#endif
+> Index: linux-2.6/include/asm-cris/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-cris/ioctls.h
+> +++ linux-2.6/include/asm-cris/ioctls.h
+> @@ -1,91 +1,12 @@
+>  #ifndef __ARCH_CRIS_IOCTLS_H__
+>  #define __ARCH_CRIS_IOCTLS_H__
+>  
+> -/* verbatim copy of asm-i386/ioctls.h */
+> -
+> -#include <asm/ioctl.h>
+> -
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T',0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T',0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T',0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T',0x2D, struct termios2)
+> -#define TIOCGPTN	_IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T',0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+>  #define TIOCGHAYESESP   0x545E  /* Get Hayes ESP configuration */
+>  #define TIOCSHAYESESP   0x545F  /* Set Hayes ESP configuration */
+>  #define FIOQSIZE	0x5460
+> -
+>  #define TIOCSERSETRS485 0x5461  /* enable rs-485 */
+>  #define TIOCSERWRRS485  0x5462  /* write rs-485 */
+>  
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+> +#include <asm-generic/ioctls.h>
+>  
+>  #endif
+> Index: linux-2.6/include/asm-frv/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-frv/ioctls.h
+> +++ linux-2.6/include/asm-frv/ioctls.h
+> @@ -1,82 +1,13 @@
+>  #ifndef __ASM_IOCTLS_H__
+>  #define __ASM_IOCTLS_H__
+>  
+> -#include <asm/ioctl.h>
+> +#include <asm-generic/ioctls.h>
+>  
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+>  #define TIOCTTYGSTRUCT	0x5426  /* For debugging only */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TIOCGPTN	_IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T',0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+> -#define FIOQSIZE	0x545E
+> -
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+>  
+> -#endif /* __ASM_IOCTLS_H__ */
+> +#undef TCGETS2
+> +#undef TCSETS2
+> +#undef TCSETSW2
+> +#undef TCSETSF2
+>  
+> +#endif
+> Index: linux-2.6/include/asm-generic/ioctls.h
+> ===================================================================
+> --- /dev/null
+> +++ linux-2.6/include/asm-generic/ioctls.h
+> @@ -0,0 +1,87 @@
+> +#ifndef __ASM_ARM_IOCTLS_H
+> +#define __ASM_ARM_IOCTLS_H
+> +
+> +#include <linux/ioctl.h>
+> +
+> +/* 0x54 is just a magic number to make these relatively unique ('T') */
+> +
+> +#define TCGETS		0x5401
+> +#define TCSETS		0x5402
+> +#define TCSETSW		0x5403
+> +#define TCSETSF		0x5404
+> +#define TCGETA		0x5405
+> +#define TCSETA		0x5406
+> +#define TCSETAW		0x5407
+> +#define TCSETAF		0x5408
+> +#define TCSBRK		0x5409
+> +#define TCXONC		0x540A
+> +#define TCFLSH		0x540B
+> +#define TIOCEXCL	0x540C
+> +#define TIOCNXCL	0x540D
+> +#define TIOCSCTTY	0x540E
+> +#define TIOCGPGRP	0x540F
+> +#define TIOCSPGRP	0x5410
+> +#define TIOCOUTQ	0x5411
+> +#define TIOCSTI		0x5412
+> +#define TIOCGWINSZ	0x5413
+> +#define TIOCSWINSZ	0x5414
+> +#define TIOCMGET	0x5415
+> +#define TIOCMBIS	0x5416
+> +#define TIOCMBIC	0x5417
+> +#define TIOCMSET	0x5418
+> +#define TIOCGSOFTCAR	0x5419
+> +#define TIOCSSOFTCAR	0x541A
+> +#define FIONREAD	0x541B
+> +#define TIOCINQ		FIONREAD
+> +#define TIOCLINUX	0x541C
+> +#define TIOCCONS	0x541D
+> +#define TIOCGSERIAL	0x541E
+> +#define TIOCSSERIAL	0x541F
+> +#define TIOCPKT		0x5420
+> +#define FIONBIO		0x5421
+> +#define TIOCNOTTY	0x5422
+> +#define TIOCSETD	0x5423
+> +#define TIOCGETD	0x5424
+> +#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+> +#define TIOCSBRK	0x5427  /* BSD compatibility */
+> +#define TIOCCBRK	0x5428  /* BSD compatibility */
+> +#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> +#define TCGETS2		_IOR('T', 0x2A, struct termios2)
+> +#define TCSETS2		_IOW('T', 0x2B, struct termios2)
+> +#define TCSETSW2	_IOW('T', 0x2C, struct termios2)
+> +#define TCSETSF2	_IOW('T', 0x2D, struct termios2)
+> +#define TIOCGPTN	_IOR('T', 0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> +#define TIOCSPTLCK	_IOW('T', 0x31, int)  /* Lock/unlock Pty */
+> +
+> +#define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
+> +#define FIOCLEX		0x5451
+> +#define FIOASYNC	0x5452
+> +#define TIOCSERCONFIG	0x5453
+> +#define TIOCSERGWILD	0x5454
+> +#define TIOCSERSWILD	0x5455
+> +#define TIOCGLCKTRMIOS	0x5456
+> +#define TIOCSLCKTRMIOS	0x5457
+> +#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> +#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> +#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> +#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> +
+> +#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> +#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+> +
+> +#ifndef FIOQSIZE /* some architectures define their own */
+> +#define FIOQSIZE	0x545E
+> +#endif
+> +
+> +/* Used for packet mode */
+> +#define TIOCPKT_DATA		 0
+> +#define TIOCPKT_FLUSHREAD	 1
+> +#define TIOCPKT_FLUSHWRITE	 2
+> +#define TIOCPKT_STOP		 4
+> +#define TIOCPKT_START		 8
+> +#define TIOCPKT_NOSTOP		16
+> +#define TIOCPKT_DOSTOP		32
+> +
+> +#define TIOCSER_TEMT	0x01	/* Transmitter physically empty */
+> +
+> +#endif
+> Index: linux-2.6/include/asm-h8300/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-h8300/ioctls.h
+> +++ linux-2.6/include/asm-h8300/ioctls.h
+> @@ -1,85 +1,8 @@
+>  #ifndef __ARCH_H8300_IOCTLS_H__
+>  #define __ARCH_H8300_IOCTLS_H__
+>  
+> -#include <asm/ioctl.h>
+> +#include <asm-generic/ioctls.h>
+>  
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+>  #define TIOCTTYGSTRUCT	0x5426  /* For debugging only */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T',0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T',0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T',0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T',0x2D, struct termios2)
+> -#define TIOCGPTN	_IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T',0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+> -#define FIOQSIZE	0x545E
+> -
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+>  
+> -#endif /* __ARCH_H8300_IOCTLS_H__ */
+> +#endif
+> Index: linux-2.6/include/asm-ia64/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-ia64/ioctls.h
+> +++ linux-2.6/include/asm-ia64/ioctls.h
+> @@ -1,93 +1,10 @@
+>  #ifndef _ASM_IA64_IOCTLS_H
+>  #define _ASM_IA64_IOCTLS_H
+>  
+> -/*
+> - * Based on <asm-i386/ioctls.h>
+> - *
+> - * Modified 1998, 1999, 2002
+> - *	David Mosberger-Tang <davidm@hpl.hp.com>, Hewlett-Packard Co
+> - */
+> -
+> -#include <asm/ioctl.h>
+> -
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402	/* Clashes with SNDCTL_TMR_START sound ioctl */
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T',0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T',0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T',0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T',0x2D, struct termios2)
+> -#define TIOCGPTN	_IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T',0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+>  #define TIOCGHAYESESP   0x545E  /* Get Hayes ESP configuration */
+>  #define TIOCSHAYESESP   0x545F  /* Set Hayes ESP configuration */
+>  #define FIOQSIZE	0x5460
+>  
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+> +#include <asm-generic/ioctls.h>
+>  
+> -#endif /* _ASM_IA64_IOCTLS_H */
+> +#endif
+> Index: linux-2.6/include/asm-m32r/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-m32r/ioctls.h
+> +++ linux-2.6/include/asm-m32r/ioctls.h
+> @@ -1,87 +1,11 @@
+>  #ifndef __ARCH_M32R_IOCTLS_H__
+>  #define __ARCH_M32R_IOCTLS_H__
+>  
+> -#include <asm/ioctl.h>
+> -
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402 /* Clashes with SNDCTL_TMR_START sound ioctl */
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+>  /* #define TIOCTTYGSTRUCT 0x5426 - Former debugging-only ioctl */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T',0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T',0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T',0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T',0x2D, struct termios2)
+> -#define TIOCGPTN	_IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T',0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+>  #define TIOCGHAYESESP   0x545E  /* Get Hayes ESP configuration */
+>  #define TIOCSHAYESESP   0x545F  /* Set Hayes ESP configuration */
+>  #define FIOQSIZE	0x5460
+>  
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+> +#include <asm-generic/ioctls.h>
+>  
+> -#endif /* __ARCH_M32R_IOCTLS_H__ */
+> +#endif
+> Index: linux-2.6/include/asm-m68k/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-m68k/ioctls.h
+> +++ linux-2.6/include/asm-m68k/ioctls.h
+> @@ -1,84 +1,6 @@
+>  #ifndef __ARCH_M68K_IOCTLS_H__
+>  #define __ARCH_M68K_IOCTLS_H__
+>  
+> -#include <asm/ioctl.h>
+> +#include <asm-generic/ioctls.h>
+>  
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T',0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T',0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T',0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T',0x2D, struct termios2)
+> -#define TIOCGPTN	_IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T',0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+> -#define FIOQSIZE	0x545E
+> -
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+> -
+> -#endif /* __ARCH_M68K_IOCTLS_H__ */
+> +#endif
+> Index: linux-2.6/include/asm-microblaze/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-microblaze/ioctls.h
+> +++ linux-2.6/include/asm-microblaze/ioctls.h
+> @@ -11,83 +11,6 @@
+>  #ifndef _ASM_MICROBLAZE_IOCTLS_H
+>  #define _ASM_MICROBLAZE_IOCTLS_H
+>  
+> -#include <asm/ioctl.h>
+> +#include <asm-generic/ioctls.h>
+>  
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425 /* Needed for POSIX tcsendbreak() */
+> -#define TIOCTTYGSTRUCT	0x5426 /* For debugging only */
+> -#define TIOCSBRK	0x5427 /* BSD compatibility */
+> -#define TIOCCBRK	0x5428 /* BSD compatibility */
+> -#define TIOCGSID	0x5429 /* Return the session ID of FD */
+> -/* Get Pty Number (of pty-mux device) */
+> -#define TIOCGPTN	_IOR('T', 0x30, unsigned int)
+> -#define TIOCSPTLCK	_IOW('T', 0x31, int) /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450 /* these numbers need to be adjusted. */
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR	0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C /* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D /* read serial port inline interrupt counts */
+> -
+> -#define	FIOQSIZE	0x545E
+> -
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		0
+> -#define TIOCPKT_FLUSHREAD	1
+> -#define TIOCPKT_FLUSHWRITE	2
+> -#define TIOCPKT_STOP		4
+> -#define TIOCPKT_START		8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT	0x01 /* Transmitter physically empty */
+> -
+> -#endif /* _ASM_MICROBLAZE_IOCTLS_H */
+> +#endif
+> Index: linux-2.6/include/asm-mn10300/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-mn10300/ioctls.h
+> +++ linux-2.6/include/asm-mn10300/ioctls.h
+> @@ -1,88 +1,12 @@
+>  #ifndef _ASM_IOCTLS_H
+>  #define _ASM_IOCTLS_H
+>  
+> -#include <asm/ioctl.h>
+> -
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+>  /* #define TIOCTTYGSTRUCT 0x5426 - Former debugging-only ioctl */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T', 0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T', 0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T', 0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T', 0x2D, struct termios2)
+> -#define TIOCGPTN	_IOR('T', 0x30, unsigned int) /* Get Pty Number
+> -						       * (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T', 0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+>  #define TIOCGHAYESESP   0x545E  /* Get Hayes ESP configuration */
+>  #define TIOCSHAYESESP   0x545F  /* Set Hayes ESP configuration */
+>  #define FIOQSIZE	0x5460
+>  
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> +#include <asm-generic/ioctls.h>
+>  
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+>  
+> -#endif /* _ASM_IOCTLS_H */
+> +#endif
+> Index: linux-2.6/include/asm-parisc/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-parisc/ioctls.h
+> +++ linux-2.6/include/asm-parisc/ioctls.h
+> @@ -81,6 +81,6 @@
+>  #define TIOCPKT_NOSTOP		16
+>  #define TIOCPKT_DOSTOP		32
+>  
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+> +#define TIOCSER_TEMT	0x01	/* Transmitter physically empty */
+>  
+> -#endif /* _ASM_PARISC_IOCTLS_H */
+> +#endif
+> Index: linux-2.6/include/asm-s390/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-s390/ioctls.h
+> +++ linux-2.6/include/asm-s390/ioctls.h
+> @@ -1,92 +1,6 @@
+> -/*
+> - *  include/asm-s390/ioctls.h
+> - *
+> - *  S390 version
+> - *
+> - *  Derived from "include/asm-i386/ioctls.h"
+> - */
+> -
+>  #ifndef __ARCH_S390_IOCTLS_H__
+>  #define __ARCH_S390_IOCTLS_H__
+>  
+> -#include <asm/ioctl.h>
+> -
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T',0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T',0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T',0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T',0x2D, struct termios2)
+> -#define TIOCGPTN	_IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T',0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+> -#define FIOQSIZE	0x545E
+> -
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+> +#include <asm-generic/ioctls.h>
+>  
+>  #endif
+> Index: linux-2.6/include/asm-v850/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-v850/ioctls.h
+> +++ linux-2.6/include/asm-v850/ioctls.h
+> @@ -1,84 +1,6 @@
+>  #ifndef __V850_IOCTLS_H__
+>  #define __V850_IOCTLS_H__
+>  
+> -#include <asm/ioctl.h>
+> +#include <asm-generic/ioctls.h>
+>  
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T',0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T',0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T',0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T',0x2D, struct termios2)
+> -#define TIOCGPTN	_IOR('T',0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T',0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+> -#define FIOQSIZE	0x545E
+> -
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+> -
+> -#endif /* __V850_IOCTLS_H__ */
+> +#endif
+> Index: linux-2.6/include/asm-x86/ioctls.h
+> ===================================================================
+> --- linux-2.6.orig/include/asm-x86/ioctls.h
+> +++ linux-2.6/include/asm-x86/ioctls.h
+> @@ -1,88 +1,10 @@
+>  #ifndef _ASM_X86_IOCTLS_H
+>  #define _ASM_X86_IOCTLS_H
+>  
+> -#include <asm/ioctl.h>
+> -
+> -/* 0x54 is just a magic number to make these relatively unique ('T') */
+> -
+> -#define TCGETS		0x5401
+> -#define TCSETS		0x5402 /* Clashes with SNDCTL_TMR_START sound ioctl */
+> -#define TCSETSW		0x5403
+> -#define TCSETSF		0x5404
+> -#define TCGETA		0x5405
+> -#define TCSETA		0x5406
+> -#define TCSETAW		0x5407
+> -#define TCSETAF		0x5408
+> -#define TCSBRK		0x5409
+> -#define TCXONC		0x540A
+> -#define TCFLSH		0x540B
+> -#define TIOCEXCL	0x540C
+> -#define TIOCNXCL	0x540D
+> -#define TIOCSCTTY	0x540E
+> -#define TIOCGPGRP	0x540F
+> -#define TIOCSPGRP	0x5410
+> -#define TIOCOUTQ	0x5411
+> -#define TIOCSTI		0x5412
+> -#define TIOCGWINSZ	0x5413
+> -#define TIOCSWINSZ	0x5414
+> -#define TIOCMGET	0x5415
+> -#define TIOCMBIS	0x5416
+> -#define TIOCMBIC	0x5417
+> -#define TIOCMSET	0x5418
+> -#define TIOCGSOFTCAR	0x5419
+> -#define TIOCSSOFTCAR	0x541A
+> -#define FIONREAD	0x541B
+> -#define TIOCINQ		FIONREAD
+> -#define TIOCLINUX	0x541C
+> -#define TIOCCONS	0x541D
+> -#define TIOCGSERIAL	0x541E
+> -#define TIOCSSERIAL	0x541F
+> -#define TIOCPKT		0x5420
+> -#define FIONBIO		0x5421
+> -#define TIOCNOTTY	0x5422
+> -#define TIOCSETD	0x5423
+> -#define TIOCGETD	0x5424
+> -#define TCSBRKP		0x5425	/* Needed for POSIX tcsendbreak() */
+> -/* #define TIOCTTYGSTRUCT 0x5426 - Former debugging-only ioctl */
+> -#define TIOCSBRK	0x5427  /* BSD compatibility */
+> -#define TIOCCBRK	0x5428  /* BSD compatibility */
+> -#define TIOCGSID	0x5429  /* Return the session ID of FD */
+> -#define TCGETS2		_IOR('T', 0x2A, struct termios2)
+> -#define TCSETS2		_IOW('T', 0x2B, struct termios2)
+> -#define TCSETSW2	_IOW('T', 0x2C, struct termios2)
+> -#define TCSETSF2	_IOW('T', 0x2D, struct termios2)
+> -#define TIOCGPTN	_IOR('T', 0x30, unsigned int)
+> -				/* Get Pty Number (of pty-mux device) */
+> -#define TIOCSPTLCK	_IOW('T', 0x31, int)  /* Lock/unlock Pty */
+> -
+> -#define FIONCLEX	0x5450
+> -#define FIOCLEX		0x5451
+> -#define FIOASYNC	0x5452
+> -#define TIOCSERCONFIG	0x5453
+> -#define TIOCSERGWILD	0x5454
+> -#define TIOCSERSWILD	0x5455
+> -#define TIOCGLCKTRMIOS	0x5456
+> -#define TIOCSLCKTRMIOS	0x5457
+> -#define TIOCSERGSTRUCT	0x5458 /* For debugging only */
+> -#define TIOCSERGETLSR   0x5459 /* Get line status register */
+> -#define TIOCSERGETMULTI 0x545A /* Get multiport config  */
+> -#define TIOCSERSETMULTI 0x545B /* Set multiport config */
+> -
+> -#define TIOCMIWAIT	0x545C	/* wait for a change on serial input line(s) */
+> -#define TIOCGICOUNT	0x545D	/* read serial port inline interrupt counts */
+>  #define TIOCGHAYESESP   0x545E  /* Get Hayes ESP configuration */
+>  #define TIOCSHAYESESP   0x545F  /* Set Hayes ESP configuration */
+>  #define FIOQSIZE	0x5460
+>  
+> -/* Used for packet mode */
+> -#define TIOCPKT_DATA		 0
+> -#define TIOCPKT_FLUSHREAD	 1
+> -#define TIOCPKT_FLUSHWRITE	 2
+> -#define TIOCPKT_STOP		 4
+> -#define TIOCPKT_START		 8
+> -#define TIOCPKT_NOSTOP		16
+> -#define TIOCPKT_DOSTOP		32
+> -
+> -#define TIOCSER_TEMT    0x01	/* Transmitter physically empty */
+> +#include <asm-generic/ioctls.h>
+>  
+>  #endif
+> 
+> 
