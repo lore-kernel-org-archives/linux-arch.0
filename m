@@ -1,59 +1,48 @@
-From: Hugh Dickins <hugh@veritas.com>
-Subject: Re: [patch 2/2] fix SMP data race in pagetable setup vs walking
-Date: Mon, 5 May 2008 17:57:20 +0100 (BST)
-Message-ID: <Pine.LNX.4.64.0805051751230.11062@blonde.site>
-References: <20080505112021.GC5018@wotan.suse.de> <20080505121240.GD5018@wotan.suse.de>
+From: "Stephen Neuendorffer" <stephen.neuendorffer@xilinx.com>
+Subject: RE: [PATCH 10/56] microblaze_v2: Generic dts file for platforms
+Date: Mon, 5 May 2008 10:25:33 -0700
+Message-ID: <20080505172535.9710319B8086@mail101-wa4.bigfish.com>
+References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+	charset="US-ASCII"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from extu-mxob-2.symantec.com ([216.10.194.135]:60131 "EHLO
-	extu-mxob-2.symantec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755834AbYEERGe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 13:06:34 -0400
-Received: from [172.20.24.170]([172.20.24.170]) (2529 bytes) by megami.veritas.com
-	via sendmail with P:esmtp/R:smart_host/T:smtp
-	(sender: <hugh@veritas.com>)
-	id <m1Jt406-0000GqC@megami.veritas.com>
-	for <linux-arch@vger.kernel.org>; Mon, 5 May 2008 09:57:18 -0700 (PDT)
-	(Smail-3.2.0.101 1997-Dec-17 #15 built 2001-Aug-30)
-In-Reply-To: <20080505121240.GD5018@wotan.suse.de>
+Received: from outbound-wa4.frontbridge.com ([216.32.181.16]:32067 "EHLO
+	outbound6-wa4-R.bigfish.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753495AbYEERZg convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 13:25:36 -0400
+Content-class: urn:content-classes:message
+In-reply-to: <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Paul McKenney <paulmck@us.ibm.com>
+To: monstr@seznam.cz, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-On Mon, 5 May 2008, Nick Piggin wrote:
-> Index: linux-2.6/mm/memory.c
-> ===================================================================
-> --- linux-2.6.orig/mm/memory.c
-> +++ linux-2.6/mm/memory.c
-> @@ -311,6 +311,37 @@ int __pte_alloc(struct mm_struct *mm, pm
->  	if (!new)
->  		return -ENOMEM;
->  
-> +	/*
-> +	 * Ensure all pte setup (eg. pte page lock and page clearing) are
-> +	 * visible before the pte is made visible to other CPUs by being
-> +	 * put into page tables.
-> +	 *
-> +	 * The other side of the story is the pointer chasing in the page
-> +	 * table walking code (when walking the page table without locking;
-> +	 * ie. most of the time). Fortunately, these data accesses consist
-> +	 * of a chain of data-dependent loads, meaning most CPUs (alpha
-> +	 * being the notable exception) will already guarantee loads are
-> +	 * seen in-order. x86 has a "reference" implementation of
-> +	 * smp_read_barrier_depends() barriers in its page table walking
-> +	 * code, even though that barrier is a simple noop on that architecture.
-> +	 * Alpha obviously also has the required barriers.
-> +	 *
-> +	 * It is debatable whether or not the smp_read_barrier_depends()
-> +	 * barriers are required for kernel page tables; it could be that
-> +	 * nowhere in the kernel do we walk those pagetables without taking
-> +	 * init_mm's page_table_lock.
 
-Just delete "; it could be that ... init_mm's page_table_lock":
-in general (if not everywhere) the architectures do not nowadays
-take init_mm's page_table_lock to walk down those pagetables (blame
-me for removing it, if anyone thinks that was wrong: I stand by it).
+I think it would be nice if dts files were stored in boot/dts, as on
+powerpc, which would reduce confusion.
 
-Hugh
+Steve
+
+> -----Original Message-----
+> From: monstr@seznam.cz [mailto:monstr@seznam.cz]
+> Sent: Sunday, May 04, 2008 4:41 AM
+> To: linux-kernel@vger.kernel.org
+> Cc: arnd@arndb.de; linux-arch@vger.kernel.org; Stephen Neuendorffer;
+John Linn;
+> john.williams@petalogix.com; matthew@wil.cx; will.newton@gmail.com;
+drepper@redhat.com; microblaze-
+> uclinux@itee.uq.edu.au; grant.likely@secretlab.ca; Michal Simek
+> Subject: [PATCH 10/56] microblaze_v2: Generic dts file for platforms
+> 
+> From: Michal Simek <monstr@monstr.eu>
+> 
+> 
+> Signed-off-by: Michal Simek <monstr@monstr.eu>
+> ---
+>  arch/microblaze/platform/generic/system.dts |  137
++++++++++++++++++++++++++++
+>  1 files changed, 137 insertions(+), 0 deletions(-)
+>  create mode 100644 arch/microblaze/platform/generic/system.dts
