@@ -1,36 +1,49 @@
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [PATCH 12/56] microblaze_v2: lmb support
-Date: Mon, 5 May 2008 23:32:26 +0200
-Message-ID: <6dbb712485393072564a94c3fa9b8196@kernel.crashing.org>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu> <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu> <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu> <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu> <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu> <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu> <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu> <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu> <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.mons
- tr@monstr.eu> <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu> <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu> <1209953499.5798.57.camel!
- @localhost>
-Mime-Version: 1.0 (Apple Message framework v623)
-Content-Type: text/plain; charset=US-ASCII; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:42457 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760991AbYEEVgb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 17:36:31 -0400
-In-Reply-To: <1209953499.5798.57.camel@localhost>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: John Williams <john.williams@petalogix.com>
-Cc: John.Linn@xilinx.com, arnd@arndb.de, drepper@redhat.com, matthew@wil.cx, linux-kernel@vger.kernel.org, grant.likely@secretlab.ca, will.newton@gmail.com, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, microblaze-uclinux@itee.uq.edu.au, Michal Simek <monstr@monstr.eu>, monstr@seznam.cz
+From: tony@bakeyournoodle.com (Tony Breeds)
+Subject: Re: [RFC][PATCH] sched_clock_cpu()
+Date: Tue, 6 May 2008 07:47:27 +1000
+Message-ID: <20080505214727.GU20457@bakeyournoodle.com>
+References: <1209832169.6929.42.camel@lappy> <20080503170130.GB21967@elte.hu> <20080503.212607.157994166.davem@davemloft.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1762312AbYEEVrt@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20080503.212607.157994166.davem@davemloft.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: mingo@elte.hu, a.p.zijlstra@chello.nl, tglx@linutronix.de, guichaz@gmail.com, andi@firstfloor.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, efault@gmx.de, dhaval@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
->> --- /dev/null
->> +++ b/include/asm-microblaze/lmb.h
->
-> Since LMB has a very specific (and different) meaning the microblaze
-> context (LMB = Local Memory Bus), can we have a comment or explanation
-> from the PPC folks on what LMB actually stands for?
+On Sat, May 03, 2008 at 09:26:07PM -0700, David Miller wrote:
 
-See lib/lmb.c:
+> It would be nice if a powerpc person could test the trivial
+> powerpc Kconfig patch.
 
-/*
-  * Procedures for maintaining information about logical memory blocks.
-  *
+FWIW I tested the following trivial patch for powerpc.  While testing
+this I discovered a i(related) ppc32 regressesion that I'm trying to
+bisect/debug.
 
 
-Segher
+Signed-off-by: Tony Breeds <tony@bakeyournoodle.com>
+---
+Obviously on top of the merged patch + Dave's sparc patch
+
+ arch/powerpc/Kconfig |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 3934e26..0642dff 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -110,6 +110,7 @@ config PPC
+ 	select HAVE_KPROBES
+ 	select HAVE_KRETPROBES
+ 	select HAVE_LMB
++	select HAVE_STABLE_CLOCK
+ 
+ config EARLY_PRINTK
+ 	bool
+
+Yours Tony
+
+  linux.conf.au    http://www.marchsouth.org/
+  Jan 19 - 24 2009 The Australian Linux Technical Conference!
