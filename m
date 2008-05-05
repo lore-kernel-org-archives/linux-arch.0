@@ -1,43 +1,42 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 08/56] microblaze_v2: Interrupt handling, timer support,
- supported function
-Date: Mon, 05 May 2008 16:20:24 +0200
-Message-ID: <481F17A8.3000804@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	 <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>	 <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>	 <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu>	 <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>	 <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu>	 <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>	 <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu>	 <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu> <1209952718.5798.44.camel@localhost>
+Subject: Re: [PATCH 13/56] microblaze_v2: PVR support, cpuinfo support
+Date: Mon, 05 May 2008 16:20:51 +0200
+Message-ID: <481F17C3.90509@seznam.cz>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	 <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu>	 <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>	 <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu>	 <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>	 <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu>	 <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu>	 <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu>	 <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>	 <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>	 <0ba1f259d3c17eba54e334622493577493f5065f.120989726
+ 6.git.monstr@monstr.eu>	 <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu> <1209953663.5798.61.camel@localhost>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759088AbYEEOTu@vger.kernel.org>
-In-Reply-To: <1209952718.5798.44.camel@localhost>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:62514 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1758894AbYEEOTt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:19:49 -0400
+In-Reply-To: <1209953663.5798.61.camel@localhost>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: John Williams <john.williams@petalogix.com>
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
-List-Id: linux-arch.vger.kernel.org
 
-FIXED. Part of Kconfig was in previous email.
-
-M
+FIXED.
 
 
->>  arch/microblaze/kernel/hack.c  |   82 ++++++++++++++++++
->>  include/asm-microblaze/hack.h  |   24 +++++
+>> +int cpu_has_pvr(void)
+>> +{
+>> +	unsigned flags;
+>> +	unsigned pvr0;
+>> +	int ret = 0;
+>> +
+>> +	local_irq_save(flags);
+>> +
 > 
-> These 'hack' files, functions and CONFIGS should be renamed.
+> ...
 > 
-> How about
+>> +out:
+>> +	local_irq_restore(flags);
+>> +	return ret;
+>> +}
 > 
->  * selfmod.[c|h] (core infrastructure)
->  * CONFIG_SELFMOD  (enables the self modifying API)
->  * CONFIG_SELFMOD_IRQ (use it on IRS)
->  * CONFIG_SELFMOD_TIMER (user it on the timer)
-> 
-> The last two would be dependent on CONFIG_SELFMOD
-> 
-> With the recent ksplice stuff it seems self-modifying code is ready for
-> the mainline :)
-> 
-> 
-> 
-> 
-> 
+> The actual IRQ clear/restore is not required - can you just use
+> local_save_flags() or similar to read the MSR?
