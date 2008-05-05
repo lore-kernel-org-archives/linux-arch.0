@@ -1,49 +1,42 @@
-From: tony@bakeyournoodle.com (Tony Breeds)
-Subject: Re: [RFC][PATCH] sched_clock_cpu()
-Date: Tue, 6 May 2008 07:47:27 +1000
-Message-ID: <20080505214727.GU20457@bakeyournoodle.com>
-References: <1209832169.6929.42.camel@lappy> <20080503170130.GB21967@elte.hu> <20080503.212607.157994166.davem@davemloft.net>
+From: "Stephen Neuendorffer" <stephen.neuendorffer@xilinx.com>
+Subject: RE: [PATCH 04/56] microblaze_v2: Open firmware files
+Date: Mon, 5 May 2008 14:56:14 -0700
+Message-ID: <20080505215613.A5B3D18D004F@mail151-sin.bigfish.com>
+References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1762312AbYEEVrt@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20080503.212607.157994166.davem@davemloft.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: mingo@elte.hu, a.p.zijlstra@chello.nl, tglx@linutronix.de, guichaz@gmail.com, andi@firstfloor.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, efault@gmx.de, dhaval@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+	charset="US-ASCII"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from outbound-sin.frontbridge.com ([207.46.51.80]:14978 "EHLO
+	outbound9-sin-R.bigfish.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752368AbYEEV4Q convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 May 2008 17:56:16 -0400
+Content-class: urn:content-classes:message
+In-reply-to: <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: monstr@seznam.cz, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-On Sat, May 03, 2008 at 09:26:07PM -0700, David Miller wrote:
+Michal,
 
-> It would be nice if a powerpc person could test the trivial
-> powerpc Kconfig patch.
+You're missing some of the stuff implemented in powerpc/prom_parse.c, in
+particular this:
 
-FWIW I tested the following trivial patch for powerpc.  While testing
-this I discovered a i(related) ppc32 regressesion that I'm trying to
-bisect/debug.
+Steve
 
-
-Signed-off-by: Tony Breeds <tony@bakeyournoodle.com>
----
-Obviously on top of the merged patch + Dave's sparc patch
-
- arch/powerpc/Kconfig |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
-
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 3934e26..0642dff 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -110,6 +110,7 @@ config PPC
- 	select HAVE_KPROBES
- 	select HAVE_KRETPROBES
- 	select HAVE_LMB
-+	select HAVE_STABLE_CLOCK
- 
- config EARLY_PRINTK
- 	bool
-
-Yours Tony
-
-  linux.conf.au    http://www.marchsouth.org/
-  Jan 19 - 24 2009 The Australian Linux Technical Conference!
+> +/**
+> + * of_irq_map_one - Resolve an interrupt for a device
+> + * @device:	the device whose interrupt is to be resolved
+> + * @index:	index of the interrupt to resolve
+> + * @out_irq:	structure of_irq filled by this function
+> + *
+> + * This function resolves an interrupt, walking the tree, for a given
+> + * device-tree node. It's the high level pendant to of_irq_map_raw().
+> + * It also implements the workarounds for OldWolrd Macs.
+> + */
+> +extern int of_irq_map_one(struct device_node *device, int index,
+> +			struct of_irq *out_irq);
+> +
