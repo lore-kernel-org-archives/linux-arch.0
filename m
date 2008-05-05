@@ -1,396 +1,377 @@
-From: "Stephen Neuendorffer" <stephen.neuendorffer@xilinx.com>
-Subject: [PATCH] Microblaze: implement dma-coherent API and refactor cache flush code.
-Date: Mon, 5 May 2008 15:37:07 -0700
-Message-ID: <20080505223706.1236C1C8004E@mail131-sin.bigfish.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
+Date: Mon, 5 May 2008 10:43:12 -0700
+Message-ID: <20080505174312.GC7543@linux.vnet.ibm.com>
+References: <20080430121712.GR11126@linux.vnet.ibm.com> <20080430123717.GC12774@kernel.dk> <20080502020241.GA26088@linux.vnet.ibm.com> <20080502021233.GC11844@wotan.suse.de> <20080502122955.GB15522@linux.vnet.ibm.com> <20080502124205.GA23680@linux.vnet.ibm.com> <1209733169.13978.157.camel@twins> <20080503054930.GA19664@wotan.suse.de> <20080503181148.GA16159@linux.vnet.ibm.com> <20080505041533.GA17640@wotan.suse.de>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="US-ASCII"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-sin.frontbridge.com ([207.46.51.80]:64285 "EHLO
-	outbound5-sin-R.bigfish.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754886AbYEEWjx convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 May 2008 18:39:53 -0400
-Content-class: urn:content-classes:message
+Received: from e35.co.us.ibm.com ([32.97.110.153]:55502 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754905AbYEEWqm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 18:46:42 -0400
+Content-Disposition: inline
+In-Reply-To: <20080505041533.GA17640@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microbl
+To: Nick Piggin <npiggin@suse.de>
+Cc: Peter Zijlstra <peterz@infradead.org>, Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu
 
-Primarily, this patch implements the dma-coherent API.  In addition,
-it cleans up some of the code that deals with caches, in order to
-match the usage in dma-coherent.
+On Mon, May 05, 2008 at 06:15:33AM +0200, Nick Piggin wrote:
+> On Sat, May 03, 2008 at 11:11:48AM -0700, Paul E. McKenney wrote:
+> > On Sat, May 03, 2008 at 07:49:30AM +0200, Nick Piggin wrote:
+> > > > This is perfectly deadlock free when wait=0 and it just returns -ENOMEM
+> > > > on allocation failure.
+> > > 
+> > > Yeah, I'm just talking about the wait=0 case. (btw. I'd rather the core
+> > > API takes some data rather than allocates some itself, eg because you
+> > > might want to have it on the stack).
+> > 
+> > But taking data on the stack is safe only in the wait=1 case, right?
+> 
+> Sure, but the API would be general enough to handle it.
 
-In particular, the dcache in the microblaze is write through, so the
-existing code is more easily thought of as 'invalidation' than
-'flushing'.  In addition, some of the flush_* methods were old, and
-some shouldn't need to be implemented (since currently no mmu is
-supported).
+OK...  But the wait=1 case already unconditionally stores its data on the
+stack.  In the wait=0 case, I would guess that it would be good to supply
+a function that gets called after a grace period elapses after the last
+CPU invokes the to-be-called-by-all-CPUs function:
 
-I'd appreciate if someone would ACK my interpretation of
-Documentation/cachetlb.txt.  In particular:
+int smp_call_function_nowait(void (*func)(void *), void *info, int natomic, void (*cleanup)(struct rcu_head *rcu))
 
-flush_cache_mm(mm) (NOOP because nommu)
-flush_cache_range(mm, start, end) (Does this need to be implemented
-since nommu?)
-flush_cache_page(vma, vmaddr) (NOOP because nommu)
-flush_dcache_page(page) (NOOP because write through cache.)
-flush_dcache_range(start, end) (NOOP because write through cache.)
-flush_dcache_mmap_lock(mapping) (NOOP because nommu)
-flush_dcache_mmap_unlock(mapping) (NOOP because nommu)
+Is this what you are looking for?  My guess is that the idea is to
+pre-allocate the memory before entering a bunch of irq-diabled code that
+is difficult to unwind from.
 
-flush_icache_page(vma,pg) (Does this need to be implemented? Doc is
-unclear, but I assume it is used as flush_icache_range)
-flush_icache_range(start, end) (Must be implemented because icache
-doesn't snoop dcache on code loads)
+> > > For the wait=1 case, something very clever such as processing pending
+> > > requests in a polling loop might be cool... however I'd rather not add
+> > > such complexity until someone needs it (you could stick a comment in
+> > > there outlining your algorithm). But I'd just rather not have peole rely
+> > > on it yet.
+> > 
+> > In that case we may need to go back to the global lock with only one
+> > request being processed at a time.  Otherwise, if two wait=1 requests
+> > happen at the same time, they deadlock waiting for each other to process
+> > their request.  (See Keith Owens: http://lkml.org/lkml/2008/5/2/183).
+> > 
+> > In other words, if you want to allow parallel calls to
+> > smp_call_function(), the simplest way to do it seems to be to do the
+> > polling loop.  The other ways I have come up with thus far are uglier
+> > and less effective (see http://lkml.org/lkml/2008/4/30/164).
+> > 
+> > Now, what I -could- do would be to prohibit the wait=1 case from
+> > irq-disable state from polling -- that would make sense, as the caller
+> > probably had a reason to mask irqs, and might not take kindly to having
+> > them faked behind the caller's back.  ;-)
+> 
+> I think we're talking past each other a little bit.
+> 
+> There is no irq-disabled calls as yet, therefore I don't think we should
+> add a lot of complex code just to _allow_ for it; at least, not until a
+> really compelling user comes up.
+> 
+> The main thing is to parallelise the code. The fact that we can trivially 
+> support irq-disabled calls for nowait case (if the caller supplies the
+> data or can handle failure) is just a bonus.
 
-Signed-off-by: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
+Well, that would explain my confusion!!!  ;-)
+
+It is also not hard to support irq-disabled calls for the wait case one
+of two ways:
+
+o	Expand the scope of call_function_lock to cover the call
+	to csd_flag_wait().  In the irq-disabled-wait case, use
+	spin_trylock_irqsave() to acquire this lock.  If lock acquisition
+	fails, hand back -EBUSY.
+
+o	Use the polling trick.  This avoids deadlock and failure as well,
+	but means that one form of irqs happens behind your back despite
+	irqs being disabled.
+
+So just saying "no" until a need arises makes sense here.
+
+> > > > It it doesn't return -ENOMEM I know its been queued and will be
+> > > > processed at some point, if it does fail, I can deal with it in another
+> > > > way.
+> > > 
+> > > At least with IPIs I think we can guarantee they will be processed on
+> > > the target after we queue them.
+> > 
+> > OK, so let me make sure I understand what is needed.  One example might be
+> > some code called from scheduler_tick(), which runs with irqs disabled.
+> > Without the ability to call smp_call_function() directly, you have
+> > to fire off a work queue or something.  Now, if smp_call_function()
+> > can hand you an -ENOMEM or (maybe) an -EBUSY, then you still have to
+> > fire off the work queue, but you probably only have to do it rarely,
+> > minimizing the performance impact.
+> > 
+> > Another possibility is when it is -nice- to call smp_call_function(),
+> > but can just try again on the next scheduler_tick() -- ignoring dynticks
+> > idle for the moment.  In this case, you might still test the error return
+> > to set a flag that you will check on the next scheduler_tick() call.
+> > 
+> > Is this where you guys are coming from?
+> > 
+> > And you are all OK with smp_call_function() called with irqs enabled
+> > never being able to fail, right?  (Speaking of spaghetti code, why
+> > foist unnecessary failure checks on the caller...)
+> 
+> Having the fallback is fine, yes. I'd say it shouldn't often get called.
+
+The fallback is to waiting in the current patch (see below).  This version
+disallows calls with irqs disabled, so parallel calls to smp_call_function()
+will process each other's function calls concurrently.  Might be a bit of
+a surprise to some existing uses -- but is the price of parallelism.
+
+> > > > I know I'd like to do that and I suspect Nick has a few use cases up his
+> > > > sleeve as well.
+> > > 
+> > > It would be handy. The "quickly kick something off on another CPU" is
+> > > pretty nice in mm/ when you have per-cpu queues or caches that might
+> > > want to be flushed.
+> > 
+> > OK, I think I might be seeing what you guys are getting at.  Here is
+> > what I believe you guys need:
+> > 
+> > 1.	No deadlocks, ever, not even theoretical "low probability"
+> > 	deadlocks.
+> 
+> Of course ;)
+> 
+> > 2.	No failure returns when called with irqs enabled.  On the other
+> > 	hand, when irqs are disabled, failure is possible.  Though hopefully
+> > 	unlikely.
+> 
+> I think I'd like to keep existing smp_call_function that disallows
+> irq-disabled calls and can't fail. Introduce a new one for irq-disabled
+> case.
+
+That makes a lot of sense -- especially if we need to introduce a cleanup
+function to handle memory being passed into smp_call_function_disabled()
+or whatever it ends up being called.
+
+> But sure, the existing smp_call_function implementation can't fail.
+
+Good!
+
+> > 3.	Parallel execution of multiple smp_call_function() requests
+> > 	is required, even when called with irqs disabled.
+> 
+> I think so. At least for the call_function_single case.
+
+OK.  So you are willing to live with smp_call_function() and
+smp_call_function_mask() being globally serialized?  That would
+simplify things a bit.  I think...
+
+> > 4.	The wait=1 case with irqs disabled is prohibited.
+> > 
+> > 5.	If you call smp_call_function() with irqs disabled, then you
+> > 	are guaranteed that no other CPU's smp_call_function() handler
+> > 	will be invoked while smp_call_function() is executing.
+> > 
+> > Anything I am missing?
+> 
+> For the last cases, I actually think your polling loop is pretty cool ;)
+> So I don't completely object to it, I just don't think we should add it
+> in until something wants it...
+
+Yep, it is one way to permit the irq-disabled-wait case without -EBUSY.
+But it does add some hair, so I agree that it should wait until someone
+needs it.
+
+> Don't let me dictate the requirements though, the only real one I had
+> was to make call_function_single scalable and faster, and call_function
+> be as optimal as possible.
+
+OK.  The below still permits parallel smp_call_function()
+and smp_call_function_mask() as well as permitting parallel
+smp_call_function_single().  It prohibits the irq-disabled case.
+
+Thoughts?
+
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- arch/microblaze/kernel/cpu/cache.c  |   37 +---------
- arch/microblaze/kernel/setup.c      |    4 +-
- arch/microblaze/mm/dma-coherent.c   |  122
-+++++++++++++++++++++++++++++++++++
- include/asm-microblaze/cacheflush.h |   71 +++++++++------------
- 4 files changed, 158 insertions(+), 76 deletions(-)
- create mode 100644 arch/microblaze/mm/dma-coherent.c
 
-diff --git a/arch/microblaze/kernel/cpu/cache.c
-b/arch/microblaze/kernel/cpu/cache.c
-index d6a1eab..1247b9e 100644
---- a/arch/microblaze/kernel/cpu/cache.c
-+++ b/arch/microblaze/kernel/cpu/cache.c
-@@ -129,7 +129,7 @@ void _invalidate_dcache(unsigned int addr)
- 				: "r" (addr));
- }
+ arch/Kconfig |    2 -
+ kernel/smp.c |   87 +++++++++++------------------------------------------------
+ 2 files changed, 18 insertions(+), 71 deletions(-)
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index a5a0184..5ae9360 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -38,4 +38,4 @@ config HAVE_KRETPROBES
+ 	def_bool n
  
--void __flush_icache_all(void)
-+void __invalidate_icache_all(void)
+ config USE_GENERIC_SMP_HELPERS
+-	def_bool n
++	def_bool y
+diff --git a/kernel/smp.c b/kernel/smp.c
+index 36d3eca..ef6de3d 100644
+--- a/kernel/smp.c
++++ b/kernel/smp.c
+@@ -17,7 +17,6 @@ __cacheline_aligned_in_smp DEFINE_SPINLOCK(call_function_lock);
+ enum {
+ 	CSD_FLAG_WAIT		= 0x01,
+ 	CSD_FLAG_ALLOC		= 0x02,
+-	CSD_FLAG_FALLBACK	= 0x04,
+ };
+ 
+ struct call_function_data {
+@@ -33,9 +32,6 @@ struct call_single_queue {
+ 	spinlock_t lock;
+ };
+ 
+-static DEFINE_PER_CPU(struct call_function_data, cfd_fallback);
+-static DEFINE_PER_CPU(unsigned long, cfd_fallback_used);
+-
+ void __cpuinit init_call_single_data(void)
  {
- 	unsigned int i;
- 	unsigned flags;
-@@ -149,7 +149,7 @@ void __flush_icache_all(void)
- 	}
+ 	int i;
+@@ -84,48 +80,13 @@ static void generic_exec_single(int cpu, struct call_single_data *data)
+ 		csd_flag_wait(data);
  }
  
--void __flush_icache_range(unsigned long start, unsigned long end)
-+void __invalidate_icache_range(unsigned long start, unsigned long end)
+-/*
+- * We need to have a global per-cpu fallback of call_function_data, so
+- * we can safely proceed with smp_call_function() if dynamic allocation
+- * fails and we cannot fall back to on-stack allocation (if wait == 0).
+- */
+-static noinline void acquire_cpu_fallback(int cpu)
+-{
+-	while (test_and_set_bit_lock(0, &per_cpu(cfd_fallback_used, cpu)))
+-		cpu_relax();
+-}
+-
+-static noinline void free_cpu_fallback(struct call_single_data *csd)
+-{
+-	struct call_function_data *data;
+-	int cpu;
+-
+-	data = container_of(csd, struct call_function_data, csd);
+-
+-	/*
+-	 * We could drop this loop by embedding a cpu variable in
+-	 * csd, but this should happen so extremely rarely (if ever)
+-	 * that this seems like a better idea
+-	 */
+-	for_each_possible_cpu(cpu) {
+-		if (&per_cpu(cfd_fallback, cpu) != data)
+-			continue;
+-
+-		clear_bit_unlock(0, &per_cpu(cfd_fallback_used, cpu));
+-		break;
+-	}
+-}
+-
+ static void rcu_free_call_data(struct rcu_head *head)
  {
- 	unsigned int i;
- 	unsigned flags;
-@@ -177,24 +177,7 @@ void __flush_icache_range(unsigned long start,
-unsigned long end)
- 	}
+ 	struct call_function_data *data;
+ 
+ 	data = container_of(head, struct call_function_data, rcu_head);
+ 
+-	if (data->csd.flags & CSD_FLAG_ALLOC)
+-		kfree(data);
+-	else
+-		free_cpu_fallback(&data->csd);
++	kfree(data);
  }
  
--void __flush_icache_page(struct vm_area_struct *vma, struct page *page)
--{
--	__flush_icache_all();
--}
--
--void __flush_icache_user_range(struct vm_area_struct *vma,
--				struct page *page, unsigned long adr,
--				int len)
--{
--	__flush_icache_all();
--}
--
--void __flush_cache_sigtramp(unsigned long addr)
--{
--	__flush_icache_range(addr, addr + 8);
--}
--
--void __flush_dcache_all(void)
-+void __invalidate_dcache_all(void)
- {
- 	unsigned int i;
- 	unsigned flags;
-@@ -216,7 +199,7 @@ void __flush_dcache_all(void)
- 	}
- }
- 
--void __flush_dcache_range(unsigned long start, unsigned long end)
-+void __invalidate_dcache_range(unsigned long start, unsigned long end)
- {
- 	unsigned int i;
- 	unsigned flags;
-@@ -242,15 +225,3 @@ void __flush_dcache_range(unsigned long start,
-unsigned long end)
- 		local_irq_restore(flags);
- 	}
- }
--
--void __flush_dcache_page(struct vm_area_struct *vma, struct page *page)
--{
--	__flush_dcache_all();
--}
--
--void __flush_dcache_user_range(struct vm_area_struct *vma,
--				struct page *page, unsigned long adr,
--				int len)
--{
--	__flush_dcache_all();
--}
-diff --git a/arch/microblaze/kernel/setup.c
-b/arch/microblaze/kernel/setup.c
-index 43d53d9..241fb21 100644
---- a/arch/microblaze/kernel/setup.c
-+++ b/arch/microblaze/kernel/setup.c
-@@ -51,10 +51,10 @@ void __init setup_arch(char **cmdline_p)
- 	/* irq_early_init(); */
- 	setup_cpuinfo();
- 
--	__flush_icache_all();
-+	__invalidate_icache_all();
- 	__enable_icache();
- 
--	__flush_dcache_all();
-+	__invalidate_icache_all();
- 	__enable_dcache();
- 
- 	panic_timeout = 120;
-diff --git a/arch/microblaze/mm/dma-coherent.c
-b/arch/microblaze/mm/dma-coherent.c
-new file mode 100644
-index 0000000..308654f
---- /dev/null
-+++ b/arch/microblaze/mm/dma-coherent.c
-@@ -0,0 +1,122 @@
-+/*
-+ *  Microblaze support for cache consistent memory.
-+ *
-+ *  Copyright (C) 2007 Xilinx, Inc.
-+ *
-+ *  Based on arch/microblaze/mm/consistent.c
-+ *  Copyright (C) 2005 John Williams <jwilliams@itee.uq.edu.au>
-+ *  Based on arch/avr32/mm/dma-coherent.c
-+ *  Copyright (C) 2004-2006 Atmel Corporation
-+ *
-+ * Consistent memory allocators.  Used for DMA devices that want to
-+ * share memory with the processor core.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/dma-mapping.h>
-+
-+#include <asm/cacheflush.h>
-+
-+void dma_cache_sync(struct device *dev, void *vaddr, size_t size, int
-direction)
-+{
-+	switch (direction) {
-+	case DMA_FROM_DEVICE:		/* invalidate only */
-+		invalidate_dcache_range(vaddr, vaddr + size);
-+		break;
-+	case DMA_TO_DEVICE:		/* writeback only */
-+		flush_dcache_range(vaddr, vaddr + size);
-+		break;
-+	case DMA_BIDIRECTIONAL:		/* writeback and invalidate */
-+		invalidate_dcache_range(vaddr, vaddr + size);
-+		flush_dcache_range(vaddr, vaddr + size);
-+		break;
-+	default:
-+		BUG();
-+	}
-+}
-+EXPORT_SYMBOL(dma_cache_sync);
-+
-+static struct page *__dma_alloc(struct device *dev, size_t size,
-+				dma_addr_t *handle, gfp_t gfp)
-+{
-+	struct page *page, *free, *end;
-+	int order;
-+
-+	if (in_interrupt())
-+		BUG();
-+
-+	size = PAGE_ALIGN(size);
-+	order = get_order(size);
-+
-+	page = alloc_pages(gfp, order);
-+	if (!page)
-+		return NULL;
-+
-+	split_page(page, order);
-+
-+	/*
-+	 * When accessing physical memory with valid cache data, we
-+	 * get a cache hit even if the virtual memory region is marked
-+	 * as uncached.
-+	 *
-+	 * Since the memory is newly allocated, there is no point in
-+	 * doing a writeback. If the previous owner cares, he should
-+	 * have flushed the cache before releasing the memory.
-+	 */
-+	invalidate_dcache_range(phys_to_virt(page_to_phys(page)), size);
-+
-+	*handle = page_to_bus(page);
-+	free = page + (size >> PAGE_SHIFT);
-+	end = page + (1 << order);
-+
-+	/*
-+	 * Free any unused pages
-+	 */
-+	while (free < end) {
-+		__free_page(free);
-+		free++;
-+	}
-+
-+	return page;
-+}
-+
-+static void __dma_free(struct device *dev, size_t size,
-+		       struct page *page, dma_addr_t handle)
-+{
-+	struct page *end = page + (PAGE_ALIGN(size) >> PAGE_SHIFT);
-+
-+	while (page < end)
-+		__free_page(page++);
-+}
-+
-+void *dma_alloc_coherent(struct device *dev, size_t size,
-+			 dma_addr_t *handle, gfp_t gfp)
-+{
-+	struct page *page;
-+	void *ret = NULL;
-+
-+	page = __dma_alloc(dev, size, handle, gfp);
-+	if (page) {
-+		ret = (void *)page_to_phys(page);
-+	}
-+
-+	return ret;
-+}
-+EXPORT_SYMBOL(dma_alloc_coherent);
-+
-+void dma_free_coherent(struct device *dev, size_t size,
-+		       void *cpu_addr, dma_addr_t handle)
-+{
-+	void *addr;
-+	struct page *page;
-+
-+	pr_debug("dma_free_coherent addr %p (phys %08lx) size %u\n",
-+		 cpu_addr, (unsigned long)handle, (unsigned)size);
-+	BUG_ON(!virt_addr_valid(addr));
-+	page = virt_to_page(addr);
-+	__dma_free(dev, size, page, handle);
-+}
-+EXPORT_SYMBOL(dma_free_coherent);
-diff --git a/include/asm-microblaze/cacheflush.h
-b/include/asm-microblaze/cacheflush.h
-index ba7339d..782f01b 100644
---- a/include/asm-microblaze/cacheflush.h
-+++ b/include/asm-microblaze/cacheflush.h
-@@ -1,6 +1,7 @@
  /*
-  * include/asm-microblaze/cacheflush.h
-  *
-+ * Copyright (C) 2008 Xilinx, Inc.
-  * Copyright (C) 2007 PetaLogix
-  * Copyright (C) 2007 John Williams <john.williams@petalogix.com>
-  * based on v850 version which was
-@@ -15,58 +16,46 @@
+@@ -222,8 +183,6 @@ void generic_smp_call_function_single_interrupt(void)
+ 				data->flags &= ~CSD_FLAG_WAIT;
+ 			} else if (data_flags & CSD_FLAG_ALLOC)
+ 				kfree(data);
+-			else if (data_flags & CSD_FLAG_FALLBACK)
+-				free_cpu_fallback(data);
+ 		}
+ 		/*
+ 		 * See comment on outer loop
+@@ -244,35 +203,29 @@ void generic_smp_call_function_single_interrupt(void)
+ int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
+ 			     int retry, int wait)
+ {
++	struct call_single_data d;
+ 	unsigned long flags;
+ 	/* prevent preemption and reschedule on another processor */
+ 	int me = get_cpu();
  
- #ifndef _ASM_MICROBLAZE_CACHEFLUSH_H
- #define _ASM_MICROBLAZE_CACHEFLUSH_H
-+#include <linux/kernel.h>	/* For min/max macros */
-+#include <linux/mm.h>	/* For min/max macros */
-+#include <asm/setup.h>
-+#include <asm/page.h>
-+#include <asm/cache.h>
+ 	/* Can deadlock when called with interrupts disabled */
+-	WARN_ON(wait && irqs_disabled());
++	WARN_ON(irqs_disabled());
  
--/* Somebody depends on this; sigh... */
--#include <linux/mm.h>
+ 	if (cpu == me) {
+ 		local_irq_save(flags);
+ 		func(info);
+ 		local_irq_restore(flags);
+ 	} else {
+-		struct call_single_data *data;
++		struct call_single_data *data = NULL;
+ 
+-		if (wait) {
+-			struct call_single_data d;
 -
--#define flush_cache_all()			__flush_cache_all()
--#define flush_cache_mm(mm)			do { } while (0)
--#define flush_cache_range(vma, start, end)	__flush_cache_all()
--#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
+-			data = &d;
+-			data->flags = CSD_FLAG_WAIT;
+-		} else {
++		if (!wait) {
+ 			data = kmalloc(sizeof(*data), GFP_ATOMIC);
+ 			if (data)
+ 				data->flags = CSD_FLAG_ALLOC;
+-			else {
+-				acquire_cpu_fallback(me);
 -
--#define flush_dcache_range(start, end)	__flush_dcache_range(start, end)
--#define flush_dcache_page(page)		do { } while (0)
--#define flush_dcache_mmap_lock(mapping)		do { } while (0)
--#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
-+/*
-+ * Cache handling functions.
-+ * Microblaze has a write-through data cache, and no icache snooping of
-dcache.
-+ */
-+#define flush_cache_mm(mm)			do { } while(0)
-+#define flush_cache_range(mm, start, end)	invalidate_cache_all()
-+#define flush_cache_page(vma, vmaddr)		do { } while(0)
+-				data = &per_cpu(cfd_fallback, me).csd;
+-				data->flags = CSD_FLAG_FALLBACK;
+-			}
++		}
++		if (!data) {
++			data = &d;
++			data->flags = CSD_FLAG_WAIT;
+ 		}
  
--#define flush_icache_range(start, len)	__flush_icache_range(start, len)
--#define flush_icache_page(vma, pg)		do { } while (0)
--#define flush_icache_user_range(start, len)	do { } while (0)
-+#define flush_dcache_page(page)			do { } while(0)
-+#define flush_dcache_range(start, end)		do { } while(0)
-+#define flush_dcache_mmap_lock(mapping)		do { } while(0)
-+#define flush_dcache_mmap_unlock(mapping)	do { } while(0)
+ 		data->func = func;
+@@ -320,13 +273,14 @@ void __smp_call_function_single(int cpu, struct call_single_data *data)
+ int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
+ 			   int wait)
+ {
+-	struct call_function_data *data;
++	struct call_function_data d;
++	struct call_function_data *data = NULL;
+ 	cpumask_t allbutself;
+ 	unsigned long flags;
+ 	int cpu, num_cpus;
  
--#define flush_cache_vmap(start, end)		do { } while (0)
--#define flush_cache_vunmap(start, end)		do { } while (0)
-+#define flush_icache_page(vma,pg)
-__invalidate_icache_all()
-+#define flush_icache_range(start, end)
-__invalidate_icache_range(start, end)
+ 	/* Can deadlock when called with interrupts disabled */
+-	WARN_ON(wait && irqs_disabled());
++	WARN_ON(irqs_disabled());
  
--struct page;
--struct mm_struct;
--struct vm_area_struct;
+ 	cpu = smp_processor_id();
+ 	allbutself = cpu_online_map;
+@@ -345,21 +299,14 @@ int smp_call_function_mask(cpumask_t mask, void (*func)(void *), void *info,
+ 		return smp_call_function_single(cpu, func, info, 0, wait);
+ 	}
  
- /* see arch/microblaze/kernel/cache.c */
--extern void __flush_icache_all(void);
--extern void __flush_icache_range(unsigned long start, unsigned long
-end);
--extern void __flush_icache_page(struct vm_area_struct *vma, struct page
-*page);
--extern void __flush_icache_user_range(struct vm_area_struct *vma,
--				struct page *page,
--				unsigned long adr, int len);
--extern void __flush_cache_sigtramp(unsigned long addr);
+-	if (wait) {
+-		struct call_function_data d;
 -
--extern void __flush_dcache_all(void);
--extern void __flush_dcache_range(unsigned long start, unsigned long
-end);
--extern void __flush_dcache_page(struct vm_area_struct *vma, struct page
-*page);
--extern void __flush_dcache_user_range(struct vm_area_struct *vma,
--				struct page *page,
--				unsigned long adr, int len);
-+void __invalidate_icache_all(void);
-+void __invalidate_icache_range(unsigned long start, unsigned long end);
-+void __invalidate_dcache_all(void);
-+void __invalidate_dcache_range(unsigned long start, unsigned long end);
+-		data = &d;
+-		data->csd.flags = CSD_FLAG_WAIT;
+-	} else {
++	if (!wait) {
+ 		data = kmalloc(sizeof(*data), GFP_ATOMIC);
+ 		if (data)
+ 			data->csd.flags = CSD_FLAG_ALLOC;
+-		else {
+-			acquire_cpu_fallback(cpu);
+-
+-			data = &per_cpu(cfd_fallback, cpu);
+-			data->csd.flags = CSD_FLAG_FALLBACK;
+-		}
++	}
++	if (!data) {
++		data = &d;
++		data->csd.flags = CSD_FLAG_WAIT;
+ 	}
  
--extern inline void __flush_cache_all(void)
--{
--	__flush_icache_all();
--	__flush_dcache_all();
--}
-+#define invalidate_cache_all()
-__invalidate_icache_all(); __invalidate_dcache_all()
-+#define invalidate_dcache()
-__invalidate_dcache_all()
-+#define invalidate_icache()
-__invalidate_icache_all()
-+#define invalidate_dcache_range(start, end)
-__invalidate_dcache_range(start,end)
-+#define invalidate_icache_range(start, end)
-__invalidate_icache_range(start,end)
- 
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
- do { memcpy(dst, src, len); \
--	flush_icache_user_range(vma, page, vaddr, len); \
-+	flush_icache_range ((unsigned) (dst), (unsigned) (dst) + (len));
-\
- } while (0)
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	memcpy((dst), (src), (len))
- 
- #endif /* _ASM_MICROBLAZE_CACHEFLUSH_H */
--- 
-1.5.3.4
+ 	spin_lock_init(&data->lock);
