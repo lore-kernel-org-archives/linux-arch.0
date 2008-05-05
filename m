@@ -1,138 +1,612 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
-Date: Mon, 5 May 2008 06:15:33 +0200
-Message-ID: <20080505041533.GA17640@wotan.suse.de>
-References: <20080430113456.GY12774@kernel.dk> <20080430121712.GR11126@linux.vnet.ibm.com> <20080430123717.GC12774@kernel.dk> <20080502020241.GA26088@linux.vnet.ibm.com> <20080502021233.GC11844@wotan.suse.de> <20080502122955.GB15522@linux.vnet.ibm.com> <20080502124205.GA23680@linux.vnet.ibm.com> <1209733169.13978.157.camel@twins> <20080503054930.GA19664@wotan.suse.de> <20080503181148.GA16159@linux.vnet.ibm.com>
+From: Michal Simek <monstr@seznam.cz>
+Subject: Re: microblaze syscall list
+Date: Mon, 05 May 2008 08:18:50 +0200
+Message-ID: <481EA6CA.6030800@seznam.cz>
+References: <87a5b0800804220513t75690ceao938a288596b5ad0c@mail.gmail.com> <200805032357.41043.arnd@arndb.de> <481D7DF7.3000909@seznam.cz> <200805042137.17383.arnd@arndb.de>
+Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1752613AbYEEEPx@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20080503181148.GA16159@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:51482 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753062AbYEEGRg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 02:17:36 -0400
+In-Reply-To: <200805042137.17383.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: microblaze-uclinux@itee.uq.edu.au, Matthew Wilcox <matthew@wil.cx>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, John Williams <john.williams@petalogix.com>, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>
 
-On Sat, May 03, 2008 at 11:11:48AM -0700, Paul E. McKenney wrote:
-> On Sat, May 03, 2008 at 07:49:30AM +0200, Nick Piggin wrote:
-> > > This is perfectly deadlock free when wait=0 and it just returns -ENOMEM
-> > > on allocation failure.
-> > 
-> > Yeah, I'm just talking about the wait=0 case. (btw. I'd rather the core
-> > API takes some data rather than allocates some itself, eg because you
-> > might want to have it on the stack).
+Hi Arnd,
+
+>>> mremap is a duplicate, you only need it once ;-)
+>> There are mixed mmu and nommu version - brk, munmap, mrepap are in both version
+>> but they take from different files.
 > 
-> But taking data on the stack is safe only in the wait=1 case, right?
+> That doesn't matter as the kernel is only ever built with one of the
+> two files. My point was just that you should have only one entry
+> in the syscall table if you generate it from your list.
 
-Sure, but the API would be general enough to handle it.
+Yes I know. That's what I meant.
 
- 
-> > For the wait=1 case, something very clever such as processing pending
-> > requests in a polling loop might be cool... however I'd rather not add
-> > such complexity until someone needs it (you could stick a comment in
-> > there outlining your algorithm). But I'd just rather not have peole rely
-> > on it yet.
-> 
-> In that case we may need to go back to the global lock with only one
-> request being processed at a time.  Otherwise, if two wait=1 requests
-> happen at the same time, they deadlock waiting for each other to process
-> their request.  (See Keith Owens: http://lkml.org/lkml/2008/5/2/183).
-> 
-> In other words, if you want to allow parallel calls to
-> smp_call_function(), the simplest way to do it seems to be to do the
-> polling loop.  The other ways I have come up with thus far are uglier
-> and less effective (see http://lkml.org/lkml/2008/4/30/164).
-> 
-> Now, what I -could- do would be to prohibit the wait=1 case from
-> irq-disable state from polling -- that would make sense, as the caller
-> probably had a reason to mask irqs, and might not take kindly to having
-> them faked behind the caller's back.  ;-)
+Next update table.
 
-I think we're talking past each other a little bit.
-
-There is no irq-disabled calls as yet, therefore I don't think we should
-add a lot of complex code just to _allow_ for it; at least, not until a
-really compelling user comes up.
-
-The main thing is to parallelise the code. The fact that we can trivially 
-support irq-disabled calls for nowait case (if the caller supplies the
-data or can handle failure) is just a bonus.
+Michal
 
 
-> > > It it doesn't return -ENOMEM I know its been queued and will be
-> > > processed at some point, if it does fail, I can deal with it in another
-> > > way.
-> > 
-> > At least with IPIs I think we can guarantee they will be processed on
-> > the target after we queue them.
-> 
-> OK, so let me make sure I understand what is needed.  One example might be
-> some code called from scheduler_tick(), which runs with irqs disabled.
-> Without the ability to call smp_call_function() directly, you have
-> to fire off a work queue or something.  Now, if smp_call_function()
-> can hand you an -ENOMEM or (maybe) an -EBUSY, then you still have to
-> fire off the work queue, but you probably only have to do it rarely,
-> minimizing the performance impact.
-> 
-> Another possibility is when it is -nice- to call smp_call_function(),
-> but can just try again on the next scheduler_tick() -- ignoring dynticks
-> idle for the moment.  In this case, you might still test the error return
-> to set a flag that you will check on the next scheduler_tick() call.
-> 
-> Is this where you guys are coming from?
-> 
-> And you are all OK with smp_call_function() called with irqs enabled
-> never being able to fail, right?  (Speaking of spaghetti code, why
-> foist unnecessary failure checks on the caller...)
+/* fs/aio.c */
+ok	.long sys_io_setup
+ok	.long sys_io_destroy
+ok	.long sys_io_submit
+ok	.long sys_io_cancel
+ok	.long sys_io_getevents
 
-Having the fallback is fine, yes. I'd say it shouldn't often get called.
+/* fs/xattr.c */
+ok	.long sys_setxattr
+ok	.long sys_lsetxattr
+ok	.long sys_fsetxattr
+ok	.long sys_getxattr
+ok	.long sys_lgetxattr
+ok	.long sys_fgetxattr
+ok	.long sys_listxattr
+ok	.long sys_llistxattr
+ok	.long sys_flistxattr
+ok	.long sys_removexattrs
+ok	.long sys_lremovexattr
+ok	.long sys_fremovexattr
 
- 
-> > > I know I'd like to do that and I suspect Nick has a few use cases up his
-> > > sleeve as well.
-> > 
-> > It would be handy. The "quickly kick something off on another CPU" is
-> > pretty nice in mm/ when you have per-cpu queues or caches that might
-> > want to be flushed.
-> 
-> OK, I think I might be seeing what you guys are getting at.  Here is
-> what I believe you guys need:
-> 
-> 1.	No deadlocks, ever, not even theoretical "low probability"
-> 	deadlocks.
+/* fs/buffer.c */
+	.long sys_bdflush /* obsolete */
 
-Of course ;)
+/* fs/compat.c */
+	.long compat_sys_utime
+	.long compat_sys_utimensat
+	.long compat_sys_futimesat
+	.long compat_sys_utimes
+	.long compat_sys_newstat
+	.long compat_sys_newlstat
+	.long compat_sys_newfstatat
+	.long compat_sys_newfstat
+	.long compat_sys_statfs
+	.long compat_sys_fstatfs
+	.long compat_sys_statfs64
+	.long compat_sys_fstatfs64
+	.long compat_sys_fcntl64
+	.long compat_sys_fcntl
+	.long compat_sys_mount
+	.long compat_sys_old_readdir
+	.long compat_sys_getdents
+	.long compat_sys_getdents64
+	.long compat_sys_select
+	.long compat_sys_pselect7
+	.long compat_sys_pselect6
+	.long compat_sys_ppoll
+	.long compat_sys_nfsservctl
+	.long compat_sys_nfsservctl
+	.long compat_sys_epoll_pwait
+	.long compat_sys_signalfd
+	.long compat_sys_timerfd_settime
+	.long compat_sys_timerfd_gettime
 
- 
-> 2.	No failure returns when called with irqs enabled.  On the other
-> 	hand, when irqs are disabled, failure is possible.  Though hopefully
-> 	unlikely.
+/* fs/compat_ioctl.c */
+	.long compat_sys_ioctl
 
-I think I'd like to keep existing smp_call_function that disallows
-irq-disabled calls and can't fail. Introduce a new one for irq-disabled
-case.
+/* fs/dcache.c */
+ok	.long sys_getcwd
 
-But sure, the existing smp_call_function implementation can't fail.
+/* fs/cookies.c */
+ok	.long sys_lookup_dcookie
+
+/* fs/eventfd.c */
+ok	.long sys_eventfd
+
+/* fs/eventpoll.c */
+ok	.long sys_epoll_create
+ok	.long sys_epoll_ctl
+	.long sys_epoll_wait /* obsolete -> sys_epoll_pwait */
+ok	.long sys_epoll_pwait
+
+/* fs/exec.c */
+	.long sys_uselib
+
+/* fs/fcntl.c */
+ok	.long sys_dup
+ok	.long sys_dup2
+ok	.long sys_fcntl
+	.long sys_fcntl64
+
+/* fs/filesystems.c */
+	.long sys_sysfs /* obsolete */
 
 
-> 3.	Parallel execution of multiple smp_call_function() requests
-> 	is required, even when called with irqs disabled.
+/* fs/inotify_user.c */
+ok	.long sys_inotify_init
+ok	.long sys_inotify_add_watch
+ok	.long sys_inotify_rm_watch
 
-I think so. At least for the call_function_single case.
+/* fs/ioctl.c */
+ok	.long sys_ioctl
+
+/* fs/ioprio.c */
+ok	.long sys_ioprio_set
+ok	.long sys_ioprio_get
+
+/* fs/locks.c */
+ok	.long sys_flock
+
+/* fs/namei.c */
+ok	.long sys_mknodat
+	.long sys_mknod /* obsolete -> mknodat */
+ok	.long sys_mkdirat
+	.long sys_mkdir /* obsolete -> mkdirat */
+	.long sys_rmdir /* obsolete -> unlinkat */
+ok	.long sys_unlinkat
+	.long sys_unlink /* obsolete -> unlinkat */
+ok	.long sys_symlinkat
+	.long sys_symlink /* obsolete -> sys_symlinkat */
+ok	.long sys_linkat
+	.long sys_link /* obsolete -> linkat */
+ok	.long sys_renameat
+	.long sys_rename /* obsolete -> renameat */
+
+/* fs/namespace.c */
+ok	.long sys_umount
+	.long sys_oldumount /*_ARCH_WANT_SYS_OLDUMOUNT obsolate -> sys_umount */
+ok	.long sys_mount
+ok	.long sys_pivot_root
 
 
-> 4.	The wait=1 case with irqs disabled is prohibited.
-> 
-> 5.	If you call smp_call_function() with irqs disabled, then you
-> 	are guaranteed that no other CPU's smp_call_function() handler
-> 	will be invoked while smp_call_function() is executing.
-> 
-> Anything I am missing?
+/* fs/nfsctl.c */
+ok	.long sys_nfsservctl
 
-For the last cases, I actually think your polling loop is pretty cool ;)
-So I don't completely object to it, I just don't think we should add it
-in until something wants it...
+/* fs/open.c */
+	.long sys_statfs /* obsolete -> statfs64 */
+ok	.long sys_statfs64
+	.long sys_fstatfs /* obsolete -> fstatfs64 */
+ok	.long sys_fstatfs64
+	.long sys_truncate /* obsolete -> truncate64 */
+	.long sys_ftruncate /* obsolete -> ftruncate64 */
+ok	.long sys_truncate64 /* __ARCH_WANT_SYS_TRUNCATE */
+ok	.long sys_ftruncate64 /* __ARCH_WANT_SYS_TRUNCATE */
+ok	.long sys_fallocate
+ok	.long sys_faccessat
+	.long sys_access /* obsolete -> faccessat */
+ok	.long sys_chdir
+ok	.long sys_fchdir
+ok	.long sys_chroot
+ok	.long sys_fchmod
+ok	.long sys_fchmodat
+	.long sys_chmod /* obsolete -> fchmodat */
+	.long sys_chown /* obsolete -> fchownat */
+ok	.long sys_fchownat
+ok	.long sys_lchown
+ok	.long sys_fchown
+	.long sys_open /* obsolete -> openat */
+ok	.long sys_openat
+	.long sys_creat /* obsolete -> openat */
+ok	.long sys_close
+ok	.long sys_vhangup
 
-Don't let me dictate the requirements though, the only real one I had
-was to make call_function_single scalable and faster, and call_function
-be as optimal as possible.
+/* fs/pipe.c */
+ok	.long sys_pipe
+
+/* fs/quota.c */
+ok	.long sys_quotactl
+
+/* fs/readdir.c */
+	.long sys_getdents /* obsolete -> sys_getdents64 */
+ok	.long sys_getdents64
+
+/* fs/read_write.c */
+ok	.long sys_lseek /* only lseek or llseek */
+	.long sys_llseek /* _ARCH_WANT_SYS_LLSEEK */
+ok	.long sys_read
+ok	.long sys_readv
+ok	.long sys_write
+ok	.long sys_writev
+ok	.long sys_pread64
+ok	.long sys_pwrite64
+ok	.long sys_sendfile
+	.long sys_sendfile64
+
+
+/* fs/select.c */
+	.long sys_select /* obsolete -> sys_pselect6 */
+ok	.long sys_pselect7
+	.long sys_pselect6 /* obsolete -> sys_pselect7 */
+	.long sys_poll /* obsolete -> sys_ppoll */
+ok	.long sys_ppoll
+
+/* fs/signalfd.c */
+ok	.long sys_signalfd
+
+
+
+/* fs/splice.c */
+ok	.long sys_vmsplice
+ok	.long sys_splice
+ok	.long sys_tee
+
+/* fs/stat.c */
+	.long sys_stat /*_ARCH_WANT_OLD_STAT */
+	.long sys_lstat /* _ARCH_WANT_OLD_STAT */
+	.long sys_fstat /* _ARCH_WANT_OLD_STAT */
+ok	.long sys_newstat
+ok	.long sys_newlstat
+ok	.long sys_newfstatat /* _ARCH_WANT_SYS_NEWFSTATAT */
+ok	.long sys_newfstat
+ok	.long sys_readlinkat
+	.long sys_readlink /* obsolete -> sys_readlinkat */
+	.long sys_stat64 /* _ARCH_WANT_STAT64 */
+	.long sys_lstat64 /* _ARCH_WANT_STAT64 */
+	.long sys_fstat64 /* _ARCH_WANT_STAT64 */
+	.long sys_fstatat64 /* _ARCH_WANT_STAT64 */
+
+/* fs/super.c */
+	.long sys_ustat /* obsolete -> statfs64 */
+
+/* fs/sync.c */
+ok	.long sys_sync
+ok	.long sys_fsync
+ok	.long sys_fdatasync
+ok	.long sys_sync_file_range
+	/* .long sys_sync_file_range2 */
+
+
+/* fs/timerfd.c */
+ok	.long sys_timerfd_create
+ok	.long sys_timerfd_settime
+ok	.long sys_timerfd_gettime
+
+/* fs/utimes.c */
+	.long sys_utime	/* _ARCH_WANT_SYS_TIME */ /* obsolete -> sys_utimesat */
+ok	.long sys_utimensat
+	.long sys_futimesat /* obsolete -> sys_utimesat */
+	.long sys_utimes /* obsolete -> sys_futimesat */
+
+/* kernel/acct.c */
+ok	.long sys_acct /* add it and then I can disable it */
+
+/* kernel/capability.c */
+ok	.long sys_capget
+ok	.long sys_capset
+
+/* kernel/compat.c */
+	.long compat_sys_nanosleep
+	.long compat_sys_getitimer
+	.long compat_sys_setitimer
+	.long compat_sys_times
+	.long compat_sys_sigpending
+	.long compat_sys_sigprocmask
+	.long compat_sys_setrlimit
+	.long compat_sys_old_getrlimit
+	.long compat_sys_getrlimit
+	.long compat_sys_getrusage
+	.long compat_sys_waitid
+	.long compat_sys_sched_setaffinity
+	.long compat_sys_sched_getaffinity
+	.long compat_sys_time	/* _ARCH_WANT_COMPAT_SYS_TIME */
+	.long compat_sys_stime	/* _ARCH_WANT_COMPAT_SYS_TIME */
+	.long compat_sys_rt_sigsuspend /* _ARCH_WANT_COMPAT_SYS_RT_SIGSUSPEND */
+	.long compat_sys_adjtimex
+	.long compat_sys_move_pages
+	.long compat_sys_migrate_pages
+
+/* kernel/exec_domain.c */
+ok	.long sys_personality
+
+/* kernel/exit.c */
+ok	.long sys_exit
+ok	.long sys_exit_group
+ok	.long sys_waitid
+	.long sys_wait4	/* obsolete -> waitid */
+	.long sys_waitpid /*_ARCH_WANT_SYS_WAITPID */ /* obsolete -> waitid */
+
+/* kernel/fork.c */
+ok	.long sys_set_tid_address
+ok	.long sys_unshare
+
+/* kernel/futex.c */
+ok	.long sys_futex
+ok	.long sys_set_robust_list
+ok	.long sys_get_robust_list
+
+/* kernel/futex_compat.c */
+	.long compat_sys_futex
+	.long compat_sys_set_robust_list
+	.long compat_sys_get_robust_list
+
+/* kernel/hrtimer.c */
+ok	.long sys_nanosleep
+
+/* kernel/itimer.c */
+ok	.long sys_getitimer
+ok	.long sys_setitimer
+
+
+/* kernel/kexec.c */
+ok	.long sys_kexec_load
+	.long compat_sys_kexec_load
+
+/* kernel/module.c */
+ok	.long sys_init_module
+ok	.long sys_delete_module
+
+
+/* kernel/posix-timers.c */
+ok	.long sys_timer_create
+ok	.long sys_timer_gettime
+ok	.long sys_timer_getoverrun
+ok	.long sys_timer_settime
+ok	.long sys_timer_delete
+ok	.long sys_clock_settime
+ok	.long sys_clock_gettime
+ok	.long sys_clock_getres
+ok	.long sys_clock_nanosleep
+
+/* kernel/printk.c */
+ok	.long sys_syslog
+
+/* kernel/ptrace.c */
+ok	.long sys_ptrace
+	.long compat_sys_ptrace /* _ARCH_WANT_COMPAT_SYS_PTRACE */
+
+/* kernel/sched.c */
+	.long sys_nice /* __ARCH_WANT_SYS_NICE */ /* can be implemented by
+sys_setpriority */
+ok	.long sys_sched_setparam
+ok	.long sys_sched_setscheduler
+ok	.long sys_sched_getscheduler
+ok	.long sys_sched_getparam
+ok	.long sys_sched_setaffinity
+ok	.long sys_sched_getaffinity
+ok	.long sys_sched_yield
+ok	.long sys_sched_get_priority_max
+ok	.long sys_sched_get_priority_min
+ok	.long sys_sched_rr_get_interval
+
+/* kernel/signal.c */
+ok	.long sys_restart_syscall
+ok	.long sys_kill
+ok	.long sys_tkill
+ok	.long sys_tgkill
+ok	.long sys_rt_sigsuspend /* _ARCH_WANT_SYS_RT_SIGSUSPEND */
+ok	.long sys_rt_sigaction /* _ARCH_WANT_SYS_RT_SIGACTION */
+ok	.long sys_rt_sigprocmask /* _ARCH_WANT_SYS_SIGPROCMASK */
+ok	.long sys_rt_sigpending	/* _ARCH_WANT_SYS_SIGPENDING */
+ok	.long sys_rt_sigtimedwait
+ok	.long sys_rt_sigqueueinfo
+	.long sys_sigprocmask /* obsolete -> sys_rt_sigprocmask */
+	.long sys_sigpending /* obsolete -> sys_rt_sigpending */
+	.long sys_signal	/* __ARCH_WANT_SYS_SIGNAL */ /* obsolete -> sys_rt_sigaction */
+	.long sys_pause		/* __ARCH_WANT_SYS_PAUSE */ /* obsolete -> sys_rt_sigtimedwait */
+	.long sys_sgetmask /* __ARCH_WANT_SYS_SGETMASK */ /* obsolete ->
+sys_rt_sigprocmask */
+	.long sys_ssetmask /* __ARCH_WANT_SYS_SGETMASK */ /* obsolete ->
+sys_rt_sigprocmask */
+
+
+/* kernel/sys.c */
+ok	.long sys_setpriority
+ok	.long sys_getpriority
+ok	.long sys_reboot
+ok	.long sys_setregid
+ok	.long sys_setgid
+ok	.long sys_setreuid
+ok	.long sys_setuid
+ok	.long sys_setresuid
+ok	.long sys_getresuid
+ok	.long sys_setresgid
+ok	.long sys_getresgid
+ok	.long sys_setfsuid
+ok	.long sys_setfsgid
+ok	.long sys_times
+ok	.long sys_setpgid
+ok	.long sys_getpgid
+	.long sys_getpgrp /* __ARCH_WANT_SYS_GETPGRP */ /* obsolete -> sys_getpgid */
+ok	.long sys_getsid
+ok	.long sys_setsid
+ok	.long sys_getgroups
+ok	.long sys_setgroups
+ok	.long sys_newuname
+ok	.long sys_sethostname
+	.long sys_gethostname /* _ARCH_WANT_SYS_GETHOSTNAME */
+ok	.long sys_setdomainname
+ok	.long sys_getrlimit
+	.long sys_old_getrlimit /* _ARCH_WANT_SYS_OLD_GETRLIMIT */
+ok	.long sys_setrlimit
+ok	.long sys_getrusage
+ok	.long sys_umask
+ok	.long sys_prctl
+ok	.long sys_getcpu
+
+
+
+/* kernel/sysctl.c */
+	.long sys_sysctl /* deprecated */
+
+/* kernel/sys_ni.c */
+	.long sys_ni_syscall /*   :-)   */
+
+
+/* kernel/time.c */
+	.long sys_time /* __ARCH_WANT_SYS_TIME */ /* obsolete -> sys_gettimeofday */
+	.long sys_stime /* __ARCH_WANT_SYS_TIME */ /* obsolete -> sys_settimeofday */
+ok	.long sys_gettimeofday
+ok	.long sys_settimeofday
+ok	.long sys_adjtimex
+
+	.
+/* kernel/timer.c */
+	.long sys_alarm /* __ARCH_WANT_SYS_ALARM */ /* obsolete -> sys_setitimer */
+ok	.long sys_getpid
+ok	.long sys_getppid
+ok	.long sys_getuid
+ok	.long sys_geteuid
+ok	.long sys_getgid
+ok	.long sys_getegid
+ok	.long sys_gettid
+ok	.long sys_sysinfo
+
+
+/* kernel/uid16.c */ /* all replace by full 32 bit version CONFIG_UID16 */
+	.long sys_chown16
+	.long sys_lchown16
+	.long sys_fchown16
+	.long sys_setregid16
+	.long sys_setgid16
+	.long sys_setreuid16
+	.long sys_setuid16
+	.long sys_setresuid16
+	.long sys_getresuid16
+	.long sys_setresgid16
+	.long sys_getresgid16
+	.long sys_setfsuid16
+	.long sys_setfsgid16
+	.long sys_getgroups16
+	.long sys_setgroups16
+	.long sys_getuid16
+	.long sys_geteuid16
+	.long sys_getgid16
+	.long sys_getegid16
+
+/* ipc/compat_mq.c */
+	.long compat_sys_mq_open
+	.long compat_sys_mq_timedsend
+	.long compat_sys_mq_timedreceive
+	.long compat_sys_mq_notify
+	.long compat_sys_mq_getsetattr
+
+/* ipc/mqueue.c */
+ok	.long sys_mq_open
+ok	.long sys_mq_unlink
+ok	.long sys_mq_timedsend
+ok	.long sys_mq_timedreceive
+ok	.long sys_mq_notify
+ok	.long sys_mq_getsetattr
+
+/* ipc/msg.c */
+ok	.long sys_msgget
+ok	.long sys_msgctl
+ok	.long sys_msgrcv
+ok	.long sys_msgsnd
+
+/* ipc/sem.c */
+ok	.long sys_semget
+ok	.long sys_semctl
+ok	.long sys_semtimedop
+ok	.long sys_semop
+
+/* ipc/shm.c */
+ok	.long sys_shmget
+ok	.long sys_shmctl
+ok	.long sys_shmat
+ok	.long sys_shmdt
+
+
+/* net/compat.c */
+	.long compat_sys_setsockopt
+	.long compat_sys_getsockopt
+	.long compat_sys_sendmsg
+	.long compat_sys_recvmsg
+	.long compat_sys_socketcall
+
+/* net/socket.c */
+ok	.long sys_socket
+ok	.long sys_socketpair
+ok	.long sys_bind
+ok	.long sys_listen
+ok	.long sys_accept
+ok	.long sys_connect
+ok	.long sys_getsockname
+ok	.long sys_getpeername
+ok	.long sys_sendto
+ok	.long sys_send
+ok	.long sys_recvfrom
+ok	.long sys_recv
+ok	.long sys_setsockopt
+ok	.long sys_getsockopt
+ok	.long sys_shutdown
+ok	.long sys_sendmsg
+ok	.long sys_recvmsg
+	.long sys_socketcall /* _ARCH_WANT_SYS_SOCKETCALL - deprecated */
+
+/* mm/fadvise.c */
+ok	.long sys_fadvise64_64
+	.long sys_fadvise64 /*_ARCH_WANT_SYS_FADVISE64 obsolete -> sys_fadvise64_64 */
+
+/* mm/filemap.c */
+ok	.long sys_readahead
+
+
+/* mm/fremap.c */
+mmu	.long sys_remap_file_pages
+
+/* mm/madvise.c */
+mmu	.long sys_madvise
+
+/* mm/mempolicy.c */
+mmu	.long sys_mbind
+mmu	.long sys_set_mempolicy
+mmu	.long sys_migrate_pages
+mmu	.long sys_get_mempolicy
+	.long compat_sys_get_mempolicy
+	.long compat_sys_set_mempolicy
+	.long compat_sys_mbind
+
+/* mm/migrate.c */
+mmu	.long sys_move_pages
+
+/* mm/mincore.c */
+mmu	.long sys_mincore
+
+/* mm/mlock.c */
+mmu	.long sys_mlock
+mmu	.long sys_munlock
+mmu	.long sys_mlockall
+mmu	.long sys_munlockall
+
+/* mm/mmap.c */
+mmu	.long sys_brk /* overlap for noMMU and MMU version */
+mmu	.long sys_munmap /* overlap for noMMU and MMU version */
+
+/* mm/mremap.c */
+mmu	.long sys_mremap /* overlap for noMMU and MMU version */
+
+/* mm/msync.c */
+	.long sys_msync
+
+/* mm/nommu.c */
+ok	.long sys_brk /* overlap for noMMU and MMU version */
+ok	.long sys_munmap /* overlap for noMMU and MMU version */
+ok	.long sys_mremap /* overlap for noMMU and MMU version */
+
+
+/* mm/swapfile.c */
+ok	.long sys_swapoff
+ok	.long sys_swapon
+
+
+/* security/keys/compat.c */
+	.long compat_sys_keyctl
+
+/* security/keys/keyctl.c */
+ok	.long sys_add_key
+ok	.long sys_request_key
+ok	.long sys_keyctl
+
+/* arch - microblaze specific */
+/* arch/microblaze/kernel/signal.c */
+	.long sys_sigreturn /* obsolete -> sys_rt_sigreturn */
+ok	.long sys_rt_sigreturn /*.long sys_rt_sigreturn_wrapper */
+	.long sys_sigaction /* obsolete -> rt_sigaction */
+	.long sys_sigsuspend /* obsolete -> rt_sigsuspend */
+
+/*arch/microblaze/kernel/sys_microblaze.c*/
+	.long sys_vfork		/* I don't need it if I have clone vfork_wrapper */
+ok	.long sys_clone		/* .long sys_clone_wrapper */
+ok	.long sys_execve	/* .long sys_execve_wrapper */
+ok	.long sys_mmap2
+	.long sys_mmap	/* obsolete -> sys_mmap2 */
+	.long sys_ipc /* obsolete -> replace by subcall */
