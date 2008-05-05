@@ -1,7 +1,8 @@
 From: John Williams <john.williams@petalogix.com>
-Subject: Re: [PATCH 24/56] microblaze_v2: time support
-Date: Mon, 05 May 2008 12:19:09 +1000
-Message-ID: <1209953949.5798.66.camel@localhost>
+Subject: Re: [PATCH 35/56] microblaze_v2: headers for executables format
+	FLAT, ELF
+Date: Mon, 05 May 2008 12:24:33 +1000
+Message-ID: <1209954273.5798.69.camel@localhost>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
 	 <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
 	 <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu>
@@ -27,34 +28,38 @@ References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
 	 <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>
 	 <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>
 	 <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
+	 <b41fcf3dd830f4ba82692a9bec2406ed0c290e7e.1209897266.git.monstr@monstr.eu>
+	 <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu>
+	 <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
+	 <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+	 <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+	 <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+	 <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
+	 <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
+	 <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
+	 <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
+	 <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from uki.us.mooball.net ([66.98.178.13]:49324 "EHLO
+Received: from uki.us.mooball.net ([66.98.178.13]:49506 "EHLO
 	uki.us.mooball.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753975AbYEECTu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 22:19:50 -0400
-In-Reply-To: <35e662a81eb86c7ffb2aaa6141ca38a07789f382.1209897266.git.monstr@monstr.eu>
+	with ESMTP id S1756789AbYEECZ1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 May 2008 22:25:27 -0400
+In-Reply-To: <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@seznam.cz
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
 
-> +static inline void udelay(unsigned long usec)
-> +{
-> +	unsigned long long tmp = usec;
-> +	unsigned long loops = (tmp * 4295 * HZ * loops_per_jiffy) >> 32;
-> +	__delay(loops);
-> +}
+> +++ b/include/asm-microblaze/elf.h
 
-Let's hope like hell the CPU has HW multipler and shifter for this
-one! :)
+> +#define EM_XILINX_MICROBLAZE 0xbaab
 
-> +++ b/include/asm-microblaze/timex.h
-> @@ -0,0 +1,20 @@
-> +
-> +#define CLOCK_TICK_RATE 1000 /* Timer input freq. */
+I'm pretty sure this is also #defined somewhere else - asm/modules.h
+maybe?
 
-What's this?  Is it used anywhere?
+Also worth checking to see if MicroBlaze has been assigned a real ELF
+machine ID yet - not sure if Xilinx ever applied for one.
