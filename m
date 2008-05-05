@@ -1,64 +1,43 @@
-From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 50/56] microblaze_v2: setup.h string.h thread_info.h
-Date: Mon, 05 May 2008 16:24:17 +0200
-Message-ID: <481F1891.4000400@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	 <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>	 <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>	 <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>	 <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>	 <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>	 <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>	 <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>	 <eff9f144fc70b87a9ff6767e9ab92d3d55eebbae.1209897267.git.monstr@monstr.eu>	 <643084ee3819dd169cad3c4e3565c5ff20dd3429.1209897267.git.monstr@monstr.eu>	 <231ae415bf52de25c69f727fd13c50d201f8ecd8.120989726
- 7.git.monstr@monstr.eu>	 <53e5b22838d017b7cf7f44c4bafe5f7e253732ce.1209897267.git.monstr@monstr.eu> <1209955168.5798.85.camel@localhost>
-Reply-To: monstr@seznam.cz
+From: "Grant Likely" <grant.likely@secretlab.ca>
+Subject: Re: [PATCH 04/56] microblaze_v2: Open firmware files
+Date: Mon, 5 May 2008 08:24:28 -0600
+Message-ID: <fa686aa40805050724w59d4357ak6029a2a7a612329e@mail.gmail.com>
+References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
+	 <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-2
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:65308 "EHLO
-	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753571AbYEEOXd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:23:33 -0400
-In-Reply-To: <1209955168.5798.85.camel@localhost>
+Received: from wr-out-0506.google.com ([64.233.184.238]:4880 "EHLO
+	wr-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759054AbYEEOYb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 May 2008 10:24:31 -0400
+Received: by wr-out-0506.google.com with SMTP id c48so1209225wra.1
+        for <linux-arch@vger.kernel.org>; Mon, 05 May 2008 07:24:28 -0700 (PDT)
+In-Reply-To: <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Williams <john.williams@petalogix.com>
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+To: monstr@seznam.cz
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, microblaze-uclinux@itee.uq.edu.au, Michal Simek <monstr@monstr.eu>, linuxppc-dev <linuxppc-dev@ozlabs.org>
 
-FIXED to r1.
-M
+On Sun, May 4, 2008 at 5:40 AM,  <monstr@seznam.cz> wrote:
+> From: Michal Simek <monstr@monstr.eu>
+>
+>
+>  Signed-off-by: Michal Simek <monstr@monstr.eu>
+>  ---
+>   arch/microblaze/kernel/prom.c        | 1653 ++++++++++++++++++++++++++++++++++
+>   include/asm-microblaze/of_device.h   |   41 +
+>   include/asm-microblaze/of_platform.h |   45 +
+>   include/asm-microblaze/prom.h        |  311 +++++++
 
+another mostly-clone from arch/powerpc/kernel.  Is anyone working on
+moving the guts of this file to a common location?
 
->> +++ b/include/asm-microblaze/thread_info.h
->> @@ -0,0 +1,155 @@
->> +/*
->> + * include/asm-microblaze/thread_info.h
->> + *
->> + * This file is subject to the terms and conditions of the GNU General Public
->> + * License. See the file "COPYING" in the main directory of this archive
->> + * for more details.
->> + *
->> + * Copyright (C) 2006 Atmark Techno, Inc.
->> + */
->> +
->> +#ifndef _ASM_MICROBLAZE_THREAD_INFO_H
->> +#define _ASM_MICROBLAZE_THREAD_INFO_H
->> +
->> +#ifdef __KERNEL__
->> +
->> +/* we have 8k stack */
-> 
-> Is it worth trialling a 4K stack on MicroBlaze?
-> 
-> 
->> +struct cpu_context {
->> +	__u32	sp;
-> 
-> I'd be happier to see this called r1.  If mb-as doesn't accept "sp" as
-> an alias for "r1", nor should we.
-> 
-> ...
-> 
->> +	__u32	r30;
-> 
-> Is it worth a comment that r31 is absent because it's used as 'current'
-> pointer, and -ffixed-r31 etc?
-> 
-> 
-> 
-> 
-> 
+Cheers,
+g.
+
+-- 
+Grant Likely, B.Sc., P.Eng.
+Secret Lab Technologies Ltd.
