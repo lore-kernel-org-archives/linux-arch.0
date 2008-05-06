@@ -1,41 +1,122 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [patch 2/2] fix SMP data race in pagetable setup vs walking
-Date: Tue, 6 May 2008 07:53:23 -0700 (PDT)
-Message-ID: <alpine.LFD.1.10.0805060750430.32269@woody.linux-foundation.org>
-References: <20080505112021.GC5018@wotan.suse.de> <20080505121240.GD5018@wotan.suse.de> <alpine.LFD.1.10.0805050828120.32269@woody.linux-foundation.org> <20080506095138.GE10141@wotan.suse.de>
+From: "Subrata Modak" <tosubrata-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: LTP for no MMU systems
+Date: Tue, 6 May 2008 20:22:28 +0530
+Message-ID: <bb33bcf20805060752v6b24241fw4f66ccb78b6194ba@mail.gmail.com>
+References: <48206ECF.9090005@seznam.cz>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41861 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755139AbYEFOxs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 10:53:48 -0400
-In-Reply-To: <20080506095138.GE10141@wotan.suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Paul McKenney <paulmck@us.ibm.com>
+Content-Type: multipart/mixed; boundary="===============0513675302=="
+Return-path: <ltp-list-bounces-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>
+In-Reply-To: <48206ECF.9090005-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org>
+List-Unsubscribe: <https://lists.sourceforge.net/lists/listinfo/ltp-list>,
+	<mailto:ltp-list-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://sourceforge.net/mailarchive/forum.php?forum_name=ltp-list>
+List-Post: <mailto:ltp-list-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>
+List-Help: <mailto:ltp-list-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.sourceforge.net/lists/listinfo/ltp-list>,
+	<mailto:ltp-list-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=subscribe>
+Sender: ltp-list-bounces-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
+Errors-To: ltp-list-bounces-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
+To: monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org, ltp-list <ltp-list-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>, Mike Frysinger <vapier-aBrp7R+bbdUdnm+yROfE0A@public.gmane.org>, Carmelo AMOROSO <carmelo.amoroso-qxv4g6HH51o@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
+
+--===============0513675302==
+Content-Type: multipart/alternative;
+	boundary="----=_Part_8178_13248915.1210085548345"
+
+------=_Part_8178_13248915.1210085548345
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+On Tue, May 6, 2008 at 8:14 PM, Michal Simek <monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org> wrote:
+
+> Hi All,
+>
+> I tested Microblaze MMU kernel for finding where could be problem. I have
+> no
+> problem with compilation. Microblaze MMU test result is on
+> http://www.monstr.eu/wiki/doku.php?id=kernel:testing.
+>
+> I would like to test no MMU kernel too. Does anyone use it for no MMU
+> kernel?
+> (Blackfin, m68k and others)
+
+
+Micahel,
+
+I hope you will find some answers (may be ) on the LTP mailing list.
+
+Regards--
+Subrata
+
+
+>
+> Thanks for info,
+> Michal
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+>
 
 
 
-On Tue, 6 May 2008, Nick Piggin wrote:
-> 
-> Right. As the comment says, the x86 stuff is kind of a "reference"
-> implementation, although if you prefer it isn't there, then I I can
-> easily just make it alpha only.
+-- 
+Regards & Thanks--
+Subrata
 
-If there really was a point in teaching people about 
-"read_barrier_depends()", I'd agree that it's probably good to have it as 
-a reference in the x86 implementation.
+------=_Part_8178_13248915.1210085548345
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
 
-But since alpha is the only one that needs it, and is likely to remain so, 
-it's not like we ever want to copy that code to anything else, and it 
-really is better to make it alpha-only if the code is so much uglier.
+<br><br><div class="gmail_quote">On Tue, May 6, 2008 at 8:14 PM, Michal Simek &lt;<a href="mailto:monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org">monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org</a>&gt; wrote:<br><blockquote class="gmail_quote" style="border-left: 1px solid rgb(204, 204, 204); margin: 0pt 0pt 0pt 0.8ex; padding-left: 1ex;">
+Hi All,<br>
+<br>
+I tested Microblaze MMU kernel for finding where could be problem. I have no<br>
+problem with compilation. Microblaze MMU test result is on<br>
+<a href="http://www.monstr.eu/wiki/doku.php?id=kernel:testing" target="_blank">http://www.monstr.eu/wiki/doku.php?id=kernel:testing</a>.<br>
+<br>
+I would like to test no MMU kernel too. Does anyone use it for no MMU kernel?<br>
+(Blackfin, m68k and others)</blockquote><div><br>Micahel,<br><br>I hope you will find some answers (may be ) on the LTP mailing list.<br><br>Regards--<br>Subrata<br><br></div><blockquote class="gmail_quote" style="border-left: 1px solid rgb(204, 204, 204); margin: 0pt 0pt 0pt 0.8ex; padding-left: 1ex;">
+<br>
+<br>
+Thanks for info,<br>
+Michal<br>
+<font color="#888888"><br>
+--<br>
+To unsubscribe from this list: send the line &quot;unsubscribe linux-kernel&quot; in<br>
+the body of a message to <a href="mailto:majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org">majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org</a><br>
+More majordomo info at &nbsp;<a href="http://vger.kernel.org/majordomo-info.html" target="_blank">http://vger.kernel.org/majordomo-info.html</a><br>
+Please read the FAQ at &nbsp;<a href="http://www.tux.org/lkml/" target="_blank">http://www.tux.org/lkml/</a><br>
+</font></blockquote></div><br><br clear="all"><br>-- <br>Regards &amp; Thanks--<br>Subrata
 
-Maybe just a comment?
+------=_Part_8178_13248915.1210085548345--
 
-As to the ACCESS_ONCE() thing, thinking about it some more, I doubt it 
-really matters. We're never going to change pgd anyway, so who cares if we 
-access it once or a hundred times?
 
-			Linus
+--===============0513675302==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+-------------------------------------------------------------------------
+This SF.net email is sponsored by the 2008 JavaOne(SM) Conference 
+Don't miss this year's exciting event. There's still time to save $100. 
+Use priority code J8TL2D2. 
+http://ad.doubleclick.net/clk;198757673;13503038;p?http://java.sun.com/javaone
+--===============0513675302==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+Ltp-list mailing list
+Ltp-list-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
+https://lists.sourceforge.net/lists/listinfo/ltp-list
+
+--===============0513675302==--
