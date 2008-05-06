@@ -1,55 +1,54 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH] Microblaze: implement dma-coherent API and refactor cache
+Subject: Re: [PATCH] Microblaze: implement dma-coherent API andrefactorcache
  flush code.
-Date: Tue, 06 May 2008 11:28:22 +0200
-Message-ID: <482024B6.5070704@seznam.cz>
-References: <20080505223706.1236C1C8004E@mail131-sin.bigfish.com>
+Date: Tue, 06 May 2008 11:33:13 +0200
+Message-ID: <482025D9.9010503@seznam.cz>
+References: <20080505223706.1236C1C8004E@mail131-sin.bigfish.com> <1210028237.5798.121.camel@localhost> <20080505231206.922A61C780C0@mail19-wa4.bigfish.com> <1210032899.5798.179.camel@localhost> <20080506003104.4717D19B8050@mail213-sin.bigfish.com> <Pine.LNX.4.64.0805060923100.3160@anakin>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:64149 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:53705 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1765677AbYEFJ10 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:27:26 -0400
-In-Reply-To: <20080505223706.1236C1C8004E@mail131-sin.bigfish.com>
+	with ESMTP id S1755022AbYEFJcT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:32:19 -0400
+In-Reply-To: <Pine.LNX.4.64.0805060923100.3160@anakin>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linux-kernel@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Williams <john.williams@petalogix.com>, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linux-kernel@vger.kernel.org
 
-Hi Steve,
+Hi John, Steve and others,
 
->  arch/microblaze/kernel/cpu/cache.c  |   37 +---------
->  arch/microblaze/kernel/setup.c      |    4 +-
->  arch/microblaze/mm/dma-coherent.c   |  122
+I'll only rename flush to invalidate. Thant's all for now.
 
-dma-coherent.c is dead for now.
+Michal
 
-> diff --git a/arch/microblaze/kernel/setup.c
-> b/arch/microblaze/kernel/setup.c
-> index 43d53d9..241fb21 100644
-> --- a/arch/microblaze/kernel/setup.c
-> +++ b/arch/microblaze/kernel/setup.c
-> @@ -51,10 +51,10 @@ void __init setup_arch(char **cmdline_p)
->  	/* irq_early_init(); */
->  	setup_cpuinfo();
->  
-> -	__flush_icache_all();
-> +	__invalidate_icache_all();
->  	__enable_icache();
->  
-> -	__flush_dcache_all();
-> +	__invalidate_icache_all();
->  	__enable_dcache();
-
-here is bug.
-
->  	panic_timeout = 120;
-> diff --git a/arch/microblaze/mm/dma-coherent.c
-> b/arch/microblaze/mm/dma-coherent.c
-
-removed.
-
-M
+> On Mon, 5 May 2008, Stephen Neuendorffer wrote:
+>>> -----Original Message-----
+>>> From: John Williams [mailto:john.williams@petalogix.com]
+>>>
+>>> Sure - what I meant is can dma_alloc just call kmalloc to do it's
+>> work?
+>>
+>> I scanned through Linux Device Drivers, and it appears that calling
+>> get_free_pages is:
+>> 1) more efficient than kmalloc for large allocations
+>> 2) allocates physically contiguous memory, which kmalloc doesn't
+>> necessarily do if there's an mmu.
+> 
+> kmalloc() allocates physically contiguous memory, vmalloc() doesn't.
+> 
+> Gr{oetje,eeting}s,
+> 
+> 						Geert
+> 
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> 
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+> 							    -- Linus Torvalds
+> 
+> 
