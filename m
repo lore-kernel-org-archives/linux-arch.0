@@ -1,58 +1,109 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 36/56] microblaze_v2: dma support
-Date: Tue, 06 May 2008 11:16:17 +0200
-Message-ID: <482021E1.70902@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu> <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu> <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu> <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu> <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu> <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu> <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu> <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu> <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu> <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.mons
- tr@monstr.eu> <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu> <1209954350.5798.71.camel@localhost> <Pine.LNX.4.64.0805050844560.2615@anakin>
+Subject: Re: [microblaze-uclinux] [PATCH 09/56] microblaze_v2: cache support
+Date: Tue, 06 May 2008 11:22:27 +0200
+Message-ID: <48202353.9030402@seznam.cz>
+References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu> <20080505173734.AB0E485805C@mail199-va3.bigfish.com>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:64568 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:57783 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1764807AbYEFJPc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:15:32 -0400
-In-Reply-To: <Pine.LNX.4.64.0805050844560.2615@anakin>
+	with ESMTP id S1765335AbYEFJVZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:21:25 -0400
+In-Reply-To: <20080505173734.AB0E485805C@mail199-va3.bigfish.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+To: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
+Cc: microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, grant.likely@secretlab.ca
 
-Hi Geert,
+Hi Steve,
 
-> On Mon, 5 May 2008, John Williams wrote:
->>> +++ b/include/asm-microblaze/scatterlist.h
->>> @@ -0,0 +1,21 @@
->>> +/*
->>> + * include/asm-microblaze/scatterlist.h
->>> + *
->>> + * This file is subject to the terms and conditions of the GNU General Public
->>> + * License. See the file "COPYING" in the main directory of this archive
->>> + * for more details.
->>> + *
->>> + * Copyright (C) 2006 Atmark Techno, Inc.
->>> + */
->>> +
->>> +#ifndef _ASM_MICROBLAZE_SCATTERLIST_H
->>> +#define _ASM_MICROBLAZE_SCATTERLIST_H
->>> +
->>> +struct scatterlist {
->>> +	unsigned long page_link;
->>> +	unsigned int	offset;
->>> +	dma_addr_t	dma_address;
->>> +	unsigned int	length;
->>> +};
->>> +
->>> +#endif /* _ASM_MICROBLAZE_SCATTERLIST_H */
->> Is this worthy of promotion to asm-generic/scatterlist.h?
+> The microblaze has a write through data cache, hence 'flush' is really a
+> misnomer here and interesting methods are 'invalidate'.  In addition,
+> most of these functions should be used directly by an implementation of
+> dma-coherent.c (which I can't find in your patches).  
+
+I removed consistent.c or dma-coherent.c from files. I don't need this code for
+now. Microblaze is currently no DMA arch.
+I know we need this to ll_temac work but not now. I added this to my plan after
+first pull.
+
+M
+
+> I'll try to cook up a patch for you with this today.
 > 
-> after moving dma_address one position up in the structure, as dma_addr_t may be
-> 64-bit?
-
-dma_addr_t is defined in types.h. If your arch want to use 64bit addr, you can
-define it in types.h.
-
-I keep scatterlist.h in asm-microblaze. Adding to asm-generic later.
-
-Michal
+> Steve
+> 
+>> +#define flush_cache_all()			__flush_cache_all()
+>> +#define flush_cache_mm(mm)			do { } while (0)
+>> +#define flush_cache_range(vma, start, end)	__flush_cache_all()
+>> +#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
+>> +
+>> +#define flush_dcache_range(start, end)
+> __flush_dcache_range(start, end)
+>> +#define flush_dcache_page(page)		do { } while (0)
+>> +#define flush_dcache_mmap_lock(mapping)		do { } while (0)
+>> +#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+>> +
+>> +#define flush_icache_range(start, len)
+> __flush_icache_range(start, len)
+>> +#define flush_icache_page(vma, pg)		do { } while (0)
+>> +#define flush_icache_user_range(start, len)	do { } while (0)
+>> +
+>> +#define flush_cache_vmap(start, end)		do { } while (0)
+>> +#define flush_cache_vunmap(start, end)		do { } while (0)
+>> +
+>> +struct page;
+>> +struct mm_struct;
+>> +struct vm_area_struct;
+>> +
+>> +/* see arch/microblaze/kernel/cache.c */
+>> +extern void __flush_icache_all(void);
+>> +extern void __flush_icache_range(unsigned long start, unsigned long
+> end);
+>> +extern void __flush_icache_page(struct vm_area_struct *vma, struct
+> page *page);
+>> +extern void __flush_icache_user_range(struct vm_area_struct *vma,
+>> +				struct page *page,
+>> +				unsigned long adr, int len);
+>> +extern void __flush_cache_sigtramp(unsigned long addr);
+>> +
+>> +extern void __flush_dcache_all(void);
+>> +extern void __flush_dcache_range(unsigned long start, unsigned long
+> end);
+>> +extern void __flush_dcache_page(struct vm_area_struct *vma, struct
+> page *page);
+>> +extern void __flush_dcache_user_range(struct vm_area_struct *vma,
+>> +				struct page *page,
+>> +				unsigned long adr, int len);
+>> +
+>> +extern inline void __flush_cache_all(void)
+>> +{
+>> +	__flush_icache_all();
+>> +	__flush_dcache_all();
+>> +}
+>> +
+>> +#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+>> +do { memcpy(dst, src, len); \
+>> +	flush_icache_user_range(vma, page, vaddr, len); \
+>> +} while (0)
+>> +#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+>> +	memcpy(dst, src, len)
+>> +
+>> +#endif /* _ASM_MICROBLAZE_CACHEFLUSH_H */
+>> --
+>> 1.5.4.GIT
+>>
+>> ___________________________
+>> microblaze-uclinux mailing list
+>> microblaze-uclinux@itee.uq.edu.au
+>> Project Home Page :
+> http://www.itee.uq.edu.au/~jwilliams/mblaze-uclinux
+>> Mailing List Archive :
+> http://www.itee.uq.edu.au/~listarch/microblaze-uclinux/
+> 
+> 
+> 
+> 
