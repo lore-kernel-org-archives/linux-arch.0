@@ -1,97 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from yorgi.telenet-ops.be ([195.130.133.69]:53628 "EHLO
-	yorgi.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752098AbYEFLSg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 07:18:36 -0400
-Received: from winston.telenet-ops.be (winston.telenet-ops.be [195.130.137.75])
-	by yorgi.telenet-ops.be (Postfix) with ESMTP id 1626D5A04D6
-	for <linux-arch@vger.kernel.org>; Tue,  6 May 2008 13:18:35 +0200 (CEST)
-Date: Tue, 6 May 2008 13:17:59 +0200 (CEST)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 36/56] microblaze_v2: dma support
-In-Reply-To: <48202AB6.4010201@seznam.cz>
-Message-ID: <Pine.LNX.4.64.0805061317120.10091@anakin>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
- <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
- <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
- <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
- <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
- <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
- <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
- <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
- <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
- <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
- <1209954350.5798.71.camel@localhost> <Pine.LNX.4.64.0805050844560.2615@anakin>
- <482021E1.70902@seznam.cz> <Pine.LNX.4.64.0805061142230.10091@anakin>
- <48202AB6.4010201@seznam.cz>
+Received: from ag-out-0708.google.com ([72.14.246.242]:18083 "EHLO
+	ag-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752942AbYEFO2W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 10:28:22 -0400
+Received: by ag-out-0708.google.com with SMTP id 31so1556776agc.10
+        for <linux-arch@vger.kernel.org>; Tue, 06 May 2008 07:28:20 -0700 (PDT)
+Message-ID: <fa686aa40805060728x2cb680e3y7338bacaa400ed1a@mail.gmail.com>
+Date: Tue, 6 May 2008 08:28:20 -0600
+From: "Grant Likely" <grant.likely@secretlab.ca>
+Subject: Re: [PATCH 24/56] microblaze_v2: time support
+In-Reply-To: <200805061338.24870.arnd@arndb.de>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
+	 <1210033811.5798.188.camel@localhost> <48202C9E.7070800@seznam.cz>
+	 <200805061338.24870.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@seznam.cz>
-Cc: John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
-Message-ID: <20080506111759.a038IstjFgYOZ-tkbyllmwH0lU9R3yQqTBVCnkXLP4w@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: monstr@seznam.cz, John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au
+Message-ID: <20080506142820.w_9Ej7-C5MgW7HzoemEODMGvpY6j7fCd0Sd6dI7_zBI@z>
 
-On Tue, 6 May 2008, Michal Simek wrote:
-> > On Tue, 6 May 2008, Michal Simek wrote:
-> >>> On Mon, 5 May 2008, John Williams wrote:
-> >>>>> +++ b/include/asm-microblaze/scatterlist.h
-> >>>>> @@ -0,0 +1,21 @@
-> >>>>> +/*
-> >>>>> + * include/asm-microblaze/scatterlist.h
-> >>>>> + *
-> >>>>> + * This file is subject to the terms and conditions of the GNU General Public
-> >>>>> + * License. See the file "COPYING" in the main directory of this archive
-> >>>>> + * for more details.
-> >>>>> + *
-> >>>>> + * Copyright (C) 2006 Atmark Techno, Inc.
-> >>>>> + */
-> >>>>> +
-> >>>>> +#ifndef _ASM_MICROBLAZE_SCATTERLIST_H
-> >>>>> +#define _ASM_MICROBLAZE_SCATTERLIST_H
-> >>>>> +
-> >>>>> +struct scatterlist {
-> >>>>> +	unsigned long page_link;
-> >>>>> +	unsigned int	offset;
-> >>>>> +	dma_addr_t	dma_address;
-> >>>>> +	unsigned int	length;
-> >>>>> +};
-> >>>>> +
-> >>>>> +#endif /* _ASM_MICROBLAZE_SCATTERLIST_H */
-> >>>> Is this worthy of promotion to asm-generic/scatterlist.h?
-> >>> after moving dma_address one position up in the structure, as dma_addr_t may be
-> >>> 64-bit?
-> >> dma_addr_t is defined in types.h. If your arch want to use 64bit addr, you can
-> >> define it in types.h.
-> > 
-> > Sorry for not making myself clear: If unsigned long and dma_addr_t are 64-bit,
-> > there may be a hole in between offset and dma_address, due to alignment
-> > restrictions. So it's better to move dma_address up.
-> > 
-> > As dma_addr_t may be 64-bit even on 32-bit architectures, it may be best
-> > to move it even to the start of the structure.
-> 
-> yes, only move length is enough.
+On Tue, May 6, 2008 at 5:38 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 06 May 2008, Michal Simek wrote:
+>  > I saw a lot of comments about files but I have never seen any comments that
+>  > any file is OK.
+>  > Does it mean everything is broken??? I don't think so.
+>
+<snip>
+>
+>  I think you're doing a great job on this. Any patch set of this size that
+>  has been maintained for a long time outside of the kernel goes through this
+>  phase where everyone tells you what to improve, based on their experience,
+>  while everything you do right about the patches is just taken for granted.
+>
+>  Don't let yourself get discouraged by the negative comments, we're really
+>  all just trying to help you do the right thing!
 
-No it's not.
+Let me add my voice to Arnd's.  This is a *big* task and you're
+handling it very well.
 
-> struct scatterlist {
-> 	unsigned long page_link;
-> 	unsigned int	offset;
-> 	unsigned int	length;
-> 	dma_addr_t	dma_address;
-> };
+Cheers,
+g.
 
-If unsigned long is 32-bit but dma_addr_t is 64-bit, there may be a gap
-between length and dma_address.
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+-- 
+Grant Likely, B.Sc., P.Eng.
+Secret Lab Technologies Ltd.
