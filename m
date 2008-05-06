@@ -1,72 +1,55 @@
-From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 36/56] microblaze_v2: dma support
-Date: Tue, 06 May 2008 11:53:58 +0200
-Message-ID: <48202AB6.4010201@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu> <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu> <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu> <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu> <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu> <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu> <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu> <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu> <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu> <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.mons
- tr@monstr.eu> <1209954350.5798.71.camel@localhost> <Pine.LNX.4.64.0805050844560.2615@anakin> <482021E1.70902@seznam.cz> <Pine.LNX.4.64.0805061142230.10091@anakin>
-Reply-To: monstr@seznam.cz
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [patch 2/2] fix SMP data race in pagetable setup vs walking
+Date: Tue, 6 May 2008 11:52:52 +0200
+Message-ID: <20080506095252.GF10141@wotan.suse.de>
+References: <20080505112021.GC5018@wotan.suse.de> <20080505121240.GD5018@wotan.suse.de> <Pine.LNX.4.64.0805051751230.11062@blonde.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:49318 "EHLO
-	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752258AbYEFJwx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:52:53 -0400
-In-Reply-To: <Pine.LNX.4.64.0805061142230.10091@anakin>
+Received: from cantor2.suse.de ([195.135.220.15]:50359 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752834AbYEFJwx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 May 2008 05:52:53 -0400
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0805051751230.11062@blonde.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+To: Hugh Dickins <hugh@veritas.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Paul McKenney <paulmck@us.ibm.com>
 
-
-Hi,
-> On Tue, 6 May 2008, Michal Simek wrote:
->>> On Mon, 5 May 2008, John Williams wrote:
->>>>> +++ b/include/asm-microblaze/scatterlist.h
->>>>> @@ -0,0 +1,21 @@
->>>>> +/*
->>>>> + * include/asm-microblaze/scatterlist.h
->>>>> + *
->>>>> + * This file is subject to the terms and conditions of the GNU General Public
->>>>> + * License. See the file "COPYING" in the main directory of this archive
->>>>> + * for more details.
->>>>> + *
->>>>> + * Copyright (C) 2006 Atmark Techno, Inc.
->>>>> + */
->>>>> +
->>>>> +#ifndef _ASM_MICROBLAZE_SCATTERLIST_H
->>>>> +#define _ASM_MICROBLAZE_SCATTERLIST_H
->>>>> +
->>>>> +struct scatterlist {
->>>>> +	unsigned long page_link;
->>>>> +	unsigned int	offset;
->>>>> +	dma_addr_t	dma_address;
->>>>> +	unsigned int	length;
->>>>> +};
->>>>> +
->>>>> +#endif /* _ASM_MICROBLAZE_SCATTERLIST_H */
->>>> Is this worthy of promotion to asm-generic/scatterlist.h?
->>> after moving dma_address one position up in the structure, as dma_addr_t may be
->>> 64-bit?
->> dma_addr_t is defined in types.h. If your arch want to use 64bit addr, you can
->> define it in types.h.
+On Mon, May 05, 2008 at 05:57:20PM +0100, Hugh Dickins wrote:
+> On Mon, 5 May 2008, Nick Piggin wrote:
+> > Index: linux-2.6/mm/memory.c
+> > ===================================================================
+> > --- linux-2.6.orig/mm/memory.c
+> > +++ linux-2.6/mm/memory.c
+> > @@ -311,6 +311,37 @@ int __pte_alloc(struct mm_struct *mm, pm
+> >  	if (!new)
+> >  		return -ENOMEM;
+> >  
+> > +	/*
+> > +	 * Ensure all pte setup (eg. pte page lock and page clearing) are
+> > +	 * visible before the pte is made visible to other CPUs by being
+> > +	 * put into page tables.
+> > +	 *
+> > +	 * The other side of the story is the pointer chasing in the page
+> > +	 * table walking code (when walking the page table without locking;
+> > +	 * ie. most of the time). Fortunately, these data accesses consist
+> > +	 * of a chain of data-dependent loads, meaning most CPUs (alpha
+> > +	 * being the notable exception) will already guarantee loads are
+> > +	 * seen in-order. x86 has a "reference" implementation of
+> > +	 * smp_read_barrier_depends() barriers in its page table walking
+> > +	 * code, even though that barrier is a simple noop on that architecture.
+> > +	 * Alpha obviously also has the required barriers.
+> > +	 *
+> > +	 * It is debatable whether or not the smp_read_barrier_depends()
+> > +	 * barriers are required for kernel page tables; it could be that
+> > +	 * nowhere in the kernel do we walk those pagetables without taking
+> > +	 * init_mm's page_table_lock.
 > 
-> Sorry for not making myself clear: If unsigned long and dma_addr_t are 64-bit,
-> there may be a hole in between offset and dma_address, due to alignment
-> restrictions. So it's better to move dma_address up.
-> 
-> As dma_addr_t may be 64-bit even on 32-bit architectures, it may be best
-> to move it even to the start of the structure.
+> Just delete "; it could be that ... init_mm's page_table_lock":
+> in general (if not everywhere) the architectures do not nowadays
+> take init_mm's page_table_lock to walk down those pagetables (blame
+> me for removing it, if anyone thinks that was wrong: I stand by it).
 
-yes, only move length is enough.
-
-struct scatterlist {
-	unsigned long page_link;
-	unsigned int	offset;
-	unsigned int	length;
-	dma_addr_t	dma_address;
-};
-
-
-Michal
+OK. That's fine IMO and I'll remove that line.
