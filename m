@@ -1,57 +1,49 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [patch 2/2] fix SMP data race in pagetable setup vs walking
-Date: Tue, 6 May 2008 12:11:53 -0700
-Message-ID: <20080506191153.GB8369@linux.vnet.ibm.com>
-References: <20080505112021.GC5018@wotan.suse.de> <20080505121240.GD5018@wotan.suse.de> <alpine.LFD.1.10.0805050828120.32269@woody.linux-foundation.org> <20080506095138.GE10141@wotan.suse.de> <alpine.LFD.1.10.0805060750430.32269@woody.linux-foundation.org>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 46/56] microblaze_v2: headers files entry.h current.h
+ mman.h registers.h sembuf.h
+Date: Tue, 6 May 2008 22:57:31 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0805062256110.6341@anakin>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
+ <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
+ <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
+ <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
+ <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
+ <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
+ <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
+ <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
+ <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
+ <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
+ <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
+ <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
+ <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:53520 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754193AbYEFTL4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 15:11:56 -0400
-Received: from d03relay04.boulder.ibm.com (d03relay04.boulder.ibm.com [9.17.195.106])
-	by e32.co.us.ibm.com (8.13.8/8.13.8) with ESMTP id m46J8vjY025797
-	for <linux-arch@vger.kernel.org>; Tue, 6 May 2008 15:08:57 -0400
-Received: from d03av02.boulder.ibm.com (d03av02.boulder.ibm.com [9.17.195.168])
-	by d03relay04.boulder.ibm.com (8.13.8/8.13.8/NCO v8.7) with ESMTP id m46JBtvU194234
-	for <linux-arch@vger.kernel.org>; Tue, 6 May 2008 13:11:55 -0600
-Received: from d03av02.boulder.ibm.com (loopback [127.0.0.1])
-	by d03av02.boulder.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id m46JBsKd013768
-	for <linux-arch@vger.kernel.org>; Tue, 6 May 2008 13:11:55 -0600
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.10.0805060750430.32269@woody.linux-foundation.org>
+Received: from winston.telenet-ops.be ([195.130.137.75]:40167 "EHLO
+	winston.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1764787AbYEFU5h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 16:57:37 -0400
+In-Reply-To: <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Nick Piggin <npiggin@suse.de>, Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>
+To: monstr@seznam.cz
+Cc: Linux Kernel Development <linux-kernel@vger.kernel.org>, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-On Tue, May 06, 2008 at 07:53:23AM -0700, Linus Torvalds wrote:
-> 
-> 
-> On Tue, 6 May 2008, Nick Piggin wrote:
-> > 
-> > Right. As the comment says, the x86 stuff is kind of a "reference"
-> > implementation, although if you prefer it isn't there, then I I can
-> > easily just make it alpha only.
-> 
-> If there really was a point in teaching people about 
-> "read_barrier_depends()", I'd agree that it's probably good to have it as 
-> a reference in the x86 implementation.
-> 
-> But since alpha is the only one that needs it, and is likely to remain so, 
-> it's not like we ever want to copy that code to anything else, and it 
-> really is better to make it alpha-only if the code is so much uglier.
-> 
-> Maybe just a comment?
-> 
-> As to the ACCESS_ONCE() thing, thinking about it some more, I doubt it 
-> really matters. We're never going to change pgd anyway, so who cares if we 
-> access it once or a hundred times?
+On Sun, 4 May 2008, monstr@seznam.cz wrote:
+> --- /dev/null
+> +++ b/include/asm-microblaze/sembuf.h
+                    ^^^^^^^^^^
+> + * The semid64_ds structure for m68k architecture.
+                                   ^^^^
+You also want to update these, to avoid triggering my attention ;-)
 
-If we are never going to change mm->pgd, then why do we need the
-smp_read_barrier_depends()?  Is this handling the initialization
-case or some such?
+Gr{oetje,eeting}s,
 
-							Thanx, Paul
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
