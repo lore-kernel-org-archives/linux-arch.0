@@ -1,122 +1,48 @@
-From: "Subrata Modak" <tosubrata-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: LTP for no MMU systems
-Date: Tue, 6 May 2008 20:22:28 +0530
-Message-ID: <bb33bcf20805060752v6b24241fw4f66ccb78b6194ba@mail.gmail.com>
-References: <48206ECF.9090005@seznam.cz>
+From: Michal Simek <monstr@seznam.cz>
+Subject: Re: [PATCH 45/56] microblaze_v2: headers simple files - empty or
+ redirect to asm-generic
+Date: Tue, 06 May 2008 17:23:42 +0200
+Message-ID: <482077FE.7080201@seznam.cz>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	<96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>	<92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>	<4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>	<49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>	<d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>	<27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>	<64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>	<9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>	<5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>	<59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.mons
+ tr@monstr.eu>	<8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>	<1209954849.5798.80.camel@localhost> <20080507004702.d516a727.sfr@canb.auug.org.au>
+Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============0513675302=="
-Return-path: <ltp-list-bounces-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>
-In-Reply-To: <48206ECF.9090005-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org>
-List-Unsubscribe: <https://lists.sourceforge.net/lists/listinfo/ltp-list>,
-	<mailto:ltp-list-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://sourceforge.net/mailarchive/forum.php?forum_name=ltp-list>
-List-Post: <mailto:ltp-list-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>
-List-Help: <mailto:ltp-list-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.sourceforge.net/lists/listinfo/ltp-list>,
-	<mailto:ltp-list-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=subscribe>
-Sender: ltp-list-bounces-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
-Errors-To: ltp-list-bounces-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
-To: monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org, ltp-list <ltp-list-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>, Mike Frysinger <vapier-aBrp7R+bbdUdnm+yROfE0A@public.gmane.org>, Carmelo AMOROSO <carmelo.amoroso-qxv4g6HH51o@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
-
---===============0513675302==
-Content-Type: multipart/alternative;
-	boundary="----=_Part_8178_13248915.1210085548345"
-
-------=_Part_8178_13248915.1210085548345
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:56165 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756706AbYEFPW7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 11:22:59 -0400
+In-Reply-To: <20080507004702.d516a727.sfr@canb.auug.org.au>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: John Williams <john.williams@petalogix.com>, monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
 
-On Tue, May 6, 2008 at 8:14 PM, Michal Simek <monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org> wrote:
+Hi,
 
-> Hi All,
->
-> I tested Microblaze MMU kernel for finding where could be problem. I have
-> no
-> problem with compilation. Microblaze MMU test result is on
-> http://www.monstr.eu/wiki/doku.php?id=kernel:testing.
->
-> I would like to test no MMU kernel too. Does anyone use it for no MMU
-> kernel?
-> (Blackfin, m68k and others)
+> On Mon, 05 May 2008 12:34:09 +1000 John Williams <john.williams@petalogix.com> wrote:
+>>
+>>>  include/asm-microblaze/auxvec.h            |   14 ++++++++++++++
+>>>  include/asm-microblaze/cputime.h           |   16 ++++++++++++++++
+>>>  include/asm-microblaze/div64.h             |   16 ++++++++++++++++
+>>>  include/asm-microblaze/emergency-restart.h |   16 ++++++++++++++++
+>>>  include/asm-microblaze/errno.h             |   16 ++++++++++++++++
+>>>  include/asm-microblaze/futex.h             |   16 ++++++++++++++++
+>>>  include/asm-microblaze/kdebug.h            |   19 +++++++++++++++++++
+>>>  include/asm-microblaze/local.h             |   16 ++++++++++++++++
+>>>  include/asm-microblaze/mutex.h             |   16 ++++++++++++++++
+>>>  include/asm-microblaze/namei.h             |   24 ++++++++++++++++++++++++
+>>>  include/asm-microblaze/percpu.h            |   16 ++++++++++++++++
+>>>  include/asm-microblaze/resource.h          |   16 ++++++++++++++++
+>>>  include/asm-microblaze/user.h              |   18 ++++++++++++++++++
+>> These are all just includes of asm-generic/* (hooray!).
+> 
+> Absolutely, but is it really necessary to have 14-16 lines of comment
+> (including a copyright notice) for a file whose single real line is just
+> to include another file?  i.e. reduce all these to 1 line files.
 
+Can I do it? I think every file need license.
 
-Micahel,
-
-I hope you will find some answers (may be ) on the LTP mailing list.
-
-Regards--
-Subrata
-
-
->
-> Thanks for info,
-> Michal
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
->
-
-
-
--- 
-Regards & Thanks--
-Subrata
-
-------=_Part_8178_13248915.1210085548345
-Content-Type: text/html; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-<br><br><div class="gmail_quote">On Tue, May 6, 2008 at 8:14 PM, Michal Simek &lt;<a href="mailto:monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org">monstr-9Vj9tDbzfuSlVyrhU4qvOw@public.gmane.org</a>&gt; wrote:<br><blockquote class="gmail_quote" style="border-left: 1px solid rgb(204, 204, 204); margin: 0pt 0pt 0pt 0.8ex; padding-left: 1ex;">
-Hi All,<br>
-<br>
-I tested Microblaze MMU kernel for finding where could be problem. I have no<br>
-problem with compilation. Microblaze MMU test result is on<br>
-<a href="http://www.monstr.eu/wiki/doku.php?id=kernel:testing" target="_blank">http://www.monstr.eu/wiki/doku.php?id=kernel:testing</a>.<br>
-<br>
-I would like to test no MMU kernel too. Does anyone use it for no MMU kernel?<br>
-(Blackfin, m68k and others)</blockquote><div><br>Micahel,<br><br>I hope you will find some answers (may be ) on the LTP mailing list.<br><br>Regards--<br>Subrata<br><br></div><blockquote class="gmail_quote" style="border-left: 1px solid rgb(204, 204, 204); margin: 0pt 0pt 0pt 0.8ex; padding-left: 1ex;">
-<br>
-<br>
-Thanks for info,<br>
-Michal<br>
-<font color="#888888"><br>
---<br>
-To unsubscribe from this list: send the line &quot;unsubscribe linux-kernel&quot; in<br>
-the body of a message to <a href="mailto:majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org">majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org</a><br>
-More majordomo info at &nbsp;<a href="http://vger.kernel.org/majordomo-info.html" target="_blank">http://vger.kernel.org/majordomo-info.html</a><br>
-Please read the FAQ at &nbsp;<a href="http://www.tux.org/lkml/" target="_blank">http://www.tux.org/lkml/</a><br>
-</font></blockquote></div><br><br clear="all"><br>-- <br>Regards &amp; Thanks--<br>Subrata
-
-------=_Part_8178_13248915.1210085548345--
-
-
---===============0513675302==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
--------------------------------------------------------------------------
-This SF.net email is sponsored by the 2008 JavaOne(SM) Conference 
-Don't miss this year's exciting event. There's still time to save $100. 
-Use priority code J8TL2D2. 
-http://ad.doubleclick.net/clk;198757673;13503038;p?http://java.sun.com/javaone
---===============0513675302==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-Ltp-list mailing list
-Ltp-list-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
-https://lists.sourceforge.net/lists/listinfo/ltp-list
-
---===============0513675302==--
+M
