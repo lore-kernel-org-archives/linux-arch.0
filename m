@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:58016 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:59462 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753197AbYEFJzt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:55:49 -0400
-Message-ID: <48202B63.2050101@seznam.cz>
-Date: Tue, 06 May 2008 11:56:51 +0200
+	with ESMTP id S1750869AbYEFKBa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 06:01:30 -0400
+Message-ID: <48202C9E.7070800@seznam.cz>
+Date: Tue, 06 May 2008 12:02:06 +0200
 From: Michal Simek <monstr@seznam.cz>
 Reply-To: monstr@seznam.cz
 MIME-Version: 1.0
@@ -17,67 +17,15 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: John Williams <john.williams@petalogix.com>
 Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
-Message-ID: <20080506095651.ksx00Bn8Qgg9OyZzjPCwi81-zL9My1C3CLw6n2cNSmU@z>
+Message-ID: <20080506100206.noQ5QH01BJ1W-602amwVtQP58szEory5neQEG6_Ni84@z>
 
-Hi John,
+Hi All,
 
-> Hi Michal,
-> 
-> On Mon, 2008-05-05 at 16:22 +0200, Michal Simek wrote:
->> Hi John,
->>
->> you wrote me you have smarter implementation that xilinx did. Can you find it
->> and send me it?
-> 
-> It's not much (any?) better?  One less multiply I think?  Attached
-> anyway - feel free to discard for now.
-> 
-> We could do a nice asm implementation with the optional mulhi
-> instruction, but that can wait.
-> 
-> Cheers,
-> 
-> John
+I saw a lot of comments about files but I have never seen any comments that
+any file is OK.
+Does it mean everything is broken??? I don't think so.
 
-+extern __inline__ void __udelay(unsigned int x)
- {
--	unsigned long long tmp = usec;
--	unsigned long loops = (tmp * 4295 * HZ * loops_per_jiffy) >> 32;
-+	unsigned long long tmp=(unsigned long long)x*(unsigned long
-long)loops_per_jiffy*226LL;
-+	unsigned loops=tmp>>32;
-+
- 	__delay(loops);
- }
+I'll integrate reported bugs and send microblaze_v3 version.
 
--#endif /* _ASM_MICROBLAZE_DELAY_H */
-+extern __inline__ void __ndelay(unsigned int x)
-+{
-+	unsigned long long tmp=(unsigned long long)x*(unsigned long
-long)loops_per_jiffy*226LL;
-+	unsigned loops=tmp>>32;
-+
-+	__delay(loops);
-+}
-
-Why is __ndelay implementation the same with __udelay? This is weird for me.
-
-+
-+extern void __bad_udelay(void);		/* deliberately undefined */
-+extern void __bad_ndelay(void);		/* deliberately undefined */
-
-Are these function used anywhere?
-
-+#define udelay(n) (__builtin_constant_p(n)? \
-+	((n) > __MAX_UDELAY? __bad_udelay(): __udelay((n) * (19 * HZ))) : \
-+	__udelay((n) * (19 * HZ)))
-+
-+#define ndelay(n) (__builtin_constant_p(n)? \
-+	((n) > __MAX_NDELAY? __bad_ndelay(): __ndelay((n) * HZ)) : \
-+	__ndelay((n) * HZ))
-
-+#define muldiv(a, b, c)    (((a)*(b))/(c))
-
-muldiv: Where is this use?
-
+Thanks,
 Michal
