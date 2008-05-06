@@ -1,70 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:58671 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:64568 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754857AbYEFIN1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 04:13:27 -0400
-Message-ID: <48201368.1090200@seznam.cz>
-Date: Tue, 06 May 2008 10:14:32 +0200
+	with ESMTP id S1764807AbYEFJPc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:15:32 -0400
+Message-ID: <482021E1.70902@seznam.cz>
+Date: Tue, 06 May 2008 11:16:17 +0200
 From: Michal Simek <monstr@seznam.cz>
 Reply-To: monstr@seznam.cz
 MIME-Version: 1.0
-Subject: Re: [PATCH 18/56] microblaze_v2: early_printk support
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	 <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu>	 <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu>	 <2391e49379fb6639f57d9d6e5811f3d49a4c6fda.1209897266.git.monstr@monstr.eu>	 <0873f3a1f3b72591735c6461b51964693cac52e5.1209897266.git.monstr@monstr.eu>	 <0ba1f259d3c17eba54e334622493577493f5065f.1209897266.git.monstr@monstr.eu>	 <694451053534fea7b78fb9d618b53a2b5ebeb602.1209897266.git.monstr@monstr.eu>	 <f0c837df4106a31c1a81917596603918f722ea7b.1209897266.git.monstr@monstr.eu>	 <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>	 <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>	 <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>	 <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu> <1210029754.5798.145.camel@localhost>
-In-Reply-To: <1210029754.5798.145.camel@localhost>
-Content-Type: text/plain; charset=ISO-8859-2
+Subject: Re: [PATCH 36/56] microblaze_v2: dma support
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu> <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu> <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu> <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu> <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu> <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu> <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu> <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu> <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu> <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu> <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu> <1209954350.5798.71.camel@localhost> <Pine.LNX.4.64.0805050844560.2615@anakin>
+In-Reply-To: <Pine.LNX.4.64.0805050844560.2615@anakin>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Williams <john.williams@petalogix.com>
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
-Message-ID: <20080506081432.gx_LC2Z43kUYnvwJZo8MTyeYOe-f5oZv4p3rF5NSRZ8@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+Message-ID: <20080506091617.S9YFg3Fz6SBLUAVZf19_rxmU0oC6NzXhtM1KPiKxIV4@z>
 
-Make sense.
-I'll add it.
+Hi Geert,
 
-Thanks,
-M
-> On Sun, 2008-05-04 at 13:41 +0200, monstr@seznam.cz wrote:
+> On Mon, 5 May 2008, John Williams wrote:
+>>> +++ b/include/asm-microblaze/scatterlist.h
+>>> @@ -0,0 +1,21 @@
+>>> +/*
+>>> + * include/asm-microblaze/scatterlist.h
+>>> + *
+>>> + * This file is subject to the terms and conditions of the GNU General Public
+>>> + * License. See the file "COPYING" in the main directory of this archive
+>>> + * for more details.
+>>> + *
+>>> + * Copyright (C) 2006 Atmark Techno, Inc.
+>>> + */
+>>> +
+>>> +#ifndef _ASM_MICROBLAZE_SCATTERLIST_H
+>>> +#define _ASM_MICROBLAZE_SCATTERLIST_H
+>>> +
+>>> +struct scatterlist {
+>>> +	unsigned long page_link;
+>>> +	unsigned int	offset;
+>>> +	dma_addr_t	dma_address;
+>>> +	unsigned int	length;
+>>> +};
+>>> +
+>>> +#endif /* _ASM_MICROBLAZE_SCATTERLIST_H */
+>> Is this worthy of promotion to asm-generic/scatterlist.h?
 > 
->> +++ b/arch/microblaze/kernel/early_printk.c
-> 
->> +static void early_printk_putc(char c)
->> +{
->> +	while (ioread32(STATUS) & (1<<3));
->> +	iowrite32((c & 0xff), TX_FIFO);
->> +}
-> 
-> The while() loop needs a retry counter - if you configure
-> EARLY_PRINTK_BASE_ADDRESS wrongly and it points to memory or anything
-> that is not a uartlite, the loop spins forever and you get silent
-> lockup.  Not nice behaviour from debug code :)
-> 
-> Here's my current implementation:
-> 
-> static void early_printk_putc(char c)
-> {
->         /* Limit how many times we'll spin waiting for TX FIFO status.
->            This will prevent lockups if the base address is incorrectly
-> set, or
->            any other issue on the UARTLITE.
-> 
->            This limit is pretty arbitrary, unless we are at about 10
-> baud 
->            we'll never timeout on a working UART. */
-> 
->         unsigned retries=10000;
->         while (retries-- && (ioread32(STATUS) & (1<<3)))
->                 ;
-> 
->         /* Only attempt the iowrite if we didn't timeout */
->         if(retries)
->                 iowrite32((c & 0xff), TX_FIFO);
-> }
-> 
-> Cheers
-> 
-> John
-> 
-> 
-> 
-> 
+> after moving dma_address one position up in the structure, as dma_addr_t may be
+> 64-bit?
+
+dma_addr_t is defined in types.h. If your arch want to use 64bit addr, you can
+define it in types.h.
+
+I keep scatterlist.h in asm-microblaze. Adding to asm-generic later.
+
+Michal
