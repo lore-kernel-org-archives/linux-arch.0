@@ -1,48 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:56165 "EHLO
-	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756706AbYEFPW7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 11:22:59 -0400
-Message-ID: <482077FE.7080201@seznam.cz>
-Date: Tue, 06 May 2008 17:23:42 +0200
-From: Michal Simek <monstr@seznam.cz>
-Reply-To: monstr@seznam.cz
+Received: from moutng.kundenserver.de ([212.227.126.187]:57713 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932147AbYEFQVn convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 12:21:43 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 45/56] microblaze_v2: headers simple files - empty or redirect to asm-generic
+Date: Tue, 6 May 2008 18:21:13 +0200
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <20080507004702.d516a727.sfr@canb.auug.org.au> <482077FE.7080201@seznam.cz>
+In-Reply-To: <482077FE.7080201@seznam.cz>
 MIME-Version: 1.0
-Subject: Re: [PATCH 45/56] microblaze_v2: headers simple files - empty or
- redirect to asm-generic
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	<96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>	<92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>	<4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>	<49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>	<d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>	<27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>	<64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>	<9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>	<5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>	<59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>	<8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>	<1209954849.5798.80.camel@localhost> <20080507004702.d516a727.sfr@canb.auug.org.au>
-In-Reply-To: <20080507004702.d516a727.sfr@canb.auug.org.au>
-Content-Type: text/plain; charset=ISO-8859-2
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;
+  charset="iso-8859-2"
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
+Message-ID: <200805061821.14391.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: John Williams <john.williams@petalogix.com>, monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
-Message-ID: <20080506152342.zTjeEwD9IaFpkg9At7jBbiA7pW-yn8siRfaZ8vNEULk@z>
+To: monstr@seznam.cz
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
+Message-ID: <20080506162113.fIbEtKx_PxzGnAdg3UFqOxP2xIYXMa68z-A9sGZ9SsE@z>
 
-Hi,
-
-> On Mon, 05 May 2008 12:34:09 +1000 John Williams <john.williams@petalogix.com> wrote:
->>
->>>  include/asm-microblaze/auxvec.h            |   14 ++++++++++++++
->>>  include/asm-microblaze/cputime.h           |   16 ++++++++++++++++
->>>  include/asm-microblaze/div64.h             |   16 ++++++++++++++++
->>>  include/asm-microblaze/emergency-restart.h |   16 ++++++++++++++++
->>>  include/asm-microblaze/errno.h             |   16 ++++++++++++++++
->>>  include/asm-microblaze/futex.h             |   16 ++++++++++++++++
->>>  include/asm-microblaze/kdebug.h            |   19 +++++++++++++++++++
->>>  include/asm-microblaze/local.h             |   16 ++++++++++++++++
->>>  include/asm-microblaze/mutex.h             |   16 ++++++++++++++++
->>>  include/asm-microblaze/namei.h             |   24 ++++++++++++++++++++++++
->>>  include/asm-microblaze/percpu.h            |   16 ++++++++++++++++
->>>  include/asm-microblaze/resource.h          |   16 ++++++++++++++++
->>>  include/asm-microblaze/user.h              |   18 ++++++++++++++++++
->> These are all just includes of asm-generic/* (hooray!).
+On Tuesday 06 May 2008, Michal Simek wrote:
 > 
-> Absolutely, but is it really necessary to have 14-16 lines of comment
-> (including a copyright notice) for a file whose single real line is just
-> to include another file?  i.e. reduce all these to 1 line files.
+> > Absolutely, but is it really necessary to have 14-16 lines of comment
+> > (including a copyright notice) for a file whose single real line is just
+> > to include another file?  i.e. reduce all these to 1 line files.
+> 
+> Can I do it? I think every file need license.
 
-Can I do it? I think every file need license.
+If you want a good answer on that, ask your lawyer. In general, every file
+comes with a 'license' (GPLv2) and 'copyright' (you or the person you copied
+from) even if you don't put either statement in the file. Files smaller than
+some 10 lines are usually not considered to be covered by copyright, even
+if you have the statement in there.
 
-M
+Most files nowadays are written by large corporations that have strict rules
+about what you must put in there to protect their intellectual property.
+
+It's certainly safe to leave out the file names from the comments, they don't
+add any value at all.
+Similarly, you should easily be able to leave out the license statement,
+unless you are under a contract that forces you to leave them present.
+Most people here will be happier if you remove the license statements.
+
+The most tricky one part is the copyright statement ("Copyright 2012
+Big Corporation of America"), which you strictly speaking should never
+remove from a file unless you have permission from the copyright holder.
+Many of your files in your patch set are obviously copies of existing
+kernel files, with the original copyright notice replaced with "Atmark
+Techno, inc.". You can draw your own conclusions from that ;-)
+
+Obviously, I am not a lawyer, so don't consider this as legal advice.
+
+I really hope this doesn't turn into a flamewar, as discussions on
+intellectual property sometimes do.
+
+	Arnd <><
