@@ -1,50 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ag-out-0708.google.com ([72.14.246.242]:18083 "EHLO
-	ag-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752942AbYEFO2W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 10:28:22 -0400
-Received: by ag-out-0708.google.com with SMTP id 31so1556776agc.10
-        for <linux-arch@vger.kernel.org>; Tue, 06 May 2008 07:28:20 -0700 (PDT)
-Message-ID: <fa686aa40805060728x2cb680e3y7338bacaa400ed1a@mail.gmail.com>
-Date: Tue, 6 May 2008 08:28:20 -0600
-From: "Grant Likely" <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 24/56] microblaze_v2: time support
-In-Reply-To: <200805061338.24870.arnd@arndb.de>
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:56165 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756706AbYEFPW7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 11:22:59 -0400
+Message-ID: <482077FE.7080201@seznam.cz>
+Date: Tue, 06 May 2008 17:23:42 +0200
+From: Michal Simek <monstr@seznam.cz>
+Reply-To: monstr@seznam.cz
 MIME-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH 45/56] microblaze_v2: headers simple files - empty or
+ redirect to asm-generic
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	<96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>	<92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>	<4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>	<49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>	<d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>	<27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>	<64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>	<9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>	<5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>	<59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>	<8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>	<1209954849.5798.80.camel@localhost> <20080507004702.d516a727.sfr@canb.auug.org.au>
+In-Reply-To: <20080507004702.d516a727.sfr@canb.auug.org.au>
+Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
-	 <1210033811.5798.188.camel@localhost> <48202C9E.7070800@seznam.cz>
-	 <200805061338.24870.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: monstr@seznam.cz, John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au
-Message-ID: <20080506142820.w_9Ej7-C5MgW7HzoemEODMGvpY6j7fCd0Sd6dI7_zBI@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: John Williams <john.williams@petalogix.com>, monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
+Message-ID: <20080506152342.zTjeEwD9IaFpkg9At7jBbiA7pW-yn8siRfaZ8vNEULk@z>
 
-On Tue, May 6, 2008 at 5:38 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tuesday 06 May 2008, Michal Simek wrote:
->  > I saw a lot of comments about files but I have never seen any comments that
->  > any file is OK.
->  > Does it mean everything is broken??? I don't think so.
->
-<snip>
->
->  I think you're doing a great job on this. Any patch set of this size that
->  has been maintained for a long time outside of the kernel goes through this
->  phase where everyone tells you what to improve, based on their experience,
->  while everything you do right about the patches is just taken for granted.
->
->  Don't let yourself get discouraged by the negative comments, we're really
->  all just trying to help you do the right thing!
+Hi,
 
-Let me add my voice to Arnd's.  This is a *big* task and you're
-handling it very well.
+> On Mon, 05 May 2008 12:34:09 +1000 John Williams <john.williams@petalogix.com> wrote:
+>>
+>>>  include/asm-microblaze/auxvec.h            |   14 ++++++++++++++
+>>>  include/asm-microblaze/cputime.h           |   16 ++++++++++++++++
+>>>  include/asm-microblaze/div64.h             |   16 ++++++++++++++++
+>>>  include/asm-microblaze/emergency-restart.h |   16 ++++++++++++++++
+>>>  include/asm-microblaze/errno.h             |   16 ++++++++++++++++
+>>>  include/asm-microblaze/futex.h             |   16 ++++++++++++++++
+>>>  include/asm-microblaze/kdebug.h            |   19 +++++++++++++++++++
+>>>  include/asm-microblaze/local.h             |   16 ++++++++++++++++
+>>>  include/asm-microblaze/mutex.h             |   16 ++++++++++++++++
+>>>  include/asm-microblaze/namei.h             |   24 ++++++++++++++++++++++++
+>>>  include/asm-microblaze/percpu.h            |   16 ++++++++++++++++
+>>>  include/asm-microblaze/resource.h          |   16 ++++++++++++++++
+>>>  include/asm-microblaze/user.h              |   18 ++++++++++++++++++
+>> These are all just includes of asm-generic/* (hooray!).
+> 
+> Absolutely, but is it really necessary to have 14-16 lines of comment
+> (including a copyright notice) for a file whose single real line is just
+> to include another file?  i.e. reduce all these to 1 line files.
 
-Cheers,
-g.
+Can I do it? I think every file need license.
 
--- 
-Grant Likely, B.Sc., P.Eng.
-Secret Lab Technologies Ltd.
+M
