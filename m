@@ -1,50 +1,47 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [patch 1/2] read_barrier_depends fixlets
-Date: Tue, 06 May 2008 16:29:13 +0100
-Message-ID: <15818.1210087753@redhat.com>
-References: <20080505112021.GC5018@wotan.suse.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 36/56] microblaze_v2: dma support
+Date: Tue, 6 May 2008 17:36:16 +0200
+Message-ID: <200805061736.18180.arnd@arndb.de>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <200805061324.06282.arnd@arndb.de> <48205B0D.70202@seznam.cz>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([66.187.233.31]:43427 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755064AbYEFPaS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 May 2008 11:30:18 -0400
-In-Reply-To: <20080505112021.GC5018@wotan.suse.de>
+Received: from moutng.kundenserver.de ([212.227.126.171]:60066 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755992AbYEFPhB convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 11:37:01 -0400
+In-Reply-To: <48205B0D.70202@seznam.cz>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
-Cc: dhowells@redhat.com, Linus Torvalds <torvalds@linux-foundation.org>, Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Paul McKenney <paulmck@us.ibm.com>
+To: monstr@seznam.cz
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
 
-Nick Piggin <npiggin@suse.de> wrote:
+On Tuesday 06 May 2008, Michal Simek wrote:
+> here is proposed struct.
+>=20
+> struct scatterlist {
+> =A0 =A0 =A0 dma_addr_t =A0 =A0 =A0=A0=A0dma_address;
+> =A0 =A0 =A0 unsigned long=A0=A0=A0=A0=A0page_link;
+> #ifdef CONFIG_DEBUG_SG
+> =A0 =A0 =A0 unsigned long=A0=A0=A0=A0=A0sg_magic;
+> #endif
+> =A0 =A0 =A0 unsigned int =A0 =A0=A0=A0length;
+> =A0 =A0 =A0 unsigned int =A0 =A0=A0=A0offset;
+> };
+>=20
+> Is it OK now?
 
-> While considering the impact of read_barrier_depends, it occurred to
-> me that it should really be really a noop for the compiler.
+Everyone else has the sg_magic first, which makes sense for debugging.
+Don't worry about it too much, just use the same code as avr32, h8300,
+blackfin, fvr, mk68knommu, mn10300, sh, v850 and xtensa.
 
-If you're defining it so, then you need to adjust memory-barriers.txt too.
+These are all the same, but I just saw that they also have
 
-	========================
-	EXPLICIT KERNEL BARRIERS
-	========================
-	...
-	CPU MEMORY BARRIERS
-	-------------------
+#define sg_dma_address(sg)      ((sg)->dma_address)
+#define sg_dma_len(sg)          ((sg)->length)
 
-	The Linux kernel has eight basic CPU memory barriers:
+which you probably want as well.
 
-		TYPE		MANDATORY		SMP CONDITIONAL
-		===============	=======================	===========================
-		GENERAL		mb()			smp_mb()
-		WRITE		wmb()			smp_wmb()
-		READ		rmb()			smp_rmb()
-		DATA DEPENDENCY	read_barrier_depends()	smp_read_barrier_depends()
-
-
-	All CPU memory barriers unconditionally imply compiler barriers.
-
-That last line needs modification, perhaps to say:
-
-	General, read and write memory barriers unconditionally imply general
-	compiler barriers; data dependency barriers, however, imply a barrier
-	only for the specific access being performed due to the fact that the
-	instructions must be performed in a specific order.
-
-David
+	Arnd <><
