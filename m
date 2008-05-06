@@ -1,43 +1,28 @@
-From: "Grant Likely" <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 24/56] microblaze_v2: time support
-Date: Tue, 6 May 2008 08:28:20 -0600
-Message-ID: <fa686aa40805060728x2cb680e3y7338bacaa400ed1a@mail.gmail.com>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
-	 <1210033811.5798.188.camel@localhost> <48202C9E.7070800@seznam.cz>
-	 <200805061338.24870.arnd@arndb.de>
+From: Michal Simek <monstr@seznam.cz>
+Subject: LTP for no MMU systems
+Date: Tue, 06 May 2008 16:44:31 +0200
+Message-ID: <48206ECF.9090005@seznam.cz>
+Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759862AbYEFO2j@vger.kernel.org>
-In-Reply-To: <200805061338.24870.arnd@arndb.de>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: monstr@seznam.cz, John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:57192 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753203AbYEFOnQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 10:43:16 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-On Tue, May 6, 2008 at 5:38 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tuesday 06 May 2008, Michal Simek wrote:
->  > I saw a lot of comments about files but I have never seen any comments that
->  > any file is OK.
->  > Does it mean everything is broken??? I don't think so.
->
-<snip>
->
->  I think you're doing a great job on this. Any patch set of this size that
->  has been maintained for a long time outside of the kernel goes through this
->  phase where everyone tells you what to improve, based on their experience,
->  while everything you do right about the patches is just taken for granted.
->
->  Don't let yourself get discouraged by the negative comments, we're really
->  all just trying to help you do the right thing!
+Hi All,
 
-Let me add my voice to Arnd's.  This is a *big* task and you're
-handling it very well.
+I tested Microblaze MMU kernel for finding where could be problem. I have no
+problem with compilation. Microblaze MMU test result is on
+http://www.monstr.eu/wiki/doku.php?id=kernel:testing.
 
-Cheers,
-g.
+I would like to test no MMU kernel too. Does anyone use it for no MMU kernel?
+(Blackfin, m68k and others)
 
--- 
-Grant Likely, B.Sc., P.Eng.
-Secret Lab Technologies Ltd.
+Thanks for info,
+Michal
