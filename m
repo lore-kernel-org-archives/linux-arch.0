@@ -1,48 +1,38 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 45/56] microblaze_v2: headers simple files - empty or
- redirect to asm-generic
-Date: Tue, 06 May 2008 17:23:42 +0200
-Message-ID: <482077FE.7080201@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	<96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>	<92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>	<4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>	<49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>	<d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>	<27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>	<64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>	<9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>	<5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>	<59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.mons
- tr@monstr.eu>	<8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>	<1209954849.5798.80.camel@localhost> <20080507004702.d516a727.sfr@canb.auug.org.au>
+Subject: Re: LTP for no MMU systems
+Date: Tue, 06 May 2008 17:26:00 +0200
+Message-ID: <48207888.3070107@seznam.cz>
+References: <48206ECF.9090005@seznam.cz> <8bd0f97a0805060749j28cb6fe6wfbdf0d3948d2f417@mail.gmail.com>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-2
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:56165 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:60248 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756706AbYEFPW7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 11:22:59 -0400
-In-Reply-To: <20080507004702.d516a727.sfr@canb.auug.org.au>
+	with ESMTP id S1758099AbYEFPYp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 11:24:45 -0400
+In-Reply-To: <8bd0f97a0805060749j28cb6fe6wfbdf0d3948d2f417@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: John Williams <john.williams@petalogix.com>, monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
+To: Mike Frysinger <vapier.adi@gmail.com>
+Cc: Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-Hi,
+Hi Mike,
 
-> On Mon, 05 May 2008 12:34:09 +1000 John Williams <john.williams@petalogix.com> wrote:
+where is your repo with ltp and tests results?
+
+Thanks,
+Michal
+
+>>  I tested Microblaze MMU kernel for finding where could be problem. I have no
+>>  problem with compilation. Microblaze MMU test result is on
+>>  http://www.monstr.eu/wiki/doku.php?id=kernel:testing.
 >>
->>>  include/asm-microblaze/auxvec.h            |   14 ++++++++++++++
->>>  include/asm-microblaze/cputime.h           |   16 ++++++++++++++++
->>>  include/asm-microblaze/div64.h             |   16 ++++++++++++++++
->>>  include/asm-microblaze/emergency-restart.h |   16 ++++++++++++++++
->>>  include/asm-microblaze/errno.h             |   16 ++++++++++++++++
->>>  include/asm-microblaze/futex.h             |   16 ++++++++++++++++
->>>  include/asm-microblaze/kdebug.h            |   19 +++++++++++++++++++
->>>  include/asm-microblaze/local.h             |   16 ++++++++++++++++
->>>  include/asm-microblaze/mutex.h             |   16 ++++++++++++++++
->>>  include/asm-microblaze/namei.h             |   24 ++++++++++++++++++++++++
->>>  include/asm-microblaze/percpu.h            |   16 ++++++++++++++++
->>>  include/asm-microblaze/resource.h          |   16 ++++++++++++++++
->>>  include/asm-microblaze/user.h              |   18 ++++++++++++++++++
->> These are all just includes of asm-generic/* (hooray!).
+>>  I would like to test no MMU kernel too. Does anyone use it for no MMU kernel?
+>>  (Blackfin, m68k and others)
 > 
-> Absolutely, but is it really necessary to have 14-16 lines of comment
-> (including a copyright notice) for a file whose single real line is just
-> to include another file?  i.e. reduce all these to 1 line files.
-
-Can I do it? I think every file need license.
-
-M
+> yes, we run many of the tests under testcases/kernel/ on Blackfin
+> -mike
+> 
+> 
