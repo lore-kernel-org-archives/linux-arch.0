@@ -1,109 +1,55 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [microblaze-uclinux] [PATCH 09/56] microblaze_v2: cache support
-Date: Tue, 06 May 2008 11:22:27 +0200
-Message-ID: <48202353.9030402@seznam.cz>
-References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <2f801c33caee22e112af51ae927c264ce99ead01.1209897266.git.monstr@monstr.eu> <20080505173734.AB0E485805C@mail199-va3.bigfish.com>
+Subject: Re: [PATCH] Microblaze: implement dma-coherent API and refactor cache
+ flush code.
+Date: Tue, 06 May 2008 11:28:22 +0200
+Message-ID: <482024B6.5070704@seznam.cz>
+References: <20080505223706.1236C1C8004E@mail131-sin.bigfish.com>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:57783 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:64149 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1765335AbYEFJVZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:21:25 -0400
-In-Reply-To: <20080505173734.AB0E485805C@mail199-va3.bigfish.com>
+	with ESMTP id S1765677AbYEFJ10 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:27:26 -0400
+In-Reply-To: <20080505223706.1236C1C8004E@mail131-sin.bigfish.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
-Cc: microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, grant.likely@secretlab.ca
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, linux-kernel@vger.kernel.org
 
 Hi Steve,
 
-> The microblaze has a write through data cache, hence 'flush' is really a
-> misnomer here and interesting methods are 'invalidate'.  In addition,
-> most of these functions should be used directly by an implementation of
-> dma-coherent.c (which I can't find in your patches).  
+>  arch/microblaze/kernel/cpu/cache.c  |   37 +---------
+>  arch/microblaze/kernel/setup.c      |    4 +-
+>  arch/microblaze/mm/dma-coherent.c   |  122
 
-I removed consistent.c or dma-coherent.c from files. I don't need this code for
-now. Microblaze is currently no DMA arch.
-I know we need this to ll_temac work but not now. I added this to my plan after
-first pull.
+dma-coherent.c is dead for now.
+
+> diff --git a/arch/microblaze/kernel/setup.c
+> b/arch/microblaze/kernel/setup.c
+> index 43d53d9..241fb21 100644
+> --- a/arch/microblaze/kernel/setup.c
+> +++ b/arch/microblaze/kernel/setup.c
+> @@ -51,10 +51,10 @@ void __init setup_arch(char **cmdline_p)
+>  	/* irq_early_init(); */
+>  	setup_cpuinfo();
+>  
+> -	__flush_icache_all();
+> +	__invalidate_icache_all();
+>  	__enable_icache();
+>  
+> -	__flush_dcache_all();
+> +	__invalidate_icache_all();
+>  	__enable_dcache();
+
+here is bug.
+
+>  	panic_timeout = 120;
+> diff --git a/arch/microblaze/mm/dma-coherent.c
+> b/arch/microblaze/mm/dma-coherent.c
+
+removed.
 
 M
-
-> I'll try to cook up a patch for you with this today.
-> 
-> Steve
-> 
->> +#define flush_cache_all()			__flush_cache_all()
->> +#define flush_cache_mm(mm)			do { } while (0)
->> +#define flush_cache_range(vma, start, end)	__flush_cache_all()
->> +#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
->> +
->> +#define flush_dcache_range(start, end)
-> __flush_dcache_range(start, end)
->> +#define flush_dcache_page(page)		do { } while (0)
->> +#define flush_dcache_mmap_lock(mapping)		do { } while (0)
->> +#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
->> +
->> +#define flush_icache_range(start, len)
-> __flush_icache_range(start, len)
->> +#define flush_icache_page(vma, pg)		do { } while (0)
->> +#define flush_icache_user_range(start, len)	do { } while (0)
->> +
->> +#define flush_cache_vmap(start, end)		do { } while (0)
->> +#define flush_cache_vunmap(start, end)		do { } while (0)
->> +
->> +struct page;
->> +struct mm_struct;
->> +struct vm_area_struct;
->> +
->> +/* see arch/microblaze/kernel/cache.c */
->> +extern void __flush_icache_all(void);
->> +extern void __flush_icache_range(unsigned long start, unsigned long
-> end);
->> +extern void __flush_icache_page(struct vm_area_struct *vma, struct
-> page *page);
->> +extern void __flush_icache_user_range(struct vm_area_struct *vma,
->> +				struct page *page,
->> +				unsigned long adr, int len);
->> +extern void __flush_cache_sigtramp(unsigned long addr);
->> +
->> +extern void __flush_dcache_all(void);
->> +extern void __flush_dcache_range(unsigned long start, unsigned long
-> end);
->> +extern void __flush_dcache_page(struct vm_area_struct *vma, struct
-> page *page);
->> +extern void __flush_dcache_user_range(struct vm_area_struct *vma,
->> +				struct page *page,
->> +				unsigned long adr, int len);
->> +
->> +extern inline void __flush_cache_all(void)
->> +{
->> +	__flush_icache_all();
->> +	__flush_dcache_all();
->> +}
->> +
->> +#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
->> +do { memcpy(dst, src, len); \
->> +	flush_icache_user_range(vma, page, vaddr, len); \
->> +} while (0)
->> +#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
->> +	memcpy(dst, src, len)
->> +
->> +#endif /* _ASM_MICROBLAZE_CACHEFLUSH_H */
->> --
->> 1.5.4.GIT
->>
->> ___________________________
->> microblaze-uclinux mailing list
->> microblaze-uclinux@itee.uq.edu.au
->> Project Home Page :
-> http://www.itee.uq.edu.au/~jwilliams/mblaze-uclinux
->> Mailing List Archive :
-> http://www.itee.uq.edu.au/~listarch/microblaze-uclinux/
-> 
-> 
-> 
-> 
