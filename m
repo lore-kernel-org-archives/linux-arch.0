@@ -1,32 +1,41 @@
-From: "Mike Frysinger" <vapier.adi@gmail.com>
-Subject: Re: LTP for no MMU systems
-Date: Tue, 6 May 2008 10:49:04 -0400
-Message-ID: <8bd0f97a0805060749j28cb6fe6wfbdf0d3948d2f417@mail.gmail.com>
-References: <48206ECF.9090005@seznam.cz>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [patch 2/2] fix SMP data race in pagetable setup vs walking
+Date: Tue, 6 May 2008 07:53:23 -0700 (PDT)
+Message-ID: <alpine.LFD.1.10.0805060750430.32269@woody.linux-foundation.org>
+References: <20080505112021.GC5018@wotan.suse.de> <20080505121240.GD5018@wotan.suse.de> <alpine.LFD.1.10.0805050828120.32269@woody.linux-foundation.org> <20080506095138.GE10141@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from yw-out-2324.google.com ([74.125.46.30]:3290 "EHLO
-	yw-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754454AbYEFOto (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 10:49:44 -0400
-Received: by yw-out-2324.google.com with SMTP id 9so738699ywe.1
-        for <linux-arch@vger.kernel.org>; Tue, 06 May 2008 07:49:28 -0700 (PDT)
-In-Reply-To: <48206ECF.9090005@seznam.cz>
-Content-Disposition: inline
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:41861 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755139AbYEFOxs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 10:53:48 -0400
+In-Reply-To: <20080506095138.GE10141@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+To: Nick Piggin <npiggin@suse.de>
+Cc: Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Paul McKenney <paulmck@us.ibm.com>
 
-On Tue, May 6, 2008 at 10:44 AM, Michal Simek <monstr@seznam.cz> wrote:
->  I tested Microblaze MMU kernel for finding where could be problem. I have no
->  problem with compilation. Microblaze MMU test result is on
->  http://www.monstr.eu/wiki/doku.php?id=kernel:testing.
->
->  I would like to test no MMU kernel too. Does anyone use it for no MMU kernel?
->  (Blackfin, m68k and others)
 
-yes, we run many of the tests under testcases/kernel/ on Blackfin
--mike
+
+On Tue, 6 May 2008, Nick Piggin wrote:
+> 
+> Right. As the comment says, the x86 stuff is kind of a "reference"
+> implementation, although if you prefer it isn't there, then I I can
+> easily just make it alpha only.
+
+If there really was a point in teaching people about 
+"read_barrier_depends()", I'd agree that it's probably good to have it as 
+a reference in the x86 implementation.
+
+But since alpha is the only one that needs it, and is likely to remain so, 
+it's not like we ever want to copy that code to anything else, and it 
+really is better to make it alpha-only if the code is so much uglier.
+
+Maybe just a comment?
+
+As to the ACCESS_ONCE() thing, thinking about it some more, I doubt it 
+really matters. We're never going to change pgd anyway, so who cares if we 
+access it once or a hundred times?
+
+			Linus
