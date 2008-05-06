@@ -1,46 +1,49 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: RE: [PATCH] Microblaze: implement dma-coherent API andrefactorcache
- flush code.
-Date: Tue, 6 May 2008 09:23:38 +0200 (CEST)
-Message-ID: <Pine.LNX.4.64.0805060923100.3160@anakin>
-References: <20080505223706.1236C1C8004E@mail131-sin.bigfish.com>
- <1210028237.5798.121.camel@localhost> <20080505231206.922A61C780C0@mail19-wa4.bigfish.com>
- <1210032899.5798.179.camel@localhost> <20080506003104.4717D19B8050@mail213-sin.bigfish.com>
+From: Michal Simek <monstr@seznam.cz>
+Subject: Re: [PATCH 04/56] microblaze_v2: Open firmware files
+Date: Tue, 06 May 2008 09:27:23 +0200
+Message-ID: <4820085B.5010205@seznam.cz>
+References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu> <20080505215613.A5B3D18D004F@mail151-sin.bigfish.com>
+Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wilson.telenet-ops.be ([195.130.132.42]:54784 "EHLO
-	wilson.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752819AbYEFHXp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 03:23:45 -0400
-In-Reply-To: <20080506003104.4717D19B8050@mail213-sin.bigfish.com>
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:62847 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753785AbYEFH0f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 03:26:35 -0400
+In-Reply-To: <20080505215613.A5B3D18D004F@mail151-sin.bigfish.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
-Cc: John Williams <john.williams@petalogix.com>, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>, linux-kernel@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-On Mon, 5 May 2008, Stephen Neuendorffer wrote:
-> > -----Original Message-----
-> > From: John Williams [mailto:john.williams@petalogix.com]
-> > 
-> > Sure - what I meant is can dma_alloc just call kmalloc to do it's
-> work?
+In prom.h is it. prom_parse.c of_device.c and of_platform.c will be in drivers/of/
+
+M
+
+> Michal,
 > 
-> I scanned through Linux Device Drivers, and it appears that calling
-> get_free_pages is:
-> 1) more efficient than kmalloc for large allocations
-> 2) allocates physically contiguous memory, which kmalloc doesn't
-> necessarily do if there's an mmu.
-
-kmalloc() allocates physically contiguous memory, vmalloc() doesn't.
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+> You're missing some of the stuff implemented in powerpc/prom_parse.c, in
+> particular this:
+> 
+> Steve
+> 
+>> +/**
+>> + * of_irq_map_one - Resolve an interrupt for a device
+>> + * @device:	the device whose interrupt is to be resolved
+>> + * @index:	index of the interrupt to resolve
+>> + * @out_irq:	structure of_irq filled by this function
+>> + *
+>> + * This function resolves an interrupt, walking the tree, for a given
+>> + * device-tree node. It's the high level pendant to of_irq_map_raw().
+>> + * It also implements the workarounds for OldWolrd Macs.
+>> + */
+>> +extern int of_irq_map_one(struct device_node *device, int index,
+>> +			struct of_irq *out_irq);
+>> +
+> 
+> 
+> 
+> 
+> 
