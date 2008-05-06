@@ -1,83 +1,38 @@
-From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 24/56] microblaze_v2: time support
-Date: Tue, 06 May 2008 11:56:51 +0200
-Message-ID: <48202B63.2050101@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>	 <d883a8d8da812d77fefd47730d28d0bdb7b504e0.1209897266.git.monstr@monstr.eu>	 <625ef466cf121d655539eedc919dd39166087e0c.1209897266.git.monstr@monstr.eu>	 <b5067a1846075ddd1035966ea1edc908579e2e88.1209897266.git.monstr@monstr.eu>	 <378157891bac535dbc55e658d5f03fdd332e85cf.1209897266.git.monstr@monstr.eu>	 <eadcc6f4754df78b69d6d54c404624d0390c8558.1209897266.git.monstr@monstr.eu>	 <4df4022e06b9056202cc2fdf0b99deb01563a0fa.1209897266.git.monstr@monstr.eu>	 <6b0c9864dc80776ae48d6488a6892e5d698751b7.1209897266.git.monstr@monstr.eu>	 <ea5cbbca49c38c506960fddba29cbd8cb24e1a8d.1209897266.git.monstr@monstr.eu>	 <4f4d6ed3fce9b21cdd6dcacb2d72fff7e9830628.1209897266.git.monstr@monstr.eu>	 <35e662a81eb86c7ffb2aaa6141ca38a07789f382.120989726
- 6.git.monstr@monstr.eu>	 <1209953949.5798.66.camel@localhost>  <481F1830.5090309@seznam.cz> <1210033811.5798.188.camel@localhost>
-Reply-To: monstr@seznam.cz
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [patch 2/2] fix SMP data race in pagetable setup vs walking
+Date: Tue, 6 May 2008 11:56:13 +0200
+Message-ID: <20080506095613.GG10141@wotan.suse.de>
+References: <20080505112021.GC5018@wotan.suse.de> <20080505121240.GD5018@wotan.suse.de> <20080506.000803.80742226.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-2
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:58016 "EHLO
-	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753197AbYEFJzt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:55:49 -0400
-In-Reply-To: <1210033811.5798.188.camel@localhost>
+Received: from ns.suse.de ([195.135.220.2]:42232 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754332AbYEFJ4Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 May 2008 05:56:16 -0400
+Content-Disposition: inline
+In-Reply-To: <20080506.000803.80742226.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Williams <john.williams@petalogix.com>
-Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
+To: David Miller <davem@davemloft.net>
+Cc: torvalds@linux-foundation.org, hugh@veritas.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, paulmck@us.ibm.com
 
-Hi John,
-
-> Hi Michal,
+On Tue, May 06, 2008 at 12:08:03AM -0700, David Miller wrote:
+> From: Nick Piggin <npiggin@suse.de>
+> Date: Mon, 5 May 2008 14:12:40 +0200
 > 
-> On Mon, 2008-05-05 at 16:22 +0200, Michal Simek wrote:
->> Hi John,
->>
->> you wrote me you have smarter implementation that xilinx did. Can you find it
->> and send me it?
+> > I only converted x86 and powerpc. I think comments in x86 are good because
+> > that is more or less the reference implementation and is where many VM
+> > developers would look to understand mm/ code. Commenting all page table
+> > walking in all other architectures is kind of beyond my skill or patience,
+> > and maintainers might consider this weird "alpha thingy" is below them ;)
+> > But they are quite free to add smp_read_barrier_depends to their own code.
+> > 
+> > Still would like more acks on this before it is applied.
 > 
-> It's not much (any?) better?  One less multiply I think?  Attached
-> anyway - feel free to discard for now.
+> I've read this over a few times, I think it's OK:
 > 
-> We could do a nice asm implementation with the optional mulhi
-> instruction, but that can wait.
-> 
-> Cheers,
-> 
-> John
+> Acked-by: David S. Miller <davem@davemloft.net>
 
-+extern __inline__ void __udelay(unsigned int x)
- {
--	unsigned long long tmp = usec;
--	unsigned long loops = (tmp * 4295 * HZ * loops_per_jiffy) >> 32;
-+	unsigned long long tmp=(unsigned long long)x*(unsigned long
-long)loops_per_jiffy*226LL;
-+	unsigned loops=tmp>>32;
-+
- 	__delay(loops);
- }
-
--#endif /* _ASM_MICROBLAZE_DELAY_H */
-+extern __inline__ void __ndelay(unsigned int x)
-+{
-+	unsigned long long tmp=(unsigned long long)x*(unsigned long
-long)loops_per_jiffy*226LL;
-+	unsigned loops=tmp>>32;
-+
-+	__delay(loops);
-+}
-
-Why is __ndelay implementation the same with __udelay? This is weird for me.
-
-+
-+extern void __bad_udelay(void);		/* deliberately undefined */
-+extern void __bad_ndelay(void);		/* deliberately undefined */
-
-Are these function used anywhere?
-
-+#define udelay(n) (__builtin_constant_p(n)? \
-+	((n) > __MAX_UDELAY? __bad_udelay(): __udelay((n) * (19 * HZ))) : \
-+	__udelay((n) * (19 * HZ)))
-+
-+#define ndelay(n) (__builtin_constant_p(n)? \
-+	((n) > __MAX_NDELAY? __bad_ndelay(): __ndelay((n) * HZ)) : \
-+	__ndelay((n) * HZ))
-
-+#define muldiv(a, b, c)    (((a)*(b))/(c))
-
-muldiv: Where is this use?
-
-Michal
+Thanks a lot for that (and the others who reviewed). Gives me more
+confidence.
