@@ -1,35 +1,46 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [patch 2/2] fix SMP data race in pagetable setup vs walking
-Date: Tue, 06 May 2008 00:08:03 -0700 (PDT)
-Message-ID: <20080506.000803.80742226.davem@davemloft.net>
-References: <20080505112021.GC5018@wotan.suse.de>
-	<20080505121240.GD5018@wotan.suse.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: RE: [PATCH] Microblaze: implement dma-coherent API andrefactorcache
+ flush code.
+Date: Tue, 6 May 2008 09:23:38 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0805060923100.3160@anakin>
+References: <20080505223706.1236C1C8004E@mail131-sin.bigfish.com>
+ <1210028237.5798.121.camel@localhost> <20080505231206.922A61C780C0@mail19-wa4.bigfish.com>
+ <1210032899.5798.179.camel@localhost> <20080506003104.4717D19B8050@mail213-sin.bigfish.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:38872
-	"EHLO sunset.davemloft.net" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752819AbYEFHID (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 03:08:03 -0400
-In-Reply-To: <20080505121240.GD5018@wotan.suse.de>
+Received: from wilson.telenet-ops.be ([195.130.132.42]:54784 "EHLO
+	wilson.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752819AbYEFHXp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 03:23:45 -0400
+In-Reply-To: <20080506003104.4717D19B8050@mail213-sin.bigfish.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: npiggin@suse.de
-Cc: torvalds@linux-foundation.org, hugh@veritas.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, paulmck@us.ibm.com
+To: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
+Cc: John Williams <john.williams@petalogix.com>, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>, linux-kernel@vger.kernel.org
 
-From: Nick Piggin <npiggin@suse.de>
-Date: Mon, 5 May 2008 14:12:40 +0200
-
-> I only converted x86 and powerpc. I think comments in x86 are good because
-> that is more or less the reference implementation and is where many VM
-> developers would look to understand mm/ code. Commenting all page table
-> walking in all other architectures is kind of beyond my skill or patience,
-> and maintainers might consider this weird "alpha thingy" is below them ;)
-> But they are quite free to add smp_read_barrier_depends to their own code.
+On Mon, 5 May 2008, Stephen Neuendorffer wrote:
+> > -----Original Message-----
+> > From: John Williams [mailto:john.williams@petalogix.com]
+> > 
+> > Sure - what I meant is can dma_alloc just call kmalloc to do it's
+> work?
 > 
-> Still would like more acks on this before it is applied.
+> I scanned through Linux Device Drivers, and it appears that calling
+> get_free_pages is:
+> 1) more efficient than kmalloc for large allocations
+> 2) allocates physically contiguous memory, which kmalloc doesn't
+> necessarily do if there's an mmu.
 
-I've read this over a few times, I think it's OK:
+kmalloc() allocates physically contiguous memory, vmalloc() doesn't.
 
-Acked-by: David S. Miller <davem@davemloft.net>
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
