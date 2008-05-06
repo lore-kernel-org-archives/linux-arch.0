@@ -1,71 +1,80 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH 07/56] microblaze_v2: Signal support
-Date: Tue, 06 May 2008 11:41:15 +0200
-Message-ID: <482027BB.3090705@monstr.eu>
-References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu> <20080505213244.8DC757A0084@mail70-wa4.bigfish.com> <1210030436.5798.148.camel@localhost> <20080506001339.619971A58057@mail55-wa4.bigfish.com> <1210033550.5798.185.camel@localhost> <20080506003341.AFA5911E804F@mail138-va3.bigfish.com>
-Reply-To: monstr@seznam.cz
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 36/56] microblaze_v2: dma support
+Date: Tue, 6 May 2008 11:48:47 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0805061142230.10091@anakin>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
+ <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu>
+ <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu>
+ <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu>
+ <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu>
+ <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu>
+ <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu>
+ <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu>
+ <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu>
+ <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
+ <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
+ <1209954350.5798.71.camel@localhost> <Pine.LNX.4.64.0805050844560.2615@anakin>
+ <482021E1.70902@seznam.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:64630 "EHLO
-	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1761199AbYEFJk0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:40:26 -0400
-In-Reply-To: <20080506003341.AFA5911E804F@mail138-va3.bigfish.com>
+Received: from monty.telenet-ops.be ([195.130.132.56]:36866 "EHLO
+	monty.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752330AbYEFJsy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:48:54 -0400
+In-Reply-To: <482021E1.70902@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>
-Cc: John Williams <john.williams@petalogix.com>, monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
+To: Michal Simek <monstr@seznam.cz>
+Cc: John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-I hope that conclusion is remove #if 0 from signal.c code.
+On Tue, 6 May 2008, Michal Simek wrote:
+> > On Mon, 5 May 2008, John Williams wrote:
+> >>> +++ b/include/asm-microblaze/scatterlist.h
+> >>> @@ -0,0 +1,21 @@
+> >>> +/*
+> >>> + * include/asm-microblaze/scatterlist.h
+> >>> + *
+> >>> + * This file is subject to the terms and conditions of the GNU General Public
+> >>> + * License. See the file "COPYING" in the main directory of this archive
+> >>> + * for more details.
+> >>> + *
+> >>> + * Copyright (C) 2006 Atmark Techno, Inc.
+> >>> + */
+> >>> +
+> >>> +#ifndef _ASM_MICROBLAZE_SCATTERLIST_H
+> >>> +#define _ASM_MICROBLAZE_SCATTERLIST_H
+> >>> +
+> >>> +struct scatterlist {
+> >>> +	unsigned long page_link;
+> >>> +	unsigned int	offset;
+> >>> +	dma_addr_t	dma_address;
+> >>> +	unsigned int	length;
+> >>> +};
+> >>> +
+> >>> +#endif /* _ASM_MICROBLAZE_SCATTERLIST_H */
+> >> Is this worthy of promotion to asm-generic/scatterlist.h?
+> > 
+> > after moving dma_address one position up in the structure, as dma_addr_t may be
+> > 64-bit?
+> 
+> dma_addr_t is defined in types.h. If your arch want to use 64bit addr, you can
+> define it in types.h.
 
-M
+Sorry for not making myself clear: If unsigned long and dma_addr_t are 64-bit,
+there may be a hole in between offset and dma_address, due to alignment
+restrictions. So it's better to move dma_address up.
 
+As dma_addr_t may be 64-bit even on 32-bit architectures, it may be best
+to move it even to the start of the structure.
 
-> You're right.  (I think I've been staring at this too much today... :)
-> 
-> Steve
-> 
->> -----Original Message-----
->> From: John Williams [mailto:john.williams@petalogix.com]
->> Sent: Monday, May 05, 2008 5:26 PM
->> To: Stephen Neuendorffer
->> Cc: monstr@seznam.cz; linux-kernel@vger.kernel.org; arnd@arndb.de;
-> linux-arch@vger.kernel.org; John
->> Linn; matthew@wil.cx; will.newton@gmail.com; drepper@redhat.com;
-> microblaze-uclinux@itee.uq.edu.au;
->> grant.likely@secretlab.ca; Michal Simek
->> Subject: RE: [PATCH 07/56] microblaze_v2: Signal support
->>
->> On Mon, 2008-05-05 at 17:13 -0700, Stephen Neuendorffer wrote:
->>> I'm somewhat ignorant about what this code is attempting to do, but
-> with
->>> some quick poking around (m68knommu, blackfin) seems to suggest that
->>> other architectures don't do this, while others (v850) have almost
->>> exactly the same code (although they are somewhat smarter and are
->>> careful not to flush the whole cache).
->>>
->>> At the very least, it seems like there is some work in this area
-> needed.
->> flush_cache_sigtramp should just invalidate 8 bytes up from the base
->> address of the trampoline.  This is just the region on the process
-> stack
->> where we insert a kind of call-back back.  Writing the opcodes goes
-> via
->> the dcache, and so there's a vanishingly small possibility that the
-> CPU
->> will get a false hit on on an icache fetch when the code is executed.
->>
->> That was what Michal's patch had when I scanned it yesterday.  It
->> certainly won't/shouldn't be invalidating the entire cache.
->>
->> Cheers,
->>
->> John
->>
->>
-> 
-> 
-> 
-> 
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
