@@ -1,47 +1,47 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 36/56] microblaze_v2: dma support
-Date: Tue, 6 May 2008 13:24:04 +0200
-Message-ID: <200805061324.06282.arnd@arndb.de>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <48202AB6.4010201@seznam.cz> <Pine.LNX.4.64.0805061317120.10091@anakin>
+Subject: Re: [PATCH 24/56] microblaze_v2: time support
+Date: Tue, 6 May 2008 13:38:23 +0200
+Message-ID: <200805061338.24870.arnd@arndb.de>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <1210033811.5798.188.camel@localhost> <48202C9E.7070800@seznam.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+  charset="iso-8859-2"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:60464 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.187]:50024 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752631AbYEFLZA convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 07:25:00 -0400
-In-Reply-To: <Pine.LNX.4.64.0805061317120.10091@anakin>
+	with ESMTP id S1752071AbYEFLjA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 07:39:00 -0400
+In-Reply-To: <48202C9E.7070800@seznam.cz>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Michal Simek <monstr@seznam.cz>, John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+To: monstr@seznam.cz
+Cc: John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
 
-On Tuesday 06 May 2008, Geert Uytterhoeven wrote:
-> > struct scatterlist {
-> > =A0=A0=A0=A0=A0=A0unsigned long page_link;
-> > =A0=A0=A0=A0=A0=A0unsigned int=A0=A0=A0=A0offset;
-> > =A0=A0=A0=A0=A0=A0unsigned int=A0=A0=A0=A0length;
-> > =A0=A0=A0=A0=A0=A0dma_addr_t=A0=A0=A0=A0=A0=A0dma_address;
-> > };
->=20
-> If unsigned long is 32-bit but dma_addr_t is 64-bit, there may be a g=
-ap
-> between length and dma_address.
->=20
+On Tuesday 06 May 2008, Michal Simek wrote:
+> I saw a lot of comments about files but I have never seen any comments that
+> any file is OK.
+> Does it mean everything is broken??? I don't think so.
 
-But moving dma_address to the front only has the effect to create impli=
-cit
-padding at the end of struct scatterlist, so you don't gain anything
-either way.
+I've commented mostly on the header files defining the ABI. Since my aim
+is to have the ABI definition entirely in asm-generic/*.h, every exported
+file that has more than one line in it should be changed.
 
-It's only an internal definition that can be changed at any time withou=
-t
-breaking applications, so I wouldn't worry about it, and better leave
-it identical to the other architectures.
+The files that implement the architecture support itself all look good
+to me, but since I'm not familiar with the architecture, I'm not trying
+to comment on them.
 
-The one thing that should indeed be changed is the addition of
-'unsigned long sg_magic' that is needed for CONFIG_DEBUG_SG.
+I think you're doing a great job on this. Any patch set of this size that
+has been maintained for a long time outside of the kernel goes through this
+phase where everyone tells you what to improve, based on their experience,
+while everything you do right about the patches is just taken for granted.
+
+Don't let yourself get discouraged by the negative comments, we're really
+all just trying to help you do the right thing!
+
+> I'll integrate reported bugs and send microblaze_v3 version.
+
+Ok, thanks!
 
 	Arnd <><
