@@ -1,56 +1,58 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 46/56] microblaze_v2: headers files entry.h current.h
- mman.h registers.h sembuf.h
-Date: Tue, 06 May 2008 11:07:16 +0200
-Message-ID: <48201FC4.9040809@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu> <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu> <200805051154.28761.arnd@arndb.de>
+Subject: Re: [PATCH 36/56] microblaze_v2: dma support
+Date: Tue, 06 May 2008 11:16:17 +0200
+Message-ID: <482021E1.70902@seznam.cz>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <14acb31da2794d2d5916da3db3d75fe2285ac055.1209897266.git.monstr@monstr.eu> <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu> <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu> <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu> <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu> <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu> <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu> <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu> <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu> <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.mons
+ tr@monstr.eu> <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu> <1209954350.5798.71.camel@localhost> <Pine.LNX.4.64.0805050844560.2615@anakin>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:56501 "EHLO
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:64568 "EHLO
 	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1761537AbYEFJGN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:06:13 -0400
-In-Reply-To: <200805051154.28761.arnd@arndb.de>
+	with ESMTP id S1764807AbYEFJPc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 05:15:32 -0400
+In-Reply-To: <Pine.LNX.4.64.0805050844560.2615@anakin>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
 
-Hi Arnd,
+Hi Geert,
 
-I keep mman.h in this style. I see the best way push microblaze to mainline and
-then synchronize all these files together among all archs.
-
-I'll add it to my future list.
-
-M
-
-
-> On Sunday 04 May 2008, monstr@seznam.cz wrote:
->> +#ifndef _ASM_MICROBLAZE_MMAN_H
->> +#define _ASM_MICROBLAZE_MMAN_H
->> +
->> +#include <asm-generic/mman.h>
->> +
->> +#define MAP_GROWSDOWN  0x0100 /* stack-like segment */
->> +#define MAP_DENYWRITE  0x0800 /* ETXTBSY */
->> +#define MAP_EXECUTABLE 0x1000 /* mark it as an executable */
->> +#define MAP_LOCKED     0x2000 /* pages are locked */
->> +#define MAP_NORESERVE  0x4000 /* don't check for reservations */
->> +#define MAP_POPULATE   0x8000 /* populate (prefault) pagetables */
->> +#define MAP_NONBLOCK   0x10000 /* do not block on IO */
->> +
->> +#define MCL_CURRENT    1 /* lock all current mappings */
->> +#define MCL_FUTURE     2 /* lock all future mappings */
->> +
->> +#endif /* _ASM_MICROBLAZE_MMAN_H */
+> On Mon, 5 May 2008, John Williams wrote:
+>>> +++ b/include/asm-microblaze/scatterlist.h
+>>> @@ -0,0 +1,21 @@
+>>> +/*
+>>> + * include/asm-microblaze/scatterlist.h
+>>> + *
+>>> + * This file is subject to the terms and conditions of the GNU General Public
+>>> + * License. See the file "COPYING" in the main directory of this archive
+>>> + * for more details.
+>>> + *
+>>> + * Copyright (C) 2006 Atmark Techno, Inc.
+>>> + */
+>>> +
+>>> +#ifndef _ASM_MICROBLAZE_SCATTERLIST_H
+>>> +#define _ASM_MICROBLAZE_SCATTERLIST_H
+>>> +
+>>> +struct scatterlist {
+>>> +	unsigned long page_link;
+>>> +	unsigned int	offset;
+>>> +	dma_addr_t	dma_address;
+>>> +	unsigned int	length;
+>>> +};
+>>> +
+>>> +#endif /* _ASM_MICROBLAZE_SCATTERLIST_H */
+>> Is this worthy of promotion to asm-generic/scatterlist.h?
 > 
-> I think we should come up with a good way to fold these into the
-> asm-generic header, as half the architectures use the same values
-> for them, in addition to what is already shared.
-> 
-> 	Arnd <><
-> 
+> after moving dma_address one position up in the structure, as dma_addr_t may be
+> 64-bit?
+
+dma_addr_t is defined in types.h. If your arch want to use 64bit addr, you can
+define it in types.h.
+
+I keep scatterlist.h in asm-microblaze. Adding to asm-generic later.
+
+Michal
