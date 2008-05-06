@@ -1,49 +1,46 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 46/56] microblaze_v2: headers files entry.h current.h
- mman.h registers.h sembuf.h
-Date: Tue, 6 May 2008 22:57:31 +0200 (CEST)
-Message-ID: <Pine.LNX.4.64.0805062256110.6341@anakin>
+From: John Williams <john.williams@petalogix.com>
+Subject: Re: [PATCH 24/56] microblaze_v2: time support
+Date: Wed, 07 May 2008 08:50:15 +1000
+Message-ID: <1210114215.5798.194.camel@localhost>
 References: <1209901305-6404-1-git-send-email-monstr@seznam.cz>
- <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu>
- <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu>
- <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu>
- <49eccf3408b90a5ebb42635493bbeef3b584acb9.1209897266.git.monstr@monstr.eu>
- <d1e4a572d2add458e1dc7c4f5a3039ae4faa2c04.1209897266.git.monstr@monstr.eu>
- <27d6acda14c492aae35d8bb1343a122624560418.1209897266.git.monstr@monstr.eu>
- <64e6fc7378cd5c714fcceef7d4965c1fb3d1b288.1209897266.git.monstr@monstr.eu>
- <9cc0d54a98f25748dc3f16fc3250524d7cd00877.1209897266.git.monstr@monstr.eu>
- <5d240127ee05c28d5156bfbf305329f9540f6c14.1209897267.git.monstr@monstr.eu>
- <59b5238f7a259dcac4c9ca6513756a188625462e.1209897267.git.monstr@monstr.eu>
- <8e1d421649250f7a3f638cd552bc46e5f5845890.1209897267.git.monstr@monstr.eu>
- <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
+	 <1210033811.5798.188.camel@localhost> <48202C9E.7070800@seznam.cz>
+	 <200805061338.24870.arnd@arndb.de>  <48205C71.1000401@seznam.cz>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from winston.telenet-ops.be ([195.130.137.75]:40167 "EHLO
-	winston.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1764787AbYEFU5h (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 16:57:37 -0400
-In-Reply-To: <5b1319d426b1f55e08402790b4bc16a33ec7c00c.1209897267.git.monstr@monstr.eu>
+Received: from uki.us.mooball.net ([66.98.178.13]:50513 "EHLO
+	uki.us.mooball.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933331AbYEFWvI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 18:51:08 -0400
+In-Reply-To: <48205C71.1000401@seznam.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@seznam.cz
-Cc: Linux Kernel Development <linux-kernel@vger.kernel.org>, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
 
-On Sun, 4 May 2008, monstr@seznam.cz wrote:
-> --- /dev/null
-> +++ b/include/asm-microblaze/sembuf.h
-                    ^^^^^^^^^^
-> + * The semid64_ds structure for m68k architecture.
-                                   ^^^^
-You also want to update these, to avoid triggering my attention ;-)
+Hi Michal,
 
-Gr{oetje,eeting}s,
+On Tue, 2008-05-06 at 15:26 +0200, Michal Simek wrote:
 
-						Geert
+> I am not discouraged from negative comments. I got school from Wolfgang Denk on
+> U-BOOT project. (Thanks Wolfgang :-))
+> 
+> I only want to direct this to right way. That's all. And positive ACK to some
+> files give me better view what's wrong. :-)
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+I'd like to echo the other comments so far -you are doing a great job.
+I'd take silence on a patch as cautious agreement - like Steve I'm
+waiting for the dust to settle to do a build and boot test (probably on
+v3 of your patchset).
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+Most of this code has been running happily for >18 months in the
+PetaLogix 2.6.20 kernel, and you tested your OF changes pretty well over
+Oct-Jan.  So, I'm happy enough with the underlying implementation, it's
+really just a case of meeting the kernel.org gatekeeper's standards.
+
+The syscall interface is the last prickly one, but we'll get there.
+
+Cheers,
+
+John
