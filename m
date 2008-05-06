@@ -1,47 +1,31 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 36/56] microblaze_v2: dma support
-Date: Tue, 6 May 2008 17:36:16 +0200
-Message-ID: <200805061736.18180.arnd@arndb.de>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <200805061324.06282.arnd@arndb.de> <48205B0D.70202@seznam.cz>
+From: "Mike Frysinger" <vapier.adi@gmail.com>
+Subject: Re: LTP for no MMU systems
+Date: Tue, 6 May 2008 11:37:58 -0400
+Message-ID: <8bd0f97a0805060837x530bc130vd5b15392d5549c3d@mail.gmail.com>
+References: <48206ECF.9090005@seznam.cz>
+	 <8bd0f97a0805060749j28cb6fe6wfbdf0d3948d2f417@mail.gmail.com>
+	 <48207888.3070107@seznam.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:60066 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755992AbYEFPhB convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 11:37:01 -0400
-In-Reply-To: <48205B0D.70202@seznam.cz>
+Received: from el-out-1112.google.com ([209.85.162.178]:16676 "EHLO
+	el-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760697AbYEFPiD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2008 11:38:03 -0400
+Received: by el-out-1112.google.com with SMTP id n30so881844elf.21
+        for <linux-arch@vger.kernel.org>; Tue, 06 May 2008 08:37:59 -0700 (PDT)
+In-Reply-To: <48207888.3070107@seznam.cz>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: monstr@seznam.cz
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
+Cc: Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-On Tuesday 06 May 2008, Michal Simek wrote:
-> here is proposed struct.
->=20
-> struct scatterlist {
-> =A0 =A0 =A0 dma_addr_t =A0 =A0 =A0=A0=A0dma_address;
-> =A0 =A0 =A0 unsigned long=A0=A0=A0=A0=A0page_link;
-> #ifdef CONFIG_DEBUG_SG
-> =A0 =A0 =A0 unsigned long=A0=A0=A0=A0=A0sg_magic;
-> #endif
-> =A0 =A0 =A0 unsigned int =A0 =A0=A0=A0length;
-> =A0 =A0 =A0 unsigned int =A0 =A0=A0=A0offset;
-> };
->=20
-> Is it OK now?
+On Tue, May 6, 2008 at 11:26 AM, Michal Simek <monstr@seznam.cz> wrote:
+>  where is your repo with ltp and tests results?
 
-Everyone else has the sg_magic first, which makes sense for debugging.
-Don't worry about it too much, just use the same code as avr32, h8300,
-blackfin, fvr, mk68knommu, mn10300, sh, v850 and xtensa.
-
-These are all the same, but I just saw that they also have
-
-#define sg_dma_address(sg)      ((sg)->dma_address)
-#define sg_dma_len(sg)          ((sg)->length)
-
-which you probably want as well.
-
-	Arnd <><
+we just pull down the LTP releases and any fixes/changes that need to
+be made, i commit back upstream.  as for results, i'll have to ask our
+testers.
+-mike
