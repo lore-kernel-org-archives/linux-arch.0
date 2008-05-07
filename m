@@ -1,19 +1,22 @@
 From: akpm@linux-foundation.org
-Subject: + flag-parameters-inotify_init.patch added to -mm tree
-Date: Wed, 07 May 2008 15:05:56 -0700
-Message-ID: <200805072205.m47M5uGZ018859@imap1.linux-foundation.org>
-Reply-To: linux-kernel@vger.kernel.org
-Return-path: <mm-commits-owner@vger.kernel.org>
-Sender: mm-commits-owner@vger.kernel.org
+Subject: + flag-parameters-signalfd.patch added to -mm tree
+Date: Wed, 07 May 2008 15:05:39 -0700
+Message-ID: <200805072205.m47M5dh3018837@imap1.linux-foundation.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:40607 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1760423AbYEGWGN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2008 18:06:13 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: mm-commits@vger.kernel.org
 Cc: drepper@redhat.com, davidel@xmailserver.org, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com
-List-Id: linux-arch.vger.kernel.org
 
 
 The patch titled
-     flag parameters: inotify_init
+     flag parameters: signalfd
 has been added to the -mm tree.  Its filename is
-     flag-parameters-inotify_init.patch
+     flag-parameters-signalfd.patch
 
 Before you just go and hit "reply", please:
    a) Consider who else should be cc'ed
@@ -29,44 +32,49 @@ out what to do about this
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: flag parameters: inotify_init
+Subject: flag parameters: signalfd
 From: Ulrich Drepper <drepper@redhat.com>
 
-This patch introduces the new syscall inotify_init1 (note: the 1 stands for
-the one parameter the syscall takes, as opposed to no parameter before).  The
-values accepted for this parameter are function-specific and defined in the
-inotify.h header.  Here the values must match the O_* flags, though.  In this
-patch CLOEXEC support is introduced.
+This patch adds the new signalfd4 syscall.  It extends the old signalfd
+syscall by one parameter which is meant to hold a flag value.  In this
+patch the only flag support is SFD_CLOEXEC which causes the close-on-exec
+flag for the returned file descriptor to be set.
+
+A new name SFD_CLOEXEC is introduced which in this implementation must
+have the same value as O_CLOEXEC.
 
 The following test must be adjusted for architectures other than x86 and
 x86-64 and in case the syscall numbers changed.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 
-#ifndef __NR_inotify_init1
+#ifndef __NR_signalfd4
 # ifdef __x86_64__
-#  define __NR_inotify_init1 294
+#  define __NR_signalfd4 289
 # elif defined __i386__
-#  define __NR_inotify_init1 332
+#  define __NR_signalfd4 327
 # else
-#  error "need __NR_inotify_init1"
+#  error "need __NR_signalfd4"
 # endif
 #endif
 
-#define IN_CLOEXEC O_CLOEXEC
+#define SFD_CLOEXEC O_CLOEXEC
 
 int
 main (void)
 {
-  int fd;
-  fd = syscall (__NR_inotify_init1, 0);
+  sigset_t ss;
+  sigemptyset (&ss);
+  sigaddset (&ss, SIGUSR1);
+  int fd = syscall (__NR_signalfd4, -1, &ss, 8, 0);
   if (fd == -1)
     {
-      puts ("inotify_init1(0) failed");
+      puts ("signalfd4(0) failed");
       return 1;
     }
   int coe = fcntl (fd, F_GETFD);
@@ -77,15 +85,15 @@ main (void)
     }
   if (coe & FD_CLOEXEC)
     {
-      puts ("inotify_init1(0) set close-on-exit");
+      puts ("signalfd4(0) set close-on-exec flag");
       return 1;
     }
   close (fd);
 
-  fd = syscall (__NR_inotify_init1, IN_CLOEXEC);
+  fd = syscall (__NR_signalfd4, -1, &ss, 8, SFD_CLOEXEC);
   if (fd == -1)
     {
-      puts ("inotify_init1(IN_CLOEXEC) failed");
+      puts ("signalfd4(SFD_CLOEXEC) failed");
       return 1;
     }
   coe = fcntl (fd, F_GETFD);
@@ -96,7 +104,7 @@ main (void)
     }
   if ((coe & FD_CLOEXEC) == 0)
     {
-      puts ("inotify_init1(O_CLOEXEC) does not set close-on-exit");
+      puts ("signalfd4(SFD_CLOEXEC) does not set close-on-exec flag");
       return 1;
     }
   close (fd);
@@ -116,122 +124,152 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 
  arch/x86/ia32/ia32entry.S          |    1 +
  arch/x86/kernel/syscall_table_32.S |    1 +
- fs/inotify_user.c                  |   12 ++++++++++--
+ fs/compat.c                        |   14 ++++++++++----
+ fs/signalfd.c                      |   14 ++++++++++++--
  include/asm-x86/unistd_32.h        |    1 +
  include/asm-x86/unistd_64.h        |    2 ++
- include/linux/inotify.h            |    5 +++++
+ include/linux/signalfd.h           |    5 +++++
  include/linux/syscalls.h           |    1 +
- 7 files changed, 21 insertions(+), 2 deletions(-)
+ 8 files changed, 33 insertions(+), 6 deletions(-)
 
-diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-inotify_init arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~flag-parameters-inotify_init
+diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-signalfd arch/x86/ia32/ia32entry.S
+--- a/arch/x86/ia32/ia32entry.S~flag-parameters-signalfd
 +++ a/arch/x86/ia32/ia32entry.S
-@@ -736,4 +736,5 @@ ia32_sys_call_table:
- 	.quad sys_epoll_create2
- 	.quad sys_dup3			/* 330 */
- 	.quad sys_pipe2
-+	.quad sys_inotify_init1
+@@ -731,4 +731,5 @@ ia32_sys_call_table:
+ 	.quad sys32_fallocate
+ 	.quad compat_sys_timerfd_settime	/* 325 */
+ 	.quad compat_sys_timerfd_gettime
++	.quad compat_sys_signalfd4
  ia32_syscall_end:
-diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-inotify_init arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-inotify_init
+diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-signalfd arch/x86/kernel/syscall_table_32.S
+--- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-signalfd
 +++ a/arch/x86/kernel/syscall_table_32.S
-@@ -331,3 +331,4 @@ ENTRY(sys_call_table)
- 	.long sys_epoll_create2
- 	.long sys_dup3			/* 330 */
- 	.long sys_pipe2
-+	.long sys_inotify_init1
-diff -puN fs/inotify_user.c~flag-parameters-inotify_init fs/inotify_user.c
---- a/fs/inotify_user.c~flag-parameters-inotify_init
-+++ a/fs/inotify_user.c
-@@ -566,7 +566,7 @@ static const struct inotify_operations i
- 	.destroy_watch	= free_inotify_user_watch,
- };
+@@ -326,3 +326,4 @@ ENTRY(sys_call_table)
+ 	.long sys_fallocate
+ 	.long sys_timerfd_settime	/* 325 */
+ 	.long sys_timerfd_gettime
++	.long sys_signalfd4
+diff -puN fs/compat.c~flag-parameters-signalfd fs/compat.c
+--- a/fs/compat.c~flag-parameters-signalfd
++++ a/fs/compat.c
+@@ -2133,9 +2133,9 @@ asmlinkage long compat_sys_epoll_pwait(i
  
--asmlinkage long sys_inotify_init(void)
-+asmlinkage long sys_inotify_init1(int flags)
+ #ifdef CONFIG_SIGNALFD
+ 
+-asmlinkage long compat_sys_signalfd(int ufd,
+-				    const compat_sigset_t __user *sigmask,
+-				    compat_size_t sigsetsize)
++asmlinkage long compat_sys_signalfd4(int ufd,
++				     const compat_sigset_t __user *sigmask,
++				     compat_size_t sigsetsize, int flags)
  {
- 	struct inotify_device *dev;
- 	struct inotify_handle *ih;
-@@ -574,7 +574,10 @@ asmlinkage long sys_inotify_init(void)
- 	struct file *filp;
- 	int fd, ret;
+ 	compat_sigset_t ss32;
+ 	sigset_t tmp;
+@@ -2150,9 +2150,15 @@ asmlinkage long compat_sys_signalfd(int 
+ 	if (copy_to_user(ksigmask, &tmp, sizeof(sigset_t)))
+ 		return -EFAULT;
  
--	fd = get_unused_fd();
-+	if (flags & ~IN_CLOEXEC)
-+		return -EINVAL;
-+
-+	fd = get_unused_fd_flags(flags & O_CLOEXEC);
- 	if (fd < 0)
- 		return fd;
- 
-@@ -638,6 +641,11 @@ out_put_fd:
- 	return ret;
+-	return sys_signalfd(ufd, ksigmask, sizeof(sigset_t));
++	return sys_signalfd4(ufd, ksigmask, sizeof(sigset_t), flags);
  }
  
-+asmlinkage long sys_inotify_init(void)
++asmlinkage long compat_sys_signalfd(int ufd,
++				    const compat_sigset_t __user *sigmask,
++				    compat_size_t sigsetsize)
 +{
-+	return sys_inotify_init1(0);
++	return compat_sys_signalfd4(ufd, sigmask, sigsetsize, 0);
 +}
-+
- asmlinkage long sys_inotify_add_watch(int fd, const char __user *path, u32 mask)
+ #endif /* CONFIG_SIGNALFD */
+ 
+ #ifdef CONFIG_TIMERFD
+diff -puN fs/signalfd.c~flag-parameters-signalfd fs/signalfd.c
+--- a/fs/signalfd.c~flag-parameters-signalfd
++++ a/fs/signalfd.c
+@@ -205,11 +205,15 @@ static const struct file_operations sign
+ 	.read		= signalfd_read,
+ };
+ 
+-asmlinkage long sys_signalfd(int ufd, sigset_t __user *user_mask, size_t sizemask)
++asmlinkage long sys_signalfd4(int ufd, sigset_t __user *user_mask,
++			      size_t sizemask, int flags)
  {
- 	struct inode *inode;
-diff -puN include/asm-x86/unistd_32.h~flag-parameters-inotify_init include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~flag-parameters-inotify_init
+ 	sigset_t sigmask;
+ 	struct signalfd_ctx *ctx;
+ 
++	if (flags & ~SFD_CLOEXEC)
++		return -EINVAL;
++
+ 	if (sizemask != sizeof(sigset_t) ||
+ 	    copy_from_user(&sigmask, user_mask, sizeof(sigmask)))
+ 		return -EINVAL;
+@@ -228,7 +232,7 @@ asmlinkage long sys_signalfd(int ufd, si
+ 		 * anon_inode_getfd() will install the fd.
+ 		 */
+ 		ufd = anon_inode_getfd("[signalfd]", &signalfd_fops, ctx,
+-				       0);
++				       flags & O_CLOEXEC);
+ 		if (ufd < 0)
+ 			kfree(ctx);
+ 	} else {
+@@ -250,3 +254,9 @@ asmlinkage long sys_signalfd(int ufd, si
+ 
+ 	return ufd;
+ }
++
++asmlinkage long sys_signalfd(int ufd, sigset_t __user *user_mask,
++			     size_t sizemask)
++{
++	return sys_signalfd4(ufd, user_mask, sizemask, 0);
++}
+diff -puN include/asm-x86/unistd_32.h~flag-parameters-signalfd include/asm-x86/unistd_32.h
+--- a/include/asm-x86/unistd_32.h~flag-parameters-signalfd
 +++ a/include/asm-x86/unistd_32.h
-@@ -337,6 +337,7 @@
- #define __NR_epoll_create2	329
- #define __NR_dup3		330
- #define __NR_pipe2		331
-+#define __NR_inotify_init1	332
+@@ -332,6 +332,7 @@
+ #define __NR_fallocate		324
+ #define __NR_timerfd_settime	325
+ #define __NR_timerfd_gettime	326
++#define __NR_signalfd4		327
  
  #ifdef __KERNEL__
  
-diff -puN include/asm-x86/unistd_64.h~flag-parameters-inotify_init include/asm-x86/unistd_64.h
---- a/include/asm-x86/unistd_64.h~flag-parameters-inotify_init
+diff -puN include/asm-x86/unistd_64.h~flag-parameters-signalfd include/asm-x86/unistd_64.h
+--- a/include/asm-x86/unistd_64.h~flag-parameters-signalfd
 +++ a/include/asm-x86/unistd_64.h
-@@ -651,6 +651,8 @@ __SYSCALL(__NR_epoll_create2, sys_epoll_
- __SYSCALL(__NR_dup3, sys_dup3)
- #define __NR_pipe2				293
- __SYSCALL(__NR_pipe2, sys_pipe2)
-+#define __NR_inotify_init1			294
-+__SYSCALL(__NR_inotify_init1, sys_inotify_init1)
+@@ -641,6 +641,8 @@ __SYSCALL(__NR_timerfd_settime, sys_time
+ __SYSCALL(__NR_timerfd_gettime, sys_timerfd_gettime)
+ #define __NR_paccept				288
+ __SYSCALL(__NR_paccept, sys_paccept)
++#define __NR_signalfd4				289
++__SYSCALL(__NR_signalfd4, sys_signalfd4)
  
  
  #ifndef __NO_STUBS
-diff -puN include/linux/inotify.h~flag-parameters-inotify_init include/linux/inotify.h
---- a/include/linux/inotify.h~flag-parameters-inotify_init
-+++ a/include/linux/inotify.h
-@@ -7,6 +7,8 @@
- #ifndef _LINUX_INOTIFY_H
- #define _LINUX_INOTIFY_H
+diff -puN include/linux/signalfd.h~flag-parameters-signalfd include/linux/signalfd.h
+--- a/include/linux/signalfd.h~flag-parameters-signalfd
++++ a/include/linux/signalfd.h
+@@ -8,6 +8,11 @@
+ #ifndef _LINUX_SIGNALFD_H
+ #define _LINUX_SIGNALFD_H
  
 +/* For O_CLOEXEC */
 +#include <linux/fcntl.h>
- #include <linux/types.h>
- 
- /*
-@@ -63,6 +65,9 @@ struct inotify_event {
- 			 IN_MOVED_TO | IN_DELETE | IN_CREATE | IN_DELETE_SELF | \
- 			 IN_MOVE_SELF)
- 
-+/* Flags for sys_inotify_init1.  */
-+#define IN_CLOEXEC O_CLOEXEC
 +
- #ifdef __KERNEL__
++/* Flags for signalfd4.  */
++#define SFD_CLOEXEC O_CLOEXEC
  
- #include <linux/dcache.h>
-diff -puN include/linux/syscalls.h~flag-parameters-inotify_init include/linux/syscalls.h
---- a/include/linux/syscalls.h~flag-parameters-inotify_init
+ struct signalfd_siginfo {
+ 	__u32 ssi_signo;
+diff -puN include/linux/syscalls.h~flag-parameters-signalfd include/linux/syscalls.h
+--- a/include/linux/syscalls.h~flag-parameters-signalfd
 +++ a/include/linux/syscalls.h
-@@ -547,6 +547,7 @@ asmlinkage long sys_get_mempolicy(int __
- 				unsigned long addr, unsigned long flags);
- 
- asmlinkage long sys_inotify_init(void);
-+asmlinkage long sys_inotify_init1(int flags);
- asmlinkage long sys_inotify_add_watch(int fd, const char __user *path,
- 					u32 mask);
- asmlinkage long sys_inotify_rm_watch(int fd, u32 wd);
+@@ -610,6 +610,7 @@ asmlinkage long sys_set_robust_list(stru
+ 				    size_t len);
+ asmlinkage long sys_getcpu(unsigned __user *cpu, unsigned __user *node, struct getcpu_cache __user *cache);
+ asmlinkage long sys_signalfd(int ufd, sigset_t __user *user_mask, size_t sizemask);
++asmlinkage long sys_signalfd4(int ufd, sigset_t __user *user_mask, size_t sizemask, int flags);
+ asmlinkage long sys_timerfd_create(int clockid, int flags);
+ asmlinkage long sys_timerfd_settime(int ufd, int flags,
+ 				    const struct itimerspec __user *utmr,
 _
 
 Patches currently in -mm which might be from drepper@redhat.com are
@@ -257,5 +295,3 @@ flag-parameters-nonblock-in-timerfd_create.patch
 flag-parameters-nonblock-in-pipe.patch
 flag-parameters-nonblock-in-inotify_init.patch
 flag-parameters-check-magic-constants.patch
-flag-parameters-add-on-remove-epoll_create-size-param.patch
-
