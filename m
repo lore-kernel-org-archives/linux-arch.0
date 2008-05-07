@@ -1,63 +1,49 @@
-From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 45/56] microblaze_v2: headers simple files - empty or
- redirect to asm-generic
-Date: Wed, 07 May 2008 20:46:27 +0200
-Message-ID: <4821F903.5070503@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <20080507004702.d516a727.sfr@canb.auug.org.au> <482077FE.7080201@seznam.cz> <200805061821.14391.arnd@arndb.de>
-Reply-To: monstr@seznam.cz
+From: "Grant Likely" <grant.likely@secretlab.ca>
+Subject: Re: [microblaze-uclinux] [PATCH 04/56] microblaze_v2: Open firmware files
+Date: Wed, 7 May 2008 12:59:42 -0600
+Message-ID: <fa686aa40805071159ta7076c3va07e63ffd582ada4@mail.gmail.com>
+References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
+	 <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
+	 <20080507160432.93FC11750046@mail35-dub.bigfish.com>
+	 <4821F794.10003@seznam.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-2
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:63127 "EHLO
-	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1758573AbYEGSpl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2008 14:45:41 -0400
-In-Reply-To: <200805061821.14391.arnd@arndb.de>
+Received: from an-out-0708.google.com ([209.85.132.242]:49253 "EHLO
+	an-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932700AbYEGS7n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2008 14:59:43 -0400
+Received: by an-out-0708.google.com with SMTP id d40so91169and.103
+        for <linux-arch@vger.kernel.org>; Wed, 07 May 2008 11:59:42 -0700 (PDT)
+In-Reply-To: <4821F794.10003@seznam.cz>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
+To: monstr@seznam.cz
+Cc: microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, Michal Simek <monstr@monstr.eu>
 
-Hi All
+On Wed, May 7, 2008 at 12:40 PM, Michal Simek <monstr@seznam.cz> wrote:
+> Hi Steve,
+>
+>  you are right. Microblaze don't need CONFIG_PPC_something but
+>  I keep this in files because it will be easier to move this to better place.
+>  I wanted to sort what Microblaze don't use.
+>
+>  I need to talk with people from sparc and powerpc what we can move and where.
+>  I see the best way to push these files to microblaze/kernel/ and then sychronize
+>  them with one patch - all archs together.
 
-I removed almost all. :-)
+I would disagree.  I think its better to push (and get merged) patches
+to move the files first; then add microblaze on top of that.  You can
+start getting stuff merged piecemeal that way instead of relying on
+getting your entire patch series merged at once.
 
-M
+However, that's just my opinion, others may look at it differently.
 
-> On Tuesday 06 May 2008, Michal Simek wrote:
->>> Absolutely, but is it really necessary to have 14-16 lines of comment
->>> (including a copyright notice) for a file whose single real line is just
->>> to include another file?  i.e. reduce all these to 1 line files.
->> Can I do it? I think every file need license.
-> 
-> If you want a good answer on that, ask your lawyer. In general, every file
-> comes with a 'license' (GPLv2) and 'copyright' (you or the person you copied
-> from) even if you don't put either statement in the file. Files smaller than
-> some 10 lines are usually not considered to be covered by copyright, even
-> if you have the statement in there.
-> 
-> Most files nowadays are written by large corporations that have strict rules
-> about what you must put in there to protect their intellectual property.
-> 
-> It's certainly safe to leave out the file names from the comments, they don't
-> add any value at all.
-> Similarly, you should easily be able to leave out the license statement,
-> unless you are under a contract that forces you to leave them present.
-> Most people here will be happier if you remove the license statements.
-> 
-> The most tricky one part is the copyright statement ("Copyright 2012
-> Big Corporation of America"), which you strictly speaking should never
-> remove from a file unless you have permission from the copyright holder.
-> Many of your files in your patch set are obviously copies of existing
-> kernel files, with the original copyright notice replaced with "Atmark
-> Techno, inc.". You can draw your own conclusions from that ;-)
-> 
-> Obviously, I am not a lawyer, so don't consider this as legal advice.
-> 
-> I really hope this doesn't turn into a flamewar, as discussions on
-> intellectual property sometimes do.
-> 
-> 	Arnd <><
-> 
-> 
+Cheers,
+g.
+
+-- 
+Grant Likely, B.Sc., P.Eng.
+Secret Lab Technologies Ltd.
