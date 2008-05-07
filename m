@@ -1,49 +1,53 @@
-From: "Grant Likely" <grant.likely@secretlab.ca>
-Subject: Re: [microblaze-uclinux] [PATCH 04/56] microblaze_v2: Open firmware files
-Date: Wed, 7 May 2008 12:59:42 -0600
-Message-ID: <fa686aa40805071159ta7076c3va07e63ffd582ada4@mail.gmail.com>
-References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>
-	 <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>
-	 <20080507160432.93FC11750046@mail35-dub.bigfish.com>
-	 <4821F794.10003@seznam.cz>
+From: Michal Simek <monstr@seznam.cz>
+Subject: Re: [microblaze-uclinux] [PATCH 04/56] microblaze_v2: Open firmware
+ files
+Date: Wed, 07 May 2008 21:12:10 +0200
+Message-ID: <4821FF0A.7090508@seznam.cz>
+References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>	 <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>	 <20080507160432.93FC11750046@mail35-dub.bigfish.com>	 <4821F794.10003@seznam.cz> <fa686aa40805071159ta7076c3va07e63ffd582ada4@mail.gmail.com>
+Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from an-out-0708.google.com ([209.85.132.242]:49253 "EHLO
-	an-out-0708.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932700AbYEGS7n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2008 14:59:43 -0400
-Received: by an-out-0708.google.com with SMTP id d40so91169and.103
-        for <linux-arch@vger.kernel.org>; Wed, 07 May 2008 11:59:42 -0700 (PDT)
-In-Reply-To: <4821F794.10003@seznam.cz>
-Content-Disposition: inline
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:55663 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1759313AbYEGTLe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2008 15:11:34 -0400
+In-Reply-To: <fa686aa40805071159ta7076c3va07e63ffd582ada4@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@seznam.cz
-Cc: microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, Michal Simek <monstr@monstr.eu>
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: monstr@seznam.cz, microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, Paul Mackerras <paulus@samba.org>, Stephen Rothwell <sfr@canb.auug.org.au>, David Miller <davem@davemloft.net>
 
-On Wed, May 7, 2008 at 12:40 PM, Michal Simek <monstr@seznam.cz> wrote:
-> Hi Steve,
->
->  you are right. Microblaze don't need CONFIG_PPC_something but
->  I keep this in files because it will be easier to move this to better place.
->  I wanted to sort what Microblaze don't use.
->
->  I need to talk with people from sparc and powerpc what we can move and where.
->  I see the best way to push these files to microblaze/kernel/ and then sychronize
->  them with one patch - all archs together.
+Hi Grant,
 
-I would disagree.  I think its better to push (and get merged) patches
-to move the files first; then add microblaze on top of that.  You can
-start getting stuff merged piecemeal that way instead of relying on
-getting your entire patch series merged at once.
+you understand I use of_device, of_platform and prom_parse. If you do diff
+between them they will almost the same. One small difference is in prom.c file.
 
-However, that's just my opinion, others may look at it differently.
+I hope we will move these files to drivers/of.
+This is not only question to me.
 
-Cheers,
-g.
+Paul, Steve and David: Can I moved these three files to drivers/of?
 
--- 
-Grant Likely, B.Sc., P.Eng.
-Secret Lab Technologies Ltd.
+Michal
+
+>> Hi Steve,
+>>
+>>  you are right. Microblaze don't need CONFIG_PPC_something but
+>>  I keep this in files because it will be easier to move this to better place.
+>>  I wanted to sort what Microblaze don't use.
+>>
+>>  I need to talk with people from sparc and powerpc what we can move and where.
+>>  I see the best way to push these files to microblaze/kernel/ and then sychronize
+>>  them with one patch - all archs together.
+> 
+> I would disagree.  I think its better to push (and get merged) patches
+> to move the files first; then add microblaze on top of that.  You can
+> start getting stuff merged piecemeal that way instead of relying on
+> getting your entire patch series merged at once.
+> 
+> However, that's just my opinion, others may look at it differently.
+> 
+> Cheers,
+> g.
+> 
