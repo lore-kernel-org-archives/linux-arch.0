@@ -1,70 +1,32 @@
 From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [microblaze-uclinux] [PATCH 04/56] microblaze_v2: Open firmware
- files
-Date: Wed, 07 May 2008 20:40:20 +0200
-Message-ID: <4821F794.10003@seznam.cz>
-References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu> <20080507160432.93FC11750046@mail35-dub.bigfish.com>
+Subject: Re: [PATCH 36/56] microblaze_v2: dma support
+Date: Wed, 07 May 2008 20:43:08 +0200
+Message-ID: <4821F83C.8080608@seznam.cz>
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <48214B36.9060307@seznam.cz> <Pine.LNX.4.64.0805070917111.6341@anakin> <200805071121.43006.arnd@arndb.de>
 Reply-To: monstr@seznam.cz
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:59855 "EHLO
-	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1755952AbYEGSjf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2008 14:39:35 -0400
-In-Reply-To: <20080507160432.93FC11750046@mail35-dub.bigfish.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: microblaze-uclinux@itee.uq.edu.au
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1765972AbYEGSma@vger.kernel.org>
+In-Reply-To: <200805071121.43006.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, John Williams <john.williams@petalogix.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
+List-Id: linux-arch.vger.kernel.org
 
-Hi Steve,
+Hi Arnd and Geert,
 
-you are right. Microblaze don't need CONFIG_PPC_something but
-I keep this in files because it will be easier to move this to better place.
-I wanted to sort what Microblaze don't use.
-
-I need to talk with people from sparc and powerpc what we can move and where.
-I see the best way to push these files to microblaze/kernel/ and then sychronize
-them with one patch - all archs together.
+I think scatterlist.h can be moved to asm-generic.
 
 M
 
->> +#ifdef CONFIG_PPC_PSERIES
->> +#include <asm/rtas.h>
->> +#include <asm/kdump.h>
->> +#include <asm/smp.h>
->> +#include <asm/iommu.h>
->> +#include <asm/btext.h>
->> +#include <asm/machdep.h>
->> +#include <asm/pSeries_reconfig.h>
->> +#include <asm/phyp_dump.h>
->> +#include <asm/kexec.h>
->> +#endif
+
+> On Wednesday 07 May 2008, Geert Uytterhoeven wrote:
+>> On Wed, 7 May 2008, Michal Simek wrote:
+>>> Is it OK now? This will moved to asm-generic too.
+>> Ack.
 > 
-> I don't think we need CONFIG_PPC_PSERIES (multiple times)
+> looks good to me as well.
 > 
->> +#ifdef CONFIG_PPC64
->> +int __initdata iommu_is_off;
->> +int __initdata iommu_force_on;
->> +unsigned long tce_alloc_start, tce_alloc_end;
->> +#endif
-> 
-> or PPC64 (multiple times
-> 
->> +#ifdef CONFIG_PPC32
-> 
-> or PPC32
-> 
-> Steve
-> 
-> 
-> 
-> ___________________________
-> microblaze-uclinux mailing list
-> microblaze-uclinux@itee.uq.edu.au
-> Project Home Page : http://www.itee.uq.edu.au/~jwilliams/mblaze-uclinux
-> Mailing List Archive : http://www.itee.uq.edu.au/~listarch/microblaze-uclinux/
-> 
+> 	Arnd <><
 > 
