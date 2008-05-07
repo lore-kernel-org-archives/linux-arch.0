@@ -1,98 +1,53 @@
-From: "Stephen Neuendorffer" <stephen.neuendorffer@xilinx.com>
-Subject: RE: [microblaze-uclinux] [PATCH 04/56] microblaze_v2: Open firmware files
-Date: Wed, 7 May 2008 13:14:45 -0700
-Message-ID: <20080507201426.A2B9099005D@mail79-dub.bigfish.com>
-References: <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu>	 <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu>	 <20080507160432.93FC11750046@mail35-dub.bigfish.com>	 <4821F794.10003@seznam.cz> <fa686aa40805071159ta7076c3va07e63ffd582ada4@mail.gmail.com> <4821FF0A.7090508@seznam.cz>
+From: Jens Axboe <jens.axboe@oracle.com>
+Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
+Date: Wed, 7 May 2008 22:42:52 +0200
+Message-ID: <20080507204251.GO16217@kernel.dk>
+References: <20080430123717.GC12774@kernel.dk> <20080502020241.GA26088@linux.vnet.ibm.com> <20080502021233.GC11844@wotan.suse.de> <20080502122955.GB15522@linux.vnet.ibm.com> <20080502124205.GA23680@linux.vnet.ibm.com> <1209733169.13978.157.camel@twins> <20080503054930.GA19664@wotan.suse.de> <20080503181148.GA16159@linux.vnet.ibm.com> <20080505041533.GA17640@wotan.suse.de> <20080505174312.GC7543@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="US-ASCII"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-dub.frontbridge.com ([213.199.154.16]:36651 "EHLO
-	outbound3-dub-R.bigfish.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751878AbYEGUOb convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 7 May 2008 16:14:31 -0400
-Content-class: urn:content-classes:message
-In-reply-to: <4821FF0A.7090508@seznam.cz>
+Received: from brick.kernel.dk ([87.55.233.238]:9092 "EHLO kernel.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758545AbYEGUm7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 May 2008 16:42:59 -0400
+Content-Disposition: inline
+In-Reply-To: <20080505174312.GC7543@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: microblaze-uclinux@itee.uq.edu.au, Grant Likely <grant.likely@secretlab.ca>
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, John Linn <linnj@xilinx.com>, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, Paul Mackerras <paulus@samba.org>, Stephen Rothwell <sfr@canb.auug.org.au>, David Miller <davem@davemloft.net>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Nick Piggin <npiggin@suse.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu
 
-I'm don't think all of this code should move.
+On Mon, May 05 2008, Paul E. McKenney wrote:
+> OK.  The below still permits parallel smp_call_function()
+> and smp_call_function_mask() as well as permitting parallel
+> smp_call_function_single().  It prohibits the irq-disabled case.
+> 
+> Thoughts?
 
-In particular, parts of prom_parse.c dealing with irqs handle virtual
-irqs in a powerpc specific way.
-I also think ifdef PPC_PSERIES and PPC_64 and PPC_32 in prom.c are
-indicative of the fact that alot of this is dealing with
-architecture-specific issues.
+Sorry for the delayed response here. The below looks pretty good to me,
+though it'll require a few modifications to fixup smp_call_function()
+from irq disabled context.
 
-Probably some parts of these files, but it's going to take some tweezing
-to figure out what parts.
+But that's doable, though I have to do a grep over the kernel to check
+everything (I remember CPU send_stop being one such path). Not a huge
+fan of such an interface, but hey...
 
-Steve
+Is everyone OK with going this route, initially at least? It's the
+lesser of all evils, I think.
 
-> -----Original Message-----
-> From: owner-microblaze-uclinux@itee.uq.edu.au
-[mailto:owner-microblaze-uclinux@itee.uq.edu.au] On
-> Behalf Of Michal Simek
-> Sent: Wednesday, May 07, 2008 12:12 PM
-> To: Grant Likely
-> Cc: monstr@seznam.cz; microblaze-uclinux@itee.uq.edu.au;
-linux-kernel@vger.kernel.org; arnd@arndb.de;
-> linux-arch@vger.kernel.org; John Linn; john.williams@petalogix.com;
-matthew@wil.cx;
-> will.newton@gmail.com; drepper@redhat.com; Paul Mackerras; Stephen
-Rothwell; David Miller
-> Subject: Re: [microblaze-uclinux] [PATCH 04/56] microblaze_v2: Open
-firmware files
-> 
-> Hi Grant,
-> 
-> you understand I use of_device, of_platform and prom_parse. If you do
-diff
-> between them they will almost the same. One small difference is in
-prom.c file.
-> 
-> I hope we will move these files to drivers/of.
-> This is not only question to me.
-> 
-> Paul, Steve and David: Can I moved these three files to drivers/of?
-> 
-> Michal
-> 
-> >> Hi Steve,
-> >>
-> >>  you are right. Microblaze don't need CONFIG_PPC_something but
-> >>  I keep this in files because it will be easier to move this to
-better place.
-> >>  I wanted to sort what Microblaze don't use.
-> >>
-> >>  I need to talk with people from sparc and powerpc what we can move
-and where.
-> >>  I see the best way to push these files to microblaze/kernel/ and
-then sychronize
-> >>  them with one patch - all archs together.
-> >
-> > I would disagree.  I think its better to push (and get merged)
-patches
-> > to move the files first; then add microblaze on top of that.  You
-can
-> > start getting stuff merged piecemeal that way instead of relying on
-> > getting your entire patch series merged at once.
-> >
-> > However, that's just my opinion, others may look at it differently.
-> >
-> > Cheers,
-> > g.
-> >
-> 
-> ___________________________
-> microblaze-uclinux mailing list
-> microblaze-uclinux@itee.uq.edu.au
-> Project Home Page :
-http://www.itee.uq.edu.au/~jwilliams/mblaze-uclinux
-> Mailing List Archive :
-http://www.itee.uq.edu.au/~listarch/microblaze-uclinux/
-> 
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index a5a0184..5ae9360 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -38,4 +38,4 @@ config HAVE_KRETPROBES
+>  	def_bool n
+>  
+>  config USE_GENERIC_SMP_HELPERS
+> -	def_bool n
+> +	def_bool y
+
+This part puzzled me, why? We default to 'n' and let converted archs
+opt-in, so I don't get this part of your patch...
+
+-- 
+Jens Axboe
