@@ -1,7 +1,7 @@
 From: akpm@linux-foundation.org
-Subject: + flag-parameters-epoll_create.patch added to -mm tree
-Date: Wed, 07 May 2008 15:05:47 -0700
-Message-ID: <200805072205.m47M5lQs018846@imap1.linux-foundation.org>
+Subject: + flag-parameters-add-on-remove-epoll_create-size-param.patch added to -mm tree
+Date: Wed, 07 May 2008 15:07:25 -0700
+Message-ID: <200805072207.m47M7Pes018958@imap1.linux-foundation.org>
 Reply-To: linux-kernel@vger.kernel.org
 Return-path: <mm-commits-owner@vger.kernel.org>
 Sender: mm-commits-owner@vger.kernel.org
@@ -11,9 +11,9 @@ List-Id: linux-arch.vger.kernel.org
 
 
 The patch titled
-     flag parameters: epoll_create
+     flag parameters add-on: remove epoll_create size param
 has been added to the -mm tree.  Its filename is
-     flag-parameters-epoll_create.patch
+     flag-parameters-add-on-remove-epoll_create-size-param.patch
 
 Before you just go and hit "reply", please:
    a) Consider who else should be cc'ed
@@ -29,19 +29,11 @@ out what to do about this
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: flag parameters: epoll_create
+Subject: flag parameters add-on: remove epoll_create size param
 From: Ulrich Drepper <drepper@redhat.com>
 
-This patch adds the new epoll_create2 syscall.  It extends the old epoll_create
-syscall by one parameter which is meant to hold a flag value.  In this
-patch the only flag support is EPOLL_CLOEXEC which causes the close-on-exec
-flag for the returned file descriptor to be set.
-
-A new name EPOLL_CLOEXEC is introduced which in this implementation must
-have the same value as O_CLOEXEC.
-
-The following test must be adjusted for architectures other than x86 and
-x86-64 and in case the syscall numbers changed.
+Remove the size parameter from the new epoll_create syscall and renames the
+syscall itself.  The updated test program follows.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #include <fcntl.h>
@@ -65,7 +57,7 @@ x86-64 and in case the syscall numbers changed.
 int
 main (void)
 {
-  int fd = syscall (__NR_epoll_create2, 1, 0);
+  int fd = syscall (__NR_epoll_create2, 0);
   if (fd == -1)
     {
       puts ("epoll_create2(0) failed");
@@ -84,7 +76,7 @@ main (void)
     }
   close (fd);
 
-  fd = syscall (__NR_epoll_create2, 1, EPOLL_CLOEXEC);
+  fd = syscall (__NR_epoll_create2, EPOLL_CLOEXEC);
   if (fd == -1)
     {
       puts ("epoll_create2(EPOLL_CLOEXEC) failed");
@@ -116,120 +108,137 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/x86/ia32/ia32entry.S          |    1 +
- arch/x86/kernel/syscall_table_32.S |    1 +
- fs/eventpoll.c                     |   13 +++++++++++--
- include/asm-x86/unistd_32.h        |    1 +
- include/asm-x86/unistd_64.h        |    2 ++
- include/linux/eventpoll.h          |    4 ++++
- include/linux/syscalls.h           |    1 +
- 7 files changed, 21 insertions(+), 2 deletions(-)
+ arch/x86/ia32/ia32entry.S          |    2 +-
+ arch/x86/kernel/syscall_table_32.S |    2 +-
+ fs/eventpoll.c                     |   18 ++++++++++--------
+ include/asm-x86/unistd_32.h        |    2 +-
+ include/asm-x86/unistd_64.h        |    4 ++--
+ include/linux/eventpoll.h          |    2 +-
+ include/linux/syscalls.h           |    2 +-
+ 7 files changed, 17 insertions(+), 15 deletions(-)
 
-diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-epoll_create arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~flag-parameters-epoll_create
+diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-add-on-remove-epoll_create-size-param arch/x86/ia32/ia32entry.S
+--- a/arch/x86/ia32/ia32entry.S~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/arch/x86/ia32/ia32entry.S
-@@ -733,4 +733,5 @@ ia32_sys_call_table:
+@@ -733,7 +733,7 @@ ia32_sys_call_table:
  	.quad compat_sys_timerfd_gettime
  	.quad compat_sys_signalfd4
  	.quad sys_eventfd2
-+	.quad sys_epoll_create2
- ia32_syscall_end:
-diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-epoll_create arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-epoll_create
+-	.quad sys_epoll_create2
++	.quad sys_epoll_create1
+ 	.quad sys_dup3			/* 330 */
+ 	.quad sys_pipe2
+ 	.quad sys_inotify_init1
+diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-add-on-remove-epoll_create-size-param arch/x86/kernel/syscall_table_32.S
+--- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/arch/x86/kernel/syscall_table_32.S
-@@ -328,3 +328,4 @@ ENTRY(sys_call_table)
+@@ -328,7 +328,7 @@ ENTRY(sys_call_table)
  	.long sys_timerfd_gettime
  	.long sys_signalfd4
  	.long sys_eventfd2
-+	.long sys_epoll_create2
-diff -puN fs/eventpoll.c~flag-parameters-epoll_create fs/eventpoll.c
---- a/fs/eventpoll.c~flag-parameters-epoll_create
+-	.long sys_epoll_create2
++	.long sys_epoll_create1
+ 	.long sys_dup3			/* 330 */
+ 	.long sys_pipe2
+ 	.long sys_inotify_init1
+diff -puN fs/eventpoll.c~flag-parameters-add-on-remove-epoll_create-size-param fs/eventpoll.c
+--- a/fs/eventpoll.c~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/fs/eventpoll.c
-@@ -1046,11 +1046,14 @@ retry:
+@@ -1046,7 +1046,7 @@ retry:
   * RB tree. With the current implementation, the "size" parameter is ignored
   * (besides sanity checks).
   */
--asmlinkage long sys_epoll_create(int size)
-+asmlinkage long sys_epoll_create2(int size, int flags)
+-asmlinkage long sys_epoll_create2(int size, int flags)
++asmlinkage long sys_epoll_create1(int flags)
  {
  	int error, fd = -1;
  	struct eventpoll *ep;
+@@ -1058,14 +1058,13 @@ asmlinkage long sys_epoll_create2(int si
+ 		return -EINVAL;
  
-+	if (flags & ~EPOLL_CLOEXEC)
-+		return -EINVAL;
-+
  	DNPRINTK(3, (KERN_INFO "[%p] eventpoll: sys_epoll_create(%d)\n",
- 		     current, size));
+-		     current, size));
++		     current, flags));
  
-@@ -1068,7 +1071,8 @@ asmlinkage long sys_epoll_create(int siz
- 	 * Creates all the items needed to setup an eventpoll file. That is,
- 	 * a file structure and a free file descriptor.
+ 	/*
+-	 * Sanity check on the size parameter, and create the internal data
+-	 * structure ( "struct eventpoll" ).
++	 * Create the internal data structure ( "struct eventpoll" ).
  	 */
--	fd = anon_inode_getfd("[eventpoll]", &eventpoll_fops, ep, 0);
-+	fd = anon_inode_getfd("[eventpoll]", &eventpoll_fops, ep,
-+			      flags & O_CLOEXEC);
- 	if (fd < 0)
- 		ep_free(ep);
+-	error = -EINVAL;
+-	if (size <= 0 || (error = ep_alloc(&ep)) < 0) {
++	error = ep_alloc(&ep);
++	if (error < 0) {
+ 		fd = error;
+ 		goto error_return;
+ 	}
+@@ -1081,14 +1080,17 @@ asmlinkage long sys_epoll_create2(int si
  
-@@ -1079,6 +1083,11 @@ error_return:
+ error_return:
+ 	DNPRINTK(3, (KERN_INFO "[%p] eventpoll: sys_epoll_create(%d) = %d\n",
+-		     current, size, fd));
++		     current, flags, fd));
+ 
  	return fd;
  }
  
-+asmlinkage long sys_epoll_create(int size)
-+{
-+	return sys_epoll_create2(size, 0);
-+}
+ asmlinkage long sys_epoll_create(int size)
+ {
+-	return sys_epoll_create2(size, 0);
++	if (size < 0)
++		return -EINVAL;
 +
++	return sys_epoll_create1(0);
+ }
+ 
  /*
-  * The following function implements the controller interface for
-  * the eventpoll file that enables the insertion/removal/change of
-diff -puN include/asm-x86/unistd_32.h~flag-parameters-epoll_create include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~flag-parameters-epoll_create
+diff -puN include/asm-x86/unistd_32.h~flag-parameters-add-on-remove-epoll_create-size-param include/asm-x86/unistd_32.h
+--- a/include/asm-x86/unistd_32.h~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/include/asm-x86/unistd_32.h
-@@ -334,6 +334,7 @@
+@@ -334,7 +334,7 @@
  #define __NR_timerfd_gettime	326
  #define __NR_signalfd4		327
  #define __NR_eventfd2		328
-+#define __NR_epoll_create2	329
- 
- #ifdef __KERNEL__
- 
-diff -puN include/asm-x86/unistd_64.h~flag-parameters-epoll_create include/asm-x86/unistd_64.h
---- a/include/asm-x86/unistd_64.h~flag-parameters-epoll_create
+-#define __NR_epoll_create2	329
++#define __NR_epoll_create1	329
+ #define __NR_dup3		330
+ #define __NR_pipe2		331
+ #define __NR_inotify_init1	332
+diff -puN include/asm-x86/unistd_64.h~flag-parameters-add-on-remove-epoll_create-size-param include/asm-x86/unistd_64.h
+--- a/include/asm-x86/unistd_64.h~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/include/asm-x86/unistd_64.h
-@@ -645,6 +645,8 @@ __SYSCALL(__NR_paccept, sys_paccept)
+@@ -645,8 +645,8 @@ __SYSCALL(__NR_paccept, sys_paccept)
  __SYSCALL(__NR_signalfd4, sys_signalfd4)
  #define __NR_eventfd2				290
  __SYSCALL(__NR_eventfd2, sys_eventfd2)
-+#define __NR_epoll_create2			291
-+__SYSCALL(__NR_epoll_create2, sys_epoll_create2)
- 
- 
- #ifndef __NO_STUBS
-diff -puN include/linux/eventpoll.h~flag-parameters-epoll_create include/linux/eventpoll.h
---- a/include/linux/eventpoll.h~flag-parameters-epoll_create
+-#define __NR_epoll_create2			291
+-__SYSCALL(__NR_epoll_create2, sys_epoll_create2)
++#define __NR_epoll_create1			291
++__SYSCALL(__NR_epoll_create1, sys_epoll_create1)
+ #define __NR_dup3				292
+ __SYSCALL(__NR_dup3, sys_dup3)
+ #define __NR_pipe2				293
+diff -puN include/linux/eventpoll.h~flag-parameters-add-on-remove-epoll_create-size-param include/linux/eventpoll.h
+--- a/include/linux/eventpoll.h~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/include/linux/eventpoll.h
-@@ -14,8 +14,12 @@
- #ifndef _LINUX_EVENTPOLL_H
- #define _LINUX_EVENTPOLL_H
- 
-+/* For O_CLOEXEC */
-+#include <linux/fcntl.h>
+@@ -18,7 +18,7 @@
+ #include <linux/fcntl.h>
  #include <linux/types.h>
  
-+/* Flags for epoll_create2.  */
-+#define EPOLL_CLOEXEC O_CLOEXEC
+-/* Flags for epoll_create2.  */
++/* Flags for epoll_create1.  */
+ #define EPOLL_CLOEXEC O_CLOEXEC
  
  /* Valid opcodes to issue to sys_epoll_ctl() */
- #define EPOLL_CTL_ADD 1
-diff -puN include/linux/syscalls.h~flag-parameters-epoll_create include/linux/syscalls.h
---- a/include/linux/syscalls.h~flag-parameters-epoll_create
+diff -puN include/linux/syscalls.h~flag-parameters-add-on-remove-epoll_create-size-param include/linux/syscalls.h
+--- a/include/linux/syscalls.h~flag-parameters-add-on-remove-epoll_create-size-param
 +++ a/include/linux/syscalls.h
-@@ -430,6 +430,7 @@ asmlinkage long sys_poll(struct pollfd _
+@@ -431,7 +431,7 @@ asmlinkage long sys_poll(struct pollfd _
  asmlinkage long sys_select(int n, fd_set __user *inp, fd_set __user *outp,
  			fd_set __user *exp, struct timeval __user *tvp);
  asmlinkage long sys_epoll_create(int size);
-+asmlinkage long sys_epoll_create2(int size, int flags);
+-asmlinkage long sys_epoll_create2(int size, int flags);
++asmlinkage long sys_epoll_create1(int flags);
  asmlinkage long sys_epoll_ctl(int epfd, int op, int fd,
  				struct epoll_event __user *event);
  asmlinkage long sys_epoll_wait(int epfd, struct epoll_event __user *events,
@@ -258,4 +267,5 @@ flag-parameters-nonblock-in-timerfd_create.patch
 flag-parameters-nonblock-in-pipe.patch
 flag-parameters-nonblock-in-inotify_init.patch
 flag-parameters-check-magic-constants.patch
+flag-parameters-add-on-remove-epoll_create-size-param.patch
 
