@@ -1,22 +1,22 @@
 From: akpm@linux-foundation.org
-Subject: + introduce-have_efficient_unaligned_access-kconfig-symbol.patch added to -mm tree
-Date: Thu, 08 May 2008 12:54:31 -0700
-Message-ID: <200805081954.m48JsVGl002785@imap1.linux-foundation.org>
+Subject: + flag-parameters-inotify_init-fix.patch added to -mm tree
+Date: Thu, 08 May 2008 14:41:55 -0700
+Message-ID: <200805082152.m48LqoWh007690@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:37295 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:57508 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754120AbYEHT4L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2008 15:56:11 -0400
+	by vger.kernel.org with ESMTP id S1762369AbYEHVxh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2008 17:53:37 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mm-commits@vger.kernel.org
-Cc: johannes@sipsolutions.net, linux-arch@vger.kernel.org, mingo@elte.hu, sam@ravnborg.org
+Cc: akpm@linux-foundation.org, davidel@xmailserver.org, drepper@redhat.com, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com
 
 
 The patch titled
-     introduce HAVE_EFFICIENT_UNALIGNED_ACCESS Kconfig symbol
+     flag-parameters-inotify_init-fix
 has been added to the -mm tree.  Its filename is
-     introduce-have_efficient_unaligned_access-kconfig-symbol.patch
+     flag-parameters-inotify_init-fix.patch
 
 Before you just go and hit "reply", please:
    a) Consider who else should be cc'ed
@@ -32,126 +32,106 @@ out what to do about this
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: introduce HAVE_EFFICIENT_UNALIGNED_ACCESS Kconfig symbol
-From: Johannes Berg <johannes@sipsolutions.net>
+Subject: flag-parameters-inotify_init-fix
+From: Andrew Morton <akpm@linux-foundation.org>
 
-In many cases, especially in networking, it can be beneficial to know at
-compile time whether the architecture can do unaligned accesses efficiently. 
-This patch introduces a new Kconfig symbol
+CONFIG_INOTIFY=n:
 
-	HAVE_EFFICIENT_UNALIGNED_ACCESS
+arch/x86/kernel/built-in.o: In function `sys_call_table':
+: undefined reference to `sys_inotify_init1'
 
-for that purpose and adds it to the powerpc and x86 architectures.  Also add
-some documentation about alignment and networking, and especially one intended
-use of this symbol.
-
-Signed-off-by: Johannes Berg <johannes@sipsolutions.net>
-Acked-by: Sam Ravnborg <sam@ravnborg.org>
-Acked-by: Ingo Molnar <mingo@elte.hu> [x86 architecture part]
 Cc: <linux-arch@vger.kernel.org>
+Cc: Davide Libenzi <davidel@xmailserver.org>
+Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
+Cc: Ulrich Drepper <drepper@redhat.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- Documentation/unaligned-memory-access.txt |   32 ++++++++++++++++++--
- arch/Kconfig                              |   19 +++++++++++
- arch/powerpc/Kconfig                      |    1 
- arch/x86/Kconfig                          |    1 
- 4 files changed, 50 insertions(+), 3 deletions(-)
+ kernel/sys_ni.c |    1 +
+ 1 file changed, 1 insertion(+)
 
-diff -puN Documentation/unaligned-memory-access.txt~introduce-have_efficient_unaligned_access-kconfig-symbol Documentation/unaligned-memory-access.txt
---- a/Documentation/unaligned-memory-access.txt~introduce-have_efficient_unaligned_access-kconfig-symbol
-+++ a/Documentation/unaligned-memory-access.txt
-@@ -218,9 +218,35 @@ If use of such macros is not convenient,
- where the source or destination (or both) are of type u8* or unsigned char*.
- Due to the byte-wise nature of this operation, unaligned accesses are avoided.
- 
-+
-+Alignment vs. Networking
-+========================
-+
-+On architectures that require aligned loads, networking requires that the IP
-+header is aligned on a four-byte boundary to optimise the IP stack. For
-+regular ethernet hardware, the constant NET_IP_ALIGN is used. On most
-+architectures this constant has the value 2 because the normal ethernet
-+header is 14 bytes long, so in order to get proper alignment one needs to
-+DMA to an address which can be expressed as 4*n + 2. One notable exception
-+here is powerpc which defines NET_IP_ALIGN to 0 because DMA to unaligned
-+addresses can be very expensive and dwarf the cost of unaligned loads.
-+
-+For some ethernet hardware that cannot DMA to unaligned addresses like
-+4*n+2 or non-ethernet hardware, this can be a problem, and it is then
-+required to copy the incoming frame into an aligned buffer. Because this is
-+unnecessary on architectures that can do unaligned accesses, the code can be
-+made dependent on CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS like so:
-+
-+#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-+	skb = original skb
-+#else
-+	skb = copy skb
-+#endif
-+
- --
--Author: Daniel Drake <dsd@gentoo.org>
-+Authors: Daniel Drake <dsd@gentoo.org>,
-+         Johannes Berg <johannes@sipsolutions.net>
- With help from: Alan Cox, Avuton Olrich, Heikki Orsila, Jan Engelhardt,
--Johannes Berg, Kyle McMartin, Kyle Moffett, Randy Dunlap, Robert Hancock,
--Uli Kunitz, Vadim Lobanov
-+Kyle McMartin, Kyle Moffett, Randy Dunlap, Robert Hancock, Uli Kunitz,
-+Vadim Lobanov
- 
-diff -puN arch/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol arch/Kconfig
---- a/arch/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol
-+++ a/arch/Kconfig
-@@ -42,3 +42,22 @@ config HAVE_DMA_ATTRS
- 
- config USE_GENERIC_SMP_HELPERS
- 	def_bool n
-+
-+config HAVE_EFFICIENT_UNALIGNED_ACCESS
-+	def_bool n
-+	help
-+	  Some architectures are unable to perform unaligned accesses
-+	  without the use of get_unaligned/put_unaligned. Others are
-+	  unable to perform such accesses efficiently (e.g. trap on
-+	  unaligned access and require fixing it up in the exception
-+	  handler.)
-+
-+	  This symbol should be selected by an architecture if it can
-+	  perform unaligned accesses efficiently to allow different
-+	  code paths to be selected for these cases. Some network
-+	  drivers, for example, could opt to not fix up alignment
-+	  problems with received packets if doing so would not help
-+	  much.
-+
-+	  See Documentation/unaligned-memory-access.txt for more
-+	  information on the topic of unaligned memory accesses.
-diff -puN arch/powerpc/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol arch/powerpc/Kconfig
---- a/arch/powerpc/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol
-+++ a/arch/powerpc/Kconfig
-@@ -111,6 +111,7 @@ config PPC
- 	select HAVE_KRETPROBES
- 	select HAVE_LMB
- 	select USE_GENERIC_SMP_HELPERS if SMP
-+	select HAVE_EFFICIENT_UNALIGNED_ACCESS
- 
- config EARLY_PRINTK
- 	bool
-diff -puN arch/x86/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol arch/x86/Kconfig
---- a/arch/x86/Kconfig~introduce-have_efficient_unaligned_access-kconfig-symbol
-+++ a/arch/x86/Kconfig
-@@ -26,6 +26,7 @@ config X86
- 	select HAVE_FTRACE
- 	select HAVE_KVM if ((X86_32 && !X86_VOYAGER && !X86_VISWS && !X86_NUMAQ) || X86_64)
- 	select HAVE_ARCH_KGDB if !X86_VOYAGER
-+	select HAVE_EFFICIENT_UNALIGNED_ACCESS
- 
- config DEFCONFIG_LIST
- 	string
+diff -puN kernel/sys_ni.c~flag-parameters-inotify_init-fix kernel/sys_ni.c
+--- a/kernel/sys_ni.c~flag-parameters-inotify_init-fix
++++ a/kernel/sys_ni.c
+@@ -94,6 +94,7 @@ cond_syscall(sys_keyctl);
+ cond_syscall(compat_sys_keyctl);
+ cond_syscall(compat_sys_socketcall);
+ cond_syscall(sys_inotify_init);
++cond_syscall(sys_inotify_init1);
+ cond_syscall(sys_inotify_add_watch);
+ cond_syscall(sys_inotify_rm_watch);
+ cond_syscall(sys_migrate_pages);
 _
 
-Patches currently in -mm which might be from johannes@sipsolutions.net are
+Patches currently in -mm which might be from akpm@linux-foundation.org are
 
 origin.patch
+sxc-fix-printk-warnings-on-sparc32.patch
+drivers-scsi-dpt_i2oc-fix-build-on-alpha.patch
+quota-dont-call-sync_fs-from-vfs_quota_off-when-theres-no-quota-turn-off-fix.patch
+rtc-rtc_time_to_tm-use-unsigned-arithmetic-fix.patch
+atmel_lcdfb-fix-pixclok-divider-calculation-checkpatch-fixes.patch
+memcg-fix-possible-panic-when-config_mm_owner=y-checkpatch-fixes.patch
+linux-next.patch
+revert-9p-convert-from-semaphore-to-spinlock.patch
+revert-vt-fix-background-color-on-line-feed.patch
+revert-lxfb-extend-pll-table-to-support-dotclocks-below-25-mhz.patch
+revert-acpica-fixes-for-unload-and-ddbhandles.patch
+acpi-enable-c3-power-state-on-dell-inspiron-8200.patch
+acpi-video-balcklist-fujitsu-lifebook-s6410.patch
+git-x86.patch
+git-x86-fixup.patch
+arm-omap1-n770-convert-audio_pwr_sem-in-a-mutex-fix.patch
+cifs-suppress-warning.patch
+sysfs-provide-a-clue-about-the-effects-of-config_usb_device_class=y.patch
+i2c-renesas-highlander-fpga-smbus-support.patch
+dlm-convert-connections_lock-in-a-mutex-fix.patch
 git-input.patch
-introduce-have_efficient_unaligned_access-kconfig-symbol.patch
+git-jg-misc-git-rejects.patch
+revert-git-kbuild.patch
+revert-libata-improve-post-reset-device-ready-test.patch
+git-mmc.patch
+sundance-set-carrier-status-on-link-change-events.patch
+dm9000-use-delayed-work-to-update-mii-phy-state-fix.patch
+update-smc91x-driver-with-arm-versatile-board-info.patch
+git-battery.patch
+fs-nfs-callback_xdrc-suppress-uninitialiized-variable-warnings.patch
+arch-parisc-kernel-unalignedc-use-time_-macros.patch
+git-block-fix-allnoconfig-build.patch
+git-unionfs.patch
+git-unionfs-fixup.patch
+git-logfs-fixup.patch
+git-v9fs.patch
+git-watchdog.patch
+git-watchdog-git-rejects.patch
+watchdog-fix-booke_wdtc-on-mpc85xx-smp-system.patch
+xfs-suppress-uninitialized-var-warnings.patch
+git-xtensa.patch
+ext4-is-busted-on-m68k.patch
+common-implementation-of-iterative-div-mod-fix.patch
+common-implementation-of-iterative-div-mod-checkpatch-fixes.patch
+colibri-fix-support-for-dm9000-ethernet-device-fix.patch
+vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
+vm-dont-run-touch_buffer-during-buffercache-lookups.patch
+locking-add-typecheck-on-irqsave-and-friends-for-correct-flags-checkpatch-fixes.patch
+remove-apparently-unused-fd1772h-header-file.patch
+lib-allow-memparse-to-accept-a-null-and-ignorable-second-parm-checkpatch-fixes.patch
+add-a-warn-macro-this-is-warn_on-printk-arguments-fix.patch
+flag-parameters-inotify_init-fix.patch
+hysdn-no-longer-broken-on-smp.patch
+drivers-video-aty-radeon_basec-notify-user-if-sysfs_create_bin_file-failed-checkpatch-fixes.patch
+reiserfs-convert-j_commit_lock-to-mutex-checkpatch-fixes.patch
+documentation-build-source-files-in-documentation-sub-dir-disable.patch
+reiser4.patch
+page-owner-tracking-leak-detector.patch
+nr_blockdev_pages-in_interrupt-warning.patch
+slab-leaks3-default-y.patch
+put_bh-debug.patch
+shrink_slab-handle-bad-shrinkers.patch
+getblk-handle-2tb-devices.patch
+getblk-handle-2tb-devices-fix.patch
+undeprecate-pci_find_device.patch
+notify_change-callers-must-hold-i_mutex.patch
+profile-likely-unlikely-macros.patch
+drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
+w1-build-fix.patch
