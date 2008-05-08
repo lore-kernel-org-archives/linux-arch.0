@@ -1,271 +1,59 @@
-From: akpm@linux-foundation.org
-Subject: + flag-parameters-add-on-remove-epoll_create-size-param.patch added to -mm tree
-Date: Wed, 07 May 2008 15:07:25 -0700
-Message-ID: <200805072207.m47M7Pes018958@imap1.linux-foundation.org>
-Reply-To: linux-kernel@vger.kernel.org
-Return-path: <mm-commits-owner@vger.kernel.org>
-Sender: mm-commits-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: drepper@redhat.com, davidel@xmailserver.org, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com
-List-Id: linux-arch.vger.kernel.org
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 1/10] Add generic helpers for arch IPI function calls
+Date: Wed, 7 May 2008 21:36:13 -0700
+Message-ID: <20080508043613.GB20338@linux.vnet.ibm.com>
+References: <20080502020241.GA26088@linux.vnet.ibm.com> <20080502021233.GC11844@wotan.suse.de> <20080502122955.GB15522@linux.vnet.ibm.com> <20080502124205.GA23680@linux.vnet.ibm.com> <1209733169.13978.157.camel@twins> <20080503054930.GA19664@wotan.suse.de> <20080503181148.GA16159@linux.vnet.ibm.com> <20080505041533.GA17640@wotan.suse.de> <20080505174312.GC7543@linux.vnet.ibm.com> <20080507204251.GO16217@kernel.dk>
+Reply-To: paulmck@linux.vnet.ibm.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e33.co.us.ibm.com ([32.97.110.151]:55049 "EHLO
+	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751136AbYEHEgT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2008 00:36:19 -0400
+Content-Disposition: inline
+In-Reply-To: <20080507204251.GO16217@kernel.dk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: Nick Piggin <npiggin@suse.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu
 
+On Wed, May 07, 2008 at 10:42:52PM +0200, Jens Axboe wrote:
+> On Mon, May 05 2008, Paul E. McKenney wrote:
+> > OK.  The below still permits parallel smp_call_function()
+> > and smp_call_function_mask() as well as permitting parallel
+> > smp_call_function_single().  It prohibits the irq-disabled case.
+> > 
+> > Thoughts?
+> 
+> Sorry for the delayed response here. The below looks pretty good to me,
+> though it'll require a few modifications to fixup smp_call_function()
+> from irq disabled context.
 
-The patch titled
-     flag parameters add-on: remove epoll_create size param
-has been added to the -mm tree.  Its filename is
-     flag-parameters-add-on-remove-epoll_create-size-param.patch
+Yep, easy fix, even if wait==1 needed.
 
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
+> But that's doable, though I have to do a grep over the kernel to check
+> everything (I remember CPU send_stop being one such path). Not a huge
+> fan of such an interface, but hey...
+> 
+> Is everyone OK with going this route, initially at least? It's the
+> lesser of all evils, I think.
+> 
+> > diff --git a/arch/Kconfig b/arch/Kconfig
+> > index a5a0184..5ae9360 100644
+> > --- a/arch/Kconfig
+> > +++ b/arch/Kconfig
+> > @@ -38,4 +38,4 @@ config HAVE_KRETPROBES
+> >  	def_bool n
+> >  
+> >  config USE_GENERIC_SMP_HELPERS
+> > -	def_bool n
+> > +	def_bool y
+> 
+> This part puzzled me, why? We default to 'n' and let converted archs
+> opt-in, so I don't get this part of your patch...
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+<red face>  I made that change to get it to compile, and forgot to
+revert it when making the patch.  Please ignore that bit.
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: flag parameters add-on: remove epoll_create size param
-From: Ulrich Drepper <drepper@redhat.com>
-
-Remove the size parameter from the new epoll_create syscall and renames the
-syscall itself.  The updated test program follows.
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#include <fcntl.h>
-#include <stdio.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/syscall.h>
-
-#ifndef __NR_epoll_create2
-# ifdef __x86_64__
-#  define __NR_epoll_create2 291
-# elif defined __i386__
-#  define __NR_epoll_create2 329
-# else
-#  error "need __NR_epoll_create2"
-# endif
-#endif
-
-#define EPOLL_CLOEXEC O_CLOEXEC
-
-int
-main (void)
-{
-  int fd = syscall (__NR_epoll_create2, 0);
-  if (fd == -1)
-    {
-      puts ("epoll_create2(0) failed");
-      return 1;
-    }
-  int coe = fcntl (fd, F_GETFD);
-  if (coe == -1)
-    {
-      puts ("fcntl failed");
-      return 1;
-    }
-  if (coe & FD_CLOEXEC)
-    {
-      puts ("epoll_create2(0) set close-on-exec flag");
-      return 1;
-    }
-  close (fd);
-
-  fd = syscall (__NR_epoll_create2, EPOLL_CLOEXEC);
-  if (fd == -1)
-    {
-      puts ("epoll_create2(EPOLL_CLOEXEC) failed");
-      return 1;
-    }
-  coe = fcntl (fd, F_GETFD);
-  if (coe == -1)
-    {
-      puts ("fcntl failed");
-      return 1;
-    }
-  if ((coe & FD_CLOEXEC) == 0)
-    {
-      puts ("epoll_create2(EPOLL_CLOEXEC) set close-on-exec flag");
-      return 1;
-    }
-  close (fd);
-
-  puts ("OK");
-
-  return 0;
-}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Signed-off-by: Ulrich Drepper <drepper@redhat.com>
-Acked-by: Davide Libenzi <davidel@xmailserver.org>
-Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/x86/ia32/ia32entry.S          |    2 +-
- arch/x86/kernel/syscall_table_32.S |    2 +-
- fs/eventpoll.c                     |   18 ++++++++++--------
- include/asm-x86/unistd_32.h        |    2 +-
- include/asm-x86/unistd_64.h        |    4 ++--
- include/linux/eventpoll.h          |    2 +-
- include/linux/syscalls.h           |    2 +-
- 7 files changed, 17 insertions(+), 15 deletions(-)
-
-diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-add-on-remove-epoll_create-size-param arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/arch/x86/ia32/ia32entry.S
-@@ -733,7 +733,7 @@ ia32_sys_call_table:
- 	.quad compat_sys_timerfd_gettime
- 	.quad compat_sys_signalfd4
- 	.quad sys_eventfd2
--	.quad sys_epoll_create2
-+	.quad sys_epoll_create1
- 	.quad sys_dup3			/* 330 */
- 	.quad sys_pipe2
- 	.quad sys_inotify_init1
-diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-add-on-remove-epoll_create-size-param arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/arch/x86/kernel/syscall_table_32.S
-@@ -328,7 +328,7 @@ ENTRY(sys_call_table)
- 	.long sys_timerfd_gettime
- 	.long sys_signalfd4
- 	.long sys_eventfd2
--	.long sys_epoll_create2
-+	.long sys_epoll_create1
- 	.long sys_dup3			/* 330 */
- 	.long sys_pipe2
- 	.long sys_inotify_init1
-diff -puN fs/eventpoll.c~flag-parameters-add-on-remove-epoll_create-size-param fs/eventpoll.c
---- a/fs/eventpoll.c~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/fs/eventpoll.c
-@@ -1046,7 +1046,7 @@ retry:
-  * RB tree. With the current implementation, the "size" parameter is ignored
-  * (besides sanity checks).
-  */
--asmlinkage long sys_epoll_create2(int size, int flags)
-+asmlinkage long sys_epoll_create1(int flags)
- {
- 	int error, fd = -1;
- 	struct eventpoll *ep;
-@@ -1058,14 +1058,13 @@ asmlinkage long sys_epoll_create2(int si
- 		return -EINVAL;
- 
- 	DNPRINTK(3, (KERN_INFO "[%p] eventpoll: sys_epoll_create(%d)\n",
--		     current, size));
-+		     current, flags));
- 
- 	/*
--	 * Sanity check on the size parameter, and create the internal data
--	 * structure ( "struct eventpoll" ).
-+	 * Create the internal data structure ( "struct eventpoll" ).
- 	 */
--	error = -EINVAL;
--	if (size <= 0 || (error = ep_alloc(&ep)) < 0) {
-+	error = ep_alloc(&ep);
-+	if (error < 0) {
- 		fd = error;
- 		goto error_return;
- 	}
-@@ -1081,14 +1080,17 @@ asmlinkage long sys_epoll_create2(int si
- 
- error_return:
- 	DNPRINTK(3, (KERN_INFO "[%p] eventpoll: sys_epoll_create(%d) = %d\n",
--		     current, size, fd));
-+		     current, flags, fd));
- 
- 	return fd;
- }
- 
- asmlinkage long sys_epoll_create(int size)
- {
--	return sys_epoll_create2(size, 0);
-+	if (size < 0)
-+		return -EINVAL;
-+
-+	return sys_epoll_create1(0);
- }
- 
- /*
-diff -puN include/asm-x86/unistd_32.h~flag-parameters-add-on-remove-epoll_create-size-param include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/include/asm-x86/unistd_32.h
-@@ -334,7 +334,7 @@
- #define __NR_timerfd_gettime	326
- #define __NR_signalfd4		327
- #define __NR_eventfd2		328
--#define __NR_epoll_create2	329
-+#define __NR_epoll_create1	329
- #define __NR_dup3		330
- #define __NR_pipe2		331
- #define __NR_inotify_init1	332
-diff -puN include/asm-x86/unistd_64.h~flag-parameters-add-on-remove-epoll_create-size-param include/asm-x86/unistd_64.h
---- a/include/asm-x86/unistd_64.h~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/include/asm-x86/unistd_64.h
-@@ -645,8 +645,8 @@ __SYSCALL(__NR_paccept, sys_paccept)
- __SYSCALL(__NR_signalfd4, sys_signalfd4)
- #define __NR_eventfd2				290
- __SYSCALL(__NR_eventfd2, sys_eventfd2)
--#define __NR_epoll_create2			291
--__SYSCALL(__NR_epoll_create2, sys_epoll_create2)
-+#define __NR_epoll_create1			291
-+__SYSCALL(__NR_epoll_create1, sys_epoll_create1)
- #define __NR_dup3				292
- __SYSCALL(__NR_dup3, sys_dup3)
- #define __NR_pipe2				293
-diff -puN include/linux/eventpoll.h~flag-parameters-add-on-remove-epoll_create-size-param include/linux/eventpoll.h
---- a/include/linux/eventpoll.h~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/include/linux/eventpoll.h
-@@ -18,7 +18,7 @@
- #include <linux/fcntl.h>
- #include <linux/types.h>
- 
--/* Flags for epoll_create2.  */
-+/* Flags for epoll_create1.  */
- #define EPOLL_CLOEXEC O_CLOEXEC
- 
- /* Valid opcodes to issue to sys_epoll_ctl() */
-diff -puN include/linux/syscalls.h~flag-parameters-add-on-remove-epoll_create-size-param include/linux/syscalls.h
---- a/include/linux/syscalls.h~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/include/linux/syscalls.h
-@@ -431,7 +431,7 @@ asmlinkage long sys_poll(struct pollfd _
- asmlinkage long sys_select(int n, fd_set __user *inp, fd_set __user *outp,
- 			fd_set __user *exp, struct timeval __user *tvp);
- asmlinkage long sys_epoll_create(int size);
--asmlinkage long sys_epoll_create2(int size, int flags);
-+asmlinkage long sys_epoll_create1(int flags);
- asmlinkage long sys_epoll_ctl(int epfd, int op, int fd,
- 				struct epoll_event __user *event);
- asmlinkage long sys_epoll_wait(int epfd, struct epoll_event __user *events,
-_
-
-Patches currently in -mm which might be from drepper@redhat.com are
-
-origin.patch
-sys_pipe-fix-file-descriptor-leaks.patch
-execve-filename-document-and-export-via-auxiliary-vector.patch
-flag-parameters-socket-and-socketpair.patch
-flag-parameters-paccept.patch
-flag-parameters-anon_inode_getfd-extension.patch
-flag-parameters-signalfd.patch
-flag-parameters-eventfd.patch
-flag-parameters-timerfd_create.patch
-flag-parameters-epoll_create.patch
-flag-parameters-dup2.patch
-flag-parameters-pipe.patch
-flag-parameters-inotify_init.patch
-flag-parametersi-nonblock-in-anon_inode_getfd.patch
-flag-parameters-nonblock-in-socket-and-socketpair.patch
-flag-parameters-nonblock-in-signalfd.patch
-flag-parameters-nonblock-in-eventfd.patch
-flag-parameters-nonblock-in-timerfd_create.patch
-flag-parameters-nonblock-in-pipe.patch
-flag-parameters-nonblock-in-inotify_init.patch
-flag-parameters-check-magic-constants.patch
-flag-parameters-add-on-remove-epoll_create-size-param.patch
-
+							Thanx, Paul
