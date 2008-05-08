@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:39815 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:33951 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755962AbYEGWIY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2008 18:08:24 -0400
-Message-ID: <200805072207.m47M7Pes018958@imap1.linux-foundation.org>
-Subject: + flag-parameters-add-on-remove-epoll_create-size-param.patch added to -mm tree
+	by vger.kernel.org with ESMTP id S1751048AbYEHWyf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2008 18:54:35 -0400
+Message-ID: <200805082254.m48MsAwK010076@imap1.linux-foundation.org>
+Subject: + flag-parameters-inotify_init-fix.patch added to -mm tree
 From: akpm@linux-foundation.org
-Date: Wed, 07 May 2008 15:07:25 -0700
+Date: Thu, 08 May 2008 15:43:15 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mm-commits@vger.kernel.org
-Cc: drepper@redhat.com, davidel@xmailserver.org, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com
-Message-ID: <20080507220725.imJoT2bRZu3_dIwWXBGCvWE3JCMS1l7ebIKXna-GXS0@z>
+Cc: akpm@linux-foundation.org, davidel@xmailserver.org, drepper@redhat.com, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com
+Message-ID: <20080508224315.vjQcYXnoHPF2_KyasBFO4p44hU6YR4UGnZGP65GduTA@z>
 
 
 The patch titled
-     flag parameters add-on: remove epoll_create size param
+     flag-parameters-inotify_init-fix
 has been added to the -mm tree.  Its filename is
-     flag-parameters-add-on-remove-epoll_create-size-param.patch
+     flag-parameters-inotify_init-fix.patch
 
 Before you just go and hit "reply", please:
    a) Consider who else should be cc'ed
@@ -33,243 +33,116 @@ out what to do about this
 The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
 ------------------------------------------------------
-Subject: flag parameters add-on: remove epoll_create size param
-From: Ulrich Drepper <drepper@redhat.com>
+Subject: flag-parameters-inotify_init-fix
+From: Andrew Morton <akpm@linux-foundation.org>
 
-Remove the size parameter from the new epoll_create syscall and renames the
-syscall itself.  The updated test program follows.
+CONFIG_INOTIFY=n:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#include <fcntl.h>
-#include <stdio.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/syscall.h>
+arch/x86/kernel/built-in.o: In function `sys_call_table':
+: undefined reference to `sys_inotify_init1'
 
-#ifndef __NR_epoll_create2
-# ifdef __x86_64__
-#  define __NR_epoll_create2 291
-# elif defined __i386__
-#  define __NR_epoll_create2 329
-# else
-#  error "need __NR_epoll_create2"
-# endif
-#endif
-
-#define EPOLL_CLOEXEC O_CLOEXEC
-
-int
-main (void)
-{
-  int fd = syscall (__NR_epoll_create2, 0);
-  if (fd == -1)
-    {
-      puts ("epoll_create2(0) failed");
-      return 1;
-    }
-  int coe = fcntl (fd, F_GETFD);
-  if (coe == -1)
-    {
-      puts ("fcntl failed");
-      return 1;
-    }
-  if (coe & FD_CLOEXEC)
-    {
-      puts ("epoll_create2(0) set close-on-exec flag");
-      return 1;
-    }
-  close (fd);
-
-  fd = syscall (__NR_epoll_create2, EPOLL_CLOEXEC);
-  if (fd == -1)
-    {
-      puts ("epoll_create2(EPOLL_CLOEXEC) failed");
-      return 1;
-    }
-  coe = fcntl (fd, F_GETFD);
-  if (coe == -1)
-    {
-      puts ("fcntl failed");
-      return 1;
-    }
-  if ((coe & FD_CLOEXEC) == 0)
-    {
-      puts ("epoll_create2(EPOLL_CLOEXEC) set close-on-exec flag");
-      return 1;
-    }
-  close (fd);
-
-  puts ("OK");
-
-  return 0;
-}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Signed-off-by: Ulrich Drepper <drepper@redhat.com>
-Acked-by: Davide Libenzi <davidel@xmailserver.org>
-Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
 Cc: <linux-arch@vger.kernel.org>
+Cc: Davide Libenzi <davidel@xmailserver.org>
+Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
+Cc: Ulrich Drepper <drepper@redhat.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/x86/ia32/ia32entry.S          |    2 +-
- arch/x86/kernel/syscall_table_32.S |    2 +-
- fs/eventpoll.c                     |   18 ++++++++++--------
- include/asm-x86/unistd_32.h        |    2 +-
- include/asm-x86/unistd_64.h        |    4 ++--
- include/linux/eventpoll.h          |    2 +-
- include/linux/syscalls.h           |    2 +-
- 7 files changed, 17 insertions(+), 15 deletions(-)
+ kernel/sys_ni.c |    1 +
+ 1 file changed, 1 insertion(+)
 
-diff -puN arch/x86/ia32/ia32entry.S~flag-parameters-add-on-remove-epoll_create-size-param arch/x86/ia32/ia32entry.S
---- a/arch/x86/ia32/ia32entry.S~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/arch/x86/ia32/ia32entry.S
-@@ -733,7 +733,7 @@ ia32_sys_call_table:
- 	.quad compat_sys_timerfd_gettime
- 	.quad compat_sys_signalfd4
- 	.quad sys_eventfd2
--	.quad sys_epoll_create2
-+	.quad sys_epoll_create1
- 	.quad sys_dup3			/* 330 */
- 	.quad sys_pipe2
- 	.quad sys_inotify_init1
-diff -puN arch/x86/kernel/syscall_table_32.S~flag-parameters-add-on-remove-epoll_create-size-param arch/x86/kernel/syscall_table_32.S
---- a/arch/x86/kernel/syscall_table_32.S~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/arch/x86/kernel/syscall_table_32.S
-@@ -328,7 +328,7 @@ ENTRY(sys_call_table)
- 	.long sys_timerfd_gettime
- 	.long sys_signalfd4
- 	.long sys_eventfd2
--	.long sys_epoll_create2
-+	.long sys_epoll_create1
- 	.long sys_dup3			/* 330 */
- 	.long sys_pipe2
- 	.long sys_inotify_init1
-diff -puN fs/eventpoll.c~flag-parameters-add-on-remove-epoll_create-size-param fs/eventpoll.c
---- a/fs/eventpoll.c~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/fs/eventpoll.c
-@@ -1046,7 +1046,7 @@ retry:
-  * RB tree. With the current implementation, the "size" parameter is ignored
-  * (besides sanity checks).
-  */
--asmlinkage long sys_epoll_create2(int size, int flags)
-+asmlinkage long sys_epoll_create1(int flags)
- {
- 	int error, fd = -1;
- 	struct eventpoll *ep;
-@@ -1058,14 +1058,13 @@ asmlinkage long sys_epoll_create2(int si
- 		return -EINVAL;
- 
- 	DNPRINTK(3, (KERN_INFO "[%p] eventpoll: sys_epoll_create(%d)\n",
--		     current, size));
-+		     current, flags));
- 
- 	/*
--	 * Sanity check on the size parameter, and create the internal data
--	 * structure ( "struct eventpoll" ).
-+	 * Create the internal data structure ( "struct eventpoll" ).
- 	 */
--	error = -EINVAL;
--	if (size <= 0 || (error = ep_alloc(&ep)) < 0) {
-+	error = ep_alloc(&ep);
-+	if (error < 0) {
- 		fd = error;
- 		goto error_return;
- 	}
-@@ -1081,14 +1080,17 @@ asmlinkage long sys_epoll_create2(int si
- 
- error_return:
- 	DNPRINTK(3, (KERN_INFO "[%p] eventpoll: sys_epoll_create(%d) = %d\n",
--		     current, size, fd));
-+		     current, flags, fd));
- 
- 	return fd;
- }
- 
- asmlinkage long sys_epoll_create(int size)
- {
--	return sys_epoll_create2(size, 0);
-+	if (size < 0)
-+		return -EINVAL;
-+
-+	return sys_epoll_create1(0);
- }
- 
- /*
-diff -puN include/asm-x86/unistd_32.h~flag-parameters-add-on-remove-epoll_create-size-param include/asm-x86/unistd_32.h
---- a/include/asm-x86/unistd_32.h~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/include/asm-x86/unistd_32.h
-@@ -334,7 +334,7 @@
- #define __NR_timerfd_gettime	326
- #define __NR_signalfd4		327
- #define __NR_eventfd2		328
--#define __NR_epoll_create2	329
-+#define __NR_epoll_create1	329
- #define __NR_dup3		330
- #define __NR_pipe2		331
- #define __NR_inotify_init1	332
-diff -puN include/asm-x86/unistd_64.h~flag-parameters-add-on-remove-epoll_create-size-param include/asm-x86/unistd_64.h
---- a/include/asm-x86/unistd_64.h~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/include/asm-x86/unistd_64.h
-@@ -645,8 +645,8 @@ __SYSCALL(__NR_paccept, sys_paccept)
- __SYSCALL(__NR_signalfd4, sys_signalfd4)
- #define __NR_eventfd2				290
- __SYSCALL(__NR_eventfd2, sys_eventfd2)
--#define __NR_epoll_create2			291
--__SYSCALL(__NR_epoll_create2, sys_epoll_create2)
-+#define __NR_epoll_create1			291
-+__SYSCALL(__NR_epoll_create1, sys_epoll_create1)
- #define __NR_dup3				292
- __SYSCALL(__NR_dup3, sys_dup3)
- #define __NR_pipe2				293
-diff -puN include/linux/eventpoll.h~flag-parameters-add-on-remove-epoll_create-size-param include/linux/eventpoll.h
---- a/include/linux/eventpoll.h~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/include/linux/eventpoll.h
-@@ -18,7 +18,7 @@
- #include <linux/fcntl.h>
- #include <linux/types.h>
- 
--/* Flags for epoll_create2.  */
-+/* Flags for epoll_create1.  */
- #define EPOLL_CLOEXEC O_CLOEXEC
- 
- /* Valid opcodes to issue to sys_epoll_ctl() */
-diff -puN include/linux/syscalls.h~flag-parameters-add-on-remove-epoll_create-size-param include/linux/syscalls.h
---- a/include/linux/syscalls.h~flag-parameters-add-on-remove-epoll_create-size-param
-+++ a/include/linux/syscalls.h
-@@ -431,7 +431,7 @@ asmlinkage long sys_poll(struct pollfd _
- asmlinkage long sys_select(int n, fd_set __user *inp, fd_set __user *outp,
- 			fd_set __user *exp, struct timeval __user *tvp);
- asmlinkage long sys_epoll_create(int size);
--asmlinkage long sys_epoll_create2(int size, int flags);
-+asmlinkage long sys_epoll_create1(int flags);
- asmlinkage long sys_epoll_ctl(int epfd, int op, int fd,
- 				struct epoll_event __user *event);
- asmlinkage long sys_epoll_wait(int epfd, struct epoll_event __user *events,
+diff -puN kernel/sys_ni.c~flag-parameters-inotify_init-fix kernel/sys_ni.c
+--- a/kernel/sys_ni.c~flag-parameters-inotify_init-fix
++++ a/kernel/sys_ni.c
+@@ -94,6 +94,7 @@ cond_syscall(sys_keyctl);
+ cond_syscall(compat_sys_keyctl);
+ cond_syscall(compat_sys_socketcall);
+ cond_syscall(sys_inotify_init);
++cond_syscall(sys_inotify_init1);
+ cond_syscall(sys_inotify_add_watch);
+ cond_syscall(sys_inotify_rm_watch);
+ cond_syscall(sys_migrate_pages);
 _
 
-Patches currently in -mm which might be from drepper@redhat.com are
+Patches currently in -mm which might be from akpm@linux-foundation.org are
 
 origin.patch
-sys_pipe-fix-file-descriptor-leaks.patch
-execve-filename-document-and-export-via-auxiliary-vector.patch
-flag-parameters-socket-and-socketpair.patch
-flag-parameters-paccept.patch
-flag-parameters-anon_inode_getfd-extension.patch
-flag-parameters-signalfd.patch
-flag-parameters-eventfd.patch
-flag-parameters-timerfd_create.patch
-flag-parameters-epoll_create.patch
-flag-parameters-dup2.patch
-flag-parameters-pipe.patch
-flag-parameters-inotify_init.patch
-flag-parametersi-nonblock-in-anon_inode_getfd.patch
-flag-parameters-nonblock-in-socket-and-socketpair.patch
-flag-parameters-nonblock-in-signalfd.patch
-flag-parameters-nonblock-in-eventfd.patch
-flag-parameters-nonblock-in-timerfd_create.patch
-flag-parameters-nonblock-in-pipe.patch
-flag-parameters-nonblock-in-inotify_init.patch
-flag-parameters-check-magic-constants.patch
-flag-parameters-add-on-remove-epoll_create-size-param.patch
+sxc-fix-printk-warnings-on-sparc32.patch
+drivers-scsi-dpt_i2oc-fix-build-on-alpha.patch
+quota-dont-call-sync_fs-from-vfs_quota_off-when-theres-no-quota-turn-off-fix.patch
+fix-hfsplus-oops-on-image-without-extents-fix.patch
+rtc-rtc_time_to_tm-use-unsigned-arithmetic-fix.patch
+atmel_lcdfb-fix-pixclok-divider-calculation-checkpatch-fixes.patch
+memcg-fix-possible-panic-when-config_mm_owner=y-checkpatch-fixes.patch
+linux-next.patch
+revert-9p-convert-from-semaphore-to-spinlock.patch
+revert-vt-fix-background-color-on-line-feed.patch
+revert-lxfb-extend-pll-table-to-support-dotclocks-below-25-mhz.patch
+revert-acpica-fixes-for-unload-and-ddbhandles.patch
+acpi-enable-c3-power-state-on-dell-inspiron-8200.patch
+acpi-video-balcklist-fujitsu-lifebook-s6410.patch
+git-x86.patch
+git-x86-fixup.patch
+arch-x86-kernel-setupc-printk-warning-fix.patch
+arm-omap1-n770-convert-audio_pwr_sem-in-a-mutex-fix.patch
+cifs-suppress-warning.patch
+sysfs-provide-a-clue-about-the-effects-of-config_usb_device_class=y.patch
+fix-driver-core-prepare-for-removal-of-20-char-limit-from-struct-device.patch
+i2c-renesas-highlander-fpga-smbus-support.patch
+dlm-convert-connections_lock-in-a-mutex-fix.patch
+git-input.patch
+git-jg-misc-git-rejects.patch
+revert-git-kbuild.patch
+git-mmc.patch
+sundance-set-carrier-status-on-link-change-events.patch
+dm9000-use-delayed-work-to-update-mii-phy-state-fix.patch
+pcnet32-fix-warning.patch
+update-smc91x-driver-with-arm-versatile-board-info.patch
+git-battery.patch
+fs-nfs-callback_xdrc-suppress-uninitialiized-variable-warnings.patch
+arch-parisc-kernel-unalignedc-use-time_-macros.patch
+revert-git-block.patch
+git-unionfs.patch
+git-unionfs-fixup.patch
+git-logfs-fixup.patch
+logfs-unbork.patch
+drivers-usb-core-sysfsc-fix-types.patch
+drivers-uwb-nehc-processor-flags-have-type-unsigned-long.patch
+drivers-usb-host-isp1760-hcdc-procesxor-flags-have-type-unsigned-long.patch
+git-v9fs.patch
+git-watchdog.patch
+git-watchdog-git-rejects.patch
+watchdog-fix-booke_wdtc-on-mpc85xx-smp-system.patch
+xfs-suppress-uninitialized-var-warnings.patch
+git-xtensa.patch
+ext4-is-busted-on-m68k.patch
+common-implementation-of-iterative-div-mod-fix.patch
+common-implementation-of-iterative-div-mod-checkpatch-fixes.patch
+colibri-fix-support-for-dm9000-ethernet-device-fix.patch
+vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
+vm-dont-run-touch_buffer-during-buffercache-lookups.patch
+locking-add-typecheck-on-irqsave-and-friends-for-correct-flags-checkpatch-fixes.patch
+remove-apparently-unused-fd1772h-header-file.patch
+lib-allow-memparse-to-accept-a-null-and-ignorable-second-parm-checkpatch-fixes.patch
+add-a-warn-macro-this-is-warn_on-printk-arguments-fix.patch
+flag-parameters-paccept-fix.patch
+flag-parameters-anon_inode_getfd-extension-fix.patch
+flag-parameters-inotify_init-fix.patch
+hysdn-no-longer-broken-on-smp.patch
+drivers-video-aty-radeon_basec-notify-user-if-sysfs_create_bin_file-failed-checkpatch-fixes.patch
+reiserfs-convert-j_commit_lock-to-mutex-checkpatch-fixes.patch
+documentation-build-source-files-in-documentation-sub-dir-disable.patch
+reiser4.patch
+page-owner-tracking-leak-detector.patch
+nr_blockdev_pages-in_interrupt-warning.patch
+slab-leaks3-default-y.patch
+put_bh-debug.patch
+shrink_slab-handle-bad-shrinkers.patch
+getblk-handle-2tb-devices.patch
+getblk-handle-2tb-devices-fix.patch
+undeprecate-pci_find_device.patch
+notify_change-callers-must-hold-i_mutex.patch
+profile-likely-unlikely-macros.patch
+drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
+w1-build-fix.patch
 
