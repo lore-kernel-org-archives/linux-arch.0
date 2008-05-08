@@ -1,16 +1,13 @@
 From: akpm@linux-foundation.org
 Subject: + flag-parameters-inotify_init-fix.patch added to -mm tree
-Date: Thu, 08 May 2008 14:41:55 -0700
-Message-ID: <200805082152.m48LqoWh007690@imap1.linux-foundation.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:57508 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1762369AbYEHVxh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2008 17:53:37 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Date: Thu, 08 May 2008 15:43:15 -0700
+Message-ID: <200805082254.m48MsAwK010076@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
 To: mm-commits@vger.kernel.org
 Cc: akpm@linux-foundation.org, davidel@xmailserver.org, drepper@redhat.com, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com
+List-Id: linux-arch.vger.kernel.org
 
 
 The patch titled
@@ -69,6 +66,7 @@ origin.patch
 sxc-fix-printk-warnings-on-sparc32.patch
 drivers-scsi-dpt_i2oc-fix-build-on-alpha.patch
 quota-dont-call-sync_fs-from-vfs_quota_off-when-theres-no-quota-turn-off-fix.patch
+fix-hfsplus-oops-on-image-without-extents-fix.patch
 rtc-rtc_time_to_tm-use-unsigned-arithmetic-fix.patch
 atmel_lcdfb-fix-pixclok-divider-calculation-checkpatch-fixes.patch
 memcg-fix-possible-panic-when-config_mm_owner=y-checkpatch-fixes.patch
@@ -81,26 +79,32 @@ acpi-enable-c3-power-state-on-dell-inspiron-8200.patch
 acpi-video-balcklist-fujitsu-lifebook-s6410.patch
 git-x86.patch
 git-x86-fixup.patch
+arch-x86-kernel-setupc-printk-warning-fix.patch
 arm-omap1-n770-convert-audio_pwr_sem-in-a-mutex-fix.patch
 cifs-suppress-warning.patch
 sysfs-provide-a-clue-about-the-effects-of-config_usb_device_class=y.patch
+fix-driver-core-prepare-for-removal-of-20-char-limit-from-struct-device.patch
 i2c-renesas-highlander-fpga-smbus-support.patch
 dlm-convert-connections_lock-in-a-mutex-fix.patch
 git-input.patch
 git-jg-misc-git-rejects.patch
 revert-git-kbuild.patch
-revert-libata-improve-post-reset-device-ready-test.patch
 git-mmc.patch
 sundance-set-carrier-status-on-link-change-events.patch
 dm9000-use-delayed-work-to-update-mii-phy-state-fix.patch
+pcnet32-fix-warning.patch
 update-smc91x-driver-with-arm-versatile-board-info.patch
 git-battery.patch
 fs-nfs-callback_xdrc-suppress-uninitialiized-variable-warnings.patch
 arch-parisc-kernel-unalignedc-use-time_-macros.patch
-git-block-fix-allnoconfig-build.patch
+revert-git-block.patch
 git-unionfs.patch
 git-unionfs-fixup.patch
 git-logfs-fixup.patch
+logfs-unbork.patch
+drivers-usb-core-sysfsc-fix-types.patch
+drivers-uwb-nehc-processor-flags-have-type-unsigned-long.patch
+drivers-usb-host-isp1760-hcdc-procesxor-flags-have-type-unsigned-long.patch
 git-v9fs.patch
 git-watchdog.patch
 git-watchdog-git-rejects.patch
@@ -117,6 +121,8 @@ locking-add-typecheck-on-irqsave-and-friends-for-correct-flags-checkpatch-fixes.
 remove-apparently-unused-fd1772h-header-file.patch
 lib-allow-memparse-to-accept-a-null-and-ignorable-second-parm-checkpatch-fixes.patch
 add-a-warn-macro-this-is-warn_on-printk-arguments-fix.patch
+flag-parameters-paccept-fix.patch
+flag-parameters-anon_inode_getfd-extension-fix.patch
 flag-parameters-inotify_init-fix.patch
 hysdn-no-longer-broken-on-smp.patch
 drivers-video-aty-radeon_basec-notify-user-if-sysfs_create_bin_file-failed-checkpatch-fixes.patch
@@ -135,3 +141,4 @@ notify_change-callers-must-hold-i_mutex.patch
 profile-likely-unlikely-macros.patch
 drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
 w1-build-fix.patch
+
