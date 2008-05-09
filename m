@@ -1,144 +1,36 @@
-From: akpm@linux-foundation.org
-Subject: + flag-parameters-inotify_init-fix.patch added to -mm tree
-Date: Thu, 08 May 2008 15:43:15 -0700
-Message-ID: <200805082254.m48MsAwK010076@imap1.linux-foundation.org>
-Reply-To: linux-kernel@vger.kernel.org
-Return-path: <mm-commits-owner@vger.kernel.org>
-Sender: mm-commits-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: akpm@linux-foundation.org, davidel@xmailserver.org, drepper@redhat.com, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com
-List-Id: linux-arch.vger.kernel.org
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: =?us-ascii?Q?OF=20files?=
+Date: Fri, 9 May 2008 16:11:29 +1000
+Message-ID: <18467.60177.91772.136339@cargo.ozlabs.ibm.com>
+References: <5257.8247-18740-1017760922-1209828638@seznam.cz>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([203.10.76.45]:58043 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759448AbYEIGLl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 May 2008 02:11:41 -0400
+In-Reply-To: <5257.8247-18740-1017760922-1209828638@seznam.cz>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: =?us-ascii?Q?Michal=20Simek?= <Monstr@seznam.cz>
+Cc: =?us-ascii?Q?Arnd=20Bergmann?= <arnd@arndb.de>, =?us-ascii?Q?John=20Williams?= <john.williams@petalogix.com>, =?us-ascii?Q?Matthew=20Wilcox?= <matthew@wil.cx>, =?us-ascii?Q?Will=20Newton?= <will.newton@gmail.com>, =?us-ascii?Q?Linux=20Kernel=20list?= <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, =?us-ascii?Q?Stephen=20Neuendorffer?= <stephen.neuendorffer@xilinx.com>, =?us-ascii?Q?John=20Linn?= <John.Linn@xilinx.com>, =?us-ascii?Q?Ulrich=20Drepper?= <drepper@redhat.com>
 
+Michal Simek writes:
 
-The patch titled
-     flag-parameters-inotify_init-fix
-has been added to the -mm tree.  Its filename is
-     flag-parameters-inotify_init-fix.patch
+> I tested OF files changes. I sent you some patches about.
+> 
+> I look at headers files too. Is it possible to move prom.h,
+> of_device.h and of_platform.h to asm-generic or linux folder? 
 
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
+We can move stuff to drivers/of and include/linux, but we should only
+move the parts that are truly architecture-independent.  We should not
+have anything like #ifdef CONFIG_PPC_PSERIES in the files in those
+directories.  If it needs an ifdef like that, then that part of the
+file should stay under arch/powerpc.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+In other words, it's OK to split files and end up with more files than
+we have at present.  That's better than adding ifdefs.
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: flag-parameters-inotify_init-fix
-From: Andrew Morton <akpm@linux-foundation.org>
-
-CONFIG_INOTIFY=n:
-
-arch/x86/kernel/built-in.o: In function `sys_call_table':
-: undefined reference to `sys_inotify_init1'
-
-Cc: <linux-arch@vger.kernel.org>
-Cc: Davide Libenzi <davidel@xmailserver.org>
-Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
-Cc: Ulrich Drepper <drepper@redhat.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- kernel/sys_ni.c |    1 +
- 1 file changed, 1 insertion(+)
-
-diff -puN kernel/sys_ni.c~flag-parameters-inotify_init-fix kernel/sys_ni.c
---- a/kernel/sys_ni.c~flag-parameters-inotify_init-fix
-+++ a/kernel/sys_ni.c
-@@ -94,6 +94,7 @@ cond_syscall(sys_keyctl);
- cond_syscall(compat_sys_keyctl);
- cond_syscall(compat_sys_socketcall);
- cond_syscall(sys_inotify_init);
-+cond_syscall(sys_inotify_init1);
- cond_syscall(sys_inotify_add_watch);
- cond_syscall(sys_inotify_rm_watch);
- cond_syscall(sys_migrate_pages);
-_
-
-Patches currently in -mm which might be from akpm@linux-foundation.org are
-
-origin.patch
-sxc-fix-printk-warnings-on-sparc32.patch
-drivers-scsi-dpt_i2oc-fix-build-on-alpha.patch
-quota-dont-call-sync_fs-from-vfs_quota_off-when-theres-no-quota-turn-off-fix.patch
-fix-hfsplus-oops-on-image-without-extents-fix.patch
-rtc-rtc_time_to_tm-use-unsigned-arithmetic-fix.patch
-atmel_lcdfb-fix-pixclok-divider-calculation-checkpatch-fixes.patch
-memcg-fix-possible-panic-when-config_mm_owner=y-checkpatch-fixes.patch
-linux-next.patch
-revert-9p-convert-from-semaphore-to-spinlock.patch
-revert-vt-fix-background-color-on-line-feed.patch
-revert-lxfb-extend-pll-table-to-support-dotclocks-below-25-mhz.patch
-revert-acpica-fixes-for-unload-and-ddbhandles.patch
-acpi-enable-c3-power-state-on-dell-inspiron-8200.patch
-acpi-video-balcklist-fujitsu-lifebook-s6410.patch
-git-x86.patch
-git-x86-fixup.patch
-arch-x86-kernel-setupc-printk-warning-fix.patch
-arm-omap1-n770-convert-audio_pwr_sem-in-a-mutex-fix.patch
-cifs-suppress-warning.patch
-sysfs-provide-a-clue-about-the-effects-of-config_usb_device_class=y.patch
-fix-driver-core-prepare-for-removal-of-20-char-limit-from-struct-device.patch
-i2c-renesas-highlander-fpga-smbus-support.patch
-dlm-convert-connections_lock-in-a-mutex-fix.patch
-git-input.patch
-git-jg-misc-git-rejects.patch
-revert-git-kbuild.patch
-git-mmc.patch
-sundance-set-carrier-status-on-link-change-events.patch
-dm9000-use-delayed-work-to-update-mii-phy-state-fix.patch
-pcnet32-fix-warning.patch
-update-smc91x-driver-with-arm-versatile-board-info.patch
-git-battery.patch
-fs-nfs-callback_xdrc-suppress-uninitialiized-variable-warnings.patch
-arch-parisc-kernel-unalignedc-use-time_-macros.patch
-revert-git-block.patch
-git-unionfs.patch
-git-unionfs-fixup.patch
-git-logfs-fixup.patch
-logfs-unbork.patch
-drivers-usb-core-sysfsc-fix-types.patch
-drivers-uwb-nehc-processor-flags-have-type-unsigned-long.patch
-drivers-usb-host-isp1760-hcdc-procesxor-flags-have-type-unsigned-long.patch
-git-v9fs.patch
-git-watchdog.patch
-git-watchdog-git-rejects.patch
-watchdog-fix-booke_wdtc-on-mpc85xx-smp-system.patch
-xfs-suppress-uninitialized-var-warnings.patch
-git-xtensa.patch
-ext4-is-busted-on-m68k.patch
-common-implementation-of-iterative-div-mod-fix.patch
-common-implementation-of-iterative-div-mod-checkpatch-fixes.patch
-colibri-fix-support-for-dm9000-ethernet-device-fix.patch
-vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
-vm-dont-run-touch_buffer-during-buffercache-lookups.patch
-locking-add-typecheck-on-irqsave-and-friends-for-correct-flags-checkpatch-fixes.patch
-remove-apparently-unused-fd1772h-header-file.patch
-lib-allow-memparse-to-accept-a-null-and-ignorable-second-parm-checkpatch-fixes.patch
-add-a-warn-macro-this-is-warn_on-printk-arguments-fix.patch
-flag-parameters-paccept-fix.patch
-flag-parameters-anon_inode_getfd-extension-fix.patch
-flag-parameters-inotify_init-fix.patch
-hysdn-no-longer-broken-on-smp.patch
-drivers-video-aty-radeon_basec-notify-user-if-sysfs_create_bin_file-failed-checkpatch-fixes.patch
-reiserfs-convert-j_commit_lock-to-mutex-checkpatch-fixes.patch
-documentation-build-source-files-in-documentation-sub-dir-disable.patch
-reiser4.patch
-page-owner-tracking-leak-detector.patch
-nr_blockdev_pages-in_interrupt-warning.patch
-slab-leaks3-default-y.patch
-put_bh-debug.patch
-shrink_slab-handle-bad-shrinkers.patch
-getblk-handle-2tb-devices.patch
-getblk-handle-2tb-devices-fix.patch
-undeprecate-pci_find_device.patch
-notify_change-callers-must-hold-i_mutex.patch
-profile-likely-unlikely-macros.patch
-drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
-w1-build-fix.patch
-
+Paul.
