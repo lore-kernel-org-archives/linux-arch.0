@@ -1,36 +1,91 @@
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: =?us-ascii?Q?OF=20files?=
-Date: Fri, 9 May 2008 16:11:29 +1000
-Message-ID: <18467.60177.91772.136339@cargo.ozlabs.ibm.com>
-References: <5257.8247-18740-1017760922-1209828638@seznam.cz>
+From: Alexander van Heukelum <heukelum@mailshack.com>
+Subject: [PATCH] Make for_each_cpu_mask a bit smaller
+Date: Sun, 11 May 2008 15:50:39 +0200
+Message-ID: <20080511135039.GA3286@mailshack.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:58043 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759448AbYEIGLl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 May 2008 02:11:41 -0400
-In-Reply-To: <5257.8247-18740-1017760922-1209828638@seznam.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: =?us-ascii?Q?Michal=20Simek?= <Monstr@seznam.cz>
-Cc: =?us-ascii?Q?Arnd=20Bergmann?= <arnd@arndb.de>, =?us-ascii?Q?John=20Williams?= <john.williams@petalogix.com>, =?us-ascii?Q?Matthew=20Wilcox?= <matthew@wil.cx>, =?us-ascii?Q?Will=20Newton?= <will.newton@gmail.com>, =?us-ascii?Q?Linux=20Kernel=20list?= <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, =?us-ascii?Q?Stephen=20Neuendorffer?= <stephen.neuendorffer@xilinx.com>, =?us-ascii?Q?John=20Linn?= <John.Linn@xilinx.com>, =?us-ascii?Q?Ulrich=20Drepper?= <drepper@redhat.com>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1755747AbYEKNvu@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, Paul Jackson <pj@sgi.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, heukelum@fastmail.fm
+List-Id: linux-arch.vger.kernel.org
 
-Michal Simek writes:
+The for_each_cpu_mask loop is used quite often in the kernel. It
+makes use of two functions: first_cpu and next_cpu. This patch
+changes for_each_cpu_mask to use only one function: a newly
+introduced find_next_cpu. Each use of the for_each_cpu_mask
+constuct then becomes a few bytes smaller. An x86_64 defconfig
+kernel is about 2000 bytes smaller with this patch applied:
 
-> I tested OF files changes. I sent you some patches about.
-> 
-> I look at headers files too. Is it possible to move prom.h,
-> of_device.h and of_platform.h to asm-generic or linux folder? 
+   text	   data	    bss	    dec	    hex	filename
+5395732	 976736	 734280	7106748	 6c70bc	vmlinux.orig
+5393639	 976736	 734280	7104655	 6c688f	vmlinux
 
-We can move stuff to drivers/of and include/linux, but we should only
-move the parts that are truly architecture-independent.  We should not
-have anything like #ifdef CONFIG_PPC_PSERIES in the files in those
-directories.  If it needs an ifdef like that, then that part of the
-file should stay under arch/powerpc.
+Runs fine on qemu UP/SMP x86_64/i386.
 
-In other words, it's OK to split files and end up with more files than
-we have at present.  That's better than adding ifdefs.
+Signed-off-by: Alexander van Heukelum <heukelum@fastmail.fm>
 
-Paul.
+---
+
+Hello Andrew,
+
+Could you add this patch to -mm?
+
+Greetings,
+	Alexander
+
+ include/linux/cpumask.h |   14 ++++++++------
+ lib/cpumask.c           |    6 ++++++
+ 2 files changed, 14 insertions(+), 6 deletions(-)
+
+diff --git a/include/linux/cpumask.h b/include/linux/cpumask.h
+index 9650806..a760e29 100644
+--- a/include/linux/cpumask.h
++++ b/include/linux/cpumask.h
+@@ -221,9 +221,11 @@ int __first_cpu(const cpumask_t *srcp);
+ #define first_cpu(src) __first_cpu(&(src))
+ int __next_cpu(int n, const cpumask_t *srcp);
+ #define next_cpu(n, src) __next_cpu((n), &(src))
++int find_next_cpu_mask(int n, const cpumask_t *srcp);
+ #else
+-#define first_cpu(src)		({ (void)(src); 0; })
+-#define next_cpu(n, src)	({ (void)(src); 1; })
++#define first_cpu(src)			({ (void)(src); 0; })
++#define next_cpu(n, src)		({ (void)(src); 1; })
++#define find_next_cpu_mask(n, src)	({ (void)(src); n; })
+ #endif
+ 
+ #ifdef CONFIG_HAVE_CPUMASK_OF_CPU_MAP
+@@ -351,10 +353,10 @@ static inline void __cpus_fold(cpumask_t *dstp, const cpumask_t *origp,
+ }
+ 
+ #if NR_CPUS > 1
+-#define for_each_cpu_mask(cpu, mask)		\
+-	for ((cpu) = first_cpu(mask);		\
+-		(cpu) < NR_CPUS;		\
+-		(cpu) = next_cpu((cpu), (mask)))
++#define for_each_cpu_mask(cpu, mask)				\
++	for ((cpu) = 0;						\
++		(cpu) = find_next_cpu_mask((cpu), &(mask)),	\
++		(cpu) < NR_CPUS; (cpu)++)
+ #else /* NR_CPUS == 1 */
+ #define for_each_cpu_mask(cpu, mask)		\
+ 	for ((cpu) = 0; (cpu) < 1; (cpu)++, (void)mask)
+diff --git a/lib/cpumask.c b/lib/cpumask.c
+index bb4f76d..93dd6ca 100644
+--- a/lib/cpumask.c
++++ b/lib/cpumask.c
+@@ -15,6 +15,12 @@ int __next_cpu(int n, const cpumask_t *srcp)
+ }
+ EXPORT_SYMBOL(__next_cpu);
+ 
++int find_next_cpu_mask(int n, const cpumask_t *srcp)
++{
++	return find_next_bit(srcp->bits, NR_CPUS, n);
++}
++EXPORT_SYMBOL(find_next_cpu_mask);
++
+ int __any_online_cpu(const cpumask_t *mask)
+ {
+ 	int cpu;
