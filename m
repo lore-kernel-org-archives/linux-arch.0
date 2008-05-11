@@ -1,50 +1,34 @@
-From: Michal Simek <monstr@seznam.cz>
-Subject: Re: OF files
-Date: Sun, 11 May 2008 15:59:20 +0200
-Message-ID: <4826FBB8.7060107@seznam.cz>
-References: <5257.8247-18740-1017760922-1209828638@seznam.cz> <18467.60177.91772.136339@cargo.ozlabs.ibm.com>
-Reply-To: monstr@seznam.cz
+From: Paul Jackson <pj@sgi.com>
+Subject: Re: [PATCH] Make for_each_cpu_mask a bit smaller
+Date: Sun, 11 May 2008 09:14:03 -0500
+Message-ID: <20080511091403.a75f5b78.pj@sgi.com>
+References: <20080511135039.GA3286@mailshack.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:56362 "EHLO
-	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756696AbYEKN6N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 May 2008 09:58:13 -0400
-In-Reply-To: <18467.60177.91772.136339@cargo.ozlabs.ibm.com>
+Received: from relay2.sgi.com ([192.48.171.30]:47603 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753748AbYEKOOF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 11 May 2008 10:14:05 -0400
+In-Reply-To: <20080511135039.GA3286@mailshack.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, John Williams <john.williams@petalogix.com>, Matthew Wilcox <matthew@wil.cx>, Will Newton <will.newton@gmail.com>, Linux Kernel list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, git@xilinx.com, Stephen Neuendorffer <stephen.neuendorffer@xilinx.com>, John Linn <John.Linn@xilinx.com>, Ulrich Drepper <drepper@redhat.com>
+To: Alexander van Heukelum <heukelum@mailshack.com>
+Cc: akpm@linux-foundation.org, mingo@elte.hu, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, heukelum@fastmail.fm, travis@sgi.com
 
-Hi All,
+Alexander wrote:
+> This patch
+> changes for_each_cpu_mask to use only one function: a newly
+> introduced find_next_cpu.
 
-I move prom_parse.c to drivers/of.
-of_platform.c was completely moved to drivers/of/platform.c
-Functions from of_device.c was moved to drivers/of/device.c except
-of_device_make_bus_id.
-Prom.c file was cleaned - I remove all PPC specific code.
+I believe that it's for_each_cpu_mask which is newly introduced,
+not find_next_cpu ... just a typo, granted.
 
-You can check it in my git tree (git.monstr.eu) or wait for next set of patches.
+Any chance that you could make the same change to nodemask.h?
+Where practical, I like to keep cpumask.h and nodemask.h the same.
 
-Michal
-
-> Michal Simek writes:
-> 
->> I tested OF files changes. I sent you some patches about.
->>
->> I look at headers files too. Is it possible to move prom.h,
->> of_device.h and of_platform.h to asm-generic or linux folder? 
-> 
-> We can move stuff to drivers/of and include/linux, but we should only
-> move the parts that are truly architecture-independent.  We should not
-> have anything like #ifdef CONFIG_PPC_PSERIES in the files in those
-> directories.  If it needs an ifdef like that, then that part of the
-> file should stay under arch/powerpc.
-> 
-> In other words, it's OK to split files and end up with more files than
-> we have at present.  That's better than adding ifdefs.
-> 
-> Paul.
-> 
+-- 
+                  I won't rest till it's the best ...
+                  Programmer, Linux Scalability
+                  Paul Jackson <pj@sgi.com> 1.940.382.4214
