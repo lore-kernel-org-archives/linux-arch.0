@@ -1,58 +1,50 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 08/56] microblaze_v2: Interrupt handling, timer support,
- supported function
-Date: Sun, 11 May 2008 16:35:21 +0200 (CEST)
-Message-ID: <alpine.LFD.1.10.0805111630001.3197@apollo.tec.linutronix.de>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu> <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu>
- <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu> <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu> <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu>
- <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu> <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu> <alpine.LFD.1.10.0805070813160.3318@apollo.tec.linutronix.de> <4826FAC8.4010604@seznam.cz>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH] Make for_each_cpu_mask a bit smaller
+Date: Sun, 11 May 2008 09:24:40 -0600
+Message-ID: <20080511152440.GX19219@parisc-linux.org>
+References: <20080511135039.GA3286@mailshack.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:49512 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751288AbYEKOiU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 11 May 2008 10:38:20 -0400
-In-Reply-To: <4826FAC8.4010604@seznam.cz>
+Received: from palinux.external.hp.com ([192.25.206.14]:50466 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752015AbYEKPY5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 May 2008 11:24:57 -0400
+Content-Disposition: inline
+In-Reply-To: <20080511135039.GA3286@mailshack.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@seznam.cz>
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+To: Alexander van Heukelum <heukelum@mailshack.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Paul Jackson <pj@sgi.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, heukelum@fastmail.fm
 
-Michal,
+On Sun, May 11, 2008 at 03:50:39PM +0200, Alexander van Heukelum wrote:
+>  #if NR_CPUS > 1
+> -#define for_each_cpu_mask(cpu, mask)		\
+> -	for ((cpu) = first_cpu(mask);		\
+> -		(cpu) < NR_CPUS;		\
+> -		(cpu) = next_cpu((cpu), (mask)))
+> +#define for_each_cpu_mask(cpu, mask)				\
+> +	for ((cpu) = 0;						\
+> +		(cpu) = find_next_cpu_mask((cpu), &(mask)),	\
+> +		(cpu) < NR_CPUS; (cpu)++)
 
-On Sun, 11 May 2008, Michal Simek wrote:
-> > 
-> > Please split this modification code out into a separate function. The
-> > same code is used below.
-> 
-> Add Macro.
+For anyone else having similar cognitive dissonance while reading this
+thinking "But won't the first call to find_next_cpu_mask return a number
+> 0", the answer is "no, find_next_bit returns the next set bit that's
+>= the number passed in, which is why we need both the cpu++ and
+find_next_cpu_mask".  
 
-Please use a (inline) function whenever possible. Macros are harder to
-read and not type safe.
+> +int find_next_cpu_mask(int n, const cpumask_t *srcp)
+> +{
+> +	return find_next_bit(srcp->bits, NR_CPUS, n);
+> +}
+> +EXPORT_SYMBOL(find_next_cpu_mask);
 
-> > Can you please move a new architecture to clockevents / clocksource
-> > right from the beginning ? No need to invent another incompatible set
-> > of time(r) related functions.
-> 
-> I move whole code to GENERIC_TIME. Did you meant any others changes?
+Maybe a better name for this function would help.  I can't think of a
+good one right now though.
 
-GENERIC_TIME and GENERIC_CLOCKEVENTS. You get high resolution timers
-and dynamic ticks for free when your timer hardware allows it.
-
-> >> +#define NO_IRQ (-1)
-> >> +
-> >> +static inline int irq_canonicalize(int irq)
-> >> +{
-> >> +	return (irq);
-> >> +}
-> > 
-> > Why is this needed ? Any users ?
-> 
-> is used in serial_core.c
->  684         new_serial.irq = irq_canonicalize(new_serial.irq);
-
-Doh, forgot about that one.
-
-Thanks,
-	tglx
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
