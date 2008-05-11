@@ -1,82 +1,184 @@
-From: Michal Simek <monstr@seznam.cz>
-Subject: Re: [PATCH 08/56] microblaze_v2: Interrupt handling, timer support,
- supported function
-Date: Sun, 11 May 2008 23:55:29 +0200
-Message-ID: <48276B51.100@seznam.cz>
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu> <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu> <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu> <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu> <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu> <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu> <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu> <alpine.LFD.1.10.0805070813160.3318@apollo.tec.linutronix.de> <4826FAC8.4010604@seznam.cz> <alpine.LFD.1.10.0805111630001.3197@apollo.te
- c.linutronix.de>
-Reply-To: monstr@seznam.cz
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: Remove last reminants of dyntick support
+Date: Sun, 11 May 2008 22:56:00 +0100
+Message-ID: <git-1210542959-a11b6c9b49632402270784b9d516213aad96da7e@dyn-67.arm.linux.org.uk>
+References: <git-1210542959-a5b32acc9d50dd3c819c2dc5d43bd416f24aa8fd@dyn-67.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759187AbYEKVyY@vger.kernel.org>
-In-Reply-To: <alpine.LFD.1.10.0805111630001.3197@apollo.tec.linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:34459 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758026AbYEKWAn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 May 2008 18:00:43 -0400
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, LAK <linux-arm-kernel@lists.arm.linux.org.uk>
 
-Hi Thomas,
+From: Russell King <rmk@dyn-67.arm.linux.org.uk>
 
-> Michal,
-> 
-> On Sun, 11 May 2008, Michal Simek wrote:
->>> Please split this modification code out into a separate function. The
->>> same code is used below.
->> Add Macro.
-> 
-> Please use a (inline) function whenever possible. Macros are harder to
-> read and not type safe.
+Neither S390 nor SH have the configuration option for NO_IDLE_HZ
+in their Kconfig files, yet their defconfig files lists them.
+Remove those references.
 
-I'll try it.
+Finally, remove the last reminants of dyntick support from the
+generic kernel.
 
->>> Can you please move a new architecture to clockevents / clocksource
->>> right from the beginning ? No need to invent another incompatible set
->>> of time(r) related functions.
->> I move whole code to GENERIC_TIME. Did you meant any others changes?
-> 
-> GENERIC_TIME and GENERIC_CLOCKEVENTS. You get high resolution timers
-> and dynamic ticks for free when your timer hardware allows it.
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+---
+ arch/s390/defconfig               |    2 --
+ arch/sh/configs/landisk_defconfig |    1 -
+ arch/sh/configs/lboxre2_defconfig |    1 -
+ arch/sh/configs/se7705_defconfig  |    1 -
+ arch/sh/configs/se7712_defconfig  |    1 -
+ arch/sh/configs/se7750_defconfig  |    1 -
+ kernel/hrtimer.c                  |    2 +-
+ kernel/sysctl.c                   |   12 ------------
+ kernel/timer.c                    |   10 +---------
+ 9 files changed, 2 insertions(+), 29 deletions(-)
 
-About CLOCKEVENTS. I looked at arm/mach-versatile/
-
-and I found I need implement:
-loading current timer value - clocksource.read
-
-clock_event_device.set_mode - set one from fourth modes
-clock_event_device.set_next_event - the same mode with new init timer value
-(this is little bit mess for me because arm do this that only change actual
-counting value - I hope I do that too).
-
-Supported modes are:
-CLOCK_EVT_MODE_PERIODIC - reload and timer interrupt
-CLOCK_EVT_MODE_ONESHOT - one interrupt at zero value and end - no others interrupts.
-CLOCK_EVT_MODE_UNUSED: What is it?
-CLOCK_EVT_MODE_SHUTDOWN: What is it?
-CLOCK_EVT_MODE_RESUME: What is it?
-
-
-I hope I can use only one timer(adding extra timers is not problem).
-We have one timer with two timebase (that's one option in IP core).
-
-And there is necessary to fill some value in timer initializing
-timer0_clockevent.mult - nanosecond to cycles multiplier ?
-timer0_clockevent.shift - nanoseconds to cycles divisor (power of two)?
-timer0_clockevent.irq - irq from our intc.
-timer0_clockevent.min_delta_ns - minimal timer resolution (I think this value
-have to be sensible for system)
-timer0_clockevent.max_delta_ns - maximal timer resolution
-timer0_clockevent.cpumask = 0 for 1 cpu
-
-I hope others is set by general code.
-
-and change handler function to calling evt->enent_handler;
-
-I found that archs use sys for showing values.
-
-I hope I can see that this systems works via /proc/interrupts and from sysfs.
-
-Am I right?
-
-Thanks,
-Michal
+diff --git a/arch/s390/defconfig b/arch/s390/defconfig
+index a72f208..f72aada 100644
+--- a/arch/s390/defconfig
++++ b/arch/s390/defconfig
+@@ -205,8 +205,6 @@ CONFIG_HZ_100=y
+ # CONFIG_HZ_1000 is not set
+ CONFIG_HZ=100
+ # CONFIG_SCHED_HRTICK is not set
+-CONFIG_NO_IDLE_HZ=y
+-CONFIG_NO_IDLE_HZ_INIT=y
+ CONFIG_S390_HYPFS_FS=y
+ CONFIG_KEXEC=y
+ # CONFIG_ZFCPDUMP is not set
+diff --git a/arch/sh/configs/landisk_defconfig b/arch/sh/configs/landisk_defconfig
+index f52db12..38f934a 100644
+--- a/arch/sh/configs/landisk_defconfig
++++ b/arch/sh/configs/landisk_defconfig
+@@ -226,7 +226,6 @@ CONFIG_CPU_HAS_PTEA=y
+ #
+ CONFIG_SH_TMU=y
+ CONFIG_SH_TIMER_IRQ=16
+-# CONFIG_NO_IDLE_HZ is not set
+ CONFIG_SH_PCLK_FREQ=33333333
+ 
+ #
+diff --git a/arch/sh/configs/lboxre2_defconfig b/arch/sh/configs/lboxre2_defconfig
+index 9fa66d9..b68b6cd 100644
+--- a/arch/sh/configs/lboxre2_defconfig
++++ b/arch/sh/configs/lboxre2_defconfig
+@@ -231,7 +231,6 @@ CONFIG_CPU_HAS_PTEA=y
+ #
+ CONFIG_SH_TMU=y
+ CONFIG_SH_TIMER_IRQ=16
+-# CONFIG_NO_IDLE_HZ is not set
+ CONFIG_SH_PCLK_FREQ=40000000
+ 
+ #
+diff --git a/arch/sh/configs/se7705_defconfig b/arch/sh/configs/se7705_defconfig
+index 84717d8..490dcbc 100644
+--- a/arch/sh/configs/se7705_defconfig
++++ b/arch/sh/configs/se7705_defconfig
+@@ -239,7 +239,6 @@ CONFIG_CPU_HAS_SR_RB=y
+ #
+ CONFIG_SH_TMU=y
+ CONFIG_SH_TIMER_IRQ=16
+-# CONFIG_NO_IDLE_HZ is not set
+ CONFIG_SH_PCLK_FREQ=33333333
+ 
+ #
+diff --git a/arch/sh/configs/se7712_defconfig b/arch/sh/configs/se7712_defconfig
+index 240a1ce..2dd83af 100644
+--- a/arch/sh/configs/se7712_defconfig
++++ b/arch/sh/configs/se7712_defconfig
+@@ -236,7 +236,6 @@ CONFIG_CPU_HAS_SR_RB=y
+ #
+ CONFIG_SH_TMU=y
+ CONFIG_SH_TIMER_IRQ=16
+-# CONFIG_NO_IDLE_HZ is not set
+ CONFIG_SH_PCLK_FREQ=66666666
+ 
+ #
+diff --git a/arch/sh/configs/se7750_defconfig b/arch/sh/configs/se7750_defconfig
+index c60b6fd..167786f 100644
+--- a/arch/sh/configs/se7750_defconfig
++++ b/arch/sh/configs/se7750_defconfig
+@@ -235,7 +235,6 @@ CONFIG_CPU_HAS_PTEA=y
+ #
+ CONFIG_SH_TMU=y
+ CONFIG_SH_TIMER_IRQ=16
+-# CONFIG_NO_IDLE_HZ is not set
+ CONFIG_SH_PCLK_FREQ=33333333
+ 
+ #
+diff --git a/kernel/hrtimer.c b/kernel/hrtimer.c
+index dea4c91..dd0b7e4 100644
+--- a/kernel/hrtimer.c
++++ b/kernel/hrtimer.c
+@@ -971,7 +971,7 @@ ktime_t hrtimer_get_remaining(const struct hrtimer *timer)
+ }
+ EXPORT_SYMBOL_GPL(hrtimer_get_remaining);
+ 
+-#if defined(CONFIG_NO_IDLE_HZ) || defined(CONFIG_NO_HZ)
++#ifdef CONFIG_NO_HZ
+ /**
+  * hrtimer_get_next_event - get the time until next expiry event
+  *
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index d7ffdc5..76426d9 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -131,8 +131,6 @@ extern int sysctl_userprocess_debug;
+ extern int spin_retry;
+ #endif
+ 
+-extern int sysctl_hz_timer;
+-
+ #ifdef CONFIG_BSD_PROCESS_ACCT
+ extern int acct_parm[];
+ #endif
+@@ -562,16 +560,6 @@ static struct ctl_table kern_table[] = {
+ 		.proc_handler	= &proc_dointvec,
+ 	},
+ #endif
+-#ifdef CONFIG_NO_IDLE_HZ
+-	{
+-		.ctl_name       = KERN_HZ_TIMER,
+-		.procname       = "hz_timer",
+-		.data           = &sysctl_hz_timer,
+-		.maxlen         = sizeof(int),
+-		.mode           = 0644,
+-		.proc_handler   = &proc_dointvec,
+-	},
+-#endif
+ 	{
+ 		.ctl_name	= KERN_S390_USER_DEBUG_LOGGING,
+ 		.procname	= "userprocess_debug",
+diff --git a/kernel/timer.c b/kernel/timer.c
+index f3d35d4..e6a4f5e 100644
+--- a/kernel/timer.c
++++ b/kernel/timer.c
+@@ -678,7 +678,7 @@ static inline void __run_timers(struct tvec_base *base)
+ 	spin_unlock_irq(&base->lock);
+ }
+ 
+-#if defined(CONFIG_NO_IDLE_HZ) || defined(CONFIG_NO_HZ)
++#ifdef CONFIG_NO_HZ
+ /*
+  * Find out when the next timer event is due to happen. This
+  * is used on S/390 to stop all activity when a cpus is idle.
+@@ -813,14 +813,6 @@ unsigned long get_next_timer_interrupt(unsigned long now)
+ 
+ 	return cmp_next_hrtimer_event(now, expires);
+ }
+-
+-#ifdef CONFIG_NO_IDLE_HZ
+-unsigned long next_timer_interrupt(void)
+-{
+-	return get_next_timer_interrupt(jiffies);
+-}
+-#endif
+-
+ #endif
+ 
+ #ifndef CONFIG_VIRT_CPU_ACCOUNTING
