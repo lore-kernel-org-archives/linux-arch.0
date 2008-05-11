@@ -1,67 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out3.smtp.messagingengine.com ([66.111.4.27]:40391 "EHLO
-	out3.smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751378AbYEKQgD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 11 May 2008 12:36:03 -0400
-Message-ID: <1210522779.16917.1252546109@webmail.messagingengine.com>
-From: "Alexander van Heukelum" <heukelum@fastmail.fm>
-Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain; charset="ISO-8859-1"
+Received: from service2.sh.cvut.cz ([147.32.127.218]:35146 "EHLO
+	service2.sh.cvut.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751343AbYEKVyG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 May 2008 17:54:06 -0400
+Message-ID: <48276B51.100@seznam.cz>
+Date: Sun, 11 May 2008 23:55:29 +0200
+From: Michal Simek <monstr@seznam.cz>
+Reply-To: monstr@seznam.cz
 MIME-Version: 1.0
-References: <20080511135039.GA3286@mailshack.com>
-   <20080511152440.GX19219@parisc-linux.org>
-Subject: Re: [PATCH] Make for_each_cpu_mask a bit smaller
-In-Reply-To: <20080511152440.GX19219@parisc-linux.org>
-Date: Sun, 11 May 2008 18:19:39 +0200
+Subject: Re: [PATCH 08/56] microblaze_v2: Interrupt handling, timer support,
+ supported function
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <a4a778e34c66d126f5c4bf1ca423cf32950ea5ab.1209897266.git.monstr@monstr.eu> <c805caeb1dd7f6d1349c4a463cb88a5342a170d2.1209897266.git.monstr@monstr.eu> <f120ababf2bade9aab7199bffb3014aa606e5a1c.1209897266.git.monstr@monstr.eu> <684c36e5ad3f598e5079e88ec195545c4a7150c2.1209897266.git.monstr@monstr.eu> <ed3695121faf485d491cecdd96d5d4dcc498411d.1209897266.git.monstr@monstr.eu> <0674b1f7abb9a3d564b68c95bc28adc2c2fe9551.1209897266.git.monstr@monstr.eu> <9a7c6646e5dd9724c1cf34767adec181481fa3ef.1209897266.git.monstr@monstr.eu> <932956128c9c655a218a940eaf02017a5dd0bdf9.1209897266.git.monstr@monstr.eu> <alpine.LFD.1.10.0805070813160.3318@apollo.tec.linutronix.de> <4826FAC8.4010604@seznam.cz> <alpine.LFD.1.10.0805111630001.3197@apollo.tec.linutronix.de>
+In-Reply-To: <alpine.LFD.1.10.0805111630001.3197@apollo.tec.linutronix.de>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>, Alexander van Heukelum <heukelum@mailshack.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Paul Jackson <pj@sgi.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20080511161939.W0qJ7N1Ygrad3gvT7aa3Q5xcJwAAvfLf_a_jiSM226M@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca, Michal Simek <monstr@monstr.eu>
+Message-ID: <20080511215529.oaMwUro_8hEaIUvhDkm9j1BNIGx6o69PhVIuMKAma2I@z>
 
+Hi Thomas,
 
-On Sun, 11 May 2008 09:24:40 -0600, "Matthew Wilcox" <matthew@wil.cx>
-said:
-> On Sun, May 11, 2008 at 03:50:39PM +0200, Alexander van Heukelum wrote:
-> >  #if NR_CPUS > 1
-> > -#define for_each_cpu_mask(cpu, mask)		\
-> > -	for ((cpu) = first_cpu(mask);		\
-> > -		(cpu) < NR_CPUS;		\
-> > -		(cpu) = next_cpu((cpu), (mask)))
-> > +#define for_each_cpu_mask(cpu, mask)				\
-> > +	for ((cpu) = 0;						\
-> > +		(cpu) = find_next_cpu_mask((cpu), &(mask)),	\
-> > +		(cpu) < NR_CPUS; (cpu)++)
+> Michal,
 > 
-> For anyone else having similar cognitive dissonance while reading this
-> thinking "But won't the first call to find_next_cpu_mask return a number
-> > 0", the answer is "no, find_next_bit returns the next set bit that's
-> >= the number passed in, which is why we need both the cpu++ and
-> find_next_cpu_mask".  
-
-That's how it works, indeed.
-
-> > +int find_next_cpu_mask(int n, const cpumask_t *srcp)
-> > +{
-> > +	return find_next_bit(srcp->bits, NR_CPUS, n);
-> > +}
-> > +EXPORT_SYMBOL(find_next_cpu_mask);
+> On Sun, 11 May 2008, Michal Simek wrote:
+>>> Please split this modification code out into a separate function. The
+>>> same code is used below.
+>> Add Macro.
 > 
-> Maybe a better name for this function would help.  I can't think of a
-> good one right now though.
+> Please use a (inline) function whenever possible. Macros are harder to
+> read and not type safe.
 
-I can't think of a better name, and there is find_next_bit of which
-find_next_cpu_mask is just a wrapper. I think the name is good enough.
+I'll try it.
 
-Greetings,
-    Alexander
--- 
-  Alexander van Heukelum
-  heukelum@fastmail.fm
+>>> Can you please move a new architecture to clockevents / clocksource
+>>> right from the beginning ? No need to invent another incompatible set
+>>> of time(r) related functions.
+>> I move whole code to GENERIC_TIME. Did you meant any others changes?
+> 
+> GENERIC_TIME and GENERIC_CLOCKEVENTS. You get high resolution timers
+> and dynamic ticks for free when your timer hardware allows it.
 
--- 
-http://www.fastmail.fm - Access all of your messages and folders
-                          wherever you are
+About CLOCKEVENTS. I looked at arm/mach-versatile/
+
+and I found I need implement:
+loading current timer value - clocksource.read
+
+clock_event_device.set_mode - set one from fourth modes
+clock_event_device.set_next_event - the same mode with new init timer value
+(this is little bit mess for me because arm do this that only change actual
+counting value - I hope I do that too).
+
+Supported modes are:
+CLOCK_EVT_MODE_PERIODIC - reload and timer interrupt
+CLOCK_EVT_MODE_ONESHOT - one interrupt at zero value and end - no others interrupts.
+CLOCK_EVT_MODE_UNUSED: What is it?
+CLOCK_EVT_MODE_SHUTDOWN: What is it?
+CLOCK_EVT_MODE_RESUME: What is it?
+
+
+I hope I can use only one timer(adding extra timers is not problem).
+We have one timer with two timebase (that's one option in IP core).
+
+And there is necessary to fill some value in timer initializing
+timer0_clockevent.mult - nanosecond to cycles multiplier ?
+timer0_clockevent.shift - nanoseconds to cycles divisor (power of two)?
+timer0_clockevent.irq - irq from our intc.
+timer0_clockevent.min_delta_ns - minimal timer resolution (I think this value
+have to be sensible for system)
+timer0_clockevent.max_delta_ns - maximal timer resolution
+timer0_clockevent.cpumask = 0 for 1 cpu
+
+I hope others is set by general code.
+
+and change handler function to calling evt->enent_handler;
+
+I found that archs use sys for showing values.
+
+I hope I can see that this systems works via /proc/interrupts and from sysfs.
+
+Am I right?
+
+Thanks,
+Michal
 
