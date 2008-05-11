@@ -1,148 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:33951 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751048AbYEHWyf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2008 18:54:35 -0400
-Message-ID: <200805082254.m48MsAwK010076@imap1.linux-foundation.org>
-Subject: + flag-parameters-inotify_init-fix.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Thu, 08 May 2008 15:43:15 -0700
+Received: from smtp1.wifiinternet.cz ([89.31.47.1]:57359 "EHLO
+	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752906AbYEKNzK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 May 2008 09:55:10 -0400
+Message-ID: <4826FAF8.20009@seznam.cz>
+Date: Sun, 11 May 2008 15:56:08 +0200
+From: Michal Simek <monstr@seznam.cz>
+Reply-To: monstr@seznam.cz
+MIME-Version: 1.0
+Subject: Re: [PATCH 37/56] microblaze_v2: headers for irq
+References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu> <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu> <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu> <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu> <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu> <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu> <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu> <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu> <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu> <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu> <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu> <alpine.LFD.1.10.0805070925000.3318@apollo.tec.linutronix.de>
+In-Reply-To: <alpine.LFD.1.10.0805070925000.3318@apollo.tec.linutronix.de>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mm-commits@vger.kernel.org
-Cc: akpm@linux-foundation.org, davidel@xmailserver.org, drepper@redhat.com, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com
-Message-ID: <20080508224315.vjQcYXnoHPF2_KyasBFO4p44hU6YR4UGnZGP65GduTA@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
+Message-ID: <20080511135608.oXvjsV13xc3RKmrVLzbLcPkFneqSILDeqvAXU9jFFzE@z>
 
+Hi Thomas,
 
-The patch titled
-     flag-parameters-inotify_init-fix
-has been added to the -mm tree.  Its filename is
-     flag-parameters-inotify_init-fix.patch
+> On Sun, 4 May 2008, monstr@seznam.cz wrote:
+>> From: Michal Simek <monstr@monstr.eu>
+>> +static inline void hw_resend_irq(struct hw_interrupt_type *h, unsigned int i)
+>> +{
+>> +	/* Nothing to do */
+> 
+> And used nowhere
 
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
+I removed it.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+>> +}
+>> +
+> 
+> Thanks,
+> 	tglx
 
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: flag-parameters-inotify_init-fix
-From: Andrew Morton <akpm@linux-foundation.org>
-
-CONFIG_INOTIFY=n:
-
-arch/x86/kernel/built-in.o: In function `sys_call_table':
-: undefined reference to `sys_inotify_init1'
-
-Cc: <linux-arch@vger.kernel.org>
-Cc: Davide Libenzi <davidel@xmailserver.org>
-Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
-Cc: Ulrich Drepper <drepper@redhat.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- kernel/sys_ni.c |    1 +
- 1 file changed, 1 insertion(+)
-
-diff -puN kernel/sys_ni.c~flag-parameters-inotify_init-fix kernel/sys_ni.c
---- a/kernel/sys_ni.c~flag-parameters-inotify_init-fix
-+++ a/kernel/sys_ni.c
-@@ -94,6 +94,7 @@ cond_syscall(sys_keyctl);
- cond_syscall(compat_sys_keyctl);
- cond_syscall(compat_sys_socketcall);
- cond_syscall(sys_inotify_init);
-+cond_syscall(sys_inotify_init1);
- cond_syscall(sys_inotify_add_watch);
- cond_syscall(sys_inotify_rm_watch);
- cond_syscall(sys_migrate_pages);
-_
-
-Patches currently in -mm which might be from akpm@linux-foundation.org are
-
-origin.patch
-sxc-fix-printk-warnings-on-sparc32.patch
-drivers-scsi-dpt_i2oc-fix-build-on-alpha.patch
-quota-dont-call-sync_fs-from-vfs_quota_off-when-theres-no-quota-turn-off-fix.patch
-fix-hfsplus-oops-on-image-without-extents-fix.patch
-rtc-rtc_time_to_tm-use-unsigned-arithmetic-fix.patch
-atmel_lcdfb-fix-pixclok-divider-calculation-checkpatch-fixes.patch
-memcg-fix-possible-panic-when-config_mm_owner=y-checkpatch-fixes.patch
-linux-next.patch
-revert-9p-convert-from-semaphore-to-spinlock.patch
-revert-vt-fix-background-color-on-line-feed.patch
-revert-lxfb-extend-pll-table-to-support-dotclocks-below-25-mhz.patch
-revert-acpica-fixes-for-unload-and-ddbhandles.patch
-acpi-enable-c3-power-state-on-dell-inspiron-8200.patch
-acpi-video-balcklist-fujitsu-lifebook-s6410.patch
-git-x86.patch
-git-x86-fixup.patch
-arch-x86-kernel-setupc-printk-warning-fix.patch
-arm-omap1-n770-convert-audio_pwr_sem-in-a-mutex-fix.patch
-cifs-suppress-warning.patch
-sysfs-provide-a-clue-about-the-effects-of-config_usb_device_class=y.patch
-fix-driver-core-prepare-for-removal-of-20-char-limit-from-struct-device.patch
-i2c-renesas-highlander-fpga-smbus-support.patch
-dlm-convert-connections_lock-in-a-mutex-fix.patch
-git-input.patch
-git-jg-misc-git-rejects.patch
-revert-git-kbuild.patch
-git-mmc.patch
-sundance-set-carrier-status-on-link-change-events.patch
-dm9000-use-delayed-work-to-update-mii-phy-state-fix.patch
-pcnet32-fix-warning.patch
-update-smc91x-driver-with-arm-versatile-board-info.patch
-git-battery.patch
-fs-nfs-callback_xdrc-suppress-uninitialiized-variable-warnings.patch
-arch-parisc-kernel-unalignedc-use-time_-macros.patch
-revert-git-block.patch
-git-unionfs.patch
-git-unionfs-fixup.patch
-git-logfs-fixup.patch
-logfs-unbork.patch
-drivers-usb-core-sysfsc-fix-types.patch
-drivers-uwb-nehc-processor-flags-have-type-unsigned-long.patch
-drivers-usb-host-isp1760-hcdc-procesxor-flags-have-type-unsigned-long.patch
-git-v9fs.patch
-git-watchdog.patch
-git-watchdog-git-rejects.patch
-watchdog-fix-booke_wdtc-on-mpc85xx-smp-system.patch
-xfs-suppress-uninitialized-var-warnings.patch
-git-xtensa.patch
-ext4-is-busted-on-m68k.patch
-common-implementation-of-iterative-div-mod-fix.patch
-common-implementation-of-iterative-div-mod-checkpatch-fixes.patch
-colibri-fix-support-for-dm9000-ethernet-device-fix.patch
-vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
-vm-dont-run-touch_buffer-during-buffercache-lookups.patch
-locking-add-typecheck-on-irqsave-and-friends-for-correct-flags-checkpatch-fixes.patch
-remove-apparently-unused-fd1772h-header-file.patch
-lib-allow-memparse-to-accept-a-null-and-ignorable-second-parm-checkpatch-fixes.patch
-add-a-warn-macro-this-is-warn_on-printk-arguments-fix.patch
-flag-parameters-paccept-fix.patch
-flag-parameters-anon_inode_getfd-extension-fix.patch
-flag-parameters-inotify_init-fix.patch
-hysdn-no-longer-broken-on-smp.patch
-drivers-video-aty-radeon_basec-notify-user-if-sysfs_create_bin_file-failed-checkpatch-fixes.patch
-reiserfs-convert-j_commit_lock-to-mutex-checkpatch-fixes.patch
-documentation-build-source-files-in-documentation-sub-dir-disable.patch
-reiser4.patch
-page-owner-tracking-leak-detector.patch
-nr_blockdev_pages-in_interrupt-warning.patch
-slab-leaks3-default-y.patch
-put_bh-debug.patch
-shrink_slab-handle-bad-shrinkers.patch
-getblk-handle-2tb-devices.patch
-getblk-handle-2tb-devices-fix.patch
-undeprecate-pci_find_device.patch
-notify_change-callers-must-hold-i_mutex.patch
-profile-likely-unlikely-macros.patch
-drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
-w1-build-fix.patch
-
+Michal
