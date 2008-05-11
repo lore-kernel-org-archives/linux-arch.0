@@ -1,40 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.wifiinternet.cz ([89.31.47.1]:57359 "EHLO
-	bor.wifiinternet.cz" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752906AbYEKNzK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 May 2008 09:55:10 -0400
-Message-ID: <4826FAF8.20009@seznam.cz>
-Date: Sun, 11 May 2008 15:56:08 +0200
-From: Michal Simek <monstr@seznam.cz>
-Reply-To: monstr@seznam.cz
-MIME-Version: 1.0
-Subject: Re: [PATCH 37/56] microblaze_v2: headers for irq
-References: <1209901305-6404-1-git-send-email-monstr@seznam.cz> <598221ce2159046614d7b158ea62d5af51907af3.1209897266.git.monstr@monstr.eu> <41c1f410eaafd875246362d10ef9866d8cc2a934.1209897266.git.monstr@monstr.eu> <09ce2baf0c8308d3fbca98e7eb36a6aab59112a7.1209897266.git.monstr@monstr.eu> <c9418c683be99ae12abb89575c362d586c026bad.1209897266.git.monstr@monstr.eu> <cfde3796e95bdd17c32e4fd7762d0aee55967707.1209897266.git.monstr@monstr.eu> <8aba2d82c85cd1d5b56de328c1fd080ee51f0211.1209897266.git.monstr@monstr.eu> <c4000ff625bd217f9bb683e3bf8c7193a82bd744.1209897266.git.monstr@monstr.eu> <491f823fac6c03cc36834ec569a45d30a03a72cf.1209897266.git.monstr@monstr.eu> <96f2004535c34a0c762bf2012c299cbf9f89ab32.1209897266.git.monstr@monstr.eu> <92cd3a27b393bb394d48902594152351a92c59bb.1209897266.git.monstr@monstr.eu> <4e20213f5f296268a24955df8c951f7fba279816.1209897266.git.monstr@monstr.eu> <alpine.LFD.1.10.0805070925000.3318@apollo.tec.linutronix.de>
-In-Reply-To: <alpine.LFD.1.10.0805070925000.3318@apollo.tec.linutronix.de>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from theia.rz.uni-saarland.de ([134.96.7.31]:24222 "EHLO
+	theia.rz.uni-saarland.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754188AbYEKOqw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 May 2008 10:46:52 -0400
+Date: Sun, 11 May 2008 15:50:39 +0200
+From: Alexander van Heukelum <heukelum@mailshack.com>
+Subject: [PATCH] Make for_each_cpu_mask a bit smaller
+Message-ID: <20080511135039.GA3286@mailshack.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: monstr@seznam.cz, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, stephen.neuendorffer@xilinx.com, John.Linn@xilinx.com, john.williams@petalogix.com, matthew@wil.cx, will.newton@gmail.com, drepper@redhat.com, microblaze-uclinux@itee.uq.edu.au, grant.likely@secretlab.ca
-Message-ID: <20080511135608.oXvjsV13xc3RKmrVLzbLcPkFneqSILDeqvAXU9jFFzE@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Paul Jackson <pj@sgi.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, heukelum@fastmail.fm
+Message-ID: <20080511135039.4nG14RScG0kDeDnncf3eXSIUmtTkO99weRquPWHdn3Q@z>
 
-Hi Thomas,
+The for_each_cpu_mask loop is used quite often in the kernel. It
+makes use of two functions: first_cpu and next_cpu. This patch
+changes for_each_cpu_mask to use only one function: a newly
+introduced find_next_cpu. Each use of the for_each_cpu_mask
+constuct then becomes a few bytes smaller. An x86_64 defconfig
+kernel is about 2000 bytes smaller with this patch applied:
 
-> On Sun, 4 May 2008, monstr@seznam.cz wrote:
->> From: Michal Simek <monstr@monstr.eu>
->> +static inline void hw_resend_irq(struct hw_interrupt_type *h, unsigned int i)
->> +{
->> +	/* Nothing to do */
-> 
-> And used nowhere
+   text	   data	    bss	    dec	    hex	filename
+5395732	 976736	 734280	7106748	 6c70bc	vmlinux.orig
+5393639	 976736	 734280	7104655	 6c688f	vmlinux
 
-I removed it.
+Runs fine on qemu UP/SMP x86_64/i386.
 
->> +}
->> +
-> 
-> Thanks,
-> 	tglx
+Signed-off-by: Alexander van Heukelum <heukelum@fastmail.fm>
 
-Michal
+---
+
+Hello Andrew,
+
+Could you add this patch to -mm?
+
+Greetings,
+	Alexander
+
+ include/linux/cpumask.h |   14 ++++++++------
+ lib/cpumask.c           |    6 ++++++
+ 2 files changed, 14 insertions(+), 6 deletions(-)
+
+diff --git a/include/linux/cpumask.h b/include/linux/cpumask.h
+index 9650806..a760e29 100644
+--- a/include/linux/cpumask.h
++++ b/include/linux/cpumask.h
+@@ -221,9 +221,11 @@ int __first_cpu(const cpumask_t *srcp);
+ #define first_cpu(src) __first_cpu(&(src))
+ int __next_cpu(int n, const cpumask_t *srcp);
+ #define next_cpu(n, src) __next_cpu((n), &(src))
++int find_next_cpu_mask(int n, const cpumask_t *srcp);
+ #else
+-#define first_cpu(src)		({ (void)(src); 0; })
+-#define next_cpu(n, src)	({ (void)(src); 1; })
++#define first_cpu(src)			({ (void)(src); 0; })
++#define next_cpu(n, src)		({ (void)(src); 1; })
++#define find_next_cpu_mask(n, src)	({ (void)(src); n; })
+ #endif
+ 
+ #ifdef CONFIG_HAVE_CPUMASK_OF_CPU_MAP
+@@ -351,10 +353,10 @@ static inline void __cpus_fold(cpumask_t *dstp, const cpumask_t *origp,
+ }
+ 
+ #if NR_CPUS > 1
+-#define for_each_cpu_mask(cpu, mask)		\
+-	for ((cpu) = first_cpu(mask);		\
+-		(cpu) < NR_CPUS;		\
+-		(cpu) = next_cpu((cpu), (mask)))
++#define for_each_cpu_mask(cpu, mask)				\
++	for ((cpu) = 0;						\
++		(cpu) = find_next_cpu_mask((cpu), &(mask)),	\
++		(cpu) < NR_CPUS; (cpu)++)
+ #else /* NR_CPUS == 1 */
+ #define for_each_cpu_mask(cpu, mask)		\
+ 	for ((cpu) = 0; (cpu) < 1; (cpu)++, (void)mask)
+diff --git a/lib/cpumask.c b/lib/cpumask.c
+index bb4f76d..93dd6ca 100644
+--- a/lib/cpumask.c
++++ b/lib/cpumask.c
+@@ -15,6 +15,12 @@ int __next_cpu(int n, const cpumask_t *srcp)
+ }
+ EXPORT_SYMBOL(__next_cpu);
+ 
++int find_next_cpu_mask(int n, const cpumask_t *srcp)
++{
++	return find_next_bit(srcp->bits, NR_CPUS, n);
++}
++EXPORT_SYMBOL(find_next_cpu_mask);
++
+ int __any_online_cpu(const cpumask_t *mask)
+ {
+ 	int cpu;
