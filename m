@@ -1,50 +1,125 @@
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [PATCH] Make for_each_cpu_mask a bit smaller
-Date: Sun, 11 May 2008 09:24:40 -0600
-Message-ID: <20080511152440.GX19219@parisc-linux.org>
-References: <20080511135039.GA3286@mailshack.com>
+From: Alexander van Heukelum <heukelum@mailshack.com>
+Subject: [RFC/PATCH] Make for_each_node_mask out-of-line
+Date: Sun, 11 May 2008 18:06:58 +0200
+Message-ID: <20080511160658.GA3398@mailshack.com>
+References: <20080511135039.GA3286@mailshack.com> <20080511091403.a75f5b78.pj@sgi.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:50466 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752015AbYEKPY5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 May 2008 11:24:57 -0400
+Received: from triton.rz.uni-saarland.de ([134.96.7.25]:17903 "EHLO
+	triton.rz.uni-saarland.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751099AbYEKQIZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 May 2008 12:08:25 -0400
 Content-Disposition: inline
-In-Reply-To: <20080511135039.GA3286@mailshack.com>
+In-Reply-To: <20080511091403.a75f5b78.pj@sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander van Heukelum <heukelum@mailshack.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Paul Jackson <pj@sgi.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, heukelum@fastmail.fm
+To: Paul Jackson <pj@sgi.com>, Mike Travis <travis@sgi.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, heukelum@fastmail.fm
 
-On Sun, May 11, 2008 at 03:50:39PM +0200, Alexander van Heukelum wrote:
->  #if NR_CPUS > 1
-> -#define for_each_cpu_mask(cpu, mask)		\
-> -	for ((cpu) = first_cpu(mask);		\
-> -		(cpu) < NR_CPUS;		\
-> -		(cpu) = next_cpu((cpu), (mask)))
-> +#define for_each_cpu_mask(cpu, mask)				\
-> +	for ((cpu) = 0;						\
-> +		(cpu) = find_next_cpu_mask((cpu), &(mask)),	\
-> +		(cpu) < NR_CPUS; (cpu)++)
+The for_each_node_mask loop makes use of two inlined functions:
+first_node and next_node. This patch changes for_each_node_mask
+to use only one out-of-line function: find_next_node_mask. An
+x86_64 defconfig kernel is about 1500 bytes smaller with this
+patch applied:
 
-For anyone else having similar cognitive dissonance while reading this
-thinking "But won't the first call to find_next_cpu_mask return a number
-> 0", the answer is "no, find_next_bit returns the next set bit that's
->= the number passed in, which is why we need both the cpu++ and
-find_next_cpu_mask".  
+   text	   data	    bss	    dec	    hex	filename
+5395732	 976736	 734280	7106748	 6c70bc	vmlinux.orig
+5394174	 976736	 734280	7105190	 6c6aa6	vmlinux
 
-> +int find_next_cpu_mask(int n, const cpumask_t *srcp)
-> +{
-> +	return find_next_bit(srcp->bits, NR_CPUS, n);
-> +}
-> +EXPORT_SYMBOL(find_next_cpu_mask);
+Signed-off-by: Alexander van Heukelum <heukelum@fastmail.fm>
 
-Maybe a better name for this function would help.  I can't think of a
-good one right now though.
+---
 
--- 
-Intel are signing my paycheques ... these opinions are still mine
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+Hello,
+> Alexander wrote:
+> > This patch
+> > changes for_each_cpu_mask to use only one function: a newly
+> > introduced find_next_cpu.
+> 
+> I believe that it's for_each_cpu_mask which is newly introduced,
+> not find_next_cpu ... just a typo, granted.
+
+I meant find_next_cpu_mask. That was a last-minute change of mind
+about the name :/.
+
+> Any chance that you could make the same change to nodemask.h?
+> Where practical, I like to keep cpumask.h and nodemask.h the same.
+
+Sure. This patch introduces lib/nodemask.c, but I'm not quite sure
+if building it should depend on CONFIG_SMP or something else (NUMA?).
+When is MAX_NUMNODES 1?
+
+It seems to work on qemu x86_64-smp and i386-up.
+
+I'ld be happy to take a stab at aligning the cpumask and nodemask
+code even more by uninlining some more functions and using stubs
+for the MAX_NUMNODES=1 case.
+
+Greetings,
+	Alexander
+
+ include/linux/nodemask.h |   11 +++++++----
+ lib/Makefile             |    2 +-
+ lib/nodemask.c           |   10 ++++++++++
+ 3 files changed, 18 insertions(+), 5 deletions(-)
+ create mode 100644 lib/nodemask.c
+
+diff --git a/include/linux/nodemask.h b/include/linux/nodemask.h
+index 848025c..dbc80f0 100644
+--- a/include/linux/nodemask.h
++++ b/include/linux/nodemask.h
+@@ -239,6 +239,8 @@ static inline int __next_node(int n, const nodemask_t *srcp)
+ 	return min_t(int,MAX_NUMNODES,find_next_bit(srcp->bits, MAX_NUMNODES, n+1));
+ }
+ 
++int find_next_node_mask(int n, const nodemask_t *srcp);
++
+ #define nodemask_of_node(node)						\
+ ({									\
+ 	typeof(_unused_nodemask_arg_) m;				\
+@@ -347,10 +349,11 @@ static inline void __nodes_fold(nodemask_t *dstp, const nodemask_t *origp,
+ }
+ 
+ #if MAX_NUMNODES > 1
+-#define for_each_node_mask(node, mask)			\
+-	for ((node) = first_node(mask);			\
+-		(node) < MAX_NUMNODES;			\
+-		(node) = next_node((node), (mask)))
++#define for_each_node_mask(node, mask)				\
++	for ((node) = 0;					\
++		(node) = find_next_node_mask((node), &(mask)),	\
++		(node) < MAX_NUMNODES;				\
++		(node)++)
+ #else /* MAX_NUMNODES == 1 */
+ #define for_each_node_mask(node, mask)			\
+ 	if (!nodes_empty(mask))				\
+diff --git a/lib/Makefile b/lib/Makefile
+index 74b0cfb..48fc85c 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -9,7 +9,7 @@ lib-y := ctype.o string.o vsprintf.o cmdline.o \
+ 	 proportions.o prio_heap.o ratelimit.o
+ 
+ lib-$(CONFIG_MMU) += ioremap.o
+-lib-$(CONFIG_SMP) += cpumask.o
++lib-$(CONFIG_SMP) += cpumask.o nodemask.o
+ 
+ lib-y	+= kobject.o kref.o klist.o
+ 
+diff --git a/lib/nodemask.c b/lib/nodemask.c
+new file mode 100644
+index 0000000..08341d3
+--- /dev/null
++++ b/lib/nodemask.c
+@@ -0,0 +1,10 @@
++#include <linux/kernel.h>
++#include <linux/bitops.h>
++#include <linux/nodemask.h>
++#include <linux/module.h>
++
++int find_next_node_mask(int n, const nodemask_t *srcp)
++{
++	return find_next_bit(srcp->bits, NR_CPUS, n);
++}
++EXPORT_SYMBOL(find_next_node_mask);
