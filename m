@@ -1,106 +1,76 @@
-From: "Alexander van Heukelum" <heukelum@fastmail.fm>
+From: Matthew Wilcox <matthew@wil.cx>
 Subject: Re: [PATCH] Make for_each_cpu_mask a bit smaller
-Date: Mon, 12 May 2008 13:04:54 +0200
-Message-ID: <1210590294.13136.1252653345@webmail.messagingengine.com>
-References: <20080511135039.GA3286@mailshack.com>
-   <20080511152440.GX19219@parisc-linux.org>
-   <1210522779.16917.1252546109@webmail.messagingengine.com>
-   <20080511220111.GC19219@parisc-linux.org>
+Date: Mon, 12 May 2008 05:56:27 -0600
+Message-ID: <20080512115626.GE19219@parisc-linux.org>
+References: <20080511135039.GA3286@mailshack.com> <20080511152440.GX19219@parisc-linux.org> <1210522779.16917.1252546109@webmail.messagingengine.com> <20080511220111.GC19219@parisc-linux.org> <1210590294.13136.1252653345@webmail.messagingengine.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1760685AbYELLFK@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from palinux.external.hp.com ([192.25.206.14]:46218 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759071AbYELL4o (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 May 2008 07:56:44 -0400
 Content-Disposition: inline
-In-Reply-To: <20080511220111.GC19219@parisc-linux.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Matthew Wilcox <matthew@wil.cx>
+In-Reply-To: <1210590294.13136.1252653345@webmail.messagingengine.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexander van Heukelum <heukelum@fastmail.fm>
 Cc: Alexander van Heukelum <heukelum@mailshack.com>, Andrew Morton <akpm@linux-foundation.org>, Paul Jackson <pj@sgi.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-On Sun, 11 May 2008 16:01:12 -0600, "Matthew Wilcox" <matthew@wil.cx>
-said:
-> On Sun, May 11, 2008 at 06:19:39PM +0200, Alexander van Heukelum wrote:
+On Mon, May 12, 2008 at 01:04:54PM +0200, Alexander van Heukelum wrote:
+> > #define for_each_cpu_mask(cpu, mask)				\
+> > 	for ((cpu) = -1;					\
+> > 	     (cpu) < NR_CPUS;					\
+> > 	     (cpu) = find_next_cpu_mask((cpu), &(mask)))
 > > 
-> > On Sun, 11 May 2008 09:24:40 -0600, "Matthew Wilcox" <matthew@wil.cx>
-> > said:
-> > > On Sun, May 11, 2008 at 03:50:39PM +0200, Alexander van Heukelum wrote:
-> > > >  #if NR_CPUS > 1
-> > > > -#define for_each_cpu_mask(cpu, mask)		\
-> > > > -	for ((cpu) = first_cpu(mask);		\
-> > > > -		(cpu) < NR_CPUS;		\
-> > > > -		(cpu) = next_cpu((cpu), (mask)))
-> > > > +#define for_each_cpu_mask(cpu, mask)				\
-> > > > +	for ((cpu) = 0;						\
-> > > > +		(cpu) = find_next_cpu_mask((cpu), &(mask)),	\
-> > > > +		(cpu) < NR_CPUS; (cpu)++)
-> > > 
-> > > For anyone else having similar cognitive dissonance while reading this
-> > > thinking "But won't the first call to find_next_cpu_mask return a number
-> > > > 0", the answer is "no, find_next_bit returns the next set bit that's
-> > > >= the number passed in, which is why we need both the cpu++ and
-> > > find_next_cpu_mask".  
+> > int find_next_cpu_mask(int n, const cpumask_t *srcp)
+> > {
+> > 	return find_next_bit(srcp->bits, NR_CPUS, ++n);
+> > }
 > > 
-> > That's how it works, indeed.
-> > 
-> > > > +int find_next_cpu_mask(int n, const cpumask_t *srcp)
-> > > > +{
-> > > > +	return find_next_bit(srcp->bits, NR_CPUS, n);
-> > > > +}
-> > > > +EXPORT_SYMBOL(find_next_cpu_mask);
-> > > 
-> > > Maybe a better name for this function would help.  I can't think of a
-> > > good one right now though.
-> > 
-> > I can't think of a better name, and there is find_next_bit of which
-> > find_next_cpu_mask is just a wrapper. I think the name is good enough.
+> > That actually behaves the way I'd expect a function called
+> > 'find_next_cpu_mask' to work.  It also abuses the 'for' condtion
+> > less and might take a little less text space.
 > 
-> How about doing it this way?
-> 
-> #define for_each_cpu_mask(cpu, mask)				\
-> 	for ((cpu) = -1;					\
-> 	     (cpu) < NR_CPUS;					\
-> 	     (cpu) = find_next_cpu_mask((cpu), &(mask)))
-> 
-> int find_next_cpu_mask(int n, const cpumask_t *srcp)
-> {
-> 	return find_next_bit(srcp->bits, NR_CPUS, ++n);
-> }
-> 
-> That actually behaves the way I'd expect a function called
-> 'find_next_cpu_mask' to work.  It also abuses the 'for' condtion
-> less and might take a little less text space.
+> But it does not work.
 
-But it does not work.
+You're right, of course.  Either of these should work:
 
-It introduces a stray cpu=-1 iteration if cpu happens to be
-(replaced by) a signed variable.
+#define for_each_cpu_mask(cpu, mask)				\
+	for ((cpu) = find_next_cpu_mask(-1, &(mask));		\
+	     (cpu) < NR_CPUS;					\
+	     (cpu) = find_next_cpu_mask((cpu), &(mask)))
 
-It skips the entire loop if cpu happens to be unsigned.
+#define for_each_cpu_mask(cpu, mask)				\
+	for ((cpu) = -1;					\
+	     (cpu) = find_next_cpu_mask((cpu), &(mask)), (cpu) < NR_CPUS; \
+	     )
 
-I don't think that using 'for' in a less conventional way
-is bad if it is hidden in a macro, as long as the name of
-the macro makes the intention sufficiently clear.
+int find_next_cpu_mask(int n, const cpumask_t *srcp)
+{
+	return find_next_bit(srcp->bits, NR_CPUS, ++n);
+}
 
-I think of find_next_cpu_mask(cpu, mask) as: "find next
-cpu-index in mask, starting at index cpu". And similar
-with find_next_bit.
+> I think of find_next_cpu_mask(cpu, mask) as: "find next
+> cpu-index in mask, starting at index cpu". And similar
+> with find_next_bit.
 
-As for the text-space argument, I think you might be right.
-Just not on i386/x86_64 where initialising a register to -1
-can be done in three bytes, initialising to 0 in two bytes
-and an increment in one byte :-).
+If you're determined to stick to your original formulation, renaming it
+to find_valid_cpu_mask() would work better.
 
-Greetings,
-    Alexander
+> As for the text-space argument, I think you might be right.
+> Just not on i386/x86_64 where initialising a register to -1
+> can be done in three bytes, initialising to 0 in two bytes
+> and an increment in one byte :-).
 
-> -- 
-> Intel are signing my paycheques ... these opinions are still mine
-> "Bill, look, we understand that you're interested in selling us this
-> operating system, but compare it to ours.  We can't possibly take such
-> a retrograde step."
--- 
-  Alexander van Heukelum
-  heukelum@fastmail.fm
+While the initialisation may take one extra byte, the increment is
+done in the function, and so takes at least one byte out of the loop.
+Of course on other instruction sets, that's probably 4 bytes out of the
+loop and they can initialise to -1 as cheaply as init to 0, so it's a
+win on non-x86 and neutral on x86.
 
 -- 
-http://www.fastmail.fm - mmm... Fastmail...
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
