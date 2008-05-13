@@ -1,58 +1,99 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch 1/2] read_barrier_depends fixlets
-Date: Tue, 13 May 2008 10:05:15 +0200
-Message-ID: <20080513080515.GC19870@wotan.suse.de>
-References: <20080505112021.GC5018@wotan.suse.de> <15818.1210087753@redhat.com>
+From: Alexander van Heukelum <heukelum@mailshack.com>
+Subject: [PATCHv3] Make for_each_cpu_mask a bit smaller
+Date: Tue, 13 May 2008 11:28:21 +0200
+Message-ID: <20080513092821.GA20416@mailshack.com>
+References: <20080511135039.GA3286@mailshack.com> <20080511091403.a75f5b78.pj@sgi.com> <20080511160658.GA3398@mailshack.com> <20080511160104.c3fef6bf.pj@sgi.com> <1210593896.23716.1252664185@webmail.messagingengine.com> <4828741B.2080802@sgi.com> <20080512190039.GA13324@mailshack.com> <jeej8742nt.fsf@sykes.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:38372 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757205AbYEMIFR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 May 2008 04:05:17 -0400
+Received: from theia.rz.uni-saarland.de ([134.96.7.31]:25640 "EHLO
+	theia.rz.uni-saarland.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750740AbYEMJaS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2008 05:30:18 -0400
 Content-Disposition: inline
-In-Reply-To: <15818.1210087753@redhat.com>
+In-Reply-To: <jeej8742nt.fsf@sykes.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, Paul McKenney <paulmck@us.ibm.com>
+To: Andreas Schwab <schwab@suse.de>
+Cc: Mike Travis <travis@sgi.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Paul Jackson <pj@sgi.com>, Thomas Gleixner <tglx@linutronix.de>, Matthew Wilcox <matthew@wil.cx>, ARCH <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Alexander van Heukelum <heukelum@fastmail.fm>
 
-On Tue, May 06, 2008 at 04:29:13PM +0100, David Howells wrote:
-> Nick Piggin <npiggin@suse.de> wrote:
-> 
-> > While considering the impact of read_barrier_depends, it occurred to
-> > me that it should really be really a noop for the compiler.
-> 
-> If you're defining it so, then you need to adjust memory-barriers.txt too.
+The for_each_cpu_mask loop is used quite often in the kernel. It
+makes use of two functions: first_cpu and next_cpu. This patch
+changes for_each_cpu_mask to use only the latter. Because next_cpu
+finds the next eligible cpu _after_ the given one, the iteration
+variable has to be initialized to -1 and next_cpu has to be
+called with this value before the first iteration. An x86_64
+defconfig kernel (from sched/latest) is about 2500 bytes smaller
+with this patch applied:
 
-_I'm_ not defining it so, it has always been defined so (code speaks
-louder than words). So this document has always been wrong.i
+   text	   data	    bss	    dec	    hex	filename
+6222517	 917952	 749932	7890401	 7865e1	vmlinux.orig
+6219922	 917952	 749932	7887806	 785bbe	vmlinux
 
+The same size reduction is seen for defconfig+MAXSMP
+
+   text	   data	    bss	    dec	    hex	filename
+6241772	2563968	1492716	10298456	 9d2458	vmlinux.orig
+6239211	2563968	1492716	10295895	 9d1a57	vmlinux
+
+Signed-off-by: Alexander van Heukelum <heukelum@fastmail.fm>
+
+---
+
+On Mon, May 12, 2008, Andreas Schwab wrote:
+> > +#define for_each_cpu_mask(cpu, mask)			\
+> > +	for ((cpu) = ~((typeof(cpu))0);			\
 > 
-> 	========================
-> 	EXPLICIT KERNEL BARRIERS
-> 	========================
-> 	...
-> 	CPU MEMORY BARRIERS
-> 	-------------------
-> 
-> 	The Linux kernel has eight basic CPU memory barriers:
-> 
-> 		TYPE		MANDATORY		SMP CONDITIONAL
-> 		===============	=======================	===========================
-> 		GENERAL		mb()			smp_mb()
-> 		WRITE		wmb()			smp_wmb()
-> 		READ		rmb()			smp_rmb()
-> 		DATA DEPENDENCY	read_barrier_depends()	smp_read_barrier_depends()
-> 
-> 
-> 	All CPU memory barriers unconditionally imply compiler barriers.
-> 
-> That last line needs modification, perhaps to say:
-> 
-> 	General, read and write memory barriers unconditionally imply general
-> 	compiler barriers; data dependency barriers, however, imply a barrier
-> 	only for the specific access being performed due to the fact that the
-> 	instructions must be performed in a specific order.
-> 
-> David
+> There is no need for such a complicated expression, -1 will work for
+> every (arithmetic) type.
+
+Indeed, thanks.
+
+This version applies on top of sched/latest.
+
+This version reuses the already-existing api next_cpu instead
+of inventing a new one; initializing the iteration counter to
+-1 was suggested by Matthew Wilcox. Now with a -1 instead of
+an overly carefull ~((typeof(cpu))0). "-1" is properly sign-
+extended even if cpu is u64 in a 32-bit environment.
+
+Greetings,
+	Alexander
+
+ include/linux/cpumask.h |   16 ++++++++--------
+ 1 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/include/linux/cpumask.h b/include/linux/cpumask.h
+index 73434e5..c24a556 100644
+--- a/include/linux/cpumask.h
++++ b/include/linux/cpumask.h
+@@ -377,10 +377,10 @@ int __any_online_cpu(const cpumask_t *mask);
+ #define first_cpu(src)		__first_cpu(&(src))
+ #define next_cpu(n, src)	__next_cpu((n), &(src))
+ #define any_online_cpu(mask) __any_online_cpu(&(mask))
+-#define for_each_cpu_mask(cpu, mask)		\
+-	for ((cpu) = first_cpu(mask);		\
+-		(cpu) < NR_CPUS;		\
+-		(cpu) = next_cpu((cpu), (mask)))
++#define for_each_cpu_mask(cpu, mask)			\
++	for ((cpu) = -1;				\
++		(cpu) = next_cpu((cpu), (mask)),	\
++		(cpu) < NR_CPUS; )
+ #endif
+ 
+ #if NR_CPUS <= 64
+@@ -394,10 +394,10 @@ int __any_online_cpu(const cpumask_t *mask);
+ int __next_cpu_nr(int n, const cpumask_t *srcp);
+ #define next_cpu_nr(n, src)	__next_cpu_nr((n), &(src))
+ #define cpus_weight_nr(cpumask)	__cpus_weight(&(cpumask), nr_cpu_ids)
+-#define for_each_cpu_mask_nr(cpu, mask)		\
+-	for ((cpu) = first_cpu(mask);		\
+-		(cpu) < nr_cpu_ids;		\
+-		(cpu) = next_cpu_nr((cpu), (mask)))
++#define for_each_cpu_mask_nr(cpu, mask)			\
++	for ((cpu) = -1;				\
++		(cpu) = next_cpu_nr((cpu), (mask)),	\
++		(cpu) < nr_cpu_ids; )
+ 
+ #endif /* NR_CPUS > 64 */
+ 
