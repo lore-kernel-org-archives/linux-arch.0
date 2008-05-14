@@ -1,175 +1,49 @@
-From: akpm@linux-foundation.org
-Subject: + flag-parameters-paccept-sys_ni.patch added to -mm tree
-Date: Tue, 13 May 2008 19:48:12 -0700
-Message-ID: <200805140259.m4E2xEY7013189@imap1.linux-foundation.org>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [patch 2/2] fix SMP data race in pagetable setup vs walking
+Date: Wed, 14 May 2008 06:27:45 +0200
+Message-ID: <20080514042745.GB23578@wotan.suse.de>
+References: <20080505112021.GC5018@wotan.suse.de> <20080505121240.GD5018@wotan.suse.de> <alpine.LFD.1.10.0805050828120.32269@woody.linux-foundation.org> <20080506095138.GE10141@wotan.suse.de> <alpine.LFD.1.10.0805060750430.32269@woody.linux-foundation.org> <20080506191153.GB8369@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:57981 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757524AbYENC7i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 May 2008 22:59:38 -0400
+Received: from mail.suse.de ([195.135.220.2]:41827 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751363AbYENE1q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 May 2008 00:27:46 -0400
+Content-Disposition: inline
+In-Reply-To: <20080506191153.GB8369@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mm-commits@vger.kernel.org
-Cc: akpm@linux-foundation.org, davidel@xmailserver.org, drepper@redhat.com, linux-arch@vger.kernel.org, mtk.manpages@googlemail.com
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Hugh Dickins <hugh@veritas.com>, linux-arch@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>
 
+On Tue, May 06, 2008 at 12:11:53PM -0700, Paul E. McKenney wrote:
+> On Tue, May 06, 2008 at 07:53:23AM -0700, Linus Torvalds wrote:
+> > 
+> > 
+> > On Tue, 6 May 2008, Nick Piggin wrote:
+> > > 
+> > > Right. As the comment says, the x86 stuff is kind of a "reference"
+> > > implementation, although if you prefer it isn't there, then I I can
+> > > easily just make it alpha only.
+> > 
+> > If there really was a point in teaching people about 
+> > "read_barrier_depends()", I'd agree that it's probably good to have it as 
+> > a reference in the x86 implementation.
+> > 
+> > But since alpha is the only one that needs it, and is likely to remain so, 
+> > it's not like we ever want to copy that code to anything else, and it 
+> > really is better to make it alpha-only if the code is so much uglier.
+> > 
+> > Maybe just a comment?
+> > 
+> > As to the ACCESS_ONCE() thing, thinking about it some more, I doubt it 
+> > really matters. We're never going to change pgd anyway, so who cares if we 
+> > access it once or a hundred times?
+> 
+> If we are never going to change mm->pgd, then why do we need the
+> smp_read_barrier_depends()?  Is this handling the initialization
+> case or some such?
 
-The patch titled
-     flag-parameters-paccept-sys_ni
-has been added to the -mm tree.  Its filename is
-     flag-parameters-paccept-sys_ni.patch
-
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
-
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
-
-See http://www.zip.com.au/~akpm/linux/patches/stuff/added-to-mm.txt to find
-out what to do about this
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: flag-parameters-paccept-sys_ni
-From: Andrew Morton <akpm@linux-foundation.org>
-
-Cc: <linux-arch@vger.kernel.org>
-Cc: Davide Libenzi <davidel@xmailserver.org>
-Cc: Michael Kerrisk <mtk.manpages@googlemail.com>
-Cc: Ulrich Drepper <drepper@redhat.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- kernel/sys_ni.c |    1 +
- 1 file changed, 1 insertion(+)
-
-diff -puN kernel/sys_ni.c~flag-parameters-paccept-sys_ni kernel/sys_ni.c
---- a/kernel/sys_ni.c~flag-parameters-paccept-sys_ni
-+++ a/kernel/sys_ni.c
-@@ -31,6 +31,7 @@ cond_syscall(sys_socketpair);
- cond_syscall(sys_bind);
- cond_syscall(sys_listen);
- cond_syscall(sys_accept);
-+cond_syscall(sys_paccept);
- cond_syscall(sys_connect);
- cond_syscall(sys_getsockname);
- cond_syscall(sys_getpeername);
-_
-
-Patches currently in -mm which might be from akpm@linux-foundation.org are
-
-origin.patch
-linux-next.patch
-linux-next-git-rejects.patch
-next-remove-localversion.patch
-revert-9p-convert-from-semaphore-to-spinlock.patch
-ia64-kvm-dont-delete-files-which-we-need.patch
-revert-acpica-fixes-for-unload-and-ddbhandles.patch
-acpi-enable-c3-power-state-on-dell-inspiron-8200.patch
-acpi-video-balcklist-fujitsu-lifebook-s6410.patch
-git-x86-fixup.patch
-arch-x86-mm-patc-use-boot_cpu_has.patch
-x86-setup_force_cpu_cap-dont-do-clear_bitnon-unsigned-long.patch
-lguest-use-cpu-capability-accessors.patch
-x86-set_restore_sigmask-avoid-bitop-on-a-u32.patch
-x86-early_init_centaur-use-set_cpu_cap.patch
-x86-bitops-take-an-unsigned-long.patch
-arm-omap1-n770-convert-audio_pwr_sem-in-a-mutex-fix.patch
-audit_send_reply-fix-error-path-memory-leak.patch
-cifs-suppress-warning.patch
-sysfs-provide-a-clue-about-the-effects-of-config_usb_device_class=y.patch
-zoran-use-correct-type-for-cpu-flags.patch
-i2c-renesas-highlander-fpga-smbus-support.patch
-ibmaem-new-driver-for-power-energy-temp-meters-in-ibm-system-x-hardware-ia64-warnings.patch
-drivers-infiniband-hw-mlx4-qpc-fix-uninitialised-var-warning.patch
-git-input.patch
-git-jg-misc-git-rejects.patch
-drivers-scsi-broadsasc-fix-uninitialised-var-warning.patch
-git-mmc.patch
-mmc-sd-host-driver-for-ricoh-bay1controllers-fix.patch
-mmc-sd-host-driver-for-ricoh-bay1controllers-fix-2.patch
-git-ubifs.patch
-git-net.patch
-git-net-git-rejects.patch
-hysdn-no-longer-broken-on-smp.patch
-sundance-set-carrier-status-on-link-change-events.patch
-dm9000-use-delayed-work-to-update-mii-phy-state-fix.patch
-pcnet32-fix-warning.patch
-drivers-net-tokenring-3c359c-squish-a-warning.patch
-drivers-net-tokenring-olympicc-fix-warning.patch
-update-smc91x-driver-with-arm-versatile-board-info.patch
-git-battery.patch
-fs-nfs-callback_xdrc-suppress-uninitialiized-variable-warnings.patch
-arch-parisc-kernel-unalignedc-use-time_-macros.patch
-selinux-dopey-hack.patch
-pci-hotplug-introduce-pci_slot.patch
-pci-hotplug-acpi-pci-slot-detection-driver.patch
-drivers-scsi-qla2xxx-qla_osc-suppress-uninitialized-var-warning.patch
-revert-git-block.patch
-s390-uninline-spinlock-functions-which-use-smp_processor_id.patch
-git-unionfs.patch
-git-unionfs-fixup.patch
-unionfs-broke.patch
-git-logfs-fixup.patch
-drivers-uwb-nehc-processor-flags-have-type-unsigned-long.patch
-drivers-usb-host-isp1760-hcdc-procesxor-flags-have-type-unsigned-long.patch
-uwb-fix-scscanf-warning.patch
-drivers-uwb-wlp-sysfsc-dead-code.patch
-drivers-uwb-i1480-dfu-macc-fix-min-warning.patch
-drivers-uwb-i1480-dfu-usbc-fix-size_t-confusion.patch
-drivers-uwb-whcic-needs-dma-mappingh.patch
-rndis-switch-to-seq_files-checkpatch-fixes.patch
-git-v9fs.patch
-revert-git-v9fs.patch
-git-watchdog.patch
-git-watchdog-git-rejects.patch
-watchdog-fix-booke_wdtc-on-mpc85xx-smp-system.patch
-xfs-suppress-uninitialized-var-warnings.patch
-git-xtensa.patch
-git-orion-git-rejects.patch
-ext4-is-busted-on-m68k.patch
-common-implementation-of-iterative-div-mod-fix.patch
-common-implementation-of-iterative-div-mod-checkpatch-fixes.patch
-common-implementation-of-iterative-div-mod-fix-2.patch
-mprotect-prevent-alteration-of-the-pat-bits-checkpatch-fixes.patch
-scsi-dpt_i2o-is-bust-on-ia64.patch
-tty_check_change-avoid-taking-tasklist_lock-while-holding-tty-ctrl_lock.patch
-colibri-fix-support-for-dm9000-ethernet-device-fix.patch
-mm-verify-the-page-links-and-memory-model.patch
-mspec-convert-nopfn-to-fault-fix.patch
-page-allocator-inlnie-some-__alloc_pages-wrappers-fix.patch
-kill-generic_file_direct_io-checkpatch-fixes.patch
-vmscan-give-referenced-active-and-unmapped-pages-a-second-trip-around-the-lru.patch
-vm-dont-run-touch_buffer-during-buffercache-lookups.patch
-split-the-typecheck-macros-out-of-include-linux-kernelh.patch
-locking-add-typecheck-on-irqsave-and-friends-for-correct-flags.patch
-locking-add-typecheck-on-irqsave-and-friends-for-correct-flags-fix.patch
-remove-apparently-unused-fd1772h-header-file.patch
-lib-allow-memparse-to-accept-a-null-and-ignorable-second-parm-checkpatch-fixes.patch
-rename-warn-to-warning-to-clear-the-namespace-fix.patch
-add-a-warn-macro-this-is-warn_on-printk-arguments-fix.patch
-flag-parameters-paccept-fix.patch
-flag-parameters-paccept-sys_ni.patch
-flag-parameters-anon_inode_getfd-extension-fix.patch
-flag-parameters-inotify_init-fix.patch
-flag-parameters-check-magic-constants-alpha-hack.patch
-drivers-video-aty-radeon_basec-notify-user-if-sysfs_create_bin_file-failed-checkpatch-fixes.patch
-reiserfs-convert-j_commit_lock-to-mutex-checkpatch-fixes.patch
-documentation-build-source-files-in-documentation-sub-dir-disable.patch
-reiser4.patch
-reiser4-semaphore-fix.patch
-page-owner-tracking-leak-detector.patch
-nr_blockdev_pages-in_interrupt-warning.patch
-slab-leaks3-default-y.patch
-put_bh-debug.patch
-shrink_slab-handle-bad-shrinkers.patch
-getblk-handle-2tb-devices.patch
-getblk-handle-2tb-devices-fix.patch
-undeprecate-pci_find_device.patch
-notify_change-callers-must-hold-i_mutex.patch
-profile-likely-unlikely-macros.patch
-drivers-net-bonding-bond_sysfsc-suppress-uninitialized-var-warning.patch
-w1-build-fix.patch
+No, I had another look and I think Linus is correct. We don't need it for
+mm->pgd.
