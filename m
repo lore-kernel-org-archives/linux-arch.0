@@ -1,75 +1,37 @@
-From: Dave Kleikamp <shaggy@linux.vnet.ibm.com>
+From: Nick Piggin <npiggin@suse.de>
 Subject: Re: [patch 2/2]: introduce fast_gup
-Date: Wed, 14 May 2008 13:33:14 -0500
-Message-ID: <1210789994.6377.21.camel@norville.austin.ibm.com>
-References: <20080328025455.GA8083@wotan.suse.de>
-	 <20080328030023.GC8083@wotan.suse.de> <1208857356.7115.218.camel@twins>
-	 <20080422094629.GC23770@wotan.suse.de>
+Date: Thu, 15 May 2008 03:13:57 +0200
+Message-ID: <20080515011357.GF30448@wotan.suse.de>
+References: <20080328025455.GA8083@wotan.suse.de> <20080328030023.GC8083@wotan.suse.de> <1208857356.7115.218.camel@twins> <20080422094629.GC23770@wotan.suse.de> <1210789994.6377.21.camel@norville.austin.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e2.ny.us.ibm.com ([32.97.182.142]:34409 "EHLO e2.ny.us.ibm.com"
+Received: from ns1.suse.de ([195.135.220.2]:38218 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757416AbYENSdR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 May 2008 14:33:17 -0400
-Received: from d01relay04.pok.ibm.com (d01relay04.pok.ibm.com [9.56.227.236])
-	by e2.ny.us.ibm.com (8.13.8/8.13.8) with ESMTP id m4EIXHVl021401
-	for <linux-arch@vger.kernel.org>; Wed, 14 May 2008 14:33:17 -0400
-Received: from d01av02.pok.ibm.com (d01av02.pok.ibm.com [9.56.224.216])
-	by d01relay04.pok.ibm.com (8.13.8/8.13.8/NCO v8.7) with ESMTP id m4EIXGio070250
-	for <linux-arch@vger.kernel.org>; Wed, 14 May 2008 14:33:16 -0400
-Received: from d01av02.pok.ibm.com (loopback [127.0.0.1])
-	by d01av02.pok.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id m4EIXF0M031434
-	for <linux-arch@vger.kernel.org>; Wed, 14 May 2008 14:33:16 -0400
-In-Reply-To: <20080422094629.GC23770@wotan.suse.de>
+	id S1752247AbYEOBOB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 May 2008 21:14:01 -0400
+Content-Disposition: inline
+In-Reply-To: <1210789994.6377.21.camel@norville.austin.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@suse.de>
+To: Dave Kleikamp <shaggy@linux.vnet.ibm.com>
 Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, axboe@kernel.dk, linux-mm@kvack.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 
-On Tue, 2008-04-22 at 11:46 +0200, Nick Piggin wrote:
-> On Tue, Apr 22, 2008 at 11:42:36AM +0200, Peter Zijlstra wrote:
-> > On Fri, 2008-03-28 at 04:00 +0100, Nick Piggin wrote:
-> > 
-> > > +static noinline int gup_pte_range(pmd_t pmd, unsigned long addr,
-> > > +		unsigned long end, int write, struct page **pages, int *nr)
-> > > +{
-> > > +	unsigned long mask, result;
-> > > +	pte_t *ptep;
-> > > +
-> > > +	result = _PAGE_PRESENT|_PAGE_USER;
-> > > +	if (write)
-> > > +		result |= _PAGE_RW;
-> > > +	mask = result | _PAGE_SPECIAL;
-> > > +
-> > > +	ptep = pte_offset_map(&pmd, addr);
-> > > +	do {
-> > > +		/*
-> > > +		 * XXX: careful. On 3-level 32-bit, the pte is 64 bits, and
-> > > +		 * we need to make sure we load the low word first, then the
-> > > +		 * high. This means _PAGE_PRESENT should be clear if the high
-> > > +		 * word was not valid. Currently, the C compiler can issue
-> > > +		 * the loads in any order, and I don't know of a wrapper
-> > > +		 * function that will do this properly, so it is broken on
-> > > +		 * 32-bit 3-level for the moment.
-> > > +		 */
-> > > +		pte_t pte = *ptep;
-> > > +		struct page *page;
-> > > +
-> > > +		if ((pte_val(pte) & mask) != result)
-> > > +			return 0;
-> > 
-> > This return path fails to unmap the pmd.
+On Wed, May 14, 2008 at 01:33:14PM -0500, Dave Kleikamp wrote:
+> > Ah good catch. As you can see I haven't done any highmem testing ;)
+> > Which I will do so before sending upstream.
 > 
-> Ah good catch. As you can see I haven't done any highmem testing ;)
-> Which I will do so before sending upstream.
+> Which will be when?  We'd really like to see this in mainline as soon as
+> possible and in -mm in the meanwhile.
 
-Which will be when?  We'd really like to see this in mainline as soon as
-possible and in -mm in the meanwhile.
+Well I just got all the "hard" core mm stuff past Linus in this merge
+window, and got a couple of preexisting memory ordering bugs fixed..
+So I am planning to get it into -mm, ready for the next merge window.
+
+I'm a little concerned about Peter's instability reports, but maybe
+they're just an -rt thing. But I don't think we've found any holes in
+fast_gup yet (although I think I need to add one last check to ensure
+it won't pick up kernel addresses).
 
 Thanks,
-Shaggy
--- 
-David Kleikamp
-IBM Linux Technology Center
+Nick
