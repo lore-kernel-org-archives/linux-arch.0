@@ -1,77 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:37714 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752126AbYEUUrG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 May 2008 16:47:06 -0400
-Subject: Re: [PATCH 1/2] Add thread_info_cache_init() to all archs
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Reply-To: benh@kernel.crashing.org
-In-Reply-To: <20080521190659.GB12638@uranus.ravnborg.org>
-References: <20080410032354.90CB1DDF0F@ozlabs.org>
-	 <20080413171953.bde5e9ac.akpm@linux-foundation.org>
-	 <1208133506.6958.82.camel@pasglop>
-	 <20080413191338.9776ebd0.akpm@linux-foundation.org>
-	 <1208491086.6958.381.camel@pasglop>
-	 <20080417211905.8ff769fa.akpm@linux-foundation.org>
-	 <1208501061.6958.394.camel@pasglop> <1211392585.8297.218.camel@pasglop>
-	 <20080521114147.59ca3551.akpm@linux-foundation.org>
-	 <20080521190659.GB12638@uranus.ravnborg.org>
-Content-Type: text/plain
-Date: Wed, 21 May 2008 16:38:20 -0400
-Message-ID: <1211402300.8297.240.camel@pasglop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:58997 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752698AbYEUVW3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 May 2008 17:22:29 -0400
+Message-ID: <200805212122.m4LLM5bp001437@imap1.linux-foundation.org>
+Subject: - make-list_poison-less-deadly-v2.patch removed from -mm tree
+From: akpm@linux-foundation.org
+Date: Wed, 21 May 2008 14:22:05 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-m32r@ml.linux-m32r.org, takata@linux-m32r.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Paul Mackerras <paulus@samba.org>, Luke Browning <LukeBrowning@us.ibm.com>
-Message-ID: <20080521203820.rqNEGlBAhUhk20jHjL5paGCUPeYJFkw3sIUi3m2O_vw@z>
+To: avi@qumranet.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, mm-commits@vger.kernel.org
+Message-ID: <20080521212205.aruwGfQJufNcZOBq9YLajmDwVyA2IO90mGEEBuQqakQ@z>
 
 
-On Wed, 2008-05-21 at 21:06 +0200, Sam Ravnborg wrote:
-> It was discussed to add some run-time checks for this issue.
-> But the examples given were a bit fluffy so I never integrated
-> anything
-> i kbuild to detect this.
-> 
-> As this is only a bug for const weak functions they could be made
-> non-const
-> if they are seldomly used?
+The patch titled
+     Make LIST_POISON less deadly
+has been removed from the -mm tree.  Its filename was
+     make-list_poison-less-deadly-v2.patch
 
-With the asm("") trick ?
+This patch was dropped because it was merged into mainline or a subsystem tree
 
-I suppose, but I'm also happy to just reject the bad gcc...
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
-It shouldn't be too hard to do a test case made of 2 files.
+------------------------------------------------------
+Subject: Make LIST_POISON less deadly
+From: Avi Kivity <avi@qumranet.com>
 
-test_foo.c
+The list macros use LIST_POISON1 and LIST_POISON2 as undereferencable
+pointers in order to trap erronous use of freed list_heads.  Unfortunately
+userspace can arrange for those pointers to actually be dereferencable,
+potentially turning an oops to an expolit.
 
-int foo(void)
-{
-	printf("good\n");
-}
+To avoid this allow architectures (currently x86_64 only) to override the
+default values for these pointers with truly-undereferncable values.  This
+is easy on x86_64 as the virtual address space is smaller than the range
+spanned by pointer values.
 
-test_bar.c
+Signed-off-by: Avi Kivity <avi@qumranet.com>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-int foo(void) __weak
-{
-}
+ arch/x86/Kconfig       |    5 +++++
+ include/linux/poison.h |   10 ++++++++--
+ 2 files changed, 13 insertions(+), 2 deletions(-)
 
-int main(void)
-{
-	foo();
-	return 0;
-}
+diff -puN arch/x86/Kconfig~make-list_poison-less-deadly-v2 arch/x86/Kconfig
+--- a/arch/x86/Kconfig~make-list_poison-less-deadly-v2
++++ a/arch/x86/Kconfig
+@@ -1025,6 +1025,11 @@ config ARCH_MEMORY_PROBE
+ 	def_bool X86_64
+ 	depends on MEMORY_HOTPLUG
+ 
++config ILLEGAL_POINTER_VALUE
++       hex
++       default 0 if X86_32
++       default 0x8888888800000000 if X86_64
++
+ source "mm/Kconfig"
+ 
+ config HIGHPTE
+diff -puN include/linux/poison.h~make-list_poison-less-deadly-v2 include/linux/poison.h
+--- a/include/linux/poison.h~make-list_poison-less-deadly-v2
++++ a/include/linux/poison.h
+@@ -1,14 +1,20 @@
+ #ifndef _LINUX_POISON_H
+ #define _LINUX_POISON_H
+ 
++#ifdef CONFIG_ILLEGAL_POINTER_VALUE
++#define POISON_POINTER_DELTA CONFIG_ILLEGAL_POINTER_VALUE
++#else
++#define POISON_POINTER_DELTA 0L
++#endif
++
+ /********** include/linux/list.h **********/
+ /*
+  * These are non-NULL pointers that will result in page faults
+  * under normal circumstances, used to verify that nobody uses
+  * non-initialized list entries.
+  */
+-#define LIST_POISON1  ((void *) 0x00100100)
+-#define LIST_POISON2  ((void *) 0x00200200)
++#define LIST_POISON1  ((void *) 0x00100100 + POISON_POINTER_DELTA)
++#define LIST_POISON2  ((void *) 0x00200200 + POISON_POINTER_DELTA)
+ 
+ /********** include/linux/timer.h **********/
+ /*
+_
 
-And check for "good" in the output of said program..
+Patches currently in -mm which might be from avi@qumranet.com are
 
-Can somebody test that ? Luke, you have a broken compiler, can you make
-up some test that could be integrated in the kernel build system
-easily ?
-
-(I'm travelling right now, no time to play much with it myself).
-
-Cheers,
-Ben.
-
+origin.patch
+linux-next.patch
+dma-mapping-add-the-device-argument-to-dma_mapping_error.patch
+dma-mapping-x86-per-device-dma_mapping_ops-support.patch
 
