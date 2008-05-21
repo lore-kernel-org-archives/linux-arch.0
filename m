@@ -1,54 +1,36 @@
-From: Adrian Bunk <bunk@kernel.org>
-Subject: -ffreestanding or not -ffreestanding
-Date: Wed, 21 May 2008 10:52:34 +0300
-Message-ID: <20080521075233.GA18352@cs181133002.pp.htv.fi>
-References: <E1JycsB-0000M9-36@ZenIV.linux.org.uk>
+From: Roman Zippel <zippel@linux-m68k.org>
+Subject: Re: -ffreestanding or not -ffreestanding
+Date: Wed, 21 May 2008 13:44:06 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0805211326080.19545@localhost.localdomain>
+References: <E1JycsB-0000M9-36@ZenIV.linux.org.uk> <20080521075233.GA18352@cs181133002.pp.htv.fi>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp5.pp.htv.fi ([213.243.153.39]:59124 "EHLO smtp5.pp.htv.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755112AbYEUHyr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 May 2008 03:54:47 -0400
-Content-Disposition: inline
-In-Reply-To: <E1JycsB-0000M9-36@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: torvalds@linux-foundation.org, geert@linux-m68k.org, linux-m68k@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S933021AbYEULqV@vger.kernel.org>
+In-Reply-To: <20080521075233.GA18352@cs181133002.pp.htv.fi>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Adrian Bunk <bunk@kernel.org>
+Cc: Al Viro <viro@ftp.linux.org.uk>, torvalds@linux-foundation.org, geert@linux-m68k.org, linux-m68k@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 21, 2008 at 02:12:07AM +0100, Al Viro wrote:
-> Content-Length: 788
-> Lines: 30
+Hi,
+
+On Wed, 21 May 2008, Adrian Bunk wrote:
+
+> Can we try to get this sorted out properly instead of constantly 
+> fiddling with it?
 > 
-> Whether we sidestep it in init/main.c or not, such situations
-> will arise again; compiler does generate calls of strcat()
-> on optimizations, so we really ought to have an out-of-line
-> version...
->...
+> Currently we use -ffreestanding on some architectures and fix breakages 
+> on the other architectures when they arise.
 
-Can we try to get this sorted out properly instead of constantly 
-fiddling with it?
+This won't help completely unless you also clean up all archs to use the 
+same mappings to the builtin functions.
 
-Currently we use -ffreestanding on some architectures and fix breakages 
-on the other architectures when they arise.
+The main problem I had with -ffreestanding is that it's awkward to map a 
+library function to the builtin function and also provide the fallback 
+from lib/string.c.
+If you look at asm-m68k/string.h I once tried this with the mem* functions 
+and I still have the duplicated memcmp in arch/m68k/lib/string.c.
+(You could argue that it would be easier to just remove the define for 
+memcmp in this specific case, but I'm interested in the general case.)
 
-The options I see for getting this fixed properly are:
-- use -ffreestanding on all architectures or
-- don't use -ffreestanding on any architecture and move the string
-  functions (and perhaps other functions if required) out-of-line
-
-I'd prefer the first option, but I know that not everyone agrees with me.
-
-No matter which option we choose, if we get an agreement on this one
-I can send patches for it.
-
-cu
-Adrian
-
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
+bye, Roman
