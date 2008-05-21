@@ -1,548 +1,1281 @@
 From: Nick Piggin <npiggin@suse.de>
-Subject: [patch 2/2] mm: lockless get_user_pages
-Date: Wed, 21 May 2008 14:11:14 +0200
-Message-ID: <20080521121114.GC9030@wotan.suse.de>
-References: <20080521115929.GB9030@wotan.suse.de>
+Subject: [rfc] add io barriers, remove mmiowb
+Date: Wed, 21 May 2008 17:28:55 +0200
+Message-ID: <20080521152855.GE8897@wotan.suse.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:49455 "EHLO mx2.suse.de"
+Received: from ns1.suse.de ([195.135.220.2]:36367 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933621AbYEUMLR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 May 2008 08:11:17 -0400
+	id S1761989AbYEUP25 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 May 2008 11:28:57 -0400
 Content-Disposition: inline
-In-Reply-To: <20080521115929.GB9030@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: shaggy@austin.ibm.com, axboe@oracle.com, torvalds@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org, jbarnes@virtuousgeek.org, Linus Torvalds <torvalds@linux-foundation.org>
 
-I'd like to propose lockless get_user_pages for merge in -mm. Since last
-posted, this includes Linus's scheme for loading the pte on 32-bit PAE
-(with comment), and an access_ok() check. I'd like if somebody can verify
-both these additions (and the patch in general). It wouldn't be hard to
-have a big security hole here if any of the checks are wrong...
 
-I do have a powerpc patch which demonstrates that fast_gup isn't just a
-crazy x86 only hack... but it is a little more complex (requires speculative
-page references in the VM), and not as well tested as the x86 version. 
+With mmiowb, ia64 introduced a completely new type of barrier and subtly
+redefined existing barriers, unfortunately. I still hold a faint hope of
+fixing this up some day. This is how I'm proposing to do it.
 
-Anyway, I think the x86 code is now pretty well complete and has no
-more known issues.
---
+Traditionally, mb() is thought of as "provide a total ordering of all
+RAM and device memory accesses at this point", and wmb() as "provide a
+total ordering of all RAM and device memory stores at this point".
 
-Introduce a new "fast_gup" (for want of a better name right now) which
-is basically a get_user_pages with a less general API (but still tends to
-be suited to the common case):
+However, on sn2, this is rather expensive because that platform can
+reorder stores to device memory at the chipset, so a mb or wmb would
+have to interact with chipset registers. Apparently this penalty was
+deemed too high, because mb and wmb were weakened, and  mmiowb was
+introduced to solve the problem.
 
-- task and mm are always current and current->mm
-- force is always 0
-- pages is always non-NULL
-- don't pass back vmas
+mb and wmb are now no longer guaranteed to order system memory operations
+with device memory stores. mmiowb has been introduced to provide this
+ordering (when combined with a mb, wmb, or spin_unlock). Unfortunately,
+it appears to be rather less well understood among both users and
+implementors than even the old memory barrier scheme. It also subtly
+breaks existing code that uses mb or wmb (if only on sn2). I really think
+it is not a good solution.
 
-This restricted API can be implemented in a much more scalable way when
-the ptes are present, by walking the page tables locklessly.
+The alternative I propose is to restore mb and wmb to their full strength.
+This does mean that sn2 has to do the equivalent of mb+mmiowb, wmb+mmiowb
+respectively, but that's the price you pay for weak memory ordering.
 
-Before anybody asks; it is impossible to just "detect" such a situation in the
-existing get_user_pages call, and branch to a fastpath in that case, because
-get_user_pages requres the mmap_sem is held over the call, wheras fast_gup does
-not.
+A large number of callers of wmb actually only appear to want io/io ordering,
+so if we introduce io_ barrier variants, then we can actually avoid wmb
+in many cases, and the remainder of them genuinely require io/ram ordering,
+so sn2 really needs mmiowb there anyway.
 
-This patch implements fast_gup on x86, and converts a number of key callsites
-to use it.
+io_*mb variants can be optimised on other platforms too, which is a plus.
 
-On x86, we do an optimistic lockless pagetable walk, without taking any page
-table locks or even mmap_sem. Page table existence is guaranteed by turning
-interrupts off (combined with the fact that we're always looking up the current
-mm, means we can do the lockless page table walk within the constraints of the
-TLB shootdown design). Basically we can do this lockless pagetable walk in a
-similar manner to the way the CPU's pagetable walker does not have to take any
-locks to find present ptes.
-
-Many other architectures could do the same thing. Those that don't IPI
-could potentially RCU free the page tables and do speculative references
-on the pages (a la lockless pagecache) to achieve a lockless fast_gup. I
-have actually got an implementation of this for powerpc.
-
-This patch was found to give about 10% performance improvement on a 2 socket
-8 core Intel Xeon system running an OLTP workload on DB2 v9.5
-
- "To test the effects of the patch, an OLTP workload was run on an IBM
- x3850 M2 server with 2 processors (quad-core Intel Xeon processors at
- 2.93 GHz) using IBM DB2 v9.5 running Linux 2.6.24rc7 kernel. Comparing
- runs with and without the patch resulted in an overall performance
- benefit of ~9.8%. Correspondingly, oprofiles showed that samples from
- __up_read and __down_read routines that is seen during thread contention
- for system resources was reduced from 2.8% down to .05%. Monitoring
- the /proc/vmstat output from the patched run showed that the counter for
- fast_gup contained a very high number while the fast_gup_slow value was
- zero."
-
-(fast_gup_slow is a counter we had for the number of times the slowpath
-was invoked).
-
-The main reason for the improvement is that DB2 has multiple threads each
-issuing direct-IO. Direct-IO uses get_user_pages, and thus the threads
-contend the mmap_sem cacheline, and can also contend on page table locks.
-
-I would anticipate larger performance gains on larger systems, however I
-think DB2 uses an adaptive mix of threads and processes, so it could be
-that thread contention remains pretty constant as machine size increases.
-In which case, we stuck with "only" a 10% gain.
-
-Lots of other code could use this too (eg. grep drivers/).
-
-The downside of using fast_gup is that if there is not a pte with the
-correct permissions for the access, we end up falling back to get_user_pages
-and so the fast_gup is just extra work. This should not be the common case
-in performance critical code, I'd hope.
-
-Signed-off-by: Nick Piggin <npiggin@suse.de>
-Cc: shaggy@austin.ibm.com
-Cc: axboe@oracle.com
-Cc: torvalds@linux-foundation.org
-Cc: linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org
+This patch sketches an implementation for x86, powerpc, ia64, and attempts
+to convert all mmiowb() in drivers into their appropriate wmb/io_wmb barrier.
 
 ---
- arch/x86/mm/Makefile      |    2 
- arch/x86/mm/gup.c         |  193 ++++++++++++++++++++++++++++++++++++++++++++++
- fs/bio.c                  |    8 -
- fs/direct-io.c            |   10 --
- fs/splice.c               |   41 ---------
- include/asm-x86/uaccess.h |    5 +
- include/linux/mm.h        |   19 ++++
- 7 files changed, 225 insertions(+), 53 deletions(-)
-
-Index: linux-2.6/fs/bio.c
+Index: linux-2.6/include/asm-ia64/system.h
 ===================================================================
---- linux-2.6.orig/fs/bio.c
-+++ linux-2.6/fs/bio.c
-@@ -713,12 +713,8 @@ static struct bio *__bio_map_user_iov(st
- 		const int local_nr_pages = end - start;
- 		const int page_limit = cur_page + local_nr_pages;
- 		
--		down_read(&current->mm->mmap_sem);
--		ret = get_user_pages(current, current->mm, uaddr,
--				     local_nr_pages,
--				     write_to_vm, 0, &pages[cur_page], NULL);
--		up_read(&current->mm->mmap_sem);
--
-+		ret = fast_gup(uaddr, local_nr_pages,
-+				write_to_vm, &pages[cur_page]);
- 		if (ret < local_nr_pages) {
- 			ret = -EFAULT;
- 			goto out_unmap;
-Index: linux-2.6/fs/direct-io.c
-===================================================================
---- linux-2.6.orig/fs/direct-io.c
-+++ linux-2.6/fs/direct-io.c
-@@ -150,17 +150,11 @@ static int dio_refill_pages(struct dio *
- 	int nr_pages;
+--- linux-2.6.orig/include/asm-ia64/system.h
++++ linux-2.6/include/asm-ia64/system.h
+@@ -82,15 +82,19 @@ extern struct ia64_boot_param {
+  * it's (presumably) much slower than mf and (b) mf.a is supported for
+  * sequential memory pages only.
+  */
+-#define mb()	ia64_mf()
+-#define rmb()	mb()
++#define mb()	do { ia64_mf(); mmiowb(); } while (0)
++#define rmb()	ia64_mf()
+ #define wmb()	mb()
+ #define read_barrier_depends()	do { } while(0)
  
- 	nr_pages = min(dio->total_pages - dio->curr_page, DIO_PAGES);
--	down_read(&current->mm->mmap_sem);
--	ret = get_user_pages(
--		current,			/* Task for fault acounting */
--		current->mm,			/* whose pages? */
-+	ret = fast_gup(
- 		dio->curr_user_address,		/* Where from? */
- 		nr_pages,			/* How many pages? */
- 		dio->rw == READ,		/* Write to memory? */
--		0,				/* force (?) */
--		&dio->pages[0],
--		NULL);				/* vmas */
--	up_read(&current->mm->mmap_sem);
-+		&dio->pages[0]);		/* Put results here */
- 
- 	if (ret < 0 && dio->blocks_available && (dio->rw & WRITE)) {
- 		struct page *page = ZERO_PAGE(0);
-Index: linux-2.6/fs/splice.c
++#define io_mb()		ia64_mf()
++#define io_rmb()	io_mb()
++#define io_wmb()	io_mb()
++
+ #ifdef CONFIG_SMP
+-# define smp_mb()	mb()
+-# define smp_rmb()	rmb()
+-# define smp_wmb()	wmb()
++# define smp_mb()	ia64_mf()
++# define smp_rmb()	smp_mb()
++# define smp_wmb()	smp_mb()
+ # define smp_read_barrier_depends()	read_barrier_depends()
+ #else
+ # define smp_mb()	barrier()
+Index: linux-2.6/include/asm-powerpc/system.h
 ===================================================================
---- linux-2.6.orig/fs/splice.c
-+++ linux-2.6/fs/splice.c
-@@ -1147,36 +1147,6 @@ static long do_splice(struct file *in, l
+--- linux-2.6.orig/include/asm-powerpc/system.h
++++ linux-2.6/include/asm-powerpc/system.h
+@@ -38,6 +38,10 @@
+ #define wmb()  __asm__ __volatile__ ("sync" : : : "memory")
+ #define read_barrier_depends()  do { } while(0)
+ 
++#define io_mb()		__asm__ __volatile__ ("eieio" : : : "memory")
++#define io_rmb()	__asm__ __volatile__ ("eieio" : : : "memory")
++#define io_wmb()	barrier()
++
+ #define set_mb(var, value)	do { var = value; mb(); } while (0)
+ 
+ #ifdef __KERNEL__
+Index: linux-2.6/include/asm-x86/system.h
+===================================================================
+--- linux-2.6.orig/include/asm-x86/system.h
++++ linux-2.6/include/asm-x86/system.h
+@@ -330,6 +330,10 @@ void default_idle(void);
+ #define wmb()	asm volatile("sfence" ::: "memory")
+ #endif
+ 
++#define io_mb()		mb()
++#define io_rmb()	rmb()
++#define io_wmb()	wmb()
++
+ /**
+  * read_barrier_depends - Flush all pending reads that subsequents reads
+  * depend on.
+Index: linux-2.6/drivers/net/wireless/b43/main.c
+===================================================================
+--- linux-2.6.orig/drivers/net/wireless/b43/main.c
++++ linux-2.6/drivers/net/wireless/b43/main.c
+@@ -357,7 +357,7 @@ static void b43_ram_write(struct b43_wld
+ 		val = swab32(val);
+ 
+ 	b43_write32(dev, B43_MMIO_RAM_CONTROL, offset);
+-	mmiowb();
++	io_wmb();
+ 	b43_write32(dev, B43_MMIO_RAM_DATA, val);
  }
  
- /*
-- * Do a copy-from-user while holding the mmap_semaphore for reading, in a
-- * manner safe from deadlocking with simultaneous mmap() (grabbing mmap_sem
-- * for writing) and page faulting on the user memory pointed to by src.
-- * This assumes that we will very rarely hit the partial != 0 path, or this
-- * will not be a win.
-- */
--static int copy_from_user_mmap_sem(void *dst, const void __user *src, size_t n)
--{
--	int partial;
--
--	if (!access_ok(VERIFY_READ, src, n))
--		return -EFAULT;
--
--	pagefault_disable();
--	partial = __copy_from_user_inatomic(dst, src, n);
--	pagefault_enable();
--
--	/*
--	 * Didn't copy everything, drop the mmap_sem and do a faulting copy
--	 */
--	if (unlikely(partial)) {
--		up_read(&current->mm->mmap_sem);
--		partial = copy_from_user(dst, src, n);
--		down_read(&current->mm->mmap_sem);
--	}
--
--	return partial;
--}
--
--/*
-  * Map an iov into an array of pages and offset/length tupples. With the
-  * partial_page structure, we can map several non-contiguous ranges into
-  * our ones pages[] map instead of splitting that operation into pieces.
-@@ -1189,8 +1159,6 @@ static int get_iovec_page_array(const st
+@@ -583,9 +583,9 @@ static void b43_tsf_write_locked(struct 
+ 		u32 hi = (tsf & 0xFFFFFFFF00000000ULL) >> 32;
+ 
+ 		b43_write32(dev, B43_MMIO_REV3PLUS_TSF_LOW, 0);
+-		mmiowb();
++		io_wmb();
+ 		b43_write32(dev, B43_MMIO_REV3PLUS_TSF_HIGH, hi);
+-		mmiowb();
++		io_wmb();
+ 		b43_write32(dev, B43_MMIO_REV3PLUS_TSF_LOW, lo);
+ 	} else {
+ 		u16 v0 = (tsf & 0x000000000000FFFFULL);
+@@ -594,13 +594,13 @@ static void b43_tsf_write_locked(struct 
+ 		u16 v3 = (tsf & 0xFFFF000000000000ULL) >> 48;
+ 
+ 		b43_write16(dev, B43_MMIO_TSF_0, 0);
+-		mmiowb();
++		io_wmb();
+ 		b43_write16(dev, B43_MMIO_TSF_3, v3);
+-		mmiowb();
++		io_wmb();
+ 		b43_write16(dev, B43_MMIO_TSF_2, v2);
+-		mmiowb();
++		io_wmb();
+ 		b43_write16(dev, B43_MMIO_TSF_1, v1);
+-		mmiowb();
++		io_wmb();
+ 		b43_write16(dev, B43_MMIO_TSF_0, v0);
+ 	}
+ }
+@@ -1605,7 +1605,7 @@ static void b43_beacon_update_trigger_wo
+ 		/* The handler might have updated the IRQ mask. */
+ 		b43_write32(dev, B43_MMIO_GEN_IRQ_MASK,
+ 			    dev->irq_savedstate);
+-		mmiowb();
++		wmb();
+ 		spin_unlock_irq(&wl->irq_lock);
+ 	}
+ 	mutex_unlock(&wl->mutex);
+@@ -1713,7 +1713,7 @@ static void b43_interrupt_tasklet(struct
+ 			       dma_reason[2], dma_reason[3],
+ 			       dma_reason[4], dma_reason[5]);
+ 			b43_controller_restart(dev, "DMA error");
+-			mmiowb();
++			wmb();
+ 			spin_unlock_irqrestore(&dev->wl->irq_lock, flags);
+ 			return;
+ 		}
+@@ -1759,7 +1759,7 @@ static void b43_interrupt_tasklet(struct
+ 		handle_irq_transmit_status(dev);
+ 
+ 	b43_interrupt_enable(dev, dev->irq_savedstate);
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&dev->wl->irq_lock, flags);
+ }
+ 
+@@ -1817,7 +1817,7 @@ static irqreturn_t b43_interrupt_handler
+ 	dev->irq_reason = reason;
+ 	tasklet_schedule(&dev->isr_tasklet);
+       out:
+-	mmiowb();
++	wmb();
+ 	spin_unlock(&dev->wl->irq_lock);
+ 
+ 	return ret;
+@@ -3295,7 +3295,7 @@ static int b43_op_config(struct ieee8021
+ 
+ 	spin_lock_irqsave(&wl->irq_lock, flags);
+ 	b43_interrupt_enable(dev, savedirqs);
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&wl->irq_lock, flags);
+       out_unlock_mutex:
+ 	mutex_unlock(&wl->mutex);
+Index: linux-2.6/drivers/net/wireless/b43/phy.c
+===================================================================
+--- linux-2.6.orig/drivers/net/wireless/b43/phy.c
++++ linux-2.6/drivers/net/wireless/b43/phy.c
+@@ -2428,7 +2428,7 @@ u8 b43_radio_aci_scan(struct b43_wldev *
+ void b43_nrssi_hw_write(struct b43_wldev *dev, u16 offset, s16 val)
  {
- 	int buffers = 0, error = 0;
+ 	b43_phy_write(dev, B43_PHY_NRSSILT_CTRL, offset);
+-	mmiowb();
++	io_wmb();
+ 	b43_phy_write(dev, B43_PHY_NRSSILT_DATA, (u16) val);
+ }
  
--	down_read(&current->mm->mmap_sem);
--
- 	while (nr_vecs) {
- 		unsigned long off, npages;
- 		struct iovec entry;
-@@ -1199,7 +1167,7 @@ static int get_iovec_page_array(const st
- 		int i;
+Index: linux-2.6/drivers/net/wireless/b43/sysfs.c
+===================================================================
+--- linux-2.6.orig/drivers/net/wireless/b43/sysfs.c
++++ linux-2.6/drivers/net/wireless/b43/sysfs.c
+@@ -122,7 +122,7 @@ static ssize_t b43_attr_interfmode_store
+ 		b43err(wldev->wl, "Interference Mitigation not "
+ 		       "supported by device\n");
+ 	}
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&wldev->wl->irq_lock, flags);
+ 	mutex_unlock(&wldev->wl->mutex);
  
- 		error = -EFAULT;
--		if (copy_from_user_mmap_sem(&entry, iov, sizeof(entry)))
-+		if (copy_from_user(&entry, iov, sizeof(entry)))
- 			break;
+Index: linux-2.6/drivers/infiniband/hw/ipath/ipath_iba6120.c
+===================================================================
+--- linux-2.6.orig/drivers/infiniband/hw/ipath/ipath_iba6120.c
++++ linux-2.6/drivers/infiniband/hw/ipath/ipath_iba6120.c
+@@ -1351,7 +1351,7 @@ static void ipath_pe_put_tid(struct ipat
+ 	ipath_write_kreg(dd, dd->ipath_kregs->kr_scratch, 0xfeeddeaf);
+ 	writel(pa, tidp32);
+ 	ipath_write_kreg(dd, dd->ipath_kregs->kr_scratch, 0xdeadbeef);
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(tidlockp, flags);
+ }
  
- 		base = entry.iov_base;
-@@ -1233,9 +1201,8 @@ static int get_iovec_page_array(const st
- 		if (npages > PIPE_BUFFERS - buffers)
- 			npages = PIPE_BUFFERS - buffers;
+@@ -1395,7 +1395,7 @@ static void ipath_pe_put_tid_2(struct ip
+ 	}
+ 	tidx = tidptr - dd->ipath_egrtidbase;
+ 	writel(pa, tidp32);
+-	mmiowb();
++	wmb();
+ }
  
--		error = get_user_pages(current, current->mm,
--				       (unsigned long) base, npages, 0, 0,
--				       &pages[buffers], NULL);
-+		error = fast_gup((unsigned long)base, npages,
-+					0, &pages[buffers]);
  
- 		if (unlikely(error <= 0))
- 			break;
-@@ -1274,8 +1241,6 @@ static int get_iovec_page_array(const st
- 		iov++;
+Index: linux-2.6/drivers/infiniband/hw/ipath/ipath_iba7220.c
+===================================================================
+--- linux-2.6.orig/drivers/infiniband/hw/ipath/ipath_iba7220.c
++++ linux-2.6/drivers/infiniband/hw/ipath/ipath_iba7220.c
+@@ -1733,7 +1733,7 @@ static void ipath_7220_put_tid(struct ip
+ 		writeq(chippa, tidptr);
+ 	} else
+ 		writeq(pa, tidptr);
+-	mmiowb();
++	wmb();
+ }
+ 
+ /**
+Index: linux-2.6/drivers/infiniband/hw/ipath/ipath_sd7220.c
+===================================================================
+--- linux-2.6.orig/drivers/infiniband/hw/ipath/ipath_sd7220.c
++++ linux-2.6/drivers/infiniband/hw/ipath/ipath_sd7220.c
+@@ -1036,14 +1036,14 @@ static int ipath_sd_setvals(struct ipath
+ 	for (idx = 0; idx < NUM_DDS_REGS; ++idx) {
+ 		data = ((dds_reg_map & 0xF) << 4) | TX_FAST_ELT;
+ 		writeq(data, iaddr + idx);
+-		mmiowb();
++		wmb();
+ 		ipath_read_kreg32(dd, dd->ipath_kregs->kr_scratch);
+ 		dds_reg_map >>= 4;
+ 		for (midx = 0; midx < DDS_ROWS; ++midx) {
+ 			u64 __iomem *daddr = taddr + ((midx << 4) + idx);
+ 			data = dds_init_vals[midx].reg_vals[idx];
+ 			writeq(data, daddr);
+-			mmiowb();
++			wmb();
+ 			ipath_read_kreg32(dd, dd->ipath_kregs->kr_scratch);
+ 		} /* End inner for (vals for this reg, each row) */
+ 	} /* end outer for (regs to be stored) */
+@@ -1065,13 +1065,13 @@ static int ipath_sd_setvals(struct ipath
+ 		didx = idx + min_idx;
+ 		/* Store the next RXEQ register address */
+ 		writeq(rxeq_init_vals[idx].rdesc, iaddr + didx);
+-		mmiowb();
++		wmb();
+ 		ipath_read_kreg32(dd, dd->ipath_kregs->kr_scratch);
+ 		/* Iterate through RXEQ values */
+ 		for (vidx = 0; vidx < 4; vidx++) {
+ 			data = rxeq_init_vals[idx].rdata[vidx];
+ 			writeq(data, taddr + (vidx << 6) + idx);
+-			mmiowb();
++			wmb();
+ 			ipath_read_kreg32(dd, dd->ipath_kregs->kr_scratch);
+ 		}
+ 	} /* end outer for (Reg-writes for RXEQ) */
+Index: linux-2.6/drivers/infiniband/hw/mlx4/qp.c
+===================================================================
+--- linux-2.6.orig/drivers/infiniband/hw/mlx4/qp.c
++++ linux-2.6/drivers/infiniband/hw/mlx4/qp.c
+@@ -1638,7 +1638,7 @@ out:
+ 		 * Make sure doorbells don't leak out of SQ spinlock
+ 		 * and reach the HCA out of order.
+ 		 */
+-		mmiowb();
++		wmb();
+ 
+ 		stamp_send_wqe(qp, stamp, size * 16);
+ 
+Index: linux-2.6/drivers/infiniband/hw/mthca/mthca_cmd.c
+===================================================================
+--- linux-2.6.orig/drivers/infiniband/hw/mthca/mthca_cmd.c
++++ linux-2.6/drivers/infiniband/hw/mthca/mthca_cmd.c
+@@ -294,7 +294,7 @@ static int mthca_cmd_post(struct mthca_d
+ 	 * Make sure that our HCR writes don't get mixed in with
+ 	 * writes from another CPU starting a FW command.
+ 	 */
+-	mmiowb();
++	wmb();
+ 
+ 	mutex_unlock(&dev->cmd.hcr_mutex);
+ 	return err;
+Index: linux-2.6/drivers/infiniband/hw/mthca/mthca_cq.c
+===================================================================
+--- linux-2.6.orig/drivers/infiniband/hw/mthca/mthca_cq.c
++++ linux-2.6/drivers/infiniband/hw/mthca/mthca_cq.c
+@@ -216,7 +216,7 @@ static inline void update_cons_index(str
+ 		 * Make sure doorbells don't leak out of CQ spinlock
+ 		 * and reach the HCA out of order:
+ 		 */
+-		mmiowb();
++		wmb();
+ 	}
+ }
+ 
+Index: linux-2.6/drivers/infiniband/hw/mthca/mthca_qp.c
+===================================================================
+--- linux-2.6.orig/drivers/infiniband/hw/mthca/mthca_qp.c
++++ linux-2.6/drivers/infiniband/hw/mthca/mthca_qp.c
+@@ -1825,7 +1825,7 @@ out:
+ 		 * Make sure doorbells don't leak out of SQ spinlock
+ 		 * and reach the HCA out of order:
+ 		 */
+-		mmiowb();
++		wmb();
  	}
  
--	up_read(&current->mm->mmap_sem);
--
- 	if (buffers)
- 		return buffers;
+ 	qp->sq.next_ind = ind;
+@@ -1940,7 +1940,7 @@ out:
+ 	 * Make sure doorbells don't leak out of RQ spinlock and reach
+ 	 * the HCA out of order:
+ 	 */
+-	mmiowb();
++	wmb();
  
-Index: linux-2.6/include/linux/mm.h
+ 	spin_unlock_irqrestore(&qp->rq.lock, flags);
+ 	return err;
+@@ -2180,7 +2180,7 @@ out:
+ 	 * Make sure doorbells don't leak out of SQ spinlock and reach
+ 	 * the HCA out of order:
+ 	 */
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock_irqrestore(&qp->sq.lock, flags);
+ 	return err;
+Index: linux-2.6/drivers/infiniband/hw/mthca/mthca_srq.c
 ===================================================================
---- linux-2.6.orig/include/linux/mm.h
-+++ linux-2.6/include/linux/mm.h
-@@ -12,6 +12,7 @@
- #include <linux/prio_tree.h>
- #include <linux/debug_locks.h>
- #include <linux/mm_types.h>
-+#include <linux/uaccess.h> /* for __HAVE_ARCH_FAST_GUP */
+--- linux-2.6.orig/drivers/infiniband/hw/mthca/mthca_srq.c
++++ linux-2.6/drivers/infiniband/hw/mthca/mthca_srq.c
+@@ -587,7 +587,7 @@ int mthca_tavor_post_srq_recv(struct ib_
+ 	 * Make sure doorbells don't leak out of SRQ spinlock and
+ 	 * reach the HCA out of order:
+ 	 */
+-	mmiowb();
++	wmb();
  
- struct mempolicy;
- struct anon_vma;
-@@ -830,6 +831,24 @@ extern int mprotect_fixup(struct vm_area
- 			  struct vm_area_struct **pprev, unsigned long start,
- 			  unsigned long end, unsigned long newflags);
- 
-+#ifndef __HAVE_ARCH_FAST_GUP
-+/* Should be moved to asm-generic, and architectures can include it if they
-+ * don't implement their own fast_gup.
-+ */
-+#define fast_gup(start, nr_pages, write, pages)			\
-+({								\
-+	struct mm_struct *mm = current->mm;			\
-+	int ret;						\
-+								\
-+	down_read(&mm->mmap_sem);				\
-+	ret = get_user_pages(current, mm, start, nr_pages,	\
-+					write, 0, pages, NULL);	\
-+	up_read(&mm->mmap_sem);					\
-+								\
-+	ret;							\
-+})
-+#endif
-+
- /*
-  * A callback you can register to apply pressure to ageable caches.
-  *
-Index: linux-2.6/arch/x86/mm/Makefile
+ 	spin_unlock_irqrestore(&srq->lock, flags);
+ 	return err;
+Index: linux-2.6/drivers/memstick/host/jmb38x_ms.c
 ===================================================================
---- linux-2.6.orig/arch/x86/mm/Makefile
-+++ linux-2.6/arch/x86/mm/Makefile
-@@ -1,5 +1,5 @@
- obj-y	:=  init_$(BITS).o fault.o ioremap.o extable.o pageattr.o mmap.o \
--	    pat.o pgtable.o
-+	    pat.o pgtable.o gup.o
+--- linux-2.6.orig/drivers/memstick/host/jmb38x_ms.c
++++ linux-2.6/drivers/memstick/host/jmb38x_ms.c
+@@ -622,7 +622,7 @@ static void jmb38x_ms_reset(struct jmb38
+ 	}
  
- obj-$(CONFIG_X86_32)		+= pgtable_32.o
+ 	writel(HOST_CONTROL_RESET, host->addr + HOST_CONTROL);
+-	mmiowb();
++	io_wmb();
+ 	writel(INT_STATUS_ALL, host->addr + INT_SIGNAL_ENABLE);
+ 	writel(INT_STATUS_ALL, host->addr + INT_STATUS_ENABLE);
+ }
+@@ -899,7 +899,7 @@ static void jmb38x_ms_remove(struct pci_
  
-Index: linux-2.6/arch/x86/mm/gup.c
+ 		writel(0, host->addr + INT_SIGNAL_ENABLE);
+ 		writel(0, host->addr + INT_STATUS_ENABLE);
+-		mmiowb();
++		wmb();
+ 		dev_dbg(&jm->pdev->dev, "interrupts off\n");
+ 		spin_lock_irqsave(&host->lock, flags);
+ 		if (host->req) {
+Index: linux-2.6/drivers/misc/ioc4.c
 ===================================================================
---- /dev/null
-+++ linux-2.6/arch/x86/mm/gup.c
-@@ -0,0 +1,243 @@
-+/*
-+ * Lockless fast_gup for x86
-+ *
-+ * Copyright (C) 2008 Nick Piggin
-+ * Copyright (C) 2008 Novell Inc.
-+ */
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/vmstat.h>
-+#include <asm/pgtable.h>
-+
-+static inline pte_t gup_get_pte(pte_t *ptep)
-+{
-+#ifndef CONFIG_X86_PAE
-+	return *ptep;
-+#else
-+	/*
-+	 * With fast_gup, we walk down the pagetables without taking any locks.
-+	 * For this we would like to load the pointers atoimcally, but that is
-+	 * not possible (without expensive cmpxchg8b) on PAE.  What we do have
-+	 * is the guarantee that a pte will only either go from not present to
-+	 * present, or present to not present or both -- it will not switch to
-+	 * a completely different present page without a TLB flush in between;
-+	 * something that we are blocking by holding interrupts off.
-+	 *
-+	 * Setting ptes from not present to present goes:
-+	 * ptep->pte_high = h;
-+	 * smp_wmb();
-+	 * ptep->pte_low = l;
-+	 *
-+	 * And present to not present goes:
-+	 * ptep->pte_low = 0;
-+	 * smp_wmb();
-+	 * ptep->pte_high = 0;
-+	 *
-+	 * We must ensure here that the load of pte_low sees l iff
-+	 * pte_high sees h. We load pte_high *after* loading pte_low,
-+	 * which ensures we don't see an older value of pte_high.
-+	 * *Then* we recheck pte_low, which ensures that we haven't
-+	 * picked up a changed pte high. We might have got rubbish values
-+	 * from pte_low and pte_high, but we are guaranteed that pte_low
-+	 * will not have the present bit set *unless* it is 'l'. And
-+	 * fast_gup only operates on present ptes, so we're safe.
-+	 *
-+	 * gup_get_pte should not be used or copied outside gup.c without
-+	 * being very careful -- it does not atomically load the pte or
-+	 * anything that is likely to be useful for you.
-+	 */
-+	pte_t pte;
-+
-+retry:
-+	pte.pte_low = ptep->pte_low;
-+	smp_rmb();
-+	pte.pte_high = ptep->pte_high;
-+	smp_rmb();
-+	if (unlikely(pte.pte_low != ptep->pte_low))
-+		goto retry;
-+
-+#endif
-+}
-+
-+/*
-+ * The performance critical leaf functions are made noinline otherwise gcc
-+ * inlines everything into a single function which results in too much
-+ * register pressure.
-+ */
-+static noinline int gup_pte_range(pmd_t pmd, unsigned long addr,
-+		unsigned long end, int write, struct page **pages, int *nr)
-+{
-+	unsigned long mask, result;
-+	pte_t *ptep;
-+
-+	result = _PAGE_PRESENT|_PAGE_USER;
-+	if (write)
-+		result |= _PAGE_RW;
-+	mask = result | _PAGE_SPECIAL;
-+
-+	ptep = pte_offset_map(&pmd, addr);
-+	do {
-+		pte_t pte = gup_get_pte(ptep);
-+		struct page *page;
-+
-+		if ((pte_val(pte) & mask) != result)
-+			return 0;
-+		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
-+		page = pte_page(pte);
-+		get_page(page);
-+		pages[*nr] = page;
-+		(*nr)++;
-+
-+	} while (ptep++, addr += PAGE_SIZE, addr != end);
-+	pte_unmap(ptep - 1);
-+
-+	return 1;
-+}
-+
-+static inline void get_head_page_multiple(struct page *page, int nr)
-+{
-+	VM_BUG_ON(page != compound_head(page));
-+	VM_BUG_ON(page_count(page) == 0);
-+	atomic_add(nr, &page->_count);
-+}
-+
-+static noinline int gup_huge_pmd(pmd_t pmd, unsigned long addr,
-+		unsigned long end, int write, struct page **pages, int *nr)
-+{
-+	unsigned long mask;
-+	pte_t pte = *(pte_t *)&pmd;
-+	struct page *head, *page;
-+	int refs;
-+
-+	mask = _PAGE_PRESENT|_PAGE_USER;
-+	if (write)
-+		mask |= _PAGE_RW;
-+	if ((pte_val(pte) & mask) != mask)
-+		return 0;
-+	/* hugepages are never "special" */
-+	VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
-+
-+	refs = 0;
-+	head = pte_page(pte);
-+	page = head + ((addr & ~HPAGE_MASK) >> PAGE_SHIFT);
-+	do {
-+		VM_BUG_ON(compound_head(page) != head);
-+		pages[*nr] = page;
-+		(*nr)++;
-+		page++;
-+		refs++;
-+	} while (addr += PAGE_SIZE, addr != end);
-+	get_head_page_multiple(head, refs);
-+
-+	return 1;
-+}
-+
-+static int gup_pmd_range(pud_t pud, unsigned long addr, unsigned long end,
-+		int write, struct page **pages, int *nr)
-+{
-+	unsigned long next;
-+	pmd_t *pmdp;
-+
-+	pmdp = pmd_offset(&pud, addr);
-+	do {
-+		pmd_t pmd = *pmdp;
-+
-+		next = pmd_addr_end(addr, end);
-+		if (pmd_none(pmd))
-+			return 0;
-+		if (unlikely(pmd_large(pmd))) {
-+			if (!gup_huge_pmd(pmd, addr, next, write, pages, nr))
-+				return 0;
-+		} else {
-+			if (!gup_pte_range(pmd, addr, next, write, pages, nr))
-+				return 0;
-+		}
-+	} while (pmdp++, addr = next, addr != end);
-+
-+	return 1;
-+}
-+
-+static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end, int write, struct page **pages, int *nr)
-+{
-+	unsigned long next;
-+	pud_t *pudp;
-+
-+	pudp = pud_offset(&pgd, addr);
-+	do {
-+		pud_t pud = *pudp;
-+
-+		next = pud_addr_end(addr, end);
-+		if (pud_none(pud))
-+			return 0;
-+		if (!gup_pmd_range(pud, addr, next, write, pages, nr))
-+			return 0;
-+	} while (pudp++, addr = next, addr != end);
-+
-+	return 1;
-+}
-+
-+int fast_gup(unsigned long start, int nr_pages, int write, struct page **pages)
-+{
-+	struct mm_struct *mm = current->mm;
-+	unsigned long end = start + (nr_pages << PAGE_SHIFT);
-+	unsigned long addr = start;
-+	unsigned long next;
-+	pgd_t *pgdp;
-+	int nr = 0;
-+
-+	if (unlikely(!access_ok(write ? VERIFY_WRITE : VERIFY_READ,
-+					start, nr_pages*PAGE_SIZE)))
-+		goto slow_irqon;
-+
-+	/*
-+	 * XXX: batch / limit 'nr', to avoid large irq off latency
-+	 * needs some instrumenting to determine the common sizes used by
-+	 * important workloads (eg. DB2), and whether limiting the batch size
-+	 * will decrease performance.
-+	 *
-+	 * It seems like we're in the clear for the moment. Direct-IO is
-+	 * the main guy that batches up lots of get_user_pages, and even
-+	 * they are limited to 64-at-a-time which is not so many.
-+	 */
-+	/*
-+	 * This doesn't prevent pagetable teardown, but does prevent
-+	 * the pagetables and pages from being freed on x86.
-+	 *
-+	 * So long as we atomically load page table pointers versus teardown
-+	 * (which we do on x86, with the above PAE exception), we can follow the
-+	 * address down to the the page and take a ref on it.
-+	 */
-+	local_irq_disable();
-+	pgdp = pgd_offset(mm, addr);
-+	do {
-+		pgd_t pgd = *pgdp;
-+
-+		next = pgd_addr_end(addr, end);
-+		if (pgd_none(pgd))
-+			goto slow;
-+		if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
-+			goto slow;
-+	} while (pgdp++, addr = next, addr != end);
-+	local_irq_enable();
-+
-+	VM_BUG_ON(nr != (end - start) >> PAGE_SHIFT);
-+	return nr;
-+
-+	{
-+		int i, ret;
-+
-+slow:
-+		local_irq_enable();
-+slow_irqon:
-+		/* Could optimise this more by keeping what we've already got */
-+		for (i = 0; i < nr; i++)
-+			put_page(pages[i]);
-+
-+		down_read(&mm->mmap_sem);
-+		ret = get_user_pages(current, mm, start,
-+			(end - start) >> PAGE_SHIFT, write, 0, pages, NULL);
-+		up_read(&mm->mmap_sem);
-+
-+		return ret;
-+	}
-+}
-Index: linux-2.6/include/asm-x86/uaccess.h
+--- linux-2.6.orig/drivers/misc/ioc4.c
++++ linux-2.6/drivers/misc/ioc4.c
+@@ -156,7 +156,7 @@ ioc4_clock_calibrate(struct ioc4_driver_
+ 
+ 	/* Reset to power-on state */
+ 	writel(0, &idd->idd_misc_regs->int_out.raw);
+-	mmiowb();
++	io_wmb();
+ 
+ 	/* Set up square wave */
+ 	int_out.raw = 0;
+@@ -164,7 +164,7 @@ ioc4_clock_calibrate(struct ioc4_driver_
+ 	int_out.fields.mode = IOC4_INT_OUT_MODE_TOGGLE;
+ 	int_out.fields.diag = 0;
+ 	writel(int_out.raw, &idd->idd_misc_regs->int_out.raw);
+-	mmiowb();
++	io_wmb();
+ 
+ 	/* Check square wave period averaged over some number of cycles */
+ 	do {
+Index: linux-2.6/drivers/misc/tifm_7xx1.c
 ===================================================================
---- linux-2.6.orig/include/asm-x86/uaccess.h
-+++ linux-2.6/include/asm-x86/uaccess.h
-@@ -3,3 +3,8 @@
- #else
- # include "uaccess_64.h"
+--- linux-2.6.orig/drivers/misc/tifm_7xx1.c
++++ linux-2.6/drivers/misc/tifm_7xx1.c
+@@ -397,7 +397,7 @@ static void tifm_7xx1_remove(struct pci_
+ 	fm->eject = tifm_7xx1_dummy_eject;
+ 	fm->has_ms_pif = tifm_7xx1_dummy_has_ms_pif;
+ 	writel(TIFM_IRQ_SETALL, fm->addr + FM_CLEAR_INTERRUPT_ENABLE);
+-	mmiowb();
++	wmb();
+ 	free_irq(dev->irq, fm);
+ 
+ 	tifm_remove_adapter(fm);
+Index: linux-2.6/drivers/mmc/host/sdhci.c
+===================================================================
+--- linux-2.6.orig/drivers/mmc/host/sdhci.c
++++ linux-2.6/drivers/mmc/host/sdhci.c
+@@ -809,7 +809,7 @@ static void sdhci_request(struct mmc_hos
+ 	} else
+ 		sdhci_send_command(host, mrq->cmd);
+ 
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&host->lock, flags);
+ }
+ 
+@@ -861,7 +861,7 @@ static void sdhci_set_ios(struct mmc_hos
+ 	if(host->chip->quirks & SDHCI_QUIRK_RESET_CMD_DATA_ON_IOS)
+ 		sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
+ 
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&host->lock, flags);
+ }
+ 
+@@ -901,7 +901,7 @@ static void sdhci_enable_sdio_irq(struct
+ 	writel(ier, host->ioaddr + SDHCI_INT_ENABLE);
+ 	writel(ier, host->ioaddr + SDHCI_SIGNAL_ENABLE);
+ 
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock_irqrestore(&host->lock, flags);
+ }
+@@ -995,7 +995,7 @@ static void sdhci_tasklet_finish(unsigne
+ 	sdhci_deactivate_led(host);
  #endif
-+
-+#define __HAVE_ARCH_FAST_GUP
-+struct page;
-+int fast_gup(unsigned long start, int nr_pages, int write, struct page **pages);
-+
+ 
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&host->lock, flags);
+ 
+ 	mmc_request_done(host->mmc, mrq);
+@@ -1028,7 +1028,7 @@ static void sdhci_timeout_timer(unsigned
+ 		}
+ 	}
+ 
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&host->lock, flags);
+ }
+ 
+@@ -1183,7 +1183,7 @@ static irqreturn_t sdhci_irq(int irq, vo
+ 
+ 	result = IRQ_HANDLED;
+ 
+-	mmiowb();
++	wmb();
+ out:
+ 	spin_unlock(&host->lock);
+ 
+@@ -1269,7 +1269,7 @@ static int sdhci_resume (struct pci_dev 
+ 		if (ret)
+ 			return ret;
+ 		sdhci_init(chip->hosts[i]);
+-		mmiowb();
++		wmb();
+ 		ret = mmc_resume_host(chip->hosts[i]->mmc);
+ 		if (ret)
+ 			return ret;
+@@ -1528,7 +1528,7 @@ static int __devinit sdhci_probe_slot(st
+ 		goto reset;
+ #endif
+ 
+-	mmiowb();
++	wmb();
+ 
+ 	mmc_add_host(mmc);
+ 
+Index: linux-2.6/drivers/mmc/host/tifm_sd.c
+===================================================================
+--- linux-2.6.orig/drivers/mmc/host/tifm_sd.c
++++ linux-2.6/drivers/mmc/host/tifm_sd.c
+@@ -888,7 +888,7 @@ static int tifm_sd_initialize_host(struc
+ 	struct tifm_dev *sock = host->dev;
+ 
+ 	writel(0, sock->addr + SOCK_MMCSD_INT_ENABLE);
+-	mmiowb();
++	io_wmb();
+ 	host->clk_div = 61;
+ 	host->clk_freq = 20000000;
+ 	writel(TIFM_MMCSD_RESET, sock->addr + SOCK_MMCSD_SYSTEM_CONTROL);
+@@ -940,7 +940,7 @@ static int tifm_sd_initialize_host(struc
+ 	writel(TIFM_MMCSD_CERR | TIFM_MMCSD_BRS | TIFM_MMCSD_EOC
+ 	       | TIFM_MMCSD_ERRMASK,
+ 	       sock->addr + SOCK_MMCSD_INT_ENABLE);
+-	mmiowb();
++	wmb();
+ 
+ 	return 0;
+ }
+@@ -1006,7 +1006,7 @@ static void tifm_sd_remove(struct tifm_d
+ 	spin_lock_irqsave(&sock->lock, flags);
+ 	host->eject = 1;
+ 	writel(0, sock->addr + SOCK_MMCSD_INT_ENABLE);
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&sock->lock, flags);
+ 
+ 	tasklet_kill(&host->finish_tasklet);
+Index: linux-2.6/drivers/net/bnx2.c
+===================================================================
+--- linux-2.6.orig/drivers/net/bnx2.c
++++ linux-2.6/drivers/net/bnx2.c
+@@ -2880,7 +2880,7 @@ next_rx:
+ 
+ 	REG_WR(bp, MB_RX_CID_ADDR + BNX2_L2CTX_HOST_BSEQ, bnapi->rx_prod_bseq);
+ 
+-	mmiowb();
++	wmb();
+ 
+ 	return rx_pkt;
+ 
+@@ -5886,7 +5886,7 @@ bnx2_start_xmit(struct sk_buff *skb, str
+ 	REG_WR16(bp, bp->tx_bidx_addr, prod);
+ 	REG_WR(bp, bp->tx_bseq_addr, bp->tx_prod_bseq);
+ 
+-	mmiowb();
++	wmb();
+ 
+ 	bp->tx_prod = prod;
+ 	dev->trans_start = jiffies;
+Index: linux-2.6/drivers/net/bnx2x.c
+===================================================================
+--- linux-2.6.orig/drivers/net/bnx2x.c
++++ linux-2.6/drivers/net/bnx2x.c
+@@ -1046,7 +1046,7 @@ next_cqe:
+ 	REG_WR(bp, BAR_TSTRORM_INTMEM +
+ 	       TSTORM_RCQ_PROD_OFFSET(bp->port, fp->index), sw_comp_prod);
+ 
+-	mmiowb(); /* keep prod updates ordered */
++	wmb(); /* keep prod updates ordered */
+ 
+ 	fp->rx_pkt += rx_pkt;
+ 	fp->rx_calls++;
+@@ -9413,7 +9413,7 @@ static int bnx2x_start_xmit(struct sk_bu
+ 		cpu_to_le32(le32_to_cpu(fp->hw_tx_prods->packets_prod) + 1);
+ 	DOORBELL(bp, fp_index, 0);
+ 
+-	mmiowb();
++	wmb();
+ 
+ 	fp->tx_bd_prod = bd_prod;
+ 	dev->trans_start = jiffies;
+Index: linux-2.6/drivers/net/e1000/e1000_main.c
+===================================================================
+--- linux-2.6.orig/drivers/net/e1000/e1000_main.c
++++ linux-2.6/drivers/net/e1000/e1000_main.c
+@@ -3222,8 +3222,8 @@ e1000_tx_queue(struct e1000_adapter *ada
+ 	tx_ring->next_to_use = i;
+ 	writel(i, adapter->hw.hw_addr + tx_ring->tdt);
+ 	/* we need this if more than one processor can write to our tail
+-	 * at a time, it syncronizes IO on IA64/Altix systems */
+-	mmiowb();
++	 * at a time */
++	wmb();
+ }
+ 
+ /**
+Index: linux-2.6/drivers/net/e1000e/netdev.c
+===================================================================
+--- linux-2.6.orig/drivers/net/e1000e/netdev.c
++++ linux-2.6/drivers/net/e1000e/netdev.c
+@@ -3467,9 +3467,9 @@ static void e1000_tx_queue(struct e1000_
+ 	writel(i, adapter->hw.hw_addr + tx_ring->tail);
+ 	/*
+ 	 * we need this if more than one processor can write to our tail
+-	 * at a time, it synchronizes IO on IA64/Altix systems
++	 * at a time.
+ 	 */
+-	mmiowb();
++	wmb();
+ }
+ 
+ #define MINIMUM_DHCP_PACKET_SIZE 282
+Index: linux-2.6/drivers/net/igb/igb_main.c
+===================================================================
+--- linux-2.6.orig/drivers/net/igb/igb_main.c
++++ linux-2.6/drivers/net/igb/igb_main.c
+@@ -2637,8 +2637,8 @@ static inline void igb_tx_queue_adv(stru
+ 	tx_ring->next_to_use = i;
+ 	writel(i, adapter->hw.hw_addr + tx_ring->tail);
+ 	/* we need this if more than one processor can write to our tail
+-	 * at a time, it syncronizes IO on IA64/Altix systems */
+-	mmiowb();
++	 * at a time */
++	wmb();
+ }
+ 
+ static int __igb_maybe_stop_tx(struct net_device *netdev,
+Index: linux-2.6/drivers/net/ipg.c
+===================================================================
+--- linux-2.6.orig/drivers/net/ipg.c
++++ linux-2.6/drivers/net/ipg.c
+@@ -1965,7 +1965,7 @@ static int ipg_nic_hard_start_xmit(struc
+ 
+ 	sp->tx_current++;
+ 
+-	mmiowb();
++	wmb();
+ 
+ 	ipg_w32(IPG_DC_TX_DMA_POLL_NOW, DMA_CTRL);
+ 
+Index: linux-2.6/drivers/net/mlx4/cmd.c
+===================================================================
+--- linux-2.6.orig/drivers/net/mlx4/cmd.c
++++ linux-2.6/drivers/net/mlx4/cmd.c
+@@ -190,7 +190,7 @@ static int mlx4_cmd_post(struct mlx4_dev
+ 	 * Make sure that our HCR writes don't get mixed in with
+ 	 * writes from another CPU starting a FW command.
+ 	 */
+-	mmiowb();
++	wmb();
+ 
+ 	cmd->toggle = cmd->toggle ^ 1;
+ 
+Index: linux-2.6/drivers/net/pcnet32.c
+===================================================================
+--- linux-2.6.orig/drivers/net/pcnet32.c
++++ linux-2.6/drivers/net/pcnet32.c
+@@ -1407,7 +1407,7 @@ static int pcnet32_poll(struct napi_stru
+ 
+ 		/* Set interrupt enable. */
+ 		lp->a.write_csr(ioaddr, CSR0, CSR0_INTEN);
+-		mmiowb();
++		wmb();
+ 		spin_unlock_irqrestore(&lp->lock, flags);
+ 	}
+ 	return work_done;
+@@ -2594,7 +2594,7 @@ pcnet32_interrupt(int irq, void *dev_id)
+ 			val = lp->a.read_csr(ioaddr, CSR3);
+ 			val |= 0x5f00;
+ 			lp->a.write_csr(ioaddr, CSR3, val);
+-			mmiowb();
++			wmb();
+ 			__netif_rx_schedule(dev, &lp->napi);
+ 			break;
+ 		}
+Index: linux-2.6/drivers/net/s2io.c
+===================================================================
+--- linux-2.6.orig/drivers/net/s2io.c
++++ linux-2.6/drivers/net/s2io.c
+@@ -4285,7 +4285,7 @@ static int s2io_xmit(struct sk_buff *skb
+ 
+ 	writeq(val64, &tx_fifo->List_Control);
+ 
+-	mmiowb();
++	wmb();
+ 
+ 	put_off++;
+ 	if (put_off == fifo->tx_curr_put_info.fifo_len + 1)
+Index: linux-2.6/drivers/net/sc92031.c
+===================================================================
+--- linux-2.6.orig/drivers/net/sc92031.c
++++ linux-2.6/drivers/net/sc92031.c
+@@ -261,7 +261,7 @@ enum PMConfigBits {
+  * use of mdelay() at _sc92031_reset.
+  * Functions prefixed with _sc92031_ must be called with the lock held;
+  * functions prefixed with sc92031_ must be called without the lock held.
+- * Use mmiowb() before unlocking if the hardware was written to.
++ * Use wmb() before unlocking if the hardware was written to.
+  */
+ 
+ /* Locking rules for the interrupt:
+@@ -371,7 +371,7 @@ static void sc92031_disable_interrupts(s
+ 	/* stop interrupts */
+ 	iowrite32(0, port_base + IntrMask);
+ 	_sc92031_dummy_read(port_base);
+-	mmiowb();
++	wmb();
+ 
+ 	/* wait for any concurrent interrupt/tasklet to finish */
+ 	synchronize_irq(dev->irq);
+@@ -389,7 +389,7 @@ static void sc92031_enable_interrupts(st
+ 	wmb();
+ 
+ 	iowrite32(IntrBits, port_base + IntrMask);
+-	mmiowb();
++	wmb();
+ }
+ 
+ static void _sc92031_disable_tx_rx(struct net_device *dev)
+@@ -880,7 +880,7 @@ out:
+ 	rmb();
+ 
+ 	iowrite32(intr_mask, port_base + IntrMask);
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock(&priv->lock);
+ }
+@@ -914,7 +914,7 @@ out_none:
+ 	rmb();
+ 
+ 	iowrite32(intr_mask, port_base + IntrMask);
+-	mmiowb();
++	wmb();
+ 
+ 	return IRQ_NONE;
+ }
+@@ -988,7 +988,7 @@ static int sc92031_start_xmit(struct sk_
+ 	iowrite32(priv->tx_bufs_dma_addr + entry * TX_BUF_SIZE,
+ 			port_base + TxAddr0 + entry * 4);
+ 	iowrite32(tx_status, port_base + TxStatus0 + entry * 4);
+-	mmiowb();
++	wmb();
+ 
+ 	dev->trans_start = jiffies;
+ 
+@@ -1036,7 +1036,7 @@ static int sc92031_open(struct net_devic
+ 	spin_lock_bh(&priv->lock);
+ 
+ 	_sc92031_reset(dev);
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock_bh(&priv->lock);
+ 	sc92031_enable_interrupts(dev);
+@@ -1072,7 +1072,7 @@ static int sc92031_stop(struct net_devic
+ 
+ 	_sc92031_disable_tx_rx(dev);
+ 	_sc92031_tx_clear(dev);
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock_bh(&priv->lock);
+ 
+@@ -1093,7 +1093,7 @@ static void sc92031_set_multicast_list(s
+ 
+ 	_sc92031_set_mar(dev);
+ 	_sc92031_set_rx_config(dev);
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock_bh(&priv->lock);
+ }
+@@ -1110,7 +1110,7 @@ static void sc92031_tx_timeout(struct ne
+ 	priv->tx_timeouts++;
+ 
+ 	_sc92031_reset(dev);
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock(&priv->lock);
+ 
+@@ -1147,7 +1147,7 @@ static int sc92031_ethtool_get_settings(
+ 
+ 	output_status = _sc92031_mii_read(port_base, MII_OutputStatus);
+ 	_sc92031_mii_scan(port_base);
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock_bh(&priv->lock);
+ 
+@@ -1318,7 +1318,7 @@ static int sc92031_ethtool_set_wol(struc
+ 
+ 	priv->pm_config = pm_config;
+ 	iowrite32(pm_config, port_base + PMConfig);
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock_bh(&priv->lock);
+ 
+@@ -1344,7 +1344,7 @@ static int sc92031_ethtool_nway_reset(st
+ 
+ out:
+ 	_sc92031_mii_scan(port_base);
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock_bh(&priv->lock);
+ 
+@@ -1535,7 +1535,7 @@ static int sc92031_suspend(struct pci_de
+ 
+ 	_sc92031_disable_tx_rx(dev);
+ 	_sc92031_tx_clear(dev);
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock_bh(&priv->lock);
+ 
+@@ -1560,7 +1560,7 @@ static int sc92031_resume(struct pci_dev
+ 	spin_lock_bh(&priv->lock);
+ 
+ 	_sc92031_reset(dev);
+-	mmiowb();
++	wmb();
+ 
+ 	spin_unlock_bh(&priv->lock);
+ 	sc92031_enable_interrupts(dev);
+Index: linux-2.6/drivers/net/sfc/falcon_io.h
+===================================================================
+--- linux-2.6.orig/drivers/net/sfc/falcon_io.h
++++ linux-2.6/drivers/net/sfc/falcon_io.h
+@@ -77,16 +77,16 @@ static inline void falcon_write(struct e
+ 	spin_lock_irqsave(&efx->biu_lock, flags);
+ #ifdef FALCON_USE_QWORD_IO
+ 	_falcon_writeq(efx, value->u64[0], reg + 0);
+-	wmb();
++	io_wmb();
+ 	_falcon_writeq(efx, value->u64[1], reg + 8);
+ #else
+ 	_falcon_writel(efx, value->u32[0], reg + 0);
+ 	_falcon_writel(efx, value->u32[1], reg + 4);
+ 	_falcon_writel(efx, value->u32[2], reg + 8);
+-	wmb();
++	io_wmb();
+ 	_falcon_writel(efx, value->u32[3], reg + 12);
+ #endif
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&efx->biu_lock, flags);
+ }
+ 
+@@ -105,10 +105,10 @@ static inline void falcon_write_sram(str
+ 	_falcon_writeq(efx, value->u64[0], reg + 0);
+ #else
+ 	_falcon_writel(efx, value->u32[0], reg + 0);
+-	wmb();
++	io_wmb();
+ 	_falcon_writel(efx, value->u32[1], reg + 4);
+ #endif
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&efx->biu_lock, flags);
+ }
+ 
+Index: linux-2.6/drivers/net/sky2.c
+===================================================================
+--- linux-2.6.orig/drivers/net/sky2.c
++++ linux-2.6/drivers/net/sky2.c
+@@ -976,7 +976,7 @@ static inline void sky2_put_idx(struct s
+ 	sky2_write16(hw, Y2_QADDR(q, PREF_UNIT_PUT_IDX), idx);
+ 
+ 	/* Synchronize I/O on since next processor may write to tail */
+-	mmiowb();
++	wmb();
+ }
+ 
+ 
+@@ -1098,7 +1098,7 @@ stopped:
+ 
+ 	/* reset the Rx prefetch unit */
+ 	sky2_write32(hw, Y2_QADDR(rxq, PREF_UNIT_CTRL), PREF_UNIT_RST_SET);
+-	mmiowb();
++	wmb();
+ }
+ 
+ /* Clean out receive buffer area, assumes receiver hardware stopped */
+Index: linux-2.6/drivers/net/tg3.c
+===================================================================
+--- linux-2.6.orig/drivers/net/tg3.c
++++ linux-2.6/drivers/net/tg3.c
+@@ -641,7 +641,7 @@ static void tg3_restart_ints(struct tg3 
+ {
+ 	tw32_mailbox(MAILBOX_INTERRUPT_0 + TG3_64BIT_REG_LOW,
+ 		     tp->last_tag << 24);
+-	mmiowb();
++	wmb();
+ 
+ 	/* When doing tagged status, this work check is unnecessary.
+ 	 * The last_tag we write above tells the chip which piece of
+@@ -3811,7 +3811,7 @@ next_pkt_nopost:
+ 		tw32_rx_mbox(MAILBOX_RCV_JUMBO_PROD_IDX + TG3_64BIT_REG_LOW,
+ 			     sw_idx);
+ 	}
+-	mmiowb();
++	wmb();
+ 
+ 	return received;
+ }
+@@ -4402,7 +4402,7 @@ static int tg3_start_xmit(struct sk_buff
+ 	}
+ 
+ out_unlock:
+-    	mmiowb();
++    	wmb();
+ 
+ 	dev->trans_start = jiffies;
+ 
+@@ -4613,7 +4613,7 @@ static int tg3_start_xmit_dma_bug(struct
+ 	}
+ 
+ out_unlock:
+-    	mmiowb();
++    	wmb();
+ 
+ 	dev->trans_start = jiffies;
+ 
+Index: linux-2.6/drivers/net/wireless/b43legacy/ilt.c
+===================================================================
+--- linux-2.6.orig/drivers/net/wireless/b43legacy/ilt.c
++++ linux-2.6/drivers/net/wireless/b43legacy/ilt.c
+@@ -315,14 +315,14 @@ const u16 b43legacy_ilt_sigmasqr2[B43leg
+ void b43legacy_ilt_write(struct b43legacy_wldev *dev, u16 offset, u16 val)
+ {
+ 	b43legacy_phy_write(dev, B43legacy_PHY_ILT_G_CTRL, offset);
+-	mmiowb();
++	io_wmb();
+ 	b43legacy_phy_write(dev, B43legacy_PHY_ILT_G_DATA1, val);
+ }
+ 
+ void b43legacy_ilt_write32(struct b43legacy_wldev *dev, u16 offset, u32 val)
+ {
+ 	b43legacy_phy_write(dev, B43legacy_PHY_ILT_G_CTRL, offset);
+-	mmiowb();
++	io_wmb();
+ 	b43legacy_phy_write(dev, B43legacy_PHY_ILT_G_DATA2,
+ 			    (val & 0xFFFF0000) >> 16);
+ 	b43legacy_phy_write(dev, B43legacy_PHY_ILT_G_DATA1,
+Index: linux-2.6/drivers/net/wireless/b43legacy/main.c
+===================================================================
+--- linux-2.6.orig/drivers/net/wireless/b43legacy/main.c
++++ linux-2.6/drivers/net/wireless/b43legacy/main.c
+@@ -240,7 +240,7 @@ static void b43legacy_ram_write(struct b
+ 		val = swab32(val);
+ 
+ 	b43legacy_write32(dev, B43legacy_MMIO_RAM_CONTROL, offset);
+-	mmiowb();
++	io_wmb();
+ 	b43legacy_write32(dev, B43legacy_MMIO_RAM_DATA, val);
+ }
+ 
+@@ -317,14 +317,14 @@ void b43legacy_shm_write32(struct b43leg
+ 		if (offset & 0x0003) {
+ 			/* Unaligned access */
+ 			b43legacy_shm_control_word(dev, routing, offset >> 2);
+-			mmiowb();
++			io_wmb();
+ 			b43legacy_write16(dev,
+ 					  B43legacy_MMIO_SHM_DATA_UNALIGNED,
+ 					  (value >> 16) & 0xffff);
+-			mmiowb();
++			io_wmb();
+ 			b43legacy_shm_control_word(dev, routing,
+ 						   (offset >> 2) + 1);
+-			mmiowb();
++			io_wmb();
+ 			b43legacy_write16(dev, B43legacy_MMIO_SHM_DATA,
+ 					  value & 0xffff);
+ 			return;
+@@ -332,7 +332,7 @@ void b43legacy_shm_write32(struct b43leg
+ 		offset >>= 2;
+ 	}
+ 	b43legacy_shm_control_word(dev, routing, offset);
+-	mmiowb();
++	io_wmb();
+ 	b43legacy_write32(dev, B43legacy_MMIO_SHM_DATA, value);
+ }
+ 
+@@ -344,7 +344,7 @@ void b43legacy_shm_write16(struct b43leg
+ 		if (offset & 0x0003) {
+ 			/* Unaligned access */
+ 			b43legacy_shm_control_word(dev, routing, offset >> 2);
+-			mmiowb();
++			io_wmb();
+ 			b43legacy_write16(dev,
+ 					  B43legacy_MMIO_SHM_DATA_UNALIGNED,
+ 					  value);
+@@ -353,7 +353,7 @@ void b43legacy_shm_write16(struct b43leg
+ 		offset >>= 2;
+ 	}
+ 	b43legacy_shm_control_word(dev, routing, offset);
+-	mmiowb();
++	io_wmb();
+ 	b43legacy_write16(dev, B43legacy_MMIO_SHM_DATA, value);
+ }
+ 
+@@ -447,7 +447,7 @@ static void b43legacy_time_lock(struct b
+ 	status = b43legacy_read32(dev, B43legacy_MMIO_MACCTL);
+ 	status |= B43legacy_MACCTL_TBTTHOLD;
+ 	b43legacy_write32(dev, B43legacy_MMIO_MACCTL, status);
+-	mmiowb();
++	wmb();
+ }
+ 
+ static void b43legacy_time_unlock(struct b43legacy_wldev *dev)
+@@ -470,10 +470,10 @@ static void b43legacy_tsf_write_locked(s
+ 		u32 hi = (tsf & 0xFFFFFFFF00000000ULL) >> 32;
+ 
+ 		b43legacy_write32(dev, B43legacy_MMIO_REV3PLUS_TSF_LOW, 0);
+-		mmiowb();
++		io_wmb();
+ 		b43legacy_write32(dev, B43legacy_MMIO_REV3PLUS_TSF_HIGH,
+ 				    hi);
+-		mmiowb();
++		io_wmb();
+ 		b43legacy_write32(dev, B43legacy_MMIO_REV3PLUS_TSF_LOW,
+ 				    lo);
+ 	} else {
+@@ -483,13 +483,13 @@ static void b43legacy_tsf_write_locked(s
+ 		u16 v3 = (tsf & 0xFFFF000000000000ULL) >> 48;
+ 
+ 		b43legacy_write16(dev, B43legacy_MMIO_TSF_0, 0);
+-		mmiowb();
++		io_wmb();
+ 		b43legacy_write16(dev, B43legacy_MMIO_TSF_3, v3);
+-		mmiowb();
++		io_wmb();
+ 		b43legacy_write16(dev, B43legacy_MMIO_TSF_2, v2);
+-		mmiowb();
++		io_wmb();
+ 		b43legacy_write16(dev, B43legacy_MMIO_TSF_1, v1);
+-		mmiowb();
++		io_wmb();
+ 		b43legacy_write16(dev, B43legacy_MMIO_TSF_0, v0);
+ 	}
+ }
+@@ -1271,7 +1271,7 @@ static void b43legacy_interrupt_tasklet(
+ 			       dma_reason[2], dma_reason[3],
+ 			       dma_reason[4], dma_reason[5]);
+ 			b43legacy_controller_restart(dev, "DMA error");
+-			mmiowb();
++			wmb();
+ 			spin_unlock_irqrestore(&dev->wl->irq_lock, flags);
+ 			return;
+ 		}
+@@ -1321,7 +1321,7 @@ static void b43legacy_interrupt_tasklet(
+ 		handle_irq_transmit_status(dev);
+ 
+ 	b43legacy_interrupt_enable(dev, dev->irq_savedstate);
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&dev->wl->irq_lock, flags);
+ }
+ 
+@@ -1414,7 +1414,7 @@ static irqreturn_t b43legacy_interrupt_h
+ 	dev->irq_reason = reason;
+ 	tasklet_schedule(&dev->isr_tasklet);
+ out:
+-	mmiowb();
++	wmb();
+ 	spin_unlock(&dev->wl->irq_lock);
+ 
+ 	return ret;
+@@ -2661,7 +2661,7 @@ static int b43legacy_op_dev_config(struc
+ 
+ 	spin_lock_irqsave(&wl->irq_lock, flags);
+ 	b43legacy_interrupt_enable(dev, savedirqs);
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&wl->irq_lock, flags);
+ out_unlock_mutex:
+ 	mutex_unlock(&wl->mutex);
+Index: linux-2.6/drivers/net/wireless/b43legacy/phy.c
+===================================================================
+--- linux-2.6.orig/drivers/net/wireless/b43legacy/phy.c
++++ linux-2.6/drivers/net/wireless/b43legacy/phy.c
+@@ -132,7 +132,7 @@ u16 b43legacy_phy_read(struct b43legacy_
+ void b43legacy_phy_write(struct b43legacy_wldev *dev, u16 offset, u16 val)
+ {
+ 	b43legacy_write16(dev, B43legacy_MMIO_PHY_CONTROL, offset);
+-	mmiowb();
++	io_wmb();
+ 	b43legacy_write16(dev, B43legacy_MMIO_PHY_DATA, val);
+ }
+ 
+Index: linux-2.6/drivers/net/wireless/b43legacy/pio.h
+===================================================================
+--- linux-2.6.orig/drivers/net/wireless/b43legacy/pio.h
++++ linux-2.6/drivers/net/wireless/b43legacy/pio.h
+@@ -96,7 +96,7 @@ void b43legacy_pio_write(struct b43legac
+ 		       u16 offset, u16 value)
+ {
+ 	b43legacy_write16(queue->dev, queue->mmio_base + offset, value);
+-	mmiowb();
++	wmb();
+ }
+ 
+ 
+Index: linux-2.6/drivers/net/wireless/b43legacy/radio.c
+===================================================================
+--- linux-2.6.orig/drivers/net/wireless/b43legacy/radio.c
++++ linux-2.6/drivers/net/wireless/b43legacy/radio.c
+@@ -95,7 +95,7 @@ void b43legacy_radio_lock(struct b43lega
+ 	B43legacy_WARN_ON(status & B43legacy_MACCTL_RADIOLOCK);
+ 	status |= B43legacy_MACCTL_RADIOLOCK;
+ 	b43legacy_write32(dev, B43legacy_MMIO_MACCTL, status);
+-	mmiowb();
++	wmb();
+ 	udelay(10);
+ }
+ 
+@@ -108,7 +108,7 @@ void b43legacy_radio_unlock(struct b43le
+ 	B43legacy_WARN_ON(!(status & B43legacy_MACCTL_RADIOLOCK));
+ 	status &= ~B43legacy_MACCTL_RADIOLOCK;
+ 	b43legacy_write32(dev, B43legacy_MMIO_MACCTL, status);
+-	mmiowb();
++	wmb();
+ }
+ 
+ u16 b43legacy_radio_read16(struct b43legacy_wldev *dev, u16 offset)
+@@ -141,7 +141,7 @@ u16 b43legacy_radio_read16(struct b43leg
+ void b43legacy_radio_write16(struct b43legacy_wldev *dev, u16 offset, u16 val)
+ {
+ 	b43legacy_write16(dev, B43legacy_MMIO_RADIO_CONTROL, offset);
+-	mmiowb();
++	io_wmb();
+ 	b43legacy_write16(dev, B43legacy_MMIO_RADIO_DATA_LOW, val);
+ }
+ 
+@@ -333,7 +333,7 @@ u8 b43legacy_radio_aci_scan(struct b43le
+ void b43legacy_nrssi_hw_write(struct b43legacy_wldev *dev, u16 offset, s16 val)
+ {
+ 	b43legacy_phy_write(dev, B43legacy_PHY_NRSSILT_CTRL, offset);
+-	mmiowb();
++	io_wmb();
+ 	b43legacy_phy_write(dev, B43legacy_PHY_NRSSILT_DATA, (u16)val);
+ }
+ 
+Index: linux-2.6/drivers/net/wireless/b43legacy/sysfs.c
+===================================================================
+--- linux-2.6.orig/drivers/net/wireless/b43legacy/sysfs.c
++++ linux-2.6/drivers/net/wireless/b43legacy/sysfs.c
+@@ -143,7 +143,7 @@ static ssize_t b43legacy_attr_interfmode
+ 	if (err)
+ 		b43legacyerr(wldev->wl, "Interference Mitigation not "
+ 		       "supported by device\n");
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&wldev->wl->irq_lock, flags);
+ 	mutex_unlock(&wldev->wl->mutex);
+ 
+Index: linux-2.6/drivers/scsi/qla1280.c
+===================================================================
+--- linux-2.6.orig/drivers/scsi/qla1280.c
++++ linux-2.6/drivers/scsi/qla1280.c
+@@ -2994,7 +2994,7 @@ qla1280_64bit_start_scsi(struct scsi_qla
+ 	ha->actthreads++;
+ 	WRT_REG_WORD(&reg->mailbox4, ha->req_ring_index);
+ 	/* Enforce mmio write ordering; see comment in qla1280_isp_cmd(). */
+-	mmiowb();
++	wmb();
+ 
+  out:
+ 	if (status)
+@@ -3244,7 +3244,7 @@ qla1280_32bit_start_scsi(struct scsi_qla
+ 	ha->actthreads++;
+ 	WRT_REG_WORD(&reg->mailbox4, ha->req_ring_index);
+ 	/* Enforce mmio write ordering; see comment in qla1280_isp_cmd(). */
+-	mmiowb();
++	wmb();
+ 
+ out:
+ 	if (status)
+@@ -3356,19 +3356,19 @@ qla1280_isp_cmd(struct scsi_qla_host *ha
+ 
+ 	/*
+ 	 * Update request index to mailbox4 (Request Queue In).
+-	 * The mmiowb() ensures that this write is ordered with writes by other
+-	 * CPUs.  Without the mmiowb(), it is possible for the following:
++	 * The wmb() ensures that this write is ordered with writes by other
++	 * CPUs.  Without the wmb(), it is possible for the following:
+ 	 *    CPUA posts write of index 5 to mailbox4
+ 	 *    CPUA releases host lock
+ 	 *    CPUB acquires host lock
+ 	 *    CPUB posts write of index 6 to mailbox4
+ 	 *    On PCI bus, order reverses and write of 6 posts, then index 5,
+ 	 *       causing chip to issue full queue of stale commands
+-	 * The mmiowb() prevents future writes from crossing the barrier.
++	 * The wmb() prevents future writes from crossing the barrier.
+ 	 * See Documentation/DocBook/deviceiobook.tmpl for more information.
+ 	 */
+ 	WRT_REG_WORD(&reg->mailbox4, ha->req_ring_index);
+-	mmiowb();
++	wmb();
+ 
+ 	LEAVE("qla1280_isp_cmd");
+ }
+Index: linux-2.6/drivers/serial/serial_txx9.c
+===================================================================
+--- linux-2.6.orig/drivers/serial/serial_txx9.c
++++ linux-2.6/drivers/serial/serial_txx9.c
+@@ -252,7 +252,7 @@ static void serial_txx9_initialize(struc
+ 	sio_out(up, TXX9_SIFCR, TXX9_SIFCR_SWRST);
+ 	/* TX4925 BUG WORKAROUND.  Accessing SIOC register
+ 	 * immediately after soft reset causes bus error. */
+-	mmiowb();
++	io_wmb();
+ 	udelay(1);
+ 	while ((sio_in(up, TXX9_SIFCR) & TXX9_SIFCR_SWRST) && --tmout)
+ 		udelay(1);
+Index: linux-2.6/drivers/ssb/pci.c
+===================================================================
+--- linux-2.6.orig/drivers/ssb/pci.c
++++ linux-2.6/drivers/ssb/pci.c
+@@ -279,7 +279,7 @@ static int sprom_do_write(struct ssb_bus
+ 		else if (i % 2)
+ 			ssb_printk(".");
+ 		writew(sprom[i], bus->mmio + SSB_SPROM_BASE + (i * 2));
+-		mmiowb();
++		io_wmb();
+ 		msleep(20);
+ 	}
+ 	err = pci_read_config_dword(pdev, SSB_SPROMCTL, &spromctl);
+Index: linux-2.6/drivers/ssb/pcmcia.c
+===================================================================
+--- linux-2.6.orig/drivers/ssb/pcmcia.c
++++ linux-2.6/drivers/ssb/pcmcia.c
+@@ -353,7 +353,7 @@ static void ssb_pcmcia_write8(struct ssb
+ 	err = select_core_and_segment(dev, &offset);
+ 	if (likely(!err))
+ 		writeb(value, bus->mmio + offset);
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&bus->bar_lock, flags);
+ }
+ 
+@@ -367,7 +367,7 @@ static void ssb_pcmcia_write16(struct ss
+ 	err = select_core_and_segment(dev, &offset);
+ 	if (likely(!err))
+ 		writew(value, bus->mmio + offset);
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&bus->bar_lock, flags);
+ }
+ 
+@@ -383,7 +383,7 @@ static void ssb_pcmcia_write32(struct ss
+ 		writew((value & 0x0000FFFF), bus->mmio + offset);
+ 		writew(((value & 0xFFFF0000) >> 16), bus->mmio + offset + 2);
+ 	}
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&bus->bar_lock, flags);
+ }
+ 
+@@ -439,7 +439,7 @@ static void ssb_pcmcia_block_write(struc
+ 		SSB_WARN_ON(1);
+ 	}
+ unlock:
+-	mmiowb();
++	wmb();
+ 	spin_unlock_irqrestore(&bus->bar_lock, flags);
+ }
+ #endif /* CONFIG_SSB_BLOCKIO */
