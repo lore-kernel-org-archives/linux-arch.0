@@ -1,113 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out1.smtp.messagingengine.com ([66.111.4.25]:57553 "EHLO
-	out1.smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751166AbYELLEz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 May 2008 07:04:55 -0400
-Message-ID: <1210590294.13136.1252653345@webmail.messagingengine.com>
-From: "Alexander van Heukelum" <heukelum@fastmail.fm>
-Content-Disposition: inline
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain; charset="ISO-8859-1"
+Received: from smtp-vbr6.xs4all.nl ([194.109.24.26]:3751 "EHLO
+	smtp-vbr6.xs4all.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755990AbYEULzg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 May 2008 07:55:36 -0400
+Date: Wed, 21 May 2008 13:44:06 +0200 (CEST)
+From: Roman Zippel <zippel@linux-m68k.org>
+Subject: Re: -ffreestanding or not -ffreestanding
+In-Reply-To: <20080521075233.GA18352@cs181133002.pp.htv.fi>
+Message-ID: <Pine.LNX.4.64.0805211326080.19545@localhost.localdomain>
+References: <E1JycsB-0000M9-36@ZenIV.linux.org.uk> <20080521075233.GA18352@cs181133002.pp.htv.fi>
 MIME-Version: 1.0
-References: <20080511135039.GA3286@mailshack.com>
-   <20080511152440.GX19219@parisc-linux.org>
-   <1210522779.16917.1252546109@webmail.messagingengine.com>
-   <20080511220111.GC19219@parisc-linux.org>
-Subject: Re: [PATCH] Make for_each_cpu_mask a bit smaller
-In-Reply-To: <20080511220111.GC19219@parisc-linux.org>
-Date: Mon, 12 May 2008 13:04:54 +0200
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Alexander van Heukelum <heukelum@mailshack.com>, Andrew Morton <akpm@linux-foundation.org>, Paul Jackson <pj@sgi.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20080512110454.xBJ8XkG7bnUwEwHzxyrFBun5mu_Z-51AxTviMow3T-Q@z>
+To: Adrian Bunk <bunk@kernel.org>
+Cc: Al Viro <viro@ftp.linux.org.uk>, torvalds@linux-foundation.org, geert@linux-m68k.org, linux-m68k@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20080521114406.oT2Uxd4idJmEeeA0yUr8gsWiJYgDuW1lwfOhpQXZG4U@z>
 
-On Sun, 11 May 2008 16:01:12 -0600, "Matthew Wilcox" <matthew@wil.cx>
-said:
-> On Sun, May 11, 2008 at 06:19:39PM +0200, Alexander van Heukelum wrote:
-> > 
-> > On Sun, 11 May 2008 09:24:40 -0600, "Matthew Wilcox" <matthew@wil.cx>
-> > said:
-> > > On Sun, May 11, 2008 at 03:50:39PM +0200, Alexander van Heukelum wrote:
-> > > >  #if NR_CPUS > 1
-> > > > -#define for_each_cpu_mask(cpu, mask)		\
-> > > > -	for ((cpu) = first_cpu(mask);		\
-> > > > -		(cpu) < NR_CPUS;		\
-> > > > -		(cpu) = next_cpu((cpu), (mask)))
-> > > > +#define for_each_cpu_mask(cpu, mask)				\
-> > > > +	for ((cpu) = 0;						\
-> > > > +		(cpu) = find_next_cpu_mask((cpu), &(mask)),	\
-> > > > +		(cpu) < NR_CPUS; (cpu)++)
-> > > 
-> > > For anyone else having similar cognitive dissonance while reading this
-> > > thinking "But won't the first call to find_next_cpu_mask return a number
-> > > > 0", the answer is "no, find_next_bit returns the next set bit that's
-> > > >= the number passed in, which is why we need both the cpu++ and
-> > > find_next_cpu_mask".  
-> > 
-> > That's how it works, indeed.
-> > 
-> > > > +int find_next_cpu_mask(int n, const cpumask_t *srcp)
-> > > > +{
-> > > > +	return find_next_bit(srcp->bits, NR_CPUS, n);
-> > > > +}
-> > > > +EXPORT_SYMBOL(find_next_cpu_mask);
-> > > 
-> > > Maybe a better name for this function would help.  I can't think of a
-> > > good one right now though.
-> > 
-> > I can't think of a better name, and there is find_next_bit of which
-> > find_next_cpu_mask is just a wrapper. I think the name is good enough.
+Hi,
+
+On Wed, 21 May 2008, Adrian Bunk wrote:
+
+> Can we try to get this sorted out properly instead of constantly 
+> fiddling with it?
 > 
-> How about doing it this way?
-> 
-> #define for_each_cpu_mask(cpu, mask)				\
-> 	for ((cpu) = -1;					\
-> 	     (cpu) < NR_CPUS;					\
-> 	     (cpu) = find_next_cpu_mask((cpu), &(mask)))
-> 
-> int find_next_cpu_mask(int n, const cpumask_t *srcp)
-> {
-> 	return find_next_bit(srcp->bits, NR_CPUS, ++n);
-> }
-> 
-> That actually behaves the way I'd expect a function called
-> 'find_next_cpu_mask' to work.  It also abuses the 'for' condtion
-> less and might take a little less text space.
+> Currently we use -ffreestanding on some architectures and fix breakages 
+> on the other architectures when they arise.
 
-But it does not work.
+This won't help completely unless you also clean up all archs to use the 
+same mappings to the builtin functions.
 
-It introduces a stray cpu=-1 iteration if cpu happens to be
-(replaced by) a signed variable.
+The main problem I had with -ffreestanding is that it's awkward to map a 
+library function to the builtin function and also provide the fallback 
+from lib/string.c.
+If you look at asm-m68k/string.h I once tried this with the mem* functions 
+and I still have the duplicated memcmp in arch/m68k/lib/string.c.
+(You could argue that it would be easier to just remove the define for 
+memcmp in this specific case, but I'm interested in the general case.)
 
-It skips the entire loop if cpu happens to be unsigned.
-
-I don't think that using 'for' in a less conventional way
-is bad if it is hidden in a macro, as long as the name of
-the macro makes the intention sufficiently clear.
-
-I think of find_next_cpu_mask(cpu, mask) as: "find next
-cpu-index in mask, starting at index cpu". And similar
-with find_next_bit.
-
-As for the text-space argument, I think you might be right.
-Just not on i386/x86_64 where initialising a register to -1
-can be done in three bytes, initialising to 0 in two bytes
-and an increment in one byte :-).
-
-Greetings,
-    Alexander
-
-> -- 
-> Intel are signing my paycheques ... these opinions are still mine
-> "Bill, look, we understand that you're interested in selling us this
-> operating system, but compare it to ours.  We can't possibly take such
-> a retrograde step."
--- 
-  Alexander van Heukelum
-  heukelum@fastmail.fm
-
--- 
-http://www.fastmail.fm - mmm... Fastmail...
-
+bye, Roman
