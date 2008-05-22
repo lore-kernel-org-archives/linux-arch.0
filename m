@@ -1,95 +1,43 @@
-From: akpm@linux-foundation.org
-Subject: - make-list_poison-less-deadly-v2.patch removed from -mm tree
-Date: Wed, 21 May 2008 14:22:05 -0700
-Message-ID: <200805212122.m4LLM5bp001437@imap1.linux-foundation.org>
-Reply-To: linux-kernel@vger.kernel.org
-Return-path: <mm-commits-owner@vger.kernel.org>
-Sender: mm-commits-owner@vger.kernel.org
-To: avi@qumranet.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, mm-commits@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Jes Sorensen <jes@sgi.com>
+Subject: Re: [rfc] add io barriers, remove mmiowb
+Date: 22 May 2008 04:34:51 -0400
+Message-ID: <yq0fxsaivo4.fsf@jaguar.mkp.net>
+References: <20080521152855.GE8897@wotan.suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from jaguar.mkp.net ([192.139.46.146]:49817 "EHLO jaguar.mkp.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756541AbYEVIew (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 22 May 2008 04:34:52 -0400
+In-Reply-To: <20080521152855.GE8897@wotan.suse.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nick Piggin <npiggin@suse.de>
+Cc: linux-arch@vger.kernel.org, jbarnes@virtuousgeek.org, Linus Torvalds <torvalds@linux-foundation.org>
 
+>>>>> "Nick" == Nick Piggin <npiggin@suse.de> writes:
 
-The patch titled
-     Make LIST_POISON less deadly
-has been removed from the -mm tree.  Its filename was
-     make-list_poison-less-deadly-v2.patch
+Nick> mb and wmb are now no longer guaranteed to order system memory
+Nick> operations with device memory stores. mmiowb has been introduced
+Nick> to provide this ordering (when combined with a mb, wmb, or
+Nick> spin_unlock). Unfortunately, it appears to be rather less well
+Nick> understood among both users and implementors than even the old
+Nick> memory barrier scheme. It also subtly breaks existing code that
+Nick> uses mb or wmb (if only on sn2). I really think it is not a good
+Nick> solution.
 
-This patch was dropped because it was merged into mainline or a subsystem tree
+Nick> The alternative I propose is to restore mb and wmb to their full
+Nick> strength.  This does mean that sn2 has to do the equivalent of
+Nick> mb+mmiowb, wmb+mmiowb respectively, but that's the price you pay
+Nick> for weak memory ordering.
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+Nick,
 
-------------------------------------------------------
-Subject: Make LIST_POISON less deadly
-From: Avi Kivity <avi@qumranet.com>
+Introducing this constraint would make me less than pleased I have to
+admit. It's a very expensive operation to do since it requires going
+out talking to the PCI bridge, doing that on every wmb() is going to
+really hurt :-(
 
-The list macros use LIST_POISON1 and LIST_POISON2 as undereferencable
-pointers in order to trap erronous use of freed list_heads.  Unfortunately
-userspace can arrange for those pointers to actually be dereferencable,
-potentially turning an oops to an expolit.
-
-To avoid this allow architectures (currently x86_64 only) to override the
-default values for these pointers with truly-undereferncable values.  This
-is easy on x86_64 as the virtual address space is smaller than the range
-spanned by pointer values.
-
-Signed-off-by: Avi Kivity <avi@qumranet.com>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/x86/Kconfig       |    5 +++++
- include/linux/poison.h |   10 ++++++++--
- 2 files changed, 13 insertions(+), 2 deletions(-)
-
-diff -puN arch/x86/Kconfig~make-list_poison-less-deadly-v2 arch/x86/Kconfig
---- a/arch/x86/Kconfig~make-list_poison-less-deadly-v2
-+++ a/arch/x86/Kconfig
-@@ -1025,6 +1025,11 @@ config ARCH_MEMORY_PROBE
- 	def_bool X86_64
- 	depends on MEMORY_HOTPLUG
- 
-+config ILLEGAL_POINTER_VALUE
-+       hex
-+       default 0 if X86_32
-+       default 0x8888888800000000 if X86_64
-+
- source "mm/Kconfig"
- 
- config HIGHPTE
-diff -puN include/linux/poison.h~make-list_poison-less-deadly-v2 include/linux/poison.h
---- a/include/linux/poison.h~make-list_poison-less-deadly-v2
-+++ a/include/linux/poison.h
-@@ -1,14 +1,20 @@
- #ifndef _LINUX_POISON_H
- #define _LINUX_POISON_H
- 
-+#ifdef CONFIG_ILLEGAL_POINTER_VALUE
-+#define POISON_POINTER_DELTA CONFIG_ILLEGAL_POINTER_VALUE
-+#else
-+#define POISON_POINTER_DELTA 0L
-+#endif
-+
- /********** include/linux/list.h **********/
- /*
-  * These are non-NULL pointers that will result in page faults
-  * under normal circumstances, used to verify that nobody uses
-  * non-initialized list entries.
-  */
--#define LIST_POISON1  ((void *) 0x00100100)
--#define LIST_POISON2  ((void *) 0x00200200)
-+#define LIST_POISON1  ((void *) 0x00100100 + POISON_POINTER_DELTA)
-+#define LIST_POISON2  ((void *) 0x00200200 + POISON_POINTER_DELTA)
- 
- /********** include/linux/timer.h **********/
- /*
-_
-
-Patches currently in -mm which might be from avi@qumranet.com are
-
-origin.patch
-linux-next.patch
-dma-mapping-add-the-device-argument-to-dma_mapping_error.patch
-dma-mapping-x86-per-device-dma_mapping_ops-support.patch
-
+Cheers,
+Jes
