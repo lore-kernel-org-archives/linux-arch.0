@@ -1,586 +1,569 @@
 From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [rfc] add io barriers, remove mmiowb
-Date: Fri, 23 May 2008 03:44:08 +0200
-Message-ID: <20080523014408.GA30209@wotan.suse.de>
-References: <20080521152855.GE8897@wotan.suse.de> <20080522095121.GA18012@wotan.suse.de> <483566E7.8010703@sgi.com> <200805220934.07871.jbarnes@virtuousgeek.org>
+Subject: Re: [patch 2/2] mm: lockless get_user_pages
+Date: Fri, 23 May 2008 04:27:33 +0200
+Message-ID: <20080523022732.GC30209@wotan.suse.de>
+References: <20080521115929.GB9030@wotan.suse.de> <20080521121114.GC9030@wotan.suse.de> <20080522102753.GA25370@shadowen.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns2.suse.de ([195.135.220.15]:42104 "EHLO mx2.suse.de"
+Received: from mail.suse.de ([195.135.220.2]:33608 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753576AbYEWBoM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 May 2008 21:44:12 -0400
+	id S1750966AbYEWC1f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 22 May 2008 22:27:35 -0400
 Content-Disposition: inline
-In-Reply-To: <200805220934.07871.jbarnes@virtuousgeek.org>
+In-Reply-To: <20080522102753.GA25370@shadowen.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: Jes Sorensen <jes@sgi.com>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+To: Andy Whitcroft <apw@shadowen.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, axboe@oracle.com, torvalds@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-On Thu, May 22, 2008 at 09:34:07AM -0700, Jesse Barnes wrote:
-> On Thursday, May 22, 2008 5:28 am Jes Sorensen wrote:
-> > Nick Piggin wrote:
-> > > Right, but probably the large majority of wmb() callers actually
-> > > just want io_wmb(). This would relieve much of the performance
-> > > problem, I'd say.
-> > >
-> > > Of those that really want a wmb() and cannot be converted to
-> > > io_wmb(), I don't think it is a good option to actually just weaken
-> > > wmb() because we deem that doing what the caller asked for is too
-> > > expensive.
-> >
-> > Hi Nick,
-> >
-> > I believe there's a fair number of places where wmb() is used for
-> > memory ordering not related to IO.
-> >
-> > > I guess with the ia64_mf(), Altix probably does not reorder PCI
-> > > stores past earlier cacheable stores, so _some_ wmb()s actually
-> > > do not require the full mmiowb case (if we only need to order
-> > > an earlier RAM store with a later PCI store). However, again,
-> > > weakening wmb() is not a good option because it really requires
-> > > an audit of the entire tree to do that.
-> >
-> > Nope, unfortunately not, ia64_mf() isn't strong enough to prevent the
-> > reordering, it's done in the PCI controller, so in order to guarantee
-> > the the reording you have to go all the way out to the PCI controller,
-> > which is very slow.
+On Thu, May 22, 2008 at 11:28:03AM +0100, Andy Whitcroft wrote:
+> On Wed, May 21, 2008 at 02:11:14PM +0200, Nick Piggin wrote:
+> > I'd like to propose lockless get_user_pages for merge in -mm. Since last
+> > posted, this includes Linus's scheme for loading the pte on 32-bit PAE
+> > (with comment), and an access_ok() check. I'd like if somebody can verify
+> > both these additions (and the patch in general). It wouldn't be hard to
+> > have a big security hole here if any of the checks are wrong...
+> > 
+> > I do have a powerpc patch which demonstrates that fast_gup isn't just a
+> > crazy x86 only hack... but it is a little more complex (requires speculative
+> > page references in the VM), and not as well tested as the x86 version. 
+> > 
+> > Anyway, I think the x86 code is now pretty well complete and has no
+> > more known issues.
+> > --
+> > 
+> > Introduce a new "fast_gup" (for want of a better name right now) which
+> > is basically a get_user_pages with a less general API (but still tends to
+> > be suited to the common case):
+> > 
+> > - task and mm are always current and current->mm
+> > - force is always 0
+> > - pages is always non-NULL
+> > - don't pass back vmas
+> > 
+> > This restricted API can be implemented in a much more scalable way when
+> > the ptes are present, by walking the page tables locklessly.
+> > 
+> > Before anybody asks; it is impossible to just "detect" such a situation in the
+> > existing get_user_pages call, and branch to a fastpath in that case, because
+> > get_user_pages requres the mmap_sem is held over the call, wheras fast_gup does
+> > not.
+> > 
+> > This patch implements fast_gup on x86, and converts a number of key callsites
+> > to use it.
+> > 
+> > On x86, we do an optimistic lockless pagetable walk, without taking any page
+> > table locks or even mmap_sem. Page table existence is guaranteed by turning
+> > interrupts off (combined with the fact that we're always looking up the current
+> > mm, means we can do the lockless page table walk within the constraints of the
+> > TLB shootdown design). Basically we can do this lockless pagetable walk in a
+> > similar manner to the way the CPU's pagetable walker does not have to take any
+> > locks to find present ptes.
+> > 
+> > Many other architectures could do the same thing. Those that don't IPI
+> > could potentially RCU free the page tables and do speculative references
+> > on the pages (a la lockless pagecache) to achieve a lockless fast_gup. I
+> > have actually got an implementation of this for powerpc.
+> > 
+> > This patch was found to give about 10% performance improvement on a 2 socket
+> > 8 core Intel Xeon system running an OLTP workload on DB2 v9.5
+> > 
+> >  "To test the effects of the patch, an OLTP workload was run on an IBM
+> >  x3850 M2 server with 2 processors (quad-core Intel Xeon processors at
+> >  2.93 GHz) using IBM DB2 v9.5 running Linux 2.6.24rc7 kernel. Comparing
+> >  runs with and without the patch resulted in an overall performance
+> >  benefit of ~9.8%. Correspondingly, oprofiles showed that samples from
+> >  __up_read and __down_read routines that is seen during thread contention
+> >  for system resources was reduced from 2.8% down to .05%. Monitoring
+> >  the /proc/vmstat output from the patched run showed that the counter for
+> >  fast_gup contained a very high number while the fast_gup_slow value was
+> >  zero."
+> > 
+> > (fast_gup_slow is a counter we had for the number of times the slowpath
+> > was invoked).
+> > 
+> > The main reason for the improvement is that DB2 has multiple threads each
+> > issuing direct-IO. Direct-IO uses get_user_pages, and thus the threads
+> > contend the mmap_sem cacheline, and can also contend on page table locks.
+> > 
+> > I would anticipate larger performance gains on larger systems, however I
+> > think DB2 uses an adaptive mix of threads and processes, so it could be
+> > that thread contention remains pretty constant as machine size increases.
+> > In which case, we stuck with "only" a 10% gain.
+> > 
+> > Lots of other code could use this too (eg. grep drivers/).
+> > 
+> > The downside of using fast_gup is that if there is not a pte with the
+> > correct permissions for the access, we end up falling back to get_user_pages
+> > and so the fast_gup is just extra work. This should not be the common case
+> > in performance critical code, I'd hope.
+> > 
+> > Signed-off-by: Nick Piggin <npiggin@suse.de>
+> > Cc: shaggy@austin.ibm.com
+> > Cc: axboe@oracle.com
+> > Cc: torvalds@linux-foundation.org
+> > Cc: linux-mm@kvack.org
+> > Cc: linux-arch@vger.kernel.org
+> > 
+> > ---
+> >  arch/x86/mm/Makefile      |    2 
+> >  arch/x86/mm/gup.c         |  193 ++++++++++++++++++++++++++++++++++++++++++++++
+> >  fs/bio.c                  |    8 -
+> >  fs/direct-io.c            |   10 --
+> >  fs/splice.c               |   41 ---------
+> >  include/asm-x86/uaccess.h |    5 +
+> >  include/linux/mm.h        |   19 ++++
+> >  7 files changed, 225 insertions(+), 53 deletions(-)
+> > 
+> > Index: linux-2.6/fs/bio.c
+> > ===================================================================
+> > --- linux-2.6.orig/fs/bio.c
+> > +++ linux-2.6/fs/bio.c
+> > @@ -713,12 +713,8 @@ static struct bio *__bio_map_user_iov(st
+> >  		const int local_nr_pages = end - start;
+> >  		const int page_limit = cur_page + local_nr_pages;
+> >  		
+> > -		down_read(&current->mm->mmap_sem);
+> > -		ret = get_user_pages(current, current->mm, uaddr,
+> > -				     local_nr_pages,
+> > -				     write_to_vm, 0, &pages[cur_page], NULL);
+> > -		up_read(&current->mm->mmap_sem);
+> > -
+> > +		ret = fast_gup(uaddr, local_nr_pages,
+> > +				write_to_vm, &pages[cur_page]);
+> >  		if (ret < local_nr_pages) {
+> >  			ret = -EFAULT;
+> >  			goto out_unmap;
+> > Index: linux-2.6/fs/direct-io.c
+> > ===================================================================
+> > --- linux-2.6.orig/fs/direct-io.c
+> > +++ linux-2.6/fs/direct-io.c
+> > @@ -150,17 +150,11 @@ static int dio_refill_pages(struct dio *
+> >  	int nr_pages;
+> >  
+> >  	nr_pages = min(dio->total_pages - dio->curr_page, DIO_PAGES);
+> > -	down_read(&current->mm->mmap_sem);
+> > -	ret = get_user_pages(
+> > -		current,			/* Task for fault acounting */
+> > -		current->mm,			/* whose pages? */
+> > +	ret = fast_gup(
+> >  		dio->curr_user_address,		/* Where from? */
+> >  		nr_pages,			/* How many pages? */
+> >  		dio->rw == READ,		/* Write to memory? */
+> > -		0,				/* force (?) */
 > 
-> And more than that, the local PCI controller has to wait for any outstanding 
-> writes to arrive at the target host bridge.  That's why the operation is so 
-> expensive.
+> I worry a little about this, not for the conversion but for the original
+> writers lack of confidence that they should be using force if the
+> comments are to be believed.
 
-Right, but if the code *needs* a wmb(), then skipping the full ordering
-steps basically means that sn2 doesn't implement the Linux memory
-barrier specification properly. It may be expensive, but it is
-perfectly legitimate for code to say
-
-writel(iomem)
-wmb();
-written = 1;
-
-And expect iomem to be seen at the device before an io store from
-another CPU which has seen written == 1 (provided it issues the
-correct barriers too).
+It should not use force. Force will bypass the mmap permissions and
+do funny things. ptrace is really one of the few valid users I think.
 
  
-> > > We _could_ introduce partial barriers like store/iostore iostore/store,
-> > > but really, I think the io_wmb is a pretty good first step, and I
-> > > haven't actually seen any numbers indicating it would be a performance
-> > > problem.
-> >
-> > I must admit I am not 100% upto speed on the entire discussion, but I
-> > think the io_wmb() and friends did go around in the past and got shot
-> > down.
+> > -		&dio->pages[0],
+> > -		NULL);				/* vmas */
+> > -	up_read(&current->mm->mmap_sem);
+> > +		&dio->pages[0]);		/* Put results here */
+> >  
+> >  	if (ret < 0 && dio->blocks_available && (dio->rw & WRITE)) {
+> >  		struct page *page = ZERO_PAGE(0);
+> > Index: linux-2.6/fs/splice.c
+> > ===================================================================
+> > --- linux-2.6.orig/fs/splice.c
+> > +++ linux-2.6/fs/splice.c
+> > @@ -1147,36 +1147,6 @@ static long do_splice(struct file *in, l
+> >  }
+> >  
+> >  /*
+> > - * Do a copy-from-user while holding the mmap_semaphore for reading, in a
+> > - * manner safe from deadlocking with simultaneous mmap() (grabbing mmap_sem
+> > - * for writing) and page faulting on the user memory pointed to by src.
+> > - * This assumes that we will very rarely hit the partial != 0 path, or this
+> > - * will not be a win.
+> > - */
+> > -static int copy_from_user_mmap_sem(void *dst, const void __user *src, size_t n)
+> > -{
+> > -	int partial;
+> > -
+> > -	if (!access_ok(VERIFY_READ, src, n))
+> > -		return -EFAULT;
+> > -
+> > -	pagefault_disable();
+> > -	partial = __copy_from_user_inatomic(dst, src, n);
+> > -	pagefault_enable();
+> > -
+> > -	/*
+> > -	 * Didn't copy everything, drop the mmap_sem and do a faulting copy
+> > -	 */
+> > -	if (unlikely(partial)) {
+> > -		up_read(&current->mm->mmap_sem);
+> > -		partial = copy_from_user(dst, src, n);
+> > -		down_read(&current->mm->mmap_sem);
+> > -	}
+> > -
+> > -	return partial;
+> > -}
 > 
-> To be fair to the ia64 guys who pushed this (me), I think the powerpc guys 
-> were supposed to introduce the other set of barriers they needed at around 
-> the same time, so we'd have the complete set.  I guess they never got around 
-> to it.
+> Why is this optimisation taken out as part of this patch.  From what I
+> an see the caller below does not move to fast_gup so it appears
+> (naively) that this would still be applicable, though the locking may be
+> hard.
 
-OK, I'm not trying to assign any blame ;) I just want to try improving
-things.
+The get_iovec_page_array caller AFAIKS does move to fast_gup.
+
+That funny optimisation is an attempt to avoid taking and dropping the
+mmap_sem for each page if we can perform the copy without taking a
+fault. If the same conditions exist for fast_gup, then it can perform
+the get_user_pages operation without taking mmap_sem at all.
 
  
-> Given that core kernel code using wmb() usually doesn't care about I/O 
-> ordering, making it into a heavyweight operation might be a bad idea, 
-> especially if powerpc wants to weaken its wmb() operations eventually.
+> > -/*
+> >   * Map an iov into an array of pages and offset/length tupples. With the
+> >   * partial_page structure, we can map several non-contiguous ranges into
+> >   * our ones pages[] map instead of splitting that operation into pieces.
+> > @@ -1189,8 +1159,6 @@ static int get_iovec_page_array(const st
+> >  {
+> >  	int buffers = 0, error = 0;
+> >  
+> > -	down_read(&current->mm->mmap_sem);
+> > -
+> >  	while (nr_vecs) {
+> >  		unsigned long off, npages;
+> >  		struct iovec entry;
+> > @@ -1199,7 +1167,7 @@ static int get_iovec_page_array(const st
+> >  		int i;
+> >  
+> >  		error = -EFAULT;
+> > -		if (copy_from_user_mmap_sem(&entry, iov, sizeof(entry)))
+> > +		if (copy_from_user(&entry, iov, sizeof(entry)))
+> >  			break;
+> >  
+> >  		base = entry.iov_base;
+> > @@ -1233,9 +1201,8 @@ static int get_iovec_page_array(const st
+> >  		if (npages > PIPE_BUFFERS - buffers)
+> >  			npages = PIPE_BUFFERS - buffers;
+> >  
+> > -		error = get_user_pages(current, current->mm,
+> > -				       (unsigned long) base, npages, 0, 0,
+> > -				       &pages[buffers], NULL);
+> > +		error = fast_gup((unsigned long)base, npages,
+> > +					0, &pages[buffers]);
+> >  
+> >  		if (unlikely(error <= 0))
+> >  			break;
+> > @@ -1274,8 +1241,6 @@ static int get_iovec_page_array(const st
+> >  		iov++;
+> >  	}
+> >  
+> > -	up_read(&current->mm->mmap_sem);
+> > -
+> >  	if (buffers)
+> >  		return buffers;
+> >  
+> > Index: linux-2.6/arch/x86/mm/gup.c
+> > ===================================================================
+> > --- /dev/null
+> > +++ linux-2.6/arch/x86/mm/gup.c
+> > @@ -0,0 +1,243 @@
+> > +/*
+> > + * Lockless fast_gup for x86
+> > + *
+> > + * Copyright (C) 2008 Nick Piggin
+> > + * Copyright (C) 2008 Novell Inc.
+> > + */
+> > +#include <linux/sched.h>
+> > +#include <linux/mm.h>
+> > +#include <linux/vmstat.h>
+> > +#include <asm/pgtable.h>
+> > +
+> > +static inline pte_t gup_get_pte(pte_t *ptep)
+> > +{
+> 
+> This is the gup form of pte_val, I wonder if it would be better named
+> gup_pte_val.
 
-There are a lot of suspect barriers which should be smp_ variants, as
-Paul says. Attached is a very quick pass of a few key directories...
-needs review from respective maintainers, but it gives an idea.
+Sure, will do.
 
-powerpc does *not* want to weaken its wmb(), but what it can do is
-take advantage of a cheaper io_wmb(), like sn2.
  
+> > +#ifndef CONFIG_X86_PAE
+> > +	return *ptep;
+> > +#else
+> > +	/*
+> > +	 * With fast_gup, we walk down the pagetables without taking any locks.
+> > +	 * For this we would like to load the pointers atoimcally, but that is
+> > +	 * not possible (without expensive cmpxchg8b) on PAE.  What we do have
+> > +	 * is the guarantee that a pte will only either go from not present to
+> > +	 * present, or present to not present or both -- it will not switch to
+> > +	 * a completely different present page without a TLB flush in between;
+> > +	 * something that we are blocking by holding interrupts off.
+> > +	 *
+> > +	 * Setting ptes from not present to present goes:
+> > +	 * ptep->pte_high = h;
+> > +	 * smp_wmb();
+> > +	 * ptep->pte_low = l;
+> > +	 *
+> > +	 * And present to not present goes:
+> > +	 * ptep->pte_low = 0;
+> > +	 * smp_wmb();
+> > +	 * ptep->pte_high = 0;
+> 
+> native_set_pte_present uses the below form, which does also seem to follow
+> both of these patterns sequentially, so thats ok:
+> 
+>         ptep->pte_low = 0;
+> 	smp_wmb();
+> 	ptep->pte_high = pte.pte_high;
+> 	smp_wmb();
+> 	ptep->pte_low = pte.pte_low;
 
-> Is there really a conflict of definitions except for between ia64 and powerpc 
-> here?  IIRC they needed more types of barriers to speed things up, but never 
-> introduced them, and so had to make some of the existing barriers much more 
-> expensive than they would have liked...
-
-There are a couple of other types of barriers I guess you could
-introduce... partial barriers like load/store store/load iostore/store
-etc.; or acquire/release for IO. I think the latter isn't such a bad
-idea, but either way you're introducing new barrier concepts when we
-already have trouble getting the existing ones right.
-
-io_ barriers I guess should be easier to understand if one already
-understands existing barriers, so I think they are the best first
-step.
-
---
+That's true... I think this is just for kernel ptes though? So the
+access_ok should keep us away from any of those issues.
 
 
-Index: linux-2.6/arch/x86/kernel/kvmclock.c
-===================================================================
---- linux-2.6.orig/arch/x86/kernel/kvmclock.c
-+++ linux-2.6/arch/x86/kernel/kvmclock.c
-@@ -69,10 +69,10 @@ unsigned long kvm_get_wallclock(void)
- 	native_write_msr(MSR_KVM_WALL_CLOCK, low, high);
- 	do {
- 		version = wall_clock.wc_version;
--		rmb();
-+		smp_rmb();
- 		wc_sec = wall_clock.wc_sec;
- 		wc_nsec = wall_clock.wc_nsec;
--		rmb();
-+		smp_rmb();
- 	} while ((wall_clock.wc_version != version) || (version & 1));
+> > +	 *
+> > +	 * We must ensure here that the load of pte_low sees l iff
+> > +	 * pte_high sees h. We load pte_high *after* loading pte_low,
+> > +	 * which ensures we don't see an older value of pte_high.
+> > +	 * *Then* we recheck pte_low, which ensures that we haven't
+> > +	 * picked up a changed pte high. We might have got rubbish values
+> > +	 * from pte_low and pte_high, but we are guaranteed that pte_low
+> > +	 * will not have the present bit set *unless* it is 'l'. And
+> > +	 * fast_gup only operates on present ptes, so we're safe.
+> 
+> To my mind this is only valid because of the requirement stated on
+> native_set_pte that we may only set a pte if it is not-present or
+> invalid, ie that we would never see the following:
+> 
+> 	set_pte(N, valid);
+> 	set_pte(N, valid2);
+> 
+> If you rely on that here you should mention it directly, though I guess
+> your interrupt based locking out half mentions it.
+
+Well... I did say that it can't go from present to present (implicitly
+I guess, because I actually listed what are the valid transitions rather
+than what aren't. I could emphasize it).
+
  
- 	delta = kvm_clock_read() - delta;
-Index: linux-2.6/arch/x86/lguest/boot.c
-===================================================================
---- linux-2.6.orig/arch/x86/lguest/boot.c
-+++ linux-2.6/arch/x86/lguest/boot.c
-@@ -113,7 +113,7 @@ static void async_hcall(unsigned long ca
- 		lguest_data.hcalls[next_call].arg2 = arg2;
- 		lguest_data.hcalls[next_call].arg3 = arg3;
- 		/* Arguments must all be written before we mark it to go */
--		wmb();
-+		smp_wmb();
- 		lguest_data.hcall_status[next_call] = 0;
- 		if (++next_call == LHCALL_RING_SIZE)
- 			next_call = 0;
-@@ -627,11 +627,11 @@ static cycle_t lguest_clock_read(void)
- 		/* This read memory barrier tells the compiler and the CPU that
- 		 * this can't be reordered: we have to complete the above
- 		 * before going on. */
--		rmb();
-+		smp_rmb();
- 		/* Now we read the nanoseconds part. */
- 		nsec = lguest_data.time.tv_nsec;
- 		/* Make sure we've done that. */
--		rmb();
-+		smp_rmb();
- 		/* Now if the seconds part has changed, try again. */
- 	} while (unlikely(lguest_data.time.tv_sec != sec));
+> > +	 *
+> > +	 * gup_get_pte should not be used or copied outside gup.c without
+> > +	 * being very careful -- it does not atomically load the pte or
+> > +	 * anything that is likely to be useful for you.
+> > +	 */
+> > +	pte_t pte;
+> > +
+> > +retry:
+> > +	pte.pte_low = ptep->pte_low;
+> > +	smp_rmb();
+> > +	pte.pte_high = ptep->pte_high;
+> > +	smp_rmb();
+> > +	if (unlikely(pte.pte_low != ptep->pte_low))
+> > +		goto retry;
+> > +
+> 
+> Seems to be missing a return pte; here.
+
+Oh, I actually have to *compile* with PAE too? Sorry, forgot to do that,
+thanks.
+
  
-Index: linux-2.6/arch/x86/xen/smp.c
-===================================================================
---- linux-2.6.orig/arch/x86/xen/smp.c
-+++ linux-2.6/arch/x86/xen/smp.c
-@@ -302,7 +302,7 @@ int __cpuinit xen_cpu_up(unsigned int cp
- 	smp_store_cpu_info(cpu);
- 	set_cpu_sibling_map(cpu);
- 	/* This must be done before setting cpu_online_map */
--	wmb();
-+	smp_wmb();
+> > +#endif
+> > +}
+> > +
+> > +/*
+> > + * The performance critical leaf functions are made noinline otherwise gcc
+> > + * inlines everything into a single function which results in too much
+> > + * register pressure.
+> > + */
+> > +static noinline int gup_pte_range(pmd_t pmd, unsigned long addr,
+> > +		unsigned long end, int write, struct page **pages, int *nr)
+> > +{
+> > +	unsigned long mask, result;
+> > +	pte_t *ptep;
+> > +
+> > +	result = _PAGE_PRESENT|_PAGE_USER;
+> > +	if (write)
+> > +		result |= _PAGE_RW;
+> > +	mask = result | _PAGE_SPECIAL;
+> > +
+> > +	ptep = pte_offset_map(&pmd, addr);
+> > +	do {
+> > +		pte_t pte = gup_get_pte(ptep);
+> > +		struct page *page;
+> > +
+> > +		if ((pte_val(pte) & mask) != result)
+> > +			return 0;
+> > +		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
+> > +		page = pte_page(pte);
+> > +		get_page(page);
+> > +		pages[*nr] = page;
+> > +		(*nr)++;
+> > +
+> > +	} while (ptep++, addr += PAGE_SIZE, addr != end);
+> > +	pte_unmap(ptep - 1);
+> 
+> Is this pte_unmap right.  I thought you had to unmap the same address
+> that was returned from pte_offset_map, not an incremented version?
+
+So long as it is within the same pte page, it's OK. Check some of
+the similar loops in mm/memory.c
+
  
- 	cpu_set(cpu, cpu_online_map);
+> > +
+> > +	return 1;
+> > +}
+> > +
+> > +static inline void get_head_page_multiple(struct page *page, int nr)
+> > +{
+> > +	VM_BUG_ON(page != compound_head(page));
+> > +	VM_BUG_ON(page_count(page) == 0);
+> > +	atomic_add(nr, &page->_count);
+> 
+> I see that follow_hugetlb_page does this as multiple get_page's.  It
+> seems that it could benefit from this optimisation.
+
+Sure, this could go into mm/internal.h or include/linux/mm.h.
+
  
-Index: linux-2.6/arch/x86/xen/time.c
-===================================================================
---- linux-2.6.orig/arch/x86/xen/time.c
-+++ linux-2.6/arch/x86/xen/time.c
-@@ -247,12 +247,12 @@ static unsigned get_time_values_from_xen
+> > +}
+> > +
+> > +static noinline int gup_huge_pmd(pmd_t pmd, unsigned long addr,
+> > +		unsigned long end, int write, struct page **pages, int *nr)
+> > +{
+> > +	unsigned long mask;
+> > +	pte_t pte = *(pte_t *)&pmd;
+> > +	struct page *head, *page;
+> > +	int refs;
+> > +
+> > +	mask = _PAGE_PRESENT|_PAGE_USER;
+> > +	if (write)
+> > +		mask |= _PAGE_RW;
+> > +	if ((pte_val(pte) & mask) != mask)
+> > +		return 0;
+> > +	/* hugepages are never "special" */
+> > +	VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
+> 
+> As we am not expecting them to be special could we not check for that anyhow as you do in the normal case.  Safe against anyone changing hugepages.
+
+Couldn't quite parse this ;) Do you mean to put the same VM_BUG_ON in the
+follow_hugetlb_page path? Sure we could do that, although in that case
+we have everything locked down and have looked up the vma etc. so I was
+just being paranoid here really.
+
+
+> > +int fast_gup(unsigned long start, int nr_pages, int write, struct page **pages)
+> > +{
+> > +	struct mm_struct *mm = current->mm;
+> > +	unsigned long end = start + (nr_pages << PAGE_SHIFT);
+> > +	unsigned long addr = start;
+> > +	unsigned long next;
+> > +	pgd_t *pgdp;
+> > +	int nr = 0;
+> > +
+> > +	if (unlikely(!access_ok(write ? VERIFY_WRITE : VERIFY_READ,
+> > +					start, nr_pages*PAGE_SIZE)))
+> > +		goto slow_irqon;
+> > +
+> > +	/*
+> > +	 * XXX: batch / limit 'nr', to avoid large irq off latency
+> > +	 * needs some instrumenting to determine the common sizes used by
+> > +	 * important workloads (eg. DB2), and whether limiting the batch size
+> > +	 * will decrease performance.
+> > +	 *
+> > +	 * It seems like we're in the clear for the moment. Direct-IO is
+> > +	 * the main guy that batches up lots of get_user_pages, and even
+> > +	 * they are limited to 64-at-a-time which is not so many.
+> > +	 */
+> > +	/*
+> > +	 * This doesn't prevent pagetable teardown, but does prevent
+> > +	 * the pagetables and pages from being freed on x86.
+> > +	 *
+> > +	 * So long as we atomically load page table pointers versus teardown
+> > +	 * (which we do on x86, with the above PAE exception), we can follow the
+> > +	 * address down to the the page and take a ref on it.
+> > +	 */
+> > +	local_irq_disable();
+> > +	pgdp = pgd_offset(mm, addr);
+> > +	do {
+> > +		pgd_t pgd = *pgdp;
+> > +
+> > +		next = pgd_addr_end(addr, end);
+> > +		if (pgd_none(pgd))
+> > +			goto slow;
+> > +		if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
+> > +			goto slow;
+> > +	} while (pgdp++, addr = next, addr != end);
+> > +	local_irq_enable();
+> > +
+> > +	VM_BUG_ON(nr != (end - start) >> PAGE_SHIFT);
+> > +	return nr;
+> > +
+> > +	{
+> > +		int i, ret;
+> > +
+> > +slow:
+> > +		local_irq_enable();
+> > +slow_irqon:
+> > +		/* Could optimise this more by keeping what we've already got */
+> > +		for (i = 0; i < nr; i++)
+> > +			put_page(pages[i]);
+> 
+> Perhaps we could have some vm_stats's for these cases so we can see just
+> how often we do fail, and how many we wasted.
+
+I did have some stats in place when it was run on db2... zero slowpaths
+hit ;) although I guess that's a slightly special case. Definitely there
+would be some slowpaths hit, but I don't expect it to be a huge number
+in any performance critical code: such code should not be changing the
+virtual address space too often.
+
+Not sure whether it should go in... I doubt anyone will check it or really
+know what is a bad ratio anyway will they? The best we can do IMO is
+look out for regressions reported.
+
+> 
+> > +
+> > +		down_read(&mm->mmap_sem);
+> > +		ret = get_user_pages(current, mm, start,
+> > +			(end - start) >> PAGE_SHIFT, write, 0, pages, NULL);
+> > +		up_read(&mm->mmap_sem);
+> > +
+> > +		return ret;
+> > +	}
+> > +}
+> > Index: linux-2.6/include/asm-x86/uaccess.h
+> > ===================================================================
+> > --- linux-2.6.orig/include/asm-x86/uaccess.h
+> > +++ linux-2.6/include/asm-x86/uaccess.h
+> > @@ -3,3 +3,8 @@
+> >  #else
+> >  # include "uaccess_64.h"
+> >  #endif
+> > +
+> > +#define __HAVE_ARCH_FAST_GUP
+> > +struct page;
+> > +int fast_gup(unsigned long start, int nr_pages, int write, struct page **pages);
+> > +
+> 
+> Looking at this from a protection point of view it seems to me to make
+> sane checks, checking that the address is valid first, and then that
+> each PTE has the minimum permissions requested.  Where there is any
+> ambiguity falling back.
+
+Thanks for reviewing. Some good suggestions I will add.
+
  
- 	do {
- 		dst->version = src->version;
--		rmb();		/* fetch version before data */
-+		smp_rmb();		/* fetch version before data */
- 		dst->tsc_timestamp     = src->tsc_timestamp;
- 		dst->system_timestamp  = src->system_time;
- 		dst->tsc_to_nsec_mul   = src->tsc_to_system_mul;
- 		dst->tsc_shift         = src->tsc_shift;
--		rmb();		/* test version after fetching data */
-+		smp_rmb();		/* test version after fetching data */
- 	} while ((src->version & 1) | (dst->version ^ src->version));
- 
- 	return dst->version;
-@@ -332,10 +332,10 @@ static void xen_read_wallclock(struct ti
- 	/* get wallclock at system boot */
- 	do {
- 		version = s->wc_version;
--		rmb();		/* fetch version before time */
-+		smp_rmb();		/* fetch version before time */
- 		now.tv_sec  = s->wc_sec;
- 		now.tv_nsec = s->wc_nsec;
--		rmb();		/* fetch time before checking version */
-+		smp_rmb();		/* fetch time before checking version */
- 	} while ((s->wc_version & 1) | (version ^ s->wc_version));
- 
- 	delta = xen_clocksource_read();	/* time since system boot */
-Index: linux-2.6/crypto/xor.c
-===================================================================
---- linux-2.6.orig/crypto/xor.c
-+++ linux-2.6/crypto/xor.c
-@@ -78,11 +78,11 @@ do_xor_speed(struct xor_block_template *
- 		now = jiffies;
- 		count = 0;
- 		while (jiffies == now) {
--			mb(); /* prevent loop optimzation */
-+			barrier(); /* prevent loop optimzation */
- 			tmpl->do_2(BENCH_SIZE, b1, b2);
--			mb();
-+			barrier();
- 			count++;
--			mb();
-+			barrier();
- 		}
- 		if (count > max)
- 			max = count;
-Index: linux-2.6/drivers/block/xen-blkfront.c
-===================================================================
---- linux-2.6.orig/drivers/block/xen-blkfront.c
-+++ linux-2.6/drivers/block/xen-blkfront.c
-@@ -481,7 +481,7 @@ static irqreturn_t blkif_interrupt(int i
- 
-  again:
- 	rp = info->ring.sring->rsp_prod;
--	rmb(); /* Ensure we see queued responses up to 'rp'. */
-+	smp_rmb(); /* Ensure we see queued responses up to 'rp'. */
- 
- 	for (i = info->ring.rsp_cons; i != rp; i++) {
- 		unsigned long id;
-Index: linux-2.6/drivers/oprofile/buffer_sync.c
-===================================================================
---- linux-2.6.orig/drivers/oprofile/buffer_sync.c
-+++ linux-2.6/drivers/oprofile/buffer_sync.c
-@@ -416,7 +416,7 @@ static void increment_tail(struct oprofi
- {
- 	unsigned long new_tail = b->tail_pos + 1;
- 
--	rmb();
-+	smp_rmb();
- 
- 	if (new_tail < b->buffer_size)
- 		b->tail_pos = new_tail;
-Index: linux-2.6/drivers/oprofile/cpu_buffer.c
-===================================================================
---- linux-2.6.orig/drivers/oprofile/cpu_buffer.c
-+++ linux-2.6/drivers/oprofile/cpu_buffer.c
-@@ -137,7 +137,7 @@ static void increment_head(struct oprofi
- 
- 	/* Ensure anything written to the slot before we
- 	 * increment is visible */
--	wmb();
-+	smp_wmb();
- 
- 	if (new_head < b->buffer_size)
- 		b->head_pos = new_head;
-Index: linux-2.6/drivers/xen/events.c
-===================================================================
---- linux-2.6.orig/drivers/xen/events.c
-+++ linux-2.6/drivers/xen/events.c
-@@ -527,10 +527,8 @@ void xen_evtchn_do_upcall(struct pt_regs
- 		if (__get_cpu_var(nesting_count)++)
- 			goto out;
- 
--#ifndef CONFIG_X86 /* No need for a barrier -- XCHG is a barrier on x86. */
- 		/* Clear master flag /before/ clearing selector flag. */
--		rmb();
--#endif
-+		smp_rmb();
- 		pending_words = xchg(&vcpu_info->evtchn_pending_sel, 0);
- 		while (pending_words != 0) {
- 			unsigned long pending_bits;
-Index: linux-2.6/drivers/xen/grant-table.c
-===================================================================
---- linux-2.6.orig/drivers/xen/grant-table.c
-+++ linux-2.6/drivers/xen/grant-table.c
-@@ -150,7 +150,7 @@ static void update_grant_entry(grant_ref
- 	 */
- 	shared[ref].frame = frame;
- 	shared[ref].domid = domid;
--	wmb();
-+	smp_wmb();
- 	shared[ref].flags = flags;
- }
- 
-@@ -264,7 +264,7 @@ unsigned long gnttab_end_foreign_transfe
- 		cpu_relax();
- 	}
- 
--	rmb();	/* Read the frame number /after/ reading completion status. */
-+	smp_rmb();/* Read the frame number /after/ reading completion status. */
- 	frame = shared[ref].frame;
- 	BUG_ON(frame == 0);
- 
-Index: linux-2.6/include/xen/interface/io/ring.h
-===================================================================
---- linux-2.6.orig/include/xen/interface/io/ring.h
-+++ linux-2.6/include/xen/interface/io/ring.h
-@@ -182,12 +182,12 @@ struct __name##_back_ring {						\
-     (((_cons) - (_r)->rsp_prod_pvt) >= RING_SIZE(_r))
- 
- #define RING_PUSH_REQUESTS(_r) do {					\
--    wmb(); /* back sees requests /before/ updated producer index */	\
-+    smp_wmb(); /* back sees requests /before/ updated producer index */	\
-     (_r)->sring->req_prod = (_r)->req_prod_pvt;				\
- } while (0)
- 
- #define RING_PUSH_RESPONSES(_r) do {					\
--    wmb(); /* front sees responses /before/ updated producer index */	\
-+    smp_wmb(); /* front sees responses /before/ updated producer index */	\
-     (_r)->sring->rsp_prod = (_r)->rsp_prod_pvt;				\
- } while (0)
- 
-@@ -224,9 +224,9 @@ struct __name##_back_ring {						\
- #define RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(_r, _notify) do {		\
-     RING_IDX __old = (_r)->sring->req_prod;				\
-     RING_IDX __new = (_r)->req_prod_pvt;				\
--    wmb(); /* back sees requests /before/ updated producer index */	\
-+    smp_wmb(); /* back sees requests /before/ updated producer index */	\
-     (_r)->sring->req_prod = __new;					\
--    mb(); /* back sees new requests /before/ we check req_event */	\
-+    smp_mb(); /* back sees new requests /before/ we check req_event */	\
-     (_notify) = ((RING_IDX)(__new - (_r)->sring->req_event) <		\
- 		 (RING_IDX)(__new - __old));				\
- } while (0)
-@@ -234,9 +234,9 @@ struct __name##_back_ring {						\
- #define RING_PUSH_RESPONSES_AND_CHECK_NOTIFY(_r, _notify) do {		\
-     RING_IDX __old = (_r)->sring->rsp_prod;				\
-     RING_IDX __new = (_r)->rsp_prod_pvt;				\
--    wmb(); /* front sees responses /before/ updated producer index */	\
-+    smp_wmb(); /* front sees responses /before/ updated producer index */	\
-     (_r)->sring->rsp_prod = __new;					\
--    mb(); /* front sees new responses /before/ we check rsp_event */	\
-+    smp_mb(); /* front sees new responses /before/ we check rsp_event */	\
-     (_notify) = ((RING_IDX)(__new - (_r)->sring->rsp_event) <		\
- 		 (RING_IDX)(__new - __old));				\
- } while (0)
-@@ -245,7 +245,7 @@ struct __name##_back_ring {						\
-     (_work_to_do) = RING_HAS_UNCONSUMED_REQUESTS(_r);			\
-     if (_work_to_do) break;						\
-     (_r)->sring->req_event = (_r)->req_cons + 1;			\
--    mb();								\
-+    smp_mb();								\
-     (_work_to_do) = RING_HAS_UNCONSUMED_REQUESTS(_r);			\
- } while (0)
- 
-@@ -253,7 +253,7 @@ struct __name##_back_ring {						\
-     (_work_to_do) = RING_HAS_UNCONSUMED_RESPONSES(_r);			\
-     if (_work_to_do) break;						\
-     (_r)->sring->rsp_event = (_r)->rsp_cons + 1;			\
--    mb();								\
-+    smp_mb();								\
-     (_work_to_do) = RING_HAS_UNCONSUMED_RESPONSES(_r);			\
- } while (0)
- 
-Index: linux-2.6/kernel/power/process.c
-===================================================================
---- linux-2.6.orig/kernel/power/process.c
-+++ linux-2.6/kernel/power/process.c
-@@ -38,7 +38,7 @@ static inline void frozen_process(void)
- {
- 	if (!unlikely(current->flags & PF_NOFREEZE)) {
- 		current->flags |= PF_FROZEN;
--		wmb();
-+		smp_wmb();
- 	}
- 	clear_freeze_flag(current);
- }
-@@ -122,7 +122,7 @@ static int freeze_task(struct task_struc
- 				wake_up_state(p, TASK_INTERRUPTIBLE);
- 		}
- 	} else {
--		rmb();
-+		smp_rmb();
- 		if (frozen(p)) {
- 			ret = 0;
- 		} else {
-Index: linux-2.6/kernel/sched_rt.c
-===================================================================
---- linux-2.6.orig/kernel/sched_rt.c
-+++ linux-2.6/kernel/sched_rt.c
-@@ -20,7 +20,7 @@ static inline void rt_set_overload(struc
- 	 * if we looked at the mask, but the mask was not
- 	 * updated yet.
- 	 */
--	wmb();
-+	smp_wmb();
- 	atomic_inc(&rq->rd->rto_count);
- }
- 
-Index: linux-2.6/net/sched/cls_rsvp.h
-===================================================================
---- linux-2.6.orig/net/sched/cls_rsvp.h
-+++ linux-2.6/net/sched/cls_rsvp.h
-@@ -516,7 +516,7 @@ insert:
- 				if (((*fp)->spi.mask&f->spi.mask) != f->spi.mask)
- 					break;
- 			f->next = *fp;
--			wmb();
-+			smp_wmb();
- 			*fp = f;
- 
- 			*arg = (unsigned long)f;
-@@ -542,7 +542,7 @@ insert:
- 			break;
- 	}
- 	s->next = *sp;
--	wmb();
-+	smp_wmb();
- 	*sp = s;
- 
- 	goto insert;
-Index: linux-2.6/net/sched/cls_u32.c
-===================================================================
---- linux-2.6.orig/net/sched/cls_u32.c
-+++ linux-2.6/net/sched/cls_u32.c
-@@ -649,7 +649,7 @@ static int u32_change(struct tcf_proto *
- 				break;
- 
- 		n->next = *ins;
--		wmb();
-+		smp_wmb();
- 		*ins = n;
- 
- 		*arg = (unsigned long)n;
-Index: linux-2.6/security/selinux/ss/sidtab.c
-===================================================================
---- linux-2.6.orig/security/selinux/ss/sidtab.c
-+++ linux-2.6/security/selinux/ss/sidtab.c
-@@ -71,11 +71,11 @@ int sidtab_insert(struct sidtab *s, u32 
- 
- 	if (prev) {
- 		newnode->next = prev->next;
--		wmb();
-+		smp_wmb();
- 		prev->next = newnode;
- 	} else {
- 		newnode->next = s->htable[hvalue];
--		wmb();
-+		smp_wmb();
- 		s->htable[hvalue] = newnode;
- 	}
- 
-Index: linux-2.6/arch/ia64/kernel/process.c
-===================================================================
---- linux-2.6.orig/arch/ia64/kernel/process.c
-+++ linux-2.6/arch/ia64/kernel/process.c
-@@ -314,7 +314,7 @@ cpu_idle (void)
- #ifdef CONFIG_SMP
- 			min_xtp();
- #endif
--			rmb();
-+			smp_rmb();
- 			if (mark_idle)
- 				(*mark_idle)(1);
- 
-Index: linux-2.6/arch/ia64/kernel/smp.c
-===================================================================
---- linux-2.6.orig/arch/ia64/kernel/smp.c
-+++ linux-2.6/arch/ia64/kernel/smp.c
-@@ -112,13 +112,13 @@ handle_call_data(void)
- 	info = data->info;
- 	wait = data->wait;
- 
--	mb();
-+	smp_mb();
- 	atomic_inc(&data->started);
- 	/* At this point the structure may be gone unless wait is true. */
- 	(*func)(info);
- 
- 	/* Notify the sending CPU that the task is done. */
--	mb();
-+	smp_mb();
- 	if (wait)
- 		atomic_inc(&data->finished);
- }
-@@ -153,9 +153,9 @@ handle_IPI (int irq, void *dev_id)
- 	unsigned long *pending_ipis = &__ia64_per_cpu_var(ipi_operation);
- 	unsigned long ops;
- 
--	mb();	/* Order interrupt and bit testing. */
-+	smp_mb();	/* Order interrupt and bit testing. */
- 	while ((ops = xchg(pending_ipis, 0)) != 0) {
--		mb();	/* Order bit clearing and data access. */
-+		smp_mb();	/* Order bit clearing and data access. */
- 		do {
- 			unsigned long which;
- 
-@@ -181,7 +181,7 @@ handle_IPI (int irq, void *dev_id)
- 				break;
- 			}
- 		} while (ops);
--		mb();	/* Order data access and bit testing. */
-+		smp_mb();	/* Order data access and bit testing. */
- 	}
- 	put_cpu();
- 	return IRQ_HANDLED;
-@@ -313,7 +313,7 @@ smp_flush_tlb_cpumask(cpumask_t xcpumask
- 	for_each_cpu_mask(cpu, cpumask)
- 		counts[cpu] = local_tlb_flush_counts[cpu].count;
- 
--	mb();
-+	smp_mb();
- 	for_each_cpu_mask(cpu, cpumask) {
- 		if (cpu == mycpu)
- 			flush_mycpu = 1;
-@@ -398,7 +398,7 @@ smp_call_function_single (int cpuid, voi
- 	spin_lock_bh(&call_lock);
- 
- 	call_data = &data;
--	mb();	/* ensure store to call_data precedes setting of IPI_CALL_FUNC */
-+	smp_mb();	/* ensure store to call_data precedes setting of IPI_CALL_FUNC */
-   	send_IPI_single(cpuid, IPI_CALL_FUNC);
- 
- 	/* Wait for response */
-@@ -462,7 +462,7 @@ int smp_call_function_mask(cpumask_t mas
- 		atomic_set(&data.finished, 0);
- 
- 	call_data = &data;
--	mb(); /* ensure store to call_data precedes setting of IPI_CALL_FUNC*/
-+	smp_mb(); /* ensure store to call_data precedes setting of IPI_CALL_FUNC*/
- 
- 	/* Send a message to other CPUs */
- 	if (cpus_equal(mask, allbutself))
-@@ -528,7 +528,7 @@ smp_call_function (void (*func) (void *i
- 		atomic_set(&data.finished, 0);
- 
- 	call_data = &data;
--	mb();	/* ensure store to call_data precedes setting of IPI_CALL_FUNC */
-+	smp_mb();	/* ensure store to call_data precedes setting of IPI_CALL_FUNC */
- 	send_IPI_allbutself(IPI_CALL_FUNC);
- 
- 	/* Wait for response */
-Index: linux-2.6/arch/ia64/kernel/unaligned.c
-===================================================================
---- linux-2.6.orig/arch/ia64/kernel/unaligned.c
-+++ linux-2.6/arch/ia64/kernel/unaligned.c
-@@ -856,7 +856,7 @@ emulate_load_int (unsigned long ifa, loa
- 	 * use ordering fence.
- 	 */
- 	if (ld.x6_op == 0x5 || ld.x6_op == 0xa)
--		mb();
-+		smp_mb();
- 
- 	/*
- 	 * invalidate ALAT entry in case of advanced load
-@@ -937,7 +937,7 @@ emulate_store_int (unsigned long ifa, lo
- 	 * stX.rel: use fence instead of release
- 	 */
- 	if (ld.x6_op == 0xd)
--		mb();
-+		smp_mb();
- 
- 	return 0;
- }
-Index: linux-2.6/arch/ia64/kvm/process.c
-===================================================================
---- linux-2.6.orig/arch/ia64/kvm/process.c
-+++ linux-2.6/arch/ia64/kvm/process.c
-@@ -722,7 +722,7 @@ void leave_hypervisor_tail(void)
- 		}
- 	}
- 
--	rmb();
-+	smp_rmb();
- 	if (v->arch.irq_new_pending) {
- 		v->arch.irq_new_pending = 0;
- 		VMX(v, irq_check) = 0;
-Index: linux-2.6/arch/ia64/kvm/vcpu.c
-===================================================================
---- linux-2.6.orig/arch/ia64/kvm/vcpu.c
-+++ linux-2.6/arch/ia64/kvm/vcpu.c
-@@ -934,7 +934,7 @@ void vcpu_unpend_interrupt(struct kvm_vc
- 	local_irq_restore(spsr);
- 	if (ret) {
- 		vcpu->arch.irq_new_pending = 1;
--		wmb();
-+		smp_wmb();
- 	}
- }
- 
+> I did wonder if we could also check _PAGE_BIT_USER bit as by my reading
+> that would only ever be set on user pages, and by rejecting pages without
+> that set we could prevent any kernel pages being returned basically
+> for free.
+
+I still do want the access_ok check to avoid any possible issues with
+kernel page table modifications... but checking for the user bit would
+be another good sanity check, good idea. 
+
+
+> Reviewed-by: Andy Whitcroft <apw@shadowen.org>
+
+Thanks!
