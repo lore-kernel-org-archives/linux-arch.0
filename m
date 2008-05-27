@@ -1,63 +1,44 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 27 May 2008 12:15:40 +1000
-Message-ID: <1211854540.3286.42.camel@pasglop>
-References: <1211516683.8297.271.camel@pasglop>
-	 <Pine.LNX.4.64.0805221553400.8205@t2.domain.actdsltmp>
-	 <1211852026.3286.36.camel@pasglop>
-	 <20080526.184047.88207142.davem@davemloft.net>
-Reply-To: benh@kernel.crashing.org
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [patch 2/2] lockless get_user_pages
+Date: Tue, 27 May 2008 04:28:01 +0200
+Message-ID: <20080527022801.GB21578@wotan.suse.de>
+References: <20080525145227.GC25747@wotan.suse.de> <8763t1w1ko.fsf@saeurebad.de> <20080527095519.4676.KOSAKI.MOTOHIRO@jp.fujitsu.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:46520 "EHLO gate.crashing.org"
+Received: from ns1.suse.de ([195.135.220.2]:37998 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754649AbYE0CQR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 May 2008 22:16:17 -0400
-In-Reply-To: <20080526.184047.88207142.davem@davemloft.net>
+	id S1753121AbYE0C2F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 May 2008 22:28:05 -0400
+Content-Disposition: inline
+In-Reply-To: <20080527095519.4676.KOSAKI.MOTOHIRO@jp.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, tpiepho@freescale.com
+To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Cc: Johannes Weiner <hannes@saeurebad.de>, Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, jens.axboe@oracle.com, torvalds@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
 
-
-On Mon, 2008-05-26 at 18:40 -0700, David Miller wrote:
-> 
-> > Quick summary: gcc is happily re-ordering readl/writel vs. surrounding
-> > memory accesses (and thus accesses to DMA coherent memory) which is
-> > obviously a _BAD_THING_.
+On Tue, May 27, 2008 at 09:57:11AM +0900, KOSAKI Motohiro wrote:
+> > > Introduce a new "fast_gup" (for want of a better name right now)
 > > 
-> > This is on all archs. Quick fix is to stick a "memory" clobber in all arch
-> > implementations of readl/writel/... (ie, making them a barrier()).
+> > Perhaps,
 > > 
-> > However, I'm using that as an excuse to bring back my pet subject, which
-> > is basically, should we instead just finally mandate the use of explicit
-> > rmb/wmb/mb's (which boils down to barrier() on x86) to drivers who want
-> > to order memory consistent accesses vs. MMIO ?
+> >   * get_address_space
+> >   * get_address_mappings
+> >   * get_mapped_pages
+> >   * get_page_mappings
+> > 
+> > Or s@get_@ref_@?
 > 
-> This is basically what drivers are effectively doing.
+> Why get_user_pages_lockless() is wrong?
+> or get_my_pages() is better?
+> (because this method assume task is current task)
 
-Some of them. USB comes to mind. I'd be happy to make it "the rule" and
-document that MMIO vs. coherent access aren't implicitely ordered. I
-would still keep them ordered on powerpc for a little while tho until
-I'm happy enough with driver auditing.
+Aw, nobody likes fast_gup? ;)
 
-But heh, it's you who was telling me that it would be a bad engineering
-decision and we had to make everybody look like x86 & fully ordered :-)
-I decided to agree back then and stuck all those nasty heavy barriers
-in the powerpc variants of readl/writel/...
+Technically get_user_pages_lockless is wrong: the implementation may
+not be lockless so one cannot assume it will not take mmap sem and
+ptls.
 
-Now, however, that x86 -is- also affected by the problem to some extent
-(ie. compiler re-ordering, not CPU but similar), this  is why I'm asking
-what's people opinion is.
-
-I'm happy to do patches updating memory-barriers.txt and others, and
-do some driver auditing (though I won't do all of them), if the general
-opinion is that it's the right direction to go.
-
-If not, then shouldn't we remove the existing spurrious wmb/rmb/mb from
-drivers and slap a "memory" clobber on all archs readl/writel/... ?
-
-Cheers,
-Ben.
+But I do like to make it clear that it is related to get_user_pages.
+get_current_user_pages(), maybe? Hmm, that's harder to grep for
+both then I guess. get_user_pages_current?
