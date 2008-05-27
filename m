@@ -1,100 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:58997 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752698AbYEUVW3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 May 2008 17:22:29 -0400
-Message-ID: <200805212122.m4LLM5bp001437@imap1.linux-foundation.org>
-Subject: - make-list_poison-less-deadly-v2.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Wed, 21 May 2008 14:22:05 -0700
+Received: from gate.crashing.org ([63.228.1.57]:37380 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751161AbYE0HJ5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 May 2008 03:09:57 -0400
+Subject: Re: MMIO and gcc re-ordering issue
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Reply-To: benh@kernel.crashing.org
+In-Reply-To: <20080526204233.75b71bb8@infradead.org>
+References: <1211852026.3286.36.camel@pasglop>
+	 <20080526.184047.88207142.davem@davemloft.net>
+	 <1211854540.3286.42.camel@pasglop>
+	 <20080526.192812.184590464.davem@davemloft.net>
+	 <20080526204233.75b71bb8@infradead.org>
+Content-Type: text/plain
+Date: Tue, 27 May 2008 17:08:50 +1000
+Message-ID: <1211872130.3286.64.camel@pasglop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@qumranet.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, mm-commits@vger.kernel.org
-Message-ID: <20080521212205.aruwGfQJufNcZOBq9YLajmDwVyA2IO90mGEEBuQqakQ@z>
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, tpiepho@freescale.com
+Message-ID: <20080527070850.08hJaYQp3Gmuv-Vny9Vbuhizf_C689Yzl-G4wFoDr8o@z>
 
 
-The patch titled
-     Make LIST_POISON less deadly
-has been removed from the -mm tree.  Its filename was
-     make-list_poison-less-deadly-v2.patch
+> ... and try to find a way to test for it at runtime or compile time.
+> 
+> either via sparse or some fancy lockdep like "device store" thing?
+> If we can't test for it and it doesn't show up on x86 ... it'll just be
+> an eterrnal chase.
 
-This patch was dropped because it was merged into mainline or a subsystem tree
+It's hard. I haven't managed to come up with a good idea on how
+to test for it either at runtime or from sparse.
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+There -might- be way to test up to a certain point with sparse
+by defining a __coherent attribute for coherent memory and trying
+to figure out patterns like write to __coherent followed by MMIO
+with no barrier in between but that's fishy and won't catch many
+cases.
 
-------------------------------------------------------
-Subject: Make LIST_POISON less deadly
-From: Avi Kivity <avi@qumranet.com>
+Sticking barriers in the accessors is thus indeed the "easy" and
+somewhat safe fix and keeping everything as ordered as possible
 
-The list macros use LIST_POISON1 and LIST_POISON2 as undereferencable
-pointers in order to trap erronous use of freed list_heads.  Unfortunately
-userspace can arrange for those pointers to actually be dereferencable,
-potentially turning an oops to an expolit.
+Though it's my understanding that at least ia64 does require the
+explicit barriers anyway, so we are still in a dodgy situation here
+where it's not clear what drivers should do and we end up with
+possibly excessive barriers on powerpc where I end up with both
+the wmb/rmb/mb that were added for ia64 -and- the ones I have in
+readl/writel to make them look synchronous... Not nice.
 
-To avoid this allow architectures (currently x86_64 only) to override the
-default values for these pointers with truly-undereferncable values.  This
-is easy on x86_64 as the virtual address space is smaller than the range
-spanned by pointer values.
+I'm not sure there is a good answer...
 
-Signed-off-by: Avi Kivity <avi@qumranet.com>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+Cheers,
+Ben.
 
- arch/x86/Kconfig       |    5 +++++
- include/linux/poison.h |   10 ++++++++--
- 2 files changed, 13 insertions(+), 2 deletions(-)
-
-diff -puN arch/x86/Kconfig~make-list_poison-less-deadly-v2 arch/x86/Kconfig
---- a/arch/x86/Kconfig~make-list_poison-less-deadly-v2
-+++ a/arch/x86/Kconfig
-@@ -1025,6 +1025,11 @@ config ARCH_MEMORY_PROBE
- 	def_bool X86_64
- 	depends on MEMORY_HOTPLUG
- 
-+config ILLEGAL_POINTER_VALUE
-+       hex
-+       default 0 if X86_32
-+       default 0x8888888800000000 if X86_64
-+
- source "mm/Kconfig"
- 
- config HIGHPTE
-diff -puN include/linux/poison.h~make-list_poison-less-deadly-v2 include/linux/poison.h
---- a/include/linux/poison.h~make-list_poison-less-deadly-v2
-+++ a/include/linux/poison.h
-@@ -1,14 +1,20 @@
- #ifndef _LINUX_POISON_H
- #define _LINUX_POISON_H
- 
-+#ifdef CONFIG_ILLEGAL_POINTER_VALUE
-+#define POISON_POINTER_DELTA CONFIG_ILLEGAL_POINTER_VALUE
-+#else
-+#define POISON_POINTER_DELTA 0L
-+#endif
-+
- /********** include/linux/list.h **********/
- /*
-  * These are non-NULL pointers that will result in page faults
-  * under normal circumstances, used to verify that nobody uses
-  * non-initialized list entries.
-  */
--#define LIST_POISON1  ((void *) 0x00100100)
--#define LIST_POISON2  ((void *) 0x00200200)
-+#define LIST_POISON1  ((void *) 0x00100100 + POISON_POINTER_DELTA)
-+#define LIST_POISON2  ((void *) 0x00200200 + POISON_POINTER_DELTA)
- 
- /********** include/linux/timer.h **********/
- /*
-_
-
-Patches currently in -mm which might be from avi@qumranet.com are
-
-origin.patch
-linux-next.patch
-dma-mapping-add-the-device-argument-to-dma_mapping_error.patch
-dma-mapping-x86-per-device-dma_mapping_ops-support.patch
 
