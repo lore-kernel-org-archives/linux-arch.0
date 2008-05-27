@@ -1,48 +1,49 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch 2/2] lockless get_user_pages
-Date: Tue, 27 May 2008 04:57:25 +0200
-Message-ID: <20080527025725.GC21578@wotan.suse.de>
-References: <20080527095519.4676.KOSAKI.MOTOHIRO@jp.fujitsu.com> <20080527022801.GB21578@wotan.suse.de> <20080527114350.4679.KOSAKI.MOTOHIRO@jp.fujitsu.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Tue, 27 May 2008 13:39:02 +1000
+Message-ID: <1211859542.3286.46.camel@pasglop>
+References: <1211852026.3286.36.camel@pasglop>
+	 <20080526.184047.88207142.davem@davemloft.net>
+	 <1211854540.3286.42.camel@pasglop>
+	 <20080526.192812.184590464.davem@davemloft.net>
+Reply-To: benh@kernel.crashing.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:41671 "EHLO mx2.suse.de"
+Received: from gate.crashing.org ([63.228.1.57]:42393 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753516AbYE0C51 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 May 2008 22:57:27 -0400
-Content-Disposition: inline
-In-Reply-To: <20080527114350.4679.KOSAKI.MOTOHIRO@jp.fujitsu.com>
+	id S1754206AbYE0Djf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 May 2008 23:39:35 -0400
+In-Reply-To: <20080526.192812.184590464.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Cc: Johannes Weiner <hannes@saeurebad.de>, Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, jens.axboe@oracle.com, torvalds@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
+To: David Miller <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, tpiepho@freescale.com
 
-On Tue, May 27, 2008 at 11:46:27AM +0900, KOSAKI Motohiro wrote:
-> > Aw, nobody likes fast_gup? ;)
-> 
-> Ah, I misunderstood your intention.
-> I thought you disklike fast_gup..
-> 
-> I don't dislike it :()
 
-Heh, no I was joking. fast_gup is not such a good name, especially for
-grep or a reader who doesn't know gup is for get_user_pages.
+On Mon, 2008-05-26 at 19:28 -0700, David Miller wrote:
+> > But heh, it's you who was telling me that it would be a bad
+> engineering
+> > decision and we had to make everybody look like x86 & fully
+> ordered :-)
+> > I decided to agree back then and stuck all those nasty heavy
+> barriers
+> > in the powerpc variants of readl/writel/...
+> 
+> I still believe this.
+> 
+> It's just another complicated thing for driver authors to get wrong.
+> The other side of the coin is of course the cost.
+> 
+> The only thing I am absolutely sure of is that we should make a
+> decision fast, document it, and just stick to it.
 
- 
-> > Technically get_user_pages_lockless is wrong: the implementation may
-> > not be lockless so one cannot assume it will not take mmap sem and
-> > ptls.
-> 
-> agreed.
-> 
-> 
-> > But I do like to make it clear that it is related to get_user_pages.
-> > get_current_user_pages(), maybe? Hmm, that's harder to grep for
-> > both then I guess. get_user_pages_current?
-> 
-> Yeah, good name.
- 
-OK, I'll rename it.
+Yes. As it is today, tg3 for example is potentially broken on all archs
+with newer gcc unless we either add "memory" clobber to readl/writel or
+stick some wmb's in there (just a random driver I picked).
 
-Thanks,
-Nick
+So Linus, what is your take on that matter ?
+
+Cheers,
+Ben.
