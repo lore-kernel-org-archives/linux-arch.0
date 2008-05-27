@@ -1,57 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:37380 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751161AbYE0HJ5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 May 2008 03:09:57 -0400
-Subject: Re: MMIO and gcc re-ordering issue
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Reply-To: benh@kernel.crashing.org
-In-Reply-To: <20080526204233.75b71bb8@infradead.org>
-References: <1211852026.3286.36.camel@pasglop>
-	 <20080526.184047.88207142.davem@davemloft.net>
-	 <1211854540.3286.42.camel@pasglop>
-	 <20080526.192812.184590464.davem@davemloft.net>
-	 <20080526204233.75b71bb8@infradead.org>
-Content-Type: text/plain
-Date: Tue, 27 May 2008 17:08:50 +1000
-Message-ID: <1211872130.3286.64.camel@pasglop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from newsmtp5.atmel.com ([204.2.163.5]:10372 "EHLO
+	sjogate2.atmel.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754806AbYE0IKK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 May 2008 04:10:10 -0400
+Received: from bagnes.atmel.com ([10.175.100.4])
+	by sjogate2.atmel.com (8.13.6/8.13.6) with ESMTP id m4R89SQf028666
+	for <linux-arch@vger.kernel.org>; Tue, 27 May 2008 01:09:29 -0700 (PDT)
+From: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+Subject: [PATCH] avr32: Fix cpufreq oops when ondemand governor is default
+Date: Tue, 27 May 2008 09:47:42 +0200
+Message-ID: <1211874462-29287-1-git-send-email-haavard.skinnemoen@atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arjan van de Ven <arjan@infradead.org>
-Cc: David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, tpiepho@freescale.com
-Message-ID: <20080527070850.08hJaYQp3Gmuv-Vny9Vbuhizf_C689Yzl-G4wFoDr8o@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+Message-ID: <20080527074742.Wg3twhjrbmNnew5i23ilofm-BW7dTMcUHKGxUzAEtTE@z>
 
+Move the AP7 cpufreq driver to late_initcall() so that we don't try to
+bring up cpufreq until the governor is ready. x86 also uses
+late_initcall() for this.
 
-> ... and try to find a way to test for it at runtime or compile time.
-> 
-> either via sparse or some fancy lockdep like "device store" thing?
-> If we can't test for it and it doesn't show up on x86 ... it'll just be
-> an eterrnal chase.
+Signed-off-by: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+---
+While looking around, I spotted lots of other architectures using
+arch_initcall() for their cpufreq drivers. I would expect them to have
+the same problem when a non-trivial default governor is selected.
 
-It's hard. I haven't managed to come up with a good idea on how
-to test for it either at runtime or from sparse.
+ arch/avr32/mach-at32ap/cpufreq.c |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
 
-There -might- be way to test up to a certain point with sparse
-by defining a __coherent attribute for coherent memory and trying
-to figure out patterns like write to __coherent followed by MMIO
-with no barrier in between but that's fishy and won't catch many
-cases.
-
-Sticking barriers in the accessors is thus indeed the "easy" and
-somewhat safe fix and keeping everything as ordered as possible
-
-Though it's my understanding that at least ia64 does require the
-explicit barriers anyway, so we are still in a dodgy situation here
-where it's not clear what drivers should do and we end up with
-possibly excessive barriers on powerpc where I end up with both
-the wmb/rmb/mb that were added for ia64 -and- the ones I have in
-readl/writel to make them look synchronous... Not nice.
-
-I'm not sure there is a good answer...
-
-Cheers,
-Ben.
-
+diff --git a/arch/avr32/mach-at32ap/cpufreq.c b/arch/avr32/mach-at32ap/cpufreq.c
+index 235524b..5dd8d25 100644
+--- a/arch/avr32/mach-at32ap/cpufreq.c
++++ b/arch/avr32/mach-at32ap/cpufreq.c
+@@ -108,5 +108,4 @@ static int __init at32_cpufreq_init(void)
+ {
+ 	return cpufreq_register_driver(&at32_driver);
+ }
+-
+-arch_initcall(at32_cpufreq_init);
++late_initcall(at32_cpufreq_init);
+-- 
+1.5.5.1
 
