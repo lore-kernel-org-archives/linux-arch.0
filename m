@@ -1,40 +1,52 @@
-From: Scott Wood <scottwood@freescale.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 27 May 2008 13:33:56 -0500
-Message-ID: <483C5414.6050308@freescale.com>
-References: <1211852026.3286.36.camel@pasglop>  <20080526.184047.88207142.davem@davemloft.net>  <1211854540.3286.42.camel@pasglop>  <20080526.192812.184590464.davem@davemloft.net> <1211859542.3286.46.camel@pasglop> <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org> <Pine.LNX.4.64.0805271043150.7453@t2.domain.actdsltmp>
+Date: Wed, 28 May 2008 07:10:21 +1000
+Message-ID: <1211922621.3286.80.camel@pasglop>
+References: <1211852026.3286.36.camel@pasglop>
+	 <20080526.184047.88207142.davem@davemloft.net>
+	 <1211854540.3286.42.camel@pasglop>
+	 <20080526.192812.184590464.davem@davemloft.net>
+	 <1211859542.3286.46.camel@pasglop>
+	 <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org>
+Reply-To: benh@kernel.crashing.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from az33egw02.freescale.net ([192.88.158.103]:48291 "EHLO
-	az33egw02.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756139AbYE0SdJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 May 2008 14:33:09 -0400
-In-Reply-To: <Pine.LNX.4.64.0805271043150.7453@t2.domain.actdsltmp>
+Received: from gate.crashing.org ([63.228.1.57]:35080 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756590AbYE0VK6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 May 2008 17:10:58 -0400
+In-Reply-To: <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Trent Piepho <tpiepho@freescale.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
 
-Trent Piepho wrote:
-> Is there an issue with anything _besides_ coherent DMA?
+
+On Tue, 2008-05-27 at 08:35 -0700, Linus Torvalds wrote:
 > 
-> Could one have a special version of the accessors for drivers that
-> want to assume they are strictly ordered vs coherent DMA memory?
-> That would be much easier to get right, without slowing _everything_
-> down.
+> On Tue, 27 May 2008, Benjamin Herrenschmidt wrote:
+> > 
+> > Yes. As it is today, tg3 for example is potentially broken on all archs
+> > with newer gcc unless we either add "memory" clobber to readl/writel or
+> > stick some wmb's in there (just a random driver I picked).
+> > 
+> > So Linus, what is your take on that matter ?
+> 
+> Let's just serialize the damn things, and add a memory clobber to them.
+> 
+> Expecting people to fix up all drivers is simply not going to happen. And 
+> serializing things shouldn't be *that* expensive. People who cannot take 
+> the expense can continue to use the magic __raw_writel() etc stuff.
 
-It's better to be safe by default and then optimize the fast paths than 
-to be relaxed by default and hang the machine in some piece of code that 
-runs once a month.  "Premature optimization is the root of all evil", 
-and what not.
+Ok.
 
-> One could even go as far as to allow a driver to "#define 
-> WANT_STRICT_IO" and then it would get the strict versions.  Add that
-> to any driver that uses DMA and then worry about vetting those
-> drivers.
+Do we also remove wmb/rmb/... from drivers then ? :-) I think ia64 would
+need to be fixed to make their writel serializing...
 
-See above -- if you must have a #define, then it should be WANT_RELAXED_IO.
+Regarding __raw_* their semantics are dodgy ... we might want to provide
+something better but it's a different subject.
 
--Scott
+Cheers,
+Ben.
