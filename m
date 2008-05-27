@@ -1,45 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from newsmtp5.atmel.com ([204.2.163.5]:10372 "EHLO
-	sjogate2.atmel.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754806AbYE0IKK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 May 2008 04:10:10 -0400
-Received: from bagnes.atmel.com ([10.175.100.4])
-	by sjogate2.atmel.com (8.13.6/8.13.6) with ESMTP id m4R89SQf028666
-	for <linux-arch@vger.kernel.org>; Tue, 27 May 2008 01:09:29 -0700 (PDT)
-From: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
-Subject: [PATCH] avr32: Fix cpufreq oops when ondemand governor is default
-Date: Tue, 27 May 2008 09:47:42 +0200
-Message-ID: <1211874462-29287-1-git-send-email-haavard.skinnemoen@atmel.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:52316 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1758681AbYE0PgU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 May 2008 11:36:20 -0400
+Date: Tue, 27 May 2008 08:35:29 -0700 (PDT)
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: MMIO and gcc re-ordering issue
+In-Reply-To: <1211859542.3286.46.camel@pasglop>
+Message-ID: <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org>
+References: <1211852026.3286.36.camel@pasglop>  <20080526.184047.88207142.davem@davemloft.net>  <1211854540.3286.42.camel@pasglop>  <20080526.192812.184590464.davem@davemloft.net> <1211859542.3286.46.camel@pasglop>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
-Message-ID: <20080527074742.Wg3twhjrbmNnew5i23ilofm-BW7dTMcUHKGxUzAEtTE@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
+Message-ID: <20080527153529.6ckEFmKGoCIGzVJcw4azWR-GaW5Mt3ZIRL1Vivhxedw@z>
 
-Move the AP7 cpufreq driver to late_initcall() so that we don't try to
-bring up cpufreq until the governor is ready. x86 also uses
-late_initcall() for this.
 
-Signed-off-by: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
----
-While looking around, I spotted lots of other architectures using
-arch_initcall() for their cpufreq drivers. I would expect them to have
-the same problem when a non-trivial default governor is selected.
 
- arch/avr32/mach-at32ap/cpufreq.c |    3 +--
- 1 files changed, 1 insertions(+), 2 deletions(-)
+On Tue, 27 May 2008, Benjamin Herrenschmidt wrote:
+> 
+> Yes. As it is today, tg3 for example is potentially broken on all archs
+> with newer gcc unless we either add "memory" clobber to readl/writel or
+> stick some wmb's in there (just a random driver I picked).
+> 
+> So Linus, what is your take on that matter ?
 
-diff --git a/arch/avr32/mach-at32ap/cpufreq.c b/arch/avr32/mach-at32ap/cpufreq.c
-index 235524b..5dd8d25 100644
---- a/arch/avr32/mach-at32ap/cpufreq.c
-+++ b/arch/avr32/mach-at32ap/cpufreq.c
-@@ -108,5 +108,4 @@ static int __init at32_cpufreq_init(void)
- {
- 	return cpufreq_register_driver(&at32_driver);
- }
--
--arch_initcall(at32_cpufreq_init);
-+late_initcall(at32_cpufreq_init);
--- 
-1.5.5.1
+Let's just serialize the damn things, and add a memory clobber to them.
 
+Expecting people to fix up all drivers is simply not going to happen. And 
+serializing things shouldn't be *that* expensive. People who cannot take 
+the expense can continue to use the magic __raw_writel() etc stuff.
+
+			Linus
