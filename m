@@ -1,45 +1,58 @@
-From: Arjan van de Ven <arjan@infradead.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Mon, 26 May 2008 21:20:10 -0700
-Message-ID: <20080526212010.664302cf@infradead.org>
+Date: Tue, 27 May 2008 17:08:50 +1000
+Message-ID: <1211872130.3286.64.camel@pasglop>
 References: <1211852026.3286.36.camel@pasglop>
 	<20080526.184047.88207142.davem@davemloft.net>
 	<1211854540.3286.42.camel@pasglop>
 	<20080526.192812.184590464.davem@davemloft.net>
 	<20080526204233.75b71bb8@infradead.org>
-	<adad4n82xud.fsf@cisco.com>
+Reply-To: benh@kernel.crashing.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:32813 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750774AbYE0E1O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 May 2008 00:27:14 -0400
-In-Reply-To: <adad4n82xud.fsf@cisco.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Roland Dreier <rdreier@cisco.com>
-Cc: David Miller <davem@davemloft.net>, benh@kernel.crashing.org, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, tpiepho@freescale.com
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
+In-Reply-To: <20080526204233.75b71bb8@infradead.org>
+List-Unsubscribe: <https://ozlabs.org/mailman/options/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
+List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@ozlabs.org?subject=help>
+List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 26 May 2008 21:08:10 -0700
-Roland Dreier <rdreier@cisco.com> wrote:
 
->  > either via sparse or some fancy lockdep like "device store" thing?
->  > If we can't test for it and it doesn't show up on x86 ... it'll
->  > just be an eterrnal chase.
+> ... and try to find a way to test for it at runtime or compile time.
 > 
-> Ben's point is that it will start showing up on x86 because newer
-> compilers are reordering things...
-> 
->  - R.
+> either via sparse or some fancy lockdep like "device store" thing?
+> If we can't test for it and it doesn't show up on x86 ... it'll just be
+> an eterrnal chase.
 
+It's hard. I haven't managed to come up with a good idea on how
+to test for it either at runtime or from sparse.
 
-I know a basic reorder will show up there. A simple "barrier()" in
-readl/writel solves it for x86. Understandably, Ben doesn't really like
-that answer ;-)
+There -might- be way to test up to a certain point with sparse
+by defining a __coherent attribute for coherent memory and trying
+to figure out patterns like write to __coherent followed by MMIO
+with no barrier in between but that's fishy and won't catch many
+cases.
 
--- 
-If you want to reach me at my work email, use arjan@linux.intel.com
-For development, discussion and tips for power savings, 
-visit http://www.lesswatts.org
+Sticking barriers in the accessors is thus indeed the "easy" and
+somewhat safe fix and keeping everything as ordered as possible
+
+Though it's my understanding that at least ia64 does require the
+explicit barriers anyway, so we are still in a dodgy situation here
+where it's not clear what drivers should do and we end up with
+possibly excessive barriers on powerpc where I end up with both
+the wmb/rmb/mb that were added for ia64 -and- the ones I have in
+readl/writel to make them look synchronous... Not nice.
+
+I'm not sure there is a good answer...
+
+Cheers,
+Ben.
