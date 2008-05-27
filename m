@@ -1,58 +1,36 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 27 May 2008 17:08:50 +1000
-Message-ID: <1211872130.3286.64.camel@pasglop>
-References: <1211852026.3286.36.camel@pasglop>
-	<20080526.184047.88207142.davem@davemloft.net>
-	<1211854540.3286.42.camel@pasglop>
-	<20080526.192812.184590464.davem@davemloft.net>
-	<20080526204233.75b71bb8@infradead.org>
-Reply-To: benh@kernel.crashing.org
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
-In-Reply-To: <20080526204233.75b71bb8@infradead.org>
-List-Unsubscribe: <https://ozlabs.org/mailman/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
-List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@ozlabs.org?subject=help>
-List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
-Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
-To: Arjan van de Ven <arjan@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+From: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+Subject: [PATCH] avr32: Fix cpufreq oops when ondemand governor is default
+Date: Tue, 27 May 2008 09:47:42 +0200
+Message-ID: <1211874462-29287-1-git-send-email-haavard.skinnemoen@atmel.com>
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1756452AbYE0Hru@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
 List-Id: linux-arch.vger.kernel.org
 
+Move the AP7 cpufreq driver to late_initcall() so that we don't try to
+bring up cpufreq until the governor is ready. x86 also uses
+late_initcall() for this.
 
-> ... and try to find a way to test for it at runtime or compile time.
-> 
-> either via sparse or some fancy lockdep like "device store" thing?
-> If we can't test for it and it doesn't show up on x86 ... it'll just be
-> an eterrnal chase.
+Signed-off-by: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+---
+While looking around, I spotted lots of other architectures using
+arch_initcall() for their cpufreq drivers. I would expect them to have
+the same problem when a non-trivial default governor is selected.
 
-It's hard. I haven't managed to come up with a good idea on how
-to test for it either at runtime or from sparse.
+ arch/avr32/mach-at32ap/cpufreq.c |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
 
-There -might- be way to test up to a certain point with sparse
-by defining a __coherent attribute for coherent memory and trying
-to figure out patterns like write to __coherent followed by MMIO
-with no barrier in between but that's fishy and won't catch many
-cases.
-
-Sticking barriers in the accessors is thus indeed the "easy" and
-somewhat safe fix and keeping everything as ordered as possible
-
-Though it's my understanding that at least ia64 does require the
-explicit barriers anyway, so we are still in a dodgy situation here
-where it's not clear what drivers should do and we end up with
-possibly excessive barriers on powerpc where I end up with both
-the wmb/rmb/mb that were added for ia64 -and- the ones I have in
-readl/writel to make them look synchronous... Not nice.
-
-I'm not sure there is a good answer...
-
-Cheers,
-Ben.
+diff --git a/arch/avr32/mach-at32ap/cpufreq.c b/arch/avr32/mach-at32ap/cpufreq.c
+index 235524b..5dd8d25 100644
+--- a/arch/avr32/mach-at32ap/cpufreq.c
++++ b/arch/avr32/mach-at32ap/cpufreq.c
+@@ -108,5 +108,4 @@ static int __init at32_cpufreq_init(void)
+ {
+ 	return cpufreq_register_driver(&at32_driver);
+ }
+-
+-arch_initcall(at32_cpufreq_init);
++late_initcall(at32_cpufreq_init);
+-- 
+1.5.5.1
