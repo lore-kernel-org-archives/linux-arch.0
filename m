@@ -1,38 +1,41 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Roland Dreier <rdreier@cisco.com>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Tue, 27 May 2008 10:31:14 -0700 (PDT)
-Message-ID: <alpine.LFD.1.10.0805271028520.2958@woody.linux-foundation.org>
-References: <1211852026.3286.36.camel@pasglop>  <20080526.184047.88207142.davem@davemloft.net>  <1211854540.3286.42.camel@pasglop>  <20080526.192812.184590464.davem@davemloft.net> <1211859542.3286.46.camel@pasglop> <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org>
- <alpine.LFD.1.10.0805270943100.2958@woody.linux-foundation.org>
+Date: Tue, 27 May 2008 10:38:56 -0700
+Message-ID: <adad4n71wb3.fsf@cisco.com>
+References: <1211852026.3286.36.camel@pasglop>
+	<20080526.184047.88207142.davem@davemloft.net>
+	<1211854540.3286.42.camel@pasglop>
+	<20080526.192812.184590464.davem@davemloft.net>
+	<20080526204233.75b71bb8@infradead.org>
+	<1211872130.3286.64.camel@pasglop> <adaprr721c6.fsf@cisco.com>
+	<1211906268.3435.44.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:53922 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754412AbYE0RcE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 May 2008 13:32:04 -0400
-In-Reply-To: <alpine.LFD.1.10.0805270943100.2958@woody.linux-foundation.org>
+Received: from sj-iport-4.cisco.com ([171.68.10.86]:8453 "EHLO
+	sj-iport-4.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757536AbYE0Rsv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 May 2008 13:48:51 -0400
+In-Reply-To: <1211906268.3435.44.camel@localhost.localdomain> (James
+	Bottomley's message of "Tue, 27 May 2008 11:37:48 -0500")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
 
+ > Actually, this specifically should not be.  The need for mmiowb on altix
+ > is because it explicitly violates some of the PCI rules that would
+ > otherwise impede performance.   The compromise is that readX on altix
+ > contains the needed dma flush but there's a variant operator,
+ > readX_relaxed that doesn't (for drivers that know what they're doing).
+ > The altix critical drivers have all been converted to use the relaxed
+ > form for performance, and the unconverted ones should all operate just
+ > fine (albeit potentially more slowly).
 
+Is this a recent change?  Because as of October 2007, 76d7cc03
+("IB/mthca: Use mmiowb() to avoid firmware commands getting jumbled up")
+was needed.  But this was involving writel() (__raw_writel() actually,
+looking at the code), not readl().  But writel_relaxed() doesn't exist
+(and doesn't make sense).
 
-On Tue, 27 May 2008, Linus Torvalds wrote:
-> 
-> Here's a UNTESTED patch for x86 that may or may not compile and work, and 
-> which serializes (on a compiler level) the IO accesses against regular 
-> memory accesses.
-
-Ok, so it at least boots on x86-32. Thus probably on x86-64 too (since the 
-code is now shared). I didn't look at whether it generates much bigger 
-code due to the potential extra serialization, but some of the code 
-generation I looked at looked fine.
-
-IOW, it doesn't at least create any _obviously_ worse code, and it should 
-be arguably safer than assuming the compiler does volatile accesses the 
-way we want it to.
-
-		Linus
+ - R.
