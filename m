@@ -1,348 +1,125 @@
 From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: [PATCH 2/6v3] byteorder: add include/linux/byteorder.h to define
-	endian helpers
+Subject: [PATCH 3/6v3] byteorder: add get/put endian helpers for the
+	aligned case
 Date: Wed, 28 May 2008 12:33:01 -0700
-Message-ID: <1212003181.5964.27.camel@brick>
+Message-ID: <1212003181.5964.28.camel@brick>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from yw-out-2324.google.com ([74.125.46.30]:55322 "EHLO
+Received: from yw-out-2324.google.com ([74.125.46.31]:55926 "EHLO
 	yw-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752601AbYE1TdO (ORCPT
+	with ESMTP id S1752640AbYE1TdO (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 May 2008 15:33:14 -0400
-Received: by yw-out-2324.google.com with SMTP id 9so2048365ywe.1
-        for <linux-arch@vger.kernel.org>; Wed, 28 May 2008 12:33:04 -0700 (PDT)
+Received: by yw-out-2324.google.com with SMTP id 9so2048371ywe.1
+        for <linux-arch@vger.kernel.org>; Wed, 28 May 2008 12:33:05 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch <linux-arch@vger.kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 
+Create helpers when working with aligned loads/stores, same
+functionality as get_unaligned_* and put_unaligned_*
+
 Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
 ---
-Changes in v3 - Ensure __LITTLE_ENDIAN/__BIG_ENDIAN are defined
-with the same values as the old implementation
-
- include/linux/byteorder.h |  312 +++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 312 insertions(+), 0 deletions(-)
+ include/linux/byteorder.h |   84 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 84 insertions(+), 0 deletions(-)
 
 diff --git a/include/linux/byteorder.h b/include/linux/byteorder.h
-new file mode 100644
-index 0000000..b4713ce
---- /dev/null
+index b4713ce..ad47244 100644
+--- a/include/linux/byteorder.h
 +++ b/include/linux/byteorder.h
-@@ -0,0 +1,312 @@
-+#ifndef _LINUX_BYTEORDER_H
-+#define _LINUX_BYTEORDER_H
-+
-+#include <linux/types.h>
-+#include <linux/swab.h>
-+
-+#if defined(__LITTLE_ENDIAN) && defined(__BIG_ENDIAN)
-+# error Fix asm/byteorder.h to define one endianness
-+#endif
-+
-+#if !defined(__LITTLE_ENDIAN) && !defined(__BIG_ENDIAN)
-+# error Fix asm/byteorder.h to define arch endianness
-+#endif
-+
-+#ifdef __LITTLE_ENDIAN
-+# undef __LITTLE_ENDIAN
-+# define __LITTLE_ENDIAN 1234
-+#endif
-+
-+#ifdef __BIG_ENDIAN
-+# undef __BIG_ENDIAN
-+# define __BIG_ENDIAN 4321
-+#endif
-+
-+#if defined(__LITTLE_ENDIAN) && !defined(__LITTLE_ENDIAN_BITFIELD)
-+# define __LITTLE_ENDIAN_BITFIELD
-+#endif
-+
-+#if defined(__BIG_ENDIAN) && !defined(__BIG_ENDIAN_BITFIELD)
-+# define __BIG_ENDIAN_BITFIELD
-+#endif
-+
-+#ifdef __LITTLE_ENDIAN
-+# define __le16_to_cpu(x) ((__force __u16)(__le16)(x))
-+# define __le32_to_cpu(x) ((__force __u32)(__le32)(x))
-+# define __le64_to_cpu(x) ((__force __u64)(__le64)(x))
-+# define __cpu_to_le16(x) ((__force __le16)(__u16)(x))
-+# define __cpu_to_le32(x) ((__force __le32)(__u32)(x))
-+# define __cpu_to_le64(x) ((__force __le64)(__u64)(x))
-+# define __le16_to_cpus(x) do {} while (0)
-+# define __le32_to_cpus(x) do {} while (0)
-+# define __le64_to_cpus(x) do {} while (0)
-+# define __cpu_to_le16s(x) do {} while (0)
-+# define __cpu_to_le32s(x) do {} while (0)
-+# define __cpu_to_le64s(x) do {} while (0)
-+
-+# define __be16_to_cpu(x) __swab16((__force __u16)(__be16)(x))
-+# define __be32_to_cpu(x) __swab32((__force __u32)(__be32)(x))
-+# define __be64_to_cpu(x) __swab64((__force __u64)(__be64)(x))
-+# define __cpu_to_be16(x) ((__force __be16)__swab16((x)))
-+# define __cpu_to_be32(x) ((__force __be32)__swab32((x)))
-+# define __cpu_to_be64(x) ((__force __be64)__swab64((x)))
-+# define __be16_to_cpus(x) __swab16s((x))
-+# define __be32_to_cpus(x) __swab32s((x))
-+# define __be64_to_cpus(x) __swab64s((x))
-+# define __cpu_to_be16s(x) __swab16s((x))
-+# define __cpu_to_be32s(x) __swab32s((x))
-+# define __cpu_to_be64s(x) __swab64s((x))
-+#endif
-+
-+#ifdef __BIG_ENDIAN
-+# define __be16_to_cpu(x) ((__force __u16)(__be16)(x))
-+# define __be32_to_cpu(x) ((__force __u32)(__be32)(x))
-+# define __be64_to_cpu(x) ((__force __u64)(__be64)(x))
-+# define __cpu_to_be16(x) ((__force __be16)(__u16)(x))
-+# define __cpu_to_be32(x) ((__force __be32)(__u32)(x))
-+# define __cpu_to_be64(x) ((__force __be64)(__u64)(x))
-+# define __be16_to_cpus(x) do {} while (0)
-+# define __be32_to_cpus(x) do {} while (0)
-+# define __be64_to_cpus(x) do {} while (0)
-+# define __cpu_to_be16s(x) do {} while (0)
-+# define __cpu_to_be32s(x) do {} while (0)
-+# define __cpu_to_be64s(x) do {} while (0)
-+
-+# define __le16_to_cpu(x) __swab16((__force __u16)(__le16)(x))
-+# define __le32_to_cpu(x) __swab32((__force __u32)(__le32)(x))
-+# define __le64_to_cpu(x) __swab64((__force __u64)(__le64)(x))
-+# define __cpu_to_le16(x) ((__force __le16)__swab16((x)))
-+# define __cpu_to_le32(x) ((__force __le32)__swab32((x)))
-+# define __cpu_to_le64(x) ((__force __le64)__swab64((x)))
-+# define __le16_to_cpus(x) __swab16s((x))
-+# define __le32_to_cpus(x) __swab32s((x))
-+# define __le64_to_cpus(x) __swab64s((x))
-+# define __cpu_to_le16s(x) __swab16s((x))
-+# define __cpu_to_le32s(x) __swab32s((x))
-+# define __cpu_to_le64s(x) __swab64s((x))
-+#endif
-+
-+/*
-+ * These helpers could be phased out over time as the base version
-+ * handles constant folding.
-+ */
-+#define __constant_htonl(x) __cpu_to_be32((x))
-+#define __constant_ntohl(x) __be32_to_cpu((x))
-+#define __constant_htons(x) __cpu_to_be16((x))
-+#define __constant_ntohs(x) __be16_to_cpu((x))
-+
-+#define __constant_le16_to_cpu(x) __le16_to_cpu((x))
-+#define __constant_le32_to_cpu(x) __le32_to_cpu((x))
-+#define __constant_le64_to_cpu(x) __le64_to_cpu((x))
-+#define __constant_be16_to_cpu(x) __be16_to_cpu((x))
-+#define __constant_be32_to_cpu(x) __be32_to_cpu((x))
-+#define __constant_be64_to_cpu(x) __be64_to_cpu((x))
-+
-+#define __constant_cpu_to_le16(x) __cpu_to_le16((x))
-+#define __constant_cpu_to_le32(x) __cpu_to_le32((x))
-+#define __constant_cpu_to_le64(x) __cpu_to_le64((x))
-+#define __constant_cpu_to_be16(x) __cpu_to_be16((x))
-+#define __constant_cpu_to_be32(x) __cpu_to_be32((x))
-+#define __constant_cpu_to_be64(x) __cpu_to_be64((x))
-+
-+static inline __u16 __le16_to_cpup(const __le16 *p)
+@@ -278,6 +278,90 @@ static inline __be64 __cpu_to_be64p(const __u64 *p)
+ # define htons(x) ___htons(x)
+ # define ntohs(x) ___ntohs(x)
+ 
++static inline u16 get_le16(const __le16 *p)
 +{
 +#ifdef __LITTLE_ENDIAN
-+	return (__force __u16)*p;
++	return (__force u16)*p;
 +#else
-+	return __swab16p((__force __u16 *)p);
++	return swab16p((__force u16 *)p);
 +#endif
 +}
 +
-+static inline __u32 __le32_to_cpup(const __le32 *p)
++static inline u32 get_le32(const __le32 *p)
 +{
 +#ifdef __LITTLE_ENDIAN
-+	return (__force __u32)*p;
++	return (__force u32)*p;
 +#else
-+	return __swab32p((__force __u32 *)p);
++	return swab32p((__force u32 *)p);
 +#endif
 +}
 +
-+static inline __u64 __le64_to_cpup(const __le64 *p)
++static inline u64 get_le64(const __le64 *p)
 +{
 +#ifdef __LITTLE_ENDIAN
-+	return (__force __u64)*p;
++	return (__force u64)*p;
 +#else
-+	return __swab64p((__force __u64 *)p);
++	return __swab64p((__force u64 *)p);
 +#endif
 +}
 +
-+static inline __le16 __cpu_to_le16p(const __u16 *p)
-+{
-+#ifdef __LITTLE_ENDIAN
-+	return (__force __le16)*p;
-+#else
-+	return (__force __le16)__swab16p(p);
-+#endif
-+}
-+
-+static inline __le32 __cpu_to_le32p(const __u32 *p)
-+{
-+#ifdef __LITTLE_ENDIAN
-+	return (__force __le32)*p;
-+#else
-+	return (__force __le32)__swab32p(p);
-+#endif
-+}
-+
-+static inline __le64 __cpu_to_le64p(const __u64 *p)
-+{
-+#ifdef __LITTLE_ENDIAN
-+	return (__force __le64)*p;
-+#else
-+	return (__force __le64)__swab64p(p);
-+#endif
-+}
-+
-+static inline __u16 __be16_to_cpup(const __be16 *p)
++static inline u16 get_be16(const __be16 *p)
 +{
 +#ifdef __BIG_ENDIAN
-+	return (__force __u16)*p;
++	return (__force u16)*p;
 +#else
-+	return __swab16p((__force __u16 *)p);
++	return swab16p((__force u16 *)p);
 +#endif
 +}
 +
-+static inline __u32 __be32_to_cpup(const __be32 *p)
++static inline u32 get_be32(const __be32 *p)
 +{
 +#ifdef __BIG_ENDIAN
-+	return (__force __u32)*p;
++	return (__force u32)*p;
 +#else
-+	return __swab32p((__force __u32 *)p);
++	return swab32p((__force u32 *)p);
 +#endif
 +}
 +
-+static inline __u64 __be64_to_cpup(const __be64 *p)
++static inline u64 get_be64(const __be64 *p)
 +{
 +#ifdef __BIG_ENDIAN
-+	return (__force __u64)*p;
++	return (__force u64)*p;
 +#else
-+	return __swab64p((__force __u64 *)p);
++	return __swab64p((__force u64 *)p);
 +#endif
 +}
 +
-+static inline __be16 __cpu_to_be16p(const __u16 *p)
++static inline void put_le16(u16 val, __le16 *p)
 +{
-+#ifdef __BIG_ENDIAN
-+	return (__force __be16)*p;
-+#else
-+	return (__force __be16)__swab16p(p);
-+#endif
++	*p = cpu_to_le16(val);
 +}
 +
-+static inline __be32 __cpu_to_be32p(const __u32 *p)
++static inline void put_le32(u32 val, __le32 *p)
 +{
-+#ifdef __BIG_ENDIAN
-+	return (__force __be32)*p;
-+#else
-+	return (__force __be32)__swab32p(p);
-+#endif
++	*p = cpu_to_le32(val);
 +}
 +
-+static inline __be64 __cpu_to_be64p(const __u64 *p)
++static inline void put_le64(u64 val, __le64 *p)
 +{
-+#ifdef __BIG_ENDIAN
-+	return (__force __be64)*p;
-+#else
-+	return (__force __be64)__swab64p(p);
-+#endif
++	*p = cpu_to_le64(val);
 +}
 +
-+#ifdef __KERNEL__
-+
-+# define le16_to_cpu __le16_to_cpu
-+# define le32_to_cpu __le32_to_cpu
-+# define le64_to_cpu __le64_to_cpu
-+# define be16_to_cpu __be16_to_cpu
-+# define be32_to_cpu __be32_to_cpu
-+# define be64_to_cpu __be64_to_cpu
-+# define cpu_to_le16 __cpu_to_le16
-+# define cpu_to_le32 __cpu_to_le32
-+# define cpu_to_le64 __cpu_to_le64
-+# define cpu_to_be16 __cpu_to_be16
-+# define cpu_to_be32 __cpu_to_be32
-+# define cpu_to_be64 __cpu_to_be64
-+
-+# define le16_to_cpup __le16_to_cpup
-+# define le32_to_cpup __le32_to_cpup
-+# define le64_to_cpup __le64_to_cpup
-+# define be16_to_cpup __be16_to_cpup
-+# define be32_to_cpup __be32_to_cpup
-+# define be64_to_cpup __be64_to_cpup
-+# define cpu_to_le16p __cpu_to_le16p
-+# define cpu_to_le32p __cpu_to_le32p
-+# define cpu_to_le64p __cpu_to_le64p
-+# define cpu_to_be16p __cpu_to_be16p
-+# define cpu_to_be32p __cpu_to_be32p
-+# define cpu_to_be64p __cpu_to_be64p
-+
-+# define le16_to_cpus __le16_to_cpus
-+# define le32_to_cpus __le32_to_cpus
-+# define le64_to_cpus __le64_to_cpus
-+# define be16_to_cpus __be16_to_cpus
-+# define be32_to_cpus __be32_to_cpus
-+# define be64_to_cpus __be64_to_cpus
-+# define cpu_to_le16s __cpu_to_le16s
-+# define cpu_to_le32s __cpu_to_le32s
-+# define cpu_to_le64s __cpu_to_le64s
-+# define cpu_to_be16s __cpu_to_be16s
-+# define cpu_to_be32s __cpu_to_be32s
-+# define cpu_to_be64s __cpu_to_be64s
-+
-+/*
-+ * They have to be macros in order to do the constant folding
-+ * correctly - if the argument passed into a inline function
-+ * it is no longer constant according to gcc..
-+ */
-+# undef ntohl
-+# undef ntohs
-+# undef htonl
-+# undef htons
-+
-+# define ___htonl(x) __cpu_to_be32(x)
-+# define ___htons(x) __cpu_to_be16(x)
-+# define ___ntohl(x) __be32_to_cpu(x)
-+# define ___ntohs(x) __be16_to_cpu(x)
-+
-+# define htonl(x) ___htonl(x)
-+# define ntohl(x) ___ntohl(x)
-+# define htons(x) ___htons(x)
-+# define ntohs(x) ___ntohs(x)
-+
-+static inline void le16_add_cpu(__le16 *var, u16 val)
++static inline void put_be16(u16 val, __be16 *p)
 +{
-+	*var = cpu_to_le16(le16_to_cpup(var) + val);
++	*p = cpu_to_be16(val);
 +}
 +
-+static inline void le32_add_cpu(__le32 *var, u32 val)
++static inline void put_be32(u32 val, __be32 *p)
 +{
-+	*var = cpu_to_le32(le32_to_cpup(var) + val);
++	*p = cpu_to_be32(val);
 +}
 +
-+static inline void le64_add_cpu(__le64 *var, u64 val)
++static inline void put_be64(u64 val, __be64 *p)
 +{
-+	*var = cpu_to_le64(le64_to_cpup(var) + val);
++	*p = cpu_to_be64(val);
 +}
 +
-+static inline void be16_add_cpu(__be16 *var, u16 val)
-+{
-+	*var = cpu_to_be16(be16_to_cpup(var) + val);
-+}
-+
-+static inline void be32_add_cpu(__be32 *var, u32 val)
-+{
-+	*var = cpu_to_be32(be32_to_cpup(var) + val);
-+}
-+
-+static inline void be64_add_cpu(__be64 *var, u64 val)
-+{
-+	*var = cpu_to_be64(be64_to_cpup(var) + val);
-+}
-+
-+#endif /* __KERNEL__ */
-+#endif /* _LINUX_BYTEORDER_H */
+ static inline void le16_add_cpu(__le16 *var, u16 val)
+ {
+ 	*var = cpu_to_le16(le16_to_cpup(var) + val);
 -- 
 1.5.5.1.579.g4e43
