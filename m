@@ -1,46 +1,32 @@
-From: "Carlos R. Mafra" <crmafra2@gmail.com>
-Subject: Re: [PATCH 2/2] on_each_cpu(): kill unused 'retry' parameter
-Date: Thu, 29 May 2008 10:14:32 -0300
-Message-ID: <20080529131432.GA25627@Pilar.ictp.trieste.it>
-References: <1212051661-12733-1-git-send-email-jens.axboe@oracle.com> <1212051661-12733-3-git-send-email-jens.axboe@oracle.com> <20080529125151.GA25124@Pilar.ictp.trieste.it> <20080529125429.GE25504@kernel.dk>
+From: Jeremy Fitzhardinge <jeremy@goop.org>
+Subject: Re: [PATCH 2/10] x86: convert to generic helpers for IPI function
+  calls
+Date: Thu, 29 May 2008 14:47:09 +0100
+Message-ID: <483EB3DD.2090908@goop.org>
+References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-3-git-send-email-jens.axboe@oracle.com> <483E9D9B.9030202@goop.org> <20080529121704.GD25504@kernel.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ug-out-1314.google.com ([66.249.92.172]:23679 "EHLO
-	ug-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751206AbYE2NLV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 09:11:21 -0400
-Received: by ug-out-1314.google.com with SMTP id h2so88161ugf.16
-        for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 06:11:19 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20080529125429.GE25504@kernel.dk>
+Received: from gw.goop.org ([64.81.55.164]:41550 "EHLO mail.goop.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755631AbYE2Nrp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 May 2008 09:47:45 -0400
+In-Reply-To: <20080529121704.GD25504@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
 
-On Thu 29.May'08 at 14:54:29 +0200, Jens Axboe wrote:
-> On Thu, May 29 2008, Carlos R. Mafra wrote:
-> > Hi,
-> > 
-> > Just a naive comment/question:
-> > 
-> > > -	if (on_each_cpu(ipi_imb, NULL, 1, 1))
-> > > +	if (on_each_cpu(ipi_imb, NULL, 1))
-> > 
-> > A few weeks ago I though about removing the second argument
-> > from on_each_cpu, which is NULL more or less 70% of the time.
-> > 
-> > Do you think it is possible?
-> > Have you already thought about it? 
-> 
-> It's the data argument to the function, I highly doubt you can get
-> rid of that I'm afraid. on_each_cpu() is just a thin wrapper on
-> top of smp_call_function() so that the caller doesn't have to
-> care about manually calling on the local CPU. So as long as
-> smp_call_function() has a data argument, on_each_cpu() should
-> carry it as well.
-> 
-> So nope, I don't think that's feasible (or even desired).
+Jens Axboe wrote:
+> If you don't mind, I'd like to keep it as-is. Then the patch should
+> not have a functional change (there, at least), which I think is
+> important. I can add a later patch removing this stolen bit, it would
+> be even better if you send me such a patch :-)
+>   
 
-Ok, thanks for the reply!
+Sure. BTW, I got it to mush on top of x86.git, and it seems OK.  There 
+were lots of fairly trivial conflicts with things moving between unified 
+files, and a few missing smp_call_function and on_each_cpu calls.
+
+    J
