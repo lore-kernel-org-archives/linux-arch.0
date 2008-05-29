@@ -1,88 +1,111 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Thu, 29 May 2008 10:01:29 -0500
-Message-ID: <1212073289.3428.30.camel@localhost.localdomain>
-References: <1211852026.3286.36.camel@pasglop>
-	 <20080526.184047.88207142.davem@davemloft.net>
-	 <1211854540.3286.42.camel@pasglop>
-	 <20080526.192812.184590464.davem@davemloft.net>
-	 <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop>
-	 <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop>
-	 <adaiqwzsa83.fsf@cisco.com>  <yq0iqwxrwuh.fsf@jaguar.mkp.net>
+From: Dave Kleikamp <shaggy@linux.vnet.ibm.com>
+Subject: Re: [patch 3/5] x86: lockless get_user_pages_fast
+Date: Thu, 29 May 2008 12:20:59 -0500
+Message-ID: <1212081659.6308.10.camel@norville.austin.ibm.com>
+References: <20080529122050.823438000@nick.local0.net>
+	 <20080529122602.330656000@nick.local0.net>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from accolon.hansenpartnership.com ([76.243.235.52]:51636 "EHLO
-	accolon.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752522AbYE2PBk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 May 2008 11:01:40 -0400
-In-Reply-To: <yq0iqwxrwuh.fsf@jaguar.mkp.net>
+Received: from e1.ny.us.ibm.com ([32.97.182.141]:48277 "EHLO e1.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751843AbYE2RVR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 May 2008 13:21:17 -0400
+Received: from d01relay02.pok.ibm.com (d01relay02.pok.ibm.com [9.56.227.234])
+	by e1.ny.us.ibm.com (8.13.8/8.13.8) with ESMTP id m4THL0dG002902
+	for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 13:21:00 -0400
+Received: from d01av03.pok.ibm.com (d01av03.pok.ibm.com [9.56.224.217])
+	by d01relay02.pok.ibm.com (8.13.8/8.13.8/NCO v8.7) with ESMTP id m4THL0Zw147662
+	for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 13:21:00 -0400
+Received: from d01av03.pok.ibm.com (loopback [127.0.0.1])
+	by d01av03.pok.ibm.com (8.12.11.20060308/8.13.3) with ESMTP id m4THKxNs028519
+	for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 13:21:00 -0400
+In-Reply-To: <20080529122602.330656000@nick.local0.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jes Sorensen <jes@sgi.com>
-Cc: Roland Dreier <rdreier@cisco.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+To: npiggin@suse.de
+Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
 
-On Thu, 2008-05-29 at 10:47 -0400, Jes Sorensen wrote:
-> >>>>> "Roland" == Roland Dreier <rdreier@cisco.com> writes:
-> 
-> >> This is a different issue. We deal with it on powerpc by having
-> >> writel set a per-cpu flag and spin_unlock() test it, and do the
-> >> barrier if needed there.
-> 
-> Roland> Cool... I assume you do this for mutex_unlock() etc?
-> 
-> Roland> Is there any reason why ia64 can't do this too so we can kill
-> Roland> mmiowb and save everyone a lot of hassle?  (mips, sh and frv
-> Roland> have non-empty mmiowb() definitions too but I'd guess that
-> Roland> these are all bugs based on misunderstandings of the mmiowb()
-> Roland> semantics...)
-> 
-> Hi Roland,
-> 
-> Thats not going to solve the problem on Altix. On Altix the issue is
-> that there can be multiple paths through the NUMA fabric from cpuX to
-> PCI bridge Y. 
-> 
-> Consider this uber-cool<tm> ascii art - NR is my abbrevation for NUMA
-> router:
-> 
->         -------         -------
->         |cpu X|         |cpu Y|
->         -------         -------
->          |   \____  ____/    |
->          |        \/         |
->          |    ____/\____     |
->          |   /          \    |
->          -----          ------
->          |NR 1|         |NR 2|
->          ------         ------
->               \         /
->                \       /
->                 -------
->                 | PCI |
->                 -------
-> 
-> The problem is that your two writel's, despite being both issued on
-> cpu X, due to the spin lock, in your example, can end up with the
-> first one going through NR 1 and the second one going through NR 2. If
-> there's contention on NR 1, the write going via NR 2 may hit the PCI
-> bridge prior to the one going via NR 1.
-> 
-> Of course, the bigger the system, the worse the problem....
-> 
-> The only way to guarantee ordering in the above setup, is to either
-> make writel() fully ordered or adding the mmiowb()'s inbetween the two
-> writel's. On Altix you have to go and read from the PCI brige to
-> ensure all writes to it have been flushed, which is also what mmiowb()
-> is doing. If writel() was to guarantee this ordering, it would make
-> every writel() call extremely expensive :-(
+On Thu, 2008-05-29 at 22:20 +1000, npiggin@suse.de wrote:
+ 
+> +int get_user_pages_fast(unsigned long start, int nr_pages, int write, struct page **pages)
+> +{
+> +	struct mm_struct *mm = current->mm;
+> +	unsigned long end = start + (nr_pages << PAGE_SHIFT);
+> +	unsigned long addr = start;
+> +	unsigned long next;
+> +	pgd_t *pgdp;
+> +	int nr = 0;
+> +
+> +	if (unlikely(!access_ok(write ? VERIFY_WRITE : VERIFY_READ,
+> +					start, nr_pages*PAGE_SIZE)))
+> +		goto slow_irqon;
+> +
+> +	/*
+> +	 * XXX: batch / limit 'nr', to avoid large irq off latency
+> +	 * needs some instrumenting to determine the common sizes used by
+> +	 * important workloads (eg. DB2), and whether limiting the batch size
+> +	 * will decrease performance.
+> +	 *
+> +	 * It seems like we're in the clear for the moment. Direct-IO is
+> +	 * the main guy that batches up lots of get_user_pages, and even
+> +	 * they are limited to 64-at-a-time which is not so many.
+> +	 */
+> +	/*
+> +	 * This doesn't prevent pagetable teardown, but does prevent
+> +	 * the pagetables and pages from being freed on x86.
+> +	 *
+> +	 * So long as we atomically load page table pointers versus teardown
+> +	 * (which we do on x86, with the above PAE exception), we can follow the
+> +	 * address down to the the page and take a ref on it.
+> +	 */
+> +	local_irq_disable();
+> +	pgdp = pgd_offset(mm, addr);
+> +	do {
+> +		pgd_t pgd = *pgdp;
+> +
+> +		next = pgd_addr_end(addr, end);
+> +		if (pgd_none(pgd))
+> +			goto slow;
+> +		if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
+> +			goto slow;
+> +	} while (pgdp++, addr = next, addr != end);
+> +	local_irq_enable();
+> +
+> +	VM_BUG_ON(nr != (end - start) >> PAGE_SHIFT);
+> +	return nr;
+> +
+> +	{
+> +		int i, ret;
+> +
+> +slow:
+> +		local_irq_enable();
+> +slow_irqon:
+> +		/* Try to get the remaining pages with get_user_pages */
+> +		start += nr << PAGE_SHIFT;
+> +		pgaes += nr;
 
-So if a read from the bridge achieves the same effect, can't we just put
-one after the writes within the spinlock (an unrelaxed one).  That way
-this whole sequence will look like a well understood PCI posting flush
-rather than have to muck around with little understood (at least by most
-driver writers) io barriers?
+Typo: s/pgaes/pages/
 
-James
+> +
+> +		down_read(&mm->mmap_sem);
+> +		ret = get_user_pages(current, mm, start,
+> +			(end - start) >> PAGE_SHIFT, write, 0, pages, NULL);
+> +		up_read(&mm->mmap_sem);
+> +
+> +		/* Have to be a bit careful with return values */
+> +		if (nr > 0) {
+> +			if (ret < 0)
+> +				ret = nr;
+> +			else
+> +				ret += nr;
+> +		}
+> +
+> +		return ret;
+> +	}
+> +}
+
+-- 
+David Kleikamp
+IBM Linux Technology Center
