@@ -1,45 +1,44 @@
-From: Nick Piggin <npiggin@suse.de>
-Subject: Re: [patch 2/2] lockless get_user_pages
-Date: Thu, 29 May 2008 05:43:59 +0200
-Message-ID: <20080529034359.GI3258@wotan.suse.de>
-References: <20080527095519.4676.KOSAKI.MOTOHIRO@jp.fujitsu.com> <20080527022801.GB21578@wotan.suse.de> <20080527114350.4679.KOSAKI.MOTOHIRO@jp.fujitsu.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Thu, 29 May 2008 09:10:06 +0200
+Message-ID: <200805290910.07207.arnd@arndb.de>
+References: <1211852026.3286.36.camel@pasglop>
+	<alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org>
+	<1211926779.3286.104.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:35687 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753007AbYE2DoC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 May 2008 23:44:02 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org>
+In-Reply-To: <1211926779.3286.104.camel@pasglop>
 Content-Disposition: inline
-In-Reply-To: <20080527114350.4679.KOSAKI.MOTOHIRO@jp.fujitsu.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Cc: Johannes Weiner <hannes@saeurebad.de>, Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, jens.axboe@oracle.com, torvalds@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
+List-Unsubscribe: <https://ozlabs.org/mailman/options/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=unsubscribe>
+List-Archive: <http://ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@ozlabs.org?subject=help>
+List-Subscribe: <https://ozlabs.org/mailman/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@ozlabs.org
+To: benh@kernel.crashing.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 27, 2008 at 11:46:27AM +0900, KOSAKI Motohiro wrote:
-> > Aw, nobody likes fast_gup? ;)
-> 
-> Ah, I misunderstood your intention.
-> I thought you disklike fast_gup..
-> 
-> I don't dislike it :()
-> 
+On Wednesday 28 May 2008, Benjamin Herrenschmidt wrote:
+> On Tue, 2008-05-27 at 14:55 -0700, Linus Torvalds wrote:
 > > 
-> > Technically get_user_pages_lockless is wrong: the implementation may
-> > not be lockless so one cannot assume it will not take mmap sem and
-> > ptls.
+> > On Wed, 28 May 2008, Benjamin Herrenschmidt wrote:
+> > > 
+> > > A problem with __raw_ though is that they -also- don't do byteswap,
+> > 
+> > Well, that's why there is __readl() and __raw_readl(), no?
 > 
-> agreed.
+> As I replied to somebody else, __readl() is news to me :-) we dont' have
+> those on powerpc.
 > 
-> 
-> > But I do like to make it clear that it is related to get_user_pages.
-> > get_current_user_pages(), maybe? Hmm, that's harder to grep for
-> > both then I guess. get_user_pages_current?
-> 
-> Yeah, good name.
 
-Hmm, although now that I think about it more, fast_gup is not _quite_
-just a get_user_pages for "current". In particular it requires a bit
-of thought as to whether the pages are likely to require page faults
-or not... so I've called it get_user_pages_fast()
+It's not exactly a well-established interface. Only five architectures
+define these functions, and there is not a single user in the kernel
+source outside of these architecture's io.h files.
+
+	Arnd <><
