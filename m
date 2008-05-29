@@ -1,46 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-mail-127.bluehost.com ([67.222.38.27]:51521 "HELO
-	outbound-mail-127.bluehost.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1753309AbYE2WAz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 May 2008 18:00:55 -0400
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Received: from az33egw01.freescale.net ([192.88.158.102]:61744 "EHLO
+	az33egw01.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753123AbYE2W1d (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 18:27:33 -0400
+Date: Thu, 29 May 2008 15:25:31 -0700 (PDT)
+From: Trent Piepho <tpiepho@freescale.com>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Thu, 29 May 2008 14:53:38 -0700
-References: <1211852026.3286.36.camel@pasglop> <yq0iqwxrwuh.fsf@jaguar.mkp.net> <1212097223.8888.55.camel@pasglop>
-In-Reply-To: <1212097223.8888.55.camel@pasglop>
+In-Reply-To: <adawslcojdg.fsf@cisco.com>
+Message-ID: <Pine.LNX.4.64.0805291517140.18832@t2.domain.actdsltmp>
+References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net>
+ <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net>
+ <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop>
+ <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop>
+ <adaiqwzsa83.fsf@cisco.com> <yq0iqwxrwuh.fsf@jaguar.mkp.net>
+ <adawslcojdg.fsf@cisco.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <200805291453.38492.jbarnes@virtuousgeek.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: Jes Sorensen <jes@sgi.com>, Roland Dreier <rdreier@cisco.com>, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
-Message-ID: <20080529215338.d83vBGjsh7B-4fBzqBZaq24qYLyd5Tro4T__oumE6ME@z>
+To: Roland Dreier <rdreier@cisco.com>
+Cc: Jes Sorensen <jes@sgi.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+Message-ID: <20080529222531.6UExB2tXOTxC2oc5moIf9oSotS-_AcgPqIMMiY3Jraw@z>
 
-On Thursday, May 29, 2008 2:40 pm Benjamin Herrenschmidt wrote:
-> On Thu, 2008-05-29 at 10:47 -0400, Jes Sorensen wrote:
-> > The only way to guarantee ordering in the above setup, is to either
-> > make writel() fully ordered or adding the mmiowb()'s inbetween the two
-> > writel's. On Altix you have to go and read from the PCI brige to
-> > ensure all writes to it have been flushed, which is also what mmiowb()
-> > is doing. If writel() was to guarantee this ordering, it would make
-> > every writel() call extremely expensive :-(
+On Thu, 29 May 2008, Roland Dreier wrote:
+> > The problem is that your two writel's, despite being both issued on
+> > cpu X, due to the spin lock, in your example, can end up with the
+> > first one going through NR 1 and the second one going through NR 2. If
+> > there's contention on NR 1, the write going via NR 2 may hit the PCI
+> > bridge prior to the one going via NR 1.
 >
-> Interesting. I've always been taught by ia64 people that mmiowb() was
-> intended to be used solely between writel() and spin_unlock().
+> Really??  I can't see how you can expect any drivers to work reliably if
+> simple code like
+>
+> 	writel(reg1);
+> 	writel(reg2);
+>
+> might end up with the write to reg2 hitting the device before the write
+> to reg1.  Almost all MMIO stuff has ordering requirements and will
 
-Well, that *was* true, afaik, but maybe these days multipath isn't just for 
-fail-over.  If that's true, then yeah making every single writeX ordered 
-would be the only way to go...
+This is how powerpc is natively (the linux accessors have extra ordering to
+not allow this of course), and there are non-Linux drivers that are written
+for this ordering model.
 
-> If this is a performance problem, then provide relaxed variants and
-> use them in selected drivers.
-
-Sounds reasonable.  That way drivers "just work" and important drivers can be 
-optimized.
-
-Jesse
+I think what makes altix so hard is that writes to the _same_ register may be
+be re-ordered.  Re-ordering writes to the same address is much less common
+than allowing writes to different addresses to be re-ordered.
