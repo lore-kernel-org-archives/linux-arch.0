@@ -1,40 +1,60 @@
-From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 0/2] Kill unused parameter to smp_call_function and friends
-Date: Thu, 29 May 2008 13:49:34 +0200
-Message-ID: <20080529114934.GB25504@kernel.dk>
-References: <1212051661-12733-1-git-send-email-jens.axboe@oracle.com> <483E80E4.6030403@goop.org>
+From: Jeremy Fitzhardinge <jeremy@goop.org>
+Subject: Re: [PATCH 2/10] x86: convert to generic helpers for IPI function
+ calls
+Date: Thu, 29 May 2008 13:12:11 +0100
+Message-ID: <483E9D9B.9030202@goop.org>
+References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-3-git-send-email-jens.axboe@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-15; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:20910 "EHLO kernel.dk"
+Received: from gw.goop.org ([64.81.55.164]:57261 "EHLO mail.goop.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751582AbYE2Lth (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 May 2008 07:49:37 -0400
-Content-Disposition: inline
-In-Reply-To: <483E80E4.6030403@goop.org>
+	id S1751169AbYE2MMs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 May 2008 08:12:48 -0400
+In-Reply-To: <1212051504-12561-3-git-send-email-jens.axboe@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeremy Fitzhardinge <jeremy@goop.org>
+To: Jens Axboe <jens.axboe@oracle.com>
 Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
 
-On Thu, May 29 2008, Jeremy Fitzhardinge wrote:
-> Jens Axboe wrote:
-> >It bothers me how the smp call functions accept a 'nonatomic' or 
-> >'retry'
-> >parameter (depending on who you ask), but don't do anything with it.
-> >So kill that silly thing.
-> >
-> >Two patches here, one for smp_call_function*() and one for 
-> >on_each_cpu().
-> >This patchset applies on top of the generic-ipi patchset just sent 
-> >out.
-> >  
-> 
-> Yay!
-> 
-> Acked++-by: Jeremy Fitzhardinge <jeremy.fitzhardinge@citrix.com>
+Jens Axboe wrote:
+> @@ -122,6 +109,17 @@ static int xen_smp_intr_init(unsigned int cpu)
+>  		goto fail;
+>  	per_cpu(debug_irq, cpu) = rc;
+>  
+> +	callfunc_name = kasprintf(GFP_KERNEL, "callfuncsingle%d", cpu);
+> +	rc = bind_ipi_to_irqhandler(XEN_CALL_FUNCTION_SINGLE_VECTOR,
+> +				    cpu,
+> +				    xen_call_function_single_interrupt,
+> +				    IRQF_DISABLED|IRQF_PERCPU|IRQF_NOBALANCING,
+> +				    callfunc_name,
+> +				    NULL);
+> +	if (rc < 0)
+> +		goto fail;
+> +	per_cpu(callfuncsingle_irq, cpu) = rc;
+>   
 
-Thanks Jeremy, added!
+Tiny nit: could you shift this up below the other callfunc registration, 
+so they appear next to each other in /proc?
 
--- 
-Jens Axboe
+> +void xen_smp_send_call_function_ipi(cpumask_t mask)
+> +{
+> +	int cpu;
+> +
+> +	xen_send_IPI_mask(mask, XEN_CALL_FUNCTION_VECTOR);
+> +
+> +	/* Make sure other vcpus get a chance to run if they need to. */
+> +	for_each_cpu_mask(cpu, mask) {
+> +		if (xen_vcpu_stolen(cpu)) {
+> +			HYPERVISOR_sched_op(SCHEDOP_yield, 0);
+> +			break;
+> +		}
+> +	}
+>   
+
+I think you should just drop this loop for now; I want to do some 
+measurements before putting it in.
+
+Thanks,
+    J
