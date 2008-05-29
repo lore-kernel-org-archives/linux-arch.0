@@ -1,132 +1,408 @@
 From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: [PATCH 16/37] net/usb: use get/put_endian helpers
-Date: Thu, 29 May 2008 13:18:30 -0700
-Message-ID: <1212092310.28403.118.camel@brick>
+Subject: [PATCH 11/37] infiniband: use get/put_endian helpers
+Date: Thu, 29 May 2008 13:18:17 -0700
+Message-ID: <1212092297.28403.113.camel@brick>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from yx-out-2324.google.com ([74.125.44.30]:43494 "EHLO
-	yx-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753818AbYE2USc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 16:18:32 -0400
-Received: by yx-out-2324.google.com with SMTP id 31so392319yxl.1
-        for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 13:18:32 -0700 (PDT)
+Received: from wf-out-1314.google.com ([209.85.200.175]:43046 "EHLO
+	wf-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757328AbYE2USS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 16:18:18 -0400
+Received: by wf-out-1314.google.com with SMTP id 27so3083458wfd.4
+        for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 13:18:18 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, linux-netdev <netdev@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Roland Dreier <rolandd@cisco.com>
 
 Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
 ---
- drivers/net/usb/catc.c       |    8 ++++----
- drivers/net/usb/kaweth.c     |    2 +-
- drivers/net/usb/net1080.c    |    4 ++--
- drivers/net/usb/pegasus.c    |    2 +-
- drivers/net/usb/rndis_host.c |    2 +-
- drivers/net/usb/rtl8150.c    |    2 +-
- 6 files changed, 10 insertions(+), 10 deletions(-)
+ drivers/infiniband/core/packer.c             |   18 +++++++++---------
+ drivers/infiniband/core/sysfs.c              |    4 ++--
+ drivers/infiniband/core/user_mad.c           |    2 +-
+ drivers/infiniband/hw/ipath/ipath_driver.c   |    2 +-
+ drivers/infiniband/hw/ipath/ipath_eeprom.c   |    4 ++--
+ drivers/infiniband/hw/mlx4/main.c            |   18 +++++++++---------
+ drivers/infiniband/hw/mthca/mthca_cmd.c      |   10 +++++-----
+ drivers/infiniband/hw/mthca/mthca_dev.h      |   12 ++++++------
+ drivers/infiniband/hw/mthca/mthca_eq.c       |    2 +-
+ drivers/infiniband/hw/mthca/mthca_provider.c |   18 +++++++++---------
+ drivers/infiniband/hw/nes/nes.c              |    4 ++--
+ drivers/infiniband/ulp/ipoib/ipoib.h         |    2 +-
+ drivers/infiniband/ulp/ipoib/ipoib_main.c    |    6 +++---
+ drivers/infiniband/ulp/srp/ib_srp.c          |   16 ++++++++--------
+ 14 files changed, 59 insertions(+), 59 deletions(-)
 
-diff --git a/drivers/net/usb/catc.c b/drivers/net/usb/catc.c
-index 22c17bb..4b265d0 100644
---- a/drivers/net/usb/catc.c
-+++ b/drivers/net/usb/catc.c
-@@ -242,7 +242,7 @@ static void catc_rx_done(struct urb *urb)
- 
- 	do {
- 		if(!catc->is_f5u011) {
--			pkt_len = le16_to_cpup((__le16*)pkt_start);
-+			pkt_len = get_le16((__le16 *)pkt_start);
- 			if (pkt_len > urb->actual_length) {
- 				catc->stats.rx_length_errors++;
- 				catc->stats.rx_errors++;
-@@ -302,7 +302,7 @@ static void catc_irq_done(struct urb *urb)
- 		else if (data[1] & 0x20)
- 			linksts = LinkBad;
- 	} else {
--		hasdata = (unsigned int)(be16_to_cpup((__be16*)data) & 0x0fff);
-+		hasdata = (unsigned int)(get_be16((__be16 *)data) & 0x0fff);
- 		if (data[0] == 0x90)
- 			linksts = LinkGood;
- 		else if (data[0] == 0xA0)
-@@ -424,9 +424,9 @@ static int catc_hard_start_xmit(struct sk_buff *skb, struct net_device *netdev)
- 	catc->tx_ptr = (((catc->tx_ptr - 1) >> 6) + 1) << 6;
- 	tx_buf = catc->tx_buf[catc->tx_idx] + catc->tx_ptr;
- 	if (catc->is_f5u011)
--		*(__be16 *)tx_buf = cpu_to_be16(skb->len);
-+		put_be16(skb->len, (__be16 *)tx_buf);
- 	else
--		*(__le16 *)tx_buf = cpu_to_le16(skb->len);
-+		put_le16(skb->len, (__le16 *)tx_buf);
- 	skb_copy_from_linear_data(skb, tx_buf + 2, skb->len);
- 	catc->tx_ptr += skb->len + 2;
- 
-diff --git a/drivers/net/usb/kaweth.c b/drivers/net/usb/kaweth.c
-index 0dcfc03..0fded74 100644
---- a/drivers/net/usb/kaweth.c
-+++ b/drivers/net/usb/kaweth.c
-@@ -589,7 +589,7 @@ static void kaweth_usb_receive(struct urb *urb)
- 	int count = urb->actual_length;
- 	int count2 = urb->transfer_buffer_length;
- 
--	__u16 pkt_len = le16_to_cpup((__le16 *)kaweth->rx_buf);
-+	__u16 pkt_len = get_le16((__le16 *)kaweth->rx_buf);
- 
- 	struct sk_buff *skb;
- 
-diff --git a/drivers/net/usb/net1080.c b/drivers/net/usb/net1080.c
-index 034e8a7..4304278 100644
---- a/drivers/net/usb/net1080.c
-+++ b/drivers/net/usb/net1080.c
-@@ -439,8 +439,8 @@ static int net1080_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
+diff --git a/drivers/infiniband/core/packer.c b/drivers/infiniband/core/packer.c
+index c972d72..31633e2 100644
+--- a/drivers/infiniband/core/packer.c
++++ b/drivers/infiniband/core/packer.c
+@@ -40,10 +40,10 @@
+ static u64 value_read(int offset, int size, void *structure)
+ {
+ 	switch (size) {
+-	case 1: return                *(u8  *) (structure + offset);
+-	case 2: return be16_to_cpup((__be16 *) (structure + offset));
+-	case 4: return be32_to_cpup((__be32 *) (structure + offset));
+-	case 8: return be64_to_cpup((__be64 *) (structure + offset));
++	case 1: return            *(u8  *)(structure + offset);
++	case 2: return get_be16((__be16 *)(structure + offset));
++	case 4: return get_be32((__be32 *)(structure + offset));
++	case 8: return get_be64((__be64 *)(structure + offset));
+ 	default:
+ 		printk(KERN_WARNING "Field size %d bits not handled\n", size * 8);
+ 		return 0;
+@@ -129,9 +129,9 @@ static void value_write(int offset, int size, u64 val, void *structure)
+ {
+ 	switch (size * 8) {
+ 	case 8:  *(    u8 *) (structure + offset) = val; break;
+-	case 16: *(__be16 *) (structure + offset) = cpu_to_be16(val); break;
+-	case 32: *(__be32 *) (structure + offset) = cpu_to_be32(val); break;
+-	case 64: *(__be64 *) (structure + offset) = cpu_to_be64(val); break;
++	case 16: put_be16(val, (__be16 *)(structure + offset)); break;
++	case 32: put_be32(val, (__be32 *)(structure + offset)); break;
++	case 64: put_be64(val, (__be64 *)(structure + offset)); break;
+ 	default:
+ 		printk(KERN_WARNING "Field size %d bits not handled\n", size * 8);
+ 	}
+@@ -167,7 +167,7 @@ void ib_unpack(const struct ib_field        *desc,
+ 			shift = 32 - desc[i].offset_bits - desc[i].size_bits;
+ 			mask = ((1ull << desc[i].size_bits) - 1) << shift;
+ 			addr = (__be32 *) buf + desc[i].offset_words;
+-			val = (be32_to_cpup(addr) & mask) >> shift;
++			val = (get_be32(addr) & mask) >> shift;
+ 			value_write(desc[i].struct_offset_bytes,
+ 				    desc[i].struct_size_bytes,
+ 				    val,
+@@ -181,7 +181,7 @@ void ib_unpack(const struct ib_field        *desc,
+ 			shift = 64 - desc[i].offset_bits - desc[i].size_bits;
+ 			mask = (~0ull >> (64 - desc[i].size_bits)) << shift;
+ 			addr = (__be64 *) buf + desc[i].offset_words;
+-			val = (be64_to_cpup(addr) & mask) >> shift;
++			val = (get_be64(addr) & mask) >> shift;
+ 			value_write(desc[i].struct_offset_bytes,
+ 				    desc[i].struct_size_bytes,
+ 				    val,
+diff --git a/drivers/infiniband/core/sysfs.c b/drivers/infiniband/core/sysfs.c
+index 9575655..4887f0c 100644
+--- a/drivers/infiniband/core/sysfs.c
++++ b/drivers/infiniband/core/sysfs.c
+@@ -343,11 +343,11 @@ static ssize_t show_pma_counter(struct ib_port *p, struct port_attribute *attr,
+ 		break;
+ 	case 16:
+ 		ret = sprintf(buf, "%u\n",
+-			      be16_to_cpup((__be16 *)(out_mad->data + 40 + offset / 8)));
++			      get_be16((__be16 *)(out_mad->data + 40 + offset / 8)));
+ 		break;
+ 	case 32:
+ 		ret = sprintf(buf, "%u\n",
+-			      be32_to_cpup((__be32 *)(out_mad->data + 40 + offset / 8)));
++			      get_be32((__be32 *)(out_mad->data + 40 + offset / 8)));
+ 		break;
+ 	default:
+ 		ret = 0;
+diff --git a/drivers/infiniband/core/user_mad.c b/drivers/infiniband/core/user_mad.c
+index 840ede9..8242f85 100644
+--- a/drivers/infiniband/core/user_mad.c
++++ b/drivers/infiniband/core/user_mad.c
+@@ -558,7 +558,7 @@ static ssize_t ib_umad_write(struct file *filp, const char __user *buf,
+ 	if (!ib_response_mad(packet->msg->mad)) {
+ 		tid = &((struct ib_mad_hdr *) packet->msg->mad)->tid;
+ 		*tid = cpu_to_be64(((u64) agent->hi_tid) << 32 |
+-				   (be64_to_cpup(tid) & 0xffffffff));
++				   (get_be64(tid) & 0xffffffff));
+ 		rmpp_mad->mad_hdr.tid = *tid;
  	}
  
- 	header = (struct nc_header *) skb->data;
--	hdr_len = le16_to_cpup(&header->hdr_len);
--	packet_len = le16_to_cpup(&header->packet_len);
-+	hdr_len = get_le16(&header->hdr_len);
-+	packet_len = get_le16(&header->packet_len);
- 	if (FRAMED_SIZE(packet_len) > NC_MAX_PACKET) {
- 		dev->stats.rx_frame_errors++;
- 		dbg("packet too big, %d", packet_len);
-diff --git a/drivers/net/usb/pegasus.c b/drivers/net/usb/pegasus.c
-index b588c89..eacaada 100644
---- a/drivers/net/usb/pegasus.c
-+++ b/drivers/net/usb/pegasus.c
-@@ -665,7 +665,7 @@ static void read_bulk_callback(struct urb *urb)
- 		goto goon;
+diff --git a/drivers/infiniband/hw/ipath/ipath_driver.c b/drivers/infiniband/hw/ipath/ipath_driver.c
+index daad09a..2c33888 100644
+--- a/drivers/infiniband/hw/ipath/ipath_driver.c
++++ b/drivers/infiniband/hw/ipath/ipath_driver.c
+@@ -1260,7 +1260,7 @@ reloop:
+ 			ipath_cdbg(ERRPKT, "Error Pkt, but no eflags! egrbuf"
+ 				  " %x, len %x hdrq+%x rhf: %Lx\n",
+ 				  etail, tlen, l,
+-				  le64_to_cpu(*(__le64 *) rhf_addr));
++				  get_le64((__le64 *)rhf_addr));
+ 			if (ipath_debug & __IPATH_ERRPKTDBG) {
+ 				u32 j, *d, dw = rsize-2;
+ 				if (rsize > (tlen>>2))
+diff --git a/drivers/infiniband/hw/ipath/ipath_eeprom.c b/drivers/infiniband/hw/ipath/ipath_eeprom.c
+index dc37277..26b5148 100644
+--- a/drivers/infiniband/hw/ipath/ipath_eeprom.c
++++ b/drivers/infiniband/hw/ipath/ipath_eeprom.c
+@@ -772,8 +772,8 @@ void ipath_get_eeprom_info(struct ipath_devdata *dd)
+ 			 "0x%x, not 0x%x\n", csum, ifp->if_csum);
+ 		goto done;
  	}
- 	if (pegasus->chip == 0x8513) {
--		pkt_len = le32_to_cpu(*(__le32 *)urb->transfer_buffer);
-+		pkt_len = get_le32((__le32 *)urb->transfer_buffer);
- 		pkt_len &= 0x0fff;
- 		pegasus->rx_skb->data += 2;
+-	if (*(__be64 *) ifp->if_guid == 0ULL ||
+-	    *(__be64 *) ifp->if_guid == __constant_cpu_to_be64(-1LL)) {
++	if (*(__be64 *)ifp->if_guid == cpu_to_be64(0ULL) ||
++	    *(__be64 *)ifp->if_guid == cpu_to_be64(-1LL)) {
+ 		ipath_dev_err(dd, "Invalid GUID %llx from flash; "
+ 			      "ignoring\n",
+ 			      *(unsigned long long *) ifp->if_guid);
+diff --git a/drivers/infiniband/hw/mlx4/main.c b/drivers/infiniband/hw/mlx4/main.c
+index 4d61e32..e341300 100644
+--- a/drivers/infiniband/hw/mlx4/main.c
++++ b/drivers/infiniband/hw/mlx4/main.c
+@@ -104,10 +104,10 @@ static int mlx4_ib_query_device(struct ib_device *ibdev,
+ 	if (dev->dev->caps.max_gso_sz)
+ 		props->device_cap_flags |= IB_DEVICE_UD_TSO;
+ 
+-	props->vendor_id	   = be32_to_cpup((__be32 *) (out_mad->data + 36)) &
++	props->vendor_id	   = get_be32((__be32 *)(out_mad->data + 36)) &
+ 		0xffffff;
+-	props->vendor_part_id	   = be16_to_cpup((__be16 *) (out_mad->data + 30));
+-	props->hw_ver		   = be32_to_cpup((__be32 *) (out_mad->data + 32));
++	props->vendor_part_id	   = get_be16((__be16 *)(out_mad->data + 30));
++	props->hw_ver		   = get_be32((__be32 *)(out_mad->data + 32));
+ 	memcpy(&props->sys_image_guid, out_mad->data +	4, 8);
+ 
+ 	props->max_mr_size	   = ~0ull;
+@@ -165,18 +165,18 @@ static int mlx4_ib_query_port(struct ib_device *ibdev, u8 port,
+ 	if (err)
+ 		goto out;
+ 
+-	props->lid		= be16_to_cpup((__be16 *) (out_mad->data + 16));
++	props->lid		= get_be16((__be16 *)(out_mad->data + 16));
+ 	props->lmc		= out_mad->data[34] & 0x7;
+-	props->sm_lid		= be16_to_cpup((__be16 *) (out_mad->data + 18));
++	props->sm_lid		= get_be16((__be16 *)(out_mad->data + 18));
+ 	props->sm_sl		= out_mad->data[36] & 0xf;
+ 	props->state		= out_mad->data[32] & 0xf;
+ 	props->phys_state	= out_mad->data[33] >> 4;
+-	props->port_cap_flags	= be32_to_cpup((__be32 *) (out_mad->data + 20));
++	props->port_cap_flags	= get_be32((__be32 *)(out_mad->data + 20));
+ 	props->gid_tbl_len	= to_mdev(ibdev)->dev->caps.gid_table_len[port];
+ 	props->max_msg_sz	= to_mdev(ibdev)->dev->caps.max_msg_sz;
+ 	props->pkey_tbl_len	= to_mdev(ibdev)->dev->caps.pkey_table_len[port];
+-	props->bad_pkey_cntr	= be16_to_cpup((__be16 *) (out_mad->data + 46));
+-	props->qkey_viol_cntr	= be16_to_cpup((__be16 *) (out_mad->data + 48));
++	props->bad_pkey_cntr	= get_be16((__be16 *)(out_mad->data + 46));
++	props->qkey_viol_cntr	= get_be16((__be16 *)(out_mad->data + 48));
+ 	props->active_width	= out_mad->data[31] & 0xf;
+ 	props->active_speed	= out_mad->data[35] >> 4;
+ 	props->max_mtu		= out_mad->data[41] & 0xf;
+@@ -472,7 +472,7 @@ static int init_node_data(struct mlx4_ib_dev *dev)
+ 	if (err)
+ 		goto out;
+ 
+-	dev->dev->rev_id = be32_to_cpup((__be32 *) (out_mad->data + 32));
++	dev->dev->rev_id = get_be32((__be32 *)(out_mad->data + 32));
+ 	memcpy(&dev->ib_dev.node_guid, out_mad->data + 12, 8);
+ 
+ out:
+diff --git a/drivers/infiniband/hw/mthca/mthca_cmd.c b/drivers/infiniband/hw/mthca/mthca_cmd.c
+index 54d230e..8dbdb70 100644
+--- a/drivers/infiniband/hw/mthca/mthca_cmd.c
++++ b/drivers/infiniband/hw/mthca/mthca_cmd.c
+@@ -1215,8 +1215,8 @@ static void get_board_id(void *vsd, char *board_id)
+ 
+ 	memset(board_id, 0, MTHCA_BOARD_ID_LEN);
+ 
+-	if (be16_to_cpup(vsd + VSD_OFFSET_SIG1) == VSD_SIGNATURE_TOPSPIN &&
+-	    be16_to_cpup(vsd + VSD_OFFSET_SIG2) == VSD_SIGNATURE_TOPSPIN) {
++	if (*(u16 *)(vsd + VSD_OFFSET_SIG1) == cpu_to_be16(VSD_SIGNATURE_TOPSPIN) &&
++	    *(u16 *)(vsd + VSD_OFFSET_SIG2) == cpu_to_be16(VSD_SIGNATURE_TOPSPIN)) {
+ 		strlcpy(board_id, vsd + VSD_OFFSET_TS_BOARD_ID, MTHCA_BOARD_ID_LEN);
  	} else {
-diff --git a/drivers/net/usb/rndis_host.c b/drivers/net/usb/rndis_host.c
-index ae467f1..bda89c9 100644
---- a/drivers/net/usb/rndis_host.c
-+++ b/drivers/net/usb/rndis_host.c
-@@ -407,7 +407,7 @@ generic_rndis_bind(struct usbnet *dev, struct usb_interface *intf, int flags)
- 	u.set->oid = OID_GEN_CURRENT_PACKET_FILTER;
- 	u.set->len = ccpu2(4);
- 	u.set->offset = ccpu2((sizeof *u.set) - 8);
--	*(__le32 *)(u.buf + sizeof *u.set) = RNDIS_DEFAULT_FILTER;
-+	put_le32(RNDIS_DEFAULT_FILTER, (__le32 *)(u.buf + sizeof(*u.set)));
+ 		/*
+@@ -1759,12 +1759,12 @@ int mthca_MODIFY_QP(struct mthca_dev *dev, enum ib_qp_state cur,
+ 		if (0 && mailbox) {
+ 			int i;
+ 			mthca_dbg(dev, "Dumping QP context:\n");
+-			printk(" %08x\n", be32_to_cpup(mailbox->buf));
++			printk(" %08x\n", get_be32(mailbox->buf));
+ 			for (i = 0; i < 0x100 / 4; ++i) {
+ 				if (i % 8 == 0)
+ 					printk("[%02x] ", i * 4);
+ 				printk(" %08x",
+-				       be32_to_cpu(((__be32 *) mailbox->buf)[i + 2]));
++				       get_be32((__be32 *)mailbox->buf + i + 2));
+ 				if ((i + 1) % 8 == 0)
+ 					printk("\n");
+ 			}
+@@ -1776,7 +1776,7 @@ int mthca_MODIFY_QP(struct mthca_dev *dev, enum ib_qp_state cur,
+ 		if (0) {
+ 			int i;
+ 			mthca_dbg(dev, "Dumping QP context:\n");
+-			printk("  opt param mask: %08x\n", be32_to_cpup(mailbox->buf));
++			printk("  opt param mask: %08x\n", get_be32(mailbox->buf));
+ 			for (i = 0; i < 0x100 / 4; ++i) {
+ 				if (i % 8 == 0)
+ 					printk("  [%02x] ", i * 4);
+diff --git a/drivers/infiniband/hw/mthca/mthca_dev.h b/drivers/infiniband/hw/mthca/mthca_dev.h
+index 7bc32f8..01ab19f 100644
+--- a/drivers/infiniband/hw/mthca/mthca_dev.h
++++ b/drivers/infiniband/hw/mthca/mthca_dev.h
+@@ -390,9 +390,9 @@ extern void __buggy_use_of_MTHCA_PUT(void);
+ 		void *__p = (char *) (source) + (offset);             \
+ 		switch (sizeof (dest)) {                              \
+ 		case 1: (dest) = *(u8 *) __p;       break;	      \
+-		case 2: (dest) = be16_to_cpup(__p); break;	      \
+-		case 4: (dest) = be32_to_cpup(__p); break;	      \
+-		case 8: (dest) = be64_to_cpup(__p); break;	      \
++		case 2: (dest) = get_be16(__p);     break;	      \
++		case 4: (dest) = get_be32(__p);     break;	      \
++		case 8: (dest) = get_be64(__p);     break;	      \
+ 		default: __buggy_use_of_MTHCA_GET();		      \
+ 		}                                                     \
+ 	} while (0)
+@@ -402,9 +402,9 @@ extern void __buggy_use_of_MTHCA_PUT(void);
+ 		void *__d = ((char *) (dest) + (offset));	      \
+ 		switch (sizeof(source)) {                             \
+ 		case 1: *(u8 *) __d = (source);                break; \
+-		case 2:	*(__be16 *) __d = cpu_to_be16(source); break; \
+-		case 4:	*(__be32 *) __d = cpu_to_be32(source); break; \
+-		case 8:	*(__be64 *) __d = cpu_to_be64(source); break; \
++		case 2:	put_be16(source, (__be16 *)__d);       break; \
++		case 4:	put_be32(source, (__be32 *)__d);       break; \
++		case 8:	put_be64(source, (__be64 *)__d);       break; \
+ 		default: __buggy_use_of_MTHCA_PUT();		      \
+ 		}                                                     \
+ 	} while (0)
+diff --git a/drivers/infiniband/hw/mthca/mthca_eq.c b/drivers/infiniband/hw/mthca/mthca_eq.c
+index 8bde7f9..0cce9a3 100644
+--- a/drivers/infiniband/hw/mthca/mthca_eq.c
++++ b/drivers/infiniband/hw/mthca/mthca_eq.c
+@@ -620,7 +620,7 @@ static void mthca_free_eq(struct mthca_dev *dev,
+ 		for (i = 0; i < sizeof (struct mthca_eq_context) / 4; ++i) {
+ 			if (i % 4 == 0)
+ 				printk("[%02x] ", i * 4);
+-			printk(" %08x", be32_to_cpup(mailbox->buf + i * 4));
++			printk(" %08x", get_be32(mailbox->buf + i * 4));
+ 			if ((i + 1) % 4 == 0)
+ 				printk("\n");
+ 		}
+diff --git a/drivers/infiniband/hw/mthca/mthca_provider.c b/drivers/infiniband/hw/mthca/mthca_provider.c
+index be34f99..965c4f6 100644
+--- a/drivers/infiniband/hw/mthca/mthca_provider.c
++++ b/drivers/infiniband/hw/mthca/mthca_provider.c
+@@ -89,10 +89,10 @@ static int mthca_query_device(struct ib_device *ibdev,
+ 	}
  
- 	retval = rndis_command(dev, u.header);
- 	if (unlikely(retval < 0)) {
-diff --git a/drivers/net/usb/rtl8150.c b/drivers/net/usb/rtl8150.c
-index df56a51..1505b07 100644
---- a/drivers/net/usb/rtl8150.c
-+++ b/drivers/net/usb/rtl8150.c
-@@ -455,7 +455,7 @@ static void read_bulk_callback(struct urb *urb)
- 		goto goon;
+ 	props->device_cap_flags    = mdev->device_cap_flags;
+-	props->vendor_id           = be32_to_cpup((__be32 *) (out_mad->data + 36)) &
++	props->vendor_id           = get_be32((__be32 *)(out_mad->data + 36)) &
+ 		0xffffff;
+-	props->vendor_part_id      = be16_to_cpup((__be16 *) (out_mad->data + 30));
+-	props->hw_ver              = be32_to_cpup((__be32 *) (out_mad->data + 32));
++	props->vendor_part_id      = get_be16((__be16 *)(out_mad->data + 30));
++	props->hw_ver              = get_be32((__be32 *)(out_mad->data + 32));
+ 	memcpy(&props->sys_image_guid, out_mad->data +  4, 8);
  
- 	res = urb->actual_length;
--	rx_stat = le16_to_cpu(*(__le16 *)(urb->transfer_buffer + res - 4));
-+	rx_stat = get_le16((__le16 *)(urb->transfer_buffer + res - 4));
- 	pkt_len = res - 4;
+ 	props->max_mr_size         = ~0ull;
+@@ -165,18 +165,18 @@ static int mthca_query_port(struct ib_device *ibdev,
+ 		goto out;
+ 	}
  
- 	skb_put(dev->rx_skb, pkt_len);
+-	props->lid               = be16_to_cpup((__be16 *) (out_mad->data + 16));
++	props->lid               = get_be16((__be16 *)(out_mad->data + 16));
+ 	props->lmc               = out_mad->data[34] & 0x7;
+-	props->sm_lid            = be16_to_cpup((__be16 *) (out_mad->data + 18));
++	props->sm_lid            = get_be16((__be16 *)(out_mad->data + 18));
+ 	props->sm_sl             = out_mad->data[36] & 0xf;
+ 	props->state             = out_mad->data[32] & 0xf;
+ 	props->phys_state        = out_mad->data[33] >> 4;
+-	props->port_cap_flags    = be32_to_cpup((__be32 *) (out_mad->data + 20));
++	props->port_cap_flags    = get_be32((__be32 *)(out_mad->data + 20));
+ 	props->gid_tbl_len       = to_mdev(ibdev)->limits.gid_table_len;
+ 	props->max_msg_sz        = 0x80000000;
+ 	props->pkey_tbl_len      = to_mdev(ibdev)->limits.pkey_table_len;
+-	props->bad_pkey_cntr     = be16_to_cpup((__be16 *) (out_mad->data + 46));
+-	props->qkey_viol_cntr    = be16_to_cpup((__be16 *) (out_mad->data + 48));
++	props->bad_pkey_cntr     = get_be16((__be16 *)(out_mad->data + 46));
++	props->qkey_viol_cntr    = get_be16((__be16 *)(out_mad->data + 48));
+ 	props->active_width      = out_mad->data[31] & 0xf;
+ 	props->active_speed      = out_mad->data[35] >> 4;
+ 	props->max_mtu           = out_mad->data[41] & 0xf;
+@@ -1286,7 +1286,7 @@ static int mthca_init_node_data(struct mthca_dev *dev)
+ 	}
+ 
+ 	if (mthca_is_memfree(dev))
+-		dev->rev_id = be32_to_cpup((__be32 *) (out_mad->data + 32));
++		dev->rev_id = get_be32((__be32 *)(out_mad->data + 32));
+ 	memcpy(&dev->ib_dev.node_guid, out_mad->data + 12, 8);
+ 
+ out:
+diff --git a/drivers/infiniband/hw/nes/nes.c b/drivers/infiniband/hw/nes/nes.c
+index a4e9269..38c18ff 100644
+--- a/drivers/infiniband/hw/nes/nes.c
++++ b/drivers/infiniband/hw/nes/nes.c
+@@ -217,10 +217,10 @@ static int nes_net_event(struct notifier_block *notifier,
+ 					} else {
+ 						if (neigh->nud_state & NUD_VALID) {
+ 							nes_manage_arp_cache(neigh->dev, neigh->ha,
+-									ntohl(*(__be32 *)neigh->primary_key), NES_ARP_ADD);
++									get_be32((__be32 *)neigh->primary_key), NES_ARP_ADD);
+ 						} else {
+ 							nes_manage_arp_cache(neigh->dev, neigh->ha,
+-									ntohl(*(__be32 *)neigh->primary_key), NES_ARP_DELETE);
++									get_be32((__be32 *)neigh->primary_key), NES_ARP_DELETE);
+ 						}
+ 					}
+ 					return NOTIFY_OK;
+diff --git a/drivers/infiniband/ulp/ipoib/ipoib.h b/drivers/infiniband/ulp/ipoib/ipoib.h
+index ca126fc..0121033 100644
+--- a/drivers/infiniband/ulp/ipoib/ipoib.h
++++ b/drivers/infiniband/ulp/ipoib/ipoib.h
+@@ -732,6 +732,6 @@ extern int ipoib_debug_level;
+ 
+ #define IPOIB_GID_ARG(gid)	IPOIB_GID_RAW_ARG((gid).raw)
+ 
+-#define IPOIB_QPN(ha) (be32_to_cpup((__be32 *) ha) & 0xffffff)
++#define IPOIB_QPN(ha) (get_be32((__be32 *) ha) & 0xffffff)
+ 
+ #endif /* _IPOIB_H */
+diff --git a/drivers/infiniband/ulp/ipoib/ipoib_main.c b/drivers/infiniband/ulp/ipoib/ipoib_main.c
+index 2442090..3e4959e 100644
+--- a/drivers/infiniband/ulp/ipoib/ipoib_main.c
++++ b/drivers/infiniband/ulp/ipoib/ipoib_main.c
+@@ -733,12 +733,12 @@ static int ipoib_start_xmit(struct sk_buff *skb, struct net_device *dev)
+ 		} else {
+ 			/* unicast GID -- should be ARP or RARP reply */
+ 
+-			if ((be16_to_cpup((__be16 *) skb->data) != ETH_P_ARP) &&
+-			    (be16_to_cpup((__be16 *) skb->data) != ETH_P_RARP)) {
++			if ((*(__be16 *)skb->data != cpu_to_be16(ETH_P_ARP)) &&
++			    (*(__be16 *)skb->data != cpu_to_be16(ETH_P_RARP))) {
+ 				ipoib_warn(priv, "Unicast, no %s: type %04x, QPN %06x "
+ 					   IPOIB_GID_FMT "\n",
+ 					   skb->dst ? "neigh" : "dst",
+-					   be16_to_cpup((__be16 *) skb->data),
++					   get_be16((__be16 *)skb->data),
+ 					   IPOIB_QPN(phdr->hwaddr),
+ 					   IPOIB_GID_RAW_ARG(phdr->hwaddr + 4));
+ 				dev_kfree_skb_any(skb);
+diff --git a/drivers/infiniband/ulp/srp/ib_srp.c b/drivers/infiniband/ulp/srp/ib_srp.c
+index 4351457..c50514a 100644
+--- a/drivers/infiniband/ulp/srp/ib_srp.c
++++ b/drivers/infiniband/ulp/srp/ib_srp.c
+@@ -1893,14 +1893,14 @@ static ssize_t srp_create_target(struct device *dev,
+ 	       (unsigned long long) be64_to_cpu(target->ioc_guid),
+ 	       be16_to_cpu(target->path.pkey),
+ 	       (unsigned long long) be64_to_cpu(target->service_id),
+-	       (int) be16_to_cpu(*(__be16 *) &target->path.dgid.raw[0]),
+-	       (int) be16_to_cpu(*(__be16 *) &target->path.dgid.raw[2]),
+-	       (int) be16_to_cpu(*(__be16 *) &target->path.dgid.raw[4]),
+-	       (int) be16_to_cpu(*(__be16 *) &target->path.dgid.raw[6]),
+-	       (int) be16_to_cpu(*(__be16 *) &target->path.dgid.raw[8]),
+-	       (int) be16_to_cpu(*(__be16 *) &target->path.dgid.raw[10]),
+-	       (int) be16_to_cpu(*(__be16 *) &target->path.dgid.raw[12]),
+-	       (int) be16_to_cpu(*(__be16 *) &target->path.dgid.raw[14]));
++	       (int)get_be16((__be16 *)&target->path.dgid.raw[0]),
++	       (int)get_be16((__be16 *)&target->path.dgid.raw[2]),
++	       (int)get_be16((__be16 *)&target->path.dgid.raw[4]),
++	       (int)get_be16((__be16 *)&target->path.dgid.raw[6]),
++	       (int)get_be16((__be16 *)&target->path.dgid.raw[8]),
++	       (int)get_be16((__be16 *)&target->path.dgid.raw[10]),
++	       (int)get_be16((__be16 *)&target->path.dgid.raw[12]),
++	       (int)get_be16((__be16 *)&target->path.dgid.raw[14]));
+ 
+ 	ret = srp_create_target_ib(target);
+ 	if (ret)
 -- 
 1.5.6.rc0.277.g804cf
