@@ -1,33 +1,33 @@
-From: Jeremy Fitzhardinge <jeremy@goop.org>
-Subject: Re: [PATCH 0/2] Kill unused parameter to smp_call_function and friends
-Date: Thu, 29 May 2008 11:09:40 +0100
-Message-ID: <483E80E4.6030403@goop.org>
-References: <1212051661-12733-1-git-send-email-jens.axboe@oracle.com>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Thu, 29 May 2008 11:46:34 +0100
+Message-ID: <20080529114634.048ea9a0@core>
+References: <1211852026.3286.36.camel@pasglop>
+	<alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org>
+	<1211926779.3286.104.camel@pasglop>
+	<200805290910.07207.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:56121 "EHLO mail.goop.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750994AbYE2KKR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 May 2008 06:10:17 -0400
-In-Reply-To: <1212051661-12733-1-git-send-email-jens.axboe@oracle.com>
+Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:56094 "EHLO
+	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750974AbYE2LBQ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 07:01:16 -0400
+In-Reply-To: <200805290910.07207.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: benh@kernel.crashing.org, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com
 
-Jens Axboe wrote:
-> It bothers me how the smp call functions accept a 'nonatomic' or 'retry'
-> parameter (depending on who you ask), but don't do anything with it.
-> So kill that silly thing.
->
-> Two patches here, one for smp_call_function*() and one for on_each_cpu().
-> This patchset applies on top of the generic-ipi patchset just sent out.
->   
+> It's not exactly a well-established interface. Only five architecture=
+s
+> define these functions, and there is not a single user in the kernel
+> source outside of these architecture's io.h files.
 
-Yay!
+That is because the drivers using them had them removed (eg I=C2=B2O) -=
+ mostly
+because "it didn't compile on power pc" 8(
 
-Acked++-by: Jeremy Fitzhardinge <jeremy.fitzhardinge@citrix.com>
 
-    J
+Alan
