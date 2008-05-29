@@ -1,52 +1,56 @@
-From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: [PATCH 22/37] cifs: use get/put_endian helpers
-Date: Thu, 29 May 2008 13:18:44 -0700
-Message-ID: <1212092324.28403.124.camel@brick>
+From: Johannes Berg <johannes@sipsolutions.net>
+Subject: Re: [PATCH 15/37] wireless: use get/put_endian helpers
+Date: Thu, 29 May 2008 23:31:21 +0200
+Message-ID: <1212096681.10109.0.camel@johannes.berg>
+References: <1212092308.28403.117.camel@brick>
+	 (sfid-20080529_221900_617991_210BEC75)
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg=pgp-sha1; protocol="application/pgp-signature"; boundary="=-R0dOR6wXDYRD9NAOjpO5"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from yx-out-2324.google.com ([74.125.44.30]:43494 "EHLO
-	yx-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754127AbYE2USs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 16:18:48 -0400
-Received: by yx-out-2324.google.com with SMTP id 31so392319yxl.1
-        for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 13:18:48 -0700 (PDT)
+Received: from xc.sipsolutions.net ([83.246.72.84]:36184 "EHLO
+	sipsolutions.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751932AbYE2Vcs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 17:32:48 -0400
+In-Reply-To: <1212092308.28403.117.camel@brick> (sfid-20080529_221900_617991_210BEC75)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Steve French <smfrench@gmail.com>
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-wireless <linux-wireless@vger.kernel.org>, John Linville <linville@tuxdriver.com>
 
-Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
----
- fs/cifs/inode.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/fs/cifs/inode.c b/fs/cifs/inode.c
-index 129dbfe..9a49f6c 100644
---- a/fs/cifs/inode.c
-+++ b/fs/cifs/inode.c
-@@ -314,8 +314,8 @@ static int decode_sfu_inode(struct inode *inode, __u64 size,
- 					/* we have enough to decode dev num */
- 					__u64 mjr; /* major */
- 					__u64 mnr; /* minor */
--					mjr = le64_to_cpu(*(__le64 *)(pbuf+8));
--					mnr = le64_to_cpu(*(__le64 *)(pbuf+16));
-+					mjr = get_le64((__le64 *)(pbuf + 8));
-+					mnr = get_le64((__le64 *)(pbuf + 16));
- 					inode->i_rdev = MKDEV(mjr, mnr);
- 				}
- 			} else if (memcmp("IntxCHR", pbuf, 8) == 0) {
-@@ -325,8 +325,8 @@ static int decode_sfu_inode(struct inode *inode, __u64 size,
- 					/* we have enough to decode dev num */
- 					__u64 mjr; /* major */
- 					__u64 mnr; /* minor */
--					mjr = le64_to_cpu(*(__le64 *)(pbuf+8));
--					mnr = le64_to_cpu(*(__le64 *)(pbuf+16));
-+					mjr = get_le64((__le64 *)(pbuf + 8));
-+					mnr = get_le64((__le64 *)(pbuf + 16));
- 					inode->i_rdev = MKDEV(mjr, mnr);
- 				}
- 			} else if (memcmp("IntxLNK", pbuf, 7) == 0) {
--- 
-1.5.6.rc0.277.g804cf
+--=-R0dOR6wXDYRD9NAOjpO5
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+
+
+> -	ADM8211_CSR_WRITE(BSSID0, le32_to_cpu(*(__le32 *)bssid));
+> +	ADM8211_CSR_WRITE(BSSID0, get_le32((__le32 *)bssid));
+
+Maybe I'm stupid, but isn't this the same as le32_to_cpup? Or does
+get_le32 handle unaligned values?
+
+johannes
+
+--=-R0dOR6wXDYRD9NAOjpO5
+Content-Type: application/pgp-signature; name=signature.asc
+Content-Description: This is a digitally signed message part
+
+-----BEGIN PGP SIGNATURE-----
+Comment: Johannes Berg (powerbook)
+
+iQIVAwUASD8gqKVg1VMiehFYAQID7Q/+NnWTOF0a5hKOhPdFMn4Wtdmtf0PMQacm
+oLqZX50zS3F0aopl4g5F8Vn4ZYNknJCyPIcWyCAk8mb1nqimxJxv6mGhYOyG6H5L
+v2l/J+3KAG1okUG5nnHkx1Ewyg/1tQinft2o05bk6oLx/c5w9AsBesoZ3QG0v+3e
+hGO3LH/JmmvDkkieKGN2LKPW9lsFQl7KNEoYzmcxKEOnWKe3prLy4IsmNBJboNZo
+Rx/ucZF5ryWbN/QU/+/BszEqdiDzqgIhnPvPgGAnIhJvaeImwoqfNcGntCyBjv3S
+H238siU7Ojocw8fwlfq15Bnj1AYoNWS3odjPc6kfPXQIVtEeA1O/q801TR3TXZmK
+Clp9OamgC971ZgnWm0J+l6pvTmDmiZn8LBh9Z75Q3paqPAs3gn51+S8RbKTQfEoX
+bbgAr/tb/9Ml+WnnJ2cHV2pI/m9BG0ApmwhE+Vo+uOVXf6ZkDwC//QuIV7amepXk
+yedMi4Tgx2FcQNRRivrUJHbkURXdmzgQR+WZ372UYs+zpo116HJXAgrY8PjOHpwj
+UwQJHZf9S/NuJlRbc4nZaUA7Q6qsC+njI2BI88GtNKaTjWPmOH50XAuUm5zvCBpz
+0v2cvNwbqj/KoGqN/3fWLeyePP0Hugb8TIlM+frwa4LEdtYY2E64COhKzoy9wCrP
+fnYPMIoQb8U=
+=VE+m
+-----END PGP SIGNATURE-----
+
+--=-R0dOR6wXDYRD9NAOjpO5--
