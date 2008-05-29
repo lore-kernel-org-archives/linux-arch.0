@@ -1,41 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zrtps0kp.nortel.com ([47.140.192.56]:40494 "EHLO
-	zrtps0kp.nortel.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755811AbYE0WJz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 May 2008 18:09:55 -0400
-Message-ID: <483C7BE7.10204@nortel.com>
-Date: Tue, 27 May 2008 15:23:51 -0600
-From: "Chris Friesen" <cfriesen@nortel.com>
-MIME-Version: 1.0
+Received: from moutng.kundenserver.de ([212.227.126.186]:56074 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754580AbYE2HKn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 03:10:43 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: MMIO and gcc re-ordering issue
-References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net> <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net> <20080526204233.75b71bb8@infradead.org>	<1211872130.3286.64.camel@pasglop> <adaprr721c6.fsf@cisco.com> <1211906268.3435.44.camel@localhost.localdomain> <adad4n71wb3.fsf@cisco.com> <1211910825.7160.1.camel@localhost.localdomain> <adamymbvcxi.fsf@cisco.com>
-In-Reply-To: <adamymbvcxi.fsf@cisco.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Date: Thu, 29 May 2008 09:10:06 +0200
+References: <1211852026.3286.36.camel@pasglop> <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org> <1211926779.3286.104.camel@pasglop>
+In-Reply-To: <1211926779.3286.104.camel@pasglop>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-ID: <200805290910.07207.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland Dreier <rdreier@cisco.com>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, tpiepho@freescale.com, alan@lxorguk.ukuu.org.uk, Arjan van de Ven <arjan@infradead.org>
-Message-ID: <20080527212351.2Nun-OKD5nkauKdsLeH4daG1fJeb6tf0HgK43x_wy0g@z>
+To: benh@kernel.crashing.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
+Message-ID: <20080529071006.DF2CEgOzNlNGXOyL6Xa4eMtg6S8IM60zqgfIaYFRO04@z>
 
-Roland Dreier wrote:
-
-> Writes are posted yes, but not reordered arbitrarily.  If I have code like:
+On Wednesday 28 May 2008, Benjamin Herrenschmidt wrote:
+> On Tue, 2008-05-27 at 14:55 -0700, Linus Torvalds wrote:
+> > 
+> > On Wed, 28 May 2008, Benjamin Herrenschmidt wrote:
+> > > 
+> > > A problem with __raw_ though is that they -also- don't do byteswap,
+> > 
+> > Well, that's why there is __readl() and __raw_readl(), no?
 > 
-> 	spin_lock(&mmio_lock);
-> 	writel(val1, reg1);
-> 	writel(val2, reg2);
-> 	spin_unlock(&mmio_lock);
+> As I replied to somebody else, __readl() is news to me :-) we dont' have
+> those on powerpc.
 > 
-> then I have a reasonable expectation that if two CPUs run this at the
-> same time, their writes to reg1/reg2 won't be interleaved with each
-> other (because the whole section is inside a spinlock).  And Altix
-> violates that expectation.
 
-Does that necessarily follow?
+It's not exactly a well-established interface. Only five architectures
+define these functions, and there is not a single user in the kernel
+source outside of these architecture's io.h files.
 
-If you've got a large system with multiple pci bridges, could you end up 
-with posted writes coming from different cpus taking a different amount 
-of time to propagate to a device and thus colliding?
-
-Chris
+	Arnd <><
