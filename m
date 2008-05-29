@@ -1,71 +1,114 @@
-From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 2/10] x86: convert to generic helpers for IPI function  calls
-Date: Thu, 29 May 2008 14:17:05 +0200
-Message-ID: <20080529121704.GD25504@kernel.dk>
-References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-3-git-send-email-jens.axboe@oracle.com> <483E9D9B.9030202@goop.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: npiggin@suse.de
+Subject: [patch 5/5] splice: use get_user_pages_fast
+Date: Thu, 29 May 2008 22:20:55 +1000
+Message-ID: <20080529122602.557135000@nick.local0.net>
+References: <20080529122050.823438000@nick.local0.net>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:27178 "EHLO kernel.dk"
+Received: from cantor.suse.de ([195.135.220.2]:51605 "EHLO mx1.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750768AbYE2MRH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 May 2008 08:17:07 -0400
-Content-Disposition: inline
-In-Reply-To: <483E9D9B.9030202@goop.org>
+	id S1751932AbYE2M13 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 May 2008 08:27:29 -0400
+Content-Disposition: inline; filename=splice-get_user_pages_fast.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeremy Fitzhardinge <jeremy@goop.org>
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
+To: akpm@linux-foundation.org
+Cc: shaggy@austin.ibm.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
 
-On Thu, May 29 2008, Jeremy Fitzhardinge wrote:
-> Jens Axboe wrote:
-> >@@ -122,6 +109,17 @@ static int xen_smp_intr_init(unsigned int cpu)
-> > 		goto fail;
-> > 	per_cpu(debug_irq, cpu) = rc;
-> > 
-> >+	callfunc_name = kasprintf(GFP_KERNEL, "callfuncsingle%d", 
-> >cpu);
-> >+	rc = bind_ipi_to_irqhandler(XEN_CALL_FUNCTION_SINGLE_VECTOR,
-> >+				    cpu,
-> >+				    
-> >xen_call_function_single_interrupt,
-> >+				    
-> >IRQF_DISABLED|IRQF_PERCPU|IRQF_NOBALANCING,
-> >+				    callfunc_name,
-> >+				    NULL);
-> >+	if (rc < 0)
-> >+		goto fail;
-> >+	per_cpu(callfuncsingle_irq, cpu) = rc;
-> >  
-> 
-> Tiny nit: could you shift this up below the other callfunc 
-> registration, so they appear next to each other in /proc?
+Use get_user_pages_fast in splice. This reverts some mmap_sem batching there,
+however the biggest problem with mmap_sem tends to be hold times blocking
+out other threads rather than cacheline bouncing. Further: on architectures
+that implement get_user_pages_fast without locks, mmap_sem can be avoided
+completely anyway.
 
-Certainly, will do.
+Signed-off-by: Nick Piggin <npiggin@suse.de>
+Cc: shaggy@austin.ibm.com
+Cc: linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org
+Cc: apw@shadowen.org
 
-> >+void xen_smp_send_call_function_ipi(cpumask_t mask)
-> >+{
-> >+	int cpu;
-> >+
-> >+	xen_send_IPI_mask(mask, XEN_CALL_FUNCTION_VECTOR);
-> >+
-> >+	/* Make sure other vcpus get a chance to run if they need to. 
-> >*/
-> >+	for_each_cpu_mask(cpu, mask) {
-> >+		if (xen_vcpu_stolen(cpu)) {
-> >+			HYPERVISOR_sched_op(SCHEDOP_yield, 0);
-> >+			break;
-> >+		}
-> >+	}
-> >  
-> 
-> I think you should just drop this loop for now; I want to do some 
-> measurements before putting it in.
+---
+ fs/splice.c |   41 +++--------------------------------------
+ 1 file changed, 3 insertions(+), 38 deletions(-)
 
-If you don't mind, I'd like to keep it as-is. Then the patch should
-not have a functional change (there, at least), which I think is
-important. I can add a later patch removing this stolen bit, it would
-be even better if you send me such a patch :-)
+Index: linux-2.6/fs/splice.c
+===================================================================
+--- linux-2.6.orig/fs/splice.c
++++ linux-2.6/fs/splice.c
+@@ -1147,36 +1147,6 @@ static long do_splice(struct file *in, l
+ }
+ 
+ /*
+- * Do a copy-from-user while holding the mmap_semaphore for reading, in a
+- * manner safe from deadlocking with simultaneous mmap() (grabbing mmap_sem
+- * for writing) and page faulting on the user memory pointed to by src.
+- * This assumes that we will very rarely hit the partial != 0 path, or this
+- * will not be a win.
+- */
+-static int copy_from_user_mmap_sem(void *dst, const void __user *src, size_t n)
+-{
+-	int partial;
+-
+-	if (!access_ok(VERIFY_READ, src, n))
+-		return -EFAULT;
+-
+-	pagefault_disable();
+-	partial = __copy_from_user_inatomic(dst, src, n);
+-	pagefault_enable();
+-
+-	/*
+-	 * Didn't copy everything, drop the mmap_sem and do a faulting copy
+-	 */
+-	if (unlikely(partial)) {
+-		up_read(&current->mm->mmap_sem);
+-		partial = copy_from_user(dst, src, n);
+-		down_read(&current->mm->mmap_sem);
+-	}
+-
+-	return partial;
+-}
+-
+-/*
+  * Map an iov into an array of pages and offset/length tupples. With the
+  * partial_page structure, we can map several non-contiguous ranges into
+  * our ones pages[] map instead of splitting that operation into pieces.
+@@ -1189,8 +1159,6 @@ static int get_iovec_page_array(const st
+ {
+ 	int buffers = 0, error = 0;
+ 
+-	down_read(&current->mm->mmap_sem);
+-
+ 	while (nr_vecs) {
+ 		unsigned long off, npages;
+ 		struct iovec entry;
+@@ -1199,7 +1167,7 @@ static int get_iovec_page_array(const st
+ 		int i;
+ 
+ 		error = -EFAULT;
+-		if (copy_from_user_mmap_sem(&entry, iov, sizeof(entry)))
++		if (copy_from_user(&entry, iov, sizeof(entry)))
+ 			break;
+ 
+ 		base = entry.iov_base;
+@@ -1233,9 +1201,8 @@ static int get_iovec_page_array(const st
+ 		if (npages > PIPE_BUFFERS - buffers)
+ 			npages = PIPE_BUFFERS - buffers;
+ 
+-		error = get_user_pages(current, current->mm,
+-				       (unsigned long) base, npages, 0, 0,
+-				       &pages[buffers], NULL);
++		error = get_user_pages_fast((unsigned long)base, npages,
++					0, &pages[buffers]);
+ 
+ 		if (unlikely(error <= 0))
+ 			break;
+@@ -1274,8 +1241,6 @@ static int get_iovec_page_array(const st
+ 		iov++;
+ 	}
+ 
+-	up_read(&current->mm->mmap_sem);
+-
+ 	if (buffers)
+ 		return buffers;
+ 
 
 -- 
-Jens Axboe
