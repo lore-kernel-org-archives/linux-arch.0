@@ -1,116 +1,45 @@
-From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: RE: [PATCH 4/6v3] byteorder: wire up arches to use new headers
-Date: Wed, 28 May 2008 13:31:59 -0700
-Message-ID: <1212006719.5964.39.camel@brick>
-References: <1212003182.5964.29.camel@brick>
-	 <1FE6DD409037234FAB833C420AA843EC016FFBC4@orsmsx424.amr.corp.intel.com>
+From: Nick Piggin <npiggin@suse.de>
+Subject: Re: [patch 2/2] lockless get_user_pages
+Date: Thu, 29 May 2008 05:43:59 +0200
+Message-ID: <20080529034359.GI3258@wotan.suse.de>
+References: <20080527095519.4676.KOSAKI.MOTOHIRO@jp.fujitsu.com> <20080527022801.GB21578@wotan.suse.de> <20080527114350.4679.KOSAKI.MOTOHIRO@jp.fujitsu.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wf-out-1314.google.com ([209.85.200.172]:36949 "EHLO
-	wf-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752725AbYE1UcB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 May 2008 16:32:01 -0400
-Received: by wf-out-1314.google.com with SMTP id 27so2688293wfd.4
-        for <linux-arch@vger.kernel.org>; Wed, 28 May 2008 13:32:00 -0700 (PDT)
-In-Reply-To: <1FE6DD409037234FAB833C420AA843EC016FFBC4@orsmsx424.amr.corp.intel.com>
+Received: from cantor2.suse.de ([195.135.220.15]:35687 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753007AbYE2DoC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 May 2008 23:44:02 -0400
+Content-Disposition: inline
+In-Reply-To: <20080527114350.4679.KOSAKI.MOTOHIRO@jp.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Haavard Skinnemoen <haavard.skinnemoen@atmel.com>, Andrew Morton <akpm@linux-foundation.org>
+To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Cc: Johannes Weiner <hannes@saeurebad.de>, Andrew Morton <akpm@linux-foundation.org>, shaggy@austin.ibm.com, jens.axboe@oracle.com, torvalds@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
 
-On Wed, 2008-05-28 at 13:21 -0700, Luck, Tony wrote:
-> > diff --git a/include/asm-ia64/byteorder.h b/include/asm-ia64/byteorder.h
-> >
-> > -static __inline__ __attribute_const__ __u64
-> > -__ia64_swab64 (__u64 x)
-> > +#define __LITTLE_ENDIAN
-> > +
-> > +static inline __attribute_const__ __u64 __arch_swab64(__u64 x)
+On Tue, May 27, 2008 at 11:46:27AM +0900, KOSAKI Motohiro wrote:
+> > Aw, nobody likes fast_gup? ;)
 > 
-> You've changed the name of this routine from __ia64_swab64
-> to __arch_swab64 here.
+> Ah, I misunderstood your intention.
+> I thought you disklike fast_gup..
 > 
-> ...
+> I don't dislike it :()
 > 
-> But down below you still use the old name (twice):
+> > 
+> > Technically get_user_pages_lockless is wrong: the implementation may
+> > not be lockless so one cannot assume it will not take mmap sem and
+> > ptls.
 > 
-> > 	return __ia64_swab64(x) >> 32;
+> agreed.
 > 
-> > 	return __ia64_swab64(x) >> 48;
 > 
-> Changing these calls to use the new name gets the build a lot further, but
-> it still dies for me at:
+> > But I do like to make it clear that it is related to get_user_pages.
+> > get_current_user_pages(), maybe? Hmm, that's harder to grep for
+> > both then I guess. get_user_pages_current?
+> 
+> Yeah, good name.
 
-Sorry about that, it was a last minute change that I shouldn't have made
-to the __const_swab macros.  Here's a revert of that part, I'll also
-check over the arch bits, but I think I just applied the wrong patch
-when folding some other fixes together, thanks for testing:
-
-diff --git a/include/linux/swab.h b/include/linux/swab.h
-index 7dfb411..8f955b2 100644
---- a/include/linux/swab.h
-+++ b/include/linux/swab.h
-@@ -9,38 +9,33 @@
-  * casts are necessary for constants, because we never know how for sure
-  * how U/UL/ULL map to __u16, __u32, __u64. At least not in a portable way.
-  */
--#define __const_swab16(x) ({					\
--	__u16 __x = (x);					\
--	((__x & (__u16)0x00ffU) << 8) |				\
--	((__x & (__u16)0xff00U) >> 8); })
-+#define __const_swab16(x) ((__u16)(				\
-+	(((__u16)(x) & (__u16)0x00ffU) << 8) |			\
-+	(((__u16)(x) & (__u16)0xff00U) >> 8)))
- 
--#define __const_swab32(x) ({					\
--	__u32 __x = (x);					\
--	((__x & (__u32)0x000000ffUL) << 24) |			\
--	((__x & (__u32)0x0000ff00UL) <<  8) |			\
--	((__x & (__u32)0x00ff0000UL) >>  8) |			\
--	((__x & (__u32)0xff000000UL) >> 24); })
-+#define __const_swab32(x) ((__u32)(				\
-+	(((__u32)(x) & (__u32)0x000000ffUL) << 24) |		\
-+	(((__u32)(x) & (__u32)0x0000ff00UL) <<  8) |		\
-+	(((__u32)(x) & (__u32)0x00ff0000UL) >>  8) |		\
-+	(((__u32)(x) & (__u32)0xff000000UL) >> 24)))
- 
--#define __const_swab64(x) ({					\
--	__u64 __x = (x);					\
--	((__x & (__u64)0x00000000000000ffULL) << 56) |		\
--	((__x & (__u64)0x000000000000ff00ULL) << 40) |		\
--	((__x & (__u64)0x0000000000ff0000ULL) << 24) |		\
--	((__x & (__u64)0x00000000ff000000ULL) <<  8) |		\
--	((__x & (__u64)0x000000ff00000000ULL) >>  8) |		\
--	((__x & (__u64)0x0000ff0000000000ULL) >> 24) |		\
--	((__x & (__u64)0x00ff000000000000ULL) >> 40) |		\
--	((__x & (__u64)0xff00000000000000ULL) >> 56); })
-+#define __const_swab64(x) ((__u64)(				\
-+	(((__u64)(x) & (__u64)0x00000000000000ffULL) << 56) |	\
-+	(((__u64)(x) & (__u64)0x000000000000ff00ULL) << 40) |	\
-+	(((__u64)(x) & (__u64)0x0000000000ff0000ULL) << 24) |	\
-+	(((__u64)(x) & (__u64)0x00000000ff000000ULL) <<  8) |	\
-+	(((__u64)(x) & (__u64)0x000000ff00000000ULL) >>  8) |	\
-+	(((__u64)(x) & (__u64)0x0000ff0000000000ULL) >> 24) |	\
-+	(((__u64)(x) & (__u64)0x00ff000000000000ULL) >> 40) |	\
-+	(((__u64)(x) & (__u64)0xff00000000000000ULL) >> 56)))
- 
--#define __const_swahw32(x) ({					\
--	__u32 __x = (x);					\
--	((__x & (__u32)0x0000ffffUL) << 16) |			\
--	((__x & (__u32)0xffff0000UL) >> 16); })
-+#define __const_swahw32(x) ((__u32)(				\
-+	(((__u32)(x) & (__u32)0x0000ffffUL) << 16) |		\
-+	(((__u32)(x) & (__u32)0xffff0000UL) >> 16)))
- 
--#define __const_swahb32(x) ({					\
--	__u32 __x = (x);					\
--	((__x & (__u32)0x00ff00ffUL) << 8) |			\
--	((__x & (__u32)0xff00ff00UL) >> 8); })
-+#define __const_swahb32(x) ((__u32)(				\
-+	(((__u32)(x) & (__u32)0x00ff00ffUL) << 8) |		\
-+	(((__u32)(x) & (__u32)0xff00ff00UL) >> 8)))
- 
- /*
-  * Implement the following as inlines, but define the interface using
+Hmm, although now that I think about it more, fast_gup is not _quite_
+just a get_user_pages for "current". In particular it requires a bit
+of thought as to whether the pages are likely to require page faults
+or not... so I've called it get_user_pages_fast()
