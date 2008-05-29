@@ -1,32 +1,35 @@
-From: Jeremy Fitzhardinge <jeremy@goop.org>
-Subject: Re: [PATCH 2/10] x86: convert to generic helpers for IPI function
-  calls
-Date: Thu, 29 May 2008 14:47:09 +0100
-Message-ID: <483EB3DD.2090908@goop.org>
-References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-3-git-send-email-jens.axboe@oracle.com> <483E9D9B.9030202@goop.org> <20080529121704.GD25504@kernel.dk>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH 8/10] mips: convert to generic helpers for IPI function
+	calls
+Date: Thu, 29 May 2008 15:20:54 +0100
+Message-ID: <20080529142054.GA8320@linux-mips.org>
+References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-9-git-send-email-jens.axboe@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gw.goop.org ([64.81.55.164]:41550 "EHLO mail.goop.org"
+Received: from oss.sgi.com ([192.48.170.157]:58763 "EHLO oss.sgi.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755631AbYE2Nrp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 May 2008 09:47:45 -0400
-In-Reply-To: <20080529121704.GD25504@kernel.dk>
+	id S1751368AbYE2OZF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 May 2008 10:25:05 -0400
+Content-Disposition: inline
+In-Reply-To: <1212051504-12561-9-git-send-email-jens.axboe@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jens Axboe <jens.axboe@oracle.com>
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
 
-Jens Axboe wrote:
-> If you don't mind, I'd like to keep it as-is. Then the patch should
-> not have a functional change (there, at least), which I think is
-> important. I can add a later patch removing this stolen bit, it would
-> be even better if you send me such a patch :-)
->   
+On Thu, May 29, 2008 at 10:58:22AM +0200, Jens Axboe wrote:
 
-Sure. BTW, I got it to mush on top of x86.git, and it seems OK.  There 
-were lots of fairly trivial conflicts with things moving between unified 
-files, and a few missing smp_call_function and on_each_cpu calls.
+> This converts mips to use the new helpers for smp_call_function() and
+> friends, and adds support for smp_call_function_single(). Not tested,
+> but it compiles.
+> 
+> mips shares the same IPI for smp_call_function() and
+> smp_call_function_single(), since not all hardware has enough available
+> IPIs available to support seperate setups.
 
-    J
+FYI, the comment isn't quite accurate.  The machanisms for IPIs on MIPS
+are platform-specific.  The change which I recently objected to was
+specific to a code model called VSMP.
+
+  Raf
