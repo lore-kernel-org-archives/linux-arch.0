@@ -1,54 +1,65 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Fri, 30 May 2008 07:40:23 +1000
-Message-ID: <1212097223.8888.55.camel@pasglop>
-References: <1211852026.3286.36.camel@pasglop>
-	 <20080526.184047.88207142.davem@davemloft.net>
-	 <1211854540.3286.42.camel@pasglop>
-	 <20080526.192812.184590464.davem@davemloft.net>
-	 <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop>
-	 <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop>
-	 <adaiqwzsa83.fsf@cisco.com>  <yq0iqwxrwuh.fsf@jaguar.mkp.net>
-Reply-To: benh@kernel.crashing.org
+From: Johannes Berg <johannes@sipsolutions.net>
+Subject: Re: [PATCH 15/37] wireless: use get/put_endian helpers
+Date: Thu, 29 May 2008 23:43:31 +0200
+Message-ID: <1212097411.10109.3.camel@johannes.berg>
+References: <1212092308.28403.117.camel@brick>
+	 (sfid-20080529_221900_617991_210BEC75)  <1212096681.10109.0.camel@johannes.berg>
+	 <1212096945.28403.141.camel@brick> (sfid-20080529_233551_020981_7B2BB967)
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg=pgp-sha1; protocol="application/pgp-signature"; boundary="=-LpfWgCpNxnWXeObMqQZN"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:33591 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752511AbYE2VlJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 May 2008 17:41:09 -0400
-In-Reply-To: <yq0iqwxrwuh.fsf@jaguar.mkp.net>
+Received: from xc.sipsolutions.net ([83.246.72.84]:45618 "EHLO
+	sipsolutions.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753939AbYE2Voe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 17:44:34 -0400
+In-Reply-To: <1212096945.28403.141.camel@brick> (sfid-20080529_233551_020981_7B2BB967)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jes Sorensen <jes@sgi.com>
-Cc: Roland Dreier <rdreier@cisco.com>, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-wireless <linux-wireless@vger.kernel.org>, John Linville <linville@tuxdriver.com>
 
-On Thu, 2008-05-29 at 10:47 -0400, Jes Sorensen wrote:
-> 
-> The only way to guarantee ordering in the above setup, is to either
-> make writel() fully ordered or adding the mmiowb()'s inbetween the two
-> writel's. On Altix you have to go and read from the PCI brige to
-> ensure all writes to it have been flushed, which is also what mmiowb()
-> is doing. If writel() was to guarantee this ordering, it would make
-> every writel() call extremely expensive :-(
 
-Interesting. I've always been taught by ia64 people that mmiowb() was
-intended to be used solely between writel() and spin_unlock().
+--=-LpfWgCpNxnWXeObMqQZN
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
 
-I think in the above case, you really should make writel() ordered.
-Anything else is asking for trouble, for the exact same reasons that I
-made it fully ordered on powerpc at least vs. previous stores. I only
-kept it relaxed vs. subsequent cacheable stores (ie, spin_unlock), for
-which I use the trick mentioned before.
+On Thu, 2008-05-29 at 14:35 -0700, Harvey Harrison wrote:
+> On Thu, 2008-05-29 at 23:31 +0200, Johannes Berg wrote:
+> > > -	ADM8211_CSR_WRITE(BSSID0, le32_to_cpu(*(__le32 *)bssid));
+> > > +	ADM8211_CSR_WRITE(BSSID0, get_le32((__le32 *)bssid));
+> >=20
+> > Maybe I'm stupid, but isn't this the same as le32_to_cpup? Or does
+> > get_le32 handle unaligned values?
 
-Yes, this has some cost (can be fairly significant on powerpc too) but
-I think it's a very basic assumption from drivers that consecutive
-writel's, especially issued by the same CPU, will get to the device
-in order.
+> You're not stupid, but there is a new put_le32 as well that takes
+> aligned values similar to the put_unaligned_le32, so get_le32 was
+> added to have an analog to get_unaligned_le32 as well.
 
-If this is a performance problem, then provide relaxed variants and
-use them in selected drivers.
+So this is just to make the API "complete"? Are we removing le32_to_cpup
+and the associated API then?
 
-Cheers,
-Ben.
+johannes
+
+--=-LpfWgCpNxnWXeObMqQZN
+Content-Type: application/pgp-signature; name=signature.asc
+Content-Description: This is a digitally signed message part
+
+-----BEGIN PGP SIGNATURE-----
+Comment: Johannes Berg (powerbook)
+
+iQIVAwUASD8jgqVg1VMiehFYAQLhDRAAkEaiwtxYPGM7jDowDVrE+ihwLxeHMe8H
+ez3jzTrEbssDshZ3bU3SiTKhVWgKEndC7fv3rXeC+sYAvT1hN6DV0+MUEDzpYMN1
+2sMrJ5QtIvBKnF9e3hdKoasEeNFJYWjpwH56EcC05s20lWz5mfDdSP6eQZmnei5e
+q8ByxAyenR+PJFNxMNZBsVRK86KbVFQGrzfb6xLLe0G8ZuG8lEdRtEM/9MQ02GBw
+CtYaVgKJqaCHwQsZd1Wpy3ur+XOVe5yuKl7Drk7/55Z5WXC9oxgrJigPE8YgS05b
+sHC+1ToIkCyxYL1SBR62ZaUaMDQLNm5rphhGOza7uy4dvftmmkS6lOFO85tR0pNy
+mSOZHku+iGgV1PpNMhghvs5bwzIrjf+WbEpJPaQSBuBEUDWU31bPNY7Cg4naGLjg
+ZY17xSvG21l49sfkfNkyJ4C89AgPPXyroNoWNNgFc5so3GVpL9xhJm5keDv8oEdB
+NXoS/emFYWLjuMSVli6CYchBSdXaJsRQG10kr9sRP2qJ2boAwU4DlcZy2Oba+Lu1
+XzesS+zNstBKZoDtud6qn336boZNpl1ZRAr26G3iSMMOIRmHSjS8keUKymOaHZsA
+Qa9HPMNGnjYpWnNrlceAfYIY/8+/r2RDEh2VSkqp3Yicm+4UAuzyQvrNKBtu7Bzb
+AfuLRtVBExo=
+=sQVV
+-----END PGP SIGNATURE-----
+
+--=-LpfWgCpNxnWXeObMqQZN--
