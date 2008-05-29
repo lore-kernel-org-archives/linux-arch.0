@@ -1,42 +1,31 @@
-From: Trent Piepho <tpiepho@freescale.com>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Thu, 29 May 2008 15:25:31 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805291517140.18832@t2.domain.actdsltmp>
-References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net>
- <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net>
- <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop>
- <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop>
- <adaiqwzsa83.fsf@cisco.com> <yq0iqwxrwuh.fsf@jaguar.mkp.net>
- <adawslcojdg.fsf@cisco.com>
+From: Stefan Richter <stefanr@s5r6.in-berlin.de>
+Subject: Re: [PATCH 09/37] firewire: use get/put_endian helpers
+Date: Fri, 30 May 2008 01:34:27 +0200
+Message-ID: <483F3D83.80206@s5r6.in-berlin.de>
+References: <1212092292.28403.111.camel@brick>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759373AbYE2W1o@vger.kernel.org>
-In-Reply-To: <adawslcojdg.fsf@cisco.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Roland Dreier <rdreier@cisco.com>
-Cc: Jes Sorensen <jes@sgi.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from einhorn.in-berlin.de ([192.109.42.8]:55797 "EHLO
+	einhorn.in-berlin.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751434AbYE2Xeo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 19:34:44 -0400
+In-Reply-To: <1212092292.28403.111.camel@brick>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Thu, 29 May 2008, Roland Dreier wrote:
-> > The problem is that your two writel's, despite being both issued on
-> > cpu X, due to the spin lock, in your example, can end up with the
-> > first one going through NR 1 and the second one going through NR 2. If
-> > there's contention on NR 1, the write going via NR 2 may hit the PCI
-> > bridge prior to the one going via NR 1.
->
-> Really??  I can't see how you can expect any drivers to work reliably if
-> simple code like
->
-> 	writel(reg1);
-> 	writel(reg2);
->
-> might end up with the write to reg2 hitting the device before the write
-> to reg1.  Almost all MMIO stuff has ordering requirements and will
+Harvey,
 
-This is how powerpc is natively (the linux accessors have extra ordering to
-not allow this of course), and there are non-Linux drivers that are written
-for this ordering model.
+a minor side note:  A pointer to your patch which adds the helpers would 
+have saved me 10 minutes of my life.  I wasn't up to speed where this 
+API is available.
 
-I think what makes altix so hard is that writes to the _same_ register may be
-be re-ordered.  Re-ordering writes to the same address is much less common
-than allowing writes to different addresses to be re-ordered.
+I.e. please add "requires patch $FOOBAR" below the --- delimiter when 
+you post dependent and depending patch to different addresses.
+-- 
+Stefan Richter
+-=====-==--- -=-= ====-
+http://arcgraph.de/sr/
