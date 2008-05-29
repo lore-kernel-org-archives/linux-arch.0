@@ -1,51 +1,45 @@
-From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: Re: [PATCH 15/37] wireless: use get/put_endian helpers
-Date: Thu, 29 May 2008 14:47:05 -0700
-Message-ID: <1212097625.28403.144.camel@brick>
-References: <1212092308.28403.117.camel@brick>
-	 (sfid-20080529_221900_617991_210BEC75)  <1212096681.10109.0.camel@johannes.berg>
-	 <1212096945.28403.141.camel@brick>
-	 (sfid-20080529_233551_020981_7B2BB967)  <1212097411.10109.3.camel@johannes.berg>
+From: Trent Piepho <tpiepho@freescale.com>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Thu, 29 May 2008 14:48:28 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0805291442420.18832@t2.domain.actdsltmp>
+References: <1211852026.3286.36.camel@pasglop>  <20080526.184047.88207142.davem@davemloft.net>
+  <1211854540.3286.42.camel@pasglop>  <20080526.192812.184590464.davem@davemloft.net>
+  <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop>
+  <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop>
+ <adaiqwzsa83.fsf@cisco.com>  <yq0iqwxrwuh.fsf@jaguar.mkp.net>
+ <1212097223.8888.55.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from yx-out-2324.google.com ([74.125.44.28]:8425 "EHLO
-	yx-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754611AbYE2VrK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 17:47:10 -0400
-Received: by yx-out-2324.google.com with SMTP id 31so409145yxl.1
-        for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 14:47:09 -0700 (PDT)
-In-Reply-To: <1212097411.10109.3.camel@johannes.berg>
+Received: from az33egw02.freescale.net ([192.88.158.103]:50749 "EHLO
+	az33egw02.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759294AbYE2Vu4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 17:50:56 -0400
+In-Reply-To: <1212097223.8888.55.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Johannes Berg <johannes@sipsolutions.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-wireless <linux-wireless@vger.kernel.org>, John Linville <linville@tuxdriver.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Jes Sorensen <jes@sgi.com>, Roland Dreier <rdreier@cisco.com>, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
 
-On Thu, 2008-05-29 at 23:43 +0200, Johannes Berg wrote:
-> On Thu, 2008-05-29 at 14:35 -0700, Harvey Harrison wrote:
-> > On Thu, 2008-05-29 at 23:31 +0200, Johannes Berg wrote:
-> > > > -	ADM8211_CSR_WRITE(BSSID0, le32_to_cpu(*(__le32 *)bssid));
-> > > > +	ADM8211_CSR_WRITE(BSSID0, get_le32((__le32 *)bssid));
-> > > 
-> > > Maybe I'm stupid, but isn't this the same as le32_to_cpup? Or does
-> > > get_le32 handle unaligned values?
-> 
-> > You're not stupid, but there is a new put_le32 as well that takes
-> > aligned values similar to the put_unaligned_le32, so get_le32 was
-> > added to have an analog to get_unaligned_le32 as well.
-> 
-> So this is just to make the API "complete"? Are we removing le32_to_cpup
-> and the associated API then?
-> 
-> johannes
+On Fri, 30 May 2008, Benjamin Herrenschmidt wrote:
+> On Thu, 2008-05-29 at 10:47 -0400, Jes Sorensen wrote:
+> Interesting. I've always been taught by ia64 people that mmiowb() was
+> intended to be used solely between writel() and spin_unlock().
 
-At the end of the series, there are no more users of the
-{endian}_to_cpup family left, so they could be removed, but I
-did not include that in this set.
+That's what I gathered too, based on what's written in memory-barriers.txt,
+which is the only kernel docs I could find that addressed this.
 
-It seems as if infiniband and some areas of net/ were the only places
-that knew of the p version as there were lots of le16_to_cpu(*(__le16 *)ptr)
-around the tree.
+> Yes, this has some cost (can be fairly significant on powerpc too) but
+> I think it's a very basic assumption from drivers that consecutive
+> writel's, especially issued by the same CPU, will get to the device
+> in order.
 
-Harvey
+It's also what memory-barriers.txt says they should do.
+
+> If this is a performance problem, then provide relaxed variants and
+> use them in selected drivers.
+
+I wrote a JTAG over gpio driver for the powerpc MPC8572DS platform.  With the
+non-raw io accessors, the JTAG clock can run at almost ~9.5 MHz.  Using raw
+versions (which I had to write since powerpc doesn't have any), the clock
+speed increases to about 28 MHz.  So it can make a very significant different.
