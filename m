@@ -1,65 +1,51 @@
-From: Johannes Berg <johannes@sipsolutions.net>
+From: Harvey Harrison <harvey.harrison@gmail.com>
 Subject: Re: [PATCH 15/37] wireless: use get/put_endian helpers
-Date: Thu, 29 May 2008 23:43:31 +0200
-Message-ID: <1212097411.10109.3.camel@johannes.berg>
+Date: Thu, 29 May 2008 14:47:05 -0700
+Message-ID: <1212097625.28403.144.camel@brick>
 References: <1212092308.28403.117.camel@brick>
 	 (sfid-20080529_221900_617991_210BEC75)  <1212096681.10109.0.camel@johannes.berg>
-	 <1212096945.28403.141.camel@brick> (sfid-20080529_233551_020981_7B2BB967)
+	 <1212096945.28403.141.camel@brick>
+	 (sfid-20080529_233551_020981_7B2BB967)  <1212097411.10109.3.camel@johannes.berg>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1; protocol="application/pgp-signature"; boundary="=-LpfWgCpNxnWXeObMqQZN"
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from xc.sipsolutions.net ([83.246.72.84]:45618 "EHLO
-	sipsolutions.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753939AbYE2Voe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 17:44:34 -0400
-In-Reply-To: <1212096945.28403.141.camel@brick> (sfid-20080529_233551_020981_7B2BB967)
+Received: from yx-out-2324.google.com ([74.125.44.28]:8425 "EHLO
+	yx-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754611AbYE2VrK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 17:47:10 -0400
+Received: by yx-out-2324.google.com with SMTP id 31so409145yxl.1
+        for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 14:47:09 -0700 (PDT)
+In-Reply-To: <1212097411.10109.3.camel@johannes.berg>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
+To: Johannes Berg <johannes@sipsolutions.net>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, linux-wireless <linux-wireless@vger.kernel.org>, John Linville <linville@tuxdriver.com>
 
+On Thu, 2008-05-29 at 23:43 +0200, Johannes Berg wrote:
+> On Thu, 2008-05-29 at 14:35 -0700, Harvey Harrison wrote:
+> > On Thu, 2008-05-29 at 23:31 +0200, Johannes Berg wrote:
+> > > > -	ADM8211_CSR_WRITE(BSSID0, le32_to_cpu(*(__le32 *)bssid));
+> > > > +	ADM8211_CSR_WRITE(BSSID0, get_le32((__le32 *)bssid));
+> > > 
+> > > Maybe I'm stupid, but isn't this the same as le32_to_cpup? Or does
+> > > get_le32 handle unaligned values?
+> 
+> > You're not stupid, but there is a new put_le32 as well that takes
+> > aligned values similar to the put_unaligned_le32, so get_le32 was
+> > added to have an analog to get_unaligned_le32 as well.
+> 
+> So this is just to make the API "complete"? Are we removing le32_to_cpup
+> and the associated API then?
+> 
+> johannes
 
---=-LpfWgCpNxnWXeObMqQZN
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
+At the end of the series, there are no more users of the
+{endian}_to_cpup family left, so they could be removed, but I
+did not include that in this set.
 
-On Thu, 2008-05-29 at 14:35 -0700, Harvey Harrison wrote:
-> On Thu, 2008-05-29 at 23:31 +0200, Johannes Berg wrote:
-> > > -	ADM8211_CSR_WRITE(BSSID0, le32_to_cpu(*(__le32 *)bssid));
-> > > +	ADM8211_CSR_WRITE(BSSID0, get_le32((__le32 *)bssid));
-> >=20
-> > Maybe I'm stupid, but isn't this the same as le32_to_cpup? Or does
-> > get_le32 handle unaligned values?
+It seems as if infiniband and some areas of net/ were the only places
+that knew of the p version as there were lots of le16_to_cpu(*(__le16 *)ptr)
+around the tree.
 
-> You're not stupid, but there is a new put_le32 as well that takes
-> aligned values similar to the put_unaligned_le32, so get_le32 was
-> added to have an analog to get_unaligned_le32 as well.
-
-So this is just to make the API "complete"? Are we removing le32_to_cpup
-and the associated API then?
-
-johannes
-
---=-LpfWgCpNxnWXeObMqQZN
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Description: This is a digitally signed message part
-
------BEGIN PGP SIGNATURE-----
-Comment: Johannes Berg (powerbook)
-
-iQIVAwUASD8jgqVg1VMiehFYAQLhDRAAkEaiwtxYPGM7jDowDVrE+ihwLxeHMe8H
-ez3jzTrEbssDshZ3bU3SiTKhVWgKEndC7fv3rXeC+sYAvT1hN6DV0+MUEDzpYMN1
-2sMrJ5QtIvBKnF9e3hdKoasEeNFJYWjpwH56EcC05s20lWz5mfDdSP6eQZmnei5e
-q8ByxAyenR+PJFNxMNZBsVRK86KbVFQGrzfb6xLLe0G8ZuG8lEdRtEM/9MQ02GBw
-CtYaVgKJqaCHwQsZd1Wpy3ur+XOVe5yuKl7Drk7/55Z5WXC9oxgrJigPE8YgS05b
-sHC+1ToIkCyxYL1SBR62ZaUaMDQLNm5rphhGOza7uy4dvftmmkS6lOFO85tR0pNy
-mSOZHku+iGgV1PpNMhghvs5bwzIrjf+WbEpJPaQSBuBEUDWU31bPNY7Cg4naGLjg
-ZY17xSvG21l49sfkfNkyJ4C89AgPPXyroNoWNNgFc5so3GVpL9xhJm5keDv8oEdB
-NXoS/emFYWLjuMSVli6CYchBSdXaJsRQG10kr9sRP2qJ2boAwU4DlcZy2Oba+Lu1
-XzesS+zNstBKZoDtud6qn336boZNpl1ZRAr26G3iSMMOIRmHSjS8keUKymOaHZsA
-Qa9HPMNGnjYpWnNrlceAfYIY/8+/r2RDEh2VSkqp3Yicm+4UAuzyQvrNKBtu7Bzb
-AfuLRtVBExo=
-=sQVV
------END PGP SIGNATURE-----
-
---=-LpfWgCpNxnWXeObMqQZN--
+Harvey
