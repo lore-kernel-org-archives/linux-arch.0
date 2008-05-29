@@ -1,65 +1,40 @@
 From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 0/2] Kill unused parameter to smp_call_function and  friends
-Date: Thu, 29 May 2008 13:47:18 +0200
-Message-ID: <20080529114717.GA25504@kernel.dk>
-References: <1212051661-12733-1-git-send-email-jens.axboe@oracle.com> <20080529114132.663eff4b@core>
+Subject: Re: [PATCH 0/2] Kill unused parameter to smp_call_function and friends
+Date: Thu, 29 May 2008 13:49:34 +0200
+Message-ID: <20080529114934.GB25504@kernel.dk>
+References: <1212051661-12733-1-git-send-email-jens.axboe@oracle.com> <483E80E4.6030403@goop.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:10635 "EHLO kernel.dk"
+Received: from brick.kernel.dk ([87.55.233.238]:20910 "EHLO kernel.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751081AbYE2LrV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 May 2008 07:47:21 -0400
+	id S1751582AbYE2Lth (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 May 2008 07:49:37 -0400
 Content-Disposition: inline
-In-Reply-To: <20080529114132.663eff4b@core>
+In-Reply-To: <483E80E4.6030403@goop.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
+To: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
 
-On Thu, May 29 2008, Alan Cox wrote:
-> On Thu, 29 May 2008 11:00:59 +0200
-> Jens Axboe <jens.axboe@oracle.com> wrote:
+On Thu, May 29 2008, Jeremy Fitzhardinge wrote:
+> Jens Axboe wrote:
+> >It bothers me how the smp call functions accept a 'nonatomic' or 
+> >'retry'
+> >parameter (depending on who you ask), but don't do anything with it.
+> >So kill that silly thing.
+> >
+> >Two patches here, one for smp_call_function*() and one for 
+> >on_each_cpu().
+> >This patchset applies on top of the generic-ipi patchset just sent 
+> >out.
+> >  
 > 
-> > Hi,
-> > 
-> > It bothers me how the smp call functions accept a 'nonatomic' or 'retry'
-> > parameter (depending on who you ask), but don't do anything with it.
-> > So kill that silly thing.
-> > 
-> > Two patches here, one for smp_call_function*() and one for on_each_cpu().
-> > This patchset applies on top of the generic-ipi patchset just sent out.
+> Yay!
 > 
-> Which leads to notice that we seem to have acquired a bug somewhere on
-> the way. smp_call_function on x86 is it seems to me implemented as
-> "smp_call_function and occasionally run it multiple times"
-> 
-> One of the joys of the older x86 APIC setups is the APIC messaging
-> bus.  This can get checksum errors in which case the message is
-> retransmitted:
-> 
-> In the specific case a message is retransmitted and there are at least
-> three parties on the bus (2 CPU APICs and an IOAPIC is enough) you can
-> get a situation where one receiver gets the message the second
-> receiver errors it and the retransmit causes the IPI to be repeated
-> which causes the IPI to be redelivered.
-> 
-> This used to turn up now and then - particularly on 440BX boards.
+> Acked++-by: Jeremy Fitzhardinge <jeremy.fitzhardinge@citrix.com>
 
-That's worrisome, but I would regard that as implementation detail
-for the architecture, you really cannot expect the caller to
-deal with such obscure behaviour.
-
-Did the x86 code ever deal with this? Were the transmit errors
-corner case errors, or could they occur during normal runtime
-when everything is/was otherwise OK?
-
-> Alan Gnome #331: Early SMP Implementation Archive Office
-
-;-)
-
-I suggest such behaviour be punished by way of catapult, old
-clerk guy.
+Thanks Jeremy, added!
 
 -- 
 Jens Axboe
