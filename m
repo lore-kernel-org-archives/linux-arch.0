@@ -1,38 +1,62 @@
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Fri, 30 May 2008 05:32:59 -0600
-Message-ID: <20080530113259.GE22636@parisc-linux.org>
-References: <20080530035620.587204923@sgi.com> <20080529215827.b659d032.akpm@linux-foundation.org> <Pine.LNX.4.64.0805292159360.12107@schroedinger.engr.sgi.com> <20080529222143.5d7aa1e5.akpm@linux-foundation.org> <483F981E.3040004@cosmosbay.com> <20080529231618.56e4028b.akpm@linux-foundation.org> <Pine.LNX.4.64.0805292321240.12457@schroedinger.engr.sgi.com> <20080529233758.7bd2c977.akpm@linux-foundation.org>
+From: Mark Lord <liml@rtr.ca>
+Subject: Re: [PATCH 05/37] ata: use get/put_endian helpers
+Date: Fri, 30 May 2008 09:15:36 -0400
+Message-ID: <483FFDF8.1070607@rtr.ca>
+References: <1212092282.28403.107.camel@brick>	<483F65CA.4050507@rtr.ca>	<20080529195225.5665ae9c.akpm@linux-foundation.org>	<18495.32327.521211.508818@cargo.ozlabs.ibm.com> <20080529220450.2f701d93.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:39611 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753185AbYE3LdR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 07:33:17 -0400
-Content-Disposition: inline
-In-Reply-To: <20080529233758.7bd2c977.akpm@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-ide-owner@vger.kernel.org>
+In-Reply-To: <20080529220450.2f701d93.akpm@linux-foundation.org>
+Sender: linux-ide-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Christoph Lameter <clameter@sgi.com>, Eric Dumazet <dada1@cosmosbay.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
+Cc: Paul Mackerras <paulus@samba.org>, Harvey Harrison <harvey.harrison@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 29, 2008 at 11:37:58PM -0700, Andrew Morton wrote:
-> And struct nfs_iostats is 264 bytes and nfs does an alloc_percpu() of
-> one of those per server and mounting thousands of servers per client
-> is, I believe, a real-world operation.
+Andrew Morton wrote:
+> On Fri, 30 May 2008 14:10:47 +1000 Paul Mackerras <paulus@samba.org> wrote:
+> 
+>>>> What's the point here?
+>>> Readability and maintainability.  Once one becomes familar with a
+>>> particular idion like this you can read it and say "ah, I know what
+>>> that's doing" rather than having to peer at every character and work it
+>>> out at each site where it happens.
+>>>
+>>> As usual: a PITA now, but better long-term.
+>>>
+>>> otoh,
+>>>
+>>> - I think the args are backwards
+>> I think you just admitted that the new version is less readable.  At
+>> least with an '=' operator you know which side is the thing that's
+>> being modified.  With a put_XXX function, I would have to go look up
+>> the definition (particularly since outb et al. are also the wrong way
+>> around, i.e. have the destination as the second argument).
+> 
+> Well yes, but you don't have to worry about that when reviewing because
+> you know the compiler will catch reversals.
+> 
+> Still not terribly keen about it all, but geeze the code which it is
+> trying to clarify is godawful:
+> 
+> 	*(__le32 *)(buf + i) = cpu_to_le32(addr);
+> 
+> wtf?
+> 
+> Then again the replacement
+> 
+> 	put_le32(addr, (__le32 *)(buf + i));
+> 
+> is still wtf.
+..
 
-Another example, not as extreme, there's an alloc_percpu(struct
-disk_stats) [80 bytes on 64-bit machines] for every disk and every
-partition in the machine.  The TPC system has 3000 disks, each with 14
-partitions on it.  That's 15 * 80 * 3000 = 3,600,000 bytes.
+Exactly my point.  With the "improved" version, I now have to go
+hunting for yet another macro in yet another header file in order
+to see what the code is doing and to verify correctness.
+And I (and other reviewers) are just a teensy bit less likely to
+follow through with that every time, meaning we'll miss bugs.
 
-Even if you're only putting a pointer to each allocation in the percpu
-area, that's still 360,000 bytes, 12x as much as you think is sufficient
-for the entire system.
+This is somewhat akin to Linus's dislike of typedefs for structs.
+It just hides what's really going on, for no obvious gain.  Sorry.  :)
 
--- 
-Intel are signing my paycheques ... these opinions are still mine
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+Cheers
