@@ -1,278 +1,136 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 27/41] cpu alloc: Remove the allocpercpu functionality
-Date: Thu, 29 May 2008 20:56:47 -0700
-Message-ID: <20080530040020.139375468@sgi.com>
+Subject: [patch 28/41] Module handling: Use CPU_xx ops to dynamically allocate counters
+Date: Thu, 29 May 2008 20:56:48 -0700
+Message-ID: <20080530040020.463478427@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40543 "EHLO
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40548 "EHLO
 	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752957AbYE3EAX (ORCPT
+	with ESMTP id S1753047AbYE3EAX (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:23 -0400
-Content-Disposition: inline; filename=cpu_alloc_remove_allocpercpu
+Content-Disposition: inline; filename=cpu_alloc_remove_local_t_in_kernel_module
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-There is no user of allocpercpu left after all the earlier patches were
-applied. Remove the allocpercpu code.
+Use cpu ops to deal with the per cpu data instead of a local_t. Reduces memory
+requirements, cache footprint and decreases cycle counts.
+
+Avoid a loop to NR_CPUS here. Use the possible map instead.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
----
- include/linux/percpu.h |   80 ------------------------------
- mm/Makefile            |    1 
- mm/allocpercpu.c       |  127 -------------------------------------------------
- 3 files changed, 208 deletions(-)
- delete mode 100644 mm/allocpercpu.c
 
-Index: linux-2.6/include/linux/percpu.h
+---
+ include/linux/module.h |   13 +++++--------
+ kernel/module.c        |   17 +++++++----------
+ 2 files changed, 12 insertions(+), 18 deletions(-)
+
+Index: linux-2.6/include/linux/module.h
 ===================================================================
---- linux-2.6.orig/include/linux/percpu.h	2008-05-21 21:42:55.000000000 -0700
-+++ linux-2.6/include/linux/percpu.h	2008-05-21 22:03:19.000000000 -0700
-@@ -53,86 +53,6 @@
- 	&__get_cpu_var(var); }))
- #define put_cpu_var(var) preempt_enable()
+--- linux-2.6.orig/include/linux/module.h	2008-05-21 22:41:03.000000000 -0700
++++ linux-2.6/include/linux/module.h	2008-05-21 23:19:39.000000000 -0700
+@@ -219,8 +219,8 @@
  
--#ifdef CONFIG_SMP
--
--struct percpu_data {
--	void *ptrs[1];
--};
--
--#define __percpu_disguise(pdata) (struct percpu_data *)~(unsigned long)(pdata)
--/* 
-- * Use this to get to a cpu's version of the per-cpu object dynamically
-- * allocated. Non-atomic access to the current CPU's version should
-- * probably be combined with get_cpu()/put_cpu().
-- */ 
--#define percpu_ptr(ptr, cpu)                              \
--({                                                        \
--        struct percpu_data *__p = __percpu_disguise(ptr); \
--        (__typeof__(ptr))__p->ptrs[(cpu)];	          \
--})
--
--extern void *percpu_populate(void *__pdata, size_t size, gfp_t gfp, int cpu);
--extern void percpu_depopulate(void *__pdata, int cpu);
--extern int __percpu_populate_mask(void *__pdata, size_t size, gfp_t gfp,
--				  cpumask_t *mask);
--extern void __percpu_depopulate_mask(void *__pdata, cpumask_t *mask);
--extern void *__percpu_alloc_mask(size_t size, gfp_t gfp, cpumask_t *mask);
--extern void percpu_free(void *__pdata);
--
--#else /* CONFIG_SMP */
--
--#define percpu_ptr(ptr, cpu) ({ (void)(cpu); (ptr); })
--
--static inline void percpu_depopulate(void *__pdata, int cpu)
--{
--}
--
--static inline void __percpu_depopulate_mask(void *__pdata, cpumask_t *mask)
--{
--}
--
--static inline void *percpu_populate(void *__pdata, size_t size, gfp_t gfp,
--				    int cpu)
--{
--	return percpu_ptr(__pdata, cpu);
--}
--
--static inline int __percpu_populate_mask(void *__pdata, size_t size, gfp_t gfp,
--					 cpumask_t *mask)
--{
--	return 0;
--}
--
--static __always_inline void *__percpu_alloc_mask(size_t size, gfp_t gfp, cpumask_t *mask)
--{
--	return kzalloc(size, gfp);
--}
--
--static inline void percpu_free(void *__pdata)
--{
--	kfree(__pdata);
--}
--
--#endif /* CONFIG_SMP */
--
--#define percpu_populate_mask(__pdata, size, gfp, mask) \
--	__percpu_populate_mask((__pdata), (size), (gfp), &(mask))
--#define percpu_depopulate_mask(__pdata, mask) \
--	__percpu_depopulate_mask((__pdata), &(mask))
--#define percpu_alloc_mask(size, gfp, mask) \
--	__percpu_alloc_mask((size), (gfp), &(mask))
--
--#define percpu_alloc(size, gfp) percpu_alloc_mask((size), (gfp), cpu_online_map)
--
--/* (legacy) interface for use without CPU hotplug handling */
--
--#define __alloc_percpu(size)	percpu_alloc_mask((size), GFP_KERNEL, \
--						  cpu_possible_map)
--#define alloc_percpu(type)	(type *)__alloc_percpu(sizeof(type))
--#define free_percpu(ptr)	percpu_free((ptr))
--#define per_cpu_ptr(ptr, cpu)	percpu_ptr((ptr), (cpu))
--
--
- /*
-  * cpu allocator definitions
-  *
-Index: linux-2.6/mm/Makefile
-===================================================================
---- linux-2.6.orig/mm/Makefile	2008-05-21 21:35:21.000000000 -0700
-+++ linux-2.6/mm/Makefile	2008-05-21 22:02:05.000000000 -0700
-@@ -30,7 +30,6 @@
- obj-$(CONFIG_MEMORY_HOTPLUG) += memory_hotplug.o
- obj-$(CONFIG_FS_XIP) += filemap_xip.o
- obj-$(CONFIG_MIGRATION) += migrate.o
--obj-$(CONFIG_SMP) += allocpercpu.o
- obj-$(CONFIG_QUICKLIST) += quicklist.o
- obj-$(CONFIG_CGROUP_MEM_RES_CTLR) += memcontrol.o
+ struct module_ref
+ {
+-	local_t count;
+-} ____cacheline_aligned;
++	int count;
++};
  
-Index: linux-2.6/mm/allocpercpu.c
+ enum module_state
+ {
+@@ -307,7 +307,7 @@
+ 
+ #ifdef CONFIG_MODULE_UNLOAD
+ 	/* Reference counts */
+-	struct module_ref ref[NR_CPUS];
++	struct module_ref *ref;
+ 
+ 	/* What modules depend on me? */
+ 	struct list_head modules_which_use_me;
+@@ -385,8 +385,7 @@
+ {
+ 	if (module) {
+ 		BUG_ON(module_refcount(module) == 0);
+-		local_inc(&module->ref[get_cpu()].count);
+-		put_cpu();
++		_CPU_INC(module->ref->count);
+ 	}
+ }
+ 
+@@ -395,12 +394,12 @@
+ 	int ret = 1;
+ 
+ 	if (module) {
+-		unsigned int cpu = get_cpu();
++		preempt_disable();
+ 		if (likely(module_is_live(module)))
+-			local_inc(&module->ref[cpu].count);
++			__CPU_INC(module->ref->count);
+ 		else
+ 			ret = 0;
+-		put_cpu();
++		preempt_enable();
+ 	}
+ 	return ret;
+ }
+Index: linux-2.6/kernel/module.c
 ===================================================================
---- linux-2.6.orig/mm/allocpercpu.c	2008-04-29 14:55:55.000000000 -0700
-+++ /dev/null	1970-01-01 00:00:00.000000000 +0000
-@@ -1,141 +0,0 @@
--/*
-- * linux/mm/allocpercpu.c
-- *
-- * Separated from slab.c August 11, 2006 Christoph Lameter <clameter@sgi.com>
-- */
--#include <linux/mm.h>
--#include <linux/module.h>
+--- linux-2.6.orig/kernel/module.c	2008-05-21 22:41:03.000000000 -0700
++++ linux-2.6/kernel/module.c	2008-05-21 23:17:20.000000000 -0700
+@@ -366,13 +366,11 @@
+ /* Init the unload section of the module. */
+ static void module_unload_init(struct module *mod)
+ {
+-	unsigned int i;
 -
--#ifndef cache_line_size
--#define cache_line_size()	L1_CACHE_BYTES
--#endif
--
--/**
-- * percpu_depopulate - depopulate per-cpu data for given cpu
-- * @__pdata: per-cpu data to depopulate
-- * @cpu: depopulate per-cpu data for this cpu
-- *
-- * Depopulating per-cpu data for a cpu going offline would be a typical
-- * use case. You need to register a cpu hotplug handler for that purpose.
-- */
--void percpu_depopulate(void *__pdata, int cpu)
--{
--	struct percpu_data *pdata = __percpu_disguise(__pdata);
--
--	kfree(pdata->ptrs[cpu]);
--	pdata->ptrs[cpu] = NULL;
--}
--EXPORT_SYMBOL_GPL(percpu_depopulate);
--
--/**
-- * percpu_depopulate_mask - depopulate per-cpu data for some cpu's
-- * @__pdata: per-cpu data to depopulate
-- * @mask: depopulate per-cpu data for cpu's selected through mask bits
-- */
--void __percpu_depopulate_mask(void *__pdata, cpumask_t *mask)
--{
--	int cpu;
--	for_each_cpu_mask(cpu, *mask)
--		percpu_depopulate(__pdata, cpu);
--}
--EXPORT_SYMBOL_GPL(__percpu_depopulate_mask);
--
--/**
-- * percpu_populate - populate per-cpu data for given cpu
-- * @__pdata: per-cpu data to populate further
-- * @size: size of per-cpu object
-- * @gfp: may sleep or not etc.
-- * @cpu: populate per-data for this cpu
-- *
-- * Populating per-cpu data for a cpu coming online would be a typical
-- * use case. You need to register a cpu hotplug handler for that purpose.
-- * Per-cpu object is populated with zeroed buffer.
-- */
--void *percpu_populate(void *__pdata, size_t size, gfp_t gfp, int cpu)
--{
--	struct percpu_data *pdata = __percpu_disguise(__pdata);
--	int node = cpu_to_node(cpu);
--
--	/*
--	 * We should make sure each CPU gets private memory.
--	 */
--	size = roundup(size, cache_line_size());
--
--	BUG_ON(pdata->ptrs[cpu]);
--	if (node_online(node))
--		pdata->ptrs[cpu] = kmalloc_node(size, gfp|__GFP_ZERO, node);
--	else
--		pdata->ptrs[cpu] = kzalloc(size, gfp);
--	return pdata->ptrs[cpu];
--}
--EXPORT_SYMBOL_GPL(percpu_populate);
--
--/**
-- * percpu_populate_mask - populate per-cpu data for more cpu's
-- * @__pdata: per-cpu data to populate further
-- * @size: size of per-cpu object
-- * @gfp: may sleep or not etc.
-- * @mask: populate per-cpu data for cpu's selected through mask bits
-- *
-- * Per-cpu objects are populated with zeroed buffers.
-- */
--int __percpu_populate_mask(void *__pdata, size_t size, gfp_t gfp,
--			   cpumask_t *mask)
--{
--	cpumask_t populated;
--	int cpu;
--
--	cpus_clear(populated);
--	for_each_cpu_mask(cpu, *mask)
--		if (unlikely(!percpu_populate(__pdata, size, gfp, cpu))) {
--			__percpu_depopulate_mask(__pdata, &populated);
--			return -ENOMEM;
--		} else
--			cpu_set(cpu, populated);
--	return 0;
--}
--EXPORT_SYMBOL_GPL(__percpu_populate_mask);
--
--/**
-- * percpu_alloc_mask - initial setup of per-cpu data
-- * @size: size of per-cpu object
-- * @gfp: may sleep or not etc.
-- * @mask: populate per-data for cpu's selected through mask bits
-- *
-- * Populating per-cpu data for all online cpu's would be a typical use case,
-- * which is simplified by the percpu_alloc() wrapper.
-- * Per-cpu objects are populated with zeroed buffers.
-- */
--void *__percpu_alloc_mask(size_t size, gfp_t gfp, cpumask_t *mask)
--{
--	/*
--	 * We allocate whole cache lines to avoid false sharing
--	 */
--	size_t sz = roundup(nr_cpu_ids * sizeof(void *), cache_line_size());
--	void *pdata = kzalloc(sz, gfp);
--	void *__pdata = __percpu_disguise(pdata);
--
--	if (unlikely(!pdata))
--		return NULL;
--	if (likely(!__percpu_populate_mask(__pdata, size, gfp, mask)))
--		return __pdata;
--	kfree(pdata);
--	return NULL;
--}
--EXPORT_SYMBOL_GPL(__percpu_alloc_mask);
--
--/**
-- * percpu_free - final cleanup of per-cpu data
-- * @__pdata: object to clean up
-- *
-- * We simply clean up any per-cpu object left. No need for the client to
-- * track and specify through a bis mask which per-cpu objects are to free.
-- */
--void percpu_free(void *__pdata)
--{
--	if (unlikely(!__pdata))
--		return;
--	__percpu_depopulate_mask(__pdata, &cpu_possible_map);
--	kfree(__percpu_disguise(__pdata));
--}
--EXPORT_SYMBOL_GPL(percpu_free);
+ 	INIT_LIST_HEAD(&mod->modules_which_use_me);
+-	for (i = 0; i < NR_CPUS; i++)
+-		local_set(&mod->ref[i].count, 0);
++	mod->ref = CPU_ALLOC(struct module_ref, GFP_KERNEL | __GFP_ZERO);
++
+ 	/* Hold reference count during initialization. */
+-	local_set(&mod->ref[raw_smp_processor_id()].count, 1);
++	__CPU_WRITE(mod->ref->count, 1);
+ 	/* Backwards compatibility macros put refcount during init. */
+ 	mod->waiter = current;
+ }
+@@ -450,6 +448,7 @@
+ 				kfree(use);
+ 				sysfs_remove_link(i->holders_dir, mod->name);
+ 				/* There can be at most one match. */
++				CPU_FREE(i->ref);
+ 				break;
+ 			}
+ 		}
+@@ -505,8 +504,8 @@
+ {
+ 	unsigned int i, total = 0;
+ 
+-	for (i = 0; i < NR_CPUS; i++)
+-		total += local_read(&mod->ref[i].count);
++	for_each_online_cpu(i)
++		total += CPU_PTR(mod->ref, i)->count;
+ 	return total;
+ }
+ EXPORT_SYMBOL(module_refcount);
+@@ -667,12 +666,12 @@
+ void module_put(struct module *module)
+ {
+ 	if (module) {
+-		unsigned int cpu = get_cpu();
+-		local_dec(&module->ref[cpu].count);
++		preempt_disable();
++		_CPU_DEC(module->ref->count);
+ 		/* Maybe they're waiting for us to drop reference? */
+ 		if (unlikely(!module_is_live(module)))
+ 			wake_up_process(module->waiter);
+-		put_cpu();
++		preempt_enable();
+ 	}
+ }
+ EXPORT_SYMBOL(module_put);
 
 -- 
