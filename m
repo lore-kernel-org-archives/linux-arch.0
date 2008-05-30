@@ -1,221 +1,74 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 17/41] cpu alloc: Convert scratches to cpu alloc
-Date: Thu, 29 May 2008 20:56:37 -0700
-Message-ID: <20080530040017.035773206@sgi.com>
+Subject: [patch 16/41] cpu alloc: Tcp statistics conversion
+Date: Thu, 29 May 2008 20:56:36 -0700
+Message-ID: <20080530040015.783737944@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:56615 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752751AbYE3EAV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 00:00:21 -0400
-Content-Disposition: inline; filename=cpu_alloc_scratches_convert
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40501 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751995AbYE3EAS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:18 -0400
+Content-Disposition: inline; filename=cpu_alloc_tcp_statistics_conversion
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Convert scratch handling in the network stack to cpu alloc.
+Convert tcp statistics to cpu alloc.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- net/ipv4/ipcomp.c  |   26 +++++++++++++-------------
- net/ipv6/ipcomp6.c |   26 +++++++++++++-------------
- 2 files changed, 26 insertions(+), 26 deletions(-)
+ net/ipv4/tcp.c |   10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-Index: linux-2.6/net/ipv4/ipcomp.c
+Index: linux-2.6/net/ipv4/tcp.c
 ===================================================================
---- linux-2.6.orig/net/ipv4/ipcomp.c	2008-04-29 14:55:55.000000000 -0700
-+++ linux-2.6/net/ipv4/ipcomp.c	2008-05-21 21:48:14.000000000 -0700
-@@ -47,8 +47,8 @@
- 	int dlen = IPCOMP_SCRATCH_SIZE;
- 	const u8 *start = skb->data;
- 	const int cpu = get_cpu();
--	u8 *scratch = *per_cpu_ptr(ipcomp_scratches, cpu);
--	struct crypto_comp *tfm = *per_cpu_ptr(ipcd->tfms, cpu);
-+	u8 *scratch = *CPU_PTR(ipcomp_scratches, cpu);
-+	struct crypto_comp *tfm = *CPU_PTR(ipcd->tfms, cpu);
- 	int err = crypto_comp_decompress(tfm, start, plen, scratch, &dlen);
- 
- 	if (err)
-@@ -105,8 +105,8 @@
- 	int dlen = IPCOMP_SCRATCH_SIZE;
- 	u8 *start = skb->data;
- 	const int cpu = get_cpu();
--	u8 *scratch = *per_cpu_ptr(ipcomp_scratches, cpu);
--	struct crypto_comp *tfm = *per_cpu_ptr(ipcd->tfms, cpu);
-+	u8 *scratch = *CPU_PTR(ipcomp_scratches, cpu);
-+	struct crypto_comp *tfm = *CPU_PTR(ipcd->tfms, cpu);
- 	int err;
- 
- 	local_bh_disable();
-@@ -254,9 +254,9 @@
- 		return;
- 
- 	for_each_possible_cpu(i)
--		vfree(*per_cpu_ptr(scratches, i));
-+		vfree(*CPU_PTR(scratches, i));
- 
--	free_percpu(scratches);
-+	CPU_FREE(scratches);
+--- linux-2.6.orig/net/ipv4/tcp.c	2008-04-29 14:55:55.000000000 -0700
++++ linux-2.6/net/ipv4/tcp.c	2008-05-21 21:46:54.000000000 -0700
+@@ -2456,7 +2456,7 @@
+ {
+ 	int cpu;
+ 	for_each_possible_cpu(cpu) {
+-		struct tcp_md5sig_pool *p = *per_cpu_ptr(pool, cpu);
++		struct tcp_md5sig_pool *p = *CPU_PTR(pool, cpu);
+ 		if (p) {
+ 			if (p->md5_desc.tfm)
+ 				crypto_free_hash(p->md5_desc.tfm);
+@@ -2464,7 +2464,7 @@
+ 			p = NULL;
+ 		}
+ 	}
+-	free_percpu(pool);
++	CPU_FREE(pool);
  }
  
- static void **ipcomp_alloc_scratches(void)
-@@ -267,7 +267,7 @@
- 	if (ipcomp_scratch_users++)
- 		return ipcomp_scratches;
+ void tcp_free_md5sig_pool(void)
+@@ -2488,7 +2488,7 @@
+ 	int cpu;
+ 	struct tcp_md5sig_pool **pool;
  
--	scratches = alloc_percpu(void *);
-+	scratches = CPU_ALLOC(void *, GFP_KERNEL);
- 	if (!scratches)
+-	pool = alloc_percpu(struct tcp_md5sig_pool *);
++	pool = CPU_ALLOC(struct tcp_md5sig_pool *, GFP_KERNEL);
+ 	if (!pool)
  		return NULL;
  
-@@ -277,7 +277,7 @@
- 		void *scratch = vmalloc(IPCOMP_SCRATCH_SIZE);
- 		if (!scratch)
- 			return NULL;
--		*per_cpu_ptr(scratches, i) = scratch;
-+		*CPU_PTR(scratches, i) = scratch;
- 	}
+@@ -2499,7 +2499,7 @@
+ 		p = kzalloc(sizeof(*p), GFP_KERNEL);
+ 		if (!p)
+ 			goto out_free;
+-		*per_cpu_ptr(pool, cpu) = p;
++		*CPU_PTR(pool, cpu) = p;
  
- 	return scratches;
-@@ -305,10 +305,10 @@
- 		return;
- 
- 	for_each_possible_cpu(cpu) {
--		struct crypto_comp *tfm = *per_cpu_ptr(tfms, cpu);
-+		struct crypto_comp *tfm = *CPU_PTR(tfms, cpu);
- 		crypto_free_comp(tfm);
- 	}
--	free_percpu(tfms);
-+	CPU_FREE(tfms);
+ 		hash = crypto_alloc_hash("md5", 0, CRYPTO_ALG_ASYNC);
+ 		if (!hash || IS_ERR(hash))
+@@ -2564,7 +2564,7 @@
+ 	if (p)
+ 		tcp_md5sig_users++;
+ 	spin_unlock_bh(&tcp_md5sig_pool_lock);
+-	return (p ? *per_cpu_ptr(p, cpu) : NULL);
++	return (p ? *CPU_PTR(p, cpu) : NULL);
  }
  
- static struct crypto_comp **ipcomp_alloc_tfms(const char *alg_name)
-@@ -324,7 +324,7 @@
- 		struct crypto_comp *tfm;
- 
- 		tfms = pos->tfms;
--		tfm = *per_cpu_ptr(tfms, cpu);
-+		tfm = *CPU_PTR(tfms, cpu);
- 
- 		if (!strcmp(crypto_comp_name(tfm), alg_name)) {
- 			pos->users++;
-@@ -340,7 +340,7 @@
- 	INIT_LIST_HEAD(&pos->list);
- 	list_add(&pos->list, &ipcomp_tfms_list);
- 
--	pos->tfms = tfms = alloc_percpu(struct crypto_comp *);
-+	pos->tfms = tfms = CPU_ALLOC(struct crypto_comp *, GFP_KERNEL);
- 	if (!tfms)
- 		goto error;
- 
-@@ -349,7 +349,7 @@
- 							    CRYPTO_ALG_ASYNC);
- 		if (IS_ERR(tfm))
- 			goto error;
--		*per_cpu_ptr(tfms, cpu) = tfm;
-+		*CPU_PTR(tfms, cpu) = tfm;
- 	}
- 
- 	return tfms;
-Index: linux-2.6/net/ipv6/ipcomp6.c
-===================================================================
---- linux-2.6.orig/net/ipv6/ipcomp6.c	2008-04-29 14:55:55.000000000 -0700
-+++ linux-2.6/net/ipv6/ipcomp6.c	2008-05-21 21:47:09.000000000 -0700
-@@ -90,8 +90,8 @@
- 	start = skb->data;
- 
- 	cpu = get_cpu();
--	scratch = *per_cpu_ptr(ipcomp6_scratches, cpu);
--	tfm = *per_cpu_ptr(ipcd->tfms, cpu);
-+	scratch = *CPU_PTR(ipcomp6_scratches, cpu);
-+	tfm = *CPU_PTR(ipcd->tfms, cpu);
- 
- 	err = crypto_comp_decompress(tfm, start, plen, scratch, &dlen);
- 	if (err)
-@@ -142,8 +142,8 @@
- 	start = skb->data;
- 
- 	cpu = get_cpu();
--	scratch = *per_cpu_ptr(ipcomp6_scratches, cpu);
--	tfm = *per_cpu_ptr(ipcd->tfms, cpu);
-+	scratch = *CPU_PTR(ipcomp6_scratches, cpu);
-+	tfm = *CPU_PTR(ipcd->tfms, cpu);
- 
- 	local_bh_disable();
- 	err = crypto_comp_compress(tfm, start, plen, scratch, &dlen);
-@@ -264,12 +264,12 @@
- 		return;
- 
- 	for_each_possible_cpu(i) {
--		void *scratch = *per_cpu_ptr(scratches, i);
-+		void *scratch = *CPU_PTR(scratches, i);
- 
- 		vfree(scratch);
- 	}
- 
--	free_percpu(scratches);
-+	CPU_FREE(scratches);
- }
- 
- static void **ipcomp6_alloc_scratches(void)
-@@ -280,7 +280,7 @@
- 	if (ipcomp6_scratch_users++)
- 		return ipcomp6_scratches;
- 
--	scratches = alloc_percpu(void *);
-+	scratches = CPU_ALLOC(void *, GFP_KERNEL);
- 	if (!scratches)
- 		return NULL;
- 
-@@ -290,7 +290,7 @@
- 		void *scratch = vmalloc(IPCOMP_SCRATCH_SIZE);
- 		if (!scratch)
- 			return NULL;
--		*per_cpu_ptr(scratches, i) = scratch;
-+		*CPU_PTR(scratches, i) = scratch;
- 	}
- 
- 	return scratches;
-@@ -318,10 +318,10 @@
- 		return;
- 
- 	for_each_possible_cpu(cpu) {
--		struct crypto_comp *tfm = *per_cpu_ptr(tfms, cpu);
-+		struct crypto_comp *tfm = *CPU_PTR(tfms, cpu);
- 		crypto_free_comp(tfm);
- 	}
--	free_percpu(tfms);
-+	CPU_FREE(tfms);
- }
- 
- static struct crypto_comp **ipcomp6_alloc_tfms(const char *alg_name)
-@@ -337,7 +337,7 @@
- 		struct crypto_comp *tfm;
- 
- 		tfms = pos->tfms;
--		tfm = *per_cpu_ptr(tfms, cpu);
-+		tfm = *CPU_PTR(tfms, cpu);
- 
- 		if (!strcmp(crypto_comp_name(tfm), alg_name)) {
- 			pos->users++;
-@@ -353,7 +353,7 @@
- 	INIT_LIST_HEAD(&pos->list);
- 	list_add(&pos->list, &ipcomp6_tfms_list);
- 
--	pos->tfms = tfms = alloc_percpu(struct crypto_comp *);
-+	pos->tfms = tfms = CPU_ALLOC(struct crypto_comp *, GFP_KERNEL);
- 	if (!tfms)
- 		goto error;
- 
-@@ -362,7 +362,7 @@
- 							    CRYPTO_ALG_ASYNC);
- 		if (IS_ERR(tfm))
- 			goto error;
--		*per_cpu_ptr(tfms, cpu) = tfm;
-+		*CPU_PTR(tfms, cpu) = tfm;
- 	}
- 
- 	return tfms;
+ EXPORT_SYMBOL(__tcp_get_md5sig_pool);
 
 -- 
