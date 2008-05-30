@@ -1,35 +1,77 @@
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 02/41] cpu alloc: The allocator
-Date: Thu, 29 May 2008 22:20:45 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805292219220.12107@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <20080530040011.084909898@sgi.com>
- <483F8AF7.9000309@cosmosbay.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
+Date: Thu, 29 May 2008 22:21:43 -0700
+Message-ID: <20080529222143.5d7aa1e5.akpm@linux-foundation.org>
+References: <20080530035620.587204923@sgi.com>
+	<20080529215827.b659d032.akpm@linux-foundation.org>
+	<Pine.LNX.4.64.0805292159360.12107@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:42119 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752771AbYE3FUq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 01:20:46 -0400
-In-Reply-To: <483F8AF7.9000309@cosmosbay.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:54088 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751132AbYE3FW3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 01:22:29 -0400
+In-Reply-To: <Pine.LNX.4.64.0805292159360.12107@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Dumazet <dada1@cosmosbay.com>
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-On Fri, 30 May 2008, Eric Dumazet wrote:
+On Thu, 29 May 2008 22:03:14 -0700 (PDT) Christoph Lameter <clameter@sgi.com> wrote:
 
-> > +static DEFINE_PER_CPU(UNIT_TYPE, area[UNITS]);
-> >   
-> area[] is not guaranteed to be aligned on anything but 4 bytes.
+> On Thu, 29 May 2008, Andrew Morton wrote:
 > 
-> If someone then needs to call cpu_alloc(8, GFP_KERNEL, 8), it might get an non
-> aligned result.
+> > All seems reasonable to me.  The obvious question is "how do we size
+> > the arena".  We either waste memory or, much worse, run out.
 > 
-> Either you should add an __attribute__((__aligned__(PAGE_SIZE))),
-> or take into account the real address of area[] in cpu_alloc() to avoid waste
-> of up to PAGE_SIZE bytes
-> per cpu.
+> The per cpu memory use by subsystems is typically quite small. We already 
+> have an 8k limitation for percpu space for modules. And that does not seem 
+> to be a problem.
 
-I think cacheline aligning should be sufficient. People should not 
-allocate large page aligned objects here.
+eh?  That's DEFINE_PERCPU memory, not alloc_pecpu() memory?
+
+> > And running out is a real possibility, I think.  Most people will only
+> > mount a handful of XFS filesystems.  But some customer will come along
+> > who wants to mount 5,000, and distributors will need to cater for that,
+> > but how can they?
+> 
+> Typically these are fairly small 8 bytes * 5000 is only 20k.
+
+It was just an example.  There will be others.
+
+	tcp_v4_md5_do_add
+	->tcp_alloc_md5sig_pool
+	  ->__tcp_alloc_md5sig_pool
+
+does an alloc_percpu for each md5-capable TCP connection.  I think - it
+doesn't matter really, because something _could_.  And if something
+_does_, we're screwed.
+
+> > I wonder if we can arrange for the default to be overridden via a
+> > kernel boot option?
+> 
+> We could do that yes.
+
+Phew.
+
+> > Another obvious question is "how much of a problem will we have with
+> > internal fragmentation"?  This might be a drop-dead showstopper.
+> 
+> But then per cpu data is not frequently allocated and freed.
+
+I think it is, in the TCP case.  And that's the only one I looked at.
+
+Plus who knows what lies ahead of us?
+
+> Going away from allocpercpu saves a lot of memory. We could make this 
+> 128k or so to be safe?
+
+("alloc_percpu" - please be careful about getting this stuff right)
+
+I don't think there is presently any upper limit on alloc_percpu()?  It
+uses kmalloc() and kmalloc_node()?
+
+Even if there is some limit, is it an unfixable one?
