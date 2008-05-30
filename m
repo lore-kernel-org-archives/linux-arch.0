@@ -1,20 +1,20 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
- operations
-Date: Thu, 29 May 2008 23:12:59 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805292309520.12457@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <20080530040011.727424512@sgi.com>
- <20080529215844.609a3ac8.akpm@linux-foundation.org>
- <Pine.LNX.4.64.0805292214280.12107@schroedinger.engr.sgi.com>
- <20080529223825.bf744d37.akpm@linux-foundation.org>
+Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
+Date: Thu, 29 May 2008 23:16:11 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0805292313240.12457@schroedinger.engr.sgi.com>
+References: <20080530035620.587204923@sgi.com> <20080529215827.b659d032.akpm@linux-foundation.org>
+ <Pine.LNX.4.64.0805292159360.12107@schroedinger.engr.sgi.com>
+ <20080529222143.5d7aa1e5.akpm@linux-foundation.org>
+ <Pine.LNX.4.64.0805292224540.12329@schroedinger.engr.sgi.com>
+ <20080529224959.3297a4f1.akpm@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.sgi.com ([192.48.171.29]:34717 "EHLO relay.sgi.com"
+Received: from relay1.sgi.com ([192.48.171.29]:33378 "EHLO relay.sgi.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752755AbYE3GNA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 02:13:00 -0400
-In-Reply-To: <20080529223825.bf744d37.akpm@linux-foundation.org>
+	id S1752230AbYE3GQM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 02:16:12 -0400
+In-Reply-To: <20080529224959.3297a4f1.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
@@ -22,38 +22,23 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <dave
 
 On Thu, 29 May 2008, Andrew Morton wrote:
 
-> > area. It requies disabling of interrupts etc.
+> > No. The module subsystem has its own alloc_percpu subsystem that the 
+> > cpu_alloc replaces.
 > 
-> No it doesn't.  Look:
-> 
-> static inline void local_inc(local_t *l)
-> {
-> 	asm volatile(_ASM_INC "%0"
-> 		     : "+m" (l->a.counter));
-> }
-> 
-> > Its not atomic (wrt 
-> > interrupts) because of that.
-> >
-> 
-> Yes it is.
+> That is to support DEFINE_PER_CPU, not alloc_percpu().
 
-No its not! In order to increment a per cpu value you need to calculate 
-the per cpu pointer address in the current per cpu segment. local_t 
-cannot do that in an atomic (wrt interrupt/preempt fashion) fashion. cpu 
-ops can use a segment prefix and thus the insructions can calculate the 
-per cpu adress and perform the atomic inc without disabling preempt or 
-interrupts.
+Right but it needs to have its own section of the percpu space from which 
+it allocates the percpu segments for the modules. So it effectively 
+implements an allocator.
 
-local_t is only useful when you disable interrupt or premption otherwise. 
-But then you could also use a regular increment.
+> If we were to merge all this code and then run into the problems which
+> I fear then we are tremendously screwed.  We must examine this
+> exhaustively, in the most paranoid fashion.
 
-> > But then its related to percpu operations and relies extensively on the 
-> > various percpu.h files in asm-generic and asm-arch and include/linux
-> 
-> Well that should be fixed.  We should never have mixed the
-> alloc_percpu() and DEFINE_PER_CPU things inthe same header.  They're
-> different.
+Well V2 virtually mapped the cpu alloc area which allowed extending it 
+arbitrarily. But that made things very complicated.
 
-With cpu_alloc they are the same. They allocate from the same per cpu 
-area.
+The number of per cpu resources needed is mostly fixed. The number of 
+zones, nodes, slab caches, network interfaces etc etc does not change much 
+during typical operations.
+ 
