@@ -1,74 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:42945 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760160AbYE3ENH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 00:13:07 -0400
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Message-ID: <18495.32327.521211.508818@cargo.ozlabs.ibm.com>
-Date: Fri, 30 May 2008 14:10:47 +1000
-From: Paul Mackerras <paulus@samba.org>
+Received: from wx-out-0506.google.com ([66.249.82.235]:10499 "EHLO
+	wx-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761824AbYE3ESz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:18:55 -0400
+Received: by wx-out-0506.google.com with SMTP id h29so2901817wxd.4
+        for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 21:18:54 -0700 (PDT)
 Subject: Re: [PATCH 05/37] ata: use get/put_endian helpers
-In-Reply-To: <20080529195225.5665ae9c.akpm@linux-foundation.org>
-References: <1212092282.28403.107.camel@brick>
-	<483F65CA.4050507@rtr.ca>
-	<20080529195225.5665ae9c.akpm@linux-foundation.org>
+From: Harvey Harrison <harvey.harrison@gmail.com>
+In-Reply-To: <18495.32327.521211.508818@cargo.ozlabs.ibm.com>
+References: <1212092282.28403.107.camel@brick> <483F65CA.4050507@rtr.ca>
+	 <20080529195225.5665ae9c.akpm@linux-foundation.org>
+	 <18495.32327.521211.508818@cargo.ozlabs.ibm.com>
+Content-Type: text/plain
+Date: Thu, 29 May 2008 21:18:52 -0700
+Message-ID: <1212121132.28403.182.camel@brick>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mark Lord <liml@rtr.ca>, Harvey Harrison <harvey.harrison@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
-Message-ID: <20080530041047.YaQ6ITHpwmGB1XHpp6jg1Q7iMTVEgHnVK6jMYeNPpfs@z>
+To: Paul Mackerras <paulus@samba.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mark Lord <liml@rtr.ca>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
+Message-ID: <20080530041852.mNGqk2hJdtwU5E3MWVrXgWkHDeXbFx8g4uR00nWXZ8s@z>
 
-Andrew Morton writes:
-
-> On Thu, 29 May 2008 22:26:18 -0400 Mark Lord <liml@rtr.ca> wrote:
+On Fri, 2008-05-30 at 14:10 +1000, Paul Mackerras wrote:
+> Andrew Morton writes:
 > 
-> > Harvey Harrison wrote:
-> > > Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
-> > > ---
-> > >  drivers/ata/pdc_adma.c   |   12 ++++++------
-> > >  drivers/ata/sata_qstor.c |   12 +++++-------
-> > >  2 files changed, 11 insertions(+), 13 deletions(-)
-> > > 
-> > > diff --git a/drivers/ata/pdc_adma.c b/drivers/ata/pdc_adma.c
-> > > index be53545..162eecb 100644
-> > > --- a/drivers/ata/pdc_adma.c
-> > > +++ b/drivers/ata/pdc_adma.c
-> > > @@ -284,11 +284,11 @@ static int adma_fill_sg(struct ata_queued_cmd *qc)
-> > >  		u32 len;
-> > >  
-> > >  		addr = (u32)sg_dma_address(sg);
-> > > -		*(__le32 *)(buf + i) = cpu_to_le32(addr);
-> > > +		put_le32(addr, (__le32 *)(buf + i));
-> > ..
-> > 
-> > I don't get it.
-> > 
-> > What's the point here?
-> 
-> Readability and maintainability.  Once one becomes familar with a
-> particular idion like this you can read it and say "ah, I know what
-> that's doing" rather than having to peer at every character and work it
-> out at each site where it happens.
-> 
-> As usual: a PITA now, but better long-term.
-> 
-> otoh,
-> 
-> - I think the args are backwards
+> > On Thu, 29 May 2008 22:26:18 -0400 Mark Lord <liml@rtr.ca> wrote:
 
-I think you just admitted that the new version is less readable.  At
-least with an '=' operator you know which side is the thing that's
-being modified.  With a put_XXX function, I would have to go look up
-the definition (particularly since outb et al. are also the wrong way
-around, i.e. have the destination as the second argument).
+> Plus we have a common idiom that get_*() functions increment some sort
+> of reference count, and put_*() functions decrease a reference count
+> and may free something...
 
-> - I don't like the use of the put_*() namespace.  It makes it look
->   like a uaccess operation.
+Except for get_unaligned(), put_unaligned()
 
-Plus we have a common idiom that get_*() functions increment some sort
-of reference count, and put_*() functions decrease a reference count
-and may free something...
+But point taken.
 
-Paul.
+Harvey
+
