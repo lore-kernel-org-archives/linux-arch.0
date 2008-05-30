@@ -1,67 +1,59 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [patch 03/41] cpu alloc: Use cpu allocator instead of the builtin modules per cpu allocator
-Date: Fri, 30 May 2008 16:08:01 +1000
-Message-ID: <200805301608.01584.rusty@rustcorp.com.au>
-References: <20080530035620.587204923@sgi.com> <20080530040011.451400376@sgi.com>
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
+ operations
+Date: Thu, 29 May 2008 23:12:59 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0805292309520.12457@schroedinger.engr.sgi.com>
+References: <20080530035620.587204923@sgi.com> <20080530040011.727424512@sgi.com>
+ <20080529215844.609a3ac8.akpm@linux-foundation.org>
+ <Pine.LNX.4.64.0805292214280.12107@schroedinger.engr.sgi.com>
+ <20080529223825.bf744d37.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:42288 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758418AbYE3GII (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 02:08:08 -0400
-In-Reply-To: <20080530040011.451400376@sgi.com>
-Content-Disposition: inline
+Received: from relay1.sgi.com ([192.48.171.29]:34717 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752755AbYE3GNA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 02:13:00 -0400
+In-Reply-To: <20080529223825.bf744d37.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <clameter@sgi.com>
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-On Friday 30 May 2008 13:56:23 Christoph Lameter wrote:
-> --- linux-2.6.orig/kernel/module.c	2008-05-29 17:57:39.825214766 -0700
-> +++ linux-2.6/kernel/module.c	2008-05-29 18:00:50.496815514 -0700
-> @@ -314,121 +314,6 @@ static struct module *find_module(const
->  	return NULL;
->  }
+On Thu, 29 May 2008, Andrew Morton wrote:
 
-115 lines removed... This is my favourite part of the series so far :)
+> > area. It requies disabling of interrupts etc.
+> 
+> No it doesn't.  Look:
+> 
+> static inline void local_inc(local_t *l)
+> {
+> 	asm volatile(_ASM_INC "%0"
+> 		     : "+m" (l->a.counter));
+> }
+> 
+> > Its not atomic (wrt 
+> > interrupts) because of that.
+> >
+> 
+> Yes it is.
 
->  	if (mod->percpu)
-> -		percpu_modfree(mod->percpu);
-> +		cpu_free(mod->percpu, mod->percpu_size);
+No its not! In order to increment a per cpu value you need to calculate 
+the per cpu pointer address in the current per cpu segment. local_t 
+cannot do that in an atomic (wrt interrupt/preempt fashion) fashion. cpu 
+ops can use a segment prefix and thus the insructions can calculate the 
+per cpu adress and perform the atomic inc without disabling preempt or 
+interrupts.
 
-Hmm, does cpu_free(NULL, 0) do something?  Seems like it shouldn't, for 
-symmetry with free().
+local_t is only useful when you disable interrupt or premption otherwise. 
+But then you could also use a regular increment.
 
-> +		if (align > PAGE_SIZE) {
-> +			printk(KERN_WARNING "%s: per-cpu alignment %li > %li\n",
-> +			mod->name, align, PAGE_SIZE);
-> +			align = PAGE_SIZE;
-> +		}
-> +		percpu = cpu_alloc(size, GFP_KERNEL|__GFP_ZERO, align);
-> +		if (!percpu)
-> +			printk(KERN_WARNING "Could not allocate %lu bytes percpu data\n",
-> +										size);
->  		if (!percpu) {
->  			err = -ENOMEM;
->  			goto free_mod;
+> > But then its related to percpu operations and relies extensively on the 
+> > various percpu.h files in asm-generic and asm-arch and include/linux
+> 
+> Well that should be fixed.  We should never have mixed the
+> alloc_percpu() and DEFINE_PER_CPU things inthe same header.  They're
+> different.
 
-OK, we've *never* had a report of the per-cpu alignment message, so I'd be 
-happy to pass that through to cpu_alloc() and have it fail.  Also, the if 
-(!percpu) cases should be combined.
-
->   free_percpu:
->  	if (percpu)
-> -		percpu_modfree(percpu);
-> +		cpu_free(percpu, percpu_size);
-
-As above.
-
-> +	goal = __per_cpu_size;
-
-Where did __per_cpu_size come from?  I missed it in the earlier patches...
-
-Thanks,
-Rusty.
+With cpu_alloc they are the same. They allocate from the same per cpu 
+area.
