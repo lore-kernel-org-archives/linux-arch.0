@@ -1,36 +1,52 @@
-From: Christoph Lameter <clameter@sgi.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Fri, 30 May 2008 12:11:59 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805301210350.16253@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com>  <1212138752.12349.227.camel@twins>
-  <Pine.LNX.4.64.0805301106360.14564@schroedinger.engr.sgi.com>
- <1212172742.24826.19.camel@lappy.programming.kicks-ass.net>
- <Pine.LNX.4.64.0805301141260.16184@schroedinger.engr.sgi.com>
- <1212174001.24826.37.camel@lappy.programming.kicks-ass.net>
+Date: Fri, 30 May 2008 21:13:18 +0200
+Message-ID: <1212174798.24826.44.camel@lappy.programming.kicks-ass.net>
+References: <20080530035620.587204923@sgi.com>
+	 <1212138752.12349.227.camel@twins> <20080530091847.GA26563@elte.hu>
+	 <Pine.LNX.4.64.0805301109120.14564@schroedinger.engr.sgi.com>
+	 <1212172834.24826.22.camel@lappy.programming.kicks-ass.net>
+	 <Pine.LNX.4.64.0805301155380.16253@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:35290 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751318AbYE3TMA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 15:12:00 -0400
-In-Reply-To: <1212174001.24826.37.camel@lappy.programming.kicks-ass.net>
+Received: from bombadil.infradead.org ([18.85.46.34]:49987 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752221AbYE3TOI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 15:14:08 -0400
+In-Reply-To: <Pine.LNX.4.64.0805301155380.16253@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>
 
-On Fri, 30 May 2008, Peter Zijlstra wrote:
+On Fri, 2008-05-30 at 11:56 -0700, Christoph Lameter wrote:
+> On Fri, 30 May 2008, Peter Zijlstra wrote:
+> 
+> > Yes, I get that, but for instance kmem_cache_cpu usage would require
+> > horrible long preempt off sections, hence we add a lock and manage
+> > consistency using that lock instead of strict per-cpu and preempt
+> > disable.
+> 
+> Really? Where is that horrible long preempt off section? I thought they 
+> were all short and we use semaphores when looping over all slabs.
 
-> For -rt we'd need to make the CPU_ops true atomic operations, with that
-> all the single word stuff works again.
+Remember, horribly long on -rt is in the order of ~30us.
 
-Hmmmm.... Okay then this would just mean adding an #ifdef CONFIG_RT to
-include/asm-x86/percpu.h.
- 
-> All the multi word stuff (that currently requires preempt-off) must be
-> converted to a locked version.
+See for instance the path:
 
-How would the (now atomic) per cpu ops interact with the locks? I.e. you 
-take the lock for the kmem_cache_cpu structure and then the fastpath tries 
-to perform an atomic update on one of the variables therein?
+ flush_slab()
+   slab_lock() <-- bit_spinlock
+   deactive_slab()
+     loop over objects
+     unfreeze_slab()
+       add_partial()
+         spin_lock(&n->list_lock) <-- another lock
+
+all of that runs with preempt disabled, and worse it can spin for some
+indefinite amount of time.
+
+That is totally unacceptable on -rt, so we need to make it all
+preemptible and use sleeping locks (IRQ inversion can't happen, for the
+only thing that runs in hardirq is try_to_wake_up()).
