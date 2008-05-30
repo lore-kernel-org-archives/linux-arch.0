@@ -1,326 +1,318 @@
 From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [patch 02/41] cpu alloc: The allocator
-Date: Thu, 29 May 2008 21:58:33 -0700
-Message-ID: <20080529215833.469c3cbe.akpm@linux-foundation.org>
+Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
+ operations
+Date: Thu, 29 May 2008 21:58:44 -0700
+Message-ID: <20080529215844.609a3ac8.akpm@linux-foundation.org>
 References: <20080530035620.587204923@sgi.com>
-	<20080530040011.084909898@sgi.com>
+	<20080530040011.727424512@sgi.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:36809 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:53064 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751030AbYE3E6w (ORCPT
+	by vger.kernel.org with ESMTP id S1753713AbYE3E7A (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 00:58:52 -0400
-In-Reply-To: <20080530040011.084909898@sgi.com>
+	Fri, 30 May 2008 00:59:00 -0400
+In-Reply-To: <20080530040011.727424512@sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Lameter <clameter@sgi.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-On Thu, 29 May 2008 20:56:22 -0700 Christoph Lameter <clameter@sgi.com> wrote:
+On Thu, 29 May 2008 20:56:24 -0700 Christoph Lameter <clameter@sgi.com> wrote:
 
-> The per cpu allocator allows dynamic allocation of memory on all
-> processors simultaneously. A bitmap is used to track used areas.
-> The allocator implements tight packing to reduce the cache footprint
-> and increase speed since cacheline contention is typically not a concern
-> for memory mainly used by a single cpu. Small objects will fill up gaps
-> left by larger allocations that required alignments.
+> Currently the per cpu subsystem is not able to use the atomic capabilities
+> that are provided by many of the available processors.
 > 
-> The size of the cpu_alloc area can be changed via make menuconfig.
+> This patch adds new functionality that allows the optimizing of per cpu
+> variable handling. In particular it provides a simple way to exploit
+> atomic operations in order to avoid having to disable interrupts or
+> performing address calculation to access per cpu data.
 > 
-> ...
->
-> +config CPU_ALLOC_SIZE
-> +	int "Size of cpu alloc area"
-> +	default "30000"
+> F.e. Using our current methods we may do
+> 
+> 	unsigned long flags;
+> 	struct stat_struct *p;
+> 
+> 	local_irq_save(flags);
+> 	/* Calculate address of per processor area */
+> 	p = CPU_PTR(stat, smp_processor_id());
+> 	p->counter++;
+> 	local_irq_restore(flags);
 
-strange choice of a default?  I guess it makes it clear that there's no
-particular advantage in making it a power-of-two or anything like that.
+eh?  That's what local_t is for?
 
-> +	help
-> +	  Sets the maximum amount of memory that can be allocated via cpu_alloc
-> Index: linux-2.6/mm/Makefile
-> ===================================================================
-> --- linux-2.6.orig/mm/Makefile	2008-05-29 19:41:21.000000000 -0700
-> +++ linux-2.6/mm/Makefile	2008-05-29 20:15:41.000000000 -0700
-> @@ -11,7 +11,7 @@ obj-y			:= bootmem.o filemap.o mempool.o
->  			   maccess.o page_alloc.o page-writeback.o pdflush.o \
->  			   readahead.o swap.o truncate.o vmscan.o \
->  			   prio_tree.o util.o mmzone.o vmstat.o backing-dev.o \
-> -			   page_isolation.o $(mmu-y)
-> +			   page_isolation.o cpu_alloc.o $(mmu-y)
->  
->  obj-$(CONFIG_PROC_PAGE_MONITOR) += pagewalk.o
->  obj-$(CONFIG_BOUNCE)	+= bounce.o
-> Index: linux-2.6/mm/cpu_alloc.c
-> ===================================================================
-> --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-> +++ linux-2.6/mm/cpu_alloc.c	2008-05-29 20:13:39.000000000 -0700
-> @@ -0,0 +1,167 @@
-> +/*
-> + * Cpu allocator - Manage objects allocated for each processor
-> + *
-> + * (C) 2008 SGI, Christoph Lameter <clameter@sgi.com>
-> + * 	Basic implementation with allocation and free from a dedicated per
-> + * 	cpu area.
-> + *
-> + * The per cpu allocator allows dynamic allocation of memory on all
-> + * processor simultaneously. A bitmap is used to track used areas.
-> + * The allocator implements tight packing to reduce the cache footprint
-> + * and increase speed since cacheline contention is typically not a concern
-> + * for memory mainly used by a single cpu. Small objects will fill up gaps
-> + * left by larger allocations that required alignments.
-> + */
-> +#include <linux/mm.h>
-> +#include <linux/mmzone.h>
-> +#include <linux/module.h>
-> +#include <linux/percpu.h>
-> +#include <linux/bitmap.h>
-> +#include <asm/sections.h>
-> +
-> +/*
-> + * Basic allocation unit. A bit map is created to track the use of each
-> + * UNIT_SIZE element in the cpu area.
-> + */
-> +#define UNIT_TYPE int
-> +#define UNIT_SIZE sizeof(UNIT_TYPE)
-> +#define UNITS (CONFIG_CPU_ALLOC_SIZE / UNIT_SIZE)
-> +
-> +static DEFINE_PER_CPU(UNIT_TYPE, area[UNITS]);
-> +
-> +/*
-> + * How many units are needed for an object of a given size
-> + */
-> +static int size_to_units(unsigned long size)
-> +{
-> +	return DIV_ROUND_UP(size, UNIT_SIZE);
-> +}
+> The segment can be replaced by a single atomic CPU operation:
+> 
+> 	CPU_INC(stat->counter);
 
-Perhaps it should return UNIT_TYPE? (ugh).
+hm, I guess this _has_ to be implemented as a macro.  ho hum.  But
+please: "cpu_inc"?
 
-I guess there's no need to ever change that type, so no?
+> Most processors have instructions to perform the increment using a
+> a single atomic instruction. Processors may have segment registers,
+> global registers or per cpu mappings of per cpu areas that can be used
+> to generate atomic instructions that combine the following in a single
+> operation:
+> 
+> 1. Adding of an offset / register to a base address
+> 2. Read modify write operation on the address calculated by
+>    the instruction.
+> 
+> If 1+2 are combined in an instruction then the instruction is atomic
+> vs interrupts. This means that percpu atomic operations do not need
+> to disable interrupts to increments counters etc.
+> 
+> The existing methods in use in the kernel cannot utilize the power of
+> these atomic instructions. local_t is not really addressing the issue
+> since the offset calculation performed before the atomic operation. The
+> operation is therefor not atomic. Disabling interrupt or preemption is
+> required in order to use local_t.
 
-> +/*
-> + * Lock to protect the bitmap and the meta data for the cpu allocator.
-> + */
-> +static DEFINE_SPINLOCK(cpu_alloc_map_lock);
-> +static DECLARE_BITMAP(cpu_alloc_map, UNITS);
-> +static int first_free;		/* First known free unit */
+Your terminology is totally confusing here.
 
-Would be nicer to move these above size_to_units(), IMO.
+To me, an "atomic operation" is one which is atomic wrt other CPUs:
+atomic_t, for example.
 
-> +/*
-> + * Mark an object as used in the cpu_alloc_map
-> + *
-> + * Must hold cpu_alloc_map_lock
-> + */
-> +static void set_map(int start, int length)
-> +{
-> +	while (length-- > 0)
-> +		__set_bit(start++, cpu_alloc_map);
-> +}
+Here we're talking about atomic-wrt-this-cpu-only, yes?
 
-bitmap_fill()?
+If so, we should invent a new term for that different concept and stick
+to it like glue.  How about "self-atomic"?  Or "locally-atomic" in
+deference to the existing local_t?
 
-> +/*
-> + * Mark an area as freed.
-> + *
-> + * Must hold cpu_alloc_map_lock
-> + */
-> +static void clear_map(int start, int length)
-> +{
-> +	while (length-- > 0)
-> +		__clear_bit(start++, cpu_alloc_map);
-> +}
+> local_t is also very specific to the x86 processor.
 
-bitmap_zero()?
+And alpha, m32r, mips and powerpc, methinks.  Probably others, but
+people just haven't got around to it.
 
-> +/*
-> + * Allocate an object of a certain size
-> + *
-> + * Returns a special pointer that can be used with CPU_PTR to find the
-> + * address of the object for a certain cpu.
-> + */
+> The solution here can
+> utilize other methods than just those provided by the x86 instruction set.
+> 
+> 
+> 
+> On x86 the above CPU_INC translated into a single instruction:
+> 
+> 	inc %%gs:(&stat->counter)
+> 
+> This instruction is interrupt safe since it can either be completed
+> or not. Both adding of the offset and the read modify write are combined
+> in one instruction.
+> 
+> The determination of the correct per cpu area for the current processor
+> does not require access to smp_processor_id() (expensive...). The gs
+> register is used to provide a processor specific offset to the respective
+> per cpu area where the per cpu variable resides.
+> 
+> Note that the counter offset into the struct was added *before* the segment
+> selector was added. This is necessary to avoid calculations.  In the past
+> we first determine the address of the stats structure on the respective
+> processor and then added the field offset. However, the offset may as
+> well be added earlier. The adding of the per cpu offset (here through the
+> gs register) must be done by the instruction used for atomic per cpu
+> access.
+> 
+> 
+> 
+> If "stat" was declared via DECLARE_PER_CPU then this patchset is capable of
+> convincing the linker to provide the proper base address. In that case
+> no calculations are necessary.
+> 
+> Should the stat structure be reachable via a register then the address
+> calculation capabilities can be leveraged to avoid calculations.
+> 
+> On IA64 we can get the same combination of operations in a single instruction
+> by using the virtual address that always maps to the local per cpu area:
+> 
+> 	fetchadd &stat->counter + (VCPU_BASE - __per_cpu_start)
+> 
+> The access is forced into the per cpu address reachable via the virtualized
+> address. IA64 allows the embedding of an offset into the instruction. So the
+> fetchadd can perform both the relocation of the pointer into the per cpu
+> area as well as the atomic read modify write cycle.
+> 
+> 
+> 
+> In order to be able to exploit the atomicity of these instructions we
+> introduce a series of new functions that take either:
+> 
+> 1. A per cpu pointer as returned by cpu_alloc() or CPU_ALLOC().
+> 
+> 2. A per cpu variable address as returned by per_cpu_var(<percpuvarname>).
+> 
+> CPU_READ()
+> CPU_WRITE()
+> CPU_INC
+> CPU_DEC
+> CPU_ADD
+> CPU_SUB
+> CPU_XCHG
+> CPU_CMPXCHG
+> 
 
-Should be kerneldoc, I guess.
+I think I'll need to come back another time to understand all that ;)
 
-> +void *cpu_alloc(unsigned long size, gfp_t gfpflags, unsigned long align)
-> +{
-> +	unsigned long start;
-> +	int units = size_to_units(size);
-> +	void *ptr;
-> +	int first;
-> +	unsigned long flags;
-> +
-> +	if (!size)
-> +		return ZERO_SIZE_PTR;
+Thanks for writing it up carefully.
 
-OK, so we reuse ZERO_SIZE_PTR from kmalloc.
-
-> +	spin_lock_irqsave(&cpu_alloc_map_lock, flags);
-> +
-> +	first = 1;
-> +	start = first_free;
-> +
-> +	for ( ; ; ) {
-> +
-> +		start = find_next_zero_bit(cpu_alloc_map, UNITS, start);
-> +		if (start >= UNITS)
-> +			goto out_of_memory;
-> +
-> +		if (first)
-> +			first_free = start;
-> +
-> +		/*
-> +		 * Check alignment and that there is enough space after
-> +		 * the starting unit.
-> +		 */
-> +		if (start % (align / UNIT_SIZE) == 0 &&
-> +			find_next_bit(cpu_alloc_map, UNITS, start + 1)
-> +							>= start + units)
-> +				break;
-> +		start++;
-> +		first = 0;
-> +	}
-
-This is kinda bitmap_find_free_region(), only bitmap_find_free_region()
-isn't quite strong enough.
-
-Generally I think it would have been better if you had added new
-primitives to the bitmap library (or enhanced existing ones) and used
-them here, rather than implementing private functionality.
-
-> +	if (first)
-> +		first_free = start + units;
-> +
-> +	if (start + units > UNITS)
-> +		goto out_of_memory;
-> +
-> +	set_map(start, units);
-> +	__count_vm_events(CPU_BYTES, units * UNIT_SIZE);
-> +
-> +	spin_unlock_irqrestore(&cpu_alloc_map_lock, flags);
-> +
-> +	ptr = per_cpu_var(area) + start;
-> +
-> +	if (gfpflags & __GFP_ZERO) {
-> +		int cpu;
-> +
-> +		for_each_possible_cpu(cpu)
-> +			memset(CPU_PTR(ptr, cpu), 0, size);
-> +	}
-> +
-> +	return ptr;
-> +
-> +out_of_memory:
-> +	spin_unlock_irqrestore(&cpu_alloc_map_lock, flags);
-> +	return NULL;
-> +}
-> +EXPORT_SYMBOL(cpu_alloc);
-> +
-> +/*
-> + * Free an object. The pointer must be a cpu pointer allocated
-> + * via cpu_alloc.
-> + */
-> +void cpu_free(void *start, unsigned long size)
-> +{
-> +	unsigned long units = size_to_units(size);
-> +	unsigned long index = (int *)start - per_cpu_var(area);
-> +	unsigned long flags;
-> +
-> +	if (!start || start == ZERO_SIZE_PTR)
-> +		return;
-> +
-> +	BUG_ON(index >= UNITS ||
-> +		!test_bit(index, cpu_alloc_map) ||
-> +		!test_bit(index + units - 1, cpu_alloc_map));
-
-If this assertion triggers for someone, you'll wish like hell that it
-had been implemented as three separate BUG_ONs.
-
-> +	spin_lock_irqsave(&cpu_alloc_map_lock, flags);
-> +
-> +	clear_map(index, units);
-> +	__count_vm_events(CPU_BYTES, -units * UNIT_SIZE);
-> +
-> +	if (index < first_free)
-> +		first_free = index;
-> +
-> +	spin_unlock_irqrestore(&cpu_alloc_map_lock, flags);
-> +}
-> +EXPORT_SYMBOL(cpu_free);
-> Index: linux-2.6/mm/vmstat.c
-> ===================================================================
-> --- linux-2.6.orig/mm/vmstat.c	2008-05-29 19:41:21.000000000 -0700
-> +++ linux-2.6/mm/vmstat.c	2008-05-29 20:13:39.000000000 -0700
-> @@ -653,6 +653,7 @@ static const char * const vmstat_text[] 
->  	"allocstall",
->  
->  	"pgrotated",
-> +	"cpu_bytes",
->  #ifdef CONFIG_HUGETLB_PAGE
->  	"htlb_buddy_alloc_success",
->  	"htlb_buddy_alloc_fail",
+> 
+> ---
+>  include/linux/percpu.h |  135 +++++++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 135 insertions(+)
+> 
 > Index: linux-2.6/include/linux/percpu.h
 > ===================================================================
-> --- linux-2.6.orig/include/linux/percpu.h	2008-05-29 19:41:21.000000000 -0700
-> +++ linux-2.6/include/linux/percpu.h	2008-05-29 20:29:12.000000000 -0700
-> @@ -135,4 +135,50 @@ static inline void percpu_free(void *__p
->  #define free_percpu(ptr)	percpu_free((ptr))
->  #define per_cpu_ptr(ptr, cpu)	percpu_ptr((ptr), (cpu))
+> --- linux-2.6.orig/include/linux/percpu.h	2008-05-28 22:31:43.000000000 -0700
+> +++ linux-2.6/include/linux/percpu.h	2008-05-28 23:38:17.000000000 -0700
+
+I wonder if all this stuff should be in a new header file.
+
+We could get lazy and include that header from percpu.h if needed.
+
+> @@ -179,4 +179,139 @@
+>  void *cpu_alloc(unsigned long size, gfp_t flags, unsigned long align);
+>  void cpu_free(void *cpu_pointer, unsigned long size);
 >  
-> +
 > +/*
-> + * cpu allocator definitions
+> + * Fast atomic per cpu operations.
 > + *
-> + * The cpu allocator allows allocating an instance of an object for each
-> + * processor and the use of a single pointer to access all instances
-> + * of the object. cpu_alloc provides optimized means for accessing the
-> + * instance of the object belonging to the currently executing processor
-> + * as well as special atomic operations on fields of objects of the
-> + * currently executing processor.
+> + * The following operations can be overridden by arches to implement fast
+> + * and efficient operations. The operations are atomic meaning that the
+> + * determination of the processor, the calculation of the address and the
+> + * operation on the data is an atomic operation.
 > + *
-> + * Cpu objects are typically small. The allocator packs them tightly
-> + * to increase the chance on each access that a per cpu object is already
-> + * cached. Alignments may be specified but the intent is to align the data
-> + * properly due to cpu alignment constraints and not to avoid cacheline
-> + * contention. Any holes left by aligning objects are filled up with smaller
-> + * objects that are allocated later.
-> + *
-> + * Cpu data can be allocated using CPU_ALLOC. The resulting pointer is
-> + * pointing to the instance of the variable in the per cpu area provided
-> + * by the loader. It is generally an error to use the pointer directly
-> + * unless we are booting the system.
-> + *
-> + * __GFP_ZERO may be passed as a flag to zero the allocated memory.
+> + * The parameter passed to the atomic per cpu operations is an lvalue not a
+> + * pointer to the object.
 > + */
-> +
-> +/* Return a pointer to the instance of a object for a particular processor */
-> +#define CPU_PTR(__p, __cpu)	SHIFT_PERCPU_PTR((__p), per_cpu_offset(__cpu))
+> +#ifndef CONFIG_HAVE_CPU_OPS
 
-eek, a major interface function which is ALL IN CAPS!
+If you move this functionality into a new cpu_alloc.h then the below
+code goes into include/asm-generic/cpu_alloc.h and most architectures'
+include/asm/cpu_alloc.h will include asm-generic/cpu_alloc.h.
 
-can we do this in lower-case?  In a C function?
+include/linux/percpu.h can still include linux/cpu_alloc.h (which
+includes asm/cpu_alloc.h) if needed.  But it would be better to just
+teach the .c files to include <linux/cpu_alloc.h>
 
 > +/*
-> + * Return a pointer to the instance of the object belonging to the processor
-> + * running the current code.
+> + * Fallback in case the arch does not provide for atomic per cpu operations.
+> + *
+> + * The first group of macros is used when it is safe to update the per
+> + * cpu variable because preemption is off (per cpu variables that are not
+> + * updated from interrupt context) or because interrupts are already off.
 > + */
-> +#define THIS_CPU(__p)	SHIFT_PERCPU_PTR((__p), my_cpu_offset)
-> +#define __THIS_CPU(__p)	SHIFT_PERCPU_PTR((__p), __my_cpu_offset)
+> +#define __CPU_READ(var)				\
+> +({						\
+> +	(*THIS_CPU(&(var)));			\
+> +})
 > +
-> +#define CPU_ALLOC(type, flags)	((typeof(type) *)cpu_alloc(sizeof(type), \
-> +					(flags), __alignof__(type)))
-> +#define CPU_FREE(pointer)	cpu_free((pointer), sizeof(*(pointer)))
-
-Dittoes.
-
+> +#define __CPU_WRITE(var, value)			\
+> +({						\
+> +	*THIS_CPU(&(var)) = (value);		\
+> +})
+> +
+> +#define __CPU_ADD(var, value)			\
+> +({						\
+> +	*THIS_CPU(&(var)) += (value);		\
+> +})
+> +
+> +#define __CPU_INC(var) __CPU_ADD((var), 1)
+> +#define __CPU_DEC(var) __CPU_ADD((var), -1)
+> +#define __CPU_SUB(var, value) __CPU_ADD((var), -(value))
+> +
+> +#define __CPU_CMPXCHG(var, old, new)		\
+> +({						\
+> +	typeof(obj) x;				\
+> +	typeof(obj) *p = THIS_CPU(&(obj));	\
+> +	x = *p;					\
+> +	if (x == (old))				\
+> +		*p = (new);			\
+> +	(x);					\
+> +})
+> +
+> +#define __CPU_XCHG(obj, new)			\
+> +({						\
+> +	typeof(obj) x;				\
+> +	typeof(obj) *p = THIS_CPU(&(obj));	\
+> +	x = *p;					\
+> +	*p = (new);				\
+> +	(x);					\
+> +})
+> +
 > +/*
-> + * Raw calls
+> + * Second group used for per cpu variables that are not updated from an
+> + * interrupt context. In that case we can simply disable preemption which
+> + * may be free if the kernel is compiled without support for preemption.
 > + */
-> +void *cpu_alloc(unsigned long size, gfp_t flags, unsigned long align);
-> +void cpu_free(void *cpu_pointer, unsigned long size);
+> +#define _CPU_READ __CPU_READ
+> +#define _CPU_WRITE __CPU_WRITE
+> +
+> +#define _CPU_ADD(var, value)			\
+> +({						\
+> +	preempt_disable();			\
+> +	__CPU_ADD((var), (value));		\
+> +	preempt_enable();			\
+> +})
+> +
+> +#define _CPU_INC(var) _CPU_ADD((var), 1)
+> +#define _CPU_DEC(var) _CPU_ADD((var), -1)
+> +#define _CPU_SUB(var, value) _CPU_ADD((var), -(value))
+> +
+> +#define _CPU_CMPXCHG(var, old, new)		\
+> +({						\
+> +	typeof(addr) x;				\
+> +	preempt_disable();			\
+> +	x = __CPU_CMPXCHG((var), (old), (new));	\
+> +	preempt_enable();			\
+> +	(x);					\
+> +})
+> +
+> +#define _CPU_XCHG(var, new)			\
+> +({						\
+> +	typeof(var) x;				\
+> +	preempt_disable();			\
+> +	x = __CPU_XCHG((var), (new));		\
+> +	preempt_enable();			\
+> +	(x);					\
+> +})
+> +
+> +/*
+> + * Third group: Interrupt safe CPU functions
+> + */
+> +#define CPU_READ __CPU_READ
+> +#define CPU_WRITE __CPU_WRITE
+> +
+> +#define CPU_ADD(var, value)			\
+> +({						\
+> +	unsigned long flags;			\
+> +	local_irq_save(flags);			\
+> +	__CPU_ADD((var), (value));		\
+> +	local_irq_restore(flags);		\
+> +})
+> +
+> +#define CPU_INC(var) CPU_ADD((var), 1)
+> +#define CPU_DEC(var) CPU_ADD((var), -1)
+> +#define CPU_SUB(var, value) CPU_ADD((var), -(value))
+> +
+> +#define CPU_CMPXCHG(var, old, new)		\
+> +({						\
+> +	unsigned long flags;			\
+> +	typeof(var) x;				\
+> +	local_irq_save(flags);			\
+> +	x = __CPU_CMPXCHG((var), (old), (new));	\
+> +	local_irq_restore(flags);		\
+> +	(x);					\
+> +})
+> +
+> +#define CPU_XCHG(var, new)			\
+> +({						\
+> +	unsigned long flags;			\
+> +	typeof(var) x;				\
+> +	local_irq_save(flags);			\
+> +	x = __CPU_XCHG((var), (new));		\
+> +	local_irq_restore(flags);		\
+> +	(x);					\
+> +})
+> +
+> +#endif /* CONFIG_HAVE_CPU_OPS */
 > +
 >  #endif /* __LINUX_PERCPU_H */
