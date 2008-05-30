@@ -1,46 +1,55 @@
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Thu, 29 May 2008 22:03:14 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805292159360.12107@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <20080529215827.b659d032.akpm@linux-foundation.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 05/37] ata: use get/put_endian helpers
+Date: Thu, 29 May 2008 22:04:50 -0700
+Message-ID: <20080529220450.2f701d93.akpm@linux-foundation.org>
+References: <1212092282.28403.107.camel@brick>
+	<483F65CA.4050507@rtr.ca>
+	<20080529195225.5665ae9c.akpm@linux-foundation.org>
+	<18495.32327.521211.508818@cargo.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:59754 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751030AbYE3FDQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 01:03:16 -0400
-In-Reply-To: <20080529215827.b659d032.akpm@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-ide-owner@vger.kernel.org>
+In-Reply-To: <18495.32327.521211.508818@cargo.ozlabs.ibm.com>
+Sender: linux-ide-owner@vger.kernel.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: Mark Lord <liml@rtr.ca>, Harvey Harrison <harvey.harrison@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 29 May 2008, Andrew Morton wrote:
+On Fri, 30 May 2008 14:10:47 +1000 Paul Mackerras <paulus@samba.org> wrote:
 
-> All seems reasonable to me.  The obvious question is "how do we size
-> the arena".  We either waste memory or, much worse, run out.
+> > > What's the point here?
+> > 
+> > Readability and maintainability.  Once one becomes familar with a
+> > particular idion like this you can read it and say "ah, I know what
+> > that's doing" rather than having to peer at every character and work it
+> > out at each site where it happens.
+> > 
+> > As usual: a PITA now, but better long-term.
+> > 
+> > otoh,
+> > 
+> > - I think the args are backwards
+> 
+> I think you just admitted that the new version is less readable.  At
+> least with an '=' operator you know which side is the thing that's
+> being modified.  With a put_XXX function, I would have to go look up
+> the definition (particularly since outb et al. are also the wrong way
+> around, i.e. have the destination as the second argument).
 
-The per cpu memory use by subsystems is typically quite small. We already 
-have an 8k limitation for percpu space for modules. And that does not seem 
-to be a problem.
+Well yes, but you don't have to worry about that when reviewing because
+you know the compiler will catch reversals.
 
-> And running out is a real possibility, I think.  Most people will only
-> mount a handful of XFS filesystems.  But some customer will come along
-> who wants to mount 5,000, and distributors will need to cater for that,
-> but how can they?
+Still not terribly keen about it all, but geeze the code which it is
+trying to clarify is godawful:
 
-Typically these are fairly small 8 bytes * 5000 is only 20k.
+	*(__le32 *)(buf + i) = cpu_to_le32(addr);
 
-> I wonder if we can arrange for the default to be overridden via a
-> kernel boot option?
+wtf?
 
-We could do that yes.
- 
-> Another obvious question is "how much of a problem will we have with
-> internal fragmentation"?  This might be a drop-dead showstopper.
+Then again the replacement
 
-But then per cpu data is not frequently allocated and freed.
+	put_le32(addr, (__le32 *)(buf + i));
 
-Going away from allocpercpu saves a lot of memory. We could make this 
-128k or so to be safe?
+is still wtf.
+
