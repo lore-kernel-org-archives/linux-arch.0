@@ -1,15 +1,15 @@
 From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Fri, 30 May 2008 11:06:34 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805301101490.14564@schroedinger.engr.sgi.com>
+Date: Fri, 30 May 2008 11:08:56 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0805301106360.14564@schroedinger.engr.sgi.com>
 References: <20080530035620.587204923@sgi.com> <1212138752.12349.227.camel@twins>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.sgi.com ([192.48.171.29]:38556 "EHLO relay.sgi.com"
+Received: from relay1.sgi.com ([192.48.171.29]:46191 "EHLO relay.sgi.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750909AbYE3SGf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 14:06:35 -0400
+	id S1752564AbYE3SI4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 14:08:56 -0400
 In-Reply-To: <1212138752.12349.227.camel@twins>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -18,28 +18,52 @@ Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@el
 
 On Fri, 30 May 2008, Peter Zijlstra wrote:
 
-> For one the fixed size alloction limit as pointed out by Andrew.
+> The thing we generally do is, we add a lock to each per-cpu data item,
+> use raw_smp_processor_id() to obtain the current cpu's data lock the
+> thing and work from it - even if we are migrated away.
+> 
+> For instance:
+> 
+> struct kmem_cache_cpu {
+> 	.....
+> 	spinlock_t lock;
+> }
+> 
+> struct kmem_cache_cpu *get_cpu_slab(struct kmem_cache *s, int cpu)
+> {
+> 	struct kmem_cache_cpu *c = s->cpu_slab[cpu];
+> 	spin_lock(&c->lock);
+> 	return c;
 
-Ok.
+Hmmm... Can we reschedule before spin_lock? It seems that preemption must 
+already be off for this to work.
+
 
 > What this does is make a strong connection between data and concurrency
 > control. Your proposed scheme weakens the data<->concurrency relation
 > instead of making it stronger.
+
+Yes the cpu ops allow atomic per cpu ops without preemption / interrupt 
+enable disable. I thought that would help -rt quit a bit.
+
+
+> Ah, we could still do the above by writing:
 > 
-> One sign of that is that you replace things like get_cpu with explicit
-> preempt_disable().
+> struct kmem_cache_cpu *get_cpu_slab(struct kmem_cache *s)
+> {
+> 	struct kmem_cache_cpu *c = THIS_CPU(s->cpu_slab);
+> 	spin_lock(&c->lock);
+> 	return c;
+> }
+> 
+> void put_cpu_slab(struct kmem_cache_cpu *c)
+> {
+> 	spin_unlock(&c->lock);
+> }
+> 
+> Would it be possible to re-structure your API to also have these get/put
+> methods instead of just a get?
 
-That is a side effect of trying to make transformation of source code 
-easily visible. Its not necessary if some changes are made to the code.
- 
-> We're trying to get rid of as many explicit preempt_disable()s as
-> possible - in the light of -rt, preempt_disable() is as bad as the BKL
-> in that its opaque - unrelated to a specific data set.
-
-The cpu ops patches get rid of lots of preempt enable /disable and 
-get_cpu/put_cpu() because the per cpu address determination no longer 
-needs to be protected. See some of the other patches. Some code may need 
-to be a bit rewritten to take advantage. The SLUB fastpath f.e. (and 
-likely the page allocator too) can be done exclusively with CPU_OPS 
-thereby avoiding locks and preemption issues.
- 
+I do not see a problem since you must already have preemption disabled 
+when callin get_cpu_slab(). Otherwise you may take the lock on another 
+processor if the process was rescheduled.
