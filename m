@@ -1,172 +1,101 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 07/41] cpu alloc: Workqueue conversion
-Date: Thu, 29 May 2008 20:56:27 -0700
-Message-ID: <20080530040012.575084574@sgi.com>
+Subject: [patch 20/41] cpu alloc: Veth conversion
+Date: Thu, 29 May 2008 20:56:40 -0700
+Message-ID: <20080530040017.927696553@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40488 "EHLO
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40509 "EHLO
 	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750941AbYE3EAO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:14 -0400
-Content-Disposition: inline; filename=cpu_alloc_workqueue_conversion
+	with ESMTP id S1752491AbYE3EAU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:20 -0400
+Content-Disposition: inline; filename=cpu_alloc_veth_conversion
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Convert the workqueue waitqueue handling to cpu alloc.
-
-The second parameter to wq_per_cpu() is always the current processor
-id. So drop the parameter and use THIS_CPU in wq_per_cpu that we rename
-to wq_this_cpu.
+veth statistics conversion.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- kernel/workqueue.c |   27 ++++++++++++++-------------
- 1 file changed, 14 insertions(+), 13 deletions(-)
+ drivers/net/veth.c |   10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-Index: linux-2.6/kernel/workqueue.c
+Index: linux-2.6/drivers/net/veth.c
 ===================================================================
---- linux-2.6.orig/kernel/workqueue.c	2008-05-28 22:02:19.000000000 -0700
-+++ linux-2.6/kernel/workqueue.c	2008-05-28 22:52:29.000000000 -0700
-@@ -95,11 +95,11 @@
- }
- 
- static
--struct cpu_workqueue_struct *wq_per_cpu(struct workqueue_struct *wq, int cpu)
-+struct cpu_workqueue_struct *wq_this_cpu(struct workqueue_struct *wq)
+--- linux-2.6.orig/drivers/net/veth.c	2008-05-28 22:02:18.000000000 -0700
++++ linux-2.6/drivers/net/veth.c	2008-05-28 23:18:47.000000000 -0700
+@@ -152,8 +152,7 @@
  {
- 	if (unlikely(is_single_threaded(wq)))
--		cpu = singlethread_cpu;
--	return per_cpu_ptr(wq->cpu_wq, cpu);
-+		return CPU_PTR(wq->cpu_wq, singlethread_cpu);
-+	return THIS_CPU(wq->cpu_wq);
- }
+ 	struct net_device *rcv = NULL;
+ 	struct veth_priv *priv, *rcv_priv;
+-	struct veth_net_stats *stats;
+-	int length, cpu;
++	int length;
  
- /*
-@@ -167,8 +167,9 @@
+ 	skb_orphan(skb);
  
- 	if (!test_and_set_bit(WORK_STRUCT_PENDING, work_data_bits(work))) {
- 		BUG_ON(!list_empty(&work->entry));
--		__queue_work(wq_per_cpu(wq, get_cpu()), work);
--		put_cpu();
-+		preempt_disable();
-+		__queue_work(wq_this_cpu(wq), work);
-+		preempt_enable();
- 		ret = 1;
- 	}
- 	return ret;
-@@ -181,7 +182,7 @@
- 	struct cpu_workqueue_struct *cwq = get_wq_data(&dwork->work);
- 	struct workqueue_struct *wq = cwq->wq;
+@@ -161,9 +160,6 @@
+ 	rcv = priv->peer;
+ 	rcv_priv = netdev_priv(rcv);
  
--	__queue_work(wq_per_cpu(wq, smp_processor_id()), &dwork->work);
-+	__queue_work(wq_this_cpu(wq), &dwork->work);
- }
+-	cpu = smp_processor_id();
+-	stats = per_cpu_ptr(priv->stats, cpu);
+-
+ 	if (!(rcv->flags & IFF_UP))
+ 		goto outf;
  
- /**
-@@ -225,7 +226,7 @@
- 		timer_stats_timer_set_start_info(&dwork->timer);
+@@ -180,19 +176,18 @@
  
- 		/* This stores cwq for the moment, for the timer_fn */
--		set_wq_data(work, wq_per_cpu(wq, raw_smp_processor_id()));
-+		set_wq_data(work, wq_this_cpu(wq));
- 		timer->expires = jiffies + delay;
- 		timer->data = (unsigned long)dwork;
- 		timer->function = delayed_work_timer_fn;
-@@ -398,7 +399,7 @@
- 	lock_acquire(&wq->lockdep_map, 0, 0, 0, 2, _THIS_IP_);
- 	lock_release(&wq->lockdep_map, 1, _THIS_IP_);
- 	for_each_cpu_mask(cpu, *cpu_map)
--		flush_cpu_workqueue(per_cpu_ptr(wq->cpu_wq, cpu));
-+		flush_cpu_workqueue(CPU_PTR(wq->cpu_wq, cpu));
- }
- EXPORT_SYMBOL_GPL(flush_workqueue);
+ 	length = skb->len;
  
-@@ -478,7 +479,7 @@
- 	cpu_map = wq_cpu_map(wq);
+-	stats->tx_bytes += length;
+-	stats->tx_packets++;
++	__CPU_ADD(priv->stats->tx_bytes, length);
++	__CPU_INC(priv->stats->tx_packets);
  
- 	for_each_cpu_mask(cpu, *cpu_map)
--		wait_on_cpu_work(per_cpu_ptr(wq->cpu_wq, cpu), work);
-+		wait_on_cpu_work(CPU_PTR(wq->cpu_wq, cpu), work);
- }
+-	stats = per_cpu_ptr(rcv_priv->stats, cpu);
+-	stats->rx_bytes += length;
+-	stats->rx_packets++;
++	__CPU_ADD(rcv_priv->stats->rx_bytes, length);
++	__CPU_INC(rcv_priv->stats->rx_packets);
  
- static int __cancel_work_timer(struct work_struct *work,
-@@ -598,21 +599,21 @@
- 	int cpu;
- 	struct work_struct *works;
+ 	netif_rx(skb);
+ 	return 0;
  
--	works = alloc_percpu(struct work_struct);
-+	works = CPU_ALLOC(struct work_struct, GFP_KERNEL);
- 	if (!works)
- 		return -ENOMEM;
- 
- 	get_online_cpus();
- 	for_each_online_cpu(cpu) {
--		struct work_struct *work = per_cpu_ptr(works, cpu);
-+		struct work_struct *work = CPU_PTR(works, cpu);
- 
- 		INIT_WORK(work, func);
- 		set_bit(WORK_STRUCT_PENDING, work_data_bits(work));
--		__queue_work(per_cpu_ptr(keventd_wq->cpu_wq, cpu), work);
-+		__queue_work(CPU_PTR(keventd_wq->cpu_wq, cpu), work);
- 	}
- 	flush_workqueue(keventd_wq);
- 	put_online_cpus();
--	free_percpu(works);
-+	CPU_FREE(works);
+ outf:
+ 	kfree_skb(skb);
+-	stats->tx_dropped++;
++	__CPU_INC(priv->stats->tx_dropped);
  	return 0;
  }
  
-@@ -661,7 +662,7 @@
+@@ -217,7 +212,7 @@
+ 	dev_stats->tx_dropped = 0;
  
- 	BUG_ON(!keventd_wq);
+ 	for_each_online_cpu(cpu) {
+-		stats = per_cpu_ptr(priv->stats, cpu);
++		stats = CPU_PTR(priv->stats, cpu);
  
--	cwq = per_cpu_ptr(keventd_wq->cpu_wq, cpu);
-+	cwq = CPU_PTR(keventd_wq->cpu_wq, cpu);
- 	if (current == cwq->thread)
- 		ret = 1;
+ 		dev_stats->rx_packets += stats->rx_packets;
+ 		dev_stats->tx_packets += stats->tx_packets;
+@@ -249,7 +244,7 @@
+ 	struct veth_net_stats *stats;
+ 	struct veth_priv *priv;
  
-@@ -672,7 +673,7 @@
- static struct cpu_workqueue_struct *
- init_cpu_workqueue(struct workqueue_struct *wq, int cpu)
- {
--	struct cpu_workqueue_struct *cwq = per_cpu_ptr(wq->cpu_wq, cpu);
-+	struct cpu_workqueue_struct *cwq = CPU_PTR(wq->cpu_wq, cpu);
+-	stats = alloc_percpu(struct veth_net_stats);
++	stats = CPU_ALLOC(struct veth_net_stats, GFP_KERNEL | __GFP_ZER);
+ 	if (stats == NULL)
+ 		return -ENOMEM;
  
- 	cwq->wq = wq;
- 	spin_lock_init(&cwq->lock);
-@@ -730,7 +731,8 @@
- 	if (!wq)
- 		return NULL;
+@@ -263,7 +258,7 @@
+ 	struct veth_priv *priv;
  
--	wq->cpu_wq = alloc_percpu(struct cpu_workqueue_struct);
-+	wq->cpu_wq = CPU_ALLOC(struct cpu_workqueue_struct,
-+					GFP_KERNEL|__GFP_ZERO);
- 	if (!wq->cpu_wq) {
- 		kfree(wq);
- 		return NULL;
-@@ -814,10 +816,10 @@
- 	spin_unlock(&workqueue_lock);
- 
- 	for_each_cpu_mask(cpu, *cpu_map)
--		cleanup_workqueue_thread(per_cpu_ptr(wq->cpu_wq, cpu));
-+		cleanup_workqueue_thread(CPU_PTR(wq->cpu_wq, cpu));
- 	put_online_cpus();
- 
--	free_percpu(wq->cpu_wq);
-+	CPU_FREE(wq->cpu_wq);
- 	kfree(wq);
+ 	priv = netdev_priv(dev);
+-	free_percpu(priv->stats);
++	CPU_FREE(priv->stats);
+ 	free_netdev(dev);
  }
- EXPORT_SYMBOL_GPL(destroy_workqueue);
-@@ -838,7 +840,7 @@
- 	}
  
- 	list_for_each_entry(wq, &workqueues, list) {
--		cwq = per_cpu_ptr(wq->cpu_wq, cpu);
-+		cwq = CPU_PTR(wq->cpu_wq, cpu);
- 
- 		switch (action) {
- 		case CPU_UP_PREPARE:
 
 -- 
