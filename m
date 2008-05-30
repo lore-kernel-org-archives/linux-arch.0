@@ -1,96 +1,244 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 13/41] cpu alloc: NFS statistics
-Date: Thu, 29 May 2008 20:56:33 -0700
-Message-ID: <20080530040014.412942030@sgi.com>
+Subject: [patch 09/41] cpu alloc: Genhd statistics conversion
+Date: Thu, 29 May 2008 20:56:29 -0700
+Message-ID: <20080530040013.137338958@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:56592 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751354AbYE3EAS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 00:00:18 -0400
-Content-Disposition: inline; filename=cpu_alloc_nfs_statistics_conversion
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40517 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752223AbYE3EAU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:20 -0400
+Content-Disposition: inline; filename=cpu_alloc_genhd_statistics_conversion
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Convert NFS statistics to cpu alloc.
+Convert genhd statistics to cpu alloc. The patch also drops the UP special
+casing of the statistics.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- fs/nfs/iostat.h |   27 +++++++++++----------------
- fs/nfs/super.c  |    2 +-
- 2 files changed, 12 insertions(+), 17 deletions(-)
+ include/linux/genhd.h |  113 +++++++++++---------------------------------------
+ 1 file changed, 25 insertions(+), 88 deletions(-)
 
-Index: linux-2.6/fs/nfs/iostat.h
+Index: linux-2.6/include/linux/genhd.h
 ===================================================================
---- linux-2.6.orig/fs/nfs/iostat.h	2008-05-26 09:35:31.077736336 -0700
-+++ linux-2.6/fs/nfs/iostat.h	2008-05-26 10:01:26.178776581 -0700
-@@ -119,13 +119,7 @@ struct nfs_iostats {
- 
- static inline void nfs_inc_server_stats(struct nfs_server *server, enum nfs_stat_eventcounters stat)
- {
--	struct nfs_iostats *iostats;
--	int cpu;
--
--	cpu = get_cpu();
--	iostats = per_cpu_ptr(server->io_stats, cpu);
--	iostats->events[stat] ++;
--	put_cpu_no_resched();
-+	_CPU_INC(server->io_stats->events[stat]);
- }
- 
- static inline void nfs_inc_stats(struct inode *inode, enum nfs_stat_eventcounters stat)
-@@ -135,13 +129,14 @@ static inline void nfs_inc_stats(struct 
- 
- static inline void nfs_add_server_stats(struct nfs_server *server, enum nfs_stat_bytecounters stat, unsigned long addend)
- {
--	struct nfs_iostats *iostats;
--	int cpu;
--
--	cpu = get_cpu();
--	iostats = per_cpu_ptr(server->io_stats, cpu);
--	iostats->bytes[stat] += addend;
--	put_cpu_no_resched();
-+#ifdef CONFIG_64BIT
-+	_CPU_ADD(server->io_stats->bytes[stat], addend);
-+#else
-+	/* 32bit cannot perform atomic 64 bit inc sodisable preemption */
-+	preempt_disable();
-+	THIS_CPU(server->io_stats)->bytes[stat] += addend;
-+	preempt_enable_no_resched();
-+#endif
- }
- 
- static inline void nfs_add_stats(struct inode *inode, enum nfs_stat_bytecounters stat, unsigned long addend)
-@@ -151,13 +146,13 @@ static inline void nfs_add_stats(struct 
- 
- static inline struct nfs_iostats *nfs_alloc_iostats(void)
- {
--	return alloc_percpu(struct nfs_iostats);
-+	return CPU_ALLOC(struct nfs_iostats, GFP_KERNEL | __GFP_ZERO);
- }
- 
- static inline void nfs_free_iostats(struct nfs_iostats *stats)
- {
- 	if (stats != NULL)
--		free_percpu(stats);
-+		CPU_FREE(stats);
- }
- 
+--- linux-2.6.orig/include/linux/genhd.h	2008-05-26 09:35:31.626487665 -0700
++++ linux-2.6/include/linux/genhd.h	2008-05-26 11:09:00.740248203 -0700
+@@ -95,11 +95,7 @@ struct hd_struct {
  #endif
-Index: linux-2.6/fs/nfs/super.c
-===================================================================
---- linux-2.6.orig/fs/nfs/super.c	2008-05-26 09:35:31.097738734 -0700
-+++ linux-2.6/fs/nfs/super.c	2008-05-26 09:36:15.900248119 -0700
-@@ -620,7 +620,7 @@ static int nfs_show_stats(struct seq_fil
- 		struct nfs_iostats *stats;
+ 	unsigned long stamp;
+ 	int in_flight;
+-#ifdef	CONFIG_SMP
+ 	struct disk_stats *dkstats;
+-#else
+-	struct disk_stats dkstats;
+-#endif
+ };
  
- 		preempt_disable();
--		stats = per_cpu_ptr(nfss->io_stats, cpu);
-+		stats = CPU_PTR(nfss->io_stats, cpu);
+ #define GENHD_FL_REMOVABLE			1
+@@ -135,11 +131,7 @@ struct gendisk {
+ 	atomic_t sync_io;		/* RAID */
+ 	unsigned long stamp;
+ 	int in_flight;
+-#ifdef	CONFIG_SMP
+ 	struct disk_stats *dkstats;
+-#else
+-	struct disk_stats dkstats;
+-#endif
+ 	struct work_struct async_notify;
+ };
  
- 		for (i = 0; i < __NFSIOS_COUNTSMAX; i++)
- 			totals.events[i] += stats->events[i];
+@@ -163,16 +155,15 @@ static inline struct hd_struct *get_part
+ 	return NULL;
+ }
+ 
+-#ifdef	CONFIG_SMP
+ #define __disk_stat_add(gendiskp, field, addnd) 	\
+-	(per_cpu_ptr(gendiskp->dkstats, smp_processor_id())->field += addnd)
++	__CPU_ADD(gendiskp->dkstats->field, addnd)
+ 
+ #define disk_stat_read(gendiskp, field)					\
+ ({									\
+ 	typeof(gendiskp->dkstats->field) res = 0;			\
+ 	int i;								\
+ 	for_each_possible_cpu(i)					\
+-		res += per_cpu_ptr(gendiskp->dkstats, i)->field;	\
++		res += CPU_PTR(gendiskp->dkstats, i)->field;		\
+ 	res;								\
+ })
+ 
+@@ -180,12 +171,12 @@ static inline void disk_stat_set_all(str
+ 	int i;
+ 
+ 	for_each_possible_cpu(i)
+-		memset(per_cpu_ptr(gendiskp->dkstats, i), value,
++		memset(CPU_PTR(gendiskp->dkstats, i), value,
+ 				sizeof(struct disk_stats));
+-}		
++}
+ 
+-#define __part_stat_add(part, field, addnd)				\
+-	(per_cpu_ptr(part->dkstats, smp_processor_id())->field += addnd)
++#define __part_stat_add(part, field, addnd)			\
++	__CPU_ADD(part->dkstats->field, addnd)
+ 
+ #define __all_stat_add(gendiskp, part, field, addnd, sector)	\
+ ({								\
+@@ -199,7 +190,7 @@ static inline void disk_stat_set_all(str
+ 	typeof(part->dkstats->field) res = 0;				\
+ 	int i;								\
+ 	for_each_possible_cpu(i)					\
+-		res += per_cpu_ptr(part->dkstats, i)->field;		\
++		res += CPU_PTR(part->dkstats, i)->field;		\
+ 	res;								\
+ })
+ 
+@@ -208,56 +199,23 @@ static inline void part_stat_set_all(str
+ 	int i;
+ 
+ 	for_each_possible_cpu(i)
+-		memset(per_cpu_ptr(part->dkstats, i), value,
++		memset(CPU_PTR(part->dkstats, i), value,
+ 				sizeof(struct disk_stats));
+ }
+-				
+-#else /* !CONFIG_SMP */
+-#define __disk_stat_add(gendiskp, field, addnd) \
+-				(gendiskp->dkstats.field += addnd)
+-#define disk_stat_read(gendiskp, field)	(gendiskp->dkstats.field)
+-
+-static inline void disk_stat_set_all(struct gendisk *gendiskp, int value)
+-{
+-	memset(&gendiskp->dkstats, value, sizeof (struct disk_stats));
+-}
+-
+-#define __part_stat_add(part, field, addnd) \
+-	(part->dkstats.field += addnd)
+-
+-#define __all_stat_add(gendiskp, part, field, addnd, sector)	\
+-({								\
+-	if (part)						\
+-		part->dkstats.field += addnd;			\
+-	__disk_stat_add(gendiskp, field, addnd);		\
+-})
+-
+-#define part_stat_read(part, field)	(part->dkstats.field)
+-
+-static inline void part_stat_set_all(struct hd_struct *part, int value)
+-{
+-	memset(&part->dkstats, value, sizeof(struct disk_stats));
+-}
+-
+-#endif /* CONFIG_SMP */
+ 
+ #define disk_stat_add(gendiskp, field, addnd)			\
+-	do {							\
+-		preempt_disable();				\
+-		__disk_stat_add(gendiskp, field, addnd);	\
+-		preempt_enable();				\
+-	} while (0)
++	_CPU_ADD(gendiskp->dkstats->field, addnd)
+ 
+-#define __disk_stat_dec(gendiskp, field) __disk_stat_add(gendiskp, field, -1)
+-#define disk_stat_dec(gendiskp, field) disk_stat_add(gendiskp, field, -1)
++#define __disk_stat_dec(gendiskp, field) __CPU_DEC(gendiskp->dkstats->field)
++#define disk_stat_dec(gendiskp, field) _CPU_DEC(gendiskp->dkstats->field)
+ 
+-#define __disk_stat_inc(gendiskp, field) __disk_stat_add(gendiskp, field, 1)
+-#define disk_stat_inc(gendiskp, field) disk_stat_add(gendiskp, field, 1)
++#define __disk_stat_inc(gendiskp, field) __CPU_INC(gendiskp->dkstats->field)
++#define disk_stat_inc(gendiskp, field) _CPU_INC(gendiskp->dkstats->field)
+ 
+ #define __disk_stat_sub(gendiskp, field, subnd) \
+-		__disk_stat_add(gendiskp, field, -subnd)
++		__CPU_SUB(gendisk->dkstats->field, subnd)
+ #define disk_stat_sub(gendiskp, field, subnd) \
+-		disk_stat_add(gendiskp, field, -subnd)
++		_CPU_SUB(gendisk->dkstats->field, subnd)
+ 
+ #define part_stat_add(gendiskp, field, addnd)		\
+ 	do {						\
+@@ -266,16 +224,16 @@ static inline void part_stat_set_all(str
+ 		preempt_enable();			\
+ 	} while (0)
+ 
+-#define __part_stat_dec(gendiskp, field) __part_stat_add(gendiskp, field, -1)
+-#define part_stat_dec(gendiskp, field) part_stat_add(gendiskp, field, -1)
++#define __part_stat_dec(gendiskp, field) __CPU_DEC(gendiskp->dkstats->field)
++#define part_stat_dec(gendiskp, field) _CPU_DEC(gendiskp->dkstats->field)
+ 
+-#define __part_stat_inc(gendiskp, field) __part_stat_add(gendiskp, field, 1)
+-#define part_stat_inc(gendiskp, field) part_stat_add(gendiskp, field, 1)
++#define __part_stat_inc(gendiskp, field) __CPU_INC(gendiskp->dkstats->field)
++#define part_stat_inc(gendiskp, field) _CPU_INC(gendiskp->dkstats->field)
+ 
+ #define __part_stat_sub(gendiskp, field, subnd) \
+-		__part_stat_add(gendiskp, field, -subnd)
++		__CPU_SUB(gendiskp->dkstats->field, subnd)
+ #define part_stat_sub(gendiskp, field, subnd) \
+-		part_stat_add(gendiskp, field, -subnd)
++		_CPU_SUB(gendiskp->dkstats->field, subnd)
+ 
+ #define all_stat_add(gendiskp, part, field, addnd, sector)	\
+ 	do {							\
+@@ -300,10 +258,9 @@ static inline void part_stat_set_all(str
+ 		all_stat_add(gendiskp, part, field, -subnd, sector)
+ 
+ /* Inlines to alloc and free disk stats in struct gendisk */
+-#ifdef  CONFIG_SMP
+ static inline int init_disk_stats(struct gendisk *disk)
+ {
+-	disk->dkstats = alloc_percpu(struct disk_stats);
++	disk->dkstats = CPU_ALLOC(struct disk_stats, GFP_KERNEL | __GFP_ZERO);
+ 	if (!disk->dkstats)
+ 		return 0;
+ 	return 1;
+@@ -311,12 +268,12 @@ static inline int init_disk_stats(struct
+ 
+ static inline void free_disk_stats(struct gendisk *disk)
+ {
+-	free_percpu(disk->dkstats);
++	CPU_FREE(disk->dkstats);
+ }
+ 
+ static inline int init_part_stats(struct hd_struct *part)
+ {
+-	part->dkstats = alloc_percpu(struct disk_stats);
++	part->dkstats = CPU_ALLOC(struct disk_stats, GFP_KERNEL|__GFP_ZERO);
+ 	if (!part->dkstats)
+ 		return 0;
+ 	return 1;
+@@ -324,28 +281,8 @@ static inline int init_part_stats(struct
+ 
+ static inline void free_part_stats(struct hd_struct *part)
+ {
+-	free_percpu(part->dkstats);
+-}
+-
+-#else	/* CONFIG_SMP */
+-static inline int init_disk_stats(struct gendisk *disk)
+-{
+-	return 1;
+-}
+-
+-static inline void free_disk_stats(struct gendisk *disk)
+-{
+-}
+-
+-static inline int init_part_stats(struct hd_struct *part)
+-{
+-	return 1;
+-}
+-
+-static inline void free_part_stats(struct hd_struct *part)
+-{
++	CPU_FREE(part->dkstats);
+ }
+-#endif	/* CONFIG_SMP */
+ 
+ /* drivers/block/ll_rw_blk.c */
+ extern void disk_round_stats(struct gendisk *disk);
 
 -- 
