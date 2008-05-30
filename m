@@ -1,100 +1,106 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 05/41] cpu alloc: Percpu_counter conversion
-Date: Thu, 29 May 2008 20:56:25 -0700
-Message-ID: <20080530040012.011711936@sgi.com>
+Subject: [patch 10/41] cpu alloc: blktrace conversion
+Date: Thu, 29 May 2008 20:56:30 -0700
+Message-ID: <20080530040013.467433344@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40485 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750897AbYE3EAO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:14 -0400
-Content-Disposition: inline; filename=cpu_alloc_percpu_counter_conversion
+Received: from relay2.sgi.com ([192.48.171.30]:56577 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750764AbYE3EAR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 00:00:17 -0400
+Content-Disposition: inline; filename=cpu_alloc_blktrace_conversion
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Use cpu_alloc instead of allocpercpu.
+Convert blktrace percpu handling to cpu_alloc.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- lib/percpu_counter.c |   12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ block/blktrace.c |   24 ++++++++++--------------
+ 1 file changed, 10 insertions(+), 14 deletions(-)
 
-Index: linux-2.6/lib/percpu_counter.c
+Index: linux-2.6/block/blktrace.c
 ===================================================================
---- linux-2.6.orig/lib/percpu_counter.c	2008-05-28 17:56:17.000000000 -0700
-+++ linux-2.6/lib/percpu_counter.c	2008-05-28 18:30:25.000000000 -0700
-@@ -20,7 +20,7 @@
+--- linux-2.6.orig/block/blktrace.c	2008-05-28 18:45:08.580239875 -0700
++++ linux-2.6/block/blktrace.c	2008-05-29 00:02:19.570236238 -0700
+@@ -82,7 +82,7 @@ void __trace_note_message(struct blk_tra
+ 	char *buf;
  
- 	spin_lock(&fbc->lock);
- 	for_each_possible_cpu(cpu) {
--		s32 *pcount = per_cpu_ptr(fbc->counters, cpu);
-+		s32 *pcount = CPU_PTR(fbc->counters, cpu);
- 		*pcount = 0;
- 	}
- 	fbc->count = amount;
-@@ -31,20 +31,18 @@
- void __percpu_counter_add(struct percpu_counter *fbc, s64 amount, s32 batch)
- {
- 	s64 count;
--	s32 *pcount;
--	int cpu = get_cpu();
+ 	preempt_disable();
+-	buf = per_cpu_ptr(bt->msg_data, smp_processor_id());
++	buf = THIS_CPU(bt->msg_data);
+ 	va_start(args, fmt);
+ 	n = vscnprintf(buf, BLK_TN_MAX_MSG, fmt, args);
+ 	va_end(args);
+@@ -138,9 +138,7 @@ void __blk_add_trace(struct blk_trace *b
+ 	struct task_struct *tsk = current;
+ 	struct blk_io_trace *t;
+ 	unsigned long flags;
+-	unsigned long *sequence;
+ 	pid_t pid;
+-	int cpu;
  
--	pcount = per_cpu_ptr(fbc->counters, cpu);
--	count = *pcount + amount;
-+	preempt_disable();
-+	count = __CPU_READ(*fbc->counters) + amount;
- 	if (count >= batch || count <= -batch) {
- 		spin_lock(&fbc->lock);
- 		fbc->count += count;
--		*pcount = 0;
-+		__CPU_WRITE(*fbc->counters, 0);
- 		spin_unlock(&fbc->lock);
- 	} else {
--		*pcount = count;
-+		__CPU_WRITE(*fbc->counters, count);
- 	}
--	put_cpu();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__percpu_counter_add);
- 
-@@ -60,7 +58,7 @@
- 	spin_lock(&fbc->lock);
- 	ret = fbc->count;
- 	for_each_online_cpu(cpu) {
--		s32 *pcount = per_cpu_ptr(fbc->counters, cpu);
-+		s32 *pcount = CPU_PTR(fbc->counters, cpu);
- 		ret += *pcount;
- 	}
- 	spin_unlock(&fbc->lock);
-@@ -74,7 +72,7 @@
- {
- 	spin_lock_init(&fbc->lock);
- 	fbc->count = amount;
--	fbc->counters = alloc_percpu(s32);
-+	fbc->counters = CPU_ALLOC(s32, GFP_KERNEL|__GFP_ZERO);
- 	if (!fbc->counters)
- 		return -ENOMEM;
- #ifdef CONFIG_HOTPLUG_CPU
-@@ -101,7 +99,7 @@
- 	if (!fbc->counters)
+ 	if (unlikely(bt->trace_state != Blktrace_running))
  		return;
+@@ -170,18 +168,16 @@ void __blk_add_trace(struct blk_trace *b
  
--	free_percpu(fbc->counters);
-+	CPU_FREE(fbc->counters);
- 	fbc->counters = NULL;
- #ifdef CONFIG_HOTPLUG_CPU
- 	mutex_lock(&percpu_counters_lock);
-@@ -128,7 +126,7 @@
- 		unsigned long flags;
+ 	t = relay_reserve(bt->rchan, sizeof(*t) + pdu_len);
+ 	if (t) {
+-		cpu = smp_processor_id();
+-		sequence = per_cpu_ptr(bt->sequence, cpu);
+-
++		__CPU_INC(bt->sequence);
+ 		t->magic = BLK_IO_TRACE_MAGIC | BLK_IO_TRACE_VERSION;
+-		t->sequence = ++(*sequence);
++		t->sequence = __CPU_READ(bt->sequence);
+ 		t->time = ktime_to_ns(ktime_get());
+ 		t->sector = sector;
+ 		t->bytes = bytes;
+ 		t->action = what;
+ 		t->pid = pid;
+ 		t->device = bt->dev;
+-		t->cpu = cpu;
++		t->cpu = smp_processor_id();
+ 		t->error = error;
+ 		t->pdu_len = pdu_len;
  
- 		spin_lock_irqsave(&fbc->lock, flags);
--		pcount = per_cpu_ptr(fbc->counters, cpu);
-+		pcount = CPU_PTR(fbc->counters, cpu);
- 		fbc->count += *pcount;
- 		*pcount = 0;
- 		spin_unlock_irqrestore(&fbc->lock, flags);
+@@ -248,8 +244,8 @@ static void blk_trace_cleanup(struct blk
+ 	relay_close(bt->rchan);
+ 	debugfs_remove(bt->dropped_file);
+ 	blk_remove_tree(bt->dir);
+-	free_percpu(bt->sequence);
+-	free_percpu(bt->msg_data);
++	CPU_FREE(bt->sequence);
++	CPU_FREE(bt->msg_data);
+ 	kfree(bt);
+ }
+ 
+@@ -360,11 +356,11 @@ int do_blk_trace_setup(struct request_qu
+ 	if (!bt)
+ 		goto err;
+ 
+-	bt->sequence = alloc_percpu(unsigned long);
++	bt->sequence = CPU_ALLOC(unsigned long, GFP_KERNEL | __GFP_ZERO);
+ 	if (!bt->sequence)
+ 		goto err;
+ 
+-	bt->msg_data = __alloc_percpu(BLK_TN_MAX_MSG);
++	bt->msg_data = cpu_alloc(BLK_TN_MAX_MSG, GFP_KERNEL | __GFP_ZERO, 0);
+ 	if (!bt->msg_data)
+ 		goto err;
+ 
+@@ -413,8 +409,8 @@ err:
+ 	if (bt) {
+ 		if (bt->dropped_file)
+ 			debugfs_remove(bt->dropped_file);
+-		free_percpu(bt->sequence);
+-		free_percpu(bt->msg_data);
++		CPU_FREE(bt->sequence);
++		CPU_FREE(bt->msg_data);
+ 		if (bt->rchan)
+ 			relay_close(bt->rchan);
+ 		kfree(bt);
 
 -- 
