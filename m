@@ -1,275 +1,505 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 26/41] cpu alloc: Convert mib handling to cpu alloc
-Date: Thu, 29 May 2008 20:56:46 -0700
-Message-ID: <20080530040019.799353964@sgi.com>
+Subject: [patch 34/41] cpu alloc: Page allocator conversion
+Date: Thu, 29 May 2008 20:56:54 -0700
+Message-ID: <20080530040022.456883377@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:56631 "EHLO relay.sgi.com"
+Received: from relay2.sgi.com ([192.48.171.30]:56645 "EHLO relay.sgi.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752938AbYE3EAX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 00:00:23 -0400
-Content-Disposition: inline; filename=cpu_alloc_mib_handling_conversion
+	id S1750897AbYE3EAZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 00:00:25 -0400
+Content-Disposition: inline; filename=cpu_alloc_page_allocator_conversion
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Use the cpu alloc functions for the mib handling functions in the net
-layer. The API for snmp_mib_free() is changed to add a size parameter
-since cpu_free() requires a size parameter.
+Use the new cpu_alloc functionality to avoid per cpu arrays in struct zone.
+This drastically reduces the size of struct zone for systems with a large
+amounts of processors and allows placement of critical variables of struct
+zone in one cacheline even on very large systems.
+
+Another effect is that the pagesets of one processor are placed near one
+another. If multiple pagesets from different zones fit into one cacheline
+then additional cacheline fetches can be avoided on the hot paths when
+allocating memory from multiple zones.
+
+Surprisingly this clears up much of the painful NUMA bringup. Bootstrap
+becomes simpler if we use the same scheme for UP, SMP, NUMA. #ifdefs are
+reduced and we can drop the zone_pcp macro.
+
+Hotplug handling is also simplified since hotplug already brings up a
+percpu area which comes with a per cpu alloc area. So there is no need to
+allocate or free individual pagesets anymore.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- include/net/ip.h     |    2 +-
- include/net/snmp.h   |   32 ++++++++------------------------
- net/dccp/proto.c     |    2 +-
- net/ipv4/af_inet.c   |   31 +++++++++++++++++--------------
- net/ipv6/addrconf.c  |   11 ++++++-----
- net/ipv6/af_inet6.c  |   20 +++++++++++---------
- net/sctp/protocol.c  |    2 +-
- net/xfrm/xfrm_proc.c |    4 ++--
- 8 files changed, 47 insertions(+), 57 deletions(-)
+ arch/x86/kernel/setup.c |    6 +
+ include/linux/gfp.h     |    1 
+ include/linux/mm.h      |    4 -
+ include/linux/mmzone.h  |   12 ---
+ init/main.c             |    5 +
+ mm/page_alloc.c         |  172 +++++++++++++++++++-----------------------------
+ mm/vmstat.c             |   14 ++-
+ 7 files changed, 93 insertions(+), 121 deletions(-)
 
-Index: linux-2.6/include/net/ip.h
+Index: linux-2.6/include/linux/mm.h
 ===================================================================
---- linux-2.6.orig/include/net/ip.h	2008-05-29 19:41:20.000000000 -0700
-+++ linux-2.6/include/net/ip.h	2008-05-29 20:15:34.000000000 -0700
-@@ -170,7 +170,7 @@ DECLARE_SNMP_STAT(struct linux_mib, net_
+--- linux-2.6.orig/include/linux/mm.h	2008-05-09 18:46:19.000000000 -0700
++++ linux-2.6/include/linux/mm.h	2008-05-29 19:13:54.000000000 -0700
+@@ -1024,11 +1024,7 @@ extern void show_mem(void);
+ extern void si_meminfo(struct sysinfo * val);
+ extern void si_meminfo_node(struct sysinfo *val, int nid);
  
- extern unsigned long snmp_fold_field(void *mib[], int offt);
- extern int snmp_mib_init(void *ptr[2], size_t mibsize);
--extern void snmp_mib_free(void *ptr[2]);
-+extern void snmp_mib_free(void *ptr[2], size_t mibsize);
+-#ifdef CONFIG_NUMA
+ extern void setup_per_cpu_pageset(void);
+-#else
+-static inline void setup_per_cpu_pageset(void) {}
+-#endif
  
- extern void inet_get_local_port_range(int *low, int *high);
- 
-Index: linux-2.6/include/net/snmp.h
+ /* prio_tree.c */
+ void vma_prio_tree_add(struct vm_area_struct *, struct vm_area_struct *old);
+Index: linux-2.6/include/linux/mmzone.h
 ===================================================================
---- linux-2.6.orig/include/net/snmp.h	2008-05-29 19:41:20.000000000 -0700
-+++ linux-2.6/include/net/snmp.h	2008-05-29 20:15:34.000000000 -0700
-@@ -138,29 +138,13 @@ struct linux_xfrm_mib {
- #define SNMP_STAT_BHPTR(name)	(name[0])
- #define SNMP_STAT_USRPTR(name)	(name[1])
- 
--#define SNMP_INC_STATS_BH(mib, field) 	\
--	(per_cpu_ptr(mib[0], raw_smp_processor_id())->mibs[field]++)
--#define SNMP_INC_STATS_USER(mib, field) \
--	do { \
--		per_cpu_ptr(mib[1], get_cpu())->mibs[field]++; \
--		put_cpu(); \
--	} while (0)
--#define SNMP_INC_STATS(mib, field) 	\
--	do { \
--		per_cpu_ptr(mib[!in_softirq()], get_cpu())->mibs[field]++; \
--		put_cpu(); \
--	} while (0)
--#define SNMP_DEC_STATS(mib, field) 	\
--	do { \
--		per_cpu_ptr(mib[!in_softirq()], get_cpu())->mibs[field]--; \
--		put_cpu(); \
--	} while (0)
--#define SNMP_ADD_STATS_BH(mib, field, addend) 	\
--	(per_cpu_ptr(mib[0], raw_smp_processor_id())->mibs[field] += addend)
--#define SNMP_ADD_STATS_USER(mib, field, addend) 	\
--	do { \
--		per_cpu_ptr(mib[1], get_cpu())->mibs[field] += addend; \
--		put_cpu(); \
--	} while (0)
-+#define SNMP_INC_STATS_BH(mib, field) __CPU_INC(mib[0]->mibs[field])
-+#define SNMP_INC_STATS_USER(mib, field) _CPU_INC(mib[1]->mibs[field])
-+#define SNMP_INC_STATS(mib, field) _CPU_INC(mib[!in_softirq()]->mibs[field])
-+#define SNMP_DEC_STATS(mib, field) _CPU_DEC(mib[!in_softirq()]->mibs[field])
-+#define SNMP_ADD_STATS_BH(mib, field, addend) \
-+				__CPU_ADD(mib[0]->mibs[field], addend)
-+#define SNMP_ADD_STATS_USER(mib, field, addend) \
-+				_CPU_ADD(mib[1]->mibs[field], addend)
- 
+--- linux-2.6.orig/include/linux/mmzone.h	2008-05-28 11:16:24.000000000 -0700
++++ linux-2.6/include/linux/mmzone.h	2008-05-29 19:13:54.000000000 -0700
+@@ -123,13 +123,7 @@ struct per_cpu_pageset {
+ 	s8 stat_threshold;
+ 	s8 vm_stat_diff[NR_VM_ZONE_STAT_ITEMS];
  #endif
-Index: linux-2.6/net/ipv4/af_inet.c
-===================================================================
---- linux-2.6.orig/net/ipv4/af_inet.c	2008-05-29 19:41:20.000000000 -0700
-+++ linux-2.6/net/ipv4/af_inet.c	2008-05-29 20:15:34.000000000 -0700
-@@ -1279,8 +1279,8 @@ unsigned long snmp_fold_field(void *mib[
- 	int i;
+-} ____cacheline_aligned_in_smp;
+-
+-#ifdef CONFIG_NUMA
+-#define zone_pcp(__z, __cpu) ((__z)->pageset[(__cpu)])
+-#else
+-#define zone_pcp(__z, __cpu) (&(__z)->pageset[(__cpu)])
+-#endif
++};
  
- 	for_each_possible_cpu(i) {
--		res += *(((unsigned long *) per_cpu_ptr(mib[0], i)) + offt);
--		res += *(((unsigned long *) per_cpu_ptr(mib[1], i)) + offt);
-+		res += *(((unsigned long *) CPU_PTR(mib[0], i)) + offt);
-+		res += *(((unsigned long *) CPU_PTR(mib[1], i)) + offt);
+ #endif /* !__GENERATING_BOUNDS.H */
+ 
+@@ -224,10 +218,8 @@ struct zone {
+ 	 */
+ 	unsigned long		min_unmapped_pages;
+ 	unsigned long		min_slab_pages;
+-	struct per_cpu_pageset	*pageset[NR_CPUS];
+-#else
+-	struct per_cpu_pageset	pageset[NR_CPUS];
+ #endif
++	struct per_cpu_pageset	*pageset;
+ 	/*
+ 	 * free areas of different sizes
+ 	 */
+Index: linux-2.6/mm/page_alloc.c
+===================================================================
+--- linux-2.6.orig/mm/page_alloc.c	2008-05-28 11:16:24.000000000 -0700
++++ linux-2.6/mm/page_alloc.c	2008-05-29 19:39:58.000000000 -0700
+@@ -923,7 +923,7 @@ static void drain_pages(unsigned int cpu
+ 		if (!populated_zone(zone))
+ 			continue;
+ 
+-		pset = zone_pcp(zone, cpu);
++		pset = CPU_PTR(zone->pageset, cpu);
+ 
+ 		pcp = &pset->pcp;
+ 		local_irq_save(flags);
+@@ -1006,8 +1006,8 @@ static void free_hot_cold_page(struct pa
+ 	arch_free_page(page, 0);
+ 	kernel_map_pages(page, 1, 0);
+ 
+-	pcp = &zone_pcp(zone, get_cpu())->pcp;
+ 	local_irq_save(flags);
++	pcp = &THIS_CPU(zone->pageset)->pcp;
+ 	__count_vm_event(PGFREE);
+ 	if (cold)
+ 		list_add_tail(&page->lru, &pcp->list);
+@@ -1020,7 +1020,6 @@ static void free_hot_cold_page(struct pa
+ 		pcp->count -= pcp->batch;
  	}
- 	return res;
+ 	local_irq_restore(flags);
+-	put_cpu();
  }
-@@ -1289,26 +1289,28 @@ EXPORT_SYMBOL_GPL(snmp_fold_field);
- int snmp_mib_init(void *ptr[2], size_t mibsize)
+ 
+ void free_hot_page(struct page *page)
+@@ -1062,16 +1061,14 @@ static struct page *buffered_rmqueue(str
+ 	unsigned long flags;
+ 	struct page *page;
+ 	int cold = !!(gfp_flags & __GFP_COLD);
+-	int cpu;
+ 	int migratetype = allocflags_to_migratetype(gfp_flags);
+ 
+ again:
+-	cpu  = get_cpu();
+ 	if (likely(order == 0)) {
+ 		struct per_cpu_pages *pcp;
+ 
+-		pcp = &zone_pcp(zone, cpu)->pcp;
+ 		local_irq_save(flags);
++		pcp = &THIS_CPU(zone->pageset)->pcp;
+ 		if (!pcp->count) {
+ 			pcp->count = rmqueue_bulk(zone, 0,
+ 					pcp->batch, &pcp->list, migratetype);
+@@ -1110,7 +1107,6 @@ again:
+ 	__count_zone_vm_events(PGALLOC, zone, 1 << order);
+ 	zone_statistics(preferred_zone, zone);
+ 	local_irq_restore(flags);
+-	put_cpu();
+ 
+ 	VM_BUG_ON(bad_range(zone, page));
+ 	if (prep_new_page(page, order, gfp_flags))
+@@ -1119,7 +1115,6 @@ again:
+ 
+ failed:
+ 	local_irq_restore(flags);
+-	put_cpu();
+ 	return NULL;
+ }
+ 
+@@ -1836,7 +1831,7 @@ void show_free_areas(void)
+ 		for_each_online_cpu(cpu) {
+ 			struct per_cpu_pageset *pageset;
+ 
+-			pageset = zone_pcp(zone, cpu);
++			pageset = CPU_PTR(zone->pageset, cpu);
+ 
+ 			printk("CPU %4d: hi:%5d, btch:%4d usd:%4d\n",
+ 			       cpu, pageset->pcp.high,
+@@ -2670,82 +2665,77 @@ static void setup_pagelist_highmark(stru
+ 		pcp->batch = PAGE_SHIFT * 8;
+ }
+ 
+-
+-#ifdef CONFIG_NUMA
+ /*
+- * Boot pageset table. One per cpu which is going to be used for all
+- * zones and all nodes. The parameters will be set in such a way
+- * that an item put on a list will immediately be handed over to
+- * the buddy list. This is safe since pageset manipulation is done
+- * with interrupts disabled.
+- *
+- * Some NUMA counter updates may also be caught by the boot pagesets.
++ * The boot_pageset enables bootstrapping of the page allocator
++ * before pagesets can be allocated.
+  *
+- * The boot_pagesets must be kept even after bootup is complete for
+- * unused processors and/or zones. They do play a role for bootstrapping
+- * hotplugged processors.
+- *
+- * zoneinfo_show() and maybe other functions do
+- * not check if the processor is online before following the pageset pointer.
+- * Other parts of the kernel may not check if the zone is available.
++ * The boot pageset is configued in such a way that therew will be no pages
++ * permanently queued. A page is added to the list and then we reach the
++ * highwater mark and the queue is drained.
++ *
++ * All zone pageset pointers for zones not activated by process_zones() point
++ * to the boot_pageset. Only one processor may be using the pageset at a time
++ * though. So only a single processor may perform bootstrap.
++ */
++static struct per_cpu_pageset boot_pageset = {
++	{
++		.count = 0,
++		.high = 1,
++		.batch = 1,
++		.list = LIST_HEAD_INIT(boot_pageset.pcp.list)
++	}
++};
++
++/*
++ * Initialize a pageset pointer during early boot.
++ * We need to undo the effect that THIS_CPU() would have in order to
++ * have CPU_PTR() return a pointer to the boot pageset.
+  */
+-static struct per_cpu_pageset boot_pageset[NR_CPUS];
++static void setup_zone_boot_pageset(struct zone *zone)
++{
++	zone->pageset = SHIFT_PERCPU_PTR(&boot_pageset, -my_cpu_offset);
++}
++
++void __cpuinit setup_boot_pagesets(void)
++{
++	struct zone *zone;
++
++	for_each_zone(zone)
++		if (populated_zone(zone))
++			setup_zone_boot_pageset(zone);
++}
+ 
+ /*
+- * Dynamically allocate memory for the
+- * per cpu pageset array in struct zone.
++ * Prepare the pagesets in struct zone.
+  */
+-static int __cpuinit process_zones(int cpu)
++static void __cpuinit process_zones(int cpu)
  {
- 	BUG_ON(ptr == NULL);
--	ptr[0] = __alloc_percpu(mibsize);
-+	ptr[0] = cpu_alloc(mibsize, GFP_KERNEL | __GFP_ZERO,
-+					L1_CACHE_BYTES);
- 	if (!ptr[0])
- 		goto err0;
--	ptr[1] = __alloc_percpu(mibsize);
-+	ptr[1] = cpu_alloc(mibsize, GFP_KERNEL | __GFP_ZERO,
-+					L1_CACHE_BYTES);
- 	if (!ptr[1])
- 		goto err1;
+-	struct zone *zone, *dzone;
++	struct zone *zone;
+ 	int node = cpu_to_node(cpu);
+ 
+ 	node_set_state(node, N_CPU);	/* this node has a cpu */
+ 
+ 	for_each_zone(zone) {
++		struct per_cpu_pageset *pcp;
+ 
+ 		if (!populated_zone(zone))
+ 			continue;
+ 
+-		zone_pcp(zone, cpu) = kmalloc_node(sizeof(struct per_cpu_pageset),
+-					 GFP_KERNEL, node);
+-		if (!zone_pcp(zone, cpu))
+-			goto bad;
++		if (CPU_PTR(zone->pageset, cpu) == &boot_pageset)
++			zone->pageset = CPU_ALLOC(struct per_cpu_pageset,
++						GFP_KERNEL|__GFP_ZERO);
+ 
+-		setup_pageset(zone_pcp(zone, cpu), zone_batchsize(zone));
++		pcp = CPU_PTR(zone->pageset, cpu);
++		setup_pageset(pcp, zone_batchsize(zone));
+ 
+ 		if (percpu_pagelist_fraction)
+-			setup_pagelist_highmark(zone_pcp(zone, cpu),
+-			 	(zone->present_pages / percpu_pagelist_fraction));
+-	}
+-
+-	return 0;
+-bad:
+-	for_each_zone(dzone) {
+-		if (!populated_zone(dzone))
+-			continue;
+-		if (dzone == zone)
+-			break;
+-		kfree(zone_pcp(dzone, cpu));
+-		zone_pcp(dzone, cpu) = NULL;
+-	}
+-	return -ENOMEM;
+-}
+-
+-static inline void free_zone_pagesets(int cpu)
+-{
+-	struct zone *zone;
+-
+-	for_each_zone(zone) {
+-		struct per_cpu_pageset *pset = zone_pcp(zone, cpu);
++			setup_pagelist_highmark(pcp, zone->present_pages /
++						percpu_pagelist_fraction);
+ 
+-		/* Free per_cpu_pageset if it is slab allocated */
+-		if (pset != &boot_pageset[cpu])
+-			kfree(pset);
+-		zone_pcp(zone, cpu) = NULL;
+ 	}
+ }
+ 
++#ifdef CONFIG_SMP
+ static int __cpuinit pageset_cpuup_callback(struct notifier_block *nfb,
+ 		unsigned long action,
+ 		void *hcpu)
+@@ -2756,14 +2746,7 @@ static int __cpuinit pageset_cpuup_callb
+ 	switch (action) {
+ 	case CPU_UP_PREPARE:
+ 	case CPU_UP_PREPARE_FROZEN:
+-		if (process_zones(cpu))
+-			ret = NOTIFY_BAD;
+-		break;
+-	case CPU_UP_CANCELED:
+-	case CPU_UP_CANCELED_FROZEN:
+-	case CPU_DEAD:
+-	case CPU_DEAD_FROZEN:
+-		free_zone_pagesets(cpu);
++		process_zones(cpu);
+ 		break;
+ 	default:
+ 		break;
+@@ -2773,21 +2756,20 @@ static int __cpuinit pageset_cpuup_callb
+ 
+ static struct notifier_block __cpuinitdata pageset_notifier =
+ 	{ &pageset_cpuup_callback, NULL, 0 };
++#endif
+ 
+ void __init setup_per_cpu_pageset(void)
+ {
+-	int err;
+-
+-	/* Initialize per_cpu_pageset for cpu 0.
++	/*
++	 * Initialize per_cpu settings for the boot cpu.
+ 	 * A cpuup callback will do this for every cpu
+-	 * as it comes online
++	 * as it comes online.
+ 	 */
+-	err = process_zones(smp_processor_id());
+-	BUG_ON(err);
++	process_zones(smp_processor_id());
++#ifdef CONFIG_SMP
+ 	register_cpu_notifier(&pageset_notifier);
+-}
+-
+ #endif
++}
+ 
+ static noinline __init_refok
+ int zone_wait_table_init(struct zone *zone, unsigned long zone_size_pages)
+@@ -2832,25 +2814,6 @@ int zone_wait_table_init(struct zone *zo
  	return 0;
- err1:
--	free_percpu(ptr[0]);
-+	cpu_free(ptr[0], mibsize);
- 	ptr[0] = NULL;
- err0:
- 	return -ENOMEM;
  }
- EXPORT_SYMBOL_GPL(snmp_mib_init);
  
--void snmp_mib_free(void *ptr[2])
-+void snmp_mib_free(void *ptr[2], size_t mibsize)
- {
- 	BUG_ON(ptr == NULL);
--	free_percpu(ptr[0]);
--	free_percpu(ptr[1]);
-+	cpu_free(ptr[0], mibsize);
-+	cpu_free(ptr[1], mibsize);
- 	ptr[0] = ptr[1] = NULL;
- }
- EXPORT_SYMBOL_GPL(snmp_mib_free);
-@@ -1370,17 +1372,18 @@ static int __init init_ipv4_mibs(void)
+-static __meminit void zone_pcp_init(struct zone *zone)
+-{
+-	int cpu;
+-	unsigned long batch = zone_batchsize(zone);
+-
+-	for (cpu = 0; cpu < NR_CPUS; cpu++) {
+-#ifdef CONFIG_NUMA
+-		/* Early boot. Slab allocator not functional yet */
+-		zone_pcp(zone, cpu) = &boot_pageset[cpu];
+-		setup_pageset(&boot_pageset[cpu],0);
+-#else
+-		setup_pageset(zone_pcp(zone,cpu), batch);
+-#endif
+-	}
+-	if (zone->present_pages)
+-		printk(KERN_DEBUG "  %s zone: %lu pages, LIFO batch:%lu\n",
+-			zone->name, zone->present_pages, batch);
+-}
+-
+ __meminit int init_currently_empty_zone(struct zone *zone,
+ 					unsigned long zone_start_pfn,
+ 					unsigned long size,
+@@ -3420,7 +3383,12 @@ static void __paginginit free_area_init_
+ 
+ 		zone->prev_priority = DEF_PRIORITY;
+ 
+-		zone_pcp_init(zone);
++		setup_zone_boot_pageset(zone);
++		if (zone->present_pages)
++			printk(KERN_DEBUG "  %s zone: %lu pages, LIFO batch:%u\n",
++				zone->name, zone->present_pages,
++				zone_batchsize(zone));
++
+ 		INIT_LIST_HEAD(&zone->active_list);
+ 		INIT_LIST_HEAD(&zone->inactive_list);
+ 		zone->nr_scan_active = 0;
+@@ -4295,11 +4263,13 @@ int percpu_pagelist_fraction_sysctl_hand
+ 	ret = proc_dointvec_minmax(table, write, file, buffer, length, ppos);
+ 	if (!write || (ret == -EINVAL))
+ 		return ret;
+-	for_each_zone(zone) {
+-		for_each_online_cpu(cpu) {
++	for_each_online_cpu(cpu) {
++		for_each_zone(zone) {
+ 			unsigned long  high;
++
+ 			high = zone->present_pages / percpu_pagelist_fraction;
+-			setup_pagelist_highmark(zone_pcp(zone, cpu), high);
++			setup_pagelist_highmark(CPU_PTR(zone->pageset, cpu),
++									high);
+ 		}
+ 	}
  	return 0;
- 
- err_udplite_mib:
--	snmp_mib_free((void **)udp_statistics);
-+	snmp_mib_free((void **)udp_statistics, sizeof(struct udp_mib));
- err_udp_mib:
--	snmp_mib_free((void **)tcp_statistics);
-+	snmp_mib_free((void **)tcp_statistics, sizeof(struct tcp_mib));
- err_tcp_mib:
--	snmp_mib_free((void **)icmpmsg_statistics);
-+	snmp_mib_free((void **)icmpmsg_statistics,
-+					sizeof(struct icmpmsg_mib));
- err_icmpmsg_mib:
--	snmp_mib_free((void **)icmp_statistics);
-+	snmp_mib_free((void **)icmp_statistics, sizeof(struct icmp_mib));
- err_icmp_mib:
--	snmp_mib_free((void **)ip_statistics);
-+	snmp_mib_free((void **)ip_statistics, sizeof(struct ipstats_mib));
- err_ip_mib:
--	snmp_mib_free((void **)net_statistics);
-+	snmp_mib_free((void **)net_statistics, sizeof(struct linux_mib));
- err_net_mib:
- 	return -ENOMEM;
- }
-Index: linux-2.6/net/ipv6/addrconf.c
+Index: linux-2.6/mm/vmstat.c
 ===================================================================
---- linux-2.6.orig/net/ipv6/addrconf.c	2008-05-29 19:41:20.000000000 -0700
-+++ linux-2.6/net/ipv6/addrconf.c	2008-05-29 20:16:35.000000000 -0700
-@@ -279,18 +279,19 @@ static int snmp6_alloc_dev(struct inet6_
- 	return 0;
+--- linux-2.6.orig/mm/vmstat.c	2008-05-29 19:13:53.000000000 -0700
++++ linux-2.6/mm/vmstat.c	2008-05-29 19:13:54.000000000 -0700
+@@ -142,7 +142,8 @@ static void refresh_zone_stat_thresholds
+ 		threshold = calculate_threshold(zone);
  
- err_icmpmsg:
--	snmp_mib_free((void **)idev->stats.icmpv6);
-+	snmp_mib_free((void **)idev->stats.icmpv6, sizeof(struct icmpv6_mib));
- err_icmp:
--	snmp_mib_free((void **)idev->stats.ipv6);
-+	snmp_mib_free((void **)idev->stats.ipv6, sizeof(struct ipstats_mib));
- err_ip:
- 	return -ENOMEM;
+ 		for_each_online_cpu(cpu)
+-			zone_pcp(zone, cpu)->stat_threshold = threshold;
++			CPU_PTR(zone->pageset, cpu)->stat_threshold
++							= threshold;
+ 	}
  }
  
- static void snmp6_free_dev(struct inet6_dev *idev)
+@@ -152,7 +153,8 @@ static void refresh_zone_stat_thresholds
+ void __mod_zone_page_state(struct zone *zone, enum zone_stat_item item,
+ 				int delta)
  {
--	snmp_mib_free((void **)idev->stats.icmpv6msg);
--	snmp_mib_free((void **)idev->stats.icmpv6);
--	snmp_mib_free((void **)idev->stats.ipv6);
-+	snmp_mib_free((void **)idev->stats.icmpv6msg,
-+						sizeof(struct icmpv6msg_mib));
-+	snmp_mib_free((void **)idev->stats.icmpv6, sizeof(struct icmpv6_mib));
-+	snmp_mib_free((void **)idev->stats.ipv6, sizeof(struct ipstats_mib));
- }
+-	struct per_cpu_pageset *pcp = zone_pcp(zone, smp_processor_id());
++	struct per_cpu_pageset *pcp = THIS_CPU(zone->pageset);
++
+ 	s8 *p = pcp->vm_stat_diff + item;
+ 	long x;
  
- /* Nobody refers to this device, we may destroy it. */
-Index: linux-2.6/net/ipv6/af_inet6.c
-===================================================================
---- linux-2.6.orig/net/ipv6/af_inet6.c	2008-05-29 19:41:20.000000000 -0700
-+++ linux-2.6/net/ipv6/af_inet6.c	2008-05-29 20:17:39.000000000 -0700
-@@ -822,13 +822,14 @@ static int __init init_ipv6_mibs(void)
- 	return 0;
- 
- err_udplite_mib:
--	snmp_mib_free((void **)udp_stats_in6);
-+	snmp_mib_free((void **)udp_stats_in6, sizeof(struct udp_mib));
- err_udp_mib:
--	snmp_mib_free((void **)icmpv6msg_statistics);
-+	snmp_mib_free((void **)icmpv6msg_statistics,
-+					sizeof(struct icmpv6msg_mib));
- err_icmpmsg_mib:
--	snmp_mib_free((void **)icmpv6_statistics);
-+	snmp_mib_free((void **)icmpv6_statistics, sizeof(struct icmpv6_mib));
- err_icmp_mib:
--	snmp_mib_free((void **)ipv6_statistics);
-+	snmp_mib_free((void **)ipv6_statistics, sizeof(struct ipstats_mib));
- err_ip_mib:
- 	return -ENOMEM;
- 
-@@ -836,11 +837,12 @@ err_ip_mib:
- 
- static void cleanup_ipv6_mibs(void)
+@@ -205,7 +207,7 @@ EXPORT_SYMBOL(mod_zone_page_state);
+  */
+ void __inc_zone_state(struct zone *zone, enum zone_stat_item item)
  {
--	snmp_mib_free((void **)ipv6_statistics);
--	snmp_mib_free((void **)icmpv6_statistics);
--	snmp_mib_free((void **)icmpv6msg_statistics);
--	snmp_mib_free((void **)udp_stats_in6);
--	snmp_mib_free((void **)udplite_stats_in6);
-+	snmp_mib_free((void **)ipv6_statistics, sizeof(struct ipstats_mib));
-+	snmp_mib_free((void **)icmpv6_statistics, sizeof(struct icmpv6_mib));
-+	snmp_mib_free((void **)icmpv6msg_statistics,
-+						sizeof(struct icmpv6msg_mib));
-+	snmp_mib_free((void **)udp_stats_in6, sizeof(struct udp_mib));
-+	snmp_mib_free((void **)udplite_stats_in6, sizeof(struct udp_mib));
- }
+-	struct per_cpu_pageset *pcp = zone_pcp(zone, smp_processor_id());
++	struct per_cpu_pageset *pcp = THIS_CPU(zone->pageset);
+ 	s8 *p = pcp->vm_stat_diff + item;
  
- static int inet6_net_init(struct net *net)
-Index: linux-2.6/net/dccp/proto.c
-===================================================================
---- linux-2.6.orig/net/dccp/proto.c	2008-05-29 19:41:20.000000000 -0700
-+++ linux-2.6/net/dccp/proto.c	2008-05-29 20:18:05.000000000 -0700
-@@ -1016,7 +1016,7 @@ static inline int dccp_mib_init(void)
+ 	(*p)++;
+@@ -226,7 +228,7 @@ EXPORT_SYMBOL(__inc_zone_page_state);
  
- static inline void dccp_mib_exit(void)
+ void __dec_zone_state(struct zone *zone, enum zone_stat_item item)
  {
--	snmp_mib_free((void**)dccp_statistics);
-+	snmp_mib_free((void **)dccp_statistics, sizeof(struct dccp_mib));
- }
+-	struct per_cpu_pageset *pcp = zone_pcp(zone, smp_processor_id());
++	struct per_cpu_pageset *pcp = THIS_CPU(zone->pageset);
+ 	s8 *p = pcp->vm_stat_diff + item;
  
- static int thash_entries;
-Index: linux-2.6/net/sctp/protocol.c
+ 	(*p)--;
+@@ -306,7 +308,7 @@ void refresh_cpu_vm_stats(int cpu)
+ 		if (!populated_zone(zone))
+ 			continue;
+ 
+-		p = zone_pcp(zone, cpu);
++		p = CPU_PTR(zone->pageset, cpu);
+ 
+ 		for (i = 0; i < NR_VM_ZONE_STAT_ITEMS; i++)
+ 			if (p->vm_stat_diff[i]) {
+@@ -698,7 +700,7 @@ static void zoneinfo_show_print(struct s
+ 	for_each_online_cpu(i) {
+ 		struct per_cpu_pageset *pageset;
+ 
+-		pageset = zone_pcp(zone, i);
++		pageset = CPU_PTR(zone->pageset, i);
+ 		seq_printf(m,
+ 			   "\n    cpu: %i"
+ 			   "\n              count: %i"
+Index: linux-2.6/arch/x86/kernel/setup.c
 ===================================================================
---- linux-2.6.orig/net/sctp/protocol.c	2008-05-29 19:41:20.000000000 -0700
-+++ linux-2.6/net/sctp/protocol.c	2008-05-29 20:18:21.000000000 -0700
-@@ -981,7 +981,7 @@ static inline int init_sctp_mibs(void)
+--- linux-2.6.orig/arch/x86/kernel/setup.c	2008-05-29 19:13:53.000000000 -0700
++++ linux-2.6/arch/x86/kernel/setup.c	2008-05-29 19:40:08.000000000 -0700
+@@ -125,6 +125,12 @@ void __init setup_per_cpu_areas(void)
+ 		highest_cpu = i;
+ 	}
  
- static inline void cleanup_sctp_mibs(void)
- {
--	snmp_mib_free((void**)sctp_statistics);
-+	snmp_mib_free((void **)sctp_statistics, sizeof(struct sctp_mib));
- }
++	/*
++	 * The per_cpu offsets have changed and therefore the pageset
++	 * pointers need to be updated.
++	 */
++	setup_boot_pagesets();
++
+ 	nr_cpu_ids = highest_cpu + 1;
+ 	printk(KERN_DEBUG "NR_CPUS: %d, nr_cpu_ids: %d\n", NR_CPUS, nr_cpu_ids);
  
- static void sctp_v4_pf_init(void)
-Index: linux-2.6/net/xfrm/xfrm_proc.c
+Index: linux-2.6/include/linux/gfp.h
 ===================================================================
---- linux-2.6.orig/net/xfrm/xfrm_proc.c	2008-05-29 19:41:20.000000000 -0700
-+++ linux-2.6/net/xfrm/xfrm_proc.c	2008-05-29 20:19:10.000000000 -0700
-@@ -51,8 +51,8 @@ fold_field(void *mib[], int offt)
-         int i;
+--- linux-2.6.orig/include/linux/gfp.h	2008-04-29 12:13:29.000000000 -0700
++++ linux-2.6/include/linux/gfp.h	2008-05-29 19:13:54.000000000 -0700
+@@ -233,5 +233,6 @@ void page_alloc_init(void);
+ void drain_zone_pages(struct zone *zone, struct per_cpu_pages *pcp);
+ void drain_all_pages(void);
+ void drain_local_pages(void *dummy);
++void setup_boot_pagesets(void);
  
-         for_each_possible_cpu(i) {
--                res += *(((unsigned long *)per_cpu_ptr(mib[0], i)) + offt);
--                res += *(((unsigned long *)per_cpu_ptr(mib[1], i)) + offt);
-+		res += *(((unsigned long *)CPU_PTR(mib[0], i)) + offt);
-+		res += *(((unsigned long *)CPU_PTR(mib[1], i)) + offt);
-         }
-         return res;
+ #endif /* __LINUX_GFP_H */
+Index: linux-2.6/init/main.c
+===================================================================
+--- linux-2.6.orig/init/main.c	2008-05-29 19:13:53.000000000 -0700
++++ linux-2.6/init/main.c	2008-05-29 19:13:54.000000000 -0700
+@@ -405,6 +405,11 @@ static void __init setup_per_cpu_areas(v
+ 		memcpy(ptr, __per_cpu_start, __per_cpu_size);
+ 		ptr += __per_cpu_size;
+ 	}
++	/*
++	 * __per_cpu_offset[] have changed. Need to update the
++	 * pointers to the boot page set.
++	 */
++	setup_boot_pagesets();
  }
+ #endif /* CONFIG_HAVE_SETUP_PER_CPU_AREA */
+ 
 
 -- 
