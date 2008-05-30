@@ -1,64 +1,46 @@
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Fri, 30 May 2008 13:56:02 +1000
-Message-ID: <18495.31442.198759.80890@cargo.ozlabs.ibm.com>
-References: <1211852026.3286.36.camel@pasglop>
-	<20080526.184047.88207142.davem@davemloft.net>
-	<1211854540.3286.42.camel@pasglop>
-	<20080526.192812.184590464.davem@davemloft.net>
-	<20080526204233.75b71bb8@infradead.org>
-	<1211872130.3286.64.camel@pasglop>
-	<adaprr721c6.fsf@cisco.com>
-	<1211922696.3286.82.camel@pasglop>
-	<adaiqwzsa83.fsf@cisco.com>
-	<yq0iqwxrwuh.fsf@jaguar.mkp.net>
-	<adawslcojdg.fsf@cisco.com>
-	<Pine.LNX.4.64.0805291517140.18832@t2.domain.actdsltmp>
+From: Harvey Harrison <harvey.harrison@gmail.com>
+Subject: Re: [PATCH 05/37] ata: use get/put_endian helpers
+Date: Thu, 29 May 2008 21:14:35 -0700
+Message-ID: <1212120875.28403.179.camel@brick>
+References: <1212092282.28403.107.camel@brick> <483F65CA.4050507@rtr.ca>
+	 <20080529195225.5665ae9c.akpm@linux-foundation.org>
+	 <1212118661.28403.175.camel@brick>
+	 <20080529210859.0feee69d.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:42957 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755999AbYE3ENJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 00:13:09 -0400
-In-Reply-To: <Pine.LNX.4.64.0805291517140.18832@t2.domain.actdsltmp>
+Received: from el-out-1112.google.com ([209.85.162.182]:11150 "EHLO
+	el-out-1112.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761116AbYE3EOj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:14:39 -0400
+Received: by el-out-1112.google.com with SMTP id s27so97929ele.1
+        for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 21:14:38 -0700 (PDT)
+In-Reply-To: <20080529210859.0feee69d.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Trent Piepho <tpiepho@freescale.com>
-Cc: Roland Dreier <rdreier@cisco.com>, Jes Sorensen <jes@sgi.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mark Lord <liml@rtr.ca>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
 
-Trent Piepho writes:
-
-> On Thu, 29 May 2008, Roland Dreier wrote:
-> > > The problem is that your two writel's, despite being both issued on
-> > > cpu X, due to the spin lock, in your example, can end up with the
-> > > first one going through NR 1 and the second one going through NR 2. If
-> > > there's contention on NR 1, the write going via NR 2 may hit the PCI
-> > > bridge prior to the one going via NR 1.
-> >
-> > Really??  I can't see how you can expect any drivers to work reliably if
-> > simple code like
-> >
-> > 	writel(reg1);
-> > 	writel(reg2);
-> >
-> > might end up with the write to reg2 hitting the device before the write
-> > to reg1.  Almost all MMIO stuff has ordering requirements and will
+On Thu, 2008-05-29 at 21:08 -0700, Andrew Morton wrote:
+> On Thu, 29 May 2008 20:37:40 -0700 Harvey Harrison <harvey.harrison@gmail.com> wrote:
 > 
-> This is how powerpc is natively (the linux accessors have extra ordering to
-> not allow this of course), and there are non-Linux drivers that are written
-> for this ordering model.
+> > On Thu, 2008-05-29 at 19:52 -0700, Andrew Morton wrote:
+> > > On Thu, 29 May 2008 22:26:18 -0400 Mark Lord <liml@rtr.ca> wrote:
+> > > 
 
-In fact stores to non-cacheable locations have to be kept in order,
-according to the Power architecture.  But you're correct in that
-non-cacheable loads can in principle be reordered w.r.t. each other
-and to stores.
+> > I'm flexible...although I'd probably get nailed to a cross for changing
+> > it again so soon. (the unaligned versions, that is)
+> 
+> We'll live.
+> 
+> (I'm not a big fan of the patches, btw.  It's more of an "oh groan,
+> because it's there I suppose we really ought to do this" sort of thing.
+> (strong objections would save me a lot of work (looks hopefully at
+> inbox))).
 
-> I think what makes altix so hard is that writes to the _same_ register may be
-> be re-ordered.  Re-ordering writes to the same address is much less common
-> than allowing writes to different addresses to be re-ordered.
+Well in the case of the le16_to_cpu(*(__le16 *)ptr), it can be
+profitable to use the le16_to_cpup..or get_le16 directly as
+some arches have optimized versions of the pointer versions.
 
-Indeed.
-
-Paul.
+Harvey
