@@ -1,44 +1,42 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Jes Sorensen <jes@sgi.com>
 Subject: Re: MMIO and gcc re-ordering issue
-Date: Fri, 30 May 2008 11:22:19 +0200 (CEST)
-Message-ID: <Pine.LNX.4.64.0805301120510.26332@anakin>
-References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net>
- <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net>
- <1211859542.3286.46.camel@pasglop> <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org>
- <1211922621.3286.80.camel@pasglop> <alpine.LFD.1.10.0805271421570.2958@woody.linux-foundation.org>
- <1211924335.3286.89.camel@pasglop> <20080527214241.GA22636@parisc-linux.org>
- <1211926636.3286.100.camel@pasglop> <20080528103648.54eb8734@hskinnemo-gx745.norway.atmel.com>
- <1212110003.15633.0.camel@pasglop> <20080530080700.773a82cc@siona.local>
- <1212132267.15633.69.camel@pasglop> <20080530102706.56fca248@siona.local>
+Date: Fri, 30 May 2008 11:36:20 +0200
+Message-ID: <483FCA94.1060506@sgi.com>
+References: <1211852026.3286.36.camel@pasglop>	 <20080526.184047.88207142.davem@davemloft.net>	 <1211854540.3286.42.camel@pasglop>	 <20080526.192812.184590464.davem@davemloft.net>	 <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop>	 <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop>	 <adaiqwzsa83.fsf@cisco.com>  <yq0iqwxrwuh.fsf@jaguar.mkp.net> <1212073289.3428.30.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from winston.telenet-ops.be ([195.130.137.75]:54611 "EHLO
-	winston.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752047AbYE3JWc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 05:22:32 -0400
-In-Reply-To: <20080530102706.56fca248@siona.local>
+Received: from relay1.sgi.com ([192.48.171.29]:39361 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751160AbYE3Jg1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 05:36:27 -0400
+In-Reply-To: <1212073289.3428.30.camel@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
-Cc: benh@kernel.crashing.org, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Roland Dreier <rdreier@cisco.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk, Jeremy Higdon <jeremy@sgi.com>
 
-On Fri, 30 May 2008, Haavard Skinnemoen wrote:
-> Maybe we need another interface that does not do byteswapping but
-> provides stronger ordering guarantees?
+James Bottomley wrote:
+>> The only way to guarantee ordering in the above setup, is to either
+>> make writel() fully ordered or adding the mmiowb()'s inbetween the two
+>> writel's. On Altix you have to go and read from the PCI brige to
+>> ensure all writes to it have been flushed, which is also what mmiowb()
+>> is doing. If writel() was to guarantee this ordering, it would make
+>> every writel() call extremely expensive :-(
+> 
+> So if a read from the bridge achieves the same effect, can't we just put
+> one after the writes within the spinlock (an unrelaxed one).  That way
+> this whole sequence will look like a well understood PCI posting flush
+> rather than have to muck around with little understood (at least by most
+> driver writers) io barriers?
 
-The byte swapping depends on the device/bus.
+Hmmm,
 
-So what happened to the old idea of putting the accessor function pointers
-in the device/bus structure?
+I think mmiowb() does some sort of status read from the bridge, I am not
+sure if it's enough to just do a regular readl().
 
-Gr{oetje,eeting}s,
+I'm adding Jeremy to the list, he should know for sure.
 
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+Cheers,
+Jes
