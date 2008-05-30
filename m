@@ -1,43 +1,66 @@
 From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Thu, 29 May 2008 21:58:27 -0700
-Message-ID: <20080529215827.b659d032.akpm@linux-foundation.org>
+Subject: Re: [patch 03/41] cpu alloc: Use cpu allocator instead of the
+ builtin modules per cpu allocator
+Date: Thu, 29 May 2008 21:58:37 -0700
+Message-ID: <20080529215837.0528fb3b.akpm@linux-foundation.org>
 References: <20080530035620.587204923@sgi.com>
+	<20080530040011.451400376@sgi.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:55184 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:53979 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752186AbYE3E6x (ORCPT
+	by vger.kernel.org with ESMTP id S1753039AbYE3E66 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 00:58:53 -0400
-In-Reply-To: <20080530035620.587204923@sgi.com>
+	Fri, 30 May 2008 00:58:58 -0400
+In-Reply-To: <20080530040011.451400376@sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Lameter <clameter@sgi.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-On Thu, 29 May 2008 20:56:20 -0700 Christoph Lameter <clameter@sgi.com> wrote:
+On Thu, 29 May 2008 20:56:23 -0700 Christoph Lameter <clameter@sgi.com> wrote:
 
-> In various places the kernel maintains arrays of pointers indexed by
-> processor numbers. These are used to locate objects that need to be used
-> when executing on a specirfic processor. Both the slab allocator
-> and the page allocator use these arrays and there the arrays are used in
-> performance critical code. The allocpercpu functionality is a simple
-> allocator to provide these arrays.
+> Remove the builtin per cpu allocator from modules.c and use cpu_alloc instead.
+> 
+> The patch also removes PERCPU_ENOUGH_ROOM. The size of the cpu_alloc area is
+> determined by CONFIG_CPU_AREA_SIZE. PERCPU_ENOUGH_ROOMs default was 8k.
+> CONFIG_CPU_AREA_SIZE defaults to 30k. Thus we have more space to load modules.
+> 
+>
+> ...
+>
+> +		unsigned long align = sechdrs[pcpuindex].sh_addralign;
+> +		unsigned long size = sechdrs[pcpuindex].sh_size;
+> +
+> +		if (align > PAGE_SIZE) {
+> +			printk(KERN_WARNING "%s: per-cpu alignment %li > %li\n",
+> +			mod->name, align, PAGE_SIZE);
 
-All seems reasonable to me.  The obvious question is "how do we size
-the arena".  We either waste memory or, much worse, run out.
+Indenting broke.
 
-And running out is a real possibility, I think.  Most people will only
-mount a handful of XFS filesystems.  But some customer will come along
-who wants to mount 5,000, and distributors will need to cater for that,
-but how can they?
+Alas, PAGE_SIZE has, iirc, unsigned type on some architectures and
+unsigned long on others.  I suspect you'll need to cast it to be able
+to print it.
 
-I wonder if we can arrange for the default to be overridden via a
-kernel boot option?
+> +			align = PAGE_SIZE;
+> +		}
+> +		percpu = cpu_alloc(size, GFP_KERNEL|__GFP_ZERO, align);
+> +		if (!percpu)
+> +			printk(KERN_WARNING "Could not allocate %lu bytes percpu data\n",
 
+80-col bustage,.
 
-Another obvious question is "how much of a problem will we have with
-internal fragmentation"?  This might be a drop-dead showstopper.
+A printk like this should, I think, identify what part of the kernel it
+came from.
+
+But really, I don't think any printk should be present here. 
+cpu_alloc() itself should dump the warning and the backtrace when it
+runs out.  Because a cpu_alloc() failure is a major catastrophe.  It
+probably means a reconfigure-and-reboot cycle.
+
+Right now it means a
+reconfigure-kernel-rebuild-kernel-reinstall-kernel-then-reboot cycle. 
+Or a call-vendor-complain-pay-money-and-wait cycle.  But I hope we can
+fix that with the boot parameter thing?
