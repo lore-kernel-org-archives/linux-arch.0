@@ -1,43 +1,34 @@
-From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Subject: Re: [patch 02/41] cpu alloc: The allocator
-Date: Fri, 30 May 2008 14:56:12 +0900
-Message-ID: <20080530145612.fd930335.kamezawa.hiroyu@jp.fujitsu.com>
-References: <20080530035620.587204923@sgi.com>
-	<20080530040011.084909898@sgi.com>
-	<20080529215833.469c3cbe.akpm@linux-foundation.org>
-	<Pine.LNX.4.64.0805292203240.12107@schroedinger.engr.sgi.com>
+From: Roland Dreier <rdreier@cisco.com>
+Subject: Re: [PATCH 11/37] infiniband: use get/put_endian helpers
+Date: Thu, 29 May 2008 22:52:11 -0700
+Message-ID: <ada1w3knxtg.fsf@cisco.com>
+References: <1212092297.28403.113.camel@brick> <adak5hcoir4.fsf@cisco.com>
+	<1212099859.28403.149.camel@brick>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail6.fujitsu.co.jp ([192.51.44.36]:35794 "EHLO
-	fgwmail6.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752491AbYE3Fva (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 01:51:30 -0400
-In-Reply-To: <Pine.LNX.4.64.0805292203240.12107@schroedinger.engr.sgi.com>
+Received: from sj-iport-3.cisco.com ([171.71.176.72]:27744 "EHLO
+	sj-iport-3.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754164AbYE3FwM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 01:52:12 -0400
+In-Reply-To: <1212099859.28403.149.camel@brick> (Harvey Harrison's message of
+	"Thu, 29 May 2008 15:24:19 -0700")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Roland Dreier <rolandd@cisco.com>
 
-On Thu, 29 May 2008 22:10:25 -0700 (PDT)
-Christoph Lameter <clameter@sgi.com> wrote:
+ > Well, assuming it's wanted, I can send you a sed-based patch instead and
+ > a follow-on patch that does the additional codingstyle bits on the
+ > changed lines that adds up to this patch.
 
-> On Thu, 29 May 2008, Andrew Morton wrote:
-> 
-> > > +config CPU_ALLOC_SIZE
-> > > +	int "Size of cpu alloc area"
-> > > +	default "30000"
-> > 
-> > strange choice of a default?  I guess it makes it clear that there's no
-> > particular advantage in making it a power-of-two or anything like that.
-> 
-> The cpu alloc has a cpu_bytes field in vmstat that shows how much memory 
-> is being used. 30000 seemed to be reasonable after staring at these 
-> numbers for awhile.
-> 
+If you generated the patch with sed + careful codingstyle fixup, that's
+OK, no need to resend.
 
-30000 is suitable for both of 32bits/64bits arch ?
+I think the big question is whether this change is worth it -- my
+immediate reaction is that it is just churn, but I am only seeing one of
+the 37 (?!) patches in the series so maybe there is some merit that I am
+unaware of.  Anyway I am happy with whatever Andrew decides based on his
+view of the big picture.
 
-Thanks,
--kame
+ - R.
