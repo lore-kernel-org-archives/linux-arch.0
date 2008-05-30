@@ -1,64 +1,99 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 22/41] cpu alloc: Convert network sockets inuse counter
-Date: Thu, 29 May 2008 20:56:42 -0700
-Message-ID: <20080530040018.552701121@sgi.com>
+Subject: [patch 11/41] cpu alloc: SRCU cpu alloc conversion
+Date: Thu, 29 May 2008 20:56:31 -0700
+Message-ID: <20080530040013.755304857@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40522 "EHLO
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40495 "EHLO
 	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752649AbYE3EAV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:21 -0400
-Content-Disposition: inline; filename=cpu_alloc_network_sockets_conversion
+	with ESMTP id S1751558AbYE3EAS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:18 -0400
+Content-Disposition: inline; filename=cpu_alloc_srcu_conversion
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Convert handling of the inuse counters to cpu alloc.
-
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- net/core/sock.c |    8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ kernel/rcutorture.c |    4 ++--
+ kernel/srcu.c       |   20 ++++++++------------
+ 2 files changed, 10 insertions(+), 14 deletions(-)
 
-Index: linux-2.6/net/core/sock.c
+Index: linux-2.6/kernel/rcutorture.c
 ===================================================================
---- linux-2.6.orig/net/core/sock.c	2008-05-14 19:40:34.000000000 -0700
-+++ linux-2.6/net/core/sock.c	2008-05-21 22:00:56.000000000 -0700
-@@ -1943,8 +1943,7 @@
- #ifdef CONFIG_NET_NS
- void sock_prot_inuse_add(struct net *net, struct proto *prot, int val)
+--- linux-2.6.orig/kernel/rcutorture.c	2008-04-29 14:55:55.000000000 -0700
++++ linux-2.6/kernel/rcutorture.c	2008-05-21 21:46:19.000000000 -0700
+@@ -442,8 +442,8 @@
+ 		       torture_type, TORTURE_FLAG, idx);
+ 	for_each_possible_cpu(cpu) {
+ 		cnt += sprintf(&page[cnt], " %d(%d,%d)", cpu,
+-			       per_cpu_ptr(srcu_ctl.per_cpu_ref, cpu)->c[!idx],
+-			       per_cpu_ptr(srcu_ctl.per_cpu_ref, cpu)->c[idx]);
++			       CPU_PTR(srcu_ctl.per_cpu_ref, cpu)->c[!idx],
++			       CPU_PTR(srcu_ctl.per_cpu_ref, cpu)->c[idx]);
+ 	}
+ 	cnt += sprintf(&page[cnt], "\n");
+ 	return cnt;
+Index: linux-2.6/kernel/srcu.c
+===================================================================
+--- linux-2.6.orig/kernel/srcu.c	2008-02-16 20:28:44.000000000 -0800
++++ linux-2.6/kernel/srcu.c	2008-05-21 21:46:19.000000000 -0700
+@@ -46,7 +46,8 @@
  {
--	int cpu = smp_processor_id();
--	per_cpu_ptr(net->core.inuse, cpu)->val[prot->inuse_idx] += val;
-+	__CPU_ADD(net->core.inuse->val[prot->inuse_idx], val);
+ 	sp->completed = 0;
+ 	mutex_init(&sp->mutex);
+-	sp->per_cpu_ref = alloc_percpu(struct srcu_struct_array);
++	sp->per_cpu_ref = CPU_ALLOC(struct srcu_struct_array,
++						GFP_KERNEL|__GFP_ZERO);
+ 	return (sp->per_cpu_ref ? 0 : -ENOMEM);
  }
- EXPORT_SYMBOL_GPL(sock_prot_inuse_add);
  
-@@ -1954,7 +1953,7 @@
- 	int res = 0;
+@@ -62,7 +63,7 @@
  
+ 	sum = 0;
  	for_each_possible_cpu(cpu)
--		res += per_cpu_ptr(net->core.inuse, cpu)->val[idx];
-+		res += CPU_PTR(net->core.inuse, cpu)->val[idx];
- 
- 	return res >= 0 ? res : 0;
+-		sum += per_cpu_ptr(sp->per_cpu_ref, cpu)->c[idx];
++		sum += CPU_PTR(sp->per_cpu_ref, cpu)->c[idx];
+ 	return sum;
  }
-@@ -1962,13 +1961,13 @@
  
- static int sock_inuse_init_net(struct net *net)
+@@ -94,7 +95,7 @@
+ 	WARN_ON(sum);  /* Leakage unless caller handles error. */
+ 	if (sum != 0)
+ 		return;
+-	free_percpu(sp->per_cpu_ref);
++	CPU_FREE(sp->per_cpu_ref);
+ 	sp->per_cpu_ref = NULL;
+ }
+ 
+@@ -110,12 +111,9 @@
  {
--	net->core.inuse = alloc_percpu(struct prot_inuse);
-+	net->core.inuse = CPU_ALLOC(struct prot_inuse, GFP_KERNEL|__GFP_ZERO);
- 	return net->core.inuse ? 0 : -ENOMEM;
+ 	int idx;
+ 
+-	preempt_disable();
+ 	idx = sp->completed & 0x1;
+-	barrier();  /* ensure compiler looks -once- at sp->completed. */
+-	per_cpu_ptr(sp->per_cpu_ref, smp_processor_id())->c[idx]++;
+-	srcu_barrier();  /* ensure compiler won't misorder critical section. */
+-	preempt_enable();
++	srcu_barrier();
++	_CPU_INC(sp->per_cpu_ref->c[idx]);
+ 	return idx;
  }
  
- static void sock_inuse_exit_net(struct net *net)
+@@ -131,10 +129,8 @@
+  */
+ void srcu_read_unlock(struct srcu_struct *sp, int idx)
  {
--	free_percpu(net->core.inuse);
-+	CPU_FREE(net->core.inuse);
+-	preempt_disable();
+-	srcu_barrier();  /* ensure compiler won't misorder critical section. */
+-	per_cpu_ptr(sp->per_cpu_ref, smp_processor_id())->c[idx]--;
+-	preempt_enable();
++	srcu_barrier();
++	_CPU_DEC(sp->per_cpu_ref->c[idx]);
  }
  
- static struct pernet_operations net_inuse_ops = {
+ /**
 
 -- 
