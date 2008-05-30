@@ -1,176 +1,138 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 33/41] cpu alloc: Remove slub fields
-Date: Thu, 29 May 2008 20:56:53 -0700
-Message-ID: <20080530040022.110383921@sgi.com>
+Subject: [patch 38/41] x86: Extend percpu ops to 64 bit
+Date: Thu, 29 May 2008 20:56:58 -0700
+Message-ID: <20080530040023.716388781@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40509 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753266AbYE3EAY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:24 -0400
-Content-Disposition: inline; filename=cpu_alloc_remove_slub_fields
+Received: from relay1.sgi.com ([192.48.171.29]:45468 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753286AbYE3EAZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 00:00:25 -0400
+Content-Disposition: inline; filename=zero_based_percpu_64bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Remove the fields in kmem_cache_cpu that were used to cache data from
-kmem_cache when they were in different cachelines. The cacheline that holds
-the per cpu array pointer now also holds these values. We can cut down the
-kmem_cache_cpu size to almost half.
+x86 percpu ops now will work on 64 bit too. So add the missing 8 byte cases.
+Also add a number of atomic ops that will be useful in the future:
+x86_xchg_percpu() and x86_cmpxchg_percpu().
 
-The get_freepointer() and set_freepointer() functions that used to be only
-intended for the slow path now are also useful for the hot path since access
-to the field does not require accessing an additional cacheline anymore. This
-results in consistent use of setting the freepointer for objects throughout
-SLUB.
+Add x86_inc_percpu and x86_dec_percpu. Increment by one can generate more
+efficient instructions and inc/dec will be supported by cpu ops later.
+
+Also use per_cpu_var() instead of per_cpu__##xxx.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
----
- include/linux/slub_def.h |    3 --
- mm/slub.c                |   48 +++++++++++++++--------------------------------
- 2 files changed, 16 insertions(+), 35 deletions(-)
 
-Index: linux-2.6/include/linux/slub_def.h
+---
+ include/asm-x86/percpu.h |   83 ++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 78 insertions(+), 5 deletions(-)
+
+Index: linux-2.6/include/asm-x86/percpu.h
 ===================================================================
---- linux-2.6.orig/include/linux/slub_def.h	2008-05-28 00:00:27.000000000 -0700
-+++ linux-2.6/include/linux/slub_def.h	2008-05-28 00:00:33.000000000 -0700
-@@ -36,8 +36,6 @@
- 	void **freelist;	/* Pointer to first free per cpu object */
- 	struct page *page;	/* The slab from which we are allocating */
- 	int node;		/* The node of the page (or -1 for debug) */
--	unsigned int offset;	/* Freepointer offset (in word units) */
--	unsigned int objsize;	/* Size of an object (from kmem_cache) */
- #ifdef CONFIG_SLUB_STATS
- 	unsigned stat[NR_SLUB_STAT_ITEMS];
- #endif
-Index: linux-2.6/mm/slub.c
-===================================================================
---- linux-2.6.orig/mm/slub.c	2008-05-28 00:00:27.000000000 -0700
-+++ linux-2.6/mm/slub.c	2008-05-28 00:00:33.000000000 -0700
-@@ -276,13 +276,6 @@
- 	return 1;
- }
+--- linux-2.6.orig/include/asm-x86/percpu.h	2008-05-29 20:29:40.000000000 -0700
++++ linux-2.6/include/asm-x86/percpu.h	2008-05-29 20:32:03.000000000 -0700
+@@ -108,6 +108,11 @@ do {							\
+ 		    : "+m" (var)			\
+ 		    : "ri" ((T__)val));			\
+ 		break;					\
++	case 8:						\
++		asm(op "q %1,"__percpu_seg"%0"		\
++		    : "+m" (var)			\
++		    : "ri" ((T__)val));			\
++		break;					\
+ 	default: __bad_percpu_size();			\
+ 	}						\
+ } while (0)
+@@ -131,15 +136,83 @@ do {							\
+ 		    : "=r" (ret__)			\
+ 		    : "m" (var));			\
+ 		break;					\
++	case 8:						\
++		asm(op "q "__percpu_seg"%1,%0"		\
++		    : "=r" (ret__)			\
++		    : "m" (var));			\
++		break;					\
+ 	default: __bad_percpu_size();			\
+ 	}						\
+ 	ret__;						\
+ })
  
--/*
-- * Slow version of get and set free pointer.
-- *
-- * This version requires touching the cache lines of kmem_cache which
-- * we avoid to do in the fast alloc free paths. There we obtain the offset
-- * from the page struct.
-- */
- static inline void *get_freepointer(struct kmem_cache *s, void *object)
- {
- 	return *(void **)(object + s->offset);
-@@ -1447,10 +1440,10 @@
- 
- 		/* Retrieve object from cpu_freelist */
- 		object = c->freelist;
--		c->freelist = c->freelist[c->offset];
-+		c->freelist = get_freepointer(s, c->freelist);
- 
- 		/* And put onto the regular freelist */
--		object[c->offset] = page->freelist;
-+		set_freepointer(s, object, page->freelist);
- 		page->freelist = object;
- 		page->inuse--;
- 	}
-@@ -1555,7 +1548,7 @@
- 	if (unlikely(SlabDebug(c->page)))
- 		goto debug;
- 
--	c->freelist = object[c->offset];
-+	c->freelist = get_freepointer(s, object);
- 	c->page->inuse = c->page->objects;
- 	c->page->freelist = NULL;
- 	c->node = page_to_nid(c->page);
-@@ -1599,7 +1592,7 @@
- 		goto another_slab;
- 
- 	c->page->inuse++;
--	c->page->freelist = object[c->offset];
-+	c->page->freelist = get_freepointer(s, object);
- 	c->node = -1;
- 	goto unlock_out;
- }
-@@ -1629,7 +1622,7 @@
- 		object = __slab_alloc(s, gfpflags, node, addr, c);
- 
- 	else {
--		c->freelist = object[c->offset];
-+		c->freelist = get_freepointer(s, object);
- 		stat(c, ALLOC_FASTPATH);
- 	}
- 	local_irq_restore(flags);
-@@ -1663,7 +1656,7 @@
-  * handling required then we can return immediately.
-  */
- static void __slab_free(struct kmem_cache *s, struct page *page,
--				void *x, void *addr, unsigned int offset)
-+				void *x, void *addr)
- {
- 	void *prior;
- 	void **object = (void *)x;
-@@ -1677,7 +1670,8 @@
- 		goto debug;
- 
- checks_ok:
--	prior = object[offset] = page->freelist;
-+	prior = page->freelist;
-+	set_freepointer(s, object, prior);
- 	page->freelist = object;
- 	page->inuse--;
- 
-@@ -1741,15 +1735,15 @@
- 
- 	local_irq_save(flags);
- 	c = __THIS_CPU(s->cpu_slab);
--	debug_check_no_locks_freed(object, c->objsize);
-+	debug_check_no_locks_freed(object, s->objsize);
- 	if (!(s->flags & SLAB_DEBUG_OBJECTS))
- 		debug_check_no_obj_freed(object, s->objsize);
- 	if (likely(page == c->page && c->node >= 0)) {
--		object[c->offset] = c->freelist;
-+		set_freepointer(s, object, c->freelist);
- 		c->freelist = object;
- 		stat(c, FREE_FASTPATH);
- 	} else
--		__slab_free(s, page, x, addr, c->offset);
-+		__slab_free(s, page, x, addr);
- 
- 	local_irq_restore(flags);
- }
-@@ -1936,8 +1930,6 @@
- 	c->page = NULL;
- 	c->freelist = NULL;
- 	c->node = 0;
--	c->offset = s->offset / sizeof(void *);
--	c->objsize = s->objsize;
- #ifdef CONFIG_SLUB_STATS
- 	memset(c->stat, 0, NR_SLUB_STAT_ITEMS * sizeof(unsigned));
- #endif
-@@ -2993,8 +2985,6 @@
- 	down_write(&slub_lock);
- 	s = find_mergeable(size, align, flags, name, ctor);
- 	if (s) {
--		int cpu;
--
- 		s->refcount++;
- 		/*
- 		 * Adjust the object sizes so that we clear
-@@ -3002,13 +2992,6 @@
- 		 */
- 		s->objsize = max(s->objsize, (int)size);
- 
--		/*
--		 * And then we need to update the object size in the
--		 * per cpu structures
--		 */
--		for_each_online_cpu(cpu)
--			CPU_PTR(s->cpu_slab, cpu)->objsize = s->objsize;
--
- 		s->inuse = max_t(int, s->inuse, ALIGN(size, sizeof(void *)));
- 		up_write(&slub_lock);
- 
+-#define x86_read_percpu(var) percpu_from_op("mov", per_cpu__##var)
+-#define x86_write_percpu(var, val) percpu_to_op("mov", per_cpu__##var, val)
+-#define x86_add_percpu(var, val) percpu_to_op("add", per_cpu__##var, val)
+-#define x86_sub_percpu(var, val) percpu_to_op("sub", per_cpu__##var, val)
+-#define x86_or_percpu(var, val) percpu_to_op("or", per_cpu__##var, val)
++#define percpu_addr_op(op, var)				\
++({							\
++	switch (sizeof(var)) {				\
++	case 1:						\
++		asm(op "b "__percpu_seg"%0"		\
++				: : "m"(var));		\
++		break;					\
++	case 2:						\
++		asm(op "w "__percpu_seg"%0"		\
++				: : "m"(var));		\
++		break;					\
++	case 4:						\
++		asm(op "l "__percpu_seg"%0"		\
++				: : "m"(var));		\
++		break;					\
++	case 8:						\
++		asm(op "q "__percpu_seg"%0"		\
++				: : "m"(var));		\
++		break;					\
++	default: __bad_percpu_size();			\
++	}						\
++})
++
++#define percpu_cmpxchg_op(var, old, new)				\
++({									\
++	typeof(var) prev;						\
++	switch (sizeof(var)) {						\
++	case 1:								\
++		asm("cmpxchgb %b1, "__percpu_seg"%2"			\
++				     : "=a"(prev)			\
++				     : "q"(new), "m"(var), "0"(old)	\
++				     : "memory");			\
++		break;							\
++	case 2:								\
++		asm("cmpxchgw %w1, "__percpu_seg"%2"			\
++				     : "=a"(prev)			\
++				     : "r"(new), "m"(var), "0"(old)	\
++				     : "memory");			\
++		break;							\
++	case 4:								\
++		asm("cmpxchgl %k1, "__percpu_seg"%2"			\
++				     : "=a"(prev)			\
++				     : "r"(new), "m"(var), "0"(old)	\
++				     : "memory");			\
++		break;							\
++	case 8:								\
++		asm("cmpxchgq %1, "__percpu_seg"%2"			\
++				     : "=a"(prev)			\
++				     : "r"(new), "m"(var), "0"(old)	\
++				     : "memory");			\
++		break;							\
++	default:							\
++		__bad_percpu_size();					\
++	}								\
++	return prev;							\
++})
++
++#define x86_read_percpu(var) percpu_from_op("mov", per_cpu_var(var))
++#define x86_write_percpu(var, val) percpu_to_op("mov", per_cpu_var(var), val)
++#define x86_add_percpu(var, val) percpu_to_op("add", per_cpu_var(var), val)
++#define x86_sub_percpu(var, val) percpu_to_op("sub", per_cpu_var(var), val)
++#define x86_inc_percpu(var) percpu_addr_op("inc", per_cpu_var(var))
++#define x86_dec_percpu(var) percpu_addr_op("dec", per_cpu_var(var))
++#define x86_or_percpu(var, val) percpu_to_op("or", per_cpu_var(var), val)
++#define x86_xchg_percpu(var, val) percpu_to_op("xchg", per_cpu_var(var), val)
++#define x86_cmpxchg_percpu(var, old, new) \
++				percpu_cmpxchg_op(per_cpu_var(var), old, new)
++
+ #endif /* !__ASSEMBLY__ */
+ #endif /* _ASM_X86_PERCPU_H_ */
 
 -- 
