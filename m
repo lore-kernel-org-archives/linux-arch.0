@@ -1,60 +1,44 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Fri, 30 May 2008 11:18:47 +0200
-Message-ID: <20080530091847.GA26563@elte.hu>
-References: <20080530035620.587204923@sgi.com> <1212138752.12349.227.camel@twins>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Fri, 30 May 2008 11:22:19 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0805301120510.26332@anakin>
+References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net>
+ <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net>
+ <1211859542.3286.46.camel@pasglop> <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org>
+ <1211922621.3286.80.camel@pasglop> <alpine.LFD.1.10.0805271421570.2958@woody.linux-foundation.org>
+ <1211924335.3286.89.camel@pasglop> <20080527214241.GA22636@parisc-linux.org>
+ <1211926636.3286.100.camel@pasglop> <20080528103648.54eb8734@hskinnemo-gx745.norway.atmel.com>
+ <1212110003.15633.0.camel@pasglop> <20080530080700.773a82cc@siona.local>
+ <1212132267.15633.69.camel@pasglop> <20080530102706.56fca248@siona.local>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:38369 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752060AbYE3JTI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 05:19:08 -0400
-Content-Disposition: inline
-In-Reply-To: <1212138752.12349.227.camel@twins>
+Received: from winston.telenet-ops.be ([195.130.137.75]:54611 "EHLO
+	winston.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752047AbYE3JWc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 05:22:32 -0400
+In-Reply-To: <20080530102706.56fca248@siona.local>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Christoph Lameter <clameter@sgi.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>
+To: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+Cc: benh@kernel.crashing.org, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
 
+On Fri, 30 May 2008, Haavard Skinnemoen wrote:
+> Maybe we need another interface that does not do byteswapping but
+> provides stronger ordering guarantees?
 
-* Peter Zijlstra <peterz@infradead.org> wrote:
+The byte swapping depends on the device/bus.
 
-> What this does is make a strong connection between data and 
-> concurrency control. Your proposed scheme weakens the 
-> data<->concurrency relation instead of making it stronger.
+So what happened to the old idea of putting the accessor function pointers
+in the device/bus structure?
 
-and that's not just an issue for -rt but also for general kernel 
-maintainability: opaque APIs weaken our data structures because it's not 
-apparent what is done exactly why. In that sense a 
-spin_lock(&data->lock) is as clear as it gets.
+Gr{oetje,eeting}s,
 
-> One sign of that is that you replace things like get_cpu with explicit 
-> preempt_disable().
-> 
-> We're trying to get rid of as many explicit preempt_disable()s as 
-> possible - in the light of -rt, preempt_disable() is as bad as the BKL 
-> in that its opaque - unrelated to a specific data set.
-> 
-> *lightbulb*
-> 
-> Ah, we could still do the above by writing:
-> 
-> struct kmem_cache_cpu *get_cpu_slab(struct kmem_cache *s)
-> {
-> 	struct kmem_cache_cpu *c = THIS_CPU(s->cpu_slab);
-> 	spin_lock(&c->lock);
-> 	return c;
-> }
-> 
-> void put_cpu_slab(struct kmem_cache_cpu *c)
-> {
-> 	spin_unlock(&c->lock);
-> }
-> 
-> Would it be possible to re-structure your API to also have these get/put
-> methods instead of just a get?
+						Geert
 
-seconded.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-	Ingo
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
