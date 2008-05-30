@@ -1,244 +1,119 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 09/41] cpu alloc: Genhd statistics conversion
-Date: Thu, 29 May 2008 20:56:29 -0700
-Message-ID: <20080530040013.137338958@sgi.com>
+Subject: [patch 23/41] cpu alloc: Use it for infiniband
+Date: Thu, 29 May 2008 20:56:43 -0700
+Message-ID: <20080530040018.840731414@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40517 "EHLO
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40527 "EHLO
 	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752223AbYE3EAU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:20 -0400
-Content-Disposition: inline; filename=cpu_alloc_genhd_statistics_conversion
+	with ESMTP id S1752750AbYE3EAV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:21 -0400
+Content-Disposition: inline; filename=cpu_alloc_infiniband_conversion
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Convert genhd statistics to cpu alloc. The patch also drops the UP special
-casing of the statistics.
+Use cpu alloc for infiniband.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- include/linux/genhd.h |  113 +++++++++++---------------------------------------
- 1 file changed, 25 insertions(+), 88 deletions(-)
+ drivers/infiniband/hw/ehca/ehca_irq.c |   22 +++++++++++-----------
+ 1 file changed, 11 insertions(+), 11 deletions(-)
 
-Index: linux-2.6/include/linux/genhd.h
+Index: linux-2.6/drivers/infiniband/hw/ehca/ehca_irq.c
 ===================================================================
---- linux-2.6.orig/include/linux/genhd.h	2008-05-26 09:35:31.626487665 -0700
-+++ linux-2.6/include/linux/genhd.h	2008-05-26 11:09:00.740248203 -0700
-@@ -95,11 +95,7 @@ struct hd_struct {
- #endif
- 	unsigned long stamp;
- 	int in_flight;
--#ifdef	CONFIG_SMP
- 	struct disk_stats *dkstats;
--#else
--	struct disk_stats dkstats;
--#endif
- };
+--- linux-2.6.orig/drivers/infiniband/hw/ehca/ehca_irq.c	2008-05-14 19:40:32.000000000 -0700
++++ linux-2.6/drivers/infiniband/hw/ehca/ehca_irq.c	2008-05-21 22:01:32.000000000 -0700
+@@ -680,7 +680,7 @@
+ 	cpu_id = find_next_online_cpu(pool);
+ 	BUG_ON(!cpu_online(cpu_id));
  
- #define GENHD_FL_REMOVABLE			1
-@@ -135,11 +131,7 @@ struct gendisk {
- 	atomic_t sync_io;		/* RAID */
- 	unsigned long stamp;
- 	int in_flight;
--#ifdef	CONFIG_SMP
- 	struct disk_stats *dkstats;
--#else
--	struct disk_stats dkstats;
--#endif
- 	struct work_struct async_notify;
- };
+-	cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu_id);
++	cct = CPU_PTR(pool->cpu_comp_tasks, cpu_id);
+ 	BUG_ON(!cct);
  
-@@ -163,16 +155,15 @@ static inline struct hd_struct *get_part
- 	return NULL;
- }
+ 	spin_lock_irqsave(&cct->task_lock, flags);
+@@ -688,7 +688,7 @@
+ 	spin_unlock_irqrestore(&cct->task_lock, flags);
+ 	if (cq_jobs > 0) {
+ 		cpu_id = find_next_online_cpu(pool);
+-		cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu_id);
++		cct = CPU_PTR(pool->cpu_comp_tasks, cpu_id);
+ 		BUG_ON(!cct);
+ 	}
  
--#ifdef	CONFIG_SMP
- #define __disk_stat_add(gendiskp, field, addnd) 	\
--	(per_cpu_ptr(gendiskp->dkstats, smp_processor_id())->field += addnd)
-+	__CPU_ADD(gendiskp->dkstats->field, addnd)
- 
- #define disk_stat_read(gendiskp, field)					\
- ({									\
- 	typeof(gendiskp->dkstats->field) res = 0;			\
- 	int i;								\
- 	for_each_possible_cpu(i)					\
--		res += per_cpu_ptr(gendiskp->dkstats, i)->field;	\
-+		res += CPU_PTR(gendiskp->dkstats, i)->field;		\
- 	res;								\
- })
- 
-@@ -180,12 +171,12 @@ static inline void disk_stat_set_all(str
- 	int i;
- 
- 	for_each_possible_cpu(i)
--		memset(per_cpu_ptr(gendiskp->dkstats, i), value,
-+		memset(CPU_PTR(gendiskp->dkstats, i), value,
- 				sizeof(struct disk_stats));
--}		
-+}
- 
--#define __part_stat_add(part, field, addnd)				\
--	(per_cpu_ptr(part->dkstats, smp_processor_id())->field += addnd)
-+#define __part_stat_add(part, field, addnd)			\
-+	__CPU_ADD(part->dkstats->field, addnd)
- 
- #define __all_stat_add(gendiskp, part, field, addnd, sector)	\
- ({								\
-@@ -199,7 +190,7 @@ static inline void disk_stat_set_all(str
- 	typeof(part->dkstats->field) res = 0;				\
- 	int i;								\
- 	for_each_possible_cpu(i)					\
--		res += per_cpu_ptr(part->dkstats, i)->field;		\
-+		res += CPU_PTR(part->dkstats, i)->field;		\
- 	res;								\
- })
- 
-@@ -208,56 +199,23 @@ static inline void part_stat_set_all(str
- 	int i;
- 
- 	for_each_possible_cpu(i)
--		memset(per_cpu_ptr(part->dkstats, i), value,
-+		memset(CPU_PTR(part->dkstats, i), value,
- 				sizeof(struct disk_stats));
- }
--				
--#else /* !CONFIG_SMP */
--#define __disk_stat_add(gendiskp, field, addnd) \
--				(gendiskp->dkstats.field += addnd)
--#define disk_stat_read(gendiskp, field)	(gendiskp->dkstats.field)
--
--static inline void disk_stat_set_all(struct gendisk *gendiskp, int value)
--{
--	memset(&gendiskp->dkstats, value, sizeof (struct disk_stats));
--}
--
--#define __part_stat_add(part, field, addnd) \
--	(part->dkstats.field += addnd)
--
--#define __all_stat_add(gendiskp, part, field, addnd, sector)	\
--({								\
--	if (part)						\
--		part->dkstats.field += addnd;			\
--	__disk_stat_add(gendiskp, field, addnd);		\
--})
--
--#define part_stat_read(part, field)	(part->dkstats.field)
--
--static inline void part_stat_set_all(struct hd_struct *part, int value)
--{
--	memset(&part->dkstats, value, sizeof(struct disk_stats));
--}
--
--#endif /* CONFIG_SMP */
- 
- #define disk_stat_add(gendiskp, field, addnd)			\
--	do {							\
--		preempt_disable();				\
--		__disk_stat_add(gendiskp, field, addnd);	\
--		preempt_enable();				\
--	} while (0)
-+	_CPU_ADD(gendiskp->dkstats->field, addnd)
- 
--#define __disk_stat_dec(gendiskp, field) __disk_stat_add(gendiskp, field, -1)
--#define disk_stat_dec(gendiskp, field) disk_stat_add(gendiskp, field, -1)
-+#define __disk_stat_dec(gendiskp, field) __CPU_DEC(gendiskp->dkstats->field)
-+#define disk_stat_dec(gendiskp, field) _CPU_DEC(gendiskp->dkstats->field)
- 
--#define __disk_stat_inc(gendiskp, field) __disk_stat_add(gendiskp, field, 1)
--#define disk_stat_inc(gendiskp, field) disk_stat_add(gendiskp, field, 1)
-+#define __disk_stat_inc(gendiskp, field) __CPU_INC(gendiskp->dkstats->field)
-+#define disk_stat_inc(gendiskp, field) _CPU_INC(gendiskp->dkstats->field)
- 
- #define __disk_stat_sub(gendiskp, field, subnd) \
--		__disk_stat_add(gendiskp, field, -subnd)
-+		__CPU_SUB(gendisk->dkstats->field, subnd)
- #define disk_stat_sub(gendiskp, field, subnd) \
--		disk_stat_add(gendiskp, field, -subnd)
-+		_CPU_SUB(gendisk->dkstats->field, subnd)
- 
- #define part_stat_add(gendiskp, field, addnd)		\
- 	do {						\
-@@ -266,16 +224,16 @@ static inline void part_stat_set_all(str
- 		preempt_enable();			\
- 	} while (0)
- 
--#define __part_stat_dec(gendiskp, field) __part_stat_add(gendiskp, field, -1)
--#define part_stat_dec(gendiskp, field) part_stat_add(gendiskp, field, -1)
-+#define __part_stat_dec(gendiskp, field) __CPU_DEC(gendiskp->dkstats->field)
-+#define part_stat_dec(gendiskp, field) _CPU_DEC(gendiskp->dkstats->field)
- 
--#define __part_stat_inc(gendiskp, field) __part_stat_add(gendiskp, field, 1)
--#define part_stat_inc(gendiskp, field) part_stat_add(gendiskp, field, 1)
-+#define __part_stat_inc(gendiskp, field) __CPU_INC(gendiskp->dkstats->field)
-+#define part_stat_inc(gendiskp, field) _CPU_INC(gendiskp->dkstats->field)
- 
- #define __part_stat_sub(gendiskp, field, subnd) \
--		__part_stat_add(gendiskp, field, -subnd)
-+		__CPU_SUB(gendiskp->dkstats->field, subnd)
- #define part_stat_sub(gendiskp, field, subnd) \
--		part_stat_add(gendiskp, field, -subnd)
-+		_CPU_SUB(gendiskp->dkstats->field, subnd)
- 
- #define all_stat_add(gendiskp, part, field, addnd, sector)	\
- 	do {							\
-@@ -300,10 +258,9 @@ static inline void part_stat_set_all(str
- 		all_stat_add(gendiskp, part, field, -subnd, sector)
- 
- /* Inlines to alloc and free disk stats in struct gendisk */
--#ifdef  CONFIG_SMP
- static inline int init_disk_stats(struct gendisk *disk)
+@@ -761,7 +761,7 @@
  {
--	disk->dkstats = alloc_percpu(struct disk_stats);
-+	disk->dkstats = CPU_ALLOC(struct disk_stats, GFP_KERNEL | __GFP_ZERO);
- 	if (!disk->dkstats)
- 		return 0;
- 	return 1;
-@@ -311,12 +268,12 @@ static inline int init_disk_stats(struct
+ 	struct ehca_cpu_comp_task *cct;
  
- static inline void free_disk_stats(struct gendisk *disk)
+-	cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
++	cct = CPU_PTR(pool->cpu_comp_tasks, cpu);
+ 	spin_lock_init(&cct->task_lock);
+ 	INIT_LIST_HEAD(&cct->cq_list);
+ 	init_waitqueue_head(&cct->wait_queue);
+@@ -777,7 +777,7 @@
+ 	struct task_struct *task;
+ 	unsigned long flags_cct;
+ 
+-	cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
++	cct = CPU_PTR(pool->cpu_comp_tasks, cpu);
+ 
+ 	spin_lock_irqsave(&cct->task_lock, flags_cct);
+ 
+@@ -793,7 +793,7 @@
+ 
+ static void __cpuinit take_over_work(struct ehca_comp_pool *pool, int cpu)
  {
--	free_percpu(disk->dkstats);
-+	CPU_FREE(disk->dkstats);
+-	struct ehca_cpu_comp_task *cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
++	struct ehca_cpu_comp_task *cct = CPU_PTR(pool->cpu_comp_tasks, cpu);
+ 	LIST_HEAD(list);
+ 	struct ehca_cq *cq;
+ 	unsigned long flags_cct;
+@@ -806,8 +806,7 @@
+ 		cq = list_entry(cct->cq_list.next, struct ehca_cq, entry);
+ 
+ 		list_del(&cq->entry);
+-		__queue_comp_task(cq, per_cpu_ptr(pool->cpu_comp_tasks,
+-						  smp_processor_id()));
++		__queue_comp_task(cq, THIS_CPU(pool->cpu_comp_tasks));
+ 	}
+ 
+ 	spin_unlock_irqrestore(&cct->task_lock, flags_cct);
+@@ -833,14 +832,14 @@
+ 	case CPU_UP_CANCELED:
+ 	case CPU_UP_CANCELED_FROZEN:
+ 		ehca_gen_dbg("CPU: %x (CPU_CANCELED)", cpu);
+-		cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
++		cct = CPU_PTR(pool->cpu_comp_tasks, cpu);
+ 		kthread_bind(cct->task, any_online_cpu(cpu_online_map));
+ 		destroy_comp_task(pool, cpu);
+ 		break;
+ 	case CPU_ONLINE:
+ 	case CPU_ONLINE_FROZEN:
+ 		ehca_gen_dbg("CPU: %x (CPU_ONLINE)", cpu);
+-		cct = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
++		cct = CPU_PTR(pool->cpu_comp_tasks, cpu);
+ 		kthread_bind(cct->task, cpu);
+ 		wake_up_process(cct->task);
+ 		break;
+@@ -883,7 +882,8 @@
+ 	spin_lock_init(&pool->last_cpu_lock);
+ 	pool->last_cpu = any_online_cpu(cpu_online_map);
+ 
+-	pool->cpu_comp_tasks = alloc_percpu(struct ehca_cpu_comp_task);
++	pool->cpu_comp_tasks = CPU_ALLOC(struct ehca_cpu_comp_task,
++						GFP_KERNEL | __GFP_ZERO);
+ 	if (pool->cpu_comp_tasks == NULL) {
+ 		kfree(pool);
+ 		return -EINVAL;
+@@ -917,6 +917,6 @@
+ 		if (cpu_online(i))
+ 			destroy_comp_task(pool, i);
+ 	}
+-	free_percpu(pool->cpu_comp_tasks);
++	CPU_FREE(pool->cpu_comp_tasks);
+ 	kfree(pool);
  }
- 
- static inline int init_part_stats(struct hd_struct *part)
- {
--	part->dkstats = alloc_percpu(struct disk_stats);
-+	part->dkstats = CPU_ALLOC(struct disk_stats, GFP_KERNEL|__GFP_ZERO);
- 	if (!part->dkstats)
- 		return 0;
- 	return 1;
-@@ -324,28 +281,8 @@ static inline int init_part_stats(struct
- 
- static inline void free_part_stats(struct hd_struct *part)
- {
--	free_percpu(part->dkstats);
--}
--
--#else	/* CONFIG_SMP */
--static inline int init_disk_stats(struct gendisk *disk)
--{
--	return 1;
--}
--
--static inline void free_disk_stats(struct gendisk *disk)
--{
--}
--
--static inline int init_part_stats(struct hd_struct *part)
--{
--	return 1;
--}
--
--static inline void free_part_stats(struct hd_struct *part)
--{
-+	CPU_FREE(part->dkstats);
- }
--#endif	/* CONFIG_SMP */
- 
- /* drivers/block/ll_rw_blk.c */
- extern void disk_round_stats(struct gendisk *disk);
 
 -- 
