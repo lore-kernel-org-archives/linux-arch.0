@@ -1,93 +1,44 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Fri, 30 May 2008 20:47:16 +0200
-Message-ID: <1212173236.24826.29.camel@lappy.programming.kicks-ass.net>
-References: <20080530035620.587204923@sgi.com>
-	 <1212138752.12349.227.camel@twins>
-	 <Pine.LNX.4.64.0805301101490.14564@schroedinger.engr.sgi.com>
-	 <1212171574.24826.12.camel@lappy.programming.kicks-ass.net>
-	 <Pine.LNX.4.64.0805301126130.14781@schroedinger.engr.sgi.com>
+Date: Fri, 30 May 2008 11:51:54 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0805301141260.16184@schroedinger.engr.sgi.com>
+References: <20080530035620.587204923@sgi.com>  <1212138752.12349.227.camel@twins>
+  <Pine.LNX.4.64.0805301106360.14564@schroedinger.engr.sgi.com>
+ <1212172742.24826.19.camel@lappy.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pentafluge.infradead.org ([213.146.154.40]:59676 "EHLO
-	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752768AbYE3StV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 14:49:21 -0400
-In-Reply-To: <Pine.LNX.4.64.0805301126130.14781@schroedinger.engr.sgi.com>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:34650 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752443AbYE3Svz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 14:51:55 -0400
+In-Reply-To: <1212172742.24826.19.camel@lappy.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <clameter@sgi.com>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>
 
-On Fri, 2008-05-30 at 11:26 -0700, Christoph Lameter wrote:
-> On Fri, 30 May 2008, Peter Zijlstra wrote:
-> 
-> > Please consider adding this get/put interface.
-> 
-> If you could explain why? So far this seems to be based on a 
-> misunderstanding.
+On Fri, 30 May 2008, Peter Zijlstra wrote:
 
-Take for instance kmem_cache_cpu, you currently serialize that by strict
-per-cpu-ness and disabling preemption.
+> For -rt add the spinlock and thereby guarantee mutual exclusion in the
+> face of preemption. This of course does mean reduced performance due to
+> remote cpu memory accesses, but otherwise the allocator (slub in this
+> case) would have far too large preempt-off sections.
 
-The problem is that the preempt-off sections are rather long - so what
-we do is add a lock (mutex) and serialize that way - ignoring the cpu
-affinity.
+Hmmm.. So you want to lock and then be migrated while still accessing per 
+cpu data of the earlier cpu? That breaks a lot of assumptions in the main 
+kernel and would make cpu ops and local_t etc impossible because these 
+rely on atomicity vs. interrupt vs atomicity vs access from other cpus. If 
+you modify the per cpu data of one processor from multiple processor 
+concurrently then races will result.
 
+If you want to do it that way then local_t and cpu_ops would not work.
 
-so currently:
+The cpu ops scheme is to not rely on any locking and still guarantee 
+access to the correct per cpu area regardless of whether the process is 
+rescheduled or not simply by the fact that the per cpu address calculation 
+and the RMW cycle are one instruction.
 
-  preempt_disable();
-  c = get_cpu_slab();
-
-  do load of stuff on c;
-  preempt_enable();
-
-
-where the preempt-off section is rather long, we'd like to change that
-to:
-
-
-  c = get_cpu_slab();
-
-  do stuff to c;
-
-  put_cpu_slab(c);
-
-
-so that we can pick between:
-
-
-!rt
-
-get_cpu_slab(s)
-{
-	preempt_disable();
-	return THIS_CPU(s->cpu_slab);
-}
-
-put_cpu_slab(c)
-{
-	preempt_enable();
-}
-
-
--rt:
-
-get_cpu_slab(s)
-{
-	c = THIS_CPU(s->cpu_slab);
-	spin_lock(&c->lock); // <-- really a PI-mutex
-}
-
-put_cpu_slab(c)
-{
-	spin_unlock(&c->lock);
-}
-
-
-Also, it explicitly ties the preempt-off section to the data used in
-case of !rt, which in turn allows for the direct conversion to the
-locked version.
+Maybe we need to have different types of per cpu areas for both 
+approaches? Your requires a spinlock to be taken for a section of the 
+percpu space.
