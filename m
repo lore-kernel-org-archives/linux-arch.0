@@ -1,35 +1,34 @@
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 05/41] cpu alloc: Percpu_counter conversion
-Date: Fri, 30 May 2008 10:54:01 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805301051530.14564@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <20080530040012.011711936@sgi.com>
- <200805301647.36198.rusty@rustcorp.com.au>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
+Date: Fri, 30 May 2008 12:00:22 -0600
+Message-ID: <20080530180021.GJ22636@parisc-linux.org>
+References: <20080530035620.587204923@sgi.com> <20080529215827.b659d032.akpm@linux-foundation.org> <Pine.LNX.4.64.0805292159360.12107@schroedinger.engr.sgi.com> <20080529222143.5d7aa1e5.akpm@linux-foundation.org> <Pine.LNX.4.64.0805292224540.12329@schroedinger.engr.sgi.com> <48401169.3050706@sgi.com> <Pine.LNX.4.64.0805301048070.14564@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:32908 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752111AbYE3RyC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 13:54:02 -0400
-In-Reply-To: <200805301647.36198.rusty@rustcorp.com.au>
+Received: from palinux.external.hp.com ([192.25.206.14]:56786 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752084AbYE3SAX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 14:00:23 -0400
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.0805301048070.14564@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Mike Travis <travis@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
 
-On Fri, 30 May 2008, Rusty Russell wrote:
+On Fri, May 30, 2008 at 10:50:04AM -0700, Christoph Lameter wrote:
+> cpu alloc v2 had an extendable per cpu space. You have the patches. We 
+> could put this on top of this patchset if necessary. But then it not so 
+> nice and simple anymore. Maybe we can rstrict the use of cpu alloc 
+> instead to users with objects < cache_line_size() or so?
 
-> On Friday 30 May 2008 13:56:25 Christoph Lameter wrote:
-> > Use cpu_alloc instead of allocpercpu.
-> 
-> These patches seem like useless churn.
-> 
-> Plus, the new code is uglier than the old code :(
+Restricting the use of cpu_alloc based on size of object is no good when
+you're trying to allocate 45,000 objects.  Extending the per CPU space
+is the only option.
 
-It drastically reduces the memory size f.e. 4 byte allocations require 
-SLAB f.e. to allocate a 32 byte chunk. This reduces memory requirements by
-32/4 = 8 times.
-
-Plus the per cpu counters allocated in order are likely placed in the same 
-cacheline (whereas the slab allocators avoid placing multiple objects in 
-the same cacheline). Reduces cache footprint.
+-- 
+Intel are signing my paycheques ... these opinions are still mine
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
