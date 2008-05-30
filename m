@@ -1,52 +1,105 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Fri, 30 May 2008 21:13:18 +0200
-Message-ID: <1212174798.24826.44.camel@lappy.programming.kicks-ass.net>
+Date: Fri, 30 May 2008 21:21:54 +0200
+Message-ID: <1212175315.24826.49.camel@lappy.programming.kicks-ass.net>
 References: <20080530035620.587204923@sgi.com>
-	 <1212138752.12349.227.camel@twins> <20080530091847.GA26563@elte.hu>
-	 <Pine.LNX.4.64.0805301109120.14564@schroedinger.engr.sgi.com>
-	 <1212172834.24826.22.camel@lappy.programming.kicks-ass.net>
-	 <Pine.LNX.4.64.0805301155380.16253@schroedinger.engr.sgi.com>
+	 <1212138752.12349.227.camel@twins>
+	 <Pine.LNX.4.64.0805301101490.14564@schroedinger.engr.sgi.com>
+	 <1212171574.24826.12.camel@lappy.programming.kicks-ass.net>
+	 <Pine.LNX.4.64.0805301126130.14781@schroedinger.engr.sgi.com>
+	 <1212173236.24826.29.camel@lappy.programming.kicks-ass.net>
+	 <Pine.LNX.4.64.0805301156530.16253@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:49987 "EHLO
+Received: from bombadil.infradead.org ([18.85.46.34]:39896 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752221AbYE3TOI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 15:14:08 -0400
-In-Reply-To: <Pine.LNX.4.64.0805301155380.16253@schroedinger.engr.sgi.com>
+	with ESMTP id S1752210AbYE3TWv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 15:22:51 -0400
+In-Reply-To: <Pine.LNX.4.64.0805301156530.16253@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Lameter <clameter@sgi.com>
-Cc: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>
 
-On Fri, 2008-05-30 at 11:56 -0700, Christoph Lameter wrote:
+On Fri, 2008-05-30 at 12:10 -0700, Christoph Lameter wrote:
 > On Fri, 30 May 2008, Peter Zijlstra wrote:
 > 
-> > Yes, I get that, but for instance kmem_cache_cpu usage would require
-> > horrible long preempt off sections, hence we add a lock and manage
-> > consistency using that lock instead of strict per-cpu and preempt
-> > disable.
+> > Take for instance kmem_cache_cpu, you currently serialize that by strict
+> > per-cpu-ness and disabling preemption.
 > 
-> Really? Where is that horrible long preempt off section? I thought they 
-> were all short and we use semaphores when looping over all slabs.
+> Right. The preemption in the fast paths could go away. Would be more 
+> difficult to do in the slow paths.
+>  
+> > The problem is that the preempt-off sections are rather long - so what
+> > we do is add a lock (mutex) and serialize that way - ignoring the cpu
+> > affinity.
+> 
+> long? What is so expensive to process there?
 
-Remember, horribly long on -rt is in the order of ~30us.
+I hope my last mail that detailed the flush_slab() path explains that.
+ 
+> > 
+> > so currently:
+> > 
+> >   preempt_disable();
+> >   c = get_cpu_slab();
+> > 
+> >   do load of stuff on c;
+> >   preempt_enable();
+> > 
+> > 
+> > where the preempt-off section is rather long, we'd like to change that
+> > to:
+> > 
+> > 
+> >   c = get_cpu_slab();
+> > 
+> >   do stuff to c;
+> > 
+> >   put_cpu_slab(c);
+> > 
+> > 
+> > so that we can pick between:
+> > 
+> > 
+> > !rt
+> > 
+> > get_cpu_slab(s)
+> > {
+> > 	preempt_disable();
+> > 	return THIS_CPU(s->cpu_slab);
+> > }
+> > 
+> > put_cpu_slab(c)
+> > {
+> > 	preempt_enable();
+> > }
+> > 
+> > 
+> > -rt:
+> > 
+> > get_cpu_slab(s)
+> > {
+> > 	c = THIS_CPU(s->cpu_slab);
+> > 	spin_lock(&c->lock); // <-- really a PI-mutex
+> > }
+> > 
+> > put_cpu_slab(c)
+> > {
+> > 	spin_unlock(&c->lock);
+> > }
+> > 
+> > 
+> > Also, it explicitly ties the preempt-off section to the data used in
+> > case of !rt, which in turn allows for the direct conversion to the
+> > locked version.
+> 
+> Ahh. Okay. This would make the lockless preemptless fastpath impossible 
+> because it would have to use some sort of locking to avoid access to the 
+> same percpu data from multiple processor?
 
-See for instance the path:
-
- flush_slab()
-   slab_lock() <-- bit_spinlock
-   deactive_slab()
-     loop over objects
-     unfreeze_slab()
-       add_partial()
-         spin_lock(&n->list_lock) <-- another lock
-
-all of that runs with preempt disabled, and worse it can spin for some
-indefinite amount of time.
-
-That is totally unacceptable on -rt, so we need to make it all
-preemptible and use sleeping locks (IRQ inversion can't happen, for the
-only thing that runs in hardirq is try_to_wake_up()).
+TBH its been a while since I attempted slub-rt, but yes that got hairy.
+I think it can be done using cmpxchg and speculative page refs, but I
+can't quite recall.
