@@ -1,18 +1,18 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 03/41] cpu alloc: Use cpu allocator instead of the builtin
- modules per cpu allocator
-Date: Thu, 29 May 2008 22:14:17 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805292210420.12107@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <20080530040011.451400376@sgi.com>
- <20080529215837.0528fb3b.akpm@linux-foundation.org>
+Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
+ operations
+Date: Thu, 29 May 2008 22:17:55 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0805292214280.12107@schroedinger.engr.sgi.com>
+References: <20080530035620.587204923@sgi.com> <20080530040011.727424512@sgi.com>
+ <20080529215844.609a3ac8.akpm@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:42003 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752346AbYE3FOT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 01:14:19 -0400
-In-Reply-To: <20080529215837.0528fb3b.akpm@linux-foundation.org>
+Received: from relay1.sgi.com ([192.48.171.29]:47452 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751132AbYE3FR4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 01:17:56 -0400
+In-Reply-To: <20080529215844.609a3ac8.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
@@ -20,35 +20,59 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <dave
 
 On Thu, 29 May 2008, Andrew Morton wrote:
 
-> > +			printk(KERN_WARNING "%s: per-cpu alignment %li > %li\n",
-> > +			mod->name, align, PAGE_SIZE);
+> > 	local_irq_save(flags);
+> > 	/* Calculate address of per processor area */
+> > 	p = CPU_PTR(stat, smp_processor_id());
+> > 	p->counter++;
+> > 	local_irq_restore(flags);
 > 
-> Indenting broke.
+> eh?  That's what local_t is for?
 
-Hmmm. Okay.
+No that is what local_t exactly cannot do.
+
+> > The segment can be replaced by a single atomic CPU operation:
+> > 
+> > 	CPU_INC(stat->counter);
+> 
+> hm, I guess this _has_ to be implemented as a macro.  ho hum.  But
+> please: "cpu_inc"?
+
+A lowercase macro?
+
+> > The existing methods in use in the kernel cannot utilize the power of
+> > these atomic instructions. local_t is not really addressing the issue
+> > since the offset calculation performed before the atomic operation. The
+> > operation is therefor not atomic. Disabling interrupt or preemption is
+> > required in order to use local_t.
+> 
+> Your terminology is totally confusing here.
+> 
+> To me, an "atomic operation" is one which is atomic wrt other CPUs:
+> atomic_t, for example.
+> 
+> Here we're talking about atomic-wrt-this-cpu-only, yes?
+
+Right.
  
-> Alas, PAGE_SIZE has, iirc, unsigned type on some architectures and
-> unsigned long on others.  I suspect you'll need to cast it to be able
-> to print it.
-
-This is code that was moved.
-
-> > +		percpu = cpu_alloc(size, GFP_KERNEL|__GFP_ZERO, align);
-> > +		if (!percpu)
-> > +			printk(KERN_WARNING "Could not allocate %lu bytes percpu data\n",
+> > local_t is also very specific to the x86 processor.
 > 
-> 80-col bustage,.
+> And alpha, m32r, mips and powerpc, methinks.  Probably others, but
+> people just haven't got around to it.
+
+No local_t does not do the relocation of the address to the correct percpu 
+area. It requies disabling of interrupts etc. Its not atomic (wrt 
+interrupts) because of that.
+ 
+> I think I'll need to come back another time to understand all that ;)
 > 
-> A printk like this should, I think, identify what part of the kernel it
-> came from.
+> Thanks for writing it up carefully.
 
-Again moved code. Should I really do string separations for code 
-that is moved?
+Well this stuff is so large in scope that I have difficulties keeping 
+everything straight.
 
-> But really, I don't think any printk should be present here. 
-> cpu_alloc() itself should dump the warning and the backtrace when it
-> runs out.  Because a cpu_alloc() failure is a major catastrophe.  It
-> probably means a reconfigure-and-reboot cycle.
+> I wonder if all this stuff should be in a new header file.
+> 
+> We could get lazy and include that header from percpu.h if needed.
 
-The code has been able to deal with an allocpercpu failure in the 
-past. Why would it have trouble with a cpu_alloc failure here?
+But then its related to percpu operations and relies extensively on the 
+various percpu.h files in asm-generic and asm-arch and include/linux
