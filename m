@@ -1,38 +1,36 @@
 From: Christoph Lameter <clameter@sgi.com>
 Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Fri, 30 May 2008 11:11:04 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805301109120.14564@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <1212138752.12349.227.camel@twins>
- <20080530091847.GA26563@elte.hu>
+Date: Fri, 30 May 2008 11:12:12 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0805301111570.14564@schroedinger.engr.sgi.com>
+References: <20080530035620.587204923@sgi.com> <20080529215827.b659d032.akpm@linux-foundation.org>
+ <Pine.LNX.4.64.0805292159360.12107@schroedinger.engr.sgi.com>
+ <20080529222143.5d7aa1e5.akpm@linux-foundation.org>
+ <Pine.LNX.4.64.0805292224540.12329@schroedinger.engr.sgi.com>
+ <48401169.3050706@sgi.com> <Pine.LNX.4.64.0805301048070.14564@schroedinger.engr.sgi.com>
+ <20080530180021.GJ22636@parisc-linux.org>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.sgi.com ([192.48.171.29]:46283 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752576AbYE3SLF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 14:11:05 -0400
-In-Reply-To: <20080530091847.GA26563@elte.hu>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:33467 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752753AbYE3SMS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 14:12:18 -0400
+In-Reply-To: <20080530180021.GJ22636@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Peter Zijlstra <peterz@infradead.org>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Mike Travis <travis@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
 
-On Fri, 30 May 2008, Ingo Molnar wrote:
+On Fri, 30 May 2008, Matthew Wilcox wrote:
 
+> On Fri, May 30, 2008 at 10:50:04AM -0700, Christoph Lameter wrote:
+> > cpu alloc v2 had an extendable per cpu space. You have the patches. We 
+> > could put this on top of this patchset if necessary. But then it not so 
+> > nice and simple anymore. Maybe we can rstrict the use of cpu alloc 
+> > instead to users with objects < cache_line_size() or so?
 > 
-> * Peter Zijlstra <peterz@infradead.org> wrote:
-> 
-> > What this does is make a strong connection between data and 
-> > concurrency control. Your proposed scheme weakens the 
-> > data<->concurrency relation instead of making it stronger.
-> 
-> and that's not just an issue for -rt but also for general kernel 
-> maintainability: opaque APIs weaken our data structures because it's not 
-> apparent what is done exactly why. In that sense a 
-> spin_lock(&data->lock) is as clear as it gets.
+> Restricting the use of cpu_alloc based on size of object is no good when
+> you're trying to allocate 45,000 objects.  Extending the per CPU space
+> is the only option.
 
-The intent of these CPU_OPS is to avoid synchronization by having atomic 
-per cpu ops that do not require preempt or interrupt disable to function 
-properly. F.e. it allows the updating of per cpu statistics without 
-get_cpu/put_cpu or preempt_enable/disable etc etc. This should help -rt 
-quite a bit by avoiding numerous of these things in hot vm paths.
+Ok guess we need to bring the virtually mapped per cpu patches forward.
