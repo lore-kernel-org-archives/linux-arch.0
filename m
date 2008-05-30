@@ -1,58 +1,69 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Paul Mackerras <paulus@samba.org>
 Subject: Re: [PATCH 05/37] ata: use get/put_endian helpers
-Date: Thu, 29 May 2008 21:08:59 -0700
-Message-ID: <20080529210859.0feee69d.akpm@linux-foundation.org>
+Date: Fri, 30 May 2008 14:10:47 +1000
+Message-ID: <18495.32327.521211.508818@cargo.ozlabs.ibm.com>
 References: <1212092282.28403.107.camel@brick>
 	<483F65CA.4050507@rtr.ca>
 	<20080529195225.5665ae9c.akpm@linux-foundation.org>
-	<1212118661.28403.175.camel@brick>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-ide-owner@vger.kernel.org>
-In-Reply-To: <1212118661.28403.175.camel@brick>
+In-Reply-To: <20080529195225.5665ae9c.akpm@linux-foundation.org>
 Sender: linux-ide-owner@vger.kernel.org
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: Mark Lord <liml@rtr.ca>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mark Lord <liml@rtr.ca>, Harvey Harrison <harvey.harrison@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 29 May 2008 20:37:40 -0700 Harvey Harrison <harvey.harrison@gmail.com> wrote:
+Andrew Morton writes:
 
-> On Thu, 2008-05-29 at 19:52 -0700, Andrew Morton wrote:
-> > On Thu, 29 May 2008 22:26:18 -0400 Mark Lord <liml@rtr.ca> wrote:
+> On Thu, 29 May 2008 22:26:18 -0400 Mark Lord <liml@rtr.ca> wrote:
+> 
+> > Harvey Harrison wrote:
+> > > Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+> > > ---
+> > >  drivers/ata/pdc_adma.c   |   12 ++++++------
+> > >  drivers/ata/sata_qstor.c |   12 +++++-------
+> > >  2 files changed, 11 insertions(+), 13 deletions(-)
+> > > 
+> > > diff --git a/drivers/ata/pdc_adma.c b/drivers/ata/pdc_adma.c
+> > > index be53545..162eecb 100644
+> > > --- a/drivers/ata/pdc_adma.c
+> > > +++ b/drivers/ata/pdc_adma.c
+> > > @@ -284,11 +284,11 @@ static int adma_fill_sg(struct ata_queued_cmd *qc)
+> > >  		u32 len;
+> > >  
+> > >  		addr = (u32)sg_dma_address(sg);
+> > > -		*(__le32 *)(buf + i) = cpu_to_le32(addr);
+> > > +		put_le32(addr, (__le32 *)(buf + i));
+> > ..
 > > 
-> 
-> > otoh,
+> > I don't get it.
 > > 
-> > - I think the args are backwards
-> > 
+> > What's the point here?
 > 
-> It was made to look like put_unaligned_* and put_unaligned()
+> Readability and maintainability.  Once one becomes familar with a
+> particular idion like this you can read it and say "ah, I know what
+> that's doing" rather than having to peer at every character and work it
+> out at each site where it happens.
 > 
-> I think of it as put_le16(source, dest)
-
-	fn(dest, src)
-
-is a well-known C idiom which the kernel went and broke in lots of places :(
-
-It maps nicely onto
-
-	dest = src
-
-as a mnemonic.
-
-But given that the compiler will reliably barf if they are backwards
-it's a minor thing.
-
-> > - I don't like the use of the put_*() namespace.  It makes it look
-> >   like a uaccess operation.
+> As usual: a PITA now, but better long-term.
 > 
-> I'm flexible...although I'd probably get nailed to a cross for changing
-> it again so soon. (the unaligned versions, that is)
+> otoh,
+> 
+> - I think the args are backwards
 
-We'll live.
+I think you just admitted that the new version is less readable.  At
+least with an '=' operator you know which side is the thing that's
+being modified.  With a put_XXX function, I would have to go look up
+the definition (particularly since outb et al. are also the wrong way
+around, i.e. have the destination as the second argument).
 
-(I'm not a big fan of the patches, btw.  It's more of an "oh groan,
-because it's there I suppose we really ought to do this" sort of thing.
-(strong objections would save me a lot of work (looks hopefully at
-inbox))).
+> - I don't like the use of the put_*() namespace.  It makes it look
+>   like a uaccess operation.
+
+Plus we have a common idiom that get_*() functions increment some sort
+of reference count, and put_*() functions decrease a reference count
+and may free something...
+
+Paul.
