@@ -1,47 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from az33egw01.freescale.net ([192.88.158.102]:61744 "EHLO
-	az33egw01.freescale.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753123AbYE2W1d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 18:27:33 -0400
-Date: Thu, 29 May 2008 15:25:31 -0700 (PDT)
-From: Trent Piepho <tpiepho@freescale.com>
-Subject: Re: MMIO and gcc re-ordering issue
-In-Reply-To: <adawslcojdg.fsf@cisco.com>
-Message-ID: <Pine.LNX.4.64.0805291517140.18832@t2.domain.actdsltmp>
-References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net>
- <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net>
- <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop>
- <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop>
- <adaiqwzsa83.fsf@cisco.com> <yq0iqwxrwuh.fsf@jaguar.mkp.net>
- <adawslcojdg.fsf@cisco.com>
+Received: from ozlabs.org ([203.10.76.45]:42945 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1760160AbYE3ENH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 00:13:07 -0400
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Message-ID: <18495.32327.521211.508818@cargo.ozlabs.ibm.com>
+Date: Fri, 30 May 2008 14:10:47 +1000
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH 05/37] ata: use get/put_endian helpers
+In-Reply-To: <20080529195225.5665ae9c.akpm@linux-foundation.org>
+References: <1212092282.28403.107.camel@brick>
+	<483F65CA.4050507@rtr.ca>
+	<20080529195225.5665ae9c.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland Dreier <rdreier@cisco.com>
-Cc: Jes Sorensen <jes@sgi.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
-Message-ID: <20080529222531.6UExB2tXOTxC2oc5moIf9oSotS-_AcgPqIMMiY3Jraw@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mark Lord <liml@rtr.ca>, Harvey Harrison <harvey.harrison@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
+Message-ID: <20080530041047.YaQ6ITHpwmGB1XHpp6jg1Q7iMTVEgHnVK6jMYeNPpfs@z>
 
-On Thu, 29 May 2008, Roland Dreier wrote:
-> > The problem is that your two writel's, despite being both issued on
-> > cpu X, due to the spin lock, in your example, can end up with the
-> > first one going through NR 1 and the second one going through NR 2. If
-> > there's contention on NR 1, the write going via NR 2 may hit the PCI
-> > bridge prior to the one going via NR 1.
->
-> Really??  I can't see how you can expect any drivers to work reliably if
-> simple code like
->
-> 	writel(reg1);
-> 	writel(reg2);
->
-> might end up with the write to reg2 hitting the device before the write
-> to reg1.  Almost all MMIO stuff has ordering requirements and will
+Andrew Morton writes:
 
-This is how powerpc is natively (the linux accessors have extra ordering to
-not allow this of course), and there are non-Linux drivers that are written
-for this ordering model.
+> On Thu, 29 May 2008 22:26:18 -0400 Mark Lord <liml@rtr.ca> wrote:
+> 
+> > Harvey Harrison wrote:
+> > > Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+> > > ---
+> > >  drivers/ata/pdc_adma.c   |   12 ++++++------
+> > >  drivers/ata/sata_qstor.c |   12 +++++-------
+> > >  2 files changed, 11 insertions(+), 13 deletions(-)
+> > > 
+> > > diff --git a/drivers/ata/pdc_adma.c b/drivers/ata/pdc_adma.c
+> > > index be53545..162eecb 100644
+> > > --- a/drivers/ata/pdc_adma.c
+> > > +++ b/drivers/ata/pdc_adma.c
+> > > @@ -284,11 +284,11 @@ static int adma_fill_sg(struct ata_queued_cmd *qc)
+> > >  		u32 len;
+> > >  
+> > >  		addr = (u32)sg_dma_address(sg);
+> > > -		*(__le32 *)(buf + i) = cpu_to_le32(addr);
+> > > +		put_le32(addr, (__le32 *)(buf + i));
+> > ..
+> > 
+> > I don't get it.
+> > 
+> > What's the point here?
+> 
+> Readability and maintainability.  Once one becomes familar with a
+> particular idion like this you can read it and say "ah, I know what
+> that's doing" rather than having to peer at every character and work it
+> out at each site where it happens.
+> 
+> As usual: a PITA now, but better long-term.
+> 
+> otoh,
+> 
+> - I think the args are backwards
 
-I think what makes altix so hard is that writes to the _same_ register may be
-be re-ordered.  Re-ordering writes to the same address is much less common
-than allowing writes to different addresses to be re-ordered.
+I think you just admitted that the new version is less readable.  At
+least with an '=' operator you know which side is the thing that's
+being modified.  With a put_XXX function, I would have to go look up
+the definition (particularly since outb et al. are also the wrong way
+around, i.e. have the destination as the second argument).
+
+> - I don't like the use of the put_*() namespace.  It makes it look
+>   like a uaccess operation.
+
+Plus we have a common idiom that get_*() functions increment some sort
+of reference count, and put_*() functions decrease a reference count
+and may free something...
+
+Paul.
