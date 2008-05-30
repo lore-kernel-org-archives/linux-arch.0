@@ -1,34 +1,47 @@
-From: Roland Dreier <rdreier@cisco.com>
-Subject: Re: [PATCH 11/37] infiniband: use get/put_endian helpers
-Date: Thu, 29 May 2008 22:52:11 -0700
-Message-ID: <ada1w3knxtg.fsf@cisco.com>
-References: <1212092297.28403.113.camel@brick> <adak5hcoir4.fsf@cisco.com>
-	<1212099859.28403.149.camel@brick>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [patch 02/41] cpu alloc: The allocator
+Date: Fri, 30 May 2008 15:52:24 +1000
+Message-ID: <200805301552.25423.rusty@rustcorp.com.au>
+References: <20080530035620.587204923@sgi.com> <483F8AF7.9000309@cosmosbay.com> <Pine.LNX.4.64.0805292219220.12107@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sj-iport-3.cisco.com ([171.71.176.72]:27744 "EHLO
-	sj-iport-3.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754164AbYE3FwM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 01:52:12 -0400
-In-Reply-To: <1212099859.28403.149.camel@brick> (Harvey Harrison's message of
-	"Thu, 29 May 2008 15:24:19 -0700")
+Received: from ozlabs.org ([203.10.76.45]:48336 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754184AbYE3Fw0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 01:52:26 -0400
+In-Reply-To: <Pine.LNX.4.64.0805292219220.12107@schroedinger.engr.sgi.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Roland Dreier <rolandd@cisco.com>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Eric Dumazet <dada1@cosmosbay.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
 
- > Well, assuming it's wanted, I can send you a sed-based patch instead and
- > a follow-on patch that does the additional codingstyle bits on the
- > changed lines that adds up to this patch.
+On Friday 30 May 2008 15:20:45 Christoph Lameter wrote:
+> On Fri, 30 May 2008, Eric Dumazet wrote:
+> > > +static DEFINE_PER_CPU(UNIT_TYPE, area[UNITS]);
+> >
+> > area[] is not guaranteed to be aligned on anything but 4 bytes.
+> >
+> > If someone then needs to call cpu_alloc(8, GFP_KERNEL, 8), it might get
+> > an non aligned result.
+> >
+> > Either you should add an __attribute__((__aligned__(PAGE_SIZE))),
+> > or take into account the real address of area[] in cpu_alloc() to avoid
+> > waste of up to PAGE_SIZE bytes
+> > per cpu.
+>
+> I think cacheline aligning should be sufficient. People should not
+> allocate large page aligned objects here.
 
-If you generated the patch with sed + careful codingstyle fixup, that's
-OK, no need to resend.
+I vaguely recall there were issues with this in the module code.  They might 
+be gone now, but failing to meet alignment contraints without a big warning 
+would suck.
 
-I think the big question is whether this change is worth it -- my
-immediate reaction is that it is just churn, but I am only seeing one of
-the 37 (?!) patches in the series so maybe there is some merit that I am
-unaware of.  Anyway I am happy with whatever Andrew decides based on his
-view of the big picture.
+But modifying your code to consider the actual alignment is actually pretty 
+trivial, AFAICT.
 
- - R.
+Cheers,
+Rusty.
