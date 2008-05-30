@@ -1,99 +1,58 @@
-From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 11/41] cpu alloc: SRCU cpu alloc conversion
-Date: Thu, 29 May 2008 20:56:31 -0700
-Message-ID: <20080530040013.755304857@sgi.com>
-References: <20080530035620.587204923@sgi.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40495 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751558AbYE3EAS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:18 -0400
-Content-Disposition: inline; filename=cpu_alloc_srcu_conversion
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 05/37] ata: use get/put_endian helpers
+Date: Thu, 29 May 2008 21:08:59 -0700
+Message-ID: <20080529210859.0feee69d.akpm@linux-foundation.org>
+References: <1212092282.28403.107.camel@brick>
+	<483F65CA.4050507@rtr.ca>
+	<20080529195225.5665ae9c.akpm@linux-foundation.org>
+	<1212118661.28403.175.camel@brick>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-ide-owner@vger.kernel.org>
+In-Reply-To: <1212118661.28403.175.camel@brick>
+Sender: linux-ide-owner@vger.kernel.org
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Mark Lord <liml@rtr.ca>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Christoph Lameter <clameter@sgi.com>
----
- kernel/rcutorture.c |    4 ++--
- kernel/srcu.c       |   20 ++++++++------------
- 2 files changed, 10 insertions(+), 14 deletions(-)
+On Thu, 29 May 2008 20:37:40 -0700 Harvey Harrison <harvey.harrison@gmail.com> wrote:
 
-Index: linux-2.6/kernel/rcutorture.c
-===================================================================
---- linux-2.6.orig/kernel/rcutorture.c	2008-04-29 14:55:55.000000000 -0700
-+++ linux-2.6/kernel/rcutorture.c	2008-05-21 21:46:19.000000000 -0700
-@@ -442,8 +442,8 @@
- 		       torture_type, TORTURE_FLAG, idx);
- 	for_each_possible_cpu(cpu) {
- 		cnt += sprintf(&page[cnt], " %d(%d,%d)", cpu,
--			       per_cpu_ptr(srcu_ctl.per_cpu_ref, cpu)->c[!idx],
--			       per_cpu_ptr(srcu_ctl.per_cpu_ref, cpu)->c[idx]);
-+			       CPU_PTR(srcu_ctl.per_cpu_ref, cpu)->c[!idx],
-+			       CPU_PTR(srcu_ctl.per_cpu_ref, cpu)->c[idx]);
- 	}
- 	cnt += sprintf(&page[cnt], "\n");
- 	return cnt;
-Index: linux-2.6/kernel/srcu.c
-===================================================================
---- linux-2.6.orig/kernel/srcu.c	2008-02-16 20:28:44.000000000 -0800
-+++ linux-2.6/kernel/srcu.c	2008-05-21 21:46:19.000000000 -0700
-@@ -46,7 +46,8 @@
- {
- 	sp->completed = 0;
- 	mutex_init(&sp->mutex);
--	sp->per_cpu_ref = alloc_percpu(struct srcu_struct_array);
-+	sp->per_cpu_ref = CPU_ALLOC(struct srcu_struct_array,
-+						GFP_KERNEL|__GFP_ZERO);
- 	return (sp->per_cpu_ref ? 0 : -ENOMEM);
- }
- 
-@@ -62,7 +63,7 @@
- 
- 	sum = 0;
- 	for_each_possible_cpu(cpu)
--		sum += per_cpu_ptr(sp->per_cpu_ref, cpu)->c[idx];
-+		sum += CPU_PTR(sp->per_cpu_ref, cpu)->c[idx];
- 	return sum;
- }
- 
-@@ -94,7 +95,7 @@
- 	WARN_ON(sum);  /* Leakage unless caller handles error. */
- 	if (sum != 0)
- 		return;
--	free_percpu(sp->per_cpu_ref);
-+	CPU_FREE(sp->per_cpu_ref);
- 	sp->per_cpu_ref = NULL;
- }
- 
-@@ -110,12 +111,9 @@
- {
- 	int idx;
- 
--	preempt_disable();
- 	idx = sp->completed & 0x1;
--	barrier();  /* ensure compiler looks -once- at sp->completed. */
--	per_cpu_ptr(sp->per_cpu_ref, smp_processor_id())->c[idx]++;
--	srcu_barrier();  /* ensure compiler won't misorder critical section. */
--	preempt_enable();
-+	srcu_barrier();
-+	_CPU_INC(sp->per_cpu_ref->c[idx]);
- 	return idx;
- }
- 
-@@ -131,10 +129,8 @@
-  */
- void srcu_read_unlock(struct srcu_struct *sp, int idx)
- {
--	preempt_disable();
--	srcu_barrier();  /* ensure compiler won't misorder critical section. */
--	per_cpu_ptr(sp->per_cpu_ref, smp_processor_id())->c[idx]--;
--	preempt_enable();
-+	srcu_barrier();
-+	_CPU_DEC(sp->per_cpu_ref->c[idx]);
- }
- 
- /**
+> On Thu, 2008-05-29 at 19:52 -0700, Andrew Morton wrote:
+> > On Thu, 29 May 2008 22:26:18 -0400 Mark Lord <liml@rtr.ca> wrote:
+> > 
+> 
+> > otoh,
+> > 
+> > - I think the args are backwards
+> > 
+> 
+> It was made to look like put_unaligned_* and put_unaligned()
+> 
+> I think of it as put_le16(source, dest)
 
--- 
+	fn(dest, src)
+
+is a well-known C idiom which the kernel went and broke in lots of places :(
+
+It maps nicely onto
+
+	dest = src
+
+as a mnemonic.
+
+But given that the compiler will reliably barf if they are backwards
+it's a minor thing.
+
+> > - I don't like the use of the put_*() namespace.  It makes it look
+> >   like a uaccess operation.
+> 
+> I'm flexible...although I'd probably get nailed to a cross for changing
+> it again so soon. (the unaligned versions, that is)
+
+We'll live.
+
+(I'm not a big fan of the patches, btw.  It's more of an "oh groan,
+because it's there I suppose we really ought to do this" sort of thing.
+(strong objections would save me a lot of work (looks hopefully at
+inbox))).
