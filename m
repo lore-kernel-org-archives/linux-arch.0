@@ -1,40 +1,40 @@
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Thu, 29 May 2008 23:22:31 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805292321240.12457@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <20080529215827.b659d032.akpm@linux-foundation.org>
- <Pine.LNX.4.64.0805292159360.12107@schroedinger.engr.sgi.com>
- <20080529222143.5d7aa1e5.akpm@linux-foundation.org> <483F981E.3040004@cosmosbay.com>
- <20080529231618.56e4028b.akpm@linux-foundation.org>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu operations
+Date: Fri, 30 May 2008 16:32:07 +1000
+Message-ID: <200805301632.07811.rusty@rustcorp.com.au>
+References: <20080530035620.587204923@sgi.com> <20080529215844.609a3ac8.akpm@linux-foundation.org> <Pine.LNX.4.64.0805292214280.12107@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:36091 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752893AbYE3GWh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 02:22:37 -0400
-In-Reply-To: <20080529231618.56e4028b.akpm@linux-foundation.org>
+Received: from ozlabs.org ([203.10.76.45]:60241 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753130AbYE3GcN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 02:32:13 -0400
+In-Reply-To: <Pine.LNX.4.64.0805292214280.12107@schroedinger.engr.sgi.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Eric Dumazet <dada1@cosmosbay.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
 
-On Thu, 29 May 2008, Andrew Morton wrote:
+On Friday 30 May 2008 15:17:55 Christoph Lameter wrote:
+> On Thu, 29 May 2008, Andrew Morton wrote:
+> > > 	local_irq_save(flags);
+> > > 	/* Calculate address of per processor area */
+> > > 	p = CPU_PTR(stat, smp_processor_id());
+> > > 	p->counter++;
+> > > 	local_irq_restore(flags);
+> >
+> > eh?  That's what local_t is for?
+>
+> No that is what local_t exactly cannot do.
 
-> ext3 maintains three percpu_counters per mount.  Each percpu_counter
-> does one percpu_alloc.  People can mount an arbitrary number of ext3
-> filesystems!
+Yes, but this is local_t for dynamically allocated per-cpu vars.  You've lost 
+potential symmetry and invented a whole new nomenclature :(
 
-But its 4 bytes per alloc right?
+local_ptr_inc() etc would be far preferable IMHO.
 
-> Another: there are two percpu_counters (and hence two percpu_alloc()s)
-> per backing_dev_info.  One backing_dev_info per disk and people have
-> been known to have thousands (iirc ~10,000) disks online.
-
-8 bytes per backing device. 80000 bytes for 10000 disks.
-
-> And those examples were plucked only from today's kernel.  Who knows
-> what other problems will be in 2.6.45?
-
-We can always increase the sizes.
- 
+Cheers,
+Rusty.
