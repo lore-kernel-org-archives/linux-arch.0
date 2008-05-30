@@ -1,78 +1,30 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu
- operations
-Date: Thu, 29 May 2008 22:17:55 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805292214280.12107@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <20080530040011.727424512@sgi.com>
- <20080529215844.609a3ac8.akpm@linux-foundation.org>
+Subject: Re: [patch 35/41] Support for CPU ops
+Date: Thu, 29 May 2008 22:18:58 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0805292218350.12107@schroedinger.engr.sgi.com>
+References: <20080530035620.587204923@sgi.com> <20080530040022.786507220@sgi.com>
+ <20080529215855.a2504a30.akpm@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.sgi.com ([192.48.171.29]:47452 "EHLO relay.sgi.com"
+Received: from relay2.sgi.com ([192.48.171.30]:35956 "EHLO relay.sgi.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751132AbYE3FR4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 01:17:56 -0400
-In-Reply-To: <20080529215844.609a3ac8.akpm@linux-foundation.org>
+	id S1752101AbYE3FS6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 01:18:58 -0400
+In-Reply-To: <20080529215855.a2504a30.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
+Cc: linux-arch@vger.kernel.org, Tony.Luck@intel.com, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
 On Thu, 29 May 2008, Andrew Morton wrote:
 
-> > 	local_irq_save(flags);
-> > 	/* Calculate address of per processor area */
-> > 	p = CPU_PTR(stat, smp_processor_id());
-> > 	p->counter++;
-> > 	local_irq_restore(flags);
+> On Thu, 29 May 2008 20:56:55 -0700 Christoph Lameter <clameter@sgi.com> wrote:
 > 
-> eh?  That's what local_t is for?
-
-No that is what local_t exactly cannot do.
-
-> > The segment can be replaced by a single atomic CPU operation:
-> > 
-> > 	CPU_INC(stat->counter);
+> > Subject: [patch 35/41] Support for CPU ops
 > 
-> hm, I guess this _has_ to be implemented as a macro.  ho hum.  But
-> please: "cpu_inc"?
+> Should be called "ia64: support for CPU ops", please.
 
-A lowercase macro?
-
-> > The existing methods in use in the kernel cannot utilize the power of
-> > these atomic instructions. local_t is not really addressing the issue
-> > since the offset calculation performed before the atomic operation. The
-> > operation is therefor not atomic. Disabling interrupt or preemption is
-> > required in order to use local_t.
-> 
-> Your terminology is totally confusing here.
-> 
-> To me, an "atomic operation" is one which is atomic wrt other CPUs:
-> atomic_t, for example.
-> 
-> Here we're talking about atomic-wrt-this-cpu-only, yes?
-
-Right.
+Argh. Gazillions of details on gazillions of arches over all sorts of 
+kernel subsystems.
  
-> > local_t is also very specific to the x86 processor.
-> 
-> And alpha, m32r, mips and powerpc, methinks.  Probably others, but
-> people just haven't got around to it.
-
-No local_t does not do the relocation of the address to the correct percpu 
-area. It requies disabling of interrupts etc. Its not atomic (wrt 
-interrupts) because of that.
- 
-> I think I'll need to come back another time to understand all that ;)
-> 
-> Thanks for writing it up carefully.
-
-Well this stuff is so large in scope that I have difficulties keeping 
-everything straight.
-
-> I wonder if all this stuff should be in a new header file.
-> 
-> We could get lazy and include that header from percpu.h if needed.
-
-But then its related to percpu operations and relies extensively on the 
-various percpu.h files in asm-generic and asm-arch and include/linux
