@@ -1,62 +1,39 @@
-From: Mark Lord <liml@rtr.ca>
-Subject: Re: [PATCH 05/37] ata: use get/put_endian helpers
-Date: Fri, 30 May 2008 09:15:36 -0400
-Message-ID: <483FFDF8.1070607@rtr.ca>
-References: <1212092282.28403.107.camel@brick>	<483F65CA.4050507@rtr.ca>	<20080529195225.5665ae9c.akpm@linux-foundation.org>	<18495.32327.521211.508818@cargo.ozlabs.ibm.com> <20080529220450.2f701d93.akpm@linux-foundation.org>
+From: Mike Travis <travis@sgi.com>
+Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
+Date: Fri, 30 May 2008 07:38:33 -0700
+Message-ID: <48401169.3050706@sgi.com>
+References: <20080530035620.587204923@sgi.com> <20080529215827.b659d032.akpm@linux-foundation.org> <Pine.LNX.4.64.0805292159360.12107@schroedinger.engr.sgi.com> <20080529222143.5d7aa1e5.akpm@linux-foundation.org> <Pine.LNX.4.64.0805292224540.12329@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-ide-owner@vger.kernel.org>
-In-Reply-To: <20080529220450.2f701d93.akpm@linux-foundation.org>
-Sender: linux-ide-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Paul Mackerras <paulus@samba.org>, Harvey Harrison <harvey.harrison@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:54256 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752007AbYE3Oig (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 10:38:36 -0400
+In-Reply-To: <Pine.LNX.4.64.0805292224540.12329@schroedinger.engr.sgi.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
 
-Andrew Morton wrote:
-> On Fri, 30 May 2008 14:10:47 +1000 Paul Mackerras <paulus@samba.org> wrote:
+Christoph Lameter wrote:
+> On Thu, 29 May 2008, Andrew Morton wrote:
+...
+>> Plus who knows what lies ahead of us?
 > 
->>>> What's the point here?
->>> Readability and maintainability.  Once one becomes familar with a
->>> particular idion like this you can read it and say "ah, I know what
->>> that's doing" rather than having to peer at every character and work it
->>> out at each site where it happens.
->>>
->>> As usual: a PITA now, but better long-term.
->>>
->>> otoh,
->>>
->>> - I think the args are backwards
->> I think you just admitted that the new version is less readable.  At
->> least with an '=' operator you know which side is the thing that's
->> being modified.  With a put_XXX function, I would have to go look up
->> the definition (particularly since outb et al. are also the wrong way
->> around, i.e. have the destination as the second argument).
+> Well invariably we will end up with cpu area defragmentation.... Sigh.
 > 
-> Well yes, but you don't have to worry about that when reviewing because
-> you know the compiler will catch reversals.
+>> I don't think there is presently any upper limit on alloc_percpu()?  It
+>> uses kmalloc() and kmalloc_node()?
+>>
+>> Even if there is some limit, is it an unfixable one?
 > 
-> Still not terribly keen about it all, but geeze the code which it is
-> trying to clarify is godawful:
-> 
-> 	*(__le32 *)(buf + i) = cpu_to_le32(addr);
-> 
-> wtf?
-> 
-> Then again the replacement
-> 
-> 	put_le32(addr, (__le32 *)(buf + i));
-> 
-> is still wtf.
-..
+> No there is no limit. It just wastes lots of space (pointer arrays, 
+> alignment etc) that we could use to configure sufficiently large per cpu 
+> areas.
 
-Exactly my point.  With the "improved" version, I now have to go
-hunting for yet another macro in yet another header file in order
-to see what the code is doing and to verify correctness.
-And I (and other reviewers) are just a teensy bit less likely to
-follow through with that every time, meaning we'll miss bugs.
-
-This is somewhat akin to Linus's dislike of typedefs for structs.
-It just hides what's really going on, for no obvious gain.  Sorry.  :)
-
-Cheers
+Is there any reason why the per_cpu area couldn't be made extensible?  Maybe
+a simple linked list of available areas?  (And use a config variable and/or
+boot param for initial size and increment size?)  [Ignoring the problem of
+reclaiming the space...]
