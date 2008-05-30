@@ -1,92 +1,80 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 24/41] cpu alloc: Use in the crypto subsystem.
-Date: Thu, 29 May 2008 20:56:44 -0700
-Message-ID: <20080530040019.134732156@sgi.com>
+Subject: [patch 19/41] cpu alloc: Convert loopback statistics
+Date: Thu, 29 May 2008 20:56:39 -0700
+Message-ID: <20080530040017.610106257@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:56630 "EHLO relay.sgi.com"
+Received: from relay2.sgi.com ([192.48.171.30]:56623 "EHLO relay.sgi.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752916AbYE3EAW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1752804AbYE3EAW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Fri, 30 May 2008 00:00:22 -0400
-Content-Disposition: inline; filename=cpu_alloc_crypto_conversion
+Content-Disposition: inline; filename=cpu_alloc_loopback_statistics_conversion
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Use cpu alloc for the crypto subsystem.
+Convert loopback statistics to cpu alloc.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- crypto/async_tx/async_tx.c |   19 +++++++++----------
- 1 file changed, 9 insertions(+), 10 deletions(-)
+ drivers/net/loopback.c |   14 ++++++--------
+ 1 file changed, 6 insertions(+), 8 deletions(-)
 
-Index: linux-2.6/crypto/async_tx/async_tx.c
+Index: linux-2.6/drivers/net/loopback.c
 ===================================================================
---- linux-2.6.orig/crypto/async_tx/async_tx.c	2008-04-29 14:55:49.000000000 -0700
-+++ linux-2.6/crypto/async_tx/async_tx.c	2008-05-21 22:01:42.000000000 -0700
-@@ -221,10 +221,10 @@
- 	for_each_dma_cap_mask(cap, dma_cap_mask_all)
- 		for_each_possible_cpu(cpu) {
- 			struct dma_chan_ref *ref =
--				per_cpu_ptr(channel_table[cap], cpu)->ref;
-+				CPU_PTR(channel_table[cap], cpu)->ref;
- 			if (ref) {
- 				atomic_set(&ref->count, 0);
--				per_cpu_ptr(channel_table[cap], cpu)->ref =
-+				CPU_PTR(channel_table[cap], cpu)->ref =
- 									NULL;
- 			}
- 		}
-@@ -237,7 +237,7 @@
- 			else
- 				new = get_chan_ref_by_cap(cap, -1);
+--- linux-2.6.orig/drivers/net/loopback.c	2008-05-28 22:02:18.000000000 -0700
++++ linux-2.6/drivers/net/loopback.c	2008-05-28 23:14:11.000000000 -0700
+@@ -132,7 +132,7 @@
+  */
+ static int loopback_xmit(struct sk_buff *skb, struct net_device *dev)
+ {
+-	struct pcpu_lstats *pcpu_lstats, *lb_stats;
++	struct pcpu_lstats *pcpu_lstats;
  
--			per_cpu_ptr(channel_table[cap], cpu)->ref = new;
-+			CPU_PTR(channel_table[cap], cpu)->ref = new;
- 		}
+ 	skb_orphan(skb);
  
- 	spin_unlock_irqrestore(&async_tx_lock, flags);
-@@ -341,7 +341,8 @@
- 	clear_bit(DMA_INTERRUPT, dma_cap_mask_all.bits);
+@@ -152,11 +152,10 @@
+ #endif
+ 	dev->last_rx = jiffies;
  
- 	for_each_dma_cap_mask(cap, dma_cap_mask_all) {
--		channel_table[cap] = alloc_percpu(struct chan_ref_percpu);
-+		channel_table[cap] = CPU_ALLOC(struct chan_ref_percpu,
-+						GFP_KERNEL | __GFP_ZERO);
- 		if (!channel_table[cap])
- 			goto err;
+-	/* it's OK to use per_cpu_ptr() because BHs are off */
++	/* it's OK to use __xxx cpu operations because BHs are off */
+ 	pcpu_lstats = netdev_priv(dev);
+-	lb_stats = per_cpu_ptr(pcpu_lstats, smp_processor_id());
+-	lb_stats->bytes += skb->len;
+-	lb_stats->packets++;
++	__CPU_ADD(pcpu_lstats->bytes, skb->len);
++	__CPU_INC(pcpu_lstats->packets);
+ 
+ 	netif_rx(skb);
+ 
+@@ -175,7 +174,7 @@
+ 	for_each_possible_cpu(i) {
+ 		const struct pcpu_lstats *lb_stats;
+ 
+-		lb_stats = per_cpu_ptr(pcpu_lstats, i);
++		lb_stats = CPU_PTR(pcpu_lstats, i);
+ 		bytes   += lb_stats->bytes;
+ 		packets += lb_stats->packets;
  	}
-@@ -357,7 +358,7 @@
- 	printk(KERN_ERR "async_tx: initialization failure\n");
+@@ -203,7 +202,7 @@
+ {
+ 	struct pcpu_lstats *lstats;
  
- 	while (--cap >= 0)
--		free_percpu(channel_table[cap]);
-+		CPU_FREE(channel_table[cap]);
+-	lstats = alloc_percpu(struct pcpu_lstats);
++	lstats = CPU_ALLOC(struct pcpu_lstats, GFP_KERNEL | __GFP_ZERO);
+ 	if (!lstats)
+ 		return -ENOMEM;
  
- 	return 1;
+@@ -215,7 +214,7 @@
+ {
+ 	struct pcpu_lstats *lstats = netdev_priv(dev);
+ 
+-	free_percpu(lstats);
++	CPU_FREE(lstats);
+ 	free_netdev(dev);
  }
-@@ -370,7 +371,7 @@
  
- 	for_each_dma_cap_mask(cap, dma_cap_mask_all)
- 		if (channel_table[cap])
--			free_percpu(channel_table[cap]);
-+			CPU_FREE(channel_table[cap]);
- 
- 	dma_async_client_unregister(&async_tx_dma);
- }
-@@ -390,10 +391,8 @@
- 		dma_has_cap(tx_type, depend_tx->chan->device->cap_mask))
- 		return depend_tx->chan;
- 	else if (likely(channel_table_initialized)) {
--		struct dma_chan_ref *ref;
--		int cpu = get_cpu();
--		ref = per_cpu_ptr(channel_table[tx_type], cpu)->ref;
--		put_cpu();
-+		struct dma_chan_ref *ref =
-+			_CPU_READ(channel_table[tx_type]->ref);
- 		return ref ? ref->chan : NULL;
- 	} else
- 		return NULL;
 
 -- 
