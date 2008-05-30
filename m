@@ -1,325 +1,189 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 35/41] Support for CPU ops
-Date: Thu, 29 May 2008 20:56:55 -0700
-Message-ID: <20080530040022.786507220@sgi.com>
+Subject: [patch 37/41] x86_64: Fold pda into per cpu area
+Date: Thu, 29 May 2008 20:56:57 -0700
+Message-ID: <20080530040023.488608389@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40543 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753592AbYE3EA3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:29 -0400
-Content-Disposition: inline; filename=ia64_cpu_ops
+Received: from relay2.sgi.com ([192.48.171.30]:56616 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753355AbYE3EAZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 00:00:25 -0400
+Content-Disposition: inline; filename=zero_based_fold
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, Tony.Luck@intel.com, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
+Cc: linux-arch@vger.kernel.org, Mike Travis <travis@sgi.com>, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>
 
-IA64 has no efficient atomic operations. But we can get rid of the need to
-add my_percpu_offset(). The address of a per cpu variable can be used directly
-on IA64 since its mapped to a per processor area.
+  * Declare the pda as a per cpu variable.
+  * Make the x86_64 per cpu area start at zero.
 
-This also allows us to kill off the __ia64_get_cpu_var macro. Its nothing but
-per_cpu_var().
+  * Since %gs is pointing to the pda, it will then also point to the per cpu
+    variables and can be accessed thusly:
 
-Cc: Tony.Luck@intel.com
+	%gs:[&per_cpu_xxxx - __per_cpu_start]
+
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
-
+Signed-off-by: Mike Travis <travis@sgi.com>
 ---
- arch/ia64/Kconfig              |    3 
- arch/ia64/kernel/perfmon.c     |    2 
- arch/ia64/kernel/setup.c       |    2 
- arch/ia64/kernel/smp.c         |    4 -
- arch/ia64/sn/kernel/setup.c    |    4 -
- include/asm-ia64/mmu_context.h |    6 -
- include/asm-ia64/percpu.h      |  133 ++++++++++++++++++++++++++++++++++++++---
- include/asm-ia64/processor.h   |    2 
- include/asm-ia64/sn/pda.h      |    2 
- 9 files changed, 138 insertions(+), 20 deletions(-)
+ arch/x86/Kconfig                 |    3 +++
+ arch/x86/kernel/setup.c          |   22 ++++++++++++++++++++--
+ arch/x86/kernel/smpboot.c        |   16 ----------------
+ arch/x86/kernel/vmlinux_64.lds.S |    1 +
+ include/asm-x86/percpu.h         |   19 +++++++++----------
+ 5 files changed, 33 insertions(+), 28 deletions(-)
 
-Index: linux-2.6/include/asm-ia64/percpu.h
+Index: linux-2.6/arch/x86/Kconfig
 ===================================================================
---- linux-2.6.orig/include/asm-ia64/percpu.h	2008-05-29 19:35:10.000000000 -0700
-+++ linux-2.6/include/asm-ia64/percpu.h	2008-05-29 19:35:11.000000000 -0700
-@@ -19,7 +19,7 @@
- # define PER_CPU_ATTRIBUTES	__attribute__((__model__ (__small__)))
+--- linux-2.6.orig/arch/x86/Kconfig	2008-05-29 17:57:39.588714025 -0700
++++ linux-2.6/arch/x86/Kconfig	2008-05-29 18:16:38.743452832 -0700
+@@ -126,6 +126,9 @@ config HAVE_SETUP_PER_CPU_AREA
+ config HAVE_CPUMASK_OF_CPU_MAP
+ 	def_bool X86_64_SMP
+ 
++config HAVE_ZERO_BASED_PER_CPU
++	def_bool X86_64 && SMP
++
+ config ARCH_HIBERNATION_POSSIBLE
+ 	def_bool y
+ 	depends on !SMP || !X86_VOYAGER
+Index: linux-2.6/arch/x86/kernel/setup.c
+===================================================================
+--- linux-2.6.orig/arch/x86/kernel/setup.c	2008-05-29 18:02:56.229889675 -0700
++++ linux-2.6/arch/x86/kernel/setup.c	2008-05-29 18:17:35.835953108 -0700
+@@ -26,6 +26,11 @@ EXPORT_PER_CPU_SYMBOL(x86_cpu_to_apicid)
+ physid_mask_t phys_cpu_present_map;
  #endif
  
--#define __my_cpu_offset	__ia64_per_cpu_var(local_per_cpu_offset)
-+#define __my_cpu_offset	CPU_READ(per_cpu_var(local_per_cpu_offset))
- 
- extern void *per_cpu_init(void);
- 
-@@ -31,14 +31,6 @@ extern void *per_cpu_init(void);
- 
- #endif	/* SMP */
- 
--/*
-- * Be extremely careful when taking the address of this variable!  Due to virtual
-- * remapping, it is different from the canonical address returned by __get_cpu_var(var)!
-- * On the positive side, using __ia64_per_cpu_var() instead of __get_cpu_var() is slightly
-- * more efficient.
-- */
--#define __ia64_per_cpu_var(var)	per_cpu__##var
++#ifdef CONFIG_X86_64
++DEFINE_PER_CPU_FIRST(struct x8664_pda, pda);
++EXPORT_PER_CPU_SYMBOL(pda);
++#endif
++
+ #if defined(CONFIG_HAVE_SETUP_PER_CPU_AREA) && defined(CONFIG_X86_SMP)
+ /*
+  * Copy data used in early init routines from the initial arrays to the
+@@ -115,13 +120,20 @@ void __init setup_per_cpu_areas(void)
+ #endif
+ 		if (!ptr)
+ 			panic("Cannot allocate cpu data for CPU %d\n", i);
++
++		memcpy(ptr, __per_cpu_load, __per_cpu_size);
++
+ #ifdef CONFIG_X86_64
++		/*
++		 * So far an embryonic per cpu area was used containing only
++		 * the pda. Move the pda contents into the full per cpu area.
++		  */
+ 		cpu_pda(i)->data_offset = ptr - __per_cpu_start;
++		memcpy(ptr, cpu_pda(i), sizeof(struct x8664_pda));
++		cpu_pda(i) = (struct x8664_pda *)ptr;
+ #else
+ 		__per_cpu_offset[i] = ptr - __per_cpu_start;
+ #endif
+-		memcpy(ptr, __per_cpu_start, __per_cpu_end - __per_cpu_start);
 -
+ 		highest_cpu = i;
+ 	}
+ 
+@@ -132,6 +144,12 @@ void __init setup_per_cpu_areas(void)
+ 	setup_boot_pagesets();
+ 
+ 	nr_cpu_ids = highest_cpu + 1;
++
++#ifdef CONFIG_X86_64
++	/* Fix up pda for boot processor */
++	pda_init(0);
++#endif
++
+ 	printk(KERN_DEBUG "NR_CPUS: %d, nr_cpu_ids: %d\n", NR_CPUS, nr_cpu_ids);
+ 
+ 	/* Setup percpu data maps */
+Index: linux-2.6/arch/x86/kernel/vmlinux_64.lds.S
+===================================================================
+--- linux-2.6.orig/arch/x86/kernel/vmlinux_64.lds.S	2008-05-29 17:57:39.600964822 -0700
++++ linux-2.6/arch/x86/kernel/vmlinux_64.lds.S	2008-05-29 18:05:08.514214613 -0700
+@@ -16,6 +16,7 @@ jiffies_64 = jiffies;
+ _proxy_pda = 1;
+ PHDRS {
+ 	text PT_LOAD FLAGS(5);	/* R_E */
++	percpu PT_LOAD FLAGS(4);	/* R__ */
+ 	data PT_LOAD FLAGS(7);	/* RWE */
+ 	user PT_LOAD FLAGS(7);	/* RWE */
+ 	data.init PT_LOAD FLAGS(7);	/* RWE */
+Index: linux-2.6/include/asm-x86/percpu.h
+===================================================================
+--- linux-2.6.orig/include/asm-x86/percpu.h	2008-05-29 17:57:39.616964037 -0700
++++ linux-2.6/include/asm-x86/percpu.h	2008-05-29 18:17:20.419452945 -0700
+@@ -3,21 +3,16 @@
+ 
+ #ifdef CONFIG_X86_64
+ #include <linux/compiler.h>
+-
+-/* Same as asm-generic/percpu.h, except that we store the per cpu offset
+-   in the PDA. Longer term the PDA and every per cpu variable
+-   should be just put into a single section and referenced directly
+-   from %gs */
+-
+-#ifdef CONFIG_SMP
+ #include <asm/pda.h>
+ 
++#ifdef CONFIG_SMP
+ #define __per_cpu_offset(cpu) (cpu_pda(cpu)->data_offset)
+ #define __my_cpu_offset read_pda(data_offset)
+-
+ #define per_cpu_offset(x) (__per_cpu_offset(x))
+-
+ #endif
++
++#define __percpu_seg "%%gs:"
++
  #include <asm-generic/percpu.h>
  
- /* Equal to __per_cpu_offset[smp_processor_id()], but faster to access: */
-@@ -46,4 +38,127 @@ DECLARE_PER_CPU(unsigned long, local_per
+ DECLARE_PER_CPU(struct x8664_pda, pda);
+@@ -81,6 +76,11 @@ DECLARE_PER_CPU(struct x8664_pda, pda);
+ /* We can use this directly for local CPU (faster). */
+ DECLARE_PER_CPU(unsigned long, this_cpu_off);
  
++#endif /* __ASSEMBLY__ */
++#endif /* !CONFIG_X86_64 */
++
++#ifndef __ASSEMBLY__
++
+ /* For arch-specific code, we can use direct single-insn ops (they
+  * don't give an lvalue though). */
+ extern void __bad_percpu_size(void);
+@@ -142,5 +142,4 @@ do {							\
+ #define x86_sub_percpu(var, val) percpu_to_op("sub", per_cpu__##var, val)
+ #define x86_or_percpu(var, val) percpu_to_op("or", per_cpu__##var, val)
  #endif /* !__ASSEMBLY__ */
- 
-+/*
-+ * Per cpu ops.
-+ *
-+ * IA64 has no instructions that would allow light weight RMW operations.
-+ *
-+ * However, the canonical address of a per cpu variable is mapped via
-+ * a processor specific TLB entry to the per cpu area of the respective
-+ * processor. The THIS_CPU() macro is therefore not necessary here
-+ * since the canonical address of the per cpu variable allows access
-+ * to the instance of the per cpu variable for the current processor.
-+ *
-+ * Sadly we cannot simply define THIS_CPU() to return an address in
-+ * the per processor mapping space since the address acquired by THIS_CPU\
-+ * may be passed to another processor.
-+ */
-+#define __CPU_READ(var)				\
-+({						\
-+	(var);					\
-+})
-+
-+#define __CPU_WRITE(var, value)			\
-+({						\
-+	(var) = (value);			\
-+})
-+
-+#define __CPU_ADD(var, value)			\
-+({						\
-+	(var) += (value);			\
-+})
-+
-+#define __CPU_INC(var) __CPU_ADD((var), 1)
-+#define __CPU_DEC(var) __CPU_ADD((var), -1)
-+#define __CPU_SUB(var, value) __CPU_ADD((var), -(value))
-+
-+#define __CPU_CMPXCHG(var, old, new)		\
-+({						\
-+	typeof(obj) x;				\
-+	typeof(obj) *p = &(var);		\
-+	x = *p;					\
-+	if (x == (old))				\
-+		*p = (new);			\
-+	(x);					\
-+})
-+
-+#define __CPU_XCHG(obj, new)			\
-+({						\
-+	typeof(obj) x;				\
-+	typeof(obj) *p = &(obj);		\
-+	x = *p;					\
-+	*p = (new);				\
-+	(x);					\
-+})
-+
-+#define _CPU_READ __CPU_READ
-+#define _CPU_WRITE __CPU_WRITE
-+
-+#define _CPU_ADD(var, value)			\
-+({						\
-+	preempt_disable();			\
-+	__CPU_ADD((var), (value));		\
-+	preempt_enable();			\
-+})
-+
-+#define _CPU_INC(var) _CPU_ADD((var), 1)
-+#define _CPU_DEC(var) _CPU_ADD((var), -1)
-+#define _CPU_SUB(var, value) _CPU_ADD((var), -(value))
-+
-+#define _CPU_CMPXCHG(var, old, new)		\
-+({						\
-+	typeof(addr) x;				\
-+	preempt_disable();			\
-+	x = __CPU_CMPXCHG((var), (old), (new));	\
-+	preempt_enable();			\
-+	(x);					\
-+})
-+
-+#define _CPU_XCHG(var, new)			\
-+({						\
-+	typeof(var) x;				\
-+	preempt_disable();			\
-+	x = __CPU_XCHG((var), (new));		\
-+	preempt_enable();			\
-+	(x);					\
-+})
-+
-+/*
-+ * Third group: Interrupt safe CPU functions
-+ */
-+#define CPU_READ __CPU_READ
-+#define CPU_WRITE __CPU_WRITE
-+
-+#define CPU_ADD(var, value)			\
-+({						\
-+	unsigned long flags;			\
-+	local_irq_save(flags);			\
-+	__CPU_ADD((var), (value));		\
-+	local_irq_restore(flags);		\
-+})
-+
-+#define CPU_INC(var) CPU_ADD((var), 1)
-+#define CPU_DEC(var) CPU_ADD((var), -1)
-+#define CPU_SUB(var, value) CPU_ADD((var), -(value))
-+
-+#define CPU_CMPXCHG(var, old, new)		\
-+({						\
-+	unsigned long flags;			\
-+	typeof(var) x;				\
-+	local_irq_save(flags);			\
-+	x = __CPU_CMPXCHG((var), (old), (new));	\
-+	local_irq_restore(flags);		\
-+	(x);					\
-+})
-+
-+#define CPU_XCHG(var, new)			\
-+({						\
-+	unsigned long flags;			\
-+	typeof(var) x;				\
-+	local_irq_save(flags);			\
-+	x = __CPU_XCHG((var), (new));		\
-+	local_irq_restore(flags);		\
-+	(x);					\
-+})
-+
- #endif /* _ASM_IA64_PERCPU_H */
-Index: linux-2.6/arch/ia64/kernel/perfmon.c
+-#endif /* !CONFIG_X86_64 */
+ #endif /* _ASM_X86_PERCPU_H_ */
+Index: linux-2.6/arch/x86/kernel/smpboot.c
 ===================================================================
---- linux-2.6.orig/arch/ia64/kernel/perfmon.c	2008-05-29 19:35:09.000000000 -0700
-+++ linux-2.6/arch/ia64/kernel/perfmon.c	2008-05-29 19:35:13.000000000 -0700
-@@ -576,7 +576,7 @@ static struct ctl_table_header *pfm_sysc
- 
- static int pfm_context_unload(pfm_context_t *ctx, void *arg, int count, struct pt_regs *regs);
- 
--#define pfm_get_cpu_var(v)		__ia64_per_cpu_var(v)
-+#define pfm_get_cpu_var(v)		per_cpu_var(v)
- #define pfm_get_cpu_data(a,b)		per_cpu(a, b)
- 
- static inline void
-Index: linux-2.6/arch/ia64/kernel/setup.c
-===================================================================
---- linux-2.6.orig/arch/ia64/kernel/setup.c	2008-05-29 19:35:09.000000000 -0700
-+++ linux-2.6/arch/ia64/kernel/setup.c	2008-05-29 19:35:11.000000000 -0700
-@@ -925,7 +925,7 @@ cpu_init (void)
- 	 * depends on the data returned by identify_cpu().  We break the dependency by
- 	 * accessing cpu_data() through the canonical per-CPU address.
- 	 */
--	cpu_info = cpu_data + ((char *) &__ia64_per_cpu_var(cpu_info) - __per_cpu_start);
-+	cpu_info = cpu_data + ((char *)&per_cpu_var(cpu_info) - __per_cpu_start);
- 	identify_cpu(cpu_info);
- 
- #ifdef CONFIG_MCKINLEY
-Index: linux-2.6/arch/ia64/kernel/smp.c
-===================================================================
---- linux-2.6.orig/arch/ia64/kernel/smp.c	2008-05-29 19:35:09.000000000 -0700
-+++ linux-2.6/arch/ia64/kernel/smp.c	2008-05-29 19:35:11.000000000 -0700
-@@ -150,7 +150,7 @@ irqreturn_t
- handle_IPI (int irq, void *dev_id)
- {
- 	int this_cpu = get_cpu();
--	unsigned long *pending_ipis = &__ia64_per_cpu_var(ipi_operation);
-+	unsigned long *pending_ipis = &per_cpu_var(ipi_operation);
- 	unsigned long ops;
- 
- 	mb();	/* Order interrupt and bit testing. */
-@@ -303,7 +303,7 @@ smp_local_flush_tlb(void)
- void
- smp_flush_tlb_cpumask(cpumask_t xcpumask)
- {
--	unsigned int *counts = __ia64_per_cpu_var(shadow_flush_counts);
-+	unsigned int *counts = per_cpu_var(shadow_flush_counts);
- 	cpumask_t cpumask = xcpumask;
- 	int mycpu, cpu, flush_mycpu = 0;
- 
-Index: linux-2.6/arch/ia64/sn/kernel/setup.c
-===================================================================
---- linux-2.6.orig/arch/ia64/sn/kernel/setup.c	2008-05-29 19:35:09.000000000 -0700
-+++ linux-2.6/arch/ia64/sn/kernel/setup.c	2008-05-29 19:35:11.000000000 -0700
-@@ -645,7 +645,7 @@ void __cpuinit sn_cpu_init(void)
- 		/* copy cpu 0's sn_cnodeid_to_nasid table to this cpu's */
- 		memcpy(sn_cnodeid_to_nasid,
- 		       (&per_cpu(__sn_cnodeid_to_nasid, 0)),
--		       sizeof(__ia64_per_cpu_var(__sn_cnodeid_to_nasid)));
-+		       sizeof(per_cpu_var(__sn_cnodeid_to_nasid)));
+--- linux-2.6.orig/arch/x86/kernel/smpboot.c	2008-05-29 17:57:39.608964052 -0700
++++ linux-2.6/arch/x86/kernel/smpboot.c	2008-05-29 18:17:18.539452880 -0700
+@@ -855,22 +855,6 @@ static int __cpuinit do_boot_cpu(int api
+ 		printk(KERN_ERR "Failed to allocate GDT for CPU %d\n", cpu);
+ 		return -1;
  	}
+-
+-	/* Allocate node local memory for AP pdas */
+-	if (cpu_pda(cpu) == &boot_cpu_pda[cpu]) {
+-		struct x8664_pda *newpda, *pda;
+-		int node = cpu_to_node(cpu);
+-		pda = cpu_pda(cpu);
+-		newpda = kmalloc_node(sizeof(struct x8664_pda), GFP_ATOMIC,
+-				      node);
+-		if (newpda) {
+-			memcpy(newpda, pda, sizeof(struct x8664_pda));
+-			cpu_pda(cpu) = newpda;
+-		} else
+-			printk(KERN_ERR
+-		"Could not allocate node local PDA for CPU %d on node %d\n",
+-				cpu, node);
+-	}
+ #endif
  
- 	/*
-@@ -706,7 +706,7 @@ void __init build_cnode_tables(void)
- 
- 	memset(physical_node_map, -1, sizeof(physical_node_map));
- 	memset(sn_cnodeid_to_nasid, -1,
--			sizeof(__ia64_per_cpu_var(__sn_cnodeid_to_nasid)));
-+			sizeof(per_cpu_var(__sn_cnodeid_to_nasid)));
- 
- 	/*
- 	 * First populate the tables with C/M bricks. This ensures that
-Index: linux-2.6/include/asm-ia64/mmu_context.h
-===================================================================
---- linux-2.6.orig/include/asm-ia64/mmu_context.h	2008-05-29 19:35:10.000000000 -0700
-+++ linux-2.6/include/asm-ia64/mmu_context.h	2008-05-29 19:35:13.000000000 -0700
-@@ -64,11 +64,11 @@ delayed_tlb_flush (void)
- 	extern void local_flush_tlb_all (void);
- 	unsigned long flags;
- 
--	if (unlikely(__ia64_per_cpu_var(ia64_need_tlb_flush))) {
-+	if (unlikely(CPU_READ(per_cpu_var(ia64_need_tlb_flush)))) {
- 		spin_lock_irqsave(&ia64_ctx.lock, flags);
--		if (__ia64_per_cpu_var(ia64_need_tlb_flush)) {
-+		if (CPU_READ(per_cpu_var(ia64_need_tlb_flush))) {
- 			local_flush_tlb_all();
--			__ia64_per_cpu_var(ia64_need_tlb_flush) = 0;
-+			CPU_WRITE(per_cpu_var(ia64_need_tlb_flush), 0);
- 		}
- 		spin_unlock_irqrestore(&ia64_ctx.lock, flags);
- 	}
-Index: linux-2.6/include/asm-ia64/processor.h
-===================================================================
---- linux-2.6.orig/include/asm-ia64/processor.h	2008-05-29 19:35:09.000000000 -0700
-+++ linux-2.6/include/asm-ia64/processor.h	2008-05-29 19:35:11.000000000 -0700
-@@ -237,7 +237,7 @@ DECLARE_PER_CPU(struct cpuinfo_ia64, cpu
-  * Do not use the address of local_cpu_data, since it will be different from
-  * cpu_data(smp_processor_id())!
-  */
--#define local_cpu_data		(&__ia64_per_cpu_var(cpu_info))
-+#define local_cpu_data		(&per_cpu_var(cpu_info))
- #define cpu_data(cpu)		(&per_cpu(cpu_info, cpu))
- 
- extern void print_cpu_info (struct cpuinfo_ia64 *);
-Index: linux-2.6/include/asm-ia64/sn/pda.h
-===================================================================
---- linux-2.6.orig/include/asm-ia64/sn/pda.h	2008-05-29 19:35:10.000000000 -0700
-+++ linux-2.6/include/asm-ia64/sn/pda.h	2008-05-29 19:35:11.000000000 -0700
-@@ -62,7 +62,7 @@ typedef struct pda_s {
-  */
- DECLARE_PER_CPU(struct pda_s, pda_percpu);
- 
--#define pda		(&__ia64_per_cpu_var(pda_percpu))
-+#define pda		(&per_cpu_var(pda_percpu))
- 
- #define pdacpu(cpu)	(&per_cpu(pda_percpu, cpu))
- 
-Index: linux-2.6/arch/ia64/Kconfig
-===================================================================
---- linux-2.6.orig/arch/ia64/Kconfig	2008-05-29 19:35:09.000000000 -0700
-+++ linux-2.6/arch/ia64/Kconfig	2008-05-29 19:35:11.000000000 -0700
-@@ -92,6 +92,9 @@ config GENERIC_TIME_VSYSCALL
- config HAVE_SETUP_PER_CPU_AREA
- 	def_bool y
- 
-+config HAVE_CPU_OPS
-+	def_bool y
-+
- config DMI
- 	bool
- 	default y
+ 	alternatives_smp_switch(1);
 
 -- 
