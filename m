@@ -1,64 +1,72 @@
 From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [patch 02/41] cpu alloc: The allocator
-Date: Thu, 29 May 2008 22:31:09 -0700
-Message-ID: <20080529223109.bbb7b0e0.akpm@linux-foundation.org>
+Subject: Re: [patch 03/41] cpu alloc: Use cpu allocator instead of the
+ builtin modules per cpu allocator
+Date: Thu, 29 May 2008 22:34:31 -0700
+Message-ID: <20080529223431.9b406072.akpm@linux-foundation.org>
 References: <20080530035620.587204923@sgi.com>
-	<20080530040011.084909898@sgi.com>
-	<20080529215833.469c3cbe.akpm@linux-foundation.org>
-	<Pine.LNX.4.64.0805292203240.12107@schroedinger.engr.sgi.com>
+	<20080530040011.451400376@sgi.com>
+	<20080529215837.0528fb3b.akpm@linux-foundation.org>
+	<Pine.LNX.4.64.0805292210420.12107@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:33846 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:48947 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753003AbYE3Fb2 (ORCPT
+	by vger.kernel.org with ESMTP id S1753047AbYE3Fer (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 01:31:28 -0400
-In-Reply-To: <Pine.LNX.4.64.0805292203240.12107@schroedinger.engr.sgi.com>
+	Fri, 30 May 2008 01:34:47 -0400
+In-Reply-To: <Pine.LNX.4.64.0805292210420.12107@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Lameter <clameter@sgi.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-On Thu, 29 May 2008 22:10:25 -0700 (PDT) Christoph Lameter <clameter@sgi.com> wrote:
+On Thu, 29 May 2008 22:14:17 -0700 (PDT) Christoph Lameter <clameter@sgi.com> wrote:
 
-> > > +		start++;
-> > > +		first = 0;
-> > > +	}
-> > 
-> > This is kinda bitmap_find_free_region(), only bitmap_find_free_region()
-> > isn't quite strong enough.
-> > 
-> > Generally I think it would have been better if you had added new
-> > primitives to the bitmap library (or enhanced existing ones) and used
-> > them here, rather than implementing private functionality.
+> On Thu, 29 May 2008, Andrew Morton wrote:
 > 
-> The scope of the patchset is already fairly large.
-
-It would be a relatively small incremental effort ;)
-
-> The search here is 
-> different and not performance critical. Not sure if this is useful for 
-> other purposes.
-
-I think that strengthening bitmap_find_free_region() would end up
-giving us a better kernel than open-coding something similar here.
-
-> > > + */
-> > > +
-> > > +/* Return a pointer to the instance of a object for a particular processor */
-> > > +#define CPU_PTR(__p, __cpu)	SHIFT_PERCPU_PTR((__p), per_cpu_offset(__cpu))
+> > > +			printk(KERN_WARNING "%s: per-cpu alignment %li > %li\n",
+> > > +			mod->name, align, PAGE_SIZE);
 > > 
-> > eek, a major interface function which is ALL IN CAPS!
-> > 
-> > can we do this in lower-case?  In a C function?
+> > Indenting broke.
 > 
-> No. This is a macro and therefore uppercase (there is macro magic going on 
-> that ppl need to be aware of). AFAICR you wanted it this way last year. C 
-> function not possible because of the type checking.
+> Hmmm. Okay.
+>  
+> > Alas, PAGE_SIZE has, iirc, unsigned type on some architectures and
+> > unsigned long on others.  I suspect you'll need to cast it to be able
+> > to print it.
+> 
+> This is code that was moved.
+> 
+> > > +		percpu = cpu_alloc(size, GFP_KERNEL|__GFP_ZERO, align);
+> > > +		if (!percpu)
+> > > +			printk(KERN_WARNING "Could not allocate %lu bytes percpu data\n",
+> > 
+> > 80-col bustage,.
+> > 
+> > A printk like this should, I think, identify what part of the kernel it
+> > came from.
+> 
+> Again moved code. Should I really do string separations for code 
+> that is moved?
 
-urgh.  This is a C-convention versus kernel-convention thing.  The C
-convention exists for very good reasons.  But it sure does suck.
+That's not a string separation - it is a functional improvement.
 
-What do others think?
+Sure, why not fix these little things while we're there?
+
+> > But really, I don't think any printk should be present here. 
+> > cpu_alloc() itself should dump the warning and the backtrace when it
+> > runs out.  Because a cpu_alloc() failure is a major catastrophe.  It
+> > probably means a reconfigure-and-reboot cycle.
+> 
+> The code has been able to deal with an allocpercpu failure in the 
+> past. Why would it have trouble with a cpu_alloc failure here?
+
+Because an alloc_percpu failure is a page allocator failure.  This is a
+well-known situation which we know basically never happens, or at least
+happens under well-known circumstances.
+
+Whereas a cpu_alloc() failure is a dead box.  We cannot fix it via
+running page reclaim.  We cannot fix it via oom-killing someone.  We
+are dead.
