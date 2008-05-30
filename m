@@ -1,117 +1,185 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 08/41] cpu alloc: ACPI cstate handling conversion
-Date: Thu, 29 May 2008 20:56:28 -0700
-Message-ID: <20080530040012.864398705@sgi.com>
+Subject: [patch 18/41] cpu alloc: Dmaengine conversion
+Date: Thu, 29 May 2008 20:56:38 -0700
+Message-ID: <20080530040017.363831817@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2.sgi.com ([192.48.171.30]:56570 "EHLO relay.sgi.com"
+Received: from relay2.sgi.com ([192.48.171.30]:56616 "EHLO relay.sgi.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751030AbYE3EAP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 00:00:15 -0400
-Content-Disposition: inline; filename=cpu_alloc_acpi_cstate_handling_conversion
+	id S1752632AbYE3EAV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 00:00:21 -0400
+Content-Disposition: inline; filename=cpu_alloc_dmaengine_conversion
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Convert ACPI per cpu handling to cpu alloc.
+Convert DMA engine to use CPU_xx operations. This also removes the use of local_t
+from the dmaengine.
 
 Signed-off-by: Christoph Lameter <clameter@sgi.com>
 ---
- arch/x86/kernel/acpi/cstate.c              |    9 +++++----
- arch/x86/kernel/cpu/cpufreq/acpi-cpufreq.c |    7 ++++---
- drivers/acpi/processor_perflib.c           |    4 ++--
- 3 files changed, 11 insertions(+), 9 deletions(-)
+ drivers/dma/dmaengine.c   |   38 ++++++++++++++------------------------
+ include/linux/dmaengine.h |   16 ++++++----------
+ 2 files changed, 20 insertions(+), 34 deletions(-)
 
-Index: linux-2.6/arch/x86/kernel/acpi/cstate.c
+Index: linux-2.6/drivers/dma/dmaengine.c
 ===================================================================
---- linux-2.6.orig/arch/x86/kernel/acpi/cstate.c	2008-04-29 14:55:48.000000000 -0700
-+++ linux-2.6/arch/x86/kernel/acpi/cstate.c	2008-05-21 21:43:07.000000000 -0700
-@@ -85,7 +85,7 @@
- 	if (reg->bit_offset != NATIVE_CSTATE_BEYOND_HALT)
- 		return -1;
+--- linux-2.6.orig/drivers/dma/dmaengine.c	2008-04-29 14:55:49.000000000 -0700
++++ linux-2.6/drivers/dma/dmaengine.c	2008-05-21 21:48:25.000000000 -0700
+@@ -84,7 +84,7 @@
+ 	int i;
  
--	percpu_entry = per_cpu_ptr(cpu_cstate_entry, cpu);
-+	percpu_entry = CPU_PTR(cpu_cstate_entry, cpu);
- 	percpu_entry->states[cx->index].eax = 0;
- 	percpu_entry->states[cx->index].ecx = 0;
+ 	for_each_possible_cpu(i)
+-		count += per_cpu_ptr(chan->local, i)->memcpy_count;
++		count += CPU_PTR(chan->local, i)->memcpy_count;
  
-@@ -138,7 +138,7 @@
- 	unsigned int cpu = smp_processor_id();
- 	struct cstate_entry *percpu_entry;
- 
--	percpu_entry = per_cpu_ptr(cpu_cstate_entry, cpu);
-+	percpu_entry = CPU_PTR(cpu_cstate_entry, cpu);
- 	mwait_idle_with_hints(percpu_entry->states[cx->index].eax,
- 	                      percpu_entry->states[cx->index].ecx);
+ 	return sprintf(buf, "%lu\n", count);
  }
-@@ -150,13 +150,14 @@
- 	if (c->x86_vendor != X86_VENDOR_INTEL)
- 		return -1;
+@@ -97,7 +97,7 @@
+ 	int i;
  
--	cpu_cstate_entry = alloc_percpu(struct cstate_entry);
-+	cpu_cstate_entry = CPU_ALLOC(struct cstate_entry,
-+					GFP_KERNEL|__GFP_ZERO);
- 	return 0;
+ 	for_each_possible_cpu(i)
+-		count += per_cpu_ptr(chan->local, i)->bytes_transferred;
++		count += CPU_PTR(chan->local, i)->bytes_transferred;
+ 
+ 	return sprintf(buf, "%lu\n", count);
  }
+@@ -111,10 +111,8 @@
+ 		atomic_read(&chan->refcount.refcount) > 1)
+ 		in_use = 1;
+ 	else {
+-		if (local_read(&(per_cpu_ptr(chan->local,
+-			get_cpu())->refcount)) > 0)
++		if (_CPU_READ(chan->local->refcount) > 0)
+ 			in_use = 1;
+-		put_cpu();
+ 	}
  
- static void __exit ffh_cstate_exit(void)
- {
--	free_percpu(cpu_cstate_entry);
-+	CPU_FREE(cpu_cstate_entry);
- 	cpu_cstate_entry = NULL;
+ 	return sprintf(buf, "%d\n", in_use);
+@@ -227,7 +225,7 @@
+ 	int bias = 0x7FFFFFFF;
+ 	int i;
+ 	for_each_possible_cpu(i)
+-		bias -= local_read(&per_cpu_ptr(chan->local, i)->refcount);
++		bias -= _CPU_READ(chan->local->refcount);
+ 	atomic_sub(bias, &chan->refcount.refcount);
+ 	kref_put(&chan->refcount, dma_chan_cleanup);
  }
+@@ -372,7 +370,8 @@
  
-Index: linux-2.6/arch/x86/kernel/cpu/cpufreq/acpi-cpufreq.c
-===================================================================
---- linux-2.6.orig/arch/x86/kernel/cpu/cpufreq/acpi-cpufreq.c	2008-04-29 14:55:48.000000000 -0700
-+++ linux-2.6/arch/x86/kernel/cpu/cpufreq/acpi-cpufreq.c	2008-05-21 21:44:02.000000000 -0700
-@@ -524,7 +524,8 @@
- {
- 	dprintk("acpi_cpufreq_early_init\n");
- 
--	acpi_perf_data = alloc_percpu(struct acpi_processor_performance);
-+	acpi_perf_data = CPU_ALLOC(struct acpi_processor_performance,
-+						GFP_KERNEL|__GFP_ZERO);
- 	if (!acpi_perf_data) {
- 		dprintk("Memory allocation error for acpi_perf_data.\n");
- 		return -ENOMEM;
-@@ -580,7 +581,7 @@
- 	if (!data)
- 		return -ENOMEM;
- 
--	data->acpi_data = percpu_ptr(acpi_perf_data, cpu);
-+	data->acpi_data = CPU_PTR(acpi_perf_data, cpu);
- 	per_cpu(drv_data, cpu) = data;
- 
- 	if (cpu_has(c, X86_FEATURE_CONSTANT_TSC))
-@@ -794,7 +795,7 @@
- 
- 	cpufreq_unregister_driver(&acpi_cpufreq_driver);
- 
--	free_percpu(acpi_perf_data);
-+	CPU_FREE(acpi_perf_data);
- 
- 	return;
- }
-Index: linux-2.6/drivers/acpi/processor_perflib.c
-===================================================================
---- linux-2.6.orig/drivers/acpi/processor_perflib.c	2008-04-29 14:55:49.000000000 -0700
-+++ linux-2.6/drivers/acpi/processor_perflib.c	2008-05-21 21:43:07.000000000 -0700
-@@ -583,12 +583,12 @@
+ 	/* represent channels in sysfs. Probably want devs too */
+ 	list_for_each_entry(chan, &device->channels, device_node) {
+-		chan->local = alloc_percpu(typeof(*chan->local));
++		chan->local = CPU_ALLOC(typeof(*chan->local),
++					GFP_KERNEL | __GFP_ZERO);
+ 		if (chan->local == NULL)
  			continue;
- 		}
  
--		if (!performance || !percpu_ptr(performance, i)) {
-+		if (!performance || !CPU_PTR(performance, i)) {
- 			retval = -EINVAL;
- 			continue;
+@@ -385,7 +384,7 @@
+ 		rc = device_register(&chan->dev);
+ 		if (rc) {
+ 			chancnt--;
+-			free_percpu(chan->local);
++			CPU_FREE(chan->local);
+ 			chan->local = NULL;
+ 			goto err_out;
  		}
+@@ -413,7 +412,7 @@
+ 		kref_put(&device->refcount, dma_async_device_cleanup);
+ 		device_unregister(&chan->dev);
+ 		chancnt--;
+-		free_percpu(chan->local);
++		CPU_FREE(chan->local);
+ 	}
+ 	return rc;
+ }
+@@ -490,11 +489,8 @@
+ 	tx->callback = NULL;
+ 	cookie = tx->tx_submit(tx);
  
--		pr->performance = percpu_ptr(performance, i);
-+		pr->performance = CPU_PTR(performance, i);
- 		cpu_set(i, pr->performance->shared_cpu_map);
- 		if (acpi_processor_get_psd(pr)) {
- 			retval = -EINVAL;
+-	cpu = get_cpu();
+-	per_cpu_ptr(chan->local, cpu)->bytes_transferred += len;
+-	per_cpu_ptr(chan->local, cpu)->memcpy_count++;
+-	put_cpu();
+-
++	__CPU_ADD(chan->local->bytes_transferred, len);
++	__CPU_INC(chan->local->memcpy_count);
+ 	return cookie;
+ }
+ EXPORT_SYMBOL(dma_async_memcpy_buf_to_buf);
+@@ -536,11 +532,8 @@
+ 	tx->callback = NULL;
+ 	cookie = tx->tx_submit(tx);
+ 
+-	cpu = get_cpu();
+-	per_cpu_ptr(chan->local, cpu)->bytes_transferred += len;
+-	per_cpu_ptr(chan->local, cpu)->memcpy_count++;
+-	put_cpu();
+-
++	_CPU_ADD(chan->local->bytes_transferred, len);
++	_CPU_INC(chan->local->memcpy_count);
+ 	return cookie;
+ }
+ EXPORT_SYMBOL(dma_async_memcpy_buf_to_pg);
+@@ -585,11 +578,8 @@
+ 	tx->callback = NULL;
+ 	cookie = tx->tx_submit(tx);
+ 
+-	cpu = get_cpu();
+-	per_cpu_ptr(chan->local, cpu)->bytes_transferred += len;
+-	per_cpu_ptr(chan->local, cpu)->memcpy_count++;
+-	put_cpu();
+-
++	_CPU_ADD(chan->local->bytes_transferred, len);
++	_CPU_INC(chan->local->memcpy_count);
+ 	return cookie;
+ }
+ EXPORT_SYMBOL(dma_async_memcpy_pg_to_pg);
+Index: linux-2.6/include/linux/dmaengine.h
+===================================================================
+--- linux-2.6.orig/include/linux/dmaengine.h	2008-04-29 14:55:54.000000000 -0700
++++ linux-2.6/include/linux/dmaengine.h	2008-05-21 21:48:25.000000000 -0700
+@@ -116,13 +116,13 @@
+ 
+ /**
+  * struct dma_chan_percpu - the per-CPU part of struct dma_chan
+- * @refcount: local_t used for open-coded "bigref" counting
++ * @refcount: int used for open-coded "bigref" counting
+  * @memcpy_count: transaction counter
+  * @bytes_transferred: byte counter
+  */
+ 
+ struct dma_chan_percpu {
+-	local_t refcount;
++	int refcount;
+ 	/* stats */
+ 	unsigned long memcpy_count;
+ 	unsigned long bytes_transferred;
+@@ -164,20 +164,16 @@
+ {
+ 	if (unlikely(chan->slow_ref))
+ 		kref_get(&chan->refcount);
+-	else {
+-		local_inc(&(per_cpu_ptr(chan->local, get_cpu())->refcount));
+-		put_cpu();
+-	}
++	else
++		_CPU_INC(chan->local->refcount);
+ }
+ 
+ static inline void dma_chan_put(struct dma_chan *chan)
+ {
+ 	if (unlikely(chan->slow_ref))
+ 		kref_put(&chan->refcount, dma_chan_cleanup);
+-	else {
+-		local_dec(&(per_cpu_ptr(chan->local, get_cpu())->refcount));
+-		put_cpu();
+-	}
++	else
++		_CPU_DEC(chan->local->refcount);
+ }
+ 
+ /*
 
 -- 
