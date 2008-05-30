@@ -1,59 +1,42 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Harvey Harrison <harvey.harrison@gmail.com>
 Subject: Re: [PATCH 05/37] ata: use get/put_endian helpers
-Date: Thu, 29 May 2008 19:52:25 -0700
-Message-ID: <20080529195225.5665ae9c.akpm@linux-foundation.org>
-References: <1212092282.28403.107.camel@brick>
-	<483F65CA.4050507@rtr.ca>
+Date: Thu, 29 May 2008 20:37:40 -0700
+Message-ID: <1212118661.28403.175.camel@brick>
+References: <1212092282.28403.107.camel@brick> <483F65CA.4050507@rtr.ca>
+	 <20080529195225.5665ae9c.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:60646 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750934AbYE3Cwi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 May 2008 22:52:38 -0400
-In-Reply-To: <483F65CA.4050507@rtr.ca>
+Received: from wr-out-0506.google.com ([64.233.184.224]:28011 "EHLO
+	wr-out-0506.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752542AbYE3Dhp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2008 23:37:45 -0400
+Received: by wr-out-0506.google.com with SMTP id c48so3707306wra.1
+        for <linux-arch@vger.kernel.org>; Thu, 29 May 2008 20:37:45 -0700 (PDT)
+In-Reply-To: <20080529195225.5665ae9c.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Lord <liml@rtr.ca>
-Cc: Harvey Harrison <harvey.harrison@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mark Lord <liml@rtr.ca>, linux-arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, linux-ide <linux-ide@vger.kernel.org>
 
-On Thu, 29 May 2008 22:26:18 -0400 Mark Lord <liml@rtr.ca> wrote:
-
-> Harvey Harrison wrote:
-> > Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
-> > ---
-> >  drivers/ata/pdc_adma.c   |   12 ++++++------
-> >  drivers/ata/sata_qstor.c |   12 +++++-------
-> >  2 files changed, 11 insertions(+), 13 deletions(-)
-> > 
-> > diff --git a/drivers/ata/pdc_adma.c b/drivers/ata/pdc_adma.c
-> > index be53545..162eecb 100644
-> > --- a/drivers/ata/pdc_adma.c
-> > +++ b/drivers/ata/pdc_adma.c
-> > @@ -284,11 +284,11 @@ static int adma_fill_sg(struct ata_queued_cmd *qc)
-> >  		u32 len;
-> >  
-> >  		addr = (u32)sg_dma_address(sg);
-> > -		*(__le32 *)(buf + i) = cpu_to_le32(addr);
-> > +		put_le32(addr, (__le32 *)(buf + i));
-> ..
+On Thu, 2008-05-29 at 19:52 -0700, Andrew Morton wrote:
+> On Thu, 29 May 2008 22:26:18 -0400 Mark Lord <liml@rtr.ca> wrote:
 > 
-> I don't get it.
+
+> otoh,
 > 
-> What's the point here?
+> - I think the args are backwards
+> 
 
-Readability and maintainability.  Once one becomes familar with a
-particular idion like this you can read it and say "ah, I know what
-that's doing" rather than having to peer at every character and work it
-out at each site where it happens.
+It was made to look like put_unaligned_* and put_unaligned()
 
-As usual: a PITA now, but better long-term.
+I think of it as put_le16(source, dest)
 
-otoh,
+> - I don't like the use of the put_*() namespace.  It makes it look
+>   like a uaccess operation.
 
-- I think the args are backwards
+I'm flexible...although I'd probably get nailed to a cross for changing
+it again so soon. (the unaligned versions, that is)
 
-- I don't like the use of the put_*() namespace.  It makes it look
-  like a uaccess operation.
+Harvey
