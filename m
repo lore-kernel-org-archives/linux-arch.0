@@ -1,56 +1,64 @@
-From: Christoph Lameter <clameter@sgi.com>
-Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Thu, 29 May 2008 22:27:53 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805292224540.12329@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com> <20080529215827.b659d032.akpm@linux-foundation.org>
- <Pine.LNX.4.64.0805292159360.12107@schroedinger.engr.sgi.com>
- <20080529222143.5d7aa1e5.akpm@linux-foundation.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch 02/41] cpu alloc: The allocator
+Date: Thu, 29 May 2008 22:31:09 -0700
+Message-ID: <20080529223109.bbb7b0e0.akpm@linux-foundation.org>
+References: <20080530035620.587204923@sgi.com>
+	<20080530040011.084909898@sgi.com>
+	<20080529215833.469c3cbe.akpm@linux-foundation.org>
+	<Pine.LNX.4.64.0805292203240.12107@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:42252 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753271AbYE3F16 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 01:27:58 -0400
-In-Reply-To: <20080529222143.5d7aa1e5.akpm@linux-foundation.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:33846 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753003AbYE3Fb2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 01:31:28 -0400
+In-Reply-To: <Pine.LNX.4.64.0805292203240.12107@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
+To: Christoph Lameter <clameter@sgi.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-On Thu, 29 May 2008, Andrew Morton wrote:
+On Thu, 29 May 2008 22:10:25 -0700 (PDT) Christoph Lameter <clameter@sgi.com> wrote:
 
-> > The per cpu memory use by subsystems is typically quite small. We already 
-> > have an 8k limitation for percpu space for modules. And that does not seem 
-> > to be a problem.
+> > > +		start++;
+> > > +		first = 0;
+> > > +	}
+> > 
+> > This is kinda bitmap_find_free_region(), only bitmap_find_free_region()
+> > isn't quite strong enough.
+> > 
+> > Generally I think it would have been better if you had added new
+> > primitives to the bitmap library (or enhanced existing ones) and used
+> > them here, rather than implementing private functionality.
 > 
-> eh?  That's DEFINE_PERCPU memory, not alloc_pecpu() memory?
+> The scope of the patchset is already fairly large.
 
-No. The module subsystem has its own alloc_percpu subsystem that the 
-cpu_alloc replaces.
+It would be a relatively small incremental effort ;)
 
-> > We could do that yes.
+> The search here is 
+> different and not performance critical. Not sure if this is useful for 
+> other purposes.
+
+I think that strengthening bitmap_find_free_region() would end up
+giving us a better kernel than open-coding something similar here.
+
+> > > + */
+> > > +
+> > > +/* Return a pointer to the instance of a object for a particular processor */
+> > > +#define CPU_PTR(__p, __cpu)	SHIFT_PERCPU_PTR((__p), per_cpu_offset(__cpu))
+> > 
+> > eek, a major interface function which is ALL IN CAPS!
+> > 
+> > can we do this in lower-case?  In a C function?
 > 
-> Phew.
+> No. This is a macro and therefore uppercase (there is macro magic going on 
+> that ppl need to be aware of). AFAICR you wanted it this way last year. C 
+> function not possible because of the type checking.
 
-But its going to be even more complicated and I have a hard time managing 
-the complexity here. Could someone take pieces off my hand?
+urgh.  This is a C-convention versus kernel-convention thing.  The C
+convention exists for very good reasons.  But it sure does suck.
 
-> > But then per cpu data is not frequently allocated and freed.
-> 
-> I think it is, in the TCP case.  And that's the only one I looked at.
-
-Which tcp case?
-
-> Plus who knows what lies ahead of us?
-
-Well invariably we will end up with cpu area defragmentation.... Sigh.
-
-> I don't think there is presently any upper limit on alloc_percpu()?  It
-> uses kmalloc() and kmalloc_node()?
-> 
-> Even if there is some limit, is it an unfixable one?
-
-No there is no limit. It just wastes lots of space (pointer arrays, 
-alignment etc) that we could use to configure sufficiently large per cpu 
-areas.
+What do others think?
