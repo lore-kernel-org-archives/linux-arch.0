@@ -1,49 +1,33 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu operations
-Date: Fri, 30 May 2008 17:08:50 +1000
-Message-ID: <200805301708.51284.rusty@rustcorp.com.au>
-References: <20080530035620.587204923@sgi.com> <20080529223825.bf744d37.akpm@linux-foundation.org> <Pine.LNX.4.64.0805292309520.12457@schroedinger.engr.sgi.com>
+From: Jens Axboe <jens.axboe@oracle.com>
+Subject: Re: [PATCH 07/37] block: use get/put_endian helpers
+Date: Fri, 30 May 2008 09:22:21 +0200
+Message-ID: <20080530072220.GG25504@kernel.dk>
+References: <1212092287.28403.109.camel@brick>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:48590 "EHLO ozlabs.org"
+Received: from brick.kernel.dk ([87.55.233.238]:4868 "EHLO kernel.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752738AbYE3HKC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 03:10:02 -0400
-In-Reply-To: <Pine.LNX.4.64.0805292309520.12457@schroedinger.engr.sgi.com>
+	id S1754280AbYE3HWX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 03:22:23 -0400
 Content-Disposition: inline
+In-Reply-To: <1212092287.28403.109.camel@brick>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Friday 30 May 2008 16:12:59 Christoph Lameter wrote:
-> On Thu, 29 May 2008, Andrew Morton wrote:
-> > > area. It requies disabling of interrupts etc.
-> >
-> > No it doesn't.  Look:
-> >
-> > static inline void local_inc(local_t *l)
-> > {
-> > 	asm volatile(_ASM_INC "%0"
-> >
-> > 		     : "+m" (l->a.counter));
-> >
-> > }
-> >
-> > > Its not atomic (wrt
-> > > interrupts) because of that.
-> >
-> > Yes it is.
->
-> No its not! In order to increment a per cpu value you need to calculate
-> the per cpu pointer address in the current per cpu segment.
+On Thu, May 29 2008, Harvey Harrison wrote:
+> Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
+> ---
+>  drivers/block/cciss.c     |   11 +++++------
+>  drivers/block/paride/pd.c |    8 ++++----
+>  drivers/block/ub.c        |    4 ++--
+>  drivers/cdrom/cdrom.c     |    2 +-
+>  4 files changed, 12 insertions(+), 13 deletions(-)
 
-Christoph, you just missed it, that's all.  Look at cpu_local_read et al in 
-include/asm-i386/local.h (ie. before the x86 mergers chose the lowest common 
-denominator one).
+What is the point of this? I'm honestly asking, what is the grand idea
+behind changing eg be32_to_cpu() to get_be32()?
 
-Cheers,
-Rusty.
+-- 
+Jens Axboe
