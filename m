@@ -1,87 +1,72 @@
 From: Christoph Lameter <clameter@sgi.com>
-Subject: [patch 41/41] x86_64: Support for cpu ops
-Date: Thu, 29 May 2008 20:57:01 -0700
-Message-ID: <20080530040024.610015676@sgi.com>
+Subject: [patch 31/41] VM statistics: Use CPU ops
+Date: Thu, 29 May 2008 20:56:51 -0700
+Message-ID: <20080530040021.460464557@sgi.com>
 References: <20080530035620.587204923@sgi.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:40567 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753418AbYE3EA0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 00:00:26 -0400
-Content-Disposition: inline; filename=cpu_alloc_ops_x86
+Received: from relay1.sgi.com ([192.48.171.29]:45461 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753056AbYE3EAX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2008 00:00:23 -0400
+Content-Disposition: inline; filename=cpu_alloc_ops_vmstat
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
 
-Support fast cpu ops in x86_64 by providing a series of functions that
-generate the proper instructions.
+The use of CPU ops here avoids the offset calculations that we used to have
+to do with per cpu operations. The result of this patch is that event counters
+are coded with a single instruction the following way:
 
-Define CONFIG_HAVE_CPU_OPS so that core code
-can exploit the availability of fast per cpu operations.
+	incq   %gs:offset(%rip)
 
-Signed-off-by: Christoph Lameter <clameter@sgi.com>
+Without these patches this was:
+
+	mov    %gs:0x8,%rdx
+	mov    %eax,0x38(%rsp)
+	mov    xxx(%rip),%eax
+	mov    %eax,0x48(%rsp)
+	mov    varoffset,%rax
+	incq   0x110(%rax,%rdx,1)
+
+Signed-off-by: Christoph Lameter <clameter@sgi.com
 
 ---
- arch/x86/Kconfig         |    4 ++++
- include/asm-x86/percpu.h |   31 +++++++++++++++++++++++++++++++
- 2 files changed, 35 insertions(+)
+ include/linux/vmstat.h |   10 ++++------
+ 1 file changed, 4 insertions(+), 6 deletions(-)
 
-Index: linux-2.6/arch/x86/Kconfig
+Index: linux-2.6/include/linux/vmstat.h
 ===================================================================
---- linux-2.6.orig/arch/x86/Kconfig	2008-05-29 18:05:08.514214613 -0700
-+++ linux-2.6/arch/x86/Kconfig	2008-05-29 18:09:55.889464792 -0700
-@@ -168,6 +168,10 @@ config GENERIC_PENDING_IRQ
- 	depends on GENERIC_HARDIRQS && SMP
- 	default y
+--- linux-2.6.orig/include/linux/vmstat.h	2008-05-20 19:43:43.000000000 -0700
++++ linux-2.6/include/linux/vmstat.h	2008-05-20 21:40:32.000000000 -0700
+@@ -63,24 +63,22 @@
  
-+config HAVE_CPU_OPS
-+	bool
-+	default y
-+
- config X86_SMP
- 	bool
- 	depends on SMP && ((X86_32 && !X86_VOYAGER) || X86_64)
-Index: linux-2.6/include/asm-x86/percpu.h
-===================================================================
---- linux-2.6.orig/include/asm-x86/percpu.h	2008-05-29 18:08:28.513214585 -0700
-+++ linux-2.6/include/asm-x86/percpu.h	2008-05-29 18:09:55.889464792 -0700
-@@ -196,5 +196,36 @@ do {							\
- #define x86_cmpxchg_percpu(var, old, new) \
- 				percpu_cmpxchg_op(per_cpu_var(var), old, new)
+ static inline void __count_vm_event(enum vm_event_item item)
+ {
+-	__get_cpu_var(vm_event_states).event[item]++;
++	__CPU_INC(per_cpu_var(vm_event_states).event[item]);
+ }
  
-+#define CPU_READ(obj)		percpu_from_op("mov", obj)
-+#define CPU_WRITE(obj, val)	percpu_to_op("mov", obj, val)
-+#define CPU_ADD(obj, val)	percpu_to_op("add", obj, val)
-+#define CPU_SUB(obj, val)	percpu_to_op("sub", obj, val)
-+#define CPU_INC(obj)		percpu_addr_op("inc", obj)
-+#define CPU_DEC(obj)		percpu_addr_op("dec", obj)
-+#define CPU_XCHG(obj, val)	percpu_to_op("xchg", var, val)
-+#define CPU_CMPXCHG(obj, old, new) percpu_cmpxchg_op(var, old, new)
-+
-+/*
-+ * All cpu operations are interrupt safe and do not need to disable
-+ * preempt. So the other variants all reduce to the same instruction.
-+ */
-+#define _CPU_READ CPU_READ
-+#define _CPU_WRITE CPU_WRITE
-+#define _CPU_ADD CPU_ADD
-+#define _CPU_SUB CPU_SUB
-+#define _CPU_INC CPU_INC
-+#define _CPU_DEC CPU_DEC
-+#define _CPU_XCHG CPU_XCHG
-+#define _CPU_CMPXCHG CPU_CMPXCHG
-+
-+#define __CPU_READ CPU_READ
-+#define __CPU_WRITE CPU_WRITE
-+#define __CPU_ADD CPU_ADD
-+#define __CPU_SUB CPU_SUB
-+#define __CPU_INC CPU_INC
-+#define __CPU_DEC CPU_DEC
-+#define __CPU_XCHG CPU_XCHG
-+#define __CPU_CMPXCHG CPU_CMPXCHG
-+
- #endif /* !__ASSEMBLY__ */
- #endif /* _ASM_X86_PERCPU_H_ */
+ static inline void count_vm_event(enum vm_event_item item)
+ {
+-	get_cpu_var(vm_event_states).event[item]++;
+-	put_cpu();
++	_CPU_INC(per_cpu_var(vm_event_states).event[item]);
+ }
+ 
+ static inline void __count_vm_events(enum vm_event_item item, long delta)
+ {
+-	__get_cpu_var(vm_event_states).event[item] += delta;
++	__CPU_ADD(per_cpu_var(vm_event_states).event[item], delta);
+ }
+ 
+ static inline void count_vm_events(enum vm_event_item item, long delta)
+ {
+-	get_cpu_var(vm_event_states).event[item] += delta;
+-	put_cpu();
++	_CPU_ADD(per_cpu_var(vm_event_states).event[item], delta);
+ }
+ 
+ extern void all_vm_events(unsigned long *);
 
 -- 
