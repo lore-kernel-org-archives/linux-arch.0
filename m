@@ -1,43 +1,31 @@
-From: Jussi Kivilinna <jussi.kivilinna@mbnet.fi>
-Subject: Re: [PATCH 16/37] net/usb: use get/put_endian helpers
-Date: Sat, 31 May 2008 02:43:36 +0300
-Message-ID: <20080531024336.gszdaepdog8woow0@hayate.ip6>
-References: <1212092310.28403.118.camel@brick>
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [PATCH 9/10] parisc: convert to generic helpers for IPI
+	function calls
+Date: Sat, 31 May 2008 03:00:49 -0400
+Message-ID: <20080531070049.GA6623@phobos.i.cabal.ca>
+References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-10-git-send-email-jens.axboe@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset=ISO-8859-1;
-	DelSp="Yes";
-	format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.dnainternet.fi ([87.94.96.112]:40521 "EHLO
-	smtp2.dnainternet.fi" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752412AbYE3Xvz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2008 19:51:55 -0400
-In-Reply-To: <1212092310.28403.118.camel@brick>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1754561AbYEaHBD@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: dbrownell@users.sourceforge.net, Andrew Morton <akpm@linux-foundation.org>, Jeff Garzik <jeff@garzik.org>, David Miller <davem@davemloft.net>, linux-netdev <netdev@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+In-Reply-To: <1212051504-12561-10-git-send-email-jens.axboe@oracle.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>
+List-Id: linux-arch.vger.kernel.org
 
-Quoting Harvey Harrison <harvey.harrison@gmail.com>:
+On Thu, May 29, 2008 at 10:58:23AM +0200, Jens Axboe wrote:
+> This converts parisc to use the new helpers for smp_call_function() and
+> friends, and adds support for smp_call_function_single(). Not tested,
+> not even compiled.
+> 
+> Cc: Kyle McMartin <kyle@parisc-linux.org>
+> Cc: Matthew Wilcox <matthew@wil.cx>
+> Cc: Grant Grundler <grundler@parisc-linux.org>
+> Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
+>  
 
-> diff --git a/drivers/net/usb/rndis_host.c b/drivers/net/usb/rndis_host.c
-> index ae467f1..bda89c9 100644
-> --- a/drivers/net/usb/rndis_host.c
-> +++ b/drivers/net/usb/rndis_host.c
-> @@ -407,7 +407,7 @@ generic_rndis_bind(struct usbnet *dev, struct   
-> usb_interface *intf, int flags)
->  	u.set->oid = OID_GEN_CURRENT_PACKET_FILTER;
->  	u.set->len = ccpu2(4);
->  	u.set->offset = ccpu2((sizeof *u.set) - 8);
-> -	*(__le32 *)(u.buf + sizeof *u.set) = RNDIS_DEFAULT_FILTER;
-> +	put_le32(RNDIS_DEFAULT_FILTER, (__le32 *)(u.buf + sizeof(*u.set)));
->
->  	retval = rndis_command(dev, u.header);
->  	if (unlikely(retval < 0)) {
+Do you have all this in an easily accessible git tree that I can merge
+to test?
 
-RNDIS_DEFAULT_FILTER already is le32, put_le32 breaks it.
-
-  - Jussi
+regards, Kyle
