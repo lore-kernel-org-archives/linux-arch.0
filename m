@@ -1,52 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-mail-33.bluehost.com ([69.89.18.153]:49618 "HELO
-	outbound-mail-33.bluehost.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1752219AbYE3R2g (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 May 2008 13:28:36 -0400
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Fri, 30 May 2008 10:21:00 -0700
-References: <1211852026.3286.36.camel@pasglop> <1212073289.3428.30.camel@localhost.localdomain> <483FCA94.1060506@sgi.com>
-In-Reply-To: <483FCA94.1060506@sgi.com>
+Received: from 206-248-169-182.dsl.ncf.ca ([206.248.169.182]:45871 "EHLO
+	phobos.cabal.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751003AbYEaHSN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2008 03:18:13 -0400
+Date: Sat, 31 May 2008 03:00:49 -0400
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [PATCH 9/10] parisc: convert to generic helpers for IPI
+	function calls
+Message-ID: <20080531070049.GA6623@phobos.i.cabal.ca>
+References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-10-git-send-email-jens.axboe@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Message-ID: <200805301021.00883.jbarnes@virtuousgeek.org>
+In-Reply-To: <1212051504-12561-10-git-send-email-jens.axboe@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jes Sorensen <jes@sgi.com>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, Roland Dreier <rdreier@cisco.com>, benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk, Jeremy Higdon <jeremy@sgi.com>
-Message-ID: <20080530172100.1sxpo4zOcYaYdq52xrNnZblqMOtCtYAnO2SX3ZAdbts@z>
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>
+Message-ID: <20080531070049.bYJEKxDbv-aBy9cpqimMzM9qWHG2OJ3E_DhbcnWCoEw@z>
 
-On Friday, May 30, 2008 2:36 am Jes Sorensen wrote:
-> James Bottomley wrote:
-> >> The only way to guarantee ordering in the above setup, is to either
-> >> make writel() fully ordered or adding the mmiowb()'s inbetween the two
-> >> writel's. On Altix you have to go and read from the PCI brige to
-> >> ensure all writes to it have been flushed, which is also what mmiowb()
-> >> is doing. If writel() was to guarantee this ordering, it would make
-> >> every writel() call extremely expensive :-(
-> >
-> > So if a read from the bridge achieves the same effect, can't we just put
-> > one after the writes within the spinlock (an unrelaxed one).  That way
-> > this whole sequence will look like a well understood PCI posting flush
-> > rather than have to muck around with little understood (at least by most
-> > driver writers) io barriers?
->
-> Hmmm,
->
-> I think mmiowb() does some sort of status read from the bridge, I am not
-> sure if it's enough to just do a regular readl().
->
-> I'm adding Jeremy to the list, he should know for sure.
+On Thu, May 29, 2008 at 10:58:23AM +0200, Jens Axboe wrote:
+> This converts parisc to use the new helpers for smp_call_function() and
+> friends, and adds support for smp_call_function_single(). Not tested,
+> not even compiled.
+> 
+> Cc: Kyle McMartin <kyle@parisc-linux.org>
+> Cc: Matthew Wilcox <matthew@wil.cx>
+> Cc: Grant Grundler <grundler@parisc-linux.org>
+> Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
+>  
 
-I think a read from the target host bridge is enough.  What mmiowb() does 
-though is to read a *local* host bridge register, which contains a count of 
-the number of PIO ops still "in flight" on their way to their target bridge.  
-When it reaches 0, all PIOs have arrived at the target host bridge (they 
-still may be bufferd), so ordering is guaranteed.
+Do you have all this in an easily accessible git tree that I can merge
+to test?
 
-Jesse
+regards, Kyle
