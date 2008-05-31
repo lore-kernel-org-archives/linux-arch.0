@@ -1,61 +1,47 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Sat, 31 May 2008 10:04:27 +0200
-Message-ID: <20080531080427.GH5405@ucw.cz>
-References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net> <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net> <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop> <adaprr721c6.fsf@cisco.com>
+From: Pavel Machek <pavel@suse.cz>
+Subject: Re: [PATCH 0/2] Kill unused parameter to smp_call_function and friends
+Date: Sat, 31 May 2008 22:45:42 +0200
+Message-ID: <20080531204541.GK5405@ucw.cz>
+References: <1212051661-12733-1-git-send-email-jens.axboe@oracle.com> <20080529114132.663eff4b@core>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gprs189-60.eurotel.cz ([160.218.189.60]:4288 "EHLO spitz.ucw.cz"
+Received: from gprs189-60.eurotel.cz ([160.218.189.60]:4289 "EHLO spitz.ucw.cz"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752727AbYFAOpF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 1 Jun 2008 10:45:05 -0400
+	id S1752721AbYFAOpL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 1 Jun 2008 10:45:11 -0400
 Content-Disposition: inline
-In-Reply-To: <adaprr721c6.fsf@cisco.com>
+In-Reply-To: <20080529114132.663eff4b@core>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland Dreier <rdreier@cisco.com>
-Cc: benh@kernel.crashing.org, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: Jens Axboe <jens.axboe@oracle.com>, linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
 
 Hi!
 
->  > Though it's my understanding that at least ia64 does require the
->  > explicit barriers anyway, so we are still in a dodgy situation here
->  > where it's not clear what drivers should do and we end up with
->  > possibly excessive barriers on powerpc where I end up with both
->  > the wmb/rmb/mb that were added for ia64 -and- the ones I have in
->  > readl/writel to make them look synchronous... Not nice.
+> > It bothers me how the smp call functions accept a 'nonatomic' or 'retry'
+> > parameter (depending on who you ask), but don't do anything with it.
+> > So kill that silly thing.
+> > 
+> > Two patches here, one for smp_call_function*() and one for on_each_cpu().
+> > This patchset applies on top of the generic-ipi patchset just sent out.
 > 
-> ia64 is a disaster with a slightly different ordering problem -- the
-> mmiowb() issue.  I know Ben knows far too much about this, but for big
-> SGI boxes, you sometimes need mmiowb() to avoid problems with driver
-> code that does totally sane stuff like
+> Which leads to notice that we seem to have acquired a bug somewhere on
+> the way. smp_call_function on x86 is it seems to me implemented as
+> "smp_call_function and occasionally run it multiple times"
 > 
-> 	spin_lock(&mmio_lock);
-> 	writel(val1, reg1);
-> 	writel(val2, reg2);
-> 	spin_unlock(&mmio_lock);
+> One of the joys of the older x86 APIC setups is the APIC messaging bus.
+> This can get checksum errors in which case the message is retransmitted:
 > 
-> If that snippet is called on two CPUs at the same time, then the device
-> might see a sequence like
-> 
-> 	CPU1 -- write reg1
-> 	CPU2 -- write reg1
-> 	CPU1 -- write reg2
-> 	CPU2 -- write reg2
-> 
-> in spite of the fact that everything is totally ordered on the CPUs by
-> the spin lock.
-> 
-> The reason this is such a disaster is because the code looks right,
-> makes sense, and works fine on 99.99% of all systems out there.  So I
-> would bet that 99% of our drivers have missing mmiowb() "bugs" -- no one
-> has plugged the hardware into an Altix box and cared enough to stress
-> test it.
+> In the specific case a message is retransmitted and there are at least
+> three parties on the bus (2 CPU APICs and an IOAPIC is enough) you can
+> get a situation where one receiver gets the message the second receiver
+> errors it and the retransmit causes the IPI to be repeated which causes
+> the IPI to be redelivered.
 
-Yes, ia64 is a disaster, and needs its spinlock implementation fixed
-:-).
-							Pavel
+Does that mean smp_call_function on i386 should have a bitmap of cpus
+the message was already delivered to, and drop the duplicates?
+
 -- 
 (english) http://www.livejournal.com/~pavelmachek
 (cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
