@@ -1,43 +1,63 @@
-From: Christoph Lameter <clameter@sgi.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
-Date: Sat, 31 May 2008 20:27:55 -0700 (PDT)
-Message-ID: <Pine.LNX.4.64.0805312026000.20941@schroedinger.engr.sgi.com>
-References: <20080530035620.587204923@sgi.com>  <1212138752.12349.227.camel@twins>
-  <Pine.LNX.4.64.0805301101490.14564@schroedinger.engr.sgi.com>
- <1212171574.24826.12.camel@lappy.programming.kicks-ass.net>
- <Pine.LNX.4.64.0805301126130.14781@schroedinger.engr.sgi.com>
- <1212173236.24826.29.camel@lappy.programming.kicks-ass.net>
- <Pine.LNX.4.64.0805301156530.16253@schroedinger.engr.sgi.com>
- <1212175315.24826.49.camel@lappy.programming.kicks-ass.net>
+Date: Sun, 01 Jun 2008 10:19:15 +0200
+Message-ID: <1212308355.18235.0.camel@twins>
+References: <20080530035620.587204923@sgi.com>
+	 <1212138752.12349.227.camel@twins> <20080530091847.GA26563@elte.hu>
+	 <Pine.LNX.4.64.0805301109120.14564@schroedinger.engr.sgi.com>
+	 <1212172834.24826.22.camel@lappy.programming.kicks-ass.net>
+	 <Pine.LNX.4.64.0805301155380.16253@schroedinger.engr.sgi.com>
+	 <1212174798.24826.44.camel@lappy.programming.kicks-ass.net>
+	 <Pine.LNX.4.64.0805312021560.20941@schroedinger.engr.sgi.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.sgi.com ([192.48.171.29]:45703 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753658AbYFAD1z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 31 May 2008 23:27:55 -0400
-In-Reply-To: <1212175315.24826.49.camel@lappy.programming.kicks-ass.net>
+Received: from pentafluge.infradead.org ([213.146.154.40]:44813 "EHLO
+	pentafluge.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751401AbYFAIUh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jun 2008 04:20:37 -0400
+In-Reply-To: <Pine.LNX.4.64.0805312021560.20941@schroedinger.engr.sgi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>
+To: Christoph Lameter <clameter@sgi.com>
+Cc: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>
 
-On Fri, 30 May 2008, Peter Zijlstra wrote:
-
-> > > Also, it explicitly ties the preempt-off section to the data used in
-> > > case of !rt, which in turn allows for the direct conversion to the
-> > > locked version.
-> > 
-> > Ahh. Okay. This would make the lockless preemptless fastpath impossible 
-> > because it would have to use some sort of locking to avoid access to the 
-> > same percpu data from multiple processor?
+On Sat, 2008-05-31 at 20:25 -0700, Christoph Lameter wrote:
+> On Fri, 30 May 2008, Peter Zijlstra wrote:
 > 
-> TBH its been a while since I attempted slub-rt, but yes that got hairy.
-> I think it can be done using cmpxchg and speculative page refs, but I
-> can't quite recall.
+> > Remember, horribly long on -rt is in the order of ~30us.
+> > 
+> > See for instance the path:
+> > 
+> >  flush_slab()
+> >    slab_lock() <-- bit_spinlock
+> >    deactive_slab()
+> >      loop over objects
+> 
+> looping over all objects is rarely ever done.
+> 
+> >      unfreeze_slab()
+> >        add_partial()
+> >          spin_lock(&n->list_lock) <-- another lock
+> > 
+> > all of that runs with preempt disabled, and worse it can spin for some
+> > indefinite amount of time.
+> > 
+> > That is totally unacceptable on -rt, so we need to make it all
+> > preemptible and use sleeping locks (IRQ inversion can't happen, for the
+> > only thing that runs in hardirq is try_to_wake_up()).
+> 
+> The way I thought about -rt was that it would convert the 
+> spinlocks to semaphores. Isnt it possible to sleep on a bit spinlock in 
+> -rt? Aside from that I would have thought that the simple disabling of 
+> rescheduling on another processor in some context would gets us there. 
+> 
+> Never thought about the details though.
 
-Uhhh... Well I think you really need two different percpu sections. One 
-that works like the upstream percpu section and another where it works 
-with a spinlock. Basically its like a struct protected by an extra lock.
+s/semaphores/PI-mutexes/
 
-The one with a spinlock could not support the atomic percpu ops.
+yes you can do a bit-sleep-lock ala lock_page.
+
+But for any sleeping lock we must not have preemption disabled, coming
+right back to the initial problem.
