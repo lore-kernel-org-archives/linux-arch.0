@@ -1,42 +1,52 @@
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Missing memory clobber in ip_fast_csum
-Date: Sat, 31 May 2008 05:13:41 -0600
-Message-ID: <20080531111340.GE28074@parisc-linux.org>
+From: Christoph Lameter <clameter@sgi.com>
+Subject: Re: [patch 00/41] cpu alloc / cpu ops v3: Optimize per cpu access
+Date: Sat, 31 May 2008 20:25:55 -0700 (PDT)
+Message-ID: <Pine.LNX.4.64.0805312021560.20941@schroedinger.engr.sgi.com>
+References: <20080530035620.587204923@sgi.com>  <1212138752.12349.227.camel@twins>
+ <20080530091847.GA26563@elte.hu>  <Pine.LNX.4.64.0805301109120.14564@schroedinger.engr.sgi.com>
+  <1212172834.24826.22.camel@lappy.programming.kicks-ass.net>
+ <Pine.LNX.4.64.0805301155380.16253@schroedinger.engr.sgi.com>
+ <1212174798.24826.44.camel@lappy.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:48697 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750867AbYEaLN5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2008 07:13:57 -0400
-Content-Disposition: inline
+Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:34961 "EHLO
+	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753658AbYFADZ5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2008 23:25:57 -0400
+In-Reply-To: <1212174798.24826.44.camel@lappy.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dhowells@redhat.com, lethal@linux-sh.org, linux-sh@vger.kernel.org, chris@zankel.net
-Cc: linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Steven Rostedt <rostedt@goodmis.org>
 
+On Fri, 30 May 2008, Peter Zijlstra wrote:
 
-Kyle McMartin just tracked down a bug on parisc to a missing "memory"
-clobber in the inline assembly implementation of ip_fast_csum.  The FRV,
-SH and Xtensa ports are also missing a memory clobber, so I thought it
-would be polite to let you know.
+> Remember, horribly long on -rt is in the order of ~30us.
+> 
+> See for instance the path:
+> 
+>  flush_slab()
+>    slab_lock() <-- bit_spinlock
+>    deactive_slab()
+>      loop over objects
 
-The bug manifests as dropped network packets (obviously they have the
-wrong checksum).  It started appearing for parisc with GCC 4.3.
+looping over all objects is rarely ever done.
 
-The GCC manual says:
+>      unfreeze_slab()
+>        add_partial()
+>          spin_lock(&n->list_lock) <-- another lock
+> 
+> all of that runs with preempt disabled, and worse it can spin for some
+> indefinite amount of time.
+> 
+> That is totally unacceptable on -rt, so we need to make it all
+> preemptible and use sleeping locks (IRQ inversion can't happen, for the
+> only thing that runs in hardirq is try_to_wake_up()).
 
- If your assembler instructions access memory in an unpredictable
- fashion, add `memory' to the list of clobbered registers.  This will
- cause GCC to not keep memory values cached in registers across the
- assembler instruction and not optimize stores or loads to that memory.
+The way I thought about -rt was that it would convert the 
+spinlocks to semaphores. Isnt it possible to sleep on a bit spinlock in 
+-rt? Aside from that I would have thought that the simple disabling of 
+rescheduling on another processor in some context would gets us there. 
 
-I see that FRV has a 400 byte memory output which may prevent this
-problem from appearing, but SH and Xtensa have nothing to prevent this
-bug.  Hope this saves you a few days of debugging.
-
--- 
-Intel are signing my paycheques ... these opinions are still mine
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+Never thought about the details though.
