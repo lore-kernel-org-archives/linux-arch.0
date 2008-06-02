@@ -1,70 +1,49 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [patch 04/41] cpu ops: Core piece for generic atomic per cpu operations
-Date: Mon, 2 Jun 2008 12:00:41 +1000
-Message-ID: <200806021200.41652.rusty@rustcorp.com.au>
-References: <20080530035620.587204923@sgi.com> <200805301708.51284.rusty@rustcorp.com.au> <Pine.LNX.4.64.0805301055270.14564@schroedinger.engr.sgi.com>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Mon, 2 Jun 2008 08:24:03 +0100
+Message-ID: <20080602072403.GA20222@flint.arm.linux.org.uk>
+References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net> <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net> <1211859542.3286.46.camel@pasglop> <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org> <1211922621.3286.80.camel@pasglop> <alpine.LFD.1.10.0805271421570.2958@woody.linux-foundation.org> <1211924335.3286.89.camel@pasglop> <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:33554 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753697AbYFBDeg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 1 Jun 2008 23:34:36 -0400
-In-Reply-To: <Pine.LNX.4.64.0805301055270.14564@schroedinger.engr.sgi.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1758285AbYFBHYo@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <clameter@sgi.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
+In-Reply-To: <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
+List-Id: linux-arch.vger.kernel.org
 
-On Saturday 31 May 2008 04:00:40 Christoph Lameter wrote:
-> On Fri, 30 May 2008, Rusty Russell wrote:
-> > > No its not! In order to increment a per cpu value you need to calculate
-> > > the per cpu pointer address in the current per cpu segment.
-> >
-> > Christoph, you just missed it, that's all.  Look at cpu_local_read et al
-> > in include/asm-i386/local.h (ie. before the x86 mergers chose the lowest
-> > common denominator one).
->
-> There is no doubt that local_t does perform an atomic vs. interrupt inc
-> for example. But its not usable. Because you need to determine the address
-> of the local_t belonging to the current processor first.
+On Tue, May 27, 2008 at 02:55:56PM -0700, Linus Torvalds wrote:
+> 
+> 
+> On Wed, 28 May 2008, Benjamin Herrenschmidt wrote:
+> > 
+> > A problem with __raw_ though is that they -also- don't do byteswap,
+> 
+> Well, that's why there is __readl() and __raw_readl(), no?
+> 
+> Neither does ordering, and __raw_readl() doesn't do byte-swap.
 
-Christoph!
+This is where the lack of documentation causes arch maintainers a big
+problem.  None of the semantics of __raw_readl vs __readl vs readl are
+documented _anywhere_.  If you look at x86 as a template, there's no
+comments there about what the different variants are supposed to do
+or not do.
 
-STOP typing, and START reading.
+So it's left up to arch maintainers to literally guess what should be
+done.  That's precisely what I did when I implemented ARMs __raw_readl
+and friends.  I guessed.
 
-cpu_local_inc() does all this: it takes the name of a local_t var, and is 
-expected to increment this cpu's version of that.  You ripped this out and 
-called it CPU_INC().
+And it was only after I read a few mails on lkml which suggested that
+readl and friends should always be LE that ARMs readl implementation
+started to use le32_to_cpu()... before that it had always been native
+endian.  Again, lack of documentation...
 
-Do not make me explain it a third time.
+So, can the semantics of what's expected from these IO accessor
+functions be documented somewhere.  Please?  Before this thread gets
+lost in the depths of time?
 
-> As soon as you 
-> have loaded a processor specific address you can no longer be preempted
-> because that may change the processor and then the wrong address may be
-> increment (and then we have a race again since now we are incrementing
-> counters belonging to other processors). So local_t at mininum requires
-> disabling preempt.
-
-Think for a moment.  What are the chances that I didn't understand this when I 
-wrote the multiple implementations of local_t?
-
-You are wasting my time explaining the obvious, and wasting your own.
-
-> Believe me I have tried to use local_t repeatedly for vm statistics etc.
-> It always fails on that issue.
-
-Frankly, I am finding it increasingly easy to believe that you failed.  But 
-you are blaming the wrong thing.
-
-There are three implementations of local_t which are obvious.  The best is for 
-architectures which can locate and increment a per-cpu var in one instruction 
-(eg. x86).  Otherwise, using atomic_t/atomic64_t for local_t provides a 
-general solution.  The other general solution would involve 
-local_irq_disable()/increment/local_irq_enable().
-
-My (fading) hope is that this idiocy is an abberation,
-Rusty.
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
