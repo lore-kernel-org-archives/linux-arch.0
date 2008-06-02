@@ -1,56 +1,35 @@
-From: Paul Jackson <pj@sgi.com>
-Subject: Re: [patch 02/41] cpu alloc: The allocator
-Date: Mon, 2 Jun 2008 04:29:46 -0500
-Message-ID: <20080602042946.1f27faf3.pj@sgi.com>
-References: <20080530035620.587204923@sgi.com>
-	<20080530040011.084909898@sgi.com>
-	<20080529215833.469c3cbe.akpm@linux-foundation.org>
-	<Pine.LNX.4.64.0805292203240.12107@schroedinger.engr.sgi.com>
-	<20080529223109.bbb7b0e0.akpm@linux-foundation.org>
+From: Jes Sorensen <jes@sgi.com>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Mon, 02 Jun 2008 11:48:11 +0200
+Message-ID: <4843C1DB.4080500@sgi.com>
+References: <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net> <20080526204233.75b71bb8@infradead.org> <1211872130.3286.64.camel@pasglop> <adaprr721c6.fsf@cisco.com> <1211922696.3286.82.camel@pasglop> <adaiqwzsa83.fsf@cisco.com> <yq0iqwxrwuh.fsf@jaguar.mkp.net> <1212097223.8888.55.camel@pasglop> <483FCD5C.208@sgi.com> <20080531081450.GI5405@ucw.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from netops-testserver-3-out.sgi.com ([192.48.171.28]:57905 "EHLO
-	relay.sgi.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750986AbYFBJ3v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 05:29:51 -0400
-In-Reply-To: <20080529223109.bbb7b0e0.akpm@linux-foundation.org>
+Received: from relay1.sgi.com ([192.48.171.29]:58548 "EHLO relay.sgi.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750986AbYFBJsR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Jun 2008 05:48:17 -0400
+In-Reply-To: <20080531081450.GI5405@ucw.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: clameter@sgi.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, dada1@cosmosbay.com, peterz@infradead.org, rusty@rustcorp.com.au, travis@sgi.com
+To: Pavel Machek <pavel@ucw.cz>
+Cc: benh@kernel.crashing.org, Roland Dreier <rdreier@cisco.com>, Arjan van de Ven <arjan@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tpiepho@freescale.com, linuxppc-dev@ozlabs.org, scottwood@freescale.com, torvalds@linux-foundation.org, David Miller <davem@davemloft.net>, alan@lxorguk.ukuu.org.uk, Jeremy Higdon <jeremy@sgi.com>
 
-Andrew wrote:
-> > > > +#define CPU_PTR(__p, __cpu)	SHIFT_PERCPU_PTR((__p), per_cpu_offset(__cpu))
-> > > 
-> > > eek, a major interface function which is ALL IN CAPS!
-> > > 
-> > > can we do this in lower-case?  In a C function?
-> > 
-> > No. This is a macro and therefore uppercase (there is macro magic going on 
-> > that ppl need to be aware of). AFAICR you wanted it this way last year. C 
-> > function not possible because of the type checking.
+Pavel Machek wrote:
+> Still better than changing semantics of writel for _all_ drivers.
 > 
-> urgh.  This is a C-convention versus kernel-convention thing.  The C
-> convention exists for very good reasons.  But it sure does suck.
-> 
-> What do others think?
+> If you are really sure driver does not depend on writel order, it is
+> just a sed/// command, so I don't see any big code maintenance
+> issues...
 
-A few, key symbols get to be special ... short but distinctive names
-that become (in)famous.  The classic was "u", for the per-user
-structure, aka the "user area", in old Unix kernels.  In people's
-names, a few one word or first names such as "Ike", "Madonna", "Ali",
-"Tiger", "Cher", "Mao", "OJ", "Plato", "Linus", ... have become
-distinctive and well known to many people.
+This isn't changing the semantics for all drivers, it means it leaves
+it up to us to fix the drivers that hit the problem. Whereas the other
+way round we'd have to make some fairly big modifications to a large
+number of drivers, which the driver maintainers are likely to be
+reluctant to accept and maintain. It will be a constant chase to keep
+that in order.
 
-How about "_pcpu", instead of CPU_PTR?  "_pcpu" is a short, unique
-(not currently in use) symbol that, tersely, says what we want to say.
-
-Yes - it violates multiple conventions.  "The Boss" (Bruce Springsteen)
-gets to do that.
-
--- 
-                  I won't rest till it's the best ...
-                  Programmer, Linux Scalability
-                  Paul Jackson <pj@sgi.com> 1.940.382.4214
+Cheers
+Jes
