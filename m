@@ -1,70 +1,31 @@
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCHv4 4/6] byteorder: wire up arches to use new headers
-Date: Mon, 2 Jun 2008 13:06:05 +0100
-Message-ID: <20080602120605.GA27125@flint.arm.linux.org.uk>
-References: <1212090962.28403.51.camel@brick>
+From: Russell King <rmk+lkml@arm.linux.org.uk>
+Subject: Re: [PATCH 6/10] arm: convert to generic helpers for IPI function calls
+Date: Mon, 2 Jun 2008 13:29:35 +0100
+Message-ID: <20080602122935.GB27125@flint.arm.linux.org.uk>
+References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-7-git-send-email-jens.axboe@oracle.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42321 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751736AbYFBMGW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 08:06:22 -0400
+Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1759781AbYFBMaU@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1212090962.28403.51.camel@brick>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Harvey Harrison <harvey.harrison@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
+In-Reply-To: <1212051504-12561-7-git-send-email-jens.axboe@oracle.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jens Axboe <jens.axboe@oracle.com>
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 29, 2008 at 12:56:02PM -0700, Harvey Harrison wrote:
-> diff --git a/include/asm-arm/byteorder.h b/include/asm-arm/byteorder.h
-> index e6f7fcd..d88a5ce 100644
-> --- a/include/asm-arm/byteorder.h
-> +++ b/include/asm-arm/byteorder.h
-> @@ -18,7 +18,15 @@
->  #include <linux/compiler.h>
->  #include <asm/types.h>
->  
-> -static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
-> +#ifdef __ARMEB__
-> +# define __BIG_ENDIAN
-> +#else
-> +# define __LITTLE_ENDIAN
-> +#endif
-> +
-> +#define __SWAB_64_THRU_32__
-> +
-> +static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
+On Thu, May 29, 2008 at 10:58:20AM +0200, Jens Axboe wrote:
+> This converts arm to use the new helpers for smp_call_function() and
+> friends, and adds support for smp_call_function_single().
+
+> +void arch_send_call_function_ipi(cpumask_t mask)
 >  {
->  	__u32 t;
->  
-> @@ -40,19 +48,8 @@ static inline __attribute_const__ __u32 ___arch__swab32(__u32 x)
->  
->  	return x;
+> -	return smp_call_function_on_cpu(func, info, retry, wait,
+> -					cpu_online_map);
+> +	send_ipi_message(mask, IPI_CALL_FUNC);
 >  }
-> +#define HAVE_ARCH_SWAB32
->  
-> -#define __arch__swab32(x) ___arch__swab32(x)
-> -
-> -#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-> -#  define __BYTEORDER_HAS_U64__
-> -#  define __SWAB_64_THRU_32__
-> -#endif
-> -
-> -#ifdef __ARMEB__
-> -#include <linux/byteorder/big_endian.h>
-> -#else
-> -#include <linux/byteorder/little_endian.h>
-> -#endif
-> +#include <linux/byteorder.h>
->  
->  #endif
-> -
 
-On the face of it, looks fine.  However, I noticed that in your reply to
-patch 3 you said you'll resend stuff - is there any point in me looking
-at the remainder of this patch set?
+Can things like the above be inline functions to be included in the
+generic code?
 
 -- 
 Russell King
