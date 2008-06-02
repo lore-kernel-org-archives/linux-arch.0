@@ -1,43 +1,53 @@
-From: Jens Axboe <jens.axboe@oracle.com>
-Subject: Re: [PATCH 9/10] parisc: convert to generic helpers for IPI  function calls
-Date: Mon, 2 Jun 2008 10:17:50 +0200
-Message-ID: <20080602081749.GG5757@kernel.dk>
-References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-10-git-send-email-jens.axboe@oracle.com> <20080531070049.GA6623@phobos.i.cabal.ca>
+From: Haavard Skinnemoen <haavard.skinnemoen@atmel.com>
+Subject: Re: MMIO and gcc re-ordering issue
+Date: Mon, 2 Jun 2008 10:11:02 +0200
+Message-ID: <20080602101102.0d8979c5@hskinnemo-gx745.norway.atmel.com>
+References: <1211852026.3286.36.camel@pasglop>
+	<20080526.184047.88207142.davem@davemloft.net>
+	<1211854540.3286.42.camel@pasglop>
+	<20080526.192812.184590464.davem@davemloft.net>
+	<1211859542.3286.46.camel@pasglop>
+	<alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org>
+	<1211922621.3286.80.camel@pasglop>
+	<alpine.LFD.1.10.0805271421570.2958@woody.linux-foundation.org>
+	<1211924335.3286.89.camel@pasglop>
+	<20080527214241.GA22636@parisc-linux.org>
+	<1211926636.3286.100.camel@pasglop>
+	<20080528103648.54eb8734@hskinnemo-gx745.norway.atmel.com>
+	<1212110003.15633.0.camel@pasglop>
+	<20080530080700.773a82cc@siona.local>
+	<1212132267.15633.69.camel@pasglop>
+	<20080530102706.56fca248@siona.local>
+	<Pine.LNX.4.64.0805301120510.26332@anakin>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from brick.kernel.dk ([87.55.233.238]:27243 "EHLO kernel.dk"
+Received: from smtpeu1.atmel.com ([195.65.72.27]:64729 "EHLO bagnes.atmel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758147AbYFBIRw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Jun 2008 04:17:52 -0400
-Content-Disposition: inline
-In-Reply-To: <20080531070049.GA6623@phobos.i.cabal.ca>
+	id S1757188AbYFBIS5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Jun 2008 04:18:57 -0400
+In-Reply-To: <Pine.LNX.4.64.0805301120510.26332@anakin>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: benh@kernel.crashing.org, Matthew Wilcox <matthew@wil.cx>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
 
-On Sat, May 31 2008, Kyle McMartin wrote:
-> On Thu, May 29, 2008 at 10:58:23AM +0200, Jens Axboe wrote:
-> > This converts parisc to use the new helpers for smp_call_function() and
-> > friends, and adds support for smp_call_function_single(). Not tested,
-> > not even compiled.
-> > 
-> > Cc: Kyle McMartin <kyle@parisc-linux.org>
-> > Cc: Matthew Wilcox <matthew@wil.cx>
-> > Cc: Grant Grundler <grundler@parisc-linux.org>
-> > Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
-> >  
+Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> On Fri, 30 May 2008, Haavard Skinnemoen wrote:
+> > Maybe we need another interface that does not do byteswapping but
+> > provides stronger ordering guarantees?
 > 
-> Do you have all this in an easily accessible git tree that I can merge
-> to test?
+> The byte swapping depends on the device/bus.
 
-Yep, you can pull:
+Of course. But isn't it reasonable to assume that a device integrated
+on the same silicon as the CPU is connected to a somewhat sane bus
+which doesn't require any byte swapping?
 
-git://git.kernel.dk/linux-2.6-block.git generic-ipi
+> So what happened to the old idea of putting the accessor function pointers
+> in the device/bus structure?
 
-to get this patchset. I should have mentioned that in the intro
-mail...
+Don't know. I think it sounds like overkill to replace a simple load or
+store with an indirect function call.
 
--- 
-Jens Axboe
+Haavard
