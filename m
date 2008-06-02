@@ -1,49 +1,43 @@
-From: Russell King <rmk+lkml@arm.linux.org.uk>
-Subject: Re: MMIO and gcc re-ordering issue
-Date: Mon, 2 Jun 2008 08:24:03 +0100
-Message-ID: <20080602072403.GA20222@flint.arm.linux.org.uk>
-References: <1211852026.3286.36.camel@pasglop> <20080526.184047.88207142.davem@davemloft.net> <1211854540.3286.42.camel@pasglop> <20080526.192812.184590464.davem@davemloft.net> <1211859542.3286.46.camel@pasglop> <alpine.LFD.1.10.0805270833060.2958@woody.linux-foundation.org> <1211922621.3286.80.camel@pasglop> <alpine.LFD.1.10.0805271421570.2958@woody.linux-foundation.org> <1211924335.3286.89.camel@pasglop> <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org>
+From: Jens Axboe <jens.axboe@oracle.com>
+Subject: Re: [PATCH 9/10] parisc: convert to generic helpers for IPI  function calls
+Date: Mon, 2 Jun 2008 10:17:50 +0200
+Message-ID: <20080602081749.GG5757@kernel.dk>
+References: <1212051504-12561-1-git-send-email-jens.axboe@oracle.com> <1212051504-12561-10-git-send-email-jens.axboe@oracle.com> <20080531070049.GA6623@phobos.i.cabal.ca>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner+glk-linux-kernel-3=40m.gmane.org-S1758285AbYFBHYo@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from brick.kernel.dk ([87.55.233.238]:27243 "EHLO kernel.dk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758147AbYFBIRw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Jun 2008 04:17:52 -0400
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.1.10.0805271451100.2958@woody.linux-foundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, scottwood@freescale.com, linuxppc-dev@ozlabs.org, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, tpiepho@freescale.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20080531070049.GA6623@phobos.i.cabal.ca>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kyle McMartin <kyle@mcmartin.ca>
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, npiggin@suse.de, linux-arch@vger.kernel.org, jeremy@goop.org, mingo@elte.hu, paulmck@linux.vnet.ibm.com, Kyle McMartin <kyle@parisc-linux.org>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>
 
-On Tue, May 27, 2008 at 02:55:56PM -0700, Linus Torvalds wrote:
-> 
-> 
-> On Wed, 28 May 2008, Benjamin Herrenschmidt wrote:
+On Sat, May 31 2008, Kyle McMartin wrote:
+> On Thu, May 29, 2008 at 10:58:23AM +0200, Jens Axboe wrote:
+> > This converts parisc to use the new helpers for smp_call_function() and
+> > friends, and adds support for smp_call_function_single(). Not tested,
+> > not even compiled.
 > > 
-> > A problem with __raw_ though is that they -also- don't do byteswap,
+> > Cc: Kyle McMartin <kyle@parisc-linux.org>
+> > Cc: Matthew Wilcox <matthew@wil.cx>
+> > Cc: Grant Grundler <grundler@parisc-linux.org>
+> > Signed-off-by: Jens Axboe <jens.axboe@oracle.com>
+> >  
 > 
-> Well, that's why there is __readl() and __raw_readl(), no?
-> 
-> Neither does ordering, and __raw_readl() doesn't do byte-swap.
+> Do you have all this in an easily accessible git tree that I can merge
+> to test?
 
-This is where the lack of documentation causes arch maintainers a big
-problem.  None of the semantics of __raw_readl vs __readl vs readl are
-documented _anywhere_.  If you look at x86 as a template, there's no
-comments there about what the different variants are supposed to do
-or not do.
+Yep, you can pull:
 
-So it's left up to arch maintainers to literally guess what should be
-done.  That's precisely what I did when I implemented ARMs __raw_readl
-and friends.  I guessed.
+git://git.kernel.dk/linux-2.6-block.git generic-ipi
 
-And it was only after I read a few mails on lkml which suggested that
-readl and friends should always be LE that ARMs readl implementation
-started to use le32_to_cpu()... before that it had always been native
-endian.  Again, lack of documentation...
-
-So, can the semantics of what's expected from these IO accessor
-functions be documented somewhere.  Please?  Before this thread gets
-lost in the depths of time?
+to get this patchset. I should have mentioned that in the intro
+mail...
 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Jens Axboe
