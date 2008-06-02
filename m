@@ -1,128 +1,349 @@
 From: Harvey Harrison <harvey.harrison@gmail.com>
-Subject: [PATCHv4 4/6] byteorder: fix direct byteswap includes
-Date: Mon, 02 Jun 2008 10:37:23 -0700
-Message-ID: <1212428243.11008.38.camel@brick>
+Subject: [PATCHv4 2/6] byteorder: add include/linux/byteorder.h to define
+	endian helpers
+Date: Mon, 02 Jun 2008 10:37:22 -0700
+Message-ID: <1212428242.11008.36.camel@brick>
 Mime-Version: 1.0
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wf-out-1314.google.com ([209.85.200.168]:10026 "EHLO
-	wf-out-1314.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755430AbYFBRh2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 13:37:28 -0400
-Received: by wf-out-1314.google.com with SMTP id 27so918349wfd.4
-        for <linux-arch@vger.kernel.org>; Mon, 02 Jun 2008 10:37:27 -0700 (PDT)
+Received: from yx-out-2324.google.com ([74.125.44.28]:18710 "EHLO
+	yx-out-2324.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755320AbYFBRh1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 13:37:27 -0400
+Received: by yx-out-2324.google.com with SMTP id 31so107994yxl.1
+        for <linux-arch@vger.kernel.org>; Mon, 02 Jun 2008 10:37:26 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Russell King <rmk@arm.linux.org.uk>, "tony.luck" <tony.luck@intel.com>
 
+Some places in the kernel were testing the value of __LITTLE_ENDIAN/__BIG_ENDIAN
+against a compile-time byteorder setting.  Ensure they are set to the same values
+as in the original include/linux/byteorder/* implementation.
+
 Signed-off-by: Harvey Harrison <harvey.harrison@gmail.com>
 ---
- drivers/media/dvb/ttpci/av7110.c       |    2 +-
- drivers/media/video/cx18/cx18-driver.h |    2 +-
- drivers/media/video/ivtv/ivtv-driver.h |    2 +-
- drivers/media/video/vpx3220.c          |    2 +-
- kernel/rcupreempt.c                    |    2 +-
- kernel/rcutorture.c                    |    2 +-
- 6 files changed, 6 insertions(+), 6 deletions(-)
+ include/linux/byteorder.h |  312 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 312 insertions(+), 0 deletions(-)
 
-diff --git a/drivers/media/dvb/ttpci/av7110.c b/drivers/media/dvb/ttpci/av7110.c
-index 747e7f1..c9e94b9 100644
---- a/drivers/media/dvb/ttpci/av7110.c
-+++ b/drivers/media/dvb/ttpci/av7110.c
-@@ -36,7 +36,6 @@
- #include <linux/fs.h>
- #include <linux/timer.h>
- #include <linux/poll.h>
--#include <linux/byteorder/swabb.h>
- #include <linux/smp_lock.h>
- 
- #include <linux/kernel.h>
-@@ -52,6 +51,7 @@
- #include <linux/i2c.h>
- #include <linux/kthread.h>
- 
-+#include <asm/byteorder.h>
- #include <asm/system.h>
- 
- #include <linux/dvb/frontend.h>
-diff --git a/drivers/media/video/cx18/cx18-driver.h b/drivers/media/video/cx18/cx18-driver.h
-index a2a6c58..49076c0 100644
---- a/drivers/media/video/cx18/cx18-driver.h
-+++ b/drivers/media/video/cx18/cx18-driver.h
-@@ -38,10 +38,10 @@
- #include <linux/i2c-algo-bit.h>
- #include <linux/list.h>
- #include <linux/unistd.h>
--#include <linux/byteorder/swab.h>
- #include <linux/pagemap.h>
- #include <linux/workqueue.h>
- #include <linux/mutex.h>
-+#include <asm/byteorder.h>
- 
- #include <linux/dvb/video.h>
- #include <linux/dvb/audio.h>
-diff --git a/drivers/media/video/ivtv/ivtv-driver.h b/drivers/media/video/ivtv/ivtv-driver.h
-index ba06e81..4e779c7 100644
---- a/drivers/media/video/ivtv/ivtv-driver.h
-+++ b/drivers/media/video/ivtv/ivtv-driver.h
-@@ -49,11 +49,11 @@
- #include <linux/i2c-algo-bit.h>
- #include <linux/list.h>
- #include <linux/unistd.h>
--#include <linux/byteorder/swab.h>
- #include <linux/pagemap.h>
- #include <linux/scatterlist.h>
- #include <linux/workqueue.h>
- #include <linux/mutex.h>
-+#include <asm/byteorder.h>
- #include <asm/uaccess.h>
- #include <asm/system.h>
- 
-diff --git a/drivers/media/video/vpx3220.c b/drivers/media/video/vpx3220.c
-index 3529302..5920a9e 100644
---- a/drivers/media/video/vpx3220.c
-+++ b/drivers/media/video/vpx3220.c
-@@ -24,7 +24,7 @@
- #include <linux/types.h>
- #include <linux/slab.h>
- 
--#include <linux/byteorder/swab.h>
-+#include <asm/byteorder.h>
- 
- #include <asm/io.h>
- #include <asm/uaccess.h>
-diff --git a/kernel/rcupreempt.c b/kernel/rcupreempt.c
-index e1cdf19..02afa9d 100644
---- a/kernel/rcupreempt.c
-+++ b/kernel/rcupreempt.c
-@@ -54,9 +54,9 @@
- #include <linux/cpu.h>
- #include <linux/random.h>
- #include <linux/delay.h>
--#include <linux/byteorder/swabb.h>
- #include <linux/cpumask.h>
- #include <linux/rcupreempt_trace.h>
-+#include <asm/byteorder.h>
- 
- /*
-  * Macro that prevents the compiler from reordering accesses, but does
-diff --git a/kernel/rcutorture.c b/kernel/rcutorture.c
-index 33acc42..e50ec0d 100644
---- a/kernel/rcutorture.c
-+++ b/kernel/rcutorture.c
-@@ -42,10 +42,10 @@
- #include <linux/freezer.h>
- #include <linux/cpu.h>
- #include <linux/delay.h>
--#include <linux/byteorder/swabb.h>
- #include <linux/stat.h>
- #include <linux/srcu.h>
- #include <linux/slab.h>
-+#include <asm/byteorder.h>
- 
- MODULE_LICENSE("GPL");
- MODULE_AUTHOR("Paul E. McKenney <paulmck@us.ibm.com> and "
+diff --git a/include/linux/byteorder.h b/include/linux/byteorder.h
+new file mode 100644
+index 0000000..b4713ce
+--- /dev/null
++++ b/include/linux/byteorder.h
+@@ -0,0 +1,312 @@
++#ifndef _LINUX_BYTEORDER_H
++#define _LINUX_BYTEORDER_H
++
++#include <linux/types.h>
++#include <linux/swab.h>
++
++#if defined(__LITTLE_ENDIAN) && defined(__BIG_ENDIAN)
++# error Fix asm/byteorder.h to define one endianness
++#endif
++
++#if !defined(__LITTLE_ENDIAN) && !defined(__BIG_ENDIAN)
++# error Fix asm/byteorder.h to define arch endianness
++#endif
++
++#ifdef __LITTLE_ENDIAN
++# undef __LITTLE_ENDIAN
++# define __LITTLE_ENDIAN 1234
++#endif
++
++#ifdef __BIG_ENDIAN
++# undef __BIG_ENDIAN
++# define __BIG_ENDIAN 4321
++#endif
++
++#if defined(__LITTLE_ENDIAN) && !defined(__LITTLE_ENDIAN_BITFIELD)
++# define __LITTLE_ENDIAN_BITFIELD
++#endif
++
++#if defined(__BIG_ENDIAN) && !defined(__BIG_ENDIAN_BITFIELD)
++# define __BIG_ENDIAN_BITFIELD
++#endif
++
++#ifdef __LITTLE_ENDIAN
++# define __le16_to_cpu(x) ((__force __u16)(__le16)(x))
++# define __le32_to_cpu(x) ((__force __u32)(__le32)(x))
++# define __le64_to_cpu(x) ((__force __u64)(__le64)(x))
++# define __cpu_to_le16(x) ((__force __le16)(__u16)(x))
++# define __cpu_to_le32(x) ((__force __le32)(__u32)(x))
++# define __cpu_to_le64(x) ((__force __le64)(__u64)(x))
++# define __le16_to_cpus(x) do {} while (0)
++# define __le32_to_cpus(x) do {} while (0)
++# define __le64_to_cpus(x) do {} while (0)
++# define __cpu_to_le16s(x) do {} while (0)
++# define __cpu_to_le32s(x) do {} while (0)
++# define __cpu_to_le64s(x) do {} while (0)
++
++# define __be16_to_cpu(x) __swab16((__force __u16)(__be16)(x))
++# define __be32_to_cpu(x) __swab32((__force __u32)(__be32)(x))
++# define __be64_to_cpu(x) __swab64((__force __u64)(__be64)(x))
++# define __cpu_to_be16(x) ((__force __be16)__swab16((x)))
++# define __cpu_to_be32(x) ((__force __be32)__swab32((x)))
++# define __cpu_to_be64(x) ((__force __be64)__swab64((x)))
++# define __be16_to_cpus(x) __swab16s((x))
++# define __be32_to_cpus(x) __swab32s((x))
++# define __be64_to_cpus(x) __swab64s((x))
++# define __cpu_to_be16s(x) __swab16s((x))
++# define __cpu_to_be32s(x) __swab32s((x))
++# define __cpu_to_be64s(x) __swab64s((x))
++#endif
++
++#ifdef __BIG_ENDIAN
++# define __be16_to_cpu(x) ((__force __u16)(__be16)(x))
++# define __be32_to_cpu(x) ((__force __u32)(__be32)(x))
++# define __be64_to_cpu(x) ((__force __u64)(__be64)(x))
++# define __cpu_to_be16(x) ((__force __be16)(__u16)(x))
++# define __cpu_to_be32(x) ((__force __be32)(__u32)(x))
++# define __cpu_to_be64(x) ((__force __be64)(__u64)(x))
++# define __be16_to_cpus(x) do {} while (0)
++# define __be32_to_cpus(x) do {} while (0)
++# define __be64_to_cpus(x) do {} while (0)
++# define __cpu_to_be16s(x) do {} while (0)
++# define __cpu_to_be32s(x) do {} while (0)
++# define __cpu_to_be64s(x) do {} while (0)
++
++# define __le16_to_cpu(x) __swab16((__force __u16)(__le16)(x))
++# define __le32_to_cpu(x) __swab32((__force __u32)(__le32)(x))
++# define __le64_to_cpu(x) __swab64((__force __u64)(__le64)(x))
++# define __cpu_to_le16(x) ((__force __le16)__swab16((x)))
++# define __cpu_to_le32(x) ((__force __le32)__swab32((x)))
++# define __cpu_to_le64(x) ((__force __le64)__swab64((x)))
++# define __le16_to_cpus(x) __swab16s((x))
++# define __le32_to_cpus(x) __swab32s((x))
++# define __le64_to_cpus(x) __swab64s((x))
++# define __cpu_to_le16s(x) __swab16s((x))
++# define __cpu_to_le32s(x) __swab32s((x))
++# define __cpu_to_le64s(x) __swab64s((x))
++#endif
++
++/*
++ * These helpers could be phased out over time as the base version
++ * handles constant folding.
++ */
++#define __constant_htonl(x) __cpu_to_be32((x))
++#define __constant_ntohl(x) __be32_to_cpu((x))
++#define __constant_htons(x) __cpu_to_be16((x))
++#define __constant_ntohs(x) __be16_to_cpu((x))
++
++#define __constant_le16_to_cpu(x) __le16_to_cpu((x))
++#define __constant_le32_to_cpu(x) __le32_to_cpu((x))
++#define __constant_le64_to_cpu(x) __le64_to_cpu((x))
++#define __constant_be16_to_cpu(x) __be16_to_cpu((x))
++#define __constant_be32_to_cpu(x) __be32_to_cpu((x))
++#define __constant_be64_to_cpu(x) __be64_to_cpu((x))
++
++#define __constant_cpu_to_le16(x) __cpu_to_le16((x))
++#define __constant_cpu_to_le32(x) __cpu_to_le32((x))
++#define __constant_cpu_to_le64(x) __cpu_to_le64((x))
++#define __constant_cpu_to_be16(x) __cpu_to_be16((x))
++#define __constant_cpu_to_be32(x) __cpu_to_be32((x))
++#define __constant_cpu_to_be64(x) __cpu_to_be64((x))
++
++static inline __u16 __le16_to_cpup(const __le16 *p)
++{
++#ifdef __LITTLE_ENDIAN
++	return (__force __u16)*p;
++#else
++	return __swab16p((__force __u16 *)p);
++#endif
++}
++
++static inline __u32 __le32_to_cpup(const __le32 *p)
++{
++#ifdef __LITTLE_ENDIAN
++	return (__force __u32)*p;
++#else
++	return __swab32p((__force __u32 *)p);
++#endif
++}
++
++static inline __u64 __le64_to_cpup(const __le64 *p)
++{
++#ifdef __LITTLE_ENDIAN
++	return (__force __u64)*p;
++#else
++	return __swab64p((__force __u64 *)p);
++#endif
++}
++
++static inline __le16 __cpu_to_le16p(const __u16 *p)
++{
++#ifdef __LITTLE_ENDIAN
++	return (__force __le16)*p;
++#else
++	return (__force __le16)__swab16p(p);
++#endif
++}
++
++static inline __le32 __cpu_to_le32p(const __u32 *p)
++{
++#ifdef __LITTLE_ENDIAN
++	return (__force __le32)*p;
++#else
++	return (__force __le32)__swab32p(p);
++#endif
++}
++
++static inline __le64 __cpu_to_le64p(const __u64 *p)
++{
++#ifdef __LITTLE_ENDIAN
++	return (__force __le64)*p;
++#else
++	return (__force __le64)__swab64p(p);
++#endif
++}
++
++static inline __u16 __be16_to_cpup(const __be16 *p)
++{
++#ifdef __BIG_ENDIAN
++	return (__force __u16)*p;
++#else
++	return __swab16p((__force __u16 *)p);
++#endif
++}
++
++static inline __u32 __be32_to_cpup(const __be32 *p)
++{
++#ifdef __BIG_ENDIAN
++	return (__force __u32)*p;
++#else
++	return __swab32p((__force __u32 *)p);
++#endif
++}
++
++static inline __u64 __be64_to_cpup(const __be64 *p)
++{
++#ifdef __BIG_ENDIAN
++	return (__force __u64)*p;
++#else
++	return __swab64p((__force __u64 *)p);
++#endif
++}
++
++static inline __be16 __cpu_to_be16p(const __u16 *p)
++{
++#ifdef __BIG_ENDIAN
++	return (__force __be16)*p;
++#else
++	return (__force __be16)__swab16p(p);
++#endif
++}
++
++static inline __be32 __cpu_to_be32p(const __u32 *p)
++{
++#ifdef __BIG_ENDIAN
++	return (__force __be32)*p;
++#else
++	return (__force __be32)__swab32p(p);
++#endif
++}
++
++static inline __be64 __cpu_to_be64p(const __u64 *p)
++{
++#ifdef __BIG_ENDIAN
++	return (__force __be64)*p;
++#else
++	return (__force __be64)__swab64p(p);
++#endif
++}
++
++#ifdef __KERNEL__
++
++# define le16_to_cpu __le16_to_cpu
++# define le32_to_cpu __le32_to_cpu
++# define le64_to_cpu __le64_to_cpu
++# define be16_to_cpu __be16_to_cpu
++# define be32_to_cpu __be32_to_cpu
++# define be64_to_cpu __be64_to_cpu
++# define cpu_to_le16 __cpu_to_le16
++# define cpu_to_le32 __cpu_to_le32
++# define cpu_to_le64 __cpu_to_le64
++# define cpu_to_be16 __cpu_to_be16
++# define cpu_to_be32 __cpu_to_be32
++# define cpu_to_be64 __cpu_to_be64
++
++# define le16_to_cpup __le16_to_cpup
++# define le32_to_cpup __le32_to_cpup
++# define le64_to_cpup __le64_to_cpup
++# define be16_to_cpup __be16_to_cpup
++# define be32_to_cpup __be32_to_cpup
++# define be64_to_cpup __be64_to_cpup
++# define cpu_to_le16p __cpu_to_le16p
++# define cpu_to_le32p __cpu_to_le32p
++# define cpu_to_le64p __cpu_to_le64p
++# define cpu_to_be16p __cpu_to_be16p
++# define cpu_to_be32p __cpu_to_be32p
++# define cpu_to_be64p __cpu_to_be64p
++
++# define le16_to_cpus __le16_to_cpus
++# define le32_to_cpus __le32_to_cpus
++# define le64_to_cpus __le64_to_cpus
++# define be16_to_cpus __be16_to_cpus
++# define be32_to_cpus __be32_to_cpus
++# define be64_to_cpus __be64_to_cpus
++# define cpu_to_le16s __cpu_to_le16s
++# define cpu_to_le32s __cpu_to_le32s
++# define cpu_to_le64s __cpu_to_le64s
++# define cpu_to_be16s __cpu_to_be16s
++# define cpu_to_be32s __cpu_to_be32s
++# define cpu_to_be64s __cpu_to_be64s
++
++/*
++ * They have to be macros in order to do the constant folding
++ * correctly - if the argument passed into a inline function
++ * it is no longer constant according to gcc..
++ */
++# undef ntohl
++# undef ntohs
++# undef htonl
++# undef htons
++
++# define ___htonl(x) __cpu_to_be32(x)
++# define ___htons(x) __cpu_to_be16(x)
++# define ___ntohl(x) __be32_to_cpu(x)
++# define ___ntohs(x) __be16_to_cpu(x)
++
++# define htonl(x) ___htonl(x)
++# define ntohl(x) ___ntohl(x)
++# define htons(x) ___htons(x)
++# define ntohs(x) ___ntohs(x)
++
++static inline void le16_add_cpu(__le16 *var, u16 val)
++{
++	*var = cpu_to_le16(le16_to_cpup(var) + val);
++}
++
++static inline void le32_add_cpu(__le32 *var, u32 val)
++{
++	*var = cpu_to_le32(le32_to_cpup(var) + val);
++}
++
++static inline void le64_add_cpu(__le64 *var, u64 val)
++{
++	*var = cpu_to_le64(le64_to_cpup(var) + val);
++}
++
++static inline void be16_add_cpu(__be16 *var, u16 val)
++{
++	*var = cpu_to_be16(be16_to_cpup(var) + val);
++}
++
++static inline void be32_add_cpu(__be32 *var, u32 val)
++{
++	*var = cpu_to_be32(be32_to_cpup(var) + val);
++}
++
++static inline void be64_add_cpu(__be64 *var, u64 val)
++{
++	*var = cpu_to_be64(be64_to_cpup(var) + val);
++}
++
++#endif /* __KERNEL__ */
++#endif /* _LINUX_BYTEORDER_H */
 -- 
 1.5.6.rc0.277.g804cf
