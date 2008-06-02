@@ -1,38 +1,60 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [patch 01/41] cpu_alloc: Increase percpu area size to 128k
-Date: Tue, 3 Jun 2008 09:48:25 +1000
-Message-ID: <200806030948.25448.rusty@rustcorp.com.au>
-References: <20080530035620.587204923@sgi.com> <20080530040010.806208523@sgi.com> <1FE6DD409037234FAB833C420AA843EC0177822B@orsmsx424.amr.corp.intel.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch 1/5] x86: implement pte_special
+Date: Mon, 2 Jun 2008 16:58:47 -0700
+Message-ID: <20080602165847.dd19ddb1.akpm@linux-foundation.org>
+References: <20080529122050.823438000@nick.local0.net>
+	<20080529122602.062780000@nick.local0.net>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:41738 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753291AbYFBXv1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Jun 2008 19:51:27 -0400
-In-Reply-To: <1FE6DD409037234FAB833C420AA843EC0177822B@orsmsx424.amr.corp.intel.com>
-Content-Disposition: inline
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:34497 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754110AbYFBX7D (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 19:59:03 -0400
+In-Reply-To: <20080529122602.062780000@nick.local0.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: Christoph Lameter <clameter@sgi.com>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Mike Travis <travis@sgi.com>
+To: npiggin@suse.de
+Cc: shaggy@austin.ibm.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, apw@shadowen.org
 
-On Tuesday 03 June 2008 03:58:17 Luck, Tony wrote:
-> > The per cpu allocator requires more per cpu space and we are already near
-> > the limit on IA64. Increase the maximum size of the IA64 per cpu area
-> > from 64K to 128K.
-> >
-> > -#define PERCPU_PAGE_SHIFT	16	/* log2() of max. size of per-CPU area */
-> > +#define PERCPU_PAGE_SHIFT	17	/* log2() of max. size of per-CPU area */
->
-> Don't you need some more changes to the alt_dtlb_miss handler in
-> ivt.S for this to work?  128K is not a supported pagesize on any
-> processor model.
+On Thu, 29 May 2008 22:20:51 +1000
+npiggin@suse.de wrote:
 
-Yes, this was one of the issues with IA64 and extending the per-cpu area.  
-It's probable that the IA64 TLB nailing trick might have to give way for 
-dynamic per-cpu...
+> Implement the pte_special bit for x86. This is required to support lockless
+> get_user_pages, because we need to know whether or not we can refcount a
+> particular page given only its pte (and no vma).
 
-Rusty.
+Spits this reject:
+
+***************
+*** 39,44 ****
+  #define _PAGE_UNUSED3	(_AC(1, L)<<_PAGE_BIT_UNUSED3)
+  #define _PAGE_PAT	(_AC(1, L)<<_PAGE_BIT_PAT)
+  #define _PAGE_PAT_LARGE (_AC(1, L)<<_PAGE_BIT_PAT_LARGE)
+  
+  #if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
+  #define _PAGE_NX	(_AC(1, ULL) << _PAGE_BIT_NX)
+--- 40,47 ----
+  #define _PAGE_UNUSED3	(_AC(1, L)<<_PAGE_BIT_UNUSED3)
+  #define _PAGE_PAT	(_AC(1, L)<<_PAGE_BIT_PAT)
+  #define _PAGE_PAT_LARGE (_AC(1, L)<<_PAGE_BIT_PAT_LARGE)
++ #define _PAGE_SPECIAL	(_AC(1, L)<<_PAGE_BIT_SPECIAL)
++ #define __HAVE_ARCH_PTE_SPECIAL
+  
+  #if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
+  #define _PAGE_NX	(_AC(1, ULL) << _PAGE_BIT_NX)
+
+Which I fixed thusly:
+
+#define _PAGE_PAT	(_AT(pteval_t, 1) << _PAGE_BIT_PAT)
+#define _PAGE_PAT_LARGE (_AT(pteval_t, 1) << _PAGE_BIT_PAT_LARGE)
+#define _PAGE_SPECIAL	(_AT(pteval_t, 1) << _PAGE_BIT_SPECIAL)
+#define __HAVE_ARCH_PTE_SPECIAL
+
+
+OK?
+
+
+(Also please check the bunch of checkpatch fixes, a warning fix and a
+compile fix).
