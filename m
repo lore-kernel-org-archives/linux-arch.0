@@ -1,32 +1,39 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: RE: [patch 01/41] cpu_alloc: Increase percpu area size to 128k
-Date: Mon, 2 Jun 2008 10:58:17 -0700
-Message-ID: <1FE6DD409037234FAB833C420AA843EC0177822B@orsmsx424.amr.corp.intel.com>
-References: <20080530035620.587204923@sgi.com> <20080530040010.806208523@sgi.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCHv4 6/6] byteorder: add copy_{endian} helpers
+Date: Mon, 2 Jun 2008 21:15:03 +0200 (CEST)
+Message-ID: <Pine.LNX.4.64.0806022038400.6262@anakin>
+References: <1212428244.11008.40.camel@brick>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:56433 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753424AbYFBR6S convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 13:58:18 -0400
-Content-class: urn:content-classes:message
-In-Reply-To: <20080530040010.806208523@sgi.com>
+Received: from edna.telenet-ops.be ([195.130.132.58]:34263 "EHLO
+	edna.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750788AbYFBTPJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2008 15:15:09 -0400
+In-Reply-To: <1212428244.11008.40.camel@brick>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <clameter@sgi.com>, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Eric Dumazet <dada1@cosmosbay.com>, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, Mike Travis <travis@sgi.com>
+To: Harvey Harrison <harvey.harrison@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <rmk@arm.linux.org.uk>, "tony.luck" <tony.luck@intel.com>
 
-> The per cpu allocator requires more per cpu space and we are already near
-> the limit on IA64. Increase the maximum size of the IA64 per cpu area from
-> 64K to 128K.
+On Mon, 2 Jun 2008, Harvey Harrison wrote:
+> Add helpers for the idiom:
+> *(__le16 *)ptr = cpu_to_le16(val);
+> 
+> Can now be written as:
+> copy_le16(ptr, val);
 
-> -#define PERCPU_PAGE_SHIFT	16	/* log2() of max. size of per-CPU area */
-> +#define PERCPU_PAGE_SHIFT	17	/* log2() of max. size of per-CPU area */
+Copy a little endian 16-bit value?
 
-Don't you need some more changes to the alt_dtlb_miss handler in
-ivt.S for this to work?  128K is not a supported pagesize on any
-processor model.
+It doesn't just copy. It does a byteswap during the copy.
 
--Tony
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
